@@ -1,0 +1,232 @@
+<?php
+
+/**
+ * ProcessWire User Process
+ *
+ * Manage, edit add users in ProcessWire. 
+ * 
+ * For more details about how Process modules work, please see: 
+ * /wire/core/Process.php 
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class ProcessUser extends Process {
+
+	static public function getModuleInfo() {
+		return array(
+			'title' => 'Users',
+			'version' => 100, 
+			'summary' => 'Modify or add users and assign roles to them', 
+			'permanent' => true, 
+			); 
+	}
+
+	public function init() {
+		$this->fuel->breadcrumbs->add(new Breadcrumb('list', 'Users')); 
+		parent::init();
+	}
+
+	public function ___execute() {
+		return $this->executeList();
+	}
+
+	public function ___executeList() {
+		$users = $this->users;
+		return $this->renderList($users);
+	}
+
+	public function ___executeEdit($user = null, $form = null) {
+		if(is_null($user)) $user = isset($_GET['id']) ? $this->users->get((int) $_GET['id']) : new User();	
+		$this->setFuel('processHeadline', "Edit User: {$user->name}"); 
+		if(is_null($form)) $form = $this->buildEditForm($user); 
+		return $form->render();
+	}
+
+	public function ___executeAdd() {
+		$out = $this->executeEdit(); 
+		$this->setFuel('processHeadline', 'Add User'); 
+		return $out; 
+	}
+
+	/**
+	 * Save the Edit User form
+	 *
+	 */
+	public function ___executeSave() {
+
+		if(!isset($_POST['id'])) $this->session->redirect("list"); 
+		$id = (int) $_POST['id'];
+		$user = $id ? $this->users->get($id) : new User(); 
+		$user->setTrackChanges(true); 
+
+		$form = $this->buildEditForm($user);
+		$form->processInput($this->input->post); 
+
+		if(isset($_POST['delete']) && $_POST['delete'] == $user->id) {
+			$this->session->message("Deleted user: {$user->name}"); 
+			$this->users->delete($user); 
+			$this->session->redirect("./list"); 
+		}
+
+		$field = $form->get('name'); 
+		if($field->value != $user->name) {
+			$user->name = $field->value; 
+			if($user->id) $this->message("Changed username for User: {$user->name}"); 
+		}
+
+		$field = $form->get('pass'); 
+		if($field->value) { 
+			$user->pass = $field->value; 
+			if($user->id) $this->message("Changed password for User: {$user->name}"); 
+			$field->attr('value', ''); // don't echo back changed passwords
+		}
+
+		$field = $form->get('roles'); 
+		foreach($user->roles as $role) {
+			if(!in_array($role->id, $field->value)) {
+				$user->roles->remove($role); 
+				$this->message("Removed role: $role"); 
+			}
+		}
+		foreach($field->value as $role_id) {
+			$role_id = (int) $role_id; 
+			if($user->hasRole($role_id)) continue; 
+			if($role = $this->roles->get($role_id)) { 
+				$user->addRole($role); 
+				$this->message("Added role: $role"); 
+			}
+		}
+
+		if($user->id) {
+			$user->save(); 
+			$this->message("Saved User: {$user->name}"); 
+		} else { 
+			$user->save();
+			$this->session->message("Added User: {$user->name}");
+			$this->session->redirect("./list"); 
+		}
+
+		return $this->executeEdit($user, $form); 
+	}
+
+	protected function buildEditForm(User $user) {
+
+		$form = $this->modules->get('InputfieldForm'); 
+		$form->attr('method', 'post'); 
+		$form->attr('action', './save'); 
+
+		$field = $this->modules->get('InputfieldName'); 
+		$field->attr('value', $user->name); 
+		$form->append($field); 
+
+		$field = $this->modules->get('InputfieldText'); 
+		$field->attr('name', 'pass'); 
+		if($user->id) {
+			$field->label = 'Change Password';
+			$field->collapsed = Inputfield::collapsedYes; 
+			$field->description = "Enter a new password";
+		} else {
+			$field->label = 'Password';
+			$field->required = true; 
+		}
+		$field->attr('value', ''); 
+		$field->attr('size', 30); 
+		$form->append($field); 
+
+		$field = $this->modules->get('InputfieldCheckboxes'); 
+		$field->attr('name', 'roles'); 
+		$field->label = 'Roles';
+		$values = array();
+		foreach($this->getRoleOptions() as $role) {
+			$field->addOption($role->id, $role->name); 
+			if($user->hasRole($role)) $values[] = $role->id; 
+		}
+		$field->attr('value', $values); 
+		$field->description = "Check the roles that this user should belong to. Note that all users belong to the 'guest' role automatically.";
+		$form->append($field); 
+
+		if($user->id && !$user->isPermanent()) {
+			$field = $this->modules->get("InputfieldCheckbox"); 
+			$field->attr('name', 'delete'); 
+			$field->attr('value', $user->id); 
+			$field->label = 'Delete this user'; 
+			$field->collapsed = Inputfield::collapsedYes; 
+			$form->append($field); 
+		}
+
+		$field = $this->modules->get('InputfieldHidden'); 
+		$field->attr('name', 'id'); 
+		$field->attr('value', $user->id); 
+		$form->append($field); 
+
+		$field = $this->modules->get('InputfieldSubmit'); 
+		$form->append($field); 
+
+		return $form; 
+	}
+
+	protected function getRoleOptions() {
+		$roles = array();
+		foreach($this->roles as $role) {
+			// guest and owner roles are asssigned at runtime, so skip them
+			if(in_array($role->id, array(Role::guestRoleID, Role::ownerRoleID))) continue; 
+			$roles[] = $role;
+		}
+		return $roles; 
+	}
+
+	protected function renderList(Users $users) {
+
+		$form = $this->modules->get("InputfieldForm"); 
+		$form->attr('id', 'role_filter_form'); 
+		$form->attr('method', 'get'); 
+		$form->attr('action', './list'); 
+
+		$field = $this->modules->get("InputfieldSelect"); 
+		$field->attr('id+name', 'role_id'); 
+		$field->label = 'Filter by Role'; 
+		$field->addOption('', 'Show All'); 
+		$field->collapsed = Inputfield::collapsedBlank;
+
+		foreach($this->getRoleOptions() as $role) $field->addOption($role->id, $role->name); 
+
+		if(isset($_GET['role_id'])) $this->session->ProcessUserListRoleID = (int) $_GET['role_id']; 
+		$field->attr('value', (int) $this->session->ProcessUserListRoleID); 
+		$form->append($field); 
+
+		$table = $this->modules->get("MarkupAdminDataTable"); 
+		$table->headerRow(array(
+			'User', 
+			'Roles'
+			)); 
+
+		foreach($users as $user) {
+
+			if($this->session->ProcessUserListRoleID && !$user->hasRole($this->session->ProcessUserListRoleID)) continue; 
+			$roles = '';
+			foreach($user->roles as $role) $roles .= "$role, ";
+
+			$table->row(array(
+				$user->name => "edit?id={$user->id}", 
+				trim($roles, ', ')
+				)); 
+		}
+
+		$table->action(array('Add User' => 'add')); 
+
+		if($this->session->ProcessUserListRoleID) {
+			$this->setFuel('processHeadline', $this->roles->get($this->session->ProcessUserListRoleID) . " Users"); 
+		} else $this->setFuel('processHeadline', 'All Users'); 
+
+		return $form->render() . $table->render();
+	}
+	
+}
+

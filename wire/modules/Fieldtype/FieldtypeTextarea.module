@@ -1,0 +1,84 @@
+<?php
+
+/**
+ * ProcessWire Textarea Fieldtype
+ *
+ * Stores a large block of multi-line text.
+ *
+ * For documentation about the fields used in this class, please see:  
+ * /wire/core/Fieldtype.php
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class FieldtypeTextarea extends FieldtypeText {
+
+	/**
+	 * The default Inputfield class associated with this Fieldtype
+	 *
+	 */
+	const defaultInputfieldClass = 'InputfieldTextarea';
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Textarea',
+			'version' => 100,
+			'summary' => 'Field that stores multiple lines of text',
+			'permanent' => true, 
+			);
+	}
+
+	public function init() {
+		$this->set('inputfieldClass', self::defaultInputfieldClass); 
+		parent::init();
+	}
+
+	public function sanitizeValue(Page $page, Field $field, $value) {
+		return parent::sanitizeValue($page, $field, $value); 
+	}
+
+	public function getInputfield(Page $page, Field $field) {
+		$inputfield = $this->modules->get($field->inputfieldClass ? $field->inputfieldClass : self::defaultInputfieldClass); 
+		$inputfield->class = $this->className();
+		return $inputfield; 
+	}
+
+	public function getDatabaseSchema(Field $field) {
+		$schema = parent::getDatabaseSchema($field); 
+		$schema['data'] = 'mediumtext NOT NULL';
+		$schema['keys']['data'] = 'FULLTEXT KEY data (data)'; 
+		return $schema;
+	}
+
+	public function ___getConfigInputfields(Field $field) {
+
+		$inputfields = parent::___getConfigInputfields($field);
+		$f= $this->modules->get('InputfieldSelect');
+		$f->attr('name', 'inputfieldClass'); 
+		$f->attr('value', $field->inputfieldClass ? $field->inputfieldClass : self::defaultInputfieldClass); 
+		$f->label = 'Inputfield Type';
+		$f->description = 
+			"The type of field that will be used to collect input (Textarea is the default). " . 
+			"Note that if you change this and submit, the available configuration options in " . 
+			"the 'Inputfield Settings' section below may change.";
+		$f->required = true; 
+
+		$baseClass = "InputfieldTextarea";
+		foreach($this->fuel('modules')->find("class^=Inputfield") as $fm) {
+			if("$fm" == $baseClass || is_subclass_of("$fm", $baseClass)) 
+				$f->addOption("$fm", str_replace("Inputfield", '', "$fm")); 
+		}
+
+		$inputfields->append($f); 	
+
+		return $inputfields; 
+	}
+
+}
+

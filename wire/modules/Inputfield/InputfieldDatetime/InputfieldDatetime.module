@@ -1,0 +1,98 @@
+<?php
+
+/**
+ * An Inputfield for handling ProcessWire "name" fields
+ *
+ */
+class InputfieldDatetime extends Inputfield {
+
+	const defaultDateInputFormat = 'm/d/Y';
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Datetime',
+			'version' => 100,
+			'summary' => 'Inputfield that accepts date and optionally time',
+			'permanent' => true, 
+			);
+	}
+
+	public function init() {
+		$this->attr('type', 'text'); 
+		$this->attr('size', 15); 
+		$this->set('dateInputFormat', self::defaultDateInputFormat); 
+		$this->set('datepicker', 0); 
+		$this->set('defaultToday', 0); 
+		parent::init();
+	}
+
+	public function ___render() {
+		if($this->datepicker) $this->attr('class', 'InputfieldDatetimeDatepicker'); 
+		$attrs = $this->getAttributes();
+		$value = $attrs['value'];
+		unset($attrs['value']); 
+		if(!$value && $this->defaultToday) $value = date($this->dateInputFormat); // rather than time() so that it's rounded wihtout hours
+			else if($value && $this->dateInputFormat) $value = date($this->dateInputFormat, (int) $value); 
+		$value = htmlspecialchars($value, ENT_QUOTES); 
+		if(empty($value)) $value = '';
+		$out = "\n<p><input " . $this->getAttributesString($attrs) . " value='$value' /></p>"; 
+		return $out; 
+	}
+
+	public function setAttribute($key, $value) {
+		if($key == 'value') {
+			if($value && !ctype_digit("$value")) $value = strtotime($value); 
+			if(empty($value)) $value = '';
+		}
+		return parent::setAttribute($key, $value); 
+	}
+
+	public function ___getConfigInputfields() {
+		$inputfields = parent::___getConfigInputfields();
+
+		$f = $this->modules->get('InputfieldInteger');
+		$f->setAttribute('name', 'size'); 
+		$f->label = 'Size';
+		$f->attr('value', $this->attr('size')); 
+		$f->attr('size', 4); 
+		$f->description = 'The displayed width of this field (in characters).'; 
+		$inputfields->append($f);
+
+		$f = $this->modules->get("InputfieldText");
+		$f->attr('name', 'dateInputFormat');
+		$f->attr('value', $this->dateInputFormat); 
+		$f->attr('size', 20); 
+		$f->label = "Date input format";
+		$f->description =
+			"The formatting string used by PHP's date() function to format a date in the input field (only). " . 
+			"The user may enter the date in any known format, but the format entered here is what will " . 
+			"be displayed in the input field when making edits. "; 
+		$f->notes = 
+			"If using this field to hold time in addition to date, make sure " . 
+			"to include a time component here. For example, 'm/d/Y' would result in a format of '10/10/2010', " . 
+			"whereas 'm/d/Y H:i' would result in a format of '10/10/2010 17:40'. See PHP's date() function reference for more.";
+		$inputfields->append($f);
+
+		$f= $this->modules->get('InputfieldCheckbox');
+		$f->setAttribute('name', 'datepicker'); 
+		$f->attr('value', 1); 
+		if($this->datepicker) $f->attr('checked', 'checked'); 
+		$f->label = 'Use a date picker?';
+		$f->description = 
+			"If checked, a calendar date picker will appear allowing a date to be selected rather than just entered. " . 
+			"Note that the date picker may populate the field in a universal date format different from the one you have chosen, " . 
+			"but it will be converted when the user saves the page."; 
+		$inputfields->append($f);
+
+		$f= $this->modules->get('InputfieldCheckbox');
+		$f->setAttribute('name', 'defaultToday'); 
+		$f->attr('value', 1); 
+		if($this->defaultToday) $f->attr('checked', 'checked'); 
+		$f->label = "Default to today's date?";
+		$f->description = "If checked, this field will hold the current date when no value is entered.";
+		$inputfields->append($f);
+
+		return $inputfields; 
+	}
+	
+}

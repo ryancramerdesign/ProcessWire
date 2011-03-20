@@ -1,0 +1,34 @@
+<?php
+
+/**
+ * An Inputfield for handling ProcessWire "name" fields
+ *
+ */
+class InputfieldPageName extends InputfieldName {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Page Name',
+			'version' => 100,
+			'summary' => 'Text input validated as a ProcessWire Page name field',
+			'permanent' => true, 
+			);
+	}
+
+	public function init() {
+		parent::init();
+		$this->label = 'Name';
+		$this->set('parentPage', null); 
+		$this->set('sanitizeMethod', 'pageName');
+		$this->description = "Any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces).";
+	}
+
+	public function ___render() {
+
+		$url = $this->parentPage ? $this->parentPage->path : '';
+		$out = "\n<p class='InputfieldPageNameURL'>$url<strong></strong></p>" . parent::___render();
+
+		return $out; 
+	}
+	
+}

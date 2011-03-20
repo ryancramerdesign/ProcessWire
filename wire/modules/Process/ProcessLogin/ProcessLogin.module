@@ -1,0 +1,113 @@
+<?php
+
+/**
+ * ProcessWire Login Process
+ *
+ * Provides Login capability for ProcessWire Admin 
+ * 
+ * For more details about how Process modules work, please see: 
+ * /wire/core/Process.php 
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class ProcessLogin extends Process {
+
+	protected $nameField;
+	protected $passField; 
+	protected $submitField; 
+	protected $form; 
+	protected $id; 
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Login',          
+			'summary' => 'Login to ProcessWire', 
+			'version' => 100, 
+			'permanent' => true, 
+			);
+	}
+
+	/**
+	 * Build the login form 
+	 *
+	 */
+	public function init() {
+
+		$this->id = isset($_GET['id']) ? (int) $_GET['id'] : ''; 
+
+		$this->nameField = $this->modules->get('InputfieldText');
+		$this->nameField->set('label', 'Username'); 
+		$this->nameField->attr('name', 'login_name'); 
+		$this->nameField->attr('class', $this->className() . 'Name'); 
+
+		$this->passField = $this->modules->get('InputfieldPassword');
+		$this->passField->set('label', 'Password'); 
+		$this->passField->attr('name', 'login_pass'); 
+		$this->passField->attr('class', $this->className() . 'Pass'); 
+
+		$this->submitField = $this->modules->get('InputfieldSubmit');
+		$this->submitField->attr('name', 'login_submit'); 
+		$this->submitField->attr('value', 'Login'); 
+
+		$this->form = $this->modules->get('InputfieldForm');
+		// we'll retain an ID field in the GET url, if it was there
+		$this->form->attr('action', "./" . ($this->id ? "?id={$this->id}" : '')); 
+		$this->form->attr('id', $this->className() . 'Form'); 
+		$this->form->add($this->nameField); 
+		$this->form->add($this->passField); 
+		$this->form->add($this->submitField); 
+
+		return parent::init();
+	}
+
+	/**
+	 * Check if login posted and attempt login, otherwise render the login form
+	 *
+	 */
+	public function ___execute() {
+
+		if($this->user->isLoggedin()) {
+			$this->message("You are already logged in"); 
+			return '';
+		}
+
+		if(isset($_POST['login_submit'])) $this->form->processInput($this->input->post); 
+
+		if(!$this->nameField->value || !$this->passField->value) return $this->render(); 
+
+		$name = $this->fuel('sanitizer')->username($this->nameField->value); 
+		$pass = substr($this->passField->value, 0, 50); 
+
+		if($this->fuel('session')->login($name, $pass)) {
+			$this->session->message("Successful login for $name"); 
+			$this->session->redirect("./?login=1" . ($this->id ? "&id={$this->id}" : ''));  
+		} else {
+			$this->error("Login failed for $name"); 
+		}
+
+		return $this->render();
+
+	}	
+
+	/**
+	 * Render the login form
+	 *
+	 */
+	protected function render() {
+		if(isset($_GET['login'])) {
+			$this->session->redirect("../"); 
+		} else {
+			$this->setFuel('processHeadline', 'Login'); 
+			return $this->form->render();
+		}
+	}
+
+}
+

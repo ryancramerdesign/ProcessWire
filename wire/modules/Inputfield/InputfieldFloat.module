@@ -1,0 +1,23 @@
+<?php
+
+class InputfieldFloat extends InputfieldInteger {
+	
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Float',
+			'version' => 100,
+			'summary' => 'Floating point number with precision',
+			'permanent' => true, 
+			);
+	}
+
+	public function __construct() {
+		$this->set('precision', 2); 
+		parent::__construct();
+	}
+
+	protected function sanitizeValue($value) {
+		return strlen("$value") ? round((float) $value, $this->precision) : '';
+	}
+
+}

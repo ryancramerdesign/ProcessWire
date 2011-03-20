@@ -1,0 +1,300 @@
+<?php
+
+/**
+ * ProcessWire Page Fieldtype
+ *
+ * Field that stories references to one or more ProcessWire pages. 
+ *
+ * For documentation about the fields used in this class, please see:  
+ * /wire/core/Fieldtype.php
+ * /wire/core/FieldtypeMulti.php
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class FieldtypePage extends FieldtypeMulti {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Page Reference',
+			'version' => 100,
+			'summary' => 'Field that stores one or more references to ProcessWire pages',
+			'permanent' => true, 
+			);
+	}
+
+	/**	
+	 * Setup a hook to Pages::delete so that we can remove references when pages are deleted
+	 *
+	 */
+	public function init() {
+		$pages = $this->getFuel('pages');
+		$pages->addHookAfter('delete', $this, 'hookPagesDelete');
+	}
+
+	/**
+	 * FieldtypePage instances are only compatible with other FieldtypePage derived classes. 
+	 *
+	 */
+	public function ___getCompatibleFieldtypes(Field $field) {
+		$fieldtypes = parent::___getCompatibleFieldtypes($field); 
+		foreach($fieldtypes as $type) if(!$type instanceof FieldtypePage) $fieldtypes->remove($type); 
+		return $fieldtypes; 
+	}
+
+	/**
+	 * Delete any records that are referencing the page that was deleted
+	 *
+	 */
+	public function hookPagesDelete($event) {
+		if(!$event->return) return; // if delete failed, then don't continue
+		$page_id = $event->arguments[0]->id; 
+		foreach($this->fuel('fields') as $field) {
+			if(!$field->type instanceof FieldtypePage) continue; 
+			$sql = "DELETE FROM `{$field->table}` WHERE data='$page_id'";
+			$this->db->query($sql); 
+		}	
+	}
+
+	/**
+	 * We want FieldtypePage to autoload so that it can monitor page deletes
+	 *
+	 */
+	public function isAutoload() {
+		return true; 
+	}
+
+	/**
+	 * Return an InputfieldPage of the type configured
+	 *
+	 */
+	public function getInputfield(Page $page, Field $field) {
+		$inputfield = $this->fuel('modules')->get("InputfieldPage"); 
+		$inputfield->class = $this->className();
+		return $inputfield; 
+	}
+
+        /**
+         * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
+	 *
+         * @param Page $page
+         * @param Field $field
+         * @param string|int|array $value
+         * @return string|int|array|object $value
+         *
+         */
+        public function ___wakeupValue(Page $page, Field $field, $value) {
+
+		if($field->derefAsPage) {
+			if(!$value) return false;
+			if($value instanceof Page) return $value; 	
+			if($value instanceof PageArray) return $value->first();
+		} else {
+			if($value instanceof PageArray) return $value; 
+			$pageArray = $this->getBlankValue($page, $field); 
+			if(empty($value)) return $pageArray; 
+		}
+
+		if(!is_array($value)) $value = array($value); 
+
+		// this section replaced the commented one below
+		if($field->derefAsPage) {
+			$pg = false;
+			if(count($value)) $pg = $this->fuel('pages')->get((int) reset($value)); 
+			if($pg && $pg->status >= Page::statusUnpublished) $pg = false;
+			return $pg; 
+		} else {
+			$pageArray = $this->fuel('pages')->getById($value); 
+			foreach($pageArray as $pg) {
+				if($pg->status >= Page::statusUnpublished) $pageArray->remove($pg); 
+			}
+			$pageArray->resetTrackChanges(); 
+			return $pageArray; 
+		}
+
+		/*
+		foreach($value as $v) {
+			if($pg = $this->fuel('pages')->get((int) $v)) {
+				if($field->derefAsPage) break;
+				$pageArray->add($pg); 
+			}
+		}
+		if($field->derefAsPage) return $pg;
+		$pageArray->resetTrackChanges(); 
+		$pageArray->setTotal(count($pageArray)); 
+                return $pageArray;  
+		*/
+        }
+
+        /**
+         * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
+         *              
+         * @param Page $page
+         * @param Field $field
+         * @param string|int|array|object $value
+         * @return string|int
+         *
+         */
+        public function ___sleepValue(Page $page, Field $field, $value) {
+		$sleepValue = array();
+		if($field->derefAsPage) {
+			if(!$value instanceof Page) return $sleepValue; 
+			$sleepValue[] = $value->id; 
+		} else {
+			if(!$value instanceof PageArray) return $sleepValue; 
+			foreach($value as $pg) {
+				$sleepValue[] = $pg->id; 
+			}
+		}
+		return $sleepValue;
+        }
+
+	/**
+	 * Return either a blank Page or a blank PageArray
+	 *
+	 */
+	public function getBlankValue(Page $page, Field $field) {
+		if($field->derefAsPage) return false;
+		$pageArray = new PageArray();
+		$pageArray->setTrackChanges(true);
+		return $pageArray;
+	}
+
+	/**
+	 * Given a string value return either a Page or PageArray
+	 *	
+	 * @param Page $page
+	 * @param Field $field
+	 * @param string $value
+	 * return Page|PageArray
+	 *
+	 */
+	protected function sanitizeValueString(Page $page, Field $field, $value) {
+
+		$selector = '';
+		$result = false;
+
+		if(Selectors::stringHasOperator($value)) {
+			$selector = $value; 
+			$inputfield = $field->getInputfield($page); 
+			$selectablePages = $inputfield->getSelectablePages($page); 
+			$result = $selectablePages->filter($selector); 
+
+		} else if(ctype_digit("$value")) {
+			$result = $this->pages->get("id=" . $value); 
+
+		} else if(strlen($value) && $value[0] == '/') {
+			$result = $this->pages->get($value); 
+		}
+
+		return $result; 
+	}
+
+	/**
+	 * Given a value of unknown type, return a Page or PageArray (depending on $field-derefAsPage setting)
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @param Page|PageArray|string|int $value
+	 * @return Page|PageArray|bool Returns false if value can't be converted to the proper object type.
+	 *
+	 */
+	public function sanitizeValue(Page $page, Field $field, $value) {
+
+		if($field->derefAsPage) {
+
+			if($value instanceof Page) return $value;
+			if($value instanceof PageArray) return $value->first();
+			if(!$value) return false;
+
+			if(is_string($value) || is_int($value)) {
+				$value = $this->sanitizeValueString($page, $field, $value); 
+				if($value instanceof PageArray) $value = $value->first();
+			}
+
+			return $value instanceof Page ? $value : false;
+
+		} else { 
+			if($value instanceof PageArray) return $value; 
+			$pageArray = $page->get($field->name); 
+			if(!$value) return $pageArray; 
+
+			if(is_string($value)) $value = $this->sanitizeValueString($page, $field, $value); 
+			if($value instanceof Page) return $pageArray->add($value); 
+			if($value instanceof PageArray) {
+				foreach($value as $pg) $pageArray->add($pg); 
+				return $pageArray; 
+			}
+			if(!is_array($value)) $value = array($value); 
+			foreach($value as $pg) $pageArray->add($pg); 
+			return $pageArray; 
+		}
+	}
+
+	/**
+	 * Update a DatabaseSelectQuery object to match a Page
+	 *
+	 * @param DatabaseSelectQuery $query
+	 * @param string $table
+	 * @param string $subfield
+	 * @param string $operator
+	 * @param string $value
+	 * @return DatabaseSelectQuery
+	 *
+	 */
+	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
+
+		if(!$this->fuel('db')->isOperator($operator)) throw new WireException("Operator '$operator' is not implemented in {$this->classname}"); 
+		$value = $this->fuel('db')->escape_string($value); 
+
+		// if a page path rather than page ID was provided, then we translate the path to an ID for API syntax convenience
+		if(!ctype_digit("$value")) {
+			if(substr(trim($value), 0, 1) == '/') {
+				// path from root
+				$v = $this->pages->get($value); 
+				if($v && $v->id) $value = $v->id; 
+			}
+		}
+
+		$query->where("($table.{$subfield}{$operator}'$value')"); // pages.id AND $table.pages_id{$operator}'$value')");
+		return $query; 
+	}
+
+	/**
+	 * Return the database schema in predefined format 
+	 *
+	 */
+	public function getDatabaseSchema(Field $field) {
+		$schema = parent::getDatabaseSchema($field); 
+		$schema['data'] = 'int NOT NULL';
+		$schema['keys']['data'] = 'KEY data (data, pages_id, sort)'; 
+		return $schema;
+	}
+
+	/**
+	 * Return configuration fields definable for each FieldtypePage
+	 *
+	 */
+	public function ___getConfigInputfields(Field $field) {
+
+		$inputfields = parent::___getConfigInputfields($field);
+		
+		$select = $this->modules->get("InputfieldRadios"); 
+		$select->attr('name', 'derefAsPage'); 
+		$select->label = 'Dereference in API as';
+		$select->description = "If this field holds only one Page, you should select Page. If it holds multiple Pages, then you should select PageArray.";
+		$select->addOption('0', 'Multiple Pages (PageArray)'); 
+		$select->addOption('1', 'Single Page (Page)'); 
+
+		$select->attr('value', (int) $field->derefAsPage);  
+		$inputfields->append($select);
+		return $inputfields; 
+	}
+}
+

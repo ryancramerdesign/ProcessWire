@@ -1,0 +1,119 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+
+	<script type="text/javascript" src="jquery.js"></script>
+	<script type="text/javascript" src="jquery.ui.js"></script>
+	<script type="text/javascript" src="jquery.color.js"></script>
+	<script type="text/javascript" src="../jquery.asmselect.js"></script>
+
+	<script type="text/javascript">
+
+		$(document).ready(function() {
+
+			$("#cities").asmSelect({
+				addItemTarget: 'top',
+				sortable: true
+			});
+
+			// track changes with our own event
+			$("#cities").change(function(e, data) {
+
+				// add a little note at the top that said what was done
+				$("#changes").prepend("<li>" + data.type + ": " + data.value + "</li>"); 
+
+				// if it's a sort or an add, then give it a little color animation to highlight it
+				if(data.type != 'drop') data.item.animate({ 'backgroundColor': '#ffffcc' }, 20, 'linear', function() {
+					data.item.animate({ 'backgroundColor': '#dddddd' }, 500); 
+				}); 
+			}); 
+
+		}); 
+
+	</script>
+
+	<link rel="stylesheet" type="text/css" href="../jquery.asmselect.css" />
+	<link rel="stylesheet" type="text/css" href="example.css" />
+
+	<style type="text/css">
+		form {
+			width: 400px; 
+			position: relative;
+		}
+
+		#changes {
+			position: absolute;
+			width: 200px; 
+			left: 430px; 
+			background: #fff;
+		}
+	</style>
+
+</head>
+<body>
+	<h1>Example 3: Monitoring Changes to the Select</h1>
+
+	<h3>
+	This example demonstrates how you can catch asmSelect events by attaching a change event to the original select.
+	In this rough example, we setup our change event to highlight manipulated items with a yellow flash of color. 
+	We also record a history of changes in the right column. View the source of this page for details.
+	</h3>
+
+	<form action="./example_results.php" method="post">
+
+		<ul id="changes"></ul>
+
+		<label for="cities">What are your favorite cities?</label>
+		<select id="cities" multiple="multiple" name="cities[]" title="Click to Select a City">
+			<option selected="selected">Amsterdam</option>      
+			<option selected="selected">Atlanta</option>
+			<option>Baltimore</option>
+			<option>Boston</option>
+			<option>Buenos Aires</option>
+			<option>Calgary</option>
+			<option selected="selected">Chicago</option>
+			<option>Denver</option>
+			<option>Dubai</option>
+			<option>Frankfurt</option>
+			<option>Hong Kong</option>
+			<option>Honolulu</option>
+			<option>Houston</option>
+			<option>Kuala Lumpur</option>
+			<option>London</option>
+			<option>Los Angeles</option>
+			<option>Melbourne</option>
+			<option>Mexico City</option>
+			<option>Miami</option>
+			<option>Minneapolis</option>
+			<option>Montreal</option>
+			<option>New York City</option>
+			<option>Paris</option>
+			<option>Philadelphia</option>
+			<option>Rotterdam</option>
+			<option>San Diego</option>
+			<option>San Francisco</option>
+			<option>Sao Paulo</option>
+			<option>Seattle</option>
+			<option>Seoul</option>
+			<option>Shanghai</option>
+			<option>Singapore</option>
+			<option>Sydney</option>
+			<option>Tokyo</option>
+			<option>Toronto</option>
+			<option>Vancouver</option>
+		</select>
+
+		<p><em>You may click and drag cities to order of preference.</em></p>
+
+	</form>
+
+
+	<ul id='footer'>
+		<li><a href="http://code.google.com/p/jquery-asmselect/">asmSelect homepage at Google Code</a></li>
+		<li><a href="http://www.ryancramer.com/journal/entries/select_multiple/">Article: Select multiple form fields - Finding a better solution</a></li>
+	</ul>
+
+	<p class="copyright">&copy; 2008 by <a href="http://www.ryancramer.com">Ryan Cramer</a></p>
+
+</body>
+</html>

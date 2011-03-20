@@ -1,0 +1,58 @@
+<?php
+
+/**
+ * An Inputfield for handling s single checkbox
+ *
+ * Note: if you want a checkbox already checked, you need to add a setAttribute('checked', 'checked'); 
+ *
+ */
+class InputfieldCheckbox extends Inputfield {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Checkbox',
+			'version' => 100,
+			'summary' => 'Single checkbox toggle',
+			'permanent' => true, 
+			);
+	}
+
+
+	public function init() {
+		parent::init();
+		$this->attr('checked', ''); 
+		$this->set('skipLabel', true); // tell InputfieldWrapper not to use a 'for' attribute with it's autogen'd <label>
+		$this->set('checkedValue', ''); 
+		$this->set('uncheckedValue', ''); 
+	}
+
+	public function ___render() {
+		$attrs = $this->getAttributes();
+		$attrs['value'] = $this->checkedValue; 
+		$out = 	"\n<label><input type='checkbox' " . $this->getAttributesString($attrs) . " /> " . htmlspecialchars($this->label) . "</label>"; 
+		return $out; 
+	}
+
+	public function setAttribute($key, $value) {
+		if($key == 'value') {
+			if($value) $this->checkedValue = $value; 
+		}
+		return parent::setAttribute($key, $value); 
+	}
+
+	public function ___processInput(WireInputData $input) {
+		//if(!empty($input[$this->name]) && $input[$this->name] == $this->checkedValue) $attrValue = 'checked';
+		if(!empty($input[$this->name])) {
+			if(!$this->attr('checked')) $this->trackChange('value'); 
+			parent::attr('checked', 'checked'); 
+			parent::attr('value', $this->checkedValue); 
+		} else {
+			if($this->attr('checked')) $this->trackChange('value'); 
+			parent::attr('checked', ''); 
+			parent::attr('value', $this->uncheckedValue); 
+			
+		}
+		return $this; 
+	}
+	
+}

@@ -1,0 +1,181 @@
+<?php
+
+/**
+ * ProcessWire Role Management Process
+ *
+ * Provides capability for listing and editing Roles. 
+ * 
+ * For more details about how Process modules work, please see: 
+ * /wire/core/Process.php 
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class ProcessRole extends Process {
+
+	protected $guestRole; 
+
+	static public function getModuleInfo() {
+		return array(
+			'title' => 'Roles',
+			'version' => 100, 
+			'summary' => 'Roles manage the groups of permissions that are assigned to users', 
+			'permanent' => true, 
+			); 
+	}
+
+	public function init() {
+		parent::init();
+		$this->fuel->breadcrumbs->add(new Breadcrumb('list', 'Roles')); 
+		$this->setFuel('processHeadline', 'Roles'); 
+		$this->guestRole = $this->roles->get(Role::guestRoleID); 
+		$this->message("ProcessWire's role based access control system is currently in development. While fully functional, more work, testing and documentation is in progress, so I recommend sticking with the Superuser role for administrative accounts until development is complete."); 
+	}
+
+	public function ___execute() {
+		return $this->executeList();
+	}
+
+	public function ___executeList() {
+		return $this->renderList();
+	}
+
+	protected function renderList() {
+
+		$table = $this->modules->get("MarkupAdminDataTable"); 
+		$table->headerRow(array('Role')); 
+
+		foreach($this->roles as $role) {
+			// if($role->isPermanent()) $table->row(array($role->name)); 
+			$table->row(array($role->name => "edit?id={$role->id}")); 
+		}
+		$table->action(array('Add Role' => 'add')); 
+
+		return $table->render();
+	}
+
+	public function ___executeEdit($role = null, $form = null) {
+		if(is_null($role)) $role = isset($_GET['id']) ? $this->roles->get((int) $_GET['id']) : new Role();	
+		$this->setFuel('processHeadline', "Edit Role: {$role->name}"); 
+		if(is_null($form)) $form = $this->buildEditForm($role); 
+		return $form->render();
+	}
+
+	public function ___executeAdd() {
+		$out = $this->executeEdit(); 
+		$this->setFuel('processHeadline', 'Add Role'); 
+		return $out; 
+	}
+
+	protected function buildEditForm(Role $role) {
+
+		$form = $this->modules->get('InputfieldForm'); 
+		$form->attr('method', 'post'); 
+		$form->attr('action', './save'); 
+
+		$field = $this->modules->get('InputfieldName'); 
+		$field->attr('value', $role->name); 
+		if($role->isPermanent()) $field->attr('disabled', 'disabled'); 
+		$form->append($field); 
+
+		$field = $this->modules->get('InputfieldCheckboxes'); 
+		$field->attr('name', 'permissions'); 
+		$field->label = 'Permissions';
+		$values = array();
+		foreach($this->fuel('permissions')->getAll()->sort('name') as $permission) {
+			$field->addOption($permission->name); 
+			// $field->addOption($permission->name, $permission->name . ": " . $permission->summary); 
+			$guestHasPermission = $this->guestRole->hasPermission($permission); 
+			if($role->hasPermission($permission) || $guestHasPermission) $values[] = $permission->name; 
+		}
+		$field->attr('value', $values); 
+		$form->append($field); 
+
+		if($role->id && !$role->isPermanent()) {
+			$field = $this->modules->get("InputfieldCheckbox"); 
+			$field->attr('name', 'delete'); 
+			$field->attr('value', $role->id); 
+			$field->label = 'Delete'; 
+			$field->description = 'Delete this Role?';
+			$field->collapsed = Inputfield::collapsedYes; 
+			$form->append($field); 
+		}
+
+		$field = $this->modules->get('InputfieldHidden'); 
+		$field->attr('name', 'id'); 
+		$field->attr('value', $role->id); 
+		$form->append($field); 
+
+		$field = $this->modules->get('InputfieldSubmit'); 
+		$form->append($field); 
+
+		return $form; 
+	}
+
+
+	/**
+	 * Save the Edit Role form
+	 *
+	 */
+	public function ___executeSave() {
+
+		if(!isset($_POST['id'])) $this->session->redirect("list"); 
+		$id = (int) $_POST['id'];
+		$role = $id ? $this->roles->get($id) : new Role(); 
+
+		if($role->isPermanent) $this->session->redirect("./edit?id={$role->id}"); 
+
+		$form = $this->buildEditForm($role);
+		$form->processInput($this->input->post); 
+
+		if(isset($_POST['delete']) && $_POST['delete'] == $role->id) {
+			$this->session->message("Deleted Role: {$role->name}"); 
+			$this->roles->delete($role); 
+			$this->session->redirect("./list"); 
+		}
+
+		$field = $form->get('name'); 
+		if($field->value != $role->name) {
+			$role->name = $field->value; 
+			if($role->id) $this->message("Changed name for Role: {$role->name}"); 
+		}
+
+		$field = $form->get('permissions'); 
+		foreach($role->getPermissions() as $permission) {
+			if(!in_array($permission->name, $field->value)) {
+				if($role != $this->guestRole && $this->guestRole->hasPermission($permission)) {
+					$this->error("Removing permission $permission has no effect since it is inherited from the guest role"); 
+					continue; 
+				}
+				$role->removePermission($permission); 
+				$this->message("Removed Permission: $permission"); 
+			}
+		}
+		foreach($field->value as $permissionName) {
+			if($role->hasPermission($permissionName)) continue; 
+			if($permission = $this->fuel('permissions')->get($permissionName)) { 
+				$role->addPermission($permission); 
+				$this->message("Added Permission: $permission"); 
+			}
+		}
+
+		if($role->id) {
+			$role->save(); 
+			$this->message("Saved Role: {$role->name}"); 
+		} else { 
+			$role->save();
+			$this->message("Added Role: {$role->name}");
+		}
+
+		$this->session->redirect("./edit?id={$role->id}"); 
+	}
+
+	
+}
+

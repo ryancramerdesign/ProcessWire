@@ -1,0 +1,15 @@
+<?php
+
+class JqueryTableSorter extends ModuleJS { 
+
+        public static function getModuleInfo() {
+                return array(
+                        'title' => 'jQuery Table Sorter Plugin',
+                        'version' => 203,
+                        'summary' => 'Provides a jQuery plugin for sorting tables. jQuery plugin by Christian Bach.',
+			'href' => 'http://tablesorter.com', 
+                        );
+        }
+
+	// note ModuleJS automatically loads any JS or CSS files with the same basename as this module
+}

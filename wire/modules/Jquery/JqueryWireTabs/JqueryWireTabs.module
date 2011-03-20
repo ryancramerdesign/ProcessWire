@@ -1,0 +1,15 @@
+<?php
+
+class JqueryWireTabs extends ModuleJS { 
+
+        public static function getModuleInfo() {
+                return array(
+                        'title' => 'jQuery Wire Tabs Plugin',
+                        'version' => 101,
+                        'summary' => 'Provides a jQuery plugin for generating tabs in ProcessWire.',
+			'permanent' => true, 
+                        );
+        }
+
+	// extending this class causes the class named JS and CSS files to automatically be loaded
+}

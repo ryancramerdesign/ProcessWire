@@ -1,0 +1,771 @@
+<?php
+
+/**
+ * ProcessWire Page Edit Process
+ *
+ * Provides the UI for editing a page
+ * 
+ * For more details about how Process modules work, please see: 
+ * /wire/core/Process.php 
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class ProcessPageEdit extends Process {
+
+	protected $form; 
+	protected $page; 
+	protected $parent; 
+	protected $id; 
+	protected $isTrash; 
+	protected $redirectUrl;
+	protected $pageClass; 
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Page Edit',          
+			'summary' => 'Edit a Page', 
+			'version' => 100, 
+			'permanent' => true, 
+			);
+	}
+
+	/**
+	 * Initialize the page editor by loading the requested page and any dependencies
+	 *
+	 */
+	public function init() {
+
+		if(isset($_POST['id'])) $this->id = (int) $_POST['id']; 
+			else if(isset($_GET['id'])) $this->id = (int) $_GET['id']; 
+
+		if(!$this->id) throw new Wire404Exception("PageEdit requires a Page ID");
+
+		$this->page = $this->pages->get($this->id); 
+		if($this->page instanceof NullPage) throw new WireException("Page does not exist"); 
+		$this->pageClass = $this->page->className();
+		$this->page->setOutputFormatting(false); 
+		$this->parent = $this->pages->get($this->page->parent_id); 
+		$this->isTrash = $this->page->isTrash;
+
+		if(!$this->page) throw new Wire404Exception("Unable to load page {$this->id}"); 
+		if(!$this->page->editable()) throw new WirePermissionException("You don't have access to edit page {$this->page->url}"); 
+
+		// after confirming that the page is editable, if the current user is the one that created the page 
+		// then temporarily give both the page and the user the special "owner" role 
+
+		if($this->page->createdUserID == $this->user->id) {
+			$ownerRole = $this->roles->get(Role::ownerRoleID); 
+			$this->page->addRole($ownerRole); 
+			$this->user->addRole($ownerRole); 
+		}
+
+		$this->setupHeadline();
+		$this->setupBreadcrumbs();
+
+		parent::init();
+		$this->modules->get('JqueryWireTabs'); 
+	}
+
+	/**
+	 * Execute the Page Edit process by building the form and checking if it was submitted
+	 *
+	 */
+	public function ___execute() {
+
+		$this->form = $this->buildForm();
+		$this->form->setTrackChanges();
+
+		if(isset($_POST['id']) && ((int) $_POST['id']) === $this->page->id) $this->processSave();
+
+		if($this->page->is(Page::statusLocked)) 
+			$this->message("Note that this page is locked and no changes will be accepted unless first unlocked."); 
+
+		if($this->page->is(Page::statusUnpublished)) {
+			$this->message("This page is not yet published. You will have to save this page before it is visible on the site."); 
+		}
+
+		return $this->renderEdit();
+	}
+
+	/**
+	 * Render the Page Edit form
+	 *
+	 */
+	protected function renderEdit() {
+		$class = '';
+		$out = "<p id='PageIDIndicator' class='$class'>" . ($this->page->id ? $this->page->id : "New") . "</p>";
+		$out .= $this->form->render();
+		return $out; 
+	}
+
+	/**
+	 * Save a submitted Page Edit form 
+	 *
+	 */
+	protected function processSave() {
+
+		if($this->page->is(Page::statusUnpublished)) $this->page->removeStatus(Page::statusUnpublished); 
+
+		if($this->page->is(Page::statusLocked)) {
+			if(!empty($_POST['status']) && in_array(Page::statusLocked, $_POST['status'])) {
+				$this->error("Your changes were not saved because this page is locked"); 
+				return; 
+			}
+		}
+
+		if(!empty($_POST['submit_delete'])) {
+
+			if(!empty($_POST['delete_page'])) $this->deletePage();
+
+		} else {
+
+			$this->processInput($this->form); 
+
+			foreach($this->page->getChanges() as $change) {
+				$this->message("Change: $change");
+			}
+
+			$formErrors = 0; 
+			foreach($this->notices as $notice) {
+				if($notice instanceof NoticeError) $formErrors++; 
+			}
+
+			if(!empty($_POST['submit_save'])) {
+				$this->page->save();
+				$this->message("Saved Page: " . $this->page->url); 
+			}
+
+			if(!$this->redirectUrl) $this->redirectUrl = "./?id={$this->page->id}"; 
+			if($this->input->get->modal) $this->redirectUrl .= "&modal=1";
+			$this->session->redirect($this->redirectUrl); 
+		}
+
+
+	}	
+
+	/**
+	 * Build the form used for Page Edits
+	 *
+	 */
+	protected function buildForm() {
+
+		$form = $this->modules->get('InputfieldForm');
+
+		$fields = $this->page->getInputfields();
+		$fields->attr('id', $this->className() . 'Content'); 
+		$fields->attr('title', 'Content'); 
+
+		$form->attr('id+name', 'ProcessPageEdit'); 
+		$form->attr('action', './?id=' . $this->id . ($this->input->get->modal ? "&modal=1" : '')); 
+		$form->attr('method', 'post'); 
+		$form->attr('enctype', 'multipart/form-data'); 
+		$form->attr('class', 'template_' . $this->page->template . ' class_' . $this->page->className); 
+
+		if($this->page->template->nameContentTab) {
+			// name
+			$field = $this->modules->get('InputfieldPageName');
+			$field->attr('value', $this->page->name); 
+			$field->required = true; 
+			if($this->page->parent) $field->parentPage = $this->page->parent;
+			$fields->prepend($field); 
+		}
+
+		$form->append($fields); 
+		if(((int) $this->page->template->childrenTemplatesID) > -1) $form->append($this->buildFormChildren()); 
+
+		$form->append($this->buildFormSettings()); 
+
+		if($this->isTrash) $this->message("This page is in the Trash"); 
+		if($this->page->deleteable()) $form->append($this->buildFormDelete());
+		if(!$this->page->isTrash() && !$this->page->is(Page::statusUnpublished) && !$this->input->get->modal && is_file($this->page->template->filename)) {
+			$form->append($this->buildFormView()); 
+		}
+
+		$field = $this->modules->get('InputfieldSubmit');
+		$field->attr('id+name', 'submit_save'); 
+		$field->attr('value', 'Save ' . $this->pageClass); 
+		$form->append($field); 
+
+		$field = $this->modules->get('InputfieldSubmit');
+		$field->attr('name', 'submit_save'); 
+		$field->attr('id', 'submit_save_top'); 
+		$field->attr('value', 'Save ' . $this->pageClass); 
+		$form->append($field); 
+
+		$field = $this->modules->get('InputfieldHidden');
+		$field->attr('name', 'id');
+		$field->attr('value', $this->page->id); 
+		$form->append($field); 
+
+		return $form; 
+	}
+
+	/**
+	 * Build the 'children' tab on the Page Edit form
+ 	 *
+	 */
+	protected function buildFormChildren() {
+
+		$wrapper = new InputfieldWrapper();
+		$wrapper->attr('id', $this->className() . 'Children'); 
+		$title = 'Children'; 
+		if($this->page->numChildren) $title = "<em>$title</em>";
+		$wrapper->attr('title', $title); 
+
+		$pageListParent = $this->page ? $this->page : $this->parent; 
+		if($pageListParent->numChildren) { 
+			$pageList = $this->modules->get('ProcessPageList'); 
+			$pageList->set('id', $pageListParent->id); 
+			$pageList->set('showRootPage', false); 
+		} else $pageList = null;
+
+		$button = $this->modules->get("InputfieldButton"); 
+		$button->attr('id+name', 'AddPageBtn'); 
+		$button->attr('value', "Add New Page Here");
+		$button->attr('href', "../add/?parent_id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
+
+		$field = $this->modules->get("InputfieldMarkup"); 
+		$field->label = "Children / Subpages";
+		if($pageList) $field->value = $pageList->execute();
+			else $field->description = "There are currently no children/subpages below this page.";
+		$field->append($button);
+		$wrapper->append($field); 
+		
+		$fieldset = $this->modules->get("InputfieldFieldset"); 
+		$fieldset->collapsed = Inputfield::collapsedYes; 
+		$fieldset->label = "Sort Settings";
+		$fieldset->description = '' . 
+			"If you want all current and future children to automatically sort by a specific field, select the field below " . 
+			"and optionally check the 'reverse' checkbox to make the sort descending. Leave the sort field blank if you want " . 
+			"to be able to drag-n-drop to your own order.";
+
+		$field = $this->modules->get('InputfieldSelect');
+		$field->name = 'sortfield'; 
+		$field->value = ltrim($this->page->sortfield, '-'); 
+		$field->label = 'Sort field';
+
+		$options = array(
+			'name' => 'name', 
+			'status' => 'status', 
+			'modified' => 'modified', 
+			'created' => 'created', 
+			); 
+
+		$field->addOption('sort', 'None'); 
+		$field->addOption('Native Fields', $options); // optgroup
+
+		$customOptions = array();
+
+		foreach($this->fields as $f) {
+			if(!($f->flags & Field::flagAutojoin)) continue; 
+			$customOptions[$f->name] = $f->name; 
+		}
+
+		ksort($customOptions); 
+		$field->addOption('Custom Fields', $customOptions); // optgroup
+		$fieldset->append($field); 
+
+		$f = $this->modules->get('InputfieldCheckbox');
+		$f->value = 1; 
+		$f->attr('id+name', 'sortfield_reverse'); 
+		$f->label = 'Reverse sort direction?'; 
+		if(substr($this->page->sortfield, 0, 1) == '-') $f->attr('checked', 'checked'); 
+
+		$fieldset->append($f); 
+		$wrapper->append($fieldset); 
+
+		return $wrapper;
+	}
+
+	/**
+	 * Build the 'settings' tab on the Page Edit form
+	 *
+	 */
+	protected function buildFormSettings() {
+
+		$wrapper = new InputfieldWrapper();
+		$wrapper->attr('id', $this->className() . 'Settings'); 
+		$wrapper->attr('title', 'Settings'); 
+
+		if($this->page->id > 1) {
+
+			// name
+			if(!$this->page->template->nameContentTab) {
+				$field = $this->modules->get('InputfieldPageName');
+				$field->attr('value', $this->page->name); 
+				$field->required = true; 
+				if($this->page->parent) $field->parentPage = $this->page->parent;
+				$wrapper->prepend($field); 
+			}
+
+			// parent
+			if(!$this->page->template->noMove) { 
+				$field = $this->modules->get('InputfieldPageListSelect');
+				$field->label = "Parent";
+				$field->attr('id+name', 'parent_id'); 
+				$field->required = true; 
+				$field->attr('value', $this->page->parent_id); 
+				$field->parent_id = 0; 
+				$wrapper->add($field); 
+			}
+		}
+
+		// template
+		if(!$this->page->template->noChangeTemplate) {
+			$field = $this->modules->get('InputfieldSelect');
+			$field->label = 'Template';
+			$field->attr('id+name', 'template'); 
+			$field->attr('value', $this->page->template->id); 
+			$field->required = true; 
+			foreach($this->templates as $template) $field->addOption($template->id, $template->name); 
+			$wrapper->add($field); 
+		}
+
+		// status
+		$wrapper->add($this->buildFormStatus()); 
+
+		// roles
+		$wrapper->add($this->buildFormRoles()); 
+
+		// info
+		$wrapper->add($this->buildFormInfo()); 
+
+		return $wrapper; 
+	}
+
+	/**
+	 * Build the Settings > Info fieldset on the Page Edit form
+	 *
+	 */
+	protected function buildFormInfo() {
+
+		$dateFormat = 'l \t\h\e jS \of F Y h:i:s A';
+		$field = $this->modules->get("InputfieldMarkup"); 
+
+		$info = "\n<p>Created by <strong>{$this->page->createdUser->name}</strong> on " . date($dateFormat, $this->page->created) . "</p>" . 
+			"\n<p>Last modified by <strong>{$this->page->modifiedUser->name}</strong> on " . date($dateFormat, $this->page->modified) . "</p>";
+
+		if($this->page->is(Page::statusUnpublished)) $info .= "\n<p>This page has never been published</p>"; 
+
+		$field->label = 'Info';
+		$field->value = $info; 
+		$field->collapsed = Inputfield::collapsedYes; 
+		return $field; 
+	}
+
+	/**
+	 * Build the Settings > Status fieldset on the Page Edit form
+	 *
+	 */
+	protected function buildFormStatus() {
+		$status = (int) $this->page->status; 
+		$field = $this->modules->get('InputfieldCheckboxes');
+		$field->attr('name', 'status');
+		$statuses = array(
+			Page::statusHidden => "Hidden", 
+			Page::statusLocked => "Locked", 
+			// Page::statusUnsearchable => "Unsearchable", 
+			); 
+		$value = array();
+		foreach($statuses as $s => $label) {
+			if($s & $status) $value[] = $s;
+			$field->addOption($s, $label);
+		}
+		$field->attr('value', $value); 
+		$field->label = "Status"; 
+		$field->description = '' . 
+			"Hidden pages are excluded from lists and searches. " . 
+			"Locked pages are closed for changes until unlocked. ";
+		return $field; 
+	}
+
+	/**
+	 * Build the 'delete' tab on the Page Edit form
+	 *
+	 */
+	protected function buildFormDelete() {
+
+		$isTrash = $this->page->isTrash();
+		$isRestorable = $isTrash && $this->page->parent_id == $this->config->trashPageID; 
+
+		$wrapper = new InputfieldWrapper(); 	
+		$wrapper->attr('id', $this->className() . 'Delete');
+		$wrapper->attr('title', "Delete"); 
+
+		/*
+		if($isRestorable) {
+			$field = $this->modules->get('InputfieldCheckbox');
+			$field->attr('id+name', 'restore_page'); 
+			$field->attr('value', $this->page->id); 
+			$field->label = "Restore Page";
+			$field->description = "Move the page out of the trash and to it's original location.";
+			$wrapper->append($field); 
+		}
+		*/
+
+		if($this->hasPermission("Delete", $this->page)) {
+
+			$field = $this->modules->get('InputfieldCheckbox');
+			$field->attr('id+name', 'delete_page'); 
+			$field->attr('value', $this->page->id); 
+
+			if($this->isTrash) {
+				$field->label = "Permanently Delete {$this->pageClass}";
+				$field->description = "This will remove the {$this->pageClass} from the trash and permanently delete it."; 
+			} else {
+				$field->label = "Delete {$this->pageClass}";
+				$field->description = "This will move this {$this->pageClass} to the Trash.";
+			}
+			$wrapper->append($field); 
+		}
+
+
+		if(count($wrapper->children())) {
+			$field = $this->modules->get('InputfieldSubmit');
+			$field->attr('id+name', 'submit_delete'); 
+			$wrapper->append($field);
+		} else {
+			$wrapper->description = "This page may not be deleted at this time";
+		}
+
+		return $wrapper;
+	}
+
+	/**
+	 * Build the 'view' tab on the Page Edit form
+	 *
+	 */ 
+	protected function buildFormView() {
+		$field = new InputfieldMarkup(); 
+		$field->attr('id', $this->className() . 'View'); 
+		$field->attr('title', 'View'); 
+		$field->attr('class', 'InputfieldWrapper'); 
+		$field->attr('value', "<a href='{$this->page->httpUrl}'>View</a>"); 
+		return $field;
+	}
+
+	/**
+	 * Build the Settings > Roles fieldset on the Page Edit form 
+	 *
+	 */
+	protected function buildFormRoles() {
+
+		$field = $this->modules->get('InputfieldCheckboxes');
+		$field->label = 'Roles';
+		$field->description = "Select the roles that may view this page."; 
+		$field->attr('id+name', 'roles'); 
+		$field->attr('value', array()); 
+
+		foreach($this->page->roles() as $role) {
+			$field->attr('value', $role->id); 
+		}
+
+		$editNote = '';
+		foreach($this->roles as $role) {
+			if($role->id == Role::superRoleID || $role->id == Role::ownerRoleID) continue; 
+			$attrs = array();
+			if($this->page->addsRole($role)) $attrs['class'] = 'PageAddsRole';
+				else if($this->page->removesRole($role)) $attrs['class'] = 'PageRemovesRole';
+			$name = $role->name; 
+			if($role->hasPermission('ProcessPageEdit')) {
+				$name .= " *";
+				$field->notes = "* Roles with an asterisk may also edit this page.";
+			}
+			$field->addOption($role->id, $name, $attrs); 
+		}
+
+		return $field; 
+	}
+
+	/**
+	 * Process the input from a submitted Page Edit form, delegating to other methods where appropriate
+ 	 *
+	 */
+	protected function processInput(Inputfield $form, $level = 0) {
+
+		static $skipFields = array(
+			'sortfield_reverse', 
+			'submit_save', 
+			);
+
+		if(!$level) $form->processInput($this->input->post);
+
+		foreach($form as $inputfield) {
+
+			$name = $inputfield->attr('name'); 
+
+			if($name == 'roles' && $this->processInputRoles($inputfield)) continue; 
+			if($name == 'sortfield' && $this->processInputSortfield($inputfield)) continue;
+			if($name == 'status' && $this->processInputStatus($inputfield)) continue; 
+			if($name == 'template' && $this->processInputTemplate($inputfield)) continue; 
+			if($name == 'parent_id' && $this->page->template->noMove) continue; 
+
+			if(in_array($name, $skipFields)) continue; 
+
+			if($name && $inputfield->isChanged()) {
+				$this->page->set($name, $inputfield->value);
+			}
+
+			if($inputfield instanceof InputfieldWrapper && count($inputfield->getChildren())) $this->processInput($inputfield, $level + 1); 
+		}
+	}
+
+	/**
+	 * Check to see if the page's template has changed and setup a redirect to a confirmation form if it has
+	 *
+	 */
+	protected function processInputTemplate(Inputfield $inputfield) {
+		if($this->page->template->noChangeTemplate) return true; 
+		if((!$template = $this->templates->get((int) $inputfield->value)) || ($template->id == $this->page->template->id)) return true; 
+
+		// template has changed, set a redirect URL which will confirm the change
+		$this->redirectUrl = "template?id={$this->page->id}&template={$template->id}";
+		return true; 
+	}
+
+	/**
+	 * Process the submitted 'status' field and account for the bitwise logic present
+	 *
+	 */
+	protected function processInputStatus(Inputfield $inputfield) {
+
+		$status = $inputfield->value; 
+		$value = $this->page->status; 
+
+		if(!is_array($status)) $status = array();
+
+		$statusFlags = array(
+			Page::statusHidden,
+			Page::statusLocked,
+			//Page::statusUnsearchable,
+			); 
+
+		foreach($statusFlags as $flag) {
+			if(in_array($flag, $status)) {
+				if(!($value & $flag)) $value = $value | $flag; 
+
+			} else if($value & $flag) {
+				$value = $value & ~$flag; 
+			}
+		
+		}
+
+		$this->page->status = $value; 
+		return true; 
+	}
+
+	/**
+	 * Process the Children > Sortfield input
+	 *
+	 */
+	protected function processInputSortfield(Inputfield $inputfield) {
+		$sortfield = $this->sanitizer->name($inputfield->value); 
+		if($sortfield != 'sort' && !empty($_POST['sortfield_reverse'])) $sortfield = '-' . $sortfield; 
+		$this->page->sortfield = $sortfield; 
+		return true; 
+	}
+
+	/**
+	 * Process the Settings > Roles field input
+	 *
+	 */
+	protected function processInputRoles(Inputfield $inputfield) {
+		
+		foreach($this->page->roles() as $role) {
+			if($role->id == Role::superRoleID) continue; 
+			if(!in_array($role->id, $inputfield->value)) {
+				$this->page->removeRole($role); 
+			}
+		}
+
+		foreach($inputfield->value as $role_id) {
+			if(!$this->page->hasRole($role_id)) {
+				$role = $this->roles->get($role_id); 
+				$this->page->addRole($role); 
+			}
+		}
+		return true; 
+
+	}
+
+	/**
+	 * Process a delete page request, moving the page to the trash if applicable
+	 *
+	 */
+	protected function deletePage() {
+
+		if(!$this->hasPermission("Delete", $this->page)) {
+			$this->error("You don't have access to delete page {$this->id}"); 
+			return false; 
+		}
+
+		if(!$this->page->deleteable()) {
+			$this->error("This page is not deleteable"); 
+			return false; 
+		}
+
+		if($this->isTrash) {
+			$this->session->message("Deleted page: {$this->page->url}"); 
+			$this->pages->delete($this->page, true); 
+			$this->session->redirect("./?id={$this->parent->id}"); 
+
+		} else if($this->pages->trash($this->page)) {
+			$this->session->message("Moved page to trash: {$this->page->url}"); 
+			$this->session->redirect("./?id={$this->parent->id}"); 
+			
+		} else { 
+			$this->error("Unable to move page to trash"); 
+			return false;
+		}
+	}
+
+	/**
+	 * Set the headline used in the UI
+	 *
+	 */
+	public function setupHeadline() {
+		$page = $this->page ? $this->page : $this->parent; 
+		$this->setFuel('processHeadline', $page->get("title|name"));
+	}
+
+	/**
+	 * Setup the breadcrumbs used in the UI 
+	 *
+	 */
+	public function setupBreadcrumbs() {
+		$breadcrumbs = new Breadcrumbs();
+		$breadcrumbs->add(new Breadcrumb($this->config->urls->admin . 'page/list/', "Pages"));
+		$page = $this->page ? $this->page : $this->parent; 
+		foreach($page->parents() as $p) {
+			$breadcrumbs->add(new Breadcrumb("./?id=" . $p->id, $p->get("title|name"))); 
+		}
+		$this->setFuel('breadcrumbs', $breadcrumbs); 
+	}
+
+	/**
+	 * Execute a template change for a page, building an info + confirmation form
+	 *
+	 */
+	public function ___executeTemplate() {
+
+		if(!isset($_GET['template'])) throw new WireException("This method requires a 'template' get var"); 
+		$template = $this->templates->get((int) $_GET['template']); 
+		if(!$template) throw new WireException("Unknown template"); 
+	
+		$form = $this->modules->get("InputfieldForm"); 
+		$form->attr('action', 'saveTemplate'); 
+		$form->attr('method', 'post'); 
+		$form->description = "Change template from '{$this->page->template}' to '$template'";
+
+		$f = $this->modules->get("InputfieldMarkup"); 	
+		$f->label = "Confirm template change"; 
+		$list = '';
+		foreach($this->page->template->fieldgroup as $field) {
+			if(!$template->fieldgroup->has($field)) 
+				$list .= "<li class='ui-state-highlight'><span class='ui-icon ui-icon-alert'></span> $field</li>";
+		}
+		if(!$list) $this->executeSaveTemplate($template); 
+		$f->description = "Warning, changing the template will delete the following fields:"; 
+		$f->attr('value', "<ul>$list</ul>"); 
+		$form->append($f); 
+
+		$f = $this->modules->get("InputfieldCheckbox"); 
+		$f->attr('name', 'template'); 
+		$f->attr('value', $template->id); 
+		$f->label = "Are you sure?";		
+		$f->description = "Please confirm that you understand the above by clicking the checkbox below.";
+		$form->append($f); 
+
+		$f = $this->modules->get("InputfieldHidden"); 
+		$f->attr('name', 'id'); 
+		$f->attr('value', $this->page->id); 
+		$form->append($f); 
+
+		$f = $this->modules->get("InputfieldSubmit"); 
+		$form->append($f); 
+
+		$this->fuel('breadcrumbs')->add(new Breadcrumb("./?id={$this->page->id}", $this->page->get("title|name"))); 
+
+		return $form->render();
+	}
+
+	/**
+	 * Save a template change for a page
+	 *
+	 */
+	public function ___executeSaveTemplate($template = null) {
+
+		if(!$this->page->template->noChangeTemplate) { 
+
+			if(!is_null($template) || (isset($_POST['template']) && ($template = $this->templates->get((int) $_POST['template'])))) {
+				$this->page->template = $template; 
+				$this->page->save();
+				$this->message("Changed template to '$template'"); 
+			}
+		}
+
+		$this->session->redirect("./?id={$this->page->id}"); 
+	}
+
+	/**
+	 * Return instance of the Page being edited
+	 *
+	 * For Inputfields/Fieldtypes to use if they want to retrieve the editing page rather than the viewing page
+	 *
+	 */
+	public function getPage() {
+		return $this->page; 
+	}
+
+	/**
+	 * Install the module with an additional ProcessPageEditDelete permission
+	 *
+	 */
+	public function ___install() {
+		parent::___install();
+		$this->installPermission('Delete'); 
+	}
+
+	/* Removed, but may add back later 
+	protected function restorePage() {
+
+		if(!$this->isTrash) return false;
+
+		if(!preg_match('/^(\d+)_/', $this->page->name, $matches)) {
+			$this->error("Sorry, not sure where to restore this page to because it's original parent is unknown"); 
+			return false;
+		}
+
+		$parent_id = (int) $matches[1]; 
+
+		if(!$parent = $this->pages->get($parent_id)) {
+			$this->error("Unable to restore page because it's original parent does not exist (?)"); 
+			return false; 
+		}
+
+		if(!$this->user->hasPermission('ProcessPageAdd', $parent)) {
+			$this->error("Unable to restore page because you don't have access to add pages in: {$parent->url}"); 
+			return false; 
+		}
+
+		if($this->pages->restore($this->page)) {
+			$this->form->children()->findOne("name=name")->attr('value', $this->page->name); 
+			$this->session->message("Restored page to: {$this->page->url}"); 
+			$this->session->redirect("./?id={$this->page->id}"); 
+			
+		} else {
+			$this->message("Error restoring page $page to $parent"); 
+			return false;
+		}
+	}
+	*/
+
+}
+

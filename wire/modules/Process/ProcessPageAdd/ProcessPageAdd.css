@@ -1,0 +1,18 @@
+/**
+ * Provide an obvious left margin for the parent page selector list
+ *
+ */
+.InputfieldPageListSelect .PageListRoot > .PageList {
+	margin-left: 2em; 
+}
+
+/**
+ * Position the submit buttons horizontal to each other by making them inline
+ *
+ */
+
+.Inputfields .InputfieldSubmit,
+.Inputfields .InputfieldSubmit .ui-widget-content {
+	display: inline; 
+}
+

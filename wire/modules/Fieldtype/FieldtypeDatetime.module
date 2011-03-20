@@ -1,0 +1,100 @@
+<?php
+
+/**
+ * ProcessWire Datetime Fieldtype
+ *
+ * Holds date and optionally time values. 
+ *
+ * For documentation about the fields used in this class, please see:  
+ * /wire/core/Fieldtype.php
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class FieldtypeDatetime extends FieldtypeText {
+
+	const defaultDateOutputFormat = 'm/d/Y';
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Datetime',
+			'version' => 100,
+			'summary' => 'Field that stores a date and optionally time',
+			);
+	}
+
+	public function init() {
+		parent::init();
+		$this->allowTextFormatters(false);
+	}
+
+	public function getInputfield(Page $page, Field $field) {
+		$inputfield = $this->modules->get('InputfieldDatetime'); 
+		$inputfield->class = $this->className();
+		return $inputfield; 
+	}
+
+	public function sanitizeValue(Page $page, Field $field, $value) {
+		return $this->_sanitizeValue($value); 
+	}
+
+	protected function _sanitizeValue($value) {
+		return ctype_digit("$value") ? (int) $value : strtotime($value); 
+	}
+
+	public function formatValue(Page $page, Field $field, $value) {
+		return date($field->dateOutputFormat ? $field->dateOutputFormat : self::defaultDateOutputFormat, $value); 
+	}
+
+	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
+
+		$value = date('Y-m-d H:i:s', $this->_sanitizeValue($value)); 
+		if($this->fuel('db')->isOperator($operator)) 
+			$query->where("$table.{$subfield}{$operator}'$value'");
+
+		return $query; 
+	}
+
+	public function getDatabaseSchema(Field $field) {
+		$schema = parent::getDatabaseSchema($field); 
+		$schema['data'] = 'datetime NOT NULL';
+		unset($schema['keys']['data_exact']); 
+		$schema['keys']['data'] = 'KEY data (data)'; // wipe out keys from parent
+		return $schema;
+	}
+
+	public function ___sleepValue(Page $page, Field $field, $value) {
+		return date('Y-m-d H:i:s', $this->_sanitizeValue($value)); 
+	}
+
+	public function ___wakeupValue(Page $page, Field $field, $value) {
+		return strtotime($value); 
+	}
+
+	public function ___getConfigInputfields(Field $field) {
+
+		$inputfields = parent::___getConfigInputfields($field);
+
+		$f = $this->modules->get("InputfieldText"); 
+		$f->attr('name', 'dateOutputFormat'); 
+		$f->attr('value', $field->dateOutputFormat ? $field->dateOutputFormat : self::defaultDateOutputFormat); 
+		$f->attr('size', 20); 
+		$f->label = "Date output format";
+		$f->description = 
+			"The formatting string used by PHP's date() function to format a date. Used when a page's outputFormatting is on. ";
+		$f->notes = 
+			"Example: 'm/d/Y' outputs a date as '10/10/2010'. " . 
+			"Example: 'F j, Y, g:i a' outputs a date as 'October 10, 2010, 11:21 am'. " . 
+			"See the PHP date() function reference at php.net for more."; 
+
+		$inputfields->append($f);
+		return $inputfields; 
+	}
+}
+

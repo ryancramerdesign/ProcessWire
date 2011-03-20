@@ -1,0 +1,127 @@
+<?php
+
+/**
+ * ProcessWire Markup Cache module
+ *
+ * A simple way to cache segments of markup in your templates. 
+ * A simpler front end to ProcessWire's CacheFile class. 
+ *
+ * Example usage:
+ * 
+ * $cache = $modules->get("MarkupCache"); 
+ * if(!$data = $cache->get("cityOptions")) {
+ * 	foreach($pages->find("template=city, sort=name") as $city) {
+ * 		$data .= "<option value='{$city->id}'>{$city->title}</option>";
+ *	}
+ *	$cache->save($data); 
+ * }
+ * echo $data; 
+ *
+ *
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class MarkupCache extends Wire implements Module {
+
+	/**
+	 * getModuleInfo is a module required by all modules to tell ProcessWire about them
+	 *
+	 * @return array
+	 *
+	 */
+	public static function getModuleInfo() {
+
+		return array(
+			'title' => 'Markup Cache', 
+			'version' => 100, 
+			'summary' => 'A simple way to cache segments of markup in your templates. ',
+			'href' => 'http://www.processwire.com/api/modules/markupcache/',
+			'singular' => true, 
+			'autoload' => true, 
+			);
+	}
+
+	/**
+	 * Instance of CacheFile
+	 *
+	 */
+	protected $cache = null;
+
+
+	/**
+	 * Boolean indicating whether we've already cleared the cache.
+	 *
+	 */
+	protected $cleared = false; 
+
+	/**
+	 * Path to cache files, as set by the init() method. 
+	 *
+	 */
+	protected $path = '';
+
+	/**
+	 * Initialize the module and add a hook after Pages::save
+	 *
+	 */
+	public function init() {
+		$this->path = $this->config->paths->cache . $this->className() . '/';
+		$this->pages->addHookAfter('save', $this, 'expire'); 
+	}
+
+	/**
+	 * Get cached data identified by 'uniqueName' or false if cache not available
+	 *
+	 * @param string $uniqueName A unique string or number to identify this cache, i.e. 'citiesList' 
+	 * @param int $seconds The number of seconds the cache should live. 
+	 * @return Returns the cache data, or FALSE if it has expired and needs to be re-created. 
+	 *
+	 */
+	public function get($uniqueName, $seconds = 3600) {
+		$this->cache = new CacheFile($this->path, $uniqueName, $seconds);
+		if(!$this->cache) throw new WireException("Unable to create cache $uniqueName"); 
+		return $this->cache->get();
+	}
+
+	/**
+	 * Save the data to the cache
+	 *
+	 * Must be preceded by a call to get() so that you have set the cache unique name
+	 *
+	 * @param string $data Data to cache
+	 * @return int Number of bytes written to cache, or FALSE on failure. 
+	 *
+	 */
+	public function save($data) {
+		if(!$this->cache) throw new WireException("You must attempt to retrieve a cache first, before you can save it."); 	
+		$result = $this->cache->save($data); 
+		unset($this->cache); 
+		return $result; 
+	}
+
+	/**
+	 * Expire the cache, automatically hooked to every $pages->save() call
+	 *
+	 */
+	public function expire($event = null) {
+		/*
+		 * If already cleared during this session, don't do it again
+		 * that way if we're saving 100+ pages, we aren't clearing the cache 100+ times
+		 *
+		 */
+		if($this->cleared) return; 
+
+		if($this->cache) $cache = $this->cache; 
+			else $cache = new CacheFile($this->path, '', 0); 
+		$cache->expireAll(); 
+		$this->cleared = true; 
+	}
+	
+	
+}

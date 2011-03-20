@@ -1,0 +1,69 @@
+ul.InputfieldFileList li {
+	/*
+	padding: 1em; 
+	*/
+	position: relative; 
+	cursor: move; 
+}
+
+ul.InputfieldFileList li .InputfieldFileInfo {
+	padding: 3px 0; 
+	margin-bottom: 0; 
+}
+	ul.InputfieldFileList li .InputfieldFileInfo .InputfieldFileName {
+		font-weight: bold; 
+	}
+		ul.InputfieldFileList li .InputfieldFileInfo .InputfieldFileName:hover {
+			text-decoration: underline; 
+		}
+	ul.InputfieldFileList li .InputfieldFileInfo .InputfieldFileStats {
+		opacity: 0.65; 
+		font-size: 0.9166666em; 
+	}
+
+	ul.InputfieldFileList li .ui-state-error {
+		text-decoration: line-through; 
+	}
+
+	ul.InputfieldFileList li .InputfieldFileDelete {
+		float: right; 
+	}
+
+	ul.InputfieldFileList li .InputfieldFileDelete,
+	ul.InputfieldFileList li .InputfieldFileDelete input {
+		display: inline;
+		font-weight: normal; 
+	}
+		ul.InputfieldFileList li .InputfieldFileDelete span.ui-icon {
+			float: right; 
+			padding: 0 2px; 
+			cursor: pointer; 	
+		}
+
+	ul.InputfieldFileList li .ui-icon {
+		float: left; 
+	}
+
+ul.InputfieldFileList li .InputfieldFileData {
+	margin-top: 0; 
+}
+
+	ul.InputfieldFileList li .InputfieldFileLink {
+		font-weight: bold; 
+		margin: 0.5em 0;
+	}
+
+	ul.InputfieldFileList li .InputfieldFileDescription {
+		font-weight: normal;
+		margin: 0.5em 0;
+	}
+
+	ul.InputfieldFileList li .InputfieldFileDescription input {
+		width: 99%; 
+	}
+
+input.InputfieldFile,
+.InputfieldFileValidExtensions {
+	display: block;
+}
+

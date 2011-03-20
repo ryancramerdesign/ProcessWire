@@ -1,0 +1,440 @@
+<?php
+
+/**
+ * ProcessWire Page List Process
+ *
+ * Generates the ajax/js hierarchal page lists used throughout ProcessWire
+ * 
+ * For more details about how Process modules work, please see: 
+ * /wire/core/Process.php 
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class ProcessPageList extends Process implements ConfigurableModule {
+
+	protected $page; 
+	protected $id; 
+	protected $openPage; 
+	protected $start; 
+	protected $render; 
+
+	/**
+	 * Default max pages to show before pagination (configurable in the module editor)
+	 *
+	 */
+	const defaultLimit = 50; 
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Page List',          
+			'summary' => 'List pages in a hierarchal tree structure', 
+			'version' => 100, 
+			'permanent' => true, 
+			);
+	}
+
+	public function __construct() {
+		$this->showRootPage = true; 
+		$this->pageLabelField = 'title';
+		$this->limit = self::defaultLimit; 
+	}
+
+	/**
+	 * Initialize the Page List
+	 *
+	 */
+	public function init() {
+		parent::init();
+		$this->start = isset($_GET['start']) ? (int) $_GET['start'] : 0; 
+		$this->limit = (isset($_GET['limit']) && $_GET['limit'] < $this->limit) ? (int) $_GET['limit'] : $this->limit; 
+		$this->render = isset($_GET['render']) ? strtoupper($this->sanitizer->name($_GET['render'])) : '';
+	}
+
+	/**
+	 * Execute the Page List
+	 *	
+	 */
+	public function ___execute() {
+
+		if(!$this->id) $this->id = isset($_GET['id']) ? (int) $_GET['id'] : 0; 
+		$this->openPage = $this->input->get->open ? $this->pages->get((int) $this->input->get->open) : new NullPage();
+		$this->page = $this->pages->get("id=" . ($this->id ? $this->id : 1) . ", status<" . Page::statusMax); 
+
+		if(!$this->page) throw new Wire404Exception("Unable to load page {$this->id}"); 
+		if(!$this->page->listable()) throw new WirePermissionException("You don't have access to list page {$this->page->url}"); 
+		$this->page->setOutputFormatting(false); 
+
+		return $this->render();
+
+	}	
+
+	/**
+	 * Render the Page List
+	 *
+	 */
+	protected function render() {
+
+		$this->setupBreadcrumbs();
+
+		if(!$this->render) {
+			$openPageIDs = array();
+			if($this->openPage->id) {
+				$openPageIDs[] = $this->openPage->id; 
+				foreach($this->openPage->parents() as $parent) {
+					if($parent->id > 1) $openPageIDs[] = $parent->id; 
+				}
+			}
+
+			$this->fuel('config')->js('ProcessPageList', array(
+				'containerID' => 'PageListContainer', 
+				'ajaxURL' => $this->config->urls->admin . "page/list/", 
+				'ajaxMoveURL' => $this->config->urls->admin . "page/sort/",
+				'rootPageID' => $this->id, 
+				'openPageIDs' => $openPageIDs, 
+				'showRootPage' => $this->showRootPage ? true : false, 
+				'limit' => $this->limit, 
+				)); 
+
+			return 	"\n<div id='PageListContainer'></div>";
+		}
+
+		$class = "ProcessPageListRender" . $this->render; 
+
+		if(!class_exists($class)) throw new WireException("Requested PageList renderer does not exist"); 
+
+		if($this->limit) $children = $this->page->children("start={$this->start}, limit={$this->limit}, status<" . Page::statusMax);
+			else $children = new PageArray();
+
+		$renderer = new $class($this->id, $this->page, $children); 
+		$renderer->setStart($this->start); 
+		$renderer->setLimit($this->limit); 
+		$renderer->setPageLabelField($this->pageLabelField); 
+
+		return $renderer->render();
+	}
+
+	/**
+	 * Set a value to this Page List (see WireData)
+	 *
+	 */
+	public function set($key, $value) {
+		if($key == 'id') { // allow setting by other modules, overrides $_GET value of ID
+			$this->id = (int) $value; 
+			return $this; 
+		}
+		return parent::set($key, $value); 
+	}
+
+	/**
+	 * Setup the Breadcrumbs for the UI
+	 *
+	 */
+	public function setupBreadcrumbs() {
+		if($this->fuel->process != $this || !$this->fuel->breadcrumbs) return; 
+		foreach($this->page->parents() as $p) {
+			$this->fuel->breadcrumbs->add(new Breadcrumb($this->config->urls->admin . "page/list/?id=" . $p->id, $p->get("title|name"))); 
+		}
+	}
+
+	/**
+	 * Build a form allowing configuration of this Module
+	 *
+	 */
+	static public function getModuleConfigInputfields(array $data) {
+
+		$fields = new InputfieldWrapper();
+		$modules = Wire::getFuel('modules'); 
+
+		$field = $modules->get("InputfieldText"); 
+		$field->attr('name', 'pageLabelField'); 
+		$field->attr('value', !empty($data['pageLabelField']) ? $data['pageLabelField'] : 'title'); 
+		$field->label = "Name of page field to display"; 
+		$field->description = 
+			"Every page in a PageList is identified by a label, typically a title or headline field. You may specify which field it should use here. " . 
+			"To specify multiple fields, separate each field name with a space. If the field resolves to an object (like another page), then specify the property with a dot, i.e. anotherpage.title. " . 
+			"Note that if the field you specify resolves to a blank value then ProcessWire will use the page's 'name' field. ";
+		$fields->append($field); 
+
+		$field = $modules->get("InputfieldInteger"); 
+		$field->attr('name', 'limit'); 
+		$field->attr('value', !empty($data['limit']) ? (int) $data['limit'] : self::defaultLimit); 
+		$field->label = "Number of pages to display before pagination";
+		$fields->append($field); 
+
+		return $fields; 
+	}
+
+}
+
+/**
+ * Base class for Page List rendering
+ *
+ */
+abstract class ProcessPageListRender extends Wire {
+
+	protected $id; 
+	protected $page; 
+	protected $children; 
+	protected $start; 
+	protected $limit; 
+	protected $pageLabelField = 'title';
+
+	public function __construct($id, Page $page, PageArray $children) {
+		$this->id = $id; 
+		$this->page = $page; 
+		$this->children = $children; 		
+		$this->start = 0;
+		$this->limit = 0; 
+	}
+
+	public function setStart($n) {
+		$this->start = (int) $n; 
+	}
+
+	public function setLimit($n) {
+		$this->limit = (int) $n; 
+	}
+
+	public function setPageLabelField($pageLabelField) {
+		$this->pageLabelField = $pageLabelField; 
+	}
+
+	/**
+	 * Get an array of available Page actions, indexed by $label => $url
+	 *
+	 * @param Page $page
+	 * @return array of $label => $url
+	 *
+	 */
+	public function ___getPageActions(Page $page) {	
+
+		$actions = array();
+		$adminUrl = $this->config->urls->admin; 
+
+		if($page->id == $this->config->trashPageID) {
+
+			if($this->user->isSuperuser() && $page->numChildren) $actions[] = array('name' => 'Empty', 'url' => "{$adminUrl}page/trash/"); 
+
+		} else {
+
+			if($this->user->hasPermission("ProcessPageEdit", $page)) 
+				$actions[] = array('name' => 'Edit', 'url' => "{$adminUrl}page/edit/?id={$page->id}");
+
+			if(!$page->isTrash() && !$page->is(Page::statusUnpublished) && $this->user->hasPermission("ProcessPageView", $page) && $page->template->filenameExists()) 
+				$actions[] = array('name' => 'View', 'url' => $page->httpUrl);
+
+			if($this->user->hasPermission("ProcessPageAdd", $page) && ((int) $page->template->childrenTemplatesID) > -1 && !$page->isTrash) 
+				$actions[] = array('name' => 'New', 'url' => "{$adminUrl}page/add/?parent_id={$page->id}");
+
+			if($page->id > 1 && $this->user->hasPermission("ProcessPageSort", $page) && !$page->is(Page::statusLocked) && !$page->template->noMove) 
+				$actions[] = array('name' => 'Move', 'url' => '#'); 
+		}
+
+		return $actions; 
+	}
+
+	/**
+	 * Return the Page's label text, whether that originates from the Page's name, headline, title, etc. 
+	 *
+	 * @param Page $page
+	 * @return string
+	 *
+	 */
+	public function ___getPageLabel(Page $page) {
+
+		$value = '';
+
+		if(strpos($this->pageLabelField, ' ')) {
+			$fields = explode(' ', $this->pageLabelField); 
+		} else {
+			$fields = array($this->pageLabelField); 
+		}
+
+
+		foreach($fields as $field) {
+
+			if(strpos($field, ".")) {
+				list($field, $subfield) = explode(".", $field); 
+			} else $subfield = '';
+
+			$v = $page->get($field); 
+
+			if($subfield && is_object($v)) {
+				$v = $v->get($subfield);
+			}
+
+			if($v) $value .= ($value ? ', ' : '') . "$v";
+		}
+
+		if(!$value) $value = $page->get("name"); 
+
+		$value = strip_tags($value); 
+
+		return $value;
+	}
+
+	abstract public function render();
+
+	public function getRenderName() {
+		return str_replace('ProcessPageListRender', '', $this->className());
+	}
+
+	public function getMoreURL() {
+		if($this->limit && ($this->page->numChildren > ($this->start + $this->limit))) {
+			$start = $this->start + $this->limit; 
+			return $this->config->urls->admin . "page/list/?&id={$this->page->id}&start=$start&render=" . $this->getRenderName(); 
+		}
+		return '';
+	}
+	
+}
+
+/**
+ * JSON implementation of the Page List rendering
+ *
+ */
+class ProcessPageListRenderJSON extends ProcessPageListRender {
+
+	protected $systemIDs = array();
+
+	public function __construct($id, Page $page, PageArray $children) {
+
+		parent::__construct($id, $page, $children); 
+
+		// TODO develop new 'system' status for pages, so that this isn't necessary: 
+		$this->systemIDs = array(
+			$this->config->http404PageID, 
+			$this->config->adminRootPageID, 
+			$this->config->trashPageID, 
+			$this->config->loginPageID,
+			); 
+	}
+
+	protected function renderChild(Page $page) {
+
+		$page->setOutputFormatting(false); 
+		$note = '';
+		$type = '';
+
+		if($page->id == $this->config->trashPageID) $note = "&lt; Trash open: drag pages below here to trash them";
+		if(in_array($page->id, $this->systemIDs)) $type = 'System';
+
+		$a = array(
+			'id' => $page->id, 
+			'label' => $this->getPageLabel($page),
+			'status' => $page->status, 
+			'numChildren' => $page->numChildren, 
+			'path' => $page->path(), 
+			'actions' => $this->getPageActions($page), 
+			'type' => $type, 
+			'note' => $note,
+			); 
+
+		return $a; 
+	}
+	
+	public function render() {
+
+		$children = array();	
+
+		$extraPages = array(); // pages forced to bottom of list
+
+		foreach($this->children as $page) {
+
+			if(in_array($page->id, $this->systemIDs)) {
+				$extraPages[] = $page; 
+				continue; 
+			}
+
+			$child = $this->renderChild($page); 
+			$children[] = $child;
+		}
+
+		foreach($extraPages as $page) {
+			if($this->user->isSuperuser()) {
+				$children[] = $this->renderChild($page); 
+			}
+		}
+
+		$json = array(
+			'page' => $this->renderChild($this->page),
+			'children' => $children, 
+			'start' => $this->start, 
+			'limit' => $this->limit, 
+			); 
+
+		return json_encode($json); 
+	}
+
+}
+
+/**
+ * XHTML implementation of the Page List rendering
+ *
+ * No longer applicable, but kept here in comments for future reference
+ *
+ *
+class ProcessPageListRenderXHTML extends ProcessPageListRender {
+
+	public function render() {
+		if($this->id == 0) return "<ul class='PageList'>" . $this->listPage($this->page) . "</ul>";
+
+		$out = "<ul class='PageList'>";
+
+		foreach($this->children as $page) {
+			$out .= $this->listPage($page); 
+		}
+
+		if($moreURL = $this->getMoreURL()) {
+			$out .= "<li class='action'><a href='" . $this->getMoreURL() . "'>More</a></li>";
+		}
+	
+		$out .= "</ul>";
+
+		$out = "<div class='PageListRoot PageListXHTML'>$out</div>";
+
+		return $out; 
+	}
+
+	protected function listPage(Page $page) {
+
+		if(!$this->user->hasPermission("ProcessPageList", $page)) return '';
+
+		$classes = implode(' ', $this->getPageClasses($page)); 
+		$actions = $this->getPageActions($page); 
+		$label = $this->getPageLabel($page); 
+
+		$out = "<li class='PageListItem' rel='{$page->id}'><a class='PageListPage $classes' href='./?process=PageList&id={$page->id}&render=xhtml'>$label</a> ";
+
+		if($page->numChildren) $out .= "<span class='PageListNumChildren'>{$page->numChildren}</span> ";
+
+		if(count($actions)) { 
+			$out .= "<ul class='actions'>"; 
+			foreach($actions as $action) {
+				$s = $this->sanitizer->name($action['name']); 
+				$out .= "<li><a class='PageListAction$s' href='$action[url]'>$action[name]</a></li>";
+			}
+			$out .= "</ul>";
+		}
+
+		$out .= "</li>"; 
+		return $out; 	
+	}
+
+	public function ___getPageClasses(Page $page) {
+		$classes = array();
+		if(!$page->status) $classes[] = 'PageListStatusOff';
+		if(Page::statusHidden & $page->status) $classes[] = 'PageListStatusHidden';
+		if(Page::statusLocked & $page->status) $classes[] = 'PageListStatusLocked';
+		return $classes; 
+	}
+}
+*/
+

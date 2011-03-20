@@ -1,0 +1,55 @@
+#select_images a img {
+	border: 3px solid #fff; 
+}
+
+#select_images a:hover img {
+	border: 3px solid #000; 
+}
+
+
+#selected_image,
+#selected_image_container {
+	clear: both; 
+	float: none; 
+	margin: 0; 
+}
+
+#selected_image_filename {
+	font-weight: bold; 
+}
+
+#wrap_info {
+	margin-bottom: 0; 
+}
+
+#wrap_class,
+#wrap_link_original {
+	float: left; 
+	margin-top: 0; 
+	margin-right: 1em; 
+}
+
+#wrap_description {
+	position: relative; 
+	clear: both; 
+}
+	#wrap_description label {
+		position: absolute; 
+		top: 0; 
+		left: 0.25em; 
+		color: #999; 
+	}
+
+	#selected_image_description {
+		display: block;
+		width: 99%; 
+	}
+
+#ProcessPageEditImageSelect .Inputfields li {
+	margin-top: 0; 
+}
+
+#ProcessPageEditImageSelect .PageListStatusSystem {
+	display: none; 
+}
+

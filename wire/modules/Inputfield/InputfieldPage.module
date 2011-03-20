@@ -1,0 +1,246 @@
+<?php
+
+/**
+ * An Inputfield for handling relational Page inputs
+ *
+ * Delegates the actual input control to a user-defined Inputfield derived from InputfieldSelect
+ *
+ */
+class InputfieldPage extends Inputfield implements ConfigurableModule {
+
+	protected $inputfieldWidget = null;
+
+	protected static $defaultInputfieldClasses = array(
+		// default options
+		'InputfieldSelect',
+		'InputfieldSelectMultiple',
+		'InputfieldCheckboxes',
+		'InputfieldRadios', 
+		'InputfieldAsmSelect',
+		'InputfieldPageListSelect', 
+		'InputfieldPageAutocomplete',
+		); 
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Page',
+			'version' => 100,
+			'summary' => 'Select one or more pages',
+			'permanent' => true, 
+			);
+	}
+
+	public function __construct() {
+		$this->set('inputfieldClasses', self::$defaultInputfieldClasses); 
+		parent::__construct();
+	}
+
+	public function init() {
+		$this->set('parent_id', 0); 
+		$this->set('template_id', 0); 
+		$this->set('inputfield', ''); 
+		$this->set('labelFieldName', ''); 
+		$this->set('findPagesCode', ''); 
+		$this->attr('value', new PageArray()); 
+		parent::init();
+	}
+
+	public function getSelectablePages(Page $page) {
+
+		if($this->findPagesCode) {
+			// php statement that returns a PageArray
+			$pages = $this->pages; 	
+			$children = eval($this->findPagesCode); 
+
+		} else if($this->parent_id) {
+			$parent = $this->fuel('pages')->get($this->parent_id); 
+			if($parent) $children = $this->template_id ? $parent->children("templates_id={$this->template_id}") : $parent->children();
+		} else if($this->template_id) {
+			$children = $this->pages->find("templates_id={$this->template_id}"); 
+		} else {
+			$children = new PageArray();
+		}
+
+		return $children; 
+	} 
+
+	protected function getInputfield() {
+
+		if($this->inputfieldWidget) return $this->inputfieldWidget; 
+
+		$inputfield = $this->fuel('modules')->get($this->inputfield);
+		if(!$inputfield) return null;
+
+		$page = $this->page; 
+		$process = $this->fuel('process'); 
+		if($process && $process->className() == 'ProcessPageEdit') $page = $process->getPage();
+
+		$inputfield->attr('name', $this->attr('name')); 
+		$inputfield->attr('id', $this->attr('id')); 
+		$inputfield->label = $this->label;
+		$inputfield->description = $this->description; 
+
+		if(method_exists($inputfield, 'addOption')) {
+			$children = $this->getSelectablePages($page); 
+			if($children) foreach($children as $child) {
+				$label = $this->labelFieldName ? $child->get($this->labelFieldName) : 'name'; 
+				$inputfield->addOption($child->id, $label); 
+			}
+		} else {
+			if($this->parent_id) $inputfield->parent_id = $this->parent_id;
+			if($this->template_id) $inputfield->template_id = $this->template_id; 
+			$inputfield->labelFieldName = $this->labelFieldName; 
+			
+		}
+
+		$ids = array();
+		$value = $this->attr('value'); 
+		if($value instanceof Page) $inputfield->attr('value', $value->id); // derefAsPage
+			else if($value instanceof PageArray) foreach($value as $v) $inputfield->attr('value', $v->id); // derefAsPageArray
+
+		$this->inputfieldWidget = $inputfield;
+		return $inputfield; 
+	}
+
+	public function ___render() {
+
+		if(!$inputfield = $this->getInputfield()) { 
+			$this->error("Not fully configured  / currently nonfunctional");
+			return $this->name;
+		}
+
+		return "\n<div class='" . $inputfield->className() . "'>" . $inputfield->render() . "\n</div>";
+	}
+
+	public function ___processInput(WireInputData $input) {
+
+		$inputfield = $this->getInputfield();
+
+		if($inputfield) {
+
+			$inputfield->processInput($input); 
+
+			$value = $this->attr('value'); 
+			$existingValue = $value ? clone $value : '';
+			$newValue = null;
+			$value = $inputfield->value; 
+
+			if(is_array($value)) {
+				$newValue = new PageArray(); 
+				foreach($value as $v) {
+					$page = $this->fuel('pages')->get((int) $v); 
+					$newValue->add($page); 
+				}
+			} else {
+				if($value) $newValue = $this->fuel('pages')->get((int) $value); 
+			}
+
+			$this->setAttribute('value', $newValue); 
+
+			if("$newValue" != "$existingValue") {
+				$this->trackChange('value'); 
+			} 
+		}
+
+		return $this; 
+	}
+
+	public function ___getConfigInputfields() {
+		$inputfields = parent::___getConfigInputfields();
+
+		$field = $this->modules->get('InputfieldPageListSelect');
+		$field->setAttribute('name', 'parent_id'); 
+		$field->label = 'Parent of selectable page(s)';
+		$field->attr('value', $this->parent_id); 
+		$field->description = "Select the parent of the pages that are selectable.";
+		$field->required = false;
+		$inputfields->append($field); 
+
+		$field = $this->modules->get('InputfieldSelect');
+		$field->setAttribute('name', 'template_id'); 
+		$field->label = 'Template of selectable page(s)';
+		$field->attr('value', $this->template_id); 
+		$field->description = "Select the template of the pages that are selectable. May be used instead of, or in addition to, the parent above.";
+		foreach($this->templates as $template) $field->addOption($template->id, $template->name); 
+		$inputfields->append($field); 
+
+		$field = $this->modules->get('InputfieldTextarea'); 
+		$field->attr('name', 'findPagesCode'); 
+		$field->label = "Alternate/custom code to find selectable pages"; 
+		$field->attr('value', $this->findPagesCode); 
+		$field->attr('rows', 4); 
+		$field->description = 
+			"If you want to find selectable pages using a PHP code snippet rather than selecting a parent page or template (above) then enter the code to find the selectable pages. " . 
+			"This statement has access to the \$page and \$pages API variables, where \$page refers to the page being edited. The snippet should return either a PageArray or NULL. " . 
+			"Using this is optional, and if used, it overrides the 'Parent of selectable page(s)' field above. Note that this is not compatible with autocomplete input fields.";
+
+		$field->notes = 'Example: return $page->parent->parent->children("name=locations")->first()->children();';
+		$field->collapsed = Inputfield::collapsedBlank;
+		$inputfields->append($field); 
+
+		$field = $this->modules->get('InputfieldSelect');
+		$field->setAttribute('name', 'labelFieldName');
+		$field->setAttribute('value', $this->labelFieldName); 
+		$field->label = 'Label Field';
+		$field->description = "Select the page field that you want to be used in generating the labels for each selectable page.";
+
+                if($this->fuel('fields')->get('title')) {
+                        $field->addOption('title', 'title (default)');
+                        $field->addOption('name', 'name');
+                        $titleIsDefault = true;
+                } else {
+			$field->addOption('name', 'name (default)');
+			$titleIsDefault = false;
+		}
+		$field->addOption('path', 'path'); 
+
+                foreach($this->fuel('fields') as $f) {
+                        if(!$f->type instanceof FieldtypeText) continue;
+			if($f->type instanceof FieldtypeTextarea) continue; 
+                        if($titleIsDefault && $f->name == 'title') continue;
+                        $field->addOption($f->name);
+                }
+		$inputfields->append($field); 
+
+		if(!$this->inputfield) $this->inputfield = 'InputfieldSelect'; 
+		$field = $this->modules->get('InputfieldSelect');
+		$field->setAttribute('name', 'inputfield'); 
+		$field->setAttribute('value', $this->inputfield); 
+		$field->label = 'Input field type';
+		$field->description = "The type of field that will be used to select a page";
+		$field->required = true; 
+
+		foreach($this->inputfieldClasses as $class) {
+			$field->addOption($class, str_replace("Inputfield", '', $class)); 
+		}
+
+		$inputfields->append($field); 	
+
+		return $inputfields; 
+	}
+
+	static public function getModuleConfigInputfields(array $data) {
+
+		$name = 'inputfieldClasses';
+
+		if(!isset($data[$name]) || !is_array($data[$name])) $data[$name] = self::$defaultInputfieldClasses; 
+		$fields = new InputfieldWrapper();
+		$modules = Wire::getFuel('modules');
+		$field = $modules->get("InputfieldAsmSelect");
+		$field->attr('name', $name);
+		foreach(Wire::getFuel('modules')->find('class^=Inputfield') as $inputfield) {
+			$field->addOption($inputfield->className(), str_replace('Inputfield', '', $inputfield->className())); 
+		}
+		$field->attr('value', $data[$name]); 
+		$field->label = "Inputfield modules available for page selection";
+		$field->description =
+			"Select the Inputfield modules that may be used for page selection. These should generally be Inputfields that allow you to select one or more options.";
+		$fields->append($field);
+
+		return $fields;
+	}
+
+
+
+	
+}

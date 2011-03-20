@@ -1,0 +1,43 @@
+ProcessWire 2.0 is Copyright 2010 by the Ryan Cramer
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program as the file LICENSE.txt; if not, please see
+http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.
+
+ProcessWire includes works under other copyright notices and distributed
+according to the terms of the GNU General Public License or a compatible
+license, including the following plugin modules: 
+
+jQuery - Copyright (c) 2008-2010 John Resig
+Located in: /wire/modules/Jquery/JqueryCore/
+
+jQuery UI - Copyright 2010 The jQuery Project and the jQuery UI Team
+Located in: /wire/modules/Jquery/JqueryUI/
+
+jQuery Validation Plugin - Copyright 2006-2008 Jorn Zaefferer
+Located in /wire/modules/Jquery/JqueryValidation/
+
+jQuery TableSorter Plugin - Copyright 2008 Christian Bach 
+Located in /wire/modules/Jquery/JqueryTablesorter/
+
+jQuery Fancybox Plugin - Copyright (c) 2009 Janis Skarnelis
+Located in /wire/modules/Jquery/JqueryFancybox/
+
+PHP Markdown Extra - Copyright (c) 2009 Michel Fortin
+Located in: /wire/modules/Textformatter/TextformatterMarkdownExtra/
+
+PHP SmartyPants	- Copyright (c) 2006 Michel Fortin
+Located in: /wire/modules/Textformatter/TextformatterSmartypants/
+
+TinyMCE - Copyright (c) 2010 Moxiecode Systems 
+Located in /wire/modules/Inputfield/InputfieldTinyMCE/
+

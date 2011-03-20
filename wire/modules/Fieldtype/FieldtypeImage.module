@@ -1,0 +1,60 @@
+<?php
+
+/**
+ * ProcessWire Image Fieldtype
+ *
+ * Field that stores one or more image files. 
+ *
+ * For documentation about the fields used in this class, please see:  
+ * /wire/core/Fieldtype.php
+ * /wire/core/FieldtypeMulti.php
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class FieldtypeImage extends FieldtypeFile {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Images',
+			'version' => 100,
+			'summary' => 'Field that stores one or more GIF, JPG, or PNG images',
+			'permanent' => true, 
+			);
+	}
+
+	public function getBlankValue(Page $page, Field $field) {
+		$pageimages = new Pageimages($page);
+		$pageimages->setTrackChanges(true); 
+		return $pageimages; 
+	}
+
+	protected function getBlankPagefile(Pagefiles $pagefiles, $filename) {
+		return new Pageimage($pagefiles, $filename); 
+	}
+
+	public function getInputfield(Page $page, Field $field) {
+
+		// even though we don't want this input field, call it anyway
+		parent::getInputfield($page, $field); 
+
+		$inputfield = $this->modules->get("InputfieldImage"); 
+		$inputfield->class = $this->className();
+
+		$this->setupHooks($page, $field, $inputfield);
+
+		return $inputfield;
+	}
+
+	protected function getDefaultFileExtensions() {
+		return "gif jpg jpeg png";
+	}
+
+}
+

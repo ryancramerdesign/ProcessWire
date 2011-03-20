@@ -1,0 +1,53 @@
+<?php
+
+/**
+ * ProcessWire E-Mail Fieldtype
+ *
+ * Fieldtype for holding an email address. 
+ *
+ * For documentation about the fields used in this class, please see:  
+ * /wire/core/Fieldtype.php
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+
+class FieldtypeEmail extends FieldtypeText {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'E-Mail',
+			'version' => 100,
+			'summary' => 'Field that stores an e-mail address',
+			);
+	}
+
+	public function getInputfield(Page $page, Field $field) {
+		$inputfield = $this->modules->get('InputfieldEmail'); 
+		$inputfield->class = $this->className();
+		return $inputfield; 
+	}
+
+	public function sanitizeValue(Page $page, Field $field, $value) {
+		$value = filter_var($value, FILTER_SANITIZE_EMAIL); 
+		$value = filter_var($value, FILTER_VALIDATE_EMAIL); 
+		return $value; 
+	}
+
+	public function getDatabaseSchema(Field $field) {
+		$schema = parent::getDatabaseSchema($field); 
+		$schema['data'] = "varchar(255) NOT NULL default ''";
+		return $schema;
+	}
+
+
+	
+}
+
+

@@ -1,0 +1,195 @@
+<?php
+
+/**
+ * ProcessWire PageRender Module
+ *
+ * Adds a render method to Page, as used by the PageView Process. 
+ * This module is also able to cache page renders.
+ * It hooks into Pages and Fieldtypes to ensure cache files are cleaned/deleted when pages are saved/deleted.
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class PageRender extends WireData implements Module, ConfigurableModule {
+
+	const cacheDirName = 'Page';
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Page Render ', 
+			'version' => 100, 
+			'summary' => 'Adds a render method to Page, as used by the PageView Process. This module is also able to cache page renders.',
+			'permanent' => true, 
+			'singular' => true, 
+			'autoload' => true, 
+			);
+	}
+
+	/**
+	 * Initialize the hooks
+	 *
+	 */
+	public function init() {
+		$this->addHook('Page::render', $this, 'renderPage'); 
+		$this->addHookAfter('Fieldtype::savePageField', $this, 'savePageField'); 
+		$this->pages->addHookAfter('save', $this, 'clearCacheFile'); 
+		$this->pages->addHookAfter('delete', $this, 'clearCacheFile'); 
+	}
+
+	/**
+	 * If $page->save($field) was called (which calls Fieldtype::savePageField), then clear out the Page's cache
+	 *
+	 */
+	public function savePageField($event) {
+		$page = $event->arguments[0]; 
+		$this->getCacheFile($page)->remove();
+	}
+
+	/**
+	 * Get a CacheFile object corresponding to this Page
+	 *
+	 * Note that this does not check if the page is cachable. This is so that if a cachable setting changes the cache can still be removed. 
+	 *
+	 * @return CacheFile
+	 *
+	 */
+	public function getCacheFile($page) {
+
+		$path = $this->config->paths->cache . self::cacheDirName . "/";
+
+		if(!is_dir($path)) {
+			if(!@mkdir($path)) throw new WireException("Cache path does not exist: $path");
+			if($this->config->chmodDir) chmod($path, octdec($this->config->chmodDir));
+		}
+
+		$cacheFile = new CacheFile($path, $page->id, $page->template->cache_time);
+		if($this->config->chmodFile) $cacheFile->setChmodFile($this->config->chmodFile);
+		if($this->config->chmodDir) $cacheFile->setChmodDir($this->config->chmodDir);
+
+		$secondaryID = '';
+		$pageNum = $this->input->pageNum; 
+		$urlSegments = $this->input->urlSegments; 
+
+		if(count($urlSegments)) {
+			foreach($urlSegments as $urlSegment) {
+				$secondaryID .= $this->sanitizer->pageName($urlSegment) . '+';
+			}
+		}
+		if($pageNum > 1) $secondaryID .= "page{$pageNum}";
+
+		if($secondaryID) $cacheFile->setSecondaryID(rtrim($secondaryID, "+"));
+
+		return $cacheFile;
+	}
+
+	/**
+	 * Hook to clear the cache file after a Pages::save or Pages::delete call
+	 *
+	 */
+	public function clearCacheFile($event) {
+		$page = $event->arguments[0]; 
+		$cacheFile = $this->getCacheFile($page); 
+		$cacheFile->remove();
+		if($this->config->debug) $this->message("Cleared cache file: $cacheFile"); 
+	}
+
+	/**
+	 * Return a string with the rendered output of this Page (per it's Template)
+	 *
+	 * If the page's template has caching enabled, then this method will return a cached page render, when valid, 
+	 * or save a new cache. Caches are only saved on guest users. 
+	 *
+	 * @param array options Options to modify the render behavior: 
+	 *      forceBuildCache: If true, the cache will be re-created for this page, regardless of whether it's expired or not. 
+	 *
+	 * @return string rendered data
+	 *
+	 */
+	public function ___renderPage($event) {
+
+		$page = $event->object; 
+		$options = count($event->arguments) ? $event->arguments[0] : array();
+
+		if($page->status >= Page::statusUnpublished) 
+			throw new WireException("Page {$page->url} may not be rendered because it is unpublished");
+
+		$defaultOptions = array(
+			'forceBuildCache' => false,
+			);
+		$options = array_merge($defaultOptions, $options);
+
+		$cacheTime = $page->template->cache_time;
+		$cacheFile = null;
+
+		if($cacheTime && !$this->user->isLoggedin()) {
+			$cacheFile = $this->getCacheFile($page);
+			if(!$options['forceBuildCache'] && ($data = $cacheFile->get()) !== false) {
+				$event->return = $data;
+				return;
+			}
+		}
+
+		if(!$page->outputFormatting) throw new WireException(
+			"Page {$page->url} may not be rendered because outputFormatting is set to false. " . 
+			"Call \$page->setOutputFormatting(true) before rendering the page."
+			);
+
+		$output = $page->output;
+		$data = $output->render();
+
+		if($cacheTime && $cacheFile) $cacheFile->save($data);
+		$event->return = $data; 
+	}
+
+	/**
+	 * Provide a disk cache clearing capability within the module's configuration screen
+	 *
+	 */
+	static public function getModuleConfigInputfields(array $data) {
+
+		$path = Wire::getFuel('config')->paths->cache . self::cacheDirName . '/';
+		$numPages = 0;
+		$numFiles = 0;
+		$dir = new DirectoryIterator($path); 
+		$clearNow = Wire::getFuel('input')->post->clearCache ? true : false; 
+
+		foreach($dir as $file) {
+			if(!$file->isDir() || $file->isDot() || !ctype_digit($file->getFilename())) continue; 
+			$numPages++; 
+			if(!$clearNow) continue; 
+			$d = new DirectoryIterator($file->getPathname()); 
+			foreach($d as $f) {
+				if(!$f->isDir() && preg_match('/\.cache$/D', $f->getFilename())) {
+					$numFiles++; 
+					@unlink($f->getPathname()); 
+				}
+			}
+			@rmdir($file->getPathname()); 
+		}
+
+		$inputfields = new InputfieldWrapper();
+		if($clearNow) {
+			$inputfields->message("Cleared $numFiles cache files for $numPages pages"); 
+			$numPages = 0;
+		}
+
+		$name = "clearCache";
+		$f = Wire::getFuel('modules')->get('InputfieldCheckbox');
+		$f->attr('name', $name);
+		$f->attr('value', 1);
+		$f->label = "Clear the Page Render Disk Cache?"; 
+		$f->description = "There are currently $numPages pages cached in $path";
+
+		$inputfields->append($f);
+
+		return $inputfields;
+
+	}
+
+}

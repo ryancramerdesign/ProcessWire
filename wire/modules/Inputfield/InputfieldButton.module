@@ -1,0 +1,41 @@
+<?php
+
+/**
+ * An Inputfield for handling "button" buttons
+ *
+ */
+class InputfieldButton extends InputfieldSubmit {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Button',
+			'version' => 100,
+			'summary' => 'Form button element that you can optionally pass an href attribute to.',
+			'permanent' => true, 
+			);
+	}
+
+	public function init() {
+		parent::init();
+		$this->attr('id', '');
+		$this->attr('type', 'button'); 
+		$this->attr('name', 'button'); 
+		$this->attr('value', 'Button'); 
+		$this->attr('href', ''); 
+	}
+
+	public function ___render() {
+		$href = $this->attr('href');
+		if($href) $this->attr('href', '');
+		$out = parent::___render();
+		if($href) { 
+			$out = trim($out); 
+			$out = "<a href='$href'>$out</a>";
+			$this->attr('href', $href); 
+		}
+		
+		return $out; 
+	}
+
+	
+}

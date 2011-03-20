@@ -1,0 +1,66 @@
+<?php
+
+class InputfieldInteger extends Inputfield {
+	
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Integer',
+			'version' => 100,
+			'summary' => 'Integer (positive or negative)',
+			'permanent' => true, 
+			);
+	}
+
+	public function init() {
+		parent::init();
+		$this->attr('type', 'text'); 
+		//$this->set('maxValue', PHP_INT_MAX); 
+		//$this->set('minValue', 0); 
+		$this->attr('size', '10');
+	}
+
+	public function ___render() {
+		$out = "<input " . $this->getAttributesString() . " />"; 
+		return $out; 
+	}
+
+	protected function sanitizeValue($value) {
+		$value = trim($value);
+		if(!strlen("$value")) return '';
+		$negative = substr($value, 0, 1) === '-';
+		$value = preg_replace('/[^\d]/', '', $value); // remove non digits, like commas, etc.
+		if(!strlen("$value")) return '';
+		$value = (int) $value; 
+		if($negative) $value = -1 * $value;
+		return $value; 
+	}
+
+	public function isEmpty() {
+		return strlen("{$this->value}") === 0; 
+	}
+
+	public function setAttribute($key, $value) {
+
+		if($key == 'value') {
+			
+			$value = $this->sanitizeValue($value); 
+
+			/* TO ADD BACK LATER
+			if(strlen("$value")) {
+				if(!is_null($this->maxValue) && ((int)$value) > $this->maxValue) {
+					$value = '';
+					$this->error("Value supplied for field '{$this->name}' exceeded the maximum allowed value"); 
+
+				} else if(!is_null($this->minValue) && ((int)$value) < $this->minValue) {
+					$value = '';
+					$this->error("Value supplied for field '{$this->name}' is less than the minimum allowed value"); 
+				}
+			}
+			*/
+		}
+
+
+		return parent::setAttribute($key, $value); 
+	}
+
+}

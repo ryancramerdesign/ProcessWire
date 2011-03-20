@@ -1,0 +1,50 @@
+<?php
+
+/**
+ * ProcessWire URL Fieldtype
+ *
+ * Stores a valid URL value, whether local/relative or a URL that includes a protocol.
+ *
+ * For documentation about the fields used in this class, please see:  
+ * /wire/core/Fieldtype.php
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class FieldtypeURL extends FieldtypeText {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'URL',
+			'version' => 100,
+			'summary' => 'Field that stores a URL',
+			'permanent' => true, 
+			);
+	}
+
+	public function init() {
+		parent::init();
+		// text formatters not necessary with URL fieldtypes
+		$this->allowTextFormatters(false);
+	}
+
+	/**
+	 * Sanitize value for storage
+	 *
+	 */
+	public function sanitizeValue(Page $page, Field $field, $value) {
+		return $this->sanitizer->url($value); 
+	}
+
+	public function getInputfield(Page $page, Field $field) {
+		$inputField = $this->modules->get('InputfieldURL'); 
+		return $inputField; 
+	}
+}
+

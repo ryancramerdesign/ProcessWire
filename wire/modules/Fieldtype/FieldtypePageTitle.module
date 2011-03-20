@@ -1,0 +1,53 @@
+<?php
+
+/**
+ * ProcessWire Title Fieldtype
+ *
+ * Field that holds a Page title 
+ *
+ * For documentation about the fields used in this class, please see:  
+ * /wire/core/Fieldtype.php
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class FieldtypePageTitle extends FieldtypeText {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Page Title',
+			'version' => 100,
+			'summary' => 'Field that stores a page title',
+			'permanent' => true, 
+			);
+	}
+
+	/**
+	 * This field is only used for new fields in advanced mode
+	 *
+	 */
+	public function isAdvanced() {
+		return true; 
+	}
+
+	public function ___getCompatibleFieldtypes(Field $field) {
+		$fieldtypes = new Fieldtypes();
+		foreach($this->fuel('fieldtypes') as $fieldtype) {
+			if($fieldtype instanceof FieldtypePageTitle) $fieldtypes->add($fieldtype);
+		}
+		return $fieldtypes;
+	}
+
+
+	public function getInputfield(Page $page, Field $field) {
+		$inputField = $this->modules->get('InputfieldPageTitle'); 
+		return $inputField; 
+	}
+}
+

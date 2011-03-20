@@ -1,0 +1,37 @@
+.InputfieldCommentsAdmin .CommentsAdminItemHead {
+	margin-bottom: 0; 
+}
+
+.InputfieldCommentsAdmin p label,
+.InputfieldCommentsAdmin p input,
+.InputfieldCommentsAdmin p select {
+	display: block;
+}
+
+.InputfieldCommentsAdmin .CommentsAdminItemCite,
+.InputfieldCommentsAdmin .CommentsAdminItemEmail,
+.InputfieldCommentsAdmin .CommentsAdminItemStatus,
+.InputfieldCommentsAdmin .CommentsAdminItemDelete {
+	float: left; 
+	margin-right: 2em; 
+}
+
+.InputfieldCommentsAdmin .CommentsAdminItemStatus {
+}
+
+.InputfieldCommentsAdmin .CommentsAdminItemCite input {
+	width: 250px; 
+}
+.InputfieldCommentsAdmin .CommentsAdminItemEmail input {
+	width: 250px; 
+}
+
+.InputfieldCommentsAdmin .CommentsAdminItemText {
+	clear: both; 
+}
+
+.InputfieldCommentsAdmin .CommentsAdminItemHeadLabel {
+	float: right; 
+	padding-right: 1em; 
+}
+

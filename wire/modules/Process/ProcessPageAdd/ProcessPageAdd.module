@@ -1,0 +1,204 @@
+<?php
+
+/**
+ * ProcessWire Page Add Process
+ *
+ * Provides the UI for adding a page
+ * 
+ * For more details about how Process modules work, please see: 
+ * /wire/core/Process.php 
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class ProcessPageAdd extends Process {
+
+	protected $form; 
+	protected $parent; 
+	protected $parent_id; 
+	protected $page; 
+	protected $template; 
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Page Add',          
+			'summary' => 'Add a new page', 
+			'version' => 100, 
+			'permanent' => true, 
+			);
+	}
+
+	public function init() {
+		$this->page = null;
+		return parent::init();
+	}
+
+	public function ___execute() {
+
+		if(isset($_POST['parent_id'])) {
+			$this->parent_id = (int) $_POST['parent_id']; 
+		} else {
+			$this->parent_id = isset($_GET['parent_id']) ? (int) $_GET['parent_id'] : 1; 
+		}
+
+		if(!$this->parent_id) throw new Wire404Exception("Invalid Parent ID"); 
+		$this->parent = $this->pages->get($this->parent_id); 
+
+		if(!$this->parent) throw new Wire404Exception("Unable to load page {$this->id}"); 
+
+		if($this->parent->template->childrenTemplatesID < 0) {
+			throw new WireException("The parent template has specified that no children may be added here"); 
+
+		} else if($this->parent->template->childrenTemplatesID > 0) {
+			$this->template = $this->templates->get($this->parent->template->childrenTemplatesID); 	
+
+		} else {
+			$this->template = null;
+		}
+
+		$this->form = $this->buildForm();
+		$this->form->setTrackChanges();
+
+		if(count($_POST)) $this->processInput($this->form); 
+		$this->setupBreadcrumbs();
+
+		return $this->form->render();
+	}	
+
+	/**
+	 * Build the form fields for adding a page
+	 *
+	 */
+	protected function buildForm() {
+
+		$form = $this->modules->get('InputfieldForm');
+
+		$form->attr('id', 'ProcessPageAdd'); 
+		$form->attr('action', './'); 
+		$form->attr('method', 'post'); 
+
+		if(is_null($this->template) || !$this->template->noGlobal) {
+			$page = new NullPage(); // for getInputfield
+			foreach($this->fuel('fields') as $field) {
+				if($field->flags & Field::flagGlobal && $field->type instanceof FieldtypePageTitle) {
+					$form->append($field->getInputfield($page)); 
+					break;
+				}
+			}
+		}
+
+		$field = $this->modules->get('InputfieldPageName');
+		$field->parentPage = $this->parent; 
+		$field->required = true; 
+		$form->append($field); 
+
+		if(!$this->template) { 
+
+			$field = $this->modules->get('InputfieldPageListSelect');
+			$field->label = "Parent";
+			$field->attr('name', 'parent_id'); 
+			$field->attr('value', $this->parent_id); 
+			$form->append($field); 
+
+			if($this->parent->numChildren > 0) { 
+				$sibling = $this->parent->children('sort=-created, limit=1')->first();
+				$defaultTemplateId = $sibling->template->id; 
+			} else {
+				$defaultTemplateId = $this->parent->template->id; 
+			}
+
+			$field = $this->modules->get('InputfieldSelect');
+			$field->label = 'Template';
+			$field->attr('name', 'template'); 
+			$field->attr('value', $defaultTemplateId); 
+			$field->required = true; 
+			foreach($this->templates as $template) $field->addOption($template->id, $template->name); 
+			$form->append($field); 
+
+		} else {
+
+			$field = $this->modules->get('InputfieldHidden'); 
+			$field->attr('name', 'parent_id'); 
+			$field->attr('value', $this->parent_id); 
+			$form->append($field);
+		}
+
+		$field = $this->modules->get('InputfieldSubmit');
+		$field->attr('id+name', 'submit_save'); 
+		$field->attr('value', 'Save'); 
+		$form->append($field); 
+
+		return $form; 
+	}
+
+	/**
+	 * Save the submitted page add form
+	 *
+	 */
+	protected function processInput(Inputfield $form) {
+
+		if(!$this->input->post->submit_save) throw new WireException("Unexpected input"); 
+
+		$form->processInput($this->input->post);
+
+		$nameField = $form->children->get('name'); 	
+		$name = $nameField->value; 
+		if(!$name) {
+			$this->error("Missing required field 'name'"); 
+			return false; 
+		}
+
+		$template = $this->template; 
+		if(is_null($template)) { 
+			$templatesId = (int) $form->children->get('template')->value; 
+			$template = $this->templates->get($templatesId); 
+		}
+		
+		$this->page = new Page($template); 
+		$this->page->parent = $this->parent; 
+		$this->page->name = $name; 
+		$this->page->sort = $this->parent->numChildren; 
+
+		$publishNow = true; 
+
+		foreach($this->page->fields as $field) {
+			$f = $form->children->get($field->name); 
+			if($f) {
+				$this->page->set($field->name, $f->value); 
+			} else {
+				$publishNow = false; // non-global fields means we won't publish yet
+			}
+		}
+
+		// if more fields are going to be present in this page's template, then don't make this page available until the user has 
+		// had the opportunity to edit those fields in ProcessPageEdit. But if they've already seen all the fields that will be here (global),
+	 	// like just a title field, then go ahead and publish now. 
+
+		if(!$publishNow) $this->page->addStatus(Page::statusUnpublished); 
+
+		$this->pages->save($this->page); 
+
+		$this->session->message("Created page {$this->parent->url}{$this->page->name} with template '{$template->name}'"); 
+		$this->session->redirect("../edit/?id={$this->page->id}"); 
+	}
+
+	/**
+	 * Setup the UI breadcrumb trail
+	 *
+	 */
+	public function setupBreadcrumbs() {
+		$breadcrumbs = new Breadcrumbs();
+		$breadcrumbs->add(new Breadcrumb($this->config->urls->admin . 'page/list/', "Pages"));
+		foreach($this->parent->parents()->append($this->parent) as $p) {
+			$breadcrumbs->add(new Breadcrumb("../edit/?id=" . $p->id, $p->get("title|name"))); 
+		}
+		$this->setFuel('breadcrumbs', $breadcrumbs); 
+	}
+}
+

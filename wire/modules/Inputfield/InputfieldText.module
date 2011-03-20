@@ -1,0 +1,79 @@
+<?php
+
+/**
+ * An Inputfield for handling XHTML "text" form inputs
+ *
+ */
+class InputfieldText extends Inputfield {
+
+	const defaultMaxlength = 255; 
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Text',
+			'version' => 100,
+			'summary' => 'Single line of text',
+			'permanent' => true, 
+			);
+	}
+
+	public function __construct() {
+		parent::__construct();
+		$this->setAttribute('type', 'text'); 
+		$this->setAttribute('size', 0); 
+		$this->setAttribute('maxlength', self::defaultMaxlength); 
+	}
+
+	public function ___render() {
+		// $out = "\n<label for='{$this->id}'>" . htmlspecialchars($this->label) . "</label>" . 
+		$out = "\n<p><input " . $this->getAttributesString() . " /></p>"; 
+		return $out; 
+	}
+
+	public function getAttributes() {
+		$attrs = parent::getAttributes();
+		if(empty($attrs['size'])) {
+			unset($attrs['size']); 
+			$attrs['class'] = (empty($attrs['class']) ? '' : $attrs['class'] . ' ') . 'InputfieldMaxWidth';
+		}
+		return $attrs; 
+	}
+
+	public function setAttribute($key, $value) {
+
+		if($key == 'maxlength' && !(int) $value) $value = ''; // blank string prevents a maxlength='0' attribute
+
+		if($key == 'value') { 
+			$value = trim($value); 
+			$maxlength = (int) $this->attr('maxlength'); 
+			if($maxlength > 0) $value = substr($value, 0, $maxlength); 
+		}
+
+		return parent::setAttribute($key, $value); 
+	}
+
+	public function ___getConfigInputfields() {
+		$inputfields = parent::___getConfigInputfields();
+
+		$field = $this->modules->get('InputfieldInteger');
+		$field->setAttribute('name', 'size'); 
+		$field->label = 'Size';
+		$field->setAttribute('value', $this->attr('size')); 
+		$field->setAttribute('size', 4); 
+		$field->description = 'The displayed width of this field (in characters). Set to 0 for full width.'; 
+		$inputfields->append($field);
+
+		$field = $this->modules->get('InputfieldInteger');
+		$field->setAttribute('name', 'maxlength'); 
+		$field->label = 'Maxlength';
+		$field->setAttribute('value', $this->attr('maxlength')); 
+		$field->setAttribute('size', 4); 
+		$field->description = 'The maximum length (in characters) that are allowed by this field.'; 
+		$inputfields->append($field);
+
+		return $inputfields; 
+	}
+
+
+	
+}

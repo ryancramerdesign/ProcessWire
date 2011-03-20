@@ -1,0 +1,58 @@
+<?php
+
+/**
+ * ProcessWire List Process
+ *
+ * Generates a <dl> definition list of Processes attached to each child page. 
+ * 
+ * For more details about how Process modules work, please see: 
+ * /wire/core/Process.php 
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class ProcessList extends Process {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'List',          
+			'summary' => 'Lists the Process assigned to each child page of the current', 
+			'version' => 100, 
+			'permanent' => true, 
+			);
+	}
+
+
+	public function ___execute() {
+		return $this->render();
+	}	
+
+	protected function render() {
+		$out = "\n<dl class='nav'>";
+		$cnt = 0; 
+		foreach($this->page->children() as $child) {
+			if($child->process) {
+				if(!$this->user->hasPermission($child->process)) continue; 
+				$info = $this->modules->getModuleInfo($child->process); 	
+				$title = htmlspecialchars($info['title']); 
+				$summary = htmlspecialchars($info['summary']);
+			} else {
+				continue;
+			}
+			$out .= "\n\t<dt><a class='label' href='{$child->url}'>$title</a></dt>";
+			if($summary) $out .= "\n\t<dd>$summary</dd>";
+			$cnt++;
+		}
+
+		$out .= "\n</dl>";
+		if(!$cnt) $out = '';
+		return $out; 
+	}
+}
+

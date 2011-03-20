@@ -1,0 +1,293 @@
+<?php
+
+/**
+ * ProcessWire File Fieldtype
+ *
+ * Field that stores one or more files with optional description. 
+ *
+ * For documentation about the fields used in this class, please see:  
+ * /wire/core/Fieldtype.php
+ * /wire/core/FieldtypeMulti.php
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class FieldtypeFile extends FieldtypeMulti {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Files',
+			'version' => 100,
+			'summary' => 'Field that stores one or more files',
+			'permanent' => true, 
+			);
+	}
+
+	public function getInputfield(Page $page, Field $field) {
+
+		$inputfield = $this->modules->get("InputfieldFile"); 
+		$inputfield->class = $this->className();
+
+		$this->setupHooks($page, $field, $inputfield); 
+
+		return $inputfield;
+	}
+
+	public function ___getCompatibleFieldtypes(Field $field) {
+		$fieldtypes = new Fieldtypes();
+		foreach($this->fuel('fieldtypes') as $fieldtype) {
+			if($fieldtype instanceof FieldtypeFile) $fieldtypes->add($fieldtype); 
+		}
+		return $fieldtypes; 
+	}
+
+	/**
+	 * Setup any necessary hooks for this Inputfield, intended to be called from getInputfield() method
+	 *
+	 * We're going to hook into the inputfield to set the upload destination path.
+	 * This is because the destination path may be determined by events that occur
+	 * between the time this method is executed, and the time the upload is saved.
+	 * An example is the page files draft path vs. the published path.
+	 *
+	 * Make sure that any Fieldtype's descended from this one call the setupHooks method in their getInputfield() method. 
+	 *
+	 */
+	protected function setupHooks(Page $page, Field $field, Inputfield $inputfield) {
+
+		$options = array(
+			'page' => $page, 
+			'field' => $field, 
+			);
+
+		$inputfield->addHookBefore('processInput', $this, 'hookProcessInput', $options); 
+	}
+
+	/**
+	 * Hook into the InputfieldFile's processInput method to set the upload destination path
+	 *
+	 * This hook originates with the getInputfield method above. 
+	 *
+	 */
+	public function hookProcessInput($event) {
+		$inputfield = $event->object; 	
+		$page = $event->options['page']; 
+		$field = $event->options['field']; 
+		$pagefiles = $page->get($field->name); 
+		$inputfield->destinationPath = $pagefiles->path();
+	}
+
+        /**
+         * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
+	 *
+         * @param Page $page
+         * @param Field $field
+         * @param string|int|array $value
+         * @return string|int|array|object $value
+         *
+         */
+        public function ___wakeupValue(Page $page, Field $field, $value) {
+
+		if($value instanceof Pagefiles) return $value; 
+		$pagefiles = $this->getBlankValue($page, $field); 
+		if(empty($value)) return $pagefiles; 
+
+		if(!is_array($value) || array_key_exists('data', $value)) $value = array($value); 
+		foreach($value as $v) {
+			if(empty($v['data'])) continue; 
+			$pagefile = $this->getBlankPagefile($pagefiles, $v['data']); 
+			$pagefile->description = $v['description']; 
+			$pagefile->setTrackChanges(true); 
+			$pagefiles->add($pagefile); 
+		}
+
+		$pagefiles->resetTrackChanges(true); 
+                return $pagefiles;  
+        }
+
+        /**
+         * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
+         *              
+         * @param Page $page
+         * @param Field $field
+         * @param string|int|array|object $value
+         * @return string|int
+         *
+         */
+        public function ___sleepValue(Page $page, Field $field, $value) {
+		$sleepValue = array();
+		if(!$value instanceof Pagefiles) return $sleepValue; 
+		foreach($value as $pagefile) {
+			$sleepValue[] = array(
+				'data' => $pagefile->basename, 
+				'description' => $pagefile->description, 
+				); 
+		}
+		return $sleepValue;
+        }
+
+	public function getBlankValue(Page $page, Field $field) {
+		$pagefiles = new Pagefiles($page);
+		$pagefiles->setTrackChanges(true); 
+		return $pagefiles; 
+	}
+
+	/**
+ 	 * Returns a blank Pagefile instance, which may be another type of Pagefile (i.e. a Pageimage)
+	 *
+	 * This method ensures that the correct type of items are populated by wakeupValue()
+	 *
+	 * @param Pagefiles $pagefiles
+	 * @param string $filename
+	 * @return Pagefile 
+	 *
+	 */
+	protected function getBlankPagefile(Pagefiles $pagefiles, $filename) {
+		return new Pagefile($pagefiles, $filename); 
+	}
+
+	public function sanitizeValue(Page $page, Field $field, $value) {
+		if($value instanceof Pagefiles) return $value; 
+		$pagefiles = $page->getUnformatted($field->name); 
+		if(!$value) return $pagefiles; 
+		if($value instanceof Pagefile) return $pagefiles->add($value); 
+		if(!is_array($value)) $value = array($value); 
+		foreach($value as $file) $pagefiles->add($file); 
+		return $pagefiles; 
+	}
+
+	/**
+	 * Perform output formatting on the value delivered to the API
+	 *
+	 * Entity encode the file's description field. 
+	 * 
+	 * If the maxFiles setting is 1, then we format the value to dereference as single Pagefile rather than a PagefilesArray
+	 *
+	 * This methos is only used when $page->outputFormatting is true. 
+	 *
+	 */
+	public function formatValue(Page $page, Field $field, $value) {
+
+		if(!$value instanceof Pagefiles) return $value; 
+
+		if($field->entityEncode) { 
+			foreach($value as $k => $v) {
+				$v->description = htmlspecialchars($v->description, ENT_QUOTES); 
+			}
+		}
+
+		if($field->maxFiles == 1) {
+			if(count($value)) $value = $value->first();
+				else $value = null;
+		}
+
+		return $value; 
+	}
+
+	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
+		if(in_array($operator, array("*="))) {
+			$ft = new DatabaseQuerySelectFulltext($query); 
+			$ft->match($table, $subfield, $operator, $value); 
+		} else {
+			$query = parent::getMatchQuery($query, $table, $subfield, $operator, $value); 
+		}
+		return $query; 
+	}
+
+	public function getDatabaseSchema(Field $field) {
+		$schema = parent::getDatabaseSchema($field); 
+		$schema['data'] = 'varchar(255) NOT NULL';
+		$schema['description'] = "text NOT NULL default ''";
+		$schema['keys']['description'] = 'FULLTEXT KEY description (description)'; 
+		return $schema;
+	}
+
+
+	public function ___deletePageField(Page $page, Field $field) {
+
+		if($this->config->debug) $this->message("deletePageField, Page:$page, Field:$field"); 
+
+		if($pagefiles = $page->get($field->name)) {
+
+			if($pagefiles instanceof Pagefiles) {
+				$pagefiles->deleteAll(); 
+
+			} else if($pagefiles instanceof Pagefile) {
+				$pagefiles->unlink();
+
+			} else if($this->config->debug) {
+				$this->error("Not Pagefiles or Pagefile"); 
+			}
+
+		} else if($this->config->debug) {
+			$this->error("Unable to retreive $page.{$field->name}"); 			
+		}
+
+		parent::___deletePageField($page, $field); 
+
+		return true; 
+		
+	}
+
+	public function ___deleteField(Field $field) {
+		// delete files not necessary since deletePageField would have been called for all instances before this could be called
+		parent::___deleteField($field); 
+	}
+
+	/**
+	 * Default list of file extensions supported by this field, and used as the default by getConfigInputfields() method. 
+	 *
+	 * Subclasses can override with their own string of file extensions
+	 *
+	 */
+	protected function getDefaultFileExtensions() {
+		return "pdf doc docx xls xlsx gif jpg jpeg png";
+	}
+
+	/**
+	 * Disable autojoin for files
+	 *
+	 */
+	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) {
+		return null;
+	}  
+
+
+	public function ___getConfigInputfields(Field $field) {
+
+		$inputfields = parent::___getConfigInputfields($field);
+
+		$f = $this->modules->get('InputfieldTextarea');
+		$f->attr('name', 'extensions'); 
+		$f->attr('value', $field->extensions ? $field->extensions : $this->getDefaultFileExtensions()); 
+		$f->attr('rows', 3); 
+		$f->label = 'Valid File Extensions';
+		$f->description = 'Enter all file extensions allowed by this upload field. Separate each extension by a space. No periods or commas. This field is not case sensitive.'; 
+		$inputfields->append($f);
+
+		$f = $this->modules->get('InputfieldInteger');
+		$f->attr('name', 'maxFiles'); 
+		$f->attr('value', (int) $field->maxFiles); 
+		$f->attr('size', 4); 
+		$f->label = "Maximum files allowed";
+		$f->description = "Enter 0 for no limit. If you enter 1, the API will dereference this field as a single file rather than an array (when the Page's outputFormatting is on, as it is by default).";
+		$inputfields->append($f); 
+
+		$f = $this->modules->get("InputfieldCheckbox"); 
+		$f->attr('name', 'entityEncode'); 
+		$f->attr('value', 1); 
+		if($field->entityEncode) $f->attr('checked', 'checked'); 
+		$f->label = 'Entity encode file description? (recommended)'; 
+		$f->description = "If checked, the file's description field will be entity encoded (when the Page's outputFormatting is on, as it is by default).";
+		$inputfields->append($f); 
+
+		return $inputfields; 
+	}
+
+}
+

@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+
+	<script type="text/javascript" src="jquery.js"></script>
+	<script type="text/javascript" src="jquery.ui.js"></script>
+	<script type="text/javascript" src="../jquery.asmselect.js"></script>
+
+	<script type="text/javascript">
+
+		$(document).ready(function() {
+
+			$("#cities").asmSelect({
+				addItemTarget: 'bottom',
+				animate: true,
+				highlight: true,
+				sortable: true
+
+			}).after($("<a href='#'>Select All</a>").click(function() {
+				$("#cities").children().attr("selected", "selected").end().change();
+				return false;
+			})); 
+
+			
+		}); 
+
+	</script>
+
+	<link rel="stylesheet" type="text/css" href="../jquery.asmselect.css" />
+	<link rel="stylesheet" type="text/css" href="example.css" />
+
+</head>
+<body>
+	<h1>Example 4: Simple Manipulation</h1>
+	<h3>In this example, we add a "select all" functionality.</h3>
+
+	<form action="./example_results.php" method="post">
+
+		<label for="cities">What are your favorite cities?</label>
+		<select id="cities" multiple="multiple" name="cities[]" title="Click to Select a City">
+                        <option selected="selected">Amsterdam</option>      
+                        <option selected="selected">Atlanta</option>
+                        <option>Calgary</option>
+                        <option selected="selected">Chicago</option>
+                        <option>Denver</option>
+                        <option>Dubai</option>
+                        <option>Frankfurt</option>
+                        <option>Hong Kong</option>
+                        <option>Honolulu</option>
+                        <option>Houston</option>
+                        <option>Kuala Lumpur</option>
+                        <option>London</option>
+                        <option>Los Angeles</option>
+		</select>
+
+	</form>
+
+	<ul id='footer'>
+		<li><a href="http://code.google.com/p/jquery-asmselect/">asmSelect homepage at Google Code</a></li>
+		<li><a href="http://www.ryancramer.com/journal/entries/select_multiple/">Article: Select multiple form fields - Finding a better solution</a></li>
+	</ul>
+
+	<p class="copyright">&copy; 2008 by <a href="http://www.ryancramer.com">Ryan Cramer</a></p>
+
+</body>
+</html>

@@ -1,0 +1,15 @@
+<?php
+
+class JqueryValidation extends ModuleJS { 
+
+        public static function getModuleInfo() {
+                return array(
+                        'title' => 'jQuery Validation Plugin',
+                        'version' => 170,
+                        'summary' => 'Provides a jQuery plugin for form validation. jQuery plugin by Jorn Zaefferer.',
+			'href' => 'http://bassistance.de', 
+                        );
+        }
+
+	// note ModuleJS automatically loads any JS or CSS files with the same basename as this module
+}

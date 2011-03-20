@@ -1,0 +1,15 @@
+<?php
+
+class JqueryFancybox extends ModuleJS { 
+
+        public static function getModuleInfo() {
+                return array(
+                        'title' => 'jQuery Fancybox Plugin',
+                        'version' => 126,
+                        'summary' => 'Provides lightbox capability for image galleries. jQuery plugin by Janis Skarnelis.',
+			'href' => 'http://fancybox.net', 
+                        );
+        }
+
+	// note ModuleJS automatically loads any JS or CSS files with the same basename as this module
+}

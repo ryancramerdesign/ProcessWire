@@ -1,0 +1,119 @@
+<?php
+
+/**
+ * ProcessWire Session Login Throttle Module
+ *
+ * Throttles the frequency of logins for a given account, helps to reduce dictionary attacks.
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class SessionLoginThrottle extends WireData implements Module, ConfigurableModule {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Session Login Throttle', 
+			'version' => 100, 
+			'summary' => 
+				'Throttles the frequency of logins for a given account, helps to reduce dictionary attacks ' . 
+				'by introducing an exponential delay between logins.',
+			'permanent' => false, 
+			'singular' => true, 
+			'autoload' => true, 
+			);
+	}
+
+	/**
+	 * Initialize the hooks
+	 *
+	 */
+	public function init() {
+		$this->session->addHookAfter('allowLogin', $this, 'sessionAllowLogin'); 
+	}
+
+	/**
+	 * Hooks into Session::allowLogin to make it respond 'false' if the user has already failed a login. 
+	 *
+	 * Further, it imposes an increasing delay for every failed attempt (capped at 60 seconds)
+	 *
+	 */
+	public function sessionAllowLogin($event) {
+		return;
+		$name = $event->arguments[0]; 
+		$allow = $event->return; 
+		if(!$allow) return false; 
+
+		$time = time();
+		$db = $this->fuel('db');
+		$name = $db->escape_string($this->fuel('sanitizer')->username($name));
+		$result = $db->query("SELECT attempts, last_attempt FROM session_login_throttle WHERE name='$name'");
+		$allowed = false;
+
+		if($result->num_rows) {
+			list($attempts, $lastAttempt) = $result->fetch_array();
+			$requireSeconds = ($attempts * 2) * $attempts; 
+			if($requireSeconds > 60) $requireSeconds = 60;
+			$elapsedSeconds = $time - $lastAttempt; 
+			$attempts++;
+			if($elapsedSeconds < $requireSeconds) {
+				parent::error("Please wait at least $requireSeconds seconds before attempting another login. ($elapsedSeconds)");
+			} else {
+				$allowed = true; 
+			}
+			$db->query("UPDATE session_login_throttle SET attempts=$attempts, last_attempt=$time WHERE name='$name'");   
+
+		} else {
+			$allowed = true; 
+			$db->query("INSERT INTO session_login_throttle (name, attempts, last_attempt) VALUES('$name', 1, $time)");
+
+			// delete login attempts older than a day
+			$expired = $time - 86400;
+			$db->query("DELETE FROM session_login_throttle WHERE last_attempt < $expired");
+		}
+
+		$event->return = $allowed;
+	}
+
+
+	/**
+	 * Add custom config options (coming soon, just a placeholder for now)
+	 *
+	 */
+	static public function getModuleConfigInputfields(array $data) {
+
+		$inputfields = new InputfieldWrapper();
+
+		return $inputfields;
+
+	}
+
+	/**
+	 * Install the module by creating a DB table where we store login attempts
+	 *
+	 */
+	public function ___install() { 
+
+		$sql = 	"CREATE TABLE `session_login_throttle` ( " . 
+		  	"`name` varchar(128) NOT NULL, " . 
+		  	"`attempts` int(10) unsigned NOT NULL default '0'," . 
+		  	"`last_attempt` int(10) unsigned NOT NULL," . 
+		  	"PRIMARY KEY (`name`))";
+
+		$this->db->query($sql);
+	}
+
+	/**
+	 * Drop the login attempt table when the module is uninstalled
+	 *
+	 */
+	public function ___uninstall() { 
+		$this->db->query("DROP TABLE IF EXISTS session_login_throttle"); 
+	}
+
+}

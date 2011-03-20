@@ -1,0 +1,17 @@
+<?php
+
+class JqueryCore extends ModuleJS { 
+
+        public static function getModuleInfo() {
+                return array(
+                        'title' => 'jQuery Core',
+                        'version' => 144,
+                        'summary' => 'jQuery Core as required by ProcessWire Admin and plugins',
+			'href' => 'http://jquery.com', 
+			'permanent' => true
+                        );
+        }
+
+	// note ModuleJS automatically loads any JS or CSS files with the same basename as this module
+
+}

@@ -1,0 +1,242 @@
+<?php
+
+/**
+ * ProcessWire Page View Process
+ *
+ * Enables viewing or Processes, one of the core components in connecting ProcessWire to HTTP.
+ * 
+ * For more details about how Process modules work, please see: 
+ * /wire/core/Process.php 
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+/**
+ * An exception thrown by ProcessPageView when a page is not found (404), and caught internally by the Process.
+ *
+ */
+class PageNotFoundException extends Wire404Exception {}
+
+/**
+ * All page views are arouted through ProcessPageView
+ *
+ */
+class ProcessPageView extends Process {
+
+	const maxPageNum = 999;
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Page View', 
+			'summary' => 'All page views are routed through this Process', 
+			'version' => 100, 
+			'permanent' => true, 
+			);
+	}
+
+	// public static $n = 0; 
+
+	/**
+	 * URL that should be redirected to for this request
+ 	 * 
+	 * Set by other methods in this class, and checked by the execute method before rendering. 
+ 	 *
+	 */
+	protected $redirectURL = '';
+
+	/**
+	 * Retrieve a page, check access, and render
+ 	 *
+	 */
+	public function ___execute() {
+
+		$this->pages->setOutputFormatting(true); 
+		$page = $this->getPage();
+
+		if($page && $page->id) { 
+
+			$page->setOutputFormatting(true); 
+			$page = $this->checkAccess($page); 
+			if(!$page) return $this->pageNotFound($page); 
+			$this->checkProtocol($page); 
+			if($this->redirectURL) $this->session->redirect($this->redirectURL);
+			$this->setFuel('page', $page); 
+
+			try {
+				return $page->render();
+
+			} catch(Wire404Exception $e) {
+				return $this->pageNotFound();
+			}
+
+		} else {
+			return $this->pageNotFound(); 
+		}
+
+	}	
+
+	/**
+	 * Get the requested page and populate it with identified urlSegments or page numbers
+ 	 *
+	 * @return Page|null
+	 *
+	 */
+	protected function getPage() {
+
+		$it = isset($_GET['it']) ? $_GET['it'] : "/";
+		unset($_GET['it']); 
+		$it = preg_replace('{[^-_./a-zA-Z0-9]}', '', $it);
+		if($it[0] != '/') $it = "/$it";
+		$page = $this->pages->get("path=$it, status<" . Page::statusUnpublished); 
+		$hasTrailingSlash = substr($it, -1) == '/';
+
+		if($page && $page->id) {
+			// trailing slash vs. non trailing slash, enforced if not homepage 
+			// redirect to proper trailed slash version if incorrect version is present.
+			$s = $page->template->slashUrls;
+			if($page->id > 1 && ((!$hasTrailingSlash && $s !== 0) || ($hasTrailingSlash && $s === 0))) {
+				$this->redirectURL = $page->url;
+			}
+			return $page; 
+		}
+
+		$urlSegments = array();
+		$maxSegments = 4; 
+		$cnt = 0;
+
+		// if the page isn't found, then check if a page one path level before exists
+		// this loop allows for us to have both a urlSegment and a pageNum
+		while((!$page || !$page->id) && $cnt < $maxSegments) { 
+			$it = rtrim($it, '/'); 
+			$pos = strrpos($it, '/')+1;
+			$urlSegment = substr($it, $pos);
+			$urlSegments[$cnt] = $urlSegment; 
+			$it = substr($it, 0, $pos); // $it no longer includes the urlSegment
+			$page = $this->pages->get("path=$it, status<" . Page::statusUnpublished);
+			$cnt++; 
+		}
+
+		// if we still found no page, then we can abort
+		if(!$page || !$page->id) return null;
+
+		// if URL segments and/or page numbers are present and not allowed then abort
+		if(!$this->checkUrlSegments($urlSegments, $page)) return null;
+
+		return $page; 
+	}
+
+	/**
+	 * Identify and populate URL segments and page numbers
+	 *
+	 * @param array $urlSegments URL segments as found in getPage()
+	 * @param Page $page
+	 * @return bool Returns false if URL segments found and aren't allowed
+	 *
+	 */
+	protected function checkUrlSegments(array $urlSegments, Page $page) {
+
+		if(!count($urlSegments)) return true; 
+
+		$lastSegment = reset($urlSegments);
+		$urlSegments = array_reverse($urlSegments); 
+		$pageNumUrlPrefix = $this->config->pageNumUrlPrefix;
+		if(!$pageNumUrlPrefix) $pageNumUrlPrefix = 'page';
+
+		// check if the last urlSegment is setting a page number and that page numbers are allowed
+		if(strpos($lastSegment, $pageNumUrlPrefix) === 0 && strlen($lastSegment) > strlen($pageNumUrlPrefix) && $page->template->allowPageNum) {
+			// meets the requirements for a page number: last portion of URL and starts with 'page'
+			$pageNum = substr($lastSegment, strlen($pageNumUrlPrefix)); 
+			// now check to see if it also ends with digits
+			if(ctype_digit("$pageNum")) {
+				$pageNum = (int) $pageNum; 	
+				if($pageNum > self::maxPageNum) return false; 
+				$page->pageNum = $pageNum; // backwards compatibility
+				$this->input->setPageNum($pageNum); 
+				array_pop($urlSegments); 
+			}
+		} 
+
+		// return false if URL segments aren't allowed with this page template
+		if($page->template != 'admin' && count($urlSegments) && !$page->template->urlSegments) return false; 
+
+		// now set the URL segments to the $input API variable
+		$cnt = 1; 
+		foreach($urlSegments as $urlSegment) {
+			if($cnt == 1) $page->urlSegment = $urlSegment; // backwards compatibility
+			$this->input->setUrlSegment($cnt, $urlSegment);
+			$cnt++;
+		}
+
+		return true; 
+	}
+
+
+	/**
+	 * Check that the current user has access to the page and return it 
+	 *
+	 * If the user doesn't have access, then a login Page or NULL (for 404) is returned instead. 
+	 *
+	 * @return Page|null
+	 *
+	 */
+	protected function checkAccess($page) {
+		if($page->viewable()) return $page; 
+		if($page->template->redirectLogin) $page = $this->pages->get($this->config->loginPageID); 
+			else $page = null;
+		return $page; 
+	}
+
+	/**
+	 * If the template requires a different protocol than what is here, then redirect to it.
+	 *
+	 * This method just silently sets the $this->redirectURL var if a redirect is needed. 
+	 * Note this does not work if GET vars are present in the URL -- they will be lost in the redirect.
+	 *
+	 * @param Page $page
+	 *
+	 */
+	protected function checkProtocol($page) {
+
+		if(!$page->template->https) return; 
+		$url = $this->config->httpHost . $page->url; 
+		if($page->urlSegment) $url .= $page->urlSegment . '/'; 
+		if($page->pageNum > 1) $url .= "page{$page->pageNum}";
+
+		if($page->template->https == -1 && $this->config->https) {
+			// redirect to HTTP non-secure version
+			$this->redirectURL = "http://$url";
+
+		} else if($page->template->https == 1 && !$this->config->https) {
+			// redirect to HTTPS secure version
+			$this->redirectURL = "https://$url";
+		}
+	}
+
+	/**
+	 * Called when a page is not found, sends 404 header, and displays the configured 404 page instead. 
+	 *
+	 * Method is hookable, for instance if you wanted to log 404s. 
+	 *
+	 */
+	protected function ___pageNotFound(Page $page = null) {
+
+		header("HTTP/1.1 404 Page Not Found"); 
+
+		if($this->config->http404PageID) {
+			$page = $this->pages->get($this->config->http404PageID); 
+			if(!$page) throw new WireException("config::http404PageID does not exist - please check your config"); 
+			$this->setFuel('page', $page); 
+			return $page->render();
+		} else {
+			return "404 page not found";
+		}
+	}
+
+}
+

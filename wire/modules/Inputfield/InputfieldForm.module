@@ -1,0 +1,41 @@
+<?php
+
+/**
+ * InputfieldForm: An Inputfield for containing form elements
+ *
+ */
+class InputfieldForm extends InputfieldWrapper {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Form',
+			'version' => 100,
+			'summary' => 'Contains one or more fields in a form',
+			'permanent' => true, 
+			);
+	}
+
+	public function __construct() {
+		parent::__construct();
+		$this->attr('method', 'post'); 
+		$this->attr('action', './'); 
+	}
+
+	public function ___render() {
+
+		$attrs = $this->getAttributes();
+		unset($attrs['value']); 
+
+		$description = $this->getSetting('description'); 
+		if($description) $description = "\n<h2>" . htmlspecialchars($description) . "</h2>"; 
+
+		$out = 	"\n<form " . $this->getAttributesString($attrs) . ">" . 
+			$description . 
+			parent::___render() . 	
+			"\n</form>";
+
+		return $out; 
+	}
+	
+}
+

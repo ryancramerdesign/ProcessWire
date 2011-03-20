@@ -1,0 +1,54 @@
+<?php
+
+/**
+ * ProcessWire Markdown Textformatter
+ *
+ * See: http://daringfireball.net/projects/markdown/
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class TextformatterMarkdownExtra extends Textformatter {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Markdown Extra', 
+			'version' => 122, 
+			'summary' => "Markdown extra lightweight markup language by Michel Fortin based on Markdown by John Gruber", 
+			'url' => "http://michelf.com/projects/php-markdown/extra/", 
+		); 
+	}
+
+	public function format(&$str) {
+		require_once("markdown.php"); 
+		$str = Markdown($str); 
+		// $this->markdownExtensions($str); 
+	}
+
+	/**
+	 * A couple RCD extentions to MarkDown syntax, to be executed after Markdown has already had it's way with the text
+	 *
+	 */
+	protected function markdownExtensions(&$str) {
+
+		// add id attribute to a tag, when followed by a #myid
+		if(strpos($str, '>#')) $str = preg_replace('/<([a-z][a-z0-9]*)([^>]*>.*?)(<\/\\1>)#([a-z][-_a-z0-9]*)\b/', '<$1 id="$4"$2$3', $str); 
+
+		// add class attribute to tag when followed by a .myclass
+		if(strpos($str, '>.')) $str = preg_replace('/<([a-z][a-z0-9]*)([^>]*>.*?)(<\/\\1>)\.([a-z][-_a-z0-9]*)\b/', '<$1 class="$4"$2$3', $str); 
+
+		// href links open in new window when followed by a plus sign, i.e. [google](http://google.com)+
+		if(strpos($str, '</a>+')) $str = preg_replace('/<a ([^>]+>.+?<\/a>)\+/', '<a target="_blank" $1', $str); 
+
+		// strip out comments
+		// if(strpos($text, '/*') !== false) $text = preg_replace('{/\*.*?\*/}s', '', $text); 
+		// if(strpos($text, '//') !== false) $text = preg_replace('{^//.*$}m', '', $text); 
+		
+	}
+}

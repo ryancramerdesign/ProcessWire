@@ -1,0 +1,261 @@
+<?php
+
+/**
+ * ProcessWire Module Process
+ *
+ * Provides list, install, and uninstall capability for ProcessWire modules
+ * 
+ * For more details about how Process modules work, please see: 
+ * /wire/core/Process.php 
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class ProcessModule extends Process {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Modules',          
+			'summary' => 'List, edit or install/uninstall modules', 
+			'version' => 100, 
+			'permanent' => true, 
+			);
+	}
+
+	/**
+	 * All modules indexed by class name and sorted by class name
+	 *
+	 */
+	protected $modulesArray = array();
+
+	/**
+	 * Format a module version number from 999 to 9.9.9
+	 *
+	 * @param string $version
+	 * @return string
+	 *
+	 */
+
+	protected function formatVersion($version) {
+		return preg_replace('/(\d)(?=\d)/', '$1.', str_pad("$version", 3, "0", STR_PAD_LEFT));
+	}
+
+	/**
+	 * Load all modules, install any requested, and render a list of all modules
+	 *
+	 */
+	public function ___execute() {
+
+		foreach($this->modules as $module) $this->modulesArray[$module->className()] = 1; 
+		foreach($this->modules->getInstallable() as $module) $this->modulesArray[basename($module, '.module')] = 0; 
+		ksort($this->modulesArray); 
+
+		if(isset($_POST['install'])) {
+			$name = $_POST['install']; 
+			if($name && isset($this->modulesArray[$name]) && !$this->modulesArray[$name]) {
+				$module = $this->modules->get($name); 		
+				$this->modulesArray[$name] = 1; 
+				$this->session->message("Installed module '" . $module->className . "'");
+				$this->session->redirect("edit?name={$module->className}"); 
+			}
+		}
+
+		if(isset($_POST['reset'])) {
+			$this->modules->resetCache();
+			$this->session->redirect("./?reset=1");
+		}
+
+		return $this->renderList();
+	}	
+
+	/**
+	 * Render a list of all modules
+	 *
+	 */
+	protected function renderList() {
+	
+		$form = $this->modules->get('InputfieldForm');
+		$form->setAttribute('action', './'); 
+		$form->setAttribute('method', 'post'); 
+
+		$modules = array();
+		$section = 'none';
+		$tableHeader = array('Module', 'Version', 'Summary'); 
+		$table = null;
+		$out = "\n<p class='description'>To add more modules, place them in {$this->config->urls->siteModules} and click the 'check for new modules' button at the bottom of this window. </p>"; 
+		$total = 0;
+
+		foreach($this->modulesArray as $name => $installed) {
+
+			if(strpos($name, $section) !== 0) {
+				if(!preg_match('/^([A-Za-z][a-z]+)/', $name, $matches)) $this->error($name); 
+				$section = $matches[1]; 
+				if($table) $out .= $table->render();
+				$table = $this->modules->get("MarkupAdminDataTable");
+				$table->setEncodeEntities(false); 
+				$table->headerRow($tableHeader); 
+				//$out .= "\n<h3 class='ui-widget ui-widget-header'>$section</h3>"; 
+				$out .= "\n<h2>$section</h2>"; 
+			}
+
+			if($installed) { 
+				$info = $this->modules->getModuleInfo($name); 
+				$title = !empty($info['title']) ? htmlspecialchars($info['title']) : substr($name, strlen($section)); 
+				$version = $this->formatVersion(isset($info['version']) ? $info['version'] : 0);
+				$summary = isset($info['summary']) ? htmlspecialchars($info['summary']) : '';
+				$summary .= isset($info['href']) ? " <a href='$info[href]'>more</a>" : '';
+				$editUrl = "edit?name={$name}";
+
+			} else {
+				$title = $name; 
+				$summary = " <button type='submit' name='install' value='$name'>Install</button>";
+				$version = 'Not Installed';
+				$flags = '';
+				$editUrl = '#';
+			}
+
+			$row = array(
+				$title => $editUrl,
+				$version, 
+				$summary,
+				);
+
+			$table->row($row); 
+			$total++;
+
+		}
+
+		$out .= $table->render();
+		$form->attr('value', $out); 
+		$submit = $this->modules->get('InputfieldSubmit');
+		$submit->name = 'reset';
+		$submit->setAttribute('value', 'Check for new modules'); 
+		$form->prepend($submit); 
+
+		if($this->session->ModulesTotal && $total > $this->session->ModulesTotal) {
+			$this->message("Found " . ($total - $this->session->ModulesTotal) . " new module(s)"); 
+		} else if($this->input->get->reset) {
+			$this->message("No new modules found"); 
+		}
+		$this->session->ModulesTotal = $total;
+
+		return $form->render(); 
+	}
+
+	/**
+	 * Load the form for editing a module's settings
+	 *
+	 */
+	public function ___executeEdit() {
+
+		$info = null; 
+		$moduleName = '';
+		$out = '';
+
+		if(isset($_POST['name'])) $moduleName = $_POST['name']; 
+			else if(isset($_GET['name'])) $moduleName = $_GET['name'];
+
+		$moduleName = $this->sanitizer->name($moduleName); 
+
+		if(!$moduleName || !$info = $this->modules->getModuleInfo($moduleName)) {
+			$this->session->message("No module specified"); 
+			$this->session->redirect("./"); 
+		}
+
+		return $this->renderEdit($moduleName, $info); 
+
+	}
+
+	/**
+	 * Build and render for the form for editing a module's settings
+	 *
+	 * This method saves the settings if it's form has been posted
+	 *
+	 */
+	protected function renderEdit($moduleName, $moduleInfo) {
+
+		$out = ''; 
+		$moduleId = $this->modules->getModuleID($moduleName); 
+
+		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', 'Modules')); 
+		$this->setFuel('processHeadline', $moduleInfo['title']); 
+
+		$form = $this->modules->get("InputfieldForm"); 
+		$form->attr('id', 'ModuleEditForm'); 
+		$form->attr('action', "edit?name=$moduleName"); 
+		$form->attr('method', 'post'); 
+
+		$fields = array();
+		$data = array();
+
+		if(in_array('ConfigurableModule', class_implements($moduleName))) {
+			$data = $this->modules->getModuleConfigData($moduleName); 
+			$fields = call_user_func(array($moduleName, 'getModuleConfigInputfields'), $data); 
+			foreach($fields as $field) $form->append($field); 
+		} 
+
+		if(empty($moduleInfo['permanent'])) { 
+			$field = $this->modules->get("InputfieldCheckbox"); 
+			$field->attr('name', 'uninstall'); 
+			$field->attr('value', $moduleName); 
+			$field->collapsed = Inputfield::collapsedYes; 
+			$field->label = "Uninstall";
+			$field->description = "Uninstall this module? After uninstalling, you may remove the modules files from the server if it is not in use by any other modules.";
+			$form->append($field); 
+		}
+
+		if(count($form->children)) {
+			$field = $this->modules->get("InputfieldSubmit"); 
+			$field->attr('name', 'submit_save_module'); 
+			$form->append($field); 
+		} else {
+			$this->message("This module doesn't have any fields to configure"); 
+		}
+
+		if(isset($_POST['submit_save_module'])) {
+
+			$form->processInput($this->input->post); 
+			//if($fields && $data) foreach($fields as $field) $data[$field->attr('name')] = $field->attr('value'); 
+			if($fields) foreach($fields as $field) $data[$field->attr('name')] = $field->attr('value'); 
+
+			if(empty($moduleInfo['permanent']) && isset($_POST['uninstall']) && $_POST['uninstall'] == $moduleName) {
+				$this->modules->uninstall($moduleName); 	
+				$this->session->message("Uninstalled module: $moduleName"); 
+				$this->session->redirect('./'); 
+			} else {
+				$this->modules->saveModuleConfigData($moduleName, $data); 
+				$this->message("Saved Module: $moduleName"); 
+			}
+		}
+
+		$table = $this->modules->get("MarkupAdminDataTable"); 
+		$table->setEncodeEntities(false); 
+		$table->row(array('Title', $moduleInfo['title'])); 
+		$table->row(array('Class', $moduleName)); 
+		$table->row(array('ID', $moduleId)); 
+		$table->row(array('Version', $this->formatVersion($moduleInfo['version']))); 
+		$table->row(array('Summary', $moduleInfo['summary'])); 
+		if(!empty($moduleInfo['permission'])) $table->row(array('Permission', $moduleInfo['permission'] . " (delegated)")); 
+		foreach($this->permissions->find("modules_id=$moduleId") as $permission) $table->row(array('Permission', $permission)); 
+		if(!empty($moduleInfo['href'])) $table->row(array('More Information', "<a class='label' href='$moduleInfo[href]'>$moduleInfo[href]</a>")); 
+
+
+		$field = $this->modules->get("InputfieldMarkup"); 
+		$field->attr('value', $table->render()); 
+		$field->label = "Module Information";
+		$form->prepend($field); 
+
+		$out .= $form->render();
+
+		return $out; 
+	}
+
+
+}
+

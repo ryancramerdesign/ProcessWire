@@ -1,0 +1,103 @@
+<?php
+
+/**
+ * ProcessWire Integer Fieldtype
+ *
+ * Field that stores an integer value. 
+ *
+ * For documentation about the fields used in this class, please see:  
+ * /wire/core/Fieldtype.php
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class FieldtypeInteger extends Fieldtype {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Integer',
+			'version' => 100,
+			'summary' => 'Field that stores an integer',
+			'permanent' => true, 
+			);
+	}
+
+	public function ___getCompatibleFieldtypes(Field $field) {
+		$fieldtypes = parent::___getCompatibleFieldtypes($field); 
+		foreach($fieldtypes as $type) {
+			if(	!$type instanceof FieldtypeInteger && 
+				!$type instanceof FieldtypeFloat &&
+				$type != 'FieldtypeText') {
+
+				$fieldtypes->remove($type); 
+			}
+		}
+		return $fieldtypes; 
+	}
+
+	public function getBlankValue(Page $page, Field $field) {
+		return ''; 
+	}
+
+	public function sanitizeValue(Page $page, Field $field, $value) {
+		$value = strlen("$value") ? (int) $value : '';
+
+		/* TO ADD BACK LATER
+		if(strlen("$value")) {
+			$value = (int) $value; 
+			if(!is_null($field->maxValue) && $value > $field->maxValue) {
+				$value = $field->maxValue;
+			} 
+			if(!is_null($field->minValue) && $value < $field->minValue) {
+				$value = $field->minValue;
+			}
+		} 
+		*/
+		return $value;
+
+	}
+
+	public function getInputfield(Page $page, Field $field) {
+		$inputfield = $this->modules->get('InputfieldInteger'); 
+		$inputfield->class = $this->className();
+		return $inputfield; 
+	}
+
+	public function getDatabaseSchema(Field $field) {
+		$schema = parent::getDatabaseSchema($field); 
+		$schema['data'] = 'int NOT NULL';
+		return $schema;
+	}
+
+	/* TO ADD BACK LATER
+	public function ___getConfigInputfields(Field $field) {
+		$inputfields = parent::___getConfigInputfields($field);
+
+		$field = $this->modules->get('InputfieldInteger');
+		$field->setAttribute('name', 'minValue'); 
+		$field->label = 'Minimum Allowed Value';
+		$field->setAttribute('value', $field->minValue); 
+		$field->setAttribute('size', 20); 
+		$field->description = 'The smallest number allowed by this field.'; 
+		$inputfields->append($field);
+
+		$field = $this->modules->get('InputfieldInteger');
+		$field->setAttribute('name', 'maxValue'); 
+		$field->label = 'Maximum Allowed Value';
+		$field->setAttribute('value', $field->maxValue); 
+		$field->setAttribute('size', 20); 
+		$field->description = 'The largest number allowed by this field (may not exceed ' . PHP_INT_MAX . ")"; 
+		$inputfields->append($field);
+
+		return $inputfields; 
+	}
+	*/
+
+}
+

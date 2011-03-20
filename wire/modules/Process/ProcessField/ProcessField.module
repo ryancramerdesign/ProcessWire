@@ -1,0 +1,508 @@
+<?php
+
+/**
+ * ProcessWire Field Editing Process
+ *
+ * Add, Edit, and Remove Fields
+ * 
+ * For more details about how Process modules work, please see: 
+ * /wire/core/Process.php 
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class ProcessField extends Process implements ConfigurableModule {
+
+	protected $form; 
+	protected $field;
+	protected $id; 
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Fields',
+			'version' => 100,
+			'summary' => 'Edit individual fields that hold page data',
+			'permanent' => true, 
+			);
+	}
+
+	public function init() {
+
+		if($this->input->post->id) $this->id = (int) $this->input->post->id; 
+			else $this->id = $this->input->get->id ? (int) $this->input->get->id : 0; 
+
+		if($this->id) $this->field = $this->fields->get($this->id); 
+			else $this->field = new Field();
+
+		$this->form = $this->buildEditForm();
+
+
+		return parent::init();
+	}
+
+	/**
+	 * Renders filtering options when viewing a list of Fields
+	 *
+	 */
+	public function renderListFilters() {
+
+		$form = $this->modules->get("InputfieldForm"); 
+		$form->attr('id', 'field_filter_form'); 
+		$form->attr('method', 'get'); 
+		$form->attr('action', './'); 
+
+		$field = $this->modules->get("InputfieldSelect"); 
+		$field->attr('id+name', 'templates_id'); 
+		$field->addOption('', 'Show All'); 
+		foreach($this->templates as $template) $field->addOption($template->id, $template->name); 
+		$this->session->ProcessFieldListTemplatesID = (int) $this->input->get->templates_id; 
+		$field->label = 'Filter by Template';
+		$value = (int) $this->session->ProcessFieldListTemplatesID; 
+		$field->attr('value', $value); 
+		if($value && $template = $this->templates->get($value)) {
+			$field->label .= ": $template";
+		} else {
+			$field->collapsed = Inputfield::collapsedYes; 
+		}
+		$form->append($field); 
+
+		$field = $this->modules->get("InputfieldSelect"); 
+		$field->attr('id+name', 'fieldtype'); 
+		$field->addOption('', 'Show All'); 
+		foreach($this->fieldtypes as $fieldtype) $field->addOption($fieldtype->name, $fieldtype->shortName); 
+		if($this->input->get->fieldtype !== null) $this->session->ProcessFieldListFieldtype = $this->sanitizer->name($this->input->get->fieldtype); 
+		$field->label = 'Filter by Type';
+		$value = $this->session->ProcessFieldListFieldtype; 
+		$field->attr('value', $value); 
+		if($value && $fieldtype = $this->fieldtypes->get($value)) {
+			$field->label .= ": {$fieldtype->shortName}";
+		} else {
+			$field->collapsed = Inputfield::collapsedYes; 
+		}
+		$form->append($field); 
+		
+		return $form->render(); 
+	}
+
+	/**
+	 * Render a list of current fields
+	 *
+	 */
+	public function ___execute() {
+
+		$out = $this->showListFilters || $this->config->advanced ? $this->renderListFilters() : '';
+                $table = $this->modules->get("MarkupAdminDataTable");
+                $table->headerRow(array('Name', 'Label', 'Type', 'Notes', 'Templates'));
+
+                foreach($this->fields as $field) {
+
+			$numTemplates = 0; 
+			$notes = array();
+
+			$templatesID = $this->session->ProcessFieldListTemplatesID; 
+			if($templatesID && $template = $this->templates->get($templatesID)) {
+				if(!$template->fieldgroup->has($field)) continue; 
+			}
+			if($fieldtype = $this->session->ProcessFieldListFieldtype) {
+				if($field->type != $fieldtype) continue; 
+			}
+
+			foreach($field->getFieldgroups() as $fieldgroup) {
+				$numTemplates += $fieldgroup->numTemplates();
+			}
+
+			if($field->flags & Field::flagAutojoin) $notes[] = 'autojoin';
+			if($field->flags & Field::flagGlobal) $notes[] = 'global';
+			
+
+			$table->row(array(
+				$field->name => "edit?id={$field->id}",
+				$field->label, 
+				$field->type->shortName,
+				implode(', ', $notes),
+				$numTemplates
+				));
+		}
+
+                $table->action(array('Add New Field' => './add'));
+
+                return $out . $table->render();
+	}	
+
+	/**
+	 * Add a new field
+	 *
+	 */
+	public function ___executeAdd() {
+		return $this->executeEdit(); 
+	}
+
+	/**
+	 * Edit an existing Field
+	 *
+	 */
+	public function ___executeEdit() {
+
+		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', 'Fields')); 
+
+		if($this->field->id) {
+			$this->setFuel('processHeadline', "Edit Field: {$this->field->name}"); 
+			$this->form->description = "This field is used in " . $this->field->numFieldgroups() . "  templates/fieldgroups"; 
+		} else {
+			$this->setFuel('processHeadline', 'Add New Field'); 
+			$this->form->description = "After saving the new field, you will be given additional configuration options."; 
+		}
+
+
+		return $this->form->render();
+	}	
+
+	/**
+	 * Build the Field Edit form
+	 *
+	 */
+	protected function buildEditForm() {
+
+		$form = $this->modules->get('InputfieldForm');
+
+		$form->attr('id', 'ProcessFieldEdit'); 
+		$form->attr('action', 'save'); 
+		$form->attr('method', 'post'); 
+
+		$field = $this->modules->get('InputfieldName');
+		$field->attr('value', $this->field->name); 
+		$field->description = "Any combination of ASCII letters [a-z], numbers [0-9], or underscores (no dashes or spaces).";
+		$form->append($field); 
+
+		$field = $this->modules->get('InputfieldSelect');
+		$field->label = 'Type';
+		$field->attr('name', 'type'); 
+		$field->required = true; 
+		if($this->field->type) $field->attr('value', $this->field->type->name); 
+			else $field->addOption('', ''); 
+
+		if(!$this->field->id) $field->description = 
+			"After selecting your field type and saving, you may be presented with additional configuration " . 
+			"options specific to the field type you selected.";
+
+		if($this->field->type) $fieldtypes = $this->field->type->getCompatibleFieldtypes($this->field);
+			else $fieldtypes = $this->fieldtypes; 
+
+		if($fieldtypes && count($fieldtypes)) {
+			foreach($fieldtypes->sort('name') as $fieldtype) {
+				if(!$this->config->advanced && $fieldtype->isAdvanced() && $field->value != $fieldtype->className()) continue; 
+				$field->addOption($fieldtype->name, $fieldtype->shortName); 
+			}
+		} else {
+			$field->addOption($this->field->type->name, $this->field->type->shortName); 
+		}
+
+		$form->append($field); 
+		
+		$field = $this->modules->get('InputfieldText');
+		$field->label = 'Label';
+		$field->attr('name', 'label'); 
+		$field->attr('size', '70'); 
+		$field->attr('value', $this->field->label); 
+		$field->description = "This is the label that appears above the entry field. If left blank, the name will be used instead.";
+		$form->append($field); 
+
+		$field = $this->modules->get('InputfieldTextarea');
+		$field->label = 'Description';
+		$field->attr('name', 'description'); 
+		$field->attr('value', $this->field->description); 
+		$field->attr('rows', 3); 
+		$field->description = "Additional information describing this field and/or instructions on how to enter the content.";
+		$field->collapsed = Inputfield::collapsedBlank;
+		$form->append($field); 
+
+		if($this->field->id) { 
+			// custom fields as required by the Inputfield/Fieldtype
+			if($this->field->type) {
+				$advanced = $this->buildEditFormAdvanced();
+				if($advanced) $form->append($advanced); 
+				$customFields = $this->field->getConfigInputfields();
+				foreach($customFields as $field) {
+					// skip over wrappers if they don't have fields in them 
+					if($field instanceof InputfieldWrapper && !count($field->children)) continue; 
+
+					$form->append($field); 
+				}
+			}
+
+			$form->append($this->buildEditFormInfo()); 
+
+
+			// Delete
+			$field = $this->modules->get('InputfieldCheckbox');
+			$field->label = "Delete Field"; 
+			$field->attr('id+name', "delete"); 
+			$field->attr('value', $this->field->id); 
+			$field->collapsed = Inputfield::collapsedYes; 
+			$form->append($field); 
+
+			if($this->field->id && $this->field->numFieldgroups() == 0) {
+				$field->description = "This field is not in use and is safe to delete.";
+			} else { 
+				$field->attr('disabled', 'disabled'); 
+				$field->description = "This field may not be deleted because it is in use by one or more templates/fieldgroups."; 
+			}
+		}
+
+		$field = $this->modules->get('InputfieldHidden');
+		$field->attr('name', 'id'); 
+		$field->attr('value', $this->field->id); 
+		$form->append($field); 
+
+		$field = $this->modules->get('InputfieldSubmit');
+		$field->attr('name', 'submit_save_field'); 
+		$form->append($field); 
+
+		return $form; 
+	}
+
+	/**
+	 * Build the 'Info' field shown in the Field Edit form
+	 *
+	 */
+	protected function buildEditFormInfo() {
+		// Info
+		$field = $this->modules->get('InputfieldMarkup'); 
+		$field->label = 'Info';
+		$field->collapsed = Inputfield::collapsedYes; 
+		$fieldgroups = $this->field->getFieldgroups(); 
+		$templates = new TemplatesArray();
+		foreach($fieldgroups as $fieldgroup) $templates->import($fieldgroup->getTemplates()); 
+
+		if(count($templates)) {
+			$field->description = 'This field is used by the following templates:';
+			$table = $this->modules->get("MarkupAdminDataTable"); 
+			$table->headerRow(array("Template")); 
+			foreach($templates as $template) $table->row(array(
+				$template->name => "../template/edit?id={$template->id}"
+				)); 
+			$field->attr('value', $table->render()); 
+		} else {
+			$field->description = 'This field is not currently in use by any templates.';
+		}
+		return $field; 
+	}
+
+	/**
+	 * Build the 'Advanced' field shown in the Field Edit form
+	 *
+	 */
+	protected function buildEditFormAdvanced() {
+		// advanced settings
+		$fieldset = $this->modules->get("InputfieldFieldset"); 
+		$fieldset->label = "Advanced Settings";
+
+		if($this->field->type) {
+			$inputfields = $this->field->type->getConfigAdvancedInputfields($this->field); 
+			if(!count($inputfields)) return null;
+			foreach($inputfields as $inputfield) $fieldset->add($inputfield); 
+			return $fieldset; 
+		} 
+	
+		return null;
+	}
+
+	/**
+	 * Save the results of a Field Edit
+	 *
+	 */
+	public function ___executeSave() {
+
+		if(!$this->input->post->submit_save_field) $this->session->redirect("./"); 
+
+		if($this->input->post->delete && $this->input->post->delete == $this->field->id && $this->field->numFieldgroups() == 0) {
+			$this->session->message("Deleted field '{$this->field->name}'"); 
+			$this->fields->delete($this->field); 
+			$this->fieldDeleted($this->field); 
+			$this->session->redirect("./"); 
+			return; 
+		}
+
+		$this->form->processInput($this->input->post); 
+		$this->saveInputfields($this->form); 
+
+		if(!$this->field->name) $this->error("Field name is required"); 
+			else if(!$this->field->type) $this->error("Field type is required"); 
+			else if(!$this->field->id) {
+				$this->field->save();
+				$this->session->message("Added Field '{$this->field->name}'"); 
+				$this->fieldAdded($this->field); 
+				$this->session->redirect("edit?id={$this->field->id}"); 
+			} else {
+				$this->message("Saved Field '{$this->field->name}'"); 
+				$this->field->save();
+				$this->fieldSaved($this->field); 
+				$select = $this->form->get("type"); 
+				if($this->field->type->className() != $select->value) {
+					$this->session->redirect("changeType?id={$this->field->id}&type={$select->value}"); 
+				}	
+			}
+
+		if($this->listAfterSave) $this->session->redirect("./"); 
+			else $this->session->redirect("edit?id={$this->field->id}"); 
+	}
+
+	/**
+	 * Save the resultsof a Field Edit, field by field
+	 *
+	 */
+	protected function saveInputfields(InputfieldWrapper $wrapper) {
+
+		foreach($wrapper->children() as $inputfield) {
+
+			if($inputfield instanceof InputfieldWrapper && count($inputfield->children())) {
+				$this->saveInputfields($inputfield); 
+				continue; 
+			}
+
+			if(!$inputfield->name || $inputfield instanceof InputfieldSubmit) continue; 
+
+			// see /core/Fieldtype.php for the inputfields that initiate the autojoin and global flags
+			if($inputfield->name == 'autojoin') {
+				if(!$this->input->post->autojoin) $this->field->flags = $this->field->flags & ~Field::flagAutojoin; 
+					else $this->field->flags = $this->field->flags | Field::flagAutojoin;
+				continue; 
+
+			} else if($inputfield->name == 'global') {
+				if(!$this->input->post->global) $this->field->flags = $this->field->flags & ~Field::flagGlobal; 
+					else $this->field->flags = $this->field->flags | Field::flagGlobal;
+				continue; 
+			}
+
+			$value = $inputfield->value; 
+			if($inputfield->name == 'type' && $this->field->id) continue; // skip this change for existing fields
+			if($inputfield->name == 'delete') continue; 
+			$this->field->set($inputfield->name, $value); 
+		}
+	}
+
+	/**	
+	 * Executed when a field type change is requested and provides an informative confirmation form
+	 *
+	 */
+	public function ___executeChangeType() {
+
+		$this->setFuel('processHeadline', 'Change type for field: ' . $this->field->name); 
+		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', 'Fields'))->add(new Breadcrumb("./edit?id={$this->field->id}", $this->field->name)); 
+
+		if(!$this->input->get->type) $this->session->redirect('./'); 
+		$newType = $this->fuel('sanitizer')->name($this->input->get->type); 
+		$newType = $this->fuel('fieldtypes')->get($newType); 
+		if(!$newType) $this->session->redirect('./'); 
+
+		$form = $this->modules->get("InputfieldForm"); 
+		$form->attr('method', 'post');
+		$form->attr('action', 'saveChangeType'); 
+		$form->description = 
+			"You have requested a field type change from '{$this->field->type->shortName}' to '{$newType->shortName}'. " . 
+			"Please note that changing the field type alters the database schema. If the new fieldtype is not compatible with the old, " .
+			"or if it contains a significantly different schema, it is possible for data loss to occur. As a result, you are advised to backup " . 
+			"the database before completing a field type change.";
+
+		$f = $this->modules->get("InputfieldCheckbox"); 
+		$f->attr('name', 'confirm_type'); 
+		$f->attr('value', $newType->className()); 
+		$f->label = "Confirm field type change";
+		$f->description = "If you are sure you want to change the field type, check the box below and submit this form.";
+		$form->append($f); 
+	
+		$f = $this->modules->get("InputfieldHidden"); 	
+		$f->attr('name', 'id'); 
+		$f->attr('value', $this->field->id); 
+		$form->append($f); 	
+
+		$field = $this->modules->get('InputfieldSubmit');
+		$field->attr('name', 'submit_change_field_type'); 
+		$form->append($field); 
+	
+		return $form->render();	
+	}
+
+	/**
+	 * Save a changed field type
+	 *
+	 */
+	public function ___executeSaveChangeType() {
+
+		if(!$this->field || !$this->input->post->confirm_type) {
+			$this->message("Field type change aborted"); 
+			$this->session->redirect('./'); 
+		}
+
+		$type = $this->fuel('sanitizer')->name($this->input->post->confirm_type); 
+		if($type = $this->fieldtypes->get($type)) {
+			$this->message("Changed field type"); 
+			$this->field->type = $type; 
+			$this->field->save();
+			$this->fieldChangedType($this->field); 
+		}
+	
+		$this->session->redirect("edit?id={$this->field->id}"); 	
+	}
+
+	/**
+	 * Build a form allowing configuration of this Module
+	 *
+	 */
+	static public function getModuleConfigInputfields(array $data) {
+
+		$fields = new InputfieldWrapper();
+		$modules = Wire::getFuel('modules');
+
+		$field = $modules->get("InputfieldCheckbox");
+		$field->attr('name', 'showListFilters');
+		$field->attr('value', 1); 
+		$field->attr('checked', empty($data['showListFilters']) ? '' : 'checked'); 
+		$field->label = "Show filtering options in Fields list?";
+		$field->description = "This adds two select boxes to the top of the fields list that let you filter the display of fields by template or type.";
+		$fields->append($field);
+
+		$field = $modules->get("InputfieldCheckbox");
+		$field->attr('name', 'listAfterSave');
+		$field->attr('value', 1); 
+		$field->attr('checked', empty($data['listAfterSave']) ? '' : 'checked'); 
+		$field->label = "Return to fields list after saving a field?";
+		$field->description = "By default, you will remain in the fields editor after saving a field. If you want to instead return to the fields list, check this box.";
+		$fields->append($field);
+
+		return $fields;
+	}
+
+
+	/**
+	 * For hooks to listen to when a new field is added
+	 *
+	 */
+	public function ___fieldAdded(Field $field) { }
+
+	/**
+	 * For hooks to listen to when any field is saved
+	 *
+	 */
+	public function ___fieldSaved(Field $field) { }
+
+	/**
+	 * For hooks to listen to when a field is deleted
+	 *
+	 */
+	public function ___fieldDeleted(Field $field) { }
+
+	/**
+	 * For hooks to listen to when a field type changes
+	 *
+	 */
+	public function ___fieldChangedType(Field $field) { }
+
+}
+

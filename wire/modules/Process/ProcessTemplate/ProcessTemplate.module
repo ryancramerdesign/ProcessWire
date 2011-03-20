@@ -1,0 +1,914 @@
+<?php
+
+/**
+ * ProcessWire Template Process
+ *
+ * List and edit Templates that control page output.
+ * 
+ * For more details about how Process modules work, please see: 
+ * /wire/core/Process.php 
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class ProcessTemplate extends Process {
+
+	protected $form; 
+	protected $template;
+	protected $id; 
+	protected $numPages; 
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Templates',
+			'version' => 100,
+			'summary' => 'List and edit the templates that control page output',
+			'permanent' => true, 
+			);
+	}
+
+	/**
+	 * Initialize the template process
+	 *
+	 */
+	public function init() {
+
+		if(isset($_POST['id'])) {
+			$this->id = (int) $_POST['id']; 
+		} else {
+			$this->id = isset($_GET['id']) ? (int) $_GET['id'] : 0; 
+		}
+
+		if($this->id) { 
+			$this->template = $this->templates->get($this->id); 
+			$this->numPages = $this->template->getNumPages();
+		}
+
+		return parent::init();
+	}
+
+	/**
+	 * Execute the template list / default process
+	 *
+	 */
+	public function ___execute() {
+		$table = $this->modules->get("MarkupAdminDataTable"); 
+		$table->headerRow(array('Name', 'Pages', 'Fields')); 
+		foreach($this->fuel('templates') as $template) {
+			$table->row(array(
+				$template->name => "edit?id={$template->id}", 
+				$template->getNumPages(), 
+				count($template->fieldgroup) 
+				)); 
+		}
+		$table->action(array('Add New Template' => './add')); 
+
+		return $table->render();
+	}	
+
+	/**
+	 * Execute the template add process
+	 *
+	 */
+	public function ___executeAdd() {
+
+		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', 'Templates')); 
+		$this->setFuel('processHeadline', 'Add New Templates'); 
+		$dir = new DirectoryIterator($this->fuel('config')->paths->templates); 	
+		$templateFiles = array();
+		$ext = "." . $this->config->templateExtension; 
+
+		foreach($dir as $file) {
+			if($file->isDir() || $file->isDot()) continue; 
+			if(substr($file->getFilename(), -1 * strlen($ext)) != $ext) continue; 
+			//$basename = $file->getBasename($ext); // PHP 5.2.2
+			$basename = basename($file->getFilename(), $ext); 
+			// $basename = preg_replace('/\.(' . $ext . ')$/', '', $file->getFilename()); 
+			if(count($this->fuel('templates')->find("name=$basename"))) continue; 
+			$templateFiles[] = $basename; 
+		}
+
+		if(count($this->input->post)) {
+
+			$importFieldgroup = null;
+			$importFields = array();
+
+			if($this->input->post->import_fieldgroup) {
+				$importFieldgroup = $this->fieldgroups->get($this->sanitizer->name($this->input->post->import_fieldgroup)); 	
+			} else {
+				// find global fields
+				foreach($this->fields as $field) {
+					if($field->flags & Field::flagGlobal) {
+						$importFields[] = $field; 
+					}
+				}
+			}
+
+			$postTemplates = $this->input->post->templates; 
+
+			// add any templates without files to the postTemplates
+			if($this->input->post->template_name) {
+				$templateName = trim($this->input->post->template_name); 
+				if(strpos($templateName, ' ')) $templateNames = explode(' ', $templateName); 
+					else $templateNames = array($templateName); 
+				foreach($templateNames as $name) 
+					$postTemplates[] = basename($name); 
+			}
+
+			foreach($postTemplates as $basename) {
+				// if(!in_array($basename, $templateFiles)) continue; 
+				$template = new Template();
+				$template->name = $this->fuel('sanitizer')->name($basename); 
+				$fieldgroup = new Fieldgroup(); 
+				$fieldgroup->name = $template->name; 
+				$fieldgroup->save();
+				$template->fieldgroup = $fieldgroup; 
+				$template->save();
+				$this->message("Added template and fieldgroup: $basename"); 
+
+				if($importFieldgroup) {
+					$this->importFieldgroup($importFieldgroup, $template); 
+					$template->fieldgroup->save();
+
+				} else if(count($importFields)) { // global fields
+					foreach($importFields as $field) { 
+						$template->fieldgroup->add($field);
+						$this->fieldAdded($field, $template);	
+					}
+					$template->fieldgroup->save();
+				}
+			}
+
+			$this->session->redirect('./'); 
+		}
+
+		$form = $this->buildAddForm($templateFiles);
+		if(count($this->input->post)) $form->processInput($this->input->post); 
+
+		return $form->render();
+	}	
+
+	/**
+	 * Build the form used for adding templates 
+	 *
+	 */ 
+	protected function buildAddForm($templateFiles) {
+
+		$templateUrl = $this->fuel('config')->urls->templates; 
+		$form = $this->modules->get('InputfieldForm');
+
+		$form->attr('id', 'ProcessTemplateAdd'); 
+		$form->attr('action', 'add'); 
+		$form->attr('method', 'post'); 
+		//$form->description = "This action looks for new template files (ending with .{$this->config->templateExtension}) in $templateUrl";
+
+		if(count($templateFiles)) { 
+			$field = $this->modules->get('InputfieldCheckboxes');
+			$field->label = "Templates found in $templateUrl*.{$this->config->templateExtension}"; 
+			$field->description = "The following new templates were found in $templateUrl. Check the box next to each template you want to add."; 
+			$field->attr('id+name', 'templates'); 
+			foreach($templateFiles as $file) $field->addOption($file); 
+			$form->append($field); 
+		} else {
+			$this->error("No new template files (*.{$this->config->templateExtension}) were found in $templateUrl"); 
+		}
+
+		$field = $this->modules->get("InputfieldText"); 
+		$field->label = 'Create a new template without a file';
+		$field->description = 
+			"If you want to create a new template even though there is currently no file associated with it, " . 
+			"enter the name of the template here. Leave off the file extension (.{$this->config->templateExtension}).";
+		$field->attr('id+name', 'template_name'); 
+		$field->collapsed = count($templateFiles) ? Inputfield::collapsedYes : Inputfield::collapsedNo; 
+		$form->append($field); 
+
+		$form->append($this->buildEditFormImport()); 
+
+		$field = $this->modules->get('InputfieldSubmit');
+		$field->attr('value', 'Add Template' . (count($templateFiles) > 1 ? 's' : '')); 
+		$form->append($field); 
+
+		return $form; 
+	}
+
+	/**
+ 	 * Execute the template edit process
+	 *
+	 */
+	public function ___executeEdit() {
+
+		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', 'Templates')); 
+		$this->setFuel('processHeadline', "Edit Template: {$this->template->name}");
+
+		if(!$this->template) throw new WireException("No Template specified"); 
+			
+		$this->form = $this->buildEditForm($this->template);
+		$this->form->description = "{$this->template->name} is used by {$this->numPages} pages";
+		return $this->form->render();
+	}	
+
+	/**
+	 * Build the main form used for template edits
+	 *
+	 */
+	protected function buildEditForm(Template $template) {
+
+		$form = $this->modules->get('InputfieldForm');
+
+		$form->attr('id', 'ProcessTemplateEdit'); 
+		$form->attr('action', "save"); 
+		$form->attr('method', 'post'); 
+
+		if(!is_file($template->filename) && !count($this->input->post)) {
+			$this->message(
+				"This template does not have a file associated with it. As a result, viewing pages using this template will produce an error. " . 
+				"If that is not your desired result, upload/create/FTP the template file here: {$this->config->urls->templates}{$template->basename}"
+				); 
+		}
+
+		if($template->fieldgroup->name == $template->name) { 
+			$form->append($this->buildEditFormFields($template)); 
+		} else {
+			$field = $this->modules->get('InputfieldSelect');
+			$field->label = "Fieldgroup";
+			$field->attr('id+name', 'fieldgroup'); 
+			$field->attr('value', $template->fieldgroup->id); 
+			$field->description = '' . 
+				"Be careful when changing this for templates that are in active use. " . 
+				"If the new fieldgroup does not have the same fields, " . 
+				"any data in fields not used by the new fieldgroup will be deleted. If this is the case, " .
+				"you will be asked to confirm the change after submitting this form.";
+
+			foreach($this->fieldgroups as $fieldgroup) {
+				$field->addOption($fieldgroup->id, $fieldgroup->name); 
+			}
+			$form->append($field); 
+		}
+
+		$form->append($this->buildEditFormAccess($template)); 
+		$form->append($this->buildEditFormAdvanced($template)); 
+
+		// --------------------
+			
+		$field = $this->modules->get('InputfieldCheckbox');
+		$field->label = "Delete Template"; 
+		$field->attr('id+name', "delete"); 
+		$field->attr('value', $template->id); 
+		$field->collapsed = Inputfield::collapsedYes; 
+		if($this->numPages > 0) {
+			$field->description = "This template may not be deleted because it is in use by {$this->numPages} pages";
+			$field->attr('disabled', 'disabled'); 
+		} else {
+			$field->description = 
+				"This template may be deleted because it is not being used by any pages. Note that deleting the template only removes " . 
+				"it from the database, it does not delete the template file on disk. ";
+		
+		}
+		$form->append($field); 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldHidden');
+		$field->attr('name', 'id'); 
+		$field->attr('value', $template->id); 
+		$form->append($field); 
+
+		$field = $this->modules->get('InputfieldSubmit');
+		$field->attr('value', 'Save Template'); 
+		$form->append($field); 
+
+		return $form; 
+	}
+
+	protected function buildEditFormFields(Template $template) {
+
+		$select = $this->modules->get('InputfieldAsmSelect'); 
+		$select->label = 'Fields';
+		$select->description = 'Drag and drop fields to the desired order';
+		$select->attr('name', 'fieldgroup_fields'); 
+		$select->attr('id', 'fieldgroup_fields'); 
+		$select->attr('title', 'Add Field'); 
+		$select->setAsmSelectOption('sortable', true); 
+
+		foreach($template->fieldgroup as $field) {
+			$select->addOption($field->id, $field->name, array('selected' => 'selected')); 
+		}
+		
+		foreach($this->fields as $field) {
+			if($template->fieldgroup->has($field)) continue; 
+			$select->addOption($field->id, $field->name); 
+		}
+	
+		return $select; 
+	}
+
+	protected function buildEditFormImport() {
+
+		$field = $this->modules->get("InputfieldSelect"); 
+		$field->label = 'Duplicate fields used by another template'; 
+		$field->description = "If you want to duplicate fields used by another template, select it here. ";
+ 
+		$field->collapsed = Inputfield::collapsedYes; 
+		$field->attr('id+name', 'import_fieldgroup'); 
+		$field->addOption(''); 
+		$field->attr('value', ''); 
+
+		foreach($this->fieldgroups->find("sort=name") as $fieldgroup) {
+			if($this->template && $fieldgroup->name == $this->template->name) continue; 
+			$field->addOption($fieldgroup->name); 
+		}
+
+		return $field;
+	}
+
+	protected function buildEditFormAdvanced(Template $template) {
+
+		$form = $this->modules->get("InputfieldFieldset"); 
+		$form->label = "Advanced Options";
+		$form->collapsed = Inputfield::collapsedYes; 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldInteger'); 
+		$field->attr('name', 'cache_time');
+		$field->label = 'Cache Time';
+		$field->description = 
+			"To cache the output of this template, enter the time (in seconds) that the output should be cached. " . 
+			"For example: 3600 = 1 hour, 86400 = 1 day, 604800 = 1 week, 2419200 = 1 month. " . 
+			"Caching can help significantly with page render time on resource-heavy pages. " . 
+			"But caching should not be used on templates that need to process constantly changing data, like " . 
+			"from forms or sessions.";
+
+		$field->attr('value', $template->cache_time); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$form->append($field); 
+		if($template->cache_time) $form->collapsed = Inputfield::collapsedNo;
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldSelect'); 
+		$field->attr('name', 'childrenTemplatesID'); 
+		$field->label = "Template for Children";
+		$field->collapsed = Inputfield::collapsedBlank;
+		$field->description = 
+			"Select the template that will be enforced for any children of pages using this template. " .
+			"If you select 'Disallow Children' then pages using this template will be unable to add children. " . 
+			"If you select 'Auto Detect' then the template will be determined from the siblings or parent, " . 
+			"and the user will be allowed to change it when adding a page.";
+
+		$field->addOption(0, 'Auto Detect'); 
+		$field->addOption(-1, "Disallow Children"); 
+		foreach($this->templates as $t) $field->addOption($t->id, $t->name); 
+		$field->attr('value', (int) $template->childrenTemplatesID); 
+		$form->append($field); 
+		if($template->childrenTemplatesID != 0) $form->collapsed = Inputfield::collapsedNo;
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->attr('id+name', 'allowPageNum');
+		$field->label = 'Allow Page Numbers?';
+		$field->attr('value', 1); 
+		if($template->allowPageNum) $field->attr('checked', 'checked'); 
+			else $field->collapsed = Inputfield::collapsedYes;
+		
+		$field->description = 
+			"If checked, pages using this template will accept page number URL segments in the form 'page123', where '123' may be any positive number. " . 
+			"For example, a request URL of '/widgets/page3' automatically sets the \$input->pageNum to be 3.  " . 
+			"This is used for pagination and should only be enabled for templates that support pagination. " . 
+			"Note that page numbers start at 1 (not 0). " . 
+			"If combined with URL Segments (see next section), then the page number must be the last part of the URL."; 
+		$field->notes = 
+			"Access the current page number from your templates at \$input->pageNum; ";
+		$form->append($field); 
+		if($template->allowPageNum) $form->collapsed = Inputfield::collapsedNo;
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->attr('name', 'urlSegments');
+		$field->label = 'Allow URL Segments?';
+		$field->description = 
+			"This template may optionally serve URL path segments below that of the page(s) using it. " . 
+			"For example, you may want a page with path /path/to/page/ to also handle requests for " . 
+			"/path/to/page/segment1/ or /path/to/page/segment1/segment2/. By default, ProcessWire " . 
+			"will throw a '404 Page Not Found' error when such a URL is accessed. But if you want " . 
+			"ProcessWire to render the page instead, check the box below. You can then manully check " . 
+			"the URL segments from your template file to respond to them.";
+
+		$field->notes = 
+			"Up to 3 URL segments are supported after the page's URL. These may be any " . 
+			"combination of lowercase ASCII letters (a-z), numbers (0-9), dashes and underscores. " . 
+			"You can access the URL segments from your template API code by referencing the " . 
+			"\$input->urlSegment(n) function or \$input->urlSegment[n] property " . 
+			"(replacing [n] with 1, 2 or 3).\n\nFor example, given the URL /path/to/page/a/b/c/, " . 
+			"where /path/to/page/ is the page's path, and /a/b/c/ are the segments: " . 
+			"\$input->urlSegment1 is \"a\", \$input->urlSegment2 is \"b\", and \$input->urlSegment3 is \"c\". " . 
+			"If your template receives unknown URL segments, a best practice is to " . 
+			"abort the request by throwing a 404 error. " . 
+			"The API code to do this is: throw new PageNotFoundException();";
+
+		$field->attr('value', 1); 
+		if($template->urlSegments) {
+			$field->attr('checked', 'checked'); 
+			$form->collapsed = Inputfield::collapsedNo;
+		} else { 
+			$field->collapsed = Inputfield::collapsedYes;
+		}
+		$form->append($field); 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldRadios'); 
+		$field->attr('name', 'slashUrls'); 
+		$field->label = 'Should page URLs end with a slash?';
+		$field->addOption(1, 'Yes (default)'); 
+		if($template->name != 'admin') $field->addOption(0, 'No'); 
+		$field->description = 
+			"If 'Yes', pages using this template will always have URLs that end with a trailing slash '/'. And if the page is loaded from " . 
+			"a URL without the slash, it will be redirected to it. If you select 'No', the non-slashed version will be enforced instead. " . 
+			"Note that this setting does not enforce this behavior on URL segments or page numbers, only actual page URLs. If you don't " . 
+			"have a preference, it is recommended that you leave this set to 'Yes'.";
+		$field->attr('value', $template->slashUrls === 0 ? 0 : 1); // force default setting of 1
+		$field->collapsed = $template->slashUrls === 0 ? Inputfield::collapsedNo : Inputfield::collapsedYes;
+		if($template->slashUrls === 0) $form->collapsed = Inputfield::collapsedNo;
+		$form->append($field); 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldRadios'); 
+		$field->attr('id+name', 'redirectLogin');
+		$field->label = 'What to do when user has no access?';
+		$field->description = "If a user attempts to access a page using this template, and doesn't have access to the page, what should it do?"; 
+		$field->addOption(0, 'Show a 404 Page'); 
+		$field->addOption(1, 'Show the Login Page (' . $this->pages->get($this->config->loginPageID)->url . ')');
+		$field->attr('value', $template->redirectLogin); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$form->append($field); 
+		if($template->redirectLogin) $form->collapsed = Inputfield::collapsedNo;
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldRadios'); 
+		$field->attr('name', 'https'); 
+		$field->label = 'Protocol';
+		$field->addOption(0, 'HTTP or HTTPS'); 
+		$field->addOption(1, 'HTTPS only (SSL encrypted)'); 
+		$field->addOption(-1, 'HTTP only');
+		$field->collapsed = Inputfield::collapsedBlank;
+		$field->description = 
+			"If your site has an SSL certificate and is accessible by HTTPS, you may make pages using this template accessible " . 
+			"only via HTTPS or HTTP. For example, if you select 'HTTPS only' below, and a request for a page using this template comes " .
+			"in through HTTP, it will be automatically redirected to the HTTPS version. By default, ProcessWire allows connection from " . 
+			"either HTTP or HTTPS. ";
+		$field->attr('value', (int) $template->https); 
+		$form->append($field); 
+		if($template->https) $form->collapsed = Inputfield::collapsedNo;
+
+		// --------------------
+
+		$field = $this->buildEditFormImport();
+		$field->description .= "Fields that are already present in this template will be left alone. ";
+		$form->append($field); 
+
+		$form->append($this->buildEditFormSystem($template)); 
+
+		return $form; 
+	}
+
+	protected function buildEditFormSystem(Template $template) {
+
+		$form = $this->modules->get("InputfieldFieldset"); 
+		$form->label = "System/Internal";
+		$form->collapsed = Inputfield::collapsedYes; 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldText'); 
+		$field->attr('name', 'pageClass');
+		$field->label = 'Page Class Name';
+		$field->description = 
+			"The name of the PHP class that will be used to create pages that use this template. " . 
+			"By default pages will be created from the Page class. You should leave this blank " . 
+			"unless you have another Page-derived class that you want to use.";
+
+		$field->attr('value', $template->pageClass ? $template->pageClass : ''); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$form->append($field); 
+		if($template->pageClass) $form->collapsed = Inputfield::collapsedNo;
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldText'); 
+		$field->attr('name', 'altFilename');
+		$field->label = 'Alternate Template Filename';
+		$defaultFilename = $this->template->name . "." . $this->config->templateExtension;
+		$field->description = "The template's filename, if different from $defaultFilename";
+		$field->notes = "Templates are assumed to be in {$this->config->urls->templates} and extension is assumed to be .{$this->config->templateExtension}";
+		$field->attr('value', $template->altFilename); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$form->append($field); 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->attr('name', 'noGlobal');
+		$field->label = 'Disregard Global Fields?';
+		$field->description = 
+			"By default, when a field is marked 'global' it will be required on all templates " . 
+			"(and automatically added to any templates that don't have it). If this template has " . 
+			"a special purpose where 'global' fields wouldn't apply, you can check this box to " . 
+			"make this template disregard 'global' fields.";
+
+		$field->attr('value', 1); 
+		if($template->noGlobal) {
+			$field->attr('checked', 'checked'); 
+			$form->collapsed = Inputfield::collapsedNo;
+		} else { 
+			$field->collapsed = Inputfield::collapsedYes;
+		}
+		$form->append($field); 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->attr('name', 'nameContentTab');
+		$field->label = "Display 'name' Field in Content Tab?";
+		$field->description = 
+			"By default, the built-in 'name' field appears in the page editor 'settings' tab. If you would rather have it appear " . 
+			"in the 'content' tab check this box. ";
+
+		$field->attr('value', 1); 
+		if($template->nameContentTab) {
+			$field->attr('checked', 'checked'); 
+			$form->collapsed = Inputfield::collapsedNo;
+		} else { 
+			$field->collapsed = Inputfield::collapsedYes;
+		}
+		$form->append($field); 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->attr('name', 'noMove');
+		$field->label = "Don't allow pages to be moved?";
+		$field->description = 
+			"If you want to prevent pages using this template from being moved (changing parent) then check this box. ";
+
+		$field->attr('value', 1); 
+		if($template->noMove) {
+			$field->attr('checked', 'checked'); 
+			$form->collapsed = Inputfield::collapsedNo;
+		} else { 
+			$field->collapsed = Inputfield::collapsedYes;
+		}
+		$form->append($field); 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->attr('name', 'noChangeTemplate');
+		$field->label = "Don't allow pages to change their template?";
+		$field->description = 
+			"When checked, pages using this template will be unable to change to another template. ";
+
+		$field->attr('value', 1); 
+		if($template->noChangeTemplate) {
+			$field->attr('checked', 'checked'); 
+			$form->collapsed = Inputfield::collapsedNo;
+		} else { 
+			$field->collapsed = Inputfield::collapsedYes;
+		}
+		$form->append($field); 
+
+		return $form; 
+	}
+
+	protected function buildEditFormAccess(Template $template) {
+
+		$form = $this->modules->get("InputfieldFieldset"); 
+		$form->label = "Access";
+		$form->collapsed = Inputfield::collapsedNo; 
+
+		$field = $this->modules->get("InputfieldCheckboxes"); 
+		$field->attr('id+name', 'roles'); 
+	
+		$roles = $this->pages->get($this->config->rolesPageID)->children(); 
+		// find adifferent name for roles? parties?
+
+		// first ask "do you want this page to be available to everyone?
+
+		foreach($roles as $role) {
+			$field->addOption($role->id, $role->name); 
+		}
+		$ids = array();
+		foreach($template->roles as $role) $ids[] = $role->id; 
+		$field->value = $ids; 
+		$form->add($field); 
+		return $form; 
+	}
+
+
+
+	/**
+	 * Save the template and check to see if a Fieldgroup change was requested
+	 *
+	 */
+	protected function ___executeSave() {
+
+		if(!$this->template) throw new WireException("No template specified"); 
+		$form = $this->buildEditForm($this->template);
+		$form->processInput($this->input->post);
+
+		if(isset($_POST['delete']) && $_POST['delete'] == $this->template->id && $this->numPages == 0) {
+			$fieldgroup = $this->template->fieldgroup;
+			$deleteFieldgroup = $fieldgroup->name == $this->template->name;
+			$this->session->message("Deleted template '{$this->template->name}'"); 
+			$this->templates->delete($this->template); 
+			if($deleteFieldgroup) $this->fieldgroups->delete($fieldgroup); 
+			$this->session->redirect("./"); 
+			return; 
+		}
+
+		$field = $form->children->get('fieldgroup'); 
+		if($field) $fieldgroup = $this->fieldgroups->get((int) $field->value); 
+			else $fieldgroup = $this->template->fieldgroup; 
+
+		if($fieldgroup && $fieldgroup->id != $this->template->fieldgroup->id) {
+
+			$redirectUrl = "fieldgroup?id={$this->template->id}&fieldgroup={$fieldgroup->id}";
+
+		} else {
+
+			$this->template->cache_time = $form->get('cache_time')->attr('value'); 
+			$this->template->childrenTemplatesID = (int) $form->get('childrenTemplatesID')->attr('value'); 
+			$this->template->allowPageNum = (int) $form->get('allowPageNum')->attr('value'); 
+			$this->template->redirectLogin = (int) $form->get('redirectLogin')->attr('value'); 
+			$this->template->urlSegments = (int) $form->get('urlSegments')->attr('value');
+			$this->template->https = (int) $form->get('https')->attr('value'); 
+			$this->template->slashUrls = (int) $form->get('slashUrls')->attr('value');
+			$this->template->pageClass = $this->sanitizer->varName($form->get('pageClass')->attr('value'));
+			$this->template->noGlobal = (int) $form->get('noGlobal')->attr('value');
+			$this->template->noMove = (int) $form->get('noMove')->attr('value');
+			$this->template->noChangeTemplate = (int) $form->get('noChangeTemplate')->attr('value');
+			$this->template->nameContentTab = (int) $form->get('nameContentTab')->attr('value');
+			$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
+			$this->template->roles = $form->get('roles')->attr('value'); 
+			$this->message(print_r($form->get('roles')->value)); 
+
+			if(!$this->template->childrenTemplatesID) $this->template->remove("childrenTemplatesID"); 
+
+			$this->saveFields();
+			$redirectUrl = "edit?id={$this->template->id}";
+		} 
+			
+		$this->message("Saved Template '{$this->template->name}'"); 
+		$this->template->save();
+		$this->session->redirect($redirectUrl); 
+	}
+
+	/**
+	 * Import the fields from the given fieldgroup to this template's fieldgroup
+	 *
+	 * This is used by both the add and save functions. 
+	 *
+	 * @param Fieldgroup $fieldgroup Fieldgroup to import
+	 * @param Template $template Template to import to
+	 *
+	 */
+	protected function importFieldgroup(Fieldgroup $fieldgroup, Template $template) {
+		$total = 0;
+		foreach($fieldgroup as $field) {
+			if(!$template->fieldgroup->has($field)) {
+				$total++;
+				$template->fieldgroup->add($field); 
+				$this->fieldAdded($field, $template); 
+			}
+		}
+
+		$this->message("Duplicated $total field(s) from '$fieldgroup' to '{$template->fieldgroup}'"); 
+	}
+
+	/**
+	 * Save the fields specified for this template/fieldgroup
+	 *
+	 */
+	protected function saveFields() {
+
+		$ids = isset($_POST['fieldgroup_fields']) ? $_POST['fieldgroup_fields'] : array();
+		$removedFields = new FieldsArray();
+
+		$fieldgroup = $this->template->fieldgroup;
+		if($fieldgroup->name != $this->template->name) return; 
+
+		foreach($fieldgroup as $field) {
+			if(!in_array($field->id, $ids)) {
+				if(($field->flags & Field::flagGlobal) && !$this->template->noGlobal) {
+					$this->error("Field '$field' may not be removed because it is globally required by all fieldgroups"); 
+				} else { 
+					$removedFields->add($field); 
+				}
+			}
+		}
+
+		foreach($ids as $id) {
+			if(!($id = (int) $id)) continue; 
+			if(!$field = $this->fields->get($id)) continue; 
+			if(!$fieldgroup->has($field)) {
+				$fieldgroup->append($field); 
+				$this->fieldAdded($field, $this->template); 
+			} else { 
+				$fieldgroup->append($field); 
+			}
+		}
+
+		// check if any other fieldgroup should be imported
+		if($this->input->post->import_fieldgroup) {
+			$this->importFieldgroup($this->fieldgroups->get($this->sanitizer->name($this->input->post->import_fieldgroup)), $this->template); 
+		}
+
+
+		$fieldgroup->save();
+		if($this->config->debug) $this->message("Saved fieldgroup: {$fieldgroup->name}"); 
+
+		if(count($removedFields)) {
+			$url = "removeFields?id={$this->template->id}&fields=";
+			foreach($removedFields as $field) {
+				$url .= $field->id . ',';
+			}
+			$this->session->redirect(rtrim($url, ',')); 
+		}
+		
+	}
+
+	/**
+	 * Confirm the fieldgroup change with another form that shows what will be deleted
+	 *
+	 */
+	public function ___executeFieldgroup() {
+
+		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', 'Templates'))->add(new Breadcrumb("./edit?id={$this->template->id}", $this->template)); 
+
+		if(!isset($_GET['fieldgroup'])) $this->session->redirect('./'); 
+		$fieldgroup = $this->fieldgroups->get((int) $_GET['fieldgroup']); 
+		if(!$fieldgroup) $this->session->redirect('./'); 
+
+		$form = $this->modules->get("InputfieldForm"); 
+		$form->attr('action', 'saveFieldgroup'); 
+		$form->attr('method', 'post'); 
+
+		$list = '';
+		foreach($this->template->fieldgroup as $field) {
+			if(!$fieldgroup->has($field)) $list .= "<li class='ui-state-highlight'><span class='ui-icon ui-icon-alert'></span> $field</li>";
+		}
+
+		// if nothing will be lost with the fieldgroup change, then just do it now
+		if(!$list) $this->executeSaveFieldgroup($fieldgroup);
+
+		$f = $this->modules->get("InputfieldMarkup"); 
+		$f->attr('id', 'changed_fields'); 
+		$f->label = 'Fields that will be deleted';
+		$f->description = 
+			"You have requested to change the Fieldgroup from '{$this->template->fieldgroup}' to '$fieldgroup'. " . 
+			"This means that the following fields will be permanently deleted on the {$this->numPages} pages using this template: ";
+		$f->value = "<ul>$list</ul>";
+		$form->append($f); 
+		
+		$f = $this->modules->get("InputfieldCheckbox"); 
+		$f->attr('name', 'fieldgroup'); 
+		$f->value = $fieldgroup->id; 
+		$f->label = "Are you sure?";
+		$f->description = "Please confirm that you understand the above and that you want to change the fieldgroup by checking the box and submitting this form.";
+		$form->append($f); 
+
+		$f = $this->modules->get("InputfieldHidden"); 
+		$f->attr('name', 'id'); 
+		$f->attr('value', $this->template->id); 
+		$form->append($f); 
+
+		$field = $this->modules->get('InputfieldSubmit');
+		$field->attr('name', 'submit_change_fieldgroup'); 
+		$field->attr('value', 'Continue'); 
+		$form->append($field); 
+
+		$form->description = "Please confirm that you want to change the Fieldgroup from '{$this->template->fieldgroup}' to '{$fieldgroup}'"; 	
+		$this->setFuel('processHeadline', "Change Fieldgroup for Template: {$this->template}"); 
+
+		return $form->render();
+	}
+
+	/**
+	 * Save the fieldgroup
+	 *
+	 * May be called from a POST action, or from the executeFieldgroup() method directly. 
+	 * When called from the executeFieldgroup() method, a fieldgroup param should be provdied. 
+	 *
+	 * @param Fieldgroup $fieldgroup Optional
+	 *
+	 */
+	public function ___executeSaveFieldgroup($fieldgroup = null) {
+
+		if(!$this->template) $this->session->redirect('./'); 	
+
+		if(is_null($fieldgroup)) {
+			if(!isset($_POST['fieldgroup']) || !$fieldgroup = $this->fieldgroups->get((int) $_POST['fieldgroup'])) {
+				$this->message("Fieldgroup change aborted"); 
+				$this->session->redirect("./"); 
+			}
+		}
+
+		$this->template->fieldgroup = $fieldgroup; 
+		$this->template->save(); 
+		$this->message("Changed template fieldgroup to '$fieldgroup'"); 
+		$this->session->redirect("edit?id={$this->template->id}"); 
+	}
+
+	public function executeRemoveFields() {
+
+		if(!isset($_POST['submit_remove_fields'])) return $this->renderRemoveFields(); 
+	
+		if(!isset($_POST['remove_fields']) || !is_array($_POST['remove_fields'])) $this->session->redirect("edit?id={$this->template->id}"); 
+
+		foreach($this->template->fieldgroup as $field) {
+			if(in_array($field->id, $_POST['remove_fields'])) {
+				$this->template->fieldgroup->remove($field); 
+				$this->fieldRemoved($field, $this->template); 
+			}
+		}
+		$this->template->fieldgroup->save();
+		$this->session->redirect("edit?id={$this->template->id}"); 
+	}
+
+	public function renderRemoveFields() {
+
+		if(!isset($_GET['fields'])) $this->session->redirect('./'); 
+
+		$fieldgroup = $this->template->fieldgroup; 
+		$this->setFuel('processHeadline', "Remove Fields from Template: {$this->template->name}"); 
+		$this->fuel('breadcrumbs')->add(new Breadcrumb("edit?id={$this->template->id}", $this->template->name)); 
+
+		$form = $this->modules->get("InputfieldForm"); 
+		$form->attr('method', 'post'); 
+		$form->attr('action', 'removeFields'); 
+
+
+		$checkboxes = $this->modules->get("InputfieldCheckboxes"); 
+		$checkboxes->label = "Remove fields from template";
+		$checkboxes->attr('name', 'remove_fields'); 
+		$checkboxes->description = 
+			"You have asked to remove one or more fields from the template. This will result in data associated with the fields below " . 
+			"being permanently deleted. If the fields that are removed contain a lot of data, it may take time for this operation " . 
+			"to complete after you confirm and submit this form. Please confirm that you understand this and want to delete the field(s) " . 
+			"by checking the boxes below. ";
+
+		$removeIds = explode(',', $_GET['fields']); 
+		foreach($fieldgroup as $field) {
+			if(!in_array($field->id, $removeIds)) continue; 
+			$checkboxes->addOption($field->id, "Remove field '{$field->name}' from template '{$this->template->name}'"); 
+		}
+
+		$form->append($checkboxes); 
+		/*
+		$usage = $this->buildEditFormUsage(); 
+		$usage->collapsed = true; 
+		$form->append($usage);
+		*/
+
+		$submit = $this->modules->get('InputfieldSubmit');
+		$submit->attr('value', 'Remove Fields'); 
+		$submit->attr('name', 'submit_remove_fields'); 
+		$form->append($submit); 
+
+		$field = $this->modules->get("InputfieldHidden"); 
+		$field->attr('name', 'id'); 
+		$field->attr('value', $this->id); 
+		$form->append($field); 
+	
+		return $form->render();	
+	}
+
+	/**
+	 * For hooks to listen to when a field is removed from a template
+	 *
+	 */
+	public function ___fieldRemoved(Field $field, Template $template) { 
+		$this->message("Removed field '$field' from template/fieldgroup '{$template}'"); 
+	}
+
+	/**
+	 * For hooks to listen to when a field is added to a template
+	 *
+	 */
+	public function ___fieldAdded(Field $field, Template $template) { 
+		$this->message("Added field '$field' to template/fieldgroup '$template'"); 
+	}
+
+
+}
+

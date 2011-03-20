@@ -1,0 +1,47 @@
+
+body {
+	width: 600px; 
+	margin: 2em auto;
+	font-family: Arial; 
+	font-size: 12px; 
+}
+
+a {
+	color: #e16500;
+}
+	a:hover {
+		color: #c95a00;
+	}
+
+label {
+	display: block;
+	font-size: 2em;
+	font-family: Georgia, serif; 
+	color: #444;
+}
+
+.asmHighlight {
+	color: #777; 
+}
+
+.asmSelect {
+	margin: 1em 0 0.25em 0;
+}
+
+#footer, #footer li {
+	list-style: none;
+	display: block;
+	padding: 0;
+	margin: 0;
+}
+
+#footer {
+	border-top: 1px solid #ccc; 
+	padding-top: 1em;
+	margin-top: 2em;
+}
+
+.copyright {
+	font-size: 10px; 
+}
+

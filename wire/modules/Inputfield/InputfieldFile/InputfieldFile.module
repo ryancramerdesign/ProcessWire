@@ -1,0 +1,193 @@
+<?php
+
+/**
+ * An Inputfield for handling file uploads
+ *
+ */
+class InputfieldFile extends Inputfield {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Files',
+			'version' => 100,
+			'summary' => 'One or more file uploads (sortable)',
+			'permanent' => true, 
+			);
+	}
+
+
+	public function init() {
+		parent::init();
+
+		// note: these two fields originate from FieldtypeFile. 
+		// Initializing them here ensures this Inputfield has the values set automatically.
+		$this->set('extensions', '');
+		$this->set('maxFiles', 0); 
+
+		// native to this Inputfield
+		$this->set('unzip', 0); 
+		$this->set('descriptionRows', 1); 
+		$this->set('destinationPath', ''); 
+		$this->setAttribute('type', 'file'); 
+	}
+
+
+	protected function renderItemDescriptionField(Pagefile $pagefile, $id, $n) {
+		if($this->descriptionRows == 0) return '';
+		$out = '';
+		$description = htmlspecialchars($pagefile->description, ENT_QUOTES); 
+		if($this->descriptionRows > 1) $out = "<textarea name='description_$id' rows='{$this->descriptionRows}'>$description</textarea>";
+			else $out = "<input type='text' name='description_$id' id='description_$id' value='$description' />";
+		return "<label class='InputfieldFileDescription infield'>Description$out</label>";
+	}
+
+	protected function renderItem($pagefile, $id, $n) {
+
+		$out = 	"\n\t<li class='InputfieldFile ui-widget ui-widget-content'>" . 
+			"\n\t\t<p class='InputfieldFileInfo ui-state-default ui-priority-secondary'>" . 
+			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>" . 
+			"\n\t\t\t<a class='InputfieldFileName' href='{$pagefile->url}'>{$pagefile->basename}</a> " . 
+			"\n\t\t\t<span class='InputfieldFileStats'>{$pagefile->filesizeStr}</span> " . 
+			"\n\t\t\t<label class='InputfieldFileDelete'><input type='checkbox' name='delete_$id' value='1' /><span class='ui-icon ui-icon-trash'>Delete</span></label>" . 
+			"\n\t\t</p>" . 
+			"\n\t\t<p class='InputfieldFileData'>" . 
+			"\n\t\t\t" . $this->renderItemDescriptionField($pagefile, $id, $n) . 
+			"\n\t\t\t<input class='InputfieldFileSort' type='text' name='sort_$id' value='$n' />" . 
+			"\n\t\t</p>" . 
+			"\n\t</li>";
+
+		return $out; 
+	}
+
+	public function ___render() {
+
+		$out = '';
+		$n = 0; 
+
+		if($this->value) foreach($this->value as $k => $pagefile) {
+			$id = $this->name . "_" . $pagefile->hash; 
+			$out .= $this->renderItem($pagefile, $id, $n++); 
+		}
+
+		if($out) $out = "\n<ul class='InputfieldFileList'>$out\n</ul>";
+
+		$attrs = $this->getAttributes();
+		unset($attrs['value']); 
+		if(substr($attrs['name'], -1) != ']') $attrs['name'] .= '[]';
+
+		if(!$this->maxFiles || count($this->value) < $this->maxFiles) { 
+			$out =	"\n$out" . 
+				"\n<p class='InputfieldFileUpload'>" . 
+				"\n\t<input type='hidden' class='InputfieldFileMaxFiles' value='{$this->maxFiles}' />" . 
+				"\n\t<input " . $this->getAttributesString($attrs) . " />" . 
+				"\n\t<span class='InputfieldFileValidExtensions description'>" . htmlspecialchars(str_replace(' ', ', ', trim($this->extensions))) . "</span>" . 
+				"\n</p>";
+		}
+
+		return $out; 
+	}
+
+	protected function ___processInputAddFile($filename) {
+		if($this->maxFiles && count($this->value) >= $this->maxFiles) return; 
+		$this->value->add($filename); 
+		$this->message("Added file: " . basename($filename)); 
+	}
+
+	protected function ___processInputDeleteFile(Pagefile $pagefile) {
+		$this->message("Deleted file: $pagefile"); 
+		$this->value->remove($pagefile); 
+	}
+
+	protected function ___processInputFile(WireInputData $input, Pagefile $pagefile, $n) {
+
+		$id = $this->name . '_' . $pagefile->hash; 		
+		$changed = false; 
+
+		if($input['description_' . $id]) { 
+			$description = trim($input['description_' . $id]); 
+			if($description != $pagefile->description) {
+				$pagefile->description = $description; 
+				$changed = true; 
+			}
+		}
+
+		if(isset($input['delete_' . $id])) {
+			$this->processInputDeleteFile($pagefile); 
+			$changed = true; 
+		}
+
+		$key = "sort_$id";
+		$val = $input->$key;
+		if($val !== NULL) {
+			$pagefile->sort = (int) $val;
+			if($n !== $val) $changed = true; 
+		}
+
+		return $changed; 
+	}
+
+	public function ___processInput(WireInputData $input) {
+		
+		if(!$this->destinationPath || !is_dir($this->destinationPath)) return $this->error("Destination path is empty or does not exist"); 
+		if(!is_writable($this->destinationPath)) return $this->error("Destination path is not writable"); 
+
+		$changed = false; 
+
+		if(!$this->maxFiles || count($this->value) < $this->maxFiles) { 
+
+			$ul = new WireUpload($this->attr('name')); 
+			$ul->setDestinationPath($this->destinationPath); 
+			$ul->setOverwrite(false); 
+			if($this->maxFiles) $ul->setMaxFiles($this->maxFiles - count($this->value)); 
+
+			if($this->unzip) $ul->setExtractArchives(true); 
+
+			$ul->setValidExtensions(explode(' ', trim($this->extensions))); 
+
+			foreach($ul->execute() as $filename) {
+				$this->processInputAddFile($filename); 
+				$changed = true; 
+			}
+		}
+
+		$n = 0; 
+
+		foreach($this->value as $pagefile) {
+			if($this->processInputFile($input, $pagefile, $n)) { 
+				$changed = true; 
+			}
+			$n++; 
+		}
+
+		if($changed) {
+			$this->value->sort('sort'); 
+			$this->trackChange('value'); 
+		}
+
+		return $this; 
+	}
+
+	public function ___getConfigInputfields() {
+		$inputfields = parent::___getConfigInputfields(); 
+
+		$f = $this->modules->get("InputfieldCheckbox"); 
+		$f->attr('name', 'unzip'); 
+		$f->attr('value', 1); 
+		$f->setAttribute('checked', $this->unzip ? 'checked' : ''); 
+		$f->label = 'Decompress ZIP files?';
+		$f->description = "If checked, ZIP archives will be decompressed and all valid files added as uploads (if supported by the hosting environment).";
+		$inputfields->append($f); 
+
+		$f = $this->modules->get("InputfieldInteger"); 
+		$f->attr('name', 'descriptionRows'); 
+		$f->attr('value', $this->descriptionRows !== null ? (int) $this->descriptionRows : 1); 
+		//$f->minValue = 0; 
+		//$f->maxValue = 30; 
+		$f->label = 'Number of rows for description field?';
+		$f->description = "Enter the number of rows available for the file description field, or enter 0 to not have a description field.";
+		$inputfields->append($f); 
+
+		return $inputfields; 	
+	}
+
+}

@@ -1,0 +1,28 @@
+body, td, pre {
+	color:#000; 
+	font-family:Georgia, Arial, Helvetica, sans-serif; 
+	font-size:13px; 
+	line-height: 20px;
+	margin:8px;
+}
+
+pre {
+	font-family: "Courier New", Courier, monospace; 	
+}
+
+.align_left {
+	float: left; 
+	margin: 0 15px 10px 0; 
+}
+
+.align_right {
+	float: right; 
+	margin: 0 0 10px 15px; 
+}
+
+.align_center {
+	display: block;
+	margin-left: auto;
+	margin-right: auto; 
+}
+

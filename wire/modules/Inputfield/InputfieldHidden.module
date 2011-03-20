@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * An Inputfield for handling XHTML "hidden" form inputs
+ *
+ */
+class InputfieldHidden extends Inputfield {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Hidden',
+			'version' => 100,
+			'summary' => 'Hidden value in a form',
+			'permanent' => true, 
+			);
+	}
+
+	public function __construct() {
+		parent::__construct();
+		$this->setAttribute('type', 'hidden'); 
+	}
+
+	public function ___render() {
+		return "\n<input " . $this->getAttributesString() . " />"; 
+	}
+	
+}

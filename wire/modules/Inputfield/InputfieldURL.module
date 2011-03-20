@@ -1,0 +1,33 @@
+<?php
+
+/**
+ * An Inputfield for handling input of URLs
+ *
+ */
+class InputfieldURL extends InputfieldText {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'URL',
+			'version' => 100,
+			'summary' => 'URL in valid format',
+			);
+	}
+
+	public function __construct() {
+		parent::__construct();
+		$this->setAttribute('type', 'text'); 
+		$this->setAttribute('maxlength', 255); 
+		$this->setAttribute('size', 70); 
+		$this->setAttribute('name', 'href'); 
+		$this->label = 'URL';
+		$this->description = "Enter a valid URL, i.e. http://www.company.com/dir/";
+	}
+
+	public function setAttribute($key, $value) {
+		if($key == 'value' && $value) {
+			$value = $this->fuel('sanitizer')->url($value); 	
+		}
+		return parent::setAttribute($key, $value); 
+	}
+}

@@ -1,0 +1,103 @@
+<?php
+
+/**
+ * ProcessWire Page Permissions Module
+ *
+ * Adds convenience methods to all Page objects for checking permissions, i.e. 
+ * 
+ * if($page->editable()) { do something }
+ * if(!$page->viewable()) { echo "sorry you can't view this"; }
+ * ...and so on...
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class PagePermissions extends WireData implements Module {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Page Permissions', 
+			'version' => 100, 
+			'summary' => 'Adds various permission methods to Page objects that are used by Process modules.',
+			'permanent' => true, 
+			'singular' => true,
+			'autoload' => true, 
+			);
+	}
+
+	public function init() {
+		$this->addHook('Page::editable', $this, 'editable'); 
+		$this->addHook('Page::viewable', $this, 'viewable'); 
+		$this->addHook('Page::listable', $this, 'listable'); 
+		$this->addHook('Page::deleteable', $this, 'deleteable'); 
+		$this->addHook('Page::addable', $this, 'addable'); 
+	}
+
+	/**
+	 * Is the page editable by the current user?
+	 *
+	 */
+	public function editable($event) {
+
+		$page = $event->object; 
+
+		if($this->user->isSuperuser()) return ($event->return = true); 
+
+                if(!$page->roles()->hasPermission("ProcessPageEdit", $this->user)) return ($event->return = false);
+
+                // note there is an exception in the case of admin pages, which require superuser to edit
+                $isAdmin = $page->id == $this->config->adminRootPageID || $page->id == $this->config->trashPageID; 
+                if(!$isAdmin) foreach($page->parents as $parent) {
+                        if($parent->id == $this->config->adminRootPageID) $isAdmin = true;
+                }
+
+                if($isAdmin) $event->return = false;
+			else $event->return = true; 
+	}
+
+	/**
+	 * Is the page viewable by the current user?
+	 *
+	 */
+	public function viewable($event) {
+		$page = $event->object; 
+		if($page->status >= Page::statusUnpublished) $event->return = false;
+			else $event->return = $page->roles()->hasPermission("ProcessPageView", $this->user);
+	}
+
+	/**
+	 * Is the page listable by the current user?
+	 *
+	 */
+	public function listable($event) {
+		$page = $event->object; 
+		$event->return = $page->roles()->hasPermission("ProcessPageView", $this->user);
+	}
+
+	/**
+	 * Is the page deleteable by the current user?
+	 *
+	 */
+	public function deleteable($event) {
+		$page = $event->object;
+		$deleteable = $this->pages->isDeleteable($page); 
+		if($deleteable) $deleteable = $page->roles()->hasPermission("ProcessPageEditDelete", $this->user);
+		$event->return = $deleteable;
+	}
+
+	/**
+	 * Can the current user add child pages to this page?
+	 *
+	 */
+	public function addable($event) {
+		$page = $event->object; 
+		$event->return = $page->roles()->hasPermission("ProcessPageAdd", $this->user);
+	}
+
+}

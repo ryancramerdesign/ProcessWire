@@ -1,0 +1,70 @@
+<?php
+
+class InputfieldImage extends InputfieldFile {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Images',
+			'version' => 100,
+			'summary' => 'One or more image uploads (sortable)',
+			'permanent' => true, 
+			);
+	}
+
+	public function init() {
+		parent::init();
+		$this->set('extensions', 'JPG JPEG GIF PNG');
+		$this->set('adminThumbs', false); 
+		$this->set('adminThumbHeight', 100); 
+		//$this->modules->get("InputfieldFile"); // force the JS and CSS from InputfieldFile to also be loaded
+		$this->modules->get("JqueryFancybox"); 
+	}
+
+	public function ___render() {
+		$this->config->scripts->add($this->config->urls->InputfieldFile . "InputfieldFile.js");
+		$this->config->styles->add($this->config->urls->InputfieldFile . "InputfieldFile.css");
+		return parent::___render();
+	}
+	
+	protected function renderItem($pagefile, $id, $n) {
+
+		$thumb = $pagefile; 
+
+		if($this->adminThumbs && $thumb->height > $this->adminThumbHeight) {
+			// create a variation for display with this inputfield
+			$thumb = $thumb->height($this->adminThumbHeight); 
+		}
+
+		$out = 	"\n\t<li class='InputfieldFile InputfieldImage ui-widget'>" . 
+			"\n\t\t<p class='InputfieldFileInfo ui-widget ui-widget-header'>" . 
+			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>" . 
+			"\n\t\t\t<span class='InputfieldFileName'>{$pagefile->basename}</span> " . 
+			"\n\t\t\t<span class='InputfieldFileStats'>&bull; {$pagefile->filesizeStr} &bull; {$pagefile->width}x{$pagefile->height}</span> " . 
+			"\n\t\t\t<label class='InputfieldFileDelete'><input type='checkbox' name='delete_$id' value='1' /><span class='ui-icon ui-icon-trash'>Delete</span></label>" . 
+			"\n\t\t</p>" . 
+			"\n\t\t<p class='InputfieldFileData ui-widget ui-widget-content'>" . 
+			"\n\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->url}'><img src='{$thumb->url}' alt='{$pagefile->basename}' /></a>" . 
+	//		"\n\t\t\t<label class='InputfieldFileDescription'>Description <input type='text' name='description_$id' value='$description' /></label>" . 
+			"\n\t\t\t" . $this->renderItemDescriptionField($pagefile, $id, $n) . 
+			"\n\t\t\t<input class='InputfieldFileSort' type='text' name='sort_$id' value='$n' />" . 
+			"\n\t\t</p>" . 
+			"\n\t</li>";
+
+		return $out; 
+	}
+
+	public function ___getConfigInputfields() {
+
+		$inputfields = parent::___getConfigInputfields();
+	
+		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->setAttribute('name', 'adminThumbs'); 
+		$field->setAttribute('value', 1); 
+		$field->setAttribute('checked', $this->adminThumbs ? 'checked' : ''); 
+		$field->label = 'Display thumbnails in page editor?'; 
+		$field->description = 'Thumbnails take up less space and make it easier to sort multiple images. If unchecked, the full (original) size image will be shown in the page editor.';
+		$inputfields->append($field); 
+		
+		return $inputfields; 	
+	}
+}

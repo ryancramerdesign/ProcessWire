@@ -1,0 +1,213 @@
+
+/**********************************************************************************************
+ * ProcessWire Admin Control Panel - Skyscraper Theme - ui.css
+ *
+ * This file provides the final layout styling and overdies for the admin control panel. 
+ * This is typically the last CSS file loaded, so it is used for overriding any default
+ * styles provided by ProcessWire modules. 
+ *
+ * Copyright 2010 by Ryan Cramer
+ *
+ */
+
+
+/****************************************************************************************
+ * Theme specific jQuery UI overrides and additions
+ *
+ */
+
+.ui-icon {
+	float: left; 
+	margin-right: 2px; 
+}
+
+#notices .ui-state-highlight,
+#notices .ui-state-error {
+	padding: 0.5em; 
+}
+
+	#notices .ui-state-error pre {
+		font-size: 11px; 
+		margin: 1em 0;
+	}
+
+	#notices .ui-icon {
+		position: relative;
+		top: 2px; 
+	}
+
+.ui-dialog .ui-dialog-content {
+	padding: 0; 
+}
+
+
+/****************************************************************************************
+ * Theme specific Inputfield module overrides
+ *
+ */
+
+.Inputfields {
+}
+
+	.Inputfields,
+	.Inputfields li,
+	.Inputfields input,
+	.Inputfields select,
+	.Inputfields textarea {
+		font-size: 12px; 
+	}
+
+	.Inputfields .ui-widget-content {
+		padding: 1em; 
+	}
+
+	.Inputfields .ui-widget-header {
+		padding: 0.25em 0 0.25em 1em; 
+	}
+
+		.Inputfields .InputfieldStateToggle span.ui-icon {
+			float: right; 
+			padding-right: 0.25em; 
+		}
+
+	.Inputfields li > .ui-widget-content > p {
+		margin-top: 0; 
+	}
+
+	.Inputfields > li {
+		display: block;
+		margin: 1.5em 0;
+		clear: both; 
+	}
+		.Inputfields > li.InputfieldSubmit,
+		.Inputfields > li.InputfieldWrapper,
+		.Inputfields > li.InputfieldHidden {
+		}
+
+	.Inputfields > li .notes {
+		margin-bottom: 0; 
+	}
+
+	.Inputfields .InputfieldHidden {
+		display: none; 
+	}
+
+	.Inputfields .InputfieldSubmit,
+	.Inputfields .InputfieldButton {
+		clear: none; 
+	}
+		.Inputfields .InputfieldSubmit .ui-widget-content,
+		.Inputfields .InputfieldButton .ui-widget-content {
+			padding: 0; 
+			background: none; 
+			border: none; 
+		}
+
+		.Inputfields .InputfieldSubmit .ui-widget-header,
+		.Inputfields .InputfieldButton .ui-widget-header {
+			display: none; 
+		}
+
+		.ui-button {
+			font-size: 1em; 
+			margin: 0 1em 0 0; 
+			padding: 3px 9px; 
+			cursor: pointer; 
+		}
+
+		a .ui-button {
+			display: block;
+		}
+
+	.Inputfields .InputfieldCheckboxes input,
+	.Inputfields .InputfieldRadios input {
+		margin-right: 0.25em; 
+	}
+		.Inputfields .InputfieldCheckboxes li,
+		.Inputfields .InputfieldRadios li {
+			margin: 0; 
+		}
+
+	.Inputfields .InputfieldCheckbox {
+	}
+		.Inputfields .InputfieldCheckbox .notes {
+			margin-top: 1em; 
+		}
+
+
+	.Inputfields label {
+		display: block;
+	}
+
+	.Inputfields textarea, 
+	.InputfieldMaxWidth {
+		width: 99%; 
+	}
+
+	.Inputfields .InputfieldStateToggle {
+		cursor: pointer;
+	}
+
+		.Inputfields > .InputfieldStateCollapsed {
+		}
+
+			.Inputfields > .InputfieldStateCollapsed .ui-widget-header {
+				opacity: 0.6; 
+			}
+			.Inputfields > .InputfieldStateCollapsed .ui-widget-header:hover {
+				opacity: 1.0; 
+			}
+
+			.Inputfields > .InputfieldStateCollapsed .ui-widget-content {
+				display: none;
+			}
+
+			.Inputfields > .InputfieldStateCollapsed .InputfieldStateToggle {
+			}
+
+	.InputfieldPageNameURL {
+		font-family: Monaco, Courier, Monaco, monospace; 
+	}
+
+
+/****************************************************************************************
+ * Theme specific PageList overrides
+ *
+ */
+
+.PageList {
+}
+	/**
+	 * Default color for page list items
+	 *
+	 */
+	.PageList a.PageListPage, 
+	.PageList a.PageListPage:hover {
+		color: #7a002b; 	
+	}
+		/**
+	 	 * Color when hovered
+		 *
+		 */
+		.PageList a.PageListPage:hover {
+			background: none; 
+			text-decoration: underline; 
+		}
+
+	/**
+	 * Color of page when opened
+	 *
+	 */
+	.PageList .PageListItemOpen > a.PageListPage  {
+		color: #000; 
+		background-color: #ffffdd;
+	}
+
+	/**
+	 * Give the page a lighter/alternate color when it has a hidden status
+	 *
+	 */
+	.PageList .PageListStatusHidden a.PageListPage {
+		color: #ac6186; 
+	}
+

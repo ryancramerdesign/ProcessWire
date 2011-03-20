@@ -1,0 +1,29 @@
+<?php
+
+/**
+ * 
+ *
+ */
+class InputfieldFieldset extends InputfieldWrapper {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Fieldset',
+			'version' => 100,
+			'summary' => 'Groups one or more fields together in a container',
+			'permanent' => true, 
+			);
+	}
+
+	public function ___render() {
+		$out = ''; 
+		if($this->description) {
+			$out .= "\n\t<p class='description'>{$this->description}</p>";
+			$this->description = ''; // prevents it from appearing again at the bottom
+		}
+		$out .= parent::___render(); 
+		return $out; 
+	}
+	
+}
+

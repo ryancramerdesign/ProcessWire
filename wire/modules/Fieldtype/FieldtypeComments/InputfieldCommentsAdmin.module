@@ -1,0 +1,140 @@
+<?php
+
+/**
+ * ProcessWire InputfieldCommentsAdmin
+ *
+ * An Inputfield for handling administration of Comments.
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class InputfieldCommentsAdmin extends Inputfield {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Comments Admin',
+			'version' => 100,
+			'summary' => 'Provides an administrative interface for working with comments',
+			'permanent' => false, 
+			);
+	}
+
+	protected function renderItem(Comment $comment, $n) {
+
+		$statuses = array(
+			Comment::statusApproved => "Approved",
+			Comment::statusPending => "Pending", 
+			Comment::statusSpam => "Spam", 
+			);
+
+		$statusName = '';
+		$statusOut = "<select name='{$this->name}_status_{$comment->id}'>";
+		foreach($statuses as $status => $label) {
+			if($comment->status == $status) {
+				$selected = " selected='selected'";
+				$statusName = $label;
+			} else {
+				$selected = '';
+			}
+			$statusOut .= "<option value='$status'$selected>$label</option>";
+		}
+		$statusOut .= "<option value='delete{$comment->id}'>Delete</option>";
+		$statusOut .= "</select>";
+
+		$headLabel = $statusName; 
+		$num = $n+1; 
+
+		$liID = "CommentsAdminItem{$comment->id}";
+
+		if($comment->status == Comment::statusApproved) $liClass = "InputfieldStateCollapsed";
+			else if($comment->status == Comment::statusSpam) $liClass = "InputfieldStateCollapsed CommentsAdminItemSpam ui-state-error";
+			else $liClass = '';
+
+		if($comment->status == Comment::statusSpam) $note = "Spam is automatically deleted after the amount of time specified in the field configuration.";
+			else if($comment->status == Comment::statusPending) $note = "This item is awaiting approval or deletion. ";
+			else $note = '';
+
+		if($note) $note = "\n\t\t\t<p class='description CommentsAdminItemNote'>$note</p>";
+
+		$out = 	"\n\t<li id='$liID' class='CommentsAdminItem$statusName ui-widget $liClass'>" . 
+			"\n\t\t<label class='CommentsAdminItemHead ui-widget-header'>" . 
+			"\n\t\t\t<span class='CommentsAdminItemHeadLabel'>$headLabel</span>" . 
+			"\n\t\t\t<span class='CommentsAdminItemBy'>Comment #$num Posted " . date('m/d/y H:i', $comment->created) . " by " . htmlentities($comment->cite) . "</span>" . 
+			"\n\t\t</label>" . 
+			"\n\t\t<div class='ui-widget-content'>" . $note . 
+			"\n\t\t\t<p class='CommentsAdminItemCite'><label>Cite <input type='text' name='{$this->name}_cite_{$comment->id}' value='" . htmlentities($comment->cite, ENT_QUOTES, "UTF-8") . "' /></label></p>" . 
+			"\n\t\t\t<p class='CommentsAdminItemEmail'><label>E-Mail <input type='text' name='{$this->name}_email_{$comment->id}' value='" . htmlentities($comment->email, ENT_QUOTES, "UTF-8") . "' /></label></p>" . 
+			"\n\t\t\t<p class='CommentsAdminItemStatus'><label>&nbsp; $statusOut</label></p>" . 
+			"\n\t\t\t<p class='CommentsAdminItemText'><label>Text <textarea name='{$this->name}_text_{$comment->id}' rows='3'>" . htmlentities(trim($comment->text), ENT_QUOTES, "UTF-8") . "</textarea></label></p>" . 
+			"\n\t\t\t<input class='CommentsAdminItemSort' type='hidden' name='sort_{$this->name}_{$comment->id}' value='$n' />" . 
+			"\n\t\t</div>" . 
+			"\n\t</li>";
+
+		return $out; 
+	}
+
+	public function ___render() {
+
+		$out = '';
+		$n = 0; 
+
+		if(!count($this->value)) return "<p>There are currently no items to display.</p>";
+
+		$out = "\n<ul class='Inputfields InputfieldCommentsAdminList'>";
+		foreach($this->value as $comment) {
+			$out .= $this->renderItem($comment, $n++); 
+		}
+		$out .= "\n</ul>";
+
+		return $out; 
+	}
+
+	public function ___processInput(WireInputData $input) {
+
+		$n = 1; 	
+		$names = array(
+			'cite', 
+			'email',
+			'status',
+			'delete',
+			'text',
+			'sort',
+			);
+
+		foreach($this->value as $comment) {
+
+			$data = array();
+			foreach($names as $name) {
+				$inputName = $this->name . "_" . $name . "_" . $comment->id; 
+				$value = isset($input[$inputName]) ? $input[$inputName] : '';
+				$data[$name] = $value; 
+			}
+
+			if($data['status'] && $data['status'] == "delete{$comment->id}") {
+				$this->value->remove($comment); 
+				$this->message("Removed comment #$n"); 
+				$this->value->trackChange('remove'); 
+				continue;
+			} 
+
+			foreach($data as $key => $value) {
+				if($key == 'text') $value = $comment->cleanCommentString($value); 
+				if(($value || $key == 'status') && $comment->$key != $value) {
+					$comment->$key = $value; 
+					$this->message("Updated $key for comment #$n"); 
+					$this->value->trackChange('update'); 
+				}	
+			}
+			$n++; 
+		}
+
+		return $this; 
+	}
+
+}

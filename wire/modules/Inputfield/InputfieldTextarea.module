@@ -1,0 +1,50 @@
+<?php
+
+/**
+ * An Inputfield for handling XHTML "textarea" form inputs
+ *
+ */
+class InputfieldTextarea extends Inputfield {
+
+	const defaultRows = 5; 
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Textarea',
+			'version' => 100,
+			'summary' => 'Multiple lines of text',
+			'permanent' => true, 
+			);
+	}
+
+
+	public function init() {
+		parent::init();
+		$this->setAttribute('rows', self::defaultRows); 
+	}
+
+	public function ___render() {
+
+		$attrs = $this->getAttributes();
+		unset($attrs['value']); 
+
+		$out = 	"\n<p><textarea " . $this->getAttributesString($attrs) . ">" . 
+			htmlspecialchars($this->value) . 
+			"</textarea></p>";
+		return $out; 
+	}
+
+	public function ___getConfigInputfields() {
+		$inputfields = parent::___getConfigInputfields();
+
+		$field = $this->modules->get('InputfieldInteger'); 
+		$field->setAttribute('name', 'rows'); 
+		$field->label = 'Rows';
+		$field->setAttribute('value', $this->attr('rows')); 
+		$field->setAttribute('size', 3); 
+		$field->description = 'The number of rows initially shown for this field.'; 
+		$inputfields->append($field);
+
+		return $inputfields; 
+	}
+}

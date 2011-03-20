@@ -1,0 +1,53 @@
+<?php
+
+/**
+ * A Page List Selector for selecting a single page
+ *
+ */
+class InputfieldAsmSelect extends InputfieldSelectMultiple implements InputfieldHasArrayValue {
+
+	protected $asmOptions = array();
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'asmSelect',
+			'version' => 104,
+			'summary' => 'Multiple selection, progressive enhancement to select multiple',
+			'href' => 'http://code.google.com/p/jquery-asmselect/',
+			'permanent' => true, 
+			);
+	}
+
+	public function init() {
+		parent::init(); 
+		$this->setAsmSelectOption('sortable', true); 
+	}
+
+	public function setAsmSelectOption($key, $value) {
+		$this->asmOptions[$key] = $value; 
+	}
+
+	public function ___render() {
+
+		// require javascript and css
+		$class = $this->className(); 
+
+		$this->config->scripts->add($this->config->urls->$class . "asmselect/jquery.asmselect.js");
+
+		$this->config->styles->add($this->config->urls->$class . "$class.css");
+		$this->config->styles->add($this->config->urls->$class . "asmselect/jquery.asmselect.css");
+
+		$selectedOptions = $this->attr('value'); 
+		
+		foreach($selectedOptions as $id) {
+			$label = $this->options[$id]; 
+			unset($this->options[$id]); 	
+			$this->addOption($id, $label); 
+		}
+
+		$this->config->js($this->id, $this->asmOptions); 
+
+		return parent::___render();
+		
+	}
+}

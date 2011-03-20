@@ -1,0 +1,102 @@
+<?php
+
+/**
+ * An Inputfield for handling XHTML "textarea" form inputs
+ *
+ */
+class InputfieldTinyMCE extends InputfieldTextarea {
+
+	const TinyMCEVersion = '3.3.9.2';
+
+	protected $defaults = array(
+		'theme_advanced_buttons1' => 'formatselect,styleselect|,bold,italic,|,bullist,numlist,|,link,unlink,|,image,|,code,|,fullscreen',
+		'theme_advanced_buttons2' => '',
+		'theme_advanced_blockformats' => 'p,h2,h3,h4,blockquote,pre,code',
+		'plugins' => 'inlinepopups,safari,table,media,paste,fullscreen,preelementfix', 
+		'valid_elements' => '@[id|class],a[href|target|name],strong/b,em/i,br,img[src|id|class|width|height|alt],ul,ol,li,p[class],h2,h3,h4,blockquote,-p,-table[border=0|cellspacing|cellpadding|width|frame|rules|height|align|summary|bgcolor|background|bordercolor],-tr[rowspan|width|height|align|valign|bgcolor|background|bordercolor],tbody,thead,tfoot,#td[colspan|rowspan|width|height|align|valign|bgcolor|background|bordercolor|scope],#th[colspan|rowspan|width|height|align|valign|scope],pre,code',
+		); 
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'TinyMCE',
+			'version' => 100,
+			'summary' => 'WYSIWYG rich text editor',
+			'permanent' => true, 
+			);
+	}
+
+	public function init() {
+		foreach($this->defaults as $key => $value) $this->set($key, $value); 
+		parent::init();
+	}
+
+	public function ___render() {
+
+		$this->config->scripts->add($this->config->urls->InputfieldTinyMCE . "tinymce-" . self::TinyMCEVersion . "/tiny_mce.js");
+
+		$config = $this->defaults;
+		foreach($config as $key => $unused) $config[$key] = $this->get($key); 
+		$this->config->js($this->attr('id'), $config); 
+
+		$config = $this->config->js($this->className()); 
+		if(is_null($config)) $config = array();
+		// 'elements' is a tinymce config option, we're using the same terminology for consistency
+		if(!isset($config['elements'])) $config['elements'] = array(); 
+		$config['elements'][] = $this->attr('id'); 
+		$config['url'] = $this->config->urls->InputfieldTinyMCE; 
+		$this->config->js($this->className(), $config); 
+		
+		return parent::___render();
+	}
+
+	public function setAttribute($key, $value) {
+		//if(isset($_POST['body_html'])) die("<pre>" . $_POST['body_html'] . "</pre>");
+		if($key != 'value') return parent::setAttribute($key, $value); 
+
+		/*
+
+		// remove empty tags
+		$value = preg_replace('{<([a-z0-9]+)>\s*(&nbsp;|<br />)*\s*</\\1>}i', '', $value); 
+
+		// replace fake bulleted lists
+		$value = preg_replace('{<br />\s*[-*]\s*}m', '<br />', $value); 
+
+		// fix breaks to be paragraphs
+		$value = str_replace(array('<br /> <br />', '<br /><br />'), '</p><p>', $value); 
+
+		// fix paragraphs that start with a break 
+		$value = str_replace('<p><br />', '<p>', $value) ;
+
+		// remove arbitrary and incorrect bulleted lists
+		$value = preg_replace('{\s*&bull;\s*}', ' ', $value); 
+
+		// fix those darn &nbsp; tags
+		$value = str_replace('&nbsp;', ' ', $value); 
+		*/
+	
+		return parent::setAttribute($key, $value); 	
+	}
+
+	public function ___getConfigInputfields() {
+		$inputfields = parent::___getConfigInputfields();
+
+		$wrapper = $this->modules->get('InputfieldFieldset'); 
+		$wrapper->label = 'TinyMCE Advanced Configuration Options'; 
+		$wrapper->description = 
+			'The following fields are specific to TinyMCE and details about these options can be found at the TinyMCE web site. ' . 
+			'In general it is best to use the defaults presented here unless you are familiar with TinyMCE configuration.';
+		$wrapper->collapsed = Inputfield::collapsedYes; 
+
+		foreach($this->defaults as $key => $unused) {
+			$field = $this->modules->get('InputfieldText'); 
+			$field->attr('name', $key); 
+			$field->attr('maxlength', 4096); 
+			$field->attr('value', $this->get($key)); 
+			$wrapper->append($field);
+		}
+
+		$inputfields->append($wrapper); 
+
+		return $inputfields; 
+	}
+}

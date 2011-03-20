@@ -1,0 +1,30 @@
+<?php
+
+/**
+ * ProcessWire Newlines to <br /> Textformatter
+ *
+ * Inserts <br /> tags automatically into newlines
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class TextformatterNewlineBR extends Textformatter {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Newlines to XHTML Line Breaks', 
+			'version' => 100, 
+			'summary' => "Converts newlines to XHTML line break <br /> tags. ", 
+		); 
+	}
+
+	public function format(&$str) {
+		$str = nl2br(trim($str));
+	}
+}

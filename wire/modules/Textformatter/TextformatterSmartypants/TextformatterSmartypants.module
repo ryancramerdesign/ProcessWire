@@ -1,0 +1,32 @@
+<?php
+
+/**
+ * ProcessWire Smartypants Textformatter
+ *
+ * See: http://daringfireball.net/projects/smartypants/ 
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class TextformatterSmartypants extends Textformatter {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'SmartyPants Typographer', 
+			'version' => 151, 
+			'summary' => "Smart typography for web sites, by Michel Fortin based on SmartyPants by John Gruber. If combined with Markdown, it should be applied AFTER Markdown.", 
+			'url' => 'http://michelf.com/projects/php-smartypants/typographer/', 
+		); 
+	}
+
+	public function format(&$str) {
+		require_once("smartypants.php"); 
+		$str = SmartyPants($str); 
+	}
+}

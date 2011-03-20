@@ -1,0 +1,38 @@
+<?php
+
+/**
+ * An Inputfield for handling XHTML "submit" buttons
+ *
+ */
+class InputfieldSubmit extends Inputfield {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Submit',
+			'version' => 100,
+			'summary' => 'Form submit button',
+			'permanent' => true, 
+			);
+	}
+
+	public function init() {
+		parent::init();
+		$this->attr('type', 'submit'); 
+		$this->attr('name', 'submit'); 
+		$this->attr('value', 'Submit'); 
+		$this->attr('class', 'ui-button ui-widget ui-state-default ui-corner-all'); 
+	}
+
+	public function ___render() {
+		//$out = "\n<input " . $this->getAttributesString() . " />"; 
+		$attrs  = $this->getAttributesString();
+		$out = "\n<button $attrs><span class='ui-button-text'>" . $this->attr('value') . '</span></button>';
+		return $out; 
+	}
+
+	public function ___processInput(WireInputData $input) {
+		// submit buttons don't need to process any input
+		return $this; 
+	}
+	
+}

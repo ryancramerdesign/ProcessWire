@@ -1,0 +1,26 @@
+
+#ProcessPageSearchSubmit {
+	display: none;
+}
+
+#ProcessPageSearchResults li {
+	border-bottom: 1px dotted #ccc; 
+	margin: 0; 
+	padding: 0.25em 0;
+}
+
+#ProcessPageSearchResults li a,
+#ProcessPageSearchResults li a span {
+	display: block;
+}
+
+.ProcessPageSearchResult_path {
+	opacity: 0.75;
+	filter: alpha(opacity = 75); 
+}
+
+.ProcessPageSearchResult_title {
+	font-weight: bold; 
+}
+
+

@@ -1,0 +1,58 @@
+<?php
+
+/**
+ * ProcessWire FieldsetClose
+ *
+ * Inputfield and Fieldtype for closing a Fieldset.
+ * This accompanies the FieldsetOpen Fieldtype. 
+ *
+ * For documentation about the fields used in this class, please see:  
+ * /wire/core/Fieldtype.php
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+/**
+ * Inputfield to close a FieldsetOpen
+ *
+ */
+class InputfieldFieldsetClose extends Inputfield { 
+	public function ___render() { return ''; }
+	public function ___getConfigInputfields() { return null; }
+} 
+
+/**
+ * Fieldtype to close a FieldsetOpen
+ * 
+ */
+class FieldtypeFieldsetClose extends FieldtypeFieldsetOpen {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Fieldset (Close)',
+			'version' => 100,
+			'summary' => 'Close a fieldset opened by FieldsetOpen. ',
+			'permanent' => true, 
+			);
+	}
+
+	public function getInputfield(Page $page, Field $field) {
+		return new InputfieldFieldsetClose();
+	}
+
+	public function ___getConfigInputfields(Field $field) {
+		return null;
+	}
+
+	public function isAdvanced() {
+		return true; 
+	}
+}
+
+

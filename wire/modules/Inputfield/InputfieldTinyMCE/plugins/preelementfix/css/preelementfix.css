@@ -1,0 +1,58 @@
+pre
+{
+    background-color: #eee !important;
+    font: 10px Monaco, monospace, Courier New, Courier;
+    padding: 8px;
+    color: #001B4C;
+    border-color: #ffb450 #ffb450 #ffb450 #ff8c00;
+    border-style: solid;
+    border-width: 1px 1px 1px thick;
+}
+
+.ui-pre-element-fix-tooltip
+{
+    background-color: #ffb450;
+    color: #000;
+    font: 10px Arial, Tahoma, Verdana, sans-serif;
+    padding: 2px 4px 2px 4px;
+}
+
+/* Specific classes for each language. */
+/*
+pre.cpp,
+pre.csharp,
+pre.delphi,
+pre.html,
+pre.java,
+pre.javascript,
+pre.php,
+pre.python,
+pre.ruby,
+pre.sql,
+pre.vb,
+pre.xml,
+pre.xhtml,
+{
+
+}
+*/
+
+/* Specific classes for tooltips. */
+/*
+.ui-pre-element-fix-tooltip.sql,
+.ui-pre-element-fix-tooltip.cpp,
+.ui-pre-element-fix-tooltip.csharp,
+.ui-pre-element-fix-tooltip.delphi,
+.ui-pre-element-fix-tooltip.html,
+.ui-pre-element-fix-tooltip.java,
+.ui-pre-element-fix-tooltip.javascript,
+.ui-pre-element-fix-tooltip.php,
+.ui-pre-element-fix-tooltip.python,
+.ui-pre-element-fix-tooltip.ruby,
+.ui-pre-element-fix-tooltip.vb,
+.ui-pre-element-fix-tooltip.xml,
+.ui-pre-element-fix-tooltip.xhtml
+{
+
+}
+*/

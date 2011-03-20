@@ -1,0 +1,41 @@
+h3.ui-widget-header {
+	padding: 5px 10px; 
+	margin-bottom: 0 !important; 
+	font-size: 1.2em; 
+}
+
+#content h2 {
+	margin-bottom: 0.5em; 
+}
+
+table.AdminDataList {
+	margin-top: 0.5em; 
+	margin-bottom: 2em; 
+}
+
+table.AdminDataList td:first-child,
+table.AdminDataList th:first-child {
+	width: 30%; 
+	vertical-align: top; 
+}
+
+table.AdminDataList td,
+table.AdminDataList th {
+	padding-right: 10px !important; 
+}
+
+table.AdminDataList td:last-child {
+	width: 55%; 
+}
+
+#ModuleEditForm table.AdminDataList td:first-child {
+	font-weight: bold; 
+	text-align: right; 
+	width: 12%; 
+	padding-right: 1em; 
+}
+
+#ModuleEditForm table.AdminDataList tr:last-child td {
+	border-bottom: none; 
+}
+

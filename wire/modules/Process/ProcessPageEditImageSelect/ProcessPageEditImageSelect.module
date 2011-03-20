@@ -1,0 +1,278 @@
+<?php
+
+/**
+ * ProcessWire Image Select + Edit Process
+ *
+ * Provides the image selecting and editing capability for the TinyMCE Inputfield
+ * Works in combination with /modules/Inputfield/InputfieldTinyMCE/plugins/pwimage/editor_plugin.js
+ * 
+ * For more details about how Process modules work, please see: 
+ * /wire/core/Process.php 
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class ProcessPageEditImageSelect extends Process {
+
+	protected $maxImageWidth = 835; 
+
+	protected $page = null;
+
+	protected $defaultClass = 'Pageimage';
+
+	protected $file = '';
+
+	protected $optionalClasses = array(
+		'align_left' => 'Align Left',
+		'align_right' => 'Align Right',
+		'align_center' => 'Align Center',
+		);
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Page Edit Image',          
+			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)', 
+			'version' => 100, 
+			'permanent' => true, 
+			);
+	}
+
+	public function init() {
+
+		if($this->config->demo) throw new WireException("Sorry, image editing functions are disabled in demo mode"); 
+
+		$this->modules->get("ProcessPageList");
+		$id = (int) $this->input->get->id; 
+
+		// if no ID was specified, then retrieive ID from filename path, if it's there
+		if(!$id && $this->input->get->file) {
+			if(preg_match('{(\d+)/[^/]+\.(jpe?g|gif|png)$}iD', $this->input->get->file, $matches)) {
+				$id = (int) $matches[1]; 
+			}
+		}
+
+		if(!$id) throw new WireException("No page specified"); 
+		$this->page = $this->pages->get($id); 
+		if(!$this->page) throw new WireException("No page specified"); 
+		if(!$this->page->editable()) throw new WireException("You do not have access to images on this page"); 
+
+		if($this->input->get->winwidth) $this->maxImageWidth = ((int) $this->input->get->winwidth) - 70; 
+		if($this->maxImageWidth < 400) $this->maxImageWidth = 400; 
+
+		parent::init();
+	}
+
+	public function getPageimage() {
+		$images = $this->getImages();
+		$filename = basename($this->input->get->file); 
+		if(!preg_match('/\.(jpe?g|gif|png)$/iD', $filename, $matches)) throw new WireException("Unknown image file"); 
+
+		// get the original, non resized version, if present
+		$filename = preg_replace('/\.\d+x\d+(\.' . $matches[1] . ')$/', '\1', $filename); 
+		if(!array_key_exists($filename, $images)) throw new WireException("Invalid image file: $filename"); 
+		return $images[$filename]; 
+	}
+
+
+	public function getImages() {
+		$allImages = array();
+		$numImages = 0;
+		$numImageFields = 0;
+		foreach($this->page->fields as $field) {
+			if(!$field->type instanceof FieldtypeImage) continue; 
+			$numImageFields++;
+			$images = $this->page->get($field->name); 
+			if(!count($images)) continue; 
+			foreach($images as $image) {
+				$numImages++;
+				$allImages[$image->basename] = $image; 
+			}
+		}
+
+		if(!$numImageFields) $this->message("There are no image fields on this page. Choose another page to select images from."); 
+			else if(!$numImages) $this->message("There are no images present on this page. Close this window and upload images, or select images from another page."); 
+		return $allImages; 
+	}
+
+	public function ___execute() {
+
+		if($this->config->demo) throw new WireException("Sorry, image editing functions are disabled in demo mode"); 
+
+		if($this->input->get->file) return $this->executeEdit();
+		$images = $this->getImages();
+
+		$out = '';
+
+		if(count($images)) {
+			$winwidth = (int) $this->input->get->winwidth; 
+			foreach($images as $image) {
+				$width = $image->width();
+				if($width > $this->maxImageWidth) $width = $this->maxImageWidth; 
+				$out .= "\n\t<li><a href='./edit?file={$image->basename}&amp;modal=1&amp;id={$this->page->id}&amp;winwidth=$winwidth'>" . 
+					"<img src='{$image->url}' width='$width' alt=\"{$image->description}\" /></a></li>";
+			}
+
+			$out = "\n<ul id='select_images'>$out\n</ul>";
+
+		}
+
+		$form = $this->modules->get("InputfieldForm");
+		$form->action = "./"; 
+		$form->method = "get";
+
+		$field = $this->modules->get("InputfieldPageListSelect"); 
+		$field->label = "Page: " . $this->page->get("title") . " (" . $this->page->path . ")";
+		$field->description = "If you would like to select images from another page, select the page below.";
+		$field->attr('id+name', 'page_id'); 
+		$field->value = $this->page->id; 
+		$field->collapsed = count($images) ? Inputfield::collapsedYes : Inputfield::collapsedNo;
+		$field->required = true; 
+		$form->append($field); 
+
+		$out = $form->render() . $out;
+
+
+		return "<div id='ProcessPageEditImageSelect'>" . $out . "\n</div>";
+	}
+
+	public function ___executeEdit() {
+
+		$attrs = array(
+			'class' => '', 
+			'width' => 0,
+			'height' => 0, 
+			); 
+		$image = $this->getPageimage();
+		$filename = $image->basename; 
+
+		$originalWidth = $image->width();
+		$originalHeight = $image->height();
+
+		$width = (int) $this->input->get->width; 
+		$height = (int) $this->input->get->height; 
+
+		// if they aren't already working with a resized image, and it's being scaled down,
+		// then add the 'resized' class to ensure that our pwimage plugin knows to perform the resize
+		if(basename($this->input->get->file) == $filename && $originalWidth > $width) $attrs['class'] .= " resized";
+	
+		/*	
+		$form = $this->modules->get("InputfieldForm"); 
+		$form->attr('id', 'edit_image_form');
+
+		$field = $this->modules->get("InputfieldSelect"); 	
+		$field->label = "Position";
+		$field->description = "Alter the style or position of the image as it appears in the page.";
+		$field->collapsed = Inputfield::collapsedYes; 
+		$field->attr('id+name', 'selected_image_class');
+		$field->addOption(''); 
+
+		foreach($this->optionalClasses as $class => $label) {
+			if($class && $this->input->get->class == $class) {
+				$field->attr('value', $class); 
+				$attrs['class'] .= " $class";
+			}
+			$field->addOption("$class", $label); 
+		}
+		$form->append($field); 
+		*/
+
+
+		$out =	"\n<form id='selected_image_settings' action='./?id={$this->page->id}&amp;file=$filename'>" . 
+			"\n\t<p id='wrap_info'>" . 
+			"\n\t\t<span id='selected_image_filename'>" . htmlentities($filename) . "</span> &bull; " . 
+			"\n\t\t<span id='selected_image_dimensions'>{$width}x{$height}</span> " . 
+			"\n\t</p>";
+
+		$description = isset($_GET['description']) ? $this->input->get->description : $image->description; 
+		if(strlen($description) > 1024) $description = substr($description, 0, 1024); 
+		$description = htmlentities($description, ENT_QUOTES); 
+
+		$out .= "\n\t<p id='wrap_description'>" . 
+			"\n\t\t<label for='selected_image_description'>Description</label>" . 
+			"\n\t\t<input type='text' name='selected_image_description' id='selected_image_description' value=\"$description\" />" . 
+			"\n\t</p>"; 
+
+		$out .= "\n\t<p id='wrap_class'>" . 
+			"\n\t\t<select id='selected_image_class' name='class'>" . 
+			"\n\t\t\t<option>Position</option>";
+
+		foreach($this->optionalClasses as $class => $label) {
+			$selected = $this->input->get->class == $class ? " selected='selected'" : '';
+			if($selected) $attrs['class'] .= " $class";
+			$out .= "\n\t\t\t<option$selected value='$class'>$label</option>";
+		}
+
+		$out .= "\n\t\t</select>" . 
+			"\n\t</p>"; 
+
+		if(!$width && $image->width() > $this->maxImageWidth) {	
+			$width = $this->maxImageWidth; 
+			$height = 0; 
+		}
+
+		if($width) $attrs['width'] = $width; 
+		if($width && $height) $attrs['height'] = $height; 
+
+		if($width != $originalWidth) { 
+			$checked = $this->input->get->link == $image->url ? " checked='checked'" : '';
+			$out .= "\n\t<p id='wrap_link_original'>" . 
+				"\n\t\t<label>" . 
+				"\n\t\t\t<input type='checkbox'$checked name='selected_image_link' id='selected_image_link' value='{$image->url}' /> Link to Larger Version? " . 
+				"\n\t\t\t<span class='detail'>({$originalWidth}x{$originalHeight})</span> " . 
+				"\n\t\t</label>" . 
+				"\n\t</p>";
+		}
+
+	
+		$out .=	"\n</form>";
+
+		$attrStr = '';
+		foreach($attrs as $key => $value) if($value) $attrStr .= "$key='" . trim($value) . "' ";
+
+		$out .= "\n\t<div id='selected_image_container'>" . 
+			"\n\t\t<img id='selected_image' $attrStr alt='' src='{$image->url}' />" . 
+			"\n\t</div>";
+
+		$out .= "\n\t<p class='detail'>To resize and resample, drag the lower right corner of the image (whether here or in the text editor).</p>";
+
+		// $out .= "<pre>" . print_r($_GET, true) . "</pre>";
+
+
+		return $out; 
+		
+	}
+
+	public function ___executeResize() {
+
+		$width = (int) $this->input->get->width; 
+		$height = (int) $this->input->get->height; 
+		$class = $this->sanitizer->name($this->input->get->class); 
+		$image = $this->getPageimage();
+
+		if($width != $image->width) {
+			$resized = $image->width($width); 
+			$height = $resized->height();
+		} else {
+			$resized = $image; 
+		}
+
+		// note IE8 won't properly read the width/height attrs via ajax
+		// so we provide the width/height in separate fields
+
+		$out =	"<p>" .  
+			"<span id='selected_image_width'>$width</span>x" . 
+			"<span id='selected_image_height'>$height</span><br />" . 
+			"<img id='selected_image' class='$class' src='{$resized->url}' width='$width' height='$height' />" . 
+			"</p>";
+
+		return $out; 
+	}
+
+}
+

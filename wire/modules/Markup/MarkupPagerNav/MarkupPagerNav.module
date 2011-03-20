@@ -1,0 +1,266 @@
+<?php
+
+/**
+ * ProcessWire MarkupPagerNav module
+ *
+ * Provides capability for rendering pagination navigation with PageArrays
+ *
+ * Basic Example usage:
+ * 
+ * $items = $pages->find("id>0, limit=10"); // replace id>0 with your selector
+ * $pager = $modules->get("MarkupPagerNav"); 
+ * echo "<ul>";
+ * foreach($items as $item) echo "<li>{$item->title}</li>";
+ * echo "</ul>";
+ * echo $pager->render($items); // render the pagination navigation
+ *
+ * MarkupPagerNav generates it's own HTML5/XHTML markup. To modify it's markup
+ * or options, specify a second $options array to the render() method. See 
+ * the MarkupPagerNav::$options to see what defaults can be overridden. 
+ *
+ * PLEASE NOTE
+ * 
+ * The MarkupPageArray class uses MarkupPagerNav automatically when 
+ * rendering a PageArray that was retrieved with a "limit=n" selector. 
+ * 
+ * MarkupPageArray also adds a PageArray::renderPager (i.e. $myPages->renderPager()) 
+ * method which is the same as MarkupPagerNav::render() (i.e. $pager->render($items).
+ *
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2011 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+
+require_once(dirname(__FILE__) . '/PagerNav.php'); 
+
+
+/**
+ * ProcessWire module that provides pagination for PageArray types
+ *
+ */
+class MarkupPagerNav extends Wire implements Module {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Pager (Pagination) Navigation', 
+			'summary' => 'Generates markup for pagination navigation', 
+			'version' => 100, 
+			'permanent' => false, 
+			'singular' => false, 
+			'autoload' => false, 
+			);
+	}
+
+	/**
+	 * Options to modify the behavior and output of MarkupPagerNav
+	 *
+	 * Many of these are set automatically. 
+	 *
+	 */
+	protected $options = array(
+
+		// number of links that the pagination navigation should have (typically 10) 
+		'numPageLinks' => 10,	
+
+		// get vars that should appear in the pagination, or leave empty and populate $input->whitelist (preferred)
+		'getVars' => array(), 	
+
+		// the baseUrl from which the navigiation item links will start
+		'baseUrl' => '',	
+
+		// the current Page, or leave NULL to autodetect
+		'page' => null, 	
+
+		// List container markup. Place {out} where you want the individual items rendered. 
+		'listMarkup' => "\n<ul class='MarkupPagerNav'>{out}\n</ul>",
+
+		// List item markup. Place {class} for item class (required), and {out} for item content. 
+		'itemMarkup' => "\n\t<li class='{class}'>{out}</li>",
+
+		// Link markup. Place {url} for href attribute, and {out} for label content. 
+		'linkMarkup' => "<a href='{url}'><span>{out}</span></a>", 
+
+		// label used for the 'Next' button
+		'nextItemLabel' => 'Next', 
+
+		// label used for the 'Previous' button
+		'previousItemLabel' => 'Prev', 
+
+		// label used in the seperator item
+		'separatorItemLabel' => '&hellip;', 
+
+		// default classes used for list items, according to the type. 
+		'separatorItemClass' => 'MarkupPagerNavSeparator', 
+		'firstItemClass' => 'MarkupPagerNavFirst', 
+		'nextItemClass' => 'MarkupPagerNavNext', 
+		'previousItemClass' => 'MarkupPagerNavPrevious', 
+		'lastItemClass' => 'MarkupPagerNavLast', 
+		'currentItemClass' => 'MarkupPagerNavOn', 
+
+		/*
+		 * NOTE: The following options are set automatically and should not be provided in your $options,
+	 	 * because anything you specify will get overwritten. 
+		 *
+		 */
+
+		// total number of items to paginate (set automatically)
+		'totalItems' => 0,	
+
+		// number of items to display per page (set automatically) 
+		'itemsPerPage' => 10,	
+
+		// the current page number (1-based, set automatically)
+		'pageNum' => 1,		
+
+		// the queryString used in links (set automatically, based on whitelist or getVars array)
+		'queryString' => '', 	
+
+		); 
+
+
+	/**
+	 * Render the output for the pagination
+	 *
+	 * @param PageArray $items Pages used in the pagination that have had a "limit=n" selector applied when they were loaded. 
+	 * @param array $options Any options to override the defaults. For the defaults see MarkupPagerNav::$options
+	 *
+	 */
+	public function ___render(PageArray $items, $options = array()) {
+
+		$this->totalItems = $items->getTotal();
+		if(!$this->totalItems) return '';
+
+		$this->options = array_merge($this->options, $options); 
+		$this->itemsPerPage = $items->getLimit(); 
+		$this->pageNum = $items->getStart() < $this->itemsPerPage  ? 1 : ceil($items->getStart() / $this->itemsPerPage)+1; 
+
+		if(is_null($this->options['page'])) $this->options['page'] = $this->fuel('page'); 
+
+		if(empty($this->queryString)) {
+			$whitelist = $this->fuel('input')->whitelist->getArray(); 
+			if(empty($this->options['getVars']) && count($whitelist)) $this->setGetVars($whitelist); 
+				else if(!empty($this->options['getVars'])) $this->setGetVars($this->getVars); 
+		}
+
+		$pagerNav = new PagerNav($this->totalItems, $this->itemsPerPage, $this->pageNum); 
+		$pagerNav->setLabels($this->options['previousItemLabel'], $this->options['nextItemLabel']); 
+		$pagerNav->setNumPageLinks($this->numPageLinks); 
+		$pager = $pagerNav->getPager();
+		$out = '';
+	
+		// if allowPageNum is true, then we can use urlSegment style page numbers rather than GET var page numbers	
+		$allowPageNum = $this->options['page']->template->allowPageNum; 
+		$slashUrls = $this->options['page']->template->slashUrls;
+		$pageNumUrlPrefix = wire('config')->pageNumUrlPrefix; 
+		if(!$pageNumUrlPrefix) $pageNumUrlPrefix = 'page';
+
+		foreach($pager as $key => $item) {
+
+			if($item->type == 'separator') {
+				$out .= str_replace(
+					array('{class}', '{out}'), 
+					array($this->options['separatorItemClass'], $this->options['separatorItemLabel']), 
+					$this->options['itemMarkup']); 
+				continue; 
+			} 
+
+			$url = $this->baseUrl;
+			if(!$url) $url = $this->options['page']->url;
+
+			if($item->pageNum > 1) {
+				if($allowPageNum) {
+					if($slashUrls === 0) $url .= '/'; // enforce a trailing slash, regardless of slashUrls template setting
+					$url .= "$pageNumUrlPrefix{$item->pageNum}";
+				} else {
+					$url .= ($this->queryString ? "&" : "?") . "$pageNumUrlPrefix=" . $item->pageNum;
+				}
+			}
+
+			$url .= $this->queryString; 
+			$class = isset($this->options[$item->type . 'ItemClass']) ? $this->options[$item->type . 'ItemClass'] : '';
+			$link = str_replace(array('{url}', '{out}'), array($url, $item->label), $this->options['linkMarkup']); 
+			$out .= str_replace(array('{class}', '{out}'), array($class, $link), $this->options['itemMarkup']); 
+
+		}
+
+		if($out) $out = str_replace('{out}', $out, $this->options['listMarkup']); 
+
+		return $out; 
+	}
+
+	/**
+	 * Retrieve a MarkupPagerNav option as an object property
+	 *
+	 */
+	public function __get($property) {
+		if(isset($this->options[$property])) return $this->options[$property]; 
+		return null;
+	}
+
+	/**
+	 * Set a MarkupPagerNav option as an object property
+	 *
+	 */
+	public function __set($property, $value) {
+		if(isset($this->options[$property])) $this->options[$property] = $value; 
+	}
+
+	/**
+	 * Set the getVars for this MarkupPagerNav
+	 *
+	 * Generates $this->options['queryString'] automatically.
+	 *
+	 * @param array $vars Array of GET vars indexed as ($key => $value)
+	 *
+	 */
+	public function setGetVars(array $vars) { 
+		$this->options['getVars'] = $vars; 
+		$queryString = "?";
+		foreach($this->options['getVars'] as $key => $value) {
+			if(is_array($value)) {
+				$a = $value; 
+				$value = '';
+				foreach($a as $k => $v) $value .= "$v,";
+				$value = rtrim($value, ", "); 
+	
+			}
+			// $queryString .= "$key=" . urlencode(htmlspecialchars($value)) . "&";	
+			$queryString .= "$key=" . urlencode($value) . "&";	
+		}
+		$this->queryString = htmlspecialchars(rtrim($queryString, "?&")); 
+	}
+
+	/*
+	 * All the methods below are optional and typically set automatically, or via the $options param. 
+	 *
+	 */
+
+	public function setPageNum($n) { $this->pageNum = $n; }
+	public function setItemsPerPage($n) { $this->itemsPerPage = $n; }
+	public function setTotalItems($n) { $this->totalItems = $n; }
+	public function setNumPageLinks($n) { $this->numPageLinks = $n; }
+	public function setQueryString($s) { $this->queryString = $s; }
+	public function setBaseUrl($url) { $this->baseUrl = $url; }
+
+	public function setLabels($next, $prev) { 
+		$this->options['nextItemLabel'] = $next; 
+		$this->options['previousItemLabel'] = $prev; 
+	}
+
+	/* 
+	 * The following methods are specific to the Module interface 
+ 	 *
+	 */
+
+	public function init() { }	
+	public function ___install() { }
+	public function ___uninstall() { }
+
+}
+

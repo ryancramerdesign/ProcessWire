@@ -1,0 +1,418 @@
+<?php
+
+/**
+ * ProcessWire Comments Fieldtype
+ *
+ * A field that stores user posted comments for a single Page. 
+ *
+ * For documentation about the fields used in this class, please see:  
+ * /wire/core/Fieldtype.php
+ * /wire/core/FieldtypeMulti.php
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+$dirname = dirname(__FILE__); 
+
+require_once($dirname . "/Comment.php"); 
+require_once($dirname . "/CommentArray.php"); 
+require_once($dirname . "/CommentList.php"); 
+require_once($dirname . "/CommentForm.php"); 
+
+/**
+ * ProcessWire Comments Fieldtype
+ *
+ * A field that stores user posted comments for a single Page. 
+ *
+ */
+class FieldtypeComments extends FieldtypeMulti {
+
+	/**
+	 * Constant that designates comments are posted immediately with NO moderation
+	 *
+ 	 */
+	const moderateNone = 0;
+
+	/**
+	 * Constant that designates that ALL comments require moderation
+	 *
+	 */
+	const moderateAll = 1; 
+
+	/**
+	 * Constant that designates that all comments require moderation, except those posted by users that have an approved comment
+	 *
+	 */
+	const moderateNew = 2; 
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Comments',
+			'version' => 100,
+			'summary' => 'Field that stores user posted comments for a single Page',
+			'permanent' => false, 
+			);
+	}
+
+	public function getBlankValue(Page $page, Field $field) {
+		$commentArray = new CommentArray(); 
+		$commentArray->setPage($page); 
+		$commentArray->setTrackChanges(true);
+		return $commentArray; 
+	}
+
+	public function sanitizeValue(Page $page, Field $field, $value) {
+		if($value instanceof CommentArray) return $value; 
+		$commentArray = $pages->get($field->name); 
+		if(!$value) return $commentArray; 
+		if($value instanceof Comment) return $commentArray->add($value); 
+		if(!is_array($value)) $value = array($value);
+		foreach($value as $comment) $commentArray->add($comment); 
+		return $commentArray; 
+	}
+
+	public function getInputfield(Page $page, Field $field) {
+		$inputfield = $this->modules->get('InputfieldCommentsAdmin'); 
+		if(!$inputfield) return null; 
+		$inputfield->class = $this->className();
+		return $inputfield; 
+	}
+
+        /**
+         * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
+	 *
+         * @param Page $page
+         * @param Field $field
+         * @param string|int|array $value
+         * @return string|int|array|object $value
+         *
+         */
+        public function ___wakeupValue(Page $page, Field $field, $value) {
+
+		if($value instanceof CommentArray) return $value; 
+		$commentArray = $this->getBlankValue($page, $field); 
+		if(empty($value)) return $commentArray; 
+
+		$editable = $page->editable();
+		if(!is_array($value)) $value = array($value); 
+
+		foreach($value as $sort => $item) {
+
+			if(!is_array($item)) continue; 
+
+			// don't load non-approved comments if the user can't edit them
+			if(!$editable && $item['status'] < Comment::statusApproved) continue; 
+
+			$comment = new Comment();
+			foreach($item as $key => $val) {
+				if($key == 'data') $key = 'text';
+				$comment->set($key, $val); 
+			}
+			$comment->resetTrackChanges(true); 
+			$commentArray->add($comment); 
+		}
+
+		if($field->sortNewest) $commentArray->sort("-created"); 
+		$commentArray->resetTrackChanges(true); 
+
+                return $commentArray;  
+        }
+
+        /**
+         * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
+         *              
+         * @param Page $page
+         * @param Field $field
+         * @param string|int|array|object $value
+         * @return string|int
+         *
+         */
+        public function ___sleepValue(Page $page, Field $field, $value) {
+
+		$sleepValue = array();
+		if(!$value instanceof CommentArray) return $sleepValue; 
+
+		foreach($value as $comment) {
+
+			if($comment->id) $this->checkExistingComment($page, $field, $comment); 
+				else $this->checkNewComment($page, $field, $comment); 	
+				
+			$sleepValue[] = array(
+				'id' => $comment->id, 
+				'status' => $comment->status, 
+				'data' => $comment->text, 
+				'cite' => $comment->cite, 
+				'email' => $comment->email, 
+				'created' => $comment->created, 
+				'created_users_id' => $comment->created_users_id, 
+				'ip' => $comment->ip, 
+				'user_agent' => $comment->user_agent, 
+				); 
+		}
+		return $sleepValue;
+        }
+
+	/**
+	 * Review an existing comment for changes to the status
+	 *
+	 * If the status was changed, check if Akismet made an error and send it to them if they did
+	 *
+	 */
+	protected function checkExistingComment(Page $page, Field $field, Comment $comment) {
+
+		$submitSpam = false; 
+		$submitHam = false; 
+
+		if($comment->prevStatus == Comment::statusSpam && $comment->status == Comment::statusApproved) {
+			$submitHam = true; // identified a false positive
+
+		} else if($comment->status == Comment::statusSpam && $comment->prevStatus == Comment::statusApproved) {
+			$submitSpam = true; // a missed spam
+		}
+
+		if($field->useAkismet && $comment->ip && $comment->user_agent && ($submitHam || $submitSpam)) {
+			$akismet = $this->modules->get("CommentFilterAkismet"); 
+			$akismet->setComment($comment); 
+			if($submitHam) $akismet->submitHam();
+				else if($submitSpam) $akismet->submitSpam();
+		}
+	}
+
+
+	/**
+	 * If comment is new, it sets the status based on whether it's spam, and notifies any people that need to be notified
+	 *
+	 */ 
+	protected function checkNewComment(Page $page, Field $field, Comment $comment) {
+
+		if($comment->id) return; 
+
+		if($field->useAkismet) {
+			$akismet = $this->modules->get('CommentFilterAkismet'); 
+			$akismet->setComment($comment); 
+			$akismet->checkSpam(); // automatically sets status if spam
+		} else {
+			$comment->status = Comment::statusPending; 
+		}
+
+		if($comment->status != Comment::statusSpam) {
+			if($field->moderate == self::moderateNone) {
+				$comment->status = Comment::statusApproved; 
+
+			} else if($field->moderate == self::moderateNew && $comment->email) {
+				$result = $this->db->query(
+					"SELECT count(*) FROM `{$field->table}` " . 
+					"WHERE status=" . Comment::statusApproved . " " . 
+					"AND email='" . $this->db->escape_string($comment->email) . "' "); 
+				list($numApproved) = $result->fetch_array(); 
+				if($numApproved > 0) $comment->status = Comment::statusApproved; 
+			}
+		}
+
+		$this->sendNotificationEmail($page, $field, $comment); 
+		$this->deleteOldSpam($field);
+
+	}
+
+	/**
+	 * Delete spam that is older than $field->deleteSpamDays
+	 *
+	 */
+	protected function deleteOldSpam(Field $field) {
+		$expiredTime = time() - (86400 * $field->deleteSpamDays);  
+		$sql = 	"DELETE FROM `{$field->table}` " . 
+			"WHERE status=" . Comment::statusSpam . " " . 
+			"AND created < $expiredTime ";
+		$this->db->query($sql); 
+	}
+
+	/**
+	 * Send notification email to specified admin to review the comment
+	 *
+	 */
+	protected function sendNotificationEmail(Page $page, Field $field, Comment $comment) {
+
+		if(!$field->notificationEmail) return false; 
+
+		if($comment->status == Comment::statusPending) $status = "Pending Approval";
+			else if($comment->status == Comment::statusApproved) $status = "Approved";
+			else if($comment->status == Comment::statusSpam) $status = "SPAM - will be deleted automatically after " . 
+				date("m/d/y", time() + (86400 * $field->deleteSpamDays)); 
+			else $status = "Unknown";
+
+		$subject = "Comment posted to: {$page->url}";	
+		$from = "ProcessWire <processwire@" . $this->config->httpHost . ">"; 
+		$body = "Page: {$page->httpUrl}\n" . 
+			"From: {$comment->cite}\n" . 
+			"Email: {$comment->email}\n" . 
+			"Status: $status\n" . 
+			"Text: {$comment->text}\n\n";
+
+		return mail($field->notificationEmail, $subject, $body, "From: $from"); 
+	}
+
+	/**
+	 * Schema for the Comments Fieldtype
+	 *
+	 */
+	public function getDatabaseSchema(Field $field) {
+		$schema = parent::getDatabaseSchema($field); 
+		$schema['id'] = "int unsigned NOT NULL auto_increment";
+		$schema['status'] = "tinyint(3) NOT NULL default '0'";
+		$schema['cite'] = "varchar(128) NOT NULL default ''"; 
+		$schema['email'] = "varchar(255) NOT NULL default ''";
+		$schema['data'] = "text NOT NULL"; 
+		$schema['sort'] = "int unsigned NOT NULL";
+		$schema['created'] = "int unsigned NOT NULL"; 	
+		$schema['created_users_id'] = "int unsigned NOT NULL";
+		$schema['ip'] = "varchar(15) NOT NULL default ''";
+		$schema['user_agent'] = "varchar(255) NOT NULL default ''";
+		$schema['keys']['primary'] = "PRIMARY KEY (`id`)"; 
+		$schema['keys']['pages_id_sort'] = "KEY `pages_id_sort` (`pages_id`, `sort`)";
+		$schema['keys']['status'] = "KEY `status` (`status`, `email`)";
+		$schema['keys']['pages_id'] = "KEY `pages_id` (`pages_id`,`status`,`created`)"; 
+		$schema['keys']['data'] = "FULLTEXT KEY `data` (`data`)";
+		return $schema;
+	}
+
+	/**
+	 * Per the Fieldtype interface, Save the given Field from the given Page to the database
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @return bool
+	 *
+	 */
+	public function ___savePageField(Page $page, Field $field) {
+
+		if(!$page->id || !$field->id) return false;
+
+		$allItems = $page->get($field->name);
+
+		if(!$allItems) return false;
+		if(!$allItems->isChanged() && !$page->isChanged($field->name)) return true; 
+
+		$itemsRemoved = $allItems->getItemsRemoved();
+		if(count($itemsRemoved)) {
+			foreach($itemsRemoved as $item) {
+				if(!$item->id) continue; 
+				$this->db->query("DELETE FROM `{$field->table}` WHERE id=" . ((int) $item->id) . " AND pages_id=" . ((int) $page->id)); 
+			}
+		}
+
+		$maxSort = 0; 
+		$items = $allItems->makeNew();
+		foreach($allItems as $item) {
+			if($item->isChanged() || !$item->id) $items->add($item); 
+			if($item->sort > $maxSort) $maxSort = $item->sort; 
+		}
+
+		if(!count($items)) return true; 
+
+		$values = $this->sleepValue($page, $field, $items); 
+		$value = reset($values); 
+		$keys = is_array($value) ? array_keys($value) : array('data'); 
+
+		// cycle through the values, executing an update query for each
+		foreach($values as $value) {
+
+			$sql = $value['id'] ? "UPDATE " : "INSERT INTO ";
+			$sql .= "`{$field->table}` SET pages_id={$page->id}, "; 
+
+			// if the value is not an associative array, then force it to be one
+			if(!is_array($value)) $value = array('data' => $value); 
+
+			// cycle through the keys, which represent DB fields (i.e. data, description, etc.) and generate the update query
+			foreach($keys as $key) {
+				if($key == 'id') continue; 
+				if($key == 'sort' && !$value['id']) continue; 
+				$v = $value[$key]; 
+				$sql .= "$key='" . $this->db->escape_string("$v") . "', ";
+			}
+
+			if($value['id']) {
+				$sql = rtrim($sql, ', ') . " WHERE id=" . (int) $value['id'];
+			} else {
+				$sql .= "sort=" . ++$maxSort; 
+			}
+
+			if(!$result = $this->db->query($sql)) $this->error("Error saving item $value[id] in savePageField");
+		}	
+
+		return true; 
+	}
+
+	/**
+	 * Configuration that appears with each Comments fieldtype
+	 *
+	 */
+	public function ___getConfigInputfields(Field $field) {
+
+		$inputfields = parent::___getConfigInputfields($field);
+
+		$name = 'moderate';
+		$f = $this->fuel('modules')->get('InputfieldRadios'); 
+		$f->attr('name', $name); 
+		$f->addOption(self::moderateNone, 'None - Comments posted immediately'); 
+		$f->addOption(self::moderateAll, 'All - All comments must be approved by user with page edit access'); 
+		$f->addOption(self::moderateNew, 'Only New - Only comments from users without prior approved comments require approval'); 
+		$f->attr('value', (int) $field->$name); 
+		$f->label = 'Comment Moderation';
+		$inputfields->append($f); 
+
+		$name = 'notificationEmail';
+		$f = $this->fuel('modules')->get('InputfieldText'); 
+		$f->attr('name', $name); 
+		$f->attr('value', $field->$name); 
+		$f->label = 'Notification E-Mail';
+		$f->description = "E-mail address to be notified when a new comment is posted. Separate multiple email addresses with commas.";
+		$inputfields->append($f); 
+
+		$name = 'sortNewest'; 
+		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
+		$f->attr('name', $name); 
+		$f->attr('value', 1); 
+		$f->attr('checked', $field->$name ? 'checked' : ''); 
+		$f->label = 'Sort newest to oldest?';
+		$f->description = "By default, comments will sort chronologically (oldest to newest). To reverse that behavior check this box.";
+		$inputfields->append($f); 
+
+		$name = 'useAkismet'; 
+		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
+		$f->attr('name', $name); 
+		$f->attr('value', 1); 
+		$f->attr('checked', $field->$name ? 'checked' : ''); 
+		$f->label = 'Use Akismet Spam Filter Service?';
+		$f->description = "This service will automatically identify most spam. Before using it, please ensure that you have entered an Akismet API key under Modules > Comment Filter: Akismet.";
+		$inputfields->append($f); 
+
+		$name = 'deleteSpamDays';
+		$f = $this->fuel('modules')->get('InputfieldInteger'); 
+		$f->attr('name', $name); 
+		$value = $field->$name; 
+		if(is_null($value)) $value = 7; // default
+		$f->attr('value', $field->$name); 
+		$f->label = 'Number of days after which to delete spam';
+		$f->description = "After the number of days indicated, spam will be automatically deleted.";
+		$inputfields->append($f); 
+
+		return $inputfields;
+	}
+
+	/**
+	 * For FieldtypeMulti interface, return NULL to indicate that the field is not auto-joinable
+	 *
+	 */
+	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) {
+		return null; // make this field not auto-joinable
+	}
+
+
+}
+
