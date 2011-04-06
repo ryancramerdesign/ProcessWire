@@ -23,9 +23,14 @@ class ProcessPageEdit extends Process {
 	protected $page; 
 	protected $parent; 
 	protected $id; 
-	protected $isTrash; 
 	protected $redirectUrl;
 	protected $pageClass; 
+	protected $isTrash; 
+
+	protected $useTrash = true; 
+	protected $useSettings = true; 
+	protected $useChildren = true; 
+	protected $useView = true; 
 
 	public static function getModuleInfo() {
 		return array(
@@ -33,7 +38,16 @@ class ProcessPageEdit extends Process {
 			'summary' => 'Edit a Page', 
 			'version' => 100, 
 			'permanent' => true, 
+			'permission' => 'page-edit',
 			);
+	}
+
+	public function set($key, $value) {
+		if(in_array($key, array('useTrash', 'useSettings', 'useView', 'useChildren'))) {
+			$this->$key = $value ? true : false; 
+			return $this;
+		} 
+		return parent::set($key, $value); 
 	}
 
 	/**
@@ -61,9 +75,10 @@ class ProcessPageEdit extends Process {
 		// then temporarily give both the page and the user the special "owner" role 
 
 		if($this->page->createdUserID == $this->user->id) {
-			$ownerRole = $this->roles->get(Role::ownerRoleID); 
-			$this->page->addRole($ownerRole); 
-			$this->user->addRole($ownerRole); 
+			// TODO for new user system, old part commented out below but kept for reference:
+			// $ownerRole = $this->roles->get(Role::ownerRoleID); 
+			// $this->page->addRole($ownerRole); 
+			// $this->user->addRole($ownerRole); 
 		}
 
 		$this->setupHeadline();
@@ -167,6 +182,7 @@ class ProcessPageEdit extends Process {
 		$form->attr('method', 'post'); 
 		$form->attr('enctype', 'multipart/form-data'); 
 		$form->attr('class', 'template_' . $this->page->template . ' class_' . $this->page->className); 
+		$form->attr('autocomplete', 'off'); 
 
 		if($this->page->template->nameContentTab) {
 			// name
@@ -178,13 +194,13 @@ class ProcessPageEdit extends Process {
 		}
 
 		$form->append($fields); 
-		if(((int) $this->page->template->childrenTemplatesID) > -1) $form->append($this->buildFormChildren()); 
+		if($this->useChildren && ((int) $this->page->template->childrenTemplatesID) > -1) $form->append($this->buildFormChildren()); 
 
-		$form->append($this->buildFormSettings()); 
+		if($this->useSettings) $form->append($this->buildFormSettings()); 
 
 		if($this->isTrash) $this->message("This page is in the Trash"); 
 		if($this->page->deleteable()) $form->append($this->buildFormDelete());
-		if(!$this->page->isTrash() && !$this->page->is(Page::statusUnpublished) && !$this->input->get->modal && is_file($this->page->template->filename)) {
+		if($this->useView && !$this->page->isTrash() && !$this->page->is(Page::statusUnpublished) && !$this->input->get->modal && is_file($this->page->template->filename)) {
 			$form->append($this->buildFormView()); 
 		}
 
@@ -226,60 +242,65 @@ class ProcessPageEdit extends Process {
 			$pageList->set('showRootPage', false); 
 		} else $pageList = null;
 
-		$button = $this->modules->get("InputfieldButton"); 
-		$button->attr('id+name', 'AddPageBtn'); 
-		$button->attr('value', "Add New Page Here");
-		$button->attr('href', "../add/?parent_id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
-
 		$field = $this->modules->get("InputfieldMarkup"); 
 		$field->label = "Children / Subpages";
 		if($pageList) $field->value = $pageList->execute();
 			else $field->description = "There are currently no children/subpages below this page.";
-		$field->append($button);
-		$wrapper->append($field); 
-		
-		$fieldset = $this->modules->get("InputfieldFieldset"); 
-		$fieldset->collapsed = Inputfield::collapsedYes; 
-		$fieldset->label = "Sort Settings";
-		$fieldset->description = '' . 
-			"If you want all current and future children to automatically sort by a specific field, select the field below " . 
-			"and optionally check the 'reverse' checkbox to make the sort descending. Leave the sort field blank if you want " . 
-			"to be able to drag-n-drop to your own order.";
 
-		$field = $this->modules->get('InputfieldSelect');
-		$field->name = 'sortfield'; 
-		$field->value = ltrim($this->page->sortfield, '-'); 
-		$field->label = 'Sort field';
-
-		$options = array(
-			'name' => 'name', 
-			'status' => 'status', 
-			'modified' => 'modified', 
-			'created' => 'created', 
-			); 
-
-		$field->addOption('sort', 'None'); 
-		$field->addOption('Native Fields', $options); // optgroup
-
-		$customOptions = array();
-
-		foreach($this->fields as $f) {
-			if(!($f->flags & Field::flagAutojoin)) continue; 
-			$customOptions[$f->name] = $f->name; 
+		if($this->user->hasPermission('page-add', $this->page)) { 
+			$button = $this->modules->get("InputfieldButton"); 
+			$button->attr('id+name', 'AddPageBtn'); 
+			$button->attr('value', "Add New Page Here");
+			$button->attr('href', "../add/?parent_id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
+			$field->append($button);
 		}
 
-		ksort($customOptions); 
-		$field->addOption('Custom Fields', $customOptions); // optgroup
-		$fieldset->append($field); 
+		$wrapper->append($field); 
 
-		$f = $this->modules->get('InputfieldCheckbox');
-		$f->value = 1; 
-		$f->attr('id+name', 'sortfield_reverse'); 
-		$f->label = 'Reverse sort direction?'; 
-		if(substr($this->page->sortfield, 0, 1) == '-') $f->attr('checked', 'checked'); 
+		if($this->user->hasPermission('page-sort', $this->page)) { 		
+			$fieldset = $this->modules->get("InputfieldFieldset"); 
+			$fieldset->collapsed = Inputfield::collapsedYes; 
+			$fieldset->label = "Sort Settings";
+			$fieldset->description = '' . 
+				"If you want all current and future children to automatically sort by a specific field, select the field below " . 
+				"and optionally check the 'reverse' checkbox to make the sort descending. Leave the sort field blank if you want " . 
+				"to be able to drag-n-drop to your own order.";
 
-		$fieldset->append($f); 
-		$wrapper->append($fieldset); 
+			$field = $this->modules->get('InputfieldSelect');
+			$field->name = 'sortfield'; 
+			$field->value = ltrim($this->page->sortfield, '-'); 
+			$field->label = 'Sort field';
+
+			$options = array(
+				'name' => 'name', 
+				'status' => 'status', 
+				'modified' => 'modified', 
+				'created' => 'created', 
+				); 
+
+			$field->addOption('sort', 'None'); 
+			$field->addOption('Native Fields', $options); // optgroup
+
+			$customOptions = array();
+
+			foreach($this->fields as $f) {
+				if(!($f->flags & Field::flagAutojoin)) continue; 
+				$customOptions[$f->name] = $f->name; 
+			}
+
+			ksort($customOptions); 
+			$field->addOption('Custom Fields', $customOptions); // optgroup
+			$fieldset->append($field); 
+
+			$f = $this->modules->get('InputfieldCheckbox');
+			$f->value = 1; 
+			$f->attr('id+name', 'sortfield_reverse'); 
+			$f->label = 'Reverse sort direction?'; 
+			if(substr($this->page->sortfield, 0, 1) == '-') $f->attr('checked', 'checked'); 
+
+			$fieldset->append($f); 
+			$wrapper->append($fieldset); 
+		}
 
 		return $wrapper;
 	}
@@ -306,7 +327,7 @@ class ProcessPageEdit extends Process {
 			}
 
 			// parent
-			if(!$this->page->template->noMove) { 
+			if(!$this->page->template->noMove && $this->user->hasPermission('page-move', $this->page)) { 
 				$field = $this->modules->get('InputfieldPageListSelect');
 				$field->label = "Parent";
 				$field->attr('id+name', 'parent_id'); 
@@ -332,7 +353,7 @@ class ProcessPageEdit extends Process {
 		$wrapper->add($this->buildFormStatus()); 
 
 		// roles
-		$wrapper->add($this->buildFormRoles()); 
+		// $wrapper->add($this->buildFormRoles()); 
 
 		// info
 		$wrapper->add($this->buildFormInfo()); 
@@ -410,22 +431,21 @@ class ProcessPageEdit extends Process {
 		}
 		*/
 
-		if($this->hasPermission("Delete", $this->page)) {
+		if($this->user->hasPermission("page-delete", $this->page)) {
 
 			$field = $this->modules->get('InputfieldCheckbox');
 			$field->attr('id+name', 'delete_page'); 
 			$field->attr('value', $this->page->id); 
 
-			if($this->isTrash) {
+			if($this->isTrash || !$this->useTrash) {
 				$field->label = "Permanently Delete {$this->pageClass}";
-				$field->description = "This will remove the {$this->pageClass} from the trash and permanently delete it."; 
+				$field->description = "This will permanently delete the {$this->pageClass}. Are you sure you want to do this?"; 
 			} else {
 				$field->label = "Delete {$this->pageClass}";
 				$field->description = "This will move this {$this->pageClass} to the Trash.";
 			}
 			$wrapper->append($field); 
 		}
-
 
 		if(count($wrapper->children())) {
 			$field = $this->modules->get('InputfieldSubmit');
@@ -454,7 +474,6 @@ class ProcessPageEdit extends Process {
 	/**
 	 * Build the Settings > Roles fieldset on the Page Edit form 
 	 *
-	 */
 	protected function buildFormRoles() {
 
 		$field = $this->modules->get('InputfieldCheckboxes');
@@ -483,6 +502,7 @@ class ProcessPageEdit extends Process {
 
 		return $field; 
 	}
+	 */
 
 	/**
 	 * Process the input from a submitted Page Edit form, delegating to other methods where appropriate
@@ -501,11 +521,27 @@ class ProcessPageEdit extends Process {
 
 			$name = $inputfield->attr('name'); 
 
-			if($name == 'roles' && $this->processInputRoles($inputfield)) continue; 
-			if($name == 'sortfield' && $this->processInputSortfield($inputfield)) continue;
-			if($name == 'status' && $this->processInputStatus($inputfield)) continue; 
-			if($name == 'template' && $this->processInputTemplate($inputfield)) continue; 
-			if($name == 'parent_id' && $this->page->template->noMove) continue; 
+			// if($name == 'roles' && $this->processInputRoles($inputfield)) continue; 
+			
+			if($this->useChildren && $name == 'sortfield') {
+				if($this->user->hasPermission('page-sort', $this->page)) $this->processInputSortfield($inputfield) ;
+				continue;
+			}
+
+			if($this->useSettings) { 
+
+				if($name == 'template') { 
+					if($this->user->hasPermission('page-template', $this->page)) $this->processInputTemplate($inputfield); 
+					continue; 
+
+				}
+
+				if($name == 'parent_id') {
+					if($this->page->template->noMove || !$this->user->hasPermission('page-move', $this->page)) continue; 
+				}
+
+				if($name == 'status' && $this->processInputStatus($inputfield)) continue; 
+			}
 
 			if(in_array($name, $skipFields)) continue; 
 
@@ -566,6 +602,7 @@ class ProcessPageEdit extends Process {
 	 *
 	 */
 	protected function processInputSortfield(Inputfield $inputfield) {
+		if(!$this->user->hasPermission('page-sort', $this->page)) return true; 
 		$sortfield = $this->sanitizer->name($inputfield->value); 
 		if($sortfield != 'sort' && !empty($_POST['sortfield_reverse'])) $sortfield = '-' . $sortfield; 
 		$this->page->sortfield = $sortfield; 
@@ -575,7 +612,6 @@ class ProcessPageEdit extends Process {
 	/**
 	 * Process the Settings > Roles field input
 	 *
-	 */
 	protected function processInputRoles(Inputfield $inputfield) {
 		
 		foreach($this->page->roles() as $role) {
@@ -594,6 +630,7 @@ class ProcessPageEdit extends Process {
 		return true; 
 
 	}
+	 */
 
 	/**
 	 * Process a delete page request, moving the page to the trash if applicable
@@ -601,7 +638,7 @@ class ProcessPageEdit extends Process {
 	 */
 	protected function deletePage() {
 
-		if(!$this->hasPermission("Delete", $this->page)) {
+		if(!$this->user->hasPermission("page-delete", $this->page)) {
 			$this->error("You don't have access to delete page {$this->id}"); 
 			return false; 
 		}
@@ -611,7 +648,7 @@ class ProcessPageEdit extends Process {
 			return false; 
 		}
 
-		if($this->isTrash) {
+		if($this->isTrash || !$this->useTrash) {
 			$this->session->message("Deleted page: {$this->page->url}"); 
 			$this->pages->delete($this->page, true); 
 			$this->session->redirect("./?id={$this->parent->id}"); 
@@ -640,6 +677,7 @@ class ProcessPageEdit extends Process {
 	 *
 	 */
 	public function setupBreadcrumbs() {
+		if($this->fuel('page')->process != $this->className()) return;
 		$breadcrumbs = new Breadcrumbs();
 		$breadcrumbs->add(new Breadcrumb($this->config->urls->admin . 'page/list/', "Pages"));
 		$page = $this->page ? $this->page : $this->parent; 
@@ -654,6 +692,9 @@ class ProcessPageEdit extends Process {
 	 *
 	 */
 	public function ___executeTemplate() {
+
+		if(!$this->useSettings || !$this->user->hasPermission('page-template', $this->page))
+			throw new WireException("You don't have permission to change the template on this page."); 
 
 		if(!isset($_GET['template'])) throw new WireException("This method requires a 'template' get var"); 
 		$template = $this->templates->get((int) $_GET['template']); 
@@ -702,6 +743,9 @@ class ProcessPageEdit extends Process {
 	 */
 	public function ___executeSaveTemplate($template = null) {
 
+		if(!$this->useSettings || !$this->user->hasPermission('page-template', $this->page))
+			throw new WireException("You don't have permission to change the template on this page."); 
+
 		if(!$this->page->template->noChangeTemplate) { 
 
 			if(!is_null($template) || (isset($_POST['template']) && ($template = $this->templates->get((int) $_POST['template'])))) {
@@ -730,7 +774,6 @@ class ProcessPageEdit extends Process {
 	 */
 	public function ___install() {
 		parent::___install();
-		$this->installPermission('Delete'); 
 	}
 
 	/* Removed, but may add back later 

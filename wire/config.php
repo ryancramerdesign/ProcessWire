@@ -24,8 +24,10 @@ $config->http404PageID = 27;
 $config->usersPageID = 29; 
 $config->rolesPageID = 30; 
 $config->permissionsPageID = 31; 
-$config->guestPageID = 37; 
-$config->superuserPageID = 38; 
+$config->guestUserPageID = 40; 
+$config->superUserPageID = 41; 
+$config->guestUserRolePageID = 37; 
+$config->superUserRolePageID = 38; 
 $config->userTemplateID = 3;
 $config->roleTemplateID = 4;
 $config->permissionTemplateID = 5; 
@@ -47,5 +49,13 @@ $config->dbCharset = 'utf8';
  *
  */
 $config->userAuthHashType = 'sha1';
+
+/**
+ * True only when PW system development is taking place
+ * 
+ * Enables additional options for system setup. Not recommended for end-users of PW. 
+ *
+ */
+$config->systemDevelopment = false; 
 
 

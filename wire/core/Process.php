@@ -19,9 +19,8 @@ abstract class Process extends WireData implements Module {
 	/**
 	 * Per the Module interface, return an array of information about the Process
 	 *
-	 * The 'permission' property is specific to Process instances, and allows this Process to delegate it's permission
-	 * to another Process. Meaning, if the other Process has permission, then it is assumed that this one does too. 
-	 * This is only applicable to instances where you don't wnat to manage this Process's permission separately. 
+	 * The 'permission' property is specific to Process instances, and allows you to specify the name of a permission
+	 * required to execute this process. 
 	 *
  	 */
 	public static function getModuleInfo() {
@@ -31,7 +30,7 @@ abstract class Process extends WireData implements Module {
 			'summary' => '', 	// 1 sentence summary of module
 			'href' => '', 		// URL to more information (optional)
 			'permanent' => true, 	// true if module is permanent and thus not uninstallable
-			'permission' => '', 	// className of module that this module gets it's permission from (optional)
+			'permission' => '', 	// name of permission required to execute this Process (optional)
 			); 
 	}
 
@@ -51,41 +50,7 @@ abstract class Process extends WireData implements Module {
 	 * By default a permission equal to the name of the class is installed, unless overridden with the 'permission' property in getModuleInfo().
 	 *
 	 */
-	public function ___install() { 
-		$permission = $this->className();
-		$info = $this->getModuleInfo();
-		if(!empty($info['permission'])) $permission = $info['permission']; 
-		$this->installPermission($permission); 
-	}
-
-	/**
-	 * Install a new permission for use by this Process
-	 *
-	 * @param string $permissionName Short permission name (without Process class)
-	 *
-	 */
-	public function installPermission($permissionName) {
-		if(strpos($permissionName, $this->className()) !== 0) $permissionName = $this->className . ucfirst($permissionName); 
-		if(!$this->fuel('permissions')->get($permissionName)) $this->fuel('permissions')->addNew($permissionName, $this); 
-	}
-
-	/**
-	 * Check if the current user has the requested permission, specific to this Process
-	 *
-	 * This is meant for checking Process-specific permissions as installed by Process::installPermission().
-	 * It automatically prepends the Process className before the permission so that calling $this->hasPermission("delete") 
-	 * would translate to $user->hasPermission("ProcessNameDelete"). As a result, don't use this method for checking any 
-	 * permissions that weren't expressly installed by by the Process because they will always return false.
-	 *
-	 * @param string $permissionName Short permission name (without Process class) 
-	 * @param HasRole $context Optional context for the permission check (Page object, for example)
-	 * @return bool
-	 *
-	 */
-	public function hasPermission($permissionName, HasRoles $context = null) {
-		if(strpos($permissionName, $this->className()) !== 0) $permissionName = $this->className . ucfirst($permissionName); 
-		return $this->fuel('user')->hasPermission($permissionName, $context); 
-	}
+	public function ___install() { }
 
 	/**
 	 * Uninstall this Process

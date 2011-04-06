@@ -230,6 +230,7 @@ class Pages extends Wire {
 		if(is_object($ids)) $ids = $ids->getArray();
 		$loaded = array();
 
+
 		foreach($ids as $key => $id) {
 			$id = (int) $id; 
 			$ids[$key] = $id; 
@@ -243,23 +244,28 @@ class Pages extends Wire {
 		}
 
 		$idCnt = count($ids); 
-		$fields = is_null($template) ? $this->fuel->fields : $template->fieldgroup; 
+		if(!$idCnt) return $pages->import($loaded); 
+		$idsByTemplate = array();
 
-		if($idCnt) {
-	
-			// Optimization to only load the fields specific to the page, if just one page.
-			// Without it, all autojoin fields have to be attempted, whether they are applicable to the pages loaded or not.
-			// Even though this increases queries, it does result in a slight overall speed and memory improvement.
-			if(is_null($template) && $idCnt == 1) {
-				$result = $this->db->query("SELECT templates_id FROM pages WHERE id=" . (int) reset($ids)); 
-				if($result) { 
-					list($tpl_id) = $result->fetch_row();
-					$template = $this->fuel('templates')->get($tpl_id); 
-					if($template) $fields = $template->fieldgroup; 
-					$result->free();
-				}
+		if(is_null($template)) {
+			$sql = "SELECT id, templates_id FROM pages WHERE ";
+			if($idCnt == 1) $sql .= "id=" . (int) reset($ids); 
+				else $sql .= "id IN(" . implode(",", $ids) . ")";
+			$result = $this->db->query($sql); 
+			if($result && $result->num_rows) while($row = $result->fetch_row()) {
+				list($id, $templates_id) = $row; 
+				if(!isset($idsByTemplate[$templates_id])) $idsByTemplate[$templates_id] = array();
+				$idsByTemplate[$templates_id][] = $id; 
 			}
+			$result->free();
+		} else {
+			$idsByTemplate = array($template->id => $ids); 
+		}
 
+		foreach($idsByTemplate as $templates_id => $ids) { 
+
+			if(!$template || $template->id != $templates_id) $template = $this->fuel('templates')->get($templates_id);
+			$fields = $template->fieldgroup; 
 			$query = new DatabaseQuerySelect();
 
 			$query->select(	
@@ -269,32 +275,23 @@ class Pages extends Wire {
 
 			$query->leftjoin("pages_sortfields ON pages_sortfields.pages_id=pages.id"); 
 			$query->groupby("pages.id"); 
-				
+			
 			foreach($fields as $field) {
-
 				if(!($field->flags & Field::flagAutojoin)) continue; 
-				//if($field->type instanceof FieldtypeMulti) continue; 
 				$table = $field->table; 
-
-				// if($field->type instanceof FieldtypeMulti) {
-				// 	$sel .= "(SELECT COUNT(*) FROM $table WHERE $table.pages_id=pages.id) AS {$field->name}, "; 
-				// } else {
-
 				if(!$field->type->getLoadQueryAutojoin($field, $query)) continue; // autojoin not allowed
-				// $query->select("$table.data AS {$field->name}"); 
 				$query->leftjoin("$table ON $table.pages_id=pages.id"); 
 			}
 
 			if(!is_null($parent_id)) $query->where("pages.parent_id=" . (int) $parent_id); 
-			if(!is_null($template)) $query->where("pages.templates_id={$template->id}"); 
 
+			$query->where("pages.templates_id={$template->id}"); 
 			$query->where("pages.id IN(" . implode(',', $ids) . ") "); 
 			$query->from("pages"); 
 
 			if(!$result = $query->execute()) throw new WireException($this->db->error); 
 
-			$class = 'Page';
-			if($template && $template->pageClass && class_exists($template->pageClass)) $class = $template->pageClass; 
+			$class = ($template->pageClass && class_exists($template->pageClass)) ? $template->pageClass : 'Page';
 
 			while($page = $result->fetch_object($class, array($template))) {
 				$page->instanceID = ++$instanceID; 
@@ -305,11 +302,12 @@ class Pages extends Wire {
 				$loaded[$page->id] = $page; 
 				$this->cache($page); 
 			}
+
+			$template = null;
 			$result->free();
 		}
 
-		$pages->import($loaded); 
-		return $pages; 
+		return $pages->import($loaded); 
 	}
 
 
@@ -328,7 +326,7 @@ class Pages extends Wire {
 		if($page instanceof NullPage) $reason = "Pages of type NullPage are not saveable";
 			else if((!$page->parent || $page->parent instanceof NullPage) && $page->id !== 1) $reason = "It has no parent assigned"; 
 			else if(!$page->template) $reason = "It has no template assigned"; 
-			else if(!trim($page->name)) $reason = "It has an empty 'name' field"; 
+			else if(!strlen(trim($page->name))) $reason = "It has an empty 'name' field"; 
 			else if($page->outputFormatting) $reason = "outputFormatting is on - Call \$page->setOutputFormatting(false) to turn it off"; 
 			else if($page->is(Page::statusCorrupted)) $reason = "It was corrupted when you modified a field with outputFormatting - See Page::setOutputFormatting(false)"; 
 			else $saveable = true; 
@@ -389,7 +387,7 @@ class Pages extends Wire {
 			$field->type->savePageField($page, $field);
 		}
 
-		$this->getFuel('pagesRoles')->savePageRoles($page); 
+		// $this->getFuel('pagesRoles')->savePageRoles($page); 
 		$this->sortfields->save($page); 
 		// $page->removeStatus(Page::statusUnpublished);
 		$page->resetTrackChanges();
@@ -605,7 +603,7 @@ class Pages extends Wire {
 		$this->db->query("DELETE FROM pages_parents WHERE pages_id={$page->id}"); 
 		$this->db->query("DELETE FROM pages WHERE id={$page->id} LIMIT 1"); 
 
-		$this->getFuel('pagesRoles')->deleteRolesFromPage($page); // TODO convert to hook
+		// $this->getFuel('pagesRoles')->deleteRolesFromPage($page); // TODO convert to hook
 		$this->sortfields->delete($page); 
 		$this->uncacheAll();
 		$page->setTrackChanges(false); 

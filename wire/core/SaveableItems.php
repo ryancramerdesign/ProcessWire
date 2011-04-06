@@ -253,5 +253,13 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	public function __isset($key) {
 		return $this->get($key) !== null;	
 	}
+
+	/**
+	 * Enforce no locally-scoped fuel for this class
+	 *
+	 */
+	public function useFuel($useFuel = null) {
+		return false;
+	}
 	
 }

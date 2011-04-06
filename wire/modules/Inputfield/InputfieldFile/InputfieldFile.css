@@ -62,8 +62,13 @@ ul.InputfieldFileList li .InputfieldFileData {
 		width: 99%; 
 	}
 
-input.InputfieldFile,
 .InputfieldFileValidExtensions {
 	display: block;
 }
+
+.InputfieldFileUpload input[type=file] {
+        display: block;
+        margin: 0.25em 0;
+}
+
 

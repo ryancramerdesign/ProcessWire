@@ -91,6 +91,12 @@ class FieldtypePage extends FieldtypeMulti {
          */
         public function ___wakeupValue(Page $page, Field $field, $value) {
 
+		$template = null;
+		$parent_id = null; 
+
+		if($field->template_id) $template = $this->fuel('templates')->get($field->template_id); 
+		if($field->parent_id) $parent_id = $field->parent_id; 
+
 		if($field->derefAsPage) {
 			if(!$value) return false;
 			if($value instanceof Page) return $value; 	
@@ -101,35 +107,22 @@ class FieldtypePage extends FieldtypeMulti {
 			if(empty($value)) return $pageArray; 
 		}
 
+
 		if(!is_array($value)) $value = array($value); 
 
-		// this section replaced the commented one below
 		if($field->derefAsPage) {
 			$pg = false;
-			if(count($value)) $pg = $this->fuel('pages')->get((int) reset($value)); 
+			if(count($value)) $pg = $this->fuel('pages')->getById(array((int) reset($value)), $template, $parent_id); 
 			if($pg && $pg->status >= Page::statusUnpublished) $pg = false;
 			return $pg; 
 		} else {
-			$pageArray = $this->fuel('pages')->getById($value); 
+			$pageArray = $this->fuel('pages')->getById($value, $template, $parent_id); 
 			foreach($pageArray as $pg) {
 				if($pg->status >= Page::statusUnpublished) $pageArray->remove($pg); 
 			}
 			$pageArray->resetTrackChanges(); 
 			return $pageArray; 
 		}
-
-		/*
-		foreach($value as $v) {
-			if($pg = $this->fuel('pages')->get((int) $v)) {
-				if($field->derefAsPage) break;
-				$pageArray->add($pg); 
-			}
-		}
-		if($field->derefAsPage) return $pg;
-		$pageArray->resetTrackChanges(); 
-		$pageArray->setTotal(count($pageArray)); 
-                return $pageArray;  
-		*/
         }
 
         /**
@@ -206,6 +199,7 @@ class FieldtypePage extends FieldtypeMulti {
 	 *
 	 */
 	public function sanitizeValue(Page $page, Field $field, $value) {
+
 
 		if($field->derefAsPage) {
 

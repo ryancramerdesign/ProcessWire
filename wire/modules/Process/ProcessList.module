@@ -25,6 +25,7 @@ class ProcessList extends Process {
 			'summary' => 'Lists the Process assigned to each child page of the current', 
 			'version' => 100, 
 			'permanent' => true, 
+			'permission' => 'page-view',
 			);
 	}
 
@@ -37,13 +38,14 @@ class ProcessList extends Process {
 		$out = "\n<dl class='nav'>";
 		$cnt = 0; 
 		foreach($this->page->children() as $child) {
+			if(!$child->viewable()) continue; 
 			if($child->process) {
-				if(!$this->user->hasPermission($child->process)) continue; 
 				$info = $this->modules->getModuleInfo($child->process); 	
 				$title = htmlspecialchars($info['title']); 
 				$summary = htmlspecialchars($info['summary']);
 			} else {
-				continue;
+				$title = $child->get("title|name"); 
+				$summary = 'No description available';
 			}
 			$out .= "\n\t<dt><a class='label' href='{$child->url}'>$title</a></dt>";
 			if($summary) $out .= "\n\t<dd>$summary</dd>";

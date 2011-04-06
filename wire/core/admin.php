@@ -49,7 +49,7 @@ if($page->process && $page->process != 'ProcessPageView') {
 		if($controller && $controller->isAjax()) {
 			$content = $controller->jsonMessage($e->getMessage(), true); 
 
-		} else if(!$user->isLoggedin()) {
+		} else if($user->isGuest()) {
 			$process = $modules->get("ProcessLogin"); 
 			$content = $process->execute();
 		} else {

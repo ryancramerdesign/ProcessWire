@@ -21,11 +21,8 @@
 class ProcessPageEditImageSelect extends Process {
 
 	protected $maxImageWidth = 835; 
-
 	protected $page = null;
-
 	protected $defaultClass = 'Pageimage';
-
 	protected $file = '';
 
 	protected $optionalClasses = array(
@@ -40,6 +37,7 @@ class ProcessPageEditImageSelect extends Process {
 			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)', 
 			'version' => 100, 
 			'permanent' => true, 
+			'permission' => 'page-edit',
 			);
 	}
 

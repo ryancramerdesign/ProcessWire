@@ -1,0 +1,157 @@
+<?php
+
+/**
+ * ProcessWire Page Type Process
+ *
+ * Manage, edit add pages of a specific type in ProcessWire
+ * 
+ * For more details about how Process modules work, please see: 
+ * /wire/core/Process.php 
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2010 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class ProcessPageType extends Process {
+
+	static public function getModuleInfo() {
+		return array(
+			'title' => 'Page Type',
+			'version' => 100, 
+			'summary' => 'List, Edit and Add pages of a specific type', 
+			'permanent' => true, 
+			); 
+	}
+
+	protected $pages;
+	protected $template = null;
+	protected $showFields = array(
+		'name', 
+		'id',
+		'created',
+		'createdUser',
+		'modifiedUser',
+		'modified',
+		'path',
+		'url',
+		);
+
+	public function init() {
+
+		$this->fuel->breadcrumbs->add(new Breadcrumb('../', $this->page->get('title|name'))); 
+		$this->pages = $this->fuel($this->page->name); 
+		if(is_null($this->pages)) $this->pages = $this->fuel('pages'); 
+		if($this->pages instanceof PagesType) $this->template = $this->pages->getTemplate(); 
+
+		parent::init();
+	}
+
+	public function ___execute() {
+		return $this->executeList();
+	}
+
+	public function ___executeList() {
+		return $this->renderList();
+	}
+
+	public function ___executeEdit() {
+
+		$editor = $this->modules->get("ProcessPageEdit"); 
+		$editor->useTrash = false;
+		$editor->useSettings = false;
+		$editor->useChildren = false;
+		$editor->useView = false;
+		return $editor->execute();
+	}
+
+	public function ___executeAdd() {
+		$editor = $this->modules->get("ProcessPageAdd"); 
+		$editor->template = $this->template; 
+		$editor->parent_id = $this->page->id;
+		return $editor->execute();
+	}
+
+	protected function renderList() {
+
+		$out = '';
+		/*
+		if(!$this->pages->getTemplate()) {
+			$form = $this->getTemplateFilterForm();		
+			$out = $form->render();
+		}
+		*/
+		if($this->template) {
+			foreach($this->template->fields as $field) {
+				$this->showFields[] = $field->name;		
+			}
+		}
+
+		$table = $this->modules->get("MarkupAdminDataTable"); 
+		//$fieldNames = $this->showFields;
+		$table->headerRow(array('name'));
+		$selector = "limit=25"; 
+		$pages = $this->pages->find($selector); 
+
+		foreach($pages as $page) {
+			$row = array($page->name => "edit/?id={$page->id}"); 
+			/*
+			foreach($fieldNames as $name) {
+				if($name == 'name') continue; 
+				$value = $page->get($name); 
+				$row[] = $value;
+			}
+			*/
+			$table->row($row); 
+		}
+
+		$table->action(array('Add New' => 'add/')); 
+
+		if($pages->getTotal() > count($pages)) {
+			$pager = $this->modules->get("MarkupPagerNav"); 
+			$out .= $pager->render($pages);
+		}
+
+		$out .= $table->render();
+
+		return $out; 
+	}
+
+	protected function getTemplateFilterForm() {
+
+		$form = $this->modules->get("InputfieldForm"); 
+		$form->attr('id', 'template_filter_form'); 
+		$form->attr('method', 'get'); 
+		$form->attr('action', './list'); 
+
+		$field = $this->modules->get("InputfieldSelect"); 
+		$field->attr('id+name', 'templates_id'); 
+		$field->label = 'Filter by Template'; 
+		$field->addOption('', 'Show All'); 
+		$field->collapsed = Inputfield::collapsedBlank;
+
+		foreach($this->templates as $template) {
+			$field->addOption($template->id, $template->name); 
+		}
+
+		$filterName = $this->className . 'TemplatesID';
+		if(isset($this->input->get->templates_id)) {
+			$this->session->set($filterName, (int) $this->input->get->templates_id); 
+		}
+
+		$filterValue = (int) $this->session->$filterName; 
+		if($filterValue) $this->template = $this->templates->get($filterValue); 
+
+		$field->attr('value', $filterValue); 
+		$form->append($field); 
+
+		return $form;
+	}
+
+	
+}
+

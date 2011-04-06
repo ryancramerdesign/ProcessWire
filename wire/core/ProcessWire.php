@@ -88,6 +88,7 @@ class ProcessWire extends Wire {
 			$db = new Database($config->dbHost, $config->dbUser, $config->dbPass, $config->dbName, $config->dbPort);
 		}
 
+
 		Wire::setFuel('db', $db); 
 		if($config->dbCharset) $db->set_charset($config->dbCharset); 
 			else if($config->dbSetNamesUTF8) $db->query("SET NAMES 'utf8'");
@@ -104,23 +105,34 @@ class ProcessWire extends Wire {
 		Wire::setFuel('fieldgroups', $fieldgroups); 
 		Wire::setFuel('templates', $templates); 
 
-		Wire::setFuel('_permissions', new PagesType($config->permissionsParentID, $config->permissionsTemplateID)); 
-		Wire::setFuel('_roles', new PagesType($config->rolesParentID, $config->rolesTemplateID)); 
-		Wire::setFuel('_users', new PagesType($config->usersParentID, $config->usersTemplateID)); 
-
+		Wire::setFuel('pages', new Pages(), true);
+		/*
 		Wire::setFuel('permissions', new Permissions()); 
 		Wire::setFuel('roles', new Roles()); 
-		Wire::setFuel('pages', new Pages(), true);
 		Wire::setFuel('pagesRoles', new PagesRoles()); 
 		Wire::setFuel('users', new Users()); 
-		Wire::setFuel('user', Wire::getFuel('users')->getCurrentUser()); 
-		Wire::setFuel('session', new Session()); 
-		Wire::setFuel('input', new WireInput()); 
+		*/
 
 		$fieldtypes->init();
 		$fields->init();
 		$fieldgroups->init();
 		$templates->init();
+
+		if($t = $templates->get('system_permission')) Wire::setFuel('permissions', new PagesType($t, $config->permissionsPageID)); 
+		if($t = $templates->get('system_role')) Wire::setFuel('roles', new PagesType($t, $config->rolesPageID)); 
+		if($t = $templates->get('system_user')) Wire::setFuel('users', new PagesType($t, $config->usersPageID)); 
+		/*
+		Wire::setFuel('permissions', new PagesType($templates->get("system_permission"), $config->permissionsPageID)); 
+		Wire::setFuel('roles', new PagesType($templates->get("system_role"), $config->rolesPageID)); 
+		Wire::setFuel('users', new PagesType($templates->get("system_user"), $config->usersPageID)); 
+		*/
+
+		$session = new Session(); 
+		Wire::setFuel('session', $session); 
+		Wire::setFuel('user', $session->getCurrentUser()); 
+		// Wire::setFuel('user', Wire::getFuel('users')->getCurrentUser()); 
+		Wire::setFuel('input', new WireInput()); 
+
 		$modules->init();
 
 	}

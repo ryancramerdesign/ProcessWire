@@ -92,6 +92,12 @@ abstract class Wire implements TrackChanges {
 	protected $changes = array();
 
 	/**
+	 * Whether this class may use fuel variables in local scope, like $this->item
+	 *
+	 */ 
+	protected $useFuel = true; 
+
+	/**
 	 * Add fuel to all classes descending from Wire
 	 *
 	 * @param string $name 
@@ -138,6 +144,26 @@ abstract class Wire implements TrackChanges {
 	}
 
 	/**
+	 * Should fuel vars be scoped locally to this class instance?
+	 *
+	 * If so, you can do things like $this->fuelItem.
+	 * If not, then you'd have to do $this->fuel('fuelItem').
+	 *
+	 * If you specify a value, it will set the value of useFuel to true or false. 
+	 * If you don't specify a value, the current value will be returned. 
+	 *
+	 * Local fuel scope should be disabled in classes where it might cause any conflict with class vars. 
+	 *
+	 * @param bool $useFuel Optional boolean to turn it on or off. 
+	 * @return bool Current value of $useFuel
+	 *
+	 */
+	public function useFuel($useFuel = null) {
+		if(!is_null($useFuel)) $this->useFuel = $useFuel ? true : false; 
+		return $this->useFuel;
+	}
+
+	/**
 	 * Return this object's class name
 	 *
 	 * Note that it caches the class name in the $className object property to reduce overhead from calls to get_class().
@@ -163,7 +189,7 @@ abstract class Wire implements TrackChanges {
 
 		if($name == 'fuel') return self::getAllFuel();
 		if($name == 'className') return $this->className();
-		if(!is_null(self::$fuel) && !is_null(self::$fuel->$name)) return self::$fuel->$name; 
+		if($this->useFuel()) if(!is_null(self::$fuel) && !is_null(self::$fuel->$name)) return self::$fuel->$name; 
 
 		if(self::isHooked($name)) { // potential property hook
 			$result = $this->runHooks($name, array(), 'property'); 

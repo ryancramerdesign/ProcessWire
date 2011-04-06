@@ -25,6 +25,7 @@ class ProcessUser extends Process {
 			'version' => 100, 
 			'summary' => 'Modify or add users and assign roles to them', 
 			'permanent' => true, 
+			'permission' => 'user-admin',
 			); 
 	}
 
@@ -38,8 +39,7 @@ class ProcessUser extends Process {
 	}
 
 	public function ___executeList() {
-		$users = $this->users;
-		return $this->renderList($users);
+		return $this->renderList();
 	}
 
 	public function ___executeEdit($user = null, $form = null) {
@@ -176,13 +176,13 @@ class ProcessUser extends Process {
 		$roles = array();
 		foreach($this->roles as $role) {
 			// guest and owner roles are asssigned at runtime, so skip them
-			if(in_array($role->id, array(Role::guestRoleID, Role::ownerRoleID))) continue; 
+			// if(in_array($role->id, array(Role::guestRoleID, Role::ownerRoleID))) continue; 
 			$roles[] = $role;
 		}
 		return $roles; 
 	}
 
-	protected function renderList(Users $users) {
+	protected function renderList() {
 
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->attr('id', 'role_filter_form'); 
@@ -195,9 +195,12 @@ class ProcessUser extends Process {
 		$field->addOption('', 'Show All'); 
 		$field->collapsed = Inputfield::collapsedBlank;
 
-		foreach($this->getRoleOptions() as $role) $field->addOption($role->id, $role->name); 
+		foreach($this->getRoleOptions() as $role) {
+			$field->addOption($role->id, $role->name); 
+		}
 
-		if(isset($_GET['role_id'])) $this->session->ProcessUserListRoleID = (int) $_GET['role_id']; 
+		if($this->input->get->role_id) $this->session->ProcessUserListRoleID = (int) $this->input->get->role_id; 
+			else $this->session->ProcessUserListRoleID = 0; 
 		$field->attr('value', (int) $this->session->ProcessUserListRoleID); 
 		$form->append($field); 
 
@@ -207,11 +210,18 @@ class ProcessUser extends Process {
 			'Roles'
 			)); 
 
+		$selector = "limit=25, "; 
+		if($this->session->ProcessUserListRoleID) {
+			$selector .= "roles={$this->session->ProcessUserListRoleID}, ";
+			$form->description = $this->roles->get($this->session->ProcessUserListRoleID)->name;
+		}
+
+		$users = $this->pages->find($selector); 
+
 		foreach($users as $user) {
 
-			if($this->session->ProcessUserListRoleID && !$user->hasRole($this->session->ProcessUserListRoleID)) continue; 
 			$roles = '';
-			foreach($user->roles as $role) $roles .= "$role, ";
+			foreach($user->roles as $role) $roles .= "{$role->name}, ";
 
 			$table->row(array(
 				$user->name => "edit?id={$user->id}", 
@@ -221,11 +231,16 @@ class ProcessUser extends Process {
 
 		$table->action(array('Add User' => 'add')); 
 
-		if($this->session->ProcessUserListRoleID) {
-			$this->setFuel('processHeadline', $this->roles->get($this->session->ProcessUserListRoleID) . " Users"); 
-		} else $this->setFuel('processHeadline', 'All Users'); 
+		$out = $form->render();
 
-		return $form->render() . $table->render();
+		if($users->getTotal() > count($users)) {
+			$pager = $this->modules->get("MarkupPagerNav"); 
+			$out .= $pager->render($users);
+		}
+
+		$out .= $table->render();
+
+		return $out; 
 	}
 	
 }

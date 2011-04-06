@@ -83,15 +83,6 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 */
 	protected function ___load(WireArray $items, $selectors = null) {
 		$items = parent::___load($items, $selectors); 	
-		/*
-		foreach($this->fuel('fields') as $field) {
-			if($field->flags & Field::flagGlobal) {
-				foreach($items as $item) {
-					if(!$item->has($field)) $item->add($field); 
-				}
-			}
-		}
-		*/
 		return $items; 
 	}
 
@@ -176,6 +167,10 @@ class Fieldgroups extends WireSaveableItemsLookup {
 						throw new WireException("Field '$field' may not be removed from fieldgroup '$this' because it is globally required (Field::flagGlobal)"); 
 					}
 
+					if($field->flags & Field::flagPermanent) {
+						throw new WireException("Field '$field' may not be removed from fieldgroup '$this' because it is permanent."); 
+					}
+
 					$pages = $this->fuel('pages')->find("templates_id={$template->id}"); 
 
 					foreach($pages as $page) {
@@ -188,7 +183,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 							$this->error($e->getMessage()); 
 						}
 
-						if($this->config->debug) $this->message("Deleted '{$field->name}' from '{$page->path}'"); 
+						if($this->fuel('config')->debug) $this->message("Deleted '{$field->name}' from '{$page->path}'"); 
 					}
 
 					$item->finishRemove($field); 

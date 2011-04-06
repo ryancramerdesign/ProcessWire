@@ -184,7 +184,7 @@ class InputfieldWrapper extends Inputfield {
 			if(!$ffOut) continue; 
 
 			if(!$inputfield instanceof InputfieldWrapper) {
-				$errors = $inputfield->getErrors();
+				$errors = $inputfield->getErrors(true);
 				foreach($errors as $error) $ffOut = "\n<p class='ui-state-error-text'>" . htmlspecialchars($error) . "</p>" . $ffOut; 
 			} else $errors = array();
 
@@ -194,7 +194,7 @@ class InputfieldWrapper extends Inputfield {
 
 			// The inputfield's classname is always used in it's LI wrapper
 			$ffAttrs = array(
-				'class' => $inputfield->className() . ' Inputfield_' . $inputfield->attr('name') . ' ui-widget', 
+				'class' => $inputfield->className() . ($name = $inputfield->attr('name') ? ' Inputfield_' . $inputfield->attr('name') : '') . ' ui-widget', 
 			);
 
 			if(count($errors)) $ffAttrs['class'] .= " ui-state-error InputfieldStateError"; 
@@ -268,10 +268,10 @@ class InputfieldWrapper extends Inputfield {
 	 * @return array
 	 *
 	 */
-	public function getErrors() {
-		$errors = $this->errors; 
+	public function getErrors($clear = false) {
+		$errors = parent::getErrors($clear); 
 		foreach($this->children as $key => $child) {
-			foreach($child->getErrors() as $e) 
+			foreach($child->getErrors($clear) as $e) 
 				$errors[] = $child->attr('name') . ": $e";
 		}
 		return $errors;

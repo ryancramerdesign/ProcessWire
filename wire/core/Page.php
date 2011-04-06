@@ -17,7 +17,7 @@
  *
  */
 
-class Page extends WireData implements HasRoles {
+class Page extends WireData {
 
 	/*
 	 * The following constant flags are specific to a Page's 'status' field. A page can have 1 or more flags using bitwise logic. 
@@ -32,6 +32,8 @@ class Page extends WireData implements HasRoles {
 	 */
 	const statusOn = 1; 			// base status for all pages
 	const statusLocked = 4; 		// page locked for changes. Not enforced by the core, but checked by Process modules. 
+	const statusSystem = 8; 		// page is for the system and may not be deleted or have it's id changed
+	const statusSystem2 = 16; 		// page is for the system and may not be deleted or have it's id, name, template or parent changed
 	const statusHidden = 1024;		// page is excluded selector methods like $pages->find() and $page->children() unless status is specified, like "status&1"
 	const statusUnpublished = 2048; 	// page is not published and is not renderable. 
 	const statusTrash = 8192; 		// page is in the trash
@@ -87,20 +89,8 @@ class Page extends WireData implements HasRoles {
 	 *
 	 * Dynamically set as needed, refer only to roles() method rather than this directly. 
 	 *
-	 */
 	private $rolesArray = null;
-
-	/**
-	 * Instance of User that originally created this Page
-	 *
 	 */
-	protected $createdUser = null;
-
-	/**
-	 * Instance of User that originally created this Page
-	 *
-	 */
-	protected $modifiedUser = null;
 
 	/**
 	 * Field data that queues while the page is loading. 
@@ -180,6 +170,8 @@ class Page extends WireData implements HasRoles {
 		'numChildren' => 0, 
 		'sort' => 0, 
 		'sortfield' => 'sort', 
+		'modified_users_id', 
+		'created_users_id',
 		); 
 
 	/**
@@ -191,7 +183,7 @@ class Page extends WireData implements HasRoles {
 	public function __construct(Template $tpl = null) {
 
 		if(!is_null($tpl)) $this->template = $tpl;
-		$this->config = $this->fuel('config'); 
+		$this->useFuel(false); // prevent fuel from being in local scope
 		$this->templatePrevious = null;
 		$this->parentPrevious = null;
 	}
@@ -214,7 +206,7 @@ class Page extends WireData implements HasRoles {
 	public function __clone() {
 		$track = $this->trackChanges();
 		$this->setTrackChanges(false); 
-		if($this->rolesArray) $this->rolesArray = clone $this->rolesArray; 
+		//if($this->rolesArray) $this->rolesArray = clone $this->rolesArray; 
 		if($this->filesManager) {
 			$this->filesManager = clone $this->filesManager; 
 			$this->filesManager->setPage($this);
@@ -238,13 +230,24 @@ class Page extends WireData implements HasRoles {
 	 *
 	 */
 	public function set($key, $value) {
+
+		if(($key == 'id' || $key == 'name') && $this->settings[$key] && $value != $this->settings[$key]) {
+			if($key == 'id' && ($this->settings['status'] & Page::statusSystem) || ($this->settings['status'] & Page::statusSystem2)) {
+				throw new WireException("You may not modify the 'id' on page '$this' because it is a system page"); 
+			} else if($key == 'name' && ($this->settings['status'] & Page::statusSystem2)) {
+				throw new WireException("You may not modify the 'name' on page '$this' because it is a system page"); 
+			}
+		}
+
 		switch($key) {
 			case 'id':
 			case 'sort': 
-			case 'status':
 			case 'numChildren': 
 				if($this->settings[$key] !== $value) $this->trackChange($key); 
 				$this->settings[$key] = (int) $value; 
+				break;
+			case 'status':
+				$this->setStatus($value); 
 				break;
 			case 'name':
 				if($this->isLoaded) {
@@ -272,6 +275,8 @@ class Page extends WireData implements HasRoles {
 				break;
 			case 'created_users_id':
 			case 'modified_users_id': 
+				$this->settings[$key] = (int) $value; 
+				break;
 			case 'createdUser':
 			case 'modifiedUser':
 				$this->setUser($value, strpos($key, 'created') === 0 ? 'created' : 'modified'); 
@@ -391,7 +396,6 @@ class Page extends WireData implements HasRoles {
 			case 'siblings':
 			case 'next':
 			case 'prev':
-			case 'roles':
 			case 'url':
 			case 'path':
 			case 'outputFormatting': 
@@ -428,19 +432,21 @@ class Page extends WireData implements HasRoles {
 			case 'modified_users_id': 
 			case 'modifiedUsersID':
 			case 'modifiedUserID':
-				$value = $this->modifiedUser ? $this->modifiedUser->id : null; 
+				$value = $this->settings['created_users_id']; 
 				break;
 			case 'created_users_id':
 			case 'createdUsersID':
 			case 'createdUserID': 
-				$value = $this->createdUser ? $this->createdUser->id : null; 
+				$value = $this->settings['modified_users_id'];
 				break;
 			case 'modifiedUser':
+				if(!$value = $this->fuel('users')->get($this->settings['modified_users_id'])) $value = new NullUser(); 
+				break;
 			case 'createdUser':
-				if(!$value = $this->$key) $value = new NullUser();
+				if(!$value = $this->fuel('users')->get($this->settings['created_users_id'])) $value = new NullUser(); 
 				break;
 			case 'urlSegment':
-				return $this->input->urlSegment1; // deprecated, but kept for backwards compatibility
+				return $this->fuel('input')->urlSegment1; // deprecated, but kept for backwards compatibility
 				break;
 			default:
 				if($key && isset($this->settings[(string)$key])) return $this->settings[$key]; 
@@ -547,6 +553,18 @@ class Page extends WireData implements HasRoles {
 	}
 
 	/**
+	 * Set the 'status' setting, with some built-in protections
+	 *
+	 */
+	protected function setStatus($value) {
+		$value = (int) $value; 
+		if($this->settings['status'] & Page::statusSystem) $value = $value | Page::statusSystem;
+		if($this->settings['status'] & Page::statusSystem2) $value = $value | Page::statusSystem2; 
+		if($this->settings['status'] != $value) $this->trackChange('status');
+		$this->settings['status'] = $value;
+	}
+
+	/**
 	 * Set this Page's Template object
 	 *
 	 */
@@ -554,6 +572,7 @@ class Page extends WireData implements HasRoles {
 		if(!is_object($tpl)) $tpl = $this->fuel('templates')->get($tpl); 
 		if(!$tpl instanceof Template) throw new WireException("Invalid value sent to Page::setTemplate"); 
 		if($this->template && $this->template->id != $tpl->id) {
+			if($this->settings['status'] & Page::statusSystem2) throw new WireException("Template changes are disallowed on this page"); 
 			if(is_null($this->templatePrevious)) $this->templatePrevious = $this->template; 
 			$this->trackChange('template'); 
 		}
@@ -569,7 +588,10 @@ class Page extends WireData implements HasRoles {
 	protected function setParent(Page $parent) {
 		if($this->parent && $this->parent->id == $parent->id) return $this; 
 		$this->trackChange('parent');
-		if($this->parent && $this->parent->id) $this->parentPrevious = $this->parent; 
+		if(($this->parent && $this->parent->id) && $this->parent->id != $parent->id) {
+			if($this->settings['system'] & Page::statusSystem2) throw new WireException("Parent changes are disallowed on this page"); 
+			$this->parentPrevious = $this->parent; 
+		}
 		$this->parent = $parent; 
 		return $this; 
 	}
@@ -588,7 +610,7 @@ class Page extends WireData implements HasRoles {
 		if(!$user instanceof User) $user = $this->fuel('users')->get($user); 
 
 		// if they are setting an invalid user or unknown user, then the Page defaults to the super user
-		if(!$user) $user = $this->fuel('users')->get(User::superUserID); 
+		if(!$user || !$user->id) $user = $this->fuel('users')->get(User::superUserID); 
 
 		if($userType == 'created') $field = 'createdUser';
 			else if($userType == 'modified') $field = 'modifiedUser';
@@ -661,15 +683,8 @@ class Page extends WireData implements HasRoles {
 	 *
 	 */
 	public function navChildren($selector = '') {
+		if($this->fuel('config')->debug) throw new WireException("Deprecated function call: please use children() rather than navChildren()"); 
 		return $this->children($selector); 
-		/*
-		$selector .= ($selector ? ", " : '') . "!status&" . Page::statusHidden;
-		$children = $this->children($selector); 
-		foreach($children as $child) {
-			if(!$child->listable()) $children->remove($child); 
-		}
-		return $children; 
-		*/
 	}
 
 	/**
@@ -869,10 +884,10 @@ class Page extends WireData implements HasRoles {
 		switch($this->template->https) {
 			case -1: $protocol = 'http'; break;
 			case 1: $protocol = 'https'; break;
-			default: $protocol = $this->config->https ? 'https' : 'http'; 
+			default: $protocol = $this->fuel('config')->https ? 'https' : 'http'; 
 		}
 
-		return "$protocol://{$this->config->httpHost}" . $this->url();
+		return "$protocol://" . $this->fuel('config')->httpHost . $this->url();
 	}
 
 	/**
@@ -893,78 +908,6 @@ class Page extends WireData implements HasRoles {
 		return $this->output; 
 	}
 
-
-	/**
-	 * Return the active Roles on this page
-	 *
-	 * @return Roles
-	 *
-	 */
-	public function roles() {
-		if(is_null($this->rolesArray)) $this->rolesArray = $this->fuel('pagesRoles')->findRolesByPage($this); 
-		return $this->rolesArray; 
-	}
-
-	/**
-	 * Add/activate a Role on this page
-	 *
-	 * Don't forget to call page->save();
-	 *
-	 * @param Role $role
-	 * @return this
-	 *
-	 */
-	public function addRole($role) {
-		if(is_string($role) || is_int($role)) $role = $this->fuel('roles')->get($role); 
-		if(!$role) throw new WireException("Unknown or null role added to $this"); 
-		$this->fuel('pagesRoles')->addRoleToPage($role, $this); 
-		$this->roles()->add($role); 
-		return $this; 
-	}
-
-	/**
-	 * Does this Page specifically ADD the given role?
-	 *
-	 */
-	public function addsRole($role) {
-		$roles = $this->fuel('pagesRoles')->findRolesAddedByPage($this); 
-		return $roles->has($role); 
-	}
-
-	/**
-	 * Does this page contain the given role?
-	 *
-	 */
-	public function hasRole($role) {
-		return $this->roles()->has($role); 
-	}
-
-	/**
-	 * Remove a Role from this page
-	 *
-	 * Don't forget to call page->save();
-	 *
-	 * @param Role $role
-	 * @return this
-	 *
-	 */
-	public function removeRole($role) {
-		if(is_string($role) || is_int($role)) $role = $this->fuel('roles')->get($role); 
-		if(!$role) throw new WireException("Page::removeRole was asked to remove a non-existant role"); 
-		if($role->id == Role::superRoleID) throw new WireException("The super role may not be removed from a page"); 
-		$this->fuel('pagesRoles')->removeRoleFromPage($role, $this); 
-		$this->roles()->remove($role); 
-		return $this; 
-	}
-
-	/**
-	 * Does this page specifically Remove the given role?
-	 *
-	 */
-	public function removesRole($role) {
-		$roles = $this->fuel('pagesRoles')->findRolesRemovedByPage($this); 
-		return $roles->has($role); 
-	}
 
 	/**
 	 * Return a Inputfield object that contains all the custom Inputfield objects required to edit this page
@@ -989,7 +932,7 @@ class Page extends WireData implements HasRoles {
 		if(is_int($status)) {
 			return $this->status & $status; 
 
-		} else if(is_string($status) && $this->sanitizer->name($status) == $status) {
+		} else if(is_string($status) && $this->fuel('sanitizer')->name($status) == $status) {
 			// valid template name
 			if($this->template->name == $status) return true; 
 
@@ -1032,6 +975,7 @@ class Page extends WireData implements HasRoles {
 	 */
 	public function removeStatus($statusFlag) {
 		$statusFlag = (int) $statusFlag; 
+		if($statusFlag == Page::statusSystem) throw new WireException("You may not remove the 'system' status from a page"); 
 		$this->status = $this->status & ~$statusFlag; 
 		return $this;
 	}
@@ -1070,7 +1014,7 @@ class Page extends WireData implements HasRoles {
  	 */ 
 	public function isTrash() {
 		if($this->is(self::statusTrash)) return true; 
-		$trashPageID = $this->config->trashPageID; 
+		$trashPageID = $this->fuel('config')->trashPageID; 
 		if($this->id == $trashPageID) return true; 
 		// this is so that isTrash() still returns the correct result, even if the page was just trashed and not yet saved
 		foreach($this->parents() as $parent) if($parent->id == $trashPageID) return true; 
@@ -1206,6 +1150,14 @@ class Page extends WireData implements HasRoles {
 		return parent::__isset($key); 
 	}
 
+	/** REMOVED
+	public function roles() {}
+	public function addRole($role) {}
+	public function addsRole($role) {}
+	public function hasRole($role) {}
+	public function removeRole($role) {}
+	public function removesRole($role) {}
+	 */
 }
 
 /**
@@ -1214,7 +1166,7 @@ class Page extends WireData implements HasRoles {
  */
 class NullPage extends Page { 
 
-	public function roles() { return new RolesArray(); }
+	// public function roles() { return new RolesArray(); }
 	public function path() { return ''; }
 	public function url() { return ''; }
 	public function set($key, $value) { return $this; }

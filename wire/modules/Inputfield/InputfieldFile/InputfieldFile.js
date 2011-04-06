@@ -44,11 +44,17 @@ $(document).ready(function() {
 
 	$(".InputfieldFileUpload input[type=file]").live('change', function() {
 		var $t = $(this); 
-		if($t.next("input.InputfieldFile").size()) return; // not the last one
+		if($t.next("input.InputfieldFile").size() > 0) return; // not the last one
 		var maxFiles = parseInt($t.siblings('.InputfieldFileMaxFiles').val()); 
 		var numFiles = $t.parent('.InputfieldFileUpload').siblings('.InputfieldFileList').children('li').size() + $t.siblings('input[type=file]').size() + 1; 
 		if(maxFiles > 0 && numFiles >= maxFiles) return; 
-		if($t.siblings('input[type=file]:empty').length > 0) return;
+
+		// if there are any empty inputs, then don't add another
+		var numEmpty = 0;
+                $t.siblings('input[type=file]').each(function() { if($(this).val().length < 1) numEmpty++; });
+                if(numEmpty > 0) return;
+
+		// add another input
 		var $i = $t.clone().hide().val(''); 
 		$t.after($i); 	
 		$i.slideDown(); 

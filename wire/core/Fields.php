@@ -66,6 +66,12 @@ class Fields extends WireSaveableItems {
 	protected $fieldsArray = null;
 
 	/**
+	 * Instance of Database
+	 *
+	 */
+	protected $db = null;
+
+	/**
 	 * Field names that are native/permanent to the system and thus treated differently in several instances. 
 	 *
 	 * For example, a Field can't be given one of these names. 
@@ -98,7 +104,7 @@ class Fields extends WireSaveableItems {
 		'child', 
 		'children', 
 		'siblings', 
-		'roles', 
+		//'roles', 
 		'numChildren', 
 		'url', 
 		'path', 
@@ -106,15 +112,20 @@ class Fields extends WireSaveableItems {
 		'rootParent', 
 		'fieldgroup',
 		'fields', 
+		'description',
 		'data',
 		); 
+
+	public function __construct() {
+		$this->fieldsArray = new FieldsArray();
+		$this->db = $this->fuel('db'); 
+	}
 
 	/**
 	 * Construct and load the Fields
 	 *
 	 */
 	public function init() {
-		$this->fieldsArray = new FieldsArray();
 		$this->load($this->fieldsArray); 
 	}
 
@@ -191,6 +202,9 @@ class Fields extends WireSaveableItems {
 
 		// if it's in use by any fieldgroups, then we don't allow it to be deleted
 		if($item->numFieldgroups()) throw new WireException("Unable to delete field '{$item->name}' because it is in use by " . $item->numFieldgroups() . " fieldgroups"); 
+
+		// if it's a system field, it may not be deleted
+		if($item->flags & Field::flagSystem) throw new WireException("Unable to delete field '{$item->name}' because it is a system field."); 
 
 		// delete entries in fieldgroups_fields table. Not really necessary since the above exception prevents this, but here in case that changes. 
 		$this->fuel('fieldgroups')->deleteField($item); 

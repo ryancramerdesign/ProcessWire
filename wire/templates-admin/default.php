@@ -65,15 +65,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 			<p id="logo">ProcessWire</p>
 
 			<ul id='topnav' class='nav'>
-				<?php 
-				foreach($page->rootParent->navChildren() as $p) {
-					if(!$p->viewable()) continue; 
-					if($p->process && !$user->hasPermission($p->process)) continue; 
-					$class = strpos($page->path, $p->path) === 0 ? " class='on'" : '';
-					echo "\n\t\t\t<li><a href='{$p->url}'$class>" . strip_tags($p->get('title|name')) . "</a></li>"; 
-				}
-				?>
-
+				<?php include($config->paths->templatesAdmin . "topnav.inc"); ?>
 			</ul>
 
 			<ul id='breadcrumb' class='nav'>
@@ -114,7 +106,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 			<p>
 
 			<?php if(!$user->isGuest()): ?>
-			<span id='userinfo'><?php echo $user->name?>  <a class='action' href='<?php echo $config->urls->admin?>logout/'>logout</a></span>
+			<span id='userinfo'><?php echo $user->name?>  <a class='action' href='<?php echo $config->urls->admin?>login/logout/'>logout</a></span>
 			<?php endif; ?>
 
 			ProcessWire <?php echo $config->version; ?> &copy; <?php echo date("Y"); ?> by Ryan Cramer 

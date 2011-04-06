@@ -67,9 +67,23 @@ class Pagefile extends WireData {
 	 *
 	 */
 	protected function ___install($filename) {
-		// copy file to proper location
 
 		$basename = $this->pagefiles->cleanBasename($filename, true); 
+		$pathInfo = pathinfo($basename); 
+		$basename = basename($basename, ".$pathInfo[extension]"); 
+
+		// remove any extra dots in the filename
+		$basename = str_replace(".", "_", $basename); 
+		$basenameNoExt = $basename; 
+		$basename .= ".$pathInfo[extension]"; 
+
+		// ensure filename is unique
+		$cnt = 0; 
+		while(file_exists($this->pagefiles->path() . $basename)) {
+			$cnt++;
+			$basename = "$basenameNoExt-$cnt.$pathInfo[extension]";
+		}
+
 		copy($filename, $this->pagefiles->path() . $basename); 
 		if($this->config->chmodFile) chmod($this->pagefiles->path() . $basename, octdec($this->config->chmodFile));
 		parent::set('basename', $basename); 

@@ -29,6 +29,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			'version' => 100,
 			'summary' => 'Edit individual fields that hold page data',
 			'permanent' => true, 
+			'permission' => 'field-admin', 
 			);
 	}
 
@@ -66,12 +67,17 @@ class ProcessField extends Process implements ConfigurableModule {
 		$value = (int) $this->session->ProcessFieldListTemplatesID; 
 		$field->attr('value', $value); 
 		if($value && $template = $this->templates->get($value)) {
-			$field->label .= ": $template";
+			$form->description = "$template";
+			$this->setFuel('processHeadline', 'Fields by Template'); 
+			if($template->flags & Template::flagSystem) {
+				$field->description = "Template '$template' is a system template and may contain fields that are not shown elsewhere.";
+			}
 		} else {
 			$field->collapsed = Inputfield::collapsedYes; 
 		}
-		$form->append($field); 
+		$form->add($field); 
 
+		/*
 		$field = $this->modules->get("InputfieldSelect"); 
 		$field->attr('id+name', 'fieldtype'); 
 		$field->addOption('', 'Show All'); 
@@ -82,11 +88,13 @@ class ProcessField extends Process implements ConfigurableModule {
 		$field->attr('value', $value); 
 		if($value && $fieldtype = $this->fieldtypes->get($value)) {
 			$field->label .= ": {$fieldtype->shortName}";
+			$headlines[] = "Fields of Type: {$fieldtype->shortName}";
 		} else {
 			$field->collapsed = Inputfield::collapsedYes; 
 		}
-		$form->append($field); 
-		
+		$fieldset->add($field); 
+		*/
+
 		return $form->render(); 
 	}
 
@@ -96,7 +104,8 @@ class ProcessField extends Process implements ConfigurableModule {
 	 */
 	public function ___execute() {
 
-		$out = $this->showListFilters || $this->config->advanced ? $this->renderListFilters() : '';
+		//$out = $this->showListFilters || $this->config->advanced ? $this->renderListFilters() : '';
+		$out = $this->renderListFilters();
                 $table = $this->modules->get("MarkupAdminDataTable");
                 $table->headerRow(array('Name', 'Label', 'Type', 'Notes', 'Templates'));
 
@@ -113,13 +122,17 @@ class ProcessField extends Process implements ConfigurableModule {
 				if($field->type != $fieldtype) continue; 
 			}
 
+			if($field->flags & Field::flagAutojoin) $notes[] = 'autojoin';
+			if($field->flags & Field::flagGlobal) $notes[] = 'global';
+			if($field->flags & Field::flagSystem) $notes[] = 'system';
+			if($field->flags & Field::flagPermanent) {
+				if(!$templatesID) continue; 
+				$notes[] = 'permanent';
+			}
+
 			foreach($field->getFieldgroups() as $fieldgroup) {
 				$numTemplates += $fieldgroup->numTemplates();
 			}
-
-			if($field->flags & Field::flagAutojoin) $notes[] = 'autojoin';
-			if($field->flags & Field::flagGlobal) $notes[] = 'global';
-			
 
 			$table->row(array(
 				$field->name => "edit?id={$field->id}",

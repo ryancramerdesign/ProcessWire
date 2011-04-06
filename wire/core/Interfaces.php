@@ -36,6 +36,9 @@ interface Saveable {
 }
 
 
+interface HasRoles {
+	// To be deleted
+}
 
 
 /**
@@ -57,22 +60,6 @@ interface HasLookupItems {
 	public function addLookupItem($item); 
 	
 }
-
-
-/**
- * For classes that contain one or more Roles
- *
- */
-interface HasRoles {
-
-	/**
-	 * Return a RolesArray of all Role objects attached to this item
-	 *
-	 */
-	public function roles(); 
-}
-
-
 
 
 /**

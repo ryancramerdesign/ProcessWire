@@ -19,6 +19,12 @@
 class Template extends WireData implements Saveable {
 
 	/**
+	 * Flag used to indicate the field is a system-only field and thus can't be deleted or have it's name changed
+	 *
+	 */
+	const flagSystem = 8; 
+
+	/**
 	 * The PHP output filename used by this Template
 	 *
 	 */
@@ -56,6 +62,7 @@ class Template extends WireData implements Saveable {
 		'id' => 0, 
 		'name' => '', 
 		'fieldgroups_id' => 0, 
+		'flags' => 0,
 		'cache_time' => 0, 
 		); 
 
@@ -106,6 +113,31 @@ class Template extends WireData implements Saveable {
 		}
 	}
 
+	/**
+	 * Does this template have the given role name or page?
+	 *
+	 * @param string|Page $role Name of role or page object representing it. 
+	 * @return bool
+	 *
+	 */
+	public function hasRole($role) {
+		$roles = $this->getRoles();
+		if(is_string($role)) return $roles->has("name=$role"); 
+		if($role instanceof Page) return $roles->has($role); 
+		return false;
+	}
+
+	/**
+	 * Given an array of page IDs or a PageArray, sets the roles for this template
+	 *
+	 * @param array|PageArray $value
+	 *
+	 */
+	protected function setRoles($value) {
+		if(is_array($value) || $value instanceof PageArray) {
+			$this->_roles = $value;		
+		}
+	}
 
 	/**
 	 * Set a Template property
@@ -117,7 +149,10 @@ class Template extends WireData implements Saveable {
 	 */
 	public function set($key, $value) {
 
-		if(isset($this->settings[$key])) { 
+		if($key == 'flags') { 
+			$this->setFlags($value); 
+
+		} else if(isset($this->settings[$key])) { 
 
 			if($key == 'id') $value = (int) $value; 
 				else if($key == 'name') $value = $this->fuel('sanitizer')->name($value); 
@@ -144,16 +179,20 @@ class Template extends WireData implements Saveable {
 	}
 
 	/**
-	 * Given an array of page IDs or a PageArray, sets the roles for this template
+	 * Set the flags property and prevent the system flag from being removed
 	 *
-	 * @param array|PageArray $value
+	 * @param int $value
 	 *
 	 */
-	protected function setRoles($value) {
-		if(is_array($value) || $value instanceof PageArray) {
-			$this->_roles = $value;		
+	protected function setFlags($value) {
+		$value = (int) $value;
+		if($this->settings['flags'] & Template::flagSystem) {
+			// prevent the system flag from being removed
+			$value = $value | Template::flagSystem; 
 		}
+		$this->settings['flags'] = $value; 
 	}
+
 
 	/**
 	 * Set this template's filename, with or without path

@@ -60,13 +60,13 @@ class Comment extends WireData {
 		$this->set('cite', ''); 
 		$this->set('ip', ''); 
 		$this->set('user_agent', ''); 
-		$this->set('created_users_id', User::guestUserID); 
+		$this->set('created_users_id', $this->config->guestUserID); 
 		$this->prevStatus = self::statusPending; 
 	}
 
 	public function get($key) {
 		if($key == 'user' || $key == 'createdUser') {
-			if(!$this->settings['created_users_id']) return $this->users->get(Users::guestUserID); 
+			if(!$this->settings['created_users_id']) return $this->users->get($this->config->guestUserID); 
 			return $this->users->get($this->settings['created_users_id']); 
 		}
 		return parent::get($key); 

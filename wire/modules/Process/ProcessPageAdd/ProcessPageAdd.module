@@ -21,7 +21,7 @@ class ProcessPageAdd extends Process {
 
 	protected $form; 
 	protected $parent; 
-	protected $parent_id; 
+	protected $parent_id;
 	protected $page; 
 	protected $template; 
 
@@ -31,6 +31,7 @@ class ProcessPageAdd extends Process {
 			'summary' => 'Add a new page', 
 			'version' => 100, 
 			'permanent' => true, 
+			'permission' => 'page-add',
 			);
 	}
 
@@ -39,33 +40,42 @@ class ProcessPageAdd extends Process {
 		return parent::init();
 	}
 
+	public function set($key, $value) {
+		if($key == 'parent_id') $this->parent_id = (int) $value;
+			else if($key == 'template' &&  $value instanceof Template) $this->template = $value;
+			else return parent::set($key, $value); 	
+	}
+
 	public function ___execute() {
 
-		if(isset($_POST['parent_id'])) {
-			$this->parent_id = (int) $_POST['parent_id']; 
-		} else {
-			$this->parent_id = isset($_GET['parent_id']) ? (int) $_GET['parent_id'] : 1; 
+		if(!$this->parent_id) {
+			if(isset($_POST['parent_id'])) {
+				$this->parent_id = (int) $_POST['parent_id']; 
+			} else {
+				$this->parent_id = isset($_GET['parent_id']) ? (int) $_GET['parent_id'] : 1; 
+			}
 		}
 
 		if(!$this->parent_id) throw new Wire404Exception("Invalid Parent ID"); 
-		$this->parent = $this->pages->get($this->parent_id); 
 
+		$this->parent = $this->pages->get($this->parent_id); 
 		if(!$this->parent) throw new Wire404Exception("Unable to load page {$this->id}"); 
+
+		if(!$this->user->hasPermission('page-add', $this->parent))
+			throw new WirePermissionException("You don't have access to add pages here"); 
 
 		if($this->parent->template->childrenTemplatesID < 0) {
 			throw new WireException("The parent template has specified that no children may be added here"); 
 
 		} else if($this->parent->template->childrenTemplatesID > 0) {
 			$this->template = $this->templates->get($this->parent->template->childrenTemplatesID); 	
-
-		} else {
-			$this->template = null;
 		}
 
 		$this->form = $this->buildForm();
 		$this->form->setTrackChanges();
 
 		if(count($_POST)) $this->processInput($this->form); 
+
 		$this->setupBreadcrumbs();
 
 		return $this->form->render();
@@ -149,9 +159,15 @@ class ProcessPageAdd extends Process {
 
 		$nameField = $form->children->get('name'); 	
 		$name = $nameField->value; 
-		if(!$name) {
+
+		if(!strlen($name)) {
 			$this->error("Missing required field 'name'"); 
 			return false; 
+		}
+
+		if($this->parent->child("name=$name")->id) {
+			$form->get('name')->error("The name you selected is already in use. Please select another."); 
+			return false;
 		}
 
 		$template = $this->template; 
@@ -193,6 +209,7 @@ class ProcessPageAdd extends Process {
 	 *
 	 */
 	public function setupBreadcrumbs() {
+		if($this->fuel('page')->process != $this->className()) return;
 		$breadcrumbs = new Breadcrumbs();
 		$breadcrumbs->add(new Breadcrumb($this->config->urls->admin . 'page/list/', "Pages"));
 		foreach($this->parent->parents()->append($this->parent) as $p) {

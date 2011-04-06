@@ -30,6 +30,12 @@ class Session extends Wire implements IteratorAggregate {
 	protected $config; 
 
 	/**
+	 * The current user
+	 *
+	 */
+	protected $user = null;
+
+	/**
 	 * Start the session and set the current User if a session is active
 	 *
 	 * Assumes that you have already performed all session-specific ini_set() and session_name() calls 
@@ -47,11 +53,13 @@ class Session extends Wire implements IteratorAggregate {
 		if($userID = $this->get('_user_id')) {
 			if($this->isValidSession()) {
 				$user = $this->fuel('users')->get($userID); 
-				if($user) $this->fuel('users')->setCurrentUser($user); 
+				if($user->id) $this->user = $user; 
 			} else {
 				$this->logout();
 			}
 		}
+
+		if(!$this->user) $this->user = $this->getGuestUser();
 
 		foreach(array('message', 'error') as $type) {
 			if($items = $this->get($type)) foreach($items as $text) parent::$type($text); 
@@ -60,6 +68,7 @@ class Session extends Wire implements IteratorAggregate {
 
 		$this->setTrackChanges(true);
 	}
+
 
 	/**
 	 * Checks if the session is valid based on a challenge cookie and fingerprint
@@ -100,6 +109,26 @@ class Session extends Wire implements IteratorAggregate {
 	public function get($key) {
 		$className = $this->className();
 		return isset($_SESSION[$className][$key]) ? $_SESSION[$className][$key] : null; 
+	}
+
+	/**
+	 * Returns the current user object
+	 *
+	 * @return User
+	 *
+	 */
+	public function getCurrentUser() {
+		return $this->user; 
+	}
+
+	/**
+	 * Get the 'guest' user account
+	 *
+	 * @return User
+	 *
+	 */
+	public function getGuestUser() {
+		return $this->fuel('users')->get($this->config->guestUserPageID); 
 	}
 
 	/**
@@ -171,14 +200,15 @@ class Session extends Wire implements IteratorAggregate {
 	 *
 	 * @param string $name
 	 * @param string $pass Raw, non-hashed password
-	 * @return bool True if the login was successful, false if not
+	 * @return User Return the $user if the login was successful or null if not. 
 	 *
 	 */
 	public function ___login($name, $pass) {
 
-		if(!$this->allowLogin($name)) return false; 
+		$name = $this->fuel('sanitizer')->username($name); 
+		$user = $this->fuel('users')->get("name=$name"); 
 
-		if($user = $this->fuel('users')->authenticateUser($name, $pass)) {
+		if($user->id && $this->authenticate($user, $pass)) { 
 
 			$this->trackChange('login'); 
 			session_regenerate_id();
@@ -195,24 +225,22 @@ class Session extends Wire implements IteratorAggregate {
 				$this->set('_user_fingerprint', $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_USER_AGENT']); 
 			}
 
-			return true; 
+			return $user; 
 		}
 
-		
-		return false; 
+		return null; 
 	}
 
 	/**
-	 * Return true or false whether login is currently allowed 
+	 * Return true or false whether the user authenticated with the supplied password
 	 *
-	 * This is so that modules can dictate the functionality for this method
-	 *
-	 * @param string $name Username
+	 * @param User $user 
+	 * @param string $pass
 	 * @return bool
 	 *
 	 */
-	public function ___allowLogin($name) {
-		return true; 
+	public function ___authenticate(User $user, $pass) {
+		return $user->pass->matches($pass);
 	}
 
 	/**
@@ -231,7 +259,7 @@ class Session extends Wire implements IteratorAggregate {
 		session_start(); 
 		session_regenerate_id();
 		$_SESSION[$this->className()] = array();
-		$this->fuel('users')->setCurrentUserGuest(); 
+		$this->user = $this->getGuestUser();
 		$this->trackChange('logout'); 
 		return $this; 
 	}

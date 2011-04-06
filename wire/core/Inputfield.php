@@ -82,12 +82,6 @@ abstract class Inputfield extends WireData implements Module {
 	protected $defaultID = '';
 
 	/**
-	 * Array of errors that occurred during processInput, set with error() method and get with getErrors()
-	 *
-	 */
-	protected $errors = array();
-
-	/**
 	 * Construct the Inputfield, setting defaults for all properties
 	 *
 	 */
@@ -497,20 +491,41 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
+	 * Returns a unique key variable used to store errors in the session
+	 *
+	 */
+	public function getErrorSessionKey() {
+		$name = $this->attr('name'); 
+		if(!$name) $name = $this->attr('id'); 
+		$key = "_errors_" . $this->className() . "_$name";
+		return $key;
+	}
+
+	/**
 	 * Override Wire's error method and place errors in the context of their inputfield
 	 *
 	 */
 	public function error($text) {
-		$this->errors[] = $text; 	
+		$key = $this->getErrorSessionKey();
+		$errors = $this->session->$key;			
+		if(!is_array($errors)) $errors = array();
+		$errors[] = $text; 
+		$this->session->set($key, $errors); 
 		return parent::error($text . " ({$this->name})"); 
 	}
 
 	/**
 	 * Return array of strings containing errors that occurred during processInput
 	 *
+	 * @param bool $clear Optionally clear the errors after getting them
+	 *
 	 */
-	public function getErrors() {
-		return $this->errors;
+	public function getErrors($clear = false) {
+		$key = $this->getErrorSessionKey();
+		$errors = $this->session->get($key);
+		if(!is_array($errors)) $errors = array();
+		if($clear) $this->session->remove($key); 
+		return $errors; 
 	}
 
 	/**

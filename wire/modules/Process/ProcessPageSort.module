@@ -31,6 +31,7 @@ class ProcessPageSort extends Process {
 			'summary' => 'Handles page sorting and moving for PageList', 
 			'version' => 100, 
 			'permanent' => true, 
+			'permission' => 'page-sort',
 			); 
 	}
 
@@ -43,7 +44,6 @@ class ProcessPageSort extends Process {
 	 */
 	public function ___install() {
 		parent::___install();
-		$this->installPermission("Move"); 
 	}
 
 	/**
@@ -66,8 +66,6 @@ class ProcessPageSort extends Process {
 		$parentPage = $this->fuel('pages')->get($this->parent_id);
 		$movePage = $this->fuel('pages')->get($this->move_id); 
 
-		// if(is_array($parentPage)) throw new WireException($this->parent_id); 
-
 		$this->movePage($movePage, $parentPage); 
 		$this->sortPages($parentPage); 
 	}	
@@ -83,11 +81,11 @@ class ProcessPageSort extends Process {
 		if($page->template->noMove) 
 			throw new WirePermissionException("Pages with template {$page->template} are not allowed to be moved."); 
 
-		if(!$this->hasPermission('Move', $page)) 
-			throw new WirePermissionException("You do not have permission to move page $page"); 
+		if(!$this->user->hasPermission('page-edit', $page) || !$this->user->hasPermission('page-move', $page)) 
+			throw new WirePermissionException("You do not have permission to move page {$page->path}"); 
 
-		if(!$this->user->hasPermission('ProcessPageAdd', $parent)) 
-			throw new WirePermissionException("You do not have permission to move pages to parent $parent"); 
+		if(!$this->user->hasPermission('page-add', $parent)) 
+			throw new WirePermissionException("You do not have permission to move pages to parent {$parent->path}"); 
 
 		$page->setOutputFormatting(false); 
 		$page->parent = $parent; 
@@ -100,6 +98,9 @@ class ProcessPageSort extends Process {
 	 *
 	 */
 	protected function sortPages(Page $parent) {
+
+		if(!$this->user->hasPermission('page-sort', $parent)) 
+			throw new WirePermissionException("You do not have permission to sort pages with parent {$parent->path}"); 
 
 		if($parent->sortfield && $parent->sortfield != 'sort') {
 			$msg = "Pages with parent '{$parent->path}' are automatically sorted by '{$parent->sortfield}, so it's position in this list may change when you reload.";

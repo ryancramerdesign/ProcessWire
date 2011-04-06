@@ -136,10 +136,11 @@ class WireUpload extends Wire {
 
 		$cnt = 0; 
 		$p = pathinfo($destination); 
+		$basename = basename($p['basename'], ".$p[extension]"); 
 
 		while(file_exists($destination)) {
 			$cnt++; 
-			$filename = str_replace(".$p[extension]", "$cnt.$p[extension]", $p['basename']); 
+			$filename = "$basename-$cnt.$p[extension]"; 
 			$destination = "$p[dirname]/$filename"; 
 		}
 	
@@ -153,9 +154,15 @@ class WireUpload extends Wire {
                 $value = preg_replace('/__+/', '_', $value);
                 $value = trim($value, "_");
 
+		$p = pathinfo($value);
+		$extension = $p['extension'];
+		$basename = basename($p['basename'], ".$extension"); 
+		// replace any dots in the basename with underscores
+		$basename = trim(str_replace(".", "_", $basename), "_"); 
+		$value = "$basename.$extension";
+
                 if(count($extensions)) {
-                        $pathInfo = pathinfo($value);
-                        if(!in_array(strtolower($pathInfo['extension']), $extensions)) $value = false;
+                        if(!in_array($extension, $extensions)) $value = false;
                 }
 
                 return $value;

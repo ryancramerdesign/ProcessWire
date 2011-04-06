@@ -4,7 +4,7 @@
  * ProcessWire PagesType
  *
  * Provides an interface to the Pages class but specific to 
- * a given page type, with predefined parent and template. 
+ * a given page class/type, with predefined parent and template. 
  *
  * ProcessWire 2.x 
  * Copyright (C) 2011 by Ryan Cramer 
@@ -15,18 +15,54 @@
  *
  */
 
-class PagesType extends Wire {
+class PagesType extends Wire implements IteratorAggregate {
 
-	protected $templatesID;
-	protected $parentID; 
+	/**
+	 * Template defined for use in this PagesType
+	 *
+	 */
+	protected $template;
 
-	public function __construct($parentID, $templatesID) {
-		$this->templatesID = (int) $templatesID;
-		$this->parentID = (int) $parentID; 
+	/**
+	 * ID of the parent page used by this PagesType
+	 *
+	 */
+	protected $parent_id; 
+
+	/**
+	 * Construct this PagesType manager for the given parent and template
+	 *
+	 * @param int $parent_id
+	 * @param Template $template
+	 *
+	 */
+	public function __construct(Template $template, $parent_id) {
+		$this->template = $template; 
+		$this->parent_id = (int) $parent_id; 
 	}
 
+	/**
+	 * Convert the given selector string to qualify for the proper page type
+	 *
+	 * @param string $selectorString
+	 * @return string
+	 *
+	 */
 	protected function selectorString($selectorString) {
-		return "$selectorString, parent_id={$this->parentID}, templates_id={$this->templateID}";
+		if(ctype_digit("$selectorString")) $selectorString = "id=$selectorString"; 
+		$selectorString = "$selectorString, parent_id={$this->parent_id}, template={$this->template->name}";
+		return $selectorString; 
+	}
+
+	/**
+	 * Is the given page a valid type for this class?
+	 *
+	 * @param Page $page
+	 * @return bool
+	 *
+	 */
+	public function isValid(Page $page) {
+		return ($page->template->id == $this->template->id); 
 	}
 
 	/**
@@ -51,6 +87,17 @@ class PagesType extends Wire {
 	 * @return Page|null
 	 */
 	public function get($selectorString) {
+
+		if(ctype_digit("$selectorString")) {
+			$pages = $this->pages->getById(array((int) $selectorString), $this->template, $this->parent_id); 
+			if(count($pages)) return $pages->first();
+				else return new NullPage();
+
+		} else if(strpos($selectorString, '=') === false) { 
+			$s = $this->sanitizer->name($selectorString); 
+			if($s === $selectorString) $selectorString = "name=$s"; 	
+		}
+			
 		return $this->pages->get($this->selectorString($selectorString)); 
 	}
 
@@ -68,9 +115,7 @@ class PagesType extends Wire {
 	 *
 	 */
 	public function ___save(Page $page) {
-		if($page->templates_id != $this->templatesID) {
-			throw new WireException("'Unable to save pages of type '{$page->template->name}'"); 
-		}
+		if(!$this->isValid($page)) throw new WireException("'Unable to save pages of type '{$page->template->name}' ({$this->template->id} != {$page->template->id})"); 
 		return $this->pages->save($page);
 	}
 	
@@ -88,9 +133,51 @@ class PagesType extends Wire {
 	 *
 	 */
 	public function ___delete(Page $page, $recursive = false) {
-		if($page->templates_id != $this->templatesID) {
-			throw new WireException("Unable to delete pages of type '{$page->template->name}'"); 
-		}
+		if(!$this->isValid($page)) throw new WireException("Unable to delete pages of type '{$page->template->name}'"); 
 		return $this->pages->delete($page, $recursive);
 	}
+
+	/**
+	 * Adds a new page with the given $name and returns the Page
+	 *
+	 * If they page has any other fields, they will not be populated, only the name will.
+	 * Returns a NullPage if error, such as a page of this type already existing with the same name.
+	 *
+	 * @param string $name
+	 * @return Page|NullPage
+	 *
+	 */
+	public function ___add($name) {
+		
+		$className = $this->template->pageClass ? $this->template->pageClass : 'Page';
+
+		$page = new $className(); 
+		$page->template = $this->template; 
+		$page->parent_id = $this->parent_id; 
+		$page->name = $name; 
+
+		try {
+			$this->save($page); 
+
+		} catch(Exception $e) {
+			$page = new NullPage();
+		}
+
+		return $page; 
+	}
+
+	/**
+	 * Make it possible to iterate all pages of this type per the IteratorAggregate interface.
+	 *
+	 * Only recommended for page types that don't contain a lot of pages. 
+	 *
+	 */
+	public function getIterator() {
+		return $this->find("id>0, sort=name"); 
+	}	
+
+	public function getTemplate() {
+		return $this->template; 
+	}
+
 }

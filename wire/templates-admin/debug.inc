@@ -47,19 +47,19 @@
 		</div>
 
 		<div class="container">
-			<h3><a href='#'>User</a></h3>
+			<h3><a href='#'>User (<?php echo $user->name;?>)</a></h3>
 			<div>
 			<h4>Current User's Roles</h4>
 			<ol>
-			<?php foreach($user->roles() as $role) echo "\n<li>$role</li>"; ?>
+			<?php foreach($user->roles as $role) echo "\n<li>{$role->name}</li>"; ?>
 			</ol>
 			<h4>Current User's Permissions</h4>
 			<ol>
-			<?php foreach($user->getPermissions() as $permission) echo "\n<li>$permission</li>"; ?>
+			<?php foreach($user->getPermissions() as $permission) echo "\n<li>{$permission->name}</li>"; ?>
 			</ol>
 			<h4>Current User's Permissions on this page</h4>
 			<ol>
-			<?php foreach($user->getPermissions($page) as $permission) echo "\n<li>$permission</li>"; ?>
+			<?php foreach($user->getPermissions($page) as $permission) echo "\n<li>{$permission->name}</li>"; ?>
 			</ol>
 			</div>
 		</div>

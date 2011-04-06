@@ -170,6 +170,54 @@
 	}
 
 
+/***********************************************************************************************
+ * Theme Specific Pagination Markup
+ *
+ */
+
+.MarkupPagerNav {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        margin: 1em 0;
+}
+        .MarkupPagerNav li {
+                padding: 0;
+                margin: 0;
+                list-style: none;
+                display: inline;
+                padding: 6px 0;
+                background: none;
+        }
+
+                .MarkupPagerNav li a {
+                        padding: 4px 9px;
+                        margin: 0;
+                        text-decoration: none;
+                        border: none;
+                        background: #2f4248;
+                        color: #fff;
+                        font-weight: bold;
+                        font-size: 11px;
+                        text-transform: uppercase;
+			opacity: 0.8; 
+                }
+
+                .MarkupPagerNav li a:hover {
+			opacity: 1.0; 
+		}
+
+                .MarkupPagerNav li.MarkupPagerNavOn a {
+			opacity: 1.0;
+                        color: #fff;
+                        background: #db1174;
+                }
+
+                .MarkupPagerNav li.MarkupPagerNavSeparator {
+                        border: none;
+                }
+
+
 /****************************************************************************************
  * Theme specific PageList overrides
  *

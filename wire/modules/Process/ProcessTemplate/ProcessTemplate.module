@@ -30,6 +30,7 @@ class ProcessTemplate extends Process {
 			'version' => 100,
 			'summary' => 'List and edit the templates that control page output',
 			'permanent' => true, 
+			'permission' => 'template-admin', 
 			);
 	}
 

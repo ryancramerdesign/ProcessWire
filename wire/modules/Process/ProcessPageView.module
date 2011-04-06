@@ -37,6 +37,7 @@ class ProcessPageView extends Process {
 			'summary' => 'All page views are routed through this Process', 
 			'version' => 100, 
 			'permanent' => true, 
+			'permission' => 'page-view',
 			);
 	}
 
@@ -105,6 +106,7 @@ class ProcessPageView extends Process {
 			}
 			return $page; 
 		}
+
 
 		$urlSegments = array();
 		$maxSegments = 4; 

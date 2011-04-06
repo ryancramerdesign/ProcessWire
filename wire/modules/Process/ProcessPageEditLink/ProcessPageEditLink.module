@@ -28,6 +28,7 @@ class ProcessPageEditLink extends Process {
 			'summary' => 'Provides a link capability as used by some Fieldtype modules (like TinyMCE)', 
 			'version' => 100, 
 			'permanent' => true, 
+			'permission' => 'page-edit',
 			);
 	}
 

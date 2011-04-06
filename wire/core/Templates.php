@@ -71,6 +71,7 @@ class Templates extends WireSaveableItems {
 	 */
 	public function __construct(Fieldgroups $fieldgroups, $path) {
 		$this->fieldgroups = $fieldgroups; 
+		$this->templatesArray = new TemplatesArray();
 		$this->path = $path;
 	}
 
@@ -79,7 +80,6 @@ class Templates extends WireSaveableItems {
 	 *
 	 */
 	public function init() {
-		$this->templatesArray = new TemplatesArray();
 		$this->load($this->templatesArray); 
 	}
 
@@ -167,6 +167,7 @@ class Templates extends WireSaveableItems {
 	 *
 	 */
 	public function ___delete(Saveable $item) {
+		if($item->flags & Template::flagSystem) throw new WireException("Can't delete template '{$item->name}' because it is a system template."); 
 		$cnt = $item->getNumPages();
 		if($cnt > 0) throw new WireException("Can't delete template '{$item->name}' because it is used by $cnt pages.");  
 		return parent::___delete($item);

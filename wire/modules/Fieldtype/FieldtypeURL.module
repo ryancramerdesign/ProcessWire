@@ -39,12 +39,29 @@ class FieldtypeURL extends FieldtypeText {
 	 *
 	 */
 	public function sanitizeValue(Page $page, Field $field, $value) {
-		return $this->sanitizer->url($value); 
+		return $this->sanitizer->url($value, $field->noRelative ? false : true); 
 	}
 
 	public function getInputfield(Page $page, Field $field) {
-		$inputField = $this->modules->get('InputfieldURL'); 
-		return $inputField; 
+		$inputfield = $this->modules->get('InputfieldURL'); 
+		$inputfield->set('noRelative', $field->noRelative); 
+		return $inputfield; 
 	}
+
+	public function ___getConfigInputfields(Field $field) {
+		$inputfields = parent::___getConfigInputfields($field);
+
+		$f = $this->modules->get('InputfieldRadios');
+		$f->attr('name', 'noRelative');
+		$f->label = 'Allow Relative URLs?';
+		$f->addOption(0, 'Yes'); 
+		$f->addOption(1, 'No'); 
+		$f->attr('value', $field->noRelative ? 1 : 0);
+		$f->description = 'Local/relative URLs are those without scheme and domain.';
+		$inputfields->add($f);
+
+		return $inputfields;
+	}
+
 }
 

@@ -128,7 +128,7 @@ class ProcessController extends Wire {
 			else return null; 
 
 		// verify that there is adequate permission to execute the Process
-		$permissionName = $processName; 
+		$permissionName = '';
 		$info = $this->modules->getModuleInfo($processName); 
 		if(!empty($info['permission'])) $permissionName = $info['permission']; 
 		$this->hasPermission($permissionName, true); // throws exception if no permission
@@ -144,14 +144,17 @@ class ProcessController extends Wire {
 	/**
 	 * Does the current user have permission to execute the given process name?
 	 *
+	 * Note: an empty permission name is accessible only by the superuser
+	 *
 	 * @param string $processName
 	 * @param bool $throw Whether to throw an Exception if the user does not have permission
 	 * @return bool
 	 *
 	 */
-	protected function hasPermission($processName, $throw = true) {
-		if($this->user->hasPermission($processName)) return true; 
-		if($throw) throw new ProcessControllerPermissionException("You don't have permission to execute this Process: $processName"); 
+	protected function hasPermission($permissionName, $throw = true) {
+		if($this->user->isSuperuser()) return true; 
+		if($permissionName && $this->user->hasPermission($permissionName)) return true; 
+		if($throw) throw new ProcessControllerPermissionException("You don't have $permissionName permission"); 
 		return false; 
 	}
 

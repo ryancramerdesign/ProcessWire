@@ -27,6 +27,8 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			'title' => 'Page Search', 
 			'summary' => 'Provices a page search engine for admin use.', 
 			'version' => 100, 
+			'permanent' => true, 
+			'permission' => 'page-edit',
 			);
 	}
 
@@ -39,8 +41,14 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		$values = explode(' ', $q); 
 		$selector = '';
 
+		$searchFields = $this->searchFields;
+		if(is_string($searchFields)) $searchFields = explode(' ', $searchFields); 
+
 		foreach($values as $value) { 
-			foreach($this->searchFields as $fieldName) $selector .= "$fieldName|";
+			foreach($searchFields as $fieldName) {
+				$fieldName = preg_replace('/[^-_a-zA-Z.0-9]/', '', $fieldName); 
+				$selector .= "$fieldName|";
+			}
 			$selector = rtrim($selector, '|') . "*=$value,";
 		}
 
@@ -96,12 +104,23 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 		$inputfields = new InputfieldWrapper();
 
+		/*
 		$inputfield = Wire::getFuel('modules')->get("InputfieldAsmSelect"); 
 		$inputfield->attr('name', 'searchFields'); 
 		foreach(Wire::getFuel('fields') as $f) $inputfield->addOption($f->name); 
 		$inputfield->attr('value', isset($data['searchFields']) ? $data['searchFields'] : array()); 
 		$inputfield->label = "Fields to search"; 
 		$inputfield->description = "You should select all fields that support fulltext searching, but exclude any that aren't useful to search. ";
+		$inputfields->append($inputfield); 
+		*/
+
+		$inputfield = Wire::getFuel('modules')->get("InputfieldText"); 
+		$inputfield->attr('name', 'searchFields'); 
+		if(!isset($data['searchFields'])) $data['searchFields'] = 'title body';
+		if(is_array($data['searchFields'])) $data['searchFields'] = implode(' ', $data['searchFields']); 
+		$inputfield->attr('value', $data['searchFields']); 
+		$inputfield->label = "Fields to search"; 
+		$inputfield->description = "Enter the names for one or more text-based fields that you want to search, separating each by a space. ";
 		$inputfields->append($inputfield); 
 
 		$inputfield = Wire::getFuel('modules')->get("InputfieldText"); 

@@ -25,6 +25,7 @@ class ProcessModule extends Process {
 			'summary' => 'List, edit or install/uninstall modules', 
 			'version' => 100, 
 			'permanent' => true, 
+			'permission' => 'module-admin', 
 			);
 	}
 
@@ -241,10 +242,8 @@ class ProcessModule extends Process {
 		$table->row(array('ID', $moduleId)); 
 		$table->row(array('Version', $this->formatVersion($moduleInfo['version']))); 
 		$table->row(array('Summary', $moduleInfo['summary'])); 
-		if(!empty($moduleInfo['permission'])) $table->row(array('Permission', $moduleInfo['permission'] . " (delegated)")); 
-		foreach($this->permissions->find("modules_id=$moduleId") as $permission) $table->row(array('Permission', $permission)); 
+		if(!empty($moduleInfo['permission'])) $table->row(array('Required Permission', $moduleInfo['permission'])); 
 		if(!empty($moduleInfo['href'])) $table->row(array('More Information', "<a class='label' href='$moduleInfo[href]'>$moduleInfo[href]</a>")); 
-
 
 		$field = $this->modules->get("InputfieldMarkup"); 
 		$field->attr('value', $table->render()); 

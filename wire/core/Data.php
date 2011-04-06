@@ -82,7 +82,7 @@ class WireData extends Wire implements IteratorAggregate {
 	 * Provides direct reference access to retrieve values in the $data array
 	 *
 	 * If the given $key is an object, it will cast it to a string. 
-	 * If the given key is a strain with "|" pipe characters in it, it will try all till it finds a value. 
+	 * If the given key is a string with "|" pipe characters in it, it will try all till it finds a value. 
 	 *
  	 * @param string|object $key
 	 * @return mixed|null Returns null if the key was not found. 
@@ -165,6 +165,6 @@ class WireData extends Wire implements IteratorAggregate {
 	public function __unset($key) {
 		$this->remove($key); 
 	}
-	
+
 }
 

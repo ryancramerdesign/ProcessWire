@@ -29,6 +29,18 @@ class Field extends WireData implements Saveable {
 	const flagGlobal = 4; 		
 
 	/**
+	 * Field is a system field and may not be deleted, have it's name changed, or be converted to non-system
+	 *
+	 */
+	const flagSystem = 8; 
+
+	/**
+	 * Field is permanent in any fieldgroups/templates where it exists - it may not be removed from them 
+	 *
+	 */
+	const flagPermanent = 16; 
+
+	/**
 	 * Permanent/native settings to an individual Field
 	 *
  	 * id: Numeric ID corresponding with id in the fields table.
@@ -42,8 +54,8 @@ class Field extends WireData implements Saveable {
 	protected $settings = array(
 		'id' => 0, 
 		'type' => null, 
-		'name' => '', 
 		'flags' => 0, 
+		'name' => '', 
 		'label' => '', 
 		); 
 
@@ -74,7 +86,10 @@ class Field extends WireData implements Saveable {
 			} else if($key == 'prevFieldtype') {
 				$this->prevFieldtype = $value;
 				return $this; 
-			} else if(in_array($key, array('id', 'flags'))) {
+			} else if($key == 'flags') {
+				$this->setFlags($value); 
+				return $this; 
+			} else if($key == 'id') {
 				$value = (int) $value; 
 			}
 
@@ -82,6 +97,18 @@ class Field extends WireData implements Saveable {
 			else return parent::set($key, $value); 
 
 		return $this; 
+	}
+
+	/**
+	 * Set the flags field, ensuring a system flag remains set
+	 *
+	 */
+	protected function setFlags($value) {
+		// ensure that the system flag stays set
+		$value = (int) $value; 
+		if($this->settings['flags'] & Field::flagSystem) $value = $value | Field::flagSystem;
+		if($this->settings['flags'] & Field::flagPermanent) $value = $value | Field::flagPermanent; 
+		$this->settings['flags'] = $value;
 	}
 
 	/**
@@ -128,6 +155,9 @@ class Field extends WireData implements Saveable {
 			throw new WireException("Field name '$name' may not have double underscores because this usage is reserved by the core"); 
 
 		if($this->settings['name'] != $name) {
+			if($this->settings['name'] && ($this->settings['flags'] & Field::flagSystem)) {
+				throw new WireException("You may not change the name of field '{$this->settings['name']}' because it is a system field."); 
+			}
 			$this->trackChange('name'); 
 			if($this->settings['name']) $this->prevTable = $this->getTable(); // so that Fields can perform a table rename
 		}

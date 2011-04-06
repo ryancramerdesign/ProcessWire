@@ -72,10 +72,10 @@ var tinymceSelection = null;
 								else anchorText = selection.getContent();
 
 							if(target.length > 0) target = ' target="' + target + '"';
-
-							html = '<a href="' + url + '"' + target + '>' + anchorText + '</a>';
-
-							tinyMCE.execCommand('mceInsertContent', false, html);
+							if(url.length) { 
+								html = '<a href="' + url + '"' + target + '>' + anchorText + '</a>';
+								tinyMCE.execCommand('mceInsertContent', false, html);
+							}
 							$iframe.dialog("close"); 
 
 						},
