@@ -6,6 +6,7 @@ table.AdminDataList th,
 table.AdminDataList td,
 ul.AdminDataList li {
 	border-bottom: 1px dotted #ccc;
+	vertical-align: top; 
 	padding: 3px 0;
 	margin: 0;
 }

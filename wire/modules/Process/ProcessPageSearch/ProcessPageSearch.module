@@ -42,6 +42,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		$selector = '';
 
 		$searchFields = $this->searchFields;
+		$searchFields .= " headline";
 		if(is_string($searchFields)) $searchFields = explode(' ', $searchFields); 
 
 		foreach($values as $value) { 
@@ -49,7 +50,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 				$fieldName = preg_replace('/[^-_a-zA-Z.0-9]/', '', $fieldName); 
 				$selector .= "$fieldName|";
 			}
-			$selector = rtrim($selector, '|') . "*=$value,";
+			$selector = rtrim($selector, '|') . "~=$value,";
 		}
 
 		$selector .= "limit=50";

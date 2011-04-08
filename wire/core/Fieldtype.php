@@ -147,6 +147,30 @@ abstract class Fieldtype extends WireData implements Module {
 			else $f->collapsed = true; 
 		$inputfields->append($f);
 
+		if($this->config->advanced) {
+			$f = $this->modules->get('InputfieldCheckbox');
+			$f->attr('name', 'system');
+			$f->label = 'System';
+			$f->description =
+				"If checked, this field is considered a system field and is not renameable or deleteable. " . 
+				"System fields may not be undone using ProcessWire's API.";
+			$f->attr('value', 1);
+			if($field->flags & Field::flagSystem) $f->attr('checked', 'checked');
+				else $f->collapsed = true; 
+			$inputfields->append($f);
+
+			$f = $this->modules->get('InputfieldCheckbox');
+			$f->attr('name', 'permanent');
+			$f->label = 'Permanent';
+			$f->description =
+				"If checked, this field is considered a permanent field and it can't be removed from any of the " . 
+				"system templates/fieldgroups to which it is attached. This flag may not be undone using ProcessWire's API.";
+			$f->attr('value', 1);
+			if($field->flags & Field::flagPermanent) $f->attr('checked', 'checked');
+				else $f->collapsed = true; 
+			$inputfields->append($f);
+		}
+
                 return $inputfields;
 	}
 

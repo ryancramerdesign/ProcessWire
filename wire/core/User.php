@@ -29,6 +29,20 @@ class User extends Page {
 	}
 
 	/**
+	 * Does this user have the given role?
+	 *
+	 * @param string|Role|int
+	 * @return bool
+	 *
+	 */
+	public function hasRole($role) {
+		if(is_object($role) && $role instanceof Role) return $this->roles->has($role); 
+		if(ctype_digit("$role")) return $this->roles->has("id=$role"); 
+		if(is_string($role)) return $this->roles->has("name=$role"); 
+		return false;
+	}
+
+	/**
 	 * Does this user have the given permission name?
 	 *
  	 * This only indicates that the user has the permission, and not where they have the permission.
@@ -69,6 +83,7 @@ class User extends Page {
 	 *
 	 */
 	public function getPermissions(Page $page = null) {
+		if($this->isSuperuser()) return $this->fuel('permissions'); 
 		$permissions = new PageArray();
 		foreach($this->roles as $key => $role) {
 			if($page && !$page->template->hasRole($role)) continue; 
@@ -88,8 +103,7 @@ class User extends Page {
 	}
 
 	public function isLoggedin() {
-		return false; 
-		return $this->id && $this->fuel('session')->getCurrentUser()->id === $this->id; 
+		return !$this->isGuest();
 	}
 
 }

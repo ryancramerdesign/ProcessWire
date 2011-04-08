@@ -59,18 +59,50 @@ class ProcessTemplate extends Process {
 	 *
 	 */
 	public function ___execute() {
+
+		if(isset($_GET['system'])) $this->session->ProcessTemplateListSystem = (int) $this->input->get->system; 
+		$system = (int) $this->session->ProcessTemplateListSystem; 
+
+		$form = $this->modules->get("InputfieldForm"); 
+		$form->id = 'filters';
+		$form->method = 'get';
+		$form->action = './';
+
+		$fieldset = $this->modules->get("InputfieldFieldset"); 
+		$fieldset->label = "Filters";
+		$fieldset->collapsed = Inputfield::collapsedYes; 
+		$form->add($fieldset);
+		
+		$field = $this->modules->get("InputfieldRadios"); 
+		$field->label = "Show system templates?";
+		$field->description = "By default, system/internal templates are not shown. Click 'Yes' to have them included in the templates list below.";
+		$field->attr('id+name', 'system'); 
+		$field->addOption(1, 'Yes'); 
+		$field->addOption(0, 'No'); 
+		$field->attr('value', $system); 
+		$fieldset->add($field); 
+
 		$table = $this->modules->get("MarkupAdminDataTable"); 
-		$table->headerRow(array('Name', 'Pages', 'Fields')); 
+		$table->headerRow(array('Name', 'Pages', 'Fields', '')); 
+
 		foreach($this->fuel('templates') as $template) {
+			$notes = '';
+			if($template->flags & Template::flagSystem) {
+				if(!$system) continue; 
+				$fieldset->collapsed = Inputfield::collapsedNo;
+				$notes .= "system ";
+			}
 			$table->row(array(
 				$template->name => "edit?id={$template->id}", 
 				$template->getNumPages(), 
-				count($template->fieldgroup) 
+				count($template->fieldgroup),
+				$notes
 				)); 
 		}
 		$table->action(array('Add New Template' => './add')); 
 
-		return $table->render();
+		$out = $form->render() . $table->render();
+		return $out;
 	}	
 
 	/**
@@ -254,6 +286,7 @@ class ProcessTemplate extends Process {
 
 		$form->append($this->buildEditFormAccess($template)); 
 		$form->append($this->buildEditFormAdvanced($template)); 
+		$form->append($this->buildEditFormImport($template));
 
 		// --------------------
 			
@@ -309,13 +342,19 @@ class ProcessTemplate extends Process {
 		return $select; 
 	}
 
-	protected function buildEditFormImport() {
+	protected function buildEditFormImport(Template $template) {
+
+		$form = $this->modules->get("InputfieldFieldset"); 
+		$form->label = "Import";
+		$form->collapsed = Inputfield::collapsedYes; 
 
 		$field = $this->modules->get("InputfieldSelect"); 
 		$field->label = 'Duplicate fields used by another template'; 
-		$field->description = "If you want to duplicate fields used by another template, select it here. ";
+		$field->description = 
+			"If you want to duplicate fields used by another template, select it here. " . 
+			"Fields already present in this template will be left alone.";
  
-		$field->collapsed = Inputfield::collapsedYes; 
+		$field->collapsed = Inputfield::collapsedNo; 
 		$field->attr('id+name', 'import_fieldgroup'); 
 		$field->addOption(''); 
 		$field->attr('value', ''); 
@@ -325,14 +364,16 @@ class ProcessTemplate extends Process {
 			$field->addOption($fieldgroup->name); 
 		}
 
-		return $field;
+		$form->add($field); 
+		return $form;
 	}
 
 	protected function buildEditFormAdvanced(Template $template) {
 
 		$form = $this->modules->get("InputfieldFieldset"); 
-		$form->label = "Advanced Options";
+		$form->label = "Advanced Page Features";
 		$form->collapsed = Inputfield::collapsedYes; 
+		$form->description = "Customize the function of pages using this template and optimize their performance. All of these settings are optional. ";
 
 		// --------------------
 
@@ -444,19 +485,6 @@ class ProcessTemplate extends Process {
 		// --------------------
 
 		$field = $this->modules->get('InputfieldRadios'); 
-		$field->attr('id+name', 'redirectLogin');
-		$field->label = 'What to do when user has no access?';
-		$field->description = "If a user attempts to access a page using this template, and doesn't have access to the page, what should it do?"; 
-		$field->addOption(0, 'Show a 404 Page'); 
-		$field->addOption(1, 'Show the Login Page (' . $this->pages->get($this->config->loginPageID)->url . ')');
-		$field->attr('value', $template->redirectLogin); 
-		$field->collapsed = Inputfield::collapsedBlank;
-		$form->append($field); 
-		if($template->redirectLogin) $form->collapsed = Inputfield::collapsedNo;
-
-		// --------------------
-
-		$field = $this->modules->get('InputfieldRadios'); 
 		$field->attr('name', 'https'); 
 		$field->label = 'Protocol';
 		$field->addOption(0, 'HTTP or HTTPS'); 
@@ -474,11 +502,19 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 
-		$field = $this->buildEditFormImport();
-		$field->description .= "Fields that are already present in this template will be left alone. ";
+		$field = $this->modules->get('InputfieldText'); 
+		$field->attr('name', 'altFilename');
+		$field->label = 'Alternate Template Filename';
+		$defaultFilename = $this->template->name . "." . $this->config->templateExtension;
+		$field->description = "The template's filename, if different from $defaultFilename";
+		$field->notes = "Templates are assumed to be in {$this->config->urls->templates} and extension is assumed to be .{$this->config->templateExtension}";
+		$field->attr('value', $template->altFilename); 
+		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field); 
 
-		$form->append($this->buildEditFormSystem($template)); 
+		// --------------------
+
+		if($this->config->advanced) $form->append($this->buildEditFormSystem($template)); 
 
 		return $form; 
 	}
@@ -488,6 +524,18 @@ class ProcessTemplate extends Process {
 		$form = $this->modules->get("InputfieldFieldset"); 
 		$form->label = "System/Internal";
 		$form->collapsed = Inputfield::collapsedYes; 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->attr('name', 'flagSystem');
+		$field->label = 'System Flag?';
+		$field->description = 
+			"If checked, this template will be defined as for the system and it won't be deleteable. " . 
+			"Once the system flag is enabled, it cannot be removed using ProcessWire. ";
+		$field->value = 1; 
+		if($template->flags & Template::flagSystem) $field->attr('checked', 'checked'); 
+		$form->add($field); 
 
 		// --------------------
 
@@ -504,17 +552,6 @@ class ProcessTemplate extends Process {
 		$form->append($field); 
 		if($template->pageClass) $form->collapsed = Inputfield::collapsedNo;
 
-		// --------------------
-
-		$field = $this->modules->get('InputfieldText'); 
-		$field->attr('name', 'altFilename');
-		$field->label = 'Alternate Template Filename';
-		$defaultFilename = $this->template->name . "." . $this->config->templateExtension;
-		$field->description = "The template's filename, if different from $defaultFilename";
-		$field->notes = "Templates are assumed to be in {$this->config->urls->templates} and extension is assumed to be .{$this->config->templateExtension}";
-		$field->attr('value', $template->altFilename); 
-		$field->collapsed = Inputfield::collapsedBlank;
-		$form->append($field); 
 
 		// --------------------
 
@@ -540,7 +577,7 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('name', 'nameContentTab');
-		$field->label = "Display 'name' Field in Content Tab?";
+		$field->label = "Display 'name' field in content tab?";
 		$field->description = 
 			"By default, the built-in 'name' field appears in the page editor 'settings' tab. If you would rather have it appear " . 
 			"in the 'content' tab check this box. ";
@@ -588,6 +625,40 @@ class ProcessTemplate extends Process {
 		}
 		$form->append($field); 
 
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->attr('name', 'noTrash');
+		$field->label = "Disable Trash Option?";
+		$field->description = 
+			"When checked, pages using this template will not have the option of being sent to the trash.";
+
+		$field->attr('value', 1); 
+		if($template->noTrash) {
+			$field->attr('checked', 'checked'); 
+			$form->collapsed = Inputfield::collapsedNo;
+		} else { 
+			$field->collapsed = Inputfield::collapsedYes;
+		}
+		$form->append($field); 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->attr('name', 'noSettings');
+		$field->label = "Disable Settings Tab?";
+		$field->description = 
+			"When checked, pages using this template will not have a 'settings' tab appear in the editor.";
+
+		$field->attr('value', 1); 
+		if($template->noTrash) {
+			$field->attr('checked', 'checked'); 
+			$form->collapsed = Inputfield::collapsedNo;
+		} else { 
+			$field->collapsed = Inputfield::collapsedYes;
+		}
+		$form->append($field); 
+
 		return $form; 
 	}
 
@@ -596,26 +667,61 @@ class ProcessTemplate extends Process {
 		$form = $this->modules->get("InputfieldFieldset"); 
 		$form->label = "Access";
 		$form->collapsed = Inputfield::collapsedNo; 
+		$form->description = "Control user access to pages that use this template.";
 
-		$field = $this->modules->get("InputfieldCheckboxes"); 
-		$field->attr('id+name', 'roles'); 
-	
-		$roles = $this->pages->get($this->config->rolesPageID)->children(); 
-		// find adifferent name for roles? parties?
+		$form->add($this->buildEditFormAccessRoles($template)); 
 
-		// first ask "do you want this page to be available to everyone?
+		// --------------------
 
-		foreach($roles as $role) {
-			$field->addOption($role->id, $role->name); 
-		}
-		$ids = array();
-		foreach($template->roles as $role) $ids[] = $role->id; 
-		$field->value = $ids; 
+		$field = $this->modules->get('InputfieldRadios'); 
+		$field->attr('id+name', 'redirectLogin');
+		$field->label = 'What to do when user has no access?';
+		$field->description = "If a user attempts to access a page using this template, and doesn't have access to the page, what should it do?"; 
+		$field->addOption(0, 'Show a 404 Page'); 
+		$field->addOption(1, 'Show the Login Page (' . $this->pages->get($this->config->loginPageID)->url . ')');
+		$field->attr('value', (int) $template->redirectLogin); 
+		$field->collapsed = Inputfield::collapsedBlank;
+
 		$form->add($field); 
 		return $form; 
 	}
+	
+	protected function buildEditFormAccessRoles(Template $template) {
 
+		$roles = $this->pages->get($this->config->rolesPageID)->children(); 
 
+		$field = $this->modules->get("InputfieldCheckboxes"); 
+		$field->table = true; 
+		$field->thead = "Role|Page Permissions";
+		$field->attr('id+name', 'roles'); 
+		$field->label = "What roles can access pages using this template?";
+		$field->description = 
+			"Check the box next to each role that will be allowed to access pages using this template. " . 
+			"For your reference, the permissions associated with each role are also listed. " . 
+			"Because the 'guest' role applies to everyone, all other roles inherit guest permissions automatically when it is checked. " . 
+			"Note that in order for a page to be publicly accessible, the 'guest' role must be checked. "; 
+
+		$guestRole = $roles->get("name=guest"); 
+
+		foreach($roles as $role) {
+			$label = $role->name; 
+			if($label == 'superuser') continue; 
+			if($label == 'guest') $label .= " (everyone)";
+			$details = '';
+			foreach($role->permissions as $permission) {
+				if(strpos($permission->name, 'page-') !== 0) continue; 
+				if($role->name != 'guest' && $guestRole->permissions->has($permission)) continue; // assumed
+				$details .= $permission->title . "\n";
+			}
+			$details = rtrim($details, ", "); 
+			$field->addOption($role->id, "$label|$details"); 
+		}
+
+		$ids = array();
+		foreach($template->roles as $role) $ids[] = $role->id; 
+		$field->value = $ids; 
+		return $field; 
+	}
 
 	/**
 	 * Save the template and check to see if a Fieldgroup change was requested
@@ -654,14 +760,24 @@ class ProcessTemplate extends Process {
 			$this->template->urlSegments = (int) $form->get('urlSegments')->attr('value');
 			$this->template->https = (int) $form->get('https')->attr('value'); 
 			$this->template->slashUrls = (int) $form->get('slashUrls')->attr('value');
-			$this->template->pageClass = $this->sanitizer->varName($form->get('pageClass')->attr('value'));
-			$this->template->noGlobal = (int) $form->get('noGlobal')->attr('value');
-			$this->template->noMove = (int) $form->get('noMove')->attr('value');
-			$this->template->noChangeTemplate = (int) $form->get('noChangeTemplate')->attr('value');
-			$this->template->nameContentTab = (int) $form->get('nameContentTab')->attr('value');
 			$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
-			$this->template->roles = $form->get('roles')->attr('value'); 
-			$this->message(print_r($form->get('roles')->value)); 
+
+			if($this->config->advanced) { 
+				if($form->get('flagSystem')->attr('value')) $this->template->flags = $this->template->flags | Template::flagSystem; 
+				$this->template->pageClass = $this->sanitizer->varName($form->get('pageClass')->attr('value'));
+				$this->template->noGlobal = (int) $form->get('noGlobal')->attr('value');
+				$this->template->noMove = (int) $form->get('noMove')->attr('value');
+				$this->template->noTrash = (int) $form->get('noTrash')->attr('value');
+				$this->template->noSettings = (int) $form->get('noSettings')->attr('value');
+				$this->template->noChangeTemplate = (int) $form->get('noChangeTemplate')->attr('value');
+				$this->template->nameContentTab = (int) $form->get('nameContentTab')->attr('value');
+			}
+
+			// save roles
+			$roles = $form->get('roles')->attr('value'); 
+			if(!is_array($roles)) $roles = array();
+			foreach($roles as $k => $v) $roles[$k] = (int) $v;
+			$this->template->roles = $roles; 
 
 			if(!$this->template->childrenTemplatesID) $this->template->remove("childrenTemplatesID"); 
 

@@ -104,33 +104,29 @@ class ProcessWire extends Wire {
 		Wire::setFuel('fields', $fields); 
 		Wire::setFuel('fieldgroups', $fieldgroups); 
 		Wire::setFuel('templates', $templates); 
-
 		Wire::setFuel('pages', new Pages(), true);
-		/*
-		Wire::setFuel('permissions', new Permissions()); 
-		Wire::setFuel('roles', new Roles()); 
-		Wire::setFuel('pagesRoles', new PagesRoles()); 
-		Wire::setFuel('users', new Users()); 
-		*/
 
 		$fieldtypes->init();
 		$fields->init();
 		$fieldgroups->init();
 		$templates->init();
 
-		if($t = $templates->get('system_permission')) Wire::setFuel('permissions', new PagesType($t, $config->permissionsPageID)); 
-		if($t = $templates->get('system_role')) Wire::setFuel('roles', new PagesType($t, $config->rolesPageID)); 
-		if($t = $templates->get('system_user')) Wire::setFuel('users', new PagesType($t, $config->usersPageID)); 
-		/*
-		Wire::setFuel('permissions', new PagesType($templates->get("system_permission"), $config->permissionsPageID)); 
-		Wire::setFuel('roles', new PagesType($templates->get("system_role"), $config->rolesPageID)); 
-		Wire::setFuel('users', new PagesType($templates->get("system_user"), $config->usersPageID)); 
-		*/
+		if(!$t = $templates->get('permission')) throw new WireException("Missing system template: 'permission'"); 
+		$permissions = new Permissions($t, $config->permissionsPageID); 
+		Wire::setFuel('permissions', $permissions); 
 
+		if(!$t = $templates->get('role')) throw new WireException("Missing system template: 'role'"); 
+		$roles = new Roles($t, $config->rolesPageID); 
+		Wire::setFuel('roles', $roles); 
+
+		if(!$t = $templates->get('user')) throw new WireException("Missing system template: 'user'"); 
+		$users = new Users($t, $config->usersPageID); 
+		Wire::setFuel('users', $users); 
+
+		// the current user can only be determined after the session has been initiated
 		$session = new Session(); 
 		Wire::setFuel('session', $session); 
-		Wire::setFuel('user', $session->getCurrentUser()); 
-		// Wire::setFuel('user', Wire::getFuel('users')->getCurrentUser()); 
+		Wire::setFuel('user', $users->getCurrentUser()); 
 		Wire::setFuel('input', new WireInput()); 
 
 		$modules->init();

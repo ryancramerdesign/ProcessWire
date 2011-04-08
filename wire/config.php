@@ -50,12 +50,3 @@ $config->dbCharset = 'utf8';
  */
 $config->userAuthHashType = 'sha1';
 
-/**
- * True only when PW system development is taking place
- * 
- * Enables additional options for system setup. Not recommended for end-users of PW. 
- *
- */
-$config->systemDevelopment = false; 
-
-

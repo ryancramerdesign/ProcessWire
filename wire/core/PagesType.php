@@ -55,6 +55,12 @@ class PagesType extends Wire implements IteratorAggregate {
 	}
 
 	/**
+	 * Each loaded page is passed through this function for additional checks if needed
+	 *	
+	 */
+	protected function loaded(Page $page) { }
+
+	/**
 	 * Is the given page a valid type for this class?
 	 *
 	 * @param Page $page
@@ -75,7 +81,9 @@ class PagesType extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function find($selectorString, $options = array()) {
-		return $this->pages->find($this->selectorString($selectorString), $options);
+		$pages = $this->pages->find($this->selectorString($selectorString), $options);
+		foreach($pages as $page) $this->loaded($page); 
+		return $pages; 
 	}
 
 	/**
@@ -98,7 +106,9 @@ class PagesType extends Wire implements IteratorAggregate {
 			if($s === $selectorString) $selectorString = "name=$s"; 	
 		}
 			
-		return $this->pages->get($this->selectorString($selectorString)); 
+		$page = $this->pages->get($this->selectorString($selectorString)); 
+		if($page->id) $this->loaded($page);
+		return $page; 
 	}
 
 	/**

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ProcessWire User Process
+ * ProcessWire Permission Process
  *
  * For more details about how Process modules work, please see: 
  * /wire/core/Process.php 
@@ -15,15 +15,15 @@
  *
  */
 
-class ProcessUser extends ProcessPageType {
+class ProcessPermission extends ProcessPageType {
 
 	static public function getModuleInfo() {
 		return array(
-			'title' => 'Users',
+			'title' => 'Permissions',
 			'version' => 100, 
-			'summary' => 'Manage system users', 
+			'summary' => 'Manage system permissions', 
 			'permanent' => true, 
-			'permission' => 'user-admin',
+			'permission' => 'permission-admin',
 			); 
 	}
 	

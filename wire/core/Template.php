@@ -160,7 +160,12 @@ class Template extends WireData implements Saveable {
 				else if($key == 'cache_time' || $key == 'cacheTime') $value = (int) $value; 
 				else $value = '';
 
-			if($this->settings[$key] != $value) $this->trackChange($key); 
+			if($this->settings[$key] != $value) {
+				if($this->settings[$key] && ($this->settings['flags'] & Template::flagSystem) && in_array($key, array('id', 'name'))) {
+					throw new WireException("Template '$this' has the system flag and you may not change it's 'id' or 'name' fields. "); 
+				}
+				$this->trackChange($key); 
+			}
 			$this->settings[$key] = $value; 
 
 		} else if($key == 'fieldgroup' || $key == 'fields') {

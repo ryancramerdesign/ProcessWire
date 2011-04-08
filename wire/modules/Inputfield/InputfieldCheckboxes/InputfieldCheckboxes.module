@@ -1,0 +1,65 @@
+<?php
+
+class InputfieldCheckboxes extends InputfieldSelectMultiple implements InputfieldHasArrayValue {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Checkboxes',
+			'version' => 100,
+			'summary' => 'Multiple checkbox toggles',
+			'permanent' => true, 
+			);
+	}
+
+	public function init() {
+		$this->set('table', false); 
+		$this->set('thead', ''); 
+		parent::init();
+	}
+
+	public function ___render() {	
+		$out = '';
+		$table = null;
+
+		if($this->table) {
+			$table = $this->modules->get("MarkupAdminDataTable"); 
+			$table->setEncodeEntities(false);
+			if($this->thead) $table->headerRow(explode('|', htmlspecialchars($this->thead))); 
+		} else {
+			$out = "\n\t<ul>";
+		}
+
+		foreach($this->getOptions() as $key => $value) {
+			$checked = '';
+
+			if($this->isOptionSelected($key)) $checked = " checked='checked'";
+			$id = $this->id . "_" . $this->fuel('sanitizer')->name($key); 
+
+			$attrs = $this->getOptionAttributesString($key);
+			if($attrs) $attrs = ' ' . $attrs; 
+
+			$value = htmlspecialchars($value); 
+
+			$input = "<label$attrs>" . 
+				"<input$checked " . 
+				"type='checkbox' " . 
+				"name='{$this->name}[]' " . 
+				"id='$id' " . 
+				"value='" . htmlspecialchars($key, ENT_QUOTES) . "' /> "; 
+
+			if($table) {
+				$value = explode("|", nl2br($value));
+				$value[0] = $input . $value[0] . "</label>";
+				$table->row($value); 
+			} else {
+				$out .= "\n\t\t<li>" . $input . $value . "</label></li>";
+			}
+			
+		}
+
+		if($table) $out .= $table->render();
+
+		return $out; 
+
+	}
+}

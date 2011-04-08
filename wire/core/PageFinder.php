@@ -20,6 +20,8 @@ class PageFinder extends Wire {
 	protected $total = 0;
 	protected $limit = 0; 
 	protected $start = 0;
+	protected $parent_id = null;
+	protected $templates_id = null;
 	protected $checkStatus = true; 
 
 	/**
@@ -93,6 +95,9 @@ class PageFinder extends Wire {
 
 		$this->start = 0; // reset for new find operation
 		$this->limit = 0; 
+		$this->parent_id = null;
+		$this->templates_id = null;
+
 		if($this->checkStatus) $this->setupStatusChecks($selectors, $options); 
 		$cnt = count($selectors); 
 		$matches = array(); 
@@ -413,20 +418,26 @@ class PageFinder extends Wire {
 		$valueArray = is_array($value) ? $value : array($value); 
 		$sql = '';
 
-		if($field == 'template') {
+		if($field == 'template' || $field == 'templates_id') {
 			// convert templates specified as a name to the numeric template ID
 			// allows selectors like 'template=my_template_name'
 			foreach($valueArray as $k => $v) {
 				if(!ctype_digit("$v")) $valueArray[$k] = (($template = $this->fuel('templates')->get($v)) ? $template->id : 0); 
 			}
 			$field = 'templates_id';
+			if(count($valueArray) == 1 && $selector->getOperator() === '=') $this->templates_id = reset($valueArray);
 
-		} else if($field == 'parent') {
+		} else if($field == 'parent' || $field == 'parent_id') {
 			// convert parent fields like '/about/company/history' to the equivalent ID
 			foreach($valueArray as $k => $v) {
-				if(!ctype_digit("$v")) $valueArray[$k] = (($parent = $this->fuel('pages')->get($v)) ? $parent->id : null); 
+				if(ctype_digit("$v")) continue; 
+				$parent = $this->fuel('pages')->get($v); 
+				if(!$parent instanceof NullPage) $valueArray[$k] = $parent->id; 
+					else $valueArray[$k] = null;
+
 			}
 			$field = 'parent_id';
+			if(count($valueArray) == 1 && $selector->getOperator() === '=') $this->parent_id = reset($valueArray); 
 		}
 
 		foreach($valueArray as $value) { 
@@ -500,6 +511,22 @@ class PageFinder extends Wire {
 	 */
 	public function getStart() {
 		return $this->start; 
+	}
+
+	/**
+	 * Returns the parent ID, if it was part of the selector
+	 *
+	 */
+	public function getParentID() {
+		return $this->parent_id; 
+	}
+
+	/**
+	 * Returns the templates ID, if it was part of the selector
+	 *
+	 */
+	public function getTemplatesID() {
+		return $this->templates_id; 
 	}
 
 	/**

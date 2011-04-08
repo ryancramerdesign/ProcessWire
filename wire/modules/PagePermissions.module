@@ -37,28 +37,110 @@ class PagePermissions extends WireData implements Module {
 		$this->addHook('Page::listable', $this, 'listable'); 
 		$this->addHook('Page::deleteable', $this, 'deleteable'); 
 		$this->addHook('Page::addable', $this, 'addable'); 
+		$this->addHook('Page::moveable', $this, 'moveable'); 
+		$this->addHook('Page::sortable', $this, 'sortable'); 
 	}
 
 	/**
 	 * Is the page editable by the current user?
+	 *
+	 * A field name may optionally be specified as the first argument, in which case the field on that page will also be checked for access. 
 	 *
 	 */
 	public function editable($event) {
 
 		$page = $event->object; 
 
-		if($this->user->isSuperuser()) return ($event->return = true); 
+		if(!$this->pageEditable($page)) {
+			$event->return = false;
 
-		if(!$this->user->hasPermission("page-edit", $page)) return ($event->return = false); 
+		} else if(isset($event->arguments[0])) {
+			$event->return = $this->fieldEditable($page, $event->arguments[0]); 
 
-                // note there is an exception in the case of admin pages, which require superuser to edit
-                $isAdmin = $page->id == $this->config->adminRootPageID || $page->id == $this->config->trashPageID; 
-                if(!$isAdmin) foreach($page->parents as $parent) {
-                        if($parent->id == $this->config->adminRootPageID) $isAdmin = true;
-                }
+		} else {
+			$event->return = true; 
+		}
 
-                if($isAdmin) $event->return = false;
-			else $event->return = true; 
+	}
+
+	/**
+	 * Is the given page editable?
+	 *
+	 */
+	protected function pageEditable(Page $page) {
+
+		// superuser can always do whatever they want
+		if($this->user->isSuperuser()) return true; 
+
+		// note there is an exception in the case of system pages, which require superuser to edit
+		if($page->status & Page::statusSystem) return false; 
+
+		// special conditions apply if the page is a User
+		if($page instanceof User) {
+
+			// if it's the user's own page, and they have any kind of edit permission anywhere, we'll let them edit themselves
+			if($page->id == $this->user->id && $this->user->hasPermission('page-edit')) return true; 
+
+			// if the user page being edited has a superuser role, and the current user doesn't, never let them edit regardless of any other permissions
+			if($page->hasRole('superuser') && !$this->user->hasRole('superuser')) return false; 
+
+			if($this->user->hasPermission('user-admin')) return true; 
+
+		} else if($page instanceof Role) {
+		
+			if($this->user->hasPermission('role-admin')) return true; 
+			return false; 
+
+		} else if($page instanceof Permission) {
+
+			if($this->user->hasPermission('permission-admin')) return true; 
+			return false; 
+		}
+
+		// if the user doesn't have page-edit permission, don't let them go further
+		if(!$this->user->hasPermission("page-edit", $page)) return false;
+
+		return true; 
+	}
+
+	/**
+	 * Assuming the page is editable, is the given field name also editable?
+	 *
+	 */
+	protected function fieldEditable(Page $page, $name) {
+	
+		if(!is_string($name)) return false; 
+		if(!strlen($name)) return true; 
+
+		if($name == 'id' && ($page->status & Page::statusSystemID)) return false; 
+
+		if($page->status & Page::statusSystem) {
+			if(in_array($name, array('id', 'name', 'template', 'templates_id', 'parent', 'parent_id'))) {
+				return false;
+			}
+		}
+
+		if($name == 'template' || $name == 'templates_id') {
+			if($this->page->template->noChangeTemplate) return false;
+			if(!$this->user->hasPermission('page-template', $page)) return false; 
+		}
+
+		if($name == 'parent' || $name == 'parent_id') {
+			if($this->page->template->noMove) return false; 
+			if(!$this->user->hasPermission('page-move', $page)) return false; 
+		}
+
+		if($name == 'sortfield') {
+			if(!$this->user->hasPermission('page-sort', $page)) return false; 
+		}
+
+		if($name == 'roles') {
+			if(!$this->user->hasPermission('user-admin')) return false; 
+		}
+
+		// FUTURE: check per-field edit access
+
+		return true; 
 	}
 
 	/**
@@ -68,8 +150,14 @@ class PagePermissions extends WireData implements Module {
 	public function viewable($event) {
 
 		$page = $event->object; 
-		if($page->status >= Page::statusUnpublished) $event->return = false;
-			else $event->return = $this->user->hasPermission("page-view", $page);
+		$viewable = true; 
+
+		if($page->status >= Page::statusUnpublished) $viewable = false;
+			else if(!$this->user->hasPermission("page-view", $page)) $viewable = false;
+			else if($page->isTrash()) $viewable = false; 
+			else if(!$page->template->filenameExists()) $viewable = false; 
+
+		$event->return = $viewable; 
 	}
 
 	/**
@@ -89,6 +177,10 @@ class PagePermissions extends WireData implements Module {
 		$page = $event->object;
 		$deleteable = $this->pages->isDeleteable($page); 
 		if($deleteable) $deleteable = $this->user->hasPermission("page-delete", $page);
+		if($deleteable && $page instanceof User) {
+			if($page->id == $this->user->id) $deleteable = false; 
+				else if($page->hasRole('superuser') && !$this->user->hasRole('superuser')) $deleteable = false; 
+		}
 		$event->return = $deleteable;
 	}
 
@@ -98,7 +190,31 @@ class PagePermissions extends WireData implements Module {
 	 */
 	public function addable($event) {
 		$page = $event->object; 
-		$event->return = $this->user->hasPermission("page-add", $page);
+		$addable = true; 
+
+		if($page->template->childrenTemplatesID < 0) $addable = false; 
+			else if(!$this->user->hasPermission('page-add', $page)) $addable = false; 
+
+		$event->return = $addable;
+	}
+
+	/**
+	 * Is the given page moveable (i.e. change parent)?
+	 *
+	 */
+	public function moveable($event) {
+		$event->return = $this->fieldEditable($event->object, 'parent'); 
+	}
+
+	/**
+	 * Is the given page sortable by the current user?
+	 *
+	 */
+	public function sortable($event) {
+		$page = $event->object; 
+		$sortable = true; 
+		if(!$this->user->hasPermission('page-sort', $page->parent)) $sortable = false; 
+		$event->return = $sortable;
 	}
 
 }

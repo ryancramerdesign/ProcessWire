@@ -30,12 +30,6 @@ class Session extends Wire implements IteratorAggregate {
 	protected $config; 
 
 	/**
-	 * The current user
-	 *
-	 */
-	protected $user = null;
-
-	/**
 	 * Start the session and set the current User if a session is active
 	 *
 	 * Assumes that you have already performed all session-specific ini_set() and session_name() calls 
@@ -47,19 +41,20 @@ class Session extends Wire implements IteratorAggregate {
 		@session_start();
 		unregisterGLOBALS();
 		$className = $this->className();
+		$user = null;
 
 		if(empty($_SESSION[$className])) $_SESSION[$className] = array();
 
 		if($userID = $this->get('_user_id')) {
 			if($this->isValidSession()) {
 				$user = $this->fuel('users')->get($userID); 
-				if($user->id) $this->user = $user; 
 			} else {
 				$this->logout();
 			}
 		}
 
-		if(!$this->user) $this->user = $this->getGuestUser();
+		if(!$user) $user = $this->fuel('users')->getGuestUser();
+		$this->fuel('users')->setCurrentUser($user); 	
 
 		foreach(array('message', 'error') as $type) {
 			if($items = $this->get($type)) foreach($items as $text) parent::$type($text); 
@@ -109,26 +104,6 @@ class Session extends Wire implements IteratorAggregate {
 	public function get($key) {
 		$className = $this->className();
 		return isset($_SESSION[$className][$key]) ? $_SESSION[$className][$key] : null; 
-	}
-
-	/**
-	 * Returns the current user object
-	 *
-	 * @return User
-	 *
-	 */
-	public function getCurrentUser() {
-		return $this->user; 
-	}
-
-	/**
-	 * Get the 'guest' user account
-	 *
-	 * @return User
-	 *
-	 */
-	public function getGuestUser() {
-		return $this->fuel('users')->get($this->config->guestUserPageID); 
 	}
 
 	/**
@@ -259,7 +234,8 @@ class Session extends Wire implements IteratorAggregate {
 		session_start(); 
 		session_regenerate_id();
 		$_SESSION[$this->className()] = array();
-		$this->user = $this->getGuestUser();
+		$guest = $this->fuel('users')->getGuestUser();
+		$this->fuel('users')->setCurrentUser($guest); 
 		$this->trackChange('logout'); 
 		return $this; 
 	}

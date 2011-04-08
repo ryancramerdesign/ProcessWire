@@ -32,8 +32,8 @@ class Page extends WireData {
 	 */
 	const statusOn = 1; 			// base status for all pages
 	const statusLocked = 4; 		// page locked for changes. Not enforced by the core, but checked by Process modules. 
-	const statusSystem = 8; 		// page is for the system and may not be deleted or have it's id changed
-	const statusSystem2 = 16; 		// page is for the system and may not be deleted or have it's id, name, template or parent changed
+	const statusSystemID = 8; 		// page is for the system and may not be deleted or have it's id changed (everything else, okay)
+	const statusSystem = 16; 		// page is for the system and may not be deleted or have it's id, name, template or parent changed
 	const statusHidden = 1024;		// page is excluded selector methods like $pages->find() and $page->children() unless status is specified, like "status&1"
 	const statusUnpublished = 2048; 	// page is not published and is not renderable. 
 	const statusTrash = 8192; 		// page is in the trash
@@ -231,13 +231,10 @@ class Page extends WireData {
 	 */
 	public function set($key, $value) {
 
-		if(($key == 'id' || $key == 'name') && $this->settings[$key] && $value != $this->settings[$key]) {
-			if($key == 'id' && ($this->settings['status'] & Page::statusSystem) || ($this->settings['status'] & Page::statusSystem2)) {
-				throw new WireException("You may not modify the 'id' on page '$this' because it is a system page"); 
-			} else if($key == 'name' && ($this->settings['status'] & Page::statusSystem2)) {
-				throw new WireException("You may not modify the 'name' on page '$this' because it is a system page"); 
-			}
-		}
+		if(($key == 'id' || $key == 'name') && $this->settings[$key] && $value != $this->settings[$key]) 
+			if(	($key == 'id' && ($this->settings['status'] & Page::statusSystem) || ($this->settings['status'] & Page::statusSystemID)) ||
+				($key == 'name' && ($this->settings['status'] & Page::statusSystem))) 
+					throw new WireException("You may not modify '$key' on page '{$this->path}' because it is a system page"); 
 
 		switch($key) {
 			case 'id':
@@ -558,8 +555,8 @@ class Page extends WireData {
 	 */
 	protected function setStatus($value) {
 		$value = (int) $value; 
-		if($this->settings['status'] & Page::statusSystem) $value = $value | Page::statusSystem;
-		if($this->settings['status'] & Page::statusSystem2) $value = $value | Page::statusSystem2; 
+		if($this->settings['status'] & Page::statusSystemID) $value = $value | Page::statusSystemID;
+		if($this->settings['status'] & Page::statusSystem) $value = $value | Page::statusSystem; 
 		if($this->settings['status'] != $value) $this->trackChange('status');
 		$this->settings['status'] = $value;
 	}
@@ -572,7 +569,7 @@ class Page extends WireData {
 		if(!is_object($tpl)) $tpl = $this->fuel('templates')->get($tpl); 
 		if(!$tpl instanceof Template) throw new WireException("Invalid value sent to Page::setTemplate"); 
 		if($this->template && $this->template->id != $tpl->id) {
-			if($this->settings['status'] & Page::statusSystem2) throw new WireException("Template changes are disallowed on this page"); 
+			if($this->settings['status'] & Page::statusSystem) throw new WireException("Template changes are disallowed on this page"); 
 			if(is_null($this->templatePrevious)) $this->templatePrevious = $this->template; 
 			$this->trackChange('template'); 
 		}
@@ -589,7 +586,7 @@ class Page extends WireData {
 		if($this->parent && $this->parent->id == $parent->id) return $this; 
 		$this->trackChange('parent');
 		if(($this->parent && $this->parent->id) && $this->parent->id != $parent->id) {
-			if($this->settings['system'] & Page::statusSystem2) throw new WireException("Parent changes are disallowed on this page"); 
+			if($this->settings['system'] & Page::statusSystem) throw new WireException("Parent changes are disallowed on this page"); 
 			$this->parentPrevious = $this->parent; 
 		}
 		$this->parent = $parent; 
@@ -975,7 +972,9 @@ class Page extends WireData {
 	 */
 	public function removeStatus($statusFlag) {
 		$statusFlag = (int) $statusFlag; 
-		if($statusFlag == Page::statusSystem) throw new WireException("You may not remove the 'system' status from a page"); 
+		if($statusFlag == Page::statusSystem || $statusFlag == Page::statusSystemID) {
+			throw new WireException("You may not remove the 'system' status from a page"); 
+		}
 		$this->status = $this->status & ~$statusFlag; 
 		return $this;
 	}

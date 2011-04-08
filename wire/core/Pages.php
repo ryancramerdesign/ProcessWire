@@ -58,12 +58,6 @@ class Pages extends Wire {
 	protected $outputFormatting = false; 
 
 	/**
-	 * IDs of system specific pages
-	 *
-	 */
-	protected $systemPageIDs = array(); 
-
-	/**
 	 * Create the Pages object
 	 *
 	 */
@@ -72,15 +66,6 @@ class Pages extends Wire {
 		$this->templates = $this->fuel('templates'); 
 		$this->pageFinder = new PageFinder($this->fuel('fieldgroups')); 
 		$this->sortfields = new PagesSortfields();
-
-		// TODO make new 'system' status in Page, so that this isn't necessary
-		$this->systemPageIDs = array(1, 
-			$this->config->trashPageID, 
-			$this->config->adminRootPageID, 
-			$this->config->http404PageID,
-			$this->config->loginPageID, 
-			);
-
 	}
 
 
@@ -130,18 +115,12 @@ class Pages extends Wire {
 		$limit = $this->pageFinder->getLimit();
 		$start = $this->pageFinder->getStart();
 
+		// parent_id is null unless a single parent was specified in the selectors
+		$parent_id = $this->pageFinder->getParentID();
+
 		$idsSorted = array(); 
 		$idsByTemplate = array();
 
-		// determine if a parent_id was part of the find, if so use it for optimization
-		$parent_id = null; 
-		foreach($selectors as $selector) {
-			if($selector->field === 'parent_id' && $selector->getOperator() === '=' && !is_array($selector->value)) {
-				$parent_id = (int) $selector->value; 
-				break;
-			}
-		}
-		
 		// organize the pages by template ID
 		foreach($pages as $page) {
 			$tpl_id = $page['templates_id']; 
@@ -489,7 +468,7 @@ class Pages extends Wire {
 	 * @param bool $recursive Should the status descend into the page's children, and grandchildren, etc?
 	 *
 	 */
-	public function savePageStatus($pageID, $status, $recursive = false) {
+	protected function savePageStatus($pageID, $status, $recursive = false) {
 		$pageID = (int) $pageID; 
 		$status = (int) $status; 
 		$this->db->query("UPDATE pages SET status=$status WHERE id=$pageID"); 
@@ -506,6 +485,8 @@ class Pages extends Wire {
 	/**
 	 * Is the given page deleteable?
 	 *
+	 * Note: this does not account for user permission checking. It only checks if the page is in a state to be saveable via the API. 
+	 *
 	 * @param Page $page
 	 * @return bool True if deleteable, False if not
 	 *
@@ -513,7 +494,7 @@ class Pages extends Wire {
 	public function isDeleteable(Page $page) {
 
 		$deleteable = true; 
-		if(!$page->id || in_array($page->id, $this->systemPageIDs)) $deleteable = false; 
+		if(!$page->id || $page->status & Page::statusSystemID || $page->status & Page::statusSystem) $deleteable = false; 
 			else if($page instanceof NullPage) $deleteable = false;
 
 		return $deleteable;

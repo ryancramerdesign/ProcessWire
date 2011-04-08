@@ -225,17 +225,10 @@ abstract class ProcessPageListRender extends Wire {
 
 		} else {
 
-			if($this->user->hasPermission("page-edit", $page)) 
-				$actions[] = array('name' => 'Edit', 'url' => "{$adminUrl}page/edit/?id={$page->id}");
-
-			if(!$page->isTrash() && !$page->is(Page::statusUnpublished) && $this->user->hasPermission("page-view", $page) && $page->template->filenameExists()) 
-				$actions[] = array('name' => 'View', 'url' => $page->httpUrl);
-
-			if($this->user->hasPermission("page-add", $page) && ((int) $page->template->childrenTemplatesID) > -1 && !$page->isTrash) 
-				$actions[] = array('name' => 'New', 'url' => "{$adminUrl}page/add/?parent_id={$page->id}");
-
-			if($page->id > 1 && $this->user->hasPermission("page-move", $page) && !$page->is(Page::statusLocked) && !$page->template->noMove) 
-				$actions[] = array('name' => 'Move', 'url' => '#'); 
+			if($page->editable()) $actions[] = array('name' => 'Edit', 'url' => "{$adminUrl}page/edit/?id={$page->id}");
+			if($page->viewable())  $actions[] = array('name' => 'View', 'url' => $page->httpUrl);
+			if($page->addable()) $actions[] = array('name' => 'New', 'url' => "{$adminUrl}page/add/?parent_id={$page->id}");
+			if($page->moveable() || ($page->sortable() && $page->sortfield == 'sort')) $actions[] = array('name' => 'Move', 'url' => '#'); 
 		}
 
 		return $actions; 

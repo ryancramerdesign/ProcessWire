@@ -391,6 +391,14 @@ class ProcessField extends Process implements ConfigurableModule {
 				if(!$this->input->post->global) $this->field->flags = $this->field->flags & ~Field::flagGlobal; 
 					else $this->field->flags = $this->field->flags | Field::flagGlobal;
 				continue; 
+			} else if($inputfield->name == 'system' && $this->config->advanced) {
+				if(!$this->input->post->system) $this->field->flags = $this->field->flags & ~Field::flagSystem; 
+					else $this->field->flags = $this->field->flags | Field::flagSystem;
+				continue; 
+			} else if($inputfield->name == 'permanent' && $this->config->advanced) {
+				if(!$this->input->post->permanent) $this->field->flags = $this->field->flags & ~Field::flagPermanent; 
+					else $this->field->flags = $this->field->flags | Field::flagPermanent;
+				continue; 
 			}
 
 			$value = $inputfield->value; 

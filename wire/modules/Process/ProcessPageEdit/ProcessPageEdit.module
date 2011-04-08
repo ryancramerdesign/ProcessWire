@@ -22,12 +22,12 @@ class ProcessPageEdit extends Process {
 	protected $form; 
 	protected $page; 
 	protected $parent; 
+	protected $user; 
 	protected $id; 
 	protected $redirectUrl;
 	protected $pageClass; 
 	protected $isTrash; 
 
-	protected $useTrash = true; 
 	protected $useSettings = true; 
 	protected $useChildren = true; 
 	protected $useView = true; 
@@ -42,14 +42,6 @@ class ProcessPageEdit extends Process {
 			);
 	}
 
-	public function set($key, $value) {
-		if(in_array($key, array('useTrash', 'useSettings', 'useView', 'useChildren'))) {
-			$this->$key = $value ? true : false; 
-			return $this;
-		} 
-		return parent::set($key, $value); 
-	}
-
 	/**
 	 * Initialize the page editor by loading the requested page and any dependencies
 	 *
@@ -61,6 +53,7 @@ class ProcessPageEdit extends Process {
 
 		if(!$this->id) throw new Wire404Exception("PageEdit requires a Page ID");
 
+		$this->user = $this->fuel('user');
 		$this->page = $this->pages->get($this->id); 
 		if($this->page instanceof NullPage) throw new WireException("Page does not exist"); 
 		$this->pageClass = $this->page->className();
@@ -189,20 +182,18 @@ class ProcessPageEdit extends Process {
 			$field = $this->modules->get('InputfieldPageName');
 			$field->attr('value', $this->page->name); 
 			$field->required = true; 
+			if(!$this->page->editable('name')) $field->attr('disabled', 'disabled'); 
 			if($this->page->parent) $field->parentPage = $this->page->parent;
 			$fields->prepend($field); 
 		}
 
 		$form->append($fields); 
-		if($this->useChildren && ((int) $this->page->template->childrenTemplatesID) > -1) $form->append($this->buildFormChildren()); 
 
-		if($this->useSettings) $form->append($this->buildFormSettings()); 
-
+		if($this->page->addable() || $this->page->numChildren) $form->append($this->buildFormChildren()); 
+		if(!$this->page->template->noSettings) $form->append($this->buildFormSettings()); 
 		if($this->isTrash) $this->message("This page is in the Trash"); 
 		if($this->page->deleteable()) $form->append($this->buildFormDelete());
-		if($this->useView && !$this->page->isTrash() && !$this->page->is(Page::statusUnpublished) && !$this->input->get->modal && is_file($this->page->template->filename)) {
-			$form->append($this->buildFormView()); 
-		}
+		if($this->page->viewable() && !$this->input->get->modal) $form->append($this->buildFormView()); 
 
 		$field = $this->modules->get('InputfieldSubmit');
 		$field->attr('id+name', 'submit_save'); 
@@ -247,7 +238,7 @@ class ProcessPageEdit extends Process {
 		if($pageList) $field->value = $pageList->execute();
 			else $field->description = "There are currently no children/subpages below this page.";
 
-		if($this->user->hasPermission('page-add', $this->page)) { 
+		if($this->page->addable()) { 
 			$button = $this->modules->get("InputfieldButton"); 
 			$button->attr('id+name', 'AddPageBtn'); 
 			$button->attr('value', "Add New Page Here");
@@ -321,13 +312,14 @@ class ProcessPageEdit extends Process {
 			if(!$this->page->template->nameContentTab) {
 				$field = $this->modules->get('InputfieldPageName');
 				$field->attr('value', $this->page->name); 
+				if($field->value && !$this->page->editable('name')) $field->attr('disabled', 'disabled'); 
 				$field->required = true; 
 				if($this->page->parent) $field->parentPage = $this->page->parent;
 				$wrapper->prepend($field); 
 			}
 
 			// parent
-			if(!$this->page->template->noMove && $this->user->hasPermission('page-move', $this->page)) { 
+			if($this->page->editable('parent')) {
 				$field = $this->modules->get('InputfieldPageListSelect');
 				$field->label = "Parent";
 				$field->attr('id+name', 'parent_id'); 
@@ -339,7 +331,8 @@ class ProcessPageEdit extends Process {
 		}
 
 		// template
-		if(!$this->page->template->noChangeTemplate) {
+		// if(!$this->page->template->noChangeTemplate && $this->page->) {
+		if($this->page->editable('template')) { 
 			$field = $this->modules->get('InputfieldSelect');
 			$field->label = 'Template';
 			$field->attr('id+name', 'template'); 
@@ -390,10 +383,15 @@ class ProcessPageEdit extends Process {
 		$field = $this->modules->get('InputfieldCheckboxes');
 		$field->attr('name', 'status');
 		$statuses = array(
-			Page::statusHidden => "Hidden", 
-			Page::statusLocked => "Locked", 
-			// Page::statusUnsearchable => "Unsearchable", 
+			Page::statusHidden => "Hidden: Excluded from lists and searches", 
+			Page::statusLocked => "Locked: Not editable", 
 			); 
+			
+		if($this->config->advanced) {
+			$statuses[Page::statusSystemID] = "System: Non-deleteable and locked ID (status not removeable via API)";
+			$statuses[Page::statusSystem] = "System: Non-deleteable and locked ID, name, template, parent (status not removeable via API)"; 
+		}
+
 		$value = array();
 		foreach($statuses as $s => $label) {
 			if($s & $status) $value[] = $s;
@@ -401,9 +399,6 @@ class ProcessPageEdit extends Process {
 		}
 		$field->attr('value', $value); 
 		$field->label = "Status"; 
-		$field->description = '' . 
-			"Hidden pages are excluded from lists and searches. " . 
-			"Locked pages are closed for changes until unlocked. ";
 		return $field; 
 	}
 
@@ -437,7 +432,7 @@ class ProcessPageEdit extends Process {
 			$field->attr('id+name', 'delete_page'); 
 			$field->attr('value', $this->page->id); 
 
-			if($this->isTrash || !$this->useTrash) {
+			if($this->isTrash || $this->page->template->noTrash) {
 				$field->label = "Permanently Delete {$this->pageClass}";
 				$field->description = "This will permanently delete the {$this->pageClass}. Are you sure you want to do this?"; 
 			} else {
@@ -521,29 +516,26 @@ class ProcessPageEdit extends Process {
 
 			$name = $inputfield->attr('name'); 
 
+			if(in_array($name, $skipFields)) continue; 
+
+			if(!$this->page->editable($name)) continue; 
 			// if($name == 'roles' && $this->processInputRoles($inputfield)) continue; 
 			
 			if($this->useChildren && $name == 'sortfield') {
-				if($this->user->hasPermission('page-sort', $this->page)) $this->processInputSortfield($inputfield) ;
+				$this->processInputSortfield($inputfield) ;
 				continue;
 			}
 
 			if($this->useSettings) { 
 
 				if($name == 'template') { 
-					if($this->user->hasPermission('page-template', $this->page)) $this->processInputTemplate($inputfield); 
+					$this->processInputTemplate($inputfield); 
 					continue; 
-
-				}
-
-				if($name == 'parent_id') {
-					if($this->page->template->noMove || !$this->user->hasPermission('page-move', $this->page)) continue; 
 				}
 
 				if($name == 'status' && $this->processInputStatus($inputfield)) continue; 
 			}
 
-			if(in_array($name, $skipFields)) continue; 
 
 			if($name && $inputfield->isChanged()) {
 				$this->page->set($name, $inputfield->value);
@@ -577,11 +569,12 @@ class ProcessPageEdit extends Process {
 
 		if(!is_array($status)) $status = array();
 
-		$statusFlags = array(
-			Page::statusHidden,
-			Page::statusLocked,
-			//Page::statusUnsearchable,
-			); 
+		$statusFlags = array(Page::statusHidden, Page::statusLocked); 
+
+		if($this->config->advanced) {
+			$statusFlags[] = Page::statusSystemID;
+			$statusFlags[] = Page::statusSystem; 
+		}
 
 		foreach($statusFlags as $flag) {
 			if(in_array($flag, $status)) {
@@ -648,14 +641,17 @@ class ProcessPageEdit extends Process {
 			return false; 
 		}
 
-		if($this->isTrash || !$this->useTrash) {
+		$afterDeleteRedirect = "./?id={$this->parent->id}";
+		if($this->fuel('page')->process != $this->className()) $afterDeleteRedirect = "../";
+
+		if($this->isTrash || $this->page->template->noTrash) {
 			$this->session->message("Deleted page: {$this->page->url}"); 
 			$this->pages->delete($this->page, true); 
-			$this->session->redirect("./?id={$this->parent->id}"); 
+			$this->session->redirect($afterDeleteRedirect); 
 
 		} else if($this->pages->trash($this->page)) {
 			$this->session->message("Moved page to trash: {$this->page->url}"); 
-			$this->session->redirect("./?id={$this->parent->id}"); 
+			$this->session->redirect($afterDeleteRedirect); 
 			
 		} else { 
 			$this->error("Unable to move page to trash"); 

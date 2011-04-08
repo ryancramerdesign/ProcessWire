@@ -17,7 +17,7 @@
  *
  */
 
-class ProcessPageType extends Process {
+class ProcessPageType extends Process implements ConfigurableModule {
 
 	static public function getModuleInfo() {
 		return array(
@@ -30,18 +30,15 @@ class ProcessPageType extends Process {
 
 	protected $pages;
 	protected $template = null;
-	protected $showFields = array(
-		'name', 
-		'id',
-		'created',
-		'createdUser',
-		'modifiedUser',
-		'modified',
-		'path',
-		'url',
-		);
+
+	public function __construct() {
+		$this->set('showFields', array('name')); 
+	}
 
 	public function init() {
+
+		$this->config->scripts->add($this->config->urls->ProcessPageType . 'ProcessPageType.js'); 
+		$this->config->styles->add($this->config->urls->ProcessPageType . 'ProcessPageType.css'); 
 
 		$this->fuel->breadcrumbs->add(new Breadcrumb('../', $this->page->get('title|name'))); 
 		$this->pages = $this->fuel($this->page->name); 
@@ -62,10 +59,6 @@ class ProcessPageType extends Process {
 	public function ___executeEdit() {
 
 		$editor = $this->modules->get("ProcessPageEdit"); 
-		$editor->useTrash = false;
-		$editor->useSettings = false;
-		$editor->useChildren = false;
-		$editor->useView = false;
 		return $editor->execute();
 	}
 
@@ -79,33 +72,27 @@ class ProcessPageType extends Process {
 	protected function renderList() {
 
 		$out = '';
-		/*
+
 		if(!$this->pages->getTemplate()) {
 			$form = $this->getTemplateFilterForm();		
 			$out = $form->render();
 		}
-		*/
-		if($this->template) {
-			foreach($this->template->fields as $field) {
-				$this->showFields[] = $field->name;		
-			}
-		}
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
-		//$fieldNames = $this->showFields;
-		$table->headerRow(array('name'));
+		$table->setEncodeEntities(false); 
+		$fieldNames = $this->showFields; 
+		$table->headerRow($fieldNames); 
 		$selector = "limit=25"; 
 		$pages = $this->pages->find($selector); 
 
 		foreach($pages as $page) {
-			$row = array($page->name => "edit/?id={$page->id}"); 
-			/*
+			$n = 0; 
+			$row = array();
 			foreach($fieldNames as $name) {
-				if($name == 'name') continue; 
-				$value = $page->get($name); 
-				$row[] = $value;
+				if(!$n) $row[$page->get($name)] = "edit/?id={$page->id}";
+					else $row[] = $this->renderListFieldValue($page->get($name)); 
+				$n++;
 			}
-			*/
 			$table->row($row); 
 		}
 
@@ -119,6 +106,26 @@ class ProcessPageType extends Process {
 		$out .= $table->render();
 
 		return $out; 
+	}
+
+	protected function renderListFieldValue($value) {
+		if(is_string($value) || is_int($value)) return htmlspecialchars($value); 
+		if(is_array($value)) return htmlspecialchars(print_r($value, true)); 
+		if(is_object($value)) {
+
+			if($value instanceof WireArray) {
+				$out = '';	
+				foreach($value as $k => $v) {
+					$out .= $v->name . ", ";
+				}
+				return nl2br(rtrim($out, ", ")); 
+
+			} else if($value instanceof Wire) {
+				return $value->name; 
+			}
+		}
+		
+		return '';
 	}
 
 	protected function getTemplateFilterForm() {
@@ -152,6 +159,22 @@ class ProcessPageType extends Process {
 		return $form;
 	}
 
+	static public function getModuleConfigInputfields(array $data) {
+
+		$showFields = isset($data['showFields']) ? $data['showFields'] : array();
+		$fields = array('name'); 
+		foreach(wire('fields') as $field) $fields[] = $field->name; 
+	
+		$inputfields = new InputfieldWrapper();
+		$f = wire('modules')->get('InputfieldAsmSelect'); 
+		$f->label = "What fields should be displayed in the page listing?";
+		$f->attr('id+name', 'showFields'); 
+		foreach($fields as $name) $f->addOption($name); 
+		$f->attr('value', $showFields); 
+		$inputfields->add($f);
+
+		return $inputfields;
+	}
 	
 }
 
