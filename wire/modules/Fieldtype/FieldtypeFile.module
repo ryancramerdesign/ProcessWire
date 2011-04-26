@@ -202,7 +202,7 @@ class FieldtypeFile extends FieldtypeMulti {
 	public function getDatabaseSchema(Field $field) {
 		$schema = parent::getDatabaseSchema($field); 
 		$schema['data'] = 'varchar(255) NOT NULL';
-		$schema['description'] = "text NOT NULL default ''";
+		$schema['description'] = "text NOT NULL";
 		$schema['keys']['description'] = 'FULLTEXT KEY description (description)'; 
 		return $schema;
 	}

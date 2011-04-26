@@ -17,6 +17,16 @@
 class Role extends Page { 
 
 	/**
+	 * Create a new ROle page in memory. 
+	 *
+	 */
+	public function __construct(Template $tpl = null) {
+		if(is_null($tpl)) $tpl = $this->fuel('templates')->get('role'); 
+		$this->parent = $this->fuel('pages')->get($this->fuel('config')->rolesPageID); 
+		parent::__construct($tpl); 
+	}
+
+	/**
 	 * Does this role have the given permission name or object?
 	 *
 	 * @param string|Permission

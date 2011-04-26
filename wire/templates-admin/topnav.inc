@@ -1,6 +1,6 @@
 <?php
 
-foreach($pages->get($wire->config->adminRootPageID)->children() as $p) {
+foreach($pages->get($wire->config->adminRootPageID)->children("check_access=0") as $p) {
 
 	if(!$p->viewable()) continue; 
 
@@ -8,16 +8,11 @@ foreach($pages->get($wire->config->adminRootPageID)->children() as $p) {
 	$info = array();
 
 	if(!$showItem) { 
-		$checkPages = $p->numChildren ? $p->children : array($p); 
+		$checkPages = $p->numChildren ? $p->children("check_access=0") : array($p); 
 		foreach($checkPages as $child) {
-			$process = $child->getUnformatted('process'); 
-			if($process) {
-				$info = $modules->getModuleInfo($process); 
-				$permission = empty($info['permission']) ? '' : $info['permission']; 
-				if($permission && $user->hasPermission($permission)) {
-					$showItem = true; 
-					break;
-				}
+			if($child->viewable()) {
+				$showItem = true;
+				break;
 			}
 		}
 	}

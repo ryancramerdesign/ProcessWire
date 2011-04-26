@@ -67,6 +67,30 @@ class Template extends WireData implements Saveable {
 		); 
 
 	/**
+	 * Array where get/set properties are stored
+	 *
+	 */
+	protected $data = array(
+		'useRoles' => 0, 		// does this template define access?
+		'childrenTemplatesID' => 0, 	// template ID for child pages, or -1 if no children allowed. 
+		'allowPageNum' => 0, 		// allow page numbers in URLs?
+		'redirectLogin' => 0, 		// redirect when no access: 0 = 404, 1 = login page, 'url' = URL to redirec to
+		'urlSegments' => 0,		// allow URL segments on pages?
+		'https' => 0, 			// use https? 0 = http or https, 1 = https only, -1 = http only
+		'slashUrls' => 1, 		// page URLs should have a trailing slash? 1 = yes, 0 = no	
+		'altFilename' => '',		// alternate filename for template file, if not based on template name
+		'guestSearchable' => 0, 	// pages appear in search results even when user doesn't have access?
+		'pageClass' => '', 		// class for instantiated page objects. 'Page' assumed if blank, or specify class name. 
+		'noGlobal' => 0, 		// template should ignore the 'global' option of fields?
+		'noMove' => 0,			// pages using this template are not moveable?
+		'noTrash' => 0,			// pages using thsi template may not go in trash? (i.e. they will be deleted not trashed)
+		'noSettings' => 0, 		// don't show a 'settings' tab on pages using this template?
+		'noChangeTemplate' => 0, 	// don't allow pages using this template to change their template?
+		'nameContentTab' => 0, 		// pages should display the 'name' field on the content tab?	
+		); 
+
+
+	/**
 	 * Get a Template property
 	 *
 	 * @param string $key

@@ -69,8 +69,10 @@ class PagePermissions extends WireData implements Module {
 	 */
 	protected function pageEditable(Page $page) {
 
+		$user = $this->fuel('user');
+
 		// superuser can always do whatever they want
-		if($this->user->isSuperuser()) return true; 
+		if($user->isSuperuser()) return true; 
 
 		// note there is an exception in the case of system pages, which require superuser to edit
 		if($page->status & Page::statusSystem) return false; 
@@ -78,27 +80,24 @@ class PagePermissions extends WireData implements Module {
 		// special conditions apply if the page is a User
 		if($page instanceof User) {
 
-			// if it's the user's own page, and they have any kind of edit permission anywhere, we'll let them edit themselves
-			if($page->id == $this->user->id && $this->user->hasPermission('page-edit')) return true; 
-
 			// if the user page being edited has a superuser role, and the current user doesn't, never let them edit regardless of any other permissions
-			if($page->hasRole('superuser') && !$this->user->hasRole('superuser')) return false; 
+			if($page->hasRole('superuser') && !$user->hasRole('superuser')) return false; 
 
-			if($this->user->hasPermission('user-admin')) return true; 
+			if($user->hasPermission('user-admin')) return true; 
 
 		} else if($page instanceof Role) {
 		
-			if($this->user->hasPermission('role-admin')) return true; 
+			if($user->hasPermission('role-admin')) return true; 
 			return false; 
 
 		} else if($page instanceof Permission) {
 
-			if($this->user->hasPermission('permission-admin')) return true; 
+			if($user->hasPermission('permission-admin')) return true; 
 			return false; 
 		}
 
 		// if the user doesn't have page-edit permission, don't let them go further
-		if(!$this->user->hasPermission("page-edit", $page)) return false;
+		if(!$user->hasPermission("page-edit", $page)) return false;
 
 		return true; 
 	}
@@ -114,6 +113,8 @@ class PagePermissions extends WireData implements Module {
 
 		if($name == 'id' && ($page->status & Page::statusSystemID)) return false; 
 
+		$user = $this->fuel('user'); 
+
 		if($page->status & Page::statusSystem) {
 			if(in_array($name, array('id', 'name', 'template', 'templates_id', 'parent', 'parent_id'))) {
 				return false;
@@ -122,20 +123,20 @@ class PagePermissions extends WireData implements Module {
 
 		if($name == 'template' || $name == 'templates_id') {
 			if($this->page->template->noChangeTemplate) return false;
-			if(!$this->user->hasPermission('page-template', $page)) return false; 
+			if(!$user->hasPermission('page-template', $page)) return false; 
 		}
 
 		if($name == 'parent' || $name == 'parent_id') {
 			if($this->page->template->noMove) return false; 
-			if(!$this->user->hasPermission('page-move', $page)) return false; 
+			if(!$user->hasPermission('page-move', $page)) return false; 
 		}
 
 		if($name == 'sortfield') {
-			if(!$this->user->hasPermission('page-sort', $page)) return false; 
+			if(!$user->hasPermission('page-sort', $page)) return false; 
 		}
 
 		if($name == 'roles') {
-			if(!$this->user->hasPermission('user-admin')) return false; 
+			if(!$user->hasPermission('user-admin')) return false; 
 		}
 
 		// FUTURE: check per-field edit access
@@ -151,13 +152,41 @@ class PagePermissions extends WireData implements Module {
 
 		$page = $event->object; 
 		$viewable = true; 
+		$user = $this->fuel('user'); 
 
 		if($page->status >= Page::statusUnpublished) $viewable = false;
-			else if(!$this->user->hasPermission("page-view", $page)) $viewable = false;
+			else if($user->isSuperuser()) $viewable = true; 
+			else if($page->process) $viewable = $this->processViewable($page->process);
+			else if(!$user->hasPermission("page-view", $page)) $viewable = false;
 			else if($page->isTrash()) $viewable = false; 
 			else if(!$page->template->filenameExists()) $viewable = false; 
 
 		$event->return = $viewable; 
+	}
+
+	/**
+	 * Does the user have explicit permission to access the given process?
+	 *
+	 * Access to the process takes over 'page-view' access to the page so that the administrator
+	 * doesn't need to setup a separate role just for 'view' access in the admin. Instead, they just
+ 	 * give the existing roles access to the admin process and then 'view' access is assumed for that page.
+	 *
+	 */
+	protected function processViewable($process) {
+
+		$user = $this->fuel('user');
+
+		if($user->isGuest()) return false;
+		if($user->isSuperuser()) return true; 
+
+		$info = $this->fuel('modules')->getModuleInfo($process); 
+		$permissionName = empty($info['permission']) ? '' : $info['permission'];
+
+		// if the process module doesn't explicitely define a permission, 
+		// then we assume the user doesn't have access
+		if(!$permissionName) return false;
+
+		return $user->hasPermission($permissionName); 
 	}
 
 	/**
@@ -166,7 +195,8 @@ class PagePermissions extends WireData implements Module {
 	 */
 	public function listable($event) {
 		$page = $event->object; 
-		$event->return = $this->user->hasPermission("page-view", $page);
+		if($page->template->guestSearchable) $event->return = true; 
+			else $event->return = $this->user->hasPermission("page-view", $page);
 	}
 
 	/**
@@ -216,5 +246,6 @@ class PagePermissions extends WireData implements Module {
 		if(!$this->user->hasPermission('page-sort', $page->parent)) $sortable = false; 
 		$event->return = $sortable;
 	}
+
 
 }

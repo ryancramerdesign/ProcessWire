@@ -94,6 +94,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 */
 	public function clearCacheFile($event) {
 		$page = $event->arguments[0]; 
+		if(!$page->template->cache_time) return;
 		$cacheFile = $this->getCacheFile($page); 
 		$cacheFile->remove();
 		if($this->config->debug) $this->message("Cleared cache file: $cacheFile"); 

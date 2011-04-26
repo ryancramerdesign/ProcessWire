@@ -58,12 +58,13 @@ class Helloworld extends WireData implements Module {
 	 *
 	 */
 	public function init() {
-		
+
 		// add a hook after the $pages->save, to issue a notice every time a page is saved
 		$this->pages->addHookAfter('save', $this, 'example1'); 
 
 		// add a hook after each page is rendered and modify the output
 		$this->addHookAfter('Page::render', $this, 'example2'); 
+
 
 		// add a 'hello' method to every page that returns "Hello World"
 		$this->addHook('Page::hello', $this, 'example3'); 

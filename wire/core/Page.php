@@ -184,8 +184,8 @@ class Page extends WireData {
 
 		if(!is_null($tpl)) $this->template = $tpl;
 		$this->useFuel(false); // prevent fuel from being in local scope
-		$this->templatePrevious = null;
 		$this->parentPrevious = null;
+		$this->templatePrevious = null;
 	}
 
 	/**
@@ -443,7 +443,10 @@ class Page extends WireData {
 				if(!$value = $this->fuel('users')->get($this->settings['created_users_id'])) $value = new NullUser(); 
 				break;
 			case 'urlSegment':
-				return $this->fuel('input')->urlSegment1; // deprecated, but kept for backwards compatibility
+				$value = $this->fuel('input')->urlSegment1; // deprecated, but kept for backwards compatibility
+				break;
+			case 'accessTemplate': 
+				$value = $this->getAccessTemplate();
 				break;
 			default:
 				if($key && isset($this->settings[(string)$key])) return $this->settings[$key]; 
@@ -1149,6 +1152,64 @@ class Page extends WireData {
 		return parent::__isset($key); 
 	}
 
+	/**
+	 * Returns the parent page that has the template from which we get our role/access settings from
+	 *
+	 * @return Page|NullPage Returns NullPage if none found
+	 *
+	 */
+	public function getAccessParent() {
+		if($this->template->useRoles) return $this;
+		$parent = $this->parent();	
+		if($parent->id) return $parent->getAccessParent();
+		return new NullPage();
+	}
+
+	/**
+	 * Returns the template from which we get our role/access settings from
+	 *
+	 * @return Template|null Returns null if none	
+	 *
+	 */
+	public function getAccessTemplate() {
+		$parent = $this->getAccessParent();
+		if(!$parent->id) return null;
+		return $parent->template; 
+	}
+	
+	/**
+	 * Return the PageArray of roles that have access to this page
+	 *
+	 * This is determined from the page's template. If the page's template has roles turned off, 
+	 * then it will go down the tree till it finds usable roles to use. 
+	 *
+	 * @return PageArray
+	 *
+	 */
+	public function getAccessRoles() {
+		$template = $this->getAccessTemplate();
+		if($template) return $template->roles; 
+		return new PageArray();
+	}
+
+	/**
+	 * Returns whether this page has the given access role
+	 *
+	 * Given access role may be a role name, role ID or Role object
+	 *
+	 * @param string|int|Role $role 
+	 * @return bool
+	 *
+	 */
+	public function hasAccessRole($role) {
+		$roles = $this->getAccessRoles();
+		if(is_string($role)) return $roles->has("name=$role"); 
+		if($role instanceof Role) return $roles->has($role); 
+		if(is_int($role)) return $roles->has("id=$role"); 
+		return false;
+	}
+
+
 	/** REMOVED
 	public function roles() {}
 	public function addRole($role) {}
@@ -1177,6 +1238,9 @@ class NullPage extends Page {
 	public function rootParent() { return new NullPage(); }
 	public function siblings($selector = '') { return new PageArray(); }
 	public function children($selector = '') { return new PageArray(); }
+	public function getAccessParent() { return new NullPage(); }
+	public function getAccessRoles() { return new PageArray(); }
+	public function hasAccessRole($role) { return false; }
 
 }
 

@@ -67,10 +67,12 @@ DirectoryIndex index.php index.html index.htm
 
   # -----------------------------------------------------------------------------------------------
   # Optional: Set a rewrite base if rewrites aern't working properly on your server.
+  # And if your site directory starts with a "~" you will most likely have to use this.
   # -----------------------------------------------------------------------------------------------
 
   # RewriteBase /
-  # RewriteBase /pw
+  # RewriteBase /pw/
+  # RewriteBase /~user/
 
   # -----------------------------------------------------------------------------------------------
   # Access Restrictions: Keep web users out of dirs that begin with a period
@@ -107,7 +109,7 @@ DirectoryIndex index.php index.html index.htm
   # Ensure that the URL follows the name-format specification required by ProcessWire
   # ----------------------------------------------------------------------------------------------- 
 
-  RewriteCond %{REQUEST_URI} "^[-_.a-zA-Z0-9/]*$"
+  RewriteCond %{REQUEST_URI} "^/~?[-_.a-zA-Z0-9/]*$"
 
   # -----------------------------------------------------------------------------------------------
   # If the request is for a file or directory that physically exists on the server,

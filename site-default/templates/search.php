@@ -16,7 +16,7 @@ if($q = $sanitizer->selectorValue($input->get->q)) {
 	// Search the title, body and sidebar fields for our query text.
 	// Limit the results to 50 pages. 
 	// Exclude results that use the 'admin' template. 
-	$matches = $pages->find("title|body|sidebar~=$q, limit=50, template!=admin"); 
+	$matches = $pages->find("title|body|sidebar~=$q, limit=50"); 
 
 	$count = count($matches); 
 

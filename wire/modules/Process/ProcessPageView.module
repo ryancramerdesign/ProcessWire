@@ -188,9 +188,24 @@ class ProcessPageView extends Process {
 	 *
 	 */
 	protected function checkAccess($page) {
+
 		if($page->viewable()) return $page; 
-		if($page->template->redirectLogin) $page = $this->pages->get($this->config->loginPageID); 
-			else $page = null;
+
+		$redirectLogin = $page->getAccessTemplate()->redirectLogin;
+
+		if($redirectLogin) {
+			if(ctype_digit("$redirectLogin")) {
+				$redirectLogin = (int) $redirectLogin;
+				if($redirectLogin == 1) $redirectLogin = $this->config->loginPageID; 
+				//$this->error("You don't have permission to access this page"); 
+				$page = $this->pages->get($redirectLogin); 
+			} else {
+				$redirectLogin = str_replace('{id}', $page->id, $redirectLogin); 
+				$this->redirectURL = $redirectLogin;
+			}
+		} else {
+			$page = null;
+		}
 		return $page; 
 	}
 

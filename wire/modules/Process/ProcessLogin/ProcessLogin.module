@@ -42,6 +42,7 @@ class ProcessLogin extends Process {
 	public function init() {
 
 		$this->id = isset($_GET['id']) ? (int) $_GET['id'] : ''; 
+		$this->allowForgot = $this->modules->isInstalled('ProcessForgotPassword'); 
 
 		return parent::init();
 	}
@@ -53,18 +54,55 @@ class ProcessLogin extends Process {
 	public function ___execute() {
 
 		if($this->user->isLoggedin()) {
-			$this->message("You are already logged in. "); 
-			return;
+
+			$this->message("You are logged in."); 
+			$url = $this->config->urls->root;
+
+			if($this->user->hasPermission('page-edit')) {
+				$admin = $this->pages->get($this->config->adminRootPageID); 
+				$url = $admin->url;
+			}
+
+			return "<p><a href='$url'>Continue</a></p>";
 		}
+
+		if($this->input->get->forgot && $this->allowForgot) {
+			$process = $this->modules->get("ProcessForgotPassword"); 
+			return $process->execute();
+		}
+
+		$this->buildLoginForm();
+
+		if(isset($_POST['login_submit'])) $this->form->processInput($this->input->post); 
+
+		if(!$this->nameField->value || !$this->passField->value) return $this->renderLoginForm(); 
+
+		$name = $this->fuel('sanitizer')->username($this->nameField->value); 
+		$pass = substr($this->passField->value, 0, 50); 
+
+		if($this->fuel('session')->login($name, $pass)) {
+			$this->session->message("Successful login for $name"); 
+			$this->session->remove('error'); 
+			$this->session->redirect("./?login=1" . ($this->id ? "&id={$this->id}" : ''));  
+		} else {
+			$this->error("Login failed for $name"); 
+		}
+
+		return $this->renderLoginForm();
+
+	}	
+
+	protected function buildLoginForm() {
 
 		$this->nameField = $this->modules->get('InputfieldText');
 		$this->nameField->set('label', 'Username'); 
-		$this->nameField->attr('name', 'login_name'); 
+		$this->nameField->attr('id+name', 'login_name'); 
 		$this->nameField->attr('class', $this->className() . 'Name'); 
 
-		$this->passField = $this->modules->get('InputfieldPassword');
+		$this->passField = $this->modules->get('InputfieldText');
 		$this->passField->set('label', 'Password'); 
-		$this->passField->attr('name', 'login_pass'); 
+		$this->passField->attr('id+name', 'login_pass'); 
+		$this->passField->attr('type', 'password'); 
 		$this->passField->attr('class', $this->className() . 'Pass'); 
 
 		$this->submitField = $this->modules->get('InputfieldSubmit');
@@ -78,24 +116,24 @@ class ProcessLogin extends Process {
 		$this->form->add($this->nameField); 
 		$this->form->add($this->passField); 
 		$this->form->add($this->submitField); 
+	}
 
-		if(isset($_POST['login_submit'])) $this->form->processInput($this->input->post); 
-
-		if(!$this->nameField->value || !$this->passField->value) return $this->render(); 
-
-		$name = $this->fuel('sanitizer')->username($this->nameField->value); 
-		$pass = substr($this->passField->value, 0, 50); 
-
-		if($this->fuel('session')->login($name, $pass)) {
-			$this->session->message("Successful login for $name"); 
-			$this->session->redirect("./?login=1" . ($this->id ? "&id={$this->id}" : ''));  
+	/**
+	 * Render the login form
+	 *
+	 */
+	protected function renderLoginForm() {
+		if(isset($_GET['login'])) {
+			$this->session->redirect("../"); 
 		} else {
-			$this->error("Login failed for $name"); 
+			$this->setFuel('processHeadline', 'Login'); 
+			$out = $this->form->render();
+			if($this->allowForgot) {
+				$out .= "<p><a href='./?forgot=1'>Forgot your password?</a></p>";
+			}
+			return $out; 
 		}
-
-		return $this->render();
-
-	}	
+	}
 
 	/**
 	 * Log the user out
@@ -105,19 +143,6 @@ class ProcessLogin extends Process {
 		$this->fuel('session')->logout();
 		$this->message("You have logged out"); 
 		return "<p><a href='{$this->config->urls->root}'>Continue</a></p>";
-	}
-
-	/**
-	 * Render the login form
-	 *
-	 */
-	protected function render() {
-		if(isset($_GET['login'])) {
-			$this->session->redirect("../"); 
-		} else {
-			$this->setFuel('processHeadline', 'Login'); 
-			return $this->form->render();
-		}
 	}
 
 }

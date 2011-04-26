@@ -68,6 +68,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 				<?php include($config->paths->templatesAdmin . "topnav.inc"); ?>
 			</ul>
 
+			<?php if(!$user->isGuest()): ?>
 			<ul id='breadcrumb' class='nav'>
 				<?php
 				foreach($this->fuel('breadcrumbs') as $breadcrumb) {
@@ -75,9 +76,8 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 					echo "\n\t\t\t<li><a href='{$breadcrumb->url}'>{$title}</a> &gt;</li>";
 				}
 				?>
-
 			</ul>
-			
+			<?php endif; ?>	
 
 			<h1 id='title'><?php echo strip_tags($this->fuel->processHeadline ? $this->fuel->processHeadline : $page->get("title|name")); ?></h1>
 
@@ -106,13 +106,21 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 			<p>
 
 			<?php if(!$user->isGuest()): ?>
-			<span id='userinfo'><?php echo $user->name?>  <a class='action' href='<?php echo $config->urls->admin?>login/logout/'>logout</a></span>
+			<span id='userinfo'>
+				<?php echo $user->name?>  
+
+				<?php if($user->hasPermission('profile-edit')): ?> / 
+				<a class='action' href='<?php echo $config->urls->admin; ?>profile/'>profile</a> /
+				<?php endif; ?>
+
+				<a class='action' href='<?php echo $config->urls->admin; ?>login/logout/'>logout</a>
+			</span>
 			<?php endif; ?>
 
 			ProcessWire <?php echo $config->version; ?> &copy; <?php echo date("Y"); ?> by Ryan Cramer 
 			</p>
 
-			<?php if($config->debug) include($config->paths->adminTemplates . "debug.inc"); ?>
+			<?php if($config->debug && $this->user->isSuperuser()) include($config->paths->adminTemplates . "debug.inc"); ?>
 		</div>
 	</div>
 

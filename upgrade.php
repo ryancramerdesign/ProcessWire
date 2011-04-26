@@ -1,5 +1,7 @@
 <?php
 
+die("This upgrade script is not yet ready to use."); 
+
 define("PROCESSWIRE_INSTALL", 1); 
 $title = "ProcessWire Upgrade";
 $GLOBALS['numErrors'] = 0;

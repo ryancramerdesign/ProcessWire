@@ -346,7 +346,7 @@ class ProcessPageEdit extends Process {
 		$wrapper->add($this->buildFormStatus()); 
 
 		// roles
-		// $wrapper->add($this->buildFormRoles()); 
+		$wrapper->add($this->buildFormRoles()); 
 
 		// info
 		$wrapper->add($this->buildFormInfo()); 
@@ -387,7 +387,7 @@ class ProcessPageEdit extends Process {
 			Page::statusLocked => "Locked: Not editable", 
 			); 
 			
-		if($this->config->advanced) {
+		if($this->config->advanced && $this->user->isSuperuser()) {
 			$statuses[Page::statusSystemID] = "System: Non-deleteable and locked ID (status not removeable via API)";
 			$statuses[Page::statusSystem] = "System: Non-deleteable and locked ID, name, template, parent (status not removeable via API)"; 
 		}
@@ -464,6 +464,50 @@ class ProcessPageEdit extends Process {
 		$field->attr('class', 'InputfieldWrapper'); 
 		$field->attr('value', "<a href='{$this->page->httpUrl}'>View</a>"); 
 		return $field;
+	}
+
+	/**
+	 * Build the Settings > Roles fieldset on the Page Edit form 
+	 *
+	 */
+	protected function buildFormRoles() {
+
+		$field = $this->modules->get("InputfieldMarkup"); 
+		$field->label = "Who can access this page?";
+		$roles = $this->page->getAccessRoles();
+
+
+		$table = $this->modules->get("MarkupAdminDataTable"); 
+		$table->headerRow(array('Role', 'What they can do')); 
+		$table->setEncodeEntities(false);
+
+		if(count($roles)) { 
+
+			foreach($roles as $role) {
+				$permissions = '';	
+				$roleName = $role->name; 
+				if($roleName == 'guest') $roleName .= " (everyone)";
+				foreach($role->permissions as $permission) {
+					$permissions .= "{$permission->title}\n";
+				}
+				$table->row(array($roleName, nl2br($permissions))); 
+			}
+
+		}
+
+		$table->row(array('superuser', 'Everything')); 
+
+		$field->value = $table->render();
+
+		$accessParent = $this->page->getAccessParent();
+		if($accessParent === $this->page) {
+			$field->notes = "Access is defined with this page's template \"{$accessParent->template}\"";	
+		} else {
+			$field->notes = "Access is inherited from page \"{$accessParent->path}\" and defined with template \"{$accessParent->template}\"";
+		}
+
+		return $field;
+		
 	}
 
 	/**
@@ -571,7 +615,7 @@ class ProcessPageEdit extends Process {
 
 		$statusFlags = array(Page::statusHidden, Page::statusLocked); 
 
-		if($this->config->advanced) {
+		if($this->config->advanced && $this->user->isSuperuser()) {
 			$statusFlags[] = Page::statusSystemID;
 			$statusFlags[] = Page::statusSystem; 
 		}

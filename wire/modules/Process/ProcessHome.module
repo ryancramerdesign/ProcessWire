@@ -26,6 +26,7 @@ class ProcessHome extends Process {
 			'summary' => 'Acts as a placeholder Process for the admin root. Ensures proper flow control after login.', 
 			'version' => 100, 
 			'permission' => 'page-view', 
+			'permanent' => true, 
 			);
 	}
 

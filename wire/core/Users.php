@@ -8,7 +8,7 @@ class Users extends PagesType {
 	public function setCurrentUser(User $user) {
 		if(!$user->roles->has("id=" . $this->fuel('config')->guestUserRolePageID)) {
 			$guestRole = $this->fuel('roles')->getGuestRole();
-			$user->addRole("guest");
+			$user->roles->add($guestRole);
 		}
 		$this->currentUser = $user; 
 	}

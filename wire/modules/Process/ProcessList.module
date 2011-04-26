@@ -37,7 +37,7 @@ class ProcessList extends Process {
 	protected function render() {
 		$out = "\n<dl class='nav'>";
 		$cnt = 0; 
-		foreach($this->page->children() as $child) {
+		foreach($this->page->children("check_access=0") as $child) {
 			if(!$child->viewable()) continue; 
 			if($child->process) {
 				$info = $this->modules->getModuleInfo($child->process); 	

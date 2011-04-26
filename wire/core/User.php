@@ -23,7 +23,7 @@ class User extends Page {
 	 *
 	 */
 	public function __construct(Template $tpl = null) {
-		if(is_null($tpl)) $tpl = $this->fuel('templates')->get('system_user'); 
+		if(is_null($tpl)) $tpl = $this->fuel('templates')->get('user'); 
 		$this->parent = $this->fuel('pages')->get($this->fuel('config')->usersPageID); 
 		parent::__construct($tpl); 
 	}
@@ -65,7 +65,7 @@ class User extends Page {
 		$has = false; 
 
 		foreach($this->roles as $key => $role) {
-			if($page && !$page->template->hasRole($role)) continue; 
+			if($page && !$page->hasAccessRole($role)) continue; 
 			if($role->hasPermission($permission)) { 
 				$has = true;
 				break;
@@ -86,7 +86,7 @@ class User extends Page {
 		if($this->isSuperuser()) return $this->fuel('permissions'); 
 		$permissions = new PageArray();
 		foreach($this->roles as $key => $role) {
-			if($page && !$page->template->hasRole($role)) continue; 
+			if($page && !$page->hasAccessRole($role)) continue; 
 			foreach($role->permissions as $permission) { 
 				$permissions->add($permission); 
 			}
@@ -95,7 +95,16 @@ class User extends Page {
 	}
 
 	public function isSuperuser() {
-		return $this->id === $this->fuel('config')->superUserPageID; 
+		$config = $this->fuel('config');
+		if($this->id === $config->superUserPageID) return true; 
+		if($this->id === $config->guestUserPageID) return false;
+		$superuserRoleID = $config->superUserRolePageID; 
+		$is = false;
+		foreach($this->roles as $role) if($role->id == $superuserRoleID) {
+			$is = true;
+			break;
+		}
+		return $is;
 	}
 
 	public function isGuest() {

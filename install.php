@@ -275,7 +275,7 @@ class Installer {
 		if(!is_file("{$profile}install.sql")) die("No installation profile found in {$profile}"); 
 
 		// checks to see if the database exists using an arbitrary query (could just as easily be something else)
-		$result = $mysqli->query("SHOW COLUMNS FROM users_roles"); 
+		$result = $mysqli->query("SHOW COLUMNS FROM pages"); 
 
 		if(self::replaceDB || !$result || $result->num_rows == 0) {
 
@@ -369,7 +369,8 @@ class Installer {
 		echo 	"<h2>4. Create Admin Account</h2>" . 
 			"<p>The account you create here will have superuser access, so please make sure to create a strong password.</p>" . 
 			"<p><label>Username<br /><input type='text' name='username' value='admin' /></label></p>" . 
-			"<p><label>Password<br /><input type='text' name='userpass' value='' /></label></p>";
+			"<p><label>Password<br /><input type='text' name='userpass' value='' /></label></p>" . 
+			"<p><label>E-Mail Address<br /><input type='text' name='useremail' value='' /></label></p>";
 
 		$this->btn("Create Account", 5); 
 	}
@@ -381,18 +382,24 @@ class Installer {
 			return $this->adminAccount();
 		}
 
-		$superuser = $wire->roles->get("superuser");
-		$user = new User();
+		$superuser = $wire->roles->get("name=superuser");
+
+		$user = $wire->users->get($wire->config->superUserPageID); 
+		if(!$user->id) {
+			$user = new User(); 
+			$user->id = $wire->config->superUserPageID; 
+		}
 		$user->name = $wire->input->post->username; 
 		$user->pass = $wire->input->post->userpass; 
-		$pass = $user->pass; 
+		$user->email = $wire->input->post->useremail;
+		$pass = htmlentities($wire->input->post->userpass); 
 
-		if($user->name != $wire->input->post->username || $user->pass != $wire->input->post->userpass) {
-			$this->err("Your username or password contained characters that aren't accepted at this time. Please try another."); 
+		if($user->name != $wire->input->post->username) {
+			$this->err("Your username contained characters that aren't accepted at this time. Please try another."); 
 			return $this->adminAccount();
 		} 
 
-		$user->addRole($superuser); 
+		if(!$user->roles->has("superuser")) $user->roles->add($superuser); 
 
 		try {
 			$wire->users->save($user); 
@@ -437,7 +444,7 @@ class Installer {
 
 	public function execute() {
 
-		$title = "ProcessWire 2.0 Installation";
+		$title = "ProcessWire 2.1 Installation";
 		require("./wire/templates-admin/install-head.inc"); 
 
 		if(isset($_POST['step'])) switch($_POST['step']) {

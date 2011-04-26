@@ -48,6 +48,7 @@ class ProcessTemplate extends Process {
 
 		if($this->id) { 
 			$this->template = $this->templates->get($this->id); 
+			if(!$this->template) throw new WireException("Unknown template"); 
 			$this->numPages = $this->template->getNumPages();
 		}
 
@@ -117,6 +118,7 @@ class ProcessTemplate extends Process {
 		$templateFiles = array();
 		$ext = "." . $this->config->templateExtension; 
 
+
 		foreach($dir as $file) {
 			if($file->isDir() || $file->isDot()) continue; 
 			if(substr($file->getFilename(), -1 * strlen($ext)) != $ext) continue; 
@@ -162,6 +164,7 @@ class ProcessTemplate extends Process {
 				$fieldgroup->name = $template->name; 
 				$fieldgroup->save();
 				$template->fieldgroup = $fieldgroup; 
+				$template->roles = array($this->roles->getGuestRole()->id); 
 				$template->save();
 				$this->message("Added template and fieldgroup: $basename"); 
 
@@ -286,7 +289,7 @@ class ProcessTemplate extends Process {
 
 		$form->append($this->buildEditFormAccess($template)); 
 		$form->append($this->buildEditFormAdvanced($template)); 
-		$form->append($this->buildEditFormImport($template));
+		$form->append($this->buildEditFormImport());
 
 		// --------------------
 			
@@ -336,13 +339,16 @@ class ProcessTemplate extends Process {
 		
 		foreach($this->fields as $field) {
 			if($template->fieldgroup->has($field)) continue; 
-			$select->addOption($field->id, $field->name); 
+			if(($field->flags & Field::flagPermanent) && !$this->config->advanced) continue; 
+			$name = $field->name; 
+			if($field->flags & Field::flagSystem) $name .= "*";
+			$select->addOption($field->id, $name); 
 		}
 	
 		return $select; 
 	}
 
-	protected function buildEditFormImport(Template $template) {
+	protected function buildEditFormImport() {
 
 		$form = $this->modules->get("InputfieldFieldset"); 
 		$form->label = "Import";
@@ -360,6 +366,8 @@ class ProcessTemplate extends Process {
 		$field->attr('value', ''); 
 
 		foreach($this->fieldgroups->find("sort=name") as $fieldgroup) {
+			$template = $this->templates->get($fieldgroup->name); 	
+			if($template && ($template->flags & Template::flagSystem) && !$this->config->advanced) continue; 
 			if($this->template && $fieldgroup->name == $this->template->name) continue; 
 			$field->addOption($fieldgroup->name); 
 		}
@@ -665,28 +673,76 @@ class ProcessTemplate extends Process {
 	protected function buildEditFormAccess(Template $template) {
 
 		$form = $this->modules->get("InputfieldFieldset"); 
+		$form->attr('id', 'access'); 	
 		$form->label = "Access";
-		$form->collapsed = Inputfield::collapsedNo; 
-		$form->description = "Control user access to pages that use this template.";
+		$form->collapsed = $template->useRoles ? Inputfield::collapsedNo : Inputfield::collapsedYes;
 
-		$form->add($this->buildEditFormAccessRoles($template)); 
+		// --------------------
+
+		$field = $this->modules->get('InputfieldRadios'); 
+		$field->attr('id+name', 'useRoles');
+		$field->label = "Do you want to manage access for pages using this template?";
+		$field->description = 
+			"If you select 'Yes' you can define what roles have access to pages using this template. " . 
+			"If you select 'No' then pages using this template will inherit access from their parent pages.";
+		$field->addOption(1, "Yes");
+		$field->addOption(0, "No"); 
+		$field->attr('value', (int) $template->useRoles); 
+		$field->collapsed = Inputfield::collapsedNo;
+		$form->add($field); 
+
+		// --------------------
+
+		$fieldset = $this->modules->get('InputfieldFieldset'); 
+		$fieldset->attr('id+name', 'useRolesYes'); 
+		$fieldset->label = 'Manage Access';
+		$form->add($fieldset); 
+
+		// --------------------
+
+		$fieldset->add($this->buildEditFormAccessRoles($template)); 
 
 		// --------------------
 
 		$field = $this->modules->get('InputfieldRadios'); 
 		$field->attr('id+name', 'redirectLogin');
-		$field->label = 'What to do when user has no access?';
+		$field->label = 'What to do when user attempts to view a page and has no access?';
 		$field->description = "If a user attempts to access a page using this template, and doesn't have access to the page, what should it do?"; 
 		$field->addOption(0, 'Show a 404 Page'); 
-		$field->addOption(1, 'Show the Login Page (' . $this->pages->get($this->config->loginPageID)->url . ')');
-		$field->attr('value', (int) $template->redirectLogin); 
+		$field->addOption($this->config->loginPageID, 'Show the Login page (' . $this->pages->get($this->config->loginPageID)->url . ')');
+		$field->addOption(-1, "Redirect to another URL"); 
+		$field->attr('value', !$template->redirectLogin || ctype_digit("{$template->redirectLogin}") ? (int) $template->redirectLogin : -1); 
 		$field->collapsed = Inputfield::collapsedBlank;
+		$fieldset->add($field); 
 
-		$form->add($field); 
+		$field = $this->modules->get('InputfieldURL'); 
+		$field->attr('id+name', 'redirectLoginURL'); 
+		$field->label = "Enter the URL you want to redirect to when a user doesn't have access"; 
+		$field->description = 'This field is applicable only if you selected "redirect to another URL" in the field above.';
+		if($template->redirectLogin && !ctype_digit("{$template->redirectLogin}")) $field->attr('value', $template->redirectLogin); 
+		$field->collapsed = Inputfield::collapsedNo;
+		$field->notes = "Optional: In your URL, you can include the tag \"{id}\" (perhaps as a GET variable), and it will be replaced by the requested page's ID number, if you want it.";
+		$fieldset->add($field); 
+		
+		// --------------------
+
+		$field = $this->modules->get('InputfieldRadios'); 
+		$field->attr('id+name', 'guestSearchable');
+		$field->label = "Should pages be searchable when user has no access?";
+		$field->description = "When a user doesn't have access to view a page using this template, what should happen in searches and page lists?";
+		$field->addOption(1, "Yes - Pages may appear in searches/lists even if the user doesn't have access to view them");
+		$field->addOption(0, "No - Pages may NOT not appear in searches/lists unless the user has access to view them"); 
+		$field->attr('value', (int) $template->guestSearchable); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$field->notes = "API Note: This setting affects the results returned by \$pages->find(), \$page->children() and other functions that return PageArrays.";
+		$fieldset->add($field); 
+
+		// --------------------
+
 		return $form; 
 	}
 	
-	protected function buildEditFormAccessRoles(Template $template) {
+	protected function buildEditFormAccessRoles(Template $template = null) {
 
 		$roles = $this->pages->get($this->config->rolesPageID)->children(); 
 
@@ -699,7 +755,8 @@ class ProcessTemplate extends Process {
 			"Check the box next to each role that will be allowed to access pages using this template. " . 
 			"For your reference, the permissions associated with each role are also listed. " . 
 			"Because the 'guest' role applies to everyone, all other roles inherit guest permissions automatically when it is checked. " . 
-			"Note that in order for a page to be publicly accessible, the 'guest' role must be checked. "; 
+			"Note that in order for a page using this template to be publicly accessible, the 'guest' role must be checked. "; 
+		$field->notes = "The superuser role is always assumed to have access and is not shown here as a result.";
 
 		$guestRole = $roles->get("name=guest"); 
 
@@ -718,7 +775,12 @@ class ProcessTemplate extends Process {
 		}
 
 		$ids = array();
-		foreach($template->roles as $role) $ids[] = $role->id; 
+		if($template && $template->id) {
+			foreach($template->roles as $role) $ids[] = $role->id; 
+		} else {
+			// if new template, default to having the guest role
+			$ids[] = $this->roles->getGuestRole()->id;
+		}
 		$field->value = $ids; 
 		return $field; 
 	}
@@ -757,10 +819,12 @@ class ProcessTemplate extends Process {
 			$this->template->childrenTemplatesID = (int) $form->get('childrenTemplatesID')->attr('value'); 
 			$this->template->allowPageNum = (int) $form->get('allowPageNum')->attr('value'); 
 			$this->template->redirectLogin = (int) $form->get('redirectLogin')->attr('value'); 
+			if($this->template->redirectLogin < 0) $this->template->redirectLogin = $form->get('redirectLoginURL')->attr('value'); 
 			$this->template->urlSegments = (int) $form->get('urlSegments')->attr('value');
 			$this->template->https = (int) $form->get('https')->attr('value'); 
 			$this->template->slashUrls = (int) $form->get('slashUrls')->attr('value');
 			$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
+			$this->template->guestSearchable = (int) $form->get('guestSearchable')->attr('value'); 
 
 			if($this->config->advanced) { 
 				if($form->get('flagSystem')->attr('value')) $this->template->flags = $this->template->flags | Template::flagSystem; 
@@ -774,6 +838,7 @@ class ProcessTemplate extends Process {
 			}
 
 			// save roles
+			$this->template->useRoles = (int) $form->get('useRoles')->attr('value'); 
 			$roles = $form->get('roles')->attr('value'); 
 			if(!is_array($roles)) $roles = array();
 			foreach($roles as $k => $v) $roles[$k] = (int) $v;

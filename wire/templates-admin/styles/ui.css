@@ -70,8 +70,15 @@
 			padding-right: 0.25em; 
 		}
 
-	.Inputfields li > .ui-widget-content > p {
+	.Inputfields > li > .ui-widget-content > p {
 		margin-top: 0; 
+	}
+	.Inputfields > li > .ui-widget-content > .Inputfields > li {
+		margin-top: 0.5em; 
+	}
+
+	.Inputfields li > .ui-widget-content .Inputfields > li:last-child {
+		margin-bottom: 0;
 	}
 
 	.Inputfields > li {
@@ -79,10 +86,6 @@
 		margin: 1.5em 0;
 		clear: both; 
 	}
-		.Inputfields > li.InputfieldSubmit,
-		.Inputfields > li.InputfieldWrapper,
-		.Inputfields > li.InputfieldHidden {
-		}
 
 	.Inputfields > li .notes {
 		margin-bottom: 0; 
@@ -130,7 +133,9 @@
 
 	.Inputfields .InputfieldCheckbox {
 	}
-		.Inputfields .InputfieldCheckbox .notes {
+		.Inputfields .InputfieldCheckbox .notes,
+		.Inputfields .InputfieldCheckboxes .notes,
+		.Inputfields .InputfieldRadios .notes {
 			margin-top: 1em; 
 		}
 

@@ -33,7 +33,7 @@ register_shutdown_function('ProcessWireShutDown');
 class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
-	const versionMinor = 0; 
+	const versionMinor = 1; 
 	const versionRevision = 0; 
 
 	/**

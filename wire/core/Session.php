@@ -270,6 +270,7 @@ class Session extends Wire implements IteratorAggregate {
 		$this->set($type, $items); 
 	}
 
+
 	/**
 	 * Queue a message to appear the next time session is instantiated
 	 *
@@ -287,6 +288,5 @@ class Session extends Wire implements IteratorAggregate {
 		$this->queueNotice($text, 'error'); 
 		return $this; 
 	}
-
 
 }

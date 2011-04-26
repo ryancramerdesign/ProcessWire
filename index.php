@@ -11,7 +11,7 @@
  * of any changes made in this file. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2011 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -19,7 +19,7 @@
  *
  */
 
-define("PROCESSWIRE", 200); 
+define("PROCESSWIRE", 201); 
 
 /**
  * Build the ProcessWire configuration
@@ -38,9 +38,7 @@ function ProcessWireBootConfig() {
 
 	if(isset($_SERVER['HTTP_HOST'])) {
 		// when serving pages from a web server
-		$docRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
-		if(strpos($rootPath, $docRoot) !== 0) $docRoot = rtrim(realpath($docRoot), '/');
-		$rootURL = substr($rootPath, strlen($docRoot)) . '/';
+		$rootURL = dirname($_SERVER['SCRIPT_NAME']) . '/';
 	} else {
 		// when included from another app or command line script
 		$rootURL = '/';
@@ -90,10 +88,10 @@ function ProcessWireBootConfig() {
 	 * Include system and user-specified configuration options
 	 *
 	 */
-	require("$rootPath/$wireDir/config.php");
+	include("$rootPath/$wireDir/config.php");
 	$configFile = "$rootPath/$siteDir/config.php";
 	$configFileDev = "$rootPath/$siteDir/config-dev.php";
-	@require(is_file($configFileDev) ? $configFileDev : $configFile); 
+	@include(is_file($configFileDev) ? $configFileDev : $configFile); 
 
 	/*
 	 * If debug mode is on then echo all errors, if not then disable all error reporting

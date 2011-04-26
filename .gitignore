@@ -1,6 +1,12 @@
 .DS_Store?
 *.old
 *.old/*
+*.new
+*.new/*
+old
+old/*
+*.1
+*.1/*
 sess_*
 *.cache
 *.swp
@@ -16,3 +22,4 @@ site
 site-skyscrapers
 .htaccess
 tmp
+upgrade.php

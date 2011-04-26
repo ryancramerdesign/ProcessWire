@@ -22,7 +22,8 @@ class PageFinder extends Wire {
 	protected $start = 0;
 	protected $parent_id = null;
 	protected $templates_id = null;
-	protected $checkStatus = true; 
+	protected $checkAccess = true;
+	protected $options = array();
 
 	/**
 	 * Construct the PageFinder
@@ -38,9 +39,10 @@ class PageFinder extends Wire {
 	 * Pre-process the selectors to add Page status checks
 	 *
 	 */
-	protected function setupStatusChecks(Selectors $selectors, $options = array()) {
+	protected function setupStatusChecks(Selectors $selectors) {
 
 		$maxStatus = null; 
+		$options = $this->options; 
 
 		foreach($selectors as $key => $selector) {
 			if($selector->field == 'status') {
@@ -59,6 +61,10 @@ class PageFinder extends Wire {
 				}
 				if(is_null($maxStatus) || $value > $maxStatus) 
 					$maxStatus = (int) $selector->value; 
+
+			} else if($selector->field == 'check_access' || $selector->field == 'checkAccess') { 
+				$this->checkAccess = ((int) $selector->value) ? true : false;
+				$selectors->remove($key); 
 			}
 		}
 
@@ -97,8 +103,9 @@ class PageFinder extends Wire {
 		$this->limit = 0; 
 		$this->parent_id = null;
 		$this->templates_id = null;
+		$this->options = $options; 
 
-		if($this->checkStatus) $this->setupStatusChecks($selectors, $options); 
+		$this->setupStatusChecks($selectors); 
 		$cnt = count($selectors); 
 		$matches = array(); 
 		$query = $this->getQuery($selectors); 
@@ -276,6 +283,7 @@ class PageFinder extends Wire {
 		} // selectors
 
 		if($where) $query->where("($where)"); 
+		 $this->getQueryAllowedTemplates($query); 
 
 		// complete the joins, matching up any conditions for the same table
 		foreach($joins as $j) {
@@ -287,6 +295,123 @@ class PageFinder extends Wire {
 
 		return $query; 
 
+	}
+
+	/**
+	 * Determine which templates the user is allowed to view
+	 *
+	 */
+	protected function getQueryAllowedTemplates(DatabaseQuerySelect $query) {
+
+		static $where = null;
+
+		// if a template was specified in the search, then we won't attempt to verify access
+		if($this->templates_id) return; 
+
+		// if findOne optimization is set, we don't check template access
+		if($this->options['findOne']) return;
+
+		// if access checking is disabled then skip this
+		if(!$this->checkAccess) return; 
+
+		$user = $this->fuel('user'); 
+
+		// no need to perform this checking if the user is superuser
+		if($user->isSuperuser()) return; 
+
+		// if we've already figured out this part from a previous query, then use it
+		if(!is_null($where)) {
+			$query->where($where);
+			return;
+		}
+
+		// array of templates they ARE allowed to access
+		$yesTemplates = array();
+
+		// array of templates they are NOT allowed to access
+		$noTemplates = array();
+
+		$guestRoleID = $this->fuel('config')->guestUserRolePageID; 
+
+		if($user->isGuest()) {
+			// guest 
+			foreach($this->fuel('templates') as $template) {
+				if($template->guestSearchable || !$template->useRoles) {
+					$yesTemplates[$template->id] = $template;
+					continue; 
+				}
+				foreach($template->roles as $role) {
+					if($role->id != $guestRoleID) continue;
+					$yesTemplates[$template->id] = $template;
+					break;
+				}
+			}
+
+		} else {
+			// other logged-in user
+			$userRoleIDs = array();
+			foreach($this->fuel('user')->roles as $role) {
+				$userRoleIDs[] = $role->id; 
+			}
+
+			foreach($this->fuel('templates') as $template) {
+				if($template->guestSearchable) {
+					$yesTemplates[$template->id] = $template;
+					continue; 
+				}
+				foreach($template->roles as $role) {
+					if($role->id != $guestRoleID && !in_array($role->id, $userRoleIDs)) continue; 
+					$yesTemplates[$template->id] = $template; 	
+					break;
+				}
+			}
+		}
+
+		// determine which templates the user is not allowed to access
+		foreach($this->fuel('templates') as $template) {
+			if(!isset($yesTemplates[$template->id])) $noTemplates[$template->id] = $template;
+		}
+
+		$in = '';
+		$yesCnt = count($yesTemplates); 
+		$noCnt = count($noTemplates); 
+
+		// foreach($noTemplates as $template) echo $template->name . '<br />';
+
+		if($noCnt) {
+			//$query->select("pages_access.pages_id AS no_access"); 
+			$leftjoin = "pages_access ON (pages_access.pages_id=pages.id AND pages_access.templates_id IN(";
+			foreach($noTemplates as $template) $leftjoin .= $template->id . ",";
+			$query->leftjoin(rtrim($leftjoin, ",") . "))");
+			$query->where("pages_access.pages_id IS NULL"); 
+		}
+
+		if($noCnt > 0 && $noCnt < $yesCnt) {
+			$templates = $noTemplates; 
+			$yes = false; 
+		} else {
+			$templates = $yesTemplates; 
+			$yes = true;
+		}
+	
+		foreach($templates as $template) {
+			$in .= $template->id . ",";
+		}
+
+
+		$in = rtrim($in, ","); 
+		$where = "pages.templates_id ";
+
+		if($in && $yes) {
+			$where .= "IN($in)";
+		} else if($in) {
+		 	$where .= "NOT IN($in)";
+		} else {
+			$where = "<0"; // no match possible
+		}
+
+
+		$query->where($where); 
 	}
 
 	protected function getQuerySortSelector(DatabaseQuerySelect $query, Selector $selector) {
@@ -527,14 +652,6 @@ class PageFinder extends Wire {
 	 */
 	public function getTemplatesID() {
 		return $this->templates_id; 
-	}
-
-	/**
-	 * Should the page finder consider a Page's status when doing a find()?
-	 *
-	 */
-	public function checkStatus($checkStatus = true) {
-		$this->checkStatus = $checkStatus ? true : false; 
 	}
 
 }

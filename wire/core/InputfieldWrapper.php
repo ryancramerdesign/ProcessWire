@@ -185,6 +185,7 @@ class InputfieldWrapper extends Inputfield {
 
 			if(!$inputfield instanceof InputfieldWrapper) {
 				$errors = $inputfield->getErrors(true);
+				if(count($errors)) $collapsed = Inputfield::collapsedNo; 
 				foreach($errors as $error) $ffOut = "\n<p class='ui-state-error-text'>" . htmlspecialchars($error) . "</p>" . $ffOut; 
 			} else $errors = array();
 

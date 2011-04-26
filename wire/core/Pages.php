@@ -384,6 +384,10 @@ class Pages extends Wire {
 		// $page->getCacheFile()->remove();
 		$this->uncacheAll();
 
+		// determine whether the pages_access table needs to be updated so that pages->find()
+		// operations can be access controlled. 
+
+		if($isNew || $page->parentPrevious || $page->templatePrevious) new PagesAccess($page);
 
 		// lastly determine whether the pages_parents table needs to be updated for the find() cache
 		// and call upon $this->saveParents where appropriate. 
@@ -479,7 +483,6 @@ class Pages extends Wire {
 			}
 			$result->free();
 		}
-		
 	}
 
 	/**
@@ -581,8 +584,11 @@ class Pages extends Wire {
 		$page->filesManager->emptyAllPaths();
 		// $page->getCacheFile()->remove();
 
-		$this->db->query("DELETE FROM pages_parents WHERE pages_id={$page->id}"); 
-		$this->db->query("DELETE FROM pages WHERE id={$page->id} LIMIT 1"); 
+		$access = new PagesAccess();	
+		$access->deletePage($page); 
+
+		$this->db->query("DELETE FROM pages_parents WHERE pages_id=" . (int) $page->id); 
+		$this->db->query("DELETE FROM pages WHERE id=" . ((int) $page->id) . " LIMIT 1"); 
 
 		// $this->getFuel('pagesRoles')->deleteRolesFromPage($page); // TODO convert to hook
 		$this->sortfields->delete($page); 

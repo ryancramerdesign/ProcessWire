@@ -164,10 +164,12 @@ class ProcessController extends Wire {
 	 */
 	public function getProcessMethodName(Process $process) {
 
-		if(!$method = $this->processMethodName) {
+		$method = $this->processMethodName;
+
+		if(!$method) {
 			$method = self::defaultProcessMethodName; 
 			// urlSegment as given by ProcessPageView 
-			if($this->input->urlSegment1) $method .= ucfirst($this->input->urlSegment1); 
+			if($this->input->urlSegment1 && !$this->user->isGuest()) $method .= ucfirst($this->input->urlSegment1); 
 		}
 
 		$hookedMethod = "___$method";
@@ -189,7 +191,7 @@ class ProcessController extends Wire {
 			if($method = $this->getProcessMethodName($this->process)) {
 				$content = $this->process->$method();
 			} else {
-				throw new ProcessController404Exception("There is no method called: {$method}");
+				throw new ProcessController404Exception("Unrecognized path");
 			}
 
 		} else throw new ProcessController404Exception("The requested process does not exist");

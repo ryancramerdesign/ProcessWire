@@ -1,5 +1,5 @@
-ul.Inputfields .InputfieldText,
-ul.Inputfields .InputfieldPassword {
+ul.Inputfields #wrap_login_name,
+ul.Inputfields #wrap_login_pass {
 	width: 155px; 
 	clear: none; 
 	float: left;
@@ -7,8 +7,8 @@ ul.Inputfields .InputfieldPassword {
 	margin-left: -1px; 
 }
 
-ul.Inputfields .InputfieldText input,
-ul.Inputfields .InputfieldPassword input {
+ul.Inputfields #login_name,
+ul.Inputfields #login_pass {
 	width: 123px; 	
 }
 

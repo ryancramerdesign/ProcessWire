@@ -140,6 +140,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 				}
 				$item->$field = $value; 
 			}
+			$item->setTrackChanges(true); 
 			$items->add($item); 
 		}
 		$result->free();

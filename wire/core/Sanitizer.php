@@ -117,7 +117,8 @@ class Sanitizer extends Wire {
 	 *
 	 */
 	public function username($value) {
-		if(strlen($value) > 50) $value = substr($value, 0, 50); 
+		$value = trim($value); 
+		if(strlen($value) > 128) $value = substr($value, 0, 128); 
 		if(ctype_alnum(str_replace(array('-', '_', '.', '@'), '', $value))) return $value; 
 		return preg_replace('/[^-_.@a-zA-Z0-9]/', '_', trim($value)); 
 	}

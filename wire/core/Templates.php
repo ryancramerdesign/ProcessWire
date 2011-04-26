@@ -137,6 +137,7 @@ class Templates extends WireSaveableItems {
 
 		if(!$item->fieldgroup->id) throw new WireException("You must save Fieldgroup '{$item->fieldgroup}' before adding to Template '{$item}'"); 
 
+		$rolesChanged = $item->isChanged('useRoles');
 		$result = parent::___save($item); 
 
 		if($result && $item->fieldgroupPrevious && $item->fieldgroupPrevious->id != $item->fieldgroup->id) {
@@ -157,6 +158,11 @@ class Templates extends WireSaveableItems {
 					}
 				}
 			}
+		}
+
+		if($rolesChanged) { 
+			$access = new PagesAccess();
+			$access->updateTemplate($item); 
 		}
 
 		return $result; 

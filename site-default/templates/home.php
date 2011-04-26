@@ -1,7 +1,7 @@
 <?php 
 
 /**
- * Page template
+ * Home template
  *
  */
 
