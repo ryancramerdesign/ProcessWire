@@ -52,6 +52,8 @@ class ProcessTemplate extends Process {
 			$this->numPages = $this->template->getNumPages();
 		}
 
+		$this->modules->get("JqueryWireTabs"); 
+
 		return parent::init();
 	}
 
@@ -96,7 +98,7 @@ class ProcessTemplate extends Process {
 			$table->row(array(
 				$template->name => "edit?id={$template->id}", 
 				$template->getNumPages(), 
-				count($template->fieldgroup),
+				count($template->fieldgroup) . ($template->fieldgroup->name != $template->name ? " {$template->fieldgroup->name}" : ''),
 				$notes
 				)); 
 		}
@@ -245,8 +247,8 @@ class ProcessTemplate extends Process {
 		if(!$this->template) throw new WireException("No Template specified"); 
 			
 		$this->form = $this->buildEditForm($this->template);
-		$this->form->description = "{$this->template->name} is used by {$this->numPages} pages";
-		return $this->form->render();
+		$out = $this->form->render();
+		return $out; 
 	}	
 
 	/**
@@ -268,46 +270,50 @@ class ProcessTemplate extends Process {
 				); 
 		}
 
-		if($template->fieldgroup->name == $template->name) { 
-			$form->append($this->buildEditFormFields($template)); 
-		} else {
-			$field = $this->modules->get('InputfieldSelect');
-			$field->label = "Fieldgroup";
-			$field->attr('id+name', 'fieldgroup'); 
-			$field->attr('value', $template->fieldgroup->id); 
-			$field->description = '' . 
-				"Be careful when changing this for templates that are in active use. " . 
-				"If the new fieldgroup does not have the same fields, " . 
-				"any data in fields not used by the new fieldgroup will be deleted. If this is the case, " .
-				"you will be asked to confirm the change after submitting this form.";
-
-			foreach($this->fieldgroups as $fieldgroup) {
-				$field->addOption($fieldgroup->id, $fieldgroup->name); 
-			}
-			$form->append($field); 
-		}
-
-		$form->append($this->buildEditFormAccess($template)); 
-		$form->append($this->buildEditFormAdvanced($template)); 
-		$form->append($this->buildEditFormImport());
-
-		// --------------------
-			
-		$field = $this->modules->get('InputfieldCheckbox');
-		$field->label = "Delete Template"; 
-		$field->attr('id+name', "delete"); 
-		$field->attr('value', $template->id); 
-		$field->collapsed = Inputfield::collapsedYes; 
-		if($this->numPages > 0) {
-			$field->description = "This template may not be deleted because it is in use by {$this->numPages} pages";
-			$field->attr('disabled', 'disabled'); 
-		} else {
-			$field->description = 
-				"This template may be deleted because it is not being used by any pages. Note that deleting the template only removes " . 
-				"it from the database, it does not delete the template file on disk. ";
+		$t = new InputfieldWrapper();
+		$t->attr('class', 'WireTab'); 
+		$t->head = "This template is used by {$this->numPages} pages";
+		$t->attr('title', "Fields");
+		$t->add($this->buildEditFormFields($template)); 
+		$t->add($this->buildEditFormFieldgroup($template)); 
+		$form->add($t); 
 		
+		$t = new InputfieldWrapper();
+		$t->head = "Manage template access";
+		$t->attr('class', 'WireTab'); 
+		$t->attr('title', "Access");
+		$t->add($this->buildEditFormAccess($template)); 
+		$form->add($t); 
+
+		$t = new InputfieldWrapper();
+		$t->head = "Optional advanced template settings";
+		$t->attr('class', 'WireTab'); 
+		$t->attr('title', "Advanced");
+		$t->add($this->buildEditFormAdvanced($template)); 
+		$form->add($t); 
+
+		if($this->config->advanced) {
+			$t = new InputfieldWrapper();
+			$t->head = "System-specific template settings";
+			$t->attr('class', 'WireTab'); 
+			$t->attr('title', "System");
+			$t->add($this->buildEditFormSystem($template)); 
+			$form->add($t); 
 		}
-		$form->append($field); 
+
+		$t = new InputfieldWrapper();
+		$t->attr('class', 'WireTab'); 
+		$t->head = "Import fields from another template";
+		$t->attr('title', "Import");
+		$t->add($this->buildEditFormImport());
+		$form->add($t);
+
+		$t = new InputfieldWrapper();
+		$t->head = "Delete template";
+		$t->attr('class', 'WireTab'); 
+		$t->attr('title', "Delete");
+		$t->add($this->buildEditFormDelete($template)); 
+		$form->add($t); 	
 
 		// --------------------
 
@@ -323,11 +329,98 @@ class ProcessTemplate extends Process {
 		return $form; 
 	}
 
+	protected function buildEditFormDelete(Template $template) {
+
+		$field = $this->modules->get('InputfieldCheckbox');
+		$field->label = "Delete Template"; 
+		$field->attr('id+name', "delete"); 
+		$field->attr('value', $template->id); 
+
+		$fieldgroup = $this->fuel('fieldgroups')->get($template->name); 
+		$numFieldgroupTemplates = 0;
+		if($fieldgroup) {
+			foreach($this->fuel('templates') as $tpl) {
+				if($tpl->id == $template->id) continue; 
+				if($tpl->fieldgroup->id == $fieldgroup->id) $numFieldgroupTemplates++;
+			}
+		}
+
+		if($template->flags & Template::flagSystem) {
+			$field->description = "This template may not be deleted because it is a system template."; 
+			$field->attr('disabled', 'disabled'); 
+
+		} else if($this->numPages > 0) {
+			$field->description = "This template may not be deleted because it is in use by {$this->numPages} pages";
+			$field->attr('disabled', 'disabled'); 
+
+		} else if($numFieldgroupTemplates > 0) {
+			$field->description = "This template may not be deleted because fieldgroup '{$template->name}' is in use by $numFieldgroupTemplates other templates."; 
+			$field->attr('disabled', 'disabled'); 
+
+		} else {
+			$field->description = "Note that deleting the template only removes it from the database, it does not delete the template file on disk. ";
+		
+		}
+
+		return $field;
+	}
+
+	protected function buildEditFormFieldgroup(Template $template) {
+
+		$field = $this->modules->get('InputfieldSelect');
+		$field->label = "Fieldgroup";
+		$field->attr('id+name', 'fieldgroup'); 
+		$field->attr('value', $template->fieldgroup->id); 
+		$field->required = true; 
+		$field->description = '' . 
+			"By default, each template manages it's own group of fields. If you want to have this template " . 
+			"use the fields from another template, select it here.";
+
+		foreach($this->fieldgroups->getAll()->sort('name') as $fieldgroup) {
+			$name = $fieldgroup->name; 
+			if($name == $template->name) {
+				$name .= " (default)";
+			} else {
+				$tpl = $this->templates->get($name); 
+				// if the template is not using it's own fieldgroup, don't include it in the list
+				if($tpl && $tpl->name && $tpl->fieldgroup->name != $tpl->name) continue; 
+			}
+			$field->addOption($fieldgroup->id, $name); 
+		}
+
+		if($template->fieldgroup->name == $template->name) {
+			$field->collapsed = Inputfield::collapsedYes; 
+		}
+
+		return $field; 
+	}
+
+	/**
+	 * Just show the fields that this template's fieldgroup uses (informational)
+	 *
+	 */
+	protected function buildEditFormShowFields(Template $template) {
+		$table = $this->modules->get("MarkupAdminDataTable"); 
+		foreach($template->fieldgroup as $field) {
+			$table->row(array($field->name)); 
+		}
+		$field = $this->modules->get("InputfieldMarkup"); 
+		$field->value = $table->render();
+		$field->label = "Fields";
+		$field->description = 
+			"For your reference, this is a list of fields used by this template. " . 
+			"This template gets it's fields from the '{$template->fieldgroup->name}' template/fieldgroup.";
+		return $field; 
+	}
+
 	protected function buildEditFormFields(Template $template) {
+
+		// if this template isn't defining it's fields, then just show what it's using
+		if($template->fieldgroup->name != $template->name) return $this->buildEditFormShowFields($template); 
 
 		$select = $this->modules->get('InputfieldAsmSelect'); 
 		$select->label = 'Fields';
-		$select->description = 'Drag and drop fields to the desired order';
+		$select->description = 'Define the fields that are used by this template. You may also drag and drop fields to the desired order.';
 		$select->attr('name', 'fieldgroup_fields'); 
 		$select->attr('id', 'fieldgroup_fields'); 
 		$select->attr('title', 'Add Field'); 
@@ -350,9 +443,7 @@ class ProcessTemplate extends Process {
 
 	protected function buildEditFormImport() {
 
-		$form = $this->modules->get("InputfieldFieldset"); 
-		$form->label = "Import";
-		$form->collapsed = Inputfield::collapsedYes; 
+		$form = new InputfieldWrapper();
 
 		$field = $this->modules->get("InputfieldSelect"); 
 		$field->label = 'Duplicate fields used by another template'; 
@@ -360,7 +451,6 @@ class ProcessTemplate extends Process {
 			"If you want to duplicate fields used by another template, select it here. " . 
 			"Fields already present in this template will be left alone.";
  
-		$field->collapsed = Inputfield::collapsedNo; 
 		$field->attr('id+name', 'import_fieldgroup'); 
 		$field->addOption(''); 
 		$field->attr('value', ''); 
@@ -378,10 +468,7 @@ class ProcessTemplate extends Process {
 
 	protected function buildEditFormAdvanced(Template $template) {
 
-		$form = $this->modules->get("InputfieldFieldset"); 
-		$form->label = "Advanced Page Features";
-		$form->collapsed = Inputfield::collapsedYes; 
-		$form->description = "Customize the function of pages using this template and optimize their performance. All of these settings are optional. ";
+		$form = new InputfieldWrapper();
 
 		// --------------------
 
@@ -522,16 +609,15 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 
-		if($this->config->advanced) $form->append($this->buildEditFormSystem($template)); 
 
 		return $form; 
 	}
 
 	protected function buildEditFormSystem(Template $template) {
 
-		$form = $this->modules->get("InputfieldFieldset"); 
-		$form->label = "System/Internal";
-		$form->collapsed = Inputfield::collapsedYes; 
+		$form = new InputfieldWrapper();
+		$form->id = 'system';
+		$form->notes = 'Please note that all of these system settings are intended for ProcessWire system development (not site development). Use them at your own risk.';
 
 		// --------------------
 
@@ -542,7 +628,11 @@ class ProcessTemplate extends Process {
 			"If checked, this template will be defined as for the system and it won't be deleteable. " . 
 			"Once the system flag is enabled, it cannot be removed using ProcessWire. ";
 		$field->value = 1; 
-		if($template->flags & Template::flagSystem) $field->attr('checked', 'checked'); 
+		if($template->flags & Template::flagSystem) {
+			$field->attr('checked', 'checked'); 
+		} else {
+			$field->collapsed = Inputfield::collapsedYes; 
+		}
 		$form->add($field); 
 
 		// --------------------
@@ -672,10 +762,8 @@ class ProcessTemplate extends Process {
 
 	protected function buildEditFormAccess(Template $template) {
 
-		$form = $this->modules->get("InputfieldFieldset"); 
+		$form = new InputfieldWrapper();
 		$form->attr('id', 'access'); 	
-		$form->label = "Access";
-		$form->collapsed = $template->useRoles ? Inputfield::collapsedNo : Inputfield::collapsedYes;
 
 		// --------------------
 
@@ -693,9 +781,8 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 
-		$fieldset = $this->modules->get('InputfieldFieldset'); 
-		$fieldset->attr('id+name', 'useRolesYes'); 
-		$fieldset->label = 'Manage Access';
+		$fieldset = new InputfieldWrapper();
+		$fieldset->attr('id', 'useRolesYes'); 
 		$form->add($fieldset); 
 
 		// --------------------
@@ -791,6 +878,7 @@ class ProcessTemplate extends Process {
 	 */
 	protected function ___executeSave() {
 
+		$redirectUrl = '';
 		if(!$this->template) throw new WireException("No template specified"); 
 		$form = $this->buildEditForm($this->template);
 		$form->processInput($this->input->post);
@@ -805,50 +893,45 @@ class ProcessTemplate extends Process {
 			return; 
 		}
 
-		$field = $form->children->get('fieldgroup'); 
-		if($field) $fieldgroup = $this->fieldgroups->get((int) $field->value); 
-			else $fieldgroup = $this->template->fieldgroup; 
+		if($this->input->post->fieldgroup != $this->template->fieldgroup->id) {
+			$redirectUrl = "fieldgroup?id={$this->template->id}&fieldgroup=" . (int) $this->input->post->fieldgroup;
+		} 
 
-		if($fieldgroup && $fieldgroup->id != $this->template->fieldgroup->id) {
+		$this->template->cache_time = $form->get('cache_time')->attr('value'); 
+		$this->template->childrenTemplatesID = (int) $form->get('childrenTemplatesID')->attr('value'); 
+		$this->template->allowPageNum = (int) $form->get('allowPageNum')->attr('value'); 
+		$this->template->redirectLogin = (int) $form->get('redirectLogin')->attr('value'); 
+		if($this->template->redirectLogin < 0) $this->template->redirectLogin = $form->get('redirectLoginURL')->attr('value'); 
+		$this->template->urlSegments = (int) $form->get('urlSegments')->attr('value');
+		$this->template->https = (int) $form->get('https')->attr('value'); 
+		$this->template->slashUrls = (int) $form->get('slashUrls')->attr('value');
+		$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
+		$this->template->guestSearchable = (int) $form->get('guestSearchable')->attr('value'); 
 
-			$redirectUrl = "fieldgroup?id={$this->template->id}&fieldgroup={$fieldgroup->id}";
+		if($this->config->advanced) { 
+			if($form->get('flagSystem')->attr('value')) $this->template->flags = $this->template->flags | Template::flagSystem; 
+			$this->template->pageClass = $this->sanitizer->varName($form->get('pageClass')->attr('value'));
+			$this->template->noGlobal = (int) $form->get('noGlobal')->attr('value');
+			$this->template->noMove = (int) $form->get('noMove')->attr('value');
+			$this->template->noTrash = (int) $form->get('noTrash')->attr('value');
+			$this->template->noSettings = (int) $form->get('noSettings')->attr('value');
+			$this->template->noChangeTemplate = (int) $form->get('noChangeTemplate')->attr('value');
+			$this->template->nameContentTab = (int) $form->get('nameContentTab')->attr('value');
+		}
 
-		} else {
+		// save roles
+		$this->template->useRoles = (int) $form->get('useRoles')->attr('value'); 
+		$roles = $form->get('roles')->attr('value'); 
+		if(!is_array($roles)) $roles = array();
+		foreach($roles as $k => $v) $roles[$k] = (int) $v;
+		$this->template->roles = $roles; 
 
-			$this->template->cache_time = $form->get('cache_time')->attr('value'); 
-			$this->template->childrenTemplatesID = (int) $form->get('childrenTemplatesID')->attr('value'); 
-			$this->template->allowPageNum = (int) $form->get('allowPageNum')->attr('value'); 
-			$this->template->redirectLogin = (int) $form->get('redirectLogin')->attr('value'); 
-			if($this->template->redirectLogin < 0) $this->template->redirectLogin = $form->get('redirectLoginURL')->attr('value'); 
-			$this->template->urlSegments = (int) $form->get('urlSegments')->attr('value');
-			$this->template->https = (int) $form->get('https')->attr('value'); 
-			$this->template->slashUrls = (int) $form->get('slashUrls')->attr('value');
-			$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
-			$this->template->guestSearchable = (int) $form->get('guestSearchable')->attr('value'); 
+		if(!$this->template->childrenTemplatesID) $this->template->remove("childrenTemplatesID"); 
 
-			if($this->config->advanced) { 
-				if($form->get('flagSystem')->attr('value')) $this->template->flags = $this->template->flags | Template::flagSystem; 
-				$this->template->pageClass = $this->sanitizer->varName($form->get('pageClass')->attr('value'));
-				$this->template->noGlobal = (int) $form->get('noGlobal')->attr('value');
-				$this->template->noMove = (int) $form->get('noMove')->attr('value');
-				$this->template->noTrash = (int) $form->get('noTrash')->attr('value');
-				$this->template->noSettings = (int) $form->get('noSettings')->attr('value');
-				$this->template->noChangeTemplate = (int) $form->get('noChangeTemplate')->attr('value');
-				$this->template->nameContentTab = (int) $form->get('nameContentTab')->attr('value');
-			}
-
-			// save roles
-			$this->template->useRoles = (int) $form->get('useRoles')->attr('value'); 
-			$roles = $form->get('roles')->attr('value'); 
-			if(!is_array($roles)) $roles = array();
-			foreach($roles as $k => $v) $roles[$k] = (int) $v;
-			$this->template->roles = $roles; 
-
-			if(!$this->template->childrenTemplatesID) $this->template->remove("childrenTemplatesID"); 
-
+		if(!$redirectUrl) { 
 			$this->saveFields();
 			$redirectUrl = "edit?id={$this->template->id}";
-		} 
+		}
 			
 		$this->message("Saved Template '{$this->template->name}'"); 
 		$this->template->save();
@@ -989,7 +1072,7 @@ class ProcessTemplate extends Process {
 	 * Save the fieldgroup
 	 *
 	 * May be called from a POST action, or from the executeFieldgroup() method directly. 
-	 * When called from the executeFieldgroup() method, a fieldgroup param should be provdied. 
+	 * When called from the executeFieldgroup() method, a fieldgroup param should be provided. 
 	 *
 	 * @param Fieldgroup $fieldgroup Optional
 	 *
@@ -1056,6 +1139,7 @@ class ProcessTemplate extends Process {
 		}
 
 		$form->append($checkboxes); 
+
 		/*
 		$usage = $this->buildEditFormUsage(); 
 		$usage->collapsed = true; 

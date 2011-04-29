@@ -227,6 +227,7 @@ a {
 	}
 
 	.content h2 {
+		font-family: Georgia, serif; 
 		margin: 1em 0;
 		font-size: 1.6em; 
 		line-height: 1.2em; 

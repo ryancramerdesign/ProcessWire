@@ -150,11 +150,11 @@ class Templates extends WireSaveableItems {
 				}
 			}
 			if(count($removeFields)) { 
-				$pages = $this->fuel('pages')->find("templates_id={$item->id}"); 
+				$pages = $this->fuel('pages')->find("templates_id={$item->id}, check_access=0, status<" . Page::statusMax); 
 				foreach($pages as $page) {
 					foreach($removeFields as $field) {
 						$field->type->deletePageField($page, $field); 
-						if($this->config->debug) $this->message("Removed field '$field' on page '{$page->url}'"); 
+						if($this->fuel('config')->debug) $this->message("Removed field '$field' on page '{$page->url}'"); 
 					}
 				}
 			}
@@ -176,6 +176,7 @@ class Templates extends WireSaveableItems {
 		if($item->flags & Template::flagSystem) throw new WireException("Can't delete template '{$item->name}' because it is a system template."); 
 		$cnt = $item->getNumPages();
 		if($cnt > 0) throw new WireException("Can't delete template '{$item->name}' because it is used by $cnt pages.");  
+
 		return parent::___delete($item);
 	}
 

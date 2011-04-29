@@ -256,6 +256,15 @@ class Template extends WireData implements Saveable {
 		if($this->fieldgroup && $fieldgroup->id != $this->fieldgroup->id) {
 			// save record of the previous fieldgroup so that unused fields can be deleted during save()
 			$this->fieldgroupPrevious = $this->fieldgroup; 
+
+			if($this->flags & Template::flagSystem) 
+				throw new WireException("Can't change fieldgroup for template '{$this}' because it is a system template."); 
+
+			$hasPermanentFields = false;
+			foreach($this->fieldgroup as $field) {
+				if($field->flags & Field::flagPermanent) $hasPermanentFields = true; 
+			}
+			if($hasPermanentFields) throw new WireException("Fieldgroup for template '{$this}' may not be changed because it has permanent fields."); 
 		}
 
 		$this->fieldgroup = $fieldgroup;

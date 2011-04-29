@@ -171,19 +171,19 @@ class Fieldgroups extends WireSaveableItemsLookup {
 						throw new WireException("Field '$field' may not be removed from fieldgroup '$this' because it is permanent."); 
 					}
 
-					$pages = $this->fuel('pages')->find("templates_id={$template->id}"); 
+					$pages = $this->fuel('pages')->find("templates_id={$template->id}, check_access=0, status<" . Page::statusMax); 
 
 					foreach($pages as $page) {
 
 						try { 
 							$field->type->deletePageField($page, $field); 
 							$page->save($field->name); 
+							if($this->fuel('config')->debug) $this->message("Deleted '{$field->name}' from '{$page->path}'"); 
 
 						} catch(Exception $e) {
 							$this->error($e->getMessage()); 
 						}
 
-						if($this->fuel('config')->debug) $this->message("Deleted '{$field->name}' from '{$page->path}'"); 
 					}
 
 					$item->finishRemove($field); 
@@ -204,6 +204,16 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 *
 	 */
 	public function ___delete(Saveable $item) {
+
+		$templates = array();
+		foreach($this->fuel('templates') as $template) {
+			if($template->fieldgroup->id == $item->id) $templates[] = $template->name; 
+		}
+
+		if(count($templates)) {
+			throw new WireException("Can't delete fieldgroup '{$item->name}' because it is in use by template(s): " . implode(', ', $templates)); 
+		}
+
 		parent::___delete($item); 
 	}
 

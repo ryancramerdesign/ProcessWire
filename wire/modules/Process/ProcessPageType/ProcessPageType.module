@@ -82,7 +82,7 @@ class ProcessPageType extends Process implements ConfigurableModule {
 		$table->setEncodeEntities(false); 
 		$fieldNames = $this->showFields; 
 		$table->headerRow($fieldNames); 
-		$selector = "limit=25"; 
+		$selector = "limit=25, status<" . Page::statusMax; 
 		$pages = $this->pages->find($selector); 
 
 		foreach($pages as $page) {

@@ -1,5 +1,6 @@
 $(document).ready(function() {
 
+
 	$("#filters input[name=system]").click(function() {
 		$(this).parents("form").submit();
 	}); 	
@@ -56,6 +57,13 @@ $(document).ready(function() {
 
 	adjustAccessFields();
 	redirectLoginClick();
+
+        // instantiate the WireTabs
+	$("#ProcessTemplateEdit").WireTabs({
+                items: $(".Inputfields li.WireTab"),
+                id: 'TemplateEditTabs'
+                });
+
 	
 
 }); 

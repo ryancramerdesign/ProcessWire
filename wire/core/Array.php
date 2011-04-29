@@ -77,6 +77,9 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 */
 	public function getItemKey($item) {
+		// in this base class, we don't make assumptions how the key is determined
+		// so we just search the array to see if the item is already here and 
+		// return it's key if it is here
 		$key = array_search($item, $this->data, true); 
 		return $key === false ? null : $key; 
 	}
@@ -656,13 +659,17 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		// add the items that resolved to no key to the end
 		foreach($unidentified as $item) $sortable[] = $item; 
 
-		// restore sorted array to lose sortable keys
+		// restore sorted array to lose sortable keys and restore proper keys
 		$a = array();
 		foreach($sortable as $key => $value) {
 			if(is_array($value)) {
-				foreach($value as $k => $v) $a[] = $v; 
+				foreach($value as $k => $v) {
+					$newKey = $this->getItemKey($v); 
+					$a[$newKey] = $v; 
+				}
 			} else {
-				$a[] = $value; 	
+				$newKey = $this->getItemKey($value); 
+				$a[$newKey] = $value; 	
 			}
 		}
 

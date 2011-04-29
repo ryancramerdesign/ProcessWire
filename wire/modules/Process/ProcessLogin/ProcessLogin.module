@@ -9,7 +9,7 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2011 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -54,15 +54,9 @@ class ProcessLogin extends Process {
 	public function ___execute() {
 
 		if($this->user->isLoggedin()) {
-
 			$this->message("You are logged in."); 
+			if($this->user->hasPermission('page-edit')) $this->afterLoginRedirect();
 			$url = $this->config->urls->root;
-
-			if($this->user->hasPermission('page-edit')) {
-				$admin = $this->pages->get($this->config->adminRootPageID); 
-				$url = $admin->url;
-			}
-
 			return "<p><a href='$url'>Continue</a></p>";
 		}
 
@@ -110,8 +104,10 @@ class ProcessLogin extends Process {
 		$this->submitField->attr('value', 'Login'); 
 
 		$this->form = $this->modules->get('InputfieldForm');
+
 		// we'll retain an ID field in the GET url, if it was there
 		$this->form->attr('action', "./" . ($this->id ? "?id={$this->id}" : '')); 
+
 		$this->form->attr('id', $this->className() . 'Form'); 
 		$this->form->add($this->nameField); 
 		$this->form->add($this->passField); 
@@ -124,7 +120,7 @@ class ProcessLogin extends Process {
 	 */
 	protected function renderLoginForm() {
 		if(isset($_GET['login'])) {
-			$this->session->redirect("../"); 
+			$this->afterLoginRedirect();
 		} else {
 			$this->setFuel('processHeadline', 'Login'); 
 			$out = $this->form->render();
@@ -144,6 +140,17 @@ class ProcessLogin extends Process {
 		$this->message("You have logged out"); 
 		return "<p><a href='{$this->config->urls->root}'>Continue</a></p>";
 	}
+
+	/**
+	 * Redirect to admin root after login
+	 *
+	 * Called only if the login request originated on the actual login page. 
+	 *
+	 */
+	protected function ___afterLoginRedirect() {
+		$this->session->redirect($this->pages->get($this->config->adminRootPageID)->url);
+	}
+
 
 }
 

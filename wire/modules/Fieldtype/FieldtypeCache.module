@@ -119,7 +119,7 @@ class FieldtypeCache extends Fieldtype {
 			if(!$template->fields->has($field)) continue; 
 			$numTemplates++;
 			$numTemplatePages = 0; 
-			$pages = $this->pages->find("template=$template"); 
+			$pages = $this->pages->find("template=$template, check_access=0"); 
 			foreach($pages as $page) {
 				$page->save($field->name); 
 				$numPages++;

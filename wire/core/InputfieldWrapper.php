@@ -183,13 +183,16 @@ class InputfieldWrapper extends Inputfield {
 			$ffOut = $inputfield->render();
 			if(!$ffOut) continue; 
 
+
 			if(!$inputfield instanceof InputfieldWrapper) {
 				$errors = $inputfield->getErrors(true);
 				if(count($errors)) $collapsed = Inputfield::collapsedNo; 
 				foreach($errors as $error) $ffOut = "\n<p class='ui-state-error-text'>" . htmlspecialchars($error) . "</p>" . $ffOut; 
 			} else $errors = array();
+			
+			if($inputfield->getSetting('description')) $ffOut = "\n<p class='description'>" . htmlspecialchars($inputfield->getSetting('description')) . "</p>" . $ffOut;
+			if($inputfield->getSetting('head')) $ffOut = "\n<h2>" . htmlspecialchars($inputfield->getSetting('head')) . "</h2>" . $ffOut; 
 
-			if($inputfield->description) $ffOut = "\n<p class='description'>" . htmlspecialchars($inputfield->description) . "</p>" . $ffOut;
 			$ffOut = preg_replace('/(\n\s*)</', "$1\t\t\t<", $ffOut); // indent lines beginning with markup
 			if($inputfield->notes) $ffOut .= "\n<p class='notes'>" . htmlspecialchars($inputfield->notes) . "</p>"; 
 
