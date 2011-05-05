@@ -43,6 +43,7 @@ class Users extends PagesType {
 	public function getGuestUser() {
 		if($this->guestUser) return $this->guestUser; 
 		$this->guestUser = $this->get($this->config->guestUserPageID); 
+		if(defined("PROCESSWIRE_UPGRADE") && !$this->guestUser || !$this->guestUser->id) $this->guestUser = new User(); // needed during upgrade
 		return $this->guestUser; 
 	}
 

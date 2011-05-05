@@ -83,7 +83,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if(method_exists($inputfield, 'addOption')) {
 			$children = $this->getSelectablePages($page); 
 			if($children) foreach($children as $child) {
-				$label = $this->labelFieldName ? $child->get($this->labelFieldName) : 'name'; 
+				$label = $this->labelFieldName ? $child->get($this->labelFieldName) : $child->name; 
 				$inputfield->addOption($child->id, $label); 
 			}
 		} else {

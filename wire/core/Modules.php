@@ -425,15 +425,6 @@ class Modules extends WireArray {
 			$module->uninstall();
 		}
 
-		$moduleID = $this->getModuleID($class); 
-
-		if($moduleID) {
-			// delete any permissions that this module may have installed
-			$permissions = $this->fuel('permissions')->find("modules_id={$moduleID}"); 
-			foreach($permissions as $permission) $this->fuel('permissions')->delete($permission); 	
-		}
-
-
 		$result = $this->fuel('db')->query("DELETE FROM modules WHERE class='" . $this->fuel('db')->escape_string($class) . "' LIMIT 1"); 
 		return $result;
 	}

@@ -65,7 +65,10 @@ class User extends Page {
 		$has = false; 
 
 		foreach($this->roles as $key => $role) {
-			if($page && !$page->hasAccessRole($role)) continue; 
+			if(!$role || !$role->id) continue; 
+			if(!is_null($page)) {
+				if(!$page->id || !$page->hasAccessRole($role)) continue; 
+			}
 			if($role->hasPermission($permission)) { 
 				$has = true;
 				break;

@@ -17,6 +17,8 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
+ * @version 2.1
+ *
  */
 
 define("PROCESSWIRE", 201); 

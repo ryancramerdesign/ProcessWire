@@ -413,6 +413,7 @@ class Page extends WireData {
 			case 'isLoaded':
 			case 'isNew':
 			case 'pageNum':
+			case 'instanceID': 
 				$value = $this->$key; 
 				break;
 			case 'out':

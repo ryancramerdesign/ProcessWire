@@ -24,7 +24,7 @@ class ProcessLogout extends Process {
 			'title' => 'Logout',          
 			'summary' => 'Logout of ProcessWire', 
 			'version' => 100, 
-			'permanent' => true, 
+			'permanent' => false, 
 			);
 	}
 

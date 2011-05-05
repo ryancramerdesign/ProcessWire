@@ -337,18 +337,21 @@ class Pages extends Wire {
 				else if($page->parentPrevious->isTrash() && !$page->parent->isTrash()) $this->restore($page, false); 
 		}
 
+		$user = $this->fuel('user'); 
+		$userID = $user ? $user->id : $this->config->superUserPageID; 
+
 		$sql = 	"pages SET " . 
-			"parent_id=" . (int) $page->parent_id . ", " . 
-			"templates_id=" . (int) $page->template->id . ", " . 
+			"parent_id=" . ((int) $page->parent_id) . ", " . 
+			"templates_id=" . ((int) $page->template->id) . ", " . 
 			"name='" . $this->db->escape_string($page->name) . "', " . 
-			"modified_users_id=" . (int) $this->fuel('user')->id . ", " . 
-			"status=" . (int) $page->status . ", " . 
-			"sort=" . (int) $page->sort . "," . 
+			"modified_users_id=" . ((int) $userID) . ", " . 
+			"status=" . ((int) $page->status) . ", " . 
+			"sort=" . ((int) $page->sort) . "," . 
 			"modified=NOW()"; 
 
 		if($isNew) {
 			if($page->id) $sql .= ", id=" . (int) $page->id; 
-			$result = $this->db->query("INSERT INTO $sql, created=NOW(), created_users_id=" . (int) $this->fuel('user')->id); 
+			$result = $this->db->query("INSERT INTO $sql, created=NOW(), created_users_id=" . (int) $userID); 
 			if($result) $page->id = $this->db->insert_id; 
 
 		} else {

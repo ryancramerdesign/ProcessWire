@@ -131,6 +131,7 @@ class ProcessController extends Wire {
 		$permissionName = '';
 		$info = $this->modules->getModuleInfo($processName); 
 		if(!empty($info['permission'])) $permissionName = $info['permission']; 
+
 		$this->hasPermission($permissionName, true); // throws exception if no permission
 		if(!$this->process) $this->process = $this->modules->get($processName); 
 
@@ -152,8 +153,9 @@ class ProcessController extends Wire {
 	 *
 	 */
 	protected function hasPermission($permissionName, $throw = true) {
-		if($this->user->isSuperuser()) return true; 
-		if($permissionName && $this->user->hasPermission($permissionName)) return true; 
+		$user = $this->fuel('user'); 
+		if($user->isSuperuser()) return true; 
+		if($permissionName && $user->hasPermission($permissionName)) return true; 
 		if($throw) throw new ProcessControllerPermissionException("You don't have $permissionName permission"); 
 		return false; 
 	}

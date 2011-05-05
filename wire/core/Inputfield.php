@@ -52,10 +52,10 @@ abstract class Inputfield extends WireData implements Module {
 	 * Constants for the standard Inputfield 'collapsed' setting
 	 *
 	 */
-	const collapsedNo = 0; 
-	const collapsedYes = 1; 
-	const collapsedBlank = 2; 
-	const collapsedHidden = 4; 
+	const collapsedNo = 0; 		// will display 'open'
+	const collapsedYes = 1; 	// will display collapsed, requiring a click to open
+	const collapsedBlank = 2; 	// will display collapsed only if blank
+	const collapsedHidden = 4; 	// will not be rendered in the form
 
 	/**
 	 * The total number of Inputfield instances, kept as a way of generating unique 'id' attributes
@@ -89,14 +89,15 @@ abstract class Inputfield extends WireData implements Module {
 
 		self::$numInstances++; 
 
-		$this->set('label', ''); // primary
-		$this->set('description', ''); // secondary
-		$this->set('notes', ''); // tertiary
-		$this->set('required', 0); 
-		$this->set('grouped', 0); 
-		$this->set('collapsed', 0); 
+		$this->set('label', ''); 	// primary clikable label
+		$this->set('description', ''); 	// descriptive copy, below label
+		$this->set('notes', ''); 	// highlighted descriptive copy, below output of input field
+		$this->set('head', ''); 	// below label, above description
+		$this->set('required', 0); 	// set to 1 to make value required for this field
+		$this->set('collapsed', 0); 	// see the collapsed* constants at top of class
 		$this->set('skipLabel', false); // if true, tells InputfieldWrapper not to use a "for" attribute with the auto-generated "<label>"
 
+		// default ID attribute if no 'id' attribute set
 		$this->defaultID = $this->className() . self::$numInstances; 
 
 		$this->setAttribute('id', $this->defaultID); 

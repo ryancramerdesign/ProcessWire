@@ -53,7 +53,7 @@ class Session extends Wire implements IteratorAggregate {
 			}
 		}
 
-		if(!$user) $user = $this->fuel('users')->getGuestUser();
+		if(!$user || !$user->id) $user = $this->fuel('users')->getGuestUser();
 		$this->fuel('users')->setCurrentUser($user); 	
 
 		foreach(array('message', 'error') as $type) {

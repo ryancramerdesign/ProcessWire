@@ -26,6 +26,7 @@
 			function init() {
 				if(!options.items) return; 
 				if(options.id.length) $tabList.attr('id', options.id); 
+				if(options.items.size() < 2) return;
 				options.items.each(addTab); 
 				$target.prepend($tabList); 
 				$tabList.children("li:first").children("a").click();

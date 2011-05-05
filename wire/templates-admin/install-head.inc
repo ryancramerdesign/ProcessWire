@@ -1,4 +1,9 @@
-<?php if(!defined("PROCESSWIRE_INSTALL")) die(); ?>
+<?php 
+if(!defined("PROCESSWIRE_INSTALL")) die(); 
+if(!isset($title)) $title = 'Title';
+if(!isset($formAction)) $formAction = './install.php';
+if(!isset($bgTitle)) $bgTitle = "Installer";
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,7 +19,7 @@
 	<script type="text/javascript" src="wire/templates-admin/scripts/install.js"></script>
 </head>
 <body>
-<p id='bgtitle'>Installer</p>
+<p id='bgtitle'><?php echo $bgTitle; ?></p>
 <div id="masthead" class="masthead">
 	<div class="container">
 		<p id='logo'>ProcessWire</p>
@@ -24,5 +29,5 @@
 
 <div id="content" class="content">
 	<div class="container">
-		<form action='./install.php' method='post'>
+		<form action='<?php echo $formAction; ?>' method='post'>
 
