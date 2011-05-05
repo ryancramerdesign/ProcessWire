@@ -200,6 +200,8 @@ class Session extends Wire implements IteratorAggregate {
 				$this->set('_user_fingerprint', $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_USER_AGENT']); 
 			}
 
+			$this->setFuel('user', $user); 
+
 			return $user; 
 		}
 

@@ -77,6 +77,7 @@ class ProcessLogin extends Process {
 		if($this->fuel('session')->login($name, $pass)) {
 			$this->session->message("Successful login for $name"); 
 			$this->session->remove('error'); 
+			$this->performSystemChecks();
 			$this->session->redirect("./?login=1" . ($this->id ? "&id={$this->id}" : ''));  
 		} else {
 			$this->error("Login failed for $name"); 
@@ -85,6 +86,14 @@ class ProcessLogin extends Process {
 		return $this->renderLoginForm();
 
 	}	
+
+	protected function performSystemChecks() {
+		if(!$this->user->isSuperuser()) return;
+		if(is_file($this->config->paths->root . "install.php")) $this->error("Security Warning: /install.php exists and should be deleted."); 
+		if(is_file($this->config->paths->root . "upgrade.php")) $this->error("Security Warning: /upgrade.php exists and should be deleted."); 
+		if(is_writable($this->config->paths->root . "site/config.php")) $this->error("Security Warning: /site/config.php is writable and ideally should not be."); 
+		if(is_writable($this->config->paths->root . "index.php")) $this->error("Security Warning: /site/index.php is writable and ideally should not be."); 
+	}
 
 	protected function buildLoginForm() {
 

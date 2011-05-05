@@ -308,6 +308,8 @@ class Pages extends Wire {
 			else if(!strlen(trim($page->name))) $reason = "It has an empty 'name' field"; 
 			else if($page->outputFormatting) $reason = "outputFormatting is on - Call \$page->setOutputFormatting(false) to turn it off"; 
 			else if($page->is(Page::statusCorrupted)) $reason = "It was corrupted when you modified a field with outputFormatting - See Page::setOutputFormatting(false)"; 
+			else if($page->id == 1 && !$page->template->useRoles) $reason = "Selected homepage template cannot be used because it does not define access.";
+			else if($page->id == 1 && !$page->template->hasRole('guest')) $reason = "Selected homepage template cannot be used because it does not have the required 'guest' role in it's access settings.";
 			else $saveable = true; 
 
 		return $saveable; 

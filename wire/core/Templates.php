@@ -138,6 +138,12 @@ class Templates extends WireSaveableItems {
 		if(!$item->fieldgroup->id) throw new WireException("You must save Fieldgroup '{$item->fieldgroup}' before adding to Template '{$item}'"); 
 
 		$rolesChanged = $item->isChanged('useRoles');
+
+		if($this->fuel('pages')->get("/")->template->id == $item->id) {
+			if(!$item->useRoles) throw new WireException("Template '{$item}' is used by the homepage and thus must manage access"); 
+			if(!$item->hasRole("guest")) throw new WireException("Template '{$item}' is used by the homepage and thus must have the 'guest' role assigned."); 
+		}
+
 		$result = parent::___save($item); 
 
 		if($result && $item->fieldgroupPrevious && $item->fieldgroupPrevious->id != $item->fieldgroup->id) {

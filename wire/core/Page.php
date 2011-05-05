@@ -1160,7 +1160,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function getAccessParent() {
-		if($this->template->useRoles) return $this;
+		if($this->template->useRoles || $this->settings['id'] === 1) return $this;
 		$parent = $this->parent();	
 		if($parent->id) return $parent->getAccessParent();
 		return new NullPage();

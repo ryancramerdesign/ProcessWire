@@ -146,8 +146,12 @@ class ProcessPageEdit extends Process {
 			}
 
 			if(!empty($_POST['submit_save'])) {
-				$this->page->save();
-				$this->message("Saved Page: " . $this->page->url); 
+				try {
+					$this->page->save();
+					$this->message("Saved Page: " . $this->page->url); 
+				} catch(Exception $e) {
+					$this->error($e->getMessage()); 
+				}
 			}
 
 			if(!$this->redirectUrl) $this->redirectUrl = "./?id={$this->page->id}"; 
@@ -789,9 +793,13 @@ class ProcessPageEdit extends Process {
 		if(!$this->page->template->noChangeTemplate) { 
 
 			if(!is_null($template) || (isset($_POST['template']) && ($template = $this->templates->get((int) $_POST['template'])))) {
-				$this->page->template = $template; 
-				$this->page->save();
-				$this->message("Changed template to '$template'"); 
+				try { 
+					$this->page->template = $template; 
+					$this->page->save();
+					$this->message("Changed template to '$template'"); 
+				} catch(Exception $e) {
+					$this->error($e->getMessage()); 
+				}
 			}
 		}
 

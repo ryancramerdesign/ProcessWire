@@ -934,7 +934,11 @@ class ProcessTemplate extends Process {
 		}
 			
 		$this->message("Saved Template '{$this->template->name}'"); 
-		$this->template->save();
+		try {
+			$this->template->save();
+		} catch(Exception $e) {
+			$this->error($e->getMessage()); 
+		}
 		$this->session->redirect($redirectUrl); 
 	}
 
