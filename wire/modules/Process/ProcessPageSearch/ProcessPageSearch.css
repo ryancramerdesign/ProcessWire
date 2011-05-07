@@ -1,26 +1,35 @@
 
 #ProcessPageSearchSubmit {
-	display: none;
+	display: none; 
 }
 
-#ProcessPageSearchResults li {
-	border-bottom: 1px dotted #ccc; 
-	margin: 0; 
-	padding: 0.25em 0;
+#ProcessPageSearchResults {
+	padding-left: 260px; 
 }
 
-#ProcessPageSearchResults li a,
-#ProcessPageSearchResults li a span {
+#ProcessPageSearchOptionsForm {
+	float: left; 
+	width: 240px; 
+}
+
+#ProcessPageSearchOptionsForm .Inputfields li {
+	margin-top: 0; 
+}
+
+#ProcessPageSearchOptionsForm p {
+	margin-top: 0; 
+}
+
+#ProcessPageSearchOptionsForm label {
 	display: block;
 }
 
-.ProcessPageSearchResult_path {
-	opacity: 0.75;
-	filter: alpha(opacity = 75); 
+#ProcessPageSearchOptionsForm select {
+	width: 210px; 
 }
 
-.ProcessPageSearchResult_title {
-	font-weight: bold; 
+#ProcessPageSearchOptionsForm input[type=text] {
+	width: 202px;
 }
 
 
