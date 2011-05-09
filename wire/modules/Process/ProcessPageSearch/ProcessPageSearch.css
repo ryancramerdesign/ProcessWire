@@ -1,23 +1,23 @@
 
 #ProcessPageSearchSubmit {
-	display: none; 
+	display: none;
 }
 
 #ProcessPageSearchResults {
-	padding-left: 260px; 
+	padding-left: 260px;
 }
 
-#ProcessPageSearchOptionsForm {
-	float: left; 
-	width: 240px; 
+#ProcessPageSearchOptions {
+	float: left;
+	width: 240px;
 }
 
 #ProcessPageSearchOptionsForm .Inputfields li {
-	margin-top: 0; 
+	margin-top: 0;
 }
 
 #ProcessPageSearchOptionsForm p {
-	margin-top: 0; 
+	margin-top: 0;
 }
 
 #ProcessPageSearchOptionsForm label {
@@ -25,11 +25,9 @@
 }
 
 #ProcessPageSearchOptionsForm select {
-	width: 210px; 
+	width: 210px;
 }
 
 #ProcessPageSearchOptionsForm input[type=text] {
 	width: 202px;
 }
-
-
