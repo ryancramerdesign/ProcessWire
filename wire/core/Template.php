@@ -239,7 +239,10 @@ class Template extends WireData implements Saveable {
 			$value = $this->config->paths->templates . basename($value); 
 		}
 
-		if(is_file($value)) $this->filename = $value; 
+		if(is_file($value)) {
+			$this->filename = $value; 
+			$this->filenameExists = true; 
+		}
 	}
 
 	/**
