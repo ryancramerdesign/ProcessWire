@@ -112,7 +112,10 @@ class FieldtypePage extends FieldtypeMulti {
 
 		if($field->derefAsPage) {
 			$pg = false;
-			if(count($value)) $pg = $this->fuel('pages')->getById(array((int) reset($value)), $template, $parent_id); 
+			if(count($value)) {
+				$pageArray = $this->fuel('pages')->getById(array((int) reset($value)), $template, $parent_id); 
+				if(count($pageArray)) $pg = $pageArray->first();
+			}
 			if($pg && $pg->status >= Page::statusUnpublished) $pg = false;
 			return $pg; 
 		} else {
