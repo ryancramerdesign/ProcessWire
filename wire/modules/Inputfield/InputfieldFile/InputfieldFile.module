@@ -87,10 +87,15 @@ class InputfieldFile extends Inputfield {
 		return $out; 
 	}
 
+	protected function ___fileAdded(Pagefile $pagefile) {
+		$this->message("Added file: " . $pagefile->basename); 
+	}
+
 	protected function ___processInputAddFile($filename) {
 		if($this->maxFiles && count($this->value) >= $this->maxFiles) return; 
 		$this->value->add($filename); 
-		$this->message("Added file: " . basename($filename)); 
+		$item = $this->value->last();
+		$this->fileAdded($item); 
 	}
 
 	protected function ___processInputDeleteFile(Pagefile $pagefile) {

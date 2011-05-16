@@ -111,7 +111,7 @@ class Pageimage extends Pagefile {
 	 * Gets the image information with PHP's getimagesize function and caches the result
 	 *
 	 */
-	protected function getImageInfo($reset = false) {
+	public function getImageInfo($reset = false) {
 
 		if($reset) $checkImage = true; 
 			else if($this->imageInfo['width']) $checkImage = false; 

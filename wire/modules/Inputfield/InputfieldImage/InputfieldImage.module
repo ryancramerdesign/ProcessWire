@@ -15,6 +15,8 @@ class InputfieldImage extends InputfieldFile {
 		parent::init();
 		$this->set('extensions', 'JPG JPEG GIF PNG');
 		$this->set('adminThumbs', false); 
+		$this->set('maxWidth', ''); 
+		$this->set('maxHeight', ''); 
 		$this->set('adminThumbHeight', 100); 
 		//$this->modules->get("InputfieldFile"); // force the JS and CSS from InputfieldFile to also be loaded
 		$this->modules->get("JqueryFancybox"); 
@@ -24,6 +26,37 @@ class InputfieldImage extends InputfieldFile {
 		$this->config->scripts->add($this->config->urls->InputfieldFile . "InputfieldFile.js");
 		$this->config->styles->add($this->config->urls->InputfieldFile . "InputfieldFile.css");
 		return parent::___render();
+	}
+
+	/**
+	 * Resize images to max width/height if specified in field config and image is larger than max
+	 *
+	 */
+	protected function ___fileAdded(Pagefile $pagefile) {
+
+		$filename = $pagefile->filename; 
+		$pagefile2 = null;
+
+		if($this->maxWidth && $pagefile->width > $this->maxWidth) {
+			$pagefile2 = $pagefile->width($this->maxWidth); 
+			unlink($pagefile->filename); 
+			rename($pagefile2->filename, $pagefile->filename); 
+			$pagefile->getImageInfo(true); // force it to reload it's dimensions
+		}
+
+		if($this->maxHeight && $pagefile->height > $this->maxHeight) {
+			$pagefile2 = $pagefile->height($this->maxHeight); 
+			unlink($pagefile->filename); 
+			rename($pagefile2->filename, $pagefile->filename); 
+			$pagefile->getImageInfo(true); 
+		}
+
+		if($pagefile2) {
+			$this->message("Resized '{$pagefile->basename}' to {$pagefile->width}x{$pagefile->height} fit within max dimensions of {$this->maxWidth}x{$this->maxHeight}"); 
+		}
+
+		parent::___fileAdded($pagefile); 
+		
 	}
 	
 	protected function renderItem($pagefile, $id, $n) {
@@ -58,12 +91,36 @@ class InputfieldImage extends InputfieldFile {
 		$inputfields = parent::___getConfigInputfields();
 	
 		$field = $this->modules->get('InputfieldCheckbox'); 
-		$field->setAttribute('name', 'adminThumbs'); 
-		$field->setAttribute('value', 1); 
-		$field->setAttribute('checked', $this->adminThumbs ? 'checked' : ''); 
+		$field->attr('name', 'adminThumbs'); 
+		$field->attr('value', 1); 
+		$field->attr('checked', $this->adminThumbs ? 'checked' : ''); 
 		$field->label = 'Display thumbnails in page editor?'; 
 		$field->description = 'Thumbnails take up less space and make it easier to sort multiple images. If unchecked, the full (original) size image will be shown in the page editor.';
-		$inputfields->append($field); 
+		$inputfields->add($field); 
+
+		$fieldset = $this->modules->get('InputfieldFieldset');
+		$fieldset->label = "Max Image Dimensions";
+		$fieldset->collapsed = $this->maxWidth || $this->maxHeight ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
+		$fieldset->description = 
+			"Optionally enter the max width and/or height of uploaded images. " . 
+			"If specified, images will be resized at upload time when they exceed either the max width or height. " . 
+			"The resize is performed at upload time, and thus does not affect any images in the system, or images added via the API.";
+
+		$field = $this->modules->get("InputfieldInteger"); 
+		$field->attr('name', 'maxWidth'); 
+		$field->attr('value', $this->maxWidth ? (int) $this->maxWidth : ''); 
+		$field->label = "Max width for uploaded images"; 
+		$field->description = "Enter the value in number of pixels or leave blank for no max."; 
+		$fieldset->add($field); 
+
+		$field = $this->modules->get("InputfieldInteger"); 
+		$field->attr('name', 'maxHeight'); 
+		$field->attr('value', $this->maxHeight ? (int) $this->maxHeight : ''); 
+		$field->label = "Max height for uploaded images"; 
+		$field->description = "Enter the value in number of pixels or leave blank for no max."; 
+		$fieldset->add($field); 
+
+		$inputfields->add($fieldset); 
 		
 		return $inputfields; 	
 	}
