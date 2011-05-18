@@ -72,6 +72,7 @@ class Template extends WireData implements Saveable {
 	 */
 	protected $data = array(
 		'useRoles' => 0, 		// does this template define access?
+		'addRoles' => array(),		// IDs of roles that may add children to pages using this template
 		'childrenTemplatesID' => 0, 	// template ID for child pages, or -1 if no children allowed. 
 		'allowPageNum' => 0, 		// allow page numbers in URLs?
 		'redirectLogin' => 0, 		// redirect when no access: 0 = 404, 1 = login page, 'url' = URL to redirec to
@@ -200,6 +201,11 @@ class Template extends WireData implements Saveable {
 
 		} else if($key == 'roles') {
 			$this->setRoles($value);
+
+		} else if($key == 'addRoles') {
+			if(!is_array($value)) $value = array();
+			foreach($value as $k => $v) $value[$k] = (int) $v; 
+			parent::set($key, $value); 
 
 		} else {
 			parent::set($key, $value); 

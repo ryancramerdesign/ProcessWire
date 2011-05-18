@@ -355,7 +355,7 @@ class PageFinder extends Wire {
 			}
 
 			foreach($this->fuel('templates') as $template) {
-				if($template->guestSearchable) {
+				if($template->guestSearchable || !$template->useRoles) {
 					$yesTemplates[$template->id] = $template;
 					continue; 
 				}
@@ -376,10 +376,13 @@ class PageFinder extends Wire {
 		$yesCnt = count($yesTemplates); 
 		$noCnt = count($noTemplates); 
 
-		// foreach($noTemplates as $template) echo $template->name . '<br />';
-
 		if($noCnt) {
-			//$query->select("pages_access.pages_id AS no_access"); 
+
+			// pages_access lists pages that are inheriting access from others. 
+			// join in any pages that are using any of the noTemplates to get their access. 
+			// we want pages_access.pages_id to be NULL, which indicates that none of the 
+			// noTemplates was joined, and the page is accessible to the user. 
+			
 			$leftjoin = "pages_access ON (pages_access.pages_id=pages.id AND pages_access.templates_id IN(";
 			foreach($noTemplates as $template) $leftjoin .= $template->id . ",";
 			$query->leftjoin(rtrim($leftjoin, ",") . "))");
@@ -409,7 +412,6 @@ class PageFinder extends Wire {
 		} else {
 			$where = "<0"; // no match possible
 		}
-
 
 		$query->where($where); 
 	}

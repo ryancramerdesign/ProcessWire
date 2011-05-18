@@ -24,6 +24,7 @@ class ProcessPageAdd extends Process {
 	protected $parent_id;
 	protected $page; 
 	protected $template; 
+	protected $allowedTemplates = null; //cache
 
 	public static function getModuleInfo() {
 		return array(
@@ -31,7 +32,7 @@ class ProcessPageAdd extends Process {
 			'summary' => 'Add a new page', 
 			'version' => 100, 
 			'permanent' => true, 
-			'permission' => 'page-add',
+			'permission' => 'page-edit',
 			);
 	}
 
@@ -61,14 +62,15 @@ class ProcessPageAdd extends Process {
 		$this->parent = $this->pages->get($this->parent_id); 
 		if(!$this->parent) throw new Wire404Exception("Unable to load page {$this->id}"); 
 
-		if(!$this->user->hasPermission('page-add', $this->parent))
-			throw new WirePermissionException("You don't have access to add pages here"); 
-
 		if($this->parent->template->childrenTemplatesID < 0) {
 			throw new WireException("The parent template has specified that no children may be added here"); 
 
+		} else if(!$this->parent->addable()) {
+			throw new WireException("You don't have access to add pages here"); 
+
 		} else if($this->parent->template->childrenTemplatesID > 0) {
 			$this->template = $this->templates->get($this->parent->template->childrenTemplatesID); 	
+			if(!$this->isAllowedTemplate($this->template)) throw new WireException("You don't have access to the template required to add pages here"); 
 		}
 
 		$this->form = $this->buildForm();
@@ -80,6 +82,50 @@ class ProcessPageAdd extends Process {
 
 		return $this->form->render();
 	}	
+
+	/**
+	 * Returns an array of templates that are allowed to be used here
+	 *
+	 */
+	protected function getAllowedTemplates() {
+
+		if(is_array($this->allowedTemplates)) return $this->allowedTemplates;
+		$isSuperuser = $this->fuel('user')->isSuperuser();
+		$user = $this->fuel('user');
+		$templates = array();
+
+		if($this->parent->childrenTemplatesID) {
+			$template = $this->templates->get($this->parent->childrenTemplatesID); 
+			if($template && (!$template->useRoles || $user->hasPermission('page-edit', $template))) {
+				$templates[$template->id] = $template;
+			}
+
+		} else { 
+			foreach($this->fuel('templates') as $template) {
+				$allowed = false;
+
+				if($user->hasPermission('page-edit', $template)) {
+					// if the user has page-edit permission on the template, then it's allowed here
+					$templates[$template->id] = $template;
+				}
+			}
+		}
+
+		$this->allowedTemplates = $templates;
+
+		return $templates; 
+	}
+
+	/**
+	 * Is the given template or template ID allowed here?
+	 *
+	 */
+	protected function isAllowedTemplate($id) {
+		if(is_object($id) && $id instanceof Template) $id = $id->id; 
+		$id = (int) $id; 
+		$templates = $this->getAllowedTemplates();
+		return isset($templates[$id]); 
+	}
 
 	/**
 	 * Build the form fields for adding a page
@@ -110,11 +156,13 @@ class ProcessPageAdd extends Process {
 
 		if(!$this->template) { 
 
+			/*
 			$field = $this->modules->get('InputfieldPageListSelect');
 			$field->label = "Parent";
 			$field->attr('name', 'parent_id'); 
 			$field->attr('value', $this->parent_id); 
 			$form->append($field); 
+			*/
 
 			if($this->parent->numChildren > 0) { 
 				$sibling = $this->parent->child('sort=-created, status<' . Page::statusUnpublished);
@@ -122,27 +170,40 @@ class ProcessPageAdd extends Process {
 			} else {
 				$defaultTemplateId = $this->parent->template->id; 
 			}
+			if(!$this->isAllowedTemplate($defaultTemplateId)) $defaultTemplateId = 0;
 
 			$field = $this->modules->get('InputfieldSelect');
 			$field->label = 'Template';
 			$field->attr('name', 'template'); 
 			$field->attr('value', $defaultTemplateId); 
 			$field->required = true; 
-			foreach($this->templates as $template) $field->addOption($template->id, $template->name); 
+
+			foreach($this->getAllowedTemplates() as $template) {
+				$field->addOption($template->id, $template->name); 
+			}
+
 			$form->append($field); 
 
-		} else {
+		} else if(!count($_POST)) {
 
-			$field = $this->modules->get('InputfieldHidden'); 
-			$field->attr('name', 'parent_id'); 
-			$field->attr('value', $this->parent_id); 
-			$form->append($field);
+			$this->message("You are adding a page using the '{$this->template}' template"); 
 		}
+
+		$field = $this->modules->get('InputfieldHidden'); 
+		$field->attr('name', 'parent_id'); 
+		$field->attr('value', $this->parent_id); 
+		$form->append($field);
 
 		$field = $this->modules->get('InputfieldSubmit');
 		$field->attr('id+name', 'submit_save'); 
 		$field->attr('value', 'Save'); 
 		$form->append($field); 
+
+		$allowedTemplates = $this->getAllowedTemplates();	
+		if(count($allowedTemplates) == 1) {
+			$t = reset($allowedTemplates);
+			$form->description = $t->name; 
+		}
 
 		return $form; 
 	}
@@ -175,6 +236,8 @@ class ProcessPageAdd extends Process {
 			$templatesId = (int) $form->children->get('template')->value; 
 			$template = $this->templates->get($templatesId); 
 		}
+
+		if(!$this->isAllowedTemplate($template)) throw new WireException("You don't have access to add pages with template '$template'"); 
 		
 		$this->page = new Page($template); 
 		$this->page->parent = $this->parent; 
@@ -213,7 +276,7 @@ class ProcessPageAdd extends Process {
 		$breadcrumbs = new Breadcrumbs();
 		$breadcrumbs->add(new Breadcrumb($this->config->urls->admin . 'page/list/', "Pages"));
 		foreach($this->parent->parents()->append($this->parent) as $p) {
-			$breadcrumbs->add(new Breadcrumb("../edit/?id=" . $p->id, $p->get("title|name"))); 
+			$breadcrumbs->add(new Breadcrumb($this->config->urls->admin . "page/list/?open=" . $p->id, $p->get("title|name"))); 
 		}
 		$this->setFuel('breadcrumbs', $breadcrumbs); 
 	}

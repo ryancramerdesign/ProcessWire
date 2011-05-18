@@ -43,6 +43,23 @@ class User extends Page {
 	}
 
 	/**
+	 * Does the user have the given permission, OR the given permission in the given context?
+	 *
+	 * Context may be a Page or a Template. 
+	 * This method serves as the public interface to the hasPagePermission and hasTemplatePermission methods.
+	 *
+	 * @param string|Permission $name Permission name
+	 * @param Page|Template $context Page or Template
+	 * @return bool
+	 *
+	 */
+	public function hasPermission($name, $context = null) {
+		if(is_null($context) || $context instanceof Page) return $this->hasPagePermission($name, $context); 
+		if($context instanceof Template) return $this->hasTemplatePermission($name, $context); 
+		return false;
+	}
+
+	/**
 	 * Does this user have the given permission name?
 	 *
  	 * This only indicates that the user has the permission, and not where they have the permission.
@@ -52,7 +69,7 @@ class User extends Page {
 	 * @return bool
 	 *
 	 */
-	public function hasPermission($name, Page $page = null) {
+	protected function hasPagePermission($name, Page $page = null) {
 
 		if($this->isSuperuser()) return true; 
 
@@ -77,6 +94,75 @@ class User extends Page {
 
 		return $has; 
 	}
+
+	/**
+	 * Does this user have the given permission on the given template?
+	 *
+	 * @param string $name Permission name
+	 * @param Template|int|string Template object, name or ID
+	 * @return bool
+	 *
+	 */
+	protected function hasTemplatePermission($name, $template) {
+
+		if($name instanceof Template) $name = $name->name; 
+		if(is_object($name)) throw new WireException("Invalid type"); 
+
+		if($this->isSuperuser()) return true; 
+
+		if($template instanceof Template) {
+			// fantastic then
+		} else if(is_string($template) || is_int($template)) {
+			$template = $this->templates->get($this->sanitizer->name($template)); 
+			if(!$template) return false;
+		} else {
+			return false;
+		}
+
+		// if the template is not defining roles, we have to say 'no' to permission
+		// because we don't have any page context to inherit from at this point
+		if(!$template->useRoles) return false; 
+
+		$has = false;
+
+		foreach($this->roles as $role) {
+			if(!$template->hasRole($role)) continue; 
+			if($role->hasPermission($name)) {
+				$has = true;
+				break;
+			}
+		}
+
+		return $has; 
+	}
+
+	/**
+	 * Does this user have page-add permission to the given page?
+	 *
+	 * This is a special case for the 'page-add' permission, because it has to 
+	 * check that the permission is on the access template's addRoles field.
+	 *
+	 * @param Page $page
+	 * @return bool
+	 *	
+	public function hasPageAddPermission(Page $page) {
+
+		$has = false;
+		$template = $page->getAccessTemplate();	
+
+		$role_ids = array();
+		foreach($this->roles as $role) $role_ids[] = $role->id;
+
+		foreach($template->addRoles as $role_id) {
+			if(in_array($role_id, $role_ids)) {
+				$has = true;
+				break;
+			}
+		}
+
+		return $has;
+	}
+	 */
 
 	/**
 	 * Get this user's permissions, optionally within the context of a Page

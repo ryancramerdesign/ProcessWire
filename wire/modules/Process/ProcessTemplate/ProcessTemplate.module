@@ -286,6 +286,20 @@ class ProcessTemplate extends Process {
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
+		$t->head = "Settings for children of pages using this template";
+		$t->attr('class', 'WireTab'); 
+		$t->attr('title', "Children");
+		$t->add($this->buildEditFormChildren($template)); 
+		$form->add($t); 
+
+		$t = new InputfieldWrapper();
+		$t->head = "Optional settings for URLs of pages using this template";
+		$t->attr('class', 'WireTab'); 
+		$t->attr('title', "URLs");
+		$t->add($this->buildEditFormURLs($template)); 
+		$form->add($t); 
+
+		$t = new InputfieldWrapper();
 		$t->head = "Optional advanced template settings";
 		$t->attr('class', 'WireTab'); 
 		$t->attr('title', "Advanced");
@@ -477,123 +491,17 @@ class ProcessTemplate extends Process {
 		$field->label = 'Cache Time';
 		$field->description = 
 			"To cache the output of this template, enter the time (in seconds) that the output should be cached. " . 
-			"For example: 3600 = 1 hour, 86400 = 1 day, 604800 = 1 week, 2419200 = 1 month. " . 
 			"Caching can help significantly with page render time on resource-heavy pages. " . 
 			"But caching should not be used on templates that need to process constantly changing data, like " . 
 			"from forms or sessions.";
+
+		$field->notes = "For example: 3600 = 1 hour, 86400 = 1 day, 604800 = 1 week, 2419200 = 1 month. ";
 
 		$field->attr('value', $template->cache_time); 
 		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field); 
 		if($template->cache_time) $form->collapsed = Inputfield::collapsedNo;
 
-		// --------------------
-
-		$field = $this->modules->get('InputfieldSelect'); 
-		$field->attr('name', 'childrenTemplatesID'); 
-		$field->label = "Template for Children";
-		$field->collapsed = Inputfield::collapsedBlank;
-		$field->description = 
-			"Select the template that will be enforced for any children of pages using this template. " .
-			"If you select 'Disallow Children' then pages using this template will be unable to add children. " . 
-			"If you select 'Auto Detect' then the template will be determined from the siblings or parent, " . 
-			"and the user will be allowed to change it when adding a page.";
-
-		$field->addOption(0, 'Auto Detect'); 
-		$field->addOption(-1, "Disallow Children"); 
-		foreach($this->templates as $t) $field->addOption($t->id, $t->name); 
-		$field->attr('value', (int) $template->childrenTemplatesID); 
-		$form->append($field); 
-		if($template->childrenTemplatesID != 0) $form->collapsed = Inputfield::collapsedNo;
-
-		// --------------------
-
-		$field = $this->modules->get('InputfieldCheckbox'); 
-		$field->attr('id+name', 'allowPageNum');
-		$field->label = 'Allow Page Numbers?';
-		$field->attr('value', 1); 
-		if($template->allowPageNum) $field->attr('checked', 'checked'); 
-			else $field->collapsed = Inputfield::collapsedYes;
-		
-		$field->description = 
-			"If checked, pages using this template will accept page number URL segments in the form 'page123', where '123' may be any positive number. " . 
-			"For example, a request URL of '/widgets/page3' automatically sets the \$input->pageNum to be 3.  " . 
-			"This is used for pagination and should only be enabled for templates that support pagination. " . 
-			"Note that page numbers start at 1 (not 0). " . 
-			"If combined with URL Segments (see next section), then the page number must be the last part of the URL."; 
-		$field->notes = 
-			"Access the current page number from your templates at \$input->pageNum; ";
-		$form->append($field); 
-		if($template->allowPageNum) $form->collapsed = Inputfield::collapsedNo;
-
-		// --------------------
-
-		$field = $this->modules->get('InputfieldCheckbox'); 
-		$field->attr('name', 'urlSegments');
-		$field->label = 'Allow URL Segments?';
-		$field->description = 
-			"This template may optionally serve URL path segments below that of the page(s) using it. " . 
-			"For example, you may want a page with path /path/to/page/ to also handle requests for " . 
-			"/path/to/page/segment1/ or /path/to/page/segment1/segment2/. By default, ProcessWire " . 
-			"will throw a '404 Page Not Found' error when such a URL is accessed. But if you want " . 
-			"ProcessWire to render the page instead, check the box below. You can then manully check " . 
-			"the URL segments from your template file to respond to them.";
-
-		$field->notes = 
-			"Up to 3 URL segments are supported after the page's URL. These may be any " . 
-			"combination of lowercase ASCII letters (a-z), numbers (0-9), dashes and underscores. " . 
-			"You can access the URL segments from your template API code by referencing the " . 
-			"\$input->urlSegment(n) function or \$input->urlSegment[n] property " . 
-			"(replacing [n] with 1, 2 or 3).\n\nFor example, given the URL /path/to/page/a/b/c/, " . 
-			"where /path/to/page/ is the page's path, and /a/b/c/ are the segments: " . 
-			"\$input->urlSegment1 is \"a\", \$input->urlSegment2 is \"b\", and \$input->urlSegment3 is \"c\". " . 
-			"If your template receives unknown URL segments, a best practice is to " . 
-			"abort the request by throwing a 404 error. " . 
-			"The API code to do this is: throw new PageNotFoundException();";
-
-		$field->attr('value', 1); 
-		if($template->urlSegments) {
-			$field->attr('checked', 'checked'); 
-			$form->collapsed = Inputfield::collapsedNo;
-		} else { 
-			$field->collapsed = Inputfield::collapsedYes;
-		}
-		$form->append($field); 
-
-		// --------------------
-
-		$field = $this->modules->get('InputfieldRadios'); 
-		$field->attr('name', 'slashUrls'); 
-		$field->label = 'Should page URLs end with a slash?';
-		$field->addOption(1, 'Yes (default)'); 
-		if($template->name != 'admin') $field->addOption(0, 'No'); 
-		$field->description = 
-			"If 'Yes', pages using this template will always have URLs that end with a trailing slash '/'. And if the page is loaded from " . 
-			"a URL without the slash, it will be redirected to it. If you select 'No', the non-slashed version will be enforced instead. " . 
-			"Note that this setting does not enforce this behavior on URL segments or page numbers, only actual page URLs. If you don't " . 
-			"have a preference, it is recommended that you leave this set to 'Yes'.";
-		$field->attr('value', $template->slashUrls === 0 ? 0 : 1); // force default setting of 1
-		$field->collapsed = $template->slashUrls === 0 ? Inputfield::collapsedNo : Inputfield::collapsedYes;
-		if($template->slashUrls === 0) $form->collapsed = Inputfield::collapsedNo;
-		$form->append($field); 
-
-		// --------------------
-
-		$field = $this->modules->get('InputfieldRadios'); 
-		$field->attr('name', 'https'); 
-		$field->label = 'Protocol';
-		$field->addOption(0, 'HTTP or HTTPS'); 
-		$field->addOption(1, 'HTTPS only (SSL encrypted)'); 
-		$field->addOption(-1, 'HTTP only');
-		$field->collapsed = Inputfield::collapsedBlank;
-		$field->description = 
-			"If your site has an SSL certificate and is accessible by HTTPS, you may make pages using this template accessible " . 
-			"only via HTTPS or HTTP. For example, if you select 'HTTPS only' below, and a request for a page using this template comes " .
-			"in through HTTP, it will be automatically redirected to the HTTPS version. By default, ProcessWire allows connection from " . 
-			"either HTTP or HTTPS. ";
-		$field->attr('value', (int) $template->https); 
-		$form->append($field); 
-		if($template->https) $form->collapsed = Inputfield::collapsedNo;
 
 		// --------------------
 
@@ -760,6 +668,133 @@ class ProcessTemplate extends Process {
 		return $form; 
 	}
 
+	protected function buildEditFormChildren(Template $template) {
+
+		$form = new InputfieldWrapper();
+		$form->attr('id', 'children'); 	
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldSelect'); 
+		$field->attr('name', 'childrenTemplatesID'); 
+		$field->label = "Required Template for Children";
+		$field->collapsed = Inputfield::collapsedNo;
+		$field->description = 
+			"Select the template that will be enforced for any children of pages using this template. " .
+			"If you select 'Disallow Children' then pages using this template will be unable to add children. ";
+
+		$field->addOption(0, 'Any'); 
+		$field->addOption(-1, "Disallow Children"); 
+		foreach($this->templates as $t) $field->addOption($t->id, $t->name); 
+		$field->attr('value', (int) $template->childrenTemplatesID); 
+		$form->append($field); 
+
+		// --------------------
+
+		$this->buildEditFormAccessAddRoles($template, $form); 
+
+		return $form;
+	}
+
+	protected function buildEditFormURLs(Template $template) {
+
+		$form = new InputfieldWrapper();
+		$form->attr('id', 'urls'); 	
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->attr('id+name', 'allowPageNum');
+		$field->label = 'Allow Page Numbers?';
+		$field->attr('value', 1); 
+		if($template->allowPageNum) $field->attr('checked', 'checked'); 
+			else $field->collapsed = Inputfield::collapsedYes;
+		
+		$field->description = 
+			"If checked, pages using this template will accept page number URL segments in the form 'page123', where '123' may be any positive number. " . 
+			"For example, a request URL of '/widgets/page3' automatically sets the \$input->pageNum to be 3.  " . 
+			"This is used for pagination and should only be enabled for templates that support pagination. " . 
+			"Note that page numbers start at 1 (not 0). " . 
+			"If combined with URL Segments (see next section), then the page number must be the last part of the URL."; 
+		$field->notes = 
+			"Access the current page number from your templates at \$input->pageNum; ";
+		$form->append($field); 
+		if($template->allowPageNum) $form->collapsed = Inputfield::collapsedNo;
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->attr('name', 'urlSegments');
+		$field->label = 'Allow URL Segments?';
+		$field->description = 
+			"This template may optionally serve URL path segments below that of the page(s) using it. " . 
+			"For example, you may want a page with path /path/to/page/ to also handle requests for " . 
+			"/path/to/page/segment1/ or /path/to/page/segment1/segment2/. By default, ProcessWire " . 
+			"will throw a '404 Page Not Found' error when such a URL is accessed. But if you want " . 
+			"ProcessWire to render the page instead, check the box below. You can then manully check " . 
+			"the URL segments from your template file to respond to them.";
+
+		$field->notes = 
+			"Up to 3 URL segments are supported after the page's URL. These may be any " . 
+			"combination of lowercase ASCII letters (a-z), numbers (0-9), dashes and underscores. " . 
+			"You can access the URL segments from your template API code by referencing the " . 
+			"\$input->urlSegment(n) function or \$input->urlSegment[n] property " . 
+			"(replacing [n] with 1, 2 or 3).\n\nFor example, given the URL /path/to/page/a/b/c/, " . 
+			"where /path/to/page/ is the page's path, and /a/b/c/ are the segments: " . 
+			"\$input->urlSegment1 is \"a\", \$input->urlSegment2 is \"b\", and \$input->urlSegment3 is \"c\". " . 
+			"If your template receives unknown URL segments, a best practice is to " . 
+			"abort the request by throwing a 404 error. " . 
+			"The API code to do this is: throw new PageNotFoundException();";
+
+		$field->attr('value', 1); 
+		if($template->urlSegments) {
+			$field->attr('checked', 'checked'); 
+			$form->collapsed = Inputfield::collapsedNo;
+		} else { 
+			$field->collapsed = Inputfield::collapsedYes;
+		}
+		$form->append($field); 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldRadios'); 
+		$field->attr('name', 'slashUrls'); 
+		$field->label = 'Should page URLs end with a slash?';
+		$field->addOption(1, 'Yes (default)'); 
+		if($template->name != 'admin') $field->addOption(0, 'No'); 
+		$field->description = 
+			"If 'Yes', pages using this template will always have URLs that end with a trailing slash '/'. And if the page is loaded from " . 
+			"a URL without the slash, it will be redirected to it. If you select 'No', the non-slashed version will be enforced instead. " . 
+			"Note that this setting does not enforce this behavior on URL segments or page numbers, only actual page URLs. If you don't " . 
+			"have a preference, it is recommended that you leave this set to 'Yes'.";
+		$field->attr('value', $template->slashUrls === 0 ? 0 : 1); // force default setting of 1
+		$field->collapsed = $template->slashUrls === 0 ? Inputfield::collapsedNo : Inputfield::collapsedYes;
+		if($template->slashUrls === 0) $form->collapsed = Inputfield::collapsedNo;
+		$form->append($field); 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldRadios'); 
+		$field->attr('name', 'https'); 
+		$field->label = 'Protocol';
+		$field->addOption(0, 'HTTP or HTTPS'); 
+		$field->addOption(1, 'HTTPS only (SSL encrypted)'); 
+		$field->addOption(-1, 'HTTP only');
+		$field->collapsed = Inputfield::collapsedBlank;
+		$field->description = 
+			"If your site has an SSL certificate and is accessible by HTTPS, you may make pages using this template accessible " . 
+			"only via HTTPS or HTTP. For example, if you select 'HTTPS only' below, and a request for a page using this template comes " .
+			"in through HTTP, it will be automatically redirected to the HTTPS version. By default, ProcessWire allows connection from " . 
+			"either HTTP or HTTPS. ";
+		$field->attr('value', (int) $template->https); 
+		$form->append($field); 
+		if($template->https) $form->collapsed = Inputfield::collapsedNo;
+
+			
+		return $form; 
+	}
+
+
 	protected function buildEditFormAccess(Template $template) {
 
 		$form = new InputfieldWrapper();
@@ -769,7 +804,7 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldRadios'); 
 		$field->attr('id+name', 'useRoles');
-		$field->label = "Do you want to manage access for pages using this template?";
+		$field->label = "Do you want to manage view and edit access for pages using this template?";
 		$field->description = 
 			"If you select 'Yes' you can define what roles have access to pages using this template. " . 
 			"If you select 'No' then pages using this template will inherit access from their parent pages.";
@@ -826,7 +861,52 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 
+
+
 		return $form; 
+	}
+
+	protected function buildEditFormAccessAddRoles(Template $template, $fieldset) {
+
+
+		$field = $this->modules->get('InputfieldCheckboxes'); 
+		$field->table = true; 
+		$field->thead = "Role|Can add pages using template(s)";
+		$field->attr('id+name', 'addRoles'); 
+		$field->label = "What user roles can add children to pages using this template?";
+
+		$field->description = 
+			"Check the box next to each role that may add children to pages using this template. " . 
+			"If no roles are checked, only the superuser will be able to add child pages."; 
+
+		$childrenTemplate = $template->childrenTemplatesID ? $this->fuel('templates')->get($template->childrenTemplatesID) : null;
+
+		if($template->childrenTemplatesID < 0) $field->notes = "The settings you specify above will have no effect because children are already disabled in the 'advanced' tab of this Template editor.";	
+			else if(!$template->childrenTemplatesID) $field->notes = "Optional: You may also want to specify the template required for children on the 'advanced' tab in this template editor.";
+			else if($childrenTemplate) $field->notes = "This template currently only allows children using the template '$childrenTemplate'. ";
+
+		$roles = $this->pages->get($this->config->rolesPageID)->children(); 
+		$cnt = 0; 
+
+		foreach($roles as $role) {
+			if(!$role->hasPermission('page-edit')) continue; 
+			if($childrenTemplate && !$childrenTemplate->hasRole($role)) continue; 
+			$tstr = '';
+			foreach($this->fuel('templates') as $t) {
+				if($childrenTemplate && $childrenTemplate->id != $t->id) continue; 
+				if($t->hasRole($role)) $tstr .= $t->name . "\n";
+			}
+			$tstr = rtrim($tstr); 
+			if(!$tstr) continue; 
+
+			$field->addOption($role->id, $role->name . "|$tstr"); 
+			$cnt++;
+		}
+
+		$field->attr('value', $template->addRoles); 
+		if($template->childrenTemplatesID < 0) $field->collapsed = Inputfield::collapsedYes;
+
+		if($cnt) $fieldset->add($field); 
 	}
 	
 	protected function buildEditFormAccessRoles(Template $template = null) {
@@ -843,7 +923,8 @@ class ProcessTemplate extends Process {
 			"For your reference, the permissions associated with each role are also listed. " . 
 			"Because the 'guest' role applies to everyone, all other roles inherit guest permissions automatically when it is checked. " . 
 			"Note that in order for a page using this template to be publicly accessible, the 'guest' role must be checked. "; 
-		$field->notes = "The superuser role is always assumed to have access and is not shown here as a result.";
+		$field->notes = 
+			"Please also see the 'children' tab to define roles that may add children to pages using this template.";
 
 		$guestRole = $roles->get("name=guest"); 
 
@@ -854,8 +935,9 @@ class ProcessTemplate extends Process {
 			$details = '';
 			foreach($role->permissions as $permission) {
 				if(strpos($permission->name, 'page-') !== 0) continue; 
-				if($role->name != 'guest' && $guestRole->permissions->has($permission)) continue; // assumed
-				$details .= $permission->title . "\n";
+				//if($role->name != 'guest' && $guestRole->permissions->has($permission)) continue; // assumed
+				$details .= $permission->title;
+				$details .= "\n";
 			}
 			$details = rtrim($details, ", "); 
 			$field->addOption($role->id, "$label|$details"); 
@@ -921,10 +1003,13 @@ class ProcessTemplate extends Process {
 
 		// save roles
 		$this->template->useRoles = (int) $form->get('useRoles')->attr('value'); 
-		$roles = $form->get('roles')->attr('value'); 
-		if(!is_array($roles)) $roles = array();
-		foreach($roles as $k => $v) $roles[$k] = (int) $v;
-		$this->template->roles = $roles; 
+
+		foreach(array('roles', 'addRoles') as $key) { 
+			$value = $form->get($key)->attr('value'); 
+			if(!is_array($value)) $value = array();
+			foreach($value as $k => $v) $value[$k] = (int) $v;
+			$this->template->set($key, $value); 
+		}
 
 		if(!$this->template->childrenTemplatesID) $this->template->remove("childrenTemplatesID"); 
 

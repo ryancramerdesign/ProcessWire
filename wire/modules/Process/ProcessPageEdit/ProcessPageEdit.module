@@ -27,8 +27,9 @@ class ProcessPageEdit extends Process {
 	protected $redirectUrl;
 	protected $pageClass; 
 	protected $isTrash; 
+	protected $allowedTemplates = null; // cache
 
-	protected $useSettings = true; 
+	protected $useSettings = true; // TODO: are these still applicable?
 	protected $useChildren = true; 
 	protected $useView = true; 
 
@@ -335,14 +336,13 @@ class ProcessPageEdit extends Process {
 		}
 
 		// template
-		// if(!$this->page->template->noChangeTemplate && $this->page->) {
 		if($this->page->editable('template')) { 
 			$field = $this->modules->get('InputfieldSelect');
 			$field->label = 'Template';
 			$field->attr('id+name', 'template'); 
 			$field->attr('value', $this->page->template->id); 
 			$field->required = true; 
-			foreach($this->templates as $template) $field->addOption($template->id, $template->name); 
+			foreach($this->getAllowedTemplates() as $template) $field->addOption($template->id, $template->name); 
 			$wrapper->add($field); 
 		}
 
@@ -479,7 +479,7 @@ class ProcessPageEdit extends Process {
 		$field = $this->modules->get("InputfieldMarkup"); 
 		$field->label = "Who can access this page?";
 		$roles = $this->page->getAccessRoles();
-
+		$addRoles = $this->page->template->addRoles; 
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->headerRow(array('Role', 'What they can do')); 
@@ -494,9 +494,20 @@ class ProcessPageEdit extends Process {
 				foreach($role->permissions as $permission) {
 					$permissions .= "{$permission->title}\n";
 				}
+				if(false !== ($key = array_search($role->id, $addRoles))) {
+					$permissions .= "Add Children\n";
+					unset($addRoles[$key]); 
+				}
 				$table->row(array($roleName, nl2br($permissions))); 
 			}
 
+		}
+
+		if(count($addRoles)) {
+			foreach($addRoles as $roleID) {
+				$role = $this->fuel('roles')->get($roleID); 
+				if($role->id) $table->row(array($role->name, "Add Child Pages")); 
+			}
 		}
 
 		$table->row(array('superuser', 'Everything')); 
@@ -600,6 +611,7 @@ class ProcessPageEdit extends Process {
 	protected function processInputTemplate(Inputfield $inputfield) {
 		if($this->page->template->noChangeTemplate) return true; 
 		if((!$template = $this->templates->get((int) $inputfield->value)) || ($template->id == $this->page->template->id)) return true; 
+		if(!$this->isAllowedTemplate($template)) throw new WireException("Template '$template' is not allowed"); 
 
 		// template has changed, set a redirect URL which will confirm the change
 		$this->redirectUrl = "template?id={$this->page->id}&template={$template->id}";
@@ -650,28 +662,6 @@ class ProcessPageEdit extends Process {
 		return true; 
 	}
 
-	/**
-	 * Process the Settings > Roles field input
-	 *
-	protected function processInputRoles(Inputfield $inputfield) {
-		
-		foreach($this->page->roles() as $role) {
-			if($role->id == Role::superRoleID) continue; 
-			if(!in_array($role->id, $inputfield->value)) {
-				$this->page->removeRole($role); 
-			}
-		}
-
-		foreach($inputfield->value as $role_id) {
-			if(!$this->page->hasRole($role_id)) {
-				$role = $this->roles->get($role_id); 
-				$this->page->addRole($role); 
-			}
-		}
-		return true; 
-
-	}
-	 */
 
 	/**
 	 * Process a delete page request, moving the page to the trash if applicable
@@ -689,7 +679,7 @@ class ProcessPageEdit extends Process {
 			return false; 
 		}
 
-		$afterDeleteRedirect = "./?id={$this->parent->id}";
+		$afterDeleteRedirect = $this->fuel('config')->urls->admin . "page/?open={$this->parent->id}";
 		if($this->fuel('page')->process != $this->className()) $afterDeleteRedirect = "../";
 
 		if($this->isTrash || $this->page->template->noTrash) {
@@ -726,7 +716,9 @@ class ProcessPageEdit extends Process {
 		$breadcrumbs->add(new Breadcrumb($this->config->urls->admin . 'page/list/', "Pages"));
 		$page = $this->page ? $this->page : $this->parent; 
 		foreach($page->parents() as $p) {
-			$breadcrumbs->add(new Breadcrumb("./?id=" . $p->id, $p->get("title|name"))); 
+			// if($p->editable()) $url = "./?id=" . $p->id; 
+			$url = "../?open=" . $p->id; 
+			$breadcrumbs->add(new Breadcrumb($url, $p->get("title|name"))); 
 		}
 		$this->setFuel('breadcrumbs', $breadcrumbs); 
 	}
@@ -743,6 +735,8 @@ class ProcessPageEdit extends Process {
 		if(!isset($_GET['template'])) throw new WireException("This method requires a 'template' get var"); 
 		$template = $this->templates->get((int) $_GET['template']); 
 		if(!$template) throw new WireException("Unknown template"); 
+
+		if(!$this->isAllowedTemplate($template)) throw new WireException("That template is not allowed"); 
 	
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->attr('action', 'saveTemplate'); 
@@ -794,6 +788,7 @@ class ProcessPageEdit extends Process {
 
 			if(!is_null($template) || (isset($_POST['template']) && ($template = $this->templates->get((int) $_POST['template'])))) {
 				try { 
+					if(!$this->isAllowedTemplate($template)) throw new WireException("Template '$template' is not allowed"); 
 					$this->page->template = $template; 
 					$this->page->save();
 					$this->message("Changed template to '$template'"); 
@@ -804,6 +799,101 @@ class ProcessPageEdit extends Process {
 		}
 
 		$this->session->redirect("./?id={$this->page->id}"); 
+	}
+
+	/**
+	 * Returns an array of templates that are allowed to be used here
+	 *
+	 */
+	protected function getAllowedTemplates() {
+
+		if(is_array($this->allowedTemplates)) return $this->allowedTemplates;
+
+		$templates = array();
+		$user = $this->fuel('user');
+		$isSuperuser = $user->isSuperuser();
+
+		// current page template is assumed, otherwise we wouldn't be here
+		$templates[$this->page->template->id] = $this->page->template; 
+
+		if($this->page->template->noChangeTemplate) {
+			// don't add any more templates
+
+		} else if($this->page->parent->id && $this->page->parent->template->childrenTemplatesID && $this->page->parent->template->childrenTemplatesID != $this->page->template->id) {
+			// parent requires a specific template for it's children, but it's different from the one being used here
+			/*
+			$template = $this->fuel('templates')->get($this->page->parent->template->childrenTemplatesID); 
+			if($template) {
+				if(!$template->useRoles) {
+					// template doesn't define access, so access is assumed if we've made it here
+					$templates[$template->id] = $template;
+				} else {
+					// make sure the user has page-edit access on the required template
+					if($user->hasPermission('page-edit', $template)) $templates[$template->id] = $template;
+				}
+			}
+			*/
+
+		} else if($user->hasPermission('page-template', $this->page)) {
+			// user is allowed to change the page's template
+			// so now determine which ones they can change to
+
+			foreach($this->fuel('templates') as $template) {
+
+				if(isset($templates[$template->id])) continue; 
+
+				if($isSuperuser) { 
+					$templates[$template->id] = $template;
+
+				} else if(!$template->useRoles) {
+					// if template doesn't define roles, then we'll exclude it unless they are superuser
+					// this may not be the best strategy, but it's the one we'll use for now
+					continue; 
+
+				} else if($user->hasPermission('page-edit', $template)) {
+					// determine if the template's assigned roles match up with the users's roles
+					// and that at least one of those roles has page-edit permission
+					$templates[$template->id] = $template; 
+				}
+			}
+		}
+
+		$this->allowedTemplates = $templates;
+
+		return $templates; 
+	}
+
+	/**
+	 * Is the given template or template ID allowed here?
+	 *
+	 */
+	protected function isAllowedTemplate($id) {
+
+		// if $id is a template, then convert it to it's numeric ID
+		if(is_object($id) && $id instanceof Template) $id = $id->id; 
+
+		$id = (int) $id; 
+
+		// if the template is the same one already in place, of course it's allowed
+		if($id == $this->page->template->id) return true; 
+
+		// does this template specifically disallow template changes?
+		if($this->page->template->noChangeTemplate) return false; 
+
+		// check if the parent's template requires a specific template for it's children
+		if($this->page->parent->id && $this->page->parent->template->childrenTemplatesID > 0 && $this->page->parent->template->childrenTemplatesID != $id) return false; 
+
+		// if we're dealing with superuser, no need to check further access
+		if($this->fuel('user')->isSuperuser()) return true;
+
+		// does user have 'page-template' permission required to change the template?
+		if(!$this->fuel('user')->hasPermission('page-template', $this->page)) return false;
+
+		// if we've made it this far, then get a list of templates that are allowed...
+		$templates = $this->getAllowedTemplates();
+
+		// ...and determine if the supplied template is in that list
+		return isset($templates[$id]); 
 	}
 
 	/**
@@ -857,6 +947,29 @@ class ProcessPageEdit extends Process {
 		}
 	}
 	*/
+
+	/**
+	 * Process the Settings > Roles field input
+	 *
+	protected function processInputRoles(Inputfield $inputfield) {
+		
+		foreach($this->page->roles() as $role) {
+			if($role->id == Role::superRoleID) continue; 
+			if(!in_array($role->id, $inputfield->value)) {
+				$this->page->removeRole($role); 
+			}
+		}
+
+		foreach($inputfield->value as $role_id) {
+			if(!$this->page->hasRole($role_id)) {
+				$role = $this->roles->get($role_id); 
+				$this->page->addRole($role); 
+			}
+		}
+		return true; 
+
+	}
+	 */
 
 }
 

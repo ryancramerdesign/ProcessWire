@@ -219,11 +219,28 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 */
 	public function addable($event) {
-		$page = $event->object; 
-		$addable = true; 
 
-		if($page->template->childrenTemplatesID < 0) $addable = false; 
-			else if(!$this->user->hasPermission('page-add', $page)) $addable = false; 
+		$page = $event->object; 
+		$user = $this->fuel('user'); 
+		$addable = false; 
+
+		if($page->template->childrenTemplatesID < 0) {
+			$addable = false; 
+
+		} else if($user->isSuperuser()) {
+			$addable = true; 
+
+		} else {
+			foreach($page->template->addRoles as $roleID) {
+				if($user->hasRole($roleID)) {
+					$role = $this->fuel('roles')->get($roleID); 
+					if($role->id && $role->hasPermission('page-edit')) {
+						$addable = true;
+						break;
+					}
+				}
+			}
+		}
 
 		$event->return = $addable;
 	}
