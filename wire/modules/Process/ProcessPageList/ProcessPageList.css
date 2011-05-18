@@ -78,11 +78,22 @@
 	top: 3px; 
 }
 
-.PageList .PageListStatusLocked a.PageListPage {
-	/*
+.PageList .PageListStatusLocked a.PageListPage,
+.PageList .PageListStatusLocked a.PageListPage:hover {
 	padding-right: 10px;
 	background: url(images/lock.gif) center right no-repeat; 
-	*/
+}
+	.PageList .PageListID7 a.PageListPage,
+	.PageList .PageListID7 a.PageListPage:hover {
+		/* don't show lock icon on trash page to avoid confusion */
+		padding-right: 0;
+		background: none; 
+	}
+.PageList .PageListStatusSystem a.PageListPage {
+}
+
+.PageList .PageListStatusUnpublished a.PageListPage {
+	text-decoration: line-through; 
 }
 
 .PageList .PageListStatusSelected a.PageListPage {

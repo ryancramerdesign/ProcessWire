@@ -388,8 +388,12 @@ $(document).ready(function() {
 					.text(child.label)
 					.addClass('PageListPage label'); 
 
+				$li.addClass('PageListID' + child.id); 
 				if(child.status == 0) $li.addClass('PageListStatusOff disabled');
+				if(child.status & 2048) $li.addClass('PageListStatusUnpublished secondary'); 
 				if(child.status & 1024) $li.addClass('PageListStatusHidden secondary'); 
+				if(child.status & 16) $li.addClass('PageListStatusSystem'); 
+				if(child.status & 8) $li.addClass('PageListStatusSystem'); 
 				if(child.status & 4) $li.addClass('PageListStatusLocked'); 
 				if(child.type.length > 0) {
 					if(child.type == 'System') $li.addClass('PageListStatusSystem'); 

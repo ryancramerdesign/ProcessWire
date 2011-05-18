@@ -94,7 +94,7 @@ class ProcessPageView extends Process {
 		unset($_GET['it']); 
 		$it = preg_replace('{[^-_./a-zA-Z0-9]}', '', $it);
 		if($it[0] != '/') $it = "/$it";
-		$page = $this->pages->get("path=$it, status<" . Page::statusUnpublished); 
+		$page = $this->pages->get("path=$it, status<" . Page::statusMax); 
 		$hasTrailingSlash = substr($it, -1) == '/';
 
 		if($page && $page->id) {
@@ -120,7 +120,7 @@ class ProcessPageView extends Process {
 			$urlSegment = substr($it, $pos);
 			$urlSegments[$cnt] = $urlSegment; 
 			$it = substr($it, 0, $pos); // $it no longer includes the urlSegment
-			$page = $this->pages->get("path=$it, status<" . Page::statusUnpublished);
+			$page = $this->pages->get("path=$it, status<" . Page::statusMax);
 			$cnt++; 
 		}
 

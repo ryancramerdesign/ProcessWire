@@ -161,6 +161,11 @@ class PagePermissions extends WireData implements Module {
 			else if(!$user->hasPermission("page-view", $page)) $viewable = false;
 			else if($page->isTrash()) $viewable = false; 
 
+		// if the page is editable by the current user, force it to be viewable
+		if(!$viewable && !$user->isGuest() && $page->is(Page::statusUnpublished)) {
+			if($page->editable() && $page->template->filenameExists()) $viewable = true; 
+		}
+
 		$event->return = $viewable; 
 	}
 

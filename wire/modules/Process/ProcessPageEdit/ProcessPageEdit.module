@@ -97,7 +97,7 @@ class ProcessPageEdit extends Process {
 			$this->message("Note that this page is locked and no changes will be accepted unless first unlocked."); 
 
 		if($this->page->is(Page::statusUnpublished)) {
-			$this->message("This page is not yet published. You will have to save this page before it is visible on the site."); 
+			$this->message("This page is not published. You will have to publish this page before it is visible on the site."); 
 		}
 
 		return $this->renderEdit();
@@ -110,6 +110,10 @@ class ProcessPageEdit extends Process {
 	protected function renderEdit() {
 		$class = '';
 		$out = "<p id='PageIDIndicator' class='$class'>" . ($this->page->id ? $this->page->id : "New") . "</p>";
+		if($this->form->description) { 
+			$out .= "<h2>" . $this->form->description . "</h2>";
+			$this->form->description = '';
+		}
 		$out .= $this->form->render();
 		return $out; 
 	}
@@ -120,7 +124,7 @@ class ProcessPageEdit extends Process {
 	 */
 	protected function processSave() {
 
-		if($this->page->is(Page::statusUnpublished)) $this->page->removeStatus(Page::statusUnpublished); 
+		//if($this->page->is(Page::statusUnpublished)) $this->page->removeStatus(Page::statusUnpublished); 
 
 		if($this->page->is(Page::statusLocked)) {
 			if(!empty($_POST['status']) && in_array(Page::statusLocked, $_POST['status'])) {
@@ -146,10 +150,15 @@ class ProcessPageEdit extends Process {
 				if($notice instanceof NoticeError) $formErrors++; 
 			}
 
-			if(!empty($_POST['submit_save'])) {
+			if($this->input->post->submit_publish || $this->input->post->submit_save) {
 				try {
+					if($this->input->post->submit_publish && $this->page->is(Page::statusUnpublished)) {
+						$this->page->removeStatus(Page::statusUnpublished);
+						$this->message("Published Page: {$this->page->url}"); 
+					} else $this->message("Saved Page: {$this->page->url}"); 
+
 					$this->page->save();
-					$this->message("Saved Page: " . $this->page->url); 
+
 				} catch(Exception $e) {
 					$this->error($e->getMessage()); 
 				}
@@ -196,19 +205,39 @@ class ProcessPageEdit extends Process {
 
 		if($this->page->addable() || $this->page->numChildren) $form->append($this->buildFormChildren()); 
 		if(!$this->page->template->noSettings) $form->append($this->buildFormSettings()); 
-		if($this->isTrash) $this->message("This page is in the Trash"); 
+		if($this->isTrash) $form->description = "This page is in the Trash"; 
 		if($this->page->deleteable()) $form->append($this->buildFormDelete());
 		if($this->page->viewable() && !$this->input->get->modal) $form->append($this->buildFormView()); 
 
-		$field = $this->modules->get('InputfieldSubmit');
-		$field->attr('id+name', 'submit_save'); 
-		$field->attr('value', 'Save ' . $this->pageClass); 
-		$form->append($field); 
+		if($this->page->is(Page::statusUnpublished)) {
+
+			if(!$form->description) $form->description = "This page is currently unpublished";
+
+			$field2 = $this->modules->get('InputfieldSubmit'); 
+			$field2->attr('name', 'submit_save'); 
+			$field2->attr('id', 'submit_save_unpublished'); 
+			$field2->class .= ' ui-priority-secondary'; 
+			$field2->attr('value', 'Save + Keep Unpublished'); 
+
+			$saveName = 'submit_publish';
+			$saveLabel = "Publish " . $this->pageClass; 
+		} else {
+			$field2 = null;
+			$saveName = 'submit_save';
+			$saveLabel = "Save " . $this->pageClass; 
+		}
 
 		$field = $this->modules->get('InputfieldSubmit');
-		$field->attr('name', 'submit_save'); 
+		$field->attr('id+name', $saveName); 
+		$field->attr('value', $saveLabel); 
+		$form->append($field); 
+
+		if($field2) $form->append($field2); 
+
+		$field = $this->modules->get('InputfieldSubmit');
+		$field->attr('name', $saveName); 
 		$field->attr('id', 'submit_save_top'); 
-		$field->attr('value', 'Save ' . $this->pageClass); 
+		$field->attr('value', $saveLabel); 
 		$form->append($field); 
 
 		$field = $this->modules->get('InputfieldHidden');
@@ -370,8 +399,6 @@ class ProcessPageEdit extends Process {
 		$info = "\n<p>Created by <strong>{$this->page->createdUser->name}</strong> on " . date($dateFormat, $this->page->created) . "</p>" . 
 			"\n<p>Last modified by <strong>{$this->page->modifiedUser->name}</strong> on " . date($dateFormat, $this->page->modified) . "</p>";
 
-		if($this->page->is(Page::statusUnpublished)) $info .= "\n<p>This page has never been published</p>"; 
-
 		$field->label = 'Info';
 		$field->value = $info; 
 		$field->collapsed = Inputfield::collapsedYes; 
@@ -389,6 +416,7 @@ class ProcessPageEdit extends Process {
 		$statuses = array(
 			Page::statusHidden => "Hidden: Excluded from lists and searches", 
 			Page::statusLocked => "Locked: Not editable", 
+			Page::statusUnpublished => "Unpublished: Not visible on site",
 			); 
 			
 		if($this->config->advanced && $this->user->isSuperuser()) {
@@ -461,12 +489,12 @@ class ProcessPageEdit extends Process {
 	 * Build the 'view' tab on the Page Edit form
 	 *
 	 */ 
-	protected function buildFormView() {
+	protected function buildFormView($label = 'View') {
 		$field = new InputfieldMarkup(); 
 		$field->attr('id', $this->className() . 'View'); 
-		$field->attr('title', 'View'); 
+		$field->attr('title', $label); 
 		$field->attr('class', 'InputfieldWrapper'); 
-		$field->attr('value', "<a href='{$this->page->httpUrl}'>View</a>"); 
+		$field->attr('value', "<a href='{$this->page->httpUrl}'>$label</a>"); 
 		return $field;
 	}
 
@@ -566,7 +594,8 @@ class ProcessPageEdit extends Process {
 
 		static $skipFields = array(
 			'sortfield_reverse', 
-			'submit_save', 
+			'submit_publish', 
+			'submit_save',
 			);
 
 		if(!$level) $form->processInput($this->input->post);
@@ -629,7 +658,7 @@ class ProcessPageEdit extends Process {
 
 		if(!is_array($status)) $status = array();
 
-		$statusFlags = array(Page::statusHidden, Page::statusLocked); 
+		$statusFlags = array(Page::statusHidden, Page::statusLocked, Page::statusUnpublished); 
 
 		if($this->config->advanced && $this->user->isSuperuser()) {
 			$statusFlags[] = Page::statusSystemID;
