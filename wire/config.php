@@ -50,3 +50,11 @@ $config->dbCharset = 'utf8';
  */
 $config->userAuthHashType = 'sha1';
 
+/**
+ * dateFormat: default system date format. Preferably in a format that is string sortable. 
+ *
+ * This should be a PHP date() string: http://www.php.net/manual/en/function.date.php
+ *
+ */
+$config->dateFormat = 'Y-m-d H:i:s';  
+

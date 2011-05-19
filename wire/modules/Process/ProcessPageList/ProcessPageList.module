@@ -244,8 +244,14 @@ abstract class ProcessPageListRender extends Wire {
 	public function ___getPageLabel(Page $page) {
 
 		$value = '';
+
+		// if the page's template specifies a pageLabelField, use that 
 		$pageLabelField = trim($page->template->pageLabelField); 
+
+		// otherwise use the one specified with this instance
 		if(!strlen($pageLabelField)) $pageLabelField = $this->pageLabelField;
+
+		// convert to array
 		if(strpos($pageLabelField, ' ')) $fields = explode(' ', $pageLabelField); 
 			else $fields = array($pageLabelField); 
 
@@ -260,6 +266,9 @@ abstract class ProcessPageListRender extends Wire {
 			if($subfield && is_object($v)) {
 				if($v instanceof WireArray && count($v)) $v = $v->first();
 				$v = $v->get($subfield);
+
+			} else if(($field == 'created' || $field == 'modified') && ctype_digit("$v")) {
+				$v = date($this->fuel('config')->dateFormat, (int) $v); 
 			}
 
 			if($v) $value .= ($value ? ', ' : '') . "$v";
