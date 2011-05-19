@@ -178,7 +178,7 @@ class InputfieldWrapper extends Inputfield {
 		foreach($children as $inputfield) {
 
 			$collapsed = $inputfield->getSetting('collapsed'); 
-			if($collapsed === Inputfield::collapsedHidden) continue; 
+			if($collapsed == Inputfield::collapsedHidden) continue; 
 
 			$ffOut = $inputfield->render();
 			if(!$ffOut) continue; 
