@@ -40,7 +40,7 @@ function ProcessWireBootConfig() {
 
 	if(isset($_SERVER['HTTP_HOST'])) {
 		// when serving pages from a web server
-		$rootURL = dirname($_SERVER['SCRIPT_NAME']) . '/';
+		$rootURL = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/') . '/';
 	} else {
 		// when included from another app or command line script
 		$rootURL = '/';
