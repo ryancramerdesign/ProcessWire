@@ -38,8 +38,12 @@ class ProcessProfile extends Process implements ConfigurableModule {
 		$this->user = $this->fuel('user'); 
 		$this->setFuel('processHeadline', "Profile: " . $this->user->name); 
 		$form = $this->buildForm();
-		if($this->input->post->submit_save_profile) $this->processInput($form); 
-		return $form->render();
+		if($this->input->post->submit_save_profile) {
+			$this->processInput($form); 
+			$this->session->redirect("./"); 
+		} else { 
+			return $form->render();
+		}
 	}	
 
 	/**
@@ -53,6 +57,8 @@ class ProcessProfile extends Process implements ConfigurableModule {
 		$form->attr('id', 'ProcessProfile'); 
 		$form->attr('action', './'); 
 		$form->attr('method', 'post'); 
+		$form->attr('enctype', 'multipart/form-data');
+		$form->attr('autocomplete', 'off'); 
 
 		foreach($this->user->fields as $field) {
 			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue; 
