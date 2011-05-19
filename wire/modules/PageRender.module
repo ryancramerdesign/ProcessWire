@@ -124,9 +124,9 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 
 		$options = count($event->arguments) ? $event->arguments[0] : array();
 
-		if(!$page->viewable()) {
+		if($page->status >= Page::statusUnpublished && !$page->viewable()) {
 			$this->setFuel('page', $_page) ;
-			throw new WireException("Page '{$page->url}' is not currently viewable.");
+			throw new WirePermissionException("Page '{$page->url}' is not currently viewable.");
 		}
 
 		$defaultOptions = array(
