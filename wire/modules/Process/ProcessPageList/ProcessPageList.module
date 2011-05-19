@@ -244,13 +244,10 @@ abstract class ProcessPageListRender extends Wire {
 	public function ___getPageLabel(Page $page) {
 
 		$value = '';
-
-		if(strpos($this->pageLabelField, ' ')) {
-			$fields = explode(' ', $this->pageLabelField); 
-		} else {
-			$fields = array($this->pageLabelField); 
-		}
-
+		$pageLabelField = trim($page->template->pageLabelField); 
+		if(!strlen($pageLabelField)) $pageLabelField = $this->pageLabelField;
+		if(strpos($pageLabelField, ' ')) $fields = explode(' ', $pageLabelField); 
+			else $fields = array($pageLabelField); 
 
 		foreach($fields as $field) {
 
@@ -268,9 +265,10 @@ abstract class ProcessPageListRender extends Wire {
 			if($v) $value .= ($value ? ', ' : '') . "$v";
 		}
 
-		if(!$value) $value = $page->get("name"); 
+		if(!strlen($value)) $value = $page->get("name"); 
 
 		$value = strip_tags($value); 
+		$value = htmlspecialchars($value, ENT_QUOTES, "UTF-8", false); 
 
 		return $value;
 	}
@@ -314,7 +312,8 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 
 	protected function renderChild(Page $page) {
 
-		$page->setOutputFormatting(false); 
+		$outputFormatting = $page->outputFormatting; 
+		$page->setOutputFormatting(true); 
 		$note = '';
 		$type = '';
 
@@ -329,8 +328,9 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 			'path' => $page->path(), 
 			'actions' => $this->getPageActions($page), 
 			'type' => $type, 
-			'note' => $note,
+			'note' => $note
 			); 
+		$page->setOutputFormatting($outputFormatting);
 
 		return $a; 
 	}

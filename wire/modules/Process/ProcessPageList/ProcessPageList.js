@@ -385,7 +385,7 @@ $(document).ready(function() {
 				var $a = $("<a></a>")
 					.attr('href', '#')
 					.attr('title', child.path)
-					.text(child.label)
+					.html(child.label)
 					.addClass('PageListPage label'); 
 
 				$li.addClass('PageListID' + child.id); 

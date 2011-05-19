@@ -82,6 +82,7 @@ class Template extends WireData implements Saveable {
 		'altFilename' => '',		// alternate filename for template file, if not based on template name
 		'guestSearchable' => 0, 	// pages appear in search results even when user doesn't have access?
 		'pageClass' => '', 		// class for instantiated page objects. 'Page' assumed if blank, or specify class name. 
+		'pageLabelField' => '',		// CSV or space separated string of field names to be displayed by ProcessPageList (overrides those set with ProcessPageList config)
 		'noGlobal' => 0, 		// template should ignore the 'global' option of fields?
 		'noMove' => 0,			// pages using this template are not moveable?
 		'noTrash' => 0,			// pages using thsi template may not go in trash? (i.e. they will be deleted not trashed)

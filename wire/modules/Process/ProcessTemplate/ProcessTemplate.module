@@ -517,6 +517,24 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 
+		$field = $this->modules->get('InputfieldText'); 
+		$field->attr('name', 'pageLabelField');
+		$field->label = 'List of fields to display in the admin Page List';
+		$field->description = 
+			"Enter one or more field names assigned to this template to display in the admin Page List when listing pages using this template. " . 
+			"If left blank, the fields specified on the ProcessPageList module configuration will be used instead. " . 
+			"If populated, it will override the field names specified with ProcessPageList. " . 
+			"Field names should be separated by a space and/or comma. Blank fields will be ignored."; 
+		$notes = 'name, ';
+		foreach($template->fields as $f) if(!$f->type instanceof FieldtypeFieldsetOpen) $notes .= $f->name . ", ";
+		$field->notes = "You may enter one or more of these fields: " . rtrim($notes, ", ");
+		$field->attr('value', $template->pageLabelField); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$form->append($field); 
+
+		// --------------------
+
+
 
 		return $form; 
 	}
@@ -989,6 +1007,7 @@ class ProcessTemplate extends Process {
 		$this->template->slashUrls = (int) $form->get('slashUrls')->attr('value');
 		$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
 		$this->template->guestSearchable = (int) $form->get('guestSearchable')->attr('value'); 
+		$this->template->pageLabelField = $this->fuel('sanitizer')->names($form->get('pageLabelField')->attr('value')); 
 
 		if($this->config->advanced) { 
 			if($form->get('flagSystem')->attr('value')) $this->template->flags = $this->template->flags | Template::flagSystem; 

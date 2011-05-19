@@ -68,6 +68,16 @@ class Sanitizer extends Wire {
 	}
 
 	/**
+	 * Standard alphanumeric and dash, underscore, dot name plus multiple names may be separated by a space
+	 *
+	 */
+	public function names($value) {
+		$value = str_replace(array(',', '  '), ' ', $value);
+		return $this->nameFilter($value, array('-', '_', '.', ' '), '_', 1024);
+	}
+
+
+	/**
 	 * Standard alphanumeric and underscore, per class or variable names in PHP
 	 *
 	 */
