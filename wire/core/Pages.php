@@ -82,6 +82,8 @@ class Pages extends Wire {
 
 		// TODO selector strings with runtime fields, like url=/about/contact/, possibly as plugins to PageFinder
 
+		if(!strlen($selectorString)) return new PageArray();
+
 		if($selectorString[0] == '/') {
 			// if selector begins with a slash, then we'll assume it's referring to a path
 			$selectorString = "path=$selectorString";

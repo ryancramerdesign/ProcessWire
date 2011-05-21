@@ -63,7 +63,7 @@ class PageFinder extends Wire {
 					$maxStatus = (int) $selector->value; 
 
 			} else if($selector->field == 'check_access' || $selector->field == 'checkAccess') { 
-				$this->checkAccess = ((int) $selector->value) ? true : false;
+				$this->checkAccess = ((int) $selector->value) > 0 ? true : false;
 				$selectors->remove($key); 
 			}
 		}
@@ -104,6 +104,7 @@ class PageFinder extends Wire {
 		$this->parent_id = null;
 		$this->templates_id = null;
 		$this->options = $options; 
+		$this->checkAccess = true; 
 
 		$this->setupStatusChecks($selectors); 
 		$cnt = count($selectors); 
@@ -304,9 +305,11 @@ class PageFinder extends Wire {
 	protected function getQueryAllowedTemplates(DatabaseQuerySelect $query) {
 
 		static $where = null;
+		static $where2 = null;
+		static $leftjoin = null;
 
 		// if a template was specified in the search, then we won't attempt to verify access
-		if($this->templates_id) return; 
+		// if($this->templates_id) return; 
 
 		// if findOne optimization is set, we don't check template access
 		if($this->options['findOne']) return;
@@ -322,6 +325,8 @@ class PageFinder extends Wire {
 		// if we've already figured out this part from a previous query, then use it
 		if(!is_null($where)) {
 			$query->where($where);
+			$query->where($where2);
+			$query->leftjoin($leftjoin);
 			return;
 		}
 
@@ -385,8 +390,10 @@ class PageFinder extends Wire {
 			
 			$leftjoin = "pages_access ON (pages_access.pages_id=pages.id AND pages_access.templates_id IN(";
 			foreach($noTemplates as $template) $leftjoin .= $template->id . ",";
-			$query->leftjoin(rtrim($leftjoin, ",") . "))");
-			$query->where("pages_access.pages_id IS NULL"); 
+			$leftjoin = rtrim($leftjoin, ",") . "))";
+			$query->leftjoin($leftjoin);
+			$where2 = "pages_access.pages_id IS NULL"; 
+			$query->where($where2);
 		}
 
 		if($noCnt > 0 && $noCnt < $yesCnt) {
