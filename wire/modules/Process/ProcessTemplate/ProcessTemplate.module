@@ -1024,7 +1024,9 @@ class ProcessTemplate extends Process {
 		$this->template->useRoles = (int) $form->get('useRoles')->attr('value'); 
 
 		foreach(array('roles', 'addRoles') as $key) { 
-			$value = $form->get($key)->attr('value'); 
+			$f = $form->get($key); 
+			if(!$f instanceof Inputfield) continue; 
+			$value = $f->attr('value'); 
 			if(!is_array($value)) $value = array();
 			foreach($value as $k => $v) $value[$k] = (int) $v;
 			$this->template->set($key, $value); 
