@@ -373,9 +373,7 @@ class Pages extends Wire {
 			$field->type->savePageField($page, $field);
 		}
 
-		// $this->getFuel('pagesRoles')->savePageRoles($page); 
 		$this->sortfields->save($page); 
-		// $page->removeStatus(Page::statusUnpublished);
 		$page->resetTrackChanges();
 		if($isNew) $page->setIsNew(false); 
 
@@ -388,7 +386,7 @@ class Pages extends Wire {
 				if($this->config->debug) $this->message("Deleted field '$field' on page {$page->url}"); 
 			}
 		}
-		// $page->getCacheFile()->remove();
+
 		$this->uncacheAll();
 
 		// determine whether the pages_access table needs to be updated so that pages->find()
@@ -399,8 +397,8 @@ class Pages extends Wire {
 		// lastly determine whether the pages_parents table needs to be updated for the find() cache
 		// and call upon $this->saveParents where appropriate. 
 
-		if($isNew && $page->parent_id) $page = $page->parent; // new page, lets focus on it's parent
-		if($page->numChildren) {
+		if($isNew && $page->parent->id) $page = $page->parent; // new page, lets focus on it's parent
+		if($page->numChildren || $isNew) {
 			// check if entries aren't already present perhaps due to outside manipulation or an older version
 			$result = $this->db->query("SELECT COUNT(*) FROM pages_parents WHERE parents_id={$page->id}"); 
 			list($n) = $result->fetch_array();

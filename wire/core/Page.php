@@ -590,7 +590,7 @@ class Page extends WireData {
 		if($this->parent && $this->parent->id == $parent->id) return $this; 
 		$this->trackChange('parent');
 		if(($this->parent && $this->parent->id) && $this->parent->id != $parent->id) {
-			if($this->settings['system'] & Page::statusSystem) throw new WireException("Parent changes are disallowed on this page"); 
+			if($this->settings['status'] & Page::statusSystem) throw new WireException("Parent changes are disallowed on this page"); 
 			$this->parentPrevious = $this->parent; 
 		}
 		$this->parent = $parent; 
