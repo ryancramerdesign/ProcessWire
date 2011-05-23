@@ -397,12 +397,19 @@ class Pages extends Wire {
 		// lastly determine whether the pages_parents table needs to be updated for the find() cache
 		// and call upon $this->saveParents where appropriate. 
 
-		if($isNew && $page->parent->id) $page = $page->parent; // new page, lets focus on it's parent
+		if(($isNew && $page->parent->id) || ($page->parentPrevious && !$page->parent->numChildren)) {
+			$page = $page->parent; // new page or one that's moved, lets focus on it's parent
+			$isNew = true; // use isNew even if page was moved, because it's the first page in it's new parent
+		}
+
 		if($page->numChildren || $isNew) {
 			// check if entries aren't already present perhaps due to outside manipulation or an older version
-			$result = $this->db->query("SELECT COUNT(*) FROM pages_parents WHERE parents_id={$page->id}"); 
-			list($n) = $result->fetch_array();
-			$result->free();
+			$n = 0;
+			if(!$isNew) {
+				$result = $this->db->query("SELECT COUNT(*) FROM pages_parents WHERE parents_id={$page->id}"); 
+				list($n) = $result->fetch_array();
+				$result->free();
+			}
 			// if entries aren't present, if the parent has changed, or if it's been forced in the API, proceed
 			if($n == 0 || $page->parentPrevious || $page->forceSaveParents === true) {
 				$this->saveParents($page->id, $page->numChildren + ($isNew ? 1 : 0)); 
