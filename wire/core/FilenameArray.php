@@ -27,4 +27,8 @@ class FilenameArray implements IteratorAggregate {
 		return $this; 
 	}
 
+	public function __toString() {
+		return print_r($this->data, true); 
+	}
+
 }

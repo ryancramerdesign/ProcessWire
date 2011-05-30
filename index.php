@@ -134,6 +134,7 @@ function ProcessWireBootConfig() {
  * command-line script, the $wire variable is your connection to the API.
  *
  */
+$process = null;
 $wire = null;
 
 /**
@@ -164,9 +165,10 @@ try {
 	 *
 	 */
 	if(isset($_SERVER['HTTP_HOST']) && realpath(__FILE__) == realpath($_SERVER['SCRIPT_FILENAME'])) {
-		$controller = new ProcessController(); 
-		$controller->setProcessName("ProcessPageView"); 
-		echo $controller->execute();
+		$process = $wire->modules->get("ProcessPageView"); 
+		$wire->setFuel('process', $process); 
+		echo $process->execute();
+		$process->finished();
 
 	} else {
 		/*
@@ -184,6 +186,7 @@ try {
 	 *
 	 */
 
+	if($process) $process->failed($e);
 	$errorMessage = "Exception: " . $e->getMessage() . " (in " . $e->getFile() . " line " . $e->getLine() . ")";
 	if($config->debug || ($wire && $wire->user && $wire->user->isSuperuser())) $errorMessage .= "\n\n" . $e->getTraceAsString();
 	trigger_error($errorMessage, E_USER_ERROR); 
