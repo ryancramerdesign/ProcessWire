@@ -34,7 +34,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 1; 
-	const versionRevision = 0; 
+	const versionRevision = 1; 
 
 	/**
 	 * Given a Config object, instantiates ProcessWire and it's API
@@ -43,6 +43,10 @@ class ProcessWire extends Wire {
 	public function __construct(Config $config) {
 		$this->config($config); 
 		$this->load($config);
+	}
+
+	public function __toString() {
+		return $this->className() . " " . self::versionMajor . "." . self::versionMinor . "." . self::versionRevision; 
 	}
 
 	/**
@@ -79,6 +83,7 @@ class ProcessWire extends Wire {
 	 */
 	public function load(Config $config) {
 
+		Wire::setFuel('wire', $this); 
 		Wire::setFuel('notices', new Notices()); 
 		Wire::setFuel('sanitizer', new Sanitizer()); 
 
@@ -87,7 +92,6 @@ class ProcessWire extends Wire {
 		} else {
 			$db = new Database($config->dbHost, $config->dbUser, $config->dbPass, $config->dbName, $config->dbPort);
 		}
-
 
 		Wire::setFuel('db', $db); 
 		if($config->dbCharset) $db->set_charset($config->dbCharset); 

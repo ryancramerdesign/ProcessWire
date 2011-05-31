@@ -17,14 +17,15 @@
 /**
  * Return a ProcessWire API variable, or NULL if it doesn't exist
  *
- * Same as fuel() only $name cannot be ommitted to return all fuel. 
  * And the wire() function is the recommended way to access the API when included from other PHP scripts.
+ * Like the fuel() function, except that ommitting $name returns the current ProcessWire instance rather than the fuel.
+ * The distinction may not matter in most cases.
  *
  * @param string $name If ommitted, returns a Fuel object with references to all the fuel.
  * @return mixed Fuel value if available, NULL if not. 
  *
  */
-function wire($name) {
+function wire($name = 'wire') {
 	return Wire::getFuel($name); 
 }
 
