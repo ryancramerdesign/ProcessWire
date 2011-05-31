@@ -389,15 +389,22 @@ class Modules extends WireArray {
 			"data='' ";
 
 		$result = $this->fuel('db')->query($sql); 
-		//$module->id = $this->fuel('db')->insert_id; 
-		$this->moduleIDs[$class] = $this->fuel('db')->insert_id;
+		$moduleID = $this->fuel('db')->insert_id;
+		$this->moduleIDs[$class] = $moduleID;
 
 		$this->add($module); 
 		unset($this->installable[$class]); 
 
 		// note: the module's install is called here because it may need to know it's module ID for installation of permissions, etc. 
 		if(method_exists($module, '___install') || method_exists($module, 'install')) {
-			$module->install();
+			try {
+				$module->install();
+
+			} catch(Exception $e) {
+				// remove the module from the modules table if the install failed
+				$this->fuel('db')->query("DELETE FROM modules WHERE id='$moduleID' LIMIT 1"); 				
+				throw new WireException("Unable to install module '$class': " . $e->getMessage()); 
+			}
 		}
 
 		return $module; 
