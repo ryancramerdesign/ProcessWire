@@ -128,7 +128,8 @@ class DatabaseQuerySelectFulltext extends Wire {
 	 */
 	protected function getBooleanQueryValue($value, $required = true, $partial = true) {
 		$newValue = '';
-		$a = preg_split('/[-\s,+*!.?()=;]+/', $value); 
+		//$a = preg_split('/[-\s,+*!.?()=;]+/', $value); 
+		$a = preg_split('/[-\s,+*!?()=;]+/', $value); 
 		foreach($a as $k => $v) {
 			if(DatabaseStopwords::has($v)) {
 				continue; 
