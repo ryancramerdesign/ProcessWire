@@ -140,7 +140,7 @@ class LazyCron extends WireData implements Module {
 	public function afterPageView(HookEvent $e) {
 
 		$time = time();
-		$filename = $this->config->paths->cache . "AutoCron.cache"; 
+		$filename = $this->config->paths->cache . "LazyCron.cache"; 
 		$writeFile = false;
 
 		if(is_file($filename)) {
