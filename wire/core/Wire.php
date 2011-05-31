@@ -302,7 +302,7 @@ abstract class Wire implements TrackChanges {
 	/**
 	 * Return all hooks associated with this class instance or method (if specified)
 	 *
-	 * @param string $method Optional method that hooks will be limited to
+	 * @param string $method Optional method that hooks will be limited to. Or specify '*' to return all hooks everywhere.
 	 * @return array
 	 *
 	 */
@@ -312,13 +312,13 @@ abstract class Wire implements TrackChanges {
 
 		foreach(self::$staticHooks as $className => $staticHooks) {
 			// join in any related static hooks to the instance hooks
-			if($this instanceof $className) {
+			if($this instanceof $className || $method == '*') {
 				// TODO determine if the local vs static priority level may be damaged by the array_merge
 				$hooks = array_merge($hooks, $staticHooks); 
 			}
 		}
 
-		if($method) {
+		if($method && $method != '*') {
 			$methodHooks = array();
 			foreach($hooks as $priority => $hook) {
 				if($hook['method'] == $method) $methodHooks[$priority] = $hook;
