@@ -29,6 +29,10 @@ class FieldtypePage extends FieldtypeMulti {
 			);
 	}
 
+	const derefAsPageArray = 0; 
+	const derefAsPageOrFalse = 1; 
+	const derefAsPageOrNullPage = 2;
+
 	/**	
 	 * Setup a hook to Pages::delete so that we can remove references when pages are deleted
 	 *
@@ -97,30 +101,59 @@ class FieldtypePage extends FieldtypeMulti {
 		if($field->template_id) $template = $this->fuel('templates')->get($field->template_id); 
 		if($field->parent_id) $parent_id = $field->parent_id; 
 
-		if($field->derefAsPage) {
-			if(!$value) return false;
+		// handle $value if it's blank, Page, or PageArray
+		if($field->derefAsPage > 0) {
+			// value will ultimately be a single Page
+			if(!$value) return $this->getBlankValue($page, $field); 
+
+			// if it's already a Page, then we're good: return it
 			if($value instanceof Page) return $value; 	
-			if($value instanceof PageArray) return $value->first();
+
+			// if it's a PageArray and should be a Page, determine what happens next
+			if($value instanceof PageArray) {
+				// if there's a Page in there, return the first one
+				if(count($value) > 0) return $value->first();
+
+				// it's an empty array, so return whatever our default is
+				return $this->getBlankValue($page, $field); 
+			}
+
 		} else {
+			// value will ultimately be multiple pages
+
+			// if it's already a PageArray, great, just return it
 			if($value instanceof PageArray) return $value; 
+
+			// setup our default/blank value 
 			$pageArray = $this->getBlankValue($page, $field); 
+
+			// if $value is blank, then return our default/blank value
 			if(empty($value)) return $pageArray; 
 		}
 
+		// if we made it this far, then we know that the value was not empty
+		// so it's going to need to be populated from one type to the target type
 
+		// we're going to be dealing with $value as an array this point forward
+		// this is for compatibility with the Pages::getById function
 		if(!is_array($value)) $value = array($value); 
 
-		if($field->derefAsPage) {
+		if($field->derefAsPage > 0) {
+			// we're going to return a single page, NullPage or false
 			$pg = false;
 			if(count($value)) {
+				// get the first value in a PageArray, using $template and parent for optimization
 				$pageArray = $this->fuel('pages')->getById(array((int) reset($value)), $template, $parent_id); 
 				if(count($pageArray)) $pg = $pageArray->first();
 			}
-			if($pg && $pg->status >= Page::statusUnpublished) $pg = false;
+			if(!$pg || ($pg && $pg->status >= Page::statusUnpublished)) $pg = $this->getBlankValue($page, $field);
 			return $pg; 
+
 		} else {
+			// we're going to return a PageArray
 			$pageArray = $this->fuel('pages')->getById($value, $template, $parent_id); 
 			foreach($pageArray as $pg) {
+				// remove any pages that have an unpublished status
 				if($pg->status >= Page::statusUnpublished) $pageArray->remove($pg); 
 			}
 			$pageArray->resetTrackChanges(); 
@@ -138,16 +171,24 @@ class FieldtypePage extends FieldtypeMulti {
          *
          */
         public function ___sleepValue(Page $page, Field $field, $value) {
+
 		$sleepValue = array();
-		if($field->derefAsPage) {
-			if(!$value instanceof Page) return $sleepValue; 
+
+		if($field->derefAsPage > 0) {
+			// if the $value isn't specifically a Page, make it a blank array for storage
+			if(!$value instanceof Page || !$value->id) return $sleepValue; 
+			// if $value is a Page (not a NullPage) then place it's ID in an array for storage
 			$sleepValue[] = $value->id; 
 		} else {
+			// if $value isn't a PageArray then we'll store a blank array
 			if(!$value instanceof PageArray) return $sleepValue; 
+			// iterate through the array and place each Page ID
 			foreach($value as $pg) {
+				if(!$pg->id) continue; 
 				$sleepValue[] = $pg->id; 
 			}
 		}
+
 		return $sleepValue;
         }
 
@@ -156,9 +197,15 @@ class FieldtypePage extends FieldtypeMulti {
 	 *
 	 */
 	public function getBlankValue(Page $page, Field $field) {
-		if($field->derefAsPage) return false;
+
+		// single page possible blank values
+		if($field->derefAsPage == FieldtypePage::derefAsPageOrFalse) return false;
+			else if($field->derefAsPage == FieldtypePage::derefAsPageOrNullPage) return new NullPage(); 
+
+		// multi page blank value
 		$pageArray = new PageArray();
 		$pageArray->setTrackChanges(true);
+
 		return $pageArray;
 	}
 
@@ -202,36 +249,63 @@ class FieldtypePage extends FieldtypeMulti {
 	 *
 	 */
 	public function sanitizeValue(Page $page, Field $field, $value) {
+		if($field->derefAsPage > 0) return $this->sanitizeValuePage($page, $field, $value); 
+		return $this->sanitizeValuePageArray($page, $field, $value); 
+	}
 
+	/**
+	 * Handles the sanitization of values when target is a single Page
+	 *
+	 */
+	protected function sanitizeValuePage(Page $page, Field $field, $value) {
 
-		if($field->derefAsPage) {
+		if(!$value) return $this->getBlankValue($page, $field); 
+		if($value instanceof Page) return $value;
+		if($value instanceof PageArray) $value = $value->first();
+		if(is_string($value) || is_int($value)) {
+			$value = $this->sanitizeValueString($page, $field, $value); 
+			if($value instanceof PageArray) $value = $value->first();
+		}
+		return (($value instanceof Page) && $value->id) ? $value : $this->getBlankValue($page, $field); 
+	}
 
-			if($value instanceof Page) return $value;
-			if($value instanceof PageArray) return $value->first();
-			if(!$value) return false;
+	/**
+	 * Handles the sanitization of values when target is a PageArray
+	 *
+	 */
+	protected function sanitizeValuePageArray(Page $page, Field $field, $value) {
 
-			if(is_string($value) || is_int($value)) {
-				$value = $this->sanitizeValueString($page, $field, $value); 
-				if($value instanceof PageArray) $value = $value->first();
+		// if they are setting it to a PageArray, then we'll take it
+		if($value instanceof PageArray) return $value; 
+
+		// otherwise, lets get the current value so we can add to it or return it
+		$pageArray = $page->get($field->name); 
+
+		// if no value was provided, then return the existing value already in the page
+		if(!$value) return $pageArray; 
+
+		// if it's a string, see if we can convert it to a Page or PageArray
+		if(is_string($value)) $value = $this->sanitizeValueString($page, $field, $value); 
+
+		// if it's a Page, and not  NullPage, add it to the existing PageArray
+		if($value instanceof Page) {
+			if($value->id) return $pageArray->add($value); 
+				else return $pageArray;
+		}
+
+		// if it's a new PageArray, combine it with the existing PageArray
+		if($value instanceof PageArray) {
+			foreach($value as $pg) {
+				if(!$pg->id) continue; 
+				$pageArray->add($pg); 
 			}
-
-			return $value instanceof Page ? $value : false;
-
-		} else { 
-			if($value instanceof PageArray) return $value; 
-			$pageArray = $page->get($field->name); 
-			if(!$value) return $pageArray; 
-
-			if(is_string($value)) $value = $this->sanitizeValueString($page, $field, $value); 
-			if($value instanceof Page) return $pageArray->add($value); 
-			if($value instanceof PageArray) {
-				foreach($value as $pg) $pageArray->add($pg); 
-				return $pageArray; 
-			}
-			if(!is_array($value)) $value = array($value); 
-			foreach($value as $pg) $pageArray->add($pg); 
 			return $pageArray; 
 		}
+
+		if(!is_array($value)) $value = array($value); 
+		foreach($value as $pg) $pageArray->add($pg); 
+
+		return $pageArray; 
 	}
 
 	/**
@@ -285,9 +359,13 @@ class FieldtypePage extends FieldtypeMulti {
 		$select = $this->modules->get("InputfieldRadios"); 
 		$select->attr('name', 'derefAsPage'); 
 		$select->label = 'Dereference in API as';
-		$select->description = "If this field holds only one Page, you should select Page. If it holds multiple Pages, then you should select PageArray.";
-		$select->addOption('0', 'Multiple Pages (PageArray)'); 
-		$select->addOption('1', 'Single Page (Page)'); 
+		$select->description = 
+			"If your field will contain multiple pages, then you should select the first option (PageArray). " . 
+			"If your field only needs to contain a single page, then select one of the single Page options " . 
+			"(if you aren't sure which, select the last option).";
+		$select->addOption(FieldtypePage::derefAsPageArray, 'Multiple pages (PageArray)'); 
+		$select->addOption(FieldtypePage::derefAsPageOrFalse, 'Single page (Page) or boolean false when none selected'); 
+		$select->addOption(FieldtypePage::derefAsPageOrNullPage, 'Single page (Page) or empty page (NullPage) when none selected'); 
 
 		$select->attr('value', (int) $field->derefAsPage);  
 		$inputfields->append($select);
