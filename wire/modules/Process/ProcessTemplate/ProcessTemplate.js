@@ -55,6 +55,26 @@ $(document).ready(function() {
 
 	$("#wrap_redirectLogin input").click(redirectLoginClick); 
 
+	var adjustCacheFields = function() {
+		var val = parseInt($(this).attr('value')); 		
+		if(val > 0) {
+			if(!$("#wrap_noCacheGetVars").is(":visible")) {
+				$("#wrap_useCacheForUsers").slideDown();
+				$("#wrap_noCacheGetVars").slideDown();
+				$("#wrap_noCachePostVars").slideDown();
+			}
+
+		} else {
+			if($("#wrap_noCacheGetVars").is(":visible")) {
+				$("#wrap_useCacheForUsers").hide();
+				$("#wrap_noCacheGetVars").hide();
+				$("#wrap_noCachePostVars").hide();
+			}
+		}
+	}; 
+
+	$("#cache_time").change(adjustCacheFields).change();
+		
 	adjustAccessFields();
 	redirectLoginClick();
 

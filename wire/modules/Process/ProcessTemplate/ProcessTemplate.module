@@ -300,6 +300,13 @@ class ProcessTemplate extends Process {
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
+		$t->head = "Output caching";
+		$t->attr('class', 'WireTab'); 
+		$t->attr('title', "Cache");
+		$t->add($this->buildEditFormCache($template)); 
+		$form->add($t); 
+
+		$t = new InputfieldWrapper();
 		$t->head = "Optional advanced template settings";
 		$t->attr('class', 'WireTab'); 
 		$t->attr('title', "Advanced");
@@ -480,28 +487,72 @@ class ProcessTemplate extends Process {
 		return $form;
 	}
 
-	protected function buildEditFormAdvanced(Template $template) {
+	protected function buildEditFormCache(Template $template) {
 
 		$form = new InputfieldWrapper();
 
 		// --------------------
 
 		$field = $this->modules->get('InputfieldInteger'); 
-		$field->attr('name', 'cache_time');
+		$field->attr('id+name', 'cache_time');
 		$field->label = 'Cache Time';
 		$field->description = 
 			"To cache the output of this template, enter the time (in seconds) that the output should be cached. " . 
 			"Caching can help significantly with page render time on resource-heavy pages. " . 
 			"But caching should not be used on templates that need to process constantly changing data, like " . 
-			"from forms or sessions.";
+			"from forms or sessions. Also note that URL segments are cachable, but GET and POST vars are not. ";
 
 		$field->notes = "For example: 3600 = 1 hour, 86400 = 1 day, 604800 = 1 week, 2419200 = 1 month. ";
 
 		$field->attr('value', $template->cache_time); 
+		$form->append($field); 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldRadios'); 
+		$field->attr('id+name', 'useCacheForUsers'); 
+		$field->label = 'Cache when rendering pages for these users';
+		$field->addOption(0, 'Guests only'); 
+		$field->addOption(1, 'Guests and logged-in users');
+		$field->attr('value', (int) $template->useCacheForUsers); 
+		$field->notes = "Note that the cache is always disabled for pages where the user has edit access, regardless of what you select here.";
+		$form->append($field); 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldText'); 
+		$field->attr('id+name', 'noCacheGetVars'); 
+		$field->label = "Disable cache when these GET vars are present";
+		$field->description = 
+			"When your template outout is cached, GET vars are ignored by default. " . 
+			"You can optionally specify one or more GET vars that will disable the " . 
+			"cache for that request, causing the page to be rendered sans cache. ";
+		$field->attr('value', (string) $template->noCacheGetVars); 
+		$field->notes = "Optionally enter one or more POST var names. If entering more than one, separate each by a space.";
 		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field); 
-		if($template->cache_time) $form->collapsed = Inputfield::collapsedNo;
 
+		// --------------------
+
+		$field = $this->modules->get('InputfieldText'); 
+		$field->attr('id+name', 'noCachePostVars'); 
+		$field->label = "Disable cache when these POST vars are present";
+		$field->description = 
+			"When your template outout is cached, POST vars are ignored by default. " . 
+			"You can optionally specify one or more POST vars that will disable the " . 
+			"cache for that request, causing the page to be rendered sans cache. ";
+		$field->attr('value', (string) $template->noCachePostVars); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$field->notes = "Optionally enter one or more GET var names. If entering more than one, separate each by a space.";
+		$form->append($field); 
+
+		return $form; 
+
+	}
+
+	protected function buildEditFormAdvanced(Template $template) {
+
+		$form = new InputfieldWrapper();
 
 		// --------------------
 
@@ -997,7 +1048,6 @@ class ProcessTemplate extends Process {
 			$redirectUrl = "fieldgroup?id={$this->template->id}&fieldgroup=" . (int) $this->input->post->fieldgroup;
 		} 
 
-		$this->template->cache_time = $form->get('cache_time')->attr('value'); 
 		$this->template->childrenTemplatesID = (int) $form->get('childrenTemplatesID')->attr('value'); 
 		$this->template->allowPageNum = (int) $form->get('allowPageNum')->attr('value'); 
 		$this->template->redirectLogin = (int) $form->get('redirectLogin')->attr('value'); 
@@ -1008,6 +1058,10 @@ class ProcessTemplate extends Process {
 		$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
 		$this->template->guestSearchable = (int) $form->get('guestSearchable')->attr('value'); 
 		$this->template->pageLabelField = $this->fuel('sanitizer')->names($form->get('pageLabelField')->attr('value')); 
+		$this->template->cache_time = $form->get('cache_time')->attr('value'); 
+		$this->template->useCacheForUsers = (int) $form->get('useCacheForUsers')->attr('value');
+		$this->template->noCacheGetVars = $this->fuel('sanitizer')->names($form->get('noCacheGetVars')->attr('value')); 
+		$this->template->noCachePostVars = $this->fuel('sanitizer')->names($form->get('noCachePostVars')->attr('value')); 
 
 		if($this->config->advanced) { 
 			if($form->get('flagSystem')->attr('value')) $this->template->flags = $this->template->flags | Template::flagSystem; 

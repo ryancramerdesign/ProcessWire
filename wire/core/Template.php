@@ -89,6 +89,9 @@ class Template extends WireData implements Saveable {
 		'noSettings' => 0, 		// don't show a 'settings' tab on pages using this template?
 		'noChangeTemplate' => 0, 	// don't allow pages using this template to change their template?
 		'nameContentTab' => 0, 		// pages should display the 'name' field on the content tab?	
+		'noCacheGetVars' => '',		// GET vars that trigger disabling the cache (only when cache_time > 0)
+		'noCachePostVars' => '',	// POST vars that trigger disabling the cache (only when cache_time > 0)
+		'useCacheForUsers' => 0, 	// use cache for: 0 = only guest users, 1 = guests and logged in users
 		); 
 
 
