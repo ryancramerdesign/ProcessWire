@@ -167,6 +167,19 @@ class Pages extends Wire {
 	}
 
 	/**
+	 * Count and return how many pages will match the given selector string
+	 *
+	 * @param string $selectorString
+	 * @return int
+	 * @todo optimize this so that it only counts, and doesn't have to load any pages in the process. 
+	 *
+	 */
+	public function count($selectorString) {
+		$pages = $this->find("$selectorString, limit=2"); // PW doesn't count when limit=1, which is why we limit=2
+		return $pages->getTotal();
+	}
+
+	/**
 	 * Like find() but returns only the first match as a Page object (not PageArray)
 	 *
 	 * @param string $selectorString
