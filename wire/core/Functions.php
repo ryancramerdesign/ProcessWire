@@ -6,7 +6,7 @@
  * Common API functions useful outside of class scope
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2011 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -106,5 +106,49 @@ function unregisterGLOBALS() {
 	    		unset($GLOBALS[$k]);
 		}
 	}
+}
+
+/**
+ * Encode array for storage and remove empty values
+ *
+ * Uses json_encode and works the same way except this function clears out empty root-level values.
+ * It also forces number strings that can be integers to be integers. 
+ *
+ * The end result of all this is more optimized JSON.
+ *
+ * Use json_encode() instead if you don't want any empty values removed. 
+ *
+ * @param array $data Array to be encoded to JSON
+ * @return string String of JSON data
+ *
+ */
+function wireEncodeJSON(array $data) {
+	foreach($data as $key => $value) {
+		// make sure ints are stored as ints
+		if(is_string($value) && ctype_digit("$value") && $value <= PHP_INT_MAX) $value = (int) $value;
+		// skip empty values whether blank, 0, empty array, etc. 
+		if(empty($value)) {
+			unset($data[$key]);
+		} else {
+			$data[$key] = $value;
+		}
+	}
+	if(!count($data)) return '';
+	return json_encode($data);
+}
+
+/**
+ * Decode JSON to array
+ *
+ * Uses json_decode and works the same way except that arrays are forced.
+ * This is the counterpart to the wireEncodeJSON() function.
+ * 
+ * @param string $json A JSON encoded string
+ * @return array
+ *
+ */
+function wireDecodeJSON($json) {
+	if(empty($json) || $json == '[]') return array();
+	return json_decode($json, true); 
 }
 

@@ -135,7 +135,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 			$item = $this->makeBlankItem();
 			foreach($row as $field => $value) {
 				if($field == 'data') {
-					if($value) $value = json_decode($value, true); 
+					if($value) $value = wireDecodeJSON($value); 
 						else continue; 
 				}
 				$item->$field = $value; 
@@ -179,8 +179,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 			if(!$this->saveItemKey($key)) continue; 
 			if($key == 'data') {
 				if(is_array($value)) {
-					foreach($value as $k => $v) if(is_null($v)) unset($value[$k]); // avoid saving null values in data
-					$value = json_encode($value); 
+					$value = wireEncodeJSON($value); 
 				} else $value = '';
 			}
 			$sql .= "`$key`='" . $db->escape_string("$value") . "', ";

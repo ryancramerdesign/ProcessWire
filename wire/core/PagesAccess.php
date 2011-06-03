@@ -224,49 +224,5 @@ class PagesAccess extends Wire {
 		return $this->_accessTemplates;
 	}
 
-	/**
-	 * Update a page's children recursively, to go along with the updatePage or updateTemplate method
-	 *
-	protected function updatePageChildren($page_id, Template $accessTemplate) {
-
-		$page_id = (int) $page_id; 
-
-		// prevent redoing what's already been done
-		if(in_array($page_id, $this->completedParentIDs)) return; 
-
-		// get templates that don't define access
-		$templates = $this->getTemplates();
-
-		// if no templates are applicable then abort
-		if(!count($templates)) return;
-
-		$sql = 	"SELECT pages.id, COUNT(children.id) AS numChildren " . 
-			"FROM pages " . 
-			"LEFT JOIN pages AS children ON children.parent_id=pages.id " . 
-			"WHERE pages.parent_id=$page_id AND pages.templates_id IN(";
-
-		foreach($templates as $template) $sql .= $template->id . ",";
-		$sql = rtrim($sql, ",") . ") GROUP BY pages.id";
-		
-		$result = $this->db->query($sql); 
-		if(!$result->num_rows) return; 
-
-		$sql = '';
-		while($row = $result->fetch_assoc()) {
-			$sql .= "($row[id], {$accessTemplate->id}),";
-			if($row['numChildren'] > 0) $this->updatePageChildren($row['id'], $accessTemplate); 	
-		}
-
-		if($sql) {
-			$sql = 	"INSERT INTO pages_access (pages_id, templates_id) " . 
-				"VALUES " . rtrim($sql, ",") . " " . 
-				"ON DUPLICATE KEY UPDATE templates_id=VALUES(templates_id) ";
-
-			$this->db->query($sql); 
-		}
-
-		$this->completedParentIDs[] = $page_id; 
-	}
-	 */
 
 }

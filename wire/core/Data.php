@@ -34,7 +34,10 @@ class WireData extends Wire implements IteratorAggregate {
 	 */
 	public function set($key, $value) {
 		static $last = '';
-		if($key == 'data') return $this->setArray($value); 
+		if($key == 'data') {
+			if(!is_array($value)) $value = (array) $value;
+			return $this->setArray($value); 
+		}
 		$v = isset($this->data[$key]) ? $this->data[$key] : null;
 		if(!$this->isEqual($key, $v, $value)) $this->trackChange($key); 
 		$this->data[$key] = $value; 
