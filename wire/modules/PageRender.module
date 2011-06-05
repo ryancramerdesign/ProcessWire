@@ -8,7 +8,7 @@
  * It hooks into Pages and Fieldtypes to ensure cache files are cleaned/deleted when pages are saved/deleted.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2011 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -37,19 +37,22 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 */
 	public function init() {
 		$this->addHook('Page::render', $this, 'renderPage'); 
-		$this->addHookAfter('Fieldtype::savePageField', $this, 'savePageField'); 
 		$this->pages->addHookAfter('save', $this, 'clearCacheFile'); 
 		$this->pages->addHookAfter('delete', $this, 'clearCacheFile'); 
+		// $this->addHookAfter('Fieldtype::savePageField', $this, 'savePageField'); // removed, see note in commented function
 	}
 
 	/**
 	 * If $page->save($field) was called (which calls Fieldtype::savePageField), then clear out the Page's cache
 	 *
-	 */
+	 * Removed because too much compromise in speed, but kept here for reference in case we determine a faster solution.
+	 *
 	public function savePageField($event) {
 		$page = $event->arguments[0]; 
+		if(!$page->template->cache_time) return;
 		$this->getCacheFile($page)->remove();
 	}
+	 */
 
 	/**
 	 * Is the page render cache allowed for this request?
@@ -103,18 +106,19 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		if($this->config->chmodFile) $cacheFile->setChmodFile($this->config->chmodFile);
 		if($this->config->chmodDir) $cacheFile->setChmodDir($this->config->chmodDir);
 
-		$secondaryID = '';
-		$pageNum = $this->input->pageNum; 
-		$urlSegments = $this->input->urlSegments; 
+		if($this->fuel('page') === $page) {
+			$secondaryID = '';
+			$pageNum = $this->input->pageNum; 
+			$urlSegments = $this->input->urlSegments; 
 
-		if(count($urlSegments)) {
-			foreach($urlSegments as $urlSegment) {
-				$secondaryID .= $this->sanitizer->pageName($urlSegment) . '+';
+			if(count($urlSegments)) {
+				foreach($urlSegments as $urlSegment) {
+					$secondaryID .= $this->sanitizer->pageName($urlSegment) . '+';
+				}
 			}
-		}
-		if($pageNum > 1) $secondaryID .= "page{$pageNum}";
-
-		if($secondaryID) $cacheFile->setSecondaryID(rtrim($secondaryID, "+"));
+			if($pageNum > 1) $secondaryID .= "page{$pageNum}";
+			if($secondaryID) $cacheFile->setSecondaryID(rtrim($secondaryID, "+"));
+		}	
 
 		return $cacheFile;
 	}
@@ -127,6 +131,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$page = $event->arguments[0]; 
 		if(!$page->template->cache_time) return;
 		$cacheFile = $this->getCacheFile($page); 
+		if(!$cacheFile->exists()) return;
 		$cacheFile->remove();
 		if($this->config->debug) $this->message("Cleared cache file: $cacheFile"); 
 	}
