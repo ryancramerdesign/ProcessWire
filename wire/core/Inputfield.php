@@ -94,7 +94,7 @@ abstract class Inputfield extends WireData implements Module {
 		$this->set('notes', ''); 	// highlighted descriptive copy, below output of input field
 		$this->set('head', ''); 	// below label, above description
 		$this->set('required', 0); 	// set to 1 to make value required for this field
-		$this->set('collapsed', null); 	// see the collapsed* constants at top of class (use null for the 'not set' value)
+		$this->set('collapsed', ''); 	// see the collapsed* constants at top of class (use blank string for unset value)
 		$this->set('skipLabel', false); // if true, tells InputfieldWrapper not to use a "for" attribute with the auto-generated "<label>"
 
 		// default ID attribute if no 'id' attribute set
