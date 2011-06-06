@@ -532,8 +532,8 @@ class Modules extends WireArray {
 
 		$result = $this->fuel('db')->query("SELECT data FROM modules WHERE id=$id"); 
 		list($data) = $result->fetch_array(); 
-		if(empty($data)) return array();
-		$data = wireDecodeJSON($data); 
+		if(empty($data)) $data = array();
+			else $data = wireDecodeJSON($data); 
 		$configData[$className] = $data; 
 		$result->free();
 
