@@ -60,6 +60,12 @@ class Modules extends WireArray {
 	protected $modulePath2  = '';
 
 	/**
+	 * Cached module configuration data
+	 *
+	 */
+	protected $configData = array();
+
+	/**
 	 * Construct the Modules
 	 *
 	 * @param string $path Path to modules
@@ -106,11 +112,19 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function init() {
+
 		foreach($this as $module) {
 			// if the module is configurable, then load it's config data
 			// and set values for each before initializing themodule
 			$this->setModuleConfigData($module); 
 			$module->init();
+
+			// if module is autoload (assumed here) and singular, then
+			// we no longer need the module's config data, so remove it
+			if($this->isSingular($module)) {
+				$id = $this->getModuleID($module); 
+				unset($this->configData[$id]); 
+			}
 		}
 	}
 
@@ -125,8 +139,15 @@ class Modules extends WireArray {
 		static $installed = array();
 
 		if(!count($installed)) {
-			$result = $this->fuel('db')->query("SELECT id, class, flags FROM modules ORDER BY class");
-			while($row = $result->fetch_assoc()) $installed[$row['class']] = $row;
+			$result = $this->fuel('db')->query("SELECT id, class, flags, data FROM modules ORDER BY class");
+			while($row = $result->fetch_assoc()) {
+				if($row['flags'] & self::flagsAutoload) {
+					// preload config data for autoload modules since we'll need it again very soon
+					$this->configData[$row['id']] = wireDecodeJSON($row['data']); 
+				}
+				unset($row['data']);
+				$installed[$row['class']] = $row;
+			}
 			$result->free();
 		}
 
@@ -521,11 +542,9 @@ class Modules extends WireArray {
 	 */
 	public function getModuleConfigData($className) {
 
-		static $configData = array();
-
 		if(is_object($className)) $className = $className->className();
-		if(isset($configData[$className])) return $configData[$className]; 
 		if(!$id = $this->moduleIDs[$className]) return array();
+		if(isset($this->configData[$id])) return $this->configData[$id]; 
 
 		// if the class doesn't implement ConfigurableModule, then it's not going to have any configData
 		if(!in_array('ConfigurableModule', class_implements($className))) return array();
@@ -534,7 +553,7 @@ class Modules extends WireArray {
 		list($data) = $result->fetch_array(); 
 		if(empty($data)) $data = array();
 			else $data = wireDecodeJSON($data); 
-		$configData[$className] = $data; 
+		$this->configData[$id] = $data; 
 		$result->free();
 
 		return $data; 	
@@ -551,12 +570,15 @@ class Modules extends WireArray {
 	 * 
 	 */
 	protected function setModuleConfigData(Module $module, $data = null) {
+
 		if(!$module instanceof ConfigurableModule) return; 
 		if(!is_array($data)) $data = $this->getModuleConfigData($module); 
+
 		if(method_exists($module, 'setConfigData') || method_exists($module, '___setConfigData')) {
 			$module->setConfigData($data); 
 			return;
 		}
+
 		foreach($data as $key => $value) {
 			$module->$key = $value; 
 		}
