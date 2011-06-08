@@ -54,9 +54,9 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		} else if($this->parent_id) {
 			$parent = $this->fuel('pages')->get($this->parent_id); 
-			if($parent) $children = $this->template_id ? $parent->children("templates_id={$this->template_id}, check_access=0") : $parent->children("check_access=0");
+			if($parent) $children = $this->template_id ? $parent->children("templates_id={$this->template_id}, check_access=0, status<" . Page::statusUnpublished) : $parent->children("check_access=0, status<" . Page::statusUnpublished);
 		} else if($this->template_id) {
-			$children = $this->pages->find("templates_id={$this->template_id}, check_access=0"); 
+			$children = $this->pages->find("templates_id={$this->template_id}, check_access=0, status<" . Page::statusUnpublished); 
 		} else {
 			$children = new PageArray();
 		}

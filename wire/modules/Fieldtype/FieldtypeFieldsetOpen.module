@@ -49,7 +49,7 @@ class FieldtypeFieldsetOpen extends Fieldtype {
 	 *
 	 */
 	public function init() {
-		if(!self::$hooked) {
+		if(!self::$hooked && ($this->process == 'ProcessField' || $this->process = 'ProcessTemplate')) {
 			$this->addHook('ProcessField::fieldAdded', $this, 'hookFieldAdded'); 
 			$this->addHook('ProcessField::fieldDeleted', $this, 'hookFieldDeleted'); 
 			$this->addHook('ProcessTemplate::fieldAdded', $this, 'hookTemplateFieldAdded'); 
@@ -68,7 +68,7 @@ class FieldtypeFieldsetOpen extends Fieldtype {
 		return $inputfield; 
 	}
 
-	public function ___savePageField(Page $page, Field $field) {
+	public function savePageField(Page $page, Field $field) {
 		return true; 
 	}
 
@@ -93,7 +93,7 @@ class FieldtypeFieldsetOpen extends Fieldtype {
 		return $fieldtypes; 
 	}
 
-	public function ___loadPageField(Page $page, Field $field) {
+	public function loadPageField(Page $page, Field $field) {
 		return '';
 	}
 
