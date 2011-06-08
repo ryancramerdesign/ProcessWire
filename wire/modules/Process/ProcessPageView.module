@@ -123,7 +123,8 @@ class ProcessPageView extends Process {
 
 
 		$urlSegments = array();
-		$maxSegments = 4; 
+		$maxSegments = wire('config')->maxUrlSegments; 
+		if(is_null($maxSegments)) $maxSegments = 4; // default
 		$cnt = 0;
 
 		// if the page isn't found, then check if a page one path level before exists

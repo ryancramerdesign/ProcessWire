@@ -118,6 +118,17 @@ $config->adminEmail = '';
 $config->pageNumUrlPrefix = 'page';
 
 /**
+ * Maximum number of extra stacked URL segments allowed in a page's URL (including page numbers). 
+ *
+ * i.e. /path/to/page/s1/s2/s3 where s1, s2 and s3 are URL segments that don't resolve to a page, but can be
+ * checked in the API via $input->urlSegment1, $input->urlSegment2, $input->urlSegment3, etc. 
+ * To use this, your template settings (under the URL tab) must take advantage of it. Only change this 
+ * number if you need more (or fewer) URL segments for some reason.
+ *
+ */
+$config->maxUrlSegments = 4; 
+
+/**
  * Optional 'set names utf8' for sites that need it (this option is deprecated)
  *
  * This may be used instead of the $config->dbCharset = 'utf8' option, and exists here only for
