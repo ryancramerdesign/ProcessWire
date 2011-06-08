@@ -165,7 +165,7 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 		if($this->isValidKey($key)) return parent::get($key); 
 
 		$value = null;
-		foreach($this->fields as $field) {
+		foreach($this as $field) {
 			if($field->name == $key) {
 				$value = $field;
 				break;
