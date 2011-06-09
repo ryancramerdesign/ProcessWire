@@ -78,17 +78,25 @@
 	top: 3px; 
 }
 
+/*
 .PageList .PageListStatusLocked a.PageListPage,
 .PageList .PageListStatusLocked a.PageListPage:hover {
+	padding-right: 10px;
+}
+*/
+
+.PageList .PageListAccessOff a.PageListPage,
+.PageList .PageListAccessOff a.PageListPage:hover {
 	padding-right: 10px;
 	background: url(images/lock.gif) center right no-repeat; 
 }
 
-.PageList .PageListAccessChange a.PageListPage,
-.PageList .PageListAccessChange a.PageListPage:hover {
-	padding-right: 10px;
-	background: url(images/key.png) bottom right no-repeat;
+.PageList .PageListAccessOn a.PageListPage,
+.PageList .PageListAccessOn a.PageListPage:hover {
+	padding-right: 13px;
+	background: url(images/unlock.png) center right no-repeat; 
 }
+
 
 .PageList .PageListID7 a.PageListPage,
 .PageList .PageListID7 a.PageListPage:hover {

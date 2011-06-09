@@ -339,10 +339,15 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 			'actions' => $this->getPageActions($page), 
 			); 
 
-		if($page->getAccessParent() === $page && 
-			!$page->getAccessTemplate()->hasRole('guest') && 
-			$page->parent->id && $page->parent->getAccessTemplate()->hasRole('guest')) 
-				$class .= ' PageListAccessChange'; 
+		if($page->getAccessParent() === $page && $page->parent->id) { 
+			if($page->getAccessTemplate()->hasRole('guest')) {
+				if(!$page->parent->getAccessTemplate()->hasRole('guest')) {
+					$class .= ' PageListAccessOn';
+				}
+			} else if($page->parent->getAccessTemplate()->hasRole('guest')) {
+				$class .= ' PageListAccessOff'; 
+			} 
+		}
 
 		if($class) $a['class'] = trim($class);
 		if($type) $a['type'] = $type;
