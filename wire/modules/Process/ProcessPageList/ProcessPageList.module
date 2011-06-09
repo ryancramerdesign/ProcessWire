@@ -161,6 +161,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 			"Every page in a PageList is identified by a label, typically a title or headline field. You may specify which field it should use here. " . 
 			"To specify multiple fields, separate each field name with a space. If the field resolves to an object (like another page), then specify the property with a dot, i.e. anotherpage.title. " . 
 			"Note that if the field you specify resolves to a blank value then ProcessWire will use the page's 'name' field. ";
+		$field->notes = "You may optionally override this setting on a per-template basis in each template's 'advanced' settings.";
 		$fields->append($field); 
 
 		$field = $modules->get("InputfieldInteger"); 
@@ -310,7 +311,6 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 
 		parent::__construct($id, $page, $children); 
 
-		// TODO develop new 'system' status for pages, so that this isn't necessary: 
 		$this->systemIDs = array(
 			$this->config->http404PageID, 
 			$this->config->adminRootPageID, 
@@ -323,8 +323,9 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 
 		$outputFormatting = $page->outputFormatting; 
 		$page->setOutputFormatting(true); 
-		$note = '';
+		$class = '';
 		$type = '';
+		$note = '';
 
 		if($page->id == $this->config->trashPageID) $note = "&lt; Trash open: drag pages below here to trash them";
 		if(in_array($page->id, $this->systemIDs)) $type = 'System';
@@ -336,9 +337,18 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 			'numChildren' => $page->numChildren, 
 			'path' => $page->path(), 
 			'actions' => $this->getPageActions($page), 
-			'type' => $type, 
-			'note' => $note
 			); 
+
+		if($page->getAccessParent() === $page && 
+			!$page->getAccessTemplate()->hasRole('guest') && 
+			$page->parent->id && $page->parent->getAccessTemplate()->hasRole('guest')) 
+				$class .= ' PageListAccessChange'; 
+
+		if($class) $a['class'] = trim($class);
+		if($type) $a['type'] = $type;
+		if($note) $a['note'] = $note; 
+		
+
 		$page->setOutputFormatting($outputFormatting);
 
 		return $a; 

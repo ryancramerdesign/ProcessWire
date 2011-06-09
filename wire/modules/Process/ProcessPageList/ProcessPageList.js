@@ -395,9 +395,8 @@ $(document).ready(function() {
 				if(child.status & 16) $li.addClass('PageListStatusSystem'); 
 				if(child.status & 8) $li.addClass('PageListStatusSystem'); 
 				if(child.status & 4) $li.addClass('PageListStatusLocked'); 
-				if(child.type.length > 0) {
-					if(child.type == 'System') $li.addClass('PageListStatusSystem'); 
-				}
+				if(child.class && child.class.length) $li.addClass(child.class); 
+				if(child.type && child.type.length > 0) if(child.type == 'System') $li.addClass('PageListStatusSystem'); 
 
 				$(options.openPageIDs).each(function(n, id) {
 					if(child.id == id) $li.addClass('PageListTriggerOpen'); 
@@ -407,7 +406,7 @@ $(document).ready(function() {
 				var $numChildren = $("<span>" + (child.numChildren ? child.numChildren : '') + "</span>").addClass('PageListNumChildren detail'); 
 				$li.append($numChildren); 
 		
-				if(child.note.length) $li.append($("<span>" + child.note + "</span>").addClass('PageListNote detail')); 	
+				if(child.note && child.note.length) $li.append($("<span>" + child.note + "</span>").addClass('PageListNote detail')); 	
 				
 				var $actions = $("<ul></ul>").addClass('PageListActions actions'); 
 				var links = options.rootPageID == child.id ? [] : [{ name: options.selectSelectLabel, url: options.selectSelectHref }]; 
