@@ -349,7 +349,7 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 			} 
 		}
 
-		if($class) $a['class'] = trim($class);
+		if($class) $a['addClass'] = trim($class);
 		if($type) $a['type'] = $type;
 		if($note) $a['note'] = $note; 
 		

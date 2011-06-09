@@ -395,7 +395,7 @@ $(document).ready(function() {
 				if(child.status & 16) $li.addClass('PageListStatusSystem'); 
 				if(child.status & 8) $li.addClass('PageListStatusSystem'); 
 				if(child.status & 4) $li.addClass('PageListStatusLocked'); 
-				if(child.class && child.class.length) $li.addClass(child.class); 
+				if(child.addClass && child.addClass.length) $li.addClass(child.addClass); 
 				if(child.type && child.type.length > 0) if(child.type == 'System') $li.addClass('PageListStatusSystem'); 
 
 				$(options.openPageIDs).each(function(n, id) {
