@@ -143,6 +143,7 @@ abstract class Selector extends WireData {
 		Selectors::addType(SelectorGreaterThanEqual::getOperator(), 'SelectorGreaterThanEqual'); 
 		Selectors::addType(SelectorLessThanEqual::getOperator(), 'SelectorLessThanEqual'); 
 		Selectors::addType(SelectorContains::getOperator(), 'SelectorContains'); 
+		Selectors::addType(SelectorContainsLike::getOperator(), 'SelectorContainsLike'); 
 		Selectors::addType(SelectorContainsWords::getOperator(), 'SelectorContainsWords'); 
 		Selectors::addType(SelectorStarts::getOperator(), 'SelectorStarts'); 
 		Selectors::addType(SelectorEnds::getOperator(), 'SelectorEnds'); 
@@ -211,6 +212,14 @@ class SelectorLessThanEqual extends Selector {
 class SelectorContains extends Selector { 
 	public static function getOperator() { return '*='; }
 	protected function match($value1, $value2) { return $this->evaluate(stripos($value1, $value2) !== false); }
+}
+
+/**
+ * Same as SelectorContains but serves as operator placeholder for SQL LIKE operations
+ *
+ */
+class SelectorContainsLike extends SelectorContains { 
+	public static function getOperator() { return '%='; }
 }
 
 /**

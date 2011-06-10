@@ -18,7 +18,7 @@
  * to build a complex query without worrying about correct syntax placement.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2011 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -52,6 +52,7 @@ class DatabaseQuerySelectFulltext extends Wire {
 
 			case '*=':
 			case '^=':
+			case '$=':
 				$this->matchContains($tableName, $fieldName, $operator, $value); 
 				break;
 
@@ -66,10 +67,10 @@ class DatabaseQuerySelectFulltext extends Wire {
 				if(!$n) $query->where("1>2"); // force it not to match if all words were stopwords
 				break;
 
-			case '$=':
+			case '%=':
 				$v = $this->db->escape_string($value); 
 				$v = preg_replace('/([%_])/', '\\\$1', $v); // prep value for use in LIKE 
-				$query->where("$tableField LIKE '%$v'"); // SLOW, so only used as a secondary qualifier
+				$query->where("$tableField LIKE '%$v%'"); // SLOW, but assumed
 				break;
 
 			default:
@@ -99,15 +100,24 @@ class DatabaseQuerySelectFulltext extends Wire {
 		if($booleanValue) $j = "MATCH($tableField) AGAINST('$booleanValue' IN BOOLEAN MODE) "; 
 			else $j = '';
 			
-		if($operator == '^=' || ($operator == '*=' && (!$j || preg_match('/[-\s]/', $v)))) { 
-			// if $operator is a begin, or if there are any word separators in a *= operator value
-			$v = preg_replace('/([%_])/', '\\\$1', $v); // prep value for use in LIKE 
+		if($operator == '^=' || $operator == '$=' || ($operator == '*=' && (!$j || preg_match('/[-\s]/', $v)))) { 
+			// if $operator is a ^begin/$end, or if there are any word separators in a *= operator value
 
-			if($operator == '^=') $like = "$v%";
-				else $like = "%$v%";
+			if($operator == '^=' || $operator == '$=') {
+				$type = 'RLIKE';
+				$v = $this->db->escape_string(preg_quote($value)); // note $value not $v
+				$like = "[[:space:]]*(<[^>]+>)*[[:space:]]*"; 
+				if($operator == '^=') $like = "^" . $like . $v; 
+					else $like = $v . '[[:punct:]]*' . $like . '$';
+
+			} else {
+				$type = 'LIKE';
+				$v = preg_replace('/([%_])/', '\\\$1', $v); // prep value for use in LIKE 
+				$like = "%$v%";
+			}
 
 			$j = trim($j); 
-			$j .= (($j ? "AND " : '') . "($tableField LIKE '$like')"); // note the LIKE is used as a secondary qualifier, so it's not a bottleneck
+			$j .= (($j ? "AND " : '') . "($tableField $type '$like')"); // note the LIKE is used as a secondary qualifier, so it's not a bottleneck
 		}
 
 		$query->where($j); 
