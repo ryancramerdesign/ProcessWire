@@ -29,7 +29,7 @@ abstract class Process extends WireData implements Module {
 			'version' => 001, 	// version number of module
 			'summary' => '', 	// 1 sentence summary of module
 			'href' => '', 		// URL to more information (optional)
-			'permanent' => true, 	// true if module is permanent and thus not uninstallable
+			'permanent' => true, 	// true if module is permanent and thus not uninstallable (3rd party modules should specify 'false')
 			'permission' => '', 	// name of permission required to execute this Process (optional)
 			); 
 	}

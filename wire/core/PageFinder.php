@@ -24,6 +24,7 @@ class PageFinder extends Wire {
 	protected $templates_id = null;
 	protected $checkAccess = true;
 	protected $options = array();
+	protected $getQueryNumChildren = false;
 
 	/**
 	 * Construct the PageFinder
@@ -190,8 +191,12 @@ class PageFinder extends Wire {
 				$this->getQueryJoinPath($query, $selector); 
 				continue; 
 
-			} else if($field == 'has_parent') {
+			} else if($field == 'has_parent' || $field == 'hasParent') {
 				$this->getQueryHasParent($query, $selector); 
+				continue; 
+
+			} else if($field == 'num_children' || $field == 'numChildren') { 
+				$this->getQueryNumChildren($query, $selector); 
 				continue; 
 
 			} else if($this->getFuel('fields')->isNativeName($field)) {
@@ -441,6 +446,10 @@ class PageFinder extends Wire {
 			if($value == 'random') { 
 				$value = 'RAND()';
 
+			} else if($value == 'num_children' || $value == 'numChildren') { 
+				if(!$this->getQueryNumChildren) $this->getQueryNumChildren($query, new SelectorGreaterThan('_num_children', "-1")); 
+				$value = '_num_children'; 
+
 			} else if($value == 'parent') {
 				// sort by parent native field. does not work with non-native parent fields. 
 				$tableAlias = "_sort_parent" . ($subValue ? "_$subValue" : ''); 
@@ -617,6 +626,24 @@ class PageFinder extends Wire {
 				")" . 
 			")"
 		); 
+	}
+
+	/**
+	 * Match a number of children count
+	 *
+	 */
+	protected function getQueryNumChildren(DatabaseQuerySelect $query, $selector) {
+
+		if(!in_array($selector->operator, array('=', '<', '>', '<=', '>=', '!='))) 
+			throw new WireException("Operator '{$selector->operator}' not allowed for 'num_children' selector."); 
+
+		$num = (int) $selector->value;
+
+		$query->select("count(pages_num_children.id) AS _num_children"); 
+		$query->leftjoin("pages AS pages_num_children ON (pages_num_children.parent_id=pages.id)");
+		$query->groupby("pages.id HAVING count(pages_num_children.id){$selector->operator}$num"); 
+
+		$this->getQueryNumChildren = true; 
 	}
 
 	/**

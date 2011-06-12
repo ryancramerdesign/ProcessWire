@@ -240,6 +240,8 @@ class Page extends WireData {
 			case 'id':
 			case 'sort': 
 			case 'numChildren': 
+			case 'num_children':
+				if($key == 'num_children') $key = 'numChildren';
 				if($this->settings[$key] !== $value) $this->trackChange($key); 
 				$this->settings[$key] = (int) $value; 
 				break;
