@@ -229,7 +229,7 @@ class PageFinder extends Wire {
 						else $q = new DatabaseQuerySelect();
 
 					//if($subfield == 'data' && in_array($selector->operator, array('=', '!=', '<>')) && $value === $fieldtype->getBlankValue($nullPage, $field)) {
-					if($subfield == 'data' && in_array($selector->operator, array('=', '!=', '<>')) && empty($value)) {
+					if($subfield == 'data' && empty($value) && in_array($selector->operator, array('=', '!='))) {
 						// handle blank values -- look in table that has no pages_id relation back to pages, using the LEFT JOIN / IS NULL trick
 						$query->leftjoin("$tableAlias ON $tableAlias.pages_id=pages.id"); 
 						$query->where("$tableAlias.pages_id " . ($selector->operator == '=' ? "IS" : "IS NOT") . " NULL"); 
@@ -247,8 +247,15 @@ class PageFinder extends Wire {
 						$sql = ''; 
 						foreach($q->where as $w) $sql .= $sql ? "$and $w " : "$w ";
 						$sql = "($sql) "; 
-						if($selector->not) $sql = "(NOT $sql)";
-						$join .= ($join ? "\n\t\tOR $sql " : $sql); 
+
+						if($selector->operator == '!=') {
+							$join .= ($join ? "\n\t\tAND $sql " : $sql); 
+						} else if($selector->not) { 
+							$sql = "(NOT $sql)";
+							$join .= ($join ? "\n\t\tAND $sql " : $sql); 
+						} else { 
+							$join .= ($join ? "\n\t\tOR $sql " : $sql); 
+						}
 					}
 
 					$cnt++; 
@@ -602,8 +609,14 @@ class PageFinder extends Wire {
 
 			$value = $this->db->escape_string($value); 
 			$s = "pages." . $field . $selector->operator . (ctype_digit("$value") ? (int) $value : "'$value'");
+
 			if($selector->not) $s = "NOT ($s)";
-			$sql .= $sql ? " OR $s": "$s"; 
+			if($selector->operator == '!=' || $selector->not) {
+				$sql .= $sql ? " AND $s": "$s"; 
+			} else {
+				$sql .= $sql ? " OR $s": "$s"; 
+			}
+
 		}
 
 		$query->where("($sql)"); 
