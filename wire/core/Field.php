@@ -239,6 +239,27 @@ class Field extends WireData implements Saveable {
 	}
 
 	/**
+	 * Return a TemplatesArray of Templates using this field
+	 *
+	 * @return TemplatesArray
+	 *
+	 */ 
+	public function getTemplates() {
+		$templates = new TemplatesArray();
+		$fieldgroups = $this->getFieldgroups();
+		foreach($this->templates as $template) {
+			foreach($fieldgroups as $fieldgroup) {
+				if($template->fieldgroups_id == $fieldgroup->id) {
+					$templates->add($template);	
+					break;
+				}
+			}
+		}
+		return $templates; 
+	}
+
+
+	/**
 	 * Return the default value for this field (if set), or null otherwise. 
 	 *
 	 */

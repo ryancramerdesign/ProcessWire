@@ -169,6 +169,17 @@ class Template extends WireData implements Saveable {
 	}
 
 	/**
+	 * Does this template have the given field?
+	 *
+	 * @param string|int|Field
+	 * @return bool
+	 *
+	 */
+	public function hasField($name) {
+		return $this->fieldgroup->hasField($name);
+	}
+
+	/**
 	 * Set a Template property
 	 *
 	 * @param string $key

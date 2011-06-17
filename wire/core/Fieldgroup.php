@@ -156,7 +156,7 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	 *
 	 * Same as get() except that it only checks fields, not other properties of a fieldgroup
 	 *
-	 * @param string|int $key
+	 * @param string|int|Field $key
 	 * @return Field|null
 	 *
 	 */
@@ -172,6 +172,17 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 			}
 		}
 		return $value; 
+	}
+
+	/**
+	 * Does this fieldgroup having the given field?
+	 *
+	 * @param string|int|Field $key
+	 * @return bool
+	 *
+	 */
+	public function hasField($key) {
+		return $this->getField($key) !== null;
 	}
 
 	/**

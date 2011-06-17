@@ -190,9 +190,12 @@ class FieldtypeFile extends FieldtypeMulti {
 	}
 
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
-		if(in_array($operator, array("*=", "~="))) {
+
+		if(in_array($operator, array("*=", "~=", "%="))) {
+			// fulltext match filename or description
 			$ft = new DatabaseQuerySelectFulltext($query); 
 			$ft->match($table, $subfield, $operator, $value); 
+
 		} else {
 			$query = parent::getMatchQuery($query, $table, $subfield, $operator, $value); 
 		}

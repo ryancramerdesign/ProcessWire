@@ -24,6 +24,14 @@ abstract class FieldtypeMulti extends Fieldtype {
 	const multiValueSeparator = "\0,";
 
 	/**
+	 * For internal use to count the number of calls to getMatchQuery
+	 *
+	 * Used for creating unique table names to the same field in the same query
+	 *
+	 */
+	protected static $getMatchQueryCount = 0;
+
+	/**
 	 * Modify the default schema provided by Fieldtype to include a 'sort' field, and integrate that into the primary key.
 	 *
 	 */
@@ -244,6 +252,62 @@ abstract class FieldtypeMulti extends Fieldtype {
 		return $query; 
 	}
 
+
+	/**
+	 * Get the query that matches a Fieldtype table's data with a given value
+	 *
+	 * Possible template method: If overridden, children should NOT call this parent method. 
+	 *
+	 * @param DatabaseQuerySelect $query
+	 * @param string $table The table name to use
+	 * @param string $field Name of the field (typically 'data', unless selector explicitly specified another)
+	 * @param string $operator The comparison operator
+	 * @param mixed $value The value to find
+	 * @return DatabaseQuery $query
+	 *
+	 */
+	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
+
+		self::$getMatchQueryCount++;
+		$n = self::$getMatchQueryCount;
+		$field = $query->field;
+
+		if($subfield === 'count' && ctype_digit("$value") && in_array($operator, array("=", "!=", ">", "<", ">=", "<="))) {
+
+			$value = (int) $value;
+			$t = $table . "_" . $n;
+			$c = $this->className() . "_" . $n;
+
+			$query->select("$t.num_$t AS num_$t");
+			$query->leftjoin(
+				"(" .
+				"SELECT $c.pages_id, count($c.pages_id) AS num_$t " .
+				"FROM {$field->table} AS $c " .
+				"GROUP BY $c.pages_id " .
+				") $t ON $t.pages_id=pages.id");
+
+			if((in_array($operator, array('<', '<=', '!=')) && $value) || (($operator == '=' || $operator == '>=') && !$value)) {
+				// allow for possible zero values	
+				$query->where("(num_$t{$operator}$value OR num_$t IS NULL)"); 
+			} else {
+				// non zero values
+				$query->where("num_$t{$operator}$value");
+			}
+
+			// only allow matches using templates with the requested field
+			$sql = 'pages.templates_id IN(';
+			foreach($field->getTemplates() as $template) {
+				$sql .= $template->id . ',';	
+			}
+			$sql = rtrim($sql, ',') . ')';
+			$query->where($sql);
+
+		} else {
+			$query = parent::getMatchQuery($query, $table, $subfield, $operator, $value);
+		}
+
+		return $query;
+	}
 
 }
 

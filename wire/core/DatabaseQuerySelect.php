@@ -127,8 +127,30 @@ class DatabaseQuerySelect extends DatabaseQuery {
 	protected function getQueryGroupby() {
 		if(!count($this->groupby)) return '';
 		$sql = "\nGROUP BY ";
-		foreach($this->groupby as $s) $sql .= "$s,";
+		$having = array();
+		foreach($this->groupby as $s) {
+			// if it starts with 'HAVING' then we will determine placement
+			// this is a shortcut to combine multiple HAVING statements with ANDs
+			if(stripos($s, 'HAVING ') === 0) {
+				$having[] = substr($s, 7); 
+				continue; 
+			}
+			$sql .= "$s,";
+		}
+
+		if(count($having)) {
+			// place in any having statements that weren't placed
+			$sql = rtrim($sql, ",") . " HAVING ";
+			foreach($having as $n => $h) {
+				if($n > 0) $sql .= " AND ";
+				$sql .= $h;
+				
+			}
+		}
+
 		$sql = rtrim($sql, ",") . " ";
+
+
 		return $sql;
 	}
 

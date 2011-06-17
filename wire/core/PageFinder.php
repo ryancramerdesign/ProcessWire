@@ -24,7 +24,7 @@ class PageFinder extends Wire {
 	protected $templates_id = null;
 	protected $checkAccess = true;
 	protected $options = array();
-	protected $getQueryNumChildren = false;
+	protected $getQueryNumChildren = 0; // number of times the function has been called
 
 	/**
 	 * Construct the PageFinder
@@ -106,6 +106,7 @@ class PageFinder extends Wire {
 		$this->templates_id = null;
 		$this->options = $options; 
 		$this->checkAccess = true; 
+		$this->getQueryNumChildren = 0; 
 
 		$this->setupStatusChecks($selectors); 
 		$cnt = count($selectors); 
@@ -195,7 +196,7 @@ class PageFinder extends Wire {
 				$this->getQueryHasParent($query, $selector); 
 				continue; 
 
-			} else if($field == 'num_children' || $field == 'numChildren') { 
+			} else if($field == 'num_children' || $field == 'numChildren' || $field == 'children.count') { 
 				$this->getQueryNumChildren($query, $selector); 
 				continue; 
 
@@ -237,9 +238,14 @@ class PageFinder extends Wire {
 
 					} else {
 
+						$q->set('field', $field); // original field if required by the fieldtype
 						$q = $fieldtype->getMatchQuery($q, $tableAlias, $subfield, $selector->operator, $value); 
-						$query->select($q->select); 
-						$query->orderby($q->orderby); 
+
+						if(count($q->select)) $query->select($q->select); 
+						if(count($q->join)) $query->join($q->join);
+						if(count($q->leftjoin)) $query->leftjoin($q->leftjoin);
+						if(count($q->orderby)) $query->orderby($q->orderby); 
+						if(count($q->groupby)) $query->groupby($q->groupby); 
 					}
 
 					if(count($q->where)) { 
@@ -263,7 +269,7 @@ class PageFinder extends Wire {
 
 				if($join) {
 					$joinType = "join";
-					if(count($fields) > 1) {
+					if(count($fields) > 1 || $subfield == 'count') {
 						$joinType = "leftjoin";
 
 						if($where) {
@@ -454,8 +460,8 @@ class PageFinder extends Wire {
 				$value = 'RAND()';
 
 			} else if($value == 'num_children' || $value == 'numChildren') { 
-				if(!$this->getQueryNumChildren) $this->getQueryNumChildren($query, new SelectorGreaterThan('_num_children', "-1")); 
-				$value = '_num_children'; 
+				if(!$this->getQueryNumChildren) $this->getQueryNumChildren($query, new SelectorGreaterThan('num_children', "-1")); 
+				$value = 'num_children'; 
 
 			} else if($value == 'parent') {
 				// sort by parent native field. does not work with non-native parent fields. 
@@ -650,13 +656,36 @@ class PageFinder extends Wire {
 		if(!in_array($selector->operator, array('=', '<', '>', '<=', '>=', '!='))) 
 			throw new WireException("Operator '{$selector->operator}' not allowed for 'num_children' selector."); 
 
-		$num = (int) $selector->value;
+		if($this->getQueryNumChildren) 
+			throw new WireException("You may only have one 'children.count' selector per query"); 
+		
+		$value = (int) $selector->value;
+		$this->getQueryNumChildren++; 
+		$n = $this->getQueryNumChildren;
 
-		$query->select("count(pages_num_children.id) AS _num_children"); 
-		$query->leftjoin("pages AS pages_num_children ON (pages_num_children.parent_id=pages.id)");
-		$query->groupby("pages.id HAVING count(pages_num_children.id){$selector->operator}$num"); 
+		if((in_array($selector->operator, array('<', '<=', '!=')) && $value) || (($selector->operator == '=' || $selector->operator == '>=') && !$value)) {
+			// allow for zero values
+	
+			$query->select("count(pages_num_children$n.id) AS num_children$n"); 
+			$query->leftjoin("pages AS pages_num_children$n ON (pages_num_children$n.parent_id=pages.id)");
+			$query->groupby("HAVING count(pages_num_children$n.id){$selector->operator}$value"); 
 
-		$this->getQueryNumChildren = true; 
+		} else {
+
+			// non zero values
+
+			$query->select("pages_num_children$n.num_children$n AS num_children$n"); 
+			$query->leftjoin(
+				"(" . 
+				"SELECT p$n.parent_id, count(p$n.id) AS num_children$n " . 
+				"FROM pages AS p$n " . 
+				"GROUP BY p$n.parent_id " . 
+				"HAVING num_children$n{$selector->operator}$value" . 
+				") pages_num_children$n ON pages_num_children$n.parent_id=pages.id"); 
+
+			$query->where("pages_num_children$n.num_children$n{$selector->operator}$value");
+		}
+
 	}
 
 	/**

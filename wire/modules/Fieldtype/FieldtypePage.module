@@ -321,6 +321,9 @@ class FieldtypePage extends FieldtypeMulti {
 	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
 
+		// let the FieldtypeMulti base class handle count queries
+		if($subfield == 'count') return parent::getMatchQuery($query, $table, $subfield, $operator, $value);
+
 		if(!$this->fuel('db')->isOperator($operator)) throw new WireException("Operator '$operator' is not implemented in {$this->classname}"); 
 		$value = $this->fuel('db')->escape_string($value); 
 
