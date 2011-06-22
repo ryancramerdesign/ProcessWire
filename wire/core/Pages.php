@@ -433,6 +433,32 @@ class Pages extends Wire {
 	}
 
 	/**
+	 * Save just a field from the given page as used by Page::save($field)
+	 *
+	 * This function is public, but the preferred manner to call it is with $page->save($field)
+	 *
+	 * @param Page $page
+	 * @param string|Field $fieldName
+	 * @return bool True on success
+	 *
+	 */
+	public function ___saveField(Page $page, $field) {
+
+		$reason = '';
+		if($page->isNew()) throw new WireException("Can't save field from a new page - please save the entire page first"); 
+		if(!$this->isSaveable($page, $reason)) throw new WireException("Can't save field from page {$page->id}: {$page->path}: $reason"); 
+		if($field && (is_string($field) || is_int($field))) $field = $this->fuel('fields')->get($field);
+		if(!$field instanceof Field) throw new WireException("Unknown field supplied to saveField for page {$page->id}");
+		if(!$page->fields->has($field)) throw new WireException("Page {$page->id} does not have field {$field->name}"); 
+
+		$value = $page->get($field->name); 
+		if($value instanceof Pagefiles || $value instanceof Pagefile) $page->filesManager()->save();
+		$page->trackChange($field->name); 	
+		return $field->type->savePageField($page, $field); 
+	}
+
+
+	/**
 	 * Save references to the Page's parents in pages_parents table, as well as any other pages affected by a parent change
 	 *
 	 * Any pages_id passed into here are assumed to have children

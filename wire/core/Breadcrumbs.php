@@ -21,7 +21,7 @@
  *
  */
 class Breadcrumb extends WireData {
-	public function __construct($url, $title) {
+	public function __construct($url = '', $title = '') {
 		$this->set('url', $url); 
 		$this->set('title', $title); 
 	}

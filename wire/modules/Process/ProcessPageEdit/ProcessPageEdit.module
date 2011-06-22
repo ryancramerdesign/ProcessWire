@@ -176,7 +176,7 @@ class ProcessPageEdit extends Process {
 	 * Build the form used for Page Edits
 	 *
 	 */
-	protected function buildForm() {
+	protected function ___buildForm() {
 
 		$form = $this->modules->get('InputfieldForm');
 
@@ -252,7 +252,7 @@ class ProcessPageEdit extends Process {
 	 * Build the 'children' tab on the Page Edit form
  	 *
 	 */
-	protected function buildFormChildren() {
+	protected function ___buildFormChildren() {
 
 		$wrapper = new InputfieldWrapper();
 		$wrapper->attr('id', $this->className() . 'Children'); 
@@ -334,7 +334,7 @@ class ProcessPageEdit extends Process {
 	 * Build the 'settings' tab on the Page Edit form
 	 *
 	 */
-	protected function buildFormSettings() {
+	protected function ___buildFormSettings() {
 
 		$wrapper = new InputfieldWrapper();
 		$wrapper->attr('id', $this->className() . 'Settings'); 
@@ -438,7 +438,7 @@ class ProcessPageEdit extends Process {
 	 * Build the 'delete' tab on the Page Edit form
 	 *
 	 */
-	protected function buildFormDelete() {
+	protected function ___buildFormDelete() {
 
 		$isTrash = $this->page->isTrash();
 		$isRestorable = $isTrash && $this->page->parent_id == $this->config->trashPageID; 
@@ -590,7 +590,7 @@ class ProcessPageEdit extends Process {
 	 * Process the input from a submitted Page Edit form, delegating to other methods where appropriate
  	 *
 	 */
-	protected function processInput(Inputfield $form, $level = 0) {
+	protected function ___processInput(Inputfield $form, $level = 0) {
 
 		static $skipFields = array(
 			'sortfield_reverse', 
@@ -850,6 +850,7 @@ class ProcessPageEdit extends Process {
 
 		} else if($this->page->parent->id && $this->page->parent->template->childrenTemplatesID && $this->page->parent->template->childrenTemplatesID != $this->page->template->id) {
 			// parent requires a specific template for it's children, but it's different from the one being used here
+
 			/*
 			$template = $this->fuel('templates')->get($this->page->parent->template->childrenTemplatesID); 
 			if($template) {

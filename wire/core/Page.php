@@ -771,25 +771,15 @@ class Page extends WireData {
 	/**
 	 * Save this page to the database. 
 	 *
-	 * To hook into this (___save), use Pages::save instead. 
-	 * To hook into a field-only save, use Fieldtype::savePageField
+	 * To hook into this (___save), use 'Pages::save' 
+	 * To hook into a field-only save, use 'Pages::saveField'
 	 *
 	 * @param Field|string $field Optional field to save (name of field or Field object)
 	 *
 	 */
 	public function save($field = null) {
-
-		if($field) {
-			if(is_string($field)) $field = $this->fuel('fields')->get($field); 
-			if(!$field instanceof Field) throw new WireException("Unable to save unknown field from Page '$this'"); 
-			if(!$this->fieldgroup->has($field)) throw new WireException("Unable to save field '$field' to page '$this' because the field is not part of it"); 
-			$value = $this->get($field->name); 
-			if($value instanceof Pagefiles || $value instanceof Pagefile) $this->filesManager()->save();
-			$this->trackChange($field->name); 	
-			return $field->type->savePageField($this, $field); 
-		} else {
-			return $this->fuel('pages')->save($this);
-		}
+		if(!is_null($field)) return $this->fuel('pages')->saveField($this, $field);
+		return $this->fuel('pages')->save($this);
 	}
 
 	/**

@@ -440,6 +440,8 @@ class Modules extends WireArray {
 	 */
 	public function ___uninstall($class) {
 
+		if(!$this->isInstalled($class)) return true; 
+
 		$module = $this->get($class); 
 		if(!$module) throw new WireException("Attempt to uninstall Module '$class' that is not installed"); 
 
