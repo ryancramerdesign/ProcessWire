@@ -35,7 +35,7 @@ class InputfieldDatetime extends Inputfield {
 			else if($value && $this->dateInputFormat) $value = date($this->dateInputFormat, (int) $value); 
 		$value = htmlspecialchars($value, ENT_QUOTES); 
 		if(empty($value)) $value = '';
-		$out = "\n<p><input " . $this->getAttributesString($attrs) . " value='$value' /></p>"; 
+		$out = "\n<p><input " . $this->getAttributesString($attrs) . " value='$value' /> &nbsp;<span class='notes'>{$this->dateInputFormat}</span></p>"; 
 		return $out; 
 	}
 
@@ -65,12 +65,14 @@ class InputfieldDatetime extends Inputfield {
 		$f->label = "Date input format";
 		$f->description =
 			"The formatting string used by PHP's date() function to format a date in the input field (only). " . 
-			"The user may enter the date in any known format, but the format entered here is what will " . 
-			"be displayed in the input field when making edits. "; 
+			"The format entered here is what will be displayed in the input field when making edits. It must be " . 
+			"in a format compatible with PHP's strtotime function. See the notes below for recommendations."; 
 		$f->notes = 
-			"If using this field to hold time in addition to date, make sure " . 
-			"to include a time component here. For example, 'm/d/Y' would result in a format of '10/10/2010', " . 
-			"whereas 'm/d/Y H:i' would result in a format of '10/10/2010 17:40'. See PHP's date() function reference for more.";
+			"We recommend using 'd-m-Y' (with dashes) for European dates or 'm/d/Y' (with slashes) for US dates. " . 
+			"If using this field to hold time in addition to date, you should also " . 
+			"include a time component here. For example, 'm/d/Y' would result in a format of '10/10/2010', " . 
+			"whereas 'm/d/Y H:i' would result in a format of '10/10/2010 17:40'. See PHP's date() function " . 
+			"and strtotime() function for reference for more advanced usages with this field.";
 		$inputfields->append($f);
 
 		$f= $this->modules->get('InputfieldCheckbox');
