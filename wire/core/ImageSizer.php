@@ -159,10 +159,18 @@ class ImageSizer {
 
 		// write to file
 		switch($this->extension) {
-			case 'gif': imagegif($thumb2, $dest); break;
-			case 'png': imagepng($thumb2, $dest, floor($this->quality / 10)); break;
+			case 'gif': 
+				imagegif($thumb2, $dest); 
+				break;
+			case 'png': 
+				// convert 1-100 (worst-best) scale to 0-9 (best-worst) scale for PNG
+				$quality = round(abs(($this->quality - 100) / 11.111111)); 
+				imagepng($thumb2, $dest, $quality); 
+				break;
 			case 'jpeg':
-			case 'jpg': imagejpeg($thumb2, $dest, $this->quality); break;
+			case 'jpg': 
+				imagejpeg($thumb2, $dest, $this->quality); 
+				break;
 		}
 
 		unlink($source); 
