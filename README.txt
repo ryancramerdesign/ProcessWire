@@ -1,17 +1,17 @@
 
 ABOUT THIS VERSION
 ------------------
-This is a ProcessWire 2.1 development version and it's posted here just
-for testing by a few individuals. While you certainly can attempt to 
-install it, I don't recommend doing so unless you've already talked with
-Ryan because this is not a stable version. Instead you should download 
-ProcessWire 2.0 at http://processwire.com/download/
-
+This is a ProcessWire 2.1 development version and it is close enough
+to stable release that you may want to use this version rather than 
+2.0 if you are starting a new project. 
 
 HAVE QUESTIONS, NEED HELP, OR FOUND A BUG?
 ------------------------------------------
-Please contact Ryan at: 
-http://www.ryancramer.com/contact/ 
+Please post in the ProcessWire forums at: 
+http://processwire.com/talk/
+
+Or contact us at:
+http://processwire.com/contact/
 
 
 ProcessWire, Copyright 2011 by Ryan Cramer
