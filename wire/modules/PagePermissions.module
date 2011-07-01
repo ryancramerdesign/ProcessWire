@@ -253,9 +253,17 @@ class PagePermissions extends WireData implements Module {
 	/**
 	 * Is the given page moveable (i.e. change parent)?
 	 *
+	 * Without arguments, it just checks that the user is allowed to move the page (not where they are allowed to)
+	 * Optionally specify a $parent page as the first argument to check if they are allowed to move to that parent.
+	 *
 	 */
 	public function moveable($event) {
-		$event->return = $this->fieldEditable($event->object, 'parent'); 
+		$moveable = $this->fieldEditable($event->object, 'parent'); 
+		if($moveable && count($event->arguments) && $event->arguments[0] instanceof Page) {
+			$parent = $event->arguments[0];
+			$moveable = $parent->addable();
+		}
+		$event->return = $moveable;
 	}
 
 	/**
@@ -264,8 +272,8 @@ class PagePermissions extends WireData implements Module {
 	 */
 	public function sortable($event) {
 		$page = $event->object; 
-		$sortable = true; 
-		if(!$this->user->hasPermission('page-sort', $page->parent)) $sortable = false; 
+		$sortable = false; 
+		if($this->user->hasPermission('page-sort', $page->parent)) $sortable = true; 
 		$event->return = $sortable;
 	}
 

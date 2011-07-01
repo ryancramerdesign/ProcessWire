@@ -24,6 +24,7 @@ class ProcessPageSort extends Process {
 	protected $parent_id; 
 	protected $move_id; 
 	protected $user; 
+	protected $isMoved = false;
 
 	public static function getModuleInfo() {
 		return array(
@@ -67,7 +68,7 @@ class ProcessPageSort extends Process {
 		$movePage = $this->fuel('pages')->get($this->move_id); 
 
 		$this->movePage($movePage, $parentPage); 
-		$this->sortPages($parentPage); 
+		$this->sortPages($movePage, $parentPage); 
 	}	
 
 	/**
@@ -78,29 +79,26 @@ class ProcessPageSort extends Process {
 
 		if($page->parent_id == $parent->id) return;
 
-		if($page->template->noMove) 
-			throw new WirePermissionException("Pages with template {$page->template} are not allowed to be moved."); 
-
-		if(!$this->user->hasPermission('page-edit', $page) || !$this->user->hasPermission('page-move', $page)) 
-			throw new WirePermissionException("You do not have permission to move page {$page->path}"); 
-
-		if(!$this->user->hasPermission('page-add', $parent)) 
+		if(!$page->moveable($parent)) 
 			throw new WirePermissionException("You do not have permission to move pages to parent {$parent->path}"); 
 
 		$page->setOutputFormatting(false); 
 		$page->parent = $parent; 
 		$page->save();
 		$this->message("Moved page $page to parent $parent"); 
+		$this->isMoved = true;
 	}
 
 	/**
 	 * Updates the sortfield for all pages having the same parent
 	 *
 	 */
-	protected function sortPages(Page $parent) {
+	protected function sortPages(Page $page, Page $parent) {
 
-		if(!$this->user->hasPermission('page-sort', $parent)) 
-			throw new WirePermissionException("You do not have permission to sort pages with parent {$parent->path}"); 
+		if(!$page->sortable()) { 
+			if(!$this->isMoved) throw new WirePermissionException("You do not have permission to sort pages with parent {$parent->path}"); 
+			return;
+		}
 
 		if($parent->sortfield && $parent->sortfield != 'sort') {
 			$msg = "Pages with parent '{$parent->path}' are automatically sorted by '{$parent->sortfield}, so it's position in this list may change when you reload.";

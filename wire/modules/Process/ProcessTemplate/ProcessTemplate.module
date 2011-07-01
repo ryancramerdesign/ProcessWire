@@ -951,7 +951,7 @@ class ProcessTemplate extends Process {
 		$childrenTemplate = $template->childrenTemplatesID ? $this->fuel('templates')->get($template->childrenTemplatesID) : null;
 
 		if($template->childrenTemplatesID < 0) $field->notes = "The settings you specify above will have no effect because children are already disabled in the 'advanced' tab of this Template editor.";	
-			else if(!$template->childrenTemplatesID) $field->notes = "Optional: You may also want to specify the template required for children on the 'advanced' tab in this template editor.";
+			else if(!$template->childrenTemplatesID) $field->notes = "Optional: You may also want to specify the template required for children above.";
 			else if($childrenTemplate) $field->notes = "This template currently only allows children using the template '$childrenTemplate'. ";
 
 		$roles = $this->pages->get($this->config->rolesPageID)->children(); 
@@ -997,6 +997,15 @@ class ProcessTemplate extends Process {
 
 		$guestRole = $roles->get("name=guest"); 
 
+		$ids = array();
+		if($template && $template->id) {
+			foreach($template->roles as $role) $ids[] = $role->id; 
+			
+		} else {
+			// if new template, default to having the guest role
+			$ids[] = $guestRole->id;
+		}
+
 		foreach($roles as $role) {
 			$label = $role->name; 
 			if($label == 'superuser') continue; 
@@ -1004,21 +1013,16 @@ class ProcessTemplate extends Process {
 			$details = '';
 			foreach($role->permissions as $permission) {
 				if(strpos($permission->name, 'page-') !== 0) continue; 
-				//if($role->name != 'guest' && $guestRole->permissions->has($permission)) continue; // assumed
+				// if the role has page-view permission and guest does too, then there's no need to show the page-view permission here
+				if($role->name != 'guest' && $permission->name == 'page-view' && $guestRole->permissions->has($permission)) continue; 
 				$details .= $permission->title;
 				$details .= "\n";
 			}
-			$details = rtrim($details, ", "); 
+			$details = rtrim($details, "\n"); 
+			if(empty($details)) continue; 
 			$field->addOption($role->id, "$label|$details"); 
 		}
 
-		$ids = array();
-		if($template && $template->id) {
-			foreach($template->roles as $role) $ids[] = $role->id; 
-		} else {
-			// if new template, default to having the guest role
-			$ids[] = $this->roles->getGuestRole()->id;
-		}
 		$field->value = $ids; 
 		return $field; 
 	}
