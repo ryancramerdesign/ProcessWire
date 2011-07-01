@@ -559,6 +559,7 @@ $(document).ready(function() {
 				var $a = $li.children('.PageListPage'); 
 				var id = parseInt($li.data('pageId')); 
 				var $ul = $li.parent('.PageList'); 
+				var $from = $("#PageListMoveFrom")
 
 				// get the previous sibling .PageListItem, and skip over the pagination list if it's there
 				var $ulPrev = $ul.prev().is('.PageListItem') ? $ul.prev() : $ul.prev().prev();
@@ -611,7 +612,6 @@ $(document).ready(function() {
 					}
 
 					// if item moved from one list to another, then update the numChildren counts
-					$from = $("#PageListMoveFrom").attr('id', ''); 
 					if(!$ul.is("#PageListMoveFrom")) {
 						// update count where item came from
 						var $fromItem = $from.prev(".PageListItem"); 	
@@ -629,7 +629,7 @@ $(document).ready(function() {
 						n = $numChildren.text().length > 0 ? parseInt($numChildren.text()) + 1 : 1; 
 						$numChildren.text(n); 
 					}
-
+					$from.attr('id', ''); 
 					$root.removeClass('PageListSortSaving'); 
 
 				}, 'json'); 
