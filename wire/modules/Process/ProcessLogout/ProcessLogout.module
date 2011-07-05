@@ -22,7 +22,7 @@ class ProcessLogout extends Process {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Logout',          
-			'summary' => 'Logout of ProcessWire', 
+			'summary' => 'This Process is no longer necessary in PW 2.1 (or newer) and may be deleted.', 
 			'version' => 100, 
 			'permanent' => false, 
 			);

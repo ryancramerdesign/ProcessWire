@@ -145,9 +145,10 @@ class ProcessLogin extends Process {
 	 *
 	 */
 	public function ___executeLogout() {
-		$this->fuel('session')->logout();
+		$this->session->logout();
 		$this->message("You have logged out"); 
-		return "<p><a href='{$this->config->urls->root}'>Continue</a></p>";
+		$url = $this->user->hasPermission('page-edit') ? $this->config->urls->admin : $this->config->urls->root;
+		$this->session->redirect($url);
 	}
 
 	/**
