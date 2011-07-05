@@ -39,3 +39,8 @@ table.AdminDataList td:last-child {
 	border-bottom: none; 
 }
 
+.ConfigurableModule .ui-icon-gear {
+	display: block;
+	float: right; 
+}
+

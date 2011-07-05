@@ -94,6 +94,7 @@ class ProcessModule extends Process {
 
 		foreach($this->modulesArray as $name => $installed) {
 
+
 			if(strpos($name, $section) !== 0) {
 				if(!preg_match('/^([A-Za-z][a-z]+)/', $name, $matches)) $this->error($name); 
 				$section = $matches[1]; 
@@ -107,7 +108,10 @@ class ProcessModule extends Process {
 
 			if($installed) { 
 				$info = $this->modules->getModuleInfo($name); 
+				$interfaces = class_implements($name, false); 
+				$configurable = in_array('ConfigurableModule', $interfaces); 
 				$title = !empty($info['title']) ? htmlspecialchars($info['title']) : substr($name, strlen($section)); 
+				if($configurable) $title = "<span class='ConfigurableModule'>$title</span>";
 				$version = $this->formatVersion(isset($info['version']) ? $info['version'] : 0);
 				$summary = isset($info['summary']) ? htmlspecialchars($info['summary']) : '';
 				$summary .= isset($info['href']) ? " <a href='$info[href]'>more</a>" : '';
