@@ -10,7 +10,7 @@
  * and these are automatically removed when the remove() method is called.
  *
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2011 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -54,12 +54,12 @@ class CacheFile {
 		$this->path = $id ? $path . $id . '/' : $path;
 
 		if(!is_dir($path)) {
-			mkdir($path);
+			if(!@mkdir($path)) throw new WireException("Unable to create path: $path"); 
 			if($this->chmodDir) chmod($path, octdec($this->chmodDir));
 		}
 
 		if(!is_dir($this->path)) {
-			mkdir($this->path);
+			if(!@mkdir($this->path)) throw new WireException("Unable to create path: {$this->path}"); 
 			if($this->chmodDir) chmod($this->path, octdec($this->chmodDir));
 		}
 
@@ -116,7 +116,7 @@ class CacheFile {
 	public function get() {
 
 		$filename = $this->buildFilename();
-		if($this->isCacheFile($filename) && $this->isCacheFileExpired($filename)) {
+		if(self::isCacheFile($filename) && $this->isCacheFileExpired($filename)) {
 			$this->removeFilename($filename); 
 			return false;
 		}
@@ -137,11 +137,12 @@ class CacheFile {
 		return false;
 	}
 
+
 	/**
 	 * Is the given filename a cache file?
 	 *
 	 */
-	protected function isCacheFile($filename) {
+	static protected function isCacheFile($filename) {
 		$ext = self::cacheFileExtension; 
 		if(is_file($filename) && substr($filename, -1 * strlen($ext)) == $ext) return true; 
 		return false;
@@ -165,7 +166,7 @@ class CacheFile {
 				// this limit interrupting more cache saves. 
 				$o = '';
 				foreach($files as $file) {
-					if($this->isCacheFile($file) && $this->isCacheFileExpired($file)) 
+					if(self::isCacheFile($file) && $this->isCacheFileExpired($file)) 
 						$this->removeFilename($file);
 				}
 				return false;
@@ -189,7 +190,7 @@ class CacheFile {
 		foreach($dir as $file) {
 			if($file->isDir() || $file->isDot()) continue; 
 			//if(strpos($file->getFilename(), self::cacheFileExtension)) @unlink($file->getPathname()); 
-			if($this->isCacheFile($file->getPathname())) @unlink($file->getPathname()); 
+			if(self::isCacheFile($file->getPathname())) @unlink($file->getPathname()); 
 		}
 
 		return @rmdir($this->path); 
@@ -201,6 +202,39 @@ class CacheFile {
 	 */
 	protected function removeFilename($filename) {
 		@unlink($filename); 
+	}
+
+
+	/**
+	 * Remove all cache files in the given path, recursively
+	 *
+	 * @param string $path Full path to the directory you want to clear out 
+	 * @param bool $rmdir Set to true if you want to also remove the directory
+	 * @return int Number of files/dirs removed
+	 *
+	 */
+	static public function removeAll($path, $rmdir = false) {
+
+		$dir = new DirectoryIterator($path); 
+		$numRemoved = 0;
+	
+		foreach($dir as $file) {
+			
+			if($file->isDot()) continue;
+
+			$pathname = $file->getPathname();
+
+			if($file->isDir()) {
+				$numRemoved += self::removeAll($pathname, true); 
+
+			} else if($file->isFile() && (self::isCacheFile($pathname) || ($file->getFilename() == self::globalExpireFilename))) {
+				if(unlink($pathname)) $numRemoved++;
+			}
+		}
+
+		if($rmdir && rmdir($path)) $numRemoved++;
+
+		return $numRemoved;
 	}
 
 	/**

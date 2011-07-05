@@ -19,7 +19,7 @@
  *
  *
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2011 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -27,7 +27,7 @@
  *
  */
 
-class MarkupCache extends Wire implements Module {
+class MarkupCache extends Wire implements Module, ConfigurableModule {
 
 	/**
 	 * getModuleInfo is a module required by all modules to tell ProcessWire about them
@@ -39,7 +39,7 @@ class MarkupCache extends Wire implements Module {
 
 		return array(
 			'title' => 'Markup Cache', 
-			'version' => 100, 
+			'version' => 101, 
 			'summary' => 'A simple way to cache segments of markup in your templates. ',
 			'href' => 'http://www.processwire.com/api/modules/markupcache/',
 			'singular' => true, 
@@ -67,11 +67,19 @@ class MarkupCache extends Wire implements Module {
 	protected $path = '';
 
 	/**
+	 * Generate the module's path, static so it can be used by the static getModuleConfigInputfields function
+	 *
+	 */
+	static protected function path() {
+		return wire('config')->paths->cache . 'MarkupCache' . '/';
+	}
+
+	/**
 	 * Initialize the module and add a hook after Pages::save
 	 *
 	 */
 	public function init() {
-		$this->path = $this->config->paths->cache . $this->className() . '/';
+		$this->path = self::path();
 		$this->pages->addHookAfter('save', $this, 'expire'); 
 	}
 
@@ -84,8 +92,9 @@ class MarkupCache extends Wire implements Module {
 	 *
 	 */
 	public function get($uniqueName, $seconds = 3600) {
-		$this->cache = new CacheFile($this->path, $uniqueName, $seconds);
-		if(!$this->cache) throw new WireException("Unable to create cache $uniqueName"); 
+		$cache = new CacheFile($this->path, $uniqueName, $seconds);
+		if(!$cache) throw new WireException("Unable to create cache '{$this->path}/$uniqueName'"); 
+		$this->cache = $cache; 
 		return $this->cache->get();
 	}
 
@@ -101,7 +110,7 @@ class MarkupCache extends Wire implements Module {
 	public function save($data) {
 		if(!$this->cache) throw new WireException("You must attempt to retrieve a cache first, before you can save it."); 	
 		$result = $this->cache->save($data); 
-		unset($this->cache); 
+		$this->cache = null;
 		return $result; 
 	}
 
@@ -122,6 +131,71 @@ class MarkupCache extends Wire implements Module {
 		$cache->expireAll(); 
 		$this->cleared = true; 
 	}
-	
+
+	/**
+	 * Clears all MarkupCache files
+	 *
+	 * @return number of files/dirs deleted
+	 *
+	 */
+	protected static function _removeAll() {
+		$path = self::path();
+		return CacheFile::removeAll($path, true); 
+	}
+
+	/**
+	 * Non static implmeentation of removeAll() for convenience
+	 *
+	 */
+	public function removeAll() {
+		return self::_removeAll(); 
+	}
+
+	/**
+	 * For ConfigurableModule interface, even though we aren't currently using it
+	 *
+	 */
+	public function __set($key, $value) {
+		// intentionally left blank
+	}
+
+	/**
+	 * Provide cache clearing capability in the module's configuration
+	 *	
+ 	 */
+	static public function getModuleConfigInputfields(array $data) {
+
+		$inputfields = new InputfieldWrapper();
+		$clearNow = wire('input')->post->clearCache ? true : false;
+		$message = '';
+
+		if($clearNow) {
+			$numFiles = self::_removeAll();
+			$message = "Cleared $numFiles MarkupCache files and dirs";
+			$inputfields->message($message);
+		}
+
+		$name = "clearCache";
+		$f = wire('modules')->get('InputfieldCheckbox');
+		$f->attr('name', $name);
+		$f->attr('value', 1);
+		$f->attr('checked', '');
+		$f->label = "Clear the MarkupCache?";
+		$f->notes = $message; 
+		$f->description = "This will remove all files and directories used by the MarkupCache";
+		$inputfields->append($f);
+
+		return $inputfields;
+	}
+
+	/**
+	 * Uninstall this module and remove it's files
+	 *
+	 */
+	public function ___uninstall() {
+		$numFiles = $this->removeAll();
+		$this->message("Removed $numFiles MarkupCache files"); 
+	}
+
 	
 }
