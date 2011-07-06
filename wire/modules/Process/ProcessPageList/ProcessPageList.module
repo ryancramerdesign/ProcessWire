@@ -86,7 +86,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 
 		if(!$this->render) {
 			$openPageIDs = array();
-			if($this->openPage->id) {
+			if($this->openPage->id > 1) {
 				$openPageIDs[] = $this->openPage->id; 
 				foreach($this->openPage->parents() as $parent) {
 					if($parent->id > 1) $openPageIDs[] = $parent->id; 
