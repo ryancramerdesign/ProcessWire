@@ -21,20 +21,20 @@ if($q = $sanitizer->selectorValue($input->get->q)) {
 	$count = count($matches); 
 
 	if($count) {
-		$out .= "<h2>Found $count pages matching your query:</h2>" . 
-			"<ul class='nav'>";
+		$out .= '<h2>Found $count pages matching your query:</h2>' . 
+			'<ul class="nav">';
 
 		foreach($matches as $m) {
-			$out .= "<li><p><a href='{$m->url}'>{$m->title}</a><br />{$m->summary}</p></li>";
+			$out .= "<li><p><a href=\"{$m->url}\">{$m->title}</a><br />{$m->summary}</p></li>";
 		}
 
 		$out .= "</ul>";
 
 	} else {
-		$out .= "<h2>Sorry, no results were found.</h2>";
+		$out .= '<h2>Sorry, no results were found.</h2>';
 	}
 } else {
-	$out .= "<h2>Please enter a search term in the search box (upper right corner)</h2>";
+	$out .= '<h2>Please enter a search term in the search box (upper right corner)</h2>';
 }
 
 // Note that we stored our output in $out before printing it because we wanted to execute

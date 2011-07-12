@@ -7,10 +7,10 @@
 
 				if($page->numChildren) {
 
-					echo "<ul class='nav'>";
+					echo '<ul class="nav">';
 
 					foreach($page->children as $child) {
-						echo "<li><p><a href='{$child->url}'>{$child->title}</a><br /><span class='summary'>{$child->summary}</span></p></li>"; 
+						echo "<li><p><a href=\"{$child->url}\">{$child->title}</a><br /><span class=\"summary\">{$child->summary}</span></p></li>"; 
 					}
 
 					echo "</ul>";
@@ -35,7 +35,7 @@
 
 	// If the page is editable, then output a link that takes us straight to the page edit screen:
 	if($page->editable()) {
-		echo "<a class='nav' id='editpage' href='{$config->urls->admin}page/edit/?id={$page->id}'>Edit</a>"; 
+		echo "<a class=\"nav\" id=\"editpage\" href=\"{$config->urls->admin}page/edit/?id={$page->id}\">Edit</a>"; 
 	}
 
 	?>
