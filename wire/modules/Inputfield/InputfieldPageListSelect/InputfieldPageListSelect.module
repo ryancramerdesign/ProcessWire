@@ -34,7 +34,7 @@ class InputfieldPageListSelect extends Inputfield {
 		}
 
 		$out =	"\n<input type='text' " . $this->getAttributesString() . " />" . 
-			"\n<script>$(document).ready(function() { " . 
+			"\n<script type=\"text/javascript\">$(document).ready(function() { " . 
 			"var t = $('#{$this->id}'); " . 
 			"t.ProcessPageList({ " . 
 				"mode: 'select', " . 

@@ -73,7 +73,8 @@ var tinymceSelection = null;
 
 							if(target.length > 0) target = ' target="' + target + '"';
 							if(url.length) { 
-								html = '<a href="' + url + '"' + target + '>' + anchorText + '</a>';
+								if (target == ' target="_blank"') target == ' rel="external"';
+                                html = '<a href="' + url + '"' + target + '>' + anchorText + '</a>';
 								tinyMCE.execCommand('mceInsertContent', false, html);
 							}
 							$iframe.dialog("close"); 

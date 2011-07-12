@@ -18,5 +18,6 @@ foreach($notices as $notice) {
 
 }
 
-echo "\n\t</ul><!--/notices-->";
+?>
+</ul><!--/notices-->
 

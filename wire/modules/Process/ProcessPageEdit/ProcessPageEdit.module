@@ -184,12 +184,12 @@ class ProcessPageEdit extends Process {
 		$fields->attr('id', $this->className() . 'Content'); 
 		$fields->attr('title', 'Content'); 
 
-		$form->attr('id+name', 'ProcessPageEdit'); 
+		$form->attr('id', 'ProcessPageEdit'); 
 		$form->attr('action', './?id=' . $this->id . ($this->input->get->modal ? "&modal=1" : '')); 
 		$form->attr('method', 'post'); 
 		$form->attr('enctype', 'multipart/form-data'); 
 		$form->attr('class', 'template_' . $this->page->template . ' class_' . $this->page->className); 
-		$form->attr('autocomplete', 'off'); 
+		//$form->attr('autocomplete', 'off'); 
 
 		if($this->page->template->nameContentTab) {
 			// name
