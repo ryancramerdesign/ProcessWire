@@ -6,7 +6,7 @@
  * Matches selector strings to pages
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2011 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -46,6 +46,7 @@ class PageFinder extends Wire {
 		$options = $this->options; 
 
 		foreach($selectors as $key => $selector) {
+
 			if($selector->field == 'status') {
 				$value = $selector->value; 
 				if(!ctype_digit("$value")) {
@@ -53,6 +54,7 @@ class PageFinder extends Wire {
 					if($value == 'hidden') $selector->value = Page::statusHidden; 
 						else if($value == 'unpublished') $selector->value = Page::statusUnpublished; 
 						else if($value == 'locked') $selector->value = Page::statusLocked; 
+						else if($value == 'max') $selector->value = Page::statusMax; 
 						else $selector->value = 1; 
 
 					if($selector->operator == '=') {
@@ -62,6 +64,11 @@ class PageFinder extends Wire {
 				}
 				if(is_null($maxStatus) || $value > $maxStatus) 
 					$maxStatus = (int) $selector->value; 
+
+			} else if($selector->key == 'include' && $selector->operator == '=' && in_array($selector->value, array('hidden', 'all'))) {
+				if($selector->value == 'hidden') $options['findHidden'] = true; 
+					else if($selector->value == 'all') $options['findAll'] = true; 
+				$selectors->remove($key);
 
 			} else if($selector->field == 'check_access' || $selector->field == 'checkAccess') { 
 				$this->checkAccess = ((int) $selector->value) > 0 ? true : false;
@@ -74,8 +81,13 @@ class PageFinder extends Wire {
 			if($maxStatus < Page::statusUnpublished) 
 				$selectors->add(new SelectorLessThan('status', Page::statusUnpublished)); 
 
-		} else if($options['findOne']) {
-			// findOne option, apply optimizations enabling hidden pages to be loaded
+		} else if($options['findAll']) { 
+			// findAll option means that unpublished, hidden, trash, system may be included
+			$selectors->add(new SelectorLessThan('status', Page::statusMax)); 
+			$this->checkAccess = false;	
+
+		} else if($options['findOne'] || $options['findHidden']) {
+			// findHidden|findOne option, apply optimizations enabling hidden pages to be loaded
 			$selectors->add(new SelectorLessThan('status', Page::statusUnpublished)); 
 
 		} else {
@@ -96,7 +108,23 @@ class PageFinder extends Wire {
 	public function find(Selectors $selectors, $options = array()) {
 
 		$defaultOptions = array(
+			/**
+	 		 * Specify that you only want to find 1 page and don't need info for pagination
+			 * 	
+			 */
 			'findOne' => false,
+			
+			/**
+			 * Specify that it's okay for hidden pages to be included in the results	
+			 *
+			 */
+			'findHidden' => false,
+
+			/**
+			 * Specify that no page status should be excluded - results can include unpublished, trash, system, etc.
+			 *
+			 */
+			'findAll' => false,
 			);
 		$options = array_merge($defaultOptions, $options); 
 

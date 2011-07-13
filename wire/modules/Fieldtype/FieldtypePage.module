@@ -198,15 +198,21 @@ class FieldtypePage extends FieldtypeMulti {
 	 */
 	public function getBlankValue(Page $page, Field $field) {
 
-		// single page possible blank values
-		if($field->derefAsPage == FieldtypePage::derefAsPageOrFalse) return false;
-			else if($field->derefAsPage == FieldtypePage::derefAsPageOrNullPage) return new NullPage(); 
+		if($field->derefAsPage == FieldtypePage::derefAsPageArray) {
+			// multi page blank value
+			$pageArray = new PageArray();
+			$pageArray->setTrackChanges(true);
+			return $pageArray;
 
-		// multi page blank value
-		$pageArray = new PageArray();
-		$pageArray->setTrackChanges(true);
+		} else if($field->derefAsPage == FieldtypePage::derefAsPageOrFalse) {
+			// single page possible blank values
+			return false;
 
-		return $pageArray;
+		} else if($field->derefAsPage == FieldtypePage::derefAsPageOrNullPage) {
+			// single page possible blank values
+			return new NullPage(); 
+		}
+
 	}
 
 	/**

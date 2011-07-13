@@ -148,6 +148,14 @@ class Page extends WireData {
 	static public $instanceIDs = array();
 
 	/**
+	 * Stack of ID indexed Page objects that are currently in the loading process. 
+	 *
+	 * Used to avoid possible circular references when multiple pages referencing each other are being populated at the same time.
+	 *
+	 */
+	static public $loadingStack = array();
+
+	/**
 	 * The current page number, starting from 1
 	 *
 	 */
@@ -238,6 +246,7 @@ class Page extends WireData {
 
 		switch($key) {
 			case 'id':
+				if(!$this->isLoaded) Page::$loadingStack[(int) $value] = $this;
 			case 'sort': 
 			case 'numChildren': 
 			case 'num_children':
@@ -641,10 +650,10 @@ class Page extends WireData {
 	 * @param string $selector
 	 *
 	 */
-	public function find($selector) {
+	public function find($selector, $options = array()) {
 		if(!$this->numChildren) return new PageArray();
 		$selector = "has_parent={$this->id}, $selector"; 
-		return $this->fuel('pages')->find(trim($selector, ", ")); 
+		return $this->fuel('pages')->find(trim($selector, ", "), $options); 
 	}
 
 	/**
@@ -654,24 +663,24 @@ class Page extends WireData {
 	 * @return PageArray
 	 *
 	 */
-	public function children($selector = '') {
+	public function children($selector = '', $options = array()) {
 		if(!$this->numChildren) return new PageArray();
 		if($selector) $selector .= ", ";
 		$selector = "parent_id={$this->id}, $selector"; 
 		if(strpos($selector, 'sort=') === false) $selector .= "sort={$this->sortfield}"; 
-		return $this->fuel('pages')->find(trim($selector, ", ")); 
+		return $this->fuel('pages')->find(trim($selector, ", "), $options); 
 	}
 
 	/**
 	 * Return the page's first single child that matches the given selector. 
 	 *
-	 * Same as children() but returns a Page object or NULL rather than a PageArray.
+	 * Same as children() but returns a Page object or NullPage (with id=0) rather than a PageArray
 	 *
 	 * @param string $selector Selector to use, or blank to return the first child. 
-	 * @return Page|null
+	 * @return Page|NullPage
 	 *
 	 */
-	public function child($selector = '') {
+	public function child($selector = '', $options = array()) {
 		$selector .= ($selector ? ', ' : '') . "limit=1";
 		$children = $this->children($selector); 
 		return count($children) ? $children->first() : new NullPage();
@@ -1038,7 +1047,10 @@ class Page extends WireData {
 	 *
 	 */
 	public function setIsLoaded($isLoaded) {
-		if($isLoaded) $this->processFieldDataQueue();
+		if($isLoaded) {
+			$this->processFieldDataQueue();
+			unset(Page::$loadingStack[$this->settings['id']]); 
+		}
 		$this->isLoaded = $isLoaded ? true : false; 
 		if($isLoaded) $this->loaded();
 		return $this; 
@@ -1125,11 +1137,13 @@ class Page extends WireData {
 	 *
 	 */
 	public function uncache() {
-		foreach($this->fields as $field) {
-			$value = parent::get($field->name);
-			if($value != null && is_object($value)) {
-				if(method_exists($value, 'uncache')) $value->uncache();
-				parent::set($field->name, null); 
+		if($this->template) {
+			foreach($this->template->fieldgroup as $field) {
+				$value = parent::get($field->name);
+				if($value != null && is_object($value)) {
+					if(method_exists($value, 'uncache')) $value->uncache();
+					parent::set($field->name, null); 
+				}
 			}
 		}
 		if($this->filesManager) $this->filesManager->uncache(); 
@@ -1202,7 +1216,6 @@ class Page extends WireData {
 		return false;
 	}
 
-
 	/** REMOVED
 	public function roles() {}
 	public function addRole($role) {}
@@ -1229,12 +1242,13 @@ class NullPage extends Page {
 	public function isHidden() { return true; }
 	public function filesManager() { return null; }
 	public function rootParent() { return new NullPage(); }
-	public function siblings($selector = '') { return new PageArray(); }
-	public function children($selector = '') { return new PageArray(); }
+	public function siblings($selector = '', $options = array()) { return new PageArray(); }
+	public function children($selector = '', $options = array()) { return new PageArray(); }
 	public function getAccessParent() { return new NullPage(); }
 	public function getAccessRoles() { return new PageArray(); }
 	public function hasAccessRole($role) { return false; }
 
 }
+
 
 

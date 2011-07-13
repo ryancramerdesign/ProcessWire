@@ -167,39 +167,31 @@ class Pages extends Wire {
 	}
 
 	/**
-	 * Count and return how many pages will match the given selector string
-	 *
-	 * @param string $selectorString
-	 * @return int
-	 * @todo optimize this so that it only counts, and doesn't have to load any pages in the process. 
-	 *
-	 */
-	public function count($selectorString) {
-		$pages = $this->find("$selectorString, limit=2"); // PW doesn't count when limit=1, which is why we limit=2
-		return $pages->getTotal();
-	}
-
-	/**
 	 * Like find() but returns only the first match as a Page object (not PageArray)
 	 *
 	 * @param string $selectorString
 	 * @return Page|null
 	 *
 	 */
-	public function ___findOne($selectorString) {
+	public function findOne($selectorString, $options = array()) {
 		if($page = $this->getCache($selectorString)) return $page; 
-		$page = $this->find($selectorString, array('findOne' => true))->first();
+		$options['findOne'] = true; 
+		$page = $this->find($selectorString, $options)->first();
 		if(!$page) $page = new NullPage();
 		return $page; 
 	}
 
 	/**
-	 * Like find() but returns only the first match as a Page object (not PageArray)
+	 * Returns only the first match as a Page object (not PageArray).
+	 *
+	 * Otherwise works the same as find(). Excludes any pages the user doesn't have access to view. 
+	 * See the get__() method if you want to include those pages or add: "status<max, check_access=0" to your selector.
 	 * 
 	 * This is an alias of the findOne() method for syntactic convenience and consistency.
+	 * Using get() is preferred.
 	 *
 	 * @param string $selectorString
-	 * @return Page|null
+	 * @return Page|NullPage Always returns a Page object, but will return NullPage (with id=0) when no match found
 	 */
 	public function get($selectorString) {
 		return $this->findOne($selectorString); 
@@ -224,7 +216,6 @@ class Pages extends Wire {
 		if(is_object($ids)) $ids = $ids->getArray();
 		$loaded = array();
 
-
 		foreach($ids as $key => $id) {
 			$id = (int) $id; 
 			$ids[$key] = $id; 
@@ -232,6 +223,15 @@ class Pages extends Wire {
 			if($page = $this->getCache($id)) {
 				$loaded[$id] = $page; 
 				unset($ids[$key]); 
+			
+			} else if(isset(Page::$loadingStack[$id])) {
+				// if the page is already in the process of being loaded, point to it rather than attempting to load again.
+				// the point of this is to avoid a possible infinite loop with autojoin fields referencing each other.
+				$loaded[$id] = Page::$loadingStack[$id];
+				// cache the pre-loaded version so that other pages referencing it point to this instance rather than loading again
+				$this->cache($loaded[$id]); 
+				unset($ids[$key]); 
+
 			} else {
 				$loaded[$id] = ''; // reserve the spot, in this order
 			}
@@ -269,7 +269,7 @@ class Pages extends Wire {
 
 			$query->leftjoin("pages_sortfields ON pages_sortfields.pages_id=pages.id"); 
 			$query->groupby("pages.id"); 
-			
+		
 			foreach($fields as $field) {
 				if(!($field->flags & Field::flagAutojoin)) continue; 
 				$table = $field->table; 
@@ -304,6 +304,18 @@ class Pages extends Wire {
 		return $pages->import($loaded); 
 	}
 
+	/**
+	 * Count and return how many pages will match the given selector string
+	 *
+	 * @param string $selectorString
+	 * @return int
+	 * @todo optimize this so that it only counts, and doesn't have to load any pages in the process. 
+	 *
+	 */
+	public function count($selectorString, $options = array()) {
+		// PW doesn't count when limit=1, which is why we limit=2
+		return $this->find("$selectorString, limit=2", $options)->getTotal();
+	}
 
 	/**
 	 * Is the given page in a state where it can be saved?

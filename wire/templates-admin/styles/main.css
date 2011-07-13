@@ -161,6 +161,7 @@ a {
 		position: absolute;
 		top: 165px; 
                 left: 0;
+		white-space: nowrap; 
 	}
 
 	#ProcessPageSearchQuery {
