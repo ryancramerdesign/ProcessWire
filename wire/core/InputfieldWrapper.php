@@ -204,7 +204,7 @@ class InputfieldWrapper extends Inputfield {
 			if(count($errors)) $ffAttrs['class'] .= " ui-state-error InputfieldStateError"; 
 
 			if($collapsed) {
-				if($inputfield instanceof InputfieldWrapper || $collapsed == Inputfield::collapsedYes || $collapsed === true || !strlen("{$inputfield->value}") || !$inputfield->value) 
+				if($inputfield instanceof InputfieldWrapper || $collapsed == Inputfield::collapsedYes || $collapsed === true || empty($inputfield->value)) 
 					$ffAttrs['class'] .= " InputfieldStateCollapsed";
 			}
 			

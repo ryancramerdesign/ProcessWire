@@ -63,7 +63,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 */
 	public function isCacheAllowed($page) {
 
-		if(!$page->template->cache_time) return false; 
+		if(!$page->template || !$page->template->cache_time) return false; 
 
 		if(!$this->user->isGuest()) {
 			if(!$page->template->useCacheForUsers) return false; 
@@ -191,9 +191,9 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		}
 
 		$output = $page->output;
-		$data = $output->render();
+		$data = $output ? $output->render() : '';
 
-		if($cacheAllowed && $cacheFile) $cacheFile->save($data);
+		if($data && $cacheAllowed && $cacheFile) $cacheFile->save($data);
 		$event->return = $data; 
 		$this->setFuel('page', $_page); 
 	}

@@ -902,6 +902,7 @@ class Page extends WireData {
 	 */
 	protected function getTemplateFile() {
 		if($this->output) return $this->output; 
+		if(!$this->template) return null;
 		$this->output = new TemplateFile($this->template->filename); 
 		$fuel = self::getAllFuel();
 		$this->output->set('wire', $fuel); 

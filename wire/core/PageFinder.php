@@ -65,7 +65,7 @@ class PageFinder extends Wire {
 				if(is_null($maxStatus) || $value > $maxStatus) 
 					$maxStatus = (int) $selector->value; 
 
-			} else if($selector->key == 'include' && $selector->operator == '=' && in_array($selector->value, array('hidden', 'all'))) {
+			} else if($selector->field == 'include' && $selector->operator == '=' && in_array($selector->value, array('hidden', 'all'))) {
 				if($selector->value == 'hidden') $options['findHidden'] = true; 
 					else if($selector->value == 'all') $options['findAll'] = true; 
 				$selectors->remove($key);
