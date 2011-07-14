@@ -744,9 +744,17 @@ class ProcessPageEdit extends Process {
 		$breadcrumbs = new Breadcrumbs();
 		$breadcrumbs->add(new Breadcrumb($this->config->urls->admin . 'page/list/', "Pages"));
 		$page = $this->page ? $this->page : $this->parent; 
+
+		$pageListConfig = $this->modules->getModuleConfigData('ProcessPageList'); 
+		$limit = $pageListConfig['limit'];
+
 		foreach($page->parents() as $p) {
-			// if($p->editable()) $url = "./?id=" . $p->id; 
-			$url = "../?open=" . $p->id; 
+			$parent = $p->parent; 
+
+			// make breadcrumb to go pagelist with page clicked, unless pagination is active in that PageList
+			if($limit && $parent->id && $parent->numChildren > $limit && $p->editable()) $url = "./?id={$p->id}"; 
+				else $url = "../?open=" . $p->id; 
+
 			$breadcrumbs->add(new Breadcrumb($url, $p->get("title|name"))); 
 		}
 		$this->setFuel('breadcrumbs', $breadcrumbs); 
