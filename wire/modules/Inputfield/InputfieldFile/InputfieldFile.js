@@ -8,7 +8,7 @@ $(document).ready(function() {
 			position: 'absolute', 
 			top: '0', 
 			right: '0', 
-			zIndex: '-1'
+			display: 'none'
 		}).change(function() {
 			if($(this).is(":checked")) {
 				// not an error, but we want to highlight it in the same manner
@@ -36,7 +36,8 @@ $(document).ready(function() {
 				ui.item.children(".InputfieldFileInfo").removeClass("ui-state-highlight"); 
 			}
 		}); 
-	}).find(".ui-widget-header").hover(function() {
+
+	}).find(".ui-widget-header, .ui-state-default").hover(function() {
 		$(this).addClass('ui-state-hover'); 
 	}, function() {
 		$(this).removeClass('ui-state-hover'); 

@@ -6,6 +6,10 @@ ul.InputfieldFileList li {
 	cursor: move; 
 }
 
+ul.InputfieldFileList li p {
+	margin: 0; 
+}
+
 ul.InputfieldFileList li .InputfieldFileInfo {
 	padding: 3px 0; 
 	margin-bottom: 0; 
@@ -15,6 +19,7 @@ ul.InputfieldFileList li .InputfieldFileInfo {
 	}
 		ul.InputfieldFileList li .InputfieldFileInfo .InputfieldFileName:hover {
 			text-decoration: underline; 
+			background: none; 
 		}
 	ul.InputfieldFileList li .InputfieldFileInfo .InputfieldFileStats {
 		opacity: 0.65; 
@@ -55,7 +60,7 @@ ul.InputfieldFileList li .InputfieldFileData {
 
 	ul.InputfieldFileList li .InputfieldFileDescription {
 		font-weight: normal;
-		margin: 0.5em 0;
+		margin: 0.5em 0 0 0;
 	}
 
 	ul.InputfieldFileList li .InputfieldFileDescription input {

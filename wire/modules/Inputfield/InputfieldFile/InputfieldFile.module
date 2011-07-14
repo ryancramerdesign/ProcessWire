@@ -44,7 +44,7 @@ class InputfieldFile extends Inputfield {
 	protected function renderItem($pagefile, $id, $n) {
 
 		$out = 	"\n\t<li class='InputfieldFile ui-widget ui-widget-content'>" . 
-			"\n\t\t<p class='InputfieldFileInfo ui-state-default ui-priority-secondary'>" . 
+			"\n\t\t<p class='InputfieldFileInfo ui-state-default'>" . 
 			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>" . 
 			"\n\t\t\t<a class='InputfieldFileName' href='{$pagefile->url}'>{$pagefile->basename}</a> " . 
 			"\n\t\t\t<span class='InputfieldFileStats'>{$pagefile->filesizeStr}</span> " . 
