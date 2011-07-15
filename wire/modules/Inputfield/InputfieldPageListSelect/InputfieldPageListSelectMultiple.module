@@ -74,7 +74,7 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 		$attrStr = $this->getAttributesString($attrs) . " value='$value'";
 		$out .=	"\n<input type='text' $attrStr />";
 
-		$out .= "\n<script>$(document).ready(function() { " . 
+		$out .= "\n<script type=\"text/javascript\">$(document).ready(function() { " . 
 			"var t = $('#{$this->id}'); " . 
 			"t.ProcessPageList({ " . 
 				"mode: 'select', " . 

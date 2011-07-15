@@ -1,17 +1,17 @@
 <?php
 
 /**
- * Demo site header include file (HTML5)
+ * Demo site header include file (XHTML)
  *
  * Note that this file has nothing to do with ProcessWire. We just split our common 
  * header and footer markup into separate files (head.inc and foot.inc) like this, 
  * since it was common to all of our templates. 
  *
  */
-
+ 
 ?>
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
 
@@ -32,7 +32,7 @@
 </head>
 <body>
 
-	<p id='bgtitle'><?php 
+	<p id="bgtitle"><?php 
 
 		// print the section title as big faded text that appears near the top left of the page
 		echo $page->rootParent->title; 
@@ -43,39 +43,41 @@
 
 		<div class="container">
 
-			<a href='<?php echo $config->urls->root; ?>'><p id='logo'>ProcessWire</p></a>
+			<div id="logo"><a href="<?php echo $config->urls->root; ?>">ProcessWire</a></div>
 		
-			<ul id='topnav'><?php
+			<ul id="topnav"><?php
 			
 				// Create the top navigation list by listing the children of the homepage. 
 				// If the section we are in is the current (identified by $page->rootParent)
-				// then note it with <a class='on'> so we can style it differently in our CSS. 
+				// then note it with <a class="active"> so we can style it differently in our CSS. 
 				// In this case we also want the homepage to be part of our top navigation, 
 				// so we prepend it to the pages we cycle through:
 				
-				$homepage = $pages->get("/"); 
+				$homepage = $pages->get('/'); 
 				$children = $homepage->children;
 				$children->prepend($homepage); 
 		
 				foreach($children as $child) {
-					$class = $child === $page->rootParent ? " class='on'" : '';
-					echo "<li><a$class href='{$child->url}'>{$child->title}</a></li>";
+					$class = $child === $page->rootParent ? ' class="active"' : '';
+					echo "<li><a$class href=\"{$child->url}\">{$child->title}</a></li>";
 				}
 
 			?></ul>
 
-			<ul id='breadcrumb'><?php
-
+			<?php
+			if(count($page->parents)) {
+				echo '<ul id="breadcrumb">';
 				// Create breadcrumb navigation by cycling through the current $page's
 				// parents in order, linking to each:
 
 				foreach($page->parents as $parent) {
-					echo "<li><a href='{$parent->url}'>{$parent->title}</a> &gt; </li>";
+					echo "<li><a href=\"{$parent->url}\">{$parent->title}</a> &gt; </li>";
 				}
+				echo '</ul>';
+			}
+			?>
 
-			?></ul>
-
-			<h1 id='title'><?php 
+			<h1 id="title"><?php 
 
 				// The statement below asks for the page's headline or title. 
 				// Separating multiple fields with a pipe "|" returns the first
@@ -86,9 +88,11 @@
 
 			?></h1>
 
-			<form id='search_form' action='<?php echo $config->urls->root?>search/' method='get'>
-				<input type='text' name='q' id='search_query' value='<?php echo htmlentities($input->whitelist('q'), ENT_QUOTES); ?>' />
-				<button type='submit' id='search_submit'>Search</button>
+			<form id="search_form" action="<?php echo $config->urls->root?>search/" method="get">
+				<div>
+					<input type="text" name="q" id="search_query" value="<?php echo htmlentities($input->whitelist('q'), ENT_QUOTES); ?>" />
+					<button type="submit" id="search_submit">Search</button>
+				</div>
 			</form>
 
 			<?php
@@ -99,7 +103,7 @@
 			if(count($homepage->images)) {
 				$image = $homepage->images->getRandom(); 
 				$thumb = $image->size(232, 176); 	
-				echo "<a href='{$image->url}'><img id='photo' src='{$thumb->url}' alt='{$thumb->description}' width='{$thumb->width}' height='{$thumb->height}' /></a>";
+				echo "<a href=\"{$image->url}\"><img id=\"photo\" src=\"{$thumb->url}\" alt=\"{$thumb->description}\" width=\"{$thumb->width}\" height=\"{$thumb->height}\" /></a>";
 			}
 
 			?>
@@ -128,11 +132,11 @@
 					// We have determined that we're not on the homepage
 					// and that this section has child pages, so make navigation: 
 
-					echo "<ul id='subnav' class='nav'>";
+					echo '<ul id="subnav" class="nav">';
 
 					foreach($page->rootParent->children as $child) {
-						$class = $page === $child ? " class='on'" : '';
-						echo "<li><a$class href='{$child->url}'>{$child->title}</a></li>";	
+						$class = $page === $child ? ' class="active"' : '';
+						echo "<li><a$class href=\"{$child->url}\">{$child->title}</a></li>";	
 					}
 
 					echo "</ul>";
@@ -140,7 +144,7 @@
 
 				?>
 
-				<div class='sidebar_item'>
+				<div class="sidebar_item">
 
 					<?php
 

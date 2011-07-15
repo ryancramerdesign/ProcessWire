@@ -58,7 +58,7 @@ class ProcessProfile extends Process implements ConfigurableModule {
 		$form->attr('action', './'); 
 		$form->attr('method', 'post'); 
 		$form->attr('enctype', 'multipart/form-data');
-		$form->attr('autocomplete', 'off'); 
+		//$form->attr('autocomplete', 'off'); 
 
 		foreach($this->user->fields as $field) {
 			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue; 

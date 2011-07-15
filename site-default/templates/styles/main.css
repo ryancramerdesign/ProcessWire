@@ -94,7 +94,7 @@ body, input, textarea, table {
 			}
 
 			#topnav a:hover,
-			#topnav a.on {
+			#topnav a.active {
 				color: #fff; 
 				background: url(images/topnav_a_bg.gif) top left repeat-x; 
 			}
@@ -305,7 +305,7 @@ body, input, textarea, table {
 			border-top: 1px solid #fff; 
 		}
 			#sidebar ul.nav a:hover,
-			#sidebar ul.nav a.on {
+			#sidebar ul.nav a.active {
 				background: #db1174; 
 				color: #fff;
 				text-decoration: none; 

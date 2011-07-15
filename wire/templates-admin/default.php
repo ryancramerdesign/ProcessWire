@@ -17,8 +17,8 @@ $config->styles->append($config->urls->adminTemplates . "styles/ui.css");
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.js"); 
 
 ?>
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
 	<meta name="robots" content="noindex, nofollow" />
@@ -62,7 +62,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 	<p id='bgtitle'><?php echo $page->parent->title; ?></p>
 	<div id="masthead" class="masthead">
 		<div class="container">
-			<p id="logo">ProcessWire</p>
+			<div id="logo"><a href="<?php echo $config->urls->root; ?>">ProcessWire</a></div>
 
 			<ul id='topnav' class='nav'>
 				<?php include($config->paths->templatesAdmin . "topnav.inc"); ?>
