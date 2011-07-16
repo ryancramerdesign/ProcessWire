@@ -58,19 +58,19 @@ class upgradeProcessWire {
 	}
 
 	public function err($str) { 
-		echo "\n<li class='ui-state-error'><span class='ui-icon ui-icon-alert'></span>$str</li>"; $this->numErrors++; 
+		echo "\n<li class='ui-state-error'><span class='ui-icon ui-icon-alert'> </span>$str</li>"; $this->numErrors++; 
 	}
 
 	public function li($str, $icon = 'check') { 
-		echo "\n<li class='ui-state-highlight'><span class='ui-icon ui-icon-$icon'></span>$str</li>"; 
+		echo "\n<li class='ui-state-highlight'><span class='ui-icon ui-icon-$icon'> </span>$str</li>"; 
 	}
 
 	public function ok($str) { 
-		echo "\n<li class='ui-state-highlight ui-state-disabled'><span class='ui-icon ui-icon-check'></span>$str</li>"; 
+		echo "\n<li class='ui-state-highlight ui-state-disabled'><span class='ui-icon ui-icon-check'> </span>$str</li>"; 
 	}
 
 	protected function btn($label, $value) {
-		echo "\n<p style='float: left; padding-right: 0.5em;'><button name='step' type='submit' class='ui-button ui-widget ui-state-default ui-corner-all' value='$value'><span class='ui-button-text'><span class='ui-icon ui-icon-carat-1-e'></span>$label</span></a></button></p>";
+		echo "\n<p style='float: left; padding-right: 0.5em;'><button name='step' type='submit' class='ui-button ui-widget ui-state-default ui-corner-all' value='$value'><span class='ui-button-text'><span class='ui-icon ui-icon-carat-1-e'> </span>$label</span></a></button></p>";
 	}
 
 	/**

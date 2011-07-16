@@ -403,7 +403,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			"\n\t<div>" .
 				"\n\t\t<input type='text' id='ProcessPageSearchQuery' name='q' value='$q' />" .
 				"\n\t\t<input type='submit' id='ProcessPageSearchSubmit' name='search' value='Search' />" .
-				"\n\t\t<span id='ProcessPageSearchStatus'></span>" .
+				"\n\t\t<span id='ProcessPageSearchStatus'> </span>" .
 			"\n\t</div>" .
 			"\n</form>";
 

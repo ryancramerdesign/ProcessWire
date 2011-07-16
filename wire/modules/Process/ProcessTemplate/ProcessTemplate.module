@@ -1198,7 +1198,7 @@ class ProcessTemplate extends Process {
 
 		$list = '';
 		foreach($this->template->fieldgroup as $field) {
-			if(!$fieldgroup->has($field)) $list .= "<li class='ui-state-highlight'><span class='ui-icon ui-icon-alert'></span> $field</li>";
+			if(!$fieldgroup->has($field)) $list .= "<li class='ui-state-highlight'><span class='ui-icon ui-icon-alert'> </span> $field</li>";
 		}
 
 		// if nothing will be lost with the fieldgroup change, then just do it now

@@ -14,7 +14,7 @@ foreach($notices as $notice) {
 	$text = $notice->text; 
 	if($notice->class && $config->debug) $text = "{$notice->class}: $text";
 
-	echo "\n\t\t<li class='$class'><div class='container'><p><span class='ui-icon $icon'></span>{$text}</p></div></li>";
+	echo "\n\t\t<li class='$class'><div class='container'><p><span class='ui-icon $icon'> </span>{$text}</p></div></li>";
 
 }
 

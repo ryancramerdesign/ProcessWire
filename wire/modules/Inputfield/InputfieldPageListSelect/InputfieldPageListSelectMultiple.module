@@ -35,7 +35,7 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 	protected function renderListItem($label, $value, $class = '') {
 		if($class) $class = " $class";
 		$out = 	"\n<li class='ui-state-default$class'>" . 
-			"<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>" . 
+			"<span class='ui-icon ui-icon-arrowthick-2-n-s'> </span>" . 
 			"<span class='itemValue'>$value</span>" . 
 			"<span class='itemLabel'>$label</span> " . 
 			"<a class='itemRemove' href='#'><span class='ui-icon ui-icon-trash'>remove</span></a>" . 

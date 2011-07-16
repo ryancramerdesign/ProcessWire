@@ -39,17 +39,17 @@ class Installer {
 
 	protected function err($str) {
 		$this->numErrors++;
-		echo "\n<li class='ui-state-error'><span class='ui-icon ui-icon-alert'></span>$str</li>";
+		echo "\n<li class='ui-state-error'><span class='ui-icon ui-icon-alert'> </span>$str</li>";
 		return false;
 	}
 
 	protected function li($str) {
-		echo "\n<li class='ui-state-highlight'><span class='ui-icon ui-icon-check'></span>$str</li>";
+		echo "\n<li class='ui-state-highlight'><span class='ui-icon ui-icon-check'> </span>$str</li>";
 		return true; 
 	}
 
 	protected function btn($label, $value) {
-		echo "\n<p><button name='step' type='submit' class='ui-button ui-widget ui-state-default ui-corner-all' value='$value'><span class='ui-button-text'><span class='ui-icon ui-icon-carat-1-e'></span>$label</span></a></button></p>";
+		echo "\n<p><button name='step' type='submit' class='ui-button ui-widget ui-state-default ui-corner-all' value='$value'><span class='ui-button-text'><span class='ui-icon ui-icon-carat-1-e'> </span>$label</span></a></button></p>";
 	}
 
 	protected function mkdir($path, $showNote = true) {

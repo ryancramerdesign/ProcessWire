@@ -279,7 +279,7 @@
 					}, function() {
 						$(this).addClass('ui-state-default').removeClass('ui-state-hover'); 
 					}); 
-					if(options.sortable) $item.prepend("<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>"); 
+					if(options.sortable) $item.prepend("<span class='ui-icon ui-icon-arrowthick-2-n-s'> </span>"); 
 				}
 
 				if(!buildingSelect) {

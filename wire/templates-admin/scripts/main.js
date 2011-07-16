@@ -1,7 +1,7 @@
 $(document).ready(function() {
 
 	$(".Inputfields > li > label.ui-widget-header").addClass("InputfieldStateToggle")
-		.prepend("<span class='ui-icon ui-icon-triangle-1-s'></span>")
+		.prepend("<span class='ui-icon ui-icon-triangle-1-s'> </span>")
 		.click(function() {
 			var $li = $(this).parent('li'); 	
 			$li.toggleClass('InputfieldStateCollapsed', 200); 

@@ -777,7 +777,7 @@ class ProcessPageEdit extends Process {
 		$list = '';
 		foreach($this->page->template->fieldgroup as $field) {
 			if(!$template->fieldgroup->has($field)) 
-				$list .= "<li class='ui-state-highlight'><span class='ui-icon ui-icon-alert'></span> $field</li>";
+				$list .= "<li class='ui-state-highlight'><span class='ui-icon ui-icon-alert'> </span> $field</li>";
 		}
 		if(!$list) $this->executeSaveTemplate($template); 
 		$f->description = "Warning, changing the template will delete the following fields:"; 

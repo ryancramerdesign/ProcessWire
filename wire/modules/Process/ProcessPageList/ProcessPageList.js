@@ -83,7 +83,7 @@ $(document).ready(function() {
 
 			var $container = $(this); 
 			var $root; 
-			var $loading = $("<span class='PageListLoading'></span>");
+			var $loading = $("<span class='PageListLoading'> </span>");
 			var firstPagination = 0; // used internally by the getPaginationList() function
 
 			/**
