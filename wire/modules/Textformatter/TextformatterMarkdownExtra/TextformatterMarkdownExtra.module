@@ -44,7 +44,7 @@ class TextformatterMarkdownExtra extends Textformatter {
 		if(strpos($str, '>.')) $str = preg_replace('/<([a-z][a-z0-9]*)([^>]*>.*?)(<\/\\1>)\.([a-z][-_a-z0-9]*)\b/', '<$1 class="$4"$2$3', $str); 
 
 		// href links open in new window when followed by a plus sign, i.e. [google](http://google.com)+
-		if(strpos($str, '</a>+')) $str = preg_replace('/<a ([^>]+>.+?<\/a>)\+/', '<a target="_blank" $1', $str); 
+		if(strpos($str, '</a>+')) $str = preg_replace('/<a ([^>]+>.+?<\/a>)\+/', '<a rel="external" $1', $str); 
 
 		// strip out comments
 		// if(strpos($text, '/*') !== false) $text = preg_replace('{/\*.*?\*/}s', '', $text); 
