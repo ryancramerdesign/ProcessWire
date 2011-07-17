@@ -31,6 +31,10 @@ class InputfieldFile extends Inputfield {
 		$this->setAttribute('type', 'file'); 
 	}
 
+	public function isEmpty() {
+		return !count($this->value);
+	}
+
 
 	protected function renderItemDescriptionField(Pagefile $pagefile, $id, $n) {
 		if($this->descriptionRows == 0) return '';
