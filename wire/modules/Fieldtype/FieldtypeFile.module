@@ -20,6 +20,8 @@
 
 class FieldtypeFile extends FieldtypeMulti {
 
+	protected $defaultInputfieldClass = '';
+
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Files',
@@ -29,9 +31,15 @@ class FieldtypeFile extends FieldtypeMulti {
 			);
 	}
 
+	public function __construct() {
+		$this->defaultInputfieldClass = str_replace('Fieldtype', 'Inputfield', $this->className);
+	}
+
 	public function getInputfield(Page $page, Field $field) {
 
-		$inputfield = $this->modules->get("InputfieldFile"); 
+		$inputfield = null;
+		if($field->inputfieldClass) $inputfield = $this->modules->get($field->inputfieldClass); 
+		if(!$inputfield) $inputfield = $this->modules->get($this->defaultInputfieldClass); 
 		$inputfield->class = $this->className();
 
 		$this->setupHooks($page, $field, $inputfield); 
@@ -289,8 +297,27 @@ class FieldtypeFile extends FieldtypeMulti {
 		$f->description = "If checked, the file's description field will be entity encoded (when the Page's outputFormatting is on, as it is by default).";
 		$inputfields->append($f); 
 
-		return $inputfields; 
-	}
+                $f= $this->modules->get('InputfieldSelect');
+                $f->attr('name', 'inputfieldClass');
+                $f->label = 'Inputfield Type';
+                $f->description = "The type of field that will be used to collect input.";
+                $f->required = true;
+                $baseClass = $this->defaultInputfieldClass;
+
+                foreach($this->fuel('modules')->find("class^=Inputfield") as $fm) {
+                        if("$fm" == $baseClass || is_subclass_of("$fm", $baseClass))
+                                $f->addOption("$fm", str_replace("Inputfield", '', "$fm"));
+                }
+
+                $f->attr('value', $field->inputfieldClass ? $field->inputfieldClass : $this->defaultInputfieldClass);
+		$f->collapsed = $field->inputfieldClass && $field->inputfieldClass != $this->defaultInputfieldClass ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
+
+                $inputfields->append($f);
+
+                return $inputfields;
+        }
+
+
 
 }
 

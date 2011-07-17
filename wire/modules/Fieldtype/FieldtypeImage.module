@@ -39,6 +39,7 @@ class FieldtypeImage extends FieldtypeFile {
 		return new Pageimage($pagefiles, $filename); 
 	}
 
+	/*
 	public function getInputfield(Page $page, Field $field) {
 
 		// even though we don't want this input field, call it anyway
@@ -51,6 +52,7 @@ class FieldtypeImage extends FieldtypeFile {
 
 		return $inputfield;
 	}
+	*/
 
 	protected function getDefaultFileExtensions() {
 		return "gif jpg jpeg png";
