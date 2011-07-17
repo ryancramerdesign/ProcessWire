@@ -99,6 +99,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 				'ajaxMoveURL' => $this->config->urls->admin . "page/sort/",
 				'rootPageID' => $this->id, 
 				'openPageIDs' => $openPageIDs, 
+				'openPagination' => (int) $this->input->get->n,
 				'showRootPage' => $this->showRootPage ? true : false, 
 				'limit' => $this->limit, 
 				)); 

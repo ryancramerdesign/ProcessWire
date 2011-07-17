@@ -72,6 +72,8 @@ $(document).ready(function() {
 			// URL where page move's should be posted
 			ajaxMoveURL: config.urls.admin + 'page/sort/',
 
+			// pagination number that you want to open (to correspond with openPageIDs)
+			openPagination: 0, 
 
 			// ID sof the pages that we want to automatically open (default none) 
 			openPageIDs: []
@@ -85,6 +87,8 @@ $(document).ready(function() {
 			var $root; 
 			var $loading = $("<span class='PageListLoading'></span>");
 			var firstPagination = 0; // used internally by the getPaginationList() function
+			var curPagination = 0; // current page number used by getPaginationList() function
+			var ignoreClicks = false; // true when operations are occurring where we want to ignore clicks
 
 			/**
 	 		 * Initialize the Page List
@@ -93,7 +97,7 @@ $(document).ready(function() {
 			function init() {
 
 				$root = $("<div class='PageListRoot'></div>"); 
-
+				
 				if($container.is(":input")) {
 					options.selectedPageID = $container.val();
 					if(!options.selectedPageID.length) options.selectedPageID = 0;
@@ -153,6 +157,7 @@ $(document).ready(function() {
 			 *
 			 */
 			function loaded() {
+				ignoreClicks = false;
 			}
 
 			/**
@@ -171,7 +176,7 @@ $(document).ready(function() {
 
 				var maxPaginationLinks = 9; 
 				var numPaginations = Math.ceil(total / limit); 
-				var curPagination = start >= limit ? Math.floor(start / limit) : 0;
+				curPagination = start >= limit ? Math.floor(start / limit) : 0;
 
 				if(curPagination == 0) {		
 					firstPagination = 0; 
@@ -223,7 +228,7 @@ $(document).ready(function() {
 				for(var pagination = firstPagination, cnt = 0; pagination < numPaginations; pagination++, cnt++) {
 
 					var $a = $("<a></a>").html(pagination+1).attr('href', pagination).addClass('ui-state-default'); 
-					var $item = $("<li></li>").append($a); // .addClass('ui-state-default');
+					var $item = $("<li></li>").addClass('PageListPagination' + cnt).append($a); // .addClass('ui-state-default');
 
 					if(pagination == curPagination) {
 						//$item.addClass("PageListPaginationCurrent ui-state-focus"); 
@@ -275,7 +280,6 @@ $(document).ready(function() {
 						$(this).removeClass("ui-state-hover"); 
 					}); 
 
-
 				return $list;
 			}
 
@@ -300,6 +304,7 @@ $(document).ready(function() {
 					if(data.error) {
 						alert(data.message); 
 						$loading.hide();
+						ignoreClicks = false;
 						return; 
 					}
 
@@ -309,7 +314,11 @@ $(document).ready(function() {
 					if(data.page.numChildren > nextStart) {
 						var $a = $("<a></a>").attr('href', nextStart).data('pageId', id).text('More').click(clickMore); 
 						$children.append($("<ul></ul>").addClass('PageListActions actions').append($("<li></li>").addClass('PageListActionMore').append($a)));
-						if(pagination) $children.prepend(getPaginationList(id, data.start, data.limit, data.page.numChildren));
+						if(pagination) {
+							$children.prepend(getPaginationList(id, data.start, data.limit, data.page.numChildren));
+						}
+
+
 					}
 
 					$children.hide();
@@ -344,6 +353,16 @@ $(document).ready(function() {
 							if(callback != undefined) callback();
 						}); 
 					}
+
+					// if a pagination is requested to be opened, and it exists, then open it
+					if(options.openPagination > 0) {
+						var $a = $(".PageListPagination" + options.openPagination + ">a");
+						if($a.size() > 0) {
+							$a.click();	
+							options.openPagination = 0;
+						}
+					}
+
 				}; 
 
 				if(!replace) $target.append($loading.show()); 
@@ -437,6 +456,8 @@ $(document).ready(function() {
 			 */
 			function clickChild(e) {
 
+				if(ignoreClicks) return false; 
+
 				var $t = $(this); 
 				var $li = $t.parent('.PageListItem'); 
 				var id = $li.data('pageId');
@@ -446,10 +467,13 @@ $(document).ready(function() {
 				}
 
 				if($li.is(".PageListItemOpen")) {
-					$li.removeClass("PageListItemOpen").next(".PageList").slideUp("fast", function() { $(this).remove(); }); 
+					$li.removeClass("PageListItemOpen").next(".PageList").slideUp("fast", function() { 
+						$(this).remove(); 
+					}); 
 				} else {
 					$li.addClass("PageListItemOpen"); 
 					if(parseInt($li.children('.PageListNumChildren').text()) > 0) {
+						ignoreClicks = true; 
 						loadChildren(id, $li, 0, false); 
 					}
 				}
