@@ -96,7 +96,7 @@ class ProcessTemplate extends Process {
 				$notes .= "system ";
 			}
 			$table->row(array(
-				$template->name => "edit?id={$template->id}", 
+				"{$template->name} " => "edit?id={$template->id}", 
 				$template->getNumPages(), 
 				count($template->fieldgroup) . ($template->fieldgroup->name != $template->name ? " {$template->fieldgroup->name}" : ''),
 				$notes

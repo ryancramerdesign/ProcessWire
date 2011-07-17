@@ -6,6 +6,7 @@ class MarkupAdminDataTable extends ModuleJS {
 	protected $rows = array();
 	protected $actions = array();
 	protected $encodeEntities = true; 
+	protected $sortable = true; 
 	protected $class = '';
 	protected $caption = '';
 	
@@ -51,18 +52,12 @@ class MarkupAdminDataTable extends ModuleJS {
 			$this->actions[$label] = $url;
 		}
 		return $this;
-		/*
-		foreach($action as $label => $url) {
-			$a = "<a href='$url'>" . $this->encode($label) . "</a>";	
-			$this->actions[] = $a; 
-		}
-		return $this; 
-		*/
 	}
 
 	public function ___render() {
 
 		$tableClass = trim("AdminDataTable AdminDataList {$this->class}"); 
+		if($this->sortable) $tableClass .= " AdminDataTableSortable"; 
 		$out = "\n<table class='$tableClass'>";
 
 		if($this->caption) $out .= "\n\t<caption>{$this->caption}</caption>";
@@ -91,17 +86,14 @@ class MarkupAdminDataTable extends ModuleJS {
 		$out .= "\n</table>";
 
 		if(count($this->actions)) {
-			// $out .= "\n<ul class='actions'>";
 			$out .= "\n<p>";
 			foreach($this->actions as $label => $url) {
 				$button = $this->modules->get("InputfieldButton"); 
 				$button->href = $url;
 				$button->value = $label;
 				$out .= $button->render();
-				// $out .= "\n\t<li>$action</li>"; 
 			}
 			$out .= "\n</p>";
-			//$out .= "\n</ul>";
 		}
 
 		return $out; 
@@ -118,6 +110,10 @@ class MarkupAdminDataTable extends ModuleJS {
 
 	public function setClass($class) {
 		$this->class = $this->encode($class); 
+	}
+
+	public function setSortable($sortable) {
+		$this->sortable = $sortable ? true : false;
 	}
 
 	public function setCaption($caption) {

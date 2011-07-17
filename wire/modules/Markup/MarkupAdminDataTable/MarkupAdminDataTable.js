@@ -1,3 +1,3 @@
 $(document).ready(function() {
-	$("table.AdminDataTable").tablesorter();
+	$("table.AdminDataTableSortable").tablesorter();
 }); 
