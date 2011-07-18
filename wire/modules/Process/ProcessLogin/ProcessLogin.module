@@ -89,6 +89,7 @@ class ProcessLogin extends Process {
 
 	protected function performSystemChecks() {
 		if(!$this->user->isSuperuser()) return;
+		if($this->config->showSecurityWarnings === false) return;
 		if(is_file($this->config->paths->root . "install.php")) $this->error("Security Warning: /install.php exists and should be deleted."); 
 		if(is_file($this->config->paths->root . "upgrade.php")) $this->error("Security Warning: /upgrade.php exists and should be deleted."); 
 		if(is_writable($this->config->paths->root . "site/config.php")) $this->error("Security Warning: /site/config.php is writable and ideally should not be."); 
