@@ -10,7 +10,7 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2011 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -26,7 +26,7 @@ class ProcessPageEditLink extends Process {
 		return array(
 			'title' => 'Page Edit Link',          
 			'summary' => 'Provides a link capability as used by some Fieldtype modules (like TinyMCE)', 
-			'version' => 100, 
+			'version' => 101, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
@@ -36,6 +36,7 @@ class ProcessPageEditLink extends Process {
 		$this->modules->get("ProcessPageList"); 	
 		$id = (int) $this->input->get->id; 
 		if($id) $this->page = $this->pages->get($id); 
+		if($this->page->id && !$this->page->viewable()) throw new WireException("You don't have access to this page"); 
 		$target = $this->sanitizer->name($this->input->get->target); 
 		$this->config->js('ProcessPageEditLinkTarget', $target); 
 		parent::init();
@@ -54,7 +55,10 @@ class ProcessPageEditLink extends Process {
 		$field = $this->modules->get("InputfieldInteger"); 
 		$field->label = "Link to Page";
 		$field->attr('id+name', 'link_page_id'); 
+		$field->collapsed = Inputfield::collapsedYes; 
 		$form->append($field); 
+
+		$form->append($this->getFilesField()); 
 
 		$field = $this->modules->get("InputfieldCheckbox"); 
 		$field->label = "Launch In New Window?";
@@ -64,8 +68,43 @@ class ProcessPageEditLink extends Process {
 		$field->collapsed = Inputfield::collapsedYes; 
 		$form->append($field); 
 
-		return 	"<h2>Enter a URL or select a page to link</h2>" . 
+		return 	"<h2>Enter a URL, select a page, or select a file to link:</h2>" . 
 			$form->render();
 	}
+
+	public function ___executeFiles() {
+		if(!$this->page->id) throw new WireException("A page id must be specified"); 	
+		$files = $this->getFiles();	
+		return WireEncodeJSON($files);
+	}
+
+	protected function getFiles() {
+		$files = array();
+		foreach($this->page->fields as $f) {
+			if(!$f->type instanceof FieldtypeFile) continue;
+			foreach($this->page->get($f->name) as $file) {
+				$files[$file->url] = $f->name . ' - ' . $file->basename; 
+			}
+		}
+		asort($files); 
+		return $files;
+	}
+
+	protected function getFilesField() {
+		$field = $this->modules->get("InputfieldSelect"); 
+		$field->label = "Link to File";
+		$field->attr('id+name', 'link_page_file'); 
+		$files = $this->getFiles();
+		$field->addOption('');
+		$field->addOptions($files); 
+		$field->collapsed = Inputfield::collapsedYes; 
+		$field->notes = "Files on page " . $this->page->url;
+		$field->description = "To select files from another page, click 'Link to Page' above and choose the page you want to select files from.";
+		return $field;
+
+	}
+
+	
+
 }
 
