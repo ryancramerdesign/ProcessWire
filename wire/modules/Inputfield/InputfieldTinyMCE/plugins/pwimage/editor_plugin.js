@@ -101,11 +101,11 @@ var $iframe;
 
 							"Insert This Image": function() {
 
-								function insertImage() {
+								function insertImage(src) {
 
 									var $i = $iframe.contents();
 									var $img = $("#selected_image", $i); 
-									var src = $img.attr('src'); 
+									//var src = $img.attr('src'); 
 									var width = $img.attr('width');
 									var height = $img.attr('height'); 
 									var alt = $("#selected_image_description", $i).val();
@@ -139,7 +139,8 @@ var $iframe;
 
 								$.get(modalUri + 'resize?id=' + page_id + '&file=' + file + '&width=' + width + '&height=' + height, function(data) {
 									var $div = $("<div></div>").html(data); 
-									insertImage(); 
+									var src = $div.find('#selected_image').attr('src');
+									insertImage(src); 
 								}); 
 
 							},
