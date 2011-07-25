@@ -234,7 +234,10 @@ class CommentForm extends Wire implements CommentFormInterface {
 		
 		if(!count($errors)) {
 			if($this->comments->add($comment) && $pageFieldName) {
+				$outputFormatting = $this->page->outputFormatting; 
+				$this->page->setOutputFormatting(false);
 				$this->page->save($pageFieldName); 
+				$this->page->setOutputFormatting($outputFormatting); 
 				$this->postedComment = $comment; 
 				return $comment; 
 			}
