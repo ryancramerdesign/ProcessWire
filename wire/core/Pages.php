@@ -489,7 +489,16 @@ class Pages extends Wire {
 		$value = $page->get($field->name); 
 		if($value instanceof Pagefiles || $value instanceof Pagefile) $page->filesManager()->save();
 		$page->trackChange($field->name); 	
-		return $field->type->savePageField($page, $field); 
+
+		if($field->type->savePageField($page, $field)) { 
+			$page->untrackChange($field->name); 
+			$user = $this->fuel('user'); 
+			$userID = (int) ($user ? $user->id : $this->config->superUserPageID); 
+			$this->db->query("UPDATE pages SET modified_users_id=$userID, modified=NOW() WHERE id=" . (int) $page->id); 
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 

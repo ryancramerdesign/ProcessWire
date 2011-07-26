@@ -509,7 +509,7 @@ abstract class Wire implements TrackChanges {
 	/**
 	 * Untrack a change to a property in this object
 	 *
-	 * @param string $what Name of property that you want to it's change being tracked
+	 * @param string $what Name of property that you want to remove it's change being tracked
 	 * @return this
 	 * 
 	 */

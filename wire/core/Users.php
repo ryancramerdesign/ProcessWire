@@ -11,6 +11,7 @@ class Users extends PagesType {
 			$user->roles->add($guestRole);
 		}
 		$this->currentUser = $user; 
+		Wire::setFuel('user', $user); 
 	}
 
 	/**
