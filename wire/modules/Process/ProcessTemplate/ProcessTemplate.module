@@ -1013,8 +1013,6 @@ class ProcessTemplate extends Process {
 			$details = '';
 			foreach($role->permissions as $permission) {
 				if(strpos($permission->name, 'page-') !== 0) continue; 
-				// if the role has page-view permission and guest does too, then there's no need to show the page-view permission here
-				if($role->name != 'guest' && $permission->name == 'page-view' && $guestRole->permissions->has($permission)) continue; 
 				$details .= $permission->title;
 				$details .= "\n";
 			}
