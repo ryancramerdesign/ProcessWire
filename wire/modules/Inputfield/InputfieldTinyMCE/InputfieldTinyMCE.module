@@ -50,7 +50,6 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 	}
 
 	public function setAttribute($key, $value) {
-		//if(isset($_POST['body_html'])) die("<pre>" . $_POST['body_html'] . "</pre>");
 		if($key != 'value') return parent::setAttribute($key, $value); 
 
 		/*

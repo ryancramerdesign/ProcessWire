@@ -456,11 +456,12 @@ $(document).ready(function() {
 			 */
 			function clickChild(e) {
 
-				if(ignoreClicks) return false; 
-
 				var $t = $(this); 
 				var $li = $t.parent('.PageListItem'); 
 				var id = $li.data('pageId');
+
+				if(ignoreClicks && !$li.is(".PageListTriggerOpen")) return false; 
+
 
 				if($root.is(".PageListSorting") || $root.is(".PageListSortSaving")) {
 					return false; 
