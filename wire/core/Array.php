@@ -618,6 +618,8 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			$property = trim($property, '-'); 
 		}
 
+		if($property == 'random') return $this->shuffle();
+
 		if($pos = strpos($property, ".")) {
 			$subProperty = substr($property, $pos+1); 
 			$property = substr($property, 0, $pos); 
