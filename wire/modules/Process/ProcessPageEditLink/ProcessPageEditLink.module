@@ -36,7 +36,7 @@ class ProcessPageEditLink extends Process {
 		$this->modules->get("ProcessPageList"); 	
 		$id = (int) $this->input->get->id; 
 		if($id) $this->page = $this->pages->get($id); 
-		if($this->page->id && !$this->page->viewable()) throw new WireException("You don't have access to this page"); 
+		if($this->page && $this->page->id && !$this->user->hasPermission("page-view", $this->page)) throw new WireException("You don't have access to this page"); 
 		$target = $this->sanitizer->name($this->input->get->target); 
 		$this->config->js('ProcessPageEditLinkTarget', $target); 
 		parent::init();
