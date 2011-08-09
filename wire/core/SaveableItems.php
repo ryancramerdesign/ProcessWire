@@ -135,7 +135,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 			$item = $this->makeBlankItem();
 			foreach($row as $field => $value) {
 				if($field == 'data') {
-					if($value) $value = wireDecodeJSON($value); 
+					if($value) $value = $this->decodeData($value); 
 						else continue; 
 				}
 				$item->$field = $value; 
@@ -179,7 +179,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 			if(!$this->saveItemKey($key)) continue; 
 			if($key == 'data') {
 				if(is_array($value)) {
-					$value = wireEncodeJSON($value); 
+					$value = $this->encodeData($value); 
 				} else $value = '';
 			}
 			$sql .= "`$key`='" . $db->escape_string("$value") . "', ";
@@ -252,6 +252,26 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 
 	public function __isset($key) {
 		return $this->get($key) !== null;	
+	}
+
+	/**
+	 * Encode the 'data' portion of the table.
+	 * 	
+	 * This is a front-end to wireEncodeJSON so that it can be overridden if needed.
+	 *
+	 */
+	protected function encodeData(array $value) {
+		return wireEncodeJSON($value); 
+	}
+
+	/**
+	 * Decode the 'data' portion of the table.
+	 * 	
+	 * This is a front-end to wireDecodeJSON that it can be overridden if needed.
+	 *
+	 */
+	protected function decodeData($value) {
+		return wireDecodeJSON($value);
 	}
 
 	/**

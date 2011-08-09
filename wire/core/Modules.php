@@ -597,7 +597,7 @@ class Modules extends WireArray {
 	public function saveModuleConfigData($className, array $configData) {
 		if(is_object($className)) $className = $className->className();
 		if(!$id = $this->moduleIDs[$className]) throw new WireException("Unable to find ID for Module '$className'"); 
-		$json = count($configData) ? wireEncodeJSON($configData) : '';
+		$json = count($configData) ? wireEncodeJSON($configData, true) : '';
 		return $this->fuel('db')->query("UPDATE modules SET data='" . $this->fuel('db')->escape_string($json) . "' WHERE id=$id"); 
 	}
 

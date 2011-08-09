@@ -119,18 +119,37 @@ function unregisterGLOBALS() {
  * Use json_encode() instead if you don't want any empty values removed. 
  *
  * @param array $data Array to be encoded to JSON
+ * @param bool|array $allowEmpty Should empty values be allowed in the encoded data? 
+ *	- Specify false to exclude all empty values (this is the default if not specified). 
+ * 	- Specify true to allow all empty values to be retained.
+ * 	- Specify an array of keys (from data) that should be retained if you want some retained and not others.
+ * 	- Specify the digit 0 to retain values that are 0, but not other types of empty values.
+ * @param array $keepKeys Array of keys from $data that should still be included even if blank (optional). Applicable only if $allowEmpty is true. 
  * @return string String of JSON data
  *
  */
-function wireEncodeJSON(array $data) {
+function wireEncodeJSON(array $data, $allowEmpty = false) {
+
 	foreach($data as $key => $value) {
+
 		// make sure ints are stored as ints
 		if(is_string($value) && ctype_digit("$value") && $value <= PHP_INT_MAX) $value = (int) $value;
+
+		$data[$key] = $value;
+
 		// skip empty values whether blank, 0, empty array, etc. 
-		if(empty($value)) {
-			unset($data[$key]);
-		} else {
-			$data[$key] = $value;
+		if(empty($value)) { 
+
+			if($allowEmpty === 0 && $value === 0) {
+				// keep it because $allowEmpty === 0 means to keep 0 values only
+
+			} else if(is_array($allowEmpty) && in_array($key, $allowEmpty)) {
+				// keep it because it's present in the array of values specified to keep
+
+			} else if(!$allowEmpty) {
+				// remove the empty value
+				unset($data[$key]); 
+			}
 		}
 	}
 	if(!count($data)) return '';

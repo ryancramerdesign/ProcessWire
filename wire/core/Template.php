@@ -361,9 +361,6 @@ class Template extends WireData implements Saveable {
 	public function getArray() {
 		$a = parent::getArray();
 
-		// remove reference to fields with empty values
-		foreach($a as $k => $v) if(empty($v)) unset($a[$k]); 
-
 		$a['roles'] = array();	
 		foreach($this->getRoles() as $role) {
 			$a['roles'][] = $role->id;

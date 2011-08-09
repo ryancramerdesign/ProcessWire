@@ -295,5 +295,13 @@ class Fields extends WireSaveableItems {
 		return in_array($name, self::$nativeNames); 
 	}
 
+	/**
+	 * Overridden from WireSaveableItems to retain keys with 0 values
+	 *
+	 */
+	protected function encodeData(array $value) {
+		return wireEncodeJSON($value, 0); 	
+	}
+
 }
 

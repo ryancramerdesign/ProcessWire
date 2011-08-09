@@ -198,5 +198,13 @@ class Templates extends WireSaveableItems {
 		return (int) $row['total'];
 	}
 
+	/**
+	 * Overridden from WireSaveableItems to retain specific keys
+	 *
+	 */
+	protected function encodeData(array $value) {
+		return wireEncodeJSON($value, array('slashUrls')); 	
+	}
+
 }
 
