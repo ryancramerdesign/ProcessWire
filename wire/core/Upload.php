@@ -53,7 +53,7 @@ class WireUpload extends Wire {
 		if($this->config->uploadBadExtensions) {
 			$badExtensions = $this->config->uploadBadExtensions; 
 			if(is_string($badExtensions) && $badExtensions) $badExtensions = explode(' ', $badExtensions); 
-			if(is_array($badExtensions)) $this->badExtensions = array_merge($this->badExtensions, $badExtensions); 			
+			if(is_array($badExtensions)) $this->badExtensions = $badExtensions; 			
 		}	
 
 		if($this->config->uploadUnzipCommand) {
