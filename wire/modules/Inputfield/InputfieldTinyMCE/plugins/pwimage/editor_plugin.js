@@ -73,9 +73,9 @@ var $iframe;
 				if(file.length) queryString += "&file=" + file; 
 				if(imgWidth) queryString += "&width=" + imgWidth; 
 				if(imgHeight) queryString += "&height=" + imgHeight; 
-				if(imgClass.length) queryString += "&class=" + imgClass; 
-				if(imgDescription.length) queryString += "&description=" + escape(imgDescription);
-				if(imgLink.length) queryString += "&link=" + escape(imgLink);
+				if(imgClass && imgClass.length) queryString += "&class=" + imgClass; 
+				if(imgDescription && imgDescription.length) queryString += "&description=" + escape(imgDescription);
+				if(imgLink && imgLink.length) queryString += "&link=" + escape(imgLink);
 				queryString += "&winwidth=" + windowWidth; 
 
 				$iframe = $('<iframe id="pwimage_iframe" width="100%" frameborder="0" src="' + modalUri + queryString + '"></iframe>'); 
@@ -133,7 +133,9 @@ var $iframe;
 
 								var cls = $img.attr('class'); 
 								var width = $img.attr('width');
+								if(!width) width = $img.width();
 								var height = $img.attr('height'); 
+								if(!height) height = $img.height();
 								var file = $img.attr('src'); 
 								file = file.substring(file.lastIndexOf('/')+1); 
 
