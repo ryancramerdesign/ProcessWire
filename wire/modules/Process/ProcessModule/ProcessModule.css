@@ -9,6 +9,7 @@ h3.ui-widget-header {
 }
 
 table.AdminDataList {
+	clear: both; 
 	margin-top: 0.5em; 
 	margin-bottom: 2em; 
 }
@@ -44,3 +45,26 @@ table.AdminDataList td:last-child {
 	float: right; 
 }
 
+button.install {
+	margin: 1px 0 0 1em;	
+	float: right; 
+}
+
+a span.not_installed {
+	text-decoration: line-through;
+}
+	a:hover span.not_installed {
+		text-decoration: none; 
+	}
+
+#wrap_reset {
+	margin: 0;
+	float: right; 
+}
+	#wrap_reset .ui-button {
+		margin-right: 0;
+	}
+
+#modules_form p.description {
+	margin-top: 0;
+}

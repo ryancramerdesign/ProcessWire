@@ -75,25 +75,24 @@ class ProcessModule extends Process {
 		return $this->renderList();
 	}	
 
+
 	/**
 	 * Render a list of all modules
 	 *
 	 */
 	protected function renderList() {
 	
-		$form = $this->modules->get('InputfieldForm');
-		$form->setAttribute('action', './'); 
-		$form->setAttribute('method', 'post'); 
-
 		$modules = array();
+		$uninstalled = array();
+		$uninstalledPrev = is_array($this->session->ModulesUninstalled) ? $this->session->ModulesUninstalled : array();
 		$section = 'none';
 		$tableHeader = array('Module', 'Version', 'Summary'); 
 		$table = null;
-		$out = "\n<p class='description'>To add more modules, place them in {$this->config->urls->siteModules} and click the 'check for new modules' button at the bottom of this window. </p>"; 
 		$total = 0;
+		$out = 	"\n<p class='description'>To add more modules, place them in {$this->config->urls->siteModules} and click the button to check for new modules.</p>"; 
+		$numFound = 0;
 
 		foreach($this->modulesArray as $name => $installed) {
-
 
 			if(strpos($name, $section) !== 0) {
 				if(!preg_match('/^([A-Za-z][a-z]+)/', $name, $matches)) $this->error($name); 
@@ -102,27 +101,30 @@ class ProcessModule extends Process {
 				$table = $this->modules->get("MarkupAdminDataTable");
 				$table->setEncodeEntities(false); 
 				$table->headerRow($tableHeader); 
-				//$out .= "\n<h3 class='ui-widget ui-widget-header'>$section</h3>"; 
 				$out .= "\n<h2>$section</h2>"; 
 			}
 
-			if($installed) { 
-				$info = $this->modules->getModuleInfo($name); 
-				$interfaces = class_implements($name, false); 
-				$configurable = in_array('ConfigurableModule', $interfaces); 
-				$title = !empty($info['title']) ? htmlspecialchars($info['title']) : substr($name, strlen($section)); 
-				if($configurable) $title = "<span class='ConfigurableModule'>$title</span>";
-				$version = $this->formatVersion(isset($info['version']) ? $info['version'] : 0);
-				$summary = isset($info['summary']) ? htmlspecialchars($info['summary']) : '';
-				$summary .= isset($info['href']) ? " <a href='$info[href]'>more</a>" : '';
-				$editUrl = "edit?name={$name}";
+			$info = $this->modules->getModuleInfo($name); 
+			$interfaces = class_implements($name, false); 
+			$configurable = in_array('ConfigurableModule', $interfaces); 
+			$title = !empty($info['title']) ? htmlspecialchars($info['title']) : substr($name, strlen($section)); 
+			if($configurable) $title = "<span class='ConfigurableModule'>$title</span>";
+			$version = $this->formatVersion(isset($info['version']) ? $info['version'] : 0);
+			$summary = isset($info['summary']) ? htmlspecialchars($info['summary']) : '';
+			$summary .= isset($info['href']) ? " <a href='$info[href]'>more</a>" : '';
+			$editUrl = "edit?name={$name}";
 
-			} else {
-				$title = $name; 
-				$summary = " <button type='submit' name='install' value='$name'>Install</button>";
-				$version = 'Not Installed';
-				$flags = '';
+			if(!$installed) { 
+				$class = 'not_installed';
+				if(count($uninstalledPrev) && !in_array($name, $uninstalledPrev)) {
+					$class .= " new_module";
+					$this->message("Found new module: $name"); 
+					$numFound++;
+				}
+				$title = "<span id='$name' class='$class'>$title</span>";
+				$version .= "<button type='submit' id='install_$name' name='install' class='install' value='$name'>Install</button>";
 				$editUrl = '#';
+				$uninstalled[] = $name; 
 			}
 
 			$row = array(
@@ -137,18 +139,24 @@ class ProcessModule extends Process {
 		}
 
 		$out .= $table->render();
-		$form->attr('value', $out); 
-		$submit = $this->modules->get('InputfieldSubmit');
-		$submit->name = 'reset';
-		$submit->setAttribute('value', 'Check for new modules'); 
-		$form->prepend($submit); 
+		$out .= "<p class='description'>To remove a module, click the module to edit, check the 'uninstall' box, then save. " . 
+			"Once uninstalled, the module's file(s) may be removed from /site/modules/. If it still appears in the list " . 
+			"above, you may need to click the 'check for new modules' button for ProcessWire to see the change.</p>";
 
-		if($this->session->ModulesTotal && $total > $this->session->ModulesTotal) {
-			$this->message("Found " . ($total - $this->session->ModulesTotal) . " new module(s)"); 
-		} else if($this->input->get->reset) {
-			$this->message("No new modules found"); 
-		}
-		$this->session->ModulesTotal = $total;
+		$form = $this->modules->get('InputfieldForm');
+		$form->attr('action', './'); 
+		$form->attr('method', 'post'); 
+		$form->attr('id', 'modules_form'); 
+
+		$submit = $this->modules->get('InputfieldSubmit');
+		$submit->attr('id+name', 'reset');
+		$submit->attr('value', 'Check for new modules'); 
+		$form->add($submit); 
+
+		$form->attr('value', $out); 
+
+		if($this->input->get->reset && !$numFound) $this->message("No new modules found"); 
+		$this->session->ModulesUninstalled = $uninstalled;
 
 		return $form->render(); 
 	}
