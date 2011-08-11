@@ -520,11 +520,19 @@ class Modules extends WireArray {
 			$module = $this->getModuleClass($module); 
 		}
 
-		if(!class_exists($module)) return array(
-			'title' => $module, 
-			'summary' => 'Inactive', 
-			'version' => 0, 
-			); 
+		if(!class_exists($module)) {
+
+			if(isset($this->installable[$module])) {
+				$filename = $this->installable[$module]; 
+				include($filename); 
+			}
+
+			if(!class_exists($module)) return array(
+				'title' => $module, 
+				'summary' => 'Inactive', 
+				'version' => 0, 
+				); 
+		}
 
 		//$func = $module . "::getModuleInfo"; // requires PHP 5.2.3+
 		//return call_user_func($func);
