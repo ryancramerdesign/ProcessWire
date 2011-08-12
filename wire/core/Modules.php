@@ -370,7 +370,7 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function isInstalled($class) {
-		return ($this->get($class) !== null);
+		return (parent::get($class) !== null);
 	}
 
 
