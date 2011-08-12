@@ -151,7 +151,7 @@ class FieldtypePage extends FieldtypeMulti {
 
 		} else {
 			// we're going to return a PageArray
-			$pageArray = $this->fuel('pages')->getById($value, $template, $parent_id); 
+			$pageArray = $this->fuel('pages')->getById($value, $template); 
 			foreach($pageArray as $pg) {
 				// remove any pages that have an unpublished status
 				if($pg->status >= Page::statusUnpublished) $pageArray->remove($pg); 
