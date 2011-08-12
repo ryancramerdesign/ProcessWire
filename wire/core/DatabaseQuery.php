@@ -31,6 +31,7 @@ abstract class DatabaseQuery extends WireData {
 		if(!$this->has($method)) return parent::__call($method, $args); 
 		$curValue = $this->get($method); 
 		$value = $args[0]; 
+		if(empty($value)) return $this; 
 		if(is_array($value)) $curValue = array_merge($curValue, $value); 
 			else $curValue[] = trim($value, ", "); 
 		$this->set($method, $curValue); 
