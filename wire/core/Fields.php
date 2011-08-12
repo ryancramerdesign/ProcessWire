@@ -171,8 +171,14 @@ class Fields extends WireSaveableItems {
 	 */
 	public function ___save(Saveable $item) {
 
-		if($item->prevTable && strtolower($item->prevTable) != strtolower($item->getTable())) {
-			$this->fuel('db')->query("RENAME TABLE {$item->prevTable} TO " . $item->getTable()); 
+		$prevTable = $item->prevTable;
+		$table = $item->getTable();
+
+		if($prevTable && $prevTable != $table) {
+			// note that we rename the table twice in order to force MySQL to perform the rename 
+			// even if only the case has changed. 
+			$this->fuel('db')->query("RENAME TABLE `$prevTable` TO `tmp_$table`"); 
+			$this->fuel('db')->query("RENAME TABLE `tmp_$table` TO `$table`"); 
 			$item->prevTable = '';
 		}
 
