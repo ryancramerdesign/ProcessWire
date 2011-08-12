@@ -6,6 +6,15 @@ http://code.google.com/p/jquery-asmselect/
 See related article at: 
 http://www.ryancramer.com/journal/entries/select_multiple/
 
+VERSION 1.0.6 beta - August 2011
+
+- Update for jQuery 1.6 compatibility
+
+VERSION 1.0.5 beta - November 2010
+
+- Updates and bugfixes in preparation for inclusion
+  with ProcessWire 2.x core modules.
+
 VERSION 1.0.4a beta - June 3rd, 2009
 
 - Minor update to correct IE8 issue. 

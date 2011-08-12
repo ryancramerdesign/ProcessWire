@@ -1,5 +1,5 @@
 /*
- * Alternate Select Multiple (asmSelect) 1.0.5 beta - jQuery Plugin
+ * Alternate Select Multiple (asmSelect) 1.0.6 beta - jQuery Plugin
  * http://www.ryancramer.com/projects/asmselect/
  * 
  * Copyright (c) 2009 by Ryan Cramer - http://www.ryancramer.com
@@ -172,7 +172,9 @@
 				buildingSelect = true; 
 
 				// add a first option to be the home option / default selectLabel
-				$select.prepend("<option>" + $original.attr('title') + "</option>"); 
+				var title = $original.attr('title'); 
+				if(title === undefined) title = '';
+				$select.prepend("<option>" + title + "</option>"); 
 
 				$original.children("option").each(function(n) {
 
