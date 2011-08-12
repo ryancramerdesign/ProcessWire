@@ -207,10 +207,13 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$path = Wire::getFuel('config')->paths->cache . self::cacheDirName . '/';
 		$numPages = 0;
 		$numFiles = 0;
-		$dir = new DirectoryIterator($path); 
+		$inputfields = new InputfieldWrapper();
+		$dir = null;
 		$clearNow = Wire::getFuel('input')->post->clearCache ? true : false; 
 
-		foreach($dir as $file) {
+		try { $dir = new DirectoryIterator($path); } catch(Exception $e) { }
+
+		if($dir) foreach($dir as $file) {
 			if(!$file->isDir() || $file->isDot() || !ctype_digit($file->getFilename())) continue; 
 			$numPages++; 
 			if(!$clearNow) continue; 
@@ -224,7 +227,6 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 			@rmdir($file->getPathname()); 
 		}
 
-		$inputfields = new InputfieldWrapper();
 		if($clearNow) {
 			$inputfields->message("Cleared $numFiles cache files for $numPages pages"); 
 			$numPages = 0;
