@@ -240,9 +240,10 @@ class Page extends WireData {
 	public function set($key, $value) {
 
 		if(($key == 'id' || $key == 'name') && $this->settings[$key] && $value != $this->settings[$key]) 
-			if(	($key == 'id' && ($this->settings['status'] & Page::statusSystem) || ($this->settings['status'] & Page::statusSystemID)) ||
-				($key == 'name' && ($this->settings['status'] & Page::statusSystem))) 
+			if(	($key == 'id' && (($this->settings['status'] & Page::statusSystem) || ($this->settings['status'] & Page::statusSystemID))) ||
+				($key == 'name' && (($this->settings['status'] & Page::statusSystem)))) {
 					throw new WireException("You may not modify '$key' on page '{$this->path}' because it is a system page"); 
+		}
 
 		switch($key) {
 			case 'id':
