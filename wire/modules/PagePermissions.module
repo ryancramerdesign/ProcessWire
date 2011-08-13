@@ -235,6 +235,11 @@ class PagePermissions extends WireData implements Module {
 		} else if($user->isSuperuser()) {
 			$addable = true; 
 
+		} else if($page->id == $this->fuel('config')->usersPageID && $user->hasPermission('user-admin')) {
+			// users with user-admin access adding a page to users: add access is assumed
+			// rather than us having a separate 'users' template where access is defined
+			$addable = true; 
+
 		} else {
 			foreach($page->template->addRoles as $roleID) {
 				if($user->hasRole($roleID)) {
