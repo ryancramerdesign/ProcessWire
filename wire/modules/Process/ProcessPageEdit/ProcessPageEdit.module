@@ -234,11 +234,13 @@ class ProcessPageEdit extends Process {
 
 		if($field2) $form->append($field2); 
 
-		$field = $this->modules->get('InputfieldSubmit');
-		$field->attr('name', $saveName); 
-		$field->attr('id', 'submit_save_top'); 
-		$field->attr('value', $saveLabel); 
-		$form->append($field); 
+		if($this->page->className() == 'Page') {
+			$field = $this->modules->get('InputfieldSubmit');
+			$field->attr('name', $saveName); 
+			$field->attr('id', 'submit_save_top'); 
+			$field->attr('value', $saveLabel); 
+			$form->append($field); 
+		}
 
 		$field = $this->modules->get('InputfieldHidden');
 		$field->attr('name', 'id');

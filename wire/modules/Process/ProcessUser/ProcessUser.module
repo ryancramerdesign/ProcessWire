@@ -26,6 +26,59 @@ class ProcessUser extends ProcessPageType {
 			'permission' => 'user-admin',
 			); 
 	}
+
+	public function init() {
+		wire('pages')->addHookBefore('save', $this, 'hookPageSave');	
+		parent::init();
+	}
+
+	/**
+	 * Perform a security check to make sure that a non-superuser isn't assigning superuser access to themselves or someone else. 
+	 *
+	 */
+	public function hookPageSave(HookEvent $event) {
+
+		$arguments = $event->arguments; 
+		$page = $arguments[0]; 
+
+		// don't handle anything other than User page saves
+		if(!$page instanceof User) return; 
+
+		$pages = wire('pages');
+		$user = wire('user');
+
+		// don't allow removal of the guest role
+		if(!$page->roles->has("name=guest")) {
+			$page->roles->add(wire('roles')->get('guest')); 	
+			$this->error("The 'guest' role is required"); 
+		}
+
+		// check if user is editing themself
+		if($user->id == $page->id) {
+			// if so, we have to get a fresh copy of their account to see what it had before they changed it
+			$copy = clone $page;		// keep a copy that doesn't go through the uncache process
+			$pages->uncache($page); 	// take it out of the cache
+			$user = $pages->get($page->id); // get a fresh copy of their account from the DB (pre-modified)
+			$pages->cache($copy); 		// put the modified version back into the cache
+			$arguments[0] = $copy;		// restore it to the arguments sent to $pages->save 
+			$event->arguments = $arguments;
+			$page = $copy;
+
+			// don't let superusers remove their superuser role
+			if($user->isSuperuser() && !$page->roles->has("name=superuser")) {
+				throw new WireException("You may not remove the superuser role from yourself"); 
+			}
+
+		} 
+
+		// if they are superuser, then all is good, no need to continue
+		if($user->isSuperuser()) return;
+
+		// if not then we need to do the check below:
+		if($page->roles->has("name=superuser")) {
+			throw new WireException("You may not assign the superuser role"); 
+		}
+	}
 	
 }
 

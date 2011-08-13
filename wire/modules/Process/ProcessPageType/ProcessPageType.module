@@ -86,6 +86,7 @@ class ProcessPageType extends Process implements ConfigurableModule {
 		$pages = $this->pages->find($selector); 
 
 		foreach($pages as $page) {
+			if(!$page->editable()) continue; 
 			$n = 0; 
 			$row = array();
 			foreach($fieldNames as $name) {
@@ -96,7 +97,7 @@ class ProcessPageType extends Process implements ConfigurableModule {
 			$table->row($row); 
 		}
 
-		$table->action(array('Add New' => 'add/')); 
+		if($this->page->addable()) $table->action(array('Add New' => 'add/')); 
 
 		if($pages->getTotal() > count($pages)) {
 			$pager = $this->modules->get("MarkupPagerNav"); 
