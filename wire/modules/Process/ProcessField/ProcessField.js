@@ -5,4 +5,5 @@ $(document).ready(function() {
 	}; 
 	$("#templates_id").change(fieldFilterFormChange); 
 	$("#fieldtype").change(fieldFilterFormChange); 
+	$("#show_system").click(fieldFilterFormChange); 
 });

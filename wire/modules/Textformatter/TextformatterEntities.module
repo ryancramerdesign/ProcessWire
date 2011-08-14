@@ -20,7 +20,9 @@ class TextformatterEntities extends Textformatter {
 		return array(
 			'title' => 'HTML Entity Encoder (htmlspecialchars)', 
 			'version' => 100, 
-			'summary' => "Entity encode ampersands, quotes (single and double) and greater-than/less-than signs using htmlspecialchars(str, ENT_QUOTES).", 
+			'summary' => 
+				"Entity encode ampersands, quotes (single and double) and greater-than/less-than signs using htmlspecialchars(str, ENT_QUOTES). " . 
+				"It is recommended that you use this on all text/textarea fields except those using a rich text editor like TinyMCE or a markup language like Markdown.",
 		); 
 	}
 

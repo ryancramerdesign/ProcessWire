@@ -23,6 +23,8 @@ class ProcessRole extends ProcessPageType {
 			'version' => 100, 
 			'summary' => 'Manage user roles and what permissions are attached', 
 			'permanent' => true, 
+
+			// add this permission if you want this Process available for roles other than Superuser
 			'permission' => 'role-admin',
 			); 
 	}

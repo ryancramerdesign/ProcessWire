@@ -99,11 +99,14 @@
 
 
 .PageList .PageListID7 a.PageListPage,
-.PageList .PageListID7 a.PageListPage:hover {
+.PageList .PageListID7 a.PageListPage:hover,
+.PageList .PageListID7 + .PageList a.PageListPage,
+.PageList .PageListID7 + .PageList a.PageListPage:hover {
 	/* don't show icon on trash page to avoid confusion */
 	padding-right: 0;
 	background: none; 
 }
+
 
 
 .PageList .PageListStatusSystem a.PageListPage { }

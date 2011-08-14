@@ -29,6 +29,8 @@ class ProcessField extends Process implements ConfigurableModule {
 			'version' => 100,
 			'summary' => 'Edit individual fields that hold page data',
 			'permanent' => true, 
+
+			// add this permission if you want this Process available for roles other than Superuser
 			'permission' => 'field-admin', 
 			);
 	}
@@ -58,43 +60,83 @@ class ProcessField extends Process implements ConfigurableModule {
 		$form->attr('method', 'get'); 
 		$form->attr('action', './'); 
 
+		$fieldset = $this->modules->get("InputfieldFieldset"); 
+		$fieldset->attr('id', 'template_filters');
+		$fieldset->label = "Filters";
+		$fieldset->collapsed = Inputfield::collapsedYes;
+		$form->add($fieldset);
+
 		$field = $this->modules->get("InputfieldSelect"); 
 		$field->attr('id+name', 'templates_id'); 
 		$field->addOption('', 'Show All'); 
-		foreach($this->templates as $template) $field->addOption($template->id, $template->name); 
+		foreach($this->templates as $template) {
+			$name = $template->name; 
+			if($template->flags & Template::flagSystem) $name .= "*";
+			$field->addOption($template->id, $name); 
+		}
 		$this->session->ProcessFieldListTemplatesID = (int) $this->input->get->templates_id; 
 		$field->label = 'Filter by Template';
+		$field->description = 
+			"When selected, only the fields from a specific template will be shown. " . 
+			"Built-in fields are also shown when filtering by template. Asterisk (*) indicates system templates. ";
 		$value = (int) $this->session->ProcessFieldListTemplatesID; 
 		$field->attr('value', $value); 
 		if($value && $template = $this->templates->get($value)) {
-			$form->description = "$template";
+			$form->description = "Showing fields from template: $template";
 			$this->setFuel('processHeadline', 'Fields by Template'); 
-			if($template->flags & Template::flagSystem) {
-				$field->description = "Template '$template' is a system template and may contain fields that are not shown elsewhere.";
-			}
+			$fieldset->collapsed = Inputfield::collapsedNo;
 		} else {
+			$template = null;
 			$field->collapsed = Inputfield::collapsedYes; 
 		}
-		$form->add($field); 
+		$fieldset->add($field); 
 
-		/*
+		// ----------------------------------------------------------------
+
 		$field = $this->modules->get("InputfieldSelect"); 
 		$field->attr('id+name', 'fieldtype'); 
 		$field->addOption('', 'Show All'); 
 		foreach($this->fieldtypes as $fieldtype) $field->addOption($fieldtype->name, $fieldtype->shortName); 
-		if($this->input->get->fieldtype !== null) $this->session->ProcessFieldListFieldtype = $this->sanitizer->name($this->input->get->fieldtype); 
-		$field->label = 'Filter by Type';
+		$this->session->ProcessFieldListFieldtype = $this->sanitizer->name($this->input->get->fieldtype); 
+		$field->label = 'Filter by Field Type';
+		$field->description = 
+			"When specified, only fields of the selected type will be shown. " . 
+			"Built-in fields are also shown when filtering by field type.";
 		$value = $this->session->ProcessFieldListFieldtype; 
 		$field->attr('value', $value); 
 		if($value && $fieldtype = $this->fieldtypes->get($value)) {
 			$field->label .= ": {$fieldtype->shortName}";
-			$headlines[] = "Fields of Type: {$fieldtype->shortName}";
+			$form->description = "Showing fields of type: {$fieldtype->shortName}";
+			$fieldset->collapsed = Inputfield::collapsedNo;
 		} else {
 			$field->collapsed = Inputfield::collapsedYes; 
 		}
 		$fieldset->add($field); 
-		*/
 
+		// ----------------------------------------------------------------
+
+		if(is_null($template) && !$this->session->ProcessFieldListFieldtype) {
+			$field = $this->modules->get("InputfieldCheckbox"); 
+			$field->attr('id+name', 'show_system'); 
+			$field->label = "Show built-in fields?";
+			$field->description = 
+				"When checked, built-in fields will also be shown. These include system fields and permanent fields. " . 
+				"System fields are required by the system and cannot be deleted or have their name changed. " . 
+				"Permanent fields are those that cannot be removed from a template. These fields are used internally by ProcessWire.";
+			$field->value = 1; 
+			$field->collapsed = Inputfield::collapsedYes; 
+			$this->session->ProcessFieldListShowSystem = (int) $this->input->get->show_system; 
+			if($this->session->ProcessFieldListShowSystem) {
+				$field->attr('checked', 'checked');
+				$field->collapsed = Inputfield::collapsedNo;
+				$fieldset->collapsed = Inputfield::collapsedNo;
+				$form->description = "Showing all fields, including built-in system and permament fields."; 
+			}
+			$fieldset->add($field); 
+		} else {
+			$this->session->ProcessFieldListShowSystem = 1; 
+		}
+		
 		return $form->render(); 
 	}
 
@@ -108,11 +150,13 @@ class ProcessField extends Process implements ConfigurableModule {
 		$out = $this->renderListFilters();
                 $table = $this->modules->get("MarkupAdminDataTable");
                 $table->headerRow(array('Name', 'Label', 'Type', 'Notes', 'Templates'));
+		$numRows = 0;
 
                 foreach($this->fields as $field) {
 
 			$numTemplates = 0; 
 			$notes = array();
+			$builtIn = false;
 
 			$templatesID = $this->session->ProcessFieldListTemplatesID; 
 			if($templatesID && $template = $this->templates->get($templatesID)) {
@@ -124,10 +168,19 @@ class ProcessField extends Process implements ConfigurableModule {
 
 			if($field->flags & Field::flagAutojoin) $notes[] = 'autojoin';
 			if($field->flags & Field::flagGlobal) $notes[] = 'global';
-			if($field->flags & Field::flagSystem) $notes[] = 'system';
+
+			if($field->flags & Field::flagSystem) {
+				$notes[] = 'system';
+				$builtIn = true;
+			}
+
 			if($field->flags & Field::flagPermanent) {
-				if(!$templatesID) continue; 
 				$notes[] = 'permanent';
+				$builtIn = true;
+			}
+
+			if($builtIn && !$templatesID && $field->name != 'title') {
+				if(!$this->session->ProcessFieldListShowSystem) continue; 
 			}
 
 			foreach($field->getFieldgroups() as $fieldgroup) {
@@ -141,11 +194,15 @@ class ProcessField extends Process implements ConfigurableModule {
 				implode(', ', $notes),
 				$numTemplates
 				));
+			$numRows++;
 		}
 
                 $table->action(array('Add New Field' => './add'));
 
-                return $out . $table->render();
+		if($numRows) $out .= $table->render();
+			else $this->error("No fields matched your filter"); 
+
+                return $out;
 	}	
 
 	/**
