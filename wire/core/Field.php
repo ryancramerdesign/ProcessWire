@@ -303,9 +303,9 @@ class Field extends WireData implements Saveable {
 	public function ___getConfigInputfields() {
 
 		$wrapper = new InputfieldWrapper();
-		$inputfields = $this->modules->get("InputfieldFieldset"); 
-		$inputfields->description = "The following settings are requested by {$this->type->name}"; 
-		$inputfields->label = "Fieldtype Settings";
+		$inputfields = new InputfieldWrapper;
+		$inputfields->head = "Field type details";
+		$inputfields->attr('title', 'Details');
 
 		$fieldtypeInputfields = $this->type->getConfigInputfields($this); 
 		if($fieldtypeInputfields) foreach($fieldtypeInputfields as $inputfield) {
@@ -314,13 +314,13 @@ class Field extends WireData implements Saveable {
 
 		if(count($inputfields)) $wrapper->append($inputfields); 
 
-		$inputfields = $this->modules->get("InputfieldFieldset"); 
+		$inputfields = new InputfieldWrapper();
 		$dummyPage = $this->fuel('pages')->get("/"); // only using this to satisfy param requirement 
 
 		if($inputfield = $this->getInputfield($dummyPage)) {
 			$inputfieldLabel = $inputfield->className(); 
-			$inputfields->description = "The following settings are requested by $inputfieldLabel, which accompanies {$this->type->name}";	
-			$inputfields->label = "Inputfield Settings";
+			$inputfields->head = "Input field settings";
+			$inputfields->attr('title', 'Input'); 
 			$inputfieldInputfields = $inputfield->getConfigInputfields();
 			if($inputfieldInputfields) foreach($inputfieldInputfields as $i) { 
 				$inputfields->append($i); 

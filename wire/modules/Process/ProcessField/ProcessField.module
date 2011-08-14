@@ -37,15 +37,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 	public function init() {
 
-		if($this->input->post->id) $this->id = (int) $this->input->post->id; 
-			else $this->id = $this->input->get->id ? (int) $this->input->get->id : 0; 
-
-		if($this->id) $this->field = $this->fields->get($this->id); 
-			else $this->field = new Field();
-
-		$this->form = $this->buildEditForm();
-
-
+		$this->modules->get("JqueryWireTabs");
 		return parent::init();
 	}
 
@@ -213,20 +205,21 @@ class ProcessField extends Process implements ConfigurableModule {
 		return $this->executeEdit(); 
 	}
 
+
 	/**
 	 * Edit an existing Field
 	 *
 	 */
 	public function ___executeEdit() {
 
+		$this->buildEditForm();
+
 		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', 'Fields')); 
 
 		if($this->field->id) {
 			$this->setFuel('processHeadline', "Edit Field: {$this->field->name}"); 
-			$this->form->description = "This field is used in " . $this->field->numFieldgroups() . "  templates/fieldgroups"; 
 		} else {
 			$this->setFuel('processHeadline', 'Add New Field'); 
-			$this->form->description = "After saving the new field, you will be given additional configuration options."; 
 		}
 
 
@@ -239,16 +232,100 @@ class ProcessField extends Process implements ConfigurableModule {
 	 */
 	protected function buildEditForm() {
 
-		$form = $this->modules->get('InputfieldForm');
+		if($this->input->post->id) $this->id = (int) $this->input->post->id; 
+			else $this->id = $this->input->get->id ? (int) $this->input->get->id : 0; 
 
-		$form->attr('id', 'ProcessFieldEdit'); 
+		if($this->id) $this->field = $this->fields->get($this->id); 
+			else $this->field = new Field();
+
+		$form = $this->modules->get('InputfieldForm');
+		$form->attr('id+name', 'ProcessFieldEdit'); 
 		$form->attr('action', 'save'); 
 		$form->attr('method', 'post'); 
+		$this->form = $form;
 
+		$form->add($this->buildEditFormBasics());
+
+		if($this->field->id) { 
+			if($this->field->type) {
+				$this->buildEditFormCustom($form);
+				$form->add($this->buildEditFormAdvanced());
+			}
+			$form->add($this->buildEditFormInfo());
+			$form->add($this->buildEditFormDelete());
+		}
+
+		$field = $this->modules->get('InputfieldHidden');
+		$field->attr('name', 'id'); 
+		$field->attr('value', $this->field->id); 
+		$form->add($field); 
+
+		$field = $this->modules->get('InputfieldSubmit');
+		$field->attr('name', 'submit_save_field'); 
+		$form->add($field); 
+
+		return $form; 
+	}
+
+	/**
+	 * Add Fieldtype and Inputfield custom fields to the form 
+	 *
+	 */
+	protected function buildEditFormCustom($form) {
+		$customFields = $this->field->getConfigInputfields();
+		foreach($customFields as $field) {
+			// skip over wrappers if they don't have fields in them 
+			if($field instanceof InputfieldWrapper && !count($field->children)) continue; 
+			$field->attr('class', 'WireTab');
+			$form->add($field); 
+		}
+	}
+
+	/**
+	 * Add a delete tab to the form
+	 *
+	 */
+	protected function buildEditFormDelete() {
+
+		$form = new InputfieldWrapper();
+		$form->attr('id', 'delete');
+		$form->attr('class', 'WireTab');
+		$form->head = 'Delete field';
+		$form->attr('title', 'Delete'); 
+
+		$field = $this->modules->get('InputfieldCheckbox');
+		$field->label = "Delete Field"; 
+		$field->attr('id+name', "delete"); 
+		$field->attr('value', $this->field->id); 
+
+		if($this->field->id && $this->field->numFieldgroups() == 0) {
+			$field->description = "This field is not in use and is safe to delete.";
+		} else { 
+			$field->attr('disabled', 'disabled'); 
+			$field->description = "This field may not be deleted because it is in use by one or more templates/fieldgroups."; 
+		}
+
+		$form->add($field);
+
+		return $form;
+	}
+
+	/**
+	 * Basic field configuration options: name, type, label, description
+	 *
+	 */
+	protected function buildEditFormBasics() {
+
+		$form = new InputfieldWrapper();
+		$form->attr('id', 'basics');
+		$form->attr('class', 'WireTab');
+		$form->head = 'Basic field settings';
+		$form->attr('title', 'Basics'); 
+	
 		$field = $this->modules->get('InputfieldName');
 		$field->attr('value', $this->field->name); 
 		$field->description = "Any combination of ASCII letters [a-z], numbers [0-9], or underscores (no dashes or spaces).";
-		$form->append($field); 
+		$form->add($field); 
 
 		$field = $this->modules->get('InputfieldSelect');
 		$field->label = 'Type';
@@ -273,15 +350,15 @@ class ProcessField extends Process implements ConfigurableModule {
 			$field->addOption($this->field->type->name, $this->field->type->shortName); 
 		}
 
-		$form->append($field); 
-		
+		$form->add($field); 
+	
 		$field = $this->modules->get('InputfieldText');
+		$field->attr('id+name', 'field_label'); 
 		$field->label = 'Label';
-		$field->attr('name', 'label'); 
 		$field->attr('size', '70'); 
 		$field->attr('value', $this->field->label); 
 		$field->description = "This is the label that appears above the entry field. If left blank, the name will be used instead.";
-		$form->append($field); 
+		$form->add($field); 
 
 		$field = $this->modules->get('InputfieldTextarea');
 		$field->label = 'Description';
@@ -290,51 +367,10 @@ class ProcessField extends Process implements ConfigurableModule {
 		$field->attr('rows', 3); 
 		$field->description = "Additional information describing this field and/or instructions on how to enter the content.";
 		$field->collapsed = Inputfield::collapsedBlank;
-		$form->append($field); 
-
-		if($this->field->id) { 
-			// custom fields as required by the Inputfield/Fieldtype
-			if($this->field->type) {
-				$advanced = $this->buildEditFormAdvanced();
-				if($advanced) $form->append($advanced); 
-				$customFields = $this->field->getConfigInputfields();
-				foreach($customFields as $field) {
-					// skip over wrappers if they don't have fields in them 
-					if($field instanceof InputfieldWrapper && !count($field->children)) continue; 
-
-					$form->append($field); 
-				}
-			}
-
-			$form->append($this->buildEditFormInfo()); 
+		$form->add($field); 
 
 
-			// Delete
-			$field = $this->modules->get('InputfieldCheckbox');
-			$field->label = "Delete Field"; 
-			$field->attr('id+name', "delete"); 
-			$field->attr('value', $this->field->id); 
-			$field->collapsed = Inputfield::collapsedYes; 
-			$form->append($field); 
-
-			if($this->field->id && $this->field->numFieldgroups() == 0) {
-				$field->description = "This field is not in use and is safe to delete.";
-			} else { 
-				$field->attr('disabled', 'disabled'); 
-				$field->description = "This field may not be deleted because it is in use by one or more templates/fieldgroups."; 
-			}
-		}
-
-		$field = $this->modules->get('InputfieldHidden');
-		$field->attr('name', 'id'); 
-		$field->attr('value', $this->field->id); 
-		$form->append($field); 
-
-		$field = $this->modules->get('InputfieldSubmit');
-		$field->attr('name', 'submit_save_field'); 
-		$form->append($field); 
-
-		return $form; 
+		return $form;
 	}
 
 	/**
@@ -342,16 +378,20 @@ class ProcessField extends Process implements ConfigurableModule {
 	 *
 	 */
 	protected function buildEditFormInfo() {
-		// Info
+
+		$form = new InputfieldWrapper();
+		$form->attr('class', 'WireTab');
+		$form->attr('id', 'info');
+		$form->head = 'Field usage information';
+		$form->attr('title', 'Info'); 
+
 		$field = $this->modules->get('InputfieldMarkup'); 
-		$field->label = 'Info';
-		$field->collapsed = Inputfield::collapsedYes; 
 		$fieldgroups = $this->field->getFieldgroups(); 
 		$templates = new TemplatesArray();
 		foreach($fieldgroups as $fieldgroup) $templates->import($fieldgroup->getTemplates()); 
 
 		if(count($templates)) {
-			$field->description = 'This field is used by the following templates:';
+			$field->label = 'This field is used by the following templates:';
 			$table = $this->modules->get("MarkupAdminDataTable"); 
 			$table->headerRow(array("Template")); 
 			foreach($templates as $template) $table->row(array(
@@ -359,9 +399,13 @@ class ProcessField extends Process implements ConfigurableModule {
 				)); 
 			$field->attr('value', $table->render()); 
 		} else {
+			$field->label = "Usage Information";
 			$field->description = 'This field is not currently in use by any templates.';
 		}
-		return $field; 
+
+		$form->add($field);
+
+		return $form; 
 	}
 
 	/**
@@ -369,18 +413,19 @@ class ProcessField extends Process implements ConfigurableModule {
 	 *
 	 */
 	protected function buildEditFormAdvanced() {
-		// advanced settings
-		$fieldset = $this->modules->get("InputfieldFieldset"); 
-		$fieldset->label = "Advanced Settings";
 
 		if($this->field->type) {
-			$inputfields = $this->field->type->getConfigAdvancedInputfields($this->field); 
-			if(!count($inputfields)) return null;
-			foreach($inputfields as $inputfield) $fieldset->add($inputfield); 
-			return $fieldset; 
+			$form = $this->field->type->getConfigAdvancedInputfields($this->field); 
+		} else {
+			$form = new InputfieldWrapper();
 		} 
+
+		$form->attr('id', 'advanced');
+		$form->attr('class', 'WireTab');
+		$form->head = 'Advanced settings';
+		$form->attr('title', 'Advanced'); 
 	
-		return null;
+		return $form;
 	}
 
 	/**
@@ -388,6 +433,8 @@ class ProcessField extends Process implements ConfigurableModule {
 	 *
 	 */
 	public function ___executeSave() {
+
+		$this->buildEditForm();
 
 		if(!$this->input->post->submit_save_field) $this->session->redirect("./"); 
 
@@ -406,7 +453,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			else if(!$this->field->type) $this->error("Field type is required"); 
 			else if(!$this->field->id) {
 				$this->field->save();
-				$this->session->message("Added Field '{$this->field->name}'"); 
+				$this->session->message("Added Field '{$this->field->name}'. Please configure the field's details and input settings."); 
 				$this->fieldAdded($this->field); 
 				$this->session->redirect("edit?id={$this->field->id}"); 
 			} else {
@@ -436,32 +483,36 @@ class ProcessField extends Process implements ConfigurableModule {
 				continue; 
 			}
 
-			if(!$inputfield->name || $inputfield instanceof InputfieldSubmit) continue; 
+			$name = $inputfield->name; 
+			$value = $inputfield->value; 
+
+			if(!$name || $inputfield instanceof InputfieldSubmit) continue; 
 
 			// see /core/Fieldtype.php for the inputfields that initiate the autojoin and global flags
-			if($inputfield->name == 'autojoin') {
+			if($name == 'autojoin') {
 				if(!$this->input->post->autojoin) $this->field->flags = $this->field->flags & ~Field::flagAutojoin; 
 					else $this->field->flags = $this->field->flags | Field::flagAutojoin;
 				continue; 
 
-			} else if($inputfield->name == 'global') {
+			} else if($name == 'global') {
 				if(!$this->input->post->global) $this->field->flags = $this->field->flags & ~Field::flagGlobal; 
 					else $this->field->flags = $this->field->flags | Field::flagGlobal;
 				continue; 
-			} else if($inputfield->name == 'system' && $this->config->advanced) {
+			} else if($name == 'system' && $this->config->advanced) {
 				if(!$this->input->post->system) $this->field->flags = $this->field->flags & ~Field::flagSystem; 
 					else $this->field->flags = $this->field->flags | Field::flagSystem;
 				continue; 
-			} else if($inputfield->name == 'permanent' && $this->config->advanced) {
+			} else if($name == 'permanent' && $this->config->advanced) {
 				if(!$this->input->post->permanent) $this->field->flags = $this->field->flags & ~Field::flagPermanent; 
 					else $this->field->flags = $this->field->flags | Field::flagPermanent;
 				continue; 
 			}
 
-			$value = $inputfield->value; 
-			if($inputfield->name == 'type' && $this->field->id) continue; // skip this change for existing fields
-			if($inputfield->name == 'delete') continue; 
-			$this->field->set($inputfield->name, $value); 
+			if($name == 'type' && $this->field->id) continue; // skip this change for existing fields
+			if($name == 'delete') continue; 
+			if($name == 'field_label') $name = 'label';
+
+			$this->field->set($name, $value); 
 		}
 	}
 
@@ -470,6 +521,8 @@ class ProcessField extends Process implements ConfigurableModule {
 	 *
 	 */
 	public function ___executeChangeType() {
+
+		$this->buildEditForm();
 
 		$this->setFuel('processHeadline', 'Change type for field: ' . $this->field->name); 
 		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', 'Fields'))->add(new Breadcrumb("./edit?id={$this->field->id}", $this->field->name)); 
@@ -512,6 +565,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	 *
 	 */
 	public function ___executeSaveChangeType() {
+		$this->buildEditForm();
 
 		if(!$this->field || !$this->input->post->confirm_type) {
 			$this->message("Field type change aborted"); 
