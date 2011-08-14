@@ -142,15 +142,27 @@ class ImageSizer {
 		list($gdWidth, $gdHeight, $targetWidth, $targetHeight) = $this->getResizeDimensions($targetWidth, $targetHeight); 
 
 		$thumb = imagecreatetruecolor($gdWidth, $gdHeight);  
-		$bgcolor = imagecolorallocate($thumb, 0, 0, 0);  
-		ImageFilledRectangle($thumb, 0, 0, $gdWidth, $gdHeight, $bgcolor);
-		imagealphablending($thumb, true);
+
+		if($this->extension == 'png') { // Adam's PNG transparency fix
+			imagealphablending($thumb, false); 
+			imagesavealpha($thumb, true); 
+		} else {
+			$bgcolor = imagecolorallocate($thumb, 0, 0, 0);  
+			ImageFilledRectangle($thumb, 0, 0, $gdWidth, $gdHeight, $bgcolor);
+			imagealphablending($thumb, true);
+		}
 
 		imagecopyresampled($thumb, $image, 0, 0, 0, 0, $gdWidth, $gdHeight, $this->image['width'], $this->image['height']);
 		$thumb2 = imagecreatetruecolor($targetWidth, $targetHeight);
-		$bgcolor = imagecolorallocate($thumb2, 0, 0, 0);  
-		ImageFilledRectangle($thumb2, 0, 0, $targetWidth, $targetHeight, 0);
-		imagealphablending($thumb2, true);
+
+		if($this->extension == 'png') { 
+			imagealphablending($thumb2, false); 
+			imagesavealpha($thumb2, true); 
+		} else {
+			$bgcolor = imagecolorallocate($thumb2, 0, 0, 0);  
+			ImageFilledRectangle($thumb2, 0, 0, $targetWidth, $targetHeight, 0);
+			imagealphablending($thumb2, true);
+		}
 
 		$w1 = ($gdWidth / 2) - ($targetWidth / 2);
 		$h1 = ($gdHeight / 2) - ($targetHeight / 2);
@@ -163,7 +175,7 @@ class ImageSizer {
 				imagegif($thumb2, $dest); 
 				break;
 			case 'png': 
-				// convert 1-100 (worst-best) scale to 0-9 (best-worst) scale for PNG
+				// convert 1-100 (worst-best) scale to 0-9 (best-worst) scale for PNG 
 				$quality = round(abs(($this->quality - 100) / 11.111111)); 
 				imagepng($thumb2, $dest, $quality); 
 				break;
