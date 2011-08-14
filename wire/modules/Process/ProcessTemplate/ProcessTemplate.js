@@ -1,9 +1,13 @@
 $(document).ready(function() {
 
 
-	$("#filters input[name=system]").click(function() {
+	$("#wrap_filter_system input").click(function() {
 		$(this).parents("form").submit();
 	}); 	
+
+	$("#filter_field").change(function() {
+		$(this).parents("form").submit();
+	}); 
 
 	var redirectLoginClick = function() {
 		if($("#redirectLogin_-1:checked").size() > 0) $("#wrap_redirectLoginURL").slideDown();

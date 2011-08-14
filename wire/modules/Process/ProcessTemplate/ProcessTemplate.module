@@ -30,6 +30,8 @@ class ProcessTemplate extends Process {
 			'version' => 100,
 			'summary' => 'List and edit the templates that control page output',
 			'permanent' => true, 
+	
+			// add this permission if you want this Process available for roles other than Superuser
 			'permission' => 'template-admin', 
 			);
 	}
@@ -63,9 +65,6 @@ class ProcessTemplate extends Process {
 	 */
 	public function ___execute() {
 
-		if(isset($_GET['system'])) $this->session->ProcessTemplateListSystem = (int) $this->input->get->system; 
-		$system = (int) $this->session->ProcessTemplateListSystem; 
-
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->id = 'filters';
 		$form->method = 'get';
@@ -76,25 +75,58 @@ class ProcessTemplate extends Process {
 		$fieldset->collapsed = Inputfield::collapsedYes; 
 		$form->add($fieldset);
 		
-		$field = $this->modules->get("InputfieldRadios"); 
-		$field->label = "Show system templates?";
-		$field->description = "By default, system/internal templates are not shown. Click 'Yes' to have them included in the templates list below.";
-		$field->attr('id+name', 'system'); 
-		$field->addOption(1, 'Yes'); 
-		$field->addOption(0, 'No'); 
-		$field->attr('value', $system); 
-		$fieldset->add($field); 
+		// --------------------------------------
+
+		$field = $this->modules->get("InputfieldSelect"); 
+		$field->attr('id+name', 'filter_field'); 
+		$field->label = "Filter by Field";
+		$field->description = "Select a field and only templates using that field will be shown.";
+		$field->addOption('', 'Show All');
+
+		foreach($this->fields as $f) {
+			$name = $f->name; 
+			if(($f->flags & Field::flagSystem) || ($f->flags & Field::flagPermanent)) $name .= "*";
+			$field->addOption($f->name, $name);	
+		}	
+		$filterField = $this->sanitizer->name($this->input->get->filter_field); 
+		$field->attr('value', $filterField); 
+		$field->collapsed = $filterField ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
+		$fieldset->add($field);
+		if($filterField) $filterField = $this->fields->get($filterField);
+		if($filterField) $form->description = "Templates with field: " . $filterField->name;
+
+		// --------------------------------------
+
+		if(!$filterField) { 
+			$field = $this->modules->get("InputfieldRadios"); 
+			$field->label = "Show system templates?";
+			$field->description = "By default, system/internal templates are not shown. Click 'Yes' to have them included in the templates list below.";
+			$field->attr('id', 'filter_system');
+			$field->attr('name', 'system'); 
+			$field->addOption(1, 'Yes'); 
+			$field->addOption(0, 'No'); 
+			$filterSystem  = (int) $this->input->get->system; 
+			$field->attr('value', $filterSystem); 
+			$field->collapsed = $filterSystem ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
+			$fieldset->add($field); 
+		} else $filterSystem = 0;
+
+		// --------------------------------------
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->headerRow(array('Name', 'Pages', 'Fields', '')); 
 
 		foreach($this->fuel('templates') as $template) {
 			$notes = '';
+
 			if($template->flags & Template::flagSystem) {
-				if(!$system) continue; 
+				if(!$filterSystem && !$filterField) continue; 
 				$fieldset->collapsed = Inputfield::collapsedNo;
 				$notes .= "system ";
 			}
+
+			if($filterField && !$template->fieldgroup->has($filterField)) continue; 
+
 			$table->row(array(
 				"{$template->name} " => "edit?id={$template->id}", 
 				$template->getNumPages(), 
@@ -265,8 +297,7 @@ class ProcessTemplate extends Process {
 
 		if(!is_file($template->filename) && !count($this->input->post)) {
 			$this->message(
-				"This template does not have a file associated with it. As a result, viewing pages using this template will produce an error. " . 
-				"If that is not your desired result, upload/create/FTP the template file here: {$this->config->urls->templates}{$template->basename}"
+				"Pages using this template are not viewable because the template file ($template->name.php) does not exist."
 				); 
 		}
 
@@ -275,7 +306,7 @@ class ProcessTemplate extends Process {
 		$t->head = "This template is used by {$this->numPages} pages";
 		$t->attr('title', "Fields");
 		$t->add($this->buildEditFormFields($template)); 
-		$t->add($this->buildEditFormFieldgroup($template)); 
+		if($template->name != $template->fieldgroup->name || $this->config->advanced) $t->add($this->buildEditFormFieldgroup($template)); 
 		$form->add($t); 
 		
 		$t = new InputfieldWrapper();
@@ -434,6 +465,10 @@ class ProcessTemplate extends Process {
 		return $field; 
 	}
 
+	/**
+	 * Edit the fields that are part of this template
+	 *
+	 */
 	protected function buildEditFormFields(Template $template) {
 
 		// if this template isn't defining it's fields, then just show what it's using
