@@ -94,8 +94,8 @@ class ProcessPageAdd extends Process {
 		$user = $this->fuel('user');
 		$templates = array();
 
-		if($this->parent->childrenTemplatesID) {
-			$template = $this->templates->get($this->parent->childrenTemplatesID); 
+		if($this->parent->template->childrenTemplatesID) {
+			$template = $this->templates->get($this->parent->template->childrenTemplatesID); 
 			if($template && (!$template->useRoles || $user->hasPermission('page-edit', $template))) {
 				$templates[$template->id] = $template;
 			}

@@ -975,7 +975,8 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldCheckboxes'); 
 		$field->table = true; 
-		$field->thead = "Role|Can add pages using template(s)";
+		//$field->thead = "Role|Can add pages using template(s)";
+		$field->thead = "Role";
 		$field->attr('id+name', 'addRoles'); 
 		$field->label = "What user roles can add children to pages using this template?";
 
@@ -985,7 +986,7 @@ class ProcessTemplate extends Process {
 
 		$childrenTemplate = $template->childrenTemplatesID ? $this->fuel('templates')->get($template->childrenTemplatesID) : null;
 
-		if($template->childrenTemplatesID < 0) $field->notes = "The settings you specify above will have no effect because children are already disabled in the 'advanced' tab of this Template editor.";	
+		if($template->childrenTemplatesID < 0) $field->notes = "The settings you specify will have no effect because children are disabled for this template.";	
 			else if(!$template->childrenTemplatesID) $field->notes = "Optional: You may also want to specify the template required for children above.";
 			else if($childrenTemplate) $field->notes = "This template currently only allows children using the template '$childrenTemplate'. ";
 
@@ -994,16 +995,17 @@ class ProcessTemplate extends Process {
 
 		foreach($roles as $role) {
 			if(!$role->hasPermission('page-edit')) continue; 
-			if($childrenTemplate && !$childrenTemplate->hasRole($role)) continue; 
+			if($childrenTemplate && $childrenTemplate->useRoles && !$childrenTemplate->hasRole($role)) continue; 
 			$tstr = '';
 			foreach($this->fuel('templates') as $t) {
 				if($childrenTemplate && $childrenTemplate->id != $t->id) continue; 
-				if($t->hasRole($role)) $tstr .= $t->name . "\n";
+				if(!$t->useRoles || $t->hasRole($role)) $tstr .= $t->name . "\n";
 			}
 			$tstr = rtrim($tstr); 
 			if(!$tstr) continue; 
 
-			$field->addOption($role->id, $role->name . "|$tstr"); 
+			//$field->addOption($role->id, $role->name . "|$tstr"); 
+			$field->addOption($role->id, $role->name); 
 			$cnt++;
 		}
 
