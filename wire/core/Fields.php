@@ -306,6 +306,7 @@ class Fields extends WireSaveableItems {
 	 *
 	 */
 	protected function encodeData(array $value) {
+		if(isset($value['collapsed']) && $value['collapsed'] === 0) unset($value['collapsed']); 	
 		return wireEncodeJSON($value, 0); 	
 	}
 

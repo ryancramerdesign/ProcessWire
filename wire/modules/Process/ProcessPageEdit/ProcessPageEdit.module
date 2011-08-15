@@ -9,7 +9,7 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2011 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -93,8 +93,13 @@ class ProcessPageEdit extends Process {
 
 		if(isset($_POST['id']) && ((int) $_POST['id']) === $this->page->id) $this->processSave();
 
-		if($this->page->is(Page::statusLocked)) 
-			$this->message("Note that this page is locked and no changes will be accepted unless first unlocked."); 
+		if($this->page->is(Page::statusLocked)) {
+			if($this->user->hasPermission('page-lock', $this->page)) {
+				$this->message("Note that this page is locked and no changes will be accepted unless first unlocked."); 
+			} else {
+				$this->error("This page is locked for edits and you may not make changes to this page."); 
+			}
+		}
 
 		if($this->page->is(Page::statusUnpublished)) {
 			$this->message("This page is not published. You will have to publish this page before it is visible on the site."); 
@@ -127,7 +132,7 @@ class ProcessPageEdit extends Process {
 		//if($this->page->is(Page::statusUnpublished)) $this->page->removeStatus(Page::statusUnpublished); 
 
 		if($this->page->is(Page::statusLocked)) {
-			if(!empty($_POST['status']) && in_array(Page::statusLocked, $_POST['status'])) {
+			if(!$this->user->hasPermission('page-lock', $this->page) || (!empty($_POST['status']) && in_array(Page::statusLocked, $_POST['status']))) {
 				$this->error("Your changes were not saved because this page is locked"); 
 				return; 
 			}
@@ -168,8 +173,6 @@ class ProcessPageEdit extends Process {
 			if($this->input->get->modal) $this->redirectUrl .= "&modal=1";
 			$this->session->redirect($this->redirectUrl); 
 		}
-
-
 	}	
 
 	/**
@@ -415,11 +418,10 @@ class ProcessPageEdit extends Process {
 		$status = (int) $this->page->status; 
 		$field = $this->modules->get('InputfieldCheckboxes');
 		$field->attr('name', 'status');
-		$statuses = array(
-			Page::statusHidden => "Hidden: Excluded from lists and searches", 
-			Page::statusLocked => "Locked: Not editable", 
-			Page::statusUnpublished => "Unpublished: Not visible on site",
-			); 
+		$statuses = array(); 
+		$statuses[Page::statusHidden] = "Hidden: Excluded from lists and searches";
+		if($this->user->hasPermission('page-lock', $this->page)) $statuses[Page::statusLocked] = "Locked: Not editable";
+		$statuses[Page::statusUnpublished] = "Unpublished: Not visible on site";
 			
 		if($this->config->advanced && $this->user->isSuperuser()) {
 			$statuses[Page::statusSystemID] = "System: Non-deleteable and locked ID (status not removeable via API)";
@@ -449,7 +451,7 @@ class ProcessPageEdit extends Process {
 		$wrapper->attr('id', $this->className() . 'Delete');
 		$wrapper->attr('title', "Delete"); 
 
-		/*
+		/* // Kept for reference
 		if($isRestorable) {
 			$field = $this->modules->get('InputfieldCheckbox');
 			$field->attr('id+name', 'restore_page'); 
@@ -555,38 +557,6 @@ class ProcessPageEdit extends Process {
 		
 	}
 
-	/**
-	 * Build the Settings > Roles fieldset on the Page Edit form 
-	 *
-	protected function buildFormRoles() {
-
-		$field = $this->modules->get('InputfieldCheckboxes');
-		$field->label = 'Roles';
-		$field->description = "Select the roles that may view this page."; 
-		$field->attr('id+name', 'roles'); 
-		$field->attr('value', array()); 
-
-		foreach($this->page->roles() as $role) {
-			$field->attr('value', $role->id); 
-		}
-
-		$editNote = '';
-		foreach($this->roles as $role) {
-			if($role->id == Role::superRoleID || $role->id == Role::ownerRoleID) continue; 
-			$attrs = array();
-			if($this->page->addsRole($role)) $attrs['class'] = 'PageAddsRole';
-				else if($this->page->removesRole($role)) $attrs['class'] = 'PageRemovesRole';
-			$name = $role->name; 
-			if($role->hasPermission('ProcessPageEdit')) {
-				$name .= " *";
-				$field->notes = "* Roles with an asterisk may also edit this page.";
-			}
-			$field->addOption($role->id, $name, $attrs); 
-		}
-
-		return $field; 
-	}
-	 */
 
 	/**
 	 * Process the input from a submitted Page Edit form, delegating to other methods where appropriate
@@ -660,7 +630,8 @@ class ProcessPageEdit extends Process {
 
 		if(!is_array($status)) $status = array();
 
-		$statusFlags = array(Page::statusHidden, Page::statusLocked, Page::statusUnpublished); 
+		$statusFlags = array(Page::statusHidden, Page::statusUnpublished); 
+		if($this->user->hasPermission('page-lock', $this->page)) $statusFlags[] = Page::statusLocked;
 
 		if($this->config->advanced && $this->user->isSuperuser()) {
 			$statusFlags[] = Page::statusSystemID;
@@ -861,7 +832,7 @@ class ProcessPageEdit extends Process {
 		} else if($this->page->parent->id && $this->page->parent->template->childrenTemplatesID && $this->page->parent->template->childrenTemplatesID != $this->page->template->id) {
 			// parent requires a specific template for it's children, but it's different from the one being used here
 
-			/*
+			/* // Kept for reference
 			$template = $this->fuel('templates')->get($this->page->parent->template->childrenTemplatesID); 
 			if($template) {
 				if(!$template->useRoles) {
@@ -954,7 +925,7 @@ class ProcessPageEdit extends Process {
 		parent::___install();
 	}
 
-	/* Removed, but may add back later 
+	/* // Functionality removed, but kept for reference and may add back later 
 	protected function restorePage() {
 
 		if(!$this->isTrash) return false;
@@ -987,29 +958,6 @@ class ProcessPageEdit extends Process {
 		}
 	}
 	*/
-
-	/**
-	 * Process the Settings > Roles field input
-	 *
-	protected function processInputRoles(Inputfield $inputfield) {
-		
-		foreach($this->page->roles() as $role) {
-			if($role->id == Role::superRoleID) continue; 
-			if(!in_array($role->id, $inputfield->value)) {
-				$this->page->removeRole($role); 
-			}
-		}
-
-		foreach($inputfield->value as $role_id) {
-			if(!$this->page->hasRole($role_id)) {
-				$role = $this->roles->get($role_id); 
-				$this->page->addRole($role); 
-			}
-		}
-		return true; 
-
-	}
-	 */
 
 }
 
