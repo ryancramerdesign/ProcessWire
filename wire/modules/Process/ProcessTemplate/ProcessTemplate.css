@@ -6,3 +6,12 @@
 	width: 40%; 
 	
 }
+
+#roles_editor table th,
+#roles_editor table td {
+	width: 20%; 
+}
+
+input[disabled=disabled] {
+	opacity: 0.5; 	
+}

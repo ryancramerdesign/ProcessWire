@@ -73,7 +73,13 @@ class Template extends WireData implements Saveable {
 	protected $data = array(
 		'useRoles' => 0, 		// does this template define access?
 		'addRoles' => array(),		// IDs of roles that may add children to pages using this template
-		'childrenTemplatesID' => 0, 	// template ID for child pages, or -1 if no children allowed. 
+		'createRoles' => array(),	// IDs of roles that may create pages using this template
+		'editRoles' => array(),		// IDs of roles that may edit pages using this template
+		'childrenTemplatesID' => 0, 	// template ID for child pages, or -1 if no children allowed. DEPRECATED
+		'noChildren' => '', 		// set to 1 to cancel use of childTemplates
+		'noParents' => '', 		// set to 1 to cancel use of parentTemplates
+		'childTemplates' => array(),	// array of template IDs that are allowed for children. blank array = any. 
+		'parentTemplates' => array(),	// array of template IDs that are allowed for parents. blank array = any.
 		'allowPageNum' => 0, 		// allow page numbers in URLs?
 		'redirectLogin' => 0, 		// redirect when no access: 0 = 404, 1 = login page, 'url' = URL to redirec to
 		'urlSegments' => 0,		// allow URL segments on pages?
@@ -217,10 +223,24 @@ class Template extends WireData implements Saveable {
 		} else if($key == 'roles') {
 			$this->setRoles($value);
 
-		} else if($key == 'addRoles') {
+		} else if($key == 'childrenTemplatesID') { // this can eventaully be removed
+			if($value < 0) {
+				parent::set('noChildren', 1);
+			} else if($value) {
+				$v = $this->childTemplates; 
+				$v[] = (int) $value; 
+				parent::set('childTemplates', $v);
+			}
+
+		} else if(in_array($key, array('addRoles', 'editRoles', 'createRoles', 'childTemplates', 'parentTemplates'))) {
 			if(!is_array($value)) $value = array();
-			foreach($value as $k => $v) $value[$k] = (int) $v; 
+			foreach($value as $k => $v) $value[(int)$k] = (int) $v; 
 			parent::set($key, $value); 
+
+		} else if(in_array($key, array('noChildren', 'noParents'))) {
+			$value = (int) $value;
+			if(!$value) $value = null; // enforce null over 0
+			parent::set($key, $value);
 
 		} else {
 			parent::set($key, $value); 

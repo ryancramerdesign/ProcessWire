@@ -63,7 +63,7 @@ class ProcessPageEdit extends Process {
 		$this->isTrash = $this->page->isTrash;
 
 		if(!$this->page) throw new Wire404Exception("Unable to load page {$this->id}"); 
-		if(!$this->page->editable()) throw new WirePermissionException("You don't have access to edit page {$this->page->url}"); 
+		if(!$this->page->editable()) throw new WirePermissionException("You don't have access to edit this page"); 
 
 		// after confirming that the page is editable, if the current user is the one that created the page 
 		// then temporarily give both the page and the user the special "owner" role 
@@ -462,7 +462,7 @@ class ProcessPageEdit extends Process {
 		}
 		*/
 
-		if($this->user->hasPermission("page-delete", $this->page)) {
+		if($this->page->deleteable()) {
 
 			$field = $this->modules->get('InputfieldCheckbox');
 			$field->attr('id+name', 'delete_page'); 
@@ -511,7 +511,8 @@ class ProcessPageEdit extends Process {
 		$field = $this->modules->get("InputfieldMarkup"); 
 		$field->label = "Who can access this page?";
 		$roles = $this->page->getAccessRoles();
-		$addRoles = $this->page->template->addRoles; 
+		$editRoles = $this->page->getAccessTemplate()->editRoles;
+		$addRoles = $this->page->getAccessTemplate()->addRoles; 
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->headerRow(array('Role', 'What they can do')); 
@@ -523,8 +524,13 @@ class ProcessPageEdit extends Process {
 				$permissions = '';	
 				$roleName = $role->name; 
 				if($roleName == 'guest') $roleName .= " (everyone)";
-				foreach($role->permissions as $permission) {
-					$permissions .= "{$permission->title}\n";
+				$permissions .= "View Pages\n";
+				if($role->hasPermission('page-edit') && in_array($role->id, $editRoles)) { 
+					foreach($role->permissions as $permission) {
+						if($permission->name == 'page-view') continue;  // assumed
+						if(strpos($permission->name, 'page-') !== 0) continue; 
+						$permissions .= "{$permission->title}\n"; // only page-context permissions
+					}
 				}
 				if(false !== ($key = array_search($role->id, $addRoles))) {
 					$permissions .= "Add Children\n";
@@ -670,11 +676,6 @@ class ProcessPageEdit extends Process {
 	 *
 	 */
 	protected function deletePage() {
-
-		if(!$this->user->hasPermission("page-delete", $this->page)) {
-			$this->error("You don't have access to delete page {$this->id}"); 
-			return false; 
-		}
 
 		if(!$this->page->deleteable()) {
 			$this->error("This page is not deleteable"); 
@@ -829,21 +830,12 @@ class ProcessPageEdit extends Process {
 		if($this->page->template->noChangeTemplate) {
 			// don't add any more templates
 
-		} else if($this->page->parent->id && $this->page->parent->template->childrenTemplatesID && $this->page->parent->template->childrenTemplatesID != $this->page->template->id) {
-			// parent requires a specific template for it's children, but it's different from the one being used here
-
-			/* // Kept for reference
-			$template = $this->fuel('templates')->get($this->page->parent->template->childrenTemplatesID); 
-			if($template) {
-				if(!$template->useRoles) {
-					// template doesn't define access, so access is assumed if we've made it here
-					$templates[$template->id] = $template;
-				} else {
-					// make sure the user has page-edit access on the required template
-					if($user->hasPermission('page-edit', $template)) $templates[$template->id] = $template;
-				}
+		} else if($this->page->parent->id && count($this->page->parent->template->childTemplates)) {
+			foreach($this->page->parent->template->childTemplates as $id) {
+				if($id == $this->page->template->id) continue; 
+				$t = $this->fuel('templates')->get($id); 
+				if(!$t->useRoles || $user->hasPermission('page-edit', $t)) $templates[$id] = $t; 
 			}
-			*/
 
 		} else if($user->hasPermission('page-template', $this->page)) {
 			// user is allowed to change the page's template
@@ -856,12 +848,7 @@ class ProcessPageEdit extends Process {
 				if($isSuperuser) { 
 					$templates[$template->id] = $template;
 
-				} else if(!$template->useRoles) {
-					// if template doesn't define roles, then we'll exclude it unless they are superuser
-					// this may not be the best strategy, but it's the one we'll use for now
-					continue; 
-
-				} else if($user->hasPermission('page-edit', $template)) {
+				} else if(!$template->useRoles || $user->hasPermission('page-edit', $template)) {
 					// determine if the template's assigned roles match up with the users's roles
 					// and that at least one of those roles has page-edit permission
 					$templates[$template->id] = $template; 
@@ -892,7 +879,7 @@ class ProcessPageEdit extends Process {
 		if($this->page->template->noChangeTemplate) return false; 
 
 		// check if the parent's template requires a specific template for it's children
-		if($this->page->parent->id && $this->page->parent->template->childrenTemplatesID > 0 && $this->page->parent->template->childrenTemplatesID != $id) return false; 
+		if($this->page->parent->id && (count($this->page->parent->template->childTemplates) && !in_array($id, $this->page->parent->template->childTemplates))) return false; 
 
 		// if we're dealing with superuser, no need to check further access
 		if($this->fuel('user')->isSuperuser()) return true;

@@ -30,6 +30,8 @@ $(document).ready(function() {
 				}
 			}); 
 
+			$("input.viewRoles").attr('checked', 'checked'); 	
+
 		} else {
 
 			$(items).each(function(key, value) {
@@ -44,20 +46,61 @@ $(document).ready(function() {
 		}
 	}; 
 
+	var adjustRolesTable = function() {
+		$(".editRoles").each(function() {
+			var val = $(this).val();
+			var $createRoles = $(".createRoles[value=" + val + "]"); 
+			if($(this).is(":checked")) {
+				$createRoles.removeAttr('disabled'); 	
+			} else {
+				$createRoles.removeAttr('checked').attr('disabled', 'disabled');
+			}
+		}); 
+	}; 
+	$(".editRoles").click(adjustRolesTable);
+	adjustRolesTable();
+		
+
 	$("#wrap_useRoles input").click(function() {
 		if($("#useRoles_1:checked").size() > 0) {
+			$("#wrap_redirectLogin").hide();
+			$("#wrap_guestSearchable").hide();
 			$("#useRolesYes").slideDown();
 			$("#wrap_useRoles > label").click();
 		} else {
 			$("#useRolesYes").slideUp(); 
 		}
+
 	
 	});
 	if($("#useRoles_0:checked").size() > 0) $("#useRolesYes").hide();
 
-	$("#roles_37").click(adjustAccessFields); 
+	$("#roles_37").click(adjustAccessFields);
 
 	$("#wrap_redirectLogin input").click(redirectLoginClick); 
+
+	// ----------------
+	// family
+
+	$("#wrap_noChildren input").click(function() {
+		if($("#noChildren_0:checked").size() > 0) {
+			$("#wrap_childTemplates").slideDown(); 
+		} else {	
+			$("#wrap_childTemplates").slideUp(); 
+		}
+	}); 
+	if($("#noChildren_1:checked").size() > 0) $("#wrap_childTemplates").hide();
+
+	$("#wrap_noParents input").click(function() {
+		if($("#noParents_0:checked").size() > 0) {
+			$("#wrap_parentTemplates").slideDown(); 
+		} else {	
+			$("#wrap_parentTemplates").slideUp(); 
+		}
+	}); 
+	if($("#noParents_1:checked").size() > 0) $("#wrap_parentTemplates").hide();
+
+	// ----------------
 
 	var adjustCacheFields = function() {
 		var val = parseInt($(this).attr('value')); 		

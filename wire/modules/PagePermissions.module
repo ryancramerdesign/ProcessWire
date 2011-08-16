@@ -36,6 +36,7 @@ class PagePermissions extends WireData implements Module {
 		$this->addHook('Page::viewable', $this, 'viewable'); 
 		$this->addHook('Page::listable', $this, 'listable'); 
 		$this->addHook('Page::deleteable', $this, 'deleteable'); 
+		$this->addHook('Page::createable', $this, 'createable'); 
 		$this->addHook('Page::addable', $this, 'addable'); 
 		$this->addHook('Page::moveable', $this, 'moveable'); 
 		$this->addHook('Page::sortable', $this, 'sortable'); 
@@ -84,16 +85,6 @@ class PagePermissions extends WireData implements Module {
 			if($page->hasRole('superuser') && !$user->hasRole('superuser')) return false; 
 
 			if($user->hasPermission('user-admin')) return true; 
-
-		} else if($page instanceof Role) {
-		
-			if($user->hasPermission('role-admin')) return true; 
-			return false; 
-
-		} else if($page instanceof Permission) {
-
-			if($user->hasPermission('permission-admin')) return true; 
-			return false; 
 		}
 
 		// if the user doesn't have page-edit permission, don't let them go further
@@ -200,8 +191,8 @@ class PagePermissions extends WireData implements Module {
 	 */
 	public function listable($event) {
 		$page = $event->object; 
-		if($page->template->guestSearchable) $event->return = true; 
-			else $event->return = $this->user->hasPermission("page-view", $page);
+		if($page->getAccessTemplate()->guestSearchable) $event->return = true; 
+			else $event->return = $page->viewable();
 	}
 
 	/**
@@ -211,7 +202,7 @@ class PagePermissions extends WireData implements Module {
 	public function deleteable($event) {
 		$page = $event->object;
 		$deleteable = $this->pages->isDeleteable($page); 
-		if($deleteable) $deleteable = $this->user->hasPermission("page-delete", $page);
+		if($deleteable) $deleteable = $page->editable() && $this->user->hasPermission("page-delete", $page);
 		if($deleteable && $page instanceof User) {
 			if($page->id == $this->user->id) $deleteable = false; 
 				else if($page->hasRole('superuser') && !$this->user->hasRole('superuser')) $deleteable = false; 
@@ -222,6 +213,8 @@ class PagePermissions extends WireData implements Module {
 	/**
 	 * Can the current user add child pages to this page?
 	 *
+	 * Optionally specify the page to be added as the first argument for additional access checking.
+	 *
 	 */
 	public function addable($event) {
 
@@ -229,7 +222,7 @@ class PagePermissions extends WireData implements Module {
 		$user = $this->fuel('user'); 
 		$addable = false; 
 
-		if($page->template->childrenTemplatesID < 0) {
+		if($page->template->noChildren) {
 			$addable = false; 
 
 		} else if($user->isSuperuser()) {
@@ -240,19 +233,67 @@ class PagePermissions extends WireData implements Module {
 			// rather than us having a separate 'users' template where access is defined
 			$addable = true; 
 
-		} else {
-			foreach($page->template->addRoles as $roleID) {
-				if($user->hasRole($roleID)) {
-					$role = $this->fuel('roles')->get($roleID); 
-					if($role->id && $role->hasPermission('page-edit')) {
-						$addable = true;
-						break;
-					}
+		} else if($user->hasPermission('page-add', $page)) {
+			$has = true; 
+
+			if(count($page->template->childTemplates)) {
+				// page's template defines specific templates for children
+				// see if the user has access to one of them 
+				$has = false;
+				foreach($page->template->childTemplates as $id) {
+					$template = $this->fuel('templates')->get($id);
+					if(!$template->useRoles) $template = $page->getAccessTemplate();
+					if($user->hasPermission('page-edit', $template)) $has = true;           
+					if($has) break;
+				}
+
+			} else {
+				// page's template does not specify templates for children
+				// so check to see if they have edit access to ANY template
+				$has = false;
+				foreach($this->fuel('templates') as $template) { 
+					if($template->noParents) continue; 
+					if($template->parentTemplates && !in_array($page->template->id, $template->parentTemplates)) continue; 
+					$has = $user->hasPermission('page-edit', $template); 
+					if($has) break;
 				}
 			}
+
+			$addable = $has;
+		}
+
+		// check if a $page is provided as the first argument for additional access checking
+		if($addable && isset($event->arguments[0]) && $event->arguments[0] instanceof Page) {
+			$addPage = $event->arguments[0]; 
+			if(count($page->template->childTemplates) && !in_array($addPage->template->id, $page->template->childTemplates)) {
+				$addable = false;
+			}	
 		}
 
 		$event->return = $addable;
+	}
+
+	/**
+	 * Can the user create pages of this type?
+	 *
+	 */
+	public function createable($event) {
+
+		$page = $event->object; 		
+		$user = $this->fuel('user');
+		$createable = false;
+
+		if($page->template->noParents) {
+			$createable = false;
+
+		} else if($user->isSuperuser()) {
+			$createable = true; 
+
+		} else {
+			$createable = $user->hasPermission('page-create', $page); 
+		}
+
+		$event->return = $createable; 
 	}
 
 	/**
@@ -263,11 +304,13 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 */
 	public function moveable($event) {
-		$moveable = $this->fieldEditable($event->object, 'parent'); 
+		$page = $event->object; 
+		$moveable = $page->editable('parent');
 		if($moveable && count($event->arguments) && $event->arguments[0] instanceof Page) {
 			$parent = $event->arguments[0];
-			$moveable = $parent->addable();
+			$moveable = $parent->addable($page);
 		}
+		if($page->id == 1) $moveable = false; 
 		$event->return = $moveable;
 	}
 
@@ -278,7 +321,7 @@ class PagePermissions extends WireData implements Module {
 	public function sortable($event) {
 		$page = $event->object; 
 		$sortable = false; 
-		if($this->user->hasPermission('page-sort', $page->parent)) $sortable = true; 
+		if($page->editable() && $this->user->hasPermission('page-sort', $page->parent)) $sortable = true; 
 		$event->return = $sortable;
 	}
 

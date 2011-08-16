@@ -347,14 +347,18 @@ class Pages extends Wire {
 				$saveable = false;
 				$reason = "Pages using template '{$page->template}' are not moveable (template::noMove)";
 
-			} else if($page->parent->template->childrenTemplatesID < 0) {
+			} else if($page->parent->template->noChildren) {
 				$saveable = false;
 				$reason = "Chosen parent '{$page->parent->path}' uses template that does not allow children.";
 
-			} else if($page->parent->template->childrenTemplatesID > 0 && $page->template->id != $page->parent->template->childrenTemplatesID) {
+			} else if($page->parent->id && count($page->parent->template->childTemplates) && !in_array($page->template->id, $page->parent->template->childTemplates)) {
 				// make sure the new parent's template allows pages with this template
 				$saveable = false;
 				$reason = "Can't move '{$page->name}' because Template '{$page->parent->template}' used by '{$page->parent->path}' doesn't allow children with this template.";
+
+			} else if(count($page->template->parentTemplates) && !in_array($page->parent->template->id, $page->template->parentTemplates)) {
+				$saveable = false;
+				$reason = "Can't move '{$page->name}' because Template '{$page->parent->template}' used by '{$page->parent->path}' is not allowed by template '{$page->template->name}'.";
 
 			} else if(count($page->parent->children("name={$page->name},status<" . Page::statusMax))) { 
 				$saveable = false;

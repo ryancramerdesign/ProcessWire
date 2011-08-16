@@ -64,6 +64,9 @@ class User extends Page {
 	 *
  	 * This only indicates that the user has the permission, and not where they have the permission.
 	 *
+	 * This is a basic permission check and it is recommended that you use those from the PagePermissions module instead. 
+	 * The PagePermissions does use this function for some of it's checking. 
+	 *
 	 * @param string|Permission
 	 * @param Page $page Optional page to check against
 	 * @return bool
@@ -76,16 +79,36 @@ class User extends Page {
 		if($name instanceof Page) {
 			$permission = $name; 
 		} else {
-			$permission = $this->fuel('permissions')->get("name=$name"); 
+			$p = $name; 
+			// page-add and page-create don't actually exist in the DB, so we substitute page-edit for them 
+			if($name == 'page-add' || $name == 'page-create') $p = 'page-edit';
+			$permission = $this->fuel('permissions')->get("name=$p"); 
 		}
+
+		if(!$permission || !$permission->id) return false;
 
 		$has = false; 
 
 		foreach($this->roles as $key => $role) {
+
 			if(!$role || !$role->id) continue; 
+
 			if(!is_null($page)) {
-				if(!$page->id || !$page->hasAccessRole($role)) continue; 
+				if(!$page->id) continue;  
+
+				// if page doesn't have the 'view' role, then no access
+				if(!$page->hasAccessRole($role)) continue; 
+
+				// if permission is page-edit, we also check against the template's editRoles
+				if($name == 'page-edit' && !in_array($role->id, $page->getAccessTemplate()->editRoles)) continue; 
+
+				// check against addRoles
+				if($name == 'page-add' && !in_array($role->id, $page->getAccessTemplate()->addRoles)) continue;
+
+				// check against createRoles
+				if($name == 'page-create' && !in_array($role->id, $page->getAccessTemplate()->createRoles)) continue; 
 			}
+
 			if($role->hasPermission($permission)) { 
 				$has = true;
 				break;
@@ -94,6 +117,7 @@ class User extends Page {
 
 		return $has; 
 	}
+
 
 	/**
 	 * Does this user have the given permission on the given template?
@@ -121,12 +145,16 @@ class User extends Page {
 
 		// if the template is not defining roles, we have to say 'no' to permission
 		// because we don't have any page context to inherit from at this point
-		if(!$template->useRoles) return false; 
+		// if(!$template->useRoles) return false; 
 
 		$has = false;
 
 		foreach($this->roles as $role) {
 			if(!$template->hasRole($role)) continue; 
+			if(!$role->hasPermission($name)) continue; 
+			if($name == 'page-edit' && !in_array($role->id, $template->editRoles)) continue; 
+			if($name == 'page-add' && !in_array($role->id, $template->addRoles)) continue; 
+			if($name == 'page-create' && !in_array($role->id, $template->createRoles)) continue; 
 			if($role->hasPermission($name)) {
 				$has = true;
 				break;
@@ -137,35 +165,9 @@ class User extends Page {
 	}
 
 	/**
-	 * Does this user have page-add permission to the given page?
-	 *
-	 * This is a special case for the 'page-add' permission, because it has to 
-	 * check that the permission is on the access template's addRoles field.
-	 *
-	 * @param Page $page
-	 * @return bool
-	 *	
-	public function hasPageAddPermission(Page $page) {
-
-		$has = false;
-		$template = $page->getAccessTemplate();	
-
-		$role_ids = array();
-		foreach($this->roles as $role) $role_ids[] = $role->id;
-
-		foreach($template->addRoles as $role_id) {
-			if(in_array($role_id, $role_ids)) {
-				$has = true;
-				break;
-			}
-		}
-
-		return $has;
-	}
-	 */
-
-	/**
 	 * Get this user's permissions, optionally within the context of a Page
+	 *
+	 * Does not currently include page-add or page-create permissions. 
 	 *
 	 * @param Page $page Optional page to check against
 	 * @return bool
@@ -177,6 +179,7 @@ class User extends Page {
 		foreach($this->roles as $key => $role) {
 			if($page && !$page->hasAccessRole($role)) continue; 
 			foreach($role->permissions as $permission) { 
+				if($page && $permission->name == 'page-edit' && !in_array($role->id, $page->getAccessTemplate()->editRoles)) continue; 
 				$permissions->add($permission); 
 			}
 		}

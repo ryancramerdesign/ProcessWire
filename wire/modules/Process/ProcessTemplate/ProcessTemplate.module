@@ -114,6 +114,7 @@ class ProcessTemplate extends Process {
 		// --------------------------------------
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
+		$table->setEncodeEntities(false); 
 		$table->headerRow(array('Name', 'Pages', 'Fields', '')); 
 
 		foreach($this->fuel('templates') as $template) {
@@ -126,6 +127,8 @@ class ProcessTemplate extends Process {
 			}
 
 			if($filterField && !$template->fieldgroup->has($filterField)) continue; 
+
+			if($template->useRoles) $notes .= " access";
 
 			$table->row(array(
 				"{$template->name} " => "edit?id={$template->id}", 
@@ -317,10 +320,10 @@ class ProcessTemplate extends Process {
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
-		$t->head = "Settings for children of pages using this template";
+		$t->head = "Optional usage and placement in the page tree";
 		$t->attr('class', 'WireTab'); 
-		$t->attr('title', "Children");
-		$t->add($this->buildEditFormChildren($template)); 
+		$t->attr('title', "Family");
+		$t->add($this->buildEditFormFamily($template)); 
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
@@ -772,30 +775,68 @@ class ProcessTemplate extends Process {
 		return $form; 
 	}
 
-	protected function buildEditFormChildren(Template $template) {
+	protected function buildEditFormFamily(Template $template) {
 
 		$form = new InputfieldWrapper();
-		$form->attr('id', 'children'); 	
+		$form->attr('id', 'family'); 	
 
 		// --------------------
 
-		$field = $this->modules->get('InputfieldSelect'); 
-		$field->attr('name', 'childrenTemplatesID'); 
-		$field->label = "Required Template for Children";
-		$field->collapsed = Inputfield::collapsedNo;
+		$field = $this->modules->get("InputfieldRadios"); 
+		$field->attr('id+name', 'noChildren'); 
+		$field->label = "May pages using this template have children?";
+		$field->addOption(0, 'Yes'); 
+		$field->addOption(1, 'No'); 
+		$field->attr('value', (int) $template->noChildren); 
+		$form->add($field);
+
+		// --------------------
+
+		$field = $this->modules->get("InputfieldRadios"); 
+		$field->attr('id+name', 'noParents'); 
+		$field->label = "Can this template be used for new pages?";
+		$field->notes = "An example of a template that you wouldn't want to be used for new pages is your 'homepage' template.";
+		$field->addOption(0, 'Yes'); 
+		$field->addOption(1, 'No'); 
+		$field->attr('value', (int) $template->noParents); 
+		$form->add($field);
+
+
+		// ----------------------
+
+		$field = $this->modules->get('InputfieldAsmSelect'); 
+		$field->attr('id+name', 'childTemplates'); 
+		$field->label = "Allowed template(s) for children";
 		$field->description = 
-			"Select the template that will be enforced for any children of pages using this template. " .
-			"If you select 'Disallow Children' then pages using this template will be unable to add children. ";
+			"Select the template(s) that will be allowed for children of pages using this template. " . 
+			"Use this only if you specifically want to restrict placement of pages using this template.";
 
-		$field->addOption(0, 'Any'); 
-		$field->addOption(-1, "Disallow Children"); 
-		foreach($this->templates as $t) $field->addOption($t->id, $t->name); 
-		$field->attr('value', (int) $template->childrenTemplatesID); 
-		$form->append($field); 
+		foreach($this->templates as $t) $field->addOption($t->id, $t->name);
+		$field->attr('value', $template->childTemplates); 
+		$field->collapsed = count($template->childTemplates) ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
+		$field->notes = 
+			"If none are selected then any are allowed, within the user's access limits. " . 
+			"An example usage could be a 'news-list' template that is only allowed to have children using 'news-item' or 'press-release' templates. ";
+		$form->add($field); 
 
 		// --------------------
 
-		$this->buildEditFormAccessAddRoles($template, $form); 
+		$field = $this->modules->get('InputfieldAsmSelect'); 
+		$field->attr('id+name', 'parentTemplates'); 
+		$field->label = "Allowed template(s) for parents";
+		$field->description = 
+			"Select the template(s) that will be allowed as parents for pages using this template. " . 
+			"Use this only if you specifically want to restrict placement of pages using this template. ";
+
+		foreach($this->templates as $t) $field->addOption($t->id, $t->name);
+		$field->attr('value', $template->parentTemplates); 
+		$field->collapsed = count($template->parentTemplates) ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
+		$field->notes = 
+			"If none are selected then any parent template is allowed, within the user's access limits. " . 
+			"An example usage could be an 'employee' template that is only allowed to have a parent page using a 'company-directory' template. ";
+		$form->add($field); 
+
+		// $this->buildEditFormAccessAddRoles($template, $form); 
 
 		return $form;
 	}
@@ -970,6 +1011,7 @@ class ProcessTemplate extends Process {
 		return $form; 
 	}
 
+	/*
 	protected function buildEditFormAccessAddRoles(Template $template, $fieldset) {
 
 
@@ -1014,52 +1056,129 @@ class ProcessTemplate extends Process {
 
 		if($cnt) $fieldset->add($field); 
 	}
-	
+	*/
+
 	protected function buildEditFormAccessRoles(Template $template = null) {
 
 		$roles = $this->pages->get($this->config->rolesPageID)->children(); 
-
-		$field = $this->modules->get("InputfieldCheckboxes"); 
-		$field->table = true; 
-		$field->thead = "Role|Page Permissions";
-		$field->attr('id+name', 'roles'); 
-		$field->label = "What roles can access pages using this template?";
-		$field->description = 
-			"Check the box next to each role that will be allowed to access pages using this template. " . 
-			"For your reference, the permissions associated with each role are also listed. " . 
-			"Because the 'guest' role applies to everyone, all other roles inherit guest permissions automatically when it is checked. " . 
-			"Note that in order for a page using this template to be publicly accessible, the 'guest' role must be checked. "; 
-		$field->notes = 
-			"Please also see the 'children' tab to define roles that may add children to pages using this template.";
-
 		$guestRole = $roles->get("name=guest"); 
+		$checked = "checked='checked' ";
+		$disabled = "<input type='checkbox' disabled='disabled' />";
 
-		$ids = array();
+		$field = $this->modules->get("InputfieldMarkup"); 
+		$field->thead = "Role";
+		$field->attr('id', 'roles_editor'); 
+		$field->label = "What roles can access pages using this template (and those inheriting from it)?";
+
+		$table = $this->modules->get("MarkupAdminDataTable"); 
+		$table->setEncodeEntities(false);
+		$table->headerRow(array('Role', "View Pages", "Edit Pages", "Create Pages", "Add Children to Pages")); 
+
+		$ids1 = array(); // view
+		$ids2 = array(); // edit
+		$ids3 = array(); // add
+		$ids4 = array(); // create
+
 		if($template && $template->id) {
-			foreach($template->roles as $role) $ids[] = $role->id; 
+			foreach($template->roles as $role) $ids1[] = $role->id; 
+			foreach($template->editRoles as $id) $ids2[] = $id; 
+			foreach($template->addRoles as $id) $ids3[] = $id;
+			foreach($template->createRoles as $id) $ids4[] = $id; 
 			
 		} else {
 			// if new template, default to having the guest role
-			$ids[] = $guestRole->id;
+			$ids1[] = $guestRole->id;
 		}
 
 		foreach($roles as $role) {
 			$label = $role->name; 
-			if($label == 'superuser') continue; 
-			if($label == 'guest') $label .= " (everyone)";
+			$editable = false;
 			$details = '';
 			foreach($role->permissions as $permission) {
 				if(strpos($permission->name, 'page-') !== 0) continue; 
+				if($permission->name == 'page-edit') $editable = true; 
 				$details .= $permission->title;
 				$details .= "\n";
 			}
 			$details = rtrim($details, "\n"); 
-			if(empty($details)) continue; 
-			$field->addOption($role->id, "$label|$details"); 
+			if($label == 'superuser') continue; 
+			if($label == 'guest') $label .= " (everyone)";
+
+			$table->row(array(
+				$label,
+				("<input type='checkbox' id='roles_{$role->id}' class='viewRoles' name='roles[]' value='{$role->id}' " . ($template->roles->has($role) ? $checked : '') . "' />"), 
+				($editable ? ("<input type='checkbox' class='editRoles' name='editRoles[]' value='{$role->id}' " . (in_array($role->id, $template->editRoles) ? $checked : '') . "' />") : $disabled), 
+				($editable ? ("<input type='checkbox' class='createRoles' name='createRoles[]' value='{$role->id}' " . (in_array($role->id, $template->createRoles) ? $checked : '') . "' />") : $disabled),
+				($editable ? ("<input type='checkbox' class='addRoles' name='addRoles[]' value='{$role->id}' " . (in_array($role->id, $template->addRoles) ? $checked : '') . "' />") : $disabled)
+				));
 		}
 
-		$field->value = $ids; 
+		$field->value = $table->render();
+
 		return $field; 
+	}
+	
+	protected function _buildEditFormAccessRoles(Template $template = null) {
+
+		$form = new InputfieldWrapper();
+
+		$roles = $this->pages->get($this->config->rolesPageID)->children(); 
+		$guestRole = $roles->get("name=guest"); 
+
+		$field1 = $this->modules->get("InputfieldCheckboxes"); 
+		$field1->thead = "Role";
+		$field1->attr('id+name', 'roles'); 
+		$field1->label = "What roles can VIEW pages using this template?";
+		$field1->description = 
+			"Check the box next to each role that will be allowed to view pages using this template. " . 
+
+		$field2 = $this->modules->get("InputfieldCheckboxes"); 
+		$field2->table = true; 
+		$field2->thead = "Role|Page Permissions|Children";
+		$field2->attr('id+name', 'editRoles'); 
+		$field2->label = "What roles can EDIT pages using this template?";
+		$field2->description = 
+			"Check the box next to each role that will be allowed to edit pages using this template. " . 
+
+		$ids1 = array();
+		$ids2 = array(); 
+
+		if($template && $template->id) {
+			foreach($template->roles as $role) $ids1[] = $role->id; 
+			foreach($template->editRoles as $role) $ids2[] = $role->id; 
+			
+		} else {
+			// if new template, default to having the guest role
+			$ids1[] = $guestRole->id;
+		}
+
+		foreach($roles as $role) {
+			$label = $role->name; 
+			$editable = false;
+			$details = '';
+			foreach($role->permissions as $permission) {
+				if(strpos($permission->name, 'page-') !== 0) continue; 
+				if($permission->name == 'page-edit') $editable = true; 
+				$details .= $permission->title;
+				$details .= "\n";
+			}
+			$details = rtrim($details, "\n"); 
+			if($label == 'superuser') continue; 
+			if($label == 'guest') {
+				$label .= " (everyone)";
+			} else if($editable) {
+				$field2->addOption($role->id, "$label|$details|<span>Hello</span>"); 
+			}
+			$field1->addOption($role->id, $label); 
+		}
+
+		$field1->value = $ids1; 
+		$field2->value = $ids2; 
+
+		$form->add($field1);
+		$form->add($field2);
+
+		return $form; 
 	}
 
 	/**
@@ -1083,11 +1202,10 @@ class ProcessTemplate extends Process {
 			return; 
 		}
 
-		if($this->input->post->fieldgroup != $this->template->fieldgroup->id) {
+		if($this->input->post->fieldgroup && $this->input->post->fieldgroup != $this->template->fieldgroup->id) {
 			$redirectUrl = "fieldgroup?id={$this->template->id}&fieldgroup=" . (int) $this->input->post->fieldgroup;
 		} 
 
-		$this->template->childrenTemplatesID = (int) $form->get('childrenTemplatesID')->attr('value'); 
 		$this->template->allowPageNum = (int) $form->get('allowPageNum')->attr('value'); 
 		$this->template->redirectLogin = (int) $form->get('redirectLogin')->attr('value'); 
 		if($this->template->redirectLogin < 0) $this->template->redirectLogin = $form->get('redirectLoginURL')->attr('value'); 
@@ -1101,6 +1219,30 @@ class ProcessTemplate extends Process {
 		$this->template->useCacheForUsers = (int) $form->get('useCacheForUsers')->attr('value');
 		$this->template->noCacheGetVars = $this->fuel('sanitizer')->names($form->get('noCacheGetVars')->attr('value')); 
 		$this->template->noCachePostVars = $this->fuel('sanitizer')->names($form->get('noCachePostVars')->attr('value')); 
+	
+		// family
+	
+		if($this->input->post->noChildren) {
+			$this->template->noChildren = 1; 	
+			$this->template->childTemplates = array();
+		} else {
+			$a = array();
+			foreach($this->input->post->childTemplates as $id) $a[] = (int) $id;	
+			$this->template->childTemplates = $a; 
+			$this->template->noChildren = 0;
+		}
+
+		if($this->input->post->noParents) {
+			$this->template->noParents = 1; 	
+			$this->template->parentTemplates = array();
+		} else {
+			$a = array();
+			foreach($this->input->post->parentTemplates as $id) $a[] = (int) $id;	
+			$this->template->parentTemplates = $a; 
+			$this->template->noParents = 0;
+		}
+
+		// advanced
 
 		if($this->config->advanced) { 
 			if($form->get('flagSystem')->attr('value')) $this->template->flags = $this->template->flags | Template::flagSystem; 
@@ -1116,12 +1258,10 @@ class ProcessTemplate extends Process {
 		// save roles
 		$this->template->useRoles = (int) $form->get('useRoles')->attr('value'); 
 
-		foreach(array('roles', 'addRoles') as $key) { 
-			$f = $form->get($key); 
-			if(!$f instanceof Inputfield) continue; 
-			$value = $f->attr('value'); 
+		foreach(array('roles', 'addRoles', 'editRoles', 'createRoles') as $key) { 
+			$value = $this->input->post->$key;
 			if(!is_array($value)) $value = array();
-			foreach($value as $k => $v) $value[$k] = (int) $v;
+			foreach($value as $k => $v) $value[(int)$k] = (int) $v;
 			$this->template->set($key, $value); 
 		}
 

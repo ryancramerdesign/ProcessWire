@@ -32,7 +32,7 @@ class ProcessPageSort extends Process {
 			'summary' => 'Handles page sorting and moving for PageList', 
 			'version' => 100, 
 			'permanent' => true, 
-			'permission' => 'page-sort',
+			'permission' => 'page-edit',
 			); 
 	}
 

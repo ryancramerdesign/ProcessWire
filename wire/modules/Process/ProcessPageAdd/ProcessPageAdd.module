@@ -62,14 +62,15 @@ class ProcessPageAdd extends Process {
 		$this->parent = $this->pages->get($this->parent_id); 
 		if(!$this->parent) throw new Wire404Exception("Unable to load page {$this->id}"); 
 
-		if($this->parent->template->childrenTemplatesID < 0) {
+		if($this->parent->template->noChildren) {
 			throw new WireException("The parent template has specified that no children may be added here"); 
 
 		} else if(!$this->parent->addable()) {
 			throw new WireException("You don't have access to add pages here"); 
 
-		} else if($this->parent->template->childrenTemplatesID > 0) {
-			$this->template = $this->templates->get($this->parent->template->childrenTemplatesID); 	
+		} else if(count($this->parent->template->childTemplates) == 1) {
+			$childTemplates = $this->parent->template->childTemplates;
+			$this->template = $this->templates->get(reset($childTemplates)); 	
 			if(!$this->isAllowedTemplate($this->template)) throw new WireException("You don't have access to the template required to add pages here"); 
 		}
 
@@ -90,25 +91,34 @@ class ProcessPageAdd extends Process {
 	protected function getAllowedTemplates() {
 
 		if(is_array($this->allowedTemplates)) return $this->allowedTemplates;
+
 		$isSuperuser = $this->fuel('user')->isSuperuser();
 		$user = $this->fuel('user');
 		$templates = array();
+		$parentEditable = $this->parent->editable();
 
-		if($this->parent->template->childrenTemplatesID) {
-			$template = $this->templates->get($this->parent->template->childrenTemplatesID); 
-			if($template && (!$template->useRoles || $user->hasPermission('page-edit', $template))) {
-				$templates[$template->id] = $template;
+		foreach($this->fuel('templates') as $t) {
+
+			if($t->noParents) continue; 
+
+			if(!$user->hasPermission('page-edit', $t) && $t->useRoles) continue;  
+			if(!$t->useRoles && !$parentEditable) continue; 
+
+			if(count($this->parent->template->childTemplates)) {
+				if(!in_array($t->id, $this->parent->template->childTemplates)) continue; 
+			} 
+
+			if(count($t->parentTemplates)) {
+				if(!in_array($this->parent->template->id, $t->parentTemplates)) continue; 
 			}
 
-		} else { 
-			foreach($this->fuel('templates') as $template) {
-				$allowed = false;
-
-				if($user->hasPermission('page-edit', $template)) {
-					// if the user has page-edit permission on the template, then it's allowed here
-					$templates[$template->id] = $template;
-				}
+			if($t->flags & Template::flagSystem) { 
+				if($t->name == 'user' && $this->parent->id != $this->config->usersPageID) continue; 
+				if($t->name == 'role' && $this->parent->id != $this->config->rolesPageID) continue; 
+				if($t->name == 'permission' && $this->parent->id != $this->config->permissionsPageID) continue; 
 			}
+
+			$templates[$t->id] = $t;
 		}
 
 		$this->allowedTemplates = $templates;
