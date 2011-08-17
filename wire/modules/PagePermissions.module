@@ -253,9 +253,16 @@ class PagePermissions extends WireData implements Module {
 				// so check to see if they have edit access to ANY template
 				$has = false;
 				foreach($this->fuel('templates') as $template) { 
+
 					if($template->noParents) continue; 
 					if($template->parentTemplates && !in_array($page->template->id, $template->parentTemplates)) continue; 
-					$has = $user->hasPermission('page-edit', $template); 
+
+					if($template->useRoles) {
+						$has = $user->hasPermission('page-edit', $template); 
+					} else {
+						$has = !($template->flags & Template::flagSystem); 
+					}
+
 					if($has) break;
 				}
 			}
@@ -270,6 +277,7 @@ class PagePermissions extends WireData implements Module {
 				$addable = false;
 			}	
 		}
+
 
 		$event->return = $addable;
 	}
