@@ -213,7 +213,8 @@ a {
 		margin: 1em 0;
 	}
 
-	#content table th.header {
+	#content table th.header,
+	.content h4 {
 		font-family: "Helvetica Neue", Arial, sans-serif;
 		color: #b0ced8; 
 	}
@@ -244,6 +245,12 @@ a {
 		font-size: 1.5em; 
 	}
 
+	.content h4 {
+		margin: 1em 0 0.25em 0;
+		text-transform: uppercase;
+		font-weight: bold;
+		font-size: 0.916666666666667em;
+	}
 	.content ul, 
 	.content ol {
 	}

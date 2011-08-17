@@ -3,8 +3,16 @@
 	display: none;
 }
 
-#ProcessPageSearchResults {
+#ProcessPageSearchResults.show_options {
 	padding-left: 260px;
+}
+
+#ProcessPageSearchResults:after { /* clearfix */
+	content: ".";
+	display: block;
+	height: 0;
+	clear: both; 
+	visibility: hidden;
 }
 
 #ProcessPageSearchOptions {
@@ -31,3 +39,9 @@
 #ProcessPageSearchOptionsForm input[type=text] {
 	width: 202px;
 }
+
+#ProcessPageSearchShortcuts a {
+	display: block;
+	border-top: 1px dotted #ccc; 
+}
+
