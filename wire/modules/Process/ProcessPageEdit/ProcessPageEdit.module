@@ -827,31 +827,37 @@ class ProcessPageEdit extends Process {
 		// current page template is assumed, otherwise we wouldn't be here
 		$templates[$this->page->template->id] = $this->page->template; 
 
-		if($this->page->template->noChangeTemplate) {
-			// don't add any more templates
+		if($user->hasPermission('page-template', $this->page)) {
 
-		} else if($this->page->parent->id && count($this->page->parent->template->childTemplates)) {
-			foreach($this->page->parent->template->childTemplates as $id) {
-				if($id == $this->page->template->id) continue; 
-				$t = $this->fuel('templates')->get($id); 
-				if(!$t->useRoles || $user->hasPermission('page-edit', $t)) $templates[$id] = $t; 
-			}
+			if($this->page->template->noChangeTemplate) {
+				// don't add any more templates
 
-		} else if($user->hasPermission('page-template', $this->page)) {
-			// user is allowed to change the page's template
-			// so now determine which ones they can change to
+			} else if($this->page->parent->id && count($this->page->parent->template->childTemplates)) {
+				// only certain child templates are allowed
+				foreach($this->page->parent->template->childTemplates as $id) {
+					if($id == $this->page->template->id) continue; 
+					$t = $this->fuel('templates')->get($id); 
+					if(!$t->useRoles || $user->hasPermission('page-edit', $t)) $templates[$id] = $t; 
+				}
 
-			foreach($this->fuel('templates') as $template) {
+			} else {
+				// user is allowed to change the page's template
+				// so now determine which ones they can change to
 
-				if(isset($templates[$template->id])) continue; 
+				foreach($this->fuel('templates') as $template) {
 
-				if($isSuperuser) { 
-					$templates[$template->id] = $template;
+					if(isset($templates[$template->id])) continue; 
 
-				} else if(!$template->useRoles || $user->hasPermission('page-edit', $template)) {
-					// determine if the template's assigned roles match up with the users's roles
-					// and that at least one of those roles has page-edit permission
-					$templates[$template->id] = $template; 
+					if($template->flags & Template::flagSystem) continue; 
+
+					if($isSuperuser) { 
+						$templates[$template->id] = $template;
+
+					} else if(!$template->useRoles || $user->hasPermission('page-edit', $template)) {
+						// determine if the template's assigned roles match up with the users's roles
+						// and that at least one of those roles has page-edit permission
+						$templates[$template->id] = $template; 
+					}
 				}
 			}
 		}

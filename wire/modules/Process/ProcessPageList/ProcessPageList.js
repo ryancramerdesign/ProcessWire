@@ -509,6 +509,8 @@ $(document).ready(function() {
 			 */
 			function clickMove() {
 
+				if(ignoreClicks) return false;
+
 				var $t = $(this); 
 				var $li = $t.parent('li').parent('ul.PageListActions').parent('.PageListItem'); 
 

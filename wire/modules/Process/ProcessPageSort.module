@@ -101,8 +101,9 @@ class ProcessPageSort extends Process {
 		}
 
 		if($parent->sortfield && $parent->sortfield != 'sort') {
-			$msg = "Pages with parent '{$parent->path}' are automatically sorted by '{$parent->sortfield}, so it's position in this list may change when you reload.";
-			$this->message($msg); 
+			$msg = "Your sort was not saved because pages in {$parent->path} are automatically sorted by {$parent->sortfield}.";
+			if(!$this->isMoved) throw new WireException($msg); 
+				else $this->message($msg); 
 			return;
 		}
 
