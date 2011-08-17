@@ -73,7 +73,7 @@ class Template extends WireData implements Saveable {
 	protected $data = array(
 		'useRoles' => 0, 		// does this template define access?
 		'addRoles' => array(),		// IDs of roles that may add children to pages using this template
-		'createRoles' => array(),	// IDs of roles that may create pages using this template
+		'createRoles' => array(),	// TO BE REMOVED: IDs of roles that may create pages using this template
 		'editRoles' => array(),		// IDs of roles that may edit pages using this template
 		'childrenTemplatesID' => 0, 	// template ID for child pages, or -1 if no children allowed. DEPRECATED
 		'noChildren' => '', 		// set to 1 to cancel use of childTemplates

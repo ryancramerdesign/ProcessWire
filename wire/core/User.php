@@ -62,9 +62,8 @@ class User extends Page {
 	/**
 	 * Does this user have the given permission name?
 	 *
- 	 * This only indicates that the user has the permission, and not where they have the permission.
-	 *
 	 * This is a basic permission check and it is recommended that you use those from the PagePermissions module instead. 
+	 * You use the PagePermissions module by calling the editable(), addable(), etc., functions on a page object. 
 	 * The PagePermissions does use this function for some of it's checking. 
 	 *
 	 * @param string|Permission
@@ -106,7 +105,7 @@ class User extends Page {
 				if($name == 'page-add' && !in_array($role->id, $page->getAccessTemplate()->addRoles)) continue;
 
 				// check against createRoles
-				if($name == 'page-create' && !in_array($role->id, $page->getAccessTemplate()->createRoles)) continue; 
+				// if($name == 'page-create' && !in_array($role->id, $page->getAccessTemplate()->createRoles)) continue; 
 			}
 
 			if($role->hasPermission($permission)) { 
@@ -154,7 +153,7 @@ class User extends Page {
 			if(!$role->hasPermission($name)) continue; 
 			if($name == 'page-edit' && !in_array($role->id, $template->editRoles)) continue; 
 			if($name == 'page-add' && !in_array($role->id, $template->addRoles)) continue; 
-			if($name == 'page-create' && !in_array($role->id, $template->createRoles)) continue; 
+			// if($name == 'page-create' && !in_array($role->id, $template->createRoles)) continue; 
 			if($role->hasPermission($name)) {
 				$has = true;
 				break;

@@ -46,6 +46,7 @@ $(document).ready(function() {
 		}
 	}; 
 
+	/*
 	var adjustRolesTable = function() {
 		$(".editRoles").each(function() {
 			var val = $(this).val();
@@ -59,6 +60,7 @@ $(document).ready(function() {
 	}; 
 	$(".editRoles").click(adjustRolesTable);
 	adjustRolesTable();
+	*/
 		
 
 	$("#wrap_useRoles input").click(function() {

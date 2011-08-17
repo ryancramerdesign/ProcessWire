@@ -36,10 +36,10 @@ class PagePermissions extends WireData implements Module {
 		$this->addHook('Page::viewable', $this, 'viewable'); 
 		$this->addHook('Page::listable', $this, 'listable'); 
 		$this->addHook('Page::deleteable', $this, 'deleteable'); 
-		$this->addHook('Page::createable', $this, 'createable'); 
 		$this->addHook('Page::addable', $this, 'addable'); 
 		$this->addHook('Page::moveable', $this, 'moveable'); 
 		$this->addHook('Page::sortable', $this, 'sortable'); 
+		// $this->addHook('Page::createable', $this, 'createable'); 
 	}
 
 	/**
@@ -214,6 +214,7 @@ class PagePermissions extends WireData implements Module {
 	 * Can the current user add child pages to this page?
 	 *
 	 * Optionally specify the page to be added as the first argument for additional access checking.
+	 * i.e. if($page->addable($somePage))
 	 *
 	 */
 	public function addable($event) {
@@ -276,7 +277,6 @@ class PagePermissions extends WireData implements Module {
 	/**
 	 * Can the user create pages of this type?
 	 *
-	 */
 	public function createable($event) {
 
 		$page = $event->object; 		
@@ -295,6 +295,7 @@ class PagePermissions extends WireData implements Module {
 
 		$event->return = $createable; 
 	}
+	 */
 
 	/**
 	 * Is the given page moveable (i.e. change parent)?
