@@ -7,22 +7,26 @@ var InputfieldPageListSelectMultiple = {
 	 */
 	init: function($ol) {
 
-		$ol.sortable({
-			// items: '.InputfieldPageListSelectMultiple ol > li',
-			axis: 'y',
-			update: function(e, data) {
-				InputfieldPageListSelectMultiple.rebuildInput($(this)); 
-			},
-			start: function(e, data) {
-				data.item.addClass('ui-state-highlight');
-			},
-			stop: function(e, data) {
-				data.item.removeClass('ui-state-highlight');
-			}
-		}); 
+		var makeSortable = function($ol) { 
+			$ol.sortable({
+				// items: '.InputfieldPageListSelectMultiple ol > li',
+				axis: 'y',
+				update: function(e, data) {
+					InputfieldPageListSelectMultiple.rebuildInput($(this)); 
+				},
+				start: function(e, data) {
+					data.item.addClass('ui-state-highlight');
+				},
+				stop: function(e, data) {
+					data.item.removeClass('ui-state-highlight');
+				}
+			}); 
+			$ol.addClass('InputfieldPageListSelectMultipleSortable'); 
+		};
 
 		$('#' + $ol.attr('id') + '>li').live('mouseover', function() {
 			$(this).removeClass('ui-state-default').addClass('ui-state-hover'); 
+			if(!$ol.is(".InputfieldPageListSelectMultipleSortable")) makeSortable($ol); 
 		}).live('mouseout', function() {
 			$(this).removeClass('ui-state-hover').addClass('ui-state-default'); 
 		}); 
