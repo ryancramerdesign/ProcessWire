@@ -130,6 +130,8 @@ class ProcessTemplate extends Process {
 
 			if($template->useRoles) $notes .= " access";
 
+			if(!$template->filenameExists()) $notes .= " no-file";
+
 			$table->row(array(
 				"{$template->name} " => "edit?id={$template->id}", 
 				$template->getNumPages(), 
@@ -300,7 +302,7 @@ class ProcessTemplate extends Process {
 
 		if(!is_file($template->filename) && !count($this->input->post)) {
 			$this->message(
-				"Pages using this template are not viewable because the template file ($template->name.php) does not exist."
+				"Pages using this template are not viewable because the template file ($template->name.php) does not exist [no-file]."
 				); 
 		}
 

@@ -101,7 +101,7 @@ class ProcessPageAdd extends Process {
 
 			if($t->noParents) continue; 
 
-			if(!$user->hasPermission('page-edit', $t) && $t->useRoles) continue;  
+			if($t->useRoles && !$user->hasPermission('page-edit', $t)) continue;  
 			if(!$t->useRoles && !$parentEditable) continue; 
 
 			if(count($this->parent->template->childTemplates)) {

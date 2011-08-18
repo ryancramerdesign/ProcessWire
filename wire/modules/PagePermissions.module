@@ -191,8 +191,16 @@ class PagePermissions extends WireData implements Module {
 	 */
 	public function listable($event) {
 		$page = $event->object; 
-		if($page->getAccessTemplate()->guestSearchable) $event->return = true; 
-			else $event->return = $page->viewable();
+		$user = $this->fuel('user'); 
+		$listable = true; 
+
+		if($user->isSuperuser()) $listable = true; 
+			else if($page->is(Page::statusUnpublished) && !$page->editable()) $listable = false;
+			else if($page->process && !$this->processViewable($page->process)) $listable = false;
+			else if($page->getAccessTemplate()->guestSearchable) $listable = true; 
+			else if(!$user->hasPermission("page-view", $page)) $listable = false;
+
+		$event->return = $listable; 
 	}
 
 	/**
@@ -235,39 +243,9 @@ class PagePermissions extends WireData implements Module {
 			$addable = true; 
 
 		} else if($user->hasPermission('page-add', $page)) {
-			$has = true; 
-
-			if(count($page->template->childTemplates)) {
-				// page's template defines specific templates for children
-				// see if the user has access to one of them 
-				$has = false;
-				foreach($page->template->childTemplates as $id) {
-					$template = $this->fuel('templates')->get($id);
-					if(!$template->useRoles) $template = $page->getAccessTemplate();
-					if($user->hasPermission('page-edit', $template)) $has = true;           
-					if($has) break;
-				}
-
-			} else {
-				// page's template does not specify templates for children
-				// so check to see if they have edit access to ANY template
-				$has = false;
-				foreach($this->fuel('templates') as $template) { 
-
-					if($template->noParents) continue; 
-					if($template->parentTemplates && !in_array($page->template->id, $template->parentTemplates)) continue; 
-
-					if($template->useRoles) {
-						$has = $user->hasPermission('page-edit', $template); 
-					} else {
-						$has = !($template->flags & Template::flagSystem); 
-					}
-
-					if($has) break;
-				}
-			}
-
-			$addable = $has;
+			// user has page-add permission, now we need to check that they have access
+			// on the templates in this context
+			$addable = $this->addableTemplate($page, $user);
 		}
 
 		// check if a $page is provided as the first argument for additional access checking
@@ -283,27 +261,43 @@ class PagePermissions extends WireData implements Module {
 	}
 
 	/**
-	 * Can the user create pages of this type?
+	 * Checks that a parent is addable within the context of it's template
 	 *
-	public function createable($event) {
+	 * When this function is called, it has already been determined that the user has page-add permission.
+	 * So this is just narrowing down to make sure they have access on a template. 
+	 *
+	 */
+	protected function addableTemplate(Page $page, User $user) {
 
-		$page = $event->object; 		
-		$user = $this->fuel('user');
-		$createable = false;
+		$has = false; 
 
-		if($page->template->noParents) {
-			$createable = false;
+		if(count($page->template->childTemplates)) {
 
-		} else if($user->isSuperuser()) {
-			$createable = true; 
+			// page's template defines specific templates for children
+			// see if the user has access to one of them 
+
+			foreach($page->template->childTemplates as $id) {
+				$template = $this->fuel('templates')->get($id);
+				if(!$template->useRoles) $template = $page->getAccessTemplate();
+				if($user->hasPermission('page-edit', $template)) $has = true;           
+				if($has) break;
+			}
 
 		} else {
-			$createable = $user->hasPermission('page-create', $page); 
+			// page's template does not specify templates for children
+			// so check to see if they have edit access to ANY template that can be used
+
+			foreach($this->fuel('templates') as $template) { 
+				// if($template->noParents) continue; 
+				if($template->parentTemplates && !in_array($page->template->id, $template->parentTemplates)) continue; 
+				// if($template->flags & Template::flagSystem) continue;
+				$has = $user->hasPermission('page-edit', $template); 
+				if($has) break;
+			}
 		}
 
-		$event->return = $createable; 
+		return $has; 
 	}
-	 */
 
 	/**
 	 * Is the given page moveable (i.e. change parent)?

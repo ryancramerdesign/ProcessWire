@@ -823,47 +823,56 @@ class ProcessPageEdit extends Process {
 		$templates = array();
 		$user = $this->fuel('user');
 		$isSuperuser = $user->isSuperuser();
+		$page = $this->page;
+		$parent = $this->page->parent; 
+		$parentEditable = ($parent->id && $parent->editable());
 
 		// current page template is assumed, otherwise we wouldn't be here
-		$templates[$this->page->template->id] = $this->page->template; 
+		$templates[$page->template->id] = $page->template; 
 
-		if($user->hasPermission('page-template', $this->page)) {
+		// check if they even have permission to change it
+		if(!$user->hasPermission('page-template', $page) || $page->template->noChangeTemplate) {
+			$this->allowedTemplates = $templates;
+			return $templates;
+		}
 
-			if($this->page->template->noChangeTemplate) {
-				// don't add any more templates
+		foreach($this->fuel('templates') as $template) {
 
-			} else if($this->page->parent->id && count($this->page->parent->template->childTemplates)) {
-				// only certain child templates are allowed
-				foreach($this->page->parent->template->childTemplates as $id) {
-					if($id == $this->page->template->id) continue; 
-					$t = $this->fuel('templates')->get($id); 
-					if(!$t->useRoles || $user->hasPermission('page-edit', $t)) $templates[$id] = $t; 
-				}
+			if(isset($templates[$template->id])) continue; 
 
-			} else {
-				// user is allowed to change the page's template
-				// so now determine which ones they can change to
+			if($template->flags & Template::flagSystem) {
+				if($template->name == 'user' && $parent->id != $this->config->usersPageID) continue;
+				if($template->name == 'role' && $parent->id != $this->config->rolesPageID) continue;
+				if($template->name == 'permission' && $parent->id != $this->config->permissionsPageID) continue;
+			}
 
-				foreach($this->fuel('templates') as $template) {
+			if(count($template->parentTemplates) && $parent->id && !in_array($parent->template->id, $template->parentTemplates)) {
+				// this template specifies it can only be used with certain parents, and our parent's template isn't one of them
+				continue;
+			}	
 
-					if(isset($templates[$template->id])) continue; 
+			if($parent->id && count($parent->template->childTemplates)) {
+				// the page's parent only allows certain templates for it's children
+				// if this isn't one of them, then continue; 
+				if(!in_array($template->id, $parent->template->childTemplates)) continue; 
+			}
 
-					if($template->flags & Template::flagSystem) continue; 
+			if($isSuperuser) { 
+				$templates[$template->id] = $template;
 
-					if($isSuperuser) { 
-						$templates[$template->id] = $template;
+			} else if($template->noParents) {
+				// user can't change to a template that has been specified as no more instances allowed
+				// except for superuser... we'll let them do it
+				continue;
 
-					} else if(!$template->useRoles || $user->hasPermission('page-edit', $template)) {
-						// determine if the template's assigned roles match up with the users's roles
-						// and that at least one of those roles has page-edit permission
-						$templates[$template->id] = $template; 
-					}
-				}
+			} else if((!$template->useRoles && $parentEditable) || $user->hasPermission('page-edit', $template)) {
+				// determine if the template's assigned roles match up with the users's roles
+				// and that at least one of those roles has page-edit permission
+				$templates[$template->id] = $template; 
 			}
 		}
 
 		$this->allowedTemplates = $templates;
-
 		return $templates; 
 	}
 
@@ -880,18 +889,6 @@ class ProcessPageEdit extends Process {
 
 		// if the template is the same one already in place, of course it's allowed
 		if($id == $this->page->template->id) return true; 
-
-		// does this template specifically disallow template changes?
-		if($this->page->template->noChangeTemplate) return false; 
-
-		// check if the parent's template requires a specific template for it's children
-		if($this->page->parent->id && (count($this->page->parent->template->childTemplates) && !in_array($id, $this->page->parent->template->childTemplates))) return false; 
-
-		// if we're dealing with superuser, no need to check further access
-		if($this->fuel('user')->isSuperuser()) return true;
-
-		// does user have 'page-template' permission required to change the template?
-		if(!$this->fuel('user')->hasPermission('page-template', $this->page)) return false;
 
 		// if we've made it this far, then get a list of templates that are allowed...
 		$templates = $this->getAllowedTemplates();
