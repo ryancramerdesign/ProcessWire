@@ -324,7 +324,7 @@ class PagePermissions extends WireData implements Module {
 	public function sortable($event) {
 		$page = $event->object; 
 		$sortable = false; 
-		if($page->editable() && $this->user->hasPermission('page-sort', $page->parent)) $sortable = true; 
+		if($page->id > 1 && $page->editable() && $this->user->hasPermission('page-sort', $page->parent)) $sortable = true; 
 		$event->return = $sortable;
 	}
 

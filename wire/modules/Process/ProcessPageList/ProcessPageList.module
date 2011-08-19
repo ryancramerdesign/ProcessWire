@@ -230,7 +230,7 @@ abstract class ProcessPageListRender extends Wire {
 			if($page->editable()) $actions[] = array('name' => 'Edit', 'url' => "{$adminUrl}page/edit/?id={$page->id}");
 			if($page->viewable())  $actions[] = array('name' => 'View', 'url' => $page->httpUrl);
 			if($page->addable()) $actions[] = array('name' => 'New', 'url' => "{$adminUrl}page/add/?parent_id={$page->id}");
-			if($page->moveable() || ($page->sortable() && $page->sortfield == 'sort')) $actions[] = array('name' => 'Move', 'url' => '#'); 
+			if($page->id > 1 && ($page->moveable() || ($page->sortable() && $page->sortfield == 'sort'))) $actions[] = array('name' => 'Move', 'url' => '#'); 
 		}
 
 		return $actions; 
