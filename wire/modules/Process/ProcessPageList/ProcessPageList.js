@@ -438,7 +438,7 @@ $(document).ready(function() {
 				$(links).each(function(n, action) {
 					if(action.name == options.selectSelectLabel) actionName = "Select";
 						else if(action.name == options.selectUnselectLabel) actionName = "Select"; 
-						else actionName = action.name;
+						else actionName = action.cn; // cn = className
 
 					var $a = $("<a></a>").text(action.name).attr('href', action.url); 
 					$actions.append($("<li></li>").addClass('PageListAction' + actionName).append($a)); 

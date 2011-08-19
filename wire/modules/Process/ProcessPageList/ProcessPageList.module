@@ -233,6 +233,12 @@ abstract class ProcessPageListRender extends Wire {
 			if($page->id > 1 && ($page->moveable() || ($page->sortable() && $page->sortfield == 'sort'))) $actions[] = array('name' => 'Move', 'url' => '#'); 
 		}
 
+		foreach($actions as $key => $action) {
+			// we keep a secondary copy of the original 'name' in a 'cn' field, meaning 'className'
+			// because the original 'name' may be localized and we want non-localized for class naming
+			$actions[$key]['cn'] = $action['name'];
+		}
+
 		return $actions; 
 	}
 
