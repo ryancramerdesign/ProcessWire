@@ -46,23 +46,6 @@ $(document).ready(function() {
 		}
 	}; 
 
-	/*
-	var adjustRolesTable = function() {
-		$(".editRoles").each(function() {
-			var val = $(this).val();
-			var $createRoles = $(".createRoles[value=" + val + "]"); 
-			if($(this).is(":checked")) {
-				$createRoles.removeAttr('disabled'); 	
-			} else {
-				$createRoles.removeAttr('checked').attr('disabled', 'disabled');
-			}
-		}); 
-	}; 
-	$(".editRoles").click(adjustRolesTable);
-	adjustRolesTable();
-	*/
-		
-
 	$("#wrap_useRoles input").click(function() {
 		if($("#useRoles_1:checked").size() > 0) {
 			$("#wrap_redirectLogin").hide();
@@ -128,7 +111,9 @@ $(document).ready(function() {
 	redirectLoginClick();
 
         // instantiate the WireTabs
-	$("#ProcessTemplateEdit").WireTabs({
+	var $templateEdit = $("#ProcessTemplateEdit"); 
+	$templateEdit.find('script').remove();
+	$templateEdit.WireTabs({
                 items: $(".Inputfields li.WireTab"),
                 id: 'TemplateEditTabs'
                 });

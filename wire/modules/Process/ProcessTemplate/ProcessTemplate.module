@@ -1013,53 +1013,6 @@ class ProcessTemplate extends Process {
 		return $form; 
 	}
 
-	/*
-	protected function buildEditFormAccessAddRoles(Template $template, $fieldset) {
-
-
-		$field = $this->modules->get('InputfieldCheckboxes'); 
-		$field->table = true; 
-		//$field->thead = "Role|Can add pages using template(s)";
-		$field->thead = "Role";
-		$field->attr('id+name', 'addRoles'); 
-		$field->label = "What user roles can add children to pages using this template?";
-
-		$field->description = 
-			"Check the box next to each role that may add children to pages using this template. " . 
-			"If no roles are checked, only the superuser will be able to add child pages."; 
-
-		$childrenTemplate = $template->childrenTemplatesID ? $this->fuel('templates')->get($template->childrenTemplatesID) : null;
-
-		if($template->childrenTemplatesID < 0) $field->notes = "The settings you specify will have no effect because children are disabled for this template.";	
-			else if(!$template->childrenTemplatesID) $field->notes = "Optional: You may also want to specify the template required for children above.";
-			else if($childrenTemplate) $field->notes = "This template currently only allows children using the template '$childrenTemplate'. ";
-
-		$roles = $this->pages->get($this->config->rolesPageID)->children(); 
-		$cnt = 0; 
-
-		foreach($roles as $role) {
-			if(!$role->hasPermission('page-edit')) continue; 
-			if($childrenTemplate && $childrenTemplate->useRoles && !$childrenTemplate->hasRole($role)) continue; 
-			$tstr = '';
-			foreach($this->fuel('templates') as $t) {
-				if($childrenTemplate && $childrenTemplate->id != $t->id) continue; 
-				if(!$t->useRoles || $t->hasRole($role)) $tstr .= $t->name . "\n";
-			}
-			$tstr = rtrim($tstr); 
-			if(!$tstr) continue; 
-
-			//$field->addOption($role->id, $role->name . "|$tstr"); 
-			$field->addOption($role->id, $role->name); 
-			$cnt++;
-		}
-
-		$field->attr('value', $template->addRoles); 
-		if($template->childrenTemplatesID < 0) $field->collapsed = Inputfield::collapsedYes;
-
-		if($cnt) $fieldset->add($field); 
-	}
-	*/
-
 	protected function buildEditFormAccessRoles(Template $template = null) {
 
 		$roles = $this->pages->get($this->config->rolesPageID)->children(); 
@@ -1116,74 +1069,10 @@ class ProcessTemplate extends Process {
 		}
 
 		$field->value = $table->render();
+		$field->value .= "<script>console.log('test');</script>";
 
 		return $field; 
 	}
-
-	/*	
-	protected function _buildEditFormAccessRoles(Template $template = null) {
-
-		$form = new InputfieldWrapper();
-
-		$roles = $this->pages->get($this->config->rolesPageID)->children(); 
-		$guestRole = $roles->get("name=guest"); 
-
-		$field1 = $this->modules->get("InputfieldCheckboxes"); 
-		$field1->thead = "Role";
-		$field1->attr('id+name', 'roles'); 
-		$field1->label = "What roles can VIEW pages using this template?";
-		$field1->description = 
-			"Check the box next to each role that will be allowed to view pages using this template. " . 
-
-		$field2 = $this->modules->get("InputfieldCheckboxes"); 
-		$field2->table = true; 
-		$field2->thead = "Role|Page Permissions|Children";
-		$field2->attr('id+name', 'editRoles'); 
-		$field2->label = "What roles can EDIT pages using this template?";
-		$field2->description = 
-			"Check the box next to each role that will be allowed to edit pages using this template. " . 
-
-		$ids1 = array();
-		$ids2 = array(); 
-
-		if($template && $template->id) {
-			foreach($template->roles as $role) $ids1[] = $role->id; 
-			foreach($template->editRoles as $role) $ids2[] = $role->id; 
-			
-		} else {
-			// if new template, default to having the guest role
-			$ids1[] = $guestRole->id;
-		}
-
-		foreach($roles as $role) {
-			$label = $role->name; 
-			$editable = false;
-			$details = '';
-			foreach($role->permissions as $permission) {
-				if(strpos($permission->name, 'page-') !== 0) continue; 
-				if($permission->name == 'page-edit') $editable = true; 
-				$details .= $permission->title;
-				$details .= "\n";
-			}
-			$details = rtrim($details, "\n"); 
-			if($label == 'superuser') continue; 
-			if($label == 'guest') {
-				$label .= " (everyone)";
-			} else if($editable) {
-				$field2->addOption($role->id, "$label|$details|<span>Hello</span>"); 
-			}
-			$field1->addOption($role->id, $label); 
-		}
-
-		$field1->value = $ids1; 
-		$field2->value = $ids2; 
-
-		$form->add($field1);
-		$form->add($field2);
-
-		return $form; 
-	}
-	*/
 
 	/**
 	 * Save the template and check to see if a Fieldgroup change was requested

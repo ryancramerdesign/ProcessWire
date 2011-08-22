@@ -8,7 +8,9 @@ $(document).ready(function() {
 	$("#show_system").click(fieldFilterFormChange); 
 
 	// instantiate the WireTabs
-        $("#ProcessFieldEdit").WireTabs({
+	var $fieldEdit = $("#ProcessFieldEdit"); 
+	$fieldEdit.find('script').remove();
+        $fieldEdit.WireTabs({
                 items: $(".Inputfields li.WireTab"),
                 id: 'FieldEditTabs'
                 });
