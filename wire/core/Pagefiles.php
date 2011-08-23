@@ -59,6 +59,8 @@ class Pagefiles extends WireArray {
 
 	public function setPage(Page $page) {
 		$this->page = $page; 
+		// call the filesmanager, just to ensure paths are where they should be
+		$page->filesManager(); 
 	}
 
 	/**

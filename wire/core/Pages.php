@@ -700,6 +700,73 @@ class Pages extends Wire {
 
 
 	/**
+	 * Clone an entire page, it's assets and children and return it. 
+	 *
+	 * @param Page $page Page that you want to clone
+	 * @param Page $parent New parent, if different (default=same parent)
+	 * @param bool $recursive Clone the children too? (default=true)
+	 * @return Page the newly cloned page or a NullPage() with id=0 if unsuccessful.
+	 *
+	 */
+	public function ___clone(Page $page, Page $parent = null, $recursive = true) {
+
+		// if parent is not changing, we have to modify name now
+		if(is_null($parent)) {
+			$parent = $page->parent; 
+			$n = 1; 
+			$name = $page->name . '-' . $n; 
+		} else {
+			$name = $page->name; 
+			$n = 0; 
+		}
+
+		// make sure that we have a unique name
+		while(count($parent->children("name=$name"))) {
+			$name = $page->name . '-' . (++$n); 
+		}
+
+
+		// Ensure all data is loaded for the page
+		foreach($page->template->fieldgroup as $field) {
+			$page->get($field->name); 
+		}
+
+		// clone in memory
+		$copy = clone $page; 
+		$copy->id = 0; 
+		$copy->setIsNew(true); 
+		$copy->name = $name; 
+		$copy->parent = $parent; 
+
+		// tell PW that all the data needs to be saved
+		foreach($copy->template->fieldgroup as $field) {
+			$copy->trackChange($field->name); 
+		}
+
+		$o = $copy->outputFormatting; 
+		$copy->setOutputFormatting(false); 
+		$this->save($copy); 
+		$copy->setOutputFormatting($o); 
+
+		// check to make sure the clone has worked so far
+		if(!$copy->id || $copy->id == $page->id) return new NullPage(); 
+
+		// copy $page's files over to new page
+		$copy->filesManager->init($copy); 
+		$page->filesManager->copyFiles($copy->filesManager->path()); 
+
+		// if there are children, then recurisvely clone them too
+		if($page->numChildren && $recursive) {
+			foreach($page->children("include=all") as $child) {
+				$this->clone($child, $copy); 	
+			}	
+		}
+	
+		return $copy; 	
+	}
+
+
+	/**
 	 * Given a Page ID, return it if it's cached, or NULL of it's not. 
 	 *
 	 * If no ID is provided, then this will return an array copy of the full cache.

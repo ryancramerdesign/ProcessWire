@@ -29,6 +29,16 @@ class PagefilesManager extends Wire {
 	 *
 	 */
 	public function __construct(Page $page) {
+		$this->init($page); 
+	}
+
+	/**
+	 * Initialize the PagefilesManager with a Page
+	 *
+ 	 * Same as construct, but separated for when cloning a page
+	 *
+	 */
+	public function init(Page $page) {
 		$this->setPage($page); 
 		$this->createPath();
 	}
@@ -58,17 +68,69 @@ class PagefilesManager extends Wire {
 	}
 
 	/**
+	 * Recursively copy all files in $fromPath to $toPath, for internal use
+	 *
+	 * @param string $fromPath Path to copy from
+	 * @param string $toPath Path to copy to
+	 * @return int Number of files copied
+	 *
+	 */
+	protected function _copyFiles($fromPath, $toPath) {
+
+		if(!is_dir($toPath)) return 0; 
+
+		$numCopied = 0;
+		$fromPath = rtrim($fromPath, '/') . '/';
+		$toPath = rtrim($toPath, '/') . '/';
+	
+		foreach(new DirectoryIterator($fromPath) as $file) {
+			if($file->isDot()) continue; 
+			if($file->isDir()) {
+				$newPath = $toPath . $file->getFilename() . '/';
+				$this->_createPath($newPath); 
+				$numCopied += $this->_copyFiles($file->getPathname(), $newPath); 
+				continue; 
+			}
+			if($file->isFile()) {
+				if(copy($file->getPathname(), $toPath . $file->getFilename())) $numCopied++;
+			}
+		}
+
+		return $numCopied; 
+	}
+
+	/**
+	 * Recursively copy all files managed by this PagefilesManager into a new path
+	 *
+	 * @param $toPath string Path of directory to copy files into. 
+	 * @return int Number of files/directories copied. 
+	 *
+	 */
+	public function copyFiles($toPath) {
+		return $this->_copyFiles($this->path(), $toPath); 
+	}
+
+	/**
+	 * Create a directory with proper permissions, for internal use. 
+	 *
+	 * @return bool True on success, false if not
+	 *
+	 */
+	protected function _createPath($path) {
+		if(is_dir($path)) return true; 
+		if(!mkdir($path)) return false; 
+		if($this->config->chmodDir) chmod($path, octdec($this->config->chmodDir)); 
+		return true; 
+	}
+
+	/**
 	 * Create the directory path where published files will be restored
 	 *
 	 * @return bool True on success, false if not
 	 *
 	 */
 	public function createPath() {
-		$path = $this->path();
-		if(is_dir($path)) return true; 
-		if(!mkdir($path)) return false; 
-		if($this->config->chmodDir) chmod($path, octdec($this->config->chmodDir)); 
-		return true; 
+		return $this->_createPath($this->path()); 
 	}
 
 	/**

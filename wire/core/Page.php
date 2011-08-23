@@ -214,7 +214,6 @@ class Page extends WireData {
 	public function __clone() {
 		$track = $this->trackChanges();
 		$this->setTrackChanges(false); 
-		//if($this->rolesArray) $this->rolesArray = clone $this->rolesArray; 
 		if($this->filesManager) {
 			$this->filesManager = clone $this->filesManager; 
 			$this->filesManager->setPage($this);
