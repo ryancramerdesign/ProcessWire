@@ -77,7 +77,7 @@ class ProcessPageAdd extends Process {
 		$this->form = $this->buildForm();
 		$this->form->setTrackChanges();
 
-		if(count($_POST)) $this->processInput($this->form); 
+		if($this->input->post->submit_save) $this->processInput($this->form); 
 
 		$this->setupBreadcrumbs();
 
@@ -222,8 +222,6 @@ class ProcessPageAdd extends Process {
 	 *
 	 */
 	protected function processInput(Inputfield $form) {
-
-		if(!$this->input->post->submit_save) throw new WireException("Unexpected input"); 
 
 		$form->processInput($this->input->post);
 
