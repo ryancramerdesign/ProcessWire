@@ -136,7 +136,7 @@ class WireInput {
 	 */
 	public function get($key = '') {
 		if(is_null($this->getVars)) $this->getVars = new WireInputData($_GET); 
-		return $key ? $this->getVars->get($key) : $this->getVars; 
+		return $key ? $this->getVars->__get($key) : $this->getVars; 
 	}
 
 	/**
@@ -150,7 +150,7 @@ class WireInput {
 	 */
 	public function post($key = '') {
 		if(is_null($this->postVars)) $this->postVars = new WireInputData($_POST); 
-		return $key ? $this->postVars->get($key) : $this->postVars; 
+		return $key ? $this->postVars->__get($key) : $this->postVars; 
 	}
 
 	/**
