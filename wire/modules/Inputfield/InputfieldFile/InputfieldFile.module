@@ -26,6 +26,7 @@ class InputfieldFile extends Inputfield {
 
 		// native to this Inputfield
 		$this->set('unzip', 0); 
+		$this->set('overwrite', 0); 
 		$this->set('descriptionRows', 1); 
 		$this->set('destinationPath', ''); 
 		$this->setAttribute('type', 'file'); 
@@ -34,6 +35,33 @@ class InputfieldFile extends Inputfield {
 	public function isEmpty() {
 		return !count($this->value);
 	}
+
+	/**
+	 * Check to ensure that the containing form as an 'enctype' attr needed for uploading files
+	 *
+	 */
+	protected function checkFormEnctype() {
+		$parent = $this->parent;
+		while($parent) {
+			if($parent->attr('method') == 'post') {
+				if(!$parent->attr('enctype')) $parent->attr('enctype', 'multipart/form-data');
+				break;
+			}
+			$parent = $parent->parent; 
+		}
+	}
+
+        /**
+         * Set the parent of this Inputfield
+         *
+         * @param Inputfield $parent
+         *
+         */
+        public function setParent(InputfieldWrapper $parent) {
+		parent::setParent($parent); 
+		$this->checkFormEnctype();
+                return $this;
+        }
 
 
 	protected function renderItemDescriptionField(Pagefile $pagefile, $id, $n) {
@@ -137,8 +165,10 @@ class InputfieldFile extends Inputfield {
 
 	public function ___processInput(WireInputData $input) {
 		
-		if(!$this->destinationPath || !is_dir($this->destinationPath)) return $this->error("Destination path is empty or does not exist"); 
-		if(!is_writable($this->destinationPath)) return $this->error("Destination path is not writable"); 
+		if(is_null($this->value)) $this->value = new Pagefiles($this->fuel('page')); 
+		if(!$this->destinationPath) $this->destinationPath = $this->value->path();
+		if(!$this->destinationPath || !is_dir($this->destinationPath)) return $this->error("destinationPath is empty or does not exist"); 
+		if(!is_writable($this->destinationPath)) return $this->error("destinationPath is not writable"); 
 
 		$changed = false; 
 
@@ -146,11 +176,9 @@ class InputfieldFile extends Inputfield {
 
 			$ul = new WireUpload($this->attr('name')); 
 			$ul->setDestinationPath($this->destinationPath); 
-			$ul->setOverwrite(false); 
+			$ul->setOverwrite($this->overwrite); 
 			if($this->maxFiles) $ul->setMaxFiles($this->maxFiles - count($this->value)); 
-
 			if($this->unzip) $ul->setExtractArchives(true); 
-
 			$ul->setValidExtensions(explode(' ', trim($this->extensions))); 
 
 			foreach($ul->execute() as $filename) {
