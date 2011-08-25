@@ -144,7 +144,6 @@ var $iframe;
 								$.get(modalUri + 'resize?id=' + page_id + '&file=' + file + '&width=' + width + '&height=' + height, function(data) {
 									var $div = $("<div></div>").html(data); 
 									var src = $div.find('#selected_image').attr('src');
-									console.log($div.html()); 
 									insertImage(src); 
 								}); 
 
