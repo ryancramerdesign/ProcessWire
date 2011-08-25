@@ -28,8 +28,9 @@ $(document).ready(function() {
 		$("#content .container").html("<h2>ProcessWire does not support IE7 and below at this time. Please try again with a newer browser.</h2>").show();
 	}
 
-	jQuery('#content :input:visible:enabled:first').each(function() {
-		if(!$(this).val()) $(this).focus();	
+	jQuery('#content input[type=text]:visible:enabled:first').each(function() {
+		var $t = $(this); 
+		if(!$t.val() && !$t.is(".no_focus")) $t.focus();	
 	});
 
 }); 

@@ -41,7 +41,7 @@ var tinymceSelection = null;
 					var $i = $iframe.contents();
 					$i.find("#link_page_url").val(href); 
 					$i.find("#ProcessPageEditLinkForm").data('iframe', $iframe); 
-					if(target.length) $i.find("#link_target").attr('checked', 'checked'); 
+					if(target && target.length) $i.find("#link_target").attr('checked', 'checked'); 
 				});
 
 				var windowWidth = $(window).width() -300; 

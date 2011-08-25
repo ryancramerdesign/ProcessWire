@@ -95,6 +95,7 @@ var $iframe;
 				$iframe.load(function() {
 
 					var $i = $iframe.contents();
+
 					if($i.find("#selected_image").size() > 0) {
 
 						$iframe.dialog("option", "buttons", {
@@ -137,17 +138,21 @@ var $iframe;
 								var height = $img.attr('height'); 
 								if(!height) height = $img.height();
 								var file = $img.attr('src'); 
+								var page_id = $("#page_id", $i).val();
 								file = file.substring(file.lastIndexOf('/')+1); 
 
 								$.get(modalUri + 'resize?id=' + page_id + '&file=' + file + '&width=' + width + '&height=' + height, function(data) {
 									var $div = $("<div></div>").html(data); 
 									var src = $div.find('#selected_image').attr('src');
+									console.log($div.html()); 
 									insertImage(src); 
 								}); 
 
 							},
 
 							"Select Another Image": function() {
+								var $i = $iframe.contents();
+								var page_id = $("#page_id", $i).val();
 								$iframe.attr('src', modalUri + '?id=' + page_id + '&modal=1'); 
 								$iframe.dialog("option", "buttons", {}); 
 							},

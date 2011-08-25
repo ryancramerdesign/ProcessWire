@@ -58,7 +58,7 @@ class ProcessPageEditImageSelect extends Process {
 		if(!$id) throw new WireException("No page specified"); 
 		$this->page = $this->pages->get($id); 
 		if(!$this->page) throw new WireException("No page specified"); 
-		if(!$this->page->editable()) throw new WireException("You do not have access to images on this page"); 
+		if(!$this->page->viewable()) throw new WireException("You do not have access to images on this page"); 
 
 		if($this->input->get->winwidth) $this->maxImageWidth = ((int) $this->input->get->winwidth) - 70; 
 		if($this->maxImageWidth < 400) $this->maxImageWidth = 400; 
@@ -159,28 +159,6 @@ class ProcessPageEditImageSelect extends Process {
 		// then add the 'resized' class to ensure that our pwimage plugin knows to perform the resize
 		if(basename($this->input->get->file) == $filename && $originalWidth > $width) $attrs['class'] .= " resized";
 	
-		/*	
-		$form = $this->modules->get("InputfieldForm"); 
-		$form->attr('id', 'edit_image_form');
-
-		$field = $this->modules->get("InputfieldSelect"); 	
-		$field->label = "Position";
-		$field->description = "Alter the style or position of the image as it appears in the page.";
-		$field->collapsed = Inputfield::collapsedYes; 
-		$field->attr('id+name', 'selected_image_class');
-		$field->addOption(''); 
-
-		foreach($this->optionalClasses as $class => $label) {
-			if($class && $this->input->get->class == $class) {
-				$field->attr('value', $class); 
-				$attrs['class'] .= " $class";
-			}
-			$field->addOption("$class", $label); 
-		}
-		$form->append($field); 
-		*/
-
-
 		$out =	"\n<form id='selected_image_settings' action='./?id={$this->page->id}&amp;file=$filename'>" . 
 			"\n\t<p id='wrap_info'>" . 
 			"\n\t\t<span id='selected_image_filename'>" . htmlentities($filename) . "</span> &bull; " . 
@@ -193,7 +171,7 @@ class ProcessPageEditImageSelect extends Process {
 
 		$out .= "\n\t<p id='wrap_description'>" . 
 			"\n\t\t<label for='selected_image_description'>Description</label>" . 
-			"\n\t\t<input type='text' name='selected_image_description' id='selected_image_description' value=\"$description\" />" . 
+			"\n\t\t<input type='text' name='selected_image_description' id='selected_image_description' class='no_focus' value=\"$description\" />" . 
 			"\n\t</p>"; 
 
 		$out .= "\n\t<p id='wrap_class'>" . 
@@ -227,7 +205,8 @@ class ProcessPageEditImageSelect extends Process {
 				"\n\t</p>";
 		}
 
-	
+
+		$out .= "\n\t<input type='hidden' name='page_id' id='page_id' value='{$this->page->id}' />";	
 		$out .=	"\n</form>";
 
 		$attrStr = '';
@@ -238,9 +217,6 @@ class ProcessPageEditImageSelect extends Process {
 			"\n\t</div>";
 
 		$out .= "\n\t<p class='detail'>To resize and resample, drag the lower right corner of the image (whether here or in the text editor).</p>";
-
-		// $out .= "<pre>" . print_r($_GET, true) . "</pre>";
-
 
 		return $out; 
 		
