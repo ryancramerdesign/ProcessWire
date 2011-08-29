@@ -40,6 +40,10 @@ class InputfieldCheckbox extends Inputfield {
 		return parent::setAttribute($key, $value); 
 	}
 
+	public function isEmpty() {
+		return $this->attr('value') != $this->checkedValue; 
+	}
+
 	public function ___processInput(WireInputData $input) {
 		//if(!empty($input[$this->name]) && $input[$this->name] == $this->checkedValue) $attrValue = 'checked';
 		if(!empty($input[$this->name])) {
