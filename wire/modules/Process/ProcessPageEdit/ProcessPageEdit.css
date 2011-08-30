@@ -62,6 +62,8 @@
  * This works because WireTabs adds class names equal to the ID of the selected tab to the tab target container
  *
  */
+.ProcessPageEditDelete #submit_publish,
+.ProcessPageEditDelete #submit_save_unpublished,
 .ProcessPageEditDelete #submit_save,
 .ProcessPageEditDelete #submit_save_top {
 	display: none; 
