@@ -12,8 +12,8 @@ function titleToUrlName(name) {
 	name = jQuery.trim(name).toLowerCase();  
   
 	// multi-character replacements
-	var srch = ['ä',  'ö',  'ü'];
-	var repl = ['ae', 'oe', 'ue']; 
+	var srch = ['ä',  'ö',  'ü',  'đ'];
+	var repl = ['ae', 'oe', 'ue', 'dj']; 
 
 	// change single characters that translate to multi-char 
 	for(var cnt = 0; cnt < srch.length; cnt++) {
