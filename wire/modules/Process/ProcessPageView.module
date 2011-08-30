@@ -238,7 +238,10 @@ class ProcessPageView extends Process {
 		if(!$page->template->https) return; 
 		$url = $this->config->httpHost . $page->url; 
 		if($page->urlSegment) $url .= $page->urlSegment . '/'; 
-		if($page->pageNum > 1) $url .= "page{$page->pageNum}";
+		if($page->pageNum > 1) {
+			$prefix = $this->config->pageNumUrlPrefix ? $this->config->pageNumUrlPrefix : 'page';
+			$url .= "$prefix{$page->pageNum}";
+		}
 
 		if($page->template->https == -1 && $this->config->https) {
 			// redirect to HTTP non-secure version

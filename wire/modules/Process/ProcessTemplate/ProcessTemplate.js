@@ -52,15 +52,22 @@ $(document).ready(function() {
 			$("#wrap_guestSearchable").hide();
 			$("#useRolesYes").slideDown();
 			$("#wrap_useRoles > label").click();
+			$("input.viewRoles").attr('checked', 'checked'); 
 		} else {
 			$("#useRolesYes").slideUp(); 
 		}
-
-	
 	});
+
+
 	if($("#useRoles_0:checked").size() > 0) $("#useRolesYes").hide();
 
 	$("#roles_37").click(adjustAccessFields);
+	$("input.viewRoles:not(#roles_37)").click(function() {
+		// prevent unchecking 'view' for other roles when 'guest' role is checked
+		var $t = $(this);
+		if($("#roles_37").is(":checked")) return false;
+		return true; 
+	}); 
 
 	$("#wrap_redirectLogin input").click(redirectLoginClick); 
 
