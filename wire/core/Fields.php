@@ -196,6 +196,19 @@ class Fields extends WireSaveableItems {
 		if(!parent::___save($item)) return false;
 		if($isNew) $item->type->createField($item); 
 
+		if($item->flags & Field::flagGlobal) {
+			// make sure that all template fieldgroups contain this field and add to any that don't. 
+			foreach(wire('templates') as $template) {
+				if($template->noGlobal) continue; 
+				$fieldgroup = $template->fieldgroup; 
+				if(!$fieldgroup->hasField($item)) {
+					$fieldgroup->add($item); 
+					$fieldgroup->save();
+					if(wire('config')->debug) $this->message("Added field '{$item->name}' to template/fieldgroup '{$fieldgroup->name}'"); 
+				}
+			}	
+		}
+
 		return true; 
 	}
 
