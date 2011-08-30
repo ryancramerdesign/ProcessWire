@@ -11,14 +11,30 @@ function titleToUrlName(name) {
 	// replace leading and trailing whitespace 
 	name = jQuery.trim(name).toLowerCase();  
   
-	// utf8 accented to ascii translation
-	var str1 = ":,àáäâèéëêìíïîòóöôùúüûñçčćďĺľńňŕřšťýž";
-	var str2 = "--aaaaeeeeiiiioooouuuuncccdllnnrrstyz";
+	// multi-character replacements
+	var srch = ['ä',  'ö',  'ü'];
+	var repl = ['ae', 'oe', 'ue']; 
+
+	// change single characters that translate to multi-char 
+	for(var cnt = 0; cnt < srch.length; cnt++) {
+		var c = srch[cnt];
+		if(name.indexOf(c) > -1) {
+			var re = new RegExp(c, 'g'); 
+			name = name.replace(re, repl[cnt]); 
+		}	
+	}
+
+	// single character, utf8 accented to ascii translation
+	var str1 = ":,àáâèéëêìíïîòóôùúûñçčćďĺľńňŕřšťýž";
+	var str2 = "--aaaeeeeiiiiooouuuncccdllnnrrstyz";
 
 	// change common accented characters to ascii equivalent
-	for(var cnt=0, n=str1.length; cnt<n; cnt++) {
-		var re = new RegExp(str1.charAt(cnt), 'g'); 
-		name = name.replace(re, str2.charAt(cnt));
+	for(var cnt = 0, n = str1.length; cnt < n; cnt++) {
+		var c = str1.charAt(cnt); 
+		if(name.indexOf(c) > -1) { 
+			var re = new RegExp(str1.charAt(cnt), 'g'); 
+			name = name.replace(re, str2.charAt(cnt));
+		}
 	}
 
 	// replace invalid with blank
@@ -27,11 +43,17 @@ function titleToUrlName(name) {
 	// convert whitespace to dash
 	name = name.replace(/\s+/g, '-') 
 
-	// convert multiple dashes to single
+	// convert multiple dashes or dots to single
 	name = name.replace(/--+/g, '-'); 
 
-	// remove leading or trailing dashes
-	name = name.replace(/(^-|-$)/g, ''); 
+	// convert multiple dots to single
+	name = name.replace(/\.\.+/g, '.'); 
+
+	// remove ugly combinations next to each other
+	name = name.replace(/(\.-|-\.)/g, '-'); 
+
+	// remove leading or trailing dashes, underscores and dots
+	name = name.replace(/(^[-_.]+|[-_.]+$)/g, ''); 
 
 	return name;
 }
