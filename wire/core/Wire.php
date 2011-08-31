@@ -514,7 +514,7 @@ abstract class Wire implements TrackChanges {
 	 * 
 	 */
 	public function untrackChange($what) {
-		$key = array_search($what); 	
+		$key = array_search($what, $this->changes); 	
 		if($key !== false) unset($this->changes[$key]); 
 		return $this; 
 	}

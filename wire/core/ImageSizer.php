@@ -148,7 +148,7 @@ class ImageSizer {
 			imagesavealpha($thumb, true); 
 		} else {
 			$bgcolor = imagecolorallocate($thumb, 0, 0, 0);  
-			ImageFilledRectangle($thumb, 0, 0, $gdWidth, $gdHeight, $bgcolor);
+			imagefilledrectangle($thumb, 0, 0, $gdWidth, $gdHeight, $bgcolor);
 			imagealphablending($thumb, true);
 		}
 
@@ -160,7 +160,7 @@ class ImageSizer {
 			imagesavealpha($thumb2, true); 
 		} else {
 			$bgcolor = imagecolorallocate($thumb2, 0, 0, 0);  
-			ImageFilledRectangle($thumb2, 0, 0, $targetWidth, $targetHeight, 0);
+			imagefilledrectangle($thumb2, 0, 0, $targetWidth, $targetHeight, 0);
 			imagealphablending($thumb2, true);
 		}
 

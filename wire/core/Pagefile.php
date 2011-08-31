@@ -84,7 +84,8 @@ class Pagefile extends WireData {
 			$basename = "$basenameNoExt-$cnt.$pathInfo[extension]";
 		}
 
-		copy($filename, $this->pagefiles->path() . $basename); 
+		$destination = $this->pagefiles->path() . $basename; 
+		if(!@copy($filename, $destination)) throw new WireException("Unable to copy: $filename => $destination"); 
 		if($this->config->chmodFile) chmod($this->pagefiles->path() . $basename, octdec($this->config->chmodFile));
 		parent::set('basename', $basename); 
 			
