@@ -22,7 +22,16 @@ class InputfieldURL extends InputfieldText {
 		$this->setAttribute('name', 'href'); 
 		$this->label = 'URL';
 		$this->set('noRelative', 0); // whether relative URLs are disabled
+		$this->set('addRoot', 0); // whether to prepend root path
 		$this->description = "Enter a valid URL, i.e. http://www.company.com/dir/";
+	}
+
+	public function ___render() {
+		$rootUrl = $this->config->urls->root;
+		if($this->addRoot && !$this->noRelative && !$this->notes && strlen($rootUrl) > 1) {
+			$this->notes = "Start local URLs with '/' and leave off the '$rootUrl' part.";
+		}
+		return parent::___render();
 	}
 
 	public function setAttribute($key, $value) {
