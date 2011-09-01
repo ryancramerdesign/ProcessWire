@@ -86,13 +86,15 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 
                 if($this->xsl) $out .= "<?xml-stylesheet type='text/xsl' href='{$this->xsl}' ?>\n";
                 if($this->css) $out .= "<?xml-stylesheet type='text/css' href='{$this->css}' ?>\n";
+		
+		if(!$this->url) $this->url = $this->page->httpUrl;
 
                 $out .= "<rss version='2.0'>\n" .
                         "<channel>\n" .
-                        "\t<title>{$this->title}</title>\n" .
-                        "\t<link>{$this->url}</link>\n" .
-                        "\t<description>{$this->description}</description>\n" .
-                        "\t<pubDate>" . date(DATE_RFC822) . "</pubDate>\n";
+                        "\t<title>{$this->title}</title>\n" . 
+			"\t<link>{$this->url}</link>\n" . 
+			"\t<description>{$this->description}</description>\n" . 
+			"\t<pubDate>" . date(DATE_RFC2822) . "</pubDate>\n";
 
                 if($this->copyright) $out .= "\t<copyright>{$this->copyright}</copyright>\n";
                 if($this->ttl) $out .= "\t<ttl>{$this->ttl}</ttl>\n";
@@ -110,7 +112,7 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		if(empty($title)) return '';
 
 		if($this->itemDateField && ($ts = $page->getUnformatted($this->itemDateField))) {
-			$pubDate = "\t\t<pubDate>" . date(DATE_RFC822, $ts) . "</pubDate>\n";
+			$pubDate = "\t\t<pubDate>" . date(DATE_RFC2822, $ts) . "</pubDate>\n";
 		} else {
 			$pubDate = '';
 		}
@@ -124,6 +126,7 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 			"\t\t<description><![CDATA[$description]]></description>\n" .
 			$pubDate .
 			"\t\t<link>{$page->httpUrl}</link>\n" .
+			"\n\t<guid>{$page->httpUrl}</guid>\n" . 
 			"\t</item>\n";
 
 		return $out; 
