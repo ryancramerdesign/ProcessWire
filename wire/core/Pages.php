@@ -328,16 +328,37 @@ class Pages extends Wire {
 	public function isSaveable(Page $page, &$reason) {
 
 		$saveable = false; 
+		$outputFormattingReason = "Call \$page->setOutputFormatting(false) before getting/setting values that will be modified and saved. "; 
 
 		if($page instanceof NullPage) $reason = "Pages of type NullPage are not saveable";
 			else if((!$page->parent || $page->parent instanceof NullPage) && $page->id !== 1) $reason = "It has no parent assigned"; 
 			else if(!$page->template) $reason = "It has no template assigned"; 
 			else if(!strlen(trim($page->name))) $reason = "It has an empty 'name' field"; 
-			else if($page->outputFormatting) $reason = "outputFormatting is on - Call \$page->setOutputFormatting(false) to turn it off"; 
-			else if($page->is(Page::statusCorrupted)) $reason = "It was corrupted when you modified a field with outputFormatting - See Page::setOutputFormatting(false)"; 
+			else if($page->is(Page::statusCorrupted)) $reason = $outputFormattingReason . " [Page::statusCorrupted]";
 			else if($page->id == 1 && !$page->template->useRoles) $reason = "Selected homepage template cannot be used because it does not define access.";
 			else if($page->id == 1 && !$page->template->hasRole('guest')) $reason = "Selected homepage template cannot be used because it does not have the required 'guest' role in it's access settings.";
 			else $saveable = true; 
+
+		// check if they could corrupt a field by saving
+		if($saveable && $page->outputFormatting) {
+			// iternate through recorded changes to see if any custom fields involved
+			foreach($page->getChanges() as $change) {
+				if($page->template->fieldgroup->getField($change) !== null) {
+					$reason = $outputFormattingReason . " [$change]";	
+					$saveable = false;
+					break;
+				}
+			}
+			// iterate through already-loaded data to see if any are objects that have changed
+			if($saveable) foreach($page->getArray() as $key => $value) {
+				if(!$page->template->fieldgroup->getField($key)) continue; 
+				if(is_object($value) && $value instanceof Wire && $value->isChanged()) {
+					$reason = $outputFormattingReason . " [$key]";
+					$saveable = false; 
+					break;
+				}
+			}
+		}
 
 		// check for a parent change
 		if($saveable && $page->parentPrevious && $page->parentPrevious->id != $page->parent->id) {
@@ -414,16 +435,25 @@ class Pages extends Wire {
 			$result = $this->db->query("UPDATE $sql WHERE id=" . (int) $page->id); 
 		}
 
+		// if save failed, abort
 		if(!$result) return false;
 
-		if(!$page->isChanged()) return true; // if page hasn't changed, don't continue further
+		// if page hasn't changed, don't continue further
+		if(!$page->isChanged()) return true; 
 
 		$page->filesManager->save();
+
+		// disable outputFormatting and save state
+		$outputFormatting = $page->outputFormatting; 
+		$page->setOutputFormatting(false); 
 
 		// save each individual Fieldtype data in the fields_* tables
 		foreach($page->fieldgroup as $field) {
 			$field->type->savePageField($page, $field);
 		}
+
+		// return outputFormatting state
+		$page->setOutputFormatting($outputFormatting); 
 
 		$this->sortfields->save($page); 
 		$page->resetTrackChanges();
