@@ -39,10 +39,26 @@ abstract class Textformatter extends Wire implements Module {
 	/**
 	 * Format the given text string
 	 *
+	 * @deprecated
 	 * @param string $str
 	 *
 	 */
-	abstract public function format(&$str); 
+	public function format(&$str) {
+	}
+
+	/**
+	 * Format the given text string.
+	 *
+ 	 * Newer version with Page and Field provided.  
+	 *
+	 * Override this function completely when providing your own text formatter. No need to call the parent.
+	 *
+	 * @param string $str
+	 *
+	 */
+	public function formatValue(Page $page, Field $field, &$str) {
+		$this->format($str); 
+	}
 
 	/**
 	 * Optional method to initialize the module. 
