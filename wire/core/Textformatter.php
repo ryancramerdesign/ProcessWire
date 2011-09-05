@@ -39,6 +39,8 @@ abstract class Textformatter extends Wire implements Module {
 	/**
 	 * Format the given text string
 	 *
+ 	 * This is deprecated so use the formatValue() function instead. 
+	 *
 	 * @deprecated
 	 * @param string $str
 	 *
@@ -56,8 +58,8 @@ abstract class Textformatter extends Wire implements Module {
 	 * @param string $str
 	 *
 	 */
-	public function formatValue(Page $page, Field $field, &$str) {
-		$this->format($str); 
+	public function formatValue(Page $page, Field $field, &$value) {
+		$this->format($value); 
 	}
 
 	/**
