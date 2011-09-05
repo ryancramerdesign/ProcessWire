@@ -594,21 +594,21 @@ class Pages extends Wire {
 	 * While this can be performed with other methods, this is here just to make it fast for internal/non-api use. 
 	 * See the trash and restore methods for an example. 
 	 *
-	 * While the method is public, this method is not intended for general API use and you can ignore it. 
-	 *
 	 * @param int $pageID 
 	 * @param int $status Status per flags in Page::status* constants
 	 * @param bool $recursive Should the status descend into the page's children, and grandchildren, etc?
+	 * @param bool $remove Should the status be removed rather than added?
 	 *
 	 */
-	protected function savePageStatus($pageID, $status, $recursive = false) {
+	protected function savePageStatus($pageID, $status, $recursive = false, $remove = false) {
 		$pageID = (int) $pageID; 
 		$status = (int) $status; 
-		$this->db->query("UPDATE pages SET status=$status WHERE id=$pageID"); 
+		$sql = $remove ? "status & ~$status" : $sql = "status|$status";
+		$this->db->query("UPDATE pages SET status=$sql WHERE id=$pageID"); 
 		if($recursive) { 
 			$result = $this->db->query("SELECT id FROM pages WHERE parent_id=$pageID"); 
 			while($row = $result->fetch_array()) {
-				$this->savePageStatus($row['id'], $status, true); 
+				$this->savePageStatus($row['id'], $status, true, $remove); 
 			}
 			$result->free();
 		}
@@ -654,7 +654,7 @@ class Pages extends Wire {
 			$page->name = $page->id . "_" . $page->name; 
 		}
 		if($save) $this->save($page); 
-		$this->savePageStatus($page->id, $page->status, true); 
+		$this->savePageStatus($page->id, Page::statusTrash, true, false); 
 		return true; 
 	}
 
@@ -676,7 +676,7 @@ class Pages extends Wire {
 		}
 		$page->removeStatus(Page::statusTrash); 
 		if($save) $page->save();
-		$this->savePageStatus($page->id, $page->status, true); 
+		$this->savePageStatus($page->id, Page::statusTrash, true, true); 
 		return true; 
 	}
 
