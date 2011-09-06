@@ -143,8 +143,9 @@ function wireEncodeJSON(array $data, $allowEmpty = false) {
 			if($allowEmpty === 0 && $value === 0) {
 				// keep it because $allowEmpty === 0 means to keep 0 values only
 
-			} else if(is_array($allowEmpty) && in_array($key, $allowEmpty)) {
-				// keep it because it's present in the array of values specified to keep
+			} else if(is_array($allowEmpty) && !in_array($key, $allowEmpty)) {
+				// remove it because it's not specifically allowed in allowEmpty
+				unset($data[$key]); 
 
 			} else if(!$allowEmpty) {
 				// remove the empty value

@@ -187,5 +187,15 @@ class PagefilesManager extends Wire {
 		$this->page = null;
 	}
 	
+	/**
+	 * Handle non-function versions of some properties
+	 *
+	 */
+	public function __get($key) {
+		if($key == 'path') return $this->path();
+		if($key == 'url') return $this->url();
+		return parent::__get($key);
+	}
+
 
 }
