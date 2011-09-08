@@ -371,6 +371,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 		if(!count($matches)) return $out;
 		$table = $this->modules->get("MarkupAdminDataTable");
+		$table->setSortable(false); 
 		$table->setEncodeEntities(false);
 		$header = $display;
 		$header[] = "";

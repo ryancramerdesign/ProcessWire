@@ -18,7 +18,7 @@ table.AdminDataList th {
 	font-size: 0.833333em;
 	cursor: pointer; 
 }
-	table.AdminDataList th:hover {
+	table.AdminDataTableSortable th:hover {
 		text-decoration: underline; 
 	}
 	table.AdminDataList th.headerSortDown, 
