@@ -55,6 +55,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		'<' => 'Less than',
 		'<=' => 'Less than or equal to',
 		'*=' => 'Contains phrase or partial word',
+		'%=' => 'Contains phrase/word using LIKE',
 		'~=' => 'Contains all the words',
 		);
 
