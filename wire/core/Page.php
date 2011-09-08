@@ -682,6 +682,7 @@ class Page extends WireData {
 	 */
 	public function child($selector = '', $options = array()) {
 		$selector .= ($selector ? ', ' : '') . "limit=1";
+		if(strpos($selector, 'start=') === false) $selector .= ", start=0"; // prevent pagination
 		$children = $this->children($selector); 
 		return count($children) ? $children->first() : new NullPage();
 	}

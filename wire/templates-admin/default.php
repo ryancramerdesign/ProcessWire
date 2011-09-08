@@ -8,7 +8,7 @@
  *
  */
 
-$searchForm = $user->hasPermission('ProcessPageSearch') ? $modules->get('ProcessPageSearch')->renderSearchForm() : '';
+$searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm() : '';
 $bodyClass = $input->get->modal ? 'modal' : '';
 if(!isset($content)) $content = '';
 
