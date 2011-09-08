@@ -28,8 +28,8 @@ class ProcessPageEdit extends Process {
 	protected $pageClass; 
 	protected $isTrash; 
 	protected $allowedTemplates = null; // cache
-
-	protected $useSettings = true; // TODO: are these still applicable?
+	protected $isPost = false;
+	protected $useSettings = true; 
 	protected $useChildren = true; 
 	protected $useView = true; 
 
@@ -37,7 +37,7 @@ class ProcessPageEdit extends Process {
 		return array(
 			'title' => 'Page Edit',          
 			'summary' => 'Edit a Page', 
-			'version' => 100, 
+			'version' => 101, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
@@ -65,6 +65,9 @@ class ProcessPageEdit extends Process {
 		if(!$this->page) throw new Wire404Exception("Unable to load page {$this->id}"); 
 		if(!$this->page->editable()) throw new WirePermissionException("You don't have access to edit this page"); 
 
+		// determine if we're going to be dealing with a save/post request
+		$this->isPost = ($this->input->post->id > 0 && (((int) $this->input->post->id) === $this->page->id)) || $this->config->ajax && (count($_POST) || isset($_SERVER['HTTP_X_FIELDNAME'])); 
+
 		// after confirming that the page is editable, if the current user is the one that created the page 
 		// then temporarily give both the page and the user the special "owner" role 
 
@@ -75,11 +78,14 @@ class ProcessPageEdit extends Process {
 			// $this->user->addRole($ownerRole); 
 		}
 
-		$this->setupHeadline();
-		$this->setupBreadcrumbs();
+		if(!$this->isPost) { 
+			$this->setupHeadline();
+			$this->setupBreadcrumbs();
+		}
 
 		parent::init();
-		$this->modules->get('JqueryWireTabs'); 
+
+		if(!$this->isPost) $this->modules->get('JqueryWireTabs'); 
 	}
 
 	/**
@@ -88,10 +94,12 @@ class ProcessPageEdit extends Process {
 	 */
 	public function ___execute() {
 
+		if($this->config->ajax && (isset($_SERVER['HTTP_X_FIELDNAME']) || count($_POST))) return $this->ajaxSave();
+
 		$this->form = $this->buildForm();
 		$this->form->setTrackChanges();
 
-		if(isset($_POST['id']) && ((int) $_POST['id']) === $this->page->id) $this->processSave();
+		if($this->isPost && count($_POST)) $this->processSave();
 
 		if($this->page->is(Page::statusLocked)) {
 			if($this->user->hasPermission('page-lock', $this->page)) {
@@ -107,6 +115,7 @@ class ProcessPageEdit extends Process {
 
 		return $this->renderEdit();
 	}
+
 
 	/**
 	 * Render the Page Edit form
@@ -129,18 +138,15 @@ class ProcessPageEdit extends Process {
 	 */
 	protected function processSave() {
 
-		//if($this->page->is(Page::statusUnpublished)) $this->page->removeStatus(Page::statusUnpublished); 
-
 		if($this->page->is(Page::statusLocked)) {
+
 			if(!$this->user->hasPermission('page-lock', $this->page) || (!empty($_POST['status']) && in_array(Page::statusLocked, $_POST['status']))) {
 				$this->error("Your changes were not saved because this page is locked"); 
-				return; 
 			}
-		}
 
-		if(!empty($_POST['submit_delete'])) {
+		} else if($this->input->post->submit_delete) {
 
-			if(!empty($_POST['delete_page'])) $this->deletePage();
+			if($this->input->post->delete_page) $this->deletePage();
 
 		} else {
 
@@ -156,11 +162,14 @@ class ProcessPageEdit extends Process {
 			}
 
 			if($this->input->post->submit_publish || $this->input->post->submit_save) {
+
 				try {
 					if($this->input->post->submit_publish && $this->page->is(Page::statusUnpublished)) {
 						$this->page->removeStatus(Page::statusUnpublished);
 						$this->message("Published Page: {$this->page->url}"); 
-					} else $this->message("Saved Page: {$this->page->url}"); 
+					} else {
+						$this->message("Saved Page: {$this->page->url}"); 
+					}
 
 					$this->page->save();
 
@@ -168,11 +177,11 @@ class ProcessPageEdit extends Process {
 					$this->error($e->getMessage()); 
 				}
 			}
-
-			if(!$this->redirectUrl) $this->redirectUrl = "./?id={$this->page->id}"; 
-			if($this->input->get->modal) $this->redirectUrl .= "&modal=1";
-			$this->session->redirect($this->redirectUrl); 
 		}
+
+		if(!$this->redirectUrl) $this->redirectUrl = "./?id={$this->page->id}";
+		if($this->input->get->modal) $this->redirectUrl .= "&modal=1";
+		$this->session->redirect($this->redirectUrl); 
 	}	
 
 	/**
@@ -265,27 +274,30 @@ class ProcessPageEdit extends Process {
 		if($this->page->numChildren) $title = "<em>$title</em>";
 		$wrapper->attr('title', $title); 
 
-		$pageListParent = $this->page ? $this->page : $this->parent; 
-		if($pageListParent->numChildren) { 
-			$pageList = $this->modules->get('ProcessPageList'); 
-			$pageList->set('id', $pageListParent->id); 
-			$pageList->set('showRootPage', false); 
-		} else $pageList = null;
+		if(!$this->isPost) { 
 
-		$field = $this->modules->get("InputfieldMarkup"); 
-		$field->label = "Children / Subpages";
-		if($pageList) $field->value = $pageList->execute();
-			else $field->description = "There are currently no children/subpages below this page.";
+			$pageListParent = $this->page ? $this->page : $this->parent; 
+			if($pageListParent->numChildren) { 
+				$pageList = $this->modules->get('ProcessPageList'); 
+				$pageList->set('id', $pageListParent->id); 
+				$pageList->set('showRootPage', false); 
+			} else $pageList = null;
 
-		if($this->page->addable()) { 
-			$button = $this->modules->get("InputfieldButton"); 
-			$button->attr('id+name', 'AddPageBtn'); 
-			$button->attr('value', "Add New Page Here");
-			$button->attr('href', "../add/?parent_id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
-			$field->append($button);
+			$field = $this->modules->get("InputfieldMarkup"); 
+			$field->label = "Children / Subpages";
+			if($pageList) $field->value = $pageList->execute();
+				else $field->description = "There are currently no children/subpages below this page.";
+
+			if($this->page->addable()) { 
+				$button = $this->modules->get("InputfieldButton"); 
+				$button->attr('id+name', 'AddPageBtn'); 
+				$button->attr('value', "Add New Page Here");
+				$button->attr('href', "../add/?parent_id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
+				$field->append($button);
+			}
+			$wrapper->append($field); 
 		}
 
-		$wrapper->append($field); 
 
 		if($this->user->hasPermission('page-sort', $this->page)) { 		
 			$fieldset = $this->modules->get("InputfieldFieldset"); 
@@ -383,11 +395,11 @@ class ProcessPageEdit extends Process {
 		// status
 		$wrapper->add($this->buildFormStatus()); 
 
-		// roles
-		$wrapper->add($this->buildFormRoles()); 
-
-		// info
-		$wrapper->add($this->buildFormInfo()); 
+		// informational sections
+		if(!$this->isPost) {
+			$wrapper->add($this->buildFormRoles()); 
+			$wrapper->add($this->buildFormInfo()); 
+		}
 
 		return $wrapper; 
 	}
@@ -450,17 +462,6 @@ class ProcessPageEdit extends Process {
 		$wrapper = new InputfieldWrapper(); 	
 		$wrapper->attr('id', $this->className() . 'Delete');
 		$wrapper->attr('title', "Delete"); 
-
-		/* // Kept for reference
-		if($isRestorable) {
-			$field = $this->modules->get('InputfieldCheckbox');
-			$field->attr('id+name', 'restore_page'); 
-			$field->attr('value', $this->page->id); 
-			$field->label = "Restore Page";
-			$field->description = "Move the page out of the trash and to it's original location.";
-			$wrapper->append($field); 
-		}
-		*/
 
 		if($this->page->deleteable()) {
 
@@ -616,6 +617,7 @@ class ProcessPageEdit extends Process {
 	 *
 	 */
 	protected function processInputTemplate(Inputfield $inputfield) {
+		if(!$inputfield->value) return true; 
 		if($this->page->template->noChangeTemplate) return true; 
 		if((!$template = $this->templates->get((int) $inputfield->value)) || ($template->id == $this->page->template->id)) return true; 
 		if(!$this->isAllowedTemplate($template)) throw new WireException("Template '$template' is not allowed"); 
@@ -898,6 +900,66 @@ class ProcessPageEdit extends Process {
 	}
 
 	/**
+	 * Save only the fields posted
+	 *
+	 * Field name must be included in server header HTTP_X_FIELDNAME or directly in the POST vars.
+	 *
+	 * Note that fields that would be not present in POST vars (like a checkbox) are only supported by the HTTP_X_FIELDNAME version.
+	 *
+	 * Works for custom fields only at present. 
+	 *
+	 */
+	protected function ___ajaxSave() {
+
+		$form = new InputfieldWrapper();
+		$keys = array();
+
+		if(isset($_SERVER['HTTP_X_FIELDNAME'])) {
+			$keys[] = $this->sanitizer->fieldName($_SERVER['HTTP_X_FIELDNAME']);
+
+		} else {
+			foreach($this->input->post as $key => $unused) {
+				if($key == 'id') continue; 
+				$keys[] = $this->sanitizer->fieldName($key);
+			}
+		}
+
+		foreach($keys as $key) {
+
+			if(!$field = $this->page->template->fieldgroup->getField($key)) continue; 
+			if(!$this->page->editable($key)) continue; 
+			if(!$inputfield = $field->getInputfield($this->page)) continue; 
+
+			$inputfield->name = $key;
+			$inputfield->value = $this->page->get($key); 
+			$form->add($inputfield); 
+		}
+
+		$form->processInput($this->input->post); 
+		$this->page->setTrackChanges(true); 
+		$numFields = 0;
+		$lastFieldName = null;
+
+		foreach($form->children() as $inputfield) { 
+			$this->page->set($inputfield->name, $inputfield->value); 
+			$numFields++; 
+			$lastFieldName = $inputfield->name; 
+		}
+
+		if($this->page->isChanged()) {
+			if($numFields === 1) {
+				$this->page->save($lastFieldName); 
+				$this->message("Saved page '{$this->page->id}' field '$lastFieldName'"); 
+			} else {
+				$this->page->save();
+				$this->message("Saved page '{$this->page->id}' multiple fields"); 
+			}
+		} else {
+			$this->message("Page not saved (no changes)"); 
+		}
+	}
+
+	/**
 	 * Return instance of the Page being edited
 	 *
 	 * For Inputfields/Fieldtypes to use if they want to retrieve the editing page rather than the viewing page
@@ -906,48 +968,6 @@ class ProcessPageEdit extends Process {
 	public function getPage() {
 		return $this->page; 
 	}
-
-	/**
-	 * Install the module with an additional ProcessPageEditDelete permission
-	 *
-	 */
-	public function ___install() {
-		parent::___install();
-	}
-
-	/* // Functionality removed, but kept for reference and may add back later 
-	protected function restorePage() {
-
-		if(!$this->isTrash) return false;
-
-		if(!preg_match('/^(\d+)_/', $this->page->name, $matches)) {
-			$this->error("Sorry, not sure where to restore this page to because it's original parent is unknown"); 
-			return false;
-		}
-
-		$parent_id = (int) $matches[1]; 
-
-		if(!$parent = $this->pages->get($parent_id)) {
-			$this->error("Unable to restore page because it's original parent does not exist (?)"); 
-			return false; 
-		}
-
-		if(!$this->user->hasPermission('ProcessPageAdd', $parent)) {
-			$this->error("Unable to restore page because you don't have access to add pages in: {$parent->url}"); 
-			return false; 
-		}
-
-		if($this->pages->restore($this->page)) {
-			$this->form->children()->findOne("name=name")->attr('value', $this->page->name); 
-			$this->session->message("Restored page to: {$this->page->url}"); 
-			$this->session->redirect("./?id={$this->page->id}"); 
-			
-		} else {
-			$this->message("Error restoring page $page to $parent"); 
-			return false;
-		}
-	}
-	*/
 
 }
 

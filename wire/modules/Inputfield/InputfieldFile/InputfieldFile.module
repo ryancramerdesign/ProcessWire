@@ -15,7 +15,22 @@ class InputfieldFile extends Inputfield {
 			);
 	}
 
+	/**
+	 * Cache of responses we'll be sending on ajax requests
+	 *
+	 */
+	protected $ajaxResponses = array();
 
+	/**
+	 * Was a file replaced? 
+	 *
+	 */
+	protected $singleFileReplacement = false;
+
+	/**
+	 * Initialize the InputfieldFile
+	 *
+	 */
 	public function init() {
 		parent::init();
 
@@ -23,6 +38,7 @@ class InputfieldFile extends Inputfield {
 		// Initializing them here ensures this Inputfield has the values set automatically.
 		$this->set('extensions', '');
 		$this->set('maxFiles', 0); 
+		$this->set('maxFilesize', 0); 
 
 		// native to this Inputfield
 		$this->set('unzip', 0); 
@@ -30,8 +46,20 @@ class InputfieldFile extends Inputfield {
 		$this->set('descriptionRows', 1); 
 		$this->set('destinationPath', ''); 
 		$this->setAttribute('type', 'file'); 
+
+		// get the max filesize
+		$filesize = trim(ini_get('post_max_size'));
+		$last = strtolower(substr($filesize, -1));
+		if($last == 'g') $this->maxFilesize = (($filesize*1024)*1024)*1024;
+			else if($last == 'm') $this->maxFilesize = ($filesize*1024)*1024;
+			else if($last == 'k') $this->maxFilesize = $filesize*1024;
+			else $this->maxFilesize = (5*1024)*1024; 
 	}
 
+	/**
+	 * Per Inputfield interface, returns true when this field is empty
+	 *
+	 */
 	public function isEmpty() {
 		return !count($this->value);
 	}
@@ -62,6 +90,10 @@ class InputfieldFile extends Inputfield {
 		$this->checkFormEnctype();
                 return $this;
         }
+
+	protected function pagefileId(Pagefile $pagefile) {
+		return $this->name . "_" . $pagefile->hash; 
+	}
 
 
 	protected function renderItemDescriptionField(Pagefile $pagefile, $id, $n) {
@@ -97,34 +129,61 @@ class InputfieldFile extends Inputfield {
 		$n = 0; 
 
 		if($this->value) foreach($this->value as $k => $pagefile) {
-			$id = $this->name . "_" . $pagefile->hash; 
+			$id = $this->pagefileId($pagefile);
 			$out .= $this->renderItem($pagefile, $id, $n++); 
 		}
 
 		if($out) $out = "\n<ul class='InputfieldFileList'>$out\n</ul>";
 
+		// enables user to choose more than one file
+		if($this->maxFiles != 1) $this->setAttribute('multiple', 'multiple'); 
+
 		$attrs = $this->getAttributes();
 		unset($attrs['value']); 
 		if(substr($attrs['name'], -1) != ']') $attrs['name'] .= '[]';
 
-		if(!$this->maxFiles || count($this->value) < $this->maxFiles) { 
-			$out =	"\n$out" . 
-				"\n<p class='InputfieldFileUpload'>" . 
-				"\n\t<input type='hidden' class='InputfieldFileMaxFiles' value='{$this->maxFiles}' />" . 
-				"\n\t<input " . $this->getAttributesString($attrs) . " />" . 
-				"\n\t<span class='InputfieldFileValidExtensions description'>" . htmlspecialchars(str_replace(' ', ', ', trim($this->extensions))) . "</span>" . 
-				"\n</p>";
-		}
+		$extensions = $this->extensions; 
+		if($this->unzip && !$this->maxFiles) $extensions .= ' zip';
+
+		// if($this->maxFiles <= 1 || count($this->value) < $this->maxFiles) { 
+		$out =	"\n$out" . 
+			"\n<p data-maxfilesize='{$this->maxFilesize}' data-extensions='{$extensions}' data-fieldname='$attrs[name]' class='InputfieldFileUpload'>" . 
+			"\n\t<input type='hidden' class='InputfieldFileMaxFiles' value='{$this->maxFiles}' />" . 
+			"\n\t<input " . $this->getAttributesString($attrs) . " />" . 
+			"\n\t<span class='InputfieldFileValidExtensions description'>" . htmlspecialchars(str_replace(' ', ', ', trim($extensions))) . "</span>" . 
+			"\n\t<span class='AjaxUploadDropHere'><span class='ui-icon ui-icon-arrowreturnthick-1-s ui-priority-secondary'></span>&nbsp;or drag and drop files in here</span>" .
+			"\n</p>";
 
 		return $out; 
 	}
 
 	protected function ___fileAdded(Pagefile $pagefile) {
-		$this->message("Added file: " . $pagefile->basename); 
+
+		$message = "Added file: {$pagefile->basename}";
+
+		if($this->config->ajax) {
+			$n = count($this->value); 
+			if($n) $n--; // for sorting
+			$markup = $this->renderItem($pagefile, $this->pagefileId($pagefile), $n);	
+			$this->ajaxResponse(false, $message, $pagefile->url, $pagefile->filesize(), $markup); 
+		} else {
+			$this->message($message); 
+		}
+			
 	}
 
 	protected function ___processInputAddFile($filename) {
-		if($this->maxFiles && count($this->value) >= $this->maxFiles) return; 
+
+		$total = count($this->value); 
+
+		if($this->maxFiles > 1 && $total >= $this->maxFiles) return; 
+
+		// allow replacement of file if maxFiles is 1
+		if($this->maxFiles == 1 && $total) {
+			$this->processInputDeleteFile($this->value->first());
+			$this->singleFileReplacement = true; 
+		}
+
 		$this->value->add($filename); 
 		$item = $this->value->last();
 		$this->fileAdded($item); 
@@ -171,20 +230,39 @@ class InputfieldFile extends Inputfield {
 		if(!is_writable($this->destinationPath)) return $this->error("destinationPath is not writable"); 
 
 		$changed = false; 
+		$total = count($this->value); 
 
-		if(!$this->maxFiles || count($this->value) < $this->maxFiles) { 
+		if($this->maxFiles <= 1 || $total < $this->maxFiles) { 
 
 			$ul = new WireUpload($this->attr('name')); 
 			$ul->setDestinationPath($this->destinationPath); 
 			$ul->setOverwrite($this->overwrite); 
-			if($this->maxFiles) $ul->setMaxFiles($this->maxFiles - count($this->value)); 
-			if($this->unzip) $ul->setExtractArchives(true); 
+
+			if($this->maxFiles == 1) {
+				$ul->setMaxFiles(1); 
+
+			} else if($this->maxFiles) {
+				$maxFiles = $this->maxFiles - $total; 
+				$ul->setMaxFiles($maxFiles); 
+
+			} else if($this->unzip) { 
+				$ul->setExtractArchives(true); 
+			}
+
 			$ul->setValidExtensions(explode(' ', trim($this->extensions))); 
 
 			foreach($ul->execute() as $filename) {
 				$this->processInputAddFile($filename); 
 				$changed = true; 
 			}
+
+			if($this->config->ajax) foreach($ul->getErrors() as $error) { 
+				$this->ajaxResponse(true, $error); 
+			}
+
+		} else if($this->maxFiles) {
+			// over the limit
+			$this->ajaxResponse(true, "Max file upload limit reached"); 
 		}
 
 		$n = 0; 
@@ -201,8 +279,34 @@ class InputfieldFile extends Inputfield {
 			$this->trackChange('value'); 
 		}
 
+		if(count($this->ajaxResponses) && $this->config->ajax) {
+			echo json_encode($this->ajaxResponses); 
+		}
+
 		return $this; 
 	}
+
+	/**
+	 * Send an ajax response
+	 *
+	 * $error bool Whether it was successful
+	 * $message string Message you want to return
+	 * $file string Full path and filename or blank if not applicable
+	 *
+	 */
+	protected function ajaxResponse($error, $message, $file = '', $size = '', $markup = '') {
+		$response = array(
+			'error' => $error, 
+			'message' => $message, 
+			'file' => $file,
+			'size' => $size,
+			'markup' => $markup, 
+			'replace' => $this->singleFileReplacement,
+			);
+
+		$this->ajaxResponses[] = $response; 
+	}
+
 
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields(); 
@@ -212,7 +316,9 @@ class InputfieldFile extends Inputfield {
 		$f->attr('value', 1); 
 		$f->setAttribute('checked', $this->unzip ? 'checked' : ''); 
 		$f->label = 'Decompress ZIP files?';
-		$f->description = "If checked, ZIP archives will be decompressed and all valid files added as uploads (if supported by the hosting environment).";
+		$f->description = 
+			"If checked, ZIP archives will be decompressed and all valid files added as uploads (if supported by the hosting environment). " . 
+			"Max files must be set to 0 (no max) in order for ZIP uploads to be functional.";
 		$inputfields->append($f); 
 
 		$f = $this->modules->get("InputfieldInteger"); 
@@ -226,5 +332,7 @@ class InputfieldFile extends Inputfield {
 
 		return $inputfields; 	
 	}
+
+
 
 }

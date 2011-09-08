@@ -55,10 +55,9 @@ class InputfieldImage extends InputfieldFile {
 			$this->message("Resized '{$pagefile->basename}' to {$pagefile->width}x{$pagefile->height} fit within max dimensions of {$this->maxWidth}x{$this->maxHeight}"); 
 		}
 
-		parent::___fileAdded($pagefile); 
-		
+		return parent::___fileAdded($pagefile); 
 	}
-	
+
 	protected function renderItem($pagefile, $id, $n) {
 
 		$thumb = $pagefile; 
@@ -77,7 +76,6 @@ class InputfieldImage extends InputfieldFile {
 			"\n\t\t</p>" . 
 			"\n\t\t<p class='InputfieldFileData ui-widget ui-widget-content'>" . 
 			"\n\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->url}'><img src='{$thumb->url}' alt='{$pagefile->basename}' /></a>" . 
-	//		"\n\t\t\t<label class='InputfieldFileDescription'>Description <input type='text' name='description_$id' value='$description' /></label>" . 
 			"\n\t\t\t" . $this->renderItemDescriptionField($pagefile, $id, $n) . 
 			"\n\t\t\t<input class='InputfieldFileSort' type='text' name='sort_$id' value='$n' />" . 
 			"\n\t\t</p>" . 

@@ -5,15 +5,15 @@
  *
  * This file is designed for inclusion by /site/templates/admin.php template and all the variables it references are from your template namespace. 
  *
- * Copyright 2010 by Ryan Cramer
+ * Copyright 2011 by Ryan Cramer
  *
  */
 
 if(!defined("PROCESSWIRE")) die("This file may not be accessed directly.");
 
 // ensure core jQuery modules are loaded before others
-$this->modules->get("JqueryCore"); 
-$this->modules->get("JqueryUI"); 
+$modules->get("JqueryCore"); 
+$modules->get("JqueryUI"); 
 
 // tell ProcessWire that any pages loaded from this point forward should have their outputFormatting turned off
 $pages->setOutputFormatting(false); 
@@ -26,6 +26,9 @@ foreach($page->parents() as $p) {
 Wire::setFuel('breadcrumbs', $breadcrumbs); 
 $controller = null;
 $content = '';
+
+// enable modules to output their own ajax responses if they choose to
+if($config->ajax) ob_start();
 
 if($page->process && $page->process != 'ProcessPageView') {
 	try {
@@ -65,6 +68,12 @@ if($page->process && $page->process != 'ProcessPageView') {
 
 } else {
 	$content = "<p>This page has no Process assigned.</p>";
+}
+
+if($config->ajax) {
+	// enable modules to output their own ajax responses if they choose to
+	if(!$content) $content = ob_get_contents();
+	ob_end_clean();
 }
 
 if($controller && $controller->isAjax()) {
