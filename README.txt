@@ -14,12 +14,10 @@ http://processwire.com
 
 ABOUT THIS VERSION
 ---------------------------------------------------------------------------
-This is a ProcessWire 2.1 development version and it is close enough
-to stable release that you may want to use this version rather than 
-2.0 if you are starting a new project. If you are testing ProcessWire
-for the first time, we also recommend use use 2.1 rather than 2.0. If
-you prefer not to use a beta version, please take a look at ProcessWire
-2.0 by following the link at processwire.com/download/.
+This is ProcessWire 2.1 stable. This is our current production version.
+As of the 2.1 release date, this project is still less than a year old with 
+lots of room to grow and we appreciate your feedback. Please join us in 
+the ProcessWire forums: http://processwire.com/talk/
 
 
 REQUIREMENTS
