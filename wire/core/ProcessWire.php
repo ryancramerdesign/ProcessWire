@@ -203,6 +203,10 @@ function ProcessWireShutdown() {
 		$file = $error['file'];
 		$message = "$error[message]";
 		$debug = false; 
+		$http = isset($_SERVER['HTTP_HOST']); 
+		$log = null;
+		$why = '';
+		$who = '';
 
 		if($type != E_USER_ERROR) $message .= " (line $line of $file)";
 
@@ -217,16 +221,34 @@ function ProcessWireShutdown() {
 			}
 		}
 
-		if($debug || !isset($_SERVER['HTTP_HOST']) || ($user && $user->isSuperuser())) {
+		// we populate $who to give an ambiguous indication where the full error message has been sent
+		if($log) $who .= "Error has been logged. ";
+		if($config && $config->adminEmail) $who .= "Administrator has been emailed. ";
+
+		// we populate $why if we're going to show error details for any of the following reasons: 
+		if($debug) $why = "site is in debug mode (\$config->debug = true; in /site/config.php).";
+			else if(!$http) $why = "you are using the command line API.";
+			else if($user && $user->isSuperuser()) $why = "you are logged in as a Superuser.";
+			else if($config && is_file($config->paths->root . "install.php")) $why = "/install.php still exists.";	
+			else if($config && !is_file($config->paths->assets . "active.php")) {
+				// no login has ever occurred or user hasn't logged in since upgrade before this check was in place
+				// check the date the site was installed to ensure we're not dealing with an upgrade
+				$installed = $config->paths->assets . "installed.php";
+				if(!is_file($installed) || (filemtime($installed) > (time() - 21600))) {
+					// site was installed within the last 6 hours, safe to assume it's a new install
+					$why = "Superuser has never logged in.";
+				}
+			}
+
+		if($why) {
 			// when in debug mode, we can assume the message was already shown, so we just say why.
 			// when not in debug mode, we display the full error message since error_reporting and display_errors are off.
-			if($debug) $message = "This error message was shown because the site is in DEBUG mode.";
-				else $message .= "\n\nThis error message was shown because you are logged in as a Superuser.";
-			if(isset($_SERVER['HTTP_HOST'])) $message = "<p class='WireFatalError'>" . nl2br($message) . "</p>";
+			$message .= "\n\nThis error message was shown because $why $who";
+			if($http) $message = "<p class='WireFatalError'>" . nl2br($message) . "</p>";
 			echo "\n\n$message\n\n";
 		} else {
 			header("HTTP/1.1 500 Internal Server Error");
-			echo "Unable to complete this request due to an error";
+			echo "Unable to complete this request due to an error. $who";
 		}
 	}
 }

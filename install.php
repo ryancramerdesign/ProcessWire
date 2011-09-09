@@ -427,18 +427,21 @@ class Installer {
 		if(@unlink("./upgrade.php")) {
 			$this->li("Deleted this upgrade installer (./upgrade.php) for security."); 
 		} else {
-			$this->li("Please delete this upgrade installer! The file is located in your web root at: ./upgrade.php"); 
+			$this->li("Please delete the upgrade installer! The file is located in your web root at: ./upgrade.php"); 
 		}
 		$this->li("There are additional configuration options available in this file that you may want to review: ./site/config.php"); 
 
 		$this->li("To save space, you may delete this directory (and everything in it): ./site/install/ - it's no longer needed"); 
 
+		$this->li("Note that future runtime errors are logged to: /site/assets/logs/errors.txt (not web accessible)"); 
+
 		echo "\n<h2>7. Use The Site!</h2>"; 
 
 		echo "<p><a target='_blank' href='./'>View the Web Site</a> or <a href='./processwire/'>Login to ProcessWire</a></p>";
 
+
 		// set a define that indicates installation is completed so that this script no longer runs
-		file_put_contents("./site/assets/installed.php", "<?php // The existance of this file prevents the installer from running. Don't delete it unless you want to re-run the install or you have deleted ./install.php."); 
+		file_put_contents("./site/assets/installed.php", "<?php // The existence of this file prevents the installer from running. Don't delete it unless you want to re-run the install or you have deleted ./install.php."); 
 
 	}
 
