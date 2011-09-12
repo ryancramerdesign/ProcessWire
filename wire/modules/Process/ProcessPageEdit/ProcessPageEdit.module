@@ -110,7 +110,7 @@ class ProcessPageEdit extends Process {
 		}
 
 		if($this->page->is(Page::statusUnpublished)) {
-			$this->message("This page is not published. You will have to publish this page before it is visible on the site."); 
+			// $this->message("This page is not published. You will have to publish this page before it is visible on the site."); 
 		}
 
 		return $this->renderEdit();
@@ -221,20 +221,21 @@ class ProcessPageEdit extends Process {
 		if($this->page->deleteable()) $form->append($this->buildFormDelete());
 		if($this->page->viewable() && !$this->input->get->modal) $form->append($this->buildFormView()); 
 
+		$field2 = null;
 		if($this->page->is(Page::statusUnpublished)) {
 
-			if(!$form->description) $form->description = "This page is currently unpublished";
-
-			$field2 = $this->modules->get('InputfieldSubmit'); 
-			$field2->attr('name', 'submit_save'); 
-			$field2->attr('id', 'submit_save_unpublished'); 
-			$field2->class .= ' ui-priority-secondary'; 
-			$field2->attr('value', 'Save + Keep Unpublished'); 
+			if(get_class($this->page) == 'Page') {
+				if(!$form->description) $form->description = "This page is currently unpublished";
+				$field2 = $this->modules->get('InputfieldSubmit'); 
+				$field2->attr('name', 'submit_save'); 
+				$field2->attr('id', 'submit_save_unpublished'); 
+				$field2->class .= ' ui-priority-secondary'; 
+				$field2->attr('value', 'Save + Keep Unpublished'); 
+			}
 
 			$saveName = 'submit_publish';
 			$saveLabel = "Publish " . $this->pageClass; 
 		} else {
-			$field2 = null;
 			$saveName = 'submit_save';
 			$saveLabel = "Save " . $this->pageClass; 
 		}

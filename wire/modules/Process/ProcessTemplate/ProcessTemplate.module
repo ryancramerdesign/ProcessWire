@@ -1069,7 +1069,6 @@ class ProcessTemplate extends Process {
 		}
 
 		$field->value = $table->render();
-		$field->value .= "<script>console.log('test');</script>";
 
 		return $field; 
 	}
