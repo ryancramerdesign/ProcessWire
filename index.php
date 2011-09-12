@@ -39,8 +39,18 @@ function ProcessWireBootConfig() {
 	if(DIRECTORY_SEPARATOR != '/') $rootPath = str_replace(DIRECTORY_SEPARATOR, '/', $rootPath); 
 
 	if(isset($_SERVER['HTTP_HOST'])) {
+
 		// when serving pages from a web server
 		$rootURL = rtrim(dirname($_SERVER['SCRIPT_NAME']), "/\\") . '/';
+
+		// check if we're being included from another script and adjust the rootPath accordingly
+		$sf = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME'];
+		if($sf && $sf != __FILE__ && strpos($sf, dirname(__FILE__)) === 0) {
+			$x = rtrim(dirname(substr($_SERVER['SCRIPT_FILENAME'], strlen($rootPath))), '/');
+			$rootURL = substr($rootURL, 0, strlen($rootURL) - strlen($x));
+			unset($x, $sf);
+		}
+
 	} else {
 		// when included from another app or command line script
 		$rootURL = '/';

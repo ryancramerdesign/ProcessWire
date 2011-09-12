@@ -26,7 +26,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 			$table->setEncodeEntities(false);
 			if($this->thead) $table->headerRow(explode('|', htmlspecialchars($this->thead))); 
 		} else {
-			$out = "\n\t<ul>";
+			$out = "\n<ul>";
 		}
 
 		foreach($this->getOptions() as $key => $value) {
@@ -52,12 +52,13 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 				$value[0] = $input . $value[0] . "</label>";
 				$table->row($value); 
 			} else {
-				$out .= "\n\t\t<li>" . $input . $value . "</label></li>";
+				$out .= "\n\t<li>" . $input . $value . "</label></li>";
 			}
 			
 		}
 
 		if($table) $out .= $table->render();
+			else $out .= "\n</ul>";
 
 		return $out; 
 

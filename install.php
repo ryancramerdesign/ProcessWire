@@ -424,10 +424,12 @@ class Installer {
 		} else {
 			$this->li("Please delete this installer! The file is located in your web root at: ./install.php"); 
 		}
-		if(@unlink("./upgrade.php")) {
-			$this->li("Deleted this upgrade installer (./upgrade.php) for security."); 
-		} else {
-			$this->li("Please delete the upgrade installer! The file is located in your web root at: ./upgrade.php"); 
+		if(is_file("./upgrade.php")) { 
+			if(@unlink("./upgrade.php")) {
+				$this->li("Deleted this upgrade installer (./upgrade.php) for security."); 
+			} else {
+				$this->li("Please delete the upgrade installer! The file is located in your web root at: ./upgrade.php"); 
+			}
 		}
 		$this->li("There are additional configuration options available in this file that you may want to review: ./site/config.php"); 
 
