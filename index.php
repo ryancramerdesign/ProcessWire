@@ -44,12 +44,13 @@ function ProcessWireBootConfig() {
 		$rootURL = rtrim(dirname($_SERVER['SCRIPT_NAME']), "/\\") . '/';
 
 		// check if we're being included from another script and adjust the rootPath accordingly
-		$sf = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME'];
-		if($sf && $sf != __FILE__ && strpos($sf, dirname(__FILE__)) === 0) {
-			$x = rtrim(dirname(substr($_SERVER['SCRIPT_FILENAME'], strlen($rootPath))), '/');
+		$sf = empty($_SERVER['SCRIPT_FILENAME']) ? '' : dirname(realpath($_SERVER['SCRIPT_FILENAME']));
+		$f = dirname(realpath(__FILE__)); 
+		if($sf && $sf != $f && strpos($sf, $f) === 0) {
+			$x = rtrim(substr($sf, strlen($f)), '/');
 			$rootURL = substr($rootURL, 0, strlen($rootURL) - strlen($x));
-			unset($x, $sf);
 		}
+		unset($sf, $f, $x);
 
 	} else {
 		// when included from another app or command line script
