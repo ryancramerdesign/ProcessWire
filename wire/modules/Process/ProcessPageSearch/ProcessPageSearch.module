@@ -110,8 +110,6 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 		foreach($this->input->get as $name => $value) {
 
-			$this->message("$name: '$value'"); 
-
 			// operator has no '=', so we'll get the value from the name
 			// so that you can do something like: bedrooms>5 rather than bedrooms>=5
 			if(!strlen($value) && preg_match('/([^<>]+)\s*([<>])\s*([^<>]+)/', $name, $matches)) {
@@ -163,7 +161,6 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		$displaySelector = $selector; 
 
 		if($this->user->isSuperuser && !$status) $selector .= ", include=all"; 
-		$this->message($selector); 
 
 		return $this->render($this->pages->find($selector), $displaySelector); 
 	}
@@ -178,7 +175,8 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		if($displaySelector) $this->message("Found " . $matches->getTotal() . " pages using selector: $displaySelector");
 
 		// determine what fields will be displayed
-		$display = $this->input->get('display');
+		$display = $this->input->get('get');
+		if(!$display) $display = $this->input->get('display'); // display=old terminology
 		if(!strlen($display)) $display = 'title path';
 		$display = str_replace(',', ' ', $display);
 		$display = explode(' ', $display); // convert to array
@@ -190,7 +188,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			if(in_array($name, array('url', 'path', 'httpUrl'))) continue; 
 			unset($display[$key]); 
 		}
-		$this->input->whitelist('display', implode(',', $display)); 
+		$this->input->whitelist('get', implode(',', $display)); 
 
 		if($this->config->ajax) {
 			// ajax json output
