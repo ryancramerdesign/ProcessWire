@@ -187,6 +187,8 @@ function ProcessWireShutdown() {
 		E_CORE_ERROR,
 		E_COMPILE_ERROR,
 		E_USER_ERROR,
+		E_PARSE,
+		E_RECOVERABLE_ERROR,
 		);
 
 	$error = error_get_last();

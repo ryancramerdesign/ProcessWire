@@ -39,11 +39,15 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		'parent_id',
 		'created',
 		'modified',
+		'modified_users_id',
+		'created_users_id',
 		'createdUser',
 		'modifiedUser',
 		'sort',
 		'sortfield',
 		);
+
+	protected $fieldOptions = array();
 
 	protected $customSorts = array();
 
@@ -61,25 +65,157 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 	protected $operator = '~=';
 	protected $resultLimit = 50;
-	protected $fieldOptions = array();
+	protected $maxLimit = 250;
+
+	public function init() {
+
+		foreach($this->fields as $field) {
+			if($field->type instanceof FieldtypeFieldsetOpen) continue;
+			if($field->type instanceof FieldtypePassword) continue;
+			$this->fieldOptions[] = $field->name;
+		}
+
+		sort($this->fieldOptions);
+
+		parent::init();
+	}
 
 
+	/**
+	 * Perform an interactive search and provide a search form (default)
+	 *
+	 */
 	public function ___execute() {
 		$this->processInput();
-		if($this->input->get->show_options) {
-			$out = "\n<div id='ProcessPageSearchOptions'>" . $this->renderFullSearchForm() . "</div>";
-			$class = 'show_options';
-		} else $class = '';
-		$out .= "\n<div id='ProcessPageSearchResults' class='$class'>" . $this->search() . "\n</div>";
+		list($selector, $displaySelector) = $this->buildSelector();
+		$matches = $this->pages->find($selector);
+		return $this->render($matches, $displaySelector);
+	}
+
+	/**
+	 * Perform a non-interactive search (based on URL GET vars)
+	 *
+	 * This is the preferred input method for links and ajax queries.
+	 *
+	 * Example /search/for?template=basic-page&body*=example
+	 *
+	 */
+	public function ___executeFor() {
+
+		$selector = '';
+		$displaySelector = '';
+		$limit = $this->resultLimit;
+		$start = 0;
+		$status = 0;
+
+		foreach($this->input->get as $name => $value) {
+
+			$this->message("$name: '$value'"); 
+
+			// operator has no '=', so we'll get the value from the name
+			// so that you can do something like: bedrooms>5 rather than bedrooms>=5
+			if(!strlen($value) && preg_match('/([^<>]+)\s*([<>])\s*([^<>]+)/', $name, $matches)) {
+
+				$name = $matches[1];
+				$operator = $matches[2];
+				$value = $matches[3]; 
+
+			} else {
+
+				$operator = substr($name, -1) . '=';
+
+				if(isset($this->operators[$operator])) {
+					$name = substr($name, 0, -1); 
+				} else {
+					$operator = '=';
+				}
+			}
+
+			$name = $this->sanitizer->fieldName($name); 
+
+			if(!$name) continue; 
+
+			if($name == 'limit') { 
+				$limit = (int) $value; 
+				$this->input->whitelist('limit', $value);
+				continue; 
+			}
+
+			if($name == 'start') { 
+				$start = (int) $value;
+				$this->input->whitelist('start', $value); 
+				continue; 
+			}
+
+			if($name == 'include' || $name == 'check_access') continue; 
+			if($name == 'status') $status = (int) $value;
+			if(!$this->isSelectableFieldName($name)) continue; 
+
+			$this->input->whitelist($name . rtrim($operator, '='), trim($value, '"\'')); 	
+			$value = $this->sanitizer->selectorValue($value); 
+			$selector .= "$name$operator$value, ";
+		}
+
+		if($start) $selector .= "start=$start, ";
+		$selector .= "limit=$limit, ";
+
+		$selector = rtrim($selector, ", "); 
+		$displaySelector = $selector; 
+
+		if($this->user->isSuperuser && !$status) $selector .= ", include=all"; 
+		$this->message($selector); 
+
+		return $this->render($this->pages->find($selector), $displaySelector); 
+	}
+
+	/**
+	 * Render the search results
+	 *
+	 */
+	protected function render(PageArray $matches, $displaySelector) {
+
+		$out = '';
+		if($displaySelector) $this->message("Found " . $matches->getTotal() . " pages using selector: $displaySelector");
+
+		// determine what fields will be displayed
+		$display = $this->input->get('display');
+		if(!strlen($display)) $display = 'title path';
+		$display = str_replace(',', ' ', $display);
+		$display = explode(' ', $display); // convert to array
+
+		foreach($display as $key => $name) {
+			$name = $this->sanitizer->fieldName($name);
+			$display[$key] = $name; 
+			if($this->isSelectableFieldName($name)) continue; 
+			if(in_array($name, array('url', 'path', 'httpUrl'))) continue; 
+			unset($display[$key]); 
+		}
+		$this->input->whitelist('display', implode(',', $display)); 
+
+		if($this->config->ajax) {
+			// ajax json output
+			$out = $this->renderMatchesAjax($matches, $display, $displaySelector); 
+
+		} else {
+			// html output
+			$class = '';
+			if($this->input->get->show_options !== 0 && $this->input->urlSegment1 != 'find') {
+				$out = "\n<div id='ProcessPageSearchOptions'>" . $this->renderFullSearchForm() . "</div>";
+				$class = 'show_options';
+			} 
+
+			$out .= "\n<div id='ProcessPageSearchResults' class='$class'>" . $this->renderMatchesTable($matches, $display) . "\n</div>";
+		}
+
 		return $out;
 	}
 
-	protected function search() {
-
-		$out = '';
+	/**
+	 * Build a selector based upon interactive choices from the search form 
+	 *
+	 */
+	protected function buildSelector() {
 		$selector = '';
-
-		$this->processInput();
 
 		// search query text
 		$q = $this->input->whitelist('q');
@@ -127,34 +263,17 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		$selector .= ", limit={$this->resultLimit}";
 
 		// include hidden pages
-		$selector .= ", status<" . Page::statusUnpublished;
+		if($this->user->isSuperuser()) $selector .= ", include=all";
+			else $selector .= ", status<" . Page::statusUnpublished;
 
-		// execute the search
-		$matches = $this->pages->find($selector);
-
-		$this->message("Found " . $matches->getTotal() . " pages using selector: $displaySelector");
-
-		// determine what fields will be displayed
-		$display = $this->input->whitelist('display');
-		$display = str_replace(',', ' ', $display);
-		$display = explode(' ', $display); // convert to array
-		if(!count($display)) $display = array('path');
-
-		$out .= $this->renderMatchesTable($matches, $display);
-
-		return $out;
+		return array($selector, $displaySelector); 
 	}
 
+	/**
+	 * Process input from the search form
+	 *
+	 */
 	protected function processInput() {
-
-		$this->fieldOptions = array();
-		foreach($this->fields as $field) {
-			if($field->type instanceof FieldtypeFieldsetOpen) continue;
-			if($field->type instanceof FieldtypePassword) continue;
-			$this->fieldOptions[] = $field->name;
-		}
-
-		sort($this->fieldOptions);
 
 		// search fields
 		if($this->input->get->field) {
@@ -194,25 +313,6 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			if($this->input->get->reverse) $this->input->whitelist('reverse', 1);
 		}
 
-		// display fields
-		if(!$this->displayField) $this->displayField = 'title,path';
-		$this->input->whitelist('display', $this->displayField);
-		if($this->input->get->display) {
-			$display = str_replace(',', ' ', $this->input->get->display);
-			$displayArray = explode(' ', $display);
-			$display = '';
-			foreach($displayArray as $d) {
-				if(!strlen($d)) continue;
-				$d = $this->sanitizer->fieldName($d);
-				if(!in_array($d, $this->nativeSorts) && !in_array($d, array('path', 'url', 'httpUrl', 'parent', 'template'))) {
-					if(!in_array($d, $this->fieldOptions)) continue;
-				}
-				$display .= $d . " ";
-			}
-			$display = trim($display);
-			$this->input->whitelist('display', $display);
-		}
-
 		// template
 		if($this->input->get->template) {
 			$template = $this->sanitizer->name($this->input->get->template);
@@ -220,6 +320,20 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			if($template) $this->input->whitelist('template', $template);
 		}
 
+	}
+
+
+	/**
+	 * Is the given field name selectable?
+	 *
+	 */
+	protected function isSelectableFieldName($name) {
+		$is = false;
+		if(in_array($name, $this->nativeSorts)) $is = true; 
+ 			else if(in_array($name, array('parent', 'template'))) $is = true; 
+			else if(in_array($name, $this->fieldOptions)) $is = true; 
+		if($name == 'pass' || $name == 'config') $is = false;
+		return $is; 
 	}
 
 	protected function renderFullSearchForm() {
@@ -365,8 +479,9 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		return $out;
 	}
 
-	protected function renderMatchesTable(PageArray $matches, array $display = array('path'), $id = 'ProcessPageSearchResultsList') {
+	protected function renderMatchesTable(PageArray $matches, array $display, $id = 'ProcessPageSearchResultsList') {
 
+		if(!count($display)) $display = array('path'); 
 		$out = '';
 
 		if(!count($matches)) return $out;
@@ -401,6 +516,78 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		$out = $pager . $table->render() . $pager;
 
 		return $out;
+	}
+
+	/**
+	 * Render the provided matches as a JSON string for AJAX use
+	 *
+	 */
+	protected function renderMatchesAjax(PageArray $matches, array $display, $selector) {
+
+		$a = array(
+			'selector' => $selector, 
+			'total' => $matches->getTotal(),
+			'limit' => $matches->getLimit(),
+			'start' => $matches->getStart(),
+			'matches' => array(),
+			);
+
+		foreach($matches as $page) {
+
+			$p = array(
+				'id' => $page->id, 
+				'parent_id' => $page->parent_id, 
+				'template' => $page->template->name, 
+				'path' => $page->path, 
+				'name' => $page->name, 
+				);
+
+			foreach($display as $key) {
+				$value = $page->get($key);
+				if(is_object($value)) $value = $this->setupObjectMatch($value); 
+				if(is_array($value)) $value = $this->setupArrayMatch($value);
+				$p[$key] = $value;
+			}
+
+			$a['matches'][] = $p;
+		}
+
+		return json_encode($a); 	
+	}
+
+	/**
+	 * Convert object to an array where possible, otherwise convert to a string
+	 *
+	 * For use by renderMatchesAjax
+	 *
+	 */
+	protected function setupObjectMatch($o) {
+		if($o instanceof Page) {
+			return array(
+				'id' => $o->id,
+				'parent_id' => $o->parent_id,
+				'template' => $o->template->name,
+				'name' => $o->name,
+				'path' => $o->path,
+				'title' => $o->title
+			); 
+		}
+		if($o instanceof WireData || $o instanceof WireArray) return $o->getArray();
+		return (string) $o;
+	}
+
+	/**
+	 * Filter an array converting any indexes containing objects to arrays or strings
+	 *
+	 * For use by renderMatchesAjax
+	 *
+	 */
+	protected function setupArrayMatch(array $a) {
+		foreach($a as $key => $value) {
+			if(is_object($value)) $a[$key] = $this->setupObjectMatch($value);
+				else if(is_array($value)) $a[$key] = $this->setupArrayMatch($value); 
+		}
+		return $a; 
 	}
 
 	public function renderSearchForm() {

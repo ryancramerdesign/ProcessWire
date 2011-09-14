@@ -335,7 +335,7 @@ class Sanitizer extends Wire {
 		if(!ctype_alnum($test)) {
 		
 			// value needs more filtering, replace all non-alphanumeric, non-single-quote and space chars
-			$value = preg_replace('/[^[:alnum:]\pL \']/u', ' ', $value); 
+			$value = preg_replace('/[^[:alnum:]\pL \'\/]/u', ' ', $value); 
 
 			// replace multiple space characters in sequence
 			$value = preg_replace('/\s\s+/u', ' ', $value); 
