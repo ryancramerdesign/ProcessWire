@@ -223,8 +223,11 @@ $(document).ready(function() {
 				}	
 			}
 			
-			filesUpload.addEventListener("change", function () {
+			filesUpload.addEventListener("change", function(evt) {
 				traverseFiles(this.files);
+				evt.preventDefault();
+				evt.stopPropagation();
+				this.value = '';
 			}, false);
 
 			dropArea.addEventListener("dragleave", function() { $(this).removeClass('ui-state-hover'); }, false);
