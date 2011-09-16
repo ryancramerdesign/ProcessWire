@@ -175,7 +175,6 @@ $(document).ready(function() {
 				
 				// Here we go
 				xhr.open("POST", postUrl, true);
-				xhr.setRequestHeader("Content-Type", "multipart/form-data");
 				xhr.setRequestHeader("X-FILENAME", file.name);
 				xhr.setRequestHeader("X-FIELDNAME", fieldName);
 				xhr.setRequestHeader("X-REQUESTED-WITH", 'XMLHttpRequest');
