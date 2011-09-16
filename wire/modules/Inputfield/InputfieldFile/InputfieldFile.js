@@ -140,6 +140,7 @@ $(document).ready(function() {
 				xhr.addEventListener("load", function() {
 
 					var response = $.parseJSON(xhr.responseText); 
+					if(response.error !== undefined) response = [response];
 
 					for(var n = 0; n < response.length; n++) {
 

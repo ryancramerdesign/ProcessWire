@@ -139,12 +139,14 @@ class ProcessPageEdit extends Process {
 	protected function processSave() {
 
 		if($this->page->is(Page::statusLocked)) {
-
 			if(!$this->user->hasPermission('page-lock', $this->page) || (!empty($_POST['status']) && in_array(Page::statusLocked, $_POST['status']))) {
 				$this->error("Your changes were not saved because this page is locked"); 
+				$this->processSaveRedirect();
+				return;
 			}
-
-		} else if($this->input->post->submit_delete) {
+		}
+		
+		if($this->input->post->submit_delete) {
 
 			if($this->input->post->delete_page) $this->deletePage();
 
@@ -179,10 +181,19 @@ class ProcessPageEdit extends Process {
 			}
 		}
 
+		$this->processSaveRedirect();
+	}	
+
+	/**
+	 * Perform an after save redirect
+	 *
+	 */
+	protected function processSaveRedirect() {
 		if(!$this->redirectUrl) $this->redirectUrl = "./?id={$this->page->id}";
 		if($this->input->get->modal) $this->redirectUrl .= "&modal=1";
 		$this->session->redirect($this->redirectUrl); 
-	}	
+	}
+
 
 	/**
 	 * Build the form used for Page Edits
@@ -911,6 +922,8 @@ class ProcessPageEdit extends Process {
 	 *
 	 */
 	protected function ___ajaxSave() {
+
+		if($this->page->is(Page::statusLocked)) throw new WireException("Page is locked"); 
 
 		$form = new InputfieldWrapper();
 		$keys = array();
