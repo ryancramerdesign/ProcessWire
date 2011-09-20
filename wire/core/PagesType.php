@@ -81,6 +81,7 @@ class PagesType extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function find($selectorString, $options = array()) {
+		if(!isset($options['findAll'])) $options['findAll'] = true; 
 		$pages = $this->pages->find($this->selectorString($selectorString), $options);
 		foreach($pages as $page) $this->loaded($page); 
 		return $pages; 
