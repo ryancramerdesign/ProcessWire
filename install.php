@@ -12,7 +12,7 @@
  * reason, then you'll want to delete that file. This was implemented just in case someone doesn't delete the installer.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2011 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -279,6 +279,8 @@ class Installer {
 
 		if(self::replaceDB || !$result || $result->num_rows == 0) {
 
+			$this->profileImportSQL($mysqli, "./wire/core/install.sql"); 
+			$this->li("Imported: ./wire/core/install.sql"); 
 			$this->profileImportSQL($mysqli, $profile . "install.sql"); 
 			$this->li("Imported: {$profile}install.sql"); 
 
