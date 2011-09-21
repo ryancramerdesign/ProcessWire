@@ -542,9 +542,36 @@ class ProcessTemplate extends Process {
 			"But caching should not be used on templates that need to process constantly changing data, like " . 
 			"from forms or sessions. Also note that URL segments are cachable, but GET and POST vars are not. ";
 
-		$field->notes = "For example: 3600 = 1 hour, 86400 = 1 day, 604800 = 1 week, 2419200 = 1 month. ";
+		$field->notes = "For example: 60 = 1 minute, 600 = 10 minutes, 3600 = 1 hour, 86400 = 1 day, 604800 = 1 week, 2419200 = 1 month. ";
 
 		$field->attr('value', $template->cache_time); 
+		$form->append($field); 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldRadios'); 
+		$field->attr('id+name', 'cacheExpire'); 
+		$field->label = 'Page Save / Cache Expiration';
+		$field->description = "When a page using this template is saved, what should happen to the cache?";
+		$field->addOption(Template::cacheExpirePage, "Clear cache for the saved page only (default)"); 
+		$field->addOption(Template::cacheExpireSite, "Clear cache for entire site*");
+		$field->addOption(Template::cacheExpireParents, "Clear cache for the saved page and parents (including homepage)"); 
+		$field->addOption(Template::cacheExpireSpecific, "Clear cache for the saved page and other pages that I specify..."); 
+		$field->addOption(Template::cacheExpireNone, "Do nothing");
+		$field->attr('value', (int) $template->cacheExpire); 
+		$field->notes = "*To maximize performance, cache files are all expired as a group rather than cleared individually.";
+		$form->append($field); 
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldPageListSelectMultiple'); 
+		$field->attr('id+name', 'cacheExpirePages'); 
+		$field->label = "Specify the other pages that should have their cache cleared"; 
+		$field->description = 
+			"When pages using this template are saved, their cache files will be cleared. " . 
+			"Select the other pages that should also have their cache files cleared below."; 
+		$value = is_array($template->cacheExpirePages) ? $template->cacheExpirePages : array();
+		$field->attr('value', $value); 
 		$form->append($field); 
 
 		// --------------------
@@ -1111,6 +1138,10 @@ class ProcessTemplate extends Process {
 		$this->template->useCacheForUsers = (int) $form->get('useCacheForUsers')->attr('value');
 		$this->template->noCacheGetVars = $this->fuel('sanitizer')->names($form->get('noCacheGetVars')->attr('value')); 
 		$this->template->noCachePostVars = $this->fuel('sanitizer')->names($form->get('noCachePostVars')->attr('value')); 
+		$this->template->cacheExpire = (int) $form->get('cacheExpire')->attr('value');
+
+		if($this->template->cacheExpire == Template::cacheExpireSpecific) $this->template->cacheExpirePages = $form->get('cacheExpirePages')->value; 
+			else $this->template->cacheExpirePages = array();
 	
 		// family
 	

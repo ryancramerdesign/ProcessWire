@@ -8,7 +8,7 @@
  * Templates also maintain several properties which can affect the render behavior of pages using it. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2011 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -23,6 +23,36 @@ class Template extends WireData implements Saveable {
 	 *
 	 */
 	const flagSystem = 8; 
+
+	/**
+	 * Cache expiration options: expire only page cache
+	 *
+	 */
+	const cacheExpirePage = 0;
+
+	/**
+	 * Cache expiration options: expire entire site cache
+	 *
+	 */
+	const cacheExpireSite = 1; 
+
+	/**
+	 * Cache expiration options: expire page and parents
+	 *
+	 */
+	const cacheExpireParents = 2; 
+
+	/**
+	 * Cache expiration options: expire page and other specific pages (stored in cacheExpirePages)
+	 *
+	 */
+	const cacheExpireSpecific = 3; 
+
+	/**
+	 * Cache expiration options: don't expire anything
+	 *
+	 */
+	const cacheExpireNone = -1; 
 
 	/**
 	 * The PHP output filename used by this Template
@@ -97,6 +127,8 @@ class Template extends WireData implements Saveable {
 		'noCacheGetVars' => '',		// GET vars that trigger disabling the cache (only when cache_time > 0)
 		'noCachePostVars' => '',	// POST vars that trigger disabling the cache (only when cache_time > 0)
 		'useCacheForUsers' => 0, 	// use cache for: 0 = only guest users, 1 = guests and logged in users
+		'cacheExpire' => 0, 		// expire the cache for all pages when page using this template is saved? (1 = yes, 0 = no- only current page)
+		'cacheExpirePages' => array(),	// array of Page IDs that should be expired, when cacheExpire == Template::cacheExpireSpecific
 		); 
 
 

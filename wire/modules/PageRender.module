@@ -31,11 +31,14 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 			);
 	}
 
+	protected $config; 
+
 	/**
 	 * Initialize the hooks
 	 *
 	 */
 	public function init() {
+		$this->config = $this->fuel('config'); 
 		$this->addHook('Page::render', $this, 'renderPage'); 
 		$this->pages->addHookAfter('save', $this, 'clearCacheFile'); 
 		$this->pages->addHookAfter('delete', $this, 'clearCacheFile'); 
@@ -90,19 +93,22 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 *
 	 * Note that this does not check if the page is cachable. This is so that if a cachable setting changes the cache can still be removed. 
 	 *
+	 * @param Page
 	 * @return CacheFile
 	 *
 	 */
-	public function getCacheFile($page, $checkDisableTriggers = false) {
+	public function getCacheFile(Page $page) {
 
 		$path = $this->config->paths->cache . self::cacheDirName . "/";
-
+		$id = $page->id; 
+		$cacheTime = $page->template->cache_time; 
+		
 		if(!is_dir($path)) {
 			if(!@mkdir($path)) throw new WireException("Cache path does not exist: $path");
 			if($this->config->chmodDir) chmod($path, octdec($this->config->chmodDir));
 		}
 
-		$cacheFile = new CacheFile($path, $page->id, $page->template->cache_time);
+		$cacheFile = new CacheFile($path, $id, $cacheTime);
 		if($this->config->chmodFile) $cacheFile->setChmodFile($this->config->chmodFile);
 		if($this->config->chmodDir) $cacheFile->setChmodDir($this->config->chmodDir);
 
@@ -128,12 +134,48 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	public function clearCacheFile($event) {
+
 		$page = $event->arguments[0]; 
 		if(!$page->template->cache_time) return;
+		$cacheExpire = $page->template->cacheExpire; 
+
+		if($cacheExpire == Template::cacheExpireNone) {
+			if($event->method == 'delete') $cacheExpire = Template::cacheExpirePage; 
+				else return;
+		}
+
 		$cacheFile = $this->getCacheFile($page); 
-		if(!$cacheFile->exists()) return;
-		$cacheFile->remove();
-		if($this->config->debug) $this->message("Cleared cache file: $cacheFile"); 
+
+		if($cacheExpire == Template::cacheExpireSite) {
+			// expire entire cache
+
+			$cacheFile->expireAll();
+			if($this->config->debug) $this->message("Expired page cache for entire site"); 
+
+		} else if($cacheExpire == Template::cacheExpireParents || $cacheExpire == Template::cacheExpireSpecific) { 
+			// expire specific pages or parents
+
+			$selected = array();
+
+			if($cacheExpire == Template::cacheExpireParents) {
+				$selected = $page->parents; 
+
+			} else if(is_array($page->template->cacheExpirePages) && count($page->template->cacheExpirePages)) {
+				$selected = $this->fuel('pages')->getById($page->template->cacheExpirePages); 				
+			}
+
+			foreach($selected as $p) {
+				if(!$p->template->cache_time) continue; 
+				$cf = $this->getCacheFile($p); 
+				if($cf->exists()) $cf->remove();
+				if($this->config->debug) $this->message("Cleared cache file: $cf"); 
+			}
+		}
+
+		if($cacheFile->exists()) {
+			$cacheFile->remove();
+			if($this->config->debug) $this->message("Cleared cache file: $cacheFile"); 
+		}
 	}
 
 	/**

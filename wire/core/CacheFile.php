@@ -246,7 +246,7 @@ class CacheFile {
 	public function expireAll() {
 		$note = "The modification time of this file represents the time of the last usable cache file. " . 
 			"Cache files older than this file are considered expired. " . date('m/d/y H:i:s');
-		file_put_contents($this->globalExpireFile, $note); 
+		file_put_contents($this->globalExpireFile, $note, LOCK_EX); 
 	}
 
 	/**

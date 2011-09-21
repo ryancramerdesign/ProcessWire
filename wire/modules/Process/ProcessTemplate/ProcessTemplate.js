@@ -94,13 +94,32 @@ $(document).ready(function() {
 
 	// ----------------
 
+	var adjustCacheExpireFields = function() {
+
+		var $t = $("#wrap_cacheExpire input:checked"); 
+		var $f = $("#wrap_cacheExpirePages"); 
+		var val = parseInt($t.attr('value')); 
+
+		if(val == 3) { 
+			if(!$f.is(":visible")) {
+				$f.slideDown();
+			}
+		} else if($f.is(":visible")) {
+			$f.hide();
+		}
+	}; 
+
 	var adjustCacheFields = function() {
+
 		var val = parseInt($(this).attr('value')); 		
+
 		if(val > 0) {
 			if(!$("#wrap_noCacheGetVars").is(":visible")) {
 				$("#wrap_useCacheForUsers").slideDown();
 				$("#wrap_noCacheGetVars").slideDown();
 				$("#wrap_noCachePostVars").slideDown();
+				$("#wrap_cacheExpire").slideDown();
+				$("#wrap_cacheExpire input:checked").change();
 			}
 
 		} else {
@@ -108,11 +127,17 @@ $(document).ready(function() {
 				$("#wrap_useCacheForUsers").hide();
 				$("#wrap_noCacheGetVars").hide();
 				$("#wrap_noCachePostVars").hide();
+				$("#wrap_cacheExpire").hide();
+				$("#wrap_cacheExpirePages").hide();
 			}
 		}
+
 	}; 
 
+	$("#wrap_cacheExpire input").change(adjustCacheExpireFields).change();
+
 	$("#cache_time").change(adjustCacheFields).change();
+		
 		
 	adjustAccessFields();
 	redirectLoginClick();
