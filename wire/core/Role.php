@@ -37,11 +37,51 @@ class Role extends Page {
 
 		if($name instanceof Page) {
 			$permission = $name; 
+
+		} else if(ctype_digit("$name")) { 
+			$permission = $this->fuel('permissions')->get("id=$name"); 
+
 		} else {
 			$permission = $this->fuel('permissions')->get("name=$name"); 
 		}
 
 		return $this->permissions->has($permission); 
+	}
+
+	/**
+	 * Add the given permission string, id or object
+	 *
+	 * This is the same as $role->permissions->add($permission) except this one will accept ID or name.
+	 *
+	 * @param string|int|Permission
+	 * @return bool false if permission not recognized, true otherwise
+	 *
+	 */
+	public function addPermission($permission) {
+		if(is_string($permission) || is_int($permission)) $permission = $this->fuel('permissions')->get($permission); 
+		if(is_object($permission) && $permission instanceof Permission) {
+			$this->permissions->add($permission); 
+			return true; 
+		}
+		return false;
+	}
+
+	/**
+	 * Remove the given permission string, id or object
+	 *
+	 * This is the same as $role->permissions->remove($permission) except this one will accept ID or name.
+	 *
+	 * @param string|int|Permission
+	 * @return bool false if permission not recognized, true otherwise
+	 *
+	 */
+	public function removePermission($permission) {
+		if(is_string($permission) || is_int($permission)) $permission = $this->fuel('permissions')->get($permission); 
+		if(is_object($permission) && $permission instanceof Permission) {
+			$this->permissions->remove($permission); 
+			return true; 
+		}
+		return false;
 	}
 
 }
