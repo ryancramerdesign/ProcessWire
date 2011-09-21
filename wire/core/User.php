@@ -29,7 +29,7 @@ class User extends Page {
 	}
 
 	/**
-	 * Does this user have the given role?
+	 * Does this user have the given role? (object, name or id)
 	 *
 	 * @param string|Role|int
 	 * @return bool
@@ -39,6 +39,42 @@ class User extends Page {
 		if(is_object($role) && $role instanceof Role) return $this->roles->has($role); 
 		if(ctype_digit("$role")) return $this->roles->has("id=$role"); 
 		if(is_string($role)) return $this->roles->has("name=$role"); 
+		return false;
+	}
+
+	/**
+	 * Add the given role string, id or object
+	 *
+	 * This is the same as $user->roles->add($role) except this one will accept ID or name.
+	 *
+	 * @param string|int|Role
+	 * @return bool false if role not recognized, true otherwise
+	 *
+	 */
+	public function addRole($role) {
+		if(is_string($role) || is_int($role)) $role = $this->fuel('roles')->get($role); 
+		if(is_object($role) && $role instanceof Role) {
+			$this->roles->add($role); 
+			return true; 
+		}
+		return false;
+	}
+
+	/**
+	 * Remove the given role string, id or object
+	 *
+	 * This is the same as $user->roles->remove($role) except this one will accept ID or name.
+	 *
+	 * @param string|int|Role
+	 * @return bool false if role not recognized, true otherwise
+	 *
+	 */
+	public function removeRole($role) {
+		if(is_string($role) || is_int($role)) $role = $this->fuel('roles')->get($role); 
+		if(is_object($role) && $role instanceof Role) {
+			$this->roles->remove($role); 
+			return true; 
+		}
 		return false;
 	}
 
@@ -185,6 +221,14 @@ class User extends Page {
 		return $permissions; 
 	}
 
+	/**
+	 * Does this user have the superuser role?
+	 *
+	 * Same as $user->roles->has('name=superuser'); 
+	 *
+	 * @return bool
+	 *
+	 */
 	public function isSuperuser() {
 		$config = $this->fuel('config');
 		if($this->id === $config->superUserPageID) return true; 
@@ -198,10 +242,22 @@ class User extends Page {
 		return $is;
 	}
 
+	/**
+	 * Is this the non-logged in guest user? 
+	 *
+	 * @return bool
+	 *
+	 */ 
 	public function isGuest() {
 		return $this->id === $this->fuel('config')->guestUserPageID; 
 	}
 
+	/**
+	 * Is the current user logged in?
+	 *
+	 * @return bool
+	 *
+	 */
 	public function isLoggedin() {
 		return !$this->isGuest();
 	}

@@ -301,6 +301,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 
 		if(array_key_exists($key, $this->data)) return true; 
 
+		$match = null;
 		if(is_string($key)) {
 
 			if(Selectors::stringHasOperator($key)) {
@@ -310,7 +311,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 				$match = $this->getItemThatMatches('name', $key); 
 			}
 
-		} else $match = null;
+		} 
 
 		return $match ? true : false; 
 	}
