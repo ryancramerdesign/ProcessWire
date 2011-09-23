@@ -12,20 +12,57 @@ $(document).ready(function() {
 	function setupImage($img) {
 
 		var originalWidth = $img.width();
-		var $selected_image_dimensions = $("#selected_image_dimensions"); 
+		var maxWidth = $("#input_width").attr('max'); 
+		var maxHeight = $("#input_height").attr('max');
 		
 		function populateResizeDimensions() {
-			$selected_image_dimensions.html($img.width() + "x" + $img.height()); 
+			var w = $img.width();
+			var h = $img.height();
+			$("#input_width").val(w); 
+			$("#input_height").val(h); 
 		}
 
-		$img.resizable({
-			aspectRatio: true,
-			stop: function() {
-				$img.attr('width', $img.width()).attr('height', $img.height()); 
-				if(originalWidth != $img.width()) $img.addClass('resized'); 
-			},
-			resize: populateResizeDimensions
-		});
+		function setupImageResizable() { 
+			$img.resizable({
+				aspectRatio: true,
+				maxWidth: maxWidth, 
+				maxHeight: maxHeight,
+				stop: function() {
+					$img.attr('width', $img.width()).attr('height', $img.height()); 
+					if(originalWidth != $img.width()) $img.addClass('resized'); 
+				},
+				resize: populateResizeDimensions
+			});
+		}
+		setupImageResizable();
+
+		var inputPixelsChange = function() {
+
+			var w, h; 
+
+			if($(this).attr('id') == 'input_width') { 
+				w = parseInt($(this).val());
+				h = Math.floor((w / $img.attr('width')) * $img.attr('height')); 
+			} else {
+				h = parseInt($(this).val()); 
+				w = Math.floor((h / $img.attr('height')) * $img.attr('width')); 
+			}
+
+			if(w < 1 || h < 1 || w == $img.attr('width') || h == $img.attr('height') || w > maxWidth || h > maxHeight) {
+				$("#input_width").val($img.attr('width')); 
+				$("#input_height").val($img.attr('height')); 
+				return false;
+			}
+
+			$img.resizable("destroy"); 
+			$("#input_height").val(h); 
+			$img.width(w).height(h).attr('width', w).attr('height', h);  
+			$img.addClass('resized'); 
+			populateResizeDimensions();
+			setupImageResizable();
+		};
+	
+		$("#selected_image_settings .input_pixels").change(inputPixelsChange); 
 
 		$("#selected_image_class").change(function() {
 			var resized = $img.is(".resized"); 

@@ -58,7 +58,9 @@ class ProcessPageEditImageSelect extends Process {
 		if(!$id) throw new WireException("No page specified"); 
 		$this->page = $this->pages->get($id); 
 		if(!$this->page) throw new WireException("No page specified"); 
-		if(!$this->page->viewable()) throw new WireException("You do not have access to images on this page"); 
+
+		// note we use hasPermission('page-view') rather than viewable() here becuase we want to allow pages without template files
+		if(!$this->user->hasPermission('page-view', $this->page)) throw new WireException("You do not have access to images on this page"); 
 
 		if($this->input->get->winwidth) $this->maxImageWidth = ((int) $this->input->get->winwidth) - 70; 
 		if($this->maxImageWidth < 400) $this->maxImageWidth = 400; 
@@ -129,6 +131,7 @@ class ProcessPageEditImageSelect extends Process {
 		$field->description = "If you would like to select images from another page, select the page below.";
 		$field->attr('id+name', 'page_id'); 
 		$field->value = $this->page->id; 
+		$field->parent_id = 0; 
 		$field->collapsed = count($images) ? Inputfield::collapsedYes : Inputfield::collapsedNo;
 		$field->required = true; 
 		$form->append($field); 
@@ -161,13 +164,17 @@ class ProcessPageEditImageSelect extends Process {
 	
 		$out =	"\n<form id='selected_image_settings' action='./?id={$this->page->id}&amp;file=$filename'>" . 
 			"\n\t<p id='wrap_info'>" . 
-			"\n\t\t<span id='selected_image_filename'>" . htmlentities($filename) . "</span> &bull; " . 
-			"\n\t\t<span id='selected_image_dimensions'>{$width}x{$height}</span> " . 
+			"\n\t\t<span id='selected_image_filename'>" . htmlentities($filename) . "</span> &nbsp;&bull;&nbsp; " . 
+			"\n\t\t<span id='selected_image_pixels'>" . 
+			"\n\t\t\t<label>Width: <input id='input_width' class='input_pixels' type='number' size='4' step='1' min='1' max='$originalWidth' value='$width' /></label>&nbsp; " . 
+			"\n\t\t\t<label>Height: <input id='input_height' class='input_pixels' type='number' size='4' step='1' min=1' max='$originalHeight' value='$height' /></label>" . 
+			"\n\t\t</span>&nbsp; " . 
+			"\n\t\t<span class='detail'>You can drag also the lower right corner of the image to resize.</span>" . 
 			"\n\t</p>";
 
 		$description = isset($_GET['description']) ? $this->input->get->description : $image->description; 
 		if(strlen($description) > 1024) $description = substr($description, 0, 1024); 
-		$description = htmlentities($description, ENT_QUOTES); 
+		$description = htmlentities($description, ENT_QUOTES, "UTF-8"); 
 
 		$out .= "\n\t<p id='wrap_description'>" . 
 			"\n\t\t<label for='selected_image_description'>Description</label>" . 
@@ -176,7 +183,7 @@ class ProcessPageEditImageSelect extends Process {
 
 		$out .= "\n\t<p id='wrap_class'>" . 
 			"\n\t\t<select id='selected_image_class' name='class'>" . 
-			"\n\t\t\t<option>Position</option>";
+			"\n\t\t\t<option>No Alignment</option>";
 
 		foreach($this->optionalClasses as $class => $label) {
 			$selected = $this->input->get->class == $class ? " selected='selected'" : '';
@@ -189,7 +196,7 @@ class ProcessPageEditImageSelect extends Process {
 
 		if(!$width && $image->width() > $this->maxImageWidth) {	
 			$width = $this->maxImageWidth; 
-			$height = 0; 
+			$height = floor(($width / $image->width()) * $image->height()); // $height = 0; 
 		}
 
 		if($width) $attrs['width'] = $width; 
@@ -216,8 +223,6 @@ class ProcessPageEditImageSelect extends Process {
 			"\n\t\t<img id='selected_image' $attrStr alt='' src='{$image->url}' />" . 
 			"\n\t</div>";
 
-		$out .= "\n\t<p class='detail'>To resize and resample, drag the lower right corner of the image (whether here or in the text editor).</p>";
-
 		return $out; 
 		
 	}
@@ -229,10 +234,12 @@ class ProcessPageEditImageSelect extends Process {
 		$class = $this->sanitizer->name($this->input->get->class); 
 		$image = $this->getPageimage();
 
-		if($width != $image->width) {
+		if($width < $image->width) {
 			$resized = $image->width($width); 
 			$height = $resized->height();
 		} else {
+			$width = $image->width; 
+			$height = $image->height; 
 			$resized = $image; 
 		}
 
