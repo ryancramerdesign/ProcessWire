@@ -161,13 +161,13 @@ class ProcessPageEditImageSelect extends Process {
 		// if they aren't already working with a resized image, and it's being scaled down,
 		// then add the 'resized' class to ensure that our pwimage plugin knows to perform the resize
 		if(basename($this->input->get->file) == $filename && $originalWidth > $width) $attrs['class'] .= " resized";
-	
+
 		$out =	"\n<form id='selected_image_settings' action='./?id={$this->page->id}&amp;file=$filename'>" . 
 			"\n\t<p id='wrap_info'>" . 
 			"\n\t\t<span id='selected_image_filename'>" . htmlentities($filename) . "</span> &nbsp;&bull;&nbsp; " . 
 			"\n\t\t<span id='selected_image_pixels'>" . 
-			"\n\t\t\t<label>Width: <input id='input_width' class='input_pixels' type='number' size='4' step='1' min='1' max='$originalWidth' value='$width' /></label>&nbsp; " . 
-			"\n\t\t\t<label>Height: <input id='input_height' class='input_pixels' type='number' size='4' step='1' min=1' max='$originalHeight' value='$height' /></label>" . 
+			"\n\t\t\t<label>Width: <input id='input_width' class='input_pixels' type='number' size='6' step='1' min='1' max='$originalWidth' value='$width' /></label>&nbsp; " . 
+			"\n\t\t\t<label>Height: <input id='input_height' class='input_pixels' type='number' size='6' step='1' min=1' max='$originalHeight' value='$height' /></label>" . 
 			"\n\t\t</span>&nbsp; " . 
 			"\n\t\t<span class='detail'>You can drag also the lower right corner of the image to resize.</span>" . 
 			"\n\t</p>";

@@ -20,6 +20,8 @@ $(document).ready(function() {
 			var h = $img.height();
 			$("#input_width").val(w); 
 			$("#input_height").val(h); 
+			$img.attr('width', w); 
+			$img.attr('height', h); 
 		}
 
 		function setupImageResizable() { 
@@ -42,11 +44,14 @@ $(document).ready(function() {
 
 			if($(this).attr('id') == 'input_width') { 
 				w = parseInt($(this).val());
-				h = Math.floor((w / $img.attr('width')) * $img.attr('height')); 
+				h = (w / $img.attr('width')) * $img.attr('height'); 
 			} else {
 				h = parseInt($(this).val()); 
-				w = Math.floor((h / $img.attr('height')) * $img.attr('width')); 
+				w = (h / $img.attr('height')) * $img.attr('width'); 
 			}
+
+			w = Math.floor(w);
+			h = Math.floor(h);
 
 			if(w < 1 || h < 1 || w == $img.attr('width') || h == $img.attr('height') || w > maxWidth || h > maxHeight) {
 				$("#input_width").val($img.attr('width')); 
