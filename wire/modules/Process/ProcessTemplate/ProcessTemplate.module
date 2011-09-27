@@ -595,7 +595,7 @@ class ProcessTemplate extends Process {
 			"You can optionally specify one or more GET vars that will disable the " . 
 			"cache for that request, causing the page to be rendered sans cache. ";
 		$field->attr('value', (string) $template->noCacheGetVars); 
-		$field->notes = "Optionally enter one or more POST var names. If entering more than one, separate each by a space.";
+		$field->notes = "Optionally enter one or more GET var names. If entering more than one, separate each by a space.";
 		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field); 
 
@@ -610,7 +610,7 @@ class ProcessTemplate extends Process {
 			"cache for that request, causing the page to be rendered sans cache. ";
 		$field->attr('value', (string) $template->noCachePostVars); 
 		$field->collapsed = Inputfield::collapsedBlank;
-		$field->notes = "Optionally enter one or more GET var names. If entering more than one, separate each by a space.";
+		$field->notes = "Optionally enter one or more POST var names. If entering more than one, separate each by a space.";
 		$form->append($field); 
 
 		return $form; 
