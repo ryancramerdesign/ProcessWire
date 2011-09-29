@@ -931,6 +931,7 @@ class Pages extends Wire {
 	 *
 	 */
 	protected function getSelectorCache($selector, $options, $returnSelector = false) {
+		return null;
 
 		if(count($options)) {
 			$optionsHash = '';
