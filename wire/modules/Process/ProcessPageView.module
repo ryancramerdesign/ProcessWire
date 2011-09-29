@@ -52,10 +52,18 @@ class ProcessPageView extends Process {
 	protected $redirectURL = '';
 
 	/**
+	 * Prefix for page numbers in URLs
+	 *
+	 */
+	protected $pageNumUrlPrefix = 'page';
+
+	/**
 	 * Retrieve a page, check access, and render
  	 *
 	 */
 	public function ___execute() {
+
+		if($this->config->pageNumUrlPrefix) $this->pageNumUrlPrefix = $this->config->pageNumUrlPrefix; 
 
 		$this->pages->setOutputFormatting(true); 
 		$page = $this->getPage();
@@ -108,7 +116,15 @@ class ProcessPageView extends Process {
 		unset($_GET['it']); 
 		$it = preg_replace('{[^-_./a-zA-Z0-9]}', '', $it);
 		if($it[0] != '/') $it = "/$it";
-		$page = $this->pages->get("path=$it, status<" . Page::statusMax); 
+
+		// optimization to filter out page numbers first
+		if(strpos($it, '/' . $this->pageNumUrlPrefix) !== false && preg_match('{/' . $this->pageNumUrlPrefix . '\d+/?$}', $it)) {
+			// URL contains a page number, but we'll let it be handled by the checkUrlSegments function later
+			$page = null;
+		} else { 
+			$page = $this->pages->get("path=$it, status<" . Page::statusMax); 
+		}
+
 		$hasTrailingSlash = substr($it, -1) == '/';
 
 		if($page && $page->id) {
@@ -162,8 +178,7 @@ class ProcessPageView extends Process {
 
 		$lastSegment = reset($urlSegments);
 		$urlSegments = array_reverse($urlSegments); 
-		$pageNumUrlPrefix = $this->config->pageNumUrlPrefix;
-		if(!$pageNumUrlPrefix) $pageNumUrlPrefix = 'page';
+		$pageNumUrlPrefix = $this->pageNumUrlPrefix; 
 
 		// check if the last urlSegment is setting a page number and that page numbers are allowed
 		if(strpos($lastSegment, $pageNumUrlPrefix) === 0 && strlen($lastSegment) > strlen($pageNumUrlPrefix) && $page->template->allowPageNum) {

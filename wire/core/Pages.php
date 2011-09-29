@@ -11,7 +11,7 @@
  * @TODO Move everything into delegate classes, leaving this as just the interface to them.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2011 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -58,11 +58,23 @@ class Pages extends Wire {
 	protected $outputFormatting = false; 
 
 	/**
+	 * Runtime debug log of Pages class activities, see getDebugLog()
+	 *
+	 */
+	protected $debugLog = array();
+
+	/**
+	 * Shortcut to $config API var
+	 *
+	 */
+	protected $config = null;
+
+	/**
 	 * Create the Pages object
 	 *
 	 */
 	public function __construct() {
-
+		$this->config = $this->fuel('config');
 		$this->templates = $this->fuel('templates'); 
 		$this->pageFinder = new PageFinder($this->fuel('fieldgroups')); 
 		$this->sortfields = new PagesSortfields();
@@ -83,6 +95,7 @@ class Pages extends Wire {
 		// TODO selector strings with runtime fields, like url=/about/contact/, possibly as plugins to PageFinder
 
 		if(!strlen($selectorString)) return new PageArray();
+		if($selectorString === '/' || $selectorString === 'path=/') $selectorString = 1;
 
 		if($selectorString[0] == '/') {
 			// if selector begins with a slash, then we'll assume it's referring to a path
@@ -96,11 +109,19 @@ class Pages extends Wire {
 				if(ctype_digit("$s")) {
 					$page = $this->getById(array((int) $s)); 
 					$pageArray = new PageArray();
-					return $page ? $pageArray->add($page) : $pageArray; 
+					$value = $page ? $pageArray->add($page) : $pageArray; 
+					if($this->config->debug) $this->debugLog('find', $selectorString . " [optimized]", $value); 
+					return $value; 
 				}
 			}
+		}
 
-		} 
+		// see if this has been cached and return it if so
+		$pages = $this->getSelectorCache($selectorString, $options); 
+		if(!is_null($pages)) {
+			if($this->config->debug) $this->debugLog('find', $selectorString, $pages . ' [from-cache]'); 
+			return $pages; 
+		}
 
 		// check if this find has already been executed, and return the cached results if so
 		// if(null !== ($pages = $this->getSelectorCache($selectorString, $options))) return clone $pages; 
@@ -161,6 +182,7 @@ class Pages extends Wire {
 		$pages->setSelectors($selectors); 
 		$pages->setTrackChanges(true);
 		$this->selectorCache($selectorString, $options, $pages); 
+		if($this->config->debug) $this->debugLog('find', $selectorString, $pages); 
 
 		return $pages; 
 		//return $pages->filter($selectors); 
@@ -439,7 +461,10 @@ class Pages extends Wire {
 		if(!$result) return false;
 
 		// if page hasn't changed, don't continue further
-		if(!$page->isChanged()) return true; 
+		if(!$page->isChanged()) {
+			$this->debugLog('save', '[not-changed]', true); 
+			return true; 
+		}
 
 		$page->filesManager->save();
 
@@ -498,6 +523,7 @@ class Pages extends Wire {
 			}
 		}
 
+		$this->debugLog('save', $page, $result != false); 
 		return $result; 
 	}
 
@@ -529,10 +555,13 @@ class Pages extends Wire {
 			$user = $this->fuel('user'); 
 			$userID = (int) ($user ? $user->id : $this->config->superUserPageID); 
 			$this->db->query("UPDATE pages SET modified_users_id=$userID, modified=NOW() WHERE id=" . (int) $page->id); 
-			return true;
+			$return = true; 
 		} else {
-			return false;
+			$return = false; 
 		}
+
+		$this->debugLog('saveField', "$page:$field", $return);
+		return $return;
 	}
 
 
@@ -655,6 +684,7 @@ class Pages extends Wire {
 		}
 		if($save) $this->save($page); 
 		$this->savePageStatus($page->id, Page::statusTrash, true, false); 
+		$this->debugLog('trash', $page, true); 
 		return true; 
 	}
 
@@ -677,6 +707,7 @@ class Pages extends Wire {
 		$page->removeStatus(Page::statusTrash); 
 		if($save) $page->save();
 		$this->savePageStatus($page->id, Page::statusTrash, true, true); 
+		$this->debugLog('restore', $page, true); 
 		return true; 
 	}
 
@@ -724,6 +755,7 @@ class Pages extends Wire {
 		$this->uncacheAll();
 		$page->setTrackChanges(false); 
 		$page->status = Page::statusDeleted; // no need for bitwise addition here, as this page is no longer relevant
+		$this->debugLog('delete', $page, true); 
 
 		return true; 
 	}
@@ -791,6 +823,8 @@ class Pages extends Wire {
 				$this->clone($child, $copy); 	
 			}	
 		}
+
+		$this->debugLog('clone', "page=$page, parent=$parent", $copy);
 	
 		return $copy; 	
 	}
@@ -852,9 +886,13 @@ class Pages extends Wire {
 		unset($this->sortfields); 
 		$this->sortfields = new PagesSortfields();
 
+		if($this->config->debug) $this->debugLog('uncacheAll', 'pageIdCache=' . count($this->pageIdCache) . ', pageSelectorCache=' . count($this->pageSelectorCache)); 
+
 		foreach($this->pageIdCache as $id => $page) {
 			if(!$page->numChildren) $this->uncache($page); 
 		}
+
+
 		$this->pageIdCache = array();
 		$this->pageSelectorCache = array();
 	}
@@ -862,11 +900,23 @@ class Pages extends Wire {
 	/**
 	 * Cache the given selector string and options with the given PageArray
 	 *
+	 * @param string $selector
+	 * @param array $options
+	 * @param PageArray $pages
+	 * return bool True of pages were cached, false if not
+	 *
 	 */
 	protected function selectorCache($selector, array $options, PageArray $pages) {
-		return; // STILL TESTING
+
+		// get the string that will be used for caching
 		$selector = $this->getSelectorCache($selector, $options, true); 		
+
+		// optimization: don't cache single pages that have an unpublished status or higher
+		if(count($pages) && !empty($options['findOne']) && $pages->first()->status >= Page::statusUnpublished) return false; 
+
 		$this->pageSelectorCache[$selector] = $pages; 
+
+		return true; 
 	}
 
 	/**
@@ -881,14 +931,26 @@ class Pages extends Wire {
 	 *
 	 */
 	protected function getSelectorCache($selector, $options, $returnSelector = false) {
+
 		if(count($options)) {
 			$optionsHash = '';
 			ksort($options);		
 			foreach($options as $key => $value) $optionsHash .= "[$key:$value]";
 			$selector .= "," . $optionsHash;
 		}
+
+		// optimization to use consistent conventions for commonly interchanged names
+		$selector = str_replace(array('path=/,', 'parent=/,'), array('id=1,', 'parent_id=1,'), $selector); 
+
+		// optimization to filter out common status checks for pages that won't be cached anyway
+		if(!empty($options['findOne'])) {
+			$selector = str_replace(array("status<" . Page::statusUnpublished, "status<" . Page::statusMax, 'start=0', 'limit=1', ',', ' '), '', $selector); 
+			$selector = trim($selector, ", "); 
+		}
+
 		if($returnSelector) return $selector; 
 		if(isset($this->pageSelectorCache[$selector])) return $this->pageSelectorCache[$selector]; 
+
 		return null; 
 	}
 
@@ -918,6 +980,43 @@ class Pages extends Wire {
 	 */
 	public function setOutputFormatting($outputFormatting = true) {
 		$this->outputFormatting = $outputFormatting ? true : false; 
+	}
+
+	/**
+	 * Log a Pages class event
+	 *
+	 * Only active in debug mode. 
+	 *
+	 * @param string $action Name of action/function that occurred.
+	 * @param string $details Additional details, like a selector string. 
+	 * @param string|object The value that was returned.
+	 *
+	 */
+	protected function debugLog($action = '', $details = '', $result = '') {
+		if(!$this->config->debug) return;
+		$this->debugLog[] = array(
+			'time' => microtime(),
+			'action' => (string) $action, 
+			'details' => (string) $details, 
+			'result' => (string) $result
+			);
+	}
+
+	/**
+	 * Get the Pages class debug log
+	 *
+	 * Only active in debug mode
+	 *
+	 * @param string $action Optional action within the debug log to find
+	 * @return array
+	 *
+	 */
+	public function getDebugLog($action = '') {
+		if(!$this->config->debug) return array();
+		if(!$action) return $this->debugLog; 
+		$debugLog = array();
+		foreach($this->debugLog as $item) if($item['action'] == $action) $debugLog[] = $item; 
+		return $debugLog; 
 	}
 
 }

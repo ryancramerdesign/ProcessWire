@@ -192,6 +192,7 @@ class PageFinder extends Wire {
 		$sortSelectors = array(); // selector containing 'sort=', which gets added last
 		$joins = array();
 		$nullPage = new NullPage();
+		$startLimit = false; // true when the start/limit part of the query generation is done
 
 		$query = new DatabaseQuerySelect();
 		$query->select(array('pages.id', 'pages.templates_id')); 
@@ -213,7 +214,8 @@ class PageFinder extends Wire {
 				continue; 
 
 			} else if($field == 'limit' || $field == 'start') {
-				$this->getQueryStartLimit($query, $selectors); 
+				if(!$startLimit) $this->getQueryStartLimit($query, $selectors); 
+				$startLimit = true; 
 				continue; 
 
 			} else if($field == 'path' || $field == 'url') {
@@ -533,7 +535,6 @@ class PageFinder extends Wire {
 			if($selector->field == 'start') $start = (int) $selector->value; 	
 				else if($selector->field == 'limit') $limit = (int) $selector->value; 
 		}
-
 
 		if($limit) {
 

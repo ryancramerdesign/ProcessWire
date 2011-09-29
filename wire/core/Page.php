@@ -927,7 +927,7 @@ class Page extends WireData {
  	 *
  	 * See status flag constants at top of Page class
 	 *
-	 * @param int|string $status Status number or Template name
+	 * @param int|string|Selectors $status Status number or Template name or selector string/object
 	 * @return bool
 	 *
 	 */
@@ -940,22 +940,49 @@ class Page extends WireData {
 			// valid template name
 			if($this->template->name == $status) return true; 
 
-		} else if(Selectors::stringHasOperator($status)) {
-			$matches = false;
-			$selectors = new Selectors($status); 	
-			foreach($selectors as $selector) {
-				$matches = true; 
-				$value = $this->get($selector->field); 
-				if(!$selector->matches("$value")) {
-					$matches = false; 
-					break;
-				}
-			}
-			return $matches; 
+		} else if($this->matches($status)) { 
+			// Selectors object or selector string
+			return true; 
 		}
+
 		return false;
 	}
 
+	/**
+	 * Given a Selectors object or a selector string, return whether this Page matches it
+	 *
+	 * @param string|Selectors $s
+	 * @return bool
+	 *
+	 */
+	public function matches($s) {
+
+		if(is_string($s)) {
+			if(!Selectors::stringHasOperator($s)) return false;
+			$selectors = new Selectors($s); 
+
+		} else if($s instanceof Selectors) {
+			$selectors = $s; 
+
+		} else { 
+			return false;
+		}
+
+		$matches = false;
+
+		foreach($selectors as $selector) {
+			$name = $selector->field;
+			if(in_array($name, array('limit', 'start', 'sort', 'include'))) continue; 
+			$matches = true; 
+			$value = $this->get($name); 
+			if(!$selector->matches("$value")) {
+				$matches = false; 
+				break;
+			}
+		}
+
+		return $matches; 
+	}
 
 	/**
 	 * Add the specified status flag to this page's status
