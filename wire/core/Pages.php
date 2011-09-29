@@ -914,7 +914,7 @@ class Pages extends Wire {
 		// optimization: don't cache single pages that have an unpublished status or higher
 		if(count($pages) && !empty($options['findOne']) && $pages->first()->status >= Page::statusUnpublished) return false; 
 
-		$this->pageSelectorCache[$selector] = $pages; 
+		$this->pageSelectorCache[$selector] = clone $pages; 
 
 		return true; 
 	}
@@ -931,14 +931,13 @@ class Pages extends Wire {
 	 *
 	 */
 	protected function getSelectorCache($selector, $options, $returnSelector = false) {
-		return null;
 
 		if(count($options)) {
 			$optionsHash = '';
 			ksort($options);		
 			foreach($options as $key => $value) $optionsHash .= "[$key:$value]";
 			$selector .= "," . $optionsHash;
-		}
+		} else $selector .= ",";
 
 		// optimization to use consistent conventions for commonly interchanged names
 		$selector = str_replace(array('path=/,', 'parent=/,'), array('id=1,', 'parent_id=1,'), $selector); 
