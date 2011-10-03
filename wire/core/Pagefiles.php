@@ -238,7 +238,7 @@ class Pagefiles extends WireArray {
 	}
 
 	public function uncache() {
-		$this->page = null;		
+		//$this->page = null;		
 	}
 
 }

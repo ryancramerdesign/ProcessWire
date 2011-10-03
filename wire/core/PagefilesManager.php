@@ -184,7 +184,7 @@ class PagefilesManager extends Wire {
 	 *
 	 */
 	public function uncache() {
-		$this->page = null;
+		// $this->page = null;
 	}
 	
 	/**
