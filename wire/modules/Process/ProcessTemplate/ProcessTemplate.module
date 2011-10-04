@@ -793,7 +793,7 @@ class ProcessTemplate extends Process {
 			"When checked, pages using this template will not have a 'settings' tab appear in the editor.";
 
 		$field->attr('value', 1); 
-		if($template->noTrash) {
+		if($template->noSettings) {
 			$field->attr('checked', 'checked'); 
 			$form->collapsed = Inputfield::collapsedNo;
 		} else { 
