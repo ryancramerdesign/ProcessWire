@@ -253,12 +253,13 @@ class ProcessPageEdit extends Process {
 
 		$field = $this->modules->get('InputfieldSubmit');
 		$field->attr('id+name', $saveName); 
+		$field->attr('class', $field->class . ' head_button_clone'); 
 		$field->attr('value', $saveLabel); 
 		$form->append($field); 
 
 		if($field2) $form->append($field2); 
 
-		if($this->page->className() == 'Page') {
+		if($this->input->get->modal && $this->page->className() == 'Page') {
 			$field = $this->modules->get('InputfieldSubmit');
 			$field->attr('name', $saveName); 
 			$field->attr('id', 'submit_save_top'); 

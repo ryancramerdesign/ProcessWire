@@ -148,8 +148,9 @@ class ProcessModule extends Process {
 		$form->attr('method', 'post'); 
 		$form->attr('id', 'modules_form'); 
 
-		$submit = $this->modules->get('InputfieldSubmit');
-		$submit->attr('id+name', 'reset');
+		$submit = $this->modules->get('InputfieldButton');
+		$submit->attr('href', './?reset=1'); 
+		$submit->attr('name', 'reset');
 		$submit->attr('value', 'Check for new modules'); 
 		$form->add($submit); 
 

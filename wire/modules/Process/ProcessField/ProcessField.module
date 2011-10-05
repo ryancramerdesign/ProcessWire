@@ -261,7 +261,9 @@ class ProcessField extends Process implements ConfigurableModule {
 		$form->add($field); 
 
 		$field = $this->modules->get('InputfieldSubmit');
+		$field->attr('value', 'Save Field'); 
 		$field->attr('name', 'submit_save_field'); 
+		$field->class .= ' head_button_clone';
 		$form->add($field); 
 
 		return $form; 

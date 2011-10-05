@@ -381,6 +381,7 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldSubmit');
 		$field->attr('value', 'Save Template'); 
+		$field->class .= ' head_button_clone';
 		$form->append($field); 
 
 		return $form; 
