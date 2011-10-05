@@ -129,6 +129,14 @@ $config->pageNumUrlPrefix = 'page';
 $config->maxUrlSegments = 4; 
 
 /**
+ * Force any created field_* tables to be lowercase
+ *
+ * Recommend value is true except for existing installations that already have mixed case tables. 
+ *
+ */
+$config->dbLowercaseTables = true; 
+
+/**
  * Optional 'set names utf8' for sites that need it (this option is deprecated)
  *
  * This may be used instead of the $config->dbCharset = 'utf8' option, and exists here only for

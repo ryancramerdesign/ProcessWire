@@ -71,6 +71,11 @@ class Field extends WireData implements Saveable {
 	 */
 	protected $prevFieldtype; 
 
+	/**
+	 * True if lowercase tables should be enforce, false if not (null = unset). Cached from $config
+	 *
+	 */
+	static protected $lowercaseTables = null;
 
 	/**
 	 * Set a native setting or a dynamic data property for this Field
@@ -334,7 +339,10 @@ class Field extends WireData implements Saveable {
 
 
 	public function getTable() {
-		return "field_" . $this->settings['name']; 
+		if(is_null(self::$lowercaseTables)) self::$lowercaseTables = $this->config->dbLowercaseTables ? true : false;
+		$name = $this->settings['name'];
+		if(self::$lowercaseTables) $name = strtolower($name); 
+		return "field_" . $name;
 	}
 
 	/**
