@@ -57,6 +57,10 @@ a span.not_installed {
 		text-decoration: none; 
 	}
 
+a span.PermanentModule {
+	font-weight: normal;
+}
+
 #wrap_reset {
 	margin: 0;
 	float: right; 

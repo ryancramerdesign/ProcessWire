@@ -67,9 +67,9 @@ class ProcessModule extends Process {
 			}
 		}
 
-		if(isset($_POST['reset'])) {
+		if($this->input->get->reset == 1) {
 			$this->modules->resetCache();
-			$this->session->redirect("./?reset=1");
+			$this->session->redirect("./?reset=2");
 		}
 
 		return $this->renderList();
@@ -108,7 +108,9 @@ class ProcessModule extends Process {
 			$interfaces = class_implements($name, false); 
 			$configurable = in_array('ConfigurableModule', $interfaces); 
 			$title = !empty($info['title']) ? htmlspecialchars($info['title']) : substr($name, strlen($section)); 
-			if($configurable) $title = "<span class='ConfigurableModule'>$title</span>";
+			$class = $configurable ? 'ConfigurableModule' : '';
+			if(!empty($info['permanent'])) $class .= ($class ? ' ' : '') . 'PermanentModule';
+			if($class) $title = "<span class='$class'>$title</span>";
 			$version = $this->formatVersion(isset($info['version']) ? $info['version'] : 0);
 			$summary = isset($info['summary']) ? htmlspecialchars($info['summary']) : '';
 			$summary .= isset($info['href']) ? " <a href='$info[href]'>more</a>" : '';
@@ -156,7 +158,7 @@ class ProcessModule extends Process {
 
 		$form->attr('value', $out); 
 
-		if($this->input->get->reset && !$numFound) $this->message("No new modules found"); 
+		if($this->input->get->reset == 2 && !$numFound) $this->message("No new modules found"); 
 		$this->session->ModulesUninstalled = $uninstalled;
 
 		return $form->render(); 

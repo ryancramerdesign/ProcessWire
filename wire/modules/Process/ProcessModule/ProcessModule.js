@@ -9,5 +9,5 @@ $(document).ready(function() {
 		}
 		return false;
 	}); 
-	$("#wrap_reset").parent(".Inputfields").prependTo($("#modules_form")); 
+	// $("#wrap_reset").parent(".Inputfields").prependTo($("#modules_form")); 
 }); 
