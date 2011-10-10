@@ -27,6 +27,17 @@ class FilenameArray implements IteratorAggregate {
 		return $this; 
 	}
 
+	public function remove($filename) {
+		$key = array_search($filename, $this->data); 
+		if($key !== false) unset($this->data[$key]); 
+		return $this; 
+	}
+
+	public function removeAll() {
+		$this->data = array();
+		return $this; 
+	}
+
 	public function __toString() {
 		return print_r($this->data, true); 
 	}
