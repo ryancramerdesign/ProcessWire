@@ -602,7 +602,7 @@ class Modules extends WireArray {
 	 * @return bool True on success
 	 *
 	 */
-	public function saveModuleConfigData($className, array $configData) {
+	public function ___saveModuleConfigData($className, array $configData) {
 		if(is_object($className)) $className = $className->className();
 		if(!$id = $this->moduleIDs[$className]) throw new WireException("Unable to find ID for Module '$className'"); 
 		$json = count($configData) ? wireEncodeJSON($configData, true) : '';
