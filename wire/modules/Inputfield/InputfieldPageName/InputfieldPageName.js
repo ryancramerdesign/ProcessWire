@@ -3,34 +3,19 @@ var InputfieldPageName = {
 	sanitize: function(name) {
 
 		// replace leading and trailing whitespace 
-		name = jQuery.trim(name).toLowerCase();  
-	  
-		// multi-character replacements
-		var srch = ['ä',  'ö',  'ü',  'đ',  'ж',  'х',  'ц',  'ч',  'ш',  'щ',    'ю',  'я'];
-		var repl = ['ae', 'oe', 'ue', 'dj', 'zh', 'kh', 'tc', 'ch', 'sh', 'shch', 'iu', 'ia']; 
-	
-		// change single characters that translate to multi-char 
-		for(var cnt = 0; cnt < srch.length; cnt++) {
-			var c = srch[cnt];
-			if(name.indexOf(c) > -1) {
-				var re = new RegExp(c, 'g'); 
-				name = name.replace(re, repl[cnt]); 
-			}	
-		}
-	
-		// single character, utf8 accented to ascii translation
-		var str1 = ":,àáâèéëêìíïîòóôùúûñçčćďĺľńňŕřšťýžабвгдеёзийклмнопрстуфыэ";
-		var str2 = "--aaaeeeeiiiiooouuuncccdllnnrrstyzabvgdeeziiklmnoprstufye";
-	
-		// change common accented characters to ascii equivalent
-		for(var cnt = 0, n = str1.length; cnt < n; cnt++) {
-			var c = str1.charAt(cnt); 
-			if(name.indexOf(c) > -1) { 
-				var re = new RegExp(str1.charAt(cnt), 'g'); 
-				name = name.replace(re, str2.charAt(cnt));
+		name = jQuery.trim(name);
+
+		var srch;
+		for(srch in config.InputfieldPageName.replacements) {
+			var repl = config.InputfieldPageName.replacements[srch];
+			if(name.indexOf(srch) > -1) {
+				var re = new RegExp(srch, 'g'); 
+				name = name.replace(re, repl); 
 			}
 		}
 	
+		name = name.toLowerCase();  
+
 		// replace invalid with dash
 		name = name.replace(/[^-_.a-z0-9 ]/g, '-');
 	
