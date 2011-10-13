@@ -112,10 +112,10 @@ class Installer {
 		echo "\n<h2>1. Compatibility Check</h2>\n";
 
 		if(is_file("./site/install/install.sql")) {
-			$this->li("Found installation profile in /site"); 
+			$this->li("Found installation profile in /site/install/"); 
 
-		} else if(is_file("./site/")) {
-			$this->li("A site already appears to be installed. You do not need to run this intaller to upgrade. Instead, please remove it (/install.php). "); 
+		} else if(is_dir("./site/")) {
+			$this->li("Found /site/ -- already installed? ");
 
 		} else if(@rename("./site-default", "./site")) {
 			$this->li("Renamed /site-default => /site"); 
@@ -187,7 +187,9 @@ class Installer {
 
 	protected function dbConfig($values = array()) {
 
-		if(!is_file("./site/install/install.sql")) die("There is no installation profile in /site/. Please place one there before continuing. You can get it at processwire.com/download"); 
+		if(!is_file("./site/install/install.sql")) {
+			die("There is no installation profile in /site/. Please place one there before continuing. You can get it at processwire.com/download"); 
+		}
 
 		echo 	"\n<h2>3. MySQL Database Configuration</h2>" . 
 			"\n<p>" . 
@@ -244,6 +246,7 @@ class Installer {
 			$this->dbConfig($values);
 			return;
 		}
+		$mysqli->set_charset("utf8"); 
 
 		echo "<h2>3. Test Database and Save Configuration</h2>\n";
 
@@ -351,12 +354,12 @@ class Installer {
 
 		$fp = fopen($sqlDumpFile, "rb"); 	
 		while(!feof($fp)) {
-			$line = trim(fgets($fp, 8192)); 
+			$line = trim(fgets($fp)); 
 			if(empty($line) || substr($line, 0, 2) == '--') continue; 
 			if(strpos($line, 'CREATE TABLE') === 0) {
 				preg_match('/CREATE TABLE ([^(]+)/', $line, $matches); 
 				//$this->li("Creating table: $matches[1]"); 
-				do { $line .= fgets($fp, 1024); } while(substr(trim($line), -1) != ';'); 
+				do { $line .= fgets($fp); } while(substr(trim($line), -1) != ';'); 
 			}
 
 			$mysqli->query($line); 	
