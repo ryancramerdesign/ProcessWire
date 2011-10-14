@@ -33,6 +33,12 @@ $config->roleTemplateID = 4;
 $config->permissionTemplateID = 5; 
 
 /**
+ * templateExtension: expected extension for template files
+ *
+ */
+$config->templateExtension = 'php';
+
+/**
  * Database character set. utf8 recommended.
  *
  * Note that you should probably not add/change this on an existing site. i.e. don't add this to 

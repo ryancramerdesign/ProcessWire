@@ -622,6 +622,20 @@ class ProcessTemplate extends Process {
 
 		$form = new InputfieldWrapper();
 
+		$field = $this->modules->get("InputfieldName"); 
+		$field->label = 'Rename Template';
+		$field->description = 
+			"The name used to refer to this template. This is also the default filename of the template file (with .php extension) in /site/templates/. ";
+		if(basename($template->filename, '.php') == $template->name) {
+			 if(is_writable($template->filename)) $field->description .= "The template filename is writable and will be renamed as well.";
+				else $field->description .= "The template file is not writable so you will have to rename it manually (instructions will be provided after you save). ";
+		}
+		$field->notes = "Enter any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces). Do not include the .php file extension.";
+		$field->attr('id+name', 'rename'); 
+		$field->attr('value', $template->name); 
+		$field->collapsed = Inputfield::collapsedYes;
+		$form->append($field); 
+
 		// --------------------
 
 		$field = $this->modules->get('InputfieldText'); 
@@ -1166,7 +1180,7 @@ class ProcessTemplate extends Process {
 			$this->template->noParents = 0;
 		}
 
-		// advanced
+		// system
 
 		if($this->config->advanced) { 
 			if($form->get('flagSystem')->attr('value')) $this->template->flags = $this->template->flags | Template::flagSystem; 
@@ -1180,6 +1194,7 @@ class ProcessTemplate extends Process {
 		}
 
 		// save roles
+
 		$this->template->useRoles = (int) $form->get('useRoles')->attr('value'); 
 
 		foreach(array('roles', 'addRoles', 'editRoles', 'createRoles') as $key) { 
@@ -1189,19 +1204,26 @@ class ProcessTemplate extends Process {
 			$this->template->set($key, $value); 
 		}
 
+		// remove deprecated property childrenTemplatesID
 		if(!$this->template->childrenTemplatesID) $this->template->remove("childrenTemplatesID"); 
 
 		if(!$redirectUrl) { 
 			$this->saveFields();
 			$redirectUrl = "edit?id={$this->template->id}";
 		}
+
+		// check for template rename
+		$rename = $form->get('rename')->attr('value'); 
+		if($rename && $this->template->name != $rename) $redirectUrl = "rename?id={$this->template->id}&name=$rename";
 			
 		$this->message("Saved Template '{$this->template->name}'"); 
+
 		try {
 			$this->template->save();
 		} catch(Exception $e) {
 			$this->error($e->getMessage()); 
 		}
+
 		$this->session->redirect($redirectUrl); 
 	}
 
@@ -1217,7 +1239,10 @@ class ProcessTemplate extends Process {
 	protected function importFieldgroup(Fieldgroup $fieldgroup, Template $template) {
 		$total = 0;
 		foreach($fieldgroup as $field) {
-			if(!$template->fieldgroup->has($field)) {
+			// if template already has the field, leave it, unless it's a closing fieldset.
+			// necessary because the fieldAdded hook may automatically add a closing fieldset, 
+			// so this prevents things from getting out of order. 
+			if(!$template->fieldgroup->has($field) || $field->type instanceof FieldtypeFieldsetClose) {
 				$total++;
 				$template->fieldgroup->add($field); 
 				$this->fieldAdded($field, $template); 
@@ -1424,6 +1449,87 @@ class ProcessTemplate extends Process {
 		$form->append($field); 
 	
 		return $form->render();	
+	}
+
+	/**
+	 * Rename the template
+	 *
+	 */
+	public function ___executeRename() {
+
+		$redirectUrl = $this->template ? "edit?id={$this->template->id}" : "../";
+
+		$name = '';
+		if($this->input->post->confirm_rename) $name = $this->input->post->confirm_rename; 
+			else if($this->input->get->name) $name = $this->input->get->name; 
+		$name = $this->sanitizer->name($name); 
+		if(!$name) return $this->session->redirect($redirectUrl);
+
+		if($this->templates->get($name) || $this->fieldgroups->get($name)) {
+			$this->error("The name '$name' is already in use"); 	
+			return $this->session->redirect($redirectUrl); 
+		}
+
+		$pathname = $this->template->filename; 
+		$filename = basename($this->template->filename); 
+		$basename = basename($this->template->filename, '.' . $this->config->templateExtension); 
+		$newFilename = "$name." . $this->config->templateExtension;
+		$newPathname = $this->config->paths->templates . $newFilename; 
+		$templateHasFile = is_file($this->template->filename) && $basename == $this->template->name; // template has file that it is also owner of
+		$writable = is_writable($this->template->filename); 
+
+		if($this->input->post->confirm_rename) {
+
+			$oldName = $this->template->name; 
+			$this->template->name = $name; 
+			$this->template->fieldgroup->name = $name; 
+			$this->template->save();
+			$this->template->fieldgroup->save();
+			$this->message("Renamed template '$oldName' to '$name'"); 
+
+			if($templateHasFile) { 
+				if($writable) {
+					if(rename($pathname, $newPathname)) {
+						$this->message("Renamed template file '$filename' to '$newFilename'"); 
+					} else {
+						$this->error("Unable to rename '$filename' to '$newFilename' in {$this->config->urls->templates}. You must rename the file manually on your file system."); 
+					}
+
+				} else if(!is_file($newPathname)) { 
+					$this->error("The template file '$newFilename' was not found in {$this->config->urls->templates}. You must rename the file '$filename' to '$newFilename' manually on your file system.");
+				}
+			}
+
+			return $this->session->redirect($redirectUrl); 
+		}
+	
+		$form = $this->modules->get("InputfieldForm"); 
+		$form->attr('method', 'post'); 
+		$form->attr('action', "rename?id={$this->template->id}"); 
+		$form->description = "Rename template '{$this->template->name}' to '$name'.";
+
+		$field = $this->modules->get("InputfieldCheckbox"); 
+		$field->label = "Are you sure?";
+		$field->attr('name', 'confirm_rename'); 
+		$field->attr('value', $name); 
+		$field->description = "Please confirm that you want to rename this template by checking the box below. ";
+
+		// check if we have a file to rename
+		if($templateHasFile) {
+			if($writable) {
+				$field->notes = "Template file '$filename' appears to be writable so we will attempt to rename it when you click submit.";
+			} else {
+				$this->error("Template file '{$this->config->urls->templates}$filename' is not writable. Please rename that file to '$newFilename' before clicking submit.");
+			}
+		}
+
+		$form->add($field);
+
+		$field = $this->modules->get("InputfieldSubmit"); 
+		$field->attr('id+name', 'submit_confirm_rename'); 
+		$form->add($field); 
+
+		return $form->render();
 	}
 
 	/**

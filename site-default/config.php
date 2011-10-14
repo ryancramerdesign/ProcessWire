@@ -64,12 +64,6 @@ $config->chmodDir = "0777";
 $config->chmodFile = "0666";    
 
 /**
- * templateExtension: expected extension for template files
- *
- */
-$config->templateExtension = 'php';
-
-/**
  * uploadUnzipCommand: shell command to unzip archives, used by WireUpload class. 
  *
  * If unzip doesn't work, you may need to precede 'unzip' with a path.
