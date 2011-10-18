@@ -221,7 +221,11 @@ class Page extends WireData {
 		foreach($this->template->fieldgroup as $field) {
 			$name = $field->name; 
 			if(!$field->type->isAutoload() && !isset($this->data[$name])) continue; // important for draft loading
-			if(is_object($this->$name)) $this->set($name, clone $this->$name); 
+			$value = $this->get($name); 
+			if(is_object($value)) {
+				if(!$value instanceof Page) $this->set($name, clone $value); // attempt re-commit
+				if($value instanceof Pagefiles) $this->get($name)->setPage($this); 
+			}
 		}
 		$this->instanceID .= ".clone";
 		if($track) $this->setTrackChanges(true); 
