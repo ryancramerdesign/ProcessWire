@@ -76,6 +76,7 @@ class ProcessPageView extends Process {
 			$this->checkProtocol($page); 
 			if($this->redirectURL) $this->session->redirect($this->redirectURL);
 			$this->setFuel('page', $page); 
+			$this->ready();
 
 			try {
 				return $page->render();
@@ -91,7 +92,13 @@ class ProcessPageView extends Process {
 	}	
 
 	/**
-	 * Hook called with the pageview has been finished and output has been sent
+	 * Hook called when the $page API var is ready, and before the $page is rendered. 
+	 *
+	 */
+	public function ___ready() { }
+
+	/**
+	 * Hook called with the pageview has been finished and output has been sent. Note this is called in /index.php.
 	 *	
  	 */
 	public function ___finished() { }
