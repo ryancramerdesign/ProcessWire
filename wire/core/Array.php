@@ -160,6 +160,65 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	}
 
 	/**
+	 * Insert an item either before or after another
+ 	 *
+	 * Provides the implementation for the insertBefore and insertAfter functions
+	 *
+	 */
+	protected function _insert($item, $existingItem, $insertBefore = true) {
+
+		if(!$this->isValidItem($item)) throw new WireException("You may not insert this item type"); 
+		$data = array();
+		$this->add($item); // first add the item, then we'll move it
+		$itemKey = $this->getItemKey($item); 
+
+		foreach($this->data as $key => $value) {
+			if($value === $existingItem) {
+				// found $existingItem, so insert $item and then insert $existingItem
+				if($insertBefore) { 
+					$data[$itemKey] = $item; 
+					$data[$key] = $value; 
+				} else {
+					$data[$key] = $value; 
+					$data[$itemKey] = $item; 
+				}
+				
+			} else if($value === $item) {
+				// skip over it since the above is doing the insert 
+				continue; 
+
+			} else {
+				// continue populating existing data
+				$data[$key] = $value; 
+			}
+		}
+		$this->data = $data; 
+		return $this; 
+	}
+
+	/**
+	 * Insert an item before an existing item
+	 *
+	 * @param int|string|array|object $item Item you want to insert
+	 * @param int|string|array|object Wire $existingItem Item already present that you want to insert before
+	 *
+	 */
+	public function insertBefore($item, $existingItem) {
+		return $this->_insert($item, $existingItem, true); 
+	}
+
+	/**
+	 * Insert an item after an existing item
+	 *
+	 * @param int|string|array|object $item Item you want to insert
+	 * @param int|string|array|object Wire $existingItem Item already present that you want to insert after
+	 *
+	 */
+	public function insertAfter($item, $existingItem) {
+		return $this->_insert($item, $existingItem, false); 
+	}
+
+	/**
 	 * Sets an index in the WireArray.
 	 *
 	 * @param int|string $key Key of item to set.
