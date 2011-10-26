@@ -133,7 +133,7 @@ class ProcessWire extends Wire {
 		Wire::setFuel('user', $users->getCurrentUser()); 
 		Wire::setFuel('input', new WireInput()); 
 
-		$modules->init();
+		$modules->triggerInit();
 
 	}
 }

@@ -126,6 +126,26 @@ class InputfieldWrapper extends Inputfield {
 	}
 
 	/**
+	 * Insert one Inputfield before one that's already there
+	 *
+	 */
+	public function insertBefore(Inputfield $item, Inputfield $existingItem) {
+		$item->setParent($this); 
+		$this->children->insertBefore($item, $existingItem); 
+		return $this; 
+	}
+
+	/**
+	 * Insert one Inputfield after one that's already there
+	 *
+	 */
+	public function insertAfter(Inputfield $item, Inputfield $existingItem) {
+		$item->setParent($this); 
+		$this->children->insertAfter($item, $existingItem); 
+		return $this; 
+	}
+
+	/**
 	 * Remove an Inputfield from this Inputfield's children
 	 *
 	 */

@@ -64,17 +64,6 @@ interface ConfigurableModule {
 interface Module {
 
 	/**
-	 * Method to initialize the module. 
-	 *
-	 * While the method is required, if you don't need it, then just leave the implementation blank.
-	 *
-	 * This is called after ProcessWire's API is fully ready for use and hooks. It is called at the end of the 
-	 * bootstrap process. This is before PW has started retrieving or rendering a page. 
-	 *
-	 */
-	public function init();
-
-	/**
 	 * Return an array of module information
 	 *
 	 * Example:
@@ -112,6 +101,26 @@ interface Module {
 	 *
 	 */
 	public static function getModuleInfo(); 
+
+	/**
+	 * Method to initialize the module. 
+	 *
+	 * While the method is required, if you don't need it, then just leave the implementation blank.
+	 *
+	 * This is called after ProcessWire's API is fully ready for use and hooks. It is called at the end of the 
+	 * bootstrap process. This is before PW has started retrieving or rendering a page. If you need to have the
+	 * API ready with the $page ready as well, then see the ready() method below this one. 
+	 *
+	 */
+	public function init();
+
+	/**
+	 * Method called when API is fully ready and the $page is determined and set, but before a page is rendered.
+	 *
+	 * Optional and only called if it exists in the module. 
+	 *
+	public function ready();
+	 */
 
 	/**
 	 * Returns the class name of this Module instance

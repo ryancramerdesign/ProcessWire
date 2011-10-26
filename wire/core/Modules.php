@@ -111,7 +111,7 @@ class Modules extends WireArray {
 	 * Initialize all the modules that are loaded at boot
 	 *
 	 */
-	public function init() {
+	public function triggerInit() {
 
 		foreach($this as $module) {
 			// if the module is configurable, then load it's config data
@@ -125,6 +125,24 @@ class Modules extends WireArray {
 				$id = $this->getModuleID($module); 
 				unset($this->configData[$id]); 
 			}
+		}
+	}
+
+	/**
+	 * Trigger all modules 'ready' method, if they have it.
+	 *
+	 * This is to indicate to them that the API environment is fully ready and $page is in fuel.
+	 *
+ 	 * This is triggered by ProcessPageView::ready
+	 *
+	 */
+	public function triggerReady() {
+
+		foreach($this as $module) {
+			if($module instanceof ModulePlaceholder) continue;
+			if(!method_exists($module, 'ready')) continue;
+			if(!$this->isAutoload($module)) continue; 
+			$module->ready();
 		}
 	}
 

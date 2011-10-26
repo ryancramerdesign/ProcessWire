@@ -95,7 +95,9 @@ class ProcessPageView extends Process {
 	 * Hook called when the $page API var is ready, and before the $page is rendered. 
 	 *
 	 */
-	public function ___ready() { }
+	public function ___ready() { 
+		$this->modules->triggerReady();
+	}
 
 	/**
 	 * Hook called with the pageview has been finished and output has been sent. Note this is called in /index.php.
