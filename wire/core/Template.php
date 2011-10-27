@@ -25,6 +25,12 @@ class Template extends WireData implements Saveable {
 	const flagSystem = 8; 
 
 	/**
+	 * Flag set if you need to override the system flag - set this first, then remove system flag in 2 operations. 
+	 *
+	 */
+	const flagSystemOverride = 32768; 
+
+	/**
 	 * Cache expiration options: expire only page cache
 	 *
 	 */
@@ -287,9 +293,10 @@ class Template extends WireData implements Saveable {
 	 */
 	protected function setFlags($value) {
 		$value = (int) $value;
+		$override = $this->settings['flags'] & Template::flagSystemOverride; 
 		if($this->settings['flags'] & Template::flagSystem) {
 			// prevent the system flag from being removed
-			$value = $value | Template::flagSystem; 
+			if(!$override) $value = $value | Template::flagSystem; 
 		}
 		$this->settings['flags'] = $value; 
 	}

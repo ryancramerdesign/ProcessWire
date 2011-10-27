@@ -41,6 +41,12 @@ class Field extends WireData implements Saveable {
 	const flagPermanent = 16; 
 
 	/**
+	 * Set this flag to override system/permanent flags if necessary - once set, system/permanent flags can be removed, but not in the same set().
+	 *
+	 */
+	const flagSystemOverride = 32768; 
+
+	/**
 	 * Permanent/native settings to an individual Field
 	 *
  	 * id: Numeric ID corresponding with id in the fields table.
@@ -111,8 +117,11 @@ class Field extends WireData implements Saveable {
 	protected function setFlags($value) {
 		// ensure that the system flag stays set
 		$value = (int) $value; 
-		if($this->settings['flags'] & Field::flagSystem) $value = $value | Field::flagSystem;
-		if($this->settings['flags'] & Field::flagPermanent) $value = $value | Field::flagPermanent; 
+		$override = $this->settings['flags'] & Field::flagSystemOverride;
+		if(!$override) { 
+			if($this->settings['flags'] & Field::flagSystem) $value = $value | Field::flagSystem;
+			if($this->settings['flags'] & Field::flagPermanent) $value = $value | Field::flagPermanent; 
+		}
 		$this->settings['flags'] = $value;
 	}
 

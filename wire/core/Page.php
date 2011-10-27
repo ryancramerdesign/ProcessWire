@@ -38,6 +38,7 @@ class Page extends WireData {
 	const statusUnpublished = 2048; 	// page is not published and is not renderable. 
 	const statusTrash = 8192; 		// page is in the trash
 	const statusDeleted = 16384; 		// page is deleted (runtime only)
+	const statusSystemOverride = 32768; 	// page is in a state where system flags may be overridden
 	const statusCorrupted = 131072; 	// page was corrupted at runtime and is NOT saveable: see setFieldValue() and $outputFormatting. (runtime)
 	const statusMax = 9999999;		// number to use for max status comparisons, runtime only
 
@@ -574,8 +575,11 @@ class Page extends WireData {
 	 */
 	protected function setStatus($value) {
 		$value = (int) $value; 
-		if($this->settings['status'] & Page::statusSystemID) $value = $value | Page::statusSystemID;
-		if($this->settings['status'] & Page::statusSystem) $value = $value | Page::statusSystem; 
+		$override = $this->settings['status'] & Page::statusSystemOverride; 
+		if(!$override) { 
+			if($this->settings['status'] & Page::statusSystemID) $value = $value | Page::statusSystemID;
+			if($this->settings['status'] & Page::statusSystem) $value = $value | Page::statusSystem; 
+		}
 		if($this->settings['status'] != $value) $this->trackChange('status');
 		$this->settings['status'] = $value;
 	}
@@ -1010,8 +1014,9 @@ class Page extends WireData {
 	 */
 	public function removeStatus($statusFlag) {
 		$statusFlag = (int) $statusFlag; 
+		$override = $this->settings['status'] & Page::statusSystemOverride; 
 		if($statusFlag == Page::statusSystem || $statusFlag == Page::statusSystemID) {
-			throw new WireException("You may not remove the 'system' status from a page"); 
+			if(!$override) throw new WireException("You may not remove the 'system' status from a page"); 
 		}
 		$this->status = $this->status & ~$statusFlag; 
 		return $this;
