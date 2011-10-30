@@ -191,7 +191,10 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 			$result = $db->query("UPDATE $sql WHERE id=$id");
 		} else {
 			$result = $db->query("INSERT INTO $sql"); 
-			if($result) $item->id = $db->insert_id; 
+			if($result) {
+				$item->id = $db->insert_id; 
+				$this->getAll()->add($item); 
+			}
 		}
 
 		if($result) $this->resetTrackChanges();

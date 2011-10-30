@@ -451,10 +451,17 @@ class Pages extends Wire {
 		if($isNew) {
 			if($page->id) $sql .= ", id=" . (int) $page->id; 
 			$result = $this->db->query("INSERT INTO $sql, created=NOW(), created_users_id=" . (int) $userID); 
-			if($result) $page->id = $this->db->insert_id; 
+			if($result) {
+				$page->id = $this->db->insert_id; 
+				$page->parent->numChildren++;
+			}
 
 		} else {
 			$result = $this->db->query("UPDATE $sql WHERE id=" . (int) $page->id); 
+			if($page->parentPrevious && $page->parentPrevious->id != $page->parent->id) {
+				$page->parentPrevious->numChildren--;
+				$page->parent->numChildren++;
+			}
 		}
 
 		// if save failed, abort
