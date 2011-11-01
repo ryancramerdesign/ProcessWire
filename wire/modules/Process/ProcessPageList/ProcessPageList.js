@@ -60,6 +60,12 @@ $(document).ready(function() {
 			// the label to click on to unselect a selected page
 			selectUnselectLabel: 'Unselect',
 
+			// label used for 'more' in paginated lists
+			moreLabel: 'More', 
+
+			// label used for the move instruction
+			moveInstructionLabel: "Click and drag to move", 
+
 			// href attribute of 'select' link
 			selectSelectHref: '#', 
 
@@ -312,7 +318,7 @@ $(document).ready(function() {
 					var nextStart = data.start + data.limit; 
 
 					if(data.page.numChildren > nextStart) {
-						var $a = $("<a></a>").attr('href', nextStart).data('pageId', id).text('More').click(clickMore); 
+						var $a = $("<a></a>").attr('href', nextStart).data('pageId', id).text(options.moreLabel).click(clickMore); 
 						$children.append($("<ul></ul>").addClass('PageListActions actions').append($("<li></li>").addClass('PageListActionMore').append($a)));
 						if(pagination) {
 							$children.prepend(getPaginationList(id, data.start, data.limit, data.page.numChildren));
@@ -436,8 +442,8 @@ $(document).ready(function() {
 				}
 
 				$(links).each(function(n, action) {
-					if(action.name == options.selectSelectLabel) actionName = "Select";
-						else if(action.name == options.selectUnselectLabel) actionName = "Select"; 
+					if(action.name == options.selectSelectLabel) actionName = 'Select';
+						else if(action.name == options.selectUnselectLabel) actionName = 'Select'; 
 						else actionName = action.cn; // cn = className
 
 					var $a = $("<a></a>").text(action.name).attr('href', action.url); 
@@ -530,7 +536,7 @@ $(document).ready(function() {
 					//$(this).addClass('PageListItemNoSort'); 
 				}); 
 
-				var options = {
+				var sortOptions = {
 					stop: stopMove, 
 					helper: 'PageListItemHelper', 
 					items: '.PageListItem:not(.PageListItemOpen)',
@@ -542,16 +548,16 @@ $(document).ready(function() {
 
 				var $sortRoot = $root.children('.PageList').children('.PageList');
 
-				var $cancelLink = $("<a href='#'>Cancel</a>").click(function() { 
+				var $cancelLink = $("<a href='#'>" + options.selectCancelLabel + "</a>").click(function() { 
 					return cancelMove($li); 
 				}); 
 
-				$li.children("ul.PageListActions").before($("<span class='PageListMoveNote detail'>&lt; Click and Drag to Move or </span>").append($cancelLink)); 
+				$li.children("ul.PageListActions").before($("<span class='PageListMoveNote detail'>&lt; " + options.moveInstructionLabel + " </span>").append($cancelLink)); 
 				$li.addClass('PageListSortItem'); 
 				$li.parent('.PageList').attr('id', 'PageListMoveFrom'); 
 
 				$root.addClass('PageListSorting'); 
-				$sortRoot.addClass('PageListSortingList').sortable(options); 
+				$sortRoot.addClass('PageListSortingList').sortable(sortOptions); 
 
 				return false; 
 
