@@ -46,6 +46,22 @@ function fuel($name = '') {
 }
 
 /**
+ * Perform a language translation
+ *
+ * If no context provided then a global context is assumed
+ *
+ */
+function __($context, $text = null) {
+	if(is_null($text)) {
+		$text = $context; 
+		$context = null;
+	}
+	if(!Wire::getFuel('languages')) return $text; 
+	if(!$language = Wire::getFuel('user')->language) return $text; 
+	return $language->translator()->getTranslation($context, $text); 
+}
+
+/**
  * Indent the given string with $numTabs tab characters
  *
  * Newlines are assumed to be \n
@@ -171,4 +187,20 @@ function wireDecodeJSON($json) {
 	if(empty($json) || $json == '[]') return array();
 	return json_decode($json, true); 
 }
+
+
+/**
+ * Create a directory that is writable to ProcessWire and uses the $config chmod settings
+ * 
+ * @param string $path
+ * @return bool
+ *
+ */ 
+function wireMkdir($path) {
+	if(!is_dir($path)) if(!@mkdir($path)) return false;
+	$chmodDir = wire('config')->chmodDir;
+	if($chmodDir) chmod($path, octdec($chmodDir));
+	return true; 
+}
+
 

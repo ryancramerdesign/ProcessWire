@@ -597,6 +597,18 @@ abstract class Wire implements TrackChanges {
 		return $this; 
 	}
 
-}
+	/**
+	 * Translate the given text string into the current language if available. 
+	 *
+	 * If not available, or if the current language is the native language, then it returns the text as is. 
+	 *
+	 * @param string $text Text string to translate
+	 * @return string
+	 *
+	 */
+	public function _($text) {
+		return __($this, $text); 
+	}
 
+}
 
