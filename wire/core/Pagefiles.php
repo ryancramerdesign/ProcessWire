@@ -63,6 +63,10 @@ class Pagefiles extends WireArray {
 		$page->filesManager(); 
 	}
 
+	public function getPage() {
+		return $this->page; 
+	}
+
 	/**
 	 * Creates a new blank instance of itself. For internal use, part of the WireArray interface. 
 	 *
@@ -119,7 +123,7 @@ class Pagefiles extends WireArray {
 	 *
 	 */
 	public function get($key) {
-		if($key == 'page') return $this->page; 
+		if($key == 'page') return $this->getPage(); 
 		if($key == 'url') return $this->url();
 		if($key == 'path') return $this->path(); 
 		return parent::get($key); 

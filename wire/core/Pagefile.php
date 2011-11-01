@@ -35,6 +35,7 @@ class Pagefile extends WireData {
 		$this->pagefiles = $pagefiles; 
 		if(strlen($filename)) $this->setFilename($filename); 
 		$this->set('description', ''); 
+		$this->set('formatted', false); // has an output formatter been run on this Pagefile?
 	}
 
 	/**
@@ -131,7 +132,12 @@ class Pagefile extends WireData {
 				// 'basename' property intentionally excluded 
 				$value = $this->$key();
 				break;
-			
+			case 'pagefiles': 
+				$value = $this->pagefiles; 
+				break;
+			case 'page': 
+				$value = $this->pagefiles->getPage(); 
+				break;
 		}
 		if(is_null($value)) return parent::get($key); 
 		return $value; 
@@ -188,7 +194,15 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function description() {
-		return parent::get("description"); 
+		return parent::get('description'); 
+	}
+
+	/**
+	 * Has the output already been formatted?
+	 *
+	 */
+	public function formatted() {
+		return parent::get('formatted') ? true : false;
 	}
 
 	/**
