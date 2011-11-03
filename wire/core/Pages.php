@@ -413,6 +413,26 @@ class Pages extends Wire {
 	}
 
 	/**
+	 * Validate that a new page is in a saveable condition and correct it if not.
+	 *
+	 * Currently just sets up up a unique page->name based on the title if one isn't provided already. 
+	 *
+	 */
+	protected function ___setupNew(Page $page) {
+
+		if(!$page->name && $page->title) {
+			$n = 0;
+			$pageName = $this->fuel('sanitizer')->pageName($page->title, true); 
+			do {
+				$name = $pageName . ($n ? "-$n" : '');
+				$child = $page->parent->child("name=$name"); // see if another page already has the same name
+				$n++;
+			} while($child->id); 
+			$page->name = $name; 
+		}
+	}
+
+	/**
 	 * Save a page object and it's fields to database. 
 	 *
 	 * If the page is new, it will be inserted. If existing, it will be updated. 
@@ -429,6 +449,7 @@ class Pages extends Wire {
 
 		$reason = '';
 		$isNew = $page->isNew();
+		if($isNew) $this->setupNew($page);
 		if(!$this->isSaveable($page, $reason)) throw new WireException("Can't save page {$page->id}: {$page->path}: $reason"); 
 
 		if($page->parentPrevious) {
