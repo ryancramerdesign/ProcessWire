@@ -511,6 +511,7 @@ class Pages extends Wire {
 		$this->sortfields->save($page); 
 		$page->resetTrackChanges();
 		if($isNew) $page->setIsNew(false); 
+		$triggerAdded = $isNew; 
 
 		if($page->templatePrevious && $page->templatePrevious->id != $page->template->id) {
 			// the template was changed, so we may have data in the DB that is no longer applicable
@@ -550,6 +551,10 @@ class Pages extends Wire {
 				$this->saveParents($page->id, $page->numChildren + ($isNew ? 1 : 0)); 
 			}
 		}
+
+		if($triggerAdded) $this->added($page);
+		if($page->parentPrevious) $this->moved($page);
+		if($page->templatePrevious) $this->templateChanged($page);
 
 		$this->debugLog('save', $page, $result != false); 
 		return $result; 
@@ -712,6 +717,7 @@ class Pages extends Wire {
 		}
 		if($save) $this->save($page); 
 		$this->savePageStatus($page->id, Page::statusTrash, true, false); 
+		$this->trashed($page);
 		$this->debugLog('trash', $page, true); 
 		return true; 
 	}
@@ -735,6 +741,7 @@ class Pages extends Wire {
 		$page->removeStatus(Page::statusTrash); 
 		if($save) $page->save();
 		$this->savePageStatus($page->id, Page::statusTrash, true, true); 
+		$this->restored($page);
 		$this->debugLog('restore', $page, true); 
 		return true; 
 	}
@@ -783,6 +790,7 @@ class Pages extends Wire {
 		$this->uncacheAll();
 		$page->setTrackChanges(false); 
 		$page->status = Page::statusDeleted; // no need for bitwise addition here, as this page is no longer relevant
+		$this->deleted($page);
 		$this->debugLog('delete', $page, true); 
 
 		return true; 
@@ -852,6 +860,7 @@ class Pages extends Wire {
 			}	
 		}
 
+		$this->cloned($page, $copy); 
 		$this->debugLog('clone', "page=$page, parent=$parent", $copy);
 	
 		return $copy; 	
@@ -1046,6 +1055,55 @@ class Pages extends Wire {
 		foreach($this->debugLog as $item) if($item['action'] == $action) $debugLog[] = $item; 
 		return $debugLog; 
 	}
+
+	/**
+	 * Hook called when a new page has been added
+	 *
+	 */
+	protected function ___added(Page $page) { }
+
+	/**
+	 * Hook called when a page has been moved from one parent to another
+	 *
+	 * Note the previous parent is in $page->parentPrevious
+	 *
+	 */
+	protected function ___moved(Page $page) { }
+
+	/**
+	 * Hook called when a page's template has been changed
+	 *
+	 * Note the previous template is in $page->templatePrevious
+	 *
+	 */
+	protected function ___templateChanged(Page $page) { }
+
+	/**
+	 * Hook called when a page has been moved to the trash
+	 *
+	 */
+	protected function ___trashed(Page $page) { }
+
+	/**
+	 * Hook called when a page has been moved OUT of the trash
+	 *
+	 */
+	protected function ___restored(Page $page) { }
+
+	/**
+	 * Hook called when a page has been deleted
+	 *
+	 */
+	protected function ___deleted(Page $page) { }
+
+	/**
+	 * Hook called when a page has been cloned
+	 *
+	 * @param Page $page The original page to be cloned
+	 * @param Page $copy The completed cloned version of the page
+	 *
+	 */
+	protected function ___cloned(Page $page, Page $copy) { }
 
 }
 
