@@ -440,8 +440,7 @@ class Page extends WireData {
 				$value = $this->filesManager();
 				break;
 			case 'name':
-				// if a page has no name, then it's name is it's ID
-				$value = strlen($this->settings['name']) ? $this->settings['name'] : $this->id; 
+				$value = $this->settings['name'];
 				break;
 			case 'modified_users_id': 
 			case 'modifiedUsersID':
