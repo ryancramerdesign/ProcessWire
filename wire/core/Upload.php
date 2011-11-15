@@ -24,6 +24,7 @@ class WireUpload extends Wire {
 	protected $completedFilenames = array(); 
 	protected $overwrite; 
 	protected $overwriteFilename = ''; // if specified, only this filename may be overwritten
+	protected $lowercase = true; 
 	protected $targetFilename = '';
 	protected $extractArchives = false; 
 	protected $validExtensions = array(); 
@@ -120,7 +121,9 @@ class WireUpload extends Wire {
 
 		if(!$filename = $_SERVER['HTTP_X_FILENAME']) return false; 
 
-		$tmpName = tempnam(sys_get_temp_dir(), get_class($this));
+		$dir = ini_get('upload_tmp_dir');
+		if(!$dir || !is_writable($dir)) $dir = sys_get_temp_dir();
+		$tmpName = tempnam($dir, get_class($this));
 		file_put_contents($tmpName, file_get_contents('php://input')); 
 		$filesize = is_file($tmpName) ? filesize($tmpName) : 0;
 		$error = $filesize ? UPLOAD_ERR_OK : UPLOAD_ERR_NO_FILE;
@@ -191,13 +194,14 @@ class WireUpload extends Wire {
 
         public function validateFilename($value, $extensions = array()) {
 
-                $value = strtolower(basename($value));
+                $value = basename($value);
+		if($this->lowercase) $value = strtolower($value); 
                 $value = preg_replace('/[^-a-zA-Z0-9_\.]/', '_', $value);
                 $value = preg_replace('/__+/', '_', $value);
                 $value = trim($value, "_");
 
 		$p = pathinfo($value);
-		$extension = $p['extension'];
+		$extension = strtolower($p['extension']);
 		$basename = basename($p['basename'], ".$extension"); 
 		// replace any dots in the basename with underscores
 		$basename = trim(str_replace(".", "_", $basename), "_"); 
@@ -215,7 +219,8 @@ class WireUpload extends Wire {
 
 		if(!$this->checkDestinationPath()) return false; 
 		$filename = $this->getTargetFilename($filename); 
-		$filename = strtolower($this->validateFilename($filename));
+		$filename = $this->validateFilename($filename);
+		if($this->lowercase) $filename = strtolower($filename); 
 		$destination = $this->destinationPath . $filename;
 		$p = pathinfo($destination); 
 
@@ -326,7 +331,8 @@ class WireUpload extends Wire {
 		// only this filename may be overwritten if specified, i.e. myphoto.jpg
 		// only useful for single uploads
 		$this->overwrite = false; // required
-		$this->overwriteFilename = strtolower($filename); 
+		if($this->lowercase) $filename = strtolower($filename); 
+		$this->overwriteFilename = $filename; 
 		return $this; 
 	}
 
@@ -367,6 +373,11 @@ class WireUpload extends Wire {
 
 	public function setName($name) {
 		$this->name = $this->fuel('sanitizer')->fieldName($name); 
+		return $this; 
+	}
+
+	public function setLowercase($lowercase = true) {
+		$this->lowercase = $lowercase ? true : false; 
 		return $this; 
 	}
 
