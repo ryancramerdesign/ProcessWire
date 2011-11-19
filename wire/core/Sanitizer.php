@@ -116,9 +116,15 @@ class Sanitizer extends Wire {
 
 		if($beautify) {
 			$value = trim($value, '-'); 
+
+			// replace any of '-_.' next to each other with a single dash
+			$value = preg_replace('/[-_.]{2,}/', '-', $value); 
+
+			// replace double dashes
 			if(strpos($value, '--') !== false) {
 				$value = preg_replace('/--+/', '-', $value); 
 			}
+
 		}
 		return $value; 
 	}
