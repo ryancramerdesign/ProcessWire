@@ -21,6 +21,14 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		'InputfieldPageAutocomplete',
 		); 
 
+	protected static $defaultConfig = array(
+		'parent_id' => 0,
+		'template_id' => 0,
+		'inputfield' => '', 
+		'labelFieldName' => '',
+		'findPagesCode' => '',
+		); 
+
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page',
@@ -30,19 +38,23 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			);
 	}
 
+
 	public function __construct() {
 		$this->set('inputfieldClasses', self::$defaultInputfieldClasses); 
 		parent::__construct();
 	}
 
 	public function init() {
-		$this->set('parent_id', 0); 
-		$this->set('template_id', 0); 
-		$this->set('inputfield', ''); 
-		$this->set('labelFieldName', ''); 
-		$this->set('findPagesCode', ''); 
+		foreach(self::$defaultConfig as $key => $value) {
+			$this->set($key, $value);
+		}
 		$this->attr('value', new PageArray()); 
 		parent::init();
+	}
+
+	public function has($key) {
+		// ensures it accepts any config value (like those for delegate inputfields)
+		return true; 
 	}
 
 	public function getSelectablePages(Page $page) {
@@ -90,7 +102,6 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			if($this->parent_id) $inputfield->parent_id = $this->parent_id;
 			if($this->template_id) $inputfield->template_id = $this->template_id; 
 			$inputfield->labelFieldName = $this->labelFieldName; 
-			
 		}
 
 		$ids = array();
@@ -98,9 +109,16 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if($value instanceof Page) $inputfield->attr('value', $value->id); // derefAsPage
 			else if($value instanceof PageArray) foreach($value as $v) $inputfield->attr('value', $v->id); // derefAsPageArray
 
+		// pass long any relevant configuration items
+		foreach($this->data as $key => $value) {
+			if(in_array($key, array('value', 'collapsed', 'required')) || array_key_exists($key, self::$defaultConfig)) continue; 
+			$inputfield->set($key, $value); 
+		}
+
 		$this->inputfieldWidget = $inputfield;
 		return $inputfield; 
 	}
+
 
 	public function ___render() {
 
@@ -215,6 +233,15 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		}
 
 		$inputfields->append($field); 	
+
+		if($this->inputfield && $inputfield = $this->getInputfield()) {
+			// then call again, knowing the module has it's config populated
+			foreach($inputfield->___getConfigInputfields() as $f) {
+				if(in_array($f->name, array('required', 'collapsed')) || array_key_exists($f->name, self::$defaultConfig)) continue; 
+				$inputfields->add($f); 
+			}
+		}
+
 
 		return $inputfields; 
 	}
