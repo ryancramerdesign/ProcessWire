@@ -252,6 +252,11 @@ class Fields extends WireSaveableItems {
 		}
 
 		$field2 = clone $field1; 
+		$flags = $field2->flags; 
+		if($flags & Field::flagSystem) {
+			$field2->flags = $flags | Field::flagSystemOverride; 
+			$field2->flags = 0;
+		}
 		$field2->name = $field2->name . "_PWTMP";
 		$field2->type->createField($field2); 
 		$field1->type = $field1->prevFieldtype;
