@@ -90,8 +90,8 @@ class ProcessPageType extends Process implements ConfigurableModule {
 			$n = 0; 
 			$row = array();
 			foreach($fieldNames as $name) {
-				if(!$n) $row[$page->get($name)] = "edit/?id={$page->id}";
-					else $row[] = $this->renderListFieldValue($page->get($name)); 
+				if(!$n) $row[(string)$page->get($name)] = "edit/?id={$page->id}";
+					else $row[] = $this->renderListFieldValue($name, $page->get($name)); 
 				$n++;
 			}
 			$table->row($row); 
@@ -109,7 +109,7 @@ class ProcessPageType extends Process implements ConfigurableModule {
 		return $out; 
 	}
 
-	protected function renderListFieldValue($value) {
+	protected function renderListFieldValue($name, $value) {
 		if(is_string($value) || is_int($value)) return htmlspecialchars($value); 
 		if(is_array($value)) return htmlspecialchars(print_r($value, true)); 
 		if(is_object($value)) {
