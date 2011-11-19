@@ -17,7 +17,9 @@
  *
  */
 
-class FieldtypePageTitle extends FieldtypeText {
+interface FieldtypePageTitleCompatible { }
+
+class FieldtypePageTitle extends FieldtypeText implements FieldtypePageTitleCompatible {
 
 	public static function getModuleInfo() {
 		return array(
@@ -39,11 +41,12 @@ class FieldtypePageTitle extends FieldtypeText {
 	public function ___getCompatibleFieldtypes(Field $field) {
 		$fieldtypes = new Fieldtypes();
 		foreach($this->fuel('fieldtypes') as $fieldtype) {
-			if($fieldtype instanceof FieldtypePageTitle) $fieldtypes->add($fieldtype);
+			if($fieldtype instanceof FieldtypePageTitleCompatible) {
+				$fieldtypes->add($fieldtype);
+			}
 		}
 		return $fieldtypes;
 	}
-
 
 	public function getInputfield(Page $page, Field $field) {
 		$inputField = $this->modules->get('InputfieldPageTitle'); 
