@@ -25,7 +25,6 @@ class InputfieldText extends Inputfield {
 	}
 
 	public function ___render() {
-		// $out = "\n<label for='{$this->id}'>" . htmlspecialchars($this->label) . "</label>" . 
 		$out = "\n<p><input " . $this->getAttributesString() . " /></p>"; 
 		return $out; 
 	}

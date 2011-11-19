@@ -84,6 +84,9 @@ class MarkupPageArray extends WireData implements Module {
 
 			// number of links to use for pagination, typically 10. 
 			'numPageLinks' => 10, 		
+
+			// base URL for pagination
+			'baseUrl' => '',
 			); 
 
 		if(isset($arguments[0]) && is_array($arguments[0])) $options = $arguments[0]; 
@@ -104,16 +107,20 @@ class MarkupPageArray extends WireData implements Module {
 		$out = str_replace('{out}', $out, $options['listMarkup']); 
 
 		if(($options['pagerTop'] || $options['pagerBottom']) && $pageArray->getTotal() > count($pageArray))  {
+
 			$pager = $this->modules->get('MarkupPagerNav'); 	
-			$pager->setBaseUrl($this->page->url); 
-			if($pager) {
-				$pagerOut = $pager->render($pageArray, array(
-					'getVars' => $options['getVars'], 
-					'numPageLinks' => $options['numPageLinks'], 
-					)); 
-				if($options['pagerTop']) $out = $pagerOut . $out; 
-				if($options['pagerBottom']) $out .= $pagerOut; 
-			}
+			$pagerOptions = $options['pagerOptions']; 
+
+			if(!empty($options['baseUrl'])) $pager->setBaseUrl($options['baseUrl']); 
+				else $pager->setBaseUrl($this->page->url); 
+
+			if(empty($options['getVars'])) $pagerOptions['getVars'] = $options['getVars'];
+			if(empty($options['numPageLinks'])) $pagerOptions['numPageLinks'] = $options['numPageLinks'];
+
+			$pagerOut = $pager->render($pageArray, $pagerOptions); 
+
+			if($options['pagerTop']) $out = $pagerOut . $out; 
+			if($options['pagerBottom']) $out .= $pagerOut; 
 		} 
 
 		$event->return = $out; 
@@ -135,7 +142,7 @@ class MarkupPageArray extends WireData implements Module {
 		$options = array();
 		if(isset($arguments[0]) && is_array($arguments[0])) $options = $arguments[0]; 
 		$pager = $this->modules->get('MarkupPagerNav'); 
-		$pager->setBaseUrl($this->page->url . ($this->page->urlSegment ? $this->page->urlSegment . '/' : '')); 
+		if(empty($options['baseUrl'])) $pager->setBaseUrl($this->page->url . ($this->page->urlSegment ? $this->page->urlSegment . '/' : '')); 
 		$event->return = $pager->render($pageArray, $options); 
 	}
 
