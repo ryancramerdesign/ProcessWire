@@ -353,6 +353,9 @@ class ProcessField extends Process implements ConfigurableModule {
 		}
 
 		$form->add($field); 
+
+		$languages = $this->fuel('languages');
+		$languageFields = array();
 	
 		$field = $this->modules->get('InputfieldText');
 		$field->attr('id+name', 'field_label'); 
@@ -360,7 +363,8 @@ class ProcessField extends Process implements ConfigurableModule {
 		$field->attr('size', '70'); 
 		$field->attr('value', $this->field->label); 
 		$field->description = "This is the label that appears above the entry field. If left blank, the name will be used instead.";
-		$form->add($field); 
+		$form->add($field);
+		$languageFields[] = $field;
 
 		$field = $this->modules->get('InputfieldTextarea');
 		$field->label = 'Description';
@@ -369,9 +373,19 @@ class ProcessField extends Process implements ConfigurableModule {
 		$field->attr('rows', 3); 
 		$field->description = "Additional information describing this field and/or instructions on how to enter the content.";
 		$field->collapsed = Inputfield::collapsedBlank;
-		$form->add($field); 
+		$form->add($field);
+		$languageFields[] = $field;
 
-
+		if($languages) foreach($languageFields as $field) {
+			$field->useLanguages = true; 
+			$name = $field->name; 
+			if($name == 'field_label') $name = 'label';
+			foreach($languages as $language) {
+				if($language->isDefault) continue; 
+				$field->set("value{$language->id}", $this->field->get("$name{$language->id}")); 
+			}
+		}
+		
 		return $form;
 	}
 
@@ -478,6 +492,8 @@ class ProcessField extends Process implements ConfigurableModule {
 	 */
 	protected function saveInputfields(InputfieldWrapper $wrapper) {
 
+		$languages = $this->fuel('languages');
+
 		foreach($wrapper->children() as $inputfield) {
 
 			if($inputfield instanceof InputfieldWrapper && count($inputfield->children())) {
@@ -515,8 +531,19 @@ class ProcessField extends Process implements ConfigurableModule {
 			if($name == 'field_label') $name = 'label';
 
 			$this->field->set($name, $value); 
+
+			// account for languages, if used
+			if($languages && $inputfield->useLanguages) {
+				foreach($languages as $language) {
+					$value = $inputfield->get("value" . $language->id);
+					$this->message($name . ': ' . $value); 
+					$this->field->set($name . $language->id, $value); 
+				}
+			}
+
 		}
 	}
+
 
 	/**	
 	 * Executed when a field type change is requested and provides an informative confirmation form
