@@ -536,7 +536,6 @@ class ProcessField extends Process implements ConfigurableModule {
 			if($languages && $inputfield->useLanguages) {
 				foreach($languages as $language) {
 					$value = $inputfield->get("value" . $language->id);
-					$this->message($name . ': ' . $value); 
 					$this->field->set($name . $language->id, $value); 
 				}
 			}
