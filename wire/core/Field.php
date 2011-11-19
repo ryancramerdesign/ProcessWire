@@ -288,7 +288,7 @@ class Field extends WireData implements Saveable {
 	 * Get the Inputfield object associated with this Field's Fieldtype
 	 *
 	 */
-	public function getInputfield(Page $page) {
+	public function ___getInputfield(Page $page) {
 
 		if(!$this->type) return null;
 		$inputfield = $this->type->getInputfield($page, $this);
