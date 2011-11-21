@@ -115,7 +115,7 @@ class ProcessTemplate extends Process {
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->setEncodeEntities(false); 
-		$table->headerRow(array('Name', 'Pages', 'Fields', '')); 
+		$table->headerRow(array('Name', 'Label', 'Pages', 'Fields', '')); 
 
 		foreach($this->fuel('templates') as $template) {
 			$notes = '';
@@ -134,6 +134,7 @@ class ProcessTemplate extends Process {
 
 			$table->row(array(
 				"{$template->name} " => "edit?id={$template->id}", 
+				$template->label, 
 				$template->getNumPages(), 
 				count($template->fieldgroup) . ($template->fieldgroup->name != $template->name ? " {$template->fieldgroup->name}" : ''),
 				$notes
@@ -294,6 +295,7 @@ class ProcessTemplate extends Process {
 	 */
 	protected function buildEditForm(Template $template) {
 
+		$languages = wire('languages');
 		$form = $this->modules->get('InputfieldForm');
 
 		$form->attr('id', 'ProcessTemplateEdit'); 
@@ -309,7 +311,19 @@ class ProcessTemplate extends Process {
 		$t = new InputfieldWrapper();
 		$t->attr('class', 'WireTab'); 
 		$t->head = "This template is used by {$this->numPages} pages";
-		$t->attr('title', "Fields");
+		$t->attr('title', "Basics");
+		$f = $this->modules->get('InputfieldText'); 
+		$f->attr('name', 'templateLabel'); 
+		$f->attr('value', $template->label); 
+		$f->label = "Label";
+		$f->description = "An optional label to describe this template.";
+		$f->collapsed = Inputfield::collapsedBlank;
+		if($languages) {
+			$f->useLanguages = true; 
+			foreach($languages as $language) $f->set('value' . $language->id, $template->get('label' . $language->id)); 
+		}
+		
+		$t->add($f); 
 		$t->add($this->buildEditFormFields($template)); 
 		if($template->name != $template->fieldgroup->name || $this->config->advanced) $t->add($this->buildEditFormFieldgroup($template)); 
 		$form->add($t); 
@@ -1026,7 +1040,7 @@ class ProcessTemplate extends Process {
 		$field->collapsed = Inputfield::collapsedBlank;
 		$fieldset->add($field); 
 
-		$field = $this->modules->get('InputfieldURL'); 
+		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('id+name', 'redirectLoginURL'); 
 		$field->label = "Enter the URL you want to redirect to when a user doesn't have access"; 
 		$field->description = 'This field is applicable only if you selected "redirect to another URL" in the field above.';
@@ -1121,6 +1135,7 @@ class ProcessTemplate extends Process {
 	 */
 	protected function ___executeSave() {
 
+		$languages = wire('languages');	
 		$redirectUrl = '';
 		if(!$this->template) throw new WireException("No template specified"); 
 		$form = $this->buildEditForm($this->template);
@@ -1154,6 +1169,13 @@ class ProcessTemplate extends Process {
 		$this->template->noCacheGetVars = $this->fuel('sanitizer')->names($form->get('noCacheGetVars')->attr('value')); 
 		$this->template->noCachePostVars = $this->fuel('sanitizer')->names($form->get('noCachePostVars')->attr('value')); 
 		$this->template->cacheExpire = (int) $form->get('cacheExpire')->attr('value');
+
+		// template label, including multi language versions if applicable
+		$templateLabel = $form->get('templateLabel'); 
+		$this->template->label = $this->sanitizer->text($templateLabel->attr('value')); 
+		if($languages) foreach($languages as $language) {
+			$this->template->set('label' . $language->id, $this->sanitizer->text($templateLabel->get('value' . $language->id))); 
+		}
 
 		if($this->template->cacheExpire == Template::cacheExpireSpecific) $this->template->cacheExpirePages = $form->get('cacheExpirePages')->value; 
 			else $this->template->cacheExpirePages = array();
