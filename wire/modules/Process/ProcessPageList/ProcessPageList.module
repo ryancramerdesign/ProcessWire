@@ -102,12 +102,12 @@ class ProcessPageList extends Process implements ConfigurableModule {
 				'openPagination' => (int) $this->input->get->n,
 				'showRootPage' => $this->showRootPage ? true : false, 
 				'limit' => $this->limit, 
-				'selectStartLabel' => $this->_('Change'), 
-				'selectCancelLabel' => $this->_('Cancel'),
-				'selectSelectLabel' => $this->_('Select'), 
-				'selectUnselectLabel' => $this->_('Unselect'),
-				'moreLabel' => $this->_('More'),
-				'moveInstructionLabel' => $this->_('Click and drag to move'), 
+				'selectStartLabel' => $this->_('Change'), // Change a page selection
+				'selectCancelLabel' => $this->_('Cancel'), // Cancel a page selection
+				'selectSelectLabel' => $this->_('Select'), // Select a page
+				'selectUnselectLabel' => $this->_('Unselect'), // Unselect a page
+				'moreLabel' => $this->_('More'), // Show more pages
+				'moveInstructionLabel' => $this->_('Click and drag to move'), // Instruction on how to move a page
 				)); 
 
 			return 	"\n<div id='PageListContainer'></div>";
@@ -229,11 +229,11 @@ abstract class ProcessPageListRender extends Wire {
 		$adminUrl = $this->config->urls->admin; 
 
 		if(!count($this->actionLabels)) $this->actionLabels = array(
-			'edit' => $this->_('Edit'), 
-			'view' => $this->_('View'), 
-			'add' => $this->_('New'), 
-			'move' => $this->_('Move'),
-			'empty' => $this->_('Empty'),
+			'edit' => $this->_('Edit'), 	// Edit page action
+			'view' => $this->_('View'), 	// View page action
+			'add' => $this->_('New'), 	// New page action
+			'move' => $this->_('Move'),	// Move page action
+			'empty' => $this->_('Empty'),	// Empty trash page action
 			);
 
 		// Note: 'cn' is short for 'className'
@@ -367,13 +367,30 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 		$class = '';
 		$type = '';
 		$note = '';
+		$label = '';
 
-		if($page->id == $this->config->trashPageID) $note = "&lt; Trash open: drag pages below here to trash them";
-		if(in_array($page->id, $this->systemIDs)) $type = 'System';
+		if($page->id == $this->config->trashPageID) {
+			$note = "&lt; " . $this->_("Trash open: drag pages below here to trash them"); // Message that appears next to the Trash page when open
+		}
+
+		if(in_array($page->id, $this->systemIDs)) {
+			$type = 'System';
+			if($page->id == $this->config->http404PageID) $label = $this->_('404 Page Not Found'); // Label for '404 Page Not Found' page in PageList // Overrides page title if used
+				else if($page->id == $this->config->adminRootPageID) $label = $this->_('Admin'); // Label for 'Admin' page in PageList // Overrides page title if used
+				else if($page->id == $this->config->trashPageID) $label = $this->_('Trash'); // Label for 'Trash' page in PageList // Overrides page title if used
+
+		} else if($page->id == 1) {
+				$label = $this->_('Home'); // Label for 'Home' page in PageList // Overrides page title if used
+		}
+
+		// if the label is the system default, then divert control to the page itself
+		if(in_array($label, array('Home', 'Trash', 'Admin', '404 Page Not Found'))) $label = '';
+
+		if(!$label) $label = $this->getPageLabel($page); 
 
 		$a = array(
 			'id' => $page->id, 
-			'label' => $this->getPageLabel($page),
+			'label' => $label,
 			'status' => $page->status, 
 			'numChildren' => $page->numChildren, 
 			'path' => $page->path(), 
