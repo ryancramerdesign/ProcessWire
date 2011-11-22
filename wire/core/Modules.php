@@ -66,6 +66,12 @@ class Modules extends WireArray {
 	protected $configData = array();
 
 	/**
+	 * Have the modules been init'd() ?
+	 *
+	 */
+	protected $initialized = false;
+
+	/**
 	 * Construct the Modules
 	 *
 	 * @param string $path Path to modules
@@ -126,6 +132,7 @@ class Modules extends WireArray {
 				unset($this->configData[$id]); 
 			}
 		}
+		$this->initialized = true; 
 	}
 
 	/**
@@ -664,6 +671,16 @@ class Modules extends WireArray {
 	}
 
 	/**
+	 * Returns whether the modules have been initialized yet
+	 *
+ 	 * @return bool
+	 *
+	 */
+	public function isInitialized() {
+		return $this->initialized; 
+	}
+
+	/**
 	 * Reset the cache that stores module files by recreating it
 	 *
 	 */
@@ -671,7 +688,6 @@ class Modules extends WireArray {
 		$this->findModuleFiles($this->modulePath); 
 		if($this->modulePath2) $this->findModuleFiles($this->modulePath2); 
 	}
-
 
 
 }

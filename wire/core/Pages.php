@@ -291,8 +291,8 @@ class Pages extends Wire {
 
 			$query->leftjoin("pages_sortfields ON pages_sortfields.pages_id=pages.id"); 
 			$query->groupby("pages.id"); 
-		
-			foreach($fields as $field) {
+	
+			foreach($fields as $field) { 
 				if(!($field->flags & Field::flagAutojoin)) continue; 
 				$table = $field->table; 
 				if(!$field->type->getLoadQueryAutojoin($field, $query)) continue; // autojoin not allowed
