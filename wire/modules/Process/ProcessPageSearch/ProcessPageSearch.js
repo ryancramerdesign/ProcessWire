@@ -3,7 +3,8 @@
 ProcessPageSearch = {
 
         t: 0,
-        lastQuery: 'Search',
+	defaultLabel: 'Search',
+        lastQuery: '',
 
         search: function() {
                 var query = $('#ProcessPageSearchQuery').val();
@@ -21,17 +22,18 @@ ProcessPageSearch = {
                                 $('#search_status').text('No matches');
                         }
                 });
-                lastQuery = query;
+                this.lastQuery = query;
                 return false;
         },
 
         hide: function() {
                 $('#search_results').fadeOut("fast", function() { $(this).remove(); });
                 $('#search_status').text('');
-                $('#search_query').val("Search");
+                $('#search_query').val(this.defaultLabel);
         },
 
         init: function() {
+		this.lastQuery = this.defaultLabel;
                 $('#container').append('<div id="search_container"></div><div id="search_status"></div>');
 
                 $('#search_form').unbind().submit(function() {
@@ -54,7 +56,7 @@ ProcessPageSearch = {
 
 $(document).ready(function() {
 	var $searchQuery = $("#ProcessPageSearchQuery"); 
-	var label = 'Search';
+	var label = $('#ProcessPageSearchSubmit').val();
 
 	if($searchQuery.attr('value').length < 1) {
 		$searchQuery.attr('value', label);
