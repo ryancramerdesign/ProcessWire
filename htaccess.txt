@@ -131,9 +131,14 @@ DirectoryIndex index.php index.html index.htm
 
   # ----------------------------------------------------------------------------------------------- 
   # Pass control to ProcessWire if all the above directives allow us to this point.
+  # For regular VirtualHosts (most installs)
   # ----------------------------------------------------------------------------------------------- 
-
   RewriteRule ^(.*)$ index.php?it=$1 [L,QSA]
+
+  # ----------------------------------------------------------------------------------------------- 
+  # If using VirtualDocumentRoot: comment out the one above and use this one instead.
+  # ----------------------------------------------------------------------------------------------- 
+  # RewriteRule ^(.*)$ /index.php?it=$1 [L,QSA]
 
 </IfModule>
 
