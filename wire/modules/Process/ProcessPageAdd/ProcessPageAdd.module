@@ -49,6 +49,8 @@ class ProcessPageAdd extends Process {
 
 	public function ___execute() {
 
+		Wire::setFuel('processHeadline', $this->_('Add New')); // Headline
+
 		if(!$this->parent_id) {
 			if(isset($_POST['parent_id'])) {
 				$this->parent_id = (int) $_POST['parent_id']; 
@@ -182,13 +184,16 @@ class ProcessPageAdd extends Process {
 			if(!$this->isAllowedTemplate($defaultTemplateId)) $defaultTemplateId = 0;
 
 			$field = $this->modules->get('InputfieldSelect');
-			$field->label = 'Template';
+			$field->label = $this->_('Template'); // Template field label
 			$field->attr('name', 'template'); 
 			$field->attr('value', $defaultTemplateId); 
 			$field->required = true; 
+			$language = wire('languages') && wire('user')->language->id ? wire('user')->language : null;
 
 			foreach($this->getAllowedTemplates() as $template) {
-				$field->addOption($template->id, $template->name); 
+				$label = $language ? $template->get('label' . $language->id) : $template->name; 
+				if(!$label) $label = $template->label ? $template->label : $template->name; 
+				$field->addOption($template->id, $label); 
 			}
 
 			$form->append($field); 
@@ -205,7 +210,7 @@ class ProcessPageAdd extends Process {
 
 		$field = $this->modules->get('InputfieldSubmit');
 		$field->attr('id+name', 'submit_save'); 
-		$field->attr('value', 'Save'); 
+		$field->attr('value', $this->_('Save')); // Save button
 		$form->append($field); 
 
 		$allowedTemplates = $this->getAllowedTemplates();	
