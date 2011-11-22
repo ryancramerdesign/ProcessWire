@@ -52,18 +52,22 @@ class ProcessPageEdit extends Process {
 		if(isset($_POST['id'])) $this->id = (int) $_POST['id']; 
 			else if(isset($_GET['id'])) $this->id = (int) $_GET['id']; 
 
-		if(!$this->id) throw new Wire404Exception("PageEdit requires a Page ID");
+		// predefined messages that maybe used in multiple places
+		$this->noticeUnknown = $this->_("Unknown page"); // Init error: Unknown page
+		$this->noticeLocked = $this->_("This page is locked for edits"); // Init error: Page is locked
+		$this->noticeNoAccess = $this->_("You don't have access to edit"); // Init error: User doesn't have access
+
+		if(!$this->id) throw new Wire404Exception($this->noticeUnknown); // Init error: no page provided
 
 		$this->user = $this->fuel('user');
 		$this->page = $this->pages->get($this->id); 
-		if($this->page instanceof NullPage) throw new WireException("Page does not exist"); 
+		if($this->page instanceof NullPage) throw new WireException($this->noticeUnknown); // Init error: page doesn't exist
 		$this->pageClass = $this->page->className();
 		$this->page->setOutputFormatting(false); 
 		$this->parent = $this->pages->get($this->page->parent_id); 
 		$this->isTrash = $this->page->isTrash;
 
-		if(!$this->page) throw new Wire404Exception("Unable to load page {$this->id}"); 
-		if(!$this->page->editable()) throw new WirePermissionException("You don't have access to edit this page"); 
+		if(!$this->page->editable()) throw new WirePermissionException($this->noticeNoAccess); // Init: user doesn't have access
 
 		// determine if we're going to be dealing with a save/post request
 		$this->isPost = ($this->input->post->id > 0 && (((int) $this->input->post->id) === $this->page->id)) || $this->config->ajax && (count($_POST) || isset($_SERVER['HTTP_X_FIELDNAME'])); 
@@ -86,6 +90,7 @@ class ProcessPageEdit extends Process {
 		parent::init();
 
 		if(!$this->isPost) $this->modules->get('JqueryWireTabs'); 
+
 	}
 
 	/**
@@ -103,9 +108,9 @@ class ProcessPageEdit extends Process {
 
 		if($this->page->is(Page::statusLocked)) {
 			if($this->user->hasPermission('page-lock', $this->page)) {
-				$this->message("Note that this page is locked and no changes will be accepted unless first unlocked."); 
+				$this->message($this->noticeLocked); // Page locked message
 			} else {
-				$this->error("This page is locked for edits and you may not make changes to this page."); 
+				$this->error($this->noticeLocked); // Page locked error
 			}
 		}
 
@@ -140,7 +145,7 @@ class ProcessPageEdit extends Process {
 
 		if($this->page->is(Page::statusLocked)) {
 			if(!$this->user->hasPermission('page-lock', $this->page) || (!empty($_POST['status']) && in_array(Page::statusLocked, $_POST['status']))) {
-				$this->error("Your changes were not saved because this page is locked"); 
+				$this->error($this->noticeLocked); 
 				$this->processSaveRedirect();
 				return;
 			}
@@ -155,7 +160,7 @@ class ProcessPageEdit extends Process {
 			$this->processInput($this->form); 
 
 			foreach($this->page->getChanges() as $change) {
-				$this->message("Change: $change");
+				$this->message(sprintf($this->_('Change: %s'), $change)); // Message shown for each changed field
 			}
 
 			$formErrors = 0; 
@@ -168,9 +173,9 @@ class ProcessPageEdit extends Process {
 				try {
 					if($this->input->post->submit_publish && $this->page->is(Page::statusUnpublished)) {
 						$this->page->removeStatus(Page::statusUnpublished);
-						$this->message("Published Page: {$this->page->url}"); 
+						$this->message(sprintf($this->_('Published Page: %s'), $this->page->path)); // Message shown when page is published
 					} else {
-						$this->message("Saved Page: {$this->page->url}"); 
+						$this->message(sprintf($this->_('Saved Page: %s'), $this->page->path)); // Message shown when page is saved
 					}
 
 					$this->page->save();
@@ -205,7 +210,7 @@ class ProcessPageEdit extends Process {
 
 		$fields = $this->page->getInputfields();
 		$fields->attr('id', $this->className() . 'Content'); 
-		$fields->attr('title', 'Content'); 
+		$fields->attr('title', $this->_('Content')); // Tab Label: Content
 
 		$form->attr('id+name', 'ProcessPageEdit'); 
 		$form->attr('action', './?id=' . $this->id . ($this->input->get->modal ? "&modal=1" : '')); 
@@ -228,7 +233,7 @@ class ProcessPageEdit extends Process {
 
 		if($this->page->addable() || $this->page->numChildren) $form->append($this->buildFormChildren()); 
 		if(!$this->page->template->noSettings) $form->append($this->buildFormSettings()); 
-		if($this->isTrash) $form->description = "This page is in the Trash"; 
+		if($this->isTrash) $form->description = $this->_("This page is in the Trash"); 
 		if($this->page->deleteable()) $form->append($this->buildFormDelete());
 		if($this->page->viewable() && !$this->input->get->modal) $form->append($this->buildFormView()); 
 
@@ -236,19 +241,19 @@ class ProcessPageEdit extends Process {
 		if($this->page->is(Page::statusUnpublished)) {
 
 			if(get_class($this->page) == 'Page') {
-				if(!$form->description) $form->description = "This page is currently unpublished";
+				if(!$form->description) $form->description = $this->_("This page is currently unpublished");
 				$field2 = $this->modules->get('InputfieldSubmit'); 
 				$field2->attr('name', 'submit_save'); 
 				$field2->attr('id', 'submit_save_unpublished'); 
 				$field2->class .= ' ui-priority-secondary'; 
-				$field2->attr('value', 'Save + Keep Unpublished'); 
+				$field2->attr('value', $this->_('Save + Keep Unpublished')); // Button: save unpublished
 			}
 
 			$saveName = 'submit_publish';
-			$saveLabel = "Publish " . $this->pageClass; 
+			$saveLabel = $this->_("Publish"); // Button: publish
 		} else {
 			$saveName = 'submit_save';
-			$saveLabel = "Save " . $this->pageClass; 
+			$saveLabel = $this->_("Save"); // Button: save
 		}
 
 		$field = $this->modules->get('InputfieldSubmit');
@@ -283,7 +288,7 @@ class ProcessPageEdit extends Process {
 
 		$wrapper = new InputfieldWrapper();
 		$wrapper->attr('id', $this->className() . 'Children'); 
-		$title = 'Children'; 
+		$title = $this->_('Children'); // Tab Label: Children
 		if($this->page->numChildren) $title = "<em>$title</em>";
 		$wrapper->attr('title', $title); 
 
@@ -297,14 +302,14 @@ class ProcessPageEdit extends Process {
 			} else $pageList = null;
 
 			$field = $this->modules->get("InputfieldMarkup"); 
-			$field->label = "Children / Subpages";
+			$field->label = $this->_("Children / Subpages"); // Children field label
 			if($pageList) $field->value = $pageList->execute();
-				else $field->description = "There are currently no children/subpages below this page.";
+				else $field->description = $this->_("There are currently no children/subpages below this page."); 
 
 			if($this->page->addable()) { 
 				$button = $this->modules->get("InputfieldButton"); 
 				$button->attr('id+name', 'AddPageBtn'); 
-				$button->attr('value', "Add New Page Here");
+				$button->attr('value', $this->_('Add New Page Here')); // Button: add new child page
 				$button->attr('href', "../add/?parent_id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
 				$field->append($button);
 			}
@@ -315,16 +320,13 @@ class ProcessPageEdit extends Process {
 		if($this->user->hasPermission('page-sort', $this->page)) { 		
 			$fieldset = $this->modules->get("InputfieldFieldset"); 
 			$fieldset->collapsed = Inputfield::collapsedYes; 
-			$fieldset->label = "Sort Settings";
-			$fieldset->description = '' . 
-				"If you want all current and future children to automatically sort by a specific field, select the field below " . 
-				"and optionally check the 'reverse' checkbox to make the sort descending. Leave the sort field blank if you want " . 
-				"to be able to drag-n-drop to your own order.";
+			$fieldset->label = $this->_('Sort Settings'); // Children sort settings field label
+			$fieldset->description = $this->_("If you want all current and future children to automatically sort by a specific field, select the field below and optionally check the 'reverse' checkbox to make the sort descending. Leave the sort field blank if you want to be able to drag-n-drop to your own order."); // Sort settings description text
 
 			$field = $this->modules->get('InputfieldSelect');
 			$field->name = 'sortfield'; 
 			$field->value = ltrim($this->page->sortfield, '-'); 
-			$field->label = 'Sort field';
+			$field->label = $this->_('Sort field'); // Children sort field label
 
 			$options = array(
 				'name' => 'name', 
@@ -334,7 +336,7 @@ class ProcessPageEdit extends Process {
 				); 
 
 			$field->addOption('sort', 'None'); 
-			$field->addOption('Native Fields', $options); // optgroup
+			$field->addOption($this->_('Native Fields'), $options); // Optgroup label for sorting by fields native to ProcessWire
 
 			$customOptions = array();
 
@@ -344,13 +346,13 @@ class ProcessPageEdit extends Process {
 			}
 
 			ksort($customOptions); 
-			$field->addOption('Custom Fields', $customOptions); // optgroup
+			$field->addOption($this->_('Custom Fields'), $customOptions); // Optgroup label for sorting by custom fields
 			$fieldset->append($field); 
 
 			$f = $this->modules->get('InputfieldCheckbox');
 			$f->value = 1; 
 			$f->attr('id+name', 'sortfield_reverse'); 
-			$f->label = 'Reverse sort direction?'; 
+			$f->label = $this->_('Reverse sort direction?'); // Checkbox labe to reverse the sort direction
 			if(substr($this->page->sortfield, 0, 1) == '-') $f->attr('checked', 'checked'); 
 
 			$fieldset->append($f); 
@@ -368,7 +370,7 @@ class ProcessPageEdit extends Process {
 
 		$wrapper = new InputfieldWrapper();
 		$wrapper->attr('id', $this->className() . 'Settings'); 
-		$wrapper->attr('title', 'Settings'); 
+		$wrapper->attr('title', $this->_('Settings')); // Tab Label: Settings
 
 		if($this->page->id > 1) {
 
@@ -385,7 +387,7 @@ class ProcessPageEdit extends Process {
 			// parent
 			if($this->page->editable('parent')) {
 				$field = $this->modules->get('InputfieldPageListSelect');
-				$field->label = "Parent";
+				$field->label = $this->_('Parent'); // Settings: Parent field label
 				$field->attr('id+name', 'parent_id'); 
 				$field->required = true; 
 				$field->attr('value', $this->page->parent_id); 
@@ -396,12 +398,22 @@ class ProcessPageEdit extends Process {
 
 		// template
 		if($this->page->editable('template')) { 
+
+			$languages = wire('languages');
+			$language = wire('user')->language; 
+
 			$field = $this->modules->get('InputfieldSelect');
-			$field->label = 'Template';
+			$field->label = $this->_('Template'); // Settings: Template field label
 			$field->attr('id+name', 'template'); 
 			$field->attr('value', $this->page->template->id); 
 			$field->required = true; 
-			foreach($this->getAllowedTemplates() as $template) $field->addOption($template->id, $template->name); 
+
+			foreach($this->getAllowedTemplates() as $template) {
+				$label = '';
+				if($languages) $label = $template->get('label' . $language->id); 
+				if(!$label) $label = $template->label ? $template->label : $template->name;
+				$field->addOption($template->id, $label); 
+			}
 			$wrapper->add($field); 
 		}
 
@@ -423,13 +435,13 @@ class ProcessPageEdit extends Process {
 	 */
 	protected function buildFormInfo() {
 
-		$dateFormat = 'l \t\h\e jS \of F Y h:i:s A';
+		$dateFormat = $this->config->dateFormat; 
 		$field = $this->modules->get("InputfieldMarkup"); 
 
-		$info = "\n<p>Created by <strong>{$this->page->createdUser->name}</strong> on " . date($dateFormat, $this->page->created) . "</p>" . 
-			"\n<p>Last modified by <strong>{$this->page->modifiedUser->name}</strong> on " . date($dateFormat, $this->page->modified) . "</p>";
+		$info = "\n<p>" . sprintf($this->_('Created by %1$s on %2$s'), $this->page->createdUser->name, date($dateFormat, $this->page->created)) . "</p>" . // Settings: created user/date information line
+			"\n<p>" . sprintf($this->_('Last modified by %1$s on %2$s'), $this->page->modifiedUser->name, date($dateFormat, $this->page->modified)) . "</p>"; // Settings: modified user/date information line
 
-		$field->label = 'Info';
+		$field->label = $this->_('Info'); // Settings: Info field label
 		$field->value = $info; 
 		$field->collapsed = Inputfield::collapsedYes; 
 		return $field; 
@@ -444,9 +456,9 @@ class ProcessPageEdit extends Process {
 		$field = $this->modules->get('InputfieldCheckboxes');
 		$field->attr('name', 'status');
 		$statuses = array(); 
-		$statuses[Page::statusHidden] = "Hidden: Excluded from lists and searches";
-		if($this->user->hasPermission('page-lock', $this->page)) $statuses[Page::statusLocked] = "Locked: Not editable";
-		$statuses[Page::statusUnpublished] = "Unpublished: Not visible on site";
+		$statuses[Page::statusHidden] = $this->_('Hidden: Excluded from lists and searches'); // Settings: Hidden status checkbox label
+		if($this->user->hasPermission('page-lock', $this->page)) $statuses[Page::statusLocked] = $this->_('Locked: Not editable'); // Settings: Locked status checkbox label
+		$statuses[Page::statusUnpublished] = $this->_('Unpublished: Not visible on site'); // Settings: Unpublished status checkbox label
 			
 		if($this->config->advanced && $this->user->isSuperuser()) {
 			$statuses[Page::statusSystemID] = "System: Non-deleteable and locked ID (status not removeable via API)";
@@ -459,7 +471,7 @@ class ProcessPageEdit extends Process {
 			$field->addOption($s, $label);
 		}
 		$field->attr('value', $value); 
-		$field->label = "Status"; 
+		$field->label = $this->_('Status'); // Settings: Status field label
 		return $field; 
 	}
 
@@ -474,7 +486,8 @@ class ProcessPageEdit extends Process {
 
 		$wrapper = new InputfieldWrapper(); 	
 		$wrapper->attr('id', $this->className() . 'Delete');
-		$wrapper->attr('title', "Delete"); 
+		$deleteLabel = $this->_('Delete'); // Tab Label: Delete
+		$wrapper->attr('title', $deleteLabel); 
 
 		if($this->page->deleteable()) {
 
@@ -483,21 +496,22 @@ class ProcessPageEdit extends Process {
 			$field->attr('value', $this->page->id); 
 
 			if($this->isTrash || $this->page->template->noTrash) {
-				$field->label = "Permanently Delete {$this->pageClass}";
-				$field->description = "This will permanently delete the {$this->pageClass}. Are you sure you want to do this?"; 
+				$deleteLabel = $this->_('Delete Permanently'); // Delete permanently checkbox label
 			} else {
-				$field->label = "Delete {$this->pageClass}";
-				$field->description = "This will move this {$this->pageClass} to the Trash.";
+				$deleteLabel = $this->_('Move to Trash'); // Move to trash checkbox label
 			}
+			$field->label = $deleteLabel;
+			$field->description = $this->_('Check the box to confirm that you want to do this.'); // Delete page confirmation instruction
 			$wrapper->append($field); 
 		}
 
 		if(count($wrapper->children())) {
 			$field = $this->modules->get('InputfieldSubmit');
 			$field->attr('id+name', 'submit_delete'); 
+			$field->value = $deleteLabel;
 			$wrapper->append($field);
 		} else {
-			$wrapper->description = "This page may not be deleted at this time";
+			$wrapper->description = $this->_('This page may not be deleted at this time'); // Page can't be deleted message
 		}
 
 		return $wrapper;
@@ -507,7 +521,8 @@ class ProcessPageEdit extends Process {
 	 * Build the 'view' tab on the Page Edit form
 	 *
 	 */ 
-	protected function buildFormView($label = 'View') {
+	protected function buildFormView() {
+		$label = $this->_('View'); // Tab Label: View
 		$field = new InputfieldMarkup(); 
 		$field->attr('id', $this->className() . 'View'); 
 		$field->attr('title', $label); 
@@ -523,13 +538,16 @@ class ProcessPageEdit extends Process {
 	protected function buildFormRoles() {
 
 		$field = $this->modules->get("InputfieldMarkup"); 
-		$field->label = "Who can access this page?";
+		$field->label = $this->_('Who can access this page?'); // Roles information field label
 		$roles = $this->page->getAccessRoles();
 		$editRoles = $this->page->getAccessTemplate()->editRoles;
 		$addRoles = $this->page->getAccessTemplate()->addRoles; 
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
-		$table->headerRow(array('Role', 'What they can do')); 
+		$table->headerRow(array(
+			$this->_('Role'), // Roles table column header: Role
+			$this->_('What they can do') // Roles table colum header: what they can do
+			)); 
 		$table->setEncodeEntities(false);
 
 		if(count($roles)) { 
@@ -537,17 +555,17 @@ class ProcessPageEdit extends Process {
 			foreach($roles as $role) {
 				$permissions = '';	
 				$roleName = $role->name; 
-				if($roleName == 'guest') $roleName .= " (everyone)";
-				$permissions .= "View Pages\n";
+				if($roleName == 'guest') $roleName .= " " . $this->_('(everyone)'); // Identifies who guest is (everyone)
+				$permissions .= "page-view\n";
 				if($role->hasPermission('page-edit') && in_array($role->id, $editRoles)) { 
 					foreach($role->permissions as $permission) {
 						if($permission->name == 'page-view') continue;  // assumed
 						if(strpos($permission->name, 'page-') !== 0) continue; 
-						$permissions .= "{$permission->title}\n"; // only page-context permissions
+						$permissions .= "{$permission->name}\n"; // only page-context permissions
 					}
 				}
 				if(false !== ($key = array_search($role->id, $addRoles))) {
-					$permissions .= "Add Children\n";
+					$permissions .= "page-add\n";
 					unset($addRoles[$key]); 
 				}
 				$table->row(array($roleName, nl2br($permissions))); 
@@ -558,19 +576,19 @@ class ProcessPageEdit extends Process {
 		if(count($addRoles)) {
 			foreach($addRoles as $roleID) {
 				$role = $this->fuel('roles')->get($roleID); 
-				if($role->id) $table->row(array($role->name, "Add Child Pages")); 
+				if($role->id) $table->row(array($role->name, "page-add")); 
 			}
 		}
 
-		$table->row(array('superuser', 'Everything')); 
+		$table->row(array('superuser', '*')); 
 
 		$field->value = $table->render();
 
 		$accessParent = $this->page->getAccessParent();
 		if($accessParent === $this->page) {
-			$field->notes = "Access is defined with this page's template \"{$accessParent->template}\"";	
+			$field->notes = sprintf($this->_('Access is defined with this page\'s template: %s'), $accessParent->template);	// Where access is defined: with this page's template
 		} else {
-			$field->notes = "Access is inherited from page \"{$accessParent->path}\" and defined with template \"{$accessParent->template}\"";
+			$field->notes = sprintf($this->_('Access is inherited from page "%1$s" and defined with template: %2$s'), $accessParent->path, $accessParent->template); // Where access is defined: inherited from a parent
 		}
 
 		return $field;
@@ -616,9 +634,19 @@ class ProcessPageEdit extends Process {
 				if($name == 'status' && $this->processInputStatus($inputfield)) continue; 
 			}
 
+			$languages = $this->fuel('languages'); 
 
 			if($name && $inputfield->isChanged()) {
-				$this->page->set($name, $inputfield->value);
+				if($languages && $inputfield->useLanguages) {
+					$v = $this->page->get($name); 
+					if(is_object($v)) {
+						$v->setFromInputfield($inputfield); 
+						$this->page->set($name, $v); 
+						$this->page->trackChange($name); 
+					}
+				} else { 
+					$this->page->set($name, $inputfield->value);
+				}
 			}
 
 			if($inputfield instanceof InputfieldWrapper && count($inputfield->getChildren())) $this->processInput($inputfield, $level + 1); 
@@ -633,7 +661,7 @@ class ProcessPageEdit extends Process {
 		if(!$inputfield->value) return true; 
 		if($this->page->template->noChangeTemplate) return true; 
 		if((!$template = $this->templates->get((int) $inputfield->value)) || ($template->id == $this->page->template->id)) return true; 
-		if(!$this->isAllowedTemplate($template)) throw new WireException("Template '$template' is not allowed"); 
+		if(!$this->isAllowedTemplate($template)) throw new WireException(sprintf($this->_("Template '%s' is not allowed"), $template)); // Selected template is not allowed
 
 		// template has changed, set a redirect URL which will confirm the change
 		$this->redirectUrl = "template?id={$this->page->id}&template={$template->id}";
@@ -693,7 +721,7 @@ class ProcessPageEdit extends Process {
 	protected function deletePage() {
 
 		if(!$this->page->deleteable()) {
-			$this->error("This page is not deleteable"); 
+			$this->error($this->_('This page is not deleteable')); 
 			return false; 
 		}
 
@@ -701,16 +729,16 @@ class ProcessPageEdit extends Process {
 		if($this->fuel('page')->process != $this->className()) $afterDeleteRedirect = "../";
 
 		if($this->isTrash || $this->page->template->noTrash) {
-			$this->session->message("Deleted page: {$this->page->url}"); 
+			$this->session->message(sprintf($this->_('Deleted page: %s'), $this->page->url)); // Page deleted message
 			$this->pages->delete($this->page, true); 
 			$this->session->redirect($afterDeleteRedirect); 
 
 		} else if($this->pages->trash($this->page)) {
-			$this->session->message("Moved page to trash: {$this->page->url}"); 
+			$this->session->message(sprintf($this->_('Moved page to trash: %s'), $this->page->url)); // Page moved to trash message
 			$this->session->redirect($afterDeleteRedirect); 
 			
 		} else { 
-			$this->error("Unable to move page to trash"); 
+			$this->error($this->_('Unable to move page to trash')); // Page can't be moved to the trash error
 			return false;
 		}
 	}
@@ -767,25 +795,25 @@ class ProcessPageEdit extends Process {
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->attr('action', 'saveTemplate'); 
 		$form->attr('method', 'post'); 
-		$form->description = "Change template from '{$this->page->template}' to '$template'";
+		$form->description = sprintf($this->_('Change template from "%1$s" to "%2$s"'), $this->page->template, $template); // Change template A to B headline
 
 		$f = $this->modules->get("InputfieldMarkup"); 	
-		$f->label = "Confirm template change"; 
+		$f->label = $this->_('Confirm template change'); // Change template confirmation subhead
 		$list = '';
 		foreach($this->page->template->fieldgroup as $field) {
 			if(!$template->fieldgroup->has($field)) 
 				$list .= "<li class='ui-state-highlight'><span class='ui-icon ui-icon-alert'></span> $field</li>";
 		}
 		if(!$list) $this->executeSaveTemplate($template); 
-		$f->description = "Warning, changing the template will delete the following fields:"; 
+		$f->description = $this->_('Warning, changing the template will delete the following fields:'); // Headline that precedes list of fields that will be deleted as a result of template change
 		$f->attr('value', "<ul>$list</ul>"); 
 		$form->append($f); 
 
 		$f = $this->modules->get("InputfieldCheckbox"); 
 		$f->attr('name', 'template'); 
 		$f->attr('value', $template->id); 
-		$f->label = "Are you sure?";		
-		$f->description = "Please confirm that you understand the above by clicking the checkbox below.";
+		$f->label = $this->_('Are you sure?'); // Checkbox label to confirm they want to change template
+		$f->description = $this->_('Please confirm that you understand the above by clicking the checkbox below.'); // Checkbox description to confirm they want to change template
 		$form->append($f); 
 
 		$f = $this->modules->get("InputfieldHidden"); 
@@ -808,16 +836,16 @@ class ProcessPageEdit extends Process {
 	public function ___executeSaveTemplate($template = null) {
 
 		if(!$this->useSettings || !$this->user->hasPermission('page-template', $this->page))
-			throw new WireException("You don't have permission to change the template on this page."); 
+			throw new WireException($this->_("You don't have permission to change the template on this page.")); // Error: user doesn't have permission to change template
 
 		if(!$this->page->template->noChangeTemplate) { 
 
 			if(!is_null($template) || (isset($_POST['template']) && ($template = $this->templates->get((int) $_POST['template'])))) {
 				try { 
-					if(!$this->isAllowedTemplate($template)) throw new WireException("Template '$template' is not allowed"); 
+					if(!$this->isAllowedTemplate($template)) throw new WireException($this->_('That template is not allowed')); // Error: selected template is not allowed
 					$this->page->template = $template; 
 					$this->page->save();
-					$this->message("Changed template to '$template'"); 
+					$this->message(sprintf($this->_("Changed template to '%s'"), $template)); // Message: template was changed 
 				} catch(Exception $e) {
 					$this->error($e->getMessage()); 
 				}
