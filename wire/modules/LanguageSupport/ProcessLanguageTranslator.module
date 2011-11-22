@@ -59,7 +59,7 @@ class ProcessLanguageTranslator extends Process {
 		// if language specified as a GET var in the URL, then pick it up and use it (storing in session)
 		if($id = $this->input->get->language_id) $this->setLanguage((int) $id); 
 			else if($this->session->translateLanguageID) $this->setLanguage($this->session->translateLanguageID); 
-			else throw new WireException("No language specified"); 
+			// else throw new WireException("No language specified"); 
 	}
 
 	/**
@@ -258,6 +258,7 @@ class ProcessLanguageTranslator extends Process {
 		$form->attr('action', "./?textdomain=$textdomain"); 
 		$form->attr('method', 'post'); 
 		$form->description = "Translate " . basename($file, '.module') . " from English to " . $this->language->title; 
+		$form->value = "<p>Each of the inputs below represents a block of text to translate. <span class='description'>The text shown in this style is the text that should be translated from English to {$this->language->title}.</span> All inputs are optional: if you leave an input blank, the default English text will be used.</p>";
 
 		$translations = $this->translator->getTranslations($textdomain); 
 
