@@ -5,6 +5,6 @@ $(document).ready(function() {
 		$("#wrap_Inputfield_pass").hide(); 	
 		$("#wrap_Inputfield_email").hide();	
 		$("#wrap_Inputfield_roles input").attr('disabled', 'disabled');
-		$("#wrap_submit_save").remove();
+		//$("#wrap_submit_save").remove();
 	}
 }); 

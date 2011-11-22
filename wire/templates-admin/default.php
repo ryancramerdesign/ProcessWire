@@ -16,14 +16,28 @@ $config->styles->prepend($config->urls->adminTemplates . "styles/main.css");
 $config->styles->append($config->urls->adminTemplates . "styles/ui.css"); 
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.js"); 
 
+/*
+ * Dynamic phrases that we want to be automatically translated
+ *
+ * These are in a comment so that they register with the parser, but we don't need them to register at runtime since they will later. 
+ * 
+ * __("Pages"); 
+ * __("Setup"); 
+ * __("Modules"); 
+ * __("Access"); 
+ * __("Admin"); 
+ * 
+ */
+
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo __(__FILE__, 'en'); // HTML tag lang attribute
+	/* this intentionally on a separate line */ ?>"> 
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
 	<meta name="robots" content="noindex, nofollow" />
 
-	<title><?php echo strip_tags($page->get("browser_title|headline|title|name")); ?> &bull; ProcessWire</title>
+	<title><?php echo __(__FILE__, strip_tags($page->get("browser_title|headline|title|name"))); ?> &bull; ProcessWire</title>
 
 	<script type="text/javascript">
 		<?php
@@ -59,29 +73,30 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 
 </head>
 <body<?php if($bodyClass) echo " class='$bodyClass'"; ?>>
-	<p id='bgtitle'><?php echo $page->parent->title; ?></p>
+	<p id='bgtitle'><?php echo __(__FILE__, $page->parent->title); ?></p>
 	<div id="masthead" class="masthead">
 		<div class="container">
 			<p id="logo">ProcessWire</p>
 
-			<ul id='topnav' class='nav'>
-				<?php include($config->paths->templatesAdmin . "topnav.inc"); ?>
+			<ul id='topnav' class='nav'><?php include($config->paths->templatesAdmin . "topnav.inc"); ?>
+
 			</ul>
 
 			<?php if(!$user->isGuest()): ?>
-			<ul id='breadcrumb' class='nav'>
-				<?php
+
+			<ul id='breadcrumb' class='nav'><?php
 				foreach($this->fuel('breadcrumbs') as $breadcrumb) {
-					$title = htmlspecialchars(strip_tags($breadcrumb->title)); 
-					echo "\n\t\t\t<li><a href='{$breadcrumb->url}'>{$title}</a> &gt;</li>";
+					$title = htmlspecialchars(strip_tags(__(__FILE__, $breadcrumb->title))); 
+					echo "\n\t\t\t\t<li><a href='{$breadcrumb->url}'>{$title}</a> &gt;</li>";
 				}
 				?>
+
 			</ul>
+
 			<?php endif; ?>	
+			<h1 id='title'><?php echo __(__FILE__, strip_tags($this->fuel->processHeadline ? $this->fuel->processHeadline : $page->get("title|name"))); ?></h1>
 
-			<h1 id='title'><?php echo strip_tags($this->fuel->processHeadline ? $this->fuel->processHeadline : $page->get("title|name")); ?></h1>
-
-			<?php echo $searchForm; ?>
+			<?php echo tabIndent($searchForm, 3); ?>
 
 		</div>
 	</div>
@@ -92,8 +107,8 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 		<div class="container">
 
 			<?php if(trim($page->summary)) echo "<h2>{$page->summary}</h2>"; ?>
-			<?php if($page->body) echo $page->body; ?>
 
+			<?php if($page->body) echo $page->body; ?>
 
 			<?php echo $content?>
 
@@ -104,20 +119,21 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 	<div id="footer" class="footer">
 		<div class="container">
 			<p>
-
 			<?php if(!$user->isGuest()): ?>
-			<span id='userinfo'>
-				<?php echo $user->name?>  
 
-				<?php if($user->hasPermission('profile-edit')): ?> / 
-				<a class='action' href='<?php echo $config->urls->admin; ?>profile/'>profile</a> /
+			<span id='userinfo'>
+				<?php 
+				echo $user->name;
+				if($user->hasPermission('profile-edit')): ?> / 
+				<a class='action' href='<?php echo $config->urls->admin; ?>profile/'><?php echo __(__FILE__, 'profile'); ?></a> /
 				<?php endif; ?>
 
-				<a class='action' href='<?php echo $config->urls->admin; ?>login/logout/'>logout</a>
+				<a class='action' href='<?php echo $config->urls->admin; ?>login/logout/'><?php echo __(__FILE__, 'logout'); ?></a>
 			</span>
+
 			<?php endif; ?>
 
-			ProcessWire <?php echo $config->version; ?> &copy; <?php echo date("Y"); ?> by Ryan Cramer 
+			ProcessWire <?php echo $config->version; ?> &copy; <?php echo date("Y"); ?> Ryan Cramer 
 			</p>
 
 			<?php if($config->debug && $this->user->isSuperuser()) include($config->paths->adminTemplates . "debug.inc"); ?>
