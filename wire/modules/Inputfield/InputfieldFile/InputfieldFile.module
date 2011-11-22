@@ -45,6 +45,7 @@ class InputfieldFile extends Inputfield {
 		$this->set('overwrite', 0); 
 		$this->set('descriptionRows', 1); 
 		$this->set('destinationPath', ''); 
+		$this->set('itemClass', 'InputfieldFile ui-widget ui-widget-content'); 
 		$this->setAttribute('type', 'file'); 
 
 		// get the max filesize
@@ -99,16 +100,15 @@ class InputfieldFile extends Inputfield {
 	protected function renderItemDescriptionField(Pagefile $pagefile, $id, $n) {
 		if($this->descriptionRows == 0) return '';
 		$out = '';
-		$description = htmlspecialchars($pagefile->description, ENT_QUOTES); 
+		$description = htmlspecialchars($pagefile->description, ENT_QUOTES, "UTF-8"); 
 		if($this->descriptionRows > 1) $out = "<textarea name='description_$id' rows='{$this->descriptionRows}'>$description</textarea>";
 			else $out = "<input type='text' name='description_$id' id='description_$id' value='$description' />";
 		return "<label class='InputfieldFileDescription infield'>Description$out</label>";
 	}
 
-	protected function renderItem($pagefile, $id, $n) {
+	protected function ___renderItem($pagefile, $id, $n) {
 
-		$out = 	"\n\t<li class='InputfieldFile ui-widget ui-widget-content'>" . 
-			"\n\t\t<p class='InputfieldFileInfo ui-state-default'>" . 
+		$out = 	"\n\t\t<p class='InputfieldFileInfo ui-state-default'>" . 
 			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>" . 
 			"\n\t\t\t<a class='InputfieldFileName' href='{$pagefile->url}'>{$pagefile->basename}</a> " . 
 			"\n\t\t\t<span class='InputfieldFileStats'>{$pagefile->filesizeStr}</span> " . 
@@ -117,23 +117,32 @@ class InputfieldFile extends Inputfield {
 			"\n\t\t<p class='InputfieldFileData'>" . 
 			"\n\t\t\t" . $this->renderItemDescriptionField($pagefile, $id, $n) . 
 			"\n\t\t\t<input class='InputfieldFileSort' type='text' name='sort_$id' value='$n' />" . 
-			"\n\t\t</p>" . 
-			"\n\t</li>";
+			"\n\t\t</p>";
 
 		return $out; 
 	}
 
-	public function ___render() {
+	protected function renderItemWrap($out) {
+		return 	"\n\t<li class='{$this->itemClass}'>$out\n\t</li>";
+	}
 
+	protected function ___renderList($value) {
+
+		if(!$value) return '';
 		$out = '';
 		$n = 0; 
+		$itemClass = $this->itemClass; 
 
-		if($this->value) foreach($this->value as $k => $pagefile) {
+		foreach($value as $k => $pagefile) {
 			$id = $this->pagefileId($pagefile);
-			$out .= $this->renderItem($pagefile, $id, $n++); 
+			$out .= $this->renderItemWrap($this->renderItem($pagefile, $id, $n++)); 
 		}
 
 		if($out) $out = "\n<ul class='InputfieldFileList'>$out\n</ul>";
+		return $out; 
+	}
+
+	protected function ___renderUpload($value) {
 
 		// enables user to choose more than one file
 		if($this->maxFiles != 1) $this->setAttribute('multiple', 'multiple'); 
@@ -145,9 +154,7 @@ class InputfieldFile extends Inputfield {
 		$extensions = $this->extensions; 
 		if($this->unzip && !$this->maxFiles) $extensions .= ' zip';
 
-		// if($this->maxFiles <= 1 || count($this->value) < $this->maxFiles) { 
-		$out =	"\n$out" . 
-			"\n<p data-maxfilesize='{$this->maxFilesize}' data-extensions='{$extensions}' data-fieldname='$attrs[name]' class='InputfieldFileUpload'>" . 
+		$out =	"\n<p data-maxfilesize='{$this->maxFilesize}' data-extensions='{$extensions}' data-fieldname='$attrs[name]' class='InputfieldFileUpload'>" . 
 			"\n\t<input type='hidden' class='InputfieldFileMaxFiles' value='{$this->maxFiles}' />" . 
 			"\n\t<input " . $this->getAttributesString($attrs) . " />" . 
 			"\n\t<span class='InputfieldFileValidExtensions description'>" . htmlspecialchars(str_replace(' ', ', ', trim($extensions))) . "</span>" . 
@@ -157,6 +164,10 @@ class InputfieldFile extends Inputfield {
 		return $out; 
 	}
 
+	public function ___render() {
+		return $this->renderList($this->value) . $this->renderUpload($this->value);
+	}
+
 	protected function ___fileAdded(Pagefile $pagefile) {
 
 		$message = "Added file: {$pagefile->basename}";
@@ -164,7 +175,7 @@ class InputfieldFile extends Inputfield {
 		if($this->config->ajax) {
 			$n = count($this->value); 
 			if($n) $n--; // for sorting
-			$markup = $this->renderItem($pagefile, $this->pagefileId($pagefile), $n);	
+			$markup = $this->renderItemWrap($this->renderItem($pagefile, $this->pagefileId($pagefile), $n));	
 			$this->ajaxResponse(false, $message, $pagefile->url, $pagefile->filesize(), $markup); 
 		} else {
 			$this->message($message); 
@@ -191,7 +202,7 @@ class InputfieldFile extends Inputfield {
 
 	protected function ___processInputDeleteFile(Pagefile $pagefile) {
 		$this->message("Deleted file: $pagefile"); 
-		$this->value->remove($pagefile); 
+		$this->value->delete($pagefile); 
 	}
 
 	protected function ___processInputFile(WireInputData $input, Pagefile $pagefile, $n) {
@@ -199,7 +210,7 @@ class InputfieldFile extends Inputfield {
 		$id = $this->name . '_' . $pagefile->hash; 		
 		$changed = false; 
 
-		if($input['description_' . $id]) { 
+		if(isset($input['description_' . $id])) { 
 			$description = trim($input['description_' . $id]); 
 			if($description != $pagefile->description) {
 				$pagefile->description = $description; 
@@ -268,9 +279,7 @@ class InputfieldFile extends Inputfield {
 		$n = 0; 
 
 		foreach($this->value as $pagefile) {
-			if($this->processInputFile($input, $pagefile, $n)) { 
-				$changed = true; 
-			}
+			if($this->processInputFile($input, $pagefile, $n)) $changed = true; 
 			$n++; 
 		}
 
