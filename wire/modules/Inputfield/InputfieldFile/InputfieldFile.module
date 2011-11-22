@@ -199,7 +199,7 @@ class InputfieldFile extends Inputfield {
 		$id = $this->name . '_' . $pagefile->hash; 		
 		$changed = false; 
 
-		if($input['description_' . $id]) { 
+		if(isset($input['description_' . $id])) { 
 			$description = trim($input['description_' . $id]); 
 			if($description != $pagefile->description) {
 				$pagefile->description = $description; 
