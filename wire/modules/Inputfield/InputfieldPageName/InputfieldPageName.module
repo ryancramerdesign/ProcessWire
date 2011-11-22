@@ -90,10 +90,10 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 
 	public function init() {
 		parent::init();
-		$this->label = 'Name';
+		$this->label = $this->_('Name'); // Field label for 'Name'
 		$this->set('parentPage', null); 
 		$this->set('sanitizeMethod', 'pageName');
-		$this->description = "Any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces).";
+		$this->description = $this->_("Any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces)."); // Field description describing what characters are allowed
 	}
 
 	public function ___render() {
@@ -101,7 +101,7 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		$url = $this->parentPage ? $this->parentPage->path : '';
 		$out = "\n<p class='InputfieldPageNameURL'>$url<strong></strong></p>" . parent::___render();
 
-		// make the replacements part of the JS config
+		// make the replacements part of the JS config	
 		$replacements = empty($this->replacements) ? self::$defaultReplacements : $this->replacements; 
 		$this->config->js($this->className(), array('replacements' => $replacements)); 
 
