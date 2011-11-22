@@ -1,0 +1,396 @@
+<?php
+
+/**
+ * ProcessWire Language Translator Process
+ *
+ * This is the process assigned to the processwire/setup/language-translator/ page.
+ *
+ * ProcessWire 2.x 
+ * Copyright (C) 2011 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class ProcessLanguageTranslator extends Process {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Language Translator', 
+			'summary' => 'Provides language translation capabilities for ProcessWire core and modules.', 
+			'version' => 100, 
+			); 
+	}
+
+	/**
+	 * Untranslated versions of the text (in default language en-US) indexed by hash-key
+	 *
+	 */
+	protected $untranslated = array();
+
+	/**
+	 * Optional comment labels for translations indexed by hash. 
+	 *
+	 * These labels are pulled from a PHP comment in "// comment" format at the end of the same line that the __() or $this->_() call appears on. 
+	 *
+	 */
+	protected $comments = array();
+
+	/**
+	 * Instance of Language (Page) containing the language we are translating to
+	 *
+	 */
+	protected $language = null;
+
+	/**
+	 * Instance of LanguageTranslator
+	 *
+	 */
+	protected $translator = null;
+
+	/**
+	 * Initialize the module and setup the variables above
+	 *
+	 */
+	public function init() {
+
+		// if language specified as a GET var in the URL, then pick it up and use it (storing in session)
+		if($id = $this->input->get->language_id) $this->setLanguage((int) $id); 
+			else if($this->session->translateLanguageID) $this->setLanguage($this->session->translateLanguageID); 
+			else throw new WireException("No language specified"); 
+	}
+
+	/**
+	 * Set the language used by the translator process and create the new translator for it
+	 *
+	 */
+	public function setLanguage($language) {
+
+		if(is_int($language)) $language = wire('languages')->get($language); 
+		if(!$language instanceof Language || !$language->id) throw new WireException("Unknown/invalid language"); 
+		$this->language = $language; 	
+		$this->session->translateLanguageID = $language->id; 
+		$this->translator = new LanguageTranslator($this->language);
+	}
+
+	/**
+	 * List the languages 
+	 *
+	 */
+	public function ___execute() {
+		return $this->executeList();
+	}	
+
+	/**
+	 * List the languages 
+	 *
+	 */
+	public function ___executeList() {
+
+		$table = $this->modules->get("MarkupAdminDataTable"); 
+		$url = $this->pages->get("template=admin, name=language-translations")->url;
+		$this->message('url ' . $url); 
+
+		if(count($this->language->language_files)) { 
+			$table->headerRow(array(
+				'file', 
+				'phrases', 
+				'last modified', 
+				)); 
+			foreach($this->language->language_files as $file) {
+				$textdomain = basename($file->basename, '.json'); 
+				$data = $this->translator->getTextdomain($textdomain); 
+				$table->row(array(
+					$data['file'] => $url . "edit/?textdomain=$textdomain",
+					count($data['translations']), 
+					date($this->config->dateFormat, filemtime($file->filename))	
+					)); 
+				$this->translator->unloadTextdomain($textdomain); 
+			}
+		} else {
+			$table->headerRow(array('file')); 
+			$table->row(array("No files in this language")); 
+		}
+
+		$table->action(array('Translate New File' => $url . 'add/')); 
+
+		$out = $table->render();
+		return $out; 
+	}
+
+	/**
+	 * Add a new class file to translate (creating a new textdomain file)
+	 *
+ 	 * URL: setup/language-translator/add/
+	 *
+	 */
+	public function ___executeAdd() {
+
+		$this->addBreadcrumbs();
+
+		$form = $this->modules->get("InputfieldForm"); 
+		$form->attr('method', 'post'); 
+		$form->attr('action', "./?language_id={$this->language->id}"); 
+		$form->description = sprintf("Add new file to translate to %s", $this->language->title);
+	
+		$field = $this->modules->get("InputfieldText"); 	
+		$field->attr('name', 'filename'); 		
+		$field->label = 'File to translate';
+		$field->description = "Enter the path and filename to translate. This should be entered relative to the site's root installation.";
+		$field->notes = "Example: /wire/modules/Process/ProcessPageList/ProcessPageList.module";
+		$form->add($field);
+
+		$submit = $this->modules->get("InputfieldSubmit"); 
+		$submit->attr('name', 'submit_add'); 
+		$submit->attr('value', 'Add File'); 
+		$form->add($submit); 
+
+		if($this->input->post->submit_add) $this->processAdd($field);
+
+		return $form->render();
+	}
+
+	/**
+	 * Process the 'add' form 
+	 *
+	 */
+	protected function ___processAdd($field) {
+
+		$filename = str_replace(array('\\', '..'), array('/', ''), $this->input->post->filename); 
+		$field->attr('value', $filename); 
+		$pathname = $this->config->paths->root . ltrim($filename, '/'); 
+
+		if(is_file($pathname)) {
+
+			$this->message("Found $filename"); 
+
+			if($this->parseTranslatableFile($pathname)) {
+
+				$textdomain = $this->translator->addFileToTranslate($filename);
+				if($textdomain) return $this->session->redirect("../edit/?language_id={$this->language->id}&textdomain=$textdomain"); 
+
+				$this->error("That file is already in the system"); 
+
+			} else {
+
+				$this->error("That file has no translatable phrases"); 
+			}
+		} else {
+			$field->error("File does not exist"); 
+		}
+
+		return false;
+	}
+
+	protected function executeEditField($hash, $untranslated, $translated) {
+		if(strlen($untranslated) < 128) { 
+			$field = $this->modules->get("InputfieldText"); 	
+		} else {
+			$field = $this->modules->get("InputfieldTextarea"); 
+			$field->attr('rows', 3); 
+		}
+		$field->attr('id+name', $hash); 
+		$field->attr('value', $translated); 
+		$comment = isset($this->comments[$hash]) ? $this->comments[$hash] : '';
+		if($comment) {
+			if(preg_match('{^(.*?)//(.*)$}', $comment, $m)) {
+				$comment = $m[1]; 
+				$field->notes = $m[2]; 
+			}
+			$field->label = $comment;
+		} else {
+			$field->label = $untranslated; 
+		}
+		$field->description = $untranslated; 
+		return $field;
+	}
+
+	protected function executeEditAbandoned(&$translations, $form) {
+
+		$fieldset = $this->modules->get("InputfieldFieldset"); 
+		$fieldset->attr('id+name', 'abandoned_fieldset'); 
+		$fieldset->label = 'Abandoned Translation(s)';
+		$fieldset->description = "The following translations were found without parents. This means that the original untranslated text was either changed or deleted. It is recommended that you delete abandoned translations unless you need to keep them to copy/paste to a new translation.";
+		$fieldset->collapsed = Inputfield::collapsedYes; 
+
+		$n = 0;
+		foreach($translations as $hash => $translation) {
+			if(isset($this->untranslated[$hash])) continue; 
+			$n++;
+			$field = $this->modules->get("InputfieldCheckbox"); 
+			$field->attr('name', "abandoned$n"); 
+			$field->attr('value', $hash); 
+			$field->description = empty($translation['text']) ? "[empty]" : $translation['text'];
+			$field->label = "Delete?";
+			$fieldset->add($field);
+		}
+
+		if($n) {
+			$fieldset->label = "$n " . $fieldset->label;
+			$form->prepend($fieldset);
+		}
+
+	}
+
+	/**
+	 * Edit all translations in a textdomain
+	 *
+	 * URL: setup/language-translator/edit/?language_id=$id&textdomain=$textdomain
+	 *
+	 */
+	public function ___executeEdit() {
+
+		$this->addBreadcrumbs();
+
+		$textdomain = $this->input->get->textdomain;
+		$file = $this->translator->textdomainToFilename($textdomain); 
+		if(!$file) throw new WireException("Unable to load textdomain"); 
+		$file = $this->config->paths->root . $file; 
+
+		if(!is_file($file)) throw new WireException("Translation file does not exist: $file"); 
+
+		$numFound = $this->parseTranslatableFile($file); 
+
+		$out = '';
+		$form = $this->modules->get('InputfieldForm'); 
+		$form->attr('action', "./?textdomain=$textdomain"); 
+		$form->attr('method', 'post'); 
+		$form->description = "Translate " . basename($file, '.module') . " from English to " . $this->language->title; 
+
+		$translations = $this->translator->getTranslations($textdomain); 
+
+		foreach($this->untranslated as $hash => $untranslated) {
+			$translated = isset($translations[$hash]) ? $translations[$hash]['text'] : ''; 
+			$form->add($this->executeEditField($hash, $untranslated, $translated)); 
+		}
+
+		$this->executeEditAbandoned($translations, $form); 
+
+		$submit = $this->modules->get("InputfieldSubmit"); 
+		$submit->attr('id+name', 'save_translations'); 
+		$submit->value = 'Save';
+		$submit->attr('class', $submit->attr('class') . ' head_button_clone'); 
+		$form->add($submit);	
+
+		if($this->input->post->save_translations) $this->processEdit($form, $textdomain, $translations);
+
+		return $form->render();
+	}
+
+	/**
+	 * Process the 'edit' form and save the changes
+	 *
+	 */
+	protected function ___processEdit($form, $textdomain, $translations) {
+
+		$form->processInput($this->input->post); 
+		$numChanges = 0;
+		$numRemoved = 0;
+
+		foreach($this->untranslated as $hash => $text) { 
+			$translation = isset($translations[$hash]) ? $translations[$hash] : array('text' => ''); 
+			$field = $form->getChildByName($hash); 
+			if($field->value != $translation['text']) {
+				$numChanges++;
+				$this->translator->setTranslation($textdomain, $text, $field->value); 
+			}
+		}
+
+		foreach($this->input->post as $key => $hash) {
+			if(strpos($key, 'abandoned') !== 0) continue;
+			if(!$field = $form->getChildByName($key)) continue;
+			$this->translator->removeTranslation($textdomain, $hash); 
+			$numRemoved++;
+		}
+
+		if($numChanges) $this->message("$numChanges translations changed"); 
+		if($numRemoved) $this->message("$numRemoved abandoned translations removed"); 
+
+		$this->translator->saveTextdomain($textdomain); 
+		$this->message("Saved $textdomain"); 
+		$this->session->redirect("./?textdomain=$textdomain"); 
+	}
+
+	/**
+	 * Given a full path to a file, locate all the translatable phrases, populating $this->untranslated array
+	 *
+	 * @param string $file
+	 * @return int Number of translatable phrases found
+	 *
+	 */
+	protected function parseTranslatableFile($file) {
+
+		$numFound = 0;
+		$data = file_get_contents($file); 
+		$matches = array(1 => array(), 2 => array());
+
+		// Find $this->_('') style matches
+		preg_match_all('/(>_)\(\s*([\'"])(.+?)(?<!\\\\)\\2\)+(.*)$/m', $data, $matches[1]); 
+
+		// Find __($context, '') style matches
+		preg_match_all('/([\s.]__|^__)\(\s*(?:[^,)]+,\s*)?([\'"])(.+?)(?<!\\\\)\\2\)+(.*)$/m', $data, $matches[2]); 
+
+		$textdomain = $this->translator->filenameToTextdomain($file); 
+
+		$this->translator->loadTextdomain($textdomain); 
+
+		/*
+		$totalPossible = 0;
+		$openChars = array('->_(', " __(", "\t__(", "(__(", ".__(", "+__(", "=__("); 
+		foreach($openChars as $s) $totalPossible += substr_count($data, $s); 
+		*/
+
+		// $totalMatched = count($matches[1][3]) + count($matches[2][3]);
+		// $this->message("Matched $totalMatched phrases for translation."); 
+
+		foreach($matches as $m) { 
+
+			foreach($m[3] as $key => $text) {
+
+				$quoteType = $m[2][$key];
+				$funcType = substr($m[1][$key], 0, 1); // '>' OR '_' , for '$this->_()' OR '__()'
+				$tail = $funcType == '>' ? $m[4][$key] : $m[4][$key]; // tail containing optional label comment
+
+				if(strpos($text, '\\') !== false) {
+					$text = str_replace(array('\\"', '\\\'', '\\$', '\\'), array('"', "'", '$', '\\'), $text); 
+				}
+
+				if(strpos($text, "\n") !== false) {
+					// account for multiline text
+					$text = preg_replace('/(^[\s]*[\'"]|[\'"][\s.]*$)/m', '', $text); 
+					$this->error("Multiline phrases are not supported, please convert to one line in the source file - phrase: \"$text\""); 
+					continue; 
+				}
+
+				$translation = $this->translator->getTranslation($textdomain, $text);
+				if($translation == $text) $translation = ''; // untranslated
+				$hash = $this->translator->setTranslation($textdomain, $text, $translation); // set pending translation
+				if($hash) {
+					$this->untranslated[$hash] = $text; 
+					$numFound++;
+					if(($pos = strpos($tail, '//')) !== false) {
+						$this->comments[$hash] = substr($tail, $pos+2); 
+					}
+				}
+				
+			}
+		}
+
+		return $numFound; 
+	}
+
+	/**
+	 * Manage the breadcrumb trail for PW admin
+	 *
+	 */
+	protected function addBreadcrumbs() { 
+		$languagesPage = $this->pages->get($this->modules->get('LanguageSupport')->languagesPageID);
+		$url = $languagesPage->url;
+		$this->fuel->breadcrumbs->add(new Breadcrumb($url, $languagesPage->title)); 
+		$this->fuel->breadcrumbs->add(new Breadcrumb($url . "edit/?id={$this->language->id}", $this->language->title));
+	}
+	
+}
+

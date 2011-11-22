@@ -1,0 +1,116 @@
+<?php
+
+/**
+ * ProcessWire Language Process, displays languages in Setup > Languages > 
+ * 
+ * It also contains the hooks for altering the output of the InputfieldFile to hold language info and links.
+ * This is the process assigned to processwire/setup/languages/.
+ *
+ * ProcessWire 2.x 
+ * Copyright (C) 2011 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class ProcessLanguage extends ProcessPageType {
+
+        static public function getModuleInfo() {
+                return array(
+                        'title' => 'Languages',
+                        'version' => 100,
+                        'summary' => 'Manage system languages',
+                        );
+        }
+
+	/**
+	 * The URL to the language-translator page (typically admin/setup/language-translator/)
+	 *
+	 */
+	protected $translationUrl = '';
+
+	/**
+	 * Populate the fields shown in the default language list output
+	 *
+	 */
+	public function __construct() {
+		parent::__construct();
+		$this->set('showFields', array('name', 'title', 'language_files'));
+	}
+
+	/**
+	 * Add InputfieldFile hooks 
+	 *
+	 */
+	public function init() {
+		$this->addHookAfter('InputfieldFile::renderItem', $this, 'renderInputfieldFileItem'); 
+		$this->addHookAfter('InputfieldFile::renderUpload', $this, 'renderInputfieldFileUpload'); 
+		parent::init();
+	}
+
+	protected function translationUrl() {
+		if(!$this->translationUrl) {
+			$support = wire('modules')->get('LanguageSupport'); 
+			$this->translationUrl = wire('pages')->get($support->languageTranslatorPageID)->url;
+		}
+		return $this->translationUrl; 
+	}
+
+	/**
+	 * Hook for InputfieldFile::renderItem
+	 *
+	 * In this case we add an 'edit' link to the translator and some info about the translation file.
+	 *
+	 */
+	public function renderInputfieldFileItem(HookEvent $event) {
+
+		$translationUrl = $this->translationUrl(); 
+		$pagefile = $event->arguments[0]; 
+		$page = $pagefile->get('page'); 
+		$textdomain = basename($pagefile->basename, '.json');
+		$data = $page->translator->getTextdomain($textdomain);
+		$count = count($data['translations']); 
+		$lastMod = date($this->config->dateFormat, filemtime($pagefile->filename)); 
+		$out = 	"<ul class='actions'>" . 
+			"<li><a href='{$translationUrl}edit/?language_id={$page->id}&amp;textdomain=$textdomain'>Edit</a></li>" . 
+			"<li class='description'> $count translations for /$data[file]</li>" . 
+			"</ul>";
+		$page->translator->unloadTextdomain($textdomain);
+		$event->return .= $out; 
+	}
+
+	/**
+	 * Hook for InputfieldFile::renderUpload
+	 *
+	 * This just adds a 'new' link to add a new translation file.
+	 *
+	 */
+	public function renderInputfieldFileUpload(HookEvent $event) {
+		$translationUrl = $this->translationUrl();
+		$page = $event->arguments[0]->get('page'); 
+		$out =	"<ul class='actions LanguageFilesActions'>" . 
+			"<li><a href='{$translationUrl}add/?language_id={$page->id}'>New</a></li>" . 
+			"</ul>";
+		$event->return .= $out;
+	}
+
+	/**
+ 	 * Modify the output per-field in the PageType list (template-method)
+	 *
+	 * In this case we make it return a count for the language_files
+	 *
+	 */
+	protected function renderListFieldValue($name, $value) {
+		if($name == 'language_files') {
+			return count($value); 
+		} else if($name == 'title' && !$value) { 
+			return '(blank)';
+		} else {
+			return parent::renderListFieldValue($name, $value); 
+		}
+	}
+
+}
+

@@ -1,0 +1,10 @@
+.InputfieldFile li.InputfieldFile .actions {
+	margin-top: 0.5em; 
+}
+
+.InputfieldFile .actions li.description {
+	text-transform: none; 
+}
+
+.LanguageFilesActions li a {
+}
