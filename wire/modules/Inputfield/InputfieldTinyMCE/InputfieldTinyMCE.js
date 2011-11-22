@@ -34,6 +34,23 @@ var InputfieldTinyMCEConfigDefaults = {
 	remove_linebreaks: false, // required for preelementfix plugin
 	entity_encoding: 'raw', 
 
+	/*
+	// these are ready to use if needed
+	setup: function(ed) {
+		$('#' + ed.id).triggerHandler({
+			type: 'setup',
+			ed: ed
+			}); 
+	},
+
+	onchange_callback: function(ed) {
+		$('#' + ed.id).triggerHandler({
+			type: 'change', 
+			ed: ed
+			}); 
+	},
+	*/
+
 	paste_preprocess : function(pl, o) {
 		if(o.content.indexOf('<br') > -1) {
 			o.content = o.content.replace(/\<br\>\<br\>/gi, '</p><p>');
@@ -43,7 +60,7 @@ var InputfieldTinyMCEConfigDefaults = {
 
 	paste_postprocess: function(pl, o) {
 		var ed = pl.editor, dom = ed.dom;
-		// Remove all img and a tags
+		// Remove all img and a tags: comment the below out if you don't want img and a tags removed during paste
 		tinymce.each(dom.select('*', o.node), function(el) {    
 			var tag = el.tagName.toLowerCase();
 			if (tag == "img" || tag == "a") {    
@@ -52,11 +69,6 @@ var InputfieldTinyMCEConfigDefaults = {
 			dom.setAttrib(el, 'style', '');
 		});
 	}, 
-
-	setup: function(ed) {
-		//jed.onInit.add(function(ed) {
-		//}); 
-	},
 
 	advimagescale_resize_callback: function(ed, node) {
 		var $node = $(node); 
