@@ -164,11 +164,11 @@ class Fieldgroups extends WireSaveableItemsLookup {
 				foreach($item->removedFields as $field) { 
 
 					if(($field->flags & Field::flagGlobal) && !$template->noGlobal) {
-						throw new WireException("Field '$field' may not be removed from fieldgroup '$this' because it is globally required (Field::flagGlobal)"); 
+						throw new WireException("Field '$field' may not be removed from fieldgroup '{$item->name}' because it is globally required (Field::flagGlobal)"); 
 					}
 
 					if($field->flags & Field::flagPermanent) {
-						throw new WireException("Field '$field' may not be removed from fieldgroup '$this' because it is permanent."); 
+						throw new WireException("Field '$field' may not be removed from fieldgroup '{$item->name}' because it is permanent."); 
 					}
 
 					$pages = $this->fuel('pages')->find("templates_id={$template->id}, check_access=0, status<" . Page::statusMax); 

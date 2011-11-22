@@ -139,18 +139,20 @@ class LanguageSupportInstall extends Wire {
 
 	public function ___uninstall() {
 
-		$configData = $this->modules->getConfigData('LanguageSupport'); 
+		$configData = wire('modules')->getModuleConfigData('LanguageSupport'); 
 
 		$field = $this->fields->get(LanguageSupport::languageFieldName); 
-		$field->status = Field::flagSystemOverride; 
-		$field->status = 0; 
+		$field->flags = Field::flagSystemOverride; 
+		$field->flags = 0; 
+
 		$userFieldgroup = $this->templates->get('user')->fieldgroup; 
 		$userFieldgroup->remove($field); 
 		$userFieldgroup->save();
+
 		$this->fields->delete($field); 	
+		$this->message("Removing field: $field"); 
 
 		$deletePageIDs = array(
-			$configData['defaultLanguagePageID'], 
 			$configData['systemLanguagePageID'],
 			$configData['languageTranslatorPageID'],
 			$configData['languagesPageID']
@@ -160,20 +162,26 @@ class LanguageSupportInstall extends Wire {
 			$page = $this->pages->get($id); 
 			$page->status = Page::statusSystemOverride; 
 			$page->status = 0;
+			$this->message("Removing page: {$page->path}"); 
 			$this->pages->delete($page, true); 
 		}
 
 		$template = $this->templates->get(LanguageSupport::languageTemplateName); 	
 		$template->flags = Template::flagSystemOverride; 
 		$template->flags = 0;
+
+		$this->message("Removing template: {$template->name}"); 
 		$this->templates->delete($template); 
 
 		$fieldgroup = $this->fieldgroups->get(LanguageSupport::languageTemplateName); 
+		$this->message("Removing fieldgroup: $fieldgroup"); 
 		$this->fieldgroups->delete($fieldgroup); 
 
 		$field = $this->fields->get("language_files"); 
 		$field->flags = Field::flagSystemOverride; 
 		$field->flags = 0;
+
+		$this->message("Removing field: {$field->name}"); 
 		$this->fields->delete($field); 
 		
 

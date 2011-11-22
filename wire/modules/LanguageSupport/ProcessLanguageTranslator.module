@@ -68,7 +68,10 @@ class ProcessLanguageTranslator extends Process {
 	 */
 	public function setLanguage($language) {
 
-		if(is_int($language)) $language = wire('languages')->get($language); 
+		$languages = wire('languages');
+		if(!$languages) return;
+
+		if(is_int($language)) $language = $languages->get($language); 
 		if(!$language instanceof Language || !$language->id) throw new WireException("Unknown/invalid language"); 
 		$this->language = $language; 	
 		$this->session->translateLanguageID = $language->id; 
