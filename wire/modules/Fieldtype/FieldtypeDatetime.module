@@ -49,6 +49,7 @@ class FieldtypeDatetime extends FieldtypeText {
 	}
 
 	public function formatValue(Page $page, Field $field, $value) {
+		if(!$value) return '';
 		return date($field->dateOutputFormat ? $field->dateOutputFormat : self::defaultDateOutputFormat, $value); 
 	}
 
