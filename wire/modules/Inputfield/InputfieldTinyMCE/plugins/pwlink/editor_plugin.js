@@ -2,6 +2,7 @@
  */
 
 var tinymceSelection = null; 
+var editorCursorPosition; // for IE8
 
 (function() {
 	tinymce.create('tinymce.plugins.PwLinkPlugin', {
@@ -24,6 +25,9 @@ var tinymceSelection = null;
 				if($nodeParent.is("a")) se.select(nodeParent); 
 
 				tinymceSelection = se; 	
+
+				// store selection IE fix
+				editorCursorPosition = ed.selection.getBookmark(false);
 
 				if($node.attr('href')) {
 					target = $node.attr('target'); 
@@ -60,7 +64,12 @@ var tinymceSelection = null;
 					},
 					buttons: {
 						"Insert Link": function() {
+
 							var $i = $iframe.contents();
+
+							// restore selection IE fix
+							ed.selection.moveToBookmark(editorCursorPosition);
+
 							var selection = tinymceSelection;
 							var url = $("#link_page_url", $i).val();
 							var target = $("#link_target", $i).is(":checked") ? "_blank" : ''; 
@@ -92,7 +101,7 @@ var tinymceSelection = null;
 
 			// Register buttons
 			ed.addButton('link', {
-				title : 'pwlink.link_desc',
+				title : 'Insert Link',
 				cmd : 'mcePwLink'
 			});
 
