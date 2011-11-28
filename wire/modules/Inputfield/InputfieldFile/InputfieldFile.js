@@ -4,17 +4,41 @@ $(document).ready(function() {
 	 * Setup a live change event for the delete links
 	 *
 	 */
-	$(this).find(".InputfieldFileDelete input").live('change', function() {
-		if($(this).is(":checked")) {
+
+	if($.browser.msie && $.browser.version < 9) {
+		
+		$(".InputfieldFileDelete span.ui-icon").live("click", function() {
+			
+			var input = $(this).prev('input'); 
+			if(input.is(":checked")){
+				input.removeAttr("checked");
+			} else {
+				input.attr({"checked":"checked"});	
+			}
+			
+			setInputfieldFileStatus(input);
+			
+		});
+		
+	} else {
+		// not IE < 9
+		$(this).find(".InputfieldFileDelete input").live('change', function() {
+			setInputfieldFileStatus($(this));
+		}); 
+	}
+
+
+	function setInputfieldFileStatus($t) {
+		if($t.is(":checked")) {
 			// not an error, but we want to highlight it in the same manner
-			$(this).parents(".InputfieldFileInfo").addClass("ui-state-error")
+			$t.parents(".InputfieldFileInfo").addClass("ui-state-error")
 				.siblings(".InputfieldFileData").slideUp("fast");
 
 		} else {
-			$(this).parents(".InputfieldFileInfo").removeClass("ui-state-error")
+			$t.parents(".InputfieldFileInfo").removeClass("ui-state-error")
 				.siblings(".InputfieldFileData").slideDown("fast");
-		}
-	}); 
+		}	
+	}
 
 	/**
 	 * Make the lists sortable and hoverable
