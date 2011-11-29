@@ -25,12 +25,6 @@ class ProcessPageEditImageSelect extends Process {
 	protected $defaultClass = 'Pageimage';
 	protected $file = '';
 
-	protected $optionalClasses = array(
-		'align_left' => 'Align Left',
-		'align_right' => 'Align Right',
-		'align_center' => 'Align Center',
-		);
-
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page Edit Image',          
@@ -95,8 +89,8 @@ class ProcessPageEditImageSelect extends Process {
 			}
 		}
 
-		if(!$numImageFields) $this->message("There are no image fields on this page. Choose another page to select images from."); 
-			else if(!$numImages) $this->message("There are no images present on this page. Close this window and upload images, or select images from another page."); 
+		if(!$numImageFields) $this->message($this->_("There are no image fields on this page. Choose another page to select images from.")); // Message when page has no image fields
+			else if(!$numImages) $this->message($this->_("There are no images present on this page. Close this window and upload images, or select images from another page."));  // Message when page has no images
 		return $allImages; 
 	}
 
@@ -127,8 +121,8 @@ class ProcessPageEditImageSelect extends Process {
 		$form->method = "get";
 
 		$field = $this->modules->get("InputfieldPageListSelect"); 
-		$field->label = "Page: " . $this->page->get("title") . " (" . $this->page->path . ")";
-		$field->description = "If you would like to select images from another page, select the page below.";
+		$field->label = $this->_("Images on Page:") . ' ' . $this->page->get("title") . " (" . $this->page->path . ")"; // Headline for page selection, precedes current page title/url
+		$field->description = $this->_("If you would like to select images from another page, select the page below."); // Instruction on how to select another page
 		$field->attr('id+name', 'page_id'); 
 		$field->value = $this->page->id; 
 		$field->parent_id = 0; 
@@ -166,10 +160,10 @@ class ProcessPageEditImageSelect extends Process {
 			"\n\t<p id='wrap_info'>" . 
 			"\n\t\t<span id='selected_image_filename'>" . htmlentities($filename) . "</span> &nbsp;&bull;&nbsp; " . 
 			"\n\t\t<span id='selected_image_pixels'>" . 
-			"\n\t\t\t<label>Width: <input id='input_width' class='input_pixels' type='number' size='6' step='1' min='1' max='$originalWidth' value='$width' /></label>&nbsp; " . 
-			"\n\t\t\t<label>Height: <input id='input_height' class='input_pixels' type='number' size='6' step='1' min=1' max='$originalHeight' value='$height' /></label>" . 
+			"\n\t\t\t<label>" . $this->_('Width:') . " <input id='input_width' class='input_pixels' type='number' size='6' step='1' min='1' max='$originalWidth' value='$width' /></label>&nbsp; " . 
+			"\n\t\t\t<label>" . $this->_('Height:') . " <input id='input_height' class='input_pixels' type='number' size='6' step='1' min=1' max='$originalHeight' value='$height' /></label>" . 
 			"\n\t\t</span>&nbsp; " . 
-			"\n\t\t<span class='detail'>You can drag also the lower right corner of the image to resize.</span>" . 
+			"\n\t\t<span class='detail'>" . $this->_("You can drag also the lower right corner of the image to resize.") . "</span>" . 
 			"\n\t</p>";
 
 		$description = isset($_GET['description']) ? $this->input->get->description : $image->description; 
@@ -183,9 +177,15 @@ class ProcessPageEditImageSelect extends Process {
 
 		$out .= "\n\t<p id='wrap_class'>" . 
 			"\n\t\t<select id='selected_image_class' name='class'>" . 
-			"\n\t\t\t<option>No Alignment</option>";
+			"\n\t\t\t<option>" . $this->_('No Alignment') . "</option>"; 
 
-		foreach($this->optionalClasses as $class => $label) {
+		$optionalClasses = array(
+			'align_left' => $this->_('Align Left'),
+			'align_right' => $this->_('Align Right'),
+			'align_center' => $this->_('Align Center'),
+			);
+
+		foreach($optionalClasses as $class => $label) {
 			$selected = $this->input->get->class == $class ? " selected='selected'" : '';
 			if($selected) $attrs['class'] .= " $class";
 			$out .= "\n\t\t\t<option$selected value='$class'>$label</option>";
@@ -206,7 +206,7 @@ class ProcessPageEditImageSelect extends Process {
 			$checked = $this->input->get->link == $image->url ? " checked='checked'" : '';
 			$out .= "\n\t<p id='wrap_link_original'>" . 
 				"\n\t\t<label>" . 
-				"\n\t\t\t<input type='checkbox'$checked name='selected_image_link' id='selected_image_link' value='{$image->url}' /> Link to Larger Version? " . 
+				"\n\t\t\t<input type='checkbox'$checked name='selected_image_link' id='selected_image_link' value='{$image->url}' /> " . $this->_('Link to Larger Version?') . 
 				"\n\t\t\t<span class='detail'>({$originalWidth}x{$originalHeight})</span> " . 
 				"\n\t\t</label>" . 
 				"\n\t</p>";

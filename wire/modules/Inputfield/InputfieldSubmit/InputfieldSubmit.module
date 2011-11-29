@@ -19,12 +19,11 @@ class InputfieldSubmit extends Inputfield {
 		parent::init();
 		$this->attr('type', 'submit'); 
 		$this->attr('name', 'submit'); 
-		$this->attr('value', 'Submit'); 
+		$this->attr('value', $this->_('Submit')); // Standard submit button label
 		$this->attr('class', 'ui-button ui-widget ui-state-default ui-corner-all'); 
 	}
 
 	public function ___render() {
-		//$out = "\n<input " . $this->getAttributesString() . " />"; 
 		$attrs  = $this->getAttributesString();
 		$out = "\n<button $attrs><span class='ui-button-text'>" . $this->attr('value') . '</span></button>';
 		return $out; 

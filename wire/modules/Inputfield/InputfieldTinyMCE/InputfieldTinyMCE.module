@@ -41,9 +41,28 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 		$config = $this->config->js($this->className()); 
 		if(is_null($config)) $config = array();
 		// 'elements' is a tinymce config option, we're using the same terminology for consistency
+
 		if(!isset($config['elements'])) $config['elements'] = array(); 
+
 		$config['elements'][] = $this->attr('id'); 
 		$config['url'] = $this->config->urls->InputfieldTinyMCE; 
+
+		$cancelButtonLabel = $this->_('Cancel'); // Cancel button label
+
+		$config['pwlink'] = array(
+			'label' => $this->_('Insert Link'), // Insert link label, window headline and button text
+			'cancel' => $cancelButtonLabel,
+			);
+
+		$config['pwimage'] = array(
+			'selectLabel' => $this->_('Select Image'), 
+			'editLabel' => $this->_('Edit Image'),
+			'savingNote' => $this->_('Saving Image'),
+			'cancelBtn' => $cancelButtonLabel,
+			'insertBtn' => $this->_('Insert This Image'), 	
+			'selectBtn' => $this->_('Select Another Image'),
+			);
+
 		$this->config->js($this->className(), $config); 
 		
 		return parent::___render();

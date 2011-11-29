@@ -23,13 +23,13 @@ class InputfieldURL extends InputfieldText {
 		$this->label = 'URL';
 		$this->set('noRelative', 0); // whether relative URLs are disabled
 		$this->set('addRoot', 0); // whether to prepend root path
-		$this->description = "Enter a valid URL, i.e. http://www.company.com/dir/";
+		$this->description = $this->_("Enter a valid URL, i.e. http://www.company.com/dir/"); // Description of a valid URL
 	}
 
 	public function ___render() {
 		$rootUrl = $this->config->urls->root;
 		if($this->addRoot && !$this->noRelative && !$this->notes && strlen($rootUrl) > 1) {
-			$this->notes = "Start local URLs with '/' and leave off the '$rootUrl' part.";
+			$this->notes = sprintf($this->_("Start local URLs with \"/\" and leave off the \"%s\" part."), $rootUrl); // Instruction for local URLs displayed when site is running from a subdirectory
 		}
 		return parent::___render();
 	}
@@ -43,10 +43,10 @@ class InputfieldURL extends InputfieldText {
 				$value = $this->fuel('sanitizer')->url($value, $this->noRelative ? false : true); 	
 
 				if(!$value || $unsanitized != $value && "http://$unsanitized" != $value) {
-					$this->error("Error found in field '{$this->name}' - please check that it is a valid URL"); 
+					$this->error($this->name . ': ' . $this->_("Error found - please check that it is a valid URL")); // Error message when invalid URL found
 
 				} else if($value != $unsanitized && $value == "http://$unsanitized") {
-					$this->message("Note that 'http://' was added to field '{$this->name}'"); 
+					$this->message($this->name . ': ' . $this->_("Note that \"http://\" was added")); // Message displayed when http scheme was automatically added to the URL
 				}
 
 			} else $value = '';

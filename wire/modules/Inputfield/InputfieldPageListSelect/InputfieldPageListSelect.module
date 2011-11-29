@@ -19,10 +19,10 @@ class InputfieldPageListSelect extends Inputfield {
 		$this->fuel('modules')->get('ProcessPageList'); // prerequisite module
 		$this->set('parent_id', 0); 
 		$this->set('labelFieldName', 'title'); 
-		$this->set('startLabel', 'Change'); 
-		$this->set('cancelLabel', 'Cancel');
-		$this->set('selectLabel', 'Select');
-		$this->set('unselectLabel', 'Unselect'); 
+		$this->set('startLabel', $this->_('Change')); 
+		$this->set('cancelLabel', $this->_('Cancel'));
+		$this->set('selectLabel', $this->_('Select'));
+		$this->set('unselectLabel', $this->_('Unselect')); 
 		parent::init();
 	}
 
