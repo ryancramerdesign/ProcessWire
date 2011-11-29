@@ -57,6 +57,14 @@ class LanguageTranslator extends Wire {
 	protected $classNamesToTextdomains = array();
 
 	/**
+	 * Textdomains of parent classes that can be checked where applicable
+	 *
+	 */
+	protected $parentTextdomains = array(
+		// 'className' => array('parent textdomain 1', 'parent textdomain 2', 'etc.') 
+		);
+
+	/**
 	 * Construct the translator and set the current language
 	 *
 	 */
@@ -113,10 +121,23 @@ class LanguageTranslator extends Wire {
 			$textdomain = $this->classNamesToTextdomains[$class]; 			
 
 		} else {
+
 			$reflection = new ReflectionClass($o); 	
 			$filename = $reflection->getFileName(); 		
 			$textdomain = $this->filenameToTextdomain($filename); 
 			$this->classNamesToTextdomains[$class] = $textdomain;
+			$parentTextdomains = array();
+
+			// core classes at which translations are no longer applicable
+			$stopClasses = array('Wire', 'WireData', 'WireArray', 'Fieldtype', 'FieldtypeMulti', 'Inputfield', 'Process');
+
+			while($parentClass = $reflection->getParentClass()) { 
+				if(in_array($parentClass->getName(), $stopClasses)) break;
+				$parentTextdomains[] = $this->filenameToTextdomain($parentClass->getFileName()); 
+				$reflection = $parentClass; 
+			}
+
+			$this->parentTextdomains[$textdomain] = $parentTextdomains; 
 		}
 
 		return $textdomain;
@@ -196,10 +217,20 @@ class LanguageTranslator extends Wire {
 			// translation found
 			$text = $this->textdomains[$textdomain]['translations'][$hash]['text'];	
 
-		} else {
+		} else if(!empty($this->parentTextdomains[$textdomain])) { 
 
-			// we'll return it in the provided language since we have no translation
+			// check parent class textdomains
+			foreach($this->parentTextdomains[$textdomain] as $td) { 
+				if(!isset($this->textdomains[$td])) $this->loadTextdomain($td); 
+				if(!empty($this->textdomains[$td]['translations'][$hash]['text'])) { 
+					$text = $this->textdomains[$td]['translations'][$hash]['text'];	
+					break;
+				}
+			}
+
 		}
+
+		// if text hasn't changed at this point, we'll be returning it in the provided language since we have no translation
 
 		return $text;
 	}

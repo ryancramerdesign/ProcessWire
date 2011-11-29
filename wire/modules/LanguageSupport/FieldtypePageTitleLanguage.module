@@ -1,0 +1,31 @@
+<?php
+
+class FieldtypePageTitleLanguage extends FieldtypeTextLanguage implements FieldtypePageTitleCompatible {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Page Title (Multi-language)',
+			'version' => 100,
+			'summary' => 'Field that stores a page title in multiple languages',
+			'permanent' => false,
+			);
+	}
+
+        public function getInputfieldClassName() {
+		return 'InputfieldPageTitle';
+	}
+
+        public function isAdvanced() {
+                //return true;
+		return false;
+        }
+
+        public function ___getCompatibleFieldtypes(Field $field) {
+                $fieldtypes = new Fieldtypes();
+                foreach($this->fuel('fieldtypes') as $fieldtype) {
+                        if($fieldtype instanceof FieldtypePageTitleCompatible) $fieldtypes->add($fieldtype);
+                }
+                return $fieldtypes;
+        }
+
+}

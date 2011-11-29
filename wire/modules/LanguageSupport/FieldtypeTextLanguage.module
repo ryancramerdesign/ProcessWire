@@ -1,0 +1,199 @@
+<?php
+
+include_once(dirname(__FILE__) . '/LanguagesPageFieldValue.php'); 
+
+class FieldtypeTextLanguage extends FieldtypeText implements FieldtypeLanguageInterface {
+
+	protected $level = 0;
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Text (Multi-language)',
+			'version' => 100,
+			'summary' => 'Field that stores a single line of text in multiple languages',
+			'permanent' => false,
+			);
+	}
+
+	public function __construct() {
+		$this->set('useLanguages', true);
+	}
+
+	/**
+	 * Prevent multi-language fields from being auto-joined
+	 *
+	 */
+	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) {
+		return null;
+
+		$languages = wire('languages'); 
+		if(!$languages || !$languages->isReady()) return null;
+		if($this->level) return null;
+		$this->level++;
+		$query = parent::getLoadQueryAutojoin($field, $query); 
+		$this->level--;
+		return $query; 
+	}
+
+	/**
+	 * Sanitize value for storage
+	 *
+	 */
+	public function sanitizeValue(Page $page, Field $field, $value) {
+		if(is_object($value) && $value instanceof LanguagesPageFieldValue) {
+			// great, already what we wanted
+		} else {
+			// convert it to a LanguagesPageFieldValue
+			$str = (string) $value; 
+			$value = $page->getUnformatted($field->name); 
+			$value->setLanguageValue(wire('user')->language->id, $str); 
+		}
+		return $value; 
+	}
+
+	/**
+	 * Format value for output, basically typcasting to a string and sending to textformatters from FieldtypeText
+	 *
+	 */
+	public function formatValue(Page $page, Field $field, $value) {
+		return parent::formatValue($page, $field, (string) $value); 
+	}
+
+
+	/**
+	 * Convert the loaded value to a LanguagesPageFieldValue instance
+	 *
+	 */
+	public function ___loadPageField(Page $page, Field $field) {
+		$values = parent::___loadPageField($page, $field); 
+		$str = new LanguagesPageFieldValue($values); 
+		return $str; 
+	}
+
+	/**
+	 * Convert an array value from the DB to a LanguagePageFieldValue
+	 *
+	 */
+	public function ___wakeupValue(Page $page, Field $field, $value) {
+		if(is_array($value)) $value = new LanguagesPageFieldValue($value); 
+		return $value;
+	}
+
+
+	/**
+	 * Convert the LanguagesPageFieldValue instance to an array indexed by DB column
+	 *
+	 */
+	public function ___sleepValue(Page $page, Field $field, $value) {
+		$values = array();
+		foreach(wire('languages') as $language) {
+			if($language->isDefault) $key = 'data';
+				else $key = 'data' . $language->id; 
+			$values[$key] = $value->getLanguageValue($language->id); 
+			
+		}
+		return $values; 
+	}
+
+	/**
+	 * Return the class name for the Inputfield (template method)
+	 *
+	 */
+	public function getInputfieldClassName() {
+		return 'InputfieldText';	
+	}
+
+       /**
+        * Prepare and return the associated Inputfield
+	*
+	* See the LanguageSupport module for for plugged-in Inputfield implementation. 
+	*
+	*/
+	public function getInputfield(Page $page, Field $field) {
+
+		$inputfield = $this->modules->get($this->getInputfieldClassName());
+		$inputfield->useLanguages = true; 
+
+		$value = $page->get($field->name); 
+
+		foreach(wire('languages') as $language) {
+			if(is_object($value)) {
+				$languageValue = $value->getLanguageValue($language->id);
+			} else {
+				if($language->isDefault) $languageValue = $value; 
+					else $languageValue = '';
+			}
+			$inputfield->set('value' . $language->id, $languageValue); 	
+		}
+
+		return $inputfield;
+	}
+
+	/**
+	 * Update a query to match the text with a fulltext index
+	 *
+	 */
+	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
+		$user = wire('user'); 
+		if($subfield == 'data' && !$user->language->isDefault) $subfield .= $user->language->id; // i.e. data1234
+		return parent::getMatchQuery($query, $table, $subfield, $operator, $value); 
+	}
+
+        /**
+         * Return the database schema in specified format
+         *
+         */
+        public function getDatabaseSchema(Field $field) {
+
+                $schema = parent::getDatabaseSchema($field);
+		$languages = wire('languages'); 
+		//$configData = wire('modules')->getModuleConfigData('LanguageSupport'); 
+
+		foreach($languages as $language) {
+			if($language->isDefault) continue; 
+			//if($language->id == $configData['defaultLanguagePageID']) continue; 
+			$schema['data' . $language->id] = $schema['data']; 
+			$schema['keys']["data{$language->id}_exact"] = "KEY `data{$language->id}_exact` (`data{$language->id}`(255))";
+			$schema['keys']["data{$language->id}"] = "FULLTEXT KEY `data{$language->id}` (`data{$language->id}`)";
+		}
+
+                return $schema;
+        }
+
+	/**
+	 * Called when a new language is added to the system
+	 *
+	 */
+        public function languageAdded(Field $field, Page $language) {
+
+                if($language->isDefault) return;
+                if(!$field->useLanguages) return;
+
+                $schema = $this->getDatabaseSchema($field);
+                $name = 'data' . $language->id;
+
+                $this->db->query("ALTER TABLE `{$field->table}` ADD `$name` $schema[data]");
+                $this->db->query("ALTER TABLE `{$field->table}` ADD INDEX `{$name}_exact` (`$name`(255))");
+                $this->db->query("ALTER TABLE `{$field->table}` ADD FULLTEXT KEY `$name` (`$name`)");
+
+        }
+
+	/**
+	 * Called when a language is removed from the system 
+	 *
+	 */
+        public function languageRemoved(Field $field, Page $language) {
+
+                if($language->isDefault) return;
+                if(!$field->useLanguages) return;
+
+                $schema = $this->getDatabaseSchema($field);
+                $name = 'data' . (int) $language->id;
+
+                $this->db->query("ALTER TABLE `{$field->table}` DROP INDEX `{$name}_exact`");
+                $this->db->query("ALTER TABLE `{$field->table}` DROP INDEX `$name`");
+                $this->db->query("ALTER TABLE `{$field->table}` DROP COLUMN `$name`");
+
+        }
+
+}
