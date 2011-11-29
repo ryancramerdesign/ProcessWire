@@ -53,7 +53,7 @@ class InputfieldImage extends InputfieldFile {
 		}
 
 		if($pagefile2) {
-			$this->message("Resized '{$pagefile->basename}' to {$pagefile->width}x{$pagefile->height} fit within max dimensions of {$this->maxWidth}x{$this->maxHeight}"); 
+			$this->message($this->_("Image resized to fit maximum allowed dimensions") . " ({$this->maxWidth}x{$this->maxHeight}"); 
 		}
 
 		return parent::___fileAdded($pagefile); 
