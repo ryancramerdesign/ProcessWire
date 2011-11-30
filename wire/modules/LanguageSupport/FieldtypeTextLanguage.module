@@ -1,6 +1,7 @@
 <?php
 
-include_once(dirname(__FILE__) . '/LanguagesPageFieldValue.php'); 
+require_once(dirname(__FILE__) . '/LanguagesPageFieldValue.php'); 
+require_once(dirname(__FILE__) . '/FieldtypeLanguageInterface.php'); 
 
 class FieldtypeTextLanguage extends FieldtypeText implements FieldtypeLanguageInterface {
 
