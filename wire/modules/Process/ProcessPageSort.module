@@ -80,7 +80,7 @@ class ProcessPageSort extends Process {
 		if($page->parent_id == $parent->id) return;
 
 		if(!$page->moveable($parent)) 
-			throw new WirePermissionException("You do not have permission to move pages to parent {$parent->path}"); 
+			throw new WirePermissionException($this->_("You do not have permission to move pages using this parent") . " - {$parent->path}"); 
 
 		$page->setOutputFormatting(false); 
 		$page->parent = $parent; 
@@ -96,12 +96,12 @@ class ProcessPageSort extends Process {
 	protected function sortPages(Page $page, Page $parent) {
 
 		if(!$page->sortable()) { 
-			if(!$this->isMoved) throw new WirePermissionException("You do not have permission to sort pages with parent {$parent->path}"); 
+			if(!$this->isMoved) throw new WirePermissionException($this->_("You do not have permission to sort pages using this parent") . " - {$parent->path}"); 
 			return;
 		}
 
 		if($parent->sortfield && $parent->sortfield != 'sort') {
-			$msg = "Your sort was not saved because pages in {$parent->path} are automatically sorted by {$parent->sortfield}.";
+			$msg = sprintf($this->_("Your sort was not saved because this pages are automatically sorted by %s."), $parent->sortfield);
 			if(!$this->isMoved) throw new WireException($msg); 
 				else $this->message($msg); 
 			return;

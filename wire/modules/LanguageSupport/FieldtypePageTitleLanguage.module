@@ -1,5 +1,7 @@
 <?php
 
+require_once(dirname(__FILE__) . '/FieldtypeTextLanguage.module'); 
+
 class FieldtypePageTitleLanguage extends FieldtypeTextLanguage implements FieldtypePageTitleCompatible {
 
 	public static function getModuleInfo() {
@@ -27,5 +29,9 @@ class FieldtypePageTitleLanguage extends FieldtypeTextLanguage implements Fieldt
                 }
                 return $fieldtypes;
         }
+
+	public function ___install() {
+		throw new WireException("This fieldtype is not yet ready for installation. Remove this line from the installer if you want to install anyway."); 
+	}
 
 }

@@ -55,20 +55,6 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	protected $resultLimit = 50;
 	protected $maxLimit = 250;
 
-	public function __construct() {
-		$this->operators = array(
-			'=' => $this->_('Equals'),
-			'!=' => $this->_('Does not equal'),
-			'>' => $this->_('Greater than'),
-			'>=' => $this->_('Greater than or equal to'),
-			'<' => $this->_('Less than'),
-			'<=' => $this->_('Less than or equal to'),
-			'*=' => $this->_('Contains phrase or partial word'),
-			'%=' => $this->_('Contains phrase/word using LIKE'),
-			'~=' => $this->_('Contains all the words'),
-			);
-	}
-
 	public function init() {
 
 		foreach($this->fields as $field) {
@@ -82,12 +68,31 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		parent::init();
 	}
 
+	/**
+	 * Setup items needed for full execution, as opposed to the regular search input that appears on all pages
+	 * 
+	 */
+	protected function fullSetup() {
+		$this->operators = array(
+			'=' => $this->_('Equals'),
+			'!=' => $this->_('Does not equal'),
+			'>' => $this->_('Greater than'),
+			'>=' => $this->_('Greater than or equal to'),
+			'<' => $this->_('Less than'),
+			'<=' => $this->_('Less than or equal to'),
+			'*=' => $this->_('Contains phrase or partial word'),
+			'%=' => $this->_('Contains phrase/word using LIKE'),
+			'~=' => $this->_('Contains all the words'),
+			);
+	}
+
 
 	/**
 	 * Perform an interactive search and provide a search form (default)
 	 *
 	 */
 	public function ___execute() {
+		$this->fullSetup();
 		$this->processInput();
 		list($selector, $displaySelector) = $this->buildSelector();
 		$matches = $this->pages->find($selector);
@@ -104,6 +109,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	 */
 	public function ___executeFor() {
 
+		$this->fullSetup();
 		$selector = '';
 		$displaySelector = '';
 		$limit = $this->resultLimit;

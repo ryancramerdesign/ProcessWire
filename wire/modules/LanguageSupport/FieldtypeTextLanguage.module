@@ -196,4 +196,8 @@ class FieldtypeTextLanguage extends FieldtypeText implements FieldtypeLanguageIn
 
         }
 
+	public function ___install() {
+		throw new WireException("This fieldtype is not yet ready for installation. Remove this line from the installer if you want to install anyway."); 
+	}
+
 }
