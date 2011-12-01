@@ -140,5 +140,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 		</div>
 	</div>
 
+	<a id='sitelink' href='<?php echo $config->urls->root; ?>'><?php echo __(__FILE__, 'Site'); ?></a>
+
 </body>
 </html>
