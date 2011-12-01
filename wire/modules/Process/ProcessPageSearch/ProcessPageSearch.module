@@ -73,7 +73,8 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	 * 
 	 */
 	protected function fullSetup() {
-		$this->setFuel('processHeadline', $this->_('Search')); // Headline for search page
+		// note extra space in 'Search ' is intentional for translation differentiation 
+		$this->setFuel('processHeadline', $this->_('Search ')); // Headline for search page
 		$this->operators = array(
 			'=' => $this->_('Equals'),
 			'!=' => $this->_('Does not equal'),
