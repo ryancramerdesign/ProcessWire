@@ -73,6 +73,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	 * 
 	 */
 	protected function fullSetup() {
+		$this->setFuel('processHeadline', $this->_('Search')); // Headline for search page
 		$this->operators = array(
 			'=' => $this->_('Equals'),
 			'!=' => $this->_('Does not equal'),
