@@ -69,7 +69,6 @@ class LanguageTranslator extends Wire {
 	 *
 	 */
 	public function __construct(Language $currentLanguage) {
-		//$this->defaultLanguagePageID = $this->modules->get('LanguageSupport')->defaultLanguagePageID; 
 		$this->setCurrentLanguage($currentLanguage);
 	}
 
@@ -194,10 +193,11 @@ class LanguageTranslator extends Wire {
 	 *
 	 * @param string|object $textdomain Textdomain string, filename, or object. 
 	 * @param string $text Text in default language (EN) that needs to be converted to current language. 
+	 * @param string $context Optional context label for the text, to differentiate from others that may be the same in English, but not other languages.
  	 * @return string Translation if available, or original EN version if translation not available.
 	 *
 	 */
-	public function getTranslation($textdomain, $text) {
+	public function getTranslation($textdomain, $text, $context = '') {
 
 		// normalize textdomain to be a string, converting from filename or object if necessary
 		$textdomain = $this->textdomainString($textdomain); 
@@ -206,7 +206,7 @@ class LanguageTranslator extends Wire {
 		// if($this->currentLanguage->id == $this->defaultLanguagePageID) return $text; 
 
 		// hash of original text
-		$hash = $this->getTextHash($text);
+		$hash = $this->getTextHash($text . $context);
 
 		// translation textdomain hasn't yet been loaded, so load it
 		if(!isset($this->textdomains[$textdomain])) $this->loadTextdomain($textdomain); 
@@ -257,13 +257,19 @@ class LanguageTranslator extends Wire {
 	 * Set a translation
 	 *
 	 */
-	public function setTranslation($textdomain, $text, $translation) {
+	public function setTranslation($textdomain, $text, $translation, $context = '') {
 
 		// get the unique hash identifier for the $text
-		$hash = $this->getTextHash($text); 
+		$hash = $this->getTextHash($text . $context); 
 
-		// don't bother performing a translation from the default language
-		// if($this->currentLanguage->id == $this->defaultLanguagePageID) return $hash; 
+		return $this->setTranslationFromHash($textdomain, $hash, $translation); 
+	} 
+
+	/**
+	 * Set a translation using an already known hash
+	 *
+	 */
+	public function setTranslationFromHash($textdomain, $hash, $translation) {
 
 		// if the textdomain isn't yet setup, then set it up
 		if(!is_array($this->textdomains[$textdomain])) $this->textdomains[$textdomain] = $this->textdomainTemplate();
@@ -274,7 +280,7 @@ class LanguageTranslator extends Wire {
 
 		// return the unique hash used to identify the translation
 		return $hash; 
-	} 
+	}
 
 	/**
 	 * Remove a translation

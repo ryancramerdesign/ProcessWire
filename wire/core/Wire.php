@@ -607,8 +607,35 @@ abstract class Wire implements TrackChanges {
 	 *
 	 */
 	public function _($text) {
-		return __($this, $text); 
+		return __($text, $this); 
 	}
+
+	/**
+	 * Perform a language translation in a specific context
+	 * 
+	 * Used when to text strings might be the same in English, but different in other languages. 
+	 * 
+	 * @param string $text Text for translation. 
+	 * @param string $context Name of context
+	 * @return string Translated text or original text if translation not available.
+	 *
+	 */
+	public function _x($text, $context) {
+		return _x($text, $context, $this); 
+	}
+
+	/**
+	 * Perform a language translation with singular and plural versions
+	 * 
+	 * @param string $textSingular Singular version of text (when there is 1 item)
+	 * @param string $textPlural Plural version of text (when there are multiple items or 0 items)
+	 * @return string Translated text or original text if translation not available.
+	 *
+	 */
+	public function _n($textSingular, $textPlural, $count) {
+		return _n($textSingular, $textPlural, $count, $this); 
+	}
+
 
 }
 

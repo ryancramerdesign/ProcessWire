@@ -73,8 +73,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	 * 
 	 */
 	protected function fullSetup() {
-		// note extra space in 'Search ' is intentional for translation differentiation 
-		$this->setFuel('processHeadline', $this->_('Search ')); // Headline for search page
+		$this->setFuel('processHeadline', $this->_x('Search', 'headline')); // Headline for search page
 		$this->operators = array(
 			'=' => $this->_('Equals'),
 			'!=' => $this->_('Does not equal'),
@@ -182,7 +181,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	protected function render(PageArray $matches, $displaySelector) {
 
 		$out = '';
-		if($displaySelector) $this->message(sprintf($this->_('Found %1$d pages using selector: %2$s'), $matches->getTotal(), $displaySelector));
+		if($displaySelector) $this->message(sprintf($this->_n('Found %1$d page using selector: %2$s', 'Found %1$d pages using selector: %2$s', $matches->getTotal()), $matches->getTotal(), $displaySelector));
 
 		// determine what fields will be displayed
 		$display = $this->input->get('get');
@@ -420,7 +419,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 		$submit = $this->modules->get("InputfieldSubmit");
 		$submit->attr('name', 'submit');
-		$submit->attr('value', $this->_('Submit Search'));
+		$submit->attr('value', $this->_x('Search', 'submit')); // Search submit button for advanced search
 		$out .= "<p>" . $submit->render() . "</p>";
 
 		$form = $this->modules->get("InputfieldForm");
@@ -607,7 +606,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 		$out = 	"\n<form id='ProcessPageSearchForm' action='{$this->config->urls->admin}page/search/' method='get'>" .
 			"\n\t<input type='text' id='ProcessPageSearchQuery' name='q' value='$q' />" .
-			"\n\t<input type='submit' id='ProcessPageSearchSubmit' name='search' value='" . $this->_('Search') . "' />" .
+			"\n\t<input type='submit' id='ProcessPageSearchSubmit' name='search' value='" . $this->_x('Search', 'input') . "' />" . // Text that appears as the placeholder text in the top search submit input
 			"\n\t<input type='hidden' name='show_options' value='1' />" . 
 			"\n\t<span id='ProcessPageSearchStatus'></span>" .
 			"\n</form>";

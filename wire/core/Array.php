@@ -965,13 +965,13 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	/**
 	 * Return a new array that is unique (no two of the same elements)
 	 *
-	 * @return WireArray This instance.
+	 * @return WireArray 
 	 *
 	 */
 	public function unique($sortFlags = SORT_STRING) {
 		$a = $this->makeNew();	
 		$a->import(array_unique($this->data, $sortFlags)); 
-		return $this; 
+		return $a; 
 	}
 
 

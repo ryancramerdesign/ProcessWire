@@ -31,13 +31,13 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo __(__FILE__, 'en'); // HTML tag lang attribute
+<html lang="<?php echo __('en', __FILE__); // HTML tag lang attribute
 	/* this intentionally on a separate line */ ?>"> 
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
 	<meta name="robots" content="noindex, nofollow" />
 
-	<title><?php echo __(__FILE__, strip_tags($page->get("browser_title|headline|title|name"))); ?> &bull; ProcessWire</title>
+	<title><?php echo __(strip_tags($page->get("browser_title|headline|title|name")), __FILE__); ?> &bull; ProcessWire</title>
 
 	<script type="text/javascript">
 		<?php
@@ -73,7 +73,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 
 </head>
 <body<?php if($bodyClass) echo " class='$bodyClass'"; ?>>
-	<p id='bgtitle'><?php echo __(__FILE__, $page->parent->title); ?></p>
+	<p id='bgtitle'><?php echo __($page->parent->title, __FILE__); ?></p>
 	<div id="masthead" class="masthead">
 		<div class="container">
 			<p id="logo">ProcessWire</p>
@@ -86,7 +86,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 
 			<ul id='breadcrumb' class='nav'><?php
 				foreach($this->fuel('breadcrumbs') as $breadcrumb) {
-					$title = htmlspecialchars(strip_tags(__(__FILE__, $breadcrumb->title))); 
+					$title = htmlspecialchars(strip_tags(__($breadcrumb->title, __FILE__))); 
 					echo "\n\t\t\t\t<li><a href='{$breadcrumb->url}'>{$title}</a> &gt;</li>";
 				}
 				?>
@@ -94,7 +94,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 			</ul>
 
 			<?php endif; ?>	
-			<h1 id='title'><?php echo __(__FILE__, strip_tags($this->fuel->processHeadline ? $this->fuel->processHeadline : $page->get("title|name"))); ?></h1>
+			<h1 id='title'><?php echo __(strip_tags($this->fuel->processHeadline ? $this->fuel->processHeadline : $page->get("title|name")), __FILE__); ?></h1>
 
 			<?php echo tabIndent($searchForm, 3); ?>
 
@@ -125,10 +125,10 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 				<?php 
 				echo $user->name;
 				if($user->hasPermission('profile-edit')): ?> / 
-				<a class='action' href='<?php echo $config->urls->admin; ?>profile/'><?php echo __(__FILE__, 'profile'); ?></a> /
+				<a class='action' href='<?php echo $config->urls->admin; ?>profile/'><?php echo __('profile', __FILE__); ?></a> /
 				<?php endif; ?>
 
-				<a class='action' href='<?php echo $config->urls->admin; ?>login/logout/'><?php echo __(__FILE__, 'logout'); ?></a>
+				<a class='action' href='<?php echo $config->urls->admin; ?>login/logout/'><?php echo __('logout', __FILE__); ?></a>
 			</span>
 
 			<?php endif; ?>
@@ -140,7 +140,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 		</div>
 	</div>
 
-	<a id='sitelink' href='<?php echo $config->urls->root; ?>'><?php echo __(__FILE__, 'Site'); ?></a>
+	<a id='sitelink' href='<?php echo $config->urls->root; ?>'><?php echo __('Site', __FILE__); ?></a>
 
 </body>
 </html>
