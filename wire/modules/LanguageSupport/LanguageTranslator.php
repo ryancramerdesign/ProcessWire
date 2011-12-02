@@ -150,6 +150,7 @@ class LanguageTranslator extends Wire {
 	 *
 	 */
 	public function filenameToTextdomain($filename) {
+		if(DIRECTORY_SEPARATOR != '/') $filename = str_replace(DIRECTORY_SEPARATOR, '/', $filename); 
 		$pos = strrpos($filename, '/wire/'); 
 		if($pos === false) $pos = strrpos($filename, '/site/'); 
 		if($pos !== false) $filename = substr($filename, $pos+1);
@@ -178,7 +179,7 @@ class LanguageTranslator extends Wire {
 	 */
 	protected function textdomainString($textdomain) {
 
-		if(is_string($textdomain) && strpos($textdomain, '/') !== false) $textdomain = $this->filenameToTextdomain($textdomain); 
+		if(is_string($textdomain) && strpos($textdomain, DIRECTORY_SEPARATOR) !== false) $textdomain = $this->filenameToTextdomain($textdomain); 
 			else if(is_object($textdomain)) $textdomain = $this->objectToTextdomain($textdomain); 
 			else $textdomain = strtolower($textdomain); 
 
