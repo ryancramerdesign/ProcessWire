@@ -32,12 +32,19 @@ class ProcessLanguage extends ProcessPageType {
 	protected $translationUrl = '';
 
 	/**
+	 * Array of messages for language_files, indexed by file basename
+	 *
+	 */
+	protected $fileMessages = array();
+
+	/**
 	 * Populate the fields shown in the default language list output
 	 *
 	 */
 	public function __construct() {
 		parent::__construct();
 		$this->set('showFields', array('name', 'title', 'language_files'));
+		require_once(dirname(__FILE__) . '/LanguageParser.php'); 
 	}
 
 	/**
@@ -70,15 +77,48 @@ class ProcessLanguage extends ProcessPageType {
 		$pagefile = $event->arguments[0]; 
 		$page = $pagefile->get('page'); 
 		$textdomain = basename($pagefile->basename, '.json');
+
 		$data = $page->translator->getTextdomain($textdomain);
-		$count = count($data['translations']); 
+		$file = $data['file']; 
+		$pathname = wire('config')->paths->root . $file;
+		$translations =& $data['translations'];
+		$total = count($translations); 
+		$parser = new LanguageParser($page->translator, $pathname);
+		$untranslated = $parser->getUntranslated();
+		$numPending = 0;
+		$numAbandoned = 0;
+
+		foreach($untranslated as $hash => $text) {
+			if(!isset($translations[$hash]) || !strlen($translations[$hash]['text'])) $numPending++;
+		}
+
+		foreach($translations as $hash => $translation) {
+			if(!isset($untranslated[$hash])) $numAbandoned++;
+		}
+
+		$total += $numAbandoned; 
+		$message = sprintf($this->_n("%d phrase", "%d phrases", $total), $total);
+
+		if($numAbandoned || $numPending) {
+			$message .= " <span class='ui-state-error-text'>(";
+			if($numAbandoned) $message .= "$numAbandoned abandoned";
+			if($numPending) $message .= ($numAbandoned ? ', ' : '') . "$numPending blank";
+			$message .= ")</span>";
+		}
+
 		$lastMod = date($this->config->dateFormat, filemtime($pagefile->filename)); 
-		$out = 	"<ul class='actions'>" . 
+
+		$out = 	"<div class='InputfieldFileLanguageInfo'>" . 
+			"<ul class='actions'>" . 
 			"<li><a href='{$translationUrl}edit/?language_id={$page->id}&amp;textdomain=$textdomain'>Edit</a></li>" . 
-			"<li class='description'> $count translations for /$data[file]</li>" . 
-			"</ul>";
+			"</ul>" . 
+			"<p><span class='description'>/$file &#8212;</span> <span class='notes'>$message</span></p>" . 
+			"</div>";
+
 		$page->translator->unloadTextdomain($textdomain);
+
 		$event->return .= $out; 
+
 	}
 
 	/**
@@ -88,11 +128,15 @@ class ProcessLanguage extends ProcessPageType {
 	 *
 	 */
 	public function renderInputfieldFileUpload(HookEvent $event) {
+
 		$translationUrl = $this->translationUrl();
 		$page = $event->arguments[0]->get('page'); 
+
+
 		$out =	"<ul class='actions LanguageFilesActions'>" . 
-			"<li><a href='{$translationUrl}add/?language_id={$page->id}'>New</a></li>" . 
+			"<li><a href='{$translationUrl}add/?language_id={$page->id}'>Translate New File</a></li>" . 
 			"</ul>";
+
 		$event->return .= $out;
 	}
 

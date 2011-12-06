@@ -220,7 +220,10 @@ class ProcessLanguageTranslator extends Process {
 
 		$n = 0;
 		foreach($translations as $hash => $translation) {
+
+			// if the hash still exists in the untranslated phrases, then it is not abandoned
 			if(isset($this->untranslated[$hash])) continue; 
+
 			$n++;
 			$field = $this->modules->get("InputfieldCheckbox"); 
 			$field->attr('name', "abandoned$n"); 
@@ -234,7 +237,6 @@ class ProcessLanguageTranslator extends Process {
 			$fieldset->label = "$n " . $fieldset->label;
 			$form->prepend($fieldset);
 		}
-
 	}
 
 	/**
@@ -318,116 +320,18 @@ class ProcessLanguageTranslator extends Process {
 	}
 
 	/**
-	 * Given a full path to a file, locate all the translatable phrases, populating $this->untranslated array
+	 * Given a full path to a file, locate all the translatable phrases, populating $this->untranslated array and $this->comments array
 	 *
 	 * @param string $file
 	 * @return int Number of translatable phrases found
 	 *
 	 */
 	protected function parseTranslatableFile($file) {
-
-		$numFound = 0;
-		$data = file_get_contents($file); 
-		$matches = array(
-			1 => array(), 	// $this->_('text'); 
-			2 => array(),	// __('text', [textdomain]);
-			3 => array(),	// _x('text', 'context', [textdomain]) or $this->_x('text', 'context'); 
-			4 => array(),	// _n('singular', 'plural', $cnt, [textdomain]) or $this->_n(...); 
-			);
-
-		// Find $this->_('text') style matches
-		preg_match_all(	'/(>_)\(\s*' .				// $this->_( 
-				'([\'"])(.+?)(?<!\\\\)\\2' . 		// "text"
-				'\)+(.*)$/m', 				// ) and everything else
-				$data, $matches[1]); 
-
-		// Find __('text', textdomain) style matches
-		//preg_match_all('/([\s.]__|^__)\(\s*(?:[^,)]+,\s*)?([\'"])(.+?)(?<!\\\\)\\2\)+(.*)$/m', $data, $matches[2]); 
-		// moved textdomain string to after $text, keeping the above quoted as reference of the change until confirmed stable
-		preg_match_all(	'/([\s.]__|^__)\(\s*' . 		// __(
-				'([\'"])(.+?)(?<!\\\\)\\2\s*' . 	// "text"
-				'(?:,\s*[^)]+)?\)+(.*)$/m', 		// , textdomain (optional) and everything else
-				$data, $matches[2]); 
-
-		// Find _x('text', 'context', textdomain) or $this->_x('text', 'context') style matches
-		preg_match_all(	'/([\s.>]_x|^_x)\(\s*' . 		// _x( or $this->_x(
-				'([\'"])(.+?)(?<!\\\\)\\2\s*,\s*' . 	// "text", 
-				'([\'"])(.+?)(?<!\\\\)\\4\s*' . 	// "context"
-				'[^)]*\)+(.*)$/m',			// , textdomain (optional) and everything else 
-				$data, $matches[3]); 
-
-		// Find _n('singular text', 'plural text', $cnt, textdomain) or $this->_n(...) style matches
-		preg_match_all(	'/([\s.>]_n|^_n)\(\s*' . 		// _n( or $this->_n(
-				'([\'"])(.+?)(?<!\\\\)\\2\s*,\s*' . 	// "singular", 
-				'([\'"])(.+?)(?<!\\\\)\\4\s*,\s*' . 	// "plural", 
-				'.+?\)+(.*)$/m', 			// $count, optional textdomain, closing function parenthesis ) and rest of line
-				$data, $matches[4]); 
-
-		$textdomain = $this->translator->filenameToTextdomain($file); 
-
-		$this->translator->loadTextdomain($textdomain); 
-
-		foreach($matches as $m) { 
-
-			foreach($m[3] as $key => $text) {
-
-				$quoteType = $m[2][$key];
-				$funcType = substr($m[1][$key], 0, 1); // '>' OR '_' , for '$this->_()' OR '__()'
-				$funcType2 = substr($m[1][$key], -1); // 'x' OR 'n' OR '_'
-				if($funcType2 == 'x' || $funcType2 == 'n') $funcType = $funcType2; 
-
-				$context = '';
-				$plural = '';
-
-				if($funcType == 'x') {
-					$tail = $m[6][$key]; 
-					$context = $m[5][$key];
-
-				} else if($funcType == 'n') { 
-					$tail = $m[6][$key]; 
-					$plural = $m[5][$key];
-
-				} else {
-					$tail = $m[4][$key]; // tail containing optional label comment
-				}
-
-				if(strpos($text, '\\') !== false) {
-					$text = str_replace(array('\\"', '\\\'', '\\$', '\\'), array('"', "'", '$', '\\'), $text); 
-				}
-
-				if(strpos($text, "\n") !== false) {
-					// account for multiline text
-					$text = preg_replace('/(^[\s]*[\'"]|[\'"][\s.]*$)/m', '', $text); 
-					$this->error("Multiline phrases are not supported, please convert to one line (\\n characters are okay) in the source file - phrase: \"$text\""); 
-					continue; 
-				}
-
-				$textArray = array($text);
-				if($plural) $textArray[] = $plural;
-
-				foreach($textArray as $text) { 
-
-					$translation = $this->translator->getTranslation($textdomain, $text, $context);
-					if($translation == $text) $translation = ''; // untranslated
-					$hash = $this->translator->setTranslation($textdomain, $text, $translation, $context); // set pending translation
-
-					if($hash) {
-						$comments = '';
-						$this->untranslated[$hash] = $text; 
-						$numFound++;
-						if(($pos = strpos($tail, '//')) !== false) $comments = substr($tail, $pos+2); 
-						if($plural) {
-							$note = $plural == $text ? "Plural" : "Singular";
-							$comments = ($comments ? $comments : $text) . " // $note Version"; // force note saying Plural or Singular
-						}
-						if($comments) $this->comments[$hash] = $comments; 
-					}
-				}
-				
-			}
-		}
-
-		return $numFound; 
+		require_once($this->config->paths->ProcessLanguageTranslator . 'LanguageParser.php'); 
+		$parser = new LanguageParser($this->translator, $file); 
+		$this->comments = $parser->getComments();
+		$this->untranslated = $parser->getUntranslated();
+		return $parser->getNumFound(); 
 	}
 
 	/**

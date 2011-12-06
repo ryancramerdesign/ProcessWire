@@ -1,10 +1,20 @@
-.InputfieldFile li.InputfieldFile .actions {
-	margin-top: 0.5em; 
+.InputfieldFile li.InputfieldFile .InputfieldFileLanguageInfo .actions,
+.InputfieldFile li.InputfieldFile .InputfieldFileLanguageInfo p {
+	margin: 0; 
 }
 
-.InputfieldFile .actions li.description {
+.InputfieldFile .InputfieldFileLanguageInfo .notes,
+.InputfieldFile .InputfieldFileLanguageInfo .actions li.description {
 	text-transform: none; 
 }
 
-.LanguageFilesActions li a {
+.InputfieldFile .InputfieldFileLanguageInfo {
+	margin-top: 0.5em; 
+	position: relative; 
+}
+
+.InputfieldFile .InputfieldFileLanguageInfo .actions {
+	position: absolute; 
+	top: 0;
+	right: 0; 
 }
