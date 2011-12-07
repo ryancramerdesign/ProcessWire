@@ -152,10 +152,13 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 *
 	 * If fields were removed from the Fieldgroup, then track them down and remove them from the associated field_* tables
 	 *
+	 * @param Saveable $item Fieldgroup to save
+	 * @return bool True on success, false on failure
+	 *
 	 */
 	public function ___save(Saveable $item) {
 
-		if($item->removedFields) {
+		if($item->id && $item->removedFields) {
 
 			foreach($this->fuel('templates') as $template) {
 

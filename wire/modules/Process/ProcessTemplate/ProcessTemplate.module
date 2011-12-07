@@ -636,18 +636,32 @@ class ProcessTemplate extends Process {
 
 		$form = new InputfieldWrapper();
 
-		$field = $this->modules->get("InputfieldName"); 
-		$field->label = 'Rename Template';
-		$field->description = 
-			"The name used to refer to this template. This is also the default filename of the template file (with .php extension) in /site/templates/. ";
-		if(basename($template->filename, '.php') == $template->name) {
-			 if(is_writable($template->filename)) $field->description .= "The template filename is writable and will be renamed as well.";
-				else $field->description .= "The template file is not writable so you will have to rename it manually (instructions will be provided after you save). ";
+		// --------------------
+
+		if(!($template->flags & Template::flagSystem)) { 
+			$field = $this->modules->get("InputfieldName"); 
+			$field->label = 'Rename Template';
+			$field->description = 
+				"The name used to refer to this template. This is also the default filename of the template file (with .php extension) in /site/templates/. ";
+			if(basename($template->filename, '.php') == $template->name) {
+				 if(is_writable($template->filename)) $field->description .= "The template filename is writable and will be renamed as well.";
+					else $field->description .= "The template file is not writable so you will have to rename it manually (instructions will be provided after you save). ";
+			}
+			$field->notes = "Enter any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces). Do not include the .php file extension.";
+			$field->attr('id+name', 'rename'); 
+			$field->attr('value', $template->name); 
+			$field->collapsed = Inputfield::collapsedYes;
+			$form->append($field); 
 		}
-		$field->notes = "Enter any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces). Do not include the .php file extension.";
-		$field->attr('id+name', 'rename'); 
-		$field->attr('value', $template->name); 
-		$field->collapsed = Inputfield::collapsedYes;
+
+		// --------------------
+
+		$field = $this->modules->get("InputfieldCheckbox"); 
+		$field->attr('id+name', 'clone_template');
+		$field->attr('value', 1); 
+		$field->label = 'Duplicate/clone this template?';
+		$field->description = 'Check the box below if you want to create a duplicate/clone copy of this template. The clone will be created when you save. If your templates directory is writable and the template has a file, it will also be cloned.';
+		$field->collapsed = Inputfield::collapsedYes; 
 		$form->append($field); 
 
 		// --------------------
@@ -1235,15 +1249,28 @@ class ProcessTemplate extends Process {
 		}
 
 		// check for template rename
-		$rename = $form->get('rename')->attr('value'); 
-		if($rename && $this->template->name != $rename) $redirectUrl = "rename?id={$this->template->id}&name=$rename";
+		if($rename = $form->get('rename')) {
+			$rename = $rename->attr('value'); 
+			if($rename && $this->template->name != $rename) $redirectUrl = "rename?id={$this->template->id}&name=$rename";
+		}
 			
-		$this->message("Saved Template '{$this->template->name}'"); 
 
 		try {
 			$this->template->save();
+			$this->message("Saved Template '{$this->template->name}'"); 
 		} catch(Exception $e) {
 			$this->error($e->getMessage()); 
+		}
+
+		// check for creation of clone 
+		if($this->input->post->clone_template) {
+			$clone = $this->templates->clone($this->template); 
+			if($clone) {
+				$this->message("Created clone of template '{$this->template->name}' named '{$clone->name}'. You may rename it from that template's advanced menu."); 
+				$redirectUrl = './';
+			} else {
+				$this->error("Error creating clone of this template"); 
+			}
 		}
 
 		$this->session->redirect($redirectUrl); 
@@ -1478,6 +1505,8 @@ class ProcessTemplate extends Process {
 	 *
 	 */
 	public function ___executeRename() {
+
+		if($this->template->flags & Template::flagSystem) throw new WireException("This template can't be renamed because it is a system template"); 
 
 		$redirectUrl = $this->template ? "edit?id={$this->template->id}" : "../";
 

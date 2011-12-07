@@ -436,9 +436,17 @@ class ProcessField extends Process implements ConfigurableModule {
 			$form = new InputfieldWrapper();
 		} 
 
+		$field = $this->modules->get("InputfieldCheckbox"); 
+		$field->attr('id+name', 'clone_field');
+		$field->attr('value', 1); 
+		$field->label = 'Duplicate/clone this field?';
+		$field->description = 'Check the box below if you want to create a duplicate/clone copy of this field. The clone will be created when you save.';
+		$field->collapsed = Inputfield::collapsedYes; 
+		$form->append($field); 
+
 		$form->attr('id', 'advanced');
 		$form->attr('class', 'WireTab');
-		$form->head = 'Advanced settings';
+		$form->head = 'Advanced options';
 		$form->attr('title', 'Advanced'); 
 	
 		return $form;
@@ -482,6 +490,17 @@ class ProcessField extends Process implements ConfigurableModule {
 				}	
 			}
 
+		$cloneField = $this->form->get('clone_field');
+		if($cloneField->attr('checked')) {
+			$clone = $this->fields->clone($this->field);
+			if($clone && $clone->id) {
+				$this->message("Created clone of '{$this->field->name}' named '{$clone->name}'"); 
+				$this->listAfterSave = true; 
+			} else {
+				$this->error("Error creating clone of this field"); 
+			}
+		}
+		
 		if($this->listAfterSave) $this->session->redirect("./"); 
 			else $this->session->redirect("edit?id={$this->field->id}"); 
 	}

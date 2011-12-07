@@ -348,7 +348,7 @@ class Template extends WireData implements Saveable {
 			foreach($this->fieldgroup as $field) {
 				if($field->flags & Field::flagPermanent) $hasPermanentFields = true; 
 			}
-			if($hasPermanentFields) throw new WireException("Fieldgroup for template '{$this}' may not be changed because it has permanent fields."); 
+			if($this->id && $hasPermanentFields) throw new WireException("Fieldgroup for template '{$this}' may not be changed because it has permanent fields."); 
 		}
 
 		$this->fieldgroup = $fieldgroup;
