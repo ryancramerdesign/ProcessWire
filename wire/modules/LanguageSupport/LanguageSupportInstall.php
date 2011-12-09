@@ -86,8 +86,8 @@ class LanguageSupportInstall extends Wire {
 		$en = new Language();
 		$en->template = $template; 
 		$en->parent = $languagesPage; 
-		$en->name = 'en-us';
-		$en->title = 'English US'; 
+		$en->name = 'default';
+		$en->title = 'Default'; 
 		$en->status = Page::statusSystem; 
 		$en->save();
 		$configData['systemLanguagePageID'] = $en->id; 

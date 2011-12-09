@@ -80,6 +80,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 
 		$defaultLanguagePage = null;
 		$systemLanguagePage = null;
+		$this->defaultLanguagePageID = $this->systemLanguagePageID; 
 		$defaultLanguagePageID = $this->defaultLanguagePageID; 
 		$systemLanguagePageID = $this->systemLanguagePageID; 
 
@@ -142,14 +143,14 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			$languageID = (int) $language->id; 
 
 			if($languageID == $this->defaultLanguagePageID) {
-				// default language
+				// system language
 				$newID = $id;
 
 				if(is_null($inputfield->get('value' . $languageID))) { 
-					// value for default language is specified in 'value' attribute, so use existing rendering
+					// value for system language is specified in 'value' attribute, so use existing rendering
 					$o = $event->return; 
 				} else {
-					// value for default language is specified in a value{id} property, so re-render it
+					// value for system language is specified in a value{id} property, so re-render it
 					$valueAttr = "value$languageID";
 					$inputfield->setAttribute('value', $inputfield->$valueAttr); 
 					$o = $inputfield->___render(); 
@@ -331,7 +332,6 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$field->attr('value', $data['languageTranslatorPageID']); 
 		$field->label = "Translator Page ID";
 		$form->add($field); 
-		*/
 
 		$field = wire('modules')->get('InputfieldRadios'); 
 		$field->attr('id+name', 'defaultLanguagePageID'); 
@@ -344,7 +344,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$field->label = "Default Language Page";
 		$field->description = "Select the language that this site is produced in.";
 		$form->add($field); 
-
+		*/
 
 		return $form; 
 	}
