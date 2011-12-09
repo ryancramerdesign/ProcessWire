@@ -1,0 +1,282 @@
+<?php
+
+/**
+ * ProcessWire Page Clone Process
+ *
+ * For more details about how Process modules work, please see: 
+ * /wire/core/Process.php 
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2011 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class ProcessPageClone extends Process {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Page Clone', 
+			'summary' => 'Provides ability to clone/copy/duplicate pages in the admin. Adds a "copy" option to all applicable pages in the PageList.', 
+			'version' => 100, 
+			'permanent' => false, 
+			'permission' => 'page-clone',
+			'autoload' => true,  // Note: most Process modules should not be 'autoload', this is an exception.
+			); 
+	}
+
+	/**
+	 * Permission names installed by this module, and labels to describe them. 
+	 *
+	 */
+	protected $permissionNames = array(
+		'page-clone' => 'Clone a page', 
+		'page-clone-tree' => 'Clone a tree of pages',
+		);
+
+	/**
+	 * The page being cloned
+	 *
+	 */
+	protected $page; 
+
+	/**
+	 * The action link label used in the PageList
+	 *
+	 */
+	protected $pageListActionLabel = 'Copy';
+
+	/**
+	 * URL to the admin, cached here to avoid repeat $config calls
+	 *
+ 	 */
+	protected $adminUrl = '';
+
+	/**
+	 * Initialize the module
+	 *
+	 */
+	public function init() {
+		parent::init();
+	}
+
+	/**
+	 * Called when the API and $page loaded are ready
+	 *
+	 * We use this to determine whether we should add a hook or not.
+	 * If we're in ProcessPageList, we add the hook.
+	 *	
+	 */
+	public function ready() {
+		$process = wire('page')->process; 
+		if($process == 'ProcessPageList') { 
+			$this->adminUrl = wire('config')->urls->admin;
+			$this->pageListActionLabel = $this->_('Copy'); // Action label that appears in PageList
+			$this->addHookAfter("ProcessPageListRender::getPageActions", $this, 'hookPageListActions'); 
+		}
+	}
+
+	/**
+	 * Hook into ProcessPageListRender::getPageActions to return a 'copy' action when appropriate
+	 *
+	 */
+	public function hookPageListActions(HookEvent $event) {
+		$page = $event->arguments[0]; 	
+		$actions = $event->return; 	
+		if($this->hasPermission($page)) $actions[] = array(
+			'cn' => 'Copy',
+			'name' => $this->pageListActionLabel,
+			'url' => "{$this->adminUrl}page/clone/?id={$page->id}"
+			);
+		$event->return = $actions;
+	}
+
+	/**
+	 * Main execution: Display Copy Page form or process it
+	 *
+	 */
+	public function ___execute() {
+		Wire::setFuel('processHeadline', $this->_('Copy Page')); // Headline
+
+		$error = $this->_("Unable to load page");
+		$id = (int) $this->input->get->id;
+		if(!$id) throw new WireException("$error A"); 
+		$this->page = $this->pages->get($id); 
+		if($this->page->id < 2) throw new WireException("$error B"); 
+		if(!$this->hasPermission($this->page)) throw new WirePermissionException("$error C"); 
+
+		if($this->input->post->submit_clone) $this->process();
+		return $this->render();	
+	}	
+
+	/**
+	 * Check if the current user has permission to clone the given page
+	 *
+	 * @param Page $page
+	 * @return bool
+	 *
+	 */
+	public function hasPermission(Page $page) {
+		$user = $this->user; 
+
+		if($page->is(Page::statusSystem) || $page->is(Page::statusSystemID)) return false; 
+		if($page->parent->template->noChildren) return false; 
+		if($page->template->noParents) return false; 
+
+		if(count($page->parent->template->childTemplates) && !in_array($page->template->id, $page->parent->template->childTemplates)) return false; 
+		if(count($page->template->parentTemplates) && !in_array($page->parent->template->id, $page->template->parentTemplates)) return false; 
+		
+		if($user->isSuperuser()) return true; 
+		if($user->hasPermission('page-edit', $page) && $user->hasPermission('page-clone', $page)) return true; 
+
+		return false; 
+	}
+
+	/**
+	 * Render a form asking for information to be used for the new cloned page. 
+	 *
+	 */
+	protected function ___render() {
+
+		$form = $this->modules->get("InputfieldForm"); 
+		$form->attr('action', './?id=' . $this->page->id); 
+		$form->attr('method', 'post'); 
+		$form->description = sprintf($this->_("This will make a copy of %s"), $this->page->path); // Form description/headline
+
+		$n = 1; 
+		while(count($this->page->parent->children("include=all, name={$this->page->name}-$n"))) $n++;
+
+		$field = $this->modules->get("InputfieldPageTitle"); 
+		$field->attr('name', 'clone_page_title'); 
+		$field->attr('value', $this->page->title . ' ' . sprintf($this->_n("(copy)", "(copy %d)", $n), $n)); // Phrase added to page title to make it unique
+		$field->label = $this->_("Title of new page"); // Label for title field
+		$form->add($field); 
+
+		$field = $this->modules->get("InputfieldPageName"); 
+		$field->attr('name', 'clone_page_name'); 
+		$field->attr('value', $this->page->name . '-' . $n); 
+		$field->parentPage = $this->page->parent; 
+		$form->add($field); 
+
+		$field = $this->modules->get("InputfieldCheckbox"); 
+		$field->attr('name', 'clone_page_unpublished'); 
+		$field->attr('value', 1); 
+		$field->label = $this->_("Make the new page unpublished?");
+		$field->collapsed = Inputfield::collapsedYes; 
+		$field->description = $this->_("If checked, the cloned page will be given an unpublished status so that it can't yet be seen on the front-end of your site."); 
+		$form->add($field);
+
+		if($this->page->numChildren && $this->user->hasPermission('page-clone-tree', $this->page)) { 
+			$field = $this->modules->get("InputfieldCheckbox"); 
+			$field->attr('name', 'clone_page_tree'); 
+			$field->attr('value', 1); 
+			$field->label = $this->_("Copy children too?");
+			$field->description = $this->_("If checked, all children, grandchildren, etc., will also be cloned with this page."); 
+			$field->notes = $this->_("Warning: if there is a very large structure of pages below this, it may be time consuming or impossible to complete.");
+			$field->collapsed = Inputfield::collapsedYes; 
+			$form->add($field);
+		}
+
+		$field = $this->modules->get("InputfieldSubmit"); 
+		$field->attr('name', 'submit_clone'); 
+		$form->add($field); 
+
+		return $form->render();		
+	}
+
+	/**
+	 * User has clicked submit, so we create the clone, then redirect to it in PageList
+	 *
+	 */
+	protected function ___process() {
+
+		$page = clone $this->page; 
+		$input = $this->input; 
+
+		if($input->post->clone_page_unpublished) $page->addStatus(Page::statusUnpublished); 
+		$cloneTree = $input->post->clone_page_tree && $this->user->hasPermission('page-clone-tree', $this->page);
+
+		$pageName = $this->sanitizer->pageName($input->post->clone_page_name); 
+		$nameTaken = count($this->page->parent->children("name=$name")) > 0;
+
+		$clone = $this->pages->clone($page, NULL, $cloneTree); 
+
+		if(!$clone->id) throw new WireException(sprintf($this->_("Unable to clone page %s"), $page->path)); 
+
+		if(strlen($pageName)) {
+			if($nameTaken) $this->error(sprintf($this->_("The name '%s' was already taken, so one was automatically assigned."), $pageName)); 
+				else $clone->name = $pageName; 
+			$clone->title = $input->post->clone_page_title;
+			$clone->save();
+			$this->message(sprintf($this->_('Cloned page "%1$s" to "%2$s"'), $page->name, $clone->name)); 
+		}
+
+		$this->session->redirect($this->config->urls->admin . 'page/list/?open=' . $clone->id); 
+	}
+
+	/**
+	 * Install this module and it's permissions
+	 *
+	 */
+	public function ___install() {
+
+		// noticed that permissions weren't sorted right on default install, so just fixing the sort here
+		// since I want to ensure the page-clone and page-clone-tree permissions stay together as a group.
+		// so the following loads all permissions, assigns a sort value, then saves them. 
+		$sort = 0;
+		foreach($this->permissions as $permission) {
+			$permission->sort = $sort; 
+			$permission->save();
+			$sort++; 
+		}
+
+		// add the page-clone and page-clone-tree permissions
+		foreach($this->permissionNames as $name => $title) {		
+			$p = $this->permissions->add($name); 
+			if(!$p->id) continue; 
+			$p->title = $title;
+			$p->save();
+			$this->message("Added new permission: $name"); 
+		}
+
+		// locate the parent page
+		$parent = $this->pages->get($this->config->adminRootPageID)->child('name=page');
+		if(!$parent->id || count($parent->children('name=clone'))) throw new WireException("Unable to add new page to admin"); 
+
+		// page the new clone page
+		$page = new Page(); 
+		$page->template = 'admin';
+		$page->parent = $parent; 
+		$page->name = 'clone';
+		$page->process = $this; 
+		$page->save();
+		$this->message("Added new page: {$page->path}"); 
+
+	}
+
+	/**
+	 * Uninstall this module and it's permissions
+	 *
+	 */
+	public function ___uninstall() {
+
+		foreach($this->permissionNames as $name => $title) {
+			$p = $this->permissions->get($name); 
+			if(!$p->id) continue; 
+			$this->permissions->delete($p); 
+			$this->message("Removed permission: $name"); 
+		}
+
+		$page = $this->pages->get($this->config->adminRootPageID)->child("name=page")->child("name=clone"); 
+		if($page->id) {
+			$this->message("Removed page: {$page->path}"); 
+			$this->pages->delete($page); 
+		}
+
+	}
+
+}
+

@@ -58,7 +58,7 @@ class LanguageParser extends Wire {
 	public function __construct(LanguageTranslator $translator, $file) {
 		$this->translator = $translator; 
 		$this->textdomain = $this->translator->filenameToTextdomain($file); 
-		$this->translator->loadTextdomain($textdomain); 
+		$this->translator->loadTextdomain($this->textdomain); 
 		$this->execute($file); 
 	}
 
