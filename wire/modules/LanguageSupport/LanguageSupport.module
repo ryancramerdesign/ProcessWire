@@ -128,6 +128,14 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	public function hookInputfieldRender(HookEvent $event) {
 
 		$inputfield = $event->object; 
+
+		// provide an automatic translation for some system/default fields if they've not been overridden in the fields editor
+		$name = $inputfield->attr('name'); 
+		if($name == 'language' && $inputfield->label == 'Language') $inputfield->label = $this->_('Language'); // Label for 'language' field in user profile
+			else if($name == 'email' && $inputfield->label == 'E-Mail Address') $inputfield->label = $this->_('E-Mail Address'); // Label for 'email' field in user profile
+			else if($name == 'title' && $inputfield->label == 'Title') $inputfield->label = $this->_('Title'); // Label for 'title' field used throughout ProcessWire
+
+		// if inputfield doesn't have a 'useLanguages' var set in it, then we're done, abort
 		if(!$inputfield->useLanguages) return; 
 
 		// originals
