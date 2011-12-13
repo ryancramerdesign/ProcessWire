@@ -102,10 +102,12 @@ $(document).ready(function() {
 	$.each(config.InputfieldTinyMCE.elements, function(key, value) {
 
 		tinyMCE.settings = $.extend(InputfieldTinyMCEConfigDefaults, config[value]); 
+		if(config.InputfieldTinyMCE.language.length > 0) tinyMCE.settings.language = config.InputfieldTinyMCE.language; 
 		tinyMCE.settings.plugins += ', -pwimage, -pwlink, -advimagescale, -preelementfix';
 		tinyMCE.execCommand('mceAddControl', true, value); 
 	
 	}); 
+
 
 }); 
 
