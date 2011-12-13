@@ -450,3 +450,7 @@ a {
 		opacity: 1.0; 
 	}
 
+	body.modal #sitelink {
+		display: none; 
+	}
+
