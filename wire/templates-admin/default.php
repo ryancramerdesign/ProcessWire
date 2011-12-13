@@ -86,7 +86,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 
 			<ul id='breadcrumb' class='nav'><?php
 				foreach($this->fuel('breadcrumbs') as $breadcrumb) {
-					$title = htmlspecialchars(strip_tags(__($breadcrumb->title, __FILE__))); 
+					$title = __($breadcrumb->title, __FILE__); 
 					echo "\n\t\t\t\t<li><a href='{$breadcrumb->url}'>{$title}</a> &gt;</li>";
 				}
 				?>

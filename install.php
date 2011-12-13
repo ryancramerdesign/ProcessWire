@@ -344,7 +344,7 @@ class Installer {
 			}
 
 			if($result) $this->li("Imported: $pathname => ./site/assets/$dirname/"); 
-				else $this->error("Error Importing: $pathname => ./site/assets/$dirname/"); 
+				else $this->err("Error Importing: $pathname => ./site/assets/$dirname/"); 
 			
 		}
 	}
