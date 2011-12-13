@@ -135,7 +135,10 @@ class User extends Page {
 				if(!$page->hasAccessRole($role)) continue; 
 
 				// if permission is page-edit, we also check against the template's editRoles
-				if($name == 'page-edit' && !in_array($role->id, $page->getAccessTemplate()->editRoles)) continue; 
+				// if($name == 'page-edit' && !in_array($role->id, $page->getAccessTemplate()->editRoles)) continue; 
+
+				// all page- permissions except page-view and page-add require page-edit access, so check against that
+				if(strpos($name, 'page-') === 0 && $name != 'page-view' && $name != 'page-add' && !in_array($role->id, $page->getAccessTemplate()->editRoles)) continue;
 
 				// check against addRoles
 				if($name == 'page-add' && !in_array($role->id, $page->getAccessTemplate()->addRoles)) continue;
