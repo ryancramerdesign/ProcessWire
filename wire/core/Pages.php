@@ -385,8 +385,8 @@ class Pages extends Wire {
 		// check for a parent change
 		if($saveable && $page->parentPrevious && $page->parentPrevious->id != $page->parent->id) {
 			// page was moved
-			if($page->template->noMove) {
-				// make sure the page's template allows moves
+			if($page->template->noMove && ($page->is(Page::statusSystem) || $page->is(Page::statusSystemID) || !$page->isTrash())) {
+				// make sure the page's template allows moves. only move laways allowed is to the trash, unless page has system status
 				$saveable = false;
 				$reason = "Pages using template '{$page->template}' are not moveable (template::noMove)";
 
