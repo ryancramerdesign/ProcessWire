@@ -177,8 +177,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			}
 
 			$o = 	"\n<div class='LanguageSupport'>" . 
-				"\n\t<label for='$newID' class='LanguageSupportLabel detail'>{$language->title}</label>" . 
-				str_replace("\n", "\n\t", $o) . 
+				"\n\t<label for='$newID' class='LanguageSupportLabel detail'>{$language->title}</label>" . $o . 
 				"\n</div>";
 
 			$out .= $o;

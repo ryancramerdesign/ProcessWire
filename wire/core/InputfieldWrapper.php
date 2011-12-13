@@ -185,14 +185,26 @@ class InputfieldWrapper extends Inputfield {
 	/**
 	 * Entity encode a string (de-encoding if necessary and then re-encoding)
 	 *
+	 * Also option for basic markodwn support when 2nd argument is true. 
+	 *
+	 * @param string $str
+	 * @param bool $markdown
+	 * @return string
+	 *
 	 */
-	protected function entityEncode($str) {
+	protected function entityEncode($str, $markdown = false) {
 		// if already encoded, then un-encode it
 		if(strpos($str, '&') !== false && preg_match('/&(#\d+|[a-z]+);/', $str)) {
 			$str = html_entity_decode($str, ENT_QUOTES, "UTF-8"); 
 		}
 
 		$str = htmlentities($str, ENT_QUOTES, "UTF-8"); 
+
+		// convert markdown-style links to HTML
+		if($markdown && strpos($str, '](')) {
+			$str = preg_replace('/\[(.+?)\]\(([^)]+)\)/', '<a href="$2" target="_blank">$1</a>', $str); 
+		}
+
 		return $str; 
 	}
 
@@ -221,14 +233,14 @@ class InputfieldWrapper extends Inputfield {
 			if(!$inputfield instanceof InputfieldWrapper) {
 				$errors = $inputfield->getErrors(true);
 				if(count($errors)) $collapsed = Inputfield::collapsedNo; 
-				foreach($errors as $error) $ffOut = "\n<p class='ui-state-error-text'>" . $this->entityEncode($error) . "</p>" . $ffOut; 
+				foreach($errors as $error) $ffOut = "\n<p class='ui-state-error-text'>" . $this->entityEncode($error, true) . "</p>" . $ffOut; 
 			} else $errors = array();
 			
-			if($inputfield->getSetting('description')) $ffOut = "\n<p class='description'>" . $this->entityEncode($inputfield->getSetting('description')) . "</p>" . $ffOut;
+			if($inputfield->getSetting('description')) $ffOut = "\n<p class='description'>" . nl2br($this->entityEncode($inputfield->getSetting('description'), true)) . "</p>" . $ffOut;
 			if($inputfield->getSetting('head')) $ffOut = "\n<h2>" . $this->entityEncode($inputfield->getSetting('head')) . "</h2>" . $ffOut; 
 
 			$ffOut = preg_replace('/(\n\s*)</', "$1\t\t\t<", $ffOut); // indent lines beginning with markup
-			if($inputfield->notes) $ffOut .= "\n<p class='notes'>" . $this->entityEncode($inputfield->notes) . "</p>"; 
+			if($inputfield->notes) $ffOut .= "\n<p class='notes'>" . nl2br($this->entityEncode($inputfield->notes, true)) . "</p>"; 
 
 			// The inputfield's classname is always used in it's LI wrapper
 			$ffAttrs = array(
