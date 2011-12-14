@@ -539,9 +539,11 @@ class ProcessPageEdit extends Process {
 
 		$field = $this->modules->get("InputfieldMarkup"); 
 		$field->label = $this->_('Who can access this page?'); // Roles information field label
+
 		$roles = $this->page->getAccessRoles();
 		$editRoles = $this->page->getAccessTemplate()->editRoles;
 		$addRoles = $this->page->getAccessTemplate()->addRoles; 
+		$createRoles = $this->page->getAccessTemplate()->createRoles; 
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->headerRow(array(
@@ -568,6 +570,10 @@ class ProcessPageEdit extends Process {
 					$permissions .= "page-add\n";
 					unset($addRoles[$key]); 
 				}
+				if(in_array($role->id, $createRoles)) {
+					$permissions .= "page-create\n";
+				}
+
 				$table->row(array($roleName, nl2br($permissions))); 
 			}
 
@@ -911,7 +917,10 @@ class ProcessPageEdit extends Process {
 			} else if((!$template->useRoles && $parentEditable) || $user->hasPermission('page-edit', $template)) {
 				// determine if the template's assigned roles match up with the users's roles
 				// and that at least one of those roles has page-edit permission
-				$templates[$template->id] = $template; 
+				if($user->hasPermission('page-create', $page)) { 
+					// user is allowed to create more pages of this type, so template may be used
+					$templates[$template->id] = $template; 
+				}
 			}
 		}
 

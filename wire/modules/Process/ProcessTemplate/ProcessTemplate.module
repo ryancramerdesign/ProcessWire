@@ -1097,23 +1097,7 @@ class ProcessTemplate extends Process {
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->setEncodeEntities(false);
-		$table->headerRow(array('Role', "View Pages", "Edit Pages", "Add Children to Pages")); 
-
-		$ids1 = array(); // view
-		$ids2 = array(); // edit
-		$ids3 = array(); // add
-		// $ids4 = array(); // create
-
-		if($template && $template->id) {
-			foreach($template->roles as $role) $ids1[] = $role->id; 
-			foreach($template->editRoles as $id) $ids2[] = $id; 
-			foreach($template->addRoles as $id) $ids3[] = $id;
-			// foreach($template->createRoles as $id) $ids4[] = $id; 
-			
-		} else {
-			// if new template, default to having the guest role
-			$ids1[] = $guestRole->id;
-		}
+		$table->headerRow(array('Role', "View Pages", "Edit Pages", "Create Pages", "Add Children")); 
 
 		foreach($roles as $role) {
 			$label = $role->name; 
@@ -1133,7 +1117,7 @@ class ProcessTemplate extends Process {
 				$label,
 				("<input type='checkbox' id='roles_{$role->id}' class='viewRoles' name='roles[]' value='{$role->id}' " . ($template->roles->has($role) ? $checked : '') . "' />"), 
 				($editable ? ("<input type='checkbox' class='editRoles' name='editRoles[]' value='{$role->id}' " . (in_array($role->id, $template->editRoles) ? $checked : '') . "' />") : $disabled), 
-				// ($editable ? ("<input type='checkbox' class='createRoles' name='createRoles[]' value='{$role->id}' " . (in_array($role->id, $template->createRoles) ? $checked : '') . "' />") : $disabled),
+				($editable ? ("<input type='checkbox' class='createRoles' name='createRoles[]' value='{$role->id}' " . (in_array($role->id, $template->createRoles) ? $checked : '') . "' />") : $disabled),
 				($editable ? ("<input type='checkbox' class='addRoles' name='addRoles[]' value='{$role->id}' " . (in_array($role->id, $template->addRoles) ? $checked : '') . "' />") : $disabled)
 				));
 		}

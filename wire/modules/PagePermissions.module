@@ -39,7 +39,7 @@ class PagePermissions extends WireData implements Module {
 		$this->addHook('Page::addable', $this, 'addable'); 
 		$this->addHook('Page::moveable', $this, 'moveable'); 
 		$this->addHook('Page::sortable', $this, 'sortable'); 
-		// $this->addHook('Page::createable', $this, 'createable'); 
+		// $this->addHook('Template::createable', $this, 'createable'); 
 	}
 
 	/**
@@ -261,7 +261,7 @@ class PagePermissions extends WireData implements Module {
 	}
 
 	/**
-	 * Checks that a parent is addable within the context of it's template
+	 * Checks that a parent is addable within the context of it's template (i.e. has page-create for the template)
 	 *
 	 * When this function is called, it has already been determined that the user has page-add permission.
 	 * So this is just narrowing down to make sure they have access on a template. 
@@ -279,7 +279,8 @@ class PagePermissions extends WireData implements Module {
 			foreach($page->template->childTemplates as $id) {
 				$template = $this->fuel('templates')->get($id);
 				if(!$template->useRoles) $template = $page->getAccessTemplate();
-				if($user->hasPermission('page-edit', $template)) $has = true;           
+				//if($user->hasPermission('page-edit', $template)) $has = true;           
+				if($user->hasPermission('page-create', $template)) $has = true;           
 				if($has) break;
 			}
 
@@ -291,7 +292,8 @@ class PagePermissions extends WireData implements Module {
 				// if($template->noParents) continue; 
 				if($template->parentTemplates && !in_array($page->template->id, $template->parentTemplates)) continue; 
 				// if($template->flags & Template::flagSystem) continue;
-				$has = $user->hasPermission('page-edit', $template); 
+				//$has = $user->hasPermission('page-edit', $template); 
+				$has = $user->hasPermission('page-create', $template); 
 				if($has) break;
 			}
 		}
@@ -327,6 +329,38 @@ class PagePermissions extends WireData implements Module {
 		if($page->id > 1 && $page->editable() && $this->user->hasPermission('page-sort', $page->parent)) $sortable = true; 
 		$event->return = $sortable;
 	}
+
+	/**
+	 * Can the user create pages from this template?
+	 *
+	 * Optional argument 1 may be a parent page for context, i.e. can we create a page with this parent. 
+	 *
+	public function createable($event) {
+
+		$template = $event->object; 
+		$user = $this->fuel('user'); 
+		$createable = false; 
+
+		if($template->noParents) {
+			$createable = false; 
+
+		} else if($user->isSuperuser()) {
+			$createable = true; 
+
+		} else if($user->hasPermission('page-create', $template)) {
+			$createable = true; 
+		}
+
+		// check if a parent $page is provided as the first argument for additional access checking
+		if($createable && isset($event->arguments[0]) && $event->arguments[0] instanceof Page) {
+			$parent = $event->arguments[0]; 
+			if($parent->template->noChildren || (count($parent->template->childTemplates) && !in_array($template->id, $parent->template->childTemplates))) $createable = false; 
+			if($createable) $createable = $parent->addable(); 
+		}
+
+		$event->return = $createable;
+	}
+	 */
 
 
 }

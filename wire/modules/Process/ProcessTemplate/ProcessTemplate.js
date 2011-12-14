@@ -69,6 +69,29 @@ $(document).ready(function() {
 		return true; 
 	}); 
 
+	// when edit checked or unchecked, update the createRoles to match since they are dependent
+	var editRolesClick = function() { 
+
+		var $editRoles = $("#roles_editor input.editRoles"); 
+
+		$editRoles.each(function() { 
+			var $t = $(this); 
+			if($t.is(":disabled")) return false; 
+
+			var $createRoles = $("input.createRoles[value=" + $t.attr('value') + "]"); 
+
+			if($t.is(":checked")) {
+				$createRoles.removeAttr('disabled'); 
+			} else {
+				$createRoles.removeAttr('checked').attr('disabled', 'disabled'); 
+			}
+		}); 
+		return true; 
+	}; 
+	$("#roles_editor input.editRoles").click(editRolesClick); 
+	editRolesClick();
+
+
 	$("#wrap_redirectLogin input").click(redirectLoginClick); 
 
 	// ----------------

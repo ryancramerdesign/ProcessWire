@@ -130,7 +130,7 @@ class ProcessPageClone extends Process {
 		if(count($page->template->parentTemplates) && !in_array($page->parent->template->id, $page->template->parentTemplates)) return false; 
 		
 		if($user->isSuperuser()) return true; 
-		if($user->hasPermission('page-edit', $page) && $user->hasPermission('page-clone', $page)) return true; 
+		if($user->hasPermission('page-create', $page) && $user->hasPermission('page-clone', $page)) return true; 
 
 		return false; 
 	}
