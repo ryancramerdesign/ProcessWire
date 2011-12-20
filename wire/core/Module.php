@@ -78,6 +78,7 @@ interface Module {
 	 * 			'singular' => false,
 	 *			'autoload' => false,
 	 *			'requires' => array('HelloWorld', 'LazyCron'), 
+	 *			'installs' => array('Module1', 'Module2', 'Module3'),
 	 * 			);
 	 * 	}
 	 * 
@@ -91,6 +92,10 @@ interface Module {
 	 * 	- href: URL to more information about the module. 
 	 *	- requires: array of module class names that are required by this module in order to install.
 	 * 		If just one module is required, then it can also be a string with just the module name.
+	 *	- installs: array of module class names that this module will handle install/uninstall.
+	 *		This causes PW's dependency checker to ignore them and it is assumed your module will handle them (optional).	
+	 * 		If your module does not handle them, PW will automatically install/uninstall them immediately after your module.
+	 *		Like requires, this may be a string if there's only one and must be an array if multiple.
 	 * 	* singular: is only one instance of this module allowed? return boolean true or false.
 	 * 		If specified, this overrides the isSingular() method, if that method exists in your class.
 	 * 		See the information for the isSingular() method for more about the 'singular' property.

@@ -62,7 +62,7 @@ class ProcessModule extends Process {
 			if($name && isset($this->modulesArray[$name]) && !$this->modulesArray[$name]) {
 				$module = $this->modules->get($name); 		
 				$this->modulesArray[$name] = 1; 
-				$this->session->message("Installed module '" . $module->className . "'");
+				$this->session->message("Module Install - " . $module->className);
 				$this->session->redirect("edit?name={$module->className}"); 
 			}
 		}
@@ -118,10 +118,15 @@ class ProcessModule extends Process {
 			$editUrl = "edit?name={$name}";
 
 			if(!$installed) { 
+
 				if(count($info['requires'])) {
-					$requires = $this->modules->getMissingRequires($name); 
-					if(count($requires)) $summary .= "<br /><span class='notes'>Requires: " . implode(', ', $requires) . "</span>";
+					$requires = $this->modules->getRequiresForInstall($name); 
+					if(count($requires)) $summary .= "<br /><span class='notes'><span class='ui-icon ui-icon-alert'></span>Requires: " . implode(', ', $requires) . "</span>";
 				} else $requires = array();
+
+				if(count($info['installs'])) { 
+					$summary .= "<br /><span class='notes'>Also installs: " . implode(', ', $info['installs']) . "</span>";
+				}
 
 				$class = 'not_installed';
 				if(count($uninstalledPrev) && !in_array($name, $uninstalledPrev)) {
@@ -129,6 +134,7 @@ class ProcessModule extends Process {
 					if(!$this->input->get->uninstalled) $this->message("Found new module: $name"); 
 					$numFound++;
 				}
+
 				$title = "<span id='$name' class='$class'>$title</span>";
 				$buttonAttr = count($requires) ? " disabled='disabled'" : '';
 				$version .= "<button$buttonAttr type='submit' id='install_$name' name='install' class='install' value='$name'>Install</button>";
@@ -219,36 +225,43 @@ class ProcessModule extends Process {
 
 		$dependents = $this->modules->getRequiredBy($moduleName, true); 
 		$requirements = $this->modules->getRequires($moduleName); 
-
 		$dependentsStr = '';
-		foreach($dependents as $name) $dependentsStr .= ($dependentsStr ? ', ' : '') . "<a href='./edit?name=$name'>$name</a>";
-
 		$requirementsStr = '';
+		foreach($dependents as $name) $dependentsStr .= ($dependentsStr ? ', ' : '') . "<a href='./edit?name=$name'>$name</a>";
 		foreach($requirements as $name) $requirementsStr .= ($requirementsStr ? ', ' : '') . "<a href='./edit?name=$name'>$name</a>";
 
+		// include module configuration fields if provided
 		if(in_array('ConfigurableModule', class_implements($moduleName))) {
 			$data = $this->modules->getModuleConfigData($moduleName); 
 			$fields = call_user_func(array($moduleName, 'getModuleConfigInputfields'), $data); 
 			foreach($fields as $field) $form->append($field); 
 		} 
 
-		if(empty($moduleInfo['permanent'])) { 
-			$field = $this->modules->get("InputfieldCheckbox"); 
-			$field->attr('name', 'uninstall'); 
-			$field->attr('value', $moduleName); 
-			$field->collapsed = Inputfield::collapsedYes; 
-			$field->label = "Uninstall";
+		// uninstall checkbox
+		$field = $this->modules->get("InputfieldCheckbox"); 
+		$field->attr('name', 'uninstall'); 
+		$field->attr('value', $moduleName); 
+		$field->collapsed = Inputfield::collapsedYes; 
+		$field->label = "Uninstall";
 
-			if(count($dependents)) {
-				$field->attr('disabled', 'disabled');
-				$field->description = "This module may not be uninstalled because it is in use and required by other modules that must be uninstalled first (listed above).";
-			} else {
-				$field->description = "Uninstall this module? After uninstalling, you may remove the modules files from the server if it is not in use by any other modules.";
-			}
+		$reason = $this->modules->isUninstallable($moduleName, true); 
+		$uninstallable = $reason === true; 
 
-			$form->append($field); 
+		if($uninstallable) {
+			$field->description = "Uninstall this module? After uninstalling, you may remove the modules files from the server if it is not in use by any other modules.";
+			if(count($moduleInfo['installs'])) $field->notes = "This will also uninstall: " . implode(', ', $moduleInfo['installs']); 
+
+		} else {
+			$field->attr('disabled', 'disabled');
+			$field->label .= " (Disabled)";
+			$field->description = "Can't Uninstall: " . $reason;
+			$dependents2 = $this->modules->getRequiresForUninstall($moduleName); 
+			if(count($dependents2)) $field->notes = "You must first uninstall: " . implode(', ', $dependents2); 
 		}
 
+		$form->append($field); 
+
+		// submit button
 		if(count($form->children)) {
 			$field = $this->modules->get("InputfieldSubmit"); 
 			$field->attr('name', 'submit_save_module'); 
@@ -257,15 +270,15 @@ class ProcessModule extends Process {
 			$this->message("This module doesn't have any fields to configure"); 
 		}
 
+		// check for submitted form
 		if(isset($_POST['submit_save_module'])) {
 
 			$form->processInput($this->input->post); 
-			//if($fields && $data) foreach($fields as $field) $data[$field->attr('name')] = $field->attr('value'); 
 			if($fields) foreach($fields as $field) $data[$field->attr('name')] = $field->attr('value'); 
 
-			if(empty($moduleInfo['permanent']) && isset($_POST['uninstall']) && $_POST['uninstall'] == $moduleName) {
+			if($uninstallable && $this->input->post->uninstall === $moduleName) {
 				$this->modules->uninstall($moduleName); 	
-				$this->session->message("Uninstalled module: $moduleName"); 
+				$this->session->message("Uninstalled Module: $moduleName"); 
 				$this->session->redirect('./?uninstalled=1'); 
 			} else {
 				$this->modules->saveModuleConfigData($moduleName, $data); 
@@ -273,11 +286,13 @@ class ProcessModule extends Process {
 			}
 		}
 
+		// entity encode module info since it's turned off in our table
 		foreach($moduleInfo as $key => $value) {
 			if(!is_string($value)) continue; 
 			$moduleInfo[$key] = htmlspecialchars($value, ENT_QUOTES, "UTF-8"); 
 		}
 
+		// build a table that displays module info
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->setEncodeEntities(false); 
 		$table->row(array('Title', $moduleInfo['title'])); 
@@ -287,7 +302,7 @@ class ProcessModule extends Process {
 		if(!empty($moduleInfo['author'])) $table->row(array('Author', $moduleInfo['author'])); 
 		$table->row(array('Summary', $moduleInfo['summary'])); 
 		if($requirementsStr) $table->row(array('Requires', $requirementsStr)); 
-		if($dependentsStr) $table->row(array('Required by', $dependentsStr)); 
+		if($dependentsStr) $table->row(array('Required By', $dependentsStr)); 
 		if(!empty($moduleInfo['permission'])) $table->row(array('Required Permission', $moduleInfo['permission'])); 
 		if(!empty($moduleInfo['href'])) $table->row(array('More Information', "<a class='label' href='$moduleInfo[href]'>$moduleInfo[href]</a>")); 
 
