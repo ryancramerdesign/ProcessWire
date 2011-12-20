@@ -21,6 +21,8 @@ class ProcessLanguageTranslator extends Process {
 			'title' => 'Language Translator', 
 			'summary' => 'Provides language translation capabilities for ProcessWire core and modules.', 
 			'version' => 100, 
+			'author' => 'Ryan Cramer',
+			'requires' => 'LanguageSupport',
 			); 
 	}
 

@@ -1,0 +1,67 @@
+<?php
+
+require_once(dirname(__FILE__) . '/FieldtypeLanguageInterface.php'); 
+
+/**
+ * Multi-language capable textarea field
+ *
+ * ProcessWire 2.x 
+ * Copyright (C) 2011 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class FieldtypeTextareaLanguage extends FieldtypeTextarea implements FieldtypeLanguageInterface {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Textarea (Multi-language)',
+			'version' => 100,
+			'summary' => 'Field that stores a multiple lines of text in multiple languages',
+			'permanent' => false,
+			'requires' => 'LanguageSupport',
+			);
+	}
+
+	/**
+	 * Prevent multi-language fields from being auto-joined
+	 *
+	 */
+	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) {
+		return null;
+	}
+
+	/**
+	 * Sanitize value for storage
+	 *
+	 */
+	public function sanitizeValue(Page $page, Field $field, $value) {
+		if(is_object($value) && $value instanceof LanguagesPageFieldValue) {
+			// great, already what we wanted
+		} else {
+			// convert it to a LanguagesPageFieldValue
+			$str = (string) $value; 
+			$value = $page->getUnformatted($field->name); 
+			$value->setLanguageValue(wire('user')->language->id, $str); 
+		}
+		return $value; 
+	}
+
+        /**
+         * Return the database schema in specified format
+         *
+         */
+        public function getDatabaseSchema(Field $field) {
+                $schema = parent::getDatabaseSchema($field);
+		$languages = wire('languages'); 
+		foreach($languages as $language) {
+			if($language->isDefault) continue; 
+			$schema['data' . $language->id] = $schema['data']; 
+			$schema['keys']["data{$language->id}"] = "FULLTEXT KEY `data{$language->id}` (`data{$language->id}`)";
+		}
+                return $schema;
+        }
+}

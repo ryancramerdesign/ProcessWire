@@ -19,18 +19,15 @@
 class Language extends Page {
 	
 	protected $isDefaultLanguage = false;
-	protected $isSystemLanguage = false;
 
 	public function __construct(Template $tpl = null) {
 		if(is_null($tpl)) $tpl = wire('templates')->get('language');
-		// $this->parent = $this->fuel('pages')->get($this->fuel('config')->rolesPageID);
 		parent::__construct($tpl);
 	}
 
 	public function get($key) {
 		if($key == 'translator') return $this->translator();
 		if($key == 'isDefault' || $key == 'isDefaultLanguage') return $this->isDefaultLanguage; 
-		if($key == 'isSystem' || $key == 'isSystemLanguage') return $this->isSystemLanguage; 
 		return parent::get($key); 
 	}
 
@@ -39,6 +36,5 @@ class Language extends Page {
 	}	
 
 	public function setIsDefaultLanguage() { $this->isDefaultLanguage = true; }
-	public function setIsSystemLanguage() { $this->isSystemLanguage = true; }
 }
 

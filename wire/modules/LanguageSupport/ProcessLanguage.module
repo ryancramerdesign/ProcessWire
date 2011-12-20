@@ -22,6 +22,8 @@ class ProcessLanguage extends ProcessPageType {
                         'title' => 'Languages',
                         'version' => 100,
                         'summary' => 'Manage system languages',
+			'author' => 'Ryan Cramer',
+			'requires' => 'LanguageSupport',
                         );
         }
 

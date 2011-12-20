@@ -25,36 +25,17 @@ class Languages extends PagesType {
 	protected $translator = null;
 
 	/**
-	 * Integer ID of the default language page
-	 *
-	protected $defaultLanguagePageID; 
-	 */
-
-	/**
-	 * Integer ID of the system language page
-	 *
-	protected $systemLanguagePageID;
-	 */
-
-	/**
-	 * Set to true when languages have been loaded
-	 *
-	 * This is used to avoid potential circular references with autojoin fields. 
-	 *
-	protected $isReady = false;
-	 */
-
-
-	/**
 	 * Construct this Languages PagesType
 	 *
 	 */
 	public function __construct(Template $template, $parent_id) {
 		parent::__construct($template, $parent_id); 
-		//$this->getIterator();
-		//$this->isReady = true; 
 	}
 
+	/**
+	 * Return the LanguageTranslator instance for the given language
+	 *
+	 */
 	public function translator(Language $language) {
 		if(is_null($this->translator)) $this->translator = new LanguageTranslator($language); 
 			else $this->translator->setCurrentLanguage($language);
@@ -62,41 +43,34 @@ class Languages extends PagesType {
 	}
 
 	/**
-	 * Get/find operations call loaded() for each page loaded
+	 * Returns ALL languages, including those in the trash or unpublished, etc. (inactive)
 	 *
-	 * We're piggybacking on this to determine when the languages have been loaded
+	 * Note: to get all active languages, just iterate the $languages API var. 
 	 *
-	protected function loaded(Page $page) {
-		if($page->id == $this->defaultLanguagePageID) $page->setIsDefaultLanguage();
-		if($page->id == $this->systemLanguagePageID) $page->setIsSystemLanguage();
-	}
 	 */
+	public function getAll() {
+		return $this->pages->find("template={$this->template->name}, include=all"); 
+	}
 
 	/**
 	 * Hook called when new language added
 	 *
 	 */
-	protected function ___added(Language $language) { 
+	protected function ___added(Page $language) { 
 	}
 
 	/**
 	 * Hook called when language deleted
 	 *
 	 */
-	protected function ___deleted(Language $language) { 
+	protected function ___deleted(Page $language) { 
 	}
 
-	/**
-	 * Returns true when languages have been loaded
-	 *
-	 * This is used to avoid potential circular references with autojoin fields. 
-	 *
-	 * @return bool
-	 *
-	public function isReady() { return $this->isReady; }
-	 */
 
-	//public function setDefaultLanguagePageID($id) { $this->defaultLanguagePageID = $id; }
-	//public function setSystemLanguagePageID($id) { $this->systemLanguagePageID = $id; }
+	public function getIterator() {
+		return $this->find("id>0, sort=sort");
+	}
+
+
 }
 

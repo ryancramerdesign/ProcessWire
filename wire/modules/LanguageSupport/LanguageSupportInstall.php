@@ -39,7 +39,8 @@ class LanguageSupportInstall extends Wire {
 		$languagesPage = new Page(); 
 		$languagesPage->parent = $setupPage; 
 		$languagesPage->template = $this->templates->get('admin'); 
-		$languagesPage->process = $this->modules->get('ProcessLanguage'); // installs ProcessLanguage module
+		$languagesPage->process = $this->modules->get('ProcessLanguage'); // INSTALL ProcessLanguage module
+		$this->message("Installed ProcessLanguage"); 
 		$languagesPage->name = 'languages';
 		$languagesPage->title = 'Languages';
 		$languagesPage->status = Page::statusSystem; 
@@ -59,6 +60,7 @@ class LanguageSupportInstall extends Wire {
 		$field->descriptionRows = 1; 
 		$field->flags = Field::flagSystem | Field::flagPermanent;
 		$field->save();
+		$this->message("Created field: language_files"); 
 
 		// create the fieldgroup to be used by the language template
 		$fieldgroup = new Fieldgroup(); 
@@ -77,32 +79,37 @@ class LanguageSupportInstall extends Wire {
 		$template->pageLabelField = 'name';
 		$template->noGlobal = 1; 
 		$template->noMove = 1; 
+		$template->noTrash = 1; 
+		$template->noUnpublish = 1; 
 		$template->noChangeTemplate = 1; 
 		$template->nameContentTab = 1; 
 		$template->flags = Template::flagSystem; 
 		$template->save();
+		$this->message("Created Template: " . LanguageSupport::languageTemplateName); 
 
 		// create the default language page
-		$en = new Language();
-		$en->template = $template; 
-		$en->parent = $languagesPage; 
-		$en->name = 'default';
-		$en->title = 'Default'; 
-		$en->status = Page::statusSystem; 
-		$en->save();
-		$configData['systemLanguagePageID'] = $en->id; 
-		$configData['defaultLanguagePageID'] = $en->id; 
+		$default = new Language();
+		$default->template = $template; 
+		$default->parent = $languagesPage; 
+		$default->name = 'default';
+		$default->title = 'Default'; 
+		$default->status = Page::statusSystem; 
+		$default->save();
+		$configData['defaultLanguagePageID'] = $default->id; 
+		$this->message("Created Default Language Page: {$default->path}"); 
 
 		// create the translator page and process
 		$translatorPage = new Page(); 
 		$translatorPage->parent = $setupPage; 
 		$translatorPage->template = $this->templates->get('admin'); 
 		$translatorPage->status = Page::statusHidden | Page::statusSystem; 
-		$translatorPage->process = $this->modules->get('ProcessLanguageTranslator'); 
+		$translatorPage->process = $this->modules->get('ProcessLanguageTranslator'); // INSTALL ProcessLanguageTranslator
+		$this->message("Installed ProcessLanguageTranslator"); 
 		$translatorPage->name = 'language-translator';
 		$translatorPage->title = 'Language Translator';
 		$translatorPage->save();
 		$configData['languageTranslatorPageID'] = $translatorPage->id; 
+		$this->message("Created Language Translator Page: {$translatorPage->path}"); 
 
 		// save the module config data
 		$this->modules->saveModuleConfigData('LanguageSupport', $configData); 
@@ -119,6 +126,7 @@ class LanguageSupportInstall extends Wire {
 		$field->required = 1; 
 		$field->flags = Field::flagSystem | Field::flagPermanent; 
 		$field->save();
+		$this->message("Created Langage Field: " . LanguageSupport::languageFieldName); 
 
 		// make the 'language' field part of the profile fields the user may edit
 		$profileConfig = $this->modules->getModuleConfigData('ProcessProfile'); 	
@@ -129,16 +137,47 @@ class LanguageSupportInstall extends Wire {
 		$userFieldgroup = $this->templates->get('user')->fieldgroup; 
 		$userFieldgroup->add($field); 
 		$userFieldgroup->save();
+		$this->message("Added field 'language' to user profile"); 
 
 		// update all users to have the default value set for this field
+		$n = 0; 
 		foreach($this->users as $user) {
-			$user->set('language', $en);
+			$user->set('language', $default);
 			$user->save();
+			$n++;
 		}
+		$this->message("Added default language to $n user profiles"); 
+
+		$this->modules->get("FieldtypeTextLanguage"); // INSTALL FieldtypeTextLanguage
+		$this->modules->get("FieldtypeTextareaLanguage"); // INSTALL FieldtypeTextareaLanguage
+		$this->message("Installed FieldtypeTextLanguage and FieldtypeTextareaLanguage"); 
 	}
 
 	public function ___uninstall() {
 
+		if(!wire('user')->language->isDefault) throw new WireException("Please switch your language back to the default language before uninstalling"); 
+
+
+		// first check if there are any fields using the LanguageInterface
+		$errors = '';
+		foreach(wire('fields') as $field) {
+			if($field->type instanceof FieldtypeLanguageInterface) {
+				$errors .= $field->name . ", "; 
+			}
+		}
+		if($errors) throw new WireException("Can't uninstall because these fields use the language interface: " . rtrim($errors, ", ")); 
+
+		// uninstall any dependent fieldtypes
+		foreach(wire('modules') as $module) {
+			$found = false;
+			$parents = class_parents("$module");
+			if(in_array('FieldtypeLanguageInterface', $parents)) {
+				$this->message("Uninstalling module: $module"); 
+				wire('modules')->uninstall($module); 
+			}
+		}
+
+		// uninstall the components 1 by 1
 		$configData = wire('modules')->getModuleConfigData('LanguageSupport'); 
 
 		$field = $this->fields->get(LanguageSupport::languageFieldName); 
@@ -148,12 +187,13 @@ class LanguageSupportInstall extends Wire {
 		$userFieldgroup = $this->templates->get('user')->fieldgroup; 
 		$userFieldgroup->remove($field); 
 		$userFieldgroup->save();
+		$this->message("Removed language field from user profiles"); 
 
 		$this->fields->delete($field); 	
 		$this->message("Removing field: $field"); 
 
 		$deletePageIDs = array(
-			$configData['systemLanguagePageID'],
+			$configData['defaultLanguagePageID'],
 			$configData['languageTranslatorPageID'],
 			$configData['languagesPageID']
 			);
@@ -183,7 +223,14 @@ class LanguageSupportInstall extends Wire {
 
 		$this->message("Removing field: {$field->name}"); 
 		$this->fields->delete($field); 
-		
+
+		Wire::setFuel('languages', null); 
+		$uninstallModules = array('ProcessLanguage', 'ProcessLanguageTranslator'); 
+		foreach($uninstallModules as $name) {
+			$this->modules->uninstall($name); 
+			$this->message("Uninstalled Module: $name"); 
+		}
+
 
 	}
 }

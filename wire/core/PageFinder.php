@@ -182,7 +182,7 @@ class PageFinder extends Wire {
 	 * @return string SQL statement. 
 	 *
 	 */
-	protected function getQuery($selectors) {
+	protected function ___getQuery($selectors) {
 
 		$where = '';
 		$cnt = 1;

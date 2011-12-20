@@ -9,7 +9,8 @@ class FieldtypePageTitleLanguage extends FieldtypeTextLanguage implements Fieldt
 			'title' => 'Page Title (Multi-language)',
 			'version' => 100,
 			'summary' => 'Field that stores a page title in multiple languages',
-			'permanent' => false,
+			'author' => 'Ryan Cramer',
+			'requires' => array('LanguageSupport', 'FieldtypeTextLanguage'),
 			);
 	}
 
