@@ -362,6 +362,11 @@ class Field extends WireData implements Saveable {
 		return $this->settings['name']; 
 	}
 
+	public function __isset($key) {
+		if(parent::__isset($key)) return true; 
+		return isset($this->settings[$key]); 
+	}
+
 	
 }
 
