@@ -418,10 +418,14 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function ___install($class) {
+
 		if(!$this->isInstallable($class)) return null; 
 		$pathname = $this->installable[$class]; 	
 		require_once($pathname); 
 		$this->setConfigPaths($class, dirname($pathname)); 
+
+		$requires = $this->getMissingRequires($class); 
+		if(count($requires)) throw new WireException("Module $class requires: " . implode(", ", $requires)); 
 
 		$module = new $class();
 
@@ -474,6 +478,8 @@ class Modules extends WireArray {
 		$info = $module->getModuleInfo(); 
 		if(!empty($info['permanent'])) throw new WireException("Module '$class' is permanent and thus not uninstallable"); 
 
+		$dependents = $this->getRequiredBy($class); 	
+		if(count($dependents)) throw new WireException("Module '$class' is required by " . implode(', ', $dependents) . " and thus can't be uninstalled unless those are uninstalled first"); 
 
 		if(method_exists($module, '___uninstall') || method_exists($module, 'uninstall')) {
 			// note module's uninstall method may throw an exception to abort the uninstall
@@ -482,6 +488,66 @@ class Modules extends WireArray {
 
 		$result = $this->fuel('db')->query("DELETE FROM modules WHERE class='" . $this->fuel('db')->escape_string($class) . "' LIMIT 1"); 
 		return $result;
+	}
+
+	/**
+	 * Return an array of module class names that require the given one
+	 * 
+	 * @param string $class
+	 * @param bool $uninstalled Set to true to include modules dependent upon this one, even if they aren't installed.
+	 * @return array()
+	 *
+	 */
+	public function getRequiredBy($class, $uninstalled = false) {
+
+		$class = $this->getModuleClass($class); 
+		$dependents = array();
+
+		foreach($this as $module) {
+			$c = $this->getModuleClass($module); 	
+			if(!$uninstalled && !$this->isInstalled($c)) continue; 
+			$info = $this->getModuleInfo($c); 
+			if(!count($info['requires'])) continue; 
+			if(in_array($class, $info['requires'])) $dependents[] = $c; 
+		}
+
+		return $dependents; 
+	}
+
+	/**
+	 * Return an array of module class names required by the given one
+	 * 
+	 * @param string $class
+	 * @param bool $uninstalled Set to true to return only required modules that aren't yet installed
+	 * @return array()
+	 *
+	 */
+	public function getRequires($class, $uninstalled = false) {
+
+		$class = $this->getModuleClass($class); 
+		$info = $this->getModuleInfo($class); 
+		$requires = $info['requires']; 
+
+		// if we don't need to check for installation, just return what getModuleInfo gave us
+		if(!$uninstalled) return $requires; 
+
+		foreach($requires as $key => $module) {
+			$c = $this->getModuleClass($module); 
+			if($this->isInstalled($c)) unset($requires[$key]); 		
+		}
+
+		return $requires; 
+	}
+
+	/**
+	 * Return an array of module class names required by the given one that are currently not installed
+	 * 
+	 * @param string $class
+	 * @return array()
+	 *
+	 */
+	public function getMissingRequires($class) {
+		return $this->getRequires($class, true); 
 	}
 
 	/**
@@ -512,6 +578,7 @@ class Modules extends WireArray {
 	 * This is important because of placeholder modules. For example, get_class would return 
 	 * 'ModulePlaceholder' rather than the correct className for a Module.
 	 *
+	 * @param string|int|Module
 	 * @return string|false The Module's class name or false if not found. 
 	 *	Note that 'false' is only possible if you give this method a non-Module, or an integer ID 
 	 * 	that doesn't correspond to a module ID. 
@@ -526,7 +593,10 @@ class Modules extends WireArray {
 		} else if(is_int($module) || ctype_digit("$module")) {
 			return array_search((int) $module, $this->moduleIDs); 
 
-		} 
+		}  else if(is_string($module)) { 
+			if(array_key_exists($module, $this->moduleIDs)) return $module; 
+			if(array_key_exists($module, $this->installable)) return $module; 
+		}
 
 		return false; 
 	}
@@ -541,6 +611,15 @@ class Modules extends WireArray {
 	 */
 	public function getModuleInfo($module) {
 
+		$info = array(
+			'title' => '',
+			'version' => 0,
+			'author' => '',
+			'summary' => '',
+			'href' => '',
+			'requires' => array(),
+			);
+
 		if($module instanceof Module || ctype_digit("$module")) {
 			$module = $this->getModuleClass($module); 
 		}
@@ -549,19 +628,24 @@ class Modules extends WireArray {
 
 			if(isset($this->installable[$module])) {
 				$filename = $this->installable[$module]; 
-				include($filename); 
+				include_once($filename); 
 			}
 
-			if(!class_exists($module)) return array(
-				'title' => $module, 
-				'summary' => 'Inactive', 
-				'version' => 0, 
-				); 
+			if(!class_exists($module)) {
+				$info['title'] = $module; 
+				$info['summary'] = 'Inactive';
+				return $info;
+			}
 		}
 
 		//$func = $module . "::getModuleInfo"; // requires PHP 5.2.3+
 		//return call_user_func($func);
-		return call_user_func(array($module, 'getModuleInfo'));
+		$info = array_merge($info, call_user_func(array($module, 'getModuleInfo')));
+
+		// if $info[requires] isn't already an array, make it one
+		if(!is_array($info['requires'])) $info['requires'] = array($info['requires']); 
+
+		return $info;
 	}
 
 	/**
