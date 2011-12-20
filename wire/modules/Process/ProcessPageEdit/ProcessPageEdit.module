@@ -458,7 +458,7 @@ class ProcessPageEdit extends Process {
 		$statuses = array(); 
 		$statuses[Page::statusHidden] = $this->_('Hidden: Excluded from lists and searches'); // Settings: Hidden status checkbox label
 		if($this->user->hasPermission('page-lock', $this->page)) $statuses[Page::statusLocked] = $this->_('Locked: Not editable'); // Settings: Locked status checkbox label
-		$statuses[Page::statusUnpublished] = $this->_('Unpublished: Not visible on site'); // Settings: Unpublished status checkbox label
+		if(!$this->page->template->noUnpublish) $statuses[Page::statusUnpublished] = $this->_('Unpublished: Not visible on site'); // Settings: Unpublished status checkbox label
 			
 		if($this->config->advanced && $this->user->isSuperuser()) {
 			$statuses[Page::statusSystemID] = "System: Non-deleteable and locked ID (status not removeable via API)";

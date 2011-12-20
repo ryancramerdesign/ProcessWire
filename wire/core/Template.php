@@ -130,6 +130,7 @@ class Template extends WireData implements Saveable {
 		'noTrash' => 0,			// pages using thsi template may not go in trash? (i.e. they will be deleted not trashed)
 		'noSettings' => 0, 		// don't show a 'settings' tab on pages using this template?
 		'noChangeTemplate' => 0, 	// don't allow pages using this template to change their template?
+		'noUnpublish' => 0,		// don't allow pages using this template to ever exist in an unpublished state - if page exists, it must be published 
 		'nameContentTab' => 0, 		// pages should display the 'name' field on the content tab?	
 		'noCacheGetVars' => '',		// GET vars that trigger disabling the cache (only when cache_time > 0)
 		'noCachePostVars' => '',	// POST vars that trigger disabling the cache (only when cache_time > 0)

@@ -113,12 +113,12 @@ class PagePermissions extends WireData implements Module {
 		}
 
 		if($name == 'template' || $name == 'templates_id') {
-			if($this->page->template->noChangeTemplate) return false;
+			if($page->template->noChangeTemplate) return false;
 			if(!$user->hasPermission('page-template', $page)) return false; 
 		}
 
 		if($name == 'parent' || $name == 'parent_id') {
-			if($this->page->template->noMove) return false; 
+			if($page->template->noMove) return false; 
 			if(!$user->hasPermission('page-move', $page)) return false; 
 		}
 

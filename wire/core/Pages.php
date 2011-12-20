@@ -451,6 +451,7 @@ class Pages extends Wire {
 		$isNew = $page->isNew();
 		if($isNew) $this->setupNew($page);
 		if(!$this->isSaveable($page, $reason)) throw new WireException("Can't save page {$page->id}: {$page->path}: $reason"); 
+		if($page->is(Page::statusUnpublished) && $page->template->noUnpublish) $page->removeStatus(Page::statusUnpublished); 
 
 		if($page->parentPrevious) {
 			if($page->isTrash() && !$page->parentPrevious->isTrash()) $this->trash($page, false); 
@@ -510,8 +511,10 @@ class Pages extends Wire {
 
 		$this->sortfields->save($page); 
 		$page->resetTrackChanges();
-		if($isNew) $page->setIsNew(false); 
-		$triggerAdded = $isNew; 
+		if($isNew) {
+			$page->setIsNew(false); 
+			$triggerAddedPage = $page; 
+		} else $triggerAddedPage = null;
 
 		if($page->templatePrevious && $page->templatePrevious->id != $page->template->id) {
 			// the template was changed, so we may have data in the DB that is no longer applicable
@@ -552,7 +555,7 @@ class Pages extends Wire {
 			}
 		}
 
-		if($triggerAdded) $this->added($page);
+		if($triggerAddedPage) $this->added($triggerAddedPage);
 		if($page->parentPrevious) $this->moved($page);
 		if($page->templatePrevious) $this->templateChanged($page);
 
@@ -705,7 +708,7 @@ class Pages extends Wire {
 	 *
 	 */
 	public function ___trash(Page $page, $save = true) {
-		if(!$this->isDeleteable($page)) throw new WireException("This page may not be placed in the trash"); 
+		if(!$this->isDeleteable($page) || $page->template->noTrash) throw new WireException("This page may not be placed in the trash"); 
 		if(!$trash = $this->get($this->config->trashPageID)) {
 			throw new WireException("Unable to load trash page defined by config::trashPageID"); 
 		}
@@ -769,6 +772,9 @@ class Pages extends Wire {
 				if(!$this->delete($child, true)) throw new WireException("Error doing recursive page delete, stopped by page $child"); 
 			}
 		}
+
+		// trigger a hook to indicate delete is ready and WILL occur
+		$this->deleteReady($page); 
 	
 		foreach($page->fieldgroup as $field) {
 			if(!$field->type->deletePageField($page, $field)) {
@@ -787,10 +793,10 @@ class Pages extends Wire {
 
 		// $this->getFuel('pagesRoles')->deleteRolesFromPage($page); // TODO convert to hook
 		$this->sortfields->delete($page); 
-		$this->uncacheAll();
 		$page->setTrackChanges(false); 
 		$page->status = Page::statusDeleted; // no need for bitwise addition here, as this page is no longer relevant
 		$this->deleted($page);
+		$this->uncacheAll();
 		$this->debugLog('delete', $page, true); 
 
 		return true; 
@@ -1091,10 +1097,20 @@ class Pages extends Wire {
 	protected function ___restored(Page $page) { }
 
 	/**
-	 * Hook called when a page has been deleted
+	 * Hook called when a page is about to be deleted, but before data has been touched
+	 *
+	 * This is different from a before(delete) hook because this hook is called once it has 
+	 * been confirmed that the page is deleteable and WILL be deleted. 
+	 *
+	 */
+	protected function ___deleteReady(Page $page) { }
+
+	/**
+	 * Hook called when a page and it's data have been deleted
 	 *
 	 */
 	protected function ___deleted(Page $page) { }
+
 
 	/**
 	 * Hook called when a page has been cloned
