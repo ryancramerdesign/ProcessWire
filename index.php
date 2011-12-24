@@ -111,7 +111,7 @@ function ProcessWireBootConfig() {
 	 *
 	 */
 	if($config->debug) {
-		error_reporting(E_ALL | E_STRICT); 
+		error_reporting(E_ALL | E_STRICT);
 		ini_set('display_errors', 1);
 	} else {
 		error_reporting(0);

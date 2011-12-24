@@ -6,7 +6,7 @@
  * Serves as a wrapper to PHP's mysqli classes
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -16,6 +16,8 @@
 
 /**
  * WireDatabaseException is the exception thrown by the Database class
+ *
+ * If you use this class without ProcessWire, change 'extends WireException' below to be just 'extends Exception'
  *
  */
 class WireDatabaseException extends WireException {}
@@ -39,7 +41,51 @@ class Database extends mysqli {
 	protected $throwExceptions = true; 
 
 	/**
+	 * Construct the Database 
+	 *
+	 * Since this extends MySQL all the MySQL construct params are kept in tact. 
+	 * However, you may just suppy an object with the following properties if you prefer: 
+	 * $o->dbUser, $o->dbPass, $o->dbHost, $o->dbName, $config->dbPort, $config->dbSocket (optional).
+	 * This would usually be from a ProcessWire Config ($config) API var, but kept as generic object
+	 * in case someone wants to use this class elsewhere. 
+	 * 
+	 * @param string|$config $host Hostname or object with config properties. 
+	 * @param string $user Username
+	 * @param string $pass Password
+	 * @param string $db Database name
+	 * @param int $port Port
+	 * @param string $socket Socket
+	 * 
+	 */
+	public function __construct($host = 'localhost', $user = null, $pass = null, $db = null, $port = null, $socket = null) {
+
+		if(is_object($host) && $host->dbHost) {
+			$config = $host;
+			$host = $config->dbHost; 
+			$user = $config->dbUser; 
+			$pass = $config->dbPass; 
+			$db = $config->dbName; 
+			$port = $config->dbPort; 
+			$socket = $config->dbSocket ? $config->dbSocket : null;
+		} else $config = null;
+
+		@parent::__construct($host, $user, $pass, $db, $port, $socket);
+		if(mysqli_connect_error()) throw new WireDatabaseException("DB connect error " . mysqli_connect_errno() . ' - ' . mysqli_connect_error()); 
+
+		if($config) {
+			if($config->dbCharset) $this->set_charset($config->dbCharset); 
+				else if($config->dbSetNamesUTF8) $this->query("SET NAMES 'utf8'");
+		}
+	}
+
+	/**
 	 * Overrides default mysqli query method so that it also records and times queries. 
+	 *
+	 * @param string $sql SQL Query
+	 * @param int $resultmode See http://www.php.net/manual/en/mysqli.query.php
+	 * @return mixed Returns FALSE on failure. 
+	 * 	For successful SELECT, SHOW, DESCRIBE or EXPLAIN queries mysqli_query() will return a MySQLi_Result object. 
+	 *	For other successful queries mysqli_query() will return TRUE.
 	 *
 	 */
 	public function query($sql, $resultmode = MYSQLI_STORE_RESULT) {
@@ -54,7 +100,7 @@ class Database extends mysqli {
 			if(!$timerFirstStartTime) $timerFirstStartTime = $timerKey; 
 		} else $timerKey = null; 
 
-		$result = parent::query($sql, $resultmode); 
+		$result = @parent::query($sql, $resultmode); 
 
 		if($result) {
 			if(wire('config')->debug) { 
@@ -78,6 +124,10 @@ class Database extends mysqli {
 	/**
 	 * Get an array of all queries that have been executed thus far
 	 *
+	 * Active in ProcessWire debug mode only
+	 *
+	 * @return array
+	 *
 	 */
 	static public function getQueryLog() {
 		return self::$queryLog; 
@@ -85,6 +135,8 @@ class Database extends mysqli {
 
 	/**
 	 * Get array of all tables in this database.
+	 *
+	 * @return array
 	 *
 	 */
 	public function getTables() {
@@ -101,6 +153,9 @@ class Database extends mysqli {
 	/**
 	 * Is the given string a database comparison operator?
 	 *
+	 * @param string $str 1-2 character opreator to test
+	 * @return bool 
+	 *
 	 */
 	public function isOperator($str) {
 		return in_array($str, array('=', '<', '>', '>=', '<=', '<>', '!=', '&', '~', '|', '^', '<<', '>>'));
@@ -108,6 +163,8 @@ class Database extends mysqli {
 
 	/**
 	 * Set whether Exceptions should be thrown on query errors
+	 *
+	 * @param bool $throwExceptions Default is true
 	 *
 	 */
 	public function setThrowExceptions($throwExceptions = true) {

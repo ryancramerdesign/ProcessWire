@@ -6,7 +6,7 @@
  * Initializes all the ProcessWire classes and prepares them for API use
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -87,16 +87,13 @@ class ProcessWire extends Wire {
 		Wire::setFuel('notices', new Notices()); 
 		Wire::setFuel('sanitizer', new Sanitizer()); 
 
-		if($config->dbSocket) {
-			$db = new Database($config->dbHost, $config->dbUser, $config->dbPass, $config->dbName, $config->dbPort, $config->dbSocket);
-		} else {
-			$db = new Database($config->dbHost, $config->dbUser, $config->dbPass, $config->dbName, $config->dbPort);
+		try {
+			Wire::setFuel('db', new Database($config));
+		} catch(WireDatabaseException $e) {
+			// catch and re-throw to prevent DB connect info from ever appearing in debug backtrace
+			throw new WireDatabaseException($e->getMessage()); 
 		}
 
-		Wire::setFuel('db', $db); 
-		if($config->dbCharset) $db->set_charset($config->dbCharset); 
-			else if($config->dbSetNamesUTF8) $db->query("SET NAMES 'utf8'");
-	
 		$modules = new Modules($config->paths->modules, $config->paths->siteModules);
 		$fieldtypes = new Fieldtypes();
 		$fields = new Fields();
@@ -175,7 +172,7 @@ function ProcessWireShutdown() {
 		E_CORE_WARNING => 'Core Warning', 
 		E_COMPILE_ERROR => 'Compile Error', 
 		E_COMPILE_WARNING => 'Compile Warning', 
-		E_USER_ERROR => 'ProcessWire Error', 
+		E_USER_ERROR => 'Error', 
 		E_USER_WARNING => 'User Warning', 
 		E_USER_NOTICE => 'User Notice', 
 		E_STRICT => 'Strict Warning', 
@@ -192,66 +189,73 @@ function ProcessWireShutdown() {
 		);
 
 	$error = error_get_last();
+	if(!$error) return; 
 	$type = $error['type'];
+	if(!in_array($type, $fatalTypes)) return;
 
-	if(in_array($type, $fatalTypes)) {
+	$config = wire('config');
+	$user = wire('user');
+	$userName = $user ? $user->name : 'Unknown User';
+	$page = wire('page'); 
+	$path = $page ? $page->url : '/?/'; 
+	$line = $error['line'];
+	$file = $error['file'];
+	$message = '';
+	if(isset($types[$type])) $message .= $types[$type];
+		else $message .= "Error";
+	$message .= ":\n$error[message]";
+	if($type != E_USER_ERROR) $message .= " \n(line $line of $file) ";
+	$debug = false; 
+	$http = isset($_SERVER['HTTP_HOST']); 
+	$log = null;
+	$why = '';
+	$who = '';
 
-		$config = wire('config');
-		$user = wire('user');
-		$userName = $user ? $user->name : 'Unknown User';
-		$page = wire('page'); 
-		$path = $page ? $page->url : '/?/'; 
-		$line = $error['line'];
-		$file = $error['file'];
-		$message = "$error[message]";
-		$debug = false; 
-		$http = isset($_SERVER['HTTP_HOST']); 
-		$log = null;
-		$why = '';
-		$who = '';
-
-		if($type != E_USER_ERROR) $message .= " (line $line of $file)";
-
-		if($config) {
-			$debug = $config->debug; 
-			$logMessage = "$userName:$path:$types[$type]:$message";
-			if($config->adminEmail) @mail($config->adminEmail, 'ProcessWire Error Notification', $logMessage); 
-			$logMessage = str_replace("\n", " ", $logMessage); 
-			if($config->paths->logs) {
-				$log = new FileLog($config->paths->logs . "errors.txt");
-				$log->save($logMessage); 
-			}
-		}
-
-		// we populate $who to give an ambiguous indication where the full error message has been sent
-		if($log) $who .= "Error has been logged. ";
-		if($config && $config->adminEmail) $who .= "Administrator has been emailed. ";
-
-		// we populate $why if we're going to show error details for any of the following reasons: 
-		if($debug) $why = "site is in debug mode (\$config->debug = true; in /site/config.php).";
-			else if(!$http) $why = "you are using the command line API.";
-			else if($user && $user->isSuperuser()) $why = "you are logged in as a Superuser.";
-			else if($config && is_file($config->paths->root . "install.php")) $why = "/install.php still exists.";	
-			else if($config && !is_file($config->paths->assets . "active.php")) {
-				// no login has ever occurred or user hasn't logged in since upgrade before this check was in place
-				// check the date the site was installed to ensure we're not dealing with an upgrade
-				$installed = $config->paths->assets . "installed.php";
-				if(!is_file($installed) || (filemtime($installed) > (time() - 21600))) {
-					// site was installed within the last 6 hours, safe to assume it's a new install
-					$why = "Superuser has never logged in.";
-				}
-			}
-
-		if($why) {
-			// when in debug mode, we can assume the message was already shown, so we just say why.
-			// when not in debug mode, we display the full error message since error_reporting and display_errors are off.
-			$message .= "\n\nThis error message was shown because $why $who";
-			if($http) $message = "<p class='WireFatalError'>" . nl2br($message) . "</p>";
-			echo "\n\n$message\n\n";
-		} else {
-			header("HTTP/1.1 500 Internal Server Error");
-			echo "Unable to complete this request due to an error. $who";
+	if($config) {
+		$debug = $config->debug; 
+		if($config->ajax) $http = false; 
+		$logMessage = "$userName:$path:" . str_replace("\n", "", $message); 
+		if($config->adminEmail) @mail($config->adminEmail, 'ProcessWire Error Notification', $logMessage); 
+		$logMessage = str_replace("\n", " ", $logMessage); 
+		if($config->paths->logs) {
+			$log = new FileLog($config->paths->logs . 'errors.txt');
+			$log->save($logMessage); 
 		}
 	}
+
+	// we populate $who to give an ambiguous indication where the full error message has been sent
+	if($log) $who .= "Error has been logged. ";
+	if($config && $config->adminEmail) $who .= "Administrator has been emailed. ";
+
+	// we populate $why if we're going to show error details for any of the following reasons: 
+	if($debug) $why = "site is in debug mode (\$config->debug = true; in /site/config.php).";
+		else if(!$http) $why = "you are using the command line API.";
+		else if($user && $user->isSuperuser()) $why = "you are logged in as a Superuser.";
+		else if($config && is_file($config->paths->root . "install.php")) $why = "/install.php still exists.";	
+		else if($config && !is_file($config->paths->assets . "active.php")) {
+			// no login has ever occurred or user hasn't logged in since upgrade before this check was in place
+			// check the date the site was installed to ensure we're not dealing with an upgrade
+			$installed = $config->paths->assets . "installed.php";
+			if(!is_file($installed) || (filemtime($installed) > (time() - 21600))) {
+				// site was installed within the last 6 hours, safe to assume it's a new install
+				$why = "Superuser has never logged in.";
+			}
+		}
+
+	if($why) {
+		// when in debug mode, we can assume the message was already shown, so we just say why.
+		// when not in debug mode, we display the full error message since error_reporting and display_errors are off.
+		$why = "This error message was shown because $why $who";
+		if($http) $why = "<em>$why</em>";
+		if($debug) $message = $why; 
+			else $message .= "\n\n$why";
+		if($http) $message = "<p class='error WireFatalError'>" . nl2br($message) . "</p>";
+		echo "\n\n$message\n\n";
+	} else {
+		header("HTTP/1.1 500 Internal Server Error");
+		echo "Unable to complete this request due to an error. $who";
+	}
+
+	return true; 
 }
 
