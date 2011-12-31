@@ -22,16 +22,8 @@ class FieldtypeTextLanguage extends FieldtypeText implements FieldtypeLanguageIn
 			'version' => 100,
 			'summary' => 'Field that stores a single line of text in multiple languages',
 			'permanent' => false,
-			'requires' => 'LanguageSupport',
+			'requires' => array('LanguageSupportFields'),
 			);
-	}
-
-	/**
-	 * Prevent multi-language fields from being auto-joined
-	 *
-	 */
-	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) {
-		return null;
 	}
 
 	/**
@@ -57,13 +49,14 @@ class FieldtypeTextLanguage extends FieldtypeText implements FieldtypeLanguageIn
         public function getDatabaseSchema(Field $field) {
  
                 $schema = parent::getDatabaseSchema($field);
-		$languages = wire('languages'); 
+		$languageSupport = wire('modules')->get('LanguageSupport'); 
 
-		foreach($languages as $language) {
-			if($language->isDefault) continue; 
-			$schema['data' . $language->id] = $schema['data']; 
-			$schema['keys']["data_exact{$language->id}"] = "KEY `data_exact{$language->id}` (`data{$language->id}`(255))";
-			$schema['keys']["data{$language->id}"] = "FULLTEXT KEY `data{$language->id}` (`data{$language->id}`)";
+		// note that we use otherLanguagePageIDs rather than wire('languages') because
+		// it's possible that this method may be called before the languages are known 
+		foreach($languageSupport->otherLanguagePageIDs as $languageID) {
+			$schema['data' . $languageID] = $schema['data']; 
+			$schema['keys']["data_exact{$languageID}"] = "KEY `data_exact{$languageID}` (`data{$languageID}`(255))";
+			$schema['keys']["data{$languageID}"] = "FULLTEXT KEY `data{$languageID}` (`data{$languageID}`)";
 		}
 
                 return $schema;
@@ -72,67 +65,10 @@ class FieldtypeTextLanguage extends FieldtypeText implements FieldtypeLanguageIn
 	/**
 	 * Format value for output, basically typcasting to a string and sending to textformatters from FieldtypeText
 	 *
+	 */
 	public function formatValue(Page $page, Field $field, $value) {
 		return parent::formatValue($page, $field, (string) $value); 
 	}
-	 */
-
-
-	/**
-	 * Convert the loaded value to a LanguagesPageFieldValue instance
-	 *
-	public function ___loadPageField(Page $page, Field $field) {
-		try {
-			$values = parent::___loadPageField($page, $field); 
-		} catch(Exception $e) {
-			// just catch
-			$values = array();
-		}
-		$str = new LanguagesPageFieldValue($values); 
-		return $str; 
-	}
-	 */
-
-	/**
-	 * Convert an array value from the DB to a LanguagePageFieldValue
-	 *
-	public function ___wakeupValue(Page $page, Field $field, $value) {
-		if(is_array($value)) $value = new LanguagesPageFieldValue($value); 
-		return $value;
-	}
-	 */
-
-
-	/**
-	 * Convert the LanguagesPageFieldValue instance to an array indexed by DB column
-	 *
-	public function ___sleepValue(Page $page, Field $field, $value) {
-		$values = array();
-		foreach(wire('languages') as $language) {
-			if($language->isDefault) $key = 'data';
-				else $key = 'data' . $language->id; 
-			$values[$key] = $value->getLanguageValue($language->id); 
-			
-		}
-		return $values; 
-	}
-	 */
-
-	/**
-	 * Update a query to match the text with a fulltext index
-	 *
-	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
-		$user = wire('user'); 
-		$query = parent::getMatchQuery($query, $table, $subfield, $operator, $value); // data or data1234
-
-		
-		//if($subfield == 'data' && !$user->language->isDefault) {
-		//	$subfield .= $user->language->id; // and data1234
-		//	$query = parent::getMatchQuery($query, $table, $subfield, $operator, $value); 
-		//}
-		return $query;
-	}
-	 */
-
 
 }
+

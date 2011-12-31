@@ -30,6 +30,8 @@ class FieldtypePageTitle extends FieldtypeText implements FieldtypePageTitleComp
 			);
 	}
 
+	public static $languageSupport = false; 
+
 	/**
 	 * This field is only used for new fields in advanced mode
 	 *
@@ -52,5 +54,6 @@ class FieldtypePageTitle extends FieldtypeText implements FieldtypePageTitleComp
 		$inputField = $this->modules->get('InputfieldPageTitle'); 
 		return $inputField; 
 	}
+
 }
 

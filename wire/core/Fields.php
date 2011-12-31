@@ -339,6 +339,8 @@ class Fields extends WireSaveableItems {
 		foreach($field1->getArray() as $key => $value) {
 			// skip fields that may be shared among any fieldtype
 			if(in_array($key, array('description', 'required', 'collapsed', 'notes'))) continue; 
+			// skip over language labels/descriptions
+			if(preg_match('/^(description|label|notes)\d+/', $key)) continue; 
 			// remove the custom field
 			$field1->remove($key); 
 		}

@@ -4,7 +4,7 @@
  * ProcessWire Language Translator 
  *
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -12,12 +12,6 @@
  *
  */
 class LanguageTranslator extends Wire {
-
-	/**
-	 * Page ID of the default language (en-us)
-	 *
-	 */
-	// protected $defaultLanguagePageID = 0;
 
 	/**
 	 * Language (Page) instance of the current language

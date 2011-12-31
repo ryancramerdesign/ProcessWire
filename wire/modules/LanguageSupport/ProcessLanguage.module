@@ -7,7 +7,7 @@
  * This is the process assigned to processwire/setup/languages/.
  *
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -151,8 +151,9 @@ class ProcessLanguage extends ProcessPageType {
 	protected function renderListFieldValue($name, $value) {
 		if($name == 'language_files') {
 			return count($value); 
-		} else if($name == 'title' && !$value) { 
-			return '(blank)';
+		} else if($name == 'title') { 
+			if(!$value) return '(blank)';
+			return (string) $value;
 		} else {
 			return parent::renderListFieldValue($name, $value); 
 		}
