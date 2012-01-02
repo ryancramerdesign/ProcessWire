@@ -358,7 +358,7 @@ class LanguageSupportFields extends WireData implements Module {
 		$pos = strrpos($altFieldName, '_'); 
 		if(!$pos) return '';
 		$parentName = substr($altFieldName, 0, $pos);
-		$this->message($parentName); 
+		// $this->message($parentName); 
 		if(isset($this->multilangAlternateFields[$parentName]) && in_array($altFieldName, $this->multilangAlternateFields[$parentName])) {
 			if(!$returnLanguage) return $parentName; 
 			$languageName = substr($altFieldName, $pos+1); 
