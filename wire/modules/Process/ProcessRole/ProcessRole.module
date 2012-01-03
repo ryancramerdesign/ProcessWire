@@ -7,7 +7,7 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -19,9 +19,9 @@ class ProcessRole extends ProcessPageType {
 
 	static public function getModuleInfo() {
 		return array(
-			'title' => 'Roles',
+			'title' => __('Roles', __FILE__), // getModuleInfo title
 			'version' => 100, 
-			'summary' => 'Manage user roles and what permissions are attached', 
+			'summary' => __('Manage user roles and what permissions are attached', __FILE__), // getModuleInfo summary 
 			'permanent' => true, 
 
 			// add this permission if you want this Process available for roles other than Superuser

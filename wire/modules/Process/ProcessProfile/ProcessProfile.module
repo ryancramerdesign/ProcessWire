@@ -16,8 +16,8 @@ class ProcessProfile extends Process implements ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'User Profile',          
-			'summary' => 'Enables user to change their password, email address and other settings that you define.', 
+			'title' => __('User Profile', __FILE__), // getModuleInfo title          
+			'summary' => __('Enables user to change their password, email address and other settings that you define.', __FILE__), // getModuleInfo summary 
 			'version' => 100, 
 			'permanent' => true, 
 			'permission' => 'profile-edit',
@@ -101,7 +101,7 @@ class ProcessProfile extends Process implements ConfigurableModule {
 
 		$inputfields = new InputfieldWrapper();
 		$f = wire('modules')->get('InputfieldCheckboxes');
-		$f->label = "What fields can a user edit in their own profile?";
+		$f->label = __("What fields can a user edit in their own profile?");
 		$f->attr('id+name', 'profileFields');
 		foreach($fieldOptions as $field) {
 			if($field->name == 'roles') continue;

@@ -33,8 +33,8 @@ class ProcessPageView extends Process {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Page View', 
-			'summary' => 'All page views are routed through this Process', 
+			'title' => __('Page View', __FILE__), // getModuleInfo title
+			'summary' => __('All page views are routed through this Process', __FILE__), // getModuleInfo summary 
 			'version' => 100, 
 			'permanent' => true, 
 			'permission' => 'page-view',

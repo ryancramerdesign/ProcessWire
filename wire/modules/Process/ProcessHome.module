@@ -10,7 +10,7 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -22,8 +22,8 @@ class ProcessHome extends Process {
 
 	static public function getModuleInfo() {
 		return array(
-			'title' => 'Admin Home', 
-			'summary' => 'Acts as a placeholder Process for the admin root. Ensures proper flow control after login.', 
+			'title' => __('Admin Home', __FILE__), // getModuleInfo title 
+			'summary' => __('Acts as a placeholder Process for the admin root. Ensures proper flow control after login.', __FILE__), // getModuleInfo summary
 			'version' => 100, 
 			'permission' => 'page-view', 
 			'permanent' => true, 

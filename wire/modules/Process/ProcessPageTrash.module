@@ -9,7 +9,7 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -21,8 +21,8 @@ class ProcessPageTrash extends Process {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Page Trash', 
-			'summary' => 'Handles emptying of Page trash', 
+			'title' => __('Page Trash', __FILE__), // getModuleInfo title
+			'summary' => __('Handles emptying of Page trash', __FILE__), // getModuleInfo summary 
 			'version' => 100, 
 			'permanent' => true, 
 			); 
@@ -39,7 +39,7 @@ class ProcessPageTrash extends Process {
 		$this->trashPages = $this->pages->get($this->config->trashPageID)->children("status<" . Page::statusMax);
 
 		if(isset($_POST['submit_empty']) && !empty($_POST['confirm_empty'])) {
-			$this->session->message("The trash has been emptied"); 
+			$this->session->message($this->_("The trash has been emptied")); 
 			foreach($this->trashPages as $t) $this->pages->delete($t, true); 
 			// redirect to admin root after emptying trash
 			$this->session->redirect($this->config->urls->admin); 
@@ -59,12 +59,10 @@ class ProcessPageTrash extends Process {
 		$form->attr('action', './'); 
 		$form->attr('method', 'post'); 
 
-		if(!count($this->trashPages)) { 
-			return "<h2>The trash is empty</h2>";
-		}
+		if(!count($this->trashPages)) return "<h2>" . $this->_("The trash is empty") . "</h2>";
 
 		$field = $this->modules->get("InputfieldMarkup"); 
-		$field->label = "The following pages are in the trash"; 
+		$field->label = $this->_("The following pages are in the trash"); 
 		$pageList = $this->modules->get('ProcessPageList');
 		$pageList->set('id', $this->config->trashPageID);
 		$pageList->set('showRootPage', false);
@@ -74,14 +72,12 @@ class ProcessPageTrash extends Process {
 		$field = $this->modules->get("InputfieldCheckbox"); 
 		$field->attr('name', 'confirm_empty'); 
 		$field->attr('value', 1); 
-		$field->label = 'Empty Trash';
-		$field->description = 
-			"Please confirm that you want to empty the page trash. ";
+		$field->label = $this->_('Empty trash');
+		$field->description = $this->_("Please confirm that you want to empty the page trash.");
 		$form->add($field);
 
 		$field = $this->modules->get("InputfieldSubmit"); 
 		$field->attr('name', 'submit_empty'); 
-		$field->attr('value', 'Submit'); 
 		$form->add($field); 
 
 		return $form->render();		

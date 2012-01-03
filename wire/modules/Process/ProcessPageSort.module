@@ -10,7 +10,7 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -28,8 +28,8 @@ class ProcessPageSort extends Process {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Page Sort and Move', 
-			'summary' => 'Handles page sorting and moving for PageList', 
+			'title' => __('Page Sort and Move', __FILE__), // getModuleInfo title
+			'summary' => __('Handles page sorting and moving for PageList', __FILE__), // getModuleInfo summary
 			'version' => 100, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
@@ -53,8 +53,8 @@ class ProcessPageSort extends Process {
 	 */
 	public function ___execute() {
 
-		if($this->config->demo) throw new WireException("Your change was not saved because this site is in demo mode"); 
-		if(!isset($_POST['sort'])) throw new WireException("This Process is only accessible via POST"); 
+		if($this->config->demo) throw new WireException($this->_("Your change was not saved because this site is in demo mode")); 
+		if(!isset($_POST['sort'])) throw new WireException($this->_("This Process is only accessible via POST")); 
 
 		$this->user = $this->fuel('user'); 
 		$this->ids = explode(',', $_POST['sort']); 
@@ -101,7 +101,7 @@ class ProcessPageSort extends Process {
 		}
 
 		if($parent->sortfield && $parent->sortfield != 'sort') {
-			$msg = sprintf($this->_("Your sort was not saved because this pages are automatically sorted by %s."), $parent->sortfield);
+			$msg = sprintf($this->_("Your sort was not saved because these pages are automatically sorted by %s."), $parent->sortfield);
 			if(!$this->isMoved) throw new WireException($msg); 
 				else $this->message($msg); 
 			return;

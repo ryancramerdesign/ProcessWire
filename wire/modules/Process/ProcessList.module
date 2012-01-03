@@ -9,7 +9,7 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -21,8 +21,8 @@ class ProcessList extends Process {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'List',          
-			'summary' => 'Lists the Process assigned to each child page of the current', 
+			'title' => __('List', __FILE__), // getModuleInfo title          
+			'summary' => __('Lists the Process assigned to each child page of the current', __FILE__), // getModuleInfo summary
 			'version' => 100, 
 			'permanent' => true, 
 			'permission' => 'page-view',
@@ -45,7 +45,7 @@ class ProcessList extends Process {
 				$summary = htmlspecialchars($info['summary']);
 			} else {
 				$title = $child->get("title|name"); 
-				$summary = 'No description available';
+				$summary = $this->_('No description available');
 			}
 			$out .= "\n\t<dt><a class='label' href='{$child->url}'>$title</a></dt>";
 			if($summary) $out .= "\n\t<dd>$summary</dd>";

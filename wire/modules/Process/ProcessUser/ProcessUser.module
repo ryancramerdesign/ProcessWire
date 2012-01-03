@@ -7,7 +7,7 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -19,9 +19,9 @@ class ProcessUser extends ProcessPageType {
 
 	static public function getModuleInfo() {
 		return array(
-			'title' => 'Users',
+			'title' => __('Users', __FILE__), // getModuleInfo title
 			'version' => 100, 
-			'summary' => 'Manage system users', 
+			'summary' => __('Manage system users', __FILE__), // getModuleInfo summary
 			'permanent' => true, 
 			'permission' => 'user-admin',
 			); 
@@ -50,7 +50,7 @@ class ProcessUser extends ProcessPageType {
 		// don't allow removal of the guest role
 		if(!$page->roles->has("name=guest")) {
 			$page->roles->add(wire('roles')->get('guest')); 	
-			$this->error("The 'guest' role is required"); 
+			$this->error($this->_("The guest role is required")); 
 		}
 
 		// check if user is editing themself
@@ -66,7 +66,7 @@ class ProcessUser extends ProcessPageType {
 
 			// don't let superusers remove their superuser role
 			if($user->isSuperuser() && !$page->roles->has("name=superuser")) {
-				throw new WireException("You may not remove the superuser role from yourself"); 
+				throw new WireException($this->_("You may not remove the superuser role from yourself")); 
 			}
 
 		} 
@@ -76,7 +76,7 @@ class ProcessUser extends ProcessPageType {
 
 		// if not then we need to do the check below:
 		if($page->roles->has("name=superuser")) {
-			throw new WireException("You may not assign the superuser role"); 
+			throw new WireException($this->_("You may not assign the superuser role")); 
 		}
 	}
 	

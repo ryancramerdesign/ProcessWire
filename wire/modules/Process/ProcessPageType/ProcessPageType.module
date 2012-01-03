@@ -21,9 +21,9 @@ class ProcessPageType extends Process implements ConfigurableModule {
 
 	static public function getModuleInfo() {
 		return array(
-			'title' => __('Page Type', 'ProcessPageType'),
+			'title' => __('Page Type', __FILE__), // getModuleInfo title
 			'version' => 100, 
-			'summary' => __('List, Edit and Add pages of a specific type', 'ProcessPageType'), 
+			'summary' => __('List, Edit and Add pages of a specific type', __FILE__), // getModuleInfo summary
 			'permanent' => true, 
 			); 
 	}

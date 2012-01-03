@@ -9,7 +9,7 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -21,8 +21,8 @@ class ProcessModule extends Process {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Modules',          
-			'summary' => 'List, edit or install/uninstall modules', 
+			'title' => __('Modules', __FILE__), // getModuleInfo title          
+			'summary' => __('List, edit or install/uninstall modules', __FILE__), // getModuleInfo summary
 			'version' => 100, 
 			'permanent' => true, 
 			'permission' => 'module-admin', 
@@ -62,7 +62,7 @@ class ProcessModule extends Process {
 			if($name && isset($this->modulesArray[$name]) && !$this->modulesArray[$name]) {
 				$module = $this->modules->get($name); 		
 				$this->modulesArray[$name] = 1; 
-				$this->session->message("Module Install - " . $module->className);
+				$this->session->message($this->_("Module Install") . " - " . $module->className); // Message that precedes the name of the module installed
 				$this->session->redirect("edit?name={$module->className}"); 
 			}
 		}
@@ -86,11 +86,18 @@ class ProcessModule extends Process {
 		$uninstalled = array();
 		$uninstalledPrev = is_array($this->session->ModulesUninstalled) ? $this->session->ModulesUninstalled : array();
 		$section = 'none';
-		$tableHeader = array('Module', 'Version', 'Summary'); 
+		$tableHeader = array(
+			$this->_x('Module', 'list'),	// Modules list table header for 'Module' column 
+			$this->_x('Version', 'list'), 	// Modules list table header for 'Version' column
+			$this->_x('Summary', 'list')	// Modules list table header for 'Summary' column
+			); 
 		$table = null;
 		$total = 0;
-		$out = 	"\n<p class='description'>To add more modules, place them in {$this->config->urls->siteModules} and click the button to check for new modules.</p>"; 
+		$out = 	"\n<p class='description'>" . sprintf($this->_("To add more modules, place them in %s and click the button to check for new modules."), $this->config->urls->siteModules) . "</p>"; // Instructions on how to add more modules
 		$numFound = 0;
+
+		$labelRequires = $this->_x("Requires", 'list'); // Label that precedes list of required prerequisite modules
+		$labelInstalls = $this->_x("Also Installs", 'list'); // Label that precedes list of other modules a given one installs
 
 		foreach($this->modulesArray as $name => $installed) {
 
@@ -113,7 +120,7 @@ class ProcessModule extends Process {
 			if($class) $title = "<span class='$class'>$title</span>";
 			$version = $this->formatVersion(isset($info['version']) ? $info['version'] : 0);
 			$summary = empty($info['summary']) ? '' : htmlspecialchars($info['summary']);
-			$summary .= empty($info['href']) ? '' : " <a href='$info[href]'>more</a>";
+			$summary .= empty($info['href']) ? '' : (" <a href='$info[href]'>" . $this->_('more') . "</a>");
 
 			$editUrl = "edit?name={$name}";
 
@@ -121,23 +128,23 @@ class ProcessModule extends Process {
 
 				if(count($info['requires'])) {
 					$requires = $this->modules->getRequiresForInstall($name); 
-					if(count($requires)) $summary .= "<br /><span class='notes'><span class='ui-icon ui-icon-alert'></span>Requires: " . implode(', ', $requires) . "</span>";
+					if(count($requires)) $summary .= "<br /><span class='notes'>$labelRequires - " . implode(', ', $requires) . "</span>";
 				} else $requires = array();
 
 				if(count($info['installs'])) { 
-					$summary .= "<br /><span class='notes'>Also installs: " . implode(', ', $info['installs']) . "</span>";
+					$summary .= "<br /><span class='detail'>$labelInstalls - " . implode(', ', $info['installs']) . "</span>";
 				}
 
 				$class = 'not_installed';
 				if(count($uninstalledPrev) && !in_array($name, $uninstalledPrev)) {
 					$class .= " new_module";
-					if(!$this->input->get->uninstalled) $this->message("Found new module: $name"); 
+					if(!$this->input->get->uninstalled) $this->message($this->_("Found new module") . " - $name"); // Message that precedes module name when new module is found
 					$numFound++;
 				}
 
 				$title = "<span id='$name' class='$class'>$title</span>";
 				$buttonAttr = count($requires) ? " disabled='disabled'" : '';
-				$version .= "<button$buttonAttr type='submit' id='install_$name' name='install' class='install' value='$name'>Install</button>";
+				$version .= "<button$buttonAttr type='submit' id='install_$name' name='install' class='install' value='$name'>" . $this->_x('Install', 'button') . "</button>"; // Text for 'Install' button
 				$editUrl = '#';
 				$uninstalled[] = $name; 
 			}
@@ -154,9 +161,9 @@ class ProcessModule extends Process {
 		}
 
 		$out .= $table->render();
-		$out .= "<p class='description'>To remove a module, click the module to edit, check the 'uninstall' box, then save. " . 
-			"Once uninstalled, the module's file(s) may be removed from /site/modules/. If it still appears in the list " . 
-			"above, you may need to click the 'check for new modules' button for ProcessWire to see the change.</p>";
+		$out .= "<p class='description'>" . 
+			$this->_("To remove a module, click the module to edit, check the 'uninstall' box, then save. Once uninstalled, the module's file(s) may be removed from /site/modules/. If it still appears in the list above, you may need to click the 'check for new modules' button for ProcessWire to see the change.") . // Instructions on how to remove a module
+			"</p>";
 
 		$form = $this->modules->get('InputfieldForm');
 		$form->attr('action', './'); 
@@ -166,12 +173,12 @@ class ProcessModule extends Process {
 		$submit = $this->modules->get('InputfieldButton');
 		$submit->attr('href', './?reset=1'); 
 		$submit->attr('name', 'reset');
-		$submit->attr('value', 'Check for new modules'); 
+		$submit->attr('value', $this->_('Check for new modules')); 
 		$form->add($submit); 
 
 		$form->attr('value', $out); 
 
-		if($this->input->get->reset == 2 && !$numFound) $this->message("No new modules found"); 
+		if($this->input->get->reset == 2 && !$numFound) $this->message($this->_("No new modules found")); 
 		$this->session->ModulesUninstalled = $uninstalled;
 
 		return $form->render(); 
@@ -193,7 +200,7 @@ class ProcessModule extends Process {
 		$moduleName = $this->sanitizer->name($moduleName); 
 
 		if(!$moduleName || !$info = $this->modules->getModuleInfo($moduleName)) {
-			$this->session->message("No module specified"); 
+			$this->session->message($this->_("No module specified")); 
 			$this->session->redirect("./"); 
 		}
 
@@ -211,8 +218,9 @@ class ProcessModule extends Process {
 
 		$out = ''; 
 		$moduleId = $this->modules->getModuleID($moduleName); 
+		$sinfo = self::getModuleInfo();
 
-		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', 'Modules')); 
+		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $sinfo['title'])); 
 		$this->setFuel('processHeadline', $moduleInfo['title']); 
 
 		$form = $this->modules->get("InputfieldForm"); 
@@ -242,21 +250,21 @@ class ProcessModule extends Process {
 		$field->attr('name', 'uninstall'); 
 		$field->attr('value', $moduleName); 
 		$field->collapsed = Inputfield::collapsedYes; 
-		$field->label = "Uninstall";
+		$field->label = $this->_x("Uninstall", 'checkbox');
 
 		$reason = $this->modules->isUninstallable($moduleName, true); 
 		$uninstallable = $reason === true; 
 
 		if($uninstallable) {
-			$field->description = "Uninstall this module? After uninstalling, you may remove the modules files from the server if it is not in use by any other modules.";
-			if(count($moduleInfo['installs'])) $field->notes = "This will also uninstall: " . implode(', ', $moduleInfo['installs']); 
+			$field->description = $this->_("Uninstall this module? After uninstalling, you may remove the modules files from the server if it is not in use by any other modules."); // Uninstall field description
+			if(count($moduleInfo['installs'])) $field->notes = $this->_("This will also uninstall other modules") . " - " . implode(', ', $moduleInfo['installs']); // Text that precedes a list of modules that are also uninstalled
 
 		} else {
 			$field->attr('disabled', 'disabled');
-			$field->label .= " (Disabled)";
-			$field->description = "Can't Uninstall: " . $reason;
+			$field->label .= " " . $this->_("(Disabled)"); 
+			$field->description = $this->_("Can't uninstall module") . " - " . $reason; // Text that precedes a reason why the module can't be uninstalled
 			$dependents2 = $this->modules->getRequiresForUninstall($moduleName); 
-			if(count($dependents2)) $field->notes = "You must first uninstall: " . implode(', ', $dependents2); 
+			if(count($dependents2)) $field->notes = $this->_("You must first uninstall other modules") . " - " . implode(', ', $dependents2); // Text that precedes a list of modules that must be uninstalled first
 		}
 
 		$form->append($field); 
@@ -267,7 +275,7 @@ class ProcessModule extends Process {
 			$field->attr('name', 'submit_save_module'); 
 			$form->append($field); 
 		} else {
-			$this->message("This module doesn't have any fields to configure"); 
+			$this->message($this->_("This module doesn't have any fields to configure")); 
 		}
 
 		// check for submitted form
@@ -278,11 +286,11 @@ class ProcessModule extends Process {
 
 			if($uninstallable && $this->input->post->uninstall === $moduleName) {
 				$this->modules->uninstall($moduleName); 	
-				$this->session->message("Uninstalled Module: $moduleName"); 
+				$this->session->message($this->_("Uninstalled Module") . " - $moduleName"); // Message shown before the name of a module that was just uninstalled
 				$this->session->redirect('./?uninstalled=1'); 
 			} else {
 				$this->modules->saveModuleConfigData($moduleName, $data); 
-				$this->message("Saved Module: $moduleName"); 
+				$this->message($this->_("Saved Module") . " - $moduleName"); // Message shown before the name of a module that was just saved
 			}
 		}
 
@@ -295,20 +303,20 @@ class ProcessModule extends Process {
 		// build a table that displays module info
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->setEncodeEntities(false); 
-		$table->row(array('Title', $moduleInfo['title'])); 
-		$table->row(array('Class', $moduleName)); 
-		$table->row(array('ID', $moduleId)); 
-		$table->row(array('Version', $this->formatVersion($moduleInfo['version']))); 
-		if(!empty($moduleInfo['author'])) $table->row(array('Author', $moduleInfo['author'])); 
-		$table->row(array('Summary', $moduleInfo['summary'])); 
-		if($requirementsStr) $table->row(array('Requires', $requirementsStr)); 
-		if($dependentsStr) $table->row(array('Required By', $dependentsStr)); 
-		if(!empty($moduleInfo['permission'])) $table->row(array('Required Permission', $moduleInfo['permission'])); 
-		if(!empty($moduleInfo['href'])) $table->row(array('More Information', "<a class='label' href='$moduleInfo[href]'>$moduleInfo[href]</a>")); 
+		$table->row(array($this->_x('Title', 'edit'), $moduleInfo['title'])); 
+		$table->row(array($this->_x('Class', 'edit'), $moduleName)); 
+		$table->row(array($this->_x('ID', 'edit'), $moduleId)); 
+		$table->row(array($this->_x('Version', 'edit'), $this->formatVersion($moduleInfo['version']))); 
+		if(!empty($moduleInfo['author'])) $table->row(array($this->_x('Author', 'edit'), $moduleInfo['author'])); 
+		$table->row(array($this->_x('Summary', 'edit'), $moduleInfo['summary'])); 
+		if($requirementsStr) $table->row(array($this->_x('Requires', 'edit'), $requirementsStr)); 
+		if($dependentsStr) $table->row(array($this->_x('Required By', 'edit'), $dependentsStr)); 
+		if(!empty($moduleInfo['permission'])) $table->row(array($this->_x('Required Permission', 'edit'), $moduleInfo['permission'])); 
+		if(!empty($moduleInfo['href'])) $table->row(array($this->_x('More Information', 'edit'), "<a class='label' href='$moduleInfo[href]'>$moduleInfo[href]</a>")); 
 
 		$field = $this->modules->get("InputfieldMarkup"); 
 		$field->attr('value', $table->render()); 
-		$field->label = "Module Information";
+		$field->label = $this->_x("Module Information", 'edit');
 		$form->prepend($field); 
 
 		$out .= $form->render();

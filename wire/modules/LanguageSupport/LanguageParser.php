@@ -229,6 +229,9 @@ class LanguageParser extends Wire {
 			$note = $plural == $text ? "Plural" : "Singular";
 			// force note saying Plural or Singular
 			$comments = ($comments ? $comments : $text) . " // $note Version"; 
+
+		} else if($context) { 
+			$comments = ($comments ? $comments : $text) . " // Context: $context";
 		}
 
 		// save the comments indexed to the hash

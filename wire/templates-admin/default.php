@@ -19,7 +19,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 /*
  * Dynamic phrases that we want to be automatically translated
  *
- * These are in a comment so that they register with the parser, but we don't need them to register at runtime since they will later. 
+ * These are in a comment so that they register with the parser, in place of the dynamic __() function calls with page titles. 
  * 
  * __("Pages"); 
  * __("Setup"); 
