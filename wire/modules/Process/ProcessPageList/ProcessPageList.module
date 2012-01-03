@@ -74,7 +74,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 
 		// ensure that we use the page's title is always consistent in the admin (i.e. 'Pages' not 'Page List')
 		$p = wire('page'); 
-		if($p->name == 'list') Wire::setFuel('processHeadline', $p->parent->title); 
+		if($p->name == 'list' && $p->process == $this) $p->title = $p->parent->title; 
 
 		return $this->render();
 

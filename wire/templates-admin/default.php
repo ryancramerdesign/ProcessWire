@@ -37,7 +37,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
 	<meta name="robots" content="noindex, nofollow" />
 
-	<title><?php echo __(strip_tags($page->get("browser_title|headline|title|name")), __FILE__); ?> &bull; ProcessWire</title>
+	<title><?php echo __(strip_tags($page->get("title|name")), __FILE__); ?> &bull; ProcessWire</title>
 
 	<script type="text/javascript">
 		<?php
