@@ -7,7 +7,7 @@
  * didn't want to keep all this code in the main module that's loaded every request.
  *
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -96,6 +96,7 @@ class LanguageSupportInstall extends Wire {
 		$default->status = Page::statusSystem; 
 		$default->save();
 		$configData['defaultLanguagePageID'] = $default->id; 
+		$configData['otherLanguagePageIDs'] = array(); // non-default language IDs placeholder
 		$this->message("Created Default Language Page: {$default->path}"); 
 
 		// create the translator page and process
@@ -146,51 +147,37 @@ class LanguageSupportInstall extends Wire {
 			$user->save();
 			$n++;
 		}
+
 		$this->message("Added default language to $n user profiles"); 
 
-		$this->modules->get("FieldtypeTextLanguage"); // INSTALL FieldtypeTextLanguage
-		$this->modules->get("FieldtypeTextareaLanguage"); // INSTALL FieldtypeTextareaLanguage
-		$this->message("Installed FieldtypeTextLanguage and FieldtypeTextareaLanguage"); 
+		$this->message("Language Support Installed! Click to the 'Setup' menu to begin defining languages."); 
+
 	}
 
+	/**
+	 * Uninstall the module and related modules
+	 *
+	 */
 	public function ___uninstall() {
 
 		if(!wire('user')->language->isDefault) throw new WireException("Please switch your language back to the default language before uninstalling"); 
-
-
-		// first check if there are any fields using the LanguageInterface
-		$errors = '';
-		foreach(wire('fields') as $field) {
-			if($field->type instanceof FieldtypeLanguageInterface) {
-				$errors .= $field->name . ", "; 
-			}
-		}
-		if($errors) throw new WireException("Can't uninstall because these fields use the language interface: " . rtrim($errors, ", ")); 
-
-		// uninstall any dependent fieldtypes
-		foreach(wire('modules') as $module) {
-			$found = false;
-			$parents = class_parents("$module");
-			if(in_array('FieldtypeLanguageInterface', $parents)) {
-				$this->message("Uninstalling module: $module"); 
-				wire('modules')->uninstall($module); 
-			}
-		}
 
 		// uninstall the components 1 by 1
 		$configData = wire('modules')->getModuleConfigData('LanguageSupport'); 
 
 		$field = $this->fields->get(LanguageSupport::languageFieldName); 
-		$field->flags = Field::flagSystemOverride; 
-		$field->flags = 0; 
-
-		$userFieldgroup = $this->templates->get('user')->fieldgroup; 
-		$userFieldgroup->remove($field); 
-		$userFieldgroup->save();
-		$this->message("Removed language field from user profiles"); 
-
-		$this->fields->delete($field); 	
-		$this->message("Removing field: $field"); 
+		if($field) { 
+			$field->flags = Field::flagSystemOverride; 
+			$field->flags = 0; 
+			$userFieldgroup = $this->templates->get('user')->fieldgroup; 
+			if($userFieldgroup) { 
+				$userFieldgroup->remove($field); 
+				$userFieldgroup->save();
+				$this->message("Removed language field from user profiles"); 
+			}
+			$this->fields->delete($field); 	
+			$this->message("Removing field: $field"); 
+		}
 
 		$deletePageIDs = array(
 			$configData['defaultLanguagePageID'],
@@ -200,6 +187,7 @@ class LanguageSupportInstall extends Wire {
 
 		foreach($deletePageIDs as $id) {
 			$page = $this->pages->get($id); 
+			if(!$page->id) continue; 
 			$page->status = Page::statusSystemOverride; 
 			$page->status = 0;
 			$this->message("Removing page: {$page->path}"); 
@@ -207,22 +195,27 @@ class LanguageSupportInstall extends Wire {
 		}
 
 		$template = $this->templates->get(LanguageSupport::languageTemplateName); 	
-		$template->flags = Template::flagSystemOverride; 
-		$template->flags = 0;
+		if($template) { 
+			$template->flags = Template::flagSystemOverride; 
+			$template->flags = 0;
 
-		$this->message("Removing template: {$template->name}"); 
-		$this->templates->delete($template); 
+			$this->message("Removing template: {$template->name}"); 
+			$this->templates->delete($template); 
+		}
 
 		$fieldgroup = $this->fieldgroups->get(LanguageSupport::languageTemplateName); 
-		$this->message("Removing fieldgroup: $fieldgroup"); 
-		$this->fieldgroups->delete($fieldgroup); 
+		if($fieldgroup) { 
+			$this->message("Removing fieldgroup: $fieldgroup"); 
+			$this->fieldgroups->delete($fieldgroup); 
+		}
 
 		$field = $this->fields->get("language_files"); 
-		$field->flags = Field::flagSystemOverride; 
-		$field->flags = 0;
-
-		$this->message("Removing field: {$field->name}"); 
-		$this->fields->delete($field); 
+		if($field) { 
+			$field->flags = Field::flagSystemOverride; 
+			$field->flags = 0;
+			$this->message("Removing field: {$field->name}"); 
+			$this->fields->delete($field); 
+		}
 
 		Wire::setFuel('languages', null); 
 		$uninstallModules = array('ProcessLanguage', 'ProcessLanguageTranslator'); 
@@ -230,7 +223,6 @@ class LanguageSupportInstall extends Wire {
 			$this->modules->uninstall($name); 
 			$this->message("Uninstalled Module: $name"); 
 		}
-
 
 	}
 }

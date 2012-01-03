@@ -345,7 +345,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		if($fieldtypes && count($fieldtypes)) {
 			foreach($fieldtypes->sort('name') as $fieldtype) {
-				if(!$this->config->advanced && $fieldtype->isAdvanced() && $field->value != $fieldtype->className()) continue; 
+				if(!$this->config->advanced && $fieldtype->isAdvanced() && $this->field->name != 'title' && $field->value != $fieldtype->className()) continue; 
 				$field->addOption($fieldtype->name, $fieldtype->shortName); 
 			}
 		} else {

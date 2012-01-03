@@ -21,17 +21,8 @@ class FieldtypeTextareaLanguage extends FieldtypeTextarea implements FieldtypeLa
 			'title' => 'Textarea (Multi-language)',
 			'version' => 100,
 			'summary' => 'Field that stores a multiple lines of text in multiple languages',
-			'permanent' => false,
-			'requires' => 'LanguageSupport',
+			'requires' => array('LanguageSupportFields')
 			);
-	}
-
-	/**
-	 * Prevent multi-language fields from being auto-joined
-	 *
-	 */
-	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) {
-		return null;
 	}
 
 	/**
@@ -56,11 +47,10 @@ class FieldtypeTextareaLanguage extends FieldtypeTextarea implements FieldtypeLa
          */
         public function getDatabaseSchema(Field $field) {
                 $schema = parent::getDatabaseSchema($field);
-		$languages = wire('languages'); 
-		foreach($languages as $language) {
-			if($language->isDefault) continue; 
-			$schema['data' . $language->id] = $schema['data']; 
-			$schema['keys']["data{$language->id}"] = "FULLTEXT KEY `data{$language->id}` (`data{$language->id}`)";
+		$languageSupport = wire('modules')->get('LanguageSupport'); 
+		foreach($languageSupport->otherLanguagePageIDs as $languageID) {
+			$schema['data' . $languageID] = $schema['data']; 
+			$schema['keys']["data{$languageID}"] = "FULLTEXT KEY `data{$languageID}` (`data{$languageID}`)";
 		}
                 return $schema;
         }

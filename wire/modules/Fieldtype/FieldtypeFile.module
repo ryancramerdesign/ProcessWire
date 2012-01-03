@@ -179,7 +179,7 @@ class FieldtypeFile extends FieldtypeMulti {
 	 * This methos is only used when $page->outputFormatting is true. 
 	 *
 	 */
-	public function formatValue(Page $page, Field $field, $value) {
+	public function ___formatValue(Page $page, Field $field, $value) {
 
 		if(!$value instanceof Pagefiles) return $value; 
 

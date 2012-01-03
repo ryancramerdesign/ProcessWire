@@ -4,7 +4,7 @@
  * Serves as a multi-language value placeholder for field values that contain a value in more than one language. 
  *
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -32,23 +32,20 @@ class LanguagesPageFieldValue extends Wire {
 	 */
 	public function __construct(array $values = null) {
 
-		if(!is_array($values)) $values = array($values); 
+		$languageSupport = wire('modules')->get('LanguageSupport');
+		$this->defaultLanguagePageID = $languageSupport->defaultLanguagePageID; 
 
-		$languages = wire('languages'); 
+		if(!is_array($values)) $values = array('data' => $values); 
 
-		foreach($languages as $language) {
-			
-			if($language->isDefault) {
-				$key = 'data';
-				$this->defaultLanguagePageID = $language->id;
-			} else {
-				$key = 'data' . $language->id; 
-			}
+		if(array_key_exists('data', $values)) {
+			$this->data[$this->defaultLanguagePageID] = $values['data']; 
+		}
 
+		foreach($languageSupport->otherLanguagePageIDs as $id) {
+			$key = 'data' . $id; 	
 			$value = empty($values[$key]) ? '' : $values[$key]; 
-
-			$this->data[$language->id] = $value; 
-		} 
+			$this->data[$id] = $value; 
+		}
 	}
 
 	/**
@@ -61,7 +58,11 @@ class LanguagesPageFieldValue extends Wire {
 	public function setLanguageValue($languageID, $value) {
 		if(is_object($languageID) && $languageID instanceof Language) $languageID = $languageID->id; 
 		$existingValue = isset($this->data[$languageID]) ? $this->data[$languageID] : '';
-		if($this->trackChanges() && $value !== $existingValue) $this->trackChange('data'); 
+		if($value instanceof LanguagesPageFieldValue) {
+			// to avoid potential recursion 
+			$value = $value->getLanguageValue($languageID); 
+		}
+		if($value !== $existingValue) $this->trackChange('data'); 
 		$this->data[(int)$languageID] = $value;
 	}
 
@@ -81,7 +82,6 @@ class LanguagesPageFieldValue extends Wire {
 			}
 			$this->setLanguageValue($language->id, $inputfield->$key); 
 		}
-
 	}
 
 	/**

@@ -2,20 +2,19 @@
 
 /**
  * ProcessWire Languages (plural) Class
+ * 
+ * Class for managing Language-type pages.
+ * Acts as the $wire->languages API variable. 
  *
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
  * http://www.ryancramer.com
-
-/**
- * Class for managing Language-type pages
- *
- * Acts as the $this->languages API variable. 
  *
  */
+
 class Languages extends PagesType {
 
 	/**
@@ -53,24 +52,24 @@ class Languages extends PagesType {
 	}
 
 	/**
-	 * Hook called when new language added
+	 * Enable iteration of this class
 	 *
 	 */
-	protected function ___added(Page $language) { 
-	}
-
-	/**
-	 * Hook called when language deleted
-	 *
-	 */
-	protected function ___deleted(Page $language) { 
-	}
-
-
 	public function getIterator() {
 		return $this->find("id>0, sort=sort");
 	}
 
+	/**
+	 * Hook called when a language is deleted
+	 *
+	 */
+	public function ___deleted(Page $language) { }
+
+	/**
+	 * Hook called when a language is added
+	 *
+	 */
+	public function ___added(Page $language) { }
 
 }
 
