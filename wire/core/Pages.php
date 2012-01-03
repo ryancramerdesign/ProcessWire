@@ -206,9 +206,6 @@ class Pages extends Wire {
 	/**
 	 * Returns only the first match as a Page object (not PageArray).
 	 *
-	 * Otherwise works the same as find(). Excludes any pages the user doesn't have access to view. 
-	 * See the get__() method if you want to include those pages or add: "status<max, check_access=0" to your selector.
-	 * 
 	 * This is an alias of the findOne() method for syntactic convenience and consistency.
 	 * Using get() is preferred.
 	 *

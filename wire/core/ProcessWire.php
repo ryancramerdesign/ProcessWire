@@ -21,6 +21,7 @@ spl_autoload_register('ProcessWireClassLoader');
 require(PROCESSWIRE_CORE_PATH . "Interfaces.php"); 
 require(PROCESSWIRE_CORE_PATH . "Exceptions.php"); 
 require(PROCESSWIRE_CORE_PATH . "Functions.php"); 
+require(PROCESSWIRE_CORE_PATH . "LanguageFunctions.php"); 
 
 register_shutdown_function('ProcessWireShutDown'); 
 
