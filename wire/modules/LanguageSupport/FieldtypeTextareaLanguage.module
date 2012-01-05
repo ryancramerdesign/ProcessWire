@@ -54,4 +54,12 @@ class FieldtypeTextareaLanguage extends FieldtypeTextarea implements FieldtypeLa
 		}
                 return $schema;
         }
+
+	/**
+	 * Format value for output, basically typcasting to a string and sending to textformatters from FieldtypeTextarea
+	 *
+	 */
+	public function formatValue(Page $page, Field $field, $value) {
+		return parent::formatValue($page, $field, (string) $value); 
+	}
 }
