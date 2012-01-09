@@ -579,7 +579,7 @@ class PageFinder extends Wire {
 
 		while($n = count($parts)) {
 			$part = $this->db->escape_string(array_pop($parts)); 
-			if($part) {
+			if(strlen($part)) {
 				$alias = "parent$n";
 				$query->join("pages AS $alias ON ($lastAlias.parent_id=$alias.id AND $alias.name='$part')");
 
@@ -596,7 +596,6 @@ class PageFinder extends Wire {
 	 * TODO not all operators will work here, so may want to add some translation or filtering
 	 *
 	 */
-
 	protected function getQueryNativeField(DatabaseQuerySelect $query, $selector, $field) {
 
 		$value = $selector->value; 
