@@ -942,7 +942,7 @@ class Page extends WireData {
 	public function is($status) {
 
 		if(is_int($status)) {
-			return $this->status & $status; 
+			return ((bool) ($this->status & $status)); 
 
 		} else if(is_string($status) && $this->fuel('sanitizer')->name($status) == $status) {
 			// valid template name
