@@ -96,14 +96,14 @@ DirectoryIndex index.php index.html index.htm
   RewriteCond %{REQUEST_URI} (^|/)\.htaccess$ [NC,OR]
   RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/assets/(cache|logs|backups|sessions|config|install)($|/.*$) [OR]
   RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/install($|/.*$) [OR]
-  RewriteCond %{REQUEST_URI} (^|/)(wire|site|site-[^/]+)/config\.php$ [OR]
+  RewriteCond %{REQUEST_URI} (^|/)(wire|site|site-[^/]+)/(config|index\.config|config-dev)\.php$ [OR]
   RewriteCond %{REQUEST_URI} (^|/)(wire|site|site-[^/]+)/templates-admin($|/|/.*\.(php|html?|tpl|inc))$ [OR]
   RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/templates($|/|/.*\.(php|html?|tpl|inc))$ [OR]
   RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/assets($|/|/.*\.php)$ [OR]
   RewriteCond %{REQUEST_URI} (^|/)wire/(core|modules)/.*\.(php|inc|tpl|module)$ [OR]
   RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/modules/.*\.(php|inc|tpl|module)$ [OR]
   RewriteCond %{REQUEST_URI} (^|/)(COPYRIGHT|INSTALL|README|htaccess)\.txt$ [OR]
-  RewriteCond %{REQUEST_URI} (^|/)(wire/)?config\.index\.php$
+  RewriteCond %{REQUEST_URI} (^|/)site-default/
   RewriteRule ^.*$ - [F,L]
 
   # ----------------------------------------------------------------------------------------------- 
