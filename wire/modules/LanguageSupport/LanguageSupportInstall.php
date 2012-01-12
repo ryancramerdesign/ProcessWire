@@ -160,7 +160,8 @@ class LanguageSupportInstall extends Wire {
 	 */
 	public function ___uninstall() {
 
-		if(!wire('user')->language->isDefault) throw new WireException("Please switch your language back to the default language before uninstalling"); 
+		$language = wire('user')->language; 
+		if($language && $language->id && !$language->isDefault) throw new WireException("Please switch your language back to the default language before uninstalling"); 
 
 		// uninstall the components 1 by 1
 		$configData = wire('modules')->getModuleConfigData('LanguageSupport'); 
@@ -184,6 +185,10 @@ class LanguageSupportInstall extends Wire {
 			$configData['languageTranslatorPageID'],
 			$configData['languagesPageID']
 			);
+
+		// remove any language pages that are in the trash		
+		$trashLanguages = wire('pages')->get(wire('config')->trashPageID)->find("include=all, template=" . LanguageSupport::languageTemplateName); 
+		foreach($trashLanguages as $p) $deletePageIDs[] = $p->id; 
 
 		foreach($deletePageIDs as $id) {
 			$page = $this->pages->get($id); 
