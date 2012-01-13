@@ -20,6 +20,9 @@ class FileLog {
 
 	protected $logFilename = false; 
 	protected $itemsLogged = array(); 
+	protected $delimeter = ':';
+	protected $maxLineLength = 2048;
+	protected $fileExtension = 'txt';
 
 	/**
 	 * Construct the FileLog
@@ -31,7 +34,7 @@ class FileLog {
 	 */
 	public function __construct($path, $identifier = '') {
 		if($identifier) {
-			$this->logFilename = "$path$identifier.txt";
+			$this->logFilename = "$path$identifier.{$this->fileExtension}";
 		} else {
 			$this->logFilename = $path; 
 		}
@@ -41,7 +44,7 @@ class FileLog {
 		$str = strip_tags($str); 
 		$str = preg_replace('/[\r\n]/', ' ', $str); 
 		$str = trim($str); 
-		if(strlen($str) > 1024) $str = substr($str, 0, 1024); 
+		if(strlen($str) > $this->maxLineLength) $str = substr($str, 0, $this->maxLineLength); 
 		return $str; 	
 	}
 
@@ -64,7 +67,7 @@ class FileLog {
 
 			while(!$stop) {
 				if(flock($fp, LOCK_EX)) {
-					fwrite($fp, "$ts: $str\n"); 
+					fwrite($fp, "$ts{$this->delimeter}$str\n"); 
 					flock($fp, LOCK_UN); 
 					$this->itemsLogged[] = $hash; 
 					$stop = true; 
@@ -159,7 +162,17 @@ class FileLog {
 		return $this->filename(); 
 	}	
 
+	public function setDelimeter($c) {
+		$this->delimeter = $c; 
+	}
 
+	public function setMaxLineLength($c) {
+		$this->maxLineLength = (int) $c; 
+	}
+
+	public function setFileExtension($ext) {
+		$this->fileExtension = $ext; 
+	}
 }
 
 

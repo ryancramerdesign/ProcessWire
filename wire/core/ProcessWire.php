@@ -194,20 +194,20 @@ function ProcessWireShutdown() {
 	$type = $error['type'];
 	if(!in_array($type, $fatalTypes)) return;
 
+	$http = isset($_SERVER['HTTP_HOST']); 
 	$config = wire('config');
 	$user = wire('user');
-	$userName = $user ? $user->name : 'Unknown User';
+	$userName = $user ? $user->name : '?';
 	$page = wire('page'); 
-	$path = $page ? $page->url : '/?/'; 
+	$path = ($config ? $config->httpHost : '') . ($page ? $page->url : '/?/'); 
+	if($config && $http) $path = ($config->https ? 'https://' : 'http://') . $path;
 	$line = $error['line'];
 	$file = $error['file'];
-	$message = '';
-	if(isset($types[$type])) $message .= $types[$type];
-		else $message .= "Error";
-	$message .= ":\n$error[message]";
-	if($type != E_USER_ERROR) $message .= " \n(line $line of $file) ";
+	$message = isset($types[$type]) ? $types[$type] : 'Error';
+	if(strpos($error['message'], "\t") !== false) $error['message'] = str_replace("\t", ' ', $error['message']); 
+	$message .= "\t$error[message]";
+	if($type != E_USER_ERROR) $message .= " (line $line of $file) ";
 	$debug = false; 
-	$http = isset($_SERVER['HTTP_HOST']); 
 	$log = null;
 	$why = '';
 	$who = '';
@@ -215,18 +215,21 @@ function ProcessWireShutdown() {
 	if($config) {
 		$debug = $config->debug; 
 		if($config->ajax) $http = false; 
-		$logMessage = "$userName:$path:" . str_replace("\n", "", $message); 
-		if($config->adminEmail) @mail($config->adminEmail, 'ProcessWire Error Notification', $logMessage); 
-		$logMessage = str_replace("\n", " ", $logMessage); 
+		if($config->adminEmail) {
+			$logMessage = "Page: $path\nUser: $userName\n\n" . str_replace("\t", "\n", $message);
+			@mail($config->adminEmail, 'ProcessWire Error Notification', $logMessage); 
+		}
 		if($config->paths->logs) {
+			$logMessage = "$userName\t$path\t" . str_replace("\n", " ", $message); 
 			$log = new FileLog($config->paths->logs . 'errors.txt');
+			$log->setDelimeter("\t"); 
 			$log->save($logMessage); 
 		}
 	}
 
 	// we populate $who to give an ambiguous indication where the full error message has been sent
 	if($log) $who .= "Error has been logged. ";
-	if($config && $config->adminEmail) $who .= "Administrator has been emailed. ";
+	if($config && $config->adminEmail) $who .= "Administrator has been notified. ";
 
 	// we populate $why if we're going to show error details for any of the following reasons: 
 	if($debug) $why = "site is in debug mode (\$config->debug = true; in /site/config.php).";
