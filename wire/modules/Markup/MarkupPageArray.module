@@ -59,6 +59,7 @@ class MarkupPageArray extends WireData implements Module {
 	public function renderPageArray(HookEvent $event) {
 
 		$pageArray = $event->object; 
+		if(!count($pageArray)) return '';
 		$arguments = $event->arguments; 
 		$options = array();
 
