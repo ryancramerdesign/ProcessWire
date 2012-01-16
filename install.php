@@ -12,7 +12,7 @@
  * reason, then you'll want to delete that file. This was implemented just in case someone doesn't delete the installer.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -459,7 +459,7 @@ class Installer {
 
 	public function execute() {
 
-		$title = "ProcessWire 2.1 Installation";
+		$title = "ProcessWire 2.2 Installation";
 		require("./wire/templates-admin/install-head.inc"); 
 
 		if(isset($_POST['step'])) switch($_POST['step']) {

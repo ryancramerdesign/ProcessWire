@@ -309,6 +309,7 @@ class Modules extends WireArray {
 	public function get($key) {
 
 		$module = null; 
+		$justInstalled = false;
 
 		// check for optional module ID and convert to classname if found
 		if(ctype_digit("$key")) {
@@ -331,10 +332,12 @@ class Modules extends WireArray {
 			// check if the request is for an uninstalled module 
 			// if so, install it and return it 
 			$module = $this->install($key); 
+			$justInstalled = true; 
 		}
 
 		// skip autoload modules because they have already been initialized in the load() method
-		if($module && !$this->isAutoload($module)) { 
+		// unless they were just installed, in which case we need do init now
+		if($module && (!$this->isAutoload($module) || $justInstalled)) { 
 			// if the module is configurable, then load it's config data
 			// and set values for each before initializing the module
 			$this->setModuleConfigData($module); 
