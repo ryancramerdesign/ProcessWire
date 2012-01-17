@@ -77,7 +77,6 @@ function ProcessWireBootConfig() {
 	// other default directories
 	$wireDir = 'wire';
 	$coreDir = "$wireDir/core";
-	$siteDir = "site";
 	$assetsDir = "$siteDir/assets";
 	$adminTplDir = 'templates-admin';
 
