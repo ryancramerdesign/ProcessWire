@@ -1,0 +1,444 @@
+<?php
+
+/**
+ * Main multi-language support module
+ *
+ * This module is the front door to all the other language modules and files. 
+ *
+ * ProcessWire 2.x 
+ * Copyright (C) 2012 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class LanguageSupport extends WireData implements Module, ConfigurableModule {
+
+	/**
+	 * Return information about the module
+	 *
+	 */
+        static public function getModuleInfo() {
+                return array(
+                        'title' => 'Languages Support',
+                        'version' => 100,
+                        'summary' => 'ProcessWire multi-language support.',
+			'author' => 'Ryan Cramer',
+			'autoload' => true,
+			'singular' => true,
+			'installs' => array(
+				'ProcessLanguage', 
+				'ProcessLanguageTranslator', 
+				)
+                        );
+        }
+
+	/**
+	 * Name of template used for language pages
+	 *
+	 */
+	const languageTemplateName = 'language';
+
+	/**
+	 * Name of field used to store the language page ref
+	 *
+	 */
+	const languageFieldName = 'language';
+
+	/**
+ 	 * This module can possibly be init'd before PW's Modules class fully loads, so we keep this to prevent double initialization
+	 *
+	 */
+	protected $initialized = false; 
+
+	/**
+	 * Reference to the default language page
+	 *
+	 */
+	protected $defaultLanguagePage = null;
+
+	/**
+	 * Construct and set our dynamic config vars
+	 *
+	 */
+	public function __construct() {
+
+		$this->set('initialized', false); 
+
+		// load other required classes
+		$dirname = dirname(__FILE__); 
+		require_once($dirname . '/FieldtypeLanguageInterface.php'); 
+		require_once($dirname . '/Language.php'); 
+		require_once($dirname . '/Languages.php'); 
+		require_once($dirname . '/LanguageTranslator.php'); 
+		require_once($dirname . '/LanguagesPageFieldValue.php'); 
+
+
+		// set our config var placeholders
+		$this->set('languagesPageID', 0); 
+		$this->set('defaultLanguagePageID', 0); 
+		$this->set('languageTranslatorPageID', 0); 
+
+		// quick reference to non-default language IDs, for when needed before languages loaded
+		$this->set('otherLanguagePageIDs', array()); 
+	}
+
+	/**
+	 * Initialize the language support API vars
+	 *
+	 */
+	public function init() {
+
+		// prevent possible double init
+		if($this->initialized) return; 
+		$this->initialized = true; 
+
+		FieldtypePageTitle::$languageSupport = true; 
+
+		$defaultLanguagePageID = $this->defaultLanguagePageID; 
+
+		// create the $languages API var
+		$languageTemplate = $this->templates->get('language'); 
+		if(!$languageTemplate) return;
+		$languages = new Languages($languageTemplate, $this->languagesPageID); 
+		Wire::setFuel('languages', $languages); 
+
+		// ensure all languages are loaded and get instantiated versions of system/default languages
+		foreach($this->languages as $language) {
+			if($language->id == $defaultLanguagePageID) $this->defaultLanguagePage = $language; 
+		}
+
+		if(!$this->defaultLanguagePage) return; 
+
+		// if the defaultLanguagePage is no longer available (deleted?), make it the system language
+		$this->defaultLanguagePage->setIsDefaultLanguage();
+
+		// identify the current language from the user, or set one if it's not already
+		if($this->user->language && $this->user->language->id) {
+			$language = $this->user->language; 
+		} else {
+			$language = $this->defaultLanguagePage; 
+			$this->user->language = $language; 
+		}
+
+		wire('config')->dateFormat = $this->_('Y-m-d H:i:s'); // Sortable date format used in the admin
+		setlocale(LC_ALL, $this->_('C')); // Value to pass to PHP's setlocale(LC_ALL, 'value') function when initializing this language // Default is: C
+
+		// setup our hooks handled by this class
+		$this->addHookBefore('Inputfield::render', $this, 'hookInputfieldBeforeRender'); 
+		$this->addHookAfter('Inputfield::render', $this, 'hookInputfieldAfterRender'); 
+		$this->addHookAfter('Inputfield::processInput', $this, 'hookInputfieldProcessInput'); 
+		$this->addHookAfter('Field::getInputfield', $this, 'hookFieldGetInputfield'); 
+		$this->pages->addHook('added', $this, 'hookPageAdded'); 
+		$this->pages->addHook('deleteReady', $this, 'hookPageDeleteReady'); 
+
+	}
+
+	/**
+	 * Called by ProcessWire when API is fully ready with known $page
+	 *
+	 */
+	public function ready() {
+		// styles used by our Inputfield hooks
+		if(wire('page')->template == 'admin') { 
+			$this->config->styles->add($this->config->urls->LanguageSupport . "LanguageSupport.css"); 
+		}
+
+		// populate a LanguageSupportFields var to this class, if it's installed
+		$name = 'LanguageSupportFields';
+		$this->set($name, wire('modules')->isInstalled($name) ? wire('modules')->get($name) : null); 
+	}
+
+	/**
+	 * Hook before Inputfield::render to set proper default language value
+	 *
+	 * Only applies to Inputfields that have: useLanguages == true
+	 *
+	 */
+	public function hookInputfieldBeforeRender(HookEvent $event) {
+
+		$inputfield = $event->object; 
+		if(!$inputfield->useLanguages) return; 
+
+		$userLanguage = wire('user')->language; 
+		
+		if($userLanguage->id !== $this->defaultLanguagePageID) {
+			$inputfield->attr('value', $inputfield->get('value' . $this->defaultLanguagePageID)); 
+		}
+	}
+
+	/**
+	 * Wrap the inputfield output with a language name label
+	 *
+	 * @param string $out Existing inputfield output
+	 * @param string $id ID attribute to use
+	 * @param string $label Text label (typically language name)
+	 *
+	 */
+	protected function wrapInputfieldOutput($out, $id, $label) {
+		$out  = "\n<div class='LanguageSupport'>" . 
+			"\n<label for='$id' class='LanguageSupportLabel detail'>$label</label>" . $out . 
+			"\n</div>";
+		return $out; 
+	}
+
+	/**
+	 * Hook into Inputfield::render to duplicate inputs for other languages
+	 *
+	 * Only applies to Inputfields that have: useLanguages == true
+	 *
+	 */
+	public function hookInputfieldAfterRender(HookEvent $event) {
+
+		$inputfield = $event->object; 
+		$name = $inputfield->attr('name'); 
+
+		// provide an automatic translation for some system/default fields if they've not been overridden in the fields editor
+		if($name == 'language' && $inputfield->label == 'Language') $inputfield->label = $this->_('Language'); // Label for 'language' field in user profile
+			else if($name == 'email' && $inputfield->label == 'E-Mail Address') $inputfield->label = $this->_('E-Mail Address'); // Label for 'email' field in user profile
+			else if($name == 'title' && $inputfield->label == 'Title') $inputfield->label = $this->_('Title'); // Label for 'title' field used throughout ProcessWire
+
+		// check if this is a language alternate field (i.e. title_es or title)
+		if($this->LanguageSupportFields && strpos($name, '_') && wire('fields')->get($name)) {
+			$language = $this->LanguageSupportFields->getAlternateFieldLanguage($name); 
+			if($language && $language->id) {
+				$event->return = $this->wrapInputfieldOutput($event->return, $inputfield->attr('id'), $language->title); 			
+				return;
+			}
+		}
+
+		// if inputfield doesn't have a 'useLanguages' var set in it, then we're done, abort
+		if(!$inputfield->useLanguages) return; 
+
+		// keep originals to restore later (including $name, which we already got above)
+		$id = $inputfield->attr('id');
+		$value = $inputfield->attr('value');
+
+		$trackChanges = $inputfield->trackChanges(); 
+		$inputfield->setTrackChanges(false); 
+		$out = '';
+
+		foreach(wire('languages') as $language) {
+			$languageID = (int) $language->id; 
+
+			if($language->isDefault) { 
+				// default language
+				$newID = $id;
+				$o = $event->return; 
+
+			} else {
+				// non-default language
+				$newID = $id . "__$languageID";
+				$newName = $name . "__$languageID";
+				$inputfield->attr('id', $newID); 
+				$inputfield->attr('name', $newName); 
+				$valueAttr = "value$languageID";
+				$inputfield->setAttribute('value', $inputfield->$valueAttr); 
+				$o = $inputfield->___render(); 
+			}
+
+			$out .= $this->wrapInputfieldOutput($o, $newID, $language->title);
+		}
+
+		$inputfield->setAttribute('name', $name);
+		$inputfield->setAttribute('id', $id);
+		$inputfield->setAttribute('value', $value);
+		$inputfield->setTrackChanges($trackChanges); 
+
+		$event->return = $out; 
+	}
+
+	/**
+	 * Hook into Inputfield::processInput to process input for other languages
+	 *
+	 * Only applies to Inputfields that have: useLanguages == true
+	 *
+	 */
+	public function hookInputfieldProcessInput(HookEvent $event) {
+
+		$inputfield = $event->object; 
+		if(!$inputfield->useLanguages) return;
+		$post = $event->arguments[0];
+
+		// originals
+		$name = $inputfield->attr('name');
+		$id = $inputfield->attr('id');
+		$value = $inputfield->attr('value');
+
+		foreach(wire('languages') as $language) {
+			if($language->isDefault) continue; 
+			$languageID = (int) $language->id; 	
+			$newID = $id . "__$languageID";
+			$newName = $name . "__$languageID";
+			$inputfield->setTrackChanges(false);
+			$inputfield->attr('id', $newID); 
+			$inputfield->attr('name', $newName); 
+			$valueAttr = "value$languageID";
+			$inputfield->setAttribute('value', $inputfield->$valueAttr); 
+			$inputfield->setTrackChanges(true);
+			$inputfield->___processInput($post);
+			$inputfield->set($valueAttr, $inputfield->attr('value')); 
+		}
+
+		$inputfield->setTrackChanges(false);
+		$inputfield->setAttribute('name', $name);
+		$inputfield->setAttribute('id', $id);
+		$inputfield->setAttribute('value', $value);
+		$inputfield->setTrackChanges(true); 
+
+	}
+
+	/**
+	 * Hook into Field::getInputfield to change label/description to proper language
+	 *
+	 */
+	public function hookFieldGetInputfield(HookEvent $event) {
+
+		$language = wire('user')->language; 
+		if(!$language) return; 
+
+		$field = $event->object; 
+		$inputfield = $event->return; 
+		$translatable = array('label', 'description', 'notes');
+
+		// populate language versions where available
+		foreach($translatable as $key) {
+			$langKey = $key . $language->id; // i.e. label1234
+			$value = $field->$langKey; 
+			if(!$value) continue; 
+			$inputfield->$key = $value;
+		}
+
+		// see if this fieldtype supports languages natively
+		if($field->type instanceof FieldtypeLanguageInterface) {
+
+			// populate useLanguages in the inputfield so we can detect it elsehwere
+			$inputfield->set('useLanguages', true); 
+
+			$page = $event->arguments[0];
+			$value = $page->get($field->name); 
+
+			// set values in this field specific to each language
+			foreach(wire('languages') as $language) {
+				if(is_object($value) && $value instanceof LanguagesPageFieldValue) {
+					$languageValue = $value->getLanguageValue($language->id);
+				} else {
+					if($language->isDefault) $languageValue = $value; 
+						else $languageValue = '';
+				}
+				//if($language->isDefault) $inputfield->setAttribute('value', $languageValue);  
+				$inputfield->set('value' . $language->id, $languageValue); 	
+			}
+		}
+
+		$event->return = $inputfield; 
+	}
+
+	/**
+	 * Hook called when new language added
+	 *
+	 */
+	public function hookPageAdded(HookEvent $event) {
+
+		$page = $event->arguments[0];
+		if($page->template->name != self::languageTemplateName) return; 
+
+		// trigger hook in $languages
+		wire('languages')->added($page);
+
+		// save this as a known language page with module settings
+		// this is a shortcut used to identify language pages before the API is fully ready
+		$configData = wire('modules')->getModuleConfigData('LanguageSupport'); 
+		$configData['otherLanguagePageIDs'][] = $page->id; 
+		wire('modules')->saveModuleConfigData('LanguageSupport', $configData); 
+
+	}
+
+	/**
+	 * Hook called when language is deleted
+	 *
+	 */
+	public function hookPageDeleteReady(HookEvent $event) {
+
+		$page = $event->arguments[0];
+		if($page->template->name != self::languageTemplateName) return; 
+		$language = $page; 
+
+		// remove any language-specific values from any fields
+		foreach(wire('fields') as $field) {
+
+			$changed = false;
+
+			foreach(array('label', 'description', 'notes') as $name) {
+				$name = $name . $language->id;	
+				if(!isset($field->$name)) continue;
+				$field->remove($name);
+				$this->message("Removed {$language->name} $name from field {$field->name}"); 
+				$changed = true;
+			}
+
+			if($changed) $field->save();
+		}
+
+		// remove template labels
+		foreach(wire('templates') as $template) {
+			$name = 'label' . $page->id; 
+			if(isset($template->$name)) {
+				$template->remove($name); 
+				$template->save();
+				$this->message("Removed {$language->name} label from template {$template->name}"); 
+			}
+		}
+
+		// trigger hook in $languages
+		wire('languages')->deleted($page);
+
+		// update the other language module IDs to remove the uninstalled language
+		$configData = wire('modules')->getModuleConfigData('LanguageSupport'); 
+		$key = array_search($page->id, $configData['otherLanguagePageIDs']); 
+		if($key !== false) {
+			unset($configData['otherLanguagePageIDs'][$key]); 
+			wire('modules')->saveModuleConfigData('LanguageSupport', $configData); 
+		}
+	}
+
+	/**
+	 * Module configuration screen
+	 *
+	 */
+	public static function getModuleConfigInputfields(array $data) {
+		$form = new InputfieldWrapper();
+		// TBA
+		return $form; 
+	}
+
+	/**
+	 * Install or uninstall by loading the LanguageSupportInstall script
+	 *
+	 */
+	protected function installer($install = true) {
+		require_once($this->config->paths->LanguageSupport . 'LanguageSupportInstall.php'); 
+		$installer = new LanguageSupportInstall();
+		if($install) $installer->install();
+			else $installer->uninstall();
+	}
+
+	/**
+	 * Install the module
+	 *
+	 */
+	public function ___install() {
+		$this->installer(true); 
+	}
+
+	/**
+	 * Uninstall the module
+	 *
+	 */
+	public function ___uninstall() {
+		$this->installer(false);
+	}
+
+}

@@ -161,11 +161,13 @@ class PagesType extends Wire implements IteratorAggregate {
 	public function ___add($name) {
 		
 		$className = $this->template->pageClass ? $this->template->pageClass : 'Page';
+		$parent = $this->pages->get($this->parent_id); 
 
 		$page = new $className(); 
 		$page->template = $this->template; 
-		$page->parent_id = $this->parent_id; 
+		$page->parent = $parent; 
 		$page->name = $name; 
+		$page->sort = $parent->numChildren; 
 
 		try {
 			$this->save($page); 

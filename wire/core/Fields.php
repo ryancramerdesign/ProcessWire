@@ -166,15 +166,19 @@ class Fields extends WireSaveableItems {
 	}
 
 	/**
-	 * Per WireSaveableItems interface, save a Field to the database
+	 * Save a Field to the database
+	 *
+	 * @param Field $item The field to save
+	 * @return bool True on success, false on failure
 	 *
 	 */
 	public function ___save(Saveable $item) {
 
+		$isNew = $item->id < 1;
 		$prevTable = $item->prevTable;
 		$table = $item->getTable();
 
-		if($prevTable && $prevTable != $table) {
+		if(!$isNew && $prevTable && $prevTable != $table) {
 			// note that we rename the table twice in order to force MySQL to perform the rename 
 			// even if only the case has changed. 
 			$this->fuel('db')->query("RENAME TABLE `$prevTable` TO `tmp_$table`"); 
@@ -191,7 +195,6 @@ class Fields extends WireSaveableItems {
 			}
 		}
 
-		$isNew = !$item->id;
 		if(!$item->type) throw new WireException("Can't save a Field that doesn't have it's 'type' property set to a Fieldtype"); 
 		if(!parent::___save($item)) return false;
 		if($isNew) $item->type->createField($item); 
@@ -213,7 +216,10 @@ class Fields extends WireSaveableItems {
 	}
 
 	/**
-	 * Per WireSaveableItems interface, delete a Field from the database
+	 * Delete a Field from the database
+	 *
+	 * @param Saveable $item Item to save
+	 * @return bool True on success, false on failure
 	 *
 	 */
 	public function ___delete(Saveable $item) {
@@ -238,8 +244,37 @@ class Fields extends WireSaveableItems {
 		return parent::___delete($item); 
 	}
 
+
+	/**
+	 * Create and return a cloned copy of the given Field
+	 *
+	 * @param Saveable $item Item to clone
+	 * @param bool|Saveable $item Returns the new clone on success, or false on failure
+	 *
+	 */
+	public function ___clone(Saveable $item) {
+	
+		$item = clone $item; 	
+	
+		// don't clone system flags	
+		if($item->flags & Field::flagSystem || $item->flags & Field::flagPermanent) {
+			$item->flags = $item->flags | Field::flagSystemOverride; 
+			if($item->flags & Field::flagSystem) $item->flags = $item->flags & ~Field::flagSystem;
+			if($item->flags & Field::flagPermanent) $item->flags = $item->flags & ~Field::flagPermanent;
+			$item->flags = $item->flags & ~Field::flagSystemOverride;
+		}
+
+		// done clone the 'global' flag
+		if($item->flags & Field::flagGlobal) $item->flags = $item->flags & ~Field::flagGlobal;
+
+		return parent::___clone($item);
+	}
+
+
 	/**
 	 * Change a field's type
+	 *
+	 * @param Field $field1 Field with the new type
 	 *
 	 */
 	protected function ___changeFieldtype(Field $field1) {
@@ -304,6 +339,8 @@ class Fields extends WireSaveableItems {
 		foreach($field1->getArray() as $key => $value) {
 			// skip fields that may be shared among any fieldtype
 			if(in_array($key, array('description', 'required', 'collapsed', 'notes'))) continue; 
+			// skip over language labels/descriptions
+			if(preg_match('/^(description|label|notes)\d+/', $key)) continue; 
 			// remove the custom field
 			$field1->remove($key); 
 		}
@@ -313,6 +350,9 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Is the given field name native/permanent to the database?
+	 *
+	 * @param string $name
+	 * @return bool
 	 *
 	 */
 	public static function isNativeName($name) {

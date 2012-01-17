@@ -108,8 +108,9 @@ class Template extends WireData implements Saveable {
 	 */
 	protected $data = array(
 		'useRoles' => 0, 		// does this template define access?
-		'addRoles' => array(),		// IDs of roles that may add children to pages using this template
 		'editRoles' => array(),		// IDs of roles that may edit pages using this template
+		'addRoles' => array(),		// IDs of roles that may add children to pages using this template
+		'createRoles' => array(),	// IDs of roles that may create pages using this template
 		'childrenTemplatesID' => 0, 	// template ID for child pages, or -1 if no children allowed. DEPRECATED
 		'noChildren' => '', 		// set to 1 to cancel use of childTemplates
 		'noParents' => '', 		// set to 1 to cancel use of parentTemplates
@@ -129,6 +130,7 @@ class Template extends WireData implements Saveable {
 		'noTrash' => 0,			// pages using thsi template may not go in trash? (i.e. they will be deleted not trashed)
 		'noSettings' => 0, 		// don't show a 'settings' tab on pages using this template?
 		'noChangeTemplate' => 0, 	// don't allow pages using this template to change their template?
+		'noUnpublish' => 0,		// don't allow pages using this template to ever exist in an unpublished state - if page exists, it must be published 
 		'nameContentTab' => 0, 		// pages should display the 'name' field on the content tab?	
 		'noCacheGetVars' => '',		// GET vars that trigger disabling the cache (only when cache_time > 0)
 		'noCachePostVars' => '',	// POST vars that trigger disabling the cache (only when cache_time > 0)
@@ -153,6 +155,7 @@ class Template extends WireData implements Saveable {
 		if($key == 'fieldgroup') return $this->fieldgroup; 
 		if($key == 'fieldgroupPrevious') return $this->fieldgroupPrevious; 
 		if($key == 'roles') return $this->getRoles();
+		if($key == 'cacheTime') $key = 'cache_time'; // for camel case consistency
 
 		return isset($this->settings[$key]) ? $this->settings[$key] : parent::get($key); 
 	}
@@ -347,7 +350,7 @@ class Template extends WireData implements Saveable {
 			foreach($this->fieldgroup as $field) {
 				if($field->flags & Field::flagPermanent) $hasPermanentFields = true; 
 			}
-			if($hasPermanentFields) throw new WireException("Fieldgroup for template '{$this}' may not be changed because it has permanent fields."); 
+			if($this->id && $hasPermanentFields) throw new WireException("Fieldgroup for template '{$this}' may not be changed because it has permanent fields."); 
 		}
 
 		$this->fieldgroup = $fieldgroup;
@@ -426,7 +429,7 @@ class Template extends WireData implements Saveable {
 				$a['roles'][] = $role->id;
 			}
 		} else {
-			unset($a['roles'], $a['editRoles'], $a['addRoles']); 
+			unset($a['roles'], $a['editRoles'], $a['addRoles'], $a['createRoles']); 
 		}
 
 		return $a;

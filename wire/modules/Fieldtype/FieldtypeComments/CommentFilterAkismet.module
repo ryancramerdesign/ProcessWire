@@ -31,6 +31,7 @@ class CommentFilterAkismet extends CommentFilter implements Module, Configurable
 			'permanent' => false, 
 			'singular' => false,
 			'autoload' => false,
+			'requires' => 'FieldtypeComments',
 			);
 	}
 

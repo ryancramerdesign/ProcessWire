@@ -72,10 +72,13 @@ interface Module {
 	 * 		return array(
 	 * 			'title' => 'Your Module's Title',
 	 * 			'version' => 100,
+	 *			'author' => 'Ryan Cramer',
 	 * 			'summary' => 'Description of what this module does and who made it.',
 	 * 			'href' => 'http://www.domain.com/info/about/this/module/', 
 	 * 			'singular' => false,
 	 *			'autoload' => false,
+	 *			'requires' => array('HelloWorld', 'LazyCron'), 
+	 *			'installs' => array('Module1', 'Module2', 'Module3'),
 	 * 			);
 	 * 	}
 	 * 
@@ -86,8 +89,13 @@ interface Module {
 	 * 	+ title: The module's title. 
 	 * 	+ version: an integer that indicates the version number, 101 = 1.0.1
 	 * 	+ summary: a summary of the module (1 sentence to 1 paragraph reommended)
-	 * 	- permanent: boolean - true only if the module is permanent and uninstallable (like for core PW modules)
 	 * 	- href: URL to more information about the module. 
+	 *	- requires: array of module class names that are required by this module in order to install.
+	 * 		If just one module is required, then it can also be a string with just the module name.
+	 *	- installs: array of module class names that this module will handle install/uninstall.
+	 *		This causes PW's dependency checker to ignore them and it is assumed your module will handle them (optional).	
+	 * 		If your module does not handle them, PW will automatically install/uninstall them immediately after your module.
+	 *		Like requires, this may be a string if there's only one and must be an array if multiple.
 	 * 	* singular: is only one instance of this module allowed? return boolean true or false.
 	 * 		If specified, this overrides the isSingular() method, if that method exists in your class.
 	 * 		See the information for the isSingular() method for more about the 'singular' property.
@@ -96,6 +104,8 @@ interface Module {
 	 *		If specified, this overrides the isAutoload() method, if that method exists in your class. 
 	 *		See the information for the isAutoload() method for more about the 'autoload' property.
 	 * 		If you don't provide an isAutoload() method, then you should provide this property here. 
+	 * 	- permanent: boolean, for core only. True only if the module is permanent and uninstallable. 
+	 *		This is true only of PW core modules, so leave this out elsewhere.
 	 *
 	 * @return array
 	 *

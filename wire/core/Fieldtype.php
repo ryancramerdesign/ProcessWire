@@ -220,7 +220,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 * @return string
 	 *
 	 */
-	public function formatValue(Page $page, Field $field, $value) {
+	public function ___formatValue(Page $page, Field $field, $value) {
 		return $value; 
 	}
 

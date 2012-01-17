@@ -11,17 +11,17 @@
  * of any changes made in this file. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
- * @version 2.1
+ * @version 2.2
  *
  */
 
-define("PROCESSWIRE", 201); 
+define("PROCESSWIRE", 202); 
 
 /**
  * Build the ProcessWire configuration
@@ -39,6 +39,7 @@ function ProcessWireBootConfig() {
 	if(DIRECTORY_SEPARATOR != '/') $rootPath = str_replace(DIRECTORY_SEPARATOR, '/', $rootPath); 
 
 	if(isset($_SERVER['HTTP_HOST'])) {
+		$httpHost = strtolower($_SERVER['HTTP_HOST']);
 
 		// when serving pages from a web server
 		$rootURL = rtrim(dirname($_SERVER['SCRIPT_NAME']), "/\\") . '/';
@@ -54,9 +55,26 @@ function ProcessWireBootConfig() {
 
 	} else {
 		// when included from another app or command line script
+		$httpHost = '';
 		$rootURL = '/';
 	}
 
+	/*
+	 * Allow for an optional /index.config.php file that can point to a different site configuration per domain/host.
+	 *
+	 */     
+	$siteDir = 'site'; 
+	$indexConfigFile = $rootPath . "/index.config.php"; 
+
+	if(is_file($indexConfigFile)) {
+		// optional config file is present in root
+		@include($indexConfigFile);
+		$hostConfig = function_exists("ProcessWireHostSiteConfig") ? ProcessWireHostSiteConfig() : array();
+		if($httpHost && isset($hostConfig[$httpHost])) $siteDir = $hostConfig[$httpHost];
+			else if(isset($hostConfig['*'])) $siteDir = $hostConfig['*']; // default override
+	} 
+
+	// other default directories
 	$wireDir = 'wire';
 	$coreDir = "$wireDir/core";
 	$siteDir = "site";
@@ -111,7 +129,7 @@ function ProcessWireBootConfig() {
 	 *
 	 */
 	if($config->debug) {
-		error_reporting(E_ALL | E_STRICT); 
+		error_reporting(E_ALL | E_STRICT);
 		ini_set('display_errors', 1);
 	} else {
 		error_reporting(0);

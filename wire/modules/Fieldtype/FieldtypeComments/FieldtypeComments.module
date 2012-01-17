@@ -56,7 +56,7 @@ class FieldtypeComments extends FieldtypeMulti {
 			'title' => 'Comments',
 			'version' => 100,
 			'summary' => 'Field that stores user posted comments for a single Page',
-			'permanent' => false, 
+			'installs' => array('InputfieldCommentsAdmin'),
 			);
 	}
 

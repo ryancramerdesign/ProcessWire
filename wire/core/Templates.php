@@ -135,6 +135,8 @@ class Templates extends WireSaveableItems {
 	 */
 	public function ___save(Saveable $item) {
 
+		$isNew = $item->id < 1; 
+
 		if(!$item->fieldgroup->id) throw new WireException("You must save Fieldgroup '{$item->fieldgroup}' before adding to Template '{$item}'"); 
 
 		$rolesChanged = $item->isChanged('useRoles');
@@ -146,7 +148,7 @@ class Templates extends WireSaveableItems {
 
 		$result = parent::___save($item); 
 
-		if($result && $item->fieldgroupPrevious && $item->fieldgroupPrevious->id != $item->fieldgroup->id) {
+		if($result && !$isNew && $item->fieldgroupPrevious && $item->fieldgroupPrevious->id != $item->fieldgroup->id) {
 			// the fieldgroup has been changed
 			// remove data from all fields that are not part of the new fieldgroup
 			$removeFields = new FieldsArray();
@@ -184,6 +186,51 @@ class Templates extends WireSaveableItems {
 		if($cnt > 0) throw new WireException("Can't delete template '{$item->name}' because it is used by $cnt pages.");  
 
 		return parent::___delete($item);
+	}
+
+	/**
+	 * Create and return a cloned copy of this template
+	 *
+	 * Note that this also clones the Fieldgroup if the template being cloned has it's own named fieldgroup.
+	 *
+	 * @param Saveable $item Item to clone
+	 * @param bool|Saveable $item Returns the new clone on success, or false on failure
+	 *
+	 */
+	public function ___clone(Saveable $item) {
+
+		$original = $item;
+		$item = clone $item; 
+
+		if($item->flags & Template::flagSystem) {
+			// we want to avoid creating clones that have system flags
+			$item->flags = $item->flags | Template::flagSystemOverride; 
+			$item->flags = $item->flags & ~Template::flagSystem;
+			$item->flags = $item->flags & ~Template::flagSystemOverride;
+		}
+
+		$item->id = 0; // note this must be after removing system flags
+
+		$fieldgroup = $item->fieldgroup; 
+
+		if($fieldgroup->name == $item->name) {
+			// if the fieldgroup and the item have the same name, we'll also clone the fieldgroup
+			$fieldgroup = wire('fieldgroups')->clone($fieldgroup); 	
+			$item->fieldgroup = $fieldgroup;
+		}
+
+		$item = parent::___clone($item);
+
+		if($item && $item->id && !$item->altFilename) { 
+			// now that we have a clone, lets also clone the template file, if it exists
+			$path = $this->fuel('config')->paths->templates; 
+			$file = $path . $item->name . '.' . $this->fuel('config')->templateExtension; 
+			if($original->filenameExists() && is_writable($path) && !file_exists($file)) { 
+				if(copy($original->filename, $file)) $item->filename = $file;
+			}
+		}
+
+		return $item;
 	}
 
 

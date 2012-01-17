@@ -34,8 +34,8 @@ class CacheFile {
 	protected $cacheTimeSeconds = 0; 
 	protected $globalExpireFile = '';
 	protected $globalExpireTime = 0;
-        protected $chmodFile = "0666";
-        protected $chmodDir = "0777";
+	protected $chmodFile = "0666";
+	protected $chmodDir = "0777";
 
 
 	/**

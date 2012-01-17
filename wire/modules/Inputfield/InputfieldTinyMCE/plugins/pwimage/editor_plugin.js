@@ -80,8 +80,10 @@ var $iframe;
 
 				$iframe = $('<iframe id="pwimage_iframe" width="100%" frameborder="0" src="' + modalUri + queryString + '"></iframe>'); 
 
+				var selectImageLabel = 
+
 				$iframe.dialog({
-					title: "Select Image", 
+					title: config.InputfieldTinyMCE.pwimage.selectLabel, // "Select Image", 
 					height: windowHeight,
 					width: windowWidth,
 					position: [100, 80], 
@@ -98,91 +100,87 @@ var $iframe;
 
 					if($i.find("#selected_image").size() > 0) {
 
-						$iframe.dialog("option", "buttons", {
+						$iframe.dialog("option", "buttons", [
+							{ 
+								text: config.InputfieldTinyMCE.pwimage.insertBtn, // "Insert This Image",
+								click:  function() {
 
-							"Insert This Image": function() {
+									function insertImage(src) {
 
-								function insertImage(src) {
+										var $i = $iframe.contents();
+										var $img = $("#selected_image", $i); 
+										//var src = $img.attr('src'); 
+										var width = $img.attr('width');
+										var height = $img.attr('height'); 
+										var alt = $("#selected_image_description", $i).val();
+										var cls = $img.removeClass('ui-resizable').attr('class'); 
+										var link = $("#selected_image_link:checked", $i).val();
+										var html = '<img class="' + cls + '" src="' + src + '" mce_src="' + src + '" '; 
+
+										if(alt && alt.length > 0) alt = $("<div />").text(alt).html().replace(/"/g, '&quot;'); 
+
+										if(width > 0) html += 'width="' + width + '" '; 
+										if(height > 0) html += 'height="' + height + '" '; 
+										html += 'alt="' + alt + '" />';
+										if(link && link.length > 0) html = "<a href='" + link + "'>" + html + "</a>";
+										if(nodeParent && $nodeParent.is("a")) se.select(nodeParent); // add it to the selection 
+										//se.select(nodeParent); // add it to the selection 
+										tinyMCE.execCommand('mceInsertContent', false, html);
+										$iframe.dialog("close"); 
+									}
 
 									var $i = $iframe.contents();
 									var $img = $("#selected_image", $i); 
-									//var src = $img.attr('src'); 
+
+									$iframe.dialog("disable").dialog("option", "title", config.InputfieldTinyMCE.pwimage.savingNote); // Saving Image
+									$img.removeClass("resized"); 
+
+									var cls = $img.attr('class'); 
 									var width = $img.attr('width');
+									if(!width) width = $img.width();
 									var height = $img.attr('height'); 
-									var alt = $("#selected_image_description", $i).val();
-									var cls = $img.removeClass('ui-resizable').attr('class'); 
-									var link = $("#selected_image_link:checked", $i).val();
-									var html = '<img class="' + cls + '" src="' + src + '" mce_src="' + src + '" '; 
+									if(!height) height = $img.height();
+									var file = $img.attr('src'); 
+									var page_id = $("#page_id", $i).val();
+									file = file.substring(file.lastIndexOf('/')+1); 
 
-									if(alt && alt.length > 0) alt = $("<div />").text(alt).html().replace(/"/g, '&quot;'); 
+									$.get(modalUri + 'resize?id=' + page_id + '&file=' + file + '&width=' + width + '&height=' + height, function(data) {
+										var $div = $("<div></div>").html(data); 
+										var src = $div.find('#selected_image').attr('src');
+										insertImage(src); 
+									}); 
 
-									if(width > 0) html += 'width="' + width + '" '; 
-									if(height > 0) html += 'height="' + height + '" '; 
-									html += 'alt="' + alt + '" />';
-									if(link && link.length > 0) html = "<a href='" + link + "'>" + html + "</a>";
-									if(nodeParent && $nodeParent.is("a")) se.select(nodeParent); // add it to the selection 
-									//se.select(nodeParent); // add it to the selection 
-									tinyMCE.execCommand('mceInsertContent', false, html);
-									$iframe.dialog("close"); 
 								}
+							}, {
 
-								var $i = $iframe.contents();
-								var $img = $("#selected_image", $i); 
-
-								$iframe.dialog("disable").dialog("option", "title", "Saving Image"); 
-								$img.removeClass("resized"); 
-
-								var cls = $img.attr('class'); 
-								var width = $img.attr('width');
-								if(!width) width = $img.width();
-								var height = $img.attr('height'); 
-								if(!height) height = $img.height();
-								var file = $img.attr('src'); 
-								var page_id = $("#page_id", $i).val();
-								file = file.substring(file.lastIndexOf('/')+1); 
-
-								$.get(modalUri + 'resize?id=' + page_id + '&file=' + file + '&width=' + width + '&height=' + height, function(data) {
-									var $div = $("<div></div>").html(data); 
-									var src = $div.find('#selected_image').attr('src');
-									insertImage(src); 
-								}); 
-
-							},
-
-							"Select Another Image": function() {
-								var $i = $iframe.contents();
-								var page_id = $("#page_id", $i).val();
-								$iframe.attr('src', modalUri + '?id=' + page_id + '&modal=1'); 
-								$iframe.dialog("option", "buttons", {}); 
-							},
-
-							Cancel: function() {
-								$iframe.dialog("close"); 
+								text: config.InputfieldTinyMCE.pwimage.selectBtn, // "Select Another Image", 
+								click: function() {
+									var $i = $iframe.contents();
+									var page_id = $("#page_id", $i).val();
+									$iframe.attr('src', modalUri + '?id=' + page_id + '&modal=1'); 
+									$iframe.dialog("option", "buttons", {}); 
+								}
+							}, {
+								text: config.InputfieldTinyMCE.pwimage.cancelBtn, // "Cancel",
+								click: function() { $iframe.dialog("close"); }
 							}
-
-						}).dialog("option", "title", "Edit Image").width(windowWidth).height(windowHeight);
+						]).dialog("option", "title", config.InputfieldTinyMCE.pwimage.editLabel).width(windowWidth).height(windowHeight); // "Edit Image"
 
 
 					} else {
-						$iframe.dialog("option", "buttons", {
-							Cancel: function() {
-								$iframe.dialog("close"); 
+						$iframe.dialog("option", "buttons", [
+							{
+								text: config.InputfieldTinyMCE.pwimage.cancelBtn, // "Cancel", 
+								click: function() { $iframe.dialog("close"); }
 							}
-						}).width(windowWidth).height(windowHeight);
+						]).width(windowWidth).height(windowHeight);
 					}
-
-
-
 				});
-
-
-			
-
 			});
 
 			// Register buttons
 			ed.addButton('image', {
-				title : 'pwimage.image_desc',
+				title : config.InputfieldTinyMCE.pwimage.selectLabel, // 'pwimage.image_desc',
 				cmd : 'mcePwImage'
 			});
 

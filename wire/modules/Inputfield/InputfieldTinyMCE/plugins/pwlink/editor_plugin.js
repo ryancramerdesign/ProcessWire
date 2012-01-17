@@ -52,8 +52,11 @@ var editorCursorPosition; // for IE8
 				var windowHeight = $(window).height()-300; 
 				if(windowHeight > 800) windowHeight = 800; 
 
+				var insertLinkLabel = config.InputfieldTinyMCE.pwlink.label; 
+				var cancelLabel = config.InputfieldTinyMCE.pwlink.cancel;
+
 				$iframe.dialog({
-					title: "Insert Link", 
+					title: insertLinkLabel,
 					height: windowHeight,
 					width: windowWidth,
 					position: [150,80],
@@ -62,40 +65,40 @@ var editorCursorPosition; // for IE8
 						opacity: 0.7,
 						background: "black"
 					},
-					buttons: {
-						"Insert Link": function() {
+					buttons: [
+						{ 
+							text: insertLinkLabel,
+							click: function() {
 
-							var $i = $iframe.contents();
+								var $i = $iframe.contents();
 
-							// restore selection IE fix
-							ed.selection.moveToBookmark(editorCursorPosition);
+								// restore selection IE fix
+								ed.selection.moveToBookmark(editorCursorPosition);
 
-							var selection = tinymceSelection;
-							var url = $("#link_page_url", $i).val();
-							var target = $("#link_target", $i).is(":checked") ? "_blank" : ''; 
-							var anchorText = '';
-							var html = '';
-							var $node = $(selection.getNode());
+								var selection = tinymceSelection;
+								var url = $("#link_page_url", $i).val();
+								var target = $("#link_target", $i).is(":checked") ? "_blank" : ''; 
+								var anchorText = '';
+								var html = '';
+								var $node = $(selection.getNode());
 
-							if($node.is("a")) anchorText = $node.html();
-								else anchorText = selection.getContent();
+								if($node.is("a")) anchorText = $node.html();
+									else anchorText = selection.getContent();
 
-							if(target.length > 0) target = ' target="' + target + '"';
-							if(url.length) { 
-								html = '<a href="' + url + '"' + target + '>' + anchorText + '</a>';
-								tinyMCE.execCommand('mceInsertContent', false, html);
+								if(target.length > 0) target = ' target="' + target + '"';
+								if(url.length) { 
+									html = '<a href="' + url + '"' + target + '>' + anchorText + '</a>';
+									tinyMCE.execCommand('mceInsertContent', false, html);
+								}
+								$iframe.dialog("close"); 
+
 							}
-							$iframe.dialog("close"); 
-
-						},
-						Cancel: function() {
-							$iframe.dialog("close"); 
+						}, {
+							text: cancelLabel, 
+							click: function() { $iframe.dialog("close"); }
 						}
-
-					}
+					]
 				}).width(windowWidth).height(windowHeight); 
-
-			
 
 			});
 

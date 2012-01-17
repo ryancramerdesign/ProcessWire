@@ -177,7 +177,7 @@ class ProcessPageEdit extends Process {
 					} else {
 						$this->message(sprintf($this->_('Saved Page: %s'), $this->page->path)); // Message shown when page is saved
 					}
-
+					
 					$this->page->save();
 
 				} catch(Exception $e) {
@@ -458,7 +458,7 @@ class ProcessPageEdit extends Process {
 		$statuses = array(); 
 		$statuses[Page::statusHidden] = $this->_('Hidden: Excluded from lists and searches'); // Settings: Hidden status checkbox label
 		if($this->user->hasPermission('page-lock', $this->page)) $statuses[Page::statusLocked] = $this->_('Locked: Not editable'); // Settings: Locked status checkbox label
-		$statuses[Page::statusUnpublished] = $this->_('Unpublished: Not visible on site'); // Settings: Unpublished status checkbox label
+		if(!$this->page->template->noUnpublish) $statuses[Page::statusUnpublished] = $this->_('Unpublished: Not visible on site'); // Settings: Unpublished status checkbox label
 			
 		if($this->config->advanced && $this->user->isSuperuser()) {
 			$statuses[Page::statusSystemID] = "System: Non-deleteable and locked ID (status not removeable via API)";
@@ -539,9 +539,11 @@ class ProcessPageEdit extends Process {
 
 		$field = $this->modules->get("InputfieldMarkup"); 
 		$field->label = $this->_('Who can access this page?'); // Roles information field label
+
 		$roles = $this->page->getAccessRoles();
 		$editRoles = $this->page->getAccessTemplate()->editRoles;
 		$addRoles = $this->page->getAccessTemplate()->addRoles; 
+		$createRoles = $this->page->getAccessTemplate()->createRoles; 
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->headerRow(array(
@@ -568,6 +570,10 @@ class ProcessPageEdit extends Process {
 					$permissions .= "page-add\n";
 					unset($addRoles[$key]); 
 				}
+				if(in_array($role->id, $createRoles)) {
+					$permissions .= "page-create\n";
+				}
+
 				$table->row(array($roleName, nl2br($permissions))); 
 			}
 
@@ -911,7 +917,10 @@ class ProcessPageEdit extends Process {
 			} else if((!$template->useRoles && $parentEditable) || $user->hasPermission('page-edit', $template)) {
 				// determine if the template's assigned roles match up with the users's roles
 				// and that at least one of those roles has page-edit permission
-				$templates[$template->id] = $template; 
+				if($user->hasPermission('page-create', $page)) { 
+					// user is allowed to create more pages of this type, so template may be used
+					$templates[$template->id] = $template; 
+				}
 			}
 		}
 

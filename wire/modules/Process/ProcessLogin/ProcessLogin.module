@@ -54,10 +54,10 @@ class ProcessLogin extends Process {
 	public function ___execute() {
 
 		if($this->user->isLoggedin()) {
-			$this->message("You are logged in."); 
+			$this->message($this->_("You are logged in.")); 
 			if($this->user->hasPermission('page-edit')) $this->afterLoginRedirect();
 			$url = $this->config->urls->root;
-			return "<p><a href='$url'>Continue</a></p>";
+			return "<p><a href='$url'>" . $this->_('Continue') . "</a></p>";
 		}
 
 		if($this->input->get->forgot && $this->allowForgot) {
@@ -75,12 +75,12 @@ class ProcessLogin extends Process {
 		$pass = substr($this->passField->value, 0, 50); 
 
 		if($this->fuel('session')->login($name, $pass)) {
-			$this->session->message("Successful login for $name"); 
+			$this->session->message($name . ' - ' . $this->_("Successful login")); 
 			$this->session->remove('error'); 
 			$this->performSystemChecks();
 			$this->session->redirect("./?login=1" . ($this->id ? "&id={$this->id}" : ''));  
 		} else {
-			$this->error("Login failed for $name"); 
+			$this->error($name . " - " . $this->_("Login failed")); 
 		}
 
 		return $this->renderLoginForm();
@@ -92,8 +92,8 @@ class ProcessLogin extends Process {
 		// if($this->config->showSecurityWarnings === false) return;
 		// if(is_writable($this->config->paths->root . "site/config.php")) $this->error("Security Warning: /site/config.php is writable and ideally should not be."); 
 		// if(is_writable($this->config->paths->root . "index.php")) $this->error("Security Warning: /index.php is writable and ideally should not be."); 
-		if(is_file($this->config->paths->root . "install.php")) $this->error("Security Warning: /install.php exists and should be deleted as soon as possible."); 
-		if(is_file($this->config->paths->root . "upgrade.php")) $this->error("Security Warning: /upgrade.php exists and should be deleted as soon as possible."); 
+		$warningText = $this->_("Security Warning: %s exists and should be deleted as soon as possible."); 
+		if(is_file($this->config->paths->root . "install.php")) $this->error(sprintf($warningText, '/install.php')); 
 
 		$file = $this->config->paths->assets . "active.php";
 		if(!is_file($file)) {
@@ -109,19 +109,19 @@ class ProcessLogin extends Process {
 	protected function buildLoginForm() {
 
 		$this->nameField = $this->modules->get('InputfieldText');
-		$this->nameField->set('label', 'Username'); 
+		$this->nameField->set('label', $this->_('Username')); // Login form: username field label
 		$this->nameField->attr('id+name', 'login_name'); 
 		$this->nameField->attr('class', $this->className() . 'Name'); 
 
 		$this->passField = $this->modules->get('InputfieldText');
-		$this->passField->set('label', 'Password'); 
+		$this->passField->set('label', $this->_('Password')); // Login form: password field label
 		$this->passField->attr('id+name', 'login_pass'); 
 		$this->passField->attr('type', 'password'); 
 		$this->passField->attr('class', $this->className() . 'Pass'); 
 
 		$this->submitField = $this->modules->get('InputfieldSubmit');
 		$this->submitField->attr('name', 'login_submit'); 
-		$this->submitField->attr('value', 'Login'); 
+		$this->submitField->attr('value', $this->_('Login')); // Login form: submit login button 
 
 		$this->form = $this->modules->get('InputfieldForm');
 
@@ -142,11 +142,12 @@ class ProcessLogin extends Process {
 		if(isset($_GET['login'])) {
 			$this->afterLoginRedirect();
 		} else {
-			$this->setFuel('processHeadline', 'Login'); 
+			// note the space after 'Login ' is intentional to separate it from the Login button for translation purposes
+			$this->setFuel('processHeadline', $this->_('Login ')); // Headline for login form page
 			$out = $this->form->render();
 			$links = '';
 			if($this->allowForgot) {
-				$links .= "<div><span class='ui-icon ui-icon-locked'></span><a href='./?forgot=1'>Forgot your password?</a></div>";
+				$links .= "<div><span class='ui-icon ui-icon-locked'></span><a href='./?forgot=1'>" . $this->_("Forgot your password?") . "</a></div>"; // Forgot password link text
 			}
 			$home = $this->pages->get("/"); 
 			$links .= "<div><span class='ui-icon ui-icon-home'></span><a href='{$home->url}'>{$home->title}</a></div>";
@@ -162,7 +163,7 @@ class ProcessLogin extends Process {
 	public function ___executeLogout() {
 		if($this->user->hasPermission('page-edit')) {
 			$url = $this->config->urls->admin;
-			$this->message("You have logged out"); 
+			$this->message($this->_("You have logged out")); 
 		} else {
 			$url = $this->config->urls->root;
 		} 

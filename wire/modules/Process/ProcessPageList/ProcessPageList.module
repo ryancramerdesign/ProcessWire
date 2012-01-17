@@ -9,7 +9,7 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -35,7 +35,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page List',          
 			'summary' => 'List pages in a hierarchal tree structure', 
-			'version' => 101, 
+			'version' => 102, 
 			'permanent' => true, 
 			'permission' => 'page-edit'
 			);
@@ -71,6 +71,10 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		if(!$this->page) throw new Wire404Exception("Unable to load page {$this->id}"); 
 		if(!$this->page->listable()) throw new WirePermissionException("You don't have access to list page {$this->page->url}"); 
 		$this->page->setOutputFormatting(false); 
+
+		// ensure that we use the page's title is always consistent in the admin (i.e. 'Pages' not 'Page List')
+		$p = wire('page'); 
+		if($p->name == 'list' && $p->process == $this) $p->title = $p->parent->title; 
 
 		return $this->render();
 

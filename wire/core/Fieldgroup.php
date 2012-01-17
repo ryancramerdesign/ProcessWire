@@ -80,7 +80,7 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 			if(!$field->id) throw new WireException("You must save field '$field' before adding to Fieldgroup '{$this->name}'"); 
 			parent::add($field); 
 		} else {
-			throw new WireException("Unable to add field '$field' to Fieldgroup '{$this->name}'"); 
+			// throw new WireException("Unable to add field '$field' to Fieldgroup '{$this->name}'"); 
 		}
 
 		return $this; 

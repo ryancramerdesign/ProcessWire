@@ -636,18 +636,32 @@ class ProcessTemplate extends Process {
 
 		$form = new InputfieldWrapper();
 
-		$field = $this->modules->get("InputfieldName"); 
-		$field->label = 'Rename Template';
-		$field->description = 
-			"The name used to refer to this template. This is also the default filename of the template file (with .php extension) in /site/templates/. ";
-		if(basename($template->filename, '.php') == $template->name) {
-			 if(is_writable($template->filename)) $field->description .= "The template filename is writable and will be renamed as well.";
-				else $field->description .= "The template file is not writable so you will have to rename it manually (instructions will be provided after you save). ";
+		// --------------------
+
+		if(!($template->flags & Template::flagSystem)) { 
+			$field = $this->modules->get("InputfieldName"); 
+			$field->label = 'Rename Template';
+			$field->description = 
+				"The name used to refer to this template. This is also the default filename of the template file (with .php extension) in /site/templates/. ";
+			if(basename($template->filename, '.php') == $template->name) {
+				 if(is_writable($template->filename)) $field->description .= "The template filename is writable and will be renamed as well.";
+					else $field->description .= "The template file is not writable so you will have to rename it manually (instructions will be provided after you save). ";
+			}
+			$field->notes = "Enter any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces). Do not include the .php file extension.";
+			$field->attr('id+name', 'rename'); 
+			$field->attr('value', $template->name); 
+			$field->collapsed = Inputfield::collapsedYes;
+			$form->append($field); 
 		}
-		$field->notes = "Enter any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces). Do not include the .php file extension.";
-		$field->attr('id+name', 'rename'); 
-		$field->attr('value', $template->name); 
-		$field->collapsed = Inputfield::collapsedYes;
+
+		// --------------------
+
+		$field = $this->modules->get("InputfieldCheckbox"); 
+		$field->attr('id+name', 'clone_template');
+		$field->attr('value', 1); 
+		$field->label = 'Duplicate/clone this template?';
+		$field->description = 'Check the box below if you want to create a duplicate/clone copy of this template. The clone will be created when you save. If your templates directory is writable and the template has a file, it will also be cloned.';
+		$field->collapsed = Inputfield::collapsedYes; 
 		$form->append($field); 
 
 		// --------------------
@@ -699,7 +713,8 @@ class ProcessTemplate extends Process {
 		$field->label = 'System Flag?';
 		$field->description = 
 			"If checked, this template will be defined as for the system and it won't be deleteable. " . 
-			"Once the system flag is enabled, it cannot be removed using ProcessWire. ";
+			"Once the system flag is enabled, it can only be removed via the API (flagSystemOverride). ";
+		$field->notes = 'API: $template->flagSystem = 1; // or 0 to disable';
 		$field->value = 1; 
 		if($template->flags & Template::flagSystem) {
 			$field->attr('checked', 'checked'); 
@@ -717,6 +732,7 @@ class ProcessTemplate extends Process {
 			"The name of the PHP class that will be used to create pages that use this template. " . 
 			"By default pages will be created from the Page class. You should leave this blank " . 
 			"unless you have another Page-derived class that you want to use.";
+		$field->notes = 'API: $template->pageClass = "ClassName";';
 
 		$field->attr('value', $template->pageClass ? $template->pageClass : ''); 
 		$field->collapsed = Inputfield::collapsedBlank;
@@ -734,6 +750,7 @@ class ProcessTemplate extends Process {
 			"(and automatically added to any templates that don't have it). If this template has " . 
 			"a special purpose where 'global' fields wouldn't apply, you can check this box to " . 
 			"make this template disregard 'global' fields.";
+		$field->notes = 'API: $template->noGlobal = 1; // or 0 to disable';
 
 		$field->attr('value', 1); 
 		if($template->noGlobal) {
@@ -752,6 +769,7 @@ class ProcessTemplate extends Process {
 		$field->description = 
 			"By default, the built-in 'name' field appears in the page editor 'settings' tab. If you would rather have it appear " . 
 			"in the 'content' tab check this box. ";
+		$field->notes = 'API: $template->nameContentTab = 1; // or 0 to disable';
 
 		$field->attr('value', 1); 
 		if($template->nameContentTab) {
@@ -769,6 +787,7 @@ class ProcessTemplate extends Process {
 		$field->label = "Don't allow pages to be moved?";
 		$field->description = 
 			"If you want to prevent pages using this template from being moved (changing parent) then check this box. ";
+		$field->notes = 'API: $template->noMove = 1; // or 0 to disable';
 
 		$field->attr('value', 1); 
 		if($template->noMove) {
@@ -786,6 +805,7 @@ class ProcessTemplate extends Process {
 		$field->label = "Don't allow pages to change their template?";
 		$field->description = 
 			"When checked, pages using this template will be unable to change to another template. ";
+		$field->notes = 'API: $template->noChangeTemplate = 1; // or 0 to disable';
 
 		$field->attr('value', 1); 
 		if($template->noChangeTemplate) {
@@ -799,10 +819,30 @@ class ProcessTemplate extends Process {
 		// --------------------
 
 		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->attr('name', 'noUnpublish');
+		$field->label = "Don't allow unpublished pages";
+		$field->description = 
+			"When checked, pages using this template may only exist in a published state and may not be unpublished. ";
+		$field->notes = 'API: $template->noUnpublish = 1; // or 0 to disable';
+
+		$field->attr('value', 1); 
+		if($template->noUnpublish) {
+			$field->attr('checked', 'checked'); 
+			$form->collapsed = Inputfield::collapsedNo;
+		} else { 
+			$field->collapsed = Inputfield::collapsedYes;
+		}
+		$form->append($field); 
+
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('name', 'noTrash');
 		$field->label = "Disable Trash Option?";
 		$field->description = 
 			"When checked, pages using this template will not have the option of being sent to the trash.";
+		$field->notes = 'API: $template->noTrash = 1; // or 0 to disable';
 
 		$field->attr('value', 1); 
 		if($template->noTrash) {
@@ -820,6 +860,7 @@ class ProcessTemplate extends Process {
 		$field->label = "Disable Settings Tab?";
 		$field->description = 
 			"When checked, pages using this template will not have a 'settings' tab appear in the editor.";
+		$field->notes = 'API: $template->noSettings = 1; // or 0 to disable';
 
 		$field->attr('value', 1); 
 		if($template->noSettings) {
@@ -1083,23 +1124,7 @@ class ProcessTemplate extends Process {
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->setEncodeEntities(false);
-		$table->headerRow(array('Role', "View Pages", "Edit Pages", "Add Children to Pages")); 
-
-		$ids1 = array(); // view
-		$ids2 = array(); // edit
-		$ids3 = array(); // add
-		// $ids4 = array(); // create
-
-		if($template && $template->id) {
-			foreach($template->roles as $role) $ids1[] = $role->id; 
-			foreach($template->editRoles as $id) $ids2[] = $id; 
-			foreach($template->addRoles as $id) $ids3[] = $id;
-			// foreach($template->createRoles as $id) $ids4[] = $id; 
-			
-		} else {
-			// if new template, default to having the guest role
-			$ids1[] = $guestRole->id;
-		}
+		$table->headerRow(array('Role', "View Pages", "Edit Pages", "Create Pages", "Add Children")); 
 
 		foreach($roles as $role) {
 			$label = $role->name; 
@@ -1119,7 +1144,7 @@ class ProcessTemplate extends Process {
 				$label,
 				("<input type='checkbox' id='roles_{$role->id}' class='viewRoles' name='roles[]' value='{$role->id}' " . ($template->roles->has($role) ? $checked : '') . "' />"), 
 				($editable ? ("<input type='checkbox' class='editRoles' name='editRoles[]' value='{$role->id}' " . (in_array($role->id, $template->editRoles) ? $checked : '') . "' />") : $disabled), 
-				// ($editable ? ("<input type='checkbox' class='createRoles' name='createRoles[]' value='{$role->id}' " . (in_array($role->id, $template->createRoles) ? $checked : '') . "' />") : $disabled),
+				($editable ? ("<input type='checkbox' class='createRoles' name='createRoles[]' value='{$role->id}' " . (in_array($role->id, $template->createRoles) ? $checked : '') . "' />") : $disabled),
 				($editable ? ("<input type='checkbox' class='addRoles' name='addRoles[]' value='{$role->id}' " . (in_array($role->id, $template->addRoles) ? $checked : '') . "' />") : $disabled)
 				));
 		}
@@ -1209,6 +1234,7 @@ class ProcessTemplate extends Process {
 			$this->template->pageClass = $this->sanitizer->varName($form->get('pageClass')->attr('value'));
 			$this->template->noGlobal = (int) $form->get('noGlobal')->attr('value');
 			$this->template->noMove = (int) $form->get('noMove')->attr('value');
+			$this->template->noUnpublish = (int) $form->get('noUnpublish')->attr('value');
 			$this->template->noTrash = (int) $form->get('noTrash')->attr('value');
 			$this->template->noSettings = (int) $form->get('noSettings')->attr('value');
 			$this->template->noChangeTemplate = (int) $form->get('noChangeTemplate')->attr('value');
@@ -1235,15 +1261,28 @@ class ProcessTemplate extends Process {
 		}
 
 		// check for template rename
-		$rename = $form->get('rename')->attr('value'); 
-		if($rename && $this->template->name != $rename) $redirectUrl = "rename?id={$this->template->id}&name=$rename";
+		if($rename = $form->get('rename')) {
+			$rename = $rename->attr('value'); 
+			if($rename && $this->template->name != $rename) $redirectUrl = "rename?id={$this->template->id}&name=$rename";
+		}
 			
-		$this->message("Saved Template '{$this->template->name}'"); 
 
 		try {
 			$this->template->save();
+			$this->message("Saved Template '{$this->template->name}'"); 
 		} catch(Exception $e) {
 			$this->error($e->getMessage()); 
+		}
+
+		// check for creation of clone 
+		if($this->input->post->clone_template) {
+			$clone = $this->templates->clone($this->template); 
+			if($clone) {
+				$this->message("Created clone of template '{$this->template->name}' named '{$clone->name}'. You may rename it from that template's advanced menu."); 
+				$redirectUrl = './';
+			} else {
+				$this->error("Error creating clone of this template"); 
+			}
 		}
 
 		$this->session->redirect($redirectUrl); 
@@ -1478,6 +1517,8 @@ class ProcessTemplate extends Process {
 	 *
 	 */
 	public function ___executeRename() {
+
+		if($this->template->flags & Template::flagSystem) throw new WireException("This template can't be renamed because it is a system template"); 
 
 		$redirectUrl = $this->template ? "edit?id={$this->template->id}" : "../";
 

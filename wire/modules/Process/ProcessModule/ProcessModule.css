@@ -29,6 +29,12 @@ table.AdminDataList td:last-child {
 	width: 55%; 
 }
 
+table.AdminDataList td span.ui-icon {
+	position: relative; 
+	bottom: -2px;
+	opacity: 0.4; 
+}
+
 #ModuleEditForm table.AdminDataList td:first-child {
 	font-weight: bold; 
 	text-align: right; 

@@ -1,4 +1,5 @@
 $(document).ready(function() {
+	/*
 	var filterInputfieldPermissions = function() {
 		var pageEdit = $("#Inputfield_permissions_32").is(":checked"); 
 		$("#wrap_Inputfield_permissions input").each(function() {
@@ -14,7 +15,8 @@ $(document).ready(function() {
 
 	filterInputfieldPermissions();
 	$("#wrap_Inputfield_permissions input").click(filterInputfieldPermissions); 
-
+	*/
+	
 	$("#Inputfield_permissions_36").click(function() {
 		if(!$(this).is(":checked")) {
 			$(this).attr('checked', 'checked');

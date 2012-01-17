@@ -79,16 +79,22 @@ class TemplateFile extends WireData {
 	 *
 	 */
 	public function ___render() {
+
 		if(!$this->filename || !is_file($this->filename)) return ''; 
+
 		$this->savedDir = getcwd();	
+
 		chdir(dirname($this->filename)); 
 		$fuel = array_merge($this->getArray(), self::$globals); // so that script can foreach all vars to see what's there
+
 		extract($fuel); 
 		ob_start();
 		require($this->filename); 
 		$out = "\n" . ob_get_contents() . "\n";
 		ob_end_clean();
+
 		if($this->savedDir) chdir($this->savedDir); 
+
 		return trim($out); 
 	}
 

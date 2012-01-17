@@ -16,8 +16,8 @@ class ProcessProfile extends Process implements ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'User Profile',          
-			'summary' => 'Enables user to change their password, email address and other settings that you define.', 
+			'title' => __('User Profile', __FILE__), // getModuleInfo title          
+			'summary' => __('Enables user to change their password, email address and other settings that you define.', __FILE__), // getModuleInfo summary 
 			'version' => 100, 
 			'permanent' => true, 
 			'permission' => 'profile-edit',
@@ -36,7 +36,7 @@ class ProcessProfile extends Process implements ConfigurableModule {
 
 	public function ___execute() {
 		$this->user = $this->fuel('user'); 
-		$this->setFuel('processHeadline', "Profile: " . $this->user->name); 
+		$this->setFuel('processHeadline', $this->_("Profile:") . ' ' . $this->user->name); // Primary Headline (precedes the username)
 		$form = $this->buildForm();
 		if($this->input->post->submit_save_profile) {
 			$this->processInput($form); 
@@ -69,7 +69,6 @@ class ProcessProfile extends Process implements ConfigurableModule {
 
 		$field = $this->modules->get('InputfieldSubmit');
 		$field->attr('id+name', 'submit_save_profile'); 
-		$field->attr('value', 'Save'); 
 		$form->add($field); 
 
 		return $form; 
@@ -82,7 +81,7 @@ class ProcessProfile extends Process implements ConfigurableModule {
 	protected function processInput(Inputfield $form) {
 		$form->processInput($this->input->post);
 		if(count($form->getErrors())) {
-			$this->error("Profile not saved"); 
+			$this->error($this->_("Profile not saved")); 
 			return;
 		}
 		foreach($this->user->fields as $field) {
@@ -91,7 +90,7 @@ class ProcessProfile extends Process implements ConfigurableModule {
 		}
 		if($this->user->isChanged()) {
 			$this->user->save();
-			$this->message("Profile saved"); 
+			$this->message($this->_("Profile saved")); 
 		}
 	}
 
@@ -102,7 +101,7 @@ class ProcessProfile extends Process implements ConfigurableModule {
 
 		$inputfields = new InputfieldWrapper();
 		$f = wire('modules')->get('InputfieldCheckboxes');
-		$f->label = "What fields can a user edit in their own profile?";
+		$f->label = __("What fields can a user edit in their own profile?");
 		$f->attr('id+name', 'profileFields');
 		foreach($fieldOptions as $field) {
 			if($field->name == 'roles') continue;

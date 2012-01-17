@@ -273,6 +273,7 @@ class Page extends WireData {
 			case 'parent': 
 			case 'parent_id':
 				if($key == 'parent_id' && $value) $value = $this->fuel('pages')->get((int)$value); 
+					else if(is_string($value)) $value = $this->fuel('pages')->get($value); 
 				if($value) $this->setParent($value);
 				break;
 			case 'template': 
@@ -730,7 +731,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function rootParent() {
-		if(!$this->parent || $this->parent->id === 1) return $this; 
+		if(!$this->parent || !$this->parent->id || $this->parent->id === 1) return $this; 
 		$parents = $this->parents();
 		$parents->shift(); // shift off homepage
 		return $parents->first();
@@ -941,7 +942,7 @@ class Page extends WireData {
 	public function is($status) {
 
 		if(is_int($status)) {
-			return $this->status & $status; 
+			return ((bool) ($this->status & $status)); 
 
 		} else if(is_string($status) && $this->fuel('sanitizer')->name($status) == $status) {
 			// valid template name

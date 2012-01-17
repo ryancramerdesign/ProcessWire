@@ -6,7 +6,8 @@
  */
 class InputfieldTinyMCE extends InputfieldTextarea {
 
-	const TinyMCEVersion = '3.3.9.2';
+	//const TinyMCEVersion = '3.3.9.2';
+	const TinyMCEVersion = '3.4.7';
 
 	protected $defaults = array(
 		'theme_advanced_buttons1' => 'formatselect,styleselect|,bold,italic,|,bullist,numlist,|,link,unlink,|,image,|,code,|,fullscreen',
@@ -41,9 +42,29 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 		$config = $this->config->js($this->className()); 
 		if(is_null($config)) $config = array();
 		// 'elements' is a tinymce config option, we're using the same terminology for consistency
+
 		if(!isset($config['elements'])) $config['elements'] = array(); 
+
 		$config['elements'][] = $this->attr('id'); 
 		$config['url'] = $this->config->urls->InputfieldTinyMCE; 
+		$config['language'] = $this->_('en'); // TinyMCE language code (2 character lowercase) // Enter: cs, da, de, en, es, fi, fr, hr, it, nl, no, pt, ro, ru, sk, sl, sv, uk. If your language isn't there, ask us to add it. We will if TinyMCE has it: http://www.tinymce.com/i18n
+
+		$cancelButtonLabel = $this->_('Cancel'); // Cancel button label
+
+		$config['pwlink'] = array(
+			'label' => $this->_('Insert Link'), // Insert link label, window headline and button text
+			'cancel' => $cancelButtonLabel,
+			);
+
+		$config['pwimage'] = array(
+			'selectLabel' => $this->_('Select Image'), 
+			'editLabel' => $this->_('Edit Image'),
+			'savingNote' => $this->_('Saving Image'),
+			'cancelBtn' => $cancelButtonLabel,
+			'insertBtn' => $this->_('Insert This Image'), 	
+			'selectBtn' => $this->_('Select Another Image'),
+			);
+
 		$this->config->js($this->className(), $config); 
 		
 		return parent::___render();
@@ -90,6 +111,7 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 			$field = $this->modules->get('InputfieldText'); 
 			$field->attr('name', $key); 
 			$field->attr('maxlength', 4096); 
+			$value = $this->get($key); 
 			$field->attr('value', $this->get($key)); 
 			$wrapper->append($field);
 		}

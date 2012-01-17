@@ -2,7 +2,7 @@
 $(document).ready(function() {
 
         var options = {
-		selectStartLabel: 'choose page'
+		selectStartLabel: config.ProcessPageEditLink.selectStartLabel
         };
 
 	var selectedPageData = {
@@ -23,7 +23,7 @@ $(document).ready(function() {
 				var $option = $("<option value='" + key + "'>" + val + "</option>"); 		
 				$fileSelect.append($option);
 			});
-			$wrap.find("p.notes").text("Files on page " + selectedPageData.url);
+			$wrap.find("p.notes").text(selectedPageData.url);
 			$wrap.children().effect('highlight', {}, 500); 
 			$fileSelect.effect('bounce', {}, 50);
 		}); 

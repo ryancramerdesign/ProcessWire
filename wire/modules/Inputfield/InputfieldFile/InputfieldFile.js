@@ -27,7 +27,6 @@ $(document).ready(function() {
 		}); 
 	}
 
-
 	function setInputfieldFileStatus($t) {
 		if($t.is(":checked")) {
 			// not an error, but we want to highlight it in the same manner

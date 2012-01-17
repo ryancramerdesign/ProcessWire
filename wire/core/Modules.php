@@ -309,6 +309,7 @@ class Modules extends WireArray {
 	public function get($key) {
 
 		$module = null; 
+		$justInstalled = false;
 
 		// check for optional module ID and convert to classname if found
 		if(ctype_digit("$key")) {
@@ -331,10 +332,12 @@ class Modules extends WireArray {
 			// check if the request is for an uninstalled module 
 			// if so, install it and return it 
 			$module = $this->install($key); 
+			$justInstalled = true; 
 		}
 
 		// skip autoload modules because they have already been initialized in the load() method
-		if($module && !$this->isAutoload($module)) { 
+		// unless they were just installed, in which case we need do init now
+		if($module && (!$this->isAutoload($module) || $justInstalled)) { 
 			// if the module is configurable, then load it's config data
 			// and set values for each before initializing the module
 			$this->setModuleConfigData($module); 
@@ -418,10 +421,14 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function ___install($class) {
+
 		if(!$this->isInstallable($class)) return null; 
 		$pathname = $this->installable[$class]; 	
 		require_once($pathname); 
 		$this->setConfigPaths($class, dirname($pathname)); 
+
+		$requires = $this->getRequiresForInstall($class); 
+		if(count($requires)) throw new WireException("Module $class requires: " . implode(", ", $requires)); 
 
 		$module = new $class();
 
@@ -453,7 +460,71 @@ class Modules extends WireArray {
 			}
 		}
 
+		$info = $this->getModuleInfo($class); 
+
+		// check if there are any modules in 'installs' that this module didn't handle installation of, and install them
+		$label = "Module Auto Install:";
+		foreach($info['installs'] as $name) {
+			if(!$this->isInstalled($name)) {
+				try { 
+					$this->install($name); 
+					$this->message("$label $name"); 
+				} catch(Exception $e) {
+					$this->error("$label $name - " . $e->getMessage()); 	
+				}
+			}
+		}
+
 		return $module; 
+	}
+
+	/**
+	 * Returns whether the module can be uninstalled
+	 *
+	 * @param string|Module $class
+	 * @param bool $returnReason If true, the reason why it can't be uninstalled with be returned rather than boolean false.
+	 * @return bool|string 
+	 *
+	 */
+	public function isUninstallable($class, $returnReason = false) {
+
+		$reason = '';
+		$reason1 = "Module is not already installed";
+		$class = $this->getModuleClass($class); 
+
+		if(!$this->isInstalled($class)) {
+			$reason = $reason1;
+
+		} else {
+			$module = $this->get($class); 
+			if(!$module) $reason = $reason1; 
+		}
+
+		if(!$reason) {
+
+			// if the moduleInfo contains a non-empty 'permanent' property, then it's not uninstallable
+			$info = $module->getModuleInfo(); 
+			if(!empty($info['permanent'])) {
+				$reason = "Module is permanent"; 
+			} else {
+				$dependents = $this->getRequiresForUninstall($class); 	
+				if(count($dependents)) $reason = "Module is required by other modules that must be uninstalled first"; 
+			}
+		}
+
+		if(!$reason && $module instanceof Fieldtype) {
+			foreach(wire('fields') as $field) {
+				$fieldtype = get_class($field->type);
+				if($fieldtype == $class) { 
+					$reason = "This module is a Fieldtype currently in use by one or more fields";
+					break;
+				}
+			}
+		}
+
+		if($returnReason && $reason) return $reason;
+	
+		return $reason ? false : true; 	
 	}
 
 	/**
@@ -465,23 +536,46 @@ class Modules extends WireArray {
 	 */
 	public function ___uninstall($class) {
 
-		if(!$this->isInstalled($class)) return true; 
+		$class = $this->getModuleClass($class); 
+		$reason = $this->isUninstallable($class, true); 
+		if($reason !== true) throw new WireException("$class - Can't Uninstall - $reason"); 
 
+		$info = $this->getModuleInfo($class); 
 		$module = $this->get($class); 
-		if(!$module) throw new WireException("Attempt to uninstall Module '$class' that is not installed"); 
-
-		// if the moduleInfo contains a non-empty 'permanent' property, then it's not uninstallable
-		$info = $module->getModuleInfo(); 
-		if(!empty($info['permanent'])) throw new WireException("Module '$class' is permanent and thus not uninstallable"); 
-
-
+		
 		if(method_exists($module, '___uninstall') || method_exists($module, 'uninstall')) {
 			// note module's uninstall method may throw an exception to abort the uninstall
 			$module->uninstall();
 		}
 
 		$result = $this->fuel('db')->query("DELETE FROM modules WHERE class='" . $this->fuel('db')->escape_string($class) . "' LIMIT 1"); 
-		return $result;
+		if(!$result) return false; 
+
+		// check if there are any modules still installed that this one says it is responsible for installing
+		foreach($info['installs'] as $name) {
+
+			// if module isn't installed, then great
+			if(!$this->isInstalled($name)) continue; 
+
+			// if an 'installs' module doesn't indicate that it requires this one, then leave it installed
+			$i = $this->getModuleInfo($name); 
+			if(!in_array($class, $i['requires'])) continue; 
+
+			// catch uninstall exceptions at this point since original module has already been uninstalled
+			$label = "Module Auto Uninstall";
+			try { 
+				$this->uninstall($name); 
+				$this->message("$label - $name"); 
+
+			} catch(Exception $e) {
+				$this->error("$label - $name - " . $e->getMessage()); 
+			}
+		}
+		
+		unset($this->moduleIDs[$class]);
+		$this->remove($module); 
+
+		return true; 
 	}
 
 	/**
@@ -512,6 +606,7 @@ class Modules extends WireArray {
 	 * This is important because of placeholder modules. For example, get_class would return 
 	 * 'ModulePlaceholder' rather than the correct className for a Module.
 	 *
+	 * @param string|int|Module
 	 * @return string|false The Module's class name or false if not found. 
 	 *	Note that 'false' is only possible if you give this method a non-Module, or an integer ID 
 	 * 	that doesn't correspond to a module ID. 
@@ -526,7 +621,10 @@ class Modules extends WireArray {
 		} else if(is_int($module) || ctype_digit("$module")) {
 			return array_search((int) $module, $this->moduleIDs); 
 
-		} 
+		}  else if(is_string($module)) { 
+			if(array_key_exists($module, $this->moduleIDs)) return $module; 
+			if(array_key_exists($module, $this->installable)) return $module; 
+		}
 
 		return false; 
 	}
@@ -541,6 +639,16 @@ class Modules extends WireArray {
 	 */
 	public function getModuleInfo($module) {
 
+		$info = array(
+			'title' => '',
+			'version' => 0,
+			'author' => '',
+			'summary' => '',
+			'href' => '',
+			'requires' => array(),
+			'installs' => array(),
+			);
+
 		if($module instanceof Module || ctype_digit("$module")) {
 			$module = $this->getModuleClass($module); 
 		}
@@ -549,19 +657,25 @@ class Modules extends WireArray {
 
 			if(isset($this->installable[$module])) {
 				$filename = $this->installable[$module]; 
-				include($filename); 
+				include_once($filename); 
 			}
 
-			if(!class_exists($module)) return array(
-				'title' => $module, 
-				'summary' => 'Inactive', 
-				'version' => 0, 
-				); 
+			if(!class_exists($module)) {
+				$info['title'] = $module; 
+				$info['summary'] = 'Inactive';
+				return $info;
+			}
 		}
 
 		//$func = $module . "::getModuleInfo"; // requires PHP 5.2.3+
 		//return call_user_func($func);
-		return call_user_func(array($module, 'getModuleInfo'));
+		$info = array_merge($info, call_user_func(array($module, 'getModuleInfo')));
+
+		// if $info[requires] or $info[installs] isn't already an array, make it one
+		if(!is_array($info['requires'])) $info['requires'] = array($info['requires']); 
+		if(!is_array($info['installs'])) $info['installs'] = array($info['installs']); 
+
+		return $info;
 	}
 
 	/**
@@ -689,6 +803,86 @@ class Modules extends WireArray {
 		if($this->modulePath2) $this->findModuleFiles($this->modulePath2); 
 	}
 
+	/**
+	 * Return an array of module class names that require the given one
+	 * 
+	 * @param string $class
+	 * @param bool $uninstalled Set to true to include modules dependent upon this one, even if they aren't installed.
+	 * @param bool $installs Set to true to exclude modules that indicate their install/uninstall is controlled by $class.
+	 * @return array()
+	 *
+	 */
+	public function getRequiredBy($class, $uninstalled = false, $installs = false) {
+
+		$class = $this->getModuleClass($class); 
+		$info = $this->getModuleInfo($class); 
+		$dependents = array();
+
+		foreach($this as $module) {
+			$c = $this->getModuleClass($module); 	
+			if(!$uninstalled && !$this->isInstalled($c)) continue; 
+			$i = $this->getModuleInfo($c); 
+			if(!count($i['requires'])) continue; 
+			if($installs && in_array($c, $info['installs'])) continue; 
+			if(in_array($class, $i['requires'])) $dependents[] = $c; 
+		}
+
+		return $dependents; 
+	}
+
+	/**
+	 * Return an array of module class names required by the given one
+	 * 
+	 * @param string $class
+	 * @param bool $uninstalled Set to true to return only required modules that aren't yet installed or those that $class says it will install (via 'installs' property of getModuleInfo)
+	 * @return array()
+	 *
+	 */
+	public function getRequires($class, $uninstalled = false) {
+
+		$class = $this->getModuleClass($class); 
+		$info = $this->getModuleInfo($class); 
+		$requires = $info['requires']; 
+
+		// quick exit if arguments permit it 
+		if(!$uninstalled) return $requires; 
+
+		foreach($requires as $key => $module) {
+			$c = $this->getModuleClass($module); 
+			if($this->isInstalled($c) || in_array($c, $info['installs'])) {
+				unset($requires[$key]); 		
+			}
+		}
+
+		return $requires; 
+	}
+
+	/**
+	 * Return an array of module class names required by the given one to be installed before this one.
+	 *
+	 * Excludes modules that are required but already installed. 
+	 * Excludes uninstalled modules that $class indicates it handles via it's 'installs' getModuleInfo property.
+	 * 
+	 * @param string $class
+	 * @return array()
+	 *
+	 */
+	public function getRequiresForInstall($class) {
+		return $this->getRequires($class, true); 
+	}
+
+	/**
+	 * Return an array of module class names required by the given one to be uninstalled before this one.
+	 *
+	 * Excludes modules that the given one says it handles via it's 'installs' getModuleInfo property.
+	 * 
+	 * @param string $class
+	 * @return array()
+	 *
+	 */
+	public function getRequiresForUninstall($class) {
+		return $this->getRequiredBy($class, false, true); 
+	}
 
 }
 

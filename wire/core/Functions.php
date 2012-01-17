@@ -45,21 +45,6 @@ function fuel($name = '') {
 	return Wire::getFuel($name); 
 }
 
-/**
- * Perform a language translation
- *
- * If no context provided then a global context is assumed
- *
- */
-function __($context, $text = null) {
-	if(is_null($text)) {
-		$text = $context; 
-		$context = null;
-	}
-	if(!Wire::getFuel('languages')) return $text; 
-	if(!$language = Wire::getFuel('user')->language) return $text; 
-	return $language->translator()->getTranslation($context, $text); 
-}
 
 /**
  * Indent the given string with $numTabs tab characters

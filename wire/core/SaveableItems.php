@@ -163,6 +163,9 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	/**
 	 * Save the provided item to database
 	 *
+	 * @param Saveable $item The item to save
+	 * @return bool Returns true on success, false on failure
+	 *
 	 */
 	public function ___save(Saveable $item) {
 
@@ -205,6 +208,9 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	/** 
 	 * Delete the provided item from the database
 	 *
+	 * @param Saveable $item Item to save
+	 * @return bool Returns true on success, false on failure
+	 *
 	 */
 	public function ___delete(Saveable $item) {
 		$blank = $this->makeBlankItem();
@@ -218,6 +224,34 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 		if($result) $item->id = 0; 
 		
 		return $result;	
+	}
+
+	/**
+	 * Create and return a cloned copy of this item
+	 *
+	 * If the new item uses a 'name' field, it will contain a number at the end to make it unique
+	 *
+	 * @param Saveable $item Item to clone
+	 * @param bool|Saveable $item Returns the new clone on success, or false on failure
+	 *
+	 */
+	public function ___clone(Saveable $item) {
+
+		$item = clone $item;
+
+		if(array_key_exists('name', $item->getTableData())) {
+			// this item uses a 'name' field for identification, so we want to ensure it's unique
+			$n = 0;
+			$name = $item->name; 
+			// ensure the new name is unique
+			while($this->get($name)) $name = $item->name . '_' . (++$n); 
+			$item->name = $name; 
+		}
+
+		// id=0 forces the save() to create a new field
+		$item->id = 0;
+		if($this->save($item)) return $item; 
+		return false; 
 	}
 
 	/**

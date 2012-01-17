@@ -182,7 +182,7 @@ class PageFinder extends Wire {
 	 * @return string SQL statement. 
 	 *
 	 */
-	protected function getQuery($selectors) {
+	protected function ___getQuery($selectors) {
 
 		$where = '';
 		$cnt = 1;
@@ -596,7 +596,6 @@ class PageFinder extends Wire {
 	 * TODO not all operators will work here, so may want to add some translation or filtering
 	 *
 	 */
-
 	protected function getQueryNativeField(DatabaseQuerySelect $query, $selector, $field) {
 
 		$value = $selector->value; 

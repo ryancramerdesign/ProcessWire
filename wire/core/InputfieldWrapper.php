@@ -183,6 +183,32 @@ class InputfieldWrapper extends Inputfield {
 	}
 
 	/**
+	 * Entity encode a string (de-encoding if necessary and then re-encoding)
+	 *
+	 * Also option for basic markodwn support when 2nd argument is true. 
+	 *
+	 * @param string $str
+	 * @param bool $markdown
+	 * @return string
+	 *
+	 */
+	protected function entityEncode($str, $markdown = false) {
+		// if already encoded, then un-encode it
+		if(strpos($str, '&') !== false && preg_match('/&(#\d+|[a-z]+);/', $str)) {
+			$str = html_entity_decode($str, ENT_QUOTES, "UTF-8"); 
+		}
+
+		$str = htmlentities($str, ENT_QUOTES, "UTF-8"); 
+
+		// convert markdown-style links to HTML
+		if($markdown && strpos($str, '](')) {
+			$str = preg_replace('/\[(.+?)\]\(([^)]+)\)/', '<a href="$2" target="_blank">$1</a>', $str); 
+		}
+
+		return $str; 
+	}
+
+	/**
 	 * Return the completed output of this Inputfield, ready for insertion in an XHTML form
 	 *
 	 * This includes the output of any child Inputfields (if applicable). Children are presented as list items in an unordered list. 
@@ -207,14 +233,14 @@ class InputfieldWrapper extends Inputfield {
 			if(!$inputfield instanceof InputfieldWrapper) {
 				$errors = $inputfield->getErrors(true);
 				if(count($errors)) $collapsed = Inputfield::collapsedNo; 
-				foreach($errors as $error) $ffOut = "\n<p class='ui-state-error-text'>" . htmlspecialchars($error) . "</p>" . $ffOut; 
+				foreach($errors as $error) $ffOut = "\n<p class='ui-state-error-text'>" . $this->entityEncode($error, true) . "</p>" . $ffOut; 
 			} else $errors = array();
 			
-			if($inputfield->getSetting('description')) $ffOut = "\n<p class='description'>" . htmlspecialchars($inputfield->getSetting('description')) . "</p>" . $ffOut;
-			if($inputfield->getSetting('head')) $ffOut = "\n<h2>" . htmlspecialchars($inputfield->getSetting('head')) . "</h2>" . $ffOut; 
+			if($inputfield->getSetting('description')) $ffOut = "\n<p class='description'>" . nl2br($this->entityEncode($inputfield->getSetting('description'), true)) . "</p>" . $ffOut;
+			if($inputfield->getSetting('head')) $ffOut = "\n<h2>" . $this->entityEncode($inputfield->getSetting('head')) . "</h2>" . $ffOut; 
 
 			$ffOut = preg_replace('/(\n\s*)</', "$1\t\t\t<", $ffOut); // indent lines beginning with markup
-			if($inputfield->notes) $ffOut .= "\n<p class='notes'>" . htmlspecialchars($inputfield->notes) . "</p>"; 
+			if($inputfield->notes) $ffOut .= "\n<p class='notes'>" . nl2br($this->entityEncode($inputfield->notes, true)) . "</p>"; 
 
 			// The inputfield's classname is always used in it's LI wrapper
 			$ffAttrs = array(
@@ -243,11 +269,11 @@ class InputfieldWrapper extends Inputfield {
 				$label = '';
 				if($inputfield->label) {
 					$for = $inputfield->skipLabel ? '' : " for='" . $inputfield->attr('id') . "'";
-					$label = "\n\t\t<label class='ui-widget-header'$for>" . htmlspecialchars($inputfield->label) . "</label>";
+					$label = "\n\t\t<label class='ui-widget-header'$for>" . $this->entityEncode($inputfield->label) . "</label>";
 				}
 				if(!isset($ffAttrs['id'])) $ffAttrs['id'] = 'wrap_' . $inputfield->attr('id'); 
 				foreach($ffAttrs as $k => $v) {
-					$attrs .= " $k='" . htmlspecialchars(trim($v), ENT_QUOTES) . "'";
+					$attrs .= " $k='" . $this->entityEncode(trim($v)) . "'";
 				}
 				if($inputfield->className() != 'InputfieldWrapper') $ffOut = "\n\t\t<div class='ui-widget-content'>$ffOut\n\t\t</div>";
 				$out .= "\n\t<li$attrs>$label$ffOut\n\t</li>\n";

@@ -19,8 +19,8 @@ foreach($pages->get($wire->config->adminRootPageID)->children("check_access=0") 
 
 	if($showItem) { 
 		$class = strpos($page->path, $p->path) === 0 ? " class='on'" : '';
-		$title = strip_tags($p->get('title|name')); 
-		$title = __(dirname(__FILE__) . '/default.php', $title); // translate from context of default.php
+		$title = strip_tags((string)$p->get('title|name')); 
+		$title = __($title, dirname(__FILE__) . '/default.php'); // translate from context of default.php
 		echo "\n\t\t\t\t<li><a href='{$p->url}'$class>$title</a></li>"; 
 	}
 }

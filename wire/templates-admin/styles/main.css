@@ -108,7 +108,8 @@ a {
 		}
 
 			a.nav,
-			.nav a {
+			.nav a,
+			#sitelink {
 				font-family: "Helvetica Neue", Arial, sans-serif; 
 				font-weight: bold; 
 				text-transform: uppercase; 
@@ -433,3 +434,23 @@ a {
 	body.modal #bgtitle {
 		display: none;
 	}
+
+#sitelink {
+	display: block;
+	position: absolute;
+	top: 0;
+	right: 0; 
+	background-color: #000; 
+	opacity: 0.25; 
+	color: #fff; 
+	padding: 7px 12px;
+	font-size: 1.1em; 
+}
+	#sitelink:hover {
+		opacity: 1.0; 
+	}
+
+	body.modal #sitelink {
+		display: none; 
+	}
+

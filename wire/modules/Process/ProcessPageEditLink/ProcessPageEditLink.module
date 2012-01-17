@@ -37,8 +37,11 @@ class ProcessPageEditLink extends Process {
 		$id = (int) $this->input->get->id; 
 		if($id) $this->page = $this->pages->get($id); 
 		if($this->page && $this->page->id && !$this->user->hasPermission("page-view", $this->page)) throw new WireException("You don't have access to this page"); 
-		$target = $this->sanitizer->name($this->input->get->target); 
-		$this->config->js('ProcessPageEditLinkTarget', $target); 
+		//$target = $this->sanitizer->name($this->input->get->target); 
+		//$this->config->js('ProcessPageEditLinkTarget', $target); 
+		$this->config->js('ProcessPageEditLink', array(
+			'selectStartLabel' => $this->_("Choose page"), // Clickable link to start a page selection
+			)); 
 		parent::init();
 	}
 
@@ -46,14 +49,15 @@ class ProcessPageEditLink extends Process {
 
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->attr('id', 'ProcessPageEditLinkForm');
+		$form->description = $this->_("Enter a URL, select a page, or select a file to link:"); // Headline
 
 		$field = $this->modules->get("InputfieldURL"); 
-		$field->label = "Link to URL";
+		$field->label = $this->_("Link to URL");
 		$field->attr('id+name', 'link_page_url'); 
 		$form->append($field); 
 
 		$field = $this->modules->get("InputfieldInteger"); 
-		$field->label = "Link to Page";
+		$field->label = $this->_("Link to Page");
 		$field->attr('id+name', 'link_page_id'); 
 		$field->collapsed = Inputfield::collapsedYes; 
 		$form->append($field); 
@@ -61,15 +65,14 @@ class ProcessPageEditLink extends Process {
 		$form->append($this->getFilesField()); 
 
 		$field = $this->modules->get("InputfieldCheckbox"); 
-		$field->label = "Launch In New Window?";
-		$field->description = "If checked, the link will open in a new window leaving the current window in place.";
+		$field->label = $this->_("Launch In New Window?");
+		$field->description = $this->_("If checked, the link will open in a new window leaving the current window in place."); // Details for 'launch in new window' checkbox
 		$field->attr('id+name', 'link_target'); 
 		$field->attr('value', '_blank'); 
 		$field->collapsed = Inputfield::collapsedYes; 
 		$form->append($field); 
 
-		return 	"<h2>Enter a URL, select a page, or select a file to link:</h2>" . 
-			$form->render();
+		return $form->render();
 	}
 
 	public function ___executeFiles() {
@@ -92,14 +95,14 @@ class ProcessPageEditLink extends Process {
 
 	protected function getFilesField() {
 		$field = $this->modules->get("InputfieldSelect"); 
-		$field->label = "Link to File";
+		$field->label = $this->_("Link to File");
 		$field->attr('id+name', 'link_page_file'); 
 		$files = $this->getFiles();
 		$field->addOption('');
 		$field->addOptions($files); 
 		$field->collapsed = Inputfield::collapsedYes; 
-		$field->notes = "Files on page " . $this->page->url;
-		$field->description = "To select files from another page, click 'Link to Page' above and choose the page you want to select files from.";
+		$field->notes = $this->page->url; 
+		$field->description = $this->_("To select a file from another page, click 'Link to Page' above and choose the page you want to select a file from."); // Instruction on how to select a file from another page
 		return $field;
 
 	}

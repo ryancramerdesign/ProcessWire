@@ -103,8 +103,9 @@ class ProcessPageAdd extends Process {
 
 			if($t->noParents) continue; 
 
-			if($t->useRoles && !$user->hasPermission('page-edit', $t)) continue;  
+			if($t->useRoles && !$user->hasPermission('page-create', $t)) continue;  
 			if(!$t->useRoles && !$parentEditable) continue; 
+			if(!$t->useRoles && !$user->hasPermission('page-create', $this->parent)) continue; 
 
 			if(count($this->parent->template->childTemplates)) {
 				if(!in_array($t->id, $this->parent->template->childTemplates)) continue; 
@@ -200,7 +201,7 @@ class ProcessPageAdd extends Process {
 
 		} else if(!count($_POST)) {
 
-			$this->message("You are adding a page using the '{$this->template}' template"); 
+			$this->message(sprintf($this->_("You are adding a page using the '%s' template"), $this->template)); 
 		}
 
 		$field = $this->modules->get('InputfieldHidden'); 
@@ -234,12 +235,12 @@ class ProcessPageAdd extends Process {
 		$name = $nameField->value; 
 
 		if(!strlen($name)) {
-			$this->error("Missing required field 'name'"); 
+			$this->error($this->_("Missing required field: name")); 
 			return false; 
 		}
 
 		if($this->parent->child("name=$name")->id) {
-			$form->get('name')->error("The name you selected is already in use. Please select another."); 
+			$form->get('name')->error($this->_("The name you selected is already in use. Please select another.")); 
 			return false;
 		}
 
@@ -275,7 +276,7 @@ class ProcessPageAdd extends Process {
 
 		$this->pages->save($this->page); 
 
-		$this->session->message("Created page {$this->parent->url}{$this->page->name} with template '{$template->name}'"); 
+		$this->session->message(sprintf($this->_('Created page %1$s using template: %2$s'), $this->parent->url . $this->page->name, $template->name)); 
 		$this->session->redirect("../edit/?id={$this->page->id}"); 
 	}
 

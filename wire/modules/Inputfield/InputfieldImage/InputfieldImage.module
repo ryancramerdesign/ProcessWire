@@ -18,6 +18,7 @@ class InputfieldImage extends InputfieldFile {
 		$this->set('maxWidth', ''); 
 		$this->set('maxHeight', ''); 
 		$this->set('adminThumbHeight', 100); 
+		$this->set('itemClass', 'InputfieldFile InputfieldImage ui-widget'); 
 		//$this->modules->get("InputfieldFile"); // force the JS and CSS from InputfieldFile to also be loaded
 		$this->modules->get("JqueryFancybox"); 
 	}
@@ -52,13 +53,13 @@ class InputfieldImage extends InputfieldFile {
 		}
 
 		if($pagefile2) {
-			$this->message("Resized '{$pagefile->basename}' to {$pagefile->width}x{$pagefile->height} fit within max dimensions of {$this->maxWidth}x{$this->maxHeight}"); 
+			$this->message($this->_("Image resized to fit maximum allowed dimensions") . " ({$this->maxWidth}x{$this->maxHeight}"); 
 		}
 
 		return parent::___fileAdded($pagefile); 
 	}
 
-	protected function renderItem($pagefile, $id, $n) {
+	protected function ___renderItem($pagefile, $id, $n) {
 
 		$thumb = $pagefile; 
 
@@ -67,8 +68,7 @@ class InputfieldImage extends InputfieldFile {
 			$thumb = $thumb->height($this->adminThumbHeight); 
 		}
 
-		$out = 	"\n\t<li class='InputfieldFile InputfieldImage ui-widget'>" . 
-			"\n\t\t<p class='InputfieldFileInfo ui-widget ui-widget-header'>" . 
+		$out = 	"\n\t\t<p class='InputfieldFileInfo ui-widget ui-widget-header'>" . 
 			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>" . 
 			"\n\t\t\t<span class='InputfieldFileName'>{$pagefile->basename}</span> " . 
 			"\n\t\t\t<span class='InputfieldFileStats'>&bull; {$pagefile->filesizeStr} &bull; {$pagefile->width}x{$pagefile->height}</span> " . 
@@ -78,8 +78,7 @@ class InputfieldImage extends InputfieldFile {
 			"\n\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->url}'><img src='{$thumb->url}' alt='{$pagefile->basename}' /></a>" . 
 			"\n\t\t\t" . $this->renderItemDescriptionField($pagefile, $id, $n) . 
 			"\n\t\t\t<input class='InputfieldFileSort' type='text' name='sort_$id' value='$n' />" . 
-			"\n\t\t</p>" . 
-			"\n\t</li>";
+			"\n\t\t</p>";
 
 		return $out; 
 	}

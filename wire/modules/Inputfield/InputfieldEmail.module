@@ -20,14 +20,18 @@ class InputfieldEmail extends InputfieldText {
 		$this->setAttribute('maxlength', 255); 
 		$this->setAttribute('size', 70); 
 		$this->setAttribute('name', 'email'); 
-		$this->label = 'E-Mail';
-		$this->description = "Enter a valid e-mail address, i.e. person@company.com";
+	}
+
+	public function ___render() {
+		if(!$this->label || $this->label == $this->name) $this->label = $this->_('E-Mail'); // label headline when no default specified
+		if(!$this->description) $this->description = $this->_("Enter a valid e-mail address, i.e. person@company.com"); // Instruction and example of valid email address
+		return parent::___render();
 	}
 
 	public function setAttribute($key, $value) {
 		if($key == 'value' && $value) {
 			$value = $this->fuel('sanitizer')->email($value); 	
-			if(!$value) $this->error("Please enter a valid e-mail address"); 
+			if(!$value) $this->error($this->_("Please enter a valid e-mail address")); // Error message when email address is invalid
 			
 		}
 		return parent::setAttribute($key, $value); 

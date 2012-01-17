@@ -116,13 +116,15 @@ class User extends Page {
 		} else {
 			$p = $name; 
 			// page-add and page-create don't actually exist in the DB, so we substitute page-edit for them 
-			if($name == 'page-add' || $name == 'page-create') $p = 'page-edit';
+			// code later on will make sure they exist in the template's addRoles/createRoles
+			if(in_array($name, array('page-add', 'page-create'))) $p = 'page-edit';
 			$permission = $this->fuel('permissions')->get("name=$p"); 
 		}
 
 		if(!$permission || !$permission->id) return false;
 
 		$has = false; 
+		$accessTemplate = is_null($page) ? null : $page->getAccessTemplate();
 
 		foreach($this->roles as $key => $role) {
 
@@ -135,13 +137,15 @@ class User extends Page {
 				if(!$page->hasAccessRole($role)) continue; 
 
 				// if permission is page-edit, we also check against the template's editRoles
-				if($name == 'page-edit' && !in_array($role->id, $page->getAccessTemplate()->editRoles)) continue; 
+				// if($name == 'page-edit' && !in_array($role->id, $page->getAccessTemplate()->editRoles)) continue; 
 
-				// check against addRoles
-				if($name == 'page-add' && !in_array($role->id, $page->getAccessTemplate()->addRoles)) continue;
+				// all page- permissions except page-view and page-add require page-edit access on $page, so check against that
+				if(strpos($name, 'page-') === 0 && $name != 'page-view' && $name != 'page-add' && !in_array($role->id, $accessTemplate->editRoles)) continue;
 
-				// check against createRoles
-				// if($name == 'page-create' && !in_array($role->id, $page->getAccessTemplate()->createRoles)) continue; 
+				// check against addRoles, createRoles if the permission requires it
+				if($name == 'page-add' && !in_array($role->id, $accessTemplate->addRoles)) continue;
+					else if($name == 'page-create' && !in_array($role->id, $accessTemplate->createRoles)) continue;
+					//else if($name == 'page-delete' && !in_array($role->id, $accessTemplate->deleteRoles)) continue;
 			}
 
 			if($role->hasPermission($permission)) { 
@@ -185,11 +189,18 @@ class User extends Page {
 		$has = false;
 
 		foreach($this->roles as $role) {
+
 			if(!$template->hasRole($role)) continue; 
-			if(!$role->hasPermission($name)) continue; 
+
+			if($name == 'page-create') { 
+				if(!in_array($role->id, $template->createRoles)) continue; 
+				$name = 'page-edit'; // swap permission to page-edit since create managed at template and requires page-edit
+			}
+
 			if($name == 'page-edit' && !in_array($role->id, $template->editRoles)) continue; 
+
 			if($name == 'page-add' && !in_array($role->id, $template->addRoles)) continue; 
-			// if($name == 'page-create' && !in_array($role->id, $template->createRoles)) continue; 
+
 			if($role->hasPermission($name)) {
 				$has = true;
 				break;
