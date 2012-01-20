@@ -146,7 +146,7 @@ class PagePermissions extends WireData implements Module {
 		$user = $this->fuel('user'); 
 
 		if($page->status >= Page::statusUnpublished) $viewable = false;
-			else if(!$page->template->filenameExists()) $viewable = false; 
+			else if(!$page->template || !$page->template->filenameExists()) $viewable = false; 
 			else if($user->isSuperuser()) $viewable = true; 
 			else if($page->process) $viewable = $this->processViewable($page->process);
 			else if(!$user->hasPermission("page-view", $page)) $viewable = false;

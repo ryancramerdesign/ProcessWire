@@ -230,7 +230,7 @@ class WireUpload extends Wire {
 			$filename = basename($destination); 
 		}
 
-		if($ajax) $success = rename($tmp_name, $destination);
+		if($ajax) $success = @rename($tmp_name, $destination);
 			else $success = move_uploaded_file($tmp_name, $destination);
 
 		if(!$success) {
