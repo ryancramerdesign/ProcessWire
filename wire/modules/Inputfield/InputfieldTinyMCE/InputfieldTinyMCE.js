@@ -60,10 +60,10 @@ var InputfieldTinyMCEConfigDefaults = {
 
 	paste_postprocess: function(pl, o) {
 		var ed = pl.editor, dom = ed.dom;
-		// Remove all img and a tags: comment the below out if you don't want img and a tags removed during paste
+		// Remove all img tags: comment the below out if you don't want img and a tags removed during paste
 		tinymce.each(dom.select('*', o.node), function(el) {    
 			var tag = el.tagName.toLowerCase();
-			if (tag == "img" || tag == "a") {    
+			if (tag == "img") {    
 				dom.remove(el, 1); // 1 = KeepChildren
 			}
 			dom.setAttrib(el, 'style', '');
