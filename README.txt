@@ -14,9 +14,8 @@ http://processwire.com
 
 ABOUT THIS VERSION
 ---------------------------------------------------------------------------
-This is ProcessWire 2.1 stable. This is our current production version.
-As of the 2.1 release date, this project is still less than a year old with 
-lots of room to grow and we appreciate your feedback. Please join us in 
+This is ProcessWire 2.2 stable. This is our current production version and 
+is the 3rd production version release of ProcessWire. Please join us in 
 the ProcessWire forums: http://processwire.com/talk/
 
 
@@ -50,15 +49,13 @@ INSTALLATION FROM GIT
 
 UPGRADES
 ---------------------------------------------------------------------------
-The following does not apply to 2.0 -> 2.1 upgrades. Please see the 
-section after this for that. 
 
-Upgrading from one version of ProcessWire 2.1 to another is a matter of
+Upgrading from one version of ProcessWire 2.1/2.2 to another is a matter of
 replacing these files from your old version with those from the new:
 
   /wire/ 	< entire directory
-  /index.php	< if necessary
-  /.htaccess 	< if necessary (rename htaccess.txt in the source)
+  /index.php	< if changed
+  /.htaccess 	< if changed (rename htaccess.txt in the source)
 
 Because index.php and .htaccess aren't updated very often, you may only
 have to replace your /wire/ directory. Note that the /wire/ directory 
@@ -72,14 +69,28 @@ upgrade FAQ:
 http://processwire.com/talk/index.php/topic,58.0.html
 
 
+UPGRADING FROM 2.1
+---------------------------------------------------------------------------
+The instructions above (in the 'UPGRADES') section apply to an upgrade 
+from ProcesWire 2.1 to 2.2. Note that replacing the /index.php and 
+.htaccess is required in this upgrade, as both of those files have 
+changed. 
+
+If you are using non-superuser roles for page-edit access, you'll
+also need to edit any access-defining templates after upgrading and give
+any relevant roles the new page-create permission. More information here:
+
+http://processwire.com/talk/topic/853-processwire-22-soft-launch/
+
+
 UPGRADING FROM 2.0
 ---------------------------------------------------------------------------
 Upgrading from ProcessWire 2.0 to 2.1 requires more than just replacing the 
-/wire/ directory. Because there are many differences between 2.0 and 2.1,
+/wire/ directory. Because there are many differences between 2.0 and 2.1/2.2,
 particularly with the user system, you must export your 2.0 site and import
-it to a new 2.1 installation. This is relatively easy to do and has the 
+it to a new 2.2 installation. This is relatively easy to do and has the 
 added benefit of being completely safe (you never touch your old site until
-your new 2.1 site is up and running). Please visit the following link for 
+your new 2.2 site is up and running). Please visit the following link for 
 instructions on how to complete this upgrade:
 
 http://processwire.com/talk/index.php/topic,583.0.html
@@ -113,5 +124,5 @@ You can also contact us at:
 http://processwire.com/contact/
 
 
-ProcessWire, Copyright 2011 by Ryan Cramer
+ProcessWire, Copyright 2012 by Ryan Cramer
 
