@@ -104,3 +104,11 @@ interface TrackChanges {
 
 }
 
+
+/**
+ * Indicates that a given Fieldtype may be used for page titles
+ *
+ */
+interface FieldtypePageTitleCompatible { }
+
+
