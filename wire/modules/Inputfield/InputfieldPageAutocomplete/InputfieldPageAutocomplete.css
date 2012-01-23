@@ -1,0 +1,73 @@
+
+.InputfieldPageAutocomplete ol {
+	margin: 0.5em 0;
+	list-style: none;
+}
+
+	.InputfieldPageAutocomplete ol li {
+		/* li item from the html list above */
+		position: relative;
+		margin: 0 0 1px 0 !important; 
+		padding-left: 0;
+		list-style: none !important;
+		width: 100%;
+		line-height: 1em;
+		display: block;
+		cursor: move;
+	}
+
+		.InputfieldPageAutocomplete ol li .ui-icon-arrowthick-2-n-s {
+			float: left;
+			margin-top: 1px;
+		}
+
+		.InputfieldPageAutocomplete ol li .itemLabel {
+			/* this is a span that surrounds the text in the item, except for the remove link */
+			display: block;
+			padding: 3px 0 3px 5px;
+			cursor: move;
+		}
+
+		.InputfieldPageAutocomplete ol li .itemRemove {
+			/* the remove link in each list item */
+			position: absolute;
+			right: 3px;
+			top: 0;
+		}
+
+		.InputfieldPageAutocomplete ol li .itemValue {
+			display: none; 
+		}
+
+		.InputfieldPageAutocomplete ol li.itemTemplate {
+			display: none !important;
+		}
+
+.InputfieldPageAutocomplete input[type=text] {
+	/* No need for full width, plus some left padding for icon placement */
+	width: 60%; 
+	padding-left: 13px; 
+}
+
+.InputfieldPageAutocomplete p {
+	/* to enable icon placement */
+	position: relative; 
+}
+
+	.InputfieldPageAutocomplete p .ui-icon {
+		/* icon placement */
+		position: absolute; 
+		top: 2px; 
+		left: 1px; 
+		opacity: 0.5; 
+	}
+
+.ui-autocomplete {
+	/* enforce scrolling, plus add a little shadow for better distinction from background */
+	max-height: 230px; 
+	overflow-y: auto;
+	overflow-x: hidden; 
+	padding-right: 20px; 
+	box-shadow: 0 1px 3px 3px rgba(0,0,0,0.3); 
+}
+
