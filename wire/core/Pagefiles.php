@@ -179,8 +179,8 @@ class Pagefiles extends WireArray {
 	 *
 	 */
 	public function remove($item) {
+		if(is_string($item)) $item = $this->get($item); 
 		if(!$this->isValidItem($item)) throw new WireException("Invalid type to {$this->className}::remove(item)"); 
-		// $item->unlink();
 		if(!count($this->unlinkQueue)) {
 			$this->hookIDs[] = $this->page->filesManager->addHookBefore('save', $this, 'hookPageSave'); 
 		}
