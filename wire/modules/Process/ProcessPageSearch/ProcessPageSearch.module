@@ -138,7 +138,8 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 				}
 			}
 
-			$name = $this->sanitizer->fieldName($name); 
+			if(strpos($name, ',')) $name = $this->sanitizer->names($name, ',', array('_')); 
+				else $name = $this->sanitizer->fieldName($name); 
 
 			if(!$name) continue; 
 
@@ -154,8 +155,11 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 				continue; 
 			}
 
-			if($name == 'include' || $name == 'check_access') continue; 
+			if($name == 'include' && $value != 'hidden' && !$this->user->isSuperuser()) continue; 
+			if($name == 'check_access' && !$this->user->isSuperuser()) continue; 
 			if($name == 'status') $status = (int) $value;
+			if(strpos($name, ',')) $name = str_replace(',', '|', $name); 
+
 			if(!$this->isSelectableFieldName($name)) continue; 
 
 			$this->input->whitelist($name . rtrim($operator, '='), trim($value, '"\'')); 	
@@ -335,10 +339,21 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	 *
 	 */
 	protected function isSelectableFieldName($name) {
+
 		$is = false;
+
+		if(strpos($name, '|')) {
+			$names = explode('|', $name); 
+			$cnt = 0;
+			foreach($names as $n) if(!$this->isSelectableFieldName($n)) $cnt++;
+			return $cnt == 0; 
+		}
+
 		if(in_array($name, $this->nativeSorts)) $is = true; 
- 			else if(in_array($name, array('parent', 'template'))) $is = true; 
+ 			else if(in_array($name, array('parent', 'template', 'has_parent'))) $is = true; 
 			else if(in_array($name, $this->fieldOptions)) $is = true; 
+
+
 		if($name == 'pass' || $name == 'config') $is = false;
 		return $is; 
 	}

@@ -27,12 +27,13 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		'inputfield' => '', 
 		'labelFieldName' => '',
 		'findPagesCode' => '',
+		'findPagesSelector' => '',
 		); 
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page',
-			'version' => 100,
+			'version' => 101,
 			'summary' => 'Select one or more pages',
 			'permanent' => true, 
 			);
@@ -59,7 +60,11 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 	public function getSelectablePages(Page $page) {
 
-		if($this->findPagesCode) {
+		if($this->findPagesSelector) { 
+			// a find() selector
+			$children = $this->pages->find($this->findPagesSelector); 
+
+		} else if($this->findPagesCode) {
 			// php statement that returns a PageArray
 			$pages = $this->pages; 	
 			$children = eval($this->findPagesCode); 
@@ -67,8 +72,10 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		} else if($this->parent_id) {
 			$parent = $this->fuel('pages')->get($this->parent_id); 
 			if($parent) $children = $this->template_id ? $parent->children("templates_id={$this->template_id}, check_access=0, status<" . Page::statusUnpublished) : $parent->children("check_access=0, status<" . Page::statusUnpublished);
+
 		} else if($this->template_id) {
 			$children = $this->pages->find("templates_id={$this->template_id}, check_access=0, status<" . Page::statusUnpublished); 
+
 		} else {
 			$children = new PageArray();
 		}
@@ -101,6 +108,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		} else {
 			if($this->parent_id) $inputfield->parent_id = $this->parent_id;
 			if($this->template_id) $inputfield->template_id = $this->template_id; 
+			if($this->findPagesSelector) $inputfield->findPagesSelector = $this->findPagesSelector; 
 			$inputfield->labelFieldName = $this->labelFieldName; 
 		}
 
@@ -169,7 +177,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field = $this->modules->get('InputfieldPageListSelect');
 		$field->setAttribute('name', 'parent_id'); 
 		$field->label = 'Parent of selectable page(s)';
-		$field->attr('value', $this->parent_id); 
+		$field->attr('value', (int) $this->parent_id); 
 		$field->description = "Select the parent of the pages that are selectable.";
 		$field->required = false;
 		$inputfields->append($field); 
@@ -177,20 +185,33 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field = $this->modules->get('InputfieldSelect');
 		$field->setAttribute('name', 'template_id'); 
 		$field->label = 'Template of selectable page(s)';
-		$field->attr('value', $this->template_id); 
-		$field->description = "Select the template of the pages that are selectable. May be used instead of, or in addition to, the parent above.";
+		$field->attr('value', (int) $this->template_id); 
+		$field->description = "Select the template of the pages that are selectable. May be used instead of, or in addition to, the parent above. NOTE: Not compatible with PageListSelect input field types.";
 		foreach($this->templates as $template) $field->addOption($template->id, $template->name); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$inputfields->append($field); 
+
+		$field = $this->modules->get('InputfieldText'); 
+		$field->attr('name', 'findPagesSelector'); 
+		$field->label = "Custom selector to find selectable pages"; 
+		$field->attr('value', $this->findPagesSelector); 
+		$field->description = 
+			"If you want to find selectable pages using a ProcessWire selector rather than selecting a parent page or template (above) then enter the selector to find the selectable pages. " . 
+			"This selector will be passed to a \$pages->find('your selector'); statement. NOTE: Not currently compatible with PageListSelect input field types.";
+
+		$field->notes = 'Example: parent=/products/, template=product, sort=name';
+		$field->collapsed = Inputfield::collapsedBlank;
 		$inputfields->append($field); 
 
 		$field = $this->modules->get('InputfieldTextarea'); 
 		$field->attr('name', 'findPagesCode'); 
-		$field->label = "Alternate/custom code to find selectable pages"; 
+		$field->label = "Custom PHP code to find selectable pages"; 
 		$field->attr('value', $this->findPagesCode); 
 		$field->attr('rows', 4); 
 		$field->description = 
 			"If you want to find selectable pages using a PHP code snippet rather than selecting a parent page or template (above) then enter the code to find the selectable pages. " . 
 			"This statement has access to the \$page and \$pages API variables, where \$page refers to the page being edited. The snippet should return either a PageArray or NULL. " . 
-			"Using this is optional, and if used, it overrides the 'Parent of selectable page(s)' field above. Note that this is not compatible with autocomplete input fields.";
+			"Using this is optional, and if used, it overrides the parent/template/selector fields above. NOTE: Not compatible with PageListSelect or Autocomplete input field types.";
 
 		$field->notes = 'Example: return $page->parent->parent->children("name=locations")->first()->children();';
 		$field->collapsed = Inputfield::collapsedBlank;
@@ -225,11 +246,15 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field->setAttribute('name', 'inputfield'); 
 		$field->setAttribute('value', $this->inputfield); 
 		$field->label = 'Input field type';
-		$field->description = "The type of field that will be used to select a page";
+		$field->description = "The type of field that will be used to select a page. Select one that is consistent with the single page vs. multi-page needs you chose in the 'details' tab of this field.";
 		$field->required = true; 
+		$field->notes = "* Types indicated with an asterisk are optimized for multiple page selection.";
 
 		foreach($this->inputfieldClasses as $class) {
-			$field->addOption($class, str_replace("Inputfield", '', $class)); 
+			$module = $this->modules->get($class); 
+			$label = str_replace("Inputfield", '', $class);
+			if($module instanceof InputfieldHasArrayValue) $label .= "*"; 
+			$field->addOption($class, $label); 
 		}
 
 		$inputfields->append($field); 	

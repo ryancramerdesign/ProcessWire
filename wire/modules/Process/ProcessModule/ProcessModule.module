@@ -112,8 +112,8 @@ class ProcessModule extends Process {
 			}
 
 			$info = $this->modules->getModuleInfo($name); 
-			$interfaces = class_implements($name, false); 
-			$configurable = in_array('ConfigurableModule', $interfaces); 
+			$interfaces = @class_implements($name, false); 
+			$configurable = is_array($interfaces) && in_array('ConfigurableModule', $interfaces); 
 			$title = !empty($info['title']) ? htmlspecialchars($info['title']) : substr($name, strlen($section)); 
 			$class = $configurable ? 'ConfigurableModule' : '';
 			if(!empty($info['permanent'])) $class .= ($class ? ' ' : '') . 'PermanentModule';

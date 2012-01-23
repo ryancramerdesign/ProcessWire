@@ -451,6 +451,7 @@ abstract class Inputfield extends WireData implements Module {
 		$value = $this->attr('value'); 
 		if(is_array($value) && !count($value)) return true; 
 		if(!strlen("$value")) return true; 
+		if($value === 0) return true; 
 		return false; 
 	}
 
