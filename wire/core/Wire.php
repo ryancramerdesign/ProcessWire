@@ -245,6 +245,7 @@ abstract class Wire implements TrackChanges {
 	 * 	[return] => The value returned from the hook or NULL if no value returned or hook didn't exist. 
 	 *	[numHooksRun] => The number of hooks that were actually run. 
 	 *	[methodExists] => Did the hook method exist as a real method in the class? (i.e. with 3 underscores ___method).
+	 *	[replace] => Set by the hook at runtime if it wants to prevent execution of the original hooked method.
 	 *
 	 */
 	public function runHooks($method, $arguments, $type = 'method') {
@@ -253,6 +254,7 @@ abstract class Wire implements TrackChanges {
 			'return' => null, 
 			'numHooksRun' => 0, 
 			'methodExists' => false,
+			'replace' => false,
 			);
 
 		$realMethod = "___$method";
@@ -263,7 +265,7 @@ abstract class Wire implements TrackChanges {
 
 		foreach(array('before', 'after') as $when) {
 
-			if($type === 'method' && $when === 'after') {
+			if($type === 'method' && $when === 'after' && $result['replace'] !== true) {
 				if($result['methodExists']) $result['return'] = call_user_func_array(array($this, $realMethod), $arguments); 
 					else $result['return'] = null;
 			}
@@ -290,7 +292,12 @@ abstract class Wire implements TrackChanges {
 
 				$result['numHooksRun']++;
 
-				if($when == 'before') $arguments = $event->arguments; 
+				if($when == 'before') {
+					$arguments = $event->arguments; 
+					$result['replace'] = $event->replace === true ? true : false;
+					if($result['replace']) $result['return'] = $event->return;
+				}
+
 				if($when == 'after') $result['return'] = $event->return; 
 			}	
 
