@@ -143,7 +143,7 @@ class FieldtypePage extends FieldtypeMulti {
 			$pg = false;
 			if(count($value)) {
 				// get the first value in a PageArray, using $template and parent for optimization
-				$pageArray = $this->fuel('pages')->getById(array((int) reset($value)), $template, $parent_id); 
+				$pageArray = $this->fuel('pages')->getById(array((int) reset($value)), $template); 
 				if(count($pageArray)) $pg = $pageArray->first();
 			}
 			if(!$pg || ($pg && $pg->status >= Page::statusUnpublished)) $pg = $this->getBlankValue($page, $field);
