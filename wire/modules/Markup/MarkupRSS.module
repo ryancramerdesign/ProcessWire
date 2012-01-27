@@ -119,7 +119,7 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 
 		$description = $page->get($this->itemDescriptionField); 
 		if(is_null($description)) $description = '';
-		$description = $this->truncateDescription(trim(strip_tags($description))); 
+		$description = $this->truncateDescription(trim($description)); 
 
 		$out = 	"\t<item>\n" .
 			"\t\t<title>$title</title>\n" .
@@ -170,6 +170,9 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 
 		$maxlen = $this->itemDescriptionLength;
 		if(!$maxlen) return $str;
+
+		// note: tags are not stripped if itemDescriptionLength == 0
+		$str = strip_tags($str); 
 
 		if(strlen($str) < $maxlen) return $str; 
 
@@ -277,7 +280,7 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		$f2a->attr('name', 'itemDescriptionLength');
 		$f2a->attr('value', (int) $data['itemDescriptionLength']);
 		$f2a->label = "Maxmum Characters for Item Description Field";
-		$f2a->description = "The item description will be truncated to be no longer than the max length provided. Specify '0' for no max length.";
+		$f2a->description = "The item description will be truncated to be no longer than the max length provided. Specify '0' for no max length. When there is no max length, markup tags will not be stripped.";
 
 		$f3 = wire('modules')->get('InputfieldSelect');
 		$f3->attr('name', 'itemDateField');
