@@ -124,24 +124,18 @@ abstract class Fieldtype extends WireData implements Module {
 
 		if($this->getLoadQueryAutojoin($field, new DatabaseQuerySelect())) {
 			$f = $this->modules->get('InputfieldCheckbox');
-			$f->label = 'Autojoin';
+			$f->label = $this->_('Autojoin');
 			$f->attr('name', 'autojoin');
 			$f->attr('value', 1);
 			$f->attr('checked', ($field->flags & Field::flagAutojoin) ? 'checked' : '');
-			$f->description = '' .
-				"If checked, the data for this field will be loaded with every instance of the page, regardless of whether it's used at the time. " .
-				"If unchecked, the data will be loaded on-demand, and only when the field is specifically accessed. " .
-				"Enabling autojoin also allows the field to be used as a key for sorting pages.";
+			$f->description = $this->_("If checked, the data for this field will be loaded with every instance of the page, regardless of whether it's used at the time. If unchecked, the data will be loaded on-demand, and only when the field is specifically accessed. Enabling autojoin also allows the field to be used as a key for sorting pages."); // Autojoin description
 			$inputfields->append($f);
 		}
 
 		$f = $this->modules->get('InputfieldCheckbox');
 		$f->attr('name', 'global');
-		$f->label = 'Global';
-		$f->description =
-			"If checked, ALL pages will be required to have this field. " .
-			"It will be automatically added to any fieldgroups/templates that don't already have it. " .
-			"This does not mean that a value is required in the field, only that the editable field will exist in all pages.";
+		$f->label = $this->_('Global');
+		$f->description = $this->_("If checked, ALL pages will be required to have this field.  It will be automatically added to any fieldgroups/templates that don't already have it. This does not mean that a value is required in the field, only that the editable field will exist in all pages."); // Global description
 		$f->attr('value', 1);
 		if($field->flags & Field::flagGlobal) $f->attr('checked', 'checked');
 			else $f->collapsed = true; 
@@ -151,9 +145,7 @@ abstract class Fieldtype extends WireData implements Module {
 			$f = $this->modules->get('InputfieldCheckbox');
 			$f->attr('name', 'system');
 			$f->label = 'System';
-			$f->description =
-				"If checked, this field is considered a system field and is not renameable or deleteable. " . 
-				"System fields may not be undone using ProcessWire's API.";
+			$f->description = "If checked, this field is considered a system field and is not renameable or deleteable. System fields may not be undone using ProcessWire's API.";
 			$f->attr('value', 1);
 			if($field->flags & Field::flagSystem) $f->attr('checked', 'checked');
 				else $f->collapsed = true; 
@@ -162,9 +154,7 @@ abstract class Fieldtype extends WireData implements Module {
 			$f = $this->modules->get('InputfieldCheckbox');
 			$f->attr('name', 'permanent');
 			$f->label = 'Permanent';
-			$f->description =
-				"If checked, this field is considered a permanent field and it can't be removed from any of the " . 
-				"system templates/fieldgroups to which it is attached. This flag may not be undone using ProcessWire's API.";
+			$f->description = "If checked, this field is considered a permanent field and it can't be removed from any of the system templates/fieldgroups to which it is attached. This flag may not be undone using ProcessWire's API.";
 			$f->attr('value', 1);
 			if($field->flags & Field::flagPermanent) $f->attr('checked', 'checked');
 				else $f->collapsed = true; 

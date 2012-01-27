@@ -19,8 +19,8 @@ class ProcessPageClone extends Process {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Page Clone', 
-			'summary' => 'Provides ability to clone/copy/duplicate pages in the admin. Adds a "copy" option to all applicable pages in the PageList.', 
+			'title' => __('Page Clone', __FILE__),
+			'summary' => __('Provides ability to clone/copy/duplicate pages in the admin. Adds a "copy" option to all applicable pages in the PageList.', __FILE__), 
 			'version' => 100, 
 			'permanent' => false, 
 			'permission' => 'page-clone',

@@ -28,8 +28,8 @@ class ProcessPageAdd extends Process {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Page Add',          
-			'summary' => 'Add a new page', 
+			'title' => __('Page Add', __FILE__),          
+			'summary' => __('Add a new page', __FILE__), 
 			'version' => 100, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
