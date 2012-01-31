@@ -803,9 +803,27 @@ class Page extends WireData {
 	/**
 	 * Delete this page from the Database
 	 *
+	 * Throws WireException if action not allowed. 
+	 * See Pages::delete for a hookable version. 
+	 *
+	 * @return bool True on success
+	 *
 	 */
 	public function delete() {
 		return $this->fuel('pages')->delete($this); 
+	}
+
+	/**
+	 * Move this page to the trash
+	 *
+	 * Throws WireException if action is not allowed. 
+	 * See Pages::trash for a hookable version. 
+	 *
+	 * @return bool True on success
+	 *
+	 */
+	public function trash() {
+		return $this->fuel('pages')->trash($this); 
 	}
 
 	/**
