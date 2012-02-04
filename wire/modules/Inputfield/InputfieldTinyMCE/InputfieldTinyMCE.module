@@ -15,6 +15,8 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 		'theme_advanced_blockformats' => 'p,h2,h3,h4,blockquote,pre,code',
 		'plugins' => 'inlinepopups,safari,table,media,paste,fullscreen,preelementfix', 
 		'valid_elements' => '@[id|class],a[href|target|name],strong/b,em/i,br,img[src|id|class|width|height|alt],ul,ol,li,p[class],h2,h3,h4,blockquote,-p,-table[border=0|cellspacing|cellpadding|width|frame|rules|height|align|summary|bgcolor|background|bordercolor],-tr[rowspan|width|height|align|valign|bgcolor|background|bordercolor],tbody,thead,tfoot,#td[colspan|rowspan|width|height|align|valign|bgcolor|background|bordercolor|scope],#th[colspan|rowspan|width|height|align|valign|scope],pre,code',
+		'content_css' => '',
+		'custom' => '',
 		); 
 
 	public static function getModuleInfo() {
@@ -36,13 +38,30 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 		$this->config->scripts->add($this->config->urls->InputfieldTinyMCE . "tinymce-" . self::TinyMCEVersion . "/tiny_mce.js");
 
 		$config = $this->defaults;
+
 		foreach($config as $key => $unused) $config[$key] = $this->get($key); 
+
+		if(empty($config['content_css'])) unset($config['content_css']); 
+			else $config['content_css'] = $this->config->urls->root . ltrim($config['content_css'], '/'); 
+
+		if(!empty($config['custom'])) {
+			$custom = explode("\n", $config['custom']); 
+			foreach($custom as $line) {
+				if(empty($line)) continue; 
+				$pos = strpos($line, ':'); 
+				$key = trim(substr($line, 0, $pos)); 
+				$value = trim(substr($line, $pos+1)); 
+				if(!isset($config[$key])) $config[$key] = $value; 	
+			}
+		}
+		unset($config['custom']); 
+
 		$this->config->js($this->attr('id'), $config); 
 
 		$config = $this->config->js($this->className()); 
 		if(is_null($config)) $config = array();
-		// 'elements' is a tinymce config option, we're using the same terminology for consistency
 
+		// 'elements' is a tinymce config option, we're using the same terminology for consistency
 		if(!isset($config['elements'])) $config['elements'] = array(); 
 
 		$config['elements'][] = $this->attr('id'); 
@@ -101,20 +120,36 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 		$inputfields = parent::___getConfigInputfields();
 
 		$wrapper = $this->modules->get('InputfieldFieldset'); 
-		$wrapper->label = 'TinyMCE Advanced Configuration Options'; 
-		$wrapper->description = 
-			'The following fields are specific to TinyMCE and details about these options can be found at the TinyMCE web site. ' . 
-			'In general it is best to use the defaults presented here unless you are familiar with TinyMCE configuration.';
+		$wrapper->label = $this->_('TinyMCE Advanced Configuration Options'); 
+		$wrapper->description = $this->_('The following fields are specific to TinyMCE and details about these options can be found at the TinyMCE web site. In general it is best to use the defaults presented here unless you are familiar with TinyMCE configuration.'); // Description for TinyMCE custom config fields
 		$wrapper->collapsed = Inputfield::collapsedYes; 
 
 		foreach($this->defaults as $key => $unused) {
-			$field = $this->modules->get('InputfieldText'); 
+			if($key == 'content_css' || $key == 'custom') continue; 
+			$value = $this->get($key); 
+			$field = $this->modules->get((strlen($value) > 150 ? 'InputfieldTextarea' : 'InputfieldText')); 
 			$field->attr('name', $key); 
 			$field->attr('maxlength', 4096); 
-			$value = $this->get($key); 
 			$field->attr('value', $this->get($key)); 
 			$wrapper->append($field);
 		}
+
+		$field = $this->modules->get("InputfieldText"); 
+		$field->label = "content_css"; 
+		$field->description = $this->_("Optionally specify a content.css file URL (relative to your site root) and TinyMCE will use this file for its 'content_css' option rather than the default one in /wire/modules/Inputfield/InputfieldTinyMCE/content.css. Note that your content.css should also include the styles from the default one: .align_left, .align_right, and .align_center"); // content_css field description
+		$field->notes = $this->_('Example: /site/templates/styles/content.css'); 
+		$field->attr('name', 'content_css'); 
+		$value = $this->get('content_css'); 
+		$field->attr('value', $value); 
+		$wrapper->append($field); 
+
+		$field = $this->modules->get("InputfieldTextarea"); 
+		$field->attr('name', 'custom'); 
+		$field->label = $this->_('Additional TinyMCE settings'); 
+		$field->description = $this->_('If there are other TinyMCE settings (not covered above) that you want to specify, enter them one-per-line in a key:value format.'); 
+		$field->notes = $this->_('Example: theme_advanced_styles:Header 1=header1;Header 2=header2;Header 3=header3;Table Row=tableRow1'); 
+		$field->attr('value', $this->get('custom')); 
+		$wrapper->append($field); 
 
 		$inputfields->append($wrapper); 
 
