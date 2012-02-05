@@ -29,7 +29,7 @@ class InputfieldCheckbox extends Inputfield {
 	public function ___render() {
 		$attrs = $this->getAttributes();
 		$attrs['value'] = $this->checkedValue; 
-		$out = 	"\n<label><input type='checkbox' " . $this->getAttributesString($attrs) . " /> " . htmlspecialchars($this->label) . "</label>"; 
+		$out = 	"\n<label><input type='checkbox' " . $this->getAttributesString($attrs) . " /> " . $this->entityEncode($this->label) . "</label>"; 
 		return $out; 
 	}
 

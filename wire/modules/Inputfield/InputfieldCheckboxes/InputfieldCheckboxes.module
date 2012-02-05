@@ -38,7 +38,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 			$attrs = $this->getOptionAttributesString($key);
 			if($attrs) $attrs = ' ' . $attrs; 
 
-			$value = htmlspecialchars($value); 
+			$value = $this->entityEncode($value); 
 
 			$input = "<label$attrs>" . 
 				"<input$checked " . 

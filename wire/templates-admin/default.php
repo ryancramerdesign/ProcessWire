@@ -36,6 +36,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
 	<meta name="robots" content="noindex, nofollow" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
 	<title><?php echo __(strip_tags($page->get("title|name")), __FILE__); ?> &bull; ProcessWire</title>
 

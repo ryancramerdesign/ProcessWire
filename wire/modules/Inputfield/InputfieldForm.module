@@ -27,7 +27,7 @@ class InputfieldForm extends InputfieldWrapper {
 		unset($attrs['value']); 
 
 		$description = $this->getSetting('description'); 
-		if($description) $description = "\n<h2>" . htmlspecialchars($description) . "</h2>"; 
+		if($description) $description = "\n<h2>" . $this->entityEncode($description) . "</h2>"; 
 
 		$out = 	"\n<form " . $this->getAttributesString($attrs) . ">" . 
 			$description . 

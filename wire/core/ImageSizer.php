@@ -331,10 +331,10 @@ class ImageSizer {
 			}
 		}
 
-		$r = array(	0 => $pWidth, 	
-				1 => $pHeight,
-				2 => $targetWidth,
-				3 => $targetHeight
+		$r = array(	0 => (int) $pWidth, 	
+				1 => (int) $pHeight,
+				2 => (int) $targetWidth,
+				3 => (int) $targetHeight
 				); 
 
 		return $r;

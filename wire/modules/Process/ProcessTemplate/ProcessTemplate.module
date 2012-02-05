@@ -9,7 +9,7 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -23,12 +23,14 @@ class ProcessTemplate extends Process {
 	protected $template;
 	protected $id; 
 	protected $numPages; 
+	protected $moduleInfo; 
+	protected $labels = array();
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Templates',
+			'title' => __('Templates', __FILE__),
+			'summary' => __('List and edit the templates that control page output', __FILE__),
 			'version' => 100,
-			'summary' => 'List and edit the templates that control page output',
 			'permanent' => true, 
 	
 			// add this permission if you want this Process available for roles other than Superuser
@@ -41,6 +43,13 @@ class ProcessTemplate extends Process {
 	 *
 	 */
 	public function init() {
+		$this->moduleInfo = self::getModuleInfo();
+		$this->setFuel('processHeadline', $this->moduleInfo['title']); 
+		$this->labels = array(
+			'Yes' => $this->_('Yes'), 
+			'No' => $this->_('No'), 
+			'Are you sure?' => $this->_('Are you sure?'),
+			);
 
 		if(isset($_POST['id'])) {
 			$this->id = (int) $_POST['id']; 
@@ -71,7 +80,7 @@ class ProcessTemplate extends Process {
 		$form->action = './';
 
 		$fieldset = $this->modules->get("InputfieldFieldset"); 
-		$fieldset->label = "Filters";
+		$fieldset->label = $this->_("Filters"); // Template list filters headline
 		$fieldset->collapsed = Inputfield::collapsedYes; 
 		$form->add($fieldset);
 		
@@ -79,9 +88,9 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get("InputfieldSelect"); 
 		$field->attr('id+name', 'filter_field'); 
-		$field->label = "Filter by Field";
-		$field->description = "Select a field and only templates using that field will be shown.";
-		$field->addOption('', 'Show All');
+		$field->label = $this->_("Filter by Field");
+		$field->description = $this->_("Select a field and only templates using that field will be shown."); // Filter by Field, description
+		$field->addOption('', $this->_x('Show All', 'filter-select'));
 
 		foreach($this->fields as $f) {
 			$name = $f->name; 
@@ -93,18 +102,18 @@ class ProcessTemplate extends Process {
 		$field->collapsed = $filterField ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
 		$fieldset->add($field);
 		if($filterField) $filterField = $this->fields->get($filterField);
-		if($filterField) $form->description = "Templates with field: " . $filterField->name;
+		if($filterField) $form->description = sprintf($this->_('Templates with field: %s'), $filterField->name);
 
 		// --------------------------------------
 
 		if(!$filterField) { 
 			$field = $this->modules->get("InputfieldRadios"); 
-			$field->label = "Show system templates?";
-			$field->description = "By default, system/internal templates are not shown. Click 'Yes' to have them included in the templates list below.";
+			$field->label = $this->_("Show system templates?");
+			$field->description = $this->_("By default, system/internal templates are not shown. Click 'Yes' to have them included in the templates list below."); // Show system templates, description
 			$field->attr('id', 'filter_system');
 			$field->attr('name', 'system'); 
-			$field->addOption(1, 'Yes'); 
-			$field->addOption(0, 'No'); 
+			$field->addOption(1, $this->labels['Yes']); 
+			$field->addOption(0, $this->labels['No']); 
 			$filterSystem  = (int) $this->input->get->system; 
 			$field->attr('value', $filterSystem); 
 			$field->collapsed = $filterSystem ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
@@ -115,7 +124,12 @@ class ProcessTemplate extends Process {
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->setEncodeEntities(false); 
-		$table->headerRow(array('Name', 'Label', 'Pages', 'Fields', '')); 
+		$table->headerRow(array(
+			$this->_x('Name', 'list-thead'),
+			$this->_x('Label', 'list-thead'),
+			$this->_x('Pages', 'list-thead'),
+			$this->_x('Fields', 'list-thead'),
+			'')); 
 
 		foreach($this->fuel('templates') as $template) {
 			$notes = '';
@@ -123,14 +137,14 @@ class ProcessTemplate extends Process {
 			if($template->flags & Template::flagSystem) {
 				if(!$filterSystem && !$filterField) continue; 
 				$fieldset->collapsed = Inputfield::collapsedNo;
-				$notes .= "system ";
+				$notes .= $this->_x('system', 'list-note') . ' ';
 			}
 
 			if($filterField && !$template->fieldgroup->has($filterField)) continue; 
 
-			if($template->useRoles) $notes .= " access";
+			if($template->useRoles) $notes .= ' ' . $this->_x('access', 'list-note');
 
-			if(!$template->filenameExists()) $notes .= " no-file";
+			if(!$template->filenameExists()) $notes .= ' ' . $this->_x('no-file', 'list-note');
 
 			$table->row(array(
 				"{$template->name} " => "edit?id={$template->id}", 
@@ -140,7 +154,7 @@ class ProcessTemplate extends Process {
 				$notes
 				)); 
 		}
-		$table->action(array('Add New Template' => './add')); 
+		$table->action(array($this->_x('Add New Template', 'list-button') => './add')); 
 
 		$out = $form->render() . $table->render();
 		return $out;
@@ -152,19 +166,16 @@ class ProcessTemplate extends Process {
 	 */
 	public function ___executeAdd() {
 
-		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', 'Templates')); 
-		$this->setFuel('processHeadline', 'Add New Templates'); 
+		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
+		$this->setFuel('processHeadline', $this->_('Add New Templates')); // Headline when adding templates
 		$dir = new DirectoryIterator($this->fuel('config')->paths->templates); 	
 		$templateFiles = array();
 		$ext = "." . $this->config->templateExtension; 
 
-
 		foreach($dir as $file) {
 			if($file->isDir() || $file->isDot()) continue; 
 			if(substr($file->getFilename(), -1 * strlen($ext)) != $ext) continue; 
-			//$basename = $file->getBasename($ext); // PHP 5.2.2
 			$basename = basename($file->getFilename(), $ext); 
-			// $basename = preg_replace('/\.(' . $ext . ')$/', '', $file->getFilename()); 
 			if(count($this->fuel('templates')->find("name=$basename"))) continue; 
 			$templateFiles[] = $basename; 
 		}
@@ -206,7 +217,7 @@ class ProcessTemplate extends Process {
 				$template->fieldgroup = $fieldgroup; 
 				$template->roles = array($this->roles->getGuestRole()->id); 
 				$template->save();
-				$this->message("Added template and fieldgroup: $basename"); 
+				$this->message(sprintf($this->_('Added template and fieldgroup: %s'), $basename)); 
 
 				if($importFieldgroup) {
 					$this->importFieldgroup($importFieldgroup, $template); 
@@ -246,20 +257,19 @@ class ProcessTemplate extends Process {
 
 		if(count($templateFiles)) { 
 			$field = $this->modules->get('InputfieldCheckboxes');
-			$field->label = "Templates found in $templateUrl*.{$this->config->templateExtension}"; 
-			$field->description = "The following new templates were found in $templateUrl. Check the box next to each template you want to add."; 
+			$field->label = sprintf($this->_('Templates found in: %s'), "$templateUrl*.{$this->config->templateExtension}"); 
+			$field->description = $this->_('The following new templates were found. Check the box next to each template you want to add.'); // Templates found, description
 			$field->attr('id+name', 'templates'); 
 			foreach($templateFiles as $file) $field->addOption($file); 
 			$form->append($field); 
 		} else {
-			$this->error("No new template files (*.{$this->config->templateExtension}) were found in $templateUrl"); 
+			$this->error(sprintf($this->_('No new template files were found in: %s'), "$templateUrl*.{$this->config->templateExtension}")); // Error message when no new templates found
 		}
 
 		$field = $this->modules->get("InputfieldText"); 
-		$field->label = 'Create a new template without a file';
-		$field->description = 
-			"If you want to create a new template even though there is currently no file associated with it, " . 
-			"enter the name of the template here. Leave off the file extension (.{$this->config->templateExtension}).";
+		$field->label = $this->_('Create a new template without a file');
+		$field->description = $this->_('If you want to create a new template even though there is currently no file associated with it, enter the name of the template here.'); // Create template with no file, description
+		$field->notes = $this->_('Do not include a file extension'); 
 		$field->attr('id+name', 'template_name'); 
 		$field->collapsed = count($templateFiles) ? Inputfield::collapsedYes : Inputfield::collapsedNo; 
 		$form->append($field); 
@@ -267,7 +277,7 @@ class ProcessTemplate extends Process {
 		$form->append($this->buildEditFormImport()); 
 
 		$field = $this->modules->get('InputfieldSubmit');
-		$field->attr('value', 'Add Template' . (count($templateFiles) > 1 ? 's' : '')); 
+		$field->attr('value', $this->_n('Add Template', 'Add Templates', count($templateFiles))); 
 		$form->append($field); 
 
 		return $form; 
@@ -279,8 +289,8 @@ class ProcessTemplate extends Process {
 	 */
 	public function ___executeEdit() {
 
-		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', 'Templates')); 
-		$this->setFuel('processHeadline', "Edit Template: {$this->template->name}");
+		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
+		$this->setFuel('processHeadline', sprintf($this->_('Edit Template: %s'), $this->template->name)); // Headline when editing a template
 
 		if(!$this->template) throw new WireException("No Template specified"); 
 			
@@ -303,20 +313,18 @@ class ProcessTemplate extends Process {
 		$form->attr('method', 'post'); 
 
 		if(!is_file($template->filename) && !count($this->input->post)) {
-			$this->message(
-				"Pages using this template are not viewable because the template file ($template->name.php) does not exist [no-file]."
-				); 
+			$this->message(sprintf($this->_('Pages using this template are not viewable because the template file (%s) does not exist [no-file].'), $template->name . '.' . $this->config->templateExtension)); 
 		}
 
 		$t = new InputfieldWrapper();
+		$t->attr('title', $this->_x('Basics', 'tab'));
 		$t->attr('class', 'WireTab'); 
-		$t->head = "This template is used by {$this->numPages} pages";
-		$t->attr('title', "Basics");
+		$t->head = sprintf($this->_n('This template is used by 1 page', 'This template is used by %d pages', $this->numPages), $this->numPages);
 		$f = $this->modules->get('InputfieldText'); 
 		$f->attr('name', 'templateLabel'); 
 		$f->attr('value', $template->label); 
-		$f->label = "Label";
-		$f->description = "An optional label to describe this template.";
+		$f->label = $this->_x('Label', 'field-label');
+		$f->description = $this->_('An optional label to describe this template.');
 		$f->collapsed = Inputfield::collapsedBlank;
 		if($languages) {
 			$f->useLanguages = true; 
@@ -329,60 +337,60 @@ class ProcessTemplate extends Process {
 		$form->add($t); 
 		
 		$t = new InputfieldWrapper();
-		$t->head = "Manage template access";
+		$t->attr('title', $this->_x('Access', 'tab'));
+		$t->head = $this->_('Manage template access');
 		$t->attr('class', 'WireTab'); 
-		$t->attr('title', "Access");
 		$t->add($this->buildEditFormAccess($template)); 
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
-		$t->head = "Optional usage and placement in the page tree";
+		$t->attr('title', $this->_x('Family', 'tab'));
+		$t->head = $this->_('Optional usage and placement in the page tree');
 		$t->attr('class', 'WireTab'); 
-		$t->attr('title', "Family");
 		$t->add($this->buildEditFormFamily($template)); 
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
-		$t->head = "Optional settings for URLs of pages using this template";
+		$t->attr('title', $this->_x('URLs', 'tab'));
+		$t->head = $this->_('Optional settings for URLs of pages using this template');
 		$t->attr('class', 'WireTab'); 
-		$t->attr('title', "URLs");
 		$t->add($this->buildEditFormURLs($template)); 
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
-		$t->head = "Output caching";
+		$t->attr('title', $this->_x('Cache', 'tab'));
+		$t->head = $this->_("Output caching");
 		$t->attr('class', 'WireTab'); 
-		$t->attr('title', "Cache");
 		$t->add($this->buildEditFormCache($template)); 
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
-		$t->head = "Optional advanced template settings";
+		$t->attr('title', $this->_x('Advanced', 'tab'));
+		$t->head = $this->_('Optional advanced template settings');
 		$t->attr('class', 'WireTab'); 
-		$t->attr('title', "Advanced");
 		$t->add($this->buildEditFormAdvanced($template)); 
 		$form->add($t); 
 
 		if($this->config->advanced) {
 			$t = new InputfieldWrapper();
-			$t->head = "System-specific template settings";
+			$t->attr('title', $this->_x('System', 'tab'));
+			$t->head = $this->_('System-specific template settings');
 			$t->attr('class', 'WireTab'); 
-			$t->attr('title', "System");
 			$t->add($this->buildEditFormSystem($template)); 
 			$form->add($t); 
 		}
 
 		$t = new InputfieldWrapper();
 		$t->attr('class', 'WireTab'); 
-		$t->head = "Import fields from another template";
-		$t->attr('title', "Import");
+		$t->attr('title', $this->_x('Import', 'tab'));
+		$t->head = $this->_('Import fields from another template');
 		$t->add($this->buildEditFormImport());
 		$form->add($t);
 
 		$t = new InputfieldWrapper();
-		$t->head = "Delete template";
+		$t->attr('title', $this->_x('Delete', 'tab'));
+		$t->head = $this->_('Delete template');
 		$t->attr('class', 'WireTab'); 
-		$t->attr('title', "Delete");
 		$t->add($this->buildEditFormDelete($template)); 
 		$form->add($t); 	
 
@@ -394,7 +402,7 @@ class ProcessTemplate extends Process {
 		$form->append($field); 
 
 		$field = $this->modules->get('InputfieldSubmit');
-		$field->attr('value', 'Save Template'); 
+		$field->attr('value', $this->_x('Save', 'button')); 
 		$field->class .= ' head_button_clone';
 		$form->append($field); 
 
@@ -404,7 +412,7 @@ class ProcessTemplate extends Process {
 	protected function buildEditFormDelete(Template $template) {
 
 		$field = $this->modules->get('InputfieldCheckbox');
-		$field->label = "Delete Template"; 
+		$field->label = $this->_('Confirm deletion'); 
 		$field->attr('id+name', "delete"); 
 		$field->attr('value', $template->id); 
 
@@ -417,20 +425,25 @@ class ProcessTemplate extends Process {
 			}
 		}
 
+		$description = $this->_('This template may not be deleted');
+
 		if($template->flags & Template::flagSystem) {
-			$field->description = "This template may not be deleted because it is a system template."; 
+			$field->description = $description;
+			$field->notes = $this->_('System templates cannot be deleted'); 
 			$field->attr('disabled', 'disabled'); 
 
 		} else if($this->numPages > 0) {
-			$field->description = "This template may not be deleted because it is in use by {$this->numPages} pages";
+			$field->description = $description; 
+			$field->notes = sprintf($this->_n('Template is used by 1 page', 'Template is used by %d pages', $this->numPages), $this->numPages); // Template can't be deleted because it's in use
 			$field->attr('disabled', 'disabled'); 
 
 		} else if($numFieldgroupTemplates > 0) {
-			$field->description = "This template may not be deleted because fieldgroup '{$template->name}' is in use by $numFieldgroupTemplates other templates."; 
+			$field->description = $description; 
+			$field->notes = sprintf($this->_n("This template's fieldgroup is used by 1 other template", "This template's fieldgroup is used by %d other templates", $numFieldgroupTemplates), $numFieldgroupTemplates); // Template can't be deleted because it's fieldgroup is in use
 			$field->attr('disabled', 'disabled'); 
 
 		} else {
-			$field->description = "Note that deleting the template only removes it from the database, it does not delete the template file on disk. ";
+			$field->description = $this->_('Note that deleting the template only removes it from the database, it does not delete the template file on disk.'); // Note about template files not being deleted
 		
 		}
 
@@ -440,18 +453,16 @@ class ProcessTemplate extends Process {
 	protected function buildEditFormFieldgroup(Template $template) {
 
 		$field = $this->modules->get('InputfieldSelect');
-		$field->label = "Fieldgroup";
+		$field->label = $this->_x("Fieldgroup", 'field-label');
 		$field->attr('id+name', 'fieldgroup'); 
 		$field->attr('value', $template->fieldgroup->id); 
 		$field->required = true; 
-		$field->description = '' . 
-			"By default, each template manages it's own group of fields. If you want to have this template " . 
-			"use the fields from another template, select it here.";
+		$field->description = $this->_("By default, each template manages it's own group of fields. If you want to have this template use the fields from another template, select it here."); // Fieldgroup description
 
 		foreach($this->fieldgroups->getAll()->sort('name') as $fieldgroup) {
 			$name = $fieldgroup->name; 
 			if($name == $template->name) {
-				$name .= " (default)";
+				$name .= ' ' . $this->_('(default)'); // Label appended to default fieldgroup name in select box
 			} else {
 				$tpl = $this->templates->get($name); 
 				// if the template is not using it's own fieldgroup, don't include it in the list
@@ -478,10 +489,8 @@ class ProcessTemplate extends Process {
 		}
 		$field = $this->modules->get("InputfieldMarkup"); 
 		$field->value = $table->render();
-		$field->label = "Fields";
-		$field->description = 
-			"For your reference, this is a list of fields used by this template. " . 
-			"This template gets it's fields from the '{$template->fieldgroup->name}' template/fieldgroup.";
+		$field->label = $this->_x('Fields', 'field-label (non-default fieldgroup)');
+		$field->description = sprintf($this->_("For your reference, this is a list of fields used by this template. This template gets it's fields from the '%s' template."), $template->fieldgroup->name); // Description of where the template's fields come from
 		return $field; 
 	}
 
@@ -495,11 +504,11 @@ class ProcessTemplate extends Process {
 		if($template->fieldgroup->name != $template->name) return $this->buildEditFormShowFields($template); 
 
 		$select = $this->modules->get('InputfieldAsmSelect'); 
-		$select->label = 'Fields';
-		$select->description = 'Define the fields that are used by this template. You may also drag and drop fields to the desired order.';
+		$select->label = $this->_x('Fields', 'field-label');
+		$select->description = $this->_('Define the fields that are used by this template. You may also drag and drop fields to the desired order.'); // Fields definition, description
 		$select->attr('name', 'fieldgroup_fields'); 
 		$select->attr('id', 'fieldgroup_fields'); 
-		$select->attr('title', 'Add Field'); 
+		$select->attr('title', $this->_('Add Field')); 
 		$select->setAsmSelectOption('sortable', true); 
 
 		foreach($template->fieldgroup as $field) {
@@ -522,10 +531,8 @@ class ProcessTemplate extends Process {
 		$form = new InputfieldWrapper();
 
 		$field = $this->modules->get("InputfieldSelect"); 
-		$field->label = 'Duplicate fields used by another template'; 
-		$field->description = 
-			"If you want to duplicate fields used by another template, select it here. " . 
-			"Fields already present in this template will be left alone.";
+		$field->label = $this->_('Duplicate fields used by another template'); 
+		$field->description = $this->_('If you want to duplicate fields used by another template, select it here. Fields already present in this template will be left alone.'); // Duplicate fields, description
  
 		$field->attr('id+name', 'import_fieldgroup'); 
 		$field->addOption(''); 
@@ -550,15 +557,9 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldInteger'); 
 		$field->attr('id+name', 'cache_time');
-		$field->label = 'Cache Time';
-		$field->description = 
-			"To cache the output of this template, enter the time (in seconds) that the output should be cached. " . 
-			"Caching can help significantly with page render time on resource-heavy pages. " . 
-			"But caching should not be used on templates that need to process constantly changing data, like " . 
-			"from forms or sessions. Also note that URL segments are cachable, but GET and POST vars are not. ";
-
-		$field->notes = "For example: 60 = 1 minute, 600 = 10 minutes, 3600 = 1 hour, 86400 = 1 day, 604800 = 1 week, 2419200 = 1 month. ";
-
+		$field->label = $this->_x('Cache Time', 'field-label');
+		$field->description = $this->_('To cache the output of this template, enter the time (in seconds) that the output should be cached. Caching can help significantly with page render time on resource-heavy pages. But caching should not be used on templates that need to process constantly changing data, like from forms or sessions. Also note that URL segments are cachable, but GET and POST vars are not.'); // Cach time description
+		$field->notes = $this->_('For example: 60 = 1 minute, 600 = 10 minutes, 3600 = 1 hour, 86400 = 1 day, 604800 = 1 week, 2419200 = 1 month.'); // Cache time notes/examples
 		$field->attr('value', $template->cache_time); 
 		$form->append($field); 
 
@@ -566,25 +567,23 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldRadios'); 
 		$field->attr('id+name', 'cacheExpire'); 
-		$field->label = 'Page Save / Cache Expiration';
-		$field->description = "When a page using this template is saved, what should happen to the cache?";
-		$field->addOption(Template::cacheExpirePage, "Clear cache for the saved page only (default)"); 
-		$field->addOption(Template::cacheExpireSite, "Clear cache for entire site*");
-		$field->addOption(Template::cacheExpireParents, "Clear cache for the saved page and parents (including homepage)"); 
-		$field->addOption(Template::cacheExpireSpecific, "Clear cache for the saved page and other pages that I specify..."); 
-		$field->addOption(Template::cacheExpireNone, "Do nothing");
+		$field->label = $this->_('Page Save / Cache Expiration');
+		$field->description = $this->_('When a page using this template is saved, what should happen to the cache?');
+		$field->addOption(Template::cacheExpirePage, $this->_('Clear cache for the saved page only (default)')); 
+		$field->addOption(Template::cacheExpireSite, $this->_('Clear cache for entire site*')); // Clear cache for entire site // Note you should include the '*' to relate this item to the Cache expiration notes
+		$field->addOption(Template::cacheExpireParents, $this->_('Clear cache for the saved page and parents (including homepage)')); 
+		$field->addOption(Template::cacheExpireSpecific, $this->_('Clear cache for the saved page and other pages that I specify...')); 
+		$field->addOption(Template::cacheExpireNone, $this->_('Do nothing'));
 		$field->attr('value', (int) $template->cacheExpire); 
-		$field->notes = "*To maximize performance, cache files are all expired as a group rather than cleared individually.";
+		$field->notes = $this->_('*To maximize performance, cache files are all expired as a group rather than cleared individually.'); // Cache expiration notes // This explains the 'Clear cache for entire site*' option
 		$form->append($field); 
 
 		// --------------------
 
 		$field = $this->modules->get('InputfieldPageListSelectMultiple'); 
 		$field->attr('id+name', 'cacheExpirePages'); 
-		$field->label = "Specify the other pages that should have their cache cleared"; 
-		$field->description = 
-			"When pages using this template are saved, their cache files will be cleared. " . 
-			"Select the other pages that should also have their cache files cleared below."; 
+		$field->label = $this->_('Specify the other pages that should have their cache cleared'); 
+		$field->description = $this->_('When pages using this template are saved, their cache files will be cleared. Select the other pages that should also have their cache files cleared below.'); // Specified cache clear pages, description
 		$value = is_array($template->cacheExpirePages) ? $template->cacheExpirePages : array();
 		$field->attr('value', $value); 
 		$form->append($field); 
@@ -593,24 +592,26 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldRadios'); 
 		$field->attr('id+name', 'useCacheForUsers'); 
-		$field->label = 'Cache when rendering pages for these users';
-		$field->addOption(0, 'Guests only'); 
-		$field->addOption(1, 'Guests and logged-in users');
+		$field->label = $this->_('Cache when rendering pages for these users');
+		$field->addOption(0, $this->_('Guests only')); 
+		$field->addOption(1, $this->_('Guests and logged-in users'));
 		$field->attr('value', (int) $template->useCacheForUsers); 
-		$field->notes = "Note that the cache is always disabled for pages where the user has edit access, regardless of what you select here.";
+		$field->notes = $this->_('Note that the cache is always disabled for pages where the user has edit access, regardless of what you select here.'); // Cache for guest/loggin-in user notes
 		$form->append($field); 
 
 		// --------------------
 
+		$labelGET = $this->_('Cache disabling GET variables');
+		$labelPOST = $this->_('Cache disabling POST variables');
+		$description = $this->_('When your template outout is cached, variables of this type are ignored by default. You can optionally specify one or more variable names that will disable the cache for that request, causing the page to be rendered sans cache.'); // Disable cache, GET/POST vars, description
+		$notes = $this->_('Optionally enter one or more variable names. If entering more than one, separate each by a space.'); // Disable cache, GET/POST vars, notes
+
 		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('id+name', 'noCacheGetVars'); 
-		$field->label = "Disable cache when these GET vars are present";
-		$field->description = 
-			"When your template outout is cached, GET vars are ignored by default. " . 
-			"You can optionally specify one or more GET vars that will disable the " . 
-			"cache for that request, causing the page to be rendered sans cache. ";
+		$field->label = $labelGET; 
+		$field->description = $description; 
+		$field->notes = $notes; 
 		$field->attr('value', (string) $template->noCacheGetVars); 
-		$field->notes = "Optionally enter one or more GET var names. If entering more than one, separate each by a space.";
 		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field); 
 
@@ -618,14 +619,11 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('id+name', 'noCachePostVars'); 
-		$field->label = "Disable cache when these POST vars are present";
-		$field->description = 
-			"When your template outout is cached, POST vars are ignored by default. " . 
-			"You can optionally specify one or more POST vars that will disable the " . 
-			"cache for that request, causing the page to be rendered sans cache. ";
+		$field->label = $labelPOST; 
+		$field->description = $description;
+		$field->notes = $notes; 
 		$field->attr('value', (string) $template->noCachePostVars); 
 		$field->collapsed = Inputfield::collapsedBlank;
-		$field->notes = "Optionally enter one or more POST var names. If entering more than one, separate each by a space.";
 		$form->append($field); 
 
 		return $form; 
@@ -640,14 +638,13 @@ class ProcessTemplate extends Process {
 
 		if(!($template->flags & Template::flagSystem)) { 
 			$field = $this->modules->get("InputfieldName"); 
-			$field->label = 'Rename Template';
-			$field->description = 
-				"The name used to refer to this template. This is also the default filename of the template file (with .php extension) in /site/templates/. ";
+			$field->label = $this->_('Rename Template');
+			$field->description = $this->_('The name used to refer to this template. This is also the default filename of the template file (with .php extension) in /site/templates/.'); // Rename template, description
 			if(basename($template->filename, '.php') == $template->name) {
-				 if(is_writable($template->filename)) $field->description .= "The template filename is writable and will be renamed as well.";
-					else $field->description .= "The template file is not writable so you will have to rename it manually (instructions will be provided after you save). ";
+				 if(is_writable($template->filename)) $field->description .= $this->_('The template filename is writable and will be renamed as well.'); // Rename template, filename writable, description
+					else $field->description .= $this->_('The template file is not writable so you will have to rename it manually (instructions will be provided after you save).'); // Rename template, filename not writable, description
 			}
-			$field->notes = "Enter any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces). Do not include the .php file extension.";
+			$field->notes = $this->_('Enter any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces). Do not include the .php file extension.'); // Rename template, notes
 			$field->attr('id+name', 'rename'); 
 			$field->attr('value', $template->name); 
 			$field->collapsed = Inputfield::collapsedYes;
@@ -659,8 +656,8 @@ class ProcessTemplate extends Process {
 		$field = $this->modules->get("InputfieldCheckbox"); 
 		$field->attr('id+name', 'clone_template');
 		$field->attr('value', 1); 
-		$field->label = 'Duplicate/clone this template?';
-		$field->description = 'Check the box below if you want to create a duplicate/clone copy of this template. The clone will be created when you save. If your templates directory is writable and the template has a file, it will also be cloned.';
+		$field->label = $this->_('Duplicate/clone this template?');
+		$field->description = $this->_('Check the box below if you want to create a duplicate/clone copy of this template. The clone will be created when you save. If your templates directory is writable and the template has a file, it will also be cloned.'); // Clone template, description
 		$field->collapsed = Inputfield::collapsedYes; 
 		$form->append($field); 
 
@@ -668,10 +665,11 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('name', 'altFilename');
-		$field->label = 'Alternate Template Filename';
+		$field->label = $this->_('Alternate Template Filename');
 		$defaultFilename = $this->template->name . "." . $this->config->templateExtension;
-		$field->description = "The template's filename, if different from $defaultFilename";
-		$field->notes = "Templates are assumed to be in {$this->config->urls->templates} and extension is assumed to be .{$this->config->templateExtension}";
+		$field->description = sprintf($this->_("The template's filename, if different from: %s"), $defaultFilename);
+		$field->notes = sprintf($this->_('Template files are assumed to be in directory: %s'), $this->config->urls->templates) . "\n" . 
+			sprintf($this->_('Template file extension is assumed to be: %s'), '.' . $this->config->templateExtension);
 		$field->attr('value', $template->altFilename); 
 		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field); 
@@ -680,22 +678,16 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('name', 'pageLabelField');
-		$field->label = 'List of fields to display in the admin Page List';
-		$field->description = 
-			"Enter one or more field names assigned to this template to display in the admin Page List when listing pages using this template. " . 
-			"If left blank, the fields specified on the ProcessPageList module configuration will be used instead. " . 
-			"If populated, it will override the field names specified with ProcessPageList. " . 
-			"Field names should be separated by a space and/or comma. Blank fields will be ignored."; 
+		$field->label = $this->_('List of fields to display in the admin Page List');
+		$field->description = $this->_("Enter one or more field names assigned to this template to display in the admin Page List when listing pages using this template. If left blank, the fields specified on the ProcessPageList module configuration will be used instead. Field names should be separated by a space and/or comma. Blank fields will be ignored."); // Page list fields, description
 		$notes = 'name, ';
 		foreach($template->fields as $f) if(!$f->type instanceof FieldtypeFieldsetOpen) $notes .= $f->name . ", ";
-		$field->notes = "You may enter one or more of these fields: " . rtrim($notes, ", ");
+		$field->notes = $this->_('You may enter one or more of these fields:') . ' ' . rtrim($notes, ", ");
 		$field->attr('value', $template->pageLabelField); 
 		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field); 
 
 		// --------------------
-
-
 
 		return $form; 
 	}
@@ -704,17 +696,15 @@ class ProcessTemplate extends Process {
 
 		$form = new InputfieldWrapper();
 		$form->id = 'system';
-		$form->notes = 'Please note that all of these system settings are intended for ProcessWire system development (not site development). Use them at your own risk.';
+		$form->notes = $this->_('Please note that all of these system settings are intended for ProcessWire system development (not site development). Use them at your own risk.'); // System tab notes
 
 		// --------------------
 
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('name', 'flagSystem');
-		$field->label = 'System Flag?';
-		$field->description = 
-			"If checked, this template will be defined as for the system and it won't be deleteable. " . 
-			"Once the system flag is enabled, it can only be removed via the API (flagSystemOverride). ";
-		$field->notes = 'API: $template->flagSystem = 1; // or 0 to disable';
+		$field->label = $this->_('System Flag?');
+		$field->description = $this->_("If checked, this template will be defined as for the system and it won't be deleteable. Once the system flag is enabled, it can only be removed via the API (flagSystemOverride)."); // System flag, description
+		$field->notes = $this->_('API: $template->flagSystem = 1; // or 0 to disable'); // System flag, API notes
 		$field->value = 1; 
 		if($template->flags & Template::flagSystem) {
 			$field->attr('checked', 'checked'); 
@@ -727,30 +717,22 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('name', 'pageClass');
-		$field->label = 'Page Class Name';
-		$field->description = 
-			"The name of the PHP class that will be used to create pages that use this template. " . 
-			"By default pages will be created from the Page class. You should leave this blank " . 
-			"unless you have another Page-derived class that you want to use.";
-		$field->notes = 'API: $template->pageClass = "ClassName";';
+		$field->label = $this->_('Page Class Name');
+		$field->description = $this->_("The name of the PHP class that will be used to create pages that use this template. By default pages will be created from the Page class. You should leave this blank unless you have another Page-derived class that you want to use."); // Page class, description
+		$field->notes = $this->_('API: $template->pageClass = "ClassName";'); // Page class, API notes
 
 		$field->attr('value', $template->pageClass ? $template->pageClass : ''); 
 		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field); 
 		if($template->pageClass) $form->collapsed = Inputfield::collapsedNo;
 
-
 		// --------------------
 
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('name', 'noGlobal');
-		$field->label = 'Disregard Global Fields?';
-		$field->description = 
-			"By default, when a field is marked 'global' it will be required on all templates " . 
-			"(and automatically added to any templates that don't have it). If this template has " . 
-			"a special purpose where 'global' fields wouldn't apply, you can check this box to " . 
-			"make this template disregard 'global' fields.";
-		$field->notes = 'API: $template->noGlobal = 1; // or 0 to disable';
+		$field->label = $this->_('Disregard Global Fields?');
+		$field->description = $this->_("By default, when a field is marked 'global' it will be required on all templates (and automatically added to any templates that don't have it). If this template has a special purpose where 'global' fields wouldn't apply, you can check this box to make this template disregard 'global' fields."); // Global flag, description
+		$field->notes = $this->_('API: $template->noGlobal = 1; // or 0 to disable'); // Global flag, API notes
 
 		$field->attr('value', 1); 
 		if($template->noGlobal) {
@@ -765,11 +747,9 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('name', 'nameContentTab');
-		$field->label = "Display 'name' field in content tab?";
-		$field->description = 
-			"By default, the built-in 'name' field appears in the page editor 'settings' tab. If you would rather have it appear " . 
-			"in the 'content' tab check this box. ";
-		$field->notes = 'API: $template->nameContentTab = 1; // or 0 to disable';
+		$field->label = $this->_("Display 'name' field in content tab?");
+		$field->description = $this->_("By default, the built-in 'name' field appears in the page editor 'settings' tab. If you would rather have it appear in the 'content' tab check this box."); // Name in content tab, description
+		$field->notes = $this->_('API: $template->nameContentTab = 1; // or 0 to disable'); // Name in content tab, API notes
 
 		$field->attr('value', 1); 
 		if($template->nameContentTab) {
@@ -784,10 +764,9 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('name', 'noMove');
-		$field->label = "Don't allow pages to be moved?";
-		$field->description = 
-			"If you want to prevent pages using this template from being moved (changing parent) then check this box. ";
-		$field->notes = 'API: $template->noMove = 1; // or 0 to disable';
+		$field->label = $this->_("Don't allow pages to be moved?");
+		$field->description = $this->_("If you want to prevent pages using this template from being moved (changing parent) then check this box."); // noMove option, description
+		$field->notes = $this->_('API: $template->noMove = 1; // or 0 to disable'); // noMove option, API notes
 
 		$field->attr('value', 1); 
 		if($template->noMove) {
@@ -802,10 +781,9 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('name', 'noChangeTemplate');
-		$field->label = "Don't allow pages to change their template?";
-		$field->description = 
-			"When checked, pages using this template will be unable to change to another template. ";
-		$field->notes = 'API: $template->noChangeTemplate = 1; // or 0 to disable';
+		$field->label = $this->_("Don't allow pages to change their template?");
+		$field->description = $this->_("When checked, pages using this template will be unable to change to another template."); // noChangeTemplate option, description
+		$field->notes = $this->_('API: $template->noChangeTemplate = 1; // or 0 to disable'); // noChangeTemplate option, API notes
 
 		$field->attr('value', 1); 
 		if($template->noChangeTemplate) {
@@ -820,10 +798,9 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('name', 'noUnpublish');
-		$field->label = "Don't allow unpublished pages";
-		$field->description = 
-			"When checked, pages using this template may only exist in a published state and may not be unpublished. ";
-		$field->notes = 'API: $template->noUnpublish = 1; // or 0 to disable';
+		$field->label = $this->_("Don't allow unpublished pages");
+		$field->description = $this->_("When checked, pages using this template may only exist in a published state and may not be unpublished."); // noUnpublish option, description
+		$field->notes = $this->_('API: $template->noUnpublish = 1; // or 0 to disable'); // noUnpublish option, API notes
 
 		$field->attr('value', 1); 
 		if($template->noUnpublish) {
@@ -839,10 +816,9 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('name', 'noTrash');
-		$field->label = "Disable Trash Option?";
-		$field->description = 
-			"When checked, pages using this template will not have the option of being sent to the trash.";
-		$field->notes = 'API: $template->noTrash = 1; // or 0 to disable';
+		$field->label = $this->_("Disable Trash Option?");
+		$field->description = $this->_("When checked, pages using this template will not have the option of being sent to the trash."); // noTrash option, description
+		$field->notes = $this->_('API: $template->noTrash = 1; // or 0 to disable'); // noTrash option, API notes
 
 		$field->attr('value', 1); 
 		if($template->noTrash) {
@@ -857,10 +833,9 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('name', 'noSettings');
-		$field->label = "Disable Settings Tab?";
-		$field->description = 
-			"When checked, pages using this template will not have a 'settings' tab appear in the editor.";
-		$field->notes = 'API: $template->noSettings = 1; // or 0 to disable';
+		$field->label = $this->_("Disable Settings Tab?");
+		$field->description = $this->_("When checked, pages using this template will not have a 'settings' tab appear in the editor."); // noSettings option, description
+		$field->notes = $this->_('API: $template->noSettings = 1; // or 0 to disable'); // noSettings option, API notes
 
 		$field->attr('value', 1); 
 		if($template->noSettings) {
@@ -884,8 +859,8 @@ class ProcessTemplate extends Process {
 		$field = $this->modules->get("InputfieldRadios"); 
 		$field->attr('id+name', 'noChildren'); 
 		$field->label = "May pages using this template have children?";
-		$field->addOption(0, 'Yes'); 
-		$field->addOption(1, 'No'); 
+		$field->addOption(0, $this->labels['Yes']); 
+		$field->addOption(1, $this->labels['No']); 
 		$field->attr('value', (int) $template->noChildren); 
 		$form->add($field);
 
@@ -893,46 +868,37 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get("InputfieldRadios"); 
 		$field->attr('id+name', 'noParents'); 
-		$field->label = "Can this template be used for new pages?";
-		$field->notes = "An example of a template that you wouldn't want to be used for new pages is your 'homepage' template.";
-		$field->addOption(0, 'Yes'); 
-		$field->addOption(1, 'No'); 
+		$field->label = $this->_('Can this template be used for new pages?');
+		$field->notes = $this->_("An example of a template that you wouldn't want to be used for new pages is your 'homepage' template."); // noParents option, description
+		$field->addOption(0, $this->labels['Yes']); 
+		$field->addOption(1, $this->labels['No']); 
 		$field->attr('value', (int) $template->noParents); 
 		$form->add($field);
-
 
 		// ----------------------
 
 		$field = $this->modules->get('InputfieldAsmSelect'); 
 		$field->attr('id+name', 'childTemplates'); 
-		$field->label = "Allowed template(s) for children";
-		$field->description = 
-			"Select the template(s) that will be allowed for children of pages using this template. " . 
-			"Use this only if you specifically want to restrict placement of pages using this template.";
+		$field->label = $this->_('Allowed template(s) for children');
+		$field->description = $this->_('Select the template(s) that will be allowed for children of pages using this template. Use this only if you specifically want to restrict placement of pages using this template.'); // childTemplates option, description
 
 		foreach($this->templates as $t) $field->addOption($t->id, $t->name);
 		$field->attr('value', $template->childTemplates); 
 		$field->collapsed = count($template->childTemplates) ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
-		$field->notes = 
-			"If none are selected then any are allowed, within the user's access limits. " . 
-			"An example usage could be a 'news-list' template that is only allowed to have children using 'news-item' or 'press-release' templates. ";
+		$field->notes = $this->_("If none are selected then any are allowed, within the user's access limits. An example usage could be a 'news-list' template that is only allowed to have children using 'news-item' or 'press-release' templates."); // childTemplates option, notes
 		$form->add($field); 
 
 		// --------------------
 
 		$field = $this->modules->get('InputfieldAsmSelect'); 
 		$field->attr('id+name', 'parentTemplates'); 
-		$field->label = "Allowed template(s) for parents";
-		$field->description = 
-			"Select the template(s) that will be allowed as parents for pages using this template. " . 
-			"Use this only if you specifically want to restrict placement of pages using this template. ";
+		$field->label = $this->_('Allowed template(s) for parents');
+		$field->description = $this->_("Select the template(s) that will be allowed as parents for pages using this template. Use this only if you specifically want to restrict placement of pages using this template."); // parentTemplates option, description
 
 		foreach($this->templates as $t) $field->addOption($t->id, $t->name);
 		$field->attr('value', $template->parentTemplates); 
 		$field->collapsed = count($template->parentTemplates) ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
-		$field->notes = 
-			"If none are selected then any parent template is allowed, within the user's access limits. " . 
-			"An example usage could be an 'employee' template that is only allowed to have a parent page using a 'company-directory' template. ";
+		$field->notes = $this->_("If none are selected then any parent template is allowed, within the user's access limits. An example usage could be an 'employee' template that is only allowed to have a parent page using a 'company-directory' template."); // parentTemplates option, notes
 		$form->add($field); 
 
 		// $this->buildEditFormAccessAddRoles($template, $form); 
@@ -949,19 +915,13 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('id+name', 'allowPageNum');
-		$field->label = 'Allow Page Numbers?';
+		$field->label = $this->_('Allow Page Numbers?');
 		$field->attr('value', 1); 
 		if($template->allowPageNum) $field->attr('checked', 'checked'); 
 			else $field->collapsed = Inputfield::collapsedYes;
 		
-		$field->description = 
-			"If checked, pages using this template will accept page number URL segments in the form 'page123', where '123' may be any positive number. " . 
-			"For example, a request URL of '/widgets/page3' automatically sets the \$input->pageNum to be 3.  " . 
-			"This is used for pagination and should only be enabled for templates that support pagination. " . 
-			"Note that page numbers start at 1 (not 0). " . 
-			"If combined with URL Segments (see next section), then the page number must be the last part of the URL."; 
-		$field->notes = 
-			"Access the current page number from your templates at \$input->pageNum; ";
+		$field->description = $this->_("If checked, pages using this template will accept page number URL segments in the form 'page123', where '123' may be any positive number.  For example, a request URL of '/widgets/page3' automatically sets the \$input->pageNum to be 3. This is used for pagination and should only be enabled for templates that support pagination. Note that page numbers start at 1 (not 0).  If combined with URL Segments (see next section), then the page number must be the last part of the URL."); // Allow page numbers, description
+		$field->notes = $this->_("Access the current page number from your templates at \$input->pageNum;"); // Allow page numbers, API notes
 		$form->append($field); 
 		if($template->allowPageNum) $form->collapsed = Inputfield::collapsedNo;
 
@@ -969,26 +929,10 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('name', 'urlSegments');
-		$field->label = 'Allow URL Segments?';
-		$field->description = 
-			"This template may optionally serve URL path segments below that of the page(s) using it. " . 
-			"For example, you may want a page with path /path/to/page/ to also handle requests for " . 
-			"/path/to/page/segment1/ or /path/to/page/segment1/segment2/. By default, ProcessWire " . 
-			"will throw a '404 Page Not Found' error when such a URL is accessed. But if you want " . 
-			"ProcessWire to render the page instead, check the box below. You can then manully check " . 
-			"the URL segments from your template file to respond to them.";
-
-		$field->notes = 
-			"Up to 3 URL segments are supported after the page's URL. These may be any " . 
-			"combination of lowercase ASCII letters (a-z), numbers (0-9), dashes and underscores. " . 
-			"You can access the URL segments from your template API code by referencing the " . 
-			"\$input->urlSegment(n) function or \$input->urlSegment[n] property " . 
-			"(replacing [n] with 1, 2 or 3).\n\nFor example, given the URL /path/to/page/a/b/c/, " . 
-			"where /path/to/page/ is the page's path, and /a/b/c/ are the segments: " . 
-			"\$input->urlSegment1 is \"a\", \$input->urlSegment2 is \"b\", and \$input->urlSegment3 is \"c\". " . 
-			"If your template receives unknown URL segments, a best practice is to " . 
-			"abort the request by throwing a 404 error. " . 
-			"The API code to do this is: throw new PageNotFoundException();";
+		$field->label = $this->_('Allow URL Segments?');
+		$field->description = $this->_("This template may optionally serve URL path segments below that of the page(s) using it.  For example, you may want a page with path /path/to/page/ to also handle requests for /path/to/page/segment1/ or /path/to/page/segment1/segment2/. By default, ProcessWire will throw a '404 Page Not Found' error when such a URL is accessed. But if you want ProcessWire to render the page instead, check the box below. You can then manully check the URL segments from your template file to respond to them."); // Allow URL segments, description
+		$field->notes = $this->_('Up to 3 URL segments are supported after the page URL. These may be any combination of lowercase ASCII letters (a-z), numbers (0-9), dashes and underscores. You can access the URL segments from your template API code by referencing the $input->urlSegment(n) function or $input->urlSegment[n] property (replacing [n] with 1, 2 or 3).'); // Allow URL segments, notes 
+		$field->notes .= "\n\n" . $this->_('For example, given the URL /path/to/page/a/b/c/, where /path/to/page/ is the page path, and /a/b/c/ are the segments: $input->urlSegment1 is "a", $input->urlSegment2 is "b", and $input->urlSegment3 is "c". If your template receives unknown URL segments, a best practice is to abort the request by throwing a 404 error. The API code to do this is: throw new Wire404Exception();'); // Allow URL segments, examples
 
 		$field->attr('value', 1); 
 		if($template->urlSegments) {
@@ -1003,14 +947,10 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldRadios'); 
 		$field->attr('name', 'slashUrls'); 
-		$field->label = 'Should page URLs end with a slash?';
-		$field->addOption(1, 'Yes (default)'); 
-		if($template->name != 'admin') $field->addOption(0, 'No'); 
-		$field->description = 
-			"If 'Yes', pages using this template will always have URLs that end with a trailing slash '/'. And if the page is loaded from " . 
-			"a URL without the slash, it will be redirected to it. If you select 'No', the non-slashed version will be enforced instead. " . 
-			"Note that this setting does not enforce this behavior on URL segments or page numbers, only actual page URLs. If you don't " . 
-			"have a preference, it is recommended that you leave this set to 'Yes'.";
+		$field->label = $this->_('Should page URLs end with a slash?');
+		$field->addOption(1, $this->labels['Yes']); 
+		if($template->name != 'admin') $field->addOption(0, $this->labels['No']); 
+		$field->description = $this->_("If 'Yes', pages using this template will always have URLs that end with a trailing slash '/'. And if the page is loaded from a URL without the slash, it will be redirected to it. If you select 'No', the non-slashed version will be enforced instead. Note that this setting does not enforce this behavior on URL segments or page numbers, only actual page URLs. If you don't have a preference, it is recommended that you leave this set to 'Yes'."); // URLs end with slash, description
 		$field->attr('value', $template->slashUrls === 0 ? 0 : 1); // force default setting of 1
 		$field->collapsed = $template->slashUrls === 0 ? Inputfield::collapsedNo : Inputfield::collapsedYes;
 		if($template->slashUrls === 0) $form->collapsed = Inputfield::collapsedNo;
@@ -1020,20 +960,15 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldRadios'); 
 		$field->attr('name', 'https'); 
-		$field->label = 'Protocol';
-		$field->addOption(0, 'HTTP or HTTPS'); 
-		$field->addOption(1, 'HTTPS only (SSL encrypted)'); 
-		$field->addOption(-1, 'HTTP only');
+		$field->label = $this->_('Schema/Protocol');
+		$field->addOption(0, $this->_('HTTP or HTTPS')); 
+		$field->addOption(1, $this->_('HTTPS only (SSL encrypted)')); 
+		$field->addOption(-1, $this->_('HTTP only'));
 		$field->collapsed = Inputfield::collapsedBlank;
-		$field->description = 
-			"If your site has an SSL certificate and is accessible by HTTPS, you may make pages using this template accessible " . 
-			"only via HTTPS or HTTP. For example, if you select 'HTTPS only' below, and a request for a page using this template comes " .
-			"in through HTTP, it will be automatically redirected to the HTTPS version. By default, ProcessWire allows connection from " . 
-			"either HTTP or HTTPS. ";
+		$field->description = $this->_("If your site has an SSL certificate and is accessible by HTTPS, you may make pages using this template accessible only via HTTPS or HTTP. For example, if you select 'HTTPS only' below, and a request for a page using this template comes in through HTTP, it will be automatically redirected to the HTTPS version. By default, ProcessWire allows connection from either HTTP or HTTPS."); // Schema/Protocol, description
 		$field->attr('value', (int) $template->https); 
 		$form->append($field); 
 		if($template->https) $form->collapsed = Inputfield::collapsedNo;
-
 			
 		return $form; 
 	}
@@ -1048,12 +983,10 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldRadios'); 
 		$field->attr('id+name', 'useRoles');
-		$field->label = "Do you want to manage view and edit access for pages using this template?";
-		$field->description = 
-			"If you select 'Yes' you can define what roles have access to pages using this template. " . 
-			"If you select 'No' then pages using this template will inherit access from their parent pages.";
-		$field->addOption(1, "Yes");
-		$field->addOption(0, "No"); 
+		$field->label = $this->_('Do you want to manage view and edit access for pages using this template?'); // Use Roles?
+		$field->description = $this->_("If you select 'Yes' you can define what roles have access to pages using this template. If you select 'No' then pages using this template will inherit access from their parent pages."); // Use Roles, description
+		$field->addOption(1, $this->labels['Yes']);
+		$field->addOption(0, $this->labels['No']); 
 		$field->attr('value', (int) $template->useRoles); 
 		$field->collapsed = Inputfield::collapsedNo;
 		$form->add($field); 
@@ -1072,40 +1005,38 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldRadios'); 
 		$field->attr('id+name', 'redirectLogin');
-		$field->label = 'What to do when user attempts to view a page and has no access?';
-		$field->description = "If a user attempts to access a page using this template, and doesn't have access to the page, what should it do?"; 
-		$field->addOption(0, 'Show a 404 Page'); 
-		$field->addOption($this->config->loginPageID, 'Show the Login page (' . $this->pages->get($this->config->loginPageID)->url . ')');
-		$field->addOption(-1, "Redirect to another URL"); 
+		$field->label = $this->_('What to do when user attempts to view a page and has no access?');
+		$field->description = $this->_("If a user attempts to access a page using this template, and doesn't have access to the page, what should it do?"); // What to do when no access, description
+		$field->addOption(0, $this->_('Show a 404 Page')); 
+		$field->addOption($this->config->loginPageID, sprintf($this->_('Show the Login page: %s'), $this->pages->get($this->config->loginPageID)->url));
+		$field->addOption(-1, $this->_('Redirect to another URL')); 
 		$field->attr('value', !$template->redirectLogin || ctype_digit("{$template->redirectLogin}") ? (int) $template->redirectLogin : -1); 
 		$field->collapsed = Inputfield::collapsedBlank;
 		$fieldset->add($field); 
 
 		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('id+name', 'redirectLoginURL'); 
-		$field->label = "Enter the URL you want to redirect to when a user doesn't have access"; 
-		$field->description = 'This field is applicable only if you selected "redirect to another URL" in the field above.';
+		$field->label = $this->_("Enter the URL you want to redirect to when a user doesn't have access"); 
+		$field->description = $this->_('This field is applicable only if you selected "redirect to another URL" in the field above.');
 		if($template->redirectLogin && !ctype_digit("{$template->redirectLogin}")) $field->attr('value', $template->redirectLogin); 
 		$field->collapsed = Inputfield::collapsedNo;
-		$field->notes = "Optional: In your URL, you can include the tag \"{id}\" (perhaps as a GET variable), and it will be replaced by the requested page's ID number, if you want it.";
+		$field->notes = $this->_("Optional: In your URL, you can include the tag '{id}' (perhaps as a GET variable), and it will be replaced by the requested page's ID number, if you want it."); // Redirect URL, notes
 		$fieldset->add($field); 
 		
 		// --------------------
 
 		$field = $this->modules->get('InputfieldRadios'); 
 		$field->attr('id+name', 'guestSearchable');
-		$field->label = "Should pages be searchable when user has no access?";
-		$field->description = "When a user doesn't have access to view a page using this template, what should happen in searches and page lists?";
-		$field->addOption(1, "Yes - Pages may appear in searches/lists even if the user doesn't have access to view them");
-		$field->addOption(0, "No - Pages may NOT not appear in searches/lists unless the user has access to view them"); 
+		$field->label = $this->_('Should pages be searchable when user has no access?');
+		$field->description = $this->_("When a user doesn't have access to view a page using this template, what should happen in searches and page lists?"); // Guest searchable, description
+		$field->addOption(1, $this->_("Yes - Pages may appear in searches/lists even if the user doesn't have access to view them"));
+		$field->addOption(0, $this->_("No - Pages may NOT not appear in searches/lists unless the user has access to view them")); 
 		$field->attr('value', (int) $template->guestSearchable); 
 		$field->collapsed = Inputfield::collapsedBlank;
-		$field->notes = "API Note: This setting affects the results returned by \$pages->find(), \$page->children() and other functions that return PageArrays.";
+		$field->notes = $this->_('API Note: This setting affects the results returned by $pages->find(), $page->children() and other functions that return PageArrays.'); // Guest searchable, notes
 		$fieldset->add($field); 
 
 		// --------------------
-
-
 
 		return $form; 
 	}
@@ -1120,11 +1051,17 @@ class ProcessTemplate extends Process {
 		$field = $this->modules->get("InputfieldMarkup"); 
 		$field->thead = "Role";
 		$field->attr('id', 'roles_editor'); 
-		$field->label = "What roles can access pages using this template (and those inheriting from it)?";
+		$field->label = $this->_('What roles can access pages using this template (and those inheriting from it)?');
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->setEncodeEntities(false);
-		$table->headerRow(array('Role', "View Pages", "Edit Pages", "Create Pages", "Add Children")); 
+		$table->headerRow(array(
+			$this->_x('Role', 'access-thead'), 
+			$this->_x('View Pages', 'access-thead'), 
+			$this->_x('Edit Pages', 'access-thead'), 
+			$this->_x('Create Pages', 'access-thead'), 
+			$this->_x('Add Children', 'access-thead'),
+			)); 
 
 		foreach($roles as $role) {
 			$label = $role->name; 
@@ -1138,7 +1075,7 @@ class ProcessTemplate extends Process {
 			}
 			$details = rtrim($details, "\n"); 
 			if($label == 'superuser') continue; 
-			if($label == 'guest') $label .= " (everyone)";
+			if($label == 'guest') $label .= ' ' . $this->_('(everyone)');
 
 			$table->row(array(
 				$label,
@@ -1169,7 +1106,7 @@ class ProcessTemplate extends Process {
 		if(isset($_POST['delete']) && $_POST['delete'] == $this->template->id && $this->numPages == 0) {
 			$fieldgroup = $this->template->fieldgroup;
 			$deleteFieldgroup = $fieldgroup->name == $this->template->name;
-			$this->session->message("Deleted template '{$this->template->name}'"); 
+			$this->session->message($this->_('Deleted template') . " - {$this->template->name}"); 
 			$this->templates->delete($this->template); 
 			if($deleteFieldgroup) $this->fieldgroups->delete($fieldgroup); 
 			$this->session->redirect("./"); 
@@ -1269,7 +1206,7 @@ class ProcessTemplate extends Process {
 
 		try {
 			$this->template->save();
-			$this->message("Saved Template '{$this->template->name}'"); 
+			$this->message(sprintf($this->_('Saved template: %s'), $this->template->name)); 
 		} catch(Exception $e) {
 			$this->error($e->getMessage()); 
 		}
@@ -1278,10 +1215,10 @@ class ProcessTemplate extends Process {
 		if($this->input->post->clone_template) {
 			$clone = $this->templates->clone($this->template); 
 			if($clone) {
-				$this->message("Created clone of template '{$this->template->name}' named '{$clone->name}'. You may rename it from that template's advanced menu."); 
+				$this->message(sprintf($this->_('Created clone of template "%1$s" named "%2$s". You may rename it by editing "%2$s" and clicking the "advanced" tab.'), $this->template->name, $clone->name)); 
 				$redirectUrl = './';
 			} else {
-				$this->error("Error creating clone of this template"); 
+				$this->error($this->_('Error creating clone of this template')); 
 			}
 		}
 
@@ -1310,7 +1247,7 @@ class ProcessTemplate extends Process {
 			}
 		}
 
-		$this->message("Duplicated $total field(s) from '$fieldgroup' to '{$template->fieldgroup}'"); 
+		$this->message(sprintf($this->_('Duplicated fields from "%1$s" to "%2$s"'), $fieldgroup, $template->fieldgroup)); 
 	}
 
 	/**
@@ -1328,7 +1265,7 @@ class ProcessTemplate extends Process {
 		foreach($fieldgroup as $field) {
 			if(!in_array($field->id, $ids)) {
 				if(($field->flags & Field::flagGlobal) && !$this->template->noGlobal) {
-					$this->error("Field '$field' may not be removed because it is globally required by all fieldgroups"); 
+					$this->error(sprintf($this->_('Field "%s" may not be removed because it is globally required by all fieldgroups'), $field)); 
 				} else { 
 					$removedFields->add($field); 
 				}
@@ -1353,7 +1290,7 @@ class ProcessTemplate extends Process {
 
 
 		$fieldgroup->save();
-		if($this->config->debug) $this->message("Saved fieldgroup: {$fieldgroup->name}"); 
+		if($this->config->debug) $this->message(sprintf($this->_('Saved fieldgroup: %s'), $fieldgroup->name)); 
 
 		if(count($removedFields)) {
 			$url = "removeFields?id={$this->template->id}&fields=";
@@ -1371,7 +1308,7 @@ class ProcessTemplate extends Process {
 	 */
 	public function ___executeFieldgroup() {
 
-		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', 'Templates'))->add(new Breadcrumb("./edit?id={$this->template->id}", $this->template)); 
+		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title']))->add(new Breadcrumb("./edit?id={$this->template->id}", $this->template)); 
 
 		if(!isset($_GET['fieldgroup'])) $this->session->redirect('./'); 
 		$fieldgroup = $this->fieldgroups->get((int) $_GET['fieldgroup']); 
@@ -1391,18 +1328,18 @@ class ProcessTemplate extends Process {
 
 		$f = $this->modules->get("InputfieldMarkup"); 
 		$f->attr('id', 'changed_fields'); 
-		$f->label = 'Fields that will be deleted';
-		$f->description = 
-			"You have requested to change the Fieldgroup from '{$this->template->fieldgroup}' to '$fieldgroup'. " . 
-			"This means that the following fields will be permanently deleted on the {$this->numPages} pages using this template: ";
+		$f->label = $this->_('Fields that will be deleted');
+		$f->description = sprintf($this->_('You have requested to change the Fieldgroup from "%1$s" to "%2$s".'), $this->template->fieldgroup, $fieldgroup) . ' ' . 
+			sprintf($this->_n('This template is used by 1 page', 'This template is used by %d pages', $this->numPages), $this->numPages) . ' ' . 
+			$this->_('The following fields will be permanently deleted on pages using this template:');
 		$f->value = "<ul>$list</ul>";
 		$form->append($f); 
 		
 		$f = $this->modules->get("InputfieldCheckbox"); 
 		$f->attr('name', 'fieldgroup'); 
 		$f->value = $fieldgroup->id; 
-		$f->label = "Are you sure?";
-		$f->description = "Please confirm that you understand the above and that you want to change the fieldgroup by checking the box and submitting this form.";
+		$f->label = $this->labels['Are you sure?']; 
+		$f->description = $this->_('Please confirm that you understand the above and that you want to change the fieldgroup by checking the box and submitting this form.'); // Confirm fieldgroup, description
 		$form->append($f); 
 
 		$f = $this->modules->get("InputfieldHidden"); 
@@ -1412,11 +1349,11 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldSubmit');
 		$field->attr('name', 'submit_change_fieldgroup'); 
-		$field->attr('value', 'Continue'); 
+		$field->attr('value', $this->_x('Continue', 'submit-fieldgroup')); 
 		$form->append($field); 
 
-		$form->description = "Please confirm that you want to change the Fieldgroup from '{$this->template->fieldgroup}' to '{$fieldgroup}'"; 	
-		$this->setFuel('processHeadline', "Change Fieldgroup for Template: {$this->template}"); 
+		$form->description = sprintf($this->_('Please confirm that you want to change the Fieldgroup from "%1$s" to "%2$s"'), $this->template->fieldgroup, $fieldgroup); 	
+		$this->setFuel('processHeadline', sprintf($this->_('Change Fieldgroup for Template: %s'), $this->template)); 
 
 		return $form->render();
 	}
@@ -1436,14 +1373,14 @@ class ProcessTemplate extends Process {
 
 		if(is_null($fieldgroup)) {
 			if(!isset($_POST['fieldgroup']) || !$fieldgroup = $this->fieldgroups->get((int) $_POST['fieldgroup'])) {
-				$this->message("Fieldgroup change aborted"); 
+				$this->message($this->_('Fieldgroup change aborted')); 
 				$this->session->redirect("./"); 
 			}
 		}
 
 		$this->template->fieldgroup = $fieldgroup; 
 		$this->template->save(); 
-		$this->message("Changed template fieldgroup to '$fieldgroup'"); 
+		$this->message(sprintf($this->_('Changed template fieldgroup to: %s'), $fieldgroup)); 
 		$this->session->redirect("edit?id={$this->template->id}"); 
 	}
 
@@ -1468,7 +1405,9 @@ class ProcessTemplate extends Process {
 		if(!isset($_GET['fields'])) $this->session->redirect('./'); 
 
 		$fieldgroup = $this->template->fieldgroup; 
-		$this->setFuel('processHeadline', "Remove Fields from Template: {$this->template->name}"); 
+		$this->setFuel('processHeadline', sprintf($this->_('Remove Fields from Template: %s'), $this->template->name)); 
+
+		$this->fuel('breadcrumbs')->add(new Breadcrumb("./", $this->moduleInfo['title'])); 
 		$this->fuel('breadcrumbs')->add(new Breadcrumb("edit?id={$this->template->id}", $this->template->name)); 
 
 		$form = $this->modules->get("InputfieldForm"); 
@@ -1477,30 +1416,20 @@ class ProcessTemplate extends Process {
 
 
 		$checkboxes = $this->modules->get("InputfieldCheckboxes"); 
-		$checkboxes->label = "Remove fields from template";
+		$checkboxes->label = $this->_('Remove fields from template');
 		$checkboxes->attr('name', 'remove_fields'); 
-		$checkboxes->description = 
-			"You have asked to remove one or more fields from the template. This will result in data associated with the fields below " . 
-			"being permanently deleted. If the fields that are removed contain a lot of data, it may take time for this operation " . 
-			"to complete after you confirm and submit this form. Please confirm that you understand this and want to delete the field(s) " . 
-			"by checking the boxes below. ";
+		$checkboxes->description = $this->_("You have asked to remove one or more fields from the template. This will result in data associated with the fields below being permanently deleted. If the fields that are removed contain a lot of data, it may take time for this operation to complete after you confirm and submit this form. Please confirm that you understand this and want to delete the field(s) by checking the boxes below.");
 
 		$removeIds = explode(',', $_GET['fields']); 
 		foreach($fieldgroup as $field) {
 			if(!in_array($field->id, $removeIds)) continue; 
-			$checkboxes->addOption($field->id, "Remove field '{$field->name}' from template '{$this->template->name}'"); 
+			$checkboxes->addOption($field->id, sprintf($this->_('Remove field "%1$s" from template "%2$s"'), $field->name, $this->template->name)); 
 		}
 
 		$form->append($checkboxes); 
 
-		/*
-		$usage = $this->buildEditFormUsage(); 
-		$usage->collapsed = true; 
-		$form->append($usage);
-		*/
-
 		$submit = $this->modules->get('InputfieldSubmit');
-		$submit->attr('value', 'Remove Fields'); 
+		$submit->attr('value', $this->_x('Remove Fields', 'submit-remove')); 
 		$submit->attr('name', 'submit_remove_fields'); 
 		$form->append($submit); 
 
@@ -1518,7 +1447,10 @@ class ProcessTemplate extends Process {
 	 */
 	public function ___executeRename() {
 
-		if($this->template->flags & Template::flagSystem) throw new WireException("This template can't be renamed because it is a system template"); 
+		if($this->template->flags & Template::flagSystem) throw new WireException($this->_('This template cannot be renamed because it is a system template')); 
+
+		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title']));
+		$this->fuel('breadcrumbs')->add(new Breadcrumb('./?id=' . $this->template->id, $this->template->name)); 
 
 		$redirectUrl = $this->template ? "edit?id={$this->template->id}" : "../";
 
@@ -1529,7 +1461,7 @@ class ProcessTemplate extends Process {
 		if(!$name) return $this->session->redirect($redirectUrl);
 
 		if($this->templates->get($name) || $this->fieldgroups->get($name)) {
-			$this->error("The name '$name' is already in use"); 	
+			$this->error(sprintf($this->_('The name "%s" is already in use'), $name)); 	
 			return $this->session->redirect($redirectUrl); 
 		}
 
@@ -1548,18 +1480,18 @@ class ProcessTemplate extends Process {
 			$this->template->fieldgroup->name = $name; 
 			$this->template->save();
 			$this->template->fieldgroup->save();
-			$this->message("Renamed template '$oldName' to '$name'"); 
+			$this->message(sprintf($this->_('Renamed template "%1$s" to "%2$s"'), $oldName, $name)); 
 
 			if($templateHasFile) { 
 				if($writable) {
 					if(rename($pathname, $newPathname)) {
-						$this->message("Renamed template file '$filename' to '$newFilename'"); 
+						$this->message(sprintf($this->_('Renamed template file "%1$s" to "%2$s"'), $filename, $newFilename)); 
 					} else {
-						$this->error("Unable to rename '$filename' to '$newFilename' in {$this->config->urls->templates}. You must rename the file manually on your file system."); 
+						$this->error(sprintf($this->_('Unable to rename "%1$s" to "%2$s" in directory "%3$s". You must rename the file manually on your file system.'), $filename, $newFilename, $this->config->urls->templates)); 
 					}
 
 				} else if(!is_file($newPathname)) { 
-					$this->error("The template file '$newFilename' was not found in {$this->config->urls->templates}. You must rename the file '$filename' to '$newFilename' manually on your file system.");
+					$this->error(sprintf($this->_('The template file "%1$s" was not found in directory "%2$s". You must rename the file "%3$s" to "%1$s" manually on your file system.'), $newFilename, $this->config->urls->templates, $filename));
 				}
 			}
 
@@ -1569,20 +1501,20 @@ class ProcessTemplate extends Process {
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->attr('method', 'post'); 
 		$form->attr('action', "rename?id={$this->template->id}"); 
-		$form->description = "Rename template '{$this->template->name}' to '$name'.";
+		$form->description = sprintf($this->_('Rename template "%1$s" to "%2$s"'), $this->template->name, $name);
 
 		$field = $this->modules->get("InputfieldCheckbox"); 
-		$field->label = "Are you sure?";
+		$field->label = $this->labels['Are you sure?']; 
 		$field->attr('name', 'confirm_rename'); 
 		$field->attr('value', $name); 
-		$field->description = "Please confirm that you want to rename this template by checking the box below. ";
+		$field->description = $this->_('Please confirm that you want to rename this template by checking the box below.');
 
 		// check if we have a file to rename
 		if($templateHasFile) {
 			if($writable) {
-				$field->notes = "Template file '$filename' appears to be writable so we will attempt to rename it when you click submit.";
+				$field->notes = sprintf($this->_('Template file "%s" appears to be writable so we will attempt to rename it when you click submit.'), $filename);
 			} else {
-				$this->error("Template file '{$this->config->urls->templates}$filename' is not writable. Please rename that file to '$newFilename' before clicking submit.");
+				$this->error(sprintf($this->_('Template file "%1$s" is not writable. Please rename that file to "%2$s" before clicking submit.'), $this->config->urls->templates . $filename, $newFilename));
 			}
 		}
 
@@ -1600,7 +1532,7 @@ class ProcessTemplate extends Process {
 	 *
 	 */
 	public function ___fieldRemoved(Field $field, Template $template) { 
-		$this->message("Removed field '$field' from template/fieldgroup '{$template}'"); 
+		$this->message(sprintf($this->_('Removed field "%1$s" from template/fieldgroup "%2$s"'), $field, $template)); 
 	}
 
 	/**
@@ -1608,7 +1540,7 @@ class ProcessTemplate extends Process {
 	 *
 	 */
 	public function ___fieldAdded(Field $field, Template $template) { 
-		$this->message("Added field '$field' to template/fieldgroup '$template'"); 
+		$this->message(sprintf($this->_('Added field "%1$s" to template/fieldgroup "%2$s"'), $field, $template)); 
 	}
 
 

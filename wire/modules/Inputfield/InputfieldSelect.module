@@ -136,7 +136,7 @@ class InputfieldSelect extends Inputfield {
 
 			$selected = $this->isOptionSelected($value) ? " selected='selected'" : '';
 			$attrs = $this->getOptionAttributesString($value);
-			$out .= "\n\t<option$selected $attrs value='" . htmlspecialchars($value, ENT_QUOTES) . "'>" . htmlspecialchars($label) . "</option>";
+			$out .= "\n\t<option$selected $attrs value='" . htmlspecialchars($value, ENT_QUOTES) . "'>" . $this->entityEncode($label) . "</option>";
 		}
 
 		return $out; 
@@ -151,20 +151,9 @@ class InputfieldSelect extends Inputfield {
 		$attrs = $this->getAttributes();
 		unset($attrs['value']); 
 
-		// $out = "\n<label for='{$this->id}'>" . htmlspecialchars($this->label) . "</label>" . 
 		$out =	"\n<p><select " . $this->getAttributesString($attrs) . ">" . 
 			$this->renderOptions($this->options) . 
 			"\n</select></p>";
-
-		/*
-		foreach($this->options as $value => $label) {
-			$selected = $this->isOptionSelected($value) ? " selected='selected'" : '';
-			$attrs = $this->getOptionAttributesString($value);
-			$out .= "\n\t<option$selected $attrs value='" . htmlspecialchars($value, ENT_QUOTES) . "'>" . htmlspecialchars($label) . "</option>";
-		}
-
-		$out .= "\n</select>";
-		*/
 
 		return $out; 
 	}
