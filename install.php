@@ -132,6 +132,9 @@ class Installer {
 		if($va[0] < 5 || ($va[0] == 5 && $va[1] < 2) || ($va[0] == 5 && $va[1] == 2 && $va[2] < 3)) $this->err("ProcessWire requires PHP version 5.2.3 or newer. You are running PHP v$v");
 			else $this->li("PHP version v$v");
 
+		if(function_exists('filter_var')) $this->li("Found filter_var"); 
+			else $this->err("Filter functions (filter_var) were not found and are required"); 
+
 		if(function_exists('mysqli_connect')) $this->li("Found MySQLi"); 
 			else $this->err("MySQLi not found and it is required"); 
 
