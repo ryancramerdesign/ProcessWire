@@ -40,7 +40,6 @@ class ProcessPageType extends Process implements ConfigurableModule {
 		$this->config->scripts->add($this->config->urls->ProcessPageType . 'ProcessPageType.js'); 
 		$this->config->styles->add($this->config->urls->ProcessPageType . 'ProcessPageType.css'); 
 
-		$this->fuel->breadcrumbs->add(new Breadcrumb('../', $this->page->get('title|name'))); 
 		$this->pages = $this->fuel($this->page->name); 
 		if(is_null($this->pages)) $this->pages = $this->fuel('pages'); 
 		if($this->pages instanceof PagesType) $this->template = $this->pages->getTemplate(); 
@@ -57,12 +56,13 @@ class ProcessPageType extends Process implements ConfigurableModule {
 	}
 
 	public function ___executeEdit() {
-
+		$this->fuel->breadcrumbs->add(new Breadcrumb('../', $this->page->get('title|name'))); 
 		$editor = $this->modules->get("ProcessPageEdit"); 
 		return $editor->execute();
 	}
 
 	public function ___executeAdd() {
+		$this->fuel->breadcrumbs->add(new Breadcrumb('../', $this->page->get('title|name'))); 
 		$editor = $this->modules->get("ProcessPageAdd"); 
 		$editor->template = $this->template; 
 		$editor->parent_id = $this->page->id;
