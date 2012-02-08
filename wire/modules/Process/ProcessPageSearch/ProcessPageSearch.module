@@ -158,12 +158,21 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			if($name == 'include' && $value != 'hidden' && !$this->user->isSuperuser()) continue; 
 			if($name == 'check_access' && !$this->user->isSuperuser()) continue; 
 			if($name == 'status') $status = (int) $value;
+
 			if(strpos($name, ',')) $name = str_replace(',', '|', $name); 
 
 			if(!$this->isSelectableFieldName($name)) continue; 
 
+			if(strpos($value, '|')) {
+				$values = explode('|', $value); 
+				foreach($values as $k => $v) $values[$k] = $this->sanitizer->selectorValue($v);
+				$value = implode('|', $values); 
+			} else {
+				$value = $this->sanitizer->selectorValue($value); 
+			}
+
 			$this->input->whitelist($name . rtrim($operator, '='), trim($value, '"\'')); 	
-			$value = $this->sanitizer->selectorValue($value); 
+
 			$selector .= "$name$operator$value, ";
 		}
 
