@@ -272,7 +272,7 @@ class Page extends WireData {
 				break;
 			case 'parent': 
 			case 'parent_id':
-				if($key == 'parent_id' && $value) $value = $this->fuel('pages')->get((int)$value); 
+				if(($key == 'parent_id' || is_int($value)) && $value) $value = $this->fuel('pages')->get((int)$value); 
 					else if(is_string($value)) $value = $this->fuel('pages')->get($value); 
 				if($value) $this->setParent($value);
 				break;
@@ -1272,6 +1272,7 @@ class Page extends WireData {
 		return false;
 	}
 
+
 	/** REMOVED
 	public function roles() {}
 	public function addRole($role) {}
@@ -1280,6 +1281,7 @@ class Page extends WireData {
 	public function removeRole($role) {}
 	public function removesRole($role) {}
 	 */
+
 }
 
 /**

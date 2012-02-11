@@ -160,7 +160,7 @@ class PagefilesManager extends Wire {
 	 */
 	public function path() {
 		if(!$this->page->id) throw new WireException("New page '{$this->page->url}' must be saved before files can be accessed from it"); 
-		return $this->config->paths->files . $this->page->id . '/';
+		return $this->config->paths->files . ((int)$this->page->id) . '/';
 	}
 
 	/**

@@ -470,7 +470,7 @@ body, input, textarea, table {
 		}
 
 	.CommentForm_text {
-		clear: both; 
+		clear: left; 
 	}
 		.CommentForm_text textarea {
 			padding: 2px; 

@@ -279,13 +279,14 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	 * Get all of the Inputfields associated with the provided Page and populate them
 	 *
 	 * @param Page $page
+	 * @param string $contextStr Optional context string to append to all the Inputfield's names
 	 * @return Inputfield acting as a container for multiple Inputfields
 	 *
 	 */
-	public function getPageInputfields(Page $page) {
+	public function getPageInputfields(Page $page, $contextStr = '') {
 		$container = new InputfieldWrapper();
 		foreach($this as $field) {
-			$inputfield = $field->getInputfield($page);
+			$inputfield = $field->getInputfield($page, $contextStr);
 			if(!$inputfield) continue; 
 			$inputfield->value = $page->get($field->name); 
 			$container->add($inputfield); 

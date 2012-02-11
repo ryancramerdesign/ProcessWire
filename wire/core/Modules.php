@@ -376,7 +376,11 @@ class Modules extends WireArray {
 	 */
 	public function find($selector) {
 		$a = parent::find($selector); 
-		if($a) foreach($a as $key => $value) $a[$key] = $this->get($value->class); 
+		if($a) {
+			foreach($a as $key => $value) {
+				$a[$key] = $this->get($value->className()); 
+			}
+		}
 		return $a; 
 	}
 
@@ -571,7 +575,7 @@ class Modules extends WireArray {
 				$this->error("$label - $name - " . $e->getMessage()); 
 			}
 		}
-		
+
 		unset($this->moduleIDs[$class]);
 		$this->remove($module); 
 

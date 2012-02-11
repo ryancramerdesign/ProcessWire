@@ -257,7 +257,9 @@ class InputfieldWrapper extends Inputfield {
 
 		if($out) {
 			$ulClass = "Inputfields";
-			$out = $this->attr('value') . "\n<ul class='$ulClass'>$out\n</ul><!--/$ulClass-->\n";
+			$attrs = " class='$ulClass" . ($this->attr('class') ? ' ' . $this->attr('class') : '') . "'";
+			foreach($this->getAttributes() as $attr => $value) if(strpos($attr, 'data-') === 0) $attrs .= " $attr='" . $this->entityEncode($value) . "'";
+			$out = $this->attr('value') . "\n<ul$attrs>$out\n</ul><!--/$ulClass-->\n";
 		}
 
 		return $out; 

@@ -171,20 +171,6 @@ abstract class FieldtypeMulti extends Fieldtype {
 
 		$values = $page->get($field->name);
 
-		// if(!$values) return false;
-
-		/*
-		if($this->config->debug) {
-			if($page->isChanged($field->name)) {
-				$this->message("Page {$page->id} reports that '{$field->name}' has changed");  
-			}
-			if($values->isChanged()) {
-				$this->message("Values changed for field: {$field->name}"); 
-				foreach($values->getChanges() as $key => $change) $this->message("{$field->name}: $key: $change"); 
-			}
-		}
-		*/
-
 		if(is_object($values)) {
 			 if(!$values->isChanged() && !$page->isChanged($field->name)) return true; 
 		} else if(!$page->isChanged($field->name)) return true; 

@@ -99,7 +99,7 @@ class ProcessPageEdit extends Process {
 	 */
 	public function ___execute() {
 
-		if($this->config->ajax && (isset($_SERVER['HTTP_X_FIELDNAME']) || count($_POST))) return $this->ajaxSave();
+		if($this->config->ajax && (isset($_SERVER['HTTP_X_FIELDNAME']) || count($_POST))) return $this->ajaxSave($this->page);
 
 		$this->form = $this->buildForm();
 		$this->form->setTrackChanges();
@@ -173,12 +173,13 @@ class ProcessPageEdit extends Process {
 				try {
 					if($this->input->post->submit_publish && $this->page->is(Page::statusUnpublished)) {
 						$this->page->removeStatus(Page::statusUnpublished);
-						$this->message(sprintf($this->_('Published Page: %s'), $this->page->path)); // Message shown when page is published
+						$message = sprintf($this->_('Published Page: %s'), $this->page->path); // Message shown when page is published
 					} else {
-						$this->message(sprintf($this->_('Saved Page: %s'), $this->page->path)); // Message shown when page is saved
+						$message = sprintf($this->_('Saved Page: %s'), $this->page->path); // Message shown when page is saved
 					}
 					
 					$this->page->save();
+					$this->message($message); 
 
 				} catch(Exception $e) {
 					$this->error($e->getMessage()); 
@@ -616,16 +617,15 @@ class ProcessPageEdit extends Process {
 
 		if(!$level) $form->processInput($this->input->post);
 
+		$languages = $this->fuel('languages'); 
+
 		foreach($form as $inputfield) {
 
 			$name = $inputfield->attr('name'); 
-
 			if(in_array($name, $skipFields)) continue; 
-
 			if(!$this->page->editable($name)) continue; 
-			// if($name == 'roles' && $this->processInputRoles($inputfield)) continue; 
 			
-			if($this->useChildren && $name == 'sortfield') {
+			if($name == 'sortfield' && $this->useChildren) {
 				$this->processInputSortfield($inputfield) ;
 				continue;
 			}
@@ -640,7 +640,6 @@ class ProcessPageEdit extends Process {
 				if($name == 'status' && $this->processInputStatus($inputfield)) continue; 
 			}
 
-			$languages = $this->fuel('languages'); 
 
 			if($name && $inputfield->isChanged()) {
 				if($languages && $inputfield->useLanguages) {
@@ -959,10 +958,11 @@ class ProcessPageEdit extends Process {
 	 * Works for custom fields only at present. 
 	 *
 	 */
-	protected function ___ajaxSave() {
+	protected function ___ajaxSave(Page $page) {
 
 		if($this->config->demo) throw new WireException("Ajax save is disabled in demo mode"); 
-		if($this->page->is(Page::statusLocked)) throw new WireException("Page is locked"); 
+		if($page->is(Page::statusLocked)) throw new WireException("Page is locked"); 
+		if(!$page->editable()) throw new WirePermissionException("You don't have access"); 
 
 		$form = new InputfieldWrapper();
 		$keys = array();
@@ -979,33 +979,33 @@ class ProcessPageEdit extends Process {
 
 		foreach($keys as $key) {
 
-			if(!$field = $this->page->template->fieldgroup->getField($key)) continue; 
-			if(!$this->page->editable($key)) continue; 
-			if(!$inputfield = $field->getInputfield($this->page)) continue; 
+			if(!$field = $page->template->fieldgroup->getField($key)) continue; 
+			if(!$page->editable($key)) continue; 
+			if(!$inputfield = $field->getInputfield($page)) continue; 
 
 			$inputfield->name = $key;
-			$inputfield->value = $this->page->get($key); 
+			$inputfield->value = $page->get($key); 
 			$form->add($inputfield); 
 		}
 
 		$form->processInput($this->input->post); 
-		$this->page->setTrackChanges(true); 
+		$page->setTrackChanges(true); 
 		$numFields = 0;
 		$lastFieldName = null;
 
 		foreach($form->children() as $inputfield) { 
-			$this->page->set($inputfield->name, $inputfield->value); 
+			$page->set($inputfield->name, $inputfield->value); 
 			$numFields++; 
 			$lastFieldName = $inputfield->name; 
 		}
 
-		if($this->page->isChanged()) {
+		if($page->isChanged()) {
 			if($numFields === 1) {
-				$this->page->save($lastFieldName); 
-				$this->message("Saved page '{$this->page->id}' field '$lastFieldName'"); 
+				$page->save($lastFieldName); 
+				$this->message("Saved page '{$page->id}' field '$lastFieldName'"); 
 			} else {
-				$this->page->save();
-				$this->message("Saved page '{$this->page->id}' multiple fields"); 
+				$page->save();
+				$this->message("Saved page '{$page->id}' multiple fields"); 
 			}
 		} else {
 			$this->message("Page not saved (no changes)"); 

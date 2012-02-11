@@ -287,15 +287,19 @@ class Field extends WireData implements Saveable {
 	/**
 	 * Get the Inputfield object associated with this Field's Fieldtype
 	 *
+	 * @param Page $page
+	 * @param string $contextStr Optional context string to append to the Inputfield's name/id
+	 * @return Inputfield|null 
+	 *
 	 */
-	public function ___getInputfield(Page $page) {
+	public function ___getInputfield(Page $page, $contextStr = '') {
 
 		if(!$this->type) return null;
 		$inputfield = $this->type->getInputfield($page, $this);
 		if(!$inputfield) return null; 
 
 		// predefined field settings
-		$inputfield->attr('name', $this->name); 
+		$inputfield->attr('name', $this->name . $contextStr); 
 		$inputfield->label = $this->label;
 
 		// custom field settings

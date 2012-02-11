@@ -442,7 +442,13 @@ class Pages extends Wire {
 	 * @return bool True on success
 	 *
 	 */
-	public function ___save(Page $page) {
+	public function ___save(Page $page, $options = array()) {
+
+		$defaultOptions = array(
+			'uncacheAll' => true,
+			'resetTrackChanges' => true,
+			);
+		$options = array_merge($defaultOptions, $options); 
 
 		$reason = '';
 		$isNew = $page->isNew();
@@ -507,7 +513,7 @@ class Pages extends Wire {
 		$page->setOutputFormatting($outputFormatting); 
 
 		$this->sortfields->save($page); 
-		$page->resetTrackChanges();
+		if($options['resetTrackChanges']) $page->resetTrackChanges();
 		if($isNew) {
 			$page->setIsNew(false); 
 			$triggerAddedPage = $page; 
@@ -523,7 +529,7 @@ class Pages extends Wire {
 			}
 		}
 
-		$this->uncacheAll();
+		if($options['uncacheAll']) $this->uncacheAll();
 
 		// determine whether the pages_access table needs to be updated so that pages->find()
 		// operations can be access controlled. 
