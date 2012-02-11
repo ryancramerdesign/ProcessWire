@@ -152,7 +152,10 @@ $(document).ready(function() {
 
 				if(options.selectShowPageHeader) { 
 					$.getJSON(options.ajaxURL + "?id=" + options.selectedPageID + "&render=JSON&start=0&limit=0", function(data) {
-						var label = options.selectedPageID > 0 ? data.page.label : '';
+						var parentPath = data.page.path;
+						parentPath = parentPath.substring(0, parentPath.length-1); 
+						parentPath = parentPath.substring(0, parentPath.lastIndexOf('/')+1); 
+						var label = options.selectedPageID > 0 ? '<span class="detail">' + parentPath + '</span> ' + data.page.label : '';
 						$root.children(".PageListSelectHeader").find(".PageListSelectName").html(label); 
 					}); 
 				}
