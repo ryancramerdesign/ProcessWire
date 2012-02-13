@@ -114,10 +114,6 @@ class ProcessPageEdit extends Process {
 			}
 		}
 
-		if($this->page->is(Page::statusUnpublished)) {
-			// $this->message("This page is not published. You will have to publish this page before it is visible on the site."); 
-		}
-
 		return $this->renderEdit();
 	}
 
@@ -171,7 +167,7 @@ class ProcessPageEdit extends Process {
 			if($this->input->post->submit_publish || $this->input->post->submit_save) {
 
 				try {
-					if($this->input->post->submit_publish && $this->page->is(Page::statusUnpublished)) {
+					if($this->input->post->submit_publish && $this->page->is(Page::statusUnpublished) && $this->page->publishable()) {
 						$this->page->removeStatus(Page::statusUnpublished);
 						$message = sprintf($this->_('Published Page: %s'), $this->page->path); // Message shown when page is published
 					} else {
@@ -239,6 +235,8 @@ class ProcessPageEdit extends Process {
 		if($this->page->viewable() && !$this->input->get->modal) $form->append($this->buildFormView()); 
 
 		$field2 = null;
+		$saveName = '';
+
 		if($this->page->is(Page::statusUnpublished)) {
 
 			if(get_class($this->page) == 'Page') {
@@ -250,18 +248,21 @@ class ProcessPageEdit extends Process {
 				$field2->attr('value', $this->_('Save + Keep Unpublished')); // Button: save unpublished
 			}
 
-			$saveName = 'submit_publish';
+			// $saveName remains blank if page is not publishable
+			if($this->page->publishable()) $saveName = 'submit_publish';
 			$saveLabel = $this->_("Publish"); // Button: publish
 		} else {
 			$saveName = 'submit_save';
 			$saveLabel = $this->_("Save"); // Button: save
 		}
 
-		$field = $this->modules->get('InputfieldSubmit');
-		$field->attr('id+name', $saveName); 
-		$field->attr('class', $field->class . ' head_button_clone'); 
-		$field->attr('value', $saveLabel); 
-		$form->append($field); 
+		if($saveName) { 
+			$field = $this->modules->get('InputfieldSubmit');
+			$field->attr('id+name', $saveName); 
+			$field->attr('class', $field->class . ' head_button_clone'); 
+			$field->attr('value', $saveLabel); 
+			$form->append($field); 
+		}
 
 		if($field2) $form->append($field2); 
 
@@ -459,7 +460,7 @@ class ProcessPageEdit extends Process {
 		$statuses = array(); 
 		$statuses[Page::statusHidden] = $this->_('Hidden: Excluded from lists and searches'); // Settings: Hidden status checkbox label
 		if($this->user->hasPermission('page-lock', $this->page)) $statuses[Page::statusLocked] = $this->_('Locked: Not editable'); // Settings: Locked status checkbox label
-		if(!$this->page->template->noUnpublish) $statuses[Page::statusUnpublished] = $this->_('Unpublished: Not visible on site'); // Settings: Unpublished status checkbox label
+		if(!$this->page->template->noUnpublish && $this->page->publishable()) $statuses[Page::statusUnpublished] = $this->_('Unpublished: Not visible on site'); // Settings: Unpublished status checkbox label
 			
 		if($this->config->advanced && $this->user->isSuperuser()) {
 			$statuses[Page::statusSystemID] = "System: Non-deleteable and locked ID (status not removeable via API)";
@@ -555,11 +556,18 @@ class ProcessPageEdit extends Process {
 
 		if(count($roles)) { 
 
+			$publishPermission = $this->fuel('permissions')->get('page-publish');
+
 			foreach($roles as $role) {
 				$permissions = '';	
 				$roleName = $role->name; 
 				if($roleName == 'guest') $roleName .= " " . $this->_('(everyone)'); // Identifies who guest is (everyone)
 				$permissions .= "page-view\n";
+
+				if($publishPermission->id && !$this->page->is(Page::statusUnpublished) && !$role->hasPermission('page-publish', $this->page)) {
+					continue; 
+				}
+
 				if($role->hasPermission('page-edit') && in_array($role->id, $editRoles)) { 
 					foreach($role->permissions as $permission) {
 						if($permission->name == 'page-view') continue;  // assumed
@@ -574,7 +582,6 @@ class ProcessPageEdit extends Process {
 				if(in_array($role->id, $createRoles)) {
 					$permissions .= "page-create\n";
 				}
-
 				$table->row(array($roleName, nl2br($permissions))); 
 			}
 
@@ -684,7 +691,8 @@ class ProcessPageEdit extends Process {
 
 		if(!is_array($status)) $status = array();
 
-		$statusFlags = array(Page::statusHidden, Page::statusUnpublished); 
+		$statusFlags = array(Page::statusHidden); 
+		if($this->page->publishable()) $statusFlags[] = Page::statusUnpublished; 
 		if($this->user->hasPermission('page-lock', $this->page)) $statusFlags[] = Page::statusLocked;
 
 		if($this->config->advanced && $this->user->isSuperuser()) {

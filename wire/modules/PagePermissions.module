@@ -23,7 +23,7 @@ class PagePermissions extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page Permissions', 
-			'version' => 101, 
+			'version' => 102, 
 			'summary' => 'Adds various permission methods to Page objects that are used by Process modules.',
 			'permanent' => true, 
 			'singular' => true,
@@ -33,6 +33,7 @@ class PagePermissions extends WireData implements Module {
 
 	public function init() {
 		$this->addHook('Page::editable', $this, 'editable'); 
+		$this->addHook('Page::publishable', $this, 'publishable'); 
 		$this->addHook('Page::viewable', $this, 'viewable'); 
 		$this->addHook('Page::listable', $this, 'listable'); 
 		$this->addHook('Page::deleteable', $this, 'deleteable'); 
@@ -90,8 +91,23 @@ class PagePermissions extends WireData implements Module {
 		// if the user doesn't have page-edit permission, don't let them go further
 		if(!$user->hasPermission("page-edit", $page)) return false;
 
+		// now check if there is a page-publish permission in the system, and use it if so
+		$publish = $this->fuel('permissions')->get('page-publish'); 
+		if($publish->id) {
+
+			// if user has the page-publish permission here, then we're good
+			if($user->hasPermission('page-publish', $page)) return true; 
+
+			// if the page is unpublished then we're fine too
+			if($page->is(Page::statusUnpublished)) return true; 
+
+			// otherwise user cannot edit this page
+			return false;
+		}
+
 		return true; 
 	}
+
 
 	/**
 	 * Assuming the page is editable, is the given field name also editable?
@@ -328,6 +344,39 @@ class PagePermissions extends WireData implements Module {
 		$sortable = false; 
 		if($page->id > 1 && $page->editable() && $this->user->hasPermission('page-sort', $page->parent)) $sortable = true; 
 		$event->return = $sortable;
+	}
+
+	/**
+	 * Is the page publishable by the current user?
+	 *
+	 * A field name may optionally be specified as the first argument, in which case the field on that page will also be checked for access. 
+	 *
+	 */
+	protected function publishable($event) {
+
+		$user = $this->fuel('user');
+		$event->return = true;
+
+		if($user->isSuperuser()) return;
+
+
+		// if page isn't editable, it certainly can't be publishable
+		if(!$this->editable($event)) {
+			$event->return = false;
+			return;
+		}
+
+		$page = $event->object; 
+
+		// if there is no page-publish permission, then it's publishable
+		$perm = wire('permissions')->get('page-publish'); 
+		if(!$perm->id) return;
+
+		// check if user has the permission assigned
+		if($user->hasPermission('page-publish', $page)) return;
+
+		// if we made it here, then page is not publishable
+		$event->return = false; 
 	}
 
 	/**

@@ -76,7 +76,7 @@ class Pages extends Wire {
 	public function __construct() {
 		$this->config = $this->fuel('config');
 		$this->templates = $this->fuel('templates'); 
-		$this->pageFinder = new PageFinder($this->fuel('fieldgroups')); 
+		$this->pageFinder = new PageFinder(); 
 		$this->sortfields = new PagesSortfields();
 	}
 
@@ -927,7 +927,7 @@ class Pages extends Wire {
 	public function uncacheAll() {
 
 		unset($this->pageFinder); 
-		$this->pageFinder = new PageFinder($this->fuel('fieldgroups')); 
+		$this->pageFinder = new PageFinder(); 
 
 		unset($this->sortfields); 
 		$this->sortfields = new PagesSortfields();

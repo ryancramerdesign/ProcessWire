@@ -32,8 +32,8 @@ class PageFinder extends Wire {
 	 * @param Fieldgroups $fieldgroups
 	 *
 	 */
-	public function __construct($fieldgroups) {
-		$this->fieldgroups = $fieldgroups; 
+	public function __construct() {
+		$this->fieldgroups = $this->fuel('fieldgroups'); 
 	}
 
 	/**

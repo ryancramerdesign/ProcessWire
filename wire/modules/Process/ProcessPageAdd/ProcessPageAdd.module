@@ -97,7 +97,18 @@ class ProcessPageAdd extends Process {
 		$isSuperuser = $this->fuel('user')->isSuperuser();
 		$user = $this->fuel('user');
 		$templates = array();
-		$parentEditable = $this->parent->editable();
+
+		if($this->parent->is(Page::statusUnpublished)) {
+			$parentEditable = $this->parent->editable();
+		} else {
+			// temporarily put the parent in an unpublished status so that we can check it from 
+			// the proper context: when page-publish permission exists, a page not not editable
+			// if a user doesn't have page-publish permission to it, even though it may still
+			// be editable if it was unpublished. 
+			$this->parent->addStatus(Page::statusUnpublished); 
+			$parentEditable = $this->parent->editable(); 
+			$this->parent->removeStatus(Page::statusUnpublished); 
+		}
 
 		foreach($this->fuel('templates') as $t) {
 
