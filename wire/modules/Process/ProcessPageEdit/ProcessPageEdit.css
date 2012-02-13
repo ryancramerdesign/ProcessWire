@@ -1,15 +1,10 @@
-
-#roles .PageRemovesRole {
-	background: #ffffcc; 
-}
-
 #status li {
 	display: inline; 
 	margin-right: 0.5em; 
 }
 
 #PageEditTabs {
-	margin: 0 0 2em 0; 
+	margin: 0 0 1em 0; 
 }
 
 /**
@@ -22,19 +17,9 @@
 	display: none !important; 
 }
 
-/**
- * Position the 'reverse' checkbox to the right of the sortfield selection box
- *
-#ProcessPageEditChildren .InputfieldSelect {
-	position: relative; 
+#wrap_AddPageBtn {
+	margin-top: 1em; 	
 }
-
-#ProcessPageEditChildren .InputfieldCheckbox {
-	position: absolute;
-	top: 0.5em;
-	right: 0;
-}
- */
 
 /**
  * Provide an obvious left margin for the parent page selector list

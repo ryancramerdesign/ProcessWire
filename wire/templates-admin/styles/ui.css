@@ -77,7 +77,7 @@
 
 	.Inputfields > li {
 		display: block;
-		margin: 1.5em 0;
+		margin: 1em 0;
 		clear: both; 
 	}
 
@@ -97,7 +97,7 @@
 		}
 
 	.Inputfields > li > .ui-widget-content > .Inputfields > li {
-		margin-top: 0.5em; 
+		margin-top: 0; 
 	}
 		.Inputfields > li > .ui-widget-content > .Inputfields > li:first-child {
 			margin-top: 0; 

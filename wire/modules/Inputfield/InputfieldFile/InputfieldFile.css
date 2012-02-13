@@ -1,7 +1,9 @@
-ul.InputfieldFileList li {
+.Inputfields > li > .ui-widget-content > ul.InputfieldFileList > li {
+	margin: 0 0 1em 0;
 	position: relative; 
 	cursor: move; 
 }
+
 	ul.InputfieldFileList li p {
 		margin: 0; 
 	}
