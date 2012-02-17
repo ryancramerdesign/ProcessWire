@@ -363,6 +363,23 @@ class InputfieldWrapper extends Inputfield {
 	}
 
 	/**
+	 * Get all fields recursively in a flat InputfieldWrapper, not just direct children
+	 *
+	 * Note that all InputfieldWrappers are removed as a result (except for the containing InputfieldWrapper)
+ 	 *  
+	 * @return InputfieldWrapper
+	 *
+	 */
+	public function getAll() {
+		$all = new InputfieldsArray();
+		foreach($this->children as $child) {
+			if($child instanceof InputfieldWrapper) $all->import($child->getAll());
+				else $all->add($child); 
+		}
+		return $all;
+	}
+
+	/**
 	 * Start or stop tracking changes, applying the same to any children
 	 *
 	 */
@@ -389,9 +406,9 @@ class InputfieldWrapper extends Inputfield {
 
 		$field = $this->modules->get("InputfieldRadios"); 
 		$field->attr('name', 'collapsed'); 
-		$field->label = "How should this field be displayed?";
-		$field->addOption(Inputfield::collapsedNo, "Always open"); 
-		$field->addOption(Inputfield::collapsedYes, "Always collapsed, requiring a click to open"); 
+		$field->label = $this->_("How should this field be displayed?");
+		$field->addOption(Inputfield::collapsedNo, $this->_("Always open")); 
+		$field->addOption(Inputfield::collapsedYes, $this->_("Always collapsed, requiring a click to open")); 
 		$field->attr('value', (int) $this->collapsed); 
 		$fields->append($field); 
 

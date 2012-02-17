@@ -279,10 +279,16 @@ class ProcessModule extends Process {
 		}
 
 		// check for submitted form
-		if(isset($_POST['submit_save_module'])) {
+		if($this->input->post->submit_save_module) {
 
 			$form->processInput($this->input->post); 
-			if($fields) foreach($fields as $field) $data[$field->attr('name')] = $field->attr('value'); 
+			if(count($fields)) foreach($fields->getAll() as $field) {
+				// note field names beginning with '_' will not be stored	
+				if(($name = $field->attr('name')) && strpos($name, '_') !== 0) {
+					$data[$name] = $field->attr('value'); 
+					if(wire('config')->debug) $this->message('Saved Module Config Data: ' . $name); 
+				}
+			}
 
 			if($uninstallable && $this->input->post->uninstall === $moduleName) {
 				$this->modules->uninstall($moduleName); 	
@@ -323,7 +329,6 @@ class ProcessModule extends Process {
 
 		return $out; 
 	}
-
 
 }
 

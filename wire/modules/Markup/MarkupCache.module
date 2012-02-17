@@ -140,7 +140,12 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 	 */
 	protected static function _removeAll() {
 		$path = self::path();
-		return CacheFile::removeAll($path, true); 
+		try { 
+			$num = CacheFile::removeAll($path, true); 
+		} catch(Exception $e) {
+			$num = 0;
+		}
+		return $num; 
 	}
 
 	/**
@@ -166,7 +171,7 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 	static public function getModuleConfigInputfields(array $data) {
 
 		$inputfields = new InputfieldWrapper();
-		$clearNow = wire('input')->post->clearCache ? true : false;
+		$clearNow = wire('input')->post->_clearCache ? true : false;
 		$message = '';
 
 		if($clearNow) {
@@ -175,7 +180,7 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 			$inputfields->message($message);
 		}
 
-		$name = "clearCache";
+		$name = "_clearCache"; // prefix with '_' tells ProcessModule not to save it in module's config data
 		$f = wire('modules')->get('InputfieldCheckbox');
 		$f->attr('name', $name);
 		$f->attr('value', 1);
