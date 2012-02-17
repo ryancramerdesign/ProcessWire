@@ -4,9 +4,9 @@ class InputfieldSelectMultiple extends InputfieldSelect implements InputfieldHas
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Select Multiple',
+			'title' => __('Select Multiple', __FILE__), // Module Title
+			'summary' => __('Select multiple items from a list', __FILE__), // Module Summary
 			'version' => 100,
-			'summary' => 'Select multiple items from a list',
 			'permanent' => true, 
 			);
 	}

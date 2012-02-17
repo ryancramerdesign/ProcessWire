@@ -8,16 +8,16 @@ class InputfieldEmail extends InputfieldText {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Email',
+			'title' => __('Email', __FILE__), // Module Title
 			'version' => 100,
-			'summary' => 'E-Mail address in valid format',
+			'summary' => __('E-Mail address in valid format', __FILE__) // Module Summary
 			);
 	}
 
 	public function __construct() {
 		parent::__construct();
 		$this->setAttribute('type', 'text'); 
-		$this->setAttribute('maxlength', 255); 
+		$this->setAttribute('maxlength', 512); 
 		$this->setAttribute('size', 70); 
 		$this->setAttribute('name', 'email'); 
 	}
@@ -28,13 +28,12 @@ class InputfieldEmail extends InputfieldText {
 		return parent::___render();
 	}
 
-	public function setAttribute($key, $value) {
-		if($key == 'value' && $value) {
+	protected function setAttributeValue($value) {
+		if(strlen($value)) { 
 			$value = $this->fuel('sanitizer')->email($value); 	
 			if(!$value) $this->error($this->_("Please enter a valid e-mail address")); // Error message when email address is invalid
-			
 		}
-		return parent::setAttribute($key, $value); 
+		return $value; 
 	}
 
 }

@@ -10,9 +10,9 @@ class InputfieldTextarea extends Inputfield {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Textarea',
+			'title' => __('Textarea', __FILE__), // Module Title
+			'summary' => __('Multiple lines of text', __FILE__), // Module Summary
 			'version' => 100,
-			'summary' => 'Multiple lines of text',
 			'permanent' => true, 
 			);
 	}
@@ -39,10 +39,10 @@ class InputfieldTextarea extends Inputfield {
 
 		$field = $this->modules->get('InputfieldInteger'); 
 		$field->setAttribute('name', 'rows'); 
-		$field->label = 'Rows';
+		$field->label = $this->_('Rows');
 		$field->setAttribute('value', $this->attr('rows')); 
 		$field->setAttribute('size', 3); 
-		$field->description = 'The number of rows initially shown for this field.'; 
+		$field->description = $this->_('The number of rows initially shown for this field.'); 
 		$inputfields->append($field);
 
 		return $inputfields; 

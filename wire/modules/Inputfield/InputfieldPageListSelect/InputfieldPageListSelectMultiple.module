@@ -18,9 +18,9 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Page List Select Multiple',
+			'title' => __('Page List Select Multiple', __FILE__), // Module Title
+			'summary' => __('Selection of multiple pages from a ProcessWire page tree list', __FILE__), // Module Summary
 			'version' => 100,
-			'summary' => 'Selection of multiple pages from a ProcessWire page tree list',
 			'permanent' => true, 
 			);
 	}
@@ -46,11 +46,7 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 	public function ___render() {
 
 		if(!strlen($this->parent_id)) {
-			$this->error(
-				"Field '{$this->label}' (#{$this->id}) requires a parent page to be set. " . 
-				"Please select a parent, or choose another Inputfield type."
-				); 
-			return "<p class='error'>Unable to render this field due to missing parent page in field settings.</p>";
+			return "<p class='error'>" . $this->_('Unable to render this field due to missing parent page in field settings.') . '</p>';
 		}
 
 		$out = '';

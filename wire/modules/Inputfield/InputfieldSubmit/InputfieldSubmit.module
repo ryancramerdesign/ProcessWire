@@ -8,9 +8,9 @@ class InputfieldSubmit extends Inputfield {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Submit',
+			'title' => __('Submit', __FILE__), // Module Title
+			'summary' => __('Form submit button', __FILE__), // Module Summary
 			'version' => 100,
-			'summary' => 'Form submit button',
 			'permanent' => true, 
 			);
 	}

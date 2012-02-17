@@ -109,6 +109,9 @@
 	.Inputfields > li .notes {
 		margin-bottom: 0; 
 	}
+		.Inputfields > li > .ui-widget-content input + p.notes {
+			margin-top: 1em; 
+		}
 
 	.Inputfields .InputfieldHidden {
 		display: none; 

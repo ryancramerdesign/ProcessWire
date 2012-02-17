@@ -7,9 +7,9 @@
 class InputfieldPageTitle extends InputfieldText {
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Page Title',
+			'title' => __('Page Title', __FILE__), // Module Title
+			'summary' => __('Handles input of Page Title and auto-generation of Page Name (when name is blank)', __FILE__), // Module Summary
 			'version' => 100,
-			'summary' => 'Handles input of Page Title and auto-generation of Page Name (when name is blank)',
 			'permanent' => true, 
 			);
 	}

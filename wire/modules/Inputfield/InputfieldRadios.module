@@ -4,9 +4,9 @@ class InputfieldRadios extends InputfieldSelect {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Radio Buttons',
+			'title' => __('Radio Buttons', __FILE__), // Module Title
+			'summary' => __('Radio buttons for selection of a single item', __FILE__), // Module Summary
 			'version' => 100,
-			'summary' => 'Radio buttons for selection of a single item',
 			'permanent' => true, 
 			);
 	}

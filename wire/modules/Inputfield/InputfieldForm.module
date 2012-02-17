@@ -8,9 +8,9 @@ class InputfieldForm extends InputfieldWrapper {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Form',
+			'title' => __('Form', __FILE__), // Module Title
+			'summary' => __('Contains one or more fields in a form', __FILE__), // Module Summary
 			'version' => 100,
-			'summary' => 'Contains one or more fields in a form',
 			'permanent' => true, 
 			);
 	}

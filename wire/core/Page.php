@@ -658,7 +658,7 @@ class Page extends WireData {
 	 * @param string $selector
 	 *
 	 */
-	public function find($selector, $options = array()) {
+	public function find($selector = '', $options = array()) {
 		if(!$this->numChildren) return new PageArray();
 		$selector = "has_parent={$this->id}, $selector"; 
 		return $this->fuel('pages')->find(trim($selector, ", "), $options); 

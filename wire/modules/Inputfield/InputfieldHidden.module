@@ -8,9 +8,9 @@ class InputfieldHidden extends Inputfield {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Hidden',
+			'title' => __('Hidden', __FILE__), // Module Title
 			'version' => 100,
-			'summary' => 'Hidden value in a form',
+			'summary' => __('Hidden value in a form', __FILE__), // Module Summary
 			'permanent' => true, 
 			);
 	}

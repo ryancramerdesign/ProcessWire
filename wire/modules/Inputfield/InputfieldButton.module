@@ -8,9 +8,9 @@ class InputfieldButton extends InputfieldSubmit {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Button',
+			'title' => __('Button', __FILE__), // Module Title
+			'summary' => __('Form button element that you can optionally pass an href attribute to.', __FILE__), // Module Summary
 			'version' => 100,
-			'summary' => 'Form button element that you can optionally pass an href attribute to.',
 			'permanent' => true, 
 			);
 	}

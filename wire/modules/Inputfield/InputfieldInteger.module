@@ -4,9 +4,9 @@ class InputfieldInteger extends Inputfield {
 	
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Integer',
+			'title' => __('Integer', __FILE__), // Module Title
+			'summary' => __('Integer (positive or negative)', __FILE__), // Module Summary
 			'version' => 100,
-			'summary' => 'Integer (positive or negative)',
 			'permanent' => true, 
 			);
 	}

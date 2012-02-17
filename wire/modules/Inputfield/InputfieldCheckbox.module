@@ -10,9 +10,9 @@ class InputfieldCheckbox extends Inputfield {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Checkbox',
+			'title' => __('Checkbox', __FILE__), // Module Title
+			'summary' => __('Single checkbox toggle', __FILE__), // Module Summary
 			'version' => 100,
-			'summary' => 'Single checkbox toggle',
 			'permanent' => true, 
 			);
 	}

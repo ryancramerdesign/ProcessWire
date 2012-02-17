@@ -12,7 +12,7 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 		return array(
 			'title' => 'asmSelect',
 			'version' => 106,
-			'summary' => 'Multiple selection, progressive enhancement to select multiple',
+			'summary' => __('Multiple selection, progressive enhancement to select multiple', __FILE__), // Module Summary
 			'href' => 'http://code.google.com/p/jquery-asmselect/',
 			'permanent' => true, 
 			);

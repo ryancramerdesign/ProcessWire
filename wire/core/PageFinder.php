@@ -663,8 +663,14 @@ class PageFinder extends Wire {
 	protected function getQueryHasParent(DatabaseQuerySelect $query, $selector) {
 
 		$parent_id = (int) $selector->value;
+		$joinType = 'join';
 
-		$query->join(
+		if($selector->operator == '!=') { 
+			$joinType = 'leftjoin';
+			$query->where("pages_parents.pages_id IS NULL"); 
+		} 
+
+		$query->$joinType(
 			"pages_parents ON (" . 
 				"pages_parents.pages_id=pages.parent_id " . 
 				"AND (" . 

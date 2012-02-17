@@ -8,16 +8,16 @@ class InputfieldURL extends InputfieldText {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'URL',
+			'title' => __('URL', __FILE__), // Module Title
+			'summary' => __('URL in valid format'), // Module Summary
 			'version' => 100,
-			'summary' => 'URL in valid format',
 			);
 	}
 
 	public function __construct() {
 		parent::__construct();
 		$this->setAttribute('type', 'text'); 
-		$this->setAttribute('maxlength', 255); 
+		$this->setAttribute('maxlength', 1024); 
 		$this->setAttribute('size', 70); 
 		$this->setAttribute('name', 'href'); 
 		$this->label = 'URL';
@@ -34,23 +34,22 @@ class InputfieldURL extends InputfieldText {
 		return parent::___render();
 	}
 
-	public function setAttribute($key, $value) {
+	protected function setAttributeValue($value) {
 
-		if($key == 'value') {
-			if(strlen($value)) {
-				$value = trim($value); 
-				$unsanitized = $value; 
-				$value = $this->fuel('sanitizer')->url($value, $this->noRelative ? false : true); 	
+		if(strlen($value)) {
+			$value = trim($value); 
+			$unsanitized = $value; 
+			$value = $this->fuel('sanitizer')->url($value, $this->noRelative ? false : true); 	
 
-				if(!$value || $unsanitized != $value && "http://$unsanitized" != $value) {
-					$this->error($this->name . ': ' . $this->_("Error found - please check that it is a valid URL")); // Error message when invalid URL found
+			if(!$value || $unsanitized != $value && "http://$unsanitized" != $value) {
+				$this->error($this->name . ': ' . $this->_("Error found - please check that it is a valid URL")); // Error message when invalid URL found
 
-				} else if($value != $unsanitized && $value == "http://$unsanitized") {
-					$this->message($this->name . ': ' . $this->_("Note that \"http://\" was added")); // Message displayed when http scheme was automatically added to the URL
-				}
+			} else if($value != $unsanitized && $value == "http://$unsanitized") {
+				$this->message($this->name . ': ' . $this->_("Note that \"http://\" was added")); // Message displayed when http scheme was automatically added to the URL
+			}
 
-			} else $value = '';
-		}
-		return parent::setAttribute($key, $value); 
+		} else $value = '';
+
+		return $value; 
 	}
 }

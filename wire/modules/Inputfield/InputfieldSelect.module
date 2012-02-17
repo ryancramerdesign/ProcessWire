@@ -29,9 +29,9 @@ class InputfieldSelect extends Inputfield {
 	 */
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Select',
+			'title' => __('Select', __FILE__), // Module Title
+			'summary' => __('Selection of a single value from a select pulldown', __FILE__), // Module Summary
 			'version' => 100,
-			'summary' => 'Selection of a single value from a select pulldown',
 			'permanent' => true, 
 			);
 	}

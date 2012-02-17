@@ -6,13 +6,13 @@
  */
 class InputfieldText extends Inputfield {
 
-	const defaultMaxlength = 255; 
+	const defaultMaxlength = 1024; 
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Text',
-			'version' => 100,
-			'summary' => 'Single line of text',
+			'title' => __('Text', __FILE__), // Module Title
+			'summary' => __('Single line of text', __FILE__), // Module Summary
+			'version' => 101,
 			'permanent' => true, 
 			);
 	}
@@ -41,14 +41,20 @@ class InputfieldText extends Inputfield {
 	public function setAttribute($key, $value) {
 
 		if($key == 'maxlength' && !(int) $value) $value = ''; // blank string prevents a maxlength='0' attribute
-
-		if($key == 'value') { 
-			$value = trim($value); 
-			$maxlength = (int) $this->attr('maxlength'); 
-			if($maxlength > 0) $value = substr($value, 0, $maxlength); 
-		}
+		if($key == 'value') $value = $this->setAttributeValue($value); 
 
 		return parent::setAttribute($key, $value); 
+	}
+
+	protected function setAttributeValue($value) {
+		if($this->maxlength) { 
+			$value = wire('sanitizer')->text($value, array(
+				'maxLength' => $this->maxlength, 
+				'maxBytes' => $this->maxlength*3, 
+				'stripTags' => false, 
+				)); 
+		}
+		return $value; 
 	}
 
 	public function ___getConfigInputfields() {

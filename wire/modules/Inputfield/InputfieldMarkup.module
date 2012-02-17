@@ -1,23 +1,18 @@
 <?php
 
-/**
- * 
- *
- */
 class InputfieldMarkup extends InputfieldWrapper {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Markup',
+			'title' => __('Markup', __FILE__),
+			'summary' => __('Contains any other markup and optionally child Inputfields', __FILE__),
 			'version' => 100,
-			'summary' => 'Contains any other markup and optionally child Inputfields',
 			'permanent' => true, 
 			);
 	}
 
 	public function ___render() {
 		$out = '';
-		// if($this->label) $out .= "\n<label>{$this->label}</label>";
 		if($this->description) {
 			$out .= "\n<p class='description'>{$this->description}</p>";
 			$this->description = ''; // prevents it from appearing again at the bottom

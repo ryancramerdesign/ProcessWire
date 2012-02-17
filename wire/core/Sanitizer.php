@@ -174,6 +174,7 @@ class Sanitizer extends Wire {
 			'multiLine' => false,
 			'maxLength' => 255, 
 			'maxBytes' => 1024, 
+			'stripTags' => true,
 			'allowableTags' => '', 
 			'inCharset' => 'UTF-8', 
 			'outCharset' => 'UTF-8', 
@@ -183,7 +184,7 @@ class Sanitizer extends Wire {
 
 		if(!$options['multiLine']) $value = str_replace(array("\r", "\n"), " ", $value); 
 
-		$value = strip_tags($value, $options['allowableTags']); 
+		if($options['stripTags']) $value = strip_tags($value, $options['allowableTags']); 
 
 		if($options['inCharset'] != $options['outCharset']) $value = iconv($options['inCharset'], $options['outCharset'], $value); 
 

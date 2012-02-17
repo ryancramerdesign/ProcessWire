@@ -4,9 +4,9 @@ class InputfieldFloat extends InputfieldInteger {
 	
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Float',
+			'title' => __('Float', __FILE__), // Module Title
+			'summary' => __('Floating point number with precision', __FILE__), // Module Summary
 			'version' => 100,
-			'summary' => 'Floating point number with precision',
 			'permanent' => true, 
 			);
 	}

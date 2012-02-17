@@ -17,12 +17,16 @@
  *
  */
 .PageListSelectHeader {
-	margin: 1em 0;
+	margin: 0; 
 }
 
 .PageListSelectHeader .PageListSelectName {
 	display: inline; 
 	padding-right: 0.25em; 
+}
+
+.PageListRoot > .PageList {
+	margin-top: 0.5em; 
 }
 
 /**

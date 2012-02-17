@@ -10,9 +10,9 @@ class InputfieldDatetime extends Inputfield {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Datetime',
+			'title' => __('Datetime', __FILE__), // Module Title
+			'summary' => __('Inputfield that accepts date and optionally time', __FILE__), // Module Summary
 			'version' => 100,
-			'summary' => 'Inputfield that accepts date and optionally time',
 			'permanent' => true, 
 			);
 	}
@@ -52,46 +52,35 @@ class InputfieldDatetime extends Inputfield {
 
 		$f = $this->modules->get('InputfieldInteger');
 		$f->setAttribute('name', 'size'); 
-		$f->label = 'Size';
+		$f->label = $this->_('Size');
 		$f->attr('value', $this->attr('size')); 
 		$f->attr('size', 4); 
-		$f->description = 'The displayed width of this field (in characters).'; 
+		$f->description = $this->_('The displayed width of this field (in characters).'); 
 		$inputfields->append($f);
 
 		$f = $this->modules->get("InputfieldText");
 		$f->attr('name', 'dateInputFormat');
 		$f->attr('value', $this->dateInputFormat); 
 		$f->attr('size', 20); 
-		$f->label = "Date input format";
-		$f->description =
-			"The formatting string used by PHP's date() function to format a date in the input field (only). " . 
-			"The format entered here is what will be displayed in the input field when making edits. It must be " . 
-			"in a format compatible with PHP's strtotime function. See the notes below for recommendations."; 
-		$f->notes = 
-			"We recommend using 'd-m-Y' (with dashes) for European dates or 'm/d/Y' (with slashes) for US dates. " . 
-			"If using this field to hold time in addition to date, you should also " . 
-			"include a time component here. For example, 'm/d/Y' would result in a format of '10/10/2010', " . 
-			"whereas 'm/d/Y H:i' would result in a format of '10/10/2010 17:40'. See PHP's date() function " . 
-			"and strtotime() function for reference for more advanced usages with this field.";
+		$f->label = $this->_("Date input format");
+		$f->description = $this->_("The formatting string used by PHP's date() function to format a date in the input field (only). The format entered here is what will be displayed in the input field when making edits. It must be in a format compatible with PHP's strtotime function. See the notes below for recommendations.");  // Date input format description
+		$f->notes = $this->_("We recommend using 'd-m-Y' (with dashes) for European dates or 'm/d/Y' (with slashes) for US dates. If using this field to hold time in addition to date, you should also include a time component here. For example, 'm/d/Y' would result in a format of '10/10/2010', whereas 'm/d/Y H:i' would result in a format of '10/10/2010 17:40'. See PHP's date() function and strtotime() function for reference for more advanced usages with this field."); // Date input format notes
 		$inputfields->append($f);
 
 		$f= $this->modules->get('InputfieldCheckbox');
 		$f->setAttribute('name', 'datepicker'); 
 		$f->attr('value', 1); 
 		if($this->datepicker) $f->attr('checked', 'checked'); 
-		$f->label = 'Use a date picker?';
-		$f->description = 
-			"If checked, a calendar date picker will appear allowing a date to be selected rather than just entered. " . 
-			"Note that the date picker may populate the field in a universal date format different from the one you have chosen, " . 
-			"but it will be converted when the user saves the page."; 
+		$f->label = $this->_('Use a date picker?');
+		$f->description = $this->_("If checked, a calendar date picker will appear allowing a date to be selected rather than just entered. Note that the date picker may populate the field in a universal date format different from the one you have chosen, but it will be converted when the user saves the page."); // Date picker description
 		$inputfields->append($f);
 
 		$f= $this->modules->get('InputfieldCheckbox');
 		$f->setAttribute('name', 'defaultToday'); 
 		$f->attr('value', 1); 
 		if($this->defaultToday) $f->attr('checked', 'checked'); 
-		$f->label = "Default to today's date?";
-		$f->description = "If checked, this field will hold the current date when no value is entered.";
+		$f->label = $this->_("Default to today's date?");
+		$f->description = $this->_("If checked, this field will hold the current date when no value is entered."); // Default today description
 		$inputfields->append($f);
 
 		return $inputfields; 

@@ -4,9 +4,9 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Checkboxes',
+			'title' => __('Checkboxes', __FILE__), // Module Title
+			'summary' => __('Multiple checkbox toggles', __FILE__), // Module Summary
 			'version' => 100,
-			'summary' => 'Multiple checkbox toggles',
 			'permanent' => true, 
 			);
 	}

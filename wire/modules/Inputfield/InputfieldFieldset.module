@@ -1,16 +1,12 @@
 <?php
 
-/**
- * 
- *
- */
 class InputfieldFieldset extends InputfieldWrapper {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Fieldset',
+			'title' => __('Fieldset', __FILE__), // Module Title
+			'summary' => __('Groups one or more fields together in a container', __FILE__), // Module Summary
 			'version' => 100,
-			'summary' => 'Groups one or more fields together in a container',
 			'permanent' => true, 
 			);
 	}
