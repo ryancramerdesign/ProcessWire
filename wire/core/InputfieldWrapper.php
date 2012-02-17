@@ -373,8 +373,13 @@ class InputfieldWrapper extends Inputfield {
 	public function getAll() {
 		$all = new InputfieldsArray();
 		foreach($this->children as $child) {
-			if($child instanceof InputfieldWrapper) $all->import($child->getAll());
-				else $all->add($child); 
+			if($child instanceof InputfieldWrapper) {
+				foreach($child->getAll() as $c) {
+					$all->add($c); 
+				}
+			} else {
+				$all->add($child); 
+			}
 		}
 		return $all;
 	}
