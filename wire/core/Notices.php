@@ -19,10 +19,19 @@
  *
  */
 abstract class Notice extends WireData {
-	public function __construct($text) {
+
+	/**
+	 * Flag indicates the notice is for when debug mode is on only
+	 *
+	 */
+	const debug = 2;
+	const warning = 4; 
+
+	public function __construct($text, $flags = 0) {
 		$this->set('text', $text); 
 		$this->set('class', ''); 
 		$this->set('timestamp', time()); 
+		$this->set('flags', $flags); 
 	}
 }
 
@@ -50,6 +59,13 @@ class Notices extends WireArray {
 
 	public function makeBlankItem() {
 		return new NoticeMessage(''); 
+	}
+
+	public function add($item) {
+		if($item->flags & Notice::debug) {
+			if(!$this->fuel('config')->debug) return $this;
+		}
+		return parent::add($item); 
 	}
 
 }

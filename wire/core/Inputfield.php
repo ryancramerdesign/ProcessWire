@@ -507,13 +507,13 @@ abstract class Inputfield extends WireData implements Module {
 	 * Override Wire's error method and place errors in the context of their inputfield
 	 *
 	 */
-	public function error($text) {
+	public function error($text, $flags = 0) {
 		$key = $this->getErrorSessionKey();
 		$errors = $this->session->$key;			
 		if(!is_array($errors)) $errors = array();
 		$errors[] = $text; 
 		$this->session->set($key, $errors); 
-		return parent::error($text . " ({$this->name})"); 
+		return parent::error($text . " ({$this->name})", $flags); 
 	}
 
 	/**

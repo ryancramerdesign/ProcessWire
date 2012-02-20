@@ -381,9 +381,9 @@ class WireUpload extends Wire {
 		return $this; 
 	}
 
-	public function error($text) {
+	public function error($text, $flags = 0) {
 		$this->errors[] = $text; 
-		parent::error($text); 
+		parent::error($text, $flags); 
 	}
 
 	public function getErrors($clear = false) {

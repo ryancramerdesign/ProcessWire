@@ -57,7 +57,10 @@ class Session extends Wire implements IteratorAggregate {
 		$this->fuel('users')->setCurrentUser($user); 	
 
 		foreach(array('message', 'error') as $type) {
-			if($items = $this->get($type)) foreach($items as $text) parent::$type($text); 
+			if($items = $this->get($type)) foreach($items as $item) {
+				list($text, $flags) = $item;
+				parent::$type($text, $flags); 
+			}
 			$this->remove($type);
 		}
 
@@ -251,7 +254,7 @@ class Session extends Wire implements IteratorAggregate {
 		// if there are notices, then queue them so that they aren't lost
 		$notices = $this->fuel('notices'); 
 		if(count($notices)) foreach($notices as $notice) {
-			$this->queueNotice($notice->text, $notice instanceof NoticeError ? 'error' : 'message'); 
+			$this->queueNotice($notice->text, $notice instanceof NoticeError ? 'error' : 'message', $notice->flags); 
 		}
 
 		// perform the redirect
@@ -265,10 +268,11 @@ class Session extends Wire implements IteratorAggregate {
 	 * Queue a notice (message/error) to be shown the next time this ession class is instantiated
 	 *
 	 */
-	protected function queueNotice($text, $type) {
+	protected function queueNotice($text, $type, $flags) {
 		$items = $this->get($type);
 		if(is_null($items)) $items = array();
-		$items[] = $text; 
+		$item = array($text, $flags); 
+		$items[] = $item;
 		$this->set($type, $items); 
 	}
 
@@ -277,8 +281,8 @@ class Session extends Wire implements IteratorAggregate {
 	 * Queue a message to appear the next time session is instantiated
 	 *
 	 */
-	public function message($text) {
-		$this->queueNotice($text, 'message'); 
+	public function message($text, $flags = 0) {
+		$this->queueNotice($text, 'message', $flags); 
 		return $this;
 	}
 
@@ -286,8 +290,8 @@ class Session extends Wire implements IteratorAggregate {
 	 * Queue an error to appear the next time session is instantiated
 	 *
 	 */
-	public function error($text) {
-		$this->queueNotice($text, 'error'); 
+	public function error($text, $flags = 0) {
+		$this->queueNotice($text, 'error', $flags); 
 		return $this; 
 	}
 

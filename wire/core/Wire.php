@@ -576,11 +576,12 @@ abstract class Wire implements TrackChanges {
 	 * This method automatically identifies the message as coming from this class. 
 	 *
 	 * @param string $text
+	 * @param flags int See Notices::flags
 	 * @return this
 	 *
 	 */
-	public function message($text) {
-		$notice = new NoticeMessage($text); 
+	public function message($text, $flags = 0) {
+		$notice = new NoticeMessage($text, $flags); 
 		$notice->class = $this->className();
 		$this->fuel('notices')->add($notice); 
 		return $this; 
@@ -594,11 +595,12 @@ abstract class Wire implements TrackChanges {
 	 * Fatal errors should still throw a WireException (or class derived from it)
 	 *
 	 * @param string $text
+	 * @param flags int See Notices::flags
 	 * @return this
 	 *
 	 */
-	public function error($text) {
-		$notice = new NoticeError($text); 
+	public function error($text, $flags = 0) {
+		$notice = new NoticeError($text, $flags); 
 		$notice->class = $this->className();
 		$this->fuel('notices')->add($notice); 
 		return $this; 
