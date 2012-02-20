@@ -942,12 +942,15 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	/**
 	 * Returns a string representation of this WireArray.
 	 * 
-	 * String consists of the class name and count of items in the WireArray.
-	 *
 	 * @return string
 	 */
 	public function __toString() {
-		return get_class($this) . '(' . count($this->data) . ')'; 
+		$s = '';
+		foreach($this as $key => $value) {
+			$s .= "$value|";
+		}
+		$s = rtrim($s, '|'); 
+		return $s; 
 	}
 
 	/**
