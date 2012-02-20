@@ -195,7 +195,7 @@ class PageFinder extends Wire {
 		$startLimit = false; // true when the start/limit part of the query generation is done
 
 		$query = new DatabaseQuerySelect();
-		$query->select(array('pages.id', 'pages.templates_id')); 
+		$query->select(array('pages.id', 'pages.parent_id', 'pages.templates_id')); 
 		$query->from("pages"); 
 		$query->groupby("pages.id"); 
 

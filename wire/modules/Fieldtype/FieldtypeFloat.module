@@ -21,9 +21,9 @@ class FieldtypeFloat extends Fieldtype {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Float',
+			'title' => __('Float', __FILE__),
+			'summary' => __('Field that stores a floating point (decimal) number', __FILE__),
 			'version' => 100,
-			'summary' => 'Field that stores a floating point (decimal) number',
 			'permanent' => true, 
 			);
 	}
