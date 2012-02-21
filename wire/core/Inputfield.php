@@ -56,6 +56,7 @@ abstract class Inputfield extends WireData implements Module {
 	const collapsedYes = 1; 	// will display collapsed, requiring a click to open
 	const collapsedBlank = 2; 	// will display collapsed only if blank
 	const collapsedHidden = 4; 	// will not be rendered in the form
+	const collapsedPopulated = 5; 	// will display collapsed only if populated
 
 	/**
 	 * The total number of Inputfield instances, kept as a way of generating unique 'id' attributes
@@ -95,6 +96,7 @@ abstract class Inputfield extends WireData implements Module {
 		$this->set('head', ''); 	// below label, above description
 		$this->set('required', 0); 	// set to 1 to make value required for this field
 		$this->set('collapsed', ''); 	// see the collapsed* constants at top of class (use blank string for unset value)
+		$this->set('columnWidth', ''); 	// percent width of the field. blank or 0 = 100.
 		$this->set('skipLabel', false); // if true, tells InputfieldWrapper not to use a "for" attribute with the auto-generated "<label>"
 
 		// default ID attribute if no 'id' attribute set
@@ -179,6 +181,10 @@ abstract class Inputfield extends WireData implements Module {
 		if($key == 'parent' && ($value instanceof Inputfield)) return $this->setParent($value); 
 		if(array_key_exists($key, $this->attributes)) return $this->setAttribute($key, $value); 
 		if($key == 'required' && $value) $this->attr('class', 'required'); 
+		if($key == 'columnWidth') {
+			$value = (int) $value; 
+			if($value < 10 || $value > 99) $value = '';
+		}
 		return parent::set($key, $value); 
 	}
 
@@ -470,22 +476,38 @@ abstract class Inputfield extends WireData implements Module {
 
 		$field = $this->modules->get("InputfieldRadios"); 
 		$field->attr('name', 'collapsed'); 
-		$field->label = "How should this field be displayed in the editor?";
-		$field->addOption(self::collapsedNo, "Always open"); 
-		$field->addOption(self::collapsedBlank, "Collapsed only when blank"); 
-		$field->addOption(self::collapsedYes, "Always collapsed, requiring a click to open"); 
-		$field->addOption(self::collapsedHidden, "Hidden, not shown in the editor"); 
+		$field->label = $this->_("How should this field be displayed in the editor?");
+		$field->addOption(self::collapsedNo, $this->_("Always open")); 
+		$field->addOption(self::collapsedBlank, $this->_("Collapsed only when blank")); 
+		$field->addOption(self::collapsedPopulated, $this->_("Collapsed only when populated")); 
+		$field->addOption(self::collapsedYes, $this->_("Always collapsed, requiring a click to open")); 
+		$field->addOption(self::collapsedHidden, $this->_("Hidden, not shown in the editor")); 
 		$field->attr('value', (int) $this->collapsed); 
 		$fields->append($field); 
 
+		if(!$this instanceof InputfieldWrapper) { 
+			$field = $this->modules->get('InputfieldInteger'); 
+			$value = (int) $this->getSetting('columnWidth'); 
+			if($value < 10 || $value >= 100) $value = 100;
+			$field->label = sprintf($this->_("Column Width (%d%%)"), $value);
+			$field->attr('id+name', 'columnWidth'); 
+			$field->attr('maxlength', 4); 
+			$field->attr('size', 4); 
+			$field->attr('value', $value . '%'); 
+			$field->description = $this->_("The percentage width of this field's container (10%-100%). If placed next to other fields with reduced widths, it will create floated columns."); // Description of colWidth option
+			$field->notes = $this->_("Note that not all fields will work at reduced widths, so you should test the result after changing this."); // Notes for colWidth option
+			if($value == 100) $field->collapsed = Inputfield::collapsedYes; 
+			$fields->append($field); 
+		}
+
 		if($this->config->advanced) { 
 			$field = $this->modules->get('InputfieldCheckbox'); 
-			$field->label = 'Required?';
+			$field->label = $this->_('Required?');
 			$field->attr('name', 'required'); 
 			$field->attr('value', 1); 
 			$field->attr('checked', $this->required ? 'checked' : ''); 
 			$field->collapsed = self::collapsedBlank; 
-			$field->description = "If checked, a value will be required for this field.";
+			$field->description = $this->_("If checked, a value will be required for this field.");
 			$fields->append($field); 
 		}
 

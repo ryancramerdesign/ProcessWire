@@ -195,6 +195,7 @@ class InputfieldWrapper extends Inputfield {
 
 		$out = '';
 		$children = $this->preRenderChildren();
+		$lastColumnFloated = false;
 
 		foreach($children as $inputfield) {
 
@@ -203,7 +204,6 @@ class InputfieldWrapper extends Inputfield {
 
 			$ffOut = $inputfield->render();
 			if(!$ffOut) continue; 
-
 
 			if(!$inputfield instanceof InputfieldWrapper) {
 				$errors = $inputfield->getErrors(true);
@@ -220,13 +220,19 @@ class InputfieldWrapper extends Inputfield {
 			// The inputfield's classname is always used in it's LI wrapper
 			$ffAttrs = array(
 				'class' => $inputfield->className() . ($name = $inputfield->attr('name') ? ' Inputfield_' . $inputfield->attr('name') : '') . ' ui-widget', 
-			);
+				);
 
 			if(count($errors)) $ffAttrs['class'] .= " ui-state-error InputfieldStateError"; 
 
 			if($collapsed) {
-				if($inputfield instanceof InputfieldWrapper || $collapsed === Inputfield::collapsedYes || $collapsed === true || $inputfield->isEmpty()) 
-					$ffAttrs['class'] .= " InputfieldStateCollapsed";
+				$isEmpty = $inputfield->isEmpty();
+				if($inputfield instanceof InputfieldWrapper || 
+					$collapsed === Inputfield::collapsedYes ||
+					$collapsed === true || 
+					($isEmpty && $collapsed === Inputfield::collapsedBlank) ||
+					(!$isEmpty && $collapsed === Inputfield::collapsedPopulated)) {
+						$ffAttrs['class'] .= " InputfieldStateCollapsed";
+					}
 			}
 			
 			if($inputfield instanceof InputfieldWrapper) {
@@ -246,6 +252,15 @@ class InputfieldWrapper extends Inputfield {
 					$for = $inputfield->skipLabel ? '' : " for='" . $inputfield->attr('id') . "'";
 					$label = "\n\t\t<label class='ui-widget-header'$for>" . $this->entityEncode($inputfield->label) . "</label>";
 				}
+				$columnWidth = (int) $inputfield->getSetting('columnWidth') + ($lastColumnFloated ? -1 : 0);
+				if($columnWidth >= 9 && $columnWidth < 100) {
+					$ffAttrs['class'] .= ' InputfieldColumnWidth';
+					if(!$lastColumnFloated) $ffAttrs['class'] .= ' InputfieldColumnWidthFirst';
+					$ffAttrs['style'] = "width: $columnWidth%;"; 
+					$lastColumnFloated = true; 
+				} else {
+					$lastColumnFloated = false;
+				}
 				if(!isset($ffAttrs['id'])) $ffAttrs['id'] = 'wrap_' . $inputfield->attr('id'); 
 				foreach($ffAttrs as $k => $v) {
 					$attrs .= " $k='" . $this->entityEncode(trim($v)) . "'";
@@ -257,6 +272,7 @@ class InputfieldWrapper extends Inputfield {
 
 		if($out) {
 			$ulClass = "Inputfields";
+			if($lastColumnFloated) $ulClass .= " ui-helper-clearfix";
 			$attrs = " class='$ulClass" . ($this->attr('class') ? ' ' . $this->attr('class') : '') . "'";
 			foreach($this->getAttributes() as $attr => $value) if(strpos($attr, 'data-') === 0) $attrs .= " $attr='" . $this->entityEncode($value) . "'";
 			$out = $this->attr('value') . "\n<ul$attrs>$out\n</ul><!--/$ulClass-->\n";

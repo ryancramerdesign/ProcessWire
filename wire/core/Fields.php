@@ -360,11 +360,12 @@ class Fields extends WireSaveableItems {
 	}
 
 	/**
-	 * Overridden from WireSaveableItems to retain keys with 0 values
+	 * Overridden from WireSaveableItems to retain keys with 0 values and remove defaults we don't need saved
 	 *
 	 */
 	protected function encodeData(array $value) {
 		if(isset($value['collapsed']) && $value['collapsed'] === 0) unset($value['collapsed']); 	
+		if(isset($value['columnWidth']) && (empty($value['columnWidth']) || $value['columnWidth'] == 100)) unset($value['columnWidth']); 
 		return wireEncodeJSON($value, 0); 	
 	}
 

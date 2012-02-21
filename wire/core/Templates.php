@@ -35,7 +35,7 @@ class TemplatesArray extends WireArray {
 	public function makeBlankItem() {
 		return new Template();
 	}
-	
+
 }
 
 /**

@@ -1,6 +1,6 @@
 
 .InputfieldPageAutocomplete ol {
-	margin: 0.5em 0;
+	margin: 0; 
 	list-style: none;
 }
 
@@ -15,6 +15,9 @@
 		display: block;
 		cursor: move;
 	}
+		.InputfieldPageAutocomplete ol li:last-child {
+			margin-bottom: 1em !important; 
+		}
 
 		.InputfieldPageAutocomplete ol li .ui-icon-arrowthick-2-n-s {
 			float: left;
@@ -52,6 +55,7 @@
 .InputfieldPageAutocomplete p {
 	/* to enable icon placement */
 	position: relative; 
+	margin-top: 0;
 }
 
 	.InputfieldPageAutocomplete p .ui-icon {

@@ -1,0 +1,17 @@
+#columnWidth {
+	float: left; 
+	margin-right: 1em; 
+	margin-bottom: 1em; 
+}
+
+#columnWidthSlider {
+	float: left;
+	width: 40%; 
+	position: relative;
+	top: 3px; 
+}
+
+#wrap_columnWidth p.notes {
+	clear: both; 
+}
+

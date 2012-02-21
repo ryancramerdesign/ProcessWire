@@ -57,7 +57,7 @@
 		font-size: 12px; 
 	}
 
-	.Inputfields .ui-widget-content {
+	.Inputfields > li > div.ui-widget-content {
 		padding: 1em; 
 	}
 
@@ -81,6 +81,17 @@
 		clear: both; 
 	}
 
+	.Inputfields > li.InputfieldColumnWidth {
+		float: left; 
+		clear: none; 
+		margin-top: 0; 
+		margin-left: 1%; 
+	}
+		.Inputfields li.InputfieldColumnWidthFirst {
+			clear: both; 
+			margin-left: 0; 
+		}
+
 	.Inputfields > li:first-child {
 		margin-top: 0;
 	}
@@ -88,6 +99,9 @@
 	.Inputfields > li > .ui-widget-content *:last-child {
 		margin-bottom: 0;
 	}
+		.Inputfields > li > .ui-widget-content ul.ui-helper-clearfix:last-child {
+			margin-bottom: -1em; 
+		}
 
 	.Inputfields > li > .ui-widget-content > p {
 		margin-top: 0; 

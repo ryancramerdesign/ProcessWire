@@ -262,7 +262,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if($this->inputfield && $inputfield = $this->getInputfield()) {
 			// then call again, knowing the module has it's config populated
 			foreach($inputfield->___getConfigInputfields() as $f) {
-				if(in_array($f->name, array('required', 'collapsed')) || array_key_exists($f->name, self::$defaultConfig)) continue; 
+				if(in_array($f->name, array('required', 'collapsed', 'columnWidth')) || array_key_exists($f->name, self::$defaultConfig)) continue; 
 				$inputfields->add($f); 
 			}
 		}
