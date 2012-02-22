@@ -103,7 +103,8 @@
 			margin-bottom: -1em; 
 		}
 
-	.Inputfields > li > .ui-widget-content > p {
+	.Inputfields > li > .ui-widget-content > p,
+	.Inputfields > li > .ui-widget-content > div > p {
 		margin-top: 0; 
 	}
 		.Inputfields > li > .ui-widget-content > p:last-child {

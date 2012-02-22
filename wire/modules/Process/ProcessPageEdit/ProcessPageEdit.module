@@ -328,6 +328,7 @@ class ProcessPageEdit extends Process {
 			$field = $this->modules->get('InputfieldSelect');
 			$field->name = 'sortfield'; 
 			$field->value = ltrim($this->page->sortfield, '-'); 
+			$field->columnWidth = 60; 
 			$field->label = $this->_('Sort field'); // Children sort field label
 
 			$options = array(
@@ -356,6 +357,7 @@ class ProcessPageEdit extends Process {
 			$f->attr('id+name', 'sortfield_reverse'); 
 			$f->label = $this->_('Reverse sort direction?'); // Checkbox labe to reverse the sort direction
 			if(substr($this->page->sortfield, 0, 1) == '-') $f->attr('checked', 'checked'); 
+			$f->columnWidth = 40; 
 
 			$fieldset->append($f); 
 			$wrapper->append($fieldset); 
