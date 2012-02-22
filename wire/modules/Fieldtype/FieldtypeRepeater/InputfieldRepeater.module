@@ -97,6 +97,8 @@ class InputfieldRepeater extends Inputfield {
 		$out = '';
 		$form = new InputfieldWrapper();
 		$value = $this->attr('value'); 
+		$language = wire('user')->language; 
+		$languages = wire('languages'); 
 
 		// locate and remove any unpublished+hidden items so we can ensure they are at the end
 		$appendItems = array();
@@ -115,7 +117,13 @@ class InputfieldRepeater extends Inputfield {
 
 		$blankPage = $this->field->type->getBlankRepeaterPage($this->page, $this->field); 
 		$template = $blankPage->template; 
-		$label = $this->field->label ? $this->field->label : ucfirst($this->field->name); 
+
+		// get field label in user's language if available
+		$key = ($languages && $language->id ? "label{$language->id}" : "label");
+		$label = $this->field->get($key); 
+		if(!$label) $label = $this->field->label;
+		if(!$label) $label = ucfirst($this->field->name); 
+
 		$cnt = 0;
 	
 		// create field for each repeater iteration	
