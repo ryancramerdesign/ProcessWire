@@ -28,6 +28,18 @@ class LanguageTranslator extends Wire {
 	protected $path;
 
 	/**
+	 * Root path of installation, same as wire('config')->paths->root
+	 *
+	 */
+	protected $rootPath; 
+
+	/**
+	 * Alternate root path for systems where there might be symlinks
+	 *
+	 */
+	protected $rootPath2; 
+
+	/**
 	 * Translations for current language, in this format (consistent with the JSON): 
 	 *
 	 * array(
@@ -64,6 +76,10 @@ class LanguageTranslator extends Wire {
 	 */
 	public function __construct(Language $currentLanguage) {
 		$this->setCurrentLanguage($currentLanguage);
+		$this->rootPath = wire('config')->paths->root; 
+		$file = __FILE__; 
+		$pos = strpos($file, '/wire/modules/LanguageSupport/'); 
+		$this->rootPath2 = $pos ? substr($file, 0, $pos+1) : '';
 	}
 
 	/**
@@ -144,12 +160,26 @@ class LanguageTranslator extends Wire {
 	 *
 	 */
 	public function filenameToTextdomain($filename) {
+
 		if(DIRECTORY_SEPARATOR != '/') $filename = str_replace(DIRECTORY_SEPARATOR, '/', $filename); 
-		$pos = strrpos($filename, '/wire/'); 
-		if($pos === false) $pos = strrpos($filename, '/site/'); 
-		if($pos !== false) $filename = substr($filename, $pos+1);
-		$textdomain = str_replace(array('/', '\\'), '--', $filename); 
+
+		if(strpos($filename, $this->rootPath) === 0) {
+			$filename = str_replace($this->rootPath, '', $filename); 
+
+		} else if($this->rootPath2 && strpos($filename, $this->rootPath2) === 0) {
+			// in case /wire/ or /site/ is a symlink
+			$filename = str_replace($this->rootPath2, '', $filename); 
+
+		} else { 
+			// last resort, may not ever occur, but here anyway
+			$pos = strrpos($filename, '/wire/'); 
+			if($pos === false) $pos = strrpos($filename, '/site/'); 
+			if($pos !== false) $filename = substr($filename, $pos+1);
+		}
+
+		$textdomain = str_replace(array('/', '\\'), '--', ltrim($filename, '/')); 
 		$textdomain = str_replace('.', '-', $textdomain); 
+
 		return strtolower($textdomain);
 	}
 
@@ -333,6 +363,7 @@ class LanguageTranslator extends Wire {
 		$textdomain = $this->textdomainString($textdomain); 
 		if(isset($this->textdomains[$textdomain]) && is_array($this->textdomains[$textdomain])) return $this;
 		$file = $this->getTextdomainTranslationFile($textdomain);
+
 
 		if(is_file($file)) {
 			$data = json_decode(file_get_contents($file), true); 
