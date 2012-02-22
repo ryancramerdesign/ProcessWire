@@ -1,3 +1,7 @@
 .InputfieldImage img {
 	max-width: 90%; 
 }
+
+.InputfieldImage a.InputfieldFileLink + label.InputfieldFileDescription {
+	margin-top: 0.5em;
+}

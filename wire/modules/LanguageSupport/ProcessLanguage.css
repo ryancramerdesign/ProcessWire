@@ -9,12 +9,21 @@
 }
 
 .InputfieldFile .InputfieldFileLanguageInfo {
-	margin-top: 0.5em; 
 	position: relative; 
+	margin-top: 0; 
 }
 
 .InputfieldFile .InputfieldFileLanguageInfo .actions {
 	position: absolute; 
 	top: 0;
-	right: 0; 
+	right: 1em; 
+}
+
+.InputfieldFileList .InputfieldFileLanguageInfo {
+	margin-top: -1em; 
+}
+
+.InputfieldFileList .InputfieldFileLanguageInfo p {
+	padding: 0 1em 1em 1em; 
+	margin-top: 0; 
 }

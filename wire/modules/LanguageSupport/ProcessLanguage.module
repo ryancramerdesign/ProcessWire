@@ -114,7 +114,7 @@ class ProcessLanguage extends ProcessPageType {
 			"<ul class='actions'>" . 
 			"<li><a href='{$translationUrl}edit/?language_id={$page->id}&amp;textdomain=$textdomain'>Edit</a></li>" . 
 			"</ul>" . 
-			"<p><span class='description'>/$file &#8212;</span> <span class='notes'>$message</span></p>" . 
+			"<p><span class='InputfieldFileLanguageFilename'>/$file &#8212;</span> <span class='notes'>$message</span></p>" . 
 			"</div>";
 
 		$page->translator->unloadTextdomain($textdomain);
