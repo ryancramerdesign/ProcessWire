@@ -4,6 +4,7 @@ var InputfieldPageName = {
 
 		// replace leading and trailing whitespace 
 		name = jQuery.trim(name);
+		name = name.toLowerCase();  
 
 		var srch;
 		for(srch in config.InputfieldPageName.replacements) {
@@ -13,8 +14,6 @@ var InputfieldPageName = {
 				name = name.replace(re, repl); 
 			}
 		}
-	
-		name = name.toLowerCase();  
 
 		// replace invalid with dash
 		name = name.replace(/[^-_.a-z0-9 ]/g, '-');
