@@ -64,6 +64,7 @@ class InputfieldRepeater extends Inputfield {
 	 *
 	 */
 	public function __construct() {
+		parent::__construct();
 		// these are part of the Fieldtype's config, and automatically set from it
 		$this->set('repeaterMaxItems', 0); 
 		$this->set('repeaterReadyItems', 0); 
@@ -319,6 +320,11 @@ class InputfieldRepeater extends Inputfield {
 			else if($key == 'field') $this->field = $value; 
 			else return parent::set($key, $value);
 		return $this;
+	}
+
+	public function ___getConfigInputfields() {
+		$inputfields = parent::___getConfigInputfields();
+		return $inputfields;
 	}
 
 }
