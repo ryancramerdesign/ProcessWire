@@ -46,11 +46,11 @@ class CommentList extends Wire implements CommentListInterface {
 	 *
 	 */
 	protected $options = array(
-		'headline' => '<h3>Comments</h3>', 
-		'commentHeader' => 'Posted by {cite} on {created}',
-		'dateFormat' => 'm/d/y g:ia', 
+		'headline' => '', 	// '<h3>Comments</h3>', 
+		'commentHeader' => '', 	// 'Posted by {cite} on {created}',
+		'dateFormat' => '', 	// 'm/d/y g:ia', 
 		'encoding' => 'UTF-8', 
-		'admin' => false, // shows unapproved comments if true
+		'admin' => false, 	// shows unapproved comments if true
 		); 
 
 	/**
@@ -61,6 +61,12 @@ class CommentList extends Wire implements CommentListInterface {
 	 *
 	 */
 	public function __construct(CommentArray $comments, $options = array()) {
+
+		$h3 = $this->_('h3'); // Headline tag
+		$this->options['headline'] = "<$h3>" . $this->_('Comments') . "</$h3>"; // Header text
+		$this->options['commentHeader'] = $this->_('Posted by {cite} on {created}'); // Comment header // Include the tags {cite} and {created}, but leave them untranslated
+		$this->options['dateFormat'] = $this->_('%b %e, %Y %l:%M %p'); // Date format in either PHP strftime() or PHP date() format // Example 1 (strftime): %b %e, %Y %l:%M %p = Feb 27, 2012 1:21 PM. Example 2 (date): m/d/y g:ia = 02/27/12 1:21pm.
+		
 		$this->comments = $comments; 
 		$this->options = array_merge($this->options, $options); 
 	}
@@ -107,7 +113,9 @@ class CommentList extends Wire implements CommentListInterface {
 		$text = str_replace("\n", "<br />", $text); 
 
 		$cite = htmlentities(trim($comment->cite), ENT_QUOTES, $this->options['encoding']); 
-		$created = date($this->options['dateFormat'], $comment->created); 
+
+		if(strpos($this->options['dateFormat'], '%') !== false) $created = strftime($this->options['dateFormat'], $comment->created); 
+			else $created = date($this->options['dateFormat'], $comment->created); 
 
 		$header = str_replace(array('{cite}', '{created}'), array($cite, $created), $this->options['commentHeader']); 
 		

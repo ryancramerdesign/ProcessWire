@@ -66,6 +66,7 @@ class InputfieldText extends Inputfield {
 		$field->setAttribute('value', $this->attr('size')); 
 		$field->setAttribute('size', 4); 
 		$field->description = 'The displayed width of this field (in characters). Set to 0 for full width.'; 
+		$field->columnWidth = 50; 
 		$inputfields->append($field);
 
 		$field = $this->modules->get('InputfieldInteger');
@@ -74,6 +75,7 @@ class InputfieldText extends Inputfield {
 		$field->setAttribute('value', $this->attr('maxlength')); 
 		$field->setAttribute('size', 4); 
 		$field->description = 'The maximum length (in characters) that are allowed by this field.'; 
+		$field->columnWidth = 50; 
 		$inputfields->append($field);
 
 		return $inputfields; 

@@ -66,9 +66,9 @@ class CommentForm extends Wire implements CommentFormInterface {
 	 *
 	 */
 	protected $options = array(
-		'headline' => "<h3>Post Comment</h3>", 
-		'successMessage' => "<p class='success'>Thank you, your submission has been saved.</p>", 
-		'errorMessage' => "<p class='error'>Your submission was not saved due to one or more errors. Please check that you have completed all fields before submitting again.</p>", 
+		'headline' => '',	// Post Comment
+		'successMessage' => '',	// Thank you, your submission has been saved
+		'errorMessage' => '',	// Your submission was not saved due to one or more errors. Try again.
 		'processInput' => true, 
 		'encoding' => 'UTF-8', 
 		'attrs' => array(
@@ -80,10 +80,10 @@ class CommentForm extends Wire implements CommentFormInterface {
 			'cols' => 50,
 		),
 		'labels' => array(
-			'cite' => 'Your Name', 
-			'email' => 'Your E-Mail', 
-			'text' => 'Comments', 
-			'submit' => 'Submit',
+			'cite' => '',	// Your Name
+			'email' => '',	// Your E-Mail
+			'text' => '',	// Comments
+			'submit' => '', // Submit
 			),
 		// the name of a field that must be set (and have any non-blank value), typically set in Javascript to keep out spammers
 		// to use it, YOU must set this with a <input hidden> field from your own javascript, somewhere in the form
@@ -99,8 +99,22 @@ class CommentForm extends Wire implements CommentFormInterface {
 	 *
 	 */
 	public function __construct(Page $page, CommentArray $comments, $options = array()) {
+
 		$this->page = $page;
 		$this->comments = $comments; 
+
+		// default messages
+		$h3 = $this->_('h3'); // Headline tag
+		$this->options['headline'] = "<$h3>" . $this->_('Post Comment') . "</$h3>"; // Form headline
+		$this->options['successMessage'] = "<p class='success'>" . $this->_('Thank you, your submission has been saved.') . "</p>"; 
+		$this->options['errorMessage'] = "<p class='error'>" . $this->_('Your submission was not saved due to one or more errors. Please check that you have completed all fields before submitting again.') . "</p>"; 
+
+		// default labels
+		$this->options['labels']['cite'] = $this->_('Your Name'); 
+		$this->options['labels']['email'] = $this->_('Your E-Mail'); 
+		$this->options['labels']['text'] = $this->_('Comments'); 
+		$this->options['labels']['submit'] = $this->_('Submit'); 
+
 		if(isset($options['labels'])) {
 			$this->options['labels'] = array_merge($this->options['labels'], $options['labels']); 
 			unset($options['labels']); 

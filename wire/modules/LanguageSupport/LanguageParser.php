@@ -137,20 +137,20 @@ class LanguageParser extends Wire {
 				$data, $matches[1]); 
 
 		// Find __('text', textdomain) style matches
-		preg_match_all(	'/([\s.(]__|^__)\(\s*' . 		// __(
+		preg_match_all(	'/([\s.=(]__|^__)\(\s*' . 		// __(
 				'([\'"])(.+?)(?<!\\\\)\\2\s*' . 	// "text"
 				'(?:,\s*[^)]+)?\)+(.*)$/m', 		// , textdomain (optional) and everything else
 				$data, $matches[2]); 
 
 		// Find _x('text', 'context', textdomain) or $this->_x('text', 'context') style matches
-		preg_match_all(	'/([\s.>(]_x|^_x)\(\s*' . 		// _x( or $this->_x(
+		preg_match_all(	'/([\s.=>(]_x|^_x)\(\s*' . 		// _x( or $this->_x(
 				'([\'"])(.+?)(?<!\\\\)\\2\s*,\s*' . 	// "text", 
 				'([\'"])(.+?)(?<!\\\\)\\4\s*' . 	// "context"
 				'[^)]*\)+(.*)$/m',			// , textdomain (optional) and everything else 
 				$data, $matches[3]); 
 
 		// Find _n('singular text', 'plural text', $cnt, textdomain) or $this->_n(...) style matches
-		preg_match_all(	'/([\s.>(]_n|^_n)\(\s*' . 		// _n( or $this->_n(
+		preg_match_all(	'/([\s.=>(]_n|^_n)\(\s*' . 		// _n( or $this->_n(
 				'([\'"])(.+?)(?<!\\\\)\\2\s*,\s*' . 	// "singular", 
 				'([\'"])(.+?)(?<!\\\\)\\4\s*,\s*' . 	// "plural", 
 				'.+?\)+(.*)$/m', 			// $count, optional textdomain, closing function parenthesis ) and rest of line
