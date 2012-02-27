@@ -195,7 +195,7 @@ class InputfieldWrapper extends Inputfield {
 
 		$out = '';
 		$children = $this->preRenderChildren();
-		$lastColumnFloated = false;
+		$columnWidthTotal = 0;
 
 		foreach($children as $inputfield) {
 
@@ -252,14 +252,16 @@ class InputfieldWrapper extends Inputfield {
 					$for = $inputfield->skipLabel ? '' : " for='" . $inputfield->attr('id') . "'";
 					$label = "\n\t\t<label class='ui-widget-header'$for>" . $this->entityEncode($inputfield->label) . "</label>";
 				}
-				$columnWidth = (int) $inputfield->getSetting('columnWidth') + ($lastColumnFloated ? -1 : 0);
-				if($columnWidth >= 9 && $columnWidth < 100) {
+				$columnWidth = (int) $inputfield->getSetting('columnWidth');
+				$columnWidthAdjusted = $columnWidth + ($columnWidthTotal ? -1 : 0);
+				if($columnWidth >= 9 && $columnWidth <= 100) {
 					$ffAttrs['class'] .= ' InputfieldColumnWidth';
-					if(!$lastColumnFloated) $ffAttrs['class'] .= ' InputfieldColumnWidthFirst';
-					$ffAttrs['style'] = "width: $columnWidth%;"; 
-					$lastColumnFloated = true; 
+					if(!$columnWidthTotal) $ffAttrs['class'] .= ' InputfieldColumnWidthFirst';
+					$ffAttrs['style'] = "width: $columnWidthAdjusted%;"; 
+					$columnWidthTotal += $columnWidth;
+					if($columnWidthTotal >= 100) $columnWidthTotal = 0;
 				} else {
-					$lastColumnFloated = false;
+					$columnWidthTotal = 0;
 				}
 				if(!isset($ffAttrs['id'])) $ffAttrs['id'] = 'wrap_' . $inputfield->attr('id'); 
 				foreach($ffAttrs as $k => $v) {
@@ -272,7 +274,7 @@ class InputfieldWrapper extends Inputfield {
 
 		if($out) {
 			$ulClass = "Inputfields";
-			if($lastColumnFloated) $ulClass .= " ui-helper-clearfix";
+			if($columnWidthTotal) $ulClass .= " ui-helper-clearfix";
 			$attrs = " class='$ulClass" . ($this->attr('class') ? ' ' . $this->attr('class') : '') . "'";
 			foreach($this->getAttributes() as $attr => $value) if(strpos($attr, 'data-') === 0) $attrs .= " $attr='" . $this->entityEncode($value) . "'";
 			$out = $this->attr('value') . "\n<ul$attrs>$out\n</ul><!--/$ulClass-->\n";
