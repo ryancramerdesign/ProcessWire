@@ -82,8 +82,15 @@ var editorCursorPosition; // for IE8
 								var html = '';
 								var $node = $(selection.getNode());
 
-								if($node.is("a")) anchorText = $node.html();
-									else anchorText = selection.getContent();
+								if($node.is("a")) {
+									anchorText = $node.text();
+
+								} else if($nodeParent.is("a")) {
+									anchorText = $nodeParent.text();
+
+								} else {
+									anchorText = selection.getContent();
+								}
 
 								if(target.length > 0) target = ' target="' + target + '"';
 								if(url.length) { 
