@@ -306,7 +306,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		if(!$parent_id || !$template_id) return $this->getBlankValue($page, $field); 
 
 		// build the selector: find pages with our parent
-		$selector = "parent_id=$parent_id, templates_id=$template_id, sort=sort";
+		$selector = "parent_id=$parent_id, templates_id=$template_id, sort=sort, check_access=0";
 
 		if($outputFormatting) { 
 			// if an unpublished page is being previewed, let unpublished items be shown (ready items will be removed afterwards)
@@ -909,9 +909,16 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		$select->attr('id', 'repeaterFields');
 		$select->attr('title', $this->_('Add Field'));
 		$select->setAsmSelectOption('sortable', true);
+		$select->setAsmSelectOption('editLink', wire('config')->urls->admin . "setup/field/edit?id={value}&fieldgroup_id={$template->fieldgroup->id}&modal=1&process_template=1");
 
 		foreach($template->fieldgroup as $f) {
-			$select->addOption($f->id, $f->name, array('selected' => 'selected'));
+			$f = $template->fieldgroup->getField($f->id, true); // get in context
+			$columnWidth = $field->columnWidth ? $field->columnWidth : '100';
+			$attrs = array(
+				'selected' => 'selected',
+				'data-status' => ($field->columnWidth > 0 ? $field->columnWidth . '%': ' ')
+				);
+			$select->addOption($f->id, $f->name, $attrs);
 		}
 
 		foreach(wire('fields') as $f) {
@@ -919,7 +926,8 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			if(($f->flags & Field::flagPermanent) && !wire('config')->advanced) continue;
 			$name = $f->name;
 			if($f->flags & Field::flagSystem) $name .= "*";
-			$select->addOption($f->id, $name);
+			$attrs = array('data-status' => ($field->columnWidth > 0 ? $field->columnWidth . '%': ' '));
+			$select->addOption($f->id, $name, $attrs);
 		}
 
 		if(wire('config')->debug) $select->notes = "This repeater uses template '$template' and parent '{$parent->path}'";

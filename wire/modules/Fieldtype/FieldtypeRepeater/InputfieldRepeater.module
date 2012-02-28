@@ -120,7 +120,7 @@ class InputfieldRepeater extends Inputfield {
 		$template = $blankPage->template; 
 
 		// get field label in user's language if available
-		$key = ($languages && $language->id ? "label{$language->id}" : "label");
+		$key = ($languages && $language && $language->id ? "label{$language->id}" : "label");
 		$label = $this->field->get($key); 
 		if(!$label) $label = $this->field->label;
 		if(!$label) $label = ucfirst($this->field->name); 
