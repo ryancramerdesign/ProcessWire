@@ -196,6 +196,7 @@ class InputfieldWrapper extends Inputfield {
 		$out = '';
 		$children = $this->preRenderChildren();
 		$columnWidthTotal = 0;
+		$lastInputfield = null;
 
 		foreach($children as $inputfield) {
 
@@ -269,12 +270,13 @@ class InputfieldWrapper extends Inputfield {
 				}
 				if($inputfield->className() != 'InputfieldWrapper') $ffOut = "\n\t\t<div class='ui-widget-content'>$ffOut\n\t\t</div>";
 				$out .= "\n\t<li$attrs>$label$ffOut\n\t</li>\n";
+				$lastInputfield = $inputfield;
 			}
 		}
 
 		if($out) {
 			$ulClass = "Inputfields";
-			if($columnWidthTotal) $ulClass .= " ui-helper-clearfix";
+			if($columnWidthTotal || ($lastInputfield && $lastInputfield->columnWidth >= 10 && $lastInputfield->columnWidth < 100)) $ulClass .= " ui-helper-clearfix";
 			$attrs = " class='$ulClass" . ($this->attr('class') ? ' ' . $this->attr('class') : '') . "'";
 			foreach($this->getAttributes() as $attr => $value) if(strpos($attr, 'data-') === 0) $attrs .= " $attr='" . $this->entityEncode($value) . "'";
 			$out = $this->attr('value') . "\n<ul$attrs>$out\n</ul><!--/$ulClass-->\n";
