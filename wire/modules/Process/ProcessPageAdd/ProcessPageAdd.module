@@ -268,7 +268,7 @@ class ProcessPageAdd extends Process {
 		$this->page->name = $name; 
 		$this->page->sort = $this->parent->numChildren; 
 
-		$publishNow = true; 
+		$publishNow = $this->page->publishable();
 
 		foreach($this->page->fields as $field) {
 			$f = $form->children->get($field->name); 

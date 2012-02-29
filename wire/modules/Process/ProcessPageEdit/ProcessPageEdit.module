@@ -414,7 +414,7 @@ class ProcessPageEdit extends Process {
 
 			foreach($this->getAllowedTemplates() as $template) {
 				$label = '';
-				if($languages) $label = $template->get('label' . $language->id); 
+				if($languages && $language) $label = $template->get('label' . $language->id); 
 				if(!$label) $label = $template->label ? $template->label : $template->name;
 				$field->addOption($template->id, $label); 
 			}

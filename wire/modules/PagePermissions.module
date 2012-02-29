@@ -359,14 +359,13 @@ class PagePermissions extends WireData implements Module {
 
 		if($user->isSuperuser()) return;
 
+		$page = $event->object; 
 
 		// if page isn't editable, it certainly can't be publishable
-		if(!$this->editable($event)) {
+		if(!$page->editable()) {
 			$event->return = false;
 			return;
 		}
-
-		$page = $event->object; 
 
 		// if there is no page-publish permission, then it's publishable
 		$perm = wire('permissions')->get('page-publish'); 
