@@ -121,7 +121,8 @@ class WireUpload extends Wire {
 
 		if(!$filename = $_SERVER['HTTP_X_FILENAME']) return false; 
 
-		$dir = ini_get('upload_tmp_dir');
+		$dir = wire('config')->uploadTmpDir;
+		if(!$dir || !is_writable($dir)) $dir = ini_get('upload_tmp_dir');
 		if(!$dir || !is_writable($dir)) $dir = sys_get_temp_dir();
 		$tmpName = tempnam($dir, get_class($this));
 		file_put_contents($tmpName, file_get_contents('php://input')); 

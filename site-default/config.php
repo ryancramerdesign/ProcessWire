@@ -50,7 +50,6 @@ $config->sessionChallenge = true;
  */
 $config->sessionFingerprint = true; 
 
-
 /** 
  * chmodDir: octal string permissions assigned to directories created by ProcessWire
  *
@@ -76,6 +75,13 @@ $config->uploadUnzipCommand = 'unzip -j -qq -n /src/ -x __MACOSX .* -d /dst/';
  *
  */
 $config->uploadBadExtensions = 'php php3 phtml exe cfm shtml asp pl cgi sh vbs jsp';
+
+/**
+ * uploadTmpDir: optionally override PHP's upload_tmp_dir with your own 
+ * 
+ * $config->uploadTmpDir = dirname(__FILE__) . '/assets/uploads/'; // example
+ *
+ */
 
 /**
  * debug: debug mode causes additional info to appear for use during dev and debugging 
