@@ -40,6 +40,10 @@
 	padding: 0; 
 }
 
+.ui-widget-overlay {
+	background: #000; 
+}
+
 
 /****************************************************************************************
  * Theme specific Inputfield module overrides
@@ -155,6 +159,7 @@
 			cursor: pointer; 
 			box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); 
 		}
+
 		p > a > .ui-button {
 			font-size: 0.923076923076923em;
 		}
@@ -162,6 +167,14 @@
 		a .ui-button {
 			display: block;
 		}
+
+		button.ui-datepicker-trigger {
+			margin: 0 0 0 0.5em;
+		}
+			#ui-datepicker-div {
+				display: none; 
+			}
+
 
 	.Inputfields .InputfieldCheckboxes input,
 	.Inputfields .InputfieldRadios input {
@@ -189,6 +202,10 @@
 	.InputfieldMaxWidth {
 		width: 99%; 
 	}
+
+		.Inputfields textarea {
+			display: block;
+		}
 
 	.Inputfields .InputfieldStateToggle {
 		cursor: pointer;

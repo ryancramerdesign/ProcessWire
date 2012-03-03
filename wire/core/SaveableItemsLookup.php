@@ -70,17 +70,22 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 		while($row = $result->fetch_assoc()) {
 
 			$item = $this->makeBlankItem();
+			$lookupValue = $row[$lookupField]; 
+			unset($row[$lookupField]); 
+			$item->addLookupItem($lookupValue, $row); 
 
 			foreach($row as $field => $value) {
-				if($field == $lookupField) $item->addLookupItem($value); 
-					else $item->$field = $value; 
+				$item->$field = $value; 
 			}
 
 			if($items->has($item)) {
 				// LEFT JOIN is adding more elements of the same item, i.e. from lookup table
-				$items->get($item)->addLookupItem($row[$lookupField]); 
-				// $items->get($item)->setArray($row); 
+				// if the item is already present in $items, then use the existing one rather 
+				// and throw out the one we just created
+				$item = $items->get($item); 
+				$item->addLookupItem($lookupValue, $row); 
 			} else {
+				// add a new item
 				$items->add($item); 
 			}
 		}

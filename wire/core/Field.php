@@ -41,6 +41,12 @@ class Field extends WireData implements Saveable {
 	const flagPermanent = 16; 
 
 	/**
+	 * Field has been placed in a runtime state where it is contextual to a specific fieldgroup and is no longer saveable
+	 *
+	 */
+	const flagFieldgroupContext = 2048; 
+
+	/**
 	 * Set this flag to override system/permanent flags if necessary - once set, system/permanent flags can be removed, but not in the same set().
 	 *
 	 */
@@ -197,7 +203,10 @@ class Field extends WireData implements Saveable {
 		} else if(is_string($type)) {
 			$typeStr = $type; 
 			$fieldtypes = $this->fuel('fieldtypes'); 
-			if(!$type = $fieldtypes->get($type)) throw new WireException("Fieldtype '$typeStr' does not exist");
+			if(!$type = $fieldtypes->get($type)) {
+				$this->error("Fieldtype '$typeStr' does not exist");
+				return $this;
+			}
 		} else {
 			throw new WireException("Invalid field type in call to Field::setFieldType"); 
 		}
@@ -321,26 +330,36 @@ class Field extends WireData implements Saveable {
 	public function ___getConfigInputfields() {
 
 		$wrapper = new InputfieldWrapper();
-		$inputfields = new InputfieldWrapper;
-		$inputfields->head = "Field type details";
-		$inputfields->attr('title', 'Details');
+		$fieldgroupContext = $this->flags & Field::flagFieldgroupContext; 
 
-		$fieldtypeInputfields = $this->type->getConfigInputfields($this); 
-		if($fieldtypeInputfields) foreach($fieldtypeInputfields as $inputfield) {
-			$inputfields->append($inputfield); 
+		if(!$fieldgroupContext) {
+			$inputfields = new InputfieldWrapper;
+			$inputfields->head = "Field type details";
+			$inputfields->attr('title', 'Details');
+
+			$fieldtypeInputfields = $this->type->getConfigInputfields($this); 
+			if($fieldtypeInputfields) foreach($fieldtypeInputfields as $inputfield) {
+				$inputfields->append($inputfield); 
+			}
+
+			if(count($inputfields)) $wrapper->append($inputfields); 
+		} else {
+			// we currently exclude fieldtype configuration changes when in fieldgroup context
+			// not sure that we need to, but keeping it simple to start
 		}
-
-		if(count($inputfields)) $wrapper->append($inputfields); 
 
 		$inputfields = new InputfieldWrapper();
 		$dummyPage = $this->fuel('pages')->get("/"); // only using this to satisfy param requirement 
 
 		if($inputfield = $this->getInputfield($dummyPage)) {
 			$inputfieldLabel = $inputfield->className(); 
-			$inputfields->head = "Input field settings";
+			if(!$fieldgroupContext) $inputfields->head = "Input field settings";
 			$inputfields->attr('title', 'Input'); 
 			$inputfieldInputfields = $inputfield->getConfigInputfields();
 			if($inputfieldInputfields) foreach($inputfieldInputfields as $i) { 
+				// currently we only support collapsed and columnWidth for fieldgroup context
+				// however we may support everything after starting with these limited options for awhile
+				if($fieldgroupContext && !in_array($i->name, array('collapsed', 'columnWidth'))) continue; 
 				$inputfields->append($i); 
 			}
 		}

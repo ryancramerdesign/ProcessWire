@@ -139,7 +139,7 @@ class FieldtypeText extends Fieldtype {
 
 		if($this->allowTextFormatters()) { 
 
-			$textformatters = $this->modules->find("class^=Textformatter"); 
+			$textformatters = $this->modules->find("className^=Textformatter"); 
 
 			if(count($textformatters)) {
 

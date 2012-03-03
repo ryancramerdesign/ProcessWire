@@ -23,6 +23,17 @@ $(document).ready(function() {
 				$columnWidth.val(ui.value + '%'); 
 			}
 		});
+		// enables columnWidth to be populated in ProcessTemplate's asmSelect status field
+		$columnWidth.addClass('asmListItemStatus');
+	
+		// update the slider if the columnWidth field is changed manually	
+		$columnWidth.change(function() {
+			var val = parseInt($(this).val());
+			if(val > 100) val = 100; 
+			if(val < 10) val = 10; 
+			$(this).val(val + '%');
+			$slider.slider('option', 'value', val); 
+		}); 
 	}
 
 	// instantiate the WireTabs
@@ -32,5 +43,14 @@ $(document).ready(function() {
                 items: $(".Inputfields li.WireTab"),
                 id: 'FieldEditTabs'
                 });
+
+	// change fieldgroup context
+	$("#fieldgroupContextSelect").change(function() {
+		var field_id = $("#Inputfield_id").val();	
+		var fieldgroup_id = $(this).val();
+		var href = './edit?id=' + field_id;
+		if(fieldgroup_id > 0)  href += '&fieldgroup_id=' + fieldgroup_id;
+		window.location = href; 
+	});
 
 });

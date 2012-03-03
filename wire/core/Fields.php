@@ -174,6 +174,8 @@ class Fields extends WireSaveableItems {
 	 */
 	public function ___save(Saveable $item) {
 
+		if($item->flags & Field::flagFieldgroupContext) throw new WireException("Field $item is not saveable because it is in a specific context"); 
+
 		$isNew = $item->id < 1;
 		$prevTable = $item->prevTable;
 		$table = $item->getTable();
@@ -264,10 +266,61 @@ class Fields extends WireSaveableItems {
 			$item->flags = $item->flags & ~Field::flagSystemOverride;
 		}
 
-		// done clone the 'global' flag
+		// don't clone the 'global' flag
 		if($item->flags & Field::flagGlobal) $item->flags = $item->flags & ~Field::flagGlobal;
 
 		return parent::___clone($item);
+	}
+
+	/**
+	 * Save the context of the given field for the given fieldgroup
+	 *
+	 * @param Field $field Field to save context for
+	 * @param Fieldgroup $fieldgroup Context for when field is in this fieldgroup
+	 * @return bool True on success
+	 *
+	 */
+	public function ___saveFieldgroupContext(Field $field, Fieldgroup $fieldgroup) {
+
+		// get field without contxt
+		$fieldOriginal = wire('fields')->get($field->name);
+
+		$data = array();
+
+		// make sure given field and fieldgroup are valid
+		if(!($field->flags & Field::flagFieldgroupContext)) throw new WireException("Field must be in fieldgroup context before its context can be saved"); 
+		if(!$fieldgroup->has($fieldOriginal)) throw new WireException("Fieldgroup $fieldgroup does not contain field $field"); 
+
+		$newValues = $field->getArray();
+		$oldValues = $fieldOriginal->getArray();
+
+		// 0 is the same as 100 for columnWidth, so we specifically set it just to prevent this from being saved when it doesn't need to be
+		if(!isset($oldValues['columnWidth'])) $oldValues['columnWidth'] = 100;
+
+		// add the label and description built-in fields
+		foreach(array('label', 'description') as $key) {
+			$newValues[$key] = $field->$key;
+			$oldValues[$key] = $fieldOriginal->$key;
+		}
+
+		// cycle through and determine which values should be saved
+		foreach($newValues as $key => $value) {
+			$oldValue = empty($oldValues[$key]) ? '' : $oldValues[$key]; 
+			if(strlen("$value") && $value != $oldValue) $data[$key] = $value;
+		}
+
+		// keep all in the same order so that it's easier to compare (by eye) in the DB
+		ksort($data);
+
+		// if there is something in data, then JSON encode it. If it's empty then make it null.
+		$data = count($data) ? wireEncodeJSON($data, true) : null;
+
+		if(is_null($data)) $data = 'NULL';
+			else $data = "'" . $this->db->escape_string($data) . "'";
+
+		$result = $this->db->query("UPDATE fieldgroups_fields SET data=$data WHERE fields_id={$field->id} AND fieldgroups_id={$fieldgroup->id}");
+
+		return $result; 
 	}
 
 

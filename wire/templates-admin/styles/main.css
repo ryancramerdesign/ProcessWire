@@ -252,6 +252,7 @@ a {
 		line-height: 1.2em; 
 		color: #006fbb; 
 	}
+		body.modal .content h2,
 		.container > h2,
 		.container > form > h2 {
 			margin-top: 0;

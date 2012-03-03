@@ -395,7 +395,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	protected function getRepeaterPageParent(Page $page, Field $field) { 
 
 		$repeaterParent = $this->getRepeaterParent($field);
-		$parent = $repeaterParent->child('name=' . self::repeaterPageNamePrefix . $page->id); 
+		$parent = $repeaterParent->child('name=' . self::repeaterPageNamePrefix . $page->id . ', include=all'); 
 		if($parent->id) return $parent; 
 
 		$parent = new Page();

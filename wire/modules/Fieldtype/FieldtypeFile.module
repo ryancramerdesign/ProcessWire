@@ -306,7 +306,7 @@ class FieldtypeFile extends FieldtypeMulti {
                 $f->required = true;
                 $baseClass = $this->defaultInputfieldClass;
 
-                foreach($this->fuel('modules')->find("class^=Inputfield") as $fm) {
+                foreach($this->fuel('modules')->find("className^=Inputfield") as $fm) {
                         if("$fm" == $baseClass || is_subclass_of("$fm", $baseClass))
                                 $f->addOption("$fm", str_replace("Inputfield", '', "$fm"));
                 }

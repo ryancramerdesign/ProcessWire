@@ -19,17 +19,11 @@
 
 class ProcessField extends Process implements ConfigurableModule {
 
-	protected $form; 
-	protected $field;
-	protected $id; 
-	protected $moduleInfo = array();
-	protected $saveButtonLabel = '';
-
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Fields', __FILE__),
 			'summary' => __('Edit individual fields that hold page data', __FILE__),
-			'version' => 101,
+			'version' => 102,
 			'permanent' => true, 
 
 			// add this permission if you want this Process available for roles other than Superuser
@@ -37,6 +31,30 @@ class ProcessField extends Process implements ConfigurableModule {
 			);
 	}
 
+	protected $form; 
+	protected $field;
+	protected $id; 
+	protected $moduleInfo = array();
+	protected $saveButtonLabel = '';
+
+	/**
+	 * Optional context fieldgroup
+	 * 
+	 * When populated, we are editing the field only in the context of this fieldgroup/template. 
+	 *
+	 */
+	protected $fieldgroup = null;
+
+	/**
+	 * Data that's been overridden by all fieldgroups, indexed by fieldgroup ID with array value indexed by overridden field keys
+	 *
+	 */
+	protected $fieldgroupData = array();
+
+	/**
+	 * Init the module
+	 *
+	 */
 	public function init() {
 		$this->modules->get("JqueryWireTabs");
 		$this->moduleInfo = self::getModuleInfo();
@@ -217,19 +235,95 @@ class ProcessField extends Process implements ConfigurableModule {
 	 */
 	public function ___executeEdit() {
 
+
 		$this->buildEditForm();
 
 		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
 
 		if($this->field->id) {
-			$this->setFuel('processHeadline', sprintf($this->_x('Edit Field: %s', 'edit headline'), $this->field->name)); // Headline when editing a field
+			$headline = sprintf($this->_x('Edit Field: %s', 'edit headline'), $this->field->name); // Headilne when editing a field
+
 		} else {
-			$this->setFuel('processHeadline', $this->_x('Add New Field', 'add headline')); 
+			$headline = $this->_x('Add New Field', 'add headline'); // Headline when adding a field
 		}
 
+		$this->setFuel('processHeadline', $headline); 
+		$this->setFuel('processBrowserTitle', $headline); 
 
-		return $this->form->render();
+		$this->identifyContextChanges();
+		$out = $this->form->render(); 
+		$out .= $this->renderContextSelect();
+
+		return $out;
 	}	
+
+	/**
+	 * Add a '*' symbol to the labels of any fields that are overriding the defaults
+	 *
+	 */
+	protected function identifyContextChanges() {
+
+		if(!$this->fieldgroup) return;
+
+		$fieldOriginal = wire('fields')->get($this->field->id);
+		$context = $this->fieldgroup->getFieldContextArray($this->field->id); 
+		$languages = wire('languages');
+
+		foreach($context as $key => $value) {
+
+			$languageID = 0;
+			if($languages) foreach($languages as $language) {
+				if(strpos($key, (string) $language->id) && preg_match('/(.+?)' . $language->id . '$/', $key, $matches)) {
+					$key = $matches[1];					
+					$languageID = $language->id; 
+					break;
+				}
+			} 
+
+			if($key == 'label') $key = 'field_label'; // for retrieving inputfield
+
+			$inputfield = $this->form->getChildByName($key);
+			if(!$inputfield) continue; 
+
+			if($key == 'field_label') $key == 'label'; // convert back
+			if($languageID) $key .= $languageID; 
+
+			if($value == $fieldOriginal->$key) continue; 
+			$inputfield->label .= ' *';
+		}
+	}
+
+	/**
+	 * Render a select box where the user can choose another fieldgroup context
+	 *
+	 */
+	protected function renderContextSelect() {
+
+		if(!$this->field->id) return '';
+		$fieldgroups = $this->field->getFieldgroups();
+		if(!count($fieldgroups)) return '';
+
+		$out = 	"<div id='fieldgroupContext'>" . 
+			"<label class='description'>" . $this->_('Context') . ' ' .
+			"<select id='fieldgroupContextSelect' name='fieldgroup_id'>" . 
+			"<option value=''>" . $this->_x('None (default)', 'context select') . "</option>";
+
+		foreach($fieldgroups->sort('name') as $fieldgroup) {
+			$selected = $this->fieldgroup && $this->fieldgroup->id == $fieldgroup->id ? " selected='selected'" : '';
+			$out .= "<option$selected value='{$fieldgroup->id}'>{$fieldgroup->name}</option>";
+		}
+
+		$out .= "</select>" . 
+			"</label>" . 
+			"</div>";
+
+		if($this->fieldgroup) $out .= 
+			'<p class="detail">' . 
+			sprintf($this->_('*Indicates that field is currently overriding a default value. Settings that you specify on this screen override the default settings only when used with the "%s" template.'), $this->fieldgroup->name) . 
+			'</p>';
+	
+		return $out; 	
+	}
 
 	/**
 	 * Build the Field Edit form
@@ -243,21 +337,35 @@ class ProcessField extends Process implements ConfigurableModule {
 		if($this->id) $this->field = $this->fields->get($this->id); 
 			else $this->field = new Field();
 
+		// optional context fieldgroup
+		if($this->input->post->fieldgroup_id) $fieldgroup_id = (int) $this->input->post->fieldgroup_id; 
+			else if($this->input->get->fieldgroup_id && !count($_POST)) $fieldgroup_id = (int) $this->input->get->fieldgroup_id; 
+			else $fieldgroup_id = 0;
+
 		$form = $this->modules->get('InputfieldForm');
 		$form->attr('id+name', 'ProcessFieldEdit'); 
 		$form->attr('action', 'save'); 
 		$form->attr('method', 'post'); 
 		$this->form = $form;
 
+		if($fieldgroup_id && $this->field->id) {
+			$this->fieldgroup = wire('fieldgroups')->get($fieldgroup_id); 
+			if(!$this->fieldgroup) throw new WireException("Invalid fieldgroup"); 
+			if(!$this->fieldgroup->has($this->field)) throw new WireException("Fieldgroup '{$this->fieldgroup->name}' does not have field '{$this->field->name}'"); 
+			$this->field = $this->fieldgroup->getField($this->field->id, true);  // get the field in context of the fieldgroup
+		}
+
 		$form->add($this->buildEditFormBasics());
 
 		if($this->field->id) { 
 			if($this->field->type) {
 				$this->buildEditFormCustom($form);
-				$form->add($this->buildEditFormAdvanced());
+				if(!$this->fieldgroup) $form->add($this->buildEditFormAdvanced());
 			}
-			$form->add($this->buildEditFormInfo());
-			$form->add($this->buildEditFormDelete());
+			if(!$this->fieldgroup) {
+				$form->add($this->buildEditFormInfo());
+				$form->add($this->buildEditFormDelete());
+			}
 		}
 
 		$field = $this->modules->get('InputfieldHidden');
@@ -265,11 +373,28 @@ class ProcessField extends Process implements ConfigurableModule {
 		$field->attr('value', $this->field->id); 
 		$form->add($field); 
 
+		if($this->fieldgroup) {
+			$field = $this->modules->get('InputfieldHidden');
+			$field->attr('name', 'fieldgroup_id'); 
+			$field->attr('value', $this->fieldgroup->id); 
+			$form->add($field); 
+		}
+
 		$field = $this->modules->get('InputfieldSubmit');
 		$field->attr('value', $this->saveButtonLabel); 
 		$field->attr('name', 'submit_save_field'); 
 		$field->class .= ' head_button_clone';
 		$form->add($field); 
+
+		if(wire('input')->get('process_template')) {
+			// ProcessTemplate has loaded the field editor in a modal window
+			// so we add a cancel button that asmSelect will recognize for it's modal
+			$field = $this->modules->get('InputfieldButton');
+			$field->attr('id+name', 'modal_cancel_button'); 
+			$field->attr('value', $this->_x('Cancel', 'button'));
+			$field->attr('class', $field->attr('class') . ' ui-priority-secondary');
+			$form->append($field);
+		}
 
 		return $form; 
 	}
@@ -283,7 +408,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		foreach($customFields as $field) {
 			// skip over wrappers if they don't have fields in them 
 			if($field instanceof InputfieldWrapper && !count($field->children)) continue; 
-			$field->attr('class', 'WireTab');
+			if(!$this->fieldgroup) $field->attr('class', 'WireTab');
 			$form->add($field); 
 		}
 	}
@@ -329,35 +454,41 @@ class ProcessField extends Process implements ConfigurableModule {
 		$form->attr('id', 'basics');
 		$form->attr('class', 'WireTab');
 		$form->attr('title', $this->_x('Basics', 'tab')); 
-		$form->head = $this->_('Basic field settings');
-	
-		$field = $this->modules->get('InputfieldName');
-		$field->attr('value', $this->field->name); 
-		$field->description = $this->_("Any combination of ASCII letters [a-z], numbers [0-9], or underscores (no dashes or spaces).");
-		$form->add($field); 
 
-		$field = $this->modules->get('InputfieldSelect');
-		$field->label = $this->_x('Type', 'select label'); // Label for field type select
-		$field->attr('name', 'type'); 
-		$field->required = true; 
-		if($this->field->type) $field->attr('value', $this->field->type->name); 
-			else $field->addOption('', ''); 
 
-		if(!$this->field->id) $field->description = $this->_("After selecting your field type and saving, you may be presented with additional configuration options specific to the field type you selected."); // Note that appears when adding new field
+		if($this->fieldgroup) { 	
+			$form->head = sprintf($this->_('Settings when used with template: %s'), $this->fieldgroup->name);
 
-		if($this->field->type) $fieldtypes = $this->field->type->getCompatibleFieldtypes($this->field);
-			else $fieldtypes = $this->fieldtypes; 
-
-		if($fieldtypes && count($fieldtypes)) {
-			foreach($fieldtypes->sort('name') as $fieldtype) {
-				if(!$this->config->advanced && $fieldtype->isAdvanced() && $this->field->name != 'title' && $field->value != $fieldtype->className()) continue; 
-				$field->addOption($fieldtype->name, $fieldtype->shortName); 
-			}
 		} else {
-			$field->addOption($this->field->type->name, $this->field->type->shortName); 
-		}
+			$form->head = $this->_('Basic field settings');
+			$field = $this->modules->get('InputfieldName');
+			$field->attr('value', $this->field->name); 
+			$field->description = $this->_("Any combination of ASCII letters [a-z], numbers [0-9], or underscores (no dashes or spaces).");
+			$form->add($field); 
 
-		$form->add($field); 
+			$field = $this->modules->get('InputfieldSelect');
+			$field->label = $this->_x('Type', 'select label'); // Label for field type select
+			$field->attr('name', 'type'); 
+			$field->required = true; 
+			if($this->field->type) $field->attr('value', $this->field->type->name); 
+				else $field->addOption('', ''); 
+
+			if(!$this->field->id) $field->description = $this->_("After selecting your field type and saving, you may be presented with additional configuration options specific to the field type you selected."); // Note that appears when adding new field
+
+			if($this->field->type) $fieldtypes = $this->field->type->getCompatibleFieldtypes($this->field);
+				else $fieldtypes = $this->fieldtypes; 
+
+			if($fieldtypes && count($fieldtypes)) {
+				foreach($fieldtypes->sort('name') as $fieldtype) {
+					if(!$this->config->advanced && $fieldtype->isAdvanced() && $this->field->name != 'title' && $field->value != $fieldtype->className()) continue; 
+					$field->addOption($fieldtype->name, $fieldtype->shortName); 
+				}
+			} else {
+				$field->addOption($this->field->type->name, $this->field->type->shortName); 
+			}
+
+			$form->add($field); 
+		}
 
 		$languages = $this->fuel('languages');
 		$languageFields = array();
@@ -414,9 +545,13 @@ class ProcessField extends Process implements ConfigurableModule {
 		if(count($templates)) {
 			$field->label = $this->_('This field is used by the following templates:');
 			$table = $this->modules->get("MarkupAdminDataTable"); 
-			$table->headerRow(array($this->_x('Template', 'info thead'))); 
+			$table->headerRow(array(
+				$this->_x('Template', 'info thead'),
+			//	$this->_('Edit field in context')
+				)); 
 			foreach($templates as $template) $table->row(array(
-				$template->name => "../template/edit?id={$template->id}"
+				$template->name => "../template/edit?id={$template->id}",
+			//	"{$template->fieldgroup->name} > {$this->field->name}" => "./edit?id={$this->field->id}&fieldgroup_id={$template->fieldgroup->id}", 
 				)); 
 			$field->attr('value', $table->render()); 
 		} else {
@@ -467,6 +602,8 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		if(!$this->input->post->submit_save_field) $this->session->redirect("./"); 
 
+		if($this->fieldgroup) return $this->saveContext();
+
 		if($this->input->post->delete && $this->input->post->delete == $this->field->id && $this->field->numFieldgroups() == 0) {
 			$this->session->message($this->_('Deleted field') . " - {$this->field->name}"); // Message after deleting a field, followed by field name
 			$this->fields->delete($this->field); 
@@ -511,6 +648,17 @@ class ProcessField extends Process implements ConfigurableModule {
 	}
 
 	/**
+	 * Save field in the context of a fieldgroup only
+	 *
+	 */
+	protected function ___saveContext() {
+		$this->form->processInput($this->input->post); 
+		$this->saveInputfields($this->form); 
+		$this->fields->saveFieldgroupContext($this->field, $this->fieldgroup); 
+		$this->session->redirect("edit?id={$this->field->id}&fieldgroup_id={$this->fieldgroup->id}"); 
+	}
+
+	/**
 	 * Save the resultsof a Field Edit, field by field
 	 *
 	 */
@@ -552,6 +700,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 			if($name == 'type' && $this->field->id) continue; // skip this change for existing fields
 			if($name == 'delete') continue; 
+			if($name == 'fieldgroup_id') continue; 
 			if($name == 'field_label') $name = 'label';
 
 			$this->field->set($name, $value); 

@@ -474,15 +474,17 @@ abstract class Inputfield extends WireData implements Module {
 
 		$fields = new InputfieldWrapper();
 
-		$field = $this->modules->get("InputfieldRadios"); 
+		$field = $this->modules->get("InputfieldSelect"); 
 		$field->attr('name', 'collapsed'); 
-		$field->label = $this->_("How should this field be displayed in the editor?");
-		$field->addOption(self::collapsedNo, $this->_("Always open")); 
+		$field->label = $this->_("Visibility"); 
+		$field->description = $this->_("How should this field be displayed in the editor?");
+		$field->addOption(self::collapsedNo, $this->_('Always open (default)')); 
 		$field->addOption(self::collapsedBlank, $this->_("Collapsed only when blank")); 
 		$field->addOption(self::collapsedPopulated, $this->_("Collapsed only when populated")); 
 		$field->addOption(self::collapsedYes, $this->_("Always collapsed, requiring a click to open")); 
 		$field->addOption(self::collapsedHidden, $this->_("Hidden, not shown in the editor")); 
 		$field->attr('value', (int) $this->collapsed); 
+		if($this->collapsed == Inputfield::collapsedNo) $field->collapsed = Inputfield::collapsedYes;
 		$fields->append($field); 
 
 		if(!$this instanceof InputfieldWrapper) { 
@@ -496,7 +498,7 @@ abstract class Inputfield extends WireData implements Module {
 			$field->attr('value', $value . '%'); 
 			$field->description = $this->_("The percentage width of this field's container (10%-100%). If placed next to other fields with reduced widths, it will create floated columns."); // Description of colWidth option
 			$field->notes = $this->_("Note that not all fields will work at reduced widths, so you should test the result after changing this."); // Notes for colWidth option
-			if($value == 100) $field->collapsed = Inputfield::collapsedYes; 
+			if(!wire('input')->get('process_template')) if($value == 100) $field->collapsed = Inputfield::collapsedYes; 
 			$fields->append($field); 
 		}
 

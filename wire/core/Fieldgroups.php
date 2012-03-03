@@ -72,6 +72,21 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	}
 
 	/**
+	 * Get the DatabaseQuerySelect to perform the load operation of items
+	 *
+	 * @param WireArray $items
+	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all. 
+	 * @return DatabaseQuerySelect
+	 *
+	 */
+	protected function getLoadQuery($selectors = null) {
+		$query = parent::getLoadQuery($selectors); 
+		$lookupTable = $this->getLookupTable();	
+		$query->select("$lookupTable.data"); 
+		return $query; 
+	}
+
+	/**
 	 * Load all the Fieldgroups from the database
 	 *
 	 * The loading is delegated to WireSaveableItems.
@@ -194,7 +209,24 @@ class Fieldgroups extends WireSaveableItemsLookup {
 			}
 		}
 
-		return parent::___save($item); 
+		$contextData = array();
+		if($item->id) { 
+			// save context data
+			$result = wire('db')->query("SELECT fields_id, data FROM fieldgroups_fields WHERE fieldgroups_id=" . (int) $item->id); 
+			while($row = $result->fetch_assoc()) $contextData[$row['fields_id']] = $row['data'];
+		}
+
+		$result = parent::___save($item); 
+
+		if(count($contextData)) {
+			// restore context data
+			foreach($contextData as $fields_id => $data) {
+				$data = wire('db')->escape_string($data);
+				wire('db')->query("UPDATE fieldgroups_fields SET data='$data' WHERE fieldgroups_id={$item->id} AND fields_id=$fields_id"); 
+			}
+		}
+
+		return $result;
 	}
 
 	/**

@@ -16,6 +16,9 @@ $config->styles->prepend($config->urls->adminTemplates . "styles/main.css");
 $config->styles->append($config->urls->adminTemplates . "styles/ui.css?v=1"); 
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.js"); 
 
+$browserTitle = wire('processBrowserTitle'); 
+if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FILE__) . ' &bull; ProcessWire';
+
 /*
  * Dynamic phrases that we want to be automatically translated
  *
@@ -38,7 +41,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 	<meta name="robots" content="noindex, nofollow" />
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
-	<title><?php echo __(strip_tags($page->get("title|name")), __FILE__); ?> &bull; ProcessWire</title>
+	<title><?php echo $browserTitle; ?></title>
 
 	<script type="text/javascript">
 		<?php
@@ -134,7 +137,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js");
 
 			<?php endif; ?>
 
-			ProcessWire <?php echo $config->version; ?> &copy; <?php echo date("Y"); ?> Ryan Cramer 
+			ProcessWire <?php echo $config->version . '.' . $config->systemVersion; ?> &copy; <?php echo date("Y"); ?> Ryan Cramer 
 			</p>
 
 			<?php if($config->debug && $this->user->isSuperuser()) include($config->paths->adminTemplates . "debug.inc"); ?>

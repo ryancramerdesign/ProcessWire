@@ -1,11 +1,14 @@
 /*
- * Alternate Select Multiple (asmSelect) 1.0.6 beta - jQuery Plugin
+ * Alternate Select Multiple (asmSelect) 1.1 - jQuery Plugin
  * http://www.ryancramer.com/projects/asmselect/
  * 
- * Copyright (c) 2009 by Ryan Cramer - http://www.ryancramer.com
+ * Copyright (c) 2009-2012 by Ryan Cramer - http://www.ryancramer.com
  * 
  * Dual licensed under the MIT (MIT-LICENSE.txt)
  * and GPL (GPL-LICENSE.txt) licenses.
+ *
+ * @TODO asmSelect would probably be more functional if a deleted item still appears in the list (with ui-state-error or the like) rather than disappearing immediately. 
+ * 
  *
  */
 
@@ -35,8 +38,16 @@
 			listSortableClass: 'asmListSortable',			// Another class given to the list when it is sortable
 			listItemClass: 'asmListItem',				// Class for the <li> list items
 			listItemLabelClass: 'asmListItemLabel',			// Class for the label text that appears in list items
+			listItemStatusClass: 'asmListItemStatus',		// Class for optional status text, set a data-status attribute on the <option> to use it. May contain HTML.
 			removeClass: 'asmListItemRemove',			// Class given to the "remove" link
-			highlightClass: 'asmHighlight'				// Class given to the highlight <span>
+			editClass: 'asmListItemEdit',
+			statusClass: 'asmListItemStatus',
+			highlightClass: 'asmHighlight',				// Class given to the highlight <span>
+
+			editLink: '', 						// Optional URL options can link to with tag {value} replaced by option value, i.e. /path/to/page/edit?id={$value}
+			editLabel: '<span class="ui-icon ui-icon-extlink"></span>', // Text used in the "edit" link (if editLink is populated)
+			editLinkOnlySelected: true, 				// When true, edit link only appears for items that were already selected
+			editLinkModal: true					// Whether the edit link (if used) should be modal
 
 			};
 
@@ -263,14 +274,29 @@
 						return false; 
 					}); 
 
-				var $itemLabel = $("<span></span>")
-					.addClass(options.listItemLabelClass)
-					.html($O.html()); 
+				var $itemLabel = $("<span></span>").addClass(options.listItemLabelClass);
+
+				if(options.editLink.length > 0 && ($O.is(':selected') || !options.editLinkOnlySelected)) {
+					var $editLink = $("<a></a>")
+						.html($O.html())
+						.attr('href', options.editLink.replace(/\{value\}/, $O.val()))
+						.append(options.editLabel)
+						.click(clickEditLink);
+					$itemLabel.addClass(options.editClass).append($editLink)
+
+				} else {
+					$itemLabel.html($O.html()); 
+				}
+
+				// optional container where an <option>'s data-status attribute will be displayed
+				var $itemStatus = $("<span></span>").addClass(options.listItemStatusClass);
+				if($O.attr('data-status')) $itemStatus.html($O.attr('data-status')); 
 
 				var $item = $("<li></li>")
 					.attr('rel', optionId)
 					.addClass(options.listItemClass)
 					.append($itemLabel)
+					.append($itemStatus)
 					.append($removeLink)
 					.hide();
 
@@ -420,6 +446,73 @@
 					'type': type
 				}]); 
 			}
+
+			function clickEditLink(e) {
+
+				if(!options.editLinkModal) return true; 
+
+				var $asmItem = $(this).parents('.' + options.listItemClass); 
+				var href = $(this).attr('href'); 
+				var $iframe = $('<iframe id="asmSelectDialog" frameborder="0" src="' + href + '"></iframe>');
+				var windowWidth = $(window).width()-300;
+				var windowHeight = $(window).height()-300;
+				if(windowHeight > 800) windowHeight = 800;
+
+				var $dialog = $iframe.dialog({
+					modal: true,
+					height: windowHeight,
+					width: windowWidth,
+					position: [150,80]
+				}).width(windowWidth).height(windowHeight);
+
+				var iframeLoad = function() {
+
+					var $icontents = $iframe.contents();	
+
+					var browserTitle = $icontents.find('head title').text();
+					$dialog.dialog('option', 'title', browserTitle); 	
+		
+					var buttons = [];
+					var buttonCnt = 0;
+
+					$icontents.find('button.ui-button').each(function(n) {
+
+						var $button = $(this);
+						var label = $button.text();
+						var valid = true; 
+						var secondary = $button.is('.ui-priority-secondary'); 
+
+						for(i = 0; i < buttonCnt; i++) {
+							if(label == buttons[i].text) valid = false;
+						}
+
+						if(valid) {
+							buttons[buttonCnt] = { 
+								text: label, 
+								'class': (secondary ? 'ui-priority-secondary' : ''),
+								click: function() {
+									if($button.attr('type') == 'submit') {
+										$button.click(); 
+										$asmItem.effect('highlight', {}, 500); 
+										var $asmSetStatus = $icontents.find(':input.' + options.listItemStatusClass); 
+										if($asmSetStatus.size() > 0) $asmItem.find('.' + options.listItemStatusClass).html($asmSetStatus.val());
+									}
+									$dialog.dialog('close'); 
+								}
+							}; 
+							buttonCnt++;
+						}
+						$button.hide();
+					}); 
+					if(buttons.length > 0) $dialog.dialog('option', 'buttons', buttons)
+					$dialog.width(windowWidth).height(windowHeight); 
+				};
+
+				$iframe.load(iframeLoad);
+
+				return false; 
+			}
+
 
 			init();
 		});

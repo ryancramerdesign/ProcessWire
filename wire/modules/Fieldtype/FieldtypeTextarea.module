@@ -70,7 +70,7 @@ class FieldtypeTextarea extends FieldtypeText {
 		$f->required = true; 
 
 		$baseClass = "InputfieldTextarea";
-		foreach($this->fuel('modules')->find("class^=Inputfield") as $fm) {
+		foreach($this->fuel('modules')->find("className^=Inputfield") as $fm) {
 			if("$fm" == $baseClass || is_subclass_of("$fm", $baseClass)) 
 				$f->addOption("$fm", str_replace("Inputfield", '', "$fm")); 
 		}

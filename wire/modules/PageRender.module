@@ -22,9 +22,9 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Page Render ', 
-			'version' => 100, 
-			'summary' => 'Adds a render method to Page, as used by the PageView Process. This module is also able to cache page renders.',
+			'title' => __('Page Render', __FILE__), // Module Title
+			'summary' => __('Adds a render method to Page and caches page output.', __FILE__), // Module Summary
+			'version' => 101, 
 			'permanent' => true, 
 			'singular' => true, 
 			'autoload' => true, 

@@ -44,7 +44,8 @@
 	margin-top: 1px; 
 }
 
-.asmListItemLabel {
+.asmListItemLabel,
+.asmListItemStatus {
 	/* this is a span that surrounds the text in the item, except for the remove link */
 	display: block;
 	padding: 3px 0 3px 5px; 
@@ -60,3 +61,31 @@
 	right: 3px; 
 	top: 0;
 }
+
+.asmListItemEdit .ui-icon {
+	/* hide the icon */
+	float: none; 
+	display: none; 
+}
+	.asmListItemEdit a:hover .ui-icon {
+		/* display the icon when hovered on the edit label */
+		display: inline; 
+		padding: 0 10px;
+		position: relative;
+		top: -2px; 
+	}
+
+.asmListItemEdit a:hover {
+	/* underline the label when hovered */
+	text-decoration: underline; 
+}
+
+span.asmListItemStatus {
+	/* position status text to the right side */
+	position: absolute;
+	top: 0;
+	right: 30px; 
+	font-size: 0.916666666666667em;
+	opacity: 0.9;
+}
+

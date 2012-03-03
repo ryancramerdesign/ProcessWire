@@ -163,16 +163,17 @@ CREATE TABLE `fieldgroups_fields` (
   `fieldgroups_id` int(10) unsigned NOT NULL default '0',
   `fields_id` int(10) unsigned NOT NULL default '0',
   `sort` int(11) unsigned NOT NULL default '0',
+  `data` text,
   PRIMARY KEY  (`fieldgroups_id`,`fields_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-INSERT INTO `fieldgroups_fields` (`fieldgroups_id`, `fields_id`, `sort`) VALUES (2,2,1);
-INSERT INTO `fieldgroups_fields` (`fieldgroups_id`, `fields_id`, `sort`) VALUES (2,1,0);
-INSERT INTO `fieldgroups_fields` (`fieldgroups_id`, `fields_id`, `sort`) VALUES (3,3,0);
-INSERT INTO `fieldgroups_fields` (`fieldgroups_id`, `fields_id`, `sort`) VALUES (3,4,2);
-INSERT INTO `fieldgroups_fields` (`fieldgroups_id`, `fields_id`, `sort`) VALUES (4,5,0);
-INSERT INTO `fieldgroups_fields` (`fieldgroups_id`, `fields_id`, `sort`) VALUES (5,1,0);
-INSERT INTO `fieldgroups_fields` (`fieldgroups_id`, `fields_id`, `sort`) VALUES (3,92,1);
+INSERT INTO `fieldgroups_fields` (`fieldgroups_id`, `fields_id`, `sort`, `data`) VALUES (2,2,1,NULL);
+INSERT INTO `fieldgroups_fields` (`fieldgroups_id`, `fields_id`, `sort`, `data`) VALUES (2,1,0,NULL);
+INSERT INTO `fieldgroups_fields` (`fieldgroups_id`, `fields_id`, `sort`, `data`) VALUES (3,3,0,NULL);
+INSERT INTO `fieldgroups_fields` (`fieldgroups_id`, `fields_id`, `sort`, `data`) VALUES (3,4,2,NULL);
+INSERT INTO `fieldgroups_fields` (`fieldgroups_id`, `fields_id`, `sort`, `data`) VALUES (4,5,0,NULL);
+INSERT INTO `fieldgroups_fields` (`fieldgroups_id`, `fields_id`, `sort`, `data`) VALUES (5,1,0,NULL);
+INSERT INTO `fieldgroups_fields` (`fieldgroups_id`, `fields_id`, `sort`, `data`) VALUES (3,92,1,NULL);
 
 DROP TABLE IF EXISTS `fields`;
 CREATE TABLE `fields` (
@@ -286,6 +287,7 @@ INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (135,'FieldtypeURL
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (136,'ProcessPermission',1,'{\"showFields\":[\"name\",\"title\"]}');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (137,'InputfieldPageListSelectMultiple',0,'');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (138,'ProcessProfile',1,'{\"profileFields\":[\"pass\",\"email\"]}');
+INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (139,'SystemUpdater', 1, '{"systemVersion":1}');
 
 DROP TABLE IF EXISTS `pages`;
 CREATE TABLE `pages` (

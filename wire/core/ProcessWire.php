@@ -96,12 +96,18 @@ class ProcessWire extends Wire {
 		}
 
 		$modules = new Modules($config->paths->modules, $config->paths->siteModules);
+		Wire::setFuel('modules', $modules); 
+
+		if(!$updater = $modules->get('SystemUpdater')) {
+			$modules->resetCache();
+			$modules->get('SystemUpdater');
+		}
+
 		$fieldtypes = new Fieldtypes();
 		$fields = new Fields();
 		$fieldgroups = new Fieldgroups();
 		$templates = new Templates($fieldgroups, $config->paths->templates); 
 
-		Wire::setFuel('modules', $modules); 
 		Wire::setFuel('fieldtypes', $fieldtypes); 
 		Wire::setFuel('fields', $fields); 
 		Wire::setFuel('fieldgroups', $fieldgroups); 

@@ -11,7 +11,7 @@
  * multiple templates in the future (like ProcessWire 1.x).
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -34,6 +34,14 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	 *
 	 */
 	protected $removedFields = null;
+
+	/**
+	 * Array indexed by field_id containing an array of variables specific to the context of that field in this fieldgroup
+	 *
+	 * This context overrides the values set in the field when it doesn't have context. 
+	 *
+	 */
+	protected $fieldContexts = array();
 
 	/**
 	 * Per WireArray interface, items added must be instances of Field
@@ -157,20 +165,39 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	 * Same as get() except that it only checks fields, not other properties of a fieldgroup
 	 *
 	 * @param string|int|Field $key
+	 * @param bool $useFieldgroupContext If set to true, the field will be a clone of the original with context data set. (default is false)
 	 * @return Field|null
 	 *
 	 */
-	public function getField($key) {
+	public function getField($key, $useFieldgroupContext = false) {
 
-		if($this->isValidKey($key)) return parent::get($key); 
+		if($this->isValidKey($key)) {
+			$value = parent::get($key); 
 
-		$value = null;
-		foreach($this as $field) {
-			if($field->name == $key) {
-				$value = $field;
-				break;
+		} else {
+
+			$value = null;
+			foreach($this as $field) {
+				if($field->name == $key) {
+					$value = $field;
+					break;
+				}
 			}
 		}
+
+		if($value && $useFieldgroupContext) { // && !empty($this->fieldContexts[$value->id])) {
+			$value = clone $value;	
+			if(isset($this->fieldContexts[$value->id])) {
+				foreach($this->fieldContexts[$value->id] as $k => $v) {
+					$value->set($k, $v); 
+				}
+			}
+		}
+
+		if($useFieldgroupContext) {
+			$value->flags = $value->flags | Field::flagFieldgroupContext;
+		}
+
 		return $value; 
 	}
 
@@ -211,8 +238,12 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	 * Per HasLookupItems interface, add a Field to this Fieldgroup
 	 *
 	 */
-	public function addLookupItem($item) {
+	public function addLookupItem($item, array &$row) {
 		if($item) $this->add($item); 
+		if(!empty($row['data'])) {
+			// set field context for this fieldgroup
+			$this->fieldContexts[(int)$item] = wireDecodeJSON($row['data']); 
+		}
 		return $this; 
 	}
 
@@ -226,8 +257,12 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	 *
 	 */
 	public function set($key, $value) {
+
+		if($key == 'data') return $this; // we don't have a data field here
+
 		if($key == 'id') $value = (int) $value; 
 			else if($key == 'name') $value = $this->fuel('sanitizer')->name($value); 
+
 
 		if(isset($this->settings[$key])) {
 			if($this->settings[$key] !== $value) $this->trackChange($key); 
@@ -279,18 +314,26 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	 * Get all of the Inputfields associated with the provided Page and populate them
 	 *
 	 * @param Page $page
-	 * @param string $contextStr Optional context string to append to all the Inputfield's names
+	 * @param string $contextStr Optional context string to append to all the Inputfield's names (helper for things like repeaters)
 	 * @return Inputfield acting as a container for multiple Inputfields
 	 *
 	 */
 	public function getPageInputfields(Page $page, $contextStr = '') {
+
 		$container = new InputfieldWrapper();
+
 		foreach($this as $field) {
+
+			// get a clone in the context of this fieldgroup, if it has contextual settings
+			if(isset($this->fieldContexts[$field->id])) $field = $this->getField($field->id, true); 
+
 			$inputfield = $field->getInputfield($page, $contextStr);
 			if(!$inputfield) continue; 
+
 			$inputfield->value = $page->get($field->name); 
 			$container->add($inputfield); 
 		}		
+
 		return $container; 
 	}
 
@@ -323,6 +366,19 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	public function numTemplates() {
 		return $this->getNumTemplates();
 	}
+
+	/**
+	 * Return an array of context data for the given field ID
+	 *
+	 * @param $field_id Field ID
+	 * @return array 
+	 *
+	 */
+	public function getFieldContextArray($field_id) {
+		if(isset($this->fieldContexts[$field_id])) return $this->fieldContexts[$field_id];
+			else return array();
+	}
+
 }
 
 

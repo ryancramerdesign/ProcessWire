@@ -1,0 +1,126 @@
+<?php
+
+/**
+ * ProcessWire System Helper Module
+ *
+ * ProcessWire 2.x 
+ * Copyright (C) 2012 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+/**
+ * Interface required for any SystemUpdates 
+ *
+ */
+interface SystemUpdateInterface { public function execute(); }
+
+/**
+ * SystemUpdater module
+ * 
+ */
+class SystemUpdater extends WireData implements Module, ConfigurableModule {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => __('System Updater', __FILE__), // Module Title
+			'summary' => __('Manages system versions and upgrades.', __FILE__), // Module Summary
+			'permanent' => true, 
+			'singular' => true, 
+			'autoload' => false, 
+
+			/**
+			 * This version number is important, as this updater keeps the systemVersion up with this version
+			 *
+			 */
+			'version' => 1, 
+			);
+	}
+
+	protected $configData = array(
+		// systemVersion generally represents the DB schema version, but 
+		// can represent anything about the system that's related to the individual installation.
+		// 0 = the first version when this module was created, should remain there. 
+		'systemVersion' => 0, 
+		);
+
+	/**
+	 * Number of updates that were applied during this request
+	 *
+	 */
+	protected $numUpdatesApplied = 0;
+
+	/**
+	 * Part of the ConfigurableModule interface, sets config data to the module
+	 *
+	 */
+	public function setConfigData(array $data) {
+		$this->configData = array_merge($this->configData, $data);
+	}
+
+	/**
+	 * Perform version checks and update as needed
+	 *
+	 */
+	public function init() {
+
+		$config = wire('config');
+		$info = self::getModuleInfo();
+		$moduleVersion = $info['version'];
+
+		foreach($this->configData as $key => $value) {
+			$config->$key = $value; 
+		}
+
+		while($config->systemVersion < $moduleVersion) {
+
+			// apply the incremental version update
+			$this->update($config->systemVersion+1);
+
+			// we increment the config systemVersion so that the version is also available to the updater
+			$config->systemVersion++;	
+
+			// we save the configData for every version in case an update throws an exception
+			// then already applied updates won't be applied again
+			$this->configData['systemVersion'] = $config->systemVersion; 	
+			$this->modules->saveModuleConfigData($this, $this->configData); 
+			$this->numUpdatesApplied++;
+		}
+
+		if($this->numUpdatesApplied > 0) {
+			// if updates were applied, reset the modules cache 
+			$this->modules->resetCache();
+		}
+
+	}
+
+	/**
+	 * Check for an update file in the format: SystemUpdater123 where '123' is the version it upgrades to
+	 *
+ 	 * If found, instantiate the class and it's constructor should perform the update or add any hooks necessary to perform the update
+	 *
+	 */ 
+	protected function update($version) {
+		$className = 'SystemUpdate' . $version;
+		$filename = $this->config->paths->SystemUpdater . $className . '.php';
+		if(is_file($filename)) {
+			include($filename); 
+			$updater = new $className(); 
+			$updater->execute();
+			$this->message(sprintf('System Updater applied update %d', $version)); 
+		}
+	}
+
+	/**
+	 * Required for ConfigurableModule interface
+	 *
+	 */
+	public static function getModuleConfigInputfields(array $data) {
+		return new InputfieldWrapper();
+	}
+
+
+}

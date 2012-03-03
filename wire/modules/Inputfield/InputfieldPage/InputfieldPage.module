@@ -28,6 +28,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		'labelFieldName' => '',
 		'findPagesCode' => '',
 		'findPagesSelector' => '',
+		'addable' => 0,
 		); 
 
 	public static function getModuleInfo() {
@@ -38,7 +39,6 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			'permanent' => true, 
 			);
 	}
-
 
 	public function __construct() {
 		$this->set('inputfieldClasses', self::$defaultInputfieldClasses); 
@@ -135,44 +135,152 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			return $this->name;
 		}
 
-		return "\n<div class='" . $inputfield->className() . "'>" . $inputfield->render() . "\n</div>";
+		$out = 	"\n<div class='" . $inputfield->className() . "'>";
+		$out .= $inputfield->render();
+		$out .= $this->renderAddable();
+		$out .= "\n</div>";
+
+		return $out; 
+	}
+
+	protected function ___renderAddable() {
+
+		if(!$this->addable || !$this->parent_id || !$this->template_id) return '';
+
+		if($this->labelFieldName && $this->labelFieldName != 'title') return '';
+
+		$parent = wire('pages')->get($this->parent_id); 
+
+		$test = new Page();
+		$test->template = wire('templates')->get($this->template_id); 
+		$test->parent = $parent; 
+
+		if(!$parent->addable($test) || !$test->publishable()) return '';
+
+		$inputfield = wire('modules')->get($this->inputfield); 
+		if(!$inputfield) return '';
+		$key = "_{$this->name}_add_items";
+
+		if($inputfield instanceof InputfieldHasArrayValue) {
+			// multi value
+			$description = $this->_('Enter the titles of the items you want to add, one per line. They will be created and added to your selection when you save the page.');
+			$input = "<textarea id='$key' name='$key' rows='5'></textarea>";
+		} else {
+			// single value
+			$description = $this->_('Enter the title of the item you want to add. It will become selected when you save the page.');
+			$input = "<input type='text' name='$key' id='$key' />";
+		}
+
+		$notes = sprintf($this->_('New pages will be added to %s'), $parent->path);
+		$label = $this->_('Create New'); 
+
+		$out = 	"\n<div class='InputfieldPageAdd'>" . 	
+			"\n\t<p class='InputfieldPageAddButton'>" . 
+			"\n\t\t<span class='ui-icon ui-icon-plus'></span> " . 
+			"\n\t\t<a href='#'>$label</a>" . 
+			"\n\t</p>" . 
+			"\n\t<p class='InputfieldPageAddItems'>" . 
+			"\n\t\t<label class='description' for='$key'>$description</label>" . 
+			"\n\t\t$input" . 
+			"\n\t\t<span class='detail'>$notes</span>" . 
+			"\n\t</p>" . 
+			"\n</div>";
+
+		return $out; 
 	}
 
 	public function ___processInput(WireInputData $input) {
 
 		$inputfield = $this->getInputfield();
+		if(!$inputfield) return $this;
 
-		if($inputfield) {
 
-			$inputfield->processInput($input); 
+		$inputfield->processInput($input); 
 
-			$value = $this->attr('value'); 
-			$existingValue = $value ? clone $value : '';
-			$newValue = null;
-			$value = $inputfield->value; 
+		$value = $this->attr('value'); 
+		$existingValue = $value ? clone $value : '';
+		$newValue = null;
+		$value = $inputfield->value; 
 
-			if(is_array($value)) {
-				$newValue = new PageArray(); 
-				foreach($value as $v) {
-					$page = $this->fuel('pages')->get((int) $v); 
-					$newValue->add($page); 
-				}
-			} else {
-				if($value) $newValue = $this->fuel('pages')->get((int) $value); 
+		if(is_array($value)) {
+			$newValue = new PageArray(); 
+			foreach($value as $v) {
+				$page = $this->fuel('pages')->get((int) $v); 
+				$newValue->add($page); 
 			}
-
-			$this->setAttribute('value', $newValue); 
-
-			if("$newValue" != "$existingValue") {
-				$this->trackChange('value'); 
-			} 
+		} else {
+			if($value) $newValue = $this->fuel('pages')->get((int) $value); 
 		}
+
+		$this->setAttribute('value', $newValue); 
+
+		if("$newValue" != "$existingValue") {
+			$this->trackChange('value'); 
+		} 
+
+		$this->processInputAddPages($input);
 
 		return $this; 
 	}
 
+	/**
+	 * Check for the addable pages option and process if applicable
+	 *
+	 */
+	protected function ___processInputAddPages($input) {
+
+		if(!$this->addable || !$this->parent_id || !$this->template_id) return;
+
+		$user = wire('user'); 
+
+		$key = "_{$this->name}_add_items";
+		$value = trim($input->$key); 
+		if(empty($value)) return;
+
+		$parent = $this->pages->get($this->parent_id);
+		$sort = $parent->numChildren;
+		$titles = explode("\n", $value); 
+		$publishable = false;
+		$n = 0;
+
+		foreach($titles as $title) {
+
+			$page = new Page();
+			$page->template = $this->template_id; 
+			$page->parent = $parent; 
+			$page->title = trim($title); 
+			$page->sort = $sort++;
+
+			// on first iteration perform a page-context access check
+			if(!$n && (!$parent->addable($page) || !$page->publishable())) {
+				$this->error("No access to add {$page->template} pages to {$parent->path}"); 
+				break;
+			}
+
+			try {
+				$page->save();
+				$this->message(sprintf($this->_('Added page %s'), $page->path)); 
+				if($this->value instanceof PageArray) $this->value->add($page); 
+					else $this->value = $page; 
+				$this->trackChange('value'); 
+				$n++;
+
+			} catch(Exception $e) {
+				$error = sprintf($this->_('Error adding page "%s"'), $page->title);
+				if($user->isSuperuser()) $error .= " - " . $e->getMessage(); 
+				$this->error($error); 
+				break;
+			}
+
+			if($this->value instanceof Page) break;
+		}
+	}
+
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields();
+
+		$fieldset = wire('modules')->get('InputfieldFieldset'); 
+		$fieldset->label = 'Selectable Pages';
 
 		$field = $this->modules->get('InputfieldPageListSelect');
 		$field->setAttribute('name', 'parent_id'); 
@@ -180,7 +288,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field->attr('value', (int) $this->parent_id); 
 		$field->description = "Select the parent of the pages that are selectable.";
 		$field->required = false;
-		$inputfields->append($field); 
+		$fieldset->append($field); 
 
 		$field = $this->modules->get('InputfieldSelect');
 		$field->setAttribute('name', 'template_id'); 
@@ -189,7 +297,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field->description = "Select the template of the pages that are selectable. May be used instead of, or in addition to, the parent above. NOTE: Not compatible with PageListSelect input field types.";
 		foreach($this->templates as $template) $field->addOption($template->id, $template->name); 
 		$field->collapsed = Inputfield::collapsedBlank;
-		$inputfields->append($field); 
+		$fieldset->append($field); 
 
 		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('name', 'findPagesSelector'); 
@@ -201,7 +309,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		$field->notes = 'Example: parent=/products/, template=product, sort=name';
 		$field->collapsed = Inputfield::collapsedBlank;
-		$inputfields->append($field); 
+		$fieldset->append($field); 
 
 		$field = $this->modules->get('InputfieldTextarea'); 
 		$field->attr('name', 'findPagesCode'); 
@@ -215,7 +323,8 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		$field->notes = 'Example: return $page->parent->parent->children("name=locations")->first()->children();';
 		$field->collapsed = Inputfield::collapsedBlank;
-		$inputfields->append($field); 
+		$fieldset->append($field); 
+		$inputfields->append($fieldset); 
 
 		$field = $this->modules->get('InputfieldSelect');
 		$field->setAttribute('name', 'labelFieldName');
@@ -267,6 +376,19 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			}
 		}
 
+		$field = $this->modules->get('InputfieldCheckbox');
+		$field->attr('name', 'addable'); 
+		$field->attr('value', 1); 
+		$field->label = 'Allow new pages to be created from field?';
+		$field->description = 'If checked, an option to add new page(s) will also be present if the indicated requirements are met.';
+		$field->notes = 
+			"1. Both a parent and template must be selected above." . "\n" . 
+			"2. The editing user must have access to create/publish these pages." . "\n" . 
+			"3. The label-field must be set to 'title (default)'.";
+
+		if($this->addable) $field->attr('checked', 'checked'); 
+			else $field->collapsed = Inputfield::collapsedYes;
+		$inputfields->append($field); 
 
 		return $inputfields; 
 	}
@@ -280,7 +402,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$modules = Wire::getFuel('modules');
 		$field = $modules->get("InputfieldAsmSelect");
 		$field->attr('name', $name);
-		foreach(Wire::getFuel('modules')->find('class^=Inputfield') as $inputfield) {
+		foreach(Wire::getFuel('modules')->find('className^=Inputfield') as $inputfield) {
 			$field->addOption($inputfield->className(), str_replace('Inputfield', '', $inputfield->className())); 
 		}
 		$field->attr('value', $data[$name]); 
