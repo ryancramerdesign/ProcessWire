@@ -54,7 +54,6 @@ abstract class Wire implements TrackChanges {
 	 */
 	protected static $staticHooks = array();
 
-
 	/**
 	 * Hooks that are local to this instance of the class only. 
 	 *
@@ -66,8 +65,9 @@ abstract class Wire implements TrackChanges {
 	 *
 	 * Hooked methods end with '()' while hooked properties don't. 
 	 *
-	 * This does not distinguish which class it was added to or whether it was removed. 
-	 * It is only to gain some speed in our __get and __call methods.
+	 * This does not distinguish which instance it was added to or whether it was removed. 
+ 	 * But will use keys in the form 'fromClass::method' (with value 'method') in cases where a fromClass was specified.
+	 * This cache exists primarily to gain some speed in our __get and __call methods.
 	 *
 	 */
 	protected static $hookMethodCache = array();
@@ -346,7 +346,9 @@ abstract class Wire implements TrackChanges {
 	 *
 	 */
 	static protected function isHooked($method) {
-		return in_array($method, self::$hookMethodCache);
+		if(array_key_exists($method, self::$hookMethodCache)) return true; // fromClass::method() or fromClass::property
+		if(in_array($method, self::$hookMethodCache)) return true; // method() or property
+		return false; 
 	}
 
 	/**
@@ -395,7 +397,10 @@ abstract class Wire implements TrackChanges {
 			'options' => $options, 
 			); 
 
-		self::$hookMethodCache[] = $options['type'] == 'method' ? "$method()" : "$method"; 
+		// cacheValue is just the method() or property, cacheKey includes optional fromClass::
+		$cacheValue = $options['type'] == 'method' ? "$method()" : "$method";
+		$cacheKey = ($options['fromClass'] ? $options['fromClass'] . '::' : '') . $cacheValue;
+		self::$hookMethodCache[$cacheKey] = $cacheValue;
 
 		ksort($hooks); // sort by priority
 		return $id;

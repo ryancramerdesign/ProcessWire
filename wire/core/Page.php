@@ -882,6 +882,18 @@ class Page extends WireData {
 	 *
 	 */
 	public function path() {
+		return self::isHooked('Page::path()') ? $this->__call('path', array()) : $this->___path();
+	}
+
+	/**
+	 * Provides the hookable implementation for the path() method.
+	 *
+	 * The method we're using here by having a real path() function above is slightly quicker than just letting 
+	 * PW's hook handler handle it all. We're taking this approach since path() is a function that can feasibly
+	 * be called hundreds or thousands of times in a request, so we want it as optimized as possible.
+	 *
+	 */
+	protected function ___path() {
 		if($this->id === 1) return '/';
 		$path = '';
 		$parents = $this->parents();
@@ -899,7 +911,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function url() {
-		$url = rtrim($this->fuel('config')->urls->root, "/") . $this->path; 
+		$url = rtrim($this->fuel('config')->urls->root, "/") . $this->path(); 
 		if($this->template->slashUrls === 0 && $this->settings['id'] > 1) $url = rtrim($url, '/'); 
 		return $url;
 	}
