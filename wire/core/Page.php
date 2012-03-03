@@ -1178,6 +1178,21 @@ class Page extends WireData {
 	}
 
 	/**
+	 * Shorter version of setOutputFormatting() and outputFormatting() function
+	 *
+	 * Always returns the current state of outputFormatting like the outputFormatting() function (and unlike setOutputFormatting())
+	 * You may optionally specify a boolean value for $outputFormatting which will set the current state, like setOutputFormatting().
+	 *
+	 * @param bool $outputFormatting If specified, sets outputFormatting ON or OFF. If not specified, outputFormatting status does not change. 
+	 * @return bool Current outputFormatting state. 
+	 *
+	 */
+	public function of($outputFormatting = null) {
+		if(!is_null($outputFormatting)) $this->outputFormatting = $outputFormatting ? true : false; 
+		return $this->outputFormatting; 
+	}
+
+	/**
 	 * Return instance of PagefileManager specific to this Page
 	 *
 	 * @return PageFilesManager
