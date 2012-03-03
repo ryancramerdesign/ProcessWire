@@ -11,6 +11,12 @@ ProcessWire is shockingly simple compared to what you may be used to.
 Learn more about ProcessWire at:
 http://processwire.com
 
+Download ProcessWire at:
+http://github.com/ryancramerdesign/ProcessWire
+
+Follow ProcessWire on Twitter at:
+http://twitter.com/processwire/
+
 
 ABOUT THIS VERSION
 ---------------------------------------------------------------------------
