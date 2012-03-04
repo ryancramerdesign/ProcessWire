@@ -68,4 +68,11 @@ class Notices extends WireArray {
 		return parent::add($item); 
 	}
 
+	public function hasErrors() {
+		$numErrors = 0;
+		foreach($this as $notice) {
+			if($notice instanceof NoticeError) $numErrors++;
+		}
+		return $numErrors > 0;
+	}
 }

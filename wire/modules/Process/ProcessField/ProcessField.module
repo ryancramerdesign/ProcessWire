@@ -31,7 +31,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			);
 	}
 
-	protected $form; 
+	protected $form = null;
 	protected $field;
 	protected $id; 
 	protected $moduleInfo = array();
@@ -235,8 +235,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	 */
 	public function ___executeEdit() {
 
-
-		$this->buildEditForm();
+		if(is_null($this->form)) $this->buildEditForm();
 
 		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
 
@@ -633,7 +632,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			}
 
 		$cloneField = $this->form->get('clone_field');
-		if($cloneField->attr('checked')) {
+		if($cloneField && $cloneField->attr('checked')) {
 			$clone = $this->fields->clone($this->field);
 			if($clone && $clone->id) {
 				$this->message($this->_('Cloned Field') . " - {$this->field->name} => {$clone->name}"); 
@@ -642,6 +641,8 @@ class ProcessField extends Process implements ConfigurableModule {
 				$this->error($this->_("Error creating clone of this field")); 
 			}
 		}
+
+		if($this->notices->hasErrors()) return $this->executeAdd();
 		
 		if($this->listAfterSave) $this->session->redirect("./"); 
 			else $this->session->redirect("edit?id={$this->field->id}"); 
