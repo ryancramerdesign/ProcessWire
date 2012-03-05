@@ -64,9 +64,10 @@ class PagesAccess extends Wire {
 	 * Rebuild the entire pages_access table (or a part of it) starting from the given parent_id
 	 *
 	 */
-	public function rebuild($parent_id = 1, $accessTemplateID = 0) {
+	public function rebuild($parent_id = 1, $accessTemplateID = 0, $doDeletions = true) {
 
 		$insertions = array();
+		$deletions = array();
 		$templates = $this->getTemplates();
 		$accessTemplates = $this->getAccessTemplates();
 		$parent_id = (int) $parent_id;
@@ -77,6 +78,7 @@ class PagesAccess extends Wire {
 		if($parent_id == 1) {
 			// if we're going to be rebuilding the entire tree, then just delete all of them now
 			$this->db->query("DELETE FROM pages_access"); 
+			$doDeletions = false;
 		}
 
 		// no access template supplied (likely because of blank call to rebuild()
@@ -107,12 +109,19 @@ class PagesAccess extends Wire {
 			if(isset($accessTemplates[$templates_id])) {
 				// this page is defining access with it's template
 				// if there are children, rebuild those children with this template for access
-				if($numChildren) $this->rebuild($id, $templates_id); 
+				if($numChildren) $this->rebuild($id, $templates_id, $doDeletions); 
 			} else {
-				// this template is not defining access, so save an entry for it in the table
-				if($doInsertions) $insertions[$id] = $accessTemplateID; 
+				// this template is not defining access... 
+				if($doInsertions) {
+					// ...so save an entry for the page and the template that IS defining access 
+					$insertions[$id] = $accessTemplateID; 
+
+				} else if($doDeletions) {
+					// ...or delete existing entries if guest access is present
+					$deletions[] = $id; 
+				}
 				// if there are children, rebuild any of them with this access template where applicable
-				if($numChildren) $this->rebuild($id, $accessTemplateID); 
+				if($numChildren) $this->rebuild($id, $accessTemplateID, $doDeletions); 
 			}
 
 		}
@@ -126,8 +135,14 @@ class PagesAccess extends Wire {
 				$sql .= "($id, $templates_id),";
 			}
 			$sql = rtrim($sql, ",") . " " . "ON DUPLICATE KEY UPDATE templates_id=VALUES(templates_id) ";
-			$result = $this->db->query($sql);
+			$this->db->query($sql);
+
+		} else if(count($deletions)) {
+			$sql = "DELETE FROM pages_access WHERE pages_id IN(" . implode(',', $deletions) . ')'; 
+			$this->db->query($sql); 
 		}
+
+
 	}
 
 
@@ -167,7 +182,6 @@ class PagesAccess extends Wire {
 			$this->db->query("DELETE FROM pages_access WHERE pages_id=" . (int) $page->id); 	
 
 		} else {
-
 			$sql = 	"INSERT INTO pages_access (pages_id, templates_id) " . 
 				"VALUES({$page->id}, {$accessParent->template->id}) " . 
 				"ON DUPLICATE KEY UPDATE templates_id=VALUES(templates_id) ";
