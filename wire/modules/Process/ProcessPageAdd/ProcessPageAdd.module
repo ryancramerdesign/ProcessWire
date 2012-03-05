@@ -166,7 +166,7 @@ class ProcessPageAdd extends Process {
 		if(is_null($this->template) || !$this->template->noGlobal) {
 			$page = new NullPage(); // for getInputfield
 			foreach($this->fuel('fields') as $field) {
-				if($field->flags & Field::flagGlobal && $field->type instanceof FieldtypePageTitle) {
+				if($field->flags & Field::flagGlobal && ($field->type instanceof FieldtypePageTitle || $field->type instanceof FieldtypePageTitleLanguage)) {
 					$form->append($field->getInputfield($page)); 
 					break;
 				}
@@ -203,16 +203,13 @@ class ProcessPageAdd extends Process {
 			$language = wire('languages') && wire('user')->language->id ? wire('user')->language : null;
 
 			foreach($this->getAllowedTemplates() as $template) {
-				$label = $language ? $template->get('label' . $language->id) : $template->name; 
-				if(!$label) $label = $template->label ? $template->label : $template->name; 
-				$field->addOption($template->id, $label); 
+				$field->addOption($template->id, $this->getTemplateLabel($template)); 
 			}
 
 			$form->append($field); 
 
 		} else if(!count($_POST)) {
-
-			$this->message(sprintf($this->_("You are adding a page using the '%s' template"), $this->template)); 
+			$this->message(sprintf($this->_("You are adding a page using the '%s' template"), $this->getTemplateLabel($this->template))); 
 		}
 
 		$field = $this->modules->get('InputfieldHidden'); 
@@ -226,12 +223,26 @@ class ProcessPageAdd extends Process {
 		$form->append($field); 
 
 		$allowedTemplates = $this->getAllowedTemplates();	
+
 		if(count($allowedTemplates) == 1) {
 			$t = reset($allowedTemplates);
-			$form->description = $t->name; 
+			$form->description = $this->getTemplateLabel($t); 
 		}
 
 		return $form; 
+	}
+
+	/**
+	 * Return the label for the given Template
+	 *
+	 */
+	protected function getTemplateLabel(Template $template) {
+		$label = '';
+		$user = wire('user'); 
+		$language = wire('languages') && $user->language->id && !$user->language->isDefault ? wire('user')->language : null;
+		if($language) $label = $template->get('label' . $language->id);
+		if(!$label) $label = $template->label ? $template->label : $template->name; 
+		return $label;
 	}
 
 	/**
@@ -269,11 +280,19 @@ class ProcessPageAdd extends Process {
 		$this->page->sort = $this->parent->numChildren; 
 
 		$publishNow = $this->page->publishable();
+		$languages = wire('languages'); 
 
 		foreach($this->page->fields as $field) {
 			$f = $form->children->get($field->name); 
 			if($f) {
-				$this->page->set($field->name, $f->value); 
+				if($languages && $f->useLanguages) {
+					// account for language fields (most likely FieldtypePageTitleLanguage)
+					$value = $this->page->get($field->name); 
+					if(is_object($value)) $value->setFromInputfield($f);
+				} else {
+					$value = $f->attr('value'); 
+				}
+				$this->page->set($field->name, $value); 
 			} else {
 				$publishNow = false; // non-global fields means we won't publish yet
 			}
