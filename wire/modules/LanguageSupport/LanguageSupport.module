@@ -60,6 +60,12 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	protected $defaultLanguagePage = null;
 
 	/**
+	 * Array of pages that were cached before this module was loaded. 
+	 *
+	 */
+	protected $earlyCachedPages = array();
+
+	/**
 	 * Construct and set our dynamic config vars
 	 *
 	 */
@@ -90,6 +96,10 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	public function init() {
+
+		// document which pages were already cached at this point, as their values may need 
+		// to be reloaded to account for language fields. 
+		foreach(wire('pages')->getCache() as $id => $value) $this->earlyCachedPages[$id] = $value;
 
 		// prevent possible double init
 		if($this->initialized) return; 
@@ -148,7 +158,24 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 
 		// populate a LanguageSupportFields var to this class, if it's installed
 		$name = 'LanguageSupportFields';
-		$this->set($name, wire('modules')->isInstalled($name) ? wire('modules')->get($name) : null); 
+		$supportFields = wire('modules')->isInstalled($name) ? wire('modules')->get($name) : null; 
+		$this->set($name, $supportFields); 
+
+		// if languageSupportFields is here, then we have to deal with pages that loaded before this module did
+		if($supportFields) {
+			$fieldNames = array();
+			// save the names of all fields that support languages
+			foreach(wire('fields') as $field) {
+				if($field->type instanceof FieldtypeLanguageInterface) $fieldNames[] = $field->name;
+			}
+			// unset the values from all the early cached pages since they didn't recognize languages
+			// this will force them to reload when accessed
+			foreach($this->earlyCachedPages as $id => $p) {
+				foreach($fieldNames as $name) unset($p->$name); 
+			}
+		}
+		// release this as we don't need it anymore
+		$this->earlyCachedPages = array();
 	}
 
 	/**
@@ -266,7 +293,9 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$name = $inputfield->attr('name');
 		$id = $inputfield->attr('id');
 		$value = $inputfield->attr('value');
+		$required = $inputfield->required; 
 
+		// process and set value for each language
 		foreach(wire('languages') as $language) {
 			if($language->isDefault) continue; 
 			$languageID = (int) $language->id; 	
@@ -275,6 +304,8 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			$inputfield->setTrackChanges(false);
 			$inputfield->attr('id', $newID); 
 			$inputfield->attr('name', $newName); 
+			// other language values not required, even if default language value is 
+			$inputfield->required = false; 
 			$valueAttr = "value$languageID";
 			$inputfield->setAttribute('value', $inputfield->$valueAttr); 
 			$inputfield->setTrackChanges(true);
@@ -282,12 +313,13 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			$inputfield->set($valueAttr, $inputfield->attr('value')); 
 		}
 
+		// restore originals
 		$inputfield->setTrackChanges(false);
 		$inputfield->setAttribute('name', $name);
 		$inputfield->setAttribute('id', $id);
 		$inputfield->setAttribute('value', $value);
+		$inputfield->required = $required; 
 		$inputfield->setTrackChanges(true); 
-
 	}
 
 	/**
@@ -318,7 +350,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			$inputfield->set('useLanguages', true); 
 
 			$page = $event->arguments[0];
-			$value = $page->get($field->name); 
+			$value = $page->get($field->name);
 
 			// set values in this field specific to each language
 			foreach(wire('languages') as $language) {
@@ -328,7 +360,6 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 					if($language->isDefault) $languageValue = $value; 
 						else $languageValue = '';
 				}
-				//if($language->isDefault) $inputfield->setAttribute('value', $languageValue);  
 				$inputfield->set('value' . $language->id, $languageValue); 	
 			}
 		}
