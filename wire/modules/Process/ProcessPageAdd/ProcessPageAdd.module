@@ -167,6 +167,7 @@ class ProcessPageAdd extends Process {
 			$page = new NullPage(); // for getInputfield
 			foreach($this->fuel('fields') as $field) {
 				if($field->flags & Field::flagGlobal && ($field->type instanceof FieldtypePageTitle || $field->type instanceof FieldtypePageTitleLanguage)) {
+					if($this->template) $field = $this->template->fieldgroup->getField($field->id, true); // get in context of fieldgroup
 					$form->append($field->getInputfield($page)); 
 					break;
 				}
