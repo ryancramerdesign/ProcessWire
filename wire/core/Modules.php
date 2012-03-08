@@ -500,14 +500,14 @@ class Modules extends WireArray {
 			$reason = $reason1;
 
 		} else {
-			$module = $this->get($class); 
-			if(!$module) $reason = $reason1; 
+			$this->includeModule($class); 
+			if(!class_exists($class)) $reason = $reason1; 
 		}
 
 		if(!$reason) {
 
 			// if the moduleInfo contains a non-empty 'permanent' property, then it's not uninstallable
-			$info = $module->getModuleInfo(); 
+			$info = $this->getModuleInfo($class); 
 			if(!empty($info['permanent'])) {
 				$reason = "Module is permanent"; 
 			} else {
@@ -516,7 +516,7 @@ class Modules extends WireArray {
 			}
 		}
 
-		if(!$reason && $module instanceof Fieldtype) {
+		if(!$reason && in_array('Fieldtype', class_parents($class))) {
 			foreach(wire('fields') as $field) {
 				$fieldtype = get_class($field->type);
 				if($fieldtype == $class) { 
