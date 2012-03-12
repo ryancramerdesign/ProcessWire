@@ -425,7 +425,7 @@ class Installer {
 
 		echo "\n<h2>6. Complete &amp; Secure Your Installation</h2>";
 
-		$this->li("Now that the installer is complete, it is highly recommended that you make ./site/config.php non-writable! This is important for security."); 
+		$this->li("Now that the installer is complete, please review and, if needed, update the contents of ./site/config.php before marking it read-only. <strong>NB: For security it is highly recommended that you make ./site/config.php non-writable!</strong>");
 
 		if(@unlink("./install.php")) {
 			$this->li("Deleted this installer (./install.php) for security."); 
@@ -439,7 +439,6 @@ class Installer {
 				$this->li("Please delete the upgrade installer! The file is located in your web root at: ./upgrade.php"); 
 			}
 		}
-		$this->li("There are additional configuration options available in this file that you may want to review: ./site/config.php"); 
 
 		$this->li("To save space, you may delete this directory (and everything in it): ./site/install/ - it's no longer needed"); 
 
