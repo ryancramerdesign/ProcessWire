@@ -1,3 +1,14 @@
 .InputfieldCheckboxes table {
 	width: 100%; 
 }
+
+.InputfieldCheckboxesColumns {
+	width: 100%; 
+}
+.InputfieldCheckboxesColumns li {
+	display: block;
+	float: left; 
+	padding-right: 1%; 
+	padding-bottom: 1%; 
+}
+

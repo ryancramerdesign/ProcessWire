@@ -14,17 +14,26 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 	public function init() {
 		$this->set('table', false); 
 		$this->set('thead', ''); 
+		$this->set('optionColumns', 0); 
 		parent::init();
 	}
 
 	public function ___render() {	
 		$out = '';
 		$table = null;
+		$columns = (int) $this->optionColumns;
+		$liAttr = '';
 
 		if($this->table) {
 			$table = $this->modules->get("MarkupAdminDataTable"); 
 			$table->setEncodeEntities(false);
 			if($this->thead) $table->headerRow(explode('|', htmlspecialchars($this->thead))); 
+
+		} else if($columns) {
+			$liWidth = round(100 / $columns)-1;  // 1% padding-right added from stylesheet
+			$liAttr = " style='width: {$liWidth}%;'";
+			$out = "\n<ul class='InputfieldCheckboxesColumns ui-helper-clearfix'>";
+
 		} else {
 			$out = "\n<ul>";
 		}
@@ -52,7 +61,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 				$value[0] = $input . $value[0] . "</label>";
 				$table->row($value); 
 			} else {
-				$out .= "\n\t<li>" . $input . $value . "</label></li>";
+				$out .= "\n\t<li$liAttr>" . $input . $value . "</label></li>";
 			}
 			
 		}
@@ -63,4 +72,25 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 		return $out; 
 
 	}
+
+	public function set($key, $value) {
+		if($key == 'optionColumns') {
+			$value = (int) $value;
+			if($value < 0) $value = 0;
+			if($value > 10) $value = 10;
+		}
+		return parent::set($key, $value); 
+	}
+
+	public function ___getConfigInputfields() {
+		$inputfields = parent::___getConfigInputfields(); 
+		$f = wire('modules')->get('InputfieldInteger');
+		$f->label = $this->_('Columns of Checkboxes');
+		$f->description = $this->_('If you want the checkboxes to display in columns, enter the number of columns you want to use (up to 10).'); 
+		$f->attr('name', 'optionColumns'); 
+		$f->attr('value', (int) $this->optionColumns); 
+		$inputfields->add($f);	
+		return $inputfields; 
+	}
+
 }
