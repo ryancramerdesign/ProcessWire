@@ -913,10 +913,10 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 		foreach($template->fieldgroup as $f) {
 			$f = $template->fieldgroup->getField($f->id, true); // get in context
-			$columnWidth = $field->columnWidth ? $field->columnWidth : '100';
+			$columnWidth = $f->columnWidth ? $f->columnWidth : '100';
 			$attrs = array(
 				'selected' => 'selected',
-				'data-status' => ($field->columnWidth > 0 ? $field->columnWidth . '%': ' ')
+				'data-status' => ($columnWidth > 0 ? $columnWidth . '%': ' ')
 				);
 			$select->addOption($f->id, $f->name, $attrs);
 		}
