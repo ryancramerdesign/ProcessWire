@@ -196,6 +196,7 @@ class Pages extends Wire {
 	 *
 	 */
 	public function findOne($selectorString, $options = array()) {
+		if(empty($selectorString)) return new NullPage();
 		if($page = $this->getCache($selectorString)) return $page; 
 		$options['findOne'] = true; 
 		$page = $this->find($selectorString, $options)->first();
@@ -785,7 +786,7 @@ class Pages extends Wire {
 			}
 		}
 
-		$page->filesManager->emptyAllPaths();
+		try { $page->filesManager->emptyAllPaths(); } catch(Exception $e) { }
 		// $page->getCacheFile()->remove();
 
 		$access = new PagesAccess();	

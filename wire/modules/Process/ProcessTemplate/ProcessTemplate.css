@@ -15,3 +15,14 @@
 input[disabled=disabled] {
 	opacity: 0.5; 	
 }
+
+span.asmFieldsetIndent {
+	float: left; 
+	width: 15px; 
+	height: 5px; 
+}
+
+#content .asmFieldset {
+	font-weight: bold; 
+}
+

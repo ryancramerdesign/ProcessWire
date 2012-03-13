@@ -96,6 +96,8 @@
 				if(options.sortable) makeSortable();
 
 				if($.browser.msie && $.browser.version < 8) $ol.css('display', 'inline-block'); // Thanks Matthew Hutton
+
+				$original.trigger('init'); 
 			}
 
 			function makeSortable() {
@@ -107,20 +109,24 @@
 					items: 'li.' + options.listItemClass,
 					handle: '.' + options.listItemLabelClass,
 					axis: 'y',
-					update: function(e, data) {
+					update: function(e, ui) {
 
 						var updatedOptionId;
+						$option = $('#' + ui.item.attr('rel')); 
+						updatedOptionId = $option.attr('id'); 
 
 						$(this).children("li").each(function(n) {
 
 							$option = $('#' + $(this).attr('rel')); 
+							$original.append($option); 
 
+							/* this doesn't seem to work in newer versions of jquery
 							if($(this).is(".ui-sortable-helper")) {
 								updatedOptionId = $option.attr('id'); 
 								return;
 							}
+							*/
 
-							$original.append($option); 
 						}); 
 
 						if(updatedOptionId) triggerOriginalChange(updatedOptionId, 'sort'); 

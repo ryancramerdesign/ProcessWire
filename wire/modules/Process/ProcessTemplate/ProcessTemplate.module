@@ -389,6 +389,7 @@ class ProcessTemplate extends Process {
 
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Delete', 'tab'));
+		$t->attr('id', 'WireTabDelete'); 
 		$t->head = $this->_('Delete template');
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormDelete($template)); 
