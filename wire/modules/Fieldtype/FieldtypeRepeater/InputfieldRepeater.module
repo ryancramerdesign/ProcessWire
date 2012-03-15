@@ -231,7 +231,6 @@ class InputfieldRepeater extends Inputfield {
 			// skip items disabled/hidden (ready items)
 			if($input->$disabledName == $page->id) {
 				$page->resetTrackChanges(false);
-				$this->message("Skipping {$page->id}"); 
 				continue; 
 			}
 

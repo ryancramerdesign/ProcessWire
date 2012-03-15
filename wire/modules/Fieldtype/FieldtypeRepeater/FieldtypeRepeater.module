@@ -51,6 +51,12 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	protected $ajaxPage = null;
 
 	/**
+	 * Name of field that appeared in HTTP_X_FIELDNAME, before it was modified
+	 *
+	 */
+	protected $ajaxFieldName = '';
+
+	/**
 	 * Construct the Repeater Fieldtype
 	 *
 	 */
@@ -102,8 +108,13 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		$ownerPageField = null;
 		foreach($ownerPage->fields as $field) {
 			if($field->type instanceof FieldtypeRepeater) {
-				$pageArray = $ownerPage->get($field->name); 	
-				if($pageArray->has($repeaterPage)) {
+				//$pageArray = $ownerPage->getUnformatted($field->name); 	
+				//echo var_export($pageArray); 
+				$grandparent = $this->getRepeaterParent($field);
+                		$parent = $grandparent->child('name=' . self::repeaterPageNamePrefix . $ownerPage->id . ', include=all');
+				if(!$parent->id) continue; 
+				$child = $parent->child('include=all, id=' . $repeaterPage->id);
+				if($child->id) { 
 					// found it, it's valid
 					$ownerPageField = $field;
 					break;
@@ -118,6 +129,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		$event->arguments = $args; 
 
 		// repopulate the server header to be the fieldName (sans _repeater\d+)
+		$this->ajaxFieldName = wire('sanitizer')->fieldName($_SERVER['HTTP_X_FIELDNAME']);
 		$_SERVER['HTTP_X_FIELDNAME'] = $fieldName;
 
 		// save a copy for comparison in our hookPageEditable function 
@@ -127,6 +139,9 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		// to the repeater pages themselves, and ProcessPageEdit's editable check
 		// prevents them from completing the ajax save. this hook fixes that.
 		$this->addHookAfter('ProcessPageEdit::ajaxEditable', $this, 'hookProcessPageEditAjaxEditable'); 
+
+		// ensures that InputfieldFile outputs markup with the proper fieldname, including the repeater_ part
+		$this->addHookBefore('InputfieldFile::renderItem', $this, 'hookInputfieldFileRenderItem'); 
 	}
 
 	/**
@@ -146,6 +161,18 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		if($event->return && $fieldName) {
 			if(!$this->ajaxPage->fields->has("name=$fieldName")) $event->return = false;
 		}
+	}
+
+	/**
+	 * Ensure that InputfieldFile outputs markup with the proper fieldname (including the repeater_ part)
+	 *
+	 */
+	public function hookInputfieldFileRenderItem(HookEvent $event) {
+		$arguments = $event->arguments; 
+		$id = $arguments[1]; 
+		$id = str_replace($_SERVER['HTTP_X_FIELDNAME'], $this->ajaxFieldName, $id); 
+		$arguments[1] = $id; 
+		$event->arguments = $arguments; 
 	}
 
 	/**
