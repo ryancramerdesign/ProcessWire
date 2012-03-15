@@ -36,6 +36,10 @@
 		top: 2px; 
 	}
 
+	#notices a {
+		text-decoration: underline; 
+	}
+
 .ui-dialog .ui-dialog-content {
 	padding: 0; 
 }
