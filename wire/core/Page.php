@@ -682,15 +682,20 @@ class Page extends WireData {
 	/**
 	 * Return the page's first single child that matches the given selector. 
 	 *
-	 * Same as children() but returns a Page object or NullPage (with id=0) rather than a PageArray
+	 * Same as children() but returns a Page object or NullPage (with id=0) rather than a PageArray.
+	 * Alternatively, $selector might be name of child page to return
 	 *
-	 * @param string $selector Selector to use, or blank to return the first child. 
+	 * @param string $selector Selector (or Page name) to use, or blank to return the first child. 
 	 * @return Page|NullPage
 	 *
 	 */
 	public function child($selector = '', $options = array()) {
 		$selector .= ($selector ? ', ' : '') . "limit=1";
-		if(strpos($selector, 'start=') === false) $selector .= ", start=0"; // prevent pagination
+		if ($strpos($selector, '=') === false) {
+			$selector = 'name='.trim($selector, '/');
+		} else {
+			if(strpos($selector, 'start=') === false) $selector .= ", start=0"; // prevent pagination
+		}
 		$children = $this->children($selector); 
 		return count($children) ? $children->first() : new NullPage();
 	}
