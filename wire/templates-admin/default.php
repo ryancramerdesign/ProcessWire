@@ -82,7 +82,7 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 		<div class="container">
 			<p id="logo">ProcessWire</p>
 
-			<ul id='topnav' class='nav'><?php include($config->paths->templatesAdmin . "topnav.inc"); ?>
+			<ul id='topnav' class='nav'><?php include($config->paths->adminTemplates . "topnav.inc"); ?>
 
 			</ul>
 

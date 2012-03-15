@@ -45,6 +45,12 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	protected $deletePageField = 0;
 
 	/**
+	 * Page assigned by our ProcessPageEdit::ajaxSave hook, kept for comparison for editable() access
+	 *
+	 */
+	protected $ajaxPage = null;
+
+	/**
 	 * Construct the Repeater Fieldtype
 	 *
 	 */
@@ -78,23 +84,68 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
  	 */
 	public function hookProcessPageEditAjaxSave(HookEvent $event) {
 
+		// if this isn't a repeater field we're dealing with, then abort
 		if(!preg_match('/^(.+)(_repeater(\d+))$/', $_SERVER['HTTP_X_FIELDNAME'], $matches)) return;
-
 		$fieldName = wire('sanitizer')->fieldName($matches[1]); 
-		$id = (int) $matches[3]; 
+		$repeaterPageID = (int) $matches[3]; 
+		if($repeaterPageID < 1) return;
 
-		if($id > 0) { 
-			$page = wire('pages')->get($id); 
+		// make sure the owning page is editable since we'll be replacing the $page param that goes to ajaxSave
+		$ownerPage = $event->arguments[0]; 
+		if(!$ownerPage->editable()) return;
 
-		} else {
-			// field cannot be saved yet
-			return;
+		// make sure it's a valid repeaterPage
+		$repeaterPage = wire('pages')->get($repeaterPageID); 
+		if(!$repeaterPage->id) return; 
+
+		// check that the given repeaterPage is actually a repeater component of the ownerPage
+		$ownerPageField = null;
+		foreach($ownerPage->fields as $field) {
+			if($field->type instanceof FieldtypeRepeater) {
+				$pageArray = $ownerPage->get($field->name); 	
+				if($pageArray->has($repeaterPage)) {
+					// found it, it's valid
+					$ownerPageField = $field;
+					break;
+				}
+			}
+		}
+		if(!$ownerPageField) return;
+
+		// repopulate the ProcessPageEdit::ajaxSave function's argument to be the repeaterPage rather than the ownerPage
+		$args = $event->arguments; 
+		$args[0] = $repeaterPage; 
+		$event->arguments = $args; 
+
+		// repopulate the server header to be the fieldName (sans _repeater\d+)
+		$_SERVER['HTTP_X_FIELDNAME'] = $fieldName;
+
+		// save a copy for comparison in our hookPageEditable function 
+		$this->ajaxPage = $repeaterPage;
+
+		// add a hook to allow edit access because some users may not have access
+		// to the repeater pages themselves, and ProcessPageEdit's editable check
+		// prevents them from completing the ajax save. this hook fixes that.
+		$this->addHookAfter('ProcessPageEdit::ajaxEditable', $this, 'hookProcessPageEditAjaxEditable'); 
+	}
+
+	/**
+	 * Temporary hook into Page::editable to capture the editable check for the page we swapped into the ajaxSave
+	 *
+	 * Prevents the 'no access' error when non-superuser attempts to perform an ajax save
+	 *
+	 */
+	public function hookProcessPageEditAjaxEditable(HookEvent $event) {
+		$page = $event->arguments[0]; 
+		$fieldName = isset($event->arguments[1]) ? wire('sanitizer')->fieldName($event->arguments[1]) : '';
+		if($page->id && $this->ajaxPage && $this->ajaxPage->id == $page->id) {
+			$event->return = true; 
 		}
 
-		$args = $event->arguments; 
-		$args[0] = $page; 
-		$event->arguments = $args; 
-		$_SERVER['HTTP_X_FIELDNAME'] = $fieldName;
+		// if a fieldName was specified, double check that it's a valid field in a repeater
+		if($event->return && $fieldName) {
+			if(!$this->ajaxPage->fields->has("name=$fieldName")) $event->return = false;
+		}
 	}
 
 	/**

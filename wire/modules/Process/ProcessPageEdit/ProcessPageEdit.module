@@ -971,8 +971,8 @@ class ProcessPageEdit extends Process {
 	protected function ___ajaxSave(Page $page) {
 
 		if($this->config->demo) throw new WireException("Ajax save is disabled in demo mode"); 
-		if($page->is(Page::statusLocked)) throw new WireException("Page is locked"); 
-		if(!$page->editable()) throw new WirePermissionException("You don't have access"); 
+		if($page->is(Page::statusLocked)) throw new WireException($this->noticeLocked); 
+		if(!$this->ajaxEditable($page)) throw new WirePermissionException($this->noticeNoAccess); 
 
 		$form = new InputfieldWrapper();
 		$keys = array();
@@ -990,7 +990,7 @@ class ProcessPageEdit extends Process {
 		foreach($keys as $key) {
 
 			if(!$field = $page->template->fieldgroup->getField($key)) continue; 
-			if(!$page->editable($key)) continue; 
+			if(!$this->ajaxEditable($page, $key)) continue; 
 			if(!$inputfield = $field->getInputfield($page)) continue; 
 
 			$inputfield->name = $key;
@@ -1020,6 +1020,17 @@ class ProcessPageEdit extends Process {
 		} else {
 			$this->message("Page not saved (no changes)"); 
 		}
+	}
+
+	/**
+	 * Returns true if this page may be ajax saved (user has access), or false if not
+	 *
+	 * @param Page $page
+	 * @return bool
+	 *
+	 */
+	protected function ___ajaxEditable(Page $page, $fieldName = '') {
+		return $page->editable($fieldName);
 	}
 
 	/**
