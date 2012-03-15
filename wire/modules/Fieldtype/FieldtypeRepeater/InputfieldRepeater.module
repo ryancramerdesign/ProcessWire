@@ -153,6 +153,15 @@ class InputfieldRepeater extends Inputfield {
 			if($page->is(Page::statusHidden)) {
 				$wrap->class = 'InputfieldRepeaterReady';
 				$wrap->label .= ' - ' . $this->_('New');
+
+				// add a hidden field that will be removed upon revealing it with JS
+				// this is so fields can have default values (like Datetime today's date)
+				$f = wire('modules')->get('InputfieldHidden');
+				$f->attr('name', "_disable_repeater{$page->id}"); 
+				$f->attr('class', 'InputfieldRepeaterDisabled'); 
+				$f->attr('value', $page->id); 
+				$wrap->add($f); 
+
 			} else if($page->is(Page::statusUnpublished)) {
 				$wrap->label .= ' - ' . $this->_('Unpublished');
 			}
@@ -212,9 +221,17 @@ class InputfieldRepeater extends Inputfield {
 
 			$deleteName = "delete_repeater{$page->id}";
 			$sortName = "sort_repeater{$page->id}";
+			$disabledName = "_disable_repeater{$page->id}";
 
 			if($input->$deleteName == $page->id) {
 				$value->remove($page); 
+				continue; 
+			}
+
+			// skip items disabled/hidden (ready items)
+			if($input->$disabledName == $page->id) {
+				$page->resetTrackChanges(false);
+				$this->message("Skipping {$page->id}"); 
 				continue; 
 			}
 
