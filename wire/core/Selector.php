@@ -256,7 +256,7 @@ class SelectorEnds extends Selector {
 	public static function getOperator() { return '$='; }
 	protected function match($value1, $value2) { 
 		$value2 = trim($value2); 
-		$value2 = substr($value2, -1 * strlen($value1));
+		$value1 = substr($value1, -1 * strlen($value2));
                 return $this->evaluate(strcasecmp($value1, $value2) == 0);
 	}
 }
