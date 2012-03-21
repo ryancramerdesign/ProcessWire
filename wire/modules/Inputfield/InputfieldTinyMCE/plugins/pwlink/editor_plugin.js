@@ -83,10 +83,10 @@ var editorCursorPosition; // for IE8
 								var $node = $(selection.getNode());
 
 								if($node.is("a")) {
-									anchorText = $node.text();
+									anchorText = $node.html();
 
 								} else if($nodeParent.is("a")) {
-									anchorText = $nodeParent.text();
+									anchorText = $nodeParent.html();
 
 								} else {
 									anchorText = selection.getContent();
