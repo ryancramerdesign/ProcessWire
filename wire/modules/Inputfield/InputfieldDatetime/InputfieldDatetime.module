@@ -19,7 +19,7 @@ class InputfieldDatetime extends Inputfield {
 
 	public function init() {
 		$this->attr('type', 'text'); 
-		$this->attr('size', 15); 
+		$this->attr('size', 20); 
 		$this->set('dateInputFormat', self::defaultDateInputFormat); 
 		$this->set('datepicker', 0); 
 		$this->set('defaultToday', 0); 
@@ -46,7 +46,7 @@ class InputfieldDatetime extends Inputfield {
 
 	public function setAttribute($key, $value) {
 		if($key == 'value') {
-			if($value && !ctype_digit("$value")) $value = strtotime($value); 
+			if($value && !ctype_digit(ltrim($value, '-'))) $value = strtotime($value); 
 			if(empty($value)) $value = '';
 		}
 		return parent::setAttribute($key, $value); 
