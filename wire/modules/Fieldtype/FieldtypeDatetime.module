@@ -45,7 +45,7 @@ class FieldtypeDatetime extends FieldtypeText {
 	}
 
 	protected function _sanitizeValue($value) {
-		return ctype_digit("$value") ? (int) $value : strtotime($value); 
+		return ctype_digit(ltrim($value, '-')) ? (int) $value : strtotime($value); 
 	}
 
 	public function ___formatValue(Page $page, Field $field, $value) {
