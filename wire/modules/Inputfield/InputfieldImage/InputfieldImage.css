@@ -5,3 +5,21 @@
 .InputfieldImage a.InputfieldFileLink + label.InputfieldFileDescription {
 	margin-top: 0.5em;
 }
+
+.InputfieldImage a.InputfieldFileMove span.ui-icon {
+	float: right; 
+	position: relative; 
+	top: 2px; 
+}
+.InputfieldImage a.InputfieldFileMove {
+	width: 20px; 
+	padding-right: 20px; 
+	visibility: hidden; 
+}
+
+.ui-state-hover a.InputfieldFileMove {
+	visibility: visible;
+}
+.ui-state-error a.InputfieldFileMove {
+	display: none; 
+}

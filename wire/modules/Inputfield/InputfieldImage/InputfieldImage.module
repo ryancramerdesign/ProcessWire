@@ -73,6 +73,8 @@ class InputfieldImage extends InputfieldFile {
 			"\n\t\t\t<span class='InputfieldFileName'>{$pagefile->basename}</span> " . 
 			"\n\t\t\t<span class='InputfieldFileStats'>&bull; {$pagefile->filesizeStr} &bull; {$pagefile->width}x{$pagefile->height}</span> " . 
 			"\n\t\t\t<label class='InputfieldFileDelete'><input type='checkbox' name='delete_$id' value='1' /><span class='ui-icon ui-icon-trash'>Delete</span></label>" . 
+			"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveBottom' href='#'><span class='ui-icon ui-icon-arrowthickstop-1-s'></span></a> " . 
+			"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveTop' href='#'><span class='ui-icon ui-icon-arrowthickstop-1-n'></span></a> " . 
 			"\n\t\t</p>" . 
 			"\n\t\t<p class='InputfieldFileData ui-widget ui-widget-content'>" . 
 			"\n\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->url}'><img src='{$thumb->url}' alt='{$pagefile->basename}' /></a>" . 
