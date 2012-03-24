@@ -1,7 +1,7 @@
 
 var InputfieldTinyMCEConfigDefaults = {
 	mode: 'none', 
-	width: "100%", 
+	width: "100%",
 	relative_urls: false,	
 	convert_urls: false,
 	remove_script_host: true,
@@ -28,12 +28,11 @@ var InputfieldTinyMCEConfigDefaults = {
 	paste_remove_styles: true, 
 	paste_strip_class_attributes: 'all', 
 	forced_root_block: 'p', 
-	force_br_newlines: false, 
+	force_br_newlines: false,
 	dialog_type: "modal",
 	content_css: config.InputfieldTinyMCE.url + 'content.css', 
 	remove_linebreaks: false, // required for preelementfix plugin
 	entity_encoding: 'raw', 
-
 	/*
 	// these are ready to use if needed
 	setup: function(ed) {
@@ -100,6 +99,9 @@ $(document).ready(function() {
 	}); 
 
 	$.each(config.InputfieldTinyMCE.elements, function(key, value) {
+		
+		// convert config object values to objects if necessary
+		config[value] = convertObjects(config[value]);
 
 		tinyMCE.settings = $.extend(InputfieldTinyMCEConfigDefaults, config[value]); 
 		if(config.InputfieldTinyMCE.language.length > 0) tinyMCE.settings.language = config.InputfieldTinyMCE.language; 
@@ -108,6 +110,12 @@ $(document).ready(function() {
 	
 	}); 
 
-
+	// convert config string that start with a [ to a js object
+	// this ensures it works with object type of configurations like template_templates:[{title:'mytemplate'},...]
+	function convertObjects(config){
+		$.each(config, function(key, value){
+			if( value.substr(0,1) == "[" ) config[key] = eval(value);
+		});
+		return config;
+	};
 }); 
-
