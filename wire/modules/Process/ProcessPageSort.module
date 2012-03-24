@@ -55,6 +55,7 @@ class ProcessPageSort extends Process {
 
 		if($this->config->demo) throw new WireException($this->_("Your change was not saved because this site is in demo mode")); 
 		if(!isset($_POST['sort'])) throw new WireException($this->_("This Process is only accessible via POST")); 
+		$this->session->CSRF->validate(); // throws exception if invalid
 
 		$this->user = $this->fuel('user'); 
 		$this->ids = explode(',', $_POST['sort']); 

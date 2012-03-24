@@ -196,6 +196,7 @@ class ProcessPageClone extends Process {
 		$page = clone $this->page; 
 		$input = $this->input; 
 
+		$this->session->CSRF->validate();
 		if($input->post->clone_page_unpublished) $page->addStatus(Page::statusUnpublished); 
 		$cloneTree = $input->post->clone_page_tree && $this->user->hasPermission('page-clone-tree', $this->page);
 

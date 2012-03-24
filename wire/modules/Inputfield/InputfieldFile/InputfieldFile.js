@@ -108,7 +108,13 @@ $(document).ready(function() {
 		$(".InputfieldFileUpload").parent('.ui-widget-content').each(function(i) {
 
 			var $this = $(this); 
-			var postUrl = $this.parents('form').attr('action'); 
+			var $form = $this.parents('form'); 
+			var postUrl = $form.attr('action'); 
+
+			// CSRF protection
+			var $postToken = $form.find('#_post_token'); 
+			var postTokenName = $postToken.attr('name');
+			var postTokenValue = $postToken.val();
 
 			var fieldName = $this.find('p.InputfieldFileUpload').data('fieldname');
 			fieldName = fieldName.slice(0,-2);
@@ -201,6 +207,7 @@ $(document).ready(function() {
 				xhr.open("POST", postUrl, true);
 				xhr.setRequestHeader("X-FILENAME", file.name);
 				xhr.setRequestHeader("X-FIELDNAME", fieldName);
+				xhr.setRequestHeader("X-" + postTokenName, postTokenValue);
 				xhr.setRequestHeader("X-REQUESTED-WITH", 'XMLHttpRequest');
 				xhr.send(file);
 				

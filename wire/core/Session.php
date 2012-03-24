@@ -30,6 +30,12 @@ class Session extends Wire implements IteratorAggregate {
 	protected $config; 
 
 	/**
+	 * Instance of the SessionCSRF protection class, instantiated when requested from $session->CSRF.
+	 *
+	 */
+	protected $CSRF = null; 
+
+	/**
 	 * Start the session and set the current User if a session is active
 	 *
 	 * Assumes that you have already performed all session-specific ini_set() and session_name() calls 
@@ -105,6 +111,10 @@ class Session extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function get($key) {
+		if($key == 'CSRF') {
+			if(is_null($this->CSRF)) $this->CSRF = new SessionCSRF();
+			return $this->CSRF; 
+		}
 		$className = $this->className();
 		return isset($_SESSION[$className][$key]) ? $_SESSION[$className][$key] : null; 
 	}
@@ -204,6 +214,7 @@ class Session extends Wire implements IteratorAggregate {
 			}
 
 			$this->setFuel('user', $user); 
+			$this->get('CSRF')->resetToken();
 
 			return $user; 
 		}
@@ -294,5 +305,6 @@ class Session extends Wire implements IteratorAggregate {
 		$this->queueNotice($text, 'error', $flags); 
 		return $this; 
 	}
+
 
 }

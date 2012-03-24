@@ -182,6 +182,8 @@ class ProcessTemplate extends Process {
 
 		if(count($this->input->post)) {
 
+			$this->session->CSRF->validate();
+
 			$importFieldgroup = null;
 			$importFields = array();
 
@@ -1382,6 +1384,7 @@ class ProcessTemplate extends Process {
 		if(!$this->template) $this->session->redirect('./'); 	
 
 		if(is_null($fieldgroup)) {
+			$this->session->CSRF->validate();
 			if(!isset($_POST['fieldgroup']) || !$fieldgroup = $this->fieldgroups->get((int) $_POST['fieldgroup'])) {
 				$this->message($this->_('Fieldgroup change aborted')); 
 				$this->session->redirect("./"); 
@@ -1399,6 +1402,8 @@ class ProcessTemplate extends Process {
 		if(!isset($_POST['submit_remove_fields'])) return $this->renderRemoveFields(); 
 	
 		if(!isset($_POST['remove_fields']) || !is_array($_POST['remove_fields'])) $this->session->redirect("edit?id={$this->template->id}"); 
+
+		$this->session->CSRF->validate();
 
 		foreach($this->template->fieldgroup as $field) {
 			if(in_array($field->id, $_POST['remove_fields'])) {
@@ -1484,7 +1489,7 @@ class ProcessTemplate extends Process {
 		$writable = is_writable($this->template->filename); 
 
 		if($this->input->post->confirm_rename) {
-
+			$this->session->CSRF->validate();
 			$oldName = $this->template->name; 
 			$this->template->name = $name; 
 			$this->template->fieldgroup->name = $name; 
