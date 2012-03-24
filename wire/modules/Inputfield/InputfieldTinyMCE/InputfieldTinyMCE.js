@@ -93,6 +93,15 @@ var InputfieldTinyMCEConfigDefaults = {
 
 $(document).ready(function() {
 
+	// Soma: convert config string that start with a [ to a js object
+	// this ensures it works with object type of configurations like template_templates:[{title:'mytemplate'},...]
+	function convertObjects(config) {
+		$.each(config, function(key, value) {
+			if(value.substr(0, 1) == "[" ) config[key] = eval(value);
+		});
+		return config;
+	};
+
 	var InputfieldTinyMCEPlugins = ['pwimage', 'pwlink', 'advimagescale', 'preelementfix']; 
 
 	$.each(InputfieldTinyMCEPlugins, function(key, value) {
@@ -100,6 +109,8 @@ $(document).ready(function() {
 	}); 
 
 	$.each(config.InputfieldTinyMCE.elements, function(key, value) {
+		// Soma: convert config object values to objects if necessary
+		config[value] = convertObjects(config[value]);
 
 		tinyMCE.settings = $.extend(InputfieldTinyMCEConfigDefaults, config[value]); 
 		if(config.InputfieldTinyMCE.language.length > 0) tinyMCE.settings.language = config.InputfieldTinyMCE.language; 
