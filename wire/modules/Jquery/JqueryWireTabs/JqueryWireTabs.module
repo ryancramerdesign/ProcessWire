@@ -1,15 +1,39 @@
 <?php
 
-class JqueryWireTabs extends ModuleJS { 
+class JqueryWireTabs extends ModuleJS implements ConfigurableModule { 
 
         public static function getModuleInfo() {
                 return array(
-                        'title' => 'jQuery Wire Tabs Plugin',
-                        'version' => 101,
-                        'summary' => 'Provides a jQuery plugin for generating tabs in ProcessWire.',
+                        'title' => __('jQuery Wire Tabs Plugin', __FILE__),
+                        'summary' => __('Provides a jQuery plugin for generating tabs in ProcessWire.', __FILE__),
+                        'version' => 102,
 			'permanent' => true, 
                         );
         }
 
+	const rememberTabsNever = -1;
+	const rememberTabsSubmit = 0; 
+	const rememberTabsAlways = 1; 
+
 	// extending this class causes the class named JS and CSS files to automatically be loaded
+
+	public function init() {
+		parent::init();
+		wire('config')->js('JqueryWireTabs', array(
+			'rememberTabs' => (int) $this->rememberTabs,
+			)); 
+	}
+
+	public static function getModuleConfigInputfields(array $data) {
+		$inputfields = new InputfieldWrapper();
+		$f = wire('modules')->get('InputfieldRadios'); 
+		$f->attr('name', 'rememberTabs'); 
+		$f->label = __('Remember tab positions between requests?', __FILE__);
+		$f->addOption(self::rememberTabsNever, __('Never', __FILE__)); 
+		$f->addOption(self::rememberTabsSubmit, __('Only after form submit', __FILE__)); 
+		$f->addOption(self::rememberTabsAlways, __('Always', __FILE__)); 
+		$f->attr('value', (isset($data['rememberTabs']) ? (int) $data['rememberTabs'] : self::rememberTabsSubmit)); 
+		$inputfields->add($f);
+		return $inputfields; 
+	}
 }

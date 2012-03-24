@@ -41,7 +41,8 @@ $(document).ready(function() {
 	$fieldEdit.find('script').remove();
         $fieldEdit.WireTabs({
                 items: $(".Inputfields li.WireTab"),
-                id: 'FieldEditTabs'
+                id: 'FieldEditTabs',
+		skipRememberTabIDs: ['delete']
                 });
 
 	// change fieldgroup context

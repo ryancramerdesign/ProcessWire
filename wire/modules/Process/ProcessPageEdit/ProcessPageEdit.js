@@ -17,7 +17,8 @@ $(document).ready(function() {
 	// instantiate the WireTabs
 	$p.WireTabs({
 		items: $("#ProcessPageEdit > .Inputfields > .InputfieldWrapper, #ProcessPageEdit > .Inputfields .InputfieldFieldsetTabOpen"),
-		id: 'PageEditTabs'
+		id: 'PageEditTabs',
+		skipRememberTabIDs: ['ProcessPageEditDelete']
 		});
 
 	// WireTabs gives each tab link that it creates an ID equal to the ID on the tab content
