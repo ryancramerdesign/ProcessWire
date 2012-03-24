@@ -66,4 +66,8 @@ $(document).ready(function() {
 		if(!$t.val() && !$t.is(".no_focus")) $t.focus();	
 	});
 
+	/// for FOUC fix
+	jQuery('#content').removeClass('fouc_fix'); 
+
+
 }); 
