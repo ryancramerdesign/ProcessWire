@@ -84,6 +84,7 @@ class ProcessPageSort extends Process {
 			throw new WirePermissionException($this->_("You do not have permission to move pages using this parent") . " - {$parent->path}"); 
 
 		$page->setOutputFormatting(false); 
+		$page->resetTrackChanges(true); 
 		$page->parent = $parent; 
 		$page->save();
 		$this->message("Moved page $page to parent $parent"); 
@@ -116,6 +117,7 @@ class ProcessPageSort extends Process {
 
 			if($child->sort != $sort) {
 				$child->setOutputFormatting(false); 
+				$child->resetTrackChanges(true);
 				$child->sort = $sort; 	
 				$child->save();
 			}
