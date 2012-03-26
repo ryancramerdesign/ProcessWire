@@ -66,11 +66,15 @@ class LanguageSupportFields extends WireData implements Module {
 		$this->addHookAfter('FieldtypeLanguageInterface::wakeupValue', $this, 'fieldtypeWakeupValue'); 
 	}
 
+	public function init() { 
+		// intentionally left blank
+	}
+
 	/**
 	 * Initialize the language support API vars
 	 *
 	 */
-	public function init() {
+	public function LS_init() {
 
 		$this->addHookAfter('FieldtypeLanguageInterface::sleepValue', $this, 'fieldtypeSleepValue'); 
 		$this->addHookBefore('PageFinder::getQuery', $this, 'pageFinderGetQuery'); 
@@ -101,14 +105,13 @@ class LanguageSupportFields extends WireData implements Module {
 				}
 			}
 		}	
-
 	}
 
 	/**
 	 * Called by ProcessWire when the API and known $page is ready
 	 *
 	 */
-	public function ready() {
+	public function LS_ready() {
 		$this->languages->addHook('added', $this, 'hookLanguageAdded'); 
 		$this->languages->addHook('deleted', $this, 'hookLanguageDeleted'); 
 	}
