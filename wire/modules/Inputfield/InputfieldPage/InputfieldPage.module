@@ -154,8 +154,10 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$test = new Page();
 		$test->template = wire('templates')->get($this->template_id); 
 		$test->parent = $parent; 
+		$test->id = -1; // prevents permissions check from failing
 
-		if(!$parent->addable($test) || !$test->publishable()) return '';
+		if(!$parent->addable($test)) return ''; 
+		if(!$test->publishable()) return '';
 
 		$inputfield = wire('modules')->get($this->inputfield); 
 		if(!$inputfield) return '';
@@ -250,12 +252,14 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$page->parent = $parent; 
 			$page->title = trim($title); 
 			$page->sort = $sort++;
+			$page->id = -1; // prevents the permissions check from failing
 
 			// on first iteration perform a page-context access check
 			if(!$n && (!$parent->addable($page) || !$page->publishable())) {
 				$this->error("No access to add {$page->template} pages to {$parent->path}"); 
 				break;
 			}
+			$page->id = 0;
 
 			try {
 				$page->save();
