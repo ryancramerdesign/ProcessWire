@@ -160,7 +160,7 @@ function ProcessWireClassLoader($className) {
 	} else if($modules = Wire::getFuel('modules')) {
 		$modules->includeModule($className);
 
-	} else die($className); 
+	} // else die($className); 
 }
 
 

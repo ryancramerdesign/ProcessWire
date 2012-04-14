@@ -66,6 +66,12 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	protected $earlyCachedPages = array();
 
 	/**
+	 * Instanceof LanguageSupportFields, if installed
+	 *
+	 */
+	protected $LanguageSupportFields = null;
+
+	/**
 	 * Construct and set our dynamic config vars
 	 *
 	 */
@@ -89,6 +95,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 
 		// quick reference to non-default language IDs, for when needed before languages loaded
 		$this->set('otherLanguagePageIDs', array()); 
+
 	}
 
 	/**
@@ -144,6 +151,10 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$this->pages->addHook('added', $this, 'hookPageAdded'); 
 		$this->pages->addHook('deleteReady', $this, 'hookPageDeleteReady'); 
 
+		if(wire('modules')->isInstalled('LanguageSupportFields')) {
+			$this->LanguageSupportFields = wire('modules')->get('LanguageSupportFields'); 
+			$this->LanguageSupportFields->LS_init(); 
+		}
 	}
 
 	/**
@@ -156,13 +167,8 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			$this->config->styles->add($this->config->urls->LanguageSupport . "LanguageSupport.css"); 
 		}
 
-		// populate a LanguageSupportFields var to this class, if it's installed
-		$name = 'LanguageSupportFields';
-		$supportFields = wire('modules')->isInstalled($name) ? wire('modules')->get($name) : null; 
-		$this->set($name, $supportFields); 
-
 		// if languageSupportFields is here, then we have to deal with pages that loaded before this module did
-		if($supportFields) {
+		if($this->LanguageSupportFields) {
 			$fieldNames = array();
 			// save the names of all fields that support languages
 			foreach(wire('fields') as $field) {
@@ -176,6 +182,9 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		}
 		// release this as we don't need it anymore
 		$this->earlyCachedPages = array();
+
+		if($this->LanguageSupportFields) $this->LanguageSupportFields->LS_ready(); 
+
 	}
 
 	/**

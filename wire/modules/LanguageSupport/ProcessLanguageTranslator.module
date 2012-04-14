@@ -169,6 +169,7 @@ class ProcessLanguageTranslator extends Process {
 
 		if(is_file($pathname)) {
 
+			$this->session->CSRF->validate();
 			$this->message("Found $filename"); 
 
 			if($this->parseTranslatableFile($pathname)) {

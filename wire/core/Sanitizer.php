@@ -20,6 +20,12 @@
 class Sanitizer extends Wire {
 
 	/**
+	 * May be passed to pageName for the $beautify param, see pageName for details.
+	 *
+	 */
+	const translate = 2; 
+
+	/**
 	 * Caches the status of multibyte support.
 	 *
 	 */
@@ -31,6 +37,7 @@ class Sanitizer extends Wire {
 	 */
 	public function __construct() {
 		$this->multibyteSupport = function_exists("mb_strlen"); 
+		if($this->multibyteSupport) mb_internal_encoding("UTF-8");
 	}
 
 	/**
@@ -111,13 +118,32 @@ class Sanitizer extends Wire {
 	 * Because page names are often generated from a UTF-8 title, UTF8 to ASCII conversion will take place when $beautify is on
 	 *
 	 * @param string $value
-	 * @param bool $beautify Should be true when creating a Page's name for the first time. Default is false. 
+	 * @param bool|int $beautify Should be true when creating a Page's name for the first time. Default is false. 
+	 *	You may also specify Sanitizer::translate (or number 2) for the $beautify param, which will make it translate letters
+	 *	based on the InputfieldPageName custom config settings. 
 	 * @return string
 	 *
 	 */
 	public function pageName($value, $beautify = false) {
 
-		if($beautify) {
+		static $replacements = array();
+
+		if($beautify) { 
+
+			if($beautify === self::translate && $this->multibyteSupport) {
+
+				if(empty($replacements)) {
+					$configData = wire('modules')->getModuleConfigData('InputfieldPageName'); 
+					$replacements = empty($configData['replacements']) ? InputfieldPageName::$defaultReplacements : $configData['replacements'];
+				}
+
+				foreach($replacements as $from => $to) {
+					if(mb_strpos($value, $from) !== false) {
+						$value = mb_eregi_replace($from, $to, $value); 
+					}
+				}
+			}
+
 			$v = iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", $value); 
 			if($v) $value = $v; 
 		}
@@ -125,17 +151,19 @@ class Sanitizer extends Wire {
 		$value = strtolower($this->nameFilter($value, array('-', '_', '.'), '-')); 
 
 		if($beautify) {
-			$value = trim($value, '-'); 
+			// remove leading or trailing dashes, underscores, dots
+			$value = trim($value, '-_.'); 
 
 			// replace any of '-_.' next to each other with a single dash
 			$value = preg_replace('/[-_.]{2,}/', '-', $value); 
 
 			// replace double dashes
-			if(strpos($value, '--') !== false) {
-				$value = preg_replace('/--+/', '-', $value); 
-			}
+			if(strpos($value, '--') !== false) $value = preg_replace('/--+/', '-', $value); 
 
+			// replace double dots
+			if(strpos($value, '..') !== false) $value = preg_replace('/\.\.+/', '.', $value); 
 		}
+
 		return $value; 
 	}
 

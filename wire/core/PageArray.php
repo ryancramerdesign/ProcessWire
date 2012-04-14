@@ -130,7 +130,10 @@ class PageArray extends WireArray {
 	/**
 	 * Add a Page to this PageArray.
 	 *
-	 * @param Page|int $page Page object or Page ID. If Page ID, it will be loaded and added. 
+	 * @param Page|PageArray|int $page Page object, PageArray object, or Page ID. 
+	 *	If Page, the Page will be added. 
+	 * 	If PageArray, it will do the same thing as the import() function: import all the pages. 
+	 * 	If Page ID, it will be loaded and added. 
 	 * @return PageArray reference to current instance.
 	 */
 	public function add($page) {
@@ -138,6 +141,9 @@ class PageArray extends WireArray {
 		if($this->isValidItem($page)) {
 			parent::add($page); 
 			$this->numTotal++;
+
+		} else if($page instanceof PageArray) {
+			return $this->import($page);
 
 		} else if(ctype_digit("$page")) {
 			if($page = $this->getFuel('pages')->findOne("id=$page")) {

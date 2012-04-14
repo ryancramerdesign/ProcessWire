@@ -39,6 +39,7 @@ class ProcessPageTrash extends Process {
 		$this->trashPages = $this->pages->get($this->config->trashPageID)->children("status<" . Page::statusMax);
 
 		if(isset($_POST['submit_empty']) && !empty($_POST['confirm_empty'])) {
+			$this->session->CSRF->validate();
 			$this->session->message($this->_("The trash has been emptied")); 
 			foreach($this->trashPages as $t) $this->pages->delete($t, true); 
 			// redirect to admin root after emptying trash

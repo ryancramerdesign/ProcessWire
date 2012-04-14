@@ -10,7 +10,10 @@
 	$.fn.WireTabs = function(customOptions) {
 
 		var options = {
+			rememberTabs: config.JqueryWireTabs.rememberTabs, // -1 = no, 0 = only after submit, 1 = always
+			cookieName: 'WireTabs',
 			items: null,
+			skipRememberTabIDs: [],
 			id: ''
 		};
 			
@@ -22,14 +25,35 @@
 
 			var $tabList = $("<ul></ul>").addClass("WireTabs nav");
 			var $target = $(this); 
+			var lastTabID = ''; // ID attribute of last tab that was clicked
 
 			function init() {
+
 				if(!options.items) return; 
 				if(options.id.length) $tabList.attr('id', options.id); 
 				if(options.items.size() < 2) return;
+
 				options.items.each(addTab); 
 				$target.prepend($tabList); 
-				$tabList.children("li:first").children("a").click();
+		
+				var $form = $target; 	
+				var $rememberTab = null;
+				var cookieTab = getTabCookie(); 
+
+				if(options.rememberTabs == 0) {
+					$form.submit(function() { 
+						setTabCookie(lastTabID); 
+						return true; 
+					}); 
+				}
+
+				if(cookieTab.length > 0 && options.rememberTabs > -1) $rememberTab = $tabList.find("a#_" + cookieTab);
+				if($rememberTab && $rememberTab.size() > 0) {
+					$rememberTab.click();
+					if(options.rememberTabs == 0) setTabCookie(''); // don't clear cookie when rememberTabs=1, so it continues
+				} else {
+					$tabList.children("li:first").children("a").click();
+				}
 			}
 
 			function addTab() {
@@ -51,12 +75,29 @@
 			function tabClick() {
 				var $oldTab = $($tabList.find("a.on").removeClass("on").attr('href')).hide(); 
 				var $newTab = $($(this).addClass('on').attr('href')).show(); 
+				var newTabID = $newTab.attr('id'); 
 
 				// add a target classname equal to the ID of the selected tab
 				// so there is opportunity for 3rd party CSS adjustments outside this plugin
 				$target.removeClass($oldTab.attr('id')); 
-				$target.addClass($newTab.attr('id')); 
+				$target.addClass(newTabID); 
+				if(options.rememberTabs > -1) {
+					if(jQuery.inArray(newTabID, options.skipRememberTabIDs) != -1) newTabID = '';
+					if(options.rememberTabs == 1) setTabCookie(newTabID); 
+					lastTabID = newTabID; 
+				}
 				return false; 
+			}
+
+			function setTabCookie(value) {
+				document.cookie = options.cookieName + '=' + escape(value);
+			}
+	
+			function getTabCookie() {
+				var regex = new RegExp('(?:^|;)\\s?' + options.cookieName + '=(.*?)(?:;|$)','i');
+				var match = document.cookie.match(regex);	
+				match = match ? match[1] : '';
+				return match;
 			}
 
 			init(); 

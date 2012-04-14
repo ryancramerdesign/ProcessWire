@@ -58,6 +58,7 @@ class ProcessModule extends Process {
 		ksort($this->modulesArray); 
 
 		if(isset($_POST['install'])) {
+			$this->session->CSRF->validate();
 			$name = $_POST['install']; 
 			if($name && isset($this->modulesArray[$name]) && !$this->modulesArray[$name]) {
 				$module = $this->modules->get($name); 		

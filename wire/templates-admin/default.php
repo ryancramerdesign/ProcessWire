@@ -107,7 +107,7 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 
 	<?php if(count($notices)) include($config->paths->adminTemplates . "notices.inc"); ?>
 
-	<div id="content" class="content">
+	<div id="content" class="content fouc_fix">
 		<div class="container">
 
 			<?php if(trim($page->summary)) echo "<h2>{$page->summary}</h2>"; ?>

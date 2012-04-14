@@ -66,11 +66,15 @@ class LanguageSupportFields extends WireData implements Module {
 		$this->addHookAfter('FieldtypeLanguageInterface::wakeupValue', $this, 'fieldtypeWakeupValue'); 
 	}
 
+	public function init() { 
+		// intentionally left blank
+	}
+
 	/**
 	 * Initialize the language support API vars
 	 *
 	 */
-	public function init() {
+	public function LS_init() {
 
 		$this->addHookAfter('FieldtypeLanguageInterface::sleepValue', $this, 'fieldtypeSleepValue'); 
 		$this->addHookBefore('PageFinder::getQuery', $this, 'pageFinderGetQuery'); 
@@ -101,14 +105,13 @@ class LanguageSupportFields extends WireData implements Module {
 				}
 			}
 		}	
-
 	}
 
 	/**
 	 * Called by ProcessWire when the API and known $page is ready
 	 *
 	 */
-	public function ready() {
+	public function LS_ready() {
 		$this->languages->addHook('added', $this, 'hookLanguageAdded'); 
 		$this->languages->addHook('deleted', $this, 'hookLanguageDeleted'); 
 	}
@@ -122,15 +125,16 @@ class LanguageSupportFields extends WireData implements Module {
 	 */
 	public function hookFieldtypeFormatValue(HookEvent $event) {
 
-		$language = wire('user')->language; 
-		if(!$language->id || $language->isDefault) return;
+		$field = $event->arguments[1]; 
+		if($field->name == 'language') return;
 
-		$arguments = $event->arguments; 
-		$page = $arguments[0]; 
-		$field = $arguments[1]; 
+		$language = wire('user')->get('language'); 
+		if(!$language->id || $language->isDefault()) return;
 
 		// exit quickly if we can determine now we don't need to continue
 		if(!isset($this->multilangAlternateFields[$field->name])) return; 
+
+		$page = $event->arguments[0]; 
 
 		// determine name of language field, if present.
 		// note that if the language name contains dashes or dots (- or .) the field name should contain underscores there instead
@@ -142,6 +146,7 @@ class LanguageSupportFields extends WireData implements Module {
 		$newValue = $page->get($newName); 
 		if($newValue) { 
 			// we have a new field: swap $field with $newField in the arguments
+			$arguments = $event->arguments; 
 			$arguments[1] = $newField; 
 			$arguments[2] = $newValue; 
 			$event->arguments = $arguments; 

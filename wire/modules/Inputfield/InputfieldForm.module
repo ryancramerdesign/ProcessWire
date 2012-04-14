@@ -10,7 +10,7 @@ class InputfieldForm extends InputfieldWrapper {
 		return array(
 			'title' => __('Form', __FILE__), // Module Title
 			'summary' => __('Contains one or more fields in a form', __FILE__), // Module Summary
-			'version' => 100,
+			'version' => 102,
 			'permanent' => true, 
 			);
 	}
@@ -19,6 +19,7 @@ class InputfieldForm extends InputfieldWrapper {
 		parent::__construct();
 		$this->attr('method', 'post'); 
 		$this->attr('action', './'); 
+		$this->set('protectCSRF', true); 
 	}
 
 	public function ___render() {
@@ -29,13 +30,29 @@ class InputfieldForm extends InputfieldWrapper {
 		$description = $this->getSetting('description'); 
 		if($description) $description = "\n<h2>" . $this->entityEncode($description) . "</h2>"; 
 
-		$out = 	"\n<form " . $this->getAttributesString($attrs) . ">" . 
+		$attrStr = $this->getAttributesString($attrs); 
+
+		if($this->protectCSRF && $this->attr('method') == 'post') {
+			$tokenName = wire('session')->CSRF->getTokenName();
+			$tokenValue = wire('session')->CSRF->getTokenValue();
+			$tokenField = "<input type='hidden' id='_post_token' name='$tokenName' value='$tokenValue' />";
+		} else {
+			$tokenField = '';
+		}
+
+		$out = 	"\n<form $attrStr>" . 
 			$description . 
-			parent::___render() . 	
+			parent::___render() . 
+			$tokenField . 
 			"\n</form>";
 
 		return $out; 
 	}
-	
+
+	public function ___processInput(WireInputData $input) {
+		if($this->protectCSRF && $this->attr('method') == 'post') wire('session')->CSRF->validate(); // throws exception if invalid
+		return parent::___processInput($input); 		
+	}
+
 }
 

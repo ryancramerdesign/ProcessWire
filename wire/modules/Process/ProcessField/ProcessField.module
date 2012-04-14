@@ -604,6 +604,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		if($this->fieldgroup) return $this->saveContext();
 
 		if($this->input->post->delete && $this->input->post->delete == $this->field->id && $this->field->numFieldgroups() == 0) {
+			$this->session->CSRF->validate();
 			$this->session->message($this->_('Deleted field') . " - {$this->field->name}"); // Message after deleting a field, followed by field name
 			$this->fields->delete($this->field); 
 			$this->fieldDeleted($this->field); 
@@ -773,6 +774,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$type = $this->fuel('sanitizer')->name($this->input->post->confirm_type); 
 		if($type = $this->fieldtypes->get($type)) {
+			$this->session->CSRF->validate();
 			$this->message($this->_("Field type changed")); 
 			$this->field->type = $type; 
 			$this->field->save();

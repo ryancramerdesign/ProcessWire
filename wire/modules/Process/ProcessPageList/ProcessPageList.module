@@ -114,7 +114,9 @@ class ProcessPageList extends Process implements ConfigurableModule {
 				'moveInstructionLabel' => $this->_('Click and drag to move'), // Instruction on how to move a page
 				)); 
 
-			return 	"\n<div id='PageListContainer'></div>";
+			$tokenName = $this->session->CSRF->getTokenName();
+			$tokenValue = $this->session->CSRF->getTokenValue();
+			return 	"\n<div id='PageListContainer' data-token-name='$tokenName' data-token-value='$tokenValue'></div>"; // CSRF tokens
 		}
 
 		$class = "ProcessPageListRender" . $this->render; 

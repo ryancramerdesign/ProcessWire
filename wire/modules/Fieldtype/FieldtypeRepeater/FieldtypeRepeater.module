@@ -91,7 +91,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	public function hookProcessPageEditAjaxSave(HookEvent $event) {
 
 		// if this isn't a repeater field we're dealing with, then abort
-		if(!preg_match('/^(.+)(_repeater(\d+))$/', $_SERVER['HTTP_X_FIELDNAME'], $matches)) return;
+		if(!isset($_SERVER['HTTP_X_FIELDNAME']) || !preg_match('/^(.+)(_repeater(\d+))$/', $_SERVER['HTTP_X_FIELDNAME'], $matches)) return;
 		$fieldName = wire('sanitizer')->fieldName($matches[1]); 
 		$repeaterPageID = (int) $matches[3]; 
 		if($repeaterPageID < 1) return;
