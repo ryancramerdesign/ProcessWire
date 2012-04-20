@@ -67,6 +67,12 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 	protected $path = '';
 
 	/**
+	 * Non zero when caches shouldn't expire on page save
+	 *
+	 */
+	protected $noExpire = 0; 
+
+	/**
 	 * Generate the module's path, static so it can be used by the static getModuleConfigInputfields function
 	 *
 	 */
@@ -80,7 +86,7 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 	 */
 	public function init() {
 		$this->path = self::path();
-		$this->pages->addHookAfter('save', $this, 'expire'); 
+		if(!$this->noExpire) $this->pages->addHookAfter('save', $this, 'expire'); 
 	}
 
 	/**
@@ -161,6 +167,7 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 	 *
 	 */
 	public function __set($key, $value) {
+		if($key == 'noExpire') $this->noExpire = (int) $value; 
 		// intentionally left blank
 	}
 
@@ -188,6 +195,15 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 		$f->label = "Clear the MarkupCache?";
 		$f->notes = $message; 
 		$f->description = "This will remove all files and directories used by the MarkupCache";
+		$inputfields->append($f);
+
+		$f = wire('modules')->get('InputfieldRadios');
+		$f->attr('name', 'noExpire');
+		$f->attr('value', empty($data['noExpire']) ? 0 : 1);
+		$f->label = "Expire markup caches when pages are saved?";
+		$f->description = "If you want to ensure stale data is never shown, you should choose: Yes. If you want to maximize performance, you should choose: No."; 
+		$f->addOption(0, "Yes - Expire markup caches"); 
+		$f->addOption(1, "No - Don't expire markup caches");
 		$inputfields->append($f);
 
 		return $inputfields;
