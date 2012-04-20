@@ -321,7 +321,9 @@ class ProcessTemplate extends Process {
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Basics', 'tab'));
 		$t->attr('class', 'WireTab'); 
-		$t->head = sprintf($this->_n('This template is used by 1 page', 'This template is used by %d pages', $this->numPages), $this->numPages);
+		$head = sprintf($this->_n('This template is used by 1 page', 'This template is used by %d pages', $this->numPages), $this->numPages);
+		if($this->numPages) $head = str_replace(" {$this->numPages} ", " [{$this->numPages}]({$this->config->urls->admin}page/search/?show_options=0&amp;template={$template->name}) ", $head); 
+		$t->head = $head; 
 		$f = $this->modules->get('InputfieldText'); 
 		$f->attr('name', 'templateLabel'); 
 		$f->attr('value', $template->label); 

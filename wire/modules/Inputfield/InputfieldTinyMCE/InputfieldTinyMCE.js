@@ -97,7 +97,7 @@ $(document).ready(function() {
 	// this ensures it works with object type of configurations like template_templates:[{title:'mytemplate'},...]
 	function convertObjects(config) {
 		$.each(config, function(key, value) {
-			if(value.substr(0, 1) == "[" ) config[key] = eval(value);
+			if(value && value.substr(0, 1) == "[" ) config[key] = eval(value);
 		});
 		return config;
 	};

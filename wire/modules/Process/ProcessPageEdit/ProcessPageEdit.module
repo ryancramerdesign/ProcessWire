@@ -1012,7 +1012,7 @@ class ProcessPageEdit extends Process {
 
 		if($page->isChanged()) {
 			if($numFields === 1) {
-				$page->save($lastFieldName); 
+				$page->save((string)$lastFieldName); 
 				$this->message("Saved page '{$page->id}' field '$lastFieldName'"); 
 			} else {
 				$page->save();

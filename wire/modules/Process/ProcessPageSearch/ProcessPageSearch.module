@@ -219,7 +219,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		} else {
 			// html output
 			$class = '';
-			if($this->input->get->show_options !== 0 && $this->input->urlSegment1 != 'find') {
+			if((int) $this->input->get->show_options !== 0 && $this->input->urlSegment1 != 'find') {
 				$out = "\n<div id='ProcessPageSearchOptions'>" . $this->renderFullSearchForm() . "</div>";
 				$class = 'show_options';
 			} 
