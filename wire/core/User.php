@@ -273,5 +273,13 @@ class User extends Page {
 		return !$this->isGuest();
 	}
 
+	public function get($key) {
+		return parent::get($key); 
+	}
+
+	public function __get($key) {
+		return parent::get($key); 
+	}
+
 }
 

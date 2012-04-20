@@ -213,7 +213,7 @@ class InputfieldWrapper extends Inputfield {
 			} else $errors = array();
 			
 			if($inputfield->getSetting('description')) $ffOut = "\n<p class='description'>" . nl2br($this->entityEncode($inputfield->getSetting('description'), true)) . "</p>" . $ffOut;
-			if($inputfield->getSetting('head')) $ffOut = "\n<h2>" . $this->entityEncode($inputfield->getSetting('head')) . "</h2>" . $ffOut; 
+			if($inputfield->getSetting('head')) $ffOut = "\n<h2>" . $this->entityEncode($inputfield->getSetting('head'), true) . "</h2>" . $ffOut; 
 
 			$ffOut = preg_replace('/(\n\s*)</', "$1\t\t\t<", $ffOut); // indent lines beginning with markup
 			if($inputfield->notes) $ffOut .= "\n<p class='notes'>" . nl2br($this->entityEncode($inputfield->notes, true)) . "</p>"; 

@@ -246,12 +246,23 @@ a {
 	}
 
 	.content h2 {
-		font-family: Georgia, serif; 
 		margin: 1em 0;
 		font-size: 1.6em; 
 		line-height: 1.2em; 
-		color: #006fbb; 
 	}
+		.content h2,
+		.content h2 a {
+			font-family: Georgia, serif; 
+			color: #006fbb; 
+		}
+			.content h2 a {
+				text-decoration: underline;
+			}
+			.content h2 a:hover {
+				color: #fff; 
+				text-decoration: none;
+			}
+
 		body.modal .content h2,
 		.container > h2,
 		.container > form > h2 {

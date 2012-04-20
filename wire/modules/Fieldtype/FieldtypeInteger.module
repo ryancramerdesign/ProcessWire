@@ -46,7 +46,8 @@ class FieldtypeInteger extends Fieldtype {
 	}
 
 	public function sanitizeValue(Page $page, Field $field, $value) {
-		if(is_string($value) && !ctype_digit($value)) {
+
+		if(is_string($value) && !is_numeric($value) && !ctype_digit($value)) {
 			$value = preg_replace('/[^\d]/', '', $value);
 		}
 		$value = strlen("$value") ? (int) $value : '';
