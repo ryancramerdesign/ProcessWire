@@ -31,6 +31,12 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		'addable' => 0,
 		); 
 
+	/**
+	 * Contains true when this module is in configuration state (via it's getConfigInputfields function)
+	 *
+	 */
+	protected $configMode = false;
+
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page',
@@ -60,7 +66,10 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 	public function getSelectablePages(Page $page) {
 
-		if($this->findPagesSelector) { 
+		if($this->configMode) {
+			$children = new PageArray();
+
+		} else if($this->findPagesSelector) { 
 			// a find() selector
 			$children = $this->pages->find($this->findPagesSelector); 
 
@@ -281,6 +290,9 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	}
 
 	public function ___getConfigInputfields() {
+		// let the module know it's being used for configuration purposes
+		$this->configMode = true; 
+
 		$inputfields = parent::___getConfigInputfields();
 
 		$fieldset = wire('modules')->get('InputfieldFieldset'); 
@@ -394,6 +406,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			else $field->collapsed = Inputfield::collapsedYes;
 		$inputfields->append($field); 
 
+		$this->configMode = false; // reverse what was set at the top of this function
 		return $inputfields; 
 	}
 
