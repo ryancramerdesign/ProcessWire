@@ -207,6 +207,7 @@ $(document).ready(function() {
 				xhr.open("POST", postUrl, true);
 				xhr.setRequestHeader("X-FILENAME", file.name);
 				xhr.setRequestHeader("X-FIELDNAME", fieldName);
+				xhr.setRequestHeader("Content-Type", "application/octet-stream"); // fix issue 96-Pete
 				xhr.setRequestHeader("X-" + postTokenName, postTokenValue);
 				xhr.setRequestHeader("X-REQUESTED-WITH", 'XMLHttpRequest');
 				xhr.send(file);
