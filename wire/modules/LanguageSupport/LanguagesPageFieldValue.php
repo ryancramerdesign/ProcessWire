@@ -29,8 +29,10 @@ class LanguagesPageFieldValue extends Wire {
 	/**
 	 * Construct the multi language value
 	 *
+ 	 * @param array|string $values
+	 *
 	 */
-	public function __construct(array $values = null) {
+	public function __construct($values = null) { // #98
 
 		$languageSupport = wire('modules')->get('LanguageSupport');
 		$this->defaultLanguagePageID = $languageSupport->defaultLanguagePageID; 
