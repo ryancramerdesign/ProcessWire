@@ -51,7 +51,6 @@ class LanguageSupportFields extends WireData implements Module {
 	 */
 	protected $multilangAlternateFields = array();
 
-
 	/**
 	 * Construct and set our dynamic config vars
 	 *
@@ -329,7 +328,7 @@ class LanguageSupportFields extends WireData implements Module {
 		$values = array();
 
 		foreach(wire('languages') as $language) {
-			if($language->isDefault) $key = 'data';
+			if($language->isDefault()) $key = 'data';
 				else $key = 'data' . $language->id; 
 			$values[$key] = $value->getLanguageValue($language->id); 
 		}

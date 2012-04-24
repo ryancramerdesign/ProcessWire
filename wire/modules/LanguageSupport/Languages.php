@@ -24,6 +24,20 @@ class Languages extends PagesType {
 	protected $translator = null;
 
 	/**
+	 * Cached all published languages (for getIterator)
+	 *
+	 * We cache them so that the individual language pages persist through saves.
+	 *
+	 */
+	protected $languages = null;
+
+	/**
+	 * Cached all languages including unpublished (for getAll)
+	 *
+	 */
+	protected $languagesAll = null;
+
+	/**
 	 * Construct this Languages PagesType
 	 *
 	 */
@@ -48,7 +62,9 @@ class Languages extends PagesType {
 	 *
 	 */
 	public function getAll() {
-		return $this->pages->find("template={$this->template->name}, include=all"); 
+		if($this->languagesAll) return $this->languagesAll; 
+		$this->languagesAll = $this->pages->find("template={$this->template->name}, include=all"); 
+		return $this->languagesAll;
 	}
 
 	/**
@@ -56,7 +72,13 @@ class Languages extends PagesType {
 	 *
 	 */
 	public function getIterator() {
-		return $this->find("id>0, sort=sort");
+		if($this->languages) return $this->languages; 
+		$this->languages = new PageArray();
+		foreach($this->getAll() as $language) { 
+			if($language->is(Page::statusUnpublished) || $language->is(Page::statusHidden)) continue; 
+			$this->languages->add($language); 
+		}
+		return $this->languages; 
 	}
 
 	/**
