@@ -499,6 +499,11 @@ class PageFinder extends Wire {
 				$query->join("pages AS $tableAlias ON $tableAlias.id=pages.parent_id"); 
 				$value = "$tableAlias." . ($subValue ? $subValue : "name"); 
 
+			} else if($value == 'template') { 
+				$tableAlias = "_sort_templates" . ($subValue ? "_$subValue" : ''); 
+				$query->join("templates AS $tableAlias ON $tableAlias.id=pages.templates_id"); 
+				$value = "$tableAlias." . ($subValue ? $subValue : "name"); 
+
 			} else if($fields->isNativeName($value)) {
 				if(!strpos($value, ".")) $value = "pages.$value";
 
