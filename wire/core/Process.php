@@ -40,8 +40,10 @@ abstract class Process extends WireData implements Module {
 	 */
 	public function init() { 
 		$class = $this->className();
-		if(is_file($this->config->paths->$class . "$class.css")) $this->config->styles->add($this->config->urls->$class . "$class.css"); 
-		if(is_file($this->config->paths->$class . "$class.js")) $this->config->scripts->add($this->config->urls->$class . "$class.js"); 
+		$info = $this->getModuleInfo(); 
+		$version = (int) $info['version'];
+		if(is_file($this->config->paths->$class . "$class.css")) $this->config->styles->add($this->config->urls->$class . "$class.css?v=$version"); 
+		if(is_file($this->config->paths->$class . "$class.js")) $this->config->scripts->add($this->config->urls->$class . "$class.js?v=$version"); 
 	}
 
 	/**

@@ -141,8 +141,10 @@ abstract class Inputfield extends WireData implements Module {
 	 */
 	public function hookRender($event) {
 		$class = $this->className();
-		if(is_file($this->config->paths->$class . "$class.css")) $this->config->styles->add($this->config->urls->$class . "$class.css"); 
-		if(is_file($this->config->paths->$class . "$class.js")) $this->config->scripts->add($this->config->urls->$class . "$class.js"); 
+		$info = $this->getModuleInfo();
+		$version = (int) $info['version'];
+		if(is_file($this->config->paths->$class . "$class.css")) $this->config->styles->add($this->config->urls->$class . "$class.css?v=$version"); 
+		if(is_file($this->config->paths->$class . "$class.js")) $this->config->scripts->add($this->config->urls->$class . "$class.js?v=$version"); 
 	}
 
 	/**
@@ -380,6 +382,17 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	abstract public function ___render();
+
+	/**
+	 * Render just the value (not input) in text/markup for presentation purposes
+	 *
+ 	 * @return string of text or markup where applicable
+	 *
+	 */
+	public function ___renderValue() {
+		$out = htmlentities($this->attr('value'), ENT_QUOTES, "UTF-8"); 
+		return $out; 
+	}
 
 	/**
 	 * Process the input from the given WireInputData (usually $input->get or $input->post), load and clean the value for use in this Inputfield. 
