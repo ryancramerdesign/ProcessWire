@@ -6,7 +6,7 @@ class JqueryWireTabs extends ModuleJS implements ConfigurableModule {
                 return array(
                         'title' => __('jQuery Wire Tabs Plugin', __FILE__),
                         'summary' => __('Provides a jQuery plugin for generating tabs in ProcessWire.', __FILE__),
-                        'version' => 102,
+                        'version' => 103,
 			'permanent' => true, 
                         );
         }

@@ -76,10 +76,11 @@
 				var $oldTab = $($tabList.find("a.on").removeClass("on").attr('href')).hide(); 
 				var $newTab = $($(this).addClass('on').attr('href')).show(); 
 				var newTabID = $newTab.attr('id'); 
+				var oldTabID = $oldTab.attr('id'); 
 
 				// add a target classname equal to the ID of the selected tab
 				// so there is opportunity for 3rd party CSS adjustments outside this plugin
-				$target.removeClass($oldTab.attr('id')); 
+				if(oldTabID) $target.removeClass($oldTab.attr('id')); 
 				$target.addClass(newTabID); 
 				if(options.rememberTabs > -1) {
 					if(jQuery.inArray(newTabID, options.skipRememberTabIDs) != -1) newTabID = '';
