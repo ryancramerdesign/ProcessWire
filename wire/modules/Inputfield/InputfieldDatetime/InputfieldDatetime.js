@@ -1,37 +1,60 @@
 jQuery(document).ready(function($) {
 
-
 	$("input.InputfieldDatetimeDatepicker").each(function(n) {
 
 		var $t = $(this); 
-		var $hidden = $("<input type='hidden' />"); 
-		var val = $t.val();
-		var d = new Date(val); 
+		var pickerVisible = $t.is(".InputfieldDatetimeDatepicker2");
+		var ts = parseInt($t.attr('data-ts')); 
+		var tsDate = null;
+		var dateFormat = $t.attr('data-dateformat'); 
+		var timeFormat = $t.attr('data-timeformat');
+		var hasTimePicker = timeFormat.length > 0 && !pickerVisible;
+		var showOn = $t.is(".InputfieldDatetimeDatepicker3") ? 'focus' : 'button';
+		var ampm = parseInt($t.attr('data-ampm')) > 0; 
 
-		$hidden.val(d.getTime()); 
-		$t.after($hidden); 
+		if(ts > 1) tsDate = new Date(ts); 
 
-		$hidden.datepicker({
+		if(pickerVisible) {
+			// datepicker always visible (inline)
+			var $datepicker = $("<div></div>"); 
+			$t.parent('p').after($datepicker); 
+		} else {
+			// datepicker doesn't appear till requested
+			var $datepicker = $t; 
+		}
+
+		var options = {
 			changeMonth: true,
 			changeYear: true,
-			showOn: 'button',
+			showOn: showOn,
 			buttonText: "&gt;",
 			showAnim: 'fadeIn',
-			dateFormat: '@',
+			dateFormat: dateFormat,
 			gotoCurrent: true,
-			altField: $t,
-			altFormat: 'yy-mm-dd'
-			
+			defaultDate: tsDate
 			// buttonImage: config.urls.admin_images + 'icons/calendar.gif',
 			// dateFormat: config.date_format
-		});
+		}; 
 
-		$t.change(function() {
-			var val = $(this).val();
-			if(val.length < 1) return;
-			var d = new Date(val); 
-			$hidden.val(d.getTime()); 
-		}); 	
+		if(hasTimePicker) { 
+			options.ampm = ampm; 
+			options.timeFormat = timeFormat; 
+			if(timeFormat.indexOf('ss') > -1) options.showSecond = true; 
+			if(timeFormat.indexOf('m') == -1) options.showMinute = false;
+			$datepicker.datetimepicker(options); 
+		} else {
+			$datepicker.datepicker(options); 
+		}
+
+		if(pickerVisible) {
+			$datepicker.change(function(e) {
+				var d = $datepicker.datepicker('getDate');
+				var str = $.datepicker.formatDate(dateFormat, d); 
+				$t.val(str); 
+			}); 
+		}
+			
+
 	}); 
 
 }); 
