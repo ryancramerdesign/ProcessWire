@@ -16,6 +16,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 		$this->set('thead', ''); 
 		$this->set('optionColumns', 0); 
 		parent::init();
+		$this->set('size', null); // cancel 'size' attribute used by select multiple
 	}
 
 	public function ___render() {	

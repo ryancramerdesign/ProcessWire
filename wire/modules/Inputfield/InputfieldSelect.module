@@ -136,7 +136,7 @@ class InputfieldSelect extends Inputfield {
 
 			$selected = $this->isOptionSelected($value) ? " selected='selected'" : '';
 			$attrs = $this->getOptionAttributesString($value);
-			$out .= "\n\t<option$selected $attrs value='" . htmlspecialchars($value, ENT_QUOTES) . "'>" . $this->entityEncode($label) . "</option>";
+			$out .= "\n\t<option$selected $attrs value='" . htmlspecialchars($value, ENT_QUOTES, "UTF-8") . "'>" . $this->entityEncode($label) . "</option>";
 		}
 
 		return $out; 
@@ -155,6 +155,15 @@ class InputfieldSelect extends Inputfield {
 			$this->renderOptions($this->options) . 
 			"\n</select></p>";
 
+		return $out; 
+	}
+
+	public function ___renderValue() {
+		$out = "<ul>";
+		foreach($this->options as $value => $label) {
+			if($this->isOptionSelected($value)) $out .= "<li>" . htmlspecialchars($label, ENT_QUOTES, "UTF-8") . "</li>"; 
+		}
+		$out .= "</ul>";	
 		return $out; 
 	}
 
@@ -216,6 +225,15 @@ class InputfieldSelect extends Inputfield {
 	public function get($key) {
 		if($key == 'options') return $this->options; 
 		return parent::get($key); 
+	}
+
+	public function set($key, $value) {
+		if($key == 'options') {
+			if(!is_array($value)) return $this; 
+			$this->options = $value; 	
+			return $this;
+		}
+		return parent::set($key, $value); 
 	}
 
 	

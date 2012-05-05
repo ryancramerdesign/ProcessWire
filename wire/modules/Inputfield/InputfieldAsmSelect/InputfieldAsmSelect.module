@@ -28,6 +28,9 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 
 		// only applicable if editLink is set. set to false if you don't want edit link to be modal
 		$this->setAsmSelectOption('editLinkModal', true); 
+
+		// cancel the 'size' attribute used by select multiple
+		$this->set('size', null); 
 	}
 
 	public function setAsmSelectOption($key, $value) {

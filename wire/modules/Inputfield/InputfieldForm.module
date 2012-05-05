@@ -20,10 +20,12 @@ class InputfieldForm extends InputfieldWrapper {
 		$this->attr('method', 'post'); 
 		$this->attr('action', './'); 
 		$this->set('protectCSRF', true); 
+		$this->set('class', ''); 
 	}
 
 	public function ___render() {
 
+		$this->attr('class', $this->attr('class') . ' InputfieldForm');
 		$attrs = $this->getAttributes();
 		unset($attrs['value']); 
 
