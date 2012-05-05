@@ -1,18 +1,16 @@
-
 /**********************************************************************************************
  * ProcessWire Admin Control Panel - Skyscraper Theme - ui.css
  *
- * This file provides the final layout styling and overdies for the admin control panel. 
- * This is typically the last CSS file loaded, so it is used for overriding any default
- * styles provided by ProcessWire modules. 
+ * 1. jQuery UI overrides.
+ * 2. Theming of specific user interface elements (MarkupPagerNav and PageList)
  *
- * Copyright 2010 by Ryan Cramer
+ * Copyright 2012 by Ryan Cramer
  *
  */
 
 
 /****************************************************************************************
- * Theme specific jQuery UI overrides and additions
+ * 1. Theme specific jQuery UI overrides and additions
  *
  */
 
@@ -48,197 +46,31 @@
 	background: #000; 
 }
 
-
-/****************************************************************************************
- * Theme specific Inputfield module overrides
- *
- */
-
-.Inputfields {
+.ui-button {
+	font-size: 1em; 
+	margin: 0 1em 0 0; 
+	padding: 3px 9px; 
+	cursor: pointer; 
+	box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); 
 }
 
-	.Inputfields,
-	.Inputfields li,
-	.Inputfields input,
-	.Inputfields select,
-	.Inputfields textarea {
-		font-size: 12px; 
+	p > a > .ui-button {
+		font-size: 0.923076923076923em;
 	}
 
-	.Inputfields > li > div.ui-widget-content {
-		padding: 1em; 
-	}
-
-	.Inputfields .ui-widget-header {
-		padding: 0.25em 0 0.25em 1em; 
-		-webkit-user-select: none;
-		-khtml-user-select: none;
-		-moz-user-select: none;
-		-o-user-select: none;
-		user-select: none;
-	}
-
-		.Inputfields .InputfieldStateToggle span.ui-icon {
-			float: right; 
-			padding-right: 0.25em; 
-		}
-
-	.Inputfields > li {
+	a .ui-button {
 		display: block;
-		margin: 1em 0;
-		clear: both; 
 	}
 
-	.Inputfields > li.InputfieldColumnWidth {
-		float: left; 
-		clear: none; 
-		margin-top: 0; 
-		margin-left: 1%; 
-	}
-		.Inputfields li.InputfieldColumnWidthFirst {
-			clear: both; 
-			margin-left: 0; 
-		}
-
-	.Inputfields > li:first-child {
-		margin-top: 0;
-	}
-
-	.Inputfields > li > .ui-widget-content *:last-child {
-		margin-bottom: 0;
-	}
-		.Inputfields > li > .ui-widget-content ul.ui-helper-clearfix:last-child {
-			margin-bottom: -1em; 
-		}
-
-	.Inputfields > li > .ui-widget-content > p,
-	.Inputfields > li > .ui-widget-content > div > p {
-		margin-top: 0; 
-	}
-		.Inputfields > li > .ui-widget-content > p:last-child {
-			margin-bottom: 0; 
-		}
-
-	.Inputfields > li > .ui-widget-content > .Inputfields > li {
-		margin-top: 0; 
-	}
-		.Inputfields > li > .ui-widget-content > .Inputfields > li:first-child {
-			margin-top: 0; 
-		}
-		.Inputfields li > .ui-widget-content > .Inputfields > li:last-child {
-			margin-bottom: 0;
-		}
-
-	.Inputfields > li .notes {
-		margin-bottom: 0; 
-	}
-		.Inputfields > li > .ui-widget-content input + p.notes {
-			margin-top: 1em; 
-		}
-
-	.Inputfields .InputfieldHidden {
+button.ui-datepicker-trigger {
+	margin: 0 0 0 0.5em;
+}
+	#ui-datepicker-div {
 		display: none; 
 	}
 
-	.Inputfields .InputfieldSubmit,
-	.Inputfields .InputfieldButton {
-		clear: none; 
-	}
-		.Inputfields .InputfieldSubmit .ui-widget-content,
-		.Inputfields .InputfieldButton .ui-widget-content {
-			padding: 0; 
-			background: none; 
-			border: none; 
-		}
-
-		.Inputfields .InputfieldSubmit .ui-widget-header,
-		.Inputfields .InputfieldButton .ui-widget-header {
-			display: none; 
-		}
-
-		.ui-button {
-			font-size: 1em; 
-			margin: 0 1em 0 0; 
-			padding: 3px 9px; 
-			cursor: pointer; 
-			box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); 
-		}
-
-		p > a > .ui-button {
-			font-size: 0.923076923076923em;
-		}
-
-		a .ui-button {
-			display: block;
-		}
-
-		button.ui-datepicker-trigger {
-			margin: 0 0 0 0.5em;
-		}
-			#ui-datepicker-div {
-				display: none; 
-			}
-
-
-	.Inputfields .InputfieldCheckboxes input,
-	.Inputfields .InputfieldRadios input {
-		margin-right: 0.25em; 
-	}
-		.Inputfields .InputfieldCheckboxes li,
-		.Inputfields .InputfieldRadios li {
-			margin: 0; 
-		}
-
-	.Inputfields .InputfieldCheckbox {
-	}
-		.Inputfields .InputfieldCheckbox .notes,
-		.Inputfields .InputfieldCheckboxes .notes,
-		.Inputfields .InputfieldRadios .notes {
-			margin-top: 1em; 
-		}
-
-
-	.Inputfields label {
-		display: block;
-	}
-
-	.Inputfields textarea, 
-	.InputfieldMaxWidth {
-		width: 99%; 
-	}
-
-		.Inputfields textarea {
-			display: block;
-		}
-
-	.Inputfields .InputfieldStateToggle {
-		cursor: pointer;
-	}
-
-		.Inputfields > .InputfieldStateCollapsed {
-		}
-
-			.Inputfields > .InputfieldStateCollapsed .ui-widget-header {
-				opacity: 0.6; 
-			}
-			.Inputfields > .InputfieldStateCollapsed .ui-widget-header:hover {
-				opacity: 1.0; 
-			}
-
-			.Inputfields > .InputfieldStateCollapsed .ui-widget-content {
-				display: none;
-			}
-
-			.Inputfields > .InputfieldStateCollapsed .InputfieldStateToggle {
-			}
-
-	.InputfieldPageNameURL {
-		font-family: Monaco, Courier, Monaco, monospace; 
-	}
-
-
 /***********************************************************************************************
- * Theme Specific Pagination Markup
+ * 2a. Theme Specific Pagination Markup
  *
  */
 
@@ -286,7 +118,7 @@
 
 
 /****************************************************************************************
- * Theme specific PageList overrides
+ * 2b. Theme specific PageList overrides
  *
  */
 

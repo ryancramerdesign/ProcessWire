@@ -1,0 +1,183 @@
+/**********************************************************************************************
+ * ProcessWire Admin Control Panel - Skyscraper Theme - inputfields.css
+ *
+ * This file provides common styling for ProcessWire inputfields. All other Inputfield styles
+ * are provided by the Inputfield modules themselves.
+ *
+ * Copyright 2012 by Ryan Cramer
+ *
+ */
+
+.InputfieldForm ul.Inputfields,
+.InputfieldForm ul.Inputfields > li {
+	list-style: none; 
+	margin: 1em 0;
+	padding: 0;
+}
+	.InputfieldForm ul.Inputfields ul.Inputfields {
+		margin-top: 0;
+	}
+
+.Inputfields,
+.Inputfields li,
+.Inputfields input,
+.Inputfields select,
+.Inputfields textarea,
+.Inputfields table {
+	font-size: 12px; 
+}
+
+.Inputfields > li > div.ui-widget-content {
+	padding: 1em; 
+}
+
+.Inputfields .ui-widget-header {
+	padding: 0.25em 0 0.25em 1em; 
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-o-user-select: none;
+	user-select: none;
+}
+
+	.Inputfields .InputfieldStateToggle span.ui-icon {
+		float: right; 
+		padding-right: 0.25em; 
+	}
+
+.Inputfields label {
+	display: block;
+}
+
+.Inputfields > li {
+	display: block;
+	margin: 1em 0;
+	clear: both; 
+}
+
+.InputfieldForm .Inputfields > li.InputfieldColumnWidth {
+	float: left; 
+	clear: none; 
+	margin-top: 0; 
+	margin-left: 1%; 
+}
+	.InputfieldForm .Inputfields li.InputfieldColumnWidthFirst {
+		clear: both; 
+		margin-left: 0; 
+	}
+
+.InputfieldForm .Inputfields > li > .ui-widget-content > ul:first-child,
+.InputfieldForm .Inputfields > li:first-child {
+	margin-top: 0;
+}
+
+.Inputfields > li > .ui-widget-content *:last-child {
+	margin-bottom: 0;
+}
+	.Inputfields > li > .ui-widget-content ul.ui-helper-clearfix:last-child {
+		margin-bottom: -1em; 
+	}
+
+.Inputfields > li > .ui-widget-content > p,
+.Inputfields > li > .ui-widget-content > div > p {
+	margin-top: 0; 
+}
+	.Inputfields > li > .ui-widget-content > p:last-child {
+		margin-bottom: 0; 
+	}
+
+.Inputfields > li > .ui-widget-content > .Inputfields > li {
+	margin-top: 0; 
+}
+	.Inputfields > li > .ui-widget-content > .Inputfields > li:first-child {
+		margin-top: 0; 
+	}
+	.Inputfields li > .ui-widget-content > .Inputfields > li:last-child {
+		margin-bottom: 0;
+	}
+
+.Inputfields > li .notes {
+	margin-bottom: 0; 
+}
+	.Inputfields > li > .ui-widget-content input + p.notes {
+		margin-top: 1em; 
+	}
+
+.Inputfields .InputfieldHidden {
+	display: none; 
+}
+
+.Inputfields .InputfieldSubmit,
+.Inputfields .InputfieldButton {
+	clear: none; 
+}
+	.Inputfields .InputfieldSubmit .ui-widget-content,
+	.Inputfields .InputfieldButton .ui-widget-content {
+		padding: 0; 
+		background: none; 
+		border: none; 
+	}
+
+	.Inputfields .InputfieldSubmit .ui-widget-header,
+	.Inputfields .InputfieldButton .ui-widget-header {
+		display: none; 
+	}
+
+
+.Inputfields .InputfieldCheckboxes ul li,
+.Inputfields .InputfieldRadios ul li {
+	list-style: none; 
+}
+
+	.Inputfields .InputfieldCheckboxes input,
+	.Inputfields .InputfieldRadios input {
+		margin-right: 0.25em; 
+	}
+		.Inputfields .InputfieldCheckboxes li,
+		.Inputfields .InputfieldRadios li {
+			margin: 0; 
+		}
+
+.Inputfields .InputfieldCheckbox {
+}
+	.Inputfields .InputfieldCheckbox .notes,
+	.Inputfields .InputfieldCheckboxes .notes,
+	.Inputfields .InputfieldRadios .notes {
+		margin-top: 1em; 
+	}
+
+
+.Inputfields textarea, 
+.InputfieldMaxWidth {
+	width: 99%; 
+}
+	.Inputfields textarea {
+		display: block;
+	}
+
+.Inputfields .InputfieldStateToggle {
+	cursor: pointer;
+}
+
+	.Inputfields > .InputfieldStateCollapsed {
+	}
+
+		.Inputfields > .InputfieldStateCollapsed .ui-widget-header {
+			opacity: 0.6; 
+		}
+		.Inputfields > .InputfieldStateCollapsed .ui-widget-header:hover {
+			opacity: 1.0; 
+		}
+
+		.Inputfields > .InputfieldStateCollapsed .ui-widget-content {
+			display: none;
+		}
+
+.InputfieldPageNameURL {
+	font-family: Monaco, Courier, Monaco, monospace; 
+}
+
+.InputfieldForm ul.Inputfields li.InputfieldStateError {
+	border: none; 
+}
+

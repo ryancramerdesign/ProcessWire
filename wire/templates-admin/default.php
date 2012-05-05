@@ -12,9 +12,11 @@ $searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSear
 $bodyClass = $input->get->modal ? 'modal' : '';
 if(!isset($content)) $content = '';
 
-$config->styles->prepend($config->urls->adminTemplates . "styles/main.css"); 
-$config->styles->append($config->urls->adminTemplates . "styles/ui.css?v=1"); 
-$config->scripts->append($config->urls->adminTemplates . "scripts/main.js"); 
+$config->styles->prepend($config->urls->adminTemplates . "styles/main.css?v=2"); 
+$config->styles->append($config->urls->adminTemplates . "styles/inputfields.css"); 
+$config->styles->append($config->urls->adminTemplates . "styles/ui.css?v=2"); 
+$config->scripts->append($config->urls->adminTemplates . "scripts/inputfields.js"); 
+$config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=2"); 
 
 $browserTitle = wire('processBrowserTitle'); 
 if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FILE__) . ' &bull; ProcessWire';

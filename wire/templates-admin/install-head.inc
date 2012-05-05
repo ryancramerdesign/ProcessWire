@@ -13,6 +13,7 @@ if(!isset($bgTitle)) $bgTitle = "Installer";
 
 	<link rel="stylesheet" type="text/css" href="wire/templates-admin/styles/main.css" />
 	<link rel="stylesheet" type="text/css" href="wire/templates-admin/styles/ui.css" />
+	<link rel="stylesheet" type="text/css" href="wire/templates-admin/styles/inputfields.css" />
 	<link rel="stylesheet" type="text/css" href="wire/templates-admin/styles/install.css" />
 
 	<script type="text/javascript" src="wire/modules/Jquery/JqueryCore/JqueryCore.js"></script>

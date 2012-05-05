@@ -5,7 +5,12 @@
 .InputfieldCheckboxesColumns {
 	width: 100%; 
 }
-.InputfieldCheckboxesColumns li {
+
+.Inputfields .InputfieldCheckboxes ul li {
+	list-style: none; 
+}
+
+.Inputfields .InputfieldCheckboxesColumns li {
 	display: block;
 	float: left; 
 	padding-right: 1%; 
