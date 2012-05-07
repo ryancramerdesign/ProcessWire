@@ -627,7 +627,7 @@ $(document).ready(function() {
 				var postData = {
 					id: id, 
 					parent_id: parent_id, 
-					sort: sortCSV,
+					sort: sortCSV
 				}; 
 
 				postData[$('#PageListContainer').attr('data-token-name')] = $('#PageListContainer').attr('data-token-value'); // CSRF Token

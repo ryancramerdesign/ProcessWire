@@ -20,9 +20,9 @@
 
 class ProcessPageSort extends Process {
 
-	protected $ids; 
-	protected $parent_id; 
-	protected $move_id; 
+	protected $ids = array(); 
+	protected $parent_id = 0; 
+	protected $move_id = 0; 
 	protected $user; 
 	protected $isMoved = false;
 
@@ -58,15 +58,18 @@ class ProcessPageSort extends Process {
 		$this->session->CSRF->validate(); // throws exception if invalid
 
 		$this->user = $this->fuel('user'); 
-		$this->ids = explode(',', $_POST['sort']); 
-		foreach($this->ids as $k => $v) $this->ids[(int) $k] = (int) $v; 
+		$this->ids = array();
+		$ids = explode(',', $_POST['sort']); 
+		foreach($ids as $sort => $id) $this->ids[(int) $sort] = (int) $id; 
 		if(!count($this->ids)) return; 
+		unset($ids);
 
 		$this->parent_id = (int) $_POST['parent_id']; 
 		$this->move_id = (int) $_POST['id'];
 			
 		$parentPage = $this->fuel('pages')->get($this->parent_id);
 		$movePage = $this->fuel('pages')->get($this->move_id); 
+		if($movePage->id < 2 || !$parentPage->id) return;
 
 		$this->movePage($movePage, $parentPage); 
 		$this->sortPages($movePage, $parentPage); 
@@ -110,21 +113,25 @@ class ProcessPageSort extends Process {
 		}
 
 		$changes = 0; 
+		$sortStart = 0;
 
-		foreach($parent->children("status<" . Page::statusMax) as $child) {
-			$sort = array_search((int) $child->id, $this->ids, true); 		
-			if($sort === false) continue; 
+		// locate the 'sort' value of the current first sorted item, to use as our starting point (in case sorting in a pagination other than 1)
+		$sql = 	"SELECT sort FROM pages " . 
+			"WHERE parent_id={$parent->id} " . 
+			"AND id IN(" . implode(',', $this->ids) . ") " . 
+			($this->isMoved ? "AND id!={$this->move_id} " : '') . 
+			"ORDER BY sort " . 
+			"LIMIT 1"; 
+		
+		$result = $this->db->query($sql);
+		if($result->num_rows) list($sortStart) = $result->fetch_row();
 
-			if($child->sort != $sort) {
-				$child->setOutputFormatting(false); 
-				$child->resetTrackChanges(true);
-				$child->sort = $sort; 	
-				$child->save();
-			}
-
-			$changes++; 
+		foreach($this->ids as $sort => $id) {
+			$sort += $sortStart; 
+			$this->db->query("UPDATE pages SET sort=$sort WHERE id=$id AND parent_id=$parent->id AND sort!=$sort"); 
+			if($this->db->affected_rows) $changes++;
 		}
-
+		
 		if($changes) $this->message("Updated sort for $changes pages"); 
 		
 	}
