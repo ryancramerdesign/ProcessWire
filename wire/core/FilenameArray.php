@@ -5,12 +5,25 @@ class FilenameArray implements IteratorAggregate {
 	protected $data = array();
 
 	public function add($filename) {
-		$this->data[] = $filename; 
+		$key = $this->getKey($filename);
+		$this->data[$key] = $filename; 
 		return $this; 
+	}
+
+	protected function getKey($filename) {
+		$pos = strpos($filename, '?'); 
+		$key = $pos ? substr($filename, 0, $pos) : $filename;
+		return md5($key);
 	}
 	
 	public function prepend($filename) {
-		array_unshift($this->data, $filename); 
+		$key = $this->getKey($filename);	
+		$data = array($key => $filename); 
+		foreach($this->data as $k => $v) {
+			if($k == $key) continue; 
+			$data[$k] = $v; 
+		}
+		$this->data = $data; 
 		return $this; 	
 	}
 
@@ -23,7 +36,8 @@ class FilenameArray implements IteratorAggregate {
 	}
 
 	public function unique() {
-		$this->data = array_unique($this->data); 	
+		// no longer necessary since the add() function ensures uniqueness
+		// $this->data = array_unique($this->data); 	
 		return $this; 
 	}
 
