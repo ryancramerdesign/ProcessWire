@@ -428,6 +428,10 @@ class Pages extends Wire {
 			} while($child->id); 
 			$page->name = $name; 
 		}
+
+		if(!$page->sort) {
+			$page->sort = $page->parent->numChildren;
+		}
 	}
 
 	/**
