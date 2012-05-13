@@ -100,11 +100,16 @@ $(document).ready(function() {
 	$("#wrap_noChildren input").click(function() {
 		if($("#noChildren_0:checked").size() > 0) {
 			$("#wrap_childTemplates").slideDown(); 
+			$("#sortfield_fieldset").slideDown(); 
 		} else {	
 			$("#wrap_childTemplates").slideUp(); 
+			$("#sortfield_fieldset").slideUp(); 
 		}
 	}); 
-	if($("#noChildren_1:checked").size() > 0) $("#wrap_childTemplates").hide();
+	if($("#noChildren_1:checked").size() > 0) {
+		$("#wrap_childTemplates").hide();
+		$("#sortfield_fieldset").hide(); 
+	}
 
 	$("#wrap_noParents input").click(function() {
 		if($("#noParents_0:checked").size() > 0) {

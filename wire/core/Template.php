@@ -112,6 +112,7 @@ class Template extends WireData implements Saveable {
 		'addRoles' => array(),		// IDs of roles that may add children to pages using this template
 		'createRoles' => array(),	// IDs of roles that may create pages using this template
 		'childrenTemplatesID' => 0, 	// template ID for child pages, or -1 if no children allowed. DEPRECATED
+		'sortfield' => '',		// Field that children of templates using this page should sort by. blank=page decides or 'sort'=manual drag-n-drop
 		'noChildren' => '', 		// set to 1 to cancel use of childTemplates
 		'noParents' => '', 		// set to 1 to cancel use of parentTemplates
 		'childTemplates' => array(),	// array of template IDs that are allowed for children. blank array = any. 
@@ -273,6 +274,10 @@ class Template extends WireData implements Saveable {
 				parent::set('childTemplates', $v);
 			}
 
+		} else if($key == 'sortfield') {
+			$value = $this->fuel('pages')->sortfields()->decode($value, '');	
+			parent::set($key, $value); 
+
 		} else if(in_array($key, array('addRoles', 'editRoles', 'createRoles', 'childTemplates', 'parentTemplates'))) {
 			if(!is_array($value)) $value = array();
 			foreach($value as $k => $v) $value[(int)$k] = (int) $v; 
@@ -286,6 +291,7 @@ class Template extends WireData implements Saveable {
 		} else {
 			parent::set($key, $value); 
 		}
+
 		return $this; 
 	}
 
@@ -442,7 +448,10 @@ class Template extends WireData implements Saveable {
 	public function getTableData() {
 
 		$tableData = $this->settings; 
-		$tableData['data'] = $this->getArray();
+		$data = $this->getArray();
+		// ensure sortfield is a signed integer or native name, rather than a custom fieldname
+		if(!empty($data['sortfield'])) $data['sortfield'] = $this->fuel('pages')->sortfields()->encode($data['sortfield'], ''); 
+		$tableData['data'] = $data; 
 		
 		return $tableData; 
 	}

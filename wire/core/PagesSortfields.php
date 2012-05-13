@@ -60,7 +60,7 @@ class PagesSortfields extends Wire {
 	 * @return string
 	 *
 	 */
-	public function decode($sortfield) {
+	public function decode($sortfield, $default = 'sort') {
 
 		$reverse = false;
 
@@ -75,7 +75,7 @@ class PagesSortfields extends Wire {
 				else $sortfield = '';
 		}
 
-		if(!$sortfield) $sortfield = 'sort';
+		if(!$sortfield) $sortfield = $default;
 			else if($reverse) $sortfield = "-$sortfield";
 
 		return $sortfield; 
@@ -91,7 +91,7 @@ class PagesSortfields extends Wire {
 	 *
 	 */
 
-	public function encode($sortfield) {
+	public function encode($sortfield, $default = 'sort') {
 
 		$reverse = false; 
 	
@@ -108,7 +108,7 @@ class PagesSortfields extends Wire {
 		if($sortfield) {
 			if($reverse) $sortfield = "-$sortfield";
 		} else {
-			$sortfield = 'sort';
+			$sortfield = $default;
 		}
 
 		return $sortfield; 

@@ -296,6 +296,7 @@ class Page extends WireData {
 				$this->setUser($value, strpos($key, 'created') === 0 ? 'created' : 'modified'); 
 				break;
 			case 'sortfield':
+				if($this->template && $this->template->sortfield) break;
 				$value = $this->fuel('pages')->sortfields()->decode($value); 
 				if($this->settings[$key] != $value) $this->trackChange($key); 
 				$this->settings[$key] = $value; 
@@ -596,6 +597,7 @@ class Page extends WireData {
 			if(is_null($this->templatePrevious)) $this->templatePrevious = $this->template; 
 			$this->trackChange('template'); 
 		}
+		if($tpl->sortfield) $this->settings['sortfield'] = $tpl->sortfield; 
 		$this->template = $tpl; 
 		return $this;
 	}

@@ -293,6 +293,7 @@ class ProcessPageEdit extends Process {
 		$title = $this->_('Children'); // Tab Label: Children
 		if($this->page->numChildren) $title = "<em>$title</em>";
 		$wrapper->attr('title', $title); 
+		$templateSortfield = $this->page->template->sortfield;
 
 		if(!$this->isPost) { 
 
@@ -308,6 +309,10 @@ class ProcessPageEdit extends Process {
 			if($pageList) $field->value = $pageList->execute();
 				else $field->description = $this->_("There are currently no children/subpages below this page."); 
 
+			if($templateSortfield && $templateSortfield != 'sort') {
+				$field->notes = sprintf($this->_('Children are sorted by "%s", per the template setting.'), $templateSortfield); 
+			}
+
 			if($this->page->addable()) { 
 				$button = $this->modules->get("InputfieldButton"); 
 				$button->attr('id+name', 'AddPageBtn'); 
@@ -318,52 +323,73 @@ class ProcessPageEdit extends Process {
 			$wrapper->append($field); 
 		}
 
-
-		if($this->user->hasPermission('page-sort', $this->page)) { 		
-			$fieldset = $this->modules->get("InputfieldFieldset"); 
-			$fieldset->collapsed = Inputfield::collapsedYes; 
+		if(empty($this->page->template->sortfield) && $this->user->hasPermission('page-sort', $this->page)) { 		
+			$sortfield = $this->page->sortfield && $this->page->sortfield != 'sort' ? $this->page->sortfield : '';
+			$fieldset = self::buildFormSortfield($sortfield, $this); 
 			$fieldset->label = $this->_('Sort Settings'); // Children sort settings field label
 			$fieldset->description = $this->_("If you want all current and future children to automatically sort by a specific field, select the field below and optionally check the 'reverse' checkbox to make the sort descending. Leave the sort field blank if you want to be able to drag-n-drop to your own order."); // Sort settings description text
-
-			$field = $this->modules->get('InputfieldSelect');
-			$field->name = 'sortfield'; 
-			$field->value = ltrim($this->page->sortfield, '-'); 
-			$field->columnWidth = 60; 
-			$field->label = $this->_('Sort field'); // Children sort field label
-
-			$options = array(
-				'name' => 'name', 
-				'status' => 'status', 
-				'modified' => 'modified', 
-				'created' => 'created', 
-				); 
-
-			$field->addOption('sort', 'None'); 
-			$field->addOption($this->_('Native Fields'), $options); // Optgroup label for sorting by fields native to ProcessWire
-
-			$customOptions = array();
-
-			foreach($this->fields as $f) {
-				if(!($f->flags & Field::flagAutojoin)) continue; 
-				$customOptions[$f->name] = $f->name; 
-			}
-
-			ksort($customOptions); 
-			$field->addOption($this->_('Custom Fields'), $customOptions); // Optgroup label for sorting by custom fields
-			$fieldset->append($field); 
-
-			$f = $this->modules->get('InputfieldCheckbox');
-			$f->value = 1; 
-			$f->attr('id+name', 'sortfield_reverse'); 
-			$f->label = $this->_('Reverse sort direction?'); // Checkbox labe to reverse the sort direction
-			if(substr($this->page->sortfield, 0, 1) == '-') $f->attr('checked', 'checked'); 
-			$f->columnWidth = 40; 
-
-			$fieldset->append($f); 
 			$wrapper->append($fieldset); 
 		}
 
 		return $wrapper;
+	}
+
+	/**
+	 * Build the sortfield configuration fieldset
+	 *
+	 * NOTE: This is also used by ProcessTemplate, so it is self contained
+	 *
+	 * @param string $sortfield Current sortfield value
+	 * @param Process $caller The calling process
+	 * @return InputfieldFieldset
+	 *
+	 */
+	public static function buildFormSortfield($sortfield, Process $caller) {
+
+		$fieldset = wire('modules')->get("InputfieldFieldset"); 
+		if(!$sortfield) $fieldset->collapsed = Inputfield::collapsedYes; 
+
+		$field = wire('modules')->get('InputfieldSelect');
+		$field->name = 'sortfield'; 
+		$field->value = ltrim($sortfield, '-'); 
+		$field->columnWidth = 60; 
+		$field->label = __('Children are sorted by', __FILE__); // Children sort field label
+
+		// if in ProcessTemplate, give a 'None' option that indicates the Page has control
+		if($caller instanceof ProcessTemplate) $field->addOption('', __('None', __FILE__)); 
+
+		$field->addOption('sort', __('Manual drag-n-drop', __FILE__));
+
+		$options = array(
+			'name' => 'name', 
+			'status' => 'status', 
+			'modified' => 'modified', 
+			'created' => 'created', 
+			); 
+
+		$field->addOption(__('Native Fields', __FILE__), $options); // Optgroup label for sorting by fields native to ProcessWire
+
+		$customOptions = array();
+
+		foreach(wire('fields') as $f) {
+			//if(!($f->flags & Field::flagAutojoin)) continue; 
+			if($f->type instanceof FieldtypeFieldsetOpen) continue; 
+			$customOptions[$f->name] = $f->name; 
+		}
+
+		ksort($customOptions); 
+		$field->addOption(__('Custom Fields', __FILE__), $customOptions); // Optgroup label for sorting by custom fields
+		$fieldset->append($field); 
+
+		$f = wire('modules')->get('InputfieldCheckbox');
+		$f->value = 1; 
+		$f->attr('id+name', 'sortfield_reverse'); 
+		$f->label = __('Reverse sort direction?', __FILE__); // Checkbox labe to reverse the sort direction
+		if(substr($sortfield, 0, 1) == '-') $f->attr('checked', 'checked'); 
+		$f->columnWidth = 40; 
+
+		$fieldset->append($f); 
+		return $fieldset; 
 	}
 
 	/**
@@ -709,7 +735,6 @@ class ProcessPageEdit extends Process {
 			} else if($value & $flag) {
 				$value = $value & ~$flag; 
 			}
-		
 		}
 
 		$this->page->status = $value; 
@@ -724,6 +749,7 @@ class ProcessPageEdit extends Process {
 		if(!$this->user->hasPermission('page-sort', $this->page)) return true; 
 		$sortfield = $this->sanitizer->name($inputfield->value); 
 		if($sortfield != 'sort' && !empty($_POST['sortfield_reverse'])) $sortfield = '-' . $sortfield; 
+		if(empty($sortfield)) $sortfield = 'sort';
 		$this->page->sortfield = $sortfield; 
 		return true; 
 	}

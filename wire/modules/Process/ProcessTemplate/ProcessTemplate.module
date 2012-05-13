@@ -875,6 +875,7 @@ class ProcessTemplate extends Process {
 		$field->addOption(0, $this->labels['Yes']); 
 		$field->addOption(1, $this->labels['No']); 
 		$field->attr('value', (int) $template->noChildren); 
+		$field->columnWidth = 50; 
 		$form->add($field);
 
 		// --------------------
@@ -882,11 +883,25 @@ class ProcessTemplate extends Process {
 		$field = $this->modules->get("InputfieldRadios"); 
 		$field->attr('id+name', 'noParents'); 
 		$field->label = $this->_('Can this template be used for new pages?');
-		$field->notes = $this->_("An example of a template that you wouldn't want to be used for new pages is your 'homepage' template."); // noParents option, description
+		// $field->notes = $this->_("An example of a template that you wouldn't want to be used for new pages is your 'homepage' template."); // noParents option, description
 		$field->addOption(0, $this->labels['Yes']); 
 		$field->addOption(1, $this->labels['No']); 
 		$field->attr('value', (int) $template->noParents); 
+		$field->columnWidth = 50; 
 		$form->add($field);
+
+		// ----------------------
+
+		$field = $this->modules->get('InputfieldAsmSelect'); 
+		$field->attr('id+name', 'parentTemplates'); 
+		$field->label = $this->_('Allowed template(s) for parents');
+		$field->description = $this->_("Select the template(s) that will be allowed as parents for pages using this template. Use this only if you specifically want to restrict placement of pages using this template."); // parentTemplates option, description
+
+		foreach($this->templates as $t) $field->addOption($t->id, $t->name);
+		$field->attr('value', $template->parentTemplates); 
+		$field->collapsed = count($template->parentTemplates) ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
+		$field->notes = $this->_("If none are selected then any parent template is allowed, within the user's access limits. An example usage could be an 'employee' template that is only allowed to have a parent page using a 'company-directory' template."); // parentTemplates option, notes
+		$form->add($field); 
 
 		// ----------------------
 
@@ -903,18 +918,13 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 
-		$field = $this->modules->get('InputfieldAsmSelect'); 
-		$field->attr('id+name', 'parentTemplates'); 
-		$field->label = $this->_('Allowed template(s) for parents');
-		$field->description = $this->_("Select the template(s) that will be allowed as parents for pages using this template. Use this only if you specifically want to restrict placement of pages using this template."); // parentTemplates option, description
+		$fieldset = ProcessPageEdit::buildFormSortfield($template->sortfield, $this); 
+		$fieldset->attr('id', 'sortfield_fieldset'); 
+		$fieldset->label = $this->_('Sort settings for children'); 
+		$fieldset->description = $this->_('If you want children to automatically sort by a specific field, select it here. Otherwise select "None" to let this be set per-page instead. This overrides the page setting, so if you select anything other than "None", the sort option will not appear for pages using this template.'); 
+		$form->add($fieldset); 
 
-		foreach($this->templates as $t) $field->addOption($t->id, $t->name);
-		$field->attr('value', $template->parentTemplates); 
-		$field->collapsed = count($template->parentTemplates) ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
-		$field->notes = $this->_("If none are selected then any parent template is allowed, within the user's access limits. An example usage could be an 'employee' template that is only allowed to have a parent page using a 'company-directory' template."); // parentTemplates option, notes
-		$form->add($field); 
 
-		// $this->buildEditFormAccessAddRoles($template, $form); 
 
 		return $form;
 	}
@@ -1162,7 +1172,7 @@ class ProcessTemplate extends Process {
 			$this->template->childTemplates = array();
 		} else {
 			$a = array();
-			foreach($this->input->post->childTemplates as $id) $a[] = (int) $id;	
+			if(is_array($this->input->post->childTemplates)) foreach($this->input->post->childTemplates as $id) $a[] = (int) $id;	
 			$this->template->childTemplates = $a; 
 			$this->template->noChildren = 0;
 		}
@@ -1172,10 +1182,15 @@ class ProcessTemplate extends Process {
 			$this->template->parentTemplates = array();
 		} else {
 			$a = array();
-			foreach($this->input->post->parentTemplates as $id) $a[] = (int) $id;	
+			if(is_array($this->input->post->parentTemplates)) foreach($this->input->post->parentTemplates as $id) $a[] = (int) $id;	
 			$this->template->parentTemplates = $a; 
 			$this->template->noParents = 0;
 		}
+
+		$sortfield = $this->sanitizer->name($_POST['sortfield']); 
+		if($sortfield && $sortfield != 'sort' && !empty($_POST['sortfield_reverse'])) $sortfield = '-' . $sortfield;
+		$this->template->sortfield = $sortfield;
+
 
 		// system
 

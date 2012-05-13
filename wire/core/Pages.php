@@ -281,14 +281,16 @@ class Pages extends Wire {
 			if(!$template || $template->id != $templates_id) $template = $this->fuel('templates')->get($templates_id);
 			$fields = $template->fieldgroup; 
 			$query = new DatabaseQuerySelect();
+			$joinSortfield = empty($template->sortfield);
 
 			$query->select(	
-				"false AS isLoaded, pages.templates_id AS templates_id, pages.*, pages_sortfields.sortfield, " . 
+				"false AS isLoaded, pages.templates_id AS templates_id, pages.*, " . 
+				($joinSortfield ? 'pages_sortfields.sortfield, ' : '') . 
 				"(SELECT COUNT(*) FROM pages AS children WHERE children.parent_id=pages.id) AS numChildren"
 				); 
 
-			$query->leftjoin("pages_sortfields ON pages_sortfields.pages_id=pages.id"); 
-			$query->groupby("pages.id"); 
+			if($joinSortfield) $query->leftjoin('pages_sortfields ON pages_sortfields.pages_id=pages.id'); 
+			$query->groupby('pages.id'); 
 	
 			foreach($fields as $field) { 
 				if(!($field->flags & Field::flagAutojoin)) continue; 
@@ -517,7 +519,7 @@ class Pages extends Wire {
 		// return outputFormatting state
 		$page->setOutputFormatting($outputFormatting); 
 
-		$this->sortfields->save($page); 
+		if(empty($page->template->sortfield)) $this->sortfields->save($page); 
 		if($options['resetTrackChanges']) $page->resetTrackChanges();
 		if($isNew) {
 			$page->setIsNew(false); 
