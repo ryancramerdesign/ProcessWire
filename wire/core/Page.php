@@ -177,7 +177,7 @@ class Page extends WireData {
 		'name' => '', 
 		'status' => 1, 
 		'numChildren' => 0, 
-		'sort' => 0, 
+		'sort' => -1, 
 		'sortfield' => 'sort', 
 		'modified_users_id', 
 		'created_users_id',
@@ -223,10 +223,13 @@ class Page extends WireData {
 			$name = $field->name; 
 			if(!$field->type->isAutoload() && !isset($this->data[$name])) continue; // important for draft loading
 			$value = $this->get($name); 
-			if(is_object($value)) {
-				if(!$value instanceof Page) $this->set($name, clone $value); // attempt re-commit
-				if($value instanceof Pagefiles) $this->get($name)->setPage($this); 
-			}
+			// no need to clone non-objects, as they've already been cloned
+			if(!is_object($value)) continue;
+			// if value doesn't resolve to a page, then create a clone of it
+			if(!$value instanceof Page) $this->set($name, clone $value); // attempt re-commit
+			// if value is Pagefiles, then tell it the new page
+			if($value instanceof Pagefiles) $this->get($name)->setPage($this); 
+
 		}
 		$this->instanceID .= ".clone";
 		if($track) $this->setTrackChanges(true); 
@@ -275,6 +278,9 @@ class Page extends WireData {
 				if(($key == 'parent_id' || is_int($value)) && $value) $value = $this->fuel('pages')->get((int)$value); 
 					else if(is_string($value)) $value = $this->fuel('pages')->get($value); 
 				if($value) $this->setParent($value);
+				break;
+			case 'parentPrevious':
+				if(is_null($value) || $value instanceof Page) $this->parentPrevious = $value; 
 				break;
 			case 'template': 
 			case 'templates_id':
@@ -536,7 +542,7 @@ class Page extends WireData {
 		if($outputFormatting) $this->setOutputFormatting(true); 
 		
 		$value = parent::get($key); 	
-		if(is_object($value) && $value instanceof Wire) $value->setTrackChanges(true);
+		if(is_object($value) && $value instanceof Wire) $value->resetTrackChanges(true);
 		if($track) $this->setTrackChanges(true); 
 		return $this->outputFormatting ? $field->type->formatValue($this, $field, $value) : $value; 
 	}
@@ -1301,6 +1307,22 @@ class Page extends WireData {
 		return false;
 	}
 
+	/**
+	 * Is $value1 equal to $value2?
+	 *
+	 * @param string $key Name of the key that triggered the check (see WireData::set)
+	 * @param mixed $value1
+	 * @param mixed $value2
+	 * @return bool
+	 *
+	 */
+	protected function isEqual($key, $value1, $value2) {
+		if($value1 === $value2) {
+			if(is_object($value1) && $value1 instanceof Wire && $value1->isChanged()) $this->trackChange($key);
+			return true; 
+		} 
+		return false;
+	}
 
 	/** REMOVED
 	public function roles() {}

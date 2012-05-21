@@ -201,7 +201,7 @@ class ProcessPageClone extends Process {
 		$cloneTree = $input->post->clone_page_tree && $this->user->hasPermission('page-clone-tree', $this->page);
 
 		$pageName = $this->sanitizer->pageName($input->post->clone_page_name); 
-		$nameTaken = count($this->page->parent->children("name=$name")) > 0;
+		$nameTaken = count($this->page->parent->children("name=$pageName, include=all")) > 0;
 
 		$clone = $this->pages->clone($page, NULL, $cloneTree); 
 

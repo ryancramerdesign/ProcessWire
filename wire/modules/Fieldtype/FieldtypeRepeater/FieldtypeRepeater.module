@@ -801,19 +801,32 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		// pages that will be saved
 		$savePages = array();
 
+		// options to pass to save() or clone()
+		$saveOptions = array('uncacheAll' => false); 
+
 		// pages that will be deleted
 		$deletePages = $value->getItemsRemoved();
 
-		$parent_id = $this->getRepeaterPageParent($page, $field)->id;
+		$repeaterParent = $this->getRepeaterPageParent($page, $field);
+		$parent_id = $repeaterParent->id;
 		$template_id = $field->template_id; 
 
 		// iterate through each page in the pageArray value
 		// and determine which need to be saved 
-		foreach($value as $p) {
+		foreach($value as $key => $p) {
 
-			if($p->parent->id != $parent_id || $p->template->id != $template_id) {
+			if($p->template->id != $template_id) {
 				$value->remove($p);
-				$this->message("Removed invalid page {$p->path} from field $field", Notice::debug); 
+				$this->message("Removed invalid template ({$p->template->name}) page {$p->path} from field $field", Notice::debug); 
+				continue; 
+			}
+
+			if($p->parent->id != $parent_id) {
+				// clone the individual repeater pages
+				$value->remove($p); 
+				$p = wire('pages')->clone($p, $repeaterParent, false, $saveOptions);
+				$value->add($p);
+				$this->message("Cloned to repeater {$p->path} from field $field", Notice::debug); 
 				continue; 
 			}
 
@@ -834,7 +847,8 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			if($p->id) {
 				// existing page
 				if($p->is(Page::statusHidden) && $p->is(Page::statusUnpublished)) continue; // this is a 'ready' page, we can ignore
-				$this->message("Saved Repeater {$p->path} (" . implode(', ', $p->getChanges()) . ')', Notice::debug); 
+				$changes = implode(', ', $p->getChanges());
+				$this->message("Saved Repeater {$p->path} " . ($changes ? "($changes)" : ''), Notice::debug); 
 
 				// if the repeater is unpublished and the $page isn't, then remove the unpublished status from the repeater
 				if($p->is(Page::statusUnpublished) && !$page->is(Page::statusUnpublished)) $p->removeStatus(Page::statusUnpublished); 
@@ -844,7 +858,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			}
 
 			// save the repeater page
-			wire('pages')->save($p, array('uncacheAll' => false));				
+			wire('pages')->save($p, $saveOptions);				
 		}
 
 		// iterate through the pages that were removed
@@ -856,7 +870,10 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			wire('pages')->delete($p);
 		}
 
-		return parent::___savePageField($page, $field);
+		$result = parent::___savePageField($page, $field);
+		// ensure that any of our cloned page replacements (removes) don't get recorded any follow-up saves
+		$value->resetTrackChanges();
+		return $result;
 	}
 
 	/**

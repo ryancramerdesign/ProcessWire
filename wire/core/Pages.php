@@ -431,7 +431,7 @@ class Pages extends Wire {
 			$page->name = $name; 
 		}
 
-		if(!$page->sort) {
+		if($page->sort < 0) {
 			$page->sort = $page->parent->numChildren;
 		}
 	}
@@ -470,6 +470,7 @@ class Pages extends Wire {
 
 		$user = $this->fuel('user'); 
 		$userID = $user ? $user->id : $this->config->superUserPageID; 
+		$this->saveReady($page); 
 
 		$sql = 	"pages SET " . 
 			"parent_id=" . ((int) $page->parent_id) . ", " . 
@@ -477,8 +478,9 @@ class Pages extends Wire {
 			"name='" . $this->db->escape_string($page->name) . "', " . 
 			"modified_users_id=" . ((int) $userID) . ", " . 
 			"status=" . ((int) $page->status) . ", " . 
-			"sort=" . ((int) $page->sort) . "," . 
+			"sort=" . ($page->sort > -1 ? (int) $page->sort : 0) . "," . 
 			"modified=NOW()"; 
+
 
 		if($isNew) {
 			if($page->id) $sql .= ", id=" . (int) $page->id; 
@@ -819,10 +821,11 @@ class Pages extends Wire {
 	 * @param Page $page Page that you want to clone
 	 * @param Page $parent New parent, if different (default=same parent)
 	 * @param bool $recursive Clone the children too? (default=true)
+	 * @param array $options Optional options that can be passed to clone or save
 	 * @return Page the newly cloned page or a NullPage() with id=0 if unsuccessful.
 	 *
 	 */
-	public function ___clone(Page $page, Page $parent = null, $recursive = true) {
+	public function ___clone(Page $page, Page $parent = null, $recursive = true, $options = array()) {
 
 		// if parent is not changing, we have to modify name now
 		if(is_null($parent)) {
@@ -859,7 +862,8 @@ class Pages extends Wire {
 
 		$o = $copy->outputFormatting; 
 		$copy->setOutputFormatting(false); 
-		$this->save($copy); 
+		$this->cloneReady($page, $copy); 
+		$this->save($copy, $options); 
 		$copy->setOutputFormatting($o); 
 
 		// check to make sure the clone has worked so far
@@ -875,6 +879,9 @@ class Pages extends Wire {
 				$this->clone($child, $copy); 	
 			}	
 		}
+
+		$copy->parentPrevious = null;
+		$copy->resetTrackChanges();
 
 		$this->cloned($page, $copy); 
 		$this->debugLog('clone', "page=$page, parent=$parent", $copy);
@@ -1107,6 +1114,20 @@ class Pages extends Wire {
 	protected function ___restored(Page $page) { }
 
 	/**
+	 * Hook called just before a page is saved
+	 *
+	 * May be preferable to a before(save) hook because you know for sure a save will 
+	 * be executed immediately after this is called. Whereas you don't necessarily know
+ 	 * that when before(save) is called, as an error may prevent it. 
+	 *
+	 * Note that there is no ___saved() hook because it's already provided by after(save).
+	 *
+	 * @param Page $page The page about to be saved
+	 *
+	 */
+	protected function ___saveReady(Page $page) { }
+
+	/**
 	 * Hook called when a page is about to be deleted, but before data has been touched
 	 *
 	 * This is different from a before(delete) hook because this hook is called once it has 
@@ -1121,6 +1142,14 @@ class Pages extends Wire {
 	 */
 	protected function ___deleted(Page $page) { }
 
+	/**
+	 * Hook called when a page is about to be cloned, but before data has been touched
+	 *
+	 * @param Page $page The original page to be cloned
+	 * @param Page $copy The actual clone about to be saved
+	 *
+	 */
+	protected function ___cloneReady(Page $page, Page $copy) { }
 
 	/**
 	 * Hook called when a page has been cloned

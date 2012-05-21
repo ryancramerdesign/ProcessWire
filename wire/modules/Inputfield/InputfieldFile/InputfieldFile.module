@@ -225,9 +225,9 @@ class InputfieldFile extends Inputfield {
 		}
 
 		$key = "sort_$id";
-		$val = $input->$key;
+		$val = (int) $input->$key;
 		if($val !== NULL) {
-			$pagefile->sort = (int) $val;
+			$pagefile->sort = $val;
 			if($n !== $val) $changed = true; 
 		}
 
