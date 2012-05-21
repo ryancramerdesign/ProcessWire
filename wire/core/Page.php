@@ -1204,12 +1204,13 @@ class Page extends WireData {
 	 * You may optionally specify a boolean value for $outputFormatting which will set the current state, like setOutputFormatting().
 	 *
 	 * @param bool $outputFormatting If specified, sets outputFormatting ON or OFF. If not specified, outputFormatting status does not change. 
-	 * @return bool Current outputFormatting state. 
+	 * @return bool outputFormatting state (before this function call, if it was changed)
 	 *
 	 */
 	public function of($outputFormatting = null) {
+		$of = $this->outputFormatting; 
 		if(!is_null($outputFormatting)) $this->outputFormatting = $outputFormatting ? true : false; 
-		return $this->outputFormatting; 
+		return $of; 
 	}
 
 	/**
