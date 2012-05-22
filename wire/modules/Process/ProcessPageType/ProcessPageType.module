@@ -105,7 +105,7 @@ class ProcessPageType extends Process implements ConfigurableModule {
 			$n = 0; 
 			$row = array();
 			foreach($fieldNames as $name) {
-				if(!$n) $row[(string)$page->get($name)] = "edit/?id={$page->id}";
+				if(!$n) $row[$page->get($name) . ' '] = "edit/?id={$page->id}";
 					else $row[] = $this->renderListFieldValue($name, $page->get($name)); 
 				$n++;
 			}
