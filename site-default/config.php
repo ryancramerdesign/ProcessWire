@@ -110,7 +110,6 @@ $config->demo = false;
  */
 $config->adminEmail = '';
 
-
 /**
  * Prefix to use in page URLs for page numbers, i.e. a prefix of 'page' would use 'page1', 'page2', etc. 
  *

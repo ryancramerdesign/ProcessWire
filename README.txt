@@ -14,7 +14,7 @@ http://processwire.com
 Download ProcessWire at:
 http://github.com/ryancramerdesign/ProcessWire
 
-Follow ProcessWire on Twitter at:
+Follow ProcessWire on Twitter at @processwire
 http://twitter.com/processwire/
 
 
@@ -68,6 +68,9 @@ have to replace your /wire/ directory. Note that the /wire/ directory
 does not contain any files specific to your site, only to ProcessWire. 
 All the files specific to your site are stored in /site/ and you would
 leave that directory alone during an upgrade. 
+
+After upgrading, you may get an error on the first web request you try, 
+but that should only happen once, so just reload the page. 
 
 If you are interested, this process is outlined in more detail in our
 upgrade FAQ: 

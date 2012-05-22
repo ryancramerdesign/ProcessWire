@@ -64,3 +64,10 @@ $config->userAuthHashType = 'sha1';
  */
 $config->dateFormat = 'Y-m-d H:i:s';  
 
+/**
+ * protectCSRF: enables CSRF (cross site request forgery) protection on all PW forms,
+ * recommended for improved security.
+ *
+ */
+$config->protectCSRF = true;
+
