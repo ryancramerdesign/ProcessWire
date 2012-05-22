@@ -76,6 +76,7 @@ $(document).ready(function() {
 			$readyItem.hide();
 			$readyItem.removeClass('InputfieldRepeaterReady'); 
 			$readyItem.find('input.InputfieldRepeaterDisabled').remove(); // allow it to be saved
+			$readyItem.find('input.InputfieldRepeaterPublish').attr('value', 1); // identify it as added
 			$readyItem.slideDown('fast'); 
 			$readyItem.children('.ui-widget-content').effect('highlight', {}, 1000); 
 			return false;
