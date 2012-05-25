@@ -453,12 +453,12 @@ class Page extends WireData {
 			case 'modified_users_id': 
 			case 'modifiedUsersID':
 			case 'modifiedUserID':
-				$value = $this->settings['created_users_id']; 
+				$value = $this->settings['modified_users_id']; 
 				break;
 			case 'created_users_id':
 			case 'createdUsersID':
 			case 'createdUserID': 
-				$value = $this->settings['modified_users_id'];
+				$value = $this->settings['created_users_id'];
 				break;
 			case 'modifiedUser':
 				if(!$value = $this->fuel('users')->get($this->settings['modified_users_id'])) $value = new NullUser(); 
