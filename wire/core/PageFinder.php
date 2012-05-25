@@ -231,7 +231,7 @@ class PageFinder extends Wire {
 				continue; 
 
 			} else if($this->getFuel('fields')->isNativeName($field)) {
-				$this->getQueryNativeField($query, $selector, $field); 
+				$this->getQueryNativeField($query, $selector, $fields); 
 				continue; 
 			} 
 
@@ -601,64 +601,79 @@ class PageFinder extends Wire {
 	 * TODO not all operators will work here, so may want to add some translation or filtering
 	 *
 	 */
-	protected function getQueryNativeField(DatabaseQuerySelect $query, $selector, $field) {
+	protected function getQueryNativeField(DatabaseQuerySelect $query, $selector, $fields) {
 
 		$value = $selector->value; 
 		$valueArray = is_array($value) ? $value : array($value); 
-		$sql = '';
+		$SQL = '';
 
-		if($field == 'template' || $field == 'templates_id') {
-			// convert templates specified as a name to the numeric template ID
-			// allows selectors like 'template=my_template_name'
-			foreach($valueArray as $k => $v) {
-				if(!ctype_digit("$v")) $valueArray[$k] = (($template = $this->fuel('templates')->get($v)) ? $template->id : 0); 
-			}
-			$field = 'templates_id';
-			if(count($valueArray) == 1 && $selector->getOperator() === '=') $this->templates_id = reset($valueArray);
+		foreach($fields as $field) { 
 
-		} else if($field == 'parent' || $field == 'parent_id') {
-			// convert parent fields like '/about/company/history' to the equivalent ID
-			foreach($valueArray as $k => $v) {
-				if(ctype_digit("$v")) continue; 
-				$parent = $this->fuel('pages')->get($v); 
-				if(!$parent instanceof NullPage) $valueArray[$k] = $parent->id; 
-					else $valueArray[$k] = null;
-
-			}
-			$field = 'parent_id';
-			if(count($valueArray) == 1 && $selector->getOperator() === '=') $this->parent_id = reset($valueArray); 
-		}
-
-		foreach($valueArray as $value) { 
-
-			if(is_null($value)) {
-				// an invalid/unknown walue was specified, so make sure it fails
-				$sql .= "1>2";
+			if(!$this->getFuel('fields')->isNativeName($field)) {
+				$this->error("Native and custom field names may not be combined in the same selector OR expression: " . implode('|', $fields)); 
 				continue; 
 			}
 
-			if(in_array($field, array('created', 'modified'))) {
-				// prepare value for created or modified date fields
-				if(!ctype_digit($value)) $value = strtotime($value); 
-				$value = date('Y-m-d H:i:s', $value); 
+			$sql = '';
+
+			if($field == 'template' || $field == 'templates_id') {
+				// convert templates specified as a name to the numeric template ID
+				// allows selectors like 'template=my_template_name'
+				foreach($valueArray as $k => $v) {
+					if(!ctype_digit("$v")) $valueArray[$k] = (($template = $this->fuel('templates')->get($v)) ? $template->id : 0); 
+				}
+				$field = 'templates_id';
+				if(count($valueArray) == 1 && $selector->getOperator() === '=') $this->templates_id = reset($valueArray);
+
+			} else if($field == 'parent' || $field == 'parent_id') {
+				// convert parent fields like '/about/company/history' to the equivalent ID
+				foreach($valueArray as $k => $v) {
+					if(ctype_digit("$v")) continue; 
+					$parent = $this->fuel('pages')->get($v); 
+					if(!$parent instanceof NullPage) $valueArray[$k] = $parent->id; 
+						else $valueArray[$k] = null;
+
+				}
+				$field = 'parent_id';
+				if(count($valueArray) == 1 && $selector->getOperator() === '=') $this->parent_id = reset($valueArray); 
 			}
 
-			if(!$this->db->isOperator($selector->operator)) 
-				throw new WireException("Operator '{$selector->operator}' is not yet supported for fields native to pages table"); 
+			foreach($valueArray as $value) { 
 
-			$value = $this->db->escape_string($value); 
-			$s = "pages." . $field . $selector->operator . (ctype_digit("$value") ? (int) $value : "'$value'");
+				if(is_null($value)) {
+					// an invalid/unknown walue was specified, so make sure it fails
+					$sql .= "1>2";
+					continue; 
+				}
 
-			if($selector->not) $s = "NOT ($s)";
-			if($selector->operator == '!=' || $selector->not) {
-				$sql .= $sql ? " AND $s": "$s"; 
-			} else {
-				$sql .= $sql ? " OR $s": "$s"; 
+				if(in_array($field, array('created', 'modified'))) {
+					// prepare value for created or modified date fields
+					if(!ctype_digit($value)) $value = strtotime($value); 
+					$value = date('Y-m-d H:i:s', $value); 
+				}
+
+				if(!$this->db->isOperator($selector->operator)) 
+					throw new WireException("Operator '{$selector->operator}' is not yet supported for fields native to pages table"); 
+
+				$value = $this->db->escape_string($value); 
+				$s = "pages." . $field . $selector->operator . (ctype_digit("$value") ? (int) $value : "'$value'");
+
+				if($selector->not) $s = "NOT ($s)";
+				if($selector->operator == '!=' || $selector->not) {
+					$sql .= $sql ? " AND $s": "$s"; 
+				} else {
+					$sql .= $sql ? " OR $s": "$s"; 
+				}
+
 			}
 
+			if($SQL) $SQL .= " OR ($sql)"; 
+				else $SQL .= "($sql)";
 		}
 
-		$query->where("($sql)"); 
+		if(count($fields) > 1) $SQL = "($SQL)";
+
+		$query->where($SQL); 
 	}
 
 	/**
@@ -668,6 +683,18 @@ class PageFinder extends Wire {
 	protected function getQueryHasParent(DatabaseQuerySelect $query, $selector) {
 
 		$parent_id = (int) $selector->value;
+
+		if($parent_id == 1) {
+			// homepage
+			if($selector->operator == '!=') {
+				// homepage is only page that can match not having a has_parent of 1
+				$query->where("pages.id=1"); 
+			} else {
+				// no different from not having a has_parent, so we ignore it since rootLevel pages aren't indexed for this
+			}
+			return; 
+		}
+
 		$joinType = 'join';
 
 		if($selector->operator == '!=') { 
