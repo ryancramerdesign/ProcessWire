@@ -247,10 +247,10 @@ class LanguageSupportFields extends WireData implements Module {
 
 		$arguments = $event->arguments; 
 		$selectors = $arguments[0]; 
-		$changed = false; 
 
 		foreach($selectors as $key => $selector) {
 
+			$changed = false; 
 			$fields = $selector->field;
 			$fields = is_array($fields) ? $fields : array($fields);
 

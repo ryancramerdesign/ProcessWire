@@ -120,7 +120,7 @@ class Pagefile extends WireData {
 		$value = null; 
 
 		if($key == 'name') $key = 'basename';
-		if($key == 'pathname') $key == 'filename';
+		if($key == 'pathname') $key = 'filename';
 
 		switch($key) {
 			case 'url':
