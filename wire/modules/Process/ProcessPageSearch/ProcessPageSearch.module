@@ -287,6 +287,9 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		// limit results for pagination
 		$selector .= ", limit={$this->resultLimit}";
 
+		// exclude admin pages unless the admin template is chosen
+		if($this->input->whitelist('template') != 'admin') $selector .= ", has_parent!=" . wire('config')->adminRootPageID; 
+
 		// include hidden pages
 		if($this->user->isSuperuser()) $selector .= ", include=all";
 			else $selector .= ", status<" . Page::statusUnpublished;
