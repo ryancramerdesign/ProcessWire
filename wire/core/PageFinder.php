@@ -682,7 +682,10 @@ class PageFinder extends Wire {
 	 */
 	protected function getQueryHasParent(DatabaseQuerySelect $query, $selector) {
 
+		static $cnt = 0; 
+
 		$parent_id = (int) $selector->value;
+		$cnt++;
 
 		if($parent_id == 1) {
 			// homepage
@@ -696,18 +699,20 @@ class PageFinder extends Wire {
 		}
 
 		$joinType = 'join';
+		$table = "pages_has_parent$cnt";
 
 		if($selector->operator == '!=') { 
 			$joinType = 'leftjoin';
-			$query->where("pages_parents.pages_id IS NULL"); 
+			$query->where("$table.pages_id IS NULL"); 
 		} 
 
+
 		$query->$joinType(
-			"pages_parents ON (" . 
-				"pages_parents.pages_id=pages.parent_id " . 
+			"pages_parents AS $table ON (" . 
+				"$table.pages_id=pages.parent_id " . 
 				"AND (" . 
-					"pages_parents.parents_id=$parent_id " . 
-					"OR pages_parents.pages_id=$parent_id " . 
+					"$table.parents_id=$parent_id " . 
+					"OR $table.pages_id=$parent_id " . 
 				")" . 
 			")"
 		); 
