@@ -79,6 +79,74 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 */
 	public function ready() {
 		if(wire('page')->process == 'ProcessPageEdit') $this->addHookBefore('ProcessPageEdit::ajaxSave', $this, 'hookProcessPageEditAjaxSave'); 
+		$this->addHookBefore('PageFinder::getQuery', $this, 'hookPageFinderGetQuery'); 
+	}
+
+	/**
+	 * Hook into PageFinder::getQuery
+	 *
+	 * Determines if the query is attempting to directly search a field used by a repeater. 
+	 * If it is, then it specifically excludes them. This is so that one could use a 'title' field
+	 * in both a repeater and elsewhere, and not worry about repeaters themselves appearing in 
+	 * search results for an admin.
+	 *
+	 */
+	public function hookPageFinderGetQuery(HookEvent $event) {
+
+		static $fieldsUsedInRepeaters = null;
+		static $templatesUsedByRepeaters = array();
+
+		$selectors = $event->arguments[0]; 
+
+		// determine which fields are used in repeaters
+		if(is_null($fieldsUsedInRepeaters)) {
+			$fieldsUsedInRepeaters = array('title'); // title used by admin template (repeater parents)
+			foreach(wire('templates') as $template) {
+				if(strpos($template->name, self::templateNamePrefix) === 0) {
+					$templatesUsedByRepeaters[] = $template->id; 
+					foreach($template->fieldgroup as $field) {
+						$fieldsUsedInRepeaters[] = $field->name; 
+					}
+				}
+			}
+		}
+
+		// did we find a field used by a repeater in the selector?
+		$found = false;
+
+		// was include=all specified?
+		$includeAll = false;
+
+		// determine if any of the fields used in the selector are also used in a repeater
+		// and set $found and $includeAll as appropriate
+		foreach($selectors as $selector) {
+
+			$fields = $selector->field; 
+
+			if(!is_array($fields)) $fields = array($fields);
+
+			foreach($fields as $name) {
+
+				if(strpos($name, '.')) list($name, $unused) = explode('.', $name); // field.subfield
+
+				// is field name one used by a repeater?
+				if(in_array($name, $fieldsUsedInRepeaters)) $found = true;
+
+				// include=all is the same as status<Page::statusMax, so we look for that here
+				if($name == 'status' && $selector->operator == '<' && $selector->value == Page::statusMax) $includeAll = true; 
+
+				// ensure that the repeaters own queries work since they specify a templates_id
+				if($name == 'templates_id' && in_array($selector->value, $templatesUsedByRepeaters)) $includeAll = true; 
+
+				if($includeAll) break;
+			}
+		}
+
+		// if field is one used by a repeater, and there was no include=all, 
+		// then exclude repeaters from appearing in these PageFinder search results
+		if($found && !$includeAll) {
+			$selectors->add(new SelectorNotEqual('has_parent', $this->repeatersRootPageID)); 
+		}
 	}
 
 	/**
@@ -839,8 +907,14 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 				$p->name = $this->getUniqueRepeaterPageName();
 			}
 
-			// if the page has changed or is new, then we will queue it to be saved
-			if($p->isChanged() || $p->isNew()) $savePages[] = $p; 
+			if($p->isChanged() || $p->isNew()) {
+				// if the page has changed or is new, then we will queue it to be saved
+				$savePages[] = $p; 
+
+			} else if($p->id && $p->is(Page::statusUnpublished) && !$p->is(Page::statusHidden)) {
+				// if the page has an ID, but is still unpublished, though not hidden, then we queue it to be saved (and published)
+				$savePages[] = $p; 
+			}
 		}
 
 		// iterate the pages that had changes and need to be saved
@@ -853,7 +927,8 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 				$this->message("Saved Repeater {$p->path} " . ($changes ? "($changes)" : ''), Notice::debug); 
 
 				// if the repeater is unpublished and the $page isn't, then remove the unpublished status from the repeater
-				if($p->is(Page::statusUnpublished) && !$page->is(Page::statusUnpublished)) $p->removeStatus(Page::statusUnpublished); 
+				// if($p->is(Page::statusUnpublished) && !$page->is(Page::statusUnpublished)) $p->removeStatus(Page::statusUnpublished); 
+				if($p->is(Page::statusUnpublished)) $p->removeStatus(Page::statusUnpublished); 
 
 			} else {
 				$this->message("Added New Repeater", Notice::debug); 
