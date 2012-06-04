@@ -215,12 +215,27 @@ class WireInput {
 	/**
 	 * Set a URL segment value 
 	 *
+	 * To unset, specify NULL as the value. 
+	 *
 	 * @param int $num Number of this URL segment (1 based)
-	 * @param string $value 
+	 * @param string|null $value 
 	 *
 	 */
 	public function setUrlSegment($num, $value) {
-		$this->urlSegments[(int)$num] = (string) $value; 	
+		$num = (int) $num; 
+		if(is_null($value)) {
+			// unset
+			$n = 0;
+			$urlSegments = array();
+			foreach($this->urlSegments as $k => $v) {
+				if($k == $num) continue; 
+				$urlSegments[++$n] = $v; 	
+			}
+			$this->urlSegments = $urlSegments; 
+		} else {
+			// set
+			$this->urlSegments[$num] = (string) $value; 	
+		}
 	}
 
 	/**
