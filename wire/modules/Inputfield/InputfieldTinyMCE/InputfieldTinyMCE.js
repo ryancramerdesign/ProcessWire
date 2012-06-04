@@ -1,4 +1,3 @@
-
 var InputfieldTinyMCEConfigDefaults = {
 	mode: 'none', 
 	width: "100%", 
@@ -93,11 +92,13 @@ var InputfieldTinyMCEConfigDefaults = {
 
 $(document).ready(function() {
 
-	// Soma: convert config string that start with a [ to a js object
+	// convert config string that start with a [ to a js object
 	// this ensures it works with object type of configurations like template_templates:[{title:'mytemplate'},...]
-	function convertObjects(config) {
-		$.each(config, function(key, value) {
-			if(value && value.substr(0, 1) == "[" ) config[key] = eval(value);
+	function convertObjects(config){
+		$.each(config, function(key, value){
+			if(typeof value == "string"){
+				 if(value.substr(0,1) == "[") config[key] = eval(value);
+			}
 		});
 		return config;
 	};
