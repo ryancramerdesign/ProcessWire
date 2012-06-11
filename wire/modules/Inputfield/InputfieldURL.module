@@ -23,7 +23,7 @@ class InputfieldURL extends InputfieldText {
 		$this->label = 'URL';
 		$this->set('noRelative', 0); // whether relative URLs are disabled
 		$this->set('addRoot', 0); // whether to prepend root path
-		$this->description = $this->_("Enter a valid URL, i.e. http://www.company.com/dir/"); // Description of a valid URL
+		// $this->description = $this->_("Enter a valid URL, i.e. http://www.company.com/dir/"); // Description of a valid URL
 	}
 
 	public function ___render() {

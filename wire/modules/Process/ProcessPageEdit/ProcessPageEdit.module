@@ -403,28 +403,14 @@ class ProcessPageEdit extends Process {
 		$wrapper->attr('id', $this->className() . 'Settings'); 
 		$wrapper->attr('title', $this->_('Settings')); // Tab Label: Settings
 
-		if($this->page->id > 1) {
-
-			// name
-			if(!$this->page->template->nameContentTab) {
-				$field = $this->modules->get('InputfieldPageName');
-				$field->attr('value', $this->page->name); 
-				if($field->value && !$this->page->editable('name')) $field->attr('disabled', 'disabled'); 
-				$field->required = true; 
-				if($this->page->parent) $field->parentPage = $this->page->parent;
-				$wrapper->prepend($field); 
-			}
-
-			// parent
-			if($this->page->editable('parent')) {
-				$field = $this->modules->get('InputfieldPageListSelect');
-				$field->label = $this->_('Parent'); // Settings: Parent field label
-				$field->attr('id+name', 'parent_id'); 
-				$field->required = true; 
-				$field->attr('value', $this->page->parent_id); 
-				$field->parent_id = 0; 
-				$wrapper->add($field); 
-			}
+		// name
+		if($this->page->id > 1 && !$this->page->template->nameContentTab) {
+			$field = $this->modules->get('InputfieldPageName');
+			$field->attr('value', $this->page->name); 
+			if($field->value && !$this->page->editable('name')) $field->attr('disabled', 'disabled'); 
+			$field->required = true; 
+			if($this->page->parent) $field->parentPage = $this->page->parent;
+			$wrapper->prepend($field); 
 		}
 
 		// template
@@ -446,6 +432,29 @@ class ProcessPageEdit extends Process {
 				$field->addOption($template->id, $label); 
 			}
 			$wrapper->add($field); 
+		}
+
+		// parent
+		if($this->page->id > 1 && $this->page->editable('parent')) {
+			$field = $this->modules->get('InputfieldPageListSelect');
+			$field->label = $this->_('Parent'); // Settings: Parent field label
+			$field->attr('id+name', 'parent_id'); 
+			$field->required = true; 
+			$field->attr('value', $this->page->parent_id); 
+			$field->parent_id = 0; 
+			$wrapper->add($field); 
+		}
+
+		// createdUser
+		if($this->page->id && $this->user->isSuperuser() && $this->page->template->allowChangeUser) {
+			$field = $this->modules->get('InputfieldPageListSelect');
+			$field->label = $this->_('Created by User');
+			$field->attr('id+name', 'created_users_id'); 
+			$field->attr('value', $this->page->created_users_id);
+			$field->parent_id = $this->config->usersPageID; 
+			$field->showPath = false; 
+			$field->required = true; 
+			$wrapper->add($field);
 		}
 
 		// status
@@ -671,6 +680,10 @@ class ProcessPageEdit extends Process {
 				if($name == 'template') { 
 					$this->processInputTemplate($inputfield); 
 					continue; 
+
+				} else if($name == 'created_users_id') {
+					$this->processInputUser($inputfield);
+					continue;
 				}
 
 				if($name == 'status' && $this->processInputStatus($inputfield)) continue; 
@@ -692,6 +705,22 @@ class ProcessPageEdit extends Process {
 
 			if($inputfield instanceof InputfieldWrapper && count($inputfield->getChildren())) $this->processInput($inputfield, $level + 1); 
 		}
+	}
+
+	/**
+	 * Check to see if the page's created user has changed and make sure it's valid
+	 *
+	 */
+	protected function processInputUser(Inputfield $inputfield) {
+		if(!$this->user->isSuperuser() || !$this->page->id || !$this->page->template->allowChangeUser) return;
+		$userID = (int) $inputfield->attr('value');
+		if(!$userID) return;
+		if($userID == $this->page->created_users_id) return; // no change
+		$user = $this->pages->get($userID); 
+		if($user->template->id != $this->config->userTemplateID) return; // invalid user template
+		if($user->parent_id != $this->config->usersPageID) return; // invalid user parent
+		$this->page->created_users_id = $userID; 
+		$this->page->trackChange('created_users_id');
 	}
 
 	/**

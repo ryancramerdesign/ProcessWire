@@ -179,8 +179,8 @@ class Page extends WireData {
 		'numChildren' => 0, 
 		'sort' => -1, 
 		'sortfield' => 'sort', 
-		'modified_users_id', 
-		'created_users_id',
+		'modified_users_id' => 0, 
+		'created_users_id' => 0,
 		); 
 
 	/**

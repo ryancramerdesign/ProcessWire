@@ -422,7 +422,7 @@ class Pages extends Wire {
 
 		if(!$page->name && $page->title) {
 			$n = 0;
-			$pageName = $this->fuel('sanitizer')->pageName($page->title, true); 
+			$pageName = $this->fuel('sanitizer')->pageName($page->title, Sanitizer::translate); 
 			do {
 				$name = $pageName . ($n ? "-$n" : '');
 				$child = $page->parent->child("name=$name"); // see if another page already has the same name
@@ -470,6 +470,7 @@ class Pages extends Wire {
 
 		$user = $this->fuel('user'); 
 		$userID = $user ? $user->id : $this->config->superUserPageID; 
+		if(!$page->created_users_id) $page->created_users_id = $userID; 
 		$this->saveReady($page); 
 
 		$sql = 	"pages SET " . 
@@ -484,13 +485,14 @@ class Pages extends Wire {
 
 		if($isNew) {
 			if($page->id) $sql .= ", id=" . (int) $page->id; 
-			$result = $this->db->query("INSERT INTO $sql, created=NOW(), created_users_id=" . (int) $userID); 
+			$result = $this->db->query("INSERT INTO $sql, created=NOW(), created_users_id=" . ((int) $userID)); 
 			if($result) {
 				$page->id = $this->db->insert_id; 
 				$page->parent->numChildren++;
 			}
 
 		} else {
+			if($page->template->allowChangeUser) $sql .= ", created_users_id=" . ((int) $page->created_users_id);
 			$result = $this->db->query("UPDATE $sql WHERE id=" . (int) $page->id); 
 			if($page->parentPrevious && $page->parentPrevious->id != $page->parent->id) {
 				$page->parentPrevious->numChildren--;

@@ -122,6 +122,36 @@ class Selectors extends WireArray {
 		return $has; 
 	}
 
+	/**
+	 * Does the given string start with a selector? 
+	 *
+	 * Meaning string starts with [field][operator] like "field="
+	 *
+	 * @return bool
+	 *
+	 */
+	static public function stringHasSelector($str) {
+
+		if(!self::stringHasOperator($str)) return false; 
+
+		if(preg_match('/^([-._a-zA-Z0-9|]+)([' . implode('', self::getOperatorChars()) . ']+)/', $str, $matches)) {
+
+			$field = $matches[1]; 
+			$operator = $matches[2]; 
+
+			// fields can't start with a dash or a period or a pipe
+			if(in_array($field[0], array('-', '.', '|'))) return false;
+
+			// if it's not an operator we recognize then abort
+			if(!isset(self::$selectorTypes[$operator])) return false;
+
+			// if we made it here, then we've found a selector
+			return true; 
+		}
+
+		return false;
+	}
+
 
 	/**
 	 * Create a new Selector object from a field name, operator, and value

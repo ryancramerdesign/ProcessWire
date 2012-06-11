@@ -859,6 +859,25 @@ class ProcessTemplate extends Process {
 		}
 		$form->append($field); 
 
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->attr('name', 'allowChangeUser');
+		$field->label = $this->_("Allow the 'created user' to be changed on pages?");
+		$field->description = $this->_("When checked, pages using this template will have an option to change the 'created by user' (for superusers only). It will also enable the \$page->createdUser or \$page->created_users_id fields to be saved via the API."); // allowChangeUser option, description
+		$field->notes = $this->_('API: $template->allowChangeUser = 1; // or 0 to disable. default is 0.'); // allowChangeUser option, API notes
+
+		$field->attr('value', 1); 
+		if($template->allowChangeUser) {
+			$field->attr('checked', 'checked'); 
+			$form->collapsed = Inputfield::collapsedNo;
+		} else { 
+			$field->collapsed = Inputfield::collapsedYes;
+		}
+		$form->append($field); 
+
+		// --------------------
+
 		return $form; 
 	}
 
@@ -1204,6 +1223,7 @@ class ProcessTemplate extends Process {
 			$this->template->noSettings = (int) $form->get('noSettings')->attr('value');
 			$this->template->noChangeTemplate = (int) $form->get('noChangeTemplate')->attr('value');
 			$this->template->nameContentTab = (int) $form->get('nameContentTab')->attr('value');
+			$this->template->allowChangeUser = (int) $form->get('allowChangeUser')->attr('value');
 		}
 
 		// save roles

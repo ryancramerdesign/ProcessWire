@@ -23,6 +23,7 @@ class InputfieldPageListSelect extends Inputfield {
 		$this->set('cancelLabel', $this->_('Cancel'));
 		$this->set('selectLabel', $this->_('Select'));
 		$this->set('unselectLabel', $this->_('Unselect')); 
+		$this->set('showPath', true); 
 		parent::init();
 	}
 
@@ -38,6 +39,7 @@ class InputfieldPageListSelect extends Inputfield {
 			"t.ProcessPageList({ " . 
 				"mode: 'select', " . 
 				"rootPageID: {$this->parent_id}, " . 
+				"selectShowPath: " . ($this->showPath ? "true" : "false") . ", " . 
 				"selectAllowUnselect: " . ($this->required ? "false" : "true") . ", " . 
 				"selectStartLabel: \"{$this->startLabel}\", " . 
 				"selectShowPageHeader: true, " . 

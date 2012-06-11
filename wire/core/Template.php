@@ -118,6 +118,7 @@ class Template extends WireData implements Saveable {
 		'childTemplates' => array(),	// array of template IDs that are allowed for children. blank array = any. 
 		'parentTemplates' => array(),	// array of template IDs that are allowed for parents. blank array = any.
 		'allowPageNum' => 0, 		// allow page numbers in URLs?
+		'allowChangeUser' => 0,		// allow the createdUser/created_users_id field of pages to be changed? (with API or in admin w/superuser only)
 		'redirectLogin' => 0, 		// redirect when no access: 0 = 404, 1 = login page, 'url' = URL to redirec to
 		'urlSegments' => 0,		// allow URL segments on pages?
 		'https' => 0, 			// use https? 0 = http or https, 1 = https only, -1 = http only
