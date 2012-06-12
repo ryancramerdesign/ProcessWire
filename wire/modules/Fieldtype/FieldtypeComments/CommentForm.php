@@ -88,6 +88,8 @@ class CommentForm extends Wire implements CommentFormInterface {
 		// the name of a field that must be set (and have any non-blank value), typically set in Javascript to keep out spammers
 		// to use it, YOU must set this with a <input hidden> field from your own javascript, somewhere in the form
 		'requireSecurityField' => '', 
+		// should a redirect be performed immediately after a comment is successfully posted?
+		'redirectAfterPost' => false,
 		);
 
 	/**
@@ -141,6 +143,16 @@ class CommentForm extends Wire implements CommentFormInterface {
 	 *
 	 */
 	protected function renderSuccess() {
+
+		$pageID = (int) wire('input')->post->page_id; 
+		if($pageID && $this->options['redirectAfterPost']) {
+			// redirecAfterPost option
+			$page = wire('pages')->get($pageID); 
+			$url = $page->id ? $page->url : './';
+			wire('session')->redirect($url . '?comment_success=1' . '#' . $this->options['attrs']['id']);
+			return;
+		}
+
 		$id = $this->options['attrs']['id']; 
 		$out = 	"\n<div id='$id' class='{$id}_success'>" . 
 			"\n\t" . $this->options['successMessage'] . 
@@ -161,10 +173,12 @@ class CommentForm extends Wire implements CommentFormInterface {
 		$attrs = $options['attrs'];
 		$id = $attrs['id'];
 		$submitKey = $id . "_submit";
-		$inputValues = array(
-			'cite' => '', 
-			'email' => '', 
-			'text' => ''); 
+		$inputValues = array('cite' => '', 'email' => '', 'text' => ''); 
+		$user = wire('user'); 
+		if($user->isLoggedin()) {
+			$inputValues['cite'] = $user->name; 
+			$inputValues['email'] = $user->email;
+		}
 		$input = $this->fuel('input'); 
 		$divClass = 'new';
 		$class = $attrs['class'] ? " class='$attrs[class]'" : '';
@@ -174,7 +188,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 			// submission data available in the session
 			foreach($inputValues as $key => $value) {
 				if($key == 'text') continue; 
-				$inputValues[$key] = htmlentities($this->session->CommentForm->$key, ENT_QUOTES, $this->options['encoding']); 
+				$inputValues[$key] = htmlentities($this->session->CommentForm[$key], ENT_QUOTES, $this->options['encoding']); 
 			}
 		}
 
@@ -186,11 +200,14 @@ class CommentForm extends Wire implements CommentFormInterface {
 			}
 			$note = "\n\t$options[errorMessage]";
 			$divClass = 'error';
+
+		} else if($this->options['redirectAfterPost'] && $input->get('comment_success') == 1) {
+			$note = $this->renderSuccess();
 		}
 
 		$out = 	"\n<div id='{$id}' class='{$id}_$divClass'>" . 	
 			"\n" . $this->options['headline'] . $note . 
-			"\n<form id='{$id}_form'$class action='$attrs[action]' method='$attrs[method]'>" . 
+			"\n<form id='{$id}_form'$class action='$attrs[action]#$id' method='$attrs[method]'>" . 
 			"\n\t<p class='{$id}_cite'>" . 
 			"\n\t\t<label for='{$id}_cite'>$labels[cite]</label>" . 
 			"\n\t\t<input type='text' name='cite' class='required' id='{$id}_cite' value='$inputValues[cite]' maxlength='128' />" . 
@@ -245,6 +262,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 			$this->inputValues[$key] = $comment->$key;
 			if($key != 'text') $sessionData[$key] = $comment->$key; 
 		}
+
 		
 		if(!count($errors)) {
 			if($this->comments->add($comment) && $pageFieldName) {
@@ -253,6 +271,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 				$this->page->save($pageFieldName); 
 				$this->page->setOutputFormatting($outputFormatting); 
 				$this->postedComment = $comment; 
+				wire('session')->set('CommentForm', $sessionData);
 				return $comment; 
 			}
 		}

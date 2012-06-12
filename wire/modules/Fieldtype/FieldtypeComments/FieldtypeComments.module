@@ -277,6 +277,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$schema['keys']['pages_id_sort'] = "KEY `pages_id_sort` (`pages_id`, `sort`)";
 		$schema['keys']['status'] = "KEY `status` (`status`, `email`)";
 		$schema['keys']['pages_id'] = "KEY `pages_id` (`pages_id`,`status`,`created`)"; 
+		$schema['keys']['created'] = "KEY `created` (`created`, `status`)";
 		$schema['keys']['data'] = "FULLTEXT KEY `data` (`data`)";
 		return $schema;
 	}
@@ -411,6 +412,86 @@ class FieldtypeComments extends FieldtypeMulti {
 	 */
 	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) {
 		return null; // make this field not auto-joinable
+	}
+
+	/**
+	 * Given a field and a selector, find all comments matching the selector
+	 *
+	 * Note that if you don't specify a limit=n, it will default to a limit of 10
+	 * If you don't specify a sort, it will default to sort=-created
+	 *
+	 * @param Field|string Field object or name of field
+	 * @param string $selectorString Selector string with query
+	 * @return CommentArray
+	 *
+	 */
+	static public function findComments($field, $selectorString) {
+
+		if(is_string($field)) $field = wire('fields')->get($field); 
+		if(!$field instanceof Field) throw new WireException('Arg 1 to getRecentComments must be a field');
+
+		$limit = 10; 
+		$start = 0;
+		$desc = true; 
+		$sort = 'created';
+		$table = $field->getTable();
+		$sql =  "SELECT * FROM $table WHERE id>0 ";
+		$selectors = new Selectors($selectorString); 
+
+		foreach($selectors as $selector) {
+
+			$f = $selector->field; 
+			$operator = $selector->operator; 
+			$value = $selector->value; 
+
+			if(is_array($f)) $f = reset($f);
+			if(is_array($value)) $value = reset($value);
+
+			if($f == 'page') $f = 'pages_id';
+			if($f == 'user') $f = 'created_users_id';
+
+			if(in_array($f, array('id', 'status', 'created', 'pages_id', 'created_users_id'))) {
+				$sql .= "AND $f$operator" . ((int) $value)  . " "; 
+
+			} else if($f == 'start') {
+				$start = (int) $value; 
+
+			} else if($f == 'limit') {
+				$limit = (int) $value; 
+
+			} else if($f == 'sort') {
+				$desc = substr($value, 0, 1) == '-';
+				$value = trim($value, '-');
+				if(in_array($value, array('sort', 'status', 'id', 'pages_id', 'created_users_id', 'created'))) {
+					$sort = $value;
+				}
+
+			} else if($f == 'cite' || $f == 'email' || $f == 'ip') {
+				$value = wire('db')->escape_string($value); 
+				$sql .= "AND $f$operator'$value' ";
+			}
+
+		}
+
+		$sql .= "ORDER BY $sort " . ($desc ? "DESC" : "ASC") . " ";
+		$sql .= "LIMIT $start, $limit";
+
+		$result = wire('db')->query($sql);
+		$comments = new CommentArray();
+
+		while($row = $result->fetch_assoc()) {
+			$comment = new Comment();
+			foreach($row as $key => $value) {
+				if($key == 'data') $key = 'text';
+				$comment->set($key, $value);
+			}
+			$comment->set('page', wire('pages')->get($row['pages_id'])); 
+			$comments->add($comment); 
+		}
+
+		$result->free();
+
+		return $comments; 
 	}
 
 

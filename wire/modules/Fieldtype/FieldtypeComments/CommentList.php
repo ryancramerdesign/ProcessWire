@@ -118,8 +118,12 @@ class CommentList extends Wire implements CommentListInterface {
 			else $created = date($this->options['dateFormat'], $comment->created); 
 
 		$header = str_replace(array('{cite}', '{created}'), array($cite, $created), $this->options['commentHeader']); 
+
+		if($comment->status == Comment::statusPending) $liClass = ' CommentStatusPending'; 
+			else if($comment->status == Comment::statusSpam) $liClass = ' CommentStatusSpam';
+			else $liClass = '';
 		
-		$out = 	"\n\t<li class='CommentListItem'>" . 
+		$out = 	"\n\t<li id='Comment{$comment->id}' class='CommentListItem$liClass'>" . 
 			"\n\t\t<p class='CommentHeader'>$header</p>" . 
 			"\n\t\t<div class='CommentText'>" . 
 			"\n\t\t\t<p>$text</p>" . 
