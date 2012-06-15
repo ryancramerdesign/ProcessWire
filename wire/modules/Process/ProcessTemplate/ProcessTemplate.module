@@ -657,7 +657,7 @@ class ProcessTemplate extends Process {
 				 if(is_writable($template->filename)) $field->description .= $this->_('The template filename is writable and will be renamed as well.'); // Rename template, filename writable, description
 					else $field->description .= $this->_('The template file is not writable so you will have to rename it manually (instructions will be provided after you save).'); // Rename template, filename not writable, description
 			}
-			$field->notes = $this->_('Enter any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces). Do not include the .php file extension.'); // Rename template, notes
+			$field->notes = $this->_('Enter any combination of letters (a-z), numbers (0-9), hyphens or underscores (no spaces). Do not include the .php file extension.'); // Rename template, notes
 			$field->attr('id+name', 'rename'); 
 			$field->attr('value', $template->name); 
 			$field->collapsed = Inputfield::collapsedYes;
