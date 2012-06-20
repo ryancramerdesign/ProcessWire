@@ -202,8 +202,8 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		if($displaySelector) $this->message(sprintf($this->_n('Found %1$d page using selector: %2$s', 'Found %1$d pages using selector: %2$s', $matches->getTotal()), $matches->getTotal(), $displaySelector));
 
 		// determine what fields will be displayed
-		$display = $this->input->get('get');
-		if(!$display) $display = $this->input->get('display'); // display=old terminology
+		$display = $this->input->get('display');
+		if(!strlen($display)) $display = $this->displayField; 
 		if(!strlen($display)) $display = 'title path';
 		$display = str_replace(',', ' ', $display);
 		$display = explode(' ', $display); // convert to array
@@ -215,7 +215,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			if(in_array($name, array('url', 'path', 'httpUrl'))) continue; 
 			unset($display[$key]); 
 		}
-		$this->input->whitelist('get', implode(',', $display)); 
+		$this->input->whitelist('display', implode(',', $display)); 
 
 		if($this->config->ajax) {
 			// ajax json output
@@ -457,12 +457,12 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			if($reverse) $advCollapsed = false;
 		}
 
-		$get = $this->input->whitelist('get'); 
+		$display = $this->input->whitelist('display'); 
 		$out2.= "\n\t<p id='wrap_search_display'>" .
 			"\n\t<label for='search_display'>" . $this->_('Display field(s):') . "</label>" .
-			"\n\t<input type='text' name='display' value='" . htmlentities($get, ENT_QUOTES) . "' />" .
+			"\n\t<input type='text' name='display' value='" . htmlentities($display, ENT_QUOTES) . "' />" .
 			"\n\t</p>";
-		if($get && $get != 'title,path') $advCollapsed = false;
+		if($display && $display != 'title,path') $advCollapsed = false;
 
 
 		$submit = $this->modules->get("InputfieldSubmit");
