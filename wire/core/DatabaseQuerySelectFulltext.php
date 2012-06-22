@@ -72,6 +72,12 @@ class DatabaseQuerySelectFulltext extends Wire {
 				$v = preg_replace('/([%_])/', '\\\$1', $v); // prep value for use in LIKE 
 				$query->where("$tableField LIKE '%$v%'"); // SLOW, but assumed
 				break;
+				
+			case '%^=':
+  				$v = $this->db->escape_string($value);
+  				$v = preg_replace('/([%^_])/', '\\\$1', $v); // prep value for use in LIKE
+  				$query->where("$tableField LIKE '$v%'"); // SLOW, but assumed
+  				break;
 
 			default:
 				throw new WireException("Unimplemented operator in " . get_class($this) . "::match()"); 
