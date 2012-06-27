@@ -224,9 +224,9 @@ class Pagefile extends WireData {
 	 */
 	public function filesizeStr() {
 		$size = $this->filesize();
-		if($size < 1024) return number_format($size) . " bytes";
+		if($size < 1024) return number_format($size) . ' ' . $this->_('bytes');
 		$kb = round($size / 1024); 
-		return number_format($kb) . " kb";
+		return number_format($kb) . " " . $this->_('kB'); // kilobytes
 	}
 
 	/**
