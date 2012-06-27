@@ -193,6 +193,8 @@ class Session extends Wire implements IteratorAggregate {
 	 */
 	public function ___login($name, $pass) {
 
+		if(!$this->allowLogin($name)) return null;
+
 		$name = $this->fuel('sanitizer')->username($name); 
 		$user = $this->fuel('users')->get("name=$name"); 
 
@@ -220,6 +222,16 @@ class Session extends Wire implements IteratorAggregate {
 		}
 
 		return null; 
+	}
+
+	/**
+	 * Allow the user $name to login?
+	 *
+	 * Provided for use by hooks. 
+	 *
+	 */
+	public function ___allowLogin($name) {
+		return true; 
 	}
 
 	/**
