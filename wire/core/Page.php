@@ -9,7 +9,7 @@
  * 2. Accessing the related hierarchy of pages (i.e. parents, children, sibling pages)
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -86,14 +86,6 @@ class Page extends WireData {
 	private $filesManager = null;
 
 	/**
-	 * RolesArray containing Role instances that are assigned to this page. 
-	 *
-	 * Dynamically set as needed, refer only to roles() method rather than this directly. 
-	 *
-	private $rolesArray = null;
-	 */
-
-	/**
 	 * Field data that queues while the page is loading. 
 	 *
 	 * Once setIsLoaded(true) is called, this data is processed and instantiated into the Page and the fieldDataQueue is emptied (and no longer relevant)	
@@ -157,7 +149,21 @@ class Page extends WireData {
 	static public $loadingStack = array();
 
 	/**
+	 * Controls the behavior of Page::__isset function
+	 *
+	 * false = isset($page->var) returns true if 'var' is a valid field for page AND IS LOADED. (default behavior)
+	 * true = isset($page->var) returns true if 'var' is a valid field for page, same has $page->has('var'); 
+	 *
+	 * This is a static setting affecting all pages. It is provided for template engines that use isset() or empty() 
+	 * to verify the validity of a property name for an object (i.e. Twig).
+	 * 
+	 */
+	static public $issetHas = false; 
+
+	/**
 	 * The current page number, starting from 1
+	 *
+	 * @deprecated, use $input->pageNum instead. 
 	 *
 	 */
 	protected $pageNum = 1; 
@@ -1245,9 +1251,12 @@ class Page extends WireData {
 	/**
 	 * Ensures that isset() and empty() work for this classes properties. 
 	 *
+	 * See the Page::issetHas property which can be set to adjust the behavior of this function.
+	 *
 	 */
 	public function __isset($key) {
 		if(isset($this->settings[$key])) return true; 
+		if(self::$issetHas && $this->template && $this->template->fieldgroup->hasField($key)) return true;
 		return parent::__isset($key); 
 	}
 
