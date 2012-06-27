@@ -89,3 +89,11 @@ span.asmListItemStatus {
 	opacity: 0.9;
 }
 
+span.asmListItemDesc {
+	/* position status text to the right side */
+	position: absolute;
+	top: 0;
+	left: 35%; 
+	padding-top: 3px; 
+}
+

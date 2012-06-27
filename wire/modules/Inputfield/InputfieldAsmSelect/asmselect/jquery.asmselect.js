@@ -1,5 +1,5 @@
 /*
- * Alternate Select Multiple (asmSelect) 1.1 - jQuery Plugin
+ * Alternate Select Multiple (asmSelect) 1.2 - jQuery Plugin
  * http://www.ryancramer.com/projects/asmselect/
  * 
  * Copyright (c) 2009-2012 by Ryan Cramer - http://www.ryancramer.com
@@ -24,6 +24,7 @@
 			animate: false,						// Animate the the adding/removing of items in the list?
 			addItemTarget: 'bottom',				// Where to place new selected items in list: top or bottom
 			hideWhenAdded: false,					// Hide the option when added to the list? works only in FF
+			hideWhenEmpty: false,					// Hide the <select> when there are no items available to select? 
 			debugMode: false,					// Debug mode keeps original select visible 
 			jQueryUI: true, 
 
@@ -38,10 +39,10 @@
 			listSortableClass: 'asmListSortable',			// Another class given to the list when it is sortable
 			listItemClass: 'asmListItem',				// Class for the <li> list items
 			listItemLabelClass: 'asmListItemLabel',			// Class for the label text that appears in list items
+			listItemDescClass: 'asmListItemDesc',			// Class for optional description text, set a data-desc attribute on the <option> to use it. May contain HTML.
 			listItemStatusClass: 'asmListItemStatus',		// Class for optional status text, set a data-status attribute on the <option> to use it. May contain HTML.
 			removeClass: 'asmListItemRemove',			// Class given to the "remove" link
 			editClass: 'asmListItemEdit',
-			statusClass: 'asmListItemStatus',
 			highlightClass: 'asmHighlight',				// Class given to the highlight <span>
 
 			editLink: '', 						// Optional URL options can link to with tag {value} replaced by option value, i.e. /path/to/page/edit?id={$value}
@@ -190,6 +191,9 @@
 
 				// add a first option to be the home option / default selectLabel
 				var title = $original.attr('title'); 
+				// number of items that are not disabled
+				var numActive = 0; 
+
 				if(title === undefined) title = '';
 				$select.prepend("<option>" + title + "</option>"); 
 
@@ -205,12 +209,16 @@
 						addListItem(id); 
 						addSelectOption(id, true); 						
 					} else {
+						numActive++;
 						addSelectOption(id); 
 					}
 				});
 
 				if(!options.debugMode) $original.hide(); // IE6 requires this on every buildSelect()
 				selectFirstItem();
+				if(options.hideWhenEmpty) { 
+					if(numActive > 0) $select.show(); else $select.hide();
+				}
 				buildingSelect = false; 
 			}
 
@@ -248,6 +256,10 @@
 					.attr("selected", false)
 					.attr("disabled", true);
 
+				if(options.hideWhenEmpty) {
+					if($option.siblings('[disabled!=true]').size() < 2) $select.hide();
+				}
+
 				if(options.hideWhenAdded) $option.hide();
 				if($.browser.msie) $select.hide().show(); // this forces IE to update display
 			}
@@ -259,6 +271,7 @@
 				$option.removeClass(options.optionDisabledClass)
 					.attr("disabled", false);
 
+				if(options.hideWhenEmpty) $select.show(); 
 				if(options.hideWhenAdded) $option.show();
 				if($.browser.msie) $select.hide().show(); // this forces IE to update display
 			}
@@ -282,26 +295,32 @@
 
 				var $itemLabel = $("<span></span>").addClass(options.listItemLabelClass);
 
+				// optional container where an <option>'s data-status attribute will be displayed
+				var $itemStatus = $("<span></span>").addClass(options.listItemStatusClass);
+				if($O.attr('data-status')) $itemStatus.html($O.attr('data-status')); 
+
+				// optional container where an <option>'s data-desc attribute will be displayed
+				var $itemDesc = $("<span></span>").addClass(options.listItemDescClass);
+				if($O.attr('data-desc')) $itemDesc.html($O.attr('data-desc')); 
+
 				if(options.editLink.length > 0 && ($O.is(':selected') || !options.editLinkOnlySelected)) {
 					var $editLink = $("<a></a>")
 						.html($O.html())
 						.attr('href', options.editLink.replace(/\{value\}/, $O.val()))
 						.append(options.editLabel)
 						.click(clickEditLink);
-					$itemLabel.addClass(options.editClass).append($editLink)
+					$itemLabel.addClass(options.editClass).append($editLink);
 
 				} else {
 					$itemLabel.html($O.html()); 
 				}
 
-				// optional container where an <option>'s data-status attribute will be displayed
-				var $itemStatus = $("<span></span>").addClass(options.listItemStatusClass);
-				if($O.attr('data-status')) $itemStatus.html($O.attr('data-status')); 
 
 				var $item = $("<li></li>")
 					.attr('rel', optionId)
 					.addClass(options.listItemClass)
 					.append($itemLabel)
+					.append($itemDesc)
 					.append($itemStatus)
 					.append($removeLink)
 					.hide();
