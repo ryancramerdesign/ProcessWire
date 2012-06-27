@@ -374,15 +374,29 @@ class Sanitizer extends Wire {
 		// disallow double quotes -- remove any if they are present
 		if(strpos($value, '"') !== false) $value = str_replace('"', '', $value); 
 
+		// disallow greater/less than signs, unless they aren't forming a tag
+		if(strpos($value, '<') !== false) $value = preg_replace('/<[^>]+>/su', ' ', $value); 
+
+		// disallow newlines
+		if(strpos($value, "\n") !== false || strpos($value, "\r") !== false) $value = str_replace(array("\n", "\r"), ' ', $value); 
+
+		// disallow hash or percent signs
+		if(strpos($value, '#') !== false || strpos($value, '%') !== false) $value = str_replace(array('#', '%'), ' ', $value); 
+
 		// see if we can avoid the preg_matches and do a quick filter
 		$test = str_replace(array(',', ' ', '-'), '', $value); 
 
 		if(!ctype_alnum($test)) {
 		
 			// value needs more filtering, replace all non-alphanumeric, non-single-quote and space chars
-			$value = preg_replace('/[^[:alnum:]\pL \'\/]/u', ' ', $value); 
+			// See: http://php.net/manual/en/regexp.reference.unicode.php
+			// See: http://www.regular-expressions.info/unicode.html
+			$value = preg_replace('/[^[:alnum:]\pL\pN\pP\pM\p{Sm}\p{Sc}\p{Sk} \'\/]/u', ' ', $value); 
 
-			// replace multiple space characters in sequence
+			// disallow ampersands from beginning entity sequences
+			if(strpos($value, '&') !== false) $value = str_replace('&', '& ', $value); 
+
+			// replace multiple space characters in sequence with just 1
 			$value = preg_replace('/\s\s+/u', ' ', $value); 
 
 			//$value = iconv("UTF-8", "ISO-8859-1", $value); 
