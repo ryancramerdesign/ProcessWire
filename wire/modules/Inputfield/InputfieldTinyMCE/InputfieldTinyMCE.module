@@ -3,8 +3,6 @@
 /**
  * An Inputfield for handling XHTML "textarea" form inputs
  *
- * Note that the codemagic plugin must live in TinyMCE's plugin dir, and thus must be replaced when upgrading TinyMCE versions
- *
  */
 class InputfieldTinyMCE extends InputfieldTextarea {
 
@@ -20,12 +18,13 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 		'valid_elements' => '@[id|class],a[href|target|name],strong/b,em/i,br,img[src|id|class|width|height|alt],ul,ol,li,p[class],h2,h3,h4,blockquote,-p,-table[border=0|cellspacing|cellpadding|width|frame|rules|height|align|summary|bgcolor|background|bordercolor],-tr[rowspan|width|height|align|valign|bgcolor|background|bordercolor],tbody,thead,tfoot,#td[colspan|rowspan|width|height|align|valign|bgcolor|background|bordercolor|scope],#th[colspan|rowspan|width|height|align|valign|scope],pre,code',
 		'content_css' => '',
 		'custom' => '',
+		'thirdparty' => ''
 		); 
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'TinyMCE',
-			'version' => 347,
+			'version' => 100,
 			'summary' => 'WYSIWYG rich text editor',
 			'permanent' => true, 
 			);
@@ -53,11 +52,28 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 				if(empty($line)) continue; 
 				$pos = strpos($line, ':'); 
 				$key = trim(substr($line, 0, $pos)); 
-				$value = trim(substr($line, $pos+1)); 
+				$value = trim(substr($line, $pos+1));
+				// is it a setting with a path like /site/...
+				if(substr($value,0,1) == '/') $value = $this->config->urls->root . substr($value,1);
 				if(!isset($config[$key])) $config[$key] = $value; 	
 			}
 		}
-		unset($config['custom']); 
+		unset($config['custom']);
+
+		if(!empty($config['thirdparty'])) {
+			$custom = explode("\n", $config['thirdparty']); 
+			$values = array();
+			$key = 'custom_plugins';
+			foreach($custom as $line) {
+				if(empty($line)) continue; 
+				$pos = strpos($line, ':');
+				// prepend root in case we are in a subdir
+				$value = $this->config->urls->root . substr(trim(substr($line, $pos+1)),1);
+				$values[] = array(trim(substr($line, 0, $pos)) => $value);
+			}
+			if(!isset($config[$key])) $config[$key] = $values; 	
+		}
+		unset($config['thirdparty']); 
 
 		$this->config->js($this->attr('id'), $config); 
 
@@ -128,7 +144,7 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 		$wrapper->collapsed = Inputfield::collapsedYes; 
 
 		foreach($this->defaults as $key => $unused) {
-			if($key == 'content_css' || $key == 'custom') continue; 
+			if($key == 'content_css' || $key == 'custom' || $key == 'thirdparty') continue; 
 			$value = $this->get($key); 
 			$field = $this->modules->get((strlen($value) > 150 ? 'InputfieldTextarea' : 'InputfieldText')); 
 			$field->attr('name', $key); 
@@ -152,6 +168,16 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 		$field->description = $this->_('If there are other TinyMCE settings (not covered above) that you want to specify, enter them one-per-line in a key:value format.'); 
 		$field->notes = $this->_('Example: theme_advanced_styles:Header 1=header1;Header 2=header2;Header 3=header3;Table Row=tableRow1'); 
 		$field->attr('value', $this->get('custom')); 
+		$wrapper->append($field); 
+
+
+		$field = $this->modules->get("InputfieldTextarea"); 
+		$field->label = "Third-party Plugins"; 
+		$field->description = $this->_("Optionally add custom third-party TinyMCE plugins. Specify them one-per-line in a key:value format, where key is the name of the plugin and the value is the path to the plugin."); // content_css field description
+		$field->notes = $this->_('Example: bramus_cssextras : /site/tinymce/myplugins/bramus_cssextras'); 
+		$field->attr('name', 'thirdparty'); 
+		$value = $this->get('thirdparty'); 
+		$field->attr('value', $value); 
 		$wrapper->append($field); 
 
 		$inputfields->append($wrapper); 

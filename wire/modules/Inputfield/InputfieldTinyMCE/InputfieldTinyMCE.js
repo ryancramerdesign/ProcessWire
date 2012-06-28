@@ -1,7 +1,7 @@
 
 var InputfieldTinyMCEConfigDefaults = {
 	mode: 'none', 
-	width: "100%", 
+	width: "100%",
 	relative_urls: false,	
 	convert_urls: false,
 	remove_script_host: true,
@@ -28,12 +28,11 @@ var InputfieldTinyMCEConfigDefaults = {
 	paste_remove_styles: true, 
 	paste_strip_class_attributes: 'all', 
 	forced_root_block: 'p', 
-	force_br_newlines: false, 
+	force_br_newlines: false,
 	dialog_type: "modal",
 	content_css: config.InputfieldTinyMCE.url + 'content.css', 
 	remove_linebreaks: false, // required for preelementfix plugin
 	entity_encoding: 'raw', 
-
 	/*
 	// these are ready to use if needed
 	setup: function(ed) {
@@ -93,15 +92,6 @@ var InputfieldTinyMCEConfigDefaults = {
 
 $(document).ready(function() {
 
-	// Soma: convert config string that start with a [ to a js object
-	// this ensures it works with object type of configurations like template_templates:[{title:'mytemplate'},...]
-	function convertObjects(config) {
-		$.each(config, function(key, value) {
-			if(value && value.substr(0, 1) == "[" ) config[key] = eval(value);
-		});
-		return config;
-	};
-
 	var InputfieldTinyMCEPlugins = ['pwimage', 'pwlink', 'advimagescale', 'preelementfix']; 
 
 	$.each(InputfieldTinyMCEPlugins, function(key, value) {
@@ -109,16 +99,44 @@ $(document).ready(function() {
 	}); 
 
 	$.each(config.InputfieldTinyMCE.elements, function(key, value) {
-		// Soma: convert config object values to objects if necessary
+		
+		// load custom thirdparty plugins from outside core
+		if(config[value].custom_plugins){
+			var custom_plugins = loadCustomPlugins(config[value].custom_plugins);
+			config[value].custom_plugins = null;
+		}
+		// convert config object values to objects if necessary
 		config[value] = convertObjects(config[value]);
 
 		tinyMCE.settings = $.extend(InputfieldTinyMCEConfigDefaults, config[value]); 
 		if(config.InputfieldTinyMCE.language.length > 0) tinyMCE.settings.language = config.InputfieldTinyMCE.language; 
-		tinyMCE.settings.plugins += ', -pwimage, -pwlink, -advimagescale, -preelementfix';
+		tinyMCE.settings.plugins += ', -pwimage, -pwlink, -advimagescale, -preelementfix' + custom_plugins;
 		tinyMCE.execCommand('mceAddControl', true, value); 
 	
 	}); 
 
+	// convert config string that start with a [ to a js object
+	// this ensures it works with object type of configurations like template_templates:[{title:'mytemplate'},...]
+	function convertObjects(config){
+		$.each(config, function(key, value){
+			if(typeof value == "string"){
+				 if(value.substr(0,1) == "[") config[key] = eval(value);
+			}
+		});
+		return config;
+	};
 
-}); 
+	// load additional third party plugins and create "-name" string
+	function loadCustomPlugins(config){
+		var plugins = '';
+		$.each(config, function(key, value){
+			$.each(value, function(k,v){
+				tinymce.PluginManager.load(k, v + '/editor_plugin.js'); 
+				plugins += ", -" + k;
+			});
+		});
+		return plugins;
+	};
 
+
+});
