@@ -616,7 +616,7 @@ class ProcessTemplate extends Process {
 
 		$labelGET = $this->_('Cache disabling GET variables');
 		$labelPOST = $this->_('Cache disabling POST variables');
-		$description = $this->_('When your template outout is cached, variables of this type are ignored by default. You can optionally specify one or more variable names that will disable the cache for that request, causing the page to be rendered sans cache.'); // Disable cache, GET/POST vars, description
+		$description = $this->_('When your template output is cached, variables of this type are ignored by default. You can optionally specify one or more variable names that will disable the cache for that request, causing the page to be rendered sans cache.'); // Disable cache, GET/POST vars, description
 		$notes = $this->_('Optionally enter one or more variable names. If entering more than one, separate each by a space.'); // Disable cache, GET/POST vars, notes
 
 		$field = $this->modules->get('InputfieldText'); 
@@ -657,7 +657,7 @@ class ProcessTemplate extends Process {
 				 if(is_writable($template->filename)) $field->description .= $this->_('The template filename is writable and will be renamed as well.'); // Rename template, filename writable, description
 					else $field->description .= $this->_('The template file is not writable so you will have to rename it manually (instructions will be provided after you save).'); // Rename template, filename not writable, description
 			}
-			$field->notes = $this->_('Enter any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces). Do not include the .php file extension.'); // Rename template, notes
+			$field->notes = $this->_('Enter any combination of letters (a-z), numbers (0-9), hyphens or underscores (no spaces). Do not include the .php file extension.'); // Rename template, notes
 			$field->attr('id+name', 'rename'); 
 			$field->attr('value', $template->name); 
 			$field->collapsed = Inputfield::collapsedYes;
