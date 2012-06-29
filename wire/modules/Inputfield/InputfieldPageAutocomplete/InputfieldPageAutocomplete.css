@@ -56,6 +56,7 @@
 	/* to enable icon placement */
 	position: relative; 
 	margin-top: 0;
+	margin-bottom: 0; 
 }
 
 	.InputfieldPageAutocomplete p .ui-icon {
@@ -73,5 +74,16 @@
 	overflow-x: hidden; 
 	padding-right: 20px; 
 	box-shadow: 0 1px 3px 3px rgba(0,0,0,0.3); 
+}
+
+
+.InputfieldPageAutocomplete .InputfieldPageAdd {
+	/* hide .InputfieldPageAdd since autocomplete uses it's own input for this */
+	display: none; 
+}
+
+.InputfieldPageAutocompleteNote {
+	/* Optional note with contextual helper tips */
+	display: none; 
 }
 

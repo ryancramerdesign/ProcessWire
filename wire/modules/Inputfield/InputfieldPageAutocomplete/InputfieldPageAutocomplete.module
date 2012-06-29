@@ -19,7 +19,7 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		return array(
 			'title' => __('Page Auto Complete', __FILE__), // Module Title
 			'summary' => __('Multiple Page selection using auto completion and sorting capability. Intended for use as an input field for Page reference fields. (beta version)', __FILE__), // Module Summary
-			'version' => 100,
+			'version' => 101,
 			);
 	}
 
@@ -71,7 +71,7 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 	 */
 	protected function ___renderList() { 
 
-		$out = "\n<ol id='{$this->id}_items'>" . $this->renderListItem("Label", "1", "itemTemplate"); 
+		$out = "\n<ol id='{$this->id}_items' data-id='{$this->id}' data-name='{$this->name}'>" . $this->renderListItem("Label", "1", "itemTemplate"); 
 
 		foreach($this->value as $page_id) {
 			if(!$page_id) continue; 
@@ -103,6 +103,7 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		}
 
 		if(!$searchField) $searchField = 'title';
+		$addNote = $this->_('Hit enter to add as new item'); 
 
 		$out .= <<< _OUT
 
@@ -110,6 +111,7 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		<input type='hidden' name='{$this->name}[]' id='{$this->id}' value='{$value}' />
 		<input type='text' data-parent-input='{$this->id}' id='{$this->id}_input' value='' />
 		<span class='ui-icon ui-icon-arrowreturn-1-e InputfieldPageAutocompleteStatus'></span>
+		<span class='notes InputfieldPageAutocompleteNote'><br />$addNote</span>
 		</p>
 		<script>InputfieldPageAutocomplete.init('{$this->id}', '$url', '{$this->labelFieldName}', '{$searchField}', '{$this->operator}');</script>
 

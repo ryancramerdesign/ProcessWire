@@ -37,10 +37,16 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	 */
 	protected $configMode = false;
 
+	/**
+	 * PageArray of pages that were added in the request
+	 *
+	 */
+	protected $pagesAdded; 
+
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page',
-			'version' => 101,
+			'version' => 102,
 			'summary' => 'Select one or more pages',
 			'permanent' => true, 
 			);
@@ -205,7 +211,6 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$inputfield = $this->getInputfield();
 		if(!$inputfield) return $this;
 
-
 		$inputfield->processInput($input); 
 
 		$value = $this->attr('value'); 
@@ -216,7 +221,15 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if(is_array($value)) {
 			$newValue = new PageArray(); 
 			foreach($value as $v) {
-				$page = $this->fuel('pages')->get((int) $v); 
+				$id = (int) $v; 
+				if(!$id) continue; 
+				if($id > 0) {	
+					// existing page
+					$page = wire('pages')->get($id); 
+				} else {
+					// placeholder for new page, to be sorted later
+					$page = new NullPage(); 
+				}
 				$newValue->add($page); 
 			}
 		} else {
@@ -224,12 +237,24 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		}
 
 		$this->setAttribute('value', $newValue); 
+		$this->processInputAddPages($input);
+
+		// if pages were added, re-sort them in case they were dragged to a different order
+		// an example of this would be when used with the InputfieldPageAutocomplete
+		if(count($this->pagesAdded) && is_array($value)) {
+			$sortedValue = new PageArray();
+			foreach($newValue as $page) {
+				if($page->id < 1) $page = $this->pagesAdded->shift();
+				if($page->id && !$sortedValue->has($page)) $sortedValue->add($page);
+			}
+			$newValue = $sortedValue;
+			$this->setAttribute('value', $newValue); 
+		}
 
 		if("$newValue" != "$existingValue") {
 			$this->trackChange('value'); 
 		} 
 
-		$this->processInputAddPages($input);
 
 		return $this; 
 	}
@@ -239,6 +264,8 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	 *
 	 */
 	protected function ___processInputAddPages($input) {
+
+		$this->pagesAdded = new PageArray();
 
 		if(!$this->addable || !$this->parent_id || !$this->template_id) return;
 
@@ -256,6 +283,21 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		foreach($titles as $title) {
 
+			// check if there is an existing page using this title
+			$existingPage = $parent->child("include=all, templates_id={$this->template_id}, title=" . $this->sanitizer->selectorValue($title)); 
+			if($existingPage->id) {
+				// use existing page
+				$this->pagesAdded->add($existingPage);
+				if($this->value instanceof PageArray) {
+					$this->value->add($existingPage); 
+					continue; 
+				} else {
+					$this->value = $existingPage; 
+					break;
+				}
+			}
+
+			// create a new page
 			$page = new Page();
 			$page->template = $this->template_id; 
 			$page->parent = $parent; 
@@ -275,6 +317,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 				$this->message(sprintf($this->_('Added page %s'), $page->path)); 
 				if($this->value instanceof PageArray) $this->value->add($page); 
 					else $this->value = $page; 
+				$this->pagesAdded->add($page);
 				$this->trackChange('value'); 
 				$n++;
 
