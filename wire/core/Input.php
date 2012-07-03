@@ -288,6 +288,9 @@ class WireInput {
 		$gpc = array('get', 'post', 'cookie', 'whitelist'); 
 		if(in_array($key, $gpc)) {
 			$value = $this->$key(); 
+        } else {
+            $value = $this->get($key);
+            $value = isset($value) ? $value : $this->post($key);
 		}
 		return $value; 
 	}
