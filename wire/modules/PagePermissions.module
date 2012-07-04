@@ -188,7 +188,7 @@ class PagePermissions extends WireData implements Module {
 
 		$user = $this->fuel('user');
 
-		if($user->isGuest()) return false;
+		//if($user->isGuest()) return false;
 		if($user->isSuperuser()) return true; 
 
 		$info = $this->fuel('modules')->getModuleInfo($process); 
