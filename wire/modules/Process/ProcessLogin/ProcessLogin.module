@@ -144,6 +144,7 @@ class ProcessLogin extends Process {
 		} else {
 			// note the space after 'Login ' is intentional to separate it from the Login button for translation purposes
 			$this->setFuel('processHeadline', $this->_('Login ')); // Headline for login form page
+			$this->passField->attr('value', '');
 			$out = $this->form->render();
 			$links = '';
 			if($this->allowForgot) {

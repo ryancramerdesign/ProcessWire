@@ -570,6 +570,7 @@ class Pages extends Wire {
 		}
 
 		if($triggerAddedPage) $this->added($triggerAddedPage);
+		if($page->namePrevious && $page->namePrevious != $page->name) $this->renamed($page); 
 		if($page->parentPrevious) $this->moved($page);
 		if($page->templatePrevious) $this->templateChanged($page);
 
@@ -1161,6 +1162,20 @@ class Pages extends Wire {
 	 *
 	 */
 	protected function ___cloned(Page $page, Page $copy) { }
+
+	/**
+	 * Hook called when a page has been renamed (i.e. had it's name field change)
+	 *
+	 * The previous name can be accessed at $page->namePrevious;
+	 * The new name can be accessed at $page->name
+	 *
+	 * This hook is only called when a page's name changes. It is not called when
+	 * a page is moved unless the name was changed at the same time. 
+	 *
+	 * @param Page $page The $page that was renamed
+	 *
+	 */
+	protected function ___renamed(Page $page) { }
 
 }
 

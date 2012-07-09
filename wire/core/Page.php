@@ -71,6 +71,12 @@ class Page extends WireData {
 	private $parentPrevious; 
 
 	/**
+	 * The previous name used by this page, if it changed during runtime.
+	 *
+	 */
+	private $namePrevious; 
+
+	/**
 	 * Reference to the Page's template file, used for output. Instantiated only when asked for. 
 	 *
 	 */
@@ -275,7 +281,10 @@ class Page extends WireData {
 				if($this->isLoaded) {
 					$beautify = empty($this->settings[$key]); 
 					$value = $this->fuel('sanitizer')->pageName($value, $beautify); 
-					if($this->settings[$key] !== $value) $this->trackChange($key); 
+					if($this->settings[$key] !== $value) {
+						if($this->settings[$key] && empty($this->namePrevious)) $this->namePrevious = $this->settings[$key];
+						$this->trackChange($key); 
+					}
 				}
 				$this->settings[$key] = $value; 
 				break;
@@ -440,6 +449,7 @@ class Page extends WireData {
 			case 'template':
 			case 'templatePrevious':
 			case 'parentPrevious':
+			case 'namePrevious':
 			case 'isLoaded':
 			case 'isNew':
 			case 'pageNum':

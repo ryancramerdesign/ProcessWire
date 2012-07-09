@@ -52,6 +52,14 @@ class ProcessPageView extends Process {
 	protected $redirectURL = '';
 
 	/**
+	 * Sanitized URL that generated this request
+ 	 * 
+	 * Set by the getPage() method and passed to the pageNotFound function.
+ 	 *
+	 */
+	protected $requestURL = '';
+
+	/**
 	 * Prefix for page numbers in URLs
 	 *
 	 */
@@ -71,8 +79,9 @@ class ProcessPageView extends Process {
 		if($page && $page->id) { 
 
 			$page->setOutputFormatting(true); 
+			$_page = $page; 
 			$page = $this->checkAccess($page); 
-			if(!$page) return $this->pageNotFound($page); 
+			if(!$page) return $this->pageNotFound($_page, $this->requestURL); 
 			$this->checkProtocol($page); 
 			if($this->redirectURL) $this->session->redirect($this->redirectURL);
 			$this->setFuel('page', $page); 
@@ -82,11 +91,11 @@ class ProcessPageView extends Process {
 				return $page->render();
 
 			} catch(Wire404Exception $e) {
-				return $this->pageNotFound();
+				return $this->pageNotFound($page, $this->requestURL);
 			}
 
 		} else {
-			return $this->pageNotFound(); 
+			return $this->pageNotFound(new NullPage(), $this->requestURL); 
 		}
 
 	}	
@@ -146,7 +155,7 @@ class ProcessPageView extends Process {
 			return $page; 
 		}
 
-
+		$this->requestURL = $it; 
 		$urlSegments = array();
 		$maxSegments = wire('config')->maxUrlSegments; 
 		if(is_null($maxSegments)) $maxSegments = 4; // default
@@ -282,8 +291,12 @@ class ProcessPageView extends Process {
 	 *
 	 * Method is hookable, for instance if you wanted to log 404s. 
 	 *
+ 	 * @param Page|null $page Page that was found if applicable (like if user didn't have permission or $page's template threw the 404)
+	 * 	If not applicable then NULL will be given instead.
+	 * @param string $url The URL that the request originated from (like $_SERVER['REQUEST_URI'] but already sanitized)
+	 *
 	 */
-	protected function ___pageNotFound(Page $page = null) {
+	protected function ___pageNotFound($page, $url) {
 
 		header("HTTP/1.1 404 Page Not Found"); 
 
