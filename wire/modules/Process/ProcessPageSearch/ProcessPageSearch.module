@@ -162,7 +162,10 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 			if($name == 'include' && $value != 'hidden' && !$this->user->isSuperuser()) continue; 
 			if($name == 'check_access' && !$this->user->isSuperuser()) continue; 
-			if($name == 'status') $status = (int) $value;
+			if($name == 'status') {
+				if(!$this->user->isSuperuser()) continue; 
+				$status = (int) $value;
+			}
 
 			if(strpos($name, ',')) $name = str_replace(',', '|', $name); 
 
@@ -187,7 +190,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		$selector = rtrim($selector, ", "); 
 		$displaySelector = $selector; 
 
-		if($this->user->isSuperuser && !$status) $selector .= ", include=all"; 
+		if($this->user->isSuperuser() && !$status && !preg_match('/\binclude=/', $selector)) $selector .= ", include=all"; 
 
 		return $this->render($this->pages->find($selector), $displaySelector); 
 	}
@@ -361,19 +364,20 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	 * Is the given field name selectable?
 	 *
 	 */
-	protected function isSelectableFieldName($name) {
+	protected function isSelectableFieldName($name, $level = 0) {
 
 		$is = false;
 
-		if(strpos($name, '|')) {
+		if(!$level && strpos($name, '|')) {
 			$names = explode('|', $name); 
 			$cnt = 0;
-			foreach($names as $n) if(!$this->isSelectableFieldName($n)) $cnt++;
+			foreach($names as $n) if(!$this->isSelectableFieldName($n, $level+1)) $cnt++;
 			return $cnt == 0; 
 		}
 
 		if(in_array($name, $this->nativeSorts)) $is = true; 
  			else if(in_array($name, array('parent', 'template', 'has_parent'))) $is = true; 
+			else if(!$level && in_array($name, array('include', 'status', 'check_access'))) $is = true; 
 			else if(in_array($name, $this->fieldOptions)) $is = true; 
 
 
