@@ -14,6 +14,12 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
+ * @property int $id Get or set the template's numbered database ID.
+ * @property string $name Get or set the template's name.
+ * @property string $filename Get or set a template's filename, including path (this is auto-generated from the name, though you may modify it at runtime if it suits your need).
+ * @property string $label Optional short text label to describe Template.
+ * @property Fieldgroup $fieldgroup Get or set a template's Fieldgroup. Can also be used to iterate a template's fields.
+ * @property Fieldgroup $fields Syntactical alias for $template->fieldgroup. Use whatever makes more sense for your code readability.
  */
 
 class Template extends WireData implements Saveable {
