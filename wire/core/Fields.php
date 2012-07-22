@@ -256,7 +256,7 @@ class Fields extends WireSaveableItems {
 	 */
 	public function ___clone(Saveable $item) {
 	
-		$item = clone $item; 	
+		$item = $item->type->cloneField($item); 
 	
 		// don't clone system flags	
 		if($item->flags & Field::flagSystem || $item->flags & Field::flagPermanent) {
@@ -268,6 +268,7 @@ class Fields extends WireSaveableItems {
 
 		// don't clone the 'global' flag
 		if($item->flags & Field::flagGlobal) $item->flags = $item->flags & ~Field::flagGlobal;
+
 
 		return parent::___clone($item);
 	}

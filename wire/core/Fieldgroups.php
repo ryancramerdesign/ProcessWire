@@ -264,5 +264,26 @@ class Fieldgroups extends WireSaveableItemsLookup {
 		return $this->fuel('db')->query($sql); 
 	}
 
+	/**
+	 * Create and return a cloned copy of this item
+	 *
+	 * If the new item uses a 'name' field, it will contain a number at the end to make it unique
+	 *
+	 * @param Saveable $item Item to clone
+	 * @param bool|Saveable $item Returns the new clone on success, or false on failure
+	 *
+	 */
+	public function ___clone(Saveable $item) {
+		return parent::___clone($item);
+		// @TODO clone the field context data
+		/*
+		$id = $item->id; 
+		$item = parent::___clone($item);
+		if(!$item) return false;
+		return $item; 	
+		*/
+	}
+
+
 }
 
