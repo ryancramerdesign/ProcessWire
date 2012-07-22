@@ -327,6 +327,39 @@ class Pages extends Wire {
 	}
 
 	/**
+	 * Given an ID return a path to a page, without loading the actual page
+	 *
+ 	 * This is not meant to be public API: You should just use $pages->get($id)->path (or url) instead.
+	 * This is just a small optimization function for specific situations (like the PW bootstrap).
+	 * This function is not meant to be part of the public $pages API, as I think it only serves 
+	 * to confuse with $page->path(). However, if you ever have a situation where you need to get a page
+ 	 * path and want to avoid loading the page for some reason, this function is your ticket.
+	 *
+	 * @param int $id ID of the page you want the URL to
+	 * @return string URL to page or blank on error
+	 *
+ 	 */
+	public function _path($id) {
+
+		if(is_object($id) && $id instanceof Page) return $id->path();
+		$id = (int) $id;
+		if(!$id) return '';
+
+		// if page is already loaded, then get the path from it
+		if(isset($this->pageIdCache[$id])) return $this->pageIdCache[$id]->path();
+
+		$path = '';
+		do {
+			$result = Wire::getFuel('db')->query("SELECT parent_id, name FROM pages WHERE id=$id"); 
+			list($parent_id, $name) = $result->fetch_row();
+			$result->free();
+			$path = $name . '/' . $path;
+		} while($parent_id > 1); 
+
+		return '/' . ltrim($path, '/');
+	}
+
+	/**
 	 * Count and return how many pages will match the given selector string
 	 *
 	 * @param string $selectorString
@@ -547,27 +580,30 @@ class Pages extends Wire {
 
 		if($isNew || $page->parentPrevious || $page->templatePrevious) new PagesAccess($page);
 
+
 		// lastly determine whether the pages_parents table needs to be updated for the find() cache
 		// and call upon $this->saveParents where appropriate. 
 
-		if(($isNew && $page->parent->id) || ($page->parentPrevious && !$page->parent->numChildren)) {
-			$page = $page->parent; // new page or one that's moved, lets focus on it's parent
-			$isNew = true; // use isNew even if page was moved, because it's the first page in it's new parent
+		if($page->parentPrevious && $page->numChildren > 0) { 		
+			// page is moved and it has children
+			$this->saveParents($page->id, $page->numChildren); 
+
+		} else if(($page->parentPrevious && $page->parent->numChildren == 1) || 
+			($isNew && $page->parent->numChildren == 1) || 
+			($page->forceSaveParents)) { 					
+			// page is moved and is the first child of it's new parent
+			// OR page is NEW and is the first child of it's parent
+			// OR $page->forceSaveParents is set (debug/debug, can be removed later)
+			$this->saveParents($page->parent_id, $page->parent->numChildren); 
+		} 
+
+		if($page->parentPrevious && $page->parentPrevious->numChildren == 0) {
+			// $page was moved and it's previous parent is now left with no children, this ensures the old entries get deleted
+			$this->saveParents($page->parentPrevious->id, 0); 
 		}
 
-		if($page->numChildren || $isNew) {
-			// check if entries aren't already present perhaps due to outside manipulation or an older version
-			$n = 0;
-			if(!$isNew) {
-				$result = $this->db->query("SELECT COUNT(*) FROM pages_parents WHERE parents_id={$page->id}"); 
-				list($n) = $result->fetch_array();
-				$result->free();
-			}
-			// if entries aren't present, if the parent has changed, or if it's been forced in the API, proceed
-			if($n == 0 || $page->parentPrevious || $page->forceSaveParents === true) {
-				$this->saveParents($page->id, $page->numChildren + ($isNew ? 1 : 0)); 
-			}
-		}
+
+		// trigger hooks
 
 		if($triggerAddedPage) $this->added($triggerAddedPage);
 		if($page->namePrevious && $page->namePrevious != $page->name) $this->renamed($page); 
@@ -623,14 +659,16 @@ class Pages extends Wire {
 	 *
 	 * @param int $pages_id ID of page to save parents from
 	 * @param int $numChildren Number of children this Page has
+	 * @param int $level Recursion level, for debugging.
 	 *
 	 */
-	protected function saveParents($pages_id, $numChildren) {
+	protected function saveParents($pages_id, $numChildren, $level = 0) {
 
 		$pages_id = (int) $pages_id; 
 		if(!$pages_id) return false; 
 
-		$this->db->query("DELETE FROM pages_parents WHERE pages_id=$pages_id"); 
+		$sql = "DELETE FROM pages_parents WHERE pages_id=$pages_id"; 
+		$this->db->query($sql); 
 
 		if(!$numChildren) return true; 
 
@@ -639,8 +677,11 @@ class Pages extends Wire {
 		$cnt = 0;
 
 		do {
-			$result = $this->db->query("SELECT parent_id FROM pages WHERE id=$id"); 
+			if($id < 2) break; // home has no parent, so no need to do that query
+			$sql = "SELECT parent_id FROM pages WHERE id=$id"; 
+			$result = $this->db->query($sql);
 			list($id) = $result->fetch_array();
+			$result->free();
 			if(!$id) break;
 			$insertSql .= "($pages_id, $id),";
 			$cnt++; 
@@ -648,20 +689,20 @@ class Pages extends Wire {
 		} while(1); 
 
 		if($insertSql) {
-			$this->db->query("INSERT INTO pages_parents (pages_id, parents_id) VALUES" . rtrim($insertSql, ",")); 
+			$sql = "INSERT INTO pages_parents (pages_id, parents_id) VALUES" . rtrim($insertSql, ","); 
+			$this->db->query($sql);
 		}
 
 		// find all children of $pages_id that themselves have children
-		$result = $this->db->query(
-			"SELECT pages.id, COUNT(children.id) AS numChildren " . 
+		$sql = 	"SELECT pages.id, COUNT(children.id) AS numChildren " . 
 			"FROM pages " . 
 			"JOIN pages AS children ON children.parent_id=pages.id " . 
 			"WHERE pages.parent_id=$pages_id " . 
-			"GROUP BY pages.id "
-			); 
+			"GROUP BY pages.id ";
+		$result = $this->db->query($sql);
 
 		while($row = $result->fetch_array()) {
-			$this->saveParents($row['id'], $row['numChildren']); 	
+			$this->saveParents($row['id'], $row['numChildren'], $level+1); 	
 		}
 		$result->free();
 
