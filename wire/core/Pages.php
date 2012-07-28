@@ -349,8 +349,9 @@ class Pages extends Wire {
 		if(isset($this->pageIdCache[$id])) return $this->pageIdCache[$id]->path();
 
 		$path = '';
+		$parent_id = $id; 
 		do {
-			$result = Wire::getFuel('db')->query("SELECT parent_id, name FROM pages WHERE id=$id"); 
+			$result = Wire::getFuel('db')->query("SELECT parent_id, name FROM pages WHERE id=$parent_id"); 
 			list($parent_id, $name) = $result->fetch_row();
 			$result->free();
 			$path = $name . '/' . $path;
