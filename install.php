@@ -378,7 +378,7 @@ class Installer {
 			"<p>The account you create here will have superuser access, so please make sure to create a strong password.</p>" . 
 			"<p><label>Username<br /><input type='text' name='username' value='admin' /></label></p>" . 
 			"<p><label>Password<br /><input type='text' name='userpass' value='' /></label></p>" . 
-			"<p><label>E-Mail Address<br /><input type='text' name='useremail' value='' /></label></p>";
+			"<p><label>E-Mail Address<br /><input type='email' name='useremail' value='' /></label></p>";
 
 		$this->btn("Create Account", 5); 
 	}
@@ -402,7 +402,7 @@ class Installer {
 		$user->email = $wire->input->post->useremail;
 		$pass = htmlentities($wire->input->post->userpass); 
 
-		if($user->name != $wire->input->post->username) {
+		if($user->name != strtolower($wire->input->post->username)) {
 			$this->err("Your username contained characters that aren't accepted at this time. Please try another."); 
 			return $this->adminAccount();
 		} 

@@ -572,6 +572,17 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
+	 * Return a cloned copy of $field
+	 *
+	 * @param Field $field
+	 * @return Field cloned copy
+	 *
+	 */
+	public function ___cloneField(Field $field) {
+		return clone $field;
+	}
+
+	/**
 	 * Get a property from this Fieldtype's data
 	 *
 	 * @param string $key

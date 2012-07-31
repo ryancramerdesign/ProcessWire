@@ -35,7 +35,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 2; 
-	const versionRevision = 2; 
+	const versionRevision = 3; 
 
 	/**
 	 * Given a Config object, instantiates ProcessWire and it's API
@@ -89,7 +89,8 @@ class ProcessWire extends Wire {
 		Wire::setFuel('sanitizer', new Sanitizer()); 
 
 		try {
-			Wire::setFuel('db', new Database($config));
+			$db = new Database($config);
+			Wire::setFuel('db', $db); 
 		} catch(WireDatabaseException $e) {
 			// catch and re-throw to prevent DB connect info from ever appearing in debug backtrace
 			throw new WireDatabaseException($e->getMessage()); 
@@ -112,7 +113,9 @@ class ProcessWire extends Wire {
 		Wire::setFuel('fields', $fields); 
 		Wire::setFuel('fieldgroups', $fieldgroups); 
 		Wire::setFuel('templates', $templates); 
-		Wire::setFuel('pages', new Pages(), true);
+
+		$pages = new Pages();
+		Wire::setFuel('pages', $pages, true);
 
 		$fieldtypes->init();
 		$fields->init();
@@ -136,6 +139,9 @@ class ProcessWire extends Wire {
 		Wire::setFuel('session', $session); 
 		Wire::setFuel('user', $users->getCurrentUser()); 
 		Wire::setFuel('input', new WireInput()); 
+
+		// populate admin URL before modules init()
+		$config->urls->admin = $config->urls->root . ltrim($pages->_path($config->adminRootPageID), '/'); 
 
 		$modules->triggerInit();
 

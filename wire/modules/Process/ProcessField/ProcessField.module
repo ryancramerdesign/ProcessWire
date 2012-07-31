@@ -328,7 +328,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	 * Build the Field Edit form
 	 *
 	 */
-	protected function buildEditForm() {
+	protected function ___buildEditForm() {
 
 		if($this->input->post->id) $this->id = (int) $this->input->post->id; 
 			else $this->id = $this->input->get->id ? (int) $this->input->get->id : 0; 
@@ -402,7 +402,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	 * Add Fieldtype and Inputfield custom fields to the form 
 	 *
 	 */
-	protected function buildEditFormCustom($form) {
+	protected function ___buildEditFormCustom($form) {
 		$customFields = $this->field->getConfigInputfields();
 		foreach($customFields as $field) {
 			// skip over wrappers if they don't have fields in them 
@@ -416,7 +416,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	 * Add a delete tab to the form
 	 *
 	 */
-	protected function buildEditFormDelete() {
+	protected function ___buildEditFormDelete() {
 
 		$deleteLabel = $this->_('Delete field');
 
@@ -447,7 +447,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	 * Basic field configuration options: name, type, label, description
 	 *
 	 */
-	protected function buildEditFormBasics() {
+	protected function ___buildEditFormBasics() {
 
 		$form = new InputfieldWrapper();
 		$form->attr('id', 'basics');
@@ -528,7 +528,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	 * Build the 'Info' field shown in the Field Edit form
 	 *
 	 */
-	protected function buildEditFormInfo() {
+	protected function ___buildEditFormInfo() {
 
 		$form = new InputfieldWrapper();
 		$form->attr('class', 'WireTab');
@@ -567,7 +567,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	 * Build the 'Advanced' field shown in the Field Edit form
 	 *
 	 */
-	protected function buildEditFormAdvanced() {
+	protected function ___buildEditFormAdvanced() {
 
 		if($this->field->type) {
 			$form = $this->field->type->getConfigAdvancedInputfields($this->field); 
@@ -812,6 +812,17 @@ class ProcessField extends Process implements ConfigurableModule {
 		return $fields;
 	}
 
+	/**
+	 * Return the current field being edited, or NULL if it hasn't been set
+	 *
+	 * $this->field is set by buildEditForm
+	 *
+	 * @return Field|null
+	 *
+	 */
+	public function getField() {
+		return $this->field; 
+	}
 
 	/**
 	 * For hooks to listen to when a new field is added

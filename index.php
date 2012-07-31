@@ -182,12 +182,6 @@ try {
 	 */
 	$wire = new ProcessWire($config); 
 
-	/*
-	 * Store the admin URL in the configuration
-	 *
-	 */
-	if($config->adminRootPageID) $config->urls->admin = $wire->pages->get($config->adminRootPageID)->url; 
-
 	/* 
 	 * If we're not being called from another shell script or PHP page, then run the PageView process
 	 *
