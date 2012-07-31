@@ -15,6 +15,7 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
+ * @link http://processwire.com/api/variables/sanitizer/ Offical $sanitizer API variable Documentation
  */
 
 class Sanitizer extends Wire {

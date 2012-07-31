@@ -134,7 +134,7 @@ class Templates extends WireSaveableItems {
 	 * Update or insert template to database 
 	 *
 	 * If the template's fieldgroup has changed, then we delete data that's no longer applicable to the new fieldgroup.
-	 * @return
+	 *
 	 */
 	public function ___save(Saveable $item) {
 

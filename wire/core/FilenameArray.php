@@ -35,6 +35,10 @@ class FilenameArray implements IteratorAggregate {
 		return new ArrayObject($this->data); 
 	}
 
+	/**
+	 * @deprecated no longer necessary since the add() function ensures uniqueness
+	 * @return FilenameArray
+	 */
 	public function unique() {
 		// no longer necessary since the add() function ensures uniqueness
 		// $this->data = array_unique($this->data); 	
