@@ -770,21 +770,14 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 
 				if($selector->field === 'sort') {
 					$sort = $selector->value; 
-					break;
 
 				} else if($selector->field === 'limit') {
 					$limit = (int) $selector->value; 
-					break;
-				}
 
-				$value = $item->{$selector->field}; 
-
-				if($not === $selector->matches("$value")) {
+				} else if($not === $selector->matches($item)) {
 					unset($this->data[$key]); 
-					break;
 				}	
 			}
-
 		}
 
 		if($sort) $this->sort($sort); 
