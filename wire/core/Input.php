@@ -283,11 +283,23 @@ class WireInput {
 			return $this->urlSegment($num);
 		}
 
-
 		$value = null;
 		$gpc = array('get', 'post', 'cookie', 'whitelist'); 
+
 		if(in_array($key, $gpc)) {
 			$value = $this->$key(); 
+
+		} else {
+			// Like PHP's $_REQUEST where accessing $input->var considers get/post/cookie/whitelist
+			// what it actually considers depends on what's set in the $config->wireInputOrder variable
+			$order = (string) wire('config')->wireInputOrder; 
+			if(!$order) return null;
+			$types = explode(' ', $order); 
+			foreach($types as $t) {
+				if(!in_array($t, $gpc)) continue; 	
+				$value = $this->$t($key); 
+				if(!is_null($value)) break;
+			}
 		}
 		return $value; 
 	}
