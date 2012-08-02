@@ -37,6 +37,14 @@ class DatabaseQuerySelectFulltext extends Wire {
 		$this->query = $query; 
 	}
 
+	/**
+	 * Escape string for use in a MySQL LIKE
+ 	 *
+	 */
+	protected function escapeLIKE($str) {
+		return preg_replace('/([%_])/', '\\\$1', $str); 
+	}
+
 	public function match($tableName, $fieldName, $operator, $value) {
 
 		$query = $this->query; 
@@ -46,8 +54,9 @@ class DatabaseQuerySelectFulltext extends Wire {
 		switch($operator) {
 
 			case '=':
+			case '!=': 
 				$v = $this->db->escape_string($value); 
-				$query->where("$tableField='$v'"); 
+				$query->where("$tableField$operator'$v'"); 
 				break;	
 
 			case '*=':
@@ -69,8 +78,20 @@ class DatabaseQuerySelectFulltext extends Wire {
 
 			case '%=':
 				$v = $this->db->escape_string($value); 
-				$v = preg_replace('/([%_])/', '\\\$1', $v); // prep value for use in LIKE 
+				$v = $this->escapeLIKE($v); 
 				$query->where("$tableField LIKE '%$v%'"); // SLOW, but assumed
+				break;
+
+			case '%^=': // match at start using only LIKE (no index)
+				$v = $this->db->escape_string($value);
+				$v = $this->escapeLIKE($v); 
+				$query->where("$tableField LIKE '$v%'"); 
+				break;
+
+			case '%$=': // RCD match at end using only LIKE (no index)
+				$v = $this->db->escape_string($value);
+				$v = $this->escapeLIKE($v); 
+				$query->where("$tableField LIKE '%$v'"); 
 				break;
 
 			default:
@@ -107,12 +128,16 @@ class DatabaseQuerySelectFulltext extends Wire {
 				$type = 'RLIKE';
 				$v = $this->db->escape_string(preg_quote($value)); // note $value not $v
 				$like = "[[:space:]]*(<[^>]+>)*[[:space:]]*"; 
-				if($operator == '^=') $like = "^" . $like . $v; 
-					else $like = $v . '[[:punct:]]*' . $like . '$';
+				if($operator == '^=') {
+					$like = "^" . $like . $v; 
+				} else {
+					$like = $v . '[[:space:]]*[[:punct:]]*' . $like . '$';
+
+				}
 
 			} else {
 				$type = 'LIKE';
-				$v = preg_replace('/([%_])/', '\\\$1', $v); // prep value for use in LIKE 
+				$v = $this->escapeLIKE($v); 
 				$like = "%$v%";
 			}
 
