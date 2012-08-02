@@ -22,7 +22,7 @@ class PagePathHistory extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page Path History', 
-			'version' => 001, 
+			'version' => 1, 
 			'summary' => "Keeps track of past URLs where pages have lived and automatically redirects (301 permament) to the new location whenever the past URL is accessed. BETA TEST ONLY.",
 			'href' => 'http://processwire.com',
 			'singular' => true, 

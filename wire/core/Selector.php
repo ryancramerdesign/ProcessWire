@@ -98,7 +98,11 @@ abstract class Selector extends WireData {
 		$values = is_array($this->value) ? $this->value : array($this->value); 
 		$field = $this->field; 
 
-		if($value instanceof Wire) $value = $value->$field; 
+		if(is_object($value)) {
+			if($value instanceof WireData) $value = $value->get($field);
+				else if($value instanceof Wire) $value = $value->$field; 
+			$value = (string) $value; 
+		}
 
 		foreach($values as $v) {
 

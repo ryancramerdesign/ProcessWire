@@ -400,6 +400,7 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 			'status' => $page->status, 
 			'numChildren' => $page->numChildren, 
 			'path' => $page->path(), 
+			'template' => $page->template->name, 
 			'actions' => $this->getPageActions($page), 
 			); 
 
