@@ -89,7 +89,7 @@ abstract class Selector extends WireData {
 	 *
 	 * If the value held by this Selector is an array of values, it will check if any one of them matches the value supplied here. 
 	 *
-	 * @param string|int $value
+	 * @param string|int|Wire $value If given a Wire, then matches will also operate on OR field=value type selectors, where present
 	 *
 	 */
 	public function matches($value) {
@@ -98,14 +98,32 @@ abstract class Selector extends WireData {
 		$values = is_array($this->value) ? $this->value : array($this->value); 
 		$field = $this->field; 
 
+		if($value instanceof Wire) $value = $value->$field; 
+
 		foreach($values as $v) {
+
 			if($v instanceof Wire) $v = $v->$field; 
-			//if($this->match($v, $value)) {
-			if($this->match($value, $v)) {
+
+			/* FUTURE/TODO
+			// Check if $v contains another selector expression within it, and treat it as an OR if it does
+			if($n > 0 && !is_null($valueObject) && Selectors::stringHasSelector($v)) {
+				// $v contains another selector string, OR selector
+				$selectors = new Selectors($v); 	
+				foreach($selectors as $selector) {
+					if($selector->matches($valueObject)) {
+						$matches = true;
+						break;
+					}
+				}
+			}
+			*/
+
+			if($matches || $this->match($value, $v)) {
 				$matches = true; 
 				break;
 			}
 		}
+
 		return $this->evaluate($matches); 
 	}
 
@@ -146,7 +164,9 @@ abstract class Selector extends WireData {
 		Selectors::addType(SelectorContainsLike::getOperator(), 'SelectorContainsLike'); 
 		Selectors::addType(SelectorContainsWords::getOperator(), 'SelectorContainsWords'); 
 		Selectors::addType(SelectorStarts::getOperator(), 'SelectorStarts'); 
+		Selectors::addType(SelectorStartsLike::getOperator(), 'SelectorStartsLike'); 
 		Selectors::addType(SelectorEnds::getOperator(), 'SelectorEnds'); 
+		Selectors::addType(SelectorEndsLike::getOperator(), 'SelectorEndsLike'); 
 		Selectors::addType(SelectorBitwiseAnd::getOperator(), 'SelectorBitwiseAnd'); 
 	}
 }
@@ -249,6 +269,14 @@ class SelectorStarts extends Selector {
 }
 
 /**
+ * Selector that matches if the value exists at the beginning of another value (specific to SQL LIKE)
+ *
+ */
+class SelectorStartsLike extends SelectorStarts {
+	public static function getOperator() { return '%^='; }
+}
+
+/**
  * Selector that matches if the value exists at the end of another value
  *
  */
@@ -259,6 +287,14 @@ class SelectorEnds extends Selector {
 		$value1 = substr($value1, -1 * strlen($value2));
                 return $this->evaluate(strcasecmp($value1, $value2) == 0);
 	}
+}
+
+/**
+ * Selector that matches if the value exists at the end of another value (specific to SQL LIKE)
+ *
+ */
+class SelectorEndsLike extends SelectorEnds {
+	public static function getOperator() { return '%$='; }
 }
 
 /**
