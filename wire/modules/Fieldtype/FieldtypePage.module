@@ -327,23 +327,153 @@ class FieldtypePage extends FieldtypeMulti {
 	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
 
+		$names = array(
+			'id',
+			'data',
+			'pages_id',
+			'path',
+			'url',
+			'sort',
+			);
+
 		// let the FieldtypeMulti base class handle count queries
-		if($subfield == 'count') return parent::getMatchQuery($query, $table, $subfield, $operator, $value);
+		if($subfield == 'count') {
+			return parent::getMatchQuery($query, $table, $subfield, $operator, $value);
 
-		if(!$this->fuel('db')->isOperator($operator)) throw new WireException("Operator '$operator' is not implemented in {$this->classname}"); 
-		$value = $this->fuel('db')->escape_string($value); 
+		} else if(in_array($subfield, $names)) { 
 
-		// if a page path rather than page ID was provided, then we translate the path to an ID for API syntax convenience
-		if(!ctype_digit("$value")) {
-			if(substr(trim($value), 0, 1) == '/') {
-				// path from root
-				$v = $this->pages->get($value); 
-				if($v && $v->id) $value = $v->id; 
+			if(!$this->fuel('db')->isOperator($operator)) throw new WireException("Operator '$operator' is not implemented in {$this->classname}"); 
+			
+			if(in_array($subfield, array('id', 'path', 'url'))) $subfield = 'data'; 
+
+			// if a page path rather than page ID was provided, then we translate the path to an ID for API syntax convenience
+			if(!ctype_digit("$value")) {
+				if(substr(trim($value), 0, 1) == '/') {
+					// path from root
+					$v = $this->pages->get($value); 
+					if($v && $v->id) $value = $v->id; 
+				}
 			}
+			$value = $this->fuel('db')->escape_string($value); 
+			$query->where("($table.{$subfield}{$operator}'$value')"); // pages.id AND $table.pages_id{$operator}'$value')");
+
+		} else if($this->getMatchQueryNative($query, $table, $subfield, $operator, $value)) {
+			// great
+
+		} else if($this->getMatchQueryCustom($query, $table, $subfield, $operator, $value)) {
+			// wonderful as well
+
+		} else {
+			// we were unable to determine what subfield is
+			throw new WireException("Unknown subfield: $subfield"); 
 		}
 
-		$query->where("($table.{$subfield}{$operator}'$value')"); // pages.id AND $table.pages_id{$operator}'$value')");
 		return $query; 
+	}
+
+	/**
+	 * Update a DatabaseSelectQuery object to match a Page with a subfield native to pages table
+	 *
+	 * @param DatabaseSelectQuery $query
+	 * @param string $table
+	 * @param string $subfield
+	 * @param string $operator
+	 * @param string $value
+	 * @return bool True if used, false if not
+	 *
+	 */
+	protected function getMatchQueryNative($query, $table, $subfield, $operator, $value) {
+
+		$nativeNames = array(
+			'name', 
+			'template',
+			'templates_id',
+			'parent',
+			'parent_id',
+			'created',
+			'modified',
+			);
+
+		// static counter to ensure unique table names where necessary
+
+		if(!in_array($subfield, $nativeNames)) return false; 
+
+		if($subfield == 'created' || $subfield == 'modified') {
+			if(!ctype_digit($value)) $value = strtotime($value); 
+			$value = (int) $value; 
+
+		} else if(in_array($subfield, array('template', 'templates_id'))) {
+			$template = $this->templates->get($subfield); 
+			$value = $template ? $template->id : 0; 
+			$subfield = 'templates_id';
+			
+		} else if(in_array($subfield, array('parent', 'parent_id'))) {
+			if(!ctype_digit("$value")) $value = $this->pages->get($value)->id; 
+			$subfield = 'parent_id';	
+		
+		} else if($subfield == 'name') {
+			$value = $this->sanitizer->pageName($value); 
+
+		} else $value = (int) $value; 
+
+		static $n = 0;
+		$table2 = "_fieldtypepage" . (++$n);
+		$value = $this->fuel('db')->escape_string($value); 
+
+		/*
+		if($operator == '!=' || $selector->not) {
+			// @todo make it support exclusion of pages that have it anywhere in a multi-value set
+			// same goes for getMatchQueryCustom
+		}
+		*/
+
+		$query->join("pages AS $table2 ON $table2.$subfield$operator'$value'"); 
+		$query->where("($table.data=$table2.id)"); 
+
+		return true; 
+	}
+
+	/**
+	 * Update a DatabaseSelectQuery object to match a Page containing a matching custom subfield
+	 *
+	 * @param DatabaseSelectQuery $query
+	 * @param string $table
+	 * @param string $subfield
+	 * @param string $operator
+	 * @param string $value
+	 * @return bool true if used, false if not
+	 *
+	 */
+	protected function getMatchQueryCustom($query, $table, $subfield, $operator, $value) {
+
+		$subfield = wire('fields')->get($subfield);
+		if(!$subfield) return false; // not a custom field
+
+		$field = $query->field; 
+
+		// perform a separate find() operation for the subfield
+		$pageFinder = new PageFinder();
+		$value = wire('sanitizer')->selectorValue($value);
+
+		// build a selector to find matching pagerefs 
+		$selector = "{$subfield->name}$operator$value, ";
+		if($field->findPagesSelector) $selector .= $field->findPagesSelector . ", ";
+		if($field->parent_id) $selector .= "parent_id={$field->parent_id}, ";
+		if($field->template_id) $selector .= "templates_id={$field->template_id}, ";
+		// note $field->findPagesCode is not implemented
+		
+		$matches = $pageFinder->find(new Selectors(trim($selector, ', ')));
+
+		// use the IDs found from the separate find() as our getMatchQuery
+		if(count($matches)) {
+			$ids = array();
+			foreach($matches as $match) $ids[$match['id']] = $match['id'];
+			$query->where("$table.data IN(" . implode(',', $ids) . ")");
+		} else {
+			$query->where("1>2"); // forced non-match
+		}
+
+		return true;
 	}
 
 	/**

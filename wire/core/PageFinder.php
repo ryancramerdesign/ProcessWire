@@ -269,6 +269,7 @@ class PageFinder extends Wire {
 					} else {
 
 						$q->set('field', $field); // original field if required by the fieldtype
+						$q->set('selector', $selector); // original selector if required by the fieldtype
 						$q = $fieldtype->getMatchQuery($q, $tableAlias, $subfield, $selector->operator, $value); 
 
 						if(count($q->select)) $query->select($q->select); 

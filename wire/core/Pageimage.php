@@ -117,7 +117,7 @@ class Pageimage extends Pagefile {
 			else if($this->imageInfo['width']) $checkImage = false; 
 			else $checkImage = true; 
 
-		if($checkImage && ($info = getimagesize($this->filename))) {
+		if($checkImage && ($info = @getimagesize($this->filename))) {
 			$this->imageInfo['width'] = $info[0]; 
 			$this->imageInfo['height'] = $info[1]; 
 		}
