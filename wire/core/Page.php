@@ -699,7 +699,11 @@ class Page extends WireData {
 		if(!$this->numChildren) return new PageArray();
 		if($selector) $selector .= ", ";
 		$selector = "parent_id={$this->id}, $selector"; 
-		if(strpos($selector, 'sort=') === false) $selector .= "sort={$this->sortfield}"; 
+		if(strpos($selector, 'sort=') === false) {
+			$sortfield = $this->template->sortfield;
+			if(!$sortfield) $sortfield = $this->sortfield;
+			$selector .= "sort=$sortfield";
+		}
 		return $this->fuel('pages')->find(trim($selector, ", "), $options); 
 	}
 
