@@ -543,7 +543,7 @@ class Pages extends Wire {
 			return true; 
 		}
 
-		$page->filesManager->save();
+		if(PagefilesManager::hasPath($page)) $page->filesManager->save();
 
 		// disable outputFormatting and save state
 		$outputFormatting = $page->outputFormatting; 
@@ -839,7 +839,10 @@ class Pages extends Wire {
 			}
 		}
 
-		try { $page->filesManager->emptyAllPaths(); } catch(Exception $e) { }
+		try { 
+			if(PagefilesManager::hasPath($page)) $page->filesManager->emptyAllPaths(); 
+		} catch(Exception $e) { 
+		}
 		// $page->getCacheFile()->remove();
 
 		$access = new PagesAccess();	
@@ -848,7 +851,6 @@ class Pages extends Wire {
 		$this->db->query("DELETE FROM pages_parents WHERE pages_id=" . (int) $page->id); 
 		$this->db->query("DELETE FROM pages WHERE id=" . ((int) $page->id) . " LIMIT 1"); 
 
-		// $this->getFuel('pagesRoles')->deleteRolesFromPage($page); // TODO convert to hook
 		$this->sortfields->delete($page); 
 		$page->setTrackChanges(false); 
 		$page->status = Page::statusDeleted; // no need for bitwise addition here, as this page is no longer relevant
@@ -915,8 +917,10 @@ class Pages extends Wire {
 		if(!$copy->id || $copy->id == $page->id) return new NullPage(); 
 
 		// copy $page's files over to new page
-		$copy->filesManager->init($copy); 
-		$page->filesManager->copyFiles($copy->filesManager->path()); 
+		if(PagefilesManager::hasFiles($page)) {
+			$copy->filesManager->init($copy); 
+			$page->filesManager->copyFiles($copy->filesManager->path()); 
+		}
 
 		// if there are children, then recurisvely clone them too
 		if($page->numChildren && $recursive) {

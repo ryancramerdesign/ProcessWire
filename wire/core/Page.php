@@ -605,6 +605,11 @@ class Page extends WireData {
 		}
 		if($this->settings['status'] != $value) $this->trackChange('status');
 		$this->settings['status'] = $value;
+		if($value & Page::statusDeleted) {
+			// disable any instantiated filesManagers after page has been marked deleted
+			// example: uncache method polls filesManager
+			$this->filesManager = null; 
+		}
 	}
 
 	/**
@@ -1240,6 +1245,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function filesManager() {
+		if($this->is(Page::statusDeleted)) return null;
 		if(is_null($this->filesManager)) $this->filesManager = new PagefilesManager($this); 
 		return $this->filesManager; 
 	}

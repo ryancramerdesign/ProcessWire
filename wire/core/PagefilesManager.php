@@ -118,9 +118,7 @@ class PagefilesManager extends Wire {
 	 */
 	protected function _createPath($path) {
 		if(is_dir($path)) return true; 
-		if(!mkdir($path)) return false; 
-		if($this->config->chmodDir) chmod($path, octdec($this->config->chmodDir)); 
-		return true; 
+		return wireMkdir($path); 
 	}
 
 	/**
@@ -138,12 +136,13 @@ class PagefilesManager extends Wire {
 	 *
 	 */
 	public function emptyPath($rmdir = false) {
-		$dir = new DirectoryIterator($this->path()); 
+		$path = $this->path();
+		$dir = new DirectoryIterator($path); 
 		foreach($dir as $file) {
 			if($file->isDir() || $file->isDot()) continue; 
 			if($file->isFile()) unlink($file->getPathname()); 
 		}
-		if($rmdir) rmdir($this->path()); 
+		if($rmdir) rmdir($path); 
 	}
 
 	/**
@@ -154,13 +153,14 @@ class PagefilesManager extends Wire {
 		$this->emptyPath(true); 
 	}
 
+
 	/**
 	 * Get the published path
  	 *
 	 */
 	public function path() {
 		if(!$this->page->id) throw new WireException("New page '{$this->page->url}' must be saved before files can be accessed from it"); 
-		return $this->config->paths->files . ((int)$this->page->id) . '/';
+		return self::_path($this->page); 
 	}
 
 	/**
@@ -195,6 +195,46 @@ class PagefilesManager extends Wire {
 		if($key == 'path') return $this->path();
 		if($key == 'url') return $this->url();
 		return parent::__get($key);
+	}
+
+	/**
+	 * Returns true if Page has a files path that exists
+	 *
+	 * This is a way to for $pages API functions (or others) to check if they should attempt to use 
+	 * a $page's filesManager, thus ensuring directories aren't created for pages that don't need them.
+	 *
+	 * @param Page $page
+	 * @return bool True if a path exists for the page, false if not. 
+	 *
+	 */
+	static public function hasPath(Page $page) {
+		return is_dir(self::_path($page)); 
+	}
+
+	/**
+	 * Returns true if Page has a path and files
+	 *
+	 * @param Page $page
+	 * @return bool True if $page has a path and files
+	 *
+	 */
+	static public function hasFiles(Page $page) {
+		if(!self::hasPath($page)) return false;
+		$dir = opendir(self::_path($page));
+		if(!$dir) return false; 
+		$has = false; 
+		while(!$has && ($f = readdir($dir)) !== false) $has = $f !== '..' && $f !== '.';
+		return $has; 
+	}
+
+	/**
+	 * Get the files path for a given page (whether it exists or not) - static
+	 *
+	 * @param Page $page
+ 	 *
+	 */
+	static public function _path(Page $page) {
+		return wire('config')->paths->files . ((int) $page->id) . '/'; 
 	}
 
 
