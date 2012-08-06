@@ -18,10 +18,13 @@ according to the terms of the GNU General Public License or a compatible
 license, including the following plugin modules: 
 
 jQuery - Copyright (c) 2008-2011 John Resig
-Located in: /wire/modules/Jquery/JqueryCore/
+Located in /wire/modules/Jquery/JqueryCore/
 
 jQuery UI - Copyright 2011 The jQuery Project and the jQuery UI Team
-Located in: /wire/modules/Jquery/JqueryUI/
+Located in /wire/modules/Jquery/JqueryUI/
+
+jQuery Timepicker Addon - Copyright 2012 Trent Richardson
+Located in /wire/modules/Inputfield/InputfieldDatetime/
 
 jQuery Validation Plugin - Copyright 2006-2008 Jorn Zaefferer
 Located in /wire/modules/Jquery/JqueryValidation/
@@ -33,11 +36,13 @@ jQuery Fancybox Plugin - Copyright (c) 2009 Janis Skarnelis
 Located in /wire/modules/Jquery/JqueryFancybox/
 
 PHP Markdown Extra - Copyright (c) 2009 Michel Fortin
-Located in: /wire/modules/Textformatter/TextformatterMarkdownExtra/
+Located in /wire/modules/Textformatter/TextformatterMarkdownExtra/
 
 PHP SmartyPants	- Copyright (c) 2006 Michel Fortin
-Located in: /wire/modules/Textformatter/TextformatterSmartypants/
+Located in /wire/modules/Textformatter/TextformatterSmartypants/
 
 TinyMCE - Copyright (c) 2011 Moxiecode Systems 
 Located in /wire/modules/Inputfield/InputfieldTinyMCE/
+
+
 
