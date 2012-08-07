@@ -24,6 +24,7 @@ class InputfieldFieldsetTabOpen extends InputfieldFieldsetOpen {
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields();
 		$inputfields->remove($inputfields->get('collapsed')); 
+		$inputfields->remove($inputfields->get('columnWidth')); 
 		return $inputfields; 
 	}
 

@@ -476,17 +476,18 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	public function ___getConfigInputfields() {
-		$fields = new InputfieldWrapper();
 
-		$field = $this->modules->get("InputfieldRadios"); 
-		$field->attr('name', 'collapsed'); 
-		$field->label = $this->_("How should this field be displayed?");
-		$field->addOption(Inputfield::collapsedNo, $this->_("Always open")); 
-		$field->addOption(Inputfield::collapsedYes, $this->_("Always collapsed, requiring a click to open")); 
-		$field->attr('value', (int) $this->collapsed); 
-		$fields->append($field); 
+		$inputfields = parent::___getConfigInputfields();
 
-		return $fields;
+		// remove all options for 'collapsed' except collapsedYes and collapsedNo
+		foreach($inputfields as $f) {
+			if($f->attr('name') != 'collapsed') continue; 
+			foreach($f->getOptions() as $value => $label) {
+				if(!in_array($value, array(Inputfield::collapsedNo, Inputfield::collapsedYes))) $f->removeOption($value); 
+			}
+		}
+
+		return $inputfields;
 	}
 
 	/**

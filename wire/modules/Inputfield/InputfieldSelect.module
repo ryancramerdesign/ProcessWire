@@ -55,6 +55,15 @@ class InputfieldSelect extends Inputfield {
 	}
 
 	/**
+	 * Remove the option with the given value
+	 *
+	 */
+	public function removeOption($value) {
+		unset($this->options[$value]); 
+		return $this; 
+	}
+		
+	/**
 	 * Add multiple options at once
 	 *
  	 * @param array $options May be associative or regular array. If associative, use $value => $label. If regular, use just array($value, ...)
