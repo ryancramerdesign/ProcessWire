@@ -227,8 +227,10 @@ abstract class Wire implements TrackChanges {
 	 */ 
 	public function __call($method, $arguments) {
 		$result = $this->runHooks($method, $arguments); 
-		if(!$result['methodExists'] && !$result['numHooksRun']) 
+		if(!$result['methodExists'] && !$result['numHooksRun']) {
+			if($this->fuel('config')->disableUnknownMethodException) return null;
 			throw new WireException("Method " . $this->className() . "::$method does not exist or is not callable in this context"); 
+		}
 		return $result['return'];
 	}
 
