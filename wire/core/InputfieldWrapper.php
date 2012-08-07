@@ -196,6 +196,8 @@ class InputfieldWrapper extends Inputfield {
 	 */
 	protected function preRenderChildren() {
 
+		if($this->InputfieldWrapper_isPreRendered) return $this->children; 
+
 		$children = new InputfieldWrapper(); 
 		$wrappers = array($children);
 
@@ -208,9 +210,9 @@ class InputfieldWrapper extends Inputfield {
 				continue; 
 
 			} else if($inputfield instanceof InputfieldFieldsetOpen) {
+				$inputfield->set('InputfieldWrapper_isPreRendered', true); 
 				array_push($wrappers, $inputfield); 
-			}
-
+			} 
 
 			$wrapper->add($inputfield); 
 		}
