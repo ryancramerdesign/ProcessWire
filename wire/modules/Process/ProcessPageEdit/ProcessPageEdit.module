@@ -213,7 +213,7 @@ class ProcessPageEdit extends Process {
 		$form->attr('action', './?id=' . $this->id . ($this->input->get->modal ? "&modal=1" : '')); 
 		$form->attr('method', 'post'); 
 		$form->attr('enctype', 'multipart/form-data'); 
-		$form->attr('class', 'template_' . $this->page->template . ' class_' . $this->page->className); 
+		$form->attr('class', 'ui-helper-clearfix template_' . $this->page->template . ' class_' . $this->page->className); 
 		$form->attr('autocomplete', 'off'); 
 
 		if($this->page->template->nameContentTab) {

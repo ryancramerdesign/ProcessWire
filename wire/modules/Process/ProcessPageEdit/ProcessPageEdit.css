@@ -50,6 +50,15 @@
         display: inline; 
 }
 
+/**
+ * Ensures submit button doesn't end up floated (related to GitHub issue #95)
+ *
+ */ 
+
+#ProcessPageEditContent + ul.Inputfields {
+	clear: both; 
+}
+
 
 /**
  * Don't show the save buttons when on the delete tab
