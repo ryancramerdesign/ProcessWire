@@ -176,6 +176,7 @@ class ProcessPageAdd extends Process {
 
 		$field = $this->modules->get('InputfieldPageName');
 		$field->parentPage = $this->parent; 
+		$field->attr('name', '_pw_page_name'); 
 		$field->required = true; 
 		$form->append($field); 
 
@@ -254,7 +255,7 @@ class ProcessPageAdd extends Process {
 
 		$form->processInput($this->input->post);
 
-		$nameField = $form->children->get('name'); 	
+		$nameField = $form->children->get('_pw_page_name'); 	
 		$name = $nameField->value; 
 
 		if(!strlen($name)) {

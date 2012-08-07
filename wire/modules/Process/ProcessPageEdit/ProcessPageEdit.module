@@ -219,6 +219,7 @@ class ProcessPageEdit extends Process {
 		if($this->page->template->nameContentTab) {
 			// name
 			$field = $this->modules->get('InputfieldPageName');
+			$field->attr('name', '_pw_page_name'); 
 			$field->attr('value', $this->page->name); 
 			$field->required = true; 
 			if(!$this->page->editable('name')) $field->attr('disabled', 'disabled'); 
@@ -407,6 +408,7 @@ class ProcessPageEdit extends Process {
 		if($this->page->id > 1 && !$this->page->template->nameContentTab) {
 			$field = $this->modules->get('InputfieldPageName');
 			$field->attr('value', $this->page->name); 
+			$field->attr('name', '_pw_page_name');
 			if($field->value && !$this->page->editable('name')) $field->attr('disabled', 'disabled'); 
 			$field->required = true; 
 			if($this->page->parent) $field->parentPage = $this->page->parent;
@@ -667,6 +669,7 @@ class ProcessPageEdit extends Process {
 		foreach($form as $inputfield) {
 
 			$name = $inputfield->attr('name'); 
+			if($name == '_pw_page_name') $name = 'name';
 			if(in_array($name, $skipFields)) continue; 
 			if(!$this->page->editable($name)) continue; 
 			
