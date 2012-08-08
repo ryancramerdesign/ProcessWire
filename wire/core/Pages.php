@@ -18,6 +18,9 @@
  * http://www.ryancramer.com
  *
  *
+ * @link http://processwire.com/api/variables/pages/ Offical $pages Documentation
+ * @link http://processwire.com/api/selectors/ Official Selectors Documentation
+ *
  * @method PageArray find() find($selectorString, array $options) Find and return all pages matching the given selector string. Returns a PageArray.
  * @method bool save() save(Page $page) Save any changes made to the given $page. Same as : $page->save() Returns true on success
  * @method bool saveField() saveField(Page $page, $field) Save just the named field from $page. Same as : $page->save('field')
