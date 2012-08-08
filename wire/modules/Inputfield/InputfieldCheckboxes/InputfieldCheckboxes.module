@@ -45,7 +45,9 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 			if($this->isOptionSelected($key)) $checked = " checked='checked'";
 			$id = $this->id . "_" . $this->fuel('sanitizer')->name($key); 
 
-			$attrs = $this->getOptionAttributesString($key);
+			$attrs = $this->getOptionAttributes($key);
+			unset($attrs['checked'], $attrs['selected']); 
+			$attrs = $this->getOptionAttributesString($attrs);
 			if($attrs) $attrs = ' ' . $attrs; 
 
 			$value = $this->entityEncode($value); 

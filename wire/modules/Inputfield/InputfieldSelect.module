@@ -31,7 +31,7 @@ class InputfieldSelect extends Inputfield {
 		return array(
 			'title' => __('Select', __FILE__), // Module Title
 			'summary' => __('Selection of a single value from a select pulldown', __FILE__), // Module Summary
-			'version' => 100,
+			'version' => 101,
 			'permanent' => true, 
 			);
 	}
@@ -55,15 +55,6 @@ class InputfieldSelect extends Inputfield {
 	}
 
 	/**
-	 * Remove the option with the given value
-	 *
-	 */
-	public function removeOption($value) {
-		unset($this->options[$value]); 
-		return $this; 
-	}
-		
-	/**
 	 * Add multiple options at once
 	 *
  	 * @param array $options May be associative or regular array. If associative, use $value => $label. If regular, use just array($value, ...)
@@ -77,6 +68,78 @@ class InputfieldSelect extends Inputfield {
 		return $this; 
 	}
 
+	/**
+	 * Given a multi-line string, convert it to options, one per line
+	 *
+	 * Lines preceded with a plus "+" are assumed selected, i.e. +option
+	 * Lines with an equals sign are split into separate value and label, i.e. value=label
+	 *
+	 * @param string $value 
+	 * @return this
+	 *
+	 */
+	public function addOptionsString($value) {
+
+		$value = (string) $value; 
+		$options = explode("\n", $value);
+		$lastOption = '';
+		$optgroup = array();
+		$optgroupLabel = '';
+
+		foreach($options as $option) {
+
+			// in an optgroup when line starts with 3 or more spaces
+			if(strpos($option, '   ') === 0 && !empty($lastOption)) {
+				// if no optgroupLabel, we're starting a new option group
+				if(empty($optgroupLabel)) $optgroupLabel = $lastOption; 
+				$option = trim($option);
+			} else {
+				if($optgroupLabel) $this->addOption($optgroupLabel, $optgroup); 
+				$optgroup = array();
+				$optgroupLabel = '';
+			}
+
+			$option = trim($option); 
+			$attrs = array(); 
+			$label = null;
+
+			// if option starts with a plus then make it selected
+			if(substr($option, 0, 1) == '+') $attrs['selected'] = 'selected';
+
+			// option option has an equals "=", but not "==", then assume it's a: value=label
+			if(strpos($option, '=') !== false && strpos($option, '==') === false) list($option, $label) = explode('=', $option); 	
+
+			// convert double equals "==" to single equals "=", as a means of allowing escaped equals sign
+			if(strpos($option, '==') !== false) $option = str_replace('==', '=', $option);
+
+			$option = trim($option, '+ '); 
+	
+			if($optgroupLabel) {
+				// add option to optgroup
+				$optgroup[$option] = is_null($label) ? $option : $label;
+				if(count($attrs)) $this->optionAttributes[$option] = $attrs; 
+			} else {	
+				// add the option
+				$this->addOption($option, $label, $attrs);
+			}
+
+			$lastOption = $option;
+		}
+
+		if($optgroupLabel && count($optgroup)) $this->addOption($optgroupLabel, $optgroup);
+
+		return $this; 
+	}
+
+	/**
+	 * Remove the option with the given value
+	 *
+	 */
+	public function removeOption($value) {
+		unset($this->options[$value]); 
+		return $this; 
+	}
+		
 	/**
 	 * Get all options for this Select
 	 *
@@ -117,6 +180,18 @@ class InputfieldSelect extends Inputfield {
 	 *
 	 */
 	public function isOptionSelected($value) {
+
+		$valueAttr = $this->attr('value'); 
+		if(empty($valueAttr)) {
+			// no value set yet, check if it's set in any of the option attributes
+			$selected = false;
+			if(isset($this->optionAttributes[$value])) {
+				$attrs = $this->optionAttributes[$value]; 
+				if(!empty($attrs['selected']) || !empty($attrs['checked'])) $selected = true; 
+				
+			}
+			if($selected) return true; 
+		}
 
 		if($this instanceof InputfieldHasArrayValue) { 
 			// if(is_array($this->attr('value'))) {
@@ -174,6 +249,18 @@ class InputfieldSelect extends Inputfield {
 		}
 		$out .= "</ul>";	
 		return $out; 
+	}
+
+	/**
+	 * Get an attributes array intended for the <option> element
+	 *
+	 * @param string $key
+	 * @return array
+	 *
+	 */
+	protected function getOptionAttributes($key) {
+		if(!isset($this->optionAttributes[$key])) return array();
+		return $this->optionAttributes[$key]; 
 	}
 
 	/**
@@ -237,12 +324,50 @@ class InputfieldSelect extends Inputfield {
 	}
 
 	public function set($key, $value) {
+
 		if($key == 'options') {
-			if(!is_array($value)) return $this; 
-			$this->options = $value; 	
+			if(is_string($value)) return $this->addOptionsString($value); 
+			if(is_array($value)) $this->options = $value; 	
 			return $this;
-		}
+		} 
+
 		return parent::set($key, $value); 
+	}
+
+	public function setAttribute($key, $value) {
+		return parent::setAttribute($key, $value);
+	}
+
+
+	public function ___getConfigInputfields() {
+
+		$inputfields = parent::___getConfigInputfields();
+
+		// if dealing with an inputfield that has an associated fieldtype, 
+		// we don't need to perform the remaining configuration
+		if($this->hasFieldtype !== false) return $inputfields;
+
+		$isInputfieldSelect = $this->className() == 'InputfieldSelect';
+
+		$f = wire('modules')->get('InputfieldTextarea'); 
+		$f->attr('name', 'options'); 
+		$value = implode("\n", $this->options); 
+		if(empty($value)) {
+			$value = "=\nOption 1\nOption 2\nOption 3";
+			if(!$isInputfieldSelect) $value = ltrim($value, '='); 
+		}
+		$f->attr('rows', 10); 
+		$f->label = $this->_('Options');
+		$f->description = $this->_('Enter the options that may be selected, one per line.');
+		$f->notes = 
+			($isInputfieldSelect ? $this->_('To precede your list with a blank option, enter just a equals sign "=" as the first option.') . "\n" : '') . 
+			$this->_('To make an option selected, precede it with a plus sign. Example: +My Option') . "\n" . 
+			$this->_('To keep a separate value and label, separate them with an equals sign. Example: value=My Option') . "\n" . 
+			($isInputfieldSelect ? $this->_('To create an optgroup (option group) indent the options in the group with 3 or more spaces.') : ''); 
+			
+		$inputfields->add($f); 
+
+		return $inputfields; 
 	}
 
 	

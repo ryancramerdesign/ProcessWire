@@ -18,10 +18,23 @@ class InputfieldRadios extends InputfieldSelect {
 		foreach($this->getOptions() as $key => $value) {
 			$checked = '';
 
-			if($this->isOptionSelected($key)) $checked = " checked='checked'";
 			$id = $this->id . "_" . $this->fuel('sanitizer')->name($key); 
 
-			$attrs = $this->getOptionAttributesString($key);
+			$attrs = $this->getOptionAttributes($key);
+			//if(!empty($attrs['selected'])) $attrs['checked'] = 'checked';
+
+			/*
+			if($this->isOptionSelected($key) || 
+				(
+					!strlen($this->attr('value')) && 
+					!empty($attrs['checked'])
+				)
+			) $checked = " checked='checked'";
+			*/
+			if($this->isOptionSelected($key)) $checked = " checked='checked'";
+
+			unset($attrs['selected'], $attrs['checked']); 
+			$attrs = $this->getOptionAttributesString($attrs);
 			if($attrs) $attrs = ' ' . $attrs; 
 
 			$out .= "\n\t\t<li><label$attrs>" . 
