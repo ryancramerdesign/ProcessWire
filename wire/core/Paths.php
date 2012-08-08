@@ -12,6 +12,8 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
+ * @see http://processwire.com/api/variables/config/ Offical $config API variable Documentation
+ *
  */
 
 class Paths extends WireData {
@@ -29,6 +31,10 @@ class Paths extends WireData {
 	/**
 	 * Given a path, normalize it to "/" style directory separators if they aren't already
 	 *
+	 * @static
+	 * @param string $path
+	 * @return string
+	 *
 	 */
 	public static function normalizeSeparators($path) {
 		if(DIRECTORY_SEPARATOR == '/') return $path; 
@@ -39,8 +45,10 @@ class Paths extends WireData {
 	/**
 	 * Set the given path key
 	 *
-	 * If the first character of the provided path is a slash, then that specific path will be used without modification. 
-	 * If the first character is anything other than a slash, then the 'root' variable will be prepended to the path. 
+	 * @param string $key
+	 * @param mixed $value If the first character of the provided path is a slash, then that specific path will be used without modification.
+	 * 	If the first character is anything other than a slash, then the 'root' variable will be prepended to the path.
+	 * @return this
 	 *
 	 */
 	public function set($key, $value) {
@@ -50,6 +58,9 @@ class Paths extends WireData {
 
 	/**
 	 * Return the requested path variable
+	 *
+	 * @param object|string $key
+	 * @return mixed|null|string The requested path variable
 	 *
 	 */
 	public function get($key) {

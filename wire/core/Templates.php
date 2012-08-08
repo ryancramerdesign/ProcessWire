@@ -41,6 +41,10 @@ class TemplatesArray extends WireArray {
 /**
  * Manages and provides access to all the Template instances
  *
+ * @method Templates find() find($selectorString) Return the templates matching the the given selector query.
+ * @method bool save() save(Template $template) Save the given template instance.
+ * @method bool delete() delete($template) Delete the given template instance. Note that this will throw a fatal error if the template is in use by any pages.
+ *
  */
 class Templates extends WireSaveableItems {
 
@@ -131,6 +135,9 @@ class Templates extends WireSaveableItems {
 	 * Update or insert template to database 
 	 *
 	 * If the template's fieldgroup has changed, then we delete data that's no longer applicable to the new fieldgroup. 
+	 *
+	 * @param Template $item 
+	 * @return bool true on success
 	 *
 	 */
 	public function ___save(Saveable $item) {

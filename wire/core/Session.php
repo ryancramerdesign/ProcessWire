@@ -17,6 +17,14 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
+ *
+ * @see http://processwire.com/api/cheatsheet/#session Cheatsheet
+ * @see http://processwire.com/api/variables/session/ Offical $session API variable Documentation
+ *
+ * @method User login() login($name, $pass) Login the user identified by $name and authenticated by $pass. Returns the user object on successful login or null on failure.
+ * @method Session logout() logout() Logout the current user, and clear all session variables.
+ * @method redirect() redirect($url, $http301 = true) Redirect this session to the specified URL. 
+ *
  */
 
 class Session extends Wire implements IteratorAggregate {

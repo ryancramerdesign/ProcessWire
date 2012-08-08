@@ -15,6 +15,12 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
+ *
+ * @property string $path Returns the full server disk path where files are stored	
+ * @property string $url Returns the URL where files are stored
+ * @property Page $page Returns the $page that contains this set of files
+ * @method Pagefiles delete() delete(Pagefile $file) Removes the file and deletes from disk when page is saved (alias of remove)
+ *
  */
 
 class Pagefiles extends WireArray {

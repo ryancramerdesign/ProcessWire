@@ -17,6 +17,14 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
+ *
+ * @method PageArray find() find($selectorString, array $options) Find and return all pages matching the given selector string. Returns a PageArray.
+ * @method bool save() save(Page $page) Save any changes made to the given $page. Same as : $page->save() Returns true on success
+ * @method bool saveField() saveField(Page $page, $field) Save just the named field from $page. Same as : $page->save('field')
+ * @method bool trash() trash(Page $page, $save = true) Move a page to the trash. If you have already set the parent to somewhere in the trash, then this method won't attempt to set it again.
+ * @method bool delete() delete(Page $page, $recursive = false) Permanently delete a page and it's fields. Unlike trash(), pages deleted here are not restorable. If you attempt to delete a page with children, and don't specifically set the $recursive param to True, then this method will throw an exception. If a recursive delete fails for any reason, an exception will be thrown.
+ * @method Page|NullPage clone() clone(Page $page, Page $parent = null, $recursive = true, $options = array()) Clone an entire page, it's assets and children and return it.
+ *
  */
 
 class Pages extends Wire {

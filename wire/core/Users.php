@@ -1,10 +1,24 @@
 <?php
 
+/**
+ * The Users class serves as the $users API variable. 
+ *
+ * @method PageArray find() find($selectorString) Return the user(s) matching the the given selector query.
+ * @method User get() get(mixed $selector) Return user by given name, numeric ID or a selector string.
+ *
+ */
+
 class Users extends PagesType {
 
 	protected $currentUser = null; 
 	protected $guestUser = null; 
 
+	/**
+	 * Set the current system user (the $user API variable)
+	 *
+	 * @param User $user
+	 *
+	 */
 	public function setCurrentUser(User $user) {
 		if(!$user->roles->has("id=" . $this->fuel('config')->guestUserRolePageID)) {
 			$guestRole = $this->fuel('roles')->getGuestRole();

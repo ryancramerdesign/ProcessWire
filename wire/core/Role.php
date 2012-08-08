@@ -12,6 +12,8 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
+ * @property PageArray $permissions PageArray of permissions assigned to Role.
+ *
  */
 
 class Role extends Page { 

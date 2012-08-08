@@ -12,6 +12,18 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
+ *
+ * @see http://processwire.com/api/variables/config/ Offical $config API variable Documentation
+ *
+ * @property bool $ajax If the current request is an ajax (asynchronous javascript) request, this is set to true.
+ * @property string $httpHost Current HTTP host name.
+ * @property bool $https If the current request is an HTTPS request, this is set to true.
+ * @property string $version Current ProcessWire version string (i.e. "2.2.3")
+ * @property FilenameArray $styles Array used by ProcessWire admin to keep track of what stylesheet files its template should load. It will be blank otherwise. Feel free to use it for the same purpose in your own sites.
+ * @property FilenameArray $scripts Array used by ProcessWire admin to keep track of what javascript files its template should load. It will be blank otherwise. Feel free to use it for the same purpose in your own sites.
+ * @property Paths $urls Items from $config->urls reflect the http path one would use to load a given location in the web browser. URLs retrieved from $config->urls always end with a trailing slash.
+ * @property Paths $paths All of what can be accessed from $config->urls can also be accessed from $config->paths, with one important difference: the returned value is the full disk path on the server. There are also a few items in $config->paths that aren't in $config->urls. All entries in $config->paths always end with a trailing slash.
+ *
  */
 class Config extends WireData { 
 
