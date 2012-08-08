@@ -17,6 +17,7 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
+ * @method bool delete delete(Field $field) Delete the given Field object
  */
 class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 

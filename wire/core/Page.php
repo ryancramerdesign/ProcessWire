@@ -15,6 +15,32 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
+ * @link http://processwire.com/api/variables/page/ Offical $page Documentation
+ * @link http://processwire.com/api/selectors/ Official Selectors Documentation
+ *
+ * @property int $id The numbered ID of the current page
+ * @property string $name The name assigned to the page, as it appears in the URL
+ * @property string $title The page's title (headline) text
+ * @property string $path The page's URL path from the homepage (i.e. /about/staff/ryan/)
+ * @property string $url The page's URL path from the server's document root (may be the same as the $page->path)
+ * @property string $httpUrl Same as $page->url, except includes protocol (http or https) and hostname.
+ * @property Page $parent The parent Page object or a NullPage if there is no parent.
+ * @property int $parent_id The numbered ID of the parent page or 0 if none.
+ * @property PageArray $parents All the parent pages down to the root (homepage). Returns a PageArray.
+ * @property Page $rootParent The parent page closest to the homepage (typically used for identifying a section)
+ * @property Template $template The Template object this page is using
+ * @property FieldsArray $fields All the Fields assigned to this page (via it's template, same as $page->template->fields). Returns a FieldsArray.
+ * @property int $numChildren The number of children (subpages) this page has.
+ * @property PageArray $children All the children (subpages) of this page.* Returns a PageArray. See also $page->children($selector).
+ * @property Page $child The first child of this page. Returns a Page. See also $page->child($selector).
+ * @property PageArray $siblings All the sibling pages of this page.† Returns a PageArray. See also $page->siblings($selector).
+ * @property Page $next This page's next sibling page, or NullPage if it is the last sibling.† See also $page->next($pageArray).
+ * @property Page $prev This page's previous sibling page, or NullPage if it is the first sibling.† See also $page->prev($pageArray).
+ * @property string $created Unix timestamp of when the page was created
+ * @property string $modified Unix timestamp of when the page was last modified
+ * @property User $createdUser The user that created this page. Returns a User or a NullUser.
+ * @property User $modifiedUser The user that last modified this page. Returns a User or a NullUser.
+ * @method string render() Returns rendered page markup. echo $page->render();
  */
 
 class Page extends WireData {

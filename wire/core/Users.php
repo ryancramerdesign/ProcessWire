@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * @method PageArray find() find($selectorString) Return the user(s) matching the the given selector query.
+ * @method User get() get(mixed $selector) Return user by given name, numeric ID or a selector string.
+ */
 class Users extends PagesType {
 
 	protected $currentUser = null; 

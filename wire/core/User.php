@@ -12,6 +12,11 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
+ * @link http://processwire.com/api/variables/user/ Offical $user API variable Documentation
+ *
+ * @property string email Get or set email this user.
+ * @property string pass The user's hashed password. Note that this returns a hashed version of the password, so it is not typically useful to get this property. However, it is useful to set this property if you want to change the password. When you change a password, it is assumed to be the non-hashed/non-encrypted version. ProcessWire will hash it automatically when the user is saved.
+ * @property PageArray roles Get roles this user has. Returns PageArray.
  */
 
 class User extends Page { 

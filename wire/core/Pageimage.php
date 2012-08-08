@@ -12,6 +12,9 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
+ * @property int $width Width of image, in pixels
+ * @property int $height Height of image, in pixels
+ * @property Pageimage $original Reference to original $image, if this is a resized version.
  */
 
 class Pageimage extends Pagefile {
