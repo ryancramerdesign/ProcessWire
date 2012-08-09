@@ -6,7 +6,7 @@
 $(document).ready(function() {
 
 	// setup the toggles for Inputfields and the animations that occur between opening and closing
-	$(".Inputfields > li > label.ui-widget-header").addClass("InputfieldStateToggle")
+	$(".Inputfields > .Inputfield > label.ui-widget-header").addClass("InputfieldStateToggle")
 		.prepend("<span class='ui-icon ui-icon-triangle-1-s'></span>")
 		.click(function() {
 			var $li = $(this).parent('li'); 	

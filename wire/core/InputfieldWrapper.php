@@ -89,7 +89,7 @@ class InputfieldWrapper extends Inputfield {
 	static protected $defaultClasses = array(
 		'list' => 'Inputfields',
 		'list_clearfix' => 'ui-helper-clearfix', 
-		'item' => '{class} Inputfield_{name} ui-widget',
+		'item' => 'Inputfield {class} Inputfield_{name} ui-widget',
 		'item_error' => 'ui-state-error InputfieldStateError', 
 		'item_collapsed' => 'InputfieldStateCollapsed',
 		'item_column_width' => 'InputfieldColumnWidth',

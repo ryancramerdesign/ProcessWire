@@ -2,21 +2,16 @@
 	display: inline;
 }
 
+.Inputfields .asmList {
+	margin-bottom: 0;
+}
+
 .Inputfields .asmListItem {
 	margin: 0 0 -1px 0; 
 	margin-left: 0; 
-	/*
-	background: #ccc; 
-	border: 1px solid #999; 
-	*/
 }
 
 .Inputfields .asmHighlight {
 	display: inline;
 }
 
-.Inputfields .asmListItem:hover {
-	/*
-	background-color: #ddd; 
-	*/
-}
