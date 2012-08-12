@@ -349,10 +349,13 @@ class InputfieldWrapper extends Inputfield {
 		foreach($this->children as $key => $child) {
 
 			// skip over collapsedHidden inputfields, beacuse they were never drawn
-			if($child->collapsed == Inputfield::collapsedHidden) continue; 
+			if($child->collapsed === Inputfield::collapsedHidden) continue; 
 
 			// call the inputfield's processInput method
 			$child->processInput($input); 
+
+			// check if a value is required and field is empty, trigger an error if so
+			if($child->name && $child->required && $child->isEmpty()) $child->error($this->_('Missing required value')); 
 		}
 
 		return $this; 

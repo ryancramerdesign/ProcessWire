@@ -294,11 +294,8 @@ class InputfieldSelect extends Inputfield {
 
 		parent::___processInput($input); 	
 
-		$errorMsg = $this->_('An option must be selected'); 
-
 		if(!isset($input[$this->attr('name')])) {
 			$this->setAttribute('value', array()); 
-			if($this->required && $this->isEmpty()) $this->error($errorMsg);
 			return $this;
 		}
 
@@ -317,7 +314,6 @@ class InputfieldSelect extends Inputfield {
 		}
 
 		$this->setAttribute('value', $value); 
-		if($this->required && $this->isEmpty()) $this->error($errorMsg);
 
 		return $this; 
 	}

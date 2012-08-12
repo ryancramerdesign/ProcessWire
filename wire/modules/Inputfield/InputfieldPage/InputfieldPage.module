@@ -205,7 +205,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		return $out; 
 	}
-
+	
 	public function ___processInput(WireInputData $input) {
 
 		$inputfield = $this->getInputfield();
@@ -254,8 +254,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if("$newValue" != "$existingValue") {
 			$this->trackChange('value'); 
 		} 
-
-
+		
 		return $this; 
 	}
 
@@ -330,6 +329,25 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 			if($this->value instanceof Page) break;
 		}
+	}
+
+	public function isEmpty() {
+		$value = $this->attr('value'); 
+
+		if($value instanceof Page) {
+			// derefAsPage
+			return $value->id < 1; 
+
+		} else if($value instanceof PageArray) {
+			// derefAsPageArray
+			if(!count($value)) return true; 
+
+		} else {
+			// null
+			return true; 
+		}
+
+		return false; 
 	}
 
 	public function ___getConfigInputfields() {

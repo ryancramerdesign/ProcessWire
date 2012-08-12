@@ -133,7 +133,7 @@
 	border: none; 
 }
 
-.InputfieldStateRequired label.ui-widget-header:first-child:after {
+.InputfieldStateRequired > label.ui-widget-header:first-child:after {
 	content: ' *';
 	color: red;
 	

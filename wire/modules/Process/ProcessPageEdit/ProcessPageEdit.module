@@ -164,14 +164,17 @@ class ProcessPageEdit extends Process {
 				if($notice instanceof NoticeError) $formErrors++; 
 			}
 
+			$isUnpublished = $this->page->is(Page::statusUnpublished); 
+
 			if($this->input->post->submit_publish || $this->input->post->submit_save) {
 
 				try {
-					if($this->input->post->submit_publish && $this->page->is(Page::statusUnpublished) && $this->page->publishable()) {
+					if($this->input->post->submit_publish && $isUnpublished && $this->page->publishable() && !$formErrors) {
 						$this->page->removeStatus(Page::statusUnpublished);
 						$message = sprintf($this->_('Published Page: %s'), $this->page->path); // Message shown when page is published
 					} else {
 						$message = sprintf($this->_('Saved Page: %s'), $this->page->path); // Message shown when page is saved
+						if($isUnpublished && $formErrors && $this->input->post->submit_publish) $message .= ' - ' . $this->_('Cannot be published until errors are corrected'); 
 					}
 					
 					$this->page->save();
