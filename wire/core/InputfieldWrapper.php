@@ -90,6 +90,7 @@ class InputfieldWrapper extends Inputfield {
 		'list' => 'Inputfields',
 		'list_clearfix' => 'ui-helper-clearfix', 
 		'item' => 'Inputfield {class} Inputfield_{name} ui-widget',
+		'item_required' => 'InputfieldStateRequired',
 		'item_error' => 'ui-state-error InputfieldStateError', 
 		'item_collapsed' => 'InputfieldStateCollapsed',
 		'item_column_width' => 'InputfieldColumnWidth',
@@ -266,6 +267,7 @@ class InputfieldWrapper extends Inputfield {
 
 			//if(count($errors)) $ffAttrs['class'] .= " ui-state-error InputfieldStateError"; 
 			if(count($errors)) $ffAttrs['class'] .= ' ' . $classes['item_error'];
+			if($inputfield->required) $ffAttrs['class'] .= ' ' . $classes['item_required']; 
 
 			if($collapsed) {
 				$isEmpty = $inputfield->isEmpty();

@@ -444,7 +444,7 @@ abstract class Inputfield extends WireData implements Module {
 			}
 		}
 
-		if($this->required && $this->isEmpty()) $this->error("Missing required value"); 
+		if($this->required && $this->isEmpty()) $this->error($this->_("Missing required value")); 
 
 		if($changed) { 
 			$this->trackChange('value'); 
@@ -513,13 +513,13 @@ abstract class Inputfield extends WireData implements Module {
 		if(!wire('input')->get('process_template')) if($value == 100) $field->collapsed = Inputfield::collapsedYes; 
 		$fields->append($field); 
 
-		if($this->config->advanced) { 
+		if($this->config->advanced || $this->hasFieldtype === false) { 
 			$field = $this->modules->get('InputfieldCheckbox'); 
 			$field->label = $this->_('Required?');
 			$field->attr('name', 'required'); 
 			$field->attr('value', 1); 
+			$field->collapsed = $this->required ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
 			$field->attr('checked', $this->required ? 'checked' : ''); 
-			$field->collapsed = self::collapsedBlank; 
 			$field->description = $this->_("If checked, a value will be required for this field.");
 			$fields->append($field); 
 		}

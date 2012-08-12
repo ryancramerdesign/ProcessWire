@@ -133,6 +133,12 @@
 	border: none; 
 }
 
+.InputfieldStateRequired label.ui-widget-header:first-child:after {
+	content: ' *';
+	color: red;
+	
+}
+
 
 /****************************************************************************
  * Specific Inputfield types
