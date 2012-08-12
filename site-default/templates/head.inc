@@ -19,6 +19,8 @@
 
 	<meta name="description" content="<?php echo $page->summary; ?>" />
 
+	<meta name="generator" content="ProcssWire <?php echo $config->version; ?>" />
+
 	<link rel="stylesheet" type="text/css" href="<?php echo $config->urls->templates?>styles/main.css" />
 
 	<!--[if IE]>
@@ -28,6 +30,13 @@
 	<script type="text/javascript" src="<?php echo $config->urls->templates?>scripts/jquery-1.4.2.min.js"></script>
 
 	<script type="text/javascript" src="<?php echo $config->urls->templates?>scripts/main.js"></script>
+
+	<!--
+	This website is powered by ProcessWire CMF/CMS.
+	ProcessWire is a free open source content management framework licensed under the GNU GPL.
+	ProcessWire is Copyright 2012 by Ryan Cramer / Ryan Cramer Design, LLC.
+	Learn more about ProcessWire at: http://processwire.com
+	-->
 
 </head>
 <body>
