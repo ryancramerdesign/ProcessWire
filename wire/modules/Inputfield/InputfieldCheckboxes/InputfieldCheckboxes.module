@@ -36,7 +36,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 			$out = "\n<ul class='InputfieldCheckboxesColumns ui-helper-clearfix'>";
 
 		} else {
-			$out = "\n<ul>";
+			$out = "\n<ul class='InputfieldCheckboxesStacked'>";
 		}
 
 		foreach($this->getOptions() as $key => $value) {
@@ -89,7 +89,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 		$inputfields = parent::___getConfigInputfields(); 
 		$f = wire('modules')->get('InputfieldInteger');
 		$f->label = $this->_('Columns of Checkboxes');
-		$f->description = $this->_('If you want the checkboxes to display in columns, enter the number of columns you want to use (up to 10).'); 
+		$f->description = $this->_('If you want the checkboxes to display in columns (rather than stacked), enter the number of columns you want to use (up to 10).'); 
 		$f->attr('name', 'optionColumns'); 
 		$f->attr('value', (int) $this->optionColumns); 
 		$inputfields->add($f);	

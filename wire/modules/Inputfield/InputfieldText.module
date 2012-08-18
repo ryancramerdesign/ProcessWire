@@ -6,13 +6,13 @@
  */
 class InputfieldText extends Inputfield {
 
-	const defaultMaxlength = 1024; 
+	const defaultMaxlength = 2048; 
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Text', __FILE__), // Module Title
 			'summary' => __('Single line of text', __FILE__), // Module Summary
-			'version' => 101,
+			'version' => 102,
 			'permanent' => true, 
 			);
 	}
@@ -22,6 +22,7 @@ class InputfieldText extends Inputfield {
 		$this->setAttribute('type', 'text'); 
 		$this->setAttribute('size', 0); 
 		$this->setAttribute('maxlength', self::defaultMaxlength); 
+		$this->setAttribute('placeholder', '');
 	}
 
 	public function ___render() {
@@ -40,7 +41,7 @@ class InputfieldText extends Inputfield {
 
 	public function setAttribute($key, $value) {
 
-		if($key == 'maxlength' && !(int) $value) $value = ''; // blank string prevents a maxlength='0' attribute
+		if($key == 'maxlength' && ((int) $value) < 1) $value = self::defaultMaxlength; // blank string prevents a maxlength='0' attribute
 		if($key == 'value') $value = $this->setAttributeValue($value); 
 
 		return parent::setAttribute($key, $value); 
@@ -63,10 +64,10 @@ class InputfieldText extends Inputfield {
 		$field = $this->modules->get('InputfieldInteger');
 		$field->setAttribute('name', 'size'); 
 		$field->label = 'Size';
-		$field->setAttribute('value', $this->attr('size')); 
+		$field->setAttribute('value', $this->attr('size') > 0 ? $this->attr('size') : 0); 
 		$field->setAttribute('size', 4); 
 		$field->description = 'The displayed width of this field (in characters). Set to 0 for full width.'; 
-		$field->columnWidth = 50; 
+		$field->columnWidth = 33; 
 		$inputfields->append($field);
 
 		$field = $this->modules->get('InputfieldInteger');
@@ -75,7 +76,15 @@ class InputfieldText extends Inputfield {
 		$field->setAttribute('value', $this->attr('maxlength')); 
 		$field->setAttribute('size', 4); 
 		$field->description = 'The maximum length (in characters) that are allowed by this field.'; 
-		$field->columnWidth = 50; 
+		$field->columnWidth = 33; 
+		$inputfields->append($field);
+
+		$field = $this->modules->get('InputfieldText');
+		$field->setAttribute('name', 'placeholder'); 
+		$field->label = 'Placeholder Text';
+		$field->setAttribute('value', $this->attr('placeholder')); 
+		$field->description = 'Optional placeholder phrase of text that appears in the field when blank.'; 
+		$field->columnWidth = 34; 
 		$inputfields->append($field);
 
 		return $inputfields; 

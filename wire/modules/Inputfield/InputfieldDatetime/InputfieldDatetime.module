@@ -42,6 +42,7 @@ class InputfieldDatetime extends Inputfield {
 	public function init() {
 		$this->attr('type', 'text'); 
 		$this->attr('size', 25); 
+		$this->attr('placeholder', '');
 		$this->set('dateInputFormat', self::defaultDateInputFormat);
 		$this->set('timeInputFormat', '');
 		$this->set('datepicker', self::datepickerFocus); 
@@ -238,7 +239,17 @@ class InputfieldDatetime extends Inputfield {
 		if($this->defaultToday) $f->attr('checked', 'checked'); 
 		$f->label = $this->_("Default to today's date?");
 		$f->description = $this->_("If checked, this field will hold the current date when no value is entered."); // Default today description
+		$f->columnWidth = 50;
 		$inputfields->append($f);
+
+		$field = $this->modules->get('InputfieldText');
+		$field->setAttribute('name', 'placeholder');
+		$field->label = $this->_('Placeholder Text');
+		$field->setAttribute('value', $this->attr('placeholder'));
+		$field->description = $this->_('Optional placeholder text that appears in the field when blank.');
+		$field->columnWidth = 50;
+		$inputfields->append($field);
+
 
 		return $inputfields; 
 	}

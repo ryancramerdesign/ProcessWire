@@ -8,8 +8,19 @@
  *
  */
 
+.Inputfields fieldset, 
+.Inputfields input, 
+.Inputfields select,
+.Inputfields textarea,
+.Inputfields label {
+	/* reset */
+	margin: 0;
+	padding: 0;
+}
+	
 .Inputfields,
 .Inputfields .Inputfield,
+.Inputfields label,
 .Inputfields input,
 .Inputfields select,
 .Inputfields textarea,
@@ -175,28 +186,6 @@
 		/* no need for a header with buttons */
 		display: none; 
 	}
-
-/**
- * Checkboxes and Radios
- *
- */
-
-.Inputfields .InputfieldCheckboxes ul li,
-.Inputfields .InputfieldRadios ul li {
-	/* we don't need checkboxes/radios to have bullets, etc. */
-	list-style: none; 
-}
-
-	.Inputfields .InputfieldCheckboxes input,
-	.Inputfields .InputfieldRadios input {
-		/* a little padding to the right of a checkbox/radio so label isn't up against the input */
-		margin-right: 0.25em; 
-	}
-		.Inputfields .InputfieldCheckboxes li,
-		.Inputfields .InputfieldRadios li {
-			/* no need for top/bottom margins in a group of checkboxes or radios */
-			margin: 0; 
-		}
 
 /**
  * Text/Textarea fields

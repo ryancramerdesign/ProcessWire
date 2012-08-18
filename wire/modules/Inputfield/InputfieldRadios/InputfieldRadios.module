@@ -1,0 +1,86 @@
+<?php
+
+class InputfieldRadios extends InputfieldSelect {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => __('Radio Buttons', __FILE__), // Module Title
+			'summary' => __('Radio buttons for selection of a single item', __FILE__), // Module Summary
+			'version' => 101,
+			'permanent' => true, 
+			);
+	}
+
+	public function init() {
+		$this->set('optionColumns', 0); 
+		parent::init();
+	}
+
+	public function ___render() {	
+
+		$columns = (int) $this->optionColumns;
+		$options = $this->getOptions();
+		$liAttr = '';
+
+		if($columns) {
+			if(count($options) >= $columns) {
+				$liWidth = round(100 / $columns)-1;  // 1% padding-right added from stylesheet
+				$liAttr = " style='width: {$liWidth}%;'";
+				$ulClass = 'InputfieldRadiosColumns';
+			} else {
+				// don't bother setting a width, we will let them float where they want instead
+				$ulClass = 'InputfieldRadiosFloated';
+			}
+			$out = "\n\t<ul class='$ulClass ui-helper-clearfix'>";
+
+		} else {
+			$out = "\n\t<ul class='InputfieldRadiosStacked'>"; 
+		}
+
+		foreach($options as $key => $value) {
+			$checked = '';
+
+			$id = $this->id . "_" . $this->fuel('sanitizer')->name($key); 
+
+			$attrs = $this->getOptionAttributes($key);
+			if($this->isOptionSelected($key)) $checked = " checked='checked'";
+
+			unset($attrs['selected'], $attrs['checked']); 
+			$attrs = $this->getOptionAttributesString($attrs);
+			if($attrs) $attrs = ' ' . $attrs; 
+
+			$out .= "\n\t\t<li$liAttr><label$attrs>" . 
+				"<input$checked " . 
+				"type='radio' " . 
+				"name='{$this->name}' " . 
+				"id='$id' " . 
+				"value='" . htmlspecialchars($key, ENT_QUOTES) . "' />" . $this->entityEncode($value) . 
+				"</label></li>";
+		}
+
+		$out .=	"\n\t</ul>";
+
+		return $out; 
+	}
+
+	public function set($key, $value) {
+		if($key == 'optionColumns') {
+			$value = (int) $value;
+			if($value < 0) $value = 0;
+			if($value > 10) $value = 10;
+		}
+		return parent::set($key, $value); 
+	}
+
+	public function ___getConfigInputfields() {
+		$inputfields = parent::___getConfigInputfields(); 
+		$f = wire('modules')->get('InputfieldInteger');
+		$f->label = $this->_('Columns of Radio Buttons');
+		$f->description = $this->_('If you want the radio buttons to display in columns (rather than stacked), enter the number of columns you want to use (up to 10).'); 
+		$f->attr('name', 'optionColumns'); 
+		$f->attr('value', (int) $this->optionColumns); 
+		$inputfields->add($f);	
+		return $inputfields; 
+	}
+
+}
