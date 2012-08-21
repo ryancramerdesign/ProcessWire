@@ -1109,6 +1109,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 		foreach(wire('fields') as $f) {
 			if($template->fieldgroup->has($f)) continue;
+			if($f->type instanceof FieldtypeRepeater) continue; 
 			if(($f->flags & Field::flagPermanent) && !wire('config')->advanced) continue;
 			$name = $f->name;
 			if($f->flags & Field::flagSystem) $name .= "*";
