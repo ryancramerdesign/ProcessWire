@@ -236,7 +236,7 @@ class PageArray extends WireArray {
 	 * @return PageArray reference to current instance.
 	 */
 	public function setTotal($total) { 
-		$this->numTotal = $total; 
+		$this->numTotal = (int) $total; 
 		return $this;
 	}	
 

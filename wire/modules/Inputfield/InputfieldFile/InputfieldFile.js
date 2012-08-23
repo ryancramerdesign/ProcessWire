@@ -127,7 +127,7 @@ $(document).ready(function() {
 			var $fileList = $this.find(".InputfieldFileList"); 
 
 			if($fileList.size() < 1) {
-				$fileList = $("<ul class='InputfieldFileList'></ul>"),
+				$fileList = $("<ul class='InputfieldFileList InputfieldFileListBlank'></ul>"),
 				$this.prepend($fileList); 
 			}
 

@@ -3,6 +3,11 @@
 	margin-bottom: 0; 
 }
 
+.InputfieldRepeater .InputfieldWrapper,
+.InputfieldRepeater .InputfieldWrapper > .Inputfields {
+        margin-top: 0 !important;
+}
+
 .InputfieldRepeater li.InputfieldRepeaterReady {
 	/* item that's rendered and ready to be a new item */
 	position: absolute;
@@ -16,7 +21,7 @@
 	top: 0;
 }
 
-.InputfieldRepeater .InputfieldRepeaterNewItem {
+.Inputfields .InputfieldRepeater .InputfieldRepeaterNewItem {
 	display: none; 
 	margin-bottom: 1em !important; 
 }

@@ -77,6 +77,10 @@
 		display: none; 
 	}
 
+	ul.InputfieldFileListBlank + p.description {
+		margin-top: 0;
+	}
+
 
 .InputfieldFileValidExtensions {
 	display: block;
