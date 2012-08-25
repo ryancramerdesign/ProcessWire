@@ -40,7 +40,7 @@ class InputfieldTextarea extends Inputfield {
 		$field = $this->modules->get('InputfieldInteger'); 
 		$field->setAttribute('name', 'rows'); 
 		$field->label = $this->_('Rows');
-		$field->setAttribute('value', $this->attr('rows')); 
+		$field->setAttribute('value', $this->attr('rows') > 0 ? $this->attr('rows') : self::defaultRows); 
 		$field->setAttribute('size', 3); 
 		$field->description = $this->_('The number of rows initially shown for this field.'); 
 		$inputfields->append($field);
