@@ -98,7 +98,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		return $children; 
 	} 
 
-	protected function getInputfield() {
+	public function getInputfield() {
 
 		if($this->inputfieldWidget) return $this->inputfieldWidget; 
 
