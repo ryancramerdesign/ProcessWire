@@ -190,7 +190,9 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		$selector = rtrim($selector, ", "); 
 		$displaySelector = $selector; 
 
-		if($this->user->isSuperuser() && !$status && !preg_match('/\binclude=/', $selector)) $selector .= ", include=all"; 
+		if($this->user->isSuperuser() && !$status && !preg_match('/\binclude=/', $selector)) {
+			$selector .= ", include=all, status<" . Page::statusUnpublished; 
+		}
 
 		return $this->render($this->pages->find($selector), $displaySelector); 
 	}
@@ -290,8 +292,11 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		// limit results for pagination
 		$selector .= ", limit={$this->resultLimit}";
 
-		// exclude admin pages unless the admin template is chosen
-		if($this->input->whitelist('template') != 'admin') $selector .= ", has_parent!=" . wire('config')->adminRootPageID; 
+		// exclude admin repeater pages unless the admin template is chosen
+		if(!$this->input->whitelist('template')) {
+			$repeaters = wire('pages')->get(wire('config')->adminRootPageID)->child('name=repeaters, include=all');
+			if($repeaters->id) $selector .= ", has_parent!={$repeaters->id}";
+		}
 
 		// include hidden pages
 		if($this->user->isSuperuser()) $selector .= ", include=all";
