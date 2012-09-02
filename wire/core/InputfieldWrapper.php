@@ -74,7 +74,7 @@ class InputfieldWrapper extends Inputfield {
 		'item' => "\n\t<li {attrs}>\n{out}\n\t</li>", 
 		'item_label' => "\n\t\t<label class='ui-widget-header' for='{for}'>{out}</label>", 
 		'item_content' => "\n\t\t<div class='ui-widget-content'>\n{out}\n\t\t</div>", 
-		'item_error' => "\n<p class='ui-state-error-text'>{out}</p>",
+		'item_error' => "\n<p><span class='ui-state-error'>{out}</span></p>",
 		'item_description' => "\n<p class='description'>{out}</p>", 
 		'item_head' => "\n<h2>{out}</h2>", 
 		'item_notes' => "\n<p class='notes'>{out}</p>",
@@ -114,7 +114,7 @@ class InputfieldWrapper extends Inputfield {
 	public function __construct() {
 		parent::__construct();
  		$this->children = new InputfieldsArray(); 
-		$this->set('skipLabel', true); 
+		$this->set('skipLabel', Inputfield::skipLabelFor); 
 		$this->set('renderValueMode', false); 
 	}
 
@@ -293,7 +293,7 @@ class InputfieldWrapper extends Inputfield {
 			if($ffOut) {
 				$attrs = '';
 				$label = '';
-				if($inputfield->label) {
+				if($inputfield->label && $inputfield->skipLabel !== Inputfield::skipLabelHeader) {
 					$for = $inputfield->skipLabel ? '' : $inputfield->attr('id');
 					$label = str_replace(array('{for}', '{out}'), array($for, $this->entityEncode($inputfield->label)), $markup['item_label']); 
 				}
@@ -330,6 +330,7 @@ class InputfieldWrapper extends Inputfield {
 	}
 
 	public function ___renderValue() {
+		$this->attr('class', trim($this->attr('class') .' InputfieldRenderValueMode'));
 		$this->set('renderValueMode', true); 
 		$out = $this->render(); 
 		$this->set('renderValueMode', false); 
@@ -372,8 +373,10 @@ class InputfieldWrapper extends Inputfield {
 	public function getErrors($clear = false) {
 		$errors = parent::getErrors($clear); 
 		foreach($this->children as $key => $child) {
-			foreach($child->getErrors($clear) as $e) 
-				$errors[] = $child->attr('name') . ": $e";
+			foreach($child->getErrors($clear) as $e) {
+				$msg = $child->label ? $child->label : $child->attr('name'); 
+				$errors[] = $msg . " - $e";
+			}
 		}
 		return $errors;
 	}

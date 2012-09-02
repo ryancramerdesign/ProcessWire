@@ -19,6 +19,11 @@
 	margin-right: 2px; 
 }
 
+label.ui-widget-header + div.ui-widget-content {
+	/* remove doubled border between header/content on ui-widgets */
+	border-top: none;
+}
+
 #notices .ui-state-highlight,
 #notices .ui-state-error {
 	padding: 0.5em; 
@@ -37,6 +42,10 @@
 	#notices a {
 		text-decoration: underline; 
 	}
+
+p span.ui-state-error {
+        padding: 0.25em 0.5em;
+}
 
 .ui-dialog .ui-dialog-content {
 	padding: 0; 
@@ -60,13 +69,6 @@
 
 	a .ui-button {
 		display: block;
-	}
-
-button.ui-datepicker-trigger {
-	margin: 0 0 0 0.5em;
-}
-	#ui-datepicker-div {
-		display: none; 
 	}
 
 /***********************************************************************************************

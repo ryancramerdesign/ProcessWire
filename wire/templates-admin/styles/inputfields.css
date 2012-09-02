@@ -145,8 +145,6 @@
 
 .InputfieldStateRequired > label.ui-widget-header:first-child:after {
 	content: ' *';
-	color: red;
-	
 }
 
 
@@ -199,4 +197,23 @@
 	.Inputfields textarea {
 		display: block;
 	}
+
+
+/****************************************************************************
+ * Render Value Mode 
+ *
+ * Used when only values are being rendered in the form (no inputs)
+ *
+ */
+
+.InputfieldRenderValueMode .InputfieldSelect li,
+.InputfieldRenderValueMode .InputfieldRadios li,
+.InputfieldRenderValueMode .InputfieldCheckboxes li {
+        margin: 0;
+}
+
+.InputfieldRenderValueMode .InputfieldSubmit,
+.InputfieldRenderValueMode .InputfieldButton {
+	display: none; 
+}
 

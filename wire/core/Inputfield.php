@@ -59,6 +59,14 @@ abstract class Inputfield extends WireData implements Module {
 	const collapsedPopulated = 5; 	// will display collapsed only if populated
 
 	/**
+	 * Constants for skipLabel setting
+	 *
+	 */
+	const skipLabelNo = false; 	// don't skip the label at all (default)
+	const skipLabelFor = true; 	// don't use a 'for' attribute with the <label>
+	const skipLabelHeader = 2; 	// don't use a ui-widget-header label at all
+
+	/**
 	 * The total number of Inputfield instances, kept as a way of generating unique 'id' attributes
 	 *
 	 */
@@ -97,7 +105,7 @@ abstract class Inputfield extends WireData implements Module {
 		$this->set('required', 0); 	// set to 1 to make value required for this field
 		$this->set('collapsed', ''); 	// see the collapsed* constants at top of class (use blank string for unset value)
 		$this->set('columnWidth', ''); 	// percent width of the field. blank or 0 = 100.
-		$this->set('skipLabel', false); // if true, tells InputfieldWrapper not to use a "for" attribute with the auto-generated "<label>"
+		$this->set('skipLabel', self::skipLabelNo); // See the skipLabel constants
 
 		// default ID attribute if no 'id' attribute set
 		$this->defaultID = $this->className() . self::$numInstances; 

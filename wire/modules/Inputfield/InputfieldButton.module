@@ -22,6 +22,7 @@ class InputfieldButton extends InputfieldSubmit {
 		$this->attr('name', 'button'); 
 		$this->attr('value', 'Button'); 
 		$this->attr('href', ''); 
+		$this->skipLabel = Inputfield::skipLabelHeader; 
 	}
 
 	public function ___render() {

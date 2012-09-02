@@ -342,6 +342,22 @@ class PageArray extends WireArray {
 	}
 
 	/**
+	 * Get the vaule of $property from $item
+	 *
+	 * Used by the WireArray::sort method to retrieve a value from a Wire object. 
+	 * If output formatting is on, we turn it off to ensure that the sorting
+	 * is performed without output formatting.
+	 *
+	 * @param Wire $item
+	 * @param string $property
+	 * @return mixed
+	 *
+	 */
+	protected function getItemPropertyValue(Wire $item, $property) {
+		return $item->getUnformatted($property); 
+	}
+
+	/**
 	 * PageArrays always return a string of the Page IDs separated by pipe "|" characters
 	 *
 	 * Pipe charactesr are used for compatibility with Selector OR statements

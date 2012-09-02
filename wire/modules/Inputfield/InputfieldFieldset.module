@@ -12,13 +12,7 @@ class InputfieldFieldset extends InputfieldWrapper {
 	}
 
 	public function ___render() {
-		$out = ''; 
-		if($this->description) {
-			$out .= "\n\t<p class='description'>{$this->description}</p>";
-			$this->description = ''; // prevents it from appearing again at the bottom
-		}
-		$out .= parent::___render(); 
-		return $out; 
+		return parent::___render();
 	}
 	
 }

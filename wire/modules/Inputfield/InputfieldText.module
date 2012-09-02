@@ -23,6 +23,7 @@ class InputfieldText extends Inputfield {
 		$this->setAttribute('size', 0); 
 		$this->setAttribute('maxlength', self::defaultMaxlength); 
 		$this->setAttribute('placeholder', '');
+		$this->set('initValue', ''); // optional initial value
 	}
 
 	public function ___render() {
@@ -35,6 +36,9 @@ class InputfieldText extends Inputfield {
 		if(empty($attrs['size'])) {
 			unset($attrs['size']); 
 			$attrs['class'] = (empty($attrs['class']) ? '' : $attrs['class'] . ' ') . 'InputfieldMaxWidth';
+		}
+		if(!strlen($attrs['value']) && $this->initValue) {
+			$attrs['value'] = $this->initValue; 
 		}
 		return $attrs; 
 	}
@@ -86,6 +90,16 @@ class InputfieldText extends Inputfield {
 		$field->description = $this->_('Optional placeholder phrase of text that appears in the field when blank.'); 
 		$field->columnWidth = 34; 
 		$inputfields->append($field);
+
+		if($this->hasFieldtype === false) { 
+			$field = $this->modules->get('InputfieldText');
+			$field->setAttribute('name', 'initValue'); 
+			$field->label = $this->_('Initial Value');
+			$field->description = $this->_('Optional initial/default value pre-populated for the user.'); 
+			$field->setAttribute('value', $this->initValue); 
+			$field->collapsed = Inputfield::collapsedBlank; 
+			$inputfields->append($field);
+		}
 
 		return $inputfields; 
 	}
