@@ -10,7 +10,7 @@ class InputfieldURL extends InputfieldText {
 		return array(
 			'title' => __('URL', __FILE__), // Module Title
 			'summary' => __('URL in valid format'), // Module Summary
-			'version' => 100,
+			'version' => 101,
 			);
 	}
 
@@ -18,7 +18,7 @@ class InputfieldURL extends InputfieldText {
 		parent::__construct();
 		$this->setAttribute('type', 'text'); 
 		$this->setAttribute('maxlength', 1024); 
-		$this->setAttribute('size', 70); 
+		$this->setAttribute('size', 0); 
 		$this->setAttribute('name', 'href'); 
 		$this->label = 'URL';
 		$this->set('noRelative', 0); // whether relative URLs are disabled
