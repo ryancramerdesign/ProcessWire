@@ -130,6 +130,17 @@ class InputfieldDatetime extends Inputfield {
 	}
 
 	/**
+	 * Render value for presentation, non-input
+	 *
+	 */
+	public function ___renderValue() {
+		$value = $this->attr('value'); 
+		if(!$value) return '';
+		$format = trim($this->dateInputFormat . ' ' . $this->timeInputFormat); 
+		return FieldtypeDatetime::formatDate($value, trim($format));
+	}
+
+	/**
 	 * Capture setting of the 'value' attribute and convert string dates to unix timestamp
 	 *
 	 */
@@ -171,7 +182,7 @@ class InputfieldDatetime extends Inputfield {
 		$f->attr('name', 'yearRange');
 		$f->attr('value', $this->yearRange); 
 		$f->attr('size', 10);
-		$f->label = "Date Picker Year Range";
+		$f->label = $this->_('Date Picker Year Range');
 		$f->description = $this->_('When the date picker is used, it has a selectable year range minus and plus 10 years from the current year. To extend or reduce that, specify the quantity of years before and after [current year] in this format: "-30:+20", which would show 30 years before now and 20 years after now.'); 
 		$f->notes = $this->_('Default when no value present is "-10:+10" which shows a date picker year range 10 years before now, and 10 years after now.'); 
 		$f->collapsed = Inputfield::collapsedBlank;

@@ -51,7 +51,9 @@ class FieldtypeDatetime extends FieldtypeText {
 
 		// Gregorian big-endian, starting with year (used in Asian countries, Hungary, Sweden, and US armed forces)
 		'Y-m-d',	// 2012-04-01 (ISO-8601)
+		'Y/m/d',	// 2012/04/01 (ISO-8601)
 		'Y.n.j',	// 2012.4.1 (common in China)
+		'Y/n/j',	// 2012/4/1 
 		'Y F j',	// 2012 April 1
 		'Y-M-j, l',	// 2012-Apr-1, Monday
 		'Y-M-j',	// 2012-Apr-1
