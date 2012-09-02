@@ -11,6 +11,7 @@ jQuery(document).ready(function($) {
 		var hasTimePicker = timeFormat.length > 0 && !pickerVisible;
 		var showOn = $t.is(".InputfieldDatetimeDatepicker3") ? 'focus' : 'button';
 		var ampm = parseInt($t.attr('data-ampm')) > 0; 
+		var yearRange = $t.attr('data-yearrange'); 
 
 		if(ts > 1) tsDate = new Date(ts); 
 
@@ -35,6 +36,8 @@ jQuery(document).ready(function($) {
 			// buttonImage: config.urls.admin_images + 'icons/calendar.gif',
 			// dateFormat: config.date_format
 		}; 
+
+		if(yearRange && yearRange.length) options.yearRange = yearRange; 
 
 		if(hasTimePicker) { 
 			options.ampm = ampm; 
