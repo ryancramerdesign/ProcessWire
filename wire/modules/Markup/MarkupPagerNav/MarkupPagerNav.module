@@ -50,7 +50,7 @@ class MarkupPagerNav extends Wire implements Module {
 		return array(
 			'title' => 'Pager (Pagination) Navigation', 
 			'summary' => 'Generates markup for pagination navigation', 
-			'version' => 100, 
+			'version' => 101, 
 			'permanent' => false, 
 			'singular' => false, 
 			'autoload' => false, 
@@ -117,6 +117,10 @@ class MarkupPagerNav extends Wire implements Module {
 
 		// the current page number (1-based, set automatically)
 		'pageNum' => 1,		
+
+		// when arrays are present in getVars, they will be translated to CSV strings in the queryString: ?var=a,b,c
+		// if set to false, then arrays will be kept in traditional format: ?var[]=a&var[]=b&var=c 
+		'arrayToCSV' => true,
 
 		// the queryString used in links (set automatically, based on whitelist or getVars array)
 		'queryString' => '', 	
@@ -224,14 +228,19 @@ class MarkupPagerNav extends Wire implements Module {
 		$queryString = "?";
 		foreach($this->options['getVars'] as $key => $value) {
 			if(is_array($value)) {
-				$a = $value; 
-				$value = '';
-				foreach($a as $k => $v) $value .= "$v,";
-				$value = rtrim($value, ", "); 
+				if($this->options['arrayToCSV']) {
+					$a = $value; 
+					$value = '';
+					foreach($a as $k => $v) $value .= "$v,";
+					$value = rtrim($value, ", "); 
+					$queryString .= "$key=" . urlencode($value) . "&";	
+				} else {
+					foreach($value as $k => $v) $queryString .= "$key%5B%5D=" . urlencode($v) . "&";
+				}
 	
+			} else {
+				$queryString .= "$key=" . urlencode($value) . "&";	
 			}
-			// $queryString .= "$key=" . urlencode(htmlspecialchars($value)) . "&";	
-			$queryString .= "$key=" . urlencode($value) . "&";	
 		}
 		$this->queryString = htmlspecialchars(rtrim($queryString, "?&")); 
 	}
