@@ -584,7 +584,7 @@ class ProcessPageEdit extends Process {
 	 * Build the Settings > Roles fieldset on the Page Edit form 
 	 *
 	 */
-	protected function buildFormRoles() {
+	protected function ___buildFormRoles() {
 
 		$field = $this->modules->get("InputfieldMarkup"); 
 		$field->label = $this->_('Who can access this page?'); // Roles information field label
