@@ -12,7 +12,8 @@ $(document).ready(function() {
 			var $li = $(this).parent('.Inputfield'); 	
 			$li.toggleClass('InputfieldStateCollapsed', 100);
 			$(this).children('span.ui-icon').toggleClass('ui-icon-triangle-1-e ui-icon-triangle-1-s'); 
-			$li.children('.ui-widget-header').effect('highlight', {}, 300); 
+
+			if($.effects && $.effects['highlight']) $li.children('.ui-widget-header').effect('highlight', {}, 300); 
 			return false;
 		})
 
