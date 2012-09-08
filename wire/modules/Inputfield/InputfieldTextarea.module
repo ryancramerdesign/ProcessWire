@@ -28,9 +28,9 @@ class InputfieldTextarea extends Inputfield {
 		$attrs = $this->getAttributes();
 		unset($attrs['value']); 
 
-		$out = 	"\n<p><textarea " . $this->getAttributesString($attrs) . ">" . 
+		$out = 	"\n<textarea " . $this->getAttributesString($attrs) . ">" . 
 			htmlspecialchars($this->value) . 
-			"</textarea></p>";
+			"</textarea>";
 		return $out; 
 	}
 

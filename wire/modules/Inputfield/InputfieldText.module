@@ -27,7 +27,7 @@ class InputfieldText extends Inputfield {
 	}
 
 	public function ___render() {
-		$out = "\n<p><input " . $this->getAttributesString() . " /></p>"; 
+		$out = "\n<input " . $this->getAttributesString() . " />"; 
 		return $out; 
 	}
 

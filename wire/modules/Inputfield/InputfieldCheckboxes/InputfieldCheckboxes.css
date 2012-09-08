@@ -5,11 +5,6 @@
 	margin: 0 !important;
 }
 
-.Inputfields .InputfieldCheckboxes input {
-	/* a little padding to the right of a checkbox/radio so label isn't up against the input */
-	margin-right: 0.25em;
-}
-
 .InputfieldCheckboxes table {
 	width: 100%; 
 }

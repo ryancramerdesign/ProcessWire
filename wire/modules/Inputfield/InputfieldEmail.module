@@ -16,7 +16,7 @@ class InputfieldEmail extends InputfieldText {
 
 	public function __construct() {
 		parent::__construct();
-		$this->setAttribute('type', 'text'); 
+		$this->setAttribute('type', 'email'); 
 		$this->setAttribute('maxlength', 512); 
 		//$this->setAttribute('size', 70); 
 		$this->setAttribute('name', 'email'); 

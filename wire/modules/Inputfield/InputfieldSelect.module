@@ -235,9 +235,9 @@ class InputfieldSelect extends Inputfield {
 		$attrs = $this->getAttributes();
 		unset($attrs['value']); 
 
-		$out =	"\n<p><select " . $this->getAttributesString($attrs) . ">" . 
+		$out =	"\n<select " . $this->getAttributesString($attrs) . ">" . 
 			$this->renderOptions($this->options) . 
-			"\n</select></p>";
+			"\n</select>";
 
 		return $out; 
 	}

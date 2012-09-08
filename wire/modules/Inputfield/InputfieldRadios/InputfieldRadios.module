@@ -54,7 +54,7 @@ class InputfieldRadios extends InputfieldSelect {
 				"type='radio' " . 
 				"name='{$this->name}' " . 
 				"id='$id' " . 
-				"value='" . htmlspecialchars($key, ENT_QUOTES) . "' />" . $this->entityEncode($value) . 
+				"value='" . htmlspecialchars($key, ENT_QUOTES) . "' /> " . $this->entityEncode($value) . 
 				"</label></li>";
 		}
 

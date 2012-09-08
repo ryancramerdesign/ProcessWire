@@ -6,7 +6,7 @@ class InputfieldFloat extends InputfieldInteger {
 		return array(
 			'title' => __('Float', __FILE__), // Module Title
 			'summary' => __('Floating point number with precision', __FILE__), // Module Summary
-			'version' => 100,
+			'version' => 101,
 			'permanent' => true, 
 			);
 	}
@@ -16,8 +16,34 @@ class InputfieldFloat extends InputfieldInteger {
 		parent::__construct();
 	}
 
+	public function init() {
+		parent::init();
+		$this->attr('step', 'any'); // HTML5 attr required to support decimals with 'number' types
+	}
+
 	protected function sanitizeValue($value) {
 		return strlen("$value") ? round((float) $value, $this->precision) : '';
+	}
+
+	/**
+	 * Returns true if number is in valid range, false if not
+	 *
+	 * Overriding the function from InputfieldInteger to ensure float types (rather than int types) are used
+	 *
+	 */
+	protected function isInRange($value) {
+		$inRange = true;
+		$min = $this->attr('min');
+		$max = $this->attr('max');
+		if(strlen("$value") && ($min || $max)) {
+			if(strlen("$min") && ((float) $value) < ((float) $min)) {
+				$inRange = false;
+			}
+			if(strlen("$max") && ((float) $value) > ((float) $max)) {
+				$inRange = false;
+			}
+		}
+		return $inRange;
 	}
 
 }
