@@ -510,8 +510,10 @@ abstract class Inputfield extends WireData implements Module {
 		if($value < 10 || $value >= 100) $value = 100;
 		$field->label = sprintf($this->_("Column Width (%d%%)"), $value);
 		$field->attr('id+name', 'columnWidth'); 
+		$field->attr('type', 'text');
 		$field->attr('maxlength', 4); 
 		$field->attr('size', 4); 
+		$field->attr('max', 100); 
 		$field->attr('value', $value . '%'); 
 		$field->description = $this->_("The percentage width of this field's container (10%-100%). If placed next to other fields with reduced widths, it will create floated columns."); // Description of colWidth option
 		$field->notes = $this->_("Note that not all fields will work at reduced widths, so you should test the result after changing this."); // Notes for colWidth option

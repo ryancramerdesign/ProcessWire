@@ -298,9 +298,9 @@ class Selectors extends WireArray {
 			$lastc = $c;
 
 		} while(++$n < self::maxValueLength); 
-		
+
 		if(strlen("$value")) $str = substr($str, $n);
-		$str = ltrim($str, ' ,'); // should be executed even if blank value
+		$str = ltrim($str, ' ,"\''); // should be executed even if blank value
 
 		// check if a pipe character is present next, indicating an OR value may be provided
 		if(strlen($str) > 1 && substr($str, 0, 1) == '|') {
