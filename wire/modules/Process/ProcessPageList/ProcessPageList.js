@@ -317,7 +317,7 @@ $(document).ready(function() {
 
 				var processChildren = function(data) {
 
-					if(data.error) {
+					if(data && data.error) {
 						alert(data.message); 
 						$loading.hide();
 						ignoreClicks = false;
@@ -652,7 +652,7 @@ $(document).ready(function() {
 						$root.removeClass('PageListSorting');
 					}); 
 
-					if(data.error) {
+					if(data && data.error) {
 						alert(data.message); 
 					}
 

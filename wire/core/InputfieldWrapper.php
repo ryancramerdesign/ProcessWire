@@ -244,8 +244,13 @@ class InputfieldWrapper extends Inputfield {
 			$collapsed = (int) $inputfield->getSetting('collapsed'); 
 			if($collapsed == Inputfield::collapsedHidden) continue; 
 
-			$ffOut = $renderValueMode ? $inputfield->renderValue() : $inputfield->render();
-			if(!$ffOut) continue; 
+			if($renderValueMode) {
+				$ffOut = $inputfield->renderValue();
+				if(!strlen($ffOut)) $ffOut = '&nbsp;';
+			} else {
+				$ffOut = $inputfield->render();
+			}
+			if(!strlen($ffOut)) continue; 
 
 			if(!$inputfield instanceof InputfieldWrapper) {
 				$errors = $inputfield->getErrors(true);
@@ -258,7 +263,7 @@ class InputfieldWrapper extends Inputfield {
 
 			$ffOut = preg_replace('/(\n\s*)</', "$1\t\t\t<", $ffOut); // indent lines beginning with markup
 
-			if($inputfield->notes) $ffOut .= str_replace('{out}', nl2br($this->entityEncode($inputfield->notes, true)), $markup['item_notes']); 
+			if($inputfield->getSetting('notes')) $ffOut .= str_replace('{out}', nl2br($this->entityEncode($inputfield->notes, true)), $markup['item_notes']); 
 
 			// The inputfield's classname is always used in it's LI wrapper
 			$ffAttrs = array(

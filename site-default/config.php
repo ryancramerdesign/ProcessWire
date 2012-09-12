@@ -146,6 +146,16 @@ $config->dbLowercaseTables = true;
 $config->wireInputOrder = 'get post'; 
 
 /**
+ * Default ImageSizer options, as used by $page->image->size(w, h), for example. 
+ *
+ */
+$config->imageSizerOptions = array(
+	'upscaling' => true,
+	'cropping' => true, 
+	'quality' => 90,
+	);
+
+/**
  * Optional 'set names utf8' for sites that need it (this option is deprecated)
  *
  * This may be used instead of the $config->dbCharset = 'utf8' option, and exists here only for

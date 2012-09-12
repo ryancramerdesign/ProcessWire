@@ -103,7 +103,9 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 
 		// delete saved login attempts that are no longer applicable
 		$expired = $time - $this->maxSeconds;
-		$db->query("DELETE FROM session_login_throttle WHERE last_attempt < $expired");
+		$sql = "DELETE FROM session_login_throttle WHERE last_attempt < $expired ";
+		if($allowed) $sql .= "OR name='$name'";
+		$db->query($sql); 
 
 		return $allowed; 
 	}

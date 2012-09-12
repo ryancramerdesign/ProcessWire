@@ -379,5 +379,26 @@ class ImageSizer {
 		return $this;
 	}
 
+	/**
+	 * Alternative to the above set* functions where you specify all in an array
+	 *
+	 * @param array $options May contain the following (show with default values):
+	 *	'quality' => 90,
+	 *	'cropping' => true, 
+	 *	'upscaling' => true
+	 * @return this
+	 *
+	 */
+	public function setOptions(array $options) {
+		foreach($options as $key => $value) {
+			switch($key) {
+				case 'quality': $this->setQuality($value); break;
+				case 'cropping': $this->setCropping($value); break;
+				case 'upscaling': $this->setUpscaling($value); break;
+			}
+		}
+		return $this; 
+	}
+
 }
 
