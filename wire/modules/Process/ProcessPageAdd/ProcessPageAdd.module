@@ -264,7 +264,7 @@ class ProcessPageAdd extends Process {
 		}
 
 		if($this->parent->child("name=$name")->id) {
-			$form->get('name')->error($this->_("The name you selected is already in use. Please select another.")); 
+			$nameField->error($this->_("The name you selected is already in use. Please select another.")); 
 			return false;
 		}
 

@@ -227,7 +227,9 @@ class Pageimage extends Pagefile {
 			if($file->isDir() || $file->isDot()) continue; 			
 			if(!preg_match('/^'  . $basename . '\.\d+x\d+\.' . $this->ext() . '$/', $file->getFilename())) continue; 
 			$pageimage = clone $this; 
-			$pageimage->setFilename($file->getPathname()); 
+			$pathname = $file->getPathname();
+			if(DIRECTORY_SEPARATOR != '/') $pathname = str_replace(DIRECTORY_SEPARATOR, '/', $pathname);
+			$pageimage->setFilename($pathname); 
 			$pageimage->setOriginal($this); 
 			$variations->add($pageimage); 
 		}
