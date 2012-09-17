@@ -657,7 +657,7 @@ class PageFinder extends Wire {
 					throw new WireException("Operator '{$selector->operator}' is not yet supported for fields native to pages table"); 
 
 				$value = $this->db->escape_string($value); 
-				$s = "pages." . $field . $selector->operator . (ctype_digit("$value") ? (int) $value : "'$value'");
+				$s = "pages." . $field . $selector->operator . ((ctype_digit("$value") && $field != 'name') ? ((int) $value) : "'$value'");
 
 				if($selector->not) $s = "NOT ($s)";
 				if($selector->operator == '!=' || $selector->not) {
