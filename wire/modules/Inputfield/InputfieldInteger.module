@@ -35,9 +35,12 @@ class InputfieldInteger extends Inputfield {
 				else unset($attrs['max']); 
 		}
 
+		// these attributes not valid for 'text' type
+		if($attrs['type'] == 'text') unset($attrs['step'], $attrs['min'], $attrs['max']);
+
 		if($note) $note = " <span class='details'>$note</span>";
 
-		$out = "<input " . $this->getAttributesString() . " />"; // . $note; 
+		$out = "<input " . $this->getAttributesString($attrs) . " />"; // . $note; 
 		return $out; 
 	}
 
