@@ -44,6 +44,7 @@ interface InputfieldHasArrayValue { }
  * Inputfield::value
  *	The current value of the field. May correspond go the XHTML "value" attribute on some inputs. 
  * 
+ * @var null|Fieldtype hasFieldtype Set to the Fieldtype using this Inputfield (by Field), when applicable, null when not.
  *
  */
 abstract class Inputfield extends WireData implements Module {

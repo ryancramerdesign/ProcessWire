@@ -311,6 +311,9 @@ class Field extends WireData implements Saveable {
 		$inputfield->attr('name', $this->name . $contextStr); 
 		$inputfield->label = $this->label;
 
+		// just in case an Inputfield needs to know it's Fieldtype context, or lack of it
+		$inputfield->hasFieldtype = $this->type; 
+
 		// custom field settings
 		foreach($this->data as $key => $value) {
 			if($inputfield->has($key)) {
