@@ -50,7 +50,7 @@ class MarkupPagerNav extends Wire implements Module {
 		return array(
 			'title' => 'Pager (Pagination) Navigation', 
 			'summary' => 'Generates markup for pagination navigation', 
-			'version' => 101, 
+			'version' => 102, 
 			'permanent' => false, 
 			'singular' => false, 
 			'autoload' => false, 
@@ -98,9 +98,11 @@ class MarkupPagerNav extends Wire implements Module {
 		// default classes used for list items, according to the type. 
 		'separatorItemClass' => 'MarkupPagerNavSeparator', 
 		'firstItemClass' => 'MarkupPagerNavFirst', 
+		'firstNumberItemClass' => 'MarkupPagerNavFirstNum', 
 		'nextItemClass' => 'MarkupPagerNavNext', 
 		'previousItemClass' => 'MarkupPagerNavPrevious', 
 		'lastItemClass' => 'MarkupPagerNavLast', 
+		'lastNumberItemClass' => 'MarkupPagerNavLastNum',
 		'currentItemClass' => 'MarkupPagerNavOn', 
 
 		/*
@@ -164,6 +166,17 @@ class MarkupPagerNav extends Wire implements Module {
 		$pageNumUrlPrefix = wire('config')->pageNumUrlPrefix; 
 		if(!$pageNumUrlPrefix) $pageNumUrlPrefix = 'page';
 
+		$pagerCount = count($pager);
+		$firstNumberKey = null;
+		$lastNumberKey = null;
+
+		// determine first and last numbered items
+		foreach($pager as $key => $item) {
+			if(!ctype_digit("$item->label")) continue;
+			if(is_null($firstNumberKey)) $firstNumberKey = $key;
+			$lastNumberKey = $key;
+		}
+
 		foreach($pager as $key => $item) {
 
 			if($item->type == 'separator') {
@@ -188,12 +201,23 @@ class MarkupPagerNav extends Wire implements Module {
 
 			$url .= $this->queryString; 
 			$class = isset($this->options[$item->type . 'ItemClass']) ? $this->options[$item->type . 'ItemClass'] : '';
+
+			if(!$key) $class .= ' ' . $this->options['firstItemClass']; 
+				else if($key == ($pagerCount-1)) $class .= ' ' . $this->options['lastItemClass'];
+
+			if($key === $firstNumberKey) $class .= ' ' . $this->options['firstNumberItemClass'];
+				else if($key === $lastNumberKey) $class .= ' ' . $this->options['lastNumberItemClass'];
+
 			$link = str_replace(array('{url}', '{out}'), array($url, $item->label), $this->options['linkMarkup']); 
-			$out .= str_replace(array('{class}', '{out}'), array($class, $link), $this->options['itemMarkup']); 
+			$out .= str_replace(array('{class}', '{out}'), array(trim($class), $link), $this->options['itemMarkup']); 
 
 		}
 
-		if($out) $out = str_replace('{out}', $out, $this->options['listMarkup']); 
+		if($out) {
+			$out = str_replace(array(" class=''", ' class=""'), '', $out);
+			$out = str_replace('{out}', $out, $this->options['listMarkup']); 
+		}
+		
 
 		return $out; 
 	}
