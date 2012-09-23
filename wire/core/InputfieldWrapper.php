@@ -246,6 +246,7 @@ class InputfieldWrapper extends Inputfield {
 
 			if($renderValueMode) {
 				$ffOut = $inputfield->renderValue();
+				if(is_null($ffOut)) continue; 
 				if(!strlen($ffOut)) $ffOut = '&nbsp;';
 			} else {
 				$ffOut = $inputfield->render();

@@ -66,6 +66,7 @@ abstract class Inputfield extends WireData implements Module {
 	const skipLabelNo = false; 	// don't skip the label at all (default)
 	const skipLabelFor = true; 	// don't use a 'for' attribute with the <label>
 	const skipLabelHeader = 2; 	// don't use a ui-widget-header label at all
+	const skipLabelBlank = 4; 	// skip the label only when blank
 
 	/**
 	 * The total number of Inputfield instances, kept as a way of generating unique 'id' attributes
@@ -209,7 +210,10 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */ 
 	public function get($key) {	
-		if($key == 'label' && !parent::get('label')) return $this->attributes['name']; 
+		if($key == 'label' && !parent::get('label')) {
+			if($this->skipLabel & self::skipLabelBlank) return '';
+			return $this->attributes['name']; 
+		}
 		if($key == 'attributes') return $this->attributes; 
 		if($key == 'parent') return $this->parent; 
 		if(($value = $this->getFuel($key)) !== null) return $value; 
