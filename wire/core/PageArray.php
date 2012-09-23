@@ -354,7 +354,23 @@ class PageArray extends WireArray {
 	 *
 	 */
 	protected function getItemPropertyValue(Wire $item, $property) {
-		return $item->getUnformatted($property); 
+
+		if($item instanceof Page) {
+			$value = $item->getUnformatted($property); 
+
+		} else if($item instanceof WireArray) {
+			if($property == 'count') {
+				$value = count($item);
+			} else {
+				$value = $item->first();
+				if($value) {
+					if($value instanceof Page) $value = $value->getUnformatted($property);
+						else if($value instanceof WireData) $value = $value->$property;
+				}
+			}
+		}
+
+		return $value;
 	}
 
 	/**
