@@ -46,3 +46,8 @@
 	margin-top: 0; 
 	z-index: 999; 
 }
+
+.InputfieldRepeater ul.Inputfields + .InputfieldRepeaterAddItem {
+	/* removes extra space at top when 'add item' is the only thing in the repeater field */
+	margin-top: 0;
+}
