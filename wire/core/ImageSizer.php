@@ -31,6 +31,12 @@ class ImageSizer {
 	protected $extension; 
 
 	/**
+	 * Type of image
+	 *
+	 */
+	protected $imageType; 
+
+	/**
 	 * Image quality setting, 1..100
 	 *
 	 */
@@ -75,6 +81,16 @@ class ImageSizer {
 		); 
 
 	/**
+	 * Supported image types (@teppo)
+	 *
+	 */
+	protected $supportedImageTypes = array(
+		IMAGETYPE_GIF,
+		IMAGETYPE_JPEG,
+		IMAGETYPE_PNG,
+		);
+
+	/**
 	 * Construct the ImageSizer for a single image
 	 *
 	 */
@@ -83,9 +99,13 @@ class ImageSizer {
 		$this->filename = $filename; 
 		$p = pathinfo($filename); 
 		$this->extension = strtolower($p['extension']); 
+		$this->imageType = exif_imagetype($filename); 
 		$basename = $p['basename']; 
 
 		if(!in_array($this->extension, $this->supportedExtensions)) 
+			throw new WireException("$basename is an unsupported image extension"); 	
+
+		if(!in_array($this->imageType, $this->supportedImageTypes)) // @teppo
 			throw new WireException("$basename is an unsupported image type"); 	
 
 		if(!$this->loadImageInfo()) 
@@ -129,12 +149,12 @@ class ImageSizer {
 
 		$source = $this->filename;
 		$dest = str_replace("." . $this->extension, "_tmp." . $this->extension, $source); 
+		$image = null;
 
-		switch($this->extension) {
-			case 'gif': $image = @imagecreatefromgif($source); break;
-			case 'png': $image = @imagecreatefrompng($source); break;
-			case 'jpeg':
-			case 'jpg': $image = @imagecreatefromjpeg($source); break;
+		switch($this->imageType) { // @teppo
+			case IMAGETYPE_GIF: $image = @imagecreatefromgif($source); break;
+			case IMAGETYPE_PNG: $image = @imagecreatefrompng($source); break;
+			case IMAGETYPE_JPEG: $image = @imagecreatefromjpeg($source); break;
 		}
 
 		if(!$image) return false; 
@@ -143,13 +163,12 @@ class ImageSizer {
 
 		$thumb = imagecreatetruecolor($gdWidth, $gdHeight);  
 
-		if($this->extension == 'png') { 
+		if($this->imageType == IMAGETYPE_PNG) { 
 			// @adamkiss PNG transparency
 			imagealphablending($thumb, false); 
 			imagesavealpha($thumb, true); 
-			// end @adamkiss
 
-		} else if($this->extension == 'gif') {
+		} else if($this->imageType == IMAGETYPE_GIF) {
 			// @mrx GIF transparency
 	        	$transparentIndex = ImageColorTransparent($image);
 			$transparentColor = $transparentIndex != -1 ? ImageColorsForIndex($image, $transparentIndex) : 0;
@@ -158,7 +177,6 @@ class ImageSizer {
 	            		$transparentNewIndex = ImageColorTransparent($thumb, $transparentNew);
 	            		ImageFill($thumb, 0, 0, $transparentNewIndex);
 	        	}
-			// end @mrx
 
 		} else {
 			$bgcolor = imagecolorallocate($thumb, 0, 0, 0);  
@@ -169,20 +187,18 @@ class ImageSizer {
 		imagecopyresampled($thumb, $image, 0, 0, 0, 0, $gdWidth, $gdHeight, $this->image['width'], $this->image['height']);
 		$thumb2 = imagecreatetruecolor($targetWidth, $targetHeight);
 
-		if($this->extension == 'png') { 
+		if($this->imageType == IMAGETYPE_PNG) { 
 			// @adamkiss PNG transparency
 			imagealphablending($thumb2, false); 
 			imagesavealpha($thumb2, true); 
-			// end @adamkiss
 
-		} else if($this->extension == 'gif') {
+		} else if($this->imageType == IMAGETYPE_GIF) {
 			// @mrx GIF transparency
 			if(!empty($transparentColor)) {
 				$transparentNew = ImageColorAllocate($thumb2, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
 				$transparentNewIndex = ImageColorTransparent($thumb2, $transparentNew);
 				ImageFill($thumb2, 0, 0, $transparentNewIndex);
 			}
-			// end @mrx
 
 		} else {
 			$bgcolor = imagecolorallocate($thumb2, 0, 0, 0);  
@@ -196,17 +212,16 @@ class ImageSizer {
 		imagecopyresampled($thumb2, $thumb, 0, 0, $w1, $h1, $targetWidth, $targetHeight, $targetWidth, $targetHeight);
 
 		// write to file
-		switch($this->extension) {
-			case 'gif': 
+		switch($this->imageType) {
+			case IMAGETYPE_GIF: 
 				imagegif($thumb2, $dest); 
 				break;
-			case 'png': 
+			case IMAGETYPE_PNG: 
 				// convert 1-100 (worst-best) scale to 0-9 (best-worst) scale for PNG 
 				$quality = round(abs(($this->quality - 100) / 11.111111)); 
 				imagepng($thumb2, $dest, $quality); 
 				break;
-			case 'jpeg':
-			case 'jpg': 
+			case IMAGETYPE_JPEG:
 				imagejpeg($thumb2, $dest, $this->quality); 
 				break;
 		}
