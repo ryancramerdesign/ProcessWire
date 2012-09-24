@@ -72,13 +72,13 @@ class ImageSizer {
 	/**
 	 * File extensions that are supported for resizing
 	 *
-	 */
 	protected $supportedExtensions = array(
 		'gif', 
 		'jpg', 
 		'jpeg', 
 		'png',
 		); 
+	 */
 
 	/**
 	 * Supported image types (@teppo)
@@ -102,8 +102,10 @@ class ImageSizer {
 		$this->imageType = exif_imagetype($filename); 
 		$basename = $p['basename']; 
 
+		/*
 		if(!in_array($this->extension, $this->supportedExtensions)) 
 			throw new WireException("$basename is an unsupported image extension"); 	
+		*/
 
 		if(!in_array($this->imageType, $this->supportedImageTypes)) // @teppo
 			throw new WireException("$basename is an unsupported image type"); 	
