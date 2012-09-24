@@ -143,9 +143,23 @@ class ImageSizer {
 
 		$thumb = imagecreatetruecolor($gdWidth, $gdHeight);  
 
-		if($this->extension == 'png') { // Adam's PNG transparency fix
+		if($this->extension == 'png') { 
+			// @adamkiss PNG transparency
 			imagealphablending($thumb, false); 
 			imagesavealpha($thumb, true); 
+			// end @adamkiss
+
+		} else if($this->extension == 'gif') {
+			// @mrx GIF transparency
+	        	$transparentIndex = ImageColorTransparent($image);
+			$transparentColor = $transparentIndex != -1 ? ImageColorsForIndex($image, $transparentIndex) : 0;
+	        	if(!empty($transparentColor)) {
+	            		$transparentNew = ImageColorAllocate($thumb, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+	            		$transparentNewIndex = ImageColorTransparent($thumb, $transparentNew);
+	            		ImageFill($thumb, 0, 0, $transparentNewIndex);
+	        	}
+			// end @mrx
+
 		} else {
 			$bgcolor = imagecolorallocate($thumb, 0, 0, 0);  
 			imagefilledrectangle($thumb, 0, 0, $gdWidth, $gdHeight, $bgcolor);
@@ -156,8 +170,20 @@ class ImageSizer {
 		$thumb2 = imagecreatetruecolor($targetWidth, $targetHeight);
 
 		if($this->extension == 'png') { 
+			// @adamkiss PNG transparency
 			imagealphablending($thumb2, false); 
 			imagesavealpha($thumb2, true); 
+			// end @adamkiss
+
+		} else if($this->extension == 'gif') {
+			// @mrx GIF transparency
+			if(!empty($transparentColor)) {
+				$transparentNew = ImageColorAllocate($thumb2, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+				$transparentNewIndex = ImageColorTransparent($thumb2, $transparentNew);
+				ImageFill($thumb2, 0, 0, $transparentNewIndex);
+			}
+			// end @mrx
+
 		} else {
 			$bgcolor = imagecolorallocate($thumb2, 0, 0, 0);  
 			imagefilledrectangle($thumb2, 0, 0, $targetWidth, $targetHeight, 0);
