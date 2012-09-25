@@ -135,10 +135,17 @@ class Pageimage extends Pagefile {
 	 *
 	 * @param int $width
 	 * @param int $height
+	 * @param array $options Array of options to override default behavior (quality=90, upscaling=true, cropping=true)
 	 * @return Pageimage
 	 *
 	 */
-	public function size($width, $height) {
+	public function size($width, $height, array $options = array()) {
+
+		$defaultOptions = array(
+			'upscaling' => true,
+			'cropping' => true,
+			'quality' => 90
+			);
 
 		$width = (int) $width;
 		$height = (int) $height; 
@@ -149,7 +156,11 @@ class Pageimage extends Pagefile {
 
 		if(!is_file($filename)) {
 			if(@copy($this->filename(), $filename)) {
+				$configOptions = wire('config')->imageSizerOptions; 
+				if(!is_array($configOptions)) $configOptions = array();
+				$options = array_merge($defaultOptions, $configOptions, $options); 
 				$sizer = new ImageSizer($filename); 
+				$sizer->setOptions($options);
 				$sizer->resize($width, $height); 
 				if($this->config->chmodFile) chmod($filename, octdec($this->config->chmodFile));
 			}
@@ -169,11 +180,12 @@ class Pageimage extends Pagefile {
 	 * If not given a width, it'll return the width of this Pageimage
 	 *
 	 * @param int $n Optional width
+	 * @param array $options Optional options (see size function)
 	 * @return int|Pageimage
 	 *
 	 */
-	public function width($n = 0) {
-		if($n) return $this->size($n, 0); 	
+	public function width($n = 0, array $options = array()) {
+		if($n) return $this->size($n, 0, $options); 	
 		$info = $this->getImageInfo();
 		return $info['width']; 
 	}
@@ -185,11 +197,12 @@ class Pageimage extends Pagefile {
 	 * If not given a height, it'll return the height of this Pageimage
 	 *
 	 * @param int $n Optional height
+	 * @param array $options Optional options (see size function)
 	 * @return int|Pageimage
 	 *
 	 */
-	public function height($n = 0) {
-		if($n) return $this->size(0, $n); 	
+	public function height($n = 0, array $options = array()) {
+		if($n) return $this->size(0, $n, $options); 	
 		$info = $this->getImageInfo();
 		return $info['height']; 
 	}
@@ -214,7 +227,9 @@ class Pageimage extends Pagefile {
 			if($file->isDir() || $file->isDot()) continue; 			
 			if(!preg_match('/^'  . $basename . '\.\d+x\d+\.' . $this->ext() . '$/', $file->getFilename())) continue; 
 			$pageimage = clone $this; 
-			$pageimage->setFilename($file->getPathname()); 
+			$pathname = $file->getPathname();
+			if(DIRECTORY_SEPARATOR != '/') $pathname = str_replace(DIRECTORY_SEPARATOR, '/', $pathname);
+			$pageimage->setFilename($pathname); 
 			$pageimage->setOriginal($this); 
 			$variations->add($pageimage); 
 		}

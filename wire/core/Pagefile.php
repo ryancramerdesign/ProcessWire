@@ -61,6 +61,8 @@ class Pagefile extends WireData {
 	public function setFilename($filename) {
 
 		$basename = basename($filename); 
+
+		if(DIRECTORY_SEPARATOR != '/') $filename = str_replace('\\' . $basename, '/' . $basename, $filename); // To correct issue with XAMPP in Windows
 	
 		if($basename != $filename && strpos($filename, $this->pagefiles->path()) !== 0) {
 			$this->install($filename); 

@@ -305,7 +305,7 @@ class ProcessTemplate extends Process {
 	 * Build the main form used for template edits
 	 *
 	 */
-	protected function buildEditForm(Template $template) {
+	protected function ___buildEditForm(Template $template) {
 
 		$languages = wire('languages');
 		$form = $this->modules->get('InputfieldForm');
