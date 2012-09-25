@@ -117,9 +117,12 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		// was include=all specified?
 		$includeAll = false;
 
+		// if user is guest, then repeater pages will already be excluded (since they don't have view access to them) so no need for extra filter
+		if(wire('user')->isGuest()) $includeAll = true; 
+
 		// determine if any of the fields used in the selector are also used in a repeater
 		// and set $found and $includeAll as appropriate
-		foreach($selectors as $selector) {
+		if(!$includeAll) foreach($selectors as $selector) {
 
 			$fields = $selector->field; 
 
@@ -135,8 +138,16 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 				// include=all is the same as status<Page::statusMax, so we look for that here
 				if($name == 'status' && $selector->operator == '<' && $selector->value == Page::statusMax) $includeAll = true; 
 
+				// optimization: if parent, parent_id, template, or templates_id is given, and an equals '=' operator is used, 
+				// there's no need to explicitly exclude repeaters since the parent and/or template is specific
+				if(in_array($name, array('parent', 'parent_id', 'template', 'templates_id')) && $selector->operator == '=') $includeAll = true;
+
 				// ensure that the repeaters own queries work since they specify a templates_id
+				// note: this is now redundent given the code added directly above this, but kept for clarification
 				if($name == 'templates_id' && in_array($selector->value, $templatesUsedByRepeaters)) $includeAll = true; 
+
+				// if has_parent is specified and is not homepage, no need to exclude results
+				if($name == 'has_parent' && $selector->value != 1 && $selector->value != '/') $includeAll = true;
 
 				if($includeAll) break;
 			}
