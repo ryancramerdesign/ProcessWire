@@ -322,6 +322,7 @@ class ProcessModule extends Process {
 		if(!empty($moduleInfo['href'])) $table->row(array($this->_x('More Information', 'edit'), "<a class='label' href='$moduleInfo[href]'>$moduleInfo[href]</a>")); 
 
 		$field = $this->modules->get("InputfieldMarkup"); 
+		$field->attr('id', 'ModuleInfo'); 
 		$field->attr('value', $table->render()); 
 		$field->label = $this->_x("Module Information", 'edit');
 		$form->prepend($field); 

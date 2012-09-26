@@ -10,6 +10,10 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
+ * Update 1: Applied database changes to fieldgroups
+ * Update 2: Force modules refresh since files moved
+ * Update 3: Force modules refresh since files moved
+ *
  */
 
 /**
@@ -36,7 +40,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 			 * This version number is important, as this updater keeps the systemVersion up with this version
 			 *
 			 */
-			'version' => 2, 
+			'version' => 3, 
 			);
 	}
 
@@ -110,8 +114,8 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 			include($filename); 
 			$updater = new $className(); 
 			$updater->execute();
-			$this->message(sprintf('System Updater applied update %d', $version)); 
 		}
+		$this->message(sprintf('System Updater applied update %d', $version)); 
 	}
 
 	/**

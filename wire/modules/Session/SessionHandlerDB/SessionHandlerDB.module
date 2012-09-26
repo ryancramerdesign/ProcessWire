@@ -1,0 +1,149 @@
+<?php
+
+/**
+ * Session handler for storing sessions to database
+ *
+ * @see /wire/core/SessionHandler.php
+ *
+ * ProcessWire 2.x 
+ * Copyright (C) 2012 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ *
+ */
+
+class SessionHandlerDB extends SessionHandler {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Session Handler Database', 
+			'version' => 1, 
+			'summary' => "Installing this module makes ProcessWire store sessions in the database rather than the file system. Note that this module will log you out after install or uninstall.",
+			'installs' => array('ProcessSession')
+			);
+	}
+
+	/**
+	 * Table created by this module
+	 *
+	 */
+	const dbTableName = 'sessions';
+
+	/**
+	 * Quick reference to database
+	 *
+	 */
+	protected $db; 
+
+	/**
+	 * Construct
+	 *
+	 */
+	public function __construct() {
+		parent::__construct();
+		$this->db = wire('db');
+	}
+
+	/**
+	 * Read and return data for session indicated by $id
+	 *
+	 * @param string $id Session ID
+	 * @return string Serialized data or blank string if none
+	 *
+	 */
+	public function read($id) {
+		$table = self::dbTableName; 
+		$id = $this->db->escape_string($id);
+		$sql = "SELECT data FROM $table WHERE id='$id'";
+		$result = $this->db->query($sql);
+		if($result->num_rows) {
+			$data = $result->fetch_row();
+			list($data) = $data;
+			if(empty($data)) $data = '';
+		} else {
+			$data = '';
+		}
+		$result->free();
+		return $data; 
+	}
+
+	/**
+	 * Write the given $data for the given session ID
+	 *
+	 * @param string $id Session ID
+	 * @param string Serialized data to write
+	 *
+	 */
+	public function write($id, $data) {
+		$table = self::dbTableName;
+		$id = $this->db->escape_string($id);
+		$user = wire('user');
+		$page = wire('page');
+		$user_id = $user && $user->id ? (int) $user->id : 0; 
+		$pages_id = $page && $page->id ? (int) $page->id : 0;
+		$data = $this->db->escape_string($data);
+		$sql = 	"INSERT INTO $table SET id='$id', user_id=$user_id, pages_id=$pages_id, data='$data' " . 
+			"ON DUPLICATE KEY UPDATE data='$data', user_id=$user_id, pages_id=$pages_id, ts=NOW()";
+		return $this->db->query($sql) ? true : false; 
+	}
+
+	/**
+	 * Destroy the session indicated by the given session ID
+	 *
+	 * @param string $id Session ID
+	 * @return bool True on success, false on failure 
+	 *
+	 */
+	public function destroy($id) {
+		$table = self::dbTableName;
+		$id = $this->db->escape_string($id);
+		$this->db->query("DELETE FROM $table WHERE id='$id'"); 
+		setcookie(session_name(), '', time()-3600);
+		return true; 
+	}
+
+	/**
+	 * Garbage collection: remove stale sessions
+	 *
+	 * @param int $seconds Max lifetime of a session
+	 * @return bool True on success, false on failure
+	 *
+	 */
+	public function gc($seconds) {
+		$table = self::dbTableName; 
+		$seconds = (int) $seconds; 
+		$sql = "DELETE FROM $table WHERE ts < DATE_SUB(NOW(), INTERVAL $seconds SECOND)";
+		return $this->db->query($sql) ? true : false;
+	}
+
+	/**
+	 * Install sessions table
+	 *
+	 */
+	public function ___install() {
+
+		$sql = 	"CREATE TABLE " . self::dbTableName . " (" . 
+			"id CHAR(32) NOT NULL, " . 
+			"user_id INT UNSIGNED NOT NULL, " . 
+			"pages_id INT UNSIGNED NOT NULL, " . 
+			"data TEXT NOT NULL, " . 
+			"ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, " . 
+			"PRIMARY KEY (id), " . 
+			"INDEX (pages_id), " . 
+			"INDEX (user_id), " . 
+			"INDEX (ts) " . 
+			")";
+
+		$this->db->query($sql); 
+
+	}
+
+	/**
+	 * Drop sessions table
+	 *
+	 */
+	public function ___uninstall() {
+		$this->db->query("DROP TABLE " . self::dbTableName); 
+	}
+}

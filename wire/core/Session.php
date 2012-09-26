@@ -25,6 +25,12 @@
  * @method Session logout() logout() Logout the current user, and clear all session variables.
  * @method redirect() redirect($url, $http301 = true) Redirect this session to the specified URL. 
  *
+ * Expected $config variables include: 
+ * ===================================
+ * int $config->sessionExpireSeconds Number of seconds of inactivity before session expires
+ * bool $config->sessionChallenge True if a separate challenge cookie should be used for validating sessions
+ * bool $config->sessionFingerprint True if a fingerprint should be kept of the user's IP & user agent to validate sessions
+ *
  */
 
 class Session extends Wire implements IteratorAggregate {
@@ -52,7 +58,7 @@ class Session extends Wire implements IteratorAggregate {
 	public function __construct() {
 
 		$this->config = $this->fuel('config'); 
-		@session_start();
+		$this->init();
 		unregisterGLOBALS();
 		$className = $this->className();
 		$user = null;
@@ -81,6 +87,16 @@ class Session extends Wire implements IteratorAggregate {
 		$this->setTrackChanges(true);
 	}
 
+	/**
+	 * Start the session
+	 *
+	 * Provided here in any case anything wants to hook in before session_start()
+	 * is called to provide an alternate save handler.
+	 *
+	 */
+	protected function ___init() {
+		@session_start();
+	}
 
 	/**
 	 * Checks if the session is valid based on a challenge cookie and fingerprint
@@ -106,6 +122,18 @@ class Session extends Wire implements IteratorAggregate {
 				$valid = false; 
 			}
 		}
+
+		if($this->config->sessionExpireSeconds) {
+			$ts = (int) $this->get('_user_ts');
+			if($ts < (time() - $this->config->sessionExpireSeconds)) {
+				// session time expired
+				$valid = false;
+				$this->error($this->_('Session timed out'));
+			}
+		}
+
+		if($valid) $this->set('_user_ts', time());
+
 
 		return $valid; 
 	}
@@ -211,15 +239,18 @@ class Session extends Wire implements IteratorAggregate {
 			$this->trackChange('login'); 
 			session_regenerate_id();
 			$this->set('_user_id', $user->id); 
+			$this->set('_user_ts', time());
 
 			if($this->config->sessionChallenge) {
-				$challenge = md5(mt_rand() . $user->id . microtime()); 
-				$expireSeconds = $this->config->sessionExpireSeconds ? time() + $this->config->sessionExpireSeconds : 0; 
-				setcookie(session_name() . "_challenge", $challenge, $expireSeconds, '/', null, false, true); 
+				// create new challenge
+				$challenge = md5(mt_rand() . $this->get('_user_id') . microtime()); 
 				$this->set('_user_challenge', $challenge); 
+				// set challenge cookie to last 30 days (should be longer than any session would feasibly last)
+				setcookie(session_name() . '_challenge', $challenge, time()+60*60*24*30, '/', null, false, true); 
 			}
 
 			if($this->config->sessionFingerprint) {
+				// remember a fingerprint that tracks the user's IP and user agent
 				$this->set('_user_fingerprint', $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_USER_AGENT']); 
 			}
 
