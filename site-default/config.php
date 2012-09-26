@@ -84,27 +84,6 @@ $config->uploadBadExtensions = 'php php3 phtml exe cfm shtml asp pl cgi sh vbs j
  */
 
 /**
- * debug: debug mode causes additional info to appear for use during dev and debugging 
- *
- * Under no circumstance should you leave this ON with a live site. 
- *
- */
-$config->debug = false; 
-
-/**
- * advanced: turns on additional options in ProcessWire Admin that aren't applicable 
- * in all instances. Recommended mode is 'false', except for ProcessWire developers.
- *
- */
-$config->advanced = false;
-
-/**
- * demo: if true, disables save functions in Process modules (admin)
- *
- */
-$config->demo = false;
-
-/**
  * adminEmail: address to send optional fatal error notifications to.
  *
  */
@@ -128,14 +107,6 @@ $config->pageNumUrlPrefix = 'page';
 $config->maxUrlSegments = 4; 
 
 /**
- * Force any created field_* tables to be lowercase
- *
- * Recommend value is true except for existing installations that already have mixed case tables. 
- *
- */
-$config->dbLowercaseTables = true; 
-
-/**
  * Order that variables with the $input API var are handled when you access $input->var
  *
  * This does not affect the dedicated $input->get/post/cookie/whitelist variables/functions. 
@@ -154,6 +125,44 @@ $config->imageSizerOptions = array(
 	'cropping' => true, 
 	'quality' => 90,
 	);
+
+/**
+ * advanced: turns on additional options in ProcessWire Admin that aren't applicable 
+ * in all instances. Recommended mode is 'false', except for ProcessWire developers.
+ *
+ */
+$config->advanced = false;
+
+/**
+ * demo: if true, disables save functions in Process modules (admin)
+ *
+ */
+$config->demo = false;
+
+/**
+ * debug: debug mode causes additional info to appear for use during dev and debugging 
+ *
+ * Under no circumstance should you leave this ON with a live site. 
+ *
+ */
+$config->debug = false; 
+
+/**
+ * dbCache: whether to allow MySQL query caching
+ *
+ * Set to false to to disable query caching. This will make everything run slower so should 
+ * only used for db debugging.
+ *
+ */
+$config->dbCache = true;
+
+/**
+ * Force any created field_* tables to be lowercase
+ *
+ * Recommend value is true except for existing installations that already have mixed case tables. 
+ *
+ */
+$config->dbLowercaseTables = true; 
 
 /**
  * Optional 'set names utf8' for sites that need it (this option is deprecated)
