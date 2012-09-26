@@ -20,7 +20,7 @@ class SessionHandlerDB extends SessionHandler {
 			'title' => 'Session Handler Database', 
 			'version' => 1, 
 			'summary' => "Installing this module makes ProcessWire store sessions in the database rather than the file system. Note that this module will log you out after install or uninstall.",
-			'installs' => array('ProcessSession')
+			'installs' => array('ProcessSessionDB')
 			);
 	}
 
@@ -136,7 +136,6 @@ class SessionHandlerDB extends SessionHandler {
 			")";
 
 		$this->db->query($sql); 
-
 	}
 
 	/**

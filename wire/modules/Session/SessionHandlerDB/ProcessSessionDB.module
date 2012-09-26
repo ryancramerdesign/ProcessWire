@@ -81,6 +81,7 @@ class ProcessSessionDB extends Process {
 		}
 
 		$submit = wire('modules')->get('InputfieldSubmit');
+		$submit->attr('value', $this->_('Refresh'));
 		$submit->attr('id+name', 'submit_session');
 		$form->add($submit);
 
