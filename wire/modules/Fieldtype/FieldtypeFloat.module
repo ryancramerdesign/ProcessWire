@@ -46,8 +46,18 @@ class FieldtypeFloat extends Fieldtype {
 	}
 
 	public function sanitizeValue(Page $page, Field $field, $value) {
-		return strlen("$value") ? round((float) $value, $field->precision) : '';
+		if(!strlen("$value")) return '';
+		if(is_null($field->precision)) $value = (float) $value;
+			else $value = round((float) $value, $field->precision); 
+		return $value; 
 	}
+
+	/*
+	public function formatValue(Page $page, Field $field, $value) {
+		// @todo add support for number_format options
+		return $value; 	
+	}
+	*/
 
 	public function getInputfield(Page $page, Field $field) {
 		$inputfield = $this->modules->get('InputfieldFloat'); 
