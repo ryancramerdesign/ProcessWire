@@ -254,6 +254,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		// keep originals to restore later (including $name, which we already got above)
 		$id = $inputfield->attr('id');
 		$value = $inputfield->attr('value');
+		$required = $inputfield->required; 
 
 		$trackChanges = $inputfield->trackChanges(); 
 		$inputfield->setTrackChanges(false); 
@@ -274,6 +275,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 				$inputfield->attr('id', $newID); 
 				$inputfield->attr('name', $newName); 
 				$valueAttr = "value$languageID";
+				$inputfield->required = false;
 				$inputfield->setAttribute('value', $inputfield->$valueAttr); 
 				$o = $inputfield->___render(); 
 			}
@@ -286,6 +288,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$inputfield->setAttribute('name', $name);
 		$inputfield->setAttribute('id', $id);
 		$inputfield->setAttribute('value', $value);
+		$inputfield->required = $required; 
 		$inputfield->setTrackChanges($trackChanges); 
 
 		$event->return = $out; 
