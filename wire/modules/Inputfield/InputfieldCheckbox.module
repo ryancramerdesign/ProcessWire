@@ -20,8 +20,15 @@ class InputfieldCheckbox extends Inputfield {
 	const checkedValueDefault = 1; 
 	const uncheckedValueDefault = '';
 
+	/**
+	 * True if the $checkedValue set manually (and should be used as a label), false if it was inherited from $value attribute
+	 *
+	 */
+	protected $checkedValueIsLabel = false;
+
 	public function __construct() {
 		$this->set('checkedValue', self::checkedValueDefault); 
+		$this->checkedValueIsLabel = false; // cancel line above
 		$this->set('uncheckedValue', self::uncheckedValueDefault); 
 
 		// when autocheck set to 1, setting the value attribute to non-zero automatically triggered checked=checked attribute
@@ -37,15 +44,16 @@ class InputfieldCheckbox extends Inputfield {
 	}
 
 	public function ___render() {
-		// if($this->uncheckedValue) return $this->renderRadio();
+		// TBA: if($this->uncheckedValue) return $this->renderRadio();
 		$attrs = $this->getAttributes();
 		$attrs['value'] = $this->checkedValue; 
-		$label = $this->checkedValue != self::checkedValueDefault ? $this->checkedValue : $this->label;
+		$label = $this->label;
+		if($this->checkedValueIsLabel) $label = $this->checkedValue;
 		$out = 	"\n<label><input type='checkbox' " . $this->getAttributesString($attrs) . " /> " . $this->entityEncode($label) . "</label>"; 
 		return $out; 
 	}
 
-	/* TBA
+	/* TBA: May move to be a separate 'toggle' Inputfield, keeping for reference
 	public function ___renderRadio() {
 
 		$attrs = $this->getAttributes();
@@ -79,7 +87,10 @@ class InputfieldCheckbox extends Inputfield {
 	public function setAttribute($key, $value) {
 
 		if($key == 'value' && $value && $value != $this->uncheckedValue) { 
-			if($value != self::checkedValueDefault) $this->checkedValue = $value; 
+			if($value != self::checkedValueDefault) {
+				$this->checkedValue = $value; 
+				$this->checkedValueIsLabel = false;
+			}
 			// autocheck mode: when non-zero 'value' set, then 'checked=checked' is assumed
 			if($this->autocheck || $this->formBuilder) $this->attr('checked', 'checked');
 		}
@@ -87,6 +98,11 @@ class InputfieldCheckbox extends Inputfield {
 
 		return parent::setAttribute($key, $value); 
 	}
+
+	public function set($key, $value) {
+		if($key == 'checkedValue') $this->checkedValueIsLabel = true; 
+		return parent::set($key, $value); 
+	}	
 
 	public function isEmpty() {
 		return $this->attr('value') != $this->checkedValue; 
