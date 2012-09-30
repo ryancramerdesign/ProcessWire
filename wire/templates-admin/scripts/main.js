@@ -2,7 +2,8 @@ $(document).ready(function() {
 
 	// if there are buttons in the format "a button" without ID attributes, copy them into the masthead
 	// or buttons in the format button.head_button_clone with an ID attribute.
-	var $buttons = $("#content a[id=] button[id=], #content button.head_button_clone[id!=]"); 
+	// var $buttons = $("#content a[id=] button[id=], #content button.head_button_clone[id!=]"); 
+	var $buttons = $("#content a:not([id]) button:not([id]), #content button.head_button_clone[id!=]"); 
 	if($buttons.size() > 0 && !$.browser.msie) {
 		var $head = $("<div id='head_button'></div>").appendTo("#masthead .container").show();
 		$buttons.each(function() {
@@ -16,7 +17,7 @@ $(document).ready(function() {
 				$button.attr('data-from_id', $t.attr('id')).attr('id', $t.attr('id') + '_copy');
 				$a = $("<a></a>").attr('href', '#');
 				$button.click(function() {
-					$("#" + $(this).attr('data-from_id')).click().parents('form').submit();
+					$("#" + $(this).attr('data-from_id')).click(); // .parents('form').submit();
 					return false;
 				});
 				$head.append($a.append($button));	
