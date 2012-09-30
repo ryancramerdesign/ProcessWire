@@ -4,7 +4,7 @@
  * An Inputfield for handling XHTML "textarea" form inputs
  *
  */
-class InputfieldTextarea extends Inputfield {
+class InputfieldTextarea extends InputfieldText {
 
 	const defaultRows = 5; 
 
@@ -12,7 +12,7 @@ class InputfieldTextarea extends Inputfield {
 		return array(
 			'title' => __('Textarea', __FILE__), // Module Title
 			'summary' => __('Multiple lines of text', __FILE__), // Module Summary
-			'version' => 100,
+			'version' => 102,
 			'permanent' => true, 
 			);
 	}
@@ -21,17 +21,30 @@ class InputfieldTextarea extends Inputfield {
 	public function init() {
 		parent::init();
 		$this->setAttribute('rows', self::defaultRows); 
+		$this->setAttribute('maxlength', 1024*4); 
 	}
 
 	public function ___render() {
 
 		$attrs = $this->getAttributes();
-		unset($attrs['value']); 
+		unset($attrs['value'], $attrs['size']); 
+		if($this->hasFieldtype !== false) unset($attrs['maxlength']); 
 
 		$out = 	"\n<textarea " . $this->getAttributesString($attrs) . ">" . 
 			htmlspecialchars($this->value) . 
 			"</textarea>";
 		return $out; 
+	}
+
+	protected function setAttributeValue($value) {
+		if($this->maxlength > 0 && $this->hasFieldtype === false) { 
+			$value = wire('sanitizer')->textarea($value, array(
+				'maxLength' => $this->maxlength, 
+				'maxBytes' => $this->maxlength*3, 
+				'stripTags' => false, 
+				)); 
+		}
+		return $value; 
 	}
 
 	/**
@@ -48,6 +61,8 @@ class InputfieldTextarea extends Inputfield {
 
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields();
+		$inputfields->remove($inputfields->get('size')); 
+		if($this->hasFieldtype !== false) $inputfields->remove($inputfields->get('maxlength')); 
 
 		$field = $this->modules->get('InputfieldInteger'); 
 		$field->setAttribute('name', 'rows'); 
@@ -55,6 +70,7 @@ class InputfieldTextarea extends Inputfield {
 		$field->setAttribute('value', $this->attr('rows') > 0 ? $this->attr('rows') : self::defaultRows); 
 		$field->setAttribute('size', 3); 
 		$field->description = $this->_('The number of rows initially shown for this field.'); 
+		$field->columnWidth = 33; 
 		$inputfields->append($field);
 
 		return $inputfields; 

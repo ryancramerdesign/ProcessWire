@@ -12,7 +12,7 @@ class InputfieldText extends Inputfield {
 		return array(
 			'title' => __('Text', __FILE__), // Module Title
 			'summary' => __('Single line of text', __FILE__), // Module Summary
-			'version' => 103,
+			'version' => 104,
 			'permanent' => true, 
 			);
 	}
@@ -40,6 +40,8 @@ class InputfieldText extends Inputfield {
 		if(!strlen($attrs['value']) && $this->initValue) {
 			$attrs['value'] = $this->initValue; 
 		}
+
+		if($this->required && $this->hasFieldtype === false) $attrs['required'] = 'required';
 		return $attrs; 
 	}
 
@@ -65,6 +67,16 @@ class InputfieldText extends Inputfield {
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields();
 
+		if($this->hasFieldtype === false) { 
+			$field = $this->modules->get('InputfieldText');
+			$field->setAttribute('name', 'initValue'); 
+			$field->label = $this->_('Initial Value');
+			$field->description = $this->_('Optional initial/default value pre-populated for the user.'); 
+			$field->setAttribute('value', $this->initValue); 
+			$field->collapsed = Inputfield::collapsedBlank; 
+			$inputfields->append($field);
+		}
+
 		$field = $this->modules->get('InputfieldInteger');
 		$field->setAttribute('name', 'size'); 
 		$field->label = $this->_('Size');
@@ -78,7 +90,7 @@ class InputfieldText extends Inputfield {
 		$field->setAttribute('name', 'maxlength'); 
 		$field->label = $this->_('Maxlength');
 		$field->setAttribute('value', $this->attr('maxlength')); 
-		$field->setAttribute('size', 4); 
+		$field->setAttribute('size', 6); 
 		$field->description = $this->_('The maximum length (in characters) that are allowed by this field.'); 
 		$field->columnWidth = 33; 
 		$inputfields->append($field);
@@ -90,16 +102,6 @@ class InputfieldText extends Inputfield {
 		$field->description = $this->_('Optional placeholder phrase of text that appears in the field when blank.'); 
 		$field->columnWidth = 34; 
 		$inputfields->append($field);
-
-		if($this->hasFieldtype === false) { 
-			$field = $this->modules->get('InputfieldText');
-			$field->setAttribute('name', 'initValue'); 
-			$field->label = $this->_('Initial Value');
-			$field->description = $this->_('Optional initial/default value pre-populated for the user.'); 
-			$field->setAttribute('value', $this->initValue); 
-			$field->collapsed = Inputfield::collapsedBlank; 
-			$inputfields->append($field);
-		}
 
 		return $inputfields; 
 	}

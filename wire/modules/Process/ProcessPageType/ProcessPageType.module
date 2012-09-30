@@ -52,7 +52,7 @@ class ProcessPageType extends Process implements ConfigurableModule {
 	}
 
 	public function ___executeList() {
-		return $this->renderList();
+		return $this->renderList("limit=25, status<" . Page::statusMax);
 	}
 
 	public function ___executeEdit() {
@@ -69,7 +69,7 @@ class ProcessPageType extends Process implements ConfigurableModule {
 		return $editor->execute();
 	}
 
-	protected function renderList() {
+	protected function renderList($selector = '', $pagerOptions = null) {
 
 		$out = '';
 
@@ -97,7 +97,6 @@ class ProcessPageType extends Process implements ConfigurableModule {
 		}
 
 		$table->headerRow($fieldLabels); 
-		$selector = "limit=25, status<" . Page::statusMax; 
 		$pages = $this->pages->find($selector); 
 
 		foreach($pages as $page) {
@@ -116,7 +115,7 @@ class ProcessPageType extends Process implements ConfigurableModule {
 
 		if($pages->getTotal() > count($pages)) {
 			$pager = $this->modules->get("MarkupPagerNav"); 
-			$out .= $pager->render($pages);
+			$out .= $pager->render($pages, $pagerOptions);
 		}
 
 		$out .= $table->render();

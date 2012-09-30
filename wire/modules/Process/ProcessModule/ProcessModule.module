@@ -173,6 +173,8 @@ class ProcessModule extends Process {
 
 		$submit = $this->modules->get('InputfieldButton');
 		$submit->attr('href', './?reset=1'); 
+		$submit->attr('id', 'reset_modules');
+		$submit->attr('class', $submit->attr('class') . ' head_button_clone');
 		$submit->attr('name', 'reset');
 		$submit->attr('value', $this->_('Check for new modules')); 
 		$form->add($submit); 
