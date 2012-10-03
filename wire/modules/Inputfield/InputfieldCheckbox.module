@@ -100,7 +100,7 @@ class InputfieldCheckbox extends Inputfield {
 	}
 
 	public function set($key, $value) {
-		if($key == 'checkedValue') $this->checkedValueIsLabel = true; 
+		if($key == 'checkedValue' && $value != self::checkedValueDefault) $this->checkedValueIsLabel = true; 
 		return parent::set($key, $value); 
 	}	
 
