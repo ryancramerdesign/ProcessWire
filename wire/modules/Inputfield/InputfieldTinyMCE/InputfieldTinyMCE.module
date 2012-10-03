@@ -145,6 +145,12 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields();
 
+		$f = $inputfields->get('stripTags');
+		if($f) $inputfields->remove($f);
+
+		$f = $inputfields->get('placeholder');
+		if($f) $inputfields->remove($f);
+
 		$wrapper = $this->modules->get('InputfieldFieldset'); 
 		$wrapper->label = $this->_('TinyMCE Advanced Configuration Options'); 
 		$wrapper->description = $this->_('The following fields are specific to TinyMCE and details about these options can be found at the TinyMCE web site. In general it is best to use the defaults presented here unless you are familiar with TinyMCE configuration.'); // Description for TinyMCE custom config fields

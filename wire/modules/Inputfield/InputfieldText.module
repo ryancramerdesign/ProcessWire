@@ -24,6 +24,7 @@ class InputfieldText extends Inputfield {
 		$this->setAttribute('maxlength', self::defaultMaxlength); 
 		$this->setAttribute('placeholder', '');
 		$this->set('initValue', ''); // optional initial value
+		$this->set('stripTags', false); // strip tags from input?
 	}
 
 	public function ___render() {
@@ -58,14 +59,51 @@ class InputfieldText extends Inputfield {
 			$value = wire('sanitizer')->text($value, array(
 				'maxLength' => $this->maxlength, 
 				'maxBytes' => $this->maxlength*3, 
-				'stripTags' => false, 
+				'stripTags' => false,
 				)); 
 		}
+		if($this->stripTags) $value = strip_tags($value);
 		return $value; 
 	}
 
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields();
+
+		$field = $this->modules->get('InputfieldInteger');
+		$field->setAttribute('name', 'size'); 
+		$field->label = $this->_('Size');
+		$field->setAttribute('value', $this->attr('size') > 0 ? $this->attr('size') : 0); 
+		$field->setAttribute('size', 4); 
+		$field->description = $this->_('The displayed width of this field (in characters). Set to 0 for full width.'); 
+		$field->collapsed = Inputfield::collapsedYes;
+		$inputfields->append($field);
+
+		$field = $this->modules->get('InputfieldInteger');
+		$field->setAttribute('name', 'maxlength'); 
+		$field->label = $this->_('Maxlength');
+		$field->setAttribute('value', $this->attr('maxlength')); 
+		$field->setAttribute('size', 6); 
+		$field->description = $this->_('The maximum length (in characters) that are allowed by this field.'); 
+		$field->collapsed = Inputfield::collapsedYes;	
+		$inputfields->append($field);
+
+		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->attr('name', 'stripTags'); 
+		$field->label = $this->_('Strip Tags'); 
+		$field->description = $this->_('When checked, any HTML tags will be stripped from the input when the form is processed.'); 
+		$field->notes = $this->_('This is recommended if the field does not need to support HTML in it.'); 
+		$field->attr('value', 1);
+		if($this->stripTags) $field->attr('checked', 'checked');
+			else $field->collapsed = Inputfield::collapsedYes;
+		$inputfields->append($field); 
+
+		$field = $this->modules->get('InputfieldText');
+		$field->setAttribute('name', 'placeholder'); 
+		$field->label = $this->_('Placeholder Text');
+		$field->setAttribute('value', $this->attr('placeholder')); 
+		$field->description = $this->_('Optional placeholder phrase of text that appears in the field when blank.'); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$inputfields->append($field);
 
 		if($this->hasFieldtype === false) { 
 			$field = $this->modules->get('InputfieldText');
@@ -77,31 +115,6 @@ class InputfieldText extends Inputfield {
 			$inputfields->append($field);
 		}
 
-		$field = $this->modules->get('InputfieldInteger');
-		$field->setAttribute('name', 'size'); 
-		$field->label = $this->_('Size');
-		$field->setAttribute('value', $this->attr('size') > 0 ? $this->attr('size') : 0); 
-		$field->setAttribute('size', 4); 
-		$field->description = $this->_('The displayed width of this field (in characters). Set to 0 for full width.'); 
-		$field->columnWidth = 33; 
-		$inputfields->append($field);
-
-		$field = $this->modules->get('InputfieldInteger');
-		$field->setAttribute('name', 'maxlength'); 
-		$field->label = $this->_('Maxlength');
-		$field->setAttribute('value', $this->attr('maxlength')); 
-		$field->setAttribute('size', 6); 
-		$field->description = $this->_('The maximum length (in characters) that are allowed by this field.'); 
-		$field->columnWidth = 33; 
-		$inputfields->append($field);
-
-		$field = $this->modules->get('InputfieldText');
-		$field->setAttribute('name', 'placeholder'); 
-		$field->label = $this->_('Placeholder Text');
-		$field->setAttribute('value', $this->attr('placeholder')); 
-		$field->description = $this->_('Optional placeholder phrase of text that appears in the field when blank.'); 
-		$field->columnWidth = 34; 
-		$inputfields->append($field);
 
 		return $inputfields; 
 	}

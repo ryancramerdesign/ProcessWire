@@ -44,6 +44,7 @@ class InputfieldTextarea extends InputfieldText {
 				'stripTags' => false, 
 				)); 
 		}
+		if($this->stripTags) $value = strip_tags($value);
 		return $value; 
 	}
 
@@ -61,7 +62,7 @@ class InputfieldTextarea extends InputfieldText {
 
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields();
-		$inputfields->remove($inputfields->get('size')); 
+		$inputfields->remove($inputfields->get('size')); // size is not applicable to textarea
 		if($this->hasFieldtype !== false) $inputfields->remove($inputfields->get('maxlength')); 
 
 		$field = $this->modules->get('InputfieldInteger'); 
@@ -70,7 +71,7 @@ class InputfieldTextarea extends InputfieldText {
 		$field->setAttribute('value', $this->attr('rows') > 0 ? $this->attr('rows') : self::defaultRows); 
 		$field->setAttribute('size', 3); 
 		$field->description = $this->_('The number of rows initially shown for this field.'); 
-		$field->columnWidth = 33; 
+		if($field->attr('value') == self::defaultRows) $field->collapsed = Inputfield::collapsedYes; 
 		$inputfields->append($field);
 
 		return $inputfields; 

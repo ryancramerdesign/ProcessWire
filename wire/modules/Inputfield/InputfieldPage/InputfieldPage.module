@@ -67,28 +67,31 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 	public function setAttribute($key, $value) {
 
-		if($key == 'value' && (is_string($value) || is_int($value))) {
-			// setting the value attr from a string, whether 1234 or 123|446|789
+		if($key == 'value') { 
+			if(is_string($value) || is_int($value)) {
+				// setting the value attr from a string, whether 1234 or 123|446|789
 
-			if(ctype_digit("$value")) {
-				// i.e. "1234"
-				$a = new PageArray();
-				$page = wire('pages')->get((int) $value);
-				if($page->id) $a->add($page);
-				$value = $a; 
-
-			} else if(strpos($value, '|') !== false) {
-				// i.e. 123|456|789
-				$a = new PageArray();
-				foreach(explode('|', $value) as $id) {
-					if(!ctype_digit("$id")) continue; 
-					$page = wire('pages')->get((int) $id);
+				if(ctype_digit("$value")) {
+					// i.e. "1234"
+					$a = new PageArray();
+					$page = wire('pages')->get((int) $value);
 					if($page->id) $a->add($page);
+					$value = $a; 
+
+				} else if(strpos($value, '|') !== false) {
+					// i.e. 123|456|789
+					$a = new PageArray();
+					foreach(explode('|', $value) as $id) {
+						if(!ctype_digit("$id")) continue; 
+						$page = wire('pages')->get((int) $id);
+						if($page->id) $a->add($page);
+					}
+					$value = $a; 
+				} else {
+					// unrecognized format
 				}
-				$value = $a; 
-			} else {
-				// unrecognized format
 			}
+
 		}
 		return parent::setAttribute($key, $value);
 	}
@@ -278,14 +281,17 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 				if($id > 0) {	
 					// existing page
 					$page = wire('pages')->get($id); 
+					if($page->is(Page::statusUnpublished)) continue; // disallow unpublished
 				} else {
 					// placeholder for new page, to be sorted later
 					$page = new NullPage(); 
 				}
 				$newValue->add($page); 
 			}
-		} else {
-			if($value) $newValue = $this->fuel('pages')->get((int) $value); 
+
+		} else if($value) {
+			$newValue = wire('pages')->get((int) $value); 
+			if($newValue->is(Page::statusUnpublished)) $newValue = null; // disallow unpublished
 		}
 
 		$this->setAttribute('value', $newValue); 

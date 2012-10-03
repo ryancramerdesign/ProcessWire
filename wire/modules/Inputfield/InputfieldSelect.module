@@ -206,7 +206,8 @@ class InputfieldSelect extends Inputfield {
 
 		$out = '';
 		reset($options); 
-		$hasBlankOption = ((int) key($options)) == 0; 
+		$key = key($options); 
+		$hasBlankOption = empty($key); 
 		if(!$this->required && !$this->attr('multiple') && !$hasBlankOption) $out .= "<option value=''></option>"; 
 
 		foreach($options as $value => $label) {
