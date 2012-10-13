@@ -410,6 +410,23 @@ class Sanitizer extends Wire {
 
 	}
 
+	/**
+	 * Wrapper for PHP's htmlentities function that contains typical ProcessWire usage defaults
+	 *
+	 * The arguments used hre are identical to those for PHP's htmlentities function: 
+	 * http://www.php.net/manual/en/function.htmlentities.php
+	 *
+	 * @param string $str
+	 * @param int $flags
+	 * @param string $encoding
+	 * @param bool $doubleEncode
+	 * @return string
+	 *
+	 */
+	public function entities($str, $flags = ENT_QUOTES, $encoding = 'UTF-8', $doubleEncode = true) {
+		return htmlentities($str, $flags, $encoding, $doubleEncode); 
+	}
+
 	public function __toString() {
 		return "Sanitizer";
 	}
