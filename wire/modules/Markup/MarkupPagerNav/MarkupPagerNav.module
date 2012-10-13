@@ -130,6 +130,11 @@ class MarkupPagerNav extends Wire implements Module {
 		); 
 
 
+	public function __construct() {
+		$this->options['nextItemLabel'] = $this->_('Next');
+		$this->options['previousItemLabel'] = $this->_('Prev');
+	}
+
 	/**
 	 * Render the output for the pagination
 	 *

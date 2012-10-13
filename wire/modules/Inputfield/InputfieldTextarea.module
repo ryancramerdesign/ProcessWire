@@ -21,7 +21,7 @@ class InputfieldTextarea extends InputfieldText {
 	public function init() {
 		parent::init();
 		$this->setAttribute('rows', self::defaultRows); 
-		$this->setAttribute('maxlength', 1024*4); 
+		$this->setAttribute('maxlength', 1024*8); 
 	}
 
 	public function ___render() {
