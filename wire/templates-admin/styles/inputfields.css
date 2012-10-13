@@ -192,7 +192,7 @@
 .Inputfields textarea, 
 .InputfieldMaxWidth {
 	/* full width fields */
-	width: 99%; 
+	width: 100%; 
 }
 	.Inputfields textarea {
 		display: block;
