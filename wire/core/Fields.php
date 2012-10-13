@@ -118,6 +118,7 @@ class Fields extends WireSaveableItems {
 		'fields', 
 		'description',
 		'data',
+		'isNew',
 		); 
 
 	public function __construct() {

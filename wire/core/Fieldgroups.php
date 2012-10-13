@@ -207,6 +207,8 @@ class Fieldgroups extends WireSaveableItemsLookup {
 					$item->finishRemove($field); 
 				}
 			}
+
+			$item->resetRemovedFields();
 		}
 
 		$contextData = array();

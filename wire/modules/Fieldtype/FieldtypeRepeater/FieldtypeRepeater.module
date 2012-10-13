@@ -144,10 +144,10 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 				// ensure that the repeaters own queries work since they specify a templates_id
 				// note: this is now redundent given the code added directly above this, but kept for clarification
-				if($name == 'templates_id' && in_array($selector->value, $templatesUsedByRepeaters)) $includeAll = true; 
+				if($name == 'templates_id' && $selector->operator == '=' && in_array($selector->value, $templatesUsedByRepeaters)) $includeAll = true; 
 
 				// if has_parent is specified and is not homepage, no need to exclude results
-				if($name == 'has_parent' && $selector->value != 1 && $selector->value != '/') $includeAll = true;
+				if($name == 'has_parent' && $selector->value != 1 && $selector->operator == '=' && $selector->value != '/') $includeAll = true;
 
 				if($includeAll) break;
 			}
