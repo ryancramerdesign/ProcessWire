@@ -246,7 +246,7 @@ class FieldtypePage extends FieldtypeMulti {
 	}
 
 	/**
-	 * Given a value of unknown type, return a Page or PageArray (depending on $field-derefAsPage setting)
+	 * Given a value of unknown type, return a Page or PageArray (depending on $field->derefAsPage setting)
 	 *
 	 * @param Page $page
 	 * @param Field $field

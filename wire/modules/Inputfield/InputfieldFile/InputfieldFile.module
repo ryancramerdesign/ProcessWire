@@ -39,6 +39,7 @@ class InputfieldFile extends Inputfield {
 		$this->set('extensions', '');
 		$this->set('maxFiles', 0); 
 		$this->set('maxFilesize', 0); 
+		$this->set('useTags', 0); 
 
 		// native to this Inputfield
 		$this->set('unzip', 0); 
@@ -47,6 +48,7 @@ class InputfieldFile extends Inputfield {
 		$this->set('destinationPath', ''); 
 		$this->set('itemClass', 'InputfieldFile ui-widget ui-widget-content'); 
 		$this->set('descriptionFieldLabel', $this->_('Description')); // Description field label
+		$this->set('tagsFieldLabel', $this->_('Tags')); // Tags field label
 		$this->setAttribute('type', 'file'); 
 
 		// get the max filesize
@@ -99,12 +101,24 @@ class InputfieldFile extends Inputfield {
 
 
 	protected function renderItemDescriptionField(Pagefile $pagefile, $id, $n) {
-		if($this->descriptionRows == 0) return '';
 		$out = '';
-		$description = htmlspecialchars($pagefile->description, ENT_QUOTES, "UTF-8"); 
-		if($this->descriptionRows > 1) $out = "<textarea name='description_$id' rows='{$this->descriptionRows}'>$description</textarea>";
-			else $out = "<input type='text' name='description_$id' id='description_$id' value='$description' />";
-		return "<label class='InputfieldFileDescription infield description'>{$this->descriptionFieldLabel}$out</label>"; // Description field label
+
+		if($this->descriptionRows > 0) {
+			$description = htmlspecialchars($pagefile->description, ENT_QUOTES, "UTF-8"); 
+			if($this->descriptionRows > 1) $out = "<textarea name='description_$id' rows='{$this->descriptionRows}'>$description</textarea>";
+				else $out = "<input type='text' name='description_$id' id='description_$id' value='$description' />";
+			$out = "<label class='InputfieldFileDescription'>{$this->descriptionFieldLabel}$out</label>"; // Description field label
+		}
+
+		if($this->useTags) {
+			$tags = htmlspecialchars($pagefile->tags, ENT_QUOTES, "UTF-8"); 
+			$out = 	"<label class='InputfieldFileTags'>{$this->tagsFieldLabel}" . 
+				"<input type='text' name='tags_$id' id='tags_$id' value='$tags' />" . 
+				"</label>" . 
+				$out; 
+		}
+
+		return $out; 
 	}
 
 	protected function ___renderItem($pagefile, $id, $n) {
@@ -115,7 +129,7 @@ class InputfieldFile extends Inputfield {
 			"\n\t\t\t<span class='InputfieldFileStats'>{$pagefile->filesizeStr}</span> " . 
 			"\n\t\t\t<label class='InputfieldFileDelete'><input type='checkbox' name='delete_$id' value='1' /><span class='ui-icon ui-icon-trash'>Delete</span></label>" . 
 			"\n\t\t</p>" . 
-			"\n\t\t<p class='InputfieldFileData'>" . 
+			"\n\t\t<p class='InputfieldFileData description'>" . 
 			"\n\t\t\t" . $this->renderItemDescriptionField($pagefile, $id, $n) . 
 			"\n\t\t\t<input class='InputfieldFileSort' type='text' name='sort_$id' value='$n' />" . 
 			"\n\t\t</p>";
@@ -211,11 +225,13 @@ class InputfieldFile extends Inputfield {
 		$id = $this->name . '_' . $pagefile->hash; 		
 		$changed = false; 
 
-		if(isset($input['description_' . $id])) { 
-			$description = trim($input['description_' . $id]); 
-			if($description != $pagefile->description) {
-				$pagefile->description = $description; 
-				$changed = true; 
+		foreach(array('description', 'tags') as $key) { 
+			if(isset($input[$key . '_' . $id])) { 
+				$value = trim($input[$key . '_' . $id]); 
+				if($value != $pagefile->$key) {
+					$pagefile->$key = $value; 
+					$changed = true; 
+				}
 			}
 		}
 

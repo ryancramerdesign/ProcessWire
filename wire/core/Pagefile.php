@@ -17,6 +17,7 @@
  * @property string $filename full disk path to the file on the server
  * @property string $name Returns the filename without the path (basename)
  * @property string $description value of the file's description field (text). Note you can also set this property directly.
+ * @property string $tags value of the file's tags field (text). Note you can also set this property directly.
  * @property string $ext file's extension (i.e. last 3 or so characters)
  * @property int $filesize file size, number of bytes
  * @property string $filesizeStr file size as a formatted string
@@ -46,6 +47,7 @@ class Pagefile extends WireData {
 		$this->pagefiles = $pagefiles; 
 		if(strlen($filename)) $this->setFilename($filename); 
 		$this->set('description', ''); 
+		$this->set('tags', ''); 
 		$this->set('formatted', false); // has an output formatter been run on this Pagefile?
 	}
 
@@ -119,6 +121,7 @@ class Pagefile extends WireData {
 	public function set($key, $value) {
 		if($key == 'basename') $value = $this->pagefiles->cleanBasename($value, false); 
 		if($key == 'description') $value = $this->fuel('sanitizer')->textarea($value); 
+		if($key == 'tags') $value = $this->fuel('sanitizer')->text($value);
 		return parent::set($key, $value); 
 	}
 
@@ -139,6 +142,7 @@ class Pagefile extends WireData {
 			case 'url':
 			case 'filename':
 			case 'description':
+			case 'tags':
 			case 'ext':
 			case 'hash': 
 			case 'filesize':
@@ -209,6 +213,16 @@ class Pagefile extends WireData {
 	 */
 	public function description() {
 		return parent::get('description'); 
+	}
+
+	/**
+	 * Returns the value of the tags field
+	 *
+	 * @return string
+	 *
+	 */
+	public function tags() {
+		return parent::get('tags'); 
 	}
 
 	/**
@@ -306,6 +320,20 @@ class Pagefile extends WireData {
 		return $result;
 	}
 
+	/**
+	 * Does this file have the given tag?
+	 *
+	 * @param string $tag one-word tag
+	 * @return bool
+	 *
+	 */
+	public function hasTag($tag) {
+		if(empty($this->tags)) return false;
+		$tags = $this->tags; 
+		if(strpos($tags, ',') !== false) $tags = str_replace(',', ' ', $tags);
+		$tags = explode(' ', strtolower($tags)); 
+		return in_array(strtolower($tag), $tags); 
+	}
 
 	
 }

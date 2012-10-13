@@ -124,6 +124,8 @@ class Pagefiles extends WireArray {
 	/**
 	 * Get a value from this Pagefiles instance
 	 *
+	 * You may also specify a file's 'tag' and it will return the first Pagefile matching the tag.
+	 *
 	 * @param string $key
 	 * @return mixed
 	 *
@@ -132,7 +134,29 @@ class Pagefiles extends WireArray {
 		if($key == 'page') return $this->getPage(); 
 		if($key == 'url') return $this->url();
 		if($key == 'path') return $this->path(); 
-		return parent::get($key); 
+		$value = parent::get($key); 
+		if(is_null($value)) $value = $this->getTag($key);
+		return $value; 
+	}
+
+	/**
+	 * Find all Pagefiles matching the given selector string or tag
+	 *
+	 * @param string $selector
+	 * @return Pagefiles New instance of Pagefiles
+	 *
+	 */
+	public function find($selector) {
+		if(!Selectors::stringHasOperator($selector)) {
+			// if there is no selector operator in the strong, consider it a tag first
+			$value = $this->findTag($selector); 
+			// if it didn't match any tag, then see if it matches in some other way
+			if(!count($value)) $value = parent::find($selector); 
+		} else {
+			// there is an operator so we send it straight to WireArray
+			$value = parent::find($selector);		
+		}
+		return $value; 
 	}
 
 	/**
@@ -249,6 +273,38 @@ class Pagefiles extends WireArray {
 
 	public function uncache() {
 		//$this->page = null;		
+	}
+
+	/**
+	 * Return all Pagefiles that have the given tag
+	 *
+	 * @param string $tag
+	 * @return Pagefiles
+	 *
+	 */
+	public function findTag($tag) {
+		$items = $this->makeNew();		
+		foreach($this as $pagefile) {
+			if($pagefile->hasTag($tag)) $items->add($pagefile);
+		}
+		return $items; 
+	}
+
+	/**
+	 * Return the first Pagefile that matches the given tag or NULL if no match
+	 *
+	 * @param string $tag
+	 * @return Pagefile|null
+	 *
+	 */
+	public function getTag($tag) {
+		$item = null;
+		foreach($this as $pagefile) {
+			if(!$pagefile->hasTag($tag)) continue; 
+			$item = $pagefile;
+			break;
+		}
+		return $item;
 	}
 
 }
