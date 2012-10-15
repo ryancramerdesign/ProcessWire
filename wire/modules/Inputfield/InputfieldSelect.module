@@ -342,8 +342,19 @@ class InputfieldSelect extends Inputfield {
 
 	public function isEmpty() {
 		$value = $this->attr('value');
-		if(is_array($value) && count($value) == 1) $value = reset($value); 
-		return strlen("$value") === 0; 
+
+		if(is_array($value)) {
+			$cnt = count($value);
+			if(!$cnt) return true; 
+			if($cnt === 1) return strlen(reset($value)) === 0; 
+			return false; // $cnt > 1
+
+		} else if($value === null || $value === false) {
+			return true; 
+
+		} else {
+			return strlen($value) === 0; 
+		}
 	}
 
 
