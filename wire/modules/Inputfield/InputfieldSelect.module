@@ -202,19 +202,19 @@ class InputfieldSelect extends Inputfield {
 		return "$value" == (string) $this->value; 
 	}
 
-	protected function renderOptions($options) {
+	protected function renderOptions($options, $allowBlank = true) {
 
 		$out = '';
 		reset($options); 
 		$key = key($options); 
 		$hasBlankOption = empty($key); 
-		if(!$this->required && !$this->attr('multiple') && !$hasBlankOption) $out .= "<option value=''></option>"; 
+		if($allowBlank && !$this->required && !$this->attr('multiple') && !$hasBlankOption) $out .= "<option value=''></option>"; 
 
 		foreach($options as $value => $label) {
 
 			if(is_array($label)) {
 				$out .= "\n\t<optgroup label='" . htmlspecialchars($value) . "'>" . 
-					$this->renderOptions($label) . 
+					$this->renderOptions($label, false) . 
 					"\n\t</optgroup>";
 				continue; 
 			}
@@ -296,7 +296,8 @@ class InputfieldSelect extends Inputfield {
 		parent::___processInput($input); 	
 
 		if(!isset($input[$this->attr('name')])) {
-			$this->setAttribute('value', array()); 
+			$value = $this instanceof InputfieldHasArrayValue ? array() : null;
+			$this->setAttribute('value', $value); 
 			return $this;
 		}
 

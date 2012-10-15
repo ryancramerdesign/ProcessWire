@@ -30,6 +30,8 @@ require_once($dirname . "/CommentForm.php");
  *
  * A field that stores user posted comments for a single Page. 
  *
+ * @TODO implement a getMatchQuery function that uses the FULLTEXT index
+ *
  */
 class FieldtypeComments extends FieldtypeMulti {
 
@@ -83,6 +85,20 @@ class FieldtypeComments extends FieldtypeMulti {
 		$inputfield->class = $this->className();
 		return $inputfield; 
 	}
+
+	/**
+	 * Update a query to match the text with a fulltext index
+	 *
+	 */
+	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
+		if(empty($subfield) || $subfield === 'data') { 
+			$ft = new DatabaseQuerySelectFulltext($query);
+			$ft->match($table, $subfield, $operator, $value);
+			return $query;
+		} 
+		return parent::getMatchQuery($query, $table, $subfield, $operator, $value); 
+	}
+
 
         /**
          * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
