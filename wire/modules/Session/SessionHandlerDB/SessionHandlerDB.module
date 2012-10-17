@@ -55,6 +55,7 @@ class SessionHandlerDB extends SessionHandler {
 	public function read($id) {
 		$table = self::dbTableName; 
 		$id = $this->db->escape_string($id);
+		$this->db->query("SELECT GET_LOCK('$id', 10)"); 
 		$sql = "SELECT data FROM $table WHERE id='$id'";
 		$result = $this->db->query($sql);
 		if($result->num_rows) {
@@ -85,7 +86,9 @@ class SessionHandlerDB extends SessionHandler {
 		$data = $this->db->escape_string($data);
 		$sql = 	"INSERT INTO $table SET id='$id', user_id=$user_id, pages_id=$pages_id, data='$data' " . 
 			"ON DUPLICATE KEY UPDATE data='$data', user_id=$user_id, pages_id=$pages_id, ts=NOW()";
-		return $this->db->query($sql) ? true : false; 
+		$result = $this->db->query($sql) ? true : false; 
+		$this->db->query("SELECT RELEASE_LOCK('$id')"); 
+		return $result; 
 	}
 
 	/**
@@ -133,7 +136,7 @@ class SessionHandlerDB extends SessionHandler {
 			"INDEX (pages_id), " . 
 			"INDEX (user_id), " . 
 			"INDEX (ts) " . 
-			")";
+			") ENGINE=InnoDB DEFAULT CHARSET=utf8";
 
 		$this->db->query($sql); 
 	}
