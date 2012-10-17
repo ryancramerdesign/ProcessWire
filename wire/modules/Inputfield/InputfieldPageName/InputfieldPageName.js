@@ -40,7 +40,7 @@ var InputfieldPageName = {
 	},
 
 	updatePreview: function($t, value) {
-		$t.parent('p').siblings(".InputfieldPageNameURL").children("strong").text((value.length > 0 ? value + '/' : ''))
+		$t.siblings(".InputfieldPageNameURL").children("strong").text((value.length > 0 ? value + '/' : ''))
 	}
 };
 

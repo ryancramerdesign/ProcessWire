@@ -467,6 +467,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field->setAttribute('name', 'labelFieldName');
 		$field->setAttribute('value', $this->labelFieldName); 
 		$field->label = 'Label Field';
+		$field->required = true; 
 		$field->description = "Select the page field that you want to be used in generating the labels for each selectable page.";
 
 		if($this->fuel('fields')->get('title')) {

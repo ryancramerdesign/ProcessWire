@@ -295,7 +295,8 @@ class InputfieldSelect extends Inputfield {
 
 		parent::___processInput($input); 	
 
-		if(!isset($input[$this->attr('name')])) {
+		$name = $this->attr('name');
+		if(!isset($input[$name])) {
 			$value = $this instanceof InputfieldHasArrayValue ? array() : null;
 			$this->setAttribute('value', $value); 
 			return $this;
