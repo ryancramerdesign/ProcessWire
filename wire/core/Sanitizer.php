@@ -279,36 +279,48 @@ class Sanitizer extends Wire {
 	 * your output should always entity encoded any URLs that came from user input. 
 	 *
 	 * @param string $value URL
-	 * @param bool $allowRelative Whether to allow relative URLs
+	 * @param bool|array $options Array of options including: allowRelative or allowQuerystring (both booleans)
+	 *	Previously this was the boolean $allowRelative, and that usage will still work for backwards compatibility.
 	 * @return string
 	 * @todo add TLD validation
 	 *
 	 */
-	public function url($value, $allowRelative = true) {
+	public function url($value, $options = array()) {
+
+		$defaultOptions = array(
+			'allowRelative' => true, 
+			'allowQuerystring' => true,
+			);
+
+		if(!is_array($options)) {
+			$defaultOptions['allowRelative'] = (bool) $options;
+			$options = array();
+		}
+
+		$options = array_merge($defaultOptions, $options);
 
 		if(!strlen($value)) return '';
 
 		// this filter_var sanitizer just removes invalid characters that don't appear in domains or paths
 		$value = filter_var($value, FILTER_SANITIZE_URL); 
-		
-		if(!strpos($value, ".") && $allowRelative) {
-			// if there's no dot (or it's in position 0) and relative paths are allowed, 
-			// we can safely assume this is a relative path.
-			// relative paths must follow ProcessWire convention of ascii-only, 
-			// so they are passed through the $sanitizer->path() function.
-			return $this->path($value); 
-		}
-
+	
 		if(!strpos($value, '://')) {
 			// URL is missing protocol, or is local/relative
 
-			if($allowRelative) {
+			if($options['allowRelative']) {
 				// determine if this is a domain name 
 				// regex legend:       (www.)?      company.         com       ( .uk or / or end)
-				if(preg_match('{^([^\s_.]+\.)?[^-_\s.][^\s_.]+\.([a-z]{2,6})([./:#]|$)}i', $value, $matches)) {
+				if(strpos($value, '.') && preg_match('{^([^\s_.]+\.)?[^-_\s.][^\s_.]+\.([a-z]{2,6})([./:#]|$)}i', $value, $matches)) {
 					// most likely a domain name
 					// $tld = $matches[3]; // TODO add TLD validation to confirm it's a domain name
 					$value = filter_var("http://$value", FILTER_VALIDATE_URL); 
+
+				} else if($options['allowQuerystring']) {
+					// we'll construct a fake domain so we can use FILTER_VALIDATE_URL rules
+					$fake = 'http://processwire.com/';
+					$value = $fake . ltrim($value, '/'); 
+					$value = filter_var($value, FILTER_VALIDATE_URL); 
+					$value = str_replace($fake, '/', $value);
 
 				} else {
 					// most likely a relative path
@@ -319,6 +331,8 @@ class Sanitizer extends Wire {
 				// relative urls aren't allowed, so add the protocol and validate
 				$value = filter_var("http://$value", FILTER_VALIDATE_URL); 
 			}
+		} else {
+			$value = filter_var($value, FILTER_VALIDATE_URL); 
 		}
 
 		return $value ? $value : '';
