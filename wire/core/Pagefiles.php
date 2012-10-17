@@ -134,9 +134,7 @@ class Pagefiles extends WireArray {
 		if($key == 'page') return $this->getPage(); 
 		if($key == 'url') return $this->url();
 		if($key == 'path') return $this->path(); 
-		$value = parent::get($key); 
-		if(is_null($value)) $value = $this->getTag($key);
-		return $value; 
+		return parent::get($key);
 	}
 
 	/**
@@ -145,7 +143,6 @@ class Pagefiles extends WireArray {
 	 * @param string $selector
 	 * @return Pagefiles New instance of Pagefiles
 	 *
-	 */
 	public function find($selector) {
 		if(!Selectors::stringHasOperator($selector)) {
 			// if there is no selector operator in the strong, consider it a tag first
@@ -158,6 +155,7 @@ class Pagefiles extends WireArray {
 		}
 		return $value; 
 	}
+	 */
 
 	/**
 	 * Add a new Pagefile item, or create one from it's filename and add it.

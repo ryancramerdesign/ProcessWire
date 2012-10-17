@@ -328,8 +328,8 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function hasTag($tag) {
-		if(empty($this->tags)) return false;
 		$tags = $this->tags; 
+		if(empty($tags)) return false;
 		if(strpos($tags, ',') !== false) $tags = str_replace(',', ' ', $tags);
 		$tags = explode(' ', strtolower($tags)); 
 		return in_array(strtolower($tag), $tags); 
