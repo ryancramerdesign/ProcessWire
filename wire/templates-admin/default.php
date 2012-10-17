@@ -3,7 +3,7 @@
 /**
  * ProcessWire 2.x Admin Markup Template
  *
- * Copyright 2010 by Ryan Cramer
+ * Copyright 2012 by Ryan Cramer
  *
  *
  */
