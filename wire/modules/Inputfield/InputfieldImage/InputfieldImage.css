@@ -2,7 +2,8 @@
 	max-width: 90%; 
 }
 
-.InputfieldImage a.InputfieldFileLink + label.InputfieldFileDescription {
+.InputfieldImage a.InputfieldFileLink + label.InputfieldFileDescription,
+.InputfieldImage a.InputfieldFileLink + label.InputfieldFileTags {
 	margin-top: 0.5em;
 }
 
@@ -23,3 +24,5 @@
 .ui-state-error a.InputfieldFileMove {
 	display: none; 
 }
+
+
