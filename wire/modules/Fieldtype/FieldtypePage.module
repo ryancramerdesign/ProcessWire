@@ -33,6 +33,21 @@ class FieldtypePage extends FieldtypeMulti {
 	const derefAsPageOrFalse = 1; 
 	const derefAsPageOrNullPage = 2;
 
+	/**
+	 * Subfield names that will match to the 'pages' table, rather than custom fields
+	 *
+	 */
+	protected $nativeNames = array(
+		'name', 
+		'template',
+		'templates_id',
+		'parent',
+		'parent_id',
+		'created',
+		'modified',
+		);
+
+
 	/**	
 	 * Setup a hook to Pages::delete so that we can remove references when pages are deleted
 	 *
@@ -384,19 +399,11 @@ class FieldtypePage extends FieldtypeMulti {
 	 */
 	protected function getMatchQueryNative($query, $table, $subfield, $operator, $value) {
 
-		$nativeNames = array(
-			'name', 
-			'template',
-			'templates_id',
-			'parent',
-			'parent_id',
-			'created',
-			'modified',
-			);
 
-		// static counter to ensure unique table names where necessary
+		if(!in_array($subfield, $this->nativeNames)) return false; 
 
-		if(!in_array($subfield, $nativeNames)) return false; 
+		// we let the custom field query matcher handle the '!=' scenario
+		if($operator == '!=') return $this->getMatchQueryCustom($query, $table, $subfield, $operator, $value); 
 
 		if($subfield == 'created' || $subfield == 'modified') {
 			if(!ctype_digit($value)) $value = strtotime($value); 
@@ -420,13 +427,6 @@ class FieldtypePage extends FieldtypeMulti {
 		$table2 = "_fieldtypepage" . (++$n);
 		$value = $this->fuel('db')->escape_string($value); 
 
-		/*
-		if($operator == '!=' || $selector->not) {
-			// @todo make it support exclusion of pages that have it anywhere in a multi-value set
-			// same goes for getMatchQueryCustom
-		}
-		*/
-
 		$query->join("pages AS $table2 ON $table2.$subfield$operator'$value'"); 
 		$query->where("($table.data=$table2.id)"); 
 
@@ -446,8 +446,13 @@ class FieldtypePage extends FieldtypeMulti {
 	 */
 	protected function getMatchQueryCustom($query, $table, $subfield, $operator, $value) {
 
-		$subfield = wire('fields')->get($subfield);
-		if(!$subfield) return false; // not a custom field
+		if(in_array($subfield, $this->nativeNames)) {
+			// fine then, we can handle that here when needed (like !=)
+		} else {
+			$subfield = wire('fields')->get($subfield);
+			if(!$subfield) return false; // not a custom field
+			$subfield = $subfield->name; 
+		}
 
 		$field = $query->field; 
 
@@ -456,21 +461,37 @@ class FieldtypePage extends FieldtypeMulti {
 		$value = wire('sanitizer')->selectorValue($value);
 
 		// build a selector to find matching pagerefs 
-		$selector = "{$subfield->name}$operator$value, ";
+		$selector = '';
 		if($field->findPagesSelector) $selector .= $field->findPagesSelector . ", ";
 		if($field->parent_id) $selector .= "parent_id={$field->parent_id}, ";
 		if($field->template_id) $selector .= "templates_id={$field->template_id}, ";
-		// note $field->findPagesCode is not implemented
-		
-		$matches = $pageFinder->find(new Selectors(trim($selector, ', ')));
+		// @todo note $field->findPagesCode is not implemented
 
-		// use the IDs found from the separate find() as our getMatchQuery
-		if(count($matches)) {
-			$ids = array();
-			foreach($matches as $match) $ids[$match['id']] = $match['id'];
-			$query->where("$table.data IN(" . implode(',', $ids) . ")");
+		if($operator == '!=') {
+
+			$selector .= "{$subfield}=$value, ";
+			$matches = $pageFinder->find(new Selectors(trim($selector, ', ')));
+			if(count($matches)) { 
+				$ids = array();
+				foreach($matches as $match) $ids[$match['id']] = $match['id'];
+				static $xcnt = 0; 
+				$t = 'x_' . $field->table . (++$xcnt);
+				$query->leftjoin("{$field->table} AS $t ON $t.pages_id=pages.id AND $t.data IN(" . implode(',', $ids) . ")"); 
+				$query->parentQuery->where("$t.data IS NULL"); 
+			}
+
 		} else {
-			$query->where("1>2"); // forced non-match
+
+			$selector .= "{$subfield}$operator$value, ";
+			$matches = $pageFinder->find(new Selectors(trim($selector, ', ')));
+
+			// use the IDs found from the separate find() as our getMatchQuery
+			if(count($matches)) {
+				$ids = array();
+				foreach($matches as $match) $ids[$match['id']] = $match['id'];
+				$query->where("$table.data IN(" . implode(',', $ids) . ")");
+			} else $query->where("1>2"); // forced non-match
+
 		}
 
 		return true;

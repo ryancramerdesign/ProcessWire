@@ -128,7 +128,7 @@ abstract class Fieldtype extends WireData implements Module {
 			$f->attr('name', 'autojoin');
 			$f->attr('value', 1);
 			$f->attr('checked', ($field->flags & Field::flagAutojoin) ? 'checked' : '');
-			$f->description = $this->_("If checked, the data for this field will be loaded with every instance of the page, regardless of whether it's used at the time. If unchecked, the data will be loaded on-demand, and only when the field is specifically accessed. Enabling autojoin also allows the field to be used as a key for sorting pages."); // Autojoin description
+			$f->description = $this->_("If checked, the data for this field will be loaded with every instance of the page, regardless of whether it's used at the time. If unchecked, the data will be loaded on-demand, and only when the field is specifically accessed."); // Autojoin description
 			$inputfields->append($f);
 		}
 
