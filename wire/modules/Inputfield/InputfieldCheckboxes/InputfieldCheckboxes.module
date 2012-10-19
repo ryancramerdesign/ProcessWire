@@ -23,7 +23,9 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 		$out = '';
 		$table = null;
 		$columns = (int) $this->optionColumns;
+		$inline = $columns === 1 || $columns > 10; 
 		$liAttr = '';
+		$ulClass = '';
 
 		if($this->table) {
 			$table = $this->modules->get("MarkupAdminDataTable"); 
@@ -31,13 +33,22 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 			if($this->thead) $table->headerRow(explode('|', htmlspecialchars($this->thead))); 
 
 		} else if($columns) {
-			$liWidth = round(100 / $columns)-1;  // 1% padding-right added from stylesheet
-			$liAttr = " style='width: {$liWidth}%;'";
-			$out = "\n<ul class='InputfieldCheckboxesColumns ui-helper-clearfix'>";
+
+			if($inline) {
+				$ulClass = 'InputfieldCheckboxesFloated';
+			} else {
+				$liWidth = round(100 / $columns)-1;  // 1% padding-right added from stylesheet
+				$liAttr = " style='width: {$liWidth}%;'";
+				$ulClass = 'InputfieldCheckboxesColumns';
+			}
+
+			$ulClass .= " ui-helper-clearfix";
 
 		} else {
-			$out = "\n<ul class='InputfieldCheckboxesStacked'>";
+			$ulClass = 'InputfieldCheckboxesStacked';
 		}
+
+		if(!$table) $out = "\n<ul class='$ulClass'>";
 
 		foreach($this->getOptions() as $key => $value) {
 			$checked = '';
@@ -89,7 +100,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 		$inputfields = parent::___getConfigInputfields(); 
 		$f = wire('modules')->get('InputfieldInteger');
 		$f->label = $this->_('Columns of Checkboxes');
-		$f->description = $this->_('If you want the checkboxes to display in columns (rather than stacked), enter the number of columns you want to use (up to 10).'); 
+		$f->description = $this->_('If you want the checkboxes to display in columns (rather than stacked), enter the number of columns you want to use (up to 10). To display checkboxes side-by-side (inline) enter 1.'); 
 		$f->attr('name', 'optionColumns'); 
 		$f->attr('value', (int) $this->optionColumns); 
 		$inputfields->add($f);	
