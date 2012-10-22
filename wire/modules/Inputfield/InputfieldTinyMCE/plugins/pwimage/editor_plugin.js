@@ -81,7 +81,7 @@ var $iframe;
 
 				$iframe = $('<iframe id="pwimage_iframe" width="100%" frameborder="0" src="' + modalUri + queryString + '"></iframe>'); 
 
-				var selectImageLabel = 
+				var selectImageLabel = '';
 
 				$iframe.dialog({
 					title: config.InputfieldTinyMCE.pwimage.selectLabel, // "Select Image", 

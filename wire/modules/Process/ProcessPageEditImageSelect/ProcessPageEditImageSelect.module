@@ -42,8 +42,6 @@ class ProcessPageEditImageSelect extends Process {
 		$this->modules->get("ProcessPageList");
 		$id = (int) $this->input->get->id; 
 
-		$this->message($this->input->get->file); 
-
 		// if no ID was specified, then retrieive ID from filename path, if it's there
 		if(!$id && $this->input->get->file) {
 			if(preg_match('{(\d+)/[^/]+\.(jpe?g|gif|png)$}iD', $this->input->get->file, $matches)) {
@@ -54,6 +52,7 @@ class ProcessPageEditImageSelect extends Process {
 		if(!$id) throw new WireException("No page specified"); 
 		$this->page = $this->pages->get($id); 
 		if(!$this->page) throw new WireException("No page specified"); 
+		if(!$this->page->id) throw new WireException("Unknown page"); 
 
 		// note we use hasPermission('page-view') rather than viewable() here becuase we want to allow pages without template files
 		if(!$this->user->hasPermission('page-view', $this->page)) throw new WireException("You do not have access to images on this page"); 
@@ -68,6 +67,7 @@ class ProcessPageEditImageSelect extends Process {
 
 		$images = $this->getImages($this->page);
 		$filename = basename($this->input->get->file); 
+		if(strpos($filename, ',') === false) $filename = $this->page->id . ',' . $filename; // prepend ID if it's not there, needed for ajax in-editor resize
 		if(!preg_match('/\.(jpe?g|gif|png)$/iD', $filename, $matches)) throw new WireException("Unknown image file"); 
 
 		// get the original, non resized version, if present
@@ -82,6 +82,8 @@ class ProcessPageEditImageSelect extends Process {
 		$allImages = array();
 		$numImages = 0;
 		$numImageFields = 0;
+
+		iF(!$page->id) return $allImages; 
 
 		foreach($page->fields as $field) {
 
@@ -167,6 +169,7 @@ class ProcessPageEditImageSelect extends Process {
 			'height' => 0, 
 			); 
 		$image = $this->getPageimage();
+		if(!is_file($image->filename)) throw new WireException("Image file does not exist"); 
 		$basename = $image->basename;
 		$fullname = $image->page->id . ',' . $basename; 
 
@@ -273,7 +276,7 @@ class ProcessPageEditImageSelect extends Process {
 		$out =	"<p>" .  
 			"<span id='selected_image_width'>$width</span>x" . 
 			"<span id='selected_image_height'>$height</span><br />" . 
-			"<img id='selected_image' class='$class' src='{$resized->url}' width='$width' height='$height' />" . 
+			"<img id='selected_image' class='$class' data-idname='{$image->page->id},{$image->basename}' src='{$resized->url}' width='$width' height='$height' />" . 
 			"</p>";
 
 		return $out; 
