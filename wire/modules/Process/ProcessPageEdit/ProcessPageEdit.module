@@ -12,8 +12,7 @@
  * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -101,7 +100,8 @@ class ProcessPageEdit extends Process {
 
 		if($this->config->ajax && (isset($_SERVER['HTTP_X_FIELDNAME']) || count($_POST))) return $this->ajaxSave($this->page);
 
-		$this->form = $this->buildForm();
+		$this->form = $this->modules->get('InputfieldForm');
+		$this->form = $this->buildForm($this->form);
 		$this->form->setTrackChanges();
 
 		if($this->isPost && count($_POST)) $this->processSave();
@@ -208,9 +208,8 @@ class ProcessPageEdit extends Process {
 	 * Build the form used for Page Edits
 	 *
 	 */
-	protected function ___buildForm() {
+	protected function ___buildForm(InputfieldForm $form) {
 
-		$form = $this->modules->get('InputfieldForm');
 
 		$fields = $this->page->getInputfields();
 		$fields->attr('id', $this->className() . 'Content'); 
