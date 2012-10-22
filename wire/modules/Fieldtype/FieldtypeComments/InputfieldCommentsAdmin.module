@@ -63,7 +63,7 @@ class InputfieldCommentsAdmin extends Inputfield {
 
 		if($note) $note = "\n\t\t\t<p class='description CommentsAdminItemNote'>$note</p>";
 
-		$out = 	"\n\t<li id='$liID' class='CommentsAdminItem$statusName ui-widget $liClass'>" . 
+		$out = 	"\n\t<li id='$liID' class='CommentsAdminItem$statusName Inputfield ui-widget $liClass'>" . 
 			"\n\t\t<label class='CommentsAdminItemHead ui-widget-header'>" . 
 			"\n\t\t\t<span class='CommentsAdminItemHeadLabel'>$headLabel</span>" . 
 			"\n\t\t\t<span class='CommentsAdminItemBy'>Comment #$num Posted " . date('m/d/y H:i', $comment->created) . " by " . htmlentities($comment->cite) . "</span>" . 
