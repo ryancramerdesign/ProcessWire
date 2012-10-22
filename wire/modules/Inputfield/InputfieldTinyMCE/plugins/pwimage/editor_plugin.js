@@ -61,6 +61,7 @@ var $iframe;
 							page_id = parseInt(parts[n]); 
 							if(page_id > 0) break;
 						}
+						file = page_id + ',' + file; // page_id,file for images in repeater support
 					}
 				}
 
@@ -140,9 +141,9 @@ var $iframe;
 									if(!width) width = $img.width();
 									var height = $img.attr('height'); 
 									if(!height) height = $img.height();
-									var file = $img.attr('src'); 
+									var file = $img.attr('data-idname'); 
 									var page_id = $("#page_id", $i).val();
-									file = file.substring(file.lastIndexOf('/')+1); 
+									if(file.indexOf('/') > -1) file = file.substring(file.lastIndexOf('/')+1); 
 
 									$.get(modalUri + 'resize?id=' + page_id + '&file=' + file + '&width=' + width + '&height=' + height, function(data) {
 										var $div = $("<div></div>").html(data); 

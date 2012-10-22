@@ -10,7 +10,7 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://www.processwire.com
@@ -29,7 +29,7 @@ class ProcessPageEditImageSelect extends Process {
 		return array(
 			'title' => 'Page Edit Image',          
 			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)', 
-			'version' => 100, 
+			'version' => 101, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
@@ -41,6 +41,8 @@ class ProcessPageEditImageSelect extends Process {
 
 		$this->modules->get("ProcessPageList");
 		$id = (int) $this->input->get->id; 
+
+		$this->message($this->input->get->file); 
 
 		// if no ID was specified, then retrieive ID from filename path, if it's there
 		if(!$id && $this->input->get->file) {
@@ -63,7 +65,8 @@ class ProcessPageEditImageSelect extends Process {
 	}
 
 	public function getPageimage() {
-		$images = $this->getImages();
+
+		$images = $this->getImages($this->page);
 		$filename = basename($this->input->get->file); 
 		if(!preg_match('/\.(jpe?g|gif|png)$/iD', $filename, $matches)) throw new WireException("Unknown image file"); 
 
@@ -74,23 +77,43 @@ class ProcessPageEditImageSelect extends Process {
 	}
 
 
-	public function getImages() {
+	public function getImages(Page $page, $level = 0) {
+
 		$allImages = array();
 		$numImages = 0;
 		$numImageFields = 0;
-		foreach($this->page->fields as $field) {
+
+		foreach($page->fields as $field) {
+
+			if($field->type instanceof FieldtypeRepeater) {
+				// get images that are possibly in a repeater
+				foreach($page->get($field->name) as $p) {
+					$images = $this->getImages($p, $level+1); 
+					if(!count($images)) continue; 
+					$allImages = array_merge($allImages, $images);
+					$numImages += count($images); 
+					$numImageFields++;
+				}
+				continue; 
+			}
+
 			if(!$field->type instanceof FieldtypeImage) continue; 
 			$numImageFields++;
-			$images = $this->page->get($field->name); 
+			$images = $page->get($field->name); 
 			if(!count($images)) continue; 
+
 			foreach($images as $image) {
 				$numImages++;
-				$allImages[$image->basename] = $image; 
+				$key = $page->id . ',' . $image->basename;  // page_id,basename for repeater support
+				$allImages[$key] = $image; 
 			}
 		}
 
-		if(!$numImageFields) $this->message($this->_("There are no image fields on this page. Choose another page to select images from.")); // Message when page has no image fields
-			else if(!$numImages) $this->message($this->_("There are no images present on this page. Close this window and upload images, or select images from another page."));  // Message when page has no images
+		if(!$level) {
+			if(!$numImageFields) $this->message($this->_("There are no image fields on this page. Choose another page to select images from.")); // Message when page has no image fields
+				else if(!$numImages) $this->message($this->_("There are no images present on this page. Close this window and upload images, or select images from another page."));  // Message when page has no images
+		}
+
 		return $allImages; 
 	}
 
@@ -99,7 +122,7 @@ class ProcessPageEditImageSelect extends Process {
 		if($this->config->demo) throw new WireException("Sorry, image editing functions are disabled in demo mode"); 
 
 		if($this->input->get->file) return $this->executeEdit();
-		$images = $this->getImages();
+		$images = $this->getImages($this->page);
 
 		$out = '';
 
@@ -108,7 +131,7 @@ class ProcessPageEditImageSelect extends Process {
 			foreach($images as $image) {
 				$width = $image->width();
 				if($width > $this->maxImageWidth) $width = $this->maxImageWidth; 
-				$out .= "\n\t<li><a href='./edit?file={$image->basename}&amp;modal=1&amp;id={$this->page->id}&amp;winwidth=$winwidth'>" . 
+				$out .= "\n\t<li><a href='./edit?file={$image->page->id},{$image->basename}&amp;modal=1&amp;id={$this->page->id}&amp;winwidth=$winwidth'>" . 
 					"<img src='{$image->url}' width='$width' alt=\"{$image->description}\" /></a></li>";
 			}
 
@@ -144,7 +167,8 @@ class ProcessPageEditImageSelect extends Process {
 			'height' => 0, 
 			); 
 		$image = $this->getPageimage();
-		$filename = $image->basename; 
+		$basename = $image->basename;
+		$fullname = $image->page->id . ',' . $basename; 
 
 		$originalWidth = $image->width();
 		$originalHeight = $image->height();
@@ -154,11 +178,11 @@ class ProcessPageEditImageSelect extends Process {
 
 		// if they aren't already working with a resized image, and it's being scaled down,
 		// then add the 'resized' class to ensure that our pwimage plugin knows to perform the resize
-		if(basename($this->input->get->file) == $filename && $originalWidth > $width) $attrs['class'] .= " resized";
+		if(basename($this->input->get->file) == $fullname && $originalWidth > $width) $attrs['class'] .= " resized";
 
-		$out =	"\n<form id='selected_image_settings' action='./?id={$this->page->id}&amp;file=$filename'>" . 
+		$out =	"\n<form id='selected_image_settings' action='./?id={$this->page->id}&amp;file=$fullname'>" . 
 			"\n\t<p id='wrap_info'>" . 
-			"\n\t\t<span id='selected_image_filename'>" . htmlentities($filename) . "</span> &nbsp;&bull;&nbsp; " . 
+			"\n\t\t<span id='selected_image_filename'>" . htmlentities($basename, ENT_QUOTES, 'UTF-8') . "</span> &nbsp;&bull;&nbsp; " . 
 			"\n\t\t<span id='selected_image_pixels'>" . 
 			"\n\t\t\t<label>" . $this->_('Width:') . " <input id='input_width' class='input_pixels' type='number' size='6' step='1' min='1' max='$originalWidth' value='$width' /></label>&nbsp; " . 
 			"\n\t\t\t<label>" . $this->_('Height:') . " <input id='input_height' class='input_pixels' type='number' size='6' step='1' min=1' max='$originalHeight' value='$height' /></label>" . 
@@ -220,7 +244,7 @@ class ProcessPageEditImageSelect extends Process {
 		foreach($attrs as $key => $value) if($value) $attrStr .= "$key='" . trim($value) . "' ";
 
 		$out .= "\n\t<div id='selected_image_container'>" . 
-			"\n\t\t<img id='selected_image' $attrStr alt='' src='{$image->url}' />" . 
+			"\n\t\t<img id='selected_image' $attrStr alt='' data-idname='{$image->page->id},{$image->basename}' src='{$image->url}' />" . 
 			"\n\t</div>";
 
 		return $out; 
