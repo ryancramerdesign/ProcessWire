@@ -15,9 +15,9 @@ var ProcessWireAdminTheme = {
 		this.setupCloneButton();
 		this.setupButtonStates();
 		this.setupFieldFocus();
+		$('#content').removeClass('fouc_fix'); // FOUC fix
 		this.sizeTitle();
 		this.browserCheck();
-		$('#content').removeClass('fouc_fix'); // FOUC fix
 	},
 
 	/**
