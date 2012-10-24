@@ -799,7 +799,7 @@ class Page extends WireData {
 	 * @return Page 
 	 *
 	 */
-	public function rootParent() {
+	public function ___rootParent() {
 		if(!$this->parent || !$this->parent->id || $this->parent->id === 1) return $this; 
 		$parents = $this->parents();
 		$parents->shift(); // shift off homepage
@@ -1416,7 +1416,7 @@ class NullPage extends Page {
 	public function __toString() { return ""; }
 	public function isHidden() { return true; }
 	public function filesManager() { return null; }
-	public function rootParent() { return new NullPage(); }
+	public function ___rootParent() { return new NullPage(); }
 	public function siblings($selector = '', $options = array()) { return new PageArray(); }
 	public function children($selector = '', $options = array()) { return new PageArray(); }
 	public function getAccessParent() { return new NullPage(); }
