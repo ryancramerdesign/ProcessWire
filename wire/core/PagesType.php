@@ -34,10 +34,12 @@ class PagesType extends Wire implements IteratorAggregate {
 	 *
 	 * @param int $parent_id
 	 * @param Template $template
+	 * @param int|Page $parent_id
 	 *
 	 */
 	public function __construct(Template $template, $parent_id) {
 		$this->template = $template; 
+		if($parent_id instanceof Page) $parent_id = $parent_id->id; 
 		$this->parent_id = (int) $parent_id; 
 	}
 
@@ -50,6 +52,12 @@ class PagesType extends Wire implements IteratorAggregate {
 	 */
 	protected function selectorString($selectorString) {
 		if(ctype_digit("$selectorString")) $selectorString = "id=$selectorString"; 
+		if(strpos($selectorString, 'sort=') === false && !preg_match('/\bsort=/', $selectorString)) {
+			if($this->template->sortfield) $sortfield = $this->template->sortfield;
+				else $sortfield = $this->getParent()->sortfield;
+			if(!$sortfield) $sortfield = 'sort';
+			$selectorString = trim($selectorString, ", ") . ", sort=$sortfield";
+		}
 		$selectorString = "$selectorString, parent_id={$this->parent_id}, template={$this->template->name}";
 		return $selectorString; 
 	}
@@ -191,6 +199,14 @@ class PagesType extends Wire implements IteratorAggregate {
 
 	public function getTemplate() {
 		return $this->template; 
+	}
+
+	public function getParentID() {
+		return $this->parent_id; 
+	}
+
+	public function getParent() {
+		return wire('pages')->get($this->parent_id);
 	}
 
 }
