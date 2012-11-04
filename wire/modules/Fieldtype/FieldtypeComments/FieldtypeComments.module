@@ -256,6 +256,9 @@ class FieldtypeComments extends FieldtypeMulti {
 
 		if(!$field->notificationEmail) return false; 
 
+		// skip notification when spam
+		if($comment->status == Comment::statusSpam && !$field->notifySpam) return; 
+
 		if($comment->status == Comment::statusPending) $status = "Pending Approval";
 			else if($comment->status == Comment::statusApproved) $status = "Approved";
 			else if($comment->status == Comment::statusSpam) $status = "SPAM - will be deleted automatically after " . 
@@ -389,6 +392,15 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->attr('value', $field->$name); 
 		$f->label = 'Notification E-Mail';
 		$f->description = "E-mail address to be notified when a new comment is posted. Separate multiple email addresses with commas.";
+		$inputfields->append($f); 
+
+		$name = 'notifySpam';
+		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
+		$f->attr('name', $name); 
+		$f->attr('value', 1);
+		if($field->$name) $f->attr('checked', 'checked');
+		$f->label = 'Send e-mail notification on spam?';
+		$f->description = 'When checked, ProcessWire will still send you an e-mail notification even if the message is identified as spam.';
 		$inputfields->append($f); 
 
 		$name = 'sortNewest'; 
