@@ -8,11 +8,10 @@
  * It hooks into Pages and Fieldtypes to ensure cache files are cleaned/deleted when pages are saved/deleted.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -24,7 +23,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		return array(
 			'title' => __('Page Render', __FILE__), // Module Title
 			'summary' => __('Adds a render method to Page and caches page output.', __FILE__), // Module Summary
-			'version' => 101, 
+			'version' => 102, 
 			'permanent' => true, 
 			'singular' => true, 
 			'autoload' => true, 
@@ -123,7 +122,12 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 				}
 			}
 			if($pageNum > 1) $secondaryID .= "page{$pageNum}";
-			if($secondaryID) $cacheFile->setSecondaryID(rtrim($secondaryID, "+"));
+			$secondaryID = rtrim($secondaryID, '+'); 
+			if(wire('languages')) { 
+				$language = wire('user')->language; 
+				if($language && $language->id && !$language->isDefault()) $secondaryID .= "_" . $language->id;
+			}
+			if($secondaryID) $cacheFile->setSecondaryID($secondaryID);
 		}	
 
 		return $cacheFile;
