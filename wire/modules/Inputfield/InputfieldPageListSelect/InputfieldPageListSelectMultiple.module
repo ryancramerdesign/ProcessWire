@@ -50,9 +50,8 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 		}
 
 		$out = '';
-		$selectStartLabel = "Change";
-		$selectCancelLabel = 'Cancel';
-		$selectStartLabel = 'Add';
+		$selectStartLabel = $this->_('Add');
+		$selectCancelLabel = $this->cancelLabel;
 
 		$out .= "\n<ol id='{$this->id}_items'>"; 
 		$out .= $this->renderListItem("Label", "1", "itemTemplate"); 

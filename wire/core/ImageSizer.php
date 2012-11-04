@@ -70,24 +70,14 @@ class ImageSizer {
 	protected $modified = false; 
 
 	/**
-	 * File extensions that are supported for resizing
-	 *
-	protected $supportedExtensions = array(
-		'gif', 
-		'jpg', 
-		'jpeg', 
-		'png',
-		); 
-	 */
-
-	/**
 	 * Supported image types (@teppo)
 	 *
 	 */
 	protected $supportedImageTypes = array(
-		IMAGETYPE_GIF,
-		IMAGETYPE_JPEG,
-		IMAGETYPE_PNG,
+		'gif' => IMAGETYPE_GIF,
+		'jpg' => IMAGETYPE_JPEG,
+		'jpeg' => IMAGETYPE_JPEG,
+		'png' => IMAGETYPE_PNG,
 		);
 
 	/**
@@ -98,21 +88,28 @@ class ImageSizer {
 
 		$this->filename = $filename; 
 		$p = pathinfo($filename); 
-		$this->extension = strtolower($p['extension']); 
-		$this->imageType = exif_imagetype($filename); 
 		$basename = $p['basename']; 
+		$this->extension = strtolower($p['extension']); 
 
-		/*
-		if(!in_array($this->extension, $this->supportedExtensions)) 
-			throw new WireException("$basename is an unsupported image extension"); 	
-		*/
+		if(function_exists("exif_imagetype")) {
 
-		if(!in_array($this->imageType, $this->supportedImageTypes)) // @teppo
-			throw new WireException("$basename is an unsupported image type"); 	
+			$this->imageType = exif_imagetype($filename); 
+
+			if(!in_array($this->imageType, $this->supportedImageTypes)) // @teppo
+				throw new WireException("$basename is an unsupported image type"); 	
+
+		} else {
+			// if exif_imagetype function is not present, we fallback to extension detection
+
+			if(!isset($this->supportedImageTypes[$this->extension])) 
+				throw new WireException("$basename contains an unsupported image extension"); 
+
+			$this->imageType = $this->supportedImageTypes[$this->extension]; 
+		}
+
 
 		if(!$this->loadImageInfo()) 
 			throw new WireException("$basename is not a recogized image"); 
-
 	}
 
 	/**
