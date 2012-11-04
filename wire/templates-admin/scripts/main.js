@@ -15,8 +15,8 @@ var ProcessWireAdminTheme = {
 		this.setupCloneButton();
 		this.setupButtonStates();
 		this.setupFieldFocus();
-		$('#content').removeClass('fouc_fix'); // FOUC fix
 		this.sizeTitle();
+		$('#content').removeClass('fouc_fix'); // FOUC fix
 		this.browserCheck();
 	},
 
@@ -94,7 +94,7 @@ var ProcessWireAdminTheme = {
 	 */
 	sizeTitle: function() {
 		// adjust the font-size of #title to fit within the screen's width
-		var $title = $("#masthead #title"); 
+		var $title = $("#title"); 
 
 		// don't bother continuing if the title isn't a consideration
 		if($title.size() == 0 || $title.text().length < 35) return;
