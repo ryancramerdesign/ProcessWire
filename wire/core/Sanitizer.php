@@ -191,6 +191,18 @@ class Sanitizer extends Wire {
 	}
 
 	/**
+	 * Returns a value that may be used in an email header
+	 *
+	 * @param string $value
+	 * @return string
+	 *
+	 */ 
+	public function emailHeader($value) {
+		$a = array("\n", "\r", "<CR>", "<LF>", "0x0A", "0x0D", "%0A", "%0D", 'content-type:', 'bcc:', 'cc:', 'to:', 'reply-to:'); 
+		return trim(str_ireplace($a, ' ', $value));
+	}
+
+	/**
 	 * Sanitize input text and remove tags
 	 *
 	 * @param string $value
