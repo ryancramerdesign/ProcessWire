@@ -1267,7 +1267,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 }
 
 /**
- * Special PageArray for use by repeaters that includes a getNew() method
+ * Special PageArray for use by repeaters that includes a getNewItem() method
  *
  */ 
 
@@ -1296,6 +1296,12 @@ class RepeaterPageArray extends PageArray {
 	public function getField() { return $this->field; }
 
 	/**
+	 * Alias of getNewItem() kept for backwards compatibility
+	 *
+	 */
+	public function getNew() { return $this->getNewItem(); }
+
+	/**
 	 * Return a new repeater item ready for use
 	 *
  	 * If there are ready items, it will return the first ready item
@@ -1305,10 +1311,12 @@ class RepeaterPageArray extends PageArray {
 	 * 1. It returns an already existing readyPage, if it exists (otherwise it creates a new page)
 	 * 2. The returned page is in a non-hidden published state, so will appear as soon as it is saved
 	 *
+	 * Note that this method has no relation/similarity to the makeNew() method.
+	 *
 	 * @return Page
 	 *
 	 */
-	public function getNew() {
+	public function getNewItem() {
 
 		$page = null;
 		$of = $this->parent->of(false); 
@@ -1336,6 +1344,22 @@ class RepeaterPageArray extends PageArray {
 
 		return $page;
 	}
+
+	/**
+	 * Creates a new blank instance of a RepeaterPageArray. For internal use. 
+	 * 
+	 * Note that this method has no relation/similarity to the getNewItem()/getNew() methods.
+	 *
+	 * @param array $items Array of items to populate (optional)
+	 * @return WireArray
+	 *
+	 */
+	public function makeNew() {
+		$class = get_class($this);
+		$newArray = new $class($this->parent, $this->field);
+		return $newArray;
+	}
+
 	
 }
 
