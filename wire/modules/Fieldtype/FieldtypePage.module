@@ -245,15 +245,22 @@ class FieldtypePage extends FieldtypeMulti {
 		$result = false;
 
 		if(Selectors::stringHasOperator($value)) {
+			// selector string
 			$selector = $value; 
 			$inputfield = $field->getInputfield($page); 
 			$selectablePages = $inputfield->getSelectablePages($page); 
 			$result = $selectablePages->filter($selector); 
 
 		} else if(ctype_digit("$value")) {
+			// page ID
 			$result = $this->pages->get("id=" . $value); 
 
+		} else if(strpos($value, '|') !== false && ctype_digit(str_replace('|', '', $value))) {
+			// CSV string separated by '|' characters
+			$result = $this->pages->getById(explode('|', $value)); 	
+
 		} else if(strlen($value) && $value[0] == '/') {
+			// path to page
 			$result = $this->pages->get($value); 
 		}
 
@@ -350,6 +357,13 @@ class FieldtypePage extends FieldtypeMulti {
 			'url',
 			'sort',
 			);
+
+
+		// if subfield is 'data' (meaning no subfield specified) and it's in the format of 'some-string', 
+		// then we assume this to be a page name
+		if($subfield == 'data' && !ctype_digit("$value") && strlen($value) && strpos($value, '/') === false) {
+			$subfield = 'name';
+		}
 
 		// let the FieldtypeMulti base class handle count queries
 		if($subfield == 'count') {
