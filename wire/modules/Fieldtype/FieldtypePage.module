@@ -237,6 +237,9 @@ class FieldtypePage extends FieldtypeMulti {
 
 		} else if(ctype_digit("$value")) {
 			$result = $this->pages->get("id=" . $value); 
+		
+		} else if(strpos($value, '|') !== false && ctype_digit(str_replace('|', '', $value))) {
+			$result = $this->pages->getById(explode('|', $value)); 
 
 		} else if(strlen($value) && $value[0] == '/') {
 			$result = $this->pages->get($value); 
