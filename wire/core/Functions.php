@@ -188,4 +188,29 @@ function wireMkdir($path) {
 	return true; 
 }
 
+/**
+ * Remove a directory
+ * 
+ * @param string $path
+ * @param bool $recursive If set to true, all files and directories in $path will be recursively removed as well.
+ * @return bool
+ *
+ */ 
+function wireRmdir($path, $recursive = false) {
+	if(!is_dir($path)) return false;
+	if($recursive) {
+		$files = scandir($path);
+		if(is_array($files)) foreach($files as $file) {
+			if($file == '.' || $file == '..') continue; 
+			$pathname = "$path/$file";
+			if(is_dir($pathname)) {
+				wireRmdir($pathname, true); 
+			} else {
+				unlink($pathname); 
+			}
+		}
+	}
+ 	return rmdir($path);
+}
+
 
