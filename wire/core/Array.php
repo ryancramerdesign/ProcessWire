@@ -219,6 +219,49 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	}
 
 	/**
+	 * Replace one item with the other
+	 *
+	 * If both items are already present, they will change places. 
+	 * If one item is not already present, it will replace the one that is. 
+	 * If neither item is present, both will be added at the end.
+	 *
+	 * @param Wire|string|int $itemA
+	 * @param Wire|string|int $itemB
+	 * @return this
+	 *
+	 */
+	public function replace($itemA, $itemB) {
+		$a = $this->get($itemA);
+		$b = $this->get($itemB);
+		if($a && $b) {
+			// swap a and b
+			$data = $this->data; 
+			foreach($data as $key => $value) {
+				if($value === $a) {
+					$key = $b->getItemKey();
+					$value = $b; 
+				} else if($value === $b) {
+					$key = $a->getItemKey();
+					$value = $a; 
+				}
+				$data[$key] = $value;
+			}
+			$this->data = $data; 
+		
+		} else if($a) {
+			// b not already in array, so replace a with b
+			$this->_insert($itemB, $a); 
+			$this->remove($a); 
+
+		} else if($b) {
+			// a not already in array, so replace b with a
+			$this->_insert($itemA, $b); 
+			$this->remove($b);
+		}
+		return $this; 
+	}
+
+	/**
 	 * Sets an index in the WireArray.
 	 *
 	 * @param int|string $key Key of item to set.
@@ -429,13 +472,54 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		$items = $this->makeNew(); 
 		$count = $this->count();
 		if(!$count) return $items; 
-		//if($num > $count) $num = $count; 
 		$keys = array_rand($this->data, ($num > $count ? $count : $num)); 
 		if($num == 1 && !$alwaysArray) return $this->data[$keys]; 
 		if(!is_array($keys)) $keys = array($keys); 
 		foreach($keys as $key) $items->add($this->data[$key]); 
 		$items->setTrackChanges(true); 
 		return $items; 
+	}
+
+	/**
+	 * Get a quantity of random elements from this WireArray. 
+	 *
+	 * Unlike getRandom() this one always returns a WireArray (or derived type).
+	 *
+	 * @param int $num Number of items to return 
+	 * @return WireArray
+	 *
+	 */
+	public function findRandom($num) {
+		return $this->getRandom((int) $num, true);
+	}
+
+	/**
+	 * Get a quantity of random elements from this WireArray based on a timed interval (or user provided seed).
+	 *
+	 * If no $seed is provided, today's date is used to seed the random number
+	 * generator, so you can use this function to rotate items on a daily basis.
+	 * 
+	 * Idea and implementation provided by @mindplay.dk
+	 *
+	 * @param int $amount the amount of items to extract from the given list
+	 * @param int|string $seed a number used to see the random number generator; or a string compatible with date()
+	 *
+	 */
+	public function findRandomTimed($num, $seed = 'Ymd') {
+
+		if(is_string($seed)) $seed = crc32(date($seed));
+		srand($seed);
+		$keys = $this->getKeys();
+		$items = $this->makeNew();
+
+		while(count($keys) > 0 && count($items) < $num) {
+			$index = rand(0, count($keys)-1);
+			$key = $keys[$index];
+			$items->add($items[$key]);
+			array_splice($keys, $index, 1);
+		}
+
+		return $items;
 	}
 
 	/**
