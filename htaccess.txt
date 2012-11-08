@@ -67,7 +67,7 @@ DirectoryIndex index.php index.html index.htm
   SetEnv HTTP_MOD_REWRITE On
 
   # -----------------------------------------------------------------------------------------------
-  # Optional: Set a rewrite base if rewrites aern't working properly on your server.
+  # Optional: Set a rewrite base if rewrites aren't working properly on your server.
   # And if your site directory starts with a "~" you will most likely have to use this.
   # -----------------------------------------------------------------------------------------------
 
