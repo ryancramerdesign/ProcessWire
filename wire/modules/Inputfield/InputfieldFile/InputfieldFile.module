@@ -265,6 +265,7 @@ class InputfieldFile extends Inputfield {
 			$ul = new WireUpload($this->attr('name')); 
 			$ul->setDestinationPath($this->destinationPath); 
 			$ul->setOverwrite($this->overwrite); 
+			$ul->setAllowAjax(true);
 
 			if($this->maxFiles == 1) {
 				$ul->setMaxFiles(1); 

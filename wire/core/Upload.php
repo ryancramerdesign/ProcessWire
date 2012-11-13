@@ -21,6 +21,7 @@ class WireUpload extends Wire {
 	protected $name;
 	protected $destinationPath; 
 	protected $maxFiles;
+	protected $maxFileSize = 0;
 	protected $completedFilenames = array(); 
 	protected $overwrite; 
 	protected $overwriteFilename = ''; // if specified, only this filename may be overwritten
@@ -30,6 +31,7 @@ class WireUpload extends Wire {
 	protected $validExtensions = array(); 
 	protected $badExtensions = array('php', 'php3', 'phtml', 'exe', 'cfm', 'shtml', 'asp', 'pl', 'cgi', 'sh'); 
 	protected $errors = array();
+	protected $allowAjax = false;
 
 	static protected $unzipCommand = 'unzip -j -qq -n /src/ -x __MACOSX .* -d /dst/';
 
@@ -42,7 +44,7 @@ class WireUpload extends Wire {
 		UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder.',
 		UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
 		UPLOAD_ERR_EXTENSION => 'File upload stopped by extension.'
-	);
+		);
 
 	
 	public function __construct($name) {
@@ -81,7 +83,7 @@ class WireUpload extends Wire {
 			$cnt = 0;
 			foreach($f['name'] as $key => $name) {
 				if($this->maxFiles && ($cnt >= $this->maxFiles)) {
-					$this->error("Max file upload limit reached"); 
+					$this->error($this->_('Max file upload limit reached')); 
 					break;
 				}
 				if(!$this->isValidUpload($f['name'][$key], $f['size'][$key], $f['error'][$key])) continue; 
@@ -107,7 +109,7 @@ class WireUpload extends Wire {
 	 *
 	 */
 	protected function getPhpFiles() {
-		if(isset($_SERVER['HTTP_X_FILENAME'])) return $this->getPhpFilesAjax();
+		if(isset($_SERVER['HTTP_X_FILENAME']) && $this->allowAjax) return $this->getPhpFilesAjax();
 		if(empty($_FILES) || !count($_FILES)) return false; 
 		if(!isset($_FILES[$this->name]) || !is_array($_FILES[$this->name])) return false;
 		return $_FILES[$this->name]; 	
@@ -157,7 +159,10 @@ class WireUpload extends Wire {
 			else if(!$size) $valid = false; // no data
 			else if(!$this->isValidExtension($name)) {
 				$fname = $this->validateFilename($name); 
-				$this->error("$fname - Invalid file extension, please use one of: " . implode(', ', $this->validExtensions)); 
+				$this->error("$fname - " . $this->_('Invalid file extension, please use one of:') . ' ' . implode(', ', $this->validExtensions)); 
+			} else if($this->maxFileSize > 0 && $size > $this->maxFileSize) {
+				$fname = $this->validateFilename($name); 
+				$this->error("$fname - " . $this->_('Exceeds max allowed file size')); 
 			} else if($name[0] == '.') $valid = false; 
 			else $valid = true; 
 
@@ -168,12 +173,6 @@ class WireUpload extends Wire {
 	protected function checkDestinationPath() {
 		if(!is_dir($this->destinationPath)) {
 			$this->error("Destination path does not exist {$this->destinationPath}"); 
-			/*
-			if(!mkdir($this->destinationPath)) {
-				$this->error("Unable to create directory: " . $this->destinationPath); 
-				return false;
-			}
-			*/
 		}
 		return true; 
 	}
@@ -356,6 +355,11 @@ class WireUpload extends Wire {
 		return $this; 
 	}
 
+	public function setMaxFileSize($bytes) {
+		$this->maxFileSize = (int) $bytes;
+		return $this;
+	}
+
 	public function setOverwrite($overwrite) {
 		$this->overwrite = $overwrite ? true : false; 
 		return $this; 
@@ -382,6 +386,11 @@ class WireUpload extends Wire {
 		return $this; 
 	}
 
+	public function setAllowAjax($allowAjax = true) {
+		$this->allowAjax = $allowAjax ? true : false; 
+		return $this; 
+	}
+
 	public function error($text, $flags = 0) {
 		$this->errors[] = $text; 
 		parent::error($text, $flags); 
@@ -392,7 +401,7 @@ class WireUpload extends Wire {
 		if($clear) $this->errors = array();
 		return $errors;
 	}
-		
+
 
 }
 
