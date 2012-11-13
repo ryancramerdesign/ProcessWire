@@ -168,7 +168,11 @@ class PagefilesManager extends Wire {
 	 *
 	 */
 	public function url() {
-		return $this->config->urls->files . $this->page->id . '/';
+		if($this->page->isPublic() || !wire('config')->pagefileSecure) {
+			return $this->config->urls->files . $this->page->id . '/';
+		} else {
+			return $this->page->url . wire('config')->pagefileUrlPrefix;
+		}
 	}
 
 	/**
@@ -231,10 +235,26 @@ class PagefilesManager extends Wire {
 	 * Get the files path for a given page (whether it exists or not) - static
 	 *
 	 * @param Page $page
+	 * @return string 
  	 *
 	 */
 	static public function _path(Page $page) {
-		return wire('config')->paths->files . ((int) $page->id) . '/'; 
+
+		$path = wire('config')->paths->files; 
+		$publicPath = $path . ((int) $page->id) . '/'; 
+
+		// securePath has the page ID preceded with a "period" which PW's htaccess blocks http requests to
+		$securePath = $path . "." . ((int) $page->id) . '/';
+
+		if($page->isPublic() || !wire('config')->pagefileSecure) {
+			// use the public path, renaming a secure path to public if it exists
+			if(is_dir($securePath) && !is_dir($publicPath)) @rename($securePath, $publicPath);
+			return $publicPath;
+		} else {
+			// use the secure path, renaming the public to secure if it exists
+			if(is_dir($publicPath) && !is_dir($securePath)) @rename($publicPath, $securePath);
+			return $securePath;
+		}
 	}
 
 

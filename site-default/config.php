@@ -127,6 +127,16 @@ $config->imageSizerOptions = array(
 	);
 
 /**
+ * Set to true if you want files on non-public or unpublished pages to be protected from direct URL access. 
+ *
+ * When used, such files will be delivered at a URL that is protected from public access. 
+ * See also: pagefileUrlPrefix and fileContentTypes in /wire/config.php, which you may 
+ * copy/paste into this file and modify if you want to.
+ *
+ */
+$config->pagefileSecure = true; 
+
+/**
  * advanced: turns on additional options in ProcessWire Admin that aren't applicable 
  * in all instances. Recommended mode is 'false', except for ProcessWire developers.
  *

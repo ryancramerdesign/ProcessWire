@@ -71,3 +71,36 @@ $config->dateFormat = 'Y-m-d H:i:s';
  */
 $config->protectCSRF = true;
 
+/**
+ * pagefileUrlPrefix: String that prefixes filenames in PW URLs, becoming a shortcut to a page's file's URL
+ *
+ * This must be at the end of the URL. For the prefix "-/", a files URL would look like this:
+ * /path/to/page/-/filename.jpg => same as: /site/assets/files/123/filename.jpg
+ *
+ * This should be a prefix that is not the same as any page name, as it takes precedence.
+ *
+ */
+$config->pagefileUrlPrefix = '-/'; 
+
+/**
+ * fileContentTypes: array of extention to content-type header, used by file passthru functions.
+ *
+ * Any content types that should be force-download should be preceded with a plus sign.
+ * The '?' index must be present to represent a default for all not present.
+ *
+ */
+$config->fileContentTypes = array(
+	'?' => '+application/octet-stream',
+	'pdf' => '+application/pdf',
+	'doc' => '+application/msword',
+	'docx' => '+application/msword',
+	'xls' => '+application/excel',
+	'xlsx' => '+application/excel',
+	'rtf' => '+application/rtf',
+	'gif' => 'image/gif',
+	'jpg' => 'image/jpeg',
+	'jpeg' => 'image/jpeg',
+	'png' => 'image/x-png',
+	);
+
+

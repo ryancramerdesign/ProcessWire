@@ -35,7 +35,7 @@ class ProcessPageView extends Process {
 		return array(
 			'title' => __('Page View', __FILE__), // getModuleInfo title
 			'summary' => __('All page views are routed through this Process', __FILE__), // getModuleInfo summary 
-			'version' => 100, 
+			'version' => 101, 
 			'permanent' => true, 
 			'permission' => 'page-view',
 			);
@@ -58,6 +58,12 @@ class ProcessPageView extends Process {
  	 *
 	 */
 	protected $requestURL = '';
+
+	/**
+	 * Requested filename, if URL in /path/to/page/-/filename.ext format
+	 *
+	 */
+	protected $requestFile = '';
 
 	/**
 	 * Prefix for page numbers in URLs
@@ -88,7 +94,8 @@ class ProcessPageView extends Process {
 			$this->ready();
 
 			try {
-				return $page->render();
+				if($this->requestFile) $this->sendFile($page, $this->requestFile);
+					else return $page->render();
 
 			} catch(Wire404Exception $e) {
 				return $this->pageNotFound($page, $this->requestURL);
@@ -134,6 +141,15 @@ class ProcessPageView extends Process {
 		unset($_GET['it']); 
 		$it = preg_replace('{[^-_./a-zA-Z0-9]}', '', $it);
 		if($it[0] != '/') $it = "/$it";
+
+		// check for secured filename
+		$filePrefix = wire('config')->pagefileUrlPrefix;
+		if($filePrefix && strpos($it, '/' . $filePrefix) !== false) { 
+			if(preg_match('{^(.*/)' . $filePrefix . '([-_.a-zA-Z0-9]+)$}', $it, $matches) && strpos($matches[2], '.')) {
+				$it = $matches[1];
+				$this->requestFile = $matches[2]; 
+			}
+		} 
 
 		// optimization to filter out page numbers first
 		if(strpos($it, '/' . $this->pageNumUrlPrefix) !== false && preg_match('{/' . $this->pageNumUrlPrefix . '\d+/?$}', $it)) {
@@ -287,6 +303,26 @@ class ProcessPageView extends Process {
 	}
 
 	/**
+	 * Passthru a file for a non-public page
+	 *
+	 * If the page is public, then it just does a 301 redirect to the file.
+	 *
+	 */
+	protected function ___sendFile($page, $basename) {
+
+		$filename = $page->filesManager->path() . $basename; 
+		if(!is_file($filename)) throw new Wire404Exception('File not found');
+
+		if($page->isPublic()) {
+			wire('session')->redirect($page->filesManager->url() . $basename); 
+
+		} else {
+			$options = array('exit' => false);
+			wireSendFile($filename, $options);
+		}
+	}
+
+	/**
 	 * Called when a page is not found, sends 404 header, and displays the configured 404 page instead. 
 	 *
 	 * Method is hookable, for instance if you wanted to log 404s. 
@@ -298,16 +334,44 @@ class ProcessPageView extends Process {
 	 */
 	protected function ___pageNotFound($page, $url) {
 
+		$config = $this->config;
+
+		// check if the request was to a /site/assets/files/123/filename.jpg that may have gone from public to not
+		if(strpos($config->urls->root . ltrim($url, '/'), $config->urls->files) !== false) {
+			if($this->pagefileNotFound($url)) return;
+		}
+
 		header("HTTP/1.1 404 Page Not Found"); 
 
-		if($this->config->http404PageID) {
-			$page = $this->pages->get($this->config->http404PageID); 
+		if($config->http404PageID) {
+			$page = $this->pages->get($config->http404PageID); 
 			if(!$page) throw new WireException("config::http404PageID does not exist - please check your config"); 
 			$this->setFuel('page', $page); 
 			return $page->render();
 		} else {
 			return "404 page not found";
 		}
+	}
+
+	/**
+	 * Handle request for a Pagefile that was not found
+	 *
+	 * In this case, we look for a request to a Pagefile URL that may have gone from public to private
+ 	 * and set setup the appropriate temporary redirect so that any links continue working, so long
+	 * as the user has access.
+	 *
+	 * @param string $url 
+	 * @return bool Whether or not this function handled the request
+	 *
+	 */
+	protected function ___pagefileNotFound($url) {
+		if($this->user->isGuest()) return false;
+		if(!preg_match('{/(\d+)/([-_.a-zA-Z0-9]+)$}', $url, $matches)) return false;
+		$page = wire('pages')->get((int) $matches[1]); 
+		if(!$page->id || $page->isPublic() || !$page->viewable()) return false;
+		// issue a temporary redirect to the protected filename
+		$this->session->redirect($page->url . $this->config->pagefileUrlPrefix . $matches[2], false);
+		return true; 
 	}
 
 }
