@@ -1325,6 +1325,22 @@ class RepeaterPageArray extends PageArray {
 
 		return $page;
 	}
+
+	/**
+	 * Creates a new blank instance of a RepeaterPageArray. For internal use. 
+	 * 
+	 * Note that this method has no relation/similarity to the getNewItem()/getNew() methods.
+	 *
+	 * @param array $items Array of items to populate (optional)
+	 * @return WireArray
+	 *
+	 */
+	public function makeNew() {
+		$class = get_class($this);
+		$newArray = new $class($this->parent, $this->field);
+		return $newArray;
+	}
+
 	
 }
 
