@@ -69,7 +69,7 @@ class ProcessPageType extends Process implements ConfigurableModule {
 		return $editor->execute();
 	}
 
-	protected function renderList($selector = '', $pagerOptions = null) {
+	protected function renderList($selector = '', $pagerOptions = array()) {
 
 		$out = '';
 
