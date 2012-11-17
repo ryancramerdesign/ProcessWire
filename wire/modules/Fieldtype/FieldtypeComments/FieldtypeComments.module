@@ -394,15 +394,6 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->description = "E-mail address to be notified when a new comment is posted. Separate multiple email addresses with commas.";
 		$inputfields->append($f); 
 
-		$name = 'notifySpam';
-		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
-		$f->attr('name', $name); 
-		$f->attr('value', 1);
-		if($field->$name) $f->attr('checked', 'checked');
-		$f->label = 'Send e-mail notification on spam?';
-		$f->description = 'When checked, ProcessWire will still send you an e-mail notification even if the message is identified as spam.';
-		$inputfields->append($f); 
-
 		$name = 'sortNewest'; 
 		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
 		$f->attr('name', $name); 
@@ -410,6 +401,24 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->attr('checked', $field->$name ? 'checked' : ''); 
 		$f->label = 'Sort newest to oldest?';
 		$f->description = "By default, comments will sort chronologically (oldest to newest). To reverse that behavior check this box.";
+		$inputfields->append($f); 
+
+		$name = 'redirectAfterPost';
+		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
+		$f->attr('name', $name); 
+		$f->attr('value', 1); 
+		$f->attr('checked', $field->$name ? 'checked' : ''); 
+		$f->label = 'Redirect after comment post?';
+		$f->description = "When checked, ProcessWire will issue a redirect after the comment is posted in order to prevent double submissions. Recommended.";
+		$inputfields->append($f); 
+
+		$name = 'notifySpam';
+		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
+		$f->attr('name', $name); 
+		$f->attr('value', 1);
+		if($field->$name) $f->attr('checked', 'checked');
+		$f->label = 'Send e-mail notification on spam?';
+		$f->description = 'When checked, ProcessWire will still send you an e-mail notification even if the message is identified as spam.';
 		$inputfields->append($f); 
 
 		$name = 'useAkismet'; 
