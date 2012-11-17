@@ -58,6 +58,7 @@ class Comment extends WireData {
 		$this->set('created', time()); 
 		$this->set('email', ''); 
 		$this->set('cite', ''); 
+		$this->set('website', ''); 
 		$this->set('ip', ''); 
 		$this->set('user_agent', ''); 
 		$this->set('created_users_id', $this->config->guestUserID); 
@@ -80,6 +81,7 @@ class Comment extends WireData {
 			else if($key == 'email') $value = $this->sanitizer->email($value); 
 			else if($key == 'ip') $value = filter_var($value, FILTER_VALIDATE_IP); 
 			else if($key == 'user_agent') $value = str_replace(array("\r", "\n", "\t"), ' ', substr(strip_tags($value), 0, 255)); 
+			else if($key == 'website') $value = wire('sanitizer')->url($value, array('allowRelative' => false, 'allowQuerystring' => false)); 
 
 		// save the state so that modules can identify when a comment that was identified as spam 
 		// is then set to not-spam, or when a misidentified 'approved' comment is actually spam

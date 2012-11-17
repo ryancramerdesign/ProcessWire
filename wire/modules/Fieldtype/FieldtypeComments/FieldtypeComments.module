@@ -56,7 +56,7 @@ class FieldtypeComments extends FieldtypeMulti {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Comments',
-			'version' => 100,
+			'version' => 102,
 			'summary' => 'Field that stores user posted comments for a single Page',
 			'installs' => array('InputfieldCommentsAdmin'),
 			);
@@ -159,7 +159,7 @@ class FieldtypeComments extends FieldtypeMulti {
 			if($comment->id) $this->checkExistingComment($page, $field, $comment); 
 				else $this->checkNewComment($page, $field, $comment); 	
 				
-			$sleepValue[] = array(
+			$a = array(
 				'id' => $comment->id, 
 				'status' => $comment->status, 
 				'data' => $comment->text, 
@@ -170,6 +170,11 @@ class FieldtypeComments extends FieldtypeMulti {
 				'ip' => $comment->ip, 
 				'user_agent' => $comment->user_agent, 
 				); 
+
+			if($field->schemaVersion > 0) $a['website'] = $comment->website;
+
+			$sleepValue[] = $a;
+
 		}
 		return $sleepValue;
         }
@@ -270,6 +275,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$body = "Page: {$page->httpUrl}\n" . 
 			"From: {$comment->cite}\n" . 
 			"Email: {$comment->email}\n" . 
+			"Website: {$comment->website}\n" . 
 			"Status: $status\n" . 
 			"Text: {$comment->text}\n\n";
 
@@ -281,7 +287,22 @@ class FieldtypeComments extends FieldtypeMulti {
 	 *
 	 */
 	public function getDatabaseSchema(Field $field) {
+
+		$websiteSchema = "website varchar(255) NOT NULL default ''"; 
+
+		if(!$field->schemaVersion) {
+			// add website field for PW 2.3+ 
+			$table = $field->getTable();
+			$result = wire('db')->query("ALTER TABLE `$table` ADD $websiteSchema");
+			if($result) {
+				$field->schemaVersion = 1;
+				$field->save();
+				$this->message("Updated schema version of '{$field->name}' to support website field.");
+			}
+		}
+
 		$schema = parent::getDatabaseSchema($field); 
+
 		$schema['id'] = "int unsigned NOT NULL auto_increment";
 		$schema['status'] = "tinyint(3) NOT NULL default '0'";
 		$schema['cite'] = "varchar(128) NOT NULL default ''"; 
@@ -292,12 +313,16 @@ class FieldtypeComments extends FieldtypeMulti {
 		$schema['created_users_id'] = "int unsigned NOT NULL";
 		$schema['ip'] = "varchar(15) NOT NULL default ''";
 		$schema['user_agent'] = "varchar(255) NOT NULL default ''";
+
+		if($field->schemaVersion > 0) $schema['website'] = $websiteSchema;
+
 		$schema['keys']['primary'] = "PRIMARY KEY (`id`)"; 
 		$schema['keys']['pages_id_sort'] = "KEY `pages_id_sort` (`pages_id`, `sort`)";
 		$schema['keys']['status'] = "KEY `status` (`status`, `email`)";
 		$schema['keys']['pages_id'] = "KEY `pages_id` (`pages_id`,`status`,`created`)"; 
 		$schema['keys']['created'] = "KEY `created` (`created`, `status`)";
 		$schema['keys']['data'] = "FULLTEXT KEY `data` (`data`)";
+
 		return $schema;
 	}
 
@@ -403,6 +428,15 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->description = "By default, comments will sort chronologically (oldest to newest). To reverse that behavior check this box.";
 		$inputfields->append($f); 
 
+		$name = 'useWebsite'; 
+		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
+		$f->attr('name', $name); 
+		$f->attr('value', 1); 
+		$f->attr('checked', $field->$name ? 'checked' : ''); 
+		$f->label = 'Use website field in comment form?';
+		$f->description = "When checked, the comment submission form will also include a website field.";
+		$inputfields->append($f); 
+
 		$name = 'redirectAfterPost';
 		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
 		$f->attr('name', $name); 
@@ -439,6 +473,14 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->label = 'Number of days after which to delete spam';
 		$f->description = "After the number of days indicated, spam will be automatically deleted.";
 		$inputfields->append($f); 
+
+		$name = 'schemaVersion'; 
+		$f = $this->fuel('modules')->get('InputfieldHidden');
+		$f->attr('name', $name);
+		$value = (int) $field->$name; 
+		$f->attr('value', $value);
+		$f->label = 'Schema Version';
+		$inputfields->append($f);
 
 		return $inputfields;
 	}

@@ -89,6 +89,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 		'labels' => array(
 			'cite' => '',	// Your Name
 			'email' => '',	// Your E-Mail
+			'website' => '',// Website
 			'text' => '',	// Comments
 			'submit' => '', // Submit
 			),
@@ -122,6 +123,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 		// default labels
 		$this->options['labels']['cite'] = $this->_('Your Name'); 
 		$this->options['labels']['email'] = $this->_('Your E-Mail'); 
+		$this->options['labels']['website'] = $this->_('Your Website URL'); 
 		$this->options['labels']['text'] = $this->_('Comments'); 
 		$this->options['labels']['submit'] = $this->_('Submit'); 
 
@@ -199,7 +201,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 		$attrs = $options['attrs'];
 		$id = $attrs['id'];
 		$submitKey = $id . "_submit";
-		$inputValues = array('cite' => '', 'email' => '', 'text' => ''); 
+		$inputValues = array('cite' => '', 'email' => '', 'website' => '', 'text' => ''); 
 		$user = wire('user'); 
 		if($user->isLoggedin()) {
 			$inputValues['cite'] = $user->name; 
@@ -212,10 +214,13 @@ class CommentForm extends Wire implements CommentFormInterface {
 
 		if(is_array($this->session->CommentForm)) {
 			// submission data available in the session
+			$sessionValues = $this->session->CommentForm;
 			foreach($inputValues as $key => $value) {
 				if($key == 'text') continue; 
-				$inputValues[$key] = htmlentities($this->session->CommentForm[$key], ENT_QUOTES, $this->options['encoding']); 
+				if(!isset($sessionValues[$key])) $sessionValues[$key] = '';
+				$inputValues[$key] = htmlentities($sessionValues[$key], ENT_QUOTES, $this->options['encoding']); 
 			}
+			unset($sessionValues);
 		}
 
 		$showForm = true; 
@@ -234,25 +239,35 @@ class CommentForm extends Wire implements CommentFormInterface {
 		}
 
 		$form = '';
-		if($showForm) $form = 
-			"\n<form id='{$id}_form'$class action='$attrs[action]#$id' method='$attrs[method]'>" . 
-			"\n\t<p class='{$id}_cite'>" . 
-			"\n\t\t<label for='{$id}_cite'>$labels[cite]</label>" . 
-			"\n\t\t<input type='text' name='cite' class='required' id='{$id}_cite' value='$inputValues[cite]' maxlength='128' />" . 
-			"\n\t</p>" . 
-			"\n\t<p class='{$id}_email'>" . 
-			"\n\t\t<label for='{$id}_email'>$labels[email]</label>" . 
-			"\n\t\t<input type='text' name='email' class='required email' id='{$id}_email' value='$inputValues[email]' maxlength='255' />" . 
-			"\n\t</p>" . 
-			"\n\t<p class='{$id}_text'>" . 
-			"\n\t\t<label for='{$id}_text'>$labels[text]</label>" . 
-			"\n\t\t<textarea name='text' class='required' id='{$id}_text' rows='$attrs[rows]' cols='$attrs[cols]'>$inputValues[text]</textarea>" . 
-			"\n\t</p>" . 
-			"\n\t<p class='{$id}_submit'>" . 
-			"\n\t\t<button type='submit' name='{$id}_submit' id='{$id}_submit' value='1'>$labels[submit]</button>" . 
-			"\n\t\t<input type='hidden' name='page_id' value='{$this->page->id}' />" . 
-			"\n\t</p>" . 
-			"\n</form>";
+		if($showForm) {
+			$form = "\n<form id='{$id}_form'$class action='$attrs[action]#$id' method='$attrs[method]'>" . 
+				"\n\t<p class='{$id}_cite'>" . 
+				"\n\t\t<label for='{$id}_cite'>$labels[cite]</label>" . 
+				"\n\t\t<input type='text' name='cite' class='required' id='{$id}_cite' value='$inputValues[cite]' maxlength='128' />" . 
+				"\n\t</p>" . 
+				"\n\t<p class='{$id}_email'>" . 
+				"\n\t\t<label for='{$id}_email'>$labels[email]</label>" . 
+				"\n\t\t<input type='text' name='email' class='required email' id='{$id}_email' value='$inputValues[email]' maxlength='255' />" . 
+				"\n\t</p>";
+
+			if($this->commentsField && $this->commentsField->useWebsite && $this->commentsField->schemaVersion > 0) {
+				$form .= 
+				"\n\t<p class='{$id}_website'>" . 
+				"\n\t\t<label for='{$id}_website'>$labels[website]</label>" . 
+				"\n\t\t<input type='text' name='website' class='website' id='{$id}_website' value='$inputValues[website]' maxlength='255' />" . 
+				"\n\t</p>";
+			}
+
+			$form .="\n\t<p class='{$id}_text'>" . 
+				"\n\t\t<label for='{$id}_text'>$labels[text]</label>" . 
+				"\n\t\t<textarea name='text' class='required' id='{$id}_text' rows='$attrs[rows]' cols='$attrs[cols]'>$inputValues[text]</textarea>" . 
+				"\n\t</p>" . 
+				"\n\t<p class='{$id}_submit'>" . 
+				"\n\t\t<button type='submit' name='{$id}_submit' id='{$id}_submit' value='1'>$labels[submit]</button>" . 
+				"\n\t\t<input type='hidden' name='page_id' value='{$this->page->id}' />" . 
+				"\n\t</p>" . 
+				"\n</form>";
+		}
 
 		$out = 	"\n<div id='{$id}' class='{$id}_$divClass'>" . 	
 			"\n" . $this->options['headline'] . $note . $form . 
@@ -285,8 +300,9 @@ class CommentForm extends Wire implements CommentFormInterface {
 		$errors = array();
 		$sessionData = array(); 
 
-		foreach(array('cite', 'email', 'text') as $key) {
-			$comment->$key = $data->$key; 
+		foreach(array('cite', 'email', 'website', 'text') as $key) {
+			if($key == 'website' && !$this->commentsField || !$this->commentsField->useWebsite) continue; 
+			$comment->$key = $data->$key; // Comment performs sanitization/validation
 			if(!$comment->$key) $errors[] = $key;
 			$this->inputValues[$key] = $comment->$key;
 			if($key != 'text') $sessionData[$key] = $comment->$key; 

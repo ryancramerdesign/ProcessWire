@@ -114,6 +114,10 @@ class CommentList extends Wire implements CommentListInterface {
 
 		$cite = htmlentities(trim($comment->cite), ENT_QUOTES, $this->options['encoding']); 
 
+		$website = '';
+		if($comment->website) $website = htmlentities(trim($comment->website), ENT_QUOTES, $this->options['encoding']); 
+		if($website) $cite = "<a href='$website' rel='nofollow' target='_blank'>$cite</a>";
+
 		if(strpos($this->options['dateFormat'], '%') !== false) $created = strftime($this->options['dateFormat'], $comment->created); 
 			else $created = date($this->options['dateFormat'], $comment->created); 
 
