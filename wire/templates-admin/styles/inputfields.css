@@ -147,6 +147,17 @@
 	content: ' *';
 }
 
+/**
+ * Disregard column width when at mobile size
+ *
+ */
+@media screen and (max-width: 350px) {
+	.Inputfield {
+		clear: both !important;
+		width: 100% !important;
+		margin-left: 0 !important;
+	}
+}
 
 /****************************************************************************
  * Specific Inputfield types
