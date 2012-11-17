@@ -446,21 +446,20 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field->collapsed = Inputfield::collapsedBlank;
 		$fieldset->append($field); 
 
-		if($this->hasFieldtype !== false) {
-			$field = $this->modules->get('InputfieldTextarea'); 
-			$field->attr('name', 'findPagesCode'); 
-			$field->label = "Custom PHP code to find selectable pages"; 
-			$field->attr('value', $this->findPagesCode); 
-			$field->attr('rows', 4); 
-			$field->description = 
-				"If you want to find selectable pages using a PHP code snippet rather than selecting a parent page or template (above) then enter the code to find the selectable pages. " . 
-				"This statement has access to the \$page and \$pages API variables, where \$page refers to the page being edited. The snippet should return either a PageArray or NULL. " . 
-				"Using this is optional, and if used, it overrides the parent/template/selector fields above. NOTE: Not compatible with PageListSelect or Autocomplete input field types.";
+		$field = $this->modules->get('InputfieldTextarea'); 
+		$field->attr('name', 'findPagesCode'); 
+		$field->label = "Custom PHP code to find selectable pages"; 
+		$field->attr('value', $this->findPagesCode); 
+		$field->attr('rows', 4); 
+		$field->description = 
+			"If you want to find selectable pages using a PHP code snippet rather than selecting a parent page or template (above) then enter the code to find the selectable pages. " . 
+			"This statement has access to the \$page and \$pages API variables, where \$page refers to the page being edited. The snippet should return either a PageArray or NULL. " . 
+			"Using this is optional, and if used, it overrides the parent/template/selector fields above. NOTE: Not compatible with PageListSelect or Autocomplete input field types.";
 
-			$field->notes = 'Example: return $page->parent->parent->children("name=locations")->first()->children();';
-			$field->collapsed = Inputfield::collapsedBlank;
-			$fieldset->append($field); 
-		}
+		$field->notes = 'Example: return $page->parent->parent->children("name=locations")->first()->children();';
+		$field->collapsed = Inputfield::collapsedBlank;
+		$fieldset->append($field); 
+
 		$inputfields->append($fieldset); 
 
 		$field = $this->modules->get('InputfieldSelect');
