@@ -104,6 +104,7 @@ class LanguageParser extends Wire {
 
 		foreach($matches as $m) {
 			// $m[3] is always the text
+			if(empty($m)) continue; 
 			foreach($m[3] as $key => $text) { 
 				$match = $this->buildMatch($m, $key, $text); 
 				$this->processMatch($match); 
@@ -121,7 +122,6 @@ class LanguageParser extends Wire {
 	 */
 	protected function parseFile($file) { 
 
-		$data = file_get_contents($file); 
 
 		$matches = array(
 			1 => array(), 	// $this->_('text'); 
@@ -129,6 +129,10 @@ class LanguageParser extends Wire {
 			3 => array(),	// _x('text', 'context', [textdomain]) or $this->_x('text', 'context'); 
 			4 => array(),	// _n('singular', 'plural', $cnt, [textdomain]) or $this->_n(...); 
 			);
+
+		if(!is_file($file)) return $matches; 
+
+		$data = file_get_contents($file); 
 
 		// Find $this->_('text') style matches
 		preg_match_all(	'/(>_)\(\s*' .				// $this->_( 
