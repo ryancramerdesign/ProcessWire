@@ -18,7 +18,7 @@
  *
  */
 
-class ProcessPageEditImageSelect extends Process {
+class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 
 	protected $maxImageWidth = 835; 
 	protected $page = null;
@@ -245,9 +245,10 @@ class ProcessPageEditImageSelect extends Process {
 
 		$attrStr = '';
 		foreach($attrs as $key => $value) if($value) $attrStr .= "$key='" . trim($value) . "' ";
+		$nosize = $this->noSizeAttrs ? 1 : '';
 
 		$out .= "\n\t<div id='selected_image_container'>" . 
-			"\n\t\t<img id='selected_image' $attrStr alt='' data-idname='{$image->page->id},{$image->basename}' src='{$image->url}' />" . 
+			"\n\t\t<img id='selected_image' $attrStr alt='' data-nosize='$nosize' data-idname='{$image->page->id},{$image->basename}' src='{$image->url}' />" . 
 			"\n\t</div>";
 
 		return $out; 
@@ -273,13 +274,27 @@ class ProcessPageEditImageSelect extends Process {
 		// note IE8 won't properly read the width/height attrs via ajax
 		// so we provide the width/height in separate fields
 
+		$nosize = $this->noSizeAttrs ? 1 : '';
+
 		$out =	"<p>" .  
 			"<span id='selected_image_width'>$width</span>x" . 
 			"<span id='selected_image_height'>$height</span><br />" . 
-			"<img id='selected_image' class='$class' data-idname='{$image->page->id},{$image->basename}' src='{$resized->url}' width='$width' height='$height' />" . 
+			"<img id='selected_image' class='$class' data-idname='{$image->page->id},{$image->basename}' data-nosize='$nosize' src='{$resized->url}' width='$width' height='$height' />" . 
 			"</p>";
 
 		return $out; 
+	}
+
+	static public function getModuleConfigInputfields(array $data) {
+		$inputfields = new InputfieldWrapper();
+		$f = wire('modules')->get('InputfieldCheckbox');
+		$f->attr('name', 'noSizeAttrs'); 
+		$f->attr('value', 1);
+		if(!empty($data['noSizeAttrs'])) $f->attr('checked', 'checked');
+		$f->label = __('Skip width and height attributes on image tags?', __FILE__); // noSizeAttr label
+		$f->description = __('By default, this module will include width and height attributes in the <img> tag. If you are using responsive images, you might want to disable this behavior. Check the box to disable width and height attributes.', __FILE__); // noSizeAttr description
+		$inputfields->add($f);
+		return $inputfields;
 	}
 
 }

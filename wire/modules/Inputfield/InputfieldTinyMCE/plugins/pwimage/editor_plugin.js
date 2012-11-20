@@ -111,6 +111,7 @@ var $iframe;
 										var $i = $iframe.contents();
 										var $img = $("#selected_image", $i); 
 										//var src = $img.attr('src'); 
+										var nosize = $img.attr('data-nosize'); 
 										var width = $img.attr('width');
 										var height = $img.attr('height'); 
 										var alt = $("#selected_image_description", $i).val();
@@ -120,8 +121,10 @@ var $iframe;
 
 										if(alt && alt.length > 0) alt = $("<div />").text(alt).html().replace(/"/g, '&quot;'); 
 
-										if(width > 0) html += 'width="' + width + '" '; 
-										if(height > 0) html += 'height="' + height + '" '; 
+										if(nosize != 1) {
+											if(width > 0) html += 'width="' + width + '" '; 
+											if(height > 0) html += 'height="' + height + '" '; 
+										}
 										html += 'alt="' + alt + '" />';
 										if(link && link.length > 0) html = "<a href='" + link + "'>" + html + "</a>";
 										if(nodeParent && $nodeParent.is("a")) se.select(nodeParent); // add it to the selection 
