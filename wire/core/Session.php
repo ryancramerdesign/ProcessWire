@@ -50,6 +50,12 @@ class Session extends Wire implements IteratorAggregate {
 	protected $CSRF = null; 
 
 	/**
+	 * IP address of current session in integer format (used as cache by getIP function)
+	 *
+	 */
+	private $ip = null;
+
+	/**
 	 * Start the session and set the current User if a session is active
 	 *
 	 * Assumes that you have already performed all session-specific ini_set() and session_name() calls 
@@ -118,7 +124,7 @@ class Session extends Wire implements IteratorAggregate {
 		}	
 
 		if($this->config->sessionFingerprint) {
-			if(($_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_USER_AGENT']) != $this->get("_user_fingerprint")) {
+			if(($this->getIP(true) . $_SERVER['HTTP_USER_AGENT']) != $this->get("_user_fingerprint")) {
 				$valid = false; 
 			}
 		}
@@ -218,6 +224,25 @@ class Session extends Wire implements IteratorAggregate {
 	}
 
 	/**
+	 * Get the IP address of the current user
+	 *
+	 */
+	public function getIP($int = false) {
+		if(is_null($this->ip)) { 
+			if(!empty($_SERVER['HTTP_CLIENT_IP'])) $ip = $_SERVER['HTTP_CLIENT_IP']; 
+				else if(!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+				else if(!empty($_SERVER['REMOTE_ADDR'])) $ip = $_SERVER['REMOTE_ADDR']; 
+				else $ip = '';
+			$ip = ip2long($ip);
+			$this->ip = $ip;
+		} else {
+			$ip = $this->ip; 
+		}
+		if(!$int) $ip = long2ip($ip);
+		return $ip;
+	}
+
+	/**
 	 * Login a user with the given name and password
 	 *
 	 * Also sets them to the current user
@@ -237,7 +262,7 @@ class Session extends Wire implements IteratorAggregate {
 		if($user->id && $this->authenticate($user, $pass)) { 
 
 			$this->trackChange('login'); 
-			session_regenerate_id();
+			session_regenerate_id(true);
 			$this->set('_user_id', $user->id); 
 			$this->set('_user_ts', time());
 
@@ -251,7 +276,7 @@ class Session extends Wire implements IteratorAggregate {
 
 			if($this->config->sessionFingerprint) {
 				// remember a fingerprint that tracks the user's IP and user agent
-				$this->set('_user_fingerprint', $_SERVER['REMOTE_ADDR'] . $_SERVER['HTTP_USER_AGENT']); 
+				$this->set('_user_fingerprint', $this->getIP(true) . $_SERVER['HTTP_USER_AGENT']); 
 			}
 
 			$this->setFuel('user', $user); 
@@ -298,8 +323,8 @@ class Session extends Wire implements IteratorAggregate {
 		if(isset($_COOKIE[$sessionName . "_challenge"])) setcookie($sessionName . "_challenge", '', time()-42000, '/'); 
 		session_destroy();
 		session_name($sessionName); 
-		session_start(); 
-		session_regenerate_id();
+		$this->init();
+		session_regenerate_id(true);
 		$_SESSION[$this->className()] = array();
 		$guest = $this->fuel('users')->getGuestUser();
 		$this->fuel('users')->setCurrentUser($guest); 

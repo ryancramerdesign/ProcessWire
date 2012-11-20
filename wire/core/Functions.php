@@ -276,3 +276,66 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
 	readfile($filename);
 	if($options['exit']) exit;
 }
+
+/**
+ * Given a unix timestamp (or date string), returns a formatted string indicating the time relative to now
+ *
+ * Example: 1 day ago, 30 seconds ago, etc. 
+ *
+ * Based upon: http://www.php.net/manual/en/function.time.php#89415
+ *
+ * @param int|string $ts Unix timestamp or date string
+ * @return string
+ *
+ */
+function wireRelativeTimeStr($ts) {
+
+	if(empty($ts)) return "No date provided";
+
+	$periodsSingular = array(
+		__("second", __FILE__), 
+		__("minute", __FILE__), 
+		__("hour", __FILE__), 
+		__("day", __FILE__), 
+		__("week", __FILE__), 
+		__("month", __FILE__), 
+		__("year", __FILE__), 
+		__("decade", __FILE__)
+		);
+
+	$periodsPlural = array(
+		__("seconds", __FILE__), 
+		__("minutes", __FILE__), 
+		__("hours", __FILE__), 
+		__("days", __FILE__), 
+		__("weeks", __FILE__), 
+		__("months", __FILE__), 
+		__("years", __FILE__), 
+		__("decades", __FILE__)
+		); 
+
+	$lengths = array("60","60","24","7","4.35","12","10");
+	$now = time();
+	if(!ctype_digit("$ts")) $ts = strtotime($ts);
+	if(empty($ts)) return "Bad date";
+
+	// is it future date or past date
+	if($now > $ts) {    
+		$difference = $now - $ts;
+		$tense = __("ago", __FILE__);
+	} else {
+		$difference = $ts - $now;
+		$tense = __("from now", __FILE__);
+	}
+
+	for($j = 0; $difference >= $lengths[$j] && $j < count($lengths)-1; $j++) {
+		$difference /= $lengths[$j];
+	}
+
+	$difference = round($difference);
+	$periods = $difference != 1 ? $periodsPlural : $periodsSingular; 
+	$period = $periods[$j];
+
+	return sprintf('%d %2$s %3$s', (int) $difference, $period, $tense); // i.e. 2 days ago (d=qty, 2=period, 3=tense)
+}
+

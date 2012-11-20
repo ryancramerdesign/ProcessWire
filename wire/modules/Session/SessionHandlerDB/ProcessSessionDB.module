@@ -33,25 +33,51 @@ class ProcessSessionDB extends Process {
 
 	public function ___execute() {
 
+		// clean out any stray sessions that may have not yet hit the gc probability
+		// because we don't want them in the list that we display
+		$sessionHandlerDB = $this->modules->get('SessionHandlerDB'); 
+		$sessionHandlerDB->gc(wire('config')->sessionExpireSeconds); 
+		$useIP = $sessionHandlerDB->useIP; 
+		$useUA = $sessionHandlerDB->useUA; 
+
+		$mins = $this->input->post->mins;
+		if(!$mins) $mins = (int) $this->session->ProcessSessionDB_mins; 
+		if(!$mins) $mins = 5; 
+		$this->session->ProcessSessionDB_mins = $mins;
+
 		$form = wire('modules')->get('InputfieldForm');
+		
+		$field = wire('modules')->get('InputfieldInteger');
+		$field->attr('name', 'mins'); 
+		$field->attr('value', $mins);
+		$field->label = sprintf($this->_n('Sessions active in last minute', 'Sessions active in last %d minutes', $mins), $mins); 
+		$field->description = $this->_('Number of minutes'); 
+		$field->collapsed = Inputfield::collapsedYes; 
+		$form->add($field);
+
 		$markup = wire('modules')->get('InputfieldMarkup');
 		$pagePaths = array();
 		$userNames = array();
 		$table = SessionHandlerDB::dbTableName;
-		$sql = "SELECT user_id, pages_id, ts FROM $table ORDER BY ts DESC LIMIT 1000";
+		$sql = 	"SELECT user_id, pages_id, ip, ua, ts FROM $table " . 
+			"WHERE ts > '" . date('Y-m-d H:i:s', (time() - ($mins * 60))) . "' " . 
+			"ORDER BY ts DESC LIMIT 1000";
 		$result = wire('db')->query($sql);
 
 		if($result->num_rows) {
 
 			$table = wire('modules')->get('MarkupAdminDataTable');
-			$table->headerRow(array(
-				__('Time'), 
-				__('User'), 
-				__('Page')
-				)); 
+			$header = array(
+				$this->_('Time'), 
+				$this->_('User'), 
+				$this->_('Page')
+				); 
+			if($useIP) $header[] = $this->_('IP Addr');
+			if($useUA) $header[] = $this->_('User Agent');
+			$table->headerRow($header);
 
 			while($row = $result->fetch_row()) {
-				list($user_id, $pages_id, $ts) = $row; 
+				list($user_id, $pages_id, $ip, $ua, $ts) = $row; 
 
 				if(isset($userNames[$user_id])) {
 					$userName = $userNames[$user_id]; 
@@ -71,18 +97,24 @@ class ProcessSessionDB extends Process {
 					$pagePaths[$pages_id] = $pagePath;
 				}
 
-				$table->row(array($ts, $userName, $pagePath));
+				$tr = array(wireRelativeTimeStr($ts), $userName, $pagePath);
+				if($useIP) $tr[] = long2ip($ip);
+				if($useUA) $tr[] = strip_tags($ua); // note MarkupAdminDataTable already entity encodes all output
+				$table->row($tr);
 			}
 			
-			$form->value = $table->render();
+			$markup->value = $table->render();
 
 		} else {
-			$form->value = __('No active sessions');
+			$markup->value = $this->_('No active sessions');
 		}
+
+		$form->add($markup);
 
 		$submit = wire('modules')->get('InputfieldSubmit');
 		$submit->attr('value', $this->_('Refresh'));
 		$submit->attr('id+name', 'submit_session');
+		$submit->attr('class', $submit->attr('class') . ' head_button_clone'); 
 		$form->add($submit);
 
 		$result->free();

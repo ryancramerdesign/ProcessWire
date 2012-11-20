@@ -23,14 +23,7 @@ abstract class SessionHandler extends WireData implements Module {
 	 *
 	 */
 	public function __construct() {
-		session_set_save_handler(	
-			array($this, 'open'),
-			array($this, 'close'),
-			array($this, 'read'),
-			array($this, 'write'),
-			array($this, 'destroy'),
-			array($this, 'gc')
-			);
+		$this->addHookBefore('Session::init', $this, 'attach'); 
 		register_shutdown_function('session_write_close'); 
 	}
 
@@ -39,6 +32,21 @@ abstract class SessionHandler extends WireData implements Module {
 	 *
 	 */
 	public function init() { }
+
+	/**
+	 * Attach this as the session handler
+	 *
+	 */
+	public function attach() {
+		session_set_save_handler(	
+			array($this, 'open'),
+			array($this, 'close'),
+			array($this, 'read'),
+			array($this, 'write'),
+			array($this, 'destroy'),
+			array($this, 'gc')
+			);
+	}
 
 	/**
 	 * Open the session

@@ -13,7 +13,7 @@
  *
  */
 
-class SessionHandlerDB extends SessionHandler {
+class SessionHandlerDB extends SessionHandler implements ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
@@ -43,6 +43,8 @@ class SessionHandlerDB extends SessionHandler {
 	public function __construct() {
 		parent::__construct();
 		$this->db = wire('db');
+		$this->set('useIP', 0); // track IP address?
+		$this->set('useUA', 0); // track query string?
 	}
 
 	/**
@@ -84,8 +86,11 @@ class SessionHandlerDB extends SessionHandler {
 		$user_id = $user && $user->id ? (int) $user->id : 0; 
 		$pages_id = $page && $page->id ? (int) $page->id : 0;
 		$data = $this->db->escape_string($data);
-		$sql = 	"INSERT INTO $table SET id='$id', user_id=$user_id, pages_id=$pages_id, data='$data' " . 
-			"ON DUPLICATE KEY UPDATE data='$data', user_id=$user_id, pages_id=$pages_id, ts=NOW()";
+		$s = "user_id=$user_id, pages_id=$pages_id, data='$data'"; 
+		if($this->useIP) $s .= ", ip=" . ((int) wire('session')->getIP(true)); 
+		if($this->useUA) $s .= ", ua='" . $this->db->escape_string(substr($_SERVER['HTTP_USER_AGENT'], 0, 255)) . "'";
+		$sql = 	"INSERT INTO $table SET id='$id', $s ";
+		$sql .= "ON DUPLICATE KEY UPDATE $s, ts=NOW()";
 		$result = $this->db->query($sql) ? true : false; 
 		$this->db->query("SELECT RELEASE_LOCK('$id')"); 
 		return $result; 
@@ -132,6 +137,8 @@ class SessionHandlerDB extends SessionHandler {
 			"pages_id INT UNSIGNED NOT NULL, " . 
 			"data TEXT NOT NULL, " . 
 			"ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, " . 
+			"ip INT UNSIGNED NOT NULL DEFAULT 0, " . 
+			"ua VARCHAR(255) NOT NULL DEFAULT '', " . 
 			"PRIMARY KEY (id), " . 
 			"INDEX (pages_id), " . 
 			"INDEX (user_id), " . 
@@ -147,5 +154,42 @@ class SessionHandlerDB extends SessionHandler {
 	 */
 	public function ___uninstall() {
 		$this->db->query("DROP TABLE " . self::dbTableName); 
+	}
+
+	/**
+	 * Session configuration options
+	 *
+	 */
+	public static function getModuleConfigInputfields(array $data) {
+
+		$form = new InputfieldWrapper();
+
+		// check if their DB table is the latest version
+		$result = wire('db')->query("SHOW COLUMNS FROM " . self::dbTableName . " WHERE field='ip'"); 
+		if(!$result->num_rows) {
+			wire('modules')->error("DB format changed - You must uninstall this module and re-install before configuring."); 
+			return $form;
+		}
+
+		$description = __('Checking this box will enable the data to be displayed in your admin sessions list.', __FILE__);
+
+		$f = wire('modules')->get('InputfieldCheckbox'); 
+		$f->attr('name', 'useIP'); 
+		$f->attr('value', 1);
+		$f->attr('checked', empty($data['useIP']) ? '' : 'checked'); 
+		$f->label = __('Track IP addresses in session data?', __FILE__); 
+		$f->description = $description;
+		$form->add($f);
+
+		$f = wire('modules')->get('InputfieldCheckbox'); 
+		$f->attr('name', 'useUA'); 
+		$f->attr('value', 1);
+		$f->attr('checked', empty($data['useUA']) ? '' : 'checked'); 
+		$f->label = __('Track user agent in session data?', __FILE__); 
+		$f->notes = __('The user agent typically contains information about the browser being used.', __FILE__);
+		$f->description = $description;
+		$form->add($f);
+
+		return $form;
 	}
 }
