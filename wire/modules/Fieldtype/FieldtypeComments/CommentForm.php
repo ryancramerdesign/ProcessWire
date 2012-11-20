@@ -243,11 +243,11 @@ class CommentForm extends Wire implements CommentFormInterface {
 			$form = "\n<form id='{$id}_form'$class action='$attrs[action]#$id' method='$attrs[method]'>" . 
 				"\n\t<p class='{$id}_cite'>" . 
 				"\n\t\t<label for='{$id}_cite'>$labels[cite]</label>" . 
-				"\n\t\t<input type='text' name='cite' class='required' id='{$id}_cite' value='$inputValues[cite]' maxlength='128' />" . 
+				"\n\t\t<input type='text' name='cite' class='required' required='required' id='{$id}_cite' value='$inputValues[cite]' maxlength='128' />" . 
 				"\n\t</p>" . 
 				"\n\t<p class='{$id}_email'>" . 
 				"\n\t\t<label for='{$id}_email'>$labels[email]</label>" . 
-				"\n\t\t<input type='text' name='email' class='required email' id='{$id}_email' value='$inputValues[email]' maxlength='255' />" . 
+				"\n\t\t<input type='text' name='email' class='required email' required='required' id='{$id}_email' value='$inputValues[email]' maxlength='255' />" . 
 				"\n\t</p>";
 
 			if($this->commentsField && $this->commentsField->useWebsite && $this->commentsField->schemaVersion > 0) {
@@ -260,7 +260,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 
 			$form .="\n\t<p class='{$id}_text'>" . 
 				"\n\t\t<label for='{$id}_text'>$labels[text]</label>" . 
-				"\n\t\t<textarea name='text' class='required' id='{$id}_text' rows='$attrs[rows]' cols='$attrs[cols]'>$inputValues[text]</textarea>" . 
+				"\n\t\t<textarea name='text' class='required' required='required' id='{$id}_text' rows='$attrs[rows]' cols='$attrs[cols]'>$inputValues[text]</textarea>" . 
 				"\n\t</p>" . 
 				"\n\t<p class='{$id}_submit'>" . 
 				"\n\t\t<button type='submit' name='{$id}_submit' id='{$id}_submit' value='1'>$labels[submit]</button>" . 
@@ -301,9 +301,9 @@ class CommentForm extends Wire implements CommentFormInterface {
 		$sessionData = array(); 
 
 		foreach(array('cite', 'email', 'website', 'text') as $key) {
-			if($key == 'website' && !$this->commentsField || !$this->commentsField->useWebsite) continue; 
+			if($key == 'website' && (!$this->commentsField || !$this->commentsField->useWebsite)) continue; 
 			$comment->$key = $data->$key; // Comment performs sanitization/validation
-			if(!$comment->$key) $errors[] = $key;
+			if($key != 'website' && !$comment->$key) $errors[] = $key;
 			$this->inputValues[$key] = $comment->$key;
 			if($key != 'text') $sessionData[$key] = $comment->$key; 
 		}

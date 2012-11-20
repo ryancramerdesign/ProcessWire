@@ -288,17 +288,16 @@ class FieldtypeComments extends FieldtypeMulti {
 	 */
 	public function getDatabaseSchema(Field $field) {
 
-		$websiteSchema = "website varchar(255) NOT NULL default ''"; 
+		$websiteSchema = "varchar(255) NOT NULL default ''"; 
 
 		if(!$field->schemaVersion) {
 			// add website field for PW 2.3+ 
 			$table = $field->getTable();
-			$result = wire('db')->query("ALTER TABLE `$table` ADD $websiteSchema");
-			if($result) {
-				$field->schemaVersion = 1;
-				$field->save();
-				$this->message("Updated schema version of '{$field->name}' to support website field.");
-			}
+		
+			try { $result = wire('db')->query("ALTER TABLE `$table` ADD website $websiteSchema"); } catch(Exception $e) { }
+			$field->schemaVersion = 1;
+			$field->save();
+			$this->message("Updated schema version of '{$field->name}' to support website field.");
 		}
 
 		$schema = parent::getDatabaseSchema($field); 
