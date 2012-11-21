@@ -89,7 +89,7 @@ class LanguageTranslator extends Wire {
 	public function setCurrentLanguage(Language $language) {
 
 		if($this->currentLanguage && $language->id == $this->currentLanguage->id) return $this; 
-		$this->path = $this->config->paths->files . $language->id . '/';
+		$this->path = $language->filesManager->path(); 
 
 		// we only keep translations for one language in memory at once, 
 		// so if the language is changing, we clear out what's already in memory.
@@ -363,7 +363,6 @@ class LanguageTranslator extends Wire {
 		$textdomain = $this->textdomainString($textdomain); 
 		if(isset($this->textdomains[$textdomain]) && is_array($this->textdomains[$textdomain])) return $this;
 		$file = $this->getTextdomainTranslationFile($textdomain);
-
 
 		if(is_file($file)) {
 			$data = json_decode(file_get_contents($file), true); 

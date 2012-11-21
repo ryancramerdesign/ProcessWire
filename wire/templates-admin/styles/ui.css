@@ -71,6 +71,10 @@ p span.ui-state-error {
 		display: block;
 	}
 
+.ui-accordion-header-icon {
+	display: none; 
+}
+
 /***********************************************************************************************
  * 2a. Theme Specific Pagination Markup
  *
