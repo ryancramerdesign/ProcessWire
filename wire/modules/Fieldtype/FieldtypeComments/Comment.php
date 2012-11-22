@@ -69,6 +69,9 @@ class Comment extends WireData {
 		if($key == 'user' || $key == 'createdUser') {
 			if(!$this->settings['created_users_id']) return $this->users->get($this->config->guestUserID); 
 			return $this->users->get($this->settings['created_users_id']); 
+
+		} else if($key == 'gravatar') {
+			return $this->getGravatar();
 		}
 		return parent::get($key); 
 	}
@@ -116,6 +119,42 @@ class Comment extends WireData {
 	 */
 	public function isApproved() {
 		return $this->status >= self::statusApproved; 
+	}
+
+	/**
+	 * Returns a URL to this user's gravatar image (static version, use non-static gravatar() function unless you specifically need static)
+	 *
+	 * @param string $email 
+	 * @param string $rating Gravatar rating, one of [ g | pg | r | x ], default is g.
+	 * @param string $imageset Gravatar default imageset, one of [ 404 | mm | identicon | monsterid | wavatar | retro | blank ], default is mm.
+	 * @param int $size Gravatar image size, default is 80. 
+	 * @return string
+	 *
+	 */
+	public static function getGravatar($email, $rating = 'g', $imageset = 'mm', $size = 80) {
+		if(!in_array($rating, array('g', 'pg', 'r', 'x'), true)) $rating = 'g';
+		if(empty($imageset)) $imageset = 'mm';
+		$size = (int) $size; 
+		$http = wire('config')->https ? 'https' : 'http';
+		$url = 	"$http://www.gravatar.com/avatar/" . 
+			md5(strtolower(trim($email))) . 
+			"?s=$size" . 
+			"&d=" . htmlentities($imageset) . 
+			"&r=$rating";
+		return $url;	
+	}
+
+	/**
+	 * Returns a URL to this user's gravatar image
+	 *
+	 * @param string $rating Gravatar rating, one of [ g | pg | r | x ], default is g.
+	 * @param string $imageset Gravatar default imageset, one of [ 404 | mm | identicon | monsterid | wavatar | retro | blank ], default is mm.
+	 * @param int $size Gravatar image size, default is 80. 
+	 * @return string
+	 *
+	 */
+	public function gravatar($rating = 'g', $imageset = 'mm', $size = 80) {
+		return self::getGravatar($this->email, $rating, $imageset, $size); 
 	}
 
 }

@@ -65,6 +65,7 @@ class FieldtypeComments extends FieldtypeMulti {
 	public function getBlankValue(Page $page, Field $field) {
 		$commentArray = new CommentArray(); 
 		$commentArray->setPage($page); 
+		$commentArray->setField($field); 
 		$commentArray->setTrackChanges(true);
 		return $commentArray; 
 	}
@@ -454,6 +455,21 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->description = 'When checked, ProcessWire will still send you an e-mail notification even if the message is identified as spam.';
 		$inputfields->append($f); 
 
+		$name = 'useGravatar'; 
+		$f = $this->fuel('modules')->get('InputfieldRadios'); 
+		$f->attr('name', $name); 
+		$f->addOption('', 'Disabled');
+		$f->addOption('g', 'G: Suitable for display on all websites with any audience type.');
+		$f->addOption('pg', 'PG: May contain rude gestures, provocatively dressed individuals, the lesser swear words, or mild violence.');
+		$f->addOption('r', 'R: May contain such things as harsh profanity, intense violence, nudity, or hard drug use.');
+		$f->addOption('x', 'X: May contain hardcore sexual imagery or extremely disturbing violence.');
+		$f->attr('value', $field->useGravatar); 
+		$f->label = 'Use Gravatar?';
+		$f->description = "This service provides an avatar image with each comment (unique to the email address). To enable, select the maximum gravatar rating. These are the same as movie ratings, where G is the most family friendly and X is not.";
+		$f->notes = "Rating descriptions provided by [Gravatar](https://en.gravatar.com/site/implement/images/).";
+		$f->collapsed = Inputfield::collapsedBlank;
+		$inputfields->append($f); 
+
 		$name = 'useAkismet'; 
 		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
 		$f->attr('name', $name); 
@@ -556,6 +572,7 @@ class FieldtypeComments extends FieldtypeMulti {
 
 		$result = wire('db')->query($sql);
 		$comments = new CommentArray();
+		$comments->setField($field); 
 
 		while($row = $result->fetch_assoc()) {
 			$comment = new Comment();
