@@ -207,6 +207,10 @@ a {
 	font-family: Georgia, serif; 
 	font-size: 1.3em; 
 }
+	#content a.quantity {
+		font-family: Georgia, serif; 
+	}
+
 	#content .container {
 		min-height: 50px; 
 	}

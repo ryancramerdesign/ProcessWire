@@ -15,9 +15,35 @@ var ProcessWireAdminTheme = {
 		this.setupCloneButton();
 		this.setupButtonStates();
 		this.setupFieldFocus();
+		this.setupTooltips();
 		this.sizeTitle();
 		$('#content').removeClass('fouc_fix'); // FOUC fix
 		this.browserCheck();
+	},
+
+	/**
+	 * Enable jQuery UI tooltips
+	 *
+	 */
+	setupTooltips: function() {
+		$("a.tooltip").tooltip({ 
+			position: {
+				my: "center bottom-20",
+				at: "center top",
+				using: function(position, feedback) {
+					$(this).css(position);
+					$("<div>")
+						.addClass("arrow")
+						.addClass(feedback.vertical)
+						.addClass(feedback.horizontal)
+						.appendTo(this);
+				}
+			}
+		}).hover(function() {
+			$(this).addClass('ui-state-hover');
+		}, function() {
+			$(this).removeClass('ui-state-hover');
+		}); 
 	},
 
 	/**

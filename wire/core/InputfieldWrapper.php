@@ -301,7 +301,10 @@ class InputfieldWrapper extends Inputfield {
 				$label = '';
 				if($inputfield->label && $inputfield->skipLabel !== Inputfield::skipLabelHeader) {
 					$for = $inputfield->skipLabel ? '' : $inputfield->attr('id');
-					$label = str_replace(array('{for}', '{out}'), array($for, $this->entityEncode($inputfield->label)), $markup['item_label']); 
+					$label = $inputfield->label;
+					// if $inputfield has a property of entityEncodeLabel with a value of boolean FALSE, we don't entity encode
+					if($inputfield->entityEncodeLabel !== false) $label = $this->entityEncode($label);
+					$label = str_replace(array('{for}', '{out}'), array($for, $label), $markup['item_label']); 
 				}
 				$columnWidth = (int) $inputfield->getSetting('columnWidth');
 				$columnWidthAdjusted = $columnWidth + ($columnWidthTotal ? -1 : 0);

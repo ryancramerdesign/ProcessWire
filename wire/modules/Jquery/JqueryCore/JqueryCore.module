@@ -5,7 +5,7 @@ class JqueryCore extends ModuleJS {
         public static function getModuleInfo() {
                 return array(
                         'title' => 'jQuery Core',
-                        'version' => 182,
+                        'version' => 183,
                         'summary' => 'jQuery Core as required by ProcessWire Admin and plugins',
 			'href' => 'http://jquery.com', 
 			'permanent' => true
