@@ -87,12 +87,12 @@ a {
 	#logo {
 		position: absolute; 
 		left: 0;
+		width: 179px; 
 		top: 43px; 
-		width: 179px;
-		height: 25px; 
-		text-indent: -9999px; 
-		background: url(images/logo.gif) top left no-repeat; 
 	}
+		#logo:hover {
+			background: none; 
+		}
 
 	#topnav {
                 position: absolute;
@@ -459,7 +459,7 @@ a {
 	background-color: #000; 
 	opacity: 0.25; 
 	color: #fff; 
-	padding: 7px 12px;
+	padding: 8px 12px 6px 12px;
 	font-size: 1.1em; 
 }
 	#sitelink:hover {
@@ -483,14 +483,36 @@ a {
 
 /* All Mobile Sizes (devices and browser) */
 @media only screen and (max-width: 767px) {
+
 	#logo {
-		display: none; 
+		top: 46px;
 	}
+		#logo img {
+			width: 75%; 
+		}
+
 	#topnav {
 		left: -10px;
 	}
+		#topnav a {
+			color: #a7e5f9; 
+			display: block;
+			float: left; 
+			margin: 0 0 0 1px;
+			padding: 9px 10px 11px 10px;
+		}
+			#topnav a.on:not(:hover) {
+				background: rgba(255, 255, 255, 0.07); 
+				background: rgba(0, 0, 0, 0.5); 
+				color: #a7e5f9; 
+			}
+			#topnav a:hover {
+				background-position: bottom left;
+			}
+
 	#ProcessPageSearchQuery {
-		width: 100px; 
+		top: 47px; 
+		width: 130px; 
 	}
 
 	#title {
@@ -509,6 +531,9 @@ a {
 	.container {
 	}
 
+	#masthead, 
+	#breadcrumb li {
+	}
 
 
 }
