@@ -25,7 +25,6 @@ class ProcessTemplate extends Process {
 	protected $numPages; 
 	protected $moduleInfo; 
 	protected $labels = array();
-	protected $useListLabels = false;
 
 	public static function getModuleInfo() {
 		return array(
@@ -82,11 +81,6 @@ class ProcessTemplate extends Process {
 		$hasFilters = $this->session->ProcessTemplateFilterField;
 		$collapsedTags = array();
 		$caseTags = array(); // indexed by lowercase version of tag
-
-		foreach($this->templates as $template) if($template->label) {
-			$this->useListLabels = true; 
-			break;
-		}
 
 		if(!$hasFilters) foreach($this->templates as $template) {
 			if($this->session->ProcessTemplateFilterSystem) {
@@ -224,7 +218,7 @@ class ProcessTemplate extends Process {
 
 		$header = array();
 		$header[] = $this->_x('Name', 'list-thead');
-		if($this->useListLabels) $header[] = $this->_x('Label', 'list-thead');
+		$header[] = $this->_x('Label', 'list-thead');
 		$header[] = $this->_x('Fields', 'list-thead');
 		$header[] = $this->_x('Pages', 'list-thead');
 		$header[] = '&nbsp;';
@@ -297,7 +291,7 @@ class ProcessTemplate extends Process {
 
 		$row = array();
 		$row["{$template->name} "] = "edit?id={$template->id}";
-		if($this->useListLabels) $row[] = $this->sanitizer->entities($template->label);
+		$row[] = $this->sanitizer->entities($template->label);
 		$row[] = "$numFields ";
 		$row[] = "$numPages ";
 		$row[] = $notes;

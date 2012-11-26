@@ -26,8 +26,13 @@ span.asmFieldsetIndent {
 	font-weight: bold; 
 }
 
-#ProcessTemplateList table {
-	table-layout: fixed; 
+
+#ProcessTemplateList td:first-child,
+#ProcessTemplateList td:nth-child(2) {
+	width: 30%; 
+}
+#ProcessTemplateList td:last-child {
+	white-space: nowrap;
 }
 
 #ProcessTemplateList table td a.templateFlag {
@@ -38,6 +43,7 @@ span.asmFieldsetIndent {
 	position: relative;
 	top: 2px; 
 }
+
 
 #content label.ui-widget-header .labelIcon {
 	float: left; 
