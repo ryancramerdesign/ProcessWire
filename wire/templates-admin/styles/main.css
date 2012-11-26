@@ -36,6 +36,7 @@ body {
 	position: relative; 
 	width: 85%; 
 	min-width: 800px; 
+	min-width: 385px; 
 	max-width: 1200px; 
 	margin: 0 auto; 
 }
@@ -469,3 +470,62 @@ a {
 		display: none; 
 	}
 
+/***********************************************************************************************
+ * MOBILE
+ *
+ */
+
+/* Smaller than standard 960 (devices and browsers) */
+@media only screen and (max-width: 959px) {}
+
+/* Tablet Portrait size to standard 960 (devices and browsers) */
+@media only screen and (min-width: 768px) and (max-width: 959px) {}
+
+/* All Mobile Sizes (devices and browser) */
+@media only screen and (max-width: 767px) {
+	#logo {
+		display: none; 
+	}
+	#topnav {
+		left: -10px;
+	}
+	#ProcessPageSearchQuery {
+		width: 100px; 
+	}
+
+	#title {
+		font-size: 25px;
+	}
+	#content h2 {
+		font-size: 20px; 
+	}
+
+	#masthead,
+	#content,
+	#footer {
+		padding-right: 10px;
+		padding-left: 10px; 
+	}
+	.container {
+	}
+
+
+
+}
+
+/* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
+@media only screen and (min-width: 480px) and (max-width: 767px) {}
+
+/* Mobile Portrait Size to Mobile Landscape Size (devices and browsers) */
+@media only screen and (max-width: 479px) {
+	/**
+	 * Disregard column width when at mobile size
+	 *
+	 */
+	.Inputfield {
+		clear: both !important;
+		width: 100% !important;
+		margin-left: 0 !important;
+		margin-bottom: 1em !important; 
+	}
+}

@@ -28,6 +28,12 @@
 	font-size: 12px; 
 }
 
+.Inputfields input,
+.Inputfields select,
+.Inputfields textarea {
+	max-width: 100%; 
+}
+
 .InputfieldForm .Inputfields,
 .InputfieldForm .Inputfields > .Inputfield {
 	list-style: none;
@@ -145,18 +151,6 @@
 
 .InputfieldStateRequired > label.ui-widget-header:first-child:after {
 	content: ' *';
-}
-
-/**
- * Disregard column width when at mobile size
- *
- */
-@media screen and (max-width: 350px) {
-	.Inputfield {
-		clear: both !important;
-		width: 100% !important;
-		margin-left: 0 !important;
-	}
 }
 
 /****************************************************************************
