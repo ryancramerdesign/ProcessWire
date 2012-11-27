@@ -371,17 +371,26 @@ class Sanitizer extends Wire {
 	public function selectorValue($value) {
 
 		$value = trim($value); 
+		$quoteChar = '"';
+		$needsQuotes = false; 
 
 		// determine if value is already quoted and set initial value of needsQuotes
 		// also pick out the initial quote style
 		if(strlen($value) && ($value[0] == "'" || $value[0] == '"')) {
-			$quoteChar = $value[0]; 
-			$value = trim($value, "\"'"); 
 			$needsQuotes = true; 
-		} else {
-			$quoteChar = '"';
-			$needsQuotes = false; 
 		}
+
+		// trim off leading or trailing quotes
+		$value = trim($value, "\"'"); 
+
+		// if an apostrophe is present, value must be quoted
+		if(strpos($value, "'") !== false) $needsQuotes = true; 
+
+		// if commas are present, then the selector needs to be quoted
+		if(strpos($value, ',') !== false) $needsQuotes = true; 
+
+		// disallow double quotes -- remove any if they are present
+		if(strpos($value, '"') !== false) $value = str_replace('"', '', $value); 
 
 		// selector value is limited to 100 chars
 		if(strlen($value) > 100) {
@@ -389,27 +398,15 @@ class Sanitizer extends Wire {
 				else $value = substr($value, 0, 100); 
 		}
 
-		// if commas are present, then the selector needs to be quoted
-		if(strpos($value, ',') !== false) $needsQuotes = true; 
-
-		// if an apostrophe is present, then make sure the value isn't already quoted with the same character
-		// if it is, then switch to double quotes
-		if(strpos($value, "'") !== false) {
-			$needsQuotes = true; 
-			if($quoteChar == "'") $quoteChar = '"';
-		}
-
-		// disallow double quotes -- remove any if they are present
-		if(strpos($value, '"') !== false) $value = str_replace('"', '', $value); 
+		// disallow some characters in selector values
+		// @todo technically we only need to disallow at begin/end of string
+		$value = str_replace(array('*', '~', '`', '$', '^', '+', '|', '<', '>', '!', '='), ' ', $value);
 
 		// disallow greater/less than signs, unless they aren't forming a tag
-		if(strpos($value, '<') !== false) $value = preg_replace('/<[^>]+>/su', ' ', $value); 
+		// if(strpos($value, '<') !== false) $value = preg_replace('/<[^>]+>/su', ' ', $value); 
 
-		// disallow newlines
-		if(strpos($value, "\n") !== false || strpos($value, "\r") !== false) $value = str_replace(array("\n", "\r"), ' ', $value); 
-
-		// disallow hash or percent signs
-		if(strpos($value, '#') !== false || strpos($value, '%') !== false) $value = str_replace(array('#', '%'), ' ', $value); 
+		// more disallowed chars, these may not appear anywhere in selector value
+		$value = str_replace(array("\r", "\n", "#", "%"), ' ', $value);
 
 		// see if we can avoid the preg_matches and do a quick filter
 		$test = str_replace(array(',', ' ', '-'), '', $value); 
@@ -427,7 +424,6 @@ class Sanitizer extends Wire {
 			// replace multiple space characters in sequence with just 1
 			$value = preg_replace('/\s\s+/u', ' ', $value); 
 
-			//$value = iconv("UTF-8", "ISO-8859-1", $value); 
 		}
 
 		$value = trim($value);
