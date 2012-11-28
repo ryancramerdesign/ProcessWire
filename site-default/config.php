@@ -50,18 +50,6 @@ $config->sessionChallenge = true;
  */
 $config->sessionFingerprint = true; 
 
-/** 
- * chmodDir: octal string permissions assigned to directories created by ProcessWire
- *
- */
-$config->chmodDir = "0777";
-
-/**
- * chmodFile: octal string permissions assigned to files created by ProcessWire
- *
- */
-$config->chmodFile = "0666";    
-
 /**
  * uploadUnzipCommand: shell command to unzip archives, used by WireUpload class. 
  *
