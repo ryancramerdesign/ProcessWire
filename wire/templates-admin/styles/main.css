@@ -35,7 +35,6 @@ body {
 .container {
 	position: relative; 
 	width: 85%; 
-	min-width: 800px; 
 	min-width: 385px; 
 	max-width: 1200px; 
 	margin: 0 auto; 
@@ -528,18 +527,15 @@ a {
 		padding-right: 10px;
 		padding-left: 10px; 
 	}
-	.container {
-	}
-
-	#masthead, 
-	#breadcrumb li {
-	}
-
 
 }
 
 /* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
-@media only screen and (min-width: 480px) and (max-width: 767px) {}
+@media only screen and (min-width: 480px) and (max-width: 767px) {
+	.container {
+		width: 95%; 
+	}
+}
 
 /* Mobile Portrait Size to Mobile Landscape Size (devices and browsers) */
 @media only screen and (max-width: 479px) {
@@ -552,5 +548,9 @@ a {
 		width: 100% !important;
 		margin-left: 0 !important;
 		margin-bottom: 1em !important; 
+	}
+
+	.container {
+		width: 100%; 
 	}
 }

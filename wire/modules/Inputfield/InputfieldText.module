@@ -12,7 +12,7 @@ class InputfieldText extends Inputfield {
 		return array(
 			'title' => __('Text', __FILE__), // Module Title
 			'summary' => __('Single line of text', __FILE__), // Module Summary
-			'version' => 104,
+			'version' => 105,
 			'permanent' => true, 
 			);
 	}
@@ -23,6 +23,7 @@ class InputfieldText extends Inputfield {
 		$this->setAttribute('size', 0); 
 		$this->setAttribute('maxlength', self::defaultMaxlength); 
 		$this->setAttribute('placeholder', '');
+		$this->setAttribute('pattern', '');
 		$this->set('initValue', ''); // optional initial value
 		$this->set('stripTags', false); // strip tags from input?
 	}
@@ -63,7 +64,20 @@ class InputfieldText extends Inputfield {
 				)); 
 		}
 		if($this->stripTags) $value = strip_tags($value);
+
 		return $value; 
+	}
+
+	public function ___processInput(WireInputData $input) {
+		parent::___processInput($input);
+
+		$value = $this->attr('value');
+		if($this->pattern && strlen($value)) {
+			$regex = '#' . str_replace('#', '\#', $this->pattern) . '#'; // add delimeters
+			if(!preg_match($regex, $value)) $this->error($this->_('Does not match required pattern')); 
+		}
+
+		return $this;
 	}
 
 	public function ___getConfigInputfields() {
@@ -102,6 +116,15 @@ class InputfieldText extends Inputfield {
 		$field->label = $this->_('Placeholder Text');
 		$field->setAttribute('value', $this->attr('placeholder')); 
 		$field->description = $this->_('Optional placeholder phrase of text that appears in the field when blank.'); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$inputfields->append($field);
+
+		$field = $this->modules->get('InputfieldText');
+		$field->setAttribute('name', 'pattern'); 
+		$field->label = $this->_('Pattern');
+		$field->setAttribute('value', $this->attr('pattern')); 
+		$field->description = $this->_('Optional regular expression pattern to require in the input. This is used both client side (HTML5 pattern attribute) and server side for validation. Be sure to provide an example of the required pattern in your field description.'); // Pattern description
+		$field->notes = $this->_('See [html5pattern.com](http://html5pattern.com) for examples of patterns you can use and create.'); // Pattern notes
 		$field->collapsed = Inputfield::collapsedBlank;
 		$inputfields->append($field);
 

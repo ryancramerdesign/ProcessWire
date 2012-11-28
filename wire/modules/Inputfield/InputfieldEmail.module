@@ -64,8 +64,11 @@ class InputfieldEmail extends InputfieldText {
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields();
 
-		$f = $inputfields->get('stripTags');
-		if($f) $inputfields->remove($f);
+		$skips = array('stripTags', 'pattern'); 
+		foreach($skips as $name) {
+			$f = $inputfields->get($name);
+			if($f) $inputfields->remove($f);
+		}
 
 		$f = wire('modules')->get('InputfieldCheckbox');
 		$f->attr('name', 'confirm');

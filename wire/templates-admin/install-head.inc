@@ -23,7 +23,7 @@ if(!isset($bgTitle)) $bgTitle = "Installer";
 <p id='bgtitle'><?php echo $bgTitle; ?></p>
 <div id="masthead" class="masthead">
 	<div class="container">
-		<p id='logo'>ProcessWire</p>
+		<a id='logo' href='<?php echo $config->urls->admin?>'><img src="wire/templates-admin/styles/images/logo.gif" alt="ProcessWire" /></a>
 		<h1 id='title'><?php echo $title; ?></h1>
 	</div>
 </div>

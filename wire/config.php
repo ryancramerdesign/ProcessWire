@@ -103,4 +103,19 @@ $config->fileContentTypes = array(
 	'png' => 'image/x-png',
 	);
 
+/** 
+ * chmodDir: octal string permissions assigned to directories created by ProcessWire
+ *
+ * This is overwritten at runtime with a more specific value in /site/config.php
+ *
+ */
+$config->chmodDir = "0777";
+
+/**
+ * chmodFile: octal string permissions assigned to files created by ProcessWire
+ * 
+ * This is overwritten at runtime with a more specific value in /site/config.php
+ *
+ */
+$config->chmodFile = "0666";    
 
