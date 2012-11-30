@@ -254,6 +254,13 @@ class ProcessPageView extends Process {
 	protected function checkAccess($page) {
 
 		if($page->viewable()) return $page; 
+	
+		if($this->requestFile) {
+			// if a file was requested, we still allow view even if page doesn't have template file
+			// this is something that viewable() does not echeck
+			if($page->editable()) return $page;	
+			if($page->status < Page::statusUnpublished && wire('user')->hasPermission('page-view', $page)) return $page;
+		}
 
 		$redirectLogin = $page->getAccessTemplate()->redirectLogin;
 
