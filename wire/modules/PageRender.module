@@ -196,18 +196,21 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 */
 	public function ___renderPage($event) {
 
+		wire('pages')->setOutputFormatting(true); 
+
 		// just in case one page is rendering another, save the previous
 		$_page = $this->fuel('page'); 
 		$page = $event->object; 
 
 		// set the context of the new page to be system-wide
 		// only applicable if rendering a page within a page
-		if(!$page->id != $_page->id) $this->setFuel('page', $page);
+		if(!$_page || $page->id != $_page->id) $this->setFuel('page', $page);
+		//if(!$page->id != $_page->id) $this->setFuel('page', $page);
 
 		$options = count($event->arguments) ? $event->arguments[0] : array();
 
 		if($page->status >= Page::statusUnpublished && !$page->viewable()) {
-			$this->setFuel('page', $_page) ;
+			if($_page) $this->setFuel('page', $_page) ;
 			throw new WirePermissionException("Page '{$page->url}' is not currently viewable.");
 		}
 
@@ -223,25 +226,22 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 			$cacheFile = $this->getCacheFile($page);
 			if(!$options['forceBuildCache'] && ($data = $cacheFile->get()) !== false) {
 				$event->return = $data;
-				$this->setFuel('page', $_page);
+				if($_page) $this->setFuel('page', $_page);
 				return;
 			}
 		}
 
-		if(!$page->outputFormatting) {
-			$this->setFuel('page', $_page); 
-			throw new WireException(
-				"Page {$page->url} may not be rendered because outputFormatting is set to false. " . 
-				"Call \$page->setOutputFormatting(true) before rendering the page."
-				);
-		}
+		$of = $page->of();
+		if(!$of) $page->of(true);
 
 		$output = $page->output;
 		$data = $output ? $output->render() : '';
 
 		if($data && $cacheAllowed && $cacheFile) $cacheFile->save($data);
 		$event->return = $data; 
-		$this->setFuel('page', $_page); 
+
+		if(!$of) $page->of($of);
+		if($_page) $this->setFuel('page', $_page); 
 	}
 
 	/**
