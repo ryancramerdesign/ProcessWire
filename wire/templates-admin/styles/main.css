@@ -35,7 +35,6 @@ body {
 .container {
 	position: relative; 
 	width: 85%; 
-	min-width: 385px; 
 	max-width: 1200px; 
 	margin: 0 auto; 
 }
@@ -552,5 +551,11 @@ a {
 
 	.container {
 		width: 100%; 
+	}
+	#bgtitle {
+		display: none; 
+	}
+	#footer #userinfo {
+		float: none;
 	}
 }
