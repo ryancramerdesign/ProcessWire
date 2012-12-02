@@ -18,7 +18,7 @@ class SessionHandlerDB extends SessionHandler implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Session Handler Database', 
-			'version' => 1, 
+			'version' => 2, 
 			'summary' => "Installing this module makes ProcessWire store sessions in the database rather than the file system. Note that this module will log you out after install or uninstall.",
 			'installs' => array('ProcessSessionDB')
 			);
@@ -192,4 +192,31 @@ class SessionHandlerDB extends SessionHandler implements ConfigurableModule {
 
 		return $form;
 	}
+
+	/**
+	 * Provides direct reference access to set values in the $data array
+	 *
+	 * For some reason PHP 5.4+ requires this, as it apparently doesn't see WireData
+	 *
+	 */
+	public function __set($key, $value) {
+		$this->set($key, $value);
+	}
+
+
+	/**
+	 * Provides direct reference access to variables in the $data array
+	 *
+	 * For some reason PHP 5.4+ requires this, as it apparently doesn't see WireData
+	 *
+	 * Otherwise the same as get()
+	 *
+	 * @param string $key
+	 *
+	 */
+	public function __get($key) {
+		return $this->get($key);
+	}
+
+
 }
