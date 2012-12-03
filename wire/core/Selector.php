@@ -106,7 +106,8 @@ abstract class Selector extends WireData {
 
 		foreach($values as $v) {
 
-			if($v instanceof Wire) $v = $v->$field; 
+			if($v instanceof WireData) $v = $v->get($field);
+				else if($v instanceof Wire) $v = $v->$field; 
 
 			/* FUTURE/TODO
 			// Check if $v contains another selector expression within it, and treat it as an OR if it does
