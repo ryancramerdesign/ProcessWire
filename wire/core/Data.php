@@ -45,6 +45,25 @@ class WireData extends Wire implements IteratorAggregate {
 	}
 
 	/**
+	 * Same as set() but triggers no change tracking or hooks
+	 *
+	 * If trackChanges is false, then this is no different than set().
+	 * If trackChanges is true, then the value will be set but not recorded in the changes list.
+	 *
+	 * @param string $key
+	 * @param mixed $value
+	 * @return this
+	 *
+	 */
+	public function setQuietly($key, $value) {
+		$track = $this->trackChanges; 
+		if($track) $this->setTrackChanges(false);
+		$this->set($key, $value);
+		if($track) $this->setTrackChanges(true);
+		return $this;
+	}
+
+	/**
 	 * Is $value1 equal to $value2?
 	 *
 	 * This template method provided so that descending classes can optionally determine 

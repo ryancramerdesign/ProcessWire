@@ -13,8 +13,7 @@
  * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -24,7 +23,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		return array(
 			'title' => __('Repeater', __FILE__), // Module Title
 			'summary' => __('Maintains a collection of fields that are repeated for any number of times.', __FILE__), // Module Summary
-			'version' => 100,
+			'version' => 101,
 			'autoload' => true,
 			'installs' => 'InputfieldRepeater'
 			);
@@ -61,6 +60,10 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 *
 	 */
 	public function __construct() {
+
+		require_once(dirname(__FILE__) . '/RepeaterPage.php'); 
+		require_once(dirname(__FILE__) . '/RepeaterPageArray.php'); 
+
 		$this->set('repeatersRootPageID', 0); 	
 	}
 
@@ -80,6 +83,12 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	public function ready() {
 		if(wire('page')->process == 'ProcessPageEdit') $this->addHookBefore('ProcessPageEdit::ajaxSave', $this, 'hookProcessPageEditAjaxSave'); 
 		$this->addHookBefore('PageFinder::getQuery', $this, 'hookPageFinderGetQuery'); 
+
+		// make sure that all templates used by repeater pages enforce a Page type of RepeaterPage
+		foreach(wire('templates') as $template) {
+			if(strpos($template->name, self::templateNamePrefix) === false) continue; 
+			$template->setQuietly('pageClass', 'RepeaterPage');
+		}
 	}
 
 	/**
@@ -410,12 +419,14 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 */
 	public function getBlankRepeaterPage(Page $page, Field $field) {
 		$parent = $this->getRepeaterPageParent($page, $field); 
-		$readyPage = new Page();
+		$readyPage = new RepeaterPage();
 		$readyPage->template = $this->getRepeaterTemplate($field);
 		if($parent->id) $readyPage->parent = $parent; 
 		$readyPage->addStatus(Page::statusHidden); 
 		$readyPage->addStatus(Page::statusUnpublished); 
 		$readyPage->name = $this->getUniqueRepeaterPageName();
+		$readyPage->setForPage($page);
+		$readyPage->setForField($field);
 		return $readyPage; 
 	}
 
@@ -1264,102 +1275,5 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		}
 	}
 
-}
-
-/**
- * Special PageArray for use by repeaters that includes a getNewItem() method
- *
- */ 
-
-class RepeaterPageArray extends PageArray {
-
-	/**
-	 * The page that contains the repeater field (not the parent in the repeaters structure)
-	 *
-	 */ 
-	protected $parent = null;
-
-	/**
-	 * The repeater field (from $this->fields API var)
-	 *
-	 */
-	protected $field = null;
-
-	public function __construct(Page $parent, Field $field) {
-		$this->setParent($parent);
-		$this->setField($field); 
-	}
-
-	public function setParent(Page $parent) { $this->parent = $parent; }
-	public function getParent() { return $this->parent; }
-	public function setField(Field $field) { $this->field = $field; }
-	public function getField() { return $this->field; }
-
-	/**
-	 * Alias of getNewItem() kept for backwards compatibility
-	 *
-	 */
-	public function getNew() { return $this->getNewItem(); }
-
-	/**
-	 * Return a new repeater item ready for use
-	 *
- 	 * If there are ready items, it will return the first ready item
-	 * Otherwise it'll create a new item
-	 *
- 	 * This method is different from FieldtypeRepeater::getBlankRepeaterPage: 
-	 * 1. It returns an already existing readyPage, if it exists (otherwise it creates a new page)
-	 * 2. The returned page is in a non-hidden published state, so will appear as soon as it is saved
-	 *
-	 * Note that this method has no relation/similarity to the makeNew() method.
-	 *
-	 * @return Page
-	 *
-	 */
-	public function getNewItem() {
-
-		$page = null;
-		$of = $this->parent->of(false); 
-
-		foreach($this as $item) {
-			if($item->is(Page::statusUnpublished) && $item->is(Page::statusHidden)) {
-				$page = $item;
-				break;
-			}
-		}
-
-		if(is_null($page)) { 
-			$page = $this->field->type->getBlankRepeaterPage($this->parent, $this->field); 
-			$this->add($page);
-		} else {
-			$this->trackChange('add');
-		}
-
-		$page->of(false);
-		$page->removeStatus(Page::statusUnpublished); 
-		$page->removeStatus(Page::statusHidden); 
-		$page->sort = $this->count();
-
-		if($of) $this->parent->of(true);
-
-		return $page;
-	}
-
-	/**
-	 * Creates a new blank instance of a RepeaterPageArray. For internal use. 
-	 * 
-	 * Note that this method has no relation/similarity to the getNewItem()/getNew() methods.
-	 *
-	 * @param array $items Array of items to populate (optional)
-	 * @return WireArray
-	 *
-	 */
-	public function makeNew() {
-		$class = get_class($this);
-		$newArray = new $class($this->parent, $this->field);
-		return $newArray;
-	}
-
-	
 }
 
