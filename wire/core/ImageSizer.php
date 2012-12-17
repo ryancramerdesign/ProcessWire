@@ -525,7 +525,7 @@ class ImageSizer {
 			else if(!$cropping) $cropping = false;
 			else if(in_array($cropping, self::$croppingValues)) $cropping = array_search($cropping, self::$croppingValues); 
 			else if(array_key_exists($cropping, self::$croppingValues)) $cropping = $cropping; 
-			else $cropping = true; // unknown value, default to TRUE/center
+			else $cropping = true; // unknown value or 'center', default to TRUE/center
 		return $cropping; 
 	}
 

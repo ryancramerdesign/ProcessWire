@@ -133,17 +133,51 @@ class Pageimage extends Pagefile {
 	/**
 	 * Return a Pageimage object sized/cropped to the specified dimensions. 
 	 *
+	 * The 3rd argument $options may be an array, string, integer or boolean. When an array, you may specify multiple options
+	 * to override. These include: 'quality', 'upscaling', and 'cropping'. When a string, it is assumed you are specifying
+	 * a cropping value. When an integer, it is assumed you are specifying a quality value. When a boolean, it is assumed you
+	 * are specifying an 'upscaling' toggle on/off. 
+	 *
+	 * Cropping may be specified either in the options array with the 'cropping' index, or via a 3rd string param to the function.
+	 * Possible values for 'cropping' include: northwest, north, northeast, west, center, east, southwest, south, southeast.
+	 * If you prefer, you can specify shorter versions like 'nw' for 'northwest', or 's' for 'south', etc. 
+	 * If cropping is not specified, then 'center' is assumed. 
+	 * To completely disable cropping, specify a blank string.
+	 *
+	 * Quality may be specified either in the options array with the 'quality' index, or via a 3rd integer param to the function.
+	 * Possible values for 'quality' are 1 to 100. Default is 90. Important: See the PLEASE NOTE section below.
+	 *
+	 * Upscaling may be specified either in the options array with the 'upscaling' index, or via a 3rd boolean param to the function.
+	 * Possible values for 'upscaling' are TRUE and FALSE. Default is TRUE. Important: See the PLEASE NOTE section below.
+	 *
+	 * PLEASE NOTE: ProcessWire doesn't keep separate copies of images with different 'quality' or 'upscaling' values. If you change
+	 * these and a variation image at the existing dimensions already exists, then you'll still get the old version. 
+	 * To clear out an old version of an image, use the removeVariations() method in this class before calling size() with new 
+	 * quality or upscaling settings.
+	 *
 	 * @param int $width
 	 * @param int $height
-	 * @param array $options Array of options to override default behavior (quality=90, upscaling=true, cropping=true).
-	 *	Possible values for 'cropping' include: northwest, north, northeast, west, east, southwest, south, southeast.
-	 *	If you prefer, you can specify shorter versions like 'nw' for 'northwest', or 's' for 'south', etc. 
-	 *	If cropping is not specified, then center cropping is assumed (which can also be specified by boolean TRUE).
-	 *	To completely disable cropping, specify boolean FALSE.
+	 * @param array|string|int $options Array of options to override default behavior (quality=90, upscaling=true, cropping=center).
+	 *	Or you may specify a string|bool with with 'cropping' value if you don't need to combine with other options.
+	 *	Or you may specify an integer with 'quality' value if you don't need to combine with other options.
+	 * 	Or you may specify a boolean with 'upscaling' value if you don't need to combine with other options.
 	 * @return Pageimage
 	 *
 	 */
-	public function size($width, $height, array $options = array()) {
+	public function size($width, $height, $options = array()) {
+
+		if(!is_array($options)) { 
+			if(is_string($options)) {
+				// optionally allow a string to be specified with crop direction, for shorter syntax
+				$options = array('cropping' => $options); 
+			} else if(is_int($options)) {
+				// optionally allow an integer to be specified with quality, for shorter syntax
+				$options = array('quality' => $options);
+			} else if(is_bool($options)) {
+				// optionally allow a boolean to be specified with upscaling toggle on/off
+				$options = array('upscaling' => $options); 
+			}
+		}
 
 		$defaultOptions = array(
 			'upscaling' => true,
@@ -189,11 +223,11 @@ class Pageimage extends Pagefile {
 	 * If not given a width, it'll return the width of this Pageimage
 	 *
 	 * @param int $n Optional width
-	 * @param array $options Optional options (see size function)
+	 * @param array|string|int|bool $options Optional options (see size function)
 	 * @return int|Pageimage
 	 *
 	 */
-	public function width($n = 0, array $options = array()) {
+	public function width($n = 0, $options = array()) {
 		if($n) return $this->size($n, 0, $options); 	
 		$info = $this->getImageInfo();
 		return $info['width']; 
@@ -206,11 +240,11 @@ class Pageimage extends Pagefile {
 	 * If not given a height, it'll return the height of this Pageimage
 	 *
 	 * @param int $n Optional height
-	 * @param array $options Optional options (see size function)
+	 * @param array|string|int|bool $options Optional options (see size function)
 	 * @return int|Pageimage
 	 *
 	 */
-	public function height($n = 0, array $options = array()) {
+	public function height($n = 0, $options = array()) {
 		if($n) return $this->size(0, $n, $options); 	
 		$info = $this->getImageInfo();
 		return $info['height']; 
