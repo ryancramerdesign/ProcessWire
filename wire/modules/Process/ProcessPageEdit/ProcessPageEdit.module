@@ -142,7 +142,7 @@ class ProcessPageEdit extends Process {
 		if($this->page->is(Page::statusLocked)) {
 			if(!$this->user->hasPermission('page-lock', $this->page) || (!empty($_POST['status']) && in_array(Page::statusLocked, $_POST['status']))) {
 				$this->error($this->noticeLocked); 
-				$this->processSaveRedirect();
+				$this->processSaveRedirect($this->redirectUrl);
 				return;
 			}
 		}
@@ -190,17 +190,18 @@ class ProcessPageEdit extends Process {
 			}
 		}
 
-		$this->processSaveRedirect();
+		$this->processSaveRedirect($this->redirectUrl);
 	}	
 
 	/**
 	 * Perform an after save redirect
 	 *
 	 */
-	protected function processSaveRedirect() {
-		if(!$this->redirectUrl) $this->redirectUrl = "./?id={$this->page->id}";
-		if($this->input->get->modal) $this->redirectUrl .= "&modal=1";
-		$this->session->redirect($this->redirectUrl); 
+	protected function ___processSaveRedirect($redirectUrl) {
+		if(!$redirectUrl) $redirectUrl = "./?id={$this->page->id}";
+		if($this->input->get->modal) $redirectUrl .= "&modal=1";
+		$this->redirectUrl = $redirectUrl;
+		$this->session->redirect($redirectUrl); 
 	}
 
 
