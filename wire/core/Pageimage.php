@@ -135,7 +135,11 @@ class Pageimage extends Pagefile {
 	 *
 	 * @param int $width
 	 * @param int $height
-	 * @param array $options Array of options to override default behavior (quality=90, upscaling=true, cropping=true)
+	 * @param array $options Array of options to override default behavior (quality=90, upscaling=true, cropping=true).
+	 *	Possible values for 'cropping' include: northwest, north, northeast, west, east, southwest, south, southeast.
+	 *	If you prefer, you can specify shorter versions like 'nw' for 'northwest', or 's' for 'south', etc. 
+	 *	If cropping is not specified, then center cropping is assumed (which can also be specified by boolean TRUE).
+	 *	To completely disable cropping, specify boolean FALSE.
 	 * @return Pageimage
 	 *
 	 */
@@ -147,18 +151,23 @@ class Pageimage extends Pagefile {
 			'quality' => 90
 			);
 
+		$configOptions = wire('config')->imageSizerOptions; 
+		if(!is_array($configOptions)) $configOptions = array();
+		$options = array_merge($defaultOptions, $configOptions, $options); 
+
 		$width = (int) $width;
 		$height = (int) $height; 
+		$crop = ImageSizer::croppingValue($options['cropping']); 	
+
+		// if crop is TRUE or FALSE, we don't reflect that in the filename, so make it blank
+		if(is_bool($crop)) $crop = '';
 
 		$basename = basename($this->basename(), "." . $this->ext()); 		// i.e. myfile
-		$basename .= '.' . $width . 'x' . $height . "." . $this->ext();	// i.e. myfile.100x100.jpg
+		$basename .= '.' . $width . 'x' . $height . $crop . "." . $this->ext();	// i.e. myfile.100x100.jpg or myfile.100x100nw.jpg
 		$filename = $this->pagefiles->path() . $basename; 
 
 		if(!is_file($filename)) {
 			if(@copy($this->filename(), $filename)) {
-				$configOptions = wire('config')->imageSizerOptions; 
-				if(!is_array($configOptions)) $configOptions = array();
-				$options = array_merge($defaultOptions, $configOptions, $options); 
 				$sizer = new ImageSizer($filename); 
 				$sizer->setOptions($options);
 				$sizer->resize($width, $height); 
@@ -225,7 +234,8 @@ class Pageimage extends Pagefile {
 
 		foreach($dir as $file) {
 			if($file->isDir() || $file->isDot()) continue; 			
-			if(!preg_match('/^'  . $basename . '\.\d+x\d+\.' . $this->ext() . '$/', $file->getFilename())) continue; 
+			//                            basename.50x50nw.jpg
+			if(!preg_match('/^'  . $basename . '\.\d+x\d+(?:[a-z]{1,2})?\.' . $this->ext() . '$/', $file->getFilename())) continue; 
 			$pageimage = clone $this; 
 			$pathname = $file->getPathname();
 			if(DIRECTORY_SEPARATOR != '/') $pathname = str_replace(DIRECTORY_SEPARATOR, '/', $pathname);
@@ -276,7 +286,7 @@ class Pageimage extends Pagefile {
 	 */
 	public function getOriginal() {
 		if($this->original) return $this->original; 
-		if(!preg_match('/^(.+\.)\d+x\d+\.' . $this->ext() . '$/', $this->basename(), $matches)) return null;
+		if(!preg_match('/^(.+\.)\d+x\d+(?:[a-z]{1,2})?\.' . $this->ext() . '$/', $this->basename(), $matches)) return null;
 		$basename = $matches[1] . $this->ext();
 		$this->original = $this->pagefiles->get($basename); 
 		return $this->original;

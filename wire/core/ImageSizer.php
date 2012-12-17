@@ -58,10 +58,32 @@ class ImageSizer {
 	protected $upscaling = true;
 
 	/**
-	 * Allow images to be cropped to achieve necessary dimension?
+	 * Directions that cropping may gravitate towards
+	 *
+	 * Beyond those included below, TRUE represents center and FALSE represents no cropping.
+	 *
+	 */
+	static protected $croppingValues = array(
+		'nw' => 'northwest',
+		'n'  => 'north',
+		'ne' => 'northeast',
+		'w'  => 'west',
+		'e'  => 'east',
+		'sw' => 'southwest',
+		's'  => 'south',
+		'se' => 'southeast',
+		);
+
+	/**
+	 * Allow images to be cropped to achieve necessary dimension? If so, what direction?
+	 *
+	 * Possible values: northwest, north, northeast, west, center, east, southwest, south, southeast 
+	 * 	or TRUE to crop to center, or FALSE to disable cropping.
+	 * Default is: TRUE
 	 *
 	 */
 	protected $cropping = true;
+
 
 	/**
 	 * Was the given image modified?
@@ -207,6 +229,39 @@ class ImageSizer {
 
 		$w1 = ($gdWidth / 2) - ($targetWidth / 2);
 		$h1 = ($gdHeight / 2) - ($targetHeight / 2);
+
+		if(is_string($this->cropping)) switch($this->cropping) { 
+			// @interrobang crop directions
+			case 'nw':
+				$w1 = 0;
+				$h1 = 0;
+				break;
+			case 'n':
+				$h1 = 0;
+				break;
+			case 'ne':
+				$w1 = $gdWidth - $targetWidth;
+				$h1 = 0;
+				break;
+			case 'w':
+				$w1 = 0;
+				break;
+			case 'e':
+				$w1 = $gdWidth - $targetWidth;
+				break;
+			case 'sw':
+				$w1 = 0;
+				$h1 = $gdHeight - $targetHeight;
+				break;
+			case 's':
+				$h1 = $gdHeight - $targetHeight;
+				break;
+			case 'se':
+				$w1 = $gdWidth - $targetWidth;
+				$h1 = $gdHeight - $targetHeight;
+				break;
+			default: // center or false, we do nothing
+		}
 
 		imagecopyresampled($thumb2, $thumb, 0, 0, $w1, $h1, $targetWidth, $targetHeight, $targetWidth, $targetHeight);
 
@@ -391,11 +446,15 @@ class ImageSizer {
 	}
 
 	/**
-	 * Turn on/off cropping
+	 * Turn on/off cropping and/or set cropping direction
+	 *
+	 * @param bool|string $cropping Specify one of: northwest, north, northeast, west, center, east, southwest, south, southeast.
+	 *	Or to disable cropping, specify boolean false. To enable cropping with default (center), you may also specify boolean true.
+	 * @return this
 	 *
 	 */
 	public function setCropping($cropping = true) {
-		$this->cropping = $cropping; 
+		$this->cropping = self::croppingValue($cropping);
 		return $this;
 	}
 
@@ -438,6 +497,36 @@ class ImageSizer {
 			}
 		}
 		return $this; 
+	}
+
+	/**
+	 * Return an array of the current options
+	 *
+	 * @return array
+	 *
+	 */
+	public function getOptions() {
+		return array(
+			'quality' => $this->quality, 
+			'cropping' => $this->cropping, 
+			'upscaling' => $this->upscaling
+			);
+	}
+
+	/**
+	 * Given an unknown cropping value, return the validated internal representation of it
+	 *
+	 * @return string|bool
+	 *
+	 */
+	static public function croppingValue($cropping) {
+		if(is_string($cropping)) $cropping = strtolower($cropping); 
+		if($cropping === true) $cropping = true; // default, crop to center
+			else if(!$cropping) $cropping = false;
+			else if(in_array($cropping, self::$croppingValues)) $cropping = array_search($cropping, self::$croppingValues); 
+			else if(array_key_exists($cropping, self::$croppingValues)) $cropping = $cropping; 
+			else $cropping = true; // unknown value, default to TRUE/center
+		return $cropping; 
 	}
 
 }
