@@ -129,6 +129,57 @@ class WireData extends Wire implements IteratorAggregate {
 	}
 
 	/**
+	 * Get a property via dot syntax: field.subfield (static)
+	 *
+	 * Static version for internal core use. Use the non-static getDot() instead.
+	 *
+	 * @param string $key 
+	 * @param Wire $from The instance you want to pull the value from
+	 * @return null|mixed Returns value if found or null if not
+	 *
+	 */
+	public static function _getDot($key, Wire $from) {
+		$key = trim($key, '.');
+		if(strpos($key, '.')) {
+			// dot present
+			$keys = explode('.', $key); // convert to array
+			$key = array_shift($keys); // get first item
+		} else {
+			// dot not present
+			$keys = array();
+		}
+		if(Wire::getFuel($key) !== null) return null; // don't allow API vars to be retrieved this way
+		if($from instanceof WireData) $value = $from->get($key);
+			else if($from instanceof WireArray) $value = $from->getProperty($key);
+			else $value = $from->$key;
+		if(!count($keys)) return $value; // final value
+		if(is_object($value)) {
+			$keys = implode('.', $keys); // convert back to string
+			if($value instanceof WireData) $value = $value->getDot($keys); // for override potential
+				else $value = self::_getDot($keys, $value);
+		} else {
+			// there is a dot property remaining and nothing to send it to
+			$value = null; 
+		}
+		return $value; 
+	}
+
+	/**
+	 * Get a property via dot syntax: field.subfield.subfield
+	 *
+	 * Some classes of WireData may choose to add a call to this as part of their 
+	 * get() method as a syntax convenience.
+	 *
+	 * @param string $key 
+	 * @param Wire $from The instance you want to pull the value from
+	 * @return null|mixed Returns value if found or null if not
+	 *
+	 */
+	public function getDot($key) {
+		return self::_getDot($key, $this); 
+	}
+
+	/**
 	 * Provides direct reference access to variables in the $data array
 	 *
 	 * Otherwise the same as get()

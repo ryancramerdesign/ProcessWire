@@ -105,6 +105,29 @@ class PageArray extends WireArray {
 	*/
 
 	/**
+	 * Get a property of the PageArray
+	 *
+	 * These map to functions form the array and are here for convenience.
+	 * Properties include count, total, start, limit, last, first, keys, values, 
+	 * These can also be accessed by direct reference. 
+	 *
+	 * @param string $property
+	 * @return mixed
+	 *
+	 */
+	public function getProperty($property) {
+		static $properties = array(
+			// property => method to map to
+			'total' => 'getTotal',	
+			'start' => 'getStart',
+			'limit' => 'getLimit',
+			);
+		if(!in_array($property, $properties)) return parent::getProperty($property);
+		$func = $properties[$property];
+		return $this->$func();
+	}
+
+	/**
 	 * Does this PageArray contain the given index or Page? 
 	 *
 	 * @param Page|id $page Array index or Page object. 
@@ -342,7 +365,7 @@ class PageArray extends WireArray {
 	}
 
 	/**
-	 * Get the vaule of $property from $item
+	 * Get the value of $property from $item
 	 *
 	 * Used by the WireArray::sort method to retrieve a value from a Wire object. 
 	 * If output formatting is on, we turn it off to ensure that the sorting
@@ -357,17 +380,16 @@ class PageArray extends WireArray {
 
 		if($item instanceof Page) {
 			$value = $item->getUnformatted($property); 
-
+		} else if(strpos($property, '.') !== false) {
+			$value = WireData::_getDot($property, $item);
 		} else if($item instanceof WireArray) {
-			if($property == 'count') {
-				$value = count($item);
-			} else {
+			$value = $item->getProperty($property); 
+			if(is_null($value)) {
 				$value = $item->first();
-				if($value) {
-					if($value instanceof Page) $value = $value->getUnformatted($property);
-						else if($value instanceof WireData) $value = $value->$property;
-				}
+				$value = $this->getItemPropertyValue($value, $property);
 			}
+		} else {
+			$value = $item->$property;
 		}
 
 		return $value;

@@ -288,6 +288,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * @param int|string|array|object Value of item to set. 
 	 */
 	public function __set($property, $value) {
+		if($this->getProperty($property)) throw new WireException("Property '$property' is a reserved word and may not be set by direct reference."); 
 		$this->set($property, $value); 
 	}
 
@@ -363,8 +364,34 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 */
 	public function __get($property) {
 		$value = parent::__get($property); 
+		if(is_null($value)) $value = $this->getProperty($property);
 		if(is_null($value)) $value = $this->get($property); 
 		return $value; 
+	}
+
+	/**
+	 * Get a property of the array
+	 *
+	 * These map to functions form the array and are here for convenience.
+	 * Properties include count, last, first, keys, values.
+	 * These can also be accessed by direct reference. 
+	 *
+	 * @param string $property
+	 * @return mixed
+	 *
+	 */
+	public function getProperty($property) {
+		static $properties = array(
+			// property => method to map to
+			'count' => 'count',	
+			'last' => 'last',
+			'first' => 'first',
+			'keys' => 'getKeys',
+			'values' => 'getValues',
+			);
+		if(!in_array($property, $properties)) return null;
+		$func = $properties[$property];
+		return $this->$func();
 	}
 
 	/**
@@ -888,6 +915,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 */
 	protected function getItemPropertyValue(Wire $item, $property) {
+		if(strpos($property, '.') !== false) return WireData::_getDot($property, $item); 
 		return $item->$property; 
 	}
 

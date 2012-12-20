@@ -527,14 +527,36 @@ class Page extends WireData {
 			default:
 				if($key && isset($this->settings[(string)$key])) return $this->settings[$key]; 
 
-				if(($value = $this->getFieldFirstValue($key)) === null) {
-					if(($value = $this->getFieldValue($key)) === null) {
-						// if there is a selector, we'll assume they are using the get() method to get a child
-						if(Selectors::stringHasOperator($key)) $value = $this->child($key); 
-					}
-				}
+				if(($value = $this->getFieldFirstValue($key)) !== null) return $value; 
+				if(($value = $this->getFieldValue($key)) !== null) return $value;
+
+				// if there is a selector, we'll assume they are using the get() method to get a child
+				if(Selectors::stringHasOperator($key)) return $this->child($key);
+
+				// check if it's a field.subfield property, but only if output formatting is off
+				if(!$this->outputFormatting() && strpos($key, '.') !== false && ($value = $this->getDot($key)) !== null) return $value;
 		}
 
+		return $value; 
+	}
+
+	/**
+	 * Handles get() method requests for properties that include a period like "field.subfield"
+	 *
+	 * Typically these resolve to objects, and the subfield is pulled from the object.
+	 * Currently we only allow this dot syntax when output formatting is off. This limitation may be removed
+	 * but we have to consider potential security implications before doing so.
+	 *
+	 * @param string $key Property name in field.subfield format
+	 * @return null|mixed Returns null if not found or invalid. Returns property value on success.
+	 *
+	 */
+	public function getDot($key) {
+		if(strpos($key, '.') === false) return $this->get($key);
+		$of = $this->outputFormatting();
+		if($of) $this->setOutputFormatting(false);
+		$value = self::_getDot($key, $this);
+		if($of) $this->setOutputFormatting(true);
 		return $value; 
 	}
 
@@ -710,6 +732,8 @@ class Page extends WireData {
 	/**
 	 * Return this page's parent Page
 	 *
+	 * @todo add selector option
+	 *
 	 */
 	public function parent() {
 		return $this->parent ? $this->parent : new NullPage(); 
@@ -779,6 +803,8 @@ class Page extends WireData {
 
 	/**
 	 * Return this page's parent pages. 
+	 *
+	 * @todo add selector option
 	 *
 	 */
 	public function parents() {
