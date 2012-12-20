@@ -103,7 +103,7 @@ class Password extends Wire {
 
 		// if it's a blowfish hash, separate the salt from the hash
 		if($this->isBlowfish($hash)) {
-			$this->data['salt'] = substr($hash, 0, 28);
+			$this->data['salt'] = substr($hash, 0, 29); // previously 28
 			$this->data['hash'] = substr($hash, 29);
 		} else {
 			$this->data['hash'] = $hash;
@@ -133,8 +133,8 @@ class Password extends Wire {
 		$chars = './abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 		$len = strlen($chars)-1;
 
-		// generate a 21 character random blowfish salt
-		for($n = 0; $n < 21; $n++) $salt .= $chars[mt_rand(0, $len)]; 
+		// generate a 22 character random blowfish salt (was 21)
+		for($n = 0; $n < 22; $n++) $salt .= $chars[mt_rand(0, $len)]; 
 		$salt .= '$'; // plus trailing $
 
 		return $salt;
