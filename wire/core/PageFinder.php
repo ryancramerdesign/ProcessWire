@@ -491,9 +491,9 @@ class PageFinder extends Wire {
 			if($value == 'random') { 
 				$value = 'RAND()';
 
-			} else if($value == 'num_children' || $value == 'numChildren') { 
-				if(!$this->getQueryNumChildren) $this->getQueryNumChildren($query, new SelectorGreaterThan('num_children', "-1")); 
-				$value = 'num_children'; 
+			} else if($value == 'num_children' || $value == 'numChildren' || ($value == 'children' && $subValue == 'count')) { 
+				// sort by quantity of children
+				$value = $this->getQueryNumChildren($query, new SelectorGreaterThan('num_children', "-1")); 
 
 			} else if($value == 'parent') {
 				// sort by parent native field. does not work with non-native parent fields. 
@@ -502,6 +502,7 @@ class PageFinder extends Wire {
 				$value = "$tableAlias." . ($subValue ? $subValue : "name"); 
 
 			} else if($value == 'template') { 
+				// sort by template
 				$tableAlias = "_sort_templates" . ($subValue ? "_$subValue" : ''); 
 				$query->join("templates AS $tableAlias ON $tableAlias.id=pages.templates_id"); 
 				$value = "$tableAlias." . ($subValue ? $subValue : "name"); 
@@ -515,7 +516,11 @@ class PageFinder extends Wire {
 				$tableAlias = "_sort_{$field->name}" . ($subValue ? "_$subValue" : '');
 				$query->leftjoin("{$field->table} AS $tableAlias ON $tableAlias.pages_id=pages.id");
 
-				if($field->type instanceof FieldtypePage) {
+				if($subValue === 'count') {
+					// sort by quantity of items
+					$value = "COUNT($tableAlias.data)";
+
+				} else if($field->type instanceof FieldtypePage) {
 					// If it's a FieldtypePage, then data isn't worth sorting on because it just contains an ID to the page
 					// so we also join the page and sort on it's name instead of the field's "data" field.
 					$tableAlias2 = "_sort_page_{$field->name}" . ($subValue ? "_$subValue" : '');
@@ -740,24 +745,46 @@ class PageFinder extends Wire {
 		if(!in_array($selector->operator, array('=', '<', '>', '<=', '>=', '!='))) 
 			throw new WireException("Operator '{$selector->operator}' not allowed for 'num_children' selector."); 
 
-		if($this->getQueryNumChildren) 
-			throw new WireException("You may only have one 'children.count' selector per query"); 
+		//if($this->getQueryNumChildren) throw new WireException("You may only have one 'children.count' selector per query"); 
 		
 		$value = (int) $selector->value;
 		$this->getQueryNumChildren++; 
 		$n = $this->getQueryNumChildren;
+		$a = "pages_num_children$n";
+		$b = "num_children$n";
 
-		if((in_array($selector->operator, array('<', '<=', '!=')) && $value) || (($selector->operator == '=' || $selector->operator == '>=') && !$value)) {
+		if(	(in_array($selector->operator, array('<', '<=', '!=')) && $value) || 
+			(in_array($selector->operator, array('>', '>=', '!=')) && $value < 0) || 
+			(($selector->operator == '=' || $selector->operator == '>=') && !$value)) {
+
 			// allow for zero values
-	
+			$query->select("count($a.id) AS $b"); 
+			$query->leftjoin("pages AS $a ON ($a.parent_id=pages.id)");
+			$query->groupby("HAVING count($a.id){$selector->operator}$value"); 
+
+			/* FOR REFERENCE
 			$query->select("count(pages_num_children$n.id) AS num_children$n"); 
 			$query->leftjoin("pages AS pages_num_children$n ON (pages_num_children$n.parent_id=pages.id)");
 			$query->groupby("HAVING count(pages_num_children$n.id){$selector->operator}$value"); 
+			*/
+			return $b;
 
 		} else {
 
 			// non zero values
+			$query->select("$a.$b AS $b"); 
+			$query->leftjoin(
+				"(" . 
+				"SELECT p$n.parent_id, count(p$n.id) AS $b " . 
+				"FROM pages AS p$n " . 
+				"GROUP BY p$n.parent_id " . 
+				"HAVING $b{$selector->operator}$value " . 
+				") $a ON $a.parent_id=pages.id"); 
 
+			$where = "$a.$b{$selector->operator}$value"; 
+			$query->where($where);
+
+			/* FOR REFERENCE
 			$query->select("pages_num_children$n.num_children$n AS num_children$n"); 
 			$query->leftjoin(
 				"(" . 
@@ -768,6 +795,9 @@ class PageFinder extends Wire {
 				") pages_num_children$n ON pages_num_children$n.parent_id=pages.id"); 
 
 			$query->where("pages_num_children$n.num_children$n{$selector->operator}$value");
+			*/
+
+			return "$a.$b";
 		}
 
 	}
