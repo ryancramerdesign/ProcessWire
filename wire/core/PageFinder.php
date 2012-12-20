@@ -758,9 +758,9 @@ class PageFinder extends Wire {
 			(($selector->operator == '=' || $selector->operator == '>=') && !$value)) {
 
 			// allow for zero values
-			$query->select("count($a.id) AS $b"); 
+			$query->select("COUNT($a.id) AS $b"); 
 			$query->leftjoin("pages AS $a ON ($a.parent_id=pages.id)");
-			$query->groupby("HAVING count($a.id){$selector->operator}$value"); 
+			$query->groupby("HAVING COUNT($a.id){$selector->operator}$value"); 
 
 			/* FOR REFERENCE
 			$query->select("count(pages_num_children$n.id) AS num_children$n"); 
@@ -775,7 +775,7 @@ class PageFinder extends Wire {
 			$query->select("$a.$b AS $b"); 
 			$query->leftjoin(
 				"(" . 
-				"SELECT p$n.parent_id, count(p$n.id) AS $b " . 
+				"SELECT p$n.parent_id, COUNT(p$n.id) AS $b " . 
 				"FROM pages AS p$n " . 
 				"GROUP BY p$n.parent_id " . 
 				"HAVING $b{$selector->operator}$value " . 

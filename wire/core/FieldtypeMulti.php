@@ -258,7 +258,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 		$n = self::$getMatchQueryCount;
 		$field = $query->field;
 
-		if($subfield === 'count' && ctype_digit("$value") && in_array($operator, array("=", "!=", ">", "<", ">=", "<="))) {
+		if($subfield === 'count' && ctype_digit(ltrim("$value", '-')) && in_array($operator, array("=", "!=", ">", "<", ">=", "<="))) {
 
 			$value = (int) $value;
 			$t = $table . "_" . $n;
@@ -267,12 +267,14 @@ abstract class FieldtypeMulti extends Fieldtype {
 			$query->select("$t.num_$t AS num_$t");
 			$query->leftjoin(
 				"(" .
-				"SELECT $c.pages_id, count($c.pages_id) AS num_$t " .
+				"SELECT $c.pages_id, COUNT($c.pages_id) AS num_$t " .
 				"FROM {$field->table} AS $c " .
 				"GROUP BY $c.pages_id " .
 				") $t ON $t.pages_id=pages.id");
 
-			if((in_array($operator, array('<', '<=', '!=')) && $value) || (($operator == '=' || $operator == '>=') && !$value)) {
+			if( 	(in_array($operator, array('<', '<=', '!=')) && $value) || 
+				(in_array($operator, array('>', '>=')) && $value < 0) ||
+				(in_array($operator, array('=', '>=')) && !$value)) {
 				// allow for possible zero values	
 				$query->where("(num_$t{$operator}$value OR num_$t IS NULL)"); 
 			} else {
