@@ -261,6 +261,13 @@ class ImageSizer {
 				$h1 = $gdHeight - $targetHeight;
 				break;
 			default: // center or false, we do nothing
+
+		} else if(is_array($this->cropping)) {
+			// @interrobang + @u-nikos
+			if(strpos($this->cropping[0], '%') !== false) $w1 = ($gdWidth - $targetWidth) * (((int) $this->cropping[0]) / 100); // percent
+				else $w1 = (int) $this->cropping[0]; // pixels
+			if(strpos($this->cropping[1], '%') !== false) $h1 = ($gdHeight - $targetHeight) * (((int) $this->cropping[1]) / 100); // percent
+				else $h1 = (int) $this->cropping[1]; // pixels
 		}
 
 		imagecopyresampled($thumb2, $thumb, 0, 0, $w1, $h1, $targetWidth, $targetHeight, $targetWidth, $targetHeight);
@@ -448,7 +455,9 @@ class ImageSizer {
 	/**
 	 * Turn on/off cropping and/or set cropping direction
 	 *
-	 * @param bool|string $cropping Specify one of: northwest, north, northeast, west, center, east, southwest, south, southeast.
+	 * @param bool|string|array $cropping Specify one of: northwest, north, northeast, west, center, east, southwest, south, southeast.
+	 *	Or a string of: 50%,50% (x and y percentages to crop from)
+	 * 	Or an array('50%', '50%')
 	 *	Or to disable cropping, specify boolean false. To enable cropping with default (center), you may also specify boolean true.
 	 * @return this
 	 *
@@ -520,13 +529,50 @@ class ImageSizer {
 	 *
 	 */
 	static public function croppingValue($cropping) {
-		if(is_string($cropping)) $cropping = strtolower($cropping); 
+
+		if(is_string($cropping)) {
+			$cropping = strtolower($cropping); 
+			if(strpos($cropping, ',')) {
+				$cropping = explode(',', $cropping);
+				if(strpos($cropping[0], '%') !== false) $cropping[0] = round(min(100, max(0, $cropping[0]))) . '%';
+					else $cropping[0] = (int) $cropping[0];
+				if(strpos($cropping[1], '%') !== false) $cropping[1] = round(min(100, max(0, $cropping[1]))) . '%';
+					else $cropping[1] = (int) $cropping[1];
+			}
+		}
+		
 		if($cropping === true) $cropping = true; // default, crop to center
 			else if(!$cropping) $cropping = false;
+			else if(is_array($cropping)) $cropping = $cropping; // already took care of it above
 			else if(in_array($cropping, self::$croppingValues)) $cropping = array_search($cropping, self::$croppingValues); 
 			else if(array_key_exists($cropping, self::$croppingValues)) $cropping = $cropping; 
 			else $cropping = true; // unknown value or 'center', default to TRUE/center
+
 		return $cropping; 
+	}
+
+	/**
+	 * Given an unknown cropping value, return the string representation of it 
+	 *
+	 * Okay for use in filenames
+	 *
+	 * @return string
+	 *
+	 */
+	static public function croppingValueStr($cropping) {
+
+		$cropping = self::croppingValue($cropping); 
+
+		// crop name if custom center point is specified
+		if(is_array($cropping)) {
+			// p = percent, d = pixel dimension
+			$cropping = (strpos($cropping[0], '%') !== false ? 'p' : 'd') . ((int) $cropping[0]) . 'x' . ((int) $cropping[1]);
+		}
+
+		// if crop is TRUE or FALSE, we don't reflect that in the filename, so make it blank
+		if(is_bool($cropping)) $cropping = '';
+
+		return $cropping;
 	}
 
 }

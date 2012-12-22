@@ -169,6 +169,7 @@ class Pageimage extends Pagefile {
 		if(!is_array($options)) { 
 			if(is_string($options)) {
 				// optionally allow a string to be specified with crop direction, for shorter syntax
+				if(strpos($options, ',') !== false) $options = explode(',', $options); // 30,40
 				$options = array('cropping' => $options); 
 			} else if(is_int($options)) {
 				// optionally allow an integer to be specified with quality, for shorter syntax
@@ -176,7 +177,7 @@ class Pageimage extends Pagefile {
 			} else if(is_bool($options)) {
 				// optionally allow a boolean to be specified with upscaling toggle on/off
 				$options = array('upscaling' => $options); 
-			}
+			} 
 		}
 
 		$defaultOptions = array(
@@ -191,10 +192,7 @@ class Pageimage extends Pagefile {
 
 		$width = (int) $width;
 		$height = (int) $height; 
-		$crop = ImageSizer::croppingValue($options['cropping']); 	
-
-		// if crop is TRUE or FALSE, we don't reflect that in the filename, so make it blank
-		if(is_bool($crop)) $crop = '';
+		$crop = ImageSizer::croppingValueStr($options['cropping']); 	
 
 		$basename = basename($this->basename(), "." . $this->ext()); 		// i.e. myfile
 		$basename .= '.' . $width . 'x' . $height . $crop . "." . $this->ext();	// i.e. myfile.100x100.jpg or myfile.100x100nw.jpg
@@ -268,8 +266,7 @@ class Pageimage extends Pagefile {
 
 		foreach($dir as $file) {
 			if($file->isDir() || $file->isDot()) continue; 			
-			//                            basename.50x50nw.jpg
-			if(!preg_match('/^'  . $basename . '\.\d+x\d+(?:[a-z]{1,2})?\.' . $this->ext() . '$/', $file->getFilename())) continue; 
+			if(!$this->isVariation($file->getFilename())) continue; 
 			$pageimage = clone $this; 
 			$pathname = $file->getPathname();
 			if(DIRECTORY_SEPARATOR != '/') $pathname = str_replace(DIRECTORY_SEPARATOR, '/', $pathname);
@@ -280,6 +277,51 @@ class Pageimage extends Pagefile {
 
 		$this->variations = $variations; 
 		return $variations; 
+	}
+
+	/**
+	 * Given a filename, return array of info if this is a variation for this instance's file, false if not
+	 *
+	 * Returned array includes the following indexes: 
+	 * - original: Original basename
+	 * - width: Specified width
+	 * - height: Specified height
+	 * - crop: Cropping info string or blank if none
+	 * 
+	 * @param string $basename Filename to check
+	 * @return bool|array Returns false if not a variation or array of it is
+	 *
+	 */
+	public function isVariation($basename) {
+
+		$variationName = basename($basename);
+		$originalName = basename($this->basename, "." . $this->ext());  // excludes extension
+
+		// if originalName is already a variation filename, remove the variation info from it.
+		// reduce to original name, i.e. all info after (and including) a period
+		if(strpos($originalName, '.') && preg_match('/^([^.]+)\.\d+x\d+/', $originalName, $matches)) {
+			$originalName = $matches[1];
+		}
+
+		$re = 	'/^'  . 
+			$originalName . '\.' .		// myfile. 
+			'(\d+)x(\d+)' .			// 50x50	
+			'([pd]\d+x\d+|[a-z]{1,2})?' . 	// nw or p30x40 or d30x40
+			'\.' . $this->ext() . 		// .jpg
+			'$/';
+
+		// if regex does not match, return false
+		if(!preg_match($re, $variationName, $matches)) return false;
+
+		// this is a variation, return array of info
+		$info = array(
+			'original' => $originalName . '.' . $this->ext(), 
+			'width' => $matches[1],
+			'height' => $matches[2], 
+			'crop' => (isset($matches[3]) ? $matches[3] : '')
+			);
+
+		return $info;
 	}
 
 	/**
@@ -320,9 +362,9 @@ class Pageimage extends Pagefile {
 	 */
 	public function getOriginal() {
 		if($this->original) return $this->original; 
-		if(!preg_match('/^(.+\.)\d+x\d+(?:[a-z]{1,2})?\.' . $this->ext() . '$/', $this->basename(), $matches)) return null;
-		$basename = $matches[1] . $this->ext();
-		$this->original = $this->pagefiles->get($basename); 
+		$info = $this->isVariation($this->basename()); 
+		if($info === false) return null;
+		$this->original = $this->pagefiles->get($info['original']); 
 		return $this->original;
 	}
 
