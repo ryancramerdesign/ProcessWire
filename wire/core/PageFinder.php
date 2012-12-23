@@ -208,6 +208,7 @@ class PageFinder extends Wire {
 
 			$fields = $selector->field; 
 			$fields = is_array($fields) ? $fields : array($fields); 
+			$fieldsStr = ':' . implode(':', $fields) . ':'; // for strpos
 			$field = reset($fields); // first field
 			if(strpos($field, '.')) list($field, $subfield) = explode('.', $field); 
 				else $subfield = '';
@@ -234,7 +235,7 @@ class PageFinder extends Wire {
 				$this->getQueryNumChildren($query, $selector); 
 				continue; 
 
-			} else if($this->getFuel('fields')->isNativeName($field)) {
+			} else if($this->getFuel('fields')->isNativeName($field) || strpos($fieldsStr, ':parent.') !== false) {
 				$this->getQueryNativeField($query, $selector, $fields); 
 				continue; 
 			} 
@@ -615,56 +616,68 @@ class PageFinder extends Wire {
 	protected function getQueryNativeField(DatabaseQuerySelect $query, $selector, $fields) {
 
 		$value = $selector->value; 
-		$valueArray = is_array($value) ? $value : array($value); 
+		$values = is_array($value) ? $value : array($value); 
 		$SQL = '';
 
 		foreach($fields as $field) { 
 
+			// the following fields are defined in each iteration here because they may be modified in the loop
 			$table = "pages";
+			$operator = $selector->operator;
 			$subfield = '';
+			$IDs = array(); // populated in special cases where we can just match parent IDs
+			$sql = '';
+
 			if(strpos($field, '.')) list($field, $subfield) = explode('.', $field);
 
 			if(!$this->getFuel('fields')->isNativeName($field)) {
-				$this->error("Native and custom field names may not be combined in the same selector OR expression: " . implode('|', $fields)); 
-				continue; 
+				$subfield = $field;
+				$field = 'children';
 			}
 
-			$sql = '';
-
-			if($field == 'parent' || $field == 'parent_id') {
+			if(in_array($field, array('parent', 'parent_id', 'children'))) {
 
 				if(!$subfield || in_array($subfield, array('id', 'path', 'url'))) {
 					// match by location (id or path)
 					// convert parent fields like '/about/company/history' to the equivalent ID
-					foreach($valueArray as $k => $v) {
+					foreach($values as $k => $v) {
 						if(ctype_digit("$v")) continue; 
 						// convert path to id
 						$parent = $this->fuel('pages')->get($v); 
-						if(!$parent instanceof NullPage) $valueArray[$k] = $parent->id; 
-							else $valueArray[$k] = null;
+						if(!$parent instanceof NullPage) $values[$k] = $parent->id; 
+							else $values[$k] = null;
 
 					}
 					$field = 'parent_id';
-					if(count($valueArray) == 1 && $selector->getOperator() === '=') $this->parent_id = reset($valueArray); 
+
+					if($field == 'parent_id' && count($values) == 1 && $selector->getOperator() === '=') $this->parent_id = reset($values); 
 
 				} else {
 					// matching by a parent's native or custom field (subfield)
 
 					if(!$this->getFuel('fields')->isNativeName($subfield)) {
-						if(count($fields) > 1) throw new PageFinderSyntaxException("You may not perform field OR expressions with parent.$subfield");
-						return $this->getQueryNativeFieldParentCustom($query, $selector, $subfield, $valueArray);
+						$finder = new PageFinder();
+						$s = $field == 'children' ? '' : 'children.count>0, ';
+						$matches = $finder->find(new Selectors("include=all, $s$subfield{$operator}" . implode('|', $values)));
+						foreach($matches as $match) $IDs[] = (int) $match['id'];
+						if(!count($IDs)) $IDs[] = -1; // forced non match
+					} else {
+						// native
+						static $n = 0;
+						$table = "_parent_native" . (++$n);
+						$query->join("pages AS $table ON pages.parent_id=$table.id");
+						$field = $subfield;
 					}
-
-					// native
-					static $n = 0;
-					$n++;
-					$table = "_parent_native$n";
-					$query->join("pages AS $table ON pages.parent_id=$table.id");
-					$field = $subfield;
 				}
 			}
 
-			foreach($valueArray as $value) { 
+			if(count($IDs)) {
+				// parentIDs are IDs found via another query, and we don't need to match anything other than the parent ID
+				$in = $selector->not ? "NOT IN" : "IN"; 
+				$sql .= $field == 'children' ? "$table.parent_id " : "$table.id ";
+				$sql .= "$in(" . implode(',', $IDs) . ")";
+
+			} else foreach($values as $value) { 
 
 				if(is_null($value)) {
 					// an invalid/unknown walue was specified, so make sure it fails
@@ -676,7 +689,7 @@ class PageFinder extends Wire {
 					// convert templates specified as a name to the numeric template ID
 					// allows selectors like 'template=my_template_name'
 					$field = 'templates_id';
-					if(count($valueArray) == 1 && $selector->getOperator() === '=') $this->templates_id = reset($valueArray);
+					if(count($values) == 1 && $selector->getOperator() === '=') $this->templates_id = reset($values);
 					if(!ctype_digit("$value")) $value = (($template = $this->fuel('templates')->get($value)) ? $template->id : 0); 
 				}
 
@@ -686,14 +699,24 @@ class PageFinder extends Wire {
 					$value = date('Y-m-d H:i:s', $value); 
 				}
 
-				if(!$this->db->isOperator($selector->operator)) 
-					throw new PageFinderSyntaxException("Operator '{$selector->operator}' is not yet supported for fields native to pages table"); 
+				if($field == 'name' && in_array($operator, array('%=', '^=', '$=', '%^=', '%$=', '*=', '~='))) {
+					// handle partial match to 'name' field
+					$value = $this->db->escape_string(wire('sanitizer')->pageName($value));
+					if($operator == '^=' || $operator == '%^=') $value = "$value%";
+						else if($operator == '$=' || $operator == '%$=') $value = "%$value";
+						else $value = "%$value%";
+					$s = "$table.$field LIKE '$value'";
+					
+				} else if(!$this->db->isOperator($operator)) {
+					throw new PageFinderSyntaxException("Operator '{$operator}' is not supported for '$field'."); 
 
-				$value = $this->db->escape_string($value); 
-				$s = "$table." . $field . $selector->operator . ((ctype_digit("$value") && $field != 'name') ? ((int) $value) : "'$value'");
+				} else {
+					$value = $this->db->escape_string($value); 
+					$s = "$table." . $field . $operator . ((ctype_digit("$value") && $field != 'name') ? ((int) $value) : "'$value'");
+				}
 
 				if($selector->not) $s = "NOT ($s)";
-				if($selector->operator == '!=' || $selector->not) {
+				if($operator == '!=' || $selector->not) {
 					$sql .= $sql ? " AND $s": "$s"; 
 				} else {
 					$sql .= $sql ? " OR $s": "$s"; 
@@ -701,53 +724,15 @@ class PageFinder extends Wire {
 
 			}
 
-			if($SQL) $SQL .= " OR ($sql)"; 
-				else $SQL .= "($sql)";
+			if($sql) {
+				if($SQL) $SQL .= " OR ($sql)"; 
+					else $SQL .= "($sql)";
+			}
 		}
 
 		if(count($fields) > 1) $SQL = "($SQL)";
 
 		$query->where($SQL); 
-	}
-
-	/**
-	 * Handles parent field queries to custom fields, like parent.title=About|Program
-	 *	 
-	 */
-	protected function getQueryNativeFieldParentCustom(DatabaseQuerySelect $query, $selector, $subfield, array $valueArray) {
-
-		$finder = new PageFinder();
-		$value = implode('|', $valueArray);
-	
-		if($selector->operator == '!=') {
-			$subfieldInstance = $this->fuel('fields')->get($subfield);
-			$matches = $finder->find(new Selectors("$subfield=$value, children.count>0")); 
-			if(count($matches)) {
-				$ids = array();
-				foreach($matches as $match) $ids[$match['id']] = $match['id'];
-				$table = $subfieldInstance->table;
-				static $xcnt = 0;
-				$t = '_xparent_' . $table . (++$xcnt);
-				$join = "$table AS $t ON $t.pages_id=pages.parent_id AND $t.pages_id IN(" . implode(',', $ids) . ")";
-				if($selector->not) {
-					$query->join($join);
-				} else {
-					$query->leftjoin($join);
-					$query->where("$t.pages_id IS NULL");
-				}
-			}
-
-		} else {
-			$matches = $finder->find(new Selectors("children.count>0, $subfield{$selector->operator}" . implode('|', $valueArray)));
-			if(count($matches)) {
-				$ids = array();
-				foreach($matches as $m) $ids[$m['id']] = $m['id'];
-				$in = $selector->not ? 'NOT IN' : 'IN';
-				$query->where("pages.parent_id $in(" . implode(',', $ids) . ")");
-			} else if(!$selector->not) {
-				$query->where('1>2'); // forced non-match
-			}
-		}
 	}
 
 	/**
