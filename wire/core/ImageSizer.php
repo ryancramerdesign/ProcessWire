@@ -264,10 +264,19 @@ class ImageSizer {
 
 		} else if(is_array($this->cropping)) {
 			// @interrobang + @u-nikos
-			if(strpos($this->cropping[0], '%') !== false) $w1 = ($gdWidth - $targetWidth) * (((int) $this->cropping[0]) / 100); // percent
-				else $w1 = (int) $this->cropping[0]; // pixels
-			if(strpos($this->cropping[1], '%') !== false) $h1 = ($gdHeight - $targetHeight) * (((int) $this->cropping[1]) / 100); // percent
-				else $h1 = (int) $this->cropping[1]; // pixels
+			if(strpos($this->cropping[0], '%') === false) $pointX = (int) $this->cropping[0];
+				else $pointX = $gdWidth * ((int) $this->cropping[0] / 100);
+
+			if(strpos($this->cropping[1], '%') === false) $pointY = (int) $this->cropping[1];
+				else $pointY = $gdHeight * ((int) $this->cropping[1] / 100);
+
+			if($pointX < $targetWidth / 2) $w1 = 0;
+				else if($pointX > ($gdWidth - $targetWidth / 2)) $w1 = $gdWidth - $targetWidth;
+				else $w1 = $pointX - $targetWidth / 2;
+
+			if($pointY < $targetHeight / 2) $h1 = 0;
+				else if($pointY > ($gdHeight - $targetHeight / 2)) $h1 = $gdHeight - $targetHeight;
+				else $h1 = $pointY - $targetHeight / 2;
 		}
 
 		imagecopyresampled($thumb2, $thumb, 0, 0, $w1, $h1, $targetWidth, $targetHeight, $targetWidth, $targetHeight);
