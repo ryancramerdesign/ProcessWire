@@ -6,15 +6,20 @@
  * Manages Pagefiles, ensuring proper storage in published/draft dirs and migration of files between them
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
 class PagefilesManager extends Wire {
+
+	/**
+	 * Default prefix for secure paths when not defined by config.php
+	 *
+	 */
+	const defaultSecurePathPrefix = '.';
 
 	/**
 	 * Reference to the Page object this PagefilesManager is managing
@@ -240,19 +245,35 @@ class PagefilesManager extends Wire {
 	 */
 	static public function _path(Page $page) {
 
-		$path = wire('config')->paths->files; 
+		$config = wire('config');
+		$path = $config->paths->files; 
 		$publicPath = $path . ((int) $page->id) . '/'; 
+		$securePrefix = $config->pagefileSecurePathPrefix; 
+		if(!strlen($securePrefix)) $securePrefix = self::defaultSecurePathPrefix;
 
-		// securePath has the page ID preceded with a "period" which PW's htaccess blocks http requests to
-		$securePath = $path . "." . ((int) $page->id) . '/';
+		// securePath has the page ID preceded with a prefix which PW's htaccess blocks http requests to
+		$securePath = $path . $securePrefix . ((int) $page->id) . '/';
 
-		if($page->isPublic() || !wire('config')->pagefileSecure) {
+		// we track this just in case the prefix was newly added to config.php, this prevents 
+		// losing track of the original directories
+		$securePath2 = $path . self::defaultSecurePathPrefix . ((int) $page->id) . '/';
+
+		if($page->isPublic() || !$config->pagefileSecure) {
 			// use the public path, renaming a secure path to public if it exists
-			if(is_dir($securePath) && !is_dir($publicPath)) @rename($securePath, $publicPath);
+			if(is_dir($securePath) && !is_dir($publicPath)) {
+				@rename($securePath, $publicPath);
+			}
 			return $publicPath;
 		} else {
 			// use the secure path, renaming the public to secure if it exists
-			if(is_dir($publicPath) && !is_dir($securePath)) @rename($publicPath, $securePath);
+			$hasSecurePath = is_dir($securePath);
+			if(is_dir($publicPath) && !$hasSecurePath) {
+				@rename($publicPath, $securePath);
+
+			} else if(!$hasSecurePath && is_dir($securePath2)) {
+				// if the secure path prefix has been changed from undefined to defined
+				@rename($securePath2, $securePath);
+			}
 			return $securePath;
 		}
 	}

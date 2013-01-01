@@ -124,6 +124,16 @@ $config->imageSizerOptions = array(
 $config->pagefileSecure = true; 
 
 /**
+ * pagefileSecurePathPrefix: One or more characters prefixed to the pathname of protected file dirs.
+ *
+ * This should be some prefix that the .htaccess file knows to block requests for. As of version 2.3
+ * ProcessWire's htaccess file blocks files directories starting with a "-", so the default value 
+ * below is recommended here. 
+ *
+ */
+$config->pagefileSecurePathPrefix = '-';
+
+/**
  * advanced: turns on additional options in ProcessWire Admin that aren't applicable 
  * in all instances. Recommended mode is 'false', except for ProcessWire developers.
  *

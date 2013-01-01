@@ -83,6 +83,16 @@ $config->protectCSRF = true;
 $config->pagefileUrlPrefix = '-/'; 
 
 /**
+ * pagefileSecurePathPrefix: One or more characters prefixed to the pathname of secured file dirs.
+ *
+ * This should be some prefix that the .htaccess file knows to block requests for. This is typically
+ * overridden as '-' in /site/config.php, but kept as '.' in this file for fallback/backwards 
+ * compatibility with pre 2.3 htaccess files. 
+ *
+ */
+$config->pagefileSecurePathPrefix = '.';
+
+/**
  * fileContentTypes: array of extention to content-type header, used by file passthru functions.
  *
  * Any content types that should be force-download should be preceded with a plus sign.
