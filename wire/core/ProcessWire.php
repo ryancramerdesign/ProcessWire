@@ -217,7 +217,7 @@ function ProcessWireShutdown() {
 	$file = $error['file'];
 	$message = isset($types[$type]) ? $types[$type] : 'Error';
 	if(strpos($error['message'], "\t") !== false) $error['message'] = str_replace("\t", ' ', $error['message']); 
-	$message .= "\t$error[message]";
+	$message .= ": \t$error[message]";
 	if($type != E_USER_ERROR) $message .= " (line $line of $file) ";
 	$debug = false; 
 	$log = null;
@@ -244,6 +244,7 @@ function ProcessWireShutdown() {
 	if($config && $config->adminEmail) $who .= "Administrator has been notified. ";
 
 	// we populate $why if we're going to show error details for any of the following reasons: 
+	// otherwise $why will NOT be populated with anything
 	if($debug) $why = "site is in debug mode (\$config->debug = true; in /site/config.php).";
 		else if(!$http) $why = "you are using the command line API.";
 		else if($user && $user->isSuperuser()) $why = "you are logged in as a Superuser.";
@@ -263,13 +264,15 @@ function ProcessWireShutdown() {
 		// when not in debug mode, we display the full error message since error_reporting and display_errors are off.
 		$why = "This error message was shown because $why $who";
 		if($http) $why = "<em>$why</em>";
-		if($debug) $message = $why; 
-			else $message .= "\n\n$why";
-		if($http) $message = "<p class='error WireFatalError'>" . nl2br($message) . "</p>";
-		echo "\n\n$message\n\n";
+		$message = $debug ? $why : "$message\n\n$why";
+		echo ($http ? "\n\n<p class='error WireFatalError'>" . nl2br($message) . "</p>\n\n" : "\n\n$message\n\n"); 
 	} else {
-		header("HTTP/1.1 500 Internal Server Error");
-		echo "Unable to complete this request due to an error. $who";
+		// public fatal error that doesn't reveal anything specific
+		if($http) header("HTTP/1.1 500 Internal Server Error");
+		// file that error message will be output in, when available
+		$file = $config && $http ? $config->paths->templates . 'errors/500.html' : '';
+		if($file && is_file($file)) echo str_replace('{message}', $who, file_get_contents($file)); 
+			else echo "\n\nUnable to complete this request due to an error. $who\n\n";
 	}
 
 	return true; 
