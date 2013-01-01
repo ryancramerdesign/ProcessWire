@@ -160,7 +160,7 @@ class ProcessPageAdd extends Process {
 		$form = $this->modules->get('InputfieldForm');
 
 		$form->attr('id', 'ProcessPageAdd'); 
-		$form->attr('action', './'); 
+		$form->attr('action', './' . ($this->input->get->modal ? "?modal=1" : '')); 
 		$form->attr('method', 'post'); 
 
 		if(is_null($this->template) || !$this->template->noGlobal) {
@@ -309,7 +309,7 @@ class ProcessPageAdd extends Process {
 		$this->pages->save($this->page); 
 
 		$this->session->message(sprintf($this->_('Created page %1$s using template: %2$s'), $this->parent->url . $this->page->name, $template->name)); 
-		$this->session->redirect("../edit/?id={$this->page->id}"); 
+		$this->session->redirect("../edit/?id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
 	}
 
 	/**
