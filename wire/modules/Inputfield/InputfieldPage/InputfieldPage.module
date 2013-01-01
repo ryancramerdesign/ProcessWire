@@ -411,52 +411,48 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	public function ___getConfigInputfields() {
 		// let the module know it's being used for configuration purposes
 		$this->configMode = true; 
+		$exampleLabel = $this->_('Example:') . ' ';
+		$defaultLabel = ' ' . $this->_('(default)'); 
 
 		$inputfields = parent::___getConfigInputfields();
 
 		$fieldset = wire('modules')->get('InputfieldFieldset'); 
-		$fieldset->label = 'Selectable Pages';
+		$fieldset->label = $this->_('Selectable Pages');
 
 		$field = $this->modules->get('InputfieldPageListSelect');
 		$field->setAttribute('name', 'parent_id'); 
-		$field->label = 'Parent of selectable page(s)';
+		$field->label = $this->_('Parent of selectable page(s)');
 		$field->attr('value', (int) $this->parent_id); 
-		$field->description = "Select the parent of the pages that are selectable.";
+		$field->description = $this->_('Select the parent of the pages that are selectable.');
 		$field->required = false;
 		$fieldset->append($field); 
 
 		$field = $this->modules->get('InputfieldSelect');
 		$field->setAttribute('name', 'template_id'); 
-		$field->label = 'Template of selectable page(s)';
+		$field->label = $this->_('Template of selectable page(s)');
 		$field->attr('value', (int) $this->template_id); 
-		$field->description = "Select the template of the pages that are selectable. May be used instead of, or in addition to, the parent above. NOTE: Not compatible with PageListSelect input field types.";
+		$field->description = $this->_('Select the template of the pages that are selectable. May be used instead of, or in addition to, the parent above. NOTE: Not compatible with PageListSelect input field types.'); // Description for Template of selectable pages
 		foreach($this->templates as $template) $field->addOption($template->id, $template->name); 
 		$field->collapsed = Inputfield::collapsedBlank;
 		$fieldset->append($field); 
 
 		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('name', 'findPagesSelector'); 
-		$field->label = "Custom selector to find selectable pages"; 
+		$field->label = $this->_('Custom selector to find selectable pages'); 
 		$field->attr('value', $this->findPagesSelector); 
-		$field->description = 
-			"If you want to find selectable pages using a ProcessWire selector rather than selecting a parent page or template (above) then enter the selector to find the selectable pages. " . 
-			"This selector will be passed to a \$pages->find('your selector'); statement. NOTE: Not currently compatible with PageListSelect input field types.";
+		$field->description = $this->_('If you want to find selectable pages using a ProcessWire selector rather than selecting a parent page or template (above) then enter the selector to find the selectable pages. This selector will be passed to a $pages->find("your selector"); statement. NOTE: Not currently compatible with PageListSelect input field types.'); // Description for Custom selector to find selectable pages
 
-		$field->notes = 'Example: parent=/products/, template=product, sort=name';
+		$field->notes = $exampleLabel . $this->_('parent=/products/, template=product, sort=name'); // Example of Custom selector to find selectable pages
 		$field->collapsed = Inputfield::collapsedBlank;
 		$fieldset->append($field); 
 
 		$field = $this->modules->get('InputfieldTextarea'); 
 		$field->attr('name', 'findPagesCode'); 
-		$field->label = "Custom PHP code to find selectable pages"; 
+		$field->label = $this->_('Custom PHP code to find selectable pages'); 
 		$field->attr('value', $this->findPagesCode); 
 		$field->attr('rows', 4); 
-		$field->description = 
-			"If you want to find selectable pages using a PHP code snippet rather than selecting a parent page or template (above) then enter the code to find the selectable pages. " . 
-			"This statement has access to the \$page and \$pages API variables, where \$page refers to the page being edited. The snippet should return either a PageArray or NULL. " . 
-			"Using this is optional, and if used, it overrides the parent/template/selector fields above. NOTE: Not compatible with PageListSelect or Autocomplete input field types.";
-
-		$field->notes = 'Example: return $page->parent->parent->children("name=locations")->first()->children();';
+		$field->description = $this->_('If you want to find selectable pages using a PHP code snippet rather than selecting a parent page or template (above) then enter the code to find the selectable pages. This statement has access to the $page and $pages API variables, where $page refers to the page being edited. The snippet should return either a PageArray or NULL. Using this is optional, and if used, it overrides the parent/template/selector fields above. NOTE: Not compatible with PageListSelect or Autocomplete input field types.'); // Description for Custom PHP to find selectable pages
+		$field->notes = $exampleLabel . $this->_('return $page->parent->parent->children("name=locations")->first()->children();'); // Example of Custom PHP code to find selectable pages
 		$field->collapsed = Inputfield::collapsedBlank;
 		$fieldset->append($field); 
 
@@ -465,16 +461,16 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field = $this->modules->get('InputfieldSelect');
 		$field->setAttribute('name', 'labelFieldName');
 		$field->setAttribute('value', $this->labelFieldName); 
-		$field->label = 'Label Field';
+		$field->label = $this->_('Label Field');
 		$field->required = true; 
-		$field->description = "Select the page field that you want to be used in generating the labels for each selectable page.";
+		$field->description = $this->_('Select the page field that you want to be used in generating the labels for each selectable page.'); // Description for Label Field
 
 		if($this->fuel('fields')->get('title')) {
-			$field->addOption('title', 'title (default)');
+			$field->addOption('title', 'title' . $defaultLabel);
 			$field->addOption('name', 'name');
 			$titleIsDefault = true;
 		} else {
-			$field->addOption('name', 'name (default)');
+			$field->addOption('name', 'name' . $defaultLabel);
 			$titleIsDefault = false;
 		}
 		$field->addOption('path', 'path'); 
@@ -491,10 +487,10 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field = $this->modules->get('InputfieldSelect');
 		$field->setAttribute('name', 'inputfield'); 
 		$field->setAttribute('value', $this->inputfield); 
-		$field->label = 'Input field type';
-		$field->description = "The type of field that will be used to select a page. Select one that is consistent with the single page vs. multi-page needs you chose in the 'details' tab of this field.";
+		$field->label = $this->_('Input field type');
+		$field->description = $this->_('The type of field that will be used to select a page. Select one that is consistent with the single page vs. multi-page needs you chose in the "details" tab of this field.'); // Description for Inputfield field type
 		$field->required = true; 
-		$field->notes = "* Types indicated with an asterisk are for multiple page selection.";
+		$field->notes = '* ' . $this->_('Types indicated with an asterisk are for multiple page selection.');
 
 		foreach($this->inputfieldClasses as $class) {
 			$module = $this->modules->get($class); 
@@ -518,12 +514,12 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$field = $this->modules->get('InputfieldCheckbox');
 			$field->attr('name', 'addable'); 
 			$field->attr('value', 1); 
-			$field->label = 'Allow new pages to be created from field?';
-			$field->description = 'If checked, an option to add new page(s) will also be present if the indicated requirements are met.';
+			$field->label = $this->_('Allow new pages to be created from field?');
+			$field->description = $this->_('If checked, an option to add new page(s) will also be present if the indicated requirements are met.');
 			$field->notes = 
-				"1. Both a parent and template must be selected above." . "\n" . 
-				"2. The editing user must have access to create/publish these pages." . "\n" . 
-				"3. The label-field must be set to 'title (default)'.";
+				$this->_('1. Both a parent and template must be selected above.') . "\n" . 
+				$this->_('2. The editing user must have access to create/publish these pages.') . "\n" . 
+				$this->_('3. The label-field must be set to "title (default)".');
 
 			if($this->addable) $field->attr('checked', 'checked'); 
 				else $field->collapsed = Inputfield::collapsedYes;
@@ -547,9 +543,8 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$field->addOption($inputfield->className(), str_replace('Inputfield', '', $inputfield->className())); 
 		}
 		$field->attr('value', $data[$name]); 
-		$field->label = "Inputfield modules available for page selection";
-		$field->description =
-			"Select the Inputfield modules that may be used for page selection. These should generally be Inputfields that allow you to select one or more options.";
+		$field->label = __('Inputfield modules available for page selection', __FILE__);
+		$field->description = __('Select the Inputfield modules that may be used for page selection. These should generally be Inputfields that allow you to select one or more options.', __FILE__); // Description 
 		$fields->append($field);
 
 		return $fields;
