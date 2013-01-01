@@ -15,8 +15,7 @@
  * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -87,7 +86,7 @@ class Installer {
 				break;
 
 			case 5: require("./index.php"); 
-				$this->adminAccountSave($wire); 
+				$this->adminAccountSave(); 
 				break;
 
 			default: 
@@ -147,7 +146,7 @@ class Installer {
 		if(version_compare(PHP_VERSION, self::MIN_REQUIRED_PHP_VERSION) >= 0) {
 			$this->ok("PHP version " . PHP_VERSION);
 		} else {
-			$this->err("ProcessWire requires PHP version 5.2.4 or newer. You are running PHP " . PHP_VERSION);
+			$this->err("ProcessWire requires PHP version " . self::MIN_REQUIRED_PHP_VERSION . " or newer. You are running PHP " . PHP_VERSION);
 		}
 
 		$this->checkFunction("filter_var", "Filter functions (filter_var)");

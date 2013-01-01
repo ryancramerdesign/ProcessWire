@@ -9,8 +9,7 @@
  * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -35,7 +34,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 2; 
-	const versionRevision = 10; 
+	const versionRevision = 11; 
 
 	/**
 	 * Given a Config object, instantiates ProcessWire and it's API

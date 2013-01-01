@@ -12,7 +12,7 @@ Learn more about ProcessWire at:
 http://processwire.com
 
 Download ProcessWire at:
-http://github.com/ryancramerdesign/ProcessWire
+http://processwire.com/download/
 
 Follow ProcessWire on Twitter at @processwire
 http://twitter.com/processwire/
@@ -20,9 +20,8 @@ http://twitter.com/processwire/
 
 ABOUT THIS VERSION
 ---------------------------------------------------------------------------
-This is ProcessWire 2.2 stable. This is our current production version and 
-is the 3rd production version release of ProcessWire. Please join us in 
-the ProcessWire forums: http://processwire.com/talk/
+This is ProcessWire 2.3. This is our current production version. Please 
+join us in the ProcessWire forums: http://processwire.com/talk/
 
 
 REQUIREMENTS
@@ -56,7 +55,7 @@ INSTALLATION FROM GIT
 UPGRADES
 ---------------------------------------------------------------------------
 
-Upgrading from one version of ProcessWire 2.1/2.2 to another is a matter of
+Upgrading from one version of ProcessWire 2.1+ to another is a matter of
 replacing these files from your old version with those from the new:
 
   /wire/ 	< entire directory
@@ -81,7 +80,7 @@ http://processwire.com/talk/index.php/topic,58.0.html
 UPGRADING FROM 2.1
 ---------------------------------------------------------------------------
 The instructions above (in the 'UPGRADES') section apply to an upgrade 
-from ProcesWire 2.1 to 2.2. Note that replacing the /index.php and 
+from ProcesWire 2.1 to 2.2 or newer. Note that replacing the /index.php and 
 .htaccess is required in this upgrade, as both of those files have 
 changed. 
 
@@ -133,5 +132,5 @@ You can also contact us at:
 http://processwire.com/contact/
 
 
-ProcessWire, Copyright 2012 by Ryan Cramer
+ProcessWire, Copyright 2012 by Ryan Cramer Design, LLC
 
