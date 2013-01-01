@@ -86,7 +86,7 @@ class Installer {
 				break;
 
 			case 5: require("./index.php"); 
-				$this->adminAccountSave(); 
+				$this->adminAccountSave($wire); 
 				break;
 
 			default: 
@@ -452,10 +452,11 @@ class Installer {
 	protected function adminAccount($wire = null) {
 
 		$values = array(
+			'admin_name' => 'processwire',
 			'username' => 'admin',
 			'userpass' => '',
 			'userpass_confirm' => '',
-			'useremail' => ''
+			'useremail' => '',
 			);
 
 		$clean = array();
@@ -466,9 +467,10 @@ class Installer {
 			$clean[$key] = $value;
 		}
 
-		$this->h("Create Admin Account");
+		$this->h("Admin Login Information");
+		$this->input("admin_name", "Admin Login URL", $clean['admin_name'], true, "name"); 
 		$this->p("The account you create here will have superuser access, so please make sure to create a strong password.");
-		$this->input("username", "Username", $clean['username']); 
+		$this->input("username", "User", $clean['username'], false, "name"); 
 		$this->input("userpass", "Password", $clean['userpass'], false, "password"); 
 		$this->input("userpass_confirm", "Password (again)", $clean['userpass_confirm'], true, "password"); 
 		$this->input("useremail", "Email Address", $clean['useremail'], true, "email"); 
@@ -482,10 +484,24 @@ class Installer {
 	 */
 	protected function adminAccountSave($wire) {
 
-		if(!$wire->input->post->username || !$wire->input->post->userpass) $this->err("Missing account information"); 
-		if($wire->input->post->userpass !== $wire->input->post->userpass_confirm) $this->err("Passwords do not match");
-		if(strtolower($wire->input->post->username) != strtolower($wire->sanitizer->pageName($wire->input->post->username))) $this->err("Username must be only a-z 0-9");
-		if(strtolower($wire->input->post->useremail) != strtolower($wire->sanitizer->email($wire->input->post->useremail))) $this->err("Email address did not validate");
+		$input = $wire->input;
+		$sanitizer = $wire->sanitizer; 
+
+		if(!$input->post->username || !$input->post->userpass) $this->err("Missing account information"); 
+		if($input->post->userpass !== $input->post->userpass_confirm) $this->err("Passwords do not match");
+		if(strlen($input->post->userpass) < 6) $this->err("Password must be at least 6 characters long"); 
+
+		$username = $sanitizer->pageName($input->post->username); 
+		if($username != $input->post->username) $this->err("Username must be only a-z 0-9");
+		if(strlen($username) < 2) $this->err("Username must be at least 2 characters long"); 
+
+		$adminName = $sanitizer->pageName($input->post->admin_name);
+		if($adminName != $input->post->admin_name) $this->err("Admin login URL must be only a-z 0-9");
+		if(strlen($adminName) < 2) $this->err("Admin login URL must be at least 2 characters long"); 
+
+		$email = strtolower($sanitizer->email($input->post->useremail)); 
+		if($email != strtolower($input->post->useremail)) $this->err("Email address did not validate");
+
 		if($this->numErrors) return $this->adminAccount($wire);
 	
 		$superuserRole = $wire->roles->get("name=superuser");
@@ -496,20 +512,26 @@ class Installer {
 			$user->id = $wire->config->superUserPageID; 
 		}
 
-		$user->name = $wire->input->post->username; 
-		$user->pass = $wire->input->post->userpass; 
-		$user->email = $wire->input->post->useremail;
-		$pass = htmlentities($wire->input->post->userpass); 
+		$user->name = $username;
+		$user->pass = $input->post->userpass; 
+		$user->email = $email;
 
 		if(!$user->roles->has("superuser")) $user->roles->add($superuserRole); 
 
+		$admin = $wire->pages->get($wire->config->adminRootPageID); 
+		$admin->of(false);
+		$admin->name = $adminName;
+
 		try {
 			$wire->users->save($user); 
+			$wire->pages->save($admin);
 
 		} catch(Exception $e) {
 			$this->err($e->getMessage()); 
 			return $this->adminAccount($wire); 
 		}
+
+		$adminName = htmlentities($adminName, ENT_QUOTES, "UTF-8");
 
 		$this->h("Admin Account Saved");
 		$this->ok("User account saved: <b>{$user->name}</b>"); 
@@ -523,8 +545,8 @@ class Installer {
 		$this->ok("To save space, you may delete this directory (and everything in it): ./site/install/ - it's no longer needed"); 
 		$this->ok("Note that future runtime errors are logged to: /site/assets/logs/errors.txt (not web accessible)"); 
 		$this->h("Use The Site!");
-		$this->p("Your admin URL is <a href='./processwire/'>/processwire/</a>. If you'd like, you may change this by editing the admin page and changing the name."); 
-		$this->p("<a target='_blank' href='./'>View the Web Site</a> or <a href='./processwire/'>Login to ProcessWire admin</a>");
+		$this->p("Your admin URL is <a href='./$adminName/'>/$adminName/</a>. If you'd like, you may change this later by editing the admin page and changing the name."); 
+		$this->p("<a target='_blank' href='./'>View the Web Site</a> or <a href='./$adminName/'>Login to ProcessWire admin</a>");
 
 		// set a define that indicates installation is completed so that this script no longer runs
 		file_put_contents("./site/assets/installed.php", "<?php // The existence of this file prevents the installer from running. Don't delete it unless you want to re-run the install or you have deleted ./install.php."); 
@@ -588,13 +610,20 @@ class Installer {
 	protected function input($name, $label, $value, $clear = false, $type = "text") {
 		$width = 135; 
 		$required = "required='required'";
+		$pattern = '';
+		$note = '';
 		if($type == 'email') {
 			$width = ($width*2); 
 			$required = '';
+		} else if($type == 'name') {
+			$type = 'text';
+			$pattern = "pattern='[-_a-z0-9]{2,50}' ";
+			if($name == 'admin_name') $width = ($width*2);
+			$note = "<small class='detail' style='font-weight: normal;'>(a-z 0-9)</small>";
 		}
 		$inputWidth = $width - 15; 
 		$value = htmlentities($value, ENT_QUOTES, "UTF-8"); 
-		echo "\n<p style='width: {$width}px; float: left; margin-top: 0;'><label>$label<br /><input type='$type' name='$name' value='$value' $required style='width: {$inputWidth}px;' /></label></p>";
+		echo "\n<p style='width: {$width}px; float: left; margin-top: 0;'><label>$label $note<br /><input type='$type' name='$name' value='$value' $required $pattern style='width: {$inputWidth}px;' /></label></p>";
 		if($clear) echo "\n<br style='clear: both;' />";
 	}
 
