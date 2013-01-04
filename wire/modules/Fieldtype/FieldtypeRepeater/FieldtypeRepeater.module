@@ -165,7 +165,8 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		// if field is one used by a repeater, and there was no include=all, 
 		// then exclude repeaters from appearing in these PageFinder search results
 		if($found && !$includeAll) {
-			$selectors->add(new SelectorNotEqual('has_parent', $this->repeatersRootPageID)); 
+			// for reference: $selectors->add(new SelectorNotEqual('has_parent', $this->repeatersRootPageID)); 
+			$selectors->add(new SelectorNotEqual('templates_id', $templatesUsedByRepeaters)); // more efficient than has_parent
 		}
 	}
 

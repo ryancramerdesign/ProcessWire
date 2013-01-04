@@ -562,7 +562,7 @@ class Pages extends Wire {
 
 		// save each individual Fieldtype data in the fields_* tables
 		foreach($page->fieldgroup as $field) {
-			$field->type->savePageField($page, $field);
+			if($field->type) $field->type->savePageField($page, $field);
 		}
 
 		// return outputFormatting state

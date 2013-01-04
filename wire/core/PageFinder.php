@@ -772,13 +772,20 @@ class PageFinder extends Wire {
 			return; 
 		}
 
+		// the subquery performs faster than the old method (further below) on sites with tens of thousands of pages
+		$in = $selector->operator == '!=' ? 'NOT IN' : 'IN';
+		$query->where("pages.parent_id $in (SELECT pages_id FROM pages_parents WHERE parents_id=$parent_id OR pages_id=$parent_id)");
+
+		/*
+		// OLD method kept for reference
 		$joinType = 'join';
 		$table = "pages_has_parent$cnt";
 
 		if($selector->operator == '!=') { 
 			$joinType = 'leftjoin';
 			$query->where("$table.pages_id IS NULL"); 
-		} 
+
+		}
 
 		$query->$joinType(
 			"pages_parents AS $table ON (" . 
@@ -786,6 +793,7 @@ class PageFinder extends Wire {
 				"AND ($table.parents_id=$parent_id OR $table.pages_id=$parent_id) " . 
 			")"
 		); 
+		*/
 	}
 
 	/**
