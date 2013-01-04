@@ -234,8 +234,17 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$of = $page->of();
 		if(!$of) $page->of(true);
 
+		$data = '';
+		$config = wire('config');
 		$output = $page->output;
-		$data = $output ? $output->render() : '';
+		if($output) {
+			if(!($page->template->flags & Template::flagSystem)) {
+				// global prepend/append include files apply only to user-defined templates, not system templates
+				if($config->prependTemplateFile) $output->setPrependFilename($config->paths->templates . wire('sanitizer')->name($config->prependTemplateFile)); 
+				if($config->appendTemplateFile) $output->setAppendFilename($config->paths->templates . wire('sanitizer')->name($config->appendTemplateFile)); 
+			}
+			$data = $output->render();
+		}
 
 		if($data && $cacheAllowed && $cacheFile) $cacheFile->save($data);
 		$event->return = $data; 

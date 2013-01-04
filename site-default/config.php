@@ -50,6 +50,22 @@ $config->sessionChallenge = true;
 $config->sessionFingerprint = true; 
 
 /**
+ * prependTemplateFile: PHP file in /site/templates/ that will be loaded before each page's template file
+ *
+ * Uncomment and edit to enable.
+ *
+ */
+// $config->prependTemplateFile = '_init.php';
+
+/**
+ * appendTemplateFile: PHP file in /site/templates/ that will be loaded after each page's template file
+ *
+ * Uncomment and edit to enable.
+ *
+ */
+// $config->appendTemplateFile = '_done.php';
+
+/**
  * uploadUnzipCommand: shell command to unzip archives, used by WireUpload class. 
  *
  * If unzip doesn't work, you may need to precede 'unzip' with a path.

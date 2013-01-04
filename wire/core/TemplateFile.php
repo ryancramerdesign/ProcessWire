@@ -23,6 +23,18 @@ class TemplateFile extends WireData {
 	protected $filename;
 
 	/**
+	 * Optional filename that is prepended to the render
+	 *
+	 */
+	protected $prependFilename;
+
+	/**
+	 * Optional filename that is appended to the render
+	 *
+	 */
+	protected $appendFilename; 
+
+	/**
 	 * The saved directory location before render() was called
 	 *
 	 */
@@ -54,6 +66,26 @@ class TemplateFile extends WireData {
 		if(!$filename) return; 
 		if(!file_exists($filename)) throw new WireException("Template file does not exist: '$filename'"); 
 		$this->filename = $filename; 
+	}
+
+	/**
+	 * Set a file to prepend to the template file at render time
+	 *
+	 */
+	public function setPrependFilename($filename) {
+		if(is_file($filename)) $this->prependFilename = $filename; 
+			else return false;
+		return true; 
+	}
+
+	/**
+	 * Set a file to append to the template file at render time
+	 *
+	 */
+	public function setAppendFilename($filename) {
+		if(is_file($filename)) $this->appendFilename = $filename; 
+			else return false;
+		return true; 
 	}
 
 	/**
@@ -89,7 +121,9 @@ class TemplateFile extends WireData {
 
 		extract($fuel); 
 		ob_start();
+		if($this->prependFilename) require($this->prependFilename);
 		require($this->filename); 
+		if($this->appendFilename) require($this->appendFilename);
 		$out = "\n" . ob_get_contents() . "\n";
 		ob_end_clean();
 
@@ -116,6 +150,8 @@ class TemplateFile extends WireData {
 	 */
 	public function get($property) {
 		if($property == 'filename') return $this->filename; 
+		if($property == 'appendFilename') return $this->appendFilename; 
+		if($property == 'prependFilename') return $this->prependFilename; 
 		if($value = parent::get($property)) return $value; 
 		if(isset(self::$globals[$property])) return self::$globals[$property];
 		return null;

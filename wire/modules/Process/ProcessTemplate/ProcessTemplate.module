@@ -309,10 +309,14 @@ class ProcessTemplate extends Process {
 		$dir = new DirectoryIterator($this->fuel('config')->paths->templates); 	
 		$templateFiles = array();
 		$ext = "." . $this->config->templateExtension; 
+		$prependTemplateFile = $this->config->prependTemplateFile;
+		$appendTemplateFile = $this->config->appendTemplateFile;
 
 		foreach($dir as $file) {
 			if($file->isDir() || $file->isDot()) continue; 
-			if(substr($file->getFilename(), -1 * strlen($ext)) != $ext) continue; 
+			$filename = $file->getFilename();
+			if($filename == $prependTemplateFile || $filename == $appendTemplateFile) continue; // skip over prepend/append files
+			if(substr($filename, -1 * strlen($ext)) != $ext) continue; 
 			$basename = basename($file->getFilename(), $ext); 
 			if(count($this->fuel('templates')->find("name=$basename"))) continue; 
 			$templateFiles[] = $basename; 
