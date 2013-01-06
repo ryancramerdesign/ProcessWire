@@ -29,7 +29,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Edit Image',          
 			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)', 
-			'version' => 101, 
+			'version' => 102, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
@@ -46,11 +46,17 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		if(!$id && $this->input->get->file) {
 			if(preg_match('{(\d+)/[^/]+\.(jpe?g|gif|png)$}iD', $this->input->get->file, $matches)) {
 				$id = (int) $matches[1]; 
+
+			} else if(preg_match('{^' . wire('config')->urls->root . '([-_./a-zA-Z0-9]*/)' . wire('config')->pagefileUrlPrefix . 
+				'[^/]+\.(jpe?g|gif|png)$}iD', $this->input->get->file, $matches)) {
+				// pagefileSecure URL format, with page path in the URL
+				$this->page = wire('pages')->get('/' . $matches[1]);
+				$id = $this->page->id;
 			}
 		}
 
-		if(!$id) throw new WireException("No page specified"); 
-		$this->page = $this->pages->get($id); 
+		if(!$id) throw new WireException("No page specified");
+		if(!$this->page) $this->page = $this->pages->get($id); 
 		if(!$this->page) throw new WireException("No page specified"); 
 		if(!$this->page->id) throw new WireException("Unknown page"); 
 

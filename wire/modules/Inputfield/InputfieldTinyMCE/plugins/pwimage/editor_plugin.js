@@ -29,7 +29,7 @@ var $iframe;
 				if (ed.dom.getAttrib(ed.selection.getNode(), 'class').indexOf('mceItem') != -1)
 					return;
 
-				var page_id = $("#Inputfield_id").val(); 
+				var page_id = parseInt($("#Inputfield_id").val()); 
 				var file = '';
 				var imgClass = '';
 				var imgWidth = 0;
@@ -55,13 +55,13 @@ var $iframe;
 						imgLink = $nodeParent.is("a") ? $nodeParent.attr('href') : '';
 
 						parts = parts.reverse();
-						page_id = 0; 
+						var _page_id = 0; 
 
 						for(n = 0; n < parts.length; n++) {
-							page_id = parseInt(parts[n]); 
-							if(page_id > 0) break;
+							_page_id = parseInt(parts[n]); 
+							if(_page_id > 0) break;
 						}
-						file = page_id + ',' + file; // page_id,file for images in repeater support
+						if(_page_id > 0 && _page_id != page_id) file = _page_id + ',' + file; // page_id,file for images in repeater support
 					}
 				}
 
