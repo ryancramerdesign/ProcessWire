@@ -256,7 +256,7 @@ class SelectorContainsWords extends Selector {
 	protected function match($value1, $value2) { 
 		$hasAll = true; 
 		$words = preg_split('/[-\s]/', $value2, -1, PREG_SPLIT_NO_EMPTY);
-		foreach($words as $key => $word) if(!preg_match('/\b' . preg_quote($word) . '\b/i')) {
+		foreach($words as $key => $word) if(!preg_match('/\b' . preg_quote($word) . '\b/i', $value1)) {
 			$hasAll = false;
 			break;
 		}
