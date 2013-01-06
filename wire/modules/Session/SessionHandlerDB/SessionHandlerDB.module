@@ -13,7 +13,7 @@
  *
  */
 
-class SessionHandlerDB extends SessionHandler implements ConfigurableModule {
+class SessionHandlerDB extends WireSessionHandler implements ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(

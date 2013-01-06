@@ -16,7 +16,7 @@
  *
  */
 
-abstract class SessionHandler extends WireData implements Module {
+abstract class WireSessionHandler extends WireData implements Module {
 
 	/**
 	 * Initialize the save handler
