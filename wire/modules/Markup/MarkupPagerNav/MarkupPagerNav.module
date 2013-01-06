@@ -198,13 +198,13 @@ class MarkupPagerNav extends Wire implements Module {
 			if($item->pageNum > 1) {
 				if($allowPageNum) {
 					if($slashUrls === 0) $url .= '/'; // enforce a trailing slash, regardless of slashUrls template setting
-					$url .= "$pageNumUrlPrefix{$item->pageNum}";
+					$url .= "$pageNumUrlPrefix{$item->pageNum}" . $this->queryString; 
 				} else {
-					$url .= ($this->queryString ? "&" : "?") . "$pageNumUrlPrefix=" . $item->pageNum;
+					$url .= $this->queryString . ($this->queryString ? "&" : "?") . "$pageNumUrlPrefix=" . $item->pageNum;
 				}
+			} else {
+				$url .= $this->queryString; 
 			}
-
-			$url .= $this->queryString; 
 			$class = isset($this->options[$item->type . 'ItemClass']) ? $this->options[$item->type . 'ItemClass'] : '';
 
 			if(!$key) $class .= ' ' . $this->options['firstItemClass']; 
