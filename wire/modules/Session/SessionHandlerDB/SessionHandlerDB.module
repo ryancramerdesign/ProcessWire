@@ -88,7 +88,7 @@ class SessionHandlerDB extends WireSessionHandler implements ConfigurableModule 
 		$data = $this->db->escape_string($data);
 		$s = "user_id=$user_id, pages_id=$pages_id, data='$data'"; 
 		if($this->useIP) $s .= ", ip=" . ((int) wire('session')->getIP(true)); 
-		if($this->useUA) $s .= ", ua='" . $this->db->escape_string(substr($_SERVER['HTTP_USER_AGENT'], 0, 255)) . "'";
+		if($this->useUA && isset($_SERVER['HTTP_USER_AGENT'])) $s .= ", ua='" . $this->db->escape_string(substr($_SERVER['HTTP_USER_AGENT'], 0, 255)) . "'";
 		$sql = 	"INSERT INTO $table SET id='$id', $s ";
 		$sql .= "ON DUPLICATE KEY UPDATE $s, ts=NOW()";
 		$result = $this->db->query($sql) ? true : false; 

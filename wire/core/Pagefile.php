@@ -335,6 +335,17 @@ class Pagefile extends WireData {
 		return in_array(strtolower($tag), $tags); 
 	}
 
-	
+	/**
+	 * Implement the hook that is called when a property changes (from Wire)
+	 *
+	 * Alert the $pagefiles of the change 
+	 *
+	 */
+	public function ___changed($what) {
+		if(in_array($what, array('description', 'tags'))) $this->pagefiles->trackChange('item');
+		parent::___changed($what); 
+	}
+
+
 }
 
