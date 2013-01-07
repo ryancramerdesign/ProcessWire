@@ -79,6 +79,8 @@ $config->protectCSRF = true;
  *
  * This should be a prefix that is not the same as any page name, as it takes precedence.
  *
+ * @deprecated
+ *
  */
 $config->pagefileUrlPrefix = '-/'; 
 

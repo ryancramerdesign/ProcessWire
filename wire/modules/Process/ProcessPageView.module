@@ -83,7 +83,6 @@ class ProcessPageView extends Process {
 		$page = $this->getPage();
 
 		if($page && $page->id) { 
-
 			$page->setOutputFormatting(true); 
 			$_page = $page; 
 			$page = $this->checkAccess($page); 
@@ -142,14 +141,10 @@ class ProcessPageView extends Process {
 		$it = preg_replace('{[^-_./a-zA-Z0-9]}', '', $it);
 		if($it[0] != '/') $it = "/$it";
 
-		// check for secured filename
-		$filePrefix = wire('config')->pagefileUrlPrefix;
-		if($filePrefix && strpos($it, '/' . $filePrefix) !== false) { 
-			if(preg_match('{^(.*/)' . $filePrefix . '([-_.a-zA-Z0-9]+)$}', $it, $matches) && strpos($matches[2], '.')) {
-				$it = $matches[1];
-				$this->requestFile = $matches[2]; 
-			}
-		} 
+		if(wire('config')->pagefileSecure) {
+			$page = $this->checkRequestFile($it);
+			if(is_object($page) && $page->id) return $page;
+		}
 
 		// optimization to filter out page numbers first
 		if(strpos($it, '/' . $this->pageNumUrlPrefix) !== false && preg_match('{/' . $this->pageNumUrlPrefix . '\d+/?$}', $it)) {
@@ -196,6 +191,43 @@ class ProcessPageView extends Process {
 		if(!$this->checkUrlSegments($urlSegments, $page)) return null;
 
 		return $page; 
+	}
+
+	/**
+	 * Check if the requested URL is to a secured page file
+	 *
+	 * This function sets $this->requestFile when it finds one.
+	 * This function updates the $it variable when pagefile found.
+	 * Returns Page when a pagefile was found and matched to a page.
+	 * returns true when pagefile found using old deprecated method.
+	 * Returns false when none found.
+	 *
+	 * @string $it Request URL
+	 * @return bool|Page 
+	 *
+	 */
+	protected function checkRequestFile(&$it) {
+
+		// check for secured filename, method 1: actual file URL, minus leading "." or "-"
+		if(strpos($it, wire('config')->urls->files) === 0
+			&& preg_match('{/(\d+)/([-_.a-zA-Z0-9]+)$}', $it, $matches) 
+			&& strpos($matches[2], '.')) {
+
+			$this->requestFile = $matches[2]; 	
+			return $this->pages->get((int) $matches[1]); 
+		}
+
+		// check for secured filename: method 2 (deprecated), used only if $config->pagefileUrlPrefix is defined
+		$filePrefix = wire('config')->pagefileUrlPrefix;
+		if($filePrefix && strpos($it, '/' . $filePrefix) !== false) { 
+			if(preg_match('{^(.*/)' . $filePrefix . '([-_.a-zA-Z0-9]+)$}', $it, $matches) && strpos($matches[2], '.')) {
+				$it = $matches[1];
+				$this->requestFile = $matches[2]; 
+				return true;
+			}
+		} 
+
+		return false;
 	}
 
 	/**
@@ -317,10 +349,17 @@ class ProcessPageView extends Process {
 	 */
 	protected function ___sendFile($page, $basename) {
 
+		$err = 'File not found';
+
+		// use the static hasPath first to make sure this page actually has a files directory
+		// this ensures one isn't automatically created when we call $page->filesManager->path below
+		if(!PagefilesManager::hasPath($page)) throw new Wire404Exception($err);
+
 		$filename = $page->filesManager->path() . $basename; 
-		if(!is_file($filename)) throw new Wire404Exception('File not found');
+		if(!is_file($filename)) throw new Wire404Exception($err);
 
 		if($page->isPublic()) {
+			// deprecated, only necessary for method 2 in checkRequestFile
 			wire('session')->redirect($page->filesManager->url() . $basename); 
 
 		} else {

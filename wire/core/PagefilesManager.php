@@ -173,11 +173,7 @@ class PagefilesManager extends Wire {
 	 *
 	 */
 	public function url() {
-		if($this->page->isPublic() || !wire('config')->pagefileSecure) {
-			return $this->config->urls->files . $this->page->id . '/';
-		} else {
-			return $this->page->url . wire('config')->pagefileUrlPrefix;
-		}
+		return $this->config->urls->files . $this->page->id . '/';
 	}
 
 	/**
@@ -248,6 +244,7 @@ class PagefilesManager extends Wire {
 		$config = wire('config');
 		$path = $config->paths->files; 
 		$publicPath = $path . ((int) $page->id) . '/'; 
+
 		$securePrefix = $config->pagefileSecurePathPrefix; 
 		if(!strlen($securePrefix)) $securePrefix = self::defaultSecurePathPrefix;
 
