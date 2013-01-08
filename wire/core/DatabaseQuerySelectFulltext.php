@@ -60,8 +60,6 @@ class DatabaseQuerySelectFulltext extends Wire {
 				break;	
 
 			case '*=':
-			case '^=':
-			case '$=':
 				$this->matchContains($tableName, $fieldName, $operator, $value); 
 				break;
 
@@ -82,12 +80,14 @@ class DatabaseQuerySelectFulltext extends Wire {
 				$query->where("$tableField LIKE '%$v%'"); // SLOW, but assumed
 				break;
 
+			case '^=':
 			case '%^=': // match at start using only LIKE (no index)
 				$v = $this->db->escape_string($value);
 				$v = $this->escapeLIKE($v); 
 				$query->where("$tableField LIKE '$v%'"); 
 				break;
 
+			case '$=':
 			case '%$=': // RCD match at end using only LIKE (no index)
 				$v = $this->db->escape_string($value);
 				$v = $this->escapeLIKE($v); 

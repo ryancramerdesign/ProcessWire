@@ -582,6 +582,16 @@ class PageFinder extends Wire {
 	 */ 
 	protected function getQueryJoinPath(DatabaseQuerySelect $query, $selector) {
 
+		if($this->modules->isInstalled('PagePaths')) {
+			$pagePaths = $this->modules->get('PagePaths');
+			$pagePaths->getMatchQuery($query, $selector); 
+			return;
+		}
+
+		if($selector->operator !== '=') {
+			throw new PageFinderSyntaxException("Operator '$selector->operator' is not supported for path or url unless you install the PagePaths module."); 
+		}
+
 		if($selector->value == '/') {
 			$parts = array();
 			$query->where("pages.id=1");

@@ -359,6 +359,12 @@ class Pages extends Wire {
 		// if page is already loaded, then get the path from it
 		if(isset($this->pageIdCache[$id])) return $this->pageIdCache[$id]->path();
 
+		if($this->modules->isInstalled('PagePaths')) {
+			$path = $this->modules->get('PagePaths')->getPath($id);
+			if(is_null($path)) $path = '';
+			return $path; 
+		}
+
 		$path = '';
 		$parent_id = $id; 
 		do {
