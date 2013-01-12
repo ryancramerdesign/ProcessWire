@@ -24,6 +24,8 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	protected $page = null;
 	protected $defaultClass = 'Pageimage';
 	protected $file = '';
+	protected $editWidth = 0;
+	protected $editHeight = 0;
 
 	public static function getModuleInfo() {
 		return array(
@@ -43,8 +45,8 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$id = (int) $this->input->get->id; 
 
 		// if no ID was specified, then retrieive ID from filename path, if it's there
-		if(!$id && $this->input->get->file) {
-			if(preg_match('{(\d+)/[^/]+\.(jpe?g|gif|png)$}iD', $this->input->get->file, $matches)) {
+		if($this->input->get->file) {
+			if(preg_match('{(\d+)[/,][^/,]+\.(jpe?g|gif|png)$}iD', $this->input->get->file, $matches)) {
 				$id = (int) $matches[1]; 
 
 			} else if(preg_match('{^' . wire('config')->urls->root . '([-_./a-zA-Z0-9]*/)' . wire('config')->pagefileUrlPrefix . 
@@ -77,7 +79,11 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		if(!preg_match('/\.(jpe?g|gif|png)$/iD', $filename, $matches)) throw new WireException("Unknown image file"); 
 
 		// get the original, non resized version, if present
-		$filename = preg_replace('/\.\d+x\d+(\.' . $matches[1] . ')$/', '\1', $filename); 
+		if(preg_match('/(\.(\d+)x(\d+))\.' . $matches[1] . '$/', $filename, $matches)) {
+			$this->editWidth = (int) $matches[2];
+			$this->editHeight = (int) $matches[3]; 
+			$filename = str_replace($matches[1], '', $filename);
+		}
 		if(!array_key_exists($filename, $images)) throw new WireException("Invalid image file: $filename"); 
 		return $images[$filename]; 
 	}
@@ -184,6 +190,8 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 
 		$width = (int) $this->input->get->width; 
 		$height = (int) $this->input->get->height; 
+		if(!$width) $width = $this->editWidth; 
+		if(!$height) $height = $this->editHeight; 
 
 		// if they aren't already working with a resized image, and it's being scaled down,
 		// then add the 'resized' class to ensure that our pwimage plugin knows to perform the resize
