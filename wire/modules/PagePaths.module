@@ -41,6 +41,7 @@ class PagePaths extends WireData implements Module {
 	public function init() {
 		$this->pages->addHook('moved', $this, 'hookPageMoved'); 
 		$this->pages->addHook('renamed', $this, 'hookPageMoved'); 
+		$this->pages->addHook('added', $this, 'hookPageMoved'); 
 		$this->pages->addHook('deleted', $this, 'hookPageDeleted');
 	}
 
