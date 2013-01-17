@@ -9,11 +9,10 @@
  * 2. Accessing the related hierarchy of pages (i.e. parents, children, sibling pages)
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  * @link http://processwire.com/api/variables/page/ Offical $page Documentation
  * @link http://processwire.com/api/selectors/ Official Selectors Documentation
@@ -730,16 +729,6 @@ class Page extends WireData {
 	}
 
 	/**
-	 * Return this page's parent Page
-	 *
-	 * @todo add selector option
-	 *
-	 */
-	public function parent() {
-		return $this->parent ? $this->parent : new NullPage(); 
-	}
-
-	/**
 	 * Find Pages in the descendent hierarchy
 	 *
 	 * Same as Pages::find() except that the results are limited to descendents of this Page
@@ -761,15 +750,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function children($selector = '', $options = array()) {
-		if(!$this->numChildren) return new PageArray();
-		if($selector) $selector .= ", ";
-		$selector = "parent_id={$this->id}, $selector"; 
-		if(strpos($selector, 'sort=') === false) {
-			$sortfield = $this->template->sortfield;
-			if(!$sortfield) $sortfield = $this->sortfield;
-			$selector .= "sort=$sortfield";
-		}
-		return $this->fuel('pages')->find(trim($selector, ", "), $options); 
+		return PageTraversal::children($this, $selector, $options); 
 	}
 
 	/**
@@ -782,39 +763,59 @@ class Page extends WireData {
 	 *
 	 */
 	public function child($selector = '', $options = array()) {
-		$selector .= ($selector ? ', ' : '') . "limit=1";
-		if(strpos($selector, 'start=') === false) $selector .= ", start=0"; // prevent pagination
-		$children = $this->children($selector); 
-		return count($children) ? $children->first() : new NullPage();
+		return PageTraversal::child($this, $selector, $options); 
 	}
 
 	/**
-	 * Return this page's NON-HIDDEN children pages, optionally filtered by a selector
+	 * Return this page's parent Page, or the closest parent matching the given selector.
 	 *
-	 * This is suitable to call for generating navigation.
-	 *
-	 * @deprecated This functionality is now handled by default with the regular children() method. 
+	 * @param string $selector Optional selector string. When used, it returns the closest parent matching the selector. 
+	 * @return Page|NullPage Returns a Page or a NullPage when there is no parent or the selector string did not match any parents.
 	 *
 	 */
-	public function navChildren($selector = '') {
-		if($this->fuel('config')->debug) throw new WireException("Deprecated function call: please use children() rather than navChildren()"); 
-		return $this->children($selector); 
+	public function parent($selector = '') {
+		if(!$this->parent) return new NullPage();
+		if(!strlen($selector)) return $this->parent; 
+		if($this->parent->matches($selector)) return $this->parent; 
+		if($this->parent->parent_id) return $this->parent->parent($selector); // recursive, in a way
+		return new NullPage();
 	}
 
 	/**
-	 * Return this page's parent pages. 
+	 * Return this page's parent pages, or the parent pages matching the given selector.
 	 *
-	 * @todo add selector option
+	 * @param sting $selector Optional selector string to filter parents by
+	 * @return PageArray
 	 *
 	 */
-	public function parents() {
-		$parents = new PageArray();
-		$parent = $this->parent();
-		while($parent && $parent->id) {
-			$parents->prepend($parent); 	
-			$parent = $parent->parent();
-		}
-		return $parents; 
+	public function parents($selector = '') {
+		return PageTraversal::parents($this, $selector); 
+	}
+
+	/**
+	 * Return all parents from current till the one matched by $selector
+	 *
+	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this. 
+	 * @param string $filter Optional selector string to filter matched pages by
+	 * @return PageArray
+	 *
+	 */
+	public function parentsUntil($selector = '', $filter = '') {
+		return PageTraversal::parentsUntil($this, $selector, $filter); 
+	}
+
+	/**
+	 * Like parent() but includes the current Page in the possible pages that can be matched
+ 	 *
+	 * Note also that unlike parent() a $selector is required.
+	 *
+	 * @param string $selector Selector string to match. 
+	 * @return Page|NullPage $selector Returns the current Page or closest parent matching the selector. Returns NullPage when no match.
+	 *
+	 */
+	public function closest($selector) {
+		if(!strlen($selector) || $this->matches($selector)) return $this; 
+		return $this->parent($selector); 
 	}
 
 	/**
@@ -826,21 +827,20 @@ class Page extends WireData {
 	 *
 	 */
 	public function ___rootParent() {
-		if(!$this->parent || !$this->parent->id || $this->parent->id === 1) return $this; 
-		$parents = $this->parents();
-		$parents->shift(); // shift off homepage
-		return $parents->first();
+		return PageTraversal::rootParent($this); 
 	}
 
 	/**
 	 * Return this Page's sibling pages, optionally filtered by a selector. 
 	 *
+	 * Note that the siblings include the current page. To exclude the current page, specify "id!=$page". 
+	 *
+	 * @param string $selector Optional selector to filter siblings by.
+	 * @return PageArray
+	 *
 	 */
 	public function siblings($selector = '') {
-		if($selector) $selector .= ", ";
-		$selector = "parent_id={$this->parent_id}, $selector";
-		if(strpos($selector, 'sort=') === false) $selector .= "sort=" . ($this->parent ? $this->parent->sortfield : 'sort'); 
-		return $this->fuel('pages')->find(trim($selector, ", ")); 
+		return PageTraversal::siblings($this, $selector); 
 	}
 
 	/**
@@ -851,15 +851,42 @@ class Page extends WireData {
 	 * Be careful with this function when the page has a lot of siblings. It has to load them all, so this function is best
 	 * avoided at large scale, unless you provide your own already-reduced siblings list (like from pagination)
 	 *
-	 * @param PageArray $siblings Optional siblings to use instead of the default. 
+	 * When using a selector, note that this method operates only on visible children. If you want something like "include=all"
+	 * or "include=hidden", they will not work in the selector. Instead, you should provide the siblings already retrieved with
+	 * one of those modifiers, and provide those siblings as the second argument to this function.
+	 *
+	 * @param string $selector Optional selector string. When specified, will find nearest next sibling that matches. 
+	 * @param PageArray $siblings Optional siblings to use instead of the default. May also be specified as first argument when no selector needed.
 	 * @return Page|NullPage Returns the next sibling page, or a NullPage if none found. 
 	 *
 	 */
-	public function next(PageArray $siblings = null) {
-		if(is_null($siblings)) $siblings = $this->parent->children();
-		$next = $siblings->getNext($this); 
-		if(is_null($next)) $next = new NullPage();
-		return $next; 
+	public function next($selector = '', PageArray $siblings = null) {
+		return PageTraversal::next($this, $selector, $siblings); 
+	}
+
+	/**
+	 * Return all sibling pages after this one, optionally matching a selector
+	 *
+	 * @param string $selector Optional selector string. When specified, will filter the found siblings.
+	 * @param PageArray $siblings Optional siblings to use instead of the default. 
+	 * @return Page|NullPage Returns all matching pages after this one.
+	 *
+	 */
+	public function nextAll($selector = '', PageArray $siblings = null) {
+		return PageTraversal::nextAll($this, $selector, $siblings); 
+	}
+
+	/**
+	 * Return all sibling pages after this one until matching the one specified 
+	 *
+	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this. 
+	 * @param string $filter Optional selector string to filter matched pages by
+	 * @param PageArray Optional PageArray of siblings to use instead of all from the page.
+	 * @return PageArray
+	 *
+	 */
+	public function nextUntil($selector = '', $filter = '', PageArray $siblings = null) {
+		return PageTraversal::nextUntil($this, $selector, $filter, $siblings); 
 	}
 
 	/**
@@ -870,16 +897,44 @@ class Page extends WireData {
 	 * Be careful with this function when the page has a lot of siblings. It has to load them all, so this function is best
 	 * avoided at large scale, unless you provide your own already-reduced siblings list (like from pagination)
 	 *
-	 * @param PageArray $siblings Optional siblings to use instead of the default. 
+	 * When using a selector, note that this method operates only on visible children. If you want something like "include=all"
+	 * or "include=hidden", they will not work in the selector. Instead, you should provide the siblings already retrieved with
+	 * one of those modifiers, and provide those siblings as the second argument to this function.
+	 *
+	 * @param string $selector Optional selector string. When specified, will find nearest previous sibling that matches. 
+	 * @param PageArray $siblings Optional siblings to use instead of the default. May also be specified as first argument when no selector needed.
 	 * @return Page|NullPage Returns the previous sibling page, or a NullPage if none found. 
 	 *
 	 */
-	public function prev(PageArray $siblings = null) {
-		if(is_null($siblings)) $siblings = $this->parent->children();
-		$prev = $siblings->getPrev($this);
-		if(is_null($prev)) $prev = new NullPage();
-		return $prev;
+	public function prev($selector = '', PageArray $siblings = null) {
+		return PageTraversal::prev($this, $selector, $siblings); 
 	}
+
+	/**
+	 * Return all sibling pages before this one, optionally matching a selector
+	 *
+	 * @param string $selector Optional selector string. When specified, will filter the found siblings.
+	 * @param PageArray $siblings Optional siblings to use instead of the default. 
+	 * @return Page|NullPage Returns all matching pages before this one.
+	 *
+	 */
+	public function prevAll($selector = '', PageArray $siblings = null) {
+		return PageTraversal::prevAll($this, $selector, $siblings); 
+	}
+
+	/**
+	 * Return all sibling pages before this one until matching the one specified 
+	 *
+	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this. 
+	 * @param string $filter Optional selector string to filter matched pages by
+	 * @param PageArray Optional PageArray of siblings to use instead of all from the page.
+	 * @return PageArray
+	 *
+	 */
+	public function prevUntil($selector = '', $filter = '', PageArray $siblings = null) {
+		return PageTraversal::prevUntil($this, $selector, $filter, $siblings); 
+	}
+
 
 	/**
 	 * Save this page to the database. 
@@ -1065,20 +1120,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function is($status) {
-
-		if(is_int($status)) {
-			return ((bool) ($this->status & $status)); 
-
-		} else if(is_string($status) && $this->fuel('sanitizer')->name($status) == $status) {
-			// valid template name
-			if($this->template->name == $status) return true; 
-
-		} else if($this->matches($status)) { 
-			// Selectors object or selector string
-			return true; 
-		}
-
-		return false;
+		return PageComparison::is($this, $status);
 	}
 
 	/**
@@ -1089,32 +1131,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function matches($s) {
-
-		if(is_string($s)) {
-			if(!Selectors::stringHasOperator($s)) return false;
-			$selectors = new Selectors($s); 
-
-		} else if($s instanceof Selectors) {
-			$selectors = $s; 
-
-		} else { 
-			return false;
-		}
-
-		$matches = false;
-
-		foreach($selectors as $selector) {
-			$name = $selector->field;
-			if(in_array($name, array('limit', 'start', 'sort', 'include'))) continue; 
-			$matches = true; 
-			$value = $this->get($name); 
-			if(!$selector->matches("$value")) {
-				$matches = false; 
-				break;
-			}
-		}
-
-		return $matches; 
+		return PageComparison::matches($this, $s); 
 	}
 
 	/**
@@ -1365,10 +1382,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function getAccessParent() {
-		if($this->template->useRoles || $this->settings['id'] === 1) return $this;
-		$parent = $this->parent();	
-		if($parent->id) return $parent->getAccessParent();
-		return new NullPage();
+		return PageAccess::getAccessParent($this);
 	}
 
 	/**
@@ -1378,9 +1392,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function getAccessTemplate() {
-		$parent = $this->getAccessParent();
-		if(!$parent->id) return null;
-		return $parent->template; 
+		return PageAccess::getAccessTemplate($this);
 	}
 	
 	/**
@@ -1393,9 +1405,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function getAccessRoles() {
-		$template = $this->getAccessTemplate();
-		if($template) return $template->roles; 
-		return new PageArray();
+		return PageAccess::getAccessRoles($this);
 	}
 
 	/**
@@ -1408,11 +1418,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function hasAccessRole($role) {
-		$roles = $this->getAccessRoles();
-		if(is_string($role)) return $roles->has("name=$role"); 
-		if($role instanceof Role) return $roles->has($role); 
-		if(is_int($role)) return $roles->has("id=$role"); 
-		return false;
+		return PageAccess::hasAccessRole($this, $role); 
 	}
 
 	/**
@@ -1432,40 +1438,6 @@ class Page extends WireData {
 		return false;
 	}
 
-	/** REMOVED
-	public function roles() {}
-	public function addRole($role) {}
-	public function addsRole($role) {}
-	public function hasRole($role) {}
-	public function removeRole($role) {}
-	public function removesRole($role) {}
-	 */
-
 }
-
-/**
- * Placeholder class for non-existant and non-saveable Page
- *
- */
-class NullPage extends Page { 
-
-	// public function roles() { return new RolesArray(); }
-	public function path() { return ''; }
-	public function url() { return ''; }
-	public function set($key, $value) { return $this; }
-	public function parent() { return null; }
-	public function parents() { return new PageArray(); } 
-	public function __toString() { return ""; }
-	public function isHidden() { return true; }
-	public function filesManager() { return null; }
-	public function ___rootParent() { return new NullPage(); }
-	public function siblings($selector = '', $options = array()) { return new PageArray(); }
-	public function children($selector = '', $options = array()) { return new PageArray(); }
-	public function getAccessParent() { return new NullPage(); }
-	public function getAccessRoles() { return new PageArray(); }
-	public function hasAccessRole($role) { return false; }
-
-}
-
 
 
