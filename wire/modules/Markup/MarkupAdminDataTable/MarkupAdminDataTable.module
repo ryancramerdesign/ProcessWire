@@ -67,30 +67,32 @@ class MarkupAdminDataTable extends ModuleJS {
 
 		$tableClass = trim("AdminDataTable AdminDataList {$this->class}"); 
 		if($this->sortable) $tableClass .= " AdminDataTableSortable"; 
-		$out = "\n<table class='$tableClass'>";
+		$out = '';
 		$maxCols = 0;
 
-		if($this->caption) $out .= "\n\t<caption>{$this->caption}</caption>";
+		if(count($this->rows)) { 
+			$out = "\n<table class='$tableClass'>";
 
-		if(count($this->headerRow)) {
-			$out .= "\n\t<thead>\n\t<tr>";
-			foreach($this->headerRow as $th) {
-				$th = $this->encode($th); 
-				$out .= "\n\t\t<th>$th</th>"; 
-				$maxCols++;
+			if($this->caption) $out .= "\n\t<caption>{$this->caption}</caption>";
+
+			if(count($this->headerRow)) {
+				$out .= "\n\t<thead>\n\t<tr>";
+				foreach($this->headerRow as $th) {
+					$th = $this->encode($th); 
+					$out .= "\n\t\t<th>$th</th>"; 
+					$maxCols++;
+				}
+				$out .= "\n\t</tr>\n\t</thead>";
 			}
-			$out .= "\n\t</tr>\n\t</thead>";
-		}
 
-		if(count($this->footerRow)) {
-			$out .= "\n\t<tfoot>\n\t<tr>";
-			foreach($this->footerRow as $td) {
-				$out .= "\n\t\t\t<td>$td</td>"; 
+			if(count($this->footerRow)) {
+				$out .= "\n\t<tfoot>\n\t<tr>";
+				foreach($this->footerRow as $td) {
+					$out .= "\n\t\t\t<td>$td</td>"; 
+				}
+				$out .= "\n\t</tr>\n\t</tfoot>";
 			}
-			$out .= "\n\t</tr>\n\t</tfoot>";
-		}
 
-		if(count($this->rows)) {
 			$out .= "\n\t<tbody>";
 			foreach($this->rows as $row) {
 				$cols = count($row);
@@ -103,9 +105,9 @@ class MarkupAdminDataTable extends ModuleJS {
 				$out .= "\n\t\t</tr>";
 			}
 			$out .= "\n\t</tbody>";
-		}
 
-		$out .= "\n</table>";
+			$out .= "\n</table>";
+		}
 
 		if(count($this->actions)) {
 			$out .= "\n<p>";
