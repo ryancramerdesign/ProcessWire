@@ -222,7 +222,26 @@ class LanguageTranslator extends Wire {
  	 * @return string Translation if available, or original EN version if translation not available.
 	 *
 	 */
-	public function getTranslation($textdomain, $text, $context = '') {
+        public function getTranslation($textdomain, $text, $context = '') {
+                if(self::isHooked('LanguageTranslator::getTranslation()')) {
+			// if method has hooks, we let them run
+			return $this->__call('getTranslation', array($textdomain, $text, $context));
+		} else { 
+			// if method has no hooks, we avoid any overhead
+			return $this->___getTranslation($textdomain, $text, $context);
+		}
+        }
+
+	/**
+	 * Implementation for the getTranslation() function - you should call getTranslation() without underscores instead.
+	 *
+	 * @param string|object $textdomain Textdomain string, filename, or object. 
+	 * @param string $text Text in default language (EN) that needs to be converted to current language. 
+	 * @param string $context Optional context label for the text, to differentiate from others that may be the same in English, but not other languages.
+ 	 * @return string Translation if available, or original EN version if translation not available.
+	 *
+	 */
+	public function ___getTranslation($textdomain, $text, $context = '') {
 
 		// normalize textdomain to be a string, converting from filename or object if necessary
 		$textdomain = $this->textdomainString($textdomain); 
