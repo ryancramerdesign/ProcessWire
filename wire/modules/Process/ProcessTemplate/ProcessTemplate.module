@@ -1044,7 +1044,7 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get("InputfieldRadios"); 
 		$field->attr('id+name', 'noChildren'); 
-		$field->label = "May pages using this template have children?";
+		$field->label = $this->_('May pages using this template have children?');
 		$field->addOption(0, $this->labels['Yes']); 
 		$field->addOption(1, $this->labels['No']); 
 		$field->attr('value', (int) $template->noChildren); 
