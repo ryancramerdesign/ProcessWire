@@ -119,7 +119,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function ___getConfigAdvancedInputfields(Field $field) {
-               // advanced settings
+		// advanced settings
 		$inputfields = new InputfieldWrapper();	
 
 		if($this->getLoadQueryAutojoin($field, new DatabaseQuerySelect())) {
