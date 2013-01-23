@@ -194,7 +194,6 @@ class PageFinder extends Wire {
 		$lastSelector = null; 
 		$sortSelectors = array(); // selector containing 'sort=', which gets added last
 		$joins = array();
-		$nullPage = new NullPage();
 		$startLimit = false; // true when the start/limit part of the query generation is done
 
 		$query = new DatabaseQuerySelect();
@@ -264,11 +263,17 @@ class PageFinder extends Wire {
 					if(isset($subqueries[$tableAlias])) $q = $subqueries[$tableAlias];
 						else $q = new DatabaseQuerySelect();
 
-					//if($subfield == 'data' && in_array($selector->operator, array('=', '!=', '<>')) && $value === $fieldtype->getBlankValue($nullPage, $field)) {
-					if($subfield == 'data' && empty($value) && in_array($selector->operator, array('=', '!='))) {
+					if($subfield == 'data' && empty($value) && in_array($selector->operator, array('=', '!=', '<>'))) {
 						// handle blank values -- look in table that has no pages_id relation back to pages, using the LEFT JOIN / IS NULL trick
+						// OR check for blank value as defined by the fieldtype
+						$blankValue = $this->db->escape_string($fieldtype->getBlankValue(new NullPage(), $field)); 
 						$query->leftjoin("$tableAlias ON $tableAlias.pages_id=pages.id"); 
-						$query->where("$tableAlias.pages_id " . ($selector->operator == '=' ? "IS" : "IS NOT") . " NULL"); 
+						if($selector->operator == '=') {
+							$query->where("$tableAlias.pages_id IS NULL OR $tableAlias.data='$blankValue'"); 
+						} else {
+							$query->where("$tableAlias.pages_id IS NOT NULL AND $tableAlias.data!='$blankValue'"); 
+						}
+						unset($blankValue);
 						continue; 
 
 					} else {

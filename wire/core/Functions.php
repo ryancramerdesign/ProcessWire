@@ -198,7 +198,8 @@ function wireMkdir($path) {
  */ 
 function wireRmdir($path, $recursive = false) {
 	if(!is_dir($path)) return false;
-	if($recursive) {
+	if(!strlen(trim($path, '/.'))) return false; // just for safety, don't proceed with empty string
+	if($recursive === true) {
 		$files = scandir($path);
 		if(is_array($files)) foreach($files as $file) {
 			if($file == '.' || $file == '..') continue; 
