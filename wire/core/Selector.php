@@ -129,7 +129,7 @@ abstract class Selector extends WireData {
 			}
 		}
 
-		return $this->evaluate($matches); 
+		return $matches; 
 	}
 
 	/**
