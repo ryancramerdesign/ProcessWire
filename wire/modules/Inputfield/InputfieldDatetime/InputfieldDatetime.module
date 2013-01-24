@@ -252,7 +252,7 @@ class InputfieldDatetime extends Inputfield {
 		$f->attr('name', 'dateInputFormat');
 		$f->attr('value', $this->dateInputFormat ? $this->dateInputFormat : self::defaultDateInputFormat);
 		$f->attr('size', 20);
-		$f->label = "Date Input Format Code";
+		$f->label = $this->_('Date Input Format Code');
 		$f->description = $this->_('This is automatically built from the date select above, unless you modify it.'); 
 		$notes = $this->_('See the [PHP date](http://www.php.net/manual/en/function.date.php) function reference for more information on how to customize these formats.'); 
 		if($languages) $notes .= "\n" . $this->_('You may optionally specify formats for other languages here as well. Any languages left blank will inherit the default setting.'); 
@@ -265,7 +265,7 @@ class InputfieldDatetime extends Inputfield {
 		$f->attr('name', 'timeInputFormat');
 		$f->attr('value', $this->timeInputFormat ? $this->timeInputFormat : '');
 		$f->attr('size', 20);
-		$f->label = "Time Input Format Code";
+		$f->label = $this->_('Time Input Format Code');
 		$f->description = $this->_('This is automatically built from the time select above, unless you modify it.'); 
 		$f->notes = $notes; 
 		$f->collapsed = Inputfield::collapsedYes;
