@@ -282,6 +282,7 @@ class WireInput {
 
 		if($key == 'pageNum') return $this->pageNum; 
 		if($key == 'urlSegments') return $this->urlSegments; 
+		if($key == 'urlSegmentsStr' || $key == 'urlSegmentStr') return implode('/', $this->urlSegments); 
 
 		if(strpos($key, 'urlSegment') === 0) {
 			if(strlen($key) > 10) $num = (int) substr($key, 10); 
