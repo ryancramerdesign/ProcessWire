@@ -102,7 +102,7 @@ class ProcessModule extends Process {
 
 		foreach($this->modulesArray as $name => $installed) {
 
-			if(strpos($name, $section) !== 0) {
+			if(strpos($name, $section) !== 0 || preg_match('/' . $section . '[^A-Z]/', $name)) {
 				if(!preg_match('/^([A-Za-z][a-z]+)/', $name, $matches)) $this->error($name); 
 				$section = $matches[1]; 
 				if($table) $out .= $table->render();
@@ -300,6 +300,8 @@ class ProcessModule extends Process {
 			} else {
 				$this->modules->saveModuleConfigData($moduleName, $data); 
 				$this->message($this->_("Saved Module") . " - $moduleName"); // Message shown before the name of a module that was just saved
+				$this->session->redirect("./edit?name=$moduleName"); 
+				return;
 			}
 		}
 
