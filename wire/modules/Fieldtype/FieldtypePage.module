@@ -532,14 +532,11 @@ class FieldtypePage extends FieldtypeMulti {
 		
 		$select = $this->modules->get("InputfieldRadios"); 
 		$select->attr('name', 'derefAsPage'); 
-		$select->label = 'Dereference in API as';
-		$select->description = 
-			"If your field will contain multiple pages, then you should select the first option (PageArray). " . 
-			"If your field only needs to contain a single page, then select one of the single Page options " . 
-			"(if you aren't sure which, select the last option).";
-		$select->addOption(FieldtypePage::derefAsPageArray, 'Multiple pages (PageArray)'); 
-		$select->addOption(FieldtypePage::derefAsPageOrFalse, 'Single page (Page) or boolean false when none selected'); 
-		$select->addOption(FieldtypePage::derefAsPageOrNullPage, 'Single page (Page) or empty page (NullPage) when none selected'); 
+		$select->label = $this->_('Dereference in API as');
+		$select->description = $this->_('If your field will contain multiple pages, then you should select the first option (PageArray). If your field only needs to contain a single page, then select one of the single Page options (if you are not sure which, select the last option).'); // Long description for: dereference in API
+		$select->addOption(FieldtypePage::derefAsPageArray, $this->_('Multiple pages (PageArray)')); 
+		$select->addOption(FieldtypePage::derefAsPageOrFalse, $this->_('Single page (Page) or boolean false when none selected')); 
+		$select->addOption(FieldtypePage::derefAsPageOrNullPage, $this->_('Single page (Page) or empty page (NullPage) when none selected')); 
 
 		$select->attr('value', (int) $field->derefAsPage);  
 		$inputfields->append($select);
