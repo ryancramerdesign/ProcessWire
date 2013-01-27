@@ -59,6 +59,7 @@ DirectoryIndex index.php index.html index.htm
 <IfModule mod_rewrite.c>
 
   RewriteEngine On
+  AddDefaultCharset UTF-8
 
   # -----------------------------------------------------------------------------------------------
   # Set an environment variable so the installer can detect that mod_rewrite is active.
