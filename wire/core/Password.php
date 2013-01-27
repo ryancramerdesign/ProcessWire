@@ -33,6 +33,7 @@ class Password extends Wire {
 		$hash = $this->hash($pass); 
 		if(!strlen($hash)) return false;
 		$updateNotify = false;
+		$matches = false;
 
 		if($this->isBlowfish($hash)) {
 			$hash = substr($hash, 29);
@@ -42,6 +43,8 @@ class Password extends Wire {
 			// to take advantage of blowfish hashing
 			$updateNotify = true; 
 		}
+
+		if(strlen($hash) < 29) return false;
 
 		$matches = ($hash === $this->data['hash']);
 
@@ -83,6 +86,7 @@ class Password extends Wire {
 
 		// if nothing supplied, then don't continue
 		if(!strlen($value)) return;
+		if(!is_string($value)) throw new WireException("Password must be a string"); 
 
 		// first check to see if it actually changed
 		if($this->data['salt'] && $this->data['hash']) {
@@ -127,15 +131,70 @@ class Password extends Wire {
 		$salt = (version_compare(PHP_VERSION, '5.3.7') >= 0) ? '$2y' : '$2a';
 
 		// cost parameter (04-31)
-		$salt .= '$11$'; 
+		$salt .= '$11$';
+		// 22 random base64 characters
+		$salt .= $this->randomBase64String(22);
+		// plus trailing $
+		$salt .= '$'; 
 
-		// base64 characters allowed for blowfish salt
-		$chars = './abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-		$len = strlen($chars)-1;
+		return $salt;
+	}
 
-		// generate a 22 character random blowfish salt (was 21)
-		for($n = 0; $n < 22; $n++) $salt .= $chars[mt_rand(0, $len)]; 
-		$salt .= '$'; // plus trailing $
+	/**
+	 * Generate a truly random base64 string of a certain length
+	 *
+	 * This is largely taken from Anthony Ferrara's password_compat library:
+	 * https://github.com/ircmaxell/password_compat/blob/master/lib/password.php
+	 * Modified for camelCase, variable names, and function-based context by Ryan.
+	 *
+	 * @param int $requiredLength Length of string you want returned
+	 * @return string
+	 *
+	 */
+	public function randomBase64String($requiredLength = 22) {
+
+		$buffer = '';
+		$rawLength = (int) ($requiredLength * 3 / 4 + 1);
+		$valid = false;
+
+		if(function_exists('mcrypt_create_iv')) {
+			$buffer = mcrypt_create_iv($rawLength, MCRYPT_DEV_URANDOM);
+			if($buffer) $valid = true;
+		}
+
+		if(!$valid && function_exists('openssl_random_pseudo_bytes')) {
+			$buffer = openssl_random_pseudo_bytes($rawLength);
+			if($buffer) $valid = true;
+		}
+
+		if(!$valid && file_exists('/dev/urandom')) {
+			$f = @fopen('/dev/urandom', 'r');
+			if($f) {
+				$read = strlen($buffer);
+				while($read < $rawLength) {
+					$buffer .= fread($f, $rawLength - $read);
+					$read = strlen($buffer);
+				}
+				fclose($f);
+				if($read >= $rawLength) $valid = true;
+			}
+		}
+
+		if(!$valid || strlen($buffer) < $rawLength) {
+			$bl = strlen($buffer);
+			for($i = 0; $i < $rawLength; $i++) {
+				if($i < $bl) {
+					$buffer[$i] = $buffer[$i] ^ chr(mt_rand(0, 255));
+				} else {
+					$buffer .= chr(mt_rand(0, 255));
+				}
+			}
+		}
+
+		$salt = str_replace('+', '.', base64_encode($buffer));
+		$salt = substr($salt, 0, $requiredLength);
+
+		$salt .= $valid; 
 
 		return $salt;
 	}
@@ -175,7 +234,7 @@ class Password extends Wire {
 	protected function hash($pass) {
 
 		// if there is no salt yet, make one (for new pass or reset pass)
-		if(!strlen($this->data['salt'])) $this->data['salt'] = $this->salt();
+		if(strlen($this->data['salt']) < 28) $this->data['salt'] = $this->salt();
 
 		// salt we made (the one ultimately stored in DB)
 		$salt1 = $this->data['salt'];
@@ -201,6 +260,8 @@ class Password extends Wire {
 			// generate the hash
 			$hash = hash($hashType, $salt1 . $splitPass[0] . $salt2 . $splitPass[1], false); 
 		}
+
+		if(!is_string($hash) || strlen($hash) <= 13) throw new WireException("Unable to generate password hash"); 
 
 		return $hash; 
 	}
