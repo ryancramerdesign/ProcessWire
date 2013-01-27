@@ -174,6 +174,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 			$page = wire('pages')->get($pageID); 
 			if(!$page->viewable() || !$page->id) $page = wire('page');
 			$url = $page->id ? $page->url : './';
+			wire('session')->set('PageRenderNoCachePage', $page->id); // tell PageRender not to use cache if it exists for this page
 			wire('session')->redirect($url . '?comment_success=1' . '#' . $this->options['attrs']['id']);
 			return;
 		}

@@ -84,6 +84,10 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 			foreach($vars as $name) if($name && isset($_POST[$name])) $allowed = false; 
 		}
 
+		// NOTE: other modules may set a session var of PageRenderNoCachePage containing a page ID to temporarily
+		// remove caching for some page, if necessary. 
+		if($this->session->PageRenderNoCachePage && $this->session->PageRenderNoCachePage == $page->id) $allowed = false;
+
 		return $allowed; 
 	}
 

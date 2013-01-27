@@ -142,6 +142,7 @@ class LazyCron extends WireData implements Module {
 
 		$time = time();
 		$filename = $this->config->paths->cache . "LazyCron.cache"; 
+		$times = array();
 		$writeFile = false;
 
 		if(is_file($filename)) {
@@ -170,7 +171,6 @@ class LazyCron extends WireData implements Module {
 		} else {
 			// file does not exist
 			$writeFile = true;
-			$times = array();
 			foreach($this->timeFuncs as $seconds => $unused) {
 				$times[$seconds] = $time;
 			}
