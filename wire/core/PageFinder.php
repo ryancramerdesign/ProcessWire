@@ -299,7 +299,7 @@ class PageFinder extends Wire {
 						if($selector->operator == '!=') {
 							$join .= ($join ? "\n\t\tAND $sql " : $sql); 
 						} else if($selector->not) { 
-							$sql = "(NOT $sql)";
+							$sql = "((NOT $sql) OR ($tableAlias.pages_id IS NULL))";
 							$join .= ($join ? "\n\t\tAND $sql " : $sql); 
 						} else { 
 							$join .= ($join ? "\n\t\tOR $sql " : $sql); 
@@ -310,8 +310,8 @@ class PageFinder extends Wire {
 				}
 
 				if($join) {
-					$joinType = "join";
-					if(count($fields) > 1 || $subfield == 'count') {
+					$joinType = 'join';
+					if(count($fields) > 1 || $subfield == 'count' || ($selector->not && $selector->operator != '!=')) {
 						$joinType = "leftjoin";
 
 						if($where) {
@@ -320,7 +320,10 @@ class PageFinder extends Wire {
 						} else {
 							$where .= "($join) ";
 						}
-
+						if($selector->not) {
+							// removes condition from join, but ensures we still have a $join
+							$join = '1=1'; 
+						}
 					}
 
 					// we compile the joins after going through all the selectors, so that we can 
@@ -713,8 +716,15 @@ class PageFinder extends Wire {
 					if(!ctype_digit($value)) $value = strtotime($value); 
 					$value = date('Y-m-d H:i:s', $value); 
 				}
+				if($field == 'name' && $operator == '~=') {
+					// handle one or more space-separated full words match to 'name' field in any order
+					$s = '';
+					foreach(explode(' ', $value) as $word) {
+						$word = $this->db->escape_string(wire('sanitizer')->pageName($word)); 
+						$s .= ($s ? ' AND ' : '') . "$table.$field RLIKE '" . '[[:<:]]' . $word . '[[:>:]]' . "'";
+					}
 
-				if($field == 'name' && in_array($operator, array('%=', '^=', '$=', '%^=', '%$=', '*=', '~='))) {
+				} else if($field == 'name' && in_array($operator, array('%=', '^=', '$=', '%^=', '%$=', '*='))) {
 					// handle partial match to 'name' field
 					$value = $this->db->escape_string(wire('sanitizer')->pageName($value));
 					if($operator == '^=' || $operator == '%^=') $value = "$value%";
