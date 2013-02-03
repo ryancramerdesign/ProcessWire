@@ -291,16 +291,19 @@ class PageFinder extends Wire {
 					}
 
 					if(count($q->where)) { 
-						$and = $selector->not ? "AND NOT" : "AND";
+						// $and = $selector->not ? "AND NOT" : "AND";
+						$and = "AND"; /// moved NOT condition to entire generated $sql
 						$sql = ''; 
 						foreach($q->where as $w) $sql .= $sql ? "$and $w " : "$w ";
 						$sql = "($sql) "; 
 
 						if($selector->operator == '!=') {
 							$join .= ($join ? "\n\t\tAND $sql " : $sql); 
+
 						} else if($selector->not) { 
 							$sql = "((NOT $sql) OR ($tableAlias.pages_id IS NULL))";
 							$join .= ($join ? "\n\t\tAND $sql " : $sql); 
+
 						} else { 
 							$join .= ($join ? "\n\t\tOR $sql " : $sql); 
 						}
