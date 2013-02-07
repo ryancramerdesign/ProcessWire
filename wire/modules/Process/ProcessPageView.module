@@ -144,7 +144,7 @@ class ProcessPageView extends Process {
 
 		if(wire('config')->pagefileSecure) {
 			$page = $this->checkRequestFile($it);
-			if(is_object($page) && $page->id) return $page;
+			if(is_object($page)) return $page; // Page or NullPage
 		}
 
 		// optimization to filter out page numbers first
@@ -200,31 +200,38 @@ class ProcessPageView extends Process {
 	 * This function sets $this->requestFile when it finds one.
 	 * This function updates the $it variable when pagefile found.
 	 * Returns Page when a pagefile was found and matched to a page.
-	 * returns true when pagefile found using old deprecated method.
+	 * Returns NullPage when request should result in a 404. 
+	 * Returns true, and updates $it, when pagefile was found using old/deprecated method.
 	 * Returns false when none found.
 	 *
 	 * @string $it Request URL
-	 * @return bool|Page 
+	 * @return bool|Page|NullPage 
 	 *
 	 */
 	protected function checkRequestFile(&$it) {
+		$config = wire('config');
 
 		// check for secured filename, method 1: actual file URL, minus leading "." or "-"
-		if(strpos($it, wire('config')->urls->files) === 0
-			&& preg_match('{/(\d+)/([-_.a-zA-Z0-9]+)$}', $it, $matches) 
-			&& strpos($matches[2], '.')) {
-
-			$this->requestFile = $matches[2]; 	
-			return $this->pages->get((int) $matches[1]); 
+		if(strpos(rtrim($config->urls->root, '/') . $it, $config->urls->files) === 0) {
+			if(preg_match('{/(\d+)/([-_.a-zA-Z0-9]+)$}', $it, $matches) && strpos($matches[2], '.')) {
+				// request is consistent with those that would match to a file
+				$this->requestFile = $matches[2]; 	
+				$page = $this->pages->get((int) $matches[1]); // Page or NullPage
+				return $page; 
+			} else {
+				// request was to something in /site/assets/files/ but we don't recognize it
+				// tell caller that this should be a 404
+				return new NullPage();
+			}
 		}
 
 		// check for secured filename: method 2 (deprecated), used only if $config->pagefileUrlPrefix is defined
-		$filePrefix = wire('config')->pagefileUrlPrefix;
+		$filePrefix = $config->pagefileUrlPrefix;
 		if($filePrefix && strpos($it, '/' . $filePrefix) !== false) { 
 			if(preg_match('{^(.*/)' . $filePrefix . '([-_.a-zA-Z0-9]+)$}', $it, $matches) && strpos($matches[2], '.')) {
 				$it = $matches[1];
 				$this->requestFile = $matches[2]; 
-				return true;
+				return true; 
 			}
 		} 
 
@@ -383,11 +390,6 @@ class ProcessPageView extends Process {
 
 		$config = $this->config;
 
-		// check if the request was to a /site/assets/files/123/filename.jpg that may have gone from public to not
-		if(strpos($config->urls->root . ltrim($url, '/'), $config->urls->files) !== false) {
-			if($this->pagefileNotFound($url)) return;
-		}
-
 		header("HTTP/1.1 404 Page Not Found"); 
 
 		if($config->http404PageID) {
@@ -398,27 +400,6 @@ class ProcessPageView extends Process {
 		} else {
 			return "404 page not found";
 		}
-	}
-
-	/**
-	 * Handle request for a Pagefile that was not found
-	 *
-	 * In this case, we look for a request to a Pagefile URL that may have gone from public to private
- 	 * and set setup the appropriate temporary redirect so that any links continue working, so long
-	 * as the user has access.
-	 *
-	 * @param string $url 
-	 * @return bool Whether or not this function handled the request
-	 *
-	 */
-	protected function ___pagefileNotFound($url) {
-		if($this->user->isGuest()) return false;
-		if(!preg_match('{/(\d+)/([-_.a-zA-Z0-9]+)$}', $url, $matches)) return false;
-		$page = wire('pages')->get((int) $matches[1]); 
-		if(!$page->id || $page->isPublic() || !$page->viewable()) return false;
-		// issue a temporary redirect to the protected filename
-		$this->session->redirect($page->url . $this->config->pagefileUrlPrefix . $matches[2], false);
-		return true; 
 	}
 
 }

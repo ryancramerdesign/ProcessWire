@@ -79,10 +79,13 @@ $config->protectCSRF = true;
  *
  * This should be a prefix that is not the same as any page name, as it takes precedence.
  *
+ * This prefix is deprecated. Insert this into your /site/config.php as a temporary fix only if you
+ * have broken images from <img> tags placed in textarea fields.
+ *
  * @deprecated
  *
- */
 $config->pagefileUrlPrefix = '-/'; 
+ */
 
 /**
  * pagefileSecurePathPrefix: One or more characters prefixed to the pathname of secured file dirs.
