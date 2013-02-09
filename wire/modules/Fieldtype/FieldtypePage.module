@@ -475,7 +475,8 @@ class FieldtypePage extends FieldtypeMulti {
 		$value = wire('sanitizer')->selectorValue($value);
 
 		// build a selector to find matching pagerefs 
-		$selector = '';
+		// @todo should $selector include check_access=0 or even include=all?
+		$selector = 'include=hidden, ';
 		if($field->findPagesSelector) $selector .= $field->findPagesSelector . ", ";
 		if($field->parent_id) $selector .= "parent_id={$field->parent_id}, ";
 		if($field->template_id) $selector .= "templates_id={$field->template_id}, ";
