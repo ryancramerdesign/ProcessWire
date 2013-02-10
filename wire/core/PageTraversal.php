@@ -45,6 +45,7 @@ class PageTraversal {
 	 *
 	 */
 	public static function child(Page $page, $selector = '', $options = array()) {
+		if(!$page->numChildren) return new NullPage();
 		$selector .= ($selector ? ', ' : '') . "limit=1";
 		if(strpos($selector, 'start=') === false) $selector .= ", start=0"; // prevent pagination
 		$children = self::children($page, $selector, $options); 

@@ -12,7 +12,7 @@
  * reason, then you'll want to delete that file. This was implemented just in case someone doesn't delete the installer.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -378,12 +378,11 @@ class Installer {
 			$this->profileImportSQL($mysqli, $profile . "install.sql"); 
 			$this->ok("Imported: {$profile}install.sql"); 
 
-			if(!is_dir("./site/assets/files/") && is_dir($profile . "files")) {
-				$this->mkdir("./site/assets/cache/"); 
-				$this->mkdir("./site/assets/logs/"); 
-				$this->mkdir("./site/assets/sessions/"); 
-				$this->profileImportFiles($profile);
-			}
+			if(is_dir($profile . "files")) $this->profileImportFiles($profile);
+				else $this->mkdir("./site/assets/files/"); 
+			$this->mkdir("./site/assets/cache/"); 
+			$this->mkdir("./site/assets/logs/"); 
+			$this->mkdir("./site/assets/sessions/"); 
 
 		} else {
 			$this->ok("A profile is already imported, skipping..."); 
@@ -552,7 +551,6 @@ class Installer {
 		file_put_contents("./site/assets/installed.php", "<?php // The existence of this file prevents the installer from running. Don't delete it unless you want to re-run the install or you have deleted ./install.php."); 
 
 	}
-
 
 	/******************************************************************************************************************
 	 * OUTPUT FUNCTIONS

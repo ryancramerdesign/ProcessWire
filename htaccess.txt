@@ -97,7 +97,7 @@ DirectoryIndex index.php index.html index.htm
   # Block access to any htaccess files
   RewriteCond %{REQUEST_URI} (^|/)\.htaccess$ [NC,OR]
   # Block access to protected assets directories
-  RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/assets/(cache|logs|backups|sessions|config|install)($|/.*$) [OR]
+  RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/assets/(cache|logs|backups|sessions|config|install|tmp)($|/.*$) [OR]
   # Block acceess to the /site/install/ directory
   RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/install($|/.*$) [OR]
   # Block dirs in /site/assets/ dirs that start with a hyphen
