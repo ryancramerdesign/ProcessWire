@@ -383,8 +383,15 @@ class FieldtypePage extends FieldtypeMulti {
 					if($v && $v->id) $value = $v->id; 
 				}
 			}
+
 			$value = $this->fuel('db')->escape_string($value); 
-			$query->where("($table.{$subfield}{$operator}'$value')"); // pages.id AND $table.pages_id{$operator}'$value')");
+
+			if($operator == '!=') {
+				$t = $query->field->getTable();
+				$query->where("(SELECT COUNT(*) FROM $t WHERE $t.pages_id=pages.id AND $t.$subfield='$value')=0"); 
+			} else {
+				$query->where("($table.{$subfield}{$operator}'$value')"); // pages.id AND $table.pages_id{$operator}'$value')");
+			}
 
 		} else if($this->getMatchQueryNative($query, $table, $subfield, $operator, $value)) {
 			// great

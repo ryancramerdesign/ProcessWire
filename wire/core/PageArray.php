@@ -392,6 +392,8 @@ class PageArray extends WireArray {
 			$value = $item->$property;
 		}
 
+		if(is_array($value)) $value = implode('|', $value); 
+
 		return $value;
 	}
 

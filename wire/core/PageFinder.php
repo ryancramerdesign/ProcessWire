@@ -298,6 +298,7 @@ class PageFinder extends Wire {
 						$sql = "($sql) "; 
 
 						if($selector->operator == '!=') {
+							//$sql = "(($sql) OR ($tableAlias.pages_id IS NULL))";
 							$join .= ($join ? "\n\t\tAND $sql " : $sql); 
 
 						} else if($selector->not) { 
@@ -314,7 +315,11 @@ class PageFinder extends Wire {
 
 				if($join) {
 					$joinType = 'join';
-					if(count($fields) > 1 || $subfield == 'count' || ($selector->not && $selector->operator != '!=')) {
+
+					if(count($fields) > 1 || $subfield == 'count' 
+						|| ($selector->not && $selector->operator != '!=')) {
+						//|| (!$selector->not && $selector->operator == '!=')) {
+
 						$joinType = "leftjoin";
 
 						if($where) {

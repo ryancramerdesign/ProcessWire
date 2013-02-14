@@ -154,9 +154,25 @@ class WireData extends Wire implements IteratorAggregate {
 			else $value = $from->$key;
 		if(!count($keys)) return $value; // final value
 		if(is_object($value)) {
-			$keys = implode('.', $keys); // convert back to string
-			if($value instanceof WireData) $value = $value->getDot($keys); // for override potential
-				else $value = self::_getDot($keys, $value);
+			if(count($keys) > 1) {
+				$keys = implode('.', $keys); // convert back to string
+				if($value instanceof WireData) $value = $value->getDot($keys); // for override potential
+					else $value = self::_getDot($keys, $value);
+			} else {
+				$key = array_shift($keys);
+				// just one key left, like 'title'
+				if($value instanceof WireData) {
+					$value = $value->get($key);
+				} else if($value instanceof WireArray) {
+					if($key == 'count') {
+						$value = count($value);
+					} else {
+						$a = array();
+						foreach($value as $v) $a[] = $v->get($key); 	
+						$value = $a; 
+					}
+				}
+			}
 		} else {
 			// there is a dot property remaining and nothing to send it to
 			$value = null; 
