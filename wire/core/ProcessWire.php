@@ -6,7 +6,7 @@
  * Initializes all the ProcessWire classes and prepares them for API use
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -34,7 +34,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 2; 
-	const versionRevision = 14; 
+	const versionRevision = 15; 
 
 	/**
 	 * Given a Config object, instantiates ProcessWire and it's API
@@ -60,6 +60,7 @@ class ProcessWire extends Wire {
 		Wire::setFuel('config', $config); 
 
 		ini_set("date.timezone", $config->timezone);
+		ini_set('default_charset','utf-8');
 
 		if(!$config->templateExtension) $config->templateExtension = 'php';
 		if(!$config->httpHost) {

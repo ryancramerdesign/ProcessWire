@@ -23,7 +23,7 @@ class FieldtypeFloat extends Fieldtype {
 		return array(
 			'title' => __('Float', __FILE__),
 			'summary' => __('Field that stores a floating point (decimal) number', __FILE__),
-			'version' => 100,
+			'version' => 101,
 			'permanent' => true, 
 			);
 	}
@@ -75,9 +75,11 @@ class FieldtypeFloat extends Fieldtype {
 	public function ___getConfigInputfields(Field $field) {
 		$inputfields = parent::___getConfigInputfields($field);
 
+		if(is_null($field->precision)) $field->precision = 2; 
+
 		$f = $this->modules->get('InputfieldInteger');
 		$f->attr('name', 'precision'); 
-		$f->label = 'Number of decimal digits to round to';
+		$f->label = $this->_('Number of decimal digits to round to');
 		$f->attr('value', $field->precision); 
 		$f->attr('size', 8); 
 		$inputfields->append($f);
