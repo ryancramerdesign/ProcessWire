@@ -523,6 +523,9 @@ class Page extends WireData {
 			case 'accessTemplate': 
 				$value = $this->getAccessTemplate();
 				break;
+			case 'numVisibleChildren':
+				$value = $this->numChildren(true);
+				break;
 			default:
 				if($key && isset($this->settings[(string)$key])) return $this->settings[$key]; 
 
@@ -751,6 +754,17 @@ class Page extends WireData {
 	 */
 	public function children($selector = '', $options = array()) {
 		return PageTraversal::children($this, $selector, $options); 
+	}
+
+	/**
+	 * Return number of children, optionally limiting to visible pages. 
+	 *
+	 * @param bool $onlyVisible When true, number includes only visible children (excludes unpublished, hidden, no-access, etc.)
+	 *
+	 */
+	public function numChildren($onlyVisible = false) {
+		if(!$onlyViewable) return $this->settings['numChildren'];
+		return $this->children('limit=2')->getTotal();
 	}
 
 	/**
