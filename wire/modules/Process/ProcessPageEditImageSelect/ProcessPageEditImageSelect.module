@@ -31,10 +31,21 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Edit Image',          
 			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)', 
-			'version' => 102, 
+			'version' => 103, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
+	}
+
+	protected static $defaultConfig = array(
+		'noSizeAttrs' => 0,
+		'alignLeftClass' => 'align_left',
+		'alignRightClass' => 'align_right',
+		'alignCenterClass' => 'align_center'
+		);
+
+	public function __construct() {
+		foreach(self::$defaultConfig as $key => $value) $this->set($key, $value); 
 	}
 
 	public function init() {
@@ -221,9 +232,9 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			"\n\t\t\t<option>" . $this->_('No Alignment') . "</option>"; 
 
 		$optionalClasses = array(
-			'align_left' => $this->_('Align Left'),
-			'align_right' => $this->_('Align Right'),
-			'align_center' => $this->_('Align Center'),
+			$this->alignLeftClass => $this->_('Align Left'),
+			$this->alignRightClass => $this->_('Align Right'),
+			$this->alignCenterClass => $this->_('Align Center'),
 			);
 
 		foreach($optionalClasses as $class => $label) {
@@ -301,6 +312,8 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 
 	static public function getModuleConfigInputfields(array $data) {
 		$inputfields = new InputfieldWrapper();
+		$data = array_merge(self::$defaultConfig, $data); 
+
 		$f = wire('modules')->get('InputfieldCheckbox');
 		$f->attr('name', 'noSizeAttrs'); 
 		$f->attr('value', 1);
@@ -308,6 +321,25 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$f->label = __('Skip width and height attributes on image tags?', __FILE__); // noSizeAttr label
 		$f->description = __('By default, this module will include width and height attributes in the <img> tag. If you are using responsive images, you might want to disable this behavior. Check the box to disable width and height attributes.', __FILE__); // noSizeAttr description
 		$inputfields->add($f);
+
+		$f = wire('modules')->get('InputfieldText'); 
+		$f->attr('name', 'alignLeftClass');
+		$f->attr('value', $data['alignLeftClass']); 
+		$f->label = __('Align Image Left Class'); 
+		$inputfields->add($f);
+		
+		$f = wire('modules')->get('InputfieldText'); 
+		$f->attr('name', 'alignRightClass');
+		$f->attr('value', $data['alignRightClass']); 
+		$f->label = __('Align Image Right Class'); 
+		$inputfields->add($f);
+
+		$f = wire('modules')->get('InputfieldText'); 
+		$f->attr('name', 'alignCenterClass');
+		$f->attr('value', $data['alignCenterClass']); 
+		$f->label = __('Align Image Center Class'); 
+		$inputfields->add($f);
+
 		return $inputfields;
 	}
 

@@ -414,17 +414,20 @@ a {
  *
  */
 
-.align_left {
+.align_left,
+.align-left {
 	float: left;
 	margin: 0 1em 0.5em 0;
 }
 
-.align_right {
+.align_right,
+.align-right {
 	float: right;
 	margin: 0 0 0.5em 1em; 
 }
 
-.align_center {
+.align_center,
+.align-center {
 	display: block;
 	margin-left: auto;
 	margin-right: auto; 
