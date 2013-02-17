@@ -124,7 +124,7 @@ class Password extends Wire {
 	protected function salt() {
 
 		// if system doesn't support blowfish, return old style salt
-		if(!$this->supportsBlowfish()) return md5(mt_rand() . microtime()); 
+		if(!$this->supportsBlowfish()) return md5($this->randomBase64String(44)); 
 
 		// blowfish assumed from this point forward
 		// use stronger blowfish mode if PHP version supports it 
@@ -208,8 +208,8 @@ class Password extends Wire {
 	 */
 	public function isBlowfish($str = '') {
 		if(!strlen($str)) $str = $this->data['salt'];
-		$prefix = substr($str, 0, 2); 
-		return $prefix === '$2';
+		$prefix = substr($str, 0, 3); 
+		return $prefix === '$2a' || $prefix === '$2x' || $prefix === '$2y'; 
 	}
 
 	/**
@@ -219,7 +219,7 @@ class Password extends Wire {
 	 *
 	 */
 	public function supportsBlowfish() {
-		return defined("CRYPT_BLOWFISH") && CRYPT_BLOWFISH;
+		return version_compare(PHP_VERSION, '5.3.0') >= 0 && defined("CRYPT_BLOWFISH") && CRYPT_BLOWFISH;
 	}
 
 	/**
