@@ -267,7 +267,8 @@ class PageFinder extends Wire {
 						// handle blank values -- look in table that has no pages_id relation back to pages, using the LEFT JOIN / IS NULL trick
 						// OR check for blank value as defined by the fieldtype
 						$blankValue = $this->db->escape_string($fieldtype->getBlankValue(new NullPage(), $field)); 
-						$query->leftjoin("$tableAlias ON $tableAlias.pages_id=pages.id"); 
+						if($field->table === $tableAlias) $query->leftjoin("$tableAlias ON $tableAlias.pages_id=pages.id"); 
+							else $query->leftjoin("$field->table AS $tableAlias ON $tableAlias.pages_id=pages.id"); 
 						if($selector->operator == '=') {
 							$query->where("$tableAlias.pages_id IS NULL OR $tableAlias.data='$blankValue'"); 
 						} else {
