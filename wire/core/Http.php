@@ -6,10 +6,10 @@
  * Provides capability for sending POST/GET requests to URLs
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
+ * http://processwire.com
  *
  */
 
@@ -46,11 +46,56 @@ class WireHttp {
 	 * Send to a URL using GET
 	 *
 	 * @param string $url URL to post to (including http:// or https://)
+	 * @param array $data Array of data to send (if not already set before)
 	 * @return bool|string False on failure or string of contents received on success.
 	 *
 	 */
 	public function get($url, array $data = array()) {
 		return $this->send($url, $data, 'GET');
+	}
+
+
+	/**
+	 * Send to a URL using HEAD (@horst)
+	 *
+	 * @param string $url URL to request (including http:// or https://)
+	 * @param array $data Array of data to send (if not already set before)
+	 * @return bool|array False on failure or Arrray with ResponseHeaders on success.
+	 *
+	 */
+	public function head($url, array $data = array()) {
+		$responseHeader = $this->send($url, $data, 'HEAD');
+		return is_array($responseHeader) ? $responseHeader : false;
+	}
+
+	/**
+	 * Send to a URL using HEAD and return the status code (@horst)
+	 *
+	 * @param string $url URL to request (including http:// or https://)
+	 * @param array $data Array of data to send (if not already set before)
+	 * @param bool $textMode When true function will return a string rather than integer, see the statusText() method.
+	 * @return bool|integer|string False on failure or integer of status code (200|404|etc) on success.
+	 *
+	 */
+	 public function status($url, array $data = array(), $textMode = false) {
+		$responseHeader = $this->send($url, $data, 'HEAD');
+		if(!is_array($responseHeader)) return false;
+		$statusCode = (preg_match("=^(HTTP/\d+\.\d+) (\d{3}) (.*)=", $responseHeader[0], $matches) === 1) ? intval($matches[2]) : false;
+		if($textMode) $statusCode = isset($matches[3]) ? "$statusCode $matches[3]" : "$statusCode";
+		return $statusCode;
+	}
+
+	/**
+	 * Send to a URL using HEAD and return the status code and text like "200 OK"
+	 *
+	 * @param string $url URL to request (including http:// or https://)
+	 * @param array $data Array of data to send (if not already set before)
+	 * @return bool|string False on failure or string of status code + text on success.
+	 *	Example: "200 OK', "302 Found", "404 Not Found"
+	 *
+	 */
+	public function statusText($url, array $data = array()) {
+		return $this->status($url, $data, true); 
 	}
 
 	/**
