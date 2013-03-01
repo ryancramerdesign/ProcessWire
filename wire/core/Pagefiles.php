@@ -258,8 +258,12 @@ class Pagefiles extends WireArray {
 	public function cleanBasename($basename, $originalize = false) {
 
 		$path = $this->path(); 
-		$basename = strtolower(basename($basename)); 
+		$dot = strrpos($basename, '.'); 
+		$ext = $dot ? substr($basename, $dot) : ''; 
+		$basename = strtolower(basename($basename, $ext)); 
 		$basename = preg_replace('/[^-_.a-zA-Z0-9]/', '_', $basename); 
+		$ext = preg_replace('/[^a-z0-9.]/', '_', $ext); 
+		$basename .= $ext;
 		if($originalize) { 
 			$n = 0; 
 			while(is_file($path . $basename)) {

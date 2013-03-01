@@ -20,6 +20,8 @@
  * @property string $tags value of the file's tags field (text). Note you can also set this property directly.
  * @property string $ext file's extension (i.e. last 3 or so characters)
  * @property int $filesize file size, number of bytes
+ * @property int $modified timestamp of when file was last modified
+ * @property int $created timestamp of when file was created
  * @property string $filesizeStr file size as a formatted string
  * @property Pagefiles $pagefiles the WireArray that contains this file
  * @property Page $page the $page that contains this file
@@ -49,6 +51,8 @@ class Pagefile extends WireData {
 		$this->set('description', ''); 
 		$this->set('tags', ''); 
 		$this->set('formatted', false); // has an output formatter been run on this Pagefile?
+		$this->set('modified', 0); 
+		$this->set('created', 0); 
 	}
 
 	/**
@@ -122,6 +126,8 @@ class Pagefile extends WireData {
 		if($key == 'basename') $value = $this->pagefiles->cleanBasename($value, false); 
 		if($key == 'description') $value = $this->fuel('sanitizer')->textarea($value); 
 		if($key == 'tags') $value = $this->fuel('sanitizer')->text($value);
+		if($key == 'modified') $value = ctype_digit("$value") ? (int) $value : strtotime($value); 
+		if($key == 'created') $value = ctype_digit("$value") ? (int) $value : strtotime($value); 
 		return parent::set($key, $value); 
 	}
 
@@ -155,6 +161,14 @@ class Pagefile extends WireData {
 				break;
 			case 'page': 
 				$value = $this->pagefiles->getPage(); 
+				break;
+			case 'modified':
+			case 'created':
+				$value = parent::get($key); 
+				if(empty($value)) {
+					$value = filemtime($this->filename()); 
+					parent::set($key, $value); 
+				}
 				break;
 		}
 		if(is_null($value)) return parent::get($key); 
@@ -342,7 +356,10 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function ___changed($what) {
-		if(in_array($what, array('description', 'tags'))) $this->pagefiles->trackChange('item');
+		if(in_array($what, array('description', 'tags'))) {
+			$this->set('modified', time()); 
+			$this->pagefiles->trackChange('item');
+		}
 		parent::___changed($what); 
 	}
 

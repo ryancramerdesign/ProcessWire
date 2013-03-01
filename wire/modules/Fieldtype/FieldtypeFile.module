@@ -25,11 +25,23 @@ class FieldtypeFile extends FieldtypeMulti {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Files',
-			'version' => 101,
+			'version' => 102,
 			'summary' => 'Field that stores one or more files',
 			'permanent' => true, 
 			);
 	}
+
+	/**
+	 * File schema is configured to support tags (flag)
+	 *
+	 */
+	const fileSchemaTags = 1; 
+
+	/**
+	 * File schema is configured to support 'created' date (flag)
+	 *
+	 */
+	const fileSchemaDate = 2; 
 
 	public function __construct() {
 		$this->defaultInputfieldClass = str_replace('Fieldtype', 'Inputfield', $this->className);
@@ -110,6 +122,8 @@ class FieldtypeFile extends FieldtypeMulti {
 			if(empty($v['data'])) continue; 
 			$pagefile = $this->getBlankPagefile($pagefiles, $v['data']); 
 			$pagefile->description = $v['description']; 
+			if(isset($v['modified'])) $pagefile->modified = $v['modified'];
+			if(isset($v['created'])) $pagefile->created = $v['created'];
 			if(isset($v['tags'])) $pagefile->tags = $v['tags'];
 			$pagefile->setTrackChanges(true); 
 			$pagefiles->add($pagefile); 
@@ -129,14 +143,25 @@ class FieldtypeFile extends FieldtypeMulti {
          *
          */
         public function ___sleepValue(Page $page, Field $field, $value) {
+
 		$sleepValue = array();
 		if(!$value instanceof Pagefiles) return $sleepValue; 
+
 		foreach($value as $pagefile) {
 			$item = array(
 				'data' => $pagefile->basename, 
 				'description' => $pagefile->description, 
 				); 
-			if($field->fileSchema > 0) $item['tags'] = $pagefile->tags;
+
+			if($field->fileSchema & self::fileSchemaDate) { 
+				$item['modified'] = date('Y-m-d H:i:s', $pagefile->modified);
+				$item['created'] = date('Y-m-d H:i:s', $pagefile->created);
+			}
+
+			if($field->fileSchema & self::fileSchemaTags) {
+				$item['tags'] = $pagefile->tags;
+			}
+
 			$sleepValue[] = $item;
 		}
 		return $sleepValue;
@@ -222,33 +247,75 @@ class FieldtypeFile extends FieldtypeMulti {
 
 		$schema['data'] = 'varchar(255) NOT NULL';
 		$schema['description'] = "text NOT NULL";
+		$schema['modified'] = "datetime"; 
+		$schema['created'] = "datetime"; 
 		$schema['keys']['description'] = 'FULLTEXT KEY description (description)'; 
+		$schema['keys']['modified'] = 'index (modified)'; 
+		$schema['keys']['created'] = 'index (created)'; 
 
-		$setSchema = null; // null = no change
+		if($field->id && !($field->fileSchema & self::fileSchemaDate)) {
+			// permanently add new 'modified' and 'created' column to file schema
+			$addDates = false;
+
+			try {
+				$result = $this->db->query("SHOW COLUMNS FROM `{$field->table}` WHERE Field='modified'"); 
+				if($result->num_rows) {
+					$field->fileSchema = $field->fileSchema | self::fileSchemaDate; 
+					$field->save();
+				} else {
+					$addDates = true; 
+				}
+			} catch(Exception $e) {
+				// intentionally blank
+			}
+
+			if($addDates) try {
+				$this->db->query("ALTER TABLE `{$field->table}` ADD `modified` $schema[modified]");
+				$this->db->query("ALTER TABLE `{$field->table}` ADD `created` $schema[created]");
+				$this->db->query("ALTER TABLE `{$field->table}` ADD " . $schema['keys']['modified']); 
+				$this->db->query("ALTER TABLE `{$field->table}` ADD " . $schema['keys']['created']); 
+				$field->fileSchema = $field->fileSchema | self::fileSchemaDate; 
+				$field->save();
+				$date = date('Y-m-d H:i:s'); 
+				$this->db->query("UPDATE `{$field->table}` SET created='$date', modified='$date'"); 
+				$this->message("Added created/modified to DB schema for '{$field->name}'"); 
+			} catch(Exception $e) {
+				$result = $this->db->query("SHOW COLUMNS FROM `{$field->table}` WHERE Field='modified'"); 
+				if($result->num_rows) {
+					$field->fileSchema = $field->fileSchema | self::fileSchemaDate; 
+					$field->save();
+				} else {
+					$this->error("Error adding created/modified to '{$field->name}' schema"); 
+				}
+			
+			}
+		}
+
+		$tagsAction = null; // null=no change; 1=add tags, 0=remove tags
 		$schemaTags = 'varchar(255) NOT NULL'; 
 		$schemaTagsIndex = 'FULLTEXT KEY tags (tags)'; 
 
-		if($field->useTags && !$field->fileSchema) $setSchema = 1;
-			else if(!$field->useTags && $field->fileSchema > 0) $setSchema = 0;
+		if($field->useTags && !($field->fileSchema & self::fileSchemaTags)) $tagsAction = 'add';
+			else if(!$field->useTags && ($field->fileSchema & self::fileSchemaTags)) $tagsAction = 'remove';
 
-		if($setSchema === 1) {
+		if($tagsAction === 'add') {
 			// add tags field
 			try {
 				$this->db->query("ALTER TABLE `{$field->table}` ADD tags $schemaTags");
 				$this->db->query("ALTER TABLE `{$field->table}` ADD $schemaTagsIndex"); 
-				$field->fileSchema = 1; 
+				$field->fileSchema = $field->fileSchema | self::fileSchemaTags; 
 				$field->save();
 				$this->message("Added tags to DB schema for '{$field->name}'"); 
 			} catch(Exception $e) {
 				$this->error("Error adding tags to '{$field->name}' schema"); 
 			}
 
-		} else if($setSchema === 0) {
+		} else if($tagsAction === 'remove') {
 			// remove tags field
 			try {
 				$this->db->query("ALTER TABLE `{$field->table}` DROP INDEX tags"); 
 				$this->db->query("ALTER TABLE `{$field->table}` DROP tags"); 
-				$field->fileSchema = 0;
+				$field->fileSchema = $field->fileSchema & ~self::fileSchemaTags;
 				$field->save();
 				$this->message("Dropped tags from DB schema for '{$field->name}'"); 
 			} catch(Exception $e) {
@@ -256,7 +323,7 @@ class FieldtypeFile extends FieldtypeMulti {
 			}
 		}
 
-		if($field->fileSchema > 0) { 
+		if($field->fileSchema & self::fileSchemaTags) { 
 			$schema['tags'] = $schemaTags;
 			$schema['keys']['tags'] = $schemaTagsIndex;
 		}
