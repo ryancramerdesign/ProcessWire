@@ -81,8 +81,8 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 */
 	protected function getLoadQuery($selectors = null) {
 		$query = parent::getLoadQuery($selectors); 
-		$lookupTable = $this->getLookupTable();	
-		$query->select("$lookupTable.data"); 
+		$lookupTable = $this->fuel('db')->escapeTable($this->getLookupTable()); 
+		$query->select("$lookupTable.data"); // QA
 		return $query; 
 	}
 
@@ -214,7 +214,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 		$contextData = array();
 		if($item->id) { 
 			// save context data
-			$result = wire('db')->query("SELECT fields_id, data FROM fieldgroups_fields WHERE fieldgroups_id=" . (int) $item->id); 
+			$result = wire('db')->query("SELECT fields_id, data FROM fieldgroups_fields WHERE fieldgroups_id=" . (int) $item->id); // QA
 			while($row = $result->fetch_assoc()) $contextData[$row['fields_id']] = $row['data'];
 		}
 
@@ -224,7 +224,9 @@ class Fieldgroups extends WireSaveableItemsLookup {
 			// restore context data
 			foreach($contextData as $fields_id => $data) {
 				$data = wire('db')->escape_string($data);
-				wire('db')->query("UPDATE fieldgroups_fields SET data='$data' WHERE fieldgroups_id={$item->id} AND fields_id=$fields_id"); 
+				$fieldgroups_id = (int) $item->id; 
+				$fields_id = (int) $fields_id; 
+				wire('db')->query("UPDATE fieldgroups_fields SET data='$data' WHERE fieldgroups_id=$fieldgroups_id AND fields_id=$fields_id"); // QA
 			}
 		}
 
@@ -262,8 +264,8 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 *
 	 */
 	public function deleteField(Field $field) {
-		$sql = "DELETE FROM fieldgroups_fields WHERE fields_id={$field->id}";
-		return $this->fuel('db')->query($sql); 
+		$sql = "DELETE FROM fieldgroups_fields WHERE fields_id=" . ((int) $field->id); // QA
+		return $this->fuel('db')->query($sql); // QA
 	}
 
 	/**

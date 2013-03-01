@@ -49,6 +49,8 @@ class DatabaseQuerySelectFulltext extends Wire {
 
 		$query = $this->query; 
 		$value = substr(trim($value), 0, self::maxQueryValueLength); 
+		$tableName = $this->db->escapeTable($tableName); 
+		$fieldName = $this->db->escapeCol($fieldName); 
 		$tableField = "$tableName.$fieldName";
 
 		switch($operator) {

@@ -253,6 +253,7 @@ class PageFinder extends Wire {
 
 				// use actual table name if first instance, if second instance of table then add a number at the end
 				$tableAlias = $field->table . ($fieldCnt[$field->table] ? $fieldCnt[$field->table] : '');
+				$tableAlias = $this->db->escapeTable($tableAlias);
 
 				$valueArray = is_array($selector->value) ? $selector->value : array($selector->value); 
 				$join = '';
@@ -461,7 +462,7 @@ class PageFinder extends Wire {
 			// noTemplates was joined, and the page is accessible to the user. 
 			
 			$leftjoin = "pages_access ON (pages_access.pages_id=pages.id AND pages_access.templates_id IN(";
-			foreach($noTemplates as $template) $leftjoin .= $template->id . ",";
+			foreach($noTemplates as $template) $leftjoin .= ((int) $template->id) . ",";
 			$leftjoin = rtrim($leftjoin, ",") . "))";
 			$query->leftjoin($leftjoin);
 			$where2 = "pages_access.pages_id IS NULL"; 
@@ -477,7 +478,7 @@ class PageFinder extends Wire {
 		}
 	
 		foreach($templates as $template) {
-			$in .= $template->id . ",";
+			$in .= ((int) $template->id) . ",";
 		}
 
 
@@ -525,18 +526,22 @@ class PageFinder extends Wire {
 
 			} else if($value == 'template') { 
 				// sort by template
-				$tableAlias = "_sort_templates" . ($subValue ? "_$subValue" : ''); 
+				$tableAlias = $this->db->escapeTable("_sort_templates" . ($subValue ? "_$subValue" : '')); 
 				$query->join("templates AS $tableAlias ON $tableAlias.id=pages.templates_id"); 
-				$value = "$tableAlias." . ($subValue ? $subValue : "name"); 
+				$value = "$tableAlias." . ($subValue ? $this->db->escapeCol($subValue) : "name"); 
 
 			} else if($fields->isNativeName($value)) {
-				if(!strpos($value, ".")) $value = "pages.$value";
+				if(!strpos($value, ".")) $value = "pages." . $this->db->escapeCol($value);
 
 			} else {
 				$field = $fields->get($value);
 				if(!$field) continue; 
-				$tableAlias = "_sort_{$field->name}" . ($subValue ? "_$subValue" : '');
-				$query->leftjoin("{$field->table} AS $tableAlias ON $tableAlias.pages_id=pages.id");
+				$fieldName = $this->db->escapeCol($field->name); 
+				$subValue = $this->db->escapeCol($subValue);
+				$tableAlias = "_sort_$fieldName". ($subValue ? "_$subValue" : '');
+				$table = $this->db->escapeTable($field->table);
+
+				$query->leftjoin("$table AS $tableAlias ON $tableAlias.pages_id=pages.id");
 
 				if($subValue === 'count') {
 					// sort by quantity of items
@@ -545,7 +550,7 @@ class PageFinder extends Wire {
 				} else if($field->type instanceof FieldtypePage) {
 					// If it's a FieldtypePage, then data isn't worth sorting on because it just contains an ID to the page
 					// so we also join the page and sort on it's name instead of the field's "data" field.
-					$tableAlias2 = "_sort_page_{$field->name}" . ($subValue ? "_$subValue" : '');
+					$tableAlias2 = "_sort_page_$fieldName" . ($subValue ? "_$subValue" : '');
 					$query->leftjoin("pages AS $tableAlias2 ON $tableAlias.data=$tableAlias2.id"); 
 					$value = "$tableAlias2." . ($subValue ? $subValue : "name");
 				} else {
@@ -841,7 +846,7 @@ class PageFinder extends Wire {
 
 		$value = (int) $selector->value;
 		$this->getQueryNumChildren++; 
-		$n = $this->getQueryNumChildren;
+		$n = (int) $this->getQueryNumChildren;
 		$a = "pages_num_children$n";
 		$b = "num_children$n";
 

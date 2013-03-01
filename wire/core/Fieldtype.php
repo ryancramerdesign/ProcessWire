@@ -293,11 +293,16 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
-		$value = $this->fuel('db')->escape_string($value); 
-		if(!$this->fuel('db')->isOperator($operator)) 
+
+		$db = $this->fuel('db');
+		$table = $db->escapeTable($table); 
+		$subfield = $db->escapeCol($subfield);
+		$value = $db->escape_string($value); 
+
+		if(!$db->isOperator($operator)) 
 			throw new WireException("Operator '{$operator}' is not implemented in {$this->className}"); 
 
-		$query->where("{$table}.{$subfield}{$operator}'$value'");
+		$query->where("{$table}.{$subfield}{$operator}'$value'"); // QA
 		return $query; 
 	}
 
@@ -312,12 +317,14 @@ abstract class Fieldtype extends WireData implements Module {
 	 */
 	public function ___createField(Field $field) {
 
+		$db = $this->fuel('db');
 		$schema = $this->getDatabaseSchema($field); 
 
 		if(!isset($schema['pages_id'])) throw new WireException("Field '$field' database schema must have a 'pages_id' field."); 
 		if(!isset($schema['data'])) throw new WireException("Field '$field' database schema must have a 'data' field."); 
 
-		$sql = 	"CREATE TABLE `{$field->table}` (";
+		$table = $db->escapeTable($field->table); 
+		$sql = 	"CREATE TABLE `$table` (";
 
 		foreach($schema as $f => $v) {
 			if($f == 'keys' || $f == 'xtra') continue; 
@@ -329,9 +336,9 @@ abstract class Fieldtype extends WireData implements Module {
 		}
 
 		$sql = rtrim($sql, ", ") . ') ' . (isset($schema['xtra']) ? $schema['xtra'] : ''); 
-		$result = $this->fuel('db')->query($sql); 
+		$result = $db->query($sql); // QA
 
-		if(!$result) $this->error("Error creating table '{$field->table}'");
+		if(!$result) $this->error("Error creating table '{$table}'");
 
 		return $result; 
 	}
@@ -399,17 +406,20 @@ abstract class Fieldtype extends WireData implements Module {
 
 		if(!$page->id || !$field->id) return null;
 
+		$db = $this->fuel('db');
 		$isMulti = $field->type instanceof FieldtypeMulti;
+		$page_id = (int) $page->id; 
+		$table = $db->escapeTable($field->table); 
 
 		$query = new DatabaseQuerySelect();
 		$query = $this->getLoadQuery($field, $query); 
-		$query->where("{$field->table}.pages_id='{$page->id}'"); 
-		$query->from($field->table); 
+		$query->where("$table.pages_id='$page_id'"); 
+		$query->from($table); 
 		if($isMulti) $query->orderby('sort'); 
 
 		$value = null;
-		$result = $query->execute();
-		$fieldName = $field->name; 
+		$result = $query->execute(); // QA
+		$fieldName = $db->escapeCol($field->name); 
 		$schema = $this->trimDatabaseSchema($this->getDatabaseSchema($field));
 
 		if(!$result) return $value;
@@ -446,13 +456,13 @@ abstract class Fieldtype extends WireData implements Module {
 	 */ 
 	public function getLoadQuery(Field $field, DatabaseQuerySelect $query) {
 
-		$table = $field->table;
+		$table = $this->fuel('db')->escapeTable($field->table);
 		$schema = $this->trimDatabaseSchema($this->getDatabaseSchema($field)); 
-		$fieldName = $field->name;
+		$fieldName = $this->fuel('db')->escapeCol($field->name);
 
 		// now load any extra components (if applicable) in a fieldName__SubfieldName format.
 		foreach($schema as $k => $v) {
-			$query->select("$table.$k AS `{$fieldName}__$k`"); 
+			$query->select("$table.$k AS `{$fieldName}__$k`"); // QA
 		}
 
 		return $query; 
@@ -488,6 +498,7 @@ abstract class Fieldtype extends WireData implements Module {
 		// if this field hasn't changed since it was loaded, don't bother executing the save
 		if(!$page->isChanged($field->name)) return true; 
 
+		$db = $this->fuel('db');
 		$value = $page->get($field->name);
 
 		// if the value is the same as the default, then remove the field from the database because it's redundant
@@ -495,30 +506,35 @@ abstract class Fieldtype extends WireData implements Module {
 
 		$value = $this->sleepValue($page, $field, $value); 
 
+		$page_id = (int) $page->id; 
+		$table = $db->escapeTable($field->table); 
+
 		if(is_array($value)) { 
 
-			$sql1 = "INSERT INTO `{$field->table}` (pages_id";
-			$sql2 = "VALUES('{$page->id}'";
+			$sql1 = "INSERT INTO `$table` (pages_id";
+			$sql2 = "VALUES('$page_id'";
 			$sql3 = "ON DUPLICATE KEY UPDATE ";
 
 			foreach($value as $k => $v) {
+				$k = $db->escapeCol($k);
+				$v = $db->escape_string($v);
 				$sql1 .= ",$k";
-				$sql2 .= ",'" . $this->db->escape_string($v) . "'";
+				$sql2 .= ",'$v'";
 				$sql3 .= "$k=VALUES($k), ";
 			}
 
 			$sql = "$sql1) $sql2) " . rtrim($sql3, ', ');
 			
 		} else { 
-			$value = $this->db->escape_string($value); 
+			$value = $db->escape_string($value); 
 
-			$sql = 	"INSERT INTO `{$field->table}` (pages_id, data) " . 
-				"VALUES('$page->id', '$value') " . 
+			$sql = 	"INSERT INTO `$table` (pages_id, data) " . 
+				"VALUES('$page_id', '$value') " . 
 				"ON DUPLICATE KEY UPDATE data=VALUES(data)";	
 
 		}
 
-		$result = $this->db->query($sql); 
+		$result = $db->query($sql); // QA
 
 		return $result; 
 	}
@@ -535,7 +551,9 @@ abstract class Fieldtype extends WireData implements Module {
 	 */
 	public function ___deleteField(Field $field) {
 		try {
-			$result = $this->fuel('db')->query("DROP TABLE `{$field->table}`"); 
+			$db = $this->fuel('db');
+			$table = $db->escapeTable($field->table); 
+			$result = $db->query("DROP TABLE `$table`"); // QA
 		} catch(Exception $e) {
 			$result = false; 
 			$this->error($e->getMessage()); 
@@ -566,8 +584,11 @@ abstract class Fieldtype extends WireData implements Module {
 		unset($page->{$field->name}); 
 
 		// Delete all instances of it from the field table
-		$sql = "DELETE FROM `{$field->table}` WHERE pages_id={$page->id}"; 
-		return $this->fuel('db')->query($sql); 
+		$db = $this->fuel('db');
+		$table = $db->escapeTable($field->table);
+		$page_id = (int) $page->id; 
+		$sql = "DELETE FROM `$table` WHERE pages_id=$page_id"; 
+		return $db->query($sql); // QA
 
 	}
 

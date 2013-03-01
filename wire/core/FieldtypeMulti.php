@@ -176,9 +176,11 @@ abstract class FieldtypeMulti extends Fieldtype {
 		} else if(!$page->isChanged($field->name)) return true; 
 
 		$values = $this->sleepValue($page, $field, $values); 
+		$table = $this->db->escapeTable($field->table); 
+		$page_id = (int) $page->id; 
 
 		// since we don't manage IDs of existing values for multi fields, we delete the existing data and insert all of it again
-		$this->db->query("DELETE FROM `{$field->table}` WHERE pages_id={$page->id}"); 
+		$this->db->query("DELETE FROM `$table` WHERE pages_id=$page_id"); // QA
 
 		if(count($values)) {
 
@@ -189,15 +191,19 @@ abstract class FieldtypeMulti extends Fieldtype {
 			// this is to allow for this method to be able to save fields that have more than just a 'data' field,
 			// even though most instances will probably just use only the data field
 
-			if(is_array($value)) $keys = array_keys($value); 
-				else $keys = array('data'); 
+			if(is_array($value)) {
+				$keys = array_keys($value); 
+				foreach($keys as $k => $v) $keys[$k] = $this->db->escapeTableCol($v); 
+			} else {
+				$keys = array('data'); 
+			}
 
-			$sql = "INSERT INTO `{$field->table}` (pages_id, sort, " . implode(', ', $keys) . ") VALUES";
+			$sql = "INSERT INTO `$table` (pages_id, sort, " . implode(', ', $keys) . ") VALUES";
 			$sort = 0; 	
 
 			// cycle through the values to generate the query
 			foreach($values as $value) {
-				$sql .= "({$page->id}, $sort, ";
+				$sql .= "($page_id, $sort, ";
 
 				// if the value is not an associative array, then force it to be one
 				if(!is_array($value)) $value = array('data' => $value); 
@@ -212,7 +218,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 			}	
 
 			$sql = rtrim($sql, ", "); 
-			$result = $this->db->query($sql); 
+			$result = $this->db->query($sql); // QA
 			return $result; 
 		}
 
@@ -228,12 +234,12 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 *
 	 */
 	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) {
-		$table = $field->table;	
+		$table = $this->db->escapeTable($field->table);	
 		$schema = $this->trimDatabaseSchema($this->getDatabaseSchema($field)); 
-		$fieldName = $field->name; 
+		$fieldName = $this->db->escapeCol($field->name); 
 		$separator = self::multiValueSeparator; 
 		foreach($schema as $key => $unused) {
-			$query->select("GROUP_CONCAT($table.$key SEPARATOR '$separator') AS `{$fieldName}__$key`"); 
+			$query->select("GROUP_CONCAT($table.$key SEPARATOR '$separator') AS `{$fieldName}__$key`"); // QA
 		}		
 		return $query; 
 	}
@@ -256,19 +262,21 @@ abstract class FieldtypeMulti extends Fieldtype {
 
 		self::$getMatchQueryCount++;
 		$n = self::$getMatchQueryCount;
+
 		$field = $query->field;
+		$table = $this->db->escapeTable($table);
 
 		if($subfield === 'count' && ctype_digit(ltrim("$value", '-')) && in_array($operator, array("=", "!=", ">", "<", ">=", "<="))) {
 
 			$value = (int) $value;
 			$t = $table . "_" . $n;
-			$c = $this->className() . "_" . $n;
+			$c = $this->db->escapeTable($this->className()) . "_" . $n;
 
 			$query->select("$t.num_$t AS num_$t");
 			$query->leftjoin(
 				"(" .
 				"SELECT $c.pages_id, COUNT($c.pages_id) AS num_$t " .
-				"FROM {$field->table} AS $c " .
+				"FROM " . $this->db->escapeTable($field->table) . " AS $c " .
 				"GROUP BY $c.pages_id " .
 				") $t ON $t.pages_id=pages.id");
 
@@ -276,19 +284,19 @@ abstract class FieldtypeMulti extends Fieldtype {
 				(in_array($operator, array('>', '>=')) && $value < 0) ||
 				(in_array($operator, array('=', '>=')) && !$value)) {
 				// allow for possible zero values	
-				$query->where("(num_$t{$operator}$value OR num_$t IS NULL)"); 
+				$query->where("(num_$t{$operator}$value OR num_$t IS NULL)"); // QA
 			} else {
 				// non zero values
-				$query->where("num_$t{$operator}$value");
+				$query->where("num_$t{$operator}$value"); // QA
 			}
 
 			// only allow matches using templates with the requested field
 			$sql = 'pages.templates_id IN(';
 			foreach($field->getTemplates() as $template) {
-				$sql .= $template->id . ',';	
+				$sql .= ((int) $template->id) . ',';	
 			}
 			$sql = rtrim($sql, ',') . ')';
-			$query->where($sql);
+			$query->where($sql); // QA
 
 		} else {
 			$query = parent::getMatchQuery($query, $table, $subfield, $operator, $value);

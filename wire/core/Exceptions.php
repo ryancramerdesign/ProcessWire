@@ -6,11 +6,10 @@
  * Exceptions that aren't specific to a particular class. 
  *
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -31,5 +30,4 @@ class WirePermissionException extends WireException {}
  *
  */
 class Wire404Exception extends WireException {}
-
 

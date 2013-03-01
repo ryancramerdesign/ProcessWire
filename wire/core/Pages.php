@@ -276,7 +276,7 @@ class Pages extends Wire {
 			$sql = "SELECT id, templates_id FROM pages WHERE ";
 			if($idCnt == 1) $sql .= "id=" . (int) reset($ids); 
 				else $sql .= "id IN(" . implode(",", $ids) . ")";
-			$result = $this->db->query($sql); 
+			$result = $this->db->query($sql); // QA
 			if($result && $result->num_rows) while($row = $result->fetch_row()) {
 				list($id, $templates_id) = $row; 
 				if(!isset($idsByTemplate[$templates_id])) $idsByTemplate[$templates_id] = array();
@@ -305,18 +305,18 @@ class Pages extends Wire {
 	
 			foreach($fields as $field) { 
 				if(!($field->flags & Field::flagAutojoin)) continue; 
-				$table = $field->table; 
+				$table = $this->db->escapeTable($field->table); 
 				if(!$field->type->getLoadQueryAutojoin($field, $query)) continue; // autojoin not allowed
-				$query->leftjoin("$table ON $table.pages_id=pages.id"); 
+				$query->leftjoin("$table ON $table.pages_id=pages.id"); // QA
 			}
 
 			if(!is_null($parent_id)) $query->where("pages.parent_id=" . (int) $parent_id); 
 
-			$query->where("pages.templates_id={$template->id}"); 
-			$query->where("pages.id IN(" . implode(',', $ids) . ") "); 
+			$query->where("pages.templates_id=" . ((int) $template->id)); // QA
+			$query->where("pages.id IN(" . implode(',', $ids) . ") "); // QA
 			$query->from("pages"); 
 
-			if(!$result = $query->execute()) throw new WireException($this->db->error); 
+			if(!$result = $query->execute()) throw new WireException($this->db->error); // QA
 
 			$class = ($template->pageClass && class_exists($template->pageClass)) ? $template->pageClass : 'Page';
 
@@ -368,7 +368,7 @@ class Pages extends Wire {
 		$path = '';
 		$parent_id = $id; 
 		do {
-			$result = Wire::getFuel('db')->query("SELECT parent_id, name FROM pages WHERE id=$parent_id"); 
+			$result = Wire::getFuel('db')->query("SELECT parent_id, name FROM pages WHERE id=" . ((int) $parent_id)); // QA
 			list($parent_id, $name) = $result->fetch_row();
 			$result->free();
 			$path = $name . '/' . $path;
@@ -536,7 +536,7 @@ class Pages extends Wire {
 
 		if($isNew) {
 			if($page->id) $sql .= ", id=" . (int) $page->id; 
-			$result = $this->db->query("INSERT INTO $sql, created=NOW(), created_users_id=" . ((int) $userID)); 
+			$result = $this->db->query("INSERT INTO $sql, created=NOW(), created_users_id=" . ((int) $userID)); // QA
 			if($result) {
 				$page->id = $this->db->insert_id; 
 				$page->parent->numChildren++;
@@ -544,7 +544,7 @@ class Pages extends Wire {
 
 		} else {
 			if($page->template->allowChangeUser) $sql .= ", created_users_id=" . ((int) $page->created_users_id);
-			$result = $this->db->query("UPDATE $sql WHERE id=" . (int) $page->id); 
+			$result = $this->db->query("UPDATE $sql WHERE id=" . (int) $page->id); // QA
 			if($page->parentPrevious && $page->parentPrevious->id != $page->parent->id) {
 				$page->parentPrevious->numChildren--;
 				$page->parent->numChildren++;
@@ -659,7 +659,7 @@ class Pages extends Wire {
 			$page->untrackChange($field->name); 
 			$user = $this->fuel('user'); 
 			$userID = (int) ($user ? $user->id : $this->config->superUserPageID); 
-			$this->db->query("UPDATE pages SET modified_users_id=$userID, modified=NOW() WHERE id=" . (int) $page->id); 
+			$this->db->query("UPDATE pages SET modified_users_id=$userID, modified=NOW() WHERE id=" . (int) $page->id); // QA
 			$return = true; 
 		} else {
 			$return = false; 
@@ -685,8 +685,8 @@ class Pages extends Wire {
 		$pages_id = (int) $pages_id; 
 		if(!$pages_id) return false; 
 
-		$sql = "DELETE FROM pages_parents WHERE pages_id=$pages_id"; 
-		$this->db->query($sql); 
+		$sql = "DELETE FROM pages_parents WHERE pages_id=" . (int) $pages_id; 
+		$this->db->query($sql); // QA
 
 		if(!$numChildren) return true; 
 
@@ -696,9 +696,10 @@ class Pages extends Wire {
 
 		do {
 			if($id < 2) break; // home has no parent, so no need to do that query
-			$sql = "SELECT parent_id FROM pages WHERE id=$id"; 
-			$result = $this->db->query($sql);
+			$sql = "SELECT parent_id FROM pages WHERE id=" . (int) $id; 
+			$result = $this->db->query($sql); // QA
 			list($id) = $result->fetch_array();
+			$id = (int) $id; 
 			$result->free();
 			if(!$id) break;
 			$insertSql .= "($pages_id, $id),";
@@ -708,7 +709,7 @@ class Pages extends Wire {
 
 		if($insertSql) {
 			$sql = "INSERT INTO pages_parents (pages_id, parents_id) VALUES" . rtrim($insertSql, ","); 
-			$this->db->query($sql);
+			$this->db->query($sql); // QA
 		}
 
 		// find all children of $pages_id that themselves have children
@@ -717,7 +718,7 @@ class Pages extends Wire {
 			"JOIN pages AS children ON children.parent_id=pages.id " . 
 			"WHERE pages.parent_id=$pages_id " . 
 			"GROUP BY pages.id ";
-		$result = $this->db->query($sql);
+		$result = $this->db->query($sql); // QA
 
 		while($row = $result->fetch_array()) {
 			$this->saveParents($row['id'], $row['numChildren'], $level+1); 	
@@ -743,9 +744,9 @@ class Pages extends Wire {
 		$pageID = (int) $pageID; 
 		$status = (int) $status; 
 		$sql = $remove ? "status & ~$status" : $sql = "status|$status";
-		$this->db->query("UPDATE pages SET status=$sql WHERE id=$pageID"); 
+		$this->db->query("UPDATE pages SET status=$sql WHERE id=$pageID"); // QA
 		if($recursive) { 
-			$result = $this->db->query("SELECT id FROM pages WHERE parent_id=$pageID"); 
+			$result = $this->db->query("SELECT id FROM pages WHERE parent_id=$pageID"); // QA
 			while($row = $result->fetch_array()) {
 				$this->savePageStatus($row['id'], $status, true, $remove); 
 			}
@@ -865,8 +866,8 @@ class Pages extends Wire {
 		$access = new PagesAccess();	
 		$access->deletePage($page); 
 
-		$this->db->query("DELETE FROM pages_parents WHERE pages_id=" . (int) $page->id); 
-		$this->db->query("DELETE FROM pages WHERE id=" . ((int) $page->id) . " LIMIT 1"); 
+		$this->db->query("DELETE FROM pages_parents WHERE pages_id=" . (int) $page->id); // QA
+		$this->db->query("DELETE FROM pages WHERE id=" . ((int) $page->id) . " LIMIT 1"); // QA
 
 		$this->sortfields->delete($page); 
 		$page->setTrackChanges(false); 
