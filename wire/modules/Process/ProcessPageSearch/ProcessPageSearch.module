@@ -208,6 +208,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 		// determine what fields will be displayed
 		$display = $this->input->get('display');
+		if(!strlen($display)) $display = $this->input->get('get'); // as required by ProcessPageSearch API 
 		if(!strlen($display)) $display = $this->displayField; 
 		if(!strlen($display)) $display = 'title path';
 		$display = str_replace(',', ' ', $display);
