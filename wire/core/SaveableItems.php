@@ -190,7 +190,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 				} else $value = '';
 			}
 			$key = $db->escapeTableCol($key);
-			$value = $db->escape_string($value); 
+			$value = $db->escape_string("$value"); 
 			$sql .= "`$key`='$value', ";
 		}
 

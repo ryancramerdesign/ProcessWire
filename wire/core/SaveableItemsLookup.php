@@ -123,6 +123,7 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 		if($item_id) $db->query("DELETE FROM $lookupTable WHERE {$table}_id=$item_id"); // QA
 			
 		$result = parent::___save($item); 
+		$item_id = (int) $item->id; // reload, in case it was 0 before
 
 		$sort = 0; 
 		if($item_id) foreach($item->getLookupItems() as $key => $value) {
