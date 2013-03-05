@@ -271,9 +271,9 @@ class PageFinder extends Wire {
 						if($field->table === $tableAlias) $query->leftjoin("$tableAlias ON $tableAlias.pages_id=pages.id"); 
 							else $query->leftjoin("$field->table AS $tableAlias ON $tableAlias.pages_id=pages.id"); 
 						if($selector->operator == '=') {
-							$query->where("$tableAlias.pages_id IS NULL OR $tableAlias.data='$blankValue'"); 
+							$query->where("($tableAlias.pages_id IS NULL OR $tableAlias.data='$blankValue')"); 
 						} else {
-							$query->where("$tableAlias.pages_id IS NOT NULL AND $tableAlias.data!='$blankValue'"); 
+							$query->where("($tableAlias.pages_id IS NOT NULL AND $tableAlias.data!='$blankValue')"); 
 						}
 						unset($blankValue);
 						continue; 
