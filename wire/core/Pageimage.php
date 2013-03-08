@@ -200,9 +200,13 @@ class Pageimage extends Pagefile {
 
 		if(!is_file($filename)) {
 			if(@copy($this->filename(), $filename)) {
-				$sizer = new ImageSizer($filename); 
-				$sizer->setOptions($options);
-				$sizer->resize($width, $height); 
+				try { 
+					$sizer = new ImageSizer($filename); 
+					$sizer->setOptions($options);
+					$sizer->resize($width, $height); 
+				} catch(Exception $e) {
+					$this->error($e->getMessage()); 
+				}
 				if($this->config->chmodFile) chmod($filename, octdec($this->config->chmodFile));
 			}
 		}
