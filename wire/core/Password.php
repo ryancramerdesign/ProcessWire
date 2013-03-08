@@ -6,7 +6,7 @@
  * Specially used by FieldtypePassword.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -236,6 +236,9 @@ class Password extends Wire {
 		// if there is no salt yet, make one (for new pass or reset pass)
 		if(strlen($this->data['salt']) < 28) $this->data['salt'] = $this->salt();
 
+		// if system doesn't support blowfish, but has a blowfish salt, then reset it 
+		if(!$this->supportsBlowfish() && $this->isBlowfish($this->data['salt'])) $this->data['salt'] = $this->salt();
+
 		// salt we made (the one ultimately stored in DB)
 		$salt1 = $this->data['salt'];
 
@@ -250,6 +253,9 @@ class Password extends Wire {
 			$hash = md5($pass); 
 
 		} else if($hashType == 'blowfish') {
+			if(!$this->supportsBlowfish()) {
+				throw new WireException("This version of PHP is not compatible with the passwords. Did passwords originate on a newer version of PHP?"); 
+			}
 			// our preferred method
 			$hash = crypt($pass . $salt2, $salt1);
 
