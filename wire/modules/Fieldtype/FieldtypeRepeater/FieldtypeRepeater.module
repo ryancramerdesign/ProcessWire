@@ -276,7 +276,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			if(!$field->type instanceof FieldtypeRepeater) continue; 
 			$fieldParent = wire('pages')->get($field->parent_id); 	
 			if(!$fieldParent->id) continue; 
-			$p = $fieldParent->child('name=' . self::repeaterPageNamePrefix . $page->id); 	
+			$p = $fieldParent->child('include=all, name=' . self::repeaterPageNamePrefix . $page->id); 	
 			if(!$p->id) continue; 
 			$p->addStatus(Page::statusSystemOverride); 
 			$p->removeStatus(Page::statusSystem);
