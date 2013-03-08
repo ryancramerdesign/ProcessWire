@@ -13,6 +13,7 @@ class InputfieldInteger extends Inputfield {
 
 	public function init() {
 		parent::init();
+		$this->set('inputType', 'text');
 		$this->attr('type', 'text'); 
 		$this->attr('min', ''); // blank means not set
 		$this->attr('max', '');  // blank means not set
@@ -91,7 +92,6 @@ class InputfieldInteger extends Inputfield {
 	public function set($key, $value) {
 		if($key == 'inputType') {
 			$this->attr('type', $value); 
-			return $this;
 		}
 		return parent::set($key, $value);
 	}
@@ -104,7 +104,7 @@ class InputfieldInteger extends Inputfield {
 		$f->label = $this->_('Numeric Input Type'); 
 		$f->addOption('text', $this->_('Text')); 
 		$f->addOption('number', $this->_('Number (HTML5)')); 
-		$f->attr('value', $this->attr('type'));
+		$f->attr('value', $this->inputType);
 		$f->collapsed = Inputfield::collapsedYes; 
 		$f->description = $this->_('Choosing the "Number" type enables some additional client-side validation in browsers that support it.');
 		$inputfields->add($f);
