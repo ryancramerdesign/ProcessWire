@@ -522,7 +522,7 @@ class Pages extends Wire {
 		$user = $this->fuel('user'); 
 		$userID = $user ? $user->id : $this->config->superUserPageID; 
 		if(!$page->created_users_id) $page->created_users_id = $userID; 
-		$this->saveReady($page); 
+		$extraData = $this->saveReady($page); 
 
 		$sql = 	"pages SET " . 
 			"parent_id=" . ((int) $page->parent_id) . ", " . 
@@ -533,6 +533,11 @@ class Pages extends Wire {
 			"sort=" . ($page->sort > -1 ? (int) $page->sort : 0) . "," . 
 			"modified=NOW()"; 
 
+		if(is_array($extraData) && count($extraData)) foreach($extraData as $column => $value) {
+			$column = $this->db->escapeCol($column); 
+			$value = strtoupper($value) === 'NULL' ? 'NULL' : "'" . $this->db->escape_string($value) . "'";
+			$sql .= ", $column=$value";
+		}
 
 		if($isNew) {
 			if($page->id) $sql .= ", id=" . (int) $page->id; 
@@ -1199,9 +1204,10 @@ class Pages extends Wire {
 	 * Note that there is no ___saved() hook because it's already provided by after(save).
 	 *
 	 * @param Page $page The page about to be saved
+	 * @return array Optional extra data to add to pages save query.
 	 *
 	 */
-	protected function ___saveReady(Page $page) { }
+	protected function ___saveReady(Page $page) { return array(); }
 
 	/**
 	 * Hook called when a page is about to be deleted, but before data has been touched

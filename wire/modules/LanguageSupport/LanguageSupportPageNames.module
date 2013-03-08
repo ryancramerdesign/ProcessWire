@@ -1,0 +1,303 @@
+<?php
+
+/**
+ * Multi-language support page names module
+ *
+ * ProcessWire 2.x 
+ * Copyright (C) 2013 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://processwire.com
+ *
+ */
+
+class LanguageSupportPageNames extends WireData implements Module {
+
+	/**
+	 * Return information about the module
+	 *
+	 */
+        static public function getModuleInfo() {
+                return array(
+                        'title' => 'Languages Support - Page Names',
+                        'version' => 1,
+                        'summary' => 'Required to use multi-language page names. In development, NOT for production use.',
+			'author' => 'Ryan Cramer',
+			'autoload' => true,
+			'singular' => true,
+			'requires' => array(
+				'LanguageSupport',
+				'LanguageSupportFields',
+				)
+                        );
+        }
+
+	/**
+	 * The path that was requested, before processing
+	 *
+	 */
+	protected $requestPath = '';
+
+	/**
+	 * Initialize the module, save the requested path
+	 *
+	 */
+	public function init() { 
+		// save now, since ProcessPageView removes $_GET['it'] when it executes
+		$this->requestPath = $_GET['it'];
+	}
+
+	/**
+	 * Attach hooks
+	 *
+	 */
+	public function ready() {
+
+		$this->addHookAfter('Page::path', $this, 'hookPagePath'); 
+
+		// verify that page path doesn't have mixed languages where it shouldn't
+		$redirectURL = $this->verifyPath();
+		if($redirectURL) return wire('session')->redirect($redirectURL); 
+
+		$page = wire('page'); 
+
+		if($page->template == 'admin' && $page->process == 'ProcessPageEdit') {
+			// when in admin, add inputs for each language's page name
+			$this->addHookAfter('InputfieldPageName::render', $this, 'hookInputfieldPageNameRender'); 	
+			$this->addHookAfter('InputfieldPageName::processInput', $this, 'hookInputfieldPageNameProcess'); 
+		}
+
+		$this->addHookBefore('LanguageSupportFields::languageDeleted', $this, 'hookLanguageDeleted'); 
+		$this->addHookBefore('LanguageSupportFields::languageAdded', $this, 'hookLanguageAdded'); 
+
+		wire('pages')->addHookAfter('saveReady', $this, 'hookPageSaveReady'); 
+	}
+
+	/**
+	 * Determine language from requested path, and if a redirect needs to be performed
+	 *
+	 * Sets the user's language to that determined from the URL.
+	 *
+	 * @return string $redirectURL Returns URL to be redirected to, when applicable. Blank when not.
+	 *
+	 */
+	protected function verifyPath() {
+
+		$languages = wire('languages'); 
+		if(!count($languages)) return '';
+
+		$page = wire('page'); 
+		$user = wire('user'); 
+
+		$requestedParts = explode('/', $this->requestPath); 
+		$parentsAndPage = $page->parents()->getArray();
+		$parentsAndPage[] = $page; 
+		array_shift($parentsAndPage); // shift off the homepage
+		$redirectURL = '';
+		$setLanguage = null;
+
+		// determine if we should set the current language based on requested URL
+		foreach($parentsAndPage as $p) {
+
+			$requestedPart = strtolower(array_shift($requestedParts)); 
+			if($requestedPart === $p->name) continue; 
+
+			foreach($languages as $language) {
+				if($language->isDefault()) continue; 
+				$name = $p->get("name$language"); 
+				if($name === $requestedPart) {
+					$setLanguage = $language; 
+					break;
+				}
+			}
+			if($setLanguage) break;
+		}
+
+
+		// set the language	
+		if($setLanguage) $user->language = $setLanguage; 
+
+		// determine if requested URL was correct or if we need to redirect
+		$expectedPath = trim($page->path(), '/');
+		$requestPath = substr(trim($this->requestPath, '/'), 0, strlen($expectedPath)); 
+		if($expectedPath != $requestPath) {
+			$redirectURL = wire('config')->urls->root . $expectedPath . '/';
+		}
+
+		return $redirectURL;
+			
+	}
+
+	/**
+	 * Hook into the page name render for when in ProcessPageEdit
+	 *
+	 * Adds additional inputs for each language
+	 *
+	 * @todo Just move this to the InputfieldPageName module rather than using hooks
+	 *
+	 */
+	public function hookInputfieldPageNameRender(HookEvent $event) {
+
+		$inputfield = $event->object; 
+		$page = $this->process->getPage();
+		$name = $inputfield->attr('name'); 
+		$out = $event->return; 
+		$language = wire('languages')->get('default');
+
+		// add a label for default language
+		$label = $language->get("title|name"); 
+		$out = str_replace("<input", "<label for='Inputfield_name' class='LanguageSupportLabel detail'>$label</label><input", $out);
+
+		// add labels and inputs for other languages
+		foreach(wire('languages') as $language) {
+			if($language->isDefault()) continue; 
+			$value = wire('sanitizer')->entities($page->get("name$language")); 
+			$id = "$name$language";
+			$label = $language->get('title|name'); 
+			$out .= "<div class='LanguageSupport'>" . 
+				"<label for='$id' class='LanguageSupportLabel detail'>$label</label>" . 
+				"<input class='InputfieldMaxWidth' maxlength='128' type='text' id='$id' name='$id' value='$value' />" . 
+				"</div>";
+		}
+
+		$event->return = $out; 
+	}
+
+	/**
+	 * Process the input data from hookInputfieldPageNameRender
+	 *
+	 * @todo Just move this to the InputfieldPageName module rather than using hooks
+	 *
+	 */
+	public function hookInputfieldPageNameProcess(HookEvent $event) {
+
+		$inputfield = $event->object; 
+		$page = $this->process->getPage();
+		$input = $event->arguments[0];
+
+		foreach(wire('languages') as $language) {
+			if($language->isDefault()) continue; 
+			$name = $inputfield->attr('name') . $language;
+			$value = wire('sanitizer')->pageName($input->$name); 
+			$page->set("name$language", $value); 
+		}
+	}
+
+	/**
+	 * Hook into Page::path to localize path for current language
+	 *
+	 */
+	public function hookPagePath(HookEvent $event) {
+
+		$page = $event->object; 
+		if($page->id == 1) return;
+
+		$language = wire('user')->language; 
+		if($language->isDefault()) return;
+
+		$path = '';
+
+		foreach($page->parents() as $parent) {
+			if($parent->id == 1) continue; 
+			$path .= "/" . $parent->get("name$language|name"); 
+		}
+
+		$event->return = $path . '/' . $page->get("name$language|name") . '/';
+	}
+
+	/**
+	 * Update pages table for new column when a language is added
+	 *
+	 */
+	protected function languageAdded(Page $language) {
+		if(!$language->id || $language->name == 'default') return;
+		$name = "name" . (int) $language->id; 
+		try {
+			wire('db')->query("ALTER TABLE pages ADD $name VARCHAR(128) CHARACTER SET ascii"); 
+			wire('db')->query("ALTER TABLE pages ADD UNIQUE {$name}_parent_id ($name, parent_id)"); 
+		} catch(Exception $e) {
+			$this->error($e->getMessage()); 
+		}
+	}
+
+	/**
+	 * Hook called when language is added
+	 *
+	 */
+	public function hookLanguageAdded(HookEvent $event) {
+		$language = $event->arguments[0]; 
+		$this->languageAdded($language); 
+	}
+
+	/**
+	 * Update pages table to remove column when a language is deleted
+	 *
+	 */
+	protected function languageDeleted(Page $language) {
+		if(!$language->id || $language->name == 'default') return;
+		$name = "name" . (int) $language->id; 
+		try {
+			wire('db')->query("ALTER TABLE pages DROP $name"); 
+			wire('db')->query("ALTER TABLE pages DROP INDEX {$name}_parent_id"); 
+		} catch(Exception $e) {
+			$this->error($e->getMessage()); 
+		}
+	}
+
+	/**
+	 * Hook called when language is deleted
+	 *
+	 */
+	public function hookLanguageDeleted(HookEvent $event) {
+		$language = $event->arguments[0]; 
+		$this->languageDeleted($language); 
+	}
+
+	/**
+	 * Hook called immediately before a page is saved
+	 *
+	 * Here we make use of the 'extraData' return property of the saveReady hook
+	 * to bundle in the language name fields into the query.
+	 *
+	 */
+	public function hookPageSaveReady(HookEvent $event) {
+
+		$page = $event->arguments[0];
+		$extraData = $event->return; 
+		if(!is_array($extraData)) $extraData = array();
+
+		// populate a name123 field for each language
+		foreach(wire('languages') as $language) {
+			if($language->isDefault()) continue; 
+			$language_id = (int) $language->id; 
+			$name = "name$language_id";
+			$value = wire('sanitizer')->pageName($page->get($name)); 
+			if(!strlen($value)) $value = 'NULL';
+			$extraData[$name] = $value; 
+		}
+
+		$event->return = $extraData; 
+	}
+
+	/**
+	 * Install the module
+	 *
+	 */
+	public function ___install() {
+
+		foreach(wire('languages') as $language) {
+			$this->languageAdded($language); 
+		}
+	}
+
+	/**
+	 * Uninstall the module
+	 *
+	 */
+	public function ___uninstall() {
+		foreach(wire('languages') as $language) {
+			$this->languageDeleted($language); 
+		}
+	}
+
+}

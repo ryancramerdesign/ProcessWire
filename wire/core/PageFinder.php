@@ -602,9 +602,20 @@ class PageFinder extends Wire {
 	 * Special case when requested value is path or URL
 	 *
 	 */ 
-	protected function getQueryJoinPath(DatabaseQuerySelect $query, $selector) {
+	protected function ___getQueryJoinPath(DatabaseQuerySelect $query, $selector) {
 
-		if($this->modules->isInstalled('PagePaths')) {
+		// determine whether we will include use of multi-language page names
+		if($this->modules->isInstalled('LanguageSupportPageNames') && count(wire('languages'))) {
+			$langNames = array();
+			foreach(wire('languages') as $language) {
+				if(!$language->isDefault()) $langNames[] = "name" . (int) $language->id;
+			}
+		} else {
+			$langNames = null;
+		}
+
+		if($this->modules->isInstalled('PagePaths') && !$langNames) {
+			// @todo add support to PagePaths module for LanguageSupportPageNames
 			$pagePaths = $this->modules->get('PagePaths');
 			$pagePaths->getMatchQuery($query, $selector); 
 			return;
@@ -619,7 +630,10 @@ class PageFinder extends Wire {
 			$query->where("pages.id=1");
 		} else {
 			$parts = explode('/', rtrim($selector->value, '/')); 
-			$query->where("pages.name='" . $this->db->escape_string(array_pop($parts)) . "'");
+			$part = $this->db->escape_string(array_pop($parts)); 
+			$sql = "pages.name='$part'";
+			if($langNames) foreach($langNames as $name) $sql .= " OR pages.$name='$part'";
+			$query->where($sql); 
 			if(!count($parts)) $query->where("pages.parent_id=1");
 		}
 
@@ -630,7 +644,11 @@ class PageFinder extends Wire {
 			$part = $this->db->escape_string(array_pop($parts)); 
 			if(strlen($part)) {
 				$alias = "parent$n";
-				$query->join("pages AS $alias ON ($lastAlias.parent_id=$alias.id AND $alias.name='$part')");
+				//$query->join("pages AS $alias ON ($lastAlias.parent_id=$alias.id AND $alias.name='$part')");
+				$sql = "pages AS $alias ON ($lastAlias.parent_id=$alias.id AND ($alias.name='$part'";
+				if($langNames) foreach($langNames as $name) $sql .= " OR $alias.$name='$part'";
+				$sql .= '))';
+				$query->join($sql); 
 
 			} else {
 				$query->join("pages AS rootparent ON ($alias.parent_id=rootparent.id AND rootparent.id=1)");

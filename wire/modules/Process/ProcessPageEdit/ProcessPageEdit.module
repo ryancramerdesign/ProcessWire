@@ -198,7 +198,7 @@ class ProcessPageEdit extends Process {
 	 *
 	 */
 	protected function ___processSaveRedirect($redirectUrl) {
-		if(!$redirectUrl) $redirectUrl = "./?id={$this->page->id}";
+		if(!$redirectUrl) $redirectUrl = "./?id={$this->page->id}&s=1";
 		if($this->input->get->modal) $redirectUrl .= "&modal=1";
 		$this->redirectUrl = $redirectUrl;
 		$this->session->redirect($redirectUrl); 

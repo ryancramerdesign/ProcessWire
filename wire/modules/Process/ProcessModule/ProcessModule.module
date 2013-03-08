@@ -221,6 +221,10 @@ class ProcessModule extends Process {
 
 		$out = ''; 
 		$moduleId = $this->modules->getModuleID($moduleName); 
+		if(!$moduleId) {
+			$this->error("Unknown module"); 
+			return $this->session->redirect('./'); 
+		}
 		$sinfo = self::getModuleInfo();
 
 		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $sinfo['title'])); 
