@@ -16,7 +16,7 @@
  * http://www.ryancramer.com
  *
  */
-class ImageSizer {
+class ImageSizer extends Wire {
 
  	/**
 	 * Filename to be resized 
@@ -163,7 +163,7 @@ class ImageSizer {
 	 * @return bool True if the resize was successful
 	 *
 	 */
-	public function resize($targetWidth, $targetHeight = 0) {
+	public function ___resize($targetWidth, $targetHeight = 0) {
 
 
 		if(!$this->isResizeNecessary($targetWidth, $targetHeight)) return true; 
@@ -282,18 +282,24 @@ class ImageSizer {
 		imagecopyresampled($thumb2, $thumb, 0, 0, $w1, $h1, $targetWidth, $targetHeight, $targetWidth, $targetHeight);
 
 		// write to file
+		$result = false;
 		switch($this->imageType) {
 			case IMAGETYPE_GIF: 
-				imagegif($thumb2, $dest); 
+				$result = imagegif($thumb2, $dest); 
 				break;
 			case IMAGETYPE_PNG: 
 				// convert 1-100 (worst-best) scale to 0-9 (best-worst) scale for PNG 
 				$quality = round(abs(($this->quality - 100) / 11.111111)); 
-				imagepng($thumb2, $dest, $quality); 
+				$result = imagepng($thumb2, $dest, $quality); 
 				break;
 			case IMAGETYPE_JPEG:
-				imagejpeg($thumb2, $dest, $this->quality); 
+				$result = imagejpeg($thumb2, $dest, $this->quality); 
 				break;
+		}
+
+		if($result === false) {
+			if(is_file($dest)) unlink($dest); 
+			return false;
 		}
 
 		unlink($source); 
