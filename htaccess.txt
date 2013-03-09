@@ -5,10 +5,13 @@
 
 # -----------------------------------------------------------------------------------------------
 # Don't show directory indexes, but do follow symbolic links 
+# Note: some cloud hosting companies don't allow +FollowSymLinks
+# Uncomment +SymLinksifOwnerMatch and comment +FollowSymLinks if you have troubles
 # -----------------------------------------------------------------------------------------------
 
 Options -Indexes
 Options +FollowSymLinks
+# Options +SymLinksifOwnerMatch
 
 # -----------------------------------------------------------------------------------------------
 # Let ProcessWire handle 404s
