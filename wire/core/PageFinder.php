@@ -608,7 +608,7 @@ class PageFinder extends Wire {
 		if($this->modules->isInstalled('LanguageSupportPageNames') && count(wire('languages'))) {
 			$langNames = array();
 			foreach(wire('languages') as $language) {
-				if(!$language->isDefault()) $langNames[] = "name" . (int) $language->id;
+				if(!$language->isDefault()) $langNames[$language->id] = "name" . (int) $language->id;
 			}
 		} else {
 			$langNames = null;
@@ -629,7 +629,9 @@ class PageFinder extends Wire {
 			$parts = array();
 			$query->where("pages.id=1");
 		} else {
-			$parts = explode('/', rtrim($selector->value, '/')); 
+			$selectorValue = $selector->value;
+			if($langNames) $selectorValue = wire('modules')->get('LanguageSupportPageNames')->updatePath($selectorValue); 
+			$parts = explode('/', rtrim($selectorValue, '/')); 
 			$part = $this->db->escape_string(array_pop($parts)); 
 			$sql = "pages.name='$part'";
 			if($langNames) foreach($langNames as $name) $sql .= " OR pages.$name='$part'";

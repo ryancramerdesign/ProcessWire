@@ -406,7 +406,7 @@ class Pages extends Wire {
 		if($page instanceof NullPage) $reason = "Pages of type NullPage are not saveable";
 			else if((!$page->parent || $page->parent instanceof NullPage) && $page->id !== 1) $reason = "It has no parent assigned"; 
 			else if(!$page->template) $reason = "It has no template assigned"; 
-			else if(!strlen(trim($page->name))) $reason = "It has an empty 'name' field"; 
+			else if(!strlen(trim($page->name)) && $page->id != 1) $reason = "It has an empty 'name' field"; 
 			else if($page->is(Page::statusCorrupted)) $reason = $outputFormattingReason . " [Page::statusCorrupted]";
 			else if($page->id == 1 && !$page->template->useRoles) $reason = "Selected homepage template cannot be used because it does not define access.";
 			else if($page->id == 1 && !$page->template->hasRole('guest')) $reason = "Selected homepage template cannot be used because it does not have the required 'guest' role in it's access settings.";

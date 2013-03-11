@@ -228,7 +228,7 @@ class ProcessPageEdit extends Process {
 			$field = $this->modules->get('InputfieldPageName');
 			$field->attr('name', '_pw_page_name'); 
 			$field->attr('value', $this->page->name); 
-			$field->required = true; 
+			$field->required = $page->id != 1;
 			if(!$this->page->editable('name')) $field->attr('disabled', 'disabled'); 
 			if($this->page->parent) $field->parentPage = $this->page->parent;
 			$fields->prepend($field); 
@@ -412,12 +412,12 @@ class ProcessPageEdit extends Process {
 		$wrapper->attr('title', $this->_('Settings')); // Tab Label: Settings
 
 		// name
-		if($this->page->id > 1 && !$this->page->template->nameContentTab) {
+		if(($this->page->id > 1 || wire('modules')->isInstalled('LanguageSupportPageNames')) && !$this->page->template->nameContentTab) {
 			$field = $this->modules->get('InputfieldPageName');
 			$field->attr('value', $this->page->name); 
 			$field->attr('name', '_pw_page_name');
 			if($field->value && !$this->page->editable('name')) $field->attr('disabled', 'disabled'); 
-			$field->required = true; 
+			$field->required = $this->page->id != 1;
 			if($this->page->parent) $field->parentPage = $this->page->parent;
 			$wrapper->prepend($field); 
 		}
