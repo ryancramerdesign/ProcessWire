@@ -71,7 +71,8 @@ class LanguageSupportPageNames extends WireData implements Module {
 		if($page->template == 'admin' && $page->process == 'ProcessPageEdit') {
 			// when in admin, add inputs for each language's page name
 			$page->addHookBefore('ProcessPageEdit::execute', $this, 'hookProcessPageEditExecute'); 
-			$this->addHookAfter('InputfieldPageName::render', $this, 'hookInputfieldPageNameRender'); 	
+			$this->addHookBefore('InputfieldPageName::render', $this, 'hookInputfieldPageNameRenderBefore'); 	
+			$this->addHookAfter('InputfieldPageName::render', $this, 'hookInputfieldPageNameRenderAfter'); 	
 			$this->addHookAfter('InputfieldPageName::processInput', $this, 'hookInputfieldPageNameProcess'); 
 		}
 
@@ -232,6 +233,20 @@ class LanguageSupportPageNames extends WireData implements Module {
 	}
 
 	/**
+	 * Ensure that PageName starts with default language, so that the presented URL is not confusing to user
+	 *
+	 */
+	public function hookInputfieldPageNameRenderBefore(HookEvent $event) {
+		$user = wire('user');
+		$language = $user->language; 
+		if($language->isDefault()) return;
+		$options = $event->options; 
+		$options['savedLanguage'] = $language; 
+		$event->options = $options; 
+		$user->language = wire('languages')->get('default');	
+	}
+
+	/**
 	 * Hook into the page name render for when in ProcessPageEdit
 	 *
 	 * Adds additional inputs for each language
@@ -239,7 +254,10 @@ class LanguageSupportPageNames extends WireData implements Module {
 	 * @todo Just move this to the InputfieldPageName module rather than using hooks
 	 *
 	 */
-	public function hookInputfieldPageNameRender(HookEvent $event) {
+	public function hookInputfieldPageNameRenderAfter(HookEvent $event) {
+
+		// restore language that was saved in the 'before' hook
+		if(isset($event->options['savedLanguage'])) wire('user')->language = $event->options['savedLanguage']; 
 
 		$inputfield = $event->object; 
 		$page = $this->process->getPage();
