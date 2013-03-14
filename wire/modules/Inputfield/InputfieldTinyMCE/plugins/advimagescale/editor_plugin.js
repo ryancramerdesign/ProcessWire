@@ -46,7 +46,7 @@
             // for completeness we check once more here in case there are edge cases we've missed.
             ed.onMouseDown.add(function(ed, e) {
                 var el = tinyMCE.activeEditor.selection.getNode();
-                if (el != null && el.nodeName == 'IMG') {
+                if (el != null && e.target.nodeName == 'IMG') {
                     // prepare image for resizing
                     prepareImage(ed, e.target);
                 }
