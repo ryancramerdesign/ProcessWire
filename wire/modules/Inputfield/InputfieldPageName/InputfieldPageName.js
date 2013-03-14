@@ -40,7 +40,8 @@ var InputfieldPageName = {
 	},
 
 	updatePreview: function($t, value) {
-		$t.siblings(".InputfieldPageNameURL").children("strong").text((value.length > 0 ? value + '/' : ''))
+		var $previewPath = $('#' + $t.attr('id') + '_path'); 
+		$previewPath.children("strong").text((value.length > 0 ? value + '/' : ''))
 	}
 };
 

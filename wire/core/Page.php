@@ -216,6 +216,12 @@ class Page extends WireData {
 	protected $config = null; 
 
 	/**
+	 * When true, exceptions won't be thrown when values are set before templates
+	 *
+	 */
+	protected $quietMode = false; 
+
+	/**
 	 * Page-specific settings which are either saved in pages table, or generated at runtime.
 	 *
 	 */
@@ -368,9 +374,28 @@ class Page extends WireData {
 				self::$instanceIDs[$value] = $this->settings['id']; 
 				break;
 			default:
+				if($this->quietMode && !$this->template) return parent::set($key, $value); 
+
 				$this->setFieldValue($key, $value, $this->isLoaded); 
 
 		}
+		return $this; 
+	}
+
+	/**
+	 * Set a value to a page without tracking changes and without exceptions
+	 *
+	 * Otherwise same as set()
+	 *
+	 * @param string $key
+	 * @param mixed $value
+	 * @return this
+	 *
+	 */
+	public function setQuietly($key, $value) {
+		$this->quietMode = true; 
+		return parent::setQuietly($key, $value);
+		$this->quietMode = false;
 		return $this; 
 	}
 

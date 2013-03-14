@@ -253,6 +253,7 @@ class ProcessPageAdd extends Process {
 	 */
 	protected function processInput(Inputfield $form) {
 
+		$this->page = new Page(); // must exist before processInput for language hooks
 		$form->processInput($this->input->post);
 
 		$nameField = $form->children->get('_pw_page_name'); 	
@@ -275,8 +276,8 @@ class ProcessPageAdd extends Process {
 		}
 
 		if(!$this->isAllowedTemplate($template)) throw new WireException("You don't have access to add pages with template '$template'"); 
-		
-		$this->page = new Page($template); 
+	
+		$this->page->template = $template;	
 		$this->page->parent = $this->parent; 
 		$this->page->name = $name; 
 		$this->page->sort = $this->parent->numChildren; 
@@ -324,6 +325,14 @@ class ProcessPageAdd extends Process {
 			$breadcrumbs->add(new Breadcrumb($this->config->urls->admin . "page/list/?open=" . $p->id, $p->get("title|name"))); 
 		}
 		$this->setFuel('breadcrumbs', $breadcrumbs); 
+	}
+
+	/**
+	 * @return Page|null
+	 *
+	 */
+	public function getPage() {
+		return $this->page; 
 	}
 }
 
