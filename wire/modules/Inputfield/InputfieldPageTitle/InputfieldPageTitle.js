@@ -24,7 +24,7 @@ $(document).ready(function() {
 		var val = $(this).val().substring(0, 128); 
 		var id = $(this).attr('id').replace(/Inputfield_title_*/, 'Inputfield_name'); 
 		$nameField = $("#" + id);  	
-		$nameField.val(val).trigger('blur'); 
+		if($nameField.size() > 0) $nameField.val(val).trigger('blur'); 
 	}
 
 	// $titleField.keyup(titleKeyup); 

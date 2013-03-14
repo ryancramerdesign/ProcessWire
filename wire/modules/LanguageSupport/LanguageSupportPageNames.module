@@ -248,8 +248,11 @@ class LanguageSupportPageNames extends WireData implements Module {
 		$user = wire('user');
 		$page = $this->process == 'ProcessPageEdit' ? $this->process->getPage() : new NullPage();
 		$savedLanguage = $user->language; 
+		$savedValue = $inputfield->attr('value');
 		$savedName = $inputfield->attr('name'); 
 		$savedID = $inputfield->attr('id');
+		$trackChanges = $inputfield->trackChanges();
+		$inputfield->setTrackChanges(false);
 		$out = ''; 
 
 		$language = wire('languages')->get('default');
@@ -262,6 +265,7 @@ class LanguageSupportPageNames extends WireData implements Module {
 			if($language->isDefault()) continue; 
 			$user->language = $language; 
 			$value = $page->get("name$language"); 
+			if(is_null($value)) $value = $savedValue; 
 			$id = "$savedID$language"; 
 			$name  = "$savedName$language";
 			$label = $language->get('title|name'); 
@@ -275,6 +279,12 @@ class LanguageSupportPageNames extends WireData implements Module {
 		// restore language that was saved in the 'before' hook
 		$user->language = $savedLanguage; 
 
+		// restore Inputfield values back to what they were
+		$inputfield->attr('name', $savedName); 
+		$inputfield->attr('savedID', $savedID); 
+		$inputfield->attr('value', $savedValue); 
+		$inputfield->setTrackChanges($trackChanges); 
+
 		$event->return = $out; 
 	}
 
@@ -286,6 +296,7 @@ class LanguageSupportPageNames extends WireData implements Module {
 	 */
 	public function hookInputfieldPageNameProcess(HookEvent $event) {
 
+		$user = wire('user');
 		$inputfield = $event->object; 
 		$page = $this->process->getPage();
 		$input = $event->arguments[0];
@@ -294,7 +305,9 @@ class LanguageSupportPageNames extends WireData implements Module {
 			if($language->isDefault()) continue; 
 			$name = $inputfield->attr('name') . $language;
 			$value = wire('sanitizer')->pageName($input->$name); 
+			if($value === $page->name) $value = '';
 			$key = "name$language";
+			if($value == $page->get($key)) continue; 
 			if($page->id) $page->set($key, $value); 
 				else $page->setQuietly($key, $value); // avoid non-template exception when new page
 		}

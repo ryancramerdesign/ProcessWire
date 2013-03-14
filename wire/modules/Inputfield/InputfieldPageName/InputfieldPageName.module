@@ -9,7 +9,7 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page Name',
-			'version' => 103,
+			'version' => 104,
 			'summary' => 'Text input validated as a ProcessWire Page name field',
 			'permanent' => true, 
 			);
@@ -110,7 +110,21 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		
 		if($this->languageSupportLabel) $out .= "<div class='LanguageSupport'>" . 
 			"<label for='{$this->id}' class='LanguageSupportLabel detail'>$this->languageSupportLabel</label>";
-		$out .= "\n<p id='{$this->id}_path' class='InputfieldPageNameURL'>$url<strong></strong></p>";
+		$value = $this->attr('value'); 
+
+		$link = '';
+		if($value && wire('modules')->isInstalled('LanguageSupportPageNames')) {
+			if(strlen($value)) $link = "<a href='" . rtrim(wire('config')->urls->root, '/') . rtrim($url, '/') . "/$value/'>";
+		}
+
+		$p = "\n<p id='{$this->id}_path' class='InputfieldPageNameURL'>";
+		if($link) $p .= $link;
+		$p .= "$url<strong></strong>";
+		if($link) $p .= "</a>";
+		$p .= "</p>";
+
+
+		$out .= $p;
 		$out .= parent::___render();
 		if($this->languageSupportLabel) $out .= "</div>";
 

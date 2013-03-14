@@ -41,7 +41,7 @@ var InputfieldPageName = {
 
 	updatePreview: function($t, value) {
 		var $previewPath = $('#' + $t.attr('id') + '_path'); 
-		$previewPath.children("strong").text((value.length > 0 ? value + '/' : ''))
+		$previewPath.find("strong").text((value.length > 0 ? value + '/' : ''))
 	}
 };
 

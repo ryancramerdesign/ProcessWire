@@ -264,7 +264,7 @@ class ProcessPageAdd extends Process {
 			return false; 
 		}
 
-		if($this->parent->child("name=$name")->id) {
+		if($this->parent->child("name=$name, include=all")->id) {
 			$nameField->error($this->_("The name you selected is already in use. Please select another.")); 
 			return false;
 		}
@@ -307,7 +307,12 @@ class ProcessPageAdd extends Process {
 
 		if(!$publishNow) $this->page->addStatus(Page::statusUnpublished); 
 
-		$this->pages->save($this->page); 
+		try {
+			$this->pages->save($this->page); 
+		} catch(Exception $e) {
+			$this->error($e->getMessage()); 
+			return false;
+		}
 
 		$this->session->message(sprintf($this->_('Created page %1$s using template: %2$s'), $this->parent->url . $this->page->name, $template->name)); 
 		$this->session->redirect("../edit/?id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
