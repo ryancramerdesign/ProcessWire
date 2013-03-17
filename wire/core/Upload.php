@@ -7,11 +7,10 @@
  * If the destination path does not exist, it will be created. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -35,19 +34,20 @@ class WireUpload extends Wire {
 
 	static protected $unzipCommand = 'unzip -j -qq -n /src/ -x __MACOSX .* -d /dst/';
 
-	protected $errorInfo = array(
-		UPLOAD_ERR_OK => 'Successful Upload',
-		UPLOAD_ERR_INI_SIZE => 'The uploaded file exceeds the upload_max_filesize directive in php.ini.',
-		UPLOAD_ERR_FORM_SIZE => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form.',
-		UPLOAD_ERR_PARTIAL => 'The uploaded file was only partially uploaded.',
-		UPLOAD_ERR_NO_FILE => 'No file was uploaded.',
-		UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder.',
-		UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
-		UPLOAD_ERR_EXTENSION => 'File upload stopped by extension.'
-		);
+	protected $errorInfo = array(); 
 
-	
 	public function __construct($name) {
+
+		$this->errorInfo = array(
+			UPLOAD_ERR_OK => $this->_('Successful Upload'),
+			UPLOAD_ERR_INI_SIZE => $this->_('The uploaded file exceeds the upload_max_filesize directive in php.ini.'),
+			UPLOAD_ERR_FORM_SIZE => $this->_('The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form.'),
+			UPLOAD_ERR_PARTIAL => $this->_('The uploaded file was only partially uploaded.'),
+			UPLOAD_ERR_NO_FILE => $this->_('No file was uploaded.'),
+			UPLOAD_ERR_NO_TMP_DIR => $this->_('Missing a temporary folder.'),
+			UPLOAD_ERR_CANT_WRITE => $this->_('Failed to write file to disk.'),
+			UPLOAD_ERR_EXTENSION => $this->_('File upload stopped by extension.')
+			);
 
 		$this->setName($name); 
 		$this->maxFiles = 0; // no limit

@@ -100,6 +100,7 @@ class PageArray extends WireArray {
 	/*
 	public function get($key) {
 		if(ctype_digit("$key")) return parent::get($key); 
+		@todo check if selector, then call findOne(). If it returns null, return a NullPage instead. 
 		return null;
 	}
 	*/
