@@ -178,14 +178,14 @@ class Fields extends WireSaveableItems {
 		if($item->flags & Field::flagFieldgroupContext) throw new WireException("Field $item is not saveable because it is in a specific context"); 
 
 		$isNew = $item->id < 1;
-		$prevTable = $item->prevTable;
-		$table = $item->getTable();
+		$prevTable = $this->fuel('db')->escapeTable($item->prevTable);
+		$table = $this->fuel('db')->escapeTable($item->getTable());
 
 		if(!$isNew && $prevTable && $prevTable != $table) {
 			// note that we rename the table twice in order to force MySQL to perform the rename 
 			// even if only the case has changed. 
-			$this->fuel('db')->query("RENAME TABLE `$prevTable` TO `tmp_$table`"); 
-			$this->fuel('db')->query("RENAME TABLE `tmp_$table` TO `$table`"); 
+			$this->fuel('db')->query("RENAME TABLE `$prevTable` TO `tmp_$table`"); // QA
+			$this->fuel('db')->query("RENAME TABLE `tmp_$table` TO `$table`"); // QA
 			$item->prevTable = '';
 		}
 
@@ -317,10 +317,14 @@ class Fields extends WireSaveableItems {
 		// if there is something in data, then JSON encode it. If it's empty then make it null.
 		$data = count($data) ? wireEncodeJSON($data, true) : null;
 
-		if(is_null($data)) $data = 'NULL';
-			else $data = "'" . $this->db->escape_string($data) . "'";
-
-		$result = $this->db->query("UPDATE fieldgroups_fields SET data=$data WHERE fields_id={$field->id} AND fieldgroups_id={$fieldgroup->id}");
+		if(is_null($data)) {
+			$data = 'NULL';
+		} else {
+			$data = "'" . $this->db->escape_string($data) . "'";
+		}
+		$field_id = (int) $field->id; 
+		$fieldgroup_id = (int) $fieldgroup->id; 
+		$result = $this->db->query("UPDATE fieldgroups_fields SET data=$data WHERE fields_id=$field_id AND fieldgroups_id=$fieldgroup_id"); // QA
 
 		return $result; 
 	}
@@ -354,11 +358,14 @@ class Fields extends WireSaveableItems {
 		$schema1 = array();
 		$schema2 = array();
 
-		$result = $this->db->query("DESCRIBE `{$field1->table}`"); 
+		$table1 = $this->db->escapeTable($field1->table); 
+		$table2 = $this->db->escapeTable($field2->table);
+
+		$result = $this->db->query("DESCRIBE `$table1`"); // QA
 		while($row = $result->fetch_assoc()) $schema1[] = $row['Field']; 
 		$result->free();
 
-		$result = $this->db->query("DESCRIBE `{$field2->table}`"); 
+		$result = $this->db->query("DESCRIBE `$table2`"); // QA
 		while($row = $result->fetch_assoc()) $schema2[] = $row['Field']; 
 		$result->free();
 
@@ -369,23 +376,23 @@ class Fields extends WireSaveableItems {
 			}
 		}
 
-		$sql = 	"INSERT INTO `{$field2->table}` (`" . implode('`,`', $schema1) . "`) " . 
-			"SELECT `" . implode('`,`', $schema1) . "` FROM `{$field1->table}` ";
+		$sql = 	"INSERT INTO `$table2` (`" . implode('`,`', $schema1) . "`) " . 
+			"SELECT `" . implode('`,`', $schema1) . "` FROM `$table1` ";
 
 		try {
-			$result = $this->db->query($sql); 
+			$result = $this->db->query($sql); // QA
 		} catch(WireDatabaseException $e) {
 			$result = false;
 		}
 
 		if(!$result) {
 			$this->error("Field type change failed. Database reports: {$this->db->error}"); 
-			$this->db->query("DROP TABLE `{$field2->table}`"); 
+			$this->db->query("DROP TABLE `$table2`"); // QA
 			return false; 
 		}
 
-		$this->db->query("DROP TABLE `{$field1->table}`"); 
-		$this->db->query("RENAME TABLE `{$field2->table}` TO `{$field1->table}`"); 
+		$this->db->query("DROP TABLE `$table1`"); // QA
+		$this->db->query("RENAME TABLE `$table2` TO `$table1`"); // QA
 
 
 		$field1->type = $field2->type; 

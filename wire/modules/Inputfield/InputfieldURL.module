@@ -52,4 +52,11 @@ class InputfieldURL extends InputfieldText {
 
 		return $value; 
 	}
+
+	public function ___getConfigInputfields() {
+		$inputfields = parent::___getConfigInputfields();
+		$f = $inputfields->get('stripTags');
+		if($f) $inputfields->remove($f);
+		return $inputfields;
+	}
 }

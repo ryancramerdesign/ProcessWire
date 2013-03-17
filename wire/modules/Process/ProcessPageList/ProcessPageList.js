@@ -530,7 +530,8 @@ $(document).ready(function() {
 				var $t = $(this); 
 				var $li = $t.parent('li').parent('ul.PageListActions').parent('.PageListItem'); 
 
-				$li.children(".PageListPage").click(); 
+				// $li.children(".PageListPage").click(); 
+				if($li.hasClass("PageListItemOpen")) $li.children(".PageListPage").click(); // @somatonic PR163
 
 				// make an invisible PageList placeholder that allows 'move' action to create a child below this
 				$root.find('.PageListItemOpen').each(function() {

@@ -1,0 +1,222 @@
+<?php
+
+/**
+ * Session handler for storing sessions to database
+ *
+ * @see /wire/core/SessionHandler.php
+ *
+ * ProcessWire 2.x 
+ * Copyright (C) 2012 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ *
+ */
+
+class SessionHandlerDB extends WireSessionHandler implements ConfigurableModule {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Session Handler Database', 
+			'version' => 2, 
+			'summary' => "Installing this module makes ProcessWire store sessions in the database rather than the file system. Note that this module will log you out after install or uninstall.",
+			'installs' => array('ProcessSessionDB')
+			);
+	}
+
+	/**
+	 * Table created by this module
+	 *
+	 */
+	const dbTableName = 'sessions';
+
+	/**
+	 * Quick reference to database
+	 *
+	 */
+	protected $db; 
+
+	/**
+	 * Construct
+	 *
+	 */
+	public function __construct() {
+		parent::__construct();
+		$this->db = wire('db');
+		$this->set('useIP', 0); // track IP address?
+		$this->set('useUA', 0); // track query string?
+	}
+
+	/**
+	 * Read and return data for session indicated by $id
+	 *
+	 * @param string $id Session ID
+	 * @return string Serialized data or blank string if none
+	 *
+	 */
+	public function read($id) {
+		$table = self::dbTableName; 
+		$id = $this->db->escape_string($id);
+		$this->db->query("SELECT GET_LOCK('$id', 10)"); 
+		$sql = "SELECT data FROM $table WHERE id='$id'";
+		$result = $this->db->query($sql);
+		if($result->num_rows) {
+			$data = $result->fetch_row();
+			list($data) = $data;
+			if(empty($data)) $data = '';
+		} else {
+			$data = '';
+		}
+		$result->free();
+		return $data; 
+	}
+
+	/**
+	 * Write the given $data for the given session ID
+	 *
+	 * @param string $id Session ID
+	 * @param string Serialized data to write
+	 *
+	 */
+	public function write($id, $data) {
+		$table = self::dbTableName;
+		$id = $this->db->escape_string($id);
+		$user = wire('user');
+		$page = wire('page');
+		$user_id = $user && $user->id ? (int) $user->id : 0; 
+		$pages_id = $page && $page->id ? (int) $page->id : 0;
+		$data = $this->db->escape_string($data);
+		$s = "user_id=$user_id, pages_id=$pages_id, data='$data'"; 
+		if($this->useIP) $s .= ", ip=" . ((int) wire('session')->getIP(true)); 
+		if($this->useUA && isset($_SERVER['HTTP_USER_AGENT'])) $s .= ", ua='" . $this->db->escape_string(substr($_SERVER['HTTP_USER_AGENT'], 0, 255)) . "'";
+		$sql = 	"INSERT INTO $table SET id='$id', $s ";
+		$sql .= "ON DUPLICATE KEY UPDATE $s, ts=NOW()";
+		$result = $this->db->query($sql) ? true : false; 
+		$this->db->query("SELECT RELEASE_LOCK('$id')"); 
+		return $result; 
+	}
+
+	/**
+	 * Destroy the session indicated by the given session ID
+	 *
+	 * @param string $id Session ID
+	 * @return bool True on success, false on failure 
+	 *
+	 */
+	public function destroy($id) {
+		$table = self::dbTableName;
+		$id = $this->db->escape_string($id);
+		$this->db->query("DELETE FROM $table WHERE id='$id'"); 
+		setcookie(session_name(), '', time()-3600);
+		return true; 
+	}
+
+	/**
+	 * Garbage collection: remove stale sessions
+	 *
+	 * @param int $seconds Max lifetime of a session
+	 * @return bool True on success, false on failure
+	 *
+	 */
+	public function gc($seconds) {
+		$table = self::dbTableName; 
+		$seconds = (int) $seconds; 
+		$sql = "DELETE FROM $table WHERE ts < DATE_SUB(NOW(), INTERVAL $seconds SECOND)";
+		return $this->db->query($sql) ? true : false;
+	}
+
+	/**
+	 * Install sessions table
+	 *
+	 */
+	public function ___install() {
+
+		$sql = 	"CREATE TABLE " . self::dbTableName . " (" . 
+			"id CHAR(32) NOT NULL, " . 
+			"user_id INT UNSIGNED NOT NULL, " . 
+			"pages_id INT UNSIGNED NOT NULL, " . 
+			"data TEXT NOT NULL, " . 
+			"ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, " . 
+			"ip INT UNSIGNED NOT NULL DEFAULT 0, " . 
+			"ua VARCHAR(255) NOT NULL DEFAULT '', " . 
+			"PRIMARY KEY (id), " . 
+			"INDEX (pages_id), " . 
+			"INDEX (user_id), " . 
+			"INDEX (ts) " . 
+			") ENGINE=InnoDB DEFAULT CHARSET=utf8";
+
+		$this->db->query($sql); 
+	}
+
+	/**
+	 * Drop sessions table
+	 *
+	 */
+	public function ___uninstall() {
+		$this->db->query("DROP TABLE " . self::dbTableName); 
+	}
+
+	/**
+	 * Session configuration options
+	 *
+	 */
+	public static function getModuleConfigInputfields(array $data) {
+
+		$form = new InputfieldWrapper();
+
+		// check if their DB table is the latest version
+		$result = wire('db')->query("SHOW COLUMNS FROM " . self::dbTableName . " WHERE field='ip'"); 
+		if(!$result->num_rows) {
+			wire('modules')->error("DB format changed - You must uninstall this module and re-install before configuring."); 
+			return $form;
+		}
+
+		$description = __('Checking this box will enable the data to be displayed in your admin sessions list.', __FILE__);
+
+		$f = wire('modules')->get('InputfieldCheckbox'); 
+		$f->attr('name', 'useIP'); 
+		$f->attr('value', 1);
+		$f->attr('checked', empty($data['useIP']) ? '' : 'checked'); 
+		$f->label = __('Track IP addresses in session data?', __FILE__); 
+		$f->description = $description;
+		$form->add($f);
+
+		$f = wire('modules')->get('InputfieldCheckbox'); 
+		$f->attr('name', 'useUA'); 
+		$f->attr('value', 1);
+		$f->attr('checked', empty($data['useUA']) ? '' : 'checked'); 
+		$f->label = __('Track user agent in session data?', __FILE__); 
+		$f->notes = __('The user agent typically contains information about the browser being used.', __FILE__);
+		$f->description = $description;
+		$form->add($f);
+
+		return $form;
+	}
+
+	/**
+	 * Provides direct reference access to set values in the $data array
+	 *
+	 * For some reason PHP 5.4+ requires this, as it apparently doesn't see WireData
+	 *
+	 */
+	public function __set($key, $value) {
+		$this->set($key, $value);
+	}
+
+
+	/**
+	 * Provides direct reference access to variables in the $data array
+	 *
+	 * For some reason PHP 5.4+ requires this, as it apparently doesn't see WireData
+	 *
+	 * Otherwise the same as get()
+	 *
+	 * @param string $key
+	 *
+	 */
+	public function __get($key) {
+		return $this->get($key);
+	}
+
+
+}

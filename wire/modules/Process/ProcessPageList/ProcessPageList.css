@@ -191,7 +191,7 @@
  */
 .PageList .PageListItemOpen > ul.PageListActions,
 .PageListSelectHeader .PageListActions {
-	display: inline !important; 
+	display: inline !important;
 }
 
 /**

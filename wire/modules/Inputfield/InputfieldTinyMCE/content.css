@@ -10,17 +10,20 @@ pre {
 	font-family: "Courier New", Courier, monospace; 	
 }
 
-.align_left {
+.align_left,
+.align-left {
 	float: left; 
 	margin: 0 15px 10px 0; 
 }
 
-.align_right {
+.align_right,
+.align-right {
 	float: right; 
 	margin: 0 0 10px 15px; 
 }
 
-.align_center {
+.align_center,
+.align-center {
 	display: block;
 	margin-left: auto;
 	margin-right: auto; 

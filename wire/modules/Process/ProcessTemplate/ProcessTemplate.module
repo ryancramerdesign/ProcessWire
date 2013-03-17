@@ -30,7 +30,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 101,
+			'version' => 102,
 			'permanent' => true, 
 	
 			// add this permission if you want this Process available for roles other than Superuser
@@ -43,6 +43,7 @@ class ProcessTemplate extends Process {
 	 *
 	 */
 	public function init() {
+
 		$this->moduleInfo = self::getModuleInfo();
 		$this->setFuel('processHeadline', $this->moduleInfo['title']); 
 		$this->labels = array(
@@ -74,13 +75,82 @@ class ProcessTemplate extends Process {
 	 */
 	public function ___execute() {
 
+		$out = $this->getListFilterForm()->render() . "\n<div id='ProcessTemplateList'>\n";
+		$templatesByTag = array();
+		$untaggedLabel = $this->_('Untagged');
+		$hasFilters = $this->session->ProcessTemplateFilterField;
+		$collapsedTags = array();
+		$caseTags = array(); // indexed by lowercase version of tag
+
+		if(!$hasFilters) foreach($this->templates as $template) {
+			if($this->session->ProcessTemplateFilterSystem) {
+				if($template->flags & Template::flagSystem) $template->tags .= " " . $this->_x('System', 'tag'); // Tag applied to the group of built-in/system fields
+			}
+			if(empty($template->tags)) {
+				$tag = strtolower($untaggedLabel);
+				if(!isset($templatesByTag[$tag])) $templatesByTag[$tag] = array();
+				$templatesByTag[$tag][$template->name] = $template;
+				$caseTags[$tag] = $untaggedLabel;
+				continue; 
+			}
+			$tags = explode(' ', trim($template->tags));
+			foreach($tags as $tag) {
+				if(empty($tag)) continue; 
+				$caseTag = ltrim($tag, '-');
+				$tag = strtolower($tag);
+				if(substr($tag, 0, 1) == '-') {
+					$tag = ltrim($tag, '-');
+					$collapsedTags[] = $tag;
+				}
+				if(!isset($templatesByTag[$tag])) $templatesByTag[$tag] = array();
+				$templatesByTag[$tag][$template->name] = $template;	
+				if(!isset($caseTags[$tag])) $caseTags[$tag] = $caseTag; 
+			}
+		}
+
+		$tagCnt = count($templatesByTag);
+		if($tagCnt > 1) {
+			$form = new InputfieldWrapper();
+			ksort($templatesByTag);
+			foreach($templatesByTag as $tag => $templates) {
+				ksort($templates);
+				$f = $this->modules->get('InputfieldMarkup');
+				$f->entityEncodeLabel = false;
+				$f->label = "<span class='labelIcon ui-icon ui-icon-tag'></span>" . $caseTags[$tag];
+				$f->value = $this->getListTable($templates)->render();
+				if(in_array($tag, $collapsedTags)) $f->collapsed = Inputfield::collapsedYes; 
+				$form->add($f);
+			}
+			$out .= $form->render();
+		} else {
+			$out .= $this->getListTable($this->templates)->render();
+		}
+
+		$out .= "\n</div><!--/#ProcessTemplateList-->";
+
+		$button = $this->modules->get('InputfieldButton');
+		$button->href = "./add";
+		$button->value = $this->_x('Add New Template', 'list-button'); 
+		$out .= $button->render();
+
+		if($this->input->nosave) {
+			$this->session->remove('ProcessTemplateFilterSystem');
+			$this->session->remove('ProcessTemplateFilterField');
+		}
+
+		return $out;
+	}	
+
+	public function ___getListFilterForm() {
+
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->id = 'filters';
 		$form->method = 'get';
 		$form->action = './';
 
 		$fieldset = $this->modules->get("InputfieldFieldset"); 
-		$fieldset->label = $this->_("Filters"); // Template list filters headline
+		$fieldset->entityEncodeLabel = false;
+		$fieldset->label = "<span class='labelIcon ui-icon ui-icon-wrench'></span>" . $this->_("Filters"); // Template list filters headline
 		$fieldset->collapsed = Inputfield::collapsedYes; 
 		$form->add($fieldset);
 		
@@ -97,7 +167,12 @@ class ProcessTemplate extends Process {
 			if(($f->flags & Field::flagSystem) || ($f->flags & Field::flagPermanent)) $name .= "*";
 			$field->addOption($f->name, $name);	
 		}	
-		$filterField = $this->sanitizer->name($this->input->get->filter_field); 
+		if($this->input->get->filter_field !== null) {
+			$filterField = $this->sanitizer->name($this->input->get->filter_field); 
+			$this->session->ProcessTemplateFilterField = $filterField;
+		} else {
+			$filterField = $this->session->ProcessTemplateFilterField;
+		}
 		$field->attr('value', $filterField); 
 		$field->collapsed = $filterField ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
 		$fieldset->add($field);
@@ -114,51 +189,114 @@ class ProcessTemplate extends Process {
 			$field->attr('name', 'system'); 
 			$field->addOption(1, $this->labels['Yes']); 
 			$field->addOption(0, $this->labels['No']); 
-			$filterSystem  = (int) $this->input->get->system; 
+			if($this->input->get->system !== null) {
+				$filterSystem  = (int) $this->input->get->system; 
+				$this->session->ProcessTemplateFilterSystem = $filterSystem;
+			} else {
+				$filterSystem = (int) $this->session->ProcessTemplateFilterSystem;
+			}
 			$field->attr('value', $filterSystem); 
 			$field->collapsed = $filterSystem ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
 			$fieldset->add($field); 
 		} else $filterSystem = 0;
 
-		// --------------------------------------
+		if($filterSystem || $filterField) $fieldset->collapsed = Inputfield::collapsedNo;
+
+		return $form;
+	}
+
+	public function ___getListTable($templates) {
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->setEncodeEntities(false); 
-		$table->headerRow(array(
-			$this->_x('Name', 'list-thead'),
-			$this->_x('Label', 'list-thead'),
-			$this->_x('Pages', 'list-thead'),
-			$this->_x('Fields', 'list-thead'),
-			'')); 
 
-		foreach($this->fuel('templates') as $template) {
-			$notes = '';
-
-			if($template->flags & Template::flagSystem) {
-				if(!$filterSystem && !$filterField) continue; 
-				$fieldset->collapsed = Inputfield::collapsedNo;
-				$notes .= $this->_x('system', 'list-note') . ' ';
-			}
-
-			if($filterField && !$template->fieldgroup->has($filterField)) continue; 
-
-			if($template->useRoles) $notes .= ' ' . $this->_x('access', 'list-note');
-
-			if(!$template->filenameExists()) $notes .= ' ' . $this->_x('no-file', 'list-note');
-
-			$table->row(array(
-				"{$template->name} " => "edit?id={$template->id}", 
-				$template->label, 
-				$template->getNumPages(), 
-				count($template->fieldgroup) . ($template->fieldgroup->name != $template->name ? " {$template->fieldgroup->name}" : ''),
-				$notes
-				)); 
+		$rows = array();
+		foreach($templates as $template) {
+			$row = $this->getListTableRow($template);
+			if(!empty($row)) $rows[] = $row;
 		}
-		$table->action(array($this->_x('Add New Template', 'list-button') => './add')); 
 
-		$out = $form->render() . $table->render();
-		return $out;
-	}	
+		$header = array();
+		$header[] = $this->_x('Name', 'list-thead');
+		$header[] = $this->_x('Label', 'list-thead');
+		$header[] = $this->_x('Fields', 'list-thead');
+		$header[] = $this->_x('Pages', 'list-thead');
+		$header[] = '&nbsp;';
+		$table->headerRow($header);
+		
+		foreach($rows as $row) $table->row($row);
+
+		return $table;
+	}
+
+	public function ___getListTableRow(Template $template) {
+
+		$flags = array();
+		$flagDefs = array(
+			'system' => array(
+				'label' => $this->_x('system', 'list-note'),
+				'icon' => 'ui-icon-gear'
+				),
+			'access' => array(
+				'label' => $this->_x('access', 'list-note'),
+				'icon' => 'ui-icon-key'
+				),
+			'no-file' => array(
+				'label' => $this->_x('no-file', 'list-note'),
+				'icon' => 'ui-icon-alert'
+				),
+			'cache' => array(
+				'label' => $this->_x('cache', 'list-note'),
+				'icon' => 'ui-icon-clock'
+				),
+			'url-segments' => array(
+				'label' => $this->_x('URL segments', 'list-note'),
+				'icon' => 'ui-icon-transferthick-e-w'
+				),
+			'page-numbers' => array(
+				'label' => $this->_x('Page numbers', 'list-note'),
+				'icon' => 'ui-icon-seek-next'
+				)
+			);
+
+		$notes = '';
+		$filterField = $this->session->ProcessTemplateFilterField;
+		$filterSystem = $this->session->ProcessTemplateFilterSystem;
+
+		if($template->flags & Template::flagSystem) {
+			if(!$filterSystem && !$filterField) return array();
+			$flags[] = 'system';
+		}
+		if($filterField && !$template->fieldgroup->has($filterField)) return array();
+		if($template->useRoles) $flags[] = 'access';
+		if(!$template->filenameExists()) $flags[] = 'no-file';
+		if($template->cache_time > 0) $flags[] = 'cache';
+		if($template->urlSegments) $flags[] = 'url-segments';
+		if($template->allowPageNum) $flags[] = 'page-numbers';
+
+		$notes = '';
+		foreach($flags as $flag) {
+			$class = 'templateFlag' . ucfirst($flag);
+			$flag = $flagDefs[$flag]; 
+			$label = str_replace('-', ' ', ucfirst($flag['label']));
+			$notes .= "<a class='tooltip templateFlag $class ui-priority-secondary' title='$label'><span class='ui-icon $flag[icon]'></span></a>";
+		}
+
+		$numPages = $template->getNumPages(); 
+		$numPagesLink = $this->config->urls->admin . "page/search/?show_options=1&template={$template->name}&sort=title";
+
+		$numFields = count($template->fieldgroup);
+		if($template->fieldgroup->name != $template->name) $numFields .= " " . $template->fieldgroup->name; 
+		$numFieldsLink = "../field/?templates_id={$template->id}&nosave=1";
+
+		$row = array();
+		$row["{$template->name} "] = "edit?id={$template->id}";
+		$row[] = $this->sanitizer->entities($template->label);
+		$row[] = "$numFields ";
+		$row[] = "$numPages ";
+		$row[] = $notes;
+		return $row; 
+	}
 
 	/**
 	 * Execute the template add process
@@ -171,10 +309,14 @@ class ProcessTemplate extends Process {
 		$dir = new DirectoryIterator($this->fuel('config')->paths->templates); 	
 		$templateFiles = array();
 		$ext = "." . $this->config->templateExtension; 
+		$prependTemplateFile = $this->config->prependTemplateFile;
+		$appendTemplateFile = $this->config->appendTemplateFile;
 
 		foreach($dir as $file) {
 			if($file->isDir() || $file->isDot()) continue; 
-			if(substr($file->getFilename(), -1 * strlen($ext)) != $ext) continue; 
+			$filename = $file->getFilename();
+			if($filename == $prependTemplateFile || $filename == $appendTemplateFile) continue; // skip over prepend/append files
+			if(substr($filename, -1 * strlen($ext)) != $ext) continue; 
 			$basename = basename($file->getFilename(), $ext); 
 			if(count($this->fuel('templates')->find("name=$basename"))) continue; 
 			$templateFiles[] = $basename; 
@@ -649,6 +791,18 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 
+		$field = $this->modules->get("InputfieldText"); 
+		$field->attr('name', 'tags'); 
+		$field->attr('value', $template->tags); 
+		$field->label = $this->_('Tags');
+		$field->description = $this->_('If you want to visually group this template with others in the templates list, enter a one-word tag. Enter the same tag on other templates you want to group with. To specify multiple tags, separate each with a space. Use of tags may be worthwhile if your site has a large number of templates.'); // Description for field tags
+		$field->notes = 
+			$this->_('Each tag must be one word (hyphenation is okay).') . " " . 
+			$this->_('To make a tag collapsed in the templates list, prepend a hyphen to it, like this: -hello');
+		$form->add($field); 
+
+		// --------------------
+
 		if(!($template->flags & Template::flagSystem)) { 
 			$field = $this->modules->get("InputfieldName"); 
 			$field->label = $this->_('Rename Template');
@@ -890,7 +1044,7 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get("InputfieldRadios"); 
 		$field->attr('id+name', 'noChildren'); 
-		$field->label = "May pages using this template have children?";
+		$field->label = $this->_('May pages using this template have children?');
 		$field->addOption(0, $this->labels['Yes']); 
 		$field->addOption(1, $this->labels['No']); 
 		$field->attr('value', (int) $template->noChildren); 
@@ -1173,6 +1327,7 @@ class ProcessTemplate extends Process {
 		$this->template->noCacheGetVars = $this->fuel('sanitizer')->names($form->get('noCacheGetVars')->attr('value')); 
 		$this->template->noCachePostVars = $this->fuel('sanitizer')->names($form->get('noCachePostVars')->attr('value')); 
 		$this->template->cacheExpire = (int) $form->get('cacheExpire')->attr('value');
+		$this->template->tags = $this->sanitizer->text($form->get('tags')->attr('value'));
 
 		// template label, including multi language versions if applicable
 		$templateLabel = $form->get('templateLabel'); 

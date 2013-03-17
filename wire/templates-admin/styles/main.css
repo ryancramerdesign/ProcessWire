@@ -35,7 +35,6 @@ body {
 .container {
 	position: relative; 
 	width: 85%; 
-	min-width: 800px; 
 	max-width: 1200px; 
 	margin: 0 auto; 
 }
@@ -86,12 +85,12 @@ a {
 	#logo {
 		position: absolute; 
 		left: 0;
+		width: 179px; 
 		top: 43px; 
-		width: 179px;
-		height: 25px; 
-		text-indent: -9999px; 
-		background: url(images/logo.gif) top left no-repeat; 
 	}
+		#logo:hover {
+			background: none; 
+		}
 
 	#topnav {
                 position: absolute;
@@ -207,6 +206,10 @@ a {
 	font-family: Georgia, serif; 
 	font-size: 1.3em; 
 }
+	#content a.quantity {
+		font-family: Georgia, serif; 
+	}
+
 	#content .container {
 		min-height: 50px; 
 	}
@@ -411,17 +414,20 @@ a {
  *
  */
 
-.align_left {
+.align_left,
+.align-left {
 	float: left;
 	margin: 0 1em 0.5em 0;
 }
 
-.align_right {
+.align_right,
+.align-right {
 	float: right;
 	margin: 0 0 0.5em 1em; 
 }
 
-.align_center {
+.align_center,
+.align-center {
 	display: block;
 	margin-left: auto;
 	margin-right: auto; 
@@ -454,7 +460,7 @@ a {
 	background-color: #000; 
 	opacity: 0.25; 
 	color: #fff; 
-	padding: 7px 12px;
+	padding: 8px 12px 6px 12px;
 	font-size: 1.1em; 
 }
 	#sitelink:hover {
@@ -465,3 +471,94 @@ a {
 		display: none; 
 	}
 
+/***********************************************************************************************
+ * MOBILE
+ *
+ */
+
+/* Smaller than standard 960 (devices and browsers) */
+@media only screen and (max-width: 959px) {}
+
+/* Tablet Portrait size to standard 960 (devices and browsers) */
+@media only screen and (min-width: 768px) and (max-width: 959px) {}
+
+/* All Mobile Sizes (devices and browser) */
+@media only screen and (max-width: 767px) {
+
+	#logo {
+		top: 46px;
+	}
+		#logo img {
+			width: 75%; 
+		}
+
+	#topnav {
+		left: -10px;
+	}
+		#topnav a {
+			color: #a7e5f9; 
+			display: block;
+			float: left; 
+			margin: 0 0 0 1px;
+			padding: 9px 10px 11px 10px;
+		}
+			#topnav a.on:not(:hover) {
+				background: rgba(255, 255, 255, 0.07); 
+				background: rgba(0, 0, 0, 0.5); 
+				color: #a7e5f9; 
+			}
+			#topnav a:hover {
+				background-position: bottom left;
+			}
+
+	#ProcessPageSearchQuery {
+		top: 47px; 
+		width: 130px; 
+	}
+
+	#title {
+		font-size: 25px;
+	}
+	#content h2 {
+		font-size: 20px; 
+	}
+
+	#masthead,
+	#content,
+	#footer {
+		padding-right: 10px;
+		padding-left: 10px; 
+	}
+
+}
+
+/* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
+@media only screen and (min-width: 480px) and (max-width: 767px) {
+	.container {
+		width: 95%; 
+	}
+}
+
+/* Mobile Portrait Size to Mobile Landscape Size (devices and browsers) */
+@media only screen and (max-width: 479px) {
+	/**
+	 * Disregard column width when at mobile size
+	 *
+	 */
+	.Inputfield {
+		clear: both !important;
+		width: 100% !important;
+		margin-left: 0 !important;
+		margin-bottom: 1em !important; 
+	}
+
+	.container {
+		width: 100%; 
+	}
+	#bgtitle {
+		display: none; 
+	}
+	#footer #userinfo {
+		float: none;
+	}
+}

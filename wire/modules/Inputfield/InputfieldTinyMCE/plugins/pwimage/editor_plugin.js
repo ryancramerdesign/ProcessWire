@@ -29,7 +29,7 @@ var $iframe;
 				if (ed.dom.getAttrib(ed.selection.getNode(), 'class').indexOf('mceItem') != -1)
 					return;
 
-				var page_id = $("#Inputfield_id").val(); 
+				var page_id = parseInt($("#Inputfield_id").val()); 
 				var file = '';
 				var imgClass = '';
 				var imgWidth = 0;
@@ -55,12 +55,13 @@ var $iframe;
 						imgLink = $nodeParent.is("a") ? $nodeParent.attr('href') : '';
 
 						parts = parts.reverse();
-						page_id = 0; 
+						var _page_id = 0; 
 
 						for(n = 0; n < parts.length; n++) {
-							page_id = parseInt(parts[n]); 
-							if(page_id > 0) break;
+							_page_id = parseInt(parts[n]); 
+							if(_page_id > 0) break;
 						}
+						if(_page_id > 0 && _page_id != page_id) file = _page_id + ',' + file; // page_id,file for images in repeater support
 					}
 				}
 
@@ -80,7 +81,7 @@ var $iframe;
 
 				$iframe = $('<iframe id="pwimage_iframe" width="100%" frameborder="0" src="' + modalUri + queryString + '"></iframe>'); 
 
-				var selectImageLabel = 
+				var selectImageLabel = '';
 
 				$iframe.dialog({
 					title: config.InputfieldTinyMCE.pwimage.selectLabel, // "Select Image", 
@@ -110,6 +111,7 @@ var $iframe;
 										var $i = $iframe.contents();
 										var $img = $("#selected_image", $i); 
 										//var src = $img.attr('src'); 
+										var nosize = $img.attr('data-nosize'); 
 										var width = $img.attr('width');
 										var height = $img.attr('height'); 
 										var alt = $("#selected_image_description", $i).val();
@@ -119,8 +121,10 @@ var $iframe;
 
 										if(alt && alt.length > 0) alt = $("<div />").text(alt).html().replace(/"/g, '&quot;'); 
 
-										if(width > 0) html += 'width="' + width + '" '; 
-										if(height > 0) html += 'height="' + height + '" '; 
+										if(nosize != 1) {
+											if(width > 0) html += 'width="' + width + '" '; 
+											if(height > 0) html += 'height="' + height + '" '; 
+										}
 										html += 'alt="' + alt + '" />';
 										if(link && link.length > 0) html = "<a href='" + link + "'>" + html + "</a>";
 										if(nodeParent && $nodeParent.is("a")) se.select(nodeParent); // add it to the selection 
@@ -140,9 +144,9 @@ var $iframe;
 									if(!width) width = $img.width();
 									var height = $img.attr('height'); 
 									if(!height) height = $img.height();
-									var file = $img.attr('src'); 
+									var file = $img.attr('data-idname'); 
 									var page_id = $("#page_id", $i).val();
-									file = file.substring(file.lastIndexOf('/')+1); 
+									if(file.indexOf('/') > -1) file = file.substring(file.lastIndexOf('/')+1); 
 
 									$.get(modalUri + 'resize?id=' + page_id + '&file=' + file + '&width=' + width + '&height=' + height, function(data) {
 										var $div = $("<div></div>").html(data); 

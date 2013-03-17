@@ -337,8 +337,8 @@ class Field extends WireData implements Saveable {
 
 		if(!$fieldgroupContext) {
 			$inputfields = new InputfieldWrapper;
-			$inputfields->head = "Field type details";
-			$inputfields->attr('title', 'Details');
+			$inputfields->head = $this->_('Field type details');
+			$inputfields->attr('title', $this->_('Details'));
 
 			$fieldtypeInputfields = $this->type->getConfigInputfields($this); 
 			if($fieldtypeInputfields) foreach($fieldtypeInputfields as $inputfield) {
@@ -356,8 +356,8 @@ class Field extends WireData implements Saveable {
 
 		if($inputfield = $this->getInputfield($dummyPage)) {
 			$inputfieldLabel = $inputfield->className(); 
-			if(!$fieldgroupContext) $inputfields->head = "Input field settings";
-			$inputfields->attr('title', 'Input'); 
+			if(!$fieldgroupContext) $inputfields->head = $this->_('Input field settings');
+			$inputfields->attr('title', $this->_('Input')); 
 			$inputfieldInputfields = $inputfield->getConfigInputfields();
 			if($inputfieldInputfields) foreach($inputfieldInputfields as $i) { 
 				// currently we only support collapsed and columnWidth for fieldgroup context

@@ -170,4 +170,67 @@ class Database extends mysqli {
 	public function setThrowExceptions($throwExceptions = true) {
 		$this->throwExceptions = $throwExceptions; 
 	}
+
+	/**
+	 * Sanitize a table name for _a-zA-Z0-9
+	 *
+	 * @param string $table
+	 * @return string
+	 *
+	 */
+	public function escapeTable($table) {
+		$table = (string) trim($table); 
+		if(ctype_alnum($table)) return $table; 
+		if(ctype_alnum(str_replace('_', '', $table))) return $table;
+		return preg_replace('/[^_a-zA-Z0-9]/', '_', $table);
+	}
+
+	/**
+	 * Sanitize a column name for _a-zA-Z0-9
+	 *
+	 * @param string $col
+	 * @return string
+	 *
+	 */
+	public function escapeCol($col) {
+		return $this->escapeTable($col);
+	}
+
+	/**
+	 * Sanitize a table.column string, where either part is optional
+	 *
+	 * @param string $col
+	 * @return string
+	 *
+	 */
+	public function escapeTableCol($str) {
+		if(strpos($str, '.') === false) return $this->escapeTable($str); 
+		list($table, $col) = explode('.', $str); 
+		return $this->escapeTable($table) . '.' . $this->escapeCol($col);
+	}
+
+	/**
+	 * Escape a string value, camelCase alias of escape_string()
+	 *
+	 * @param string $str
+	 * @return string
+	 *
+	 */
+	public function escapeStr($str) {
+		return $this->escape_string($str); 
+	}
+
+	/**
+	 * Escape a string value, plus escape characters necessary for a MySQL 'LIKE' phrase
+	 *
+	 * @param string $str
+	 * @return string
+	 *
+	 */
+	public function escapeLike($like) {
+		$like = $this->escape_string($like); 
+		return addcslashes($like, '%_'); 
+	}
+
+
 }

@@ -28,15 +28,16 @@ class PagesSortfields extends Wire {
 		if(!$page->id) return; 
 		if(!$page->isChanged('sortfield')) return; 
 
+		$page_id = (int) $page->id; 
 		$sortfield = $this->fuel('db')->escape_string($this->encode($page->sortfield)); 
 
 		if($sortfield == 'sort' || !$sortfield) return $this->delete($page); 
 
 		$sql = 	"INSERT INTO pages_sortfields (pages_id, sortfield) " . 
-			"VALUES($page->id, '$sortfield') " . 
+			"VALUES($page_id, '$sortfield') " . 
 			"ON DUPLICATE KEY UPDATE sortfield=VALUES(sortfield)";
 
-		return $this->fuel('db')->query($sql) != false; 
+		return $this->fuel('db')->query($sql) != false; // QA
 
 	}
 
@@ -48,7 +49,7 @@ class PagesSortfields extends Wire {
 	 *
 	 */
 	public function delete(Page $page) {
-		$this->fuel('db')->query("DELETE FROM pages_sortfields WHERE pages_id=" . (int) $page->id); 
+		$this->fuel('db')->query("DELETE FROM pages_sortfields WHERE pages_id=" . (int) $page->id); // QA
 	}
 
 	/**

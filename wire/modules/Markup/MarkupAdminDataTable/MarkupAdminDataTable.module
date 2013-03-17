@@ -3,6 +3,7 @@
 class MarkupAdminDataTable extends ModuleJS {
 
 	protected $headerRow = array(); 
+	protected $footerRow = array();
 	protected $rows = array();
 	protected $actions = array();
 	protected $encodeEntities = true; 
@@ -14,7 +15,7 @@ class MarkupAdminDataTable extends ModuleJS {
 		return array(
 			'title' => 'Admin Data Table', 
 			'summary' => 'Generates XHTML markup for data tables used by ProcessWire admin', 
-			'version' => 100, 
+			'version' => 101, 
 			'permanent' => true, 
 			);
 	}
@@ -29,7 +30,17 @@ class MarkupAdminDataTable extends ModuleJS {
 		return $this; 
 	}
 
+	public function footerRow(array $a) {
+		$this->footerRow = $this->setupRow($a);
+		return $this;
+	}
+
 	public function row(array $a) {
+		$this->rows[] = $this->setupRow($a);
+		return $this; 
+	}
+
+	protected function setupRow(array $a) {
 		$row = array();
 
 		foreach($a as $k => $v) {
@@ -42,9 +53,7 @@ class MarkupAdminDataTable extends ModuleJS {
 			}
 			$row[] = $v; 
 		}
-
-		$this->rows[] = $row; 
-		return $this; 
+		return $row;
 	}
 
 	public function action(array $action) {
@@ -58,22 +67,37 @@ class MarkupAdminDataTable extends ModuleJS {
 
 		$tableClass = trim("AdminDataTable AdminDataList {$this->class}"); 
 		if($this->sortable) $tableClass .= " AdminDataTableSortable"; 
-		$out = "\n<table class='$tableClass'>";
+		$out = '';
+		$maxCols = 0;
 
-		if($this->caption) $out .= "\n\t<caption>{$this->caption}</caption>";
+		if(count($this->rows)) { 
+			$out = "\n<table class='$tableClass'>";
 
-		if(count($this->headerRow)) {
-			$out .= "\n\t<thead>\n\t<tr>";
-			foreach($this->headerRow as $th) {
-				$th = $this->encode($th); 
-				$out .= "\n\t\t<th>$th</th>"; 
+			if($this->caption) $out .= "\n\t<caption>{$this->caption}</caption>";
+
+			if(count($this->headerRow)) {
+				$out .= "\n\t<thead>\n\t<tr>";
+				foreach($this->headerRow as $th) {
+					$th = $this->encode($th); 
+					$out .= "\n\t\t<th>$th</th>"; 
+					$maxCols++;
+				}
+				$out .= "\n\t</tr>\n\t</thead>";
 			}
-			$out .= "\n\t</tr>\n\t</thead>";
-		}
 
-		if(count($this->rows)) {
+			if(count($this->footerRow)) {
+				$out .= "\n\t<tfoot>\n\t<tr>";
+				foreach($this->footerRow as $td) {
+					$out .= "\n\t\t\t<td>$td</td>"; 
+				}
+				$out .= "\n\t</tr>\n\t</tfoot>";
+			}
+
 			$out .= "\n\t<tbody>";
 			foreach($this->rows as $row) {
+				$cols = count($row);
+				if($cols > $maxCols) $maxCols = $cols; 
+				if($cols < $maxCols) for(; $cols < $maxCols; $cols++) $row[] = '&nbsp;';
 				$out .= "\n\t\t<tr>";
 				foreach($row as $td) {
 					$out .= "\n\t\t\t<td>$td</td>"; 
@@ -81,9 +105,9 @@ class MarkupAdminDataTable extends ModuleJS {
 				$out .= "\n\t\t</tr>";
 			}
 			$out .= "\n\t</tbody>";
-		}
 
-		$out .= "\n</table>";
+			$out .= "\n</table>";
+		}
 
 		if(count($this->actions)) {
 			$out .= "\n<p>";

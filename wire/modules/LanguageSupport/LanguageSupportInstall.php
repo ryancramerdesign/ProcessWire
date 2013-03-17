@@ -68,6 +68,7 @@ class LanguageSupportInstall extends Wire {
 		$fieldgroup->add($this->fields->get('title')); 
 		$fieldgroup->add($field); // language_files
 		$fieldgroup->save();
+		$this->message("Created fieldgroup: " . LanguageSupport::languageTemplateName . " ($fieldgroup->id)"); 
 
 		// create the template used by Language pages
 		$template = new Template();	

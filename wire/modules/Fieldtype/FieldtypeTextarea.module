@@ -62,11 +62,8 @@ class FieldtypeTextarea extends FieldtypeText {
 		$f= $this->modules->get('InputfieldSelect');
 		$f->attr('name', 'inputfieldClass'); 
 		$f->attr('value', $field->inputfieldClass ? $field->inputfieldClass : self::defaultInputfieldClass); 
-		$f->label = 'Inputfield Type';
-		$f->description = 
-			"The type of field that will be used to collect input (Textarea is the default). " . 
-			"Note that if you change this and submit, the available configuration options in " . 
-			"the 'Inputfield Settings' section below may change.";
+		$f->label = $this->_('Inputfield Type');
+		$f->description = $this->_('The type of field that will be used to collect input (Textarea is the default). Note that if you change this and submit, the available configuration options in the Inputfield Settings section below may change.');
 		$f->required = true; 
 
 		$baseClass = "InputfieldTextarea";

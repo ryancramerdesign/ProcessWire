@@ -7,7 +7,7 @@ if(!isset($bgTitle)) $bgTitle = "Installer";
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<title><?php echo $title; ?></title>
+	<title><?php echo htmlentities($title, ENT_QUOTES, "UTF-8"); ?></title>
 
 	<meta name="robots" content="noindex, nofollow" />
 
@@ -20,15 +20,15 @@ if(!isset($bgTitle)) $bgTitle = "Installer";
 	<script type="text/javascript" src="wire/templates-admin/scripts/install.js"></script>
 </head>
 <body>
-<p id='bgtitle'><?php echo $bgTitle; ?></p>
+<p id='bgtitle'><?php echo htmlentities($bgTitle, ENT_QUOTES, "UTF-8"); ?></p>
 <div id="masthead" class="masthead">
 	<div class="container">
-		<p id='logo'>ProcessWire</p>
-		<h1 id='title'><?php echo $title; ?></h1>
+		<a target='_blank' id='logo' href='http://processwire.com'><img src="wire/templates-admin/styles/images/logo.gif" alt="ProcessWire" /></a>
+		<h1 id='title'><?php echo htmlentities($title, ENT_QUOTES, "UTF-8"); ?></h1>
 	</div>
 </div>
 
 <div id="content" class="content">
 	<div class="container">
-		<form action='<?php echo $formAction; ?>' method='post'>
+		<form action='<?php echo htmlentities($formAction, ENT_QUOTES, "UTF-8"); ?>' method='post'>
 

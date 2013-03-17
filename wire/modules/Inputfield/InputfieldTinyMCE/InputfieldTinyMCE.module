@@ -9,7 +9,8 @@
 class InputfieldTinyMCE extends InputfieldTextarea {
 
 	//const TinyMCEVersion = '3.3.9.2';
-	const TinyMCEVersion = '3.4.7';
+	//const TinyMCEVersion = '3.4.7';
+	const TinyMCEVersion = '3.5.8';
 
 	protected $defaults = array(
 		'theme_advanced_buttons1' => 'formatselect,|,bold,italic,|,bullist,numlist,|,link,unlink,|,image,|,code,|,fullscreen',
@@ -26,7 +27,7 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'TinyMCE',
-			'version' => 347,
+			'version' => 358,
 			'summary' => 'WYSIWYG rich text editor',
 			'permanent' => true, 
 			);
@@ -144,6 +145,12 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields();
+
+		$f = $inputfields->get('stripTags');
+		if($f) $inputfields->remove($f);
+
+		$f = $inputfields->get('placeholder');
+		if($f) $inputfields->remove($f);
 
 		$wrapper = $this->modules->get('InputfieldFieldset'); 
 		$wrapper->label = $this->_('TinyMCE Advanced Configuration Options'); 

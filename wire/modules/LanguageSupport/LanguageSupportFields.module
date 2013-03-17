@@ -166,6 +166,16 @@ class LanguageSupportFields extends WireData implements Module {
 			$field = wire('fields')->get($name); 	
 			if($field) $this->fieldLanguageAdded($field, $language); 
 		}
+
+		$this->languageAdded($language); 
+	}
+
+	/**
+	 * Hookable function called when a new language is added 
+	 *
+	 */
+	public function ___languageAdded(Page $language) {
+		// hookable, intentionally blank
 	}
 
 	/**
@@ -181,7 +191,18 @@ class LanguageSupportFields extends WireData implements Module {
 			$field = wire('fields')->get($name); 	
 			if($field) $this->fieldLanguageRemoved($field, $language); 
 		}
+
+		$this->languageDeleted($language); 
 	}
+
+	/**
+	 * Hookable function called when a language is deleted
+	 *
+	 */
+	public function ___languageDeleted(Page $language) {
+		// hookable, intentionally blank
+	}
+
 
 	/**
 	 * Called when a new language is added to the system for each field that implements FieldtypeLanguageInterface
@@ -341,6 +362,16 @@ class LanguageSupportFields extends WireData implements Module {
 				else $key = 'data' . $language->id; 
 			$values[$key] = $value->getLanguageValue($language->id); 
 		}
+
+		/*
+		if(!strlen($values['data'])) foreach($values as $k => $v) {
+			// prevent the possibility of the default language having
+			// a blank value while some other language has a populated value
+			if(!strlen($v)) continue;
+			$values['data'] = $v; 
+			break;
+		}
+		*/
 
 		$event->return = $values; 
 	}

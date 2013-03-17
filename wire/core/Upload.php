@@ -7,11 +7,10 @@
  * If the destination path does not exist, it will be created. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -21,6 +20,7 @@ class WireUpload extends Wire {
 	protected $name;
 	protected $destinationPath; 
 	protected $maxFiles;
+	protected $maxFileSize = 0;
 	protected $completedFilenames = array(); 
 	protected $overwrite; 
 	protected $overwriteFilename = ''; // if specified, only this filename may be overwritten
@@ -30,22 +30,24 @@ class WireUpload extends Wire {
 	protected $validExtensions = array(); 
 	protected $badExtensions = array('php', 'php3', 'phtml', 'exe', 'cfm', 'shtml', 'asp', 'pl', 'cgi', 'sh'); 
 	protected $errors = array();
+	protected $allowAjax = false;
 
 	static protected $unzipCommand = 'unzip -j -qq -n /src/ -x __MACOSX .* -d /dst/';
 
-	protected $errorInfo = array(
-		UPLOAD_ERR_OK => 'Successful Upload',
-		UPLOAD_ERR_INI_SIZE => 'The uploaded file exceeds the upload_max_filesize directive in php.ini.',
-		UPLOAD_ERR_FORM_SIZE => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form.',
-		UPLOAD_ERR_PARTIAL => 'The uploaded file was only partially uploaded.',
-		UPLOAD_ERR_NO_FILE => 'No file was uploaded.',
-		UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder.',
-		UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
-		UPLOAD_ERR_EXTENSION => 'File upload stopped by extension.'
-	);
+	protected $errorInfo = array(); 
 
-	
 	public function __construct($name) {
+
+		$this->errorInfo = array(
+			UPLOAD_ERR_OK => $this->_('Successful Upload'),
+			UPLOAD_ERR_INI_SIZE => $this->_('The uploaded file exceeds the upload_max_filesize directive in php.ini.'),
+			UPLOAD_ERR_FORM_SIZE => $this->_('The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form.'),
+			UPLOAD_ERR_PARTIAL => $this->_('The uploaded file was only partially uploaded.'),
+			UPLOAD_ERR_NO_FILE => $this->_('No file was uploaded.'),
+			UPLOAD_ERR_NO_TMP_DIR => $this->_('Missing a temporary folder.'),
+			UPLOAD_ERR_CANT_WRITE => $this->_('Failed to write file to disk.'),
+			UPLOAD_ERR_EXTENSION => $this->_('File upload stopped by extension.')
+			);
 
 		$this->setName($name); 
 		$this->maxFiles = 0; // no limit
@@ -81,7 +83,7 @@ class WireUpload extends Wire {
 			$cnt = 0;
 			foreach($f['name'] as $key => $name) {
 				if($this->maxFiles && ($cnt >= $this->maxFiles)) {
-					$this->error("Max file upload limit reached"); 
+					$this->error($this->_('Max file upload limit reached')); 
 					break;
 				}
 				if(!$this->isValidUpload($f['name'][$key], $f['size'][$key], $f['error'][$key])) continue; 
@@ -107,7 +109,7 @@ class WireUpload extends Wire {
 	 *
 	 */
 	protected function getPhpFiles() {
-		if(isset($_SERVER['HTTP_X_FILENAME'])) return $this->getPhpFilesAjax();
+		if(isset($_SERVER['HTTP_X_FILENAME']) && $this->allowAjax) return $this->getPhpFilesAjax();
 		if(empty($_FILES) || !count($_FILES)) return false; 
 		if(!isset($_FILES[$this->name]) || !is_array($_FILES[$this->name])) return false;
 		return $_FILES[$this->name]; 	
@@ -124,6 +126,7 @@ class WireUpload extends Wire {
 		$dir = wire('config')->uploadTmpDir;
 		if(!$dir || !is_writable($dir)) $dir = ini_get('upload_tmp_dir');
 		if(!$dir || !is_writable($dir)) $dir = sys_get_temp_dir();
+		if(!$dir || !is_writable($dir)) throw new WireException("Error writing to $dir. Please define \$config->uploadTmpDir and ensure it is writable."); 
 		$tmpName = tempnam($dir, get_class($this));
 		file_put_contents($tmpName, file_get_contents('php://input')); 
 		$filesize = is_file($tmpName) ? filesize($tmpName) : 0;
@@ -157,7 +160,10 @@ class WireUpload extends Wire {
 			else if(!$size) $valid = false; // no data
 			else if(!$this->isValidExtension($name)) {
 				$fname = $this->validateFilename($name); 
-				$this->error("$fname - Invalid file extension, please use one of: " . implode(', ', $this->validExtensions)); 
+				$this->error("$fname - " . $this->_('Invalid file extension, please use one of:') . ' ' . implode(', ', $this->validExtensions)); 
+			} else if($this->maxFileSize > 0 && $size > $this->maxFileSize) {
+				$fname = $this->validateFilename($name); 
+				$this->error("$fname - " . $this->_('Exceeds max allowed file size')); 
 			} else if($name[0] == '.') $valid = false; 
 			else $valid = true; 
 
@@ -168,12 +174,6 @@ class WireUpload extends Wire {
 	protected function checkDestinationPath() {
 		if(!is_dir($this->destinationPath)) {
 			$this->error("Destination path does not exist {$this->destinationPath}"); 
-			/*
-			if(!mkdir($this->destinationPath)) {
-				$this->error("Unable to create directory: " . $this->destinationPath); 
-				return false;
-			}
-			*/
 		}
 		return true; 
 	}
@@ -356,6 +356,11 @@ class WireUpload extends Wire {
 		return $this; 
 	}
 
+	public function setMaxFileSize($bytes) {
+		$this->maxFileSize = (int) $bytes;
+		return $this;
+	}
+
 	public function setOverwrite($overwrite) {
 		$this->overwrite = $overwrite ? true : false; 
 		return $this; 
@@ -382,6 +387,11 @@ class WireUpload extends Wire {
 		return $this; 
 	}
 
+	public function setAllowAjax($allowAjax = true) {
+		$this->allowAjax = $allowAjax ? true : false; 
+		return $this; 
+	}
+
 	public function error($text, $flags = 0) {
 		$this->errors[] = $text; 
 		parent::error($text, $flags); 
@@ -392,7 +402,7 @@ class WireUpload extends Wire {
 		if($clear) $this->errors = array();
 		return $errors;
 	}
-		
+
 
 }
 

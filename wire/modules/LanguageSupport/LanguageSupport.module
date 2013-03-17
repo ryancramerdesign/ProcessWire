@@ -147,7 +147,8 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		// setup our hooks handled by this class
 		$this->addHookBefore('Inputfield::render', $this, 'hookInputfieldBeforeRender'); 
 		$this->addHookAfter('Inputfield::render', $this, 'hookInputfieldAfterRender'); 
-		$this->addHookAfter('Inputfield::processInput', $this, 'hookInputfieldProcessInput'); 
+		$this->addHookAfter('Inputfield::processInput', $this, 'hookInputfieldAfterProcessInput'); 
+		$this->addHookBefore('Inputfield::processInput', $this, 'hookInputfieldBeforeProcessInput'); 
 		$this->addHookAfter('Field::getInputfield', $this, 'hookFieldGetInputfield'); 
 		$this->pages->addHook('added', $this, 'hookPageAdded'); 
 		$this->pages->addHook('deleteReady', $this, 'hookPageDeleteReady'); 
@@ -178,7 +179,10 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			// unset the values from all the early cached pages since they didn't recognize languages
 			// this will force them to reload when accessed
 			foreach($this->earlyCachedPages as $id => $p) {
+				$t = $p->trackChanges();
+				if($t) $p->setTrackChanges(false);
 				foreach($fieldNames as $name) unset($p->$name); 
+				if($t) $p->setTrackChanges(true); 
 			}
 		}
 		// release this as we don't need it anymore
@@ -200,9 +204,13 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		if(!$inputfield->useLanguages) return; 
 
 		$userLanguage = wire('user')->language; 
-		
+	
+		// set 'value' attribute to default language values	
 		if($userLanguage->id !== $this->defaultLanguagePageID) {
+			$t = $inputfield->trackChanges();
+			if($t) $inputfield->setTrackChanges(false);
 			$inputfield->attr('value', $inputfield->get('value' . $this->defaultLanguagePageID)); 
+			if($t) $inputfield->setTrackChanges(true); 
 		}
 	}
 
@@ -254,6 +262,8 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		// keep originals to restore later (including $name, which we already got above)
 		$id = $inputfield->attr('id');
 		$value = $inputfield->attr('value');
+		$required = $inputfield->required; 
+
 
 		$trackChanges = $inputfield->trackChanges(); 
 		$inputfield->setTrackChanges(false); 
@@ -274,6 +284,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 				$inputfield->attr('id', $newID); 
 				$inputfield->attr('name', $newName); 
 				$valueAttr = "value$languageID";
+				$inputfield->required = false;
 				$inputfield->setAttribute('value', $inputfield->$valueAttr); 
 				$o = $inputfield->___render(); 
 			}
@@ -286,9 +297,21 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$inputfield->setAttribute('name', $name);
 		$inputfield->setAttribute('id', $id);
 		$inputfield->setAttribute('value', $value);
+		$inputfield->required = $required; 
 		$inputfield->setTrackChanges($trackChanges); 
 
 		$event->return = $out; 
+	}
+
+	/**
+	 * Hook before Inputfield::processInput to process input for other languages
+	 *
+	 * Only applies to Inputfields that have: useLanguages == true
+	 *
+	 */
+	public function hookInputfieldBeforeProcessInput(HookEvent $event) {
+		// ensures default language values are populated
+		$this->hookInputfieldBeforeRender($event); 
 	}
 
 	/**
@@ -297,7 +320,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	 * Only applies to Inputfields that have: useLanguages == true
 	 *
 	 */
-	public function hookInputfieldProcessInput(HookEvent $event) {
+	public function hookInputfieldAfterProcessInput(HookEvent $event) {
 
 		$inputfield = $event->object; 
 		if(!$inputfield->useLanguages) return;
@@ -321,7 +344,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			// other language values not required, even if default language value is 
 			$inputfield->required = false; 
 			$valueAttr = "value$languageID";
-			$inputfield->setAttribute('value', $inputfield->$valueAttr); 
+			$inputfield->attr('value', $inputfield->$valueAttr); 
 			$inputfield->setTrackChanges(true);
 			$inputfield->___processInput($post);
 			$inputfield->set($valueAttr, $inputfield->attr('value')); 

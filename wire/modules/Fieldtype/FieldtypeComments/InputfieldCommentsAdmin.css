@@ -10,20 +10,21 @@
 
 .InputfieldCommentsAdmin .CommentsAdminItemCite,
 .InputfieldCommentsAdmin .CommentsAdminItemEmail,
+.InputfieldCommentsAdmin .CommentsAdminItemWebsite,
 .InputfieldCommentsAdmin .CommentsAdminItemStatus,
 .InputfieldCommentsAdmin .CommentsAdminItemDelete {
 	float: left; 
-	margin-right: 2em; 
+	width: 23%; 
+	margin-right: 2%; 
 }
 
 .InputfieldCommentsAdmin .CommentsAdminItemStatus {
 }
 
-.InputfieldCommentsAdmin .CommentsAdminItemCite input {
-	width: 250px; 
-}
+.InputfieldCommentsAdmin .CommentsAdminItemCite input,
+.InputfieldCommentsAdmin .CommentsAdminItemWebsite input,
 .InputfieldCommentsAdmin .CommentsAdminItemEmail input {
-	width: 250px; 
+	width: 100%; 
 }
 
 .InputfieldCommentsAdmin .CommentsAdminItemText {

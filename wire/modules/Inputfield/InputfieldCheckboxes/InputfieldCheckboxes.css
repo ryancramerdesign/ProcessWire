@@ -5,17 +5,23 @@
 	margin: 0 !important;
 }
 
-.InputfieldCheckboxes table {
+.InputfieldCheckboxes table,
+.InputfieldCheckboxesColumns,
+.InputfieldCheckboxesFloated {
 	width: 100%; 
 }
 
-.InputfieldCheckboxesColumns {
-	width: 100%; 
-}
-
+.Inputfields .InputfieldCheckboxesFloated li,
 .Inputfields .InputfieldCheckboxesColumns li {
 	display: block;
 	float: left; 
+}
+
+.Inputfields .InputfieldCheckboxesFloated li {
+	padding-right: 1em; 
+}
+
+.inputfields .InputfieldCheckboxesColumns li {
 	padding-right: 1%; 
 	padding-bottom: 1%; 
 }

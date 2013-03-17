@@ -440,7 +440,7 @@ class FieldtypeDatetime extends FieldtypeText {
 		$f->attr('name', 'dateOutputFormat'); 
 		$f->attr('value', $field->dateOutputFormat); 
 		$f->attr('size', 20); 
-		$f->label = "Date/Time Output Format Code";
+		$f->label = $this->_('Date/Time Output Format Code');
 		$f->description = $this->_('The date/time will be output according to the format below. This is automatically built from the date/time selections above, but you may change it as needed to suit your needs.');
 		$f->notes = $this->_('See the [PHP date](http://www.php.net/manual/en/function.date.php) function reference for more information on how to customize this format. Alternatively, you may use a [PHP strftime](http://www.php.net/manual/en/function.strftime.php) format if desired for localization.'); 
 		$f->collapsed = Inputfield::collapsedYes; 

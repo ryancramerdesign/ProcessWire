@@ -19,7 +19,7 @@
 
 	<meta name="description" content="<?php echo $page->summary; ?>" />
 
-	<meta name="generator" content="ProcssWire <?php echo $config->version; ?>" />
+	<meta name="generator" content="ProcessWire <?php echo $config->version; ?>" />
 
 	<link rel="stylesheet" type="text/css" href="<?php echo $config->urls->templates?>styles/main.css" />
 

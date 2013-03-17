@@ -51,6 +51,8 @@ class CommentList extends Wire implements CommentListInterface {
 		'dateFormat' => '', 	// 'm/d/y g:ia', 
 		'encoding' => 'UTF-8', 
 		'admin' => false, 	// shows unapproved comments if true
+		'useGravatar' => '', 	// enable gravatar? if so, specify maximum rating: [ g | pg | r | x ] or blank = disable gravatar
+		'useGravatarImageset' => 'mm',	// default gravatar imageset, specify: [ 404 | mm | identicon | monsterid | wavatar ]
 		); 
 
 	/**
@@ -114,6 +116,16 @@ class CommentList extends Wire implements CommentListInterface {
 
 		$cite = htmlentities(trim($comment->cite), ENT_QUOTES, $this->options['encoding']); 
 
+		$gravatar = '';
+		if($this->options['useGravatar']) {
+			$imgUrl = $comment->gravatar($this->options['useGravatar'], $this->options['useGravatarImageset']); 
+			if($imgUrl) $gravatar = "\n\t\t<img class='CommentGravatar' src='$imgUrl' alt='$cite' />";
+		}
+
+		$website = '';
+		if($comment->website) $website = htmlentities(trim($comment->website), ENT_QUOTES, $this->options['encoding']); 
+		if($website) $cite = "<a href='$website' rel='nofollow' target='_blank'>$cite</a>";
+
 		if(strpos($this->options['dateFormat'], '%') !== false) $created = strftime($this->options['dateFormat'], $comment->created); 
 			else $created = date($this->options['dateFormat'], $comment->created); 
 
@@ -122,8 +134,8 @@ class CommentList extends Wire implements CommentListInterface {
 		if($comment->status == Comment::statusPending) $liClass = ' CommentStatusPending'; 
 			else if($comment->status == Comment::statusSpam) $liClass = ' CommentStatusSpam';
 			else $liClass = '';
-		
-		$out = 	"\n\t<li id='Comment{$comment->id}' class='CommentListItem$liClass'>" . 
+
+		$out = 	"\n\t<li id='Comment{$comment->id}' class='CommentListItem$liClass'>" . $gravatar . 
 			"\n\t\t<p class='CommentHeader'>$header</p>" . 
 			"\n\t\t<div class='CommentText'>" . 
 			"\n\t\t\t<p>$text</p>" . 

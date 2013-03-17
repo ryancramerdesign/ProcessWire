@@ -1,14 +1,17 @@
 #################################################################################################
 # START PROCESSWIRE HTACCESS DIRECTIVES
-# @version 2.2
+# @version 2.3
 #################################################################################################
 
 # -----------------------------------------------------------------------------------------------
 # Don't show directory indexes, but do follow symbolic links 
+# Note: some cloud hosting companies don't allow +FollowSymLinks
+# Uncomment +SymLinksifOwnerMatch and comment +FollowSymLinks if you have troubles
 # -----------------------------------------------------------------------------------------------
 
 Options -Indexes
 Options +FollowSymLinks
+# Options +SymLinksifOwnerMatch
 
 # -----------------------------------------------------------------------------------------------
 # Let ProcessWire handle 404s
@@ -59,6 +62,7 @@ DirectoryIndex index.php index.html index.htm
 <IfModule mod_rewrite.c>
 
   RewriteEngine On
+  AddDefaultCharset UTF-8
 
   # -----------------------------------------------------------------------------------------------
   # Set an environment variable so the installer can detect that mod_rewrite is active.
@@ -67,7 +71,7 @@ DirectoryIndex index.php index.html index.htm
   SetEnv HTTP_MOD_REWRITE On
 
   # -----------------------------------------------------------------------------------------------
-  # Optional: Set a rewrite base if rewrites aern't working properly on your server.
+  # Optional: Set a rewrite base if rewrites aren't working properly on your server.
   # And if your site directory starts with a "~" you will most likely have to use this.
   # -----------------------------------------------------------------------------------------------
 
@@ -90,20 +94,34 @@ DirectoryIndex index.php index.html index.htm
   # RewriteRule ^ http://www.%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
   # -----------------------------------------------------------------------------------------------
-  # Access Restrictions: Protect ProcessWire system files (part 2)
+  # Access Restrictions: Protect ProcessWire system files
   # -----------------------------------------------------------------------------------------------
 
+  # Block access to any htaccess files
   RewriteCond %{REQUEST_URI} (^|/)\.htaccess$ [NC,OR]
-  RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/assets/(cache|logs|backups|sessions|config|install)($|/.*$) [OR]
+  # Block access to protected assets directories
+  RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/assets/(cache|logs|backups|sessions|config|install|tmp)($|/.*$) [OR]
+  # Block acceess to the /site/install/ directory
   RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/install($|/.*$) [OR]
+  # Block dirs in /site/assets/ dirs that start with a hyphen
+  RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/assets.*/-.+/.* [OR]
+  # Block access to /wire/config.php, /site/config.php, /site/config-dev.php, and /wire/index.config.php
   RewriteCond %{REQUEST_URI} (^|/)(wire|site|site-[^/]+)/(config|index\.config|config-dev)\.php$ [OR]
+  # Block access to any PHP-based files in /templates-admin/
   RewriteCond %{REQUEST_URI} (^|/)(wire|site|site-[^/]+)/templates-admin($|/|/.*\.(php|html?|tpl|inc))$ [OR]
+  # Block access to any PHP or markup files in /site/templates/
   RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/templates($|/|/.*\.(php|html?|tpl|inc))$ [OR]
+  # Block access to any PHP files in /site/assets/
   RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/assets($|/|/.*\.php)$ [OR]
+  # Block access to any PHP files in core or core module directories
   RewriteCond %{REQUEST_URI} (^|/)wire/(core|modules)/.*\.(php|inc|tpl|module)$ [OR]
+  # Block access to any PHP files in /site/modules/
   RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/modules/.*\.(php|inc|tpl|module)$ [OR]
-  RewriteCond %{REQUEST_URI} (^|/)(COPYRIGHT|INSTALL|README|htaccess)\.txt$ [OR]
+  # Block access to any software identifying txt files
+  RewriteCond %{REQUEST_URI} (^|/)(COPYRIGHT|INSTALL|README|htaccess)\.(txt|md)$ [OR]
+  # Block all http access to the default/uninstalled site-default directory
   RewriteCond %{REQUEST_URI} (^|/)site-default/
+  # If any conditions above match, isssue a 403 forbidden
   RewriteRule ^.*$ - [F,L]
 
   # ----------------------------------------------------------------------------------------------- 

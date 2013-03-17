@@ -160,6 +160,14 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	}
 
 	/**
+	 * Clear all removed fields, for use by Fieldgroups::save
+	 *
+	 */
+	public function resetRemovedFields() {
+		$this->removedFields = null;
+	}
+
+	/**
 	 * Get a field that is part of this fieldgroup
 	 *
 	 * Same as get() except that it only checks fields, not other properties of a fieldgroup

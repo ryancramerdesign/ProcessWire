@@ -45,10 +45,10 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 	 */
 	protected function getLoadQuery($selectors = null) {
 		$query = parent::getLoadQuery($selectors); 
-		$table = $this->getTable();
-		$lookupTable = $this->getLookupTable();	
-		$query->select("$lookupTable." . $this->getLookupField()); 
-		$query->leftjoin("$lookupTable ON $lookupTable.{$table}_id=$table.id ")->orderby("sort"); 
+		$table = $this->fuel('db')->escapeTable($this->getTable());
+		$lookupTable = $this->fuel('db')->escapeTable($this->getLookupTable());	
+		$query->select("$lookupTable." . $this->fuel('db')->escapeCol($this->getLookupField())); // QA 
+		$query->leftjoin("$lookupTable ON $lookupTable.{$table}_id=$table.id ")->orderby("sort"); // QA
 		return $query; 
 	}
 
@@ -113,19 +113,22 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 	public function ___save(Saveable $item) {
 
 		if(!$item instanceof HasLookupItems) throw new WireException($this->className() . "::save() requires an item that implements HasLookupItems interface"); 
-		
-		$lookupTable = $this->getLookupTable();
-		$lookupField = $this->getLookupField();
-		$table = $this->getTable();
+	
+		$db = $this->fuel('db'); 	
+		$lookupTable = $db->escapeTable($this->getLookupTable());
+		$lookupField = $db->escapeCol($this->getLookupField());
+		$table = $db->escapeTable($this->getTable());
+		$item_id = (int) $item->id; 
 
-		if($item->id) $this->fuel('db')->query("DELETE FROM $lookupTable WHERE {$table}_id={$item->id}"); 
+		if($item_id) $db->query("DELETE FROM $lookupTable WHERE {$table}_id=$item_id"); // QA
 			
 		$result = parent::___save($item); 
+		$item_id = (int) $item->id; // reload, in case it was 0 before
 
-		// if($item->id) foreach($item->get($lookupField) as $key => $value) {
 		$sort = 0; 
-		if($item->id) foreach($item->getLookupItems() as $key => $value) {
-			$this->fuel('db')->query("INSERT INTO $lookupTable SET {$table}_id='{$item->id}', $lookupField='{$value->id}', sort='$sort'"); 
+		if($item_id) foreach($item->getLookupItems() as $key => $value) {
+			$value_id = (int) $value->id; 
+			$db->query("INSERT INTO $lookupTable SET {$table}_id='$item_id', $lookupField='$value_id', sort='$sort'"); // QA
 			$this->resetTrackChanges();
 			$sort++; 
 		}
@@ -139,7 +142,11 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 	 *
 	 */
 	public function ___delete(Saveable $item) {
-		$this->fuel('db')->query("DELETE FROM " . $this->getLookupTable() . " WHERE " . $this->getTable() . "_id={$item->id}"); 
+		$db = $this->fuel('db');
+		$lookupTable = $db->escapeTable($this->getLookupTable()); 
+		$table = $db->escapeTable($this->getTable()); 
+		$item_id = (int) $item->id; 
+		$db->query("DELETE FROM $lookupTable WHERE {$table}_id=$item_id"); // QA
 		return parent::___delete($item); 
 	}
 }

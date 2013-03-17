@@ -30,3 +30,22 @@ body.modal #fieldgroupContext {
 	display: none; 
 }
 
+#ProcessFieldList table td {
+	width: 35%; 
+}
+
+#ProcessFieldList table td:nth-child(3),
+#ProcessFieldList table td:last-child {
+	width: 15%; 
+}
+
+#ProcessFieldList table td a.fieldFlag {
+	float: right; 
+}
+
+#content label.ui-widget-header .labelIcon {
+	float: left; 
+	margin: 0 0 0 -5px; 
+	position: relative;
+	top: 1px; 
+}

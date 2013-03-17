@@ -23,7 +23,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Fields', __FILE__),
 			'summary' => __('Edit individual fields that hold page data', __FILE__),
-			'version' => 102,
+			'version' => 103,
 			'permanent' => true, 
 
 			// add this permission if you want this Process available for roles other than Superuser
@@ -67,7 +67,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	 * Renders filtering options when viewing a list of Fields
 	 *
 	 */
-	public function renderListFilters() {
+	public function ___getListFilterForm() {
 
 		$showAllLabel = $this->_('Show All'); 
 
@@ -78,7 +78,8 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$fieldset = $this->modules->get("InputfieldFieldset"); 
 		$fieldset->attr('id', 'template_filters');
-		$fieldset->label = $this->_("Filters"); // Field list filters fieldset label
+		$fieldset->entityEncodeLabel = false; 
+		$fieldset->label = "<span class='labelIcon ui-icon ui-icon-wrench'></span>" . $this->_("Filters"); // Field list filters fieldset label
 		$fieldset->collapsed = Inputfield::collapsedYes;
 		$form->add($fieldset);
 
@@ -145,7 +146,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			$this->session->ProcessFieldListShowSystem = 1; 
 		}
 		
-		return $form->render(); 
+		return $form;
 	}
 
 	/**
@@ -154,71 +155,172 @@ class ProcessField extends Process implements ConfigurableModule {
 	 */
 	public function ___execute() {
 
-		$out = $this->renderListFilters();
-                $table = $this->modules->get("MarkupAdminDataTable");
-                $table->headerRow(array(
-			$this->_x('Name', 'list thead'), 
-			$this->_x('Label', 'list thead'), 
-			$this->_x('Type', 'list thead'), 
-			$this->_x('Notes', 'list thead'),
-			$this->_x('Templates', 'list thead quantity')
-			));
-		$numRows = 0;
+		$out = $this->getListFilterForm()->render() . "\n<div id='ProcessFieldList'>\n";
+		$fieldsByTag = array();
+		$untaggedLabel = $this->_('Untagged');
+		$hasFilters = $this->session->ProcessFieldListTemplatesID || $this->session->ProcessFieldListFieldtype;
+		$collapsedTags = array();
+		$caseTags = array(); // indexed by lowercase version of tag
 
-                foreach($this->fields as $field) {
 
-			$numTemplates = 0; 
-			$notes = array();
-			$builtIn = false;
-
-			$templatesID = $this->session->ProcessFieldListTemplatesID; 
-			if($templatesID && $template = $this->templates->get($templatesID)) {
-				if(!$template->fieldgroup->has($field)) continue; 
+		if(!$hasFilters) foreach($this->fields as $field) {
+			if($this->session->ProcessFieldListShowSystem) {
+				if($field->flags & Field::flagSystem || $field->flags & Field::flagPermanent) 
+					$field->tags .= " " . $this->_x('Built-In', 'tag'); // Tag applied to the group of built-in/system fields
 			}
-			if($fieldtype = $this->session->ProcessFieldListFieldtype) {
-				if($field->type != $fieldtype) continue; 
+			if(empty($field->tags)) {
+				$tag = strtolower($untaggedLabel);
+				if(!isset($fieldsByTag[$tag])) $fieldsByTag[$tag] = array();
+				$fieldsByTag[$tag][$field->name] = $field;
+				$caseTags[$tag] = $untaggedLabel;
+				continue; 
 			}
-
-			if($field->flags & Field::flagAutojoin) $notes[] = $this->_x('autojoin', 'list notes');
-			if($field->flags & Field::flagGlobal) $notes[] = $this->_x('global', 'list notes');
-
-			if($field->flags & Field::flagSystem) {
-				$notes[] = $this->_x('system', 'list notes');
-				$builtIn = true;
+			$tags = explode(' ', trim($field->tags));
+			foreach($tags as $tag) {
+				if(empty($tag)) continue; 
+				$caseTag = ltrim($tag, '-');
+				$tag = strtolower($tag);
+				if(substr($tag, 0, 1) == '-') {
+					$tag = ltrim($tag, '-');
+					$collapsedTags[] = $tag;
+				}
+				if(!isset($fieldsByTag[$tag])) $fieldsByTag[$tag] = array();
+				$fieldsByTag[$tag][$field->name] = $field;	
+				if(!isset($caseTags[$tag])) $caseTags[$tag] = $caseTag; 
 			}
-
-			if($field->flags & Field::flagPermanent) {
-				$notes[] = $this->_x('permanent', 'list notes');
-				$builtIn = true;
-			}
-
-			if($builtIn && !$templatesID && $field->name != 'title') {
-				if(!$this->session->ProcessFieldListShowSystem) continue; 
-			}
-
-			foreach($field->getFieldgroups() as $fieldgroup) {
-				$numTemplates += $fieldgroup->numTemplates();
-			}
-
-			$table->row(array(
-				$field->name => "edit?id={$field->id}",
-				$field->label, 
-				$field->type->shortName,
-				implode(', ', $notes),
-				$numTemplates
-				));
-			$numRows++;
 		}
 
-		$addNewLabel = $this->_x('Add New Field', 'list button'); 
-                $table->action(array($addNewLabel => './add'));
+		$tagCnt = count($fieldsByTag);
+		if($tagCnt > 1) {
+			$form = new InputfieldWrapper();
+			ksort($fieldsByTag);
+			foreach($fieldsByTag as $tag => $fields) {
+				ksort($fields);
+				$f = $this->modules->get('InputfieldMarkup');
+				$f->entityEncodeLabel = false;
+				$f->label = "<span class='labelIcon ui-icon ui-icon-tag'></span>" . $caseTags[$tag];
+				$f->value = $this->getListTable($fields)->render();
+				if(in_array($tag, $collapsedTags)) $f->collapsed = Inputfield::collapsedYes; 
+				$form->add($f);
+			}
+			$out .= $form->render();
+		} else {
+			$out .= $this->getListTable($this->fields)->render();
+		}
 
-		if($numRows) $out .= $table->render();
-			else $this->error($this->_("No fields matched your filter")); 
+		$out .= "\n</div><!--/#ProcessFieldList-->";
 
+		$button = $this->modules->get('InputfieldButton');
+		$button->href = "./add"; 
+		$button->value = $this->_x('Add New Field', 'list button'); 
+		$out .= $button->render();
+
+		if($this->input->nosave) {
+			$this->session->remove('ProcessFieldListTemplatesID');
+			$this->session->remove('ProcessFieldListFieldtype');
+			$this->session->remove('ProcessFieldListShowSystem');
+		}
 
                 return $out;
 	}	
+
+	protected function ___getListTable($fields) {
+
+                $table = $this->modules->get("MarkupAdminDataTable");
+
+		$headerRow = array(
+			$this->_x('Name', 'list thead'), 
+			$this->_x('Label', 'list thead'), 
+			$this->_x('Type', 'list thead'), 
+			$this->_x('Templates', 'list thead quantity')
+			);
+
+                $table->headerRow($headerRow);
+		$table->setEncodeEntities(false);
+		$numRows = 0;
+
+                foreach($fields as $field) {
+			$row = $this->getListTableRow($field);
+			if(!empty($row)) {
+				$table->row($row); 
+				$numRows++;
+			}
+		}
+
+		if(!$numRows) $table->row(array($this->_("No fields matched your filter"))); 
+
+		return $table;
+	}
+
+	protected function ___getListTableRow(Field $field) {
+
+		$flagDefs = array(
+			'Autojoin' => array(
+				'icon' => 'ui-icon-link',
+				'label' => $this->_x('autojoin', 'list notes')
+				),
+			'Global' => array(
+				'icon' => 'ui-icon-circle-check',
+				'label' => $this->_x('global', 'list notes')
+				),
+			'System' => array(
+				'icon' => 'ui-icon-gear',
+				'label' => $this->_x('system', 'list notes')
+				),
+			'Permanent' => array(
+				'icon' => 'ui-icon-locked',
+				'label' => $this->_x('permanent', 'list notes')
+				)
+			);
+	
+		$numTemplates = 0; 
+		$flags = array();
+		$builtIn = false;
+		
+		$templatesID = $this->session->ProcessFieldListTemplatesID; 
+		if($templatesID && $template = $this->templates->get($templatesID)) {
+			if(!$template->fieldgroup->has($field)) return array();
+		}
+		if($fieldtype = $this->session->ProcessFieldListFieldtype) {
+			if($field->type != $fieldtype) return array();
+		}
+
+		if($field->flags & Field::flagAutojoin) $flags[] = 'Autojoin';
+		if($field->flags & Field::flagGlobal) $flags[] = 'Global';
+
+		if($field->flags & Field::flagSystem) {
+			$flags[] = 'System';
+			$builtIn = true;
+		}
+
+		if($field->flags & Field::flagPermanent) {
+			$flags[] = 'Permanent';
+			$builtIn = true;
+		}
+
+		if($builtIn && !$templatesID && $field->name != 'title') {
+			if(!$this->session->ProcessFieldListShowSystem) return array();
+		}
+
+		foreach($field->getFieldgroups() as $fieldgroup) {
+			$numTemplates += $fieldgroup->numTemplates();
+		}
+		$numTemplatesLink = "../template/?filter_field={$field->name}&nosave=1";
+
+		$flagsOut = '';
+		foreach($flags as $flagName) {
+			$flag = $flagDefs[$flagName];
+			$flagsOut .= "<a href='#' class='fieldFlag fieldFlag$flagName tooltip ui-priority-secondary' title='$flag[label]'><span class='ui-icon $flag[icon]'></span></a>";
+		}
+
+
+		return array(
+			$field->name => "edit?id={$field->id}",
+			$this->sanitizer->entities($field->label), 
+			$field->type->shortName,
+			"$flagsOut<a href='$numTemplatesLink'>$numTemplates</a>"
+			);
+	}
 
 	/**
 	 * Add a new field
@@ -520,7 +622,7 @@ class ProcessField extends Process implements ConfigurableModule {
 				$field->set("value{$language->id}", $this->field->get("$name{$language->id}")); 
 			}
 		}
-		
+
 		return $form;
 	}
 
@@ -587,6 +689,18 @@ class ProcessField extends Process implements ConfigurableModule {
 		$form->attr('class', 'WireTab');
 		$form->head = $this->_('Advanced options'); // Section header for 'Advanced'
 		$form->attr('title', $this->_x('Advanced', 'tab')); 
+
+		$field = $this->modules->get("InputfieldText"); 
+		$field->attr('name', 'tags'); 
+		$field->attr('value', $this->field->tags); 
+		$field->label = $this->_('Tags');
+		$field->description = $this->_('If you want to visually group this field with others in the fields list, enter a one-word tag. Enter the same tag on other fields you want to group with. To specify multiple tags, separate each with a space. Use of tags may be worthwhile if your site has a large number of fields.'); // Description for field tags
+		$field->notes = 
+			$this->_('Each tag must be one word (hyphenation is okay).') . " " . 
+			$this->_('To make a tag collapsed in the fields list, prepend a hyphen to it, like this: -hello');
+		$form->prepend($field); 
+
+		
 	
 		return $form;
 	}
