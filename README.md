@@ -1,7 +1,6 @@
 # ProcessWire 2.3
 
 ## About ProcessWire
----------------------------------------------------------------------
 
 ProcessWire is an open source content management system (CMS) and web 
 application framework aimed at the needs of designers, developers and their 
@@ -13,13 +12,13 @@ ProcessWire is shockingly simple compared to what you may be used to.
 
 * [Learn more about ProcessWire](http://processwire.com)
 * [Download the latest ProcessWire](http://processwire.com/download/)
-* [Follow @ProcessWire on Twitter](http://twitter.com/processwire/)
 * [Get support for ProcessWire](http://processwire.com/talk/)
 * [Browse and install ProcessWire modules/plugins](http://modules.processwire.com)
+* [Follow @ProcessWire on Twitter](http://twitter.com/processwire/)
+* [Contact ProcessWire](http://processwire.com/contact/)
 
 
 ## Installation
----------------------------------------------------------------------
 
 ### Requirements
 
@@ -70,7 +69,6 @@ error, please post in the [ProcessWire forums](http://processwire.com/talk).
 
 
 ## Upgrades
----------------------------------------------------------------------
 
 ### Best Practices Before Upgrading
 
@@ -92,21 +90,42 @@ the general upgrade process.
 Upgrading from one version of ProcessWire to another is a matter of
 replacing these files from your old version with those from the new:
 
-* /wire/ 	< entire directory (see important note below)
-* /index.php	< if changed
-* /.htaccess 	< if changed (rename htaccess.txt in the source)
+```
+/wire/
+/index.php
+/.htaccess 
+```
 
-Because index.php and .htaccess aren't updated very often, you may only
-have to replace your /wire/ directory. Note that the /wire/ directory 
-does not contain any files specific to your site, only to ProcessWire. 
-All the files specific to your site are stored in /site/ and you would
-leave that directory alone during an upgrade. 
+Replacing the above directory/files is typically the only thing you
+need to do in order to upgrade. But please see below for more specific
+details about each of these: 
 
-**Important Note:**  
+#### Replacing the /wire/ directory
+
 When you replace the /wire/ directory, make sure that you remove or 
 rename the old one first. If you just copy or FTP changed files into
 the existing /wire/ directory, you will end up with both old and new
 files, which will cause an error. 
+
+Note that the /wire/ directory does not contain any files specific to 
+your site, only to ProcessWire. All the files specific to your site 
+are stored in /site/ and you would leave that directory alone during 
+an upgrade. 
+
+#### Replacing the /index.php file
+
+This file doesn't change often between minor versions. As a result,
+you don't need to replace this file unless it has changed. 
+
+#### Replacing the .htaccess file
+
+This file is initially named htaccess.txt in the ProcessWire source.
+You will want to remove your existing .htaccess file and rename the
+new htaccess.txt to .htaccess
+
+Sometimes people have made changes to the .htaccess file. If this is
+the case for your site, remember to migrate those changes to the new
+.htaccess file. 
 
 
 ### Upgrading from ProcessWire 2.2
@@ -118,8 +137,8 @@ files, which will cause an error.
    request you try, but that should only happen once, so just reload 
    the page. 
 
-**To clear your modules cache:**  
-Remove all of these files: /site/assets/cache/Modules.*
+**To clear your modules cache:** Remove all of these files:
+/site/assets/cache/Modules.*
 
 
 ### Upgrading from ProcessWire 2.1
