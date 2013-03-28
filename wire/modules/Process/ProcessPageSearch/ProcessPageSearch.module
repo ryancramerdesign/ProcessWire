@@ -22,7 +22,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	static public function getModuleInfo() {
 		return array(
 			'title' => 'Page Search',
-			'summary' => 'Provices a page search engine for admin use.',
+			'summary' => 'Provides a page search engine for admin use.',
 			'version' => 101,
 			'permanent' => true,
 			'permission' => 'page-edit',
