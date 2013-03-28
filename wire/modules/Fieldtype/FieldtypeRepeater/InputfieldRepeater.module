@@ -147,8 +147,10 @@ class InputfieldRepeater extends Inputfield {
 			$sort->label = $this->_('Sort');
 			$sort->attr('value', $cnt);
 
-			$wrap = wire('modules')->get('InputfieldFieldset'); 
-			$wrap->label = "$label #" . (++$cnt); 
+			$wrap = wire('modules')->get('InputfieldFieldset');			
+			$wrapTitle = $page->get("title|headline");
+			$wrapTitleGeneric = "$label #" . (++$cnt);			
+			$wrap->label = $wrapTitle ? "$wrapTitle ($wrapTitleGeneric)" : $wrapTitleGeneric;  
 
 			// add a hidden field that will be populated with a positive value for all visible repeater items
 			// this is so that processInput can see this item should be a published item
