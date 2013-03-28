@@ -1101,6 +1101,7 @@ class Pages extends Wire {
 	 *
 	 */
 	public function __get($key) {
+		if($key == 'outputFormatting') return $this->outputFormatting; 
 		return parent::__get($key); 
 	}
 

@@ -538,6 +538,18 @@ class ImageSizer extends Wire {
 			);
 	}
 
+	public function getFilename() {
+		return $this->filename; 
+	}
+
+	public function getExtension() {
+		return $this->extension; 
+	}
+
+	public function getImageType() {
+		return $this->imageType; 
+	}
+
 	/**
 	 * Given an unknown cropping value, return the validated internal representation of it
 	 *

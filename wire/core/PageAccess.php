@@ -21,10 +21,10 @@ class PageAccess {
 	 * @return Page|NullPage Returns NullPage if none found
 	 *
 	 */
-	public static function getAccessParent(Page $page) {
+	public function getAccessParent(Page $page) {
 		if($page->template->useRoles || $page->id === 1) return $page;
 		$parent = $page->parent();	
-		if($parent->id) return self::getAccessParent($parent); 
+		if($parent->id) return $this->getAccessParent($parent); 
 		return new NullPage();
 	}
 
@@ -34,8 +34,8 @@ class PageAccess {
 	 * @return Template|null Returns null if none	
 	 *
 	 */
-	public static function getAccessTemplate(Page $page) {
-		$parent = self::getAccessParent($page);
+	public function getAccessTemplate(Page $page) {
+		$parent = $this->getAccessParent($page);
 		if(!$parent->id) return null;
 		return $parent->template; 
 	}
@@ -49,8 +49,8 @@ class PageAccess {
 	 * @return PageArray
 	 *
 	 */
-	public static function getAccessRoles(Page $page) {
-		$template = self::getAccessTemplate($page);
+	public function getAccessRoles(Page $page) {
+		$template = $this->getAccessTemplate($page);
 		if($template) return $template->roles; 
 		return new PageArray();
 	}
@@ -64,8 +64,8 @@ class PageAccess {
 	 * @return bool
 	 *
 	 */
-	public static function hasAccessRole(Page $page, $role) {
-		$roles = self::getAccessRoles($page);
+	public function hasAccessRole(Page $page, $role) {
+		$roles = $this->getAccessRoles($page);
 		if(is_string($role)) return $roles->has("name=$role"); 
 		if($role instanceof Role) return $roles->has($role); 
 		if(is_int($role)) return $roles->has("id=$role"); 

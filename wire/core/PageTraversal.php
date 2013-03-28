@@ -17,13 +17,42 @@
 class PageTraversal {
 
 	/**
+	 * Return number of children, optionally with conditions
+	 *
+	 * Use this over $page->numChildren property when you want to specify a selector or when you want the result to
+	 * include only visible children. See the options for the $selector argument. 
+	 *
+	 * @param bool|string $selector 
+	 *	When not specified, result includes all children without conditions, same as $page->numChildren property.
+	 *	When a string, a selector string is assumed and quantity will be counted based on selector.
+	 * 	When boolean true, number includes only visible children (excludes unpublished, hidden, no-access, etc.)
+	 *	When boolean false, number includes all children without conditions, including unpublished, hidden, no-access, etc.
+	 * @return int Number of children
+	 *
+	 */
+	public function numChildren(Page $page, $selector = null) {
+		if(is_bool($selector)) {
+			// onlyVisible takes the place of selector
+			$onlyVisible = $selector; 
+			if(!$onlyVisible) return $page->get('numChildren');
+			return $page->children('limit=2')->getTotal();
+
+		} else if(empty($selector) || !is_string($selector)) {
+			return $page->get('numChildren'); 
+
+		} else {
+			return wire('pages')->count("parent_id=$page->id, $selector"); 
+		}
+	}
+
+	/**
 	 * Return this page's children pages, optionally filtered by a selector
 	 *
 	 * @param string $selector Selector to use, or blank to return all children
 	 * @return PageArray
 	 *
 	 */
-	public static function children(page $page, $selector = '', $options = array()) {
+	public function children(Page $page, $selector = '', $options = array()) {
 		if(!$page->numChildren) return new PageArray();
 		if($selector) $selector .= ", ";
 		$selector = "parent_id={$page->id}, $selector"; 
@@ -44,11 +73,11 @@ class PageTraversal {
 	 * @return Page|NullPage
 	 *
 	 */
-	public static function child(Page $page, $selector = '', $options = array()) {
+	public function child(Page $page, $selector = '', $options = array()) {
 		if(!$page->numChildren) return new NullPage();
 		$selector .= ($selector ? ', ' : '') . "limit=1";
 		if(strpos($selector, 'start=') === false) $selector .= ", start=0"; // prevent pagination
-		$children = self::children($page, $selector, $options); 
+		$children = $this->children($page, $selector, $options); 
 		return count($children) ? $children->first() : new NullPage();
 	}
 
@@ -59,7 +88,7 @@ class PageTraversal {
 	 * @return PageArray
 	 *
 	 */
-	static public function parents(Page $page, $selector = '') {
+	public function parents(Page $page, $selector = '') {
 		$parents = new PageArray();
 		$parent = $page->parent();
 		while($parent && $parent->id) {
@@ -77,9 +106,9 @@ class PageTraversal {
 	 * @return PageArray
 	 *
 	 */
-	static public function parentsUntil(Page $page, $selector = '', $filter = '') {
+	public function parentsUntil(Page $page, $selector = '', $filter = '') {
 
-		$parents = self::parents($page); 
+		$parents = $this->parents($page); 
 		$matches = new PageArray();
 		$stop = false;
 
@@ -113,10 +142,10 @@ class PageTraversal {
 	 * @return Page 
 	 *
 	 */
-	static public function rootParent(Page $page) {
+	public function rootParent(Page $page) {
 		$parent = $page->parent;
 		if(!$parent || !$parent->id || $parent->id === 1) return $page; 
-		$parents = self::parents($page);
+		$parents = $this->parents($page);
 		$parents->shift(); // shift off homepage
 		return $parents->first();
 	}
@@ -130,7 +159,7 @@ class PageTraversal {
 	 * @return PageArray
 	 *
 	 */
-	static public function siblings(Page $page, $selector = '') {
+	public function siblings(Page $page, $selector = '') {
 		if($selector) $selector .= ", ";
 		$selector = "parent_id={$page->parent_id}, $selector";
 		if(strpos($selector, 'sort=') === false) {
@@ -157,7 +186,7 @@ class PageTraversal {
 	 * @return Page|NullPage Returns the next sibling page, or a NullPage if none found. 
 	 *
 	 */
-	static public function next(Page $page, $selector = '', PageArray $siblings = null) {
+	public function next(Page $page, $selector = '', PageArray $siblings = null) {
 		if(is_object($selector) && $selector instanceof PageArray) {
 			// backwards compatible to when $siblings was first argument
 			$siblings = $selector;
@@ -192,7 +221,7 @@ class PageTraversal {
 	 * @return Page|NullPage Returns the previous sibling page, or a NullPage if none found. 
 	 *
 	 */
-	static public function prev(Page $page, $selector = '', PageArray $siblings = null) {
+	public function prev(Page $page, $selector = '', PageArray $siblings = null) {
 		if(is_object($selector) && $selector instanceof PageArray) {
 			// backwards compatible to when $siblings was first argument
 			$siblings = $selector;
@@ -218,7 +247,7 @@ class PageTraversal {
 	 * @return Page|NullPage Returns all matching pages after this one.
 	 *
 	 */
-	static public function nextAll(Page $page, $selector = '', PageArray $siblings = null) {
+	public function nextAll(Page $page, $selector = '', PageArray $siblings = null) {
 
 		if(is_null($siblings)) $siblings = $page->parent()->children();
 			else if(!$siblings->has($page)) $siblings->prepend($page);
@@ -247,7 +276,7 @@ class PageTraversal {
 	 * @return Page|NullPage Returns all matching pages before this one.
 	 *
 	 */
-	static public function prevAll(Page $page, $selector = '', PageArray $siblings = null) {
+	public function prevAll(Page $page, $selector = '', PageArray $siblings = null) {
 
 		if(is_null($siblings)) $siblings = $page->parent()->children();
 			else if(!$siblings->has($page)) $siblings->add($page);
@@ -273,12 +302,12 @@ class PageTraversal {
 	 * @return PageArray
 	 *
 	 */
-	static public function nextUntil(Page $page, $selector = '', $filter = '', PageArray $siblings = null) {
+	public function nextUntil(Page $page, $selector = '', $filter = '', PageArray $siblings = null) {
 
 		if(is_null($siblings)) $siblings = $page->parent()->children();
 			else if(!$siblings->has($page)) $siblings->prepend($page);
 
-		$siblings = self::nextAll($page, '', $siblings); 
+		$siblings = $this->nextAll($page, '', $siblings); 
 
 		$id = $page->id;
 		$all = new PageArray();
@@ -314,12 +343,12 @@ class PageTraversal {
 	 * @return PageArray
 	 *
 	 */
-	static public function prevUntil(Page $page, $selector = '', $filter = '', PageArray $siblings = null) {
+	public function prevUntil(Page $page, $selector = '', $filter = '', PageArray $siblings = null) {
 
 		if(is_null($siblings)) $siblings = $page->parent()->children();
 			else if(!$siblings->has($page)) $siblings->add($page);
 
-		$siblings = self::prevAll($page, '', $siblings); 
+		$siblings = $this->prevAll($page, '', $siblings); 
 
 		$id = $page->id;
 		$all = new PageArray();

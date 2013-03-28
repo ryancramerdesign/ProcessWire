@@ -24,7 +24,7 @@ class PageComparison {
 	 * @return bool
 	 *
 	 */
-	public static function is(Page $page, $status) {
+	public function is(Page $page, $status) {
 
 		if(is_int($status)) {
 			return ((bool) ($page->status & $status)); 
@@ -48,7 +48,7 @@ class PageComparison {
 	 * @return bool
 	 *
 	 */
-	public static function matches(Page $page, $s) {
+	public function matches(Page $page, $s) {
 
 		if(is_string($s)) {
 			if(substr($s, 0, 1) == '/' && $page->path() == (rtrim($s, '/') . '/')) return true; 

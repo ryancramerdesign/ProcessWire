@@ -29,7 +29,8 @@
  * @property Page $rootParent The parent page closest to the homepage (typically used for identifying a section)
  * @property Template $template The Template object this page is using
  * @property FieldsArray $fields All the Fields assigned to this page (via it's template, same as $page->template->fields). Returns a FieldsArray.
- * @property int $numChildren The number of children (subpages) this page has, much faster than count($page->children). 
+ * @property int $numChildren The number of children (subpages) this page has, with no exclusions (fast).
+ * @property int $numVisibleChildren The number of visible children (subpages) this page has. Excludes unpublished, no-access, hidden, etc.
  * @property PageArray $children All the children (subpages) of this page. Returns a PageArray. See also $page->children($selector).
  * @property Page $child The first child of this page. Returns a Page. See also $page->child($selector).
  * @property PageArray $siblings All the sibling pages of this page. Returns a PageArray. See also $page->siblings($selector).
@@ -548,6 +549,11 @@ class Page extends WireData {
 			case 'accessTemplate': 
 				$value = $this->getAccessTemplate();
 				break;
+			case 'num_children': 
+			case 'numChildren': 
+				$value = $this->settings['numChildren'];
+				break;
+			case 'numChildrenVisible':
 			case 'numVisibleChildren':
 				$value = $this->numChildren(true);
 				break;
@@ -794,18 +800,26 @@ class Page extends WireData {
 	 *
 	 */
 	public function children($selector = '', $options = array()) {
-		return PageTraversal::children($this, $selector, $options); 
+		return $this->traversal()->children($this, $selector, $options); 
 	}
 
 	/**
-	 * Return number of children, optionally limiting to visible pages. 
+	 * Return number of children, optionally with conditions
 	 *
-	 * @param bool $onlyVisible When true, number includes only visible children (excludes unpublished, hidden, no-access, etc.)
+	 * Use this over $page->numChildren property when you want to specify a selector, or when you want the result to
+	 * include only visible children. See the options for the $selector argument. 
+	 *
+	 * @param bool|string $selector 
+	 *	When not specified, result includes all children without conditions, same as $page->numChildren property.
+	 *	When a string, a selector string is assumed and quantity will be counted based on selector.
+	 * 	When boolean true, number includes only visible children (excludes unpublished, hidden, no-access, etc.)
+	 *	When boolean false, number includes all children without conditions, including unpublished, hidden, no-access, etc.
+	 * @return int Number of children
 	 *
 	 */
-	public function numChildren($onlyVisible = false) {
-		if(!$onlyViewable) return $this->settings['numChildren'];
-		return $this->children('limit=2')->getTotal();
+	public function numChildren($selector = null) {
+		if(!$this->settings['numChildren'] || is_null($selector)) return $this->settings['numChildren']; 
+		return $this->traversal()->numChildren($this, $selector); 
 	}
 
 	/**
@@ -818,7 +832,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function child($selector = '', $options = array()) {
-		return PageTraversal::child($this, $selector, $options); 
+		return $this->traversal()->child($this, $selector, $options); 
 	}
 
 	/**
@@ -844,7 +858,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function parents($selector = '') {
-		return PageTraversal::parents($this, $selector); 
+		return $this->traversal()->parents($this, $selector); 
 	}
 
 	/**
@@ -856,7 +870,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function parentsUntil($selector = '', $filter = '') {
-		return PageTraversal::parentsUntil($this, $selector, $filter); 
+		return $this->traversal()->parentsUntil($this, $selector, $filter); 
 	}
 
 	/**
@@ -882,7 +896,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function ___rootParent() {
-		return PageTraversal::rootParent($this); 
+		return $this->traversal()->rootParent($this); 
 	}
 
 	/**
@@ -895,7 +909,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function siblings($selector = '') {
-		return PageTraversal::siblings($this, $selector); 
+		return $this->traversal()->siblings($this, $selector); 
 	}
 
 	/**
@@ -916,7 +930,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function next($selector = '', PageArray $siblings = null) {
-		return PageTraversal::next($this, $selector, $siblings); 
+		return $this->traversal()->next($this, $selector, $siblings); 
 	}
 
 	/**
@@ -928,7 +942,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function nextAll($selector = '', PageArray $siblings = null) {
-		return PageTraversal::nextAll($this, $selector, $siblings); 
+		return $this->traversal()->nextAll($this, $selector, $siblings); 
 	}
 
 	/**
@@ -941,7 +955,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function nextUntil($selector = '', $filter = '', PageArray $siblings = null) {
-		return PageTraversal::nextUntil($this, $selector, $filter, $siblings); 
+		return $this->traversal()->nextUntil($this, $selector, $filter, $siblings); 
 	}
 
 	/**
@@ -962,7 +976,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function prev($selector = '', PageArray $siblings = null) {
-		return PageTraversal::prev($this, $selector, $siblings); 
+		return $this->traversal()->prev($this, $selector, $siblings); 
 	}
 
 	/**
@@ -974,7 +988,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function prevAll($selector = '', PageArray $siblings = null) {
-		return PageTraversal::prevAll($this, $selector, $siblings); 
+		return $this->traversal()->prevAll($this, $selector, $siblings); 
 	}
 
 	/**
@@ -987,7 +1001,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function prevUntil($selector = '', $filter = '', PageArray $siblings = null) {
-		return PageTraversal::prevUntil($this, $selector, $filter, $siblings); 
+		return $this->traversal()->prevUntil($this, $selector, $filter, $siblings); 
 	}
 
 
@@ -1175,7 +1189,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function is($status) {
-		return PageComparison::is($this, $status);
+		return $this->comparison()->is($this, $status);
 	}
 
 	/**
@@ -1186,7 +1200,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function matches($s) {
-		return PageComparison::matches($this, $s); 
+		return $this->comparison()->matches($this, $s); 
 	}
 
 	/**
@@ -1437,7 +1451,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function getAccessParent() {
-		return PageAccess::getAccessParent($this);
+		return $this->access()->getAccessParent($this);
 	}
 
 	/**
@@ -1447,7 +1461,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function getAccessTemplate() {
-		return PageAccess::getAccessTemplate($this);
+		return $this->access()->getAccessTemplate($this);
 	}
 	
 	/**
@@ -1460,7 +1474,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function getAccessRoles() {
-		return PageAccess::getAccessRoles($this);
+		return $this->access()->getAccessRoles($this);
 	}
 
 	/**
@@ -1473,7 +1487,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function hasAccessRole($role) {
-		return PageAccess::hasAccessRole($this, $role); 
+		return $this->access()->hasAccessRole($this, $role); 
 	}
 
 	/**
@@ -1491,6 +1505,36 @@ class Page extends WireData {
 			return true; 
 		} 
 		return false;
+	}
+
+	/**
+	 * @return PageComparison
+	 *
+	 */
+	protected function comparison() {
+		static $comparison = null;
+		if(is_null($comparison)) $comparison = new PageComparison();
+		return $comparison;
+	}
+
+	/**
+	 * @return PageAccess
+	 *
+	 */
+	protected function access() {
+		static $access = null;
+		if(is_null($access)) $access = new PageAccess();
+		return $access;
+	}
+
+	/**
+	 * @return PageTraversal
+	 *
+	 */
+	protected function traversal() {
+		static $traversal = null;
+		if(is_null($traversal)) $traversal = new PageTraversal();
+		return $traversal;
 	}
 
 }
