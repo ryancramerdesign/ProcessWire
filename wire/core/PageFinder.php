@@ -648,7 +648,11 @@ class PageFinder extends Wire {
 				$alias = "parent$n";
 				//$query->join("pages AS $alias ON ($lastAlias.parent_id=$alias.id AND $alias.name='$part')");
 				$sql = "pages AS $alias ON ($lastAlias.parent_id=$alias.id AND ($alias.name='$part'";
-				if($langNames) foreach($langNames as $name) $sql .= " OR $alias.$name='$part'";
+				if($langNames) foreach($langNames as $id => $name) {
+					// $status = "status" . (int) $id;
+					// $sql .= " OR ($alias.$name='$part' AND $alias.$status>0) ";
+					$sql .= " OR $alias.$name='$part'";
+				}
 				$sql .= '))';
 				$query->join($sql); 
 
