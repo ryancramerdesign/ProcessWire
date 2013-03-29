@@ -638,7 +638,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 *
 	 */
 	public static function getModuleConfigInputfields(array $data) {
-		$module = wire('modules')->get($this->className()); 
+		$module = wire('modules')->get('LanguageSupportPageNames'); 
 		$module->checkModuleVersion(true); 
 		return new InputfieldWrapper();
 	}
