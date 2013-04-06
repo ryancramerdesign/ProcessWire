@@ -345,6 +345,11 @@ class Fields extends WireSaveableItems {
 			throw new WireException("Cannot convert between single and multiple value field types"); 
 		}
 
+		$fromType = $field1->prevFieldtype;
+		$toType = $field1->type;
+
+		$this->changeTypeReady($field1, $fromType, $toType);
+
 		$field2 = clone $field1; 
 		$flags = $field2->flags; 
 		if($flags & Field::flagSystem) {
@@ -407,6 +412,8 @@ class Fields extends WireSaveableItems {
 			$field1->remove($key); 
 		}
 
+		$this->changedType($field1); 
+
 		return true; 	
 	}
 
@@ -430,6 +437,9 @@ class Fields extends WireSaveableItems {
 		if(isset($value['columnWidth']) && (empty($value['columnWidth']) || $value['columnWidth'] == 100)) unset($value['columnWidth']); 
 		return wireEncodeJSON($value, 0); 	
 	}
+
+	public function ___changedType(Saveable $item, Fieldtype $fromType, Fieldtype $toType) { }
+	public function ___changeTypeReady(Saveable $item, Fieldtype $fromType, Fieldtype $toType) { }
 
 }
 

@@ -180,6 +180,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 		$table = $db->escapeTable($this->getTable());
 		$sql = "`$table` SET ";
 		$id = (int) $item->id;
+		$this->saveReady($item); 
 		$data = $item->getTableData();
 
 		foreach($data as $key => $value) {
@@ -203,10 +204,15 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 			if($result) {
 				$item->id = $db->insert_id; 
 				$this->getAll()->add($item); 
+				$this->added($item);
 			}
+			
 		}
 
-		if($result) $this->resetTrackChanges();
+		if($result) {
+			$this->saved($item);
+			$this->resetTrackChanges();
+		}
 		return $result;
 	}
 
@@ -224,10 +230,14 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 		$id = (int) $item->id; 
 		$db = $this->getFuel('db'); 
 		if(!$id) return false; 
+		$this->deleteReady($item);
 		$this->getAll()->remove($item); 
 		$table = $db->escapeTable($this->getTable());
 		$result = $db->query("DELETE FROM `$table` WHERE id=$id LIMIT 1"); // QA
-		if($result) $item->id = 0; 
+		if($result) {
+			$this->deleted($item);
+			$item->id = 0; 
+		}
 		
 		return $result;	
 	}
@@ -324,5 +334,11 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	public function useFuel($useFuel = null) {
 		return false;
 	}
+
+	public function ___saveReady(Saveable $item) { }
+	public function ___deleteReady(Saveable $item) { }
+	public function ___saved(Saveable $item) { }
+	public function ___added(Saveable $item) { }
+	public function ___deleted(Saveable $item) { }
 	
 }
