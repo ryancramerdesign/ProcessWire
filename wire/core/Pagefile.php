@@ -146,6 +146,7 @@ class Pagefile extends WireData {
 
 		switch($key) {
 			case 'url':
+			case 'httpUrl': 
 			case 'filename':
 			case 'description':
 			case 'tags':
@@ -201,6 +202,16 @@ class Pagefile extends WireData {
 	 */
 	public function url() {
 		return $this->pagefiles->url . $this->basename; 	
+	}
+
+	/**
+	 * Return the web accessible URL (with schema and hostname) to this Pagefile
+	 *
+	 */
+	public function httpUrl() {
+		$page = $this->pagefiles->getPage();
+		$url = substr($page->httpUrl(), 0, -1 * strlen($page->url())); 
+		return $url . $this->url(); 
 	}
 
 	/**
