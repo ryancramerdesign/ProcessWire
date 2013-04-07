@@ -73,9 +73,13 @@ class TemplateFile extends WireData {
 	 *
 	 */
 	public function setPrependFilename($filename) {
-		if(is_file($filename)) $this->prependFilename = $filename; 
-			else return false;
-		return true; 
+		if($filename && is_file($filename)) {
+			$this->prependFilename = $filename; 
+			return true; 
+		} else {
+			$this->prependFilename = '';
+			return false;
+		}
 	}
 
 	/**
@@ -83,9 +87,13 @@ class TemplateFile extends WireData {
 	 *
 	 */
 	public function setAppendFilename($filename) {
-		if(is_file($filename)) $this->appendFilename = $filename; 
-			else return false;
-		return true; 
+		if($filename && is_file($filename)) {
+			$this->appendFilename = $filename; 
+			return true; 
+		} else {
+			$this->appendFilename = '';
+			return false;
+		}
 	}
 
 	/**

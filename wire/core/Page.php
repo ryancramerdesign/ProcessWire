@@ -519,7 +519,7 @@ class Page extends WireData {
 				break;
 			case 'out':
 			case 'output':
-				$value = $this->getTemplateFile();
+				$value = $this->output();
 				break;
 			case 'filesManager':
 				$value = $this->filesManager();
@@ -1155,11 +1155,13 @@ class Page extends WireData {
 	 *
 	 * You can retrieve the results of this by calling $page->out or $page->output
 	 *
+	 * @internal This method is intended for internal use only, not part of the public API. 
+	 * @param $forceNew Forces it to return a new (non-cached) TemplateFile object (default=false)
 	 * @return TemplateFile
 	 *
 	 */
-	protected function getTemplateFile() {
-		if($this->output) return $this->output; 
+	public function output($forceNew = false) {
+		if($this->output && !$forceNew) return $this->output; 
 		if(!$this->template) return null;
 		$this->output = new TemplateFile($this->template->filename); 
 		$fuel = self::getAllFuel();
@@ -1168,7 +1170,6 @@ class Page extends WireData {
 		$this->output->set('page', $this); 
 		return $this->output; 
 	}
-
 
 	/**
 	 * Return a Inputfield object that contains all the custom Inputfield objects required to edit this page
