@@ -129,16 +129,17 @@ class PageArray extends WireArray {
 	}
 
 	/**
-	 * Does this PageArray contain the given index or Page? 
+	 * Does this PageArray contain the given index or Page?
 	 *
-	 * @param Page|id $page Array index or Page object. 
-	 * @return bool True if the index or Page exists here, false if not. 
-	 */  
+	 * @param int|string $key Array index or Page object.
+	 *
+	 * @return bool True if the index or Page exists here, false if not.
+	 */
 	public function has($key) {
 
 		if(is_int($key) || is_string($key)) return parent::has($key); 
 
-		$has = false; 
+		$has = false;
 
 		if(is_object($key) && $key instanceof Page) {
 			foreach($this as $k => $pg) {
@@ -183,7 +184,8 @@ class PageArray extends WireArray {
 	 * Sets an index in the PageArray.
 	 *
 	 * @param int $key Key of item to set.
-	 * @param Page $value Value of item. 
+	 * @param Page $value Value of item.
+	 * @return \PageArray|void
 	 */
 	public function set($key, $value) {
 		$has = $this->has($key); 
@@ -297,8 +299,8 @@ class PageArray extends WireArray {
 	 *
 	 * @param int $numStart; 
 	 *
+	 * @return $this
 	 */
-
 	public function setStart($numStart) {
 		$this->numStart = (int) $numStart; 
 		return $this;

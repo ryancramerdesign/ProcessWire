@@ -97,10 +97,9 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	/**
 	 * Get the DatabaseQuerySelect to perform the load operation of items
 	 *
-	 * @param WireArray $items
-	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all. 
-	 * @return DatabaseQuerySelect
+	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all.
 	 *
+	 * @return DatabaseQuerySelect
 	 */
 	protected function getLoadQuery($selectors = null) {
 
@@ -123,12 +122,12 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 
 	/**
 	 * Load items from the database table and return them in the same type class that getAll() returns
-	 
-	 * A selector string or Selectors may be provided so that this can be used as a find() by descending classes that don't load all items at once.  
+	 * A selector string or Selectors may be provided so that this can be used as a find() by descending classes that don't load all items at once.
 	 *
-	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all. 
+	 * @param WireArray             $items
+	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all.
+	 *
 	 * @return WireArray Returns the same type as specified in the getAll() method.
-	 *
 	 */
 	protected function ___load(WireArray $items, $selectors = null) {
 
@@ -144,12 +143,12 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 				}
 				$item->$field = $value; 
 			}
-			$item->setTrackChanges(true); 
+			$item->setTrackChanges(true);
 			$items->add($item); 
 		}
 		$result->free();
 
-		$items->setTrackChanges(true); 
+		$items->setTrackChanges(true);
 		return $items; 
 	}
 
@@ -161,15 +160,16 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	 */
 	protected function saveItemKey($key) {
 		if($key == 'id') return false;
-		return true; 
+		return true;
 	}
 
 	/**
 	 * Save the provided item to database
 	 *
 	 * @param Saveable $item The item to save
-	 * @return bool Returns true on success, false on failure
 	 *
+	 * @throws WireException
+	 * @return bool Returns true on success, false on failure
 	 */
 	public function ___save(Saveable $item) {
 
@@ -211,19 +211,20 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	}
 
 
-	/** 
+	/**
 	 * Delete the provided item from the database
 	 *
 	 * @param Saveable $item Item to save
-	 * @return bool Returns true on success, false on failure
 	 *
+	 * @throws WireException
+	 * @return bool Returns true on success, false on failure
 	 */
 	public function ___delete(Saveable $item) {
 		$blank = $this->makeBlankItem();
 		if(!$item instanceof $blank) throw new WireException("WireSaveableItems::delete(item) requires item to be of type '" . $blank->className() . "'"); 
 		$id = (int) $item->id; 
 		$db = $this->getFuel('db'); 
-		if(!$id) return false; 
+		if(!$id) return false;
 		$this->getAll()->remove($item); 
 		$table = $db->escapeTable($this->getTable());
 		$result = $db->query("DELETE FROM `$table` WHERE id=$id LIMIT 1"); // QA
@@ -240,6 +241,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	 * @param Saveable $item Item to clone
 	 * @param bool|Saveable $item Returns the new clone on success, or false on failure
 	 *
+	 * @return bool|\Saveable
 	 */
 	public function ___clone(Saveable $item) {
 
@@ -257,7 +259,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 		// id=0 forces the save() to create a new field
 		$item->id = 0;
 		if($this->save($item)) return $item; 
-		return false; 
+		return false;
 	}
 
 	/**
@@ -294,7 +296,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	}
 
 	public function __isset($key) {
-		return $this->get($key) !== null;	
+		return $this->get($key) !== null;
 	}
 
 	/**

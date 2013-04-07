@@ -106,10 +106,11 @@ class Selectors extends WireArray {
 	}
 
 	/**
-	 * Does the given string have an operator in it? 
+	 * Does the given string have an operator in it?
+	 *
+	 * @param $str
 	 *
 	 * @return bool
-	 *
 	 */
 	static public function stringHasOperator($str) {
 		$has = false;
@@ -123,16 +124,17 @@ class Selectors extends WireArray {
 	}
 
 	/**
-	 * Does the given string start with a selector? 
+	 * Does the given string start with a selector?
 	 *
 	 * Meaning string starts with [field][operator] like "field="
 	 *
-	 * @return bool
+	 * @param $str
 	 *
+	 * @return bool
 	 */
 	static public function stringHasSelector($str) {
 
-		if(!self::stringHasOperator($str)) return false; 
+		if(!self::stringHasOperator($str)) return false;
 
 		if(preg_match('/^([-._a-zA-Z0-9|]+)([' . implode('', self::getOperatorChars()) . ']+)/', $str, $matches)) {
 
@@ -146,7 +148,7 @@ class Selectors extends WireArray {
 			if(!isset(self::$selectorTypes[$operator])) return false;
 
 			// if we made it here, then we've found a selector
-			return true; 
+			return true;
 		}
 
 		return false;
@@ -160,6 +162,8 @@ class Selectors extends WireArray {
 	 * @param string $operator
 	 * @param string $value
 	 *
+	 * @throws WireException
+	 * @return
 	 */
 	protected function create($field, $operator, $value) {
 		if(!isset(self::$selectorTypes[$operator])) throw new WireException("Unknown Selector operator: '$operator' -- was your selector value properly escaped?"); 
@@ -322,7 +326,5 @@ class Selectors extends WireArray {
 		}
 		return rtrim($str, ", "); 
 	}
-
-	
 
 }

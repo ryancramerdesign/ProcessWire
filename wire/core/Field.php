@@ -65,7 +65,7 @@ class Field extends WireData implements Saveable {
 	 */
 	protected $settings = array(
 		'id' => 0, 
-		'type' => null, 
+		'type' => null,
 		'flags' => 0, 
 		'name' => '', 
 		'label' => '', 
@@ -159,8 +159,9 @@ class Field extends WireData implements Saveable {
 	 * Set the field's name
 	 *
 	 * @param string $name
-	 * @return Field $this
 	 *
+	 * @throws WireException
+	 * @return Field $this
 	 */
 	public function setName($name) {
 		$name = $this->fuel('sanitizer')->fieldName($name); 
@@ -171,7 +172,7 @@ class Field extends WireData implements Saveable {
 		if($this->fuel('fields') && ($f = $this->fuel('fields')->get($name)) && $f->id != $this->id)
 			throw new WireException("Field may not be named '$name' because it is already used by another field"); 
 
-		if(strpos($name, '__') !== false) 
+		if(strpos($name, '__') !== false)
 			throw new WireException("Field name '$name' may not have double underscores because this usage is reserved by the core"); 
 
 		if($this->settings['name'] != $name) {
@@ -187,13 +188,14 @@ class Field extends WireData implements Saveable {
 	}
 
 	/**
-	 * Set what type of field this is. 
+	 * Set what type of field this is.
 	 *
-	 * Type should be either a Fieldtype object or the string name of a Fieldtype object. 
+	 * Type should be either a Fieldtype object or the string name of a Fieldtype object.
 	 *
 	 * @param string|Fieldtype $type
-	 * @return Field $this
 	 *
+	 * @throws WireException
+	 * @return Field $this
 	 */
 	public function setFieldtype($type) {
 
@@ -305,7 +307,7 @@ class Field extends WireData implements Saveable {
 
 		if(!$this->type) return null;
 		$inputfield = $this->type->getInputfield($page, $this);
-		if(!$inputfield) return null; 
+		if(!$inputfield) return null;
 
 		// predefined field settings
 		$inputfield->attr('name', $this->name . $contextStr); 
@@ -389,7 +391,7 @@ class Field extends WireData implements Saveable {
 	}
 
 	public function __isset($key) {
-		if(parent::__isset($key)) return true; 
+		if(parent::__isset($key)) return true;
 		return isset($this->settings[$key]); 
 	}
 

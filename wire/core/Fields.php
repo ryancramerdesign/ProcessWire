@@ -169,9 +169,10 @@ class Fields extends WireSaveableItems {
 	/**
 	 * Save a Field to the database
 	 *
-	 * @param Field $item The field to save
-	 * @return bool True on success, false on failure
+	 * @param \Field|\Saveable $item The field to save
 	 *
+	 * @throws WireException
+	 * @return bool True on success, false on failure
 	 */
 	public function ___save(Saveable $item) {
 
@@ -215,15 +216,16 @@ class Fields extends WireSaveableItems {
 			}	
 		}
 
-		return true; 
+		return true;
 	}
 
 	/**
 	 * Delete a Field from the database
 	 *
 	 * @param Saveable $item Item to save
-	 * @return bool True on success, false on failure
 	 *
+	 * @throws WireException
+	 * @return bool True on success, false on failure
 	 */
 	public function ___delete(Saveable $item) {
 
@@ -254,6 +256,7 @@ class Fields extends WireSaveableItems {
 	 * @param Saveable $item Item to clone
 	 * @param bool|Saveable $item Returns the new clone on success, or false on failure
 	 *
+	 * @return bool|\Saveable
 	 */
 	public function ___clone(Saveable $item) {
 	
@@ -277,10 +280,11 @@ class Fields extends WireSaveableItems {
 	/**
 	 * Save the context of the given field for the given fieldgroup
 	 *
-	 * @param Field $field Field to save context for
+	 * @param Field      $field      Field to save context for
 	 * @param Fieldgroup $fieldgroup Context for when field is in this fieldgroup
-	 * @return bool True on success
 	 *
+	 * @throws WireException
+	 * @return bool True on success
 	 */
 	public function ___saveFieldgroupContext(Field $field, Fieldgroup $fieldgroup) {
 
@@ -335,6 +339,8 @@ class Fields extends WireSaveableItems {
 	 *
 	 * @param Field $field1 Field with the new type
 	 *
+	 * @throws WireException
+	 * @return bool
 	 */
 	protected function ___changeFieldtype(Field $field1) {
 
@@ -388,7 +394,7 @@ class Fields extends WireSaveableItems {
 		if(!$result) {
 			$this->error("Field type change failed. Database reports: {$this->db->error}"); 
 			$this->db->query("DROP TABLE `$table2`"); // QA
-			return false; 
+			return false;
 		}
 
 		$this->db->query("DROP TABLE `$table1`"); // QA
@@ -407,7 +413,7 @@ class Fields extends WireSaveableItems {
 			$field1->remove($key); 
 		}
 
-		return true; 	
+		return true;
 	}
 
 	/**

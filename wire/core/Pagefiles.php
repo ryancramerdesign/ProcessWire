@@ -74,11 +74,10 @@ class Pagefiles extends WireArray {
 	}
 
 	/**
-	 * Creates a new blank instance of itself. For internal use, part of the WireArray interface. 
+	 * Creates a new blank instance of itself. For internal use, part of the WireArray interface.
 	 *
-	 * Adapted here so that $this->page can be passed to the constructor of a newly created Pagefiles. 
+	 * Adapted here so that $this->page can be passed to the constructor of a newly created Pagefiles.
 	 *
-	 * @param array $items Array of items to populate (optional)
 	 * @return WireArray
 	 */
 	public function makeNew() {
@@ -161,7 +160,7 @@ class Pagefiles extends WireArray {
 	 * Add a new Pagefile item, or create one from it's filename and add it.
 	 *
 	 * @param Pagefile|string $item If item is a string (filename) then the Pagefile instance will be created automatically.
-	 * @return this
+	 * @return \Pagefiles
 	 *
 	 */
 	public function add($item) {
@@ -200,11 +199,12 @@ class Pagefiles extends WireArray {
 	/**
 	 * Delete/remove a Pagefile item
 	 *
-	 * Deletes the filename associated with the Pagefile and removes it from this Pagefiles instance. 
+	 * Deletes the filename associated with the Pagefile and removes it from this Pagefiles instance.
 	 *
 	 * @param Pagefile $item
-	 * @return this
 	 *
+	 * @throws WireException
+	 * @return \Pagefiles
 	 */
 	public function remove($item) {
 		if(is_string($item)) $item = $this->get($item); 
@@ -220,8 +220,7 @@ class Pagefiles extends WireArray {
 	/**
 	 * Delete all files associated with this Pagefiles instance, leaving a blank Pagefiles instance. 
 	 *
-	 * @return this
-	 *
+	 * @return \Pagefiles
 	 */ 
 	public function deleteAll() {
 		foreach($this as $item) {
@@ -281,7 +280,7 @@ class Pagefiles extends WireArray {
 	 * Return all Pagefiles that have the given tag
 	 *
 	 * @param string $tag
-	 * @return Pagefiles
+	 * @return \Pagefiles
 	 *
 	 */
 	public function findTag($tag) {
@@ -296,7 +295,7 @@ class Pagefiles extends WireArray {
 	 * Return the first Pagefile that matches the given tag or NULL if no match
 	 *
 	 * @param string $tag
-	 * @return Pagefile|null
+	 * @return \Pagefile|null
 	 *
 	 */
 	public function getTag($tag) {

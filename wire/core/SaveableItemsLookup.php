@@ -38,10 +38,9 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 	/**
 	 * Get the DatabaseQuerySelect to perform the load operation of items
 	 *
-	 * @param WireArray $items
-	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all. 
-	 * @return DatabaseQuerySelect
+	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all.
 	 *
+	 * @return DatabaseQuerySelect
 	 */
 	protected function getLoadQuery($selectors = null) {
 		$query = parent::getLoadQuery($selectors); 
@@ -54,12 +53,12 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 
 	/**
 	 * Load items from the database table and return them in the same type class that getAll() returns
-	 
-	 * A selector string or Selectors may be provided so that this can be used as a find() by descending classes that don't load all items at once.  
+	 * A selector string or Selectors may be provided so that this can be used as a find() by descending classes that don't load all items at once.
 	 *
-	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all. 
+	 * @param WireArray             $items
+	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all.
+	 *
 	 * @return WireArray Returns the same type as specified in the getAll() method.
-	 *
 	 */
 	protected function ___load(WireArray $items, $selectors = null) {
 
@@ -91,7 +90,7 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 		}
 
 		if($result) $result->free();
-		$items->setTrackChanges(true); 
+		$items->setTrackChanges(true);
 		return $items; 
 	}
 
@@ -102,7 +101,7 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 	 *
 	 */
 	protected function saveItemKey($key) {
-		if($key == $this->getLookupField()) return false; 
+		if($key == $this->getLookupField()) return false;
 		return parent::saveItemKey($key); 
 	}
 

@@ -47,7 +47,7 @@ class Session extends Wire implements IteratorAggregate {
 	 * Instance of the SessionCSRF protection class, instantiated when requested from $session->CSRF.
 	 *
 	 */
-	protected $CSRF = null; 
+	protected $CSRF = null;
 
 	/**
 	 * IP address of current session in integer format (used as cache by getIP function)
@@ -114,18 +114,18 @@ class Session extends Wire implements IteratorAggregate {
 	 */
 	protected function ___isValidSession() {
 
-		$valid = true; 
+		$valid = true;
 		$sessionName = session_name();
 
 		if($this->config->sessionChallenge) {
 			if(empty($_COOKIE[$sessionName . "_challenge"]) || ($this->get('_user_challenge') != $_COOKIE[$sessionName . "_challenge"])) {
-				$valid = false; 
+				$valid = false;
 			}
 		}	
 
 		if($this->config->sessionFingerprint) {
 			if(($this->getIP(true) . $_SERVER['HTTP_USER_AGENT']) != $this->get("_user_fingerprint")) {
-				$valid = false; 
+				$valid = false;
 			}
 		}
 
@@ -158,7 +158,7 @@ class Session extends Wire implements IteratorAggregate {
 			return $this->CSRF; 
 		}
 		$className = $this->className();
-		return isset($_SESSION[$className][$key]) ? $_SESSION[$className][$key] : null; 
+		return isset($_SESSION[$className][$key]) ? $_SESSION[$className][$key] : null;
 	}
 
 	/**
@@ -190,9 +190,9 @@ class Session extends Wire implements IteratorAggregate {
 	/**
 	 * Unsets a session variable
 	 *
- 	 * @param string $value
-	 * @return this
+	 * @param string $key
 	 *
+	 * @return \Session
 	 */
 	public function remove($key) {
 		unset($_SESSION[$this->className()][$key]); 
@@ -271,12 +271,12 @@ class Session extends Wire implements IteratorAggregate {
 				$challenge = md5(mt_rand() . $this->get('_user_id') . microtime()); 
 				$this->set('_user_challenge', $challenge); 
 				// set challenge cookie to last 30 days (should be longer than any session would feasibly last)
-				setcookie(session_name() . '_challenge', $challenge, time()+60*60*24*30, '/', null, false, true); 
+				setcookie(session_name() . '_challenge', $challenge, time()+60*60*24*30, '/', null, false, true);
 			}
 
 			if($this->config->sessionFingerprint) {
 				// remember a fingerprint that tracks the user's IP and user agent
-				$this->set('_user_fingerprint', $this->getIP(true) . $_SERVER['HTTP_USER_AGENT']); 
+				$this->set('_user_fingerprint', $this->getIP(true) . $_SERVER['HTTP_USER_AGENT']);
 			}
 
 			$this->setFuel('user', $user); 
@@ -285,7 +285,7 @@ class Session extends Wire implements IteratorAggregate {
 			return $user; 
 		}
 
-		return null; 
+		return null;
 	}
 
 	/**
@@ -295,7 +295,7 @@ class Session extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function ___allowLogin($name) {
-		return true; 
+		return true;
 	}
 
 	/**

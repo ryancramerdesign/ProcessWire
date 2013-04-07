@@ -175,7 +175,7 @@ class WireData extends Wire implements IteratorAggregate {
 			}
 		} else {
 			// there is a dot property remaining and nothing to send it to
-			$value = null; 
+			$value = null;
 		}
 		return $value; 
 	}
@@ -183,13 +183,12 @@ class WireData extends Wire implements IteratorAggregate {
 	/**
 	 * Get a property via dot syntax: field.subfield.subfield
 	 *
-	 * Some classes of WireData may choose to add a call to this as part of their 
+	 * Some classes of WireData may choose to add a call to this as part of their
 	 * get() method as a syntax convenience.
 	 *
-	 * @param string $key 
-	 * @param Wire $from The instance you want to pull the value from
-	 * @return null|mixed Returns value if found or null if not
+	 * @param string $key
 	 *
+	 * @return null|mixed Returns value if found or null if not
 	 */
 	public function getDot($key) {
 		return self::_getDot($key, $this); 
@@ -202,6 +201,7 @@ class WireData extends Wire implements IteratorAggregate {
 	 *
 	 * @param string $key
 	 *
+	 * @return mixed|null
 	 */
 	public function __get($key) {
 		return $this->get($key); 
@@ -236,7 +236,7 @@ class WireData extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function has($key) {
-		return ($this->get($key) !== null); 
+		return ($this->get($key) !== null);
 	}
 
 	/**

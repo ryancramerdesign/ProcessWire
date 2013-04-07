@@ -89,7 +89,7 @@ class PagesType extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function find($selectorString, $options = array()) {
-		if(!isset($options['findAll'])) $options['findAll'] = true; 
+		if(!isset($options['findAll'])) $options['findAll'] = true;
 		$pages = $this->pages->find($this->selectorString($selectorString), $options);
 		foreach($pages as $page) $this->loaded($page); 
 		return $pages; 
@@ -110,7 +110,7 @@ class PagesType extends Wire implements IteratorAggregate {
 			if(count($pages)) return $pages->first();
 				else return new NullPage();
 
-		} else if(strpos($selectorString, '=') === false) { 
+		} else if(strpos($selectorString, '=') === false) {
 			$s = $this->sanitizer->name($selectorString); 
 			if($s === $selectorString) $selectorString = "name=$s"; 	
 		}
@@ -121,35 +121,37 @@ class PagesType extends Wire implements IteratorAggregate {
 	}
 
 	/**
-	 * Save a page object and it's fields to database. 
+	 * Save a page object and it's fields to database.
 	 *
-	 * If the page is new, it will be inserted. If existing, it will be updated. 
+	 * If the page is new, it will be inserted. If existing, it will be updated.
 	 *
 	 * This is the same as calling $page->save()
 	 *
-	 * If you want to just save a particular field in a Page, use $page->save($fieldName) instead. 
+	 * If you want to just save a particular field in a Page, use $page->save($fieldName) instead.
 	 *
 	 * @param Page $page
-	 * @return bool True on success
 	 *
+	 * @throws WireException
+	 * @return bool True on success
 	 */
 	public function ___save(Page $page) {
 		if(!$this->isValid($page)) throw new WireException("'Unable to save pages of type '{$page->template->name}' ({$this->template->id} != {$page->template->id})"); 
 		return $this->pages->save($page);
 	}
-	
+
 	/**
-	 * Permanently delete a page and it's fields. 
+	 * Permanently delete a page and it's fields.
 	 *
-	 * Unlike trash(), pages deleted here are not restorable. 
+	 * Unlike trash(), pages deleted here are not restorable.
 	 *
-	 * If you attempt to delete a page with children, and don't specifically set the $recursive param to True, then 
+	 * If you attempt to delete a page with children, and don't specifically set the $recursive param to True, then
 	 * this method will throw an exception. If a recursive delete fails for any reason, an exception will be thrown.
 	 *
 	 * @param Page $page
-	 * @param bool $recursive If set to true, then this will attempt to delete all children too. 
-	 * @return bool
+	 * @param bool $recursive If set to true, then this will attempt to delete all children too.
 	 *
+	 * @throws WireException
+	 * @return bool
 	 */
 	public function ___delete(Page $page, $recursive = false) {
 		if(!$this->isValid($page)) throw new WireException("Unable to delete pages of type '{$page->template->name}'"); 

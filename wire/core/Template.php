@@ -77,7 +77,7 @@ class Template extends WireData implements Saveable {
 	 * Does the PHP template file exist?
 	 *
 	 */
-	protected $filenameExists = null; 
+	protected $filenameExists = null;
 	 
 	/**
 	 * The Fieldgroup instance assigned to this Template
@@ -89,7 +89,7 @@ class Template extends WireData implements Saveable {
 	 * The previous Fieldgroup instance assigned to this template, if changed during runtime
 	 *
 	 */
-	protected $fieldgroupPrevious = null; 
+	protected $fieldgroupPrevious = null;
 
 	/**
 	 * Roles that pages using this template support
@@ -240,9 +240,10 @@ class Template extends WireData implements Saveable {
 	 * Set a Template property
 	 *
 	 * @param string $key
-	 * @param mixed $value
-	 * @return this
+	 * @param mixed  $value
 	 *
+	 * @throws WireException
+	 * @return this
 	 */
 	public function set($key, $value) {
 
@@ -339,7 +340,7 @@ class Template extends WireData implements Saveable {
 
 		if(is_file($value)) {
 			$this->filename = $value; 
-			$this->filenameExists = true; 
+			$this->filenameExists = true;
 		}
 	}
 
@@ -347,8 +348,9 @@ class Template extends WireData implements Saveable {
 	 * Set this Template's Fieldgroup
 	 *
 	 * @param Fieldgroup $fieldgroup
-	 * @return this
 	 *
+	 * @throws WireException
+	 * @return this
 	 */
 	public function setFieldgroup(Fieldgroup $fieldgroup) {
 
@@ -363,7 +365,7 @@ class Template extends WireData implements Saveable {
 
 			$hasPermanentFields = false;
 			foreach($this->fieldgroup as $field) {
-				if($field->flags & Field::flagPermanent) $hasPermanentFields = true; 
+				if($field->flags & Field::flagPermanent) $hasPermanentFields = true;
 			}
 			if($this->id && $hasPermanentFields) throw new WireException("Fieldgroup for template '{$this}' may not be changed because it has permanent fields."); 
 		}
@@ -393,14 +395,14 @@ class Template extends WireData implements Saveable {
 
 		$result = Wire::getFuel('templates')->save($this); 	
 
-		return $result ? $this : false; 
+		return $result ? $this : false;
 	}
 
 	/**
 	 * Return corresponding template filename, including path
 	 *
+	 * @throws WireException
 	 * @return string
-	 *	
 	 */
 	public function filename() {
 

@@ -400,7 +400,10 @@ $(document).ready(function() {
 					$ul.append(listChild(child)); 
 				}); 	
 
-				$("a.PageListPage", $ul).click(clickChild); 
+				//$("a.PageListPage", $ul).click(clickChild); 
+				$("a.PageListPage", $ul).click(clickChild).dblclick(function() {
+					window.open($(this).siblings('ul').find('li.PageListActionEdit a').attr('href'), "_self");
+				});
 				$(".PageListActionMove a", $ul).click(clickMove); 
 				$(".PageListActionSelect a", $ul).click(clickSelect); 
 				$(".PageListTriggerOpen a.PageListPage", $ul).click();

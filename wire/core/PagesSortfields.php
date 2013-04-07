@@ -53,13 +53,14 @@ class PagesSortfields extends Wire {
 	}
 
 	/**
-	 * Decodes a sortfield from a signed integer or string to a field name 
+	 * Decodes a sortfield from a signed integer or string to a field name
 	 *
-	 * The returned fieldname is preceded with a dash if the sortfield is reversed. 
+	 * The returned fieldname is preceded with a dash if the sortfield is reversed.
 	 *
 	 * @param string|int $sortfield
-	 * @return string
+	 * @param string     $default
 	 *
+	 * @return string
 	 */
 	public function decode($sortfield, $default = 'sort') {
 
@@ -67,7 +68,7 @@ class PagesSortfields extends Wire {
 
 		if(substr($sortfield, 0, 1) == '-') {
 			$sortfield = substr($sortfield, 1); 
-			$reverse = true; 	
+			$reverse = true;
 		}
 
 		if(ctype_digit("$sortfield") || !Fields::isNativeName($sortfield)) {
@@ -85,19 +86,20 @@ class PagesSortfields extends Wire {
 	/**
 	 * Encodes a sortfield from a fieldname to a signed integer (ID) representing a custom field, or native field name
 	 *
-	 * The returned value will be a negative value (or string preceded by a dash) if the sortfield is reversed. 
+	 * The returned value will be a negative value (or string preceded by a dash) if the sortfield is reversed.
 	 *
 	 * @param string $sortfield
-	 * @return string|int
+	 * @param string $default
 	 *
+	 * @return string|int
 	 */
 
 	public function encode($sortfield, $default = 'sort') {
 
-		$reverse = false; 
+		$reverse = false;
 	
 		if(substr($sortfield, 0, 1) == '-') {	
-			$reverse = true; 
+			$reverse = true;
 			$sortfield = substr($sortfield, 1); 
 		}
 

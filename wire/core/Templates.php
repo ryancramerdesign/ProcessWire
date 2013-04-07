@@ -52,7 +52,7 @@ class Templates extends WireSaveableItems {
 	 * Reference to all the Fieldgroups
 	 *
 	 */
-	protected $fieldgroups = null; 
+	protected $fieldgroups = null;
 
 	/**
 	 * WireArray of all Template instances
@@ -132,13 +132,14 @@ class Templates extends WireSaveableItems {
 
 
 	/**
-	 * Update or insert template to database 
+	 * Update or insert template to database
 	 *
-	 * If the template's fieldgroup has changed, then we delete data that's no longer applicable to the new fieldgroup. 
+	 * If the template's fieldgroup has changed, then we delete data that's no longer applicable to the new fieldgroup.
 	 *
-	 * @param Template $item 
+	 * @param \Saveable|\Template $item
+	 *
+	 * @throws WireException
 	 * @return bool true on success
-	 *
 	 */
 	public function ___save(Saveable $item) {
 
@@ -200,9 +201,10 @@ class Templates extends WireSaveableItems {
 	 *
 	 * Note that this also clones the Fieldgroup if the template being cloned has it's own named fieldgroup.
 	 *
-	 * @param Saveable $item Item to clone
-	 * @param bool|Saveable $item Returns the new clone on success, or false on failure
+	 * @param \Saveable $item Item to clone
+	 * @param bool|\Saveable $item Returns the new clone on success, or false on failure
 	 *
+	 * @return bool|\Saveable
 	 */
 	public function ___clone(Saveable $item) {
 

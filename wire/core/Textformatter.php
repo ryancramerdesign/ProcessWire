@@ -51,12 +51,13 @@ abstract class Textformatter extends Wire implements Module {
 	/**
 	 * Format the given text string.
 	 *
- 	 * Newer version with Page and Field provided.  
+	 * Newer version with Page and Field provided.
 	 *
 	 * Override this function completely when providing your own text formatter. No need to call the parent.
 	 *
-	 * @param string $str
-	 *
+	 * @param Page  $page
+	 * @param Field $field
+	 * @param       $value
 	 */
 	public function formatValue(Page $page, Field $field, &$value) {
 		$this->format($value); 
@@ -87,7 +88,7 @@ abstract class Textformatter extends Wire implements Module {
 	 *
 	 */
 	public function isSingular() {
-		return true; 
+		return true;
 	}
 
 	/**
@@ -95,6 +96,6 @@ abstract class Textformatter extends Wire implements Module {
 	 *
 	 */
 	public function isAutoload() {
-		return false; 
+		return false;
 	}
 }

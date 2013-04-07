@@ -115,7 +115,7 @@ class InputfieldWrapper extends Inputfield {
 		parent::__construct();
  		$this->children = new InputfieldsArray(); 
 		$this->set('skipLabel', Inputfield::skipLabelFor); 
-		$this->set('renderValueMode', false); 
+		$this->set('renderValueMode', false);
 	}
 
 	/**
@@ -126,7 +126,7 @@ class InputfieldWrapper extends Inputfield {
 		if($inputfield = $this->getChildByName($key)) return $inputfield;
 		if($this->fuel($key)) return $this->fuel($key); 
 		if($key == 'children') return $this->children; 
-		if(($value = parent::get($key)) !== null) return $value; 
+		if(($value = parent::get($key)) !== null) return $value;
 		return null;
 	}
 
@@ -135,6 +135,7 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 * @param Inputfield $item
 	 *
+	 * @return \InputfieldWrapper
 	 */
 	public function add(Inputfield $item) {
 		$item->setParent($this); 
@@ -211,7 +212,7 @@ class InputfieldWrapper extends Inputfield {
 				continue; 
 
 			} else if($inputfield instanceof InputfieldFieldsetOpen) {
-				$inputfield->set('InputfieldWrapper_isPreRendered', true); 
+				$inputfield->set('InputfieldWrapper_isPreRendered', true);
 				array_push($wrappers, $inputfield); 
 			} 
 
@@ -256,15 +257,15 @@ class InputfieldWrapper extends Inputfield {
 			if(!$inputfield instanceof InputfieldWrapper) {
 				$errors = $inputfield->getErrors(true);
 				if(count($errors)) $collapsed = Inputfield::collapsedNo; 
-				foreach($errors as $error) $ffOut = str_replace('{out}', $this->entityEncode($error, true), $markup['item_error']) . $ffOut; 
+				foreach($errors as $error) $ffOut = str_replace('{out}', $this->entityEncode($error, true), $markup['item_error']) . $ffOut;
 			} else $errors = array();
 			
 			if($inputfield->getSetting('description')) $ffOut = str_replace('{out}',  nl2br($this->entityEncode($inputfield->getSetting('description'), true)), $markup['item_description']) . $ffOut;
-			if($inputfield->getSetting('head')) $ffOut = str_replace('{out}', $this->entityEncode($inputfield->getSetting('head'), true), $markup['item_head']) . $ffOut; 
+			if($inputfield->getSetting('head')) $ffOut = str_replace('{out}', $this->entityEncode($inputfield->getSetting('head'), true), $markup['item_head']) . $ffOut;
 
 			$ffOut = preg_replace('/(\n\s*)</', "$1\t\t\t<", $ffOut); // indent lines beginning with markup
 
-			if($inputfield->getSetting('notes')) $ffOut .= str_replace('{out}', nl2br($this->entityEncode($inputfield->notes, true)), $markup['item_notes']); 
+			if($inputfield->getSetting('notes')) $ffOut .= str_replace('{out}', nl2br($this->entityEncode($inputfield->notes, true)), $markup['item_notes']);
 
 			// The inputfield's classname is always used in it's LI wrapper
 			$ffAttrs = array(
@@ -279,7 +280,7 @@ class InputfieldWrapper extends Inputfield {
 				$isEmpty = $inputfield->isEmpty();
 				if($inputfield instanceof InputfieldWrapper || 
 					$collapsed === Inputfield::collapsedYes ||
-					$collapsed === true || 
+					$collapsed === true ||
 					($isEmpty && $collapsed === Inputfield::collapsedBlank) ||
 					(!$isEmpty && $collapsed === Inputfield::collapsedPopulated)) {
 						$ffAttrs['class'] .= ' ' . $classes['item_collapsed'];
@@ -340,17 +341,18 @@ class InputfieldWrapper extends Inputfield {
 
 	public function ___renderValue() {
 		$this->attr('class', trim($this->attr('class') .' InputfieldRenderValueMode'));
-		$this->set('renderValueMode', true); 
+		$this->set('renderValueMode', true);
 		$out = $this->render(); 
-		$this->set('renderValueMode', false); 
+		$this->set('renderValueMode', false);
 		return $out; 
 	}
 
 	/**
 	 * Pass the given array to all children to process input
 	 *
-	 * @param array $input
-	 * 
+	 * @param array|\WireInputData $input
+	 *
+	 * @return $this
 	 */
 	public function ___processInput(WireInputData $input) {
 	
@@ -376,8 +378,9 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 * Should only be called after processInput()
 	 *
-	 * @return array
+	 * @param bool $clear
 	 *
+	 * @return array
 	 */
 	public function getErrors($clear = false) {
 		$errors = parent::getErrors($clear); 

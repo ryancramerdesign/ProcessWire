@@ -172,8 +172,8 @@ abstract class FieldtypeMulti extends Fieldtype {
 		$values = $page->get($field->name);
 
 		if(is_object($values)) {
-			 if(!$values->isChanged() && !$page->isChanged($field->name)) return true; 
-		} else if(!$page->isChanged($field->name)) return true; 
+			 if(!$values->isChanged() && !$page->isChanged($field->name)) return true;
+		} else if(!$page->isChanged($field->name)) return true;
 
 		$values = $this->sleepValue($page, $field, $values); 
 		$table = $this->db->escapeTable($field->table); 
@@ -222,7 +222,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 			return $result; 
 		}
 
-		return true; 
+		return true;
 	}
 
 	/**
@@ -248,11 +248,11 @@ abstract class FieldtypeMulti extends Fieldtype {
 	/**
 	 * Get the query that matches a Fieldtype table's data with a given value
 	 *
-	 * Possible template method: If overridden, children should NOT call this parent method. 
+	 * Possible template method: If overridden, children should NOT call this parent method.
 	 *
 	 * @param DatabaseQuerySelect $query
 	 * @param string $table The table name to use
-	 * @param string $field Name of the field (typically 'data', unless selector explicitly specified another)
+	 * @param string $subfield Name of the field (typically 'data', unless selector explicitly specified another)
 	 * @param string $operator The comparison operator
 	 * @param mixed $value The value to find
 	 * @return DatabaseQuery $query

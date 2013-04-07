@@ -90,7 +90,7 @@ class ImageSizer extends Wire {
 	 * Was the given image modified?
 	 *
 	 */
-	protected $modified = false; 
+	protected $modified = false;
 
 	/**
 	 * Supported image types (@teppo)
@@ -149,9 +149,9 @@ class ImageSizer extends Wire {
 	 *
 	 */
 	protected function loadImageInfo() {
-		if(($info = @getimagesize($this->filename)) === false) return false; 
+		if(($info = @getimagesize($this->filename)) === false) return false;
 		$this->setImageInfo($info[0], $info[1]); 
-		return true; 
+		return true;
 	}
 
 	/**
@@ -159,15 +159,15 @@ class ImageSizer extends Wire {
 	 *
 	 * Note: Some code used in this method is adapted from code found in comments at php.net for the GD functions
 	 *
-	 * @param int $width
-	 * @param int $height
-	 * @return bool True if the resize was successful
+	 * @param int $targetWidth
+	 * @param int $targetHeight
 	 *
+	 * @return bool True if the resize was successful
 	 */
 	public function ___resize($targetWidth, $targetHeight = 0) {
 
 
-		if(!$this->isResizeNecessary($targetWidth, $targetHeight)) return true; 
+		if(!$this->isResizeNecessary($targetWidth, $targetHeight)) return true;
 
 		$source = $this->filename;
 		$dest = str_replace("." . $this->extension, "_tmp." . $this->extension, $source); 
@@ -179,7 +179,7 @@ class ImageSizer extends Wire {
 			case IMAGETYPE_JPEG: $image = @imagecreatefromjpeg($source); break;
 		}
 
-		if(!$image) return false; 
+		if(!$image) return false;
 
 		list($gdWidth, $gdHeight, $targetWidth, $targetHeight) = $this->getResizeDimensions($targetWidth, $targetHeight); 
 
@@ -187,8 +187,8 @@ class ImageSizer extends Wire {
 
 		if($this->imageType == IMAGETYPE_PNG) { 
 			// @adamkiss PNG transparency
-			imagealphablending($thumb, false); 
-			imagesavealpha($thumb, true); 
+			imagealphablending($thumb, false);
+			imagesavealpha($thumb, true);
 
 		} else if($this->imageType == IMAGETYPE_GIF) {
 			// @mrx GIF transparency
@@ -211,8 +211,8 @@ class ImageSizer extends Wire {
 
 		if($this->imageType == IMAGETYPE_PNG) { 
 			// @adamkiss PNG transparency
-			imagealphablending($thumb2, false); 
-			imagesavealpha($thumb2, true); 
+			imagealphablending($thumb2, false);
+			imagesavealpha($thumb2, true);
 
 		} else if($this->imageType == IMAGETYPE_GIF) {
 			// @mrx GIF transparency
@@ -307,7 +307,7 @@ class ImageSizer extends Wire {
 		rename($dest, $source); 
 
 		$this->loadImageInfo(); 
-		$this->modified = true; 
+		$this->modified = true;
 		
 		return true;
 	}
@@ -331,7 +331,7 @@ class ImageSizer extends Wire {
 	protected function isResizeNecessary($targetWidth, $targetHeight) {
 
 		$img =& $this->image; 
-		$resize = true; 
+		$resize = true;
 
 		if(	(!$targetWidth || $img['width'] == $targetWidth) && 
 			(!$targetHeight || $img['height'] == $targetHeight)) {
@@ -340,7 +340,7 @@ class ImageSizer extends Wire {
 
 		} else if(!$this->upscaling && ($targetHeight >= $img['height'] && $targetWidth >= $img['width'])) {
 
-			$resize = false; 
+			$resize = false;
 		}
 
 		return $resize; 
@@ -366,13 +366,15 @@ class ImageSizer extends Wire {
 
 	/**
 	 * Get an array of the 4 dimensions necessary to perform the resize
-	 * 
+	 *
 	 * Note: Some code used in this method is adapted from code found in comments at php.net for the GD functions
 	 *
 	 * Intended for use by the resize() method
 	 *
-	 * @return array
+	 * @param int $targetWidth
+	 * @param int $targetHeight
 	 *
+	 * @return array
 	 */
 	protected function getResizeDimensions($targetWidth, $targetHeight) {
 
@@ -538,11 +540,24 @@ class ImageSizer extends Wire {
 			);
 	}
 
+	public function getFilename() {
+		return $this->filename; 
+	}
+
+	public function getExtension() {
+		return $this->extension; 
+	}
+
+	public function getImageType() {
+		return $this->imageType; 
+	}
+
 	/**
 	 * Given an unknown cropping value, return the validated internal representation of it
 	 *
-	 * @return string|bool
+	 * @param $cropping
 	 *
+	 * @return string|bool
 	 */
 	static public function croppingValue($cropping) {
 
@@ -568,12 +583,13 @@ class ImageSizer extends Wire {
 	}
 
 	/**
-	 * Given an unknown cropping value, return the string representation of it 
+	 * Given an unknown cropping value, return the string representation of it
 	 *
 	 * Okay for use in filenames
 	 *
-	 * @return string
+	 * @param $cropping
 	 *
+	 * @return string
 	 */
 	static public function croppingValueStr($cropping) {
 

@@ -56,11 +56,11 @@ class HookEvent extends WireData {
 	 *
 	 */
 	public function __construct() {
-		$this->set('object', null); 
+		$this->set('object', null);
 		$this->set('method', '');
 		$this->set('arguments', array()); 
-		$this->set('return', null); 
-		$this->set('replace', false); 
+		$this->set('return', null);
+		$this->set('replace', false);
 		$this->set('options', array()); 
 		$this->set('id', ''); 
 	}
@@ -79,7 +79,7 @@ class HookEvent extends WireData {
 		if(!is_null($value)) return $this->setArgument($n, $value); 
 		if(is_string($n)) return $this->argumentsByName($n);
 		$arguments = $this->arguments; 
-		return isset($arguments[$n]) ? $arguments[$n] : null; 
+		return isset($arguments[$n]) ? $arguments[$n] : null;
 	}
 
 	/**
@@ -98,7 +98,7 @@ class HookEvent extends WireData {
 
 		if($n) {
 			$key = array_search($n, $names); 
-			if($key === false) return null;	
+			if($key === false) return null;
 			return array_key_exists($key, $arguments) ? $arguments[$key] : null;
 		}
 
@@ -121,9 +121,10 @@ class HookEvent extends WireData {
 	 *
 	 * Only useful with 'before' hooks, where the argument can be manipulated before being sent to the hooked function.
 	 *
-	 * @param int|string Argument name or key
-	 * @param mixed $value
+	 * @param int|string $n Argument name or key
+	 * @param mixed      $value
 	 *
+	 * @throws WireException
 	 */
 	public function setArgument($n, $value) {
 
@@ -131,7 +132,7 @@ class HookEvent extends WireData {
 			// convert argument name to position
 			$names = $this->getArgumentNames();	
 			$n = array_search($n, $names); 
-			if($n === false) throw new WireException("Unknown argument name: $n"); 
+			if($n === false) throw new WireException("Unknown argument name: $n");
 		}
 
 		$arguments = $this->arguments; 

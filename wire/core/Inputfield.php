@@ -85,7 +85,7 @@ abstract class Inputfield extends WireData implements Module {
 	 * The parent Inputfield, if applicable
 	 *
 	 */
-	protected $parent = null; 
+	protected $parent = null;
 
 	/**
 	 * The default ID attribute assigned to this field
@@ -175,7 +175,7 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function isSingular() {
-		return false; 
+		return false;
 	}
 
 	/**
@@ -183,7 +183,7 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function isAutoload() {
-		return false; 
+		return false;
 	}
 
 	/**
@@ -217,7 +217,7 @@ abstract class Inputfield extends WireData implements Module {
 		}
 		if($key == 'attributes') return $this->attributes; 
 		if($key == 'parent') return $this->parent; 
-		if(($value = $this->getFuel($key)) !== null) return $value; 
+		if(($value = $this->getFuel($key)) !== null) return $value;
 		if(array_key_exists($key, $this->attributes)) return $this->attributes[$key]; 
 		return parent::get($key); 
 	}
@@ -236,8 +236,9 @@ abstract class Inputfield extends WireData implements Module {
 	/**
 	 * Set the parent of this Inputfield
 	 *
-	 * @param Inputfield $parent
+	 * @param \Inputfield|\InputfieldWrapper $parent
 	 *
+	 * @return \InputField
 	 */
 	public function setParent(InputfieldWrapper $parent) {
 		$this->parent = $parent; 
@@ -320,6 +321,7 @@ abstract class Inputfield extends WireData implements Module {
 	 * @param string|int $value Optional - Omit if setting an array in the key, or if getting a value. 
 	 * @param Formfield|string|int If setting an attribute, it returns this instance. If getting an attribute, the attribute is returned. 
 	 *
+	 * @return $this|null|\this
 	 */
 	public function attr($key, $value = null) {
 		if(is_null($value)) {
@@ -346,14 +348,15 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function getAttribute($key) {
-		return isset($this->attributes[$key]) ? $this->attributes[$key] : null; 
+		return isset($this->attributes[$key]) ? $this->attributes[$key] : null;
 	}
 
 	/**
 	 * Get an XHTML ready string of all this Inputfield's attributes
 	 *
-	 * @param array $allowedAttributes Optional array of attributes to build the strong from. If not specified, this Inputfield's attributes will be used.
+	 * @param array $attributes Optional array of attributes to build the strong from. If not specified, this Inputfield's attributes will be used.
 	 *
+	 * @return string
 	 */
 	public function getAttributesString(array $attributes = null) {
 
@@ -409,10 +412,11 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
-	 * Process the input from the given WireInputData (usually $input->get or $input->post), load and clean the value for use in this Inputfield. 
+	 * Process the input from the given WireInputData (usually $input->get or $input->post), load and clean the value for use in this Inputfield.
 	 *
-	 * @param $this
-	 * 
+	 * @param \WireInputData $input
+	 *
+	 * @return $this
 	 */
 	public function ___processInput(WireInputData $input) {
 
@@ -421,7 +425,7 @@ abstract class Inputfield extends WireData implements Module {
 		if(!isset($input[$this->name])) return $this; 
 
 		$value = $input[$this->name]; 
-		$changed = false; 
+		$changed = false;
 
 		if($this instanceof InputfieldHasArrayValue && !is_array($value)) {
 			$this->error("Expected an array value and did not receive it"); 
@@ -446,14 +450,14 @@ abstract class Inputfield extends WireData implements Module {
 
 			if($this->attr('value') !== $values) { 
 				// If it has changed, then update for the changed value
-				$changed = true; 
+				$changed = true;
 				$this->setAttribute('value', $values); 
 			}
 
 		} else { 
 			// string value provided in the input
 			if("$value" !== (string) $this->attr('value')) {
-				$changed = true; 
+				$changed = true;
 				$this->setAttribute('value', $value); 
 			}
 		}
@@ -480,9 +484,9 @@ abstract class Inputfield extends WireData implements Module {
 	public function isEmpty() {
 		$value = $this->attr('value'); 
 		if(is_array($value)) return count($value) == 0;
-		if(!strlen("$value")) return true; 
+		if(!strlen("$value")) return true;
 		// if($value === 0) return true; 
-		return false; 
+		return false;
 	}
 
 
@@ -569,6 +573,7 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 * @param bool $clear Optionally clear the errors after getting them
 	 *
+	 * @return array
 	 */
 	public function getErrors($clear = false) {
 		$key = $this->getErrorSessionKey();

@@ -41,7 +41,7 @@ class Pageimage extends Pagefile {
 	 * Don't reference this directly, because it won't be loaded unless requested, instead use the getVariations() method
 	 *
 	 */
-	private $variations = null; 
+	private $variations = null;
 
 	/**
 	 * Cached result of the getImageInfo() method
@@ -52,14 +52,15 @@ class Pageimage extends Pagefile {
 	private $imageInfo = array(
 		'width' => 0, 
 		'height' => 0, 
-		); 
+		);
 
 	/**
 	 * Construct a new Pagefile
 	 *
-	 * @param Pagefiles $pagefiles 
-	 * @param string $filename Full path and filename to this pagefile
+	 * @param Pagefiles $pagefiles
+	 * @param string    $filename Full path and filename to this pagefile
 	 *
+	 * @throws WireException
 	 */
 	public function __construct(Pagefiles $pagefiles, $filename) {
 
@@ -118,9 +119,9 @@ class Pageimage extends Pagefile {
 	 */
 	public function getImageInfo($reset = false) {
 
-		if($reset) $checkImage = true; 
-			else if($this->imageInfo['width']) $checkImage = false; 
-			else $checkImage = true; 
+		if($reset) $checkImage = true;
+			else if($this->imageInfo['width']) $checkImage = false;
+			else $checkImage = true;
 
 		if($checkImage && ($info = @getimagesize($this->filename))) {
 			$this->imageInfo['width'] = $info[0]; 
@@ -397,9 +398,9 @@ class Pageimage extends Pagefile {
 					if($this->config->chmodFile) chmod($path . $variation->basename, octdec($this->config->chmodFile));
 				}
 			}
-			return true; 
+			return true;
 		}
-		return false; 
+		return false;
 	}
 }
 

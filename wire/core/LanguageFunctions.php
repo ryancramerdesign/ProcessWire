@@ -56,12 +56,13 @@ function _x($text, $context, $textdomain = null) {
 
 /**
  * Perform a language translation with singular and plural versions
- * 
- * @param string $textSingular Singular version of text (when there is 1 item)
- * @param string $textPlural Plural version of text (when there are multiple items or 0 items)
- * @param string $textdomain Textdomain for the text, may be class name, filename, or something made up by you. If ommitted, a debug backtrace will attempt to determine automatically.
- * @return string Translated text or original text if translation not available.
  *
+ * @param string $textSingular Singular version of text (when there is 1 item)
+ * @param string $textPlural   Plural version of text (when there are multiple items or 0 items)
+ * @param int    $count
+ * @param string $textdomain   Textdomain for the text, may be class name, filename, or something made up by you. If ommitted, a debug backtrace will attempt to determine automatically.
+ *
+ * @return string Translated text or original text if translation not available.
  */
 function _n($textSingular, $textPlural, $count, $textdomain = null) {
 	return $count == 1 ? __($textSingular, $textdomain) : __($textPlural, $textdomain); 	

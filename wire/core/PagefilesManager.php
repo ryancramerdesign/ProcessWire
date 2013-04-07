@@ -116,13 +116,14 @@ class PagefilesManager extends Wire {
 	}
 
 	/**
-	 * Create a directory with proper permissions, for internal use. 
+	 * Create a directory with proper permissions, for internal use.
+	 *
+	 * @param $path
 	 *
 	 * @return bool True on success, false if not
-	 *
 	 */
 	protected function _createPath($path) {
-		if(is_dir($path)) return true; 
+		if(is_dir($path)) return true;
 		return wireMkdir($path); 
 	}
 
@@ -155,7 +156,7 @@ class PagefilesManager extends Wire {
 	 *
 	 */
 	public function emptyAllPaths() {
-		$this->emptyPath(true); 
+		$this->emptyPath(true);
 	}
 
 
@@ -226,8 +227,8 @@ class PagefilesManager extends Wire {
 	static public function hasFiles(Page $page) {
 		if(!self::hasPath($page)) return false;
 		$dir = opendir(self::_path($page));
-		if(!$dir) return false; 
-		$has = false; 
+		if(!$dir) return false;
+		$has = false;
 		while(!$has && ($f = readdir($dir)) !== false) $has = $f !== '..' && $f !== '.';
 		return $has; 
 	}

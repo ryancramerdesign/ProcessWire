@@ -45,9 +45,9 @@ abstract class Selector extends WireData {
 	 */
 	public function __construct($field, $value) {
 
-		$not = false; 
+		$not = false;
 		if(!is_array($field) && $field[0] == '!') {
-			$not = true; 
+			$not = true;
 			$field = ltrim($field, '!'); 
 		}
 
@@ -67,11 +67,11 @@ abstract class Selector extends WireData {
 	 *
 	 * Strict standards don't let us make static abstract methods, so this one throws an exception if it's not reimplemented.
 	 *
+	 * @throws WireException
 	 * @return string
-	 *
 	 */
 	public static function getOperator() {
-		throw new WireException("This method must be implemented by " . get_class($this)); 
+		throw new WireException("This method must be implemented by " . get_class($this));
 	}
 
 	/**
@@ -91,6 +91,7 @@ abstract class Selector extends WireData {
 	 *
 	 * @param string|int|Wire $value If given a Wire, then matches will also operate on OR field=value type selectors, where present
 	 *
+	 * @return bool
 	 */
 	public function matches($value) {
 
@@ -105,7 +106,7 @@ abstract class Selector extends WireData {
 			$value = (string) $value; 
 		}
 
-		if(strpos($value, '|') !== false) $value = explode('|', $value); 
+		if(strpos($value, '|') !== false) $value = explode('|', $value);
 		if(!is_array($value)) $value = array($value);
 		$values2 = $value; 
 		unset($value);
@@ -143,9 +144,9 @@ abstract class Selector extends WireData {
 	 *
 	 * Selectors should include a call to this in their matches function
 	 *
-	 * @param bool $condition
-	 * @return bool
+	 * @param $matches
 	 *
+	 * @return bool
 	 */
 	protected function evaluate($matches) {
 		if($this->not) return !$matches; 

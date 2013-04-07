@@ -29,7 +29,8 @@
  * @property Page $rootParent The parent page closest to the homepage (typically used for identifying a section)
  * @property Template $template The Template object this page is using
  * @property FieldsArray $fields All the Fields assigned to this page (via it's template, same as $page->template->fields). Returns a FieldsArray.
- * @property int $numChildren The number of children (subpages) this page has, much faster than count($page->children). 
+ * @property int $numChildren The number of children (subpages) this page has, with no exclusions (fast).
+ * @property int $numVisibleChildren The number of visible children (subpages) this page has. Excludes unpublished, no-access, hidden, etc.
  * @property PageArray $children All the children (subpages) of this page. Returns a PageArray. See also $page->children($selector).
  * @property Page $child The first child of this page. Returns a Page. See also $page->child($selector).
  * @property PageArray $siblings All the sibling pages of this page. Returns a PageArray. See also $page->siblings($selector).
@@ -51,7 +52,6 @@
  * @method bool sortable() Returns true if the current user can change the sort order of the current page (within the same parent). 
  *
  */
-
 class Page extends WireData {
 
 	/*
@@ -138,7 +138,7 @@ class Page extends WireData {
 	 * Is this a new page (not yet existing in the database)?
 	 *
 	 */
-	protected $isNew = true; 
+	protected $isNew = true;
 
 	/**
 	 * Is this Page finished loading from the DB (i.e. Pages::getById)?
@@ -149,7 +149,7 @@ class Page extends WireData {
 	 * Note: must be kept in the 'true' state. Pages::getById sets it to false before populating data and then back to true when done.
 	 *
 	 */
-	protected $isLoaded = true; 
+	protected $isLoaded = true;
 
 	/**
 	 * Is this page allowing it's output to be formatted?
@@ -165,7 +165,7 @@ class Page extends WireData {
 	 * is set to true are considered potentially corrupt. 
 	 *
 	 */
-	protected $outputFormatting = false; 
+	protected $outputFormatting = false;
 
 	/**
 	 * A unique instance ID assigned to the page at the time it's loaded (for debugging purposes only)
@@ -199,7 +199,7 @@ class Page extends WireData {
 	 * to verify the validity of a property name for an object (i.e. Twig).
 	 * 
 	 */
-	static public $issetHas = false; 
+	static public $issetHas = false;
 
 	/**
 	 * The current page number, starting from 1
@@ -213,13 +213,13 @@ class Page extends WireData {
 	 * Reference to main config, optimization so that get() method doesn't get called
 	 *
 	 */
-	protected $config = null; 
+	protected $config = null;
 
 	/**
 	 * When true, exceptions won't be thrown when values are set before templates
 	 *
 	 */
-	protected $quietMode = false; 
+	protected $quietMode = false;
 
 	/**
 	 * Page-specific settings which are either saved in pages table, or generated at runtime.
@@ -267,7 +267,7 @@ class Page extends WireData {
 	 */
 	public function __clone() {
 		$track = $this->trackChanges();
-		$this->setTrackChanges(false); 
+		$this->setTrackChanges(false);
 		if($this->filesManager) {
 			$this->filesManager = clone $this->filesManager; 
 			$this->filesManager->setPage($this);
@@ -285,17 +285,18 @@ class Page extends WireData {
 
 		}
 		$this->instanceID .= ".clone";
-		if($track) $this->setTrackChanges(true); 
+		if($track) $this->setTrackChanges(true);
 	}
 
 	/**
 	 * Set the value of a page property
 	 *
 	 * @param string $key Property to set
-	 * @param mixed $value
+	 * @param mixed  $value
+	 *
+	 * @throws WireException
 	 * @return Page Reference to this Page
 	 * @see __set
-	 *
 	 */
 	public function set($key, $value) {
 
@@ -393,7 +394,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function setQuietly($key, $value) {
-		$this->quietMode = true; 
+		$this->quietMode = true;
 		return parent::setQuietly($key, $value);
 		$this->quietMode = false;
 		return $this; 
@@ -403,14 +404,16 @@ class Page extends WireData {
 	/**
 	 * Set the value of a field that is defined in the page's Fieldgroup
 	 *
-	 * This may not be called when outputFormatting is on. 
+	 * This may not be called when outputFormatting is on.
 	 *
 	 * This is for internal use. API should generally use the set() method, but this is kept public for the minority of instances where it's useful.
 	 *
 	 * @param string $key
-	 * @param mixed $value
-	 * @param bool $load Should the existing value be loaded for change comparisons? (applicable only to non-autoload fields)
+	 * @param mixed  $value
+	 * @param bool   $load Should the existing value be loaded for change comparisons? (applicable only to non-autoload fields)
 	 *
+	 * @throws WireException
+	 * @return \Page
 	 */
 	public function setFieldValue($key, $value, $load = true) {
 
@@ -548,13 +551,18 @@ class Page extends WireData {
 			case 'accessTemplate': 
 				$value = $this->getAccessTemplate();
 				break;
+			case 'num_children': 
+			case 'numChildren': 
+				$value = $this->settings['numChildren'];
+				break;
+			case 'numChildrenVisible':
 			case 'numVisibleChildren':
 				$value = $this->numChildren(true);
 				break;
 			default:
 				if($key && isset($this->settings[(string)$key])) return $this->settings[$key]; 
 
-				if(($value = $this->getFieldFirstValue($key)) !== null) return $value; 
+				if(($value = $this->getFieldFirstValue($key)) !== null) return $value;
 				if(($value = $this->getFieldValue($key)) !== null) return $value;
 
 				// if there is a selector, we'll assume they are using the get() method to get a child
@@ -610,7 +618,7 @@ class Page extends WireData {
 	 *
 	 * Example: browser_title|headline|title - Return the value of the first field that is non-empty
 	 *
-	 * @param string $key
+	 * @param string $multiKey
 	 * @return null|mixed Returns null if no values match, or if there aren't multiple keys split by "|" chars
 	 *
 	 */
@@ -647,20 +655,20 @@ class Page extends WireData {
 		// if the value is already loaded, return it 
 		if(!is_null($value)) return $this->outputFormatting ? $field->type->formatValue($this, $field, $value) : $value; 
 		$track = $this->trackChanges();
-		$this->setTrackChanges(false); 
+		$this->setTrackChanges(false);
 		$value = $field->type->loadPageField($this, $field); 
 		if(is_null($value)) $value = $field->type->getDefaultValue($this, $field); 
 			else $value = $field->type->wakeupValue($this, $field, $value); 
 
 		// if outputFormatting is being used, turn it off because it's not necessary here and may throw an exception
 		$outputFormatting = $this->outputFormatting; 
-		if($outputFormatting) $this->setOutputFormatting(false); 
-		$this->setFieldValue($key, $value, false); 
-		if($outputFormatting) $this->setOutputFormatting(true); 
+		if($outputFormatting) $this->setOutputFormatting(false);
+		$this->setFieldValue($key, $value, false);
+		if($outputFormatting) $this->setOutputFormatting(true);
 		
 		$value = parent::get($key); 	
 		if(is_object($value) && $value instanceof Wire) $value->resetTrackChanges(true);
-		if($track) $this->setTrackChanges(true); 
+		if($track) $this->setTrackChanges(true);
 		return $this->outputFormatting ? $field->type->formatValue($this, $field, $value) : $value; 
 	}
 
@@ -670,9 +678,9 @@ class Page extends WireData {
 	 */
 	public function getUnformatted($key) {
 		$outputFormatting = $this->outputFormatting; 
-		if($outputFormatting) $this->setOutputFormatting(false); 
+		if($outputFormatting) $this->setOutputFormatting(false);
 		$value = $this->get($key); 
-		if($outputFormatting) $this->setOutputFormatting(true); 
+		if($outputFormatting) $this->setOutputFormatting(true);
 		return $value; 
 	}
 
@@ -709,7 +717,7 @@ class Page extends WireData {
 		if($value & Page::statusDeleted) {
 			// disable any instantiated filesManagers after page has been marked deleted
 			// example: uncache method polls filesManager
-			$this->filesManager = null; 
+			$this->filesManager = null;
 		}
 	}
 
@@ -748,12 +756,13 @@ class Page extends WireData {
 
 
 	/**
-	 * Set either the createdUser or the modifiedUser 
+	 * Set either the createdUser or the modifiedUser
 	 *
-	 * @param User|int|string User object or integer/string representation of User
-	 * @param string $userType Must be either 'created' or 'modified' 
+	 * @param        $user
+	 * @param string $userType Must be either 'created' or 'modified'
+	 *
+	 * @throws WireException
 	 * @return this
-	 *
 	 */
 	protected function setUser($user, $userType) {
 
@@ -778,7 +787,9 @@ class Page extends WireData {
 	 * Same as Pages::find() except that the results are limited to descendents of this Page
 	 *
 	 * @param string $selector
+	 * @param array  $options
 	 *
+	 * @return \PageArray
 	 */
 	public function find($selector = '', $options = array()) {
 		if(!$this->numChildren) return new PageArray();
@@ -790,35 +801,45 @@ class Page extends WireData {
 	 * Return this page's children pages, optionally filtered by a selector
 	 *
 	 * @param string $selector Selector to use, or blank to return all children
-	 * @return PageArray
+	 * @param array  $options
 	 *
+	 * @return PageArray
 	 */
 	public function children($selector = '', $options = array()) {
-		return PageTraversal::children($this, $selector, $options); 
+		return $this->traversal()->children($this, $selector, $options); 
 	}
 
 	/**
-	 * Return number of children, optionally limiting to visible pages. 
+	 * Return number of children, optionally with conditions
 	 *
-	 * @param bool $onlyVisible When true, number includes only visible children (excludes unpublished, hidden, no-access, etc.)
+	 * Use this over $page->numChildren property when you want to specify a selector, or when you want the result to
+	 * include only visible children. See the options for the $selector argument. 
+	 *
+	 * @param bool|string $selector 
+	 *	When not specified, result includes all children without conditions, same as $page->numChildren property.
+	 *	When a string, a selector string is assumed and quantity will be counted based on selector.
+	 * 	When boolean true, number includes only visible children (excludes unpublished, hidden, no-access, etc.)
+	 *	When boolean false, number includes all children without conditions, including unpublished, hidden, no-access, etc.
+	 * @return int Number of children
 	 *
 	 */
-	public function numChildren($onlyVisible = false) {
-		if(!$onlyViewable) return $this->settings['numChildren'];
-		return $this->children('limit=2')->getTotal();
+	public function numChildren($selector = null) {
+		if(!$this->settings['numChildren'] || is_null($selector)) return $this->settings['numChildren']; 
+		return $this->traversal()->numChildren($this, $selector); 
 	}
 
 	/**
-	 * Return the page's first single child that matches the given selector. 
+	 * Return the page's first single child that matches the given selector.
 	 *
 	 * Same as children() but returns a Page object or NullPage (with id=0) rather than a PageArray
 	 *
-	 * @param string $selector Selector to use, or blank to return the first child. 
-	 * @return Page|NullPage
+	 * @param string $selector Selector to use, or blank to return the first child.
+	 * @param array  $options
 	 *
+	 * @return Page|NullPage
 	 */
 	public function child($selector = '', $options = array()) {
-		return PageTraversal::child($this, $selector, $options); 
+		return $this->traversal()->child($this, $selector, $options); 
 	}
 
 	/**
@@ -839,12 +860,12 @@ class Page extends WireData {
 	/**
 	 * Return this page's parent pages, or the parent pages matching the given selector.
 	 *
-	 * @param sting $selector Optional selector string to filter parents by
-	 * @return PageArray
+	 * @param \sting|string $selector Optional selector string to filter parents by
 	 *
+	 * @return PageArray
 	 */
 	public function parents($selector = '') {
-		return PageTraversal::parents($this, $selector); 
+		return $this->traversal()->parents($this, $selector); 
 	}
 
 	/**
@@ -856,7 +877,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function parentsUntil($selector = '', $filter = '') {
-		return PageTraversal::parentsUntil($this, $selector, $filter); 
+		return $this->traversal()->parentsUntil($this, $selector, $filter); 
 	}
 
 	/**
@@ -882,7 +903,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function ___rootParent() {
-		return PageTraversal::rootParent($this); 
+		return $this->traversal()->rootParent($this); 
 	}
 
 	/**
@@ -895,7 +916,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function siblings($selector = '') {
-		return PageTraversal::siblings($this, $selector); 
+		return $this->traversal()->siblings($this, $selector); 
 	}
 
 	/**
@@ -916,7 +937,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function next($selector = '', PageArray $siblings = null) {
-		return PageTraversal::next($this, $selector, $siblings); 
+		return $this->traversal()->next($this, $selector, $siblings); 
 	}
 
 	/**
@@ -928,20 +949,20 @@ class Page extends WireData {
 	 *
 	 */
 	public function nextAll($selector = '', PageArray $siblings = null) {
-		return PageTraversal::nextAll($this, $selector, $siblings); 
+		return $this->traversal()->nextAll($this, $selector, $siblings); 
 	}
 
 	/**
-	 * Return all sibling pages after this one until matching the one specified 
+	 * Return all sibling pages after this one until matching the one specified
 	 *
-	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this. 
-	 * @param string $filter Optional selector string to filter matched pages by
-	 * @param PageArray Optional PageArray of siblings to use instead of all from the page.
+	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this.
+	 * @param string      $filter   Optional selector string to filter matched pages by
+	 * @param PageArray   $siblings Optional PageArray of siblings to use instead of all from the page.
+	 *
 	 * @return PageArray
-	 *
 	 */
 	public function nextUntil($selector = '', $filter = '', PageArray $siblings = null) {
-		return PageTraversal::nextUntil($this, $selector, $filter, $siblings); 
+		return $this->traversal()->nextUntil($this, $selector, $filter, $siblings); 
 	}
 
 	/**
@@ -962,7 +983,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function prev($selector = '', PageArray $siblings = null) {
-		return PageTraversal::prev($this, $selector, $siblings); 
+		return $this->traversal()->prev($this, $selector, $siblings); 
 	}
 
 	/**
@@ -974,7 +995,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function prevAll($selector = '', PageArray $siblings = null) {
-		return PageTraversal::prevAll($this, $selector, $siblings); 
+		return $this->traversal()->prevAll($this, $selector, $siblings); 
 	}
 
 	/**
@@ -987,7 +1008,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function prevUntil($selector = '', $filter = '', PageArray $siblings = null) {
-		return PageTraversal::prevUntil($this, $selector, $filter, $siblings); 
+		return $this->traversal()->prevUntil($this, $selector, $filter, $siblings); 
 	}
 
 
@@ -1055,8 +1076,8 @@ class Page extends WireData {
 	 *
 	 */
 	public function isChanged($what = '') {
-		if($this->isNew()) return true; 
-		if(parent::isChanged($what)) return true; 
+		if($this->isNew()) return true;
+		if(parent::isChanged($what)) return true;
 		$changed = false;
 		if($what) {
 			$value = $this->get($what); 
@@ -1175,7 +1196,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function is($status) {
-		return PageComparison::is($this, $status);
+		return $this->comparison()->is($this, $status);
 	}
 
 	/**
@@ -1186,7 +1207,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function matches($s) {
-		return PageComparison::matches($this, $s); 
+		return $this->comparison()->matches($this, $s); 
 	}
 
 	/**
@@ -1202,12 +1223,13 @@ class Page extends WireData {
 		return $this;
 	}
 
-	/** 
+	/**
 	 * Remove the specified status flag from this page's status
 	 *
 	 * @param int $statusFlag
-	 * @return this
 	 *
+	 * @throws WireException
+	 * @return \Page
 	 */
 	public function removeStatus($statusFlag) {
 		$statusFlag = (int) $statusFlag; 
@@ -1252,11 +1274,11 @@ class Page extends WireData {
 	 *
  	 */ 
 	public function isTrash() {
-		if($this->is(self::statusTrash)) return true; 
+		if($this->is(self::statusTrash)) return true;
 		$trashPageID = $this->fuel('config')->trashPageID; 
-		if($this->id == $trashPageID) return true; 
+		if($this->id == $trashPageID) return true;
 		// this is so that isTrash() still returns the correct result, even if the page was just trashed and not yet saved
-		foreach($this->parents() as $parent) if($parent->id == $trashPageID) return true; 
+		foreach($this->parents() as $parent) if($parent->id == $trashPageID) return true;
 		return false;
 	}
 
@@ -1270,10 +1292,10 @@ class Page extends WireData {
 	 *
 	 */
 	public function isPublic() {
-		if($this->status >= Page::statusUnpublished) return false;	
+		if($this->status >= Page::statusUnpublished) return false;
 		$template = $this->getAccessTemplate();
 		if(!$template->hasRole('guest')) return false;
-		return true; 
+		return true;
 	}
 
 	/**
@@ -1284,7 +1306,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function setIsNew($isNew) {
-		$this->isNew = $isNew ? true : false; 
+		$this->isNew = $isNew ? true : false;
 		return $this; 
 	}
 
@@ -1296,13 +1318,14 @@ class Page extends WireData {
 	 *
 	 * @param bool $isLoaded
 	 *
+	 * @return \Page
 	 */
 	public function setIsLoaded($isLoaded) {
 		if($isLoaded) {
 			$this->processFieldDataQueue();
 			unset(Page::$loadingStack[$this->settings['id']]); 
 		}
-		$this->isLoaded = $isLoaded ? true : false; 
+		$this->isLoaded = $isLoaded ? true : false;
 		if($isLoaded) $this->loaded();
 		return $this; 
 	}
@@ -1334,7 +1357,7 @@ class Page extends WireData {
 			// this is so that Fieldtypes that only need to interact with a single value don't have to receive an array of data
 			if(count($value) == 1 && array_key_exists('data', $value)) $value = $value['data']; 
 
-			$this->setFieldValue($key, $value, false); 
+			$this->setFieldValue($key, $value, false);
 		}
 		$this->fieldDataQueue = array(); // empty it out, no longer needed
 	}
@@ -1358,7 +1381,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function setOutputFormatting($outputFormatting = true) {
-		$this->outputFormatting = $outputFormatting ? true : false; 
+		$this->outputFormatting = $outputFormatting ? true : false;
 		return $this; 
 	}
 
@@ -1384,7 +1407,7 @@ class Page extends WireData {
 	 */
 	public function of($outputFormatting = null) {
 		$of = $this->outputFormatting; 
-		if(!is_null($outputFormatting)) $this->outputFormatting = $outputFormatting ? true : false; 
+		if(!is_null($outputFormatting)) $this->outputFormatting = $outputFormatting ? true : false;
 		return $of; 
 	}
 
@@ -1410,7 +1433,7 @@ class Page extends WireData {
 				$value = parent::get($field->name);
 				if($value != null && is_object($value)) {
 					if(method_exists($value, 'uncache')) $value->uncache();
-					parent::set($field->name, null); 
+					parent::set($field->name, null);
 				}
 			}
 		}
@@ -1425,7 +1448,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function __isset($key) {
-		if(isset($this->settings[$key])) return true; 
+		if(isset($this->settings[$key])) return true;
 		if(self::$issetHas && $this->template && $this->template->fieldgroup->hasField($key)) return true;
 		return parent::__isset($key); 
 	}
@@ -1437,7 +1460,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function getAccessParent() {
-		return PageAccess::getAccessParent($this);
+		return $this->access()->getAccessParent($this);
 	}
 
 	/**
@@ -1447,7 +1470,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function getAccessTemplate() {
-		return PageAccess::getAccessTemplate($this);
+		return $this->access()->getAccessTemplate($this);
 	}
 	
 	/**
@@ -1460,7 +1483,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function getAccessRoles() {
-		return PageAccess::getAccessRoles($this);
+		return $this->access()->getAccessRoles($this);
 	}
 
 	/**
@@ -1473,7 +1496,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function hasAccessRole($role) {
-		return PageAccess::hasAccessRole($this, $role); 
+		return $this->access()->hasAccessRole($this, $role); 
 	}
 
 	/**
@@ -1488,9 +1511,39 @@ class Page extends WireData {
 	protected function isEqual($key, $value1, $value2) {
 		if($value1 === $value2) {
 			if(is_object($value1) && $value1 instanceof Wire && $value1->isChanged()) $this->trackChange($key);
-			return true; 
+			return true;
 		} 
 		return false;
+	}
+
+	/**
+	 * @return PageComparison
+	 *
+	 */
+	protected function comparison() {
+		static $comparison = null;
+		if(is_null($comparison)) $comparison = new PageComparison();
+		return $comparison;
+	}
+
+	/**
+	 * @return PageAccess
+	 *
+	 */
+	protected function access() {
+		static $access = null;
+		if(is_null($access)) $access = new PageAccess();
+		return $access;
+	}
+
+	/**
+	 * @return PageTraversal
+	 *
+	 */
+	protected function traversal() {
+		static $traversal = null;
+		if(is_null($traversal)) $traversal = new PageTraversal();
+		return $traversal;
 	}
 
 }

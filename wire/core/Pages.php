@@ -66,7 +66,7 @@ class Pages extends Wire {
 	 * Controls the outputFormatting state for pages that are loaded
 	 *
 	 */
-	protected $outputFormatting = false; 
+	protected $outputFormatting = false;
 
 	/**
 	 * Runtime debug log of Pages class activities, see getDebugLog()
@@ -203,13 +203,14 @@ class Pages extends Wire {
 	 * Like find() but returns only the first match as a Page object (not PageArray)
 	 *
 	 * @param string $selectorString
-	 * @return Page|null
+	 * @param array  $options
 	 *
+	 * @return Page|null
 	 */
 	public function findOne($selectorString, $options = array()) {
 		if(empty($selectorString)) return new NullPage();
 		if($page = $this->getCache($selectorString)) return $page; 
-		$options['findOne'] = true; 
+		$options['findOne'] = true;
 		$page = $this->find($selectorString, $options)->first();
 		if(!$page) $page = new NullPage();
 		return $page; 
@@ -229,13 +230,14 @@ class Pages extends Wire {
 	}
 
 	/**
-	 * Given an array or CSV string of Page IDs, return a PageArray 
+	 * Given an array or CSV string of Page IDs, return a PageArray
 	 *
-	 * @param array|WireArray|string $ids Array of IDs or CSV string of IDs
-	 * @param Template $template Specify a template to make the load faster, because it won't have to attempt to join all possible fields... just those used by the template. 
-	 * @param int $parent_id Specify a parent to make the load faster, as it reduces the possibility for full table scans
+	 * @param array|WireArray|string $ids       Array of IDs or CSV string of IDs
+	 * @param Template               $template  Specify a template to make the load faster, because it won't have to attempt to join all possible fields... just those used by the template.
+	 * @param int                    $parent_id Specify a parent to make the load faster, as it reduces the possibility for full table scans
+	 *
+	 * @throws WireException
 	 * @return PageArray
-	 *
 	 */
 	public function getById($ids, Template $template = null, $parent_id = null) {
 
@@ -322,9 +324,9 @@ class Pages extends Wire {
 
 			while($page = $result->fetch_object($class, array($template))) {
 				$page->instanceID = ++$instanceID; 
-				$page->setIsLoaded(true); 
-				$page->setIsNew(false); 
-				$page->setTrackChanges(true); 
+				$page->setIsLoaded(true);
+				$page->setIsNew(false);
+				$page->setTrackChanges(true);
 				$page->setOutputFormatting($this->outputFormatting); 
 				$loaded[$page->id] = $page; 
 				$this->cache($page); 
@@ -380,10 +382,12 @@ class Pages extends Wire {
 	/**
 	 * Count and return how many pages will match the given selector string
 	 *
-	 * @param string $selectorString
-	 * @return int
-	 * @todo optimize this so that it only counts, and doesn't have to load any pages in the process. 
+	 * TODO optimize this so that it only counts, and doesn't have to load any pages in the process.
 	 *
+	 * @param string $selectorString
+	 * @param array  $options
+	 *
+	 * @return int
 	 */
 	public function count($selectorString, $options = array()) {
 		// PW doesn't count when limit=1, which is why we limit=2
@@ -400,7 +404,7 @@ class Pages extends Wire {
 	 */
 	public function isSaveable(Page $page, &$reason) {
 
-		$saveable = false; 
+		$saveable = false;
 		$outputFormattingReason = "Call \$page->setOutputFormatting(false) before getting/setting values that will be modified and saved. "; 
 
 		if($page instanceof NullPage) $reason = "Pages of type NullPage are not saveable";
@@ -410,7 +414,7 @@ class Pages extends Wire {
 			else if($page->is(Page::statusCorrupted)) $reason = $outputFormattingReason . " [Page::statusCorrupted]";
 			else if($page->id == 1 && !$page->template->useRoles) $reason = "Selected homepage template cannot be used because it does not define access.";
 			else if($page->id == 1 && !$page->template->hasRole('guest')) $reason = "Selected homepage template cannot be used because it does not have the required 'guest' role in it's access settings.";
-			else $saveable = true; 
+			else $saveable = true;
 
 		// check if they could corrupt a field by saving
 		if($saveable && $page->outputFormatting) {
@@ -427,7 +431,7 @@ class Pages extends Wire {
 				if(!$page->template->fieldgroup->getField($key)) continue; 
 				if(is_object($value) && $value instanceof Wire && $value->isChanged()) {
 					$reason = $outputFormattingReason . " [$key]";
-					$saveable = false; 
+					$saveable = false;
 					break;
 				}
 			}
@@ -488,17 +492,19 @@ class Pages extends Wire {
 	}
 
 	/**
-	 * Save a page object and it's fields to database. 
+	 * Save a page object and it's fields to database.
 	 *
-	 * If the page is new, it will be inserted. If existing, it will be updated. 
+	 * If the page is new, it will be inserted. If existing, it will be updated.
 	 *
 	 * This is the same as calling $page->save()
 	 *
-	 * If you want to just save a particular field in a Page, use $page->save($fieldName) instead. 
+	 * If you want to just save a particular field in a Page, use $page->save($fieldName) instead.
 	 *
-	 * @param Page $page
+	 * @param Page  $page
+	 * @param array $options
+	 *
+	 * @throws WireException
 	 * @return bool True on success, false on failure
-	 *
 	 */
 	public function ___save(Page $page, $options = array()) {
 
@@ -515,8 +521,8 @@ class Pages extends Wire {
 		if($page->is(Page::statusUnpublished) && $page->template->noUnpublish) $page->removeStatus(Page::statusUnpublished); 
 
 		if($page->parentPrevious) {
-			if($page->isTrash() && !$page->parentPrevious->isTrash()) $this->trash($page, false); 
-				else if($page->parentPrevious->isTrash() && !$page->parent->isTrash()) $this->restore($page, false); 
+			if($page->isTrash() && !$page->parentPrevious->isTrash()) $this->trash($page, false);
+				else if($page->parentPrevious->isTrash() && !$page->parent->isTrash()) $this->restore($page, false);
 		}
 
 		$user = $this->fuel('user'); 
@@ -561,15 +567,15 @@ class Pages extends Wire {
 
 		// if page hasn't changed, don't continue further
 		if(!$page->isChanged()) {
-			$this->debugLog('save', '[not-changed]', true); 
-			return true; 
+			$this->debugLog('save', '[not-changed]', true);
+			return true;
 		}
 
 		if(PagefilesManager::hasPath($page)) $page->filesManager->save();
 
 		// disable outputFormatting and save state
 		$outputFormatting = $page->outputFormatting; 
-		$page->setOutputFormatting(false); 
+		$page->setOutputFormatting(false);
 
 		// save each individual Fieldtype data in the fields_* tables
 		foreach($page->fieldgroup as $field) {
@@ -582,7 +588,7 @@ class Pages extends Wire {
 		if(empty($page->template->sortfield)) $this->sortfields->save($page); 
 		if($options['resetTrackChanges']) $page->resetTrackChanges();
 		if($isNew) {
-			$page->setIsNew(false); 
+			$page->setIsNew(false);
 			$triggerAddedPage = $page; 
 		} else $triggerAddedPage = null;
 
@@ -632,9 +638,9 @@ class Pages extends Wire {
 		if($page->parentPrevious) $this->moved($page);
 		if($page->templatePrevious) $this->templateChanged($page);
 
-		$this->debugLog('save', $page, true); 
+		$this->debugLog('save', $page, true);
 
-		return true; 
+		return true;
 	}
 
 	/**
@@ -642,10 +648,11 @@ class Pages extends Wire {
 	 *
 	 * This function is public, but the preferred manner to call it is with $page->save($field)
 	 *
-	 * @param Page $page
-	 * @param string|Field $fieldName
-	 * @return bool True on success
+	 * @param Page         $page
+	 * @param string|Field $field
 	 *
+	 * @throws WireException
+	 * @return bool True on success
 	 */
 	public function ___saveField(Page $page, $field) {
 
@@ -665,9 +672,9 @@ class Pages extends Wire {
 			$user = $this->fuel('user'); 
 			$userID = (int) ($user ? $user->id : $this->config->superUserPageID); 
 			$this->db->query("UPDATE pages SET modified_users_id=$userID, modified=NOW() WHERE id=" . (int) $page->id); // QA
-			$return = true; 
+			$return = true;
 		} else {
-			$return = false; 
+			$return = false;
 		}
 
 		$this->debugLog('saveField', "$page:$field", $return);
@@ -684,16 +691,17 @@ class Pages extends Wire {
 	 * @param int $numChildren Number of children this Page has
 	 * @param int $level Recursion level, for debugging.
 	 *
+	 * @return bool
 	 */
 	protected function saveParents($pages_id, $numChildren, $level = 0) {
 
 		$pages_id = (int) $pages_id; 
-		if(!$pages_id) return false; 
+		if(!$pages_id) return false;
 
 		$sql = "DELETE FROM pages_parents WHERE pages_id=" . (int) $pages_id; 
 		$this->db->query($sql); // QA
 
-		if(!$numChildren) return true; 
+		if(!$numChildren) return true;
 
 		$insertSql = ''; 
 		$id = $pages_id; 
@@ -730,7 +738,7 @@ class Pages extends Wire {
 		}
 		$result->free();
 
-		return true; 	
+		return true;
 	}
 
 	/**
@@ -753,7 +761,7 @@ class Pages extends Wire {
 		if($recursive) { 
 			$result = $this->db->query("SELECT id FROM pages WHERE parent_id=$pageID"); // QA
 			while($row = $result->fetch_array()) {
-				$this->savePageStatus($row['id'], $status, true, $remove); 
+				$this->savePageStatus($row['id'], $status, true, $remove);
 			}
 			$result->free();
 		}
@@ -770,8 +778,8 @@ class Pages extends Wire {
 	 */
 	public function isDeleteable(Page $page) {
 
-		$deleteable = true; 
-		if(!$page->id || $page->status & Page::statusSystemID || $page->status & Page::statusSystem) $deleteable = false; 
+		$deleteable = true;
+		if(!$page->id || $page->status & Page::statusSystemID || $page->status & Page::statusSystem) $deleteable = false;
 			else if($page instanceof NullPage) $deleteable = false;
 
 		return $deleteable;
@@ -780,12 +788,13 @@ class Pages extends Wire {
 	/**
 	 * Move a page to the trash
 	 *
-	 * If you have already set the parent to somewhere in the trash, then this method won't attempt to set it again. 
+	 * If you have already set the parent to somewhere in the trash, then this method won't attempt to set it again.
 	 *
 	 * @param Page $page
 	 * @param bool $save Set to false if you will perform the save() call, as is the case when called from the Pages::save() method.
-	 * @return bool
 	 *
+	 * @throws WireException
+	 * @return bool
 	 */
 	public function ___trash(Page $page, $save = true) {
 		if(!$this->isDeleteable($page) || $page->template->noTrash) throw new WireException("This page may not be placed in the trash"); 
@@ -799,10 +808,10 @@ class Pages extends Wire {
 			$page->name = $page->id . "_" . $page->name; 
 		}
 		if($save) $this->save($page); 
-		$this->savePageStatus($page->id, Page::statusTrash, true, false); 
+		$this->savePageStatus($page->id, Page::statusTrash, true, false);
 		$this->trashed($page);
-		$this->debugLog('trash', $page, true); 
-		return true; 
+		$this->debugLog('trash', $page, true);
+		return true;
 	}
 
 	/**
@@ -823,24 +832,25 @@ class Pages extends Wire {
 		}
 		$page->removeStatus(Page::statusTrash); 
 		if($save) $page->save();
-		$this->savePageStatus($page->id, Page::statusTrash, true, true); 
+		$this->savePageStatus($page->id, Page::statusTrash, true, true);
 		$this->restored($page);
-		$this->debugLog('restore', $page, true); 
-		return true; 
+		$this->debugLog('restore', $page, true);
+		return true;
 	}
 
 	/**
-	 * Permanently delete a page and it's fields. 
+	 * Permanently delete a page and it's fields.
 	 *
-	 * Unlike trash(), pages deleted here are not restorable. 
+	 * Unlike trash(), pages deleted here are not restorable.
 	 *
-	 * If you attempt to delete a page with children, and don't specifically set the $recursive param to True, then 
+	 * If you attempt to delete a page with children, and don't specifically set the $recursive param to True, then
 	 * this method will throw an exception. If a recursive delete fails for any reason, an exception will be thrown.
 	 *
 	 * @param Page $page
-	 * @param bool $recursive If set to true, then this will attempt to delete all children too. 
-	 * @return bool
+	 * @param bool $recursive If set to true, then this will attempt to delete all children too.
 	 *
+	 * @throws WireException
+	 * @return bool
 	 */
 	public function ___delete(Page $page, $recursive = false) {
 
@@ -849,7 +859,7 @@ class Pages extends Wire {
 		if($page->numChildren) {
 			if(!$recursive) throw new WireException("Can't delete Page $page because it has one or more children."); 
 			foreach($page->children("status<" . Page::statusMax) as $child) {
-				if(!$this->delete($child, true)) throw new WireException("Error doing recursive page delete, stopped by page $child"); 
+				if(!$this->delete($child, true)) throw new WireException("Error doing recursive page delete, stopped by page $child");
 			}
 		}
 
@@ -875,13 +885,13 @@ class Pages extends Wire {
 		$this->db->query("DELETE FROM pages WHERE id=" . ((int) $page->id) . " LIMIT 1"); // QA
 
 		$this->sortfields->delete($page); 
-		$page->setTrackChanges(false); 
+		$page->setTrackChanges(false);
 		$page->status = Page::statusDeleted; // no need for bitwise addition here, as this page is no longer relevant
 		$this->deleted($page);
 		$this->uncacheAll();
-		$this->debugLog('delete', $page, true); 
+		$this->debugLog('delete', $page, true);
 
-		return true; 
+		return true;
 	}
 
 
@@ -921,7 +931,7 @@ class Pages extends Wire {
 		// clone in memory
 		$copy = clone $page; 
 		$copy->id = 0; 
-		$copy->setIsNew(true); 
+		$copy->setIsNew(true);
 		$copy->name = $name; 
 		$copy->parent = $parent; 
 
@@ -931,7 +941,7 @@ class Pages extends Wire {
 		}
 
 		$o = $copy->outputFormatting; 
-		$copy->setOutputFormatting(false); 
+		$copy->setOutputFormatting(false);
 		$this->cloneReady($page, $copy); 
 		$this->save($copy, $options); 
 		$copy->setOutputFormatting($o); 
@@ -977,7 +987,7 @@ class Pages extends Wire {
 		if(!$id) return $this->pageIdCache; 
 		if(!ctype_digit("$id")) $id = str_replace('id=', '', $id); 
 		$id = (int) $id; 
-		if(!isset($this->pageIdCache[$id])) return null; 
+		if(!isset($this->pageIdCache[$id])) return null;
 		$page = $this->pageIdCache[$id];
 		$page->setOutputFormatting($this->outputFormatting); 
 		return $page; 
@@ -1035,20 +1045,20 @@ class Pages extends Wire {
 	 * @param string $selector
 	 * @param array $options
 	 * @param PageArray $pages
-	 * return bool True of pages were cached, false if not
 	 *
+	 * @return bool True of pages were cached, false if not
 	 */
 	protected function selectorCache($selector, array $options, PageArray $pages) {
 
 		// get the string that will be used for caching
-		$selector = $this->getSelectorCache($selector, $options, true); 		
+		$selector = $this->getSelectorCache($selector, $options, true);
 
 		// optimization: don't cache single pages that have an unpublished status or higher
-		if(count($pages) && !empty($options['findOne']) && $pages->first()->status >= Page::statusUnpublished) return false; 
+		if(count($pages) && !empty($options['findOne']) && $pages->first()->status >= Page::statusUnpublished) return false;
 
 		$this->pageSelectorCache[$selector] = clone $pages; 
 
-		return true; 
+		return true;
 	}
 
 	/**
@@ -1083,7 +1093,7 @@ class Pages extends Wire {
 		if($returnSelector) return $selector; 
 		if(isset($this->pageSelectorCache[$selector])) return $this->pageSelectorCache[$selector]; 
 
-		return null; 
+		return null;
 	}
 
 	/**
@@ -1101,6 +1111,7 @@ class Pages extends Wire {
 	 *
 	 */
 	public function __get($key) {
+		if($key == 'outputFormatting') return $this->outputFormatting; 
 		return parent::__get($key); 
 	}
 
@@ -1111,7 +1122,7 @@ class Pages extends Wire {
 	 *
 	 */
 	public function setOutputFormatting($outputFormatting = true) {
-		$this->outputFormatting = $outputFormatting ? true : false; 
+		$this->outputFormatting = $outputFormatting ? true : false;
 	}
 
 	/**
