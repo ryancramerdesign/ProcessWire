@@ -113,21 +113,21 @@ function unregisterGLOBALS() {
  * Encode array for storage and remove empty values
  *
  * Uses json_encode and works the same way except this function clears out empty root-level values.
- * It also forces number strings that can be integers to be integers. 
+ * It also forces number strings that can be integers to be integers.
  *
  * The end result of all this is more optimized JSON.
  *
- * Use json_encode() instead if you don't want any empty values removed. 
+ * Use json_encode() instead if you don't want any empty values removed.
  *
- * @param array $data Array to be encoded to JSON
- * @param bool|array $allowEmpty Should empty values be allowed in the encoded data? 
- *	- Specify false to exclude all empty values (this is the default if not specified). 
- * 	- Specify true to allow all empty values to be retained.
- * 	- Specify an array of keys (from data) that should be retained if you want some retained and not others.
- * 	- Specify the digit 0 to retain values that are 0, but not other types of empty values.
- * @param array $keepKeys Array of keys from $data that should still be included even if blank (optional). Applicable only if $allowEmpty is true. 
+ * @param array      $data       Array to be encoded to JSON
+ * @param bool|array $allowEmpty Should empty values be allowed in the encoded data?
+ *    - Specify false to exclude all empty values (this is the default if not specified).
+ *    - Specify true to allow all empty values to be retained.
+ *    - Specify an array of keys (from data) that should be retained if you want some retained and not others.
+ *    - Specify the digit 0 to retain values that are 0, but not other types of empty values.
+ *
+ * @internal param array $keepKeys Array of keys from $data that should still be included even if blank (optional). Applicable only if $allowEmpty is true.
  * @return string String of JSON data
- *
  */
 function wireEncodeJSON(array $data, $allowEmpty = false) {
 
@@ -170,7 +170,7 @@ function wireEncodeJSON(array $data, $allowEmpty = false) {
  */
 function wireDecodeJSON($json) {
 	if(empty($json) || $json == '[]') return array();
-	return json_decode($json, true); 
+	return json_decode($json, true);
 }
 
 
@@ -185,7 +185,7 @@ function wireMkdir($path) {
 	if(!is_dir($path)) if(!@mkdir($path)) return false;
 	$chmodDir = wire('config')->chmodDir;
 	if($chmodDir) chmod($path, octdec($chmodDir));
-	return true; 
+	return true;
 }
 
 /**
@@ -205,7 +205,7 @@ function wireRmdir($path, $recursive = false) {
 			if($file == '.' || $file == '..') continue; 
 			$pathname = "$path/$file";
 			if(is_dir($pathname)) {
-				wireRmdir($pathname, true); 
+				wireRmdir($pathname, true);
 			} else {
 				unlink($pathname); 
 			}
@@ -218,23 +218,24 @@ function wireRmdir($path, $recursive = false) {
  * Send the contents of the given filename via http
  *
  * This function utilizes the $content->fileContentTypes to match file extension
- * to content type headers and force-download state. 
+ * to content type headers and force-download state.
  *
  * This function throws a WireException if the file can't be sent for some reason.
  *
  * @param string $filename Filename to send
- * @param array $options Options that you may pass in, see $_options in function for details.
- * @param array $headers Headers that are sent, see $_headers in function for details. 
- *	To remove a header completely, make its value NULL and it won't be sent.
+ * @param array  $options  Options that you may pass in, see $_options in function for details.
+ * @param array  $headers  Headers that are sent, see $_headers in function for details.
+ *                         To remove a header completely, make its value NULL and it won't be sent.
  *
+ * @throws WireException
  */
 function wireSendFile($filename, array $options = array(), array $headers = array()) {
 
 	$_options = array(
 		// boolean: halt program execution after file send
-		'exit' => true, 
+		'exit' => true,
 		// boolean|null: whether file should force download (null=let content-type header decide)
-		'forceDownload' => null, 
+		'forceDownload' => null,
 		// string: filename you want the download to show on the user's computer, or blank to use existing.
 		'downloadFilename' => '',
 		);

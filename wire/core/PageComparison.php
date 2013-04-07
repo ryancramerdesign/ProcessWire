@@ -15,14 +15,15 @@
 
 class PageComparison {
 
-	/** 
-	 * Does this page have the specified status number or template name? 
- 	 *
- 	 * See status flag constants at top of Page class
+	/**
+	 * Does this page have the specified status number or template name?
 	 *
+	 * See status flag constants at top of Page class
+	 *
+	 * @param Page                 $page
 	 * @param int|string|Selectors $status Status number or Template name or selector string/object
-	 * @return bool
 	 *
+	 * @return bool
 	 */
 	public function is(Page $page, $status) {
 
@@ -31,11 +32,11 @@ class PageComparison {
 
 		} else if(is_string($status) && wire('sanitizer')->name($status) == $status) {
 			// valid template name
-			if($page->template->name == $status) return true; 
+			if($page->template->name == $status) return true;
 
 		} else if($page->matches($status)) { 
 			// Selectors object or selector string
-			return true; 
+			return true;
 		}
 
 		return false;
@@ -44,14 +45,15 @@ class PageComparison {
 	/**
 	 * Given a Selectors object or a selector string, return whether this Page matches it
 	 *
+	 * @param Page             $page
 	 * @param string|Selectors $s
-	 * @return bool
 	 *
+	 * @return bool
 	 */
 	public function matches(Page $page, $s) {
 
 		if(is_string($s)) {
-			if(substr($s, 0, 1) == '/' && $page->path() == (rtrim($s, '/') . '/')) return true; 
+			if(substr($s, 0, 1) == '/' && $page->path() == (rtrim($s, '/') . '/')) return true;
 			if(!Selectors::stringHasOperator($s)) return false;
 			$selectors = new Selectors($s); 
 
@@ -67,10 +69,10 @@ class PageComparison {
 		foreach($selectors as $selector) {
 			$name = $selector->field;
 			if(in_array($name, array('limit', 'start', 'sort', 'include'))) continue; 
-			$matches = true; 
+			$matches = true;
 			$value = $page->get($name); 
 			if(!$selector->matches("$value")) {
-				$matches = false; 
+				$matches = false;
 				break;
 			}
 		}

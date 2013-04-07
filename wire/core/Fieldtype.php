@@ -39,7 +39,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function isSingular() {
-		return true; 
+		return true;
 	}
 
 	/**
@@ -47,7 +47,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function isAutoload() {
-		return false; 
+		return false;
 	}
 
 	/**
@@ -55,7 +55,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function isAdvanced() {
-		return false; 	
+		return false;
 	}
 
 	/**
@@ -138,7 +138,7 @@ abstract class Fieldtype extends WireData implements Module {
 		$f->description = $this->_("If checked, ALL pages will be required to have this field.  It will be automatically added to any fieldgroups/templates that don't already have it. This does not mean that a value is required in the field, only that the editable field will exist in all pages."); // Global description
 		$f->attr('value', 1);
 		if($field->flags & Field::flagGlobal) $f->attr('checked', 'checked');
-			else $f->collapsed = true; 
+			else $f->collapsed = true;
 		$inputfields->append($f);
 
 		if($this->config->advanced) {
@@ -148,7 +148,7 @@ abstract class Fieldtype extends WireData implements Module {
 			$f->description = "If checked, this field is considered a system field and is not renameable or deleteable. System fields may not be undone using ProcessWire's API.";
 			$f->attr('value', 1);
 			if($field->flags & Field::flagSystem) $f->attr('checked', 'checked');
-				else $f->collapsed = true; 
+				else $f->collapsed = true;
 			$inputfields->append($f);
 
 			$f = $this->modules->get('InputfieldCheckbox');
@@ -157,7 +157,7 @@ abstract class Fieldtype extends WireData implements Module {
 			$f->description = "If checked, this field is considered a permanent field and it can't be removed from any of the system templates/fieldgroups to which it is attached. This flag may not be undone using ProcessWire's API.";
 			$f->attr('value', 1);
 			if($field->flags & Field::flagPermanent) $f->attr('checked', 'checked');
-				else $f->collapsed = true; 
+				else $f->collapsed = true;
 			$inputfields->append($f);
 		}
 
@@ -217,12 +217,11 @@ abstract class Fieldtype extends WireData implements Module {
 	/**
 	 * Return the blank value for this fieldtype, whether that is a blank string, zero value, blank object or array
 	 *
-	 * @param Page $page
+	 * @param Page  $page
 	 * @param Field $field
-	 * @param string|int|object $value
-	 * @return string|int|object
 	 *
- 	 */
+	 * @return string|int|object
+	 */
 	public function getBlankValue(Page $page, Field $field) {
 		return '';
 	}
@@ -265,12 +264,13 @@ abstract class Fieldtype extends WireData implements Module {
 	/**
 	 * Return the default value for this fieldtype (may be the same as blank value)
 	 *
-	 * Under no circumstances should this return NULL, because that is used by Page to determine if a field has been loaded. 
+	 * Under no circumstances should this return NULL, because that is used by Page to determine if a field has been loaded.
 	 *
-	 * @param Field $field 
-	 * @return mixed 
+	 * @param Page  $page
+	 * @param Field $field
 	 *
- 	 */
+	 * @return mixed
+	 */
 	public function getDefaultValue(Page $page, Field $field) {
 		/* FUTURE
 		$value = $field->getDefaultValue(); 
@@ -282,15 +282,16 @@ abstract class Fieldtype extends WireData implements Module {
 	/**
 	 * Get the query that matches a Fieldtype table's data with a given value
 	 *
-	 * Possible template method: If overridden, children should NOT call this parent method. 
+	 * Possible template method: If overridden, children should NOT call this parent method.
 	 *
 	 * @param DatabaseQuerySelect $query
-	 * @param string $table The table name to use
-	 * @param string $field Name of the field (typically 'data', unless selector explicitly specified another)
-	 * @param string $operator The comparison operator
-	 * @param mixed $value The value to find
-	 * @return DatabaseQuery $query
+	 * @param string              $table    The table name to use
+	 * @param string              $subfield Name of the field (typically 'data', unless selector explicitly specified another)
+	 * @param string              $operator The comparison operator
+	 * @param mixed               $value    The value to find
 	 *
+	 * @throws WireException
+	 * @return DatabaseQuery $query
 	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
 
@@ -312,8 +313,10 @@ abstract class Fieldtype extends WireData implements Module {
 	 * This method should execute the SQL query necessary to create $field->table
 	 * It should throw an Exception if failure occurs
 	 *
- 	 * @param Field $field
+	 * @param Field $field
 	 *
+	 * @throws WireException
+	 * @return
 	 */
 	public function ___createField(Field $field) {
 
@@ -389,18 +392,18 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Load the given page field from the database table and return the value. 
+	 * Load the given page field from the database table and return the value.
 	 *
-	 * Return NULL if the value is not available. 
-	 * Return the value as it exists in the database, without further processing. 
+	 * Return NULL if the value is not available.
+	 * Return the value as it exists in the database, without further processing.
 	 *
-	 * This is intended only to be called by Page objects on an as-needed basis. 
+	 * This is intended only to be called by Page objects on an as-needed basis.
 	 * Typically this is only called for fields that don't have 'autojoin' turned on.
 	 *
-	 * @param Page $page Page object to save. 
-	 * @param Field $field Field to retrieve from the page. 
-	 * @return $value|null
+	 * @param Page  $page  Page object to save.
+	 * @param Field $field Field to retrieve from the page.
 	 *
+	 * @return array|null
 	 */
 	public function ___loadPageField(Page $page, Field $field) {
 
@@ -481,14 +484,15 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Save the given field from page 
+	 * Save the given field from page
 	 *
 	 * Possible template method: If overridden, children should NOT call this parent method.
 	 *
-	 * @param Page $page Page object to save. 
-	 * @param Field $field Field to retrieve from the page. 
-	 * @return bool True on success, false on DB save failure.
+	 * @param Page  $page  Page object to save.
+	 * @param Field $field Field to retrieve from the page.
 	 *
+	 * @throws WireException
+	 * @return bool True on success, false on DB save failure.
 	 */
 	public function ___savePageField(Page $page, Field $field) {
 
@@ -496,7 +500,7 @@ abstract class Fieldtype extends WireData implements Module {
 		if(!$field->id) throw new WireException("Unable to save to '{$field->table}' for field that doesn't exist in fields table"); 
 
 		// if this field hasn't changed since it was loaded, don't bother executing the save
-		if(!$page->isChanged($field->name)) return true; 
+		if(!$page->isChanged($field->name)) return true;
 
 		$db = $this->fuel('db');
 		$value = $page->get($field->name);
@@ -555,7 +559,7 @@ abstract class Fieldtype extends WireData implements Module {
 			$table = $db->escapeTable($field->table); 
 			$result = $db->query("DROP TABLE `$table`"); // QA
 		} catch(Exception $e) {
-			$result = false; 
+			$result = false;
 			$this->error($e->getMessage()); 
 		}
 		return $result;
@@ -567,17 +571,18 @@ abstract class Fieldtype extends WireData implements Module {
 	 * Should delete entries from $field->table that belong to $page->id.
 	 * Possible template method.
 	 *
-	 * @param Page $page 
+	 * @param Page  $page
 	 * @param Field $field Field object
-	 * @return bool True on success, false on DB delete failure.
 	 *
+	 * @throws WireException
+	 * @return bool True on success, false on DB delete failure.
 	 */
 	public function ___deletePageField(Page $page, Field $field) {
 
 		if(!$field->id) throw new WireException("Unable to delete from '{$field->table}' for field that doesn't exist in fields table"); 
 
 		// no need to delete on a new Page because it's not in the table yet
-		if($page->isNew()) return true; 
+		if($page->isNew()) return true;
 
 		// clear the value from the page
 		// $page->set($field->name, $this->getBlankValue($page, $field)); 
@@ -625,7 +630,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function ___install() {
-		return true; 
+		return true;
 	}
 
 	/**
@@ -648,7 +653,7 @@ abstract class Fieldtype extends WireData implements Module {
 
 		if(count($names)) throw new WireException("Unable to uninstall Fieldtype '{$this->name}' because it is used by Fields: " . implode(", ", $names)); 
 
-		return true; 
+		return true;
 	}
 
 

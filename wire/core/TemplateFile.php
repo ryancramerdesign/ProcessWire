@@ -61,6 +61,7 @@ class TemplateFile extends WireData {
 	 *
 	 * @param string $filename Full path and filename to the PHP template file
 	 *
+	 * @throws WireException
 	 */
 	public function setFilename($filename) {
 		if(!$filename) return; 
@@ -75,7 +76,7 @@ class TemplateFile extends WireData {
 	public function setPrependFilename($filename) {
 		if(is_file($filename)) $this->prependFilename = $filename; 
 			else return false;
-		return true; 
+		return true;
 	}
 
 	/**
@@ -85,7 +86,7 @@ class TemplateFile extends WireData {
 	public function setAppendFilename($filename) {
 		if(is_file($filename)) $this->appendFilename = $filename; 
 			else return false;
-		return true; 
+		return true;
 	}
 
 	/**
@@ -145,8 +146,9 @@ class TemplateFile extends WireData {
 	/**
 	 * Get a set property from the template file, typically to check if a template has access to a given variable
 	 *
+	 * @param object|string $property
+	 *
 	 * @return mixed Returns the value of the requested property, or NULL if it doesn't exist
-	 *	
 	 */
 	public function get($property) {
 		if($property == 'filename') return $this->filename; 

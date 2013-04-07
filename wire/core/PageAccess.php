@@ -18,8 +18,9 @@ class PageAccess {
 	/**
 	 * Returns the parent page that has the template from which we get our role/access settings from
 	 *
-	 * @return Page|NullPage Returns NullPage if none found
+	 * @param Page $page
 	 *
+	 * @return Page|NullPage Returns NullPage if none found
 	 */
 	public function getAccessParent(Page $page) {
 		if($page->template->useRoles || $page->id === 1) return $page;
@@ -31,23 +32,25 @@ class PageAccess {
 	/**
 	 * Returns the template from which we get our role/access settings from
 	 *
-	 * @return Template|null Returns null if none	
+	 * @param Page $page
 	 *
+	 * @return Template|null Returns null if none
 	 */
 	public function getAccessTemplate(Page $page) {
 		$parent = $this->getAccessParent($page);
 		if(!$parent->id) return null;
 		return $parent->template; 
 	}
-	
+
 	/**
 	 * Return the PageArray of roles that have access to this page
 	 *
-	 * This is determined from the page's template. If the page's template has roles turned off, 
-	 * then it will go down the tree till it finds usable roles to use. 
+	 * This is determined from the page's template. If the page's template has roles turned off,
+	 * then it will go down the tree till it finds usable roles to use.
+	 *
+	 * @param Page $page
 	 *
 	 * @return PageArray
-	 *
 	 */
 	public function getAccessRoles(Page $page) {
 		$template = $this->getAccessTemplate($page);
@@ -60,9 +63,10 @@ class PageAccess {
 	 *
 	 * Given access role may be a role name, role ID or Role object
 	 *
-	 * @param string|int|Role $role 
-	 * @return bool
+	 * @param Page            $page
+	 * @param string|int|Role $role
 	 *
+	 * @return bool
 	 */
 	public function hasAccessRole(Page $page, $role) {
 		$roles = $this->getAccessRoles($page);

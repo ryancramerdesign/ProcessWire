@@ -47,8 +47,9 @@ class Sanitizer extends Wire {
 	 *
 	 * @param string $value Value to filter
 	 * @param array $allowedExtras Additional characters that are allowed in the value
-	 * @param string 1 character replacement value for invalid characters
+	 * @param string $replacementChar 1 character replacement value for invalid characters
 	 *
+	 * @return mixed|string
 	 */
 	protected function nameFilter($value, array $allowedExtras, $replacementChar) {
 
@@ -82,8 +83,9 @@ class Sanitizer extends Wire {
 	 * @param string $value Value to filter
 	 * @param string $delimeter Character that delimits values (optional)
 	 * @param array $allowedExtras Additional characters that are allowed in the value (optional)
-	 * @param string 1 character replacement value for invalid characters (optional)
+	 * @param string $replacementChar 1 character replacement value for invalid characters (optional)
 	 *
+	 * @return mixed|string
 	 */
 	public function names($value, $delimeter = ' ', $allowedExtras = array('-', '_', '.'), $replacementChar = '_') {
 		$replace = array(',', '|', '  ');
@@ -273,6 +275,7 @@ class Sanitizer extends Wire {
 	 *
 	 * @param string $value Path 
 	 *
+	 * @return string
 	 */
 	public function path($value) {
 		if(!preg_match('{^[-_./a-z0-9]+$}iD', $value)) return '';

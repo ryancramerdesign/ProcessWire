@@ -31,9 +31,6 @@ class PageFinder extends Wire {
 
 	/**
 	 * Construct the PageFinder
-	 *
-	 * @param Fieldgroups $fieldgroups
-	 *
 	 */
 	public function __construct() {
 		$this->fieldgroups = $this->fuel('fieldgroups'); 
@@ -45,7 +42,7 @@ class PageFinder extends Wire {
 	 */
 	protected function setupStatusChecks(Selectors $selectors) {
 
-		$maxStatus = null; 
+		$maxStatus = null;
 		$options = $this->options; 
 
 		foreach($selectors as $key => $selector) {
@@ -69,8 +66,8 @@ class PageFinder extends Wire {
 					$maxStatus = (int) $selector->value; 
 
 			} else if($selector->field == 'include' && $selector->operator == '=' && in_array($selector->value, array('hidden', 'all'))) {
-				if($selector->value == 'hidden') $options['findHidden'] = true; 
-					else if($selector->value == 'all') $options['findAll'] = true; 
+				if($selector->value == 'hidden') $options['findHidden'] = true;
+					else if($selector->value == 'all') $options['findAll'] = true;
 				$selectors->remove($key);
 
 			} else if($selector->field == 'check_access' || $selector->field == 'checkAccess') { 
@@ -87,7 +84,7 @@ class PageFinder extends Wire {
 		} else if($options['findAll']) { 
 			// findAll option means that unpublished, hidden, trash, system may be included
 			$selectors->add(new SelectorLessThan('status', Page::statusMax)); 
-			$this->checkAccess = false;	
+			$this->checkAccess = false;
 
 		} else if($options['findOne'] || $options['findHidden']) {
 			// findHidden|findOne option, apply optimizations enabling hidden pages to be loaded
@@ -136,7 +133,7 @@ class PageFinder extends Wire {
 		$this->parent_id = null;
 		$this->templates_id = null;
 		$this->options = $options; 
-		$this->checkAccess = true; 
+		$this->checkAccess = true;
 		$this->getQueryNumChildren = 0; 
 
 		$this->setupStatusChecks($selectors); 
@@ -181,9 +178,10 @@ class PageFinder extends Wire {
 	 *
 	 * @TODO split this method up into more parts, it's too long
 	 *
-	 * @param array $selectors Array of selectors. 
-	 * @return string SQL statement. 
+	 * @param array $selectors Array of selectors.
 	 *
+	 * @throws PageFinderSyntaxException
+	 * @return string SQL statement.
 	 */
 	protected function ___getQuery($selectors) {
 
@@ -191,7 +189,7 @@ class PageFinder extends Wire {
 		$cnt = 1;
 		$fieldtypes = $this->fieldtypes;
 		$fieldCnt = array(); // counts number of instances for each field to ensure unique table aliases for ANDs on the same field
-		$lastSelector = null; 
+		$lastSelector = null;
 		$sortSelectors = array(); // selector containing 'sort=', which gets added last
 		$joins = array();
 		$startLimit = false; // true when the start/limit part of the query generation is done
@@ -219,7 +217,7 @@ class PageFinder extends Wire {
 
 			} else if($field == 'limit' || $field == 'start') {
 				if(!$startLimit) $this->getQueryStartLimit($query, $selectors); 
-				$startLimit = true; 
+				$startLimit = true;
 				continue; 
 
 			} else if($field == 'path' || $field == 'url') {
@@ -471,7 +469,7 @@ class PageFinder extends Wire {
 
 		if($noCnt > 0 && $noCnt < $yesCnt) {
 			$templates = $noTemplates; 
-			$yes = false; 
+			$yes = false;
 		} else {
 			$templates = $yesTemplates; 
 			$yes = true;
@@ -559,14 +557,14 @@ class PageFinder extends Wire {
 			}
 
 			if($fc == '-' || $lc == '-') $query->orderby("$value DESC", true);
-				else $query->orderby("$value", true); 
+				else $query->orderby("$value", true);
 
 		}
 	}
 
 	protected function getQueryStartLimit(DatabaseQuerySelect $query, $selectors) {
 
-		$start = null; 
+		$start = null;
 		$limit = null;
 		$sql = '';
 

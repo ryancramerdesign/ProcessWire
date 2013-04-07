@@ -80,7 +80,7 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function __construct($path, $path2 = null) {
-		$this->setTrackChanges(false); 
+		$this->setTrackChanges(false);
 		$this->modulePath = $path; 
 		$this->load($path); 
 		if($path2 && is_dir($path2)) {
@@ -110,7 +110,7 @@ class Modules extends WireArray {
  	 *
 	 */
 	public function makeBlankItem() {
-		return null; 
+		return null;
 	}
 
 	/**
@@ -132,7 +132,7 @@ class Modules extends WireArray {
 				unset($this->configData[$id]); 
 			}
 		}
-		$this->initialized = true; 
+		$this->initialized = true;
 	}
 
 	/**
@@ -176,7 +176,7 @@ class Modules extends WireArray {
 			$result->free();
 		}
 
-		$files = $this->findModuleFiles($path, true); 
+		$files = $this->findModuleFiles($path, true);
 
 		foreach($files as $pathname) {
 
@@ -308,7 +308,7 @@ class Modules extends WireArray {
 	 */
 	public function get($key) {
 
-		$module = null; 
+		$module = null;
 		$justInstalled = false;
 
 		// check for optional module ID and convert to classname if found
@@ -332,7 +332,7 @@ class Modules extends WireArray {
 			// check if the request is for an uninstalled module 
 			// if so, install it and return it 
 			$module = $this->install($key); 
-			$justInstalled = true; 
+			$justInstalled = true;
 		}
 
 		// skip autoload modules because they have already been initialized in the load() method
@@ -357,14 +357,14 @@ class Modules extends WireArray {
 	public function includeModule($module) {
 
 		if(is_string($module)) $module = parent::get($module); 
-		if(!$module) return false; 
+		if(!$module) return false;
 
 		if($module instanceof ModulePlaceholder) {
 			include_once($module->file); 			
 		} else {
 			// it's already been included, no doubt
 		}
-		return true; 
+		return true;
 	}
 
 	/**
@@ -421,12 +421,13 @@ class Modules extends WireArray {
 	 * Install the given class name
 	 *
 	 * @param string $class
-	 * @return null|Module Returns null if unable to install, or instantiated Module object if successfully installed. 
 	 *
+	 * @throws WireException
+	 * @return null|Module Returns null if unable to install, or instantiated Module object if successfully installed.
 	 */
 	public function ___install($class) {
 
-		if(!$this->isInstallable($class)) return null; 
+		if(!$this->isInstallable($class)) return null;
 		$pathname = $this->installable[$class]; 	
 		require_once($pathname); 
 		$this->setConfigPaths($class, dirname($pathname)); 
@@ -529,21 +530,22 @@ class Modules extends WireArray {
 
 		if($returnReason && $reason) return $reason;
 	
-		return $reason ? false : true; 	
+		return $reason ? false : true;
 	}
 
 	/**
 	 * Uninstall the given class name
 	 *
 	 * @param string $class
-	 * @return bool
 	 *
+	 * @throws WireException
+	 * @return bool
 	 */
 	public function ___uninstall($class) {
 
 		$class = $this->getModuleClass($class); 
-		$reason = $this->isUninstallable($class, true); 
-		if($reason !== true) throw new WireException("$class - Can't Uninstall - $reason"); 
+		$reason = $this->isUninstallable($class, true);
+		if($reason !== true) throw new WireException("$class - Can't Uninstall - $reason");
 
 		$info = $this->getModuleInfo($class); 
 		$module = $this->get($class); 
@@ -554,7 +556,7 @@ class Modules extends WireArray {
 		}
 
 		$result = $this->fuel('db')->query("DELETE FROM modules WHERE class='" . $this->fuel('db')->escape_string($class) . "' LIMIT 1"); // QA
-		if(!$result) return false; 
+		if(!$result) return false;
 
 		// check if there are any modules still installed that this one says it is responsible for installing
 		foreach($info['installs'] as $name) {
@@ -580,15 +582,16 @@ class Modules extends WireArray {
 		unset($this->moduleIDs[$class]);
 		$this->remove($module); 
 
-		return true; 
+		return true;
 	}
 
 	/**
 	 * Returns the database ID of a given module class, or 0 if not found
 	 *
 	 * @param string|Module $class
-	 * @return int
 	 *
+	 * @throws WireException
+	 * @return int
 	 */
 	public function getModuleID($class) {
 
@@ -631,7 +634,7 @@ class Modules extends WireArray {
 			if(array_key_exists($module, $this->installable)) return $module; 
 		}
 
-		return false; 
+		return false;
 	}
 
 
@@ -742,9 +745,10 @@ class Modules extends WireArray {
 	 * Given a module class name and an array of configuration data, save it for the module
 	 *
 	 * @param string|Module $className
-	 * @param array $configData
-	 * @return bool True on success
+	 * @param array         $configData
 	 *
+	 * @throws WireException
+	 * @return bool True on success
 	 */
 	public function ___saveModuleConfigData($className, array $configData) {
 		if(is_object($className)) $className = $className->className();
@@ -787,7 +791,7 @@ class Modules extends WireArray {
 		$info = $module->getModuleInfo();
 		if(isset($info['autoload'])) return $info['autoload'];
 		if(method_exists($module, 'isAutoload')) return $module->isAutoload();
-		return false; 
+		return false;
 	}
 
 	/**
@@ -874,7 +878,7 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function getRequiresForInstall($class) {
-		return $this->getRequires($class, true); 
+		return $this->getRequires($class, true);
 	}
 
 	/**
@@ -887,7 +891,7 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function getRequiresForUninstall($class) {
-		return $this->getRequiredBy($class, false, true); 
+		return $this->getRequiredBy($class, false, true);
 	}
 
 }

@@ -78,8 +78,11 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	/**
 	 * Add a field to this Fieldgroup
 	 *
- 	 * @param Field|string 
+	 * @param Field|string $field
 	 *
+	 * @throws WireException
+	 *
+	 * @return $this|\WireArray
 	 */
 	public function add($field) {
 		if(!is_object($field)) $field = $this->getFuel('fields')->get($field); 
@@ -106,12 +109,13 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	 *
 	 * @param Field|string $field
 	 *
+	 * @return bool|\WireArray
 	 */
 	public function remove($field) {
 
 		if(!is_object($field)) $field = $this->getFuel('fields')->get($field); 
-		if(!$this->getField($field->id)) return false; 
-		if(!$field) return true; 
+		if(!$this->getField($field->id)) return false;
+		if(!$field) return true;
 
 		// Make note of any fields that were removed so that Fieldgroups::save()
 		// can delete data for those fields
@@ -121,7 +125,7 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 
 		// parent::remove($field->id); replaced with finishRemove() method below
 
-		return true; 
+		return true;
 	}
 
 	/**
@@ -136,6 +140,7 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	 * 
 	 * @param Field $field
 	 *
+	 * @return \WireArray
 	 */
 	public function finishRemove(Field $field) {
 		return parent::remove($field->id); 
@@ -153,8 +158,8 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	public function softRemove($field) {
 
 		if(!is_object($field)) $field = $this->getFuel('fields')->get($field); 
-		if(!$this->getField($field->id)) return false; 
-		if(!$field) return true; 
+		if(!$this->getField($field->id)) return false;
+		if(!$field) return true;
 
 		return parent::remove($field->id); 
 	}
@@ -333,7 +338,7 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 		foreach($this as $field) {
 
 			// get a clone in the context of this fieldgroup, if it has contextual settings
-			if(isset($this->fieldContexts[$field->id])) $field = $this->getField($field->id, true); 
+			if(isset($this->fieldContexts[$field->id])) $field = $this->getField($field->id, true);
 
 			$inputfield = $field->getInputfield($page, $contextStr);
 			if(!$inputfield) continue; 

@@ -38,24 +38,25 @@ class Database extends mysqli {
 	 * Should WireDatabaseException be thrown on error?
 	 *
 	 */
-	protected $throwExceptions = true; 
+	protected $throwExceptions = true;
 
 	/**
-	 * Construct the Database 
+	 * Construct the Database
 	 *
-	 * Since this extends MySQL all the MySQL construct params are kept in tact. 
-	 * However, you may just supply an object with the following properties if you prefer: 
+	 * Since this extends MySQL all the MySQL construct params are kept in tact.
+	 * However, you may just supply an object with the following properties if you prefer:
 	 * $o->dbUser, $o->dbPass, $o->dbHost, $o->dbName, $config->dbPort, $config->dbSocket (optional).
 	 * This would usually be from a ProcessWire Config ($config) API var, but kept as generic object
-	 * in case someone wants to use this class elsewhere. 
-	 * 
-	 * @param string|$config $host Hostname or object with config properties. 
-	 * @param string $user Username
-	 * @param string $pass Password
-	 * @param string $db Database name
-	 * @param int $port Port
-	 * @param string $socket Socket
-	 * 
+	 * in case someone wants to use this class elsewhere.
+	 *
+	 * @param string|\Config $host   Hostname or object with config properties.
+	 * @param string         $user   Username
+	 * @param string         $pass   Password
+	 * @param string         $db     Database name
+	 * @param int            $port   Port
+	 * @param string         $socket Socket
+	 *
+	 * @throws WireDatabaseException
 	 */
 	public function __construct($host = 'localhost', $user = null, $pass = null, $db = null, $port = null, $socket = null) {
 
@@ -79,14 +80,15 @@ class Database extends mysqli {
 	}
 
 	/**
-	 * Overrides default mysqli query method so that it also records and times queries. 
+	 * Overrides default mysqli query method so that it also records and times queries.
 	 *
-	 * @param string $sql SQL Query
-	 * @param int $resultmode See http://www.php.net/manual/en/mysqli.query.php
-	 * @return mixed Returns FALSE on failure. 
-	 * 	For successful SELECT, SHOW, DESCRIBE or EXPLAIN queries mysqli_query() will return a MySQLi_Result object. 
-	 *	For other successful queries mysqli_query() will return TRUE.
+	 * @param string $sql        SQL Query
+	 * @param int    $resultmode See http://www.php.net/manual/en/mysqli.query.php
 	 *
+	 * @throws WireDatabaseException
+	 * @return mixed Returns FALSE on failure.
+	 *    For successful SELECT, SHOW, DESCRIBE or EXPLAIN queries mysqli_query() will return a MySQLi_Result object.
+	 *    For other successful queries mysqli_query() will return TRUE.
 	 */
 	public function query($sql, $resultmode = MYSQLI_STORE_RESULT) {
 
@@ -98,7 +100,7 @@ class Database extends mysqli {
 		if(wire('config')->debug) {
 			$timerKey = Debug::timer();
 			if(!$timerFirstStartTime) $timerFirstStartTime = $timerKey; 
-		} else $timerKey = null; 
+		} else $timerKey = null;
 
 		$result = @parent::query($sql, $resultmode); 
 
@@ -199,12 +201,12 @@ class Database extends mysqli {
 	/**
 	 * Sanitize a table.column string, where either part is optional
 	 *
-	 * @param string $col
-	 * @return string
+	 * @param string $str
 	 *
+	 * @return string
 	 */
 	public function escapeTableCol($str) {
-		if(strpos($str, '.') === false) return $this->escapeTable($str); 
+		if(strpos($str, '.') === false) return $this->escapeTable($str);
 		list($table, $col) = explode('.', $str); 
 		return $this->escapeTable($table) . '.' . $this->escapeCol($col);
 	}
@@ -223,9 +225,9 @@ class Database extends mysqli {
 	/**
 	 * Escape a string value, plus escape characters necessary for a MySQL 'LIKE' phrase
 	 *
-	 * @param string $str
-	 * @return string
+	 * @param string $like
 	 *
+	 * @return string
 	 */
 	public function escapeLike($like) {
 		$like = $this->escape_string($like); 

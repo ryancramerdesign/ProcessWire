@@ -85,10 +85,11 @@ class Pagefile extends WireData {
 	 *
 	 * @param string $filename Full path and filename of file to install
 	 *
+	 * @throws WireException
 	 */
 	protected function ___install($filename) {
 
-		$basename = $this->pagefiles->cleanBasename($filename, true); 
+		$basename = $this->pagefiles->cleanBasename($filename, true);
 		$pathInfo = pathinfo($basename); 
 		$basename = basename($basename, ".$pathInfo[extension]"); 
 
@@ -123,7 +124,7 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function set($key, $value) {
-		if($key == 'basename') $value = $this->pagefiles->cleanBasename($value, false); 
+		if($key == 'basename') $value = $this->pagefiles->cleanBasename($value, false);
 		if($key == 'description') $value = $this->fuel('sanitizer')->textarea($value); 
 		if($key == 'tags') $value = $this->fuel('sanitizer')->text($value);
 		if($key == 'modified') $value = ctype_digit("$value") ? (int) $value : strtotime($value); 
@@ -139,7 +140,7 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function get($key) {
-		$value = null; 
+		$value = null;
 
 		if($key == 'name') $key = 'basename';
 		if($key == 'pathname') $key = 'filename';
@@ -312,12 +313,12 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function rename($basename) {
-		$basename = $this->pagefiles->cleanBasename($basename, true); 
+		$basename = $this->pagefiles->cleanBasename($basename, true);
 		if(rename($this->filename, $this->pagefiles->path . $basename)) {
 			$this->set('basename', $basename); 
 			return $basename; 
 		}
-		return false; 
+		return false;
 	}
 
 

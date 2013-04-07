@@ -77,7 +77,7 @@ interface TrackChanges {
 	 * By default change tracking is off until turned on. 
 	 *
 	 */
-	public function setTrackChanges($trackChanges = true); 
+	public function setTrackChanges($trackChanges = true);
 
 
 	/**
@@ -86,14 +86,15 @@ interface TrackChanges {
 	 * @param string $what The name of the variable that changed. 
 	 *
 	 */
-	public function trackChange($what); 	
+	public function trackChange($what);
 
-	
+
 	/**
 	 * Has this object changed since tracking was turned on?
 	 *
-	 * @return bool
+	 * @param string $what
 	 *
+	 * @return bool
 	 */
 	public function isChanged($what = ''); 
 

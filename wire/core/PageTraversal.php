@@ -20,15 +20,16 @@ class PageTraversal {
 	 * Return number of children, optionally with conditions
 	 *
 	 * Use this over $page->numChildren property when you want to specify a selector or when you want the result to
-	 * include only visible children. See the options for the $selector argument. 
+	 * include only visible children. See the options for the $selector argument.
 	 *
-	 * @param bool|string $selector 
-	 *	When not specified, result includes all children without conditions, same as $page->numChildren property.
-	 *	When a string, a selector string is assumed and quantity will be counted based on selector.
-	 * 	When boolean true, number includes only visible children (excludes unpublished, hidden, no-access, etc.)
-	 *	When boolean false, number includes all children without conditions, including unpublished, hidden, no-access, etc.
+	 * @param Page        $page
+	 * @param bool|string $selector
+	 *    When not specified, result includes all children without conditions, same as $page->numChildren property.
+	 *    When a string, a selector string is assumed and quantity will be counted based on selector.
+	 *    When boolean true, number includes only visible children (excludes unpublished, hidden, no-access, etc.)
+	 *    When boolean false, number includes all children without conditions, including unpublished, hidden, no-access, etc.
+	 *
 	 * @return int Number of children
-	 *
 	 */
 	public function numChildren(Page $page, $selector = null) {
 		if(is_bool($selector)) {
@@ -48,9 +49,11 @@ class PageTraversal {
 	/**
 	 * Return this page's children pages, optionally filtered by a selector
 	 *
+	 * @param Page   $page
 	 * @param string $selector Selector to use, or blank to return all children
-	 * @return PageArray
+	 * @param array  $options
 	 *
+	 * @return PageArray
 	 */
 	public function children(Page $page, $selector = '', $options = array()) {
 		if(!$page->numChildren) return new PageArray();
@@ -65,13 +68,15 @@ class PageTraversal {
 	}
 
 	/**
-	 * Return the page's first single child that matches the given selector. 
+	 * Return the page's first single child that matches the given selector.
 	 *
 	 * Same as children() but returns a Page object or NullPage (with id=0) rather than a PageArray
 	 *
-	 * @param string $selector Selector to use, or blank to return the first child. 
-	 * @return Page|NullPage
+	 * @param Page   $page
+	 * @param string $selector Selector to use, or blank to return the first child.
+	 * @param array  $options
 	 *
+	 * @return Page|NullPage
 	 */
 	public function child(Page $page, $selector = '', $options = array()) {
 		if(!$page->numChildren) return new NullPage();
@@ -84,9 +89,10 @@ class PageTraversal {
 	/**
 	 * Return this page's parent pages, or the parent pages matching the given selector.
 	 *
-	 * @param sting $selector Optional selector string to filter parents by
-	 * @return PageArray
+	 * @param Page          $page
+	 * @param \sting|string $selector Optional selector string to filter parents by
 	 *
+	 * @return PageArray
 	 */
 	public function parents(Page $page, $selector = '') {
 		$parents = new PageArray();
@@ -101,10 +107,11 @@ class PageTraversal {
 	/**
 	 * Return all parent from current till the one matched by $selector
 	 *
-	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this. 
-	 * @param string $filter Optional selector string to filter matched pages by
-	 * @return PageArray
+	 * @param Page        $page
+	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this.
+	 * @param string      $filter   Optional selector string to filter matched pages by
 	 *
+	 * @return PageArray
 	 */
 	public function parentsUntil(Page $page, $selector = '', $filter = '') {
 
@@ -115,14 +122,14 @@ class PageTraversal {
 		foreach($parents->reverse() as $parent) {
 
 			if(is_string($selector) && strlen($selector)) {
-				if(ctype_digit("$selector") && $parent->id == $selector) $stop = true; 
-					else if($parent->matches($selector)) $stop = true; 
+				if(ctype_digit("$selector") && $parent->id == $selector) $stop = true;
+					else if($parent->matches($selector)) $stop = true;
 
 			} else if(is_int($selector)) {
-				if($parent->id == $selector) $stop = true; 
+				if($parent->id == $selector) $stop = true;
 
 			} else if($selector instanceof Page && $parnet->id == $selector->id) {
-				$stop = true; 
+				$stop = true;
 			}
 
 			if($stop) break;
@@ -137,10 +144,11 @@ class PageTraversal {
 	/**
 	 * Get the lowest-level, non-homepage parent of this page
 	 *
-	 * rootParents typically comprise the first level of navigation on a site. 
+	 * rootParents typically comprise the first level of navigation on a site.
 	 *
-	 * @return Page 
+	 * @param Page $page
 	 *
+	 * @return Page
 	 */
 	public function rootParent(Page $page) {
 		$parent = $page->parent;
@@ -151,13 +159,14 @@ class PageTraversal {
 	}
 
 	/**
-	 * Return this Page's sibling pages, optionally filtered by a selector. 
+	 * Return this Page's sibling pages, optionally filtered by a selector.
 	 *
-	 * Note that the siblings include the current page. To exclude the current page, specify "id!=$page". 
+	 * Note that the siblings include the current page. To exclude the current page, specify "id!=$page".
 	 *
+	 * @param Page   $page
 	 * @param string $selector Optional selector to filter siblings by.
-	 * @return PageArray
 	 *
+	 * @return PageArray
 	 */
 	public function siblings(Page $page, $selector = '') {
 		if($selector) $selector .= ", ";
@@ -181,10 +190,11 @@ class PageTraversal {
 	 * or "include=hidden", they will not work in the selector. Instead, you should provide the siblings already retrieved with
 	 * one of those modifiers, and provide those siblings as the second argument to this function.
 	 *
-	 * @param string $selector Optional selector string. When specified, will find nearest next sibling that matches. 
+	 * @param Page      $page
+	 * @param string    $selector Optional selector string. When specified, will find nearest next sibling that matches.
 	 * @param PageArray $siblings Optional siblings to use instead of the default. May also be specified as first argument when no selector needed.
-	 * @return Page|NullPage Returns the next sibling page, or a NullPage if none found. 
 	 *
+	 * @return Page|NullPage Returns the next sibling page, or a NullPage if none found.
 	 */
 	public function next(Page $page, $selector = '', PageArray $siblings = null) {
 		if(is_object($selector) && $selector instanceof PageArray) {
@@ -216,10 +226,11 @@ class PageTraversal {
 	 * or "include=hidden", they will not work in the selector. Instead, you should provide the siblings already retrieved with
 	 * one of those modifiers, and provide those siblings as the second argument to this function.
 	 *
-	 * @param string $selector Optional selector string. When specified, will find nearest previous sibling that matches. 
+	 * @param Page      $page
+	 * @param string    $selector Optional selector string. When specified, will find nearest previous sibling that matches.
 	 * @param PageArray $siblings Optional siblings to use instead of the default. May also be specified as first argument when no selector needed.
-	 * @return Page|NullPage Returns the previous sibling page, or a NullPage if none found. 
 	 *
+	 * @return Page|NullPage Returns the previous sibling page, or a NullPage if none found.
 	 */
 	public function prev(Page $page, $selector = '', PageArray $siblings = null) {
 		if(is_object($selector) && $selector instanceof PageArray) {
@@ -242,10 +253,11 @@ class PageTraversal {
 	/**
 	 * Return all sibling pages after this one, optionally matching a selector
 	 *
-	 * @param string $selector Optional selector string. When specified, will filter the found siblings.
-	 * @param PageArray $siblings Optional siblings to use instead of the default. 
-	 * @return Page|NullPage Returns all matching pages after this one.
+	 * @param Page      $page
+	 * @param string    $selector Optional selector string. When specified, will filter the found siblings.
+	 * @param PageArray $siblings Optional siblings to use instead of the default.
 	 *
+	 * @return Page|NullPage Returns all matching pages after this one.
 	 */
 	public function nextAll(Page $page, $selector = '', PageArray $siblings = null) {
 
@@ -271,10 +283,11 @@ class PageTraversal {
 	/**
 	 * Return all sibling pages before this one, optionally matching a selector
 	 *
-	 * @param string $selector Optional selector string. When specified, will filter the found siblings.
-	 * @param PageArray $siblings Optional siblings to use instead of the default. 
-	 * @return Page|NullPage Returns all matching pages before this one.
+	 * @param Page      $page
+	 * @param string    $selector Optional selector string. When specified, will filter the found siblings.
+	 * @param PageArray $siblings Optional siblings to use instead of the default.
 	 *
+	 * @return Page|NullPage Returns all matching pages before this one.
 	 */
 	public function prevAll(Page $page, $selector = '', PageArray $siblings = null) {
 
@@ -294,13 +307,14 @@ class PageTraversal {
 	}
 
 	/**
-	 * Return all sibling pages after this one until matching the one specified 
+	 * Return all sibling pages after this one until matching the one specified
 	 *
-	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this. 
-	 * @param string $filter Optional selector string to filter matched pages by
-	 * @param PageArray Optional PageArray of siblings to use instead of all from the page.
+	 * @param Page        $page
+	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this.
+	 * @param string      $filter   Optional selector string to filter matched pages by
+	 * @param \PageArray  $siblings Optional PageArray of siblings to use instead of all from the page.
+	 *
 	 * @return PageArray
-	 *
 	 */
 	public function nextUntil(Page $page, $selector = '', $filter = '', PageArray $siblings = null) {
 
@@ -316,14 +330,14 @@ class PageTraversal {
 		foreach($siblings as $sibling) {
 
 			if(is_string($selector) && strlen($selector)) { 
-				if(ctype_digit("$selector") && $sibling->id == $selector) $stop = true; 
-					else if($sibling->matches($selector)) $stop = true; 
+				if(ctype_digit("$selector") && $sibling->id == $selector) $stop = true;
+					else if($sibling->matches($selector)) $stop = true;
 
 			} else if(is_int($selector)) {
-				if($sibling->id == $selector) $stop = true; 
+				if($sibling->id == $selector) $stop = true;
 
 			} else if($selector instanceof Page && $sibling->id == $selector->id) {
-				$stop = true; 
+				$stop = true;
 			}
 
 			if($stop) break;
@@ -333,15 +347,16 @@ class PageTraversal {
 		if(strlen($filter)) $all->filter($filter); 
 		return $all;
 	}
-	
+
 	/**
-	 * Return all sibling pages before this one until matching the one specified 
+	 * Return all sibling pages before this one until matching the one specified
 	 *
-	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this. 
-	 * @param string $filter Optional selector string to filter matched pages by
-	 * @param PageArray Optional PageArray of siblings to use instead of all from the page.
+	 * @param Page        $page
+	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this.
+	 * @param string      $filter   Optional selector string to filter matched pages by
+	 * @param \PageArray  $siblings Optional PageArray of siblings to use instead of all from the page.
+	 *
 	 * @return PageArray
-	 *
 	 */
 	public function prevUntil(Page $page, $selector = '', $filter = '', PageArray $siblings = null) {
 
@@ -357,14 +372,14 @@ class PageTraversal {
 		foreach($siblings->reverse() as $sibling) {
 
 			if(is_string($selector) && strlen($selector)) {
-				if(ctype_digit("$selector") && $sibling->id == $selector) $stop = true; 
-					else if($sibling->matches($selector)) $stop = true; 
+				if(ctype_digit("$selector") && $sibling->id == $selector) $stop = true;
+					else if($sibling->matches($selector)) $stop = true;
 
 			} else if(is_int($selector)) {
-				if($sibling->id == $selector) $stop = true; 
+				if($sibling->id == $selector) $stop = true;
 
 			} else if($selector instanceof Page && $sibling->id == $selector->id) {
-				$stop = true; 
+				$stop = true;
 			}
 
 			if($stop) break;

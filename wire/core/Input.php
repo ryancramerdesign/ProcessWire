@@ -130,16 +130,15 @@ class WireInput {
 	protected $cookieVars = null;
 	protected $whitelist = null;
 	protected $urlSegments = array();
-	protected $pageNum = 1; 
+	protected $pageNum = 1;
 
 	/**
 	 * Retrieve a GET value or all GET values
 	 *
-	 * @param blank|string 
-	 * 	If populated, returns the value corresponding to the key or NULL if it doesn't exist.
-	 *	If blank, returns reference to the WireDataInput containing all GET vars. 
-	 * @return null|mixed|WireDataInput
+	 * @param blank|string $key If populated, returns the value corresponding to the key or NULL if it doesn't exist.
+	 *	If blank, returns reference to the WireDataInput containing all GET vars.
 	 *
+	 * @return null|mixed|WireDataInput
 	 */
 	public function get($key = '') {
 		if(is_null($this->getVars)) $this->getVars = new WireInputData($_GET); 
@@ -149,8 +148,7 @@ class WireInput {
 	/**
 	 * Retrieve a POST value or all POST values
 	 *
-	 * @param blank|string 
-	 *	If populated, returns the value corresponding to the key or NULL if it doesn't exist.
+	 * @param blank|string $key If populated, returns the value corresponding to the key or NULL if it doesn't exist.
 	 *	If blank, returns reference to the WireDataInput containing all POST vars. 
 	 * @return null|mixed|WireDataInput
 	 *
@@ -163,8 +161,7 @@ class WireInput {
 	/**
 	 * Retrieve a COOKIE value or all COOKIE values
 	 *
-	 * @param blank|string 
-	 *	If populated, returns the value corresponding to the key or NULL if it doesn't exist.
+	 * @param blank|string $key If populated, returns the value corresponding to the key or NULL if it doesn't exist.
 	 *	If blank, returns reference to the WireDataInput containing all COOKIE vars. 
 	 * @return null|mixed|WireDataInput
 	 *

@@ -41,7 +41,7 @@ class Password extends Wire {
 		} else if($this->supportsBlowfish()) {
 			// notify user they may want to change their password
 			// to take advantage of blowfish hashing
-			$updateNotify = true; 
+			$updateNotify = true;
 		}
 
 		if(strlen($hash) < 29) return false;
@@ -117,9 +117,7 @@ class Password extends Wire {
 	/**
 	 * Generate a random salt for the given hashType
 	 *
-	 * @param string $hashType Typically 'blowfish' or 'sha1' in ProcessWire. Provide blank string to auto-detect.
 	 * @return string
-	 *
 	 */
 	protected function salt() {
 
@@ -225,11 +223,12 @@ class Password extends Wire {
 	/**
 	 * Given an unhashed password, generate a hash of the password for database storage and comparison
 	 *
-	 * Note: When bowfish, returns the entire blowfish string which has the salt as the first 28 characters. 
+	 * Note: When bowfish, returns the entire blowfish string which has the salt as the first 28 characters.
 	 *
 	 * @param string $pass Raw password
-	 * @param string $hashType Typically 'blowfish' or 'sha1' in ProcessWire
 	 *
+	 * @throws WireException
+	 * @return string
 	 */
 	protected function hash($pass) {
 
@@ -264,7 +263,7 @@ class Password extends Wire {
 			// split the password in two
 			$splitPass = str_split($pass, (strlen($pass) / 2) + 1); 
 			// generate the hash
-			$hash = hash($hashType, $salt1 . $splitPass[0] . $salt2 . $splitPass[1], false); 
+			$hash = hash($hashType, $salt1 . $splitPass[0] . $salt2 . $splitPass[1], false);
 		}
 
 		if(!is_string($hash) || strlen($hash) <= 13) throw new WireException("Unable to generate password hash"); 

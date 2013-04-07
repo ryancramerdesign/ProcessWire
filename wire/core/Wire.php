@@ -39,7 +39,7 @@ abstract class Wire implements TrackChanges {
 	protected static $defaultHookOptions = array(
 		'type' => 'method', 
 		'before' => false,
-		'after' => true, 
+		'after' => true,
 		'priority' => 100,
 		'allInstances' => false,
 		'fromClass' => '', 
@@ -83,7 +83,7 @@ abstract class Wire implements TrackChanges {
 	 * Is change tracking turned on? 
 	 *
 	 */
-	protected $trackChanges = false; 
+	protected $trackChanges = false;
 
 	/**
 	 * Array containing the names of properties that were changed while change tracking was ON. 
@@ -95,7 +95,7 @@ abstract class Wire implements TrackChanges {
 	 * Whether this class may use fuel variables in local scope, like $this->item
 	 *
 	 */ 
-	protected $useFuel = true; 
+	protected $useFuel = true;
 
 	/**
 	 * Add fuel to all classes descending from Wire
@@ -159,7 +159,7 @@ abstract class Wire implements TrackChanges {
 	 *
 	 */
 	public function useFuel($useFuel = null) {
-		if(!is_null($useFuel)) $this->useFuel = $useFuel ? true : false; 
+		if(!is_null($useFuel)) $this->useFuel = $useFuel ? true : false;
 		return $this->useFuel;
 	}
 
@@ -209,22 +209,23 @@ abstract class Wire implements TrackChanges {
 
 	/**
 	 * Provides the gateway for calling hooks in ProcessWire
-	 * 
-	 * When a non-existant method is called, this checks to see if any hooks have been defined and sends the call to them. 
-	 * 
+	 *
+	 * When a non-existant method is called, this checks to see if any hooks have been defined and sends the call to them.
+	 *
 	 * Hooks are defined by preceding the "hookable" method in a descending class with 3 underscores, like __myMethod().
-	 * When the API calls $myObject->myMethod(), it gets sent to $myObject->___myMethod() after any 'before' hooks have been called. 
+	 * When the API calls $myObject->myMethod(), it gets sent to $myObject->___myMethod() after any 'before' hooks have been called.
 	 * Then after the ___myMethod() call, any "after" hooks are then called. "after" hooks have the opportunity to change the return value.
 	 *
-	 * Hooks can also be added for methods that don't actually exist in the class, allowing another class to add methods to this class. 
+	 * Hooks can also be added for methods that don't actually exist in the class, allowing another class to add methods to this class.
 	 *
 	 * See the Wire::runHooks() method for the full implementation of hook calls.
 	 *
 	 * @param string $method
-	 * @param array $arguments
-	 * @return mixed
+	 * @param array  $arguments
 	 *
-	 */ 
+	 * @throws WireException
+	 * @return mixed
+	 */
 	public function __call($method, $arguments) {
 		$result = $this->runHooks($method, $arguments); 
 		if(!$result['methodExists'] && !$result['numHooksRun']) {
@@ -253,7 +254,7 @@ abstract class Wire implements TrackChanges {
 	public function runHooks($method, $arguments, $type = 'method') {
 
 		$result = array(
-			'return' => null, 
+			'return' => null,
 			'numHooksRun' => 0, 
 			'methodExists' => false,
 			'replace' => false,
@@ -350,22 +351,23 @@ abstract class Wire implements TrackChanges {
 	static protected function isHooked($method) {
 		if(array_key_exists($method, self::$hookMethodCache)) return true; // fromClass::method() or fromClass::property
 		if(in_array($method, self::$hookMethodCache)) return true; // method() or property
-		return false; 
+		return false;
 	}
 
 	/**
 	 * Hook a function/method to a hookable method call in this object
 	 *
-	 * Hookable method calls are methods preceded by three underscores. 
+	 * Hookable method calls are methods preceded by three underscores.
 	 * You may also specify a method that doesn't exist already in the class
-	 * The hook method that you define may be part of a class or a globally scoped function. 
+	 * The hook method that you define may be part of a class or a globally scoped function.
 	 *
-	 * @param string $method Method name to hook into, NOT including the three preceding underscores. May also be Class::Method for same result as using the fromClass option.
+	 * @param string      $method   Method name to hook into, NOT including the three preceding underscores. May also be Class::Method for same result as using the fromClass option.
 	 * @param object|null $toObject Object to call $toMethod from, or null if $toMethod is a function outside of an object
-	 * @param string $toMethod Method from $toObject, or function name to call on a hook event
-	 * @param array $options See self::$defaultHookOptions at the beginning of this class
-	 * @return string A special Hook ID that should be retained if you need to remove the hook later
+	 * @param string      $toMethod Method from $toObject, or function name to call on a hook event
+	 * @param array       $options  See self::$defaultHookOptions at the beginning of this class
 	 *
+	 * @throws WireException
+	 * @return string A special Hook ID that should be retained if you need to remove the hook later
 	 */
 	public function addHook($method, $toObject, $toMethod, $options = array()) {
 
@@ -421,8 +423,8 @@ abstract class Wire implements TrackChanges {
 	 *
 	 */
 	public function addHookBefore($method, $toObject, $toMethod, $options = array()) {
-		$options['before'] = true; 
-		if(!isset($options['after'])) $options['after'] = false; 
+		$options['before'] = true;
+		if(!isset($options['after'])) $options['after'] = false;
 		return $this->addHook($method, $toObject, $toMethod, $options); 
 	}
 
@@ -439,8 +441,8 @@ abstract class Wire implements TrackChanges {
 	 *
 	 */
 	public function addHookAfter($method, $toObject, $toMethod, $options = array()) {
-		$options['after'] = true; 
-		if(!isset($options['before'])) $options['before'] = false; 
+		$options['after'] = true;
+		if(!isset($options['before'])) $options['before'] = false;
 		return $this->addHook($method, $toObject, $toMethod, $options); 
 	}
 
@@ -452,7 +454,7 @@ abstract class Wire implements TrackChanges {
 	 * This is the same as calling addHook with the 'type' option set to 'property' in the $options array. 
 	 * Note that descending classes that override __get must call getHook($property) and/or runHook($property).
 	 *
-	 * @param string $method Method name to hook into, NOT including the three preceding underscores
+	 * @param string $property Method name to hook into, NOT including the three preceding underscores
 	 * @param object|null $toObject Object to call $toMethod from, or null if $toMethod is a function outside of an object
 	 * @param string $toMethod Method from $toObject, or function name to call on a hook event
 	 * @param array $options See self::$defaultHookOptions at the beginning of this class
@@ -509,7 +511,7 @@ abstract class Wire implements TrackChanges {
 	 * The change will only be recorded if self::$trackChanges is true. 
 	 *
 	 * @param string $what Name of property that changed
-	 * @return this
+	 * @return \Wire
 	 * 
 	 */
 	public function trackChange($what) {
@@ -524,12 +526,12 @@ abstract class Wire implements TrackChanges {
 	 * Untrack a change to a property in this object
 	 *
 	 * @param string $what Name of property that you want to remove it's change being tracked
-	 * @return this
+	 * @return \Wire
 	 * 
 	 */
 	public function untrackChange($what) {
 		$key = array_search($what, $this->changes); 	
-		if($key !== false) unset($this->changes[$key]); 
+		if($key !== false) unset($this->changes[$key]);
 		return $this; 
 	}
 
@@ -537,11 +539,11 @@ abstract class Wire implements TrackChanges {
 	 * Turn change tracking ON or OFF
 	 *
 	 * @param bool $trackChanges True to turn on, false to turn off. If not specified, true is assumed. 
-	 * @return this
+	 * @return \Wire
 	 *
 	 */
 	public function setTrackChanges($trackChanges = true) {
-		$this->trackChanges = $trackChanges ? true : false; 
+		$this->trackChanges = $trackChanges ? true : false;
 		return $this; 
 	}
 
@@ -559,7 +561,7 @@ abstract class Wire implements TrackChanges {
 	 * Clears out any tracked changes and turns change tracking ON or OFF
 	 *
 	 * @param bool $trackChanges True to turn change tracking ON, or false to turn OFF. Default of true is assumed. 
-	 * @return this
+	 * @return \Wire
 	 *
 	 */
 	public function resetTrackChanges($trackChanges = true) {
@@ -583,8 +585,8 @@ abstract class Wire implements TrackChanges {
 	 * This method automatically identifies the message as coming from this class. 
 	 *
 	 * @param string $text
-	 * @param flags int See Notices::flags
-	 * @return this
+	 * @param int $flags See Notices::flags
+	 * @return \Wire
 	 *
 	 */
 	public function message($text, $flags = 0) {
@@ -595,16 +597,16 @@ abstract class Wire implements TrackChanges {
 	}
 
 	/**
-	 * Record an non-fatal error message in the system-wide notices. 
+	 * Record an non-fatal error message in the system-wide notices.
 	 *
-	 * This method automatically identifies the error as coming from this class. 
+	 * This method automatically identifies the error as coming from this class.
 	 *
 	 * Fatal errors should still throw a WireException (or class derived from it)
 	 *
 	 * @param string $text
-	 * @param flags int See Notices::flags
-	 * @return this
+	 * @param int    $flags See Notices::flags
 	 *
+	 * @return \Wire
 	 */
 	public function error($text, $flags = 0) {
 		$notice = new NoticeError($text, $flags); 
@@ -642,11 +644,12 @@ abstract class Wire implements TrackChanges {
 
 	/**
 	 * Perform a language translation with singular and plural versions
-	 * 
-	 * @param string $textSingular Singular version of text (when there is 1 item)
-	 * @param string $textPlural Plural version of text (when there are multiple items or 0 items)
-	 * @return string Translated text or original text if translation not available.
 	 *
+	 * @param string $textSingular Singular version of text (when there is 1 item)
+	 * @param string $textPlural   Plural version of text (when there are multiple items or 0 items)
+	 * @param int    $count
+	 *
+	 * @return string Translated text or original text if translation not available.
 	 */
 	public function _n($textSingular, $textPlural, $count) {
 		return _n($textSingular, $textPlural, $count, $this); 

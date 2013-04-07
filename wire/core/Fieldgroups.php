@@ -74,10 +74,9 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	/**
 	 * Get the DatabaseQuerySelect to perform the load operation of items
 	 *
-	 * @param WireArray $items
-	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all. 
-	 * @return DatabaseQuerySelect
+	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all.
 	 *
+	 * @return DatabaseQuerySelect
 	 */
 	protected function getLoadQuery($selectors = null) {
 		$query = parent::getLoadQuery($selectors); 
@@ -92,9 +91,10 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 * The loading is delegated to WireSaveableItems.
 	 * After loaded, we check for any 'global' fields and add them to the Fieldgroup, if not already there.
 	 *
-	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all. 
-	 * @return WireArray Returns the same type as specified in the getAll() method.
+	 * @param WireArray             $items
+	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all.
 	 *
+	 * @return WireArray Returns the same type as specified in the getAll() method.
 	 */
 	protected function ___load(WireArray $items, $selectors = null) {
 		$items = parent::___load($items, $selectors); 	
@@ -168,8 +168,9 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 * If fields were removed from the Fieldgroup, then track them down and remove them from the associated field_* tables
 	 *
 	 * @param Saveable $item Fieldgroup to save
-	 * @return bool True on success, false on failure
 	 *
+	 * @throws WireException
+	 * @return bool True on success, false on failure
 	 */
 	public function ___save(Saveable $item) {
 
@@ -238,9 +239,10 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 *
 	 * Also deletes the references in fieldgroups_fields table
 	 *
-	 * @param Fieldgroup $fieldgroup
-	 * @return Fieldgroups $this
+	 * @param \Saveable|\Fieldgroup $item
 	 *
+	 * @throws WireException
+	 * @return Fieldgroups $this
 	 */
 	public function ___delete(Saveable $item) {
 
@@ -276,6 +278,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 * @param Saveable $item Item to clone
 	 * @param bool|Saveable $item Returns the new clone on success, or false on failure
 	 *
+	 * @return bool|\Saveable
 	 */
 	public function ___clone(Saveable $item) {
 		return parent::___clone($item);

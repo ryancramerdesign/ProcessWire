@@ -42,6 +42,7 @@ class Config extends WireData {
 	 * @param string $key 
 	 * @param mixed $value
  	 *
+	 * @return array|mixed|null|\this
 	 */
 	public function js($key = null, $value = null) {
 

@@ -12,10 +12,9 @@ interface ImageSizerInterface {
 	 *
 	 * Note: Some code used in this method is adapted from code found in comments at php.net for the GD functions
 	 *
-	 * @param int $width
-	 * @param int $height
-	 * @return bool True if the resize was successful
+	 * @param $filename
 	 *
+	 * @return \ImageSizerInterface True if the resize was successful
 	 */
 	public function __construct($filename);
 
@@ -24,10 +23,10 @@ interface ImageSizerInterface {
 	 *
 	 * Note: Some code used in this method is adapted from code found in comments at php.net for the GD functions
 	 *
-	 * @param int $width
-	 * @param int $height
-	 * @return bool True if the resize was successful
+	 * @param int $targetWidth
+	 * @param int $targetHeight
 	 *
+	 * @return bool True if the resize was successful
 	 */
 	public function resize($targetWidth, $targetHeight = 0);
 
@@ -56,7 +55,7 @@ interface ImageSizerInterface {
 	 *	Or a string of: 50%,50% (x and y percentages to crop from)
 	 * 	Or an array('50%', '50%')
 	 *	Or to disable cropping, specify boolean false. To enable cropping with default (center), you may also specify boolean true.
-	 * @return this
+	 * @return \ImageSizerInterface
 	 *
 	 */
 	public function setCropping($cropping = true);
@@ -65,7 +64,7 @@ interface ImageSizerInterface {
  	 * Set the image quality 1-100, where 100 is highest quality
 	 *
 	 * @param int $n
-	 * @return this
+	 * @return \ImageSizerInterface
 	 *
 	 */
 	public function setQuality($n);
@@ -77,7 +76,7 @@ interface ImageSizerInterface {
 	 *	'quality' => 90,
 	 *	'cropping' => true, 
 	 *	'upscaling' => true
-	 * @return this
+	 * @return \ImageSizerInterface
 	 *
 	 */
 	public function setOptions(array $options);
@@ -93,7 +92,7 @@ interface ImageSizerInterface {
 	/**
 	 * Was the image modified?
 	 *
-	 * @return booe 
+	 * @return bool
 	 *	
 	 */
 	public function isModified();

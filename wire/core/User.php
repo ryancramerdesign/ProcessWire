@@ -62,7 +62,7 @@ class User extends Page {
 		if(is_string($role) || is_int($role)) $role = $this->fuel('roles')->get($role); 
 		if(is_object($role) && $role instanceof Role) {
 			$this->roles->add($role); 
-			return true; 
+			return true;
 		}
 		return false;
 	}
@@ -80,7 +80,7 @@ class User extends Page {
 		if(is_string($role) || is_int($role)) $role = $this->fuel('roles')->get($role); 
 		if(is_object($role) && $role instanceof Role) {
 			$this->roles->remove($role); 
-			return true; 
+			return true;
 		}
 		return false;
 	}
@@ -116,7 +116,7 @@ class User extends Page {
 	 */
 	protected function hasPagePermission($name, Page $page = null) {
 
-		if($this->isSuperuser()) return true; 
+		if($this->isSuperuser()) return true;
 
 		if($name instanceof Page) {
 			$permission = $name; 
@@ -130,7 +130,7 @@ class User extends Page {
 
 		if(!$permission || !$permission->id) return false;
 
-		$has = false; 
+		$has = false;
 		$accessTemplate = is_null($page) ? null : $page->getAccessTemplate();
 
 		foreach($this->roles as $key => $role) {
@@ -168,17 +168,18 @@ class User extends Page {
 	/**
 	 * Does this user have the given permission on the given template?
 	 *
-	 * @param string $name Permission name
 	 * @param Template|int|string Template object, name or ID
-	 * @return bool
+	 * @param                     $template
 	 *
+	 * @throws WireException
+	 * @return bool
 	 */
 	protected function hasTemplatePermission($name, $template) {
 
 		if($name instanceof Template) $name = $name->name; 
 		if(is_object($name)) throw new WireException("Invalid type"); 
 
-		if($this->isSuperuser()) return true; 
+		if($this->isSuperuser()) return true;
 
 		if($template instanceof Template) {
 			// fantastic then
@@ -249,7 +250,7 @@ class User extends Page {
 	 */
 	public function isSuperuser() {
 		$config = $this->fuel('config');
-		if($this->id === $config->superUserPageID) return true; 
+		if($this->id === $config->superUserPageID) return true;
 		if($this->id === $config->guestUserPageID) return false;
 		$superuserRoleID = $config->superUserRolePageID; 
 		$is = false;
