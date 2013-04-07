@@ -13,16 +13,50 @@
  * 
  * http://www.processwire.com
  * http://www.ryancramer.com
- *
- * @TODO add capability to lock fuel items from being overwritten. 
- *
  */
 class Fuel implements IteratorAggregate {
 
 	protected $data = array();
+	/**
+	 * @var array holds the keys that are locked.
+	 */
+	protected $locked = array();
 
-	public function set($key, $value) {
-		$this->data[$key] = $value; 
+	/**
+	 * @param string $key The key by which the set of data will be identified.
+	 * @param mixed  $value Any value to set the key to.
+	 * @param bool   $lock Whether or not to lock the value making it impossible for it to be overriden.
+	 *
+	 * @return bool
+	 */
+	public function set($key, $value, $lock=false) {
+		if( ! in_array($key, $this->locked)) {
+			$this->data[$key] = $value;
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Adds a key to the locked keys array.
+	 *
+	 * @param string $key
+	 */
+	public function lock($key) {
+		array_push($this->locked, $key);
+	}
+
+	/**
+	 * Removes a key from the locked keys array.
+	 *
+	 * @param string $key
+	 */
+	public function unlock($key) {
+		$key_array = $key;
+		if (! is_array($key)) {
+			$key_array = array($key);
+		}
+		$this->locked = array_diff($this->locked, $key_array);
 	}
 
 	public function __get($key) {
