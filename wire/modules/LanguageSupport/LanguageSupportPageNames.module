@@ -20,7 +20,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
         static public function getModuleInfo() {
                 return array(
                         'title' => 'Languages Support - Page Names',
-                        'version' => 4,
+                        'version' => 5,
                         'summary' => 'Required to use multi-language page names. In development, NOT for production use.',
 			'author' => 'Ryan Cramer',
 			'autoload' => true,
@@ -137,9 +137,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		if($path === '/' || !strlen($path)) return $path;
 		$testPath = trim($path, '/') . '/';
 		$home = wire('pages')->get(1);
-		$defaultLanguage = null;
 		foreach(wire('languages') as $language) {
-			if($language->isDefault()) $defaultLanguage = $language; 
 			$name = $language->isDefault() ? $home->get("name") : $home->get("name$language"); 
 			if($name == self::HOME_NAME_DEFAULT) continue;
 			if(!strlen($name)) continue; 
@@ -177,7 +175,6 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		array_shift($parentsAndPage); // shift off the homepage
 		$redirectURL = '';
 		$setLanguage = $this->setLanguage;
-		$defaultLanguage = null;
 
 		// determine if we should set the current language based on requested URL
 		if(!$setLanguage) foreach($parentsAndPage as $p) {
@@ -198,7 +195,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		}
 
 		// check to see if the $page or any of its parents has an inactive status for the $setLanguage
-		if($setLanguage) {
+		if($setLanguage && !$setLanguage->isDefault()) {
 			$active = true;
 			if($this->inheritInactive) {
 				// inactive status on a parent inherits through to children
