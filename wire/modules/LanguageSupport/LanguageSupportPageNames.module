@@ -102,6 +102,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		$this->checkModuleVersion();
 		$this->addHookAfter('Page::path', $this, 'hookPagePath'); 
+		$this->addHookAfter('Page::viewable', $this, 'hookPageViewable'); 
 		$this->addHookBefore('Page::render', $this, 'hookPageRender'); 
 		$this->addHook('Page::localName', $this, 'hookPageLocalName'); 
 		$this->addHook('Page::localUrl', $this, 'hookPageLocalUrl'); 
@@ -293,6 +294,25 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			$this->force404 = false; // prevent another 404 on the 404 page
 			throw new Wire404Exception();
 		}
+	}
+
+	/**
+	 * Hook in after ProcesssPageView::viewable account for specific language versions
+	 *
+	 * May be passed a Language name or page to check viewable for that language
+	 *
+	 */
+	public function hookPageViewable(HookEvent $event) {
+		if(!$event->return) return;
+		$page = $event->object;
+		if(wire('user')->isSuperuser() || $page->editable()) return;
+		$language = $event->arguments(0);
+		if(!$language) return;
+		if(is_string($language)) $language = wire('languages')->get(wire('sanitizer')->pageName($language));
+		if(!$language instanceof Language) return;
+		$name = $language->isDefault() ? "status" : "status$language";
+		$status = $page->get($name);
+		$event->return = $status > 0 && $status < Page::statusUnpublished;
 	}
 
 	/**
