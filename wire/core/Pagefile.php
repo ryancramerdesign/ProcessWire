@@ -353,11 +353,25 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function hasTag($tag) {
+
 		$tags = $this->tags; 
 		if(empty($tags)) return false;
+
 		if(strpos($tags, ',') !== false) $tags = str_replace(',', ' ', $tags);
 		$tags = explode(' ', strtolower($tags)); 
-		return in_array(strtolower($tag), $tags); 
+
+		if(strpos($tag, '|') !== false) $findTags = explode('|', strtolower($tag)); 
+			else $findTags = array(strtolower($tag)); 
+
+		$found = false; 
+		foreach($findTags as $tag) {
+			if(in_array($tag, $tags)) {
+				$found = true; 
+				break;
+			}
+		}
+
+		return $found; 
 	}
 
 	/**
