@@ -17,7 +17,7 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
- * @version 2.2
+ * @version 2.3
  *
  */
 
