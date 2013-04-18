@@ -348,6 +348,7 @@ class Session extends Wire implements IteratorAggregate {
 		if($http301) header("HTTP/1.1 301 Moved Permanently");
 		header("Location: $url");
 		header("Connection: close"); 
+		if(wire('process') == 'ProcessPageView') wire('process')->finished();
 		exit(0);
 	}
 

@@ -36,6 +36,7 @@ function wire($name = 'wire') {
  * When a $name is specified, this function is identical to the wire() function.
  * Both functions exist more for consistent naming depending on usage. 
  *
+ * @deprecated
  * @param string $name If ommitted, returns a Fuel object with references to all the fuel.
  * @return mixed Fuel value if available, NULL if not. 
  *

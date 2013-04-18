@@ -172,12 +172,17 @@ class Sanitizer extends Wire {
 	/**
 	 * Format required by ProcessWire user names
 	 *
+	 * @deprecated, use pageName instead.
+	 *
 	 */
 	public function username($value) {
+		return $this->pageName($value); 
+		/*
 		$value = trim($value); 
 		if(strlen($value) > 128) $value = substr($value, 0, 128); 
 		if(ctype_alnum(str_replace(array('-', '_', '.', '@'), '', $value))) return $value; 
 		return preg_replace('/[^-_.@a-zA-Z0-9]/', '_', trim($value)); 
+		*/
 	}
 
 	/**

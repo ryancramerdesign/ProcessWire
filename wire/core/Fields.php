@@ -412,7 +412,7 @@ class Fields extends WireSaveableItems {
 			$field1->remove($key); 
 		}
 
-		$this->changedType($field1); 
+		$this->changedType($field1, $fromType, $toType); 
 
 		return true; 	
 	}
