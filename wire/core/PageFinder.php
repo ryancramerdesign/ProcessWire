@@ -730,7 +730,7 @@ class PageFinder extends Wire {
 			if(count($IDs)) {
 				// parentIDs are IDs found via another query, and we don't need to match anything other than the parent ID
 				$in = $selector->not ? "NOT IN" : "IN"; 
-				$sql .= $field == 'children' ? "$table.parent_id " : "$table.id ";
+				$sql .= in_array($field, array('parent', 'parent_id')) ? "$table.parent_id " : "$table.id ";
 				$sql .= "$in(" . implode(',', $IDs) . ")";
 
 			} else foreach($values as $value) { 
