@@ -49,12 +49,13 @@ class Database extends mysqli {
 	 * This would usually be from a ProcessWire Config ($config) API var, but kept as generic object
 	 * in case someone wants to use this class elsewhere. 
 	 * 
-	 * @param string|$config $host Hostname or object with config properties. 
+	 * @param string|Config $host Hostname or object with config properties. 
 	 * @param string $user Username
 	 * @param string $pass Password
 	 * @param string $db Database name
 	 * @param int $port Port
 	 * @param string $socket Socket
+	 * @throws WireDatabaseException
 	 * 
 	 */
 	public function __construct($host = 'localhost', $user = null, $pass = null, $db = null, $port = null, $socket = null) {
@@ -86,6 +87,7 @@ class Database extends mysqli {
 	 * @return mixed Returns FALSE on failure. 
 	 * 	For successful SELECT, SHOW, DESCRIBE or EXPLAIN queries mysqli_query() will return a MySQLi_Result object. 
 	 *	For other successful queries mysqli_query() will return TRUE.
+	 * @throws WireDatabaseException
 	 *
 	 */
 	public function query($sql, $resultmode = MYSQLI_STORE_RESULT) {
@@ -199,7 +201,7 @@ class Database extends mysqli {
 	/**
 	 * Sanitize a table.column string, where either part is optional
 	 *
-	 * @param string $col
+	 * @param string $str
 	 * @return string
 	 *
 	 */
@@ -223,7 +225,7 @@ class Database extends mysqli {
 	/**
 	 * Escape a string value, plus escape characters necessary for a MySQL 'LIKE' phrase
 	 *
-	 * @param string $str
+	 * @param string $like
 	 * @return string
 	 *
 	 */

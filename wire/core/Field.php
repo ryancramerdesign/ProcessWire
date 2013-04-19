@@ -160,6 +160,7 @@ class Field extends WireData implements Saveable {
 	 *
 	 * @param string $name
 	 * @return Field $this
+	 * @throws WireException
 	 *
 	 */
 	public function setName($name) {
@@ -193,6 +194,7 @@ class Field extends WireData implements Saveable {
 	 *
 	 * @param string|Fieldtype $type
 	 * @return Field $this
+	 * @throws WireException
 	 *
 	 */
 	public function setFieldtype($type) {

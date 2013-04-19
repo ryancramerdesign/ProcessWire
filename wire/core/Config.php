@@ -6,11 +6,10 @@
  * Handles ProcessWire configuration data
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  *
  * @see http://processwire.com/api/variables/config/ Offical $config API variable Documentation
@@ -41,6 +40,7 @@ class Config extends WireData {
 	 *
 	 * @param string $key 
 	 * @param mixed $value
+	 * @return array|mixed|null|this
  	 *
 	 */
 	public function js($key = null, $value = null) {

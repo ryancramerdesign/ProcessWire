@@ -8,11 +8,10 @@
  * Otherwise it is identical to the Wire class. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -201,6 +200,7 @@ class WireData extends Wire implements IteratorAggregate {
 	 * Otherwise the same as get()
 	 *
 	 * @param string $key
+	 * @return mixed|null
 	 *
 	 */
 	public function __get($key) {

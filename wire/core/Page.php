@@ -1051,8 +1051,10 @@ class Page extends WireData {
 	 */
 	public function getIterator() {
 		$a = $this->settings; 
-		foreach($this->template->fieldgroup as $field) {
-			$a[$field->name] = $this->get($field->name); 
+		if($this->template && $this->template->fieldgroup) {
+			foreach($this->template->fieldgroup as $field) {
+				$a[$field->name] = $this->get($field->name); 
+			}
 		}
 		return new ArrayObject($a); 	
 	}
