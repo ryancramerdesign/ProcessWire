@@ -55,9 +55,9 @@ class FieldtypeComments extends FieldtypeMulti {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Comments',
-			'version' => 102,
-			'summary' => 'Field that stores user posted comments for a single Page',
+			'title' => __('Comments', __FILE__),
+			'version' => 103,
+			'summary' => __('Field that stores user posted comments for a single Page', __FILE__),
 			'installs' => array('InputfieldCommentsAdmin'),
 			);
 	}
@@ -265,20 +265,23 @@ class FieldtypeComments extends FieldtypeMulti {
 		// skip notification when spam
 		if($comment->status == Comment::statusSpam && !$field->notifySpam) return; 
 
-		if($comment->status == Comment::statusPending) $status = "Pending Approval";
-			else if($comment->status == Comment::statusApproved) $status = "Approved";
-			else if($comment->status == Comment::statusSpam) $status = "SPAM - will be deleted automatically after " . 
-				date("m/d/y", time() + (86400 * $field->deleteSpamDays)); 
+		if($comment->status == Comment::statusPending) $status = $this->_("Pending Approval");
+			else if($comment->status == Comment::statusApproved) $status = $this->_("Approved");
+			else if($comment->status == Comment::statusSpam) $status = sprintf($this->_("SPAM - will be deleted automatically after %d days"), $field->deleteSpamDays);
 			else $status = "Unknown";
 
-		$subject = "Comment posted to: {$page->url}";	
-		$from = "ProcessWire <processwire@" . $this->config->httpHost . ">"; 
-		$body = "Page: {$page->httpUrl}\n" . 
-			"From: {$comment->cite}\n" . 
-			"Email: {$comment->email}\n" . 
-			"Website: {$comment->website}\n" . 
-			"Status: $status\n" . 
-			"Text: {$comment->text}\n\n";
+		$subject = sprintf($this->_('Comment posted to: %s'), $page->httpUrl);	
+
+		$from = $this->_x('ProcessWire', 'email-from') . 
+			'<' . $this->_x('processwire', 'email-from-name') . 
+			'@' . $this->config->httpHost . ">"; 
+
+		$body = $this->_x('Page', 'email-body') . ": {$page->httpUrl}\n" . 
+			$this->_x('From', 'email-body') . ": {$comment->cite}\n" . 
+			$this->_x('Email', 'email-body') . ": {$comment->email}\n" . 
+			$this->_x('Website', 'email-body') . ": {$comment->website}\n" . 
+			$this->_x('Status', 'email-body') . ": $status\n" . 
+			$this->_x('Text', 'email-body') . ": {$comment->text}\n\n";
 
 		return mail($field->notificationEmail, $subject, $body, "From: $from"); 
 	}
@@ -404,19 +407,19 @@ class FieldtypeComments extends FieldtypeMulti {
 		$name = 'moderate';
 		$f = $this->fuel('modules')->get('InputfieldRadios'); 
 		$f->attr('name', $name); 
-		$f->addOption(self::moderateNone, 'None - Comments posted immediately'); 
-		$f->addOption(self::moderateAll, 'All - All comments must be approved by user with page edit access'); 
-		$f->addOption(self::moderateNew, 'Only New - Only comments from users without prior approved comments require approval'); 
+		$f->addOption(self::moderateNone, $this->_('None - Comments posted immediately')); 
+		$f->addOption(self::moderateAll, $this->_('All - All comments must be approved by user with page edit access')); 
+		$f->addOption(self::moderateNew, $this->_('Only New - Only comments from users without prior approved comments require approval')); 
 		$f->attr('value', (int) $field->$name); 
-		$f->label = 'Comment Moderation';
+		$f->label = $this->_('Comment Moderation');
 		$inputfields->append($f); 
 
 		$name = 'notificationEmail';
 		$f = $this->fuel('modules')->get('InputfieldText'); 
 		$f->attr('name', $name); 
 		$f->attr('value', $field->$name); 
-		$f->label = 'Notification E-Mail';
-		$f->description = "E-mail address to be notified when a new comment is posted. Separate multiple email addresses with commas.";
+		$f->label = $this->_('Notification E-Mail');
+		$f->description = $this->_('E-mail address to be notified when a new comment is posted. Separate multiple email addresses with commas.');
 		$inputfields->append($f); 
 
 		$name = 'sortNewest'; 
@@ -424,8 +427,8 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->attr('name', $name); 
 		$f->attr('value', 1); 
 		$f->attr('checked', $field->$name ? 'checked' : ''); 
-		$f->label = 'Sort newest to oldest?';
-		$f->description = "By default, comments will sort chronologically (oldest to newest). To reverse that behavior check this box.";
+		$f->label = $this->_('Sort newest to oldest?');
+		$f->description = $this->_('By default, comments will sort chronologically (oldest to newest). To reverse that behavior check this box.');
 		$inputfields->append($f); 
 
 		$name = 'useWebsite'; 
@@ -433,8 +436,8 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->attr('name', $name); 
 		$f->attr('value', 1); 
 		$f->attr('checked', $field->$name ? 'checked' : ''); 
-		$f->label = 'Use website field in comment form?';
-		$f->description = "When checked, the comment submission form will also include a website field.";
+		$f->label = $this->_('Use website field in comment form?');
+		$f->description = $this->_('When checked, the comment submission form will also include a website field.');
 		$inputfields->append($f); 
 
 		$name = 'redirectAfterPost';
@@ -442,8 +445,8 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->attr('name', $name); 
 		$f->attr('value', 1); 
 		$f->attr('checked', $field->$name ? 'checked' : ''); 
-		$f->label = 'Redirect after comment post?';
-		$f->description = "When checked, ProcessWire will issue a redirect after the comment is posted in order to prevent double submissions. Recommended.";
+		$f->label = $this->_('Redirect after comment post?');
+		$f->description = $this->_('When checked, ProcessWire will issue a redirect after the comment is posted in order to prevent double submissions. Recommended.');
 		$inputfields->append($f); 
 
 		$name = 'notifySpam';
@@ -451,22 +454,22 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->attr('name', $name); 
 		$f->attr('value', 1);
 		if($field->$name) $f->attr('checked', 'checked');
-		$f->label = 'Send e-mail notification on spam?';
-		$f->description = 'When checked, ProcessWire will still send you an e-mail notification even if the message is identified as spam.';
+		$f->label = $this->_('Send e-mail notification on spam?');
+		$f->description = $this->_('When checked, ProcessWire will still send you an e-mail notification even if the message is identified as spam.');
 		$inputfields->append($f); 
 
 		$name = 'useGravatar'; 
 		$f = $this->fuel('modules')->get('InputfieldRadios'); 
 		$f->attr('name', $name); 
-		$f->addOption('', 'Disabled');
-		$f->addOption('g', 'G: Suitable for display on all websites with any audience type.');
-		$f->addOption('pg', 'PG: May contain rude gestures, provocatively dressed individuals, the lesser swear words, or mild violence.');
-		$f->addOption('r', 'R: May contain such things as harsh profanity, intense violence, nudity, or hard drug use.');
-		$f->addOption('x', 'X: May contain hardcore sexual imagery or extremely disturbing violence.');
+		$f->addOption('', $this->_('Disabled'));
+		$f->addOption('g', $this->_('G: Suitable for display on all websites with any audience type.'));
+		$f->addOption('pg', $this->_('PG: May contain rude gestures, provocatively dressed individuals, the lesser swear words, or mild violence.'));
+		$f->addOption('r', $this->_('R: May contain such things as harsh profanity, intense violence, nudity, or hard drug use.'));
+		$f->addOption('x', $this->_('X: May contain hardcore sexual imagery or extremely disturbing violence.'));
 		$f->attr('value', $field->useGravatar); 
-		$f->label = 'Use Gravatar?';
-		$f->description = "This service provides an avatar image with each comment (unique to the email address). To enable, select the maximum gravatar rating. These are the same as movie ratings, where G is the most family friendly and X is not.";
-		$f->notes = "Rating descriptions provided by [Gravatar](https://en.gravatar.com/site/implement/images/).";
+		$f->label = $this->_('Use Gravatar?');
+		$f->description = $this->_('This service provides an avatar image with each comment (unique to the email address). To enable, select the maximum gravatar rating. These are the same as movie ratings, where G is the most family friendly and X is not.');
+		$f->notes = $this->_('Rating descriptions provided by [Gravatar](https://en.gravatar.com/site/implement/images/).');
 		$f->collapsed = Inputfield::collapsedBlank;
 		$inputfields->append($f); 
 
@@ -475,8 +478,8 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->attr('name', $name); 
 		$f->attr('value', 1); 
 		$f->attr('checked', $field->$name ? 'checked' : ''); 
-		$f->label = 'Use Akismet Spam Filter Service?';
-		$f->description = "This service will automatically identify most spam. Before using it, please ensure that you have entered an Akismet API key under Modules > Comment Filter: Akismet.";
+		$f->label = $this->_('Use Akismet Spam Filter Service?');
+		$f->description = $this->_('This service will automatically identify most spam. Before using it, please ensure that you have entered an Akismet API key under Modules > Comment Filter: Akismet.');
 		$inputfields->append($f); 
 
 		$name = 'deleteSpamDays';
@@ -485,8 +488,8 @@ class FieldtypeComments extends FieldtypeMulti {
 		$value = $field->$name; 
 		if(is_null($value)) $value = 7; // default
 		$f->attr('value', $field->$name); 
-		$f->label = 'Number of days after which to delete spam';
-		$f->description = "After the number of days indicated, spam will be automatically deleted.";
+		$f->label = $this->_('Number of days after which to delete spam');
+		$f->description = $this->_('After the number of days indicated, spam will be automatically deleted.');
 		$inputfields->append($f); 
 
 		$name = 'schemaVersion'; 
@@ -522,7 +525,7 @@ class FieldtypeComments extends FieldtypeMulti {
 	static public function findComments($field, $selectorString) {
 
 		if(is_string($field)) $field = wire('fields')->get($field); 
-		if(!$field instanceof Field) throw new WireException('Arg 1 to getRecentComments must be a field');
+		if(!$field instanceof Field) throw new WireException('Arg 1 to findComments must be a field');
 
 		$limit = 10; 
 		$start = 0;
