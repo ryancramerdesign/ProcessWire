@@ -4,11 +4,10 @@
  * ProcessWire HookEvent
  *
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -76,7 +75,10 @@ class HookEvent extends WireData {
 	 */
 	public function arguments($n = null, $value = null) {
 		if(is_null($n)) return $this->arguments; 
-		if(!is_null($value)) return $this->setArgument($n, $value); 
+		if(!is_null($value)) {
+			$this->setArgument($n, $value); 
+			return $value;
+		}
 		if(is_string($n)) return $this->argumentsByName($n);
 		$arguments = $this->arguments; 
 		return isset($arguments[$n]) ? $arguments[$n] : null; 
@@ -123,6 +125,8 @@ class HookEvent extends WireData {
 	 *
 	 * @param int|string Argument name or key
 	 * @param mixed $value
+	 * @return $this
+	 * @throws WireException
 	 *
 	 */
 	public function setArgument($n, $value) {
@@ -137,6 +141,7 @@ class HookEvent extends WireData {
 		$arguments = $this->arguments; 
 		$arguments[(int)$n] = $value; 
 		$this->set('arguments', $arguments); 
+		return $this; 
 	}
 
 	/**
@@ -154,7 +159,6 @@ class HookEvent extends WireData {
 		if(isset(self::$argumentNames[$key])) return self::$argumentNames[$key];
 
 		$argumentNames = array();
-		$argumentDefaults = array();
 		$method = new ReflectionMethod($o, '___' . $m); 
 		$arguments = $method->getParameters();
 

@@ -159,8 +159,8 @@ class ImageSizer extends Wire {
 	 *
 	 * Note: Some code used in this method is adapted from code found in comments at php.net for the GD functions
 	 *
-	 * @param int $width
-	 * @param int $height
+	 * @param int $targetWidth Target width in pixels, or 0 for proportional to height
+	 * @param int $targetHeight Target height in pixels, or 0 for proportional to width. Optional-if not specified, 0 is assumed.
 	 * @return bool True if the resize was successful
 	 *
 	 */
@@ -191,9 +191,9 @@ class ImageSizer extends Wire {
 			imagesavealpha($thumb, true); 
 
 		} else if($this->imageType == IMAGETYPE_GIF) {
-			// @mrx GIF transparency
+				// @mrx GIF transparency
 	        	$transparentIndex = ImageColorTransparent($image);
-			$transparentColor = $transparentIndex != -1 ? ImageColorsForIndex($image, $transparentIndex) : 0;
+				$transparentColor = $transparentIndex != -1 ? ImageColorsForIndex($image, $transparentIndex) : 0;
 	        	if(!empty($transparentColor)) {
 	            		$transparentNew = ImageColorAllocate($thumb, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
 	            		$transparentNewIndex = ImageColorTransparent($thumb, $transparentNew);
@@ -314,18 +314,26 @@ class ImageSizer extends Wire {
 
 	/**
 	 * Return the image width
+	 * 
+	 * @return int
 	 *
 	 */
 	public function getWidth() { return $this->image['width']; }
 
 	/**
 	 * Return the image height
+	 * 
+	 * @return int
 	 *
 	 */
 	public function getHeight() { return $this->image['height']; }
 
 	/**
 	 * Return true if it's necessary to perform a resize with the given width/height, or false if not.
+	 * 
+	 * @param int $targetWidth
+	 * @param int $targetHeight
+	 * @return bool
 	 *
 	 */
 	protected function isResizeNecessary($targetWidth, $targetHeight) {
@@ -371,6 +379,8 @@ class ImageSizer extends Wire {
 	 *
 	 * Intended for use by the resize() method
 	 *
+	 * @param int $targetWidth
+	 * @param int $targetHeight
 	 * @return array
 	 *
 	 */
@@ -461,6 +471,9 @@ class ImageSizer extends Wire {
 
 	/**
 	 * Turn on/off upscaling
+	 * 
+	 * @param bool $upscaling
+	 * @return $this
 	 *
 	 */
 	public function setUpscaling($upscaling = true) {
@@ -475,7 +488,7 @@ class ImageSizer extends Wire {
 	 *	Or a string of: 50%,50% (x and y percentages to crop from)
 	 * 	Or an array('50%', '50%')
 	 *	Or to disable cropping, specify boolean false. To enable cropping with default (center), you may also specify boolean true.
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setCropping($cropping = true) {
@@ -485,6 +498,8 @@ class ImageSizer extends Wire {
 
 	/**
 	 * Was the image modified?
+	 * 
+	 * @return bool
 	 *	
 	 */
 	public function isModified() {
@@ -495,7 +510,7 @@ class ImageSizer extends Wire {
  	 * Set the image quality 1-100, where 100 is highest quality
 	 *
 	 * @param int $n
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setQuality($n) {
@@ -510,7 +525,7 @@ class ImageSizer extends Wire {
 	 *	'quality' => 90,
 	 *	'cropping' => true, 
 	 *	'upscaling' => true
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setOptions(array $options) {
@@ -538,14 +553,32 @@ class ImageSizer extends Wire {
 			);
 	}
 
+	/**
+	 * Return the filename
+	 *
+	 * @return string
+	 *
+	 */
 	public function getFilename() {
 		return $this->filename; 
 	}
 
+	/**
+	 * Return the file extension
+	 *
+	 * @return string
+	 *
+	 */
 	public function getExtension() {
 		return $this->extension; 
 	}
 
+	/**
+	 * Return the image type constant
+	 *
+	 * @return string
+	 *
+	 */
 	public function getImageType() {
 		return $this->imageType; 
 	}
@@ -553,6 +586,7 @@ class ImageSizer extends Wire {
 	/**
 	 * Given an unknown cropping value, return the validated internal representation of it
 	 *
+	 * @param string|bool|array $cropping
 	 * @return string|bool
 	 *
 	 */
@@ -584,6 +618,7 @@ class ImageSizer extends Wire {
 	 *
 	 * Okay for use in filenames
 	 *
+	 * @param string|bool|array $cropping
 	 * @return string
 	 *
 	 */

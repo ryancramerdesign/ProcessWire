@@ -7,11 +7,13 @@
  * and is managed by the 'Fields' class.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
+ * 
+ * @property Fieldtype $prevFieldtype
+ * @property string $prevTable
  *
  */
 class Field extends WireData implements Saveable {
@@ -338,7 +340,7 @@ class Field extends WireData implements Saveable {
 		$fieldgroupContext = $this->flags & Field::flagFieldgroupContext; 
 
 		if(!$fieldgroupContext) {
-			$inputfields = new InputfieldWrapper;
+			$inputfields = new InputfieldWrapper();
 			$inputfields->head = $this->_('Field type details');
 			$inputfields->attr('title', $this->_('Details'));
 
@@ -357,7 +359,6 @@ class Field extends WireData implements Saveable {
 		$dummyPage = $this->fuel('pages')->get("/"); // only using this to satisfy param requirement 
 
 		if($inputfield = $this->getInputfield($dummyPage)) {
-			$inputfieldLabel = $inputfield->className(); 
 			if(!$fieldgroupContext) $inputfields->head = $this->_('Input field settings');
 			$inputfields->attr('title', $this->_('Input')); 
 			$inputfieldInputfields = $inputfield->getConfigInputfields();

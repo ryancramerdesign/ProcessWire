@@ -28,11 +28,10 @@ class WireData extends Wire implements IteratorAggregate {
 	 *
 	 * @param string $key
 	 * @param mixed $value
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function set($key, $value) {
-		static $last = '';
 		if($key == 'data') {
 			if(!is_array($value)) $value = (array) $value;
 			return $this->setArray($value); 
@@ -51,7 +50,7 @@ class WireData extends Wire implements IteratorAggregate {
 	 *
 	 * @param string $key
 	 * @param mixed $value
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setQuietly($key, $value) {
@@ -75,6 +74,7 @@ class WireData extends Wire implements IteratorAggregate {
 	 *
 	 */
 	protected function isEqual($key, $value1, $value2) {
+		// $key intentionally not used here, but may be used by descending classes
 		return $value1 === $value2; 	
 	}
 
@@ -82,7 +82,7 @@ class WireData extends Wire implements IteratorAggregate {
 	 * Set an array of key=value pairs
 	 *
 	 * @param array $data
-	 * @return this
+	 * @return $this
 	 * @see set()
 	 *
 	 */
@@ -186,7 +186,6 @@ class WireData extends Wire implements IteratorAggregate {
 	 * get() method as a syntax convenience.
 	 *
 	 * @param string $key 
-	 * @param Wire $from The instance you want to pull the value from
 	 * @return null|mixed Returns value if found or null if not
 	 *
 	 */
@@ -211,7 +210,7 @@ class WireData extends Wire implements IteratorAggregate {
 	 * Remove a given $key from the $data array
 	 *
 	 * @param string $key
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function remove($key) {

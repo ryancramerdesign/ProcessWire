@@ -296,6 +296,7 @@ class Page extends WireData {
 	 * @param mixed $value
 	 * @return Page Reference to this Page
 	 * @see __set
+	 * @throws WireException
 	 *
 	 */
 	public function set($key, $value) {
@@ -309,6 +310,7 @@ class Page extends WireData {
 		switch($key) {
 			case 'id':
 				if(!$this->isLoaded) Page::$loadingStack[(int) $value] = $this;
+				// no break is intentional
 			case 'sort': 
 			case 'numChildren': 
 			case 'num_children':
@@ -390,12 +392,12 @@ class Page extends WireData {
 	 *
 	 * @param string $key
 	 * @param mixed $value
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setQuietly($key, $value) {
 		$this->quietMode = true; 
-		return parent::setQuietly($key, $value);
+		parent::setQuietly($key, $value);
 		$this->quietMode = false;
 		return $this; 
 	}
@@ -411,6 +413,8 @@ class Page extends WireData {
 	 * @param string $key
 	 * @param mixed $value
 	 * @param bool $load Should the existing value be loaded for change comparisons? (applicable only to non-autoload fields)
+	 * @return $this
+	 * @throws WireException
 	 *
 	 */
 	public function setFieldValue($key, $value, $load = true) {
@@ -423,7 +427,7 @@ class Page extends WireData {
 			list($key, $subKey) = explode('__', $key); 
 			if(!isset($this->fieldDataQueue[$key])) $this->fieldDataQueue[$key] = array();
 			$this->fieldDataQueue[$key][$subKey] = $value; 
-			return;
+			return $this;
 		}
 
 		if(!$field = $this->template->fieldgroup->getField($key)) {
@@ -462,7 +466,7 @@ class Page extends WireData {
 		// ensure that the value is in a safe format and set it 
 		$value = $field->type->sanitizeValue($this, $field, $value); 
 
-		parent::set($key, $value); 
+		return parent::set($key, $value); 
 	}
 
 	/**
@@ -538,10 +542,10 @@ class Page extends WireData {
 				$value = $this->settings['created_users_id'];
 				break;
 			case 'modifiedUser':
-				if(!$value = $this->fuel('users')->get($this->settings['modified_users_id'])) $value = new NullUser(); 
+				if(!$value = $this->fuel('users')->get($this->settings['modified_users_id'])) $value = new NullPage(); 
 				break;
 			case 'createdUser':
-				if(!$value = $this->fuel('users')->get($this->settings['created_users_id'])) $value = new NullUser(); 
+				if(!$value = $this->fuel('users')->get($this->settings['created_users_id'])) $value = new NullPage(); 
 				break;
 			case 'urlSegment':
 				$value = $this->fuel('input')->urlSegment1; // deprecated, but kept for backwards compatibility
@@ -616,7 +620,7 @@ class Page extends WireData {
 	 *
 	 * Example: browser_title|headline|title - Return the value of the first field that is non-empty
 	 *
-	 * @param string $key
+	 * @param string $multiKey
 	 * @return null|mixed Returns null if no values match, or if there aren't multiple keys split by "|" chars
 	 *
 	 */
@@ -756,9 +760,10 @@ class Page extends WireData {
 	/**
 	 * Set either the createdUser or the modifiedUser 
 	 *
-	 * @param User|int|string User object or integer/string representation of User
+	 * @param User|int|string $user User object or integer/string representation of User
 	 * @param string $userType Must be either 'created' or 'modified' 
-	 * @return this
+	 * @return $this
+	 * @throws WireException
 	 *
 	 */
 	protected function setUser($user, $userType) {
@@ -766,7 +771,7 @@ class Page extends WireData {
 		if(!$user instanceof User) $user = $this->fuel('users')->get($user); 
 
 		// if they are setting an invalid user or unknown user, then the Page defaults to the super user
-		if(!$user || !$user->id) $user = $this->fuel('users')->get(User::superUserID); 
+		if(!$user || !$user->id) $user = $this->fuel('users')->get(wire('config')->superUserPageID); 
 
 		if($userType == 'created') $field = 'createdUser';
 			else if($userType == 'modified') $field = 'modifiedUser';
@@ -783,7 +788,10 @@ class Page extends WireData {
 	 *
 	 * Same as Pages::find() except that the results are limited to descendents of this Page
 	 *
-	 * @param string $selector
+	 * @param string $selector Selector string
+	 * @param array $options Same as the $options array passed to $pages->find(). 
+	 * @return PageArray
+	 * @see Pages::find
 	 *
 	 */
 	public function find($selector = '', $options = array()) {
@@ -795,7 +803,8 @@ class Page extends WireData {
 	/**
 	 * Return this page's children pages, optionally filtered by a selector
 	 *
-	 * @param string $selector Selector to use, or blank to return all children
+	 * @param string $selector Selector to use, or omit to return all children
+	 * @param array $options Options per Pages::find
 	 * @return PageArray
 	 *
 	 */
@@ -828,6 +837,7 @@ class Page extends WireData {
 	 * Same as children() but returns a Page object or NullPage (with id=0) rather than a PageArray
 	 *
 	 * @param string $selector Selector to use, or blank to return the first child. 
+	 * @param array $options Options per Pages::find
 	 * @return Page|NullPage
 	 *
 	 */
@@ -853,7 +863,7 @@ class Page extends WireData {
 	/**
 	 * Return this page's parent pages, or the parent pages matching the given selector.
 	 *
-	 * @param sting $selector Optional selector string to filter parents by
+	 * @param string $selector Optional selector string to filter parents by
 	 * @return PageArray
 	 *
 	 */
@@ -950,7 +960,7 @@ class Page extends WireData {
 	 *
 	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this. 
 	 * @param string $filter Optional selector string to filter matched pages by
-	 * @param PageArray Optional PageArray of siblings to use instead of all from the page.
+	 * @param PageArray $siblings Optional PageArray of siblings to use instead of all from the page.
 	 * @return PageArray
 	 *
 	 */
@@ -971,7 +981,7 @@ class Page extends WireData {
 	 * one of those modifiers, and provide those siblings as the second argument to this function.
 	 *
 	 * @param string $selector Optional selector string. When specified, will find nearest previous sibling that matches. 
-	 * @param PageArray $siblings Optional siblings to use instead of the default. May also be specified as first argument when no selector needed.
+	 * @param PageArray|null $siblings Optional siblings to use instead of the default. May also be specified as first argument when no selector needed.
 	 * @return Page|NullPage Returns the previous sibling page, or a NullPage if none found. 
 	 *
 	 */
@@ -983,7 +993,7 @@ class Page extends WireData {
 	 * Return all sibling pages before this one, optionally matching a selector
 	 *
 	 * @param string $selector Optional selector string. When specified, will filter the found siblings.
-	 * @param PageArray $siblings Optional siblings to use instead of the default. 
+	 * @param PageArray|null $siblings Optional siblings to use instead of the default. 
 	 * @return Page|NullPage Returns all matching pages before this one.
 	 *
 	 */
@@ -996,7 +1006,7 @@ class Page extends WireData {
 	 *
 	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this. 
 	 * @param string $filter Optional selector string to filter matched pages by
-	 * @param PageArray Optional PageArray of siblings to use instead of all from the page.
+	 * @param PageArray|null $siblings Optional PageArray of siblings to use instead of all from the page.
 	 * @return PageArray
 	 *
 	 */
@@ -1158,7 +1168,7 @@ class Page extends WireData {
 	 * You can retrieve the results of this by calling $page->out or $page->output
 	 *
 	 * @internal This method is intended for internal use only, not part of the public API. 
-	 * @param $forceNew Forces it to return a new (non-cached) TemplateFile object (default=false)
+	 * @param bool $forceNew Forces it to return a new (non-cached) TemplateFile object (default=false)
 	 * @return TemplateFile
 	 *
 	 */
@@ -1210,7 +1220,7 @@ class Page extends WireData {
 	 * Add the specified status flag to this page's status
 	 *
 	 * @param int $statusFlag
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function addStatus($statusFlag) {
@@ -1223,7 +1233,8 @@ class Page extends WireData {
 	 * Remove the specified status flag from this page's status
 	 *
 	 * @param int $statusFlag
-	 * @return this
+	 * @return $this
+	 * @throws WireException
 	 *
 	 */
 	public function removeStatus($statusFlag) {
@@ -1296,8 +1307,9 @@ class Page extends WireData {
 	/**
 	 * Set the value for isNew, i.e. doesn't exist in the DB
 	 *
+	 * @internal
 	 * @param bool @isNew
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setIsNew($isNew) {
@@ -1311,7 +1323,9 @@ class Page extends WireData {
 	 * Pages::getById sets this once it has completed loading the page
 	 * This method also triggers the loaded() method that hooks may listen to
 	 *
+	 * @internal
 	 * @param bool $isLoaded
+	 * @return $this
 	 *
 	 */
 	public function setIsLoaded($isLoaded) {
@@ -1371,7 +1385,7 @@ class Page extends WireData {
 	 * Pages you intend to manipulate and save should have it off. 
 	 *
 	 * @param bool @outputFormatting Optional, default true
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setOutputFormatting($outputFormatting = true) {

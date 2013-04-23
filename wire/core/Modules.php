@@ -11,11 +11,10 @@
  * before using it. If it's a ModulePlaceholder, then the real Module can be instantiated/retrieved by $modules->get($className).
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -422,6 +421,7 @@ class Modules extends WireArray {
 	 *
 	 * @param string $class
 	 * @return null|Module Returns null if unable to install, or instantiated Module object if successfully installed. 
+	 * @throws WireException
 	 *
 	 */
 	public function ___install($class) {
@@ -441,9 +441,9 @@ class Modules extends WireArray {
 		if($this->isAutoload($module)) $flags = $flags | self::flagsAutoload; 
 
 		$sql = 	"INSERT INTO modules SET " . 
-			"class='" . $this->fuel('db')->escape_string($class) . "', " . 
-			"flags=$flags, " . 
-			"data='' ";
+				"class='" . $this->fuel('db')->escape_string($class) . "', " . 
+				"flags=$flags, " . 
+				"data='' ";
 
 		$result = $this->fuel('db')->query($sql); // QA
 		$moduleID = $this->fuel('db')->insert_id;
@@ -537,6 +537,7 @@ class Modules extends WireArray {
 	 *
 	 * @param string $class
 	 * @return bool
+	 * @throws WireException
 	 *
 	 */
 	public function ___uninstall($class) {
@@ -588,6 +589,7 @@ class Modules extends WireArray {
 	 *
 	 * @param string|Module $class
 	 * @return int
+	 * @throws WireException
 	 *
 	 */
 	public function getModuleID($class) {
@@ -612,7 +614,7 @@ class Modules extends WireArray {
 	 * 'ModulePlaceholder' rather than the correct className for a Module.
 	 *
 	 * @param string|int|Module
-	 * @return string|false The Module's class name or false if not found. 
+	 * @return string|bool The Module's class name or false if not found. 
 	 *	Note that 'false' is only possible if you give this method a non-Module, or an integer ID 
 	 * 	that doesn't correspond to a module ID. 
 	 *
@@ -744,6 +746,7 @@ class Modules extends WireArray {
 	 * @param string|Module $className
 	 * @param array $configData
 	 * @return bool True on success
+	 * @throws WireException
 	 *
 	 */
 	public function ___saveModuleConfigData($className, array $configData) {

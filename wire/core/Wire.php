@@ -9,11 +9,12 @@
  * message() and error() methods are provided for this class to provide any text notices. 
  *
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
+ * 
+ * @property string $className
  *
  */
 
@@ -223,6 +224,7 @@ abstract class Wire implements TrackChanges {
 	 * @param string $method
 	 * @param array $arguments
 	 * @return mixed
+	 * @throws WireException
 	 *
 	 */ 
 	public function __call($method, $arguments) {
@@ -365,6 +367,7 @@ abstract class Wire implements TrackChanges {
 	 * @param string $toMethod Method from $toObject, or function name to call on a hook event
 	 * @param array $options See self::$defaultHookOptions at the beginning of this class
 	 * @return string A special Hook ID that should be retained if you need to remove the hook later
+	 * @throws WireException
 	 *
 	 */
 	public function addHook($method, $toObject, $toMethod, $options = array()) {
@@ -452,7 +455,7 @@ abstract class Wire implements TrackChanges {
 	 * This is the same as calling addHook with the 'type' option set to 'property' in the $options array. 
 	 * Note that descending classes that override __get must call getHook($property) and/or runHook($property).
 	 *
-	 * @param string $method Method name to hook into, NOT including the three preceding underscores
+	 * @param string $property Method name to hook into, NOT including the three preceding underscores
 	 * @param object|null $toObject Object to call $toMethod from, or null if $toMethod is a function outside of an object
 	 * @param string $toMethod Method from $toObject, or function name to call on a hook event
 	 * @param array $options See self::$defaultHookOptions at the beginning of this class
@@ -468,7 +471,7 @@ abstract class Wire implements TrackChanges {
 	 * Given a Hook ID provided by addHook() this removes the hook
 	 *
 	 * @param string $hookId
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function removeHook($hookId) {
@@ -509,7 +512,7 @@ abstract class Wire implements TrackChanges {
 	 * The change will only be recorded if self::$trackChanges is true. 
 	 *
 	 * @param string $what Name of property that changed
-	 * @return this
+	 * @return $this
 	 * 
 	 */
 	public function trackChange($what) {
@@ -524,7 +527,7 @@ abstract class Wire implements TrackChanges {
 	 * Untrack a change to a property in this object
 	 *
 	 * @param string $what Name of property that you want to remove it's change being tracked
-	 * @return this
+	 * @return $this
 	 * 
 	 */
 	public function untrackChange($what) {
@@ -537,7 +540,7 @@ abstract class Wire implements TrackChanges {
 	 * Turn change tracking ON or OFF
 	 *
 	 * @param bool $trackChanges True to turn on, false to turn off. If not specified, true is assumed. 
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setTrackChanges($trackChanges = true) {
@@ -559,7 +562,7 @@ abstract class Wire implements TrackChanges {
 	 * Clears out any tracked changes and turns change tracking ON or OFF
 	 *
 	 * @param bool $trackChanges True to turn change tracking ON, or false to turn OFF. Default of true is assumed. 
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function resetTrackChanges($trackChanges = true) {
@@ -583,8 +586,8 @@ abstract class Wire implements TrackChanges {
 	 * This method automatically identifies the message as coming from this class. 
 	 *
 	 * @param string $text
-	 * @param flags int See Notices::flags
-	 * @return this
+	 * @param int $flags See Notices::flags
+	 * @return $this
 	 *
 	 */
 	public function message($text, $flags = 0) {
@@ -602,8 +605,8 @@ abstract class Wire implements TrackChanges {
 	 * Fatal errors should still throw a WireException (or class derived from it)
 	 *
 	 * @param string $text
-	 * @param flags int See Notices::flags
-	 * @return this
+	 * @param int $flags See Notices::flags
+	 * @return $this
 	 *
 	 */
 	public function error($text, $flags = 0) {
@@ -645,6 +648,7 @@ abstract class Wire implements TrackChanges {
 	 * 
 	 * @param string $textSingular Singular version of text (when there is 1 item)
 	 * @param string $textPlural Plural version of text (when there are multiple items or 0 items)
+	 * @param int $count Quantity used to determine whether singular or plural.
 	 * @return string Translated text or original text if translation not available.
 	 *
 	 */

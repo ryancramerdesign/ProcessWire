@@ -6,12 +6,11 @@
  * Abstract base class from which all Fieldtype modules are descended from.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
- *
+ * http://processwire.com
+ * 
  */
 abstract class Fieldtype extends WireData implements Module {
 
@@ -22,7 +21,7 @@ abstract class Fieldtype extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => '', 
-			'version' => 001, 
+			'version' => 1, 
 			'summary' => '', 
 			); 
 	}
@@ -76,7 +75,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 */
 	public function getInputfield(Page $page, Field $field) {
 		// TODO make this abstract
-		$inputfield = new Inputfield();
+		$inputfield = wire('modules')->get('InputfieldText'); 
 		$inputfield->class = $this->className();
 		return $inputfield; 
 	}
@@ -206,7 +205,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 * @param Page $page
 	 * @param Field $field
-	 * @param string|int|WireArray|object $value
+	 * @param string|int|object $value
 	 * @return string
 	 *
 	 */
@@ -219,7 +218,6 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 * @param Page $page
 	 * @param Field $field
-	 * @param string|int|object $value
 	 * @return string|int|object
 	 *
  	 */
@@ -255,7 +253,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 * @param Page $page
 	 * @param Field $field
 	 * @param string|int|array|object $value
-	 * @return string|int
+	 * @return string|int|array
 	 *
 	 */
 	public function ___sleepValue(Page $page, Field $field, $value) {
@@ -267,6 +265,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 * Under no circumstances should this return NULL, because that is used by Page to determine if a field has been loaded. 
 	 *
+	 * @param Page $page
 	 * @param Field $field 
 	 * @return mixed 
 	 *
@@ -286,10 +285,11 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 * @param DatabaseQuerySelect $query
 	 * @param string $table The table name to use
-	 * @param string $field Name of the field (typically 'data', unless selector explicitly specified another)
+	 * @param string $subfield Name of the subfield (typically 'data', unless selector explicitly specified another)
 	 * @param string $operator The comparison operator
 	 * @param mixed $value The value to find
 	 * @return DatabaseQuery $query
+	 * @throws WireException
 	 *
 	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
@@ -313,6 +313,8 @@ abstract class Fieldtype extends WireData implements Module {
 	 * It should throw an Exception if failure occurs
 	 *
  	 * @param Field $field
+	 * @return bool
+	 * @throws WireException
 	 *
 	 */
 	public function ___createField(Field $field) {
@@ -381,6 +383,9 @@ abstract class Fieldtype extends WireData implements Module {
 
 	/**
 	 * Return trimmed database schema array of any parts that aren't needed for data loading
+	 * 
+	 * @param array $schema
+	 * @return array
 	 *
 	 */
 	public function trimDatabaseSchema(array $schema) {
@@ -399,7 +404,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 * @param Page $page Page object to save. 
 	 * @param Field $field Field to retrieve from the page. 
-	 * @return $value|null
+	 * @return mixed|null
 	 *
 	 */
 	public function ___loadPageField(Page $page, Field $field) {
@@ -488,6 +493,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 * @param Page $page Page object to save. 
 	 * @param Field $field Field to retrieve from the page. 
 	 * @return bool True on success, false on DB save failure.
+	 * @throws WireException
 	 *
 	 */
 	public function ___savePageField(Page $page, Field $field) {
@@ -570,6 +576,7 @@ abstract class Fieldtype extends WireData implements Module {
 	 * @param Page $page 
 	 * @param Field $field Field object
 	 * @return bool True on success, false on DB delete failure.
+	 * @throws WireException
 	 *
 	 */
 	public function ___deletePageField(Page $page, Field $field) {

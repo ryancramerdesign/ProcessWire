@@ -6,11 +6,10 @@
  * Base class for Inputfield modules. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -191,7 +190,7 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function set($key, $value) {
-		if($key == 'parent' && ($value instanceof Inputfield)) return $this->setParent($value); 
+		if($key == 'parent' && ($value instanceof InputfieldWrapper)) return $this->setParent($value); 
 		if(array_key_exists($key, $this->attributes)) return $this->setAttribute($key, $value); 
 		if($key == 'required' && $value) $this->attr('class', 'required'); 
 		if($key == 'columnWidth') {
@@ -236,7 +235,8 @@ abstract class Inputfield extends WireData implements Module {
 	/**
 	 * Set the parent of this Inputfield
 	 *
-	 * @param Inputfield $parent
+	 * @param InputfieldWrapper $parent
+	 * @return $this
 	 *
 	 */
 	public function setParent(InputfieldWrapper $parent) {
@@ -265,7 +265,7 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 * @param string|array $key
 	 * @param string|int $value
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setAttribute($key, $value) {
@@ -317,8 +317,8 @@ abstract class Inputfield extends WireData implements Module {
 	 * If getting an attribute, then don't specify the second $value param.
 	 *
 	 * @param string|array $key If an array, then all keyed values in the array will be set. 
-	 * @param string|int $value Optional - Omit if setting an array in the key, or if getting a value. 
-	 * @param Formfield|string|int If setting an attribute, it returns this instance. If getting an attribute, the attribute is returned. 
+	 * @param string|int|null $value Optional - Omit if setting an array in the key, or if getting a value. 
+	 * @return $this|string|int If setting an attribute, it returns this instance. If getting an attribute, the attribute is returned. 
 	 *
 	 */
 	public function attr($key, $value = null) {
@@ -352,7 +352,8 @@ abstract class Inputfield extends WireData implements Module {
 	/**
 	 * Get an XHTML ready string of all this Inputfield's attributes
 	 *
-	 * @param array $allowedAttributes Optional array of attributes to build the strong from. If not specified, this Inputfield's attributes will be used.
+	 * @param array $attributes Optional array of attributes to build the strong from. If not specified, this Inputfield's attributes will be used.
+	 * @return string
 	 *
 	 */
 	public function getAttributesString(array $attributes = null) {
@@ -411,7 +412,8 @@ abstract class Inputfield extends WireData implements Module {
 	/**
 	 * Process the input from the given WireInputData (usually $input->get or $input->post), load and clean the value for use in this Inputfield. 
 	 *
-	 * @param $this
+	 * @param WireInputData $input
+	 * @return $this
 	 * 
 	 */
 	public function ___processInput(WireInputData $input) {
@@ -491,7 +493,7 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 * Intended to be extended or overriden
 	 *
-	 * @return FormfieldWrapper
+	 * @return InputfieldWrapper
 	 *
 	 */
 	public function ___getConfigInputfields() {
@@ -567,7 +569,8 @@ abstract class Inputfield extends WireData implements Module {
 	/**
 	 * Return array of strings containing errors that occurred during processInput
 	 *
-	 * @param bool $clear Optionally clear the errors after getting them
+	 * @param bool $clear Optionally clear the errors after getting them. Default=false.
+	 * @return array
 	 *
 	 */
 	public function getErrors($clear = false) {
@@ -597,7 +600,7 @@ abstract class Inputfield extends WireData implements Module {
 	 * We don't track changes to any other properties of Inputfields. 
 	 *
 	 * @param string $key
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function trackChange($key) {
