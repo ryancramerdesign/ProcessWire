@@ -1235,6 +1235,18 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	}
 
 	/**
+	 * Remove advanced options that aren't supposed with repeaters
+	 *
+	 */
+	public function ___getConfigAdvancedInputfields(Field $field) {
+		$inputfields = parent::___getConfigAdvancedInputfields($field);
+		// these two are potential troublemakers when it comes to repeaters
+		$inputfields->remove($inputfields->get('autojoin'));
+		$inputfields->remove($inputfields->get('global'));
+		return $inputfields;
+	}
+
+	/**
 	 * Install the module
 	 *
 	 */
