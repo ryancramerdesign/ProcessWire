@@ -11,9 +11,15 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
- * 
- * @property Fieldtype $prevFieldtype
+ *
+ * @property int $id
+ * @property string $name
+ * @property string $table
  * @property string $prevTable
+ * @property Fieldtype|null $type
+ * @property Fieldtype $prevFieldtype
+ * @property int $flags
+ * @property string $label
  *
  */
 class Field extends WireData implements Saveable {

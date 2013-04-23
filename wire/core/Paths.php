@@ -6,13 +6,27 @@
  * Maintains lists of file paths, primarily used by the ProcessWire configuration.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  * @see http://processwire.com/api/variables/config/ Offical $config API variable Documentation
+ * 
+ * @property string $root Site root: /
+ * @property string $templates Site templates: /site/templates/
+ * @property string $adminTemplates Admin theme template files: /wire/templates-admin/ or /site/templates-admin/
+ * @property string $modules Core modules: /wire/modules/
+ * @property string $siteModules Site-specific modules: /site/modules/
+ * @property string $core ProcessWire core files: /wire/core/
+ * @property string $assets Site-specific assets: /site/assets/
+ * @property string $cache Site-specific cache: /site/assets/cache/
+ * @property string $logs Site-specific logs: /site/assets/logs/
+ * @property string $files Site-specific files: /site/assets/files/
+ * @property string $tmp Temporary files: /site/assets/tmp/
+ * @property string $sessions Session files: /site/assets/sessions/
+ * @property string $admin Admin URL (applicable only to $config->urls)
+ * 
  *
  */
 

@@ -15,6 +15,26 @@
  * http://processwire.com
  * 
  * @property string $className
+ * @property ProcessWire $wire
+ * @property Database $db
+ * @property Session $session 
+ * @property Notices $notices
+ * @property Sanitizer $sanitizer
+ * @property Fields $fields
+ * @property Fieldtypes $fieldtypes
+ * @property Fieldgroups $fieldgroups
+ * @property Templates $templates
+ * @property Pages $pages
+ * @property Page $page
+ * @property Modules $modules
+ * @property Permissions $permissions
+ * @property Roles $roles
+ * @property Users $users
+ * @property User $user
+ * @property WireInput $input
+ * @property Config $config
+ * @property Fuel $fuel
+ * 
  * @method changed(string $what) See Wire::___changed()
  *
  */

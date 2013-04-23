@@ -16,6 +16,9 @@
  * 
  * http://www.processwire.com
  * http://www.ryancramer.com
+ * 
+ * @property int $id Field ID
+ * @property string $name Field name
  *
  */
 class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
@@ -139,6 +142,7 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	 * 
 	 * @internal
 	 * @param Field $field
+	 * @return bool
 	 *
 	 */
 	public function finishRemove(Field $field) {

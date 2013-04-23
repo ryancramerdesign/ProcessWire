@@ -294,6 +294,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 * @param int|string $property Key of item to set. 
 	 * @param int|string|array|object Value of item to set. 
+	 * @throws WireException
 	 *
 	 */
 	public function __set($property, $value) {
@@ -321,6 +322,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * Like set() but accepts an array or WireArray to set multiple values at once
 	 *
 	 * @param array|WireArray $data
+	 * @return $this
 	 *
 	 */
 	public function setArray($data) {
@@ -371,7 +373,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * Fuel properties and hooked properties have precedence with this type of call.
 	 * 
 	 * @param int|string $property 
-	 * @return Value of requested index, or false if it doesn't exist. 
+	 * @return mixed Value of requested index, or false if it doesn't exist. 
 	 */
 	public function __get($property) {
 		$value = parent::__get($property); 
@@ -1049,7 +1051,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * 
 	 * This is non destructive and returns a brand new WireArray.
 	 *
-	 * $param string $selector AttributeSelector string. 
+	 * @param string $selector AttributeSelector string. 
 	 * @return WireArray 
 	 *
 	 */

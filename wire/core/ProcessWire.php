@@ -202,9 +202,9 @@ function ProcessWireShutdown() {
 		);
 
 	$error = error_get_last();
-	if(!$error) return; 
+	if(!$error) return true; 
 	$type = $error['type'];
-	if(!in_array($type, $fatalTypes)) return;
+	if(!in_array($type, $fatalTypes)) return true;
 
 	$http = isset($_SERVER['HTTP_HOST']); 
 	$config = wire('config');
