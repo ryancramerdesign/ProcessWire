@@ -6,11 +6,10 @@
  * Represents a single file item attached to a page, typically via a FieldtypeFile field.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  *
  * @property string $url URL to the file on the server	
@@ -84,6 +83,7 @@ class Pagefile extends WireData {
 	 * Implies copying the file to the correct location (if not already there), and populating it's name
 	 *
 	 * @param string $filename Full path and filename of file to install
+	 * @throws WireException
 	 *
 	 */
 	protected function ___install($filename) {
@@ -119,7 +119,7 @@ class Pagefile extends WireData {
 	 *
 	 * @param string $key
 	 * @param mixed $value
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function set($key, $value) {
@@ -319,7 +319,7 @@ class Pagefile extends WireData {
 	 * Rename this file to $basename
 	 *
  	 * @param string $basename
-	 * @return string|false Returns basename on success, or boolean false if rename failed
+	 * @return string|bool Returns basename on success, or boolean false if rename failed
 	 *
 	 */
 	public function rename($basename) {

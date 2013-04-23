@@ -20,6 +20,7 @@ class PageComparison {
  	 *
  	 * See status flag constants at top of Page class
 	 *
+	 * @param Page $page
 	 * @param int|string|Selectors $status Status number or Template name or selector string/object
 	 * @return bool
 	 *
@@ -44,6 +45,7 @@ class PageComparison {
 	/**
 	 * Given a Selectors object or a selector string, return whether this Page matches it
 	 *
+	 * @param Page $page
 	 * @param string|Selectors $s
 	 * @return bool
 	 *

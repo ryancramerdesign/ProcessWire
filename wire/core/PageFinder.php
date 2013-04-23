@@ -6,11 +6,10 @@
  * Matches selector strings to pages
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -31,8 +30,6 @@ class PageFinder extends Wire {
 
 	/**
 	 * Construct the PageFinder
-	 *
-	 * @param Fieldgroups $fieldgroups
 	 *
 	 */
 	public function __construct() {
@@ -183,13 +180,13 @@ class PageFinder extends Wire {
 	 *
 	 * @param array $selectors Array of selectors. 
 	 * @return string SQL statement. 
+	 * @throws PageFinderSyntaxException
 	 *
 	 */
 	protected function ___getQuery($selectors) {
 
 		$where = '';
 		$cnt = 1;
-		$fieldtypes = $this->fieldtypes;
 		$fieldCnt = array(); // counts number of instances for each field to ensure unique table aliases for ANDs on the same field
 		$lastSelector = null; 
 		$sortSelectors = array(); // selector containing 'sort=', which gets added last
@@ -357,7 +354,7 @@ class PageFinder extends Wire {
 		} // selectors
 
 		if($where) $query->where("($where)"); 
-		 $this->getQueryAllowedTemplates($query); 
+		$this->getQueryAllowedTemplates($query); 
 
 		// complete the joins, matching up any conditions for the same table
 		foreach($joins as $j) {

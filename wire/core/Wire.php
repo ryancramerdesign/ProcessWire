@@ -15,6 +15,7 @@
  * http://processwire.com
  * 
  * @property string $className
+ * @method changed(string $what) See Wire::___changed()
  *
  */
 
@@ -518,7 +519,7 @@ abstract class Wire implements TrackChanges {
 	public function trackChange($what) {
 		if($this->trackChanges) {
 			$this->changes[] = $what; 	
-			$this->changed($what); 
+			$this->changed($what); // triggers ___changed hook
 		}
 		return $this; 
 	}

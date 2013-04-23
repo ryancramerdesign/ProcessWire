@@ -6,11 +6,10 @@
  * Provides same functionality as WireSaveableItems except that this class includes joining/modification of a related lookup table
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -38,7 +37,6 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 	/**
 	 * Get the DatabaseQuerySelect to perform the load operation of items
 	 *
-	 * @param WireArray $items
 	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all. 
 	 * @return DatabaseQuerySelect
 	 *
@@ -57,6 +55,7 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 	 
 	 * A selector string or Selectors may be provided so that this can be used as a find() by descending classes that don't load all items at once.  
 	 *
+	 * @param WireArray $items
 	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all. 
 	 * @return WireArray Returns the same type as specified in the getAll() method.
 	 *
@@ -108,6 +107,10 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 
 	/**
 	 * Save the provided item to database
+	 * 
+	 * @param Saveable $item
+	 * @return bool
+	 * @throws WireException
 	 *
 	 */
 	public function ___save(Saveable $item) {
@@ -140,6 +143,9 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 	/** 
 	 * Delete the provided item from the database
 	 *
+	 * @param Saveable $item
+	 * @return bool
+	 * 
 	 */
 	public function ___delete(Saveable $item) {
 		$db = $this->fuel('db');

@@ -7,11 +7,10 @@
  * and finding items of descending class-defined types. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -97,7 +96,6 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	/**
 	 * Get the DatabaseQuerySelect to perform the load operation of items
 	 *
-	 * @param WireArray $items
 	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all. 
 	 * @return DatabaseQuerySelect
 	 *
@@ -126,6 +124,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	 
 	 * A selector string or Selectors may be provided so that this can be used as a find() by descending classes that don't load all items at once.  
 	 *
+	 * @param WireArray $items
 	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all. 
 	 * @return WireArray Returns the same type as specified in the getAll() method.
 	 *
@@ -169,6 +168,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	 *
 	 * @param Saveable $item The item to save
 	 * @return bool Returns true on success, false on failure
+	 * @throws WireException
 	 *
 	 */
 	public function ___save(Saveable $item) {
@@ -222,6 +222,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	 *
 	 * @param Saveable $item Item to save
 	 * @return bool Returns true on success, false on failure
+	 * @throws WireException
 	 *
 	 */
 	public function ___delete(Saveable $item) {
@@ -248,7 +249,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	 * If the new item uses a 'name' field, it will contain a number at the end to make it unique
 	 *
 	 * @param Saveable $item Item to clone
-	 * @param bool|Saveable $item Returns the new clone on success, or false on failure
+	 * @return bool|Saveable $item Returns the new clone on success, or false on failure
 	 *
 	 */
 	public function ___clone(Saveable $item) {
@@ -335,10 +336,52 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 		return false;
 	}
 
+	/**
+	 * Hook that runs right before item is to be saved.
+	 * 
+	 * Unlike before(save), when this runs, it has already been confirmed that the item will indeed be saved.
+	 * 
+	 * @param Saveable $item
+	 * 
+	 */
 	public function ___saveReady(Saveable $item) { }
+	
+	/**
+	 * Hook that runs right before item is to be deleted.
+	 *
+	 * Unlike before(delete), when this runs, it has already been confirmed that the item will indeed be deleted.
+	 *
+	 * @param Saveable $item
+	 *
+	 */
 	public function ___deleteReady(Saveable $item) { }
+	
+	/**
+	 * Hook that runs right after an item has been saved. 
+	 *
+	 * Unlike after(save), when this runs, it has already been confirmed that the item has been saved (no need to error check).
+	 *
+	 * @param Saveable $item
+	 *
+	 */
 	public function ___saved(Saveable $item) { }
+	
+	/**
+	 * Hook that runs right after a new item has been added. 
+	 *
+	 * @param Saveable $item
+	 *
+	 */
 	public function ___added(Saveable $item) { }
+	
+	/**
+	 * Hook that runs right after an item has been deleted. 
+	 * 
+	 * Unlike after(delete), it has already been confirmed that the item was indeed deleted.
+	 *
+	 * @param Saveable $item
+	 *
+	 */
 	public function ___deleted(Saveable $item) { }
 	
 }

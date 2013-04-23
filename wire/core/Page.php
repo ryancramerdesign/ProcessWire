@@ -40,6 +40,12 @@
  * @property string $modified Unix timestamp of when the page was last modified
  * @property User $createdUser The user that created this page. Returns a User or a NullUser.
  * @property User $modifiedUser The user that last modified this page. Returns a User or a NullUser.
+ * @property PagefilesManager $filesManager
+ * @property bool $outputFormatting Whether output formatting is enabled or not. 
+ * @property Page|null $parentPrevious Previous parent, if changed. Null if not. 
+ * @property Template|null $templatePrevious Previous template, if changed. Null if not. 
+ * @property string $namePrevious Previous name, if changed. Blank if not. 
+ * 
  * 
  * @method string render() Returns rendered page markup. echo $page->render();
  * @method bool viewable() Returns true if the page is viewable by the current user, false if not. 

@@ -8,11 +8,10 @@
  * Templates also maintain several properties which can affect the render behavior of pages using it. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  * 
  * @property int $id Get or set the template's numbered database ID.
  * @property string $name Get or set the template's name.
@@ -20,6 +19,11 @@
  * @property string $label Optional short text label to describe Template.
  * @property Fieldgroup $fieldgroup Get or set a template's Fieldgroup. Can also be used to iterate a template's fields.
  * @property Fieldgroup $fields Syntactical alias for $template->fieldgroup. Use whatever makes more sense for your code readability.
+ * @property Fieldgroup|null $fieldgroupPrevious Previous fieldgroup, if it was changed. Null if not. 
+ * @property int|bool $useRoles Whether or not this template defines access. 
+ * @property array $editRoles Array of Role IDs representing roles that may edit pages using this template.
+ * @property array $addRoles Array of Role IDs representing roles that may add pages using this template.
+ * @property array $createRoles Array of Role IDs representing roles that may create pages using this template.
  *
  */
 
@@ -241,7 +245,8 @@ class Template extends WireData implements Saveable {
 	 *
 	 * @param string $key
 	 * @param mixed $value
-	 * @return this
+	 * @return $this
+	 * @throws WireException
 	 *
 	 */
 	public function set($key, $value) {
@@ -347,7 +352,8 @@ class Template extends WireData implements Saveable {
 	 * Set this Template's Fieldgroup
 	 *
 	 * @param Fieldgroup $fieldgroup
-	 * @return this
+	 * @return $this
+	 * @throws WireException
 	 *
 	 */
 	public function setFieldgroup(Fieldgroup $fieldgroup) {
@@ -386,7 +392,7 @@ class Template extends WireData implements Saveable {
 	/**
 	 * Save the template to database
 	 *
-	 * @return this|bool Returns Template if successful, or false if not
+	 * @return $this|bool Returns Template if successful, or false if not
 	 *
 	 */
 	public function save() {
@@ -400,6 +406,7 @@ class Template extends WireData implements Saveable {
 	 * Return corresponding template filename, including path
 	 *
 	 * @return string
+	 * @throws WireException
 	 *	
 	 */
 	public function filename() {

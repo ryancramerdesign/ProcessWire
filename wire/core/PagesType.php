@@ -7,11 +7,10 @@
  * a given page class/type, with predefined parent and template. 
  *
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -131,6 +130,7 @@ class PagesType extends Wire implements IteratorAggregate {
 	 *
 	 * @param Page $page
 	 * @return bool True on success
+	 * @throws WireException
 	 *
 	 */
 	public function ___save(Page $page) {
@@ -149,6 +149,7 @@ class PagesType extends Wire implements IteratorAggregate {
 	 * @param Page $page
 	 * @param bool $recursive If set to true, then this will attempt to delete all children too. 
 	 * @return bool
+	 * @throws WireException
 	 *
 	 */
 	public function ___delete(Page $page, $recursive = false) {

@@ -22,6 +22,7 @@ class PageTraversal {
 	 * Use this over $page->numChildren property when you want to specify a selector or when you want the result to
 	 * include only visible children. See the options for the $selector argument. 
 	 *
+	 * @param Page $page
 	 * @param bool|string $selector 
 	 *	When not specified, result includes all children without conditions, same as $page->numChildren property.
 	 *	When a string, a selector string is assumed and quantity will be counted based on selector.
@@ -48,7 +49,9 @@ class PageTraversal {
 	/**
 	 * Return this page's children pages, optionally filtered by a selector
 	 *
+	 * @param Page $page
 	 * @param string $selector Selector to use, or blank to return all children
+	 * @param array $options
 	 * @return PageArray
 	 *
 	 */
@@ -69,7 +72,9 @@ class PageTraversal {
 	 *
 	 * Same as children() but returns a Page object or NullPage (with id=0) rather than a PageArray
 	 *
+	 * @param Page $page
 	 * @param string $selector Selector to use, or blank to return the first child. 
+	 * @param array $options
 	 * @return Page|NullPage
 	 *
 	 */
@@ -84,7 +89,8 @@ class PageTraversal {
 	/**
 	 * Return this page's parent pages, or the parent pages matching the given selector.
 	 *
-	 * @param sting $selector Optional selector string to filter parents by
+	 * @param Page $page
+	 * @param string $selector Optional selector string to filter parents by
 	 * @return PageArray
 	 *
 	 */
@@ -101,6 +107,7 @@ class PageTraversal {
 	/**
 	 * Return all parent from current till the one matched by $selector
 	 *
+	 * @param Page $page
 	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this. 
 	 * @param string $filter Optional selector string to filter matched pages by
 	 * @return PageArray
@@ -139,6 +146,7 @@ class PageTraversal {
 	 *
 	 * rootParents typically comprise the first level of navigation on a site. 
 	 *
+	 * @param Page $page
 	 * @return Page 
 	 *
 	 */
@@ -155,6 +163,7 @@ class PageTraversal {
 	 *
 	 * Note that the siblings include the current page. To exclude the current page, specify "id!=$page". 
 	 *
+	 * @param Page $page
 	 * @param string $selector Optional selector to filter siblings by.
 	 * @return PageArray
 	 *
@@ -181,6 +190,7 @@ class PageTraversal {
 	 * or "include=hidden", they will not work in the selector. Instead, you should provide the siblings already retrieved with
 	 * one of those modifiers, and provide those siblings as the second argument to this function.
 	 *
+	 * @param Page $page
 	 * @param string $selector Optional selector string. When specified, will find nearest next sibling that matches. 
 	 * @param PageArray $siblings Optional siblings to use instead of the default. May also be specified as first argument when no selector needed.
 	 * @return Page|NullPage Returns the next sibling page, or a NullPage if none found. 
@@ -216,6 +226,7 @@ class PageTraversal {
 	 * or "include=hidden", they will not work in the selector. Instead, you should provide the siblings already retrieved with
 	 * one of those modifiers, and provide those siblings as the second argument to this function.
 	 *
+	 * @param Page $page
 	 * @param string $selector Optional selector string. When specified, will find nearest previous sibling that matches. 
 	 * @param PageArray $siblings Optional siblings to use instead of the default. May also be specified as first argument when no selector needed.
 	 * @return Page|NullPage Returns the previous sibling page, or a NullPage if none found. 
@@ -242,6 +253,7 @@ class PageTraversal {
 	/**
 	 * Return all sibling pages after this one, optionally matching a selector
 	 *
+	 * @param Page $page
 	 * @param string $selector Optional selector string. When specified, will filter the found siblings.
 	 * @param PageArray $siblings Optional siblings to use instead of the default. 
 	 * @return Page|NullPage Returns all matching pages after this one.
@@ -271,6 +283,7 @@ class PageTraversal {
 	/**
 	 * Return all sibling pages before this one, optionally matching a selector
 	 *
+	 * @param Page $page
 	 * @param string $selector Optional selector string. When specified, will filter the found siblings.
 	 * @param PageArray $siblings Optional siblings to use instead of the default. 
 	 * @return Page|NullPage Returns all matching pages before this one.
@@ -296,9 +309,10 @@ class PageTraversal {
 	/**
 	 * Return all sibling pages after this one until matching the one specified 
 	 *
+	 * @param Page $page
 	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this. 
 	 * @param string $filter Optional selector string to filter matched pages by
-	 * @param PageArray Optional PageArray of siblings to use instead of all from the page.
+	 * @param PageArray|null $siblings Optional PageArray of siblings to use instead of all from the page.
 	 * @return PageArray
 	 *
 	 */
@@ -309,7 +323,6 @@ class PageTraversal {
 
 		$siblings = $this->nextAll($page, '', $siblings); 
 
-		$id = $page->id;
 		$all = new PageArray();
 		$stop = false;
 
@@ -337,9 +350,10 @@ class PageTraversal {
 	/**
 	 * Return all sibling pages before this one until matching the one specified 
 	 *
+	 * @param Page $page
 	 * @param string|Page $selector May either be a selector string or Page to stop at. Results will not include this. 
 	 * @param string $filter Optional selector string to filter matched pages by
-	 * @param PageArray Optional PageArray of siblings to use instead of all from the page.
+	 * @param PageArray|null $siblings Optional PageArray of siblings to use instead of all from the page.
 	 * @return PageArray
 	 *
 	 */
@@ -350,7 +364,6 @@ class PageTraversal {
 
 		$siblings = $this->prevAll($page, '', $siblings); 
 
-		$id = $page->id;
 		$all = new PageArray();
 		$stop = false;
 

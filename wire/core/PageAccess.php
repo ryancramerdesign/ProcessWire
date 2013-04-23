@@ -18,6 +18,7 @@ class PageAccess {
 	/**
 	 * Returns the parent page that has the template from which we get our role/access settings from
 	 *
+	 * @param Page $page
 	 * @return Page|NullPage Returns NullPage if none found
 	 *
 	 */
@@ -31,6 +32,7 @@ class PageAccess {
 	/**
 	 * Returns the template from which we get our role/access settings from
 	 *
+	 * @param Page $page
 	 * @return Template|null Returns null if none	
 	 *
 	 */
@@ -46,6 +48,7 @@ class PageAccess {
 	 * This is determined from the page's template. If the page's template has roles turned off, 
 	 * then it will go down the tree till it finds usable roles to use. 
 	 *
+	 * @param Page $page
 	 * @return PageArray
 	 *
 	 */
@@ -60,6 +63,7 @@ class PageAccess {
 	 *
 	 * Given access role may be a role name, role ID or Role object
 	 *
+	 * @param Page $page
 	 * @param string|int|Role $role 
 	 * @return bool
 	 *
