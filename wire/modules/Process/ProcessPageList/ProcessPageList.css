@@ -1,4 +1,3 @@
-
 /********************************************************************************************************
  * PageList
  *
@@ -186,13 +185,14 @@
 }
 
 /**
- * When an item is open, this style ensures that the PageListActions become visible
+ * When an item is hovered, this style ensures that the PageListActions become visible
  *
  */
-.PageList .PageListItemOpen > ul.PageListActions,
-.PageListSelectHeader .PageListActions {
+.PageListSelectHeader .PageListActions,
+.PageListItem:hover > ul.PageListActions {
 	display: inline !important;
 }
+
 
 /**
  * Specific to ul.actions for actions that appear at end of list, i.e. More action
