@@ -41,6 +41,12 @@ class ProcessLanguageTranslator extends Process {
 	protected $comments = array();
 
 	/**
+	 * Instance of Language (Page) containing the language we are translating from
+	 *
+	 */
+	protected $defaultLanguage = null;
+
+	/**
 	 * Instance of Language (Page) containing the language we are translating to
 	 *
 	 */
@@ -72,6 +78,9 @@ class ProcessLanguageTranslator extends Process {
 
 		$languages = wire('languages');
 		if(!$languages) return;
+		
+		$default = $languages->get("default");
+		$this->defaultLanguage = $default;
 
 		if(is_int($language)) $language = $languages->get($language); 
 		if(!$language instanceof Language || !$language->id) throw new WireException("Unknown/invalid language"); 
@@ -265,9 +274,9 @@ class ProcessLanguageTranslator extends Process {
 		$form = $this->modules->get('InputfieldForm'); 
 		$form->attr('action', "./?textdomain=$textdomain"); 
 		$form->attr('method', 'post'); 
-		$form->description = "Translate " . basename($file, '.module') . " from English to " . $this->language->title; 
-		$form->value = "<p>Each of the inputs below represents a block of text to translate. <span class='description'>The text shown in this style is the text that should be translated from English to {$this->language->title}.</span> All inputs are optional: if you leave an input blank, the default English text will be used.</p>";
-
+		$form->description = "Translate " . basename($file, '.module') . " from " . $this->defaultLanguage->title . " to " . $this->language->title;
+		$form->value = "<p>Each of the inputs below represents a block of text to translate. <span class='description'>The text shown in this style is the text that should be translated from {$this->defaultLanguage->title} to {$this->language->title}.</span> All inputs are optional: if you leave an input blank, the default {$this->defaultLanguage->title} text will be used.</p>";
+		
 		$translations = $this->translator->getTranslations($textdomain); 
 
 		foreach($this->untranslated as $hash => $untranslated) {
