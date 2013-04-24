@@ -19,17 +19,17 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 */
         static public function getModuleInfo() {
                 return array(
-                        'title' => 'Languages Support - Page Names',
-                        'version' => 5,
-                        'summary' => 'Required to use multi-language page names. In development, NOT for production use.',
-			'author' => 'Ryan Cramer',
-			'autoload' => true,
-			'singular' => true,
-			'requires' => array(
-				'LanguageSupport',
-				'LanguageSupportFields',
-				)
-                        );
+					'title' => 'Languages Support - Page Names',
+					'version' => 6,
+					'summary' => 'Required to use multi-language page names. In development, NOT for production use.',
+					'author' => 'Ryan Cramer',
+					'autoload' => true,
+					'singular' => true,
+					'requires' => array(
+						'LanguageSupport',
+						'LanguageSupportFields'
+						)
+					);
         }
 
 	/**
@@ -156,6 +156,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 *
 	 * Sets the user's language to that determined from the URL.
 	 *
+	 * @param string $requestPath
 	 * @return string $redirectURL Returns URL to be redirected to, when applicable. Blank when not.
 	 *
 	 */
@@ -165,10 +166,9 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		if(!count($languages)) return '';
 
 		$page = wire('page'); 
-		if($page->template == 'admin') return;
+		if($page->template == 'admin') return '';
 
 		$user = wire('user'); 
-		$home = wire('pages')->get(1);
 
 		$requestedParts = explode('/', $requestPath); 
 		$parentsAndPage = $page->parents()->getArray();
@@ -376,15 +376,10 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			$inputfield->attr('id', $id); 
 			$inputfield->attr('name', $name); 
 			$inputfield->attr('value', $value); 
-
-			// if($page->id) {
-				$inputfield->checkboxName = "status" . $language->id; 
-				$inputfield->checkboxValue = 1; 
-				$inputfield->checkboxLabel = $this->_('Active?'); 
-				$inputfield->checkboxChecked = $page->get($inputfield->checkboxName) > 0 || $page->id == 0;
-			// } else {
-			//	$inputfield->checkboxName = '';
-			// }
+			$inputfield->checkboxName = "status" . $language->id; 
+			$inputfield->checkboxValue = 1; 
+			$inputfield->checkboxLabel = $this->_('Active?'); 
+			$inputfield->checkboxChecked = $page->get($inputfield->checkboxName) > 0 || $page->id == 0;
 
 			$out .= $inputfield->render();
 		}
@@ -409,7 +404,6 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 */
 	public function hookInputfieldPageNameProcess(HookEvent $event) {
 
-		$user = wire('user');
 		$inputfield = $event->object; 
 		$page = $this->process->getPage();
 		$input = $event->arguments[0];
@@ -467,8 +461,8 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	/**
 	 * Add a Page::localName function with optional $language as argument
 	 *
-	 * @param Language|string|int Optional language 
-	 * @return string Localized language name or blank if not set
+	 * event param Language|string|int Optional language 
+	 * event return string Localized language name or blank if not set
 	 *
 	 */
 	public function hookPageLocalName(HookEvent $event) {
@@ -483,8 +477,8 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	/**
 	 * Add a Page::localPath function with optional $language as argument
 	 *
-	 * @param Language|string|int Optional language 
-	 * @return string Localized language name or blank if not set
+	 * event param Language|string|int Optional language 
+	 * event return string Localized language name or blank if not set
 	 *
 	 */
 	public function hookPageLocalPath(HookEvent $event) {
@@ -496,8 +490,8 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	/**
 	 * Add a Page::localUrl function with optional $language as argument
 	 *
-	 * @param Language|string|int Optional language 
-	 * @return string Localized language name or blank if not set
+	 * event param Language|string|int Optional language 
+	 * event return string Localized language name or blank if not set
 	 *
 	 */
 	public function hookPageLocalUrl(HookEvent $event) {
@@ -612,7 +606,13 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 			// populate a status123 field for each language
 			$name = "status$language_id";
-			$value = (int) $page->get($name);
+			if(method_exists($page, 'getForPage')) {
+				// repeater page, pull status from 'for' page
+				$value = (int) $page->getForPage()->get($name); 
+			} else {
+				// regular page
+				$value = (int) $page->get($name);
+			}
 			$extraData[$name] = $value; 
 		}
 
