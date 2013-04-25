@@ -171,7 +171,7 @@ class WireInput {
 	 */
 	public function cookie($key = '') {
 		if(is_null($this->cookieVars)) $this->cookieVars = new WireInputData($_COOKIE); 
-		return $key ? $this->cookieVars->get($key) : $this->cookieVars; 
+		return $key ? $this->cookieVars->__get($key) : $this->cookieVars; 
 	}
 
 	/**
