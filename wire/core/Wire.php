@@ -89,7 +89,7 @@ abstract class Wire implements TrackChanges {
 	 * Array containing the names of properties that were changed while change tracking was ON. 
 	 *
 	 */
-	protected $changes = array();
+	private $changes = array();
 
 	/**
 	 * Whether this class may use fuel variables in local scope, like $this->item
@@ -541,7 +541,7 @@ abstract class Wire implements TrackChanges {
 	 *
 	 */
 	public function setTrackChanges($trackChanges = true) {
-		$this->trackChanges = $trackChanges; 
+		$this->trackChanges = $trackChanges ? true : false; 
 		return $this; 
 	}
 

@@ -1,4 +1,11 @@
 .InputfieldPageNameURL {
-        font-family: Monaco, Courier, Monaco, monospace;
+        font-family: Monaco, Courier, monospace;
+}
+
+.InputfieldPageName .LanguageSupport {
+	margin-bottom: 1em;
+}
+.InputfieldPageName .LanguageSupport .InputfieldPageNameURL {
+	margin-bottom: 0;	
 }
 

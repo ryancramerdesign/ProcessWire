@@ -219,6 +219,49 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	}
 
 	/**
+	 * Replace one item with the other
+	 *
+	 * If both items are already present, they will change places. 
+	 * If one item is not already present, it will replace the one that is. 
+	 * If neither item is present, both will be added at the end.
+	 *
+	 * @param Wire|string|int $itemA
+	 * @param Wire|string|int $itemB
+	 * @return this
+	 *
+	 */
+	public function replace($itemA, $itemB) {
+		$a = $this->get($itemA);
+		$b = $this->get($itemB);
+		if($a && $b) {
+			// swap a and b
+			$data = $this->data; 
+			foreach($data as $key => $value) {
+				if($value === $a) {
+					$key = $b->getItemKey();
+					$value = $b; 
+				} else if($value === $b) {
+					$key = $a->getItemKey();
+					$value = $a; 
+				}
+				$data[$key] = $value;
+			}
+			$this->data = $data; 
+		
+		} else if($a) {
+			// b not already in array, so replace a with b
+			$this->_insert($itemB, $a); 
+			$this->remove($a); 
+
+		} else if($b) {
+			// a not already in array, so replace b with a
+			$this->_insert($itemA, $b); 
+			$this->remove($b);
+		}
+		return $this; 
+	}
+
+	/**
 	 * Sets an index in the WireArray.
 	 *
 	 * @param int|string $key Key of item to set.
@@ -245,6 +288,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * @param int|string|array|object Value of item to set. 
 	 */
 	public function __set($property, $value) {
+		if($this->getProperty($property)) throw new WireException("Property '$property' is a reserved word and may not be set by direct reference."); 
 		$this->set($property, $value); 
 	}
 
@@ -320,8 +364,34 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 */
 	public function __get($property) {
 		$value = parent::__get($property); 
+		if(is_null($value)) $value = $this->getProperty($property);
 		if(is_null($value)) $value = $this->get($property); 
 		return $value; 
+	}
+
+	/**
+	 * Get a property of the array
+	 *
+	 * These map to functions form the array and are here for convenience.
+	 * Properties include count, last, first, keys, values.
+	 * These can also be accessed by direct reference. 
+	 *
+	 * @param string $property
+	 * @return mixed
+	 *
+	 */
+	public function getProperty($property) {
+		static $properties = array(
+			// property => method to map to
+			'count' => 'count',	
+			'last' => 'last',
+			'first' => 'first',
+			'keys' => 'getKeys',
+			'values' => 'getValues',
+			);
+		if(!in_array($property, $properties)) return null;
+		$func = $properties[$property];
+		return $this->$func();
 	}
 
 	/**
@@ -429,13 +499,54 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		$items = $this->makeNew(); 
 		$count = $this->count();
 		if(!$count) return $items; 
-		//if($num > $count) $num = $count; 
 		$keys = array_rand($this->data, ($num > $count ? $count : $num)); 
 		if($num == 1 && !$alwaysArray) return $this->data[$keys]; 
 		if(!is_array($keys)) $keys = array($keys); 
 		foreach($keys as $key) $items->add($this->data[$key]); 
 		$items->setTrackChanges(true); 
 		return $items; 
+	}
+
+	/**
+	 * Get a quantity of random elements from this WireArray. 
+	 *
+	 * Unlike getRandom() this one always returns a WireArray (or derived type).
+	 *
+	 * @param int $num Number of items to return 
+	 * @return WireArray
+	 *
+	 */
+	public function findRandom($num) {
+		return $this->getRandom((int) $num, true);
+	}
+
+	/**
+	 * Get a quantity of random elements from this WireArray based on a timed interval (or user provided seed).
+	 *
+	 * If no $seed is provided, today's date is used to seed the random number
+	 * generator, so you can use this function to rotate items on a daily basis.
+	 * 
+	 * Idea and implementation provided by @mindplay.dk
+	 *
+	 * @param int $amount the amount of items to extract from the given list
+	 * @param int|string $seed a number used to see the random number generator; or a string compatible with date()
+	 *
+	 */
+	public function findRandomTimed($num, $seed = 'Ymd') {
+
+		if(is_string($seed)) $seed = crc32(date($seed));
+		srand($seed);
+		$keys = $this->getKeys();
+		$items = $this->makeNew();
+
+		while(count($keys) > 0 && count($items) < $num) {
+			$index = rand(0, count($keys)-1);
+			$key = $keys[$index];
+			$items->add($items[$key]);
+			array_splice($keys, $index, 1);
+		}
+
+		return $items;
 	}
 
 	/**
@@ -656,17 +767,63 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	}
 
 	/**
-	 * Sort this WireArray by the given property. 
+	 * Sort this WireArray by the given properties. 
 	 *
-	 * You may also specify the $property as "property.subproperty", where property resolves to a Wire derived object, 
+	 * $properties can be given as a sortByField string, i.e. "name, datestamp" OR as an array of strings, i.e. array("name", "datestamp")
+	 * You may also specify the properties as "property.subproperty", where property resolves to a Wire derived object, 
 	 * and subproperty resolves to a property within that object. 
 	 * 
-	 * @TODO Currently only sorts by one field at a time. Upgrade to support a sortByField string, i.e. "name, datestamp" 
-	 *
-	 * @param string $property Field name to sort by. Prepend or append a minus "-" to reverse the sort. 
+	 * @param string|array $properties Field names to sort by (comma separated string or an array). Prepend or append a minus "-" to reverse the sort (per field).
 	 * @return WireArray reference to current instance.
 	 */
-	public function sort($property) {
+	public function sort($properties) {
+		return $this->_sort($properties);
+	}
+
+	/**
+	 * Sort this WireArray by the given properties (internal use)
+	 * 
+	 * This function contains additions and modifications by @niklaka.
+	 *
+	 * $properties can be given as a sortByField string, i.e. "name, datestamp" OR as an array of strings, i.e. array("name", "datestamp")
+	 * You may also specify the properties as "property.subproperty", where property resolves to a Wire derived object, 
+	 * and subproperty resolves to a property within that object. 
+	 * 
+	 * @param string|array $properties Field names to sort by (comma separated string or an array). Prepend or append a minus "-" to reverse the sort (per field).
+	 * @param int $numNeeded *Internal* amount of rows that need to be sorted (optimization used by filterData)
+	 * @return WireArray reference to current instance.
+	 */
+	protected function _sort($properties, $numNeeded = null) {
+
+		// string version is used for change tracking
+		$propertiesStr = is_array($properties) ? implode(',', $properties) : $properties;
+		if(!is_array($properties)) $properties = preg_split('/\s*,\s*/', $properties);
+
+		// shortcut for random (only allowed as the sole sort property)
+		// no warning/error for issuing more properties though
+		// TODO: warning for random+more properties (and trackChange() too)
+		if($properties[0] == 'random') return $this->shuffle();
+
+		$this->data = $this->stableSort($this, $properties, $numNeeded);
+
+		$this->trackChange("sort:$propertiesStr");
+
+		return $this;
+	}
+
+	/**
+	 * Sort given array by first given property.
+	 *
+	 * This function contains additions and modifications by @niklaka.
+	 *
+	 * @param array &$data Reference to an array to sort.
+	 * @param array $properties Array of properties: first property is used now and others in recursion, if needed.
+	 * @param int $numNeeded *Internal* amount of rows that need to be sorted (optimization used by filterData)
+	 * @return array Sorted array (at least $numNeeded items, if $numNeeded is given)
+	 */
+	protected function stableSort(&$data, $properties, $numNeeded = null) {
+
+		$property = array_shift($properties);
 
 		$unidentified = array();
 		$sortable = array();
@@ -678,14 +835,12 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			$property = trim($property, '-'); 
 		}
 
-		if($property == 'random') return $this->shuffle();
-
 		if($pos = strpos($property, ".")) {
 			$subProperty = substr($property, $pos+1); 
 			$property = substr($property, 0, $pos); 
 		}
 
-		foreach($this as $item) {
+		foreach($data as $item) {
 
 			$key = $this->getItemPropertyValue($item, $property); 
 
@@ -707,6 +862,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 
 			if(isset($sortable[$key])) {
 				// key resolved to the same value that another did, so keep them together by converting this index to an array
+				// this makes the algorithm stable (for equal keys the order would be undefined)
 				if(is_array($sortable[$key])) $sortable[$key][] = $item; 
 					else $sortable[$key] = array($sortable[$key], $item); 
 			} else { 
@@ -714,36 +870,40 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			}
 		}
 
-		// sorth the items by the keys we collected
+		// sort the items by the keys we collected
 		if($reverse) krsort($sortable);
 			else ksort($sortable); 
 
-		// add the items that resolved to no key to the end
-		foreach($unidentified as $item) $sortable[] = $item; 
+		// add the items that resolved to no key to the end, as an array
+		$sortable[] = $unidentified; 
 
 		// restore sorted array to lose sortable keys and restore proper keys
 		$a = array();
 		foreach($sortable as $key => $value) {
 			if(is_array($value)) {
+				// if more properties to sort by exist, use them for this sub-array
+				$n = null;
+				if($numNeeded) $n = $numNeeded - count($a); 
+				if(count($properties)) $value = $this->stableSort($value, $properties, $n);
 				foreach($value as $k => $v) {
 					$newKey = $this->getItemKey($v); 
 					$a[$newKey] = $v; 
+					// are we done yet?
+					if($numNeeded && count($a) > $numNeeded) break;
 				}
 			} else {
 				$newKey = $this->getItemKey($value); 
 				$a[$newKey] = $value; 	
 			}
+			// are we done yet?
+			if($numNeeded && count($a) > $numNeeded) break;
 		}
 
-		// overwrite the WireArray's data with the new sorted data
-		$this->data = $a; 
-		$this->trackChange("sort:$property"); 
-
-		return $this;
+		return $a;
 	}
 
 	/**
-	 * Get the vaule of $property from $item
+	 * Get the value of $property from $item
 	 *
 	 * Used by the WireArray::sort method to retrieve a value from a Wire object. 
 	 * Primarily here as a template method so that it can be overridden. 
@@ -755,6 +915,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 */
 	protected function getItemPropertyValue(Wire $item, $property) {
+		if(strpos($property, '.') !== false) return WireData::_getDot($property, $item); 
 		return $item->$property; 
 	}
 
@@ -762,6 +923,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * Filter out Wires that don't match the selector. 
 	 * 
 	 * This is applicable to and destructive to the WireArray.
+	 * This function contains additions and modifications by @niklaka.
 	 *
 	 * @param string|Selectors $selectors AttributeSelector string to use as the filter.
 	 * @param bool $not Make this a "not" filter? (default is false)
@@ -777,27 +939,47 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			$selectors = new Selectors($selectors); 
 		}
 
-		$sort = '';
-		$limit = '';
+		$sort = array();
+		$start = 0;
+		$limit = null;
 
+		// leave sort, limit and start away from filtering selectors
+		foreach($selectors as $selector) {
+			$remove = true; 
+
+			if($selector->field === 'sort') {
+				// use all sort selectors
+				$sort[] = $selector->value; 
+
+			} else if($selector->field === 'start') { 
+				// use only the last start selector
+				$start = (int) $selector->value;
+
+			} else if($selector->field === 'limit') {
+				// use only the last limit selector
+				$limit = (int) $selector->value; 
+
+			} else {
+				// everything else is to be saved for filtering
+				$remove = false;
+			}
+
+			if($remove) $selectors->remove($selector);
+		}
+
+		// now filter the data according to the selectors that remain
 		foreach($this->data as $key => $item) {
-
 			foreach($selectors as $selector) {
-
-				if($selector->field === 'sort') {
-					$sort = $selector->value; 
-
-				} else if($selector->field === 'limit') {
-					$limit = (int) $selector->value; 
-
-				} else if($not === $selector->matches($item)) {
-					unset($this->data[$key]); 
-				}	
+				$value = (string) $this->getItemPropertyValue($item, $selector->field);
+				if($not === $selector->matches($value)) {
+					unset($this->data[$key]);
+				}
 			}
 		}
 
-		if($sort) $this->sort($sort); 
-		if($limit) while($this->count() > $limit) array_pop($this->data); 
+		// if $limit has been given, tell sort the amount of rows that will be used
+		if(count($sort)) $this->_sort($sort, $limit ? $start+$limit : null); 
+		if($start || $limit) $this->data = array_slice($this->data, $start, $limit, true);
 
 		$this->trackChange("filterData:$selectors"); 
 		return $this; 

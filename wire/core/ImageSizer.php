@@ -9,14 +9,15 @@
  * in the GD functions documentation.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
+ *
+ * @todo use ImageSizerInterface
  *
  */
-class ImageSizer {
+class ImageSizer extends Wire {
 
  	/**
 	 * Filename to be resized 
@@ -29,6 +30,12 @@ class ImageSizer {
 	 *
 	 */
 	protected $extension; 
+
+	/**
+	 * Type of image
+	 *
+	 */
+	protected $imageType; 
 
 	/**
 	 * Image quality setting, 1..100
@@ -52,10 +59,32 @@ class ImageSizer {
 	protected $upscaling = true;
 
 	/**
-	 * Allow images to be cropped to achieve necessary dimension?
+	 * Directions that cropping may gravitate towards
+	 *
+	 * Beyond those included below, TRUE represents center and FALSE represents no cropping.
+	 *
+	 */
+	static protected $croppingValues = array(
+		'nw' => 'northwest',
+		'n'  => 'north',
+		'ne' => 'northeast',
+		'w'  => 'west',
+		'e'  => 'east',
+		'sw' => 'southwest',
+		's'  => 'south',
+		'se' => 'southeast',
+		);
+
+	/**
+	 * Allow images to be cropped to achieve necessary dimension? If so, what direction?
+	 *
+	 * Possible values: northwest, north, northeast, west, center, east, southwest, south, southeast 
+	 * 	or TRUE to crop to center, or FALSE to disable cropping.
+	 * Default is: TRUE
 	 *
 	 */
 	protected $cropping = true;
+
 
 	/**
 	 * Was the given image modified?
@@ -64,15 +93,15 @@ class ImageSizer {
 	protected $modified = false; 
 
 	/**
-	 * File extensions that are supported for resizing
+	 * Supported image types (@teppo)
 	 *
 	 */
-	protected $supportedExtensions = array(
-		'gif', 
-		'jpg', 
-		'jpeg', 
-		'png',
-		); 
+	protected $supportedImageTypes = array(
+		'gif' => IMAGETYPE_GIF,
+		'jpg' => IMAGETYPE_JPEG,
+		'jpeg' => IMAGETYPE_JPEG,
+		'png' => IMAGETYPE_PNG,
+		);
 
 	/**
 	 * Construct the ImageSizer for a single image
@@ -82,15 +111,28 @@ class ImageSizer {
 
 		$this->filename = $filename; 
 		$p = pathinfo($filename); 
-		$this->extension = strtolower($p['extension']); 
 		$basename = $p['basename']; 
+		$this->extension = strtolower($p['extension']); 
 
-		if(!in_array($this->extension, $this->supportedExtensions)) 
-			throw new WireException("$basename is an unsupported image type"); 	
+		if(function_exists("exif_imagetype")) {
+
+			$this->imageType = exif_imagetype($filename); 
+
+			if(!in_array($this->imageType, $this->supportedImageTypes)) // @teppo
+				throw new WireException("$basename is an unsupported image type"); 	
+
+		} else {
+			// if exif_imagetype function is not present, we fallback to extension detection
+
+			if(!isset($this->supportedImageTypes[$this->extension])) 
+				throw new WireException("$basename contains an unsupported image extension"); 
+
+			$this->imageType = $this->supportedImageTypes[$this->extension]; 
+		}
+
 
 		if(!$this->loadImageInfo()) 
 			throw new WireException("$basename is not a recogized image"); 
-
 	}
 
 	/**
@@ -122,19 +164,19 @@ class ImageSizer {
 	 * @return bool True if the resize was successful
 	 *
 	 */
-	public function resize($targetWidth, $targetHeight = 0) {
+	public function ___resize($targetWidth, $targetHeight = 0) {
 
 
 		if(!$this->isResizeNecessary($targetWidth, $targetHeight)) return true; 
 
 		$source = $this->filename;
 		$dest = str_replace("." . $this->extension, "_tmp." . $this->extension, $source); 
+		$image = null;
 
-		switch($this->extension) {
-			case 'gif': $image = @imagecreatefromgif($source); break;
-			case 'png': $image = @imagecreatefrompng($source); break;
-			case 'jpeg':
-			case 'jpg': $image = @imagecreatefromjpeg($source); break;
+		switch($this->imageType) { // @teppo
+			case IMAGETYPE_GIF: $image = @imagecreatefromgif($source); break;
+			case IMAGETYPE_PNG: $image = @imagecreatefrompng($source); break;
+			case IMAGETYPE_JPEG: $image = @imagecreatefromjpeg($source); break;
 		}
 
 		if(!$image) return false; 
@@ -143,9 +185,21 @@ class ImageSizer {
 
 		$thumb = imagecreatetruecolor($gdWidth, $gdHeight);  
 
-		if($this->extension == 'png') { // Adam's PNG transparency fix
+		if($this->imageType == IMAGETYPE_PNG) { 
+			// @adamkiss PNG transparency
 			imagealphablending($thumb, false); 
 			imagesavealpha($thumb, true); 
+
+		} else if($this->imageType == IMAGETYPE_GIF) {
+			// @mrx GIF transparency
+	        	$transparentIndex = ImageColorTransparent($image);
+			$transparentColor = $transparentIndex != -1 ? ImageColorsForIndex($image, $transparentIndex) : 0;
+	        	if(!empty($transparentColor)) {
+	            		$transparentNew = ImageColorAllocate($thumb, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+	            		$transparentNewIndex = ImageColorTransparent($thumb, $transparentNew);
+	            		ImageFill($thumb, 0, 0, $transparentNewIndex);
+	        	}
+
 		} else {
 			$bgcolor = imagecolorallocate($thumb, 0, 0, 0);  
 			imagefilledrectangle($thumb, 0, 0, $gdWidth, $gdHeight, $bgcolor);
@@ -155,9 +209,19 @@ class ImageSizer {
 		imagecopyresampled($thumb, $image, 0, 0, 0, 0, $gdWidth, $gdHeight, $this->image['width'], $this->image['height']);
 		$thumb2 = imagecreatetruecolor($targetWidth, $targetHeight);
 
-		if($this->extension == 'png') { 
+		if($this->imageType == IMAGETYPE_PNG) { 
+			// @adamkiss PNG transparency
 			imagealphablending($thumb2, false); 
 			imagesavealpha($thumb2, true); 
+
+		} else if($this->imageType == IMAGETYPE_GIF) {
+			// @mrx GIF transparency
+			if(!empty($transparentColor)) {
+				$transparentNew = ImageColorAllocate($thumb2, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+				$transparentNewIndex = ImageColorTransparent($thumb2, $transparentNew);
+				ImageFill($thumb2, 0, 0, $transparentNewIndex);
+			}
+
 		} else {
 			$bgcolor = imagecolorallocate($thumb2, 0, 0, 0);  
 			imagefilledrectangle($thumb2, 0, 0, $targetWidth, $targetHeight, 0);
@@ -167,22 +231,76 @@ class ImageSizer {
 		$w1 = ($gdWidth / 2) - ($targetWidth / 2);
 		$h1 = ($gdHeight / 2) - ($targetHeight / 2);
 
+		if(is_string($this->cropping)) switch($this->cropping) { 
+			// @interrobang crop directions
+			case 'nw':
+				$w1 = 0;
+				$h1 = 0;
+				break;
+			case 'n':
+				$h1 = 0;
+				break;
+			case 'ne':
+				$w1 = $gdWidth - $targetWidth;
+				$h1 = 0;
+				break;
+			case 'w':
+				$w1 = 0;
+				break;
+			case 'e':
+				$w1 = $gdWidth - $targetWidth;
+				break;
+			case 'sw':
+				$w1 = 0;
+				$h1 = $gdHeight - $targetHeight;
+				break;
+			case 's':
+				$h1 = $gdHeight - $targetHeight;
+				break;
+			case 'se':
+				$w1 = $gdWidth - $targetWidth;
+				$h1 = $gdHeight - $targetHeight;
+				break;
+			default: // center or false, we do nothing
+
+		} else if(is_array($this->cropping)) {
+			// @interrobang + @u-nikos
+			if(strpos($this->cropping[0], '%') === false) $pointX = (int) $this->cropping[0];
+				else $pointX = $gdWidth * ((int) $this->cropping[0] / 100);
+
+			if(strpos($this->cropping[1], '%') === false) $pointY = (int) $this->cropping[1];
+				else $pointY = $gdHeight * ((int) $this->cropping[1] / 100);
+
+			if($pointX < $targetWidth / 2) $w1 = 0;
+				else if($pointX > ($gdWidth - $targetWidth / 2)) $w1 = $gdWidth - $targetWidth;
+				else $w1 = $pointX - $targetWidth / 2;
+
+			if($pointY < $targetHeight / 2) $h1 = 0;
+				else if($pointY > ($gdHeight - $targetHeight / 2)) $h1 = $gdHeight - $targetHeight;
+				else $h1 = $pointY - $targetHeight / 2;
+		}
+
 		imagecopyresampled($thumb2, $thumb, 0, 0, $w1, $h1, $targetWidth, $targetHeight, $targetWidth, $targetHeight);
 
 		// write to file
-		switch($this->extension) {
-			case 'gif': 
-				imagegif($thumb2, $dest); 
+		$result = false;
+		switch($this->imageType) {
+			case IMAGETYPE_GIF: 
+				$result = imagegif($thumb2, $dest); 
 				break;
-			case 'png': 
+			case IMAGETYPE_PNG: 
 				// convert 1-100 (worst-best) scale to 0-9 (best-worst) scale for PNG 
 				$quality = round(abs(($this->quality - 100) / 11.111111)); 
-				imagepng($thumb2, $dest, $quality); 
+				$result = imagepng($thumb2, $dest, $quality); 
 				break;
-			case 'jpeg':
-			case 'jpg': 
-				imagejpeg($thumb2, $dest, $this->quality); 
+			case IMAGETYPE_JPEG:
+				$result = imagejpeg($thumb2, $dest, $this->quality); 
 				break;
+		}
+
+		if($result === false) {
+			if(is_file($dest)) unlink($dest); 
+			return false;
 		}
 
 		unlink($source); 
@@ -351,11 +469,17 @@ class ImageSizer {
 	}
 
 	/**
-	 * Turn on/off cropping
+	 * Turn on/off cropping and/or set cropping direction
+	 *
+	 * @param bool|string|array $cropping Specify one of: northwest, north, northeast, west, center, east, southwest, south, southeast.
+	 *	Or a string of: 50%,50% (x and y percentages to crop from)
+	 * 	Or an array('50%', '50%')
+	 *	Or to disable cropping, specify boolean false. To enable cropping with default (center), you may also specify boolean true.
+	 * @return this
 	 *
 	 */
 	public function setCropping($cropping = true) {
-		$this->cropping = $cropping; 
+		$this->cropping = self::croppingValue($cropping);
 		return $this;
 	}
 
@@ -398,6 +522,73 @@ class ImageSizer {
 			}
 		}
 		return $this; 
+	}
+
+	/**
+	 * Return an array of the current options
+	 *
+	 * @return array
+	 *
+	 */
+	public function getOptions() {
+		return array(
+			'quality' => $this->quality, 
+			'cropping' => $this->cropping, 
+			'upscaling' => $this->upscaling
+			);
+	}
+
+	/**
+	 * Given an unknown cropping value, return the validated internal representation of it
+	 *
+	 * @return string|bool
+	 *
+	 */
+	static public function croppingValue($cropping) {
+
+		if(is_string($cropping)) {
+			$cropping = strtolower($cropping); 
+			if(strpos($cropping, ',')) {
+				$cropping = explode(',', $cropping);
+				if(strpos($cropping[0], '%') !== false) $cropping[0] = round(min(100, max(0, $cropping[0]))) . '%';
+					else $cropping[0] = (int) $cropping[0];
+				if(strpos($cropping[1], '%') !== false) $cropping[1] = round(min(100, max(0, $cropping[1]))) . '%';
+					else $cropping[1] = (int) $cropping[1];
+			}
+		}
+		
+		if($cropping === true) $cropping = true; // default, crop to center
+			else if(!$cropping) $cropping = false;
+			else if(is_array($cropping)) $cropping = $cropping; // already took care of it above
+			else if(in_array($cropping, self::$croppingValues)) $cropping = array_search($cropping, self::$croppingValues); 
+			else if(array_key_exists($cropping, self::$croppingValues)) $cropping = $cropping; 
+			else $cropping = true; // unknown value or 'center', default to TRUE/center
+
+		return $cropping; 
+	}
+
+	/**
+	 * Given an unknown cropping value, return the string representation of it 
+	 *
+	 * Okay for use in filenames
+	 *
+	 * @return string
+	 *
+	 */
+	static public function croppingValueStr($cropping) {
+
+		$cropping = self::croppingValue($cropping); 
+
+		// crop name if custom center point is specified
+		if(is_array($cropping)) {
+			// p = percent, d = pixel dimension
+			$cropping = (strpos($cropping[0], '%') !== false ? 'p' : 'd') . ((int) $cropping[0]) . 'x' . ((int) $cropping[1]);
+		}
+
+		// if crop is TRUE or FALSE, we don't reflect that in the filename, so make it blank
+		if(is_bool($cropping)) $cropping = '';
+
+		return $cropping;
 	}
 
 }

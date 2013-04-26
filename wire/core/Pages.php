@@ -276,7 +276,7 @@ class Pages extends Wire {
 			$sql = "SELECT id, templates_id FROM pages WHERE ";
 			if($idCnt == 1) $sql .= "id=" . (int) reset($ids); 
 				else $sql .= "id IN(" . implode(",", $ids) . ")";
-			$result = $this->db->query($sql); 
+			$result = $this->db->query($sql); // QA
 			if($result && $result->num_rows) while($row = $result->fetch_row()) {
 				list($id, $templates_id) = $row; 
 				if(!isset($idsByTemplate[$templates_id])) $idsByTemplate[$templates_id] = array();
@@ -305,18 +305,18 @@ class Pages extends Wire {
 	
 			foreach($fields as $field) { 
 				if(!($field->flags & Field::flagAutojoin)) continue; 
-				$table = $field->table; 
+				$table = $this->db->escapeTable($field->table); 
 				if(!$field->type->getLoadQueryAutojoin($field, $query)) continue; // autojoin not allowed
-				$query->leftjoin("$table ON $table.pages_id=pages.id"); 
+				$query->leftjoin("$table ON $table.pages_id=pages.id"); // QA
 			}
 
 			if(!is_null($parent_id)) $query->where("pages.parent_id=" . (int) $parent_id); 
 
-			$query->where("pages.templates_id={$template->id}"); 
-			$query->where("pages.id IN(" . implode(',', $ids) . ") "); 
+			$query->where("pages.templates_id=" . ((int) $template->id)); // QA
+			$query->where("pages.id IN(" . implode(',', $ids) . ") "); // QA
 			$query->from("pages"); 
 
-			if(!$result = $query->execute()) throw new WireException($this->db->error); 
+			if(!$result = $query->execute()) throw new WireException($this->db->error); // QA
 
 			$class = ($template->pageClass && class_exists($template->pageClass)) ? $template->pageClass : 'Page';
 
@@ -359,10 +359,16 @@ class Pages extends Wire {
 		// if page is already loaded, then get the path from it
 		if(isset($this->pageIdCache[$id])) return $this->pageIdCache[$id]->path();
 
+		if($this->modules->isInstalled('PagePaths')) {
+			$path = $this->modules->get('PagePaths')->getPath($id);
+			if(is_null($path)) $path = '';
+			return $path; 
+		}
+
 		$path = '';
 		$parent_id = $id; 
 		do {
-			$result = Wire::getFuel('db')->query("SELECT parent_id, name FROM pages WHERE id=$parent_id"); 
+			$result = Wire::getFuel('db')->query("SELECT parent_id, name FROM pages WHERE id=" . ((int) $parent_id)); // QA
 			list($parent_id, $name) = $result->fetch_row();
 			$result->free();
 			$path = $name . '/' . $path;
@@ -400,7 +406,7 @@ class Pages extends Wire {
 		if($page instanceof NullPage) $reason = "Pages of type NullPage are not saveable";
 			else if((!$page->parent || $page->parent instanceof NullPage) && $page->id !== 1) $reason = "It has no parent assigned"; 
 			else if(!$page->template) $reason = "It has no template assigned"; 
-			else if(!strlen(trim($page->name))) $reason = "It has an empty 'name' field"; 
+			else if(!strlen(trim($page->name)) && $page->id != 1) $reason = "It has an empty 'name' field"; 
 			else if($page->is(Page::statusCorrupted)) $reason = $outputFormattingReason . " [Page::statusCorrupted]";
 			else if($page->id == 1 && !$page->template->useRoles) $reason = "Selected homepage template cannot be used because it does not define access.";
 			else if($page->id == 1 && !$page->template->hasRole('guest')) $reason = "Selected homepage template cannot be used because it does not have the required 'guest' role in it's access settings.";
@@ -491,7 +497,7 @@ class Pages extends Wire {
 	 * If you want to just save a particular field in a Page, use $page->save($fieldName) instead. 
 	 *
 	 * @param Page $page
-	 * @return bool True on success
+	 * @return bool True on success, false on failure
 	 *
 	 */
 	public function ___save(Page $page, $options = array()) {
@@ -516,7 +522,7 @@ class Pages extends Wire {
 		$user = $this->fuel('user'); 
 		$userID = $user ? $user->id : $this->config->superUserPageID; 
 		if(!$page->created_users_id) $page->created_users_id = $userID; 
-		$this->saveReady($page); 
+		$extraData = $this->saveReady($page); 
 
 		$sql = 	"pages SET " . 
 			"parent_id=" . ((int) $page->parent_id) . ", " . 
@@ -527,10 +533,15 @@ class Pages extends Wire {
 			"sort=" . ($page->sort > -1 ? (int) $page->sort : 0) . "," . 
 			"modified=NOW()"; 
 
+		if(is_array($extraData) && count($extraData)) foreach($extraData as $column => $value) {
+			$column = $this->db->escapeCol($column); 
+			$value = strtoupper($value) === 'NULL' ? 'NULL' : "'" . $this->db->escape_string($value) . "'";
+			$sql .= ", $column=$value";
+		}
 
 		if($isNew) {
 			if($page->id) $sql .= ", id=" . (int) $page->id; 
-			$result = $this->db->query("INSERT INTO $sql, created=NOW(), created_users_id=" . ((int) $userID)); 
+			$result = $this->db->query("INSERT INTO $sql, created=NOW(), created_users_id=" . ((int) $userID)); // QA
 			if($result) {
 				$page->id = $this->db->insert_id; 
 				$page->parent->numChildren++;
@@ -538,7 +549,7 @@ class Pages extends Wire {
 
 		} else {
 			if($page->template->allowChangeUser) $sql .= ", created_users_id=" . ((int) $page->created_users_id);
-			$result = $this->db->query("UPDATE $sql WHERE id=" . (int) $page->id); 
+			$result = $this->db->query("UPDATE $sql WHERE id=" . (int) $page->id); // QA
 			if($page->parentPrevious && $page->parentPrevious->id != $page->parent->id) {
 				$page->parentPrevious->numChildren--;
 				$page->parent->numChildren++;
@@ -562,7 +573,7 @@ class Pages extends Wire {
 
 		// save each individual Fieldtype data in the fields_* tables
 		foreach($page->fieldgroup as $field) {
-			$field->type->savePageField($page, $field);
+			if($field->type) $field->type->savePageField($page, $field);
 		}
 
 		// return outputFormatting state
@@ -614,16 +625,16 @@ class Pages extends Wire {
 			$this->saveParents($page->parentPrevious->id, 0); 
 		}
 
-
 		// trigger hooks
-
+		$this->saved($page);
 		if($triggerAddedPage) $this->added($triggerAddedPage);
 		if($page->namePrevious && $page->namePrevious != $page->name) $this->renamed($page); 
 		if($page->parentPrevious) $this->moved($page);
 		if($page->templatePrevious) $this->templateChanged($page);
 
-		$this->debugLog('save', $page, $result != false); 
-		return $result; 
+		$this->debugLog('save', $page, true); 
+
+		return true; 
 	}
 
 	/**
@@ -653,7 +664,7 @@ class Pages extends Wire {
 			$page->untrackChange($field->name); 
 			$user = $this->fuel('user'); 
 			$userID = (int) ($user ? $user->id : $this->config->superUserPageID); 
-			$this->db->query("UPDATE pages SET modified_users_id=$userID, modified=NOW() WHERE id=" . (int) $page->id); 
+			$this->db->query("UPDATE pages SET modified_users_id=$userID, modified=NOW() WHERE id=" . (int) $page->id); // QA
 			$return = true; 
 		} else {
 			$return = false; 
@@ -679,8 +690,8 @@ class Pages extends Wire {
 		$pages_id = (int) $pages_id; 
 		if(!$pages_id) return false; 
 
-		$sql = "DELETE FROM pages_parents WHERE pages_id=$pages_id"; 
-		$this->db->query($sql); 
+		$sql = "DELETE FROM pages_parents WHERE pages_id=" . (int) $pages_id; 
+		$this->db->query($sql); // QA
 
 		if(!$numChildren) return true; 
 
@@ -690,9 +701,10 @@ class Pages extends Wire {
 
 		do {
 			if($id < 2) break; // home has no parent, so no need to do that query
-			$sql = "SELECT parent_id FROM pages WHERE id=$id"; 
-			$result = $this->db->query($sql);
+			$sql = "SELECT parent_id FROM pages WHERE id=" . (int) $id; 
+			$result = $this->db->query($sql); // QA
 			list($id) = $result->fetch_array();
+			$id = (int) $id; 
 			$result->free();
 			if(!$id) break;
 			$insertSql .= "($pages_id, $id),";
@@ -702,7 +714,7 @@ class Pages extends Wire {
 
 		if($insertSql) {
 			$sql = "INSERT INTO pages_parents (pages_id, parents_id) VALUES" . rtrim($insertSql, ","); 
-			$this->db->query($sql);
+			$this->db->query($sql); // QA
 		}
 
 		// find all children of $pages_id that themselves have children
@@ -711,7 +723,7 @@ class Pages extends Wire {
 			"JOIN pages AS children ON children.parent_id=pages.id " . 
 			"WHERE pages.parent_id=$pages_id " . 
 			"GROUP BY pages.id ";
-		$result = $this->db->query($sql);
+		$result = $this->db->query($sql); // QA
 
 		while($row = $result->fetch_array()) {
 			$this->saveParents($row['id'], $row['numChildren'], $level+1); 	
@@ -737,9 +749,9 @@ class Pages extends Wire {
 		$pageID = (int) $pageID; 
 		$status = (int) $status; 
 		$sql = $remove ? "status & ~$status" : $sql = "status|$status";
-		$this->db->query("UPDATE pages SET status=$sql WHERE id=$pageID"); 
+		$this->db->query("UPDATE pages SET status=$sql WHERE id=$pageID"); // QA
 		if($recursive) { 
-			$result = $this->db->query("SELECT id FROM pages WHERE parent_id=$pageID"); 
+			$result = $this->db->query("SELECT id FROM pages WHERE parent_id=$pageID"); // QA
 			while($row = $result->fetch_array()) {
 				$this->savePageStatus($row['id'], $status, true, $remove); 
 			}
@@ -859,8 +871,8 @@ class Pages extends Wire {
 		$access = new PagesAccess();	
 		$access->deletePage($page); 
 
-		$this->db->query("DELETE FROM pages_parents WHERE pages_id=" . (int) $page->id); 
-		$this->db->query("DELETE FROM pages WHERE id=" . ((int) $page->id) . " LIMIT 1"); 
+		$this->db->query("DELETE FROM pages_parents WHERE pages_id=" . (int) $page->id); // QA
+		$this->db->query("DELETE FROM pages WHERE id=" . ((int) $page->id) . " LIMIT 1"); // QA
 
 		$this->sortfields->delete($page); 
 		$page->setTrackChanges(false); 
@@ -1140,6 +1152,15 @@ class Pages extends Wire {
 	}
 
 	/**
+	 * Hook called after a page is successfully saved
+	 *
+	 * This is the same as Pages::save, except that it occurs before other save-related hooks (below),
+	 * Whereas Pages::save occurs after. In most cases, the distinction does not matter. 
+	 *
+	 */
+	protected function ___saved(Page $page) { }
+
+	/**
 	 * Hook called when a new page has been added
 	 *
 	 */
@@ -1183,9 +1204,10 @@ class Pages extends Wire {
 	 * Note that there is no ___saved() hook because it's already provided by after(save).
 	 *
 	 * @param Page $page The page about to be saved
+	 * @return array Optional extra data to add to pages save query.
 	 *
 	 */
-	protected function ___saveReady(Page $page) { }
+	protected function ___saveReady(Page $page) { return array(); }
 
 	/**
 	 * Hook called when a page is about to be deleted, but before data has been touched

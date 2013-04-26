@@ -26,7 +26,7 @@ class CommentFilterAkismet extends CommentFilter implements Module, Configurable
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Comment Filter: Akismet',
-			'version' => 100,
+			'version' => 101,
 			'summary' => 'Uses the Akismet service to identify comment spam. Module plugin for the Comments Fieldtype.',
 			'permanent' => false, 
 			'singular' => false,
@@ -62,6 +62,7 @@ class CommentFilterAkismet extends CommentFilter implements Module, Configurable
 			"&comment_type=comment" . 
 			"&comment_author=" . urlencode($this->comment->cite) . 
 			"&comment_author_email=" . urlencode($this->comment->email) . 
+			"&comment_author_url=" . urlencode($this->comment->website) . 
 			"&comment_content=" . urlencode($this->comment->text); 
 		return $request; 
 	}

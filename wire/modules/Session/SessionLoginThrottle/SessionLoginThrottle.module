@@ -1,0 +1,178 @@
+<?php
+
+/**
+ * ProcessWire Session Login Throttle Module
+ *
+ * Throttles the frequency of logins for a given account, helps to reduce dictionary attacks.
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2012 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class SessionLoginThrottle extends WireData implements Module, ConfigurableModule {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Session Login Throttle', 
+			'version' => 101, 
+			'summary' => 
+				'Throttles the frequency of logins for a given account, helps to reduce dictionary attacks ' . 
+				'by introducing an exponential delay between logins.',
+			'permanent' => false, 
+			'singular' => true, 
+			'autoload' => true, 
+			);
+	}
+
+	protected static $defaultSettings = array(
+		'checkIP' => 0,
+		'seconds' => 10,
+		'maxSeconds' => 300
+		);
+
+	public function __construct() {
+		foreach(self::$defaultSettings as $key => $value) {
+			$this->set($key, $value); 
+		}
+	}
+
+	/**
+	 * Initialize the hooks
+	 *
+	 */
+	public function init() {
+		$this->session->addHookAfter('allowLogin', $this, 'sessionAllowLogin'); 
+	}
+
+	/**
+	 * Hooks into Session::authenticate to make it respond 'false' if the user has already failed a login. 
+	 *
+	 * Further, it imposes an increasing delay for every failed attempt 
+	 *
+	 */
+	public function sessionAllowLogin($event) {
+
+		// check if some other module has already disallowed login, in which case we won't do anything
+		$allowed = $event->return; 
+		if(!$allowed) return false; 
+
+		$name = $event->arguments[0]; 
+
+		// now check user $name and optionally IP address
+		if(!$this->allowLogin($name)) {
+			$allowed = false; 
+
+		} else if($this->checkIP) {
+			$ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';			
+			if(strlen($ip) && !$this->allowLogin($ip)) $allowed = false;
+		}
+
+		$event->return = $allowed;
+	}
+
+	protected function allowLogin($name) {
+
+		$time = time();
+		$db = $this->fuel('db');
+		$name = $db->escape_string($this->fuel('sanitizer')->username($name));
+		$result = $db->query("SELECT attempts, last_attempt FROM session_login_throttle WHERE name='$name'");
+		$allowed = false;
+
+		if($result->num_rows) {
+			list($attempts, $lastAttempt) = $result->fetch_row();
+			$requireSeconds = $attempts * $this->seconds; 
+			if($requireSeconds > $this->maxSeconds) $requireSeconds = $this->maxSeconds; 
+			$elapsedSeconds = $time - $lastAttempt; 
+			$attempts++;
+			if($elapsedSeconds < $requireSeconds) {
+				$error = sprintf($this->_("Please wait at least %d seconds before attempting another login."), $requireSeconds); 
+				if(wire('process') == 'ProcessLogin') parent::error($error); 
+					else throw new WireException($error); // ensures the error can't be missed in unknown API usage
+			} else {
+				$allowed = true; 
+			}
+			$db->query("UPDATE session_login_throttle SET attempts=$attempts, last_attempt=$time WHERE name='$name'");   
+
+		} else {
+			$allowed = true; 
+			$db->query("INSERT INTO session_login_throttle (name, attempts, last_attempt) VALUES('$name', 1, $time)");
+		}
+
+		// delete saved login attempts that are no longer applicable
+		$expired = $time - $this->maxSeconds;
+		$sql = "DELETE FROM session_login_throttle WHERE last_attempt < $expired ";
+		if($allowed) $sql .= "OR name='$name'";
+		$db->query($sql); 
+
+		return $allowed; 
+	}
+
+
+	/**
+	 * Add custom config options (coming soon, just a placeholder for now)
+	 *
+	 */
+	static public function getModuleConfigInputfields(array $data) {
+
+		$inputfields = new InputfieldWrapper();
+
+		foreach(self::$defaultSettings as $key => $value) {
+			if(!isset($data[$key])) $data[$key] = $value;
+		}
+
+		$f = wire('modules')->get('InputfieldCheckbox');
+		$f->attr('name', 'checkIP');
+		$f->attr('value', 1);
+		$f->attr('checked', $data['checkIP'] ? 'checked' : ''); 
+		$f->label = __('Throttle by IP address?'); 
+		$f->description = __('By default, throttling will only be done by username. If you check this box, then throttling will also be done by IP address. We recommended enabling this option if your users are not coming from a shared IP address.');
+		$inputfields->add($f);
+
+		$f = wire('modules')->get('InputfieldInteger'); 
+		$f->attr('name', 'seconds');
+		$f->attr('value', $data['seconds']); 
+		$f->label = __('Number of seconds to make user wait after failed login attempt'); 
+		$f->description = __('This number is multiplied by the number of failed attempts, so each failed attempt increases the wait time exponentially. As a result, be careful about setting this too high.');
+		$inputfields->add($f); 
+
+		$f = wire('modules')->get('InputfieldInteger'); 
+		$f->attr('name', 'maxSeconds');
+		$f->attr('value', $data['maxSeconds']); 
+		$f->label = __('Maximum number of seconds a user would ever have to wait before attempting another login'); 
+		$f->description = __('Because the wait time is increased exponentially on each attempt, this places a maximum (cap) on the wait time. You should leave this set to a fairly high number.');
+		$f->notes = __('60=1 minute, 300=5 minutes, 600=10 minutes, 3600=1 hour, 86400=1 day'); 
+		$inputfields->add($f); 
+
+		return $inputfields;
+
+	}
+
+	/**
+	 * Install the module by creating a DB table where we store login attempts
+	 *
+	 */
+	public function ___install() { 
+
+		$sql = 	"CREATE TABLE `session_login_throttle` ( " . 
+		  	"`name` varchar(128) NOT NULL, " . 
+		  	"`attempts` int(10) unsigned NOT NULL default '0'," . 
+		  	"`last_attempt` int(10) unsigned NOT NULL," . 
+		  	"PRIMARY KEY (`name`))";
+
+		$this->db->query($sql);
+	}
+
+	/**
+	 * Drop the login attempt table when the module is uninstalled
+	 *
+	 */
+	public function ___uninstall() { 
+		$this->db->query("DROP TABLE IF EXISTS session_login_throttle"); 
+	}
+
+}

@@ -3,7 +3,7 @@
 /**
  * ProcessWire 2.x Admin Markup Template
  *
- * Copyright 2010 by Ryan Cramer
+ * Copyright 2012 by Ryan Cramer
  *
  *
  */
@@ -42,6 +42,7 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
 	<meta name="robots" content="noindex, nofollow" />
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 	<title><?php echo $browserTitle; ?></title>
 
@@ -82,7 +83,7 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 	<p id='bgtitle'><?php echo __($page->parent->title, __FILE__); ?></p>
 	<div id="masthead" class="masthead">
 		<div class="container">
-			<p id="logo">ProcessWire</p>
+			<a id='logo' href='<?php echo $config->urls->admin?>'><img src="<?php echo $config->urls->adminTemplates?>styles/images/logo.gif" alt="ProcessWire" /></a>
 
 			<ul id='topnav' class='nav'><?php include($config->paths->adminTemplates . "topnav.inc"); ?>
 

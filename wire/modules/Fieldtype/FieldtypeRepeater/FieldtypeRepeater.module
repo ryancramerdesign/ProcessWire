@@ -13,8 +13,7 @@
  * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -24,7 +23,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		return array(
 			'title' => __('Repeater', __FILE__), // Module Title
 			'summary' => __('Maintains a collection of fields that are repeated for any number of times.', __FILE__), // Module Summary
-			'version' => 100,
+			'version' => 101,
 			'autoload' => true,
 			'installs' => 'InputfieldRepeater'
 			);
@@ -61,6 +60,10 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 *
 	 */
 	public function __construct() {
+
+		require_once(dirname(__FILE__) . '/RepeaterPage.php'); 
+		require_once(dirname(__FILE__) . '/RepeaterPageArray.php'); 
+
 		$this->set('repeatersRootPageID', 0); 	
 	}
 
@@ -80,6 +83,12 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	public function ready() {
 		if(wire('page')->process == 'ProcessPageEdit') $this->addHookBefore('ProcessPageEdit::ajaxSave', $this, 'hookProcessPageEditAjaxSave'); 
 		$this->addHookBefore('PageFinder::getQuery', $this, 'hookPageFinderGetQuery'); 
+
+		// make sure that all templates used by repeater pages enforce a Page type of RepeaterPage
+		foreach(wire('templates') as $template) {
+			if(strpos($template->name, self::templateNamePrefix) === false) continue; 
+			$template->setQuietly('pageClass', 'RepeaterPage');
+		}
 	}
 
 	/**
@@ -117,9 +126,12 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		// was include=all specified?
 		$includeAll = false;
 
+		// if user is guest, then repeater pages will already be excluded (since they don't have view access to them) so no need for extra filter
+		if(wire('user')->isGuest()) $includeAll = true; 
+
 		// determine if any of the fields used in the selector are also used in a repeater
 		// and set $found and $includeAll as appropriate
-		foreach($selectors as $selector) {
+		if(!$includeAll) foreach($selectors as $selector) {
 
 			$fields = $selector->field; 
 
@@ -135,8 +147,16 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 				// include=all is the same as status<Page::statusMax, so we look for that here
 				if($name == 'status' && $selector->operator == '<' && $selector->value == Page::statusMax) $includeAll = true; 
 
+				// optimization: if parent, parent_id, template, or templates_id is given, and an equals '=' operator is used, 
+				// there's no need to explicitly exclude repeaters since the parent and/or template is specific
+				if(in_array($name, array('parent', 'parent_id', 'template', 'templates_id')) && $selector->operator == '=') $includeAll = true;
+
 				// ensure that the repeaters own queries work since they specify a templates_id
-				if($name == 'templates_id' && in_array($selector->value, $templatesUsedByRepeaters)) $includeAll = true; 
+				// note: this is now redundent given the code added directly above this, but kept for clarification
+				if($name == 'templates_id' && $selector->operator == '=' && in_array($selector->value, $templatesUsedByRepeaters)) $includeAll = true; 
+
+				// if has_parent is specified and is not homepage, no need to exclude results
+				if($name == 'has_parent' && $selector->value != 1 && $selector->operator == '=' && $selector->value != '/') $includeAll = true;
 
 				if($includeAll) break;
 			}
@@ -145,7 +165,8 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		// if field is one used by a repeater, and there was no include=all, 
 		// then exclude repeaters from appearing in these PageFinder search results
 		if($found && !$includeAll) {
-			$selectors->add(new SelectorNotEqual('has_parent', $this->repeatersRootPageID)); 
+			// for reference: $selectors->add(new SelectorNotEqual('has_parent', $this->repeatersRootPageID)); 
+			$selectors->add(new SelectorNotEqual('templates_id', $templatesUsedByRepeaters)); // more efficient than has_parent
 		}
 	}
 
@@ -255,7 +276,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			if(!$field->type instanceof FieldtypeRepeater) continue; 
 			$fieldParent = wire('pages')->get($field->parent_id); 	
 			if(!$fieldParent->id) continue; 
-			$p = $fieldParent->child('name=' . self::repeaterPageNamePrefix . $page->id); 	
+			$p = $fieldParent->child('include=all, name=' . self::repeaterPageNamePrefix . $page->id); 	
 			if(!$p->id) continue; 
 			$p->addStatus(Page::statusSystemOverride); 
 			$p->removeStatus(Page::statusSystem);
@@ -399,12 +420,14 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 */
 	public function getBlankRepeaterPage(Page $page, Field $field) {
 		$parent = $this->getRepeaterPageParent($page, $field); 
-		$readyPage = new Page();
+		$readyPage = new RepeaterPage();
 		$readyPage->template = $this->getRepeaterTemplate($field);
 		if($parent->id) $readyPage->parent = $parent; 
 		$readyPage->addStatus(Page::statusHidden); 
 		$readyPage->addStatus(Page::statusUnpublished); 
 		$readyPage->name = $this->getUniqueRepeaterPageName();
+		$readyPage->setForPage($page);
+		$readyPage->setForField($field);
 		return $readyPage; 
 	}
 
@@ -1253,94 +1276,5 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		}
 	}
 
-}
-
-/**
- * Special PageArray for use by repeaters that includes a getNew() method
- *
- */ 
-
-class RepeaterPageArray extends PageArray {
-
-	/**
-	 * The page that contains the repeater field (not the parent in the repeaters structure)
-	 *
-	 */ 
-	protected $parent = null;
-
-	/**
-	 * The repeater field (from $this->fields API var)
-	 *
-	 */
-	protected $field = null;
-
-	public function __construct(Page $parent, Field $field) {
-		$this->setParent($parent);
-		$this->setField($field); 
-	}
-
-	public function setParent(Page $parent) { $this->parent = $parent; }
-	public function getParent() { return $this->parent; }
-	public function setField(Field $field) { $this->field = $field; }
-	public function getField() { return $this->field; }
-
-	/**
-	 * Return a new repeater item ready for use
-	 *
- 	 * If there are ready items, it will return the first ready item
-	 * Otherwise it'll create a new item
-	 *
- 	 * This method is different from FieldtypeRepeater::getBlankRepeaterPage: 
-	 * 1. It returns an already existing readyPage, if it exists (otherwise it creates a new page)
-	 * 2. The returned page is in a non-hidden published state, so will appear as soon as it is saved
-	 *
-	 * @return Page
-	 *
-	 */
-	public function getNew() {
-
-		$page = null;
-		$of = $this->parent->of(false); 
-
-		foreach($this as $item) {
-			if($item->is(Page::statusUnpublished) && $item->is(Page::statusHidden)) {
-				$page = $item;
-				break;
-			}
-		}
-
-		if(is_null($page)) { 
-			$page = $this->field->type->getBlankRepeaterPage($this->parent, $this->field); 
-			$this->add($page);
-		} else {
-			$this->trackChange('add');
-		}
-
-		$page->of(false);
-		$page->removeStatus(Page::statusUnpublished); 
-		$page->removeStatus(Page::statusHidden); 
-		$page->sort = $this->count();
-
-		if($of) $this->parent->of(true);
-
-		return $page;
-	}
-
-	/**
-	 * Creates a new blank instance of a RepeaterPageArray. For internal use. 
-	 * 
-	 * Note that this method has no relation/similarity to the getNewItem()/getNew() methods.
-	 *
-	 * @param array $items Array of items to populate (optional)
-	 * @return WireArray
-	 *
-	 */
-	public function makeNew() {
-		$class = get_class($this);
-		$newArray = new $class($this->parent, $this->field);
-		return $newArray;
-	}
-
-	
 }
 

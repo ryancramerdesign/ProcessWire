@@ -45,6 +45,25 @@ class WireData extends Wire implements IteratorAggregate {
 	}
 
 	/**
+	 * Same as set() but triggers no change tracking or hooks
+	 *
+	 * If trackChanges is false, then this is no different than set().
+	 * If trackChanges is true, then the value will be set but not recorded in the changes list.
+	 *
+	 * @param string $key
+	 * @param mixed $value
+	 * @return this
+	 *
+	 */
+	public function setQuietly($key, $value) {
+		$track = $this->trackChanges; 
+		if($track) $this->setTrackChanges(false);
+		$this->set($key, $value);
+		if($track) $this->setTrackChanges(true);
+		return $this;
+	}
+
+	/**
 	 * Is $value1 equal to $value2?
 	 *
 	 * This template method provided so that descending classes can optionally determine 
@@ -107,6 +126,73 @@ class WireData extends Wire implements IteratorAggregate {
 	 */
 	public function getArray() {
 		return $this->data; 
+	}
+
+	/**
+	 * Get a property via dot syntax: field.subfield (static)
+	 *
+	 * Static version for internal core use. Use the non-static getDot() instead.
+	 *
+	 * @param string $key 
+	 * @param Wire $from The instance you want to pull the value from
+	 * @return null|mixed Returns value if found or null if not
+	 *
+	 */
+	public static function _getDot($key, Wire $from) {
+		$key = trim($key, '.');
+		if(strpos($key, '.')) {
+			// dot present
+			$keys = explode('.', $key); // convert to array
+			$key = array_shift($keys); // get first item
+		} else {
+			// dot not present
+			$keys = array();
+		}
+		if(Wire::getFuel($key) !== null) return null; // don't allow API vars to be retrieved this way
+		if($from instanceof WireData) $value = $from->get($key);
+			else if($from instanceof WireArray) $value = $from->getProperty($key);
+			else $value = $from->$key;
+		if(!count($keys)) return $value; // final value
+		if(is_object($value)) {
+			if(count($keys) > 1) {
+				$keys = implode('.', $keys); // convert back to string
+				if($value instanceof WireData) $value = $value->getDot($keys); // for override potential
+					else $value = self::_getDot($keys, $value);
+			} else {
+				$key = array_shift($keys);
+				// just one key left, like 'title'
+				if($value instanceof WireData) {
+					$value = $value->get($key);
+				} else if($value instanceof WireArray) {
+					if($key == 'count') {
+						$value = count($value);
+					} else {
+						$a = array();
+						foreach($value as $v) $a[] = $v->get($key); 	
+						$value = $a; 
+					}
+				}
+			}
+		} else {
+			// there is a dot property remaining and nothing to send it to
+			$value = null; 
+		}
+		return $value; 
+	}
+
+	/**
+	 * Get a property via dot syntax: field.subfield.subfield
+	 *
+	 * Some classes of WireData may choose to add a call to this as part of their 
+	 * get() method as a syntax convenience.
+	 *
+	 * @param string $key 
+	 * @param Wire $from The instance you want to pull the value from
+	 * @return null|mixed Returns value if found or null if not
+	 *
+	 */
+	public function getDot($key) {
+		return self::_getDot($key, $this); 
 	}
 
 	/**

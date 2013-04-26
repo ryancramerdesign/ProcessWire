@@ -164,7 +164,7 @@ class Modules extends WireArray {
 		static $installed = array();
 
 		if(!count($installed)) {
-			$result = $this->fuel('db')->query("SELECT id, class, flags, data FROM modules ORDER BY class");
+			$result = $this->fuel('db')->query("SELECT id, class, flags, data FROM modules ORDER BY class"); // QA
 			while($row = $result->fetch_assoc()) {
 				if($row['flags'] & self::flagsAutoload) {
 					// preload config data for autoload modules since we'll need it again very soon
@@ -445,7 +445,7 @@ class Modules extends WireArray {
 			"flags=$flags, " . 
 			"data='' ";
 
-		$result = $this->fuel('db')->query($sql); 
+		$result = $this->fuel('db')->query($sql); // QA
 		$moduleID = $this->fuel('db')->insert_id;
 		$this->moduleIDs[$class] = $moduleID;
 
@@ -459,7 +459,8 @@ class Modules extends WireArray {
 
 			} catch(Exception $e) {
 				// remove the module from the modules table if the install failed
-				$this->fuel('db')->query("DELETE FROM modules WHERE id='$moduleID' LIMIT 1"); 				
+				$moduleID = (int) $moduleID; 
+				$this->fuel('db')->query("DELETE FROM modules WHERE id='$moduleID' LIMIT 1"); // QA
 				throw new WireException("Unable to install module '$class': " . $e->getMessage()); 
 			}
 		}
@@ -552,7 +553,7 @@ class Modules extends WireArray {
 			$module->uninstall();
 		}
 
-		$result = $this->fuel('db')->query("DELETE FROM modules WHERE class='" . $this->fuel('db')->escape_string($class) . "' LIMIT 1"); 
+		$result = $this->fuel('db')->query("DELETE FROM modules WHERE class='" . $this->fuel('db')->escape_string($class) . "' LIMIT 1"); // QA
 		if(!$result) return false; 
 
 		// check if there are any modules still installed that this one says it is responsible for installing
@@ -702,7 +703,7 @@ class Modules extends WireArray {
 		// if the class doesn't implement ConfigurableModule, then it's not going to have any configData
 		if(!in_array('ConfigurableModule', class_implements($className))) return array();
 
-		$result = $this->fuel('db')->query("SELECT data FROM modules WHERE id=$id"); 
+		$result = $this->fuel('db')->query("SELECT data FROM modules WHERE id=" . ((int) $id)); // QA
 		list($data) = $result->fetch_array(); 
 		if(empty($data)) $data = array();
 			else $data = wireDecodeJSON($data); 
@@ -750,7 +751,7 @@ class Modules extends WireArray {
 		if(!$id = $this->moduleIDs[$className]) throw new WireException("Unable to find ID for Module '$className'"); 
 		$this->configData[$id] = $configData; 
 		$json = count($configData) ? wireEncodeJSON($configData, true) : '';
-		return $this->fuel('db')->query("UPDATE modules SET data='" . $this->fuel('db')->escape_string($json) . "' WHERE id=$id"); 
+		return $this->fuel('db')->query("UPDATE modules SET data='" . $this->fuel('db')->escape_string($json) . "' WHERE id=" . ((int) $id)); // QA
 	}
 
 	/**

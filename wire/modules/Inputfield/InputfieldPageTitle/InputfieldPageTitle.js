@@ -21,13 +21,17 @@ $(document).ready(function() {
 
 	var titleKeyup = function() {
 		if(!active) return; 
-		var val = $titleField.val().substring(0, 128); 
-		$nameField.val(val).trigger('blur'); 
+		var val = $(this).val().substring(0, 128); 
+		var id = $(this).attr('id').replace(/Inputfield_title_*/, 'Inputfield_name'); 
+		$nameField = $("#" + id);  	
+		if($nameField.size() > 0) $nameField.val(val).trigger('blur'); 
 	}
 
-	$titleField.keyup(titleKeyup); 
+	// $titleField.keyup(titleKeyup); 
+	$titleField.bind('keyup change', titleKeyup);
 
-	$nameField.focus(function() {
+	// $nameField.focus(function() {
+	$('.InputfieldPageName input').focus(function() {
 		// if they happen to change the name field on their own, then disable 
 		if($(this).val().length) active = false;
 	}); 

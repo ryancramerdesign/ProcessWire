@@ -11,6 +11,16 @@
  *
  */
 
+/**
+ * Triggered when CSRF detected
+ *
+ */
+class WireCSRFException extends WireException {}
+
+/**
+ * ProcessWire CSRF Protection class
+ *
+ */
 class SessionCSRF extends Wire {
 
 	/**
@@ -67,7 +77,7 @@ class SessionCSRF extends Wire {
 		if(!$this->config->protectCSRF) return true; 
 		if($this->hasValidToken()) return true;
 		$this->resetToken();
-		throw new WireException($this->_('This request was aborted because it appears to be forged.')); 
+		throw new WireCSRFException($this->_('This request was aborted because it appears to be forged.')); 
 	}
 
 	/**

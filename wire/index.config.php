@@ -6,11 +6,10 @@
  * If used, this file should be copied/moved to the ProcessWire installation root directory.
  *
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  * 
  */
 

@@ -95,40 +95,47 @@ abstract class Selector extends WireData {
 	public function matches($value) {
 
 		$matches = false;
-		$values = is_array($this->value) ? $this->value : array($this->value); 
+		$values1 = is_array($this->value) ? $this->value : array($this->value); 
 		$field = $this->field; 
 
+		// prepare the value we are comparing
 		if(is_object($value)) {
 			if($value instanceof WireData) $value = $value->get($field);
 				else if($value instanceof Wire) $value = $value->$field; 
 			$value = (string) $value; 
 		}
 
-		foreach($values as $v) {
+		if(strpos($value, '|') !== false) $value = explode('|', $value); 
+		if(!is_array($value)) $value = array($value);
+		$values2 = $value; 
+		unset($value);
 
-			if($v instanceof Wire) $v = $v->$field; 
+		// now we're just dealing iwth 2 arrays: $values1 and $values2
+		// $values1 is the value stored by the selector
+		// $values2 is the value passed into the matches() function
 
-			/* FUTURE/TODO
-			// Check if $v contains another selector expression within it, and treat it as an OR if it does
-			if($n > 0 && !is_null($valueObject) && Selectors::stringHasSelector($v)) {
-				// $v contains another selector string, OR selector
-				$selectors = new Selectors($v); 	
-				foreach($selectors as $selector) {
-					if($selector->matches($valueObject)) {
-						$matches = true;
-						break;
-					}
-				}
+		$numMatches = 0; 
+		if($this->getOperator() == '!=') $numMatchesRequired = (count($values1) + count($values2)) - 1; 
+			else $numMatchesRequired = 1; 
+
+		foreach($values1 as $v1) {
+
+			if(is_object($v1)) {
+				if($v1 instanceof WireData) $v1 = $v1->get($field);
+					else if($v1 instanceof Wire) $v1 = $v1->$field; 
 			}
-			*/
 
-			if($matches || $this->match($value, $v)) {
-				$matches = true; 
+			foreach($values2 as $v2) {
+				if($this->match($v2, $v1)) $numMatches++;
+			}
+
+			if($numMatches >= $numMatchesRequired) {
+				$matches = true;
 				break;
 			}
 		}
 
-		return $this->evaluate($matches); 
+		return $matches; 
 	}
 
 	/**
@@ -255,7 +262,7 @@ class SelectorContainsWords extends Selector {
 	protected function match($value1, $value2) { 
 		$hasAll = true; 
 		$words = preg_split('/[-\s]/', $value2, -1, PREG_SPLIT_NO_EMPTY);
-		foreach($words as $key => $word) if(!preg_match('/\b' . preg_quote($word) . '\b/i')) {
+		foreach($words as $key => $word) if(!preg_match('/\b' . preg_quote($word) . '\b/i', $value1)) {
 			$hasAll = false;
 			break;
 		}

@@ -98,6 +98,19 @@ class InputfieldDatetime extends Inputfield {
 				$useTime = true; 
 				$this->config->scripts->add($this->config->urls->InputfieldDatetime . 'jquery-ui-timepicker-addon.js');
 			}
+			if($this->languages && $this->user->language) {
+				// include i18n support for the datepicker 
+				// note that the 'xx' in the filename is just a placeholder to indicate what should be replaced for translations, as that file doesn't exist
+				$langFile = ltrim($this->_('/wire/modules/Jquery/JqueryUI/i18n/jquery.ui.datepicker-xx.js'), '/'); // Datepicker translation file // Replace 'xx' with jQuery UI language code or specify your own js file
+				if(is_file($this->config->paths->root . $langFile)) {
+					// add a custom language file
+					$this->config->scripts->add($this->config->urls->root . $langFile); 
+				} else {
+					// attempt to auto-find one based on the language name (which are often 2 char language codes)
+					$langFile = "wire/modules/Jquery/JqueryUI/i18n/jquery.ui.datepicker-{$this->user->language->name}.js";
+					if(is_file($this->config->paths->root . $langFile)) $this->config->scripts->add($this->config->urls->root . $langFile); 
+				}
+			}
 		}
 
 		$attrs = $this->getAttributes();
@@ -239,7 +252,7 @@ class InputfieldDatetime extends Inputfield {
 		$f->attr('name', 'dateInputFormat');
 		$f->attr('value', $this->dateInputFormat ? $this->dateInputFormat : self::defaultDateInputFormat);
 		$f->attr('size', 20);
-		$f->label = "Date Input Format Code";
+		$f->label = $this->_('Date Input Format Code');
 		$f->description = $this->_('This is automatically built from the date select above, unless you modify it.'); 
 		$notes = $this->_('See the [PHP date](http://www.php.net/manual/en/function.date.php) function reference for more information on how to customize these formats.'); 
 		if($languages) $notes .= "\n" . $this->_('You may optionally specify formats for other languages here as well. Any languages left blank will inherit the default setting.'); 
@@ -252,7 +265,7 @@ class InputfieldDatetime extends Inputfield {
 		$f->attr('name', 'timeInputFormat');
 		$f->attr('value', $this->timeInputFormat ? $this->timeInputFormat : '');
 		$f->attr('size', 20);
-		$f->label = "Time Input Format Code";
+		$f->label = $this->_('Time Input Format Code');
 		$f->description = $this->_('This is automatically built from the time select above, unless you modify it.'); 
 		$f->notes = $notes; 
 		$f->collapsed = Inputfield::collapsedYes;

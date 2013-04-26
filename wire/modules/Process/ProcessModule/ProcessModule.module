@@ -102,7 +102,7 @@ class ProcessModule extends Process {
 
 		foreach($this->modulesArray as $name => $installed) {
 
-			if(strpos($name, $section) !== 0) {
+			if(strpos($name, $section) !== 0 || preg_match('/' . $section . '[^A-Z]/', $name)) {
 				if(!preg_match('/^([A-Za-z][a-z]+)/', $name, $matches)) $this->error($name); 
 				$section = $matches[1]; 
 				if($table) $out .= $table->render();
@@ -173,6 +173,8 @@ class ProcessModule extends Process {
 
 		$submit = $this->modules->get('InputfieldButton');
 		$submit->attr('href', './?reset=1'); 
+		$submit->attr('id', 'reset_modules');
+		$submit->attr('class', $submit->attr('class') . ' head_button_clone');
 		$submit->attr('name', 'reset');
 		$submit->attr('value', $this->_('Check for new modules')); 
 		$form->add($submit); 
@@ -219,6 +221,10 @@ class ProcessModule extends Process {
 
 		$out = ''; 
 		$moduleId = $this->modules->getModuleID($moduleName); 
+		if(!$moduleId) {
+			$this->error("Unknown module"); 
+			return $this->session->redirect('./'); 
+		}
 		$sinfo = self::getModuleInfo();
 
 		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $sinfo['title'])); 
@@ -298,6 +304,8 @@ class ProcessModule extends Process {
 			} else {
 				$this->modules->saveModuleConfigData($moduleName, $data); 
 				$this->message($this->_("Saved Module") . " - $moduleName"); // Message shown before the name of a module that was just saved
+				$this->session->redirect("./edit?name=$moduleName"); 
+				return;
 			}
 		}
 
@@ -322,6 +330,7 @@ class ProcessModule extends Process {
 		if(!empty($moduleInfo['href'])) $table->row(array($this->_x('More Information', 'edit'), "<a class='label' href='$moduleInfo[href]'>$moduleInfo[href]</a>")); 
 
 		$field = $this->modules->get("InputfieldMarkup"); 
+		$field->attr('id', 'ModuleInfo'); 
 		$field->attr('value', $table->render()); 
 		$field->label = $this->_x("Module Information", 'edit');
 		$form->prepend($field); 

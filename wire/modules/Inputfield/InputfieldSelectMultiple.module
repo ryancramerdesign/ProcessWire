@@ -32,7 +32,7 @@ class InputfieldSelectMultiple extends InputfieldSelect implements InputfieldHas
 
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields();	
-		if(!is_null($this->attr('size'))) {
+		if($this->className() == 'InputfieldSelectMultiple') {
 			// descending classes may null out the 'size' attribute if they don't need it
 			$f = wire('modules')->get('InputfieldInteger'); 
 			$f->label = $this->_('Size: number of rows visible at once in the select multiple'); 

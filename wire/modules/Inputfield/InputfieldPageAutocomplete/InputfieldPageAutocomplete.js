@@ -38,7 +38,7 @@ var InputfieldPageAutocomplete = {
 				
 				$icon.addClass('ui-icon-refresh'); 
 
-				$.getJSON(url + '&' + searchField + operator + escape(request.term), function(data) { 
+				$.getJSON(url + '&' + searchField + operator + request.term, function(data) { 
 
 					$icon.removeClass('ui-icon-refresh'); 
 					numFound = data.total;

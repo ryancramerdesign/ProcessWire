@@ -28,7 +28,7 @@ abstract class ModuleJS extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => '',		// printable name/title of module
-			'version' => 001, 	// version number of module
+			'version' => 1, 	// version number of module
 			'summary' => '', 	// 1 sentence summary of module
 			'href' => '', 		// URL to more information (optional)
 			'permanent' => false, 	// true if module is permanent and thus not uninstallable

@@ -45,6 +45,7 @@ interface InputfieldHasArrayValue { }
  *	The current value of the field. May correspond go the XHTML "value" attribute on some inputs. 
  * 
  * @var null|Fieldtype hasFieldtype Set to the Fieldtype using this Inputfield (by Field), when applicable, null when not.
+ * @var null|bool entityEncodeLabel Set to boolean false to specifically disable entity encoding of field header/label.
  *
  */
 abstract class Inputfield extends WireData implements Module {
@@ -478,7 +479,7 @@ abstract class Inputfield extends WireData implements Module {
 	 */
 	public function isEmpty() {
 		$value = $this->attr('value'); 
-		if(is_array($value) && !count($value)) return true; 
+		if(is_array($value)) return count($value) == 0;
 		if(!strlen("$value")) return true; 
 		// if($value === 0) return true; 
 		return false; 
@@ -629,5 +630,6 @@ abstract class Inputfield extends WireData implements Module {
 
 		return $str; 
 	}
+
 
 }

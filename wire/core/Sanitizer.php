@@ -191,6 +191,18 @@ class Sanitizer extends Wire {
 	}
 
 	/**
+	 * Returns a value that may be used in an email header
+	 *
+	 * @param string $value
+	 * @return string
+	 *
+	 */ 
+	public function emailHeader($value) {
+		$a = array("\n", "\r", "<CR>", "<LF>", "0x0A", "0x0D", "%0A", "%0D", 'content-type:', 'bcc:', 'cc:', 'to:', 'reply-to:'); 
+		return trim(str_ireplace($a, ' ', $value));
+	}
+
+	/**
 	 * Sanitize input text and remove tags
 	 *
 	 * @param string $value
@@ -279,36 +291,48 @@ class Sanitizer extends Wire {
 	 * your output should always entity encoded any URLs that came from user input. 
 	 *
 	 * @param string $value URL
-	 * @param bool $allowRelative Whether to allow relative URLs
+	 * @param bool|array $options Array of options including: allowRelative or allowQuerystring (both booleans)
+	 *	Previously this was the boolean $allowRelative, and that usage will still work for backwards compatibility.
 	 * @return string
 	 * @todo add TLD validation
 	 *
 	 */
-	public function url($value, $allowRelative = true) {
+	public function url($value, $options = array()) {
+
+		$defaultOptions = array(
+			'allowRelative' => true, 
+			'allowQuerystring' => true,
+			);
+
+		if(!is_array($options)) {
+			$defaultOptions['allowRelative'] = (bool) $options;
+			$options = array();
+		}
+
+		$options = array_merge($defaultOptions, $options);
 
 		if(!strlen($value)) return '';
 
 		// this filter_var sanitizer just removes invalid characters that don't appear in domains or paths
 		$value = filter_var($value, FILTER_SANITIZE_URL); 
-		
-		if(!strpos($value, ".") && $allowRelative) {
-			// if there's no dot (or it's in position 0) and relative paths are allowed, 
-			// we can safely assume this is a relative path.
-			// relative paths must follow ProcessWire convention of ascii-only, 
-			// so they are passed through the $sanitizer->path() function.
-			return $this->path($value); 
-		}
-
+	
 		if(!strpos($value, '://')) {
 			// URL is missing protocol, or is local/relative
 
-			if($allowRelative) {
+			if($options['allowRelative']) {
 				// determine if this is a domain name 
 				// regex legend:       (www.)?      company.         com       ( .uk or / or end)
-				if(preg_match('{^([^\s_.]+\.)?[^-_\s.][^\s_.]+\.([a-z]{2,6})([./:#]|$)}i', $value, $matches)) {
+				if(strpos($value, '.') && preg_match('{^([^\s_.]+\.)?[^-_\s.][^\s_.]+\.([a-z]{2,6})([./:#]|$)}i', $value, $matches)) {
 					// most likely a domain name
 					// $tld = $matches[3]; // TODO add TLD validation to confirm it's a domain name
 					$value = filter_var("http://$value", FILTER_VALIDATE_URL); 
+
+				} else if($options['allowQuerystring']) {
+					// we'll construct a fake domain so we can use FILTER_VALIDATE_URL rules
+					$fake = 'http://processwire.com/';
+					$value = $fake . ltrim($value, '/'); 
+					$value = filter_var($value, FILTER_VALIDATE_URL); 
+					$value = str_replace($fake, '/', $value);
 
 				} else {
 					// most likely a relative path
@@ -319,6 +343,8 @@ class Sanitizer extends Wire {
 				// relative urls aren't allowed, so add the protocol and validate
 				$value = filter_var("http://$value", FILTER_VALIDATE_URL); 
 			}
+		} else {
+			$value = filter_var($value, FILTER_VALIDATE_URL); 
 		}
 
 		return $value ? $value : '';
@@ -345,17 +371,26 @@ class Sanitizer extends Wire {
 	public function selectorValue($value) {
 
 		$value = trim($value); 
+		$quoteChar = '"';
+		$needsQuotes = false; 
 
 		// determine if value is already quoted and set initial value of needsQuotes
 		// also pick out the initial quote style
 		if(strlen($value) && ($value[0] == "'" || $value[0] == '"')) {
-			$quoteChar = $value[0]; 
-			$value = trim($value, "\"'"); 
 			$needsQuotes = true; 
-		} else {
-			$quoteChar = '"';
-			$needsQuotes = false; 
 		}
+
+		// trim off leading or trailing quotes
+		$value = trim($value, "\"'"); 
+
+		// if an apostrophe is present, value must be quoted
+		if(strpos($value, "'") !== false) $needsQuotes = true; 
+
+		// if commas are present, then the selector needs to be quoted
+		if(strpos($value, ',') !== false) $needsQuotes = true; 
+
+		// disallow double quotes -- remove any if they are present
+		if(strpos($value, '"') !== false) $value = str_replace('"', '', $value); 
 
 		// selector value is limited to 100 chars
 		if(strlen($value) > 100) {
@@ -363,27 +398,15 @@ class Sanitizer extends Wire {
 				else $value = substr($value, 0, 100); 
 		}
 
-		// if commas are present, then the selector needs to be quoted
-		if(strpos($value, ',') !== false) $needsQuotes = true; 
-
-		// if an apostrophe is present, then make sure the value isn't already quoted with the same character
-		// if it is, then switch to double quotes
-		if(strpos($value, "'") !== false) {
-			$needsQuotes = true; 
-			if($quoteChar == "'") $quoteChar = '"';
-		}
-
-		// disallow double quotes -- remove any if they are present
-		if(strpos($value, '"') !== false) $value = str_replace('"', '', $value); 
+		// disallow some characters in selector values
+		// @todo technically we only need to disallow at begin/end of string
+		$value = str_replace(array('*', '~', '`', '$', '^', '+', '|', '<', '>', '!', '='), ' ', $value);
 
 		// disallow greater/less than signs, unless they aren't forming a tag
-		if(strpos($value, '<') !== false) $value = preg_replace('/<[^>]+>/su', ' ', $value); 
+		// if(strpos($value, '<') !== false) $value = preg_replace('/<[^>]+>/su', ' ', $value); 
 
-		// disallow newlines
-		if(strpos($value, "\n") !== false || strpos($value, "\r") !== false) $value = str_replace(array("\n", "\r"), ' ', $value); 
-
-		// disallow hash or percent signs
-		if(strpos($value, '#') !== false || strpos($value, '%') !== false) $value = str_replace(array('#', '%'), ' ', $value); 
+		// more disallowed chars, these may not appear anywhere in selector value
+		$value = str_replace(array("\r", "\n", "#", "%"), ' ', $value);
 
 		// see if we can avoid the preg_matches and do a quick filter
 		$test = str_replace(array(',', ' ', '-'), '', $value); 
@@ -401,13 +424,29 @@ class Sanitizer extends Wire {
 			// replace multiple space characters in sequence with just 1
 			$value = preg_replace('/\s\s+/u', ' ', $value); 
 
-			//$value = iconv("UTF-8", "ISO-8859-1", $value); 
 		}
 
 		$value = trim($value);
 		if($needsQuotes) $value = $quoteChar . $value . $quoteChar; 
 		return $value;
 
+	}
+
+	/**
+	 * Wrapper for PHP's htmlentities function that contains typical ProcessWire usage defaults
+	 *
+	 * The arguments used hre are identical to those for PHP's htmlentities function: 
+	 * http://www.php.net/manual/en/function.htmlentities.php
+	 *
+	 * @param string $str
+	 * @param int $flags
+	 * @param string $encoding
+	 * @param bool $doubleEncode
+	 * @return string
+	 *
+	 */
+	public function entities($str, $flags = ENT_QUOTES, $encoding = 'UTF-8', $doubleEncode = true) {
+		return htmlentities($str, $flags, $encoding, $doubleEncode); 
 	}
 
 	public function __toString() {

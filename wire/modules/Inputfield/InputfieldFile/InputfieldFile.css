@@ -57,6 +57,7 @@
 
 	ul.InputfieldFileList li .InputfieldFileData {
 		margin-top: 0; 
+		margin-bottom: 0;
 		padding: 1em; 
 	}
 
@@ -65,13 +66,20 @@
 		margin: 0.5em 0;
 	}
 
+	ul.InputfieldFileList li .InputfieldFileTags,
 	ul.InputfieldFileList li .InputfieldFileDescription {
 		font-weight: normal;
 		margin: -0.25em 0 0 0;
 	}
+		ul.InputfieldFileList li .InputfieldFileTags input,
 		ul.InputfieldFileList li .InputfieldFileDescription input {
-			width: 99%; 
+			width: 99.5%; 
 		}
+
+		ul.InputfieldFileList li .InputfieldFileTags input {
+			margin-bottom: 0.5em;
+		}
+
 
 	ul.InputfieldFileList li .InputfieldFileSort {
 		display: none; 

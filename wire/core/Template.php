@@ -147,6 +147,7 @@ class Template extends WireData implements Saveable {
 		'cacheExpire' => 0, 		// expire the cache for all pages when page using this template is saved? (1 = yes, 0 = no- only current page)
 		'cacheExpirePages' => array(),	// array of Page IDs that should be expired, when cacheExpire == Template::cacheExpireSpecific
 		'label' => '',			// label that describes what this template is for (optional)
+		'tags' => '',			// optional tags that can group this template with others in the admin templates list 
 		); 
 
 

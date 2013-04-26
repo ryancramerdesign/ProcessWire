@@ -24,6 +24,12 @@ class CommentArray extends WireArray {
 	protected $page = null; 
 
 	/**
+	 * Field object associated with this CommentArray
+	 *
+	 */
+	protected $field = null;
+
+	/**
 	 * Per the WireArray interface, is the item a Comment
 	 *
 	 */
@@ -38,6 +44,10 @@ class CommentArray extends WireArray {
 	 *
 	 */
 	public function render(array $options = array()) {
+		$defaultOptions = array(
+			'useGravatar' => ($this->field ? $this->field->useGravatar : '')
+			);
+		$options = array_merge($defaultOptions, $options);
 		$commentList = $this->getCommentList($options); 
 		return $commentList->render();
 	}
@@ -66,7 +76,7 @@ class CommentArray extends WireArray {
 	 *
 	 */
 	public function getCommentForm(array $options = array()) {
-		if(!$this->page) throw new WireException("You must set a page to this CommentArray before using iti.e. \$ca->setPage(\$page)"); 
+		if(!$this->page) throw new WireException("You must set a page to this CommentArray before using it i.e. \$ca->setPage(\$page)"); 
 		return new CommentForm($this->page, $this, $options); 
 	}
 
@@ -76,6 +86,14 @@ class CommentArray extends WireArray {
 	 */ 
 	public function setPage(Page $page) {
 		$this->page = $page; 
+	}
+
+	/**
+	 * Set the Field that these comments are on 
+	 *
+	 */ 
+	public function setField(Field $field) {
+		$this->field = $field; 
 	}
 
 }

@@ -28,6 +28,12 @@
 	font-size: 12px; 
 }
 
+.Inputfields input,
+.Inputfields select,
+.Inputfields textarea {
+	max-width: 100%; 
+}
+
 .InputfieldForm .Inputfields,
 .InputfieldForm .Inputfields > .Inputfield {
 	list-style: none;
@@ -146,7 +152,6 @@
 .InputfieldStateRequired > label.ui-widget-header:first-child:after {
 	content: ' *';
 }
-
 
 /****************************************************************************
  * Specific Inputfield types

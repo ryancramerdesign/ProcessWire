@@ -12,8 +12,7 @@
  * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -101,7 +100,8 @@ class ProcessPageEdit extends Process {
 
 		if($this->config->ajax && (isset($_SERVER['HTTP_X_FIELDNAME']) || count($_POST))) return $this->ajaxSave($this->page);
 
-		$this->form = $this->buildForm();
+		$this->form = $this->modules->get('InputfieldForm');
+		$this->form = $this->buildForm($this->form);
 		$this->form->setTrackChanges();
 
 		if($this->isPost && count($_POST)) $this->processSave();
@@ -142,7 +142,7 @@ class ProcessPageEdit extends Process {
 		if($this->page->is(Page::statusLocked)) {
 			if(!$this->user->hasPermission('page-lock', $this->page) || (!empty($_POST['status']) && in_array(Page::statusLocked, $_POST['status']))) {
 				$this->error($this->noticeLocked); 
-				$this->processSaveRedirect();
+				$this->processSaveRedirect($this->redirectUrl);
 				return;
 			}
 		}
@@ -190,17 +190,18 @@ class ProcessPageEdit extends Process {
 			}
 		}
 
-		$this->processSaveRedirect();
+		$this->processSaveRedirect($this->redirectUrl);
 	}	
 
 	/**
 	 * Perform an after save redirect
 	 *
 	 */
-	protected function processSaveRedirect() {
-		if(!$this->redirectUrl) $this->redirectUrl = "./?id={$this->page->id}";
-		if($this->input->get->modal) $this->redirectUrl .= "&modal=1";
-		$this->session->redirect($this->redirectUrl); 
+	protected function ___processSaveRedirect($redirectUrl) {
+		if(!$redirectUrl) $redirectUrl = "./?id={$this->page->id}&s=1";
+		if($this->input->get->modal) $redirectUrl .= "&modal=1";
+		$this->redirectUrl = $redirectUrl;
+		$this->session->redirect($redirectUrl); 
 	}
 
 
@@ -208,9 +209,8 @@ class ProcessPageEdit extends Process {
 	 * Build the form used for Page Edits
 	 *
 	 */
-	protected function ___buildForm() {
+	protected function ___buildForm(InputfieldForm $form) {
 
-		$form = $this->modules->get('InputfieldForm');
 
 		$fields = $this->page->getInputfields();
 		$fields->attr('id', $this->className() . 'Content'); 
@@ -228,7 +228,7 @@ class ProcessPageEdit extends Process {
 			$field = $this->modules->get('InputfieldPageName');
 			$field->attr('name', '_pw_page_name'); 
 			$field->attr('value', $this->page->name); 
-			$field->required = true; 
+			$field->required = $this->page->id != 1;
 			if(!$this->page->editable('name')) $field->attr('disabled', 'disabled'); 
 			if($this->page->parent) $field->parentPage = $this->page->parent;
 			$fields->prepend($field); 
@@ -412,12 +412,12 @@ class ProcessPageEdit extends Process {
 		$wrapper->attr('title', $this->_('Settings')); // Tab Label: Settings
 
 		// name
-		if($this->page->id > 1 && !$this->page->template->nameContentTab) {
+		if(($this->page->id > 1 || wire('modules')->isInstalled('LanguageSupportPageNames')) && !$this->page->template->nameContentTab) {
 			$field = $this->modules->get('InputfieldPageName');
 			$field->attr('value', $this->page->name); 
 			$field->attr('name', '_pw_page_name');
 			if($field->value && !$this->page->editable('name')) $field->attr('disabled', 'disabled'); 
-			$field->required = true; 
+			$field->required = $this->page->id != 1;
 			if($this->page->parent) $field->parentPage = $this->page->parent;
 			$wrapper->prepend($field); 
 		}

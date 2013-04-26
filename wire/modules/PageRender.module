@@ -8,11 +8,10 @@
  * It hooks into Pages and Fieldtypes to ensure cache files are cleaned/deleted when pages are saved/deleted.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -24,7 +23,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		return array(
 			'title' => __('Page Render', __FILE__), // Module Title
 			'summary' => __('Adds a render method to Page and caches page output.', __FILE__), // Module Summary
-			'version' => 101, 
+			'version' => 102, 
 			'permanent' => true, 
 			'singular' => true, 
 			'autoload' => true, 
@@ -85,6 +84,10 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 			foreach($vars as $name) if($name && isset($_POST[$name])) $allowed = false; 
 		}
 
+		// NOTE: other modules may set a session var of PageRenderNoCachePage containing a page ID to temporarily
+		// remove caching for some page, if necessary. 
+		if($this->session->PageRenderNoCachePage && $this->session->PageRenderNoCachePage == $page->id) $allowed = false;
+
 		return $allowed; 
 	}
 
@@ -123,7 +126,12 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 				}
 			}
 			if($pageNum > 1) $secondaryID .= "page{$pageNum}";
-			if($secondaryID) $cacheFile->setSecondaryID(rtrim($secondaryID, "+"));
+			$secondaryID = rtrim($secondaryID, '+'); 
+			if(wire('languages')) { 
+				$language = wire('user')->language; 
+				if($language && $language->id && !$language->isDefault()) $secondaryID .= "_" . $language->id;
+			}
+			if($secondaryID) $cacheFile->setSecondaryID($secondaryID);
 		}	
 
 		return $cacheFile;
@@ -192,18 +200,21 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 */
 	public function ___renderPage($event) {
 
+		wire('pages')->setOutputFormatting(true); 
+
 		// just in case one page is rendering another, save the previous
 		$_page = $this->fuel('page'); 
 		$page = $event->object; 
 
 		// set the context of the new page to be system-wide
 		// only applicable if rendering a page within a page
-		if(!$page->id != $_page->id) $this->setFuel('page', $page);
+		if(!$_page || $page->id != $_page->id) $this->setFuel('page', $page);
+		//if(!$page->id != $_page->id) $this->setFuel('page', $page);
 
 		$options = count($event->arguments) ? $event->arguments[0] : array();
 
 		if($page->status >= Page::statusUnpublished && !$page->viewable()) {
-			$this->setFuel('page', $_page) ;
+			if($_page) $this->setFuel('page', $_page) ;
 			throw new WirePermissionException("Page '{$page->url}' is not currently viewable.");
 		}
 
@@ -219,25 +230,31 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 			$cacheFile = $this->getCacheFile($page);
 			if(!$options['forceBuildCache'] && ($data = $cacheFile->get()) !== false) {
 				$event->return = $data;
-				$this->setFuel('page', $_page);
+				if($_page) $this->setFuel('page', $_page);
 				return;
 			}
 		}
 
-		if(!$page->outputFormatting) {
-			$this->setFuel('page', $_page); 
-			throw new WireException(
-				"Page {$page->url} may not be rendered because outputFormatting is set to false. " . 
-				"Call \$page->setOutputFormatting(true) before rendering the page."
-				);
-		}
+		$of = $page->of();
+		if(!$of) $page->of(true);
 
+		$data = '';
+		$config = wire('config');
 		$output = $page->output;
-		$data = $output ? $output->render() : '';
+		if($output) {
+			if(!($page->template->flags & Template::flagSystem)) {
+				// global prepend/append include files apply only to user-defined templates, not system templates
+				if($config->prependTemplateFile) $output->setPrependFilename($config->paths->templates . wire('sanitizer')->name($config->prependTemplateFile)); 
+				if($config->appendTemplateFile) $output->setAppendFilename($config->paths->templates . wire('sanitizer')->name($config->appendTemplateFile)); 
+			}
+			$data = $output->render();
+		}
 
 		if($data && $cacheAllowed && $cacheFile) $cacheFile->save($data);
 		$event->return = $data; 
-		$this->setFuel('page', $_page); 
+
+		if(!$of) $page->of($of);
+		if($_page) $this->setFuel('page', $_page); 
 	}
 
 	/**

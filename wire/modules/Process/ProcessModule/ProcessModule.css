@@ -35,14 +35,14 @@ table.AdminDataList td span.ui-icon {
 	opacity: 0.4; 
 }
 
-#ModuleEditForm table.AdminDataList td:first-child {
+#ModuleInfo table.AdminDataList td:first-child {
 	font-weight: bold; 
 	text-align: right; 
 	width: 12%; 
 	padding-right: 1em; 
 }
 
-#ModuleEditForm table.AdminDataList tr:last-child td {
+#ModuleInfo table.AdminDataList tr:last-child td {
 	border-bottom: none; 
 }
 

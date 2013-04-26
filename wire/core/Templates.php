@@ -246,7 +246,7 @@ class Templates extends WireSaveableItems {
 	 *
 	 */
 	public function getNumPages(Template $tpl) {
-		$result = $this->fuel('db')->query("SELECT COUNT(*) AS total FROM pages WHERE templates_id={$tpl->id}"); 
+		$result = $this->fuel('db')->query("SELECT COUNT(*) AS total FROM pages WHERE templates_id=" . ((int) $tpl->id)); // QA
 		$row = $result->fetch_assoc(); 
 		$result->free();
 		return (int) $row['total'];

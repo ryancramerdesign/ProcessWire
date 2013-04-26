@@ -30,6 +30,8 @@ require_once($dirname . "/CommentForm.php");
  *
  * A field that stores user posted comments for a single Page. 
  *
+ * @TODO implement a getMatchQuery function that uses the FULLTEXT index
+ *
  */
 class FieldtypeComments extends FieldtypeMulti {
 
@@ -54,7 +56,7 @@ class FieldtypeComments extends FieldtypeMulti {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Comments',
-			'version' => 100,
+			'version' => 102,
 			'summary' => 'Field that stores user posted comments for a single Page',
 			'installs' => array('InputfieldCommentsAdmin'),
 			);
@@ -63,6 +65,7 @@ class FieldtypeComments extends FieldtypeMulti {
 	public function getBlankValue(Page $page, Field $field) {
 		$commentArray = new CommentArray(); 
 		$commentArray->setPage($page); 
+		$commentArray->setField($field); 
 		$commentArray->setTrackChanges(true);
 		return $commentArray; 
 	}
@@ -83,6 +86,20 @@ class FieldtypeComments extends FieldtypeMulti {
 		$inputfield->class = $this->className();
 		return $inputfield; 
 	}
+
+	/**
+	 * Update a query to match the text with a fulltext index
+	 *
+	 */
+	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
+		if(empty($subfield) || $subfield === 'data') { 
+			$ft = new DatabaseQuerySelectFulltext($query);
+			$ft->match($table, $subfield, $operator, $value);
+			return $query;
+		} 
+		return parent::getMatchQuery($query, $table, $subfield, $operator, $value); 
+	}
+
 
         /**
          * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
@@ -143,7 +160,7 @@ class FieldtypeComments extends FieldtypeMulti {
 			if($comment->id) $this->checkExistingComment($page, $field, $comment); 
 				else $this->checkNewComment($page, $field, $comment); 	
 				
-			$sleepValue[] = array(
+			$a = array(
 				'id' => $comment->id, 
 				'status' => $comment->status, 
 				'data' => $comment->text, 
@@ -154,6 +171,11 @@ class FieldtypeComments extends FieldtypeMulti {
 				'ip' => $comment->ip, 
 				'user_agent' => $comment->user_agent, 
 				); 
+
+			if($field->schemaVersion > 0) $a['website'] = $comment->website;
+
+			$sleepValue[] = $a;
+
 		}
 		return $sleepValue;
         }
@@ -240,6 +262,9 @@ class FieldtypeComments extends FieldtypeMulti {
 
 		if(!$field->notificationEmail) return false; 
 
+		// skip notification when spam
+		if($comment->status == Comment::statusSpam && !$field->notifySpam) return; 
+
 		if($comment->status == Comment::statusPending) $status = "Pending Approval";
 			else if($comment->status == Comment::statusApproved) $status = "Approved";
 			else if($comment->status == Comment::statusSpam) $status = "SPAM - will be deleted automatically after " . 
@@ -251,6 +276,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$body = "Page: {$page->httpUrl}\n" . 
 			"From: {$comment->cite}\n" . 
 			"Email: {$comment->email}\n" . 
+			"Website: {$comment->website}\n" . 
 			"Status: $status\n" . 
 			"Text: {$comment->text}\n\n";
 
@@ -262,7 +288,21 @@ class FieldtypeComments extends FieldtypeMulti {
 	 *
 	 */
 	public function getDatabaseSchema(Field $field) {
+
+		$websiteSchema = "varchar(255) NOT NULL default ''"; 
+
+		if(!$field->schemaVersion) {
+			// add website field for PW 2.3+ 
+			$table = $field->getTable();
+		
+			try { $result = wire('db')->query("ALTER TABLE `$table` ADD website $websiteSchema"); } catch(Exception $e) { }
+			$field->schemaVersion = 1;
+			$field->save();
+			$this->message("Updated schema version of '{$field->name}' to support website field.");
+		}
+
 		$schema = parent::getDatabaseSchema($field); 
+
 		$schema['id'] = "int unsigned NOT NULL auto_increment";
 		$schema['status'] = "tinyint(3) NOT NULL default '0'";
 		$schema['cite'] = "varchar(128) NOT NULL default ''"; 
@@ -273,12 +313,16 @@ class FieldtypeComments extends FieldtypeMulti {
 		$schema['created_users_id'] = "int unsigned NOT NULL";
 		$schema['ip'] = "varchar(15) NOT NULL default ''";
 		$schema['user_agent'] = "varchar(255) NOT NULL default ''";
+
+		if($field->schemaVersion > 0) $schema['website'] = $websiteSchema;
+
 		$schema['keys']['primary'] = "PRIMARY KEY (`id`)"; 
 		$schema['keys']['pages_id_sort'] = "KEY `pages_id_sort` (`pages_id`, `sort`)";
 		$schema['keys']['status'] = "KEY `status` (`status`, `email`)";
 		$schema['keys']['pages_id'] = "KEY `pages_id` (`pages_id`,`status`,`created`)"; 
 		$schema['keys']['created'] = "KEY `created` (`created`, `status`)";
 		$schema['keys']['data'] = "FULLTEXT KEY `data` (`data`)";
+
 		return $schema;
 	}
 
@@ -384,6 +428,48 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->description = "By default, comments will sort chronologically (oldest to newest). To reverse that behavior check this box.";
 		$inputfields->append($f); 
 
+		$name = 'useWebsite'; 
+		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
+		$f->attr('name', $name); 
+		$f->attr('value', 1); 
+		$f->attr('checked', $field->$name ? 'checked' : ''); 
+		$f->label = 'Use website field in comment form?';
+		$f->description = "When checked, the comment submission form will also include a website field.";
+		$inputfields->append($f); 
+
+		$name = 'redirectAfterPost';
+		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
+		$f->attr('name', $name); 
+		$f->attr('value', 1); 
+		$f->attr('checked', $field->$name ? 'checked' : ''); 
+		$f->label = 'Redirect after comment post?';
+		$f->description = "When checked, ProcessWire will issue a redirect after the comment is posted in order to prevent double submissions. Recommended.";
+		$inputfields->append($f); 
+
+		$name = 'notifySpam';
+		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
+		$f->attr('name', $name); 
+		$f->attr('value', 1);
+		if($field->$name) $f->attr('checked', 'checked');
+		$f->label = 'Send e-mail notification on spam?';
+		$f->description = 'When checked, ProcessWire will still send you an e-mail notification even if the message is identified as spam.';
+		$inputfields->append($f); 
+
+		$name = 'useGravatar'; 
+		$f = $this->fuel('modules')->get('InputfieldRadios'); 
+		$f->attr('name', $name); 
+		$f->addOption('', 'Disabled');
+		$f->addOption('g', 'G: Suitable for display on all websites with any audience type.');
+		$f->addOption('pg', 'PG: May contain rude gestures, provocatively dressed individuals, the lesser swear words, or mild violence.');
+		$f->addOption('r', 'R: May contain such things as harsh profanity, intense violence, nudity, or hard drug use.');
+		$f->addOption('x', 'X: May contain hardcore sexual imagery or extremely disturbing violence.');
+		$f->attr('value', $field->useGravatar); 
+		$f->label = 'Use Gravatar?';
+		$f->description = "This service provides an avatar image with each comment (unique to the email address). To enable, select the maximum gravatar rating. These are the same as movie ratings, where G is the most family friendly and X is not.";
+		$f->notes = "Rating descriptions provided by [Gravatar](https://en.gravatar.com/site/implement/images/).";
+		$f->collapsed = Inputfield::collapsedBlank;
+		$inputfields->append($f); 
+
 		$name = 'useAkismet'; 
 		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
 		$f->attr('name', $name); 
@@ -402,6 +488,14 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->label = 'Number of days after which to delete spam';
 		$f->description = "After the number of days indicated, spam will be automatically deleted.";
 		$inputfields->append($f); 
+
+		$name = 'schemaVersion'; 
+		$f = $this->fuel('modules')->get('InputfieldHidden');
+		$f->attr('name', $name);
+		$value = (int) $field->$name; 
+		$f->attr('value', $value);
+		$f->label = 'Schema Version';
+		$inputfields->append($f);
 
 		return $inputfields;
 	}
@@ -478,6 +572,7 @@ class FieldtypeComments extends FieldtypeMulti {
 
 		$result = wire('db')->query($sql);
 		$comments = new CommentArray();
+		$comments->setField($field); 
 
 		while($row = $result->fetch_assoc()) {
 			$comment = new Comment();

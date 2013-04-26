@@ -98,6 +98,9 @@ class DatabaseQuerySelect extends DatabaseQuery {
 		}
 		if(!$sql) $sql = "SELECT ";
 
+		// $config->dbCache option for debugging purposes
+		if(wire('config')->dbCache === false) $sql .= "SQL_NO_CACHE "; 
+
 		foreach($select as $s) $sql .= "$s,";
 		$sql = rtrim($sql, ",") . " "; 
 		return $sql;

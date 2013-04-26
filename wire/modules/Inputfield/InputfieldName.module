@@ -24,7 +24,7 @@ class InputfieldName extends InputfieldText {
 		parent::init();
 		$this->attr('type', 'text'); 
 		$this->attr('maxlength', 128); 
-		$this->attr('size', 70); 
+		$this->attr('size', 0); 
 		$this->attr('name', 'name'); 
 		$this->set('required', true); 
 		$this->label = $this->_('Name'); // default field label
