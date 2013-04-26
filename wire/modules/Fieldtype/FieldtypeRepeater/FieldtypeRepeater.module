@@ -328,6 +328,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 *
 	 * @param Page $page Page being edited
 	 * @param Field $field Field that needs an Inputfield
+	 * @return Inputfield
 	 *
 	 */
 	public function getInputfield(Page $page, Field $field) {
@@ -559,7 +560,6 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 *
 	 * @param Page $page
 	 * @param Field $field
-	 * @param bool $create True means the page wil be created and saved, false means it won't
 	 * @return Page
 	 *
 	 */
@@ -593,6 +593,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 *
 	 * @param Field $field
 	 * @return Page
+	 * @throws WireException
 	 *
 	 */
 	protected function getRepeaterParent(Field $field) {

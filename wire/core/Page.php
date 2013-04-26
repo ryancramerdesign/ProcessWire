@@ -45,7 +45,8 @@
  * @property Page|null $parentPrevious Previous parent, if changed. Null if not. 
  * @property Template|null $templatePrevious Previous template, if changed. Null if not. 
  * @property string $namePrevious Previous name, if changed. Blank if not. 
- * 
+ * @property int $sort Sort order of this page relative to siblings (applicable when manual sorting is used).  
+ * @property string $sortfield Field that a page is sorted by relative to its siblings (default=sort, which means drag/drop manual)
  * 
  * @method string render() Returns rendered page markup. echo $page->render();
  * @method bool viewable() Returns true if the page is viewable by the current user, false if not. 
