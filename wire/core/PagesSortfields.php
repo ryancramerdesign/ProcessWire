@@ -6,11 +6,10 @@
  * Manages the table for the sortfield property for Page children.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -25,8 +24,8 @@ class PagesSortfields extends Wire {
 	 */
 	public function save(Page $page) {
 
-		if(!$page->id) return; 
-		if(!$page->isChanged('sortfield')) return; 
+		if(!$page->id) return false; 
+		if(!$page->isChanged('sortfield')) return true; 
 
 		$page_id = (int) $page->id; 
 		$sortfield = $this->fuel('db')->escape_string($this->encode($page->sortfield)); 
@@ -34,8 +33,8 @@ class PagesSortfields extends Wire {
 		if($sortfield == 'sort' || !$sortfield) return $this->delete($page); 
 
 		$sql = 	"INSERT INTO pages_sortfields (pages_id, sortfield) " . 
-			"VALUES($page_id, '$sortfield') " . 
-			"ON DUPLICATE KEY UPDATE sortfield=VALUES(sortfield)";
+				"VALUES($page_id, '$sortfield') " . 
+				"ON DUPLICATE KEY UPDATE sortfield=VALUES(sortfield)";
 
 		return $this->fuel('db')->query($sql) != false; // QA
 
@@ -58,6 +57,7 @@ class PagesSortfields extends Wire {
 	 * The returned fieldname is preceded with a dash if the sortfield is reversed. 
 	 *
 	 * @param string|int $sortfield
+	 * @param string $default Default sortfield name (default='sort')
 	 * @return string
 	 *
 	 */
@@ -88,10 +88,10 @@ class PagesSortfields extends Wire {
 	 * The returned value will be a negative value (or string preceded by a dash) if the sortfield is reversed. 
 	 *
 	 * @param string $sortfield
+	 * @param string $default Default sortfield name (default='sort')
 	 * @return string|int
 	 *
 	 */
-
 	public function encode($sortfield, $default = 'sort') {
 
 		$reverse = false; 

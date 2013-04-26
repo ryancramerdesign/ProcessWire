@@ -71,7 +71,7 @@ class LanguagesPageFieldValue extends Wire {
 	/**
 	 * Given an Inputfield with multi language values, this grabs and populates the language values from it
 	 *
-	 * @param Inptufield $inputfield
+	 * @param Inputfield $inputfield
 	 *
 	 */
 	public function setFromInputfield(Inputfield $inputfield) {

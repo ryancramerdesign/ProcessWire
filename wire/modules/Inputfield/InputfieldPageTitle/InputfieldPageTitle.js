@@ -19,15 +19,25 @@ $(document).ready(function() {
 	var $titleField = $(".InputfieldPageTitle input[type=text]"); 
 	var active = true; 
 
+	$(".InputfieldPageName .LanguageSupport input[type=text]").each(function() {
+		// if language support enabled and any of the page names contains something
+		// then prevent title from populating name fields
+		if($(this).val().length > 0) active = false;
+	});
+
 	var titleKeyup = function() {
 		if(!active) return; 
-		var val = $titleField.val().substring(0, 128); 
-		$nameField.val(val).trigger('blur'); 
+		var val = $(this).val().substring(0, 128); 
+		var id = $(this).attr('id').replace(/Inputfield_title_*/, 'Inputfield_name'); 
+		$nameField = $("#" + id);  	
+		if($nameField.size() > 0) $nameField.val(val).trigger('blur'); 
 	}
 
-	$titleField.keyup(titleKeyup); 
+	// $titleField.keyup(titleKeyup); 
+	if(active) $titleField.bind('keyup change', titleKeyup);
 
-	$nameField.focus(function() {
+	// $nameField.focus(function() {
+	if(active) $('.InputfieldPageName input').focus(function() {
 		// if they happen to change the name field on their own, then disable 
 		if($(this).val().length) active = false;
 	}); 

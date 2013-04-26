@@ -25,6 +25,8 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
+ * @todo add serialize/unserialize to support non-string  data in MarkupCache
+ *
  */
 
 class MarkupCache extends Wire implements Module, ConfigurableModule {

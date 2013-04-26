@@ -6,11 +6,10 @@
  * Classes built to provide a wrapper for Inputfield instances. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -134,6 +133,7 @@ class InputfieldWrapper extends Inputfield {
 	 * Add an Inputfield a child
 	 *
 	 * @param Inputfield $item
+	 * @return $this
 	 *
 	 */
 	public function add(Inputfield $item) {
@@ -349,7 +349,8 @@ class InputfieldWrapper extends Inputfield {
 	/**
 	 * Pass the given array to all children to process input
 	 *
-	 * @param array $input
+	 * @param WireInputData $input
+	 * @return $this
 	 * 
 	 */
 	public function ___processInput(WireInputData $input) {
@@ -376,6 +377,7 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 * Should only be called after processInput()
 	 *
+	 * @param bool $clear
 	 * @return array
 	 *
 	 */
@@ -394,7 +396,7 @@ class InputfieldWrapper extends Inputfield {
 	 * Return all child Inputfields, or a blank InputfieldArray if none
 	 * 	
 	 * @param string $selector Optional selector string to filter the children by
- 	 * @return InputfieldArray
+ 	 * @return InputfieldsArray
 	 *
 	 */
 	public function children($selector = '') {
@@ -408,7 +410,7 @@ class InputfieldWrapper extends Inputfield {
 	 * Alias of children()
 	 *
 	 * @param string $selector Optional selector string to filter the children by
- 	 * @return InputfieldArray
+ 	 * @return InputfieldsArray
 	 *
 	 */
 	public function getChildren($selector = '') {
@@ -420,7 +422,7 @@ class InputfieldWrapper extends Inputfield {
 	 * Like children() but $selector is not optional, and the method name is more readable in instances where you are filtering.
 	 *
 	 * @param string $selector Required selector string to filter the children by
- 	 * @return InputfieldArray
+ 	 * @return InputfieldsArray
 	 *
 	 */
 	public function find($selector) {
@@ -515,6 +517,12 @@ class InputfieldWrapper extends Inputfield {
 	 */
 	public static function setMarkup(array $markup) { self::$markup = array_merge(self::$markup, $markup); }
 
+	/**
+	 * Get custom markup for render, see self::$markup at top for reference.
+	 *
+	 * @return array 
+	 *
+	 */
 	public static function getMarkup() { return array_merge(self::$defaultMarkup, self::$markup); }
 
 	/**
@@ -523,6 +531,12 @@ class InputfieldWrapper extends Inputfield {
 	 */
 	public static function setClasses(array $classes) { self::$classes = array_merge(self::$classes, $classes); }
 
+	/**
+	 * Get custom classes for render, see self::$classes at top for reference.
+	 *
+	 * @return array
+	 * 
+	 */
 	public static function getClasses() { return array_merge(self::$defaultClasses, self::$classes); }
 }
 

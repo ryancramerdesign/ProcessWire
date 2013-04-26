@@ -11,11 +11,10 @@
  * @TODO Move everything into delegate classes, leaving this as just the interface to them.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  *
  * @link http://processwire.com/api/variables/pages/ Offical $pages Documentation
@@ -203,6 +202,7 @@ class Pages extends Wire {
 	 * Like find() but returns only the first match as a Page object (not PageArray)
 	 *
 	 * @param string $selectorString
+	 * @param array $options See $options for Pages::find
 	 * @return Page|null
 	 *
 	 */
@@ -232,9 +232,10 @@ class Pages extends Wire {
 	 * Given an array or CSV string of Page IDs, return a PageArray 
 	 *
 	 * @param array|WireArray|string $ids Array of IDs or CSV string of IDs
-	 * @param Template $template Specify a template to make the load faster, because it won't have to attempt to join all possible fields... just those used by the template. 
-	 * @param int $parent_id Specify a parent to make the load faster, as it reduces the possibility for full table scans
+	 * @param Template|null $template Specify a template to make the load faster, because it won't have to attempt to join all possible fields... just those used by the template. 
+	 * @param int|null $parent_id Specify a parent to make the load faster, as it reduces the possibility for full table scans.
 	 * @return PageArray
+	 * @throws WireException
 	 *
 	 */
 	public function getById($ids, Template $template = null, $parent_id = null) {
@@ -381,6 +382,7 @@ class Pages extends Wire {
 	 * Count and return how many pages will match the given selector string
 	 *
 	 * @param string $selectorString
+	 * @param array $options See $options in Pages::find 
 	 * @return int
 	 * @todo optimize this so that it only counts, and doesn't have to load any pages in the process. 
 	 *
@@ -406,7 +408,7 @@ class Pages extends Wire {
 		if($page instanceof NullPage) $reason = "Pages of type NullPage are not saveable";
 			else if((!$page->parent || $page->parent instanceof NullPage) && $page->id !== 1) $reason = "It has no parent assigned"; 
 			else if(!$page->template) $reason = "It has no template assigned"; 
-			else if(!strlen(trim($page->name))) $reason = "It has an empty 'name' field"; 
+			else if(!strlen(trim($page->name)) && $page->id != 1) $reason = "It has an empty 'name' field"; 
 			else if($page->is(Page::statusCorrupted)) $reason = $outputFormattingReason . " [Page::statusCorrupted]";
 			else if($page->id == 1 && !$page->template->useRoles) $reason = "Selected homepage template cannot be used because it does not define access.";
 			else if($page->id == 1 && !$page->template->hasRole('guest')) $reason = "Selected homepage template cannot be used because it does not have the required 'guest' role in it's access settings.";
@@ -467,6 +469,8 @@ class Pages extends Wire {
 	 * Validate that a new page is in a saveable condition and correct it if not.
 	 *
 	 * Currently just sets up up a unique page->name based on the title if one isn't provided already. 
+	 * 
+	 * @param Page $page
 	 *
 	 */
 	protected function ___setupNew(Page $page) {
@@ -497,7 +501,11 @@ class Pages extends Wire {
 	 * If you want to just save a particular field in a Page, use $page->save($fieldName) instead. 
 	 *
 	 * @param Page $page
+	 * @param array $options Optional array with the following optional elements:
+	 * 		'uncacheAll' => boolean - Whether the memory cache should be cleared (default=true)
+	 * 		'resetTrackChanges' => boolean - Whether the page's change tracking should be reset (default=true)
 	 * @return bool True on success, false on failure
+	 * @throws WireException
 	 *
 	 */
 	public function ___save(Page $page, $options = array()) {
@@ -643,8 +651,9 @@ class Pages extends Wire {
 	 * This function is public, but the preferred manner to call it is with $page->save($field)
 	 *
 	 * @param Page $page
-	 * @param string|Field $fieldName
+	 * @param string|Field $field Field object or name (string)
 	 * @return bool True on success
+	 * @throws WireException
 	 *
 	 */
 	public function ___saveField(Page $page, $field) {
@@ -683,6 +692,7 @@ class Pages extends Wire {
 	 * @param int $pages_id ID of page to save parents from
 	 * @param int $numChildren Number of children this Page has
 	 * @param int $level Recursion level, for debugging.
+	 * @return bool
 	 *
 	 */
 	protected function saveParents($pages_id, $numChildren, $level = 0) {
@@ -785,6 +795,7 @@ class Pages extends Wire {
 	 * @param Page $page
 	 * @param bool $save Set to false if you will perform the save() call, as is the case when called from the Pages::save() method.
 	 * @return bool
+	 * @throws WireException
 	 *
 	 */
 	public function ___trash(Page $page, $save = true) {
@@ -840,6 +851,7 @@ class Pages extends Wire {
 	 * @param Page $page
 	 * @param bool $recursive If set to true, then this will attempt to delete all children too. 
 	 * @return bool
+	 * @throws WireException
 	 *
 	 */
 	public function ___delete(Page $page, $recursive = false) {
@@ -1035,7 +1047,7 @@ class Pages extends Wire {
 	 * @param string $selector
 	 * @param array $options
 	 * @param PageArray $pages
-	 * return bool True of pages were cached, false if not
+	 * @return bool True if pages were cached, false if not
 	 *
 	 */
 	protected function selectorCache($selector, array $options, PageArray $pages) {
@@ -1101,6 +1113,7 @@ class Pages extends Wire {
 	 *
 	 */
 	public function __get($key) {
+		if($key == 'outputFormatting') return $this->outputFormatting; 
 		return parent::__get($key); 
 	}
 

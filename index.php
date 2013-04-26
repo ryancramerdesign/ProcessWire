@@ -17,11 +17,11 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
- * @version 2.2
+ * @version 2.3
  *
  */
 
-define("PROCESSWIRE", 202); 
+define("PROCESSWIRE", 203); 
 
 /**
  * Build the ProcessWire configuration

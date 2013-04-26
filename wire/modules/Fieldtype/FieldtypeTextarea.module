@@ -45,6 +45,7 @@ class FieldtypeTextarea extends FieldtypeText {
 
 	public function getInputfield(Page $page, Field $field) {
 		$inputfield = $this->modules->get($field->inputfieldClass ? $field->inputfieldClass : self::defaultInputfieldClass); 
+		if(!$inputfield) $inputfield = $this->modules->get(self::defaultInputfieldClass); 
 		$inputfield->class = $this->className();
 		return $inputfield; 
 	}

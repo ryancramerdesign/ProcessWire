@@ -6,11 +6,10 @@
  * Matches selector strings to pages
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -31,8 +30,6 @@ class PageFinder extends Wire {
 
 	/**
 	 * Construct the PageFinder
-	 *
-	 * @param Fieldgroups $fieldgroups
 	 *
 	 */
 	public function __construct() {
@@ -183,13 +180,13 @@ class PageFinder extends Wire {
 	 *
 	 * @param array $selectors Array of selectors. 
 	 * @return string SQL statement. 
+	 * @throws PageFinderSyntaxException
 	 *
 	 */
 	protected function ___getQuery($selectors) {
 
 		$where = '';
 		$cnt = 1;
-		$fieldtypes = $this->fieldtypes;
 		$fieldCnt = array(); // counts number of instances for each field to ensure unique table aliases for ANDs on the same field
 		$lastSelector = null; 
 		$sortSelectors = array(); // selector containing 'sort=', which gets added last
@@ -357,7 +354,7 @@ class PageFinder extends Wire {
 		} // selectors
 
 		if($where) $query->where("($where)"); 
-		 $this->getQueryAllowedTemplates($query); 
+		$this->getQueryAllowedTemplates($query); 
 
 		// complete the joins, matching up any conditions for the same table
 		foreach($joins as $j) {
@@ -608,7 +605,7 @@ class PageFinder extends Wire {
 		if($this->modules->isInstalled('LanguageSupportPageNames') && count(wire('languages'))) {
 			$langNames = array();
 			foreach(wire('languages') as $language) {
-				if(!$language->isDefault()) $langNames[] = "name" . (int) $language->id;
+				if(!$language->isDefault()) $langNames[$language->id] = "name" . (int) $language->id;
 			}
 		} else {
 			$langNames = null;
@@ -629,7 +626,9 @@ class PageFinder extends Wire {
 			$parts = array();
 			$query->where("pages.id=1");
 		} else {
-			$parts = explode('/', rtrim($selector->value, '/')); 
+			$selectorValue = $selector->value;
+			if($langNames) $selectorValue = wire('modules')->get('LanguageSupportPageNames')->updatePath($selectorValue); 
+			$parts = explode('/', rtrim($selectorValue, '/')); 
 			$part = $this->db->escape_string(array_pop($parts)); 
 			$sql = "pages.name='$part'";
 			if($langNames) foreach($langNames as $name) $sql .= " OR pages.$name='$part'";
@@ -646,7 +645,11 @@ class PageFinder extends Wire {
 				$alias = "parent$n";
 				//$query->join("pages AS $alias ON ($lastAlias.parent_id=$alias.id AND $alias.name='$part')");
 				$sql = "pages AS $alias ON ($lastAlias.parent_id=$alias.id AND ($alias.name='$part'";
-				if($langNames) foreach($langNames as $name) $sql .= " OR $alias.$name='$part'";
+				if($langNames) foreach($langNames as $id => $name) {
+					// $status = "status" . (int) $id;
+					// $sql .= " OR ($alias.$name='$part' AND $alias.$status>0) ";
+					$sql .= " OR $alias.$name='$part'";
+				}
 				$sql .= '))';
 				$query->join($sql); 
 
@@ -724,7 +727,7 @@ class PageFinder extends Wire {
 			if(count($IDs)) {
 				// parentIDs are IDs found via another query, and we don't need to match anything other than the parent ID
 				$in = $selector->not ? "NOT IN" : "IN"; 
-				$sql .= $field == 'children' ? "$table.parent_id " : "$table.id ";
+				$sql .= in_array($field, array('parent', 'parent_id')) ? "$table.parent_id " : "$table.id ";
 				$sql .= "$in(" . implode(',', $IDs) . ")";
 
 			} else foreach($values as $value) { 

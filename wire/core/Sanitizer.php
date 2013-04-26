@@ -9,11 +9,10 @@
  * See the Wire class definition for more details about the addHook method. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  * @link http://processwire.com/api/variables/sanitizer/ Offical $sanitizer API variable Documentation
  *
@@ -48,6 +47,7 @@ class Sanitizer extends Wire {
 	 * @param string $value Value to filter
 	 * @param array $allowedExtras Additional characters that are allowed in the value
 	 * @param string 1 character replacement value for invalid characters
+	 * @return string
 	 *
 	 */
 	protected function nameFilter($value, array $allowedExtras, $replacementChar) {
@@ -83,6 +83,7 @@ class Sanitizer extends Wire {
 	 * @param string $delimeter Character that delimits values (optional)
 	 * @param array $allowedExtras Additional characters that are allowed in the value (optional)
 	 * @param string 1 character replacement value for invalid characters (optional)
+	 * @return string
 	 *
 	 */
 	public function names($value, $delimeter = ' ', $allowedExtras = array('-', '_', '.'), $replacementChar = '_') {
@@ -98,6 +99,9 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Standard alphanumeric and underscore, per class or variable names in PHP
+	 * 
+	 * @param string $value
+	 * @return string
 	 *
 	 */
 	public function varName($value) {
@@ -108,6 +112,9 @@ class Sanitizer extends Wire {
 	 * Name filter as used by ProcessWire Fields
 	 * 
 	 * Note that dash and dot are excluded because they aren't allowed characters in PHP variables
+	 * 
+	 * @param string $value
+	 * @return string
 	 *
 	 */
 	public function fieldName($value) {
@@ -172,17 +179,27 @@ class Sanitizer extends Wire {
 	/**
 	 * Format required by ProcessWire user names
 	 *
+	 * @deprecated, use pageName instead.
+	 * @param string $value
+	 * @return string
+	 *
 	 */
 	public function username($value) {
+		return $this->pageName($value); 
+		/*
 		$value = trim($value); 
 		if(strlen($value) > 128) $value = substr($value, 0, 128); 
 		if(ctype_alnum(str_replace(array('-', '_', '.', '@'), '', $value))) return $value; 
 		return preg_replace('/[^-_.@a-zA-Z0-9]/', '_', trim($value)); 
+		*/
 	}
 
 	/**
 	 * Returns valid email address, or blank if it isn't valid
 	 *
+	 * @param string $value
+	 * @return string
+	 * 
 	 */ 
 	public function email($value) {
 		$value = filter_var($value, FILTER_SANITIZE_EMAIL); 
@@ -272,6 +289,7 @@ class Sanitizer extends Wire {
 	 * and won't always work with paths outside ProcessWire. 
 	 *
 	 * @param string $value Path 
+	 * @return string
 	 *
 	 */
 	public function path($value) {
@@ -354,6 +372,9 @@ class Sanitizer extends Wire {
 	 * Field name filter as used by ProcessWire Fields
 	 * 
 	 * Note that dash and dot are excluded because they aren't allowed characters in PHP variables
+	 * 
+	 * @param string $value
+	 * @return string
 	 *
 	 */
 	public function selectorField($value) {
@@ -366,6 +387,8 @@ class Sanitizer extends Wire {
 	 *
 	 * String value is assumed to be UTF-8. Replaces non-alphanumeric and non-space with space
 	 *
+	 * @param string $value
+	 * @return string
 	 * 
 	 */
 	public function selectorValue($value) {

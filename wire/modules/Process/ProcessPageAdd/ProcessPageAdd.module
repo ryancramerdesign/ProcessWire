@@ -253,6 +253,7 @@ class ProcessPageAdd extends Process {
 	 */
 	protected function processInput(Inputfield $form) {
 
+		$this->page = new Page(); // must exist before processInput for language hooks
 		$form->processInput($this->input->post);
 
 		$nameField = $form->children->get('_pw_page_name'); 	
@@ -263,7 +264,7 @@ class ProcessPageAdd extends Process {
 			return false; 
 		}
 
-		if($this->parent->child("name=$name")->id) {
+		if($this->parent->child("name=$name, include=all")->id) {
 			$nameField->error($this->_("The name you selected is already in use. Please select another.")); 
 			return false;
 		}
@@ -275,8 +276,8 @@ class ProcessPageAdd extends Process {
 		}
 
 		if(!$this->isAllowedTemplate($template)) throw new WireException("You don't have access to add pages with template '$template'"); 
-		
-		$this->page = new Page($template); 
+	
+		$this->page->template = $template;	
 		$this->page->parent = $this->parent; 
 		$this->page->name = $name; 
 		$this->page->sort = $this->parent->numChildren; 
@@ -306,7 +307,12 @@ class ProcessPageAdd extends Process {
 
 		if(!$publishNow) $this->page->addStatus(Page::statusUnpublished); 
 
-		$this->pages->save($this->page); 
+		try {
+			$this->pages->save($this->page); 
+		} catch(Exception $e) {
+			$this->error($e->getMessage()); 
+			return false;
+		}
 
 		$this->session->message(sprintf($this->_('Created page %1$s using template: %2$s'), $this->parent->url . $this->page->name, $template->name)); 
 		$this->session->redirect("../edit/?id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
@@ -324,6 +330,14 @@ class ProcessPageAdd extends Process {
 			$breadcrumbs->add(new Breadcrumb($this->config->urls->admin . "page/list/?open=" . $p->id, $p->get("title|name"))); 
 		}
 		$this->setFuel('breadcrumbs', $breadcrumbs); 
+	}
+
+	/**
+	 * @return Page|null
+	 *
+	 */
+	public function getPage() {
+		return $this->page; 
 	}
 }
 

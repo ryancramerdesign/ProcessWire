@@ -10,11 +10,10 @@
  * /wire/core/FieldtypeMulti.php
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -23,7 +22,7 @@ class FieldtypePage extends FieldtypeMulti {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page Reference',
-			'version' => 100,
+			'version' => 101,
 			'summary' => 'Field that stores one or more references to ProcessWire pages',
 			'permanent' => true, 
 			);
@@ -161,7 +160,10 @@ class FieldtypePage extends FieldtypeMulti {
 				$pageArray = $this->fuel('pages')->getById(array((int) reset($value)), $template); 
 				if(count($pageArray)) $pg = $pageArray->first();
 			}
-			if(!$pg || ($pg && $pg->status >= Page::statusUnpublished)) $pg = $this->getBlankValue($page, $field);
+
+			if($pg && $pg->status >= Page::statusUnpublished && !$field->allowUnpub) $pg = false; 
+			if(!$pg) $pg = $this->getBlankValue($page, $field); 
+
 			return $pg; 
 
 		} else {
@@ -169,7 +171,7 @@ class FieldtypePage extends FieldtypeMulti {
 			$pageArray = $this->fuel('pages')->getById($value, $template); 
 			foreach($pageArray as $pg) {
 				// remove any pages that have an unpublished status
-				if($pg->status >= Page::statusUnpublished) $pageArray->remove($pg); 
+				if($pg->status >= Page::statusUnpublished && !$field->allowUnpub) $pageArray->remove($pg); 
 			}
 			$pageArray->resetTrackChanges(); 
 			return $pageArray; 
@@ -206,6 +208,34 @@ class FieldtypePage extends FieldtypeMulti {
 
 		return $sleepValue;
         }
+
+	/**
+	 * Format the given value for output. 
+	 *
+	 * In this case, we remove non-listable (unpublished) pages when necessary.
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @param string|int|WireArray|object $value
+	 * @return string
+	 *
+	 */
+	public function ___formatValue(Page $page, Field $field, $value) {
+		if($page->editable() || !$field->allowUnpub) return $value; 
+
+		// remove unpublished pages for front-end formatted output
+		if($value instanceof Page) {
+			if($value->is(Page::statusUnpublished)) $value = $this->getBlankValue($page, $field); 
+
+		} else if($value instanceof PageArray) {
+			foreach($value as $item) {
+				if($item->is(Page::statusUnpublished)) $value->remove($item); 
+			}
+		}
+
+		return $value;
+	}
+
 
 	/**
 	 * Return either a blank Page or a blank PageArray
@@ -548,7 +578,27 @@ class FieldtypePage extends FieldtypeMulti {
 
 		$select->attr('value', (int) $field->derefAsPage);  
 		$inputfields->append($select);
+
 		return $inputfields; 
 	}
+
+	/**
+	 * Return advanced configuration fields definable for each FieldtypePage
+	 *
+	 */
+        public function ___getConfigAdvancedInputfields(Field $field) {
+                $inputfields = parent::___getConfigAdvancedInputfields($field);
+
+		$checkbox = $this->modules->get('InputfieldCheckbox'); 
+		$checkbox->attr('name', 'allowUnpub'); 
+		$checkbox->label = $this->_('Allow unpublished pages?'); 
+		$checkbox->description = $this->_('When checked, unpublished pages are allowed in the field value. Unpublished pages will not appear on the front-end, except to those with edit access.'); // Description for allowUnpub option
+		$checkbox->attr('value', 1); 
+		$checkbox->attr('checked', $field->allowUnpub ? 'checked' : ''); 
+		$inputfields->prepend($checkbox); 
+
+                return $inputfields;
+        }
+
 }
 

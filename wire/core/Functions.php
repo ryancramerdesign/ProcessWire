@@ -6,11 +6,10 @@
  * Common API functions useful outside of class scope
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -36,6 +35,7 @@ function wire($name = 'wire') {
  * When a $name is specified, this function is identical to the wire() function.
  * Both functions exist more for consistent naming depending on usage. 
  *
+ * @deprecated
  * @param string $name If ommitted, returns a Fuel object with references to all the fuel.
  * @return mixed Fuel value if available, NULL if not. 
  *
@@ -125,7 +125,6 @@ function unregisterGLOBALS() {
  * 	- Specify true to allow all empty values to be retained.
  * 	- Specify an array of keys (from data) that should be retained if you want some retained and not others.
  * 	- Specify the digit 0 to retain values that are 0, but not other types of empty values.
- * @param array $keepKeys Array of keys from $data that should still be included even if blank (optional). Applicable only if $allowEmpty is true. 
  * @return string String of JSON data
  *
  */
@@ -226,6 +225,7 @@ function wireRmdir($path, $recursive = false) {
  * @param array $options Options that you may pass in, see $_options in function for details.
  * @param array $headers Headers that are sent, see $_headers in function for details. 
  *	To remove a header completely, make its value NULL and it won't be sent.
+ * @throws WireException
  *
  */
 function wireSendFile($filename, array $options = array(), array $headers = array()) {

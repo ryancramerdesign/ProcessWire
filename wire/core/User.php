@@ -6,11 +6,10 @@
  * A type of Page used for storing an individual User
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  *
  * @link http://processwire.com/api/variables/user/ Offical $user API variable Documentation
@@ -169,8 +168,9 @@ class User extends Page {
 	 * Does this user have the given permission on the given template?
 	 *
 	 * @param string $name Permission name
-	 * @param Template|int|string Template object, name or ID
+	 * @param Template|int|string $template Template object, name or ID
 	 * @return bool
+	 * @throws WireException
 	 *
 	 */
 	protected function hasTemplatePermission($name, $template) {

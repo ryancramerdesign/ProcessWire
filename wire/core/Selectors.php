@@ -6,11 +6,10 @@
  * Processes a Selector string and can then be iterated to retrieve each resulting Selector object.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -108,6 +107,7 @@ class Selectors extends WireArray {
 	/**
 	 * Does the given string have an operator in it? 
 	 *
+	 * @param string $str
 	 * @return bool
 	 *
 	 */
@@ -127,6 +127,7 @@ class Selectors extends WireArray {
 	 *
 	 * Meaning string starts with [field][operator] like "field="
 	 *
+	 * @param string $str
 	 * @return bool
 	 *
 	 */
@@ -159,6 +160,8 @@ class Selectors extends WireArray {
 	 * @param string $field
 	 * @param string $operator
 	 * @param string $value
+	 * @return Selector
+	 * @throws WireException
 	 *
 	 */
 	protected function create($field, $operator, $value) {

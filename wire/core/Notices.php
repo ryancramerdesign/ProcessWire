@@ -6,16 +6,20 @@
  * Contains notices/messages used by the application to the user. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
 /**
  * Base class that holds a message, source class, and timestamp
+ * 
+ * @property string $text Text of notice
+ * @property string $class Class of notice
+ * @property int $timestamp When the notice was generated
+ * @property int $flags Optional flags bitmask of Notice::debug and/or Notice::warning
  *
  */
 abstract class Notice extends WireData {

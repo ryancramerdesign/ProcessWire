@@ -9,7 +9,7 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page Name',
-			'version' => 102,
+			'version' => 104,
 			'summary' => 'Text input validated as a ProcessWire Page name field',
 			'permanent' => true, 
 			);
@@ -41,6 +41,7 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		'í' => 'i',
 		'ï' => 'i',
 		'î' => 'i',
+		'õ' => 'o', 
 		'ò' => 'o',
 		'ó' => 'o',
 		'ô' => 'o',
@@ -99,13 +100,56 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		$this->label = $this->_('Name'); // Field label for 'Name'
 		$this->set('parentPage', null); 
 		$this->set('sanitizeMethod', 'pageName');
+		$this->set('languageSupportLabel', ''); 
+
+		// optional checkbox associated with the input, for use with language support
+		$this->set('checkboxName', ''); // leave blank to disable 
+		$this->set('checkboxLabel', ''); 
+		$this->set('checkboxValue', ''); 
+		$this->set('checkboxChecked', false); 
+
 		$this->description = $this->_("Any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces)."); // Field description describing what characters are allowed
 	}
 
 	public function ___render() {
 
 		$url = $this->parentPage ? $this->parentPage->path : '';
-		$out = "\n<p class='InputfieldPageNameURL'>$url<strong></strong></p>" . parent::___render();
+		$out = '';
+		$box = '';
+		
+		if($this->languageSupportLabel) {
+
+			if($this->checkboxName) {
+				$checked = $this->checkboxChecked ? " checked='checked'" : '';
+				$name = wire('sanitizer')->entities($this->checkboxName); 
+				$value = wire('sanitizer')->entities($this->checkboxValue); 
+				$label = wire('sanitizer')->entities($this->checkboxLabel); 
+				$box = "<label class='checkbox detail'><input type='checkbox' name='$name' value='$value'$checked /> $label</label>";
+			}
+
+			$label = wire('sanitizer')->entities($this->languageSupportLabel); 
+			$id = wire('sanitizer')->entities($this->attr('id')); 
+			$out .= "<div class='LanguageSupport'>" . 
+					"<label for='$id' class='LanguageSupportLabel detail'>" . 
+					"$label</label>";
+		}
+
+		$value = $this->attr('value'); 
+		$link = '';
+
+		if($value && wire('modules')->isInstalled('LanguageSupportPageNames')) {
+			if(strlen($value)) $link = "<a href='" . rtrim(wire('config')->urls->root, '/') . rtrim($url, '/') . "/$value/'>";
+		}
+
+		$p = "\n<p id='{$this->id}_path' class='InputfieldPageNameURL'>";
+		if($link) $p .= $link;
+		$p .= "$url<strong></strong>";
+		if($link) $p .= "</a>";
+		$p .= "</p>";
+
+		$out .= $p;
+		$out .= parent::___render();
+		if($this->languageSupportLabel) $out .= $box . "</div>";
 
 		// make the replacements part of the JS config	
 		$replacements = empty($this->replacements) ? self::$defaultReplacements : $this->replacements; 

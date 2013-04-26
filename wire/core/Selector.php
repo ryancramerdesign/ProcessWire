@@ -11,11 +11,10 @@
  * @TODO should the individual Selector types be convereted to Modules?
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -68,10 +67,11 @@ abstract class Selector extends WireData {
 	 * Strict standards don't let us make static abstract methods, so this one throws an exception if it's not reimplemented.
 	 *
 	 * @return string
+	 * @throws WireException
 	 *
 	 */
 	public static function getOperator() {
-		throw new WireException("This method must be implemented by " . get_class($this)); 
+		throw new WireException("This getOperator method must be implemented"); 
 	}
 
 	/**
@@ -90,6 +90,7 @@ abstract class Selector extends WireData {
 	 * If the value held by this Selector is an array of values, it will check if any one of them matches the value supplied here. 
 	 *
 	 * @param string|int|Wire $value If given a Wire, then matches will also operate on OR field=value type selectors, where present
+	 * @return bool
 	 *
 	 */
 	public function matches($value) {
@@ -143,7 +144,7 @@ abstract class Selector extends WireData {
 	 *
 	 * Selectors should include a call to this in their matches function
 	 *
-	 * @param bool $condition
+	 * @param bool $matches
 	 * @return bool
 	 *
 	 */

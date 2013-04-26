@@ -74,7 +74,6 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	/**
 	 * Get the DatabaseQuerySelect to perform the load operation of items
 	 *
-	 * @param WireArray $items
 	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all. 
 	 * @return DatabaseQuerySelect
 	 *
@@ -92,6 +91,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 * The loading is delegated to WireSaveableItems.
 	 * After loaded, we check for any 'global' fields and add them to the Fieldgroup, if not already there.
 	 *
+	 * @param WireArray $items
 	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all. 
 	 * @return WireArray Returns the same type as specified in the getAll() method.
 	 *
@@ -169,6 +169,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 *
 	 * @param Saveable $item Fieldgroup to save
 	 * @return bool True on success, false on failure
+	 * @throws WireException
 	 *
 	 */
 	public function ___save(Saveable $item) {
@@ -238,8 +239,9 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 *
 	 * Also deletes the references in fieldgroups_fields table
 	 *
-	 * @param Fieldgroup $fieldgroup
+	 * @param Fieldgroup $item
 	 * @return Fieldgroups $this
+	 * @throws WireException
 	 *
 	 */
 	public function ___delete(Saveable $item) {
@@ -253,7 +255,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 			throw new WireException("Can't delete fieldgroup '{$item->name}' because it is in use by template(s): " . implode(', ', $templates)); 
 		}
 
-		parent::___delete($item); 
+		return parent::___delete($item); 
 	}
 
 	/**

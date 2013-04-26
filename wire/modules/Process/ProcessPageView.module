@@ -139,7 +139,7 @@ class ProcessPageView extends Process {
 		$it = isset($_GET['it']) ? $_GET['it'] : "/";
 		unset($_GET['it']); 
 		$it = preg_replace('{[^-_./a-zA-Z0-9]}', '', $it);
-		if($it[0] != '/') $it = "/$it";
+		if(!isset($it[0]) || $it[0] != '/') $it = "/$it";
 		if(strpos($it, '//') !== false) return null;
 
 		if(wire('config')->pagefileSecure) {

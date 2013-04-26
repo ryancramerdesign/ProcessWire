@@ -11,7 +11,7 @@
  *
  */
 
-class LanguageSupportPageNames extends WireData implements Module {
+class LanguageSupportPageNames extends WireData implements Module, ConfigurableModule {
 
 	/**
 	 * Return information about the module
@@ -19,18 +19,24 @@ class LanguageSupportPageNames extends WireData implements Module {
 	 */
         static public function getModuleInfo() {
                 return array(
-                        'title' => 'Languages Support - Page Names',
-                        'version' => 1,
-                        'summary' => 'Required to use multi-language page names. In development, NOT for production use.',
-			'author' => 'Ryan Cramer',
-			'autoload' => true,
-			'singular' => true,
-			'requires' => array(
-				'LanguageSupport',
-				'LanguageSupportFields',
-				)
-                        );
+					'title' => 'Languages Support - Page Names',
+					'version' => 6,
+					'summary' => 'Required to use multi-language page names. In development, NOT for production use.',
+					'author' => 'Ryan Cramer',
+					'autoload' => true,
+					'singular' => true,
+					'requires' => array(
+						'LanguageSupport',
+						'LanguageSupportFields'
+						)
+					);
         }
+
+	/**
+	 * Default/assumed name for homepage
+	 *
+	 */
+	const HOME_NAME_DEFAULT = 'home';
 
 	/**
 	 * The path that was requested, before processing
@@ -39,12 +45,53 @@ class LanguageSupportPageNames extends WireData implements Module {
 	protected $requestPath = '';
 
 	/**
+	 * Language that should be set for this request
+	 *
+	 */
+	protected $setLanguage = null;
+
+	/**
+	 * Whether to force a 404 when ProcessPageView runs
+	 *
+	 */
+	protected $force404 = null;
+
+	/**
+	 * Default configuration data
+	 *
+	 */
+	static protected $defaultConfigData = array(
+		/**
+		 * module version, for schema changes when necessary
+	 	 *
+		 */
+		'moduleVersion' => 0,
+
+		/**
+		 * Whether an 'inactive' state (status123=0) should inherit to children
+	 	 *
+		 * Note: we don't have a reasonable way to make this work with PageFinder queries, 
+		 * so it is not anything more than a placeholder at present. 
+	 	 *
+		 */
+		'inheritInactive' => 0
+		);
+
+	/**
+	 * Populate default config data
+	 *
+	 */
+	public function __construct() {
+		foreach(self::$defaultConfigData as $key => $value) $this->set($key, $value);
+	}
+
+	/**
 	 * Initialize the module, save the requested path
 	 *
 	 */
 	public function init() { 
-		// save now, since ProcessPageView removes $_GET['it'] when it executes
-		$this->requestPath = $_GET['it'];
+		$this->addHookBefore('ProcessPageView::execute', $this, 'hookProcessPageViewExecute'); 
+		$this->addHookAfter('PageFinder::getQuery', $this, 'hookPageFinderGetQuery'); 
 	}
 
 	/**
@@ -53,17 +100,25 @@ class LanguageSupportPageNames extends WireData implements Module {
 	 */
 	public function ready() {
 
+		$this->checkModuleVersion();
 		$this->addHookAfter('Page::path', $this, 'hookPagePath'); 
+		$this->addHookAfter('Page::viewable', $this, 'hookPageViewable'); 
+		$this->addHookBefore('Page::render', $this, 'hookPageRender'); 
+		$this->addHook('Page::localName', $this, 'hookPageLocalName'); 
+		$this->addHook('Page::localUrl', $this, 'hookPageLocalUrl'); 
+		$this->addHook('Page::localPath', $this, 'hookPageLocalPath'); 
 
 		// verify that page path doesn't have mixed languages where it shouldn't
-		$redirectURL = $this->verifyPath();
+		$redirectURL = $this->verifyPath($this->requestPath);
 		if($redirectURL) return wire('session')->redirect($redirectURL); 
 
 		$page = wire('page'); 
 
-		if($page->template == 'admin' && $page->process == 'ProcessPageEdit') {
+		if($page->template == 'admin' && ($page->process == 'ProcessPageEdit' || $page->process == 'ProcessPageAdd')) {
 			// when in admin, add inputs for each language's page name
-			$this->addHookAfter('InputfieldPageName::render', $this, 'hookInputfieldPageNameRender'); 	
+			$page->addHookBefore('ProcessPageEdit::execute', $this, 'hookProcessPageEditExecute'); 
+			// $page->addHookAfter('ProcessPageEdit::buildFormSettings', $this, 'hookProcessPageEditSettings'); 
+			$this->addHookAfter('InputfieldPageName::render', $this, 'hookInputfieldPageNameRenderAfter'); 	
 			$this->addHookAfter('InputfieldPageName::processInput', $this, 'hookInputfieldPageNameProcess'); 
 		}
 
@@ -74,54 +129,109 @@ class LanguageSupportPageNames extends WireData implements Module {
 	}
 
 	/**
+	 * Given a page path, return an updated version that lacks the language segment
+	 *
+	 * It extracts the language segment and uses that to later set the language
+	 *
+	 */
+	public function updatePath($path) {
+		if($path === '/' || !strlen($path)) return $path;
+		$testPath = trim($path, '/') . '/';
+		$home = wire('pages')->get(1);
+		foreach(wire('languages') as $language) {
+			$name = $language->isDefault() ? $home->get("name") : $home->get("name$language"); 
+			if($name == self::HOME_NAME_DEFAULT) continue;
+			if(!strlen($name)) continue; 
+			$name = "$name/"; 
+			if(strpos($testPath, $name) === 0) {
+				$this->setLanguage = $language; 
+				$path = substr($testPath, strlen($name)); 
+			}
+		}	
+		return $path; 
+	}
+
+	/**
 	 * Determine language from requested path, and if a redirect needs to be performed
 	 *
 	 * Sets the user's language to that determined from the URL.
 	 *
+	 * @param string $requestPath
 	 * @return string $redirectURL Returns URL to be redirected to, when applicable. Blank when not.
 	 *
 	 */
-	protected function verifyPath() {
+	protected function verifyPath($requestPath) {
 
 		$languages = wire('languages'); 
 		if(!count($languages)) return '';
 
 		$page = wire('page'); 
+		if($page->template == 'admin') return '';
+
 		$user = wire('user'); 
 
-		$requestedParts = explode('/', $this->requestPath); 
+		$requestedParts = explode('/', $requestPath); 
 		$parentsAndPage = $page->parents()->getArray();
 		$parentsAndPage[] = $page; 
 		array_shift($parentsAndPage); // shift off the homepage
 		$redirectURL = '';
-		$setLanguage = null;
+		$setLanguage = $this->setLanguage;
 
 		// determine if we should set the current language based on requested URL
-		foreach($parentsAndPage as $p) {
+		if(!$setLanguage) foreach($parentsAndPage as $p) {
 
 			$requestedPart = strtolower(array_shift($requestedParts)); 
 			if($requestedPart === $p->name) continue; 
 
 			foreach($languages as $language) {
-				if($language->isDefault()) continue; 
-				$name = $p->get("name$language"); 
+				if($language->isDefault()) {
+					$name = $p->get("name"); 
+				} else {
+					$name = $p->get("name$language"); 
+				}
 				if($name === $requestedPart) {
 					$setLanguage = $language; 
-					break;
 				}
 			}
-			if($setLanguage) break;
+		}
+
+		// check to see if the $page or any of its parents has an inactive status for the $setLanguage
+		if($setLanguage && !$setLanguage->isDefault()) {
+			$active = true;
+			if($this->inheritInactive) {
+				// inactive status on a parent inherits through to children
+				foreach($parentsAndPage as $p) {
+					$status = $p->get("status$setLanguage"); 
+					if(!$status) $active = false;
+				}
+			} else {	
+				// inactive status only applies to the page itself
+				$active = $page->get("status$setLanguage") > 0; 
+			}
+			// if page is inactive for a language, and it's not editable, send a 404
+			if(!$active && !$page->editable()) {
+				// 404 or redirect to default language version
+				$this->force404 = true; 
+				return '';
+			}
 		}
 
 
 		// set the language	
-		if($setLanguage) $user->language = $setLanguage; 
+		if(!$setLanguage) $setLanguage = $languages->get('default'); 
+		$user->language = $setLanguage; 
 
 		// determine if requested URL was correct or if we need to redirect
-		$expectedPath = trim($page->path(), '/');
-		$requestPath = substr(trim($this->requestPath, '/'), 0, strlen($expectedPath)); 
+		$expectedPath = trim($this->getPagePath($page, $user->language), '/');
+		$requestPath = trim($requestPath, '/'); 
+		$expectedPathLength = strlen($expectedPath);
+
+		if($expectedPathLength) {
+			$requestPath = substr($requestPath, 0, $expectedPathLength); 
+		}
 		if($expectedPath != $requestPath) {
-			$redirectURL = wire('config')->urls->root . $expectedPath . '/';
+			if($expectedPathLength) $expectedPath .= '/';
+			$redirectURL = wire('config')->urls->root . $expectedPath;
 		}
 
 		return $redirectURL;
@@ -129,36 +239,159 @@ class LanguageSupportPageNames extends WireData implements Module {
 	}
 
 	/**
+	 * Given a page and language, return the path to the page in that language
+	 *
+	 */
+	public function getPagePath(Page $page, Language $language) {
+
+		$isDefault = $language->isDefault();
+
+		if($page->id == 1) {
+			// special case: homepage
+			// $name = $isDefault ? $page->get("name") : $page->get("name$language"); 
+			$name = $isDefault ? '' : $page->get("name$language"); 
+			if($name == self::HOME_NAME_DEFAULT || !strlen($name)) return '/';
+			return "/$name/";
+		}
+
+		$path = '';
+
+		foreach($page->parents() as $parent) {
+			$name = $isDefault ? $parent->get("name") : $parent->get("name$language|name"); 
+			if($parent->id == 1) { 
+				// bypass ProcessWire's default homepage name of 'home', as we don't want it in URLs
+				if($name == self::HOME_NAME_DEFAULT) continue; 
+				// avoid having default language name inherited at homepage level
+				// if($isDefault && $name === $parent->get("name")) continue; 
+			}
+			if(strlen($name)) $path .= "/" . $name;
+		}
+
+		$name = $page->get("name$language|name"); 
+		$path = strlen($name) ? "$path/$name/" : "$path/";
+		return $path;
+	}
+
+
+	/**
+	 * Hook in before ProcesssPageView::execute to capture and modify $_GET[it] as needed
+	 *
+	 */
+	public function hookProcessPageViewExecute(HookEvent $event) {
+		// save now, since ProcessPageView removes $_GET['it'] when it executes
+		$it = isset($_GET['it']) ? $_GET['it'] : '';
+		$this->requestPath = $it; 
+		$it = $this->updatePath($it); 
+		if($it != $this->requestPath) $_GET['it'] = $it;
+	}
+
+	/**
+	 * Hook in before ProcesssPageView::render to throw 404 when appropriate
+	 *
+	 */
+	public function hookPageRender(HookEvent $event) {
+		if($this->force404) {
+			$this->force404 = false; // prevent another 404 on the 404 page
+			throw new Wire404Exception();
+		}
+	}
+
+	/**
+	 * Hook in after ProcesssPageView::viewable account for specific language versions
+	 *
+	 * May be passed a Language name or page to check viewable for that language
+	 *
+	 */
+	public function hookPageViewable(HookEvent $event) {
+		if(!$event->return) return;
+		$page = $event->object;
+		if(wire('user')->isSuperuser() || $page->editable()) return;
+		$language = $event->arguments(0);
+		if(!$language) return;
+		if(is_string($language)) $language = wire('languages')->get(wire('sanitizer')->pageName($language));
+		if(!$language instanceof Language) return;
+		$name = $language->isDefault() ? "status" : "status$language";
+		$status = $page->get($name);
+		$event->return = $status > 0 && $status < Page::statusUnpublished;
+	}
+
+	/**
+	 * Hook into ProcessPageEdit to remove the non-applicable default home name of 'home'
+	 *
+	 */
+	public function hookProcessPageEditExecute(HookEvent $event) {
+		$page = $event->object->getPage();
+		if($page->id == 1) {
+			if($page->name == self::HOME_NAME_DEFAULT) $page->name = '';
+		}
+	}
+
+	/**
+	 * Hook into ProcessPageEdit to remove the non-applicable default home name of 'home'
+	 *
+	public function hookProcessPageEditSettings(HookEvent $event) {
+		$page = $event->object->getPage();
+		if($page->id == 1) {
+			if($page->name == self::HOME_NAME_DEFAULT) $page->name = '';
+		}
+	}
+	 */
+
+	/**
 	 * Hook into the page name render for when in ProcessPageEdit
 	 *
 	 * Adds additional inputs for each language
 	 *
-	 * @todo Just move this to the InputfieldPageName module rather than using hooks
-	 *
 	 */
-	public function hookInputfieldPageNameRender(HookEvent $event) {
+	public function hookInputfieldPageNameRenderAfter(HookEvent $event) {
 
 		$inputfield = $event->object; 
-		$page = $this->process->getPage();
-		$name = $inputfield->attr('name'); 
-		$out = $event->return; 
-		$language = wire('languages')->get('default');
+		if($inputfield->languageSupportLabel) return; // prevent recursion
 
-		// add a label for default language
-		$label = $language->get("title|name"); 
-		$out = str_replace("<input", "<label for='Inputfield_name' class='LanguageSupportLabel detail'>$label</label><input", $out);
+		$user = wire('user');
+		$page = $this->process == 'ProcessPageEdit' ? $this->process->getPage() : new NullPage();
+		$savedLanguage = $user->language; 
+		$savedValue = $inputfield->attr('value');
+		$savedName = $inputfield->attr('name'); 
+		$savedID = $inputfield->attr('id');
+		$trackChanges = $inputfield->trackChanges();
+		$inputfield->setTrackChanges(false);
+		$out = ''; 
+
+		$language = wire('languages')->get('default');
+		$user->language = $language; 
+		$inputfield->languageSupportLabel = $language->get('title|name');
+		$out .= $inputfield->render();
 
 		// add labels and inputs for other languages
 		foreach(wire('languages') as $language) {
 			if($language->isDefault()) continue; 
-			$value = wire('sanitizer')->entities($page->get("name$language")); 
-			$id = "$name$language";
+			$user->language = $language; 
+			$value = $page->get("name$language"); 
+			if(is_null($value)) $value = $savedValue; 
+			$id = "$savedID$language"; 
+			$name  = "$savedName$language";
 			$label = $language->get('title|name'); 
-			$out .= "<div class='LanguageSupport'>" . 
-				"<label for='$id' class='LanguageSupportLabel detail'>$label</label>" . 
-				"<input class='InputfieldMaxWidth' maxlength='128' type='text' id='$id' name='$id' value='$value' />" . 
-				"</div>";
+			$inputfield->languageSupportLabel = $label;
+			$inputfield->attr('id', $id); 
+			$inputfield->attr('name', $name); 
+			$inputfield->attr('value', $value); 
+			$inputfield->checkboxName = "status" . $language->id; 
+			$inputfield->checkboxValue = 1; 
+			$inputfield->checkboxLabel = $this->_('Active?'); 
+			$inputfield->checkboxChecked = $page->get($inputfield->checkboxName) > 0 || $page->id == 0;
+
+			$out .= $inputfield->render();
 		}
+
+		// restore language that was saved in the 'before' hook
+		$user->language = $savedLanguage; 
+
+		// restore Inputfield values back to what they were
+		$inputfield->attr('name', $savedName); 
+		$inputfield->attr('savedID', $savedID); 
+		$inputfield->attr('value', $savedValue); 
+		$inputfield->setTrackChanges($trackChanges); 
 
 		$event->return = $out; 
 	}
@@ -176,11 +409,42 @@ class LanguageSupportPageNames extends WireData implements Module {
 		$input = $event->arguments[0];
 
 		foreach(wire('languages') as $language) {
+
 			if($language->isDefault()) continue; 
+
+			// set language status 
+			$key = "status" . (int) $language->id; 
+			$value = (int) $input->$key; 
+			if($page->get($key) != $value) {
+				if($page->id) $page->set($key, $value); 
+					else $page->setQuietly($key, $value); 
+			}
+
+			// set language page name
 			$name = $inputfield->attr('name') . $language;
 			$value = wire('sanitizer')->pageName($input->$name); 
-			$page->set("name$language", $value); 
+			if($value === $page->name) $value = '';
+			$key = "name$language";
+			if($value == $page->get($key)) continue; 
+			if($page->id) $page->set($key, $value); 
+				else $page->setQuietly($key, $value); // avoid non-template exception when new page
 		}
+	}
+
+	/**
+	 * Hook into PageFinder::getQuery to add language status check
+	 *
+	 */
+	public function hookPageFinderGetQuery(HookEvent $event) {
+		$query = $event->return;
+		// don't apply exclusions when output formatting is off
+		if(!wire('pages')->outputFormatting) return;
+
+		$language = wire('user')->language; 
+		if($language->isDefault()) return;
+
+		$status = "status" . (int) $language->id;	
+		$query->where("pages.$status>0"); 
 	}
 
 	/**
@@ -188,21 +452,79 @@ class LanguageSupportPageNames extends WireData implements Module {
 	 *
 	 */
 	public function hookPagePath(HookEvent $event) {
-
 		$page = $event->object; 
-		if($page->id == 1) return;
-
+		if($page->template == 'admin') return;
 		$language = wire('user')->language; 
-		if($language->isDefault()) return;
+		$event->return = $this->getPagePath($page, $language); 
+	}
 
-		$path = '';
+	/**
+	 * Add a Page::localName function with optional $language as argument
+	 *
+	 * event param Language|string|int Optional language 
+	 * event return string Localized language name or blank if not set
+	 *
+	 */
+	public function hookPageLocalName(HookEvent $event) {
+		$page = $event->object; 
+		$language = $this->getLanguage($event->arguments(0)); 
+		$nameField = $language->isDefault() ? "name" : "name$language";
+		$value = $page->get($nameField);
+		if(is_null($value)) $value = '';
+		$event->return = $value; 
+	}
 
-		foreach($page->parents() as $parent) {
-			if($parent->id == 1) continue; 
-			$path .= "/" . $parent->get("name$language|name"); 
+	/**
+	 * Add a Page::localPath function with optional $language as argument
+	 *
+	 * event param Language|string|int Optional language 
+	 * event return string Localized language name or blank if not set
+	 *
+	 */
+	public function hookPageLocalPath(HookEvent $event) {
+		$page = $event->object; 
+		$language = $this->getLanguage($event->arguments(0)); 
+		$event->return = $this->getPagePath($page, $language); 	
+	}
+
+	/**
+	 * Add a Page::localUrl function with optional $language as argument
+	 *
+	 * event param Language|string|int Optional language 
+	 * event return string Localized language name or blank if not set
+	 *
+	 */
+	public function hookPageLocalUrl(HookEvent $event) {
+		$page = $event->object; 
+		$language = $this->getLanguage($event->arguments(0)); 
+		$event->return = wire('config')->urls->root . ltrim($this->getPagePath($page, $language), '/'); 	
+	}
+
+	/**
+	 * Given an object, integer or string, return the Language object instance
+	 *
+	 * @param int|string|Language
+	 * @return Language
+	 *
+	 */
+	protected function getLanguage($language) {
+
+		if(is_object($language)) {
+			if($language instanceof Language) return $language; 
+			$language = '';
 		}
 
-		$event->return = $path . '/' . $page->get("name$language|name") . '/';
+		if(is_string($language) || is_int($language)) {
+			if(ctype_digit("$language")) $language = (int) $language; 
+				else $language = wire('sanitizer')->pageName($language); 
+			$language = wire("languages")->get($language); 
+		}
+
+		if(!$language || !$language->id || !$language instanceof Language) {
+			$language = wire('languages')->get('default'); 
+		}
+
+		return $language; 
 	}
 
 	/**
@@ -211,10 +533,14 @@ class LanguageSupportPageNames extends WireData implements Module {
 	 */
 	protected function languageAdded(Page $language) {
 		if(!$language->id || $language->name == 'default') return;
-		$name = "name" . (int) $language->id; 
 		try {
+			$name = "name" . (int) $language->id; 
+			$status = "status" . (int) $language->id; 
 			wire('db')->query("ALTER TABLE pages ADD $name VARCHAR(128) CHARACTER SET ascii"); 
 			wire('db')->query("ALTER TABLE pages ADD UNIQUE {$name}_parent_id ($name, parent_id)"); 
+			wire('db')->query("ALTER TABLE pages ADD $status INT UNSIGNED NOT NULL DEFAULT " . Page::statusOn); 
+
+
 		} catch(Exception $e) {
 			$this->error($e->getMessage()); 
 		}
@@ -236,9 +562,11 @@ class LanguageSupportPageNames extends WireData implements Module {
 	protected function languageDeleted(Page $language) {
 		if(!$language->id || $language->name == 'default') return;
 		$name = "name" . (int) $language->id; 
+		$status = "status" . (int) $language->id; 
 		try {
-			wire('db')->query("ALTER TABLE pages DROP $name"); 
 			wire('db')->query("ALTER TABLE pages DROP INDEX {$name}_parent_id"); 
+			wire('db')->query("ALTER TABLE pages DROP $name"); 
+			wire('db')->query("ALTER TABLE pages DROP $status"); 
 		} catch(Exception $e) {
 			$this->error($e->getMessage()); 
 		}
@@ -266,17 +594,70 @@ class LanguageSupportPageNames extends WireData implements Module {
 		$extraData = $event->return; 
 		if(!is_array($extraData)) $extraData = array();
 
-		// populate a name123 field for each language
 		foreach(wire('languages') as $language) {
 			if($language->isDefault()) continue; 
 			$language_id = (int) $language->id; 
+
+			// populate a name123 field for each language
 			$name = "name$language_id";
 			$value = wire('sanitizer')->pageName($page->get($name)); 
 			if(!strlen($value)) $value = 'NULL';
 			$extraData[$name] = $value; 
+
+			// populate a status123 field for each language
+			$name = "status$language_id";
+			if(method_exists($page, 'getForPage')) {
+				// repeater page, pull status from 'for' page
+				$value = (int) $page->getForPage()->get($name); 
+			} else {
+				// regular page
+				$value = (int) $page->get($name);
+			}
+			$extraData[$name] = $value; 
 		}
 
 		$event->return = $extraData; 
+	}
+
+	/**
+	 * Check to make sure that the status table exists and creates it if not
+	 *
+	 */
+	public function checkModuleVersion($force = false) {
+
+		$info = self::getModuleInfo();
+
+		if(!$force) {
+			if($info['version'] == $this->moduleVersion) return;
+		}
+
+		// version 3 to 4 check: addition of language-specific status columns
+		$result = $this->db->query("SHOW COLUMNS FROM pages WHERE Field LIKE 'status%'"); 
+		if($result->num_rows < 2) {
+			foreach(wire('languages') as $language) {
+				if($language->isDefault()) continue; 
+				$status = "status" . (int) $language->id;
+				$this->db->query("ALTER TABLE pages ADD $status INT UNSIGNED NOT NULL DEFAULT " . Page::statusOn);
+			}	
+		}
+
+		// save module version in config data
+		if($info['version'] != $this->moduleVersion) {
+			$data = wire('modules')->getModuleConfigData($this); 
+			$data['moduleVersion'] = $info['version'];
+			wire('modules')->saveModuleConfigData($this, $data);
+		}
+
+	}
+
+	/**
+	 * Module interactive configuration fields
+	 *
+	 */
+	public static function getModuleConfigInputfields(array $data) {
+		$module = wire('modules')->get('LanguageSupportPageNames'); 
+		$module->checkModuleVersion(true); 
+		return new InputfieldWrapper();
 	}
 
 	/**
@@ -288,6 +669,7 @@ class LanguageSupportPageNames extends WireData implements Module {
 		foreach(wire('languages') as $language) {
 			$this->languageAdded($language); 
 		}
+
 	}
 
 	/**

@@ -142,9 +142,9 @@ class LanguageSupportFields extends WireData implements Module {
 		if(!$newField) return;
 
 		// if the page doesn't have a populated language-specific field, then exit
-		$newValue = $page->get($newName); 
-		if($newValue) { 
+		if($page->getUnformatted($newName)) { // unformatted so nothing can modify it first
 			// we have a new field: swap $field with $newField in the arguments
+			$newValue = $page->get($newName); // get formatted version
 			$arguments = $event->arguments; 
 			$arguments[1] = $newField; 
 			$arguments[2] = $newValue; 
@@ -363,6 +363,7 @@ class LanguageSupportFields extends WireData implements Module {
 			$values[$key] = $value->getLanguageValue($language->id); 
 		}
 
+		/*
 		if(!strlen($values['data'])) foreach($values as $k => $v) {
 			// prevent the possibility of the default language having
 			// a blank value while some other language has a populated value
@@ -370,6 +371,7 @@ class LanguageSupportFields extends WireData implements Module {
 			$values['data'] = $v; 
 			break;
 		}
+		*/
 
 		$event->return = $values; 
 	}

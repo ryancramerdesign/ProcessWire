@@ -154,6 +154,8 @@ class PagePermissions extends WireData implements Module {
 	/**
 	 * Is the page viewable by the current user?
 	 *
+	 * @param HookEvent $event
+	 *
 	 */
 	public function viewable($event) {
 
@@ -204,8 +206,12 @@ class PagePermissions extends WireData implements Module {
 	/**
 	 * Is the page listable by the current user?
 	 *
+	 * A listable page may appear in a listing, but doesn't mean that the user can actually 
+	 * view the page or that the page is renderable. 
+	 *
 	 */
 	public function listable($event) {
+
 		$page = $event->object; 
 		$user = $this->fuel('user'); 
 		$listable = true; 
@@ -213,6 +219,7 @@ class PagePermissions extends WireData implements Module {
 		if($user->isSuperuser()) $listable = true; 
 			else if($page->is(Page::statusUnpublished) && !$page->editable()) $listable = false;
 			else if($page->process && !$this->processViewable($page->process)) $listable = false;
+			else if($page->isTrash()) $listable = false; 
 			else if($page->getAccessTemplate()->guestSearchable) $listable = true; 
 			else if(!$user->hasPermission("page-view", $page)) $listable = false;
 

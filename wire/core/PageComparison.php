@@ -20,11 +20,12 @@ class PageComparison {
  	 *
  	 * See status flag constants at top of Page class
 	 *
+	 * @param Page $page
 	 * @param int|string|Selectors $status Status number or Template name or selector string/object
 	 * @return bool
 	 *
 	 */
-	public static function is(Page $page, $status) {
+	public function is(Page $page, $status) {
 
 		if(is_int($status)) {
 			return ((bool) ($page->status & $status)); 
@@ -44,11 +45,12 @@ class PageComparison {
 	/**
 	 * Given a Selectors object or a selector string, return whether this Page matches it
 	 *
+	 * @param Page $page
 	 * @param string|Selectors $s
 	 * @return bool
 	 *
 	 */
-	public static function matches(Page $page, $s) {
+	public function matches(Page $page, $s) {
 
 		if(is_string($s)) {
 			if(substr($s, 0, 1) == '/' && $page->path() == (rtrim($s, '/') . '/')) return true; 

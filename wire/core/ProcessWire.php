@@ -33,8 +33,8 @@ register_shutdown_function('ProcessWireShutDown');
 class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
-	const versionMinor = 2; 
-	const versionRevision = 17; 
+	const versionMinor = 3; 
+	const versionRevision = 0; 
 
 	/**
 	 * Given a Config object, instantiates ProcessWire and it's API
@@ -202,9 +202,9 @@ function ProcessWireShutdown() {
 		);
 
 	$error = error_get_last();
-	if(!$error) return; 
+	if(!$error) return true; 
 	$type = $error['type'];
-	if(!in_array($type, $fatalTypes)) return;
+	if(!in_array($type, $fatalTypes)) return true;
 
 	$http = isset($_SERVER['HTTP_HOST']); 
 	$config = wire('config');

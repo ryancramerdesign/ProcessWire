@@ -169,8 +169,9 @@ class Fields extends WireSaveableItems {
 	/**
 	 * Save a Field to the database
 	 *
-	 * @param Field $item The field to save
+	 * @param Field|Saveable $item The field to save
 	 * @return bool True on success, false on failure
+	 * @throws WireException
 	 *
 	 */
 	public function ___save(Saveable $item) {
@@ -221,8 +222,9 @@ class Fields extends WireSaveableItems {
 	/**
 	 * Delete a Field from the database
 	 *
-	 * @param Saveable $item Item to save
+	 * @param Field|Saveable $item Item to save
 	 * @return bool True on success, false on failure
+	 * @throws WireException
 	 *
 	 */
 	public function ___delete(Saveable $item) {
@@ -251,8 +253,9 @@ class Fields extends WireSaveableItems {
 	/**
 	 * Create and return a cloned copy of the given Field
 	 *
-	 * @param Saveable $item Item to clone
-	 * @param bool|Saveable $item Returns the new clone on success, or false on failure
+	 * @param Field|Saveable $item Item to clone
+	 * @return bool|Saveable $item Returns the new clone on success, or false on failure
+	 * @throws WireException
 	 *
 	 */
 	public function ___clone(Saveable $item) {
@@ -280,6 +283,7 @@ class Fields extends WireSaveableItems {
 	 * @param Field $field Field to save context for
 	 * @param Fieldgroup $fieldgroup Context for when field is in this fieldgroup
 	 * @return bool True on success
+	 * @throws WireException
 	 *
 	 */
 	public function ___saveFieldgroupContext(Field $field, Fieldgroup $fieldgroup) {
@@ -334,6 +338,8 @@ class Fields extends WireSaveableItems {
 	 * Change a field's type
 	 *
 	 * @param Field $field1 Field with the new type
+	 * @throws WireException
+	 * @return bool
 	 *
 	 */
 	protected function ___changeFieldtype(Field $field1) {
@@ -344,6 +350,11 @@ class Fields extends WireSaveableItems {
 			($field1->prevFieldtype instanceof FieldtypeMulti && !$field1->type instanceof FieldtypeMulti)) {
 			throw new WireException("Cannot convert between single and multiple value field types"); 
 		}
+
+		$fromType = $field1->prevFieldtype;
+		$toType = $field1->type;
+
+		$this->changeTypeReady($field1, $fromType, $toType);
 
 		$field2 = clone $field1; 
 		$flags = $field2->flags; 
@@ -407,6 +418,8 @@ class Fields extends WireSaveableItems {
 			$field1->remove($key); 
 		}
 
+		$this->changedType($field1, $fromType, $toType); 
+
 		return true; 	
 	}
 
@@ -430,6 +443,9 @@ class Fields extends WireSaveableItems {
 		if(isset($value['columnWidth']) && (empty($value['columnWidth']) || $value['columnWidth'] == 100)) unset($value['columnWidth']); 
 		return wireEncodeJSON($value, 0); 	
 	}
+
+	public function ___changedType(Saveable $item, Fieldtype $fromType, Fieldtype $toType) { }
+	public function ___changeTypeReady(Saveable $item, Fieldtype $fromType, Fieldtype $toType) { }
 
 }
 
