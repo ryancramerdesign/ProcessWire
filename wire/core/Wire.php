@@ -737,11 +737,12 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * This method automatically identifies the message as coming from this class. 
 	 *
 	 * @param string $text
-	 * @param int $flags See Notices::flags
+	 * @param int|bool $flags See Notices::flags or specify TRUE to have the message also logged to messages.txt
 	 * @return $this
 	 *
 	 */
 	public function message($text, $flags = 0) {
+		if($flags === true) $flags = Notice::log; 
 		$notice = new NoticeMessage($text, $flags); 
 		$notice->class = $this->className();
 		$this->wire('notices')->add($notice); 
@@ -756,11 +757,12 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * Fatal errors should still throw a WireException (or class derived from it)
 	 *
 	 * @param string $text
-	 * @param int $flags See Notices::flags
+	 * @param int|bool $flags See Notices::flags or specify TRUE to have the error also logged to errors.txt
 	 * @return $this
 	 *
 	 */
 	public function error($text, $flags = 0) {
+		if($flags === true) $flags = Notice::log; 
 		$notice = new NoticeError($text, $flags); 
 		$notice->class = $this->className();
 		$this->wire('notices')->add($notice); 
