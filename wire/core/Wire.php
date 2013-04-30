@@ -277,6 +277,12 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	protected $localHooks = array();
 
 	/**
+	 * Cache of all local hooks combined, for debugging purposes
+	 *
+	 */
+	public static $allLocalHooks = array();
+
+	/**
 	 * A static cache of all hook method/property names for an optimization.
 	 *
 	 * Hooked methods end with '()' while hooked properties don't.
@@ -504,6 +510,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		$priority = (int) $options['priority']; 
 		while(isset($hooks[$priority])) $priority++;
 		$id = "$hookClass:$priority";
+		$options['priority'] = $priority; 
 
 		$hooks[$priority] = array(
 			'id' => $id, 
@@ -512,11 +519,21 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 			'toMethod' => $toMethod, 
 			'options' => $options, 
 			); 
-
+	
 		// cacheValue is just the method() or property, cacheKey includes optional fromClass::
 		$cacheValue = $options['type'] == 'method' ? "$method()" : "$method";
 		$cacheKey = ($options['fromClass'] ? $options['fromClass'] . '::' : '') . $cacheValue;
 		self::$hookMethodCache[$cacheKey] = $cacheValue;
+		
+		// keep track of all local hooks combined when debug mode is on
+		if($this->wire('config')->debug && $hooks === $this->localHooks) {
+			$debugClass = $this->className();
+			$debugID = $debugClass . $id;
+			while(isset(self::$allLocalHooks[$debugID])) $debugID .= "_";
+			$debugHook = $hooks[$priority];
+			$debugHook['method'] = $debugClass . "->" . $debugHook['method'];
+			self::$allLocalHooks[$debugID] = $debugHook;
+		}
 
 		ksort($hooks); // sort by priority
 		return $id;
