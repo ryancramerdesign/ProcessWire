@@ -295,7 +295,8 @@ class Pages extends Wire {
 			$query = new DatabaseQuerySelect();
 			$joinSortfield = empty($template->sortfield);
 
-			$query->select(	
+			$query->select(
+				// note that "false AS isLoaded" triggers the setIsLoaded() function in Page intentionally
 				"false AS isLoaded, pages.templates_id AS templates_id, pages.*, " . 
 				($joinSortfield ? 'pages_sortfields.sortfield, ' : '') . 
 				"(SELECT COUNT(*) FROM pages AS children WHERE children.parent_id=pages.id) AS numChildren"

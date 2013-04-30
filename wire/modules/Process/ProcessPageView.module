@@ -89,10 +89,11 @@ class ProcessPageView extends Process {
 			if(!$page) return $this->pageNotFound($_page, $this->requestURL); 
 			$this->checkProtocol($page); 
 			if($this->redirectURL) $this->session->redirect($this->redirectURL);
-			$this->setFuel('page', $page); 
+			$this->wire('page', $page); 
 			$this->ready();
 
 			try {
+				$this->wire->setStatus(ProcessWire::statusRender);
 				if($this->requestFile) $this->sendFile($page, $this->requestFile);
 					else return $page->render();
 
@@ -111,14 +112,16 @@ class ProcessPageView extends Process {
 	 *
 	 */
 	public function ___ready() { 
-		$this->modules->triggerReady();
+		$this->wire()->setStatus(ProcessWire::statusReady);
 	}
 
 	/**
 	 * Hook called with the pageview has been finished and output has been sent. Note this is called in /index.php.
 	 *	
  	 */
-	public function ___finished() { }
+	public function ___finished() { 
+		$this->wire()->setStatus(ProcessWire::statusFinished);
+	}
 
 	/**
 	 * Hook called when the pageview failed to finish due to an exception.
@@ -126,7 +129,9 @@ class ProcessPageView extends Process {
 	 * Sends a copy of the exception that occurred.
 	 *	
  	 */
-	public function ___failed(Exception $e) { }
+	public function ___failed(Exception $e) { 
+		$this->wire()->setStatus(ProcessWire::statusFailed);
+	}
 
 	/**
 	 * Get the requested page and populate it with identified urlSegments or page numbers
@@ -204,7 +209,7 @@ class ProcessPageView extends Process {
 	 * Returns true, and updates $it, when pagefile was found using old/deprecated method.
 	 * Returns false when none found.
 	 *
-	 * @string $it Request URL
+	 * @param string $it Request URL
 	 * @return bool|Page|NullPage 
 	 *
 	 */
@@ -288,6 +293,7 @@ class ProcessPageView extends Process {
 	 *
 	 * If the user doesn't have access, then a login Page or NULL (for 404) is returned instead. 
 	 *
+	 * @param $page
 	 * @return Page|null
 	 *
 	 */
@@ -384,6 +390,8 @@ class ProcessPageView extends Process {
  	 * @param Page|null $page Page that was found if applicable (like if user didn't have permission or $page's template threw the 404)
 	 * 	If not applicable then NULL will be given instead.
 	 * @param string $url The URL that the request originated from (like $_SERVER['REQUEST_URI'] but already sanitized)
+	 * @return string
+	 * @throws WireException
 	 *
 	 */
 	protected function ___pageNotFound($page, $url) {
@@ -395,7 +403,7 @@ class ProcessPageView extends Process {
 		if($config->http404PageID) {
 			$page = $this->pages->get($config->http404PageID); 
 			if(!$page) throw new WireException("config::http404PageID does not exist - please check your config"); 
-			$this->setFuel('page', $page); 
+			$this->wire('page', $page); 
 			return $page->render();
 		} else {
 			return "404 page not found";

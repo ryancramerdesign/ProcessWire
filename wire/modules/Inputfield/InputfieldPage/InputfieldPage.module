@@ -97,11 +97,77 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		return parent::setAttribute($key, $value);
 	}
 
+	/**
+	 * Is the given $page valid for the given $field?
+	 * 
+	 * Note that this validates all but findPagesCode (eval) based page selections. 
+	 * This is primarily for use by FieldtypePage, but kept here since the config options
+	 * it uses to check are part of this module's config. 
+	 * 
+	 * @param Page $page
+	 * @param Field|string|int $field Field instance of field name (string) or ID
+	 * @param Page $editPage Page being edited
+	 * @return bool
+	 * @throws WireException
+	 * 
+	 */
+	public static function isValidPage(Page $page, $field, Page $editPage = null) {
+		
+		if(!$field instanceof Field) $field = wire('fields')->get($field);
+		if(!$field instanceof Field) throw new WireException('isValidPage requires a valid Field or field name'); 
+		
+		$valid = true;
+		
+		if($field->findPagesSelector) { 
+			if(!$page->matches($field->findPagesSelector)) $valid = false;
+		} 
+		
+		if($field->findPagesCode) {
+			// TODO: we don't currently validate these
+		} 
+
+		if($field->parent_id && $field->parent_id != $page->parent_id) {
+			if(in_array($field->inputfield, array('InputfieldPageListSelect', 'InputfieldPageListSelectMultiple'))) {
+				// parent_id represents a root parent
+				$rootParent = wire('pages')->get($field->parent_id); 
+				if(!$page->parents()->has($rootParent)) $valid = false;
+			} else {
+				// parent_id represents a direct parent
+				$valid = false;
+			}
+		}
+		
+		if($field->template_id && $page->template->id != $field->template_id) $valid = false; 
+		
+		return $valid;
+	}
+
+	/**
+	 * Execute the findPagesCode
+	 * 
+	 * @param Page $page The page being edited
+	 * @return PageArray (hopefully)
+	 * 
+	 */
+	protected function findPagesCode(Page $page) {
+		if(empty($this->findPagesCode)) return new PageArray();
+		$page = $this->page; // so that it is locally scoped to the eval
+		$pages = wire('pages'); // so that it is locally scoped to the eval
+		return eval($this->findPagesCode);
+	}
+
 	public function has($key) {
 		// ensures it accepts any config value (like those for delegate inputfields)
 		return true; 
 	}
 
+	/**
+	 * Return PageArray of selectable pages for this input
+	 * 
+	 * @param Page $page The Page being edited
+	 * @return PageArray
+	 * 
+	 */
 	public function getSelectablePages(Page $page) {
 
 		$statusUnder = $this->allowUnpub ? Page::statusTrash : Page::statusUnpublished; 
@@ -115,8 +181,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		} else if($this->findPagesCode) {
 			// php statement that returns a PageArray
-			$pages = $this->pages; 	
-			$children = eval($this->findPagesCode); 
+			$children = $this->findPagesCode($page);
 
 		} else if($this->parent_id) {
 			$parent = $this->fuel('pages')->get($this->parent_id); 

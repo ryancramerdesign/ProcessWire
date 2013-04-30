@@ -13,16 +13,15 @@
  *
  */
 
-define("PROCESSWIRE_CORE_PATH", dirname(__FILE__) . '/'); 
+define("PROCESSWIRE_CORE_PATH", dirname(__FILE__) . '/');
 
-spl_autoload_register('ProcessWireClassLoader'); 
-
+require(PROCESSWIRE_CORE_PATH . "autoload.php"); 
 require(PROCESSWIRE_CORE_PATH . "Interfaces.php"); 
 require(PROCESSWIRE_CORE_PATH . "Exceptions.php"); 
 require(PROCESSWIRE_CORE_PATH . "Functions.php"); 
-require(PROCESSWIRE_CORE_PATH . "LanguageFunctions.php"); 
+require(PROCESSWIRE_CORE_PATH . "LanguageFunctions.php");
+require(PROCESSWIRE_CORE_PATH . "shutdown.php"); 
 
-register_shutdown_function('ProcessWireShutDown'); 
 
 /**
  * ProcessWire Bootstrap class
@@ -35,6 +34,13 @@ class ProcessWire extends Wire {
 	const versionMajor = 2; 
 	const versionMinor = 3; 
 	const versionRevision = 0; 
+	
+	const statusBoot = 0; // system is booting
+	const statusInit = 2; // system and modules are initializing
+	const statusReady = 4; // system and $page are ready
+	const statusRender = 8; // $page's template is being rendered
+	const statusFinished = 16; // request has been delivered
+	const statusFailed = 1024; // request failed due to exception or 404
 
 	/**
 	 * Given a Config object, instantiates ProcessWire and it's API
@@ -57,7 +63,7 @@ class ProcessWire extends Wire {
 	 */
 	protected function config(Config $config) {
 
-		Wire::setFuel('config', $config); 
+		$this->wire('config', $config, true); 
 
 		ini_set("date.timezone", $config->timezone);
 		ini_set('default_charset','utf-8');
@@ -73,6 +79,7 @@ class ProcessWire extends Wire {
 		$config->https = !empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on'; 
 		$config->ajax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest');
 		$config->version = self::versionMajor . "." . self::versionMinor . "." . self::versionRevision; 
+		$this->setStatus(self::statusBoot);
 
 	}
 
@@ -84,13 +91,13 @@ class ProcessWire extends Wire {
 	 */
 	public function load(Config $config) {
 
-		Wire::setFuel('wire', $this); 
-		Wire::setFuel('notices', new Notices()); 
-		Wire::setFuel('sanitizer', new Sanitizer()); 
+		$this->wire('wire', $this, true); 
+		$this->wire('notices', new Notices()); 
+		$this->wire('sanitizer', new Sanitizer()); 
 
 		try {
 			$db = new Database($config);
-			Wire::setFuel('db', $db); 
+			$this->wire('db', $db); 
 		} catch(WireDatabaseException $e) {
 			// catch and re-throw to prevent DB connect info from ever appearing in debug backtrace
 			throw new WireDatabaseException($e->getMessage()); 
@@ -109,13 +116,13 @@ class ProcessWire extends Wire {
 		$fieldgroups = new Fieldgroups();
 		$templates = new Templates($fieldgroups, $config->paths->templates); 
 
-		Wire::setFuel('fieldtypes', $fieldtypes); 
-		Wire::setFuel('fields', $fields); 
-		Wire::setFuel('fieldgroups', $fieldgroups); 
-		Wire::setFuel('templates', $templates); 
+		$this->wire('fieldtypes', $fieldtypes, true); 
+		$this->wire('fields', $fields, true); 
+		$this->wire('fieldgroups', $fieldgroups, true); 
+		$this->wire('templates', $templates, true); 
 
 		$pages = new Pages();
-		Wire::setFuel('pages', $pages, true);
+		$this->wire('pages', $pages, true);
 
 		$fieldtypes->init();
 		$fields->init();
@@ -124,157 +131,67 @@ class ProcessWire extends Wire {
 
 		if(!$t = $templates->get('permission')) throw new WireException("Missing system template: 'permission'"); 
 		$permissions = new Permissions($t, $config->permissionsPageID); 
-		Wire::setFuel('permissions', $permissions); 
+		$this->wire('permissions', $permissions, true); 
 
 		if(!$t = $templates->get('role')) throw new WireException("Missing system template: 'role'"); 
 		$roles = new Roles($t, $config->rolesPageID); 
-		Wire::setFuel('roles', $roles); 
+		$this->wire('roles', $roles, true); 
 
 		if(!$t = $templates->get('user')) throw new WireException("Missing system template: 'user'"); 
 		$users = new Users($t, $config->usersPageID); 
-		Wire::setFuel('users', $users); 
+		$this->wire('users', $users, true); 
 
 		// the current user can only be determined after the session has been initiated
 		$session = new Session(); 
-		Wire::setFuel('session', $session); 
-		Wire::setFuel('user', $users->getCurrentUser()); 
-		Wire::setFuel('input', new WireInput()); 
+		$this->wire('session', $session, true); 
+		$this->wire('user', $users->getCurrentUser()); 
+		$this->wire('input', new WireInput(), true); 
 
 		// populate admin URL before modules init()
 		$config->urls->admin = $config->urls->root . ltrim($pages->_path($config->adminRootPageID), '/'); 
 
-		$modules->triggerInit();
-
-	}
-}
-
-/**
- * Handles dynamic loading of classes as registered with spl_autoload_register
- *
- */
-function ProcessWireClassLoader($className) {
-
-	if($className[0] == 'W' && $className != 'Wire' && strpos($className, 'Wire') === 0) {
-		$className = substr($className, 4); 
+		$this->setStatus(self::statusInit);
 	}
 
-	$file = PROCESSWIRE_CORE_PATH . "$className.php"; 
-
-	if(is_file($file)) {
-		require($file); 
-
-	} else if($modules = Wire::getFuel('modules')) {
-		$modules->includeModule($className);
-
-	} // else die($className); 
-}
-
-
-/**
- * Look for errors at shutdown and log them, plus echo the error if the page is editable
- *
- */
-function ProcessWireShutdown() {
-
-	$types = array(
-		E_ERROR => 'Error',
-		E_WARNING => 'Warning',
-		E_PARSE => 'Parse Error',
-		E_NOTICE => 'Notice', 
-		E_CORE_ERROR => 'Core Error', 
-		E_CORE_WARNING => 'Core Warning', 
-		E_COMPILE_ERROR => 'Compile Error', 
-		E_COMPILE_WARNING => 'Compile Warning', 
-		E_USER_ERROR => 'Error', 
-		E_USER_WARNING => 'User Warning', 
-		E_USER_NOTICE => 'User Notice', 
-		E_STRICT => 'Strict Warning', 
-		E_RECOVERABLE_ERROR => 'Recoverable Fatal Error'
-		);
-
-	$fatalTypes = array(
-		E_ERROR,
-		E_CORE_ERROR,
-		E_COMPILE_ERROR,
-		E_USER_ERROR,
-		E_PARSE,
-		E_RECOVERABLE_ERROR,
-		);
-
-	$error = error_get_last();
-	if(!$error) return true; 
-	$type = $error['type'];
-	if(!in_array($type, $fatalTypes)) return true;
-
-	$http = isset($_SERVER['HTTP_HOST']); 
-	$config = wire('config');
-	$user = wire('user');
-	$userName = $user ? $user->name : '?';
-	$page = wire('page'); 
-	$path = ($config ? $config->httpHost : '') . ($page ? $page->url : '/?/'); 
-	if($config && $http) $path = ($config->https ? 'https://' : 'http://') . $path;
-	$line = $error['line'];
-	$file = $error['file'];
-	$message = isset($types[$type]) ? $types[$type] : 'Error';
-	if(strpos($error['message'], "\t") !== false) $error['message'] = str_replace("\t", ' ', $error['message']); 
-	$message .= ": \t$error[message]";
-	if($type != E_USER_ERROR) $message .= " (line $line of $file) ";
-	$debug = false; 
-	$log = null;
-	$why = '';
-	$who = '';
-
-	if($config) {
-		$debug = $config->debug; 
-		if($config->ajax) $http = false; 
-		if($config->adminEmail) {
-			$logMessage = "Page: $path\nUser: $userName\n\n" . str_replace("\t", "\n", $message);
-			@mail($config->adminEmail, 'ProcessWire Error Notification', $logMessage); 
-		}
-		if($config->paths->logs) {
-			$logMessage = "$userName\t$path\t" . str_replace("\n", " ", $message); 
-			$log = new FileLog($config->paths->logs . 'errors.txt');
-			$log->setDelimeter("\t"); 
-			$log->save($logMessage); 
+	/**
+	 * Set the system status to one of the ProcessWire::status* constants
+	 * 
+	 * This also triggers init/ready functions for modules, when applicable.
+	 * 
+	 * @param $status
+	 * 
+	 */
+	public function setStatus($status) {
+		$config = $this->wire('config');
+		// don't re-trigger if this state has already been triggered
+		if($config->status >= $status) return;
+		$config->status = $status;
+		
+		if($status == self::statusInit) {
+			$this->wire('modules')->triggerInit();
+			
+		} else if($status == self::statusReady) {
+			$this->wire('modules')->triggerReady();
 		}
 	}
 
-	// we populate $who to give an ambiguous indication where the full error message has been sent
-	if($log) $who .= "Error has been logged. ";
-	if($config && $config->adminEmail) $who .= "Administrator has been notified. ";
-
-	// we populate $why if we're going to show error details for any of the following reasons: 
-	// otherwise $why will NOT be populated with anything
-	if($debug) $why = "site is in debug mode (\$config->debug = true; in /site/config.php).";
-		else if(!$http) $why = "you are using the command line API.";
-		else if($user && $user->isSuperuser()) $why = "you are logged in as a Superuser.";
-		else if($config && is_file($config->paths->root . "install.php")) $why = "/install.php still exists.";	
-		else if($config && !is_file($config->paths->assets . "active.php")) {
-			// no login has ever occurred or user hasn't logged in since upgrade before this check was in place
-			// check the date the site was installed to ensure we're not dealing with an upgrade
-			$installed = $config->paths->assets . "installed.php";
-			if(!is_file($installed) || (filemtime($installed) > (time() - 21600))) {
-				// site was installed within the last 6 hours, safe to assume it's a new install
-				$why = "Superuser has never logged in.";
-			}
-		}
-
-	if($why) {
-		// when in debug mode, we can assume the message was already shown, so we just say why.
-		// when not in debug mode, we display the full error message since error_reporting and display_errors are off.
-		$why = "This error message was shown because $why $who";
-		if($http) $why = "<em>$why</em>";
-		$message = $debug ? $why : "$message\n\n$why";
-		echo ($http ? "\n\n<p class='error WireFatalError'>" . nl2br($message) . "</p>\n\n" : "\n\n$message\n\n"); 
-	} else {
-		// public fatal error that doesn't reveal anything specific
-		if($http) header("HTTP/1.1 500 Internal Server Error");
-		// file that error message will be output in, when available
-		$file = $config && $http ? $config->paths->templates . 'errors/500.html' : '';
-		if($file && is_file($file)) echo str_replace('{message}', $who, file_get_contents($file)); 
-			else echo "\n\nUnable to complete this request due to an error. $who\n\n";
+	/**
+	 * Set a new API variable
+	 * 
+	 * Alias of $this->wire(), but for setting only, for syntactic convenience.
+	 * 
+	 * @param $key API variable name to set
+	 * @param $value Value of API variable
+	 * @param bool $lock Whether to lock the value from being overwritten
+	 * @return $this
+	 */
+	public function set($key, $value, $lock = false) {
+		$this->wire($key, $value, $lock);
+		return $this;
 	}
-
-	return true; 
+	
 }
+
+
+
 
