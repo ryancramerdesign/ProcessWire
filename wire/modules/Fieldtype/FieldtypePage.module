@@ -98,60 +98,60 @@ class FieldtypePage extends FieldtypeMulti {
 		return $inputfield; 
 	}
 
-        /**
-         * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
+	/**
+	 * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
 	 *
-         * @param Page $page
-         * @param Field $field
-         * @param string|int|array $value
-         * @return string|int|array|object $value
-         *
-         */
-        public function ___wakeupValue(Page $page, Field $field, $value) {
+	 * @param Page $page
+	 * @param Field $field
+	 * @param string|int|array $value
+	 * @return string|int|array|object $value
+	 *
+	 */
+	public function ___wakeupValue(Page $page, Field $field, $value) {
 
 		$template = null;
 		$parent_id = null; 
-
+		
 		if($field->template_id) $template = $this->fuel('templates')->get($field->template_id); 
 		if($field->parent_id) $parent_id = $field->parent_id; 
-
+		
 		// handle $value if it's blank, Page, or PageArray
 		if($field->derefAsPage > 0) {
 			// value will ultimately be a single Page
 			if(!$value) return $this->getBlankValue($page, $field); 
-
+		
 			// if it's already a Page, then we're good: return it
 			if($value instanceof Page) return $value; 	
-
+		
 			// if it's a PageArray and should be a Page, determine what happens next
 			if($value instanceof PageArray) {
 				// if there's a Page in there, return the first one
 				if(count($value) > 0) return $value->first();
-
+		
 				// it's an empty array, so return whatever our default is
 				return $this->getBlankValue($page, $field); 
 			}
-
+		
 		} else {
 			// value will ultimately be multiple pages
-
+		
 			// if it's already a PageArray, great, just return it
 			if($value instanceof PageArray) return $value; 
-
+		
 			// setup our default/blank value 
 			$pageArray = $this->getBlankValue($page, $field); 
-
+		
 			// if $value is blank, then return our default/blank value
 			if(empty($value)) return $pageArray; 
 		}
-
+		
 		// if we made it this far, then we know that the value was not empty
 		// so it's going to need to be populated from one type to the target type
-
+		
 		// we're going to be dealing with $value as an array this point forward
 		// this is for compatibility with the Pages::getById function
 		if(!is_array($value)) $value = array($value); 
-
+		
 		if($field->derefAsPage > 0) {
 			// we're going to return a single page, NullPage or false
 			$pg = false;
@@ -160,12 +160,12 @@ class FieldtypePage extends FieldtypeMulti {
 				$pageArray = $this->fuel('pages')->getById(array((int) reset($value)), $template); 
 				if(count($pageArray)) $pg = $pageArray->first();
 			}
-
+		
 			if($pg && $pg->status >= Page::statusUnpublished && !$field->allowUnpub) $pg = false; 
 			if(!$pg) $pg = $this->getBlankValue($page, $field); 
-
+		
 			return $pg; 
-
+		
 		} else {
 			// we're going to return a PageArray
 			$pageArray = $this->fuel('pages')->getById($value, $template); 
@@ -176,38 +176,40 @@ class FieldtypePage extends FieldtypeMulti {
 			$pageArray->resetTrackChanges(); 
 			return $pageArray; 
 		}
-        }
+	}
 
-        /**
-         * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
-         *              
-         * @param Page $page
-         * @param Field $field
-         * @param string|int|array|object $value
-         * @return string|int
-         *
-         */
-        public function ___sleepValue(Page $page, Field $field, $value) {
-
+	/**
+	 * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
+	 *              
+	 * @param Page $page
+	 * @param Field $field
+	 * @param string|int|array|object $value
+	 * @return string|int
+	 *
+	 */
+	public function ___sleepValue(Page $page, Field $field, $value) {
+		
 		$sleepValue = array();
-
+		
 		if($field->derefAsPage > 0) {
 			// if the $value isn't specifically a Page, make it a blank array for storage
 			if(!$value instanceof Page || !$value->id) return $sleepValue; 
 			// if $value is a Page (not a NullPage) then place it's ID in an array for storage
+			$this->isValidPage($value, $field, $page, true);
 			$sleepValue[] = $value->id; 
 		} else {
 			// if $value isn't a PageArray then we'll store a blank array
 			if(!$value instanceof PageArray) return $sleepValue; 
 			// iterate through the array and place each Page ID
 			foreach($value as $pg) {
-				if(!$pg->id) continue; 
+				if(!$pg->id) continue;
+				$this->isValidPage($pg, $field, $page, true);
 				$sleepValue[] = $pg->id; 
 			}
 		}
-
+		
 		return $sleepValue;
-        }
+	}
 
 	/**
 	 * Format the given value for output. 
@@ -259,14 +261,14 @@ class FieldtypePage extends FieldtypeMulti {
 		}
 
 	}
-
+	
 	/**
 	 * Given a string value return either a Page or PageArray
 	 *	
 	 * @param Page $page
 	 * @param Field $field
 	 * @param string $value
-	 * return Page|PageArray
+	 * @return Page|PageArray
 	 *
 	 */
 	protected function sanitizeValueString(Page $page, Field $field, $value) {
@@ -307,10 +309,16 @@ class FieldtypePage extends FieldtypeMulti {
 	 *
 	 */
 	public function sanitizeValue(Page $page, Field $field, $value) {
-		if($field->derefAsPage > 0) return $this->sanitizeValuePage($page, $field, $value); 
-		return $this->sanitizeValuePageArray($page, $field, $value); 
+		if($field->derefAsPage > 0) {
+			// Page
+			$value = $this->sanitizeValuePage($page, $field, $value); 
+		} else {
+			// PageArray
+			$value = $this->sanitizeValuePageArray($page, $field, $value); 
+		}
+		return $value; 
 	}
-
+	
 	/**
 	 * Handles the sanitization of values when target is a single Page
 	 *
@@ -324,7 +332,31 @@ class FieldtypePage extends FieldtypeMulti {
 			$value = $this->sanitizeValueString($page, $field, $value); 
 			if($value instanceof PageArray) $value = $value->first();
 		}
-		return (($value instanceof Page) && $value->id) ? $value : $this->getBlankValue($page, $field); 
+		$value = (($value instanceof Page) && $value->id) ? $value : $this->getBlankValue($page, $field); 
+		return $value; 
+	}
+
+	/**
+	 * Validate that that $value is a valid Page for this field
+	 * 
+	 * @param Page $value The value to validate
+	 * @param Field $field The field the value is for
+	 * @param Page $forPage The page the value will exist on 
+	 * @param bool $throwException Whether to throw an exception when not valid (default=false)
+	 * @throws WireException
+	 * @return bool
+	 *
+	 */
+	public function isValidPage(Page $value, Field $field, Page $forPage, $throwException = false) {
+	
+		if(InputfieldPage::isValidPage($value, $field, $forPage)) {
+			$valid = true;
+		} else {
+			$valid = false;
+			if($throwException) throw new WireException("Page $value is not valid for $field->name");
+		}
+		
+		return $valid;
 	}
 
 	/**
@@ -375,6 +407,7 @@ class FieldtypePage extends FieldtypeMulti {
 	 * @param string $operator
 	 * @param string $value
 	 * @return DatabaseSelectQuery
+	 * @throws WireException
 	 *
 	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {

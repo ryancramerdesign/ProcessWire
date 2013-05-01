@@ -50,7 +50,7 @@
  * 
  * @method string render() Returns rendered page markup. echo $page->render();
  * @method bool viewable() Returns true if the page is viewable by the current user, false if not. 
- * @method bool editable($field) Returns true if the page is editable by the current user, false if not. Optionally specify a field to see if that field is editable.
+ * @method bool editable() Returns true if the page is editable by the current user, false if not. Optionally specify a field to see if that field is editable.
  * @method bool publishable() Returns true if the page is publishable by the current user, false if not. 
  * @method bool listable() Returns true if the page is listable by the current user, false if not. 
  * @method bool deleteable() Returns true if the page is deleteable by the current user, false if not. 
@@ -157,7 +157,7 @@ class Page extends WireData {
 	 * Note: must be kept in the 'true' state. Pages::getById sets it to false before populating data and then back to true when done.
 	 *
 	 */
-	protected $isLoaded = true; 
+	protected $isLoaded = true;
 
 	/**
 	 * Is this page allowing it's output to be formatted?
@@ -470,8 +470,14 @@ class Page extends WireData {
 			$this->set('status', $this->status | self::statusCorrupted); 
 		}
 
+		// isLoaded so sanitizeValue can determine if it can perform a typecast rather than a full sanitization (when helpful)
+		// we don't use setIsLoaded() so as to avoid triggering any other functions
+		$isLoaded = $this->isLoaded;
+		if(!$load) $this->isLoaded = false;
 		// ensure that the value is in a safe format and set it 
 		$value = $field->type->sanitizeValue($this, $field, $value); 
+		// Silently restore isLoaded state
+		if(!$load) $this->isLoaded = $isLoaded;
 
 		return parent::set($key, $value); 
 	}
@@ -672,7 +678,7 @@ class Page extends WireData {
 		// if outputFormatting is being used, turn it off because it's not necessary here and may throw an exception
 		$outputFormatting = $this->outputFormatting; 
 		if($outputFormatting) $this->setOutputFormatting(false); 
-		$this->setFieldValue($key, $value, false); 
+		$this->setFieldValue($key, $value, false);
 		if($outputFormatting) $this->setOutputFormatting(true); 
 		
 		$value = parent::get($key); 	
@@ -1372,7 +1378,7 @@ class Page extends WireData {
 			// this is so that Fieldtypes that only need to interact with a single value don't have to receive an array of data
 			if(count($value) == 1 && array_key_exists('data', $value)) $value = $value['data']; 
 
-			$this->setFieldValue($key, $value, false); 
+			$this->setFieldValue($key, $value, false);
 		}
 		$this->fieldDataQueue = array(); // empty it out, no longer needed
 	}
