@@ -39,7 +39,7 @@
  *
  */
 
-abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, WireNoticeable, WireTrackable {
+abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, WireTrackable {
 
 	/*******************************************************************************************************
 	 * API VARIABLE/FUEL INJECTION AND ACCESS
