@@ -80,6 +80,13 @@ class ProcessProfile extends Process implements ConfigurableModule {
 	 */
 	protected function processInput(Inputfield $form) {
 		$form->processInput($this->input->post);
+		
+		$email = $form->get('email')->value;
+		if($this->users->get("email=$email")->email) {
+			$this->error($this->_("This email is already registered."));
+			return;
+		}
+		
 		if(count($form->getErrors())) {
 			$this->error($this->_("Profile not saved")); 
 			return;
