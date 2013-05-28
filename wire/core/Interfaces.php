@@ -197,8 +197,8 @@ interface WireHookable {
 	 * @param $name
 	 * @return mixed
 	 * 
-	 */
 	public function __get($name);
+	 */
 	
 	/**
 	 * Provides the implementation for calling hooks in ProcessWire
@@ -256,7 +256,7 @@ interface WireHookable {
 	 * @throws WireException
 	 *
 	 */
-	public function addHook($method, $toObject, $toMethod, $options = array());
+	public function addHook($method, $toObject, $toMethod = null, $options = array());
 
 	/**
 	 * Shortcut to the addHook() method which adds a hook to be executed after the hooked method.
@@ -369,4 +369,20 @@ interface WireNoticeable {
 	 *
 	 */
 	public function error($text, $flags = 0);
+}
+
+/**
+ * Interface for ProcessWire database layer
+ * 
+ */
+
+interface WireDatabase {
+	/**
+	 * Is the given string a database comparison operator?
+	 *
+	 * @param string $str 1-2 character opreator to test
+	 * @return bool
+	 *
+	 */
+	public function isOperator($str);
 }
