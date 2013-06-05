@@ -15,6 +15,7 @@ if(!defined("PROCESSWIRE")) die("This file may not be accessed directly.");
 $modules->get("JqueryCore"); 
 $modules->get("JqueryUI"); 
 
+
 // tell ProcessWire that any pages loaded from this point forward should have their outputFormatting turned off
 $pages->setOutputFormatting(false); 
 
@@ -26,6 +27,7 @@ foreach($page->parents() as $p) {
 Wire::setFuel('breadcrumbs', $breadcrumbs); 
 $controller = null;
 $content = '';
+
 
 // enable modules to output their own ajax responses if they choose to
 if($config->ajax) ob_start();

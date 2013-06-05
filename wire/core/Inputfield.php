@@ -127,7 +127,7 @@ abstract class Inputfield extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => '',
-			'version' => 001, 
+			'version' => 1, 
 			'summary' => '', 
 			); 
 	}

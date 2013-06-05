@@ -66,12 +66,6 @@ class Fields extends WireSaveableItems {
 	protected $fieldsArray = null;
 
 	/**
-	 * Instance of Database
-	 *
-	 */
-	protected $db = null;
-
-	/**
 	 * Field names that are native/permanent to the system and thus treated differently in several instances. 
 	 *
 	 * For example, a Field can't be given one of these names. 
@@ -123,7 +117,6 @@ class Fields extends WireSaveableItems {
 
 	public function __construct() {
 		$this->fieldsArray = new FieldsArray();
-		$this->db = $this->fuel('db'); 
 	}
 
 	/**
@@ -178,15 +171,16 @@ class Fields extends WireSaveableItems {
 
 		if($item->flags & Field::flagFieldgroupContext) throw new WireException("Field $item is not saveable because it is in a specific context"); 
 
+		$database = $this->wire('database');
 		$isNew = $item->id < 1;
-		$prevTable = $this->fuel('db')->escapeTable($item->prevTable);
-		$table = $this->fuel('db')->escapeTable($item->getTable());
-
+		$prevTable = $database->escapeTable($item->prevTable);
+		$table = $database->escapeTable($item->getTable());
+		
 		if(!$isNew && $prevTable && $prevTable != $table) {
 			// note that we rename the table twice in order to force MySQL to perform the rename 
 			// even if only the case has changed. 
-			$this->fuel('db')->query("RENAME TABLE `$prevTable` TO `tmp_$table`"); // QA
-			$this->fuel('db')->query("RENAME TABLE `tmp_$table` TO `$table`"); // QA
+			$database->exec("RENAME TABLE `$prevTable` TO `tmp_$table`"); // QA
+			$database->exec("RENAME TABLE `tmp_$table` TO `$table`"); // QA
 			$item->prevTable = '';
 		}
 
@@ -324,11 +318,16 @@ class Fields extends WireSaveableItems {
 		if(is_null($data)) {
 			$data = 'NULL';
 		} else {
-			$data = "'" . $this->db->escape_string($data) . "'";
+			$data = "'" . $this->wire('database')->escapeStr($data) . "'";
 		}
 		$field_id = (int) $field->id; 
 		$fieldgroup_id = (int) $fieldgroup->id; 
-		$result = $this->db->query("UPDATE fieldgroups_fields SET data=$data WHERE fields_id=$field_id AND fieldgroups_id=$fieldgroup_id"); // QA
+		
+		$database = $this->wire('database');
+		$query = $database->prepare("UPDATE fieldgroups_fields SET data=$data WHERE fields_id=:field_id AND fieldgroups_id=:fieldgroup_id"); // QA
+		$query->bindValue(':field_id', $field_id, PDO::PARAM_INT);
+		$query->bindValue(':fieldgroup_id', $fieldgroup_id, PDO::PARAM_INT); 
+		$result = $query->execute();
 
 		return $result; 
 	}
@@ -369,17 +368,18 @@ class Fields extends WireSaveableItems {
 		$schema1 = array();
 		$schema2 = array();
 
-		$table1 = $this->db->escapeTable($field1->table); 
-		$table2 = $this->db->escapeTable($field2->table);
+		$database = $this->wire('database'); 
+		$table1 = $database->escapeTable($field1->table); 
+		$table2 = $database->escapeTable($field2->table);
 
-		$result = $this->db->query("DESCRIBE `$table1`"); // QA
-		while($row = $result->fetch_assoc()) $schema1[] = $row['Field']; 
-		$result->free();
+		$query = $database->prepare("DESCRIBE `$table1`"); // QA
+		$query->execute();
+		while($row = $query->fetch(PDO::FETCH_ASSOC)) $schema1[] = $row['Field'];
 
-		$result = $this->db->query("DESCRIBE `$table2`"); // QA
-		while($row = $result->fetch_assoc()) $schema2[] = $row['Field']; 
-		$result->free();
-
+		$query = $database->prepare("DESCRIBE `$table2`"); // QA
+		$query->execute();
+		while($row = $query->fetch(PDO::FETCH_ASSOC)) $schema2[] = $row['Field'];
+			
 		foreach($schema1 as $key => $value) {
 			if(!in_array($value, $schema2)) {
 				if($this->config->debug) $this->message("changeFieldType loses table field '$value'"); 
@@ -388,23 +388,29 @@ class Fields extends WireSaveableItems {
 		}
 
 		$sql = 	"INSERT INTO `$table2` (`" . implode('`,`', $schema1) . "`) " . 
-			"SELECT `" . implode('`,`', $schema1) . "` FROM `$table1` ";
+				"SELECT `" . implode('`,`', $schema1) . "` FROM `$table1` ";
+		
+		$error = '';
 
 		try {
-			$result = $this->db->query($sql); // QA
-		} catch(WireDatabaseException $e) {
+			$result = $database->exec($sql);
+			if($result === false || $query->errorCode() > 0) {
+				$errorInfo = $query->errorInfo();
+				$error = $errorInfo[2]; 
+			}
+		} catch(Exception $e) {
 			$result = false;
+			$error = $e->getMessage();
 		}
 
 		if(!$result) {
-			$this->error("Field type change failed. Database reports: {$this->db->error}"); 
-			$this->db->query("DROP TABLE `$table2`"); // QA
+			$this->error("Field type change failed. Database reports: $error"); 
+			$database->exec("DROP TABLE `$table2`"); // QA
 			return false; 
 		}
 
-		$this->db->query("DROP TABLE `$table1`"); // QA
-		$this->db->query("RENAME TABLE `$table2` TO `$table1`"); // QA
-
+		$database->exec("DROP TABLE `$table1`"); // QA
+		$database->exec("RENAME TABLE `$table2` TO `$table1`"); // QA
 
 		$field1->type = $field2->type; 
 

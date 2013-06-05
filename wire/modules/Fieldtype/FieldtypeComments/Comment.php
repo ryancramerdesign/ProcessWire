@@ -71,7 +71,7 @@ class Comment extends WireData {
 			return $this->users->get($this->settings['created_users_id']); 
 
 		} else if($key == 'gravatar') {
-			return $this->getGravatar();
+			return $this->gravatar();
 		}
 		return parent::get($key); 
 	}

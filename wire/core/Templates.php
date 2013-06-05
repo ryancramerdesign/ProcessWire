@@ -249,10 +249,11 @@ class Templates extends WireSaveableItems {
 	 *
 	 */
 	public function getNumPages(Template $tpl) {
-		$result = $this->fuel('db')->query("SELECT COUNT(*) AS total FROM pages WHERE templates_id=" . ((int) $tpl->id)); // QA
-		$row = $result->fetch_assoc(); 
-		$result->free();
-		return (int) $row['total'];
+		$database = $this->wire('database');
+		$query = $database->prepare("SELECT COUNT(*) AS total FROM pages WHERE templates_id=:template_id"); // QA
+		$query->bindValue(":template_id", $tpl->id, PDO::PARAM_INT);
+		$query->execute();
+		return (int) $query->fetchColumn();	
 	}
 
 	/**

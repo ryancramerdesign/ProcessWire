@@ -552,11 +552,11 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		srand($seed);
 		$keys = $this->getKeys();
 		$items = $this->makeNew();
-
+		
 		while(count($keys) > 0 && count($items) < $num) {
 			$index = rand(0, count($keys)-1);
 			$key = $keys[$index];
-			$items->add($items[$key]);
+			$items->add($this->get($key));
 			array_splice($keys, $index, 1);
 		}
 

@@ -13,7 +13,7 @@
  *
  */
 
-class SessionHandlerDB extends WireSessionHandler implements ConfigurableModule {
+class SessionHandlerDB extends WireSessionHandler implements Module, ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
@@ -34,7 +34,7 @@ class SessionHandlerDB extends WireSessionHandler implements ConfigurableModule 
 	 * Quick reference to database
 	 *
 	 */
-	protected $db; 
+	protected $database; 
 
 	/**
 	 * Construct
@@ -42,7 +42,7 @@ class SessionHandlerDB extends WireSessionHandler implements ConfigurableModule 
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->db = wire('db');
+		$this->database = wire('database');
 		$this->set('useIP', 0); // track IP address?
 		$this->set('useUA', 0); // track query string?
 	}
@@ -55,19 +55,21 @@ class SessionHandlerDB extends WireSessionHandler implements ConfigurableModule 
 	 *
 	 */
 	public function read($id) {
+		
 		$table = self::dbTableName; 
-		$id = $this->db->escape_string($id);
-		$this->db->query("SELECT GET_LOCK('$id', 10)"); 
-		$sql = "SELECT data FROM $table WHERE id='$id'";
-		$result = $this->db->query($sql);
-		if($result->num_rows) {
-			$data = $result->fetch_row();
-			list($data) = $data;
+		$database = $this->database;
+		$data = '';
+		
+		$query = $database->prepare("SELECT GET_LOCK(:id, 10)"); 
+		$query->execute(array(":id" => $id)); 
+		$query = $database->prepare("SELECT data FROM `$table` WHERE id=:id");
+		$query->execute(array(":id" => $id)); 
+		if($query->rowCount()) {
+			$data = $query->fetchColumn();
 			if(empty($data)) $data = '';
-		} else {
-			$data = '';
 		}
-		$result->free();
+		$query->closeCursor();
+			
 		return $data; 
 	}
 
@@ -76,23 +78,31 @@ class SessionHandlerDB extends WireSessionHandler implements ConfigurableModule 
 	 *
 	 * @param string $id Session ID
 	 * @param string Serialized data to write
+	 * @return bool
 	 *
 	 */
 	public function write($id, $data) {
 		$table = self::dbTableName;
-		$id = $this->db->escape_string($id);
-		$user = wire('user');
-		$page = wire('page');
+		$database = $this->database;
+		$user = $this->wire('user');
+		$page = $this->wire('page');
+		$id = $database->escapeStr($id);
 		$user_id = $user && $user->id ? (int) $user->id : 0; 
 		$pages_id = $page && $page->id ? (int) $page->id : 0;
-		$data = $this->db->escape_string($data);
+		$data = $database->escapeStr($data);
+		$ua = ($this->useUA && isset($_SERVER['HTTP_USER_AGENT'])) ? $database->escapeStr(substr($_SERVER['HTTP_USER_AGENT'], 0, 255)) : '';
+		$ip = $this->useIP ? ((int) wire('session')->getIP(true)) : '';
+		
 		$s = "user_id=$user_id, pages_id=$pages_id, data='$data'"; 
-		if($this->useIP) $s .= ", ip=" . ((int) wire('session')->getIP(true)); 
-		if($this->useUA && isset($_SERVER['HTTP_USER_AGENT'])) $s .= ", ua='" . $this->db->escape_string(substr($_SERVER['HTTP_USER_AGENT'], 0, 255)) . "'";
+		if($ip) $s .= ", ip=$ip";
+		if($ua) $s .= ", ua='$ua'";
 		$sql = 	"INSERT INTO $table SET id='$id', $s ";
 		$sql .= "ON DUPLICATE KEY UPDATE $s, ts=NOW()";
-		$result = $this->db->query($sql) ? true : false; 
-		$this->db->query("SELECT RELEASE_LOCK('$id')"); 
+		
+		$query = $database->prepare($sql); 
+		$result = $query->execute() ? true : false;
+		$database->exec("SELECT RELEASE_LOCK('$id')");
+		
 		return $result; 
 	}
 
@@ -105,8 +115,9 @@ class SessionHandlerDB extends WireSessionHandler implements ConfigurableModule 
 	 */
 	public function destroy($id) {
 		$table = self::dbTableName;
-		$id = $this->db->escape_string($id);
-		$this->db->query("DELETE FROM $table WHERE id='$id'"); 
+		$database = $this->database;
+		$query = $database->prepare("DELETE FROM `$table` WHERE id=:id"); 
+		$query->execute(array(":id" => $id)); 
 		setcookie(session_name(), '', time()-3600);
 		return true; 
 	}
@@ -121,8 +132,8 @@ class SessionHandlerDB extends WireSessionHandler implements ConfigurableModule 
 	public function gc($seconds) {
 		$table = self::dbTableName; 
 		$seconds = (int) $seconds; 
-		$sql = "DELETE FROM $table WHERE ts < DATE_SUB(NOW(), INTERVAL $seconds SECOND)";
-		return $this->db->query($sql) ? true : false;
+		$sql = "DELETE FROM `$table` WHERE ts < DATE_SUB(NOW(), INTERVAL $seconds SECOND)";
+		return $this->database->exec($sql);
 	}
 
 	/**
@@ -130,22 +141,24 @@ class SessionHandlerDB extends WireSessionHandler implements ConfigurableModule 
 	 *
 	 */
 	public function ___install() {
+		
+		$table = self::dbTableName;
 
-		$sql = 	"CREATE TABLE " . self::dbTableName . " (" . 
-			"id CHAR(32) NOT NULL, " . 
-			"user_id INT UNSIGNED NOT NULL, " . 
-			"pages_id INT UNSIGNED NOT NULL, " . 
-			"data TEXT NOT NULL, " . 
-			"ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, " . 
-			"ip INT UNSIGNED NOT NULL DEFAULT 0, " . 
-			"ua VARCHAR(255) NOT NULL DEFAULT '', " . 
-			"PRIMARY KEY (id), " . 
-			"INDEX (pages_id), " . 
-			"INDEX (user_id), " . 
-			"INDEX (ts) " . 
-			") ENGINE=InnoDB DEFAULT CHARSET=utf8";
+		$sql = 	"CREATE TABLE `$table` (" . 
+				"id CHAR(32) NOT NULL, " . 
+				"user_id INT UNSIGNED NOT NULL, " . 
+				"pages_id INT UNSIGNED NOT NULL, " . 
+				"data TEXT NOT NULL, " . 
+				"ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, " . 
+				"ip INT UNSIGNED NOT NULL DEFAULT 0, " . 
+				"ua VARCHAR(255) NOT NULL DEFAULT '', " . 
+				"PRIMARY KEY (id), " . 
+				"INDEX (pages_id), " . 
+				"INDEX (user_id), " . 
+				"INDEX (ts) " . 
+				") ENGINE=InnoDB DEFAULT CHARSET=utf8";
 
-		$this->db->query($sql); 
+		$this->database->query($sql); 
 	}
 
 	/**
@@ -153,7 +166,7 @@ class SessionHandlerDB extends WireSessionHandler implements ConfigurableModule 
 	 *
 	 */
 	public function ___uninstall() {
-		$this->db->query("DROP TABLE " . self::dbTableName); 
+		$this->database->query("DROP TABLE " . self::dbTableName); 
 	}
 
 	/**
@@ -165,8 +178,8 @@ class SessionHandlerDB extends WireSessionHandler implements ConfigurableModule 
 		$form = new InputfieldWrapper();
 
 		// check if their DB table is the latest version
-		$result = wire('db')->query("SHOW COLUMNS FROM " . self::dbTableName . " WHERE field='ip'"); 
-		if(!$result->num_rows) {
+		$query = wire('database')->query("SHOW COLUMNS FROM " . self::dbTableName . " WHERE field='ip'"); 
+		if(!$query->rowCount()) {
 			wire('modules')->error("DB format changed - You must uninstall this module and re-install before configuring."); 
 			return $form;
 		}

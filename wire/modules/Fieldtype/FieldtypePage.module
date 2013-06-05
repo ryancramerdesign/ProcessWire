@@ -73,10 +73,13 @@ class FieldtypePage extends FieldtypeMulti {
 	public function hookPagesDelete($event) {
 		if(!$event->return) return; // if delete failed, then don't continue
 		$page_id = $event->arguments[0]->id; 
+		$database = $this->wire('database');
 		foreach($this->fuel('fields') as $field) {
 			if(!$field->type instanceof FieldtypePage) continue; 
-			$sql = "DELETE FROM `{$field->table}` WHERE data='$page_id'";
-			$this->db->query($sql); 
+			$table = $database->escapeTable($field->table);
+			$query = $database->prepare("DELETE FROM `$table` WHERE data=:page_id");
+			$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
+			$query->execute();
 		}	
 	}
 
@@ -223,7 +226,7 @@ class FieldtypePage extends FieldtypeMulti {
 	 *
 	 */
 	public function ___formatValue(Page $page, Field $field, $value) {
-		if($page->editable() || !$field->allowUnpub) return $value; 
+		if($field->allowUnpub) return $value; 
 
 		// remove unpublished pages for front-end formatted output
 		if($value instanceof Page) {
@@ -421,6 +424,7 @@ class FieldtypePage extends FieldtypeMulti {
 			'sort',
 			);
 
+		$database = $this->wire('database');
 
 		// if subfield is 'data' (meaning no subfield specified) and it's in the format of 'some-string', 
 		// then we assume this to be a page name
@@ -434,7 +438,7 @@ class FieldtypePage extends FieldtypeMulti {
 
 		} else if(in_array($subfield, $names)) { 
 
-			if(!$this->fuel('db')->isOperator($operator)) throw new WireException("Operator '$operator' is not implemented in {$this->classname}"); 
+			if(!$database->isOperator($operator)) throw new WireException("Operator '$operator' is not implemented in {$this->classname}"); 
 			
 			if(in_array($subfield, array('id', 'path', 'url'))) $subfield = 'data'; 
 
@@ -447,10 +451,11 @@ class FieldtypePage extends FieldtypeMulti {
 				}
 			}
 
-			$value = $this->fuel('db')->escape_string($value); 
+			$value = $database->escapeStr($value); 
+			$subfield = $database->escapeCol($subfield);
 
 			if($operator == '!=') {
-				$t = $query->field->getTable();
+				$t = $database->escapeTable($query->field->getTable());
 				$query->where("(SELECT COUNT(*) FROM $t WHERE $t.pages_id=pages.id AND $t.$subfield='$value')=0"); 
 			} else {
 				$query->where("($table.{$subfield}{$operator}'$value')"); // pages.id AND $table.pages_id{$operator}'$value')");
@@ -483,6 +488,7 @@ class FieldtypePage extends FieldtypeMulti {
 	 */
 	protected function getMatchQueryNative($query, $table, $subfield, $operator, $value) {
 
+		$database = $this->wire('database');
 
 		if(!in_array($subfield, $this->nativeNames)) return false; 
 
@@ -508,8 +514,10 @@ class FieldtypePage extends FieldtypeMulti {
 		} else $value = (int) $value; 
 
 		static $n = 0;
+		$table = $database->escapeTable($table);
 		$table2 = "_fieldtypepage" . (++$n);
-		$value = $this->fuel('db')->escape_string($value); 
+		$value = $database->escapeStr($value); 
+		$subfield = $database->escapeCol($subfield);
 
 		$query->join("pages AS $table2 ON $table2.$subfield$operator'$value'"); 
 		$query->where("($table.data=$table2.id)"); 
@@ -538,7 +546,9 @@ class FieldtypePage extends FieldtypeMulti {
 			$subfield = $subfield->name; 
 		}
 
-		$field = $query->field; 
+		$database = $this->wire('database');
+		$field = $query->field;
+		$table = $database->escapeTable($table);
 
 		// perform a separate find() operation for the subfield
 		$pageFinder = new PageFinder();
@@ -554,14 +564,15 @@ class FieldtypePage extends FieldtypeMulti {
 
 		if($operator == '!=') {
 
-			$selector .= "{$subfield}=$value, ";
+			$selector .= "$subfield=$value, ";
 			$matches = $pageFinder->find(new Selectors(trim($selector, ', ')));
 			if(count($matches)) { 
 				$ids = array();
-				foreach($matches as $match) $ids[$match['id']] = $match['id'];
+				foreach($matches as $match) $ids[$match['id']] = (int) $match['id'];
 				static $xcnt = 0; 
-				$t = 'x_' . $field->table . (++$xcnt);
-				$query->leftjoin("{$field->table} AS $t ON $t.pages_id=pages.id AND $t.data IN(" . implode(',', $ids) . ")"); 
+				$fieldTable = $database->escapeTable($field->table); 
+				$t = 'x_' . $fieldTable . (++$xcnt);
+				$query->leftjoin("$fieldTable AS $t ON $t.pages_id=pages.id AND $t.data IN(" . implode(',', $ids) . ")"); 
 				$query->parentQuery->where("$t.data IS NULL"); 
 			}
 
@@ -573,7 +584,7 @@ class FieldtypePage extends FieldtypeMulti {
 			// use the IDs found from the separate find() as our getMatchQuery
 			if(count($matches)) {
 				$ids = array();
-				foreach($matches as $match) $ids[$match['id']] = $match['id'];
+				foreach($matches as $match) $ids[$match['id']] = (int) $match['id'];
 				$query->where("$table.data IN(" . implode(',', $ids) . ")");
 			} else $query->where("1>2"); // forced non-match
 
@@ -619,8 +630,8 @@ class FieldtypePage extends FieldtypeMulti {
 	 * Return advanced configuration fields definable for each FieldtypePage
 	 *
 	 */
-        public function ___getConfigAdvancedInputfields(Field $field) {
-                $inputfields = parent::___getConfigAdvancedInputfields($field);
+	public function ___getConfigAdvancedInputfields(Field $field) {
+		$inputfields = parent::___getConfigAdvancedInputfields($field);
 
 		$checkbox = $this->modules->get('InputfieldCheckbox'); 
 		$checkbox->attr('name', 'allowUnpub'); 
@@ -630,8 +641,8 @@ class FieldtypePage extends FieldtypeMulti {
 		$checkbox->attr('checked', $field->allowUnpub ? 'checked' : ''); 
 		$inputfields->prepend($checkbox); 
 
-                return $inputfields;
-        }
+		return $inputfields;
+	}
 
 }
 

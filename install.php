@@ -148,9 +148,15 @@ class Installer {
 		} else {
 			$this->err("ProcessWire requires PHP version " . self::MIN_REQUIRED_PHP_VERSION . " or newer. You are running PHP " . PHP_VERSION);
 		}
+		
+		if(class_exists("PDO")) {
+			$this->ok("OK: PDO database"); 
+		} else {
+			$this->err("PDO is required (for MySQL database)"); 
+		}
 
 		$this->checkFunction("filter_var", "Filter functions (filter_var)");
-		$this->checkFunction("mysqli_connect", "MySQLi");
+		$this->checkFunction("mysqli_connect", "MySQLi (not required by core, but may be required by some 3rd party modules)");
 		$this->checkFunction("imagecreatetruecolor", "GD 2.0 or newer"); 
 		$this->checkFunction("json_encode", "JSON support");
 		$this->checkFunction("preg_match", "PCRE support"); 

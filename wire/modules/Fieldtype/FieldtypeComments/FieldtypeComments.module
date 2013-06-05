@@ -10,11 +10,10 @@
  * /wire/core/FieldtypeMulti.php
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -29,8 +28,6 @@ require_once($dirname . "/CommentForm.php");
  * ProcessWire Comments Fieldtype
  *
  * A field that stores user posted comments for a single Page. 
- *
- * @TODO implement a getMatchQuery function that uses the FULLTEXT index
  *
  */
 class FieldtypeComments extends FieldtypeMulti {
@@ -112,33 +109,33 @@ class FieldtypeComments extends FieldtypeMulti {
          */
         public function ___wakeupValue(Page $page, Field $field, $value) {
 
-		if($value instanceof CommentArray) return $value; 
-		$commentArray = $this->getBlankValue($page, $field); 
-		if(empty($value)) return $commentArray; 
-
-		$editable = $page->editable();
-		if(!is_array($value)) $value = array($value); 
-
-		foreach($value as $sort => $item) {
-
-			if(!is_array($item)) continue; 
-
-			// don't load non-approved comments if the user can't edit them
-			if(!$editable && $item['status'] < Comment::statusApproved) continue; 
-
-			$comment = new Comment();
-			foreach($item as $key => $val) {
-				if($key == 'data') $key = 'text';
-				$comment->set($key, $val); 
+			if($value instanceof CommentArray) return $value; 
+			$commentArray = $this->getBlankValue($page, $field); 
+			if(empty($value)) return $commentArray; 
+			
+			$editable = $page->editable();
+			if(!is_array($value)) $value = array($value); 
+			
+			foreach($value as $sort => $item) {
+			
+				if(!is_array($item)) continue; 
+			
+				// don't load non-approved comments if the user can't edit them
+				if(!$editable && $item['status'] < Comment::statusApproved) continue; 
+			
+				$comment = new Comment();
+				foreach($item as $key => $val) {
+					if($key == 'data') $key = 'text';
+					$comment->set($key, $val); 
+				}
+				$comment->resetTrackChanges(true); 
+				$commentArray->add($comment); 
 			}
-			$comment->resetTrackChanges(true); 
-			$commentArray->add($comment); 
-		}
-
-		if($field->sortNewest) $commentArray->sort("-created"); 
-		$commentArray->resetTrackChanges(true); 
-
-                return $commentArray;  
+			
+			if($field->sortNewest) $commentArray->sort("-created"); 
+			$commentArray->resetTrackChanges(true); 
+			
+			return $commentArray;  
         }
 
         /**
@@ -228,11 +225,14 @@ class FieldtypeComments extends FieldtypeMulti {
 				$comment->status = Comment::statusApproved; 
 
 			} else if($field->moderate == self::moderateNew && $comment->email) {
-				$result = $this->db->query(
-					"SELECT count(*) FROM `{$field->table}` " . 
-					"WHERE status=" . Comment::statusApproved . " " . 
-					"AND email='" . $this->db->escape_string($comment->email) . "' "); 
-				list($numApproved) = $result->fetch_array(); 
+				$database = $this->wire('database');
+				$table = $database->escapeTable($field->table); 
+				$query = $database->prepare("SELECT count(*) FROM `$table`  WHERE status=:status AND email=:email"); 
+				$query->bindValue(":status", Comment::statusApproved, PDO::PARAM_INT);
+				$query->bindValue(":email", $comment->email); 
+				$query->execute();
+				$numApproved = (int) $query->fetchColumn();
+					
 				if($numApproved > 0) $comment->status = Comment::statusApproved; 
 			}
 		}
@@ -248,17 +248,20 @@ class FieldtypeComments extends FieldtypeMulti {
 	 */
 	protected function deleteOldSpam(Field $field) {
 		$expiredTime = time() - (86400 * $field->deleteSpamDays);  
-		$sql = 	"DELETE FROM `{$field->table}` " . 
-			"WHERE status=" . Comment::statusSpam . " " . 
-			"AND created < $expiredTime ";
-		$this->db->query($sql); 
+		$database = $this->wire('database');
+		$table = $database->escapeTable($field->table);
+		$query = $database->prepare("DELETE FROM `$table` WHERE status=:status AND created < :expiredTime");
+		$query->bindValue(":status", Comment::statusSpam, PDO::PARAM_INT);
+		$query->bindValue(":expiredTime", $expiredTime); 
+		$query->execute();
+			
 	}
 
 	/**
 	 * Send notification email to specified admin to review the comment
 	 *
 	 */
-	protected function sendNotificationEmail(Page $page, Field $field, Comment $comment) {
+	protected function ___sendNotificationEmail(Page $page, Field $field, Comment $comment) {
 
 		if(!$field->notificationEmail) return false; 
 
@@ -296,12 +299,12 @@ class FieldtypeComments extends FieldtypeMulti {
 
 		if(!$field->schemaVersion) {
 			// add website field for PW 2.3+ 
-			$table = $field->getTable();
-		
-			try { $result = wire('db')->query("ALTER TABLE `$table` ADD website $websiteSchema"); } catch(Exception $e) { }
+			$database = $this->wire('database');
+			$table = $database->escapeTable($field->getTable());
+			try { $database->query("ALTER TABLE `$table` ADD website $websiteSchema"); } catch(Exception $e) { }
 			$field->schemaVersion = 1;
 			$field->save();
-			$this->message("Updated schema version of '{$field->name}' to support website field.");
+			$this->message("Updated schema version of '{$field->name}' to support website field.", Notice::log);
 		}
 
 		$schema = parent::getDatabaseSchema($field); 
@@ -342,6 +345,8 @@ class FieldtypeComments extends FieldtypeMulti {
 		if(!$page->id || !$field->id) return false;
 
 		$allItems = $page->get($field->name);
+		$database = $this->wire('database');
+		$table = $database->escapeTable($field->table);
 
 		if(!$allItems) return false;
 		if(!$allItems->isChanged() && !$page->isChanged($field->name)) return true; 
@@ -350,7 +355,10 @@ class FieldtypeComments extends FieldtypeMulti {
 		if(count($itemsRemoved)) {
 			foreach($itemsRemoved as $item) {
 				if(!$item->id) continue; 
-				$this->db->query("DELETE FROM `{$field->table}` WHERE id=" . ((int) $item->id) . " AND pages_id=" . ((int) $page->id)); 
+				$query = $database->prepare("DELETE FROM `$table` WHERE id=:item_id AND pages_id=:pages_id"); 
+				$query->bindValue(":item_id", $item->id, PDO::PARAM_INT);
+				$query->bindValue(":pages_id", $page->id, PDO::PARAM_INT);
+				$query->execute();
 			}
 		}
 
@@ -366,12 +374,12 @@ class FieldtypeComments extends FieldtypeMulti {
 		$values = $this->sleepValue($page, $field, $items); 
 		$value = reset($values); 
 		$keys = is_array($value) ? array_keys($value) : array('data'); 
-
+		
 		// cycle through the values, executing an update query for each
 		foreach($values as $value) {
 
 			$sql = $value['id'] ? "UPDATE " : "INSERT INTO ";
-			$sql .= "`{$field->table}` SET pages_id={$page->id}, "; 
+			$sql .= "`{$table}` SET pages_id=" . ((int) $page->id) . ", "; 
 
 			// if the value is not an associative array, then force it to be one
 			if(!is_array($value)) $value = array('data' => $value); 
@@ -381,7 +389,7 @@ class FieldtypeComments extends FieldtypeMulti {
 				if($key == 'id') continue; 
 				if($key == 'sort' && !$value['id']) continue; 
 				$v = $value[$key]; 
-				$sql .= "$key='" . $this->db->escape_string("$v") . "', ";
+				$sql .= $database->escapeCol($key) . "='" . $database->escapeStr("$v") . "', ";
 			}
 
 			if($value['id']) {
@@ -390,7 +398,7 @@ class FieldtypeComments extends FieldtypeMulti {
 				$sql .= "sort=" . ++$maxSort; 
 			}
 
-			if(!$result = $this->db->query($sql)) $this->error("Error saving item $value[id] in savePageField");
+			if(!$database->exec($sql)) $this->error("Error saving item $value[id] in savePageField", Notice::log);
 		}	
 
 		return true; 
@@ -520,6 +528,7 @@ class FieldtypeComments extends FieldtypeMulti {
 	 * @param Field|string Field object or name of field
 	 * @param string $selectorString Selector string with query
 	 * @return CommentArray
+	 * @throws WireException
 	 *
 	 */
 	static public function findComments($field, $selectorString) {
@@ -531,16 +540,18 @@ class FieldtypeComments extends FieldtypeMulti {
 		$start = 0;
 		$desc = true; 
 		$sort = 'created';
-		$table = $field->getTable();
+		$database = $this->wire('database');
+		$table = $database->escapeTable($field->getTable());
 		$sql =  "SELECT * FROM $table WHERE id>0 ";
 		$selectors = new Selectors($selectorString); 
 
 		foreach($selectors as $selector) {
 
-			$f = $selector->field; 
+			$f = $database->escapeCol($selector->field); 
 			$operator = $selector->operator; 
 			$value = $selector->value; 
 
+			if(!$database->isOperator($operator)) continue;
 			if(is_array($f)) $f = reset($f);
 			if(is_array($value)) $value = reset($value);
 
@@ -560,11 +571,11 @@ class FieldtypeComments extends FieldtypeMulti {
 				$desc = substr($value, 0, 1) == '-';
 				$value = trim($value, '-');
 				if(in_array($value, array('sort', 'status', 'id', 'pages_id', 'created_users_id', 'created'))) {
-					$sort = $value;
+					$sort = $database->escapeCol($value);
 				}
 
 			} else if($f == 'cite' || $f == 'email' || $f == 'ip') {
-				$value = wire('db')->escape_string($value); 
+				$value = $database->escapeStr($value); 
 				$sql .= "AND $f$operator'$value' ";
 			}
 
@@ -572,23 +583,24 @@ class FieldtypeComments extends FieldtypeMulti {
 
 		$sql .= "ORDER BY $sort " . ($desc ? "DESC" : "ASC") . " ";
 		$sql .= "LIMIT $start, $limit";
-
-		$result = wire('db')->query($sql);
+		
 		$comments = new CommentArray();
 		$comments->setField($field); 
 
-		while($row = $result->fetch_assoc()) {
+		$query = $database->prepare($sql);
+		$query->execute();
+		
+		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
 			$comment = new Comment();
 			foreach($row as $key => $value) {
 				if($key == 'data') $key = 'text';
 				$comment->set($key, $value);
 			}
-			$comment->set('page', wire('pages')->get($row['pages_id'])); 
+			$comment->set('page', wire('pages')->get($row['pages_id']));
 			$comments->add($comment); 
 		}
-
-		$result->free();
-
+		$query->closeCursor();
+			
 		return $comments; 
 	}
 

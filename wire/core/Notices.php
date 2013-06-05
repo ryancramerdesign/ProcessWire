@@ -53,7 +53,7 @@ abstract class Notice extends WireData {
  */
 class NoticeMessage extends Notice { 
 	public function getLogName() {
-		return 'messages.txt';
+		return 'messages';
 	}
 }
 
@@ -63,7 +63,7 @@ class NoticeMessage extends Notice {
  */
 class NoticeError extends Notice { 
 	public function getLogName() {
-		return 'errors.txt';
+		return 'errors';
 	}
 }
 
@@ -72,13 +72,6 @@ class NoticeError extends Notice {
  *
  */
 class Notices extends WireArray {
-	
-	protected $logPath = '';
-	
-	public function __construct($logPath = '') {
-		if(empty($logPath)) $logPath = $this->wire('config')->paths->logs; 
-		$this->logPath = rtrim($logPath, '/') . '/';
-	}
 	
 	public function isValidItem($item) {
 		return $item instanceof Notice; 
@@ -102,16 +95,9 @@ class Notices extends WireArray {
 	}
 	
 	protected function addLog($item) {
-		$log = new FileLog($this->logPath . $item->getLogName());
-		$log->setDelimeter("\t");
-		$user = $this->wire('user');
-		$page = $this->wire('page');
-		$text = str_replace(array("\r", "\n", "\t"), ' ', $item->text);
-		if($this->wire('config')->debug && $item->class) $text .= "\t($item->class)"; 
-		$line = ($user ? $user->name : "?") . "\t" . 
-				($page ? $page->httpUrl : "?") . "\t" . 
-				$text;
-		$log->save($line); 
+		$text = $item->text;
+		if($this->wire('config')->debug && $item->class) $text .= " ($item->class)"; 
+		$this->wire('log')->save($item->getLogName(), $text); 
 	}
 
 	public function hasErrors() {

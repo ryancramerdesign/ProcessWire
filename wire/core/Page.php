@@ -84,6 +84,9 @@ class Page extends WireData {
 	const statusSystemOverride = 32768; 	// page is in a state where system flags may be overridden
 	const statusCorrupted = 131072; 	// page was corrupted at runtime and is NOT saveable: see setFieldValue() and $outputFormatting. (runtime)
 	const statusMax = 9999999;		// number to use for max status comparisons, runtime only
+	
+	const EXPORT_ARRAY = 0; 	// for export() function argument: export to an array (default)
+	const EXPORT_JSON = 1; 		// for export() function argument: export to JSON string
 
 	/**
 	 * The Template this page is using (object)
@@ -227,7 +230,19 @@ class Page extends WireData {
 	 * When true, exceptions won't be thrown when values are set before templates
 	 *
 	 */
-	protected $quietMode = false; 
+	protected $quietMode = false;
+
+	/**
+	 * Cached User that created this page
+	 * 
+	 */
+	protected $createdUser = null;
+
+	/**
+	 * Cached User that last modified the page
+	 * 
+	 */
+	protected $modifiedUser = null;
 
 	/**
 	 * Page-specific settings which are either saved in pages table, or generated at runtime.
@@ -321,9 +336,10 @@ class Page extends WireData {
 			case 'sort': 
 			case 'numChildren': 
 			case 'num_children':
+				$value = (int) $value; 
 				if($key == 'num_children') $key = 'numChildren';
 				if($this->settings[$key] !== $value) $this->trackChange($key); 
-				$this->settings[$key] = (int) $value; 
+				$this->settings[$key] = $value; 
 				break;
 			case 'status':
 				$this->setStatus($value); 
@@ -547,18 +563,28 @@ class Page extends WireData {
 			case 'modified_users_id': 
 			case 'modifiedUsersID':
 			case 'modifiedUserID':
-				$value = $this->settings['modified_users_id']; 
+				$value = (int) $this->settings['modified_users_id']; 
 				break;
 			case 'created_users_id':
 			case 'createdUsersID':
 			case 'createdUserID': 
-				$value = $this->settings['created_users_id'];
+				$value = (int) $this->settings['created_users_id'];
 				break;
 			case 'modifiedUser':
-				if(!$value = $this->fuel('users')->get($this->settings['modified_users_id'])) $value = new NullPage(); 
+				if(!$this->modifiedUser) {
+					if($this->settings['modified_users_id'] == $this->wire('user')->id) $this->modifiedUser = $this->wire('user'); // prevent possible recursion loop
+						else $this->modifiedUser = $this->wire('users')->get((int) $this->settings['modified_users_id']);
+				}
+				$this->modifiedUser->of($this->of());
+				$value = $this->modifiedUser; 
 				break;
 			case 'createdUser':
-				if(!$value = $this->fuel('users')->get($this->settings['created_users_id'])) $value = new NullPage(); 
+				if(!$this->createdUser) {
+					if($this->settings['created_users_id'] == $this->wire('user')->id) $this->createdUser = $this->wire('user'); // prevent recursion
+						else $this->createdUser = $this->wire('users')->get((int) $this->settings['created_users_id']); 
+				}
+				$this->createdUser->of($this->of());
+				$value = $this->createdUser; 
 				break;
 			case 'urlSegment':
 				$value = $this->fuel('input')->urlSegment1; // deprecated, but kept for backwards compatibility
@@ -781,18 +807,24 @@ class Page extends WireData {
 	 */
 	protected function setUser($user, $userType) {
 
-		if(!$user instanceof User) $user = $this->fuel('users')->get($user); 
+		if(!$user instanceof User) $user = $this->wire('users')->get($user); 
 
 		// if they are setting an invalid user or unknown user, then the Page defaults to the super user
-		if(!$user || !$user->id) $user = $this->fuel('users')->get(wire('config')->superUserPageID); 
+		if(!$user || !$user->id) $user = $this->wire('users')->get(wire('config')->superUserPageID); 
 
-		if($userType == 'created') $field = 'createdUser';
-			else if($userType == 'modified') $field = 'modifiedUser';
-			else throw new WireException("Unknown user type in Page::setUser(user, type)"); 
+		if($userType == 'created') {
+			$field = 'created_users_id';
+			$this->createdUser = $user; 
+		} else if($userType == 'modified') {
+			$field = 'modified_users_id';
+			$this->modifiedUser = $user; 
+		} else {
+			throw new WireException("Unknown user type in Page::setUser(user, type)"); 
+		}
 
-		$existingUser = $this->$field; 
-		if($existingUser && $existingUser->id != $user->id) $this->trackChange($field); 
-		$this->$field = $user; 
+		$existingUserID = $this->settings[$field]; 
+		if($existingUserID != $user->id) $this->trackChange($field); 
+		$this->settings[$field] = $user->id; 
 		return $this; 	
 	}
 
@@ -1342,6 +1374,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function setIsLoaded($isLoaded) {
+		$isLoaded = !$isLoaded || $isLoaded === 'false' ? false : true; 
 		if($isLoaded) {
 			$this->processFieldDataQueue();
 			unset(Page::$loadingStack[$this->settings['id']]); 
@@ -1519,6 +1552,29 @@ class Page extends WireData {
 	public function hasAccessRole($role) {
 		return $this->access()->hasAccessRole($this, $role); 
 	}
+
+	/**
+	 * COMING SOON: Export the page's data to an array
+	 * 
+	 * @return array
+	 * 
+	public function ___export() {
+		$exporter = new PageExport();
+		return $exporter->export($this);
+	}
+	 */
+
+	/**
+	 * COMING SOON: Export the page's data from an array
+	 *
+	 * @param array $data Data to import, in the format from the export() function
+	 * @return $this
+	 *
+	public function ___import(array $data) {
+		$importer = new PageExport();
+		return $importer->import($this, $data); 
+	}
+	 */
 
 	/**
 	 * Is $value1 equal to $value2?

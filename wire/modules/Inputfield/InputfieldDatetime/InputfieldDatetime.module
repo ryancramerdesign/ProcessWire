@@ -45,7 +45,7 @@ class InputfieldDatetime extends Inputfield {
 		$this->attr('placeholder', '');
 		$this->set('dateInputFormat', self::defaultDateInputFormat);
 		$this->set('timeInputFormat', '');
-		$this->set('datepicker', self::datepickerFocus); 
+		$this->set('datepicker', self::datepickerNo); 
 		$this->set('yearRange', '');
 		$this->set('defaultToday', 0); 
 

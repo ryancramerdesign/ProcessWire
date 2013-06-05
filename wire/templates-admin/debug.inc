@@ -28,9 +28,23 @@
 		<div class="container">
 			<h3><a href='#'><?php echo __('API Variables', __FILE__); ?></a></h3>
 			<div>
-			<ol>
-			<?php foreach($fuel as $key => $value) echo "\n<li><a target='_blank' href='http://processwire.com/api/variables/$key/'>\$$key</a></li>"; ?>
-			</ol>
+			<table>
+			<thead>
+			<tr>
+			<th>Name</th>
+			<th>Class</th>
+			</tr>
+			</thead>
+			<tbody>
+			<?php 
+			foreach($fuel as $key => $value) {
+				if(!is_object($value)) continue; 
+				echo "\n<tr><td><a target='_blank' href='http://processwire.com/api/variables/$key/'>\$$key</a></td>" . 
+					"<td>" . get_class($value) . "</td></tr>"; 
+			}
+			?>
+			</tbody>
+			</table>
 			</div>
 		</div>
 
@@ -104,10 +118,13 @@
 			ksort($hooks); 
 			foreach($hooks as $key => $hook) {
 				$suffix = $hook['options']['type'] == 'method' ? '()' : '';
+				$toObject = !empty($hook['toObject']) ? $hook['toObject'] : '';
+				$toMethod = $hook['toMethod'];
+				if(is_callable($toMethod)) $toMethod = 'anonymous function';
 				echo "<tr>"; 
 				echo "<td>" . ($hook['options']['before'] ? 'before ' : '') . ($hook['options']['after'] ? 'after' : '') . "</td>";
 				echo "<td>" . ($hook['options']['fromClass'] ? $hook['options']['fromClass'] . '::' : '') . "$hook[method]$suffix</td>";
-				echo "<td>" . ($hook['toObject'] ? "$hook[toObject]::$hook[toMethod]" : $hook['toMethod']) . "()</td>";
+				echo "<td>" . ($toObject ? "$toObject::$toMethod" : $toMethod) . "()</td>";
 				echo "<td>" . ($hook['options']['allInstances'] || $hook['options']['fromClass'] ? "class " : "instance ") . $hook['options']['type'] . "</td>";
 				echo "<td>" . $hook['options']['priority'] . "</td>";
 				echo "</tr>";
@@ -120,15 +137,39 @@
 		</div>
 
 		<div class="container">
-			<h3><a href='#'><?php echo __('SQL Queries', __FILE__); ?></a></h3>
+			<h3><a href='#'><?php echo __('PDO Queries ($database)', __FILE__); ?></a></h3>
 			<div>
 			<table>
 			<tbody>
-			<?php foreach($db->getQueryLog() as $n => $sql) echo "\n<tr><th>$n</th><td>$sql</td></tr>"; ?>
+			<?php foreach(WireDatabasePDO::getQueryLog() as $n => $sql) echo "\n<tr><th>$n</th><td>$sql</td></tr>"; ?>
 			</tbody>
 			</table>
 			</div>
 		</div>
+
+		<?php if($db->isInstantiated()): ?>
+		<div class="container">
+			<h3><a href='#'><?php echo __('MySQLi Queries ($db) - Deprecated', __FILE__); ?></a></h3>
+			<div>
+			<?php
+			$queries = Database::getQueryLog();
+			if(count($queries)): ?>
+			<p>Mysqli was instantiated and queries were made. These should ideally be converted to PDO ($database). Here are the queries:</p>
+			<table>
+			<tbody>
+			<?php foreach($queries as $n => $sql) echo "\n<tr><th>$n</th><td>$sql</td></tr>"; ?>
+			</tbody>
+			</table>
+			<?php else: ?>
+			<p>Mysqli was instantiated but no queries executed. Here are the callers that should be converted to PDO:</p>
+			<ul><?php foreach($db->getCallers() as $n => $caller) echo "<li>" . ($n+1) . ". $caller</li>"; ?></ul>
+			<?php
+			endif; 
+			unset($queries);
+			?>
+			</div>
+		</div>
+		<?php endif; ?>
 
 		<div class="container">
 			<h3><a href='#'><?php echo __('User', __FILE__); ?> (<?php echo $user->name;?>)</a></h3>
