@@ -121,7 +121,7 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 		$expired = $time - $this->maxSeconds;
 		
 		$sql = "DELETE FROM session_login_throttle WHERE last_attempt < :expired ";
-		if($allowed) $sql .= "OR name=:$name";
+		if($allowed) $sql .= "OR name=:name";
 		$query = $database->prepare($sql);
 		$query->bindValue(":expired", $expired, PDO::PARAM_INT);
 		if($allowed) $query->bindValue(":name", $name);
