@@ -148,7 +148,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		if(!is_null($value)) return self::$fuel->set($name, $value, $lock);
 		if(empty($name)) return self::$fuel->wire;
 		$value = self::$fuel->$name;
-		if(is_null($value)) throw new WireException("Unknown API variable: $name"); 
+		//if(is_null($value)) throw new WireException("Unknown API variable: $name"); 
 		return $value;
 	}
 
@@ -744,7 +744,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 
 	
 	/*******************************************************************************************************
-	 * NOTICES
+	 * NOTICES AND LOGS
 	 *
 	 */
 
@@ -785,7 +785,6 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		$this->wire('notices')->add($notice); 
 		return $this; 
 	}
-
 	
 	/*******************************************************************************************************
 	 * TRANSLATION 

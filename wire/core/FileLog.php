@@ -169,6 +169,10 @@ class FileLog {
 	public function setMaxLineLength($c) {
 		$this->maxLineLength = (int) $c; 
 	}
+	
+	public function getMaxLineLength() {
+		return $this->maxLineLength;
+	}
 
 	public function setFileExtension($ext) {
 		$this->fileExtension = $ext; 

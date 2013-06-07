@@ -77,8 +77,13 @@ class PagePermissions extends WireData implements Module {
 		if($user->isSuperuser()) return true; 
 
 		// note there is an exception in the case of system pages, which require superuser to edit
-		if($page->status & Page::statusSystem) return false; 
+		if($page->status & Page::statusSystem) return false;
 
+		// If page is locked and user doesn't have permission to unlock, don't let them edit
+		if($page->status & Page::statusLocked) {
+			if(!$user->hasPermission("page-lock")) return false; 
+		}
+			
 		// special conditions apply if the page is a User
 		if($page instanceof User) {
 
@@ -90,6 +95,7 @@ class PagePermissions extends WireData implements Module {
 
 		// if the user doesn't have page-edit permission, don't let them go further
 		if(!$user->hasPermission("page-edit", $page)) return false;
+		
 
 		// now check if there is a page-publish permission in the system, and use it if so
 		$publish = $this->fuel('permissions')->get('page-publish'); 
@@ -162,6 +168,7 @@ class PagePermissions extends WireData implements Module {
 		$page = $event->object; 
 		$viewable = true; 
 		$user = $this->fuel('user'); 
+		
 
 		if($page->status >= Page::statusUnpublished) $viewable = false;
 			else if(!$page->template || !$page->template->filenameExists()) $viewable = false; 
@@ -174,8 +181,9 @@ class PagePermissions extends WireData implements Module {
 		if(!$viewable && !$user->isGuest() && $page->is(Page::statusUnpublished)) {
 			if($page->editable() && $page->template->filenameExists()) $viewable = true; 
 		}
+		
 
-		$event->return = $viewable; 
+		$event->return = $viewable;
 	}
 
 	/**

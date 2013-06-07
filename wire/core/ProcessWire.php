@@ -33,7 +33,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 3; 
-	const versionRevision = 0; 
+	const versionRevision = 1; 
 	
 	const statusBoot = 0; // system is booting
 	const statusInit = 2; // system and modules are initializing
@@ -91,20 +91,23 @@ class ProcessWire extends Wire {
 	 */
 	public function load(Config $config) {
 
-		$this->wire('wire', $this, true); 
-		$this->wire('notices', new Notices()); 
+		$this->wire('wire', $this, true);
+		$this->wire('log', new WireLog(), true); 
+		$this->wire('notices', new Notices(), true); 
 		$this->wire('sanitizer', new Sanitizer()); 
 
 		try {
-			$db = new Database($config);
-			$this->wire('db', $db); 
-		} catch(WireDatabaseException $e) {
+			$database = WireDatabasePDO::getInstance($config);
+			$this->wire('database', $database); 
+			$db = new DatabaseMysqli($config);
+			$this->wire('db', $db);
+		} catch(Exception $e) {
 			// catch and re-throw to prevent DB connect info from ever appearing in debug backtrace
 			throw new WireDatabaseException($e->getMessage()); 
 		}
 
 		$modules = new Modules($config->paths->modules, $config->paths->siteModules);
-		Wire::setFuel('modules', $modules); 
+		Wire::setFuel('modules', $modules, true); 
 
 		if(!$updater = $modules->get('SystemUpdater')) {
 			$modules->resetCache();
@@ -120,7 +123,7 @@ class ProcessWire extends Wire {
 		$this->wire('fields', $fields, true); 
 		$this->wire('fieldgroups', $fieldgroups, true); 
 		$this->wire('templates', $templates, true); 
-
+		
 		$pages = new Pages();
 		$this->wire('pages', $pages, true);
 

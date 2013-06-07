@@ -29,3 +29,11 @@ pre {
 	margin-right: auto; 
 }
 
+blockquote {
+	margin-left: 0;
+	padding: 1px 0 1px 1em;
+	border-left: 3px solid #ccc; 
+	background: #eee; 
+	font-style: italic; 
+}
+

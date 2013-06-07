@@ -578,8 +578,12 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 		}
 
-		$pager = $matches->getTotal() > count($matches) ? $matches->renderPager() : '';
-
+		if($matches->getTotal() > count($matches)) {	
+			$pager = $this->wire('modules')->get('MarkupPagerNav')->render($matches); 
+		} else {
+			$pager = '';
+		}
+		
 		$out = $pager . $table->render() . $pager;
 
 		return $out;

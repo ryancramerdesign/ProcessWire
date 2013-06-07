@@ -45,6 +45,7 @@ class InputfieldSelect extends Inputfield {
 	 * @param string $value Value that the option submits
 	 * @param string $label Optional label associated with the value (if null, value will be used as the label)
 	 * @param array $attributes Optional attributes to be associated with this option (i.e. a 'selected' attribute for an <option> tag)
+	 * @return $this
 	 *
 	 */
 	public function addOption($value, $label = null, array $attributes = null) {
@@ -287,8 +288,8 @@ class InputfieldSelect extends Inputfield {
 	 * In this case we're having the Inputfield base process the input and we're going back and validating the value.
 	 * If the value(s) that were set aren't in our specific list of options, we remove them. This is a security measure.
 	 *
-	 *
-	 * @param array $input
+	 * @param WireInputData $input
+	 * @return $this
 	 *
 	 */
 	public function ___processInput(WireInputData $input) {

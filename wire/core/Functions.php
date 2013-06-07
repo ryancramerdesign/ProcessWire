@@ -291,7 +291,7 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
  */
 function wireRelativeTimeStr($ts) {
 
-	if(empty($ts)) return "No date provided";
+	if(empty($ts)) return __('Never', __FILE__); 
 
 	$periodsSingular = array(
 		__("second", __FILE__), 
@@ -314,7 +314,8 @@ function wireRelativeTimeStr($ts) {
 		__("years", __FILE__), 
 		__("decades", __FILE__)
 		); 
-
+	
+	$justNow = __('just now'); 
 	$lengths = array("60","60","24","7","4.35","12","10");
 	$now = time();
 	if(!ctype_digit("$ts")) $ts = strtotime($ts);
@@ -334,6 +335,8 @@ function wireRelativeTimeStr($ts) {
 	}
 
 	$difference = round($difference);
+	if(!$difference) return $justNow; 
+	
 	$periods = $difference != 1 ? $periodsPlural : $periodsSingular; 
 	$period = $periods[$j];
 

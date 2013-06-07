@@ -4,11 +4,10 @@
  * Multi-language support fields module
  *
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -19,22 +18,22 @@ class LanguageSupportFields extends WireData implements Module {
 	 *
 	 */
         static public function getModuleInfo() {
-                return array(
-                        'title' => 'Languages Support - Fields',
-                        'version' => 100,
-                        'summary' => 'Required to use multi-language fields.',
-			'author' => 'Ryan Cramer',
-			'autoload' => true,
-			'singular' => true,
-			'requires' => array(
-				'LanguageSupport'
-				),
-			'installs' => array(
-				'FieldtypePageTitleLanguage',
-				'FieldtypeTextareaLanguage',
-				'FieldtypeTextLanguage', 
-				)
-                        );
+			return array(
+				'title' => 'Languages Support - Fields',
+				'version' => 100,
+				'summary' => 'Required to use multi-language fields.',
+				'author' => 'Ryan Cramer',
+				'autoload' => true,
+				'singular' => true,
+				'requires' => array(
+					'LanguageSupport'
+					),
+				'installs' => array(
+					'FieldtypePageTitleLanguage',
+					'FieldtypeTextareaLanguage',
+					'FieldtypeTextLanguage', 
+					)
+				);
         }
 
 	/**
@@ -210,22 +209,24 @@ class LanguageSupportFields extends WireData implements Module {
 	 */
 	protected function ___fieldLanguageAdded(Field $field, Page $language) {
 
-                if($language->isDefault) return;
-
-                if(!($field->type instanceof FieldtypeLanguageInterface)) return;
-
-                $schema = $field->type->getDatabaseSchema($field);
+		if($language->isDefault) return;
+		
+		if(!($field->type instanceof FieldtypeLanguageInterface)) return;
+		
+		$schema = $field->type->getDatabaseSchema($field);
+		$database = $this->wire('database');
+		$table = $database->escapeTable($field->table);
 
 		foreach($schema as $name => $value) {
 			if(!preg_match('/[^\d]+' . $language->id . '$/', $name)) continue; 
 			// field in schema ends with the language ID
-			$this->db->query("ALTER TABLE `{$field->table}` ADD `$name` $value"); 
+			$database->exec("ALTER TABLE `{$table}` ADD `$name` $value"); 
 		}
 
 		foreach($schema['keys'] as $name => $value) {
 			if(!preg_match('/[^\d]+' . $language->id . '$/', $name)) continue; 
 			// index in schema ends with the language ID
-			$this->db->query("ALTER TABLE `{$field->table}` ADD $value"); 
+			$database->exec("ALTER TABLE `{$table}` ADD $value"); 
 		}
 
 	}
@@ -234,18 +235,20 @@ class LanguageSupportFields extends WireData implements Module {
 	 * Called when a language is removed from the system for each field that implements FieldtypeLanguageInterface
 	 *
 	 */
-        protected function ___fieldLanguageRemoved(Field $field, Page $language) {
+	protected function ___fieldLanguageRemoved(Field $field, Page $language) {
 
-                if($language->isDefault) return;
-
-                if(!($field->type instanceof FieldtypeLanguageInterface)) return;
-
-                $schema = $field->type->getDatabaseSchema($field);
+		if($language->isDefault) return;
+		
+		if(!($field->type instanceof FieldtypeLanguageInterface)) return;
+		
+		$schema = $field->type->getDatabaseSchema($field);
+		$database = $this->wire('database');
+		$table = $database->escapeTable($field->table);
 
 		foreach($schema as $name => $value) {
 			if(!preg_match('/[^\d]+' . $language->id . '$/', $name)) continue; 
 			try { 
-				$this->db->query("ALTER TABLE `{$field->table}` DROP COLUMN `$name`"); 
+				$database->exec("ALTER TABLE `{$table}` DROP COLUMN `$name`"); 
 			} catch(Exception $e) { 
 				// just catch, no need for fatal errors here
 			}
@@ -262,7 +265,8 @@ class LanguageSupportFields extends WireData implements Module {
 	 */
 	public function pageFinderGetQuery(HookEvent $event) {
 
-		$user = wire('user');
+		$user = $this->wire('user');
+		$database = $this->wire('database');
 
 		if(!$user->language || $user->language->isDefault) return;
 
@@ -279,10 +283,13 @@ class LanguageSupportFields extends WireData implements Module {
 
 				$subfield = '';
 				if(strpos($field, '.')) list($field, $subfield) = explode('.', $field); 
+				
+				$field = $database->escapeCol($field);
+				$subfield = $database->escapeCol($subfield);
 
 				if(isset($this->multilangAlternateFields[$field])) {
 					// account for multilang alternates like 'title_es' for 'title'
-					$altName = $field . '_' . $user->language->name; 
+					$altName = $field . '_' . $database->escapeCol($user->language->name); 
 					if(in_array($altName, $this->multilangAlternateFields[$field])) {
 						if($subfield) $altName .= ".$subfield";
 						array_unshift($fields, $altName); 
@@ -294,8 +301,8 @@ class LanguageSupportFields extends WireData implements Module {
 				if(!in_array($field, $this->multilangFields)) continue; 
 				if(!$subfield) $subfield = 'data';
 
-				if($subfield == 'data') {
-					array_unshift($fields, "$field.$subfield{$user->language->id}"); 
+				if($subfield === 'data') {
+					array_unshift($fields, "$field.$subfield" . (int) $user->language->id); 
 					$changed = true; 
 				}
 			}

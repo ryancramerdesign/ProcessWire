@@ -14,19 +14,13 @@
  *
  */
 
-/**
- * WireDatabaseException is the exception thrown by the Database class
- *
- * If you use this class without ProcessWire, change 'extends WireException' below to be just 'extends Exception'
- *
- */
-class WireDatabaseException extends WireException {}
+
 
 /**
  * Database class provides a layer on top of mysqli
  *
  */
-class Database extends mysqli {
+class Database extends mysqli implements WireDatabase {
 
 	/**
 	 * Log of all queries performed in this instance
@@ -122,7 +116,7 @@ class Database extends mysqli {
 
 		return $result; 
 	}
-
+	
 	/**
 	 * Get an array of all queries that have been executed thus far
 	 *

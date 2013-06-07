@@ -42,9 +42,11 @@ class User extends Page {
 	 *
 	 */
 	public function hasRole($role) {
-		if(is_object($role) && $role instanceof Role) return $this->roles->has($role); 
-		if(ctype_digit("$role")) return $this->roles->has("id=$role"); 
-		if(is_string($role)) return $this->roles->has("name=$role"); 
+		$roles = $this->get('roles'); 
+		if(empty($roles)) return false; 
+		if(is_object($role) && $role instanceof Role) return $roles->has($role); 
+		if(ctype_digit("$role")) return $roles->has("id=$role"); 
+		if(is_string($role)) return $roles->has("name=$role"); 
 		return false;
 	}
 
@@ -60,7 +62,7 @@ class User extends Page {
 	public function addRole($role) {
 		if(is_string($role) || is_int($role)) $role = $this->fuel('roles')->get($role); 
 		if(is_object($role) && $role instanceof Role) {
-			$this->roles->add($role); 
+			$this->get('roles')->add($role); 
 			return true; 
 		}
 		return false;
@@ -78,7 +80,7 @@ class User extends Page {
 	public function removeRole($role) {
 		if(is_string($role) || is_int($role)) $role = $this->fuel('roles')->get($role); 
 		if(is_object($role) && $role instanceof Role) {
-			$this->roles->remove($role); 
+			$this->get('roles')->remove($role); 
 			return true; 
 		}
 		return false;
@@ -129,10 +131,13 @@ class User extends Page {
 
 		if(!$permission || !$permission->id) return false;
 
+		$roles = $this->get('roles'); 
+		if(empty($roles)) return false; 
 		$has = false; 
 		$accessTemplate = is_null($page) ? null : $page->getAccessTemplate();
+		
 
-		foreach($this->roles as $key => $role) {
+		foreach($roles as $key => $role) {
 
 			if(!$role || !$role->id) continue; 
 
@@ -193,9 +198,11 @@ class User extends Page {
 		// because we don't have any page context to inherit from at this point
 		// if(!$template->useRoles) return false; 
 
+		$roles = $this->get('roles'); 
+		if(empty($roles)) return false; 
 		$has = false;
 
-		foreach($this->roles as $role) {
+		foreach($roles as $role) {
 
 			if(!$template->hasRole($role)) continue; 
 
@@ -229,7 +236,9 @@ class User extends Page {
 	public function getPermissions(Page $page = null) {
 		if($this->isSuperuser()) return $this->fuel('permissions'); 
 		$permissions = new PageArray();
-		foreach($this->roles as $key => $role) {
+		$roles = $this->get('roles'); 
+		if(empty($roles)) return $permissions; 
+		foreach($roles as $key => $role) {
 			if($page && !$page->hasAccessRole($role)) continue; 
 			foreach($role->permissions as $permission) { 
 				if($page && $permission->name == 'page-edit' && !in_array($role->id, $page->getAccessTemplate()->editRoles)) continue; 
@@ -252,8 +261,10 @@ class User extends Page {
 		if($this->id === $config->superUserPageID) return true; 
 		if($this->id === $config->guestUserPageID) return false;
 		$superuserRoleID = $config->superUserRolePageID; 
+		$roles = $this->get('roles');
+		if(empty($roles)) return false;
 		$is = false;
-		foreach($this->roles as $role) if($role->id == $superuserRoleID) {
+		foreach($roles as $role) if($role->id == $superuserRoleID) {
 			$is = true;
 			break;
 		}
@@ -280,13 +291,4 @@ class User extends Page {
 		return !$this->isGuest();
 	}
 
-	public function get($key) {
-		return parent::get($key); 
-	}
-
-	public function __get($key) {
-		return parent::get($key); 
-	}
-
 }
-

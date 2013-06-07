@@ -47,13 +47,14 @@ class Sanitizer extends Wire {
 	 * @param string $value Value to filter
 	 * @param array $allowedExtras Additional characters that are allowed in the value
 	 * @param string 1 character replacement value for invalid characters
+	 * @param int $maxLength
 	 * @return string
 	 *
 	 */
-	protected function nameFilter($value, array $allowedExtras, $replacementChar) {
+	protected function nameFilter($value, array $allowedExtras, $replacementChar, $maxLength = 128) {
 
 		if(!is_string($value)) $value = (string) $value; 
-		if(strlen($value) > 128) $value = substr($value, 0, 128); 
+		if(strlen($value) > $maxLength) $value = substr($value, 0, $maxLength); 
 		if(ctype_alnum($value)) return $value; // quick exit if possible
 
 		if(!ctype_alnum(str_replace($allowedExtras, '', $value))) { 
@@ -130,10 +131,11 @@ class Sanitizer extends Wire {
 	 * @param bool|int $beautify Should be true when creating a Page's name for the first time. Default is false. 
 	 *	You may also specify Sanitizer::translate (or number 2) for the $beautify param, which will make it translate letters
 	 *	based on the InputfieldPageName custom config settings. 
+	 * @param int $maxLength Maximum number of characters allowed in the name
 	 * @return string
 	 *
 	 */
-	public function pageName($value, $beautify = false) {
+	public function pageName($value, $beautify = false, $maxLength = 128) {
 
 		static $replacements = array();
 
@@ -157,7 +159,7 @@ class Sanitizer extends Wire {
 			if($v) $value = $v; 
 		}
 
-		$value = strtolower($this->nameFilter($value, array('-', '_', '.'), '-')); 
+		$value = strtolower($this->nameFilter($value, array('-', '_', '.'), '-', $maxLength)); 
 
 		if($beautify) {
 			// remove leading or trailing dashes, underscores, dots
@@ -424,7 +426,7 @@ class Sanitizer extends Wire {
 		// disallow some characters in selector values
 		// @todo technically we only need to disallow at begin/end of string
 		$value = str_replace(array('*', '~', '`', '$', '^', '+', '|', '<', '>', '!', '='), ' ', $value);
-
+	
 		// disallow greater/less than signs, unless they aren't forming a tag
 		// if(strpos($value, '<') !== false) $value = preg_replace('/<[^>]+>/su', ' ', $value); 
 
@@ -446,10 +448,14 @@ class Sanitizer extends Wire {
 
 			// replace multiple space characters in sequence with just 1
 			$value = preg_replace('/\s\s+/u', ' ', $value); 
-
 		}
 
 		$value = trim($value);
+		if(!$needsQuotes) {
+			$a = substr($value, 0, 1); 
+			$b = substr($value, -1); 
+			if(!ctype_alnum($a) || !ctype_alnum($b)) $needsQuotes = true;
+		}
 		if($needsQuotes) $value = $quoteChar . $value . $quoteChar; 
 		return $value;
 

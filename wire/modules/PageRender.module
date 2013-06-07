@@ -114,8 +114,10 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 *
 	 * Note that this does not check if the page is cachable. This is so that if a cachable setting changes the cache can still be removed. 
 	 *
-	 * @param Page
+	 * @param Page $page
+	 * @param array $options
 	 * @return CacheFile
+	 * @throws WireException
 	 *
 	 */
 	public function getCacheFile(Page $page, array $options = array()) {
@@ -215,9 +217,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 * If the page's template has caching enabled, then this method will return a cached page render, when valid, 
 	 * or save a new cache. Caches are only saved on guest users. 
 	 *
-	 * @todo this function is too long, break it down further
-	 *
-	 * @param array|string options Array of options, or filename (string) to render. Options [all optional] may be: 
+	 * #param array|string options Array of options, or filename (string) to render. Options [all optional] may be: 
 	 *      forceBuildCache: If true, the cache will be re-created for this page, regardless of whether it's expired or not. (default=false)
 	 *	allowCache: Allow cache to be used when template settings ask for it. (default=true)
 	 *	filename: Filename to render, optionally relative to /site/templates/. Absolute paths must resolve somewhere in PW's install. (default=blank)
@@ -225,20 +225,23 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 *	appendFile: Filename to append to output, must be in /site/templates/. (default=$config->appendTemplateFile)
 	 *	pageStack: An array of pages, when recursively rendering. Used internally. You can examine it but not change it. 
 	 *	
-	 * @param array $options 
+	 * #param array $options 
 	 *	If you specified a filename for the first option, you may use the options array mentioned above as 2nd argument.
 	 * 	This $options array will also be passed to the template as variable $options. Given that, you may add additional
 	 *	variables of your own names to $options as needed for communication with the template, if it suits your need. 
 	 *
+	 * @param HookEvent $event
 	 * @return string rendered data
+	 * @throws WirePermissionException|WireException
 	 *
 	 */
 	public function ___renderPage($event) {
 
 		wire('pages')->setOutputFormatting(true); 
 
-		$page = $event->object; 
+		$page = $event->object;
 
+		
 		if($page->status >= Page::statusUnpublished && !$page->viewable()) {
 			throw new WirePermissionException("Page '{$page->url}' is not currently viewable.");
 		}
@@ -249,7 +252,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		
 		// set the context of the new page to be system-wide
 		// only applicable if rendering a page within a page
-		if(!$_page || $page->id != $_page->id) $this->setFuel('page', $page);
+		if(!$_page || $page->id != $_page->id) $this->wire('page', $page);
 		if($this->renderRecursionLevel > 1) $this->pageStack[] = $_page; 
 
 		// arguments to $page->render() may be a string with filename to render or array of options
@@ -260,6 +263,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		if(is_string($options) && strlen($options)) $options = array('filename' => $options); // arg1 is filename
 		if(!is_array($options)) $options = array(); // no args specified
 		if(is_array($options2)) $options = array_merge($options2, $options); // arg2 is $options 
+
 
 		$defaultOptions = array(
 			'filename' => '', // default blank means filename comes from $page
@@ -280,10 +284,11 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 			$cacheFile = $this->getCacheFile($page, $options);
 			if(!$options['forceBuildCache'] && ($data = $cacheFile->get()) !== false) {
 				$event->return = $data;
-				if($_page) $this->setFuel('page', $_page);
+				if($_page) $this->wire('page', $_page);
 				return;
 			}
 		}
+		
 
 		$of = $page->of();
 		if(!$of) $page->of(true);
@@ -323,7 +328,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 
 			// pass along the $options as a local variable to the template so that one can provide their 
 			// own additional variables in it if they want to
-			$output->set('options', $options); 
+			$output->set('options', $options);
 
 			$data = $output->render();
 		}
@@ -333,7 +338,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 
 		if(!$of) $page->of($of);
 		if($_page && $_page->id != $page->id) {
-			$this->setFuel('page', $_page); 
+			$this->wire('page', $_page); 
 		}
 		if(count($this->pageStack)) array_pop($this->pageStack); 
 		$this->renderRecursionLevel--;

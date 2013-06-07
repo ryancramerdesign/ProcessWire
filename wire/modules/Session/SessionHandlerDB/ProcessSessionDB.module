@@ -19,7 +19,7 @@ class ProcessSessionDB extends Process {
 		return array(
 			'title' => __('Sessions', __FILE__), // getModuleInfo title          
 			'summary' => __('Enables you to browse active database sessions.', __FILE__), // getModuleInfo summary 
-			'version' => 1, 
+			'version' => 2, 
 			'permanent' => false, 
 			'requires' => array('SessionHandlerDB'),
 			);
@@ -59,12 +59,17 @@ class ProcessSessionDB extends Process {
 		$pagePaths = array();
 		$userNames = array();
 		$table = SessionHandlerDB::dbTableName;
-		$sql = 	"SELECT user_id, pages_id, ip, ua, ts FROM $table " . 
-			"WHERE ts > '" . date('Y-m-d H:i:s', (time() - ($mins * 60))) . "' " . 
-			"ORDER BY ts DESC LIMIT 1000";
-		$result = wire('db')->query($sql);
+		$database = $this->wire('database');
+		
+		$sql = 	"SELECT user_id, pages_id, ip, ua, ts FROM `$table` " . 
+				"WHERE ts > '" . date('Y-m-d H:i:s', (time() - ($mins * 60))) . "' " . 
+				"ORDER BY ts DESC LIMIT 1000";
+	
+		$query = $database->prepare($sql);	
+		$result = $query->execute();
+		$numRows = $query->rowCount();
 
-		if($result->num_rows) {
+		if($numRows) {
 
 			$table = wire('modules')->get('MarkupAdminDataTable');
 			$header = array(
@@ -76,7 +81,11 @@ class ProcessSessionDB extends Process {
 			if($useUA) $header[] = $this->_('User Agent');
 			$table->headerRow($header);
 
-			while($row = $result->fetch_row()) {
+			// for first iteration
+			$row = $query->fetch(PDO::FETCH_NUM);
+			
+			while($row) {
+				
 				list($user_id, $pages_id, $ip, $ua, $ts) = $row; 
 
 				if(isset($userNames[$user_id])) {
@@ -101,6 +110,9 @@ class ProcessSessionDB extends Process {
 				if($useIP) $tr[] = long2ip($ip);
 				if($useUA) $tr[] = strip_tags($ua); // note MarkupAdminDataTable already entity encodes all output
 				$table->row($tr);
+			
+				// for next iteration
+				$row = $query->fetch(PDO::FETCH_NUM);
 			}
 			
 			$markup->value = $table->render();
@@ -117,7 +129,7 @@ class ProcessSessionDB extends Process {
 		$submit->attr('class', $submit->attr('class') . ' head_button_clone'); 
 		$form->add($submit);
 
-		$result->free();
+		$query->closeCursor();
 		return $form->render();
 	}	
 

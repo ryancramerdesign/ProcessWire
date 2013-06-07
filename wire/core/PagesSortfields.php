@@ -28,16 +28,21 @@ class PagesSortfields extends Wire {
 		if(!$page->isChanged('sortfield')) return true; 
 
 		$page_id = (int) $page->id; 
-		$sortfield = $this->fuel('db')->escape_string($this->encode($page->sortfield)); 
+		$database = $this->wire('database');
+		$sortfield = $database->escapeStr($this->encode($page->sortfield)); 
 
 		if($sortfield == 'sort' || !$sortfield) return $this->delete($page); 
 
-		$sql = 	"INSERT INTO pages_sortfields (pages_id, sortfield) " . 
-				"VALUES($page_id, '$sortfield') " . 
+		$sql = 	"INSERT INTO pages_sortfields (pages_id, sortfield) " .
+				"VALUES(:page_id, :sortfield) " .
 				"ON DUPLICATE KEY UPDATE sortfield=VALUES(sortfield)";
-
-		return $this->fuel('db')->query($sql) != false; // QA
-
+		
+		$query = $database->prepare($sql);
+		$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
+		$query->bindValue(":sortfield", $sortfield, PDO::PARAM_STR);
+		$result = $query->execute($sql);
+		
+		return $result;
 	}
 
 	/**
@@ -48,7 +53,11 @@ class PagesSortfields extends Wire {
 	 *
 	 */
 	public function delete(Page $page) {
-		$this->fuel('db')->query("DELETE FROM pages_sortfields WHERE pages_id=" . (int) $page->id); // QA
+		$database = $this->wire('database');
+		$query = $database->prepare("DELETE FROM pages_sortfields WHERE pages_id=:page_id"); // QA
+		$query->bindValue(":page_id", $page->id, PDO::PARAM_INT); 
+		$result = $query->execute();
+		return $result;
 	}
 
 	/**

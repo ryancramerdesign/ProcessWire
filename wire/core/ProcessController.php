@@ -191,7 +191,6 @@ class ProcessController extends Wire {
 	public function ___execute() {
 
 		$content = '';
-
 		if($process = $this->getProcess()) { 
 			if($method = $this->getProcessMethodName($this->process)) {
 				$content = $this->process->$method();

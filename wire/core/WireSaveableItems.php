@@ -49,7 +49,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	 */
 	protected function getLoadQuerySelectors($selectors, DatabaseQuerySelect $query) {
 
-		$db = $this->getFuel('db'); 
+		$database = $this->wire('database'); 
 
 		if(is_object($selectors) && $selectors instanceof Selectors) {
 			// iterable selectors
@@ -70,7 +70,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 
 		foreach($selectors as $selector) {
 
-			if(!$db->isOperator($selector->operator)) 
+			if(!$database->isOperator($selector->operator)) 
 				throw new WireException("Operator '{$selector->operator}' may not be used in {$this->className}::load()"); 
 
 			if(in_array($selector->field, $functionFields)) {
@@ -81,8 +81,8 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 			if(!in_array($selector->field, $fields)) 
 				throw new WireException("Field '{$selector->field}' is not valid for {$this->className}::load()"); 
 
-			$selectorField = $db->escapeTableCol($selector->field); 
-			$value = $db->escape_string($selector->value); 
+			$selectorField = $database->escapeTableCol($selector->field); 
+			$value = $database->escapeStr($selector->value); 
 			$query->where("{$selectorField}{$selector->operator}'$value'"); // QA
 		}
 
@@ -104,15 +104,18 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 
 		$item = $this->makeBlankItem();
 		$fields = array_keys($item->getTableData());
-		$table = $this->fuel('db')->escapeTable($this->getTable());
+		$database = $this->wire('database'); 
+		
+		$table = $database->escapeTable($this->getTable());
+		
 		foreach($fields as $k => $v) {
-			$v = $this->fuel('db')->escapeCol($v);
+			$v = $database->escapeCol($v);
 			$fields[$k] = "$table.$v"; 
 		}
 
 		$query = new DatabaseQuerySelect();
 		$query->select($fields)->from($table);
-		if($sort = $this->getSort()) $query->orderby($this->fuel('db')->escape_string($sort)); 
+		if($sort = $this->getSort()) $query->orderby($sort); 
 		$this->getLoadQuerySelectors($selectors, $query); 
 
 		return $query; 
@@ -131,23 +134,26 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	 */
 	protected function ___load(WireArray $items, $selectors = null) {
 
-		$query = $this->getLoadQuery($selectors);
-		$result = $this->getFuel('db')->query($query); 
-
-		while($row = $result->fetch_assoc()) {
+		$database = $this->wire('database');
+		$sql = $this->getLoadQuery($selectors)->getQuery();
+		
+		$query = $database->prepare($sql);	
+		$query->execute();
+		
+		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
 			$item = $this->makeBlankItem();
 			foreach($row as $field => $value) {
 				if($field == 'data') {
-					if($value) $value = $this->decodeData($value); 
-						else continue; 
+					if($value) $value = $this->decodeData($value);
+					else continue;
 				}
-				$item->$field = $value; 
+				$item->$field = $value;
 			}
-			$item->setTrackChanges(true); 
-			$items->add($item); 
+			$item->setTrackChanges(true);
+			$items->add($item);
 		}
-		$result->free();
-
+		$query->closeCursor();
+			
 		$items->setTrackChanges(true); 
 		return $items; 
 	}
@@ -176,8 +182,8 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 		$blank = $this->makeBlankItem();
 		if(!$item instanceof $blank) throw new WireException("WireSaveableItems::save(item) requires item to be of type '" . $blank->className() . "'"); 
 
-		$db = $this->getFuel('db'); 
-		$table = $db->escapeTable($this->getTable());
+		$database = $this->wire('database'); 
+		$table = $database->escapeTable($this->getTable());
 		$sql = "`$table` SET ";
 		$id = (int) $item->id;
 		$this->saveReady($item); 
@@ -190,23 +196,28 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 					$value = $this->encodeData($value); 
 				} else $value = '';
 			}
-			$key = $db->escapeTableCol($key);
-			$value = $db->escape_string("$value"); 
+			$key = $database->escapeTableCol($key);
+			$value = $database->escapeStr("$value"); 
 			$sql .= "`$key`='$value', ";
 		}
 
 		$sql = rtrim($sql, ", "); 
 
 		if($id) {
-			$result = $db->query("UPDATE $sql WHERE id=$id"); // QA
+			
+			$query = $database->prepare("UPDATE $sql WHERE id=:id");
+			$query->bindValue(":id", $id, PDO::PARAM_INT);
+			$result = $query->execute();
+			
 		} else {
-			$result = $db->query("INSERT INTO $sql"); // QA
+			
+			$query = $database->prepare("INSERT INTO $sql"); 
+			$result = $query->execute();
 			if($result) {
-				$item->id = $db->insert_id; 
-				$this->getAll()->add($item); 
+				$item->id = $database->lastInsertId();
+				$this->getAll()->add($item);
 				$this->added($item);
 			}
-			
 		}
 
 		if($result) {
@@ -228,13 +239,20 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	public function ___delete(Saveable $item) {
 		$blank = $this->makeBlankItem();
 		if(!$item instanceof $blank) throw new WireException("WireSaveableItems::delete(item) requires item to be of type '" . $blank->className() . "'"); 
-		$id = (int) $item->id; 
-		$db = $this->getFuel('db'); 
+		
+		$id = (int) $item->id;
 		if(!$id) return false; 
+		
+		$database = $this->wire('database'); 
+		
 		$this->deleteReady($item);
 		$this->getAll()->remove($item); 
-		$table = $db->escapeTable($this->getTable());
-		$result = $db->query("DELETE FROM `$table` WHERE id=$id LIMIT 1"); // QA
+		$table = $database->escapeTable($this->getTable());
+		
+		$query = $database->prepare("DELETE FROM `$table` WHERE id=:id LIMIT 1"); 
+		$query->bindValue(":id", $id, PDO::PARAM_INT); 
+		$result = $query->execute();
+		
 		if($result) {
 			$this->deleted($item);
 			$item->id = 0; 

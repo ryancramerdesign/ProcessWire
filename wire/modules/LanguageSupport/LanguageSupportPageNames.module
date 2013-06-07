@@ -17,20 +17,20 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 * Return information about the module
 	 *
 	 */
-        static public function getModuleInfo() {
-                return array(
-					'title' => 'Languages Support - Page Names',
-					'version' => 6,
-					'summary' => 'Required to use multi-language page names. In development, NOT for production use.',
-					'author' => 'Ryan Cramer',
-					'autoload' => true,
-					'singular' => true,
-					'requires' => array(
-						'LanguageSupport',
-						'LanguageSupportFields'
-						)
-					);
-        }
+	static public function getModuleInfo() {
+			return array(
+				'title' => 'Languages Support - Page Names',
+				'version' => 6,
+				'summary' => 'Required to use multi-language page names. In development, NOT for production use.',
+				'author' => 'Ryan Cramer',
+				'autoload' => true,
+				'singular' => true,
+				'requires' => array(
+					'LanguageSupport',
+					'LanguageSupportFields'
+					)
+				);
+	}
 
 	/**
 	 * Default/assumed name for homepage
@@ -114,7 +114,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		$page = wire('page'); 
 
-		if($page->template == 'admin' && ($page->process == 'ProcessPageEdit' || $page->process == 'ProcessPageAdd')) {
+		if($page->template == 'admin' && ($page->process == 'ProcessPageEdit' || $page->process == 'ProcessPageAdd' || $page->process == 'ProcessPageClone')) {
 			// when in admin, add inputs for each language's page name
 			$page->addHookBefore('ProcessPageEdit::execute', $this, 'hookProcessPageEditExecute'); 
 			// $page->addHookAfter('ProcessPageEdit::buildFormSettings', $this, 'hookProcessPageEditSettings'); 
@@ -536,13 +536,13 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		try {
 			$name = "name" . (int) $language->id; 
 			$status = "status" . (int) $language->id; 
-			wire('db')->query("ALTER TABLE pages ADD $name VARCHAR(128) CHARACTER SET ascii"); 
-			wire('db')->query("ALTER TABLE pages ADD UNIQUE {$name}_parent_id ($name, parent_id)"); 
-			wire('db')->query("ALTER TABLE pages ADD $status INT UNSIGNED NOT NULL DEFAULT " . Page::statusOn); 
-
-
+			$database = $this->wire('database');
+			$database->exec("ALTER TABLE pages ADD $name VARCHAR(128) CHARACTER SET ascii"); 
+			$database->exec("ALTER TABLE pages ADD UNIQUE {$name}_parent_id ($name, parent_id)"); 
+			$database->exec("ALTER TABLE pages ADD $status INT UNSIGNED NOT NULL DEFAULT " . Page::statusOn); 
+			
 		} catch(Exception $e) {
-			$this->error($e->getMessage()); 
+			$this->error($e->getMessage(), Notice::log); 
 		}
 	}
 
@@ -562,13 +562,14 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	protected function languageDeleted(Page $language) {
 		if(!$language->id || $language->name == 'default') return;
 		$name = "name" . (int) $language->id; 
-		$status = "status" . (int) $language->id; 
+		$status = "status" . (int) $language->id;
+		$database = $this->wire('database');
 		try {
-			wire('db')->query("ALTER TABLE pages DROP INDEX {$name}_parent_id"); 
-			wire('db')->query("ALTER TABLE pages DROP $name"); 
-			wire('db')->query("ALTER TABLE pages DROP $status"); 
+			$database->exec("ALTER TABLE pages DROP INDEX {$name}_parent_id"); 
+			$database->exec("ALTER TABLE pages DROP $name"); 
+			$database->exec("ALTER TABLE pages DROP $status"); 
 		} catch(Exception $e) {
-			$this->error($e->getMessage()); 
+			$this->error($e->getMessage(), Notice::log); 
 		}
 	}
 
@@ -631,14 +632,19 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			if($info['version'] == $this->moduleVersion) return;
 		}
 
+		$database = $this->wire('database');	
+		
 		// version 3 to 4 check: addition of language-specific status columns
-		$result = $this->db->query("SHOW COLUMNS FROM pages WHERE Field LIKE 'status%'"); 
-		if($result->num_rows < 2) {
+		$query = $database->prepare("SHOW COLUMNS FROM pages WHERE Field LIKE 'status%'");
+		$query->execute();
+		
+		if($query->rowCount() < 2) {
 			foreach(wire('languages') as $language) {
-				if($language->isDefault()) continue; 
+				if($language->isDefault()) continue;
 				$status = "status" . (int) $language->id;
-				$this->db->query("ALTER TABLE pages ADD $status INT UNSIGNED NOT NULL DEFAULT " . Page::statusOn);
-			}	
+				$database->exec("ALTER TABLE pages ADD $status INT UNSIGNED NOT NULL DEFAULT " . Page::statusOn);
+				$this->message("Added status column for language: $language->name", Notice::log);
+			}
 		}
 
 		// save module version in config data

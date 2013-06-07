@@ -78,13 +78,17 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 	protected function allowLogin($name) {
 
 		$time = time();
-		$db = $this->fuel('db');
-		$name = $db->escape_string($this->fuel('sanitizer')->username($name));
-		$result = $db->query("SELECT attempts, last_attempt FROM session_login_throttle WHERE name='$name'");
+		$database = $this->wire('database');
+		$name = $this->wire('sanitizer')->pageName($name);
+		
+		$query = $database->prepare("SELECT attempts, last_attempt FROM session_login_throttle WHERE name=:name");
+		$query->bindValue(":name", $name);
+		$query->execute();
+		$numRows = $query->rowCount();
+		if($numRows) list($attempts, $lastAttempt) = $query->fetch(PDO::FETCH_NUM);
 		$allowed = false;
 
-		if($result->num_rows) {
-			list($attempts, $lastAttempt) = $result->fetch_row();
+		if($numRows) {
 			$requireSeconds = $attempts * $this->seconds; 
 			if($requireSeconds > $this->maxSeconds) $requireSeconds = $this->maxSeconds; 
 			$elapsedSeconds = $time - $lastAttempt; 
@@ -96,19 +100,33 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 			} else {
 				$allowed = true; 
 			}
-			$db->query("UPDATE session_login_throttle SET attempts=$attempts, last_attempt=$time WHERE name='$name'");   
+			
+			$query = $database->prepare('UPDATE session_login_throttle SET attempts=:attempts, last_attempt=:time WHERE name=:name');
+			$query->bindValue(':attempts', $attempts);
+			$query->bindValue(':time', $time);
+			$query->bindValue(':name', $name);
+			$query->execute();
 
 		} else {
 			$allowed = true; 
-			$db->query("INSERT INTO session_login_throttle (name, attempts, last_attempt) VALUES('$name', 1, $time)");
+			
+			$query = $database->prepare('INSERT INTO session_login_throttle (name, attempts, last_attempt) VALUES(:name, :attempts, :last_attempt)');
+			$query->bindValue(":name", $name);
+			$query->bindValue(":attempts", 1, PDO::PARAM_INT);
+			$query->bindValue(":last_attempt", $time, PDO::PARAM_INT);
+			$query->execute();
 		}
 
 		// delete saved login attempts that are no longer applicable
 		$expired = $time - $this->maxSeconds;
-		$sql = "DELETE FROM session_login_throttle WHERE last_attempt < $expired ";
-		if($allowed) $sql .= "OR name='$name'";
-		$db->query($sql); 
-
+		
+		$sql = "DELETE FROM session_login_throttle WHERE last_attempt < :expired ";
+		if($allowed) $sql .= "OR name=:name";
+		$query = $database->prepare($sql);
+		$query->bindValue(":expired", $expired, PDO::PARAM_INT);
+		if($allowed) $query->bindValue(":name", $name);
+		$query->execute();
+			
 		return $allowed; 
 	}
 
@@ -159,12 +177,12 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 	public function ___install() { 
 
 		$sql = 	"CREATE TABLE `session_login_throttle` ( " . 
-		  	"`name` varchar(128) NOT NULL, " . 
-		  	"`attempts` int(10) unsigned NOT NULL default '0'," . 
-		  	"`last_attempt` int(10) unsigned NOT NULL," . 
-		  	"PRIMARY KEY (`name`))";
+				"`name` varchar(128) NOT NULL, " . 
+				"`attempts` int(10) unsigned NOT NULL default '0'," . 
+				"`last_attempt` int(10) unsigned NOT NULL," . 
+				"PRIMARY KEY (`name`))";
 
-		$this->db->query($sql);
+		$this->database->exec($sql);
 	}
 
 	/**
@@ -172,7 +190,7 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 	 *
 	 */
 	public function ___uninstall() { 
-		$this->db->query("DROP TABLE IF EXISTS session_login_throttle"); 
+		$this->database->exec("DROP TABLE IF EXISTS session_login_throttle"); 
 	}
 
 }
