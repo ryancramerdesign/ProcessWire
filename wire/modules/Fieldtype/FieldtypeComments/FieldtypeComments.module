@@ -89,6 +89,7 @@ class FieldtypeComments extends FieldtypeMulti {
 	 *
 	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
+		if($subfield == 'text') $subfield = 'data';
 		if(empty($subfield) || $subfield === 'data') { 
 			$ft = new DatabaseQuerySelectFulltext($query);
 			$ft->match($table, $subfield, $operator, $value);
@@ -100,7 +101,7 @@ class FieldtypeComments extends FieldtypeMulti {
 
         /**
          * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
-	 *
+		 *
          * @param Page $page
          * @param Field $field
          * @param string|int|array $value
@@ -540,7 +541,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$start = 0;
 		$desc = true; 
 		$sort = 'created';
-		$database = $this->wire('database');
+		$database = wire('database');
 		$table = $database->escapeTable($field->getTable());
 		$sql =  "SELECT * FROM $table WHERE id>0 ";
 		$selectors = new Selectors($selectorString); 
