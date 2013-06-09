@@ -502,6 +502,8 @@ class PageFinder extends Wire {
 		$values = is_array($selector->value) ? $selector->value : array($selector->value); 	
 		$fields = $this->fuel('fields'); 
 		$database = $this->wire('database');
+		$user = $this->wire('user'); 
+		$language = $this->wire('languages') && $user->language ? $user->language : null;
 		
 		foreach($values as $value) {
 
@@ -536,11 +538,23 @@ class PageFinder extends Wire {
 				$value = "$tableAlias." . ($subValue ? $database->escapeCol($subValue) : "name"); 
 
 			} else if($fields->isNativeName($value)) {
-				if(!strpos($value, ".")) $value = "pages." . $database->escapeCol($value);
+				// sort by a native field
+				
+				if(!strpos($value, ".")) {
+					// native field with no subfield
+					if($value == 'name' && $language && !$language->isDefault()  && $this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
+						// substitute language-specific name field when LanguageSupportPageNames is active and language is not default
+						$value = "if(pages.name$language!='', pages.name$language, pages.name)";
+					} else {
+						$value = "pages." . $database->escapeCol($value);
+					}
+				}
 
 			} else {
+				
 				$field = $fields->get($value);
 				if(!$field) continue; 
+				
 				$fieldName = $database->escapeCol($field->name); 
 				$subValue = $database->escapeCol($subValue);
 				$tableAlias = "_sort_$fieldName". ($subValue ? "_$subValue" : '');
@@ -557,8 +571,20 @@ class PageFinder extends Wire {
 					// so we also join the page and sort on it's name instead of the field's "data" field.
 					$tableAlias2 = "_sort_page_$fieldName" . ($subValue ? "_$subValue" : '');
 					$query->leftjoin("pages AS $tableAlias2 ON $tableAlias.data=$tableAlias2.id"); 
-					$value = "$tableAlias2." . ($subValue ? $subValue : "name");
+					if(!$subValue) $subValue = 'name';
+					$value = "$tableAlias2.$subValue";
+					
+					if($subValue == 'name' && $language && !$language->isDefault()  && $this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
+						// append language ID to 'name' when performing sorts within another language and LanguageSupportPageNames in place
+						$value = "if($value$language!='', $value$language, $value)";
+					}
+					
+				} else if(!$subValue && $language && !$language->isDefault() && $field->type instanceof FieldtypeLanguageInterface) {
+					// multi-language field, sort by the language version
+					$value = "if($tableAlias.data$language != '', $tableAlias.data$language, $tableAlias.data)";
+					
 				} else {
+					
 					$value = "$tableAlias." . ($subValue ? $subValue : "data"); ; 
 				}
 			}

@@ -29,7 +29,7 @@ class PagesSortfields extends Wire {
 
 		$page_id = (int) $page->id; 
 		$database = $this->wire('database');
-		$sortfield = $database->escapeStr($this->encode($page->sortfield)); 
+		$sortfield = $this->encode($page->sortfield); 
 
 		if($sortfield == 'sort' || !$sortfield) return $this->delete($page); 
 
@@ -40,7 +40,7 @@ class PagesSortfields extends Wire {
 		$query = $database->prepare($sql);
 		$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
 		$query->bindValue(":sortfield", $sortfield, PDO::PARAM_STR);
-		$result = $query->execute($sql);
+		$result = $query->execute();
 		
 		return $result;
 	}
