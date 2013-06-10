@@ -198,7 +198,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 
 						try { 
 							$field->type->deletePageField($page, $field); 
-							$page->save($field->name); 
+							// $page->save($field->name); 
 							if($this->fuel('config')->debug) $this->message("Deleted '{$field->name}' from '{$page->path}'"); 
 
 						} catch(Exception $e) {
