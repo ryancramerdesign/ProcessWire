@@ -37,31 +37,24 @@ class FieldtypePageTitleLanguage extends FieldtypeTextLanguage implements Fieldt
 			);
 	}
 
-	/*
-        public function getInputfieldClassName() {
-		return 'InputfieldPageTitle';
-	}
-	*/
-
-        public function ___getCompatibleFieldtypes(Field $field) {
-
-                $fieldtypes = new Fieldtypes();
+	public function ___getCompatibleFieldtypes(Field $field) {
+		$fieldtypes = new Fieldtypes();
 		$fieldtypes->add(wire('fieldtypes')->get('FieldtypePageTitle')); 
-
-                foreach(wire('fieldtypes') as $fieldtype) {
-                        if($fieldtype instanceof FieldtypePageTitleCompatible) $fieldtypes->add($fieldtype);
-                }
-
-                return $fieldtypes;
-        }
-
-        public function isAdvanced() {
-                return true;
-        }
-
-        public function getInputfield(Page $page, Field $field) {
-                $inputField = $this->modules->get('InputfieldPageTitle');
-                return $inputField;
-        }
+	
+		foreach(wire('fieldtypes') as $fieldtype) {
+			if($fieldtype instanceof FieldtypePageTitleCompatible) $fieldtypes->add($fieldtype);
+		}
+	
+		return $fieldtypes;
+	}
+	
+	public function isAdvanced() {
+		return true;
+	}
+	
+	public function getInputfield(Page $page, Field $field) {
+		$inputField = $this->modules->get('InputfieldPageTitle');
+		return $inputField;
+	}
 
 }

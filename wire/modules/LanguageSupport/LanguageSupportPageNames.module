@@ -222,6 +222,8 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$user->language = $setLanguage; 
 
 		// determine if requested URL was correct or if we need to redirect
+		$hasSlashURL = substr($requestPath, -1) == '/';
+		$useSlashURL = (bool) $page->template->slashUrls;
 		$expectedPath = trim($this->getPagePath($page, $user->language), '/');
 		$requestPath = trim($requestPath, '/'); 
 		$expectedPathLength = strlen($expectedPath);
@@ -229,9 +231,13 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		if($expectedPathLength) {
 			$requestPath = substr($requestPath, 0, $expectedPathLength); 
 		}
+		
 		if($expectedPath != $requestPath) {
 			if($expectedPathLength) $expectedPath .= '/';
 			$redirectURL = wire('config')->urls->root . $expectedPath;
+			
+		} else if($useSlashURL && !$hasSlashURL && strlen($expectedPath)) {
+			$redirectURL = wire('config')->urls->root . $expectedPath . '/';
 		}
 
 		return $redirectURL;
