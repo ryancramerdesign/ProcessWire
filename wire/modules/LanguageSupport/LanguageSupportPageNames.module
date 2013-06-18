@@ -164,11 +164,11 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		$languages = wire('languages'); 
 		if(!count($languages)) return '';
-
-		$page = wire('page'); 
-		if($page->template == 'admin') return '';
-
-		$user = wire('user'); 
+		
+		$page = $this->wire('page');
+		if($page->template == 'admin') return ''; 
+		$user = $this->wire('user');
+		$config = $this->wire('config');
 
 		$requestedParts = explode('/', $requestPath); 
 		$parentsAndPage = $page->parents()->getArray();
@@ -209,7 +209,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 				$active = $page->get("status$setLanguage") > 0; 
 			}
 			// if page is inactive for a language, and it's not editable, send a 404
-			if(!$active && !$page->editable()) {
+			if(!$active && !$page->editable() && $page->id != $config->http404PageID) {
 				// 404 or redirect to default language version
 				$this->force404 = true; 
 				return '';
@@ -220,6 +220,9 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		// set the language	
 		if(!$setLanguage) $setLanguage = $languages->get('default'); 
 		$user->language = $setLanguage; 
+	
+		// if $page is the 404 page, exit out now
+		if($page->id == $config->http404PageID) return '';
 
 		// determine if requested URL was correct or if we need to redirect
 		$hasSlashURL = substr($requestPath, -1) == '/';

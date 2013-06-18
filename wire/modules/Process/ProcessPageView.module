@@ -86,7 +86,7 @@ class ProcessPageView extends Process {
 			$page->setOutputFormatting(true); 
 			$_page = $page; 
 			$page = $this->checkAccess($page); 
-			if(!$page) return $this->pageNotFound($_page, $this->requestURL); 
+			if(!$page) return $this->pageNotFound($_page, $this->requestURL, true); 
 			$this->checkProtocol($page); 
 			if($this->redirectURL) $this->session->redirect($this->redirectURL);
 			$this->wire('page', $page); 
@@ -102,7 +102,7 @@ class ProcessPageView extends Process {
 			}
 
 		} else {
-			return $this->pageNotFound(new NullPage(), $this->requestURL); 
+			return $this->pageNotFound(new NullPage(), $this->requestURL, true); 
 		}
 
 	}	
@@ -390,11 +390,12 @@ class ProcessPageView extends Process {
  	 * @param Page|null $page Page that was found if applicable (like if user didn't have permission or $page's template threw the 404)
 	 * 	If not applicable then NULL will be given instead.
 	 * @param string $url The URL that the request originated from (like $_SERVER['REQUEST_URI'] but already sanitized)
+	 @ @param bool $triggerReady Whether or not the ready() hook should be triggered. 
 	 * @return string
 	 * @throws WireException
 	 *
 	 */
-	protected function ___pageNotFound($page, $url) {
+	protected function ___pageNotFound($page, $url, $triggerReady = false) {
 
 		$config = $this->config;
 
@@ -404,6 +405,7 @@ class ProcessPageView extends Process {
 			$page = $this->pages->get($config->http404PageID); 
 			if(!$page) throw new WireException("config::http404PageID does not exist - please check your config"); 
 			$this->wire('page', $page); 
+			if($triggerReady) $this->ready();
 			return $page->render();
 		} else {
 			return "404 page not found";
