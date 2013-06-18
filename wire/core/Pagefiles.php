@@ -262,7 +262,7 @@ class Pagefiles extends WireArray {
 		$ext = $dot ? substr($basename, $dot) : ''; 
 		$basename = strtolower(basename($basename, $ext)); 
 		$basename = preg_replace('/[^-_.a-zA-Z0-9]/', '_', $basename); 
-		$ext = preg_replace('/[^a-z0-9.]/', '_', $ext); 
+		$ext = preg_replace('/[^a-z0-9.]/', '_', strtolower($ext)); 
 		$basename .= $ext;
 		if($originalize) { 
 			$n = 0; 
