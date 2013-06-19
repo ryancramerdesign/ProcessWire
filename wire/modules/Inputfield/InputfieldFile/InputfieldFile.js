@@ -187,7 +187,11 @@ $(document).ready(function() {
 							if(r.replace) {
 								var $child = $this.find('.InputfieldFileList').children('li:eq(0)');
 								if($child.size() > 0) $child.slideUp('fast', function() { $child.remove(); });
-							} 
+							}
+                           
+							// ie10 file field stays populated, this fixes that
+							var $input = $this.find('input[type=file]');
+							if($input.val()) $input.replaceWith($input.clone(true));
 
 							var $markup = $(r.markup); 
 							$markup.hide();
