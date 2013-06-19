@@ -104,16 +104,24 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 
 		if(!$searchField) $searchField = 'title';
 		$addNote = $this->_('Hit enter to add as new item'); 
-
+		
+		$labelField = $this->labelFieldName; 
+		$operator = $this->operator; 
+		$id = $this->id; 
+		
 		$out .= <<< _OUT
 
 		<p>
-		<input type='hidden' name='{$this->name}[]' id='{$this->id}' value='{$value}' />
-		<input type='text' data-parent-input='{$this->id}' id='{$this->id}_input' value='' />
+		<input type='hidden' name='{$this->name}[]' id='$id' value='$value' />
+		<input type='text' data-parent-input='$id' id='{$id}_input' value='' />
 		<span class='ui-icon ui-icon-arrowreturn-1-e InputfieldPageAutocompleteStatus'></span>
 		<span class='notes InputfieldPageAutocompleteNote'><br />$addNote</span>
 		</p>
-		<script>InputfieldPageAutocomplete.init('{$this->id}', '$url', '{$this->labelFieldName}', '{$searchField}', '{$this->operator}');</script>
+		<script>
+		$(document).ready(function() { 
+			InputfieldPageAutocomplete.init('$id', '$url', '$labelField', '$searchField', '$operator');
+		}); 
+		</script>
 
 _OUT;
 

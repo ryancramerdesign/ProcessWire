@@ -119,10 +119,12 @@ var InputfieldPageAutocomplete = {
 			$ol.addClass('InputfieldPageAutocompleteSortable'); 
 		};
 
-		$('#' + $ol.attr('id') + '>li').live('mouseover', function() {
+		// $('#' + $ol.attr('id') + '>li').live('mouseover', function() {
+		$('#' + $ol.attr('id')).on('mouseover', '>li', function() { 
 			$(this).removeClass('ui-state-default').addClass('ui-state-hover'); 
 			makeSortable($ol); 
-		}).live('mouseout', function() {
+		// }).live('mouseout', function() {
+		}).on('mouseout', '>li', function() {
 			$(this).removeClass('ui-state-hover').addClass('ui-state-default'); 
 		}); 
 
@@ -189,14 +191,15 @@ var InputfieldPageAutocomplete = {
 
 $(document).ready(function() {
 
-	$(".InputfieldPageAutocomplete ol li a.itemRemove").live('click', function() {
+	//$(".InputfieldPageAutocomplete ol li a.itemRemove").live('click', function() { // live() deprecated
+	$(".InputfieldPageAutocomplete ol").on('click', 'a.itemRemove', function() {
 		var $li = $(this).parent(); 
 		var $ol = $li.parent(); 
 		var id = $li.children(".itemValue").text();
 		$li.remove();
 		InputfieldPageAutocomplete.rebuildInput($ol); 
 		return false; 
-	}); 
+	});
 
 }); 
 
