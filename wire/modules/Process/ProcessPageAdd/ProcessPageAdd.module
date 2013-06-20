@@ -90,7 +90,7 @@ class ProcessPageAdd extends Process {
 	 * Returns an array of templates that are allowed to be used here
 	 *
 	 */
-	protected function getAllowedTemplates() {
+	protected function ___getAllowedTemplates() {
 
 		if(is_array($this->allowedTemplates)) return $this->allowedTemplates;
 
