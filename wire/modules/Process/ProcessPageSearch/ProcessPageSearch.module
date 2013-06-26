@@ -250,7 +250,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 		// search query text
 		$q = $this->input->whitelist('q');
-		if(strlen($q)) {
+		if(strlen($q)) { 
 			$searchFields = $this->searchFields;
 			if(is_string($searchFields)) $searchFields = explode(' ', $searchFields);
 
@@ -258,8 +258,8 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 				$fieldName = $this->sanitizer->fieldName($fieldName);
 				$selector .= "$fieldName|";
 			}
-			$selector = rtrim($selector, '|') . $this->operator . $q;
-		}
+			$selector = rtrim($selector, '|') . $this->operator . $this->wire('sanitizer')->selectorValue($q);
+		} 
 
 		// determine if results are sorted by something other than relevance
 		$sort = $this->input->whitelist('sort');
@@ -345,7 +345,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		}
 
 		// search query
-		$q = $this->sanitizer->selectorValue(substr($this->input->get->q, 0, 128));
+		$q = $this->sanitizer->text(substr($this->input->get->q, 0, 128));
 		$this->input->whitelist('q', $q);
 
 		// sort
