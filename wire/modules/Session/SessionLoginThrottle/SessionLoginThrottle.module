@@ -19,7 +19,7 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Session Login Throttle', 
-			'version' => 101, 
+			'version' => 102, 
 			'summary' => 
 				'Throttles the frequency of logins for a given account, helps to reduce dictionary attacks ' . 
 				'by introducing an exponential delay between logins.',
@@ -31,8 +31,8 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 
 	protected static $defaultSettings = array(
 		'checkIP' => 0,
-		'seconds' => 10,
-		'maxSeconds' => 300
+		'seconds' => 5,
+		'maxSeconds' => 60 
 		);
 
 	public function __construct() {
@@ -121,10 +121,8 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 		$expired = $time - $this->maxSeconds;
 		
 		$sql = "DELETE FROM session_login_throttle WHERE last_attempt < :expired ";
-		if($allowed) $sql .= "OR name=:name";
 		$query = $database->prepare($sql);
 		$query->bindValue(":expired", $expired, PDO::PARAM_INT);
-		if($allowed) $query->bindValue(":name", $name);
 		$query->execute();
 			
 		return $allowed; 
