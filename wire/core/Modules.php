@@ -289,7 +289,10 @@ class Modules extends WireArray {
 		if($level == 0) {
 			$startPath = $path;
 			$cacheFilename = $config->paths->cache . "Modules." . md5($path) . ".cache";
-			if($readCache && is_file($cacheFilename)) return explode("\n", file_get_contents($cacheFilename)); 
+			if($readCache && is_file($cacheFilename)) {
+				$cacheContents = explode("\n", file_get_contents($cacheFilename)); 
+				if(!empty($cacheContents)) return $cacheContents;
+			}
 		}
 
 		$files = array();
@@ -320,7 +323,7 @@ class Modules extends WireArray {
 			$files[] = str_replace($startPath, '', $pathname); 
 		}
 
-		if($level == 0) @file_put_contents($cacheFilename, implode("\n", $files), LOCK_EX); 
+		if($level == 0) @file_put_contents($cacheFilename, implode("\n", $files), LOCK_EX);  // remove LOCK_EX ?
 		if($config->chmodFile) @chmod($cacheFilename, octdec($config->chmodFile));
 
 		return $files;
