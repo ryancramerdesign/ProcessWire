@@ -13,7 +13,7 @@
  *
  */
 
-class WireHttp { 
+class WireHttp extends Wire { 
 
 	/**
 	 * Headers to include in the request
@@ -248,5 +248,48 @@ class WireHttp {
 
 	}
 
+	/**
+	 * Download a file from a URL and save it locally
+	 * 
+	 * Code originated from @soma's Modules Manager
+	 * 
+	 * @param $fromURL URL of file you want to download.
+	 * @param $toFile Filename you want to save it to (including full path).
+	 * @param array $options Optional aptions array for PHP's stream_context_create().
+	 * @return string Filename that was downloaded (including full path).
+	 * @throws WireException All error conditions throw exceptions. 
+	 * 
+	 */
+	public function download($fromURL, $toFile, array $options = array()) {
+
+		if((substr($fromURL, 0, 8) == 'https://') && !extension_loaded('openssl')) {
+			throw new WireException($this->_('WireHttp::download-OpenSSL extension required but not available.'));
+		}
+
+		// Define the options
+		$defaultOptions = array(
+				'max_redirects' => 3
+				); 
+		$options = array_merge($defaultOptions, $options);
+		$context = stream_context_create(array('http' => $options));
+
+		// download the file
+		$content = file_get_contents($fromURL, false, $context);
+		if($content === false) {
+			throw new WireException($this->_('File could not be downloaded:') . ' ' . htmlentities($fromURL));
+		}
+
+		if(($fp = fopen($toFile, 'wb')) === false) {
+			throw new WireException($this->_('fopen error for filename:') . ' ' . htmlentities($toFile));
+		}
+
+		fwrite($fp, $content);
+		fclose($fp);
+		
+		$chmodFile = $this->wire('config')->chmodFile; 
+		if($chmodFile) chmod($toFile, octdec($chmodFile));
+		
+		return $toFile;
+	}
 
 }
