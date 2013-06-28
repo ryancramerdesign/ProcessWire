@@ -8,12 +8,14 @@
  * For more details about how Process modules work, please see: 
  * /wire/core/Process.php 
  * 
+ * This version also lifts several pieces of code from Soma's Modules Manager
+ * specific to the parts involved with downloading modules from the directory.
+ * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -23,11 +25,13 @@ class ProcessModule extends Process {
 		return array(
 			'title' => __('Modules', __FILE__), // getModuleInfo title          
 			'summary' => __('List, edit or install/uninstall modules', __FILE__), // getModuleInfo summary
-			'version' => 100, 
+			'version' => 102, 
 			'permanent' => true, 
 			'permission' => 'module-admin', 
 			);
 	}
+
+	protected $labels = array();
 
 	/**
 	 * All modules indexed by class name and sorted by class name
@@ -36,13 +40,31 @@ class ProcessModule extends Process {
 	protected $modulesArray = array();
 
 	/**
+	 * All modules that may be deleted
+	 *
+	 */
+	protected $deleteableModules = array();
+
+	/**
+	 * Number of new modules found after a reset
+	 * 
+	 */
+	protected $numFound = 0;
+	
+	public function __construct() {
+		$this->labels['download'] = $this->_('Download'); 
+		$this->labels['download_install'] = $this->input->get->update ? $this->_('Download and Update') : $this->_('Download and Install');
+		$this->labels['check_new'] = $this->_('Check for New Modules'); 
+	}
+
+
+	/**
 	 * Format a module version number from 999 to 9.9.9
 	 *
 	 * @param string $version
 	 * @return string
 	 *
 	 */
-
 	protected function formatVersion($version) {
 		return preg_replace('/(\d)(?=\d)/', '$1.', str_pad("$version", 3, "0", STR_PAD_LEFT));
 	}
@@ -57,15 +79,25 @@ class ProcessModule extends Process {
 		foreach($this->modules->getInstallable() as $module) $this->modulesArray[basename($module, '.module')] = 0; 
 		ksort($this->modulesArray); 
 
-		if(isset($_POST['install'])) {
+		if($this->input->post->install) {
 			$this->session->CSRF->validate();
-			$name = $_POST['install']; 
+			$name = $this->input->post->install;
 			if($name && isset($this->modulesArray[$name]) && !$this->modulesArray[$name]) {
 				$module = $this->modules->get($name); 		
 				$this->modulesArray[$name] = 1; 
 				$this->session->message($this->_("Module Install") . " - " . $module->className); // Message that precedes the name of the module installed
 				$this->session->redirect("edit?name={$module->className}"); 
 			}
+		}
+		
+		if($this->input->post->download && $this->input->post->download_name) {
+			$this->session->CSRF->validate();
+			return $this->downloadConfirm($this->input->post->download_name);
+		}
+		
+		if($this->input->get->update) {
+			$name = $this->sanitizer->name($this->input->get->update); 
+			if(isset($this->modulesArray[$name])) return $this->downloadConfirm($name, true); 
 		}
 
 		if($this->input->get->reset == 1) {
@@ -82,57 +114,167 @@ class ProcessModule extends Process {
 	 *
 	 */
 	protected function renderList() {
+		
+		$modulesArray = $this->modulesArray; 
+		$installedArray = array();
+		$uninstalledArray = array();
+		$uninstalledNames = array();
+		$siteModulesArray = array();
+		$coreModulesArray = array();
+
+		foreach($modulesArray as $name => $installed) {
+			
+			if($installed) {
+				$installedArray[$name] = $installed;
+			} else {
+				$uninstalledNames[] = $name;
+				$uninstalledArray[$name] = $installed;
+			}
+		
+			$this->modules->getModuleInfo($name); 
+			try {
+				$reflector = new ReflectionClass($name);
+				$filename = $reflector->getFileName();
+			} catch(Exception $e) {
+				// $this->error($e->getMessage()); 
+			}
+			
+			if(strpos($filename, '/wire/modules/') !== false) {
+				$coreModulesArray[$name] = $installed;
+			} else {
+				$siteModulesArray[$name] = $installed;
+			}
+		}
+
+		$form = $this->modules->get('InputfieldForm');
+		$form->attr('action', './'); 
+		$form->attr('method', 'post'); 
+		$form->attr('id', 'modules_form');
+
+		$this->modules->get('JqueryWireTabs');
+		$tab = new InputfieldWrapper();
+		$tab->description = $this->_('/site/modules/ - Modules specific to your site');
+		$tab->attr('title', $this->_('Site'));
+		$tab->attr('class', 'WireTab');
+		
+		$markup = $this->modules->get('InputfieldMarkup');
+		$markup->value .= $this->renderListTable($siteModulesArray);
+		$markup->notes = $this->_("To remove a module, click the module to edit, check the 'uninstall' box, then save. Once uninstalled, the module's file(s) may be removed from /site/modules/. If it still appears in the list above, you may need to click the 'check for new modules' button for ProcessWire to see the change."); // Instructions on how to remove a module
+		$tab->add($markup);
+		$form->add($tab); 
+		
+		$this->modules->get('JqueryWireTabs');
+		$tab = new InputfieldWrapper();
+		$tab->attr('title', $this->_('Core'));
+		$tab->attr('class', 'WireTab');
+		$tab->description = $this->_('/wire/modules/ - Modules included with the ProcessWire core'); 
+		$markup = $this->modules->get('InputfieldMarkup');
+		$markup->value = $this->renderListTable($coreModulesArray);
+		$tab->add($markup); 
+		$form->add($tab);
+		
+		$tab = new InputfieldWrapper();
+		$tab->attr('title', $this->_('New'));
+		$tab->attr('class', 'WireTab');
+		
+		$fieldset = $this->modules->get('InputfieldFieldset');
+		$fieldset->label = $this->labels['download_install'];
+		$f = $this->modules->get('InputfieldName');
+		$f->attr('id+name', 'download_name');
+		$f->label = $this->_('Module Class Name');
+		$f->description = $this->_('You may browse the modules directory and locate the module you want to download and install. Type or paste in the "class name" for the module you want to install.');
+		$f->notes = $this->_('The modules directory is located at [modules.processwire.com](http://modules.processwire.com)'); 
+		$f->attr('placeholder', $this->_('ModuleClassName')); // placeholder
+		$f->required = false; 
+		$fieldset->add($f);
+		$f = $this->modules->get('InputfieldSubmit');
+		$f->attr('id+name', 'download');
+		$f->value = $this->labels['download_install'];
+		$fieldset->add($f);
+		$tab->add($fieldset);
+		
+		$fieldset = $this->modules->get('InputfieldFieldset');
+		$fieldset->label = $this->labels['check_new'];
+		$fieldset->description = $this->_('If you have placed new modules in /site/modules/ yourself, click this button to find them.');
+		$fieldset->collapsed = Inputfield::collapsedYes; 
+		$submit = $this->modules->get('InputfieldButton');
+		$submit->attr('href', './?reset=1');
+		$submit->attr('id', 'reset_modules');
+		$submit->attr('class', $submit->attr('class') . ' head_button_clone');
+		$submit->attr('name', 'reset');
+		$submit->attr('value', $this->labels['check_new']);
+		$fieldset->add($submit);
+		$tab->add($fieldset);
+
+		$form->add($tab);
 	
-		$modules = array();
-		$uninstalled = array();
+		if($this->input->get->reset == 2 && !$this->numFound) $this->message($this->_("No new modules found")); 
+		$this->session->ModulesUninstalled = $uninstalledNames;
+
+		return $form->render(); 
+	}
+
+	/**
+	 * Render a modules listing table, as it appears in the 'site' and 'core' tabs
+	 * 
+	 * @param array $modulesArray
+	 * @return string
+	 * 
+	 */
+	protected function renderListTable($modulesArray) {
+		if(!count($modulesArray)) return '';
+		
+		static $numCalls = 0; 
+		$numCalls++;
+		
 		$uninstalledPrev = is_array($this->session->ModulesUninstalled) ? $this->session->ModulesUninstalled : array();
 		$section = 'none';
 		$tableHeader = array(
 			$this->_x('Module', 'list'),	// Modules list table header for 'Module' column 
 			$this->_x('Version', 'list'), 	// Modules list table header for 'Version' column
 			$this->_x('Summary', 'list')	// Modules list table header for 'Summary' column
-			); 
+		);
 		$table = null;
 		$total = 0;
-		$out = 	"\n<p class='description'>" . sprintf($this->_("To add more modules, place them in %s and click the button to check for new modules."), $this->config->urls->siteModules) . "</p>"; // Instructions on how to add more modules
-		$numFound = 0;
+		$out = '';
+		$this->numFound = 0;
 
 		$labelRequires = $this->_x("Requires", 'list'); // Label that precedes list of required prerequisite modules
 		$labelInstalls = $this->_x("Also Installs", 'list'); // Label that precedes list of other modules a given one installs
 
-		foreach($this->modulesArray as $name => $installed) {
+		foreach($modulesArray as $name => $installed) {
 
 			if(strpos($name, $section) !== 0 || preg_match('/' . $section . '[^A-Z]/', $name)) {
-				if(!preg_match('/^([A-Za-z][a-z]+)/', $name, $matches)) $this->error($name); 
-				$section = $matches[1]; 
+				if(!preg_match('/^([A-Za-z][a-z]+)/', $name, $matches)) $this->error($name);
+				$section = $matches[1];
 				if($table) $out .= $table->render();
 				$table = $this->modules->get("MarkupAdminDataTable");
-				$table->setEncodeEntities(false); 
-				$table->headerRow($tableHeader); 
-				$out .= "\n<h2>$section</h2>"; 
+				$table->setEncodeEntities(false);
+				$table->headerRow($tableHeader);
+				$out .= "\n<h2>$section</h2>";
 			}
 
 			$info = $this->modules->getModuleInfo($name); 
-			$interfaces = @class_implements($name, false); 
-			$configurable = is_array($interfaces) && in_array('ConfigurableModule', $interfaces); 
-			$title = !empty($info['title']) ? htmlspecialchars($info['title']) : substr($name, strlen($section)); 
+			$interfaces = @class_implements($name, false);
+			$configurable = is_array($interfaces) && in_array('ConfigurableModule', $interfaces);
+			$title = !empty($info['title']) ? htmlspecialchars($info['title'], ENT_QUOTES, 'UTF-8') : substr($name, strlen($section));
 			$class = $configurable ? 'ConfigurableModule' : '';
 			if(!empty($info['permanent'])) $class .= ($class ? ' ' : '') . 'PermanentModule';
 			if($class) $title = "<span class='$class'>$title</span>";
 			$version = $this->formatVersion(isset($info['version']) ? $info['version'] : 0);
-			$summary = empty($info['summary']) ? '' : htmlspecialchars($info['summary']);
+			$summary = empty($info['summary']) ? '' : htmlspecialchars($info['summary'], ENT_QUOTES, 'UTF-8');
 			$summary .= empty($info['href']) ? '' : (" <a href='$info[href]'>" . $this->_('more') . "</a>");
 
 			$editUrl = "edit?name={$name}";
 
-			if(!$installed) { 
+			if(!$installed) {
 
 				if(count($info['requires'])) {
-					$requires = $this->modules->getRequiresForInstall($name); 
+					$requires = $this->modules->getRequiresForInstall($name);
 					if(count($requires)) $summary .= "<br /><span class='notes'>$labelRequires - " . implode(', ', $requires) . "</span>";
 				} else $requires = array();
 
-				if(count($info['installs'])) { 
+				if(count($info['installs'])) {
 					$summary .= "<br /><span class='detail'>$labelInstalls - " . implode(', ', $info['installs']) . "</span>";
 				}
 
@@ -140,52 +282,330 @@ class ProcessModule extends Process {
 				if(count($uninstalledPrev) && !in_array($name, $uninstalledPrev)) {
 					$class .= " new_module";
 					if(!$this->input->get->uninstalled) $this->message($this->_("Found new module") . " - <a href=\"#$name\">$name</a>"); // Message that precedes module name when new module is found
-					$numFound++;
+					$this->numFound++;
 				}
 
 				$title = "<span id='$name' class='$class'>$title</span>";
 				$buttonAttr = count($requires) ? " disabled='disabled'" : '';
 				$version .= "<button$buttonAttr type='submit' id='install_$name' name='install' class='install' value='$name'>" . $this->_x('Install', 'button') . "</button>"; // Text for 'Install' button
 				$editUrl = '#';
-				$uninstalled[] = $name; 
+			} else {
 			}
 
 			$row = array(
 				$title => $editUrl,
-				$version, 
+				$version,
 				$summary,
 				);
 
-			$table->row($row); 
+			$table->row($row);
 			$total++;
 
 		}
-
 		$out .= $table->render();
-		$out .= "<p class='description'>" . 
-			$this->_("To remove a module, click the module to edit, check the 'uninstall' box, then save. Once uninstalled, the module's file(s) may be removed from /site/modules/. If it still appears in the list above, you may need to click the 'check for new modules' button for ProcessWire to see the change.") . // Instructions on how to remove a module
-			"</p>";
-
-		$form = $this->modules->get('InputfieldForm');
-		$form->attr('action', './'); 
-		$form->attr('method', 'post'); 
-		$form->attr('id', 'modules_form'); 
-
-		$submit = $this->modules->get('InputfieldButton');
-		$submit->attr('href', './?reset=1'); 
-		$submit->attr('id', 'reset_modules');
-		$submit->attr('class', $submit->attr('class') . ' head_button_clone');
-		$submit->attr('name', 'reset');
-		$submit->attr('value', $this->_('Check for new modules')); 
-		$form->add($submit); 
-
-		$form->attr('value', $out); 
-
-		if($this->input->get->reset == 2 && !$numFound) $this->message($this->_("No new modules found")); 
-		$this->session->ModulesUninstalled = $uninstalled;
-
-		return $form->render(); 
+		return $out;
 	}
+
+	/**
+	 * Checks for compatibility, polls the modules directory web service and returns rendered markup for the download info table and confirmation form
+	 * 
+	 * @param $name Class name of module
+	 * @param bool $update Whether this is a 'check for updates' request
+	 * @return string
+	 * 
+	 */
+	protected function downloadConfirm($name, $update = false) {
+		
+		if(!is_writable($this->config->paths->cache)) $this->error($this->_('Make sure /site/assets/cache/ directory is writeable for PHP.'));
+		if(!is_writable($this->config->paths->siteModules)) $this->error($this->_('Make sure your site modules directory (/site/modules/) is writeable for PHP.'));
+		if(!class_exists('ZipArchive')) $this->error($this->_('ZipArchive class is required and your PHP does not appear to have it.'));
+
+		$info = self::getModuleInfo();
+		$this->wire('processHeadline', $this->labels['download_install']); 
+		$this->wire('breadcrumbs')->add(new Breadcrumb('./', $info['title']));
+		if($update) $this->wire('breadcrumbs')->add(new Breadcrumb("./?edit=$name", $name)); 
+
+		$redirectURL = $update ? "./edit?name=$name" : "./";
+		$apikey = 'pw231'; // @todo make this part of the module config rather than placed here
+		$className = $this->wire('sanitizer')->name($name);
+		$qs = "apikey=$apikey";
+		$url = "http://modules.processwire.com/export-json/$className/?$qs";
+		$http = new WireHttp();
+		$data = $http->get($url); 
+		if(empty($data)) {
+			$this->error($this->_('Error retrieving data from web service URL'));
+			return $this->session->redirect($redirectURL);
+		}
+		$data = json_decode($data, true); 
+		if(empty($data)) {
+			$this->error($this->_('Error decoding JSON from from web service')); 
+			return $this->session->redirect($redirectURL);
+		}
+		if($data['status'] !== 'success') {
+			$this->error($this->_('Error reported by web service:') . ' ' . wire('sanitizer')->entities($data['error']));
+			return $this->session->redirect($redirectURL);	
+		}
+	
+		$form = $this->buildDownloadConfirmForm($data, $update);
+		return $form->render(); 	
+	}
+
+	/**
+	 * Builds a confirmation form and table showing information about the requested module before download
+	 * 
+	 * @param array $data Array of information about the module from the directory service
+	 * @param bool $update Whether or not this is an 'update module' request
+	 * @return InputfieldForm
+	 * 
+	 */
+	protected function ___buildDownloadConfirmForm(array $data, $update = false) {
+		
+		$warnings = array();
+		$authors = '';
+		
+		foreach($data['authors'] as $author) $authors .= $author['title'] . ", ";
+		$authors = rtrim($authors, ", ");
+
+		$compat = '';
+		$isCompat = false;
+		$myVersion = substr($this->wire('config')->version, 0, 3);
+		foreach($data['pw_versions'] as $v) {
+			$compat .= $v['name'] . ", ";
+			if(version_compare($v['name'], $myVersion) >= 0) $isCompat = true;
+		}
+		$compat = trim($compat, ", ");
+		if(!$isCompat) $warnings[] = $this->_('This module does not indicate compatibility with this version of ProcessWire. It may still work, but you may want to check with the module author.');
+
+		$form = $this->wire('modules')->get('InputfieldForm');
+		$form->attr('action', './download/');
+		$form->attr('method', 'post');
+		$form->attr('id', 'ModuleInfo');
+		$markup = $this->wire('modules')->get('InputfieldMarkup');
+		$form->add($markup);
+		
+		$installed = $this->modules->isInstalled($data['class_name']) ? $this->modules->getModuleInfo($data['class_name']) : null;
+		if($installed) {
+			$installedVersion = $this->formatVersion($installed['version']); 
+			if($installedVersion == $data['module_version']) {
+				$note = $this->_('Current installed version is already up-to-date'); 
+				$installedVersion .= ' - ' . $note;
+				$this->message($note); 
+				$this->session->redirect("./edit?name=$data[class_name]"); 
+			} else {
+				if(version_compare($installedVersion, $data['module_version']) < 0) {
+					$this->message = $this->_('An update to this module is available'); 
+					$installedVersion .= ' - ' . $this->_x('Yes, but you are running an older version', 'install-table'); 
+				} else {
+					$installedVersion .= ' - ' . $this->_x('Yes, currently installed', 'install-table'); 
+				}
+			}
+		} else {
+			$installedVersion = $this->_x('No, not already installed', 'install-table');
+		}
+
+		$table = $this->wire('modules')->get('MarkupAdminDataTable');
+		$table->setEncodeEntities(false);
+		$table->row(array($this->_x('Class', 'install-table'), $this->wire('sanitizer')->entities($data['class_name'])));
+		$table->row(array($this->_x('Version', 'install-table'), $this->wire('sanitizer')->entities($data['module_version'])));
+		$table->row(array($this->_x('Installed?', 'install-table'), $installedVersion)); 
+		$table->row(array($this->_x('Authors', 'install-table'), $this->wire('sanitizer')->entities($authors)));
+		$table->row(array($this->_x('Summary', 'install-table'), $this->wire('sanitizer')->entities($data['summary'])));
+		$table->row(array($this->_x('Release State', 'install-table'), $this->wire('sanitizer')->entities($data['release_state']['title'])));
+		$table->row(array($this->_x('Compatibility', 'install-table'), $this->wire('sanitizer')->entities($compat)));
+
+		$links = array();
+
+		$moduleName = wire('sanitizer')->entities($data['name']);
+		$links[] = "<a target='_blank' href='http://modules.processwire.com/modules/$moduleName/'>" . $this->_('More Information') . "</a>";
+
+		if($data['project_url']) {
+			$projectURL = wire('sanitizer')->entities($data['project_url']);
+			$links[] = "<a target='_blank' href='$projectURL'>" . $this->_('Project Page') . "</a>";
+		}
+
+		if($data['forum_url']) {
+			$forumURL = wire('sanitizer')->entities($data['forum_url']);
+			$links[] = "<a target='_blank' href='$forumURL'>" . $this->_('Support Page') . "</a>";
+		}
+
+		if(count($links)) $table->row(array($this->_x('Links', 'install-table'), implode(' &nbsp;/&nbsp; ', $links)));
+
+		if($data['download_url']) {
+			$downloadURL = wire('sanitizer')->entities($data['download_url']);
+			$table->row(array($this->_x('ZIP file', 'install-table'), $downloadURL));
+			$warnings[] = $this->_('Ensure that you trust the source of the ZIP file above before continuing!');
+		} else {
+			$warnings[] = $this->_('This module has no download URL specified and must be installed manually.');
+		}
+
+		foreach($warnings as $warning) {
+			$table->row(array($this->_x('Please Note', 'install-table'), "<strong class='ui-state-error-text'> $warning</strong>"));
+		}
+
+		$markup->value = $table->render();
+
+		if($data['download_url']) {
+			$btn = $this->wire('modules')->get('InputfieldSubmit');
+			$btn->attr('id+name', 'godownload');
+			$btn->value = $this->labels['download_install'];
+			$form->add($btn);
+			$this->session->ProcessModuleDownloadURL = $data['download_url'];
+			$this->session->ProcessModuleClassName = $data['class_name'];
+		} else {
+			$this->session->remove('ProcessModuleDownloadURL');
+			$this->session->remove('ProcessModuleClassName');
+		}
+
+		$btn = $this->wire('modules')->get('InputfieldButton');
+		$btn->attr('name', 'cancel');
+		$btn->href = $update ? "./edit?name=$data[class_name]" : './';
+		$btn->value = $this->_('Cancel');
+		$btn->class .= ' ui-priority-secondary';
+		$form->add($btn);
+
+		$form->description = $this->wire('sanitizer')->entities($data['title']); 
+		return $form;
+	}
+
+	/**
+	 * Triggered on the /download/ action - Downloads a module from the directory
+	 * 
+	 * Most code lifted from Soma's Modules Manager
+	 * 
+	 * @return string Rendered outpu
+	 * @throws WireException
+	 * 
+	 */
+	public function ___executeDownload() {
+
+		if(!$this->input->post->godownload) {
+			$this->message($this->_('Download cancelled')); 
+			return $this->session->redirect('../'); 
+		}
+		
+		$this->session->CSRF->validate();
+		$this->modules->resetCache();
+
+		$url = $this->session->ProcessModuleDownloadURL;
+		$class_name = $this->session->ProcessModuleClassName;
+		
+		$this->session->remove('ProcessModuleDownloadURL');
+		$this->session->remove('ProcessModuleClassName'); 
+		
+		if(!$url) throw new WireException("No download URL specified"); 
+		if(!$class_name) throw new WireException("No class name specified");
+
+		$destination_directory = $this->config->paths->siteModules . $class_name;
+		if(is_dir($destination_directory) && !is_writable($destination_directory)) {	
+			$this->error($this->_('Destination directory already exists and is not writable:') . ' ' . $destination_directory); 
+			return $this->session->redirect('../'); 
+		}
+		
+		$tmp_dir = $this->config->paths->cache . 'ProcessModuleDownload/';
+		if(!is_dir($tmp_dir)) wireMkdir($tmp_dir); 
+		$tmp_zip = $tmp_dir . 'module-tmp.zip';
+
+		// download the zip file and save it in assets directory
+		$success = false;
+		$http = new WireHttp();
+		
+		try {
+			$file = $http->download($url, $tmp_zip);
+			$this->message($this->_('Downloaded ZIP file:') . ' ' . htmlentities($url));
+		} catch(Exception $e) {
+			$this->error($e->getMessage());
+			return $this->wire('session')->redirect('./');
+		}
+		
+		try {
+			$files = wireUnzipFile($file, $tmp_dir);
+		} catch(Exception $e) {
+			if(is_file($file)) unlink($file);
+			$this->error($e->getMessage());
+			return $this->wire('session')->redirect('./');
+		}
+		
+		$extracted_directory_name = trim($files[0], '/'); 
+		if(is_dir($tmp_dir . $extracted_directory_name)) $extracted_directory_name .= '/';
+			else $extracted_directory_name = '';
+		
+		// now create module directory and copy files over
+		$from = $tmp_dir . $extracted_directory_name;
+		
+		if(!is_dir($destination_directory)) wireMkdir($destination_directory); 
+		
+		if(is_dir($destination_directory)) {
+			if(wireCopy($from, $destination_directory)) {
+				$this->message($this->_('Successfully copied files to new directory:') . ' ' . str_replace($this->config->paths->root, '/', $destination_directory));
+				$success = true;
+			}
+		} else {
+			$this->error($this->_('Could not create directory:') . ' ' . $destination_directory);
+		}
+
+		if(!wireRmdir($tmp_dir, true)) $this->error($this->_('Could not delete downloaded temporary files:') . ' ' . $tmp_dir, Notice::log);
+		if(!$success) return $this->error($this->_('There seems to be a problem with downloading or writing the module.'));
+
+		// reset modules cache, so we can install the module and PW knows about it
+		$this->modules->resetCache();
+		$form = $this->buildDownloadSuccessForm($class_name);
+		return $form->render();
+	}
+
+	/**
+	 * Build the form that gets displayed after a module has been successfully downloaded
+	 * 
+	 * @param string $className
+	 * @return InputfieldForm
+	 * 
+	 */
+	protected function ___buildDownloadSuccessForm($className) {
+		
+		$form = $this->modules->get('InputfieldForm');
+
+		// check if modules isn't already installed and this isn't an update
+		if(!$this->modules->isInstalled($className)) {
+
+			$this->wire('processHeadline', $this->_('Downloaded:') . ' ' . $className);
+
+			$form->description = sprintf($this->_('%s is ready to install'), $className);
+			$form->attr('action', '../');
+			$form->attr('method', 'post');
+			$form->attr('id', 'install_confirm_form');
+
+			$f = $this->modules->get('InputfieldHidden');
+			$f->attr('name', 'install');
+			$f->attr('value', $className);
+			$form->add($f);
+
+			$submit = $this->modules->get('InputfieldSubmit');
+			$submit->attr('name', 'submit');
+			$submit->attr('id', 'install_now');
+			$submit->attr('value', $this->_('Install Now'));
+			$form->add($submit);
+
+			$button = $this->modules->get('InputfieldButton');
+			$button->attr('href', '../');
+			$button->attr('value', $this->_('Leave Uninstalled'));
+			$button->class .= " ui-priority-secondary";
+			$button->attr('id', 'no_install');
+			$form->add($button);
+
+		} else {
+
+			$this->wire('processHeadline', $this->_('Updated:') . ' ' . $className);
+			$form->description = sprintf($this->_('Module `%s` was updated successfully.'), $className);
+			$button = $this->modules->get('InputfieldButton');
+			$button->attr('href', "../edit?name=$className");
+			$button->attr('value', $this->_('Continue to module settings'));
+			$button->attr('id', 'gosettings');
+			$form->add($button);
+		}
+		
+		return $form;
+	}
+
+	/**********************************************************************************************************************************************************/
 
 	/**
 	 * Load the form for editing a module's settings
@@ -254,7 +674,7 @@ class ProcessModule extends Process {
 
 		// uninstall checkbox
 		$field = $this->modules->get("InputfieldCheckbox"); 
-		$field->attr('name', 'uninstall'); 
+		$field->attr('id+name', 'uninstall'); 
 		$field->attr('value', $moduleName); 
 		$field->collapsed = Inputfield::collapsedYes; 
 		$field->label = $this->_x("Uninstall", 'checkbox');
@@ -314,14 +734,26 @@ class ProcessModule extends Process {
 			if(!is_string($value)) continue; 
 			$moduleInfo[$key] = htmlspecialchars($value, ENT_QUOTES, "UTF-8"); 
 		}
+	
+		$version = $this->formatVersion($moduleInfo['version']);
+		try {
+			$reflector = new ReflectionClass($moduleName);
+			$filename = preg_replace('{^.*?(/(?:wire|site)/.*)$}', '$1', $reflector->getFileName()); 
+		} catch(Exception $e) {
+			$filename = '';
+		}
+		if(strpos($filename, '/wire/modules/') === false) {
+			$version .= " - <a href='./?update=$moduleName'>" . $this->_('check for updates') . "</a>"; 
+		}
 
 		// build a table that displays module info
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->setEncodeEntities(false); 
 		$table->row(array($this->_x('Title', 'edit'), $moduleInfo['title'])); 
-		$table->row(array($this->_x('Class', 'edit'), $moduleName)); 
+		$table->row(array($this->_x('Class', 'edit'), $moduleName));
+		$table->row(array($this->_x('File', 'edit'), $filename)); 
 		$table->row(array($this->_x('ID', 'edit'), $moduleId)); 
-		$table->row(array($this->_x('Version', 'edit'), $this->formatVersion($moduleInfo['version']))); 
+		$table->row(array($this->_x('Version', 'edit'), $version)); 
 		if(!empty($moduleInfo['author'])) $table->row(array($this->_x('Author', 'edit'), $moduleInfo['author'])); 
 		$table->row(array($this->_x('Summary', 'edit'), $moduleInfo['summary'])); 
 		if($requirementsStr) $table->row(array($this->_x('Requires', 'edit'), $requirementsStr)); 

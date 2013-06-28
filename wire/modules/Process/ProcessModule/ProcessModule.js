@@ -13,10 +13,16 @@ $(document).ready(function() {
 		if(disabled && disabled.length > 0) {
 			alert("This module requires other modules to be installed first."); 
 		} else {
-			if(confirm("Do you want to install " + $(this).text() + "?")) $btn.click();
+			if(confirm("Install " + $(this).text() + "?")) $btn.click();
 		}
 
 		return false;
-	}); 
+	});
+
+    if($('#modules_form').size() > 0) {
+        $('#modules_form').WireTabs({
+            items: $(".Inputfields li.WireTab")
+        });
+    }
 
 }); 
