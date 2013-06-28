@@ -214,6 +214,84 @@ function wireRmdir($path, $recursive = false) {
 }
 
 /**
+ * Copy all files in directory $src to directory $dst
+ * 
+ * The default behavior is to also copy directories recursively. 
+ * 
+ * @param string $src Path to copy files from
+ * @param string $dst Path to copy files to. Directory is created if it doesn't already exist.
+ * @param bool $recursive Whether to copy directories within recursively. Default=true.
+ * @return bool True on success, false on failure.
+ * 
+ */
+function wireCopy($src, $dst, $recursive = true) {
+
+	if(substr($src, -1) != '/') $src .= '/';
+	if(substr($dst, -1) != '/') $dst .= '/';
+
+	$dir = opendir($src);
+	if(!$dir) return false; 
+	if(!wireMkdir($dst)) return false;
+
+	while(false !== ($file = readdir($dir))) {
+		if($file == '.' || $file == '..') continue;
+		if($recursive && is_dir($src . $file)) {
+			wireCopyFiles($src . $file, $dst . $file);
+		} else {
+			copy($src . $file, $dst . $file);
+			$chmodFile = wire('config')->chmodFile;
+			if($chmodFile) chmod($dst . $file, octdec($chmodFile));
+		}
+	}
+
+	closedir($dir);
+	return true;
+}
+
+/**
+ * Unzips the given ZIP file to the destination directory
+ * 
+ * @param $file ZIP file to extract
+ * @param $dst Directory where files should be unzipped into. Directory is created if it doesn't exist.
+ * @return array Returns an array of filenames (excluding $dst) that were unzipped.
+ * @throws WireException All error conditions result in WireException being thrown.
+ * 
+ */
+function wireUnzipFile($file, $dst) {
+
+	$dst = rtrim($dst, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+	
+	if(!class_exists('ZipArchive')) throw new WireException("PHP's ZipArchive class does not exist"); 
+	if(!is_file($file)) throw new WireException("ZIP file does not exist"); 
+	if(!is_dir($dst)) wireMkdir($dst);	
+	
+	$names = array();
+	$chmodFile = wire('config')->chmodFile; 
+	$chmodDir = wire('config')->chmodDir;
+	
+	$zip = new ZipArchive();
+	$res = $zip->open($file); 
+	if($res !== true) throw new WireException("Unable to open ZIP file, error code: $res"); 
+	
+	for($i = 0; $i < $zip->numFiles; $i++) {
+		$name = $zip->getNameIndex($i); 
+		if($zip->extractTo($dst, $name)) {
+			$names[$i] = $name; 
+			$filename = $dst . ltrim($name, '/');
+			if(is_dir($filename)) {
+				if($chmodDir) chmod($filename, octdec($chmodDir));
+			} else if(is_file($filename)) {
+				if($chmodFile) chmod($filename, octdec($chmodFile));
+			}
+		}
+	}
+	
+	$zip->close();
+	
+	return $names; 
+}
+
+/**
  * Send the contents of the given filename via http
  *
  * This function utilizes the $content->fileContentTypes to match file extension
