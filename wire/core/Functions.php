@@ -236,7 +236,7 @@ function wireCopy($src, $dst, $recursive = true) {
 	while(false !== ($file = readdir($dir))) {
 		if($file == '.' || $file == '..') continue;
 		if($recursive && is_dir($src . $file)) {
-			wireCopyFiles($src . $file, $dst . $file);
+			wireCopy($src . $file, $dst . $file);
 		} else {
 			copy($src . $file, $dst . $file);
 			$chmodFile = wire('config')->chmodFile;
