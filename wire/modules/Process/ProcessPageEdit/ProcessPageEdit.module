@@ -252,7 +252,7 @@ class ProcessPageEdit extends Process {
 				$field2 = $this->modules->get('InputfieldSubmit'); 
 				$field2->attr('name', 'submit_save'); 
 				$field2->attr('id', 'submit_save_unpublished'); 
-				$field2->class .= ' ui-priority-secondary'; 
+				$field2->class .= ' ui-priority-secondary head_button_clone'; 
 				$field2->attr('value', $this->_('Save + Keep Unpublished')); // Button: save unpublished
 			}
 
@@ -267,7 +267,7 @@ class ProcessPageEdit extends Process {
 		if($saveName) { 
 			$field = $this->modules->get('InputfieldSubmit');
 			$field->attr('id+name', $saveName); 
-			$field->attr('class', $field->class . ' head_button_clone'); 
+			if($saveName != 'submit_publish') $field->attr('class', $field->class . ' head_button_clone'); 
 			$field->attr('value', $saveLabel); 
 			$form->append($field); 
 		}
