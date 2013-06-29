@@ -25,7 +25,7 @@ class ProcessModule extends Process {
 		return array(
 			'title' => __('Modules', __FILE__), // getModuleInfo title          
 			'summary' => __('List, edit or install/uninstall modules', __FILE__), // getModuleInfo summary
-			'version' => 102, 
+			'version' => 103, 
 			'permanent' => true, 
 			'permission' => 'module-admin', 
 			);
@@ -384,6 +384,7 @@ class ProcessModule extends Process {
 		$form->add($markup);
 		
 		$installed = $this->modules->isInstalled($data['class_name']) ? $this->modules->getModuleInfo($data['class_name']) : null;
+		
 		if($installed) {
 			$installedVersion = $this->formatVersion($installed['version']); 
 			if($installedVersion == $data['module_version']) {
@@ -393,14 +394,11 @@ class ProcessModule extends Process {
 				$this->session->redirect("./edit?name=$data[class_name]"); 
 			} else {
 				if(version_compare($installedVersion, $data['module_version']) < 0) {
-					$this->message = $this->_('An update to this module is available'); 
-					$installedVersion .= ' - ' . $this->_x('Yes, but you are running an older version', 'install-table'); 
-				} else {
-					$installedVersion .= ' - ' . $this->_x('Yes, currently installed', 'install-table'); 
+					$this->message($this->_('An update to this module is available!')); 
 				}
 			}
 		} else {
-			$installedVersion = $this->_x('No, not already installed', 'install-table');
+			$installedVersion = $this->_x('Not yet', 'install-table');
 		}
 
 		$table = $this->wire('modules')->get('MarkupAdminDataTable');
@@ -448,6 +446,7 @@ class ProcessModule extends Process {
 			$btn = $this->wire('modules')->get('InputfieldSubmit');
 			$btn->attr('id+name', 'godownload');
 			$btn->value = $this->labels['download_install'];
+			if($update) $btn->value .= " ($data[module_version])";
 			$form->add($btn);
 			$this->session->ProcessModuleDownloadURL = $data['download_url'];
 			$this->session->ProcessModuleClassName = $data['class_name'];
@@ -594,7 +593,7 @@ class ProcessModule extends Process {
 		} else {
 
 			$this->wire('processHeadline', $this->_('Updated:') . ' ' . $className);
-			$form->description = sprintf($this->_('Module `%s` was updated successfully.'), $className);
+			$form->description = sprintf($this->_('%s was updated successfully.'), $className);
 			$button = $this->modules->get('InputfieldButton');
 			$button->attr('href', "../edit?name=$className");
 			$button->attr('value', $this->_('Continue to module settings'));
