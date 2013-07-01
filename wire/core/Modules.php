@@ -611,7 +611,6 @@ class Modules extends WireArray {
 		$query = $database->prepare('DELETE FROM modules WHERE class=:class LIMIT 1'); // QA
 		$query->bindValue(":class", $class, PDO::PARAM_STR); 
 		$query->execute();
-		if(!$result) return false; 
 
 		// check if there are any modules still installed that this one says it is responsible for installing
 		foreach($info['installs'] as $name) {

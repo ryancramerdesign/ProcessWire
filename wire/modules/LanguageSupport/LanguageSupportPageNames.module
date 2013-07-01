@@ -463,7 +463,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	public function hookPagePath(HookEvent $event) {
 		$page = $event->object; 
 		if($page->template == 'admin') return;
-		$language = wire('user')->language; 
+		$language = $this->wire('user')->get('language'); 
 		$event->return = $this->getPagePath($page, $language); 
 	}
 
