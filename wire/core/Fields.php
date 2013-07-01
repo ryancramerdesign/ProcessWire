@@ -396,14 +396,14 @@ class Fields extends WireSaveableItems {
 			$result = $database->exec($sql);
 			if($result === false || $query->errorCode() > 0) {
 				$errorInfo = $query->errorInfo();
-				$error = $errorInfo[2]; 
+				$error = !empty($errorInfo[2]) ? $errorInfo[2] : 'Unknown Error'; 
 			}
 		} catch(Exception $e) {
 			$result = false;
 			$error = $e->getMessage();
 		}
 
-		if(!$result) {
+		if($error) {
 			$this->error("Field type change failed. Database reports: $error"); 
 			$database->exec("DROP TABLE `$table2`"); // QA
 			return false; 
