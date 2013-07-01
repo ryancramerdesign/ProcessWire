@@ -451,10 +451,10 @@ class Sanitizer extends Wire {
 		}
 
 		$value = trim($value);
-		if(!$needsQuotes) {
+		if(!$needsQuotes && strlen($value)) {
 			$a = substr($value, 0, 1); 
 			$b = substr($value, -1); 
-			if(!ctype_alnum($a) || !ctype_alnum($b)) $needsQuotes = true;
+			if((!ctype_alnum($a) && $a != '/') || (!ctype_alnum($b) && $b != '/')) $needsQuotes = true;
 		}
 		if($needsQuotes) $value = $quoteChar . $value . $quoteChar; 
 		return $value;
