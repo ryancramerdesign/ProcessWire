@@ -507,6 +507,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function get($key) {
+		if(is_array($key)) $key = implode('|', $key); 
 		$value = null;
 		switch($key) {
 			case 'parent_id':

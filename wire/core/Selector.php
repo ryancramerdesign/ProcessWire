@@ -98,6 +98,7 @@ abstract class Selector extends WireData {
 		$matches = false;
 		$values1 = is_array($this->value) ? $this->value : array($this->value); 
 		$field = $this->field; 
+		$operator = $this->getOperator();
 
 		// prepare the value we are comparing
 		if(is_object($value)) {
@@ -106,34 +107,47 @@ abstract class Selector extends WireData {
 			$value = (string) $value; 
 		}
 
-		if(strpos($value, '|') !== false) $value = explode('|', $value); 
+		if(is_string($value) && strpos($value, '|') !== false) $value = explode('|', $value); 
 		if(!is_array($value)) $value = array($value);
 		$values2 = $value; 
 		unset($value);
 
-		// now we're just dealing iwth 2 arrays: $values1 and $values2
+		// now we're just dealing with 2 arrays: $values1 and $values2
 		// $values1 is the value stored by the selector
 		// $values2 is the value passed into the matches() function
 
 		$numMatches = 0; 
-		if($this->getOperator() == '!=') $numMatchesRequired = (count($values1) + count($values2)) - 1; 
+		if($operator == '!=') $numMatchesRequired = (count($values1) + count($values2)) - 1; 
 			else $numMatchesRequired = 1; 
-
-		foreach($values1 as $v1) {
-
-			if(is_object($v1)) {
-				if($v1 instanceof WireData) $v1 = $v1->get($field);
-					else if($v1 instanceof Wire) $v1 = $v1->$field; 
+		
+		$fields = is_array($field) ? $field : array($field); 
+		
+		foreach($fields as $field) {
+	
+			foreach($values1 as $v1) {
+	
+				if(is_object($v1)) {
+					if($v1 instanceof WireData) $v1 = $v1->get($field);
+						else if($v1 instanceof Wire) $v1 = $v1->$field; 
+				}
+				
+				foreach($values2 as $v2) {
+					if(empty($v2) && empty($v1)) {
+						// normalize empty values so that they will match if both considered "empty"
+						$v2 = '';
+						$v1 = '';
+					}
+					if($this->match($v2, $v1)) {
+						$numMatches++;
+					} 
+				}
+	
+				if($numMatches >= $numMatchesRequired) {
+					$matches = true;
+					break;
+				}
 			}
-
-			foreach($values2 as $v2) {
-				if($this->match($v2, $v1)) $numMatches++;
-			}
-
-			if($numMatches >= $numMatchesRequired) {
-				$matches = true;
-				break;
-			}
+			if($matches) break;
 		}
 
 		return $matches; 

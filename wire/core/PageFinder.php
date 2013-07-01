@@ -242,6 +242,11 @@ class PageFinder extends Wire {
 				continue; 
 			} 
 
+			
+			// where SQL specific to the foreach() of fields below, if needed. 
+			// in this case only used by internally generated shortcuts like the blank value condition
+			$whereFields = '';	
+			
 			foreach($fields as $n => $field) {
 
 				// if a specific DB field from the table has been specified, then get it, otherwise assume 'data'
@@ -264,36 +269,37 @@ class PageFinder extends Wire {
 
 				foreach($valueArray as $value) {
 
-					if(isset($subqueries[$tableAlias])) $q = $subqueries[$tableAlias];
-						else $q = new DatabaseQuerySelect();
-
+					// shortcut for blank value condition: this ensures that NULL/non-existence is considered blank
+					// without this section the query would still work, but a blank value must actually be present in the field
 					if($subfield == 'data' && empty($value) && in_array($selector->operator, array('=', '!=', '<>'))) {
 						// handle blank values -- look in table that has no pages_id relation back to pages, using the LEFT JOIN / IS NULL trick
 						// OR check for blank value as defined by the fieldtype
 						$blankValue = $database->escapeStr($fieldtype->getBlankValue(new NullPage(), $field)); 
 						if($field->table === $tableAlias) $query->leftjoin("$tableAlias ON $tableAlias.pages_id=pages.id"); 
-							else $query->leftjoin($database->escapeTable($field->table) . " AS $tableAlias ON $tableAlias.pages_id=pages.id"); 
+							else $query->leftjoin($database->escapeTable($field->table) . " AS $tableAlias ON $tableAlias.pages_id=pages.id");
+						$whereFields .= (strlen($whereFields) ? ' OR ' : ''); 
 						if($selector->operator == '=') {
-							$query->where("($tableAlias.pages_id IS NULL OR $tableAlias.data='$blankValue')"); 
+							$whereFields .= "($tableAlias.pages_id IS NULL OR $tableAlias.data='$blankValue')";
 						} else {
-							$query->where("($tableAlias.pages_id IS NOT NULL AND $tableAlias.data!='$blankValue')"); 
+							$whereFields .= "($tableAlias.pages_id IS NOT NULL AND $tableAlias.data!='$blankValue')";
 						}
 						unset($blankValue);
 						continue; 
-
-					} else {
-
-						$q->set('field', $field); // original field if required by the fieldtype
-						$q->set('selector', $selector); // original selector if required by the fieldtype
-						$q->set('parentQuery', $query);
-						$q = $fieldtype->getMatchQuery($q, $tableAlias, $subfield, $selector->operator, $value); 
-
-						if(count($q->select)) $query->select($q->select); 
-						if(count($q->join)) $query->join($q->join);
-						if(count($q->leftjoin)) $query->leftjoin($q->leftjoin);
-						if(count($q->orderby)) $query->orderby($q->orderby); 
-						if(count($q->groupby)) $query->groupby($q->groupby); 
 					}
+					
+					if(isset($subqueries[$tableAlias])) $q = $subqueries[$tableAlias];
+						else $q = new DatabaseQuerySelect();
+
+					$q->set('field', $field); // original field if required by the fieldtype
+					$q->set('selector', $selector); // original selector if required by the fieldtype
+					$q->set('parentQuery', $query);
+					$q = $fieldtype->getMatchQuery($q, $tableAlias, $subfield, $selector->operator, $value); 
+
+					if(count($q->select)) $query->select($q->select); 
+					if(count($q->join)) $query->join($q->join);
+					if(count($q->leftjoin)) $query->leftjoin($q->leftjoin);
+					if(count($q->orderby)) $query->orderby($q->orderby); 
+					if(count($q->groupby)) $query->groupby($q->groupby); 
 
 					if(count($q->where)) { 
 						// $and = $selector->not ? "AND NOT" : "AND";
@@ -353,6 +359,8 @@ class PageFinder extends Wire {
 
 				$lastSelector = $selector; 	
 			} // fields
+			
+			if(strlen($whereFields)) $where .= (strlen($where) ? 'AND ' : '') . "($whereFields)";
 		
 		} // selectors
 

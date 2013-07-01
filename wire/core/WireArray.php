@@ -998,7 +998,12 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		// now filter the data according to the selectors that remain
 		foreach($this->data as $key => $item) {
 			foreach($selectors as $selector) {
-				$value = (string) $this->getItemPropertyValue($item, $selector->field);
+				if(is_array($selector->field)) {
+					$value = array();
+					foreach($selector->field as $field) $value[] = (string) $this->getItemPropertyValue($item, $field);
+				} else {
+					$value = (string) $this->getItemPropertyValue($item, $selector->field);
+				}
 				if($not === $selector->matches($value)) {
 					unset($this->data[$key]);
 				}
