@@ -20,8 +20,8 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	static public function getModuleInfo() {
 			return array(
 				'title' => 'Languages Support - Page Names',
-				'version' => 6,
-				'summary' => 'Required to use multi-language page names. In development, NOT for production use.',
+				'version' => 7,
+				'summary' => 'Required to use multi-language page names. Beta.',
 				'author' => 'Ryan Cramer',
 				'autoload' => true,
 				'singular' => true,
@@ -74,7 +74,8 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		 * so it is not anything more than a placeholder at present. 
 	 	 *
 		 */
-		'inheritInactive' => 0
+		'inheritInactive' => 0,
+
 		);
 
 	/**
@@ -92,6 +93,14 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	public function init() { 
 		$this->addHookBefore('ProcessPageView::execute', $this, 'hookProcessPageViewExecute'); 
 		$this->addHookAfter('PageFinder::getQuery', $this, 'hookPageFinderGetQuery'); 
+
+		// tell ProcessPageView which segments are allowed for pagination
+		$pageNumUrlPrefixes = array();
+		foreach($this->wire('languages') as $language) {
+			$pageNumUrlPrefix = $this->get("pageNumUrlPrefix$language"); 
+			if($pageNumUrlPrefix) $pageNumUrlPrefixes[] = $pageNumUrlPrefix;
+		}
+		if(count($pageNumUrlPrefixes)) $this->wire('config')->set('pageNumUrlPrefixes', $pageNumUrlPrefixes); 
 	}
 
 	/**
@@ -126,6 +135,10 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$this->addHookBefore('LanguageSupportFields::languageAdded', $this, 'hookLanguageAdded'); 
 
 		wire('pages')->addHookAfter('saveReady', $this, 'hookPageSaveReady'); 
+		
+		$language = $this->wire('user')->language; 
+		$prefix = $this->get("pageNumUrlPrefix$language"); 
+		if(strlen($prefix)) $this->wire('config')->pageNumUrlPrefix = $prefix; 
 	}
 
 	/**
@@ -228,9 +241,18 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$hasSlashURL = substr($requestPath, -1) == '/';
 		$useSlashURL = (bool) $page->template->slashUrls;
 		$expectedPath = trim($this->getPagePath($page, $user->language), '/');
-		$requestPath = trim($requestPath, '/'); 
+		$requestPath = trim($requestPath, '/');
+		$pageNum = $this->wire('input')->pageNum; 
+		
+		if($pageNum > 1) {
+			$prefix = $this->get("pageNumUrlPrefix$user->language");
+			if(empty($prefix)) $prefix = $this->wire('config')->pageNumUrlPrefix;
+			$expectedPath .= "/$prefix$pageNum";
+			$useSlashURL = false;
+		}
+		
 		$expectedPathLength = strlen($expectedPath);
-
+	
 		if($expectedPathLength) {
 			$requestPath = substr($requestPath, 0, $expectedPathLength); 
 		}
@@ -244,7 +266,6 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		}
 
 		return $redirectURL;
-			
 	}
 
 	/**
@@ -278,6 +299,16 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		$name = $page->get("name$language|name"); 
 		$path = strlen($name) ? "$path/$name/" : "$path/";
+
+		/*
+		$pageNum = $this->wire('input')->pageNum; 
+		if($pageNum > 1 && $page->id == $this->wire('page')->id) {	
+			$prefix = $this->get("pageNumUrlPrefix$language"); 
+			if(empty($prefix)) $prefix = $this->wire('config')->pageNumUrlPrefix;
+			$path .= $prefix . $pageNum;
+		}
+		*/
+		
 		return $path;
 	}
 
@@ -672,7 +703,19 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	public static function getModuleConfigInputfields(array $data) {
 		$module = wire('modules')->get('LanguageSupportPageNames'); 
 		$module->checkModuleVersion(true); 
-		return new InputfieldWrapper();
+		$inputfields = new InputfieldWrapper();
+		foreach(wire('languages') as $language) {
+			$f = wire('modules')->get('InputfieldName'); 
+			$name = "pageNumUrlPrefix$language";
+			if($language->isDefault() && empty($data[$name])) $data[$name] = wire('config')->pageNumUrlPrefix;
+			$f->attr('name', $name); 
+			$f->attr('value', isset($data[$name]) ? $data[$name] : ''); 
+			$f->label = "$language->title ($language->name) - " . __('Page number prefix for pagination'); 
+			$f->description = sprintf(__('The page number is appended to this word in paginated URLs for this language. If ommitted, "%s" will be used.'), wire('config')->pageNumUrlPrefix); 
+			$f->required = false;
+			$inputfields->add($f); 
+		}
+		return $inputfields;
 	}
 
 	/**
