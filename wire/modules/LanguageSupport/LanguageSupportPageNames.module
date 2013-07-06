@@ -20,7 +20,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	static public function getModuleInfo() {
 			return array(
 				'title' => 'Languages Support - Page Names',
-				'version' => 7,
+				'version' => 8,
 				'summary' => 'Required to use multi-language page names. Beta.',
 				'author' => 'Ryan Cramer',
 				'autoload' => true,
@@ -149,6 +149,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 */
 	public function updatePath($path) {
 		if($path === '/' || !strlen($path)) return $path;
+		$trailingSlash = substr($path, -1) == '/';
 		$testPath = trim($path, '/') . '/';
 		$home = wire('pages')->get(1);
 		foreach(wire('languages') as $language) {
@@ -161,6 +162,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 				$path = substr($testPath, strlen($name)); 
 			}
 		}	
+		if(!$trailingSlash && $path != '/') $path = rtrim($path, '/'); 
 		return $path; 
 	}
 
@@ -258,13 +260,16 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		}
 		
 		if($expectedPath != $requestPath) {
-			if($expectedPathLength) $expectedPath .= '/';
+			if($expectedPathLength && $useSlashURL) $expectedPath .= '/';
 			$redirectURL = wire('config')->urls->root . $expectedPath;
 			
 		} else if($useSlashURL && !$hasSlashURL && strlen($expectedPath)) {
 			$redirectURL = wire('config')->urls->root . $expectedPath . '/';
+			
+		} else if(!$useSlashURL && $hasSlashURL && $pageNum == 1) {
+			$redirectURL = wire('config')->urls->root . $expectedPath; 
 		}
-
+	
 		return $redirectURL;
 	}
 
@@ -299,15 +304,8 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		$name = $page->get("name$language|name"); 
 		$path = strlen($name) ? "$path/$name/" : "$path/";
-
-		/*
-		$pageNum = $this->wire('input')->pageNum; 
-		if($pageNum > 1 && $page->id == $this->wire('page')->id) {	
-			$prefix = $this->get("pageNumUrlPrefix$language"); 
-			if(empty($prefix)) $prefix = $this->wire('config')->pageNumUrlPrefix;
-			$path .= $prefix . $pageNum;
-		}
-		*/
+		
+		if(!$page->template->slashUrls && $path != '/') $path = rtrim($path, '/'); 
 		
 		return $path;
 	}
