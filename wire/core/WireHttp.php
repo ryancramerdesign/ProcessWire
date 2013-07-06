@@ -30,14 +30,32 @@ class WireHttp extends Wire {
 	protected $data = array();
 
 	/**
+	 * Raw data, when data is not an array
+	 *
+	 */
+	protected $rawData = null;
+
+	/**
+	 * Last response header
+	 *
+	 */
+	protected $responseHeader = array();
+
+	/**
+	 * Last error message
+	 *
+	 */
+	protected $error = '';
+
+	/**
 	 * Send to a URL using POST
 	 *
 	 * @param string $url URL to post to (including http:// or https://)
-	 * @param array $data Array of data to send (if not already set before)
+	 * @param mixed $data Array of data to send (if not already set before) or raw data
 	 * @return bool|string False on failure or string of contents received on success.
 	 *
 	 */
-	public function post($url, array $data = array()) {
+	public function post($url, $data = array()) {
 		if(!isset($this->headers['content-type'])) $this->setHeader('content-type', 'application/x-www-form-urlencoded; charset=utf-8');
 		return $this->send($url, $data, 'POST');
 	}
@@ -46,11 +64,11 @@ class WireHttp extends Wire {
 	 * Send to a URL using GET
 	 *
 	 * @param string $url URL to post to (including http:// or https://)
-	 * @param array $data Array of data to send (if not already set before)
+	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
 	 * @return bool|string False on failure or string of contents received on success.
 	 *
 	 */
-	public function get($url, array $data = array()) {
+	public function get($url, $data = array()) {
 		return $this->send($url, $data, 'GET');
 	}
 
@@ -59,11 +77,11 @@ class WireHttp extends Wire {
 	 * Send to a URL using HEAD (@horst)
 	 *
 	 * @param string $url URL to request (including http:// or https://)
-	 * @param array $data Array of data to send (if not already set before)
+	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
 	 * @return bool|array False on failure or Arrray with ResponseHeaders on success.
 	 *
 	 */
-	public function head($url, array $data = array()) {
+	public function head($url, $data = array()) {
 		$responseHeader = $this->send($url, $data, 'HEAD');
 		return is_array($responseHeader) ? $responseHeader : false;
 	}
@@ -72,12 +90,12 @@ class WireHttp extends Wire {
 	 * Send to a URL using HEAD and return the status code (@horst)
 	 *
 	 * @param string $url URL to request (including http:// or https://)
-	 * @param array $data Array of data to send (if not already set before)
+	 * @param mixed $data Array of data to send (if not already set before) or raw data
 	 * @param bool $textMode When true function will return a string rather than integer, see the statusText() method.
 	 * @return bool|integer|string False on failure or integer of status code (200|404|etc) on success.
 	 *
 	 */
-	 public function status($url, array $data = array(), $textMode = false) {
+	 public function status($url, $data = array(), $textMode = false) {
 		$responseHeader = $this->send($url, $data, 'HEAD');
 		if(!is_array($responseHeader)) return false;
 		$statusCode = (preg_match("=^(HTTP/\d+\.\d+) (\d{3}) (.*)=", $responseHeader[0], $matches) === 1) ? intval($matches[2]) : false;
@@ -89,12 +107,12 @@ class WireHttp extends Wire {
 	 * Send to a URL using HEAD and return the status code and text like "200 OK"
 	 *
 	 * @param string $url URL to request (including http:// or https://)
-	 * @param array $data Array of data to send (if not already set before)
+	 * @param mixed $data Array of data to send (if not already set before) or raw data
 	 * @return bool|string False on failure or string of status code + text on success.
 	 *	Example: "200 OK', "302 Found", "404 Not Found"
 	 *
 	 */
-	public function statusText($url, array $data = array()) {
+	public function statusText($url, $data = array()) {
 		return $this->status($url, $data, true); 
 	}
 
@@ -122,9 +140,12 @@ class WireHttp extends Wire {
 	/**
 	 * Set an array of data, removes any existing data
 	 *
+	 *  
+	 *
 	 */
-	public function setData(array $data) {
-		$this->data = $data; 
+	public function setData($data) {
+		if(is_array($data)) $this->data = $data; 
+			else $this->rawData = $data; 
 		return $this;
 	}
 
@@ -166,14 +187,23 @@ class WireHttp extends Wire {
 	 * @return bool|string False on failure or string of contents received on success.
 	 *
 	 */
-	protected function send($url, array $data = array(), $method = 'POST') { 
+	protected function send($url, $data = array(), $method = 'POST') { 
 
-		if(count($data)) $this->setData($data);
+		$this->error = '';
+		$this->responseHeader = array();
+
+		if(!empty($data)) $this->setData($data);
 		if($method !== 'GET') $method = 'POST';
 
-		if(!ini_get('allow_url_fopen')) return $this->sendSocket($url, $method); 
+		$useSocket = false; 
+		if(strpos($url, 'https://') === 0 && !extension_loaded('openssl')) $useSocket = true; 
+		if(!ini_get('allow_url_fopen')) $useSocket = true; 
+		if($useSocket) return $this->sendSocket($url, $method); 
 
-		$content = http_build_query($this->data); 
+		if(!empty($this->data)) $content = http_build_query($this->data); 
+			else if(!empty($this->rawData)) $content = $this->rawData; 
+			else $content = '';
+
 		$this->setHeader('content-length', strlen($content)); 
 
 		$header = '';
@@ -189,9 +219,14 @@ class WireHttp extends Wire {
 
 		$context = @stream_context_create($options); 
 		$fp = @fopen($url, 'rb', false, $context); 
-		if(!$fp) return false;
+		if(!$fp) {
+			$this->error = "fopen() failed, see result of getResponseHeader()";
+			$this->responseHeader = $http_response_header; 
+			return false;
+		}
 
 		$result = @stream_get_contents($fp); 
+		$this->responseHeader = $http_response_header; 
 		return $result;
 	}
 
@@ -216,7 +251,9 @@ class WireHttp extends Wire {
 			$scheme = '';
 		}
 
-		$content = http_build_query($this->data); 
+		if(!empty($this->data)) $content = http_build_query($this->data); 
+			else if(!empty($this->rawData)) $content = $this->rawData; 
+			else $content = '';
 
 		$this->setHeader('content-length', strlen($content));
 
@@ -238,10 +275,12 @@ class WireHttp extends Wire {
 			}
 			fclose($fs);
 		}
+		if(strlen($errstr)) $this->error = $errno . ': ' . $errstr; 
 
 		// skip past the headers in the response, so that it is consistent with 
 		// the results returned by the regular send() method
 		$pos = strpos($response, "\r\n\r\n"); 
+		$this->responseHeader = explode("\r\n", substr($response, 0, $pos)); 
 		$response = substr($response, $pos+4); 
 
 		return $response;
@@ -291,5 +330,27 @@ class WireHttp extends Wire {
 		
 		return $toFile;
 	}
+
+	/**
+	 * Get the last HTTP response header
+	 * 
+	 * Useful to examine for errors if your request returned false
+	 *
+	 * @return array
+	 *
+	 */
+	public function getResponseHeader() {
+		return $this->responseHeader; 
+	}
+
+	/**
+	 * Get a string of the last error message
+	 *
+	 * @return string
+	 *
+	 */
+	public function getError() {
+		return $this->error; 
+	}	
 
 }

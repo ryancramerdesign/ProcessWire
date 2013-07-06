@@ -961,5 +961,35 @@ class Modules extends WireArray {
 		return $this->getRequiredBy($class, false, true); 
 	}
 
+	/**
+	 * Given a module version number, format it in a consistent way as 3 parts: 1.2.3 
+	 * 
+	 * @param $version int|string
+	 * @return string
+	 * 
+	 */
+	public function formatVersion($version) {
+		$version = trim($version); 
+		if(!ctype_digit(str_replace('.', '', $version))) {
+			// if version has some characters other than digits or periods, remove them
+			$version = preg_replace('/[^\d.]/', '', $version); 
+		}
+		if(ctype_digit("$version")) {
+			// make sure version is at least 3 characters in length
+			if(strlen($version) < 3) $version = str_pad($version, 3, "0", STR_PAD_LEFT);
+			// if version has only digits, then insert periods
+			$version = preg_replace('/(\d)(?=\d)/', '$1.', $version); 
+			
+		} else if(strpos($version, '.') !== false) {
+			// version is a formatted string
+			if(strpos($version, '.') == strrpos($version, '.')) {
+				// only 1 period, like: 2.0 
+				if(preg_match('/^\d+\.\d+$/', $version)) $version .= ".0";
+			}
+		}
+		if(!strlen($version)) $version = '0.0.0';
+		return $version;
+	}
+
 }
 
