@@ -249,7 +249,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		if($pageNum > 1) {
 			$prefix = $this->get("pageNumUrlPrefix$user->language");
 			if(empty($prefix)) $prefix = $this->wire('config')->pageNumUrlPrefix;
-			$expectedPath .= "/$prefix$pageNum";
+			$expectedPath .= (strlen($expectedPath) ? "/" : "") . "$prefix$pageNum";
 			$useSlashURL = false;
 		}
 		
@@ -269,8 +269,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		} else if(!$useSlashURL && $hasSlashURL && $pageNum == 1) {
 			$redirectURL = wire('config')->urls->root . $expectedPath; 
 		}
-	
-		return $redirectURL;
+		return $redirectURL; 	
 	}
 
 	/**
