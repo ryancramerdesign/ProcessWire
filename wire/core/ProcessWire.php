@@ -228,7 +228,15 @@ function ProcessWireShutdown() {
 		$debug = $config->debug; 
 		if($config->ajax) $http = false; 
 		if($config->adminEmail) {
-			$logMessage = "Page: $path\nUser: $userName\n\n" . str_replace("\t", "\n", $message);
+			$params = array();
+                        foreach (wire('input')->get as $k=>$v){
+                            $params[] = $k.'='.$v;
+                        }
+			$logMessage = "Page: $path\n".
+                        "URL Segments: ".implode('/',wire('input')->urlSegments)."\n".
+                        "Parameters: ".implode('&',$params)."\n".
+                        "User: $userName\n".
+                        "IP Address: ".$_SERVER['REMOTE_ADDR']."\n\n" . str_replace("\t", "\n", $message);
 			@mail($config->adminEmail, 'ProcessWire Error Notification', $logMessage); 
 		}
 		if($config->paths->logs) {
