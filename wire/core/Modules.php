@@ -984,7 +984,7 @@ class Modules extends WireArray {
 			// version is a formatted string
 			if(strpos($version, '.') == strrpos($version, '.')) {
 				// only 1 period, like: 2.0 
-				if(preg_match('/^\d+\.\d+$/', $version)) $version .= ".0";
+				if(preg_match('/^\d\.\d$/', $version)) $version .= ".0";
 			}
 		}
 		if(!strlen($version)) $version = '0.0.0';

@@ -15,6 +15,18 @@
 class LanguagesPageFieldValue extends Wire {
 
 	/**
+	 * Inherit default language value when blank
+	 *
+	 */
+	const langBlankInheritDefault = 0; 
+
+	/**
+	 * Don't inherit any value when blank
+	 *
+	 */
+	const langBlankInheritNone = 1; 
+
+	/**
 	 * Values per language indexed by language ID
 	 *
 	 */
@@ -25,6 +37,12 @@ class LanguagesPageFieldValue extends Wire {
 	 *
 	 */
 	protected $defaultLanguagePageID = 0;
+
+	/**
+	 * Reference to Field that this value is for
+	 *
+	 */
+	protected $field;
 
 	/**
 	 * Construct the multi language value
@@ -111,12 +129,26 @@ class LanguagesPageFieldValue extends Wire {
 	 *
 	 */
 	public function __toString() {
+
 		$language = wire('user')->language; 	
-		if($language && $language->id && !empty($this->data[$language->id])) {
-			return (string) $this->data[$language->id]; 
-		} else {
-			return (string) $this->data[$this->defaultLanguagePageID];
+		$defaultValue = (string) $this->data[$this->defaultLanguagePageID];
+		if(!$language || !$language->id || $language->isDefault()) return $defaultValue; 
+		$languageValue = (string) (empty($this->data[$language->id]) ? '' : $this->data[$language->id]); 
+		if(!strlen($languageValue)) {
+			// value is blank
+			if($this->field) { 
+				if($this->field->langBlankInherit == self::langBlankInheritDefault) {
+					// inherit value from default language
+					$languageValue = $defaultValue; 
+				}
+			}
 		}
+		return $languageValue; 
+	}
+
+	public function setField(Field $field) {
+		$this->field = $field; 
 	}
 }
+
 

@@ -62,6 +62,7 @@ class LanguageSupportFields extends WireData implements Module {
 		require_once($dirname . '/LanguagesPageFieldValue.php'); 
 		$this->addHookAfter('FieldtypeLanguageInterface::loadPageField', $this, 'fieldtypeLoadPageField'); 
 		$this->addHookAfter('FieldtypeLanguageInterface::wakeupValue', $this, 'fieldtypeWakeupValue'); 
+		$this->addHookAfter('FieldtypeLanguageInterface::getConfigInputfields', $this, 'fieldtypeGetConfigInputfields'); 
 	}
 
 	public function init() { 
@@ -325,7 +326,9 @@ class LanguageSupportFields extends WireData implements Module {
 		$field = $event->arguments[1];
 		$value = $event->return; 
 		if($value instanceof LanguagesPageFieldValue) return; 
-		$event->return = new LanguagesPageFieldValue($value); 
+		$v = new LanguagesPageFieldValue($value); 
+		$v->setField($field); 
+		$event->return = $v;
 	}
 
 	/**
@@ -342,10 +345,12 @@ class LanguageSupportFields extends WireData implements Module {
 
 		if($value instanceof LanguagesPageFieldValue) {
 			$value->setTrackChanges(true); 
+			$value->setField($field); 
 			// good
 		} else if(is_array($value)) {
 			$value = new LanguagesPageFieldValue($value); 
 			$value->setTrackChanges(true); 
+			$value->setField($field); 
 			$event->return = $value;
 		}
 
@@ -381,6 +386,23 @@ class LanguageSupportFields extends WireData implements Module {
 		*/
 
 		$event->return = $values; 
+	}
+
+	public function fieldtypeGetConfigInputfields(HookEvent $event) {
+
+		$field = $event->arguments(0); 
+		$inputfields = $event->return;		
+		
+		$f = wire('modules')->get('InputfieldRadios'); 
+		$f->attr('name', 'langBlankInherit'); 
+		$f->label = $this->_('Language Support / Blank Behavior'); 
+		$f->description = $this->_("What should happen when this field's value is blank?"); 
+		$f->notes = $this->_('Applies only to non-default language values on the front-end of your site.'); 
+		$f->addOption(LanguagesPageFieldValue::langBlankInheritDefault, $this->_('Inherit value from default language')); 
+		$f->addOption(LanguagesPageFieldValue::langBlankInheritNone, $this->_('Remain blank')); 
+		$f->attr('value', (int) $field->langBlankInherit); 
+		$f->collapsed = Inputfield::collapsedBlank;
+		$inputfields->add($f); 
 	}
 
 	/**
