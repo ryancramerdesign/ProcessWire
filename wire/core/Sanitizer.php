@@ -142,6 +142,7 @@ class Sanitizer extends Wire {
 		if($beautify) { 
 
 			if($beautify === self::translate && $this->multibyteSupport) {
+				$value = mb_strtolower($value);
 
 				if(empty($replacements)) {
 					$configData = wire('modules')->getModuleConfigData('InputfieldPageName'); 
