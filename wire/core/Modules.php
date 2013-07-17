@@ -122,10 +122,42 @@ class Modules extends WireArray {
 	 * Initialize all the modules that are loaded at boot
 	 *
 	 */
-	public function triggerInit() {
-		foreach($this as $module) $this->initModule($module);
-		$this->initialized = true; 
+	public function triggerInit($modules = null, $completed = array(), $level = 0) {
+
+		$queue = array();
+		if(is_null($modules)) $modules = $this;
+
+		foreach($modules as $class => $module) {
+			// $info = call_user_func(array($module, 'getModuleInfo'));
+			$info = $module->getModuleInfo();
+			$skip = false;
+
+			if(isset($info['requires'])) {
+				// module requires other modules
+				$requires = is_array($info['requires']) ? $info['requires'] : array($info['requires']);
+				foreach($requires as $requiresClass) {
+					if(!in_array($requiresClass, $completed)) {
+						$dependencyInfo = $this->getModuleInfo($requiresClass);
+						// if dependency isn't an autoload one, then we can continue and not worry about it
+						if(empty($dependencyInfo['autoload'])) continue;
+						// dependency is autoload and required by this module, so queue this module to init later
+						$queue[$class] = $module;
+						$skip = true;
+						break;
+					}
+				}
+			}
+			if($skip) continue;
+			$this->initModule($module);
+			$completed[] = $class;
+		}
+
+		// if there is a dependency queue, go recursive till the queue is completed
+		if(count($queue) && $level < 3) $this->triggerInit($queue, $completed, $level+1);
+
+		$this->initialized = true;
 	}
+
 
 	/**
 	 * Initialize a single module
