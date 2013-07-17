@@ -177,14 +177,15 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 */
 	protected function verifyPath($requestPath) {
 
-		$languages = wire('languages'); 
+		$languages = $this->wire('languages'); 
 		if(!count($languages)) return '';
 		
 		$page = $this->wire('page');
 		if($page->template == 'admin') return ''; 
+		
 		$user = $this->wire('user');
 		$config = $this->wire('config');
-
+	
 		$requestedParts = explode('/', $requestPath); 
 		$parentsAndPage = $page->parents()->getArray();
 		$parentsAndPage[] = $page; 
@@ -244,8 +245,16 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$useSlashURL = (bool) $page->template->slashUrls;
 		$expectedPath = trim($this->getPagePath($page, $user->language), '/');
 		$requestPath = trim($requestPath, '/');
-		$pageNum = $this->wire('input')->pageNum; 
-		
+		$pageNum = $this->wire('input')->pageNum;
+		$urlSegmentStr = $this->wire('input')->urlSegmentStr;
+	
+		// URL segments
+		if(strlen($urlSegmentStr)) {
+			$expectedPath .= '/' . $urlSegmentStr; 
+			$useSlashURL = $hasSlashURL;
+		}
+	
+		// page numbers
 		if($pageNum > 1) {
 			$prefix = $this->get("pageNumUrlPrefix$user->language");
 			if(empty($prefix)) $prefix = $this->wire('config')->pageNumUrlPrefix;
@@ -342,7 +351,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	public function hookPageViewable(HookEvent $event) {
 		if(!$event->return) return;
 		$page = $event->object;
-		if(wire('user')->isSuperuser() || $page->editable()) return;
+		// if(wire('user')->isSuperuser() || $page->editable()) return;
 		$language = $event->arguments(0);
 		if(!$language) return;
 		if(is_string($language)) $language = wire('languages')->get(wire('sanitizer')->pageName($language));
