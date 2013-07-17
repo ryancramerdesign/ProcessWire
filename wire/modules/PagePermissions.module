@@ -168,8 +168,12 @@ class PagePermissions extends WireData implements Module {
 		$page = $event->object; 
 		$viewable = true; 
 		$user = $this->fuel('user'); 
-		
+		$u = $event->arguments(0); 
 
+		// allow specifying User instance as argument 0 
+		// this gives you a "viewable to user" capability
+		if($u && $u instanceof User) $user = $u;
+		
 		if($page->status >= Page::statusUnpublished) $viewable = false;
 			else if(!$page->template || !$page->template->filenameExists()) $viewable = false; 
 			else if($user->isSuperuser()) $viewable = true; 
