@@ -143,7 +143,12 @@ class MarkupPageArray extends WireData implements Module {
 		$options = array();
 		if(isset($arguments[0]) && is_array($arguments[0])) $options = $arguments[0]; 
 		$pager = $this->modules->get('MarkupPagerNav'); 
-		if(empty($options['baseUrl'])) $pager->setBaseUrl($this->page->url . ($this->page->urlSegment ? $this->page->urlSegment . '/' : '')); 
+		if(empty($options['baseUrl'])) {
+			$baseUrl = $this->wire('page')->url;
+			$urlSegmentStr = $this->wire('input')->urlSegmentStr; 
+			if(strlen($urlSegmentStr)) $baseUrl = rtrim($baseUrl, '/') . "/$urlSegmentStr/";
+			$pager->setBaseUrl($baseUrl); 
+		}
 		$event->return = $pager->render($pageArray, $options); 
 	}
 
