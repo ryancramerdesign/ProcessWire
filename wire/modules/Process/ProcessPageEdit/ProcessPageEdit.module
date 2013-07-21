@@ -610,25 +610,33 @@ class ProcessPageEdit extends Process {
 				$roleName = $role->name; 
 				if($roleName == 'guest') $roleName .= " " . $this->_('(everyone)'); // Identifies who guest is (everyone)
 				$permissions .= "page-view\n";
-
+				
+				$checkEditable = true; 
 				if($publishPermission->id && !$this->page->is(Page::statusUnpublished) && !$role->hasPermission('page-publish', $this->page)) {
-					continue; 
+					$checkEditable = false;
 				}
-
-				if($role->hasPermission('page-edit') && in_array($role->id, $editRoles)) { 
-					foreach($role->permissions as $permission) {
-						if($permission->name == 'page-view') continue;  // assumed
-						if(strpos($permission->name, 'page-') !== 0) continue; 
-						$permissions .= "{$permission->name}\n"; // only page-context permissions
+				
+				if(false !== ($key = array_search($role->id, $addRoles))) {
+					if($role->hasPermission('page-add')) {
+						$permissions .= "page-add\n";
+						unset($addRoles[$key]);
 					}
 				}
-				if(false !== ($key = array_search($role->id, $addRoles))) {
-					$permissions .= "page-add\n";
-					unset($addRoles[$key]); 
+				$editable = $role->hasPermission('page-edit') && in_array($role->id, $editRoles); 
+				if($checkEditable && $editable) {
+					foreach($role->permissions as $permission) {
+						if(strpos($permission->name, 'page-') !== 0) continue; 
+						if(in_array($permission->name, array('page-view', 'page-publish', 'page-create', 'page-add'))) continue;
+						$permissions .= "{$permission->name}\n"; // only page-context permissions
+					}
+					if($publishPermission->id && $role->hasPermission('page-publish', $this->page)) {
+						$permissions .= "page-publish\n";
+					}
 				}
-				if(in_array($role->id, $createRoles)) {
+				if(in_array($role->id, $createRoles) && $editable) {
 					$permissions .= "page-create\n";
 				}
+
 				$table->row(array($roleName, nl2br($permissions))); 
 			}
 
