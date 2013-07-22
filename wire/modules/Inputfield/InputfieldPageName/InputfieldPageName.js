@@ -10,6 +10,7 @@ var InputfieldPageName = {
 		for(srch in config.InputfieldPageName.replacements) {
 			var repl = config.InputfieldPageName.replacements[srch];
 			if(name.indexOf(srch) > -1) {
+                if(srch == '.') srch = '\\.';
 				var re = new RegExp(srch, 'g'); 
 				name = name.replace(re, repl); 
 			}
