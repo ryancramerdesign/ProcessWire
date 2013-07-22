@@ -555,7 +555,7 @@ class ProcessPageEdit extends Process {
 		}
 
 		if(count($wrapper->children())) {
-			$field = $this->modules->get('InputfieldSubmit');
+			$field = $this->modules->get('InputfieldButton');
 			$field->attr('id+name', 'submit_delete'); 
 			$field->value = $deleteLabel;
 			$wrapper->append($field);
@@ -675,6 +675,7 @@ class ProcessPageEdit extends Process {
 			'sortfield_reverse', 
 			'submit_publish', 
 			'submit_save',
+			'delete_page',
 			);
 
 		if(!$level) $form->processInput($this->input->post);
