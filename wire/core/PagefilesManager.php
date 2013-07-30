@@ -174,6 +174,16 @@ class PagefilesManager extends Wire {
 	 *
 	 */
 	public function url() {
+		return self::isHooked('PagefilesManager::url()') ? $this->__call('url', array()) : $this->___url();
+	}
+
+	/**
+	 * Return the auto-determined URL, hookable version
+ 	 *
+	 * Note: your hook can get the $page from $event->object->page; 
+	 *
+	 */
+	public function ___url() {
 		return $this->config->urls->files . $this->page->id . '/';
 	}
 
@@ -200,6 +210,7 @@ class PagefilesManager extends Wire {
 	public function __get($key) {
 		if($key == 'path') return $this->path();
 		if($key == 'url') return $this->url();
+		if($key == 'page') return $this->page; 
 		return parent::__get($key);
 	}
 
