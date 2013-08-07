@@ -15,7 +15,7 @@ class MarkupAdminDataTable extends ModuleJS {
 		return array(
 			'title' => 'Admin Data Table', 
 			'summary' => 'Generates XHTML markup for data tables used by ProcessWire admin', 
-			'version' => 101, 
+			'version' => 102, 
 			'permanent' => true, 
 			);
 	}
