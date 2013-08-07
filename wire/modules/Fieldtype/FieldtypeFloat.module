@@ -9,11 +9,10 @@
  * /wire/core/Fieldtype.php
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -23,7 +22,7 @@ class FieldtypeFloat extends Fieldtype {
 		return array(
 			'title' => __('Float', __FILE__),
 			'summary' => __('Field that stores a floating point (decimal) number', __FILE__),
-			'version' => 101,
+			'version' => 102,
 			'permanent' => true, 
 			);
 	}
@@ -64,6 +63,23 @@ class FieldtypeFloat extends Fieldtype {
 		$inputfield->class = $this->className();
 		$inputfield->precision = $field->precision; 
 		return $inputfield; 
+	}
+
+	public function ___sleepValue(Page $page, Field $field, $value) {
+
+		// handle commas vs. dots issue with other locales
+		$info = localeconv();
+
+		if(strpos($value, $info["mon_thousands_sep"]) !== false) {
+			$value = str_replace($info["mon_thousands_sep"] , "", $value);
+		}
+
+		if($info["mon_decimal_point"] !== '.' && strpos($value, $info["mon_decimal_point"]) !== false) {
+			$value = str_replace($info["mon_decimal_point"] , ".", $value);
+		}
+
+		$value = floatval($value); 
+		return $value; 
 	}
 
 	public function getDatabaseSchema(Field $field) {
