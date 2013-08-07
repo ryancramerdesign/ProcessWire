@@ -58,6 +58,7 @@ abstract class Inputfield extends WireData implements Module {
 	const collapsedBlank = 2; 	// will display collapsed only if blank
 	const collapsedHidden = 4; 	// will not be rendered in the form
 	const collapsedPopulated = 5; 	// will display collapsed only if populated
+	const collapsedLocked = 8;  // value is visible but not editable, otherwise same as collapsedYes
 
 	/**
 	 * Constants for skipLabel setting
@@ -418,11 +419,15 @@ abstract class Inputfield extends WireData implements Module {
 	 */
 	public function ___processInput(WireInputData $input) {
 
-		// if value was unset in the array, then just return
-		// TODO should this set an empty value rather than leaving an existing value?
-		if(!isset($input[$this->name])) return $this; 
+		if(isset($input[$this->name])) {
+			$value = $input[$this->name]; 
 
-		$value = $input[$this->name]; 
+		} else if($this instanceof InputfieldHasArrayValue) {
+			$value = array();
+		} else {
+			$value = $input[$this->name];
+		}
+
 		$changed = false; 
 
 		if($this instanceof InputfieldHasArrayValue && !is_array($value)) {
@@ -508,7 +513,8 @@ abstract class Inputfield extends WireData implements Module {
 		$field->addOption(self::collapsedBlank, $this->_("Collapsed only when blank")); 
 		$field->addOption(self::collapsedPopulated, $this->_("Collapsed only when populated")); 
 		$field->addOption(self::collapsedYes, $this->_("Always collapsed, requiring a click to open")); 
-		$field->addOption(self::collapsedHidden, $this->_("Hidden, not shown in the editor")); 
+		$field->addOption(self::collapsedHidden, $this->_("Hidden, not shown in the editor"));
+		$field->addOption(self::collapsedLocked, $this->_("Locked, value visible but not editable"));
 		$field->attr('value', (int) $this->collapsed); 
 		if($this->collapsed == Inputfield::collapsedNo) $field->collapsed = Inputfield::collapsedYes;
 		$fields->append($field); 

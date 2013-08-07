@@ -235,14 +235,15 @@ class InputfieldWrapper extends Inputfield {
 		$children = $this->preRenderChildren();
 		$columnWidthTotal = 0;
 		$lastInputfield = null;
-		$renderValueMode = $this->renderValueMode; 
 		$markup = array_merge(self::$defaultMarkup, self::$markup);
-		$classes = array_merge(self::$defaultClasses, self::$classes); 
+		$classes = array_merge(self::$defaultClasses, self::$classes);
 
 		foreach($children as $inputfield) {
+			$renderValueMode = $this->renderValueMode; 
 
 			$collapsed = (int) $inputfield->getSetting('collapsed'); 
 			if($collapsed == Inputfield::collapsedHidden) continue; 
+			if($collapsed == Inputfield::collapsedLocked) $renderValueMode = true; 
 
 			if($renderValueMode) {
 				$ffOut = $inputfield->renderValue();
@@ -279,6 +280,7 @@ class InputfieldWrapper extends Inputfield {
 				$isEmpty = $inputfield->isEmpty();
 				if($inputfield instanceof InputfieldWrapper || 
 					$collapsed === Inputfield::collapsedYes ||
+					$collapsed === Inputfield::collapsedLocked ||
 					$collapsed === true || 
 					($isEmpty && $collapsed === Inputfield::collapsedBlank) ||
 					(!$isEmpty && $collapsed === Inputfield::collapsedPopulated)) {
@@ -359,8 +361,8 @@ class InputfieldWrapper extends Inputfield {
 
 		foreach($this->children as $key => $child) {
 
-			// skip over collapsedHidden inputfields, beacuse they were never drawn
-			if($child->collapsed === Inputfield::collapsedHidden) continue; 
+			// skip over collapsedHidden or collapsedLocked inputfields, beacuse they are not saveable
+			if($child->collapsed === Inputfield::collapsedHidden || $child->collapsed === Inputfield::collapsedLocked) continue; 
 
 			// call the inputfield's processInput method
 			$child->processInput($input); 
