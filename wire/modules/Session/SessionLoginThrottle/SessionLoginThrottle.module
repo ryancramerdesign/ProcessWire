@@ -89,17 +89,21 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 		$allowed = false;
 
 		if($numRows) {
-			$requireSeconds = $attempts * $this->seconds; 
-			if($requireSeconds > $this->maxSeconds) $requireSeconds = $this->maxSeconds; 
-			$elapsedSeconds = $time - $lastAttempt; 
-			$attempts++;
-			if($elapsedSeconds < $requireSeconds) {
-				$error = sprintf($this->_("Please wait at least %d seconds before attempting another login."), $requireSeconds); 
-				if(wire('process') == 'ProcessLogin') parent::error($error); 
-					else throw new WireException($error); // ensures the error can't be missed in unknown API usage
+			if($attempts > 1) {
+				$requireSeconds = ($attempts-1) * $this->seconds; 
+				if($requireSeconds > $this->maxSeconds) $requireSeconds = $this->maxSeconds; 
+				$elapsedSeconds = $time - $lastAttempt; 
+				if($elapsedSeconds < $requireSeconds) {
+					$error = sprintf($this->_("Please wait at least %d seconds before attempting another login."), $requireSeconds); 
+					if(wire('process') == 'ProcessLogin') parent::error($error); 
+						else throw new WireException($error); // ensures the error can't be missed in unknown API usage
+				} else {
+					$allowed = true; 
+				}
 			} else {
 				$allowed = true; 
 			}
+			$attempts++;
 			
 			$query = $database->prepare('UPDATE session_login_throttle SET attempts=:attempts, last_attempt=:time WHERE name=:name');
 			$query->bindValue(':attempts', $attempts);
