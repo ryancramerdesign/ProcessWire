@@ -31,7 +31,7 @@ class PageComparison {
 			return ((bool) ($page->status & $status)); 
 
 		} else if(is_string($status) && wire('sanitizer')->name($status) == $status) {
-			// valid template name
+			// valid template name or status name
 			if($page->template->name == $status) return true; 
 
 		} else if($page->matches($status)) { 
