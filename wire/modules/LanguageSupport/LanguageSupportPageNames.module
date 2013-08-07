@@ -501,6 +501,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$page = $event->object; 
 		if($page->template == 'admin') return;
 		$language = $this->wire('user')->get('language'); 
+		if(!$language) $language = $this->wire('languages')->get('default'); 
 		$event->return = $this->getPagePath($page, $language); 
 	}
 

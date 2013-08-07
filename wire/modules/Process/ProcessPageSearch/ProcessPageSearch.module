@@ -88,7 +88,12 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	 * 
 	 */
 	protected function fullSetup() {
-		$this->setFuel('processHeadline', $this->_x('Search', 'headline')); // Headline for search page
+		$headline = $this->_x('Search', 'headline'); // Headline for search page
+		if($this->input->get('processHeadline')) {
+			$headline = $this->sanitizer->entities($this->sanitizer->text($this->input->get('processHeadline'))); 
+			$this->input->whitelist('processHeadline', $headline); 
+		}
+		$this->wire('processHeadline', $headline); 
 		$this->operators = self::getOperators();
 	}
 
@@ -579,7 +584,9 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		}
 
 		if($matches->getTotal() > count($matches)) {	
-			$pager = $this->wire('modules')->get('MarkupPagerNav')->render($matches); 
+			$pager = $this->wire('modules')->get('MarkupPagerNav');
+			if($this->input->urlSegment1 == 'for') $pager->setBaseUrl($this->page->url . "for/"); 
+			$pager = $pager->render($matches); 
 		} else {
 			$pager = '';
 		}

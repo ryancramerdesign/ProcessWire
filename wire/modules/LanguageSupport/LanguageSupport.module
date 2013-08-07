@@ -22,17 +22,17 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	 */
         static public function getModuleInfo() {
                 return array(
-                        'title' => 'Languages Support',
-                        'version' => 100,
-                        'summary' => 'ProcessWire multi-language support.',
-			'author' => 'Ryan Cramer',
-			'autoload' => true,
-			'singular' => true,
-			'installs' => array(
-				'ProcessLanguage', 
-				'ProcessLanguageTranslator', 
-				)
-                        );
+					'title' => 'Languages Support',
+					'version' => 100,
+					'summary' => 'ProcessWire multi-language support.',
+					'author' => 'Ryan Cramer',
+					'autoload' => true,
+					'singular' => true,
+					'installs' => array(
+						'ProcessLanguage', 
+						'ProcessLanguageTranslator', 
+						)
+					);
         }
 
 	/**
