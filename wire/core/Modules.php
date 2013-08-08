@@ -270,7 +270,8 @@ class Modules extends WireArray {
 				// include the module and instantiate it but don't init() it,
 				// because it will be done by Modules::init()
 				include_once($pathname); 
-				$moduleInfo = $basename::getModuleInfo();
+				//$moduleInfo = $basename::getModuleInfo(); // requires PHP 5.2.3+
+				$moduleInfo = call_user_func(array($basename, 'getModuleInfo'));
 				// if not defined in getModuleInfo, then we'll accept the database flag as enough proof
 				// since the module may have defined it via an isAutoload() function
 				if(!isset($moduleInfo['autoload'])) $moduleInfo['autoload'] = true;
