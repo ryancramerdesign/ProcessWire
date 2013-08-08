@@ -23,7 +23,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
         static public function getModuleInfo() {
                 return array(
 					'title' => 'Languages Support',
-					'version' => 100,
+					'version' => 101,
 					'summary' => 'ProcessWire multi-language support.',
 					'author' => 'Ryan Cramer',
 					'autoload' => true,
@@ -219,13 +219,18 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	 *
 	 * @param string $out Existing inputfield output
 	 * @param string $id ID attribute to use
-	 * @param string $label Text label (typically language name)
+	 * @param Language $language
+	 * @return string
 	 *
 	 */
-	protected function wrapInputfieldOutput($out, $id, $label) {
-		$out  = "\n<div class='LanguageSupport'>" . 
-			"\n<label for='$id' class='LanguageSupportLabel detail'>$label</label>" . $out . 
-			"\n</div>";
+	protected function wrapInputfieldOutput($out, $id, Language $language) {
+		
+		$label = (string) $language->title;
+		if(!strlen($label)) $label = $language->name; 
+		
+		$out  = "\n<div class='LanguageSupport' data-language='$language->id'>" . 
+				"\n<label for='$id' class='LanguageSupportLabel detail'>$label</label>" . $out . 
+				"\n</div>";
 		return $out; 
 	}
 
@@ -249,9 +254,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		if($this->LanguageSupportFields && strpos($name, '_') && wire('fields')->get($name)) {
 			$language = $this->LanguageSupportFields->getAlternateFieldLanguage($name); 
 			if($language && $language->id) {
-				$label = (string) $language->title; 
-				if(!strlen($label)) $label = $language->name; 
-				$event->return = $this->wrapInputfieldOutput($event->return, $inputfield->attr('id'), $label); 			
+				$event->return = $this->wrapInputfieldOutput($event->return, $inputfield->attr('id'), $language); 			
 				return;
 			}
 		}
@@ -289,9 +292,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 				$o = $inputfield->___render(); 
 			}
 
-			$label = (string) $language->title; 
-			if(!strlen($label)) $label = $language->name; 
-			$out .= $this->wrapInputfieldOutput($o, $newID, $label);
+			$out .= $this->wrapInputfieldOutput($o, $newID, $language);
 		}
 
 		$inputfield->setAttribute('name', $name);
