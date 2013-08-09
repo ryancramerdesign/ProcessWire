@@ -40,7 +40,7 @@ class FieldtypeTextarea extends FieldtypeText {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Textarea',
-			'version' => 102,
+			'version' => 103,
 			'summary' => 'Field that stores multiple lines of text',
 			'permanent' => true, 
 			);
@@ -62,13 +62,35 @@ class FieldtypeTextarea extends FieldtypeText {
 	}
 
 	public function ___sleepValue(Page $page, Field $field, $value) {
-		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, true); 
-		return parent::___sleepValue($page, $field, $value); 
+		$value = parent::___sleepValue($page, $field, $value);
+		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, true);
+		return $value; 
 	}
 
-	public function ___wakeupValue(Page $page, Field $field, $value) {
-		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, false); 
-		return parent::___wakeupValue($page, $field, $value); 
+	public function ___loadPageField(Page $page, Field $field) {
+		$value = parent::___loadPageField($page, $field);
+		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, false);
+		return $value; 
+	}
+
+	/**
+	 * Content Type HTML replacements accounting for href and src attributes
+	 * 
+	 * This one handles a string value or array of string values (like for multi-language support)
+	 * 
+ 	 * @param string|array $value Value to look for attributes (or array of values)
+	 * @param bool $sleep When true, convert links starting with root URL to "/". When false, do the reverse. 
+	 * 	
+	 */
+	protected function htmlReplacements(&$value, $sleep = true) {
+		if(is_array($value)) {
+			foreach($value as $k => $v) {
+				$this->htmlReplacement($v, $sleep); 
+				$value[$k] = $v;
+			}
+		} else if(is_string($value)) {
+			$this->htmlReplacement($value, $sleep); 
+		}
 	}
 
 	/**
@@ -89,7 +111,7 @@ class FieldtypeTextarea extends FieldtypeText {
 	 * @param bool $sleep When true, convert links starting with root URL to "/". When false, do the reverse. 
 	 * 
 	 */
-	protected function htmlReplacements(&$value, $sleep = true) {
+	protected function htmlReplacement(&$value, $sleep = true) {
 		$rootURL = $this->wire('config')->urls->root; 
 		if(stripos($value, 'href=') === false && stripos($value, 'src=') === false) return;
 		$replacements = array(

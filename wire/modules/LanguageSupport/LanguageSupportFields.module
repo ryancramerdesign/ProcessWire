@@ -75,7 +75,7 @@ class LanguageSupportFields extends WireData implements Module {
 	 */
 	public function LS_init() {
 
-		$this->addHookAfter('FieldtypeLanguageInterface::sleepValue', $this, 'fieldtypeSleepValue'); 
+		$this->addHookBefore('FieldtypeLanguageInterface::sleepValue', $this, 'fieldtypeSleepValue'); 
 		$this->addHookBefore('PageFinder::getQuery', $this, 'pageFinderGetQuery'); 
 		$this->addHookBefore('Fieldtype::formatValue', $this, 'hookFieldtypeFormatValue'); 
 
@@ -366,7 +366,8 @@ class LanguageSupportFields extends WireData implements Module {
 
 		$page = $event->arguments[0];
 		$field = $event->arguments[1];
-		$value = $event->return;
+		$value = $event->arguments[2]; 
+		//$value = $event->return;
 		$values = array();
 
 		foreach(wire('languages') as $language) {
@@ -384,8 +385,10 @@ class LanguageSupportFields extends WireData implements Module {
 			break;
 		}
 		*/
-
-		$event->return = $values; 
+	
+		// ensure that sleepValue is getting an array
+		$event->setArgument(2, $values);
+		// $event->return = $values; 
 	}
 
 	public function fieldtypeGetConfigInputfields(HookEvent $event) {
