@@ -6,11 +6,10 @@
  * Base class for Inputfield modules. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -59,6 +58,7 @@ abstract class Inputfield extends WireData implements Module {
 	const collapsedBlank = 2; 	// will display collapsed only if blank
 	const collapsedHidden = 4; 	// will not be rendered in the form
 	const collapsedPopulated = 5; 	// will display collapsed only if populated
+	const collapsedLocked = 8;  // value is visible but not editable, otherwise same as collapsedYes
 
 	/**
 	 * Constants for skipLabel setting
@@ -128,7 +128,7 @@ abstract class Inputfield extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => '',
-			'version' => 001, 
+			'version' => 1, 
 			'summary' => '', 
 			); 
 	}
@@ -191,7 +191,7 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function set($key, $value) {
-		if($key == 'parent' && ($value instanceof Inputfield)) return $this->setParent($value); 
+		if($key == 'parent' && ($value instanceof InputfieldWrapper)) return $this->setParent($value); 
 		if(array_key_exists($key, $this->attributes)) return $this->setAttribute($key, $value); 
 		if($key == 'required' && $value) $this->attr('class', 'required'); 
 		if($key == 'columnWidth') {
@@ -236,7 +236,8 @@ abstract class Inputfield extends WireData implements Module {
 	/**
 	 * Set the parent of this Inputfield
 	 *
-	 * @param Inputfield $parent
+	 * @param InputfieldWrapper $parent
+	 * @return $this
 	 *
 	 */
 	public function setParent(InputfieldWrapper $parent) {
@@ -265,7 +266,7 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 * @param string|array $key
 	 * @param string|int $value
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setAttribute($key, $value) {
@@ -317,8 +318,8 @@ abstract class Inputfield extends WireData implements Module {
 	 * If getting an attribute, then don't specify the second $value param.
 	 *
 	 * @param string|array $key If an array, then all keyed values in the array will be set. 
-	 * @param string|int $value Optional - Omit if setting an array in the key, or if getting a value. 
-	 * @param Formfield|string|int If setting an attribute, it returns this instance. If getting an attribute, the attribute is returned. 
+	 * @param string|int|null $value Optional - Omit if setting an array in the key, or if getting a value. 
+	 * @return $this|string|int If setting an attribute, it returns this instance. If getting an attribute, the attribute is returned. 
 	 *
 	 */
 	public function attr($key, $value = null) {
@@ -352,7 +353,8 @@ abstract class Inputfield extends WireData implements Module {
 	/**
 	 * Get an XHTML ready string of all this Inputfield's attributes
 	 *
-	 * @param array $allowedAttributes Optional array of attributes to build the strong from. If not specified, this Inputfield's attributes will be used.
+	 * @param array $attributes Optional array of attributes to build the strong from. If not specified, this Inputfield's attributes will be used.
+	 * @return string
 	 *
 	 */
 	public function getAttributesString(array $attributes = null) {
@@ -411,16 +413,21 @@ abstract class Inputfield extends WireData implements Module {
 	/**
 	 * Process the input from the given WireInputData (usually $input->get or $input->post), load and clean the value for use in this Inputfield. 
 	 *
-	 * @param $this
+	 * @param WireInputData $input
+	 * @return $this
 	 * 
 	 */
 	public function ___processInput(WireInputData $input) {
 
-		// if value was unset in the array, then just return
-		// TODO should this set an empty value rather than leaving an existing value?
-		if(!isset($input[$this->name])) return $this; 
+		if(isset($input[$this->name])) {
+			$value = $input[$this->name]; 
 
-		$value = $input[$this->name]; 
+		} else if($this instanceof InputfieldHasArrayValue) {
+			$value = array();
+		} else {
+			$value = $input[$this->name];
+		}
+
 		$changed = false; 
 
 		if($this instanceof InputfieldHasArrayValue && !is_array($value)) {
@@ -491,7 +498,7 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 * Intended to be extended or overriden
 	 *
-	 * @return FormfieldWrapper
+	 * @return InputfieldWrapper
 	 *
 	 */
 	public function ___getConfigInputfields() {
@@ -506,7 +513,8 @@ abstract class Inputfield extends WireData implements Module {
 		$field->addOption(self::collapsedBlank, $this->_("Collapsed only when blank")); 
 		$field->addOption(self::collapsedPopulated, $this->_("Collapsed only when populated")); 
 		$field->addOption(self::collapsedYes, $this->_("Always collapsed, requiring a click to open")); 
-		$field->addOption(self::collapsedHidden, $this->_("Hidden, not shown in the editor")); 
+		$field->addOption(self::collapsedHidden, $this->_("Hidden, not shown in the editor"));
+		$field->addOption(self::collapsedLocked, $this->_("Locked, value visible but not editable"));
 		$field->attr('value', (int) $this->collapsed); 
 		if($this->collapsed == Inputfield::collapsedNo) $field->collapsed = Inputfield::collapsedYes;
 		$fields->append($field); 
@@ -567,7 +575,8 @@ abstract class Inputfield extends WireData implements Module {
 	/**
 	 * Return array of strings containing errors that occurred during processInput
 	 *
-	 * @param bool $clear Optionally clear the errors after getting them
+	 * @param bool $clear Optionally clear the errors after getting them. Default=false.
+	 * @return array
 	 *
 	 */
 	public function getErrors($clear = false) {
@@ -597,7 +606,7 @@ abstract class Inputfield extends WireData implements Module {
 	 * We don't track changes to any other properties of Inputfields. 
 	 *
 	 * @param string $key
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function trackChange($key) {

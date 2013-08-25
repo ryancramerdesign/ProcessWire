@@ -9,11 +9,10 @@
  * There may be multiple instances of Pagefiles attached to a given Page (depending on what fields are in it's fieldgroup).
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  *
  * @property string $path Returns the full server disk path where files are stored	
@@ -78,8 +77,8 @@ class Pagefiles extends WireArray {
 	 *
 	 * Adapted here so that $this->page can be passed to the constructor of a newly created Pagefiles. 
 	 *
-	 * @param array $items Array of items to populate (optional)
 	 * @return WireArray
+	 * 
 	 */
 	public function makeNew() {
 		$class = get_class($this); 
@@ -161,7 +160,7 @@ class Pagefiles extends WireArray {
 	 * Add a new Pagefile item, or create one from it's filename and add it.
 	 *
 	 * @param Pagefile|string $item If item is a string (filename) then the Pagefile instance will be created automatically.
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function add($item) {
@@ -190,7 +189,7 @@ class Pagefiles extends WireArray {
 	 * Delete a pagefile item, hookable alias of remove()
 	 *
 	 * @param Pagefile $item
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function ___delete($item) {
@@ -203,7 +202,8 @@ class Pagefiles extends WireArray {
 	 * Deletes the filename associated with the Pagefile and removes it from this Pagefiles instance. 
 	 *
 	 * @param Pagefile $item
-	 * @return this
+	 * @return $this
+	 * @throws WireException
 	 *
 	 */
 	public function remove($item) {
@@ -220,7 +220,7 @@ class Pagefiles extends WireArray {
 	/**
 	 * Delete all files associated with this Pagefiles instance, leaving a blank Pagefiles instance. 
 	 *
-	 * @return this
+	 * @return $this
 	 *
 	 */ 
 	public function deleteAll() {
@@ -262,7 +262,7 @@ class Pagefiles extends WireArray {
 		$ext = $dot ? substr($basename, $dot) : ''; 
 		$basename = strtolower(basename($basename, $ext)); 
 		$basename = preg_replace('/[^-_.a-zA-Z0-9]/', '_', $basename); 
-		$ext = preg_replace('/[^a-z0-9.]/', '_', $ext); 
+		$ext = preg_replace('/[^a-z0-9.]/', '_', strtolower($ext)); 
 		$basename .= $ext;
 		if($originalize) { 
 			$n = 0; 

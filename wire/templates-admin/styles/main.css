@@ -351,6 +351,11 @@ a {
 		color: #777; 
 		background: #feffd9; 
 	}
+		.content .description strong,
+		.content .notes strong {
+			color: #444; 
+			font-weight: bold; 
+		}
 
 	.content .error {
 		color: red;
@@ -469,6 +474,23 @@ a {
 
 	body.modal #sitelink {
 		display: none; 
+	}
+
+#debug table {
+	width: 100%; 
+}
+
+	#debug table th {
+		font-weight: bold;
+	}
+
+	#debug table td,
+	#debug table th {
+		vertical-align: top; 
+		padding: 3px 5px; 	
+		border-bottom: 1px dotted #ccc; 
+		border-left: 1px dotted #ccc; 
+		font-size: 12px; 
 	}
 
 /***********************************************************************************************

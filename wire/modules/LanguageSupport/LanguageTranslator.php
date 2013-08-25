@@ -407,7 +407,7 @@ class LanguageTranslator extends Wire {
 		$textdomain = $this->filenameToTextdomain($filename); 
 		$this->textdomains[$textdomain] = $this->textdomainTemplate(ltrim($filename, '/'), $textdomain); 
 		$file = $this->getTextdomainTranslationFile($textdomain); 
-		$result = file_put_contents($file, json_encode($this->textdomains[$textdomain]), LOCK_EX); 
+		$result = file_put_contents($file, $this->encodeJSON($this->textdomains[$textdomain]), LOCK_EX); 
 		if($result && $this->config->chmodFile) chmod($file, octdec($this->config->chmodFile));
 
 		if($result) {
@@ -427,7 +427,7 @@ class LanguageTranslator extends Wire {
 	 */
 	public function saveTextdomain($textdomain) {
 		if(empty($this->textdomains[$textdomain])) return false;
-		$json = json_encode($this->textdomains[$textdomain]); 
+		$json = $this->encodeJSON($this->textdomains[$textdomain]); 
 		$file = $this->getTextdomainTranslationFile($textdomain); 
 		$result = file_put_contents($file, $json, LOCK_EX); 
 		return $result; 
@@ -448,6 +448,21 @@ class LanguageTranslator extends Wire {
 	public function getTextdomain($textdomain) { 
 		$this->loadTextdomain($textdomain); 
 		return isset($this->textdomains[$textdomain]) ? $this->textdomains[$textdomain] : array();
+	}
+
+	/**
+	 * JSON encode language translation data
+	 * 
+	 * @param string $str
+	 * @return string
+	 *
+	 */
+	public function encodeJSON($str) {
+		if(defined("JSON_PRETTY_PRINT")) {
+			return json_encode($str, JSON_PRETTY_PRINT); 
+		} else {
+			return json_encode($str); 
+		}
 	}
 
 }

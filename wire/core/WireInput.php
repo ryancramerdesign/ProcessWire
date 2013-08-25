@@ -7,11 +7,10 @@
  * front end to PHP's $_GET, $_POST, and $_COOKIE superglobals.
  *
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -31,7 +30,6 @@
  *
  */
 class WireInputData implements ArrayAccess, IteratorAggregate, Countable {
-
 
 	protected $stripSlashes = false;
 	protected $data = array();
@@ -110,9 +108,6 @@ class WireInputData implements ArrayAccess, IteratorAggregate, Countable {
 	public function __unset($key) {
 		return $this->offsetUnset($key); 
 	}
-
-
-
 }
 
 /**
@@ -135,10 +130,10 @@ class WireInput {
 	/**
 	 * Retrieve a GET value or all GET values
 	 *
-	 * @param blank|string 
+	 * @param string $key
 	 * 	If populated, returns the value corresponding to the key or NULL if it doesn't exist.
 	 *	If blank, returns reference to the WireDataInput containing all GET vars. 
-	 * @return null|mixed|WireDataInput
+	 * @return null|mixed|WireInputData
 	 *
 	 */
 	public function get($key = '') {
@@ -149,10 +144,10 @@ class WireInput {
 	/**
 	 * Retrieve a POST value or all POST values
 	 *
-	 * @param blank|string 
+	 * @param string $key
 	 *	If populated, returns the value corresponding to the key or NULL if it doesn't exist.
 	 *	If blank, returns reference to the WireDataInput containing all POST vars. 
-	 * @return null|mixed|WireDataInput
+	 * @return null|mixed|WireInputData
 	 *
 	 */
 	public function post($key = '') {
@@ -163,15 +158,15 @@ class WireInput {
 	/**
 	 * Retrieve a COOKIE value or all COOKIE values
 	 *
-	 * @param blank|string 
+	 * @param string $key
 	 *	If populated, returns the value corresponding to the key or NULL if it doesn't exist.
 	 *	If blank, returns reference to the WireDataInput containing all COOKIE vars. 
-	 * @return null|mixed|WireDataInput
+	 * @return null|mixed|WireInputData
 	 *
 	 */
 	public function cookie($key = '') {
 		if(is_null($this->cookieVars)) $this->cookieVars = new WireInputData($_COOKIE); 
-		return $key ? $this->cookieVars->get($key) : $this->cookieVars; 
+		return $key ? $this->cookieVars->__get($key) : $this->cookieVars; 
 	}
 
 	/**
@@ -190,7 +185,7 @@ class WireInput {
 	 * 	If $value is ommited, it assumes you are asking for a value with $key, in which case it returns it. 
 	 * @param mixed $value
 	 * 	See explanation for the $key param
-	 * @return null|mixed|WireDataInput
+	 * @return null|mixed|WireInputData
 	 * 	See explanation for the $key param 
 	 *
 	 */

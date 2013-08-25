@@ -81,6 +81,22 @@ $config->imageSizerOptions = array(
 	);
 
 /**
+ * Default prefix used for pagination, i.e. "page2", "page3", etc.
+ *
+ */
+$config->pageNumUrlPrefix = 'page';
+
+/**
+ * Multiple prefixes that may be used for detecting pagination
+ *
+ * Typically used for multi-language support and populated automatically at runtime by
+ * multi-language support modules. When populated, they override $config->pageNumUrlPrefix.
+ *
+ * $config->pageNumUrlPrefixes = array();
+ * 
+ */
+
+/**
  * Set to true in /site/config.php if you want files on non-public or unpublished pages to be 
  * protected from direct URL access. 
  *

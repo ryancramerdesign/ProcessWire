@@ -66,12 +66,6 @@ class Fields extends WireSaveableItems {
 	protected $fieldsArray = null;
 
 	/**
-	 * Instance of Database
-	 *
-	 */
-	protected $db = null;
-
-	/**
 	 * Field names that are native/permanent to the system and thus treated differently in several instances. 
 	 *
 	 * For example, a Field can't be given one of these names. 
@@ -123,7 +117,6 @@ class Fields extends WireSaveableItems {
 
 	public function __construct() {
 		$this->fieldsArray = new FieldsArray();
-		$this->db = $this->fuel('db'); 
 	}
 
 	/**
@@ -169,23 +162,25 @@ class Fields extends WireSaveableItems {
 	/**
 	 * Save a Field to the database
 	 *
-	 * @param Field $item The field to save
+	 * @param Field|Saveable $item The field to save
 	 * @return bool True on success, false on failure
+	 * @throws WireException
 	 *
 	 */
 	public function ___save(Saveable $item) {
 
 		if($item->flags & Field::flagFieldgroupContext) throw new WireException("Field $item is not saveable because it is in a specific context"); 
 
+		$database = $this->wire('database');
 		$isNew = $item->id < 1;
-		$prevTable = $this->fuel('db')->escapeTable($item->prevTable);
-		$table = $this->fuel('db')->escapeTable($item->getTable());
-
+		$prevTable = $database->escapeTable($item->prevTable);
+		$table = $database->escapeTable($item->getTable());
+		
 		if(!$isNew && $prevTable && $prevTable != $table) {
 			// note that we rename the table twice in order to force MySQL to perform the rename 
 			// even if only the case has changed. 
-			$this->fuel('db')->query("RENAME TABLE `$prevTable` TO `tmp_$table`"); // QA
-			$this->fuel('db')->query("RENAME TABLE `tmp_$table` TO `$table`"); // QA
+			$database->exec("RENAME TABLE `$prevTable` TO `tmp_$table`"); // QA
+			$database->exec("RENAME TABLE `tmp_$table` TO `$table`"); // QA
 			$item->prevTable = '';
 		}
 
@@ -221,8 +216,9 @@ class Fields extends WireSaveableItems {
 	/**
 	 * Delete a Field from the database
 	 *
-	 * @param Saveable $item Item to save
+	 * @param Field|Saveable $item Item to save
 	 * @return bool True on success, false on failure
+	 * @throws WireException
 	 *
 	 */
 	public function ___delete(Saveable $item) {
@@ -251,8 +247,9 @@ class Fields extends WireSaveableItems {
 	/**
 	 * Create and return a cloned copy of the given Field
 	 *
-	 * @param Saveable $item Item to clone
-	 * @param bool|Saveable $item Returns the new clone on success, or false on failure
+	 * @param Field|Saveable $item Item to clone
+	 * @return bool|Saveable $item Returns the new clone on success, or false on failure
+	 * @throws WireException
 	 *
 	 */
 	public function ___clone(Saveable $item) {
@@ -280,6 +277,7 @@ class Fields extends WireSaveableItems {
 	 * @param Field $field Field to save context for
 	 * @param Fieldgroup $fieldgroup Context for when field is in this fieldgroup
 	 * @return bool True on success
+	 * @throws WireException
 	 *
 	 */
 	public function ___saveFieldgroupContext(Field $field, Fieldgroup $fieldgroup) {
@@ -320,11 +318,16 @@ class Fields extends WireSaveableItems {
 		if(is_null($data)) {
 			$data = 'NULL';
 		} else {
-			$data = "'" . $this->db->escape_string($data) . "'";
+			$data = "'" . $this->wire('database')->escapeStr($data) . "'";
 		}
 		$field_id = (int) $field->id; 
 		$fieldgroup_id = (int) $fieldgroup->id; 
-		$result = $this->db->query("UPDATE fieldgroups_fields SET data=$data WHERE fields_id=$field_id AND fieldgroups_id=$fieldgroup_id"); // QA
+		
+		$database = $this->wire('database');
+		$query = $database->prepare("UPDATE fieldgroups_fields SET data=$data WHERE fields_id=:field_id AND fieldgroups_id=:fieldgroup_id"); // QA
+		$query->bindValue(':field_id', $field_id, PDO::PARAM_INT);
+		$query->bindValue(':fieldgroup_id', $fieldgroup_id, PDO::PARAM_INT); 
+		$result = $query->execute();
 
 		return $result; 
 	}
@@ -334,6 +337,8 @@ class Fields extends WireSaveableItems {
 	 * Change a field's type
 	 *
 	 * @param Field $field1 Field with the new type
+	 * @throws WireException
+	 * @return bool
 	 *
 	 */
 	protected function ___changeFieldtype(Field $field1) {
@@ -344,6 +349,11 @@ class Fields extends WireSaveableItems {
 			($field1->prevFieldtype instanceof FieldtypeMulti && !$field1->type instanceof FieldtypeMulti)) {
 			throw new WireException("Cannot convert between single and multiple value field types"); 
 		}
+
+		$fromType = $field1->prevFieldtype;
+		$toType = $field1->type;
+
+		$this->changeTypeReady($field1, $fromType, $toType);
 
 		$field2 = clone $field1; 
 		$flags = $field2->flags; 
@@ -358,17 +368,18 @@ class Fields extends WireSaveableItems {
 		$schema1 = array();
 		$schema2 = array();
 
-		$table1 = $this->db->escapeTable($field1->table); 
-		$table2 = $this->db->escapeTable($field2->table);
+		$database = $this->wire('database'); 
+		$table1 = $database->escapeTable($field1->table); 
+		$table2 = $database->escapeTable($field2->table);
 
-		$result = $this->db->query("DESCRIBE `$table1`"); // QA
-		while($row = $result->fetch_assoc()) $schema1[] = $row['Field']; 
-		$result->free();
+		$query = $database->prepare("DESCRIBE `$table1`"); // QA
+		$query->execute();
+		while($row = $query->fetch(PDO::FETCH_ASSOC)) $schema1[] = $row['Field'];
 
-		$result = $this->db->query("DESCRIBE `$table2`"); // QA
-		while($row = $result->fetch_assoc()) $schema2[] = $row['Field']; 
-		$result->free();
-
+		$query = $database->prepare("DESCRIBE `$table2`"); // QA
+		$query->execute();
+		while($row = $query->fetch(PDO::FETCH_ASSOC)) $schema2[] = $row['Field'];
+			
 		foreach($schema1 as $key => $value) {
 			if(!in_array($value, $schema2)) {
 				if($this->config->debug) $this->message("changeFieldType loses table field '$value'"); 
@@ -377,23 +388,29 @@ class Fields extends WireSaveableItems {
 		}
 
 		$sql = 	"INSERT INTO `$table2` (`" . implode('`,`', $schema1) . "`) " . 
-			"SELECT `" . implode('`,`', $schema1) . "` FROM `$table1` ";
+				"SELECT `" . implode('`,`', $schema1) . "` FROM `$table1` ";
+		
+		$error = '';
 
 		try {
-			$result = $this->db->query($sql); // QA
-		} catch(WireDatabaseException $e) {
+			$result = $database->exec($sql);
+			if($result === false || $query->errorCode() > 0) {
+				$errorInfo = $query->errorInfo();
+				$error = !empty($errorInfo[2]) ? $errorInfo[2] : 'Unknown Error'; 
+			}
+		} catch(Exception $e) {
 			$result = false;
+			$error = $e->getMessage();
 		}
 
-		if(!$result) {
-			$this->error("Field type change failed. Database reports: {$this->db->error}"); 
-			$this->db->query("DROP TABLE `$table2`"); // QA
+		if($error) {
+			$this->error("Field type change failed. Database reports: $error"); 
+			$database->exec("DROP TABLE `$table2`"); // QA
 			return false; 
 		}
 
-		$this->db->query("DROP TABLE `$table1`"); // QA
-		$this->db->query("RENAME TABLE `$table2` TO `$table1`"); // QA
-
+		$database->exec("DROP TABLE `$table1`"); // QA
+		$database->exec("RENAME TABLE `$table2` TO `$table1`"); // QA
 
 		$field1->type = $field2->type; 
 
@@ -406,6 +423,8 @@ class Fields extends WireSaveableItems {
 			// remove the custom field
 			$field1->remove($key); 
 		}
+
+		$this->changedType($field1, $fromType, $toType); 
 
 		return true; 	
 	}
@@ -430,6 +449,9 @@ class Fields extends WireSaveableItems {
 		if(isset($value['columnWidth']) && (empty($value['columnWidth']) || $value['columnWidth'] == 100)) unset($value['columnWidth']); 
 		return wireEncodeJSON($value, 0); 	
 	}
+
+	public function ___changedType(Saveable $item, Fieldtype $fromType, Fieldtype $toType) { }
+	public function ___changeTypeReady(Saveable $item, Fieldtype $fromType, Fieldtype $toType) { }
 
 }
 

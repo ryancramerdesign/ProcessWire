@@ -6,11 +6,10 @@
  * A template file that will be loaded and executed as PHP, and it's output returned
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -60,6 +59,7 @@ class TemplateFile extends WireData {
 	 * Sets the template file name, replacing whatever was set in the constructor
 	 *
 	 * @param string $filename Full path and filename to the PHP template file
+	 * @throws WireException
 	 *
 	 */
 	public function setFilename($filename) {
@@ -70,22 +70,36 @@ class TemplateFile extends WireData {
 
 	/**
 	 * Set a file to prepend to the template file at render time
+	 * 
+	 * @param string $filename
+	 * @return bool Returns false if file doesn't exist. 
 	 *
 	 */
 	public function setPrependFilename($filename) {
-		if(is_file($filename)) $this->prependFilename = $filename; 
-			else return false;
-		return true; 
+		if($filename && is_file($filename)) {
+			$this->prependFilename = $filename; 
+			return true; 
+		} else {
+			$this->prependFilename = '';
+			return false;
+		}
 	}
 
 	/**
 	 * Set a file to append to the template file at render time
+	 * 
+	 * @param string $filename
+	 * @return bool Returns false if file doesn't exist. 
 	 *
 	 */
 	public function setAppendFilename($filename) {
-		if(is_file($filename)) $this->appendFilename = $filename; 
-			else return false;
-		return true; 
+		if($filename && is_file($filename)) {
+			$this->appendFilename = $filename; 
+			return true; 
+		} else {
+			$this->appendFilename = '';
+			return false;
+		}
 	}
 
 	/**
@@ -145,6 +159,7 @@ class TemplateFile extends WireData {
 	/**
 	 * Get a set property from the template file, typically to check if a template has access to a given variable
 	 *
+	 * @param string $property
 	 * @return mixed Returns the value of the requested property, or NULL if it doesn't exist
 	 *	
 	 */

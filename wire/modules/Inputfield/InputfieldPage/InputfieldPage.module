@@ -29,6 +29,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		'findPagesCode' => '',
 		'findPagesSelector' => '',
 		'addable' => 0,
+		'allowUnpub' => 0, // This option configured by FieldtypePage:Advanced
 		); 
 
 	/**
@@ -46,7 +47,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page',
-			'version' => 102,
+			'version' => 103,
 			'summary' => 'Select one or more pages',
 			'permanent' => true, 
 			);
@@ -96,12 +97,79 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		return parent::setAttribute($key, $value);
 	}
 
+	/**
+	 * Is the given $page valid for the given $field?
+	 * 
+	 * Note that this validates all but findPagesCode (eval) based page selections. 
+	 * This is primarily for use by FieldtypePage, but kept here since the config options
+	 * it uses to check are part of this module's config. 
+	 * 
+	 * @param Page $page
+	 * @param Field|string|int $field Field instance of field name (string) or ID
+	 * @param Page $editPage Page being edited
+	 * @return bool
+	 * @throws WireException
+	 * 
+	 */
+	public static function isValidPage(Page $page, $field, Page $editPage = null) {
+		
+		if(!$field instanceof Field) $field = wire('fields')->get($field);
+		if(!$field instanceof Field) throw new WireException('isValidPage requires a valid Field or field name'); 
+		
+		$valid = true;
+		
+		if($field->findPagesSelector) { 
+			if(!$page->matches($field->findPagesSelector)) $valid = false;
+		} 
+		
+		if($field->findPagesCode) {
+			// TODO: we don't currently validate these
+		} 
+
+		if($field->parent_id && $field->parent_id != $page->parent_id) {
+			if(in_array($field->inputfield, array('InputfieldPageListSelect', 'InputfieldPageListSelectMultiple'))) {
+				// parent_id represents a root parent
+				$rootParent = wire('pages')->get($field->parent_id); 
+				if(!$page->parents()->has($rootParent)) $valid = false;
+			} else {
+				// parent_id represents a direct parent
+				$valid = false;
+			}
+		}
+		
+		if($field->template_id && $page->template->id != $field->template_id) $valid = false; 
+		
+		return $valid;
+	}
+
+	/**
+	 * Execute the findPagesCode
+	 * 
+	 * @param Page $page The page being edited
+	 * @return PageArray (hopefully)
+	 * 
+	 */
+	protected function ___findPagesCode(Page $page) {
+		if(empty($this->findPagesCode)) return new PageArray();
+		$pages = wire('pages'); // so that it is locally scoped to the eval
+		return eval($this->findPagesCode);
+	}
+
 	public function has($key) {
 		// ensures it accepts any config value (like those for delegate inputfields)
 		return true; 
 	}
 
+	/**
+	 * Return PageArray of selectable pages for this input
+	 * 
+	 * @param Page $page The Page being edited
+	 * @return PageArray
+	 * 
+	 */
 	public function getSelectablePages(Page $page) {
+
+		$statusUnder = $this->allowUnpub ? Page::statusTrash : Page::statusUnpublished; 
 
 		if($this->configMode) {
 			$children = new PageArray();
@@ -112,15 +180,14 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		} else if($this->findPagesCode) {
 			// php statement that returns a PageArray
-			$pages = $this->pages; 	
-			$children = eval($this->findPagesCode); 
+			$children = $this->findPagesCode($page);
 
 		} else if($this->parent_id) {
 			$parent = $this->fuel('pages')->get($this->parent_id); 
-			if($parent) $children = $this->template_id ? $parent->children("templates_id={$this->template_id}, check_access=0, status<" . Page::statusUnpublished) : $parent->children("check_access=0, status<" . Page::statusUnpublished);
+			if($parent) $children = $this->template_id ? $parent->children("templates_id={$this->template_id}, check_access=0, status<$statusUnder") : $parent->children("check_access=0, status<$statusUnder");
 
 		} else if($this->template_id) {
-			$children = $this->pages->find("templates_id={$this->template_id}, check_access=0, status<" . Page::statusUnpublished); 
+			$children = $this->pages->find("templates_id={$this->template_id}, check_access=0, status<$statusUnder"); 
 
 		} else {
 			$children = new PageArray();
@@ -149,6 +216,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$children = $this->getSelectablePages($page); 
 			if($children) foreach($children as $child) {
 				$label = $this->labelFieldName ? $child->get($this->labelFieldName) : $child->name; 
+				if($child->is(Page::statusUnpublished)) $label .= ' ' . $this->_('(unpublished)');
 				$inputfield->addOption($child->id, $label); 
 			}
 		} else {
@@ -281,7 +349,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 				if($id > 0) {	
 					// existing page
 					$page = wire('pages')->get($id); 
-					if($page->is(Page::statusUnpublished)) continue; // disallow unpublished
+					if($page->is(Page::statusUnpublished) && !$this->allowUnpub) continue; // disallow unpublished
 				} else {
 					// placeholder for new page, to be sorted later
 					$page = new NullPage(); 
@@ -291,7 +359,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		} else if($value) {
 			$newValue = wire('pages')->get((int) $value); 
-			if($newValue->is(Page::statusUnpublished)) $newValue = null; // disallow unpublished
+			if($newValue->is(Page::statusUnpublished) && !$this->allowUnpub) $newValue = null; // disallow unpublished
 		}
 
 		$this->setAttribute('value', $newValue); 
@@ -506,6 +574,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$inputfield->hasFieldtype = true; // tell it it's under control of a parent, regardless of whether this one is hasFieldtype true or not.
 			foreach($inputfield->___getConfigInputfields() as $f) {
 				if(in_array($f->name, array('required', 'collapsed', 'columnWidth')) || array_key_exists($f->name, self::$defaultConfig)) continue; 
+				if($inputfields->getChildByName($f->name)) continue; // if we already have the given field, skip over it to avoid duplication
 				$inputfields->add($f); 
 			}
 		}

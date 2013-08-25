@@ -56,19 +56,19 @@ class ProcessPageSort extends Process {
 		if($this->config->demo) throw new WireException($this->_("Your change was not saved because this site is in demo mode")); 
 		if(!isset($_POST['sort'])) throw new WireException($this->_("This Process is only accessible via POST")); 
 		$this->session->CSRF->validate(); // throws exception if invalid
-
-		$this->user = $this->fuel('user'); 
+		$input = $this->wire('input');
+		$this->user = $this->wire('user'); 
 		$this->ids = array();
-		$ids = explode(',', $_POST['sort']); 
+		$ids = explode(',', $input->post->sort); 
 		foreach($ids as $sort => $id) $this->ids[(int) $sort] = (int) $id; 
 		if(!count($this->ids)) return; 
 		unset($ids);
 
-		$this->parent_id = (int) $_POST['parent_id']; 
-		$this->move_id = (int) $_POST['id'];
+		$this->parent_id = (int) $input->post->parent_id; 
+		$this->move_id = (int) $input->post->id;
 			
-		$parentPage = $this->fuel('pages')->get($this->parent_id);
-		$movePage = $this->fuel('pages')->get($this->move_id); 
+		$parentPage = $this->wire('pages')->get($this->parent_id);
+		$movePage = $this->wire('pages')->get($this->move_id); 
 		if($movePage->id < 2 || !$parentPage->id) return;
 
 		$this->movePage($movePage, $parentPage); 
@@ -114,25 +114,34 @@ class ProcessPageSort extends Process {
 
 		$changes = 0; 
 		$sortStart = 0;
+		$database = $this->wire('database');
 
 		// locate the 'sort' value of the current first sorted item, to use as our starting point (in case sorting in a pagination other than 1)
-		$sql = 	"SELECT sort FROM pages " . 
-			"WHERE parent_id={$parent->id} " . 
-			"AND id IN(" . implode(',', $this->ids) . ") " . 
-			($this->isMoved ? "AND id!={$this->move_id} " : '') . 
-			"ORDER BY sort " . 
-			"LIMIT 1"; 
+		$sql = "SELECT sort FROM pages WHERE parent_id=:parent_id AND id IN("; 
+		foreach($this->ids as $id) $sql .= ((int) $id) . ",";
+		$sql = rtrim($sql, ",") . ") ";
+		if($this->isMoved) $sql .= "AND id!=:move_id ";
+		$sql .= "ORDER BY sort LIMIT 1";
+		$query = $database->prepare($sql);
+		$query->bindValue(":parent_id", $parent->id, PDO::PARAM_INT);
+		if($this->isMoved) $query->bindValue(":move_id", $this->move_id, PDO::PARAM_INT);
+		$query->execute();
+		$sortStart = (int) $query->fetchColumn();
 		
-		$result = $this->db->query($sql);
-		if($result->num_rows) list($sortStart) = $result->fetch_row();
-
+		$query = $database->prepare("UPDATE pages SET sort=:sort1 WHERE id=:id AND parent_id=:parent_id AND sort!=:sort2");
+		$query->bindValue(":parent_id", $parent->id, PDO::PARAM_INT);
+		$id = 0;
+		
 		foreach($this->ids as $sort => $id) {
-			$sort += $sortStart; 
-			$this->db->query("UPDATE pages SET sort=$sort WHERE id=$id AND parent_id=$parent->id AND sort!=$sort"); 
-			if($this->db->affected_rows) $changes++;
+			$sort += $sortStart;
+			$query->bindValue(":sort1", $sort, PDO::PARAM_INT);
+			$query->bindValue(":sort2", $sort, PDO::PARAM_INT);
+			$query->bindValue(":id", $id, PDO::PARAM_INT); 
+			$query->execute();
+			if($query->rowCount() > 0) $changes++;
 		}
-		
-		if($changes) $this->message("Updated sort for $changes pages"); 
+			
+		if($changes) $this->message("Updated sort for $changes pages", Notice::log); 
 		
 	}
 	

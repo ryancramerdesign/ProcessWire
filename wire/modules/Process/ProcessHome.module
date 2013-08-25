@@ -24,7 +24,7 @@ class ProcessHome extends Process {
 		return array(
 			'title' => __('Admin Home', __FILE__), // getModuleInfo title 
 			'summary' => __('Acts as a placeholder Process for the admin root. Ensures proper flow control after login.', __FILE__), // getModuleInfo summary
-			'version' => 100, 
+			'version' => 101, 
 			'permission' => 'page-view', 
 			'permanent' => true, 
 			);

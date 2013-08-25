@@ -124,9 +124,11 @@ $config->wireInputOrder = 'get post';
  *
  */
 $config->imageSizerOptions = array(
-	'upscaling' => true,
-	'cropping' => true, 
-	'quality' => 90,
+	'upscaling' => true, // upscale if necessary to reach target size?
+	'cropping' => true, // crop if necessary to reach target size?
+	'autoRotation' => true, // automatically correct orientation?
+	'sharpening' => 'soft', // sharpening: none | soft | medium | strong
+	'quality' => 90, // quality: 1-100 where higher is better but bigger
 	);
 
 /**

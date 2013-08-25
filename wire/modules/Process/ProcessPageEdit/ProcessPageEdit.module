@@ -229,7 +229,10 @@ class ProcessPageEdit extends Process {
 			$field->attr('name', '_pw_page_name'); 
 			$field->attr('value', $this->page->name); 
 			$field->required = $this->page->id != 1;
-			if(!$this->page->editable('name')) $field->attr('disabled', 'disabled'); 
+			if(!$this->page->editable('name')) {
+				$field->attr('disabled', 'disabled'); 
+				$field->required = false; 
+			}
 			if($this->page->parent) $field->parentPage = $this->page->parent;
 			$fields->prepend($field); 
 		}
@@ -252,7 +255,7 @@ class ProcessPageEdit extends Process {
 				$field2 = $this->modules->get('InputfieldSubmit'); 
 				$field2->attr('name', 'submit_save'); 
 				$field2->attr('id', 'submit_save_unpublished'); 
-				$field2->class .= ' ui-priority-secondary'; 
+				$field2->class .= ' ui-priority-secondary head_button_clone'; 
 				$field2->attr('value', $this->_('Save + Keep Unpublished')); // Button: save unpublished
 			}
 
@@ -267,7 +270,7 @@ class ProcessPageEdit extends Process {
 		if($saveName) { 
 			$field = $this->modules->get('InputfieldSubmit');
 			$field->attr('id+name', $saveName); 
-			$field->attr('class', $field->class . ' head_button_clone'); 
+			if($saveName != 'submit_publish') $field->attr('class', $field->class . ' head_button_clone'); 
 			$field->attr('value', $saveLabel); 
 			$form->append($field); 
 		}
@@ -555,7 +558,7 @@ class ProcessPageEdit extends Process {
 		}
 
 		if(count($wrapper->children())) {
-			$field = $this->modules->get('InputfieldSubmit');
+			$field = $this->modules->get('InputfieldButton');
 			$field->attr('id+name', 'submit_delete'); 
 			$field->value = $deleteLabel;
 			$wrapper->append($field);
@@ -610,25 +613,33 @@ class ProcessPageEdit extends Process {
 				$roleName = $role->name; 
 				if($roleName == 'guest') $roleName .= " " . $this->_('(everyone)'); // Identifies who guest is (everyone)
 				$permissions .= "page-view\n";
-
+				
+				$checkEditable = true; 
 				if($publishPermission->id && !$this->page->is(Page::statusUnpublished) && !$role->hasPermission('page-publish', $this->page)) {
-					continue; 
+					$checkEditable = false;
 				}
-
-				if($role->hasPermission('page-edit') && in_array($role->id, $editRoles)) { 
-					foreach($role->permissions as $permission) {
-						if($permission->name == 'page-view') continue;  // assumed
-						if(strpos($permission->name, 'page-') !== 0) continue; 
-						$permissions .= "{$permission->name}\n"; // only page-context permissions
+				
+				if(false !== ($key = array_search($role->id, $addRoles))) {
+					if($role->hasPermission('page-add')) {
+						$permissions .= "page-add\n";
+						unset($addRoles[$key]);
 					}
 				}
-				if(false !== ($key = array_search($role->id, $addRoles))) {
-					$permissions .= "page-add\n";
-					unset($addRoles[$key]); 
+				$editable = $role->hasPermission('page-edit') && in_array($role->id, $editRoles); 
+				if($checkEditable && $editable) {
+					foreach($role->permissions as $permission) {
+						if(strpos($permission->name, 'page-') !== 0) continue; 
+						if(in_array($permission->name, array('page-view', 'page-publish', 'page-create', 'page-add'))) continue;
+						$permissions .= "{$permission->name}\n"; // only page-context permissions
+					}
+					if($publishPermission->id && $role->hasPermission('page-publish', $this->page)) {
+						$permissions .= "page-publish\n";
+					}
 				}
-				if(in_array($role->id, $createRoles)) {
+				if(in_array($role->id, $createRoles) && $editable) {
 					$permissions .= "page-create\n";
 				}
+
 				$table->row(array($roleName, nl2br($permissions))); 
 			}
 
@@ -667,6 +678,7 @@ class ProcessPageEdit extends Process {
 			'sortfield_reverse', 
 			'submit_publish', 
 			'submit_save',
+			'delete_page',
 			);
 
 		if(!$level) $form->processInput($this->input->post);
@@ -707,6 +719,8 @@ class ProcessPageEdit extends Process {
 						$v->setFromInputfield($inputfield); 
 						$this->page->set($name, $v); 
 						$this->page->trackChange($name); 
+					} else {
+						$this->page->set($name, $inputfield->value); 
 					}
 				} else { 
 					$this->page->set($name, $inputfield->value);

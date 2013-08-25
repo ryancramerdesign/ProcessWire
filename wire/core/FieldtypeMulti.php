@@ -168,7 +168,8 @@ abstract class FieldtypeMulti extends Fieldtype {
 	public function ___savePageField(Page $page, Field $field) {
 
 		if(!$page->id || !$field->id) return false;
-
+		
+		$database = $this->wire('database');
 		$values = $page->get($field->name);
 
 		if(is_object($values)) {
@@ -176,12 +177,14 @@ abstract class FieldtypeMulti extends Fieldtype {
 		} else if(!$page->isChanged($field->name)) return true; 
 
 		$values = $this->sleepValue($page, $field, $values); 
-		$table = $this->db->escapeTable($field->table); 
+		$table = $database->escapeTable($field->table); 
 		$page_id = (int) $page->id; 
 
 		// since we don't manage IDs of existing values for multi fields, we delete the existing data and insert all of it again
-		$this->db->query("DELETE FROM `$table` WHERE pages_id=$page_id"); // QA
-
+		$query = $database->prepare("DELETE FROM `$table` WHERE pages_id=:page_id"); // QA
+		$query->bindValue(":page_id", $page_id, PDO::PARAM_INT); 
+		$query->execute();
+		
 		if(count($values)) {
 
 			// get first value to find key definition
@@ -193,7 +196,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 
 			if(is_array($value)) {
 				$keys = array_keys($value); 
-				foreach($keys as $k => $v) $keys[$k] = $this->db->escapeTableCol($v); 
+				foreach($keys as $k => $v) $keys[$k] = $database->escapeTableCol($v); 
 			} else {
 				$keys = array('data'); 
 			}
@@ -211,14 +214,17 @@ abstract class FieldtypeMulti extends Fieldtype {
 				// cycle through the keys, which represent DB fields (i.e. data, description, etc.) and generate the insert query
 				foreach($keys as $key) {
 					$v = $value[$key]; 
-					$sql .= "'" . $this->db->escape_string("$v") . "', ";
+					$sql .= "'" . $database->escapeStr("$v") . "', ";
 				}
 				$sql = rtrim($sql, ", ") . "), ";
 				$sort++; 	
 			}	
 
 			$sql = rtrim($sql, ", "); 
-			$result = $this->db->query($sql); // QA
+			
+			$query = $database->prepare($sql);	
+			$result = $query->execute();
+			
 			return $result; 
 		}
 
@@ -234,9 +240,9 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 *
 	 */
 	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) {
-		$table = $this->db->escapeTable($field->table);	
+		$table = $this->database->escapeTable($field->table);	
 		$schema = $this->trimDatabaseSchema($this->getDatabaseSchema($field)); 
-		$fieldName = $this->db->escapeCol($field->name); 
+		$fieldName = $this->database->escapeCol($field->name); 
 		$separator = self::multiValueSeparator; 
 		foreach($schema as $key => $unused) {
 			$query->select("GROUP_CONCAT($table.$key SEPARATOR '$separator') AS `{$fieldName}__$key`"); // QA
@@ -252,7 +258,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 *
 	 * @param DatabaseQuerySelect $query
 	 * @param string $table The table name to use
-	 * @param string $field Name of the field (typically 'data', unless selector explicitly specified another)
+	 * @param string $subfield Name of the field (typically 'data', unless selector explicitly specified another)
 	 * @param string $operator The comparison operator
 	 * @param mixed $value The value to find
 	 * @return DatabaseQuery $query
@@ -264,23 +270,24 @@ abstract class FieldtypeMulti extends Fieldtype {
 		$n = self::$getMatchQueryCount;
 
 		$field = $query->field;
-		$table = $this->db->escapeTable($table);
+		$database = $this->wire('database'); 
+		$table = $database->escapeTable($table);
 
 		if($subfield === 'count' && ctype_digit(ltrim("$value", '-')) && in_array($operator, array("=", "!=", ">", "<", ">=", "<="))) {
 
 			$value = (int) $value;
 			$t = $table . "_" . $n;
-			$c = $this->db->escapeTable($this->className()) . "_" . $n;
+			$c = $database->escapeTable($this->className()) . "_" . $n;
 
 			$query->select("$t.num_$t AS num_$t");
 			$query->leftjoin(
 				"(" .
 				"SELECT $c.pages_id, COUNT($c.pages_id) AS num_$t " .
-				"FROM " . $this->db->escapeTable($field->table) . " AS $c " .
+				"FROM " . $database->escapeTable($field->table) . " AS $c " .
 				"GROUP BY $c.pages_id " .
 				") $t ON $t.pages_id=pages.id");
 
-			if( 	(in_array($operator, array('<', '<=', '!=')) && $value) || 
+			if( (in_array($operator, array('<', '<=', '!=')) && $value) || 
 				(in_array($operator, array('>', '>=')) && $value < 0) ||
 				(in_array($operator, array('=', '>=')) && !$value)) {
 				// allow for possible zero values	

@@ -85,8 +85,18 @@ class ProcessProfile extends Process implements ConfigurableModule {
 			return;
 		}
 		foreach($this->user->fields as $field) {
-			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue; 
-			$this->user->set($field->name, $form->get($field->name)->value); 	
+			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue;
+			
+			$value = $form->get($field->name)->value; 
+			
+			if($field->name == 'email' && strlen($value)) {
+				if(count($this->users->find("id!={$this->user->id}, email=" . $this->sanitizer->selectorValue($value)))) {
+					$this->error(sprintf($this->_('Email address "%s" already in use by another user.'), $value));
+					$value = '';
+				}
+			}
+			
+			$this->user->set($field->name, $value); 
 		}
 		if($this->user->isChanged()) {
 			$this->user->save();

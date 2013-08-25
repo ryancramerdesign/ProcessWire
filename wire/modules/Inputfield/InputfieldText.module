@@ -43,7 +43,9 @@ class InputfieldText extends Inputfield {
 			$attrs['value'] = $this->initValue; 
 		}
 
-		if($this->required && $this->hasFieldtype === false) $attrs['required'] = 'required';
+		// Remove HTML5 client-side validation required attribute until browsers implement it better
+		// if($this->required && $this->hasFieldtype === false) $attrs['required'] = 'required';
+
 		return $attrs; 
 	}
 

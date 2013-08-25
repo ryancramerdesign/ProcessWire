@@ -6,11 +6,10 @@
  * Common API functions useful outside of class scope
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -36,6 +35,7 @@ function wire($name = 'wire') {
  * When a $name is specified, this function is identical to the wire() function.
  * Both functions exist more for consistent naming depending on usage. 
  *
+ * @deprecated
  * @param string $name If ommitted, returns a Fuel object with references to all the fuel.
  * @return mixed Fuel value if available, NULL if not. 
  *
@@ -125,7 +125,6 @@ function unregisterGLOBALS() {
  * 	- Specify true to allow all empty values to be retained.
  * 	- Specify an array of keys (from data) that should be retained if you want some retained and not others.
  * 	- Specify the digit 0 to retain values that are 0, but not other types of empty values.
- * @param array $keepKeys Array of keys from $data that should still be included even if blank (optional). Applicable only if $allowEmpty is true. 
  * @return string String of JSON data
  *
  */
@@ -215,6 +214,84 @@ function wireRmdir($path, $recursive = false) {
 }
 
 /**
+ * Copy all files in directory $src to directory $dst
+ * 
+ * The default behavior is to also copy directories recursively. 
+ * 
+ * @param string $src Path to copy files from
+ * @param string $dst Path to copy files to. Directory is created if it doesn't already exist.
+ * @param bool $recursive Whether to copy directories within recursively. Default=true.
+ * @return bool True on success, false on failure.
+ * 
+ */
+function wireCopy($src, $dst, $recursive = true) {
+
+	if(substr($src, -1) != '/') $src .= '/';
+	if(substr($dst, -1) != '/') $dst .= '/';
+
+	$dir = opendir($src);
+	if(!$dir) return false; 
+	if(!wireMkdir($dst)) return false;
+
+	while(false !== ($file = readdir($dir))) {
+		if($file == '.' || $file == '..') continue;
+		if($recursive && is_dir($src . $file)) {
+			wireCopy($src . $file, $dst . $file);
+		} else {
+			copy($src . $file, $dst . $file);
+			$chmodFile = wire('config')->chmodFile;
+			if($chmodFile) chmod($dst . $file, octdec($chmodFile));
+		}
+	}
+
+	closedir($dir);
+	return true;
+}
+
+/**
+ * Unzips the given ZIP file to the destination directory
+ * 
+ * @param $file ZIP file to extract
+ * @param $dst Directory where files should be unzipped into. Directory is created if it doesn't exist.
+ * @return array Returns an array of filenames (excluding $dst) that were unzipped.
+ * @throws WireException All error conditions result in WireException being thrown.
+ * 
+ */
+function wireUnzipFile($file, $dst) {
+
+	$dst = rtrim($dst, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+	
+	if(!class_exists('ZipArchive')) throw new WireException("PHP's ZipArchive class does not exist"); 
+	if(!is_file($file)) throw new WireException("ZIP file does not exist"); 
+	if(!is_dir($dst)) wireMkdir($dst);	
+	
+	$names = array();
+	$chmodFile = wire('config')->chmodFile; 
+	$chmodDir = wire('config')->chmodDir;
+	
+	$zip = new ZipArchive();
+	$res = $zip->open($file); 
+	if($res !== true) throw new WireException("Unable to open ZIP file, error code: $res"); 
+	
+	for($i = 0; $i < $zip->numFiles; $i++) {
+		$name = $zip->getNameIndex($i); 
+		if($zip->extractTo($dst, $name)) {
+			$names[$i] = $name; 
+			$filename = $dst . ltrim($name, '/');
+			if(is_dir($filename)) {
+				if($chmodDir) chmod($filename, octdec($chmodDir));
+			} else if(is_file($filename)) {
+				if($chmodFile) chmod($filename, octdec($chmodFile));
+			}
+		}
+	}
+	
+	$zip->close();
+	
+	return $names; 
+}
+
+/**
  * Send the contents of the given filename via http
  *
  * This function utilizes the $content->fileContentTypes to match file extension
@@ -226,6 +303,7 @@ function wireRmdir($path, $recursive = false) {
  * @param array $options Options that you may pass in, see $_options in function for details.
  * @param array $headers Headers that are sent, see $_headers in function for details. 
  *	To remove a header completely, make its value NULL and it won't be sent.
+ * @throws WireException
  *
  */
 function wireSendFile($filename, array $options = array(), array $headers = array()) {
@@ -291,7 +369,7 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
  */
 function wireRelativeTimeStr($ts) {
 
-	if(empty($ts)) return "No date provided";
+	if(empty($ts)) return __('Never', __FILE__); 
 
 	$periodsSingular = array(
 		__("second", __FILE__), 
@@ -314,7 +392,8 @@ function wireRelativeTimeStr($ts) {
 		__("years", __FILE__), 
 		__("decades", __FILE__)
 		); 
-
+	
+	$justNow = __('just now'); 
 	$lengths = array("60","60","24","7","4.35","12","10");
 	$now = time();
 	if(!ctype_digit("$ts")) $ts = strtotime($ts);
@@ -334,6 +413,8 @@ function wireRelativeTimeStr($ts) {
 	}
 
 	$difference = round($difference);
+	if(!$difference) return $justNow; 
+	
 	$periods = $difference != 1 ? $periodsPlural : $periodsSingular; 
 	$period = $periods[$j];
 

@@ -60,7 +60,7 @@ class Language extends Page {
 	 *
 	 */
 	public function isDefault() {
-		return $this->isDefaultLanguage; 
+		return $this->isDefaultLanguage || $this->name == 'default'; 
 	}
 }
 

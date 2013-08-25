@@ -51,6 +51,14 @@
 }
 
 /**
+ * Alternative to the above, float teh publish button left for side-by-side buttons
+ *
+ */
+#submit_publish {
+    float: left; 
+}
+
+/**
  * Ensures submit button doesn't end up floated (related to GitHub issue #95)
  *
  */ 

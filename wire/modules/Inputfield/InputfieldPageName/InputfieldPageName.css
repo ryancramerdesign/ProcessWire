@@ -3,9 +3,21 @@
 }
 
 .InputfieldPageName .LanguageSupport {
-	margin-bottom: 1em;
+	margin-bottom: 1em; 
+
 }
 .InputfieldPageName .LanguageSupport .InputfieldPageNameURL {
 	margin-bottom: 0;	
 }
 
+
+.InputfieldPageName .LanguageSupport label.checkbox {
+	margin-left: 0.5em; 
+	display: inline; 
+}
+
+
+.InputfieldPageName .LanguageSupport input.InputfieldMaxWidth {
+	/* make room for checkbox */ 
+	width: 80%; 
+}

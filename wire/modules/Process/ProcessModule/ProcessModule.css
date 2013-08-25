@@ -78,3 +78,8 @@ a span.PermanentModule {
 #modules_form p.description {
 	margin-top: 0;
 }
+
+#godownload,
+#install_now {
+    float: left; 
+}

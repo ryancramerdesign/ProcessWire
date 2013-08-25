@@ -6,11 +6,10 @@
  * Represents a single image item attached to a page, typically via a FieldtypeImage field.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  * 
  * @property int $width Width of image, in pixels
@@ -59,6 +58,7 @@ class Pageimage extends Pagefile {
 	 *
 	 * @param Pagefiles $pagefiles 
 	 * @param string $filename Full path and filename to this pagefile
+	 * @throws WireException
 	 *
 	 */
 	public function __construct(Pagefiles $pagefiles, $filename) {
@@ -266,7 +266,6 @@ class Pageimage extends Pagefile {
 
 		$variations = new Pageimages($this->pagefiles->page); 
 		$dir = new DirectoryIterator($this->pagefiles->path); 
-		$basename = basename($this->basename, "." . $this->ext()); 
 
 		foreach($dir as $file) {
 			if($file->isDir() || $file->isDot()) continue; 			
@@ -331,7 +330,7 @@ class Pageimage extends Pagefile {
 	/**
 	 * Delete all the alternate sizes associated with this Pageimage
 	 *
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function removeVariations() {
@@ -350,7 +349,7 @@ class Pageimage extends Pagefile {
 	 * Identify this Pageimage as a variation, by setting the Pageimage it was resized from
 	 *
 	 * @param Pageimage $image
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setOriginal(Pageimage $image) {

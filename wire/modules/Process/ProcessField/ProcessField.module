@@ -270,9 +270,17 @@ class ProcessField extends Process implements ConfigurableModule {
 			'Permanent' => array(
 				'icon' => 'ui-icon-locked',
 				'label' => $this->_x('permanent', 'list notes')
+				),
+			'Required' => array(
+				'icon' => 'ui-icon-star', 
+				'label' => $this->_x('required', 'list notes')
+				),
+			'Dependency' => array(
+				'icon' => 'ui-icon-help', 
+				'label' => $this->_x('show if...', 'list notes')
 				)
 			);
-	
+
 		$numTemplates = 0; 
 		$flags = array();
 		$builtIn = false;
@@ -297,6 +305,9 @@ class ProcessField extends Process implements ConfigurableModule {
 			$flags[] = 'Permanent';
 			$builtIn = true;
 		}
+		
+		if($field->showIf) $flags[] = 'Dependency';
+		if($field->required) $flags[] = 'Required';
 
 		if($builtIn && !$templatesID && $field->name != 'title') {
 			if(!$this->session->ProcessFieldListShowSystem) return array();
@@ -310,7 +321,8 @@ class ProcessField extends Process implements ConfigurableModule {
 		$flagsOut = '';
 		foreach($flags as $flagName) {
 			$flag = $flagDefs[$flagName];
-			$flagsOut .= "<a href='#' class='fieldFlag fieldFlag$flagName tooltip ui-priority-secondary' title='$flag[label]'><span class='ui-icon $flag[icon]'></span></a>";
+			$icon = "<span class='ui-icon $flag[icon]'></span>";
+			$flagsOut .= "<a href='#' class='fieldFlag fieldFlag$flagName tooltip ui-priority-secondary' title='$flag[label]'>$icon</span></a>";
 		}
 
 
