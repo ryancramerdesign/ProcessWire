@@ -229,7 +229,10 @@ class ProcessPageEdit extends Process {
 			$field->attr('name', '_pw_page_name'); 
 			$field->attr('value', $this->page->name); 
 			$field->required = $this->page->id != 1;
-			if(!$this->page->editable('name')) $field->attr('disabled', 'disabled'); 
+			if(!$this->page->editable('name')) {
+				$field->attr('disabled', 'disabled'); 
+				$field->required = false; 
+			}
 			if($this->page->parent) $field->parentPage = $this->page->parent;
 			$fields->prepend($field); 
 		}
