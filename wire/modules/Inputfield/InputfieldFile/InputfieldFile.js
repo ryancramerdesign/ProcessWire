@@ -105,7 +105,7 @@ $(document).ready(function() {
 	 */
 	function InitHTML5() {
 
-		$(".InputfieldFileUpload").parent('.ui-widget-content').each(function(i) {
+		$(".InputfieldFileUpload").closest('.ui-widget-content').each(function(i) {
 
 			var $this = $(this); 
 			var $form = $this.parents('form'); 
