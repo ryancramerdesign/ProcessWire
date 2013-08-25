@@ -666,7 +666,11 @@ class ProcessTemplate extends Process {
 				'selected' => 'selected', 
 				'data-status' => ($field->columnWidth > 0 ? $field->columnWidth . '%': ' ')
 				);
-			$select->addOption($field->id, $field->name, $attrs);
+			$extra = '';
+			if($field->required) $extra .= " *";
+			if($field->requiredIf) $extra .= "*";
+			if($field->showIf) $extra .= " ?";
+			$select->addOption($field->id, $field->name . $extra, $attrs);
 		}
 		
 		foreach($this->fields as $field) {
