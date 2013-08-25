@@ -70,12 +70,16 @@ class FieldtypeFloat extends Fieldtype {
 		// handle commas vs. dots issue with other locales
 		$info = localeconv();
 
-		if(strpos($value, $info["mon_thousands_sep"]) !== false) {
-			$value = str_replace($info["mon_thousands_sep"] , "", $value);
+		if(!empty($info['mon_thousands_sep'])) {
+			if(strpos($value, $info["mon_thousands_sep"]) !== false) {
+				$value = str_replace($info["mon_thousands_sep"] , "", $value);
+			}
 		}
 
-		if($info["mon_decimal_point"] !== '.' && strpos($value, $info["mon_decimal_point"]) !== false) {
-			$value = str_replace($info["mon_decimal_point"] , ".", $value);
+		if(!empty($info['mon_decimal_point'])) { 
+			if($info["mon_decimal_point"] !== '.' && strpos($value, $info["mon_decimal_point"]) !== false) {
+				$value = str_replace($info["mon_decimal_point"] , ".", $value);
+			}
 		}
 
 		$value = floatval($value); 

@@ -557,7 +557,11 @@ class FieldtypePage extends FieldtypeMulti {
 		// build a selector to find matching pagerefs 
 		// @todo should $selector include check_access=0 or even include=all?
 		$selector = 'include=hidden, ';
-		if($field->findPagesSelector) $selector .= $field->findPagesSelector . ", ";
+		if($field->findPagesSelector) {
+			// remove the existing include=hidden, only if selector specifies a different include=something
+			if(strpos($field->findPagesSelector, 'include=') !== false) $selector = '';
+			$selector .= $field->findPagesSelector . ", ";
+		}
 		if($field->parent_id) $selector .= "parent_id={$field->parent_id}, ";
 		if($field->template_id) $selector .= "templates_id={$field->template_id}, ";
 		// @todo note $field->findPagesCode is not implemented

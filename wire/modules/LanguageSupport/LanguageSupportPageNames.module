@@ -123,7 +123,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		$page = wire('page'); 
 
-		if($page->template == 'admin' && ($page->process == 'ProcessPageEdit' || $page->process == 'ProcessPageAdd' || $page->process == 'ProcessPageClone')) {
+		if($page->template == 'admin' && ($page->process == 'ProcessPageEdit' || $page->process == 'ProcessPageAdd')) {
 			// when in admin, add inputs for each language's page name
 			$page->addHookBefore('ProcessPageEdit::execute', $this, 'hookProcessPageEditExecute'); 
 			// $page->addHookAfter('ProcessPageEdit::buildFormSettings', $this, 'hookProcessPageEditSettings'); 
@@ -561,7 +561,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			$language = '';
 		}
 
-		if(is_string($language) || is_int($language)) {
+		if($language && (is_string($language) || is_int($language))) {
 			if(ctype_digit("$language")) $language = (int) $language; 
 				else $language = wire('sanitizer')->pageName($language); 
 			$language = wire("languages")->get($language); 
