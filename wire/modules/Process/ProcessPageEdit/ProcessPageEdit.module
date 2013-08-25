@@ -719,6 +719,8 @@ class ProcessPageEdit extends Process {
 						$v->setFromInputfield($inputfield); 
 						$this->page->set($name, $v); 
 						$this->page->trackChange($name); 
+					} else {
+						$this->page->set($name, $inputfield->value); 
 					}
 				} else { 
 					$this->page->set($name, $inputfield->value);

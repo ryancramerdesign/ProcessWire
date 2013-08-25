@@ -14,7 +14,7 @@
  *
  */
 
-class PagesType extends Wire implements IteratorAggregate {
+class PagesType extends Wire implements IteratorAggregate, Countable {
 
 	/**
 	 * Template defined for use in this PagesType
@@ -211,6 +211,10 @@ class PagesType extends Wire implements IteratorAggregate {
 
 	public function getParent() {
 		return wire('pages')->get($this->parent_id);
+	}
+	
+	public function count() {
+		return $this->getParent()->numChildren();
 	}
 
 }
