@@ -63,7 +63,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		if($port) $dsn .= ";port=$port";
 		$driver_options = array(
 			PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'",
-			PDO::ERRMODE_EXCEPTION => true
+			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
 			);
 		$database = new WireDatabasePDO($dsn, $username, $password, $driver_options); 
 		$database->setDebugMode($config->debug);

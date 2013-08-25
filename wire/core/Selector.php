@@ -102,7 +102,9 @@ abstract class Selector extends WireData {
 
 		// prepare the value we are comparing
 		if(is_object($value)) {
-			if($value instanceof WireData) $value = $value->get($field);
+			if($this->wire('languages') && $value instanceof LanguagesPageFieldValue) $value = (string) $value; 
+				else if($value instanceof WireData) $value = $value->get($field);
+				else if($value instanceof WireArray && is_string($field) && !strpos($field, '.')) $value = (string) $value; // 123|456|789, etc.
 				else if($value instanceof Wire) $value = $value->$field; 
 			$value = (string) $value; 
 		}
