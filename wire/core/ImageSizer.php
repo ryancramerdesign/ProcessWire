@@ -7,14 +7,17 @@
  *
  * ImageSizer class includes ideas adapted from comments found at PHP.net 
  * in the GD functions documentation.
+ *
+ * Code for IPTC, auto rotation and sharpening by Horst Nogajski.
+ * http://nogajski.de/
+ *
+ * Other user contributions as noted. 
  * 
  * ProcessWire 2.x 
  * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
- *
- * @todo use ImageSizerInterface
  *
  */
 class ImageSizer extends Wire {
@@ -35,7 +38,7 @@ class ImageSizer extends Wire {
 	 * Type of image
 	 *
 	 */
-	protected $imageType; 
+	protected $imageType = null; 
 
 	/**
 	 * Image quality setting, 1..100
@@ -50,7 +53,7 @@ class ImageSizer extends Wire {
 	protected $image = array(
 		'width' => 0,
 		'height' => 0
-	);
+		);
 
 	/**
 	 * Allow images to be upscaled / enlarged?
@@ -85,12 +88,47 @@ class ImageSizer extends Wire {
 	 */
 	protected $cropping = true;
 
-
 	/**
 	 * Was the given image modified?
 	 *
 	 */
 	protected $modified = false; 
+
+	/**
+	 * enable auto_rotation according to EXIF-Orientation-Flag
+	 *
+	 */
+	protected $autoRotation = true;
+
+	/**
+	 * default sharpening mode: [ none | soft | medium | strong ]
+	 *
+	 */
+	protected $sharpening = 'soft';
+
+
+	/**
+	 * Options allowed for sharpening
+	 *
+	 */
+	protected $sharpeningValues = array(
+		0 => 'none', // none
+		1 => 'soft',
+		2 => 'medium',
+		3 => 'strong'
+		);
+
+	/**
+	 * List of valid option Names from config.php (@horst)
+	 *
+	 */
+	protected $optionNames = array(
+		'autoRotation',
+		'upscaling',
+		'cropping',
+		'quality',
+		'sharpening'
+		);
 
 	/**
 	 * Supported image types (@teppo)
@@ -104,53 +142,63 @@ class ImageSizer extends Wire {
 		);
 
 	/**
+	 * Result of iptcparse(), if available
+	 *
+	 */
+	protected $iptcRaw = null;
+
+
+	/**
 	 * Construct the ImageSizer for a single image
 	 *
 	 */
-	public function __construct($filename) {
+	public function __construct($filename, $options = array()) {
 
-		$this->filename = $filename; 
-		$p = pathinfo($filename); 
-		$basename = $p['basename']; 
-		$this->extension = strtolower($p['extension']); 
+		// filling all options with global custom values from config.php
+		$options = array_merge($this->wire('config')->imageSizerOptions, $options); 
+		$this->setOptions($options);
 
-		if(function_exists("exif_imagetype")) {
-
-			$this->imageType = exif_imagetype($filename); 
-
-			if(!in_array($this->imageType, $this->supportedImageTypes)) // @teppo
-				throw new WireException("$basename is an unsupported image type"); 	
-
-		} else {
-			// if exif_imagetype function is not present, we fallback to extension detection
-
-			if(!isset($this->supportedImageTypes[$this->extension])) 
-				throw new WireException("$basename contains an unsupported image extension"); 
-
-			$this->imageType = $this->supportedImageTypes[$this->extension]; 
+		if(!$this->loadImageInfo($filename)) {
+			throw new WireException(basename($filename) . " is not a recogized image"); 
 		}
-
-
-		if(!$this->loadImageInfo()) 
-			throw new WireException("$basename is not a recogized image"); 
-	}
-
-	/**
-	 * Save the width and height of the image
-	 *
-	 */
-	protected function setImageInfo($width, $height) {
-		$this->image['width'] = $width;
-		$this->image['height'] = $height; 
 	}
 
 	/**
 	 * Load the image information (width/height) using PHP's getimagesize function 
 	 *
 	 */
-	protected function loadImageInfo() {
-		if(($info = @getimagesize($this->filename)) === false) return false; 
-		$this->setImageInfo($info[0], $info[1]); 
+	protected function loadImageInfo($filename) {
+
+		$this->filename = $filename; 
+		$pathinfo = pathinfo($filename); 
+		$this->extension = strtolower($pathinfo['extension']); 
+
+		$additionalInfo = array();
+		$info = @getimagesize($this->filename, $additionalInfo);
+		if($info === false) return false;
+
+		if(function_exists("exif_imagetype")) {
+			$this->imageType = exif_imagetype($filename); 
+
+		} else if(isset($info[2])) {
+			// imagetype (IMAGETYPE_GIF, IMAGETYPE_JPEG, IMAGETYPE_PNG)
+			$this->imageType = $info[2];
+
+		} else if(isset($this->supportedImageTypes[$this->extension])) {
+			$this->imageType = $this->supportedImageTypes[$this->extension]; 
+		}
+
+		if(!in_array($this->imageType, $this->supportedImageTypes)) return false; 
+
+		// width, height
+		$this->setImageInfo($info[0], $info[1]);
+
+		// read metadata if present and if its the first call of the method
+		if(isset($additionalInfo['APP13']) && empty($this->iptcRaw)) {
+			$iptc = iptcparse($additionalInfo["APP13"]);
+			if(is_array($iptc)) $this->iptcRaw = $iptc;
+		}
+
 		return true; 
 	}
 
@@ -162,12 +210,17 @@ class ImageSizer extends Wire {
 	 * @param int $targetWidth Target width in pixels, or 0 for proportional to height
 	 * @param int $targetHeight Target height in pixels, or 0 for proportional to width. Optional-if not specified, 0 is assumed.
 	 * @return bool True if the resize was successful
+ 	 *
+	 * @todo this method has become too long and needs to be split into smaller dedicated parts 
 	 *
 	 */
 	public function ___resize($targetWidth, $targetHeight = 0) {
 
+		$orientations = null; // @horst
+		$needRotation = $this->autoRotation !== true ? false : $this->checkOrientation($orientations);
+		$needResizing = $this->isResizeNecessary($targetWidth, $targetHeight);
 
-		if(!$this->isResizeNecessary($targetWidth, $targetHeight)) return true; 
+		if(!$needResizing && !$needRotation) return true;
 
 		$source = $this->filename;
 		$dest = str_replace("." . $this->extension, "_tmp." . $this->extension, $source); 
@@ -181,106 +234,126 @@ class ImageSizer extends Wire {
 
 		if(!$image) return false; 
 
-		list($gdWidth, $gdHeight, $targetWidth, $targetHeight) = $this->getResizeDimensions($targetWidth, $targetHeight); 
-
-		$thumb = imagecreatetruecolor($gdWidth, $gdHeight);  
-
-		if($this->imageType == IMAGETYPE_PNG) { 
-			// @adamkiss PNG transparency
-			imagealphablending($thumb, false); 
-			imagesavealpha($thumb, true); 
-
-		} else if($this->imageType == IMAGETYPE_GIF) {
-				// @mrx GIF transparency
-	        	$transparentIndex = ImageColorTransparent($image);
-				$transparentColor = $transparentIndex != -1 ? ImageColorsForIndex($image, $transparentIndex) : 0;
-	        	if(!empty($transparentColor)) {
-	            		$transparentNew = ImageColorAllocate($thumb, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
-	            		$transparentNewIndex = ImageColorTransparent($thumb, $transparentNew);
-	            		ImageFill($thumb, 0, 0, $transparentNewIndex);
-	        	}
-
-		} else {
-			$bgcolor = imagecolorallocate($thumb, 0, 0, 0);  
-			imagefilledrectangle($thumb, 0, 0, $gdWidth, $gdHeight, $bgcolor);
-			imagealphablending($thumb, true);
+		if($needRotation) { // @horst
+			$image = $this->imRotate($image, $orientations[0]);
+			if($orientations[0] == 90 || $orientations[0] == 270) {
+				// we have to swap width & height now!
+				$tmp = array($targetWidth, $targetHeight);
+				$targetWidth = $tmp[1];
+				$targetHeight = $tmp[0];
+				$tmp = array($this->getWidth(), $this->getHeight());
+				$this->setImageInfo($tmp[1], $tmp[0]);
+			}
+			if($orientations[1] > 0) {
+				$image = $this->imFlip($image, ($orientations[1] == 2 ? true : false));
+			}
 		}
 
-		imagecopyresampled($thumb, $image, 0, 0, 0, 0, $gdWidth, $gdHeight, $this->image['width'], $this->image['height']);
-		$thumb2 = imagecreatetruecolor($targetWidth, $targetHeight);
+		if($needResizing) {
 
-		if($this->imageType == IMAGETYPE_PNG) { 
-			// @adamkiss PNG transparency
-			imagealphablending($thumb2, false); 
-			imagesavealpha($thumb2, true); 
+			list($gdWidth, $gdHeight, $targetWidth, $targetHeight) = $this->getResizeDimensions($targetWidth, $targetHeight); 
 
-		} else if($this->imageType == IMAGETYPE_GIF) {
-			// @mrx GIF transparency
-			if(!empty($transparentColor)) {
-				$transparentNew = ImageColorAllocate($thumb2, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
-				$transparentNewIndex = ImageColorTransparent($thumb2, $transparentNew);
-				ImageFill($thumb2, 0, 0, $transparentNewIndex);
+			$thumb = imagecreatetruecolor($gdWidth, $gdHeight);  
+
+			if($this->imageType == IMAGETYPE_PNG) { 
+				// @adamkiss PNG transparency
+				imagealphablending($thumb, false); 
+				imagesavealpha($thumb, true); 
+
+			} else if($this->imageType == IMAGETYPE_GIF) {
+				// @mrx GIF transparency
+				$transparentIndex = ImageColorTransparent($image);
+				$transparentColor = $transparentIndex != -1 ? ImageColorsForIndex($image, $transparentIndex) : 0;
+				if(!empty($transparentColor)) {
+					$transparentNew = ImageColorAllocate($thumb, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+					$transparentNewIndex = ImageColorTransparent($thumb, $transparentNew);
+					ImageFill($thumb, 0, 0, $transparentNewIndex);
+				}
+
+			} else {
+				$bgcolor = imagecolorallocate($thumb, 0, 0, 0);  
+				imagefilledrectangle($thumb, 0, 0, $gdWidth, $gdHeight, $bgcolor);
+				imagealphablending($thumb, true);
 			}
 
-		} else {
-			$bgcolor = imagecolorallocate($thumb2, 0, 0, 0);  
-			imagefilledrectangle($thumb2, 0, 0, $targetWidth, $targetHeight, 0);
-			imagealphablending($thumb2, true);
+			imagecopyresampled($thumb, $image, 0, 0, 0, 0, $gdWidth, $gdHeight, $this->image['width'], $this->image['height']);
+			$thumb2 = imagecreatetruecolor($targetWidth, $targetHeight);
+
+			if($this->imageType == IMAGETYPE_PNG) { 
+				// @adamkiss PNG transparency
+				imagealphablending($thumb2, false); 
+				imagesavealpha($thumb2, true); 
+
+			} else if($this->imageType == IMAGETYPE_GIF) {
+				// @mrx GIF transparency
+				if(!empty($transparentColor)) {
+					$transparentNew = ImageColorAllocate($thumb2, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+					$transparentNewIndex = ImageColorTransparent($thumb2, $transparentNew);
+					ImageFill($thumb2, 0, 0, $transparentNewIndex);
+				}
+
+			} else {
+				$bgcolor = imagecolorallocate($thumb2, 0, 0, 0);  
+				imagefilledrectangle($thumb2, 0, 0, $targetWidth, $targetHeight, 0);
+				imagealphablending($thumb2, true);
+			}
+
+			$w1 = ($gdWidth / 2) - ($targetWidth / 2);
+			$h1 = ($gdHeight / 2) - ($targetHeight / 2);
+
+			if(is_string($this->cropping)) switch($this->cropping) { 
+				// @interrobang crop directions
+				case 'nw':
+					$w1 = 0;
+					$h1 = 0;
+					break;
+				case 'n':
+					$h1 = 0;
+					break;
+				case 'ne':
+					$w1 = $gdWidth - $targetWidth;
+					$h1 = 0;
+					break;
+				case 'w':
+					$w1 = 0;
+					break;
+				case 'e':
+					$w1 = $gdWidth - $targetWidth;
+					break;
+				case 'sw':
+					$w1 = 0;
+					$h1 = $gdHeight - $targetHeight;
+					break;
+				case 's':
+					$h1 = $gdHeight - $targetHeight;
+					break;
+				case 'se':
+					$w1 = $gdWidth - $targetWidth;
+					$h1 = $gdHeight - $targetHeight;
+					break;
+				default: // center or false, we do nothing
+
+			} else if(is_array($this->cropping)) {
+				// @interrobang + @u-nikos
+				if(strpos($this->cropping[0], '%') === false) $pointX = (int) $this->cropping[0];
+					else $pointX = $gdWidth * ((int) $this->cropping[0] / 100);
+
+				if(strpos($this->cropping[1], '%') === false) $pointY = (int) $this->cropping[1];
+					else $pointY = $gdHeight * ((int) $this->cropping[1] / 100);
+
+				if($pointX < $targetWidth / 2) $w1 = 0;
+					else if($pointX > ($gdWidth - $targetWidth / 2)) $w1 = $gdWidth - $targetWidth;
+					else $w1 = $pointX - $targetWidth / 2;
+
+				if($pointY < $targetHeight / 2) $h1 = 0;
+					else if($pointY > ($gdHeight - $targetHeight / 2)) $h1 = $gdHeight - $targetHeight;
+					else $h1 = $pointY - $targetHeight / 2;
+			}
+
+			imagecopyresampled($thumb2, $thumb, 0, 0, $w1, $h1, $targetWidth, $targetHeight, $targetWidth, $targetHeight);
+
+			if($this->sharpening && $this->sharpening != 'none') $image = $this->imSharpen($thumb2, $this->sharpening); // @horst
 		}
-
-		$w1 = ($gdWidth / 2) - ($targetWidth / 2);
-		$h1 = ($gdHeight / 2) - ($targetHeight / 2);
-
-		if(is_string($this->cropping)) switch($this->cropping) { 
-			// @interrobang crop directions
-			case 'nw':
-				$w1 = 0;
-				$h1 = 0;
-				break;
-			case 'n':
-				$h1 = 0;
-				break;
-			case 'ne':
-				$w1 = $gdWidth - $targetWidth;
-				$h1 = 0;
-				break;
-			case 'w':
-				$w1 = 0;
-				break;
-			case 'e':
-				$w1 = $gdWidth - $targetWidth;
-				break;
-			case 'sw':
-				$w1 = 0;
-				$h1 = $gdHeight - $targetHeight;
-				break;
-			case 's':
-				$h1 = $gdHeight - $targetHeight;
-				break;
-			case 'se':
-				$w1 = $gdWidth - $targetWidth;
-				$h1 = $gdHeight - $targetHeight;
-				break;
-			default: // center or false, we do nothing
-
-		} else if(is_array($this->cropping)) {
-			// @interrobang + @u-nikos
-			if(strpos($this->cropping[0], '%') === false) $pointX = (int) $this->cropping[0];
-				else $pointX = $gdWidth * ((int) $this->cropping[0] / 100);
-
-			if(strpos($this->cropping[1], '%') === false) $pointY = (int) $this->cropping[1];
-				else $pointY = $gdHeight * ((int) $this->cropping[1] / 100);
-
-			if($pointX < $targetWidth / 2) $w1 = 0;
-				else if($pointX > ($gdWidth - $targetWidth / 2)) $w1 = $gdWidth - $targetWidth;
-				else $w1 = $pointX - $targetWidth / 2;
-
-			if($pointY < $targetHeight / 2) $h1 = 0;
-				else if($pointY > ($gdHeight - $targetHeight / 2)) $h1 = $gdHeight - $targetHeight;
-				else $h1 = $pointY - $targetHeight / 2;
-		}
-
-		imagecopyresampled($thumb2, $thumb, 0, 0, $w1, $h1, $targetWidth, $targetHeight, $targetWidth, $targetHeight);
 
 		// write to file
 		$result = false;
@@ -298,18 +371,47 @@ class ImageSizer extends Wire {
 				break;
 		}
 
+		@imagedestroy($image); // @horst
+		if(isset($thumb) && is_resource($thumb)) @imagedestroy($thumb); // @horst
+		if(isset($thumb2) && is_resource($thumb2)) @imagedestroy($thumb2); // @horst
+
 		if($result === false) {
-			if(is_file($dest)) unlink($dest); 
+			if(is_file($dest)) @unlink($dest); 
 			return false;
 		}
 
 		unlink($source); 
 		rename($dest, $source); 
 
-		$this->loadImageInfo(); 
+		// @horst: if we've retrieved IPTC-Metadata from sourcefile, we write it back now
+		if($this->iptcRaw) {
+			$content = iptcembed($this->iptcPrepareData(), $this->filename);
+			if($content !== false) {
+				$dest = preg_replace('/\.' . $this->extension . '$/', '_tmp.' . $this->extension, $this->filename); 
+				if(strlen($content) == @file_put_contents($dest, $content, LOCK_EX)) {
+					// on success we replace the file
+					unlink($this->filename);
+					rename($dest, $this->filename);
+				} else {
+					// it was created a temp diskfile but not with all data in it
+					if(file_exists($dest)) @unlink($dest);
+				}
+			}
+		}
+
+		$this->loadImageInfo($this->filename); 
 		$this->modified = true; 
 		
 		return true;
+	}
+
+	/**
+	 * Save the width and height of the image
+	 *
+	 */
+	protected function setImageInfo($width, $height) {
+		$this->image['width'] = $width;
+		$this->image['height'] = $height; 
 	}
 
 	/**
@@ -470,33 +572,6 @@ class ImageSizer extends Wire {
 	}
 
 	/**
-	 * Turn on/off upscaling
-	 * 
-	 * @param bool $upscaling
-	 * @return $this
-	 *
-	 */
-	public function setUpscaling($upscaling = true) {
-		$this->upscaling = $upscaling; 
-		return $this;
-	}
-
-	/**
-	 * Turn on/off cropping and/or set cropping direction
-	 *
-	 * @param bool|string|array $cropping Specify one of: northwest, north, northeast, west, center, east, southwest, south, southeast.
-	 *	Or a string of: 50%,50% (x and y percentages to crop from)
-	 * 	Or an array('50%', '50%')
-	 *	Or to disable cropping, specify boolean false. To enable cropping with default (center), you may also specify boolean true.
-	 * @return $this
-	 *
-	 */
-	public function setCropping($cropping = true) {
-		$this->cropping = self::croppingValue($cropping);
-		return $this;
-	}
-
-	/**
 	 * Was the image modified?
 	 * 
 	 * @return bool
@@ -504,83 +579,6 @@ class ImageSizer extends Wire {
 	 */
 	public function isModified() {
 		return $this->modified; 
-	}
-
-	/**
- 	 * Set the image quality 1-100, where 100 is highest quality
-	 *
-	 * @param int $n
-	 * @return $this
-	 *
-	 */
-	public function setQuality($n) {
-		$this->quality = (int) $n; 
-		return $this;
-	}
-
-	/**
-	 * Alternative to the above set* functions where you specify all in an array
-	 *
-	 * @param array $options May contain the following (show with default values):
-	 *	'quality' => 90,
-	 *	'cropping' => true, 
-	 *	'upscaling' => true
-	 * @return $this
-	 *
-	 */
-	public function setOptions(array $options) {
-		foreach($options as $key => $value) {
-			switch($key) {
-				case 'quality': $this->setQuality($value); break;
-				case 'cropping': $this->setCropping($value); break;
-				case 'upscaling': $this->setUpscaling($value); break;
-			}
-		}
-		return $this; 
-	}
-
-	/**
-	 * Return an array of the current options
-	 *
-	 * @return array
-	 *
-	 */
-	public function getOptions() {
-		return array(
-			'quality' => $this->quality, 
-			'cropping' => $this->cropping, 
-			'upscaling' => $this->upscaling
-			);
-	}
-
-	/**
-	 * Return the filename
-	 *
-	 * @return string
-	 *
-	 */
-	public function getFilename() {
-		return $this->filename; 
-	}
-
-	/**
-	 * Return the file extension
-	 *
-	 * @return string
-	 *
-	 */
-	public function getExtension() {
-		return $this->extension; 
-	}
-
-	/**
-	 * Return the image type constant
-	 *
-	 * @return string
-	 *
-	 */
-	public function getImageType() {
-		return $this->imageType; 
 	}
 
 	/**
@@ -636,6 +634,352 @@ class ImageSizer extends Wire {
 		if(is_bool($cropping)) $cropping = '';
 
 		return $cropping;
+	}
+
+	/**
+	 * Turn on/off cropping and/or set cropping direction
+	 *
+	 * @param bool|string|array $cropping Specify one of: northwest, north, northeast, west, center, east, southwest, south, southeast.
+	 *	Or a string of: 50%,50% (x and y percentages to crop from)
+	 * 	Or an array('50%', '50%')
+	 *	Or to disable cropping, specify boolean false. To enable cropping with default (center), you may also specify boolean true.
+	 * @return $this
+	 *
+	 */
+	public function setCropping($cropping = true) {
+		$this->cropping = self::croppingValue($cropping);
+		return $this;
+	}
+
+	/**
+ 	 * Set the image quality 1-100, where 100 is highest quality
+	 *
+	 * @param int $n
+	 * @return $this
+	 *
+	 */
+	public function setQuality($n) {
+		$n = (int) $n; 	
+		if($n < 1) $n = 1; 
+		if($n > 100) $n = 100;
+		$this->quality = (int) $n; 
+		return $this;
+	}
+
+	/**
+	 * Set sharpening value: blank (for none), soft, medium, or strong
+	 * 
+	 * @param mixed $value
+	 * @return $this
+	 * @throws WireException
+	 *
+	 */
+	public function setSharpening($value) {
+
+		/*
+		if(is_array($value) && count($value) === 3) {
+			// Horst: what is this for? 
+			$ret = $value;
+		*/
+
+		if(is_string($value) && in_array(strtolower($value), $this->sharpeningValues)) {
+			$ret = strtolower($value);
+
+		} else if(is_int($value) && isset($this->sharpeningValues[$value])) {
+			$ret = $this->sharpeningValues[$value]; 
+
+		} else if(is_bool($value)) {
+			$ret = $value ? "medium" : "none";
+			
+		} else {
+			throw new WireException("Unknown value for sharpening"); 
+		}
+
+		$this->sharpening = $ret; 
+
+		return $this; 
+	}
+
+	/**
+	 * Turn on/off auto rotation
+	 * 
+	 * @param bool value Whether to auto-rotate or not (default = true)
+	 * @return $this
+	 *
+	 */
+	public function setAutoRotation($value = true) {
+		$this->autoRotation = $this->getBooleanValue($value); 
+		return $this; 
+	}
+
+	/**
+	 * Turn on/off upscaling
+	 * 
+	 * @param bool $value Whether to upscale or not (default = true)
+	 * @return $this
+	 *
+	 */
+	public function setUpscaling($value = true) {
+		$this->upscaling = $this->getBooleanValue($value); 
+		return $this; 
+	}
+
+
+	/**
+	 * Alternative to the above set* functions where you specify all in an array
+	 *
+	 * @param array $options May contain the following (show with default values):
+	 *	'quality' => 90,
+	 *	'cropping' => true, 
+	 *	'upscaling' => true,
+	 *	'autoRotation' => true, 
+	 * 	'sharpening' => 'soft' (none|soft|medium|string)
+	 * @return $this
+	 *
+	 */
+	public function setOptions(array $options) {
+		
+		foreach($options as $key => $value) {
+			switch($key) {
+
+				case 'autoRotation': $this->setAutoRotation($value); break;
+				case 'upscaling': $this->setUpscaling($value); break;
+				case 'sharpening': $this->setSharpening($value); break;
+				case 'quality': $this->setQuality($value); break;
+				case 'cropping': $this->setCropping($value); break;
+				
+				default: // unknown option
+			}
+		}
+		return $this; 
+	}
+
+	/**
+	 * Given a value, convert it to a boolean. 
+	 *
+	 * Value can be string representations like: 0, 1 off, on, yes, no, y, n, false, true.
+	 *
+	 * @param bool|int|string $value
+	 * @return bool
+	 *
+	 */
+	protected function getBooleanValue($value) {
+		if(in_array(strtolower($value), array('0', 'off', 'false', 'no', 'n', 'none'))) return false; 
+		return ((int) $value) > 0;
+	}
+
+	/**
+	 * Return an array of the current options
+	 *
+	 * @return array
+	 *
+	 */
+	public function getOptions() {
+		return array(
+			'quality' => $this->quality, 
+			'cropping' => $this->cropping, 
+			'upscaling' => $this->upscaling,
+			'autoRotation' => $this->autoRotation,
+			'sharpening' => $this->sharpening
+			);
+	}
+
+	public function __get($key) {
+		$keys = array(
+			'filename',
+			'extension',
+			'imageType',
+			'image',
+			'modified',
+			'supportedImageTypes', 
+			);
+		if(in_array($key, $keys)) return $this->$key; 
+		if(in_array($key, $this->optionNames)) return $this->$key; 
+		return null;
+	}
+
+	/**
+	 * Return the filename
+	 *
+	 * @return string
+	 *
+	 */
+	public function getFilename() {
+		return $this->filename; 
+	}
+
+	/**
+	 * Return the file extension
+	 *
+	 * @return string
+	 *
+	 */
+	public function getExtension() {
+		return $this->extension; 
+	}
+
+	/**
+	 * Return the image type constant
+	 *
+	 * @return string
+	 *
+	 */
+	public function getImageType() {
+		return $this->imageType; 
+	}
+
+	/**
+	 * Prepare IPTC data (@horst)
+	 *
+	 * @return string $iptcNew
+	 *
+	 */
+	protected function iptcPrepareData() {
+		$iptcNew = '';
+		foreach(array_keys($this->iptcRaw) as $s) {
+			$tag = str_replace('2#', '', $s);
+			$iptcNew .= $this->iptcMakeTag(2, $tag, $this->iptcRaw[$s][0]);
+		}
+		return $iptcNew;
+	}
+
+	/**
+	 * Make IPTC tag (@horst)
+	 *
+	 * @param string $rec
+	 * @param string $dat
+	 * @param string $val
+	 * @return string
+	 *
+	 */
+	protected function iptcMakeTag($rec, $dat, $val) {
+		$len = strlen($val);
+		if($len < 0x8000) {
+			return  chr(0x1c) . chr($rec) . chr($dat) .
+				chr($len >> 8) .
+				chr($len & 0xff) .
+				$val;
+		} else {
+			return  chr(0x1c) . chr($rec) . chr($dat) .
+				chr(0x80) . chr(0x04) .
+				chr(($len >> 24) & 0xff) .
+				chr(($len >> 16) & 0xff) .
+				chr(($len >> 8 ) & 0xff) .
+				chr(($len ) & 0xff) .
+				$val;
+		}
+	}
+
+	/**
+	 * Rotate image (@horst)
+	 * 
+	 * @param resource $im
+	 * @param int $degree
+	 * @param int $bgColor
+	 * @return resource 
+	 *
+	 */
+	protected function imRotate($im, $degree, $bgColor = 0) {
+		 // TODO 1 -c robustness: provide different ColorSystems
+		$bgColor = is_int($bgColor) && $bgColor >=0 && $bgColor <= 255 ? $bgColor : 0;
+		$degree = (is_float($degree) || is_int($degree)) && $degree > -361 && $degree < 361 ? $degree : false;
+		if($degree === false) return $im; // TODO 5 -c errorhandling: Throw WireExeption
+		if(in_array($degree, array(-360, 0, 360))) return $im;
+		return @imagerotate($im, $degree, $bgColor);
+	}
+
+	/**
+	 * Flip image (@horst)
+	 * 
+	 * @param resource $im
+	 * @param bool $vertical (default = false)
+	 * @return resource
+	 *
+	 */
+	protected function imFlip($im, $vertical = false) {
+		$sx  = imagesx($im);
+		$sy  = imagesy($im);
+		$im2 = @imagecreatetruecolor($sx, $sy);
+		if($vertical === true) {
+			@imagecopyresampled($im2, $im, 0, 0, 0, ($sy-1), $sx, $sy, $sx, 0-$sy);
+		} else {
+			@imagecopyresampled($im2, $im, 0, 0, ($sx-1), 0, $sx, $sy, 0-$sx, $sy);
+		}
+		return $im2;
+	}
+
+	/**
+	 * Sharpen image (@horst)
+	 *
+	 * @param resource $im
+	 * @param string $mode May be: none | soft | medium | strong
+	 * @return resource
+	 *
+	 */
+	protected function imSharpen($im, $mode) {
+
+		switch($mode) {
+
+			case 'none':
+				return $im;
+
+			case 'soft':
+				$sharpenMatrix = array(
+					array( -1, -1, -1 ),
+					array( -1, 20, -1 ),
+					array( -1, -1, -1 )
+					);
+				break;
+
+			case 'strong':
+				$sharpenMatrix = array(
+					array( -1.2, -1, -1.2 ),
+					array( -1,   12, -1   ),
+					array( -1.2, -1, -1.2 )
+					);
+				break;
+
+			case 'medium':
+
+			default:
+				$sharpenMatrix = array(
+					array( -1, -1, -1 ),
+					array( -1, 16, -1 ),
+					array( -1, -1, -1 )
+					);
+				break;
+		}
+		// calculate the sharpen divisor
+		$divisor = array_sum(array_map('array_sum', $sharpenMatrix));
+		$offset = 0;
+		if(!imageconvolution($im, $sharpenMatrix, $divisor, $offset)) return false; // TODO 5 -c errorhandling: Throw WireExeption
+		return $im;
+	}
+
+	/**
+	 * Check orientation (@horst)
+	 *
+	 * @param array
+	 * @return bool
+	 *
+	 */
+	protected function checkOrientation(&$correctionArray) {
+		// first value is rotation-degree and second value is flip-mode: 0=NONE | 1=HORIZONTAL | 2=VERTICAL
+		$corrections = array(
+			'1' => array(  0, 0),
+			'2' => array(  0, 1),
+			'3' => array(180, 0),
+			'4' => array(  0, 2),
+			'5' => array(270, 1),
+			'6' => array(270, 0),
+			'7' => array( 90, 1),
+			'8' => array( 90, 0)
+			);
+		if(!function_exists('exif_read_data')) return false;
+		$exif = @exif_read_data($this->filename, 'IFD0');
+		if(!is_array($exif) || !isset($exif['Orientation']) || !in_array(strval($exif['Orientation']), array_keys($corrections))) return false;
+		$correctionArray = $corrections[strval($exif['Orientation'])];
+		return true;
 	}
 
 }
