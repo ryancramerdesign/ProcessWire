@@ -28,8 +28,13 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 	public function init() {
 		parent::init();
 		$this->fuel('modules')->get('ProcessPageList'); // prerequisite modules
-		$this->set('parent_id', 0); 
-		$this->set('labelFieldName', 'title'); 
+		$this->set('parent_id', 0);
+		$this->set('labelFieldName', 'title');
+
+		$this->set('startLabel', $this->_('Change'));
+		$this->set('cancelLabel', $this->_('Cancel'));
+		$this->set('selectLabel', $this->_('Select'));
+		$this->set('unselectLabel', $this->_('Unselect'));
 	}
 
 	protected function renderListItem($label, $value, $class = '') {
@@ -50,41 +55,41 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 		}
 
 		$out = '';
-		$selectStartLabel = $this->_('Add');
-		$selectCancelLabel = $this->cancelLabel;
 
-		$out .= "\n<ol id='{$this->id}_items'>"; 
-		$out .= $this->renderListItem("Label", "1", "itemTemplate"); 
+		$out .= "\n<ol id='{$this->id}_items'>";
+		$out .= $this->renderListItem("Label", "1", "itemTemplate");
 
 		foreach($this->value as $page_id) {
-			$page = $this->pages->get((int) $page_id); 
-			if(!$page || !$page->id) continue; 
-			$out .= $this->renderListItem($page->get($this->labelFieldName), $page->id); 
+			$page = $this->pages->get((int) $page_id);
+			if(!$page || !$page->id) continue;
+			$out .= $this->renderListItem($page->get($this->labelFieldName), $page->id);
 		}
 		$out .= "\n</ol>";
 
 		$attrs = $this->getAttributes();
-		unset($attrs['value']); 
-		$value = implode(',', $this->value); 
+		unset($attrs['value']);
+		$value = implode(',', $this->value);
 		$attrStr = $this->getAttributesString($attrs) . " value='$value'";
 		$out .=	"\n<input type='text' $attrStr />";
 
-		$out .= "\n<script>$(document).ready(function() { " . 
-			"var t = $('#{$this->id}'); " . 
-			"t.ProcessPageList({ " . 
-				"mode: 'select', " . 
-				"rootPageID: {$this->parent_id}, " . 
-				"selectStartLabel: '$selectStartLabel', " . 
-				"selectShowPageHeader: false, " . 
-				"selectSelectHref: '#wrap_{$this->id}', " . 
-				"selectCancelLabel: '$selectCancelLabel' " . 
-			"}).hide()" . 
-			".bind('pageSelected', t, InputfieldPageListSelectMultiple.pageSelected)" . 
-			"}); " . 
-			"InputfieldPageListSelectMultiple.init($('#{$this->id}_items')); " . 
+		$out .= "\n<script>$(document).ready(function() { " .
+			"var t = $('#{$this->id}'); " .
+			"t.ProcessPageList({ " .
+				"mode: 'select', " .
+				"rootPageID: {$this->parent_id}, " .
+				"selectStartLabel: '{$this->startLabel}', " .
+				"selectShowPageHeader: false, " .
+				"selectSelectLabel: '{$this->selectLabel}', " .
+				"selectUnselectLabel: '{$this->unselectLabel}', " .
+				"selectSelectHref: '#wrap_{$this->id}', " .
+				"selectCancelLabel: '{$this->cancelLabel}' " .
+			"}).hide()" .
+			".bind('pageSelected', t, InputfieldPageListSelectMultiple.pageSelected)" .
+			"}); " .
+			"InputfieldPageListSelectMultiple.init($('#{$this->id}_items')); " .
 			"</script>";
 
-		return $out; 
+		return $out;
 	}
 
 	/**
