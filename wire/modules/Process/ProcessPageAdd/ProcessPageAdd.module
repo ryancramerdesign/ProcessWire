@@ -17,7 +17,7 @@
  *
  */
 
-class ProcessPageAdd extends Process {
+class ProcessPageAdd extends Process implements ConfigurableModule {
 
 	protected $form; 
 	protected $parent; 
@@ -30,10 +30,15 @@ class ProcessPageAdd extends Process {
 		return array(
 			'title' => __('Page Add', __FILE__),          
 			'summary' => __('Add a new page', __FILE__), 
-			'version' => 100, 
+			'version' => 101, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
+	}
+	
+	public function __construct() {
+		parent::__construct();
+		$this->set('noAutoPublish', false); 
 	}
 
 	public function init() {
@@ -300,6 +305,8 @@ class ProcessPageAdd extends Process {
 				$publishNow = false; // non-global fields means we won't publish yet
 			}
 		}
+		
+		if($publishNow && $this->noAutoPublish) $publishNow = false; 
 
 		// if more fields are going to be present in this page's template, then don't make this page available until the user has 
 		// had the opportunity to edit those fields in ProcessPageEdit. But if they've already seen all the fields that will be here (global),
@@ -338,6 +345,18 @@ class ProcessPageAdd extends Process {
 	 */
 	public function getPage() {
 		return $this->page; 
+	}
+	
+	public static function getModuleConfigInputfields(array $data) {
+		$form = new InputfieldWrapper();
+		$f = wire('modules')->get('InputfieldCheckbox'); 
+		$f->label = __('Disable automatic publishing'); 
+		$f->description = __('By default, pages with nothing but global fields (most commonly "title") will be published automatically when added, bypassing the usual unpublished state. Usually this is a desirable time saver. But you may cancel this behavior by checking the box below.'); // Description of automatic publishing
+		$f->attr('name', 'noAutoPublish'); 
+		$f->attr('value', 1);
+		if(!empty($data['noAutoPublish'])) $f->attr('checked', 'checked'); 
+		$form->add($f); 
+		return $form; 
 	}
 }
 
