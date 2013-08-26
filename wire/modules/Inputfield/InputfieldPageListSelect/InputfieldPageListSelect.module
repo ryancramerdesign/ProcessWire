@@ -22,7 +22,8 @@ class InputfieldPageListSelect extends Inputfield {
 		$this->set('startLabel', $this->_('Change')); 
 		$this->set('cancelLabel', $this->_('Cancel'));
 		$this->set('selectLabel', $this->_('Select'));
-		$this->set('unselectLabel', $this->_('Unselect')); 
+		$this->set('unselectLabel', $this->_('Unselect'));
+		$this->set('moreLabel', $this->_('More')); 
 		$this->set('showPath', true); 
 		parent::init();
 	}
@@ -44,7 +45,8 @@ class InputfieldPageListSelect extends Inputfield {
 				"selectStartLabel: \"{$this->startLabel}\", " . 
 				"selectShowPageHeader: true, " . 
 				"selectSelectLabel: \"{$this->selectLabel}\", " . 
-				"selectUnselectLabel: \"{$this->unselectLabel}\", " . 
+				"selectUnselectLabel: \"{$this->unselectLabel}\", " .
+				"moreLabel: \"{$this->moreLabel}\", " . 
 				"selectCancelLabel: \"{$this->cancelLabel}\" " . 
 			"}).hide()" . 
 			"});</script>";
