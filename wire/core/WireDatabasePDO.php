@@ -227,6 +227,17 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	}
 
 	/**
+	 * Quote and escape a string value
+	 *
+	 * @param string $str
+	 * @return string
+	 *
+	 */
+	public function quote($str) {
+		return $this->pdo->quote($str);
+	}
+
+	/**
 	 * Escape a string value, plus escape characters necessary for a MySQL 'LIKE' phrase
 	 *
 	 * @param string $like

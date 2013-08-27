@@ -750,6 +750,7 @@ class Pages extends Wire {
 		if($page->parentPrevious && $page->numChildren > 0) {
 			// page is moved and it has children
 			$this->saveParents($page->id, $page->numChildren);
+			if($page->parent->numChildren == 1) $this->saveParents($page->parent_id, $page->parent->numChildren);
 
 		} else if(($page->parentPrevious && $page->parent->numChildren == 1) ||
 			($isNew && $page->parent->numChildren == 1) ||
