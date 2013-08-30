@@ -92,6 +92,8 @@ function ProcessWireBootConfig() {
 	 */
 	$config = new Config();
 	$config->urls = new Paths($rootURL); 
+	$config->urls->wire = "$wireDir/";
+	$config->urls->site = "$siteDir/";
 	$config->urls->modules = "$wireDir/modules/";
 	$config->urls->siteModules = "$siteDir/modules/";
 	$config->urls->core = "$coreDir/"; 

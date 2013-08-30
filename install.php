@@ -149,10 +149,10 @@ class Installer {
 			$this->err("ProcessWire requires PHP version " . self::MIN_REQUIRED_PHP_VERSION . " or newer. You are running PHP " . PHP_VERSION);
 		}
 		
-		if(class_exists("PDO")) {
-			$this->ok("OK: PDO database"); 
+		if(extension_loaded('pdo_mysql')) {
+			$this->ok("OK: PDO (mysql) database"); 
 		} else {
-			$this->err("PDO is required (for MySQL database)"); 
+			$this->err("PDO (pdo_mysql) is required (for MySQL database)"); 
 		}
 
 		$this->checkFunction("filter_var", "Filter functions (filter_var)");
@@ -218,6 +218,7 @@ class Installer {
 		$this->p("*Recommended permissions are select, insert, update, delete, create, alter, index, drop, create temporary tables, and lock tables.", "detail"); 
 
 		if(!isset($values['dbName'])) $values['dbName'] = '';
+		// @todo: are there PDO equivalents for the ini_get()s below?
 		if(!isset($values['dbHost'])) $values['dbHost'] = ini_get("mysqli.default_host"); 
 		if(!isset($values['dbPort'])) $values['dbPort'] = ini_get("mysqli.default_port"); 
 		if(!isset($values['dbUser'])) $values['dbUser'] = ini_get("mysqli.default_user"); 
@@ -233,7 +234,7 @@ class Installer {
 
 		$this->input('dbName', 'DB Name', $values['dbName']); 
 		$this->input('dbUser', 'DB User', $values['dbUser']);
-		$this->input('dbPass', 'DB Pass', $values['dbPass'], false, 'password'); 
+		$this->input('dbPass', 'DB Pass', $values['dbPass'], false, 'password', false); 
 		$this->input('dbHost', 'DB Host', $values['dbHost']); 
 		$this->input('dbPort', 'DB Port', $values['dbPort'], true); 
 
@@ -290,6 +291,7 @@ class Installer {
 		}
 
 		error_reporting(0); 
+		/*
 		$mysqli = new mysqli($values['dbHost'], $values['dbUser'], $values['dbPass'], $values['dbName'], $values['dbPort']); 	
 		error_reporting(E_ALL); 
 		if(!$mysqli || mysqli_connect_error()) {
@@ -299,6 +301,21 @@ class Installer {
 			return;
 		}
 		$mysqli->set_charset("utf8"); 
+		*/
+	
+		$dsn = "mysql:dbname=$values[dbName];host=$values[dbHost];port=$values[dbPort]";
+		$driver_options = array(
+			PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'",
+			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+			);
+		try {
+			$database = new PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options); 
+		} catch(Exception $e) {
+			$this->err("Database connection information did not work."); 
+			$this->err($e->getMessage());
+			$this->dbConfig($values);
+			return;
+		}
 
 		// file permissions
 		$fields = array('chmodDir', 'chmodFile');
@@ -317,7 +334,7 @@ class Installer {
 		$this->h("Test Database and Save Configuration");
 		$this->ok("Database connection successful to " . htmlspecialchars($values['dbName'])); 
 
-		if($this->dbSaveConfigFile($values)) $this->profileImport($mysqli);
+		if($this->dbSaveConfigFile($values)) $this->profileImport($database);
 			else $this->dbConfig($values);
 	}
 
@@ -369,19 +386,21 @@ class Installer {
 	 * Step 3b: Import profile
 	 *
 	 */
-	protected function profileImport($mysqli) {
+	protected function profileImport($database) {
 
 		$profile = "./site/install/";
 		if(!is_file("{$profile}install.sql")) die("No installation profile found in {$profile}"); 
 
 		// checks to see if the database exists using an arbitrary query (could just as easily be something else)
-		$result = $mysqli->query("SHOW COLUMNS FROM pages"); 
+		// $result = $mysqli->query("SHOW COLUMNS FROM pages"); 
+		$query = $database->prepare("SHOW COLUMNS FROM pages"); 
+		$result = $query->execute();
 
-		if(self::REPLACE_DB || !$result || $result->num_rows == 0) {
+		if(self::REPLACE_DB || !$result || $query->rowCount() == 0) {
 
-			$this->profileImportSQL($mysqli, "./wire/core/install.sql"); 
+			$this->profileImportSQL($database, "./wire/core/install.sql"); 
 			$this->ok("Imported: ./wire/core/install.sql"); 
-			$this->profileImportSQL($mysqli, $profile . "install.sql"); 
+			$this->profileImportSQL($database, $profile . "install.sql"); 
 			$this->ok("Imported: {$profile}install.sql"); 
 
 			if(is_dir($profile . "files")) $this->profileImportFiles($profile);
@@ -433,7 +452,7 @@ class Installer {
 	 * Import profile SQL dump
 	 *
 	 */
-	protected function profileImportSQL($mysqli, $sqlDumpFile) {
+	protected function profileImportSQL($database, $sqlDumpFile) {
 
 		$fp = fopen($sqlDumpFile, "rb"); 	
 		while(!feof($fp)) {
@@ -445,8 +464,14 @@ class Installer {
 				do { $line .= fgets($fp); } while(substr(trim($line), -1) != ';'); 
 			}
 
-			$mysqli->query($line); 	
-			if($mysqli->error) $this->err($mysqli->error); 
+			try {	
+				$database->exec($line); 
+			} catch(Exception $e) {
+				$this->err($e->getMessage()); 
+			}
+			
+			//$mysqli->query($line); 	
+			//if($mysqli->error) $this->err($mysqli->error); 
 		}
 	}
 
@@ -611,9 +636,9 @@ class Installer {
 	 * Output an <input type='text'>
 	 *
 	 */
-	protected function input($name, $label, $value, $clear = false, $type = "text") {
+	protected function input($name, $label, $value, $clear = false, $type = "text", $required = true) {
 		$width = 135; 
-		$required = "required='required'";
+		$required = $required ? "required='required'" : "";
 		$pattern = '';
 		$note = '';
 		if($type == 'email') {
