@@ -141,13 +141,14 @@ DirectoryIndex index.php index.html index.htm
 
   # -----------------------------------------------------------------------------------------------
   # Prevent ProcessWire from attempting to serve images or anything in /site/assets/. 
-  # If you actually want PW to render image data, then comment the first line below.
   # Both of these lines are optional, but can help to reduce server load. However, they
-  # may produce an Apache 404 rather than your regular 404.
+  # are not compatible with the $config->pagefileSecure option (if enabled) and they 
+  # may produce an Apache 404 rather than your regular 404. You may uncomment the two lines
+  # below if you don't need to use the $config->pagefileSecure option.
   # ----------------------------------------------------------------------------------------------- 
 
-  RewriteCond %{REQUEST_FILENAME} !\.(jpg|jpeg|gif|png|ico)$ [NC]
-  RewriteCond %{REQUEST_FILENAME} !(^|/)site/assets/
+  # RewriteCond %{REQUEST_FILENAME} !\.(jpg|jpeg|gif|png|ico)$ [NC]
+  # RewriteCond %{REQUEST_FILENAME} !(^|/)site/assets/
 
   # ----------------------------------------------------------------------------------------------- 
   # Pass control to ProcessWire if all the above directives allow us to this point.
