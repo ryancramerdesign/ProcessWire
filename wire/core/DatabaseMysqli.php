@@ -47,8 +47,8 @@ class DatabaseMysqli {
 		$caller = 'unknown';
 		if(defined('DEBUG_BACKTRACE_IGNORE_ARGS')) $traces = @debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
 			else $traces = @debug_backtrace();
-		if(isset($traces[1]) && $traces[1]['file'] != __FILE__) $caller = $traces[1]['file'];
-			else if(isset($traces[2]) && $traces[2]['file'] != __FILE__) $caller = $traces[2]['file'];
+		if(isset($traces[1]) && isset($traces[1]['file']) && $traces[1]['file'] != __FILE__) $caller = $traces[1]['file'];
+			else if(isset($traces[2]) && isset($traces[2]['file']) && $traces[2]['file'] != __FILE__) $caller = $traces[2]['file'];
 		$this->callers[] = "$caller ($type: $key)";
 	}
 }
