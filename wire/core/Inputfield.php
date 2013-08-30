@@ -106,7 +106,9 @@ abstract class Inputfield extends WireData implements Module {
 		$this->set('notes', ''); 	// highlighted descriptive copy, below output of input field
 		$this->set('head', ''); 	// below label, above description
 		$this->set('required', 0); 	// set to 1 to make value required for this field
+		$this->set('requiredIf', ''); // optional conditions to make it required
 		$this->set('collapsed', ''); 	// see the collapsed* constants at top of class (use blank string for unset value)
+		$this->set('showIf', ''); 		// optional conditions selector
 		$this->set('columnWidth', ''); 	// percent width of the field. blank or 0 = 100.
 		$this->set('skipLabel', self::skipLabelNo); // See the skipLabel constants
 
@@ -193,7 +195,7 @@ abstract class Inputfield extends WireData implements Module {
 	public function set($key, $value) {
 		if($key == 'parent' && ($value instanceof InputfieldWrapper)) return $this->setParent($value); 
 		if(array_key_exists($key, $this->attributes)) return $this->setAttribute($key, $value); 
-		if($key == 'required' && $value) $this->attr('class', 'required'); 
+		if($key == 'required' && $value && !is_object($value)) $this->attr('class', 'required'); 
 		if($key == 'columnWidth') {
 			$value = (int) $value; 
 			if($value < 10 || $value > 99) $value = '';
@@ -503,11 +505,17 @@ abstract class Inputfield extends WireData implements Module {
 	 */
 	public function ___getConfigInputfields() {
 
+		$conditionsText = $this->_('Conditions are expressed with a "field=value" selector containing fields and values to match. Multiple conditions should be separated by a comma.');
+		$conditionsNote = $this->_('Read more about [how to use this](http://processwire.com/api/selectors/inputfield-dependencies/).'); 
+
 		$fields = new InputfieldWrapper();
 
+		$fieldset = $this->modules->get('InputfieldFieldset');
+		$fieldset->label = $this->_('Visibility'); 
+		$fieldset->attr('name', 'visibility'); 
 		$field = $this->modules->get("InputfieldSelect"); 
 		$field->attr('name', 'collapsed'); 
-		$field->label = $this->_("Visibility"); 
+		$field->label = $this->_('Presentation'); 
 		$field->description = $this->_("How should this field be displayed in the editor?");
 		$field->addOption(self::collapsedNo, $this->_('Always open (default)')); 
 		$field->addOption(self::collapsedBlank, $this->_("Collapsed only when blank")); 
@@ -516,8 +524,20 @@ abstract class Inputfield extends WireData implements Module {
 		$field->addOption(self::collapsedHidden, $this->_("Hidden, not shown in the editor"));
 		$field->addOption(self::collapsedLocked, $this->_("Locked, value visible but not editable"));
 		$field->attr('value', (int) $this->collapsed); 
-		if($this->collapsed == Inputfield::collapsedNo) $field->collapsed = Inputfield::collapsedYes;
-		$fields->append($field); 
+		$fieldset->append($field); 
+
+		$field = $this->modules->get("InputfieldText"); 
+		$field->label = $this->_('Show this field only if...'); 
+		$field->description = $this->_('Enter the conditions under which the field will be shown.') . ' ' . $conditionsText; 
+		$field->notes = $conditionsNote; 
+		$field->attr('name', 'showIf'); 
+		$field->attr('value', $this->getSetting('showIf')); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$field->showIf = "collapsed!=" . self::collapsedHidden;
+		$fieldset->append($field);
+		
+		$fieldset->collapsed = $this->collapsed == Inputfield::collapsedNo && !$this->getSetting('showIf') ? Inputfield::collapsedYes : Inputfield::collapsedNo;
+		$fields->append($fieldset); 
 
 		$field = $this->modules->get('InputfieldInteger'); 
 		$value = (int) $this->getSetting('columnWidth'); 
@@ -535,14 +555,26 @@ abstract class Inputfield extends WireData implements Module {
 		$fields->append($field); 
 
 		if(!$this instanceof InputfieldWrapper) {
-			$field = $this->modules->get('InputfieldCheckbox'); 
+			
+			$field = $this->modules->get('InputfieldCheckbox');
 			$field->label = $this->_('Required?');
 			$field->attr('name', 'required'); 
 			$field->attr('value', 1); 
-			$field->collapsed = $this->required ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
-			$field->attr('checked', $this->required ? 'checked' : ''); 
+			$field->attr('checked', $this->getSetting('required') ? 'checked' : ''); 
 			$field->description = $this->_("If checked, a value will be required for this field.");
-			$fields->append($field); 
+			$field->collapsed = $this->getSetting('required') ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
+			$fields->add($field);
+			
+			$field = $this->modules->get('InputfieldText'); 
+			$field->label = $this->_('Required only if...');
+			$field->description = $this->_('Enter the conditions under which a value will be required for this field.') . ' ' . $conditionsText; 
+			$field->notes = $conditionsNote; 
+			$field->attr('name', 'requiredIf'); 
+			$field->attr('value', $this->getSetting('requiredIf')); 
+			$field->collapsed = $field->attr('value') ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
+			$field->showIf = "required>0"; 
+			$fields->add($field); 
+			
 		}
 
 		return $fields; 
@@ -636,9 +668,12 @@ abstract class Inputfield extends WireData implements Module {
 		if($markdown && strpos($str, '](')) {
 			$str = preg_replace('/\[(.+?)\]\(([^)]+)\)/', '<a href="$2" target="_blank">$1</a>', $str); 
 		}
+		// convert markdown-style emphasis to <strong> tags
+		if($markdown && strpos($str, '**') !== false) {
+			$str = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $str); 
+		}
 
 		return $str; 
 	}
-
 
 }

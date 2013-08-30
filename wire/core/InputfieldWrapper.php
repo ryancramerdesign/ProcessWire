@@ -94,17 +94,29 @@ class InputfieldWrapper extends Inputfield {
 		'item_collapsed' => 'InputfieldStateCollapsed',
 		'item_column_width' => 'InputfieldColumnWidth',
 		'item_column_width_first' => 'InputfieldColumnWidthFirst',
+		'item_show_if' => 'InputfieldStateShowIf',
+		'item_required_if' => 'InputfieldStateRequiredIf'
 		);
 
 	static protected $classes = array();
-
-
 
 	/**
 	 * Instance of InputfieldsArray, if this Inputfield contains child Inputfields
 	 *
 	 */
 	protected $children = null;
+
+	/**
+	 * Array of Inputfields that had their processing delayed by dependencies. 
+	 *
+	 */
+	protected $delayedChildren = array();
+
+	/**
+	 * Label displayed when a value is required but missing
+	 *
+	 */
+	protected $requiredLabel = '';
 
 	/**
 	 * Construct the Inputfield, setting defaults for all properties
@@ -114,6 +126,7 @@ class InputfieldWrapper extends Inputfield {
 		parent::__construct();
  		$this->children = new InputfieldsArray(); 
 		$this->set('skipLabel', Inputfield::skipLabelFor); 
+		$this->requiredLabel = $this->_('Missing required value');
 		$this->set('renderValueMode', false); 
 	}
 
@@ -274,7 +287,15 @@ class InputfieldWrapper extends Inputfield {
 
 			//if(count($errors)) $ffAttrs['class'] .= " ui-state-error InputfieldStateError"; 
 			if(count($errors)) $ffAttrs['class'] .= ' ' . $classes['item_error'];
-			if($inputfield->required) $ffAttrs['class'] .= ' ' . $classes['item_required']; 
+			if($inputfield->getSetting('required')) $ffAttrs['class'] .= ' ' . $classes['item_required']; 
+			if(strlen($inputfield->getSetting('showIf'))) {
+				$ffAttrs['data-show-if'] = $inputfield->getSetting('showIf'); 
+				$ffAttrs['class'] .= ' ' . $classes['item_show_if'];
+			}
+			if(strlen($inputfield->getSetting('requiredIf'))) {
+				$ffAttrs['data-required-if'] = $inputfield->getSetting('requiredIf'); 
+				$ffAttrs['class'] .= ' ' . $classes['item_required_if']; 
+			}
 
 			if($collapsed) {
 				$isEmpty = $inputfield->isEmpty();
@@ -315,7 +336,7 @@ class InputfieldWrapper extends Inputfield {
 					if(!$columnWidthTotal) $ffAttrs['class'] .= ' ' . $classes['item_column_width_first']; 
 					$ffAttrs['style'] = "width: $columnWidthAdjusted%;"; 
 					$columnWidthTotal += $columnWidth;
-					if($columnWidthTotal >= 100) $columnWidthTotal = 0;
+					if($columnWidthTotal >= 100 && !$inputfield->getSetting('requiredIf')) $columnWidthTotal = 0;
 				} else {
 					$columnWidthTotal = 0;
 				}
@@ -361,17 +382,46 @@ class InputfieldWrapper extends Inputfield {
 
 		foreach($this->children as $key => $child) {
 
-			// skip over collapsedHidden or collapsedLocked inputfields, beacuse they are not saveable
-			if($child->collapsed === Inputfield::collapsedHidden || $child->collapsed === Inputfield::collapsedLocked) continue; 
+			// skip over the field if it is not processable
+			if(!$this->isProcessable($child)) continue; 	
 
 			// call the inputfield's processInput method
 			$child->processInput($input); 
 
 			// check if a value is required and field is empty, trigger an error if so
-			if($child->name && $child->required && $child->isEmpty()) $child->error($this->_('Missing required value')); 
+			if($child->name && $child->getSetting('required') && $child->isEmpty()) {
+				$child->error($this->requiredLabel); 
+			}
 		}
 
 		return $this; 
+	}
+
+	/**
+	 * Returns whether or not the given Inputfield should be processed by processInput()
+	 * 
+	 * When an $inputfield has a 'showIf' property, then this returns false, but it queues
+	 * the field in the delayedChildren array for later processing. The root container should
+	 * temporarily remove the 'showIf' property of inputfields they want processed. 
+	 * 
+	 * @param Inputfield $inputfield
+	 * @return bool
+	 * 
+	 */
+	protected function isProcessable(Inputfield $inputfield) {
+		// skip over collapsedHidden or collapsedLocked inputfields, beacuse they are not saveable
+		if($inputfield->collapsed === Inputfield::collapsedHidden) return false;
+		if($inputfield->collapsed === Inputfield::collapsedLocked) return false;
+		
+		if(strlen($inputfield->getSetting('showIf')) || 
+			($inputfield->getSetting('required') && strlen($inputfield->getSetting('requiredIf')))) {
+			
+			$name = $inputfield->attr('name'); 
+			$this->delayedChildren[$name] = $inputfield; 
+			return false;
+		}
+		
+		return true;
 	}
 
 	/**
@@ -419,6 +469,24 @@ class InputfieldWrapper extends Inputfield {
 		return $this->children($selector); 
 	}
 
+	/**
+	 * Return array of inputfields (indexed by name) of fields that had dependencies and were not processed
+	 * 
+	 * The results are to be handled by the root containing element (i.e. InputfieldForm).
+	 *
+	 * @param bool $clear Set to true in order to clear the delayed children list.
+	 * @return array
+	 *
+	 */
+	public function _getDelayedChildren($clear = false) {
+		$a = $this->delayedChildren; 
+		foreach($this->children as $child) {
+			if(!$child instanceof InputfieldWrapper) continue; 
+			$a = array_merge($a, $child->_getDelayedChildren($clear)); 
+		}
+		if($clear) $this->delayedChildren = array();
+		return $a; 
+	}
 
 	/**
 	 * Like children() but $selector is not optional, and the method name is more readable in instances where you are filtering.

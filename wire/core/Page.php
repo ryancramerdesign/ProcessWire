@@ -1398,7 +1398,7 @@ class Page extends WireData implements Countable {
 	public function isPublic() {
 		if($this->status >= Page::statusUnpublished) return false;	
 		$template = $this->getAccessTemplate();
-		if(!$template->hasRole('guest')) return false;
+		if(!$template || !$template->hasRole('guest')) return false;
 		return true; 
 	}
 

@@ -53,6 +53,8 @@
 .Inputfields > .Inputfield > .ui-widget-content {
 	/* the Inputfield's content, padded from the borders */
 	padding: 1em; 
+	overflow-y: auto; 
+	overflow-x: hidden; 
 }
 
 .Inputfields .ui-widget-header {
@@ -90,8 +92,14 @@
 		clear: both; 
 		margin-left: 0; 
 	}
-
-
+    
+    .InputfieldForm .Inputfields .InputfieldColumnWidthFirstTmp, 
+    .InputfieldForm .Inputfields .InputfieldColumnWidthFirst.InputfieldStateHidden + .Inputfield {
+        /* for support of inputfield dependencies */
+        clear: both;
+        margin-left: 0; 
+    }
+    
 /**
  * Margin and padding tweaks to prevent doubled visual whitespace
  *

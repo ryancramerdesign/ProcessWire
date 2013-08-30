@@ -13,9 +13,9 @@ $bodyClass = $input->get->modal ? 'modal' : '';
 if(!isset($content)) $content = '';
 
 $config->styles->prepend($config->urls->adminTemplates . "styles/main.css?v=2"); 
-$config->styles->append($config->urls->adminTemplates . "styles/inputfields.css"); 
+$config->styles->append($config->urls->adminTemplates . "styles/inputfields.css?v=2"); 
 $config->styles->append($config->urls->adminTemplates . "styles/ui.css?v=2"); 
-$config->scripts->append($config->urls->adminTemplates . "scripts/inputfields.js"); 
+$config->scripts->append($config->urls->adminTemplates . "scripts/inputfields.js?v=2"); 
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=2"); 
 
 $browserTitle = wire('processBrowserTitle'); 

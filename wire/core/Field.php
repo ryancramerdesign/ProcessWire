@@ -371,7 +371,7 @@ class Field extends WireData implements Saveable {
 			if($inputfieldInputfields) foreach($inputfieldInputfields as $i) { 
 				// currently we only support collapsed and columnWidth for fieldgroup context
 				// however we may support everything after starting with these limited options for awhile
-				if($fieldgroupContext && !in_array($i->name, array('collapsed', 'columnWidth'))) continue; 
+				if($fieldgroupContext && !in_array($i->name, array('visibility', 'collapsed', 'columnWidth', 'required', 'requiredIf', 'showIf'))) continue; 
 				$inputfields->append($i); 
 			}
 		}
