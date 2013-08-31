@@ -30,7 +30,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 102,
+			'version' => 103,
 			'permanent' => true, 
 	
 			// add this permission if you want this Process available for roles other than Superuser
@@ -661,16 +661,9 @@ class ProcessTemplate extends Process {
 
 		foreach($template->fieldgroup as $field) {
 			$field = $template->fieldgroup->getField($field->id, true); // get in context
-			$columnWidth = $field->columnWidth ? $field->columnWidth : '100';
-			$attrs = array(
-				'selected' => 'selected', 
-				'data-status' => ($field->columnWidth > 0 ? $field->columnWidth . '%': ' ')
-				);
-			$extra = '';
-			if($field->required) $extra .= " *";
-			if($field->requiredIf) $extra .= "*";
-			if($field->showIf) $extra .= " ?";
-			$select->addOption($field->id, $field->name . $extra, $attrs);
+			$attrs = $this->getAsmListAttrs($field); 
+			$attrs['selected'] = 'selected';
+			$select->addOption($field->id, $field->name, $attrs);
 		}
 		
 		foreach($this->fields as $field) {
@@ -678,11 +671,43 @@ class ProcessTemplate extends Process {
 			if(($field->flags & Field::flagPermanent) && !$this->config->advanced) continue; 
 			$name = $field->name; 
 			if($field->flags & Field::flagSystem) $name .= "*";
-			$attrs = array('data-status' => ($field->columnWidth > 0 ? $field->columnWidth . '%': ' '));
+			$attrs = $this->getAsmListAttrs($field); 
 			$select->addOption($field->id, $name, $attrs); 
 		}
 	
 		return $select; 
+	}
+	
+	protected function getAsmListAttrs(Field $field) {
+		
+		$status = '';
+		$desc = '';
+		
+		if(!$field->type instanceof FieldtypeFieldsetClose) {
+			$desc = $field->label;
+			$maxDesc = 30;
+			if(strlen($desc) > $maxDesc) {
+				$desc = $this->wire('sanitizer')->entities(substr($desc, 0, $maxDesc));
+				$pos = strrpos($desc, ' ');
+				if($pos) $desc = substr($desc, 0, strrpos($desc, ' '));
+				$desc .= '&hellip;';
+			}
+
+			$status = str_replace('Fieldtype', '', $field->type);
+		}
+		
+		if($field->required) $status .= "<span class='ui-icon ui-icon-star'></span>";
+		if($field->showIf) $status .= "<span class='ui-icon ui-icon-help'></span>";
+		if($status) $status = "<span class='ui-priority-secondary'>$status</span>";
+	
+		$status .= $field->columnWidth > 0 ? ' ' . $field->columnWidth . '%' : ' '; 
+		
+		$attrs = array(
+			'data-status' => $status,
+			'data-desc' => $desc
+			);
+		
+		return $attrs; 
 	}
 
 	protected function buildEditFormImport() {

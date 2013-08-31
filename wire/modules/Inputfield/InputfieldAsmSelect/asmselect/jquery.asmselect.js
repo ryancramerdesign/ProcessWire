@@ -1,5 +1,5 @@
 /*
- * Alternate Select Multiple (asmSelect) 1.2 - jQuery Plugin
+ * Alternate Select Multiple (asmSelect) 1.3 - jQuery Plugin
  * http://www.ryancramer.com/projects/asmselect/
  * 
  * Copyright (c) 2009-2012 by Ryan Cramer - http://www.ryancramer.com
@@ -41,6 +41,7 @@
 			listItemLabelClass: 'asmListItemLabel',			// Class for the label text that appears in list items
 			listItemDescClass: 'asmListItemDesc',			// Class for optional description text, set a data-desc attribute on the <option> to use it. May contain HTML.
 			listItemStatusClass: 'asmListItemStatus',		// Class for optional status text, set a data-status attribute on the <option> to use it. May contain HTML.
+			listItemHandleClass: 'ui-icon ui-icon-arrowthick-2-n-s asmListItemHandle',	// Class for sort handle
 			removeClass: 'asmListItemRemove',			// Class given to the "remove" link
 			editClass: 'asmListItemEdit',
 			highlightClass: 'asmHighlight',				// Class given to the highlight <span>
@@ -108,7 +109,7 @@
 
 				$ol.sortable({
 					items: 'li.' + options.listItemClass,
-					handle: '.' + options.listItemLabelClass,
+					// handle: '.' + options.listItemLabelClass,
 					axis: 'y',
 					update: function(e, ui) {
 
@@ -297,22 +298,36 @@
 
 				// optional container where an <option>'s data-status attribute will be displayed
 				var $itemStatus = $("<span></span>").addClass(options.listItemStatusClass);
-				if($O.attr('data-status')) $itemStatus.html($O.attr('data-status')); 
-
+				if($O.attr('data-status')) $itemStatus.html($O.attr('data-status'));
+				
 				// optional container where an <option>'s data-desc attribute will be displayed
 				var $itemDesc = $("<span></span>").addClass(options.listItemDescClass);
-				if($O.attr('data-desc')) $itemDesc.html($O.attr('data-desc')); 
 
 				if(options.editLink.length > 0 && ($O.is(':selected') || !options.editLinkOnlySelected)) {
+					
 					var $editLink = $("<a></a>")
 						.html($O.html())
 						.attr('href', options.editLink.replace(/\{value\}/, $O.val()))
 						.append(options.editLabel)
 						.click(clickEditLink);
+					
 					$itemLabel.addClass(options.editClass).append($editLink);
+					
+					if($O.attr('data-desc')) {
+						var $editLink2 = $("<a></a>")
+							.html($O.attr('data-desc'))
+							.attr('href', '#')
+							.append(options.editLabel)
+							.click(function() {
+								$editLink.click();
+								return false; 
+							});
+						$itemDesc.addClass(options.editClass).append($editLink2);
+					}
 
 				} else {
-					$itemLabel.html($O.html()); 
+					$itemLabel.html($O.html());
+					if($O.attr('data-desc')) $itemDesc.html($O.attr('data-desc')); 
 				}
 
 
@@ -332,7 +347,7 @@
 					}, function() {
 						$(this).addClass('ui-state-default').removeClass('ui-state-hover'); 
 					}); 
-					if(options.sortable) $item.prepend("<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>"); 
+					if(options.sortable) $item.prepend("<span class='" + options.listItemHandleClass + "'></span>"); 
 				}
 
 				if(!buildingSelect) {
@@ -519,8 +534,20 @@
 									if($button.attr('type') == 'submit') {
 										$button.click(); 
 										$asmItem.effect('highlight', {}, 500); 
-										var $asmSetStatus = $icontents.find(':input.' + options.listItemStatusClass); 
-										if($asmSetStatus.size() > 0) $asmItem.find('.' + options.listItemStatusClass).html($asmSetStatus.val());
+										
+										var $asmSetStatus = $icontents.find('#' + options.listItemStatusClass); // first try to find by ID
+										if($asmSetStatus.size() == 0) $asmSetStatus = $icontents.find(':input.' + options.listItemStatusClass); // then by class, if not ID
+										if($asmSetStatus.size() > 0) $asmItem.find('.' + options.listItemStatusClass).html($asmSetStatus.eq(0).val());
+										
+										var $asmSetDesc = $icontents.find('#' + options.listItemDescClass); // first try to find by ID
+										if($asmSetDesc.size() == 0) $asmSetDesc = $icontents.find(':input.' + options.listItemDescClass); // then by class, if not ID
+										if($asmSetDesc.size() > 0) {
+											$asmSetDesc = $asmSetDesc.eq(0); 
+											var $desc = $asmItem.find('.' + options.listItemDescClass);
+											var $descA = $desc.find('a'); // does it have an <a> in there?
+											if($descA.size() > 0) $descA.html($asmSetDesc.val()); 
+												else $desc.html($asmSetDesc.val());
+										}
 									}
 									$dialog.dialog('close'); 
 								}

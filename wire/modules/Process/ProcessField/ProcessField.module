@@ -23,7 +23,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Fields', __FILE__),
 			'summary' => __('Edit individual fields that hold page data', __FILE__),
-			'version' => 103,
+			'version' => 104,
 			'permanent' => true, 
 
 			// add this permission if you want this Process available for roles other than Superuser
@@ -507,6 +507,14 @@ class ProcessField extends Process implements ConfigurableModule {
 			$field->attr('value', $this->_x('Cancel', 'button'));
 			$field->attr('class', $field->attr('class') . ' ui-priority-secondary');
 			$form->append($field);
+		
+			// contains the asm list item status, populated by JS
+			$field = $this->modules->get('InputfieldHidden');
+			$field->attr('id+name', 'asmListItemStatus'); 
+			$field->attr('class', 'asmListItemStatus');
+			$field->attr('data-tpl', "<span class='ui-priority-secondary'>" . str_replace('Fieldtype', '', $this->field->type) . "</span> %"); // % gets replaced with live percent
+			$field->attr('value', '');
+			$form->append($field); 
 		}
 
 		return $form; 
@@ -611,6 +619,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		$field->label = $this->_x('Label', 'text input'); // Label for 'field label' text input
 		$field->attr('size', '70'); 
 		$field->attr('value', $this->field->label); 
+		$field->class .= ' asmListItemDesc'; // for modal to populate parent asmSelect desc field with this value (recognized by jquery.asmselect.js)
 		$field->description = $this->_("This is the label that appears above the entry field. If left blank, the name will be used instead."); // Description for 'field label'
 		$form->add($field);
 		$languageFields[] = $field;
