@@ -31,13 +31,63 @@ function InputfieldDependencies() {
 		var conditions = [];
 
 		/**
+		 * Convert string value to integer or float when appropriate
+		 * 
+		 * @param str string
+		 * @param str2 string Optional second value for context
+		 * @return string|int|float
+		 * 
+		 */
+		function parseValue(str, str2) {
+			
+			str = jQuery.trim(str);
+			if(str.length > 0 && !jQuery.isNumeric(str)) {
+				return str; 
+			}
+			
+			if(str.length == 0) {
+				// empty value: should it be a blank or a 0?
+				var t = typeof str2;
+				if(t != "undefined") {
+					// str2 is present for context
+					if(t == "integer") return 0;
+					if(t == "float") return 0.0;
+					return str;
+				} else {
+					// no context, assume blank
+					return str; 	
+				}
+			}
+			
+			var dot1 = str.indexOf('.');
+			var dot2 = str.lastIndexOf('.');
+			
+			if(dot1 == -1 && /^-?\d+$/.test(str)) {
+				// no dot present, and all numbers so must be integer
+				return parseInt(str);
+			}
+			
+			if(dot2 > -1 && dot1 != dot2) {
+				// more than one dot, can't be a float
+				return str; 
+			}
+			
+			if(/^-?[\d.]+$/.test(str)) {
+				// looks to be a float
+				return parseFloat(str);
+			}
+			
+			return str;
+		}
+
+		/**
 		 * Called when a targeted Inputfield has changed
 		 *
 		 */
 		function inputfieldChange() {
 
 			consoleLog('-------------------------------------------------------------------');
-			consoleLog('Field "' + $fieldToShow.attr('id') + '" has changed! Beginning dependency checks...');
+			consoleLog('Field "' + $fieldToShow.attr('id') + '" detected a change to a dependency field! Beginning dependency checks...');
 
 			// number of changes that were actually made to field visibility
 			var numVisibilityChanges = 0;
@@ -106,8 +156,8 @@ function InputfieldDependencies() {
 				// cycle through the values (most of the time, just 1 value).
 				// increment variable 'show' each time a condition matches
 				for(var n = 0; n < values.length; n++) {
-					value = values[n];
-
+					value = parseValue(values[n], condition.value);
+					
 					switch(condition.operator) {
 						case '=': if(value == condition.value) matched++; break;
 						case '!=': if(value != condition.value) matched++; break;
@@ -232,7 +282,7 @@ function InputfieldDependencies() {
 					'field': field,
 					'subfield': subfield,
 					'operator': operator,
-					'value': value
+					'value': parseValue(value)
 				};
 
 				// append to conditions array
