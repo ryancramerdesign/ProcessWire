@@ -291,18 +291,7 @@ class Installer {
 		}
 
 		error_reporting(0); 
-		/*
-		$mysqli = new mysqli($values['dbHost'], $values['dbUser'], $values['dbPass'], $values['dbName'], $values['dbPort']); 	
-		error_reporting(E_ALL); 
-		if(!$mysqli || mysqli_connect_error()) {
-			$this->err(mysqli_connect_error()); 
-			$this->err("Database connection information did not work."); 
-			$this->dbConfig($values);
-			return;
-		}
-		$mysqli->set_charset("utf8"); 
-		*/
-	
+		
 		$dsn = "mysql:dbname=$values[dbName];host=$values[dbHost];port=$values[dbPort]";
 		$driver_options = array(
 			PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'",
@@ -392,9 +381,12 @@ class Installer {
 		if(!is_file("{$profile}install.sql")) die("No installation profile found in {$profile}"); 
 
 		// checks to see if the database exists using an arbitrary query (could just as easily be something else)
-		// $result = $mysqli->query("SHOW COLUMNS FROM pages"); 
-		$query = $database->prepare("SHOW COLUMNS FROM pages"); 
-		$result = $query->execute();
+		try {
+			$query = $database->prepare("SHOW COLUMNS FROM pages"); 
+			$result = $query->execute();
+		} catch(Exception $e) {
+			$result = false;
+		}
 
 		if(self::REPLACE_DB || !$result || $query->rowCount() == 0) {
 
@@ -470,8 +462,6 @@ class Installer {
 				$this->err($e->getMessage()); 
 			}
 			
-			//$mysqli->query($line); 	
-			//if($mysqli->error) $this->err($mysqli->error); 
 		}
 	}
 
