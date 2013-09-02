@@ -9,7 +9,7 @@
 
 function consoleLog(note) {
 	// uncomment the line below to enable debugging console
-	// console.log(note);
+	console.log(note);
 }
 
 /**
@@ -252,7 +252,7 @@ function InputfieldDependencies() {
 				var part = parts[n];
 
 				// separate out the field, operator and value
-				var match = part.match(/^[,\s]*([_.a-zA-Z0-9]+)(=|!=|<|>|<=|>=|%=)([^,]+),?$/);
+				var match = part.match(/^[,\s]*([_.a-zA-Z0-9]+)(=|!=|<=|>=|<|>|%=)([^,]+),?$/);
 				if(!match) continue;
 				var field = match[1];
 				var operator = match[2];
