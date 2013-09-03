@@ -220,7 +220,7 @@ class ImageSizer extends Wire {
 		$needRotation = $this->autoRotation !== true ? false : $this->checkOrientation($orientations);
 		$needResizing = $this->isResizeNecessary($targetWidth, $targetHeight);
 
-		if(!$needResizing && !$needRotation) return true;
+		//if(!$needResizing && !$needRotation) return true;
 
 		$source = $this->filename;
 		$dest = str_replace("." . $this->extension, "_tmp." . $this->extension, $source); 
@@ -249,7 +249,7 @@ class ImageSizer extends Wire {
 			}
 		}
 
-		if($needResizing) {
+		//if($needResizing) {
 
 			list($gdWidth, $gdHeight, $targetWidth, $targetHeight) = $this->getResizeDimensions($targetWidth, $targetHeight); 
 
@@ -353,7 +353,7 @@ class ImageSizer extends Wire {
 			imagecopyresampled($thumb2, $thumb, 0, 0, $w1, $h1, $targetWidth, $targetHeight, $targetWidth, $targetHeight);
 
 			if($this->sharpening && $this->sharpening != 'none') $image = $this->imSharpen($thumb2, $this->sharpening); // @horst
-		}
+		//}
 
 		// write to file
 		$result = false;
