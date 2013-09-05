@@ -310,7 +310,10 @@ class InputfieldSelect extends Inputfield {
 
 		if($this instanceof InputfieldHasArrayValue) {
 			foreach($value as $k => $v) {
-				if(!$this->isOption($v)) unset($value[$k]); 
+				if(!$this->isOption($v)) {
+					$this->message("Removing invalid option: " . wire('sanitizer')->entities($value[$k]), Notice::debug); 
+					unset($value[$k]); 
+				}
 			}
 
 		} else if($value && !$this->isOption($value)) {

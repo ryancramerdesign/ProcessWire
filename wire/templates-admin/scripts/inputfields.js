@@ -9,7 +9,7 @@
 
 function consoleLog(note) {
 	// uncomment the line below to enable debugging console
-	console.log(note);
+	// console.log(note);
 }
 
 /**

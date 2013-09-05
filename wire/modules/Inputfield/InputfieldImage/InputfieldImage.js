@@ -1,10 +1,12 @@
 $(document).ready(function() {
 	$("a.InputfieldFileLink").fancybox();
-	$(".InputfieldImage .InputfieldFileList").live('AjaxUploadDone', function() {
+	// $(".InputfieldImage .InputfieldFileList").live('AjaxUploadDone', function() {
+	$(document).on('AjaxUploadDone', '.InputfieldImage .InputfieldFileList', function() {
 		$("a.InputfieldFileLink", $(this)).fancybox(); 
 	}); 
 
-	$(".InputfieldImage .InputfieldFileMove").live('click', function() {
+	// $(".InputfieldImage .InputfieldFileMove").live('click', function() {
+	$(document).on('click', '.InputfieldImage .InputfieldFileMove', function() {
 
 		var $li = $(this).parent('p').parent('li'); 
 		var $ul = $li.parent();

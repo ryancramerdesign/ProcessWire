@@ -7,7 +7,8 @@ $(document).ready(function() {
 
 	if($.browser.msie && $.browser.version < 9) {
 		
-		$(".InputfieldFileDelete span.ui-icon").live("click", function() {
+		// $(".InputfieldFileDelete span.ui-icon").live("click", function() {
+		$(".InputfieldFileDelete").on("click", "span.ui-icon", function() {
 			
 			var input = $(this).prev('input'); 
 			if(input.is(":checked")){
@@ -22,7 +23,8 @@ $(document).ready(function() {
 		
 	} else {
 		// not IE < 9
-		$(this).find(".InputfieldFileDelete input").live('change', function() {
+		// $(this).find(".InputfieldFileDelete input").live('change', function() {
+		$(document).on('change', '.InputfieldFileDelete input', function() {
 			setInputfieldFileStatus($(this));
 		}); 
 	}
@@ -75,7 +77,8 @@ $(document).ready(function() {
 	 *
 	 */
 	function InitOldSchool() {
-		$(".InputfieldFileUpload input[type=file]").live('change', function() {
+		// $(".InputfieldFileUpload input[type=file]").live('change', function() {
+		$(document).on('change', '.InputfieldFileUpload input[type=file]', function() {
 			var $t = $(this); 
 			if($t.next("input.InputfieldFile").size() > 0) return; // not the last one
 			var maxFiles = parseInt($t.siblings('.InputfieldFileMaxFiles').val()); 

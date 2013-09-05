@@ -398,6 +398,7 @@ class ProcessPageEdit extends Process {
 		$f->attr('id+name', 'sortfield_reverse'); 
 		$f->label = __('Reverse sort direction?', __FILE__); // Checkbox labe to reverse the sort direction
 		if(substr($sortfield, 0, 1) == '-') $f->attr('checked', 'checked'); 
+		$f->showIf = "sortfield!='', sortfield!=sort";
 		$f->columnWidth = 40; 
 
 		$fieldset->append($f); 

@@ -855,7 +855,7 @@ class ImageSizer extends Wire {
 	protected function iptcMakeTag($rec, $dat, $val) {
 		$len = strlen($val);
 		if($len < 0x8000) {
-			return  chr(0x1c) . chr($rec) . chr($dat) .
+			return  @chr(0x1c) . @chr($rec) . @chr($dat) .
 				chr($len >> 8) .
 				chr($len & 0xff) .
 				$val;

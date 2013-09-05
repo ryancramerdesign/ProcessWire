@@ -153,8 +153,10 @@ class InputfieldForm extends InputfieldWrapper {
 
 					$value = $dependencyChild->attr('value');
 					if($subfield == 'count') $value = count($value); 
+					if(is_object($value)) $value = "$value";
 
 					if(!$selector->matches($value)) {
+						if($debug) $this->message("Selector failed to match (value: $value): " . $selector); 
 						$processNow = false;
 						break;
 					}

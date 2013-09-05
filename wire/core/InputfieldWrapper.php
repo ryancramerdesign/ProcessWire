@@ -255,6 +255,10 @@ class InputfieldWrapper extends Inputfield {
 			$renderValueMode = $this->renderValueMode; 
 
 			$collapsed = (int) $inputfield->getSetting('collapsed'); 
+			$required = $inputfield->getSetting('required');
+			$requiredIf = $required ? $inputfield->getSetting('requiredIf') : false;
+			$showIf = $inputfield->getSetting('showIf'); 
+			
 			if($collapsed == Inputfield::collapsedHidden) continue; 
 			if($collapsed == Inputfield::collapsedLocked) $renderValueMode = true; 
 
@@ -287,13 +291,13 @@ class InputfieldWrapper extends Inputfield {
 
 			//if(count($errors)) $ffAttrs['class'] .= " ui-state-error InputfieldStateError"; 
 			if(count($errors)) $ffAttrs['class'] .= ' ' . $classes['item_error'];
-			if($inputfield->getSetting('required')) $ffAttrs['class'] .= ' ' . $classes['item_required']; 
-			if(strlen($inputfield->getSetting('showIf'))) {
-				$ffAttrs['data-show-if'] = $inputfield->getSetting('showIf'); 
+			if($required) $ffAttrs['class'] .= ' ' . $classes['item_required']; 
+			if(strlen($showIf)) {
+				$ffAttrs['data-show-if'] = $showIf;
 				$ffAttrs['class'] .= ' ' . $classes['item_show_if'];
 			}
-			if(strlen($inputfield->getSetting('requiredIf'))) {
-				$ffAttrs['data-required-if'] = $inputfield->getSetting('requiredIf'); 
+			if(strlen($requiredIf)) {
+				$ffAttrs['data-required-if'] = $requiredIf; 
 				$ffAttrs['class'] .= ' ' . $classes['item_required_if']; 
 			}
 
@@ -336,7 +340,7 @@ class InputfieldWrapper extends Inputfield {
 					if(!$columnWidthTotal) $ffAttrs['class'] .= ' ' . $classes['item_column_width_first']; 
 					$ffAttrs['style'] = "width: $columnWidthAdjusted%;"; 
 					$columnWidthTotal += $columnWidth;
-					if($columnWidthTotal >= 100 && !$inputfield->getSetting('requiredIf')) $columnWidthTotal = 0;
+					if($columnWidthTotal >= 100 && !$requiredIf) $columnWidthTotal = 0;
 				} else {
 					$columnWidthTotal = 0;
 				}
