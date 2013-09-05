@@ -29,8 +29,6 @@ class PageNotFoundException extends Wire404Exception {}
  */
 class ProcessPageView extends Process {
 
-	const maxPageNum = 999;
-
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Page View', __FILE__), // getModuleInfo title
@@ -40,8 +38,6 @@ class ProcessPageView extends Process {
 			'permission' => 'page-view',
 			);
 	}
-
-	// public static $n = 0; 
 
 	/**
 	 * URL that should be redirected to for this request
@@ -291,7 +287,11 @@ class ProcessPageView extends Process {
 			// meets the requirements for a page number: last portion of URL and starts with 'page'
 			$pageNum = (int) $this->pageNum; 
 			if($pageNum < 1) $pageNum = 1;
-			if($pageNum > self::maxPageNum) return false; 
+			if($pageNum > 1) {
+				$maxPageNum = $this->wire('config')->maxPageNum; 
+				if(!$maxPageNum) $maxPageNum = 999;
+				if($pageNum > $maxPageNum) return false; 
+			}
 			$page->pageNum = $pageNum; // backwards compatibility
 			$this->input->setPageNum($pageNum); 
 			array_pop($urlSegments); 

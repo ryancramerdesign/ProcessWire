@@ -167,5 +167,11 @@ $config->chmodDir = "0777";
  * This is overwritten at runtime with a more specific value in /site/config.php
  *
  */
-$config->chmodFile = "0666";    
+$config->chmodFile = "0666";
+
+/**
+ * Max number of supported paginations when using page numbers
+ * 
+ */
+$config->maxPageNum = 999;
 
