@@ -171,7 +171,15 @@ var InputfieldPageAutocomplete = {
 		var $input = $('#' + id);
 		var value = '';
 		var addValue = '';
-		$ol.children(':not(.itemTemplate)').each(function() {
+		var max = parseInt($input.attr('data-max'));
+
+		var $children = $ol.children(':not(.itemTemplate)');
+		if(max > 0 && $children.size() > max) { 
+			while($children.size() > max) $children = $children.slice(1); 
+			$ol.children(':not(.itemTemplate)').replaceWith($children);
+		}
+	
+		$children.each(function() {
 			var v = parseInt($(this).children('.itemValue').text());
 			if(v > 0) {
 				value += ',' + v; 
