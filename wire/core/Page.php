@@ -804,7 +804,7 @@ class Page extends WireData {
 	 *
 	 */
 	public function numChildren($onlyVisible = false) {
-		if(!$onlyViewable) return $this->settings['numChildren'];
+		if(!$onlyVisible) return $this->settings['numChildren'];
 		return $this->children('limit=2')->getTotal();
 	}
 
