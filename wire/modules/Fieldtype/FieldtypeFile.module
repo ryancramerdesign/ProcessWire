@@ -10,11 +10,10 @@
  * /wire/core/FieldtypeMulti.php
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -24,9 +23,9 @@ class FieldtypeFile extends FieldtypeMulti {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Files',
-			'version' => 102,
-			'summary' => 'Field that stores one or more files',
+			'title' => __('Files', __FILE__),
+			'version' => 103,
+			'summary' => __('Field that stores one or more files', __FILE__),
 			'permanent' => true, 
 			);
 	}
@@ -403,24 +402,24 @@ class FieldtypeFile extends FieldtypeMulti {
 		$f->attr('name', 'extensions'); 
 		$f->attr('value', $field->extensions ? $field->extensions : $this->getDefaultFileExtensions()); 
 		$f->attr('rows', 3); 
-		$f->label = 'Valid File Extensions';
-		$f->description = 'Enter all file extensions allowed by this upload field. Separate each extension by a space. No periods or commas. This field is not case sensitive.'; 
+		$f->label = $this->_('Valid File Extensions');
+		$f->description = $this->_('Enter all file extensions allowed by this upload field. Separate each extension by a space. No periods or commas. This field is not case sensitive.'); // Valid file extensions description
 		$inputfields->append($f);
 
 		$f = $this->modules->get('InputfieldInteger');
 		$f->attr('name', 'maxFiles'); 
 		$f->attr('value', (int) $field->maxFiles); 
 		$f->attr('size', 4); 
-		$f->label = "Maximum files allowed";
-		$f->description = "Enter 0 for no limit. If you enter 1, the API will dereference this field as a single file rather than an array (when the Page's outputFormatting is on, as it is by default).";
+		$f->label = $this->_('Maximum files allowed');
+		$f->description = $this->_('Enter 0 for no limit. If you enter 1, the API will dereference this field as a single file rather than an array (when the Page has output formatting on, as it does by default).'); // Max files description
 		$inputfields->append($f); 
 
 		$f = $this->modules->get("InputfieldCheckbox"); 
 		$f->attr('name', 'entityEncode'); 
 		$f->attr('value', 1); 
 		if($field->entityEncode) $f->attr('checked', 'checked'); 
-		$f->label = 'Entity encode file description/tags? (recommended)'; 
-		$f->description = "If checked, the file's description field will be entity encoded (when the Page's outputFormatting is on, as it is by default).";
+		$f->label = $this->_('Entity encode file description/tags? (recommended)'); 
+		$f->description = $this->_('If checked, the file description fields will be entity encoded (when the Page has output formatting on, as it does by default).'); // Entity encode description
 		$inputfields->append($f); 
 
 		$f = $this->modules->get("InputfieldCheckbox"); 
@@ -428,15 +427,15 @@ class FieldtypeFile extends FieldtypeMulti {
 		$f->attr('value', 1); 
 		if($field->useTags) $f->attr('checked', 'checked'); 
 			else $f->collapsed = Inputfield::collapsedYes; 
-		$f->label = 'Use Tags?'; 
-		$f->description = "If checked, the field will also contain an option for tags in addition to the description.";
+		$f->label = $this->_('Use Tags?'); 
+		$f->description = $this->_('If checked, the field will also contain an option for tags in addition to the description.'); // Use tags description
 		
 		$inputfields->append($f); 
 
 		$f = $this->modules->get('InputfieldSelect');
 		$f->attr('name', 'inputfieldClass');
-		$f->label = 'Inputfield Type';
-		$f->description = "The type of field that will be used to collect input.";
+		$f->label = $this->_('Inputfield Type');
+		$f->description = $this->_('The type of field that will be used to collect input.');
 		$f->required = true;
 		$baseClass = $this->defaultInputfieldClass;
 		
