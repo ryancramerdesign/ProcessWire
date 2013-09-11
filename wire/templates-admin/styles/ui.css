@@ -75,6 +75,25 @@ p span.ui-state-error {
 	display: none; 
 }
 
+
+/**
+ * jQuery UI autocomplete
+ *
+ */
+.ui-autocomplete {
+    box-shadow: 0 1px 3px 3px rgba(0,0,0,0.15);
+}
+.ui-autocomplete li {
+    border-bottom: 1px solid #eee; 
+}
+.ui-autocomplete li small {
+    opacity: 0.5; 
+}
+.ui-autocomplete .ui-widget-header a {
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
 /**
  * jQuery UI tooltips 
  *

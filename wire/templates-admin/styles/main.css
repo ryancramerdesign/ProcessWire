@@ -159,7 +159,7 @@ a {
 		margin: 0; 
 		position: absolute;
 		top: 165px; 
-                left: 0;
+        left: 0;
 		white-space: nowrap; 
 	}
 
@@ -172,7 +172,13 @@ a {
 		height: 17px; 
 		border: none;
 	}
-
+    #ProcessPageSearchStatus {
+        position: absolute;
+        top: 96px;
+        right: 10px; 
+        color: #999;
+    }
+    
 	/**
 	 * The main/primary button for a listing screen, appears in the masthead
 	 *

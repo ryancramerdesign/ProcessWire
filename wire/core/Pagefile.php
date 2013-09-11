@@ -88,12 +88,10 @@ class Pagefile extends WireData {
 	 */
 	protected function ___install($filename) {
 
-		$basename = $this->pagefiles->cleanBasename($filename, true); 
+		$basename = $this->pagefiles->cleanBasename($filename, true, false); 
 		$pathInfo = pathinfo($basename); 
 		$basename = basename($basename, ".$pathInfo[extension]"); 
 
-		// remove any extra dots in the filename
-		$basename = str_replace(".", "_", $basename); 
 		$basenameNoExt = $basename; 
 		$basename .= ".$pathInfo[extension]"; 
 

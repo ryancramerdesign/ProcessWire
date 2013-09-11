@@ -252,16 +252,18 @@ class Pagefiles extends WireArray {
 	 *
 	 * @param string $basename May also be a full path/filename, but it will still return a basename
 	 * @param bool $originalize If true, it will generate an original filename if $basename already exists
+	 * @param bool $allowDots If true, dots "." are allowed in the basename portion of the filename. 
 	 * @return string
 	 *
 	 */ 
-	public function cleanBasename($basename, $originalize = false) {
+	public function cleanBasename($basename, $originalize = false, $allowDots = true) {
 
 		$path = $this->path(); 
 		$dot = strrpos($basename, '.'); 
 		$ext = $dot ? substr($basename, $dot) : ''; 
 		$basename = strtolower(basename($basename, $ext)); 
-		$basename = preg_replace('/[^-_.a-zA-Z0-9]/', '_', $basename); 
+		$basename = preg_replace('/[^-_.a-zA-Z0-9]/', '_', $basename);
+		if(!$allowDots) $basename = str_replace('.', '_', $basename); 
 		$ext = preg_replace('/[^a-z0-9.]/', '_', strtolower($ext)); 
 		$basename .= $ext;
 		if($originalize) { 

@@ -52,10 +52,18 @@ class PageComparison {
 	 */
 	public function matches(Page $page, $s) {
 
-		if(is_string($s)) {
-			if(substr($s, 0, 1) == '/' && $page->path() == (rtrim($s, '/') . '/')) return true; 
-			if(!Selectors::stringHasOperator($s)) return false;
-			$selectors = new Selectors($s); 
+		if(is_string($s) || is_int($s)) {
+			if(ctype_digit("$s")) $s = (int) $s; 
+			if(is_string($s)) {
+				// exit early for simple path comparison
+				if(substr($s, 0, 1) == '/' && $page->path() == (rtrim($s, '/') . '/')) return true; 
+				if(!Selectors::stringHasOperator($s)) return false;
+				$selectors = new Selectors($s); 
+				
+			} else if(is_int($s)) {
+				// exit early for simple ID comparison
+				return $page->id == $s; 
+			}
 
 		} else if($s instanceof Selectors) {
 			$selectors = $s; 
@@ -67,11 +75,38 @@ class PageComparison {
 		$matches = false;
 
 		foreach($selectors as $selector) {
+			
 			$name = $selector->field;
 			if(in_array($name, array('limit', 'start', 'sort', 'include'))) continue; 
 			$matches = true; 
 			$value = $page->get($name); 
-			if(!$selector->matches("$value")) {
+			
+			if(is_object($value)) {
+				// if the current page value resolves to an object
+				if($value instanceof Page) {
+					// if it's a Page, get both the ID and path as allowed comparison values
+					$value = array($value->id, $value->path); 
+				} else if($value instanceof PageArray) {
+					// if it's a PageArray, then get the ID and path of all of them
+					$_value = array();
+					foreach($value as $v) {
+						$_value[] = $v->id; 
+						$_value[] = $v->path; 
+					}
+					$value = $_value;
+				} else {
+					// otherwise just get the string value of the object
+					$value = "$value";
+				}
+						
+			} else if(is_array($value)) {
+				// ok: seector matches will accept an array
+			} else {
+				// convert to a string value, whatever it may be
+				$value = "$value";
+			}
+			
+			if(!$selector->matches($value)) {
 				$matches = false; 
 				break;
 			}

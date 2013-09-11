@@ -132,7 +132,7 @@ abstract class Selector extends WireData {
 					if($v1 instanceof WireData) $v1 = $v1->get($field);
 						else if($v1 instanceof Wire) $v1 = $v1->$field; 
 				}
-				
+
 				foreach($values2 as $v2) {
 					if(empty($v2) && empty($v1)) {
 						// normalize empty values so that they will match if both considered "empty"
@@ -141,7 +141,7 @@ abstract class Selector extends WireData {
 					}
 					if($this->match($v2, $v1)) {
 						$numMatches++;
-					} 
+					}
 				}
 	
 				if($numMatches >= $numMatchesRequired) {
