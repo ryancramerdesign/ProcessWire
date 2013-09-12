@@ -37,8 +37,17 @@ var editorCursorPosition; // for IE8
 					href = $nodeParent.attr('href');
 				}
 
-				var page_id = $("#Inputfield_id").val(); 
-				var modalUri = config.urls.admin + 'page/link/?id=' + page_id + '&modal=1';
+				var page_id = $("#Inputfield_id").val();
+				
+				/* language support */
+				var lang_id = '';
+				var $textarea = $(ed.getElement()); // get textarea of this instance
+				if($textarea.closest('.LanguageSupport').length){
+					var $langwrapper = $textarea.closest('.LanguageSupport');
+					var lang_id = "&lang=" + $langwrapper.data("language");
+				}
+				
+				var modalUri = config.urls.admin + 'page/link/?id=' + page_id + '&modal=1' + lang_id;
 				var $iframe = $('<iframe id="pwlink_iframe" frameborder="0" src="' + modalUri + '"></iframe>'); 
 
 				$iframe.load(function() {

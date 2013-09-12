@@ -26,7 +26,7 @@ class ProcessPageEditLink extends Process {
 		return array(
 			'title' => 'Page Edit Link',          
 			'summary' => 'Provides a link capability as used by some Fieldtype modules (like TinyMCE)', 
-			'version' => 102, 
+			'version' => 101, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
@@ -34,13 +34,19 @@ class ProcessPageEditLink extends Process {
 
 	public function init() {
 		$this->modules->get("ProcessPageList"); 	
-		$id = (int) $this->input->get->id; 
+		$id = (int) $this->input->get->id;
+		
 		if($id) $this->page = $this->pages->get($id); 
 		if($this->page && $this->page->id && !$this->user->hasPermission("page-view", $this->page)) throw new WireException("You don't have access to this page"); 
-
 		//$target = $this->sanitizer->name($this->input->get->target); 
 		//$this->config->js('ProcessPageEditLinkTarget', $target); 
-
+		
+		$lang_id = $this->input->get->lang ? (int) $this->input->get->lang : 0; 
+		
+		$this->config->js('ProcessPageEditLink', array(
+			'selectStartLabel' => $this->_("Choose page"), // Clickable link to start a page selection
+			'langID' => "$lang_id"
+			)); 
 		parent::init();
 	}
 
@@ -55,10 +61,9 @@ class ProcessPageEditLink extends Process {
 		$field->attr('id+name', 'link_page_url'); 
 		$form->append($field); 
 
-		$field = $this->modules->get('InputfieldPageListSelect'); 
-		$field->attr('id+name', 'link_page_id');
+		$field = $this->modules->get("InputfieldInteger"); 
 		$field->label = $this->_("Link to Page");
-		$field->startLabel = $this->_('Choose page'); // Clickable link to start a page selection
+		$field->attr('id+name', 'link_page_id'); 
 		$field->collapsed = Inputfield::collapsedYes; 
 		$form->append($field); 
 
