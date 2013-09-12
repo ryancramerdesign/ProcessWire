@@ -1,9 +1,6 @@
 
 $(document).ready(function() {
 
-        var options = {
-		selectStartLabel: config.ProcessPageEditLink.selectStartLabel
-        };
 
 	var selectedPageData = {
 		id: 0,
@@ -29,15 +26,14 @@ $(document).ready(function() {
 		}); 
 	}
 
-        $("#link_page_id").ProcessPageList(options).hide()
-		.bind('pageSelected', function(event, data) {
-			if(data.url.length) {
-				selectedPageData = data; 
-				selectedPageData.url = config.urls.root + data.url.substring(1); 
-				$("#link_page_url").val(selectedPageData.url); 
-				if($fileSelect.is(":visible")) populateFileSelect(selectedPageData);
-			}
-		}); 
+        $("#link_page_id").bind('pageSelected', function(event, data) {
+		if(data.url.length) {
+			selectedPageData = data; 
+			selectedPageData.url = config.urls.root + data.url.substring(1); 
+			$("#link_page_url").val(selectedPageData.url); 
+			if($fileSelect.is(":visible")) populateFileSelect(selectedPageData);
+		}
+	}); 
 
 	$fileSelect.change(function() {
 		var $t = $(this);
