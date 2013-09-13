@@ -495,7 +495,7 @@ class Page extends WireData implements Countable {
 			// retrieve old value first in case it's not autojoined so that change comparisons and save's work 
 			if($load && $this->isLoaded) $this->get($key); 
 
-		} else if($this->outputFormatting && $field->type->formatValue($this, $field, $value) != $value) {
+		} else if($this->outputFormatting && $field->type->formatValue($this, $field, $value) != $value) { 
 			// The field has been loaded or dereferenced from the API, and this field changes when formatters are applied to it. 
 			// There is a good chance they are trying to set a formatted value, and we don't allow this situation because the 
 			// possibility of data corruption is high. We set the Page::statusCorrupted status so that Pages::save() can abort.
@@ -1084,11 +1084,18 @@ class Page extends WireData implements Countable {
 	 * To hook into a field-only save, use 'Pages::saveField'
 	 *
 	 * @param Field|string $field Optional field to save (name of field or Field object)
+	 * @param array $options See Pages::save for options. You may also specify $options as the first argument if no $field is needed.
 	 *
 	 */
-	public function save($field = null) {
-		if(!is_null($field)) return $this->wire('pages')->saveField($this, $field);
-		return $this->wire('pages')->save($this);
+	public function save($field = null, array $options = array()) {
+		if(is_array($field) && empty($options)) {
+			$options = $field;
+			$field = null;
+		}
+		if(!is_null($field)) {
+			return $this->wire('pages')->saveField($this, $field, $options);
+		}
+		return $this->wire('pages')->save($this, $options);
 	}
 
 	/**

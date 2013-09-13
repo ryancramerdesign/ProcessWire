@@ -576,6 +576,7 @@ class Pages extends Wire {
 	 * @param array $options Optional array with the following optional elements:
 	 * 		'uncacheAll' => boolean - Whether the memory cache should be cleared (default=true)
 	 * 		'resetTrackChanges' => boolean - Whether the page's change tracking should be reset (default=true)
+	 * 		'quiet' => boolean - When true, modified date and modified_users_id won't be updated (default=false)
 	 * @return bool True on success, false on failure
 	 * @throws WireException
 	 *
@@ -600,7 +601,7 @@ class Pages extends Wire {
 				else if($page->parentPrevious->isTrash() && !$page->parent->isTrash()) $this->restore($page, false); 
 		}
 
-		if(!$this->savePageQuery($page)) return false;
+		if(!$this->savePageQuery($page, $options)) return false;
 		return $this->savePageFinish($page, $isNew, $options);
 		
 	}
@@ -611,10 +612,11 @@ class Pages extends Wire {
 	 * triggers hook: saveReady
 	 * 
 	 * @param Page $page
+	 * @param array $options
 	 * @return PDOStatement
 	 * 
 	 */
-	protected function savePageQuery(Page $page) {
+	protected function savePageQuery(Page $page, array $options) {
 	
 		$isNew = $page->isNew();		
 		$database = $this->wire('database');
@@ -627,7 +629,6 @@ class Pages extends Wire {
 			'parent_id' => (int) $page->parent_id,
 			'templates_id' => (int) $page->template->id,
 			'name' => $page->name,
-			'modified_users_id' => (int) $userID,
 			'status' => (int) $page->status,
 			'sort' =>  ($page->sort > -1 ? (int) $page->sort : 0)
 			);
@@ -645,11 +646,23 @@ class Pages extends Wire {
 		if($page->template->allowChangeUser) {
 			$data['created_users_id'] = (int) $page->created_users_id;
 		}
-
-		$sql = 'modified=NOW()';
+		
+		if(empty($options['quiet'])) {
+			$sql = 'modified=NOW()';
+			$data['modified_users_id'] = (int) $userID; 
+		} else {
+			// quiet option, use existing values already populated to page, when present
+			$data['modified_users_id'] = (int) ($page->modified_users_id ? $page->modified_users_id : $userID); 
+			$data['created_users_id'] = (int) ($page->created_users_id ? $page->created_users_id : $userID); 
+			if($page->modified > 0) $data['modified'] = date('Y-m-d H:i:s', $page->modified); 
+				else if($isNew) $sql = 'modified=NOW()';
+			if(!$isNew && $page->created > 0) $data['created'] = date('Y-m-d H:i:s', $page->created); 
+		}
 		foreach($data as $column => $value) {
 			$sql .= ", $column=" . (is_null($value) ? "NULL" : ":$column");
 		}
+		
+		$sql = trim($sql, ", "); 
 
 		if($isNew) {
 			$query = $database->prepare("INSERT INTO pages SET $sql, created=NOW()");
@@ -662,14 +675,10 @@ class Pages extends Wire {
 			if(is_null($value)) continue; // already bound above
 			$query->bindValue(":$column", $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
 		}
+	
+		if(!$query->execute()) return false;
 		
-		try {
-			if(!$query->execute()) return false;
-		} catch(Exception $e) {
-			$this->error($e->getMessage(), Notice::log);
-		}
-		
-		if($isNew) $page->id = $database->lastInsertId();
+		if($isNew || !$page->id) $page->id = $database->lastInsertId();
 		
 		return true; 
 	}
@@ -785,11 +794,12 @@ class Pages extends Wire {
 	 *
 	 * @param Page $page
 	 * @param string|Field $field Field object or name (string)
+	 * @param array $options Specify option 'quiet' => true, to bypass updating of modified_users_id and modified time. 
 	 * @return bool True on success
 	 * @throws WireException
 	 *
 	 */
-	public function ___saveField(Page $page, $field) {
+	public function ___saveField(Page $page, $field, array $options = array()) {
 
 		$reason = '';
 		if($page->isNew()) throw new WireException("Can't save field from a new page - please save the entire page first"); 
@@ -804,13 +814,15 @@ class Pages extends Wire {
 
 		if($field->type->savePageField($page, $field)) { 
 			$page->untrackChange($field->name); 
-			$user = $this->wire('user'); 
-			$userID = (int) ($user ? $user->id : $this->config->superUserPageID); 
-			$database = $this->wire('database');
-			$query = $database->prepare("UPDATE pages SET modified_users_id=:userID, modified=NOW() WHERE id=:pageID"); 
-			$query->bindValue(':userID', $userID, PDO::PARAM_INT);
-			$query->bindValue(':pageID', $page->id, PDO::PARAM_INT); 
-			$query->execute();
+			if(empty($options['quiet'])) {
+				$user = $this->wire('user');
+				$userID = (int) ($user ? $user->id : $this->config->superUserPageID);
+				$database = $this->wire('database');
+				$query = $database->prepare("UPDATE pages SET modified_users_id=:userID, modified=NOW() WHERE id=:pageID"); 
+				$query->bindValue(':userID', $userID, PDO::PARAM_INT);
+				$query->bindValue(':pageID', $page->id, PDO::PARAM_INT);
+				$query->execute();
+			}
 			$return = true; 
 		} else {
 			$return = false; 
