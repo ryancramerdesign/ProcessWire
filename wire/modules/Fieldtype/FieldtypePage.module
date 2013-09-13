@@ -297,6 +297,12 @@ class FieldtypePage extends FieldtypeMulti {
 		} else if(strlen($value) && $value[0] == '/') {
 			// path to page
 			$result = $this->pages->get($value); 
+			
+		} else if($field->parent_id) {
+			// set by title
+			$result = $this->wire('pages')->get("parent_id=$field->parent_id, title=" . $this->wire('sanitizer')->selectorValue($value));
+			// set by name
+			if(!$result->id) $result = $this->wire('pages')->get("parent_id=$field->parent_id, name=" . $this->wire('sanitizer')->pageName($value)); 
 		}
 
 		return $result; 
