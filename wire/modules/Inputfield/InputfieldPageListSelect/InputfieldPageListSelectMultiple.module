@@ -14,7 +14,7 @@
  *
  */
 
-class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldHasArrayValue {
+class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldHasArrayValue, InputfieldPageListSelection {
 
 	public static function getModuleInfo() {
 		return array(

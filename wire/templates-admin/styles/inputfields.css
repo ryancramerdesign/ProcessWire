@@ -53,8 +53,22 @@
 .Inputfields > .Inputfield > .ui-widget-content {
 	/* the Inputfield's content, padded from the borders */
 	padding: 1em; 
-	overflow-y: auto; 
-	overflow-x: hidden; 
+}
+
+.Inputfields > .Inputfield > .ui-widget-content:before,
+.Inputfields > .Inputfield > .ui-widget-content:after {
+    /* @soma clearfix */
+    content: " ";
+    display: table;
+}
+.Inputfields > .Inputfield > .ui-widget-content:after {
+    /* @soma clearfix  */
+    clear: both;
+}
+
+.Inputfields > .Inputfield > .ui-widget-content {
+    /* the Inputfield's content, padded from the borders */
+    padding: 1em;
 }
 
 .Inputfields .ui-widget-header {

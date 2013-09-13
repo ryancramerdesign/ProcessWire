@@ -4,7 +4,7 @@
  * A Page List Selector for selecting a single page
  *
  */
-class InputfieldPageListSelect extends Inputfield {
+class InputfieldPageListSelect extends Inputfield implements InputfieldPageListSelection {
 
 	public static function getModuleInfo() {
 		return array(

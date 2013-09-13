@@ -39,15 +39,21 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	protected $configMode = false;
 
 	/**
+	 * True when processInput is currently processing
+	 * 
+	 */
+	protected $processInputMode = false;
+
+	/**
 	 * PageArray of pages that were added in the request
 	 *
 	 */
 	protected $pagesAdded; 
-
+	
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page',
-			'version' => 103,
+			'version' => 104,
 			'summary' => 'Select one or more pages',
 			'permanent' => true, 
 			);
@@ -65,7 +71,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$this->attr('value', new PageArray()); 
 		parent::init();
 	}
-
+	
 	public function setAttribute($key, $value) {
 
 		if($key == 'value') { 
@@ -119,7 +125,11 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$valid = true;
 		
 		if($field->findPagesSelector) { 
-			if(!$page->matches($field->findPagesSelector)) $valid = false;
+			$selector = $field->findPagesSelector; 
+			if($editPage) $selector = self::getFindPagesSelector($editPage, $selector); 
+			if(!$page->matches($selector)) {
+				$valid = false;
+			}
 		} 
 		
 		if($field->findPagesCode) {
@@ -127,7 +137,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		} 
 
 		if($field->parent_id && $field->parent_id != $page->parent_id) {
-			if(in_array($field->inputfield, array('InputfieldPageListSelect', 'InputfieldPageListSelectMultiple'))) {
+			if(is_subclass_of($field->inputfield, 'InputfieldPageListSelection')) {
 				// parent_id represents a root parent
 				$rootParent = wire('pages')->get($field->parent_id); 
 				if(!$page->parents()->has($rootParent)) $valid = false;
@@ -176,7 +186,9 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		} else if($this->findPagesSelector) { 
 			// a find() selector
-			$children = $this->pages->find($this->findPagesSelector); 
+			$instance = $this->processInputMode ? $this : null;
+			$selector = self::getFindPagesSelector($page, $this->findPagesSelector, $instance);
+			$children = $this->pages->find($selector); 
 
 		} else if($this->findPagesCode) {
 			// php statement that returns a PageArray
@@ -196,15 +208,57 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		return $children; 
 	} 
 
+	/**
+	 * Populate any variables in findPagesSelector
+	 *
+	 */
+	protected static function getFindPagesSelector(Page $page, $selector, $inputfield = null) {
+	
+		// if an $inputfield is passed in, then we want to retrieve dependent values directly
+		// from the form, rather than from the $page
+		if($inputfield) {
+			// locate the $form
+			$n = 0;
+			$form = $inputfield;
+			do {
+				$form = $form->getParent();
+				if(++$n > 10) break;
+			} while($form && $form->className() != 'InputfieldForm'); 
+		} else $form = null;
+
+		// find variables identified by: page.field or page.field.subfield
+		if(strpos($selector, '=page.') !== false) {
+			preg_match_all('/=page\.([_.a-zA-Z0-9]+)/', $selector, $matches); 
+			foreach($matches[0] as $key => $tag) {
+				$field = $matches[1][$key];	
+				$subfield = '';
+				if(strpos($field, '.')) list($field, $subfield) = explode('.', $field); 
+				$value = null;
+				if($form && (!$subfield || $subfield == 'id')) {
+					// attempt to get value from the form, to account for ajax changes that would not yet be reflected on the page
+					$in = $form->get($field); 
+					if($in) $value = $in->attr('value');
+				}
+				if(is_null($value)) $value = $page->get($field); 
+				if(is_object($value) && $subfield) $value = $value->$subfield;
+				if(is_array($value)) $value = implode('|', $value); 
+				$selector = str_replace($tag, "=$value", $selector); 
+			}
+		}
+
+		return $selector; 
+	}
+
 	public function getInputfield() {
 
 		if($this->inputfieldWidget) return $this->inputfieldWidget; 
 
-		$inputfield = $this->fuel('modules')->get($this->inputfield);
+		$inputfield = $this->wire('modules')->get($this->inputfield);
 		if(!$inputfield) return null;
+		if($this->derefAsPage) $inputfield->set('maxSelectedItems', 1); 
 
 		$page = $this->page; 
-		$process = $this->fuel('process'); 
+		$process = $this->wire('process'); 
 		if($process && $process->className() == 'ProcessPageEdit') $page = $process->getPage();
 
 		$inputfield->attr('name', $this->attr('name')); 
@@ -252,6 +306,12 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$out = 	"\n<div class='" . $inputfield->className() . "'>";
 		$out .= $inputfield->render();
 		$out .= $this->renderAddable();
+		
+		if($this->findPagesSelector) {
+			$selector = $this->wire('sanitizer')->entities($this->findPagesSelector); 
+			$out .= "<input type='hidden' class='findPagesSelector' data-label='$this->labelFieldName' value='$selector' />";
+		}
+		
 		$out .= "\n</div>";
 
 		return $out; 
@@ -331,16 +391,16 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	
 	public function ___processInput(WireInputData $input) {
 
+		$this->processInputMode = true; 
 		$inputfield = $this->getInputfield();
 		if(!$inputfield) return $this;
-
 		$inputfield->processInput($input); 
 
 		$value = $this->attr('value'); 
 		$existingValue = $value ? clone $value : '';
 		$newValue = null;
-		$value = $inputfield->value; 
-
+		$value = $inputfield->value;
+		
 		if(is_array($value)) {
 			$newValue = new PageArray(); 
 			foreach($value as $v) {
@@ -380,7 +440,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if("$newValue" != "$existingValue") {
 			$this->trackChange('value'); 
 		} 
-		
+		$this->processInputMode = false; 	
 		return $this; 
 	}
 
@@ -558,12 +618,14 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field->label = $this->_('Input field type');
 		$field->description = $this->_('The type of field that will be used to select a page. Select one that is consistent with the single page vs. multi-page needs you chose in the "details" tab of this field.'); // Description for Inputfield field type
 		$field->required = true; 
-		$field->notes = '* ' . $this->_('Types indicated with an asterisk are for multiple page selection.');
+		$field->notes = '* ' . $this->_('Types indicated with an asterisk are for multiple page selection.') . "\n" . 
+				'+ ' . $this->_('Types indicated with a plus assume a "parent" to be the root of a tree, rather than an immediate parent.'); 
 
 		foreach($this->inputfieldClasses as $class) {
 			$module = $this->modules->get($class); 
 			$label = str_replace("Inputfield", '', $class);
 			if($module instanceof InputfieldHasArrayValue) $label .= "*"; 
+			if(is_subclass_of($module, 'InputfieldPageListSelection')) $label .= "+";
 			$field->addOption($class, $label); 
 		}
 
