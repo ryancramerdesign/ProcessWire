@@ -134,7 +134,8 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$this->addHookBefore('LanguageSupportFields::languageDeleted', $this, 'hookLanguageDeleted'); 
 		$this->addHookBefore('LanguageSupportFields::languageAdded', $this, 'hookLanguageAdded'); 
 
-		wire('pages')->addHookAfter('saveReady', $this, 'hookPageSaveReady'); 
+		wire('pages')->addHookAfter('saveReady', $this, 'hookPageSaveReady');
+		wire('pages')->addHookAfter('saved', $this, 'hookPageSaved'); 
 		
 		$language = $this->wire('user')->language; 
 		$prefix = $this->get("pageNumUrlPrefix$language"); 
@@ -236,6 +237,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		// set the language	
 		if(!$setLanguage) $setLanguage = $languages->get('default'); 
 		$user->language = $setLanguage; 
+		$this->setLanguage = $setLanguage; 
 	
 		// if $page is the 404 page, exit out now
 		if($page->id == $config->http404PageID) return '';
@@ -641,6 +643,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$page = $event->arguments[0];
 		$extraData = $event->return; 
 		if(!is_array($extraData)) $extraData = array();
+		$alwaysActiveTypes = array('User', 'Role', 'Permission', 'Language'); 
 
 		foreach(wire('languages') as $language) {
 			if($language->isDefault()) continue; 
@@ -657,14 +660,30 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			if(method_exists($page, 'getForPage')) {
 				// repeater page, pull status from 'for' page
 				$value = (int) $page->getForPage()->get($name); 
+				
+			} else if(in_array($page->className(), $alwaysActiveTypes)) {
+				// User, Role, Permission or Language: assume active status
+				$value = Page::statusOn;
+				
 			} else {
 				// regular page
 				$value = (int) $page->get($name);
 			}
 			$extraData[$name] = $value; 
 		}
-
+	
 		$event->return = $extraData; 
+	}
+
+	/**
+	 * Hook called immediately after a page is saved
+	 * 
+	 * Restore saved language setting when a User is saved
+	 *
+	 */
+	public function hookPageSaved(HookEvent $event) {
+		// The setLanguage may get lost upon some page save events, so this restores that
+		$this->user->language = $this->setLanguage;
 	}
 
 	/**
