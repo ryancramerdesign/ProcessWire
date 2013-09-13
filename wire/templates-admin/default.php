@@ -31,6 +31,10 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
  * __("Modules"); 
  * __("Access"); 
  * __("Admin"); 
+ * __("Languages");
+ * __("Users");
+ * __("Roles");
+ * __("Permissions");
  * 
  */
 
