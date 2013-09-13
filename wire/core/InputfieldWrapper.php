@@ -303,7 +303,7 @@ class InputfieldWrapper extends Inputfield {
 
 			if($collapsed) {
 				$isEmpty = $inputfield->isEmpty();
-				if($inputfield instanceof InputfieldWrapper || 
+				if(($isEmpty && $inputfield instanceof InputfieldWrapper) || 
 					$collapsed === Inputfield::collapsedYes ||
 					$collapsed === Inputfield::collapsedLocked ||
 					$collapsed === true || 
@@ -426,6 +426,17 @@ class InputfieldWrapper extends Inputfield {
 		}
 		
 		return true;
+	}
+
+	public function isEmpty() {
+		$empty = true; 
+		foreach($this->children as $child) {
+			if(!$child->isEmpty()) {
+				$empty = false;
+				break;
+			}
+		}
+		return $empty;
 	}
 
 	/**
