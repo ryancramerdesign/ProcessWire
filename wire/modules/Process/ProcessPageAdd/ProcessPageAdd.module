@@ -64,21 +64,21 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			}
 		}
 
-		if(!$this->parent_id) throw new Wire404Exception("Invalid Parent ID"); 
+		if(!$this->parent_id) throw new Wire404Exception($this->_("Invalid Parent ID")); 
 
 		$this->parent = $this->pages->get($this->parent_id); 
 		if(!$this->parent) throw new Wire404Exception("Unable to load page {$this->id}"); 
 
 		if($this->parent->template->noChildren) {
-			throw new WireException("The parent template has specified that no children may be added here"); 
+			throw new WireException($this->_("The parent template has specified that no children may be added here")); 
 
 		} else if(!$this->parent->addable()) {
-			throw new WireException("You don't have access to add pages here"); 
+			throw new WireException($this->_("You don't have access to add pages here")); 
 
 		} else if(count($this->parent->template->childTemplates) == 1) {
 			$childTemplates = $this->parent->template->childTemplates;
 			$this->template = $this->templates->get(reset($childTemplates)); 	
-			if(!$this->isAllowedTemplate($this->template)) throw new WireException("You don't have access to the template required to add pages here"); 
+			if(!$this->isAllowedTemplate($this->template)) throw new WireException($this->_("You don't have access to the template required to add pages here")); 
 		}
 
 		$this->form = $this->buildForm();
@@ -280,7 +280,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			$template = $this->templates->get($templatesId); 
 		}
 
-		if(!$this->isAllowedTemplate($template)) throw new WireException("You don't have access to add pages with template '$template'"); 
+		if(!$this->isAllowedTemplate($template)) throw new WireException($this->_("You don't have access to add pages with template '$template'")); 
 	
 		$this->page->template = $template;	
 		$this->page->parent = $this->parent; 
