@@ -138,7 +138,7 @@ class ProcessLanguageTranslator extends Process {
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->attr('method', 'post'); 
 		$form->attr('action', "./?language_id={$this->language->id}"); 
-		$form->description = sprintf("Add new file to translate to %s", $this->language->title);
+		$form->description = sprintf(__("Add new file to translate to", __FILE__) . " " . "%s", $this->language->title);
 	
 		$field = $this->modules->get("InputfieldText"); 	
 		$field->attr('name', 'filename'); 		
@@ -317,8 +317,8 @@ class ProcessLanguageTranslator extends Process {
 			$numRemoved++;
 		}
 
-		if($numChanges) $this->message("$numChanges translations changed"); 
-		if($numRemoved) $this->message("$numRemoved abandoned translations removed"); 
+		if($numChanges) $this->message(("$numChanges") . " " . __("translations changed", __FILE__)); 
+		if($numRemoved) $this->message(("$numRemoved") . " " . __("abandoned translations removed", __FILE__)); 
 
 		$this->translator->saveTextdomain($textdomain); 
 		$this->message("Saved $textdomain"); 
