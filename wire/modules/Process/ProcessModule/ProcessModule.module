@@ -53,7 +53,8 @@ class ProcessModule extends Process {
 	
 	public function __construct() {
 		$this->labels['download'] = $this->_('Download'); 
-		$this->labels['download_install'] = $this->input->get->update ? $this->_('Download and Update') : $this->_('Download and Install');
+		$this->labels['download_install'] = $this->input->get->update ? $this->_('Download and Update') : 
+		$this->_('Download and Install');
 		$this->labels['check_new'] = $this->_('Check for New Modules'); 
 	}
 
