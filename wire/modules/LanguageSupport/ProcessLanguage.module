@@ -104,8 +104,8 @@ class ProcessLanguage extends ProcessPageType {
 
 		if($numAbandoned || $numPending) {
 			$message .= " <span class='ui-state-error-text'>(";
-			if($numAbandoned) $message .= "$numAbandoned abandoned";
-			if($numPending) $message .= ($numAbandoned ? ', ' : '') . "$numPending blank";
+			if($numAbandoned) $message .= "$numAbandoned " . $this->_("abandoned");
+			if($numPending) $message .= ($numAbandoned ? ', ' : '') . "$numPending " . $this->_("blank");
 			$message .= ")</span>";
 		}
 
