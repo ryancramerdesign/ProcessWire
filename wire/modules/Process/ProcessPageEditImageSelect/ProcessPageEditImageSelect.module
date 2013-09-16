@@ -29,8 +29,8 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => __('Page Edit Image', __FILE__),          
-			'summary' => __('Provides an image select capability as used by some Fieldtype modules (like TinyMCE)', __FILE__), 
+			'title' => __('Page Edit Image', __FILE__), // getModuleInfo title       
+			'summary' => __('Provides an image select capability as used by some Fieldtype modules (like TinyMCE)', __FILE__), // getModuleInfo summary
 			'version' => 103, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
@@ -318,8 +318,8 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$f->attr('name', 'noSizeAttrs'); 
 		$f->attr('value', 1);
 		if(!empty($data['noSizeAttrs'])) $f->attr('checked', 'checked');
-		$f->label = __('Skip width and height attributes on image tags?', __FILE__); // noSizeAttr label
-		$f->description = __('By default, this module will include width and height attributes in the <img> tag. If you are using responsive images, you might want to disable this behavior. Check the box to disable width and height attributes.', __FILE__); // noSizeAttr description
+		$f->label = __('Skip width and height attributes on image tags?'); // noSizeAttr label
+		$f->description = __('By default, this module will include width and height attributes in the <img> tag. If you are using responsive images, you might want to disable this behavior. Check the box to disable width and height attributes.'); // noSizeAttr description
 		$inputfields->add($f);
 
 		$f = wire('modules')->get('InputfieldText'); 
