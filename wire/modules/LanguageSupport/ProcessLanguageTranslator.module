@@ -18,8 +18,8 @@ class ProcessLanguageTranslator extends Process {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => __('Language Translator', __FILE__), 
-			'summary' => __('Provides language translation capabilities for ProcessWire core and modules.', __FILE__), 
+			'title' => __('Language Translator', __FILE__), // getModuleInfo title
+			'summary' => __('Provides language translation capabilities for ProcessWire core and modules.', __FILE__), // getModuleInfo summary
 			'version' => 100, 
 			'author' => 'Ryan Cramer',
 			'requires' => 'LanguageSupport',
