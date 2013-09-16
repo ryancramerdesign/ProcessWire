@@ -8,9 +8,9 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => __('Page Name', __FILE__),
+			'title' => __('Page Name', __FILE__), // getModuleInfo title
 			'version' => 104,
-			'summary' => __('Text input validated as a ProcessWire Page name field', __FILE__),
+			'summary' => __('Text input validated as a ProcessWire Page name field', __FILE__), // getModuleInfo summary
 			'permanent' => true, 
 			);
 	}
@@ -203,13 +203,13 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		$field->attr('name', $name);
 		$field->attr('value', $replacements);
 		$field->attr('rows', 15); 
-		$field->label = __("Character replacements", __FILE__);
+		$field->label = __("Character replacements");
 		$field->description =
-			__("Enter the replacements that will occur when a user is entering characters into a page name field. ", __FILE__) . 
-			__("Enter one replacement per line in key=value format. ", __FILE__) . 
-			__("Meaning, on each new line, enter the character(s) you want to replace followed by an equals sign '=' and the ascii character(s) you want to replace with.", __FILE__);
+			__("Enter the replacements that will occur when a user is entering characters into a page name field. ") . 
+			__("Enter one replacement per line in key=value format. ") . 
+			__("Meaning, on each new line, enter the character(s) you want to replace followed by an equals sign '=' and the ascii character(s) you want to replace with.");
 
-		$field->notes = __("The replacement value for each must be one or more of: a-z, 0-9, dash, underscore or period.", __FILE__);
+		$field->notes = __("The replacement value for each must be one or more of: a-z, 0-9, dash, underscore or period.");
 		$fields->append($field);
 
 		return $fields;
