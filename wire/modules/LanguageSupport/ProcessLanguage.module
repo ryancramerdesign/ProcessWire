@@ -19,8 +19,8 @@ class ProcessLanguage extends ProcessPageType {
 
         static public function getModuleInfo() {
                 return array(
-                        'title' =>  __('Languages', __FILE__),
-                        'summary' => __('Manage system languages', __FILE__),
+                        'title' =>  __('Languages', __FILE__), // getModuleInfo title
+                        'summary' => __('Manage system languages', __FILE__), // getModuleInfo summary
                         'version' => 100,
 			'author' => 'Ryan Cramer',
 			'requires' => 'LanguageSupport',
@@ -110,7 +110,7 @@ class ProcessLanguage extends ProcessPageType {
 		}
 
 		$lastMod = date($this->config->dateFormat, filemtime($pagefile->filename)); 
-		$edit = __('Edit', __FILE__);
+		$edit = __('Edit');
 
 		$out = 	"<div class='InputfieldFileLanguageInfo'>" . 
 			"<ul class='actions'>" . 
@@ -135,7 +135,7 @@ class ProcessLanguage extends ProcessPageType {
 
 		$translationUrl = $this->translationUrl();
 		$page = $event->arguments[0]->get('page');
-		$translate = __('Translate New File', __FILE__);
+		$translate = __('Translate New File');
 
 		$out =	"<ul class='actions LanguageFilesActions'>" . 
 			"<li><a href='{$translationUrl}add/?language_id={$page->id}'>$translate</a></li>" . 
