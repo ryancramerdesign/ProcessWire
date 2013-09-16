@@ -24,8 +24,8 @@ class ProcessPageEditLink extends Process {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => __('Page Edit Link', __FILE__),          
-			'summary' => __('Provides a link capability as used by some Fieldtype modules (like TinyMCE)', __FILE__), 
+			'title' => __('Page Edit Link', __FILE__), // getModuleInfo title         
+			'summary' => __('Provides a link capability as used by some Fieldtype modules (like TinyMCE)', __FILE__), // getModuleInfo summary
 			'version' => 102, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
