@@ -33,8 +33,8 @@ class ProcessPageList extends Process implements ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => __('Page List', __FILE__),          
-			'summary' => __('List pages in a hierarchal tree structure', __FILE__), 
+			'title' => __('Page List', __FILE__), // getModuleInfo title         
+			'summary' => __('List pages in a hierarchal tree structure', __FILE__), // getModuleInfo summary
 			'version' => 102, 
 			'permanent' => true, 
 			'permission' => 'page-edit'
@@ -169,18 +169,18 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$field = $modules->get("InputfieldText"); 
 		$field->attr('name', 'pageLabelField'); 
 		$field->attr('value', !empty($data['pageLabelField']) ? $data['pageLabelField'] : 'title'); 
-		$field->label = "Name of page field to display"; 
+		$field->label = __("Name of page field to display"); 
 		$field->description = 
-			__("Every page in a PageList is identified by a label, typically a title or headline field. You may specify which field it should use here. ", __FILE__) . 
-			__("To specify multiple fields, separate each field name with a space. If the field resolves to an object (like another page), then specify the property with a dot, i.e. anotherpage.title. ", __FILE__) . 
-			__("Note that if the field you specify resolves to a blank value then ProcessWire will use the page's 'name' field. ", __FILE__);
-		$field->notes = __("You may optionally override this setting on a per-template basis in each template's 'advanced' settings.", __FILE__);
+			__("Every page in a PageList is identified by a label, typically a title or headline field. You may specify which field it should use here. ") . 
+			__("To specify multiple fields, separate each field name with a space. If the field resolves to an object (like another page), then specify the property with a dot, i.e. anotherpage.title. ") . 
+			__("Note that if the field you specify resolves to a blank value then ProcessWire will use the page's 'name' field. ");
+		$field->notes = __("You may optionally override this setting on a per-template basis in each template's 'advanced' settings.",);
 		$fields->append($field); 
 
 		$field = $modules->get("InputfieldInteger"); 
 		$field->attr('name', 'limit'); 
 		$field->attr('value', !empty($data['limit']) ? (int) $data['limit'] : self::defaultLimit); 
-		$field->label = __("Number of pages to display before pagination", __FILE__);
+		$field->label = __("Number of pages to display before pagination");
 		$fields->append($field); 
 
 		return $fields; 
