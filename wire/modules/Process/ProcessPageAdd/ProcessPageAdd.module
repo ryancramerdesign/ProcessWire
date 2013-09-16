@@ -28,8 +28,8 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => __('Page Add', __FILE__),          
-			'summary' => __('Add a new page', __FILE__), 
+			'title' => __('Page Add', __FILE__), // getModuleInfo title         
+			'summary' => __('Add a new page', __FILE__), // getModuleInfo summary
 			'version' => 101, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
