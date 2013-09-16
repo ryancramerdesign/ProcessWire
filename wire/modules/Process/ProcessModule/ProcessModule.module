@@ -492,8 +492,8 @@ class ProcessModule extends Process {
 		$this->session->remove('ProcessModuleDownloadURL');
 		$this->session->remove('ProcessModuleClassName'); 
 		
-		if(!$url) throw new WireException("No download URL specified"); 
-		if(!$class_name) throw new WireException("No class name specified");
+		if(!$url) throw new WireException($this->_("No download URL specified")); 
+		if(!$class_name) throw new WireException($this->_("No class name specified"));
 
 		$destination_directory = $this->config->paths->siteModules . $class_name;
 		if(is_dir($destination_directory) && !is_writable($destination_directory)) {	
