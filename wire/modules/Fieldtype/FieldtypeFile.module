@@ -23,9 +23,9 @@ class FieldtypeFile extends FieldtypeMulti {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => __('Files', __FILE__),
+			'title' => __('Files', __FILE__), // getModuleInfo title
 			'version' => 103,
-			'summary' => __('Field that stores one or more files', __FILE__),
+			'summary' => __('Field that stores one or more files', __FILE__), // getModuleInfo summary
 			'permanent' => true, 
 			);
 	}
