@@ -19,13 +19,14 @@ class ProcessLanguage extends ProcessPageType {
 
         static public function getModuleInfo() {
                 return array(
-                        'title' => 'Languages',
+                        'title' =>  __('Languages', __FILE__), // getModuleInfo title
+                        'summary' => __('Manage system languages', __FILE__), // getModuleInfo summary
                         'version' => 100,
-                        'summary' => 'Manage system languages',
 			'author' => 'Ryan Cramer',
 			'requires' => 'LanguageSupport',
                         );
         }
+
 
 	/**
 	 * The URL to the language-translator page (typically admin/setup/language-translator/)
@@ -103,16 +104,17 @@ class ProcessLanguage extends ProcessPageType {
 
 		if($numAbandoned || $numPending) {
 			$message .= " <span class='ui-state-error-text'>(";
-			if($numAbandoned) $message .= "$numAbandoned abandoned";
-			if($numPending) $message .= ($numAbandoned ? ', ' : '') . "$numPending blank";
+			if($numAbandoned) $message .= "$numAbandoned " . $this->_("abandoned");
+			if($numPending) $message .= ($numAbandoned ? ', ' : '') . "$numPending " . $this->_("blank");
 			$message .= ")</span>";
 		}
 
 		$lastMod = date($this->config->dateFormat, filemtime($pagefile->filename)); 
+		$edit = __('Edit');
 
 		$out = 	"<div class='InputfieldFileLanguageInfo'>" . 
 			"<ul class='actions'>" . 
-			"<li><a href='{$translationUrl}edit/?language_id={$page->id}&amp;textdomain=$textdomain'>Edit</a></li>" . 
+			"<li><a href='{$translationUrl}edit/?language_id={$page->id}&amp;textdomain=$textdomain'>$edit</a></li>" . 
 			"</ul>" . 
 			"<p><span class='InputfieldFileLanguageFilename'>/$file &#8212;</span> <span class='notes'>$message</span></p>" . 
 			"</div>";
@@ -132,11 +134,11 @@ class ProcessLanguage extends ProcessPageType {
 	public function renderInputfieldFileUpload(HookEvent $event) {
 
 		$translationUrl = $this->translationUrl();
-		$page = $event->arguments[0]->get('page'); 
-
+		$page = $event->arguments[0]->get('page');
+		$translate = __('Translate New File');
 
 		$out =	"<ul class='actions LanguageFilesActions'>" . 
-			"<li><a href='{$translationUrl}add/?language_id={$page->id}'>Translate New File</a></li>" . 
+			"<li><a href='{$translationUrl}add/?language_id={$page->id}'>$translate</a></li>" . 
 			"</ul>";
 
 		$event->return .= $out;

@@ -21,8 +21,8 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 	static public function getModuleInfo() {
 		return array(
-			'title' => 'Page Search',
-			'summary' => 'Provides a page search engine for admin use.',
+			'title' => __('Page Search', __FILE__), // getModuleInfo title
+			'summary' => __('Provides a page search engine for admin use.', __FILE__), // getModuleInfo summary
 			'version' => 102,
 			'permanent' => true,
 			'permission' => 'page-edit',
@@ -824,8 +824,8 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		if(!isset($data['searchFields'])) $data['searchFields'] = 'title body';
 		if(is_array($data['searchFields'])) $data['searchFields'] = implode(' ', $data['searchFields']);
 		$inputfield->attr('value', $data['searchFields']);
-		$inputfield->label = "Default fields to search";
-		$description = "Enter the names for one or more text-based fields that you want to search, separating each by a space. ";
+		$inputfield->label = __("Default fields to search");
+		$description = __("Enter the names for one or more text-based fields that you want to search, separating each by a space. ");
 		$inputfield->description = $description; 
 		$inputfields->append($inputfield);
 		
@@ -834,22 +834,22 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		if(!isset($data['searchFields2'])) $data['searchFields2'] = 'title';
 		if(is_array($data['searchFields2'])) $data['searchFields2'] = implode(' ', $data['searchFields2']);
 		$inputfield->attr('value', $data['searchFields2']);
-		$inputfield->label = "Field(s) to search in admin search (ajax) mode";
+		$inputfield->label = __("Field(s) to search in admin search (ajax) mode");
 		$inputfield->description = $description;
-		$inputfield->notes = "We recommend limiting this to 1 or 2 fields at the most since results populate a live autocomplete field. Typically you would just search the 'title'.";
+		$inputfield->notes = __("We recommend limiting this to 1 or 2 fields at the most since results populate a live autocomplete field. Typically you would just search the 'title'.");
 		$inputfields->append($inputfield);
 
 		$inputfield = Wire::getFuel('modules')->get("InputfieldText");
 		$inputfield->attr('name', 'displayField');
 		$inputfield->attr('value', isset($data['displayField']) ? $data['displayField'] : 'name');
-		$inputfield->label = "Default field name(s) to display in search results";
-		$inputfield->description = "If specifying more than one field, separate each with a space.";
+		$inputfield->label = __("Default field name(s) to display in search results");
+		$inputfield->description = __("If specifying more than one field, separate each with a space.");
 		$inputfields->append($inputfield);
 
 		$inputfield = Wire::getFuel('modules')->get("InputfieldSelect");
 		$inputfield->attr('name', 'operator');
 		$inputfield->attr('value', isset($data['operator']) ? $data['operator'] : self::defaultOperator);
-		$inputfield->label = "Default search operator";
+		$inputfield->label = __("Default search operator");
 		foreach(self::getOperators() as $operator => $label) {
 			$inputfield->addOption($operator, "$operator $label"); 
 		}

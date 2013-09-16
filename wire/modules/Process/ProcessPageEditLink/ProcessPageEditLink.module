@@ -24,8 +24,8 @@ class ProcessPageEditLink extends Process {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Page Edit Link',          
-			'summary' => 'Provides a link capability as used by some Fieldtype modules (like TinyMCE)', 
+			'title' => __('Page Edit Link', __FILE__), // getModuleInfo title         
+			'summary' => __('Provides a link capability as used by some Fieldtype modules (like TinyMCE)', __FILE__), // getModuleInfo summary
 			'version' => 102, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
@@ -36,7 +36,7 @@ class ProcessPageEditLink extends Process {
 		$this->modules->get("ProcessPageList"); 	
 		$id = (int) $this->input->get->id; 
 		if($id) $this->page = $this->pages->get($id); 
-		if($this->page && $this->page->id && !$this->user->hasPermission("page-view", $this->page)) throw new WireException("You don't have access to this page"); 
+		if($this->page && $this->page->id && !$this->user->hasPermission("page-view", $this->page)) throw new WireException($this->_("You don't have access to this page")); 
 
 		//$target = $this->sanitizer->name($this->input->get->target); 
 		//$this->config->js('ProcessPageEditLinkTarget', $target); 
@@ -76,7 +76,7 @@ class ProcessPageEditLink extends Process {
 	}
 
 	public function ___executeFiles() {
-		if(!$this->page->id) throw new WireException("A page id must be specified"); 	
+		if(!$this->page->id) throw new WireException($this->_("A page id must be specified")); 	
 		$files = $this->getFiles();	
 		return WireEncodeJSON($files);
 	}

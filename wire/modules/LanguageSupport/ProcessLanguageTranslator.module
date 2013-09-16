@@ -18,8 +18,8 @@ class ProcessLanguageTranslator extends Process {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Language Translator', 
-			'summary' => 'Provides language translation capabilities for ProcessWire core and modules.', 
+			'title' => __('Language Translator', __FILE__), // getModuleInfo title
+			'summary' => __('Provides language translation capabilities for ProcessWire core and modules.', __FILE__), // getModuleInfo summary
 			'version' => 100, 
 			'author' => 'Ryan Cramer',
 			'requires' => 'LanguageSupport',
@@ -74,7 +74,7 @@ class ProcessLanguageTranslator extends Process {
 		if(!$languages) return;
 
 		if(is_int($language)) $language = $languages->get($language); 
-		if(!$language instanceof Language || !$language->id) throw new WireException("Unknown/invalid language"); 
+		if(!$language instanceof Language || !$language->id) throw new WireException(__("Unknown/invalid language", __FILE__));  
 		$this->language = $language; 	
 		$this->session->translateLanguageID = $language->id; 
 		$this->translator = new LanguageTranslator($this->language);
@@ -115,11 +115,11 @@ class ProcessLanguageTranslator extends Process {
 				$this->translator->unloadTextdomain($textdomain); 
 			}
 		} else {
-			$table->headerRow(array('file')); 
-			$table->row(array("No files in this language")); 
+			$table->headerRow(array(__('file', __FILE__))); 
+			$table->row(array(__("No files in this language", __FILE__)));
 		}
 
-		$table->action(array('Translate New File' => $url . 'add/')); 
+		$table->action(array(__('Translate New File', __FILE__) => $url . 'add/')); 
 
 		$out = $table->render();
 		return $out; 
@@ -138,18 +138,18 @@ class ProcessLanguageTranslator extends Process {
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->attr('method', 'post'); 
 		$form->attr('action', "./?language_id={$this->language->id}"); 
-		$form->description = sprintf("Add new file to translate to %s", $this->language->title);
+		$form->description = sprintf(__("Add new file to translate to", __FILE__) . " " . "%s", $this->language->title);
 	
 		$field = $this->modules->get("InputfieldText"); 	
 		$field->attr('name', 'filename'); 		
-		$field->label = 'File to translate';
-		$field->description = "Enter the path and filename to translate. This should be entered relative to the site's root installation.";
-		$field->notes = "Example: /wire/modules/Process/ProcessPageList/ProcessPageList.module";
+		$field->label = __('File to translate', __FILE__);
+		$field->description = __("Enter the path and filename to translate. This should be entered relative to the site's root installation.", __FILE__);
+		$field->notes = __("Example: /wire/modules/Process/ProcessPageList/ProcessPageList.module", __FILE__);
 		$form->add($field);
 
 		$submit = $this->modules->get("InputfieldSubmit"); 
 		$submit->attr('name', 'submit_add'); 
-		$submit->attr('value', 'Add File'); 
+		$submit->attr('value', __('Add File', __FILE__)); 
 		$form->add($submit); 
 
 		if($this->input->post->submit_add) $this->processAdd($field);
@@ -177,14 +177,14 @@ class ProcessLanguageTranslator extends Process {
 				$textdomain = $this->translator->addFileToTranslate($filename);
 				if($textdomain) return $this->session->redirect("../edit/?language_id={$this->language->id}&textdomain=$textdomain"); 
 
-				$this->error("That file is already in the system"); 
+				$this->error(__("That file is already in the system", __FILE__)); 
 
 			} else {
 
-				$this->error("That file has no translatable phrases"); 
+				$this->error(__("That file has no translatable phrases", __FILE__)); 
 			}
 		} else {
-			$field->error("File does not exist"); 
+			$field->error(__("File does not exist", __FILE__)); 
 		}
 
 		return false;
@@ -217,8 +217,8 @@ class ProcessLanguageTranslator extends Process {
 
 		$fieldset = $this->modules->get("InputfieldFieldset"); 
 		$fieldset->attr('id+name', 'abandoned_fieldset'); 
-		$fieldset->label = 'Abandoned Translation(s)';
-		$fieldset->description = "The following translations were found without parents. This means that the original untranslated text was either changed or deleted. It is recommended that you delete abandoned translations unless you need to keep them to copy/paste to a new translation.";
+		$fieldset->label = __('Abandoned Translation(s)', __FILE__);
+		$fieldset->description = __("The following translations were found without parents. This means that the original untranslated text was either changed or deleted. It is recommended that you delete abandoned translations unless you need to keep them to copy/paste to a new translation.", __FILE__);
 		$fieldset->collapsed = Inputfield::collapsedYes; 
 
 		$n = 0;
@@ -232,7 +232,7 @@ class ProcessLanguageTranslator extends Process {
 			$field->attr('name', "abandoned$n"); 
 			$field->attr('value', $hash); 
 			$field->description = empty($translation['text']) ? "[empty]" : $translation['text'];
-			$field->label = "Delete?";
+			$field->label = __("Delete?", __FILE__);
 			$fieldset->add($field);
 		}
 
@@ -254,18 +254,22 @@ class ProcessLanguageTranslator extends Process {
 
 		$textdomain = $this->input->get->textdomain;
 		$file = $this->translator->textdomainToFilename($textdomain); 
-		if(!$file) throw new WireException("Unable to load textdomain"); 
+		if(!$file) throw new WireException(__("Unable to load textdomain", __FILE__)); 
 		$file = $this->config->paths->root . $file; 
 
-		if(!is_file($file)) throw new WireException("Translation file does not exist: $file"); 
+		if(!is_file($file)) throw new WireException(__("Translation file does not exist:", __FILE__) . " " . "$file"); 
 
 		$numFound = $this->parseTranslatableFile($file); 
 
 		$form = $this->modules->get('InputfieldForm'); 
 		$form->attr('action', "./?textdomain=$textdomain"); 
 		$form->attr('method', 'post'); 
-		$form->description = "Translate " . basename($file, '.module') . " to " . $this->language->title; 
-		$form->value = "<p>Each of the inputs below represents a block of text to translate. <span class='description'>The text shown in this style is the text that should be translated to {$this->language->title}.</span> All inputs are optional: if you leave an input blank, the non-translated text will be used.</p>";
+		$form->description = __("Translate", __FILE__) . " " . basename($file, '.module') . " " .
+				     __("to", __FILE__) . " " . $this->language->title; 
+		$form->value = "<p>" . 
+		__("Each of the inputs below represents a block of text to translate.", __FILE__) . " <span class='description'>" . 
+		__("The text shown in this style is the text that should be translated to ", __FILE__) . " " . $this->language->title . ". </span> " . 
+		__("All inputs are optional: if you leave an input blank, the non-translated text will be used.", __FILE__) . "</p>";
 
 		$translations = $this->translator->getTranslations($textdomain); 
 
@@ -278,7 +282,7 @@ class ProcessLanguageTranslator extends Process {
 
 		$submit = $this->modules->get("InputfieldSubmit"); 
 		$submit->attr('id+name', 'save_translations'); 
-		$submit->value = 'Save';
+		$submit->value = __('Save', __FILE__);
 		$submit->attr('class', $submit->attr('class') . ' head_button_clone'); 
 		$form->add($submit);	
 
@@ -307,14 +311,14 @@ class ProcessLanguageTranslator extends Process {
 		}
 
 		foreach($this->input->post as $key => $hash) {
-			if(strpos($key, 'abandoned') !== 0) continue;
+			if(strpos($key, __('abandoned', __FILE__)) !== 0) continue;
 			if(!$field = $form->getChildByName($key)) continue;
 			$this->translator->removeTranslation($textdomain, $hash); 
 			$numRemoved++;
 		}
 
-		if($numChanges) $this->message("$numChanges translations changed"); 
-		if($numRemoved) $this->message("$numRemoved abandoned translations removed"); 
+		if($numChanges) $this->message(("$numChanges") . " " . __("translations changed", __FILE__)); 
+		if($numRemoved) $this->message(("$numRemoved") . " " . __("abandoned translations removed", __FILE__)); 
 
 		$this->translator->saveTextdomain($textdomain); 
 		$this->message("Saved $textdomain"); 

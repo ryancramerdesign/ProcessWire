@@ -387,7 +387,7 @@ class ProcessPageView extends Process {
 	 */
 	protected function ___sendFile($page, $basename) {
 
-		$err = 'File not found';
+		$err = $this->_('File not found');
 
 		// use the static hasPath first to make sure this page actually has a files directory
 		// this ensures one isn't automatically created when we call $page->filesManager->path below
