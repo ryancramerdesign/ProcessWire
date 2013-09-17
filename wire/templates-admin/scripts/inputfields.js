@@ -104,6 +104,7 @@ function InputfieldDependencies() {
 				consoleLog('Start Dependency ' + c);
 				consoleLog('Condition type: ' + condition.type);
 				consoleLog('Field: ' + condition.field);
+				if(condition.subfield.length > 0) consoleLog('Subfield: ' + condition.subfield); 
 				consoleLog('Operator: ' + condition.operator);
 				consoleLog('Required value: ' + condition.value);
 
@@ -113,14 +114,24 @@ function InputfieldDependencies() {
 				// Dependency field that we are checking for the condition
 				var $field = $("#Inputfield_" + condition.field);
 
+				var value = null;
+
 				if($field.size() == 0) {
 					// if field isn't present by #id it may be present by #id+value as a checkbox/radio field is
 					consoleLog('Detected checkbox or radio: ' + condition.field);
-					$field = $("#Inputfield_" + condition.field + "_" + condition.value);
+					if(condition.subfield == 'count' || condition.subfield == 'count-checkbox') {
+						// count number of matching checked inputs
+						$field = $("#wrap_Inputfield_" + condition.field + " :input"); 
+						value = $("#wrap_Inputfield_" + condition.field + " :checked").size();
+						consoleLog('Using count checkbox condition'); 
+						condition.subfield = 'count-checkbox';
+					} else {
+						$field = $("#Inputfield_" + condition.field + "_" + condition.value);
+					}
 				}
 
 				// value of the dependency field we are checking
-				var value = $field.val();
+				if(value === null) value = $field.val();
 
 				// value will be placed in values so we can handle multiple value checks
 				var values = [];
