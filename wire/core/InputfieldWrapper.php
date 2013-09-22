@@ -128,6 +128,9 @@ class InputfieldWrapper extends Inputfield {
 		$this->set('skipLabel', Inputfield::skipLabelFor); 
 		$this->requiredLabel = $this->_('Missing required value');
 		$this->set('renderValueMode', false); 
+		$columnWidthSpacing = $this->wire('config')->inputfieldColumnWidthSpacing; 
+		$columnWidthSpacing = is_null($columnWidthSpacing) ? 1 : (int) $columnWidthSpacing; 
+		$this->set('columnWidthSpacing', $columnWidthSpacing); 
 	}
 
 	/**
@@ -247,10 +250,11 @@ class InputfieldWrapper extends Inputfield {
 		$out = '';
 		$children = $this->preRenderChildren();
 		$columnWidthTotal = 0;
+		$columnWidthSpacing = $this->columnWidthSpacing; 
 		$lastInputfield = null;
 		$markup = array_merge(self::$defaultMarkup, self::$markup);
 		$classes = array_merge(self::$defaultClasses, self::$classes);
-
+		
 		foreach($children as $inputfield) {
 			$renderValueMode = $this->renderValueMode; 
 
@@ -334,7 +338,7 @@ class InputfieldWrapper extends Inputfield {
 					$label = str_replace(array('{for}', '{out}'), array($for, $label), $markup['item_label']); 
 				}
 				$columnWidth = (int) $inputfield->getSetting('columnWidth');
-				$columnWidthAdjusted = $columnWidth + ($columnWidthTotal ? -1 : 0);
+				$columnWidthAdjusted = $columnWidth + ($columnWidthTotal ? -1 * $columnWidthSpacing : 0);
 				if($columnWidth >= 9 && $columnWidth <= 100) {
 					$ffAttrs['class'] .= ' ' . $classes['item_column_width']; 
 					if(!$columnWidthTotal) $ffAttrs['class'] .= ' ' . $classes['item_column_width_first']; 
@@ -358,7 +362,7 @@ class InputfieldWrapper extends Inputfield {
 			$ulClass = $classes['list'];
 			if($columnWidthTotal || ($lastInputfield && $lastInputfield->columnWidth >= 10 && $lastInputfield->columnWidth < 100)) $ulClass .= ' ' . $classes['list_clearfix']; 
 			$attrs = "class='$ulClass'"; // . ($this->attr('class') ? ' ' . $this->attr('class') : '') . "'";
-			foreach($this->getAttributes() as $attr => $value) if(strpos($attr, 'data-') === 0) $attrs .= " $attr='" . $this->entityEncode($value) . "'";
+			if(!($this instanceof InputfieldForm)) foreach($this->getAttributes() as $attr => $value) if(strpos($attr, 'data-') === 0) $attrs .= " $attr='" . $this->entityEncode($value) . "'";
 			$out = $this->attr('value') . str_replace(array('{attrs}', '{out}'), array($attrs, $out), $markup['list']); 
 		}
 

@@ -25,6 +25,7 @@ class InputfieldForm extends InputfieldWrapper {
 
 	public function ___render() {
 
+		$this->attr('data-colspacing', (int) $this->columnWidthSpacing); 
 		$this->attr('class', trim($this->attr('class') . ' InputfieldForm'));
 		$attrs = $this->getAttributes();
 		unset($attrs['value']); 

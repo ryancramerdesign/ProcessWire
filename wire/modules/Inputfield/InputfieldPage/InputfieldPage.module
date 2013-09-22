@@ -251,7 +251,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 	public function getInputfield() {
 
-		if($this->inputfieldWidget) return $this->inputfieldWidget; 
+		if($this->inputfieldWidget && ((string) $this->inputfieldWidget) == $this->inputfield) return $this->inputfieldWidget; 
 
 		$inputfield = $this->wire('modules')->get($this->inputfield);
 		if(!$inputfield) return null;
@@ -631,7 +631,8 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		$inputfields->append($field); 	
 
-		if($this->inputfield && $inputfield = $this->getInputfield()) {
+		$inputfield = $this->getInputfield();
+		if($inputfield) {
 			// then call again, knowing the module has it's config populated
 			$inputfield->hasFieldtype = true; // tell it it's under control of a parent, regardless of whether this one is hasFieldtype true or not.
 			foreach($inputfield->___getConfigInputfields() as $f) {
