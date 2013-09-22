@@ -203,7 +203,8 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$inputfield = $event->object; 
 		if(!$inputfield->useLanguages) return; 
 
-		$userLanguage = wire('user')->language; 
+		$userLanguage = $this->wire('user')->language; 
+		if(!$userLanguage) return;
 	
 		// set 'value' attribute to default language values	
 		if($userLanguage->id !== $this->defaultLanguagePageID) {

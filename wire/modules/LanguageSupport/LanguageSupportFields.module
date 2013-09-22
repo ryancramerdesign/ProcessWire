@@ -128,7 +128,7 @@ class LanguageSupportFields extends WireData implements Module {
 		if($field->name == 'language') return;
 
 		$language = wire('user')->get('language'); 
-		if(!$language->id || $language->isDefault()) return;
+		if(!$language || !$language->id || $language->isDefault()) return;
 
 		// exit quickly if we can determine now we don't need to continue
 		if(!isset($this->multilangAlternateFields[$field->name])) return; 
