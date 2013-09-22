@@ -295,7 +295,7 @@ class Pageimage extends Pagefile {
 	 * @return bool|array Returns false if not a variation or array of it is
 	 *
 	 */
-	public function isVariation($basename) {
+	public function ___isVariation($basename) {
 
 		$variationName = basename($basename);
 		$originalName = basename($this->basename, "." . $this->ext());  // excludes extension

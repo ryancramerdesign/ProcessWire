@@ -15,7 +15,7 @@ if(!isset($content)) $content = '';
 $config->styles->prepend($config->urls->adminTemplates . "styles/main.css?v=4"); 
 $config->styles->append($config->urls->adminTemplates . "styles/inputfields.css?v=4"); 
 $config->styles->append($config->urls->adminTemplates . "styles/ui.css?v=4"); 
-$config->scripts->append($config->urls->adminTemplates . "scripts/inputfields.js?v=4"); 
+$config->scripts->append($config->urls->adminTemplates . "scripts/inputfields.js?v=5"); 
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=4"); 
 
 $browserTitle = wire('processBrowserTitle'); 
