@@ -951,7 +951,7 @@ body.modal #headline {
  *
  */
 .content > .container > #PageListContainer {
-  margin-top: 1.5em; }
+  margin-top: -1em; }
 
 #fieldgroupContext {
   /* context selection in field editor */
