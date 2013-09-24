@@ -130,7 +130,7 @@ li.ui-state-hover a,
 #notices .ui-state-highlight,
 #notices .ui-state-error {
   padding: 0.25em;
-  padding-left: 1.5em; }
+  padding-left: 0.5em; }
 
 #notices .ui-state-highlight .ui-icon,
 #notices .ui-state-error .ui-icon {
@@ -513,9 +513,8 @@ a.on {
     /* GREY */ }
 
 /* #masthead */
-#notices {
-  position: relative;
-  top: -1px; }
+#notices + #content {
+  padding-top: 1em; }
 
 #headline {
   padding-top: 2em;
@@ -951,7 +950,7 @@ body.modal #headline {
  *
  */
 .content > .container > #PageListContainer {
-  margin-top: -1em; }
+  margin-top: -0.5em; }
 
 #fieldgroupContext {
   /* context selection in field editor */

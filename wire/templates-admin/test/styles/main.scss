@@ -299,9 +299,8 @@ a {
 } /* #masthead */
 
 
-#notices {
-	position: relative;
-	top: -1px; 
+#notices + #content {
+	padding-top: 1em; 
 }
 
 #headline {
@@ -872,7 +871,7 @@ body.modal {
  */
 
 .content > .container > #PageListContainer {
-	margin-top: -1em; 
+	margin-top: -0.5em; 
 }
 
 
