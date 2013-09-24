@@ -402,7 +402,8 @@ $(document).ready(function() {
 
 				//$("a.PageListPage", $ul).click(clickChild); 
 				$("a.PageListPage", $ul).click(clickChild).dblclick(function() {
-					window.open($(this).siblings('ul').find('li.PageListActionEdit a').attr('href'), "_self");
+					var href = $(this).siblings('ul').find('li.PageListActionEdit a').attr('href');
+					if (href) window.open(href, "_self");
 				});
 				$(".PageListActionMove a", $ul).click(clickMove); 
 				$(".PageListActionSelect a", $ul).click(clickSelect); 
