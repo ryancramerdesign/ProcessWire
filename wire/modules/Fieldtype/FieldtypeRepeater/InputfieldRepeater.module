@@ -18,7 +18,7 @@
  *
  */
 
-class InputfieldRepeater extends Inputfield {
+class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 
 	public static function getModuleInfo() {
 		return array(
@@ -84,6 +84,7 @@ class InputfieldRepeater extends Inputfield {
 	 * Build and cache the form containing the repeaters
 	 *
 	 * @return InputfieldWrapper
+	 * @throws WireException
 	 *
 	 */
 	protected function buildForm() {

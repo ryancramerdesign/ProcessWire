@@ -1,0 +1,961 @@
+
+/***********************************************************************************************
+ * COLORS
+ *
+ */
+
+$white: #FFF; 
+$black: #222; 
+$brown: #743A25;
+$light-khaki: #E6E4D8;
+$green: #6F9D0E;
+$light-green: #82BE05;
+$cyan: #0E9D98;
+$orange: #F64704;
+$light-orange: #D8744E;
+$red: #a30000;
+$light-purple: #8E94C2;
+$dark-purple: #333E99;
+
+$text-bg: $white; 
+$masthead-bg: #A73003;
+$text-color: $black;
+$medium-text-color: #777; 
+$light-text-color: #999; 
+$reverse-text-color: $white;
+$subtle-bg: $light-khaki;
+$subtle-border: $subtle-bg;
+$link-color: $green;
+$link-hover-color: $cyan;
+$item-header-bg: $light-green;
+$item-header-color: $white; 
+$action-link-color: $light-green;
+$button-bg: $light-green; 
+$button-border: $light-green;
+$button-color: $white;
+$button-hover-bg: $link-hover-color;
+$button-hover-border: $link-hover-color; 
+$link-active-color: $orange; 
+$footer-link-color: $light-orange;
+$ui-state-default-bg: $light-orange;
+$ui-state-default-color: $reverse-text-color; 
+$ui-state-hover-bg: darken($light-orange, 10%);
+$ui-state-hover-color: $reverse-text-color; 
+$label-link-color: $brown;
+$table-th-color: $light-purple;
+$table-th-active-color: $dark-purple; 
+$highlight-bg: #D1F486;
+$highlight-color: darken($highlight-bg, 60%); 
+$error-bg: $red; 
+$error-border: $red; 
+$error-color: #fff; 
+$notes-bg: #ffffdd; 
+
+@import 'reset';
+@import 'ui';
+
+/***********************************************************************************************
+ * GENERAL
+ *
+ */
+
+*, *:before, *:after {
+	-moz-box-sizing: border-box; 
+	-webkit-box-sizing: border-box; 
+	box-sizing: border-box;
+ }
+
+body {
+	background: $subtle-bg; /* LIGHT KHAKI */
+}
+	body,
+	.ui-dialog,
+	.ui-button {
+		font: 10px/20px "Helvetica Neue", Arial, sans-serif; 
+	}
+	body {
+		color: $text-color; /* BLACK */
+	}
+	body.modal {
+		background-color: $text-bg; /* WHITE */
+	}
+
+#masthead,
+#headline, 
+#content,
+#footer {
+	padding-right: 20px;
+	padding-left: 20px; 
+}
+#masthead,
+#notices, 
+#content,
+.ui-dialog {
+	font-size: 1.3em; 
+}
+
+.container {
+	position: relative; 
+	width: 95%; 
+	max-width: 1200px; 
+	margin: 0 auto; 
+}
+
+a {
+	/* standard link color */
+	color: $link-color; /* GREEN */
+}
+	a:hover {
+		/* hovered link color */
+		color: $link-hover-color; /* CYAN */
+	}
+
+	a.on {
+		/* on/active link color */
+		background: $action-link-color; /* LIGHT-GREEN */
+		color: $reverse-text-color; /* WHITE */
+	}
+
+.WireFatalError {
+	background: $error-bg; /* DARK-RED */
+	color: $reverse-text-color; /* WHITE */
+	padding: 1em; 
+	position: relative;
+	z-index: 9999;
+}
+
+/***********************************************************************************************
+ * MASTHEAD
+ *
+ */
+
+#masthead {
+	height: 74px; 
+	/*
+	background: #333F4D; 
+	background: #646047;
+	*/
+	background: $masthead-bg; /* DARK-ORANGE */
+	position: relative; 
+	border-bottom: 1px solid rgba(0,0,0,0.1); /* BLACK */
+
+	a {
+		color: $reverse-text-color; /* WHITE */
+	}
+
+	#masthead_shade {
+		background: rgba(255,255,255,0.05); /* WHITE */
+		height: 1px; 
+		position: absolute;
+		left: 0;
+		top: 43px;
+		width: 100%; 
+	}
+
+	#logo {
+		position: absolute; 
+		left: -3px;
+		top: 10px; 
+	}
+		#logo:hover {
+			background: none; 
+		}
+
+
+	#topnav {
+		position: absolute;
+		right: 0;
+		top: 43px;
+		margin: 0;
+
+		li {
+			padding: 0;
+			margin: 0;
+			list-style: none;
+			display: inline;
+			line-height: 1em; 
+		}
+
+		a {
+			background: rgba(255,255,255,0.05); /* WHITE */
+			display: block;
+			float: left; 
+			margin: 0 0 0 1px;
+			padding: 10px 10px 10px 10px;
+		}
+
+		a:hover,
+		a.on {
+			color: $text-color; /* BLACK */
+			background: $text-bg; /* WHITE */
+			text-decoration: none; 
+		}
+	}
+
+	#breadcrumb {
+
+		position: absolute; 
+		left: 0; 
+		top: 49px; 
+
+		li {
+			color: #fff;
+			color: transparentize($reverse-text-color, 0.5); 
+			display: inline;
+			padding: 0;
+			line-height: 1em;
+			white-space: nowrap;
+
+		}
+
+		li:after {
+			content: " \232A";
+		}
+
+		a {
+			opacity: 0.7; 
+			padding-right: 4px; 
+			
+		}
+
+		a:hover {
+			opacity: 1.0;
+			background: none; 
+			text-decoration: underline;
+		}
+
+		a.sitelink {
+			float: left; 	
+
+			.ui-icon {
+				float: left; 
+			}
+		}
+
+		.ui-state-default {
+			/* for home icon */
+			border: none; 
+			background: none; 
+		}
+
+		
+
+	}
+
+	#head_button {
+	 	/* The main/primary button for a listing screen, appears in the masthead */
+		position: absolute; 
+		top: 91px;
+		right: 0; 
+		display: none; 
+		z-index: 1;
+
+		button {
+			margin-right: 0; 
+			margin-left: 10px; 
+		}
+	}
+
+	#ProcessPageSearchForm {
+		position: absolute; 
+		top: 9px;
+		right: 0; 
+		width: 25%; 
+	}
+
+		#ProcessPageSearchQuery {
+			padding: 5px 8px;
+			height: auto; 
+			border: 1px solid transparentize($reverse-text-color, 0.9); /*rgba(255,255,255,0.1);*/ /*WHITE */
+			background: transparent; 
+			width: 100%; 
+			color: transparentize($reverse-text-color, 0.2); /*rgba(255,255,255,0.8);*/ /* WHITE */
+		}
+			#ProcessPageSearchQuery:focus {
+				background: $text-bg; /* WHITE */
+				color: $text-color; /* BLACK */
+				text-transform: none; 
+				font-weight: normal;
+			}
+
+		#ProcessPageSearchStatus {
+			position: absolute;
+			top: 3px;
+			right: 10px; 
+			color: $light-text-color; /* GREY */
+		}
+
+
+} /* #masthead */
+
+
+#notices {
+	position: relative;
+	top: -1px; 
+}
+
+#headline {
+	padding-top: 2em;
+	padding-bottom: 2em;
+	background: $text-bg; /* WHITE */
+	border-bottom: 1px solid $subtle-border; /* LIGHT KHAKI */
+}
+
+#title {
+	font-size: 2.5em; 
+	line-height: 1em; 
+	margin: 0;
+	color: $text-color; /* BLACK */
+	padding-right: 3em; 
+}
+
+/***********************************************************************************************
+ * CONTENT
+ *
+ */
+
+#content {
+	position: relative; 
+	background: $text-bg; /* WHITE */
+	padding-bottom: 2em; 
+	padding-top: 1px;
+}
+	#content .container {
+		min-height: 50px; 
+	}
+		#content .container > form,
+		#content .container > .ui-helper-clearfix > form {
+			position: relative;
+			top: -2px; 
+		}
+
+.content {
+
+	img {
+		display: block;
+	}
+
+	.WireTabs a {
+		/*font-size: 0.84615em;*/
+		font-weight: bold;
+	}
+	
+	.nav a.label {
+		font-size: 1em; 
+	}
+
+	p,
+	ul
+	ol,
+	table {
+		margin: 1em 0;
+	}
+
+	table th, 
+	table th.header,
+	table.AdminDataList th, 
+	h4 {
+		color: $table-th-color; /* LIGHT-PURPLE */
+	}
+		table th.headerSortUp,
+		table th.headerSortDown,
+		table th:hover {
+			color: $table-th-active-color; /* DARK-PURPLE */
+		}
+
+	table.AdminDataList {
+		margin-top: 0; 
+	}
+
+	h2 {
+		margin: 1em 0;
+		font-size: 1.4em; 
+		line-height: 1.2em; 
+		color: $medium-text-color; /* DARK-GREY */
+	}
+		h2 a {
+			text-decoration: underline;
+		}
+		h2 a:hover {
+			color: $reverse-text-color; /* WHITE */
+			background: $link-hover-color;
+			text-decoration: none;
+		}
+
+	h3 {
+		margin: 1em 0;
+		font-size: 1.2em; 
+	}
+
+	h4 {
+		margin: 1em 0 0.25em 0;
+		text-transform: uppercase;
+		font-weight: bold;
+		font-size: 0.916666666666667em;
+	}
+
+	li {
+		margin: 1em 0; 
+		display: block;
+		list-style: disc; 
+	}
+
+	ol li {
+		display: list-item; 
+		list-style-type: decimal;
+		margin-left: 1em; 
+	}
+
+	/**
+	 * Actions: like the "|edit|view|new" in the PageList
+	 *
+	 */
+
+	.PageListActions {
+		margin-left: -2px;
+	}
+
+	ul.actions {
+	}
+		ul.actions li,
+		.PageListActions li,
+		li.action {
+			border: none; 
+			padding: 0 1px; 
+			margin: 0;
+		
+		}
+
+		ul.actions li a,
+		li.action a {
+			border-bottom: none; 
+			text-transform: uppercase;
+			font-weight: bold;
+			border-left: 1px solid $subtle-border; /* LIGHT-KHAKI */
+		}
+
+	li.action a, .actions a, 
+	.PageList .actions a,
+	.PageListMoveNote a {
+		/* action links */
+		color: $action-link-color; /* LIGHT-GREEN */
+		padding: 0 4px 0 4px; 
+		display: inline-block;
+		font-size: 0.8333333333em;
+		border-radius: 3px; 
+		font-weight: bold;
+		text-transform: uppercase; 
+	}
+		.actions a:hover,
+		li.action a:hover,
+		.PageListMoveNote a:hover,
+		.content .PageListPagination a:hover,
+		.MarkupPagerNav a:hover {
+			/* action links hovered */
+			color: $reverse-text-color; /* WHITE */
+			background: $link-hover-color; /* CYAN */
+		}
+
+
+	/**
+	 * Content navigation like when on the root page of "templates" or "access"
+	 *
+	 */
+	dl {
+		margin: 1em 0;
+	}
+		.container > dl:first-child {
+			margin-top: 0;
+		}
+		dt,
+		dt {
+			display: block;
+			font-weight: bold; 
+			padding-top: 0.75em; 
+		}
+		dt a {
+			text-transform: none; 
+		}
+		dl dd {
+			padding-bottom: 0.75em; 
+			border-bottom: 1px dotted $subtle-border; /* LIGHT KHAKI */
+		}
+
+	/**
+	 * WireTabs
+	 *
+	 */
+
+	.WireTabs {
+
+		left: 0;
+		top: 1.1em;
+		margin-top: -1.1em !important;
+
+		li {
+			background: none; 
+			margin: 0;
+			padding: 0;
+		}
+
+		a {
+			padding: 8px 15px;
+			display: inline-block;
+		}
+
+		a.on {
+			background: $subtle-bg; /* LIGHT-KHAKI */
+			color: $text-color; /* BLACK */
+		}
+	}
+
+	/**
+	 * PageList
+	 *
+	 */
+
+	.PageList {
+
+		a.PageListPage {
+			color: $label-link-color; /* BROWN */
+		}
+
+		a.PageListPage:hover {
+			text-decoration: underline;
+			color: $link-hover-color; 
+		}
+		.PageListItemOpen > a.PageListPage  {
+			color: $link-active-color; /* ORANGE */
+		}
+
+		.PageListStatusHidden > a.PageListPage {
+			opacity: 0.7; 
+		}
+
+		.PageListNumChildren {
+			font-size: 0.833333em;
+		}
+
+		.PageListItemOpen .PageListNumChildren {
+			padding-right: 0.5em; 
+			border-right: 1px solid $subtle-border; /* LIGHT-GREY */
+		}
+	}
+
+	/* MarkupAdminDataTable */
+	.AdminDataList th,
+	.AdminDataList td {
+		border-color: darken($subtle-border, 5%); 
+	}
+	.AdminDataList tr:hover td,
+	.AdminDataList tr:hover th {
+		background: $notes-bg; 
+	}
+
+	/* MarkupPagerNav */
+	.MarkupPagerNav {
+
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		margin: 1em 0;
+
+		li {
+			padding: 0;
+			margin: 0;
+			list-style: none;
+			display: inline;
+			padding: 6px 0;
+			background: none;
+
+			a {
+				padding: 4px 9px;
+				margin: 0;
+				text-decoration: none;
+			}
+		}
+
+		li.MarkupPagerNavSeparator {
+			border: none;
+		}
+	}
+
+	/* Pagination */
+	.PageListPagination a,
+	.MarkupPagerNav a {
+		background: $subtle-bg; /* LIGHT KHAKI */
+		color: $text-color; /* BLACK */ 
+		font-weight: bold;
+		border-radius: 2px; 
+		padding: 2px 6px; 
+	}
+
+	.PageListPaginationCurrent a,
+	.MarkupPagerNavOn a {
+		color: $reverse-text-color; /* WHITE */
+		background: $link-active-color; /* ORANGE */
+	}
+
+	.InputfieldPageNameURL a {
+		color: $table-th-color;
+	}
+		.InputfieldPageNameURL a:hover {
+			color: $table-th-active-color;
+		}
+
+
+}
+
+.description {
+	color: $medium-text-color; /* DARK GREY */
+	margin: 0.5em 0;
+}
+
+.notes,
+.detail {
+	font-size: 0.846153846153846em;
+	color: $medium-text-color; /* DARK GREY */
+	line-height: 1.3em; 
+}
+.notes {
+	background: $notes-bg; 
+}
+
+.description strong,
+.notes strong {
+	color: $medium-text-color; /* DARK GREY */
+	font-weight: bold; 
+}
+
+.error {
+	background: $error-bg; 
+	color: $error-color; /* DARK RED */
+	font-weight: bold; 
+	font-size: 0.9166666em;	
+}
+
+/***********************************************************************************************
+ * FOOTER
+ *
+ */
+
+#footer {
+	margin: 2em 0 2em 0; 
+	font-size: 1.1em; 
+	color: $light-text-color; /* GREY */
+
+	a {
+		color: $footer-link-color; /* LIGHT-ORANGE */
+	}
+
+	p {
+		margin-top: 0;
+	}
+
+	#userinfo {
+		display: block; 
+		float: right; 
+	}
+
+}
+
+
+#debug {
+	margin-top: 2em; 
+
+	.container {
+		width: 100%; 
+	}
+
+	p {
+		margin: 1em 0; 
+	}
+
+	ol {
+		margin: 1em 0; 
+	}
+
+	h4 {
+		font-weight: bold; 
+	}
+
+	table {
+		width: 100%; 
+
+		th {
+			font-weight: bold;
+		}
+
+		td, th {
+			vertical-align: top; 
+			padding: 3px 5px; 	
+			border-bottom: 1px dotted $light-text-color; /* LIGHT-GREY */
+			border-left: 1px dotted $light-text-color; /* LIGHT-GREY */
+			font-size: 12px; 
+		}
+
+	}
+
+}
+
+/***********************************************************************************************
+ * INPUTFIELD COLORS
+ *
+ */
+
+.InputfieldForm {
+
+	.Inputfield {
+		background: $text-bg; 
+	}
+
+	.ui-widget-header, 
+	label.ui-widget-header,
+	.InputfieldWrapper > .description {
+		background: $text-bg; /* WHITE */
+		border: 1px solid $subtle-border; /* LIGHT-KHAKI */
+		border-bottom: none; 
+		color: $label-link-color; /* BROWN */
+	}
+		.InputfieldWrapper > .description {
+			margin: 0;
+			padding-bottom: 1em; 
+			margin-bottom: -1em; 
+		}
+
+
+	label.ui-widget-header + .ui-widget-content {
+		border: 1px solid $subtle-border; /* LIGHT-KHAKI */
+		border-top: none; 
+		background: $text-bg; /* WHITE */
+	}
+
+	.InputfieldMarkup .ui-widget-content {
+		border: 1px solid $subtle-border; /* LIGHT-KHAKI */
+		margin-top: 1em; 
+		padding: 1em;
+	}
+		.InputfieldMarkup .ui-widget-header + .ui-widget-content {
+			margin-top: 0;
+			padding-top: 0;
+		}
+
+	.InputfieldStateCollapsed label.ui-widget-header {
+		background: $text-bg; /* WHITE */
+		border: 1px solid $subtle-border; /* LIGHT-KHAKI */
+	}
+
+	.InputfieldStateCollapsed label.ui-widget-header:hover {
+		/* style for collapsed header when hovered */
+		border-color: $subtle-border; /* LIGHT-KHAKI */
+		background: $text-bg; /* WHITE */
+	}
+
+	.Inputfields .InputfieldPageName .ui-widget-header,
+	.Inputfields .InputfieldPageName .ui-widget-content, 
+	.Inputfields > .InputfieldItemList:not(.InputfieldStateCollapsed) > .ui-widget-header,
+	.Inputfields > .InputfieldFieldset:not(.InputfieldStateCollapsed) > .ui-widget-header,
+	.Inputfields > .InputfieldFieldsetOpen:not(.InputfieldStateCollapsed) > .ui-widget-header,
+	.Inputfields > .InputfieldItemList > .ui-widget-header + .ui-widget-content,
+	.Inputfields > .InputfieldFieldset > .ui-widget-header + .ui-widget-content,
+	.Inputfields > .InputfieldFieldsetOpen > .ui-widget-header + .ui-widget-content {
+		/* Inputfields containing other items get a different background color */
+		background: transparentize($subtle-bg, 0.5); 
+	}
+
+	.InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header,
+	.InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header { 
+		/* file item or repeater item */
+		border: none;
+		background: $item-header-bg; /* LIGHT-GREEN */
+		color: $item-header-color; /* WHITE */
+	}
+		.InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header:hover,
+		.InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header:hover { 
+			/* file item or repeater item */
+			background: $link-hover-color; /* CYAN */
+			border: none; 
+		}
+		.InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header a {
+			color: $item-header-color; /* WHITE */
+		}
+		.InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header.ui-state-error,
+		.InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header.ui-state-error { 
+			text-decoration: line-through; 
+			background: $error-bg; 
+			border: none; 
+		}
+		.InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldStateCollapsed {
+			margin-bottom: 1em; 
+		}
+		.InputfieldItemList .ui-widget-header .ui-icon {
+			margin-top: 2px; 
+		}
+
+		.InputfieldItemList .ui-widget-header.ui-state-error {
+			border: none; 
+		}
+		/*
+		.InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header .ui-icon { 
+			top: 5px; 
+		}
+		*/
+
+
+	.InputfieldStateRequired > label.ui-widget-header:first-child:after {
+		color: $red; 
+	}
+
+	.Inputfield.ui-state-error {
+		border: none; 
+	}
+
+	.InputfieldButton,
+	.InputfieldSubmit {
+		background: none; 
+	}
+
+	.Inputfields > .InputfieldStateCollapsed > .ui-widget-header {
+		/* adjust text color for collapsed Inputfields */
+		color: lighten($label-link-color, 30%); /* LIGHT-BROWN */
+	}
+}
+
+
+
+/***********************************************************************************************
+ * MODAL
+ *
+ */
+
+body.modal {
+
+	.container {
+		margin: 0; 
+		width: 100%; 
+		min-width: 300px; 
+	}
+
+	.content h2 {
+		margin: 0.5em 0;
+		font-size: 1.3em; 
+	}
+
+	#footer,
+	#masthead,
+	#headline {
+		display: none; 
+	}
+
+}
+
+
+/***********************************************************************************************
+ * MISC
+ *
+ */
+
+.content > .container > #PageListContainer {
+	margin-top: 1.5em; 
+}
+
+
+#fieldgroupContext {
+	/* context selection in field editor */
+	background: $text-bg; /* WHITE */
+	padding-left: 0.5em;
+}
+
+.align_left,
+.align-left {
+	float: left;
+	margin: 0 1em 0.5em 0;
+}
+
+.align_right,
+.align-right {
+	float: right;
+	margin: 0 0 0.5em 1em; 
+}
+
+.align_center,
+.align-center {
+	display: block;
+	margin-left: auto;
+	margin-right: auto; 
+}
+
+/***********************************************************************************************
+ * MEDIA QUERIES
+ *
+ */
+
+/* Smaller than standard 960 (devices and browsers) */
+@media only screen and (max-width: 959px) {}
+
+/* Tablet Portrait size to standard 960 (devices and browsers) */
+@media only screen and (min-width: 768px) and (max-width: 959px) {}
+
+/* All Mobile Sizes (devices and browser) */
+@media only screen and (max-width: 767px) {
+
+	#topnav {
+		left: 0;
+	}
+
+	#masthead #breadcrumb {
+		top: 12px; 
+		left: 1px; 
+		width: 70%; 
+		white-space: nowrap;
+		overflow: hidden; 
+	}
+
+	#logo {
+		display: none; 
+	}
+
+	#masthead,
+	#headline, 
+	body:not(.modal) #content,
+	#footer {
+		padding-right: 10px;
+		padding-left: 10px; 
+	}
+
+	#head_button {
+		display: none !important; 
+	}
+
+}
+
+/* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
+@media only screen and (min-width: 480px) and (max-width: 767px) {
+}
+
+/* Mobile Portrait Size to Mobile Landscape Size (devices and browsers) */
+@media only screen and (max-width: 479px) {
+
+	/**
+	 * Disregard column width when at mobile size
+	 *
+	 */
+	.Inputfield {
+		clear: both !important;
+		width: 100% !important;
+		margin-left: 0 !important;
+	}
+
+	.container {
+		width: 100%; 
+	}
+	#footer #userinfo {
+		float: none;
+	}
+	#footer {
+		text-align: center; 
+	}	
+		
+
+}
+

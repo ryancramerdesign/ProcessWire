@@ -1,6 +1,6 @@
 <?php
 
-class InputfieldImage extends InputfieldFile {
+class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 
 	public static function getModuleInfo() {
 		return array(

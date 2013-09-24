@@ -130,6 +130,12 @@ interface FieldtypePageTitleCompatible { }
 interface InputfieldPageListSelection { }
 
 /**
+ * Indicates that an Inputfield renders a list of items
+ *
+ */
+interface InputfieldItemList { }
+
+/**
  * Interface that indicates a class contains gettext() like translation methods 
  *
  */

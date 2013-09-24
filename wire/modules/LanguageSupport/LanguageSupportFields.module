@@ -269,7 +269,7 @@ class LanguageSupportFields extends WireData implements Module {
 		$user = $this->wire('user');
 		$database = $this->wire('database');
 
-		if(!$user->language || $user->language->isDefault) return;
+		if(!$user->language || !$user->language->id || $user->language->isDefault()) return;
 
 		$arguments = $event->arguments; 
 		$selectors = $arguments[0]; 

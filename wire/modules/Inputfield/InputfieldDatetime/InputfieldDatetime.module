@@ -82,7 +82,7 @@ class InputfieldDatetime extends Inputfield {
 
 		$dateFormat = '';
 		$timeFormat = '';
-		if($this->languages && !$this->user->language->isDefault()) {
+		if($this->user->language && !$this->user->language->isDefault()) {
 			// check if alternate language formats are provided
 			$dateFormat = $this->get("dateInputFormat{$this->user->language}"); 
 			$timeFormat = $this->get("timeInputFormat{$this->user->language}"); 

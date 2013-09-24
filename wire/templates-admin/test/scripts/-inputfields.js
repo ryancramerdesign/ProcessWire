@@ -7,23 +7,17 @@
  *
  */
 
-
 function consoleLog(note) {
 	// uncomment the line below to enable debugging console
-	// console.log(note);
+	console.log(note);
 }
-
 
 /**
  * Inputfield Depedendencies
  *
  */
-var InputfieldDependenciesProcessing = false;
 
 function InputfieldDependencies() {
-
-	if(InputfieldDependenciesProcessing) return;
-	InputfieldDependenciesProcessing = true; 
 
 	$(".InputfieldStateShowIf, .InputfieldStateRequiredIf").each(function() {
 
@@ -91,7 +85,6 @@ function InputfieldDependencies() {
 		 *
 		 */
 		function inputfieldChange() {
-			InputfieldDependenciesProcessing = true; 
 
 			consoleLog('-------------------------------------------------------------------');
 			consoleLog('Field "' + $fieldToShow.attr('id') + '" detected a change to a dependency field! Beginning dependency checks...');
@@ -99,10 +92,8 @@ function InputfieldDependencies() {
 			// number of changes that were actually made to field visibility
 			var numVisibilityChanges = 0;
 
-			var totalMatched = 0;
-			var show = true; 
-			var requiredMatches = 0; 
-			var notRequiredMatches = 0;
+			// quantity of matched conditions
+			var show = 0;
 
 			for(var c = 0; c < conditions.length; c++) {
 
@@ -195,63 +186,43 @@ function InputfieldDependencies() {
 
 				consoleLog('----');
 
-				// determine whether to show or hide the field
+				// if at least one value matched, then increment or 'show' value
+				if(matched > 0) show++;
+			}
+
+			consoleLog('Summary (required/matched): ' + conditions.length + ' / ' + show);
+
+			// determine whether to show or hide the field
+			if(show > 0 && conditions.length == show) {
+				// show it
+				consoleLog('Determined that field "' + fieldNameToShow + '" should be visible.');
 				if(condition.type == 'show') {
-					if(matched > 0) {
-						// show it, which is the default behavior
+					if($fieldToShow.is('.InputfieldStateHidden')) {
+						// field is hidden so show/fade in
+						$fieldToShow.removeClass('InputfieldStateHidden').fadeIn();
+						numVisibilityChanges++;
+						consoleLog('Field is now visible.');
 					} else {
-						show = false;
+						consoleLog('Field is already visible.');
 					}
 
 				} else if(condition.type == 'required') {
-					if(matched > 0) {
-						// make it required it
-						requiredMatches++;
-					} else {
-						notRequiredMatches++;
-					}
-				}
-
-
-			} // foreach(conditions)
-
-			// consoleLog('Summary (required/matched): ' + conditions.length + ' / ' + show);
-
-			var required = requiredMatches > 0 && notRequiredMatches == 0; 
-
-			if(show) {
-				consoleLog('Determined that field "' + fieldNameToShow + '" should be visible.');
-				if($fieldToShow.is('.InputfieldStateHidden')) {
-					// field is hidden so show/fade in
-					$fieldToShow.removeClass('InputfieldStateHidden').fadeIn();
-					numVisibilityChanges++;
-					consoleLog('Field is now visible.');
-				} else {
-					consoleLog('Field is already visible.');
+					$fieldToShow.addClass('InputfieldStateRequired').find(":input:visible[type!=hidden]").addClass('required'); // may need to focus a specific input?
 				}
 			} else {
 				consoleLog('Determined that field "' + fieldNameToShow + '" should be hidden.');
 				// hide it
-				if(!$fieldToShow.is('.InputfieldStateHidden')) {
-					$fieldToShow.addClass('InputfieldStateHidden').hide();
-					consoleLog('Field is now hidden.');
-					numVisibilityChanges++;
-				} else {
-					consoleLog('Field is already hidden.');
+				if(condition.type == 'show') {
+					if(!$fieldToShow.is('.InputfieldStateHidden')) {
+						$fieldToShow.addClass('InputfieldStateHidden').hide();
+						consoleLog('Field is now hidden.');
+						numVisibilityChanges++;
+					} else {
+						consoleLog('Field is already hidden.');
+					}
+				} else if(condition.type == 'required') {
+					$fieldToShow.removeClass('InputfieldStateRequired').find(":input.required").removeClass('required');
 				}
-				if(required) {
-					consoleLog('Field is required but cancelling that since it is not visible.'); 
-					required = false;
-				}
-			}
-
-			if(required && requiredMatches > 0) {
-				consoleLog('Determined that field "' + fieldNameToShow + '" should be required.');
-				$fieldToShow.addClass('InputfieldStateRequired').find(":input:visible[type!=hidden]").addClass('required'); // may need to focus a specific input?
-
-			} else if(!required && notRequiredMatches > 0) {
-				consoleLog('Determined that field "' + fieldNameToShow + '" should not be required.');
-				$fieldToShow.removeClass('InputfieldStateRequired').find(":input.required").removeClass('required');
 			}
 
 			if(numVisibilityChanges > 0) {
@@ -259,8 +230,6 @@ function InputfieldDependencies() {
 				InputfieldColumnWidths();
 				$(window).resize(); // trigger for FormBuilder or similar
 			}
-
-			InputfieldDependenciesProcessing = false;
 		}; // END inputfieldChange()
 
 		/***************************************************************************************************************
@@ -342,13 +311,12 @@ function InputfieldDependencies() {
 				// attach change event to dependency inputfield
 				$inputfield.change(inputfieldChange);
 
+				// run the event for the first time to initalize the field
+				inputfieldChange();
 			}
 		}
-		// run the event for the first time to initalize the field
-		inputfieldChange();
 	});
 
-	InputfieldDependenciesProcessing = false;
 }
 
 /**
@@ -423,7 +391,7 @@ function InputfieldColumnWidths() {
 
 	// for columns that don't have specific widths defined, add the InputfieldColumnWidthFirst
 	// class to them which more easily enables us to exclude them from our operations below
-	$(".Inputfield:not(.InputfieldColumnWidth)").addClass("InputfieldColumnWidthFirst");
+	$(".Inputfield:not(.InputfieldColumnWidth)").addClass(".InputfieldColumnWidthFirst");
 
 	// cycle through all first columns in a multi-column row
 	$(".InputfieldColumnWidthFirst.InputfieldColumnWidth").each(function() {
@@ -553,7 +521,6 @@ function InputfieldStates() {
 /*********************************************************************************************/
 
 var InputfieldWindowResizeQueued = false;
-
 function InputfieldWindowResizeActions() {
 	consoleLog('InputfieldWindowResizeActions()'); 
 	InputfieldColumnWidths(); 

@@ -1,0 +1,1013 @@
+/***********************************************************************************************
+ * COLORS
+ *
+ */
+body, div, dl, dt, dd, ul, ol, li, h1, h2, h3, h4, h5, h6, pre, form, fieldset, label, input, textarea, p, blockquote, th, td {
+  margin: 0;
+  padding: 0; }
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0; }
+
+fieldset, img {
+  border: 0; }
+
+address, caption, cite, code, dfn, em, strong, th, var {
+  font-style: normal;
+  font-weight: normal; }
+
+ol, ul, li {
+  list-style: none;
+  margin: 0;
+  padding: 0; }
+
+caption, th {
+  text-align: left; }
+
+h1, h2, h3, h4, h5, h6 {
+  font-size: 100%;
+  font-weight: normal; }
+
+q:before, q:after {
+  content: ''; }
+
+abbr, acronym {
+  border: 0; }
+
+a {
+  text-decoration: none; }
+
+/****************************************************************************************
+ * Theme specific jQuery UI overrides and additions
+ *
+ */
+.ui-icon {
+  float: left;
+  margin-right: 2px; }
+
+.ui-widget {
+  font-size: 1em; }
+
+.Inputfields li:not(.Inputfield) .ui-widget-header .ui-icon,
+#breadcrumb .ui-state-default .ui-icon,
+.ui-state-default .ui-icon,
+.ui-state-hover .ui-icon,
+.ui-state-highlight .ui-icon,
+.ui-state-error .ui-icon {
+  /* use white icons */
+  background-image: url(JqueryUI/images/ui-icons_FFFFFF_256x240.png); }
+
+/**
+ * asmSelect and similar
+ *
+ */
+li.ui-state-default,
+.ui-widget-content li.ui-state-default {
+  background: #d8744e;
+  /* LIGHT-ORANGE */
+  border-color: #d8744e;
+  /* LIGHT-ORANGE */
+  color: white;
+  /* WHITE */ }
+
+li.ui-state-default a,
+.ui-widget-content li.ui-state-default a {
+  color: white;
+  /* WHITE */ }
+
+li.ui-state-hover,
+.ui-widget-content li.ui-state-hover {
+  background: #c7572c;
+  /* LIGHT-KHAKI */
+  border-color: #c7572c;
+  /* LIGHT-KHAKI */
+  color: white; }
+
+li.ui-state-hover a,
+.ui-widget-content li.ui-state-hover a {
+  color: white;
+  /* BLACK */ }
+
+.InputfieldForm .ui-accordion-header,
+.ui-accordion-header {
+  padding-left: 1.5em;
+  background: #82be05;
+  border: none;
+  color: white; }
+
+.InputfieldForm .ui-accordion-header a,
+.ui-accordion-header a,
+#footer .ui-accordion-header a {
+  color: white; }
+
+.ui-accordion-content,
+.content .InputfieldForm .ui-accordion-content,
+.content .InputfieldForm .InputfieldMarkup .ui-accordion-content {
+  margin-top: 0;
+  padding-top: 0; }
+
+/**
+ * Highlight and error states 
+ *
+ */
+.ui-state-highlight,
+.ui-widget-content .ui-state-highlight,
+.ui-widget-header .ui-state-highlight {
+  color: #2f4206;
+  background: #d1f486;
+  /* HIGHLIGHT */
+  border: none;
+  border-bottom: 1px solid white; }
+
+.ui-state-error,
+.ui-widget-content .ui-state-error {
+  background: #a30000;
+  color: white;
+  border: none;
+  font-weight: bold; }
+
+#notices .ui-state-highlight,
+#notices .ui-state-error {
+  padding: 0.25em;
+  padding-left: 1.5em; }
+
+#notices .ui-state-highlight .ui-icon,
+#notices .ui-state-error .ui-icon {
+  position: relative;
+  top: 2px; }
+
+.ui-state-highlight a,
+.ui-state-error a {
+  text-decoration: underline; }
+
+p span.ui-state-error {
+  padding: 0.25em 0.5em; }
+
+/**
+ * ui-dialog
+ *
+ */
+.ui-dialog .ui-dialog-title {
+  font-weight: normal;
+  /* same color as label.ui-widget-header */
+  color: #743a25;
+  /* BROWN */ }
+
+.ui-dialog .ui-dialog-content {
+  padding: 0;
+  max-width: 100%;
+  /* prevents safari overflow */ }
+
+.ui-widget-overlay {
+  background: #222222;
+  /* BLACK */ }
+
+/**
+ * ui-button
+ *
+ */
+.ui-button,
+button.ui-button.ui-state-default,
+.ui-button.ui-state-default {
+  box-shadow: none !important;
+  text-shadow: none !important;
+  color: white;
+  /* WHITE */
+  background: #82be05;
+  /* LIGHT-GREEN */
+  border: 1px solid #82be05;
+  /* LIGHT-GREEN */
+  font-weight: bold;
+  padding: 5px 10px;
+  font-size: 1em; }
+
+button.ui-button span {
+  text-shadow: none !important; }
+
+.ui-button:hover,
+button.ui-button.ui-state-hover,
+.ui-button.ui-state-hover {
+  box-shadow: none !important;
+  color: white;
+  background: #0e9d98;
+  /* CYAN */
+  border: 1px solid #0e9d98;
+  /* CYAN */
+  font-weight: bold;
+  font-size: 1em;
+  text-decoration: none; }
+
+div + a > .ui-button {
+  margin-top: 1em; }
+
+/*
+p > a > .ui-button {
+	font-size: 0.923076923076923em;
+}
+
+a .ui-button {
+	display: block;
+}
+*/
+/*
+.ui-accordion-header-icon {
+	display: none; 
+}
+*/
+/**
+ * ui-slider
+ * 
+ */
+.ui-widget .ui-slider .ui-slider-range,
+.ui-widget-content .ui-slider .ui-slider-range {
+  background: #0e9d98;
+  /* CYAN */
+  /* remove padding added to Inputfields that was getting inherited here */
+  padding: 0; }
+
+/**
+ * ui-autocomplete
+ *
+ */
+.ui-autocomplete {
+  box-shadow: 0 1px 3px 3px rgba(0, 0, 0, 0.15); }
+
+.ui-autocomplete li {
+  border-bottom: 1px solid #d2ceb9;
+  /* LIGHT-KHAKI */
+  color: #222222; }
+
+.ui-autocomplete li a {
+  color: #743a25;
+  cursor: pointer; }
+
+.ui-autocomplete li a:hover {
+  color: #0e9d98; }
+
+.ui-autocomplete li small {
+  opacity: 0.5; }
+
+.ui-autocomplete .ui-widget-header a,
+.ui-autocomplete .ui-widget-header a:hover {
+  font-weight: bold;
+  background: #0e9d98;
+  color: white;
+  text-shadow: none; }
+
+/**
+ * ui-tooltip
+ *
+ */
+.ui-tooltip {
+  padding: 10px 20px;
+  color: white;
+  border-radius: 5px;
+  font: bold 12px "Helvetica Neue", Sans-Serif;
+  box-shadow: 0 0 7px #222222; }
+
+.ui-tooltip, .arrow:after {
+  background: #222222;
+  /* BLACK */
+  border: 2px solid white;
+  /* WHITE */ }
+
+.arrow {
+  width: 70px;
+  height: 16px;
+  overflow: hidden;
+  position: absolute;
+  left: 50%;
+  margin-left: -35px;
+  bottom: -16px; }
+
+.arrow.top {
+  top: -16px;
+  bottom: auto; }
+
+.arrow.left {
+  left: 20%; }
+
+.arrow:after {
+  content: "";
+  position: absolute;
+  left: 20px;
+  top: -20px;
+  width: 25px;
+  height: 25px;
+  box-shadow: 6px 5px 9px -9px #222222;
+  /* BLACK */
+  -webkit-transform: rotate(45deg);
+  -moz-transform: rotate(45deg);
+  -ms-transform: rotate(45deg);
+  -o-transform: rotate(45deg);
+  tranform: rotate(45deg); }
+
+.arrow.top:after {
+  bottom: -20px;
+  top: auto; }
+
+/***********************************************************************************************
+ * GENERAL
+ *
+ */
+*, *:before, *:after {
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box; }
+
+body {
+  background: #e6e4d8;
+  /* LIGHT KHAKI */ }
+
+body,
+.ui-dialog,
+.ui-button {
+  font: 10px/20px "Helvetica Neue", Arial, sans-serif; }
+
+body {
+  color: #222222;
+  /* BLACK */ }
+
+body.modal {
+  background-color: white;
+  /* WHITE */ }
+
+#masthead,
+#headline,
+#content,
+#footer {
+  padding-right: 20px;
+  padding-left: 20px; }
+
+#masthead,
+#notices,
+#content,
+.ui-dialog {
+  font-size: 1.3em; }
+
+.container {
+  position: relative;
+  width: 95%;
+  max-width: 1200px;
+  margin: 0 auto; }
+
+a {
+  /* standard link color */
+  color: #6f9d0e;
+  /* GREEN */ }
+
+a:hover {
+  /* hovered link color */
+  color: #0e9d98;
+  /* CYAN */ }
+
+a.on {
+  /* on/active link color */
+  background: #82be05;
+  /* LIGHT-GREEN */
+  color: white;
+  /* WHITE */ }
+
+.WireFatalError {
+  background: #a30000;
+  /* DARK-RED */
+  color: white;
+  /* WHITE */
+  padding: 1em;
+  position: relative;
+  z-index: 9999; }
+
+/***********************************************************************************************
+ * MASTHEAD
+ *
+ */
+#masthead {
+  height: 74px;
+  /*
+  background: #333F4D; 
+  background: #646047;
+  */
+  background: #a73003;
+  /* DARK-ORANGE */
+  position: relative;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  /* BLACK */ }
+  #masthead a {
+    color: white;
+    /* WHITE */ }
+  #masthead #masthead_shade {
+    background: rgba(255, 255, 255, 0.05);
+    /* WHITE */
+    height: 1px;
+    position: absolute;
+    left: 0;
+    top: 43px;
+    width: 100%; }
+  #masthead #logo {
+    position: absolute;
+    left: -3px;
+    top: 10px; }
+  #masthead #logo:hover {
+    background: none; }
+  #masthead #topnav {
+    position: absolute;
+    right: 0;
+    top: 43px;
+    margin: 0; }
+    #masthead #topnav li {
+      padding: 0;
+      margin: 0;
+      list-style: none;
+      display: inline;
+      line-height: 1em; }
+    #masthead #topnav a {
+      background: rgba(255, 255, 255, 0.05);
+      /* WHITE */
+      display: block;
+      float: left;
+      margin: 0 0 0 1px;
+      padding: 10px 10px 10px 10px; }
+    #masthead #topnav a:hover,
+    #masthead #topnav a.on {
+      color: #222222;
+      /* BLACK */
+      background: white;
+      /* WHITE */
+      text-decoration: none; }
+  #masthead #breadcrumb {
+    position: absolute;
+    left: 0;
+    top: 49px; }
+    #masthead #breadcrumb li {
+      color: #fff;
+      color: rgba(255, 255, 255, 0.5);
+      display: inline;
+      padding: 0;
+      line-height: 1em;
+      white-space: nowrap; }
+    #masthead #breadcrumb li:after {
+      content: " \232A"; }
+    #masthead #breadcrumb a {
+      opacity: 0.7;
+      padding-right: 4px; }
+    #masthead #breadcrumb a:hover {
+      opacity: 1.0;
+      background: none;
+      text-decoration: underline; }
+    #masthead #breadcrumb a.sitelink {
+      float: left; }
+      #masthead #breadcrumb a.sitelink .ui-icon {
+        float: left; }
+    #masthead #breadcrumb .ui-state-default {
+      /* for home icon */
+      border: none;
+      background: none; }
+  #masthead #head_button {
+    /* The main/primary button for a listing screen, appears in the masthead */
+    position: absolute;
+    top: 91px;
+    right: 0;
+    display: none;
+    z-index: 1; }
+    #masthead #head_button button {
+      margin-right: 0;
+      margin-left: 10px; }
+  #masthead #ProcessPageSearchForm {
+    position: absolute;
+    top: 9px;
+    right: 0;
+    width: 25%; }
+  #masthead #ProcessPageSearchQuery {
+    padding: 5px 8px;
+    height: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    /*rgba(255,255,255,0.1);*/
+    /*WHITE */
+    background: transparent;
+    width: 100%;
+    color: rgba(255, 255, 255, 0.8);
+    /*rgba(255,255,255,0.8);*/
+    /* WHITE */ }
+  #masthead #ProcessPageSearchQuery:focus {
+    background: white;
+    /* WHITE */
+    color: #222222;
+    /* BLACK */
+    text-transform: none;
+    font-weight: normal; }
+  #masthead #ProcessPageSearchStatus {
+    position: absolute;
+    top: 3px;
+    right: 10px;
+    color: #999999;
+    /* GREY */ }
+
+/* #masthead */
+#notices {
+  position: relative;
+  top: -1px; }
+
+#headline {
+  padding-top: 2em;
+  padding-bottom: 2em;
+  background: white;
+  /* WHITE */
+  border-bottom: 1px solid #e6e4d8;
+  /* LIGHT KHAKI */ }
+
+#title {
+  font-size: 2.5em;
+  line-height: 1em;
+  margin: 0;
+  color: #222222;
+  /* BLACK */
+  padding-right: 3em; }
+
+/***********************************************************************************************
+ * CONTENT
+ *
+ */
+#content {
+  position: relative;
+  background: white;
+  /* WHITE */
+  padding-bottom: 2em;
+  padding-top: 1px; }
+
+#content .container {
+  min-height: 50px; }
+
+#content .container > form,
+#content .container > .ui-helper-clearfix > form {
+  position: relative;
+  top: -2px; }
+
+.content {
+  /**
+   * Actions: like the "|edit|view|new" in the PageList
+   *
+   */
+  /**
+   * Content navigation like when on the root page of "templates" or "access"
+   *
+   */
+  /**
+   * WireTabs
+   *
+   */
+  /**
+   * PageList
+   *
+   */
+  /* MarkupAdminDataTable */
+  /* MarkupPagerNav */
+  /* Pagination */ }
+  .content img {
+    display: block; }
+  .content .WireTabs a {
+    /*font-size: 0.84615em;*/
+    font-weight: bold; }
+  .content .nav a.label {
+    font-size: 1em; }
+  .content p,
+  .content ul
+  ol,
+  .content table {
+    margin: 1em 0; }
+  .content table th,
+  .content table th.header,
+  .content table.AdminDataList th,
+  .content h4 {
+    color: #8e94c2;
+    /* LIGHT-PURPLE */ }
+  .content table th.headerSortUp,
+  .content table th.headerSortDown,
+  .content table th:hover {
+    color: #333e99;
+    /* DARK-PURPLE */ }
+  .content table.AdminDataList {
+    margin-top: 0; }
+  .content h2 {
+    margin: 1em 0;
+    font-size: 1.4em;
+    line-height: 1.2em;
+    color: #777777;
+    /* DARK-GREY */ }
+  .content h2 a {
+    text-decoration: underline; }
+  .content h2 a:hover {
+    color: white;
+    /* WHITE */
+    background: #0e9d98;
+    text-decoration: none; }
+  .content h3 {
+    margin: 1em 0;
+    font-size: 1.2em; }
+  .content h4 {
+    margin: 1em 0 0.25em 0;
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: 0.916666666666667em; }
+  .content li {
+    margin: 1em 0;
+    display: block;
+    list-style: disc; }
+  .content ol li {
+    display: list-item;
+    list-style-type: decimal;
+    margin-left: 1em; }
+  .content .PageListActions {
+    margin-left: -2px; }
+  .content ul.actions li,
+  .content .PageListActions li,
+  .content li.action {
+    border: none;
+    padding: 0 1px;
+    margin: 0; }
+  .content ul.actions li a,
+  .content li.action a {
+    border-bottom: none;
+    text-transform: uppercase;
+    font-weight: bold;
+    border-left: 1px solid #e6e4d8;
+    /* LIGHT-KHAKI */ }
+  .content li.action a, .content .actions a,
+  .content .PageList .actions a,
+  .content .PageListMoveNote a {
+    /* action links */
+    color: #82be05;
+    /* LIGHT-GREEN */
+    padding: 0 4px 0 4px;
+    display: inline-block;
+    font-size: 0.8333333333em;
+    border-radius: 3px;
+    font-weight: bold;
+    text-transform: uppercase; }
+  .content .actions a:hover,
+  .content li.action a:hover,
+  .content .PageListMoveNote a:hover,
+  .content .content .PageListPagination a:hover,
+  .content .MarkupPagerNav a:hover {
+    /* action links hovered */
+    color: white;
+    /* WHITE */
+    background: #0e9d98;
+    /* CYAN */ }
+  .content dl {
+    margin: 1em 0; }
+  .content .container > dl:first-child {
+    margin-top: 0; }
+  .content dt,
+  .content dt {
+    display: block;
+    font-weight: bold;
+    padding-top: 0.75em; }
+  .content dt a {
+    text-transform: none; }
+  .content dl dd {
+    padding-bottom: 0.75em;
+    border-bottom: 1px dotted #e6e4d8;
+    /* LIGHT KHAKI */ }
+  .content .WireTabs {
+    left: 0;
+    top: 1.1em;
+    margin-top: -1.1em !important; }
+    .content .WireTabs li {
+      background: none;
+      margin: 0;
+      padding: 0; }
+    .content .WireTabs a {
+      padding: 8px 15px;
+      display: inline-block; }
+    .content .WireTabs a.on {
+      background: #e6e4d8;
+      /* LIGHT-KHAKI */
+      color: #222222;
+      /* BLACK */ }
+  .content .PageList a.PageListPage {
+    color: #743a25;
+    /* BROWN */ }
+  .content .PageList a.PageListPage:hover {
+    text-decoration: underline;
+    color: #0e9d98; }
+  .content .PageList .PageListItemOpen > a.PageListPage {
+    color: #f64704;
+    /* ORANGE */ }
+  .content .PageList .PageListStatusHidden > a.PageListPage {
+    opacity: 0.7; }
+  .content .PageList .PageListNumChildren {
+    font-size: 0.833333em; }
+  .content .PageList .PageListItemOpen .PageListNumChildren {
+    padding-right: 0.5em;
+    border-right: 1px solid #e6e4d8;
+    /* LIGHT-GREY */ }
+  .content .AdminDataList th,
+  .content .AdminDataList td {
+    border-color: #dcd9c8; }
+  .content .AdminDataList tr:hover td,
+  .content .AdminDataList tr:hover th {
+    background: #ffffdd; }
+  .content .MarkupPagerNav {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    margin: 1em 0; }
+    .content .MarkupPagerNav li {
+      padding: 0;
+      margin: 0;
+      list-style: none;
+      display: inline;
+      padding: 6px 0;
+      background: none; }
+      .content .MarkupPagerNav li a {
+        padding: 4px 9px;
+        margin: 0;
+        text-decoration: none; }
+    .content .MarkupPagerNav li.MarkupPagerNavSeparator {
+      border: none; }
+  .content .PageListPagination a,
+  .content .MarkupPagerNav a {
+    background: #e6e4d8;
+    /* LIGHT KHAKI */
+    color: #222222;
+    /* BLACK */
+    font-weight: bold;
+    border-radius: 2px;
+    padding: 2px 6px; }
+  .content .PageListPaginationCurrent a,
+  .content .MarkupPagerNavOn a {
+    color: white;
+    /* WHITE */
+    background: #f64704;
+    /* ORANGE */ }
+  .content .InputfieldPageNameURL a {
+    color: #8e94c2; }
+  .content .InputfieldPageNameURL a:hover {
+    color: #333e99; }
+
+.description {
+  color: #777777;
+  /* DARK GREY */
+  margin: 0.5em 0; }
+
+.notes,
+.detail {
+  font-size: 0.846153846153846em;
+  color: #777777;
+  /* DARK GREY */
+  line-height: 1.3em; }
+
+.notes {
+  background: #ffffdd; }
+
+.description strong,
+.notes strong {
+  color: #777777;
+  /* DARK GREY */
+  font-weight: bold; }
+
+.error {
+  background: #a30000;
+  color: white;
+  /* DARK RED */
+  font-weight: bold;
+  font-size: 0.9166666em; }
+
+/***********************************************************************************************
+ * FOOTER
+ *
+ */
+#footer {
+  margin: 2em 0 2em 0;
+  font-size: 1.1em;
+  color: #999999;
+  /* GREY */ }
+  #footer a {
+    color: #d8744e;
+    /* LIGHT-ORANGE */ }
+  #footer p {
+    margin-top: 0; }
+  #footer #userinfo {
+    display: block;
+    float: right; }
+
+#debug {
+  margin-top: 2em; }
+  #debug .container {
+    width: 100%; }
+  #debug p {
+    margin: 1em 0; }
+  #debug ol {
+    margin: 1em 0; }
+  #debug h4 {
+    font-weight: bold; }
+  #debug table {
+    width: 100%; }
+    #debug table th {
+      font-weight: bold; }
+    #debug table td, #debug table th {
+      vertical-align: top;
+      padding: 3px 5px;
+      border-bottom: 1px dotted #999999;
+      /* LIGHT-GREY */
+      border-left: 1px dotted #999999;
+      /* LIGHT-GREY */
+      font-size: 12px; }
+
+/***********************************************************************************************
+ * INPUTFIELD COLORS
+ *
+ */
+.InputfieldForm {
+  /*
+  .InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header .ui-icon { 
+  	top: 5px; 
+  }
+  */ }
+  .InputfieldForm .Inputfield {
+    background: white; }
+  .InputfieldForm .ui-widget-header,
+  .InputfieldForm label.ui-widget-header,
+  .InputfieldForm .InputfieldWrapper > .description {
+    background: white;
+    /* WHITE */
+    border: 1px solid #e6e4d8;
+    /* LIGHT-KHAKI */
+    border-bottom: none;
+    color: #743a25;
+    /* BROWN */ }
+  .InputfieldForm .InputfieldWrapper > .description {
+    margin: 0;
+    padding-bottom: 1em;
+    margin-bottom: -1em; }
+  .InputfieldForm label.ui-widget-header + .ui-widget-content {
+    border: 1px solid #e6e4d8;
+    /* LIGHT-KHAKI */
+    border-top: none;
+    background: white;
+    /* WHITE */ }
+  .InputfieldForm .InputfieldMarkup .ui-widget-content {
+    border: 1px solid #e6e4d8;
+    /* LIGHT-KHAKI */
+    margin-top: 1em;
+    padding: 1em; }
+  .InputfieldForm .InputfieldMarkup .ui-widget-header + .ui-widget-content {
+    margin-top: 0;
+    padding-top: 0; }
+  .InputfieldForm .InputfieldStateCollapsed label.ui-widget-header {
+    background: white;
+    /* WHITE */
+    border: 1px solid #e6e4d8;
+    /* LIGHT-KHAKI */ }
+  .InputfieldForm .InputfieldStateCollapsed label.ui-widget-header:hover {
+    /* style for collapsed header when hovered */
+    border-color: #e6e4d8;
+    /* LIGHT-KHAKI */
+    background: white;
+    /* WHITE */ }
+  .InputfieldForm .Inputfields .InputfieldPageName .ui-widget-header,
+  .InputfieldForm .Inputfields .InputfieldPageName .ui-widget-content,
+  .InputfieldForm .Inputfields > .InputfieldItemList:not(.InputfieldStateCollapsed) > .ui-widget-header,
+  .InputfieldForm .Inputfields > .InputfieldFieldset:not(.InputfieldStateCollapsed) > .ui-widget-header,
+  .InputfieldForm .Inputfields > .InputfieldFieldsetOpen:not(.InputfieldStateCollapsed) > .ui-widget-header,
+  .InputfieldForm .Inputfields > .InputfieldItemList > .ui-widget-header + .ui-widget-content,
+  .InputfieldForm .Inputfields > .InputfieldFieldset > .ui-widget-header + .ui-widget-content,
+  .InputfieldForm .Inputfields > .InputfieldFieldsetOpen > .ui-widget-header + .ui-widget-content {
+    /* Inputfields containing other items get a different background color */
+    background: rgba(230, 228, 216, 0.5); }
+  .InputfieldForm .InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header,
+  .InputfieldForm .InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header {
+    /* file item or repeater item */
+    border: none;
+    background: #82be05;
+    /* LIGHT-GREEN */
+    color: white;
+    /* WHITE */ }
+  .InputfieldForm .InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header:hover,
+  .InputfieldForm .InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header:hover {
+    /* file item or repeater item */
+    background: #0e9d98;
+    /* CYAN */
+    border: none; }
+  .InputfieldForm .InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header a {
+    color: white;
+    /* WHITE */ }
+  .InputfieldForm .InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header.ui-state-error,
+  .InputfieldForm .InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header.ui-state-error {
+    text-decoration: line-through;
+    background: #a30000;
+    border: none; }
+  .InputfieldForm .InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldStateCollapsed {
+    margin-bottom: 1em; }
+  .InputfieldForm .InputfieldItemList .ui-widget-header .ui-icon {
+    margin-top: 2px; }
+  .InputfieldForm .InputfieldItemList .ui-widget-header.ui-state-error {
+    border: none; }
+  .InputfieldForm .InputfieldStateRequired > label.ui-widget-header:first-child:after {
+    color: #a30000; }
+  .InputfieldForm .Inputfield.ui-state-error {
+    border: none; }
+  .InputfieldForm .InputfieldButton,
+  .InputfieldForm .InputfieldSubmit {
+    background: none; }
+  .InputfieldForm .Inputfields > .InputfieldStateCollapsed > .ui-widget-header {
+    /* adjust text color for collapsed Inputfields */
+    color: #ce8064;
+    /* LIGHT-BROWN */ }
+
+/***********************************************************************************************
+ * MODAL
+ *
+ */
+body.modal .container {
+  margin: 0;
+  width: 100%;
+  min-width: 300px; }
+body.modal .content h2 {
+  margin: 0.5em 0;
+  font-size: 1.3em; }
+body.modal #footer,
+body.modal #masthead,
+body.modal #headline {
+  display: none; }
+
+/***********************************************************************************************
+ * MISC
+ *
+ */
+.content > .container > #PageListContainer {
+  margin-top: 1.5em; }
+
+#fieldgroupContext {
+  /* context selection in field editor */
+  background: white;
+  /* WHITE */
+  padding-left: 0.5em; }
+
+.align_left,
+.align-left {
+  float: left;
+  margin: 0 1em 0.5em 0; }
+
+.align_right,
+.align-right {
+  float: right;
+  margin: 0 0 0.5em 1em; }
+
+.align_center,
+.align-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto; }
+
+/***********************************************************************************************
+ * MEDIA QUERIES
+ *
+ */
+/* Smaller than standard 960 (devices and browsers) */
+/* Tablet Portrait size to standard 960 (devices and browsers) */
+/* All Mobile Sizes (devices and browser) */
+@media only screen and (max-width: 767px) {
+  #topnav {
+    left: 0; }
+
+  #masthead #breadcrumb {
+    top: 12px;
+    left: 1px;
+    width: 70%;
+    white-space: nowrap;
+    overflow: hidden; }
+
+  #logo {
+    display: none; }
+
+  #masthead,
+  #headline,
+  body:not(.modal) #content,
+  #footer {
+    padding-right: 10px;
+    padding-left: 10px; }
+
+  #head_button {
+    display: none !important; } }
+/* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
+/* Mobile Portrait Size to Mobile Landscape Size (devices and browsers) */
+@media only screen and (max-width: 479px) {
+  /**
+   * Disregard column width when at mobile size
+   *
+   */
+  .Inputfield {
+    clear: both !important;
+    width: 100% !important;
+    margin-left: 0 !important; }
+
+  .container {
+    width: 100%; }
+
+  #footer #userinfo {
+    float: none; }
+
+  #footer {
+    text-align: center; } }

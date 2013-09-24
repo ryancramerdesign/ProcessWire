@@ -4,7 +4,7 @@
  * An Inputfield for handling file uploads
  *
  */
-class InputfieldFile extends Inputfield {
+class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 	public static function getModuleInfo() {
 		return array(
@@ -49,7 +49,7 @@ class InputfieldFile extends Inputfield {
 		$this->set('itemClass', 'InputfieldFile ui-widget ui-widget-content'); 
 		$this->set('descriptionFieldLabel', $this->_('Description')); // Description field label
 		$this->set('tagsFieldLabel', $this->_('Tags')); // Tags field label
-		$this->setAttribute('type', 'file'); 
+		$this->attr('type', 'file'); 
 
 		// get the max filesize
 		$filesize = trim(ini_get('post_max_size'));
@@ -83,22 +83,22 @@ class InputfieldFile extends Inputfield {
 		}
 	}
 
-        /**
-         * Set the parent of this Inputfield
-         *
-         * @param Inputfield $parent
-         *
-         */
-        public function setParent(InputfieldWrapper $parent) {
+	/**
+	 * Set the parent of this Inputfield
+	 *
+	 * @param InputfieldWrapper $parent
+	 * @return this
+	 *
+	 */
+	public function setParent(InputfieldWrapper $parent) {
 		parent::setParent($parent); 
 		$this->checkFormEnctype();
-                return $this;
-        }
+		return $this;
+	}
 
 	protected function pagefileId(Pagefile $pagefile) {
 		return $this->name . "_" . $pagefile->hash; 
 	}
-
 
 	protected function renderItemDescriptionField(Pagefile $pagefile, $id, $n) {
 		$out = '';
@@ -123,7 +123,7 @@ class InputfieldFile extends Inputfield {
 
 	protected function ___renderItem($pagefile, $id, $n) {
 
-		$out = 	"\n\t\t<p class='InputfieldFileInfo ui-state-default'>" . 
+		$out = 	"\n\t\t<p class='InputfieldFileInfo ui-state-default ui-widget-header'>" . 
 			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>" . 
 			"\n\t\t\t<a class='InputfieldFileName' href='{$pagefile->url}'>{$pagefile->basename}</a> " . 
 			"\n\t\t\t<span class='InputfieldFileStats'>{$pagefile->filesizeStr}</span> " . 
@@ -146,7 +146,6 @@ class InputfieldFile extends Inputfield {
 		if(!$value) return '';
 		$out = '';
 		$n = 0; 
-		$itemClass = $this->itemClass; 
 
 		foreach($value as $k => $pagefile) {
 			$id = $this->pagefileId($pagefile);

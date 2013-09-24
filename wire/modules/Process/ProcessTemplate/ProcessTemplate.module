@@ -463,9 +463,9 @@ class ProcessTemplate extends Process {
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Basics', 'tab'));
 		$t->attr('class', 'WireTab'); 
-		$head = sprintf($this->_n('This template is used by 1 page', 'This template is used by %d pages', $this->numPages), $this->numPages);
-		if($this->numPages) $head = str_replace(" {$this->numPages} ", " [{$this->numPages}]({$this->config->urls->admin}page/search/?show_options=0&amp;template={$template->name}) ", $head); 
-		$t->head = $head; 
+		// $head = sprintf($this->_n('This template is used by 1 page', 'This template is used by %d pages', $this->numPages), $this->numPages);
+		// if($this->numPages) $head = str_replace(" {$this->numPages} ", " [{$this->numPages}]({$this->config->urls->admin}page/search/?show_options=0&amp;template={$template->name}) ", $head); 
+		// $t->head = $head; 
 		$f = $this->modules->get('InputfieldText'); 
 		$f->attr('name', 'templateLabel'); 
 		$f->attr('value', $template->label); 
@@ -484,35 +484,35 @@ class ProcessTemplate extends Process {
 		
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Access', 'tab'));
-		$t->head = $this->_('Manage template access');
+		// $t->head = $this->_('Manage template access');
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormAccess($template)); 
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Family', 'tab'));
-		$t->head = $this->_('Optional usage and placement in the page tree');
+		// $t->head = $this->_('Optional usage and placement in the page tree');
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormFamily($template)); 
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('URLs', 'tab'));
-		$t->head = $this->_('Optional settings for URLs of pages using this template');
+		// $t->head = $this->_('Optional settings for URLs of pages using this template');
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormURLs($template)); 
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Cache', 'tab'));
-		$t->head = $this->_("Output caching");
+		// $t->head = $this->_("Output caching");
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormCache($template)); 
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Advanced', 'tab'));
-		$t->head = $this->_('Optional advanced template settings');
+		// $t->head = $this->_('Optional advanced template settings');
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormAdvanced($template)); 
 		$form->add($t); 
@@ -520,7 +520,7 @@ class ProcessTemplate extends Process {
 		if($this->config->advanced) {
 			$t = new InputfieldWrapper();
 			$t->attr('title', $this->_x('System', 'tab'));
-			$t->head = $this->_('System-specific template settings');
+			// $t->head = $this->_('System-specific template settings');
 			$t->attr('class', 'WireTab'); 
 			$t->add($this->buildEditFormSystem($template)); 
 			$form->add($t); 
@@ -529,14 +529,14 @@ class ProcessTemplate extends Process {
 		$t = new InputfieldWrapper();
 		$t->attr('class', 'WireTab'); 
 		$t->attr('title', $this->_x('Import', 'tab'));
-		$t->head = $this->_('Import fields from another template');
+		// $t->head = $this->_('Import fields from another template');
 		$t->add($this->buildEditFormImport());
 		$form->add($t);
 
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Delete', 'tab'));
 		$t->attr('id', 'WireTabDelete'); 
-		$t->head = $this->_('Delete template');
+		// $t->head = $this->_('Delete template');
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormDelete($template)); 
 		$form->add($t); 	

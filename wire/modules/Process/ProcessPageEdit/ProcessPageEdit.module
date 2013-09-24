@@ -251,7 +251,7 @@ class ProcessPageEdit extends Process {
 		if($this->page->is(Page::statusUnpublished)) {
 
 			if(get_class($this->page) == 'Page') {
-				if(!$form->description) $form->description = $this->_("This page is currently unpublished");
+				//if(!$form->description) $form->description = $this->_("This page is currently unpublished");
 				$field2 = $this->modules->get('InputfieldSubmit'); 
 				$field2->attr('name', 'submit_save'); 
 				$field2->attr('id', 'submit_save_unpublished'); 
