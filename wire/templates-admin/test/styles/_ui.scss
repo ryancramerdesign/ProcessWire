@@ -149,6 +149,7 @@ button.ui-button.ui-state-default,
 	font-weight: bold;
 	padding: 5px 10px; 
 	font-size: 1em; 
+	border-radius: $button-radius; 
 }
 	button.ui-button span {
 		text-shadow: none !important;
@@ -236,7 +237,7 @@ a .ui-button {
 .ui-tooltip {
 	padding: 10px 20px;
 	color: $reverse-text-color;
-	border-radius: 5px;
+	border-radius: $button-radius;
 	font: bold 12px "Helvetica Neue", Sans-Serif;
 	box-shadow: 0 0 7px $text-color;
 }

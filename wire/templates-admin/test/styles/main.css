@@ -180,7 +180,8 @@ button.ui-button.ui-state-default,
   /* LIGHT-GREEN */
   font-weight: bold;
   padding: 5px 10px;
-  font-size: 1em; }
+  font-size: 1em;
+  border-radius: 5px; }
 
 button.ui-button span {
   text-shadow: none !important; }
@@ -427,14 +428,21 @@ a.on {
       display: block;
       float: left;
       margin: 0 0 0 1px;
-      padding: 10px 10px 10px 10px; }
+      padding: 10px 10px 10px 10px;
+      border-top-right-radius: 5px;
+      border-top-left-radius: 5px; }
     #masthead #topnav a:hover,
+    #masthead #topnav a.on:hover,
     #masthead #topnav a.on {
       color: #222222;
       /* BLACK */
       background: white;
       /* WHITE */
       text-decoration: none; }
+    #masthead #topnav a:hover {
+      background: rgba(255, 255, 255, 0.2);
+      /* WHITE */
+      color: white; }
   #masthead #breadcrumb {
     position: absolute;
     left: 0;
@@ -488,7 +496,8 @@ a.on {
     width: 100%;
     color: rgba(255, 255, 255, 0.8);
     /*rgba(255,255,255,0.8);*/
-    /* WHITE */ }
+    /* WHITE */
+    border-radius: 5px; }
   #masthead #ProcessPageSearchQuery:focus {
     background: white;
     /* WHITE */
@@ -513,7 +522,7 @@ a.on {
   padding-bottom: 2em;
   background: white;
   /* WHITE */
-  border-bottom: 1px solid #e6e4d8;
+  /*border-bottom: 1px solid transparentize($subtle-border, 0.5);*/
   /* LIGHT KHAKI */ }
 
 #title {
@@ -670,21 +679,26 @@ a.on {
     border-bottom: 1px dotted #e6e4d8;
     /* LIGHT KHAKI */ }
   .content .WireTabs {
-    left: 0;
     top: 1.1em;
-    margin-top: -1.1em !important; }
+    margin-top: -1.1em !important;
+    left: 0; }
     .content .WireTabs li {
       background: none;
       margin: 0;
       padding: 0; }
     .content .WireTabs a {
-      padding: 8px 15px;
-      display: inline-block; }
-    .content .WireTabs a.on {
+      padding: 6px 15px;
+      display: inline-block;
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+      margin-right: 1px; }
+    .content .WireTabs a.on, .content .WireTabs a:hover {
       background: #e6e4d8;
       /* LIGHT-KHAKI */
       color: #222222;
       /* BLACK */ }
+    .content .WireTabs a:hover {
+      background: rgba(230, 228, 216, 0.5); }
   .content .PageList a.PageListPage {
     color: #743a25;
     /* BROWN */ }
@@ -1010,4 +1024,17 @@ body.modal #headline {
     float: none; }
 
   #footer {
-    text-align: center; } }
+    text-align: center; }
+
+  #masthead,
+  #content {
+    font-size: 1.1em; }
+
+  .content .WireTabs a {
+    padding: 3px 8px; }
+
+  #masthead #topnav {
+    top: 51px; }
+
+  #masthead #topnav a {
+    padding: 6px 8px; } }
