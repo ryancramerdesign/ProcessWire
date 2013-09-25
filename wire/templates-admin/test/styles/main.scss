@@ -4,55 +4,8 @@
  *
  */
 
-$white: #FFF; 
-$black: #222; 
-$brown: #743A25;
-$light-khaki: #E6E4D8;
-$green: #6F9D0E;
-$light-green: #82BE05;
-$cyan: #0E9D98;
-$orange: #F64704;
-$light-orange: #D8744E;
-$red: #a30000;
-$light-purple: #8E94C2;
-$dark-purple: #333E99;
 
-$text-bg: $white; 
-$masthead-bg: #A73003;
-$text-color: $black;
-$medium-text-color: #777; 
-$light-text-color: #999; 
-$reverse-text-color: $white;
-$subtle-bg: $light-khaki;
-$subtle-border: $subtle-bg;
-$link-color: $green;
-$link-hover-color: $cyan;
-$item-header-bg: $light-green;
-$item-header-color: $white; 
-$action-link-color: $light-green;
-$button-bg: $light-green; 
-$button-border: $light-green;
-$button-color: $white;
-$button-hover-bg: $link-hover-color;
-$button-hover-border: $link-hover-color; 
-$link-active-color: $orange; 
-$footer-link-color: $light-orange;
-$ui-state-default-bg: $light-orange;
-$ui-state-default-color: $reverse-text-color; 
-$ui-state-hover-bg: darken($light-orange, 10%);
-$ui-state-hover-color: $reverse-text-color; 
-$label-link-color: $brown;
-$table-th-color: $light-purple;
-$table-th-active-color: $dark-purple; 
-$highlight-bg: #D1F486;
-$highlight-color: darken($highlight-bg, 60%); 
-$error-bg: $red; 
-$error-border: $red; 
-$error-color: #fff; 
-$notes-bg: #ffffdd; 
-
-$button-radius: 5px; 
-
+@import 'colors-warm';
 @import 'reset';
 @import 'ui';
 
@@ -68,7 +21,7 @@ $button-radius: 5px;
  }
 
 body {
-	background: $subtle-bg; /* LIGHT KHAKI */
+	background: $footer-bg; /* LIGHT KHAKI */
 }
 	body,
 	.ui-dialog,
@@ -110,12 +63,17 @@ a {
 	a:hover {
 		/* hovered link color */
 		color: $link-hover-color; /* CYAN */
+		background: $link-hover-bg; 
 	}
 
 	a.on {
 		/* on/active link color */
-		background: $action-link-color; /* LIGHT-GREEN */
-		color: $reverse-text-color; /* WHITE */
+		background: $link-current-bg; /* LIGHT-GREEN */
+		color: $link-current-color; /* WHITE */
+	}
+	a:active {
+		color: $link-active-color;
+		background: $link-active-bg; 
 	}
 
 .WireFatalError {
@@ -132,32 +90,33 @@ a {
  */
 
 #masthead {
-	height: 74px; 
+	height: $masthead-height; 
 	/*
 	background: #333F4D; 
 	background: #646047;
 	*/
 	background: $masthead-bg; /* DARK-ORANGE */
 	position: relative; 
-	border-bottom: 1px solid rgba(0,0,0,0.1); /* BLACK */
+	/*border-bottom: 1px solid rgba(0,0,0,0.1);*/ 
 
 	a {
-		color: $reverse-text-color; /* WHITE */
+		color: $topnav-link-color; /* WHITE */
 	}
 
 	#masthead_shade {
-		background: rgba(255,255,255,0.05); /* WHITE */
-		height: 1px; 
+		background: $masthead-secondary-bg; 
+		border-top: $masthead-secondary-border; 
+		height: $topnav-height; 
 		position: absolute;
 		left: 0;
-		top: 43px;
+		bottom: 0;
 		width: 100%; 
 	}
 
 	#logo {
 		position: absolute; 
 		left: -3px;
-		top: 10px; 
+		top: 13px; 
 	}
 		#logo:hover {
 			background: none; 
@@ -166,8 +125,10 @@ a {
 
 	#topnav {
 		position: absolute;
+		top: 50px; 
 		right: 0;
-		top: 43px;
+		height: $topnav-height; 
+		overflow: hidden; 
 		margin: 0;
 
 		li {
@@ -179,25 +140,27 @@ a {
 		}
 
 		a {
-			background: rgba(255,255,255,0.05); /* WHITE */
+			background: $topnav-link-bg; 
+			color: $topnav-link-color; 
 			display: block;
 			float: left; 
 			margin: 0 0 0 1px;
-			padding: 10px 10px 10px 10px;
-			border-top-right-radius: $button-radius;
-			border-top-left-radius: $button-radius; 
+			padding: 9px 10px 11px 10px;
+			border-top-right-radius: $tabs-radius;
+			border-top-left-radius: $tabs-radius; 
 		}
 
-		a:hover,
-		a.on:hover,
-		a.on {
-			color: $text-color; /* BLACK */
-			background: $text-bg; /* WHITE */
-			text-decoration: none; 
-		}
 		a:hover {
 			background: transparentize($text-bg, 0.8); /* WHITE */
 			color: $reverse-text-color; 
+			text-decoration: none; 
+		}
+
+		a.on:hover,
+		a.on {
+			color: $topnav-link-current-color;
+			background: $topnav-link-current-bg; 
+			text-decoration: none; 
 		}
 	}
 
@@ -205,11 +168,10 @@ a {
 
 		position: absolute; 
 		left: 0; 
-		top: 49px; 
+		top: 56px; 
 
 		li {
-			color: #fff;
-			color: transparentize($reverse-text-color, 0.5); 
+			color: $breadcrumb-color; 
 			display: inline;
 			padding: 0;
 			line-height: 1em;
@@ -222,13 +184,12 @@ a {
 		}
 
 		a {
-			opacity: 0.7; 
+			color: $breadcrumb-link-color; 
 			padding-right: 4px; 
-			
 		}
 
 		a:hover {
-			opacity: 1.0;
+			color: $breadcrumb-link-hover-color; 
 			background: none; 
 			text-decoration: underline;
 		}
@@ -254,10 +215,10 @@ a {
 	#head_button {
 	 	/* The main/primary button for a listing screen, appears in the masthead */
 		position: absolute; 
-		top: 91px;
+		top: 90px;
 		right: 0; 
 		display: none; 
-		z-index: 1;
+		z-index: 2;
 
 		button {
 			margin-right: 0; 
@@ -267,7 +228,7 @@ a {
 
 	#ProcessPageSearchForm {
 		position: absolute; 
-		top: 9px;
+		top: 12px;
 		right: 0; 
 		width: 25%; 
 	}
@@ -304,17 +265,20 @@ a {
 }
 
 #headline {
-	padding-top: 2em;
-	padding-bottom: 2em;
-	background: $text-bg; /* WHITE */
-	/*border-bottom: 1px solid transparentize($subtle-border, 0.5);*/ /* LIGHT KHAKI */
+	position: relative; 
+	z-index: 1; 
+	min-height: 51px; 
+	padding-top: 1.25em;
+	padding-bottom: 1.25em;
+	background: $headline-bg; 
+	border-bottom: $headline-border; 
 }
 
 #title {
 	font-size: 2.5em; 
 	line-height: 1em; 
 	margin: 0;
-	color: $text-color; /* BLACK */
+	color: $headline-color; /* BLACK */
 	padding-right: 3em; 
 }
 
@@ -328,6 +292,7 @@ a {
 	background: $text-bg; /* WHITE */
 	padding-bottom: 2em; 
 	padding-top: 1px;
+	z-index: 0; 
 }
 	#content .container {
 		min-height: 50px; 
@@ -335,7 +300,7 @@ a {
 		#content .container > form,
 		#content .container > .ui-helper-clearfix > form {
 			position: relative;
-			top: -2px; 
+			top: -1px; 
 		}
 
 .content {
@@ -450,19 +415,17 @@ a {
 		color: $action-link-color; /* LIGHT-GREEN */
 		padding: 0 4px 0 4px; 
 		display: inline-block;
-		font-size: 0.8333333333em;
+		font-size: $action-link-font-size; 
 		border-radius: 3px; 
 		font-weight: bold;
 		text-transform: uppercase; 
 	}
 		.actions a:hover,
 		li.action a:hover,
-		.PageListMoveNote a:hover,
-		.content .PageListPagination a:hover,
-		.MarkupPagerNav a:hover {
+		.PageListMoveNote a:hover {
 			/* action links hovered */
-			color: $reverse-text-color; /* WHITE */
-			background: $link-hover-color; /* CYAN */
+			color: $action-link-hover-color; /* WHITE */
+			background: $action-link-hover-bg; /* CYAN */
 		}
 
 
@@ -497,7 +460,7 @@ a {
 
 	.WireTabs {
 
-		top: 1.1em;
+		top: 1.12em;
 		margin-top: -1.1em !important;
 		left: 0;
 
@@ -510,17 +473,24 @@ a {
 		a {
 			padding: 6px 15px;
 			display: inline-block;
-			border-top-left-radius: $button-radius;
-			border-top-right-radius: $button-radius; 
+			border-top-left-radius: $tabs-radius;
+			border-top-right-radius: $tabs-radius; 
 			margin-right: 1px; 
+			color: $wiretab-link-color;
+			background: $wiretab-link-bg; 
+		}
+		a.on {
+			background: $wiretab-link-current-bg; 
+			color: $wiretab-link-current-color; 
 		}
 
-		a.on, a:hover {
-			background: $subtle-bg; /* LIGHT-KHAKI */
-			color: $text-color; /* BLACK */
-		}
 		a:hover {
-			background: transparentize($subtle-bg, 0.5); 
+			background: $wiretab-link-hover-bg; 
+			color: $wiretab-link-hover-color; 
+		}
+		a:active{
+			background: $wiretab-link-active-bg; 
+			color: $wiretab-link-active-color; 
 		}
 	}
 
@@ -532,15 +502,20 @@ a {
 	.PageList {
 
 		a.PageListPage {
-			color: $label-link-color; /* BROWN */
+			color: $pagelist-link-color; /* BROWN */
+			opacity: 1.0;
+		}
+		.PageListItem > a.PageListPage:hover {
+			text-decoration: underline;
+			color: $pagelist-link-hover-color; 
+		}
+		.PageListItem > a.PageListPage:active {
+			text-decoration: underline;
+			color: $pagelist-link-active-color; 
 		}
 
-		a.PageListPage:hover {
-			text-decoration: underline;
-			color: $link-hover-color; 
-		}
 		.PageListItemOpen > a.PageListPage  {
-			color: $link-active-color; /* ORANGE */
+			color: $pagelist-link-open-color; /* ORANGE */
 		}
 
 		.PageListStatusHidden > a.PageListPage {
@@ -596,21 +571,45 @@ a {
 	}
 
 	/* Pagination */
+	.PageListPagination,
+	.MarkupPagerNav {
+		color: text-color;
+		font-size: $pagination-font-size; 
+	}
 	.PageListPagination a,
 	.MarkupPagerNav a {
-		background: $subtle-bg; /* LIGHT KHAKI */
-		color: $text-color; /* BLACK */ 
+		background: $pagination-link-bg; /* LIGHT KHAKI */
+		color: $pagination-link-color; /* BLACK */ 
 		font-weight: bold;
-		border-radius: 2px; 
+		border-radius: $pagination-link-border-radius; 
+		border: none;
 		padding: 2px 6px; 
 	}
 
 	.PageListPaginationCurrent a,
 	.MarkupPagerNavOn a {
-		color: $reverse-text-color; /* WHITE */
-		background: $link-active-color; /* ORANGE */
+		color: $pagination-link-current-color; /* WHITE */
+		background: $pagination-link-current-bg; /* ORANGE */
 	}
 
+	.PageListPagination a:hover,
+	.MarkupPagerNav a:hover {
+		/* action links hovered */
+		color: $pagination-link-hover-color; 
+		background: $pagination-link-hover-bg; 
+	}
+
+	.PageListPagination a:active,
+	.MarkupPagerNav a:active {
+		color: $pagination-link-active-color; 
+		background: $pagination-link-active-bg; 
+	}
+
+
+	/* page name */
+	.InputfieldPageNameURL {
+		font-size: 0.923076923076923em;
+	}
 	.InputfieldPageNameURL a {
 		color: $table-th-color;
 	}
@@ -657,7 +656,7 @@ a {
 #footer {
 	margin: 2em 0 2em 0; 
 	font-size: 1.1em; 
-	color: $light-text-color; /* GREY */
+	color: $footer-color; /* GREY */
 
 	a {
 		color: $footer-link-color; /* LIGHT-ORANGE */
@@ -732,6 +731,10 @@ a {
 		border-bottom: none; 
 		color: $label-link-color; /* BROWN */
 	}
+		.ui-widget-header:hover,
+		label.ui-widget-header:hover {
+			color: $label-link-hover-color; 
+		}
 		.InputfieldWrapper > .description {
 			margin: 0;
 			padding-bottom: 1em; 
@@ -762,6 +765,7 @@ a {
 
 	.InputfieldStateCollapsed label.ui-widget-header:hover {
 		/* style for collapsed header when hovered */
+		color: $label-link-hover-color; 
 		border-color: $subtle-border; /* LIGHT-KHAKI */
 		background: $text-bg; /* WHITE */
 	}
@@ -788,7 +792,8 @@ a {
 		.InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header:hover,
 		.InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header:hover { 
 			/* file item or repeater item */
-			background: $link-hover-color; /* CYAN */
+			background: $item-header-hover-bg; 
+			color: $item-header-hover-color; 
 			border: none; 
 		}
 		.InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header a {
@@ -871,7 +876,7 @@ body.modal {
  */
 
 .content > .container > #PageListContainer {
-	margin-top: -0.5em; 
+	/*margin-top: -0.5em; */
 }
 
 
@@ -879,6 +884,7 @@ body.modal {
 	/* context selection in field editor */
 	background: $text-bg; /* WHITE */
 	padding-left: 0.5em;
+	margin-top: 1.3em; 
 }
 
 .align_left,
@@ -919,7 +925,7 @@ body.modal {
 	}
 
 	#masthead #breadcrumb {
-		top: 12px; 
+		top: 15px; 
 		left: 1px; 
 		width: 70%; 
 		white-space: nowrap;
@@ -940,6 +946,9 @@ body.modal {
 
 	#head_button {
 		display: none !important; 
+	}
+	#fieldgroupContext {
+		display: none; 
 	}
 
 }
@@ -973,17 +982,23 @@ body.modal {
 
 	#masthead,
 	#content {
-		font-size: 1.1em; 
+		font-size: 1.2em; 
+	}
+
+	#headline #title {
+		padding-top: 0.2em;
+		font-size: 2em;
 	}
 
 	.content .WireTabs a {
-		padding: 3px 8px; 
+		padding-left: 8px;
+		padding-right: 8px; 
 	}
 	#masthead #topnav {
-		top: 51px; 
 	}
 	#masthead #topnav a {
-		padding: 6px 8px; 
+		padding-left: 8px;
+		padding-right: 8px;
 		
 	}
 		

@@ -4,7 +4,13 @@ $searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSear
 $bodyClass = $input->get->modal ? 'modal' : '';
 if(!isset($content)) $content = '';
 
-$config->styles->prepend($config->urls->adminTemplates . "styles/main.css?v=4"); 
+if($input->get->colors && !$user->isGuest()) {
+	$colors = $sanitizer->pageName($input->get->colors); 
+	if(is_file(dirname(__FILE__) . "/styles/main-$colors.css")) $session->testThemeColors = "main-$colors";
+}
+if(!$session->testThemeColors) $session->set('testThemeColors', 'main'); 
+
+$config->styles->prepend($config->urls->adminTemplates . "styles/$session->testThemeColors.css?v=4"); 
 $config->styles->prepend($config->urls->adminTemplates . "styles/JqueryUI/JqueryUI.css?v=4"); 
 $config->styles->append($config->urls->adminTemplates . "styles/inputfields.css?v=4"); 
 $config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=4"); 

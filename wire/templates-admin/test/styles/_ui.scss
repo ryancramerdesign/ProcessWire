@@ -205,6 +205,7 @@ a .ui-button {
  */
 .ui-autocomplete {
     box-shadow: 0 1px 3px 3px rgba(0,0,0,0.15);
+    z-index: 101 !important; 
 }
 .ui-autocomplete li {
 	border-bottom: 1px solid darken($subtle-bg, 10%); /* LIGHT-KHAKI */

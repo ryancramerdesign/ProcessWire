@@ -1,0 +1,133 @@
+/**
+ * Warm Color Theme for PW admin
+ *
+ */
+
+$white: #FFF; 
+$black: #222; 
+$brown: #743A25;
+$light-khaki: #E6E4D8;
+$green: #6F9D0E;
+$light-green: #82BE05;
+$cyan: #0E9D98;
+$orange: #F64704;
+$light-orange: #D8744E;
+$red: #a30000;
+$light-purple: #8E94C2;
+$dark-purple: #333E99;
+
+$text-bg: $white; 
+$text-color: $black;
+$medium-text-color: #777; 
+$light-text-color: #999; 
+$reverse-text-color: $white;
+
+$subtle-bg: $light-khaki;
+$subtle-border: $subtle-bg;
+
+$link-color: $green;
+$link-hover-color: $cyan;
+$link-hover-bg: none; 
+$link-current-color: $light-green;
+$link-current-bg: none; 
+$link-active-bg: none; 
+$link-active-color: $orange; 
+
+$button-bg: $light-green; 
+$button-border: $light-green;
+$button-color: $white;
+$button-hover-bg: $link-hover-color;
+$button-hover-border: $link-hover-color; 
+
+$ui-state-default-bg: $light-orange;
+$ui-state-default-color: $reverse-text-color; 
+$ui-state-hover-bg: darken($light-orange, 10%);
+$ui-state-hover-color: $reverse-text-color; 
+
+$label-link-color: $brown;
+$label-link-hover-color: $cyan;
+
+$table-th-color: $light-purple;
+$table-th-active-color: $dark-purple; 
+
+$highlight-bg: #D1F486;
+$highlight-color: darken($highlight-bg, 60%); 
+
+$item-header-bg: $light-green;
+$item-header-color: $white; 
+$item-header-hover-color: $white;
+$item-header-hover-bg: $link-hover-color; 
+
+$masthead-bg: #A73003;
+$masthead-secondary-bg: none; /* -webkit-linear-gradient(top, $masthead-bg 0%, darken($masthead-bg, 5%) 100%); */
+$masthead-secondary-border: none; /* 1px solid transparentize($white, 0.95); */
+$masthead-height: 81px; 
+
+$topnav-link-color: $reverse-text-color;
+$topnav-link-bg: rgba(255,255,255,0.05); 
+$topnav-link-hover-color: $reverse-text-color; 
+$topnav-link-hover-bg: transparentize($reverse-text-color, 0.8); 
+$topnav-link-current-color: $text-color; 
+$topnav-link-current-bg: $white;
+$topnav-height: 31px; 
+
+$headline-bg: $white; 
+$headline-color: $text-color; 
+$headline-border: none; 
+
+$breadcrumb-color: transparentize($reverse-text-color, 0.7); 
+$breadcrumb-link-color: transparentize($reverse-text-color, 0.4); 
+$breadcrumb-link-hover-color: $reverse-text-color; 
+
+$action-link-color: $light-green;
+$action-link-font-size: 0.769230769230769em; 
+$action-link-bg: none;
+$action-link-hover-color: $reverse-text-color;
+$action-link-hover-bg: $link-hover-color;
+$action-link-active-color: $reverse-text-color; 
+$action-link-active-bg: $orange;
+
+$pagelist-link-color: $label-link-color; 
+$pagelist-link-hover-color: $link-hover-color;
+$pagelist-link-open-color: $orange; 
+$pagelist-link-active-color: $orange; 
+
+$pagination-font-size: 0.769230769230769em; 
+$pagination-link-color: $text-color; 
+$pagination-link-bg: $subtle-bg; 
+$pagination-link-current-color: $reverse-text-color;
+$pagination-link-current-bg: $link-active-color;
+$pagination-link-hover-color: $white;
+$pagination-link-hover-bg: $link-hover-color;
+$pagination-link-active-color: $white; 
+$pagination-link-active-bg: $link-hover-color; 
+$pagination-link-border-radius: 2px; 
+
+$wiretab-link-bg: none; 
+$wiretab-link-color: $link-color; 
+$wiretab-link-hover-bg: transparentize($subtle-bg, 0.5);
+$wiretab-link-hover-color: $cyan;
+$wiretab-link-current-bg: $subtle-bg;
+$wiretab-link-current-color: $text-color; 
+$wiretab-link-active-bg: $subtle-bg;
+$wiretab-link-active-color: $text-color; 
+
+$footer-bg: transparentize($subtle-bg, 0.5); 
+$footer-color: $light-text-color; 
+$footer-link-color: $orange;
+
+$error-bg: $red; 
+$error-border: $red; 
+$error-color: #fff; 
+
+$notes-bg: #ffffdd; 
+$notes-font-size: 0.846153846153846em;
+
+$button-radius: 5px; 
+$tabs-radius: 6px; 
+
+.content > .container > #PageListContainer {
+	margin-top: 1em; 
+}
+
+

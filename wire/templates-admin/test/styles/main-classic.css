@@ -3,13 +3,20 @@
  *
  */
 /**
- * Warm Color Theme for PW admin
+ * Classic/original color theme for PW admin
  *
  */
-/* -webkit-linear-gradient(top, $masthead-bg 0%, darken($masthead-bg, 5%) 100%); */
-/* 1px solid transparentize($white, 0.95); */
+/* 1px solid transparentize($subtle-bg, 0.9); */
+/* transparentize($subtle-bg, 0.5); */
 .content > .container > #PageListContainer {
   margin-top: 1em; }
+
+body #content .container > form,
+body #content .container > .ui-helper-clearfix > form {
+  top: -2px; }
+
+#topnav {
+  font-weight: bold; }
 
 body, div, dl, dt, dd, ul, ol, li, h1, h2, h3, h4, h5, h6, pre, form, fieldset, label, input, textarea, p, blockquote, th, td {
   margin: 0;
@@ -73,9 +80,9 @@ a {
  */
 li.ui-state-default,
 .ui-widget-content li.ui-state-default {
-  background: #d8744e;
+  background: #81a70b;
   /* LIGHT-ORANGE */
-  border-color: #d8744e;
+  border-color: #81a70b;
   /* LIGHT-ORANGE */
   color: white;
   /* WHITE */ }
@@ -87,9 +94,9 @@ li.ui-state-default a,
 
 li.ui-state-hover,
 .ui-widget-content li.ui-state-hover {
-  background: #c7572c;
+  background: #f21e69;
   /* LIGHT-KHAKI */
-  border-color: #c7572c;
+  border-color: #f21e69;
   /* LIGHT-KHAKI */
   color: white; }
 
@@ -101,7 +108,7 @@ li.ui-state-hover a,
 .InputfieldForm .ui-accordion-header,
 .ui-accordion-header {
   padding-left: 1.5em;
-  background: #82be05;
+  background: #93bf0d;
   border: none;
   color: white; }
 
@@ -160,7 +167,7 @@ p span.ui-state-error {
 .ui-dialog .ui-dialog-title {
   font-weight: normal;
   /* same color as label.ui-widget-header */
-  color: #743a25;
+  color: #2f4248;
   /* BROWN */ }
 
 .ui-dialog .ui-dialog-content {
@@ -183,9 +190,9 @@ button.ui-button.ui-state-default,
   text-shadow: none !important;
   color: white;
   /* WHITE */
-  background: #82be05;
+  background: #93bf0d;
   /* LIGHT-GREEN */
-  border: 1px solid #82be05;
+  border: 1px solid #93bf0d;
   /* LIGHT-GREEN */
   font-weight: bold;
   padding: 5px 10px;
@@ -200,9 +207,9 @@ button.ui-button.ui-state-hover,
 .ui-button.ui-state-hover {
   box-shadow: none !important;
   color: white;
-  background: #0e9d98;
+  background: #f21e69;
   /* CYAN */
-  border: 1px solid #0e9d98;
+  border: 1px solid #f21e69;
   /* CYAN */
   font-weight: bold;
   font-size: 1em;
@@ -231,7 +238,7 @@ a .ui-button {
  */
 .ui-widget .ui-slider .ui-slider-range,
 .ui-widget-content .ui-slider .ui-slider-range {
-  background: #0e9d98;
+  background: #db0d55;
   /* CYAN */
   /* remove padding added to Inputfields that was getting inherited here */
   padding: 0; }
@@ -245,16 +252,16 @@ a .ui-button {
   z-index: 101 !important; }
 
 .ui-autocomplete li {
-  border-bottom: 1px solid #d2ceb9;
+  border-bottom: 1px solid #c5d4da;
   /* LIGHT-KHAKI */
   color: #222222; }
 
 .ui-autocomplete li a {
-  color: #743a25;
+  color: #2f4248;
   cursor: pointer; }
 
 .ui-autocomplete li a:hover {
-  color: #0e9d98; }
+  color: #db0d55; }
 
 .ui-autocomplete li small {
   opacity: 0.5; }
@@ -262,7 +269,7 @@ a .ui-button {
 .ui-autocomplete .ui-widget-header a,
 .ui-autocomplete .ui-widget-header a:hover {
   font-weight: bold;
-  background: #0e9d98;
+  background: #db0d55;
   color: white;
   text-shadow: none; }
 
@@ -328,7 +335,7 @@ a .ui-button {
   box-sizing: border-box; }
 
 body {
-  background: rgba(230, 228, 216, 0.5);
+  background: rgba(228, 235, 238, 0.4);
   /* LIGHT KHAKI */ }
 
 body,
@@ -365,12 +372,12 @@ body.modal {
 
 a {
   /* standard link color */
-  color: #6f9d0e;
+  color: #f21e69;
   /* GREEN */ }
 
 a:hover {
   /* hovered link color */
-  color: #0e9d98;
+  color: #db0d55;
   /* CYAN */
   background: none; }
 
@@ -378,11 +385,11 @@ a.on {
   /* on/active link color */
   background: none;
   /* LIGHT-GREEN */
-  color: #82be05;
+  color: #f21e69;
   /* WHITE */ }
 
 a:active {
-  color: #f64704;
+  color: #db0d55;
   background: none; }
 
 .WireFatalError {
@@ -404,7 +411,7 @@ a:active {
   background: #333F4D; 
   background: #646047;
   */
-  background: #a73003;
+  background: #2f4248;
   /* DARK-ORANGE */
   position: relative;
   /*border-bottom: 1px solid rgba(0,0,0,0.1);*/ }
@@ -412,7 +419,7 @@ a:active {
     color: white;
     /* WHITE */ }
   #masthead #masthead_shade {
-    background: none;
+    background: rgba(228, 235, 238, 0.1);
     border-top: none;
     height: 31px;
     position: absolute;
@@ -445,8 +452,8 @@ a:active {
       float: left;
       margin: 0 0 0 1px;
       padding: 9px 10px 11px 10px;
-      border-top-right-radius: 6px;
-      border-top-left-radius: 6px; }
+      border-top-right-radius: 0;
+      border-top-left-radius: 0; }
     #masthead #topnav a:hover {
       background: rgba(255, 255, 255, 0.2);
       /* WHITE */
@@ -454,8 +461,8 @@ a:active {
       text-decoration: none; }
     #masthead #topnav a.on:hover,
     #masthead #topnav a.on {
-      color: #222222;
-      background: white;
+      color: white;
+      background: #db0d55;
       text-decoration: none; }
   #masthead #breadcrumb {
     position: absolute;
@@ -535,8 +542,8 @@ a:active {
   min-height: 51px;
   padding-top: 1.25em;
   padding-bottom: 1.25em;
-  background: white;
-  border-bottom: none; }
+  background: rgba(228, 235, 238, 0.4);
+  border-bottom: 1px solid #e4ebee; }
 
 #title {
   font-size: 2.5em;
@@ -603,12 +610,12 @@ a:active {
   .content table th.header,
   .content table.AdminDataList th,
   .content h4 {
-    color: #8e94c2;
+    color: #9ec5d2;
     /* LIGHT-PURPLE */ }
   .content table th.headerSortUp,
   .content table th.headerSortDown,
   .content table th:hover {
-    color: #333e99;
+    color: #6aa5b9;
     /* DARK-PURPLE */ }
   .content table.AdminDataList {
     margin-top: 0; }
@@ -623,7 +630,7 @@ a:active {
   .content h2 a:hover {
     color: white;
     /* WHITE */
-    background: #0e9d98;
+    background: #db0d55;
     text-decoration: none; }
   .content h3 {
     margin: 1em 0;
@@ -654,13 +661,13 @@ a:active {
     border-bottom: none;
     text-transform: uppercase;
     font-weight: bold;
-    border-left: 1px solid #e6e4d8;
+    border-left: 1px solid #d2e4ea;
     /* LIGHT-KHAKI */ }
   .content li.action a, .content .actions a,
   .content .PageList .actions a,
   .content .PageListMoveNote a {
     /* action links */
-    color: #82be05;
+    color: #f21e69;
     /* LIGHT-GREEN */
     padding: 0 4px 0 4px;
     display: inline-block;
@@ -674,7 +681,7 @@ a:active {
     /* action links hovered */
     color: white;
     /* WHITE */
-    background: #0e9d98;
+    background: #f21e69;
     /* CYAN */ }
   .content dl {
     margin: 1em 0; }
@@ -689,7 +696,7 @@ a:active {
     text-transform: none; }
   .content dl dd {
     padding-bottom: 0.75em;
-    border-bottom: 1px dotted #e6e4d8;
+    border-bottom: 1px dotted #d2e4ea;
     /* LIGHT KHAKI */ }
   .content .WireTabs {
     top: 1.12em;
@@ -702,32 +709,32 @@ a:active {
     .content .WireTabs a {
       padding: 6px 15px;
       display: inline-block;
-      border-top-left-radius: 6px;
-      border-top-right-radius: 6px;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
       margin-right: 1px;
-      color: #6f9d0e;
+      color: #f21e69;
       background: none; }
     .content .WireTabs a.on {
-      background: #e6e4d8;
-      color: #222222; }
+      background: #db0d55;
+      color: white; }
     .content .WireTabs a:hover {
-      background: rgba(230, 228, 216, 0.5);
-      color: #0e9d98; }
+      background: #f21e69;
+      color: white; }
     .content .WireTabs a:active {
-      background: #e6e4d8;
-      color: #222222; }
+      background: #db0d55;
+      color: white; }
   .content .PageList a.PageListPage {
-    color: #743a25;
+    color: #8f294d;
     /* BROWN */
     opacity: 1.0; }
   .content .PageList .PageListItem > a.PageListPage:hover {
     text-decoration: underline;
-    color: #0e9d98; }
+    color: #8f294d; }
   .content .PageList .PageListItem > a.PageListPage:active {
     text-decoration: underline;
     color: #f64704; }
   .content .PageList .PageListItemOpen > a.PageListPage {
-    color: #f64704;
+    color: #222222;
     /* ORANGE */ }
   .content .PageList .PageListStatusHidden > a.PageListPage {
     opacity: 0.7; }
@@ -735,11 +742,11 @@ a:active {
     font-size: 0.833333em; }
   .content .PageList .PageListItemOpen .PageListNumChildren {
     padding-right: 0.5em;
-    border-right: 1px solid #e6e4d8;
+    border-right: 1px solid #d2e4ea;
     /* LIGHT-GREY */ }
   .content .AdminDataList th,
   .content .AdminDataList td {
-    border-color: #dcd9c8; }
+    border-color: #c1dae2; }
   .content .AdminDataList tr:hover td,
   .content .AdminDataList tr:hover th {
     background: #ffffdd; }
@@ -767,9 +774,9 @@ a:active {
     font-size: 0.76923em; }
   .content .PageListPagination a,
   .content .MarkupPagerNav a {
-    background: #e6e4d8;
+    background: #93bf0d;
     /* LIGHT KHAKI */
-    color: #222222;
+    color: white;
     /* BLACK */
     font-weight: bold;
     border-radius: 2px;
@@ -777,25 +784,25 @@ a:active {
     padding: 2px 6px; }
   .content .PageListPaginationCurrent a,
   .content .MarkupPagerNavOn a {
-    color: white;
+    color: #222222;
     /* WHITE */
-    background: #f64704;
+    background: #e4ebee;
     /* ORANGE */ }
   .content .PageListPagination a:hover,
   .content .MarkupPagerNav a:hover {
     /* action links hovered */
     color: white;
-    background: #0e9d98; }
+    background: #f21e69; }
   .content .PageListPagination a:active,
   .content .MarkupPagerNav a:active {
     color: white;
-    background: #0e9d98; }
+    background: #db0d55; }
   .content .InputfieldPageNameURL {
     font-size: 0.923076923076923em; }
   .content .InputfieldPageNameURL a {
-    color: #8e94c2; }
+    color: #9ec5d2; }
   .content .InputfieldPageNameURL a:hover {
-    color: #333e99; }
+    color: #6aa5b9; }
 
 .description {
   color: #777777;
@@ -835,7 +842,7 @@ a:active {
   color: #999999;
   /* GREY */ }
   #footer a {
-    color: #f64704;
+    color: #f21e69;
     /* LIGHT-ORANGE */ }
   #footer p {
     margin-top: 0; }
@@ -883,26 +890,26 @@ a:active {
   .InputfieldForm .InputfieldWrapper > .description {
     background: white;
     /* WHITE */
-    border: 1px solid #e6e4d8;
+    border: 1px solid #d2e4ea;
     /* LIGHT-KHAKI */
     border-bottom: none;
-    color: #743a25;
+    color: #2f4248;
     /* BROWN */ }
   .InputfieldForm .ui-widget-header:hover,
   .InputfieldForm label.ui-widget-header:hover {
-    color: #0e9d98; }
+    color: #337f99; }
   .InputfieldForm .InputfieldWrapper > .description {
     margin: 0;
     padding-bottom: 1em;
     margin-bottom: -1em; }
   .InputfieldForm label.ui-widget-header + .ui-widget-content {
-    border: 1px solid #e6e4d8;
+    border: 1px solid #d2e4ea;
     /* LIGHT-KHAKI */
     border-top: none;
     background: white;
     /* WHITE */ }
   .InputfieldForm .InputfieldMarkup .ui-widget-content {
-    border: 1px solid #e6e4d8;
+    border: 1px solid #d2e4ea;
     /* LIGHT-KHAKI */
     margin-top: 1em;
     padding: 1em; }
@@ -912,12 +919,12 @@ a:active {
   .InputfieldForm .InputfieldStateCollapsed label.ui-widget-header {
     background: white;
     /* WHITE */
-    border: 1px solid #e6e4d8;
+    border: 1px solid #d2e4ea;
     /* LIGHT-KHAKI */ }
   .InputfieldForm .InputfieldStateCollapsed label.ui-widget-header:hover {
     /* style for collapsed header when hovered */
-    color: #0e9d98;
-    border-color: #e6e4d8;
+    color: #337f99;
+    border-color: #d2e4ea;
     /* LIGHT-KHAKI */
     background: white;
     /* WHITE */ }
@@ -930,19 +937,19 @@ a:active {
   .InputfieldForm .Inputfields > .InputfieldFieldset > .ui-widget-header + .ui-widget-content,
   .InputfieldForm .Inputfields > .InputfieldFieldsetOpen > .ui-widget-header + .ui-widget-content {
     /* Inputfields containing other items get a different background color */
-    background: rgba(230, 228, 216, 0.5); }
+    background: rgba(228, 235, 238, 0.5); }
   .InputfieldForm .InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header,
   .InputfieldForm .InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header {
     /* file item or repeater item */
     border: none;
-    background: #82be05;
+    background: #2f4248;
     /* LIGHT-GREEN */
     color: white;
     /* WHITE */ }
   .InputfieldForm .InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header:hover,
   .InputfieldForm .InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header:hover {
     /* file item or repeater item */
-    background: #0e9d98;
+    background: #f21e69;
     color: white;
     border: none; }
   .InputfieldForm .InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header a {
@@ -968,7 +975,7 @@ a:active {
     background: none; }
   .InputfieldForm .Inputfields > .InputfieldStateCollapsed > .ui-widget-header {
     /* adjust text color for collapsed Inputfields */
-    color: #ce8064;
+    color: #6f95a1;
     /* LIGHT-BROWN */ }
 
 /***********************************************************************************************
