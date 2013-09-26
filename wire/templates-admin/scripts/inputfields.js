@@ -410,7 +410,7 @@ function InputfieldColumnWidths() {
 		if($item.hasClass('InputfieldStateCollapsed')) return;
 		var pad = maxColHeight-h; 
 		if(pad < 0) pad = 0;
-		var $container = $item.children('.ui-widget-content'); 
+		var $container = $item.children('.InputfieldContent, .ui-widget-content'); 
 		if(pad == 0) {
 			// do nothing, already the right height
 		} else {
@@ -532,20 +532,20 @@ function InputfieldColumnWidths() {
  * 
  */
 function InputfieldStates() {
-	$(".Inputfields > .Inputfield > .ui-widget-header").addClass("InputfieldStateToggle")
+	$(".Inputfields > .Inputfield > .InputfieldHeader, .Inputfields > .Inputfield > .ui-widget-header").addClass("InputfieldStateToggle")
 		.prepend("<span class='ui-icon ui-icon-triangle-1-s'></span>")
 		.click(function() {
 			var $li = $(this).parent('.Inputfield');
 			$li.toggleClass('InputfieldStateCollapsed', 100);
 			$(this).children('span.ui-icon').toggleClass('ui-icon-triangle-1-e ui-icon-triangle-1-s');
 
-			if($.effects && $.effects['highlight']) $li.children('.ui-widget-header').effect('highlight', {}, 300);
+			if($.effects && $.effects['highlight']) $li.children('.InputfieldHeader, .ui-widget-header').effect('highlight', {}, 300);
 			setTimeout('InputfieldColumnWidths()', 500); 
 			return false;
 		})
 
 	// use different icon for open and closed
-	$(".Inputfields .InputfieldStateCollapsed > .ui-widget-header span.ui-icon")
+	$(".Inputfields .InputfieldStateCollapsed > .InputfieldHeader span.ui-icon, .Inputfields .InputfieldStateCollapsed > .ui-widget-header span.ui-icon")
 		.removeClass('ui-icon-triangle-1-s').addClass('ui-icon-triangle-1-e');
 
 }

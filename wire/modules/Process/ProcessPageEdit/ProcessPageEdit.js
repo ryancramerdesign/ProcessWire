@@ -11,7 +11,7 @@ $(document).ready(function() {
 		// give the li.InputfieldFieldsetTabOpen a title attribute that is the same as the label, and remove the label
 		$(this).attr('title', $(this).children("label").remove().text()); 
 		// remove the ui-widget-content div as it is extraneous when used in a tab
-		$(this).children("div.ui-widget-content").remove().children("ul").appendTo($(this));
+		$(this).children(".InputfieldContent").remove().children("ul").appendTo($(this));
 	}); 
 	
 	// instantiate the WireTabs

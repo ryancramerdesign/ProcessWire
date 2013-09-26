@@ -30,7 +30,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 103,
+			'version' => 104,
 			'permanent' => true, 
 	
 			// add this permission if you want this Process available for roles other than Superuser
@@ -64,7 +64,7 @@ class ProcessTemplate extends Process {
 			$this->numPages = $this->template->getNumPages();
 		}
 
-		$this->modules->get("JqueryWireTabs"); 
+		if($this->input->urlSegment1) $this->modules->get("JqueryWireTabs"); 
 
 		return parent::init();
 	}

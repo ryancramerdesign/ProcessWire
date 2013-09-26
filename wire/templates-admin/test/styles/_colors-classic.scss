@@ -22,7 +22,7 @@ $cyan: #0EDCB9;
 $brown: #821038;
 
 $subtle-bg: #E4EBEE;
-$subtle-border: $light-blue;
+$subtle-border: $subtle-bg;
 
 $text-bg: $white; 
 $text-color: $black;
@@ -55,6 +55,7 @@ $item-header-hover-color: $white;
 $item-header-hover-bg: $pink; 
 $item-header-bg: $dark-blue;
 $item-header-color: $white; 
+$item-border: $subtle-bg; 
 
 $action-link-font-size: 0.769230769230769em; 
 $action-link-bg: none;
@@ -130,18 +131,3 @@ $notes-bg: #ffffdd;
 $notes-font-size: 0.846153846153846em;
 
 $tabs-radius: 0; 
-
-
-.content > .container > #PageListContainer {
-	margin-top: 1em; 
-}
-
-body #content .container > form,
-body #content .container > .ui-helper-clearfix > form {
-	top: -2px; 
-}
-
-#topnav {
-	font-weight: bold;
-}
-

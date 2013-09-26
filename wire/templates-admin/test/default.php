@@ -1,18 +1,20 @@
 <?php
 
 $searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm() : '';
-$bodyClass = $input->get->modal ? 'modal' : '';
+$bodyClass = $input->get->modal ? 'modal ' : '';
+$bodyClass .= "id-{$page->id} template-{$page->template->name}";
 if(!isset($content)) $content = '';
 
 if($input->get->colors && !$user->isGuest()) {
 	$colors = $sanitizer->pageName($input->get->colors); 
 	if(is_file(dirname(__FILE__) . "/styles/main-$colors.css")) $session->testThemeColors = "main-$colors";
+		else $session->testThemeColors = '';
 }
 if(!$session->testThemeColors) $session->set('testThemeColors', 'main'); 
 
 $config->styles->prepend($config->urls->adminTemplates . "styles/$session->testThemeColors.css?v=4"); 
-$config->styles->prepend($config->urls->adminTemplates . "styles/JqueryUI/JqueryUI.css?v=4"); 
-$config->styles->append($config->urls->adminTemplates . "styles/inputfields.css?v=4"); 
+$config->styles->prepend($config->urls->adminTemplates . "styles/JqueryUI/JqueryUI.css?v=5"); 
+//$config->styles->append($config->urls->adminTemplates . "styles/inputfields.css?v=4"); 
 $config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=4"); 
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=4"); 
 
@@ -65,6 +67,8 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 			'templates' => $config->urls->templates,
 			'adminTemplates' => $config->urls->adminTemplates,
 			); 
+
+		if(!empty($jsConfig['JqueryWireTabs'])) $bodyClass .= ' hasWireTabs'; 
 		?>
 
 		var config = <?php echo json_encode($jsConfig); ?>;
@@ -96,10 +100,10 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 			<?php if(!$user->isGuest()): ?>
 
 			<ul id='breadcrumb' class='nav'><?php
-				echo "<li><a class='sitelink ui-state-default' href='{$config->urls->root}'><span class='ui-icon ui-icon-home'></span></a></li>"; 
+				echo "<li><a class='sitelink ui-state-default' href='{$config->urls->root}'><span class='ui-icon ui-icon-home'></span></a>&rang;</li>"; 
 				foreach($this->fuel('breadcrumbs') as $breadcrumb) {
 					$title = __($breadcrumb->title, __FILE__); 
-					echo "<li><a href='{$breadcrumb->url}'>{$title}</a></li>";
+					echo "<li><a href='{$breadcrumb->url}'>{$title}</a>&rang;</li>";
 				}
 				unset($title);
 				?>

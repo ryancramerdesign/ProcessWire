@@ -47,7 +47,7 @@ $(document).ready(function() {
 
 	$("input.InputfieldRepeaterDelete").parents('.InputfieldCheckbox').hide();
 
-	$(".InputfieldRepeater .InputfieldFieldset > .ui-widget-header").addClass('ui-state-default')
+	$(".InputfieldRepeater .InputfieldFieldset > .ui-widget-header, .InputfieldRepeater .InputfieldFieldset > .InputfieldHeader").addClass('ui-state-default')
 		.prepend("<span class='ui-icon ui-icon-arrowthick-2-n-s InputfieldRepeaterDrag'></span>")
 		.prepend($delete.clone(true));
 
@@ -78,7 +78,7 @@ $(document).ready(function() {
 			$readyItem.find('input.InputfieldRepeaterDisabled').remove(); // allow it to be saved
 			$readyItem.find('input.InputfieldRepeaterPublish').attr('value', 1); // identify it as added
 			$readyItem.slideDown('fast'); 
-			$readyItem.children('.ui-widget-content').effect('highlight', {}, 1000); 
+			$readyItem.children('.ui-widget-content, .InputfieldContent').effect('highlight', {}, 1000); 
 			return false;
 		}
 
@@ -108,12 +108,12 @@ $(document).ready(function() {
 		return false;
 	});
 
-	$('.InputfieldRepeater > .ui-widget-content > .Inputfields').sortable({
+	$('.InputfieldRepeater > div > .Inputfields').sortable({
 		items: '> li:not(.InputfieldRepeaterNewItem):not(.InputfieldRepeaterReady)',
 		axis: 'y',
 		handle: '.InputfieldRepeaterDrag', 
 		start: function(e, ui) {
-			ui.item.find('.ui-widget-header').addClass("ui-state-highlight");
+			ui.item.find('.ui-widget-header, .InputfieldHeader').addClass("ui-state-highlight");
 
 			// TinyMCE instances don't like to be dragged, so we disable them temporarily
 			ui.item.find('.InputfieldTinyMCE textarea').each(function() {
@@ -121,7 +121,7 @@ $(document).ready(function() {
 			}); 
 		},
 		stop: function(e, ui) {
-			ui.item.find('.ui-widget-header').removeClass("ui-state-highlight"); 
+			ui.item.find('.ui-widget-header, .InputfieldHeader').removeClass("ui-state-highlight"); 
 			$(this).children().each(function(n) {
 				$(this).find('.InputfieldRepeaterSort').slice(0,1).attr('value', n); 
 			}); 

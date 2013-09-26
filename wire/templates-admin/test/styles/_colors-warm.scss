@@ -23,7 +23,7 @@ $light-text-color: #999;
 $reverse-text-color: $white;
 
 $subtle-bg: $light-khaki;
-$subtle-border: $subtle-bg;
+$subtle-border: lighten($subtle-bg, 3%);
 
 $link-color: $green;
 $link-hover-color: $cyan;
@@ -57,6 +57,7 @@ $item-header-bg: $light-green;
 $item-header-color: $white; 
 $item-header-hover-color: $white;
 $item-header-hover-bg: $link-hover-color; 
+$item-border: 1px solid $subtle-bg; 
 
 $masthead-bg: #A73003;
 $masthead-secondary-bg: none; /* -webkit-linear-gradient(top, $masthead-bg 0%, darken($masthead-bg, 5%) 100%); */
@@ -125,9 +126,4 @@ $notes-font-size: 0.846153846153846em;
 
 $button-radius: 5px; 
 $tabs-radius: 6px; 
-
-.content > .container > #PageListContainer {
-	margin-top: 1em; 
-}
-
 

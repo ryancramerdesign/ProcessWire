@@ -1,13 +1,9 @@
 
-/***********************************************************************************************
- * COLORS
- *
- */
-
-
-@import 'colors-warm';
+@import 'colors-classic';
 @import 'reset';
 @import 'ui';
+@import 'inputfields';
+
 
 /***********************************************************************************************
  * GENERAL
@@ -25,7 +21,9 @@ body {
 }
 	body,
 	.ui-dialog,
-	.ui-button {
+	.ui-button,
+	input,
+	textarea {
 		font: 10px/20px "Helvetica Neue", Arial, sans-serif; 
 	}
 	body {
@@ -172,20 +170,22 @@ a {
 
 		li {
 			color: $breadcrumb-color; 
-			display: inline;
+			display: inline-block;
 			padding: 0;
 			line-height: 1em;
 			white-space: nowrap;
+			padding-right: 0.5em;
 
 		}
-
+		/*
 		li:after {
 			content: " \232A";
 		}
+		*/
 
 		a {
 			color: $breadcrumb-link-color; 
-			padding-right: 4px; 
+			margin-right: 0.5em; 
 		}
 
 		a:hover {
@@ -199,6 +199,8 @@ a {
 
 			.ui-icon {
 				float: left; 
+				position: relative;
+				top: -2px; 	
 			}
 		}
 
@@ -234,12 +236,13 @@ a {
 	}
 
 		#ProcessPageSearchQuery {
-			padding: 5px 8px;
 			height: auto; 
+			padding: 2px 7px 1px 7px; 
+			font-size: 1em; 
 			border: 1px solid transparentize($reverse-text-color, 0.9); /*rgba(255,255,255,0.1);*/ /*WHITE */
 			background: transparent; 
 			width: 100%; 
-			color: transparentize($reverse-text-color, 0.2); /*rgba(255,255,255,0.8);*/ /* WHITE */
+			color: transparentize($reverse-text-color, 0.5); /*rgba(255,255,255,0.8);*/ /* WHITE */
 			border-radius: $button-radius; 
 		}
 			#ProcessPageSearchQuery:focus {
@@ -259,10 +262,6 @@ a {
 
 } /* #masthead */
 
-
-#notices + #content {
-	padding-top: 1em; 
-}
 
 #headline {
 	position: relative; 
@@ -309,11 +308,6 @@ a {
 		display: block;
 	}
 
-	.WireTabs a {
-		/*font-size: 0.84615em;*/
-		font-weight: bold;
-	}
-	
 	.nav a.label {
 		font-size: 1em; 
 	}
@@ -460,9 +454,11 @@ a {
 
 	.WireTabs {
 
-		top: 1.12em;
+		top: 1.1em;
 		margin-top: -1.1em !important;
+		margin-bottom: 1.1em; 
 		left: 0;
+		overflow: hidden; 
 
 		li {
 			background: none; 
@@ -471,13 +467,14 @@ a {
 		}
 
 		a {
-			padding: 6px 15px;
+			padding: 6px 11px;
 			display: inline-block;
 			border-top-left-radius: $tabs-radius;
 			border-top-right-radius: $tabs-radius; 
 			margin-right: 1px; 
 			color: $wiretab-link-color;
 			background: $wiretab-link-bg; 
+			font-weight: bold; 
 		}
 		a.on {
 			background: $wiretab-link-current-bg; 
@@ -606,17 +603,6 @@ a {
 	}
 
 
-	/* page name */
-	.InputfieldPageNameURL {
-		font-size: 0.923076923076923em;
-	}
-	.InputfieldPageNameURL a {
-		color: $table-th-color;
-	}
-		.InputfieldPageNameURL a:hover {
-			color: $table-th-active-color;
-		}
-
 
 }
 
@@ -711,137 +697,6 @@ a {
 	}
 
 }
-
-/***********************************************************************************************
- * INPUTFIELD COLORS
- *
- */
-
-.InputfieldForm {
-
-	.Inputfield {
-		background: $text-bg; 
-	}
-
-	.ui-widget-header, 
-	label.ui-widget-header,
-	.InputfieldWrapper > .description {
-		background: $text-bg; /* WHITE */
-		border: 1px solid $subtle-border; /* LIGHT-KHAKI */
-		border-bottom: none; 
-		color: $label-link-color; /* BROWN */
-	}
-		.ui-widget-header:hover,
-		label.ui-widget-header:hover {
-			color: $label-link-hover-color; 
-		}
-		.InputfieldWrapper > .description {
-			margin: 0;
-			padding-bottom: 1em; 
-			margin-bottom: -1em; 
-		}
-
-
-	label.ui-widget-header + .ui-widget-content {
-		border: 1px solid $subtle-border; /* LIGHT-KHAKI */
-		border-top: none; 
-		background: $text-bg; /* WHITE */
-	}
-
-	.InputfieldMarkup .ui-widget-content {
-		border: 1px solid $subtle-border; /* LIGHT-KHAKI */
-		margin-top: 1em; 
-		padding: 1em;
-	}
-		.InputfieldMarkup .ui-widget-header + .ui-widget-content {
-			margin-top: 0;
-			padding-top: 0;
-		}
-
-	.InputfieldStateCollapsed label.ui-widget-header {
-		background: $text-bg; /* WHITE */
-		border: 1px solid $subtle-border; /* LIGHT-KHAKI */
-	}
-
-	.InputfieldStateCollapsed label.ui-widget-header:hover {
-		/* style for collapsed header when hovered */
-		color: $label-link-hover-color; 
-		border-color: $subtle-border; /* LIGHT-KHAKI */
-		background: $text-bg; /* WHITE */
-	}
-
-	.Inputfields .InputfieldPageName .ui-widget-header,
-	.Inputfields .InputfieldPageName .ui-widget-content, 
-	.Inputfields > .InputfieldItemList:not(.InputfieldStateCollapsed) > .ui-widget-header,
-	.Inputfields > .InputfieldFieldset:not(.InputfieldStateCollapsed) > .ui-widget-header,
-	.Inputfields > .InputfieldFieldsetOpen:not(.InputfieldStateCollapsed) > .ui-widget-header,
-	.Inputfields > .InputfieldItemList > .ui-widget-header + .ui-widget-content,
-	.Inputfields > .InputfieldFieldset > .ui-widget-header + .ui-widget-content,
-	.Inputfields > .InputfieldFieldsetOpen > .ui-widget-header + .ui-widget-content {
-		/* Inputfields containing other items get a different background color */
-		background: transparentize($subtle-bg, 0.5); 
-	}
-
-	.InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header,
-	.InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header { 
-		/* file item or repeater item */
-		border: none;
-		background: $item-header-bg; /* LIGHT-GREEN */
-		color: $item-header-color; /* WHITE */
-	}
-		.InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header:hover,
-		.InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header:hover { 
-			/* file item or repeater item */
-			background: $item-header-hover-bg; 
-			color: $item-header-hover-color; 
-			border: none; 
-		}
-		.InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header a {
-			color: $item-header-color; /* WHITE */
-		}
-		.InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header.ui-state-error,
-		.InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header.ui-state-error { 
-			text-decoration: line-through; 
-			background: $error-bg; 
-			border: none; 
-		}
-		.InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldStateCollapsed {
-			margin-bottom: 1em; 
-		}
-		.InputfieldItemList .ui-widget-header .ui-icon {
-			margin-top: 2px; 
-		}
-
-		.InputfieldItemList .ui-widget-header.ui-state-error {
-			border: none; 
-		}
-		/*
-		.InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header .ui-icon { 
-			top: 5px; 
-		}
-		*/
-
-
-	.InputfieldStateRequired > label.ui-widget-header:first-child:after {
-		color: $red; 
-	}
-
-	.Inputfield.ui-state-error {
-		border: none; 
-	}
-
-	.InputfieldButton,
-	.InputfieldSubmit {
-		background: none; 
-	}
-
-	.Inputfields > .InputfieldStateCollapsed > .ui-widget-header {
-		/* adjust text color for collapsed Inputfields */
-		color: lighten($label-link-color, 30%); /* LIGHT-BROWN */
-	}
-}
-
-
 
 /***********************************************************************************************
  * MODAL
@@ -1005,3 +860,4 @@ body.modal {
 
 }
 
+@import 'layout-classic';

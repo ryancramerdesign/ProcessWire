@@ -65,7 +65,7 @@
 .ui-widget-header { 
 	border: 1px solid #d9d9d9;
 	color: #1b1d1f;
-	text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+	/*text-shadow: 0 1px 0 rgba(255,255,255,0.5);*/
 		background: #f6f7f9 url(images/fallback_moduleHeader.png) 0 0 repeat-x;  /* Old browsers */
 		background: -moz-linear-gradient(top, #f6f7f9 0%, #ebedf0 100%); /* FF3.6+ */
 		background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f6f7f9), color-stop(100%,#ebedf0)); /* Chrome,Safari4+ */
@@ -417,7 +417,7 @@
 .ui-menu .ui-menu-item a.ui-state-hover {
 	background: #14A4FF;
 	color: #FFF;
-	text-shadow: 0 -1px 0 #0988d9;
+	/*text-shadow: 0 -1px 0 #0988d9;*/
 	
 }
 .ui-menu .ui-menu-item a.ui-state-hover,
@@ -467,7 +467,7 @@ input.ui-button { height: 30px !important; padding: .4em 1em; }
 	-moz-box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5) inset, 0 2px 2px rgba(12, 106, 106, 0.5) inset !important;
 	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5) inset, 0 2px 2px rgba(12, 106, 106, 0.5) inset !important;
 }
-.ui-buttonset .ui-button.ui-state-active span { text-shadow: 0 -1px 0 rgba(0,0,0,0.35); }
+.ui-buttonset .ui-button.ui-state-active span { /*text-shadow: 0 -1px 0 rgba(0,0,0,0.35); */ }
 
 /* workarounds */
 button.ui-button::-moz-focus-inner { border: 0; padding: 0; } /* reset extra padding in Firefox */
@@ -749,7 +749,7 @@ select.ui-toggle-switch { display: none; }
 			-o-transition: none;
 }
 	.ui-button, .ui-button span, button.ui-button.ui-state-default span, .ui-button.ui-state-default span {
-		text-shadow: 0 -1px 0 #1584de;
+		/*text-shadow: 0 -1px 0 #1584de;*/
 	}
 .ui-button:hover, button.ui-button.ui-state-hover, .ui-button.ui-state-hover {
 	border: 1px solid #0c6aa6;
@@ -763,7 +763,7 @@ select.ui-toggle-switch { display: none; }
 		background: linear-gradient(top, #279cff 0%,#058dff 100%); /* W3C */
 }
 	.ui-button:hover, .ui-button:hover span, button.ui-button.ui-state-hover span {
-		text-shadow: 0 -1px 0 #117cc0;
+		/*text-shadow: 0 -1px 0 #117cc0;*/
 	}
 .ui-button:active, button.ui-button.ui-state-active, .ui-button.ui-state-active {
 	border: 1px solid #0c6aa6;
@@ -779,20 +779,20 @@ select.ui-toggle-switch { display: none; }
 		background: linear-gradient(top, #058dff 0%,#279cff 100%); /* W3C */
 }
 	.ui-button:active, .ui-button:active span, button.ui-button.ui-state-active span {
-		text-shadow: 0 -1px 0 #117cc0;
+		/*text-shadow: 0 -1px 0 #117cc0;*/
 	}
 .ui-button:focus,
 button.ui-button.ui-state-focus {
 	border-color: #0f669d;
 	color: #FFF !important;
-	text-shadow: 0 -1px 0 #216ea6 !important;
+	/*text-shadow: 0 -1px 0 #216ea6 !important;*/
 	box-shadow: 0 1px 0 rgba(255,255,255,0.2) inset, 0 1px 3px rgba(0,0,0,0.35) !important;
 	background: #1888ce !important;
 }
 .ui-button .ui-button-text {
 }
 button.ui-button span {
-	text-shadow: 0 -1px 0 #1584de !important;
+	/*text-shadow: 0 -1px 0 #1584de !important;*/
 }
 .ui-button-text-only .ui-button-text {
 	padding: 0;
@@ -831,4 +831,18 @@ only screen and (     -o-min-device-pixel-ratio: 2/1) {
   	background-size: 34px 21px;
   }
 
+/** UI tooltip */
 }
+
+.ui-tooltip {
+        padding: 8px;
+        position: absolute;
+        z-index: 9999;
+        -webkit-box-shadow: 0 0 5px #aaa;
+        box-shadow: 0 0 5px #aaa;
+}
+/* Fades and background-images don't work well together in IE6, drop the image */
+* html .ui-tooltip {
+        background-image: none;
+}
+body .ui-tooltip { border-width: 2px; }

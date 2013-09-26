@@ -195,7 +195,7 @@ abstract class Inputfield extends WireData implements Module {
 	public function set($key, $value) {
 		if($key == 'parent' && ($value instanceof InputfieldWrapper)) return $this->setParent($value); 
 		if(array_key_exists($key, $this->attributes)) return $this->setAttribute($key, $value); 
-		if($key == 'required' && $value && !is_object($value)) $this->attr('class', 'required'); 
+		if($key == 'required' && $value && !is_object($value)) $this->addClass('required'); 
 		if($key == 'columnWidth') {
 			$value = (int) $value; 
 			if($value < 10 || $value > 99) $value = '';
@@ -350,6 +350,35 @@ abstract class Inputfield extends WireData implements Module {
 	 */
 	public function getAttribute($key) {
 		return isset($this->attributes[$key]) ? $this->attributes[$key] : null; 
+	}
+
+	/**
+	 * Add the given classname to this inputfield
+	 * 
+	 * @param string $class
+	 * @return $this
+	 * 
+	 */
+	public function addClass($class) {
+		$c = explode(' ', $this->getAttribute($class));
+		$c[] = $class;
+		$this->attributes['class'] = implode(' ', $c); 
+		return $this;
+	}
+
+	/**
+	 * Remove the given classname from this inputfield
+	 *
+	 * @param string $class
+	 * @return $this
+	 *
+	 */
+	public function removeClass($class) {
+		$c = explode(' ', $this->getAttribute($class));
+		$key = array_search($class, $c);
+		if($key !== false) unset($c[$key]);
+		$this->attributes['class'] = implode(' ', $c);
+		return $this;
 	}
 
 	/**

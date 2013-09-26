@@ -46,7 +46,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		$this->set('overwrite', 0); 
 		$this->set('descriptionRows', 1); 
 		$this->set('destinationPath', ''); 
-		$this->set('itemClass', 'InputfieldFile ui-widget ui-widget-content'); 
+		$this->set('itemClass', 'InputfieldFileItem ui-widget ui-widget-content'); 
 		$this->set('descriptionFieldLabel', $this->_('Description')); // Description field label
 		$this->set('tagsFieldLabel', $this->_('Tags')); // Tags field label
 		$this->attr('type', 'file'); 
@@ -123,7 +123,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 	protected function ___renderItem($pagefile, $id, $n) {
 
-		$out = 	"\n\t\t<p class='InputfieldFileInfo ui-state-default ui-widget-header'>" . 
+		$out = 	"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-state-default ui-widget-header'>" . 
 			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>" . 
 			"\n\t\t\t<a class='InputfieldFileName' href='{$pagefile->url}'>{$pagefile->basename}</a> " . 
 			"\n\t\t\t<span class='InputfieldFileStats'>{$pagefile->filesizeStr}</span> " . 

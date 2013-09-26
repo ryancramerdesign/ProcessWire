@@ -6,7 +6,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		return array(
 			'title' => __('Images', __FILE__), // Module Title
 			'summary' => __('One or more image uploads (sortable)', __FILE__), // Module Summary
-			'version' => 100,
+			'version' => 101,
 			'permanent' => true, 
 			);
 	}
@@ -18,7 +18,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$this->set('maxWidth', ''); 
 		$this->set('maxHeight', ''); 
 		$this->set('adminThumbHeight', 100); 
-		$this->set('itemClass', 'InputfieldFile InputfieldImage ui-widget'); 
+		$this->set('itemClass', 'InputfieldFileItem InputfieldImage ui-widget'); 
 		//$this->modules->get("InputfieldFile"); // force the JS and CSS from InputfieldFile to also be loaded
 		$this->modules->get("JqueryFancybox"); 
 	}
@@ -68,7 +68,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			$thumb = $thumb->height($this->adminThumbHeight); 
 		}
 
-		$out = 	"\n\t\t<p class='InputfieldFileInfo ui-widget ui-widget-header'>" . 
+		$out = 	"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header'>" . 
 			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>" . 
 			"\n\t\t\t<span class='InputfieldFileName'>{$pagefile->basename}</span> " . 
 			"\n\t\t\t<span class='InputfieldFileStats'>&bull; {$pagefile->filesizeStr} &bull; {$pagefile->width}x{$pagefile->height}</span> " . 

@@ -197,12 +197,14 @@ $(document).ready(function() {
 
         // instantiate the WireTabs
 	var $templateEdit = $("#ProcessTemplateEdit"); 
-	$templateEdit.find('script').remove();
-	$templateEdit.WireTabs({
-                items: $(".Inputfields li.WireTab"),
-                id: 'TemplateEditTabs',
-		skipRememberTabIDs: ['WireTabDelete']
-                });
+	if($templateEdit.size() > 0) {
+		$templateEdit.find('script').remove();
+		$templateEdit.WireTabs({
+					items: $(".Inputfields li.WireTab"),
+					id: 'TemplateEditTabs',
+			skipRememberTabIDs: ['WireTabDelete']
+					});
+	}
 
 	
 

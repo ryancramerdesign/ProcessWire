@@ -27,12 +27,14 @@
  *
  */
 
-li.ui-state-default,
-.ui-widget-content li.ui-state-default {
-	background: $ui-state-default-bg; /* LIGHT-ORANGE */
-	border-color: $ui-state-default-bg; /* LIGHT-ORANGE */
-	color: $ui-state-default-color; /* WHITE */
-}
+.content {
+
+	li.ui-state-default,
+	.ui-widget-content li.ui-state-default {
+		background: $ui-state-default-bg; /* LIGHT-ORANGE */
+		border-color: $ui-state-default-bg; /* LIGHT-ORANGE */
+		color: $ui-state-default-color; /* WHITE */
+	}
 	li.ui-state-default a, 
 	.ui-widget-content li.ui-state-default a {
 		color: $ui-state-default-color; /* WHITE */
@@ -47,6 +49,7 @@ li.ui-state-default,
 	.ui-widget-content li.ui-state-hover a {
 		color: $ui-state-hover-color; /* BLACK */
 	}
+}
 
 .InputfieldForm .ui-accordion-header, 
 .ui-accordion-header {
@@ -231,6 +234,30 @@ a .ui-button {
 	text-shadow: none; 
 }
 
+#content .InputfieldForm .ui-tabs-nav {
+	background: transparentize($subtle-bg, 0.5);
+	background: -webkit-linear-gradient(top, transparentize($subtle-bg, 0.4) 0%, $subtle-bg 100%); 
+	border: none; 
+	padding-bottom: 0; 
+	padding-left: 0; 
+}
+#content .InputfieldForm .ui-tabs-nav li:first-child {
+	margin-left: 0.5em; 
+}
+#content .InputfieldForm .ui-tabs-nav li {
+	margin-top: 0.15em; 
+}
+#content .InputfieldForm .ui-tabs-nav a {
+	text-shadow: none; 
+}
+#content .InputfieldForm .ui-tabs-nav .ui-state-active {
+}
+#content .InputfieldForm .ui-tabs-nav .ui-state-active,
+#content .InputfieldForm .ui-tabs-nav .ui-state-active a {
+	color: #000;
+	background: #fff; 
+}
+
 /**
  * ui-tooltip
  *
@@ -243,8 +270,8 @@ a .ui-button {
 	box-shadow: 0 0 7px $text-color;
 }
 	.ui-tooltip, .arrow:after {
-		background: $text-color; /* BLACK */
-		border: 2px solid $reverse-text-color; /* WHITE */
+		background: $text-color; 
+		border: 2px solid $reverse-text-color; 
 	}
 	.arrow {
 		width: 70px;
@@ -269,7 +296,7 @@ a .ui-button {
 		top: -20px;
 		width: 25px;
 		height: 25px;
-		box-shadow: 6px 5px 9px -9px $text-color; /* BLACK */
+		box-shadow: 6px 5px 9px -9px $text-color; 
 		-webkit-transform: rotate(45deg);
 		-moz-transform: rotate(45deg);
 		-ms-transform: rotate(45deg);

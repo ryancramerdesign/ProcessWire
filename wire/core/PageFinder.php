@@ -43,7 +43,7 @@ class PageFinder extends Wire {
 	protected function setupStatusChecks(Selectors $selectors) {
 
 		$maxStatus = null; 
-		$options = $this->options; 
+		$options =& $this->options; 
 
 		foreach($selectors as $key => $selector) {
 
@@ -164,7 +164,7 @@ class PageFinder extends Wire {
 		}
 		$stmt->closeCursor();
 			
-		if($options['findOne']) {
+		if($this->options['findOne']) {
 			$this->total = count($matches); 
 
 		} else if(count($query->limit)) {
@@ -1007,6 +1007,14 @@ class PageFinder extends Wire {
 	 */
 	public function getTemplatesID() {
 		return $this->templates_id; 
+	}
+
+	/**
+	 * Return array of the options provided to PageFinder, as well as those determined at runtime
+	 *
+	 */
+	public function getOptions() {
+		return $this->options; 
 	}
 
 }

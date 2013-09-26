@@ -1,16 +1,9 @@
-/***********************************************************************************************
- * COLORS
- *
- */
 /**
  * Warm Color Theme for PW admin
  *
  */
 /* -webkit-linear-gradient(top, $masthead-bg 0%, darken($masthead-bg, 5%) 100%); */
 /* 1px solid transparentize($white, 0.95); */
-.content > .container > #PageListContainer {
-  margin-top: 1em; }
-
 body, div, dl, dt, dd, ul, ol, li, h1, h2, h3, h4, h5, h6, pre, form, fieldset, label, input, textarea, p, blockquote, th, td {
   margin: 0;
   padding: 0; }
@@ -71,30 +64,27 @@ a {
  * asmSelect and similar
  *
  */
-li.ui-state-default,
-.ui-widget-content li.ui-state-default {
+.content li.ui-state-default,
+.content .ui-widget-content li.ui-state-default {
   background: #d8744e;
   /* LIGHT-ORANGE */
   border-color: #d8744e;
   /* LIGHT-ORANGE */
   color: white;
   /* WHITE */ }
-
-li.ui-state-default a,
-.ui-widget-content li.ui-state-default a {
+.content li.ui-state-default a,
+.content .ui-widget-content li.ui-state-default a {
   color: white;
   /* WHITE */ }
-
-li.ui-state-hover,
-.ui-widget-content li.ui-state-hover {
+.content li.ui-state-hover,
+.content .ui-widget-content li.ui-state-hover {
   background: #c7572c;
   /* LIGHT-KHAKI */
   border-color: #c7572c;
   /* LIGHT-KHAKI */
   color: white; }
-
-li.ui-state-hover a,
-.ui-widget-content li.ui-state-hover a {
+.content li.ui-state-hover a,
+.content .ui-widget-content li.ui-state-hover a {
   color: white;
   /* BLACK */ }
 
@@ -266,6 +256,27 @@ a .ui-button {
   color: white;
   text-shadow: none; }
 
+#content .InputfieldForm .ui-tabs-nav {
+  background: rgba(230, 228, 216, 0.5);
+  background: -webkit-linear-gradient(top, rgba(230, 228, 216, 0.6) 0%, #e6e4d8 100%);
+  border: none;
+  padding-bottom: 0;
+  padding-left: 0; }
+
+#content .InputfieldForm .ui-tabs-nav li:first-child {
+  margin-left: 0.5em; }
+
+#content .InputfieldForm .ui-tabs-nav li {
+  margin-top: 0.15em; }
+
+#content .InputfieldForm .ui-tabs-nav a {
+  text-shadow: none; }
+
+#content .InputfieldForm .ui-tabs-nav .ui-state-active,
+#content .InputfieldForm .ui-tabs-nav .ui-state-active a {
+  color: #000;
+  background: #fff; }
+
 /**
  * ui-tooltip
  *
@@ -279,9 +290,7 @@ a .ui-button {
 
 .ui-tooltip, .arrow:after {
   background: #222222;
-  /* BLACK */
-  border: 2px solid white;
-  /* WHITE */ }
+  border: 2px solid white; }
 
 .arrow {
   width: 70px;
@@ -307,7 +316,6 @@ a .ui-button {
   width: 25px;
   height: 25px;
   box-shadow: 6px 5px 9px -9px #222222;
-  /* BLACK */
   -webkit-transform: rotate(45deg);
   -moz-transform: rotate(45deg);
   -ms-transform: rotate(45deg);
@@ -317,6 +325,350 @@ a .ui-button {
 .arrow.top:after {
   bottom: -20px;
   top: auto; }
+
+.InputfieldForm {
+  margin-bottom: 1em;
+  /**
+   * Margin and padding tweaks to prevent doubled visual whitespace
+   *
+   */ }
+  .InputfieldForm .Inputfields,
+  .InputfieldForm .Inputfields > .Inputfield {
+    list-style: none;
+    padding: 0; }
+  .InputfieldForm .Inputfields .Inputfields {
+    /* nested .Inputfields list needs no bottom margin since it'll already be offset from the parent's padding */
+    margin-bottom: 0; }
+  .InputfieldForm .Inputfields > .InputfieldColumnWidth {
+    /* an Inputfield that has a percentage width assigned to it */
+    float: left;
+    clear: none;
+    margin-top: 0; }
+  .InputfieldForm .Inputfields .InputfieldColumnWidthFirst,
+  .InputfieldForm .Inputfields .InputfieldColumnWidth + .InputfieldSubmit {
+    /* first Inputfield with a percent width... */
+    /* ...or the last percentage-width Inputifeld before the submit button */
+    clear: both;
+    margin-left: 0; }
+  .InputfieldForm .Inputfields .InputfieldColumnWidthFirstTmp,
+  .InputfieldForm .Inputfields .InputfieldColumnWidthFirst.InputfieldStateHidden + .Inputfield {
+    /* for support of inputfield dependencies */
+    clear: both;
+    margin-left: 0; }
+  .InputfieldForm .Inputfields .InputfieldColumnWidth:not(.InputfieldColumnWidthFirst) .InputfieldHeader,
+  .InputfieldForm .Inputfields .InputfieldColumnWidth:not(.InputfieldColumnWidthFirst) .InputfieldContent {
+    margin-left: -1px; }
+  .InputfieldForm .Inputfields > .Inputfield:not(.InputfieldSubmit) > .InputfieldContent > *:first-child,
+  .InputfieldForm .Inputfields > .Inputfield > .InputfieldContent > div > *:first-child,
+  .InputfieldForm .Inputfields > .Inputfield:first-child {
+    /* first child element of an Inputfield or it's content needs no top margin since it is already padded */
+    margin-top: 0; }
+  .InputfieldForm .Inputfields .Inputfields > .Inputfield:last-child,
+  .InputfieldForm .Inputfields > .Inputfield > .InputfieldContent > *:last-child {
+    /* last child element in an Inputfield content needs no margin since it is already padded */
+    margin-bottom: 0; }
+
+.Inputfields {
+  height: auto;
+  /**
+   * InputfieldMarkup
+   *
+   */
+  /**
+   * Repeaters
+   *
+   */
+  /**
+   * Item and file lists
+   *
+   */ }
+  .Inputfields fieldset,
+  .Inputfields input,
+  .Inputfields select,
+  .Inputfields textarea,
+  .Inputfields label {
+    /* reset */
+    margin: 0;
+    padding: 0; }
+  .Inputfields label {
+    display: block; }
+  .Inputfields .Inputfield,
+  .Inputfields label,
+  .Inputfields input,
+  .Inputfields select,
+  .Inputfields textarea,
+  .Inputfields table {
+    height: auto; }
+  .Inputfields input,
+  .Inputfields select,
+  .Inputfields textarea {
+    font-size: 1em;
+    max-width: 100%; }
+  .Inputfields input,
+  .Inputfields textarea {
+    /* slight padding for input and textarea elements... */
+    padding: 0.1em 0.2em;
+    line-height: 1.3em; }
+  .Inputfields textarea,
+  .Inputfields input.InputfieldMaxWidth {
+    width: 100%; }
+  .Inputfields input[type=checkbox],
+  .Inputfields input[type=radio] {
+    /* ...but no padding for checkbox and radios */
+    padding: 0; }
+  .Inputfields .Inputfield {
+    margin-bottom: -1px;
+    /* non doubled border */
+    margin-top: 0;
+    background: white; }
+  .Inputfields .Inputfield.ui-state-error {
+    border: none; }
+  .Inputfields .InputfieldStateToggle {
+    cursor: pointer; }
+    .Inputfields .InputfieldStateToggle span.ui-icon:first-child {
+      /* the open/close icon that goes with most Inputfields */
+      float: right;
+      padding-right: 0.25em; }
+    .Inputfields .InputfieldStateToggle .ui-icon + .ui-icon {
+      margin-right: 0.5em;
+      margin-left: none; }
+  .Inputfields .InputfieldStateCollapsed .InputfieldHeader {
+    /* different style for collapsed header */
+    padding-bottom: 0.75em;
+    background: white;
+    /* WHITE */
+    border: 1px solid #eceae1;
+    /* LIGHT-KHAKI */
+    color: #ce8064;
+    /* LIGHT-BROWN */ }
+    .Inputfields .InputfieldStateCollapsed .InputfieldHeader:hover {
+      /* style for collapsed header when hovered */
+      color: #0e9d98;
+      border-color: #eceae1;
+      /* LIGHT-KHAKI */
+      background: white;
+      /* WHITE */ }
+  .Inputfields .InputfieldStateCollapsed .InputfieldContent {
+    /* collapsed Inputfields don't show their content (only header) */
+    display: none; }
+  .Inputfields .InputfieldHeader,
+  .Inputfields .InputfieldWrapper > .description {
+    background: white;
+    /* WHITE */
+    border: 1px solid #eceae1;
+    /* LIGHT-KHAKI */
+    border-bottom: none;
+    color: #743a25;
+    /* BROWN */ }
+  .Inputfields .InputfieldHeader:hover {
+    color: #0e9d98; }
+  .Inputfields .InputfieldWrapper > .description {
+    margin: 0;
+    padding-bottom: 1em;
+    margin-bottom: -1em; }
+  .Inputfields .InputfieldHeader + .InputfieldContent {
+    padding: 0.25em 1.25em 1.25em 1.25em;
+    border: 1px solid #eceae1;
+    /* LIGHT-KHAKI */
+    border-top: none;
+    background: white;
+    /* WHITE */ }
+  .Inputfields .InputfieldMarkup .InputfieldContent {
+    border: 1px solid #eceae1;
+    /* LIGHT-KHAKI */
+    margin-top: 1em;
+    padding: 1.25em; }
+  .Inputfields .InputfieldMarkup .InputfieldHeader + .InputfieldContent {
+    border-top: none;
+    margin-top: 0;
+    padding-top: 0; }
+  .Inputfields .InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem > .InputfieldHeader {
+    border: none;
+    background: #82be05;
+    /* LIGHT-GREEN */
+    color: white;
+    /* WHITE */
+    padding: 0.25em 0.25em 0.25em 2em; }
+    .Inputfields .InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem > .InputfieldHeader:hover {
+      background: #0e9d98;
+      color: white;
+      border: none; }
+    .Inputfields .InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem > .InputfieldHeader a {
+      color: white;
+      /* WHITE */
+      cursor: pointer; }
+    .Inputfields .InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem > .InputfieldHeader .ui-icon {
+      margin-top: 2px; }
+  .Inputfields .InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem > .InputfieldContent {
+    padding: 0;
+    margin-bottom: 1.25em;
+    border: none; }
+  .Inputfields .InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem.InputfieldStateCollapsed {
+    margin-bottom: 1em; }
+  .Inputfields .InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem > .InputfieldHeader.ui-state-error {
+    text-decoration: line-through;
+    background: #a30000;
+    border: none; }
+  .Inputfields .InputfieldFileList > li {
+    margin-top: 0; }
+  .Inputfields .InputfieldFileList .InputfieldFileItem {
+    border: 1px solid #e6e4d8; }
+  .Inputfields .InputfieldFileList .InputfieldFileItem .ui-widget-content {
+    border: none; }
+  .Inputfields .InputfieldItemList .InputfieldItemHeader {
+    /* file or repeater item header */
+    border: none;
+    background: #82be05;
+    /* LIGHT-GREEN */
+    color: white;
+    /* WHITE */
+    padding-left: 0.25em;
+    padding-right: 0.5em;
+    cursor: move;
+    font-weight: normal; }
+    .Inputfields .InputfieldItemList .InputfieldItemHeader:hover {
+      /* file or repeater item header in hover state */
+      background: #0e9d98;
+      color: white;
+      border: none; }
+    .Inputfields .InputfieldItemList .InputfieldItemHeader a {
+      /* link in file or repeater item header */
+      color: white;
+      /* WHITE */ }
+    .Inputfields .InputfieldItemList .InputfieldItemHeader .ui-icon {
+      margin-top: 2px; }
+  .Inputfields .InputfieldItemList .InputfieldItemHeader.ui-state-error {
+    /* deleted item state */
+    text-decoration: line-through;
+    background: #a30000;
+    border: none; }
+  .Inputfields .InputfieldItemList:not(.InputfieldStateCollapsed) > .InputfieldHeader,
+  .Inputfields .InputfieldFieldset:not(.InputfieldStateCollapsed) > .InputfieldHeader,
+  .Inputfields .InputfieldFieldsetOpen:not(.InputfieldStateCollapsed) > .InputfieldHeader,
+  .Inputfields .InputfieldItemList > .InputfieldHeader + .InputfieldContent,
+  .Inputfields .InputfieldFieldset > .InputfieldHeader + .InputfieldContent,
+  .Inputfields .InputfieldFieldsetOpen > .InputfieldHeader + .InputfieldContent {
+    /* Inputfields containing other items get a different background color */
+    background: rgba(230, 228, 216, 0.5); }
+  .Inputfields .InputfieldPageNameURL {
+    /* page name */
+    font-size: 0.923076923076923em; }
+
+.Inputfields > .Inputfield {
+  display: block;
+  clear: both; }
+
+.Inputfields > .Inputfield > .InputfieldContent:before,
+.Inputfields > .Inputfield > .InputfieldContent:after,
+.InputfieldForm:after {
+  /* @soma clearfix */
+  content: " ";
+  display: table; }
+
+.Inputfields > .Inputfield > .InputfieldContent:after,
+.InputfieldForm:after {
+  /* @soma clearfix  */
+  clear: both; }
+
+/**
+ * Inputfield containers (InputfieldHeader, InputfieldContent) 
+ *
+ */
+.Inputfields .InputfieldHeader,
+.InputfieldForm .InputfieldHeader,
+.InputfieldForm label.InputfieldHeader,
+.InputfieldWrapper > .description {
+  /* typically the Inputfield's <label> */
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -o-user-select: none;
+  user-select: none;
+  /* prevent selection of this element */
+  display: block;
+  padding: 0.75em 0.25em 0.25em 1.25em;
+  margin: 0;
+  font-weight: bold; }
+
+/**
+ * Styles for item listing inputfields
+ *
+
+.InputfieldItemList .InputfieldContent .InputfieldHeader {
+	font-weight: bold;
+	padding: 5px 10px; 
+	text-shadow: none; 
+}
+ */
+.InputfieldStateRequired > .InputfieldHeader:first-child:after {
+  /* Add asterisk to indicate field is required */
+  content: ' *';
+  color: #a30000; }
+
+/****************************************************************************
+ * Specific Inputfield types
+ *
+ * Defined here rather than as separate CSS files because their styles are 
+ * shared or there may be relationships with other Inputfields
+ *
+ */
+.Inputfields .InputfieldHidden {
+  display: none; }
+
+/**
+ * Buttons
+ *
+ */
+.InputfieldForm .Inputfields .InputfieldSubmit,
+.InputfieldForm .Inputfields .InputfieldButton {
+  /* enable horizontal stack of buttons */
+  margin-top: 0;
+  padding-top: 0;
+  clear: none;
+  background: none; }
+  .InputfieldForm .Inputfields .InputfieldSubmit .InputfieldHeader,
+  .InputfieldForm .Inputfields .InputfieldButton .InputfieldHeader {
+    /* no need for a header with buttons */
+    display: none; }
+  .InputfieldForm .Inputfields .InputfieldSubmit .InputfieldContent,
+  .InputfieldForm .Inputfields .InputfieldButton .InputfieldContent {
+    /* we don't need our visual furniture for buttons */
+    padding: 0;
+    margin: 0;
+    margin-top: 1em;
+    background: none;
+    border: none; }
+
+.Inputfields > .InputfieldSubmit {
+  float: left;
+  margin-bottom: 0.5em;
+  margin-top: 0; }
+
+.Inputfields .InputfieldSubmit + .InputfieldSubmit {
+  /* two buttons next to each other */
+  float: left;
+  margin-left: 0.5em;
+  margin-top: 0; }
+
+.Inputfields .Inputfield:not(.InputfieldSubmit) + .InputfieldSubmit {
+  clear: left; }
+
+.Inputfield .LanguageSupport {
+  margin-bottom: 1em; }
+
+/****************************************************************************
+ * Render Value Mode 
+ *
+ * Used when only values are being rendered in the form (no inputs)
+ *
+ */
+.InputfieldRenderValueMode .InputfieldSelect li,
+.InputfieldRenderValueMode .InputfieldRadios li,
+.InputfieldRenderValueMode .InputfieldCheckboxes li {
+  margin: 0; }
+.InputfieldRenderValueMode .InputfieldSubmit,
+.InputfieldRenderValueMode .InputfieldButton {
+  display: none; }
 
 /***********************************************************************************************
  * GENERAL
@@ -333,7 +685,9 @@ body {
 
 body,
 .ui-dialog,
-.ui-button {
+.ui-button,
+input,
+textarea {
   font: 10px/20px "Helvetica Neue", Arial, sans-serif; }
 
 body {
@@ -460,18 +814,22 @@ a:active {
   #masthead #breadcrumb {
     position: absolute;
     left: 0;
-    top: 56px; }
+    top: 56px;
+    /*
+    li:after {
+    	content: " \232A";
+    }
+    */ }
     #masthead #breadcrumb li {
       color: rgba(255, 255, 255, 0.3);
-      display: inline;
+      display: inline-block;
       padding: 0;
       line-height: 1em;
-      white-space: nowrap; }
-    #masthead #breadcrumb li:after {
-      content: " \232A"; }
+      white-space: nowrap;
+      padding-right: 0.5em; }
     #masthead #breadcrumb a {
       color: rgba(255, 255, 255, 0.6);
-      padding-right: 4px; }
+      margin-right: 0.5em; }
     #masthead #breadcrumb a:hover {
       color: white;
       background: none;
@@ -479,7 +837,9 @@ a:active {
     #masthead #breadcrumb a.sitelink {
       float: left; }
       #masthead #breadcrumb a.sitelink .ui-icon {
-        float: left; }
+        float: left;
+        position: relative;
+        top: -2px; }
     #masthead #breadcrumb .ui-state-default {
       /* for home icon */
       border: none;
@@ -500,14 +860,15 @@ a:active {
     right: 0;
     width: 25%; }
   #masthead #ProcessPageSearchQuery {
-    padding: 5px 8px;
     height: auto;
+    padding: 2px 7px 1px 7px;
+    font-size: 1em;
     border: 1px solid rgba(255, 255, 255, 0.1);
     /*rgba(255,255,255,0.1);*/
     /*WHITE */
     background: transparent;
     width: 100%;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.5);
     /*rgba(255,255,255,0.8);*/
     /* WHITE */
     border-radius: 5px; }
@@ -526,9 +887,6 @@ a:active {
     /* GREY */ }
 
 /* #masthead */
-#notices + #content {
-  padding-top: 1em; }
-
 #headline {
   position: relative;
   z-index: 1;
@@ -585,13 +943,9 @@ a:active {
    */
   /* MarkupAdminDataTable */
   /* MarkupPagerNav */
-  /* Pagination */
-  /* page name */ }
+  /* Pagination */ }
   .content img {
     display: block; }
-  .content .WireTabs a {
-    /*font-size: 0.84615em;*/
-    font-weight: bold; }
   .content .nav a.label {
     font-size: 1em; }
   .content p,
@@ -654,7 +1008,7 @@ a:active {
     border-bottom: none;
     text-transform: uppercase;
     font-weight: bold;
-    border-left: 1px solid #e6e4d8;
+    border-left: 1px solid #eceae1;
     /* LIGHT-KHAKI */ }
   .content li.action a, .content .actions a,
   .content .PageList .actions a,
@@ -689,24 +1043,27 @@ a:active {
     text-transform: none; }
   .content dl dd {
     padding-bottom: 0.75em;
-    border-bottom: 1px dotted #e6e4d8;
+    border-bottom: 1px dotted #eceae1;
     /* LIGHT KHAKI */ }
   .content .WireTabs {
-    top: 1.12em;
+    top: 1.1em;
     margin-top: -1.1em !important;
-    left: 0; }
+    margin-bottom: 1.1em;
+    left: 0;
+    overflow: hidden; }
     .content .WireTabs li {
       background: none;
       margin: 0;
       padding: 0; }
     .content .WireTabs a {
-      padding: 6px 15px;
+      padding: 6px 11px;
       display: inline-block;
       border-top-left-radius: 6px;
       border-top-right-radius: 6px;
       margin-right: 1px;
       color: #6f9d0e;
-      background: none; }
+      background: none;
+      font-weight: bold; }
     .content .WireTabs a.on {
       background: #e6e4d8;
       color: #222222; }
@@ -735,11 +1092,11 @@ a:active {
     font-size: 0.833333em; }
   .content .PageList .PageListItemOpen .PageListNumChildren {
     padding-right: 0.5em;
-    border-right: 1px solid #e6e4d8;
+    border-right: 1px solid #eceae1;
     /* LIGHT-GREY */ }
   .content .AdminDataList th,
   .content .AdminDataList td {
-    border-color: #dcd9c8; }
+    border-color: #e2e0d2; }
   .content .AdminDataList tr:hover td,
   .content .AdminDataList tr:hover th {
     background: #ffffdd; }
@@ -790,12 +1147,6 @@ a:active {
   .content .MarkupPagerNav a:active {
     color: white;
     background: #0e9d98; }
-  .content .InputfieldPageNameURL {
-    font-size: 0.923076923076923em; }
-  .content .InputfieldPageNameURL a {
-    color: #8e94c2; }
-  .content .InputfieldPageNameURL a:hover {
-    color: #333e99; }
 
 .description {
   color: #777777;
@@ -865,111 +1216,6 @@ a:active {
       border-left: 1px dotted #999999;
       /* LIGHT-GREY */
       font-size: 12px; }
-
-/***********************************************************************************************
- * INPUTFIELD COLORS
- *
- */
-.InputfieldForm {
-  /*
-  .InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header .ui-icon { 
-  	top: 5px; 
-  }
-  */ }
-  .InputfieldForm .Inputfield {
-    background: white; }
-  .InputfieldForm .ui-widget-header,
-  .InputfieldForm label.ui-widget-header,
-  .InputfieldForm .InputfieldWrapper > .description {
-    background: white;
-    /* WHITE */
-    border: 1px solid #e6e4d8;
-    /* LIGHT-KHAKI */
-    border-bottom: none;
-    color: #743a25;
-    /* BROWN */ }
-  .InputfieldForm .ui-widget-header:hover,
-  .InputfieldForm label.ui-widget-header:hover {
-    color: #0e9d98; }
-  .InputfieldForm .InputfieldWrapper > .description {
-    margin: 0;
-    padding-bottom: 1em;
-    margin-bottom: -1em; }
-  .InputfieldForm label.ui-widget-header + .ui-widget-content {
-    border: 1px solid #e6e4d8;
-    /* LIGHT-KHAKI */
-    border-top: none;
-    background: white;
-    /* WHITE */ }
-  .InputfieldForm .InputfieldMarkup .ui-widget-content {
-    border: 1px solid #e6e4d8;
-    /* LIGHT-KHAKI */
-    margin-top: 1em;
-    padding: 1em; }
-  .InputfieldForm .InputfieldMarkup .ui-widget-header + .ui-widget-content {
-    margin-top: 0;
-    padding-top: 0; }
-  .InputfieldForm .InputfieldStateCollapsed label.ui-widget-header {
-    background: white;
-    /* WHITE */
-    border: 1px solid #e6e4d8;
-    /* LIGHT-KHAKI */ }
-  .InputfieldForm .InputfieldStateCollapsed label.ui-widget-header:hover {
-    /* style for collapsed header when hovered */
-    color: #0e9d98;
-    border-color: #e6e4d8;
-    /* LIGHT-KHAKI */
-    background: white;
-    /* WHITE */ }
-  .InputfieldForm .Inputfields .InputfieldPageName .ui-widget-header,
-  .InputfieldForm .Inputfields .InputfieldPageName .ui-widget-content,
-  .InputfieldForm .Inputfields > .InputfieldItemList:not(.InputfieldStateCollapsed) > .ui-widget-header,
-  .InputfieldForm .Inputfields > .InputfieldFieldset:not(.InputfieldStateCollapsed) > .ui-widget-header,
-  .InputfieldForm .Inputfields > .InputfieldFieldsetOpen:not(.InputfieldStateCollapsed) > .ui-widget-header,
-  .InputfieldForm .Inputfields > .InputfieldItemList > .ui-widget-header + .ui-widget-content,
-  .InputfieldForm .Inputfields > .InputfieldFieldset > .ui-widget-header + .ui-widget-content,
-  .InputfieldForm .Inputfields > .InputfieldFieldsetOpen > .ui-widget-header + .ui-widget-content {
-    /* Inputfields containing other items get a different background color */
-    background: rgba(230, 228, 216, 0.5); }
-  .InputfieldForm .InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header,
-  .InputfieldForm .InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header {
-    /* file item or repeater item */
-    border: none;
-    background: #82be05;
-    /* LIGHT-GREEN */
-    color: white;
-    /* WHITE */ }
-  .InputfieldForm .InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header:hover,
-  .InputfieldForm .InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header:hover {
-    /* file item or repeater item */
-    background: #0e9d98;
-    color: white;
-    border: none; }
-  .InputfieldForm .InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header a {
-    color: white;
-    /* WHITE */ }
-  .InputfieldForm .InputfieldItemList > .ui-widget-content > ul > li > .ui-widget-header.ui-state-error,
-  .InputfieldForm .InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldFieldset > .ui-widget-header.ui-state-error {
-    text-decoration: line-through;
-    background: #a30000;
-    border: none; }
-  .InputfieldForm .InputfieldItemList > .ui-widget-header + .ui-widget-content > .Inputfields > .InputfieldStateCollapsed {
-    margin-bottom: 1em; }
-  .InputfieldForm .InputfieldItemList .ui-widget-header .ui-icon {
-    margin-top: 2px; }
-  .InputfieldForm .InputfieldItemList .ui-widget-header.ui-state-error {
-    border: none; }
-  .InputfieldForm .InputfieldStateRequired > label.ui-widget-header:first-child:after {
-    color: #a30000; }
-  .InputfieldForm .Inputfield.ui-state-error {
-    border: none; }
-  .InputfieldForm .InputfieldButton,
-  .InputfieldForm .InputfieldSubmit {
-    background: none; }
-  .InputfieldForm .Inputfields > .InputfieldStateCollapsed > .ui-widget-header {
-    /* adjust text color for collapsed Inputfields */
-    color: #ce8064;
-    /* LIGHT-BROWN */ }
 
 /***********************************************************************************************
  * MODAL
@@ -1086,3 +1332,5 @@ body.modal #headline {
   #masthead #topnav a {
     padding-left: 8px;
     padding-right: 8px; } }
+.content > .container > #PageListContainer {
+  margin-top: 1em; }

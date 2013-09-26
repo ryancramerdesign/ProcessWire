@@ -66,12 +66,14 @@ $(document).ready(function() {
 
 	// instantiate the WireTabs
 	var $fieldEdit = $("#ProcessFieldEdit"); 
-	$fieldEdit.find('script').remove();
-	$fieldEdit.WireTabs({
-		items: $(".Inputfields li.WireTab"),
-		id: 'FieldEditTabs',
-		skipRememberTabIDs: ['delete']
-		});
+	if($fieldEdit.size() > 0) {
+		$fieldEdit.find('script').remove();
+		$fieldEdit.WireTabs({
+			items: $(".Inputfields li.WireTab"),
+			id: 'FieldEditTabs',
+			skipRememberTabIDs: ['delete']
+			});
+	}
 
 	// change fieldgroup context
 	$("#fieldgroupContextSelect").change(function() {

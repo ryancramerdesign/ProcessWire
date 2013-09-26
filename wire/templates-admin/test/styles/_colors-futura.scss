@@ -1,0 +1,157 @@
+$white: #FFF; 
+$black: #222; 
+$light-khaki: #E4EBEE;
+$orange: #D84C38; 
+$light-orange: #D8744E;
+$red: #a30000;
+$light-purple: #8E94C2;
+$dark-purple: #333E99;
+$pink: #F21E69; 
+$dark-pink: darken($pink, 8%); 
+$blue: darken(#0698FE, 10%);
+$light-blue: #D2E4EA; 
+$dark-blue: #2F4248;
+$light-green: #97D590;
+$green: #48A63D;
+$cyan: #0EDCB9;
+$brown: #821038;
+$futura-red: #CC413D; 
+
+$subtle-bg: #F2F3F4;
+$subtle-border: darken($subtle-bg, 1%); 
+
+$text-bg: $white; 
+$text-color: $black;
+$medium-text-color: #777; 
+$light-text-color: #999; 
+$reverse-text-color: $white;
+
+$masthead-bg: #333F4D;
+$masthead-secondary-bg: none; 
+$masthead-secondary-border: none; /* 1px solid transparentize($subtle-bg, 0.9); */
+$masthead-height: 81px; 
+
+$topnav-link-color: $reverse-text-color;
+$topnav-link-bg: rgba(255,255,255,0.05); 
+$topnav-link-hover-color: $reverse-text-color; 
+$topnav-link-hover-bg: transparentize($reverse-text-color, 0.8); 
+$topnav-link-current-color: $text-color;
+$topnav-link-current-bg: $subtle-bg;
+$topnav-height: 31px; 
+
+$breadcrumb-color: transparentize($reverse-text-color, 0.7); 
+$breadcrumb-link-color: transparentize($reverse-text-color, 0.4); 
+$breadcrumb-link-hover-color: $reverse-text-color; 
+
+$headline-bg: darken($subtle-bg, 1%); 
+$headline-color: $futura-red;
+$headline-border: $subtle-border; 
+
+$item-header-hover-color: $white;
+$item-header-hover-bg: $green; 
+$item-header-bg: $futura-red;
+$item-header-color: $white; 
+$item-border: 1px solid darken($subtle-bg, 3%); 
+
+$action-link-font-size: 0.769230769230769em; 
+$action-link-bg: none;
+$action-link-color: $futura-red;
+$action-link-hover-color: $white;
+$action-link-hover-bg: $futura-red;
+$action-link-active-color: $white; 
+$action-link-active-bg: $futura-red;
+
+$link-color: $blue;
+$link-hover-color: $futura-red; 
+$link-hover-bg: none; 
+$link-current-color: $action-link-color;
+$link-current-bg: none; 
+$link-active-color: $futura-red; 
+$link-active-bg: none; 
+
+$button-bg: $futura-red; 
+$button-border: $futura-red; 
+$button-color: $white;
+$button-hover-bg: $green; 
+$button-hover-border: $green; 
+$button-radius: 5px; 
+
+$ui-state-default-bg: $futura-red;
+$ui-state-default-color: $reverse-text-color; 
+$ui-state-hover-bg: darken($futura-red, 5%);
+$ui-state-hover-color: $reverse-text-color; 
+
+$label-link-color: $black;
+$label-link-hover-color: $blue; 
+
+$table-th-color: $futura-red;
+$table-th-active-color: $green;
+
+$pagelist-link-color: $blue; 
+$pagelist-link-hover-color: $dark-blue;
+$pagelist-link-open-color: $black;
+$pagelist-link-active-color: $futura-red; 
+
+$pagination-font-size: 0.769230769230769em; 
+$pagination-link-color: $reverse-text-color;
+$pagination-link-bg: $futura-red; 
+$pagination-link-current-color: $text-color;
+$pagination-link-current-bg: $subtle-bg;
+$pagination-link-hover-color: $white;
+$pagination-link-hover-bg: $green;
+$pagination-link-active-color: $white; 
+$pagination-link-active-bg: darken($futura-red, 0.2);
+$pagination-link-border-radius: 2px; 
+
+$wiretab-link-bg: none; 
+$wiretab-link-color: $text-color; 
+$wiretab-link-hover-bg: $white;
+$wiretab-link-hover-color: $text-color; 
+$wiretab-link-current-bg: $white; 
+$wiretab-link-current-color: $text-color;
+$wiretab-link-active-bg: $white; 
+$wiretab-link-active-color: $text-color;
+
+$footer-bg: $headline-bg; /* transparentize($subtle-bg, 0.5); */
+$footer-color: $light-text-color; 
+$footer-link-color: $futura-red;
+
+$highlight-bg: $green; /* #D1F486;q*/
+$highlight-color: $white; /* darken($highlight-bg, 60%); */
+
+$error-bg: $red; 
+$error-border: $red; 
+$error-color: #fff; 
+
+$notes-bg: none; 
+$notes-font-size: 0.846153846153846em;
+
+$tabs-radius: 5px; 
+
+#content .WireTabs {
+	background: $subtle-bg; 
+}
+#masthead, 
+#content {
+
+	.ui-button, 
+	button.ui-button.ui-state-default, 
+	.ui-button.ui-state-default {
+		font-weight: normal;
+	}
+	.ui-priority-secondary ui-button,
+	button.ui-button.ui-state-default.ui-priority-secondary,
+	.ui-priority-secondary.ui-button.ui-state-default {
+		font-weight: normal;
+		background: $white; 
+		color: #444; 
+		border: 1px solid #ccc; 
+		opacity: 1.0 !important;
+	}
+		.ui-button:hover, 
+		button.ui-button.ui-state-hover, 
+		.ui-button.ui-state-hover {
+			font-weight: normal;
+			opacity: 1.0 !important;
+		}
+}

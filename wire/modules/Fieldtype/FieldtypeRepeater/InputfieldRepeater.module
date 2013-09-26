@@ -24,7 +24,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		return array(
 			'title' => __('Repeater', __FILE__), // Module Title
 			'summary' => __('Repeats fields from another template. Provides the input for FieldtypeRepeater.', __FILE__), // Module Summary
-			'version' => 100,
+			'version' => 101,
 			'requires' => 'FieldtypeRepeater',
 			);
 	}
@@ -149,6 +149,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 			$sort->attr('value', $cnt);
 
 			$wrap = wire('modules')->get('InputfieldFieldset'); 
+			$wrap->addClass('InputfieldRepeaterItem');
 			$wrap->label = "$label #" . (++$cnt); 
 
 			// add a hidden field that will be populated with a positive value for all visible repeater items

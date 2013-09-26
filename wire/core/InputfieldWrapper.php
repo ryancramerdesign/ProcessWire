@@ -71,8 +71,8 @@ class InputfieldWrapper extends Inputfield {
 	static protected $defaultMarkup = array(
 		'list' => "\n<ul {attrs}>\n{out}\n</ul>\n",
 		'item' => "\n\t<li {attrs}>\n{out}\n\t</li>", 
-		'item_label' => "\n\t\t<label class='ui-widget-header' for='{for}'>{out}</label>", 
-		'item_content' => "\n\t\t<div class='ui-widget-content'>\n{out}\n\t\t</div>", 
+		'item_label' => "\n\t\t<label class='InputfieldHeader ui-widget-header' for='{for}'>{out}</label>", 
+		'item_content' => "\n\t\t<div class='InputfieldContent ui-widget-content'>\n{out}\n\t\t</div>", 
 		'item_error' => "\n<p><span class='ui-state-error'>{out}</span></p>",
 		'item_description' => "\n<p class='description'>{out}</p>", 
 		'item_head' => "\n<h2>{out}</h2>", 
@@ -351,6 +351,7 @@ class InputfieldWrapper extends Inputfield {
 					$columnWidthTotal = 0;
 				}
 				if(!isset($ffAttrs['id'])) $ffAttrs['id'] = 'wrap_' . $inputfield->attr('id'); 
+				$ffAttrs['class'] = str_replace('Inputfield_ ', '', $ffAttrs['class']); 
 				foreach($ffAttrs as $k => $v) {
 					$attrs .= " $k='" . $this->entityEncode(trim($v)) . "'";
 				}
