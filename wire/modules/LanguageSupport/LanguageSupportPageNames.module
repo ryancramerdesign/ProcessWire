@@ -485,6 +485,12 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 */
 	public function hookPageFinderGetQuery(HookEvent $event) {
 		$query = $event->return;
+		$pageFinder = $event->object; 
+		$options = $pageFinder->getOptions();
+		
+		// don't enforce language status check with findAll is active
+		if(!empty($options['findAll'])) return; 
+		
 		// don't apply exclusions when output formatting is off
 		if(!wire('pages')->outputFormatting) return;
 
@@ -683,7 +689,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 */
 	public function hookPageSaved(HookEvent $event) {
 		// The setLanguage may get lost upon some page save events, so this restores that
-		$this->user->language = $this->setLanguage;
+		// $this->user->language = $this->setLanguage;
 	}
 
 	/**

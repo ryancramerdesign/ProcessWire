@@ -587,8 +587,12 @@ class Pages extends Wire {
 			'uncacheAll' => true,
 			'resetTrackChanges' => true,
 			);
-		
+	
+		$user = $this->wire('user');
 		$options = array_merge($defaultOptions, $options); 
+		$language = $user->language && $user->language->id ? $user->language : null; 
+		// switch to default language so that saved fields and hooks don't need to be aware of language
+		if($language) $user->language = $this->wire('languages')->getDefault();
 
 		$reason = '';
 		$isNew = $page->isNew();
@@ -602,8 +606,9 @@ class Pages extends Wire {
 		}
 
 		if(!$this->savePageQuery($page, $options)) return false;
-		return $this->savePageFinish($page, $isNew, $options);
-		
+		$result = $this->savePageFinish($page, $isNew, $options);
+		if($language) $user->language = $language;
+		return $result;
 	}
 
 	/**

@@ -120,17 +120,24 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$languageTemplate = $this->templates->get('language'); 
 		if(!$languageTemplate) return;
 		$languages = new Languages($languageTemplate, $this->languagesPageID); 
-		Wire::setFuel('languages', $languages); 
+		$_default = null; // just in case
 
 		// ensure all languages are loaded and get instantiated versions of system/default languages
-		foreach($this->languages as $language) {
-			if($language->id == $defaultLanguagePageID) $this->defaultLanguagePage = $language; 
+		foreach($languages as $language) {
+			if($language->id == $defaultLanguagePageID) {
+				$this->defaultLanguagePage = $language; 
+			} else if($language->name == 'default') {
+				$_default = $language; // backup plan
+			}
 		}
-
-		if(!$this->defaultLanguagePage) return; 
-
-		// if the defaultLanguagePage is no longer available (deleted?), make it the system language
+		
+		if(!$this->defaultLanguagePage) {
+			if($_default) $this->defaultLanguagePage = $_default;
+				else $this->defaultLanguagePage = $languages->getAll()->first();
+		}
 		$this->defaultLanguagePage->setIsDefaultLanguage();
+		$languages->setDefault($this->defaultLanguagePage);
+		Wire::setFuel('languages', $languages); 
 
 		// identify the current language from the user, or set one if it's not already
 		if($this->user->language && $this->user->language->id) {
