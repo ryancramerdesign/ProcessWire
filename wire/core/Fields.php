@@ -306,7 +306,15 @@ class Fields extends WireSaveableItems {
 		// cycle through and determine which values should be saved
 		foreach($newValues as $key => $value) {
 			$oldValue = empty($oldValues[$key]) ? '' : $oldValues[$key]; 
-			if(strlen("$value") && $value != $oldValue) $data[$key] = $value;
+
+			// if both old and new are empty, then don't store a blank value in the context
+			if(empty($oldValue) && empty($value)) continue; 
+
+			// if old and new value are the same, then don't duplicate the value in the context
+			if($value == $oldValue) continue; 
+
+			// $value differs from $oldValue and should be saved
+			$data[$key] = $value;
 		}
 
 		// keep all in the same order so that it's easier to compare (by eye) in the DB
