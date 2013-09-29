@@ -85,6 +85,9 @@ class MarkupPagerNav extends Wire implements Module {
 
 		// Link markup. Place {url} for href attribute, and {out} for label content. 
 		'linkMarkup' => "<a href='{url}'><span>{out}</span></a>", 
+		
+		// Current link markup. Place {out} for label content. Shouldn't be clickable, because it loads the same page again
+		'currentLinkMarkup' => "<span>{out}</span>", 
 
 		// label used for the 'Next' button
 		'nextItemLabel' => 'Next', 
@@ -213,7 +216,8 @@ class MarkupPagerNav extends Wire implements Module {
 			if($key === $firstNumberKey) $class .= ' ' . $this->options['firstNumberItemClass'];
 				else if($key === $lastNumberKey) $class .= ' ' . $this->options['lastNumberItemClass'];
 
-			$link = str_replace(array('{url}', '{out}'), array($url, $item->label), $this->options['linkMarkup']); 
+			if($item->type === "current") $link = str_replace('{out}', $item->label, $this->options['currentLinkMarkup']);
+			else $link = str_replace(array('{url}', '{out}'), array($url, $item->label), $this->options['linkMarkup']); 
 			$out .= str_replace(array('{class}', '{out}'), array(trim($class), $link), $this->options['itemMarkup']); 
 
 		}
