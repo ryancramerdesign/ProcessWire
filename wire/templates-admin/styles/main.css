@@ -425,6 +425,10 @@ a {
  *
  */
 
+#content .InputfieldForm .langTabsContainer {
+	padding-bottom: 1em;
+}
+
 .align_left,
 .align-left {
 	float: left;
