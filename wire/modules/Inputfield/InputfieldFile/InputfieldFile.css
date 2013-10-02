@@ -1,11 +1,14 @@
-.Inputfields > li > .ui-widget-content > ul.InputfieldFileList > li {
+.Inputfields > li > .ui-widget-content > ul.InputfieldFileList > li,
+.Inputfields > li > .InputfieldContent > ul.InputfieldFileList > li {
 	margin: 0 0 1em 0;
 	position: relative; 
 	cursor: move; 
 }
 
-	ul.InputfieldFileList li p {
+	.InputfieldForm .Inputfields .InputfieldItemList .InputfieldContent.ui-state-hover {
+		background: none;
 	}
+
 
 	ul.InputfieldFileList li .InputfieldFileInfo, 
 	.AjaxUpload .InputfieldFileInfo {

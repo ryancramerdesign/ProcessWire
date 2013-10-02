@@ -108,7 +108,7 @@ $(document).ready(function() {
 	 */
 	function InitHTML5() {
 
-		$(".InputfieldFileUpload").closest('.ui-widget-content').each(function(i) {
+		$(".InputfieldFileUpload").closest('.ui-widget-content, .InputfieldContent').each(function(i) {
 
 			var $this = $(this); 
 			var $form = $this.parents('form'); 
@@ -141,9 +141,9 @@ $(document).ready(function() {
 				
 			function uploadFile(file) {
 
-				var $progressItem = $('<li class="InputfieldFile ui-widget AjaxUpload"><p class="InputfieldFileInfo ui-widget ui-widget-header"></p></li>'),
+				var $progressItem = $('<li class="InputfieldFile ui-widget AjaxUpload"><p class="InputfieldFileInfo ui-widget ui-widget-header InputfieldItemHeader"></p></li>'),
 					$progressBar = $('<div class="ui-progressbar ui-widget ui-widget-content ui-corner-all" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>'),
-					$progressBarValue = $('<div class="ui-progressbar-value ui-widget-header ui-corner-left" style="width: 0%; "></div>'),
+					$progressBarValue = $('<div class="ui-progressbar-value ui-widget-header InputfieldItemHeader ui-corner-left" style="width: 0%; "></div>'),
 					img,
 					reader,
 					xhr,
@@ -234,7 +234,7 @@ $(document).ready(function() {
 
 				function errorItem(filename, message) { 
 					return 	'<li class="InputfieldFile ui-widget AjaxUpload">' + 
-						'<p class="InputfieldFileInfo ui-widget ui-widget-header ui-state-error">&nbsp; ' + filename  + ' ' + 
+						'<p class="InputfieldFileInfo ui-widget ui-widget-header InputfieldItemHeader ui-state-error">&nbsp; ' + filename  + ' ' + 
 						'<span class="InputfieldFileStats"> &bull; ' + message + '</span></p></li>';
 				}
 
