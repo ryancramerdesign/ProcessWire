@@ -218,9 +218,11 @@ var ProcessWireAdminTheme = {
 				lastOffset = offset; 
 
 			}).mouseleave(function() {
-				if($ul.is(":hover")) return;
-				$ul.hide();
-				$a.removeClass('hover');
+				setTimeout(function() {
+					if($ul.is(":hover")) return;
+					$ul.hide();
+					$a.removeClass('hover');
+				}, 250); 
 			}); 
 
 			$ul.mouseleave(function() {
