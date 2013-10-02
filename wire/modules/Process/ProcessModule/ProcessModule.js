@@ -1,7 +1,8 @@
 $(document).ready(function() {
 
 	$(".ConfigurableModule").each(function() {
-		$(this).after($("<span class='ui-icon ui-icon-gear' style='float: right;'></span>").css('opacity', 0.5)); 
+		if($(this).parent().is('.not_installed')) return;
+		$(this).after($("<i class='icon-gear' style='float: right; margin-top: 3px;'></i>")); 
 	}); 
 
 	$(".not_installed").parent("a").css('opacity', 0.6).click(function() {

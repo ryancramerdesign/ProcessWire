@@ -176,6 +176,7 @@ class Template extends WireData implements Saveable {
 		'noTrash' => 0,			// pages using thsi template may not go in trash? (i.e. they will be deleted not trashed)
 		'noSettings' => 0, 		// don't show a 'settings' tab on pages using this template?
 		'noChangeTemplate' => 0, 	// don't allow pages using this template to change their template?
+		'noShortcut' => 0, 		// don't allow pages using this template to appear in shortcut "add new page" menu
 		'noUnpublish' => 0,		// don't allow pages using this template to ever exist in an unpublished state - if page exists, it must be published 
 		'nameContentTab' => 0, 		// pages should display the 'name' field on the content tab?	
 		'noCacheGetVars' => '',		// GET vars that trigger disabling the cache (only when cache_time > 0)
@@ -513,6 +514,52 @@ class Template extends WireData implements Saveable {
 		return $this->name; 
 	}
 
+
+	/**
+	 * Return the parent page that this template assumes new pages are added to 
+	 *
+	 * This is based on family settings, when applicable. 
+	 * It also takes into account user access.
+	 *
+	 * If there is no shortcut parent, NULL is returned. 
+	 *
+	 * @param bool $checkAccess Whether or not to check for user access to do this (default=false).
+	 * @return Page|null
+	 *
+	 */
+	public function getParentPage($checkAccess = false) {
+
+		if($this->noParents || $this->noShortcut || !count($this->parentTemplates)) return null;	
+		$foundParent = null;
+
+		foreach($this->parentTemplates as $parentTemplateID) {
+
+			$parentTemplate = $this->wire('templates')->get((int) $parentTemplateID); 
+
+			// if the parent template doesn't have this as an allowed child template, exclude it 
+			if($parentTemplate->noChildren) continue; 
+			if(!in_array($this->id, $parentTemplate->childTemplates)) continue;
+
+			// sort=status ensures that a non-hidden page is given preference to a hidden page
+			$include = $checkAccess ? "hidden" : "all";
+			$parentPages = $this->wire('pages')->find("templates_id=$parentTemplate->id, include=$include, sort=status, limit=2"); 
+
+			// undetermined parent, zero or more than 1 copy
+			if(count($parentPages) != 1) continue; 
+			$parentPage = $parentPages->first();
+
+			if($checkAccess) {
+				$p = new Page();
+				$p->template = $this; 
+				if(!$parentPage->addable($p)) continue; 
+			}
+
+			$foundParent = $parentPage; 
+			break;
+		}
+
+		return $foundParent;
+	}
 
 
 }

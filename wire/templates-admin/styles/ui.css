@@ -216,6 +216,10 @@ p span.ui-state-error {
 			text-decoration: underline; 
 		}
 
+	.PageList a.PageListPage i {
+		margin-right: 0.25em; 
+	}
+
 	/**
 	 * Color of page when opened
 	 *

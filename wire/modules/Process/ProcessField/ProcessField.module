@@ -56,7 +56,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	 *
 	 */
 	public function init() {
-		if($this->input->urlSegment1) $this->modules->get("JqueryWireTabs");
+		if($this->input->urlSegment1 == 'edit') $this->modules->get("JqueryWireTabs");
 		$this->moduleInfo = self::getModuleInfo();
 		$this->setFuel('processHeadline', $this->moduleInfo['title']); 
 		$this->saveButtonLabel = $this->_('Save'); // Save button label
@@ -79,7 +79,8 @@ class ProcessField extends Process implements ConfigurableModule {
 		$fieldset = $this->modules->get("InputfieldFieldset"); 
 		$fieldset->attr('id', 'template_filters');
 		$fieldset->entityEncodeLabel = false; 
-		$fieldset->label = "<span class='labelIcon ui-icon ui-icon-wrench'></span>" . $this->_("Filters"); // Field list filters fieldset label
+		$fieldset->label = $this->_("Filters"); // Field list filters fieldset label
+		$fieldset->icon = 'filter';
 		$fieldset->collapsed = Inputfield::collapsedYes;
 		$form->add($fieldset);
 
@@ -198,7 +199,8 @@ class ProcessField extends Process implements ConfigurableModule {
 				ksort($fields);
 				$f = $this->modules->get('InputfieldMarkup');
 				$f->entityEncodeLabel = false;
-				$f->label = "<span class='labelIcon ui-icon ui-icon-tag'></span>" . $caseTags[$tag];
+				$f->label = $caseTags[$tag];
+				$f->icon = 'tags';
 				$f->value = $this->getListTable($fields)->render();
 				if(in_array($tag, $collapsedTags)) $f->collapsed = Inputfield::collapsedYes; 
 				$form->add($f);
@@ -213,6 +215,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		$button = $this->modules->get('InputfieldButton');
 		$button->href = "./add"; 
 		$button->value = $this->_x('Add New Field', 'list button'); 
+		$button->icon = 'plus-sign';
 		$out .= $button->render();
 
 		if($this->input->nosave) {
@@ -256,27 +259,27 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$flagDefs = array(
 			'Autojoin' => array(
-				'icon' => 'ui-icon-link',
+				'icon' => 'icon-signin',
 				'label' => $this->_x('autojoin', 'list notes')
 				),
 			'Global' => array(
-				'icon' => 'ui-icon-circle-check',
+				'icon' => 'icon-globe',
 				'label' => $this->_x('global', 'list notes')
 				),
 			'System' => array(
-				'icon' => 'ui-icon-gear',
+				'icon' => 'icon-puzzle-piece',
 				'label' => $this->_x('system', 'list notes')
 				),
 			'Permanent' => array(
-				'icon' => 'ui-icon-locked',
+				'icon' => 'icon-building',
 				'label' => $this->_x('permanent', 'list notes')
 				),
 			'Required' => array(
-				'icon' => 'ui-icon-star', 
+				'icon' => 'icon-asterisk', 
 				'label' => $this->_x('required', 'list notes')
 				),
 			'Dependency' => array(
-				'icon' => 'ui-icon-help', 
+				'icon' => 'icon-question-sign', 
 				'label' => $this->_x('show if...', 'list notes')
 				)
 			);
@@ -321,14 +324,15 @@ class ProcessField extends Process implements ConfigurableModule {
 		$flagsOut = '';
 		foreach($flags as $flagName) {
 			$flag = $flagDefs[$flagName];
-			$icon = "<span class='ui-icon $flag[icon]'></span>";
-			$flagsOut .= "<a href='#' class='fieldFlag fieldFlag$flagName tooltip ui-priority-secondary' title='$flag[label]'>$icon</span></a>";
+			$icon = "<i class='$flag[icon]'></i>";
+			$flagsOut .= "<a href='#' class='fieldFlag fieldFlag$flagName tooltip' title='$flag[label]'>$icon</span></a>";
 		}
 
+		$icon = $field->icon ? "<i class='icon-" . str_replace('icon-', '', $this->wire('sanitizer')->name($field->icon)) . "'></i> " : '';
 
 		return array(
 			$field->name => "edit?id={$field->id}",
-			$this->sanitizer->entities($field->label), 
+			$icon . $this->sanitizer->entities($field->label), 
 			$field->type->shortName,
 			"$flagsOut<a href='$numTemplatesLink'>$numTemplates</a>"
 			);
@@ -551,6 +555,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$field = $this->modules->get('InputfieldCheckbox');
 		$field->label = $deleteLabel;
+		$field->icon = 'remove-sign';
 		$field->attr('id+name', "delete"); 
 		$field->attr('value', $this->field->id); 
 
@@ -703,6 +708,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		$field->attr('id+name', 'clone_field');
 		$field->attr('value', 1); 
 		$field->label = $this->_('Duplicate/clone this field?');
+		$field->icon = 'copy';
 		$field->description = $this->_('Check the box below if you want to create a duplicate/clone copy of this field. The clone will be created when you save.'); // Description for clone field
 		$field->collapsed = Inputfield::collapsedYes; 
 		$form->append($field); 
@@ -713,8 +719,19 @@ class ProcessField extends Process implements ConfigurableModule {
 		$form->attr('title', $this->_x('Advanced', 'tab')); 
 
 		$field = $this->modules->get("InputfieldText"); 
+		$field->attr('name', 'icon'); 
+		$field->attr('value', $this->field->icon); 
+		$field->icon = 'beer';
+		$field->label = $this->_('Icon');
+		$field->description = $this->_('If you want to associate an icon with the field, enter an [icon name](http://fortawesome.github.io/Font-Awesome/icons/) here.'); // Description for field tags
+		$field->notes = $this->_('Example: beer'); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$form->prepend($field); 
+
+		$field = $this->modules->get("InputfieldText"); 
 		$field->attr('name', 'tags'); 
 		$field->attr('value', $this->field->tags); 
+		$field->icon = 'tags';
 		$field->label = $this->_('Tags');
 		$field->description = $this->_('If you want to visually group this field with others in the fields list, enter a one-word tag. Enter the same tag on other fields you want to group with. To specify multiple tags, separate each with a space. Use of tags may be worthwhile if your site has a large number of fields.'); // Description for field tags
 		$field->notes = 
@@ -722,7 +739,6 @@ class ProcessField extends Process implements ConfigurableModule {
 			$this->_('To make a tag collapsed in the fields list, prepend a hyphen to it, like this: -hello');
 		$form->prepend($field); 
 
-		
 	
 		return $form;
 	}
@@ -735,7 +751,9 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$this->buildEditForm();
 
-		if(!$this->input->post->submit_save_field) $this->session->redirect("./"); 
+		if(!$this->input->post->submit_save_field) {
+			$this->session->redirect("./"); 
+		}
 
 		if($this->fieldgroup) return $this->saveContext();
 

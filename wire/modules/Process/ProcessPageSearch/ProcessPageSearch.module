@@ -657,7 +657,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 				'id' => $field->id, 
 				'template_label' => str_replace('Fieldtype', '', $field->type), 
 				'title' => $field->name, 
-				'editUrl' => $this->wire('config')->urls->admin . "setup/field/edit/?id=$field->id",
+				'editUrl' => $this->wire('config')->urls->admin . "setup/field/edit?id=$field->id",
 				'type' => $this->_x('Fields', 'match-type') 
 				); 
 		}
@@ -669,7 +669,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 				'id' => $template->id,
 				'template_label' => $template->name,
 				'title' => $label ? $label : $template->name,
-				'editUrl' => $this->wire('config')->urls->admin . "setup/template/edit/?id=$template->id",
+				'editUrl' => $this->wire('config')->urls->admin . "setup/template/edit?id=$template->id",
 				'type' => $this->_x('Templates', 'match-type')
 			);
 		}
@@ -683,7 +683,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 				'id' => $module->id,
 				'template_label' => $name, 
 				'title' => $title, 
-				'editUrl' => $this->wire('config')->urls->admin . "module/edit/?name=$name",
+				'editUrl' => $this->wire('config')->urls->admin . "module/edit?name=$name",
 				'type' => $this->_x('Modules', 'match-type')
 				);
 		}

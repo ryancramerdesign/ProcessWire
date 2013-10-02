@@ -103,6 +103,7 @@ abstract class Inputfield extends WireData implements Module {
 
 		$this->set('label', ''); 	// primary clikable label
 		$this->set('description', ''); 	// descriptive copy, below label
+		$this->set('icon', ''); // optional icon name to accompany label
 		$this->set('notes', ''); 	// highlighted descriptive copy, below output of input field
 		$this->set('head', ''); 	// below label, above description
 		$this->set('required', 0); 	// set to 1 to make value required for this field
@@ -542,6 +543,7 @@ abstract class Inputfield extends WireData implements Module {
 		$fieldset = $this->modules->get('InputfieldFieldset');
 		$fieldset->label = $this->_('Visibility'); 
 		$fieldset->attr('name', 'visibility'); 
+		$fieldset->icon = 'eye-open';
 		$field = $this->modules->get("InputfieldSelect"); 
 		$field->attr('name', 'collapsed'); 
 		$field->label = $this->_('Presentation'); 
@@ -559,6 +561,7 @@ abstract class Inputfield extends WireData implements Module {
 		$field->label = $this->_('Show this field only if...'); 
 		$field->description = $this->_('Enter the conditions under which the field will be shown.') . ' ' . $conditionsText; 
 		$field->notes = $conditionsNote; 
+		$field->icon = 'question-sign';
 		$field->attr('name', 'showIf'); 
 		$field->attr('value', $this->getSetting('showIf')); 
 		$field->collapsed = Inputfield::collapsedBlank;
@@ -572,6 +575,7 @@ abstract class Inputfield extends WireData implements Module {
 		$value = (int) $this->getSetting('columnWidth'); 
 		if($value < 10 || $value >= 100) $value = 100;
 		$field->label = sprintf($this->_("Column Width (%d%%)"), $value);
+		$field->icon = 'resize-horizontal';
 		$field->attr('id+name', 'columnWidth'); 
 		$field->attr('type', 'text');
 		$field->attr('maxlength', 4); 
@@ -587,6 +591,7 @@ abstract class Inputfield extends WireData implements Module {
 			
 			$field = $this->modules->get('InputfieldCheckbox');
 			$field->label = $this->_('Required?');
+			$field->icon = 'asterisk';
 			$field->attr('name', 'required'); 
 			$field->attr('value', 1); 
 			$field->attr('checked', $this->getSetting('required') ? 'checked' : ''); 
@@ -596,6 +601,7 @@ abstract class Inputfield extends WireData implements Module {
 			
 			$field = $this->modules->get('InputfieldText'); 
 			$field->label = $this->_('Required only if...');
+			$field->icon = 'asterisk';
 			$field->description = $this->_('Enter the conditions under which a value will be required for this field.') . ' ' . $conditionsText; 
 			$field->notes = $conditionsNote; 
 			$field->attr('name', 'requiredIf'); 

@@ -124,6 +124,7 @@ abstract class Fieldtype extends WireData implements Module {
 		if($this->getLoadQueryAutojoin($field, new DatabaseQuerySelect())) {
 			$f = $this->modules->get('InputfieldCheckbox');
 			$f->label = $this->_('Autojoin');
+			$f->icon = 'signin';
 			$f->attr('name', 'autojoin');
 			$f->attr('value', 1);
 			$f->attr('checked', ($field->flags & Field::flagAutojoin) ? 'checked' : '');
@@ -134,6 +135,7 @@ abstract class Fieldtype extends WireData implements Module {
 		$f = $this->modules->get('InputfieldCheckbox');
 		$f->attr('name', 'global');
 		$f->label = $this->_('Global');
+		$f->icon = 'globe';
 		$f->description = $this->_("If checked, ALL pages will be required to have this field.  It will be automatically added to any fieldgroups/templates that don't already have it. This does not mean that a value is required in the field, only that the editable field will exist in all pages."); // Global description
 		$f->attr('value', 1);
 		if($field->flags & Field::flagGlobal) $f->attr('checked', 'checked');
@@ -160,7 +162,7 @@ abstract class Fieldtype extends WireData implements Module {
 			$inputfields->append($f);
 		}
 
-                return $inputfields;
+		return $inputfields;
 	}
 
 	/**

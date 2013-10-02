@@ -279,13 +279,13 @@ $(document).ready(function() {
 				//if(curPagination+1 < maxPaginationLinks && curPagination+1 < numPaginations) {
 				if(curPagination+1 < numPaginations) {
 					$nextBtn = $blankItem.clone();
-					$nextBtn.find("a").html("&gt;").attr('href', curPagination+1).addClass('ui-priority-secondary'); 
+					$nextBtn.find("a").html("<i class='icon-angle-right'></i>").attr('href', curPagination+1); // .addClass('ui-priority-secondary'); 
 					$list.append($nextBtn);
 				}
 
 				if(curPagination > 0) {
 					$prevBtn = $blankItem.clone();
-					$prevBtn.find("a").attr('href', curPagination-1).html("&lt;").addClass('ui-priority-secondary');
+					$prevBtn.find("a").attr('href', curPagination-1).html("<i class='icon-angle-left'></i>"); // .addClass('ui-priority-secondary');
 					$list.prepend($prevBtn); 
 				}
 
@@ -567,7 +567,7 @@ $(document).ready(function() {
 					return cancelMove($li); 
 				}); 
 
-				$li.children("ul.PageListActions").before($("<span class='PageListMoveNote detail'>&lt; " + options.moveInstructionLabel + " </span>").append($cancelLink)); 
+				$li.children("ul.PageListActions").before($("<span class='PageListMoveNote detail'><i class='icon-sort'></i> " + options.moveInstructionLabel + " <i class='icon-angle-right'></i></span>").append($cancelLink)); 
 				$li.addClass('PageListSortItem'); 
 				$li.parent('.PageList').attr('id', 'PageListMoveFrom'); 
 

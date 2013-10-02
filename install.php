@@ -172,7 +172,7 @@ class Installer {
 		} else {
 			// apache_get_modules doesn't work on a cgi installation.
 			// check for environment var set in htaccess file, as submitted by jmarjie. 
-			$mod_rewrite = getenv('HTTP_MOD_REWRITE') == 'On' ? true : false;
+			$mod_rewrite = getenv('HTTP_MOD_REWRITE') == 'On' || getenv('REDIRECT_HTTP_MOD_REWRITE') == 'On' ? true : false;
 			if($mod_rewrite) {
 				$this->ok("Found Apache module (cgi): mod_rewrite");
 			} else {

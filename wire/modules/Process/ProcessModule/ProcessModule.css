@@ -80,6 +80,10 @@ a span.PermanentModule {
 }
 
 #godownload,
-#install_now {
+#install_now,
+#no_install {
     float: left; 
+}
+#wrap_no_install .InputfieldContent {
+	padding-top: 1em; 
 }

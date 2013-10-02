@@ -328,6 +328,7 @@ class ProcessPageEdit extends Process {
 				$button = $this->modules->get("InputfieldButton"); 
 				$button->attr('id+name', 'AddPageBtn'); 
 				$button->attr('value', $this->_('Add New Page Here')); // Button: add new child page
+				$button->icon = 'plus-sign';
 				$button->attr('href', "../add/?parent_id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
 				$field->append($button);
 			}
@@ -338,6 +339,7 @@ class ProcessPageEdit extends Process {
 			$sortfield = $this->page->sortfield && $this->page->sortfield != 'sort' ? $this->page->sortfield : '';
 			$fieldset = self::buildFormSortfield($sortfield, $this); 
 			$fieldset->label = $this->_('Sort Settings'); // Children sort settings field label
+			$fieldset->icon = 'sort';
 			$fieldset->description = $this->_("If you want all current and future children to automatically sort by a specific field, select the field below and optionally check the 'reverse' checkbox to make the sort descending. Leave the sort field blank if you want to be able to drag-n-drop to your own order."); // Sort settings description text
 			$wrapper->append($fieldset); 
 		}
@@ -397,6 +399,7 @@ class ProcessPageEdit extends Process {
 		$f->value = 1; 
 		$f->attr('id+name', 'sortfield_reverse'); 
 		$f->label = __('Reverse sort direction?', __FILE__); // Checkbox labe to reverse the sort direction
+		$f->icon = 'rotate-left';
 		if(substr($sortfield, 0, 1) == '-') $f->attr('checked', 'checked'); 
 		$f->showIf = "sortfield!='', sortfield!=sort";
 		$f->columnWidth = 40; 
@@ -554,6 +557,7 @@ class ProcessPageEdit extends Process {
 				$deleteLabel = $this->_('Move to Trash'); // Move to trash checkbox label
 			}
 			$field->label = $deleteLabel;
+			$field->icon = 'trash';
 			$field->description = $this->_('Check the box to confirm that you want to do this.'); // Delete page confirmation instruction
 			$wrapper->append($field); 
 		}
@@ -898,7 +902,7 @@ class ProcessPageEdit extends Process {
 		$list = '';
 		foreach($this->page->template->fieldgroup as $field) {
 			if(!$template->fieldgroup->has($field)) 
-				$list .= "<li class='ui-state-highlight'><span class='ui-icon ui-icon-alert'></span> $field</li>";
+				$list .= "<li class='ui-state-error-text'> <i class='icon-remove-sign'></i> $field</li>";
 		}
 		if(!$list) $this->executeSaveTemplate($template); 
 		$f->description = $this->_('Warning, changing the template will delete the following fields:'); // Headline that precedes list of fields that will be deleted as a result of template change

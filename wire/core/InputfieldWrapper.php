@@ -77,6 +77,7 @@ class InputfieldWrapper extends Inputfield {
 		'item_description' => "\n<p class='description'>{out}</p>", 
 		'item_head' => "\n<h2>{out}</h2>", 
 		'item_notes' => "\n<p class='notes'>{out}</p>",
+		'item_icon' => "<i class='icon-{name}'></i> ",
 		);
 
 	static protected $markup = array();
@@ -337,7 +338,8 @@ class InputfieldWrapper extends Inputfield {
 					$label = $inputfield->label;
 					// if $inputfield has a property of entityEncodeLabel with a value of boolean FALSE, we don't entity encode
 					if($inputfield->entityEncodeLabel !== false) $label = $this->entityEncode($label);
-					$label = str_replace(array('{for}', '{out}'), array($for, $label), $markup['item_label']); 
+					$icon = $inputfield->icon ? str_replace('{name}', $this->sanitizer->name(str_replace('icon-', '', $inputfield->icon)), $markup['item_icon']) : ''; 
+					$label = str_replace(array('{for}', '{out}'), array($for, $icon . $label), $markup['item_label']); 
 				}
 				$columnWidth = (int) $inputfield->getSetting('columnWidth');
 				$columnWidthAdjusted = $columnWidth + ($columnWidthTotal ? -1 * $columnWidthSpacing : 0);

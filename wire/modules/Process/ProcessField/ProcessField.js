@@ -19,8 +19,8 @@ $(document).ready(function() {
 		var showIf = $("#Inputfield_showIf").val();
 		var required = $("#Inputfield_required").is(":checked") ? true : false;
 	
-		if(showIf.length > 0) tpl = "<span class='ui-icon ui-icon-help'></span>" + tpl;
-		if(required) tpl = "<span class='ui-icon ui-icon-star'></span>" + tpl; 
+		if(showIf.length > 0) tpl = "<i class='icon-question-sign'></i>" + tpl;
+		if(required) tpl = "<i class='icon-asterisk'></i>" + tpl; 
 		var w = parseInt($columnWidth.val());
 		if(w == 100) w = 0;
 		if(w > 0) w = w + '%';
@@ -66,7 +66,7 @@ $(document).ready(function() {
 
 	// instantiate the WireTabs
 	var $fieldEdit = $("#ProcessFieldEdit"); 
-	if($fieldEdit.size() > 0) {
+	if($fieldEdit.size() > 0 && $('li.WireTab').size() > 1) {
 		$fieldEdit.find('script').remove();
 		$fieldEdit.WireTabs({
 			items: $(".Inputfields li.WireTab"),
@@ -83,5 +83,7 @@ $(document).ready(function() {
 		if(fieldgroup_id > 0)  href += '&fieldgroup_id=' + fieldgroup_id;
 		window.location = href; 
 	});
+	
+	$("a.fieldFlag").click(function() { return false; }); 
 
 });

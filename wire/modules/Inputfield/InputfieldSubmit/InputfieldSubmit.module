@@ -10,7 +10,7 @@ class InputfieldSubmit extends Inputfield {
 		return array(
 			'title' => __('Submit', __FILE__), // Module Title
 			'summary' => __('Form submit button', __FILE__), // Module Summary
-			'version' => 100,
+			'version' => 101,
 			'permanent' => true, 
 			);
 	}
@@ -26,7 +26,9 @@ class InputfieldSubmit extends Inputfield {
 
 	public function ___render() {
 		$attrs  = $this->getAttributesString();
-		$out = "\n<button $attrs><span class='ui-button-text'>" . $this->attr('value') . '</span></button>';
+		$icon = $this->icon ? $this->sanitizer->name($this->icon) : '';
+		$icon = $icon ? "<i class='icon-$icon'></i> " : '';
+		$out = "\n<button $attrs><span class='ui-button-text'>$icon" . $this->attr('value') . '</span></button>';
 		return $out; 
 	}
 

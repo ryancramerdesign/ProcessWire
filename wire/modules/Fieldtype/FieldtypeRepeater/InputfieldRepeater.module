@@ -189,7 +189,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		$wrap = wire('modules')->get('InputfieldFieldset'); 
 		$wrap->label = "$label #" . (++$cnt);
 		$wrap->description = $this->_('This item will become editable after you save.');
-		$wrap->class = 'InputfieldRepeaterNewItem';
+		$wrap->class = 'InputfieldRepeaterItem InputfieldRepeaterNewItem';
 		$wrap->collapsed = Inputfield::collapsedNo; 
 		$form->add($wrap);
 
@@ -208,8 +208,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		// a hidden checkbox with link that we use to identify when items have been added
 		$out = 	"\n<p class='InputfieldRepeaterAddItem'>" . 
 			"\n\t<input type='text' name='_{$this->name}_add_items' value='0' />" . 
-			"\n\t<span class='ui-icon ui-icon-plus'></span>" . 
-			"\n\t<a href='#' class='InputfieldRepeaterAddLink'>" . $this->_('Add Item') . "</a>" . 
+			"\n\t<a href='#' class='InputfieldRepeaterAddLink'><i class='icon-plus'></i> " . $this->_('Add Item') . "</a>" . 
 			"\n</p>";
 
 		return $this->buildForm()->render() . $out; 

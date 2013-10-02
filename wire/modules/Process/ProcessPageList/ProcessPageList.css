@@ -69,6 +69,10 @@
 	padding-left: 0.25em; 
 }
 
+.PageList .PageListStatusIcon {
+	padding-right: 2px; 
+}
+
 
 
 /**
@@ -92,14 +96,18 @@
 
 .PageList .PageListAccessOff a.PageListPage,
 .PageList .PageListAccessOff a.PageListPage:hover {
+	/*
 	padding-right: 10px;
 	background: url(images/lock.gif) center right no-repeat; 
+	*/
 }
 
 .PageList .PageListAccessOn a.PageListPage,
 .PageList .PageListAccessOn a.PageListPage:hover {
+	/*
 	padding-right: 13px;
 	background: url(images/unlock.png) center right no-repeat; 
+	*/
 }
 
 

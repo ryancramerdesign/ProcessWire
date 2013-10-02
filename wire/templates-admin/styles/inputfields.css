@@ -146,11 +146,26 @@
 .Inputfields .InputfieldStateToggle {
 	cursor: pointer;
 }
-	.Inputfields .InputfieldStateToggle span.ui-icon {
+
+	.Inputfields .InputfieldStateToggle span.ui-icon,
+	.Inputfields .InputfieldStateToggle i.toggle-icon {
 		/* the open/close icon that goes with most Inputfields */
+		float: right;
+		padding-right: 0.5em;
+	}
+	.Inputfields .InputfieldStateToggle i.toggle-icon {
+		padding-right: 0.75em;
+		line-height: 1.7em;
+		opacity: 0.5;
+	}
+
+
+	/*
+	.Inputfields .InputfieldStateToggle span.ui-icon {
 		float: right; 
 		padding-right: 0.25em; 
 	}
+	*/
 
 	.Inputfields > .InputfieldStateCollapsed .ui-widget-header {
 		/* collapsed Inputfields appear sightly faded */

@@ -1,0 +1,984 @@
+
+@import 'colors-modern';
+@import 'reset';
+@import 'jquery-ui'; 
+@import 'ui';
+@import 'inputfields';
+
+
+/***********************************************************************************************
+ * GENERAL
+ *
+ */
+
+*, *:before, *:after {
+	-moz-box-sizing: border-box; 
+	-webkit-box-sizing: border-box; 
+	box-sizing: border-box;
+ }
+
+body {
+	background: $footer-bg; 
+}
+	body,
+	.ui-dialog,
+	.ui-button,
+	input,
+	textarea {
+		font: 10px/20px "Helvetica Neue", Arial, sans-serif; 
+	}
+	body {
+		color: $text-color; 
+	}
+	body.modal {
+		background-color: $text-bg; 
+	}
+
+#masthead,
+#headline, 
+#content,
+#footer {
+	padding-right: 20px;
+	padding-left: 20px; 
+}
+#masthead,
+#notices, 
+#content,
+.ui-dialog {
+	font-size: 1.3em; 
+}
+
+.container {
+	position: relative; 
+	width: 95%; 
+	max-width: 1200px; 
+	margin: 0 auto; 
+}
+
+a {
+	/* standard link color */
+	color: $link-color; 
+}
+	a:hover {
+		/* hovered link color */
+		color: $link-hover-color; 
+		background: $link-hover-bg; 
+	}
+
+	a.on {
+		/* on/active link color */
+		background: $link-current-bg; 
+		color: $link-current-color; 
+	}
+	a:active {
+		color: $link-active-color;
+		background: $link-active-bg; 
+	}
+
+.WireFatalError {
+	background: $error-bg; 
+	color: $reverse-text-color; 
+	padding: 1em; 
+	position: relative;
+	z-index: 9999;
+}
+
+.dropdown-menu li {
+	min-width: 10em; 
+}
+
+/***********************************************************************************************
+ * MASTHEAD
+ *
+ */
+
+#masthead {
+	height: $masthead-height; 
+	background: $masthead-bg; 
+	position: relative; 
+
+	#masthead_shade {
+		background: $masthead-secondary-bg; 
+		border-top: $masthead-secondary-border; 
+		height: $topnav-height; 
+		position: absolute;
+		left: 0;
+		bottom: 0;
+		width: 100%; 
+	}
+
+	#logo {
+		position: absolute; 
+		left: -3px;
+		top: 13px; 
+	}
+		#logo:hover {
+			background: none; 
+		}
+
+
+	#topnav {
+		position: absolute;
+		top: 50px; 
+		right: 0;
+		margin: 0;
+
+		> li {
+			padding: 0;
+			margin: 0;
+			list-style: none;
+			display: inline;
+			line-height: 1em; 
+		}
+
+		> li > a {
+			background: $topnav-link-bg; 
+			color: $topnav-link-color; 
+			display: block;
+			float: left; 
+			margin: 0 0 0 1px;
+			padding: 9px 10px 11px 10px;
+			border-top-right-radius: $tabs-radius;
+			border-top-left-radius: $tabs-radius; 
+			font-weight: normal;
+		}
+
+
+		> li > a.hover, 
+		> li > a:hover {
+			background: $topnav-link-hover-bg;
+			color: $topnav-link-hover-color; 
+			text-decoration: none; 
+		}
+
+		a.on:hover,
+		a.on {
+			color: $topnav-link-current-color;
+			background: $topnav-link-current-bg; 
+			text-decoration: none; 
+		}
+
+		ul.dropdown-menu {
+			display: none; 
+		}
+	}
+
+	#ProcessPageSearchForm {
+		position: absolute; 
+		top: 12px;
+		right: 0; 
+		width: 25%; 
+	}
+
+		#ProcessPageSearchQuery {
+			height: auto; 
+			padding: 2px 7px 1px 7px; 
+			font-size: 1em; 
+			border: 1px solid transparentize($reverse-text-color, 0.9); 
+			background: transparent; 
+			width: 100%; 
+			color: $breadcrumb-link-color;
+			border-radius: $button-radius; 
+		}
+			#ProcessPageSearchQuery:focus {
+				background: $text-bg; 
+				color: $text-color; 
+				text-transform: none; 
+				font-weight: normal;
+			}
+
+		#ProcessPageSearchStatus {
+			position: absolute;
+			top: 3px;
+			right: 10px; 
+			color: $light-text-color; 
+		}
+
+
+} /* #masthead */
+
+#breadcrumb {
+
+	position: absolute; 
+	left: 0; 
+	top: 48px; 
+
+	li {
+		color: $breadcrumb-color; 
+		display: inline-block;
+		padding: 0;
+		line-height: 1em;
+		white-space: nowrap;
+		padding-right: 0.5em;
+
+	}
+
+	a {
+		color: $breadcrumb-link-color; 
+		margin-right: 0.5em; 
+	}
+
+	a:hover {
+		color: $breadcrumb-link-hover-color; 
+		background: none; 
+		text-decoration: underline;
+	}
+
+	a.sitelink {
+		float: left; 	
+
+		.ui-icon {
+			float: left; 
+			position: relative;
+			top: -2px; 	
+		}
+	}
+
+}
+
+
+#headline {
+	position: relative; 
+	z-index: 1; 
+	background: $headline-bg; 
+	border-bottom: $headline-border; 
+	padding-bottom: 1.5em; 
+	padding-top: 3em; 
+
+	.container {
+		position: relative; 
+		min-height: 30px; 
+	}
+
+
+	#head_button {
+		/* The main/primary button for a listing screen, appears in the masthead */
+		position: absolute; 
+		margin: 0;
+		top: -0.5em;
+		right: 0; 
+		z-index: 2;
+
+		button {
+			font-size: 1.3em; 
+			margin-right: 0; 
+			margin-left: 10px; 
+			float: right; 
+		}
+	}
+
+	#title {
+		font-size: 2.5em; 
+		line-height: 1em; 
+		margin: 0;
+		color: $headline-color; 
+		padding: 0;
+		padding-right: 3em;
+	}
+
+
+}
+
+
+
+/***********************************************************************************************
+ * CONTENT
+ *
+ */
+
+#content {
+	position: relative; 
+	background: $text-bg; 
+	padding-bottom: 2em; 
+	padding-top: 1px;
+	z-index: 0; 
+}
+	#content .container {
+		min-height: 50px; 
+	}
+		#content .container > form,
+		#content .container > .ui-helper-clearfix > form {
+			position: relative;
+			top: -2px; 
+		}
+
+.content {
+
+	img {
+		display: block;
+	}
+
+	.nav a.label {
+		font-size: 1em; 
+	}
+
+	p,
+	ul
+	ol,
+	table {
+		margin: 1em 0;
+	}
+
+	table th, 
+	table th.header,
+	table.AdminDataList th, 
+	h4 {
+		color: $table-th-color; 
+	}
+	
+	table.AdminDataList th.headerSortUp,
+	table.AdminDataList th.headerSortDown,
+	table th.headerSortUp,
+	table th.headerSortDown,
+	table th:hover {
+		color: $table-th-active-color; 
+	}
+
+	table.AdminDataList {
+		margin-top: 0; 
+	}
+		.container > table.AdminDataList {
+			margin-top: 1em; 
+		}
+
+	h2 {
+		margin: 1em 0;
+		font-size: 1.4em; 
+		line-height: 1.2em; 
+		color: $medium-text-color; 
+	}
+		h2 a {
+			text-decoration: underline;
+		}
+		h2 a:hover {
+			color: $reverse-text-color; 
+			background: $link-hover-color;
+			text-decoration: none;
+		}
+
+	h3 {
+		margin: 1em 0;
+		font-size: 1.2em; 
+	}
+
+	h4 {
+		margin: 1em 0 0.25em 0;
+		text-transform: uppercase;
+		font-weight: bold;
+		font-size: 0.916666666666667em;
+	}
+
+	li {
+		margin: 1em 0; 
+		display: block;
+		list-style: disc; 
+	}
+
+	ol li {
+		display: list-item; 
+		list-style-type: decimal;
+		margin-left: 1em; 
+	}
+
+	/**
+	 * Actions: like the "|edit|view|new" in the PageList
+	 *
+	 */
+
+	.PageListActions {
+		margin-left: -2px;
+	}
+
+	.PageListStatusIcon {
+		color: lighten($text-color, 40%); 
+		font-size: 0.923076923076923em; 
+	}
+
+	ul.actions {
+	}
+		ul.actions li,
+		.PageListActions li,
+		li.action {
+			border: none; 
+			padding: 0 1px; 
+			margin: 0;
+		
+		}
+		ul.actions li:before,
+		.PageListActions li:before,
+		li.action:before {
+			/*content: "\203A";*/
+			content: "/";
+			margin-right: 3px; 
+			font-size: 0.8em; 
+			color: lighten($text-color, 60%); 
+		}
+
+		ul.actions li a,
+		li.action a {
+			border-bottom: none; 
+			text-transform: uppercase;
+			font-weight: bold;
+		}
+
+	li.action a, .actions a, 
+	.PageList .actions a,
+	.PageListMoveNote a {
+		/* action links */
+		color: $action-link-color; 
+		background: $action-link-bg;
+		padding: 0 4px 0 4px; 
+		display: inline-block;
+		font-size: $action-link-font-size; 
+		border-radius: 3px; 
+		font-weight: bold;
+		text-transform: uppercase; 
+		border: $action-link-border !important; 
+	}
+		.actions a:hover,
+		li.action a:hover,
+		.PageListMoveNote a:hover {
+			/* action links hovered */
+			color: $action-link-hover-color; 
+			background: $action-link-hover-bg; 
+			border: $action-link-hover-border; 
+		}
+		
+	.PageListMoveNote {
+		text-transform: lowercase; 
+		cursor: move; 
+	}
+
+	.PageListSelectName {
+		margin-right: 0.5em; 
+		i {
+			margin-right: 0.25em; 
+		}
+	}
+
+
+	/**
+	 * Content navigation like when on the root page of "templates" or "access"
+	 *
+	 */
+	dl {
+		margin: 1em 0;
+	}
+		.container > dl:first-child {
+			margin-top: 0;
+		}
+		dt,
+		dt {
+			display: block;
+			font-weight: bold; 
+			padding-top: 0.75em; 
+		}
+		dt a {
+			text-transform: none; 
+			color: $alt-link-color; 
+		}
+		dt a:hover {
+			color: $link-hover-color; 
+		}
+		dl dd {
+			padding-bottom: 0.75em; 
+			border-bottom: 1px solid $subtle-border; 
+		}
+
+	/**
+	 * PageList
+	 *
+	 */
+
+	.PageList {
+		.PageListItem {
+			border-bottom: 1px solid lighten($subtle-border, 4%); 
+			padding-top: 4px;
+			padding-bottom: 4px; 
+		}
+		.PageListPlaceholderItem {
+			border: none;
+			padding: 0;
+		}
+
+		a.PageListPage {
+			color: $pagelist-link-color; 
+			opacity: 1.0;
+		}
+		.PageListItem > a.PageListPage:hover {
+			text-decoration: underline;
+			color: $pagelist-link-hover-color; 
+		}
+		.PageListItem > a.PageListPage:active {
+			text-decoration: underline;
+			color: $pagelist-link-active-color; 
+		}
+		.PageListItem > a.PageListPage i {
+			padding: 0 0.25em 0 0;
+			color: $pagelist-link-icon-color; 
+		}
+		.PageListItem > a.PageListPage i.icon-lock, 
+		.PageListItem > a.PageListPage i.icon-unlock,
+		.PageListItem > a.PageListPage i.icon-trash {
+			padding: 0 0 0 0.25em;
+			color: #777;
+		}
+		.PageListItem > a.PageListPage:hover i {
+			text-decoration: none; 
+		}
+
+		.PageListItemOpen > a.PageListPage  {
+			color: $pagelist-link-open-color; 
+			background-color: $pagelist-link-open-bg; 
+		}
+
+		.PageListStatusHidden > a.PageListPage {
+			opacity: 0.7; 
+		}
+
+		.PageListNumChildren {
+			font-size: 0.833333em;
+		}
+
+		.PageListItemOpen .PageListNumChildren {
+		}
+
+
+	}
+
+	/* MarkupAdminDataTable */
+	.AdminDataList th,
+	.AdminDataList td {
+		border-color: darken($subtle-border, 5%); 
+	}
+	.AdminDataList tr:hover td,
+	.AdminDataList tr:hover th {
+		background: $notes-bg; 
+	}
+	.AdminDataList td a {
+		color: $alt-link-color; 
+	}
+	.AdminDataList td a:hover {
+		color: $link-hover-color; 
+	}
+
+	/* MarkupPagerNav */
+	.MarkupPagerNav {
+
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		margin: 1em 0;
+
+		li {
+			padding: 0;
+			margin: 0;
+			list-style: none;
+			display: inline;
+			padding: 6px 0;
+			background: none;
+
+			a {
+				padding: 4px 9px;
+				margin: 0;
+				text-decoration: none;
+			}
+		}
+
+		li.MarkupPagerNavSeparator {
+			border: none;
+		}
+	}
+
+	/* Pagination */
+	.PageListPagination,
+	.MarkupPagerNav {
+		color: text-color;
+		font-size: $pagination-font-size; 
+	}
+	.PageListPagination a,
+	.MarkupPagerNav a {
+		background: $pagination-link-bg; 
+		color: $pagination-link-color; 
+		font-weight: bold;
+		-moz-border-radius: $pagination-link-border-radius; 
+		-webkit-border-radius: $pagination-link-border-radius; 
+		border-radius: $pagination-link-border-radius; 
+		border: none;
+		display: inline-block;
+		padding: 0 6px; 
+	}
+
+	.PageListPaginationCurrent a,
+	.MarkupPagerNavOn a {
+		color: $pagination-link-current-color; 
+		background: $pagination-link-current-bg; 
+	}
+
+	.PageListPagination a:hover,
+	.MarkupPagerNav a:hover {
+		/* action links hovered */
+		color: $pagination-link-hover-color; 
+		background: $pagination-link-hover-bg; 
+	}
+
+	.PageListPagination a:active,
+	.MarkupPagerNav a:active {
+		color: $pagination-link-active-color; 
+		background: $pagination-link-active-bg; 
+	}
+
+
+
+}
+
+#content {
+	/**
+	 * WireTabs
+	 *
+	 */
+
+	.WireTabs {
+		position: relative;
+		top: -18px; 
+		left: 0;
+		margin-top: -1.1em;
+		margin-bottom: -19px;
+		width: 100%; 
+		overflow: hidden; 
+		z-index: 102; 
+
+		li {
+			background: none; 
+			margin: 0;
+			padding: 0;
+		}
+
+		a {
+			font-weight: normal;
+			padding: 6px 11px;
+			display: inline-block;
+			border-top-left-radius: $tabs-radius;
+			border-top-right-radius: $tabs-radius; 
+			border: $wiretab-link-border; 
+			border-bottom: none; 
+			margin-right: 1px; 
+			color: $wiretab-link-color;
+			height: 33px; 
+			background: $wiretab-link-bg; 
+		}
+		a.on {
+			color: $wiretab-link-current-color; 
+			border: $wiretab-link-current-border; 
+			border-bottom: none; 
+			background: $wiretab-link-current-bg; 
+		}
+
+		a:hover {
+			border: $wiretab-link-hover-border; 
+			color: $wiretab-link-hover-color; 
+			border-bottom: none; 
+			background: $wiretab-link-hover-bg; 
+
+			em {
+				border: none; 
+			}
+		}
+
+		a:active{
+			background: $wiretab-link-active-bg; 
+			color: $wiretab-link-active-color; 
+		}
+
+		a em {
+			font-weight: normal;
+			font-style: normal;
+		}
+
+		#_ProcessPageEditView {
+			float: right; 
+			border: $wiretab-link-current-border;
+			border-bottom: none; 
+			margin-right: 0; 
+		}
+
+	}
+}
+
+
+.description {
+	color: $medium-text-color; 
+	margin: 0.5em 0;
+}
+
+.notes,
+.detail {
+	font-size: 0.846153846153846em;
+	color: $medium-text-color; 
+	line-height: 1.3em; 
+}
+.notes {
+	background: $notes-bg; 
+}
+
+.description strong,
+.notes strong {
+	color: $medium-text-color; 
+	font-weight: bold; 
+}
+
+.error {
+	background: $error-bg; 
+	color: $error-color; 
+	font-weight: bold; 
+	font-size: 0.9166666em;	
+}
+
+/***********************************************************************************************
+ * FOOTER
+ *
+ */
+
+#footer {
+	margin: 2em 0 2em 0; 
+	font-size: 1.1em; 
+	color: $footer-color; 
+
+	a {
+		color: $footer-link-color; 
+	}
+
+	p {
+		margin-top: 0;
+	}
+
+	#userinfo {
+		display: block; 
+		float: right; 
+	}
+
+}
+
+
+#debug {
+	margin-top: 2em; 
+
+	.container {
+		width: 100%; 
+	}
+
+	p {
+		margin: 1em 0; 
+	}
+
+	ol {
+		margin: 1em 0; 
+	}
+
+	h4 {
+		font-weight: bold; 
+	}
+
+	table {
+		width: 100%; 
+
+		th {
+			font-weight: bold;
+		}
+
+		td, th {
+			vertical-align: top; 
+			padding: 3px 5px; 	
+			border-bottom: 1px dotted $light-text-color; 
+			border-left: 1px dotted $light-text-color; 
+			font-size: 12px; 
+		}
+
+	}
+
+}
+
+/***********************************************************************************************
+ * MODAL
+ *
+ */
+
+body.modal {
+
+	.container {
+		margin: 0; 
+		width: 100%; 
+		min-width: 300px; 
+	}
+
+	.content h2 {
+		margin: 0.5em 0;
+		font-size: 1.3em; 
+	}
+
+	#footer,
+	#masthead,
+	#headline {
+		display: none; 
+	}
+
+}
+
+
+/***********************************************************************************************
+ * MISC
+ *
+ */
+
+body.hasWireTabs #notices {
+	padding-bottom: 1em; 
+	margin-top: 0.5em; 
+}
+
+body:not(.hasWireTabs) #headline .container {
+	min-height: 40px; 
+}
+
+body.hasWireTabs #content {
+	border-top: 3em solid $headline-bg; 
+}
+
+.content > .container > #PageListContainer {
+	margin-top: 1em; 
+}
+
+.hasWireTabs .content #fieldgroupContext {
+	/* context selection in field editor */
+	top: -17px;
+	right: 0; 
+	z-index: 102; 
+}
+
+#ModuleEditForm .AdminDataTable tr td:first-child {
+	color: lighten($text-color, 50%);
+}
+
+#addLinksMenu {
+	min-width: 150px; 
+}
+
+
+.align_left,
+.align-left {
+	float: left;
+	margin: 0 1em 0.5em 0;
+}
+
+.align_right,
+.align-right {
+	float: right;
+	margin: 0 0 0.5em 1em; 
+}
+
+.align_center,
+.align-center {
+	display: block;
+	margin-left: auto;
+	margin-right: auto; 
+}
+
+/***********************************************************************************************
+ * MEDIA QUERIES
+ *
+ */
+
+/* Smaller than standard 960 (devices and browsers) */
+@media only screen and (max-width: 959px) {}
+
+/* Tablet Portrait size to standard 960 (devices and browsers) */
+@media only screen and (min-width: 768px) and (max-width: 959px) {}
+
+/* All Mobile Sizes (devices and browser) */
+@media only screen and (max-width: 767px) {
+
+	#topnav {
+		left: 0;
+	}
+
+	#masthead #breadcrumb {
+		top: 15px; 
+		left: 1px; 
+		width: 70%; 
+		white-space: nowrap;
+		overflow: hidden; 
+	}
+
+	#logo {
+		display: none; 
+	}
+
+	#masthead,
+	#headline, 
+	body:not(.modal) #content,
+	#footer {
+		padding-right: 10px;
+		padding-left: 10px; 
+	}
+
+	#head_button {
+		font-size: 0.85em; 
+		top: 102px; 
+	}
+	#fieldgroupContext {
+		display: none; 
+	}
+
+}
+
+/* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
+@media only screen and (min-width: 480px) and (max-width: 767px) {
+}
+
+/* Mobile Portrait Size to Mobile Landscape Size (devices and browsers) */
+@media only screen and (max-width: 479px) {
+
+	/**
+	 * Disregard column width when at mobile size
+	 *
+	 */
+	.Inputfield {
+		clear: both !important;
+		width: 100% !important;
+		margin-left: 0 !important;
+	}
+
+	.container {
+		width: 100%; 
+	}
+	#footer #userinfo {
+		float: none;
+	}
+	#footer {
+		text-align: center; 
+	}	
+
+	#masthead,
+	#content {
+		font-size: 1.2em; 
+	}
+
+	#headline #title {
+		padding-top: 0.2em;
+		font-size: 2em;
+	}
+
+	.content .WireTabs a {
+		padding-left: 8px;
+		padding-right: 8px; 
+	}
+	#masthead #topnav {
+	}
+	#masthead #topnav a {
+		padding-left: 8px;
+		padding-right: 8px;
+		
+	}
+		
+
+}
+

@@ -25,3 +25,5 @@ tmp
 upgrade.php
 .idea
 .svn
+.sass-cache
+.sass-cache/*
