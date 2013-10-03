@@ -548,6 +548,19 @@ function InputfieldStates() {
 	$(".Inputfields .InputfieldStateCollapsed > .InputfieldHeader i.toggle-icon, .Inputfields .InputfieldStateCollapsed > .ui-widget-header i.toggle-icon")
 		.removeClass('icon-angle-down').addClass('icon-angle-right');
 
+	// display a detail with the HTML field name when the toggle icon is hovered
+	$('label.InputfieldHeader > i.toggle-icon').hover(function() {
+		var $label = $(this).parent('label');
+		if($label.size() == 0) return;
+		var text = $label.attr('for').replace(/^Inputfield_/, ''); 
+		$label.append(" <span class='detail'>" + text + "</span>"); 
+		
+	}, function() {
+		var $label = $(this).parent('label');
+		if($label.size() == 0) return;
+		$label.find('span.detail').remove();
+	}); 
+
 }
 
 /*********************************************************************************************/

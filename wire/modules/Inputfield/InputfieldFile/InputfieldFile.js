@@ -26,7 +26,16 @@ $(document).ready(function() {
 		// $(this).find(".InputfieldFileDelete input").live('change', function() {
 		$(document).on('change', '.InputfieldFileDelete input', function() {
 			setInputfieldFileStatus($(this));
+
+		}).on('dblclick', '.InputfieldFileDelete', function() {
+			// enable double-click to delete all
+			var $input = $(this).find('input'); 
+			var $items = $(this).parents('.InputfieldFileList').find('.InputfieldFileDelete input');
+			if($input.is(":checked")) $items.removeAttr('checked').change();
+				else $items.attr('checked', 'checked').change();
+			return false; 
 		}); 
+
 	}
 
 	function setInputfieldFileStatus($t) {
@@ -53,7 +62,7 @@ $(document).ready(function() {
 			if($(this).children("li").size() < 2) return; 
 
 			$(this).sortable({
-				axis: 'y', 
+				//axis: 'y', 
 				start: function(e, ui) {
 					ui.item.children(".InputfieldFileInfo").addClass("ui-state-highlight"); 
 				}, 
@@ -304,5 +313,7 @@ $(document).ready(function() {
 	} else {
 		InitOldSchool();
 	}
+
+
 	
 }); 

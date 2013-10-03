@@ -36,7 +36,7 @@ class ProcessPageEdit extends Process {
 		return array(
 			'title' => 'Page Edit',          
 			'summary' => 'Edit a Page', 
-			'version' => 102, 
+			'version' => 103, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);

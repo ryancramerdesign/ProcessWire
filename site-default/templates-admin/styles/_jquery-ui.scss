@@ -66,7 +66,7 @@
 	border: 1px solid #d9d9d9;
 	color: #1b1d1f;
 	/*text-shadow: 0 1px 0 rgba(255,255,255,0.5);*/
-		background: #f6f7f9 url(ui-ui-images/fallback_moduleHeader.png) 0 0 repeat-x;  /* Old browsers */
+		background: #f6f7f9 url(ui-images/fallback_moduleHeader.png) 0 0 repeat-x;  /* Old browsers */
 		background: -moz-linear-gradient(top, #f6f7f9 0%, #ebedf0 100%); /* FF3.6+ */
 		background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f6f7f9), color-stop(100%,#ebedf0)); /* Chrome,Safari4+ */
 		background: -webkit-linear-gradient(top, #f6f7f9 0%,#ebedf0 100%); /* Chrome10+,Safari5.1+ */
@@ -103,7 +103,7 @@
 ----------------------------------*/
 
 /* states and images */
-.ui-icon { width: 16px; height: 16px; background-image: url(ui-ui-images/ui-icons_222222_256x240.png); }
+.ui-icon { width: 16px; height: 16px; background-image: url(ui-images/ui-icons_222222_256x240.png); }
 .ui-widget-content .ui-icon {background-image: url(ui-images/ui-icons_222222_256x240.png); }
 .ui-widget-header .ui-icon {background-image: url(ui-images/ui-icons_222222_256x240.png); }
 .ui-state-default .ui-icon { background-image: url(ui-images/ui-icons_888888_256x240.png); }

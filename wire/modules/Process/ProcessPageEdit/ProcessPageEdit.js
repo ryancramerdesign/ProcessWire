@@ -25,16 +25,16 @@ $(document).ready(function() {
 	// except that the link ID is preceded by an underscore
 	$("#_ProcessPageEditView").unbind('click').attr('href', $("#ProcessPageEditView a").attr('href')); 
 
-    // trigger a submit_delete submission. this is necessary because when submit_delete is an <input type='submit'> then 
-    // some browsers call it (rather than submit_save) when the enter key is pressed in a text field. This solution
-    // by passes that undesirable behavior. 
-    $("#submit_delete").click(function() {
-        if(!$("#delete_page").is(":checked")) {
-            $("#wrap_delete_page label").effect('highlight', {}, 500); 
-            return;
-        }
-        $(this).before("<input type='hidden' name='submit_delete' value='1' />"); 
-        $("#ProcessPageEdit").submit();
-    }); 
+	// trigger a submit_delete submission. this is necessary because when submit_delete is an <input type='submit'> then 
+	// some browsers call it (rather than submit_save) when the enter key is pressed in a text field. This solution
+	// by passes that undesirable behavior. 
+	$("#submit_delete").click(function() {
+		if(!$("#delete_page").is(":checked")) {
+			$("#wrap_delete_page label").effect('highlight', {}, 500); 
+			return;
+		}
+		$(this).before("<input type='hidden' name='submit_delete' value='1' />"); 
+		$("#ProcessPageEdit").submit();
+	}); 
 
 }); 

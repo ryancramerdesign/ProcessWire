@@ -6,7 +6,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		return array(
 			'title' => __('Images', __FILE__), // Module Title
 			'summary' => __('One or more image uploads (sortable)', __FILE__), // Module Summary
-			'version' => 101,
+			'version' => 102,
 			'permanent' => true, 
 			);
 	}
