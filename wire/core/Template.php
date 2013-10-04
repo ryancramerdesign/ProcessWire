@@ -535,6 +535,7 @@ class Template extends WireData implements Saveable {
 		foreach($this->parentTemplates as $parentTemplateID) {
 
 			$parentTemplate = $this->wire('templates')->get((int) $parentTemplateID); 
+			if(!$parentTemplate) continue; 
 
 			// if the parent template doesn't have this as an allowed child template, exclude it 
 			if($parentTemplate->noChildren) continue; 

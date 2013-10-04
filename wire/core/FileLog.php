@@ -122,6 +122,36 @@ class FileLog {
 		return array_reverse($lines); 
 	}
 
+	/**
+	 * Return an array of entries that exist in the given range of dates
+	 * 
+	 * @param int|string $dateFrom Unix timestamp or string date/time to start from 
+	 * @param int|string $dateFrom Unix timestamp or string date/time to end at (default = now)
+	 * @return array
+	 * 
+	 */
+	public function getDate($dateFrom, $dateTo = 0) {
+
+		$lines = array();
+		if(is_string($dateFrom)) $dateFrom = strtotime($dateFrom); 
+		if(is_string($dateTo)) $dateTo = strtotime($dateTo); 
+		if(!$dateFrom) return $lines; 
+		if(!$dateTo) $dateTo = time() + 3600; 
+
+		if(!$fp = fopen($this->logFilename, "r")) return $lines; 
+
+		while(($line = fgets($fp)) !== false) {
+			$parts = explode($this->delimeter, $line); 	
+			$date = strtotime($parts[0]); 
+			if($date >= $dateFrom && $date <= $dateTo) {
+				$lines[] = $line; 
+			}
+		}
+
+		fclose($fp); 
+		return $lines; 
+	}
+
 	public function prune($bytes) {
 
 		$filename = $this->logFilename; 

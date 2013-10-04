@@ -629,6 +629,7 @@ class Pages extends Wire {
 		$userID = $user ? $user->id : $this->config->superUserPageID;
 		if(!$page->created_users_id) $page->created_users_id = $userID;
 		$extraData = $this->saveReady($page);
+		$sql = '';
 
 		$data = array(
 			'parent_id' => (int) $page->parent_id,

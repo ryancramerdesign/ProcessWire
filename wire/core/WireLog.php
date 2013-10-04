@@ -108,4 +108,19 @@ class WireLog extends Wire {
 		return $lines;	
 	}
 
+	/**
+	 * Return an array of entries that exist in the given range of dates
+	 * 
+	 * @param string $name Name of log 
+	 * @param int|string $dateFrom Unix timestamp or string date/time to start from 
+	 * @param int|string $dateFrom Unix timestamp or string date/time to end at (default = now)
+	 * @return array
+	 * 
+	 */
+	public function getDate($name, $dateFrom, $dateTo = 0) {
+		$log = new FileLog($this->getFilename($name));
+		$log->setDelimeter("\t");
+		return $log->getDate($dateFrom, $dateTo); 
+	}
+
 }
