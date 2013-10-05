@@ -27,7 +27,7 @@
  */
 class DatabaseQuerySelectFulltext extends Wire {
 
-	const maxQueryValueLength = 50; 
+	const maxQueryValueLength = 500; 
 
 	protected $query; 
 
