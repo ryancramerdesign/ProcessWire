@@ -140,6 +140,7 @@ class Pages extends Wire {
 		// if(strpos($selectorString, 'parent_id') === false) $selectorString .= ", status<" . Page::statusUnsearchable; 
 
 		$selectors = new Selectors($selectorString); 
+
 		$pages = $this->pageFinder->find($selectors, $options); 
 
 		// note that we save this pagination state here and set it at the end of this method

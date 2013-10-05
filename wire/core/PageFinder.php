@@ -25,8 +25,8 @@ class PageFinder extends Wire {
 	protected $parent_id = null;
 	protected $templates_id = null;
 	protected $checkAccess = true;
-	protected $options = array();
 	protected $getQueryNumChildren = 0; // number of times the function has been called
+	protected $lastOptions = array(); 
 
 	/**
 	 * Construct the PageFinder
@@ -40,10 +40,9 @@ class PageFinder extends Wire {
 	 * Pre-process the selectors to add Page status checks
 	 *
 	 */
-	protected function setupStatusChecks(Selectors $selectors) {
+	protected function setupStatusChecks(Selectors $selectors, array &$options) {
 
 		$maxStatus = null; 
-		$options =& $this->options; 
 
 		foreach($selectors as $key => $selector) {
 
@@ -99,6 +98,9 @@ class PageFinder extends Wire {
 			$selectors->add(new SelectorEqual('start', 0)); 
 			$selectors->add(new SelectorEqual('limit', 1)); 
 		}
+
+		$this->lastOptions = $options; 
+
 	}
 
 	/**
@@ -126,21 +128,20 @@ class PageFinder extends Wire {
 			 */
 			'findAll' => false,
 			);
-		$options = array_merge($defaultOptions, $options); 
 
+		$options = array_merge($defaultOptions, $options); 
 		$this->start = 0; // reset for new find operation
 		$this->limit = 0; 
 		$this->parent_id = null;
 		$this->templates_id = null;
-		$this->options = $options; 
 		$this->checkAccess = true; 
 		$this->getQueryNumChildren = 0;
 
-		$this->setupStatusChecks($selectors);
+		$this->setupStatusChecks($selectors, $options);
 		$database = $this->wire('database');
 		$cnt = count($selectors); 
 		$matches = array(); 
-		$query = $this->getQuery($selectors); 
+		$query = $this->getQuery($selectors, $options); 
 		if($this->wire('config')->debug) $query->set('comment', "Selector: " . (string) $selectors); 
 
 		$stmt = $query->execute();	
@@ -164,7 +165,7 @@ class PageFinder extends Wire {
 		}
 		$stmt->closeCursor();
 			
-		if($this->options['findOne']) {
+		if($options['findOne']) {
 			$this->total = count($matches); 
 
 		} else if(count($query->limit)) {
@@ -173,6 +174,8 @@ class PageFinder extends Wire {
 		} else {
 			$this->total = count($matches);
 		}
+
+		$this->lastOptions = $options; 
 
 		return $matches; 
 	}
@@ -188,7 +191,7 @@ class PageFinder extends Wire {
 	 * @throws PageFinderSyntaxException
 	 *
 	 */
-	protected function ___getQuery($selectors) {
+	protected function ___getQuery($selectors, array $options) {
 
 		$where = '';
 		$cnt = 1;
@@ -365,7 +368,7 @@ class PageFinder extends Wire {
 		} // selectors
 
 		if($where) $query->where("($where)"); 
-		$this->getQueryAllowedTemplates($query); 
+		$this->getQueryAllowedTemplates($query, $options); 
 
 		// complete the joins, matching up any conditions for the same table
 		foreach($joins as $j) {
@@ -383,7 +386,7 @@ class PageFinder extends Wire {
 	 * Determine which templates the user is allowed to view
 	 *
 	 */
-	protected function getQueryAllowedTemplates(DatabaseQuerySelect $query) {
+	protected function getQueryAllowedTemplates(DatabaseQuerySelect $query, $options) {
 
 		static $where = null;
 		static $where2 = null;
@@ -393,7 +396,7 @@ class PageFinder extends Wire {
 		// if($this->templates_id) return; 
 
 		// if findOne optimization is set, we don't check template access
-		if($this->options['findOne']) return;
+		if($options['findOne']) return;
 
 		// if access checking is disabled then skip this
 		if(!$this->checkAccess) return; 
@@ -1014,7 +1017,7 @@ class PageFinder extends Wire {
 	 *
 	 */
 	public function getOptions() {
-		return $this->options; 
+		return $this->lastOptions; 
 	}
 
 }
