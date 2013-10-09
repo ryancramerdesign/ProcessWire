@@ -247,4 +247,8 @@ var ProcessWireAdminTheme = {
 
 $(document).ready(function() {
 	ProcessWireAdminTheme.init();
+
+	$("#notices a.notice-remove").click(function() {
+		$("#notices").slideUp('fast', function() { $(this).remove(); }); 
+	}); 
 }); 

@@ -27,7 +27,7 @@ function renderTopNavItem(Page $p, $level = 0) {
 	if(!$level && count($children)) {
 		$class = trim("$class dropdown-toggle"); 
 		$out .= "<a href='$p->url' class='$class'>$title</a>"; 
-		$out .= "<ul class='dropdown-menu topnav' data-my='right+1 top-2' data-at='right bottom'>";
+		$out .= "<ul class='dropdown-menu topnav' data-my='left-1 top' data-at='left bottom'>";
 		foreach($children as $c) $out .= renderTopNavItem($c, $level+1);
 		$out .= "</ul>";
 	} else {

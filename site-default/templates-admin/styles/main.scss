@@ -1,5 +1,15 @@
 
-@import 'colors-warm';
+$regular-font: Arial, sans-serif; 
+$button-radius: 5px; 
+$tabs-radius: 6px; 
+$tabs-height: 35px; 
+$tabs-font-weight: normal;
+$base-font-size: 0.875em;
+$base-line-height: 1.6em; 
+$footer-font-size: 0.875em; 
+$form-top-margin-adjustment: -2px; 
+
+@import 'colors-modern';
 @import 'reset';
 @import 'jquery-ui'; 
 @import 'ui';
@@ -19,33 +29,27 @@
 
 body {
 	background: $footer-bg; 
+	font-size: 100%; 
 }
 	body,
 	.ui-dialog,
 	.ui-button,
 	input,
 	textarea {
-		font: 10px/20px "Helvetica Neue", Arial, sans-serif; 
+		font-family: $regular-font; 
 	}
 	body {
-		color: $text-color; 
+	;	color: $text-color; 
 	}
 	body.modal {
 		background-color: $text-bg; 
 	}
 
-#masthead,
-#headline, 
-#content,
-#footer {
-	padding-right: 20px;
-	padding-left: 20px; 
-}
-#masthead,
-#notices, 
-#content,
-.ui-dialog {
-	font-size: 1.3em; 
+.container, 
+.ui-dialog,
+.ui-menu .ui-menu-item a {
+	line-height: $base-line-height; 
+	font-size: $base-font-size; 
 }
 
 .container {
@@ -91,44 +95,30 @@ a {
  * MASTHEAD
  *
  */
+#logo {
+	float: left; 
+	position: relative; 
+	left: -3px; 
+	margin-top: 0.7em; 
+}
+
 
 #masthead {
+	/*
 	height: $masthead-height; 
+	*/
 	background: $masthead-bg; 
 	position: relative; 
 
-	#masthead_shade {
-		background: $masthead-secondary-bg; 
-		border-top: $masthead-secondary-border; 
-		height: $topnav-height; 
-		position: absolute;
-		left: 0;
-		bottom: 0;
-		width: 100%; 
-	}
-
-	#logo {
-		position: absolute; 
-		left: -3px;
-		top: 13px; 
-	}
-		#logo:hover {
-			background: none; 
-		}
-
-
 	#topnav {
-		position: absolute;
-		top: 50px; 
-		right: 0;
-		margin: 0;
+		float: right; 
+		margin-top: 0.5em; 
 
 		> li {
 			padding: 0;
 			margin: 0;
 			list-style: none;
 			display: inline;
-			line-height: 1em; 
 		}
 
 		> li > a {
@@ -137,10 +127,10 @@ a {
 			display: block;
 			float: left; 
 			margin: 0 0 0 1px;
-			padding: 9px 10px 11px 10px;
+			padding: 0.5em 1em; 
 			border-top-right-radius: $tabs-radius;
 			border-top-left-radius: $tabs-radius; 
-			font-weight: normal;
+			font-weight: $tabs-font-weight;
 		}
 
 
@@ -154,7 +144,7 @@ a {
 		a.on:hover,
 		a.on {
 			color: $topnav-link-current-color;
-			background: $topnav-link-current-bg; 
+			background: $topnav-link-current-bg;
 			text-decoration: none; 
 		}
 
@@ -163,75 +153,88 @@ a {
 		}
 	}
 
-	#ProcessPageSearchForm {
-		position: absolute; 
-		top: 12px;
-		right: 0; 
-		width: 25%; 
-	}
-
-		#ProcessPageSearchQuery {
-			height: auto; 
-			padding: 2px 7px 1px 7px; 
-			font-size: 1em; 
-			border: 1px solid transparentize($reverse-text-color, 0.9); 
-			background: transparent; 
-			width: 100%; 
-			color: $breadcrumb-link-color;
-			border-radius: $button-radius; 
-		}
-			#ProcessPageSearchQuery:focus {
-				background: $text-bg; 
-				color: $text-color; 
-				text-transform: none; 
-				font-weight: normal;
-			}
-
-		#ProcessPageSearchStatus {
-			position: absolute;
-			top: 3px;
-			right: 10px; 
-			color: $light-text-color; 
-		}
-
-
 } /* #masthead */
 
-#breadcrumb {
 
-	position: absolute; 
-	left: 0; 
-	top: 48px; 
+#breadcrumbs {
+	padding-top: 0.7em;
+	padding-bottom: 0.7em;
+	color: $breadcrumbs-color;
+	background: $breadcrumbs-bg; 
+	border-bottom: $breadcrumbs-border; 
 
-	li {
-		color: $breadcrumb-color; 
-		display: inline-block;
-		padding: 0;
-		line-height: 1em;
-		white-space: nowrap;
-		padding-right: 0.5em;
+	ul {
 
-	}
 
-	a {
-		color: $breadcrumb-link-color; 
-		margin-right: 0.5em; 
-	}
+		li {
+			color: $breadcrumbs-color; 
+			display: inline-block;
+			padding: 0;
+			line-height: 1em;
+			white-space: nowrap;
+			padding-right: 0.5em;
 
-	a:hover {
-		color: $breadcrumb-link-hover-color; 
-		background: none; 
-		text-decoration: underline;
-	}
 
-	a.sitelink {
-		float: left; 	
-
-		.ui-icon {
-			float: left; 
-			position: relative;
-			top: -2px; 	
 		}
+
+		a {
+			color: $breadcrumbs-link-color; 
+			margin-right: 0.5em; 
+		}
+
+		a:hover {
+			color: $breadcrumbs-link-hover-color; 
+			background: none; 
+			text-decoration: underline;
+		}
+
+		a.sitelink {
+			float: left; 	
+
+			.ui-icon {
+				float: left; 
+				position: relative;
+				top: -2px; 	
+			}
+		}
+
+	}
+
+}
+
+#ProcessPageSearchForm {
+	float: right; 
+	margin: 0; 
+	width: 25%; 
+	max-width: 200px; 
+	min-width: 90px; 
+
+	#ProcessPageSearchQuery {
+		margin: 0;
+		height: auto; 
+		padding: 4px 7px 3px 7px; 
+		font-size: 1em; 
+		width: 100%; 
+		background: #fff; 
+		color: $text-color; 
+		border: 1px solid darken($breadcrumbs-bg, 10%); 
+		border: none; 
+		color: transparentize($text-color, 0.5); 
+		border-radius: $button-radius; 
+		outline: none; 
+	}
+		#ProcessPageSearchQuery:focus {
+			background: $text-bg; 
+			color: $text-color; 
+			text-transform: none; 
+			font-weight: normal;
+		}
+
+	#ProcessPageSearchStatus {
+		position: absolute;
+		top: 0;
+		right: 10px; 
+		color: $light-text-color; 
 	}
 
 }
@@ -239,11 +242,11 @@ a {
 
 #headline {
 	position: relative; 
-	z-index: 1; 
+	z-index: 2; 
 	background: $headline-bg; 
 	border-bottom: $headline-border; 
-	padding-bottom: 1.5em; 
-	padding-top: 3em; 
+	padding-bottom: 0.5em; 
+	padding-top: 1.5em; 
 
 	.container {
 		position: relative; 
@@ -268,11 +271,11 @@ a {
 	}
 
 	#title {
-		font-size: 2.5em; 
-		line-height: 1em; 
+		font-size: 2em; 
+		line-height: 1em;
 		margin: 0;
-		color: $headline-color; 
 		padding: 0;
+		color: $headline-color; 
 		padding-right: 3em;
 	}
 
@@ -299,7 +302,7 @@ a {
 		#content .container > form,
 		#content .container > .ui-helper-clearfix > form {
 			position: relative;
-			top: -2px; 
+			top: -1px; 
 		}
 
 .content {
@@ -391,7 +394,7 @@ a {
 
 	.PageListStatusIcon {
 		color: lighten($text-color, 40%); 
-		font-size: 0.923076923076923em; 
+		font-size: 14px;
 	}
 
 	ul.actions {
@@ -402,24 +405,17 @@ a {
 			border: none; 
 			padding: 0 1px; 
 			margin: 0;
+			margin-right: 3px; 
 		
 		}
-		ul.actions li:before,
-		.PageListActions li:before,
-		li.action:before {
-			/*content: "\203A";*/
-			content: "/";
+		ul.actions li:first-child:before,
+		.PageListActions li:first-child:before,
+		li.action:first-child:before {
+			content: "\203A";
 			margin-right: 3px; 
-			font-size: 0.8em; 
-			color: lighten($text-color, 60%); 
+			color: lighten($text-color,50%); 
 		}
 
-		ul.actions li a,
-		li.action a {
-			border-bottom: none; 
-			text-transform: uppercase;
-			font-weight: bold;
-		}
 
 	li.action a, .actions a, 
 	.PageList .actions a,
@@ -431,9 +427,8 @@ a {
 		display: inline-block;
 		font-size: $action-link-font-size; 
 		border-radius: 3px; 
-		font-weight: bold;
-		text-transform: uppercase; 
 		border: $action-link-border !important; 
+		font-weight: bold; 
 	}
 		.actions a:hover,
 		li.action a:hover,
@@ -494,7 +489,10 @@ a {
 		.PageListItem {
 			border-bottom: 1px solid lighten($subtle-border, 4%); 
 			padding-top: 4px;
+			padding-top: 0.35em;
 			padding-bottom: 4px; 
+			padding-bottom: 0.35em; 
+			line-height: 1.3em; 
 		}
 		.PageListPlaceholderItem {
 			border: none;
@@ -532,8 +530,8 @@ a {
 			background-color: $pagelist-link-open-bg; 
 		}
 
-		.PageListStatusHidden > a.PageListPage {
-			opacity: 0.7; 
+		.PageListStatusHidden:not(.PageListItemOpen) > a.PageListPage {
+			opacity: 0.75; 
 		}
 
 		.PageListNumChildren {
@@ -591,6 +589,9 @@ a {
 	}
 
 	/* Pagination */
+	.PageListPagination {
+		padding-top: 0.5em; 
+	}
 	.PageListPagination,
 	.MarkupPagerNav {
 		color: text-color;
@@ -640,13 +641,12 @@ a {
 
 	.WireTabs {
 		position: relative;
-		top: -18px; 
+		top: (-1 * $tabs-height); 
+		margin-bottom: (-1 * $tabs-height);
 		left: 0;
-		margin-top: -1.1em;
-		margin-bottom: -19px;
 		width: 100%; 
-		overflow: hidden; 
 		z-index: 102; 
+		overflow: visible; 
 
 		li {
 			background: none; 
@@ -655,29 +655,34 @@ a {
 		}
 
 		a {
-			font-weight: normal;
+			font-weight: $tabs-font-weight;
 			padding: 6px 11px;
+			padding: 0.5em 1em 0.5em 1em;;
 			display: inline-block;
 			border-top-left-radius: $tabs-radius;
 			border-top-right-radius: $tabs-radius; 
 			border: $wiretab-link-border; 
 			border-bottom: none; 
-			margin-right: 1px; 
+			margin-right: -1px; 
 			color: $wiretab-link-color;
-			height: 33px; 
+			height: $tabs-height;
 			background: $wiretab-link-bg; 
+			position: relative;
+			top: 1px; 
 		}
 		a.on {
 			color: $wiretab-link-current-color; 
 			border: $wiretab-link-current-border; 
-			border-bottom: none; 
+			border-bottom: 1px solid $wiretab-link-current-bg;
 			background: $wiretab-link-current-bg; 
+			position: relative;
+			z-index: 100; 
 		}
 
 		a:hover {
 			border: $wiretab-link-hover-border; 
-			color: $wiretab-link-hover-color; 
 			border-bottom: none; 
+			color: $wiretab-link-hover-color; 
 			background: $wiretab-link-hover-bg; 
 
 			em {
@@ -691,16 +696,18 @@ a {
 		}
 
 		a em {
-			font-weight: normal;
+			font-weight: $tabs-font-weight;
 			font-style: normal;
 		}
 
+		/*
 		#_ProcessPageEditView {
 			float: right; 
 			border: $wiretab-link-current-border;
 			border-bottom: none; 
 			margin-right: 0; 
 		}
+		*/
 
 	}
 }
@@ -711,11 +718,11 @@ a {
 	margin: 0.5em 0;
 }
 
-.notes,
+.notes, 
 .detail {
-	font-size: 0.846153846153846em;
 	color: $medium-text-color; 
-	line-height: 1.3em; 
+	font-size: 0.875em;
+	line-height: 1.5em; 
 }
 .notes {
 	background: $notes-bg; 
@@ -741,11 +748,14 @@ a {
 
 #footer {
 	margin: 2em 0 2em 0; 
-	font-size: 1.1em; 
+	font-size: $footer-font-size; 
 	color: $footer-color; 
 
 	a {
 		color: $footer-link-color; 
+	}
+	a:hover {
+		text-decoration: underline; 
 	}
 
 	p {
@@ -830,9 +840,10 @@ body.modal {
  *
  */
 
-body.hasWireTabs #notices {
-	padding-bottom: 1em; 
-	margin-top: 0.5em; 
+#content .container > form,
+#content .container > .ui-helper-clearfix > form {
+	/* for wiretabs and/or forms to line up with headline area */
+	top: $form-top-margin-adjustment; 
 }
 
 body:not(.hasWireTabs) #headline .container {
@@ -843,13 +854,16 @@ body.hasWireTabs #content {
 	border-top: 3em solid $headline-bg; 
 }
 
+body.hasWireTabs .InputfieldForm {
+}
+
 .content > .container > #PageListContainer {
-	margin-top: 1em; 
+	margin-top: 0; 
 }
 
 .hasWireTabs .content #fieldgroupContext {
 	/* context selection in field editor */
-	top: -17px;
+	top: -2.25em;
 	right: 0; 
 	z-index: 102; 
 }
@@ -862,6 +876,9 @@ body.hasWireTabs #content {
 	min-width: 150px; 
 }
 
+.topnav.dropdown-menu, .topnav.dropdown-menu .ui-menu-item {
+	border-radius: 0 !important; 
+}
 
 .align_left,
 .align-left {
@@ -896,16 +913,23 @@ body.hasWireTabs #content {
 /* All Mobile Sizes (devices and browser) */
 @media only screen and (max-width: 767px) {
 
-	#topnav {
-		left: 0;
+	#masthead {
+		padding-top: 0;
 	}
 
-	#masthead #breadcrumb {
-		top: 15px; 
-		left: 1px; 
-		width: 70%; 
-		white-space: nowrap;
-		overflow: hidden; 
+	#masthead #topnav {
+		float: left; 
+	}
+
+	#breadcrumbs {
+		padding-top: 0.4em;
+		padding-bottom: 0.4em; 
+	}
+
+	body #masthead #topnav a,
+	body #content .WireTabs li a {
+		padding-left: 0.75em;
+		padding-right: 0.75em; 
 	}
 
 	#logo {
@@ -914,6 +938,8 @@ body.hasWireTabs #content {
 
 	#masthead,
 	#headline, 
+	#breadcrumbs, 
+	#notices p, 
 	body:not(.modal) #content,
 	#footer {
 		padding-right: 10px;
@@ -921,9 +947,9 @@ body.hasWireTabs #content {
 	}
 
 	#head_button {
-		font-size: 0.85em; 
 		top: 102px; 
 	}
+
 	#fieldgroupContext {
 		display: none; 
 	}
@@ -957,26 +983,8 @@ body.hasWireTabs #content {
 		text-align: center; 
 	}	
 
-	#masthead,
-	#content {
-		font-size: 1.2em; 
-	}
-
-	#headline #title {
-		padding-top: 0.2em;
-		font-size: 2em;
-	}
-
-	.content .WireTabs a {
-		padding-left: 8px;
-		padding-right: 8px; 
-	}
-	#masthead #topnav {
-	}
-	#masthead #topnav a {
-		padding-left: 8px;
-		padding-right: 8px;
-		
+	.AjaxUploadDropHere {
+		display: none !important; 
 	}
 		
 

@@ -8,11 +8,11 @@ $black: #222;
 $light-khaki: #E4EBEE;
 $orange: #F64704;
 $light-orange: #D8744E;
-$red: #a30000;
 $light-purple: #8E94C2;
 $dark-purple: #333E99;
-$pink: #F21E69; 
+$pink: #DB1174; 
 $dark-pink: darken($pink, 8%); 
+$red: $dark-pink;
 $blue: #1490B8;
 $light-blue: #D2E4EA; 
 $dark-blue: #2F4248;
@@ -22,14 +22,10 @@ $cyan: #0EDCB9;
 $brown: #821038;
 
 $subtle-bg: #E4EBEE;
-$subtle-border: $subtle-bg;
+$subtle-border: darken($subtle-bg, 4%);
 
 $text-bg: $white; 
 $text-color: $black;
-
-$headline-bg: lighten(#E4EBEE, 3%); 
-$headline-color: $dark-pink;
-$headline-border: 1px solid $headline-bg;
 
 $medium-text-color: #777; 
 $light-text-color: #999; 
@@ -40,29 +36,39 @@ $masthead-secondary-bg: #D2E4EA; /*transparentize($subtle-bg, 0.9); */
 $masthead-secondary-border: none; /* 1px solid transparentize($subtle-bg, 0.9); */
 $masthead-height: 81px; 
 
-$topnav-link-color: $masthead-bg;
-$topnav-link-bg: rgba(255,255,255,0.05); 
+$headline-bg: lighten(#E4EBEE, 3%); 
+$headline-bg: #fff;
+$headline-color: $masthead-bg;
+$headline-border: 1px solid $headline-bg;
+
+
+$topnav-link-color: #A7E5F9; 
+$topnav-link-bg: none; 
 $topnav-link-hover-color: $white;
 $topnav-link-hover-bg: $pink;
-$topnav-link-current-color: $blue; 
-$topnav-link-current-bg: $headline-bg;
-$topnav-height: 31px; 
+$topnav-link-current-color: $white;
+$topnav-link-current-bg: $pink;
 
-$breadcrumb-color: lighten($topnav-link-color, 50%); 
-$breadcrumb-link-color: lighten($topnav-link-color, 10%); 
-$breadcrumb-link-hover-color: $pink;
+$breadcrumbs-bg: #D2E4EA; 
+$breadcrumbs-link-color: #005F7D; 
+$breadcrumbs-link-hover-color: $pink;
+$breadcrumbs-border: 1px solid $breadcrumbs-bg; 
+$breadcrumbs-color: transparentize($breadcrumbs-link-color, 0.5); 
 
 $item-header-hover-color: $white;
 $item-header-hover-bg: $pink; 
 $item-header-bg: #d2e4ea;
+$item-header-bg: lighten($masthead-bg, 5%);
 $item-header-color: $dark-blue; 
+$item-header-color: $white; 
 $item-border: 1px solid $item-header-bg; 
 
 $action-link-font-size: 0.769230769230769em; 
 $action-link-font-size: 0.923076923076923em;
-$action-link-bg: none;
-$action-link-color: darken($green, 3%);
-$action-link-color: $blue; 
+$action-link-bg: $breadcrumbs-bg;
+$action-link-bg: $green;
+$action-link-color: $masthead-bg;
+$action-link-color: $white; 
 $action-link-border: none; 
 $action-link-hover-color: $white;
 $action-link-hover-border: 1px solid $pink;
@@ -92,8 +98,11 @@ $ui-state-default-color: $reverse-text-color;
 $ui-state-hover-bg: $pink;
 $ui-state-hover-color: $reverse-text-color; 
 
+$label-link-bg: none; 
 $label-link-color: $dark-blue;
 $label-link-hover-color: $blue; 
+$label-link-collapsed-bg: none; 
+$label-link-collapsed-color: transparentize($label-link-color, 0.5); 
 
 $table-th-color: darken($light-blue, 15%); 
 $table-th-active-color: darken($light-blue, 30%); 
@@ -109,7 +118,7 @@ $pagination-font-size: 0.769230769230769em;
 $pagination-link-color: $reverse-text-color;
 $pagination-link-bg: $green; 
 $pagination-link-current-color: $text-color;
-$pagination-link-current-bg: $subtle-bg;
+$pagination-link-current-bg: $breadcrumbs-bg;
 $pagination-link-hover-color: $white;
 $pagination-link-hover-bg: $pink;
 $pagination-link-active-color: $white; 
@@ -118,23 +127,24 @@ $pagination-link-border-radius: 2px;
 
 $wiretab-link-bg: none; 
 $wiretab-link-border: 1px solid transparent; 
-$wiretab-link-color: $topnav-link-color; 
+$wiretab-link-color: $pink;
 $wiretab-link-hover-bg: $pink;
 $wiretab-link-hover-color: $white; 
-$wiretab-link-hover-border: 1px solid transparent; 
-$wiretab-link-current-bg: $white; 
-$wiretab-link-current-color: $blue; 
-$wiretab-link-current-border: 1px solid darken($subtle-bg, 3%);
+$wiretab-link-hover-border: 1px solid $pink;
+$wiretab-link-current-bg: $pink;
+$wiretab-link-current-color: $white;
+$wiretab-link-current-border: 1px solid $pink;
 $wiretab-link-active-bg: $dark-pink;
 $wiretab-link-active-color: $white; 
+$tabs-height: 35px; 
 
-$footer-bg: $headline-bg; /* transparentize($subtle-bg, 0.5); */
+$footer-bg: $subtle-bg; /* transparentize($subtle-bg, 0.5); */
 $footer-color: $light-text-color; 
 $footer-link-color: $pink;
 
 $highlight-bg: #D1F486;
 $highlight-color: darken($highlight-bg, 60%); 
-$highlight-border: 1px solid $headline-bg; 
+$highlight-border: 1px solid #fff; 
 
 $error-bg: $red; 
 $error-border: $red; 
@@ -144,48 +154,74 @@ $notes-bg: #ffffdd;
 $notes-font-size: 0.846153846153846em;
 
 $tabs-radius: 0; 
+$tabs-font-weight: bold; 
+
+$footer-font-size: 0.875em; 
+
+body #masthead #topnav {
+	margin-top: 0;
+	padding-top: 0;
+}
+body #masthead #topnav li a {
+	padding-top: 0.8em;
+	padding-bottom: 0.75em;
+}
+
+body #masthead #logo {
+	margin-top: 0.65em;
+}
+
+body #content .WireTabs li a {
+}
 
 #masthead {
-	overflow: hidden; 
+	border-top: 2px solid #000;
 }
 
-#masthead #breadcrumb {
-	top: 56px; 
+#title, 
+.description {
+	font-family: Georgia, serif; 
 }
-#ProcessPageSearchQuery {
-	color: $white;
-}
-
-#content .Inputfields li:not(.Inputfield) .ui-widget-header:not(:hover) .ui-icon,
-#content .Inputfields .InputfieldRepeaterItem > .InputfieldHeader:not(:hover) .ui-icon {
-	background-image: url(ui-images/ui-icons_222222_256x240.png);
+.description {
+	font-style: italic; 
+	font-weight: normal;
 }
 
-#topnav a.on {
-	border: 1px solid darken($masthead-secondary-bg, 2%); 
-	border-top: none;
-	border-bottom: none; 
+.InputfieldForm .Inputfields .InputfieldHeader,
+.InputfieldForm .Inputfields .InputfieldWrapper > .description {
+	background: transparentize($breadcrumbs-bg, 0.5); 
+	background: -moz-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); /* FF3.6+ */
+	background: -webkit-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); /* Opera11.10+ */
+	background: -ms-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); /* IE10+ */
+	background: linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); /* W3C */
 }
 
-/* All Mobile Sizes (devices and browser) */
-@media only screen and (max-width: 767px) {
-	#breadcrumb a {
-		color: $white !important; 
-	}
-
+.dropdown-menu a.on {
+	color: $text-color; 
 }
 
-.topnav.dropdown-menu, .topnav.dropdown-menu .ui-menu-item {
-	-webkit-border-radius: 0 !important; 
-	border-radius: 0 !important; 
+#topnav li a,
+#breadcrumbs a,
+#content .WireTabs a {
+	font-weight: bold; 
+}
+body #content .WireTabs li a {
+	margin-right: 1px; 
+	line-height: 1.4em; 
+}
+#breadcrumbs a i {
+	font-size: 14px; 
 }
 
-#content {
-	li.action a, .actions a, 
-	.PageList .actions a,
-	.PageListMoveNote a {
-		text-transform: lowercase; 
-	}
+body #headline #title {
+	font-size: 2.3em; 
+}
+
+#content .WireTabs {
+	border-bottom:1px solid $white; 
+	padding-bottom: 1px; 
 }
 
 
+$form-top-margin-adjustment: 0; 

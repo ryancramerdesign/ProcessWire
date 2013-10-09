@@ -22,19 +22,20 @@ $green: #93BF0D;
 $cyan: #0EDCB9;
 $brown: #821038;
 
-$subtle-bg: #E4EBEE;
-$subtle-border: $subtle-bg;
+$subtle-bg: darken(#E8F0F5, 2%);
+$subtle-border: darken($subtle-bg, 5%);
 
 $text-bg: $white; 
 $text-color: $black;
 
 $masthead-bg: #418FEB; 
+$masthead-bg: #4493E9; 
 $masthead-secondary-bg: #4D9FEF; 
 $masthead-secondary-border: none; /* 1px solid transparentize($subtle-bg, 0.9); */
 $masthead-height: 81px; 
 
 
-$headline-bg: lighten($subtle-bg, 2%); 
+$headline-bg: $white; 
 $headline-color: $dark-pink; 
 $headline-border: 1px solid $headline-bg;
 
@@ -42,17 +43,22 @@ $medium-text-color: #777;
 $light-text-color: #999; 
 $reverse-text-color: $white;
 
+$breadcrumbs-bg: #4493E9; 
+$breadcrumbs-bg: #53A4EE; 
+$breadcrumbs-bg: darken($subtle-bg, 3%);
+$breadcrumbs-color: transparentize($text-color, 0.7); 
+$breadcrumbs-link-color: $text-color; 
+$breadcrumbs-link-hover-color: $text-color;
+$breadcrumbs-border: none; 
+
 $topnav-link-color: $reverse-text-color;
-$topnav-link-bg: none; /*rgba(255,255,255,0.05); */
+$topnav-link-bg: none; 
 $topnav-link-hover-color: $pink;
-$topnav-link-hover-bg: $headline-bg;
-$topnav-link-current-color: $white; 
-$topnav-link-current-bg: #395C79; 
+$topnav-link-hover-bg: $white; 
+$topnav-link-current-color: $text-color; 
+$topnav-link-current-bg: $breadcrumbs-bg; 
 $topnav-height: 31px; 
 
-$breadcrumb-color: transparentize($reverse-text-color, 0.7); 
-$breadcrumb-link-color: transparentize($reverse-text-color, 0.2); 
-$breadcrumb-link-hover-color: $reverse-text-color; 
 
 $item-header-hover-color: $white;
 $item-header-hover-bg: $pink; 
@@ -60,7 +66,7 @@ $item-header-bg: $green;
 $item-header-color: $white; 
 $item-border: 1px solid $subtle-bg; 
 
-$alt-link-color: darken($green, 8%);
+$alt-link-color: $dark-pink; 
 $link-color: $pink;
 $link-hover-color: $dark-pink;
 $link-hover-bg: none; 
@@ -69,15 +75,15 @@ $link-current-bg: none;
 $link-active-color: $dark-pink; 
 $link-active-bg: none; 
 
-$action-link-font-size: 0.923076923076923em;
-$action-link-bg: none; 
-$action-link-color: darken($green, 3%);
+$action-link-font-size: 1em;
+$action-link-bg: $subtle-bg;
+$action-link-color: $dark-blue;
 $action-link-border: none; 
 $action-link-hover-color: $white;
 $action-link-hover-border: 1px solid $pink;
 $action-link-hover-bg: $pink;
 $action-link-active-color: $white; 
-$action-link-active-bg: $orange;
+$action-link-active-bg: $dark-pink;
 
 
 $button-bg: $light-green; 
@@ -93,7 +99,10 @@ $ui-state-hover-bg: $pink;
 $ui-state-hover-color: $reverse-text-color; 
 
 $label-link-color: $dark-blue;
-$label-link-hover-color: $blue; 
+$label-link-bg: #fff; 
+$label-link-collapsed-color: #69B7EF; /*lighten($dark-blue, 35%); */
+$label-link-collapsed-bg: #fff; 
+$label-link-hover-color: #000; 
 
 $table-th-color: #b0ced8; /* darken($light-blue, 15%); */
 $table-th-active-color: $blue; 
@@ -102,14 +111,14 @@ $pagelist-link-color: #7a002b;
 $pagelist-link-hover-color: #8F294D;
 $pagelist-link-open-color: $black;
 $pagelist-link-open-bg: #ffffdd; 
-$pagelist-link-active-color: $orange; 
+$pagelist-link-active-color: $dark-pink; 
 $pagelist-link-icon-color: $dark-pink; /*#CC0048; */
 
 $pagination-font-size: 0.769230769230769em; 
 $pagination-link-color: $reverse-text-color;
 $pagination-link-bg: $green; 
-$pagination-link-current-color: $text-color;
-$pagination-link-current-bg: $subtle-bg;
+$pagination-link-current-color: $white; 
+$pagination-link-current-bg: $dark-pink;
 $pagination-link-hover-color: $white;
 $pagination-link-hover-bg: $pink;
 $pagination-link-active-color: $white; 
@@ -118,13 +127,14 @@ $pagination-link-border-radius: 2px;
 
 $wiretab-link-bg: none; 
 $wiretab-link-border: 1px solid transparent; 
-$wiretab-link-color: $text-color; 
+$wiretab-link-color: lighten($label-link-color, 35%); 
+$wiretab-link-color: #69B7EF; 
 $wiretab-link-hover-bg: $pink;
 $wiretab-link-hover-color: $white; 
 $wiretab-link-hover-border: 1px solid transparent; 
-$wiretab-link-current-bg: white; 
-$wiretab-link-current-color: $text-color; 
-$wiretab-link-current-border: 1px solid darken($subtle-bg, 3%);
+$wiretab-link-current-bg: $white; 
+$wiretab-link-current-color: $pink;
+$wiretab-link-current-border: 1px solid $breadcrumbs-bg;
 $wiretab-link-active-bg: $dark-pink;
 $wiretab-link-active-color: $white; 
 
@@ -132,8 +142,8 @@ $footer-bg: $subtle-bg; /* transparentize($subtle-bg, 0.5); */
 $footer-color: $light-text-color; 
 $footer-link-color: $pink;
 
-$highlight-bg: #D1F486;
-$highlight-color: darken($highlight-bg, 60%); 
+$highlight-bg: $green;
+$highlight-color: $white; 
 $highlight-border: 1px solid $white; 
 
 $error-bg: $red; 
@@ -143,26 +153,8 @@ $error-color: #fff;
 $notes-bg: #ffffdd; 
 $notes-font-size: 0.846153846153846em;
 
-$tabs-radius: 0; 
+$tabs-radius: 4px; 
+$tabs-font-weight: bold; 
 
-#masthead {
-	overflow: hidden; 
-}
-
-#masthead #breadcrumb {
-	top: 56px; 
-}
-
-#content {
-	li.action a, .actions a, 
-	.PageList .actions a,
-	.PageListMoveNote a {
-		text-transform: lowercase; 
-	}
-}
-
-.topnav.dropdown-menu, .topnav.dropdown-menu .ui-menu-item {
-	-webkit-border-radius: 0 !important; 
-	border-radius: 0 !important; 
-}
+$form-top-margin-adjustment: 0; 
 

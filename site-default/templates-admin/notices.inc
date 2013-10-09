@@ -1,7 +1,7 @@
 <ul id='notices' class='ui-widget'>
 <?php
 
-foreach($notices as $notice) {
+foreach($notices as $n => $notice) {
 
 	$class = 'ui-state-highlight NoticeMessage';
 	$text = $notice->text; 
@@ -27,7 +27,9 @@ foreach($notices as $notice) {
 
 	if($notice->class && $config->debug) $text = "{$notice->class}: $text";
 
-	echo "\n\t\t<li class='$class'><div class='container'><p><i class='icon-$icon'></i> {$text}</p></div></li>";
+	$remove = $n ? '' : "<a class='notice-remove' href='#'><i class='icon-remove-sign'></i></a>";
+
+	echo "\n\t\t<li class='$class'><div class='container'><p>$remove<i class='icon-$icon'></i> {$text}</p></div></li>";
 
 }
 

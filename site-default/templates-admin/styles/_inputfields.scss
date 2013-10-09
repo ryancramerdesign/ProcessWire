@@ -154,9 +154,9 @@
 		.InputfieldHeader {
 			/* different style for collapsed header */
 			padding-bottom: 0.75em;
-			background: $text-bg; /* WHITE */
+			background: $label-link-collapsed-bg; /* WHITE */
 			border: 1px solid $subtle-border; /* LIGHT-KHAKI */
-			color: lighten($label-link-color, 30%); /* LIGHT-BROWN */
+			color: $label-link-collapsed-color; 
 		
 			&:hover {
 				/* style for collapsed header when hovered */
@@ -173,7 +173,7 @@
 
 	.InputfieldHeader,
 	.InputfieldWrapper > .description {
-		background: $text-bg; /* WHITE */
+		background: $label-link-bg; /* WHITE */
 		border: 1px solid $subtle-border; /* LIGHT-KHAKI */
 		border-bottom: none; 
 		color: $label-link-color; /* BROWN */
@@ -188,7 +188,7 @@
 		}
 
 	.InputfieldHeader + .InputfieldContent {
-		padding: 0.25em 1.25em 1.25em 1.25em;
+		padding: 0.25em 1em 1.25em 1em;
 		border: 1px solid $subtle-border; /* LIGHT-KHAKI */
 		border-top: none; 
 		background: $text-bg; /* WHITE */
@@ -202,7 +202,7 @@
 	.InputfieldMarkup .InputfieldContent {
 		border: 1px solid $subtle-border; /* LIGHT-KHAKI */
 		margin-top: 1em; 
-		padding: 1.25em;
+		padding: 1em;
 	}
 		.InputfieldMarkup .InputfieldHeader + .InputfieldContent {
 			border-top: none; 
@@ -322,22 +322,23 @@
 	.InputfieldFieldset > .InputfieldHeader + .InputfieldContent,
 	.InputfieldFieldsetOpen > .InputfieldHeader + .InputfieldContent {
 		/* Inputfields containing other items get a different background color */
-		background: transparentize($subtle-bg, 0.5); 
+		background: transparentize($subtle-bg, 0.2); 
 	}
 	.InputfieldItemList:not(.InputfieldStateCollapsed) > .InputfieldHeader,
 	.InputfieldFieldset:not(.InputfieldStateCollapsed):not(.InputfieldRepeaterItem) > .InputfieldHeader,
 	.InputfieldFieldsetOpen:not(.InputfieldStateCollapsed) > .InputfieldHeader {
 		background: transparentize($subtle-bg, 0.5); 
-		background: -moz-linear-gradient(top, transparentize($subtle-bg, 0.8) 0%, transparentize($subtle-bg, 0.5) 100%); /* FF3.6+ */
-		background: -webkit-linear-gradient(top, transparentize($subtle-bg, 0.8) 0%, transparentize($subtle-bg, 0.5) 100%); /* Chrome10+,Safari5.1+ */
-		background: -o-linear-gradient(top, #f6f7f9 0%,#ebedf0 100%); /* Opera11.10+ */
-		background: -ms-linear-gradient(top, #f6f7f9 0%,#ebedf0 100%); /* IE10+ */
-		background: linear-gradient(top, #f6f7f9 0%,#ebedf0 100%); /* W3C */
+		background: -moz-linear-gradient(top, transparentize($subtle-bg, 0.8) 0%, transparentize($subtle-bg, 0.2) 100%); /* FF3.6+ */
+		background: -webkit-linear-gradient(top, transparentize($subtle-bg, 0.8) 0%, transparentize($subtle-bg, 0.2) 100%); /* Chrome10+,Safari5.1+ */
+		background: -o-linear-gradient(top, transparentize($subtle-bg, 0.8) 0%, transparentize($subtle-bg, 0.2) 100%); /* Opera11.10+ */
+		background: -ms-linear-gradient(top, transparentize($subtle-bg, 0.8) 0%, transparentize($subtle-bg, 0.2) 100%); /* IE10+ */
+		background: linear-gradient(top, transparentize($subtle-bg, 0.8) 0%, transparentize($subtle-bg, 0.2) 100%); /* W3C */
 	}
 
 	.InputfieldPageNameURL {
 		/* page name */
-		font-size: 0.923076923076923em;
+		/*font-size: 0.923076923076923em;*/
+		font-size: 0.875em; 
 	}
 
 }
@@ -380,7 +381,7 @@
 	user-select: none; /* prevent selection of this element */
 
 	display: block;
-	padding: 0.75em 0.25em 0.25em 1.25em;
+	padding: 0.75em 0.25em 0.25em 1em;
 	margin: 0;
 	font-weight: bold; 
 }

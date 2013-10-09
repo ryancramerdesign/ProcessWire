@@ -22,8 +22,8 @@ $medium-text-color: #777;
 $light-text-color: #999; 
 $reverse-text-color: $white;
 
-$subtle-bg: $light-khaki;
-$subtle-border: lighten($subtle-bg, 3%);
+$subtle-bg: lighten($light-khaki, 3%);
+$subtle-border: $light-khaki; 
 
 $link-color: $orange;
 $link-hover-color: $cyan;
@@ -47,18 +47,21 @@ $ui-state-hover-bg: darken($light-orange, 10%);
 $ui-state-hover-color: $reverse-text-color; 
 
 $label-link-color: $black;
+$label-link-bg: #fff; 
+$label-link-collapsed-color: lighten($label-link-color, 50%); 
+$label-link-collapsed-bg: #fff; 
 $label-link-hover-color: $orange;
 
 $table-th-color: $light-purple;
 $table-th-active-color: $dark-purple; 
 
-$headline-bg: lighten($subtle-bg, 5%); 
+$headline-bg: $subtle-bg; 
 $headline-color: darken($orange, 10%); /*#A73003; */
 $headline-border: none; 
 
-$highlight-bg: $subtle-bg; /* #D1F486;*/
-$highlight-color: darken($highlight-bg, 60%); 
-$highlight-border: 1px solid $headline-bg; 
+$highlight-bg: $light-green; /* #D1F486;*/
+$highlight-color: $reverse-text-color;
+$highlight-border: 1px solid $white; 
 
 $item-header-bg: $light-green;
 $item-header-color: $white; 
@@ -75,21 +78,26 @@ $masthead-secondary-bg: none; /* -webkit-linear-gradient(top, $masthead-bg 0%, d
 $masthead-secondary-border: none; /* 1px solid transparentize($white, 0.95); */
 $masthead-height: 81px; 
 
+$breadcrumbs-bg: $headline-bg; 
+$breadcrumbs-color: transparentize($masthead-bg, 0.5);
+$breadcrumbs-link-color: transparentize($masthead-bg, 0.2); 
+$breadcrumbs-link-color: $text-color; 
+$breadcrumbs-link-hover-color: $link-color; 
+$breadcrumbs-border: 1px solid darken($breadcrumbs-bg, 5%); 
+
 $topnav-link-color: $reverse-text-color;
-$topnav-link-bg: rgba(255,255,255,0.05); 
+$topnav-link-bg: none; /*rgba(255,255,255,0.05); */
 $topnav-link-hover-color: $reverse-text-color; 
 $topnav-link-hover-bg: transparentize($reverse-text-color, 0.8); 
 $topnav-link-current-color: $text-color; 
 $topnav-link-current-bg: $headline-bg;
 $topnav-height: 31px; 
 
-$breadcrumb-color: transparentize($reverse-text-color, 0.5); 
-$breadcrumb-link-color: transparentize($reverse-text-color, 0.2); 
-$breadcrumb-link-hover-color: $reverse-text-color; 
 
 $action-link-color: $green;
 $action-link-font-size: 0.846153846153846em;
 $action-link-font-size: 0.769230769230769em; 
+$action-link-font-size: 1em; 
 $action-link-bg: none; 
 $action-link-border: none; 
 $action-link-hover-color: $reverse-text-color;
@@ -122,13 +130,13 @@ $wiretab-link-color: $text-color;
 $wiretab-link-hover-bg: transparentize($white, 0.5);
 $wiretab-link-hover-border: 1px solid darken($subtle-bg, 5%); 
 $wiretab-link-hover-color: $cyan;
-$wiretab-link-current-bg: $white;
+$wiretab-link-current-bg: $white; 
 $wiretab-link-current-color: $text-color; 
 $wiretab-link-current-border: $wiretab-link-hover-border; 
 $wiretab-link-active-bg: $subtle-bg;
 $wiretab-link-active-color: $text-color; 
 
-$footer-bg: transparentize($subtle-bg, 0.5); 
+$footer-bg: $subtle-bg; 
 $footer-color: $light-text-color; 
 $footer-link-color: $orange;
 
@@ -141,4 +149,6 @@ $notes-font-size: 0.846153846153846em;
 
 $button-radius: 5px; 
 $tabs-radius: 6px; 
+$tabs-height: 35px; 
+$base-line-height: 1.6em; 
 

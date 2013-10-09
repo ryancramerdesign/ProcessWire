@@ -93,16 +93,21 @@
 
 #notices .ui-state-highlight, 
 #notices .ui-state-error {
-	padding: 0.25em; 
-	padding-left: 1.25em; 
+	padding: 0.25em 0; 
 	border: none; 
-	border-bottom: $highlight-border; 
+	border-top: $highlight-border; 
 }
-
 	#notices .ui-state-highlight .ui-icon,
 	#notices .ui-state-error .ui-icon {
 		position: relative;
 		top: 2px; 
+	}
+
+	#notices .notice-remove {
+		float: right; 
+		color: $highlight-color; 
+		text-decoration: none; 
+		padding: 0 1em; 
 	}
 	
 
@@ -150,8 +155,8 @@ button.ui-button.ui-state-default,
 	background: $button-bg; /* LIGHT-GREEN */
 	border: 1px solid $button-border; /* LIGHT-GREEN */
 	font-weight: bold;
-	padding: 5px 10px; 
-	font-size: 1em; 
+	padding: 0.5em 1em; 
+	font-size: 1em !important; 
 	border-radius: $button-radius; 
 }
 	button.ui-button span {
@@ -166,7 +171,7 @@ button.ui-button.ui-state-default,
 		background: $button-hover-bg; /* CYAN */
 		border: 1px solid $button-hover-border; /* CYAN */
 		font-weight: bold;
-		font-size: 1em; 
+		font-size: 1em !important;
 		text-decoration: none; 
 	}
 
@@ -203,9 +208,12 @@ button.ui-button.ui-state-default,
 	border-bottom: 1px solid darken($subtle-bg, 5%); /* LIGHT-KHAKI */
 
 }
-.ui-menu li a, 
+.ui-menu .ui-menu-item a, 
 .ui-autocomplete li a {
 	cursor: pointer; 
+}
+.ui-menu .ui-menu-item a {
+	padding: 0.5em 0.75em 0.5em 1em; 
 }
 .ui-menu .ui-menu-item a:hover, 
 .ui-autocomplete li a:hover {

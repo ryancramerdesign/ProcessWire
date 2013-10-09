@@ -93,9 +93,10 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 </head>
 <body<?php if($bodyClass) echo " class='$bodyClass'"; ?>>
 
-	<div id="masthead" class="masthead">
-		<div id="masthead_shade"></div>
+
+	<div id="masthead" class="masthead ui-helper-clearfix">
 		<div class="container">
+
 			<a id='logo' href='<?php echo $config->urls->admin?>'><img width='130' src="<?php echo $config->urls->adminTemplates?>styles/images/logo.png" alt="ProcessWire" /></a>
 
 			<ul id='topnav'>
@@ -103,7 +104,7 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 				<?php if(!$user->isGuest()): ?>
 				<li>
 					<a class='dropdown-toggle' href='<?php echo $config->urls->admin?>profile/'><i class='icon-user'></i></a>
-					<ul class='dropdown-menu topnav' data-my='right+1 top-2' data-at='right bottom'>
+					<ul class='dropdown-menu topnav' data-my='left-1 top' data-at='left bottom'>
 						<?php if($user->hasPermission('profile-edit')): ?>
 						<li><a href='<?php echo $config->urls->admin?>profile/'><?php echo __('Profile', __FILE__); ?> <small><?php echo $user->name?></small></a></li>
 						<?php endif; ?>
@@ -113,9 +114,20 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 				<?php endif; ?>
 			</ul>
 
-			<?php if(!$user->isGuest()): ?>
+		</div>
+	</div>
 
-			<ul id='breadcrumb' class='nav'><?php
+
+	<?php if(!$user->isGuest()): ?>
+
+	<div id='breadcrumbs'>
+		<div class='container'>
+
+			<?php echo tabIndent($searchForm, 3); ?>
+
+			<ul class='nav'>
+
+				<?php
 				echo "<li><a class='sitelink' href='{$config->urls->root}'><i class='icon-home'></i></a><i class='icon-angle-right'></i></li>"; 
 				foreach($this->fuel('breadcrumbs') as $breadcrumb) {
 					$title = __($breadcrumb->title, __FILE__); 
@@ -123,16 +135,13 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 				}
 				unset($title);
 				?>
-
 			</ul>
-
-			<?php endif; ?>	
-
-			<?php echo tabIndent($searchForm, 3); ?>
-
 		</div>
 	</div>
 
+	<?php endif; ?>	
+
+	<?php if(count($notices)) include($config->paths->adminTemplates . "notices.inc"); ?>
 
 	<div id="headline">
 		<div class="container">
@@ -146,10 +155,10 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 			}
 			?>
 
+
 		</div>
 	</div>
 
-	<?php if(count($notices)) include($config->paths->adminTemplates . "notices.inc"); ?>
 
 	<div id="content" class="content fouc_fix">
 		<div class="container">
