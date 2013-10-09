@@ -5,16 +5,16 @@ $bodyClass = $input->get->modal ? 'modal ' : '';
 $bodyClass .= "id-{$page->id} template-{$page->template->name}";
 if(!isset($content)) $content = '';
 
-$defaultColorTheme = 'warm';
+$defaultColorTheme = 'classic';
 if($input->get->colors && !$user->isGuest()) $colors = $sanitizer->pageName($input->get->colors); 
 	else if($session->adminThemeColors) $colors = $session->adminThemeColors; 
 	else if($config->adminThemeColors) $colors = $sanitizer->pageName($config->adminThemeColors); 
 	else $colors = $defaultColorTheme;
 
-if(is_file(dirname(__FILE__) . "/styles/main-$colors.css")) $session->adminThemeColors = "main-$colors";
-	else $session->adminThemeColors = "main";
+if(is_file(dirname(__FILE__) . "/styles/main-$colors.css")) $session->adminThemeColors = $colors;
+	else $session->adminThemeColors = $defaultColorTheme;
 
-$config->styles->prepend($config->urls->adminTemplates . "styles/$session->adminThemeColors.css?v=5"); 
+$config->styles->prepend($config->urls->adminTemplates . "styles/main-$session->adminThemeColors.css?v=6"); 
 $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css"); 
 $config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=5"); 
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5"); 
