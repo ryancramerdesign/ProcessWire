@@ -1546,7 +1546,7 @@ class Page extends WireData implements Countable {
 			foreach($this->template->fieldgroup as $field) {
 				$value = parent::get($field->name);
 				if($value != null && is_object($value)) {
-					if(method_exists($value, 'uncache')) $value->uncache();
+					if(method_exists($value, 'uncache') && $value->id != $this->id) $value->uncache();
 					parent::set($field->name, null); 
 				}
 			}
