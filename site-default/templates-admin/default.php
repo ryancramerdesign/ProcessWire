@@ -5,16 +5,18 @@ $bodyClass = $input->get->modal ? 'modal ' : '';
 $bodyClass .= "id-{$page->id} template-{$page->template->name}";
 if(!isset($content)) $content = '';
 
-$defaultColorTheme = 'classic';
+//$defaultColorTheme = 'classic';
 if($input->get->colors && !$user->isGuest()) $colors = $sanitizer->pageName($input->get->colors); 
-	else if($session->adminThemeColors) $colors = $session->adminThemeColors; 
+	else if($user->isLoggedin() && $session->adminThemeColors) $colors = $session->adminThemeColors; 
 	else if($config->adminThemeColors) $colors = $sanitizer->pageName($config->adminThemeColors); 
-	else $colors = $defaultColorTheme;
+	else $colors = '';
+	//else $colors = $defaultColorTheme;
 
 if(is_file(dirname(__FILE__) . "/styles/main-$colors.css")) $session->adminThemeColors = $colors;
-	else $session->adminThemeColors = $defaultColorTheme;
+	else $session->adminThemeColors = '';
+$colorsFile = $session->adminThemeColors ? "main-" . $session->adminThemeColors : "main";
 
-$config->styles->prepend($config->urls->adminTemplates . "styles/main-$session->adminThemeColors.css?v=6"); 
+$config->styles->prepend($config->urls->adminTemplates . "styles/$colorsFile.css?v=6"); 
 $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css"); 
 $config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=5"); 
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5"); 
@@ -99,6 +101,8 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 
 			<a id='logo' href='<?php echo $config->urls->admin?>'><img width='130' src="<?php echo $config->urls->adminTemplates?>styles/images/logo.png" alt="ProcessWire" /></a>
 
+			<?php echo tabIndent($searchForm, 3); ?>
+
 			<ul id='topnav'>
 				<?php include($config->paths->adminTemplates . "topnav.inc"); ?>
 				<?php if(!$user->isGuest()): ?>
@@ -117,13 +121,17 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 		</div>
 	</div>
 
-
-	<?php if(!$user->isGuest()): ?>
+	<?php if(count($notices)) include($config->paths->adminTemplates . "notices.inc"); ?>
 
 	<div id='breadcrumbs'>
 		<div class='container'>
-
-			<?php echo tabIndent($searchForm, 3); ?>
+			<?php 
+			if($user->isLoggedin() && in_array($page->id, array(2,3,8))) { // page-list
+				echo "<div id='head_button'>";
+				include($config->paths->adminTemplates . "shortcuts.inc"); 
+				echo "</div>";
+			}
+			?>
 
 			<ul class='nav'>
 
@@ -134,31 +142,12 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 					echo "<li><a href='{$breadcrumb->url}'>{$title}</a><i class='icon-angle-right'></i></li>";
 				}
 				unset($title);
+				echo "<li class='title'>" . __(strip_tags($this->fuel->processHeadline ? $this->fuel->processHeadline : $page->get("title|name")), __FILE__) . "</li>";
 				?>
 			</ul>
-		</div>
-	</div>
-
-	<?php endif; ?>	
-
-	<?php if(count($notices)) include($config->paths->adminTemplates . "notices.inc"); ?>
-
-	<div id="headline">
-		<div class="container">
-			<h1 id='title'><?php echo __(strip_tags($this->fuel->processHeadline ? $this->fuel->processHeadline : $page->get("title|name")), __FILE__); ?></h1>
-
-			<?php 
-			if(in_array($page->id, array(2,3,8))) { // page-list
-				echo "<div id='head_button'>";
-				include($config->paths->adminTemplates . "shortcuts.inc"); 
-				echo "</div>";
-			}
-			?>
-
 
 		</div>
 	</div>
-
 
 	<div id="content" class="content fouc_fix">
 		<div class="container">

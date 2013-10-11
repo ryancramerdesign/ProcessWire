@@ -58,6 +58,10 @@
 	line-height: 1em; 
 }
 
+.PageListItem > a span + span:before {
+	content: ', ';
+}
+
 /**
  * Style for the children label and notes
  *
@@ -69,6 +73,14 @@
 	padding-left: 0.25em; 
 }
 
+.PageList i.icon,
+.PageList .PageListStatusIcon {
+	font-size: 14px; 
+}
+.PageList i.icon {
+	display: inline-block;
+	width: 18px;
+}
 .PageList .PageListStatusIcon {
 	padding-right: 2px; 
 }

@@ -42,8 +42,7 @@ $button-color: $white;
 $button-hover-bg: $green;
 $button-hover-border: $green;
 
-$ui-state-default-bg: $link-hover-color;
-$ui-state-default-bg: #777; 
+$ui-state-default-bg: darken($subtle-bg, 37%);
 $ui-state-default-color: $reverse-text-color; 
 $ui-state-hover-bg: $black;
 $ui-state-hover-color: $reverse-text-color; 
@@ -75,9 +74,10 @@ $item-border: 1px solid $subtle-border;
 
 $breadcrumbs-bg: darken($headline-bg, 3%); 
 $breadcrumbs-color: lighten($text-color, 50%);
-$breadcrumbs-link-color: $text-color; 
+$breadcrumbs-link-color: $link-color; 
 $breadcrumbs-link-hover-color: $link-color; 
 $breadcrumbs-border: none; 
+$breadcrumbs-title-color: $text-color; 
 
 $topnav-link-color: $reverse-text-color;
 $topnav-link-bg: none; /*rgba(255,255,255,0.05); */
@@ -144,4 +144,7 @@ $notes-font-size: 0.875em;
 $button-radius: 5px; 
 $tabs-radius: 5px; 
 
+#breadcrumbs li.title {
+	font-weight: bold; 
+}
 

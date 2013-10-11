@@ -79,11 +79,12 @@ $masthead-secondary-border: none; /* 1px solid transparentize($white, 0.95); */
 $masthead-height: 81px; 
 
 $breadcrumbs-bg: $headline-bg; 
-$breadcrumbs-color: transparentize($masthead-bg, 0.5);
+$breadcrumbs-color: transparentize($masthead-bg, 0.6);
 $breadcrumbs-link-color: transparentize($masthead-bg, 0.2); 
-$breadcrumbs-link-color: $text-color; 
+$breadcrumbs-link-color: $link-color; 
 $breadcrumbs-link-hover-color: $link-color; 
 $breadcrumbs-border: 1px solid darken($breadcrumbs-bg, 5%); 
+$breadcrumbs-title-color: $text-color; 
 
 $topnav-link-color: $reverse-text-color;
 $topnav-link-bg: none; /*rgba(255,255,255,0.05); */
@@ -126,7 +127,7 @@ $pagination-link-border-radius: 3px;
 
 $wiretab-link-bg: none; 
 $wiretab-link-border: 1px solid transparent; 
-$wiretab-link-color: $text-color; 
+$wiretab-link-color: $masthead-bg; 
 $wiretab-link-hover-bg: transparentize($white, 0.5);
 $wiretab-link-hover-border: 1px solid darken($subtle-bg, 5%); 
 $wiretab-link-hover-color: $cyan;

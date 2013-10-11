@@ -46,14 +46,15 @@ $topnav-link-color: #A7E5F9;
 $topnav-link-bg: none; 
 $topnav-link-hover-color: $white;
 $topnav-link-hover-bg: $pink;
-$topnav-link-current-color: $white;
-$topnav-link-current-bg: $pink;
+$topnav-link-current-color: $dark-blue;
+$topnav-link-current-bg: #fff; 
 
-$breadcrumbs-bg: #D2E4EA; 
-$breadcrumbs-link-color: #005F7D; 
+$breadcrumbs-bg: #fff;
+$breadcrumbs-link-color: $pink;
 $breadcrumbs-link-hover-color: $pink;
 $breadcrumbs-border: 1px solid $breadcrumbs-bg; 
-$breadcrumbs-color: transparentize($breadcrumbs-link-color, 0.5); 
+$breadcrumbs-color: transparentize($breadcrumbs-link-color, 0.7); 
+$breadcrumbs-title-color: $dark-blue; 
 
 $item-header-hover-color: $white;
 $item-header-hover-bg: $pink; 
@@ -117,8 +118,8 @@ $pagelist-link-icon-color: lighten($pagelist-link-color, 15%); /*#CC0048; */
 $pagination-font-size: 0.769230769230769em; 
 $pagination-link-color: $reverse-text-color;
 $pagination-link-bg: $green; 
-$pagination-link-current-color: $text-color;
-$pagination-link-current-bg: $breadcrumbs-bg;
+$pagination-link-current-color: $text-color; 
+$pagination-link-current-bg: $subtle-bg;
 $pagination-link-hover-color: $white;
 $pagination-link-hover-bg: $pink;
 $pagination-link-active-color: $white; 
@@ -127,13 +128,14 @@ $pagination-link-border-radius: 2px;
 
 $wiretab-link-bg: none; 
 $wiretab-link-border: 1px solid transparent; 
-$wiretab-link-color: $pink;
+$wiretab-link-color: $label-link-collapsed-color;
 $wiretab-link-hover-bg: $pink;
 $wiretab-link-hover-color: $white; 
 $wiretab-link-hover-border: 1px solid $pink;
-$wiretab-link-current-bg: $pink;
-$wiretab-link-current-color: $white;
-$wiretab-link-current-border: 1px solid $pink;
+$wiretab-link-current-bg: #D2E4EA; 
+$wiretab-link-current-bg: $subtle-bg;
+$wiretab-link-current-color: $label-link-color; 
+$wiretab-link-current-border: 1px solid #D2E4EA; 
 $wiretab-link-active-bg: $dark-pink;
 $wiretab-link-active-color: $white; 
 $tabs-height: 35px; 
@@ -153,39 +155,9 @@ $error-color: #fff;
 $notes-bg: #ffffdd; 
 $notes-font-size: 0.846153846153846em;
 
-$tabs-radius: 0; 
 $tabs-font-weight: bold; 
 
 $footer-font-size: 0.875em; 
-
-body #masthead #topnav {
-	margin-top: 0;
-	padding-top: 0;
-}
-body #masthead #topnav li a {
-	padding-top: 0.8em;
-	padding-bottom: 0.75em;
-}
-
-body #masthead #logo {
-	margin-top: 0.65em;
-}
-
-body #content .WireTabs li a {
-}
-
-#masthead {
-	border-top: 2px solid #000;
-}
-
-#title, 
-.description {
-	font-family: Georgia, serif; 
-}
-.description {
-	font-style: italic; 
-	font-weight: normal;
-}
 
 .InputfieldForm .Inputfields .InputfieldHeader,
 .InputfieldForm .Inputfields .InputfieldWrapper > .description {
@@ -202,7 +174,6 @@ body #content .WireTabs li a {
 }
 
 #topnav li a,
-#breadcrumbs a,
 #content .WireTabs a {
 	font-weight: bold; 
 }
@@ -212,6 +183,10 @@ body #content .WireTabs li a {
 }
 #breadcrumbs a i {
 	font-size: 14px; 
+}
+
+#breadcrumbs .title {
+	font-weight: bold; 
 }
 
 body #headline #title {
@@ -224,4 +199,3 @@ body #headline #title {
 }
 
 
-$form-top-margin-adjustment: 0; 

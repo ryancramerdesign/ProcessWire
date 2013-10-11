@@ -1,5 +1,6 @@
+@import url(http://fonts.googleapis.com/css?family=Arimo:400,700);
 
-$regular-font: Arial, sans-serif; 
+$regular-font: Arimo, Arial, sans-serif; 
 $button-radius: 5px; 
 $tabs-radius: 6px; 
 $tabs-height: 35px; 
@@ -9,7 +10,7 @@ $base-line-height: 1.6em;
 $footer-font-size: 0.875em; 
 $form-top-margin-adjustment: -2px; 
 
-@import 'colors-modern';
+@import 'colors-warm';
 @import 'reset';
 @import 'jquery-ui'; 
 @import 'ui';
@@ -37,17 +38,17 @@ body {
 	input,
 	textarea {
 		font-family: $regular-font; 
+		font-size: 100%; 
 	}
 	body {
-	;	color: $text-color; 
+		color: $text-color; 
 	}
 	body.modal {
 		background-color: $text-bg; 
 	}
 
 .container, 
-.ui-dialog,
-.ui-menu .ui-menu-item a {
+.ui-dialog {
 	line-height: $base-line-height; 
 	font-size: $base-font-size; 
 }
@@ -55,7 +56,7 @@ body {
 .container {
 	position: relative; 
 	width: 95%; 
-	max-width: 1200px; 
+	max-width: 1400px; 
 	margin: 0 auto; 
 }
 
@@ -100,6 +101,7 @@ a {
 	position: relative; 
 	left: -3px; 
 	margin-top: 0.7em; 
+	margin-bottom: 0.25em;
 }
 
 
@@ -109,6 +111,7 @@ a {
 	*/
 	background: $masthead-bg; 
 	position: relative; 
+	min-height: 2.6em;
 
 	#topnav {
 		float: right; 
@@ -157,8 +160,8 @@ a {
 
 
 #breadcrumbs {
-	padding-top: 0.7em;
-	padding-bottom: 0.7em;
+	padding-top: 1em;
+	padding-bottom: 1em;
 	color: $breadcrumbs-color;
 	background: $breadcrumbs-bg; 
 	border-bottom: $breadcrumbs-border; 
@@ -175,6 +178,10 @@ a {
 			padding-right: 0.5em;
 
 
+		}
+
+		li.title {
+			color: $breadcrumbs-title-color; 
 		}
 
 		a {
@@ -202,24 +209,32 @@ a {
 
 }
 
-#ProcessPageSearchForm {
+
+body.hasWireTabs #breadcrumbs {
+	border-bottom: $tabs-height solid $breadcrumbs-bg; 
+}
+
+#masthead #ProcessPageSearchForm {
 	float: right; 
 	margin: 0; 
-	width: 25%; 
+	margin-left: 1em;
+	margin-top: 0.62em; 
+	width: 15%; 
 	max-width: 200px; 
 	min-width: 90px; 
+
+	label {
+		opacity: 1.0;
+		color: lighten($masthead-bg, 20%); 
+	}
 
 	#ProcessPageSearchQuery {
 		margin: 0;
 		height: auto; 
-		padding: 4px 7px 3px 7px; 
-		font-size: 1em; 
 		width: 100%; 
-		background: #fff; 
-		color: $text-color; 
-		border: 1px solid darken($breadcrumbs-bg, 10%); 
-		border: none; 
-		color: transparentize($text-color, 0.5); 
+		background: transparent; 
+		border: 1px solid lighten($masthead-bg, 10%); 
+		color: lighten($masthead-bg, 15%); 
 		border-radius: $button-radius; 
 		outline: none; 
 	}
@@ -232,14 +247,16 @@ a {
 
 	#ProcessPageSearchStatus {
 		position: absolute;
-		top: 0;
+		top: 2px;
 		right: 10px; 
+		font-size: 0.875em; 
 		color: $light-text-color; 
 	}
 
 }
 
 
+/*
 #headline {
 	position: relative; 
 	z-index: 2; 
@@ -254,22 +271,6 @@ a {
 	}
 
 
-	#head_button {
-		/* The main/primary button for a listing screen, appears in the masthead */
-		position: absolute; 
-		margin: 0;
-		top: -0.5em;
-		right: 0; 
-		z-index: 2;
-
-		button {
-			font-size: 1.3em; 
-			margin-right: 0; 
-			margin-left: 10px; 
-			float: right; 
-		}
-	}
-
 	#title {
 		font-size: 2em; 
 		line-height: 1em;
@@ -281,6 +282,7 @@ a {
 
 
 }
+*/
 
 
 
@@ -291,10 +293,10 @@ a {
 
 #content {
 	position: relative; 
-	background: $text-bg; 
 	padding-bottom: 2em; 
 	padding-top: 1px;
 	z-index: 0; 
+	background: $text-bg; 
 }
 	#content .container {
 		min-height: 50px; 
@@ -304,6 +306,24 @@ a {
 			position: relative;
 			top: -1px; 
 		}
+
+#head_button {
+	/* The main/primary button for a listing screen, appears in the masthead */
+	float: right; 
+	margin: 0;
+	position: relative;
+	top: -0.35em;
+
+	button {
+		font-size: 1.3em; 
+		margin-right: 0; 
+		margin-left: 10px; 
+		margin-top: 0;
+		float: right; 
+		border: none;
+	}
+}
+
 
 .content {
 
@@ -442,6 +462,16 @@ a {
 	.PageListMoveNote {
 		text-transform: lowercase; 
 		cursor: move; 
+	}
+
+	.PageListItem > a span + span:before {
+		content: " / ";
+		color: lighten($text-color,50%); 
+	}
+
+
+	.PageListActionMore a {
+		margin-top: 0.5em; 
 	}
 
 	.PageListSelectName {
@@ -643,6 +673,7 @@ a {
 		position: relative;
 		top: (-1 * $tabs-height); 
 		margin-bottom: (-1 * $tabs-height);
+		
 		left: 0;
 		width: 100%; 
 		z-index: 102; 
@@ -669,6 +700,10 @@ a {
 			background: $wiretab-link-bg; 
 			position: relative;
 			top: 1px; 
+
+			em {
+				border-bottom: 1px solid transparentize($wiretab-link-color, 0.8);
+			}
 		}
 		a.on {
 			color: $wiretab-link-current-color; 
@@ -677,6 +712,10 @@ a {
 			background: $wiretab-link-current-bg; 
 			position: relative;
 			z-index: 100; 
+
+			em {
+				border-color: transparent; 
+			}
 		}
 
 		a:hover {
@@ -819,6 +858,11 @@ body.modal {
 		margin: 0; 
 		width: 100%; 
 		min-width: 300px; 
+		padding-left: 1.5em;
+		padding-right: 1.5em; 
+	}
+	#notices {
+		margin: 0.5em 0 0.75em 0;
 	}
 
 	.content h2 {
@@ -828,6 +872,7 @@ body.modal {
 
 	#footer,
 	#masthead,
+	#breadcrumbs, 
 	#headline {
 		display: none; 
 	}
@@ -840,6 +885,17 @@ body.modal {
  *
  */
 
+body.id-3 #breadcrumbs ul li:not(:first-child):not(:last-child),
+body.id-23 #breadcrumbs ul li:not(:first-child):not(:last-child),
+body.id-8 #breadcrumbs ul li:not(:first-child):not(:last-child) {
+	/* hide extraneous breadcrumbs when in admin root */
+	display: none; 
+}
+
+body.id-23 #content form {
+	margin-top: 1em; 
+}
+
 #content .container > form,
 #content .container > .ui-helper-clearfix > form {
 	/* for wiretabs and/or forms to line up with headline area */
@@ -851,7 +907,9 @@ body:not(.hasWireTabs) #headline .container {
 }
 
 body.hasWireTabs #content {
+	/*
 	border-top: 3em solid $headline-bg; 
+	*/
 }
 
 body.hasWireTabs .InputfieldForm {
@@ -921,11 +979,6 @@ body.hasWireTabs .InputfieldForm {
 		float: left; 
 	}
 
-	#breadcrumbs {
-		padding-top: 0.4em;
-		padding-bottom: 0.4em; 
-	}
-
 	body #masthead #topnav a,
 	body #content .WireTabs li a {
 		padding-left: 0.75em;
@@ -946,10 +999,6 @@ body.hasWireTabs .InputfieldForm {
 		padding-left: 10px; 
 	}
 
-	#head_button {
-		top: 102px; 
-	}
-
 	#fieldgroupContext {
 		display: none; 
 	}
@@ -962,6 +1011,9 @@ body.hasWireTabs .InputfieldForm {
 
 /* Mobile Portrait Size to Mobile Landscape Size (devices and browsers) */
 @media only screen and (max-width: 479px) {
+	#logo {
+		display: block;
+	}
 
 	/**
 	 * Disregard column width when at mobile size

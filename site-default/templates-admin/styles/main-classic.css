@@ -1,3 +1,4 @@
+@import url(http://fonts.googleapis.com/css?family=Arimo:400,700);
 /**
  * Classic/original color theme for PW admin
  *
@@ -7,31 +8,9 @@
 /*darken($green, 8%);*/
 /*#CC0048; */
 /* transparentize($subtle-bg, 0.5); */
-body #masthead #topnav {
-  margin-top: 0;
-  padding-top: 0; }
-
-body #masthead #topnav li a {
-  padding-top: 0.8em;
-  padding-bottom: 0.75em; }
-
-body #masthead #logo {
-  margin-top: 0.65em; }
-
-#masthead {
-  border-top: 2px solid #000; }
-
-#title,
-.description {
-  font-family: Georgia, serif; }
-
-.description {
-  font-style: italic;
-  font-weight: normal; }
-
 .InputfieldForm .Inputfields .InputfieldHeader,
 .InputfieldForm .Inputfields .InputfieldWrapper > .description {
-  background: rgba(210, 228, 234, 0.5);
+  background: rgba(255, 255, 255, 0.5);
   background: -moz-linear-gradient(top, rgba(228, 235, 238, 0.8) 0%, rgba(228, 235, 238, 0) 100%);
   /* FF3.6+ */
   background: -webkit-linear-gradient(top, rgba(228, 235, 238, 0.8) 0%, rgba(228, 235, 238, 0) 100%);
@@ -47,7 +26,6 @@ body #masthead #logo {
   color: #222222; }
 
 #topnav li a,
-#breadcrumbs a,
 #content .WireTabs a {
   font-weight: bold; }
 
@@ -57,6 +35,9 @@ body #content .WireTabs li a {
 
 #breadcrumbs a i {
   font-size: 14px; }
+
+#breadcrumbs .title {
+  font-weight: bold; }
 
 body #headline #title {
   font-size: 2.3em; }
@@ -248,7 +229,7 @@ a {
   text-decoration: none; }
 
 .ui-state-hover, .ui-widget-content .ui-state-hover, .ui-widget-header .ui-state-hover, .ui-state-focus, .ui-widget-content .ui-state-focus, .ui-widget-header .ui-state-focus {
-  border: 1px solid #a6a6ac;
+  border: 1px solid transparent;
   background: #ededf0;
   font-weight: normal;
   color: #212121; }
@@ -1080,51 +1061,123 @@ a {
  */
 .ui-menu {
   list-style: none;
-  padding: 0;
+  padding: 2px;
   margin: 0;
   display: block;
-  float: left;
-  -webkit-border-radius: 5px;
-  -moz-border-radius: 5px;
-  border-radius: 5px;
-  -webkit-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-  -moz-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-  border: 1px solid #ccc; }
+  outline: none; }
 
 .ui-menu .ui-menu {
-  margin-top: -3px; }
+  margin-top: -3px;
+  position: absolute; }
 
 .ui-menu .ui-menu-item {
   margin: 0;
   padding: 0;
   zoom: 1;
-  float: left;
-  clear: left;
-  width: 100%;
-  background-image: none; }
+  width: 100%; }
 
-.ui-menu .ui-menu-item:first-child {
-  border-top: none; }
+.ui-menu .ui-menu-divider {
+  margin: 5px -2px 5px -2px;
+  height: 0;
+  font-size: 0;
+  line-height: 0;
+  border-width: 1px 0 0 0; }
 
 .ui-menu .ui-menu-item a {
   text-decoration: none;
   display: block;
-  padding: .2em .4em;
+  padding: 2px .4em;
   line-height: 1.5;
   zoom: 1;
-  border: none;
-  font-size: 12px; }
-
-.ui-menu .ui-menu-item a.ui-state-hover {
-  background: #14A4FF;
-  color: #FFF;
-  /*text-shadow: 0 -1px 0 #0988d9;*/ }
-
-.ui-menu .ui-menu-item a.ui-state-hover,
-.ui-menu .ui-menu-item a.ui-state-active {
   font-weight: normal; }
 
+.ui-menu .ui-menu-item a.ui-state-focus,
+.ui-menu .ui-menu-item a.ui-state-active {
+  font-weight: normal;
+  margin: -1px; }
+
+.ui-menu .ui-state-disabled {
+  font-weight: normal;
+  margin: .4em 0 .2em;
+  line-height: 1.5; }
+
+.ui-menu .ui-state-disabled a {
+  cursor: default; }
+
+/* icon support */
+.ui-menu-icons {
+  position: relative; }
+
+.ui-menu-icons .ui-menu-item a {
+  position: relative;
+  padding-left: 2em; }
+
+/* left-aligned */
+.ui-menu .ui-icon {
+  position: absolute;
+  top: .2em;
+  left: .2em; }
+
+/* right-aligned */
+.ui-menu .ui-menu-icon {
+  position: static;
+  float: right; }
+
+.ui-menu .ui-menu-item .ui-corner-all {
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  -ie-border-radius: 0;
+  border-radius: 0; }
+
+/*
+.ui-menu {
+	list-style:none;
+	padding: 0;
+	margin: 0;
+	display:block;
+	float: left;
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
+	-webkit-box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+	-moz-box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+	box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+	border: 1px solid #ccc; 
+}
+.ui-menu .ui-menu {
+	margin-top: -3px;
+}
+.ui-menu .ui-menu-item {
+	margin:0;
+	padding: 0;
+	zoom: 1;
+	float: left;
+	clear: left;
+	width: 100%;
+	background-image: none;
+}
+	.ui-menu .ui-menu-item:first-child {
+		border-top: none; 
+	}
+.ui-menu .ui-menu-item a {
+	text-decoration:none;
+	display:block;
+	padding:.2em .4em;
+	line-height:1.5;
+	zoom:1;
+	border: none;
+	font-size: 12px;
+}
+.ui-menu .ui-menu-item a.ui-state-hover {
+	background: #14A4FF;
+	color: #FFF;
+	
+}
+.ui-menu .ui-menu-item a.ui-state-hover,
+.ui-menu .ui-menu-item a.ui-state-active {
+	font-weight: normal;
+}
+*/
 /*
  * jQuery UI Button 1.8.16
  *
@@ -2112,7 +2165,12 @@ body .ui-tooltip {
 #notices .ui-state-error {
   padding: 0.25em 0;
   border: none;
-  border-top: 1px solid white; }
+  border-top: 1px solid white;
+  color: #2f4206; }
+
+#notices .ui-state-highlight a,
+#notices .ui-state-error a {
+  color: #2f4206; }
 
 #notices .ui-state-highlight .ui-icon,
 #notices .ui-state-error .ui-icon {
@@ -2213,17 +2271,25 @@ div + a > .ui-button {
   -moz-border-radius: 0;
   border-radius: 0; }
 
-.ui-autocomplete li,
-.ui-menu .ui-menu-item {
-  border-bottom: 1px solid #d4dfe4;
-  /* LIGHT-KHAKI */ }
+.ui-menu a {
+  font-size: 0.875em;
+  /*
+  border-bottom: 1px solid darken($subtle-bg, 5%); 
+  */ }
 
+.ui-menu li .ui-menu li {
+  line-height: 1em; }
+
+.ui-menu
 .ui-menu .ui-menu-item a,
 .ui-autocomplete li a {
   cursor: pointer; }
 
 .ui-menu .ui-menu-item a {
-  padding: 0.5em 0.75em 0.5em 1em; }
+  padding: 0.5em 0.75em 0.5em 0.75em; }
+
+.ui-menu .ui-menu-item .ui-menu .ui-menu-item a {
+  padding: 0 0.25em 0 0.25em; }
 
 .ui-menu .ui-menu-item a:hover,
 .ui-autocomplete li a:hover {
@@ -2237,13 +2303,19 @@ div + a > .ui-button {
   -moz-border-radius: 0;
   border-radius: 0; }
 
+.ui-autocomplete .ui-widget-header,
+.ui-autocomplete .ui-widget-header:hover {
+  border: none;
+  margin: 0; }
+
 .ui-autocomplete .ui-widget-header a,
 .ui-autocomplete .ui-widget-header a:hover {
-  font-weight: bold;
+  font-weight: bold !important;
   background: #db1174;
   color: white;
-  text-shadow: none;
-  margin-top: 1px; }
+  border: none !important;
+  margin: 0 !important;
+  text-shadow: none; }
 
 #content .InputfieldForm .ui-tabs-nav {
   background: rgba(228, 235, 238, 0.5);
@@ -2357,6 +2429,44 @@ div + a > .ui-button {
     /* last child element in an Inputfield content needs no margin since it is already padded */
     margin-bottom: 0; }
 
+fieldset,
+input,
+select,
+textarea,
+label {
+  /* reset */
+  margin: 0;
+  padding: 0; }
+
+input,
+select,
+textarea {
+  font-size: 1em;
+  max-width: 100%; }
+
+input,
+textarea {
+  /* slight padding for input and textarea elements... */
+  padding: 0.2em 0.3em;
+  line-height: 1.3em;
+  color: #222222; }
+
+textarea,
+input.InputfieldMaxWidth {
+  width: 100%; }
+
+input[type=checkbox],
+input[type=radio] {
+  /* ...but no padding for checkbox and radios */
+  padding: 0; }
+
+label,
+input,
+select,
+textarea,
+table {
+  height: auto; }
+
 .Inputfields {
   height: auto;
   /**
@@ -2371,40 +2481,8 @@ div + a > .ui-button {
    * Item and file lists
    *
    */ }
-  .Inputfields fieldset,
-  .Inputfields input,
-  .Inputfields select,
-  .Inputfields textarea,
-  .Inputfields label {
-    /* reset */
-    margin: 0;
-    padding: 0; }
   .Inputfields label {
     display: block; }
-  .Inputfields .Inputfield,
-  .Inputfields label,
-  .Inputfields input,
-  .Inputfields select,
-  .Inputfields textarea,
-  .Inputfields table {
-    height: auto; }
-  .Inputfields input,
-  .Inputfields select,
-  .Inputfields textarea {
-    font-size: 1em;
-    max-width: 100%; }
-  .Inputfields input,
-  .Inputfields textarea {
-    /* slight padding for input and textarea elements... */
-    padding: 0.1em 0.2em;
-    line-height: 1.3em; }
-  .Inputfields textarea,
-  .Inputfields input.InputfieldMaxWidth {
-    width: 100%; }
-  .Inputfields input[type=checkbox],
-  .Inputfields input[type=radio] {
-    /* ...but no padding for checkbox and radios */
-    padding: 0; }
   .Inputfields .Inputfield {
     margin-bottom: -1px;
     /* non doubled border */
@@ -2702,7 +2780,8 @@ body,
 .ui-button,
 input,
 textarea {
-  font-family: Arial, sans-serif; }
+  font-family: Arimo, Arial, sans-serif;
+  font-size: 100%; }
 
 body {
   color: #222222; }
@@ -2711,15 +2790,14 @@ body.modal {
   background-color: white; }
 
 .container,
-.ui-dialog,
-.ui-menu .ui-menu-item a {
+.ui-dialog {
   line-height: 1.6em;
   font-size: 0.875em; }
 
 .container {
   position: relative;
   width: 95%;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto; }
 
 a {
@@ -2758,14 +2836,16 @@ a:active {
   float: left;
   position: relative;
   left: -3px;
-  margin-top: 0.7em; }
+  margin-top: 0.7em;
+  margin-bottom: 0.25em; }
 
 #masthead {
   /*
   height: $masthead-height; 
   */
   background: #2f4248;
-  position: relative; }
+  position: relative;
+  min-height: 2.6em; }
   #masthead #topnav {
     float: right;
     margin-top: 0.5em; }
@@ -2781,8 +2861,8 @@ a:active {
       float: left;
       margin: 0 0 0 1px;
       padding: 0.5em 1em;
-      border-top-right-radius: 0;
-      border-top-left-radius: 0;
+      border-top-right-radius: 6px;
+      border-top-left-radius: 6px;
       font-weight: bold; }
     #masthead #topnav > li > a.hover,
     #masthead #topnav > li > a:hover {
@@ -2791,28 +2871,30 @@ a:active {
       text-decoration: none; }
     #masthead #topnav a.on:hover,
     #masthead #topnav a.on {
-      color: white;
-      background: #db1174;
+      color: #2f4248;
+      background: white;
       text-decoration: none; }
     #masthead #topnav ul.dropdown-menu {
       display: none; }
 
 /* #masthead */
 #breadcrumbs {
-  padding-top: 0.7em;
-  padding-bottom: 0.7em;
-  color: rgba(0, 95, 125, 0.5);
-  background: #d2e4ea;
-  border-bottom: 1px solid #d2e4ea; }
+  padding-top: 1em;
+  padding-bottom: 1em;
+  color: rgba(219, 17, 116, 0.3);
+  background: white;
+  border-bottom: 1px solid white; }
   #breadcrumbs ul li {
-    color: rgba(0, 95, 125, 0.5);
+    color: rgba(219, 17, 116, 0.3);
     display: inline-block;
     padding: 0;
     line-height: 1em;
     white-space: nowrap;
     padding-right: 0.5em; }
+  #breadcrumbs ul li.title {
+    color: #2f4248; }
   #breadcrumbs ul a {
-    color: #005f7d;
+    color: #db1174;
     margin-right: 0.5em; }
   #breadcrumbs ul a:hover {
     color: #db1174;
@@ -2825,76 +2907,78 @@ a:active {
       position: relative;
       top: -2px; }
 
-#ProcessPageSearchForm {
+body.hasWireTabs #breadcrumbs {
+  border-bottom: 35px solid white; }
+
+#masthead #ProcessPageSearchForm {
   float: right;
   margin: 0;
-  width: 25%;
+  margin-left: 1em;
+  margin-top: 0.62em;
+  width: 15%;
   max-width: 200px;
   min-width: 90px; }
-  #ProcessPageSearchForm #ProcessPageSearchQuery {
+  #masthead #ProcessPageSearchForm label {
+    opacity: 1.0;
+    color: #577b86; }
+  #masthead #ProcessPageSearchForm #ProcessPageSearchQuery {
     margin: 0;
     height: auto;
-    padding: 4px 7px 3px 7px;
-    font-size: 1em;
     width: 100%;
-    background: #fff;
-    color: #222222;
-    border: 1px solid #afcfda;
-    border: none;
-    color: rgba(34, 34, 34, 0.5);
+    background: transparent;
+    border: 1px solid #435e67;
+    color: #4d6c76;
     border-radius: 5px;
     outline: none; }
-  #ProcessPageSearchForm #ProcessPageSearchQuery:focus {
+  #masthead #ProcessPageSearchForm #ProcessPageSearchQuery:focus {
     background: white;
     color: #222222;
     text-transform: none;
     font-weight: normal; }
-  #ProcessPageSearchForm #ProcessPageSearchStatus {
+  #masthead #ProcessPageSearchForm #ProcessPageSearchStatus {
     position: absolute;
-    top: 0;
+    top: 2px;
     right: 10px;
+    font-size: 0.875em;
     color: #999999; }
 
+/*
 #headline {
-  position: relative;
-  z-index: 2;
-  background: white;
-  border-bottom: 1px solid white;
-  padding-bottom: 0.5em;
-  padding-top: 1.5em; }
-  #headline .container {
-    position: relative;
-    min-height: 30px; }
-  #headline #head_button {
-    /* The main/primary button for a listing screen, appears in the masthead */
-    position: absolute;
-    margin: 0;
-    top: -0.5em;
-    right: 0;
-    z-index: 2; }
-    #headline #head_button button {
-      font-size: 1.3em;
-      margin-right: 0;
-      margin-left: 10px;
-      float: right; }
-  #headline #title {
-    font-size: 2em;
-    line-height: 1em;
-    margin: 0;
-    padding: 0;
-    color: #2f4248;
-    padding-right: 3em; }
+	position: relative; 
+	z-index: 2; 
+	background: $headline-bg; 
+	border-bottom: $headline-border; 
+	padding-bottom: 0.5em; 
+	padding-top: 1.5em; 
 
+	.container {
+		position: relative; 
+		min-height: 30px; 
+	}
+
+
+	#title {
+		font-size: 2em; 
+		line-height: 1em;
+		margin: 0;
+		padding: 0;
+		color: $headline-color; 
+		padding-right: 3em;
+	}
+
+
+}
+*/
 /***********************************************************************************************
  * CONTENT
  *
  */
 #content {
   position: relative;
-  background: white;
   padding-bottom: 2em;
   padding-top: 1px;
-  z-index: 0; }
+  z-index: 0;
+  background: white; }
 
 #content .container {
   min-height: 50px; }
@@ -2903,6 +2987,20 @@ a:active {
 #content .container > .ui-helper-clearfix > form {
   position: relative;
   top: -1px; }
+
+#head_button {
+  /* The main/primary button for a listing screen, appears in the masthead */
+  float: right;
+  margin: 0;
+  position: relative;
+  top: -0.35em; }
+  #head_button button {
+    font-size: 1.3em;
+    margin-right: 0;
+    margin-left: 10px;
+    margin-top: 0;
+    float: right;
+    border: none; }
 
 .content {
   /**
@@ -3011,6 +3109,11 @@ a:active {
   .content .PageListMoveNote {
     text-transform: lowercase;
     cursor: move; }
+  .content .PageListItem > a span + span:before {
+    content: " / ";
+    color: #a2a2a2; }
+  .content .PageListActionMore a {
+    margin-top: 0.5em; }
   .content .PageListSelectName {
     margin-right: 0.5em; }
     .content .PageListSelectName i {
@@ -3116,7 +3219,7 @@ a:active {
   .content .PageListPaginationCurrent a,
   .content .MarkupPagerNavOn a {
     color: #222222;
-    background: #d2e4ea; }
+    background: #e4ebee; }
   .content .PageListPagination a:hover,
   .content .MarkupPagerNav a:hover {
     /* action links hovered */
@@ -3157,23 +3260,27 @@ a:active {
       padding: 6px 11px;
       padding: 0.5em 1em 0.5em 1em;
       display: inline-block;
-      border-top-left-radius: 0;
-      border-top-right-radius: 0;
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
       border: 1px solid transparent;
       border-bottom: none;
       margin-right: -1px;
-      color: #db1174;
+      color: rgba(47, 66, 72, 0.5);
       height: 35px;
       background: none;
       position: relative;
       top: 1px; }
+      #content .WireTabs a em {
+        border-bottom: 1px solid rgba(47, 66, 72, 0); }
     #content .WireTabs a.on {
-      color: white;
-      border: 1px solid #db1174;
-      border-bottom: 1px solid #db1174;
-      background: #db1174;
+      color: #2f4248;
+      border: 1px solid #d2e4ea;
+      border-bottom: 1px solid #e4ebee;
+      background: #e4ebee;
       position: relative;
       z-index: 100; }
+      #content .WireTabs a.on em {
+        border-color: transparent; }
     #content .WireTabs a:hover {
       border: 1px solid #db1174;
       border-bottom: none;
@@ -3258,12 +3365,17 @@ a:active {
 body.modal .container {
   margin: 0;
   width: 100%;
-  min-width: 300px; }
+  min-width: 300px;
+  padding-left: 1.5em;
+  padding-right: 1.5em; }
+body.modal #notices {
+  margin: 0.5em 0 0.75em 0; }
 body.modal .content h2 {
   margin: 0.5em 0;
   font-size: 1.3em; }
 body.modal #footer,
 body.modal #masthead,
+body.modal #breadcrumbs,
 body.modal #headline {
   display: none; }
 
@@ -3271,16 +3383,27 @@ body.modal #headline {
  * MISC
  *
  */
+body.id-3 #breadcrumbs ul li:not(:first-child):not(:last-child),
+body.id-23 #breadcrumbs ul li:not(:first-child):not(:last-child),
+body.id-8 #breadcrumbs ul li:not(:first-child):not(:last-child) {
+  /* hide extraneous breadcrumbs when in admin root */
+  display: none; }
+
+body.id-23 #content form {
+  margin-top: 1em; }
+
 #content .container > form,
 #content .container > .ui-helper-clearfix > form {
   /* for wiretabs and/or forms to line up with headline area */
-  top: 0; }
+  top: -2px; }
 
 body:not(.hasWireTabs) #headline .container {
   min-height: 40px; }
 
 body.hasWireTabs #content {
-  border-top: 3em solid white; }
+  /*
+  border-top: 3em solid $headline-bg; 
+  */ }
 
 .content > .container > #PageListContainer {
   margin-top: 0; }
@@ -3330,10 +3453,6 @@ body.hasWireTabs #content {
   #masthead #topnav {
     float: left; }
 
-  #breadcrumbs {
-    padding-top: 0.4em;
-    padding-bottom: 0.4em; }
-
   body #masthead #topnav a,
   body #content .WireTabs li a {
     padding-left: 0.75em;
@@ -3351,14 +3470,14 @@ body.hasWireTabs #content {
     padding-right: 10px;
     padding-left: 10px; }
 
-  #head_button {
-    top: 102px; }
-
   #fieldgroupContext {
     display: none; } }
 /* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
 /* Mobile Portrait Size to Mobile Landscape Size (devices and browsers) */
 @media only screen and (max-width: 479px) {
+  #logo {
+    display: block; }
+
   /**
    * Disregard column width when at mobile size
    *

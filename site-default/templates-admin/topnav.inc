@@ -25,11 +25,34 @@ function renderTopNavItem(Page $p, $level = 0) {
 	$out .= "<li>";
 
 	if(!$level && count($children)) {
+
 		$class = trim("$class dropdown-toggle"); 
 		$out .= "<a href='$p->url' class='$class'>$title</a>"; 
 		$out .= "<ul class='dropdown-menu topnav' data-my='left-1 top' data-at='left bottom'>";
-		foreach($children as $c) $out .= renderTopNavItem($c, $level+1);
+
+		foreach($children as $c) {
+			
+			$items = null;
+			if(wire('user')->isSuperuser()) {
+				if($c->id == 11) $items = wire('templates'); 
+					else if($c->id == 16) $items = wire('fields'); 
+				if(count($items) > 100) $items = null; // don't build excessively large lists
+			}
+
+
+			if($items) {
+				$out .= "<li><a href='$c->url'>$c->title</a><ul>";
+				foreach($items as $item) {
+					$out .= "<li><a href='{$c->url}edit?id=$item->id'>$item->name</a></li>";
+				}
+				$out .= "</ul></li>";
+			} else {
+				$out .= renderTopNavItem($c, $level+1);
+			}
+		}
+
 		$out .= "</ul>";
+
 	} else {
 		$class = $class ? " class='$class'" : '';
 		$out .= "<a href='$p->url'$class>$title</a>"; 

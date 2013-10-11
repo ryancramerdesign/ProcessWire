@@ -58,15 +58,18 @@ $(document).ready(function() {
 	var $searchQuery = $("#ProcessPageSearchQuery"); 
 	var label = $('#ProcessPageSearchSubmit').val();
 
+	/*
 	if($searchQuery.attr('value').length < 1) {
 		$searchQuery.attr('value', label);
-		/*$searchQuery.css('opacity', 0.6)*/
 	}
+	*/
 
 	$searchQuery.focus(function() {
-			if($(this).val() == label) $(this).val('');
-			$(this).css('opacity', 1.0); 
-		}).blur(function() {
-			/*if($(this).val().length < 1) $(this).val(label).css('opacity', 0.6); */
-		}); 
+		$(this).prev('label').hide();
+		//if($(this).val() == label) $(this).val('');
+		//$(this).css('opacity', 1.0); 
+	}).blur(function() {
+		$(this).prev('label').show();
+		//if($(this).val().length < 1) $(this).prev('label').show();
+	}); 
 });

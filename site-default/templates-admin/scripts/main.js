@@ -62,7 +62,7 @@ var ProcessWireAdminTheme = {
 		// don't continue if no buttons here or if we're in IE
 		if($buttons.size() == 0 || $.browser.msie) return;
 
-		var $head = $("<div id='head_button'></div>").appendTo("#headline .container").show();
+		var $head = $("<div id='head_button'></div>").prependTo("#breadcrumbs .container").show();
 		$buttons.each(function() {
 			var $t = $(this);
 			var $a = $t.parent('a'); 
@@ -214,7 +214,7 @@ var ProcessWireAdminTheme = {
 					$ul.position(position).css('z-index', 200);
 				}
 				$a.addClass('hover'); 
-				$ul.fadeIn('fast');
+				$ul.show();
 				lastOffset = offset; 
 
 			}).mouseleave(function() {
