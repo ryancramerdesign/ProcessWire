@@ -155,13 +155,13 @@ $notes-bg: #ffffdd;
 $notes-font-size: 0.846153846153846em;
 
 $tabs-radius: 4px; 
-$tabs-font-weight: bold; 
+$tabs-font-weight: $bold-weight; 
 
 /*
 $form-top-margin-adjustment: -2px; 
 */
 
 #breadcrumbs li.title {
-	font-weight: bold; 
+	font-weight: $bold-weight; 
 }
 

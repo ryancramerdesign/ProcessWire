@@ -41,20 +41,19 @@ $headline-bg: #fff;
 $headline-color: $masthead-bg;
 $headline-border: 1px solid $headline-bg;
 
+$breadcrumbs-bg: lighten($subtle-bg, 2%);
+$breadcrumbs-link-color: $pink;
+$breadcrumbs-link-hover-color: $pink;
+$breadcrumbs-border: 1px solid $breadcrumbs-bg; 
+$breadcrumbs-color: transparentize($breadcrumbs-link-color, 0.7); 
+$breadcrumbs-title-color: $dark-blue; 
 
 $topnav-link-color: #A7E5F9; 
 $topnav-link-bg: none; 
 $topnav-link-hover-color: $white;
 $topnav-link-hover-bg: $pink;
 $topnav-link-current-color: $dark-blue;
-$topnav-link-current-bg: #fff; 
-
-$breadcrumbs-bg: #fff;
-$breadcrumbs-link-color: $pink;
-$breadcrumbs-link-hover-color: $pink;
-$breadcrumbs-border: 1px solid $breadcrumbs-bg; 
-$breadcrumbs-color: transparentize($breadcrumbs-link-color, 0.7); 
-$breadcrumbs-title-color: $dark-blue; 
+$topnav-link-current-bg: $breadcrumbs-bg; 
 
 $item-header-hover-color: $white;
 $item-header-hover-bg: $pink; 
@@ -134,6 +133,7 @@ $wiretab-link-hover-color: $white;
 $wiretab-link-hover-border: 1px solid $pink;
 $wiretab-link-current-bg: #D2E4EA; 
 $wiretab-link-current-bg: $subtle-bg;
+$wiretab-link-current-bg: $white; 
 $wiretab-link-current-color: $label-link-color; 
 $wiretab-link-current-border: 1px solid #D2E4EA; 
 $wiretab-link-active-bg: $dark-pink;
@@ -155,18 +155,21 @@ $error-color: #fff;
 $notes-bg: #ffffdd; 
 $notes-font-size: 0.846153846153846em;
 
-$tabs-font-weight: bold; 
+$tabs-font-weight: $bold-weight; 
 
 $footer-font-size: 0.875em; 
 
 .InputfieldForm .Inputfields .InputfieldHeader,
 .InputfieldForm .Inputfields .InputfieldWrapper > .description {
+	
+	/*
 	background: transparentize($breadcrumbs-bg, 0.5); 
-	background: -moz-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); /* FF3.6+ */
-	background: -webkit-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); /* Chrome10+,Safari5.1+ */
-	background: -o-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); /* Opera11.10+ */
-	background: -ms-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); /* IE10+ */
-	background: linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); /* W3C */
+	background: -moz-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); 
+	background: -webkit-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); 
+	background: -o-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); 
+	background: -ms-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); 
+	background: linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); 
+	*/
 }
 
 .dropdown-menu a.on {
@@ -175,7 +178,7 @@ $footer-font-size: 0.875em;
 
 #topnav li a,
 #content .WireTabs a {
-	font-weight: bold; 
+	font-weight: $bold-weight; 
 }
 body #content .WireTabs li a {
 	margin-right: 1px; 
@@ -186,7 +189,7 @@ body #content .WireTabs li a {
 }
 
 #breadcrumbs .title {
-	font-weight: bold; 
+	font-weight: $bold-weight; 
 }
 
 body #headline #title {
@@ -194,8 +197,10 @@ body #headline #title {
 }
 
 #content .WireTabs {
+	/*
 	border-bottom:1px solid $white; 
 	padding-bottom: 1px; 
+	*/
 }
 
 

@@ -108,7 +108,7 @@ var ProcessWireAdminTheme = {
 		// add focus to the first text input, where applicable
 		jQuery('#content input[type=text]:visible:enabled:first:not(.hasDatepicker)').each(function() {
 			var $t = $(this); 
-			if(!$t.val() && !$t.is(".no_focus")) $t.focus();	
+			if(!$t.val() && !$t.is(".no_focus")) window.setTimeout(function() { $t.focus(); }, 1);
 		});
 
 	},

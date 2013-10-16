@@ -241,7 +241,7 @@ class ProcessPageEdit extends Process {
 
 		if($this->page->addable() || $this->page->numChildren) $form->append($this->buildFormChildren()); 
 		if(!$this->page->template->noSettings) $form->append($this->buildFormSettings()); 
-		if($this->isTrash) $form->description = $this->_("This page is in the Trash"); 
+		if($this->isTrash) $this->message($this->_("This page is in the Trash")); 
 		if($this->page->deleteable()) $form->append($this->buildFormDelete());
 		if($this->page->viewable() && !$this->input->get->modal) $form->append($this->buildFormView()); 
 

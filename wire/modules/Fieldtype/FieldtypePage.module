@@ -214,6 +214,7 @@ class FieldtypePage extends FieldtypeMulti {
 		return $sleepValue;
 	}
 
+
 	/**
 	 * Format the given value for output. 
 	 *

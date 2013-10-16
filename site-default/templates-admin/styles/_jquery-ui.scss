@@ -58,10 +58,10 @@
 ----------------------------------*/
 /*.ui-widget { font-family: Arial,Helvetica,sans-serif; font-size: 1.1em; }*/
 /*.ui-widget .ui-widget { font-size: 1em; }*/
-.ui-widget input, .ui-widget select, .ui-widget textarea, .ui-widget button { font-family: Arial,Helvetica,sans-serif; font-size: 1em; }
+.ui-widget input, .ui-widget select, .ui-widget textarea, .ui-widget button { font-size: 1em; }
 .ui-widget-content { border: 1px solid #D5D5D5; background: #ffffff; color: #222222; }
 /*.ui-widget-content a { color: #222222; } */ /* RJC */
-.ui-widget-header { border: 1px solid #D5D5D5; background: #cccccc; color: #222222; font-weight: bold; }
+.ui-widget-header { border: 1px solid #D5D5D5; background: #cccccc; color: #222222;  font-weight: $bold-weight; }
 .ui-widget-header { 
 	border: 1px solid #d9d9d9;
 	color: #1b1d1f;
@@ -95,7 +95,7 @@
 .ui-state-error, .ui-widget-content .ui-state-error, .ui-widget-header .ui-state-error {border: 1px solid #cd0a0a; background: #fef1ec; color: #cd0a0a; }
 .ui-state-error a, .ui-widget-content .ui-state-error a, .ui-widget-header .ui-state-error a { color: #cd0a0a; }
 .ui-state-error-text, .ui-widget-content .ui-state-error-text, .ui-widget-header .ui-state-error-text { color: #cd0a0a; }
-.ui-priority-primary, .ui-widget-content .ui-priority-primary, .ui-widget-header .ui-priority-primary { font-weight: bold; }
+.ui-priority-primary, .ui-widget-content .ui-priority-primary, .ui-widget-header .ui-priority-primary {  font-weight: $bold-weight; }
 .ui-priority-secondary, .ui-widget-content .ui-priority-secondary,  .ui-widget-header .ui-priority-secondary { opacity: .7; filter:Alpha(Opacity=70); font-weight: normal; }
 .ui-state-disabled, .ui-widget-content .ui-state-disabled, .ui-widget-header .ui-state-disabled { opacity: .35; filter:Alpha(Opacity=35); background-image: none; }
 
@@ -344,7 +344,7 @@
 .ui-accordion .ui-accordion-header { cursor: pointer; position: relative; margin-top: 1px; zoom: 1; }
 .ui-accordion .ui-accordion-li-fix { display: inline; }
 .ui-accordion .ui-accordion-header-active { border-bottom: 0 !important; }
-.ui-accordion .ui-accordion-header a { display: block; font-size: 1em; padding: .5em .5em .5em .7em; font-weight: bold; }
+.ui-accordion .ui-accordion-header a { display: block; font-size: 1em; padding: .5em .5em .5em .7em;  font-weight: $bold-weight; }
 .ui-accordion-icons .ui-accordion-header a { padding-left: 2.2em; }
 .ui-accordion .ui-accordion-header .ui-icon { position: absolute; left: .5em; top: 50%; margin-top: -8px; }
 .ui-accordion .ui-accordion-content { padding: 1em 2.2em; border-top: 0; margin-top: -2px; position: relative; top: 1px; margin-bottom: 2px; overflow: auto; display: none; zoom: 1; }
@@ -464,7 +464,7 @@
  *
  * http://docs.jquery.com/UI/Button#theming
  */
-.ui-button { display: inline-block; position: relative; padding: 0; margin-right: .1em; text-decoration: none !important; font-weight: bold; cursor: pointer; text-align: center; zoom: 1; overflow: visible; *display: inline; *zoom: 1; } /* the overflow property removes extra width in IE */
+.ui-button { display: inline-block; position: relative; padding: 0; margin-right: .1em; text-decoration: none !important;  font-weight: $bold-weight; cursor: pointer; text-align: center; zoom: 1; overflow: visible; *display: inline; *zoom: 1; } /* the overflow property removes extra width in IE */
 .ui-button-icon-only { width: 2.2em; } /* to make room for the icon, a width needs to be set here */
 button.ui-button-icon-only { width: 2.4em; } /* button elements seem to need a little more width */
 .ui-button-icons-only { width: 3.4em; } 
@@ -563,7 +563,7 @@ button.ui-button::-moz-focus-inner { border: 0; padding: 0; } /* reset extra pad
 .ui-tabs { position: relative; zoom: 1; border: none; background: none; } /* position: relative prevents IE scroll bug (element with position: relative inside container with overflow: auto appear as "fixed") */
 .ui-tabs .ui-tabs-nav { margin: 0 0 -1px 0; background: none; border: 0;}
 .ui-tabs .ui-tabs-nav li { list-style: none; float: left; position: relative; margin: 0 .2em 1px 0; border-bottom: 0 !important; padding: 0; white-space: nowrap; }
-.ui-tabs .ui-tabs-nav li a { float: left; padding: .5em 1em; text-decoration: none; font-weight: bold; }
+.ui-tabs .ui-tabs-nav li a { float: left; padding: .5em 1em; text-decoration: none;  font-weight: $bold-weight; }
 .ui-tabs .ui-tabs-nav li.ui-tabs-selected { margin-bottom: 0; padding-bottom: 1px; }
 .ui-tabs .ui-tabs-nav li.ui-tabs-selected a, .ui-tabs .ui-tabs-nav li.ui-state-disabled a, .ui-tabs .ui-tabs-nav li.ui-state-processing a { cursor: text; }
 .ui-tabs .ui-tabs-nav li a, .ui-tabs.ui-tabs-collapsible .ui-tabs-nav li.ui-tabs-selected a { cursor: pointer; } /* first selector in group seems obsolete, but required to overcome bug in Opera applying cursor: text overall if defined elsewhere... */
@@ -639,9 +639,9 @@ button.ui-button::-moz-focus-inner { border: 0; padding: 0; } /* reset extra pad
 .ui-datepicker select.ui-datepicker-month, 
 .ui-datepicker select.ui-datepicker-year { width: 49%;}
 .ui-datepicker table {width: 1px; font-size: .9em; border-collapse: collapse; margin: -1px 0 0 0; }
-.ui-datepicker th { padding: .7em 0; text-align: center; font-weight: bold; border: 0; font-size: 10px; color: #acacac; border-bottom: 1px solid #cdcdcd !important; }
+.ui-datepicker th { padding: .7em 0; text-align: center;  font-weight: $bold-weight; border: 0; font-size: 10px; color: #acacac; border-bottom: 1px solid #cdcdcd !important; }
 .ui-datepicker td { border: 0; padding: 0; border: 1px solid #cdcdcd; }
-.ui-datepicker td a { display: block; padding: 0 !important; width: 30px; height: 30px; border: 0 none !important;/*border: 1px solid #cdcdcd !important;*/ line-height: 30px; text-align: center; font-size: 12px; text-decoration: none; font-weight: bold !important; }
+.ui-datepicker td a { display: block; padding: 0 !important; width: 30px; height: 30px; border: 0 none !important;/*border: 1px solid #cdcdcd !important;*/ line-height: 30px; text-align: center; font-size: 12px; text-decoration: none;  font-weight: $bold-weight !important; }
 .ui-datepicker td a.ui-state-default { 
 	color: #5d5d5d;
 	text-shadow: 0 1px 0 rgba(255,255,255,0.5);
@@ -754,7 +754,7 @@ td.ui-datepicker-unselectable {
 /* TOGGLE SWITCH CONTROL */
 select.ui-toggle-switch { display: none; }
 .ui-toggle-switch, .ui-toggle-switch .ui-slider, .ui-toggle-switch label { display: inline-block; *display: inline; zoom: 1; }
-.ui-toggle-switch label { text-transform: uppercase; margin: 0 8px; font-weight: bold; border: 0; font-size: 0.8em; opacity: 0.5; filter: alpha(opacity=50); }
+.ui-toggle-switch label { text-transform: uppercase; margin: 0 8px;  font-weight: $bold-weight; border: 0; font-size: 0.8em; opacity: 0.5; filter: alpha(opacity=50); }
 .ui-toggle-switch label:first-child { margin-left: 0; }
 .ui-toggle-switch label.ui-state-active { opacity: 1; filter: alpha(opacity=100); }
 .ui-toggle-switch .ui-slider { margin: 0 8px; }

@@ -95,6 +95,7 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 </head>
 <body<?php if($bodyClass) echo " class='$bodyClass'"; ?>>
 
+	<?php if(count($notices)) include($config->paths->adminTemplates . "notices.inc"); ?>
 
 	<div id="masthead" class="masthead ui-helper-clearfix">
 		<div class="container">
@@ -121,7 +122,6 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 		</div>
 	</div>
 
-	<?php if(count($notices)) include($config->paths->adminTemplates . "notices.inc"); ?>
 
 	<div id='breadcrumbs'>
 		<div class='container'>

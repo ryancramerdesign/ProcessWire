@@ -88,14 +88,14 @@
 	background: $error-bg;	
 	color: $error-color; 
 	border: none; 
-	font-weight: bold; 
+	font-weight: $bold-weight; 
 }
 
 #notices .ui-state-highlight, 
 #notices .ui-state-error {
 	padding: 0.25em 0; 
 	border: none; 
-	border-top: $highlight-border; 
+	border-bottom: $highlight-border; 
 	color: $highlight-color; 
 }
 	#notices .ui-state-highlight a,
@@ -112,7 +112,7 @@
 		float: right; 
 		color: $highlight-color; 
 		text-decoration: none; 
-		padding: 0 1em; 
+		padding: 0 0.5em 0 1em; 
 	}
 	
 
@@ -159,7 +159,7 @@ button.ui-button.ui-state-default,
 	color: $button-color; /* WHITE */ 
 	background: $button-bg; /* LIGHT-GREEN */
 	border: 1px solid $button-border; /* LIGHT-GREEN */
-	font-weight: bold;
+	font-weight: $bold-weight;
 	padding: 0.5em 1em; 
 	font-size: 1em !important; 
 	border-radius: $button-radius; 
@@ -175,7 +175,7 @@ button.ui-button.ui-state-default,
 		color: $reverse-text-color; 
 		background: $button-hover-bg; /* CYAN */
 		border: 1px solid $button-hover-border; /* CYAN */
-		font-weight: bold;
+		font-weight: $bold-weight;
 		font-size: 1em !important;
 		text-decoration: none; 
 	}
@@ -248,7 +248,7 @@ button.ui-button.ui-state-default,
 }
 .ui-autocomplete .ui-widget-header a,
 .ui-autocomplete .ui-widget-header a:hover {
-	font-weight: bold !important;
+	font-weight: $bold-weight !important;
 	background: $link-color; 
 	color: $reverse-text-color;
 	border: none !important;
@@ -288,7 +288,7 @@ button.ui-button.ui-state-default,
 	padding: 10px 20px;
 	color: $reverse-text-color;
 	border-radius: $button-radius;
-	font: bold 12px "Helvetica Neue", Sans-Serif;
+	font-weight: $bold-weight;
 	box-shadow: 0 0 7px $text-color;
 }
 	.ui-tooltip, .arrow:after {

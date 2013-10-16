@@ -1,6 +1,8 @@
-@import url(http://fonts.googleapis.com/css?family=Arimo:400,700);
+/*@import url(http://fonts.googleapis.com/css?family=Arimo:400,700);*/
 
 $regular-font: Arimo, Arial, sans-serif; 
+$normal-weight: normal; 
+$bold-weight: bold; 
 $button-radius: 5px; 
 $tabs-radius: 6px; 
 $tabs-height: 35px; 
@@ -10,6 +12,7 @@ $base-line-height: 1.6em;
 $footer-font-size: 0.875em; 
 $form-top-margin-adjustment: -2px; 
 
+@import 'fonts';
 @import 'colors-warm';
 @import 'reset';
 @import 'jquery-ui'; 
@@ -35,10 +38,12 @@ body {
 	body,
 	.ui-dialog,
 	.ui-button,
+	button, 
 	input,
+	th, td, 
 	textarea {
+		font-weight: $normal-weight; 
 		font-family: $regular-font; 
-		font-size: 100%; 
 	}
 	body {
 		color: $text-color; 
@@ -88,8 +93,20 @@ a {
 	z-index: 9999;
 }
 
-.dropdown-menu li {
-	min-width: 10em; 
+.dropdown-menu {
+	display: none;
+	border-radius: 0 !important;
+
+	.ui-menu-item {
+		min-width: 10em;
+		border: 0 !important;
+		a {
+			border-radius: 0 !important;
+		}
+	}
+	li {
+		min-width: 10em; 
+	}
 }
 
 /***********************************************************************************************
@@ -182,6 +199,7 @@ a {
 
 		li.title {
 			color: $breadcrumbs-title-color; 
+			font-weight: $bold-weight; 
 		}
 
 		a {
@@ -242,7 +260,7 @@ body.hasWireTabs #breadcrumbs {
 			background: $text-bg; 
 			color: $text-color; 
 			text-transform: none; 
-			font-weight: normal;
+			font-weight: $normal-weight;
 		}
 
 	#ProcessPageSearchStatus {
@@ -387,7 +405,7 @@ body.hasWireTabs #breadcrumbs {
 	h4 {
 		margin: 1em 0 0.25em 0;
 		text-transform: uppercase;
-		font-weight: bold;
+		font-weight: $bold-weight;
 		font-size: 0.916666666666667em;
 	}
 
@@ -448,7 +466,7 @@ body.hasWireTabs #breadcrumbs {
 		font-size: $action-link-font-size; 
 		border-radius: 3px; 
 		border: $action-link-border !important; 
-		font-weight: bold; 
+		font-weight: $bold-weight; 
 	}
 		.actions a:hover,
 		li.action a:hover,
@@ -495,7 +513,7 @@ body.hasWireTabs #breadcrumbs {
 		dt,
 		dt {
 			display: block;
-			font-weight: bold; 
+			font-weight: $bold-weight; 
 			padding-top: 0.75em; 
 		}
 		dt a {
@@ -561,7 +579,7 @@ body.hasWireTabs #breadcrumbs {
 		}
 
 		.PageListStatusHidden:not(.PageListItemOpen) > a.PageListPage {
-			opacity: 0.75; 
+			opacity: 0.6; 
 		}
 
 		.PageListNumChildren {
@@ -575,9 +593,18 @@ body.hasWireTabs #breadcrumbs {
 	}
 
 	/* MarkupAdminDataTable */
-	.AdminDataList th,
-	.AdminDataList td {
+	.AdminDataList thead th,
+	.AdminDataList thead th.header,
+	.AdminDataList tbody td {
+		border-left: 1px dotted #ccc; 
+		padding-left: 8px; 
 		border-color: darken($subtle-border, 5%); 
+	}
+	.AdminDataList thead th:first-child,
+	.AdminDataList thead th.header:first-child,
+	.AdminDataList tbody td:first-child {
+		border-left: none;
+		padding-left: 0;
 	}
 	.AdminDataList tr:hover td,
 	.AdminDataList tr:hover th {
@@ -631,7 +658,7 @@ body.hasWireTabs #breadcrumbs {
 	.MarkupPagerNav a {
 		background: $pagination-link-bg; 
 		color: $pagination-link-color; 
-		font-weight: bold;
+		font-weight: $bold-weight;
 		-moz-border-radius: $pagination-link-border-radius; 
 		-webkit-border-radius: $pagination-link-border-radius; 
 		border-radius: $pagination-link-border-radius; 
@@ -739,14 +766,15 @@ body.hasWireTabs #breadcrumbs {
 			font-style: normal;
 		}
 
-		/*
 		#_ProcessPageEditView {
-			float: right; 
-			border: $wiretab-link-current-border;
-			border-bottom: none; 
-			margin-right: 0; 
+			color: $link-color; 
+			font-weight: normal;
 		}
-		*/
+		#_ProcessPageEditView:hover {
+			background: none; 
+			text-decoration: underline; 
+			border-color: transparent; 
+		}
 
 	}
 }
@@ -770,13 +798,13 @@ body.hasWireTabs #breadcrumbs {
 .description strong,
 .notes strong {
 	color: $medium-text-color; 
-	font-weight: bold; 
+	font-weight: $bold-weight; 
 }
 
 .error {
 	background: $error-bg; 
 	color: $error-color; 
-	font-weight: bold; 
+	font-weight: $bold-weight; 
 	font-size: 0.9166666em;	
 }
 
@@ -825,14 +853,14 @@ body.hasWireTabs #breadcrumbs {
 	}
 
 	h4 {
-		font-weight: bold; 
+		font-weight: $bold-weight; 
 	}
 
 	table {
 		width: 100%; 
 
 		th {
-			font-weight: bold;
+			font-weight: $bold-weight;
 		}
 
 		td, th {
@@ -904,15 +932,6 @@ body.id-23 #content form {
 
 body:not(.hasWireTabs) #headline .container {
 	min-height: 40px; 
-}
-
-body.hasWireTabs #content {
-	/*
-	border-top: 3em solid $headline-bg; 
-	*/
-}
-
-body.hasWireTabs .InputfieldForm {
 }
 
 .content > .container > #PageListContainer {

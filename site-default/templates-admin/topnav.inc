@@ -33,15 +33,21 @@ function renderTopNavItem(Page $p, $level = 0) {
 		foreach($children as $c) {
 			
 			$items = null;
+
 			if(wire('user')->isSuperuser()) {
-				if($c->id == 11) $items = wire('templates'); 
-					else if($c->id == 16) $items = wire('fields'); 
+				if($c->id == 11) {
+					$items = wire('templates'); 
+				} else if($c->id == 16) {
+					$items = wire('fields'); 
+				}
 				if(count($items) > 100) $items = null; // don't build excessively large lists
 			}
 
 
 			if($items) {
-				$out .= "<li><a href='$c->url'>$c->title</a><ul>";
+				$addLabel = __('Add New', dirname(__FILE__) . '/default.php');
+				$out .= "<li><a href='$c->url'>$c->title</a><ul>" . 
+					"<li class='add'><a href='{$c->url}add'><i class='icon-plus-sign'></i> $addLabel</a></li>";
 				foreach($items as $item) {
 					$out .= "<li><a href='{$c->url}edit?id=$item->id'>$item->name</a></li>";
 				}

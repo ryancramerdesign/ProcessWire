@@ -286,7 +286,7 @@ table {
 		padding-left: 0.25em; 
 		padding-right: 0.5em; 
 		cursor: move; 
-		font-weight: normal;
+		font-weight: $normal-weight;
 
 		a {
 			/* link in file or repeater item header */
@@ -383,7 +383,7 @@ table {
 	display: block;
 	padding: 0.75em 0.25em 0.25em 1em;
 	margin: 0;
-	font-weight: bold; 
+	font-weight: $bold-weight; 
 }
 
 /**
