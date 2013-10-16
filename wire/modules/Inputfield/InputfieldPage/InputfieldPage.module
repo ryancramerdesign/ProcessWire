@@ -137,13 +137,19 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		} 
 
 		if($field->parent_id && $field->parent_id != $page->parent_id) {
-			if(is_subclass_of($field->inputfield, 'InputfieldPageListSelection')) {
-				// parent_id represents a root parent
-				$rootParent = wire('pages')->get($field->parent_id); 
-				if(!$page->parents()->has($rootParent)) $valid = false;
+			if(version_compare(PHP_VERSION, '5.3.8') >= 0) {
+				if(is_subclass_of($field->inputfield, 'InputfieldPageListSelection')) {
+					// parent_id represents a root parent
+					$rootParent = wire('pages')->get($field->parent_id); 
+					if(!$page->parents()->has($rootParent)) $valid = false;
+				} else {
+					// parent_id represents a direct parent
+					$valid = false;
+				}
 			} else {
-				// parent_id represents a direct parent
-				$valid = false;
+				// PHP version prior to 5.3.8
+				$reflector = new ReflectionClass($field->inputfield); 
+				$valid = $reflector->implementsInterface('InputfieldPageListSelection'); 
 			}
 		}
 		
