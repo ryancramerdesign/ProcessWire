@@ -15,6 +15,8 @@
  * 
  * http://processwire.com
  *
+ * @todo: option to have them collapsed by default (the repeater items themselves), ability to control labels of repeater items, and automatic sorting.
+ *
  */
 
 class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
@@ -810,7 +812,25 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 		if($subfield == 'count') { 
 			$value = (int) $value; 
-			$query->where("($table.count{$operator}$value)"); 
+
+			if(	($operator == '=' && $value == 0) || 
+				(in_array($operator, array('<', '<=')) && $value > -1) ||
+				($operator == '!=' && $value)) {
+
+				$templateIDs = array();
+				foreach($field->getTemplates() as $template) $templateIDs[] = (int) $template->id; 
+				if(count($templateIDs)) {
+					$templateIDs = implode(',', $templateIDs); 
+					$sql = 	"($table.count{$operator}$value OR " . 
+						"($table.count IS NULL AND pages.templates_id IN($templateIDs)))";
+					$query->where($sql); 
+				} else {
+					$query->where("1>2"); // forced non-match
+				}
+
+			} else {
+				$query->where("($table.count{$operator}$value)"); 
+			}
 
 		} else if($subfield == 'parent_id' || $subfield == 'parent') {  
 
