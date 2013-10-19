@@ -106,6 +106,7 @@ class Pagefile extends WireData {
 		$destination = $this->pagefiles->path() . $basename; 
 		if(!@copy($filename, $destination)) throw new WireException("Unable to copy: $filename => $destination"); 
 		if($this->config->chmodFile) chmod($this->pagefiles->path() . $basename, octdec($this->config->chmodFile));
+		$this->changed('file');
 		parent::set('basename', $basename); 
 			
 	}
@@ -379,7 +380,7 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function ___changed($what) {
-		if(in_array($what, array('description', 'tags'))) {
+		if(in_array($what, array('description', 'tags', 'file'))) {
 			$this->set('modified', time()); 
 			$this->pagefiles->trackChange('item');
 		}

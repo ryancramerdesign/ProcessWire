@@ -85,9 +85,6 @@ class Page extends WireData implements Countable {
 	const statusCorrupted = 131072; 	// page was corrupted at runtime and is NOT saveable: see setFieldValue() and $outputFormatting. (runtime)
 	const statusMax = 9999999;		// number to use for max status comparisons, runtime only
 	
-	const EXPORT_ARRAY = 0; 	// for export() function argument: export to an array (default)
-	const EXPORT_JSON = 1; 		// for export() function argument: export to JSON string
-
 	/**
 	 * Status string shortcuts, so that status can be specified as a word
 	 * 
@@ -536,6 +533,10 @@ class Page extends WireData implements Countable {
 			case 'children':
 			case 'subpages': // PW1 
 				$value = $this->children();
+				break;
+			case 'has_parent':
+			case 'hasParent': 
+				$value = $this->parents();
 				break;
 			case 'parent':
 			case 'parents':
@@ -1614,7 +1615,7 @@ class Page extends WireData implements Countable {
 	}
 
 	/**
-	 * COMING SOON: Export the page's data to an array
+	 * Export the page's data to an array
 	 * 
 	 * @return array
 	 * 
@@ -1625,7 +1626,7 @@ class Page extends WireData implements Countable {
 	 */
 
 	/**
-	 * COMING SOON: Export the page's data from an array
+	 * Export the page's data from an array
 	 *
 	 * @param array $data Data to import, in the format from the export() function
 	 * @return $this

@@ -168,6 +168,7 @@ class FieldtypeFile extends FieldtypeMulti {
 
 	public function getBlankValue(Page $page, Field $field) {
 		$pagefiles = new Pagefiles($page);
+		$pagefiles->setField($field); 
 		$pagefiles->setTrackChanges(true); 
 		return $pagefiles; 
 	}

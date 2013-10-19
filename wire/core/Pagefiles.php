@@ -31,6 +31,12 @@ class Pagefiles extends WireArray {
 	protected $page; 
 
 	/**
+	 * The Field object associated with these Pagefiles
+	 *
+	 */
+	protected $field; 
+
+	/**
 	 * Items to be deleted when Page is saved
 	 *
 	 */
@@ -68,8 +74,16 @@ class Pagefiles extends WireArray {
 		$page->filesManager(); 
 	}
 
+	public function setField(Field $field) {
+		$this->field = $field; 
+	}
+
 	public function getPage() {
 		return $this->page; 
+	}
+
+	public function getField() {
+		return $this->field; 
 	}
 
 	/**
@@ -131,6 +145,7 @@ class Pagefiles extends WireArray {
 	 */
 	public function get($key) {
 		if($key == 'page') return $this->getPage(); 
+		if($key == 'field') return $this->getField(); 
 		if($key == 'url') return $this->url();
 		if($key == 'path') return $this->path(); 
 		return parent::get($key);
@@ -309,6 +324,11 @@ class Pagefiles extends WireArray {
 			break;
 		}
 		return $item;
+	}
+
+	public function trackChange($what) {
+		if($this->field && $this->page) $this->page->trackChange($this->field->name); 
+		return parent::trackChange($what); 
 	}
 
 }

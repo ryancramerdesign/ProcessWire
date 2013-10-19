@@ -274,21 +274,23 @@ class PageFinder extends Wire {
 
 					// shortcut for blank value condition: this ensures that NULL/non-existence is considered blank
 					// without this section the query would still work, but a blank value must actually be present in the field
-					if($subfield == 'data' && empty($value) && in_array($selector->operator, array('=', '!=', '<>'))) {
-						// handle blank values -- look in table that has no pages_id relation back to pages, using the LEFT JOIN / IS NULL trick
-						// OR check for blank value as defined by the fieldtype
-						$blankValue = $database->escapeStr($fieldtype->getBlankValue(new NullPage(), $field)); 
-						if($field->table === $tableAlias) $query->leftjoin("$tableAlias ON $tableAlias.pages_id=pages.id"); 
-							else $query->leftjoin($database->escapeTable($field->table) . " AS $tableAlias ON $tableAlias.pages_id=pages.id");
-						$whereFields .= (strlen($whereFields) ? ' OR ' : ''); 
-						if($selector->operator == '=') {
-							$whereFields .= "($tableAlias.pages_id IS NULL OR $tableAlias.data='$blankValue')";
-						} else {
-							$whereFields .= "($tableAlias.pages_id IS NOT NULL AND $tableAlias.data!='$blankValue')";
+					if($subfield == 'data') {
+						if(empty($value) && in_array($selector->operator, array('=', '!=', '<>'))) {
+							// handle blank values -- look in table that has no pages_id relation back to pages, using the LEFT JOIN / IS NULL trick
+							// OR check for blank value as defined by the fieldtype
+							$blankValue = $database->escapeStr($fieldtype->getBlankValue(new NullPage(), $field)); 
+							if($field->table === $tableAlias) $query->leftjoin("$tableAlias ON $tableAlias.pages_id=pages.id"); 
+								else $query->leftjoin($database->escapeTable($field->table) . " AS $tableAlias ON $tableAlias.pages_id=pages.id");
+							$whereFields .= (strlen($whereFields) ? ' OR ' : ''); 
+							if($selector->operator == '=') {
+								$whereFields .= "($tableAlias.pages_id IS NULL OR $tableAlias.data='$blankValue')";
+							} else {
+								$whereFields .= "($tableAlias.pages_id IS NOT NULL AND $tableAlias.data!='$blankValue')";
+							}
+							unset($blankValue);
+							continue; 
 						}
-						unset($blankValue);
-						continue; 
-					}
+					} 
 					
 					if(isset($subqueries[$tableAlias])) $q = $subqueries[$tableAlias];
 						else $q = new DatabaseQuerySelect();
@@ -329,7 +331,10 @@ class PageFinder extends Wire {
 				if($join) {
 					$joinType = 'join';
 
-					if(count($fields) > 1 || $subfield == 'count' || ($selector->not && $selector->operator != '!=')) {
+					if(count($fields) > 1 
+						|| $subfield == 'count' 
+						|| ($selector->not && $selector->operator != '!=') 
+						|| $selector->operator == '!=') {
 
 						$joinType = "leftjoin";
 
