@@ -85,7 +85,10 @@ $(document).ready(function() {
 			openPagination: 0, 
 
 			// ID sof the pages that we want to automatically open (default none) 
-			openPageIDs: []
+			openPageIDs: [],
+
+			// speed at which the slideUp/slideDown run (in ms)
+			speed: 200
 		}; 
 
 		$.extend(options, customOptions);
@@ -141,7 +144,7 @@ $(document).ready(function() {
 						$(this).text(options.selectCancelLabel); 
 
 					} else {
-						$root.children(".PageList").slideUp("fast", function() {
+						$root.children(".PageList").slideUp(options.speed, function() {
 							$(this).remove();
 						}); 
 						$(this).text(options.selectStartLabel); 
@@ -364,7 +367,7 @@ $(document).ready(function() {
 						loaded();
 						if(callback != undefined) callback();
 					} else { 
-						$children.slideDown("fast", function() {
+						$children.slideDown(options.speed, function() {
 							loaded();
 							if(callback != undefined) callback();
 						}); 
@@ -490,7 +493,7 @@ $(document).ready(function() {
 				}
 
 				if($li.is(".PageListItemOpen")) {
-					$li.removeClass("PageListItemOpen").next(".PageList").slideUp("fast", function() { 
+					$li.removeClass("PageListItemOpen").next(".PageList").slideUp(options.speed, function() { 
 						$(this).remove(); 
 					}); 
 				} else {

@@ -31,11 +31,17 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 */
 	const defaultLimit = 50; 
 
+	/**
+	 * Default animation speed (in ms) for the PageList
+	 *
+	 */
+	const defaultSpeed = 200; 
+
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page List',          
 			'summary' => 'List pages in a hierarchal tree structure', 
-			'version' => 103, 
+			'version' => 104, 
 			'permanent' => true, 
 			'permission' => 'page-edit'
 			);
@@ -106,6 +112,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 				'openPagination' => (int) $this->input->get->n,
 				'showRootPage' => $this->showRootPage ? true : false, 
 				'limit' => $this->limit, 
+				'speed' => ($this->speed !== null ? (int) $this->speed : self::defaultSpeed),
 				'selectStartLabel' => $this->_('Change'), // Change a page selection
 				'selectCancelLabel' => $this->_('Cancel'), // Cancel a page selection
 				'selectSelectLabel' => $this->_('Select'), // Select a page
@@ -169,18 +176,22 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$field = $modules->get("InputfieldText"); 
 		$field->attr('name', 'pageLabelField'); 
 		$field->attr('value', !empty($data['pageLabelField']) ? $data['pageLabelField'] : 'title'); 
-		$field->label = "Name of page field to display"; 
-		$field->description = 
-			"Every page in a PageList is identified by a label, typically a title or headline field. You may specify which field it should use here. " . 
-			"To specify multiple fields, separate each field name with a space. If the field resolves to an object (like another page), then specify the property with a dot, i.e. anotherpage.title. " . 
-			"Note that if the field you specify resolves to a blank value then ProcessWire will use the page's 'name' field. ";
-		$field->notes = "You may optionally override this setting on a per-template basis in each template's 'advanced' settings.";
+		$field->label = __("Name of page field to display"); 
+		$field->description = __('Every page in a PageList is identified by a label, typically a title or headline field. You may specify which field it should use here. To specify multiple fields, separate each field name with a space. If the field resolves to an object (like another page), then specify the property with a dot, i.e. anotherpage.title. Note that if the field you specify resolves to a blank value then ProcessWire will use the page "name" field.'); // pageLabelField description
+		$field->notes = __('You may optionally override this setting on a per-template basis in each template "advanced" settings.'); // pageLabelField notes
 		$fields->append($field); 
 
 		$field = $modules->get("InputfieldInteger"); 
 		$field->attr('name', 'limit'); 
 		$field->attr('value', !empty($data['limit']) ? (int) $data['limit'] : self::defaultLimit); 
-		$field->label = "Number of pages to display before pagination";
+		$field->label = __('Number of pages to display before pagination');
+		$fields->append($field); 
+
+		$field = $modules->get("InputfieldInteger"); 
+		$field->attr('name', 'speed'); 
+		$field->attr('value', array_key_exists('speed', $data) ? (int) $data['speed'] : self::defaultSpeed); 
+		$field->label = __('Animation Speed (in ms)');
+		$field->description = __('This is the speed at which each branch in the page tree animates up or down. Lower numbers are faster but less visible. For no animation specify 0.'); // Animation speed description 
 		$fields->append($field); 
 
 		return $fields; 
