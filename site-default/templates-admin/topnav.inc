@@ -45,13 +45,25 @@ function renderTopNavItem(Page $p, $level = 0) {
 
 
 			if($items) {
+
 				$addLabel = __('Add New', dirname(__FILE__) . '/default.php');
 				$out .= "<li><a href='$c->url'>$c->title</a><ul>" . 
 					"<li class='add'><a href='{$c->url}add'><i class='icon-plus-sign'></i> $addLabel</a></li>";
+
 				foreach($items as $item) {
+
+					if($item instanceof Field) {
+						if($item->flags & Field::flagSystem) continue; 
+						if($item->type instanceof FieldtypeFieldsetOpen) continue; 
+
+					} else if($item instanceof Template) {
+						if($item->flags & Template::flagSystem) continue; 
+					}
 					$out .= "<li><a href='{$c->url}edit?id=$item->id'>$item->name</a></li>";
 				}
+
 				$out .= "</ul></li>";
+
 			} else {
 				$out .= renderTopNavItem($c, $level+1);
 			}
