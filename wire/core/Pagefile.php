@@ -162,6 +162,9 @@ class Pagefile extends WireData {
 			case 'page': 
 				$value = $this->pagefiles->getPage(); 
 				break;
+			case 'field': 
+				$value = $this->pagefiles->getField(); 
+				break;
 			case 'modified':
 			case 'created':
 				$value = parent::get($key); 
