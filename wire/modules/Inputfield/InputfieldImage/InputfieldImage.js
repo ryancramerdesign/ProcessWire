@@ -43,6 +43,10 @@ $(document).ready(function() {
 		return false; 
 	}); 
 
+	$(".InputfieldImage").find(".InputfieldImageDefaultGrid").each(function() {
+		setGridMode($(this).parents(".InputfieldImage")); 
+	}); 
+
 	$(document).on('AjaxUploadDone', '.InputfieldImage .InputfieldFileList', function() {
 		$("a.InputfieldFileLink", $(this)).fancybox(); 
 		var $parent = $(this).parents('.InputfieldImage'); 
