@@ -348,7 +348,8 @@ class InputfieldWrapper extends Inputfield {
 					if(!$columnWidthTotal) $ffAttrs['class'] .= ' ' . $classes['item_column_width_first']; 
 					$ffAttrs['style'] = "width: $columnWidthAdjusted%;"; 
 					$columnWidthTotal += $columnWidth;
-					if($columnWidthTotal >= 100 && !$requiredIf) $columnWidthTotal = 0;
+					//if($columnWidthTotal >= 100 && !$requiredIf) $columnWidthTotal = 0; // requiredIf meant to be a showIf?
+					if($columnWidthTotal >= 100) $columnWidthTotal = 0;
 				} else {
 					$columnWidthTotal = 0;
 				}
