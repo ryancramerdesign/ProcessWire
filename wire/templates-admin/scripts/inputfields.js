@@ -404,8 +404,13 @@ function InputfieldColumnWidths() {
 		consoleLog('InputfieldColumnWidths.setWidth(' + $item.attr('id') + ': ' + pct + '%');
 	}
 
+	function getHeight($item) {
+		return $item.height();
+	}
+
 	function setHeight($item, maxColHeight) {
-		var h = $item.height();
+		consoleLog("setHeight: " + $item.find("label").text() + " >> " + maxColHeight); 
+		var h = getHeight($item);
 		if(h == maxColHeight) return;
 		if($item.hasClass('InputfieldStateCollapsed')) return;
 		var pad = maxColHeight-h; 
@@ -426,7 +431,7 @@ function InputfieldColumnWidths() {
 	$(".Inputfield:not(.InputfieldColumnWidth)").addClass("InputfieldColumnWidthFirst");
 
 	// cycle through all first columns in a multi-column row
-	$(".InputfieldColumnWidthFirst.InputfieldColumnWidth").each(function() {
+	$(".InputfieldColumnWidthFirst.InputfieldColumnWidth:visible").each(function() {
 
 		if(colspacing === null) {
 			colspacing = $(this).parents('form').attr('data-colspacing'); 
@@ -463,7 +468,7 @@ function InputfieldColumnWidths() {
 		var maxRowWidth = 100 - (numItems * colspacing);
 
 		// keep track of the max column height
-		var maxColHeight = $leadItem.height(); 
+		var maxColHeight = getHeight($leadItem);
 
 		// if our temporary class is in any of the items, remove it
 		$items.removeClass("InputfieldColumnWidthFirstTmp");
@@ -474,11 +479,14 @@ function InputfieldColumnWidths() {
 			$item = $(this);
 			itemWidth = getWidth($item);
 			rowWidth += itemWidth;
-			var h = $item.height();
+			var h = getHeight($item);
 			if(h > maxColHeight) maxColHeight = h; 
 		});
 
 		// ensure that all columns in the same row share the same height
+		var lab = $leadItem.find("label").text();
+		consoleLog('maxColHeight: ' + lab + ' = ' + maxColHeight); 
+
 		if(maxColHeight > 0) {
 			setHeight($leadItem, maxColHeight); 
 			$items.each(function() { setHeight($(this), maxColHeight); }); 
@@ -549,17 +557,19 @@ function InputfieldStates() {
 		.removeClass('icon-angle-down').addClass('icon-angle-right');
 
 	// display a detail with the HTML field name when the toggle icon is hovered
-	$('label.InputfieldHeader > i.toggle-icon').hover(function() {
-		var $label = $(this).parent('label');
-		if($label.size() == 0) return;
-		var text = $label.attr('for').replace(/^Inputfield_/, ''); 
-		$label.append(" <span class='detail'>" + text + "</span>"); 
-		
-	}, function() {
-		var $label = $(this).parent('label');
-		if($label.size() == 0) return;
-		$label.find('span.detail').remove();
-	}); 
+	if(config.debug) {
+		$('label.InputfieldHeader > i.toggle-icon').hover(function() {
+			var $label = $(this).parent('label');
+			if($label.size() == 0) return;
+			var text = $label.attr('for').replace(/^Inputfield_/, ''); 
+			$label.append(" <span class='detail'>" + text + "</span>"); 
+			
+		}, function() {
+			var $label = $(this).parent('label');
+			if($label.size() == 0) return;
+			$label.find('span.detail').remove();
+		}); 
+	}
 
 }
 
@@ -579,10 +589,19 @@ $(document).ready(function() {
 	InputfieldDependencies();
 	InputfieldColumnWidths();
 
-	$(window).resize(function() {
+	var windowResized = function() {
 		if(InputfieldWindowResizeQueued) return;
 		InputfieldWindowResizeQueued = true; 
 		setTimeout('InputfieldWindowResizeActions()', 2000); 	
-	}); 
+	};
+	var tabClicked = function() {
+		if(InputfieldWindowResizeQueued) return;
+		InputfieldWindowResizeQueued = true; 
+		setTimeout('InputfieldWindowResizeActions()', 500); 	
+		return true; 
+	}; 
+
+	$(window).resize(windowResized); 
+	$("ul.WireTabs > li > a").click(tabClicked); 
 
 }); 
