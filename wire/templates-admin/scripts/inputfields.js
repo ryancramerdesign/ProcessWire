@@ -557,7 +557,7 @@ function InputfieldStates() {
 		.removeClass('icon-angle-down').addClass('icon-angle-right');
 
 	// display a detail with the HTML field name when the toggle icon is hovered
-	if(config.debug) {
+	if(typeof config !== "undefined" && config.debug) {
 		$('label.InputfieldHeader > i.toggle-icon').hover(function() {
 			var $label = $(this).parent('label');
 			if($label.size() == 0) return;
