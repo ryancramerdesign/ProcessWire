@@ -343,6 +343,12 @@ class ProcessField extends Process implements ConfigurableModule {
 	 *
 	 */
 	public function ___executeAdd() {
+
+		// unrelated shortcut feature: double check that all field tables actually exist
+		// and re-create them in instances where they don't (like if a bunch of fields
+	 	// were migrated over in an SQL dump of the "fields" table or something). 
+		$this->wire("fields")->checkFieldTables(); 
+
 		return $this->executeEdit(); 
 	}
 

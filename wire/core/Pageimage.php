@@ -253,6 +253,46 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
+	 * Return an image no larger than the given width
+	 *
+	 * If source image is equal to or smaller than the requested dimension, 
+	 * then it will remain that way and the source image is returned (not a copy).
+	 * 
+	 * If the source image is larger than the requested dimension, then a new copy
+	 * will be returned at the requested dimension.
+	 *
+ 	 * @param int $n Maximum width
+	 * @param array $options Optional options array
+	 * @return Pageimage
+	 *
+	 */
+	public function maxWidth($n, array $options = array()) {
+		$options['upscaling'] = false;
+		if($this->width() > $n) return $this->width($n); 
+		return $this;
+	}
+
+	/**
+	 * Return an image no larger than the given height
+	 *
+	 * If source image is equal to or smaller than the requested dimension, 
+	 * then it will remain that way and the source image is returned (not a copy).
+	 * 
+	 * If the source image is larger than the requested dimension, then a new copy
+	 * will be returned at the requested dimension.
+	 *
+ 	 * @param int $n Maximum width
+	 * @param array $options Optional options array
+	 * @return Pageimage
+	 *
+	 */
+	public function maxHeight($n, array $options = array()) {
+		$options['upscaling'] = false;
+		if($this->height() > $n) return $this->height($n); 
+		return $this;
+	}
+
+	/**
 	 * Get all size variations of this Pageimage as a Pageimages array of Pageimage objects.
 	 *
 	 * This is useful after a delete of an image (for example). This method can be used to track down all the child files that also need to be deleted. 

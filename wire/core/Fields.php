@@ -214,6 +214,40 @@ class Fields extends WireSaveableItems {
 	}
 
 	/**
+	 * Check that the given Field's table exists and create it if it doesn't
+	 *
+ 	 * @param Field $field
+	 *
+	 */
+	protected function checkFieldTable(Field $field) {
+		// if(!$this->wire('config')->debug) return;
+		$database = $this->wire('database'); 
+		$table = $database->escapeTable($field->getTable());
+		if(empty($table)) return;
+		$exists = $database->query("SHOW TABLES LIKE '$table'")->rowCount() > 0;
+		if($exists) return;
+		try {
+			if($field->type && count($field->type->getDatabaseSchema($field))) {
+				if($field->type->createField($field)) $this->message("Created table '$table'"); 
+			}
+		} catch(Exception $e) {
+			$this->error($e->getMessage()); 
+		}
+	}
+
+	/**
+	 * Check that all fields in the system have their tables installed
+	 *
+	 * This enables you to re-create field tables when migrating over entries from the Fields table manually (via SQL dumps or the like)
+	 *
+ 	 * @param Field $field
+	 *
+	 */
+	public function checkFieldTables() {
+		foreach($this as $field) $this->checkFieldTable($field); 
+	}
+
+	/**
 	 * Delete a Field from the database
 	 *
 	 * @param Field|Saveable $item Item to save

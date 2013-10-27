@@ -141,7 +141,7 @@ $footer-bg: $subtle-bg;
 $footer-color: $light-text-color; 
 $footer-link-color: $orange;
 
-$error-bg: $red; 
+$error-bg: darken($orange, 5%); 
 $error-border: $red; 
 $error-color: #fff; 
 

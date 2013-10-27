@@ -13,7 +13,7 @@ $footer-font-size: 0.875em;
 $form-top-margin-adjustment: -2px; 
 
 @import 'fonts';
-@import 'colors-warm';
+@import 'colors-modern';
 @import 'reset';
 @import 'jquery-ui'; 
 @import 'ui';
@@ -34,6 +34,8 @@ $form-top-margin-adjustment: -2px;
 body {
 	background: $footer-bg; 
 	font-size: 100%; 
+	overflow-y: scroll;
+
 }
 	body,
 	.ui-dialog,

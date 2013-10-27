@@ -7,6 +7,7 @@ if(!isset($content)) $content = '';
 
 //$defaultColorTheme = 'classic';
 if($input->get->colors && !$user->isGuest()) $colors = $sanitizer->pageName($input->get->colors); 
+	else if($user->isLoggedin() && $user->admin_colors && $user->admin_colors->id) $colors = $user->admin_colors->name; 
 	else if($user->isLoggedin() && $session->adminThemeColors) $colors = $session->adminThemeColors; 
 	else if($config->adminThemeColors) $colors = $sanitizer->pageName($config->adminThemeColors); 
 	else $colors = '';

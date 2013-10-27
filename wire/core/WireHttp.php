@@ -72,6 +72,18 @@ class WireHttp extends Wire {
 		return $this->send($url, $data, 'GET');
 	}
 
+	/**
+	 * Send to a URL that responds with JSON using GET and return the resulting array or object
+	 *
+	 * @param string $url URL to post to (including http:// or https://)
+	 * @param bool $assoc Default is to return an array (specified by TRUE). If you want an object instead, specify FALSE. 
+	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
+	 * @return bool|array|object False on failure or an array or object on success. 
+	 *
+	 */
+	public function getJSON($url, $assoc = true, $data = array()) {
+		return json_decode($this->get($url, $data), $assoc); 
+	}
 
 	/**
 	 * Send to a URL using HEAD (@horst)
@@ -221,12 +233,12 @@ class WireHttp extends Wire {
 		$fp = @fopen($url, 'rb', false, $context); 
 		if(!$fp) {
 			$this->error = "fopen() failed, see result of getResponseHeader()";
-			$this->responseHeader = $http_response_header; 
+			if(isset($http_response_header)) $this->responseHeader = $http_response_header; 
 			return false;
 		}
 
 		$result = @stream_get_contents($fp); 
-		$this->responseHeader = $http_response_header; 
+		if(isset($http_response_header)) $this->responseHeader = $http_response_header; 
 		return $result;
 	}
 

@@ -536,7 +536,7 @@ button.ui-button::-moz-focus-inner { border: 0; padding: 0; } /* reset extra pad
  *
  * http://docs.jquery.com/UI/Slider#theming
  */
-.ui-slider { position: relative; text-align: left; background: #838688; border: none; -webkit-box-shadow: 0 1px 3px rgba(0,0,0,0.6) inset; -moz-box-shadow: 0 1px 3px rgba(0,0,0,0.6) inset; box-shadow: 0 1px 3px rgba(0,0,0,0.6) inset; display: inline-block; *display: inline !important; *zoom: 1; }
+.ui-slider { position: relative; text-align: left; background: #838688; border: none; -webkit-box-shadow: 0 1px 3px rgba(0,0,0,0.6) inset; -moz-box-shadow: 0 1px 3px rgba(0,0,0,0.6) inset; box-shadow: 0 1px 3px rgba(0,0,0,0.6) inset; width: 100%; display: inline-block; *display: inline !important; *zoom: 1; }
 .ui-slider .ui-slider-handle { position: absolute; z-index: 2; width: 17px; height: 21px; cursor: default; background: url(ui-images/slider_handles.png) 0 0 no-repeat; outline: none; -webkit-border-radius: 0; -moz-border-radius: 0; border-radius: 0; border: none; }
 .ui-slider .ui-slider-range { position: absolute; z-index: 1; font-size: .7em; display: block; border: 0; background: #14a4ff; -webkit-box-shadow: 0 1px 3px rgba(0,0,0,0.6) inset; -moz-box-shadow: 0 1px 3px rgba(0,0,0,0.6) inset; box-shadow: 0 1px 3px rgba(0,0,0,0.6) inset; -webkit-border-radius: 3px; -moz-border-radius: 3px; border-radius: 3px; }
 .ui-slider .ui-slider-handle.ui-state-active { background-position: -17px 0; }

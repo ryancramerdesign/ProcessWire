@@ -181,6 +181,7 @@ function wireDecodeJSON($json) {
  *
  */ 
 function wireMkdir($path) {
+	// @todo make this function support a $recursive option
 	if(!is_dir($path)) if(!@mkdir($path)) return false;
 	$chmodDir = wire('config')->chmodDir;
 	if($chmodDir) chmod($path, octdec($chmodDir));
@@ -364,36 +365,105 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
  * Based upon: http://www.php.net/manual/en/function.time.php#89415
  *
  * @param int|string $ts Unix timestamp or date string
+ * @param bool|int $abbreviate Whether to use abbreviations for shorter strings. 
+ * 	Specify boolean TRUE for abbreviations.
+ * 	Specify integer 1 for extra short abbreviations.
+ * 	Specify boolean FALSE or omit for no abbreviations.
  * @return string
  *
  */
-function wireRelativeTimeStr($ts) {
+function wireRelativeTimeStr($ts, $abbreviate = false) {
 
 	if(empty($ts)) return __('Never', __FILE__); 
 
-	$periodsSingular = array(
-		__("second", __FILE__), 
-		__("minute", __FILE__), 
-		__("hour", __FILE__), 
-		__("day", __FILE__), 
-		__("week", __FILE__), 
-		__("month", __FILE__), 
-		__("year", __FILE__), 
-		__("decade", __FILE__)
-		);
+	$justNow = __('just now', __FILE__); 
+	$ago = __('ago', __FILE__); 
+	$prependAgo = '';
+	$fromNow = __('from now', __FILE__); 
+	$prependFromNow = '';
+	$space = ' ';
 
-	$periodsPlural = array(
-		__("seconds", __FILE__), 
-		__("minutes", __FILE__), 
-		__("hours", __FILE__), 
-		__("days", __FILE__), 
-		__("weeks", __FILE__), 
-		__("months", __FILE__), 
-		__("years", __FILE__), 
-		__("decades", __FILE__)
-		); 
+	if($abbreviate === 1) {
+		$justNow = __('now', __FILE__); 
+		$ago = '';
+		$prependAgo = '-';
+		$fromNow = '';
+		$prependFromNow = '+';
+		$space = ''; 
+
+		$periodsSingular = array(
+			__("s", __FILE__), 
+			__("m", __FILE__), 
+			__("hr", __FILE__), 
+			__("d", __FILE__), 
+			__("wk", __FILE__), 
+			__("mon", __FILE__), 
+			__("yr", __FILE__), 
+			__("decade", __FILE__)
+			);
+
+		$periodsPlural = array(
+			__("s", __FILE__), 
+			__("m", __FILE__), 
+			__("hr", __FILE__), 
+			__("d", __FILE__), 
+			__("wks", __FILE__), 
+			__("mths", __FILE__), 
+			__("yrs", __FILE__), 
+			__("decades", __FILE__)
+			); 
+	} else if($abbreviate === true) {
+
+		$justNow = __('now', __FILE__); 
+		$fromNow = '';
+		$prependFromNow = __('in', __FILE__) . ' ';
+
+		$periodsSingular = array(
+			__("sec", __FILE__), 
+			__("min", __FILE__), 
+			__("hr", __FILE__), 
+			__("day", __FILE__), 
+			__("week", __FILE__), 
+			__("month", __FILE__), 
+			__("year", __FILE__), 
+			__("decade", __FILE__)
+			);
+
+		$periodsPlural = array(
+			__("secs", __FILE__), 
+			__("mins", __FILE__), 
+			__("hrs", __FILE__), 
+			__("days", __FILE__), 
+			__("weeks", __FILE__), 
+			__("months", __FILE__), 
+			__("years", __FILE__), 
+			__("decades", __FILE__)
+			); 
+
+	} else {
+		$periodsSingular = array(
+			__("second", __FILE__), 
+			__("minute", __FILE__), 
+			__("hour", __FILE__), 
+			__("day", __FILE__), 
+			__("week", __FILE__), 
+			__("month", __FILE__), 
+			__("year", __FILE__), 
+			__("decade", __FILE__)
+			);
+		$periodsPlural = array(
+			__("seconds", __FILE__), 
+			__("minutes", __FILE__), 
+			__("hours", __FILE__), 
+			__("days", __FILE__), 
+			__("weeks", __FILE__), 
+			__("months", __FILE__), 
+			__("years", __FILE__), 
+			__("decades", __FILE__)
+			); 
+	}
+
 	
-	$justNow = __('just now'); 
 	$lengths = array("60","60","24","7","4.35","12","10");
 	$now = time();
 	if(!ctype_digit("$ts")) $ts = strtotime($ts);
@@ -402,10 +472,12 @@ function wireRelativeTimeStr($ts) {
 	// is it future date or past date
 	if($now > $ts) {    
 		$difference = $now - $ts;
-		$tense = __("ago", __FILE__);
+		$tense = $ago; 
+		$prepend = $prependAgo; 
 	} else {
 		$difference = $ts - $now;
-		$tense = __("from now", __FILE__);
+		$tense = $fromNow; 
+		$prepend = $prependFromNow; 
 	}
 
 	for($j = 0; $difference >= $lengths[$j] && $j < count($lengths)-1; $j++) {
@@ -418,6 +490,6 @@ function wireRelativeTimeStr($ts) {
 	$periods = $difference != 1 ? $periodsPlural : $periodsSingular; 
 	$period = $periods[$j];
 
-	return sprintf('%d %2$s %3$s', (int) $difference, $period, $tense); // i.e. 2 days ago (d=qty, 2=period, 3=tense)
+	return sprintf('%s%d%s%s %s', $prepend, (int) $difference, $space, $period, $tense); // i.e. 2 days ago (d=qty, 2=period, 3=tense)
 }
 

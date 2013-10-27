@@ -160,7 +160,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 	 * Build the form fields for adding a page
 	 *
 	 */
-	protected function buildForm() {
+	protected function ___buildForm() {
 
 		$form = $this->modules->get('InputfieldForm');
 

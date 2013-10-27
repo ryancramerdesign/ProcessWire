@@ -1392,6 +1392,7 @@ button.ui-button::-moz-focus-inner {
   -webkit-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6) inset;
   -moz-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6) inset;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6) inset;
+  width: 100%;
   display: inline-block;
   *display: inline !important;
   *zoom: 1; }
@@ -2148,7 +2149,7 @@ body .ui-tooltip {
 
 .ui-state-error,
 .ui-widget-content .ui-state-error {
-  background: #a30000;
+  background: #dd4004;
   color: white;
   border: none;
   font-weight: bold; }
@@ -2160,7 +2161,12 @@ body .ui-tooltip {
   border-bottom: 1px solid white;
   color: white; }
 
-#notices .ui-state-highlight a,
+#notices .ui-state-error {
+  color: white; }
+
+#notices .ui-state-highlight a {
+  color: white; }
+
 #notices .ui-state-error a {
   color: white; }
 
@@ -2379,6 +2385,9 @@ div + a > .ui-button {
   bottom: -20px;
   top: auto; }
 
+.ui-timepicker-div {
+  margin-top: 1em; }
+
 .InputfieldForm {
   margin-bottom: 1em;
   /**
@@ -2572,7 +2581,7 @@ table {
     margin-bottom: 1em; }
   .Inputfields .InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem > .InputfieldHeader.ui-state-error {
     text-decoration: line-through;
-    background: #a30000;
+    background: #dd4004;
     border: none; }
   .Inputfields .InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem > .InputfieldHeader .InputfieldRepeaterTrash {
     right: 2em; }
@@ -2609,7 +2618,7 @@ table {
   .Inputfields .InputfieldItemList .InputfieldItemHeader.ui-state-error {
     /* deleted item state */
     text-decoration: line-through;
-    background: #a30000;
+    background: #dd4004;
     border: none; }
   .Inputfields .InputfieldItemList:not(.InputfieldStateCollapsed) > .InputfieldHeader,
   .Inputfields .InputfieldFieldset:not(.InputfieldStateCollapsed) > .InputfieldHeader,
@@ -2765,7 +2774,8 @@ table {
 
 body {
   background: #eceae1;
-  font-size: 100%; }
+  font-size: 100%;
+  overflow-y: scroll; }
 
 body,
 .ui-dialog,
@@ -2813,7 +2823,7 @@ a:active {
   background: none; }
 
 .WireFatalError {
-  background: #a30000;
+  background: #dd4004;
   color: white;
   padding: 1em;
   position: relative;
@@ -3298,7 +3308,8 @@ body.hasWireTabs #breadcrumbs {
       font-weight: normal;
       font-style: normal; }
     #content .WireTabs #_ProcessPageEditView {
-      color: #f64704; }
+      color: #f64704;
+      font-weight: normal; }
     #content .WireTabs #_ProcessPageEditView:hover {
       background: none;
       text-decoration: underline;
@@ -3323,7 +3334,7 @@ body.hasWireTabs #breadcrumbs {
   font-weight: bold; }
 
 .error {
-  background: #a30000;
+  background: #dd4004;
   color: white;
   font-weight: bold;
   font-size: 0.9166666em; }

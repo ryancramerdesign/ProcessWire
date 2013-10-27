@@ -98,9 +98,14 @@
 	border-bottom: $highlight-border; 
 	color: $highlight-color; 
 }
-	#notices .ui-state-highlight a,
-	#notices .ui-state-error a {
+	#notices .ui-state-error {
+		color: $error-color; 
+	}
+	#notices .ui-state-highlight a {
 		color: $highlight-color; 
+	}
+	#notices .ui-state-error a {
+		color: $error-color; 
 	}
 	#notices .ui-state-highlight .ui-icon,
 	#notices .ui-state-error .ui-icon {
@@ -330,3 +335,6 @@ button.ui-button.ui-state-default,
 		top: auto;
 	}
 
+.ui-timepicker-div {
+	margin-top: 1em; 
+}

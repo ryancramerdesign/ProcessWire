@@ -1397,6 +1397,7 @@ button.ui-button::-moz-focus-inner {
   -webkit-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6) inset;
   -moz-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6) inset;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6) inset;
+  width: 100%;
   display: inline-block;
   *display: inline !important;
   *zoom: 1; }
@@ -2165,7 +2166,12 @@ body .ui-tooltip {
   border-bottom: 1px solid white;
   color: white; }
 
-#notices .ui-state-highlight a,
+#notices .ui-state-error {
+  color: white; }
+
+#notices .ui-state-highlight a {
+  color: white; }
+
 #notices .ui-state-error a {
   color: white; }
 
@@ -2383,6 +2389,9 @@ div + a > .ui-button {
 .arrow.top:after {
   bottom: -20px;
   top: auto; }
+
+.ui-timepicker-div {
+  margin-top: 1em; }
 
 .InputfieldForm {
   margin-bottom: 1em;
@@ -2770,7 +2779,8 @@ table {
 
 body {
   background: #e1ebf2;
-  font-size: 100%; }
+  font-size: 100%;
+  overflow-y: scroll; }
 
 body,
 .ui-dialog,
@@ -3303,7 +3313,8 @@ body.hasWireTabs #breadcrumbs {
       font-weight: bold;
       font-style: normal; }
     #content .WireTabs #_ProcessPageEditView {
-      color: #f21e69; }
+      color: #f21e69;
+      font-weight: normal; }
     #content .WireTabs #_ProcessPageEditView:hover {
       background: none;
       text-decoration: underline;
