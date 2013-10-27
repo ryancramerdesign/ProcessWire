@@ -125,11 +125,10 @@ class LanguagesPageFieldValue extends Wire {
 	}
 
 	/**
-	 * The string value is the value in the current user's language
+	 * Return the value in the current user's language
 	 *
 	 */
-	public function __toString() {
-
+	public function ___getStringValue() {
 		$language = wire('user')->language; 	
 		$defaultValue = (string) $this->data[$this->defaultLanguagePageID];
 		if(!$language || !$language->id || $language->isDefault()) return $defaultValue; 
@@ -144,6 +143,14 @@ class LanguagesPageFieldValue extends Wire {
 			}
 		}
 		return $languageValue; 
+	}
+
+	/**
+	 * The string value is the value in the current user's language
+	 *
+	 */
+	public function __toString() {
+	  return $this->getStringValue();
 	}
 
 	public function setField(Field $field) {
