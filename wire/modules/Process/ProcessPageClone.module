@@ -21,7 +21,7 @@ class ProcessPageClone extends Process {
 		return array(
 			'title' => __('Page Clone', __FILE__),
 			'summary' => __('Provides ability to clone/copy/duplicate pages in the admin. Adds a "copy" option to all applicable pages in the PageList.', __FILE__), 
-			'version' => 100, 
+			'version' => 101, 
 			'permanent' => false, 
 			'permission' => 'page-clone',
 			'autoload' => true,  // Note: most Process modules should not be 'autoload', this is an exception.
@@ -139,7 +139,7 @@ class ProcessPageClone extends Process {
 	 * Render a form asking for information to be used for the new cloned page. 
 	 *
 	 */
-	protected function ___render() {
+	protected function ___buildForm() {
 
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->attr('action', './?id=' . $this->page->id); 
@@ -148,18 +148,39 @@ class ProcessPageClone extends Process {
 
 		$n = 1; 
 		while(count($this->page->parent->children("include=all, name={$this->page->name}-$n"))) $n++;
+		
+		$titleField = $this->modules->get("InputfieldPageTitle"); 
+		$titleField->attr('name', 'clone_page_title'); 
+		$titleField->attr('value', $this->page->title . ' ' . sprintf($this->_n("(copy)", "(copy %d)", $n), $n)); // Phrase added to page title to make it unique
+		$titleField->label = $this->_("Title of new page"); // Label for title field
 
-		$field = $this->modules->get("InputfieldPageTitle"); 
-		$field->attr('name', 'clone_page_title'); 
-		$field->attr('value', $this->page->title . ' ' . sprintf($this->_n("(copy)", "(copy %d)", $n), $n)); // Phrase added to page title to make it unique
-		$field->label = $this->_("Title of new page"); // Label for title field
-		$form->add($field); 
+		$nameField = $this->modules->get("InputfieldPageName"); 
+		$nameField->attr('name', 'clone_page_name'); 
+		$nameField->attr('value', $this->page->name . '-' . $n); 
+		$nameField->parentPage = $this->page->parent;
 
-		$field = $this->modules->get("InputfieldPageName"); 
-		$field->attr('name', 'clone_page_name'); 
-		$field->attr('value', $this->page->name . '-' . $n); 
-		$field->parentPage = $this->page->parent; 
-		$form->add($field); 
+		$languages = $this->wire('languages'); 
+		$useLanguages = $languages;
+		if($useLanguages) {
+			$titleUseLanguages = $this->wire('fields')->get('title')->getInputfield($this->page)->useLanguages;
+			$nameUseLanguages = $this->wire('modules')->isInstalled('LanguageSupportPageNames'); 
+			if($titleUseLanguages) $titleField->useLanguages = true;
+			if($nameUseLanguages) $nameField->useLanguages = true; 
+			foreach($languages as $language) {
+				if($language->isDefault()) continue;
+				if($titleUseLanguages) {
+					$value = $this->page->title->getLanguageValue($language);
+					$titleField->set("value$language->id", $value);
+				}
+				if($nameUseLanguages) {
+					$value = $this->page->get("name$language->id"); 
+					if(strlen($value))  $nameField->set("value$language->id", $value . '-' . $n); 
+				}
+			}
+		}
+		
+		$form->add($titleField); 
+		$form->add($nameField); 
 
 		$field = $this->modules->get("InputfieldCheckbox"); 
 		$field->attr('name', 'clone_page_unpublished'); 
@@ -184,7 +205,16 @@ class ProcessPageClone extends Process {
 		$field->attr('name', 'submit_clone'); 
 		$form->add($field); 
 
-		return $form->render();		
+		return $form;
+	}
+	
+	/**
+	 * Render a form asking for information to be used for the new cloned page.
+	 *
+	 */
+	protected function ___render() {
+		$form = $this->buildForm();
+		return $form->render();
 	}
 
 	/**
@@ -195,25 +225,44 @@ class ProcessPageClone extends Process {
 
 		$page = clone $this->page; 
 		$input = $this->input; 
+		
+		$originalName = $page->name; 
 
 		$this->session->CSRF->validate();
+		$form = $this->buildForm();
+		$form->processInput($this->wire('input')->post); 
+		
 		if($input->post->clone_page_unpublished) $page->addStatus(Page::statusUnpublished); 
 		$cloneTree = $input->post->clone_page_tree && $this->user->hasPermission('page-clone-tree', $this->page);
-
-		$pageName = $this->sanitizer->pageName($input->post->clone_page_name); 
-		$nameTaken = count($this->page->parent->children("name=$pageName, include=all")) > 0;
-
-		$clone = $this->pages->clone($page, NULL, $cloneTree); 
-
-		if(!$clone->id) throw new WireException(sprintf($this->_("Unable to clone page %s"), $page->path)); 
-
-		if(strlen($pageName)) {
-			if($nameTaken) $this->error(sprintf($this->_("The name '%s' was already taken, so one was automatically assigned."), $pageName)); 
-				else $clone->name = $pageName; 
-			$clone->title = $input->post->clone_page_title;
-			$clone->save();
-			$this->message(sprintf($this->_('Cloned page "%1$s" to "%2$s"'), $page->name, $clone->name)); 
+		
+		$titleField = $form->get('clone_page_title');
+		$nameField = $form->get('clone_page_name');
+		
+		if($nameField->useLanguages) {
+			foreach($this->wire('languages') as $language) {
+				$valueAttr = $language->isDefault() ? "value" : "value$language->id";
+				$nameAttr = $language->isDefault() ? "name" : "name$language->id";
+				$value = $nameField->get($valueAttr); 				
+				$page->set($nameAttr, $value); 
+			}
+		} else {
+			$page->name = $nameField->value;
 		}
+		
+		$clone = $this->pages->clone($page, $page->parent, $cloneTree);
+		if(!$clone->id) throw new WireException(sprintf($this->_("Unable to clone page %s"), $page->path));
+
+		if($titleField->useLanguages) {
+			foreach($this->wire('languages') as $language) {
+				$valueAttr = $language->isDefault() ? "value" : "value$language->id";
+				$value = $titleField->get($valueAttr);
+				$clone->title->setLanguageValue($language, $value); 
+			}
+		} else {
+			$clone->title = $titleField->value; 
+		}
+		$clone->save();
+		$this->message(sprintf($this->_('Cloned page "%1$s" to "%2$s"'), $originalName, $clone->name)); 
 
 		$this->session->redirect($this->config->urls->admin . 'page/list/?open=' . $clone->id); 
 	}
@@ -277,6 +326,10 @@ class ProcessPageClone extends Process {
 			$this->pages->delete($page); 
 		}
 
+	}
+	
+	public function getPage() {
+		return $this->page; 
 	}
 
 }
