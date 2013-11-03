@@ -23,7 +23,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Search',
 			'summary' => 'Provides a page search engine for admin use.',
-			'version' => 103,
+			'version' => 104,
 			'permanent' => true,
 			'permission' => 'page-edit',
 			);
@@ -159,8 +159,14 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 				}
 			}
 
-			if(strpos($name, ',')) $name = $this->sanitizer->names($name, ',', array('_')); 
-				else $name = $this->sanitizer->fieldName($name); 
+			// replace '-' with '.' since '.' is not allowed in URL variable names
+			if(strpos($name, '-')) {
+				list($name, $subname) = explode('-', $name); 
+				$name = "$name.$subname";
+			}
+
+			if(strpos($name, ',')) $name = $this->sanitizer->names($name, ',', array('_', '.')); 
+				else $name = $this->sanitizer->pageName($name); // note: switch to pageName over fieldName to support "." 
 
 			if(!$name) continue; 
 
@@ -423,6 +429,10 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			$cnt = 0;
 			foreach($names as $n) if(!$this->isSelectableFieldName($n, $level+1)) $cnt++;
 			return $cnt == 0; 
+
+		} else if(strpos($name, '.')) {
+			list($name, $subname) = explode('.', $name); 
+			if(!$this->isSelectableFieldName($subname, $level)) return false;	
 		}
 
 		if(in_array($name, $this->nativeSorts)) $is = true; 

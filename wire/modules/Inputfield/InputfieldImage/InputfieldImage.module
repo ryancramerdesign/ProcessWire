@@ -21,10 +21,10 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$this->set('itemClass', 'InputfieldFileItem InputfieldImage ui-widget'); 
 		$this->set('defaultGrid', 0); 
 		//$this->modules->get("InputfieldFile"); // force the JS and CSS from InputfieldFile to also be loaded
-		$this->modules->get("JqueryFancybox"); 
 	}
 
 	public function ___render() {
+		$this->modules->get("JqueryFancybox"); 
 		$this->config->scripts->add($this->config->urls->InputfieldFile . "InputfieldFile.js");
 		$this->config->styles->add($this->config->urls->InputfieldFile . "InputfieldFile.css");
 		$out = parent::___render();

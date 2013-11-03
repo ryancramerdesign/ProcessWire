@@ -129,8 +129,11 @@ class LanguagesPageFieldValue extends Wire {
 	 *
 	 */
 	public function __toString() {
+		return self::isHooked('LanguagesPageFieldValue::getStringValue()') ? $this->__call('getStringValue', array()) : $this->___getStringValue();
+	}
 
-		$language = wire('user')->language; 	
+	protected function ___getStringValue() {
+		$language = $this->wire('user')->language; 	
 		$defaultValue = (string) $this->data[$this->defaultLanguagePageID];
 		if(!$language || !$language->id || $language->isDefault()) return $defaultValue; 
 		$languageValue = (string) (empty($this->data[$language->id]) ? '' : $this->data[$language->id]); 

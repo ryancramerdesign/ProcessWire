@@ -26,13 +26,14 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Edit Image',          
 			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)', 
-			'version' => 104, 
+			'version' => 105, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
 	}
 
 	protected static $defaultConfig = array(
+		'skipFields' => '',
 		'noSizeAttrs' => 0,
 		'alignLeftClass' => 'align_left',
 		'alignRightClass' => 'align_right',
@@ -100,10 +101,13 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$allImages = array();
 		$numImages = 0;
 		$numImageFields = 0;
+		$skipFields = explode(' ', $this->skipFields); 
 
 		iF(!$page->id) return $allImages; 
 
 		foreach($page->fields as $field) {
+
+			if(in_array($field->name, $skipFields)) continue; 
 
 			if($field->type instanceof FieldtypeRepeater) {
 				// get images that are possibly in a repeater
@@ -310,6 +314,13 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	static public function getModuleConfigInputfields(array $data) {
 		$inputfields = new InputfieldWrapper();
 		$data = array_merge(self::$defaultConfig, $data); 
+
+		$f = wire('modules')->get('InputfieldText'); 
+		$f->attr('name', 'skipFields'); 
+		$f->attr('value', isset($data['skipFields']) ? $data['skipFields'] : ''); 
+		$f->label = __('Field names to skip for selection'); 
+		$f->description = __('Enter the names of any image fields (separated by a space) that you do not want to allow for selection with this module.'); 
+		$inputfields->add($f); 
 
 		$f = wire('modules')->get('InputfieldCheckbox');
 		$f->attr('name', 'noSizeAttrs'); 

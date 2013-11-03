@@ -296,7 +296,7 @@ class ProcessTemplate extends Process {
 		$row["{$template->name} "] = "edit?id={$template->id}";
 		$row[] = $this->sanitizer->entities($template->label);
 		$row[] = "$numFields ";
-		$row[] = "$numPages ";
+		$row["{$numPages} "] = "$numPagesLink"; // space is required to make it work
 		$row[] = $notes;
 		return $row; 
 	}

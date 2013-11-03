@@ -1322,4 +1322,26 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		return $usesNumericKeys; 
 	}
 
+	/**
+	 * Implode all elements to a delimeter-separated string containing the given property from each item
+	 *
+	 * Similar to PHP's implode() function. 
+	 * 
+	 * @param string $delimeter
+	 * @param string $property
+	 * @return string
+	 *
+	 */
+	public function implode($delimeter, $property) {
+		$str = '';
+		foreach($this as $item) {
+			$value = (string) $item->$property; 
+			if(!strlen($value)) continue; 
+			if(strlen($str)) $str .= $delimeter; 
+			$str .= $value; 
+		}
+		return $str; 
+	}
+
+
 }

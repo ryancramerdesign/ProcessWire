@@ -81,7 +81,7 @@ class LazyCron extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Lazy Cron', 
-			'version' => 100, 
+			'version' => 101, 
 			'summary' => 
 				"Provides hooks that are automatically executed at various intervals. " . 
 				"It is called 'lazy' because it's triggered by a pageview, so the interval " . 
@@ -160,7 +160,7 @@ class LazyCron extends WireData implements Module {
 			foreach($this->timeFuncs as $seconds => $func) {
 				$lasttime = (int) (isset($filedata[$n]) ? $filedata[$n] : $time);
 				$elapsedTime = $time - $lasttime;
-				if($elapsedTime >= $seconds) {
+				if(empty($filedata[$n]) || $elapsedTime >= $seconds) {
 					$this->$func($elapsedTime);
 					$lasttime = $time;
 					$writeFile = true;
@@ -171,7 +171,8 @@ class LazyCron extends WireData implements Module {
 		} else {
 			// file does not exist
 			$writeFile = true;
-			foreach($this->timeFuncs as $seconds => $unused) {
+			foreach($this->timeFuncs as $seconds => $func) {
+				$this->$func(0);
 				$times[$seconds] = $time;
 			}
 		}

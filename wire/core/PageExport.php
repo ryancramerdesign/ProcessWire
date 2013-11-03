@@ -1,7 +1,9 @@
 <?php
 
 /**
- * COMING SOON: Class PageExport
+ * Class PageExport
+ *
+ * PLEASE NOTE: this class is not yet functional and here as a work in progress, not currently used by the core. 
  * 
  * @todo make this module use a 'guid', adding it if not there already
  * 
@@ -35,19 +37,23 @@ class PageExport extends Wire {
 			'status' => $page->status,
 			'sort' => $page->sort,
 			'sortfield' => $page->sortfield,
-			'num_children' => $page->numChildren,
+			'num_children' => $page->numChildren(),
 			'created' => $page->created,
 			'created_users_id' => $page->created_users_id,
 			'created_user' => $page->createdUser->name,
 			'modified' => $page->modified,
 			'modified_users_id' => $page->modified_users_id,
 			'modified_user' => $page->modifiedUser->name, 
+			'core_version' => $this->wire('config')->version, 
+			'export_time' => time(),
 			'data' => array(),
+			'types' => array(), 
 			);
 
 		foreach($page->template->fieldgroup as $field) {
 			if($field->type instanceof FieldtypeFieldsetOpen) continue;
-			$data['data'][$field->name] = $this->sleepValue($page, $field, $page->get($field->name));
+			$data['data'][$field->name] = $this->exportValue($page, $field, $page->get($field->name));
+			$data['types'][$field->name] = $field->type->className(); 
 		}
 		
 		$page->of($of);
@@ -61,10 +67,12 @@ class PageExport extends Wire {
 			$page = new Page();
 		}
 
+		if(empty($data['core_version'])) throw new WireException("Invalid import data"); 
+
 		$page->of(false);
 		$page->resetTrackChanges(true);
 
-		if(!is_array($data)) throw new WireException("Data passed to import() must be an array $data");
+		if(!is_array($data)) throw new WireException("Data passed to import() must be an array");
 
 		if(!$page->parent_id) {
 			$parent = $this->wire('pages')->get($data['parent']);
@@ -88,19 +96,24 @@ class PageExport extends Wire {
 
 		foreach($data['data'] as $name => $value) {
 
-			$field = wire('fields')->get($name);
+			$field = $this->wire('fields')->get($name);
 			
 			if(!$field) {
 				$this->error("Unknown field: $name"); 
 				continue; 
 			}
 
+			if($data['types'][$name] != $field->type->className()) {
+				$this->error("Import data for field '$field->name' has different fieldtype '" . $data['types'][$name] . "' != '" . $field->type->className() . "', skipping..."); 
+				continue; 
+			}
+
 			$newStr = var_export($value, true);
-			$oldStr = var_export($this->sleepValue($page, $field, $page->get($field->name)), true);
+			$oldStr = var_export($this->exportValue($page, $field, $page->get($field->name)), true);
 			
 			if($newStr === $oldStr) continue; // value has not changed, so abort
 
-			$value = $this->wakeupValue($page, $field, $value);
+			$value = $this->importValue($page, $field, $value);
 			
 			$page->set($field->name, $value);
 		}
@@ -109,7 +122,9 @@ class PageExport extends Wire {
 
 	}
 
-	protected function sleepValue($page, $field, $value) {
+	protected function exportValue($page, $field, $value) {
+		return $field->type->exportValue($page, $field, $value); 
+		/*
 		$sleepValue = $field->type->sleepValue($page, $field, $value);
 		if($field->type instanceof FieldtypePage) {
 			foreach($sleepValue as $key => $id) {
@@ -119,9 +134,12 @@ class PageExport extends Wire {
 			}
 		}
 		return $sleepValue;
+		*/
 	}
 
-	protected function wakeupValue($page, $field, $value) {
+	protected function importValue($page, $field, $value) {
+		return $field->type->importValue($page, $field, $value); 
+		/*
 		if($field->type instanceof FieldtypePage) {
 			foreach($value as $key => $info) {
 				// convert $value[$key] from array to page ID
@@ -137,6 +155,7 @@ class PageExport extends Wire {
 		}
 		$value = $field->type->wakeupValue($page, $field, $value);
 		return $value;
+		*/
 	}
 
 

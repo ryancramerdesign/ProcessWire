@@ -598,7 +598,12 @@ class Pages extends Wire {
 		$reason = '';
 		$isNew = $page->isNew();
 		if($isNew) $this->setupNew($page);
-		if(!$this->isSaveable($page, $reason)) throw new WireException("Can't save page {$page->id}: {$page->path}: $reason"); 
+
+		if(!$this->isSaveable($page, $reason)) {
+			if($language) $user->language = $language;
+			throw new WireException("Can't save page {$page->id}: {$page->path}: $reason"); 
+		}
+
 		if($page->is(Page::statusUnpublished) && $page->template->noUnpublish) $page->removeStatus(Page::statusUnpublished); 
 
 		if($page->parentPrevious) {
@@ -702,6 +707,7 @@ class Pages extends Wire {
 	 * 
 	 */
 	protected function savePageFinish(Page $page, $isNew, array $options) {
+		$changes = $page->getChanges();
 	
 		// update children counts for current/previous parent
 		if($isNew) {
@@ -716,7 +722,7 @@ class Pages extends Wire {
 		// if page hasn't changed, don't continue further
 		if(!$page->isChanged() && !$isNew) {
 			$this->debugLog('save', '[not-changed]', true);
-			$this->saved($page);
+			$this->saved($page, array());
 			return true;
 		}
 
@@ -783,7 +789,7 @@ class Pages extends Wire {
 		}
 
 		// trigger hooks
-		$this->saved($page);
+		$this->saved($page, $changes);
 		if($triggerAddedPage) $this->added($triggerAddedPage);
 		if($page->namePrevious && $page->namePrevious != $page->name) $this->renamed($page);
 		if($page->parentPrevious) $this->moved($page);
@@ -1346,7 +1352,7 @@ class Pages extends Wire {
 	 * Whereas Pages::save occurs after. In most cases, the distinction does not matter. 
 	 *
 	 */
-	protected function ___saved(Page $page) { }
+	protected function ___saved(Page $page, array $changes = array()) { }
 
 	/**
 	 * Hook called when a new page has been added
