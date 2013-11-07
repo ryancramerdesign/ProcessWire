@@ -300,6 +300,14 @@ class InputfieldWrapper extends Inputfield {
 			if(count($errors)) $ffAttrs['class'] .= ' ' . $classes['item_error'];
 			if($required) $ffAttrs['class'] .= ' ' . $classes['item_required']; 
 			if(strlen($showIf)) {
+				// support for repeaters, added by soma:
+				if(strpos($inputfield->name, "_repeater") !== false) { 
+					$rep = explode("repeater", $inputfield->name);
+					$showIfPart = explode("=", $showIf);
+					if(!empty($rep[1]) && ctype_digit($rep[1])) {
+						$showIf = $showIfPart[0] . "_repeater{$rep[1]}={$showIfPart[1]}";
+					}
+				} // -soma
 				$ffAttrs['data-show-if'] = $showIf;
 				$ffAttrs['class'] .= ' ' . $classes['item_show_if'];
 			}

@@ -161,7 +161,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 			$wrap->add($f); 
 
 			if($page->is(Page::statusHidden)) {
-				$wrap->class = 'InputfieldRepeaterReady';
+				$wrap->addClass('InputfieldRepeaterReady');
 				$wrap->label .= ' - ' . $this->_('New');
 
 				// add a hidden field that will be removed upon revealing it with JS

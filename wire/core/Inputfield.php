@@ -361,7 +361,7 @@ abstract class Inputfield extends WireData implements Module {
 	 * 
 	 */
 	public function addClass($class) {
-		$c = explode(' ', $this->getAttribute($class));
+		$c = explode(' ', $this->getAttribute('class'));
 		$c[] = $class;
 		$this->attributes['class'] = implode(' ', $c); 
 		return $this;
@@ -375,7 +375,7 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function removeClass($class) {
-		$c = explode(' ', $this->getAttribute($class));
+		$c = explode(' ', $this->getAttribute('class'));
 		$key = array_search($class, $c);
 		if($key !== false) unset($c[$key]);
 		$this->attributes['class'] = implode(' ', $c);

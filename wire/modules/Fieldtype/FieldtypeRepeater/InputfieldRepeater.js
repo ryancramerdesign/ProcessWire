@@ -77,7 +77,9 @@ $(document).ready(function() {
 			$readyItem.removeClass('InputfieldRepeaterReady'); 
 			$readyItem.find('input.InputfieldRepeaterDisabled').remove(); // allow it to be saved
 			$readyItem.find('input.InputfieldRepeaterPublish').attr('value', 1); // identify it as added
-			$readyItem.slideDown('fast'); 
+			$readyItem.slideDown('fast', function() {
+				$(window).resize(); // for inputfields.js to recognize
+			}); 
 			$readyItem.children('.ui-widget-content, .InputfieldContent').effect('highlight', {}, 1000); 
 			return false;
 		}
