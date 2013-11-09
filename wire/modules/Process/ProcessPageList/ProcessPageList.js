@@ -41,6 +41,9 @@ $(document).ready(function() {
 
 			// the page ID currently selected
 			selectedPageID: 0, 
+		
+			// language ID, if applicable
+			langID: 0,
 
 			// in 'select' mode, allow no value to be selected (to abort a selected value)
 			selectAllowUnselect: false,
@@ -157,7 +160,7 @@ $(document).ready(function() {
 				$root.append($("<div></div>").addClass('PageListSelectHeader').append($pageLabel).append($actions)); 
 
 				if(options.selectShowPageHeader) { 
-					$.getJSON(options.ajaxURL + "?id=" + options.selectedPageID + "&render=JSON&start=0&limit=0", function(data) {
+					$.getJSON(options.ajaxURL + "?id=" + options.selectedPageID + "&render=JSON&start=0&limit=0&lang=" + options.langID, function(data) {
 						var parentPath = '';
 						if(options.selectShowPath) {
 							parentPath = data.page.path;
@@ -385,7 +388,7 @@ $(document).ready(function() {
 				}; 
 
 				if(!replace) $target.append($loading.show()); 
-				$.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&open=" + options.openPageIDs[0], processChildren); 
+				$.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&lang=" + options.langID + "&open=" + options.openPageIDs[0], processChildren); 
 			}
 
 			/**

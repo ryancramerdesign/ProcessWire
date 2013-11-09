@@ -1,6 +1,11 @@
 
 $(document).ready(function() {
 
+	var options = {
+		selectStartLabel: config.ProcessPageEditLink.selectStartLabel,
+		langID: config.ProcessPageEditLink.langID
+		};
+
 
 	var selectedPageData = {
 		id: 0,
@@ -25,8 +30,20 @@ $(document).ready(function() {
 			$fileSelect.effect('bounce', {}, 50);
 		}); 
 	}
+	
+	$("#link_page_id").ProcessPageList(options).hide()
+		.bind('pageSelected', function(event, data) {
+			if(data.url.length) {
+				selectedPageData = data;
+				selectedPageData.url = config.urls.root + data.url.substring(1);
+				$("#link_page_url").val(selectedPageData.url);
+				if($fileSelect.is(":visible")) populateFileSelect(selectedPageData);
+			}
+		});
 
-        $("#link_page_id").bind('pageSelected', function(event, data) {
+
+	/*
+	$("#link_page_id").bind('pageSelected', function(event, data) {
 		if(data.url.length) {
 			selectedPageData = data; 
 			selectedPageData.url = config.urls.root + data.url.substring(1); 
@@ -34,6 +51,7 @@ $(document).ready(function() {
 			if($fileSelect.is(":visible")) populateFileSelect(selectedPageData);
 		}
 	}); 
+	*/
 
 	$fileSelect.change(function() {
 		var $t = $(this);

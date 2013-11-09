@@ -26,13 +26,16 @@ class ProcessPageEditLink extends Process {
 		return array(
 			'title' => 'Page Edit Link',          
 			'summary' => 'Provides a link capability as used by some Fieldtype modules (like TinyMCE)', 
-			'version' => 102, 
+			'version' => 103, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
 	}
+	
+	protected $startLabel = '';
 
 	public function init() {
+		$this->startLabel = $this->_('Choose page'); 
 		$this->modules->get("ProcessPageList"); 	
 		$id = (int) $this->input->get->id; 
 		if($id) $this->page = $this->pages->get($id); 
@@ -40,6 +43,11 @@ class ProcessPageEditLink extends Process {
 
 		//$target = $this->sanitizer->name($this->input->get->target); 
 		//$this->config->js('ProcessPageEditLinkTarget', $target); 
+
+		$this->config->js('ProcessPageEditLink', array(
+			'selectStartLabel' => $this->startLabel, 
+			'langID' => ($this->input->get->lang ? (int) $this->input->get->lang : 0)
+			));
 
 		parent::init();
 	}
@@ -55,10 +63,10 @@ class ProcessPageEditLink extends Process {
 		$field->attr('id+name', 'link_page_url'); 
 		$form->append($field); 
 
-		$field = $this->modules->get('InputfieldPageListSelect'); 
+		$field = $this->modules->get('InputfieldInteger'); 
 		$field->attr('id+name', 'link_page_id');
 		$field->label = $this->_("Link to Page");
-		$field->startLabel = $this->_('Choose page'); // Clickable link to start a page selection
+		$field->startLabel = $this->startLabel;
 		$field->collapsed = Inputfield::collapsedYes; 
 		$form->append($field); 
 

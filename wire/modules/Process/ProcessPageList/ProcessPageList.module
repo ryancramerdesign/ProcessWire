@@ -41,7 +41,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page List',          
 			'summary' => 'List pages in a hierarchal tree structure', 
-			'version' => 104, 
+			'version' => 105, 
 			'permanent' => true, 
 			'permission' => 'page-edit'
 			);
@@ -69,6 +69,9 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 *	
 	 */
 	public function ___execute() {
+
+		$langID = (int) $this->wire('input')->get->lang; 
+		if($langID) $this->wire('user')->language = $this->languages->get($langID);
 
 		if(!$this->id) $this->id = isset($_GET['id']) ? (int) $_GET['id'] : 0; 
 		$this->openPage = $this->input->get->open ? $this->pages->get((int) $this->input->get->open) : new NullPage();
