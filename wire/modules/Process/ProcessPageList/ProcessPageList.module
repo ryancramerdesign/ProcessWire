@@ -69,7 +69,12 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 *	
 	 */
 	public function ___execute() {
-
+		
+		$langID = isset($_GET['lang']) ? (int) $_GET['lang'] : 0; 
+		if($langID) {
+			$this->user->language = $this->languages->get($langID);
+		}
+		
 		if(!$this->id) $this->id = isset($_GET['id']) ? (int) $_GET['id'] : 0; 
 		$this->openPage = $this->input->get->open ? $this->pages->get((int) $this->input->get->open) : new NullPage();
 		$this->page = $this->pages->get("id=" . ($this->id ? $this->id : 1) . ", status<" . Page::statusMax); 
