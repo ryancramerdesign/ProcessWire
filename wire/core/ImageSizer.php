@@ -147,6 +147,15 @@ class ImageSizer extends Wire {
 	 */
 	protected $iptcRaw = null;
 
+	/**
+	 * List of valid IPTC tags (@horst)
+	 *
+	 */
+	protected $validIptcTags = array(
+		'005','007','010','012','015','020','022','025','030','035','037','038','040','045','047','050','055','060',
+		'062','063','065','070','075','080','085','090','092','095','100','101','103','105','110','115','116','118',
+		'120','121','122','130','131','135','150','199','209','210','211','212','213','214','215','216','217');
+
 
 	/**
 	 * Construct the ImageSizer for a single image
@@ -217,10 +226,9 @@ class ImageSizer extends Wire {
 	public function ___resize($targetWidth, $targetHeight = 0) {
 
 		$orientations = null; // @horst
-		$needRotation = $this->autoRotation !== true ? false : $this->checkOrientation($orientations);
-		$needResizing = $this->isResizeNecessary($targetWidth, $targetHeight);
-
-		if(!$needResizing && !$needRotation) return true;
+		$needRotation = $this->autoRotation !== true ? false : ($this->checkOrientation($orientations) && (!empty($orientations[0]) || !empty($orientations[1])) ? true : false);
+		$needResizing = true; // $this->isResizeNecessary($targetWidth, $targetHeight);
+		//if(!$needResizing && !$needRotation) return true;
 
 		$source = $this->filename;
 		$dest = str_replace("." . $this->extension, "_tmp." . $this->extension, $source); 
@@ -232,7 +240,12 @@ class ImageSizer extends Wire {
 			case IMAGETYPE_JPEG: $image = @imagecreatefromjpeg($source); break;
 		}
 
-		if(!$image) return false; 
+		if(!$image) return false;
+
+		if($this->imageType != IMAGETYPE_PNG) { 
+			// @horst: linearize gamma to 1.0 - we do not use gamma correction with png because it doesn't respect transparency 
+			imagegammacorrect($image, 2.0, 1.0);
+		}
 
 		if($needRotation) { // @horst
 			$image = $this->imRotate($image, $orientations[0]);
@@ -273,7 +286,7 @@ class ImageSizer extends Wire {
 			} else {
 				$bgcolor = imagecolorallocate($thumb, 0, 0, 0);  
 				imagefilledrectangle($thumb, 0, 0, $gdWidth, $gdHeight, $bgcolor);
-				imagealphablending($thumb, true);
+				imagealphablending($thumb, false);
 			}
 
 			imagecopyresampled($thumb, $image, 0, 0, 0, 0, $gdWidth, $gdHeight, $this->image['width'], $this->image['height']);
@@ -295,7 +308,7 @@ class ImageSizer extends Wire {
 			} else {
 				$bgcolor = imagecolorallocate($thumb2, 0, 0, 0);  
 				imagefilledrectangle($thumb2, 0, 0, $targetWidth, $targetHeight, 0);
-				imagealphablending($thumb2, true);
+				imagealphablending($thumb2, false);
 			}
 
 			$w1 = ($gdWidth / 2) - ($targetWidth / 2);
@@ -358,7 +371,9 @@ class ImageSizer extends Wire {
 		// write to file
 		$result = false;
 		switch($this->imageType) {
-			case IMAGETYPE_GIF: 
+			case IMAGETYPE_GIF:
+				// correct gamma from linearized 1.0 back to 2.0
+				imagegammacorrect($thumb2, 1.0, 2.0);
 				$result = imagegif($thumb2, $dest); 
 				break;
 			case IMAGETYPE_PNG: 
@@ -367,6 +382,8 @@ class ImageSizer extends Wire {
 				$result = imagepng($thumb2, $dest, $quality); 
 				break;
 			case IMAGETYPE_JPEG:
+				// correct gamma from linearized 1.0 back to 2.0
+				imagegammacorrect($thumb2, 1.0, 2.0);
 				$result = imagejpeg($thumb2, $dest, $this->quality); 
 				break;
 		}
@@ -837,8 +854,12 @@ class ImageSizer extends Wire {
 	protected function iptcPrepareData() {
 		$iptcNew = '';
 		foreach(array_keys($this->iptcRaw) as $s) {
-			$tag = str_replace('2#', '', $s);
-			$iptcNew .= $this->iptcMakeTag(2, $tag, $this->iptcRaw[$s][0]);
+			$tag = substr($s, 2);
+			if(substr($s, 0, 1) == '2' && in_array($tag, $this->validIptcTags) && is_array($this->iptcRaw[$s])) {
+				foreach($this->iptcRaw[$s] as $row) {
+					$iptcNew .= $this->iptcMakeTag(2, $tag, $row);
+				}
+			}
 		}
 		return $iptcNew;
 	}
@@ -875,17 +896,14 @@ class ImageSizer extends Wire {
 	 * 
 	 * @param resource $im
 	 * @param int $degree
-	 * @param int $bgColor
 	 * @return resource 
 	 *
 	 */
-	protected function imRotate($im, $degree, $bgColor = 0) {
-		 // TODO 1 -c robustness: provide different ColorSystems
-		$bgColor = is_int($bgColor) && $bgColor >=0 && $bgColor <= 255 ? $bgColor : 0;
+	protected function imRotate($im, $degree) {
 		$degree = (is_float($degree) || is_int($degree)) && $degree > -361 && $degree < 361 ? $degree : false;
-		if($degree === false) return $im; // TODO 5 -c errorhandling: Throw WireExeption
+		if($degree === false) return $im; 
 		if(in_array($degree, array(-360, 0, 360))) return $im;
-		return @imagerotate($im, $degree, $bgColor);
+		return @imagerotate($im, $degree, imagecolorallocate($im, 0, 0, 0));
 	}
 
 	/**
@@ -922,15 +940,8 @@ class ImageSizer extends Wire {
 
 			case 'none':
 				return $im;
-
-			case 'soft':
-				$sharpenMatrix = array(
-					array( -1, -1, -1 ),
-					array( -1, 20, -1 ),
-					array( -1, -1, -1 )
-					);
 				break;
-
+			
 			case 'strong':
 				$sharpenMatrix = array(
 					array( -1.2, -1, -1.2 ),
@@ -940,11 +951,20 @@ class ImageSizer extends Wire {
 				break;
 
 			case 'medium':
-
-			default:
 				$sharpenMatrix = array(
 					array( -1, -1, -1 ),
 					array( -1, 16, -1 ),
+					array( -1, -1, -1 )
+					);
+				break;
+
+
+			case 'soft':
+				
+			default:
+				$sharpenMatrix = array(
+					array( -1, -1, -1 ),
+					array( -1, 20, -1 ),
 					array( -1, -1, -1 )
 					);
 				break;
