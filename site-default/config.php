@@ -188,6 +188,30 @@ $config->dbCache = true;
 $config->dbLowercaseTables = true; 
 
 /**
+ * 
+ * If the user needs migration, only for development
+ * 
+ */
+$config->migration = false;
+
+/**
+ * 
+ * migration path, only used if migration is requested
+ * 
+ * You need to use a migration scripts 
+ * 
+ * something like 
+ * 
+ * http://dbv.vizuina.com/ 
+ * 
+ * https://github.com/davedevelopment/phpmig
+ * 
+ * https://github.com/dbpatch/DbPatch
+ * 
+ */
+$config->migrationPath = dirname(__FILE__);
+
+/**
  * Optional 'set names utf8' for sites that need it (this option is deprecated)
  *
  * This may be used instead of the $config->dbCharset = 'utf8' option, and exists here only for
