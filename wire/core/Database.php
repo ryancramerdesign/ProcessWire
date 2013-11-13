@@ -103,6 +103,19 @@ class Database extends mysqli {
 		$result = @parent::query($sql, $resultmode); 
 
 		if($result) {
+            if (wire('config')->migration) {                
+                if (preg_match('/^(INSERT|UPDATE|DELETE|ALTER|RENAME|DROP|CREATE)/', $sql)) {
+                    $date = new DateTime();
+                    $filename = wire('config')->migrationPath . 
+                        DIRECTORY_SEPARATOR . $date->format('YmdHis')  . 
+                        DIRECTORY_SEPARATOR . '1.sql';
+                    $dir = dirname($filename);
+                    if (! is_dir($dir)) {
+                        mkdir($dir, 0777, true);
+                    }
+                    file_put_contents($filename, $sql . "\n", FILE_APPEND);
+                }
+            }
 			if(wire('config')->debug) { 
 				if(isset($result->num_rows)) $sql .= " [" . $result->num_rows . " rows]";
 				if(!is_null($timerKey)) {
