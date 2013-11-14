@@ -1,6 +1,17 @@
 $(document).ready(function() {
 
-	$("a.InputfieldFileLink").fancybox();
+	var magnificOptions = {
+		type: 'image', 
+		closeOnContentClick: true, 
+		closeBtnInside: true,
+		image: {
+			titleSrc: function(item) {
+				return item.el.find('img').attr('alt'); 
+			}
+		}
+	}; 
+
+	$("a.InputfieldFileLink").magnificPopup(magnificOptions);
 
 	$(document).on('click', '.InputfieldImage .InputfieldFileMove', function() {
 
@@ -48,7 +59,7 @@ $(document).ready(function() {
 	}); 
 
 	$(document).on('AjaxUploadDone', '.InputfieldImage .InputfieldFileList', function() {
-		$("a.InputfieldFileLink", $(this)).fancybox(); 
+		$("a.InputfieldFileLink", $(this)).magnificPopup(magnificOptions); 
 		var $parent = $(this).parents('.InputfieldImage'); 
 		if($parent.is(".InputfieldImageGrid")) setGridMode($parent);
 	}); 

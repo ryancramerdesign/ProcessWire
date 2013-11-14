@@ -24,7 +24,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	}
 
 	public function ___render() {
-		$this->modules->get("JqueryFancybox"); 
+		$this->modules->getInstall("JqueryMagnific"); 
 		$this->config->scripts->add($this->config->urls->InputfieldFile . "InputfieldFile.js");
 		$this->config->styles->add($this->config->urls->InputfieldFile . "InputfieldFile.css");
 		$out = parent::___render();

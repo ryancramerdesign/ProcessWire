@@ -138,7 +138,6 @@ $wiretab-link-current-color: $label-link-color;
 $wiretab-link-current-border: 1px solid #D2E4EA; 
 $wiretab-link-active-bg: $dark-pink;
 $wiretab-link-active-color: $white; 
-$tabs-height: 35px; 
 
 $footer-bg: $subtle-bg; /* transparentize($subtle-bg, 0.5); */
 $footer-color: $light-text-color; 
@@ -159,19 +158,6 @@ $tabs-font-weight: $bold-weight;
 
 $footer-font-size: 0.875em; 
 
-.InputfieldForm .Inputfields .InputfieldHeader,
-.InputfieldForm .Inputfields .InputfieldWrapper > .description {
-	
-	/*
-	background: transparentize($breadcrumbs-bg, 0.5); 
-	background: -moz-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); 
-	background: -webkit-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); 
-	background: -o-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); 
-	background: -ms-linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); 
-	background: linear-gradient(top, transparentize($subtle-bg, 0.2) 0%, transparentize($subtle-bg, 1) 100%); 
-	*/
-}
-
 .dropdown-menu a.on {
 	color: $text-color; 
 }
@@ -182,7 +168,6 @@ $footer-font-size: 0.875em;
 }
 body #content .WireTabs li a {
 	margin-right: 1px; 
-	line-height: 1.4em; 
 }
 #breadcrumbs a i {
 	font-size: 14px; 
@@ -194,13 +179,6 @@ body #content .WireTabs li a {
 
 body #headline #title {
 	font-size: 2.3em; 
-}
-
-#content .WireTabs {
-	/*
-	border-bottom:1px solid $white; 
-	padding-bottom: 1px; 
-	*/
 }
 
 

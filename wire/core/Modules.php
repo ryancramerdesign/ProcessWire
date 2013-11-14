@@ -430,6 +430,26 @@ class Modules extends WireArray {
 	}
 
 	/**
+	 * Get the requested module and reset cache + install it if necessary.
+	 *
+	 * This is exactly the same as get() except that this one will rebuild the modules cache if
+	 * it doesn't find the module at first. If the module is on the file system, this
+	 * one will return it in some instances that a regular get() can't. 
+	 *
+	 * @param string|int $key Module className or database ID
+	 * @return Module|null
+	 *
+	 */
+	public function getInstall($key) {
+		$module = $this->get($key); 
+		if(!$module) {
+			$this->resetCache();
+			$module = $this->get($key); 
+		}
+		return $module; 
+	}
+
+	/**
 	 * Include the file for a given module, but don't instantiate it 
 	 *
 	 * @param ModulePlaceholder|Module|string Expects a ModulePlaceholder or className

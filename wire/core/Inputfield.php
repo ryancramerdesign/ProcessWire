@@ -280,9 +280,13 @@ abstract class Inputfield extends WireData implements Module {
 
 		foreach($keys as $key) {
 
-			if($key == 'name' && $value && ($this->getAttribute('id') == $this->defaultID)) {
-				// formulate an ID attribute that consists of the className and name attribute
-				$this->setAttribute('id', "Inputfield_$value");
+			if($key == 'name' && strlen($value)) {
+				$idAttr = $this->getAttribute('id'); 
+				$nameAttr = $this->getAttribute('name'); 
+				if($idAttr == $this->defaultID || $idAttr == $nameAttr || $idAttr == "Inputfield_$nameAttr") {
+					// formulate an ID attribute that consists of the className and name attribute
+					$this->setAttribute('id', "Inputfield_$value");
+				}
 			}
 
 			if(!array_key_exists($key, $this->attributes)) $this->attributes[$key] = '';

@@ -7,8 +7,6 @@
  * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  *
- * Look for errors at shutdown and log them, plus echo the error if the page is editable
- *
  * http://processwire.com
  *
  */

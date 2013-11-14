@@ -108,6 +108,10 @@ class WireInputData implements ArrayAccess, IteratorAggregate, Countable {
 	public function __unset($key) {
 		return $this->offsetUnset($key); 
 	}
+
+	public function queryString() {
+		return http_build_query($this->getArray()); 
+	}
 }
 
 /**

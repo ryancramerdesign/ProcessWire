@@ -409,8 +409,8 @@ function InputfieldColumnWidths() {
 	}
 
 	function setHeight($item, maxColHeight) {
-		consoleLog("setHeight: " + $item.find("label").text() + " >> " + maxColHeight); 
 		var h = getHeight($item);
+		consoleLog("setHeight: " + $item.find("label").text() + " >> " + maxColHeight + ' (' + h + ')'); 
 		if(h == maxColHeight) return;
 		if($item.hasClass('InputfieldStateCollapsed')) return;
 		var pad = maxColHeight-h; 

@@ -5,6 +5,7 @@ function renderTopNavItem(Page $p, $level = 0) {
 	$showItem = wire('user')->isSuperuser() ? true : false;
 	$info = array();
 	$children = $p->numChildren && !$level && $p->name != 'page' ? $p->children("check_access=0") : array();
+	$translationFile = dirname(__FILE__) . '/default.php';
 	$out = '';
 
 	if(!$level && !$showItem) { 
@@ -21,7 +22,7 @@ function renderTopNavItem(Page $p, $level = 0) {
 
 	$class = strpos(wire('page')->path, $p->path) === 0 ? 'on' : '';
 	$title = strip_tags((string)$p->get('title|name')); 
-	$title = __($title, dirname(__FILE__) . '/default.php'); // translate from context of default.php
+	$title = __($title, $translationFile); // translate from context of default.php
 	$out .= "<li>";
 
 	if(!$level && count($children)) {
@@ -47,7 +48,7 @@ function renderTopNavItem(Page $p, $level = 0) {
 			if($items) {
 
 				$addLabel = __('Add New', dirname(__FILE__) . '/default.php');
-				$out .= "<li><a href='$c->url'>$c->title</a><ul>" . 
+				$out .= "<li><a href='$c->url'>" . __($c->title, $translationFile) . "</a><ul>" . 
 					"<li class='add'><a href='{$c->url}add'><i class='icon-plus-sign'></i> $addLabel</a></li>";
 
 				foreach($items as $item) {

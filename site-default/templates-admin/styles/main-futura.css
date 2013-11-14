@@ -2272,7 +2272,7 @@ div + a > .ui-button {
   border-radius: 0; }
 
 .ui-menu a {
-  font-size: 0.875em;
+  font-size: 0.9375em;
   /*
   border-bottom: 1px solid darken($subtle-bg, 5%); 
   */ }
@@ -2491,6 +2491,8 @@ table {
     /* non doubled border */
     margin-top: 0;
     background: white; }
+    .Inputfields .Inputfield p.notes {
+      margin-bottom: 0; }
   .Inputfields .Inputfield.ui-state-error {
     border: none; }
   .Inputfields .InputfieldStateToggle {
@@ -2563,7 +2565,7 @@ table {
     /* LIGHT-GREEN */
     color: white;
     /* WHITE */
-    padding: 0.25em 0.25em 0.25em 2em; }
+    padding: 0.25em 0.25em 0.25em 1.7em; }
     .Inputfields .InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem > .InputfieldHeader a {
       color: white;
       /* WHITE */
@@ -2574,6 +2576,8 @@ table {
       border: none; }
     .Inputfields .InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem > .InputfieldHeader i.toggle-icon {
       color: white; }
+    .Inputfields .InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem > .InputfieldHeader .ui-icon {
+      margin-top: 3px; }
   .Inputfields .InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem > .InputfieldContent {
     padding: 0;
     border: none; }
@@ -2616,7 +2620,11 @@ table {
       .Inputfields .InputfieldItemList .InputfieldItemHeader:hover a {
         color: white; }
     .Inputfields .InputfieldItemList .InputfieldItemHeader .ui-icon {
-      margin-top: 2px; }
+      margin-top: 3px; }
+  .Inputfields .InputfieldItemList .InputfieldItemList .InputfieldItemHeader:not(:hover) {
+    /* lighten up nested item list headers use a different color */
+    background: #929292;
+    color: white; }
   .Inputfields .InputfieldItemList .InputfieldItemHeader.ui-state-error {
     /* deleted item state */
     text-decoration: line-through;
@@ -2644,6 +2652,10 @@ table {
     /* IE10+ */
     background: linear-gradient(top, rgba(240, 240, 240, 0.2) 0%, rgba(240, 240, 240, 0.8) 100%);
     /* W3C */ }
+  .Inputfields .InputfieldItemList .InputfieldItemList:not(.InputfieldStateCollapsed) > .InputfieldHeader,
+  .Inputfields .InputfieldItemList .InputfieldItemList > .InputfieldHeader + .InputfieldContent {
+    /* unless the item is already a nested item list, then we are a little mroe subtle with it */
+    background: rgba(240, 240, 240, 0.4); }
   .Inputfields .InputfieldPageNameURL {
     /* page name */
     /*font-size: 0.923076923076923em;*/
@@ -2769,6 +2781,17 @@ table {
  * GENERAL
  *
  */
+/*
+
+.WireTabs *, 
+.InputfieldContent > *,
+.InputfieldContent > *:before,
+.InputfieldContent > *:after {
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	box-sizing: border-box;
+}
+*/
 *, *:before, *:after {
   -moz-box-sizing: border-box;
   -webkit-box-sizing: border-box;
@@ -2798,12 +2821,12 @@ body.modal {
 .container,
 .ui-dialog {
   line-height: 1.6em;
-  font-size: 0.875em; }
+  font-size: 0.9375em; }
 
 .container {
   position: relative;
   width: 95%;
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto; }
 
 a {
@@ -2850,7 +2873,7 @@ a:active {
   float: left;
   position: relative;
   left: -3px;
-  margin-top: 0.7em;
+  margin-top: 0.75em;
   margin-bottom: 0.25em; }
 
 #masthead {
@@ -2877,7 +2900,8 @@ a:active {
       padding: 0.5em 1em;
       border-top-right-radius: 5px;
       border-top-left-radius: 5px;
-      font-weight: normal; }
+      font-weight: normal;
+      height: 2.5em; }
     #masthead #topnav > li > a.hover,
     #masthead #topnav > li > a:hover {
       background: rgba(255, 255, 255, 0.2);
@@ -2923,7 +2947,7 @@ a:active {
       top: -2px; }
 
 body.hasWireTabs #breadcrumbs {
-  border-bottom: 35px solid #e8e8e8; }
+  border-bottom: 2.5em solid #e8e8e8; }
 
 #masthead #ProcessPageSearchForm {
   float: right;
@@ -3073,7 +3097,6 @@ body.hasWireTabs #breadcrumbs {
     font-size: 1.2em; }
   .content h4 {
     margin: 1em 0 0.25em 0;
-    text-transform: uppercase;
     font-weight: bold;
     font-size: 0.916666666666667em; }
   .content li {
@@ -3260,8 +3283,8 @@ body.hasWireTabs #breadcrumbs {
    */ }
   #content .WireTabs {
     position: relative;
-    top: -35px;
-    margin-bottom: -35px;
+    top: -2.5em;
+    margin-bottom: -2.5em;
     left: 0;
     width: 100%;
     z-index: 102;
@@ -3272,7 +3295,6 @@ body.hasWireTabs #breadcrumbs {
       padding: 0; }
     #content .WireTabs a {
       font-weight: normal;
-      padding: 6px 11px;
       padding: 0.5em 1em 0.5em 1em;
       display: inline-block;
       border-top-left-radius: 5px;
@@ -3281,7 +3303,7 @@ body.hasWireTabs #breadcrumbs {
       border-bottom: none;
       margin-right: -1px;
       color: #222222;
-      height: 35px;
+      height: 2.5em;
       background: none;
       position: relative;
       top: 1px; }

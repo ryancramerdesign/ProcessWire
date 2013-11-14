@@ -391,10 +391,11 @@ class Sanitizer extends Wire {
 	 * String value is assumed to be UTF-8. Replaces non-alphanumeric and non-space with space
 	 *
 	 * @param string $value
+	 * @param int $maxLength Maximum number of allowed characters
 	 * @return string
 	 * 
 	 */
-	public function selectorValue($value) {
+	public function selectorValue($value, $maxLength = 100) {
 
 		$value = trim($value); 
 		$quoteChar = '"';
@@ -419,9 +420,9 @@ class Sanitizer extends Wire {
 		if(strpos($value, '"') !== false) $value = str_replace('"', '', $value); 
 
 		// selector value is limited to 100 chars
-		if(strlen($value) > 100) {
-			if($this->multibyteSupport) $value = mb_substr($value, 0, 100, 'UTF-8'); 
-				else $value = substr($value, 0, 100); 
+		if(strlen($value) > $maxLength) {
+			if($this->multibyteSupport) $value = mb_substr($value, 0, $maxLength, 'UTF-8'); 
+				else $value = substr($value, 0, $maxLength); 
 		}
 
 		// disallow some characters in selector values

@@ -1,5 +1,4 @@
 
-
 .InputfieldForm {
 
 	margin-bottom: 1em;
@@ -122,6 +121,10 @@ table {
 		margin-bottom: -1px; /* non doubled border */
 		margin-top: 0;
 		background: $text-bg; 
+
+		p.notes {
+			margin-bottom: 0; 
+		}
 	}
 
 	.Inputfield.ui-state-error {
@@ -221,7 +224,7 @@ table {
 			border: none;
 			background: $item-header-bg; /* LIGHT-GREEN */
 			color: $item-header-color; /* WHITE */
-			padding: 0.25em 0.25em 0.25em 2em;
+			padding: 0.25em 0.25em 0.25em 1.7em;
 
 			a {
 				color: $item-header-color; /* WHITE */
@@ -236,6 +239,10 @@ table {
 
 			i.toggle-icon {
 				color: $item-header-color; 
+			}
+
+			.ui-icon {
+				margin-top: 3px; 
 			}
 		}
 
@@ -304,8 +311,14 @@ table {
 		}
 
 		.ui-icon {
-			margin-top: 2px; 
+			margin-top: 3px; 
 		}
+	}
+
+	.InputfieldItemList .InputfieldItemList .InputfieldItemHeader:not(:hover) {
+		/* lighten up nested item list headers use a different color */
+		background: $ui-state-default-bg; 
+		color: $ui-state-default-color; 
 	}
 
 	.InputfieldItemList .InputfieldItemHeader.ui-state-error {
@@ -333,6 +346,12 @@ table {
 		background: -o-linear-gradient(top, transparentize($subtle-bg, 0.8) 0%, transparentize($subtle-bg, 0.2) 100%); /* Opera11.10+ */
 		background: -ms-linear-gradient(top, transparentize($subtle-bg, 0.8) 0%, transparentize($subtle-bg, 0.2) 100%); /* IE10+ */
 		background: linear-gradient(top, transparentize($subtle-bg, 0.8) 0%, transparentize($subtle-bg, 0.2) 100%); /* W3C */
+	}
+
+	.InputfieldItemList .InputfieldItemList:not(.InputfieldStateCollapsed) > .InputfieldHeader,
+	.InputfieldItemList .InputfieldItemList > .InputfieldHeader + .InputfieldContent {
+		/* unless the item is already a nested item list, then we are a little mroe subtle with it */ 
+		background: transparentize($subtle-bg, 0.6); 
 	}
 
 	.InputfieldPageNameURL {

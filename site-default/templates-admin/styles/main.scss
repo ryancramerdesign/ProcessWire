@@ -5,12 +5,13 @@ $normal-weight: normal;
 $bold-weight: bold; 
 $button-radius: 5px; 
 $tabs-radius: 6px; 
-$tabs-height: 35px; 
+$tabs-height: 2.5em; 
 $tabs-font-weight: normal;
-$base-font-size: 0.875em;
+$base-font-size: 0.9375em;
 $base-line-height: 1.6em; 
 $footer-font-size: 0.875em; 
 $form-top-margin-adjustment: -2px; 
+$container-max-width: 1200px; 
 
 @import 'fonts';
 @import 'colors-modern';
@@ -24,12 +25,24 @@ $form-top-margin-adjustment: -2px;
  * GENERAL
  *
  */
+/*
+
+.WireTabs *, 
+.InputfieldContent > *,
+.InputfieldContent > *:before,
+.InputfieldContent > *:after {
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	box-sizing: border-box;
+}
+*/
+
 
 *, *:before, *:after {
 	-moz-box-sizing: border-box; 
 	-webkit-box-sizing: border-box; 
 	box-sizing: border-box;
- }
+}
 
 body {
 	background: $footer-bg; 
@@ -63,7 +76,7 @@ body {
 .container {
 	position: relative; 
 	width: 95%; 
-	max-width: 1400px; 
+	max-width: $container-max-width; 
 	margin: 0 auto; 
 }
 
@@ -119,7 +132,7 @@ a {
 	float: left; 
 	position: relative; 
 	left: -3px; 
-	margin-top: 0.7em; 
+	margin-top: 0.75em; 
 	margin-bottom: 0.25em;
 }
 
@@ -153,6 +166,7 @@ a {
 			border-top-right-radius: $tabs-radius;
 			border-top-left-radius: $tabs-radius; 
 			font-weight: $tabs-font-weight;
+			height: $tabs-height; 
 		}
 
 
@@ -406,7 +420,6 @@ body.hasWireTabs #breadcrumbs {
 
 	h4 {
 		margin: 1em 0 0.25em 0;
-		text-transform: uppercase;
 		font-weight: $bold-weight;
 		font-size: 0.916666666666667em;
 	}
@@ -716,8 +729,7 @@ body.hasWireTabs #breadcrumbs {
 
 		a {
 			font-weight: $tabs-font-weight;
-			padding: 6px 11px;
-			padding: 0.5em 1em 0.5em 1em;;
+			padding: 0.5em 1em 0.5em 1em;
 			display: inline-block;
 			border-top-left-radius: $tabs-radius;
 			border-top-right-radius: $tabs-radius; 
