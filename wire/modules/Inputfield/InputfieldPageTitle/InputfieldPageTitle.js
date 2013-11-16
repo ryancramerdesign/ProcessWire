@@ -10,7 +10,7 @@
 
 $(document).ready(function() {
 
-	var $nameField = $("#Inputfield_name"); 
+	var $nameField = $("#Inputfield__pw_page_name"); 
 
 	// check if namefield exists, because pages like homepage don't have one and
 	// no need to continue if it already has a value	
@@ -29,7 +29,7 @@ $(document).ready(function() {
 		if(!active) return; 
 		// var val = $(this).val().substring(0, 128); 
 		var val = $(this).val(); // @adrian
-		var id = $(this).attr('id').replace(/Inputfield_title_*/, 'Inputfield_name'); 
+		var id = $(this).attr('id').replace(/Inputfield_title_*/, 'Inputfield__pw_page_name'); 
 		$nameField = $("#" + id);  	
 		if($nameField.size() > 0) $nameField.val(val).trigger('blur'); 
 	}

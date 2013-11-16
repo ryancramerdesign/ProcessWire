@@ -540,17 +540,18 @@ function InputfieldColumnWidths() {
  * 
  */
 function InputfieldStates() {
-	$(".Inputfields > .Inputfield > .InputfieldHeader, .Inputfields > .Inputfield > .ui-widget-header").addClass("InputfieldStateToggle")
-		.prepend("<i class='toggle-icon icon-angle-down'></i>")
-		.click(function() {
-			var $li = $(this).parent('.Inputfield');
-			$li.toggleClass('InputfieldStateCollapsed', 100);
-			$(this).children('i.toggle-icon').toggleClass('icon-angle-down icon-angle-right');
+	$(".InputfieldHeader, .Inputfield > .ui-widget-header").addClass("InputfieldStateToggle")
+		.prepend("<i class='toggle-icon icon-angle-down'></i>");
+	
+	$(document).on('click', '.InputfieldHeader, .Inputfield > .ui-widget-header', function() {
+		var $li = $(this).closest('.Inputfield');
+		$li.toggleClass('InputfieldStateCollapsed', 100);
+		$(this).children('i.toggle-icon').toggleClass('icon-angle-down icon-angle-right');
 
-			if($.effects && $.effects['highlight']) $li.children('.InputfieldHeader, .ui-widget-header').effect('highlight', {}, 300);
-			setTimeout('InputfieldColumnWidths()', 500); 
-			return false;
-		})
+		if($.effects && $.effects['highlight']) $li.children('.InputfieldHeader, .ui-widget-header').effect('highlight', {}, 300);
+		setTimeout('InputfieldColumnWidths()', 500); 
+		return false;
+	});
 
 	// use different icon for open and closed
 	$(".Inputfields .InputfieldStateCollapsed > .InputfieldHeader i.toggle-icon, .Inputfields .InputfieldStateCollapsed > .ui-widget-header i.toggle-icon")

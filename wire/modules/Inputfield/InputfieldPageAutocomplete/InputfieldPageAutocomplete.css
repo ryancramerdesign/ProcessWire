@@ -62,7 +62,7 @@
 	.InputfieldPageAutocomplete p .ui-icon {
 		/* icon placement */
 		position: absolute; 
-		top: 2px; 
+		top: 0.3em; 
 		left: 1px; 
 		opacity: 0.5; 
 	}
