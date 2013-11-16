@@ -58,6 +58,12 @@
 		float: left; 
 	}
 
+	.InputfieldFileEmpty .HideIfEmpty,
+	.InputfieldFileSingle .HideIfSingle,
+	.InputfieldFileMultiple .HideIfMultiple {
+		display: none !important; 
+	}
+
 	ul.InputfieldFileList li .InputfieldFileData {
 		margin-top: 0; 
 		margin-bottom: 0;

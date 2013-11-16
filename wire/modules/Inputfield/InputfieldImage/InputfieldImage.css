@@ -88,7 +88,8 @@
 
 .InputfieldImage .InputfieldHeader .InputfieldImageListToggle {
 	float: right;
-	margin-right: 1em; 
+	padding-right: 1em; 
+	position: relative;
 }
 .InputfieldStateCollapsed .InputfieldHeader .InputfieldImageListToggle {
 	display: none; 

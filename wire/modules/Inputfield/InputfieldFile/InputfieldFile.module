@@ -10,7 +10,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		return array(
 			'title' => __('Files', __FILE__), // Module Title
 			'summary' => __('One or more file uploads (sortable)', __FILE__), // Module Summary
-			'version' => 103,
+			'version' => 104,
 			'permanent' => true, 
 			);
 	}
@@ -124,7 +124,8 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	protected function ___renderItem($pagefile, $id, $n) {
 
 		$out = 	"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-state-default ui-widget-header'>" . 
-			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>" . 
+			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s HideIfSingle HideIfEmpty'></span>" .
+			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-1-e HideIfMultiple'></span>" . 
 			"\n\t\t\t<a class='InputfieldFileName' href='{$pagefile->url}'>{$pagefile->basename}</a> " . 
 			"\n\t\t\t<span class='InputfieldFileStats'>{$pagefile->filesizeStr}</span> " . 
 			"\n\t\t\t<label class='InputfieldFileDelete'><input type='checkbox' name='delete_$id' value='1' /><span class='ui-icon ui-icon-trash'>Delete</span></label>" . 

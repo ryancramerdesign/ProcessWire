@@ -57,11 +57,24 @@ $(document).ready(function() {
 	function initSortable($fileLists) { 
 
 		$fileLists.each(function() {
+			
+			var $this = $(this);
+			var qty = $this.children("li").size();
+			
+			var $inputfield = $this.closest('.Inputfield')
+		
+			if(qty < 2) {
+				// added to support additional controls when multiple items are present 
+				// and to hide them when not present
+				if(qty == 0) $inputfield.addClass('InputfieldFileEmpty').removeClass('InputfieldFileMultiple InputfieldFileSingle');
+					else $inputfield.addClass('InputfieldFileSingle').removeClass('InputfieldFileEmpty InputfieldFileMultiple');
+				// if we're dealing with a single item list, then don't continue with making it sortable
+				return;
+			} else {
+				$this.closest('.Inputfield').removeClass('InputfieldFileSingle InputfieldFileEmpty').addClass('InputfieldFileMultiple');
+			}
 
-			// if we're dealing with a single item list, then don't continue with making it sortable
-			if($(this).children("li").size() < 2) return; 
-
-			$(this).sortable({
+			$this.sortable({
 				//axis: 'y', 
 				start: function(e, ui) {
 					ui.item.children(".InputfieldFileInfo").addClass("ui-state-highlight"); 
@@ -139,8 +152,9 @@ $(document).ready(function() {
 			var $fileList = $this.find(".InputfieldFileList"); 
 
 			if($fileList.size() < 1) {
-				$fileList = $("<ul class='InputfieldFileList InputfieldFileListBlank'></ul>"),
+				$fileList = $("<ul class='InputfieldFileList InputfieldFileListBlank'></ul>");
 				$this.prepend($fileList); 
+				$this.parent('.Inputfield').addClass('InputfieldFileEmpty'); 
 			}
 
 			var fileList = $fileList.get(0);
