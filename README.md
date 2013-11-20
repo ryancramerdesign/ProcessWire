@@ -176,7 +176,7 @@ If your site still doesn't work, please post in the
 ## Debug Mode
 
 Debug mode causes all errors to be reported to the screen, which can be
-hepful during development or troubleshooting. When in the admin, it also
+helpful during development or troubleshooting. When in the admin, it also
 enables reporting of extra information in the footer. Debug mode is not
 intended for live or production sites, as the information reported could
 be a problem for security. So be sure not to leave debug mode on for

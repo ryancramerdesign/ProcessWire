@@ -54,6 +54,9 @@ var ProcessWireAdminTheme = {
 	 *
 	 */
 	setupCloneButton: function() {
+		// no head_button in modal view
+		if($("body").is(".modal")) return;
+
 		// if there are buttons in the format "a button" without ID attributes, copy them into the masthead
 		// or buttons in the format button.head_button_clone with an ID attribute.
 		// var $buttons = $("#content a[id=] button[id=], #content button.head_button_clone[id!=]"); 

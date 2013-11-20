@@ -575,6 +575,24 @@ function InputfieldStates() {
 }
 
 /*********************************************************************************************/
+	
+function overflowAdjustments() {
+	// ensures an overflow-y scroll is set when the content height is less than window height
+	// this makes a permanently visible scrollbar, preventing jumps in ui-menus
+	var $body = $("body"); 
+	var documentHeight = $(document).height();
+	var windowHeight = $(window).height();
+	
+	consoleLog('documentHeight=' + documentHeight + ', windowHeight=' + windowHeight); 
+
+	if(documentHeight > windowHeight) {
+		// there is already a scrollbar
+		if($body.css('overflow-y') == 'scroll') $body.css('overflow-y', 'auto');
+	} else {
+		// force a scrollbar
+		$body.css('overflow-y', 'scroll');
+	}
+}
 
 var InputfieldWindowResizeQueued = false;
 
@@ -582,6 +600,7 @@ function InputfieldWindowResizeActions() {
 	consoleLog('InputfieldWindowResizeActions()'); 
 	InputfieldColumnWidths(); 
 	InputfieldWindowResizeQueued = false;
+	overflowAdjustments();
 }
 
 $(document).ready(function() {
@@ -605,4 +624,5 @@ $(document).ready(function() {
 	$(window).resize(windowResized); 
 	$("ul.WireTabs > li > a").click(tabClicked); 
 
+	setTimeout('overflowAdjustments()', 100); 
 }); 
