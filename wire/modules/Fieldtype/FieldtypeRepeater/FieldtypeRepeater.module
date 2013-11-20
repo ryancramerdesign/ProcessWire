@@ -792,6 +792,13 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		}
 		*/
 
+		// #275: remove ready items just in case any ended up in here because of
+		// field being loaded with output-formatting state of off, like if loaded
+		// by a PageArray::sort method, for example. 
+		foreach($value as $item) {
+			if($item->status >= Page::statusHidden) $value->remove($item); 
+		}
+
 		return $value;
 	}
 
