@@ -492,20 +492,6 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		$a = wire('pages')->find($selector);
 		$pageArray = new RepeaterPageArray($page, $field); 
 		$pageArray->import($a);
-
-		// check each item to make sure it can be here
-		foreach($pageArray as $p) {
-
-			$unpublished = $p->is(Page::statusUnpublished); 
-			$hidden = $p->is(Page::statusHidden); 
-
-			// hidden pages (assumed to be a ready page) should never be included when page is being viewed (outputFormatting)
-			if($hidden && $outputFormatting) $pageArray->remove($p); 
-
-			// unpublished items may only be included if the page is also unpublished (and presumably being previewed)
-			if($outputFormatting && $unpublished && !$page->is(Page::statusUnpublished)) $pageArray->remove($p);
-		}
-
 		$pageArray->resetTrackChanges(true); 
 
 		return $pageArray; 
@@ -792,11 +778,26 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		}
 		*/
 
-		// #275: remove ready items just in case any ended up in here because of
-		// field being loaded with output-formatting state of off, like if loaded
-		// by a PageArray::sort method, for example. 
-		foreach($value as $item) {
-			if($item->status >= Page::statusHidden) $value->remove($item); 
+		// remove ready items that shouldn't be here
+		foreach($value as $p) {
+
+			if($p->status < Page::statusHidden) continue; 
+			$remove = false; 
+
+			if($p->is(Page::statusHidden)) {
+				// hidden pages (assumed to be a ready page) should never be included when page is being viewed (outputFormatting)
+				$remove = true; 
+			} else if($p->is(Page::statusUnpublished) && !$page->is(Page::statusUnpublished)) {
+				// unpublished items may only be included if the page is also unpublished (and presumably being previewed)
+				$remove = true; 
+			}
+
+			if($remove) {
+				$trackChanges = $value->trackChanges();
+				$value->setTrackChanges(false); 
+				$value->remove($p); 
+				$value->setTrackChanges($trackChanges); 
+			}
 		}
 
 		return $value;
