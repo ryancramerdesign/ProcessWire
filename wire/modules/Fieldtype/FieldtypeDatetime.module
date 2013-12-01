@@ -156,6 +156,8 @@ class FieldtypeDatetime extends FieldtypeText {
 	 */
 	static public function stringToTimestamp($str, $format) {
 
+		if(empty($str)) return '';
+
 		// already a timestamp
 		if(ctype_digit(ltrim($str, '-'))) return (int) $str; 
 
@@ -343,6 +345,7 @@ class FieldtypeDatetime extends FieldtypeText {
 	 *
 	 */
 	protected function _sanitizeValue($value) {
+		if(empty($value)) return ''; 
 		// already a timestamp
 		if(ctype_digit(ltrim($value, '-'))) return (int) $value; 
 		return strtotime($value); 
@@ -401,7 +404,10 @@ class FieldtypeDatetime extends FieldtypeText {
 	 *
 	 */
 	public function ___wakeupValue(Page $page, Field $field, $value) {
-		return strtotime($value); 
+		if(empty($value)) return '';
+		$value = strtotime($value); 
+		if($value === false) $value = '';
+		return $value; 
 	}
 
 	/**
