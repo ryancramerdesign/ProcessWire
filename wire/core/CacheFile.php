@@ -106,6 +106,7 @@ class CacheFile {
 	 *
 	 */
 	public function exists() {
+		if(!$this->secondaryID) return is_dir($this->path); 
 		$filename = $this->buildFilename(); 	
 		return is_file($filename); 
 	}

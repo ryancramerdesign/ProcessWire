@@ -142,7 +142,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		if($this->config->chmodFile) $cacheFile->setChmodFile($this->config->chmodFile);
 		if($this->config->chmodDir) $cacheFile->setChmodDir($this->config->chmodDir);
 
-		if($this->fuel('page') === $page) {
+		if($this->wire('page') === $page) {
 			$secondaryID = '';
 			$pageNum = $this->input->pageNum; 
 			$urlSegments = $this->input->urlSegments; 
@@ -174,7 +174,6 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	public function clearCacheFile($event) {
-
 		$page = $event->arguments[0]; 
 		if(!$page->template->cache_time) return;
 		$cacheExpire = $page->template->cacheExpire; 
