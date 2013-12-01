@@ -122,6 +122,13 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 */
 	public function getCacheFile(Page $page, array $options = array()) {
 
+		$defaults = array(
+			'prependFile' => '',
+			'appendFile' => '', 
+			'filename' => '', 
+			);
+
+		$options = array_merge($defaults, $options); 
 		$path = $this->config->paths->cache . self::cacheDirName . "/";
 		$id = $page->id; 
 		$cacheTime = $page->template->cache_time; 
