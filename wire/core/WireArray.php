@@ -577,10 +577,10 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * Get a slice of the WireArray.
 	 *
 	 * Given a starting point and a number of items, returns a new WireArray of those items. 
-	 * If $limit is ommitted, then it includes everything beyond the starting point. 
+	 * If $limit is omitted, then it includes everything beyond the starting point. 
 	 *
 	 * @param int $start Starting index. 
-	 * @param int $limit Number of items to include. If ommitted, includes the rest of the array.
+	 * @param int $limit Number of items to include. If omitted, includes the rest of the array.
 	 * @return WireArray Returns a new WireArray.
 	 *
 	 */
@@ -1333,28 +1333,44 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	}
 
 	/**
-	 * Implode all elements to a delimeter-separated string containing the given property from each item
+	 * Implode all elements to a delimiter-separated string containing the given property from each item
 	 *
 	 * Similar to PHP's implode() function. 
 	 * 
-	 * @param string $delimeter The delimeter to separate each item by (or the glue to tie them together).
+	 * @param string $delimiter The delimiter to separate each item by (or the glue to tie them together).
+	 *	If not needed, this argument may be omitted and $property supplied first (also shifting $options to 2nd arg).
 	 * @param string|function $property The property to retrieve from each item, or a function that returns the value to store.
 	 *	If a function/closure is provided it is given the $item (argument 1) and the $key (argument 2), and it should 
 	 *	return the value (string) to use. 
+	 *	If delimiter is omitted, this becomes the first argument. 
 	 * @param array $options Optional options to modify the behavior:
 	 *	skipEmpty: Whether empty items should be skipped (default=true)
 	 *	prepend: String to prepend to result. Ignored if result is blank. 
 	 *	append: String to prepend to result. Ignored if result is blank. 
+	 *	Please note that if delimiter is omitted, $options becomes the second argument. 
 	 * @return string
 	 *
 	 */
-	public function implode($delimeter, $property, array $options = array()) {
+	public function implode($delimiter, $property = '', array $options = array()) {
 
 		$defaults = array(
 			'skipEmpty' => true, 
 			'prepend' => '', 
 			'append' => ''
 			);
+
+		if(!is_string($delimiter) && is_callable($delimiter)) {
+			// first delimiter argument omitted and a function was supplied 
+			// property is assumed to be blank
+			if(is_array($property)) $options = $property; 
+			$property = $delimiter; 
+			$delimiter = '';
+		} else if(empty($property) || is_array($property)) {
+			// delimiter was omitted, forcing $property to be first arg
+			if(is_array($property)) $options = $property; 
+			$property = $delimiter; 
+			$delimiter = '';
+		}
 
 		$options = array_merge($defaults, $options); 
 		$isFunction = !is_string($property) && is_callable($property); 
@@ -1365,7 +1381,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			if($isFunction) $value = (string) $property($item, $key); 
 				else $value = (string) $item->get($property); 
 			if(!strlen($value) && $options['skipEmpty']) continue; 
-			if($n) $str .= $delimeter; 
+			if($n) $str .= $delimiter; 
 			$str .= $value; 
 			$n++;
 		}
