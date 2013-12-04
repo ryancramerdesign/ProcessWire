@@ -384,7 +384,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 
 				if($when == 'before') {
 					$arguments = $event->arguments; 
-					$result['replace'] = $event->replace === true ? true : false;
+					$result['replace'] = $event->replace === true || $result['replace'] === true; 
 					if($result['replace']) $result['return'] = $event->return;
 				}
 

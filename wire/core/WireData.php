@@ -239,6 +239,39 @@ class WireData extends Wire implements IteratorAggregate {
 	}
 
 	/**
+	 * Take the current item and append the given items, returning a new WireArray
+	 *
+	 * This is for syntactic convenience, i.e. 
+	 * if($page->and($page->parents)->has("featured=1")) { ... }
+	 *
+	 * @param WireArray|WireData|string $items May be a WireData, WireArray or gettable property from this object that returns a WireData|WireArray.
+	 * @return WireArray
+	 *
+	 */
+	public function ___and($items) {
+
+		if(is_string($items)) $items = $this->get($items); 
+
+		if($items instanceof WireArray) {
+			// great, that's what we want
+			$a = clone $items; 
+			$a->prepend($this);
+		} else if($items instanceof WireData) {
+			// single item
+			$className = get_class($this) . 'Array';
+			if(!class_exists($className)) $className = 'WireArray';		
+			$a = new $className(); 
+			$a->add($this);
+			$a->add($items); 
+		} else {
+			// unknown
+			throw new WireException('Invalid argument provided to WireData::and(...)'); 
+		}
+
+		return $a; 
+	}
+
+	/**
 	 * Ensures that isset() and empty() work for this classes properties. 
 	 *
 	 */

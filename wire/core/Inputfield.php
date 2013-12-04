@@ -309,6 +309,29 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
+	 * Remove an attribute
+	 *
+	 * @param string $key
+	 * @return this
+	 *
+	 */ 
+	public function removeAttr($key) {
+		unset($this->attributes[$key]); 
+		return $this;
+	}
+
+	/**
+	 * Remove an attribute (alias of removeAttr for syntax consistency with setAttribute)
+	 *
+	 * @param string $key
+	 * @return this
+	 *
+	 */ 
+	public function removeAttribute($key) {
+		return $this->removeAttr($key);
+	}
+
+	/**
 	 * Just like setAttribute except that it accepts an associatve array of values to set
 	 *
 	 */

@@ -28,6 +28,14 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	protected $data = array();
 
 	/**
+	 * Any extra user defined data to accompany the WireArray
+	 *
+	 * See the data() method. Note these are not under change tracking. 
+	 *
+	 */
+	protected $extraData = array();
+
+	/**
 	 * Array containing the items that have been removed from this WireArray while trackChanges is on
 	 * 
 	 * @see getRemovedKeys()
@@ -374,6 +382,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * 
 	 * @param int|string $property 
 	 * @return mixed Value of requested index, or false if it doesn't exist. 
+	 *
 	 */
 	public function __get($property) {
 		$value = parent::__get($property); 
@@ -383,7 +392,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	}
 
 	/**
-	 * Get a property of the array
+	 * Get a predefined property of the array or extra data that has been set.
 	 *
 	 * These map to functions form the array and are here for convenience.
 	 * Properties include count, last, first, keys, values.
@@ -402,7 +411,8 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			'keys' => 'getKeys',
 			'values' => 'getValues',
 			);
-		if(!in_array($property, $properties)) return null;
+		
+		if(!in_array($property, $properties)) return $this->data($property); 
 		$func = $properties[$property];
 		return $this->$func();
 	}
@@ -1327,20 +1337,123 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 * Similar to PHP's implode() function. 
 	 * 
-	 * @param string $delimeter
-	 * @param string $property
+	 * @param string $delimeter The delimeter to separate each item by (or the glue to tie them together).
+	 * @param string|function $property The property to retrieve from each item, or a function that returns the value to store.
+	 *	If a function/closure is provided it is given the $item (argument 1) and the $key (argument 2), and it should 
+	 *	return the value (string) to use. 
+	 * @param array $options Optional options to modify the behavior:
+	 *	skipEmpty: Whether empty items should be skipped (default=true)
+	 *	prepend: String to prepend to result. Ignored if result is blank. 
+	 *	append: String to prepend to result. Ignored if result is blank. 
 	 * @return string
 	 *
 	 */
-	public function implode($delimeter, $property) {
+	public function implode($delimeter, $property, array $options = array()) {
+
+		$defaults = array(
+			'skipEmpty' => true, 
+			'prepend' => '', 
+			'append' => ''
+			);
+
+		$options = array_merge($defaults, $options); 
+		$isFunction = !is_string($property) && is_callable($property); 
 		$str = '';
-		foreach($this as $item) {
-			$value = (string) $item->$property; 
-			if(!strlen($value)) continue; 
-			if(strlen($str)) $str .= $delimeter; 
+		$n = 0;
+
+		foreach($this as $key => $item) {
+			if($isFunction) $value = (string) $property($item, $key); 
+				else $value = (string) $item->get($property); 
+			if(!strlen($value) && $options['skipEmpty']) continue; 
+			if($n) $str .= $delimeter; 
 			$str .= $value; 
+			$n++;
 		}
+
+		if(strlen($str) && ($options['prepend'] || $options['append'])) {
+			$str = "$options[prepend]$str$options[append]";
+		}
+
 		return $str; 
+	}
+
+	/**
+	 * Return a plain array of the requested property from each item
+	 *
+	 * You may also provide a function as the property. That function receives the $item
+	 * as the first argument and $key as the second. It should return the value that will be stored. 
+	 *
+	 * The keys of the returned array remain consistent with the original WireArray. 
+	 *
+	 * @param string|function $property
+	 * @return array
+	 *
+	 */
+	public function explode($property) {
+		$isFunction = !is_string($property) && is_callable($property); 
+		$values = array();
+		foreach($this as $key => $item) {
+			if($isFunction) $values[$key] = $property($item, $key); 
+				else $values[$key] = $item->get($property);
+		}
+		return $values; 
+	}
+
+	/**
+	 * Return a new copy of this WireArray with the given item(s) appended
+	 *
+	 * Primarily for syntax convenience, i.e. 
+	 * if($page->parents->and($page)->has($featured)) { ... }
+	 *
+ 	 * Note: PHP doesn't allow a function named 'and' so making this hookable is what
+	 * enables us to make it a usable API function. When calling this function, you 
+	 * may use just 'and' rather than '___and'.
+	 *
+	 * @param Wire|WireArray $item
+	 * @return WireArray
+	 *
+	 */
+	public function ___and($item) {
+		$a = clone $this; 
+		$a->add($item); 
+		return $a; 
+	}
+
+	/**
+	 * Store or retrieve an extra data value in this WireArray
+	 *
+	 * The data() function is exactly the same thing that it is in jQuery:
+	 * http://api.jquery.com/data/
+	 *
+	 * Usage: 
+	 *   $a->data('key', 'value'); // set a data value 
+	 *   $value = $a->date('key'); // retrieve a data value
+	 *   $data = $a->data(); // no arguments = return all data as array
+	 *
+	 * @param string|null $key
+	 * @param string|int|object|array|null $value
+	 * @return this|string|int|object|array|null
+	 *
+	 * @todo Consider whether the utility of this may go beyond WireArray and perhaps into Wire.
+	 *
+	 */
+	public function data($key = null, $value = null) {
+		if(is_null($key) && is_null($value)) return $this->extraData; 
+		if(is_null($value)) return isset($this->extraData[$key]) ? $this->extraData[$key] : null;
+		$this->extraData[$key] = $value; 
+		return $this; 
+	}
+
+	/**
+	 * Remove an attribute
+	 *
+	 * @param string $key
+	 * @return this
+	 *
+	 */
+	public function removeData($key) {
+		unset($this->extraData[$key]); 
+		return $this;
 	}
 
 
