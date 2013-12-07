@@ -1,6 +1,7 @@
 /*@import url(http://fonts.googleapis.com/css?family=Arimo:400,700);*/
 
-$regular-font: Arimo, Arial, sans-serif; 
+/*$regular-font: Arimo, Arial, sans-serif; */
+$regular-font: Arial, sans-serif; 
 $normal-weight: normal; 
 $bold-weight: bold; 
 $button-radius: 5px; 
@@ -14,7 +15,7 @@ $form-top-margin-adjustment: -2px;
 $container-max-width: 1200px; 
 
 @import 'fonts';
-@import 'colors-modern';
+@import 'colors-warm';
 @import 'reset';
 @import 'jquery-ui'; 
 @import 'ui';
@@ -47,7 +48,7 @@ $container-max-width: 1200px;
 body {
 	background: $footer-bg; 
 	font-size: 100%; 
-	overflow-y: scroll;
+	/* overflow-y: scroll;*/
 
 }
 	body,

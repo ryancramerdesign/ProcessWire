@@ -587,10 +587,14 @@ function overflowAdjustments() {
 
 	if(documentHeight > windowHeight) {
 		// there is already a scrollbar
-		if($body.css('overflow-y') == 'scroll') $body.css('overflow-y', 'auto');
+		if($body.css('overflow-y') == 'scroll') {
+			$body.css('overflow-y', 'visible');
+			consoleLog("Setting overflow-y to visible"); 
+		}
 	} else {
 		// force a scrollbar
 		$body.css('overflow-y', 'scroll');
+		consoleLog("Setting overflow-y to scroll"); 
 	}
 }
 
@@ -600,7 +604,7 @@ function InputfieldWindowResizeActions() {
 	consoleLog('InputfieldWindowResizeActions()'); 
 	InputfieldColumnWidths(); 
 	InputfieldWindowResizeQueued = false;
-	overflowAdjustments();
+	// overflowAdjustments();
 }
 
 $(document).ready(function() {
@@ -624,5 +628,5 @@ $(document).ready(function() {
 	$(window).resize(windowResized); 
 	$("ul.WireTabs > li > a").click(tabClicked); 
 
-	setTimeout('overflowAdjustments()', 100); 
+	// setTimeout('overflowAdjustments()', 100); 
 }); 
