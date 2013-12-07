@@ -367,7 +367,9 @@ class FieldtypeDatetime extends FieldtypeText {
 	 *
 	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
-		$value = date('Y-m-d H:i:s', $this->_sanitizeValue($value)); 
+		$value = (int) $this->_sanitizeValue($value); 
+		if($value) $value = date('Y-m-d H:i:s', $value); 
+			else $value = '';
 		$database = $this->wire('database');
 		if($database->isOperator($operator)) {
 			$table = $database->escapeTable($table);
