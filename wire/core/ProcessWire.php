@@ -34,7 +34,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 3; 
-	const versionRevision = 0; 
+	const versionRevision = 1; 
 
 	/**
 	 * Given a Config object, instantiates ProcessWire and it's API

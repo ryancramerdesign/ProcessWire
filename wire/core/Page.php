@@ -803,7 +803,7 @@ class Page extends WireData {
 	 * @param bool $onlyVisible When true, number includes only visible children (excludes unpublished, hidden, no-access, etc.)
 	 *
 	 */
-	public function numChildren($onlyVisible = false) {
+	public function numChildren($onlyViewable = false) {
 		if(!$onlyViewable) return $this->settings['numChildren'];
 		return $this->children('limit=2')->getTotal();
 	}
