@@ -64,6 +64,7 @@
 			var buildingSelect = false; 				// is the new select being constructed right now?
 			var ieClick = false;					// in IE, has a click event occurred? ignore if not
 			var ignoreOriginalChangeEvent = false;			// originalChangeEvent bypassed when this is true
+			var msie = 0; 
 
 			function init() {
 
@@ -97,7 +98,11 @@
 
 				if(options.sortable) makeSortable();
 
-				if($.browser.msie && $.browser.version < 8) $ol.css('display', 'inline-block'); // Thanks Matthew Hutton
+				if(typeof $.browser != "undefined" && typeof $.browser.msie != "undefined") {
+					msie = $.browser.msie ? $.browser.version : 0;
+				}
+
+				if(msie > 0 && msie < 8) $ol.css('display', 'inline-block'); // Thanks Matthew Hutton
 
 				$original.trigger('init'); 
 			}
@@ -148,7 +153,7 @@
 				// an item has been selected on the regular select we created
 				// check to make sure it's not an IE screwup, and add it to the list
 
-				if($.browser.msie && $.browser.version < 7 && !ieClick) return;
+				if(msie > 0 && msie < 7 && !ieClick) return;
 				var id = $(this).children("option:selected").slice(0,1).attr('rel'); 
 				addListItem(id); 	
 				ieClick = false; 
@@ -262,7 +267,7 @@
 				}
 
 				if(options.hideWhenAdded) $option.hide();
-				if($.browser.msie) $select.hide().show(); // this forces IE to update display
+				if(msie) $select.hide().show(); // this forces IE to update display
 			}
 
 			function enableSelectOption($option) {
@@ -274,7 +279,7 @@
 
 				if(options.hideWhenEmpty) $select.show(); 
 				if(options.hideWhenAdded) $option.show();
-				if($.browser.msie) $select.hide().show(); // this forces IE to update display
+				if(msie) $select.hide().show(); // this forces IE to update display
 			}
 
 			function addListItem(optionId) {

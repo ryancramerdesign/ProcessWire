@@ -67,6 +67,10 @@ class FieldtypeFloat extends Fieldtype {
 
 	public function ___sleepValue(Page $page, Field $field, $value) {
 
+		$value = number_format($value, $field->precision, ".", "");
+
+		/*
+
 		// handle commas vs. dots issue with other locales
 		$info = localeconv();
 
@@ -83,6 +87,7 @@ class FieldtypeFloat extends Fieldtype {
 		}
 
 		$value = floatval($value); 
+		*/
 		return $value; 
 	}
 

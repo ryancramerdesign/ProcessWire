@@ -55,7 +55,7 @@ var editorCursorPosition; // for IE8
 				});
 
 				var windowWidth = $(window).width() -300; 
-				var windowHeight = $(window).height()-300; 
+				var windowHeight = $(window).height()-350; 
 				if(windowHeight > 800) windowHeight = 800; 
 
 				var insertLinkLabel = config.InputfieldTinyMCE.pwlink.label; 

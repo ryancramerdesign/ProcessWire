@@ -68,7 +68,7 @@ var $iframe;
 				var modalUri = config.urls.admin + 'page/image/';
 				var queryString = '?id=' + page_id + '&modal=1';
 
-				var windowHeight = $(window).height() - 250; 
+				var windowHeight = $(window).height() - 350; 
 				var windowWidth = $(window).width() - 200; 
 
 				if(file.length) queryString += "&file=" + file; 
