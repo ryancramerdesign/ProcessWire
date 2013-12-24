@@ -283,8 +283,11 @@ class Pagefiles extends WireArray {
 		$basename .= $ext;
 		if($originalize) { 
 			$n = 0; 
+			$p = pathinfo($basename);
 			while(is_file($path . $basename)) {
-				$basename = (++$n) . "_" . preg_replace('/^\d+_/', '', $basename); 
+				$n++;
+				$basename = "$p[filename]-$n.$p[extension]"; // @hani
+				// $basename = (++$n) . "_" . preg_replace('/^\d+_/', '', $basename); 
 			}
 		}
 		return $basename; 

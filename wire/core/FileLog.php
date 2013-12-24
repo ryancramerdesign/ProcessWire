@@ -192,8 +192,12 @@ class FileLog {
 		return $this->filename(); 
 	}	
 
-	public function setDelimeter($c) {
+	public function setDelimiter($c) {
 		$this->delimeter = $c; 
+	}
+
+	public function setDelimeter($c) {
+		$this->setDelimiter($c); 
 	}
 
 	public function setMaxLineLength($c) {

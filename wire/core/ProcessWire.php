@@ -33,7 +33,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 3; 
-	const versionRevision = 8; 
+	const versionRevision = 9; 
 	
 	const statusBoot = 0; // system is booting
 	const statusInit = 2; // system and modules are initializing
@@ -69,18 +69,54 @@ class ProcessWire extends Wire {
 		ini_set('default_charset','utf-8');
 
 		if(!$config->templateExtension) $config->templateExtension = 'php';
-		if(!$config->httpHost) {
-			if(isset($_SERVER['HTTP_HOST']) && $host = $_SERVER['HTTP_HOST']) {
-				if(!preg_match('/^[-a-zA-Z0-9.:]+$/D', $host)) $host = '';
-				$config->httpHost = $host;
-			}
-		}
+		if(!$config->httpHost) $config->httpHost = $this->getHttpHost($config); 
 
 		$config->https = !empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on'; 
 		$config->ajax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest');
 		$config->version = self::versionMajor . "." . self::versionMinor . "." . self::versionRevision; 
 		$this->setStatus(self::statusBoot);
+	}
 
+	/**
+	 * Safely determine the HTTP host
+	 *
+	 */
+	protected function getHttpHost(Config $config) {
+
+		$httpHosts = $config->httpHosts; 
+		$port = (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != 80) ? (':' . ((int) $_SERVER['SERVER_PORT'])) : '';
+
+		if(is_array($httpHosts) && count($httpHosts)) {
+			// validate from an allowed whitelist of http hosts
+
+			$key = array_search(strtolower($_SERVER['SERVER_NAME']) . $port, $httpHosts, true); 
+			if($key === false) $key = array_search(strtolower($_SERVER['HTTP_HOST']), $httpHosts, true); 
+			if($key === false) {
+				// no valid host found, default to first in whitelist
+				$host = reset($httpHosts);
+			} else {
+				// found a valid host
+				$host = $httpHosts[$key];
+			}
+
+		} else {
+			// pull from server_name or http_host and sanitize
+			
+			if(isset($_SERVER['SERVER_NAME']) && $host = $_SERVER['SERVER_NAME']) {
+				// no whitelist available, so defer to server_name
+				$host .= $port; 
+
+			} else if(isset($_SERVER['HTTP_HOST']) && $host = $_SERVER['HTTP_HOST']) {
+				// fallback to sanitized http_host if server_name not available
+				// note that http_host already includes port if not 80
+				$host = $_SERVER['HTTP_HOST'];
+			}
+
+			// sanitize since it did not come from a whitelist
+			if(!preg_match('/^[-a-zA-Z0-9.:]+$/D', $host)) $host = ''; 
+		}
+
+		return $host; 
 	}
 
 	/**

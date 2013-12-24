@@ -101,6 +101,14 @@ a {
 		background: $link-active-bg; 
 	}
 
+strong {
+	font-weight: bold; 
+}
+
+em {
+	font-style: italic; 
+}
+
 .WireFatalError {
 	background: $error-bg; 
 	color: $reverse-text-color; 
@@ -424,6 +432,7 @@ body.hasWireTabs #breadcrumbs {
 		font-weight: $bold-weight;
 		font-size: 0.916666666666667em;
 	}
+
 
 	li {
 		margin: 1em 0; 

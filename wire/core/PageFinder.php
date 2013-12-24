@@ -740,6 +740,7 @@ class PageFinder extends Wire {
 				$subfield = $field;
 				$field = 'children';
 			}
+			if($field == 'child') $field = 'children';
 
 			if(in_array($field, array('parent', 'parent_id', 'children'))) {
 
@@ -770,8 +771,13 @@ class PageFinder extends Wire {
 					} else {
 						// native
 						static $n = 0;
-						$table = "_parent_native" . (++$n);
-						$query->join("pages AS $table ON pages.parent_id=$table.id");
+						if($field == 'children') {
+							$table = "_children_native" . (++$n);
+							$query->join("pages AS $table ON $table.parent_id=pages.id");
+						} else {
+							$table = "_parent_native" . (++$n);
+							$query->join("pages AS $table ON pages.parent_id=$table.id");
+						}
 						$field = $subfield;
 					}
 				}

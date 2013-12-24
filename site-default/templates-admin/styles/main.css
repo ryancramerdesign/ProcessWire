@@ -1108,7 +1108,7 @@ a {
 /* left-aligned */
 .ui-menu .ui-icon {
   position: absolute;
-  top: .2em;
+  top: .4em;
   left: .2em; }
 
 /* right-aligned */
@@ -2844,6 +2844,12 @@ a.on {
 a:active {
   color: #f64704;
   background: none; }
+
+strong {
+  font-weight: bold; }
+
+em {
+  font-style: italic; }
 
 .WireFatalError {
   background: #dd4004;
