@@ -542,6 +542,7 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	public function getChildByName($name) {
+		if(!strlen($name)) return null;
 		$inputfield = $this->children->find("name=$name"); 	
 		if(count($inputfield)) return $inputfield->first();
 		return null;

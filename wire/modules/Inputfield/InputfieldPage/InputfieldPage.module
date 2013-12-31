@@ -644,7 +644,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$inputfield->hasFieldtype = true; // tell it it's under control of a parent, regardless of whether this one is hasFieldtype true or not.
 			foreach($inputfield->___getConfigInputfields() as $f) {
 				if(in_array($f->name, array('required', 'collapsed', 'columnWidth')) || array_key_exists($f->name, self::$defaultConfig)) continue; 
-				if($inputfields->getChildByName($f->name)) continue; // if we already have the given field, skip over it to avoid duplication
+				if($f->name && $inputfields->getChildByName($f->name)) continue; // if we already have the given field, skip over it to avoid duplication
 				$inputfields->add($f); 
 			}
 		}
