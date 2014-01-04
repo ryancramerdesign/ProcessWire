@@ -5,7 +5,7 @@ class JqueryUI extends ModuleJS {
         public static function getModuleInfo() {
                 return array(
                         'title' => 'jQuery UI',
-                        'version' => 192,
+                        'version' => 193,
                         'summary' => 'jQuery UI as required by ProcessWire and plugins',
 			'href' => 'http://ui.jquery.com', 
 			'permanent' => true, 

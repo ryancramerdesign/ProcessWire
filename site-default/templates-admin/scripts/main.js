@@ -96,7 +96,7 @@ var ProcessWireAdminTheme = {
 		}, function() {
 			$(this).removeClass("ui-state-hover").addClass("ui-state-default");
 		}).click(function() {
-			$(this).removeClass("ui-state-default").addClass("ui-state-active").effect('highlight', {}, 500); 
+			$(this).removeClass("ui-state-default").addClass("ui-state-active"); // .effect('highlight', {}, 100); 
 		});
 
 		// make buttons with <a> tags click to the href of the <a>
@@ -153,6 +153,12 @@ var ProcessWireAdminTheme = {
 			search: function(event, ui) {
 				$status.html("<img src='" + config.urls.modules + "Process/ProcessPageList/images/loading.gif'>");
 			},
+			open: function(event, ui) {
+				$("#topnav").hide();
+			},
+			close: function(event, ui) {
+				$("#topnav").show();
+			},
 			source: function(request, response) {
 				var url = $input.parents('form').attr('action') + 'for?get=template_label,title&include=all&admin_search=' + request.term;
 				$.getJSON(url, function(data) {
@@ -172,8 +178,11 @@ var ProcessWireAdminTheme = {
 				});
 			},
 			select: function(event, ui) { }
+		}).focus(function() {
+			$(this).siblings('label').find('i').hide(); // hide icon
 		}).blur(function() {
 			$status.text('');	
+			$(this).siblings('label').find('i').show(); // show icon
 		});
 		
 	},
@@ -233,7 +242,9 @@ var ProcessWireAdminTheme = {
 				$ul.hide();
 				$a.removeClass('hover'); 
 			}); 
+
 		});
+
 
 	}, 	
 

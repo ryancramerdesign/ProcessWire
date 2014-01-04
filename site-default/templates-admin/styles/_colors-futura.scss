@@ -36,16 +36,26 @@ $link-active-color: $link-hover-color;
 
 $alt-link-color: $link-color; 
 
-$button-bg: $link-color; 
-$button-border: $link-color; 
+$button-bg: $green;
+$button-border: $green;
 $button-color: $white;
-$button-hover-bg: $green;
-$button-hover-border: $green;
+$button-hover-color: $white;
+$button-hover-bg: $link-color;
+$button-hover-border: $link-color;
+$button-active-color:  $white;
+$button-active-bg: darken($link-hover-color, 10%); 
+$button-active-border: $button-active-bg; 
+
 
 $ui-state-default-bg: darken($subtle-bg, 37%);
 $ui-state-default-color: $reverse-text-color; 
 $ui-state-hover-bg: $black;
 $ui-state-hover-color: $reverse-text-color; 
+
+$ui-state-default-bg: $green;
+$ui-state-default-color: $white;
+$ui-state-hover-bg: $link-color;
+$ui-state-hover-color: $white; 
 
 $label-link-color: $black;
 $label-link-bg: #fff; /* -webkit-linear-gradient(top, $subtle-bg 0%, #fff 100%);*/
@@ -66,10 +76,10 @@ $highlight-bg: $green; /* #D1F486;*/
 $highlight-color: $white; 
 $highlight-border: 1px solid #fff; 
 
-$item-header-bg: $link-hover-color;
+$item-header-bg: $green;
 $item-header-color: $white; 
 $item-header-hover-color: $white;
-$item-header-hover-bg: $green;
+$item-header-hover-bg: $link-color;
 $item-border: 1px solid $subtle-border; 
 
 $breadcrumbs-bg: darken($headline-bg, 3%); 

@@ -22,7 +22,7 @@ $medium-text-color: #777;
 $light-text-color: #999; 
 $reverse-text-color: $white;
 
-$subtle-bg: lighten($light-khaki, 3%);
+$subtle-bg: lighten($light-khaki, 5%);
 $subtle-border: $light-khaki; 
 
 $link-color: $orange;
@@ -38,8 +38,12 @@ $alt-link-color: $green;
 $button-bg: $light-green; 
 $button-border: $light-green;
 $button-color: $white;
+$button-hover-color: $white; 
 $button-hover-bg: $link-hover-color;
 $button-hover-border: $link-hover-color; 
+$button-active-color:  $white;
+$button-active-bg: darken($link-hover-color, 10%); 
+$button-active-border: $button-active-bg; 
 
 $ui-state-default-bg: $light-orange;
 $ui-state-default-color: $reverse-text-color; 
@@ -69,10 +73,6 @@ $item-header-hover-color: $white;
 $item-header-hover-bg: $link-hover-color; 
 $item-border: 1px solid $subtle-bg; 
 
-$masthead-bg: #A73003;
-$masthead-bg: #333F4D;
-$masthead-bg: #564640;
-$masthead-bg: #514845; 
 $masthead-bg: #615652; 
 $masthead-secondary-bg: none; /* -webkit-linear-gradient(top, $masthead-bg 0%, darken($masthead-bg, 5%) 100%); */
 $masthead-secondary-border: none; /* 1px solid transparentize($white, 0.95); */

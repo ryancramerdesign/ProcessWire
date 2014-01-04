@@ -130,6 +130,7 @@ class ProcessPageEdit extends Process {
 			$this->form->description = '';
 		}
 		$out .= $this->form->render();
+		$out .= "<script>initPageEditForm();</script>"; // ends up being slightly faster than ready() (or at least appears that way)
 		return $out; 
 	}
 

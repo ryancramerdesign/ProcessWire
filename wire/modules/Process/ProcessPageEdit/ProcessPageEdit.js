@@ -1,4 +1,4 @@
-$(document).ready(function() {
+function initPageEditForm() {
 
 	var $p = $("#ProcessPageEdit"); 
 
@@ -13,14 +13,13 @@ $(document).ready(function() {
 		// remove the ui-widget-content div as it is extraneous when used in a tab
 		$(this).children(".InputfieldContent").remove().children("ul").appendTo($(this));
 	}); 
-	
 	// instantiate the WireTabs
-	$p.WireTabs({
+	$('#ProcessPageEdit').WireTabs({
 		items: $("#ProcessPageEdit > .Inputfields > .InputfieldWrapper, #ProcessPageEdit > .Inputfields .InputfieldFieldsetTabOpen"),
 		id: 'PageEditTabs',
 		skipRememberTabIDs: ['ProcessPageEditDelete']
-		});
-
+	});
+	
 	// WireTabs gives each tab link that it creates an ID equal to the ID on the tab content
 	// except that the link ID is preceded by an underscore
 	$("#_ProcessPageEditView").unbind('click').attr('href', $("#ProcessPageEditView a").attr('href')); 
@@ -37,4 +36,4 @@ $(document).ready(function() {
 		$("#ProcessPageEdit").submit();
 	}); 
 
-}); 
+}

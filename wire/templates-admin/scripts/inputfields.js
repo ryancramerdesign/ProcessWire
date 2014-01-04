@@ -548,7 +548,7 @@ function InputfieldStates() {
 		$li.toggleClass('InputfieldStateCollapsed', 100);
 		$(this).children('i.toggle-icon').toggleClass('icon-angle-down icon-angle-right');
 
-		if($.effects && $.effects['highlight']) $li.children('.InputfieldHeader, .ui-widget-header').effect('highlight', {}, 300);
+		// if($.effects && $.effects['highlight']) $li.children('.InputfieldHeader, .ui-widget-header').effect('highlight', {}, 300);
 		setTimeout('InputfieldColumnWidths()', 500); 
 		return false;
 	});
