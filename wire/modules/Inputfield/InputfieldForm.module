@@ -10,7 +10,7 @@ class InputfieldForm extends InputfieldWrapper {
 		return array(
 			'title' => __('Form', __FILE__), // Module Title
 			'summary' => __('Contains one or more fields in a form', __FILE__), // Module Summary
-			'version' => 102,
+			'version' => 103,
 			'permanent' => true, 
 			);
 	}
@@ -255,9 +255,10 @@ class InputfieldForm extends InputfieldWrapper {
 		
 						$value = $dependencyChild->attr('value');
 						if($subfield == 'count') $value = count($value);
-		
+						if(is_object($value)) $value = "$value";
+
 						if(!$selector->matches($value)) {
-							if($debug) $this->message("$child->name - did not match: requiredIf($selector)");
+							if($debug) $this->message("$name - did not match: requiredIf($selector)");
 							$required = false;
 							break;
 						}
