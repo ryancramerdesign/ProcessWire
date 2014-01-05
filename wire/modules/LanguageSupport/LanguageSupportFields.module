@@ -141,15 +141,23 @@ class LanguageSupportFields extends WireData implements Module {
 		$newField = $page->fields->getField($newName);
 		if(!$newField) return;
 
+		// unformatted so nothing can modify it first
+		$value = $page->getUnformatted($newName); 
+
 		// if the page doesn't have a populated language-specific field, then exit
-		if($page->getUnformatted($newName)) { // unformatted so nothing can modify it first
-			// we have a new field: swap $field with $newField in the arguments
-			$newValue = $page->get($newName); // get formatted version
-			$arguments = $event->arguments; 
-			$arguments[1] = $newField; 
-			$arguments[2] = $newValue; 
-			$event->arguments = $arguments; 
+		// this will make it fallback to the default language value
+		if(empty($value)) return;
+		if(is_object($value)) {
+			if($value instanceof WireArray && !$value->count()) return;
+			if($value instanceof NullPage) return; 
 		}
+
+		// we have a new field: swap $field with $newField in the arguments
+		$newValue = $page->get($newName); // get formatted version
+		$arguments = $event->arguments; 
+		$arguments[1] = $newField; 
+		$arguments[2] = $newValue; 
+		$event->arguments = $arguments; 
 	}
 
 	/**
