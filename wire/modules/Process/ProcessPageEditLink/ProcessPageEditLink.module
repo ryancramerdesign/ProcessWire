@@ -26,7 +26,7 @@ class ProcessPageEditLink extends Process {
 		return array(
 			'title' => 'Page Edit Link',          
 			'summary' => 'Provides a link capability as used by some Fieldtype modules (like TinyMCE)', 
-			'version' => 103, 
+			'version' => 104, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
@@ -40,6 +40,7 @@ class ProcessPageEditLink extends Process {
 		$id = (int) $this->input->get->id; 
 		if($id) $this->page = $this->pages->get($id); 
 		if($this->page && $this->page->id && !$this->user->hasPermission("page-view", $this->page)) throw new WireException("You don't have access to this page"); 
+		if(!$this->page) $this->page = new NullPage();
 
 		//$target = $this->sanitizer->name($this->input->get->target); 
 		//$this->config->js('ProcessPageEditLinkTarget', $target); 
@@ -91,7 +92,7 @@ class ProcessPageEditLink extends Process {
 
 	protected function getFiles() {
 		$files = array();
-		foreach($this->page->fields as $f) {
+		if($this->page->id) foreach($this->page->fields as $f) {
 			if(!$f->type instanceof FieldtypeFile) continue;
 			foreach($this->page->get($f->name) as $file) {
 				$files[$file->url] = $f->name . ' - ' . $file->basename; 
@@ -109,7 +110,7 @@ class ProcessPageEditLink extends Process {
 		$field->addOption('');
 		$field->addOptions($files); 
 		$field->collapsed = Inputfield::collapsedYes; 
-		$field->notes = $this->page->url; 
+		if($this->page->id) $field->notes = $this->page->url; 
 		$field->description = $this->_("To select a file from another page, click 'Link to Page' above and choose the page you want to select a file from."); // Instruction on how to select a file from another page
 		return $field;
 
