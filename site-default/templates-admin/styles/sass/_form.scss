@@ -24,9 +24,20 @@ textarea {
 input,
 textarea {
 	/* slight padding for input and textarea elements... */
-	padding: 0.2em 0.3em;
-	line-height: 1.3em; 
-	color: $text-color; 
+	padding: $input-padding; 
+	line-height: $input-line-height; 
+	color: $input-color; 
+	border: $input-border; 
+	border-color: $input-border-color; 
+        background: $input-bg;
+
+}
+
+input[type=file] {
+	background: none; 
+	border: none; 
+	line-height: 1em;
+	font-size: $notes-font-size;
 }
 
 textarea,

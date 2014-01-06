@@ -91,6 +91,12 @@
 		&.ui-state-error {
 			border: none; 
 		}
+
+		select + ol {
+			/* i.e. asmSelect */ 
+			margin-top: 0.1em;
+		}
+
 	}
 
 	> .Inputfield {

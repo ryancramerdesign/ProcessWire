@@ -159,3 +159,11 @@ $notes-font-size: 0.846153846153846em;
 
 $form-top-margin-adjustment: -2px; 
 
+$input-color: $text-color;
+$input-border: 1px solid;
+$input-border-color: #7C7C7C #C3C3C3 #DDDDDD #C3C3C3; 
+$input-bg: lighten($subtle-bg, 3%);
+$input-line-height: 1.3em;
+$input-padding: 0.2em 0.3em;
+
+

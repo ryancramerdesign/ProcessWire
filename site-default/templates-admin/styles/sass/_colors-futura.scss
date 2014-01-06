@@ -11,7 +11,8 @@ $subtle-bg: #F0F0F0;
 $subtle-border: darken($subtle-bg, 8%);
 
 $link-color: #DB1F2C;
-$link-hover-color: $red;
+$link-color: #BD363F;
+$link-hover-color: $green;
 $link-hover-bg: none; 
 $link-current-color: $light-green;
 $link-current-bg: none; 
@@ -20,12 +21,12 @@ $link-active-color: $link-hover-color;
 
 $alt-link-color: $link-color; 
 
-$button-bg: $green;
-$button-border: $green;
+$button-bg: $link-color;
+$button-border: $link-color;
 $button-color: $white;
 $button-hover-color: $white;
-$button-hover-bg: $link-color;
-$button-hover-border: $link-color;
+$button-hover-bg: $link-hover-color;
+$button-hover-border: $link-hover-color;
 $button-active-color:  $white;
 $button-active-bg: darken($link-hover-color, 10%); 
 $button-active-border: $button-active-bg; 
@@ -64,7 +65,7 @@ $item-border: 1px solid $subtle-border;
 $breadcrumbs-bg: $subtle-bg;
 $breadcrumbs-color: lighten($text-color, 50%);
 $breadcrumbs-link-color: $link-color; 
-$breadcrumbs-link-hover-color: $link-color; 
+$breadcrumbs-link-hover-color: $link-hover-color; 
 $breadcrumbs-border: none; 
 $breadcrumbs-title-color: $text-color; 
 
@@ -86,17 +87,17 @@ $action-link-active-color: $reverse-text-color;
 $action-link-active-bg: $black;
 
 $pagelist-link-color: #222; 
-$pagelist-link-hover-color: $link-hover-color;
-$pagelist-link-open-color: $link-hover-color; 
+$pagelist-link-hover-color: $link-color;
+$pagelist-link-open-color: $link-color; 
 $pagelist-link-open-bg: none; 
 $pagelist-link-active-color: $link-hover-color; 
 $pagelist-link-icon-color: $link-color; 
 
 $pagination-font-size: 0.875em;
-$pagination-link-color: $white; 
-$pagination-link-bg: $link-color; 
-$pagination-link-current-color: $text-color;
-$pagination-link-current-bg: $breadcrumbs-bg; 
+$pagination-link-color: $text-color; 
+$pagination-link-bg: $subtle-bg;
+$pagination-link-current-color: $white;
+$pagination-link-current-bg: $link-color;
 $pagination-link-hover-color: $white;
 $pagination-link-hover-bg: $green;
 $pagination-link-active-color: $white; 
@@ -129,3 +130,4 @@ $notes-font-size: 0.875em;
 $button-radius: 5px; 
 $tabs-radius: 5px; 
 
+$input-bg: lighten($subtle-bg, 2%);

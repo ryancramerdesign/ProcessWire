@@ -1952,7 +1952,16 @@ textarea {
   /* slight padding for input and textarea elements... */
   padding: 0.2em 0.3em;
   line-height: 1.3em;
-  color: #222222; }
+  color: #222222;
+  border: 1px solid;
+  border-color: #7c7c7c #c3c3c3 #dddddd #c3c3c3;
+  background: #f6f5f1; }
+
+input[type=file] {
+  background: none;
+  border: none;
+  line-height: 1em;
+  font-size: 0.84615em; }
 
 textarea,
 input.InputfieldMaxWidth {
@@ -2045,6 +2054,9 @@ table {
       margin-bottom: 0; }
     .Inputfields .Inputfield.ui-state-error {
       border: none; }
+    .Inputfields .Inputfield select + ol {
+      /* i.e. asmSelect */
+      margin-top: 0.1em; }
   .Inputfields > .Inputfield {
     display: block;
     clear: both; }
@@ -2712,6 +2724,7 @@ body,
 button,
 input,
 th, td,
+select,
 textarea {
   font-weight: normal;
   font-family: Arial, sans-serif; }

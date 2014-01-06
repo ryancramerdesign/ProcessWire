@@ -1573,7 +1573,7 @@ body .ui-tooltip {
  *
  */
 .content .ui-widget-content a {
-  color: #db1f2c; }
+  color: #bd363f; }
 .content li.ui-state-default,
 .content .ui-widget-content li.ui-state-default {
   background: #70b340;
@@ -1588,9 +1588,9 @@ body .ui-tooltip {
   /* WHITE */ }
 .content li.ui-state-hover,
 .content .ui-widget-content li.ui-state-hover {
-  background: #db1f2c;
+  background: #bd363f;
   /* LIGHT-KHAKI */
-  border-color: #db1f2c;
+  border-color: #bd363f;
   /* LIGHT-KHAKI */
   color: white; }
 .content li.ui-state-hover a,
@@ -1601,7 +1601,7 @@ body .ui-tooltip {
 .InputfieldForm .ui-accordion-header,
 .ui-accordion-header {
   padding-left: 1.5em;
-  background: #70b340;
+  background: #bd363f;
   border: none;
   color: white; }
 
@@ -1717,9 +1717,9 @@ button.ui-button.ui-state-default,
 .ui-button.ui-state-default {
   color: white;
   /* WHITE */
-  background: #70b340;
+  background: #bd363f;
   /* LIGHT-GREEN */
-  border: 1px solid #70b340;
+  border: 1px solid #bd363f;
   /* LIGHT-GREEN */
   font-weight: bold;
   padding: 0.6em 1.1em;
@@ -1736,9 +1736,9 @@ button.ui-button.ui-state-active,
 .ui-button.ui-state-active {
   box-shadow: none !important;
   color: white;
-  background: #db1f2c;
+  background: #70b340;
   /* CYAN */
-  border: 1px solid #db1f2c;
+  border: 1px solid #70b340;
   /* CYAN */
   font-weight: bold;
   font-size: 1em !important;
@@ -1747,9 +1747,9 @@ button.ui-button.ui-state-active,
 button.ui-button.ui-state-active,
 .ui-button.ui-state-active {
   color: white;
-  background: #8c151a;
+  background: #588d33;
   /* CYAN */
-  border: 1px solid #8c151a;
+  border: 1px solid #588d33;
   /* CYAN */ }
 
 div + a > .ui-button {
@@ -1762,7 +1762,7 @@ div + a > .ui-button {
 .ui-slider .ui-slider-range,
 .ui-widget .ui-slider .ui-slider-range,
 .ui-widget-content .ui-slider .ui-slider-range {
-  background: #b81c22;
+  background: #70b340;
   /* CYAN */
   /* remove padding added to Inputfields that was getting inherited here */
   padding: 0; }
@@ -1957,7 +1957,16 @@ textarea {
   /* slight padding for input and textarea elements... */
   padding: 0.2em 0.3em;
   line-height: 1.3em;
-  color: #222222; }
+  color: #222222;
+  border: 1px solid;
+  border-color: #7c7c7c #c3c3c3 #dddddd #c3c3c3;
+  background: whitesmoke; }
+
+input[type=file] {
+  background: none;
+  border: none;
+  line-height: 1em;
+  font-size: 0.875em; }
 
 textarea,
 input.InputfieldMaxWidth {
@@ -2050,6 +2059,9 @@ table {
       margin-bottom: 0; }
     .Inputfields .Inputfield.ui-state-error {
       border: none; }
+    .Inputfields .Inputfield select + ol {
+      /* i.e. asmSelect */
+      margin-top: 0.1em; }
   .Inputfields > .Inputfield {
     display: block;
     clear: both; }
@@ -2076,7 +2088,7 @@ table {
     color: #a2a2a2; }
     .Inputfields .InputfieldStateCollapsed .InputfieldHeader:hover {
       /* style for collapsed header when hovered */
-      color: #b81c22;
+      color: #70b340;
       border-color: gainsboro;
       background: white; }
   .Inputfields .InputfieldStateCollapsed .InputfieldContent {
@@ -2089,7 +2101,7 @@ table {
     border-bottom: none;
     color: #222222; }
   .Inputfields .InputfieldHeader:hover {
-    color: #b81c22; }
+    color: #70b340; }
   .Inputfields .InputfieldWrapper > .description {
     margin: 0;
     padding-bottom: 1em;
@@ -2118,7 +2130,7 @@ table {
         color: white;
         cursor: pointer; }
         .Inputfields .InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem > .InputfieldHeader a:hover {
-          background: #db1f2c;
+          background: #bd363f;
           color: white;
           border: none; }
       .Inputfields .InputfieldRepeater > .InputfieldContent .InputfieldRepeaterItem > .InputfieldHeader i.toggle-icon {
@@ -2159,7 +2171,7 @@ table {
       /* WHITE */ }
     .Inputfields .InputfieldItemList .InputfieldItemHeader:hover {
       /* file or repeater item header in hover state */
-      background: #db1f2c;
+      background: #bd363f;
       color: white;
       border: none; }
       .Inputfields .InputfieldItemList .InputfieldItemHeader:hover a {
@@ -2417,10 +2429,10 @@ table {
       color: #222222;
       font-weight: bold; }
     #breadcrumbs ul li a {
-      color: #db1f2c;
+      color: #bd363f;
       margin-right: 0.5em; }
       #breadcrumbs ul li a:hover {
-        color: #db1f2c;
+        color: #70b340;
         background: none;
         text-decoration: underline; }
       #breadcrumbs ul li a.sitelink {
@@ -2492,7 +2504,7 @@ table {
     #content .WireTabs a:hover {
       border: 1px solid gainsboro;
       border-bottom: none;
-      color: #b81c22;
+      color: #70b340;
       background: rgba(255, 255, 255, 0.5); }
       #content .WireTabs a:hover em {
         border: none; }
@@ -2500,7 +2512,7 @@ table {
       background: #f0f0f0;
       color: #222222; }
   #content .WireTabs #_ProcessPageEditView {
-    color: #db1f2c;
+    color: #bd363f;
     font-weight: normal; }
     #content .WireTabs #_ProcessPageEditView:hover {
       background: none;
@@ -2562,7 +2574,7 @@ table {
     /* action links hovered */
     color: white;
     background: #222222;
-    border: 1px solid #db1f2c; }
+    border: 1px solid #bd363f; }
   .content .PageListMoveNote {
     text-transform: lowercase;
     cursor: move; }
@@ -2582,21 +2594,21 @@ table {
       opacity: 1.0; }
       .content .PageList .PageListItem > a.PageListPage:hover {
         text-decoration: underline;
-        color: #b81c22; }
+        color: #bd363f; }
         .content .PageList .PageListItem > a.PageListPage:hover i {
           text-decoration: none; }
       .content .PageList .PageListItem > a.PageListPage:active {
         text-decoration: underline;
-        color: #b81c22; }
+        color: #70b340; }
       .content .PageList .PageListItem > a.PageListPage i {
         /* icon */
         padding: 0 0.25em 0 0;
-        color: #db1f2c; }
+        color: #bd363f; }
         .content .PageList .PageListItem > a.PageListPage i.icon-lock, .content .PageList .PageListItem > a.PageListPage i.icon-unlock, .content .PageList .PageListItem > a.PageListPage i.icon-trash {
           padding: 0 0 0 0.25em;
           color: #777; }
   .content .PageList .PageListItemOpen > a.PageListPage {
-    color: #b81c22;
+    color: #bd363f;
     background-color: none; }
   .content .PageList .PageListStatusHidden:not(.PageListItemOpen) > a.PageListPage {
     opacity: 0.6; }
@@ -2636,9 +2648,9 @@ table {
   .content .AdminDataList tr:hover th {
     background: #ffffdd; }
   .content .AdminDataList td a {
-    color: #db1f2c; }
+    color: #bd363f; }
   .content .AdminDataList td a:hover {
-    color: #b81c22; }
+    color: #70b340; }
 
 .content {
   /** 
@@ -2671,8 +2683,8 @@ table {
     font-size: 0.875em; }
     .content .PageListPagination a,
     .content .MarkupPagerNav a {
-      background: #db1f2c;
-      color: white;
+      background: #f0f0f0;
+      color: #222222;
       font-weight: bold;
       -webkit-border-radius: 3px;
       -moz-border-radius: 3px;
@@ -2689,11 +2701,11 @@ table {
       .content .PageListPagination a:active,
       .content .MarkupPagerNav a:active {
         color: white;
-        background: #b81c22; }
+        background: #70b340; }
   .content .PageListPaginationCurrent a,
   .content .MarkupPagerNavOn a {
-    color: #222222;
-    background: #f0f0f0; }
+    color: white;
+    background: #bd363f; }
 
 /***********************************************************************************************
  * GENERAL
@@ -2717,6 +2729,7 @@ body,
 button,
 input,
 th, td,
+select,
 textarea {
   font-weight: normal;
   font-family: Arial, sans-serif; }
@@ -2733,15 +2746,15 @@ textarea {
   margin: 0 auto; }
 
 a {
-  color: #db1f2c; }
+  color: #bd363f; }
   a:hover {
-    color: #b81c22;
+    color: #70b340;
     background: none; }
   a.on {
     background: none;
     color: #70b340; }
   a:active {
-    color: #b81c22;
+    color: #70b340;
     background: none; }
 
 strong {
@@ -2839,7 +2852,7 @@ em {
       text-decoration: underline; }
       .content h2 a:hover {
         color: white;
-        background: #b81c22;
+        background: #70b340;
         text-decoration: none; }
   .content h3 {
     margin: 1em 0;
@@ -2867,9 +2880,9 @@ em {
     padding-top: 0.75em; }
   .content dt a {
     text-transform: none;
-    color: #db1f2c; }
+    color: #bd363f; }
   .content dt a:hover {
-    color: #b81c22; }
+    color: #70b340; }
   .content dl dd {
     padding-bottom: 0.75em;
     border-bottom: 1px solid gainsboro; }
