@@ -5,7 +5,7 @@
 
 <div id="footer" class="footer">
 	<div class="container">
-		<p>ProcessWire 2.3 &copy; 2013 by Ryan Cramer</p>
+		<p>ProcessWire 2.4 &copy; 2014</p>
 	</div>
 </div>
 

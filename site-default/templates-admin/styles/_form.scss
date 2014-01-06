@@ -1,0 +1,52 @@
+
+/**
+ * General form styles
+ *
+ */
+
+fieldset, 
+input, 
+select,
+textarea,
+label {
+	/* reset */
+	margin: 0;
+	padding: 0;
+}
+
+input,
+select,
+textarea {
+	font-size: 1em; 
+	max-width: 100%; 
+}
+
+input,
+textarea {
+	/* slight padding for input and textarea elements... */
+	padding: 0.2em 0.3em;
+	line-height: 1.3em; 
+	color: $text-color; 
+}
+
+textarea,
+input.InputfieldMaxWidth {
+	width: 100%; 
+}
+
+input[type=checkbox],
+input[type=radio] {
+	/* ...but no padding for checkbox and radios */
+	padding: 0; 
+	position: relative;
+	top: -1px; 
+}
+
+label,
+input,
+select,
+textarea,
+table {
+	height: auto;
+}
+

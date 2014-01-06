@@ -1,30 +1,5 @@
 <?php
 
-$searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm() : '';
-$bodyClass = $input->get->modal ? 'modal ' : '';
-$bodyClass .= "id-{$page->id} template-{$page->template->name}";
-if(!isset($content)) $content = '';
-
-//$defaultColorTheme = 'classic';
-if($input->get->colors && !$user->isGuest()) $colors = $sanitizer->pageName($input->get->colors); 
-	else if($user->isLoggedin() && $user->admin_colors && $user->admin_colors->id) $colors = $user->admin_colors->name; 
-	else if($user->isLoggedin() && $session->adminThemeColors) $colors = $session->adminThemeColors; 
-	else if($config->adminThemeColors) $colors = $sanitizer->pageName($config->adminThemeColors); 
-	else $colors = '';
-	//else $colors = $defaultColorTheme;
-
-if(is_file(dirname(__FILE__) . "/styles/main-$colors.css")) $session->adminThemeColors = $colors;
-	else $session->adminThemeColors = '';
-$colorsFile = $session->adminThemeColors ? "main-" . $session->adminThemeColors : "main";
-
-$config->styles->prepend($config->urls->adminTemplates . "styles/$colorsFile.css?v=6"); 
-$config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css"); 
-$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=5"); 
-$config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5"); 
-
-$browserTitle = wire('processBrowserTitle'); 
-if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FILE__) . ' &bull; ProcessWire';
-
 /*
  * Dynamic phrases that we want to be automatically translated
  *
@@ -47,8 +22,23 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
  * 
  */
 
-?>
-<!DOCTYPE html>
+if(!defined("PROCESSWIRE")) die();
+
+require_once(dirname(__FILE__) . "/functions.inc"); 
+
+$searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm() : '';
+$bodyClass = $input->get->modal ? 'modal ' : '';
+$bodyClass .= "id-{$page->id} template-{$page->template->name}";
+if(!isset($content)) $content = '';
+$browserTitle = wire('processBrowserTitle'); 
+if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FILE__) . ' &bull; ProcessWire';
+
+$config->styles->prepend($config->urls->adminTemplates . "styles/" . getAdminColorsFile() . "?v=7"); 
+$config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css"); 
+$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=5"); 
+$config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5"); 
+
+?><!DOCTYPE html>
 <html lang="<?php echo __('en', __FILE__); // HTML tag lang attribute
 	/* this intentionally on a separate line */ ?>"> 
 <head>
@@ -82,21 +72,12 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 
 	<?php foreach($config->styles->unique() as $file) echo "\n\t<link type='text/css' href='$file' rel='stylesheet' />"; ?>
 
-
-	<!--[if IE]>
-	<link rel="stylesheet" type="text/css" href="<?php echo $config->urls->adminTemplates; ?>styles/ie.css" />
-	<![endif]-->	
-
-	<!--[if lt IE 8]>
-	<link rel="stylesheet" type="text/css" href="<?php echo $config->urls->adminTemplates; ?>styles/ie7.css" />
-	<![endif]-->
-
 	<?php foreach($config->scripts->unique() as $file) echo "\n\t<script type='text/javascript' src='$file'></script>"; ?>
 
 </head>
 <body<?php if($bodyClass) echo " class='$bodyClass'"; ?>>
 
-	<?php if(count($notices)) include($config->paths->adminTemplates . "notices.inc"); ?>
+	<?php echo renderAdminNotices($notices); ?>
 
 	<div id="masthead" class="masthead ui-helper-clearfix">
 		<div class="container">
@@ -106,8 +87,10 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 			<?php echo tabIndent($searchForm, 3); ?>
 
 			<ul id='topnav'>
-				<?php include($config->paths->adminTemplates . "topnav.inc"); ?>
-				<?php if(!$user->isGuest()): ?>
+
+				<?php echo renderTopNavItems(); ?>
+
+				<?php if($user->isLoggedin()): ?>
 				<li>
 					<a class='dropdown-toggle' href='<?php echo $config->urls->admin?>profile/'><i class='icon-user'></i></a>
 					<ul class='dropdown-menu topnav' data-my='left-1 top' data-at='left bottom'>
@@ -126,13 +109,8 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 
 	<div id='breadcrumbs'>
 		<div class='container'>
-			<?php 
-			if($user->isLoggedin() && in_array($page->id, array(2,3,8))) { // page-list
-				echo "<div id='head_button'>";
-				include($config->paths->adminTemplates . "shortcuts.inc"); 
-				echo "</div>";
-			}
-			?>
+
+			<?php if(in_array($page->id, array(2,3,8))) echo renderAdminShortcuts(); /* 2,3,8=page-list admin page IDs */ ?>
 
 			<ul class='nav'>
 
@@ -166,7 +144,7 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 	<div id="footer" class="footer">
 		<div class="container">
 			<p>
-			<?php if(!$user->isGuest()): ?>
+			<?php if($user->isLoggedin()): ?>
 
 			<span id='userinfo'>
 				<i class='icon-user'></i> 
@@ -180,7 +158,7 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 
 			<?php endif; ?>
 
-			ProcessWire <?php echo $config->version . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?> Ryan Cramer 
+			ProcessWire <?php echo $config->version . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?> 
 			</p>
 
 			<?php if($config->debug && $this->user->isSuperuser()) include($config->paths->adminTemplates . "debug.inc"); ?>
