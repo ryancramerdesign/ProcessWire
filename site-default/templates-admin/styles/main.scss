@@ -1,0 +1,1108 @@
+/*@import url(http://fonts.googleapis.com/css?family=Arimo:400,700);*/
+
+/*$regular-font: Arimo, Arial, sans-serif; */
+$regular-font: Arial, sans-serif; 
+$normal-weight: normal; 
+$bold-weight: bold; 
+$button-radius: 5px; 
+$tabs-radius: 6px; 
+$tabs-height: 2.5em; 
+$tabs-font-weight: normal;
+$base-font-size: 0.9375em;
+$base-line-height: 1.6em; 
+$footer-font-size: 0.875em; 
+$form-top-margin-adjustment: -2px; 
+$menu-radius: 0; 
+
+$container-max-width: 1200px; 
+
+@mixin border-radius($radius) {
+  -webkit-border-radius: $radius;
+     -moz-border-radius: $radius;
+      -ms-border-radius: $radius;
+       -o-border-radius: $radius;
+          border-radius: $radius;
+}
+
+@import 'fonts';
+@import 'colors-warm';
+@import 'reset';
+@import 'jquery-ui2'; 
+@import 'ui';
+@import 'inputfields';
+
+
+/***********************************************************************************************
+ * GENERAL
+ *
+ */
+/*
+
+.WireTabs *, 
+.InputfieldContent > *,
+.InputfieldContent > *:before,
+.InputfieldContent > *:after {
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	box-sizing: border-box;
+}
+*/
+
+
+
+
+*, *:before, *:after {
+	-moz-box-sizing: border-box; 
+	-webkit-box-sizing: border-box; 
+	box-sizing: border-box;
+}
+
+body {
+	background: $footer-bg; 
+	font-size: 100%; 
+	/* overflow-y: scroll;*/
+
+}
+	body,
+	.ui-dialog,
+	.ui-button,
+	button, 
+	input,
+	th, td, 
+	textarea {
+		font-weight: $normal-weight; 
+		font-family: $regular-font; 
+	}
+	body {
+		color: $text-color; 
+	}
+	body.modal {
+		background-color: $text-bg; 
+	}
+
+.container, 
+.ui-dialog {
+	line-height: $base-line-height; 
+	font-size: $base-font-size; 
+}
+
+.container {
+	position: relative; 
+	width: 95%; 
+	max-width: $container-max-width; 
+	margin: 0 auto; 
+}
+
+a {
+	/* standard link color */
+	color: $link-color; 
+}
+	a:hover {
+		/* hovered link color */
+		color: $link-hover-color; 
+		background: $link-hover-bg; 
+	}
+
+	a.on {
+		/* on/active link color */
+		background: $link-current-bg; 
+		color: $link-current-color; 
+	}
+	a:active {
+		color: $link-active-color;
+		background: $link-active-bg; 
+	}
+
+strong {
+	font-weight: bold; 
+}
+
+em {
+	font-style: italic; 
+}
+
+.WireFatalError {
+	background: $error-bg; 
+	color: $reverse-text-color; 
+	padding: 1em; 
+	position: relative;
+	z-index: 9999;
+}
+
+.dropdown-menu {
+	display: none;
+	border-radius: 0 !important;
+
+	.ui-menu-item {
+		min-width: 10em;
+		border: 0 !important;
+		a {
+			border-radius: 0 !important;
+		}
+	}
+	li {
+		min-width: 10em; 
+	}
+}
+
+/***********************************************************************************************
+ * MASTHEAD
+ *
+ */
+#logo {
+	float: left; 
+	position: relative; 
+	left: -3px; 
+	margin-top: 0.75em; 
+	margin-bottom: 0.25em;
+}
+
+
+#masthead {
+	/*
+	height: $masthead-height; 
+	*/
+	background: $masthead-bg; 
+	position: relative; 
+	min-height: 2.6em;
+
+	#topnav {
+		float: right; 
+		margin-top: 0.5em; 
+
+		> li {
+			padding: 0;
+			margin: 0;
+			list-style: none;
+			display: inline;
+		}
+
+		> li > a {
+			background: $topnav-link-bg; 
+			color: $topnav-link-color; 
+			display: block;
+			float: left; 
+			margin: 0 0 0 1px;
+			padding: 0.5em 1em; 
+			border-top-right-radius: $tabs-radius;
+			border-top-left-radius: $tabs-radius; 
+			font-weight: $tabs-font-weight;
+			height: $tabs-height; 
+		}
+
+
+		> li > a.hover, 
+		> li > a:hover {
+			background: $topnav-link-hover-bg;
+			color: $topnav-link-hover-color; 
+			text-decoration: none; 
+		}
+
+		a.on:hover,
+		a.on {
+			color: $topnav-link-current-color;
+			background: $topnav-link-current-bg;
+			text-decoration: none; 
+		}
+
+		ul.dropdown-menu {
+			display: none; 
+		}
+	}
+
+} /* #masthead */
+
+
+#breadcrumbs {
+	padding-top: 1em;
+	padding-bottom: 1em;
+	color: $breadcrumbs-color;
+	background: $breadcrumbs-bg; 
+	border-bottom: $breadcrumbs-border; 
+
+	ul {
+
+
+		li {
+			color: $breadcrumbs-color; 
+			display: inline-block;
+			padding: 0;
+			line-height: 1em;
+			white-space: nowrap;
+			padding-right: 0.5em;
+
+
+		}
+
+		li.title {
+			color: $breadcrumbs-title-color; 
+			font-weight: $bold-weight; 
+		}
+
+		a {
+			color: $breadcrumbs-link-color; 
+			margin-right: 0.5em; 
+		}
+
+		a:hover {
+			color: $breadcrumbs-link-hover-color; 
+			background: none; 
+			text-decoration: underline;
+		}
+
+		a.sitelink {
+			float: left; 	
+
+			.ui-icon {
+				float: left; 
+				position: relative;
+				top: -2px; 	
+			}
+		}
+
+	}
+
+}
+
+
+body.hasWireTabs #breadcrumbs {
+	border-bottom: $tabs-height solid $breadcrumbs-bg; 
+}
+
+#masthead #ProcessPageSearchForm {
+	float: right; 
+	margin: 0; 
+	margin-left: 1em;
+	margin-top: 0.62em; 
+	width: 15%; 
+	max-width: 200px; 
+	min-width: 90px; 
+
+	label {
+		opacity: 1.0;
+		color: lighten($masthead-bg, 20%); 
+	}
+
+	#ProcessPageSearchQuery {
+		margin: 0;
+		height: auto; 
+		width: 100%; 
+		background: transparent; 
+		border: 1px solid lighten($masthead-bg, 10%); 
+		color: lighten($masthead-bg, 15%); 
+		border-radius: $button-radius; 
+		outline: none; 
+	}
+		#ProcessPageSearchQuery:focus {
+			background: $text-bg; 
+			color: $text-color; 
+			text-transform: none; 
+			font-weight: $normal-weight;
+		}
+
+	#ProcessPageSearchStatus {
+		position: absolute;
+		top: 2px;
+		right: 10px; 
+		font-size: 0.875em; 
+		color: $light-text-color; 
+	}
+
+}
+
+
+/*
+#headline {
+	position: relative; 
+	z-index: 2; 
+	background: $headline-bg; 
+	border-bottom: $headline-border; 
+	padding-bottom: 0.5em; 
+	padding-top: 1.5em; 
+
+	.container {
+		position: relative; 
+		min-height: 30px; 
+	}
+
+
+	#title {
+		font-size: 2em; 
+		line-height: 1em;
+		margin: 0;
+		padding: 0;
+		color: $headline-color; 
+		padding-right: 3em;
+	}
+
+
+}
+*/
+
+
+
+/***********************************************************************************************
+ * CONTENT
+ *
+ */
+
+#content {
+	position: relative; 
+	padding-bottom: 2em; 
+	padding-top: 1px;
+	z-index: 0; 
+	background: $text-bg; 
+}
+	#content .container {
+		min-height: 50px; 
+	}
+		#content .container > form,
+		#content .container > .ui-helper-clearfix > form {
+			position: relative;
+			top: -1px; 
+		}
+
+#head_button {
+	/* The main/primary button for a listing screen, appears in the masthead */
+	float: right; 
+	margin: 0;
+	position: relative;
+	top: -0.35em;
+
+	button {
+		font-size: 1.3em; 
+		margin-right: 0; 
+		margin-left: 10px; 
+		margin-top: 0;
+		float: right; 
+		border: none;
+	}
+}
+
+
+.content {
+
+	img {
+		display: block;
+	}
+
+	.nav a.label {
+		font-size: 1em; 
+	}
+
+	p,
+	ul
+	ol,
+	table {
+		margin: 1em 0;
+	}
+
+	table th, 
+	table th.header,
+	table.AdminDataList th, 
+	h4 {
+		color: $table-th-color; 
+	}
+	
+	table.AdminDataList th.headerSortUp,
+	table.AdminDataList th.headerSortDown,
+	table th.headerSortUp,
+	table th.headerSortDown,
+	table th:hover {
+		color: $table-th-active-color; 
+	}
+
+	table.AdminDataList {
+		margin-top: 0; 
+	}
+		.container > table.AdminDataList {
+			margin-top: 1em; 
+		}
+
+	h2 {
+		margin: 1em 0;
+		font-size: 1.4em; 
+		line-height: 1.2em; 
+		color: $medium-text-color; 
+	}
+		h2 a {
+			text-decoration: underline;
+		}
+		h2 a:hover {
+			color: $reverse-text-color; 
+			background: $link-hover-color;
+			text-decoration: none;
+		}
+
+	h3 {
+		margin: 1em 0;
+		font-size: 1.2em; 
+	}
+
+	h4 {
+		margin: 1em 0 0.25em 0;
+		font-weight: $bold-weight;
+		font-size: 0.916666666666667em;
+	}
+
+
+	li {
+		margin: 1em 0; 
+		display: block;
+		list-style: disc; 
+	}
+
+	ol li {
+		display: list-item; 
+		list-style-type: decimal;
+		margin-left: 1em; 
+	}
+
+	/**
+	 * Actions: like the "|edit|view|new" in the PageList
+	 *
+	 */
+
+	.PageListActions {
+		margin-left: -2px;
+	}
+
+	.PageListStatusIcon {
+		color: lighten($text-color, 40%); 
+		font-size: 14px;
+	}
+
+	ul.actions {
+	}
+		ul.actions li,
+		.PageListActions li,
+		li.action {
+			border: none; 
+			padding: 0 1px; 
+			margin: 0;
+			margin-right: 3px; 
+		
+		}
+		ul.actions li:first-child:before,
+		.PageListActions li:first-child:before,
+		li.action:first-child:before {
+			content: "\203A";
+			margin-right: 3px; 
+			color: lighten($text-color,50%); 
+		}
+
+
+	li.action a, .actions a, 
+	.PageList .actions a,
+	.PageListMoveNote a {
+		/* action links */
+		color: $action-link-color; 
+		background: $action-link-bg;
+		padding: 0 4px 0 4px; 
+		display: inline-block;
+		font-size: $action-link-font-size; 
+		border-radius: 3px; 
+		border: $action-link-border !important; 
+		font-weight: $bold-weight; 
+	}
+		.actions a:hover,
+		li.action a:hover,
+		.PageListMoveNote a:hover {
+			/* action links hovered */
+			color: $action-link-hover-color; 
+			background: $action-link-hover-bg; 
+			border: $action-link-hover-border; 
+		}
+		
+	.PageListMoveNote {
+		text-transform: lowercase; 
+		cursor: move; 
+	}
+
+	.PageListItem > a span + span:before {
+		content: " / ";
+		color: lighten($text-color,50%); 
+	}
+
+
+	.PageListActionMore a {
+		margin-top: 0.5em; 
+	}
+
+	.PageListSelectName {
+		margin-right: 0.5em; 
+		i {
+			margin-right: 0.25em; 
+		}
+	}
+
+
+	/**
+	 * Content navigation like when on the root page of "templates" or "access"
+	 *
+	 */
+	dl {
+		margin: 1em 0;
+	}
+		.container > dl:first-child {
+			margin-top: 0;
+		}
+		dt,
+		dt {
+			display: block;
+			font-weight: $bold-weight; 
+			padding-top: 0.75em; 
+		}
+		dt a {
+			text-transform: none; 
+			color: $alt-link-color; 
+		}
+		dt a:hover {
+			color: $link-hover-color; 
+		}
+		dl dd {
+			padding-bottom: 0.75em; 
+			border-bottom: 1px solid $subtle-border; 
+		}
+
+	/**
+	 * PageList
+	 *
+	 */
+
+	.PageList {
+		.PageListItem {
+			border-bottom: 1px solid lighten($subtle-border, 4%); 
+			padding-top: 4px;
+			padding-top: 0.35em;
+			padding-bottom: 4px; 
+			padding-bottom: 0.35em; 
+			line-height: 1.3em; 
+		}
+		.PageListPlaceholderItem {
+			border: none;
+			padding: 0;
+		}
+
+		a.PageListPage {
+			color: $pagelist-link-color; 
+			opacity: 1.0;
+		}
+		.PageListItem > a.PageListPage:hover {
+			text-decoration: underline;
+			color: $pagelist-link-hover-color; 
+		}
+		.PageListItem > a.PageListPage:active {
+			text-decoration: underline;
+			color: $pagelist-link-active-color; 
+		}
+		.PageListItem > a.PageListPage i {
+			padding: 0 0.25em 0 0;
+			color: $pagelist-link-icon-color; 
+		}
+		.PageListItem > a.PageListPage i.icon-lock, 
+		.PageListItem > a.PageListPage i.icon-unlock,
+		.PageListItem > a.PageListPage i.icon-trash {
+			padding: 0 0 0 0.25em;
+			color: #777;
+		}
+		.PageListItem > a.PageListPage:hover i {
+			text-decoration: none; 
+		}
+
+		.PageListItemOpen > a.PageListPage  {
+			color: $pagelist-link-open-color; 
+			background-color: $pagelist-link-open-bg; 
+		}
+
+		.PageListStatusHidden:not(.PageListItemOpen) > a.PageListPage {
+			opacity: 0.6; 
+		}
+
+		.PageListNumChildren {
+			font-size: 0.833333em;
+		}
+
+		.PageListItemOpen .PageListNumChildren {
+		}
+
+
+	}
+
+	/* MarkupAdminDataTable */
+	.AdminDataList thead th,
+	.AdminDataList thead th.header,
+	.AdminDataList tbody td {
+		border-left: 1px dotted #ccc; 
+		padding-left: 8px; 
+		border-color: darken($subtle-border, 5%); 
+	}
+	.AdminDataList thead th:first-child,
+	.AdminDataList thead th.header:first-child,
+	.AdminDataList tbody td:first-child {
+		border-left: none;
+		padding-left: 0;
+	}
+	.AdminDataList tr:hover td,
+	.AdminDataList tr:hover th {
+		background: $notes-bg; 
+	}
+	.AdminDataList td a {
+		color: $alt-link-color; 
+	}
+	.AdminDataList td a:hover {
+		color: $link-hover-color; 
+	}
+
+	/* MarkupPagerNav */
+	.MarkupPagerNav {
+
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		margin: 1em 0;
+
+		li {
+			padding: 0;
+			margin: 0;
+			list-style: none;
+			display: inline;
+			padding: 6px 0;
+			background: none;
+
+			a {
+				padding: 4px 9px;
+				margin: 0;
+				text-decoration: none;
+			}
+		}
+
+		li.MarkupPagerNavSeparator {
+			border: none;
+		}
+	}
+
+	/* Pagination */
+	.PageListPagination {
+		padding-top: 0.5em; 
+	}
+	.PageListPagination,
+	.MarkupPagerNav {
+		color: text-color;
+		font-size: $pagination-font-size; 
+	}
+	.PageListPagination a,
+	.MarkupPagerNav a {
+		background: $pagination-link-bg; 
+		color: $pagination-link-color; 
+		font-weight: $bold-weight;
+		-moz-border-radius: $pagination-link-border-radius; 
+		-webkit-border-radius: $pagination-link-border-radius; 
+		border-radius: $pagination-link-border-radius; 
+		border: none;
+		display: inline-block;
+		padding: 0 6px; 
+	}
+
+	.PageListPaginationCurrent a,
+	.MarkupPagerNavOn a {
+		color: $pagination-link-current-color; 
+		background: $pagination-link-current-bg; 
+	}
+
+	.PageListPagination a:hover,
+	.MarkupPagerNav a:hover {
+		/* action links hovered */
+		color: $pagination-link-hover-color; 
+		background: $pagination-link-hover-bg; 
+	}
+
+	.PageListPagination a:active,
+	.MarkupPagerNav a:active {
+		color: $pagination-link-active-color; 
+		background: $pagination-link-active-bg; 
+	}
+
+
+
+}
+
+#content {
+	/**
+	 * WireTabs
+	 *
+	 */
+
+	.WireTabs {
+		position: relative;
+		top: (-1 * $tabs-height); 
+		margin-bottom: (-1 * $tabs-height);
+		
+		left: 0;
+		width: 100%; 
+		z-index: 102; 
+		overflow: visible; 
+
+		li {
+			background: none; 
+			margin: 0;
+			padding: 0;
+		}
+
+		a {
+			font-weight: $tabs-font-weight;
+			padding: 0.5em 1em 0.5em 1em;
+			display: inline-block;
+			border-top-left-radius: $tabs-radius;
+			border-top-right-radius: $tabs-radius; 
+			border: $wiretab-link-border; 
+			border-bottom: none; 
+			margin-right: -1px; 
+			color: $wiretab-link-color;
+			height: $tabs-height;
+			background: $wiretab-link-bg; 
+			position: relative;
+			top: 1px; 
+
+			em {
+				border-bottom: 1px solid transparentize($wiretab-link-color, 0.8);
+			}
+		}
+		a.on {
+			color: $wiretab-link-current-color; 
+			border: $wiretab-link-current-border; 
+			border-bottom: 1px solid $wiretab-link-current-bg;
+			background: $wiretab-link-current-bg; 
+			position: relative;
+			z-index: 100; 
+
+			em {
+				border-color: transparent; 
+			}
+		}
+
+		a:hover {
+			border: $wiretab-link-hover-border; 
+			border-bottom: none; 
+			color: $wiretab-link-hover-color; 
+			background: $wiretab-link-hover-bg; 
+
+			em {
+				border: none; 
+			}
+		}
+
+		a:active{
+			background: $wiretab-link-active-bg; 
+			color: $wiretab-link-active-color; 
+		}
+
+		a em {
+			font-weight: $tabs-font-weight;
+			font-style: normal;
+		}
+
+		#_ProcessPageEditView {
+			color: $link-color; 
+			font-weight: normal;
+		}
+		#_ProcessPageEditView:hover {
+			background: none; 
+			text-decoration: underline; 
+			border-color: transparent; 
+		}
+
+	}
+}
+
+
+.description {
+	color: $medium-text-color; 
+	margin: 0.5em 0;
+}
+
+.notes, 
+.detail {
+	color: $medium-text-color; 
+	font-size: 0.875em;
+	line-height: 1.5em; 
+}
+.notes {
+	background: $notes-bg; 
+}
+
+.description strong,
+.notes strong {
+	color: $medium-text-color; 
+	font-weight: $bold-weight; 
+}
+
+.error {
+	background: $error-bg; 
+	color: $error-color; 
+	font-weight: $bold-weight; 
+	font-size: 0.9166666em;	
+}
+
+/***********************************************************************************************
+ * FOOTER
+ *
+ */
+
+#footer {
+	margin: 2em 0 2em 0; 
+	font-size: $footer-font-size; 
+	color: $footer-color; 
+
+	a {
+		color: $footer-link-color; 
+	}
+	a:hover {
+		text-decoration: underline; 
+	}
+
+	p {
+		margin-top: 0;
+	}
+
+	#userinfo {
+		display: block; 
+		float: right; 
+	}
+
+}
+
+
+#debug {
+	margin-top: 2em; 
+
+	.container {
+		width: 100%; 
+	}
+
+	p {
+		margin: 1em 0; 
+	}
+
+	ol {
+		margin: 1em 0; 
+	}
+
+	h4 {
+		font-weight: $bold-weight; 
+	}
+
+	table {
+		width: 100%; 
+
+		th {
+			font-weight: $bold-weight;
+		}
+
+		td, th {
+			vertical-align: top; 
+			padding: 3px 5px; 	
+			border-bottom: 1px dotted $light-text-color; 
+			border-left: 1px dotted $light-text-color; 
+			font-size: 12px; 
+		}
+
+	}
+
+}
+
+/***********************************************************************************************
+ * MODAL
+ *
+ */
+
+body.modal {
+
+	.container {
+		margin: 0; 
+		width: 100%; 
+		min-width: 300px; 
+		padding-left: 1em;
+		padding-right: 1em; 
+	}
+	#notices {
+		margin: 1px 0 0.75em 0;
+		a.notice-remove {
+			display: none; 
+		}
+	}
+
+	.content h2 {
+		margin: 1em 0 0.5em 0;
+		font-size: 1.3em; 
+	}
+
+	#footer,
+	#masthead,
+	#breadcrumbs, 
+	#headline {
+		display: none; 
+	}
+
+}
+
+
+/***********************************************************************************************
+ * MISC
+ *
+ */
+
+body.id-3 #breadcrumbs ul li:not(:first-child):not(:last-child),
+body.id-23 #breadcrumbs ul li:not(:first-child):not(:last-child),
+body.id-8 #breadcrumbs ul li:not(:first-child):not(:last-child) {
+	/* hide extraneous breadcrumbs when in admin root */
+	display: none; 
+}
+
+body.id-23 #content form {
+	margin-top: 1em; 
+}
+
+#content .container > form,
+#content .container > .ui-helper-clearfix > form {
+	/* for wiretabs and/or forms to line up with headline area */
+	top: $form-top-margin-adjustment; 
+}
+
+body:not(.hasWireTabs) #headline .container {
+	min-height: 40px; 
+}
+
+.content > .container > #PageListContainer {
+	margin-top: 0; 
+}
+
+.hasWireTabs .content #fieldgroupContext {
+	/* context selection in field editor */
+	top: -2.25em;
+	right: 0; 
+	z-index: 102; 
+}
+
+#ModuleEditForm .AdminDataTable tr td:first-child {
+	color: lighten($text-color, 50%);
+}
+
+#addLinksMenu {
+	min-width: 150px; 
+}
+
+.topnav.dropdown-menu, .topnav.dropdown-menu .ui-menu-item {
+	border-radius: 0 !important; 
+}
+
+.align_left,
+.align-left {
+	float: left;
+	margin: 0 1em 0.5em 0;
+}
+
+.align_right,
+.align-right {
+	float: right;
+	margin: 0 0 0.5em 1em; 
+}
+
+.align_center,
+.align-center {
+	display: block;
+	margin-left: auto;
+	margin-right: auto; 
+}
+
+/***********************************************************************************************
+ * MEDIA QUERIES
+ *
+ */
+
+/* Smaller than standard 960 (devices and browsers) */
+@media only screen and (max-width: 959px) {}
+
+/* Tablet Portrait size to standard 960 (devices and browsers) */
+@media only screen and (min-width: 768px) and (max-width: 959px) {}
+
+/* All Mobile Sizes (devices and browser) */
+@media only screen and (max-width: 767px) {
+
+	#masthead {
+		padding-top: 0;
+	}
+
+	#masthead #topnav {
+		float: left; 
+	}
+
+	body #masthead #topnav a,
+	body #content .WireTabs li a {
+		padding-left: 0.75em;
+		padding-right: 0.75em; 
+	}
+
+	#logo {
+		display: none; 
+	}
+
+	#masthead,
+	#headline, 
+	#breadcrumbs, 
+	#notices p, 
+	body:not(.modal) #content,
+	#footer {
+		padding-right: 10px;
+		padding-left: 10px; 
+	}
+
+	#fieldgroupContext {
+		display: none; 
+	}
+
+}
+
+/* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
+@media only screen and (min-width: 480px) and (max-width: 767px) {
+}
+
+/* Mobile Portrait Size to Mobile Landscape Size (devices and browsers) */
+@media only screen and (max-width: 479px) {
+	#logo {
+		display: block;
+	}
+
+	/**
+	 * Disregard column width when at mobile size
+	 *
+	 */
+	.Inputfield {
+		clear: both !important;
+		width: 100% !important;
+		margin-left: 0 !important;
+	}
+
+	.container {
+		width: 100%; 
+	}
+	#footer #userinfo {
+		float: none;
+	}
+	#footer {
+		text-align: center; 
+	}	
+
+	.AjaxUploadDropHere {
+		display: none !important; 
+	}
+		
+
+}
+
+.InputfieldPageNameURL strong {
+	// prevents a fuzzy bold from appearing
+	font-weight: normal;
+}
+
+
