@@ -17,7 +17,7 @@
 class Helloworld extends WireData implements Module {
 
 	/**
-	 * getModuleInfo is a module required by all modules to tell ProcessWire about them
+	 * getModuleInfo is a function required by all modules to tell ProcessWire about them
 	 *
 	 * @return array
 	 *
