@@ -33,7 +33,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 3; 
-	const versionRevision = 10; 
+	const versionRevision = 11; 
 	
 	const statusBoot = 0; // system is booting
 	const statusInit = 2; // system and modules are initializing
@@ -145,7 +145,8 @@ class ProcessWire extends Wire {
 		$modules = new Modules($config->paths->modules, $config->paths->siteModules);
 		Wire::setFuel('modules', $modules, true); 
 
-		if(!$updater = $modules->get('SystemUpdater')) {
+		$updater = $modules->get('SystemUpdater'); 
+		if(!$updater) {
 			$modules->resetCache();
 			$modules->get('SystemUpdater');
 		}

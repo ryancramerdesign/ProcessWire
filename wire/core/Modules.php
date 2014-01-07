@@ -148,7 +148,7 @@ class Modules extends WireArray {
 				}
 			}
 			if($skip) continue;
-			$this->initModule($module);
+			if($this->isAutoload($module)) $this->initModule($module);
 			$completed[] = $class;
 		}
 
@@ -391,7 +391,7 @@ class Modules extends WireArray {
 	public function get($key) {
 
 		$module = null; 
-		$justInstalled = false;
+		$needsInit = false; 
 
 		// check for optional module ID and convert to classname if found
 		if(ctype_digit("$key")) {
@@ -407,19 +407,21 @@ class Modules extends WireArray {
 				$class = $this->getModuleClass($placeholder); 
 				if($module instanceof ModulePlaceholder) $this->includeModule($module); 
 				$module = new $class(); 
-				if($this->isSingular($placeholder)) $this->set($key, $module); 
+				// if singular, save the instance so it can be used in later calls
+				if($this->isSingular($module)) $this->set($key, $module); 
+				$needsInit = true; 
 			}
 
 		} else if(array_key_exists($key, $this->getInstallable())) {
 			// check if the request is for an uninstalled module 
 			// if so, install it and return it 
 			$module = $this->install($key); 
-			$justInstalled = true; 
+			$needsInit = true; 
 		}
 
 		// skip autoload modules because they have already been initialized in the load() method
 		// unless they were just installed, in which case we need do init now
-		if($module && (!$this->isAutoload($module) || $justInstalled)) { 
+		if($module && $needsInit) { 
 			// if the module is configurable, then load it's config data
 			// and set values for each before initializing the module
 			$this->setModuleConfigData($module); 
