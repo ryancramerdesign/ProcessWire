@@ -2,7 +2,7 @@ $(document).ready(function() {
 
 	$(".ConfigurableModule").each(function() {
 		if($(this).parent().is('.not_installed')) return;
-		$(this).after($("<i class='icon-gear' style='float: right; margin-top: 3px;'></i>")); 
+		$(this).after($("<i class='fa fa-cog' style='float: right; margin-top: 3px;'></i>")); 
 	}); 
 
 	$(".not_installed").parent("a").css('opacity', 0.6).click(function() {

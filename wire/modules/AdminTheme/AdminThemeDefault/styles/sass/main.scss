@@ -341,6 +341,7 @@ body.modal {
 		margin: 0; 
 		width: 100%; 
 		min-width: 300px; 
+		max-width: 100%; 
 		padding-left: 1em;
 		padding-right: 1em; 
 	}
@@ -416,13 +417,15 @@ body:not(.hasWireTabs) #headline .container {
 	font-weight: normal;
 }
 
-
-
-/*
-.topnav.dropdown-menu, .topnav.dropdown-menu .ui-menu-item {
-	border-radius: 0 !important; 
+#tools-toggle {
+	width: 43px; 
 }
-*/
+
+.fa {
+	/* font-awesome default icon size */
+	font-size: 14px; 
+}
+
 
 /***********************************************************************************************
  * MEDIA QUERIES

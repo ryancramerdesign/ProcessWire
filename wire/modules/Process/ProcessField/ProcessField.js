@@ -19,8 +19,8 @@ $(document).ready(function() {
 		var showIf = $("#Inputfield_showIf").val();
 		var required = $("#Inputfield_required").is(":checked") ? true : false;
 	
-		if(showIf.length > 0) tpl = "<i class='icon-question-sign'></i>" + tpl;
-		if(required) tpl = "<i class='icon-asterisk'></i>" + tpl; 
+		if(showIf.length > 0) tpl = "<i class='fa fa-question-circle'></i>" + tpl;
+		if(required) tpl = "<i class='fa fa-asterisk'></i>" + tpl; 
 		var w = parseInt($columnWidth.val());
 		if(w == 100) w = 0;
 		if(w > 0) w = w + '%';

@@ -14,6 +14,11 @@
 	z-index: 102; 
 	overflow: visible; 
 
+	body.collapse-wiretabs & {
+		top: 0;
+		margin: 5px 0 1px 0;
+	}
+
 	li {
 		background: none; 
 		margin: 0;
@@ -35,6 +40,14 @@
 		position: relative;
 		top: 1px; 
 
+		body.collapse-wiretabs & {
+			border: $wiretab-link-current-border; 
+			@include border-radius($tabs-radius);
+			margin-bottom: 5px; 
+			margin-right: 5px;
+			padding-top: 0.4em; 
+		}
+
 		em {
 			border-bottom: 1px solid transparentize($wiretab-link-color, 0.8);
 			font-weight: $tabs-font-weight;
@@ -51,6 +64,11 @@
 
 			em {
 				border-color: transparent; 
+			}
+
+			body.collapse-wiretabs & {
+				background: $wiretab-link-active-bg;
+				color: $wiretab-link-active-color; 
 			}
 		}
 
@@ -82,4 +100,8 @@
 			border-color: transparent; 
 		}
 	}
+}
+
+body.collapse-wiretabs #breadcrumbs {
+	border: none; 
 }

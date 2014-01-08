@@ -124,7 +124,7 @@ abstract class Fieldtype extends WireData implements Module {
 		if($this->getLoadQueryAutojoin($field, new DatabaseQuerySelect())) {
 			$f = $this->modules->get('InputfieldCheckbox');
 			$f->label = $this->_('Autojoin');
-			$f->icon = 'signin';
+			$f->icon = 'sign-in';
 			$f->attr('name', 'autojoin');
 			$f->attr('value', 1);
 			$f->attr('checked', ($field->flags & Field::flagAutojoin) ? 'checked' : '');

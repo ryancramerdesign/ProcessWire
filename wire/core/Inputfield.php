@@ -570,7 +570,7 @@ abstract class Inputfield extends WireData implements Module {
 		$fieldset = $this->modules->get('InputfieldFieldset');
 		$fieldset->label = $this->_('Visibility'); 
 		$fieldset->attr('name', 'visibility'); 
-		$fieldset->icon = 'eye-open';
+		$fieldset->icon = 'eye';
 		$field = $this->modules->get("InputfieldSelect"); 
 		$field->attr('name', 'collapsed'); 
 		$field->label = $this->_('Presentation'); 
@@ -588,7 +588,7 @@ abstract class Inputfield extends WireData implements Module {
 		$field->label = $this->_('Show this field only if...'); 
 		$field->description = $this->_('Enter the conditions under which the field will be shown.') . ' ' . $conditionsText; 
 		$field->notes = $conditionsNote; 
-		$field->icon = 'question-sign';
+		$field->icon = 'question-circle';
 		$field->attr('name', 'showIf'); 
 		$field->attr('value', $this->getSetting('showIf')); 
 		$field->collapsed = Inputfield::collapsedBlank;
@@ -602,7 +602,7 @@ abstract class Inputfield extends WireData implements Module {
 		$value = (int) $this->getSetting('columnWidth'); 
 		if($value < 10 || $value >= 100) $value = 100;
 		$field->label = sprintf($this->_("Column Width (%d%%)"), $value);
-		$field->icon = 'resize-horizontal';
+		$field->icon = 'arrows-h';
 		$field->attr('id+name', 'columnWidth'); 
 		$field->attr('type', 'text');
 		$field->attr('maxlength', 4); 

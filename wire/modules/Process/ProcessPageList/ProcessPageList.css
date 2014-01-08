@@ -57,7 +57,6 @@
 	padding-bottom: 3px; 
 	line-height: 1em; 
 }
-
 .PageListItem > a span + span:before {
 	content: ', ';
 }
@@ -82,7 +81,7 @@
 	width: 18px;
 }
 .PageList .PageListStatusIcon {
-	padding-right: 2px; 
+	margin-left: 4px; 
 }
 
 

@@ -66,7 +66,7 @@ $(function(){
 			var $span = $("<span></span>")
 				.attr('title', config.LanguageTabs.title)
 				.attr('class', 'langTabsToggle')
-				.append("<i class='icon-folder-close-alt'></i>"); 
+				.append("<i class='fa fa-folder-o'></i>"); 
 
 			$langContent.addClass("langTabsContainer").siblings("label").prepend($span); 
 
@@ -81,12 +81,12 @@ $(function(){
 			$langContent.removeClass("langTabsContainer");
 			$this.addClass('langTabsOff');
 			$langTabsBox.tabs( "destroy" );
-			$(this).attr("title","Collapse Language Tabs").find('i').removeClass("icon-folder-close-alt").addClass("icon-folder-open-alt");
+			$(this).attr("title","Collapse Language Tabs").find('i').removeClass("fa fa-folder-o").addClass("fa fa-folder-open-o");
 		}, function(){
 			$langContent.addClass("langTabsContainer");
 			$this.removeClass('langTabsOff');
 			$langTabsBox.tabs();
-			$(this).attr("title","Expand Language Tabs").find('i').addClass("icon-folder-close-alt").removeClass("icon-folder-open-alt");
+			$(this).attr("title","Expand Language Tabs").find('i').addClass("fa fa-folder-o").removeClass("fa fa-folder-open-o");
 		});
 
 		$langTabsToggle.mouseout(function(){

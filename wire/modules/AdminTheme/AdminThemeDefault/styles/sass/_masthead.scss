@@ -10,6 +10,10 @@
 	left: -3px; 
 	margin-top: 0.75em; 
 	margin-bottom: 0.25em;
+
+	body.collapse-topnav & {
+		display: none; 
+	}
 }
 
 
@@ -53,7 +57,30 @@
 				}	
 			}
 
+			&.collapse-topnav-menu {
+				/* menu that displays when the topnav is collapsed */
+				display: none; 
+			}
+
+			body.collapse-topnav & {
+				display: none; /* hide all menu items... */
+
+				&.collapse-topnav-menu { /* ...except for the ones with class .collapse-topnav-menu */
+					display: inline; 
+
+					> a {
+						@include border-radius(0); 
+
+						> i {
+							/* move the hamburger up a bit */
+							position: relative;
+							top: -3px; 
+						}
+					}
+				}
+			}
 		}
+
 
 		ul.dropdown-menu {
 			display: none; 

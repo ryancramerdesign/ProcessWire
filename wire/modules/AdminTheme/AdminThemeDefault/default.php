@@ -86,22 +86,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");
 
 			<?php echo tabIndent($searchForm, 3); ?>
 
-			<ul id='topnav'>
-
-				<?php echo renderTopNavItems(); ?>
-
-				<?php if($user->isLoggedin()): ?>
-				<li>
-					<a class='dropdown-toggle' href='<?php echo $config->urls->admin?>profile/'><i class='icon-user'></i></a>
-					<ul class='dropdown-menu topnav' data-my='left-1 top' data-at='left bottom'>
-						<?php if($user->hasPermission('profile-edit')): ?>
-						<li><a href='<?php echo $config->urls->admin?>profile/'><?php echo __('Profile', __FILE__); ?> <small><?php echo $user->name?></small></a></li>
-						<?php endif; ?>
-						<li><a href='<?php echo $config->urls->admin?>login/logout/'><?php echo __('Logout', __FILE__); ?> <i class='icon-signout'></i></a></li>
-					</ul>
-				</li>
-				<?php endif; ?>
-			</ul>
+			<ul id='topnav'><?php echo renderTopNavItems(); ?></ul>
 
 		</div>
 	</div>
@@ -115,10 +100,10 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");
 			<ul class='nav'>
 
 				<?php
-				echo "<li><a class='sitelink' href='{$config->urls->root}'><i class='icon-home'></i></a><i class='icon-angle-right'></i></li>"; 
+				// echo "<li><a class='sitelink' href='{$config->urls->root}'><i class='fa fa-home'></i></a><i class='fa fa-angle-right'></i></li>"; 
 				foreach($this->fuel('breadcrumbs') as $breadcrumb) {
 					$title = __($breadcrumb->title, __FILE__); 
-					echo "<li><a href='{$breadcrumb->url}'>{$title}</a><i class='icon-angle-right'></i></li>";
+					echo "<li><a href='{$breadcrumb->url}'>{$title}</a><i class='fa fa-angle-right'></i></li>";
 				}
 				unset($title);
 				echo "<li class='title'>" . __(strip_tags($this->fuel->processHeadline ? $this->fuel->processHeadline : $page->get("title|name")), __FILE__) . "</li>";
@@ -147,10 +132,10 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");
 			<?php if($user->isLoggedin()): ?>
 
 			<span id='userinfo'>
-				<i class='icon-user'></i> 
+				<i class='fa fa-user'></i> 
 				<?php 
-				if($user->hasPermission('profile-edit')): ?> <i class='icon-angle-right'></i>
-				<a class='action' href='<?php echo $config->urls->admin; ?>profile/'><?php echo $user->name; ?></a> <i class='icon-angle-right'></i>
+				if($user->hasPermission('profile-edit')): ?> <i class='fa fa-angle-right'></i>
+				<a class='action' href='<?php echo $config->urls->admin; ?>profile/'><?php echo $user->name; ?></a> <i class='fa fa-angle-right'></i>
 				<?php endif; ?>
 
 				<a class='action' href='<?php echo $config->urls->admin; ?>login/logout/'><?php echo __('Logout', __FILE__); ?></a>

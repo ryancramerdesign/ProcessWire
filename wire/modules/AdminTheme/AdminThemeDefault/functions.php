@@ -67,7 +67,7 @@ function renderAdminShortcuts() {
 	$label = __('Add New', dirname(__FILE__) . "/default.php"); 
 
 	$out = 	"<div id='head_button'>" . 	
-		"<button class='dropdown-toggle'><i class='icon-angle-down'></i> $label</button>" . 
+		"<button class='dropdown-toggle'><i class='fa fa-angle-down'></i> $label</button>" . 
 		"<ul class='dropdown-menu'>$out</ul>" . 
 		"</div>";
 
@@ -98,10 +98,10 @@ function renderAdminNotices($notices) {
 			$class = 'ui-state-error'; 
 			if($notice->flags & Notice::warning) {
 				$class .= ' NoticeWarning';
-				$icon = 'warning-sign';
+				$icon = 'warning';
 			} else {
 				$class .= ' ui-priority-primary NoticeError';
-				$icon = 'exclamation-sign'; 
+				$icon = 'exclamation-triangle'; 
 			}
 		}
 
@@ -110,13 +110,13 @@ function renderAdminNotices($notices) {
 			$icon = 'gear';
 		}
 
-		if(!$icon) $icon = 'ok-sign';
+		if(!$icon) $icon = 'check-square';
 
 		if($notice->class && $config->debug) $text = "{$notice->class}: $text";
 
-		$remove = $n ? '' : "<a class='notice-remove' href='#'><i class='icon-remove-sign'></i></a>";
+		$remove = $n ? '' : "<a class='notice-remove' href='#'><i class='fa fa-times-circle'></i></a>";
 
-		$out .= "\n\t\t<li class='$class'><div class='container'><p>$remove<i class='icon-$icon'></i> {$text}</p></div></li>";
+		$out .= "\n\t\t<li class='$class'><div class='container'><p>$remove<i class='fa fa-$icon'></i> {$text}</p></div></li>";
 	}
 
 	$out .= "\n\t</ul><!--/notices-->";
@@ -162,7 +162,9 @@ function renderTopNavItem(Page $p, $level = 0) {
 
 		$class = trim("$class dropdown-toggle"); 
 		$out .= "<a href='$p->url' class='$class'>$title</a>"; 
-		$out .= "<ul class='dropdown-menu topnav' data-my='left-1 top' data-at='left bottom'>";
+		$my = 'left-1 top';
+		if($p->name == 'access') $my = 'left top';
+		$out .= "<ul class='dropdown-menu topnav' data-my='$my' data-at='left bottom'>";
 
 		foreach($children as $c) {
 			
@@ -182,7 +184,7 @@ function renderTopNavItem(Page $p, $level = 0) {
 
 				$addLabel = __('Add New', dirname(__FILE__) . '/default.php');
 				$out .= "<li><a href='$c->url'>" . __($c->title, $translationFile) . "</a><ul>" . 
-					"<li class='add'><a href='{$c->url}add'><i class='icon-plus-sign'></i> $addLabel</a></li>";
+					"<li class='add'><a href='{$c->url}add'><i class='fa fa-plus-circle'></i> $addLabel</a></li>";
 
 				foreach($items as $item) {
 
@@ -223,11 +225,43 @@ function renderTopNavItem(Page $p, $level = 0) {
  */
 function renderTopNavItems() {
 	$out = '';
+	$outMobile = '';
+	$outTools = '';
 	$admin = wire('pages')->get(wire('config')->adminRootPageID); 
+	$config = wire('config'); 
+	$user = wire('user'); 
+
 	foreach($admin->children("check_access=0") as $p) {
 		if(!$p->viewable()) continue; 
 		$out .= renderTopNavItem($p);
+		$outMobile .= "<li><a href='$p->url'>$p->title</a></li>";
 	}
+
+	if($user->isLoggedin()) {
+		if($user->hasPermission('profile-edit')) {
+			$outTools .= 
+				"<li><a href='{$config->urls->admin}profile/'><i class='fa fa-user'></i> " . 
+				__('Profile', __FILE__) . " <small>{$user->name}</small></a></li>";
+		}
+		$outTools .= 
+			"<li><a href='{$config->urls->admin}login/logout/'>" . 
+			"<i class='fa fa-power-off'></i> " . __('Logout', __FILE__) . "</a></li>";
+	}
+
+	$outTools .= "<li><a href='{$config->urls->root}'><i class='fa fa-eye'></i> " . __('Site', __FILE__) . "</a></li>";
+
+	$outMobile = "<ul id='topnav-mobile' class='dropdown-menu topnav' data-my='left top' data-at='left bottom'>$outMobile$outTools</ul>";
+
+	$out .= "<li>" . 
+		"<a id='tools-toggle' class='dropdown-toggle' href='{$config->urls->root}'>" . 
+		"<i data-hover='fa fa-eye' class='fa fa-wrench'></i></a>" . 
+		"<ul class='dropdown-menu topnav' data-my='left top' data-at='left bottom'>" . $outTools . 
+		"</ul></li>";
+
+	$out .= "<li class='collapse-topnav-menu'><a href='$admin->url' class='dropdown-toggle'>" . 
+		"<i class='fa fa-lg fa-bars'></i></a>$outMobile</li>";
+	
+
 	return $out; 
 }
 

@@ -132,7 +132,7 @@ class ProcessTemplate extends Process {
 		$button = $this->modules->get('InputfieldButton');
 		$button->href = "./add";
 		$button->value = $this->_x('Add New Template', 'list-button'); 
-		$button->icon = 'plus-sign';
+		$button->icon = 'plus-circle';
 		$out .= $button->render();
 
 		if($this->input->nosave) {
@@ -246,11 +246,11 @@ class ProcessTemplate extends Process {
 				),
 			'no-file' => array(
 				'label' => $this->_x('no-file', 'list-note'),
-				'icon' => 'ban-circle'
+				'icon' => 'ban'
 				),
 			'cache' => array(
 				'label' => $this->_x('cache', 'list-note'),
-				'icon' => 'time'
+				'icon' => 'clock-o'
 				),
 			'url-segments' => array(
 				'label' => $this->_x('URL segments', 'list-note'),
@@ -282,7 +282,7 @@ class ProcessTemplate extends Process {
 			$class = 'templateFlag' . ucfirst($flag);
 			$flag = $flagDefs[$flag]; 
 			$label = str_replace('-', ' ', ucfirst($flag['label']));
-			$notes .= "<a class='tooltip templateFlag $class' title='$label'><i class='icon-$flag[icon]'></i>&nbsp;</a> ";
+			$notes .= "<a class='tooltip templateFlag $class' title='$label'><i class='fa fa-$flag[icon]'></i>&nbsp;</a> ";
 		}
 
 		$numPages = $template->getNumPages(); 
@@ -565,7 +565,7 @@ class ProcessTemplate extends Process {
 		$field->label = $this->_('Confirm deletion'); 
 		$field->attr('id+name', "delete"); 
 		$field->attr('value', $template->id); 
-		$field->icon = 'remove-sign';
+		$field->icon = 'times-circle';
 
 		$fieldgroup = $this->fuel('fieldgroups')->get($template->name); 
 		$numFieldgroupTemplates = 0;
@@ -701,8 +701,8 @@ class ProcessTemplate extends Process {
 		}
 	
 		$icons = '';
-		if($field->required) $icons .= "<i class='icon-asterisk'></i>";
-		if($field->showIf) $icons .= "<i class='icon-question-sign'></i>";
+		if($field->required) $icons .= "<i class='fa fa-asterisk'></i>";
+		if($field->showIf) $icons .= "<i class='fa fa-question-circle'></i>";
 	
 		$status .= $field->columnWidth > 0 ? ' ' . $field->columnWidth . '%' : ' '; 
 		
@@ -746,7 +746,7 @@ class ProcessTemplate extends Process {
 		$field = $this->modules->get('InputfieldInteger'); 
 		$field->attr('id+name', 'cache_time');
 		$field->label = $this->_x('Cache Time', 'field-label');
-		$field->icon = 'time';
+		$field->icon = 'clock-o';
 		$field->description = $this->_('To cache the output of this template, enter the time (in seconds) that the output should be cached. Caching can help significantly with page render time on resource-heavy pages. But caching should not be used on templates that need to process constantly changing data, like from forms or sessions. Also note that URL segments are cachable, but GET and POST vars are not.'); // Cach time description
 		$field->notes = $this->_('For example: 60 = 1 minute, 600 = 10 minutes, 3600 = 1 hour, 86400 = 1 day, 604800 = 1 week, 2419200 = 1 month.'); // Cache time notes/examples
 		$field->attr('value', $template->cache_time); 
@@ -1588,7 +1588,7 @@ class ProcessTemplate extends Process {
 
 		$list = '';
 		foreach($this->template->fieldgroup as $field) {
-			if(!$fieldgroup->has($field)) $list .= "<li class='ui-state-error-text'><i class='icon-remove-sign'></i> $field</li>";
+			if(!$fieldgroup->has($field)) $list .= "<li class='ui-state-error-text'><i class='fa fa-times-circle'></i> $field</li>";
 		}
 
 		// if nothing will be lost with the fieldgroup change, then just do it now
@@ -1688,7 +1688,7 @@ class ProcessTemplate extends Process {
 
 		$checkboxes = $this->modules->get("InputfieldCheckboxes"); 
 		$checkboxes->label = $this->_('Remove fields from template');
-		$checkboxes->icon = 'remove-sign';
+		$checkboxes->icon = 'times-circle';
 		$checkboxes->attr('name', 'remove_fields'); 
 		$checkboxes->description = $this->_("You have asked to remove one or more fields from the template. This will result in data associated with the fields below being permanently deleted. If the fields that are removed contain a lot of data, it may take time for this operation to complete after you confirm and submit this form. Please confirm that you understand this and want to delete the field(s) by checking the boxes below.");
 

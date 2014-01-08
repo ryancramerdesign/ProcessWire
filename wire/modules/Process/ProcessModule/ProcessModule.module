@@ -464,7 +464,7 @@ class ProcessModule extends Process {
 		$btn->attr('name', 'cancel');
 		$btn->href = $update ? "./edit?name=$data[class_name]" : './';
 		$btn->value = $this->_('Cancel');
-		$btn->icon = 'remove-sign';
+		$btn->icon = 'times-circle';
 		$btn->class .= ' ui-priority-secondary';
 		$form->add($btn);
 
@@ -587,14 +587,14 @@ class ProcessModule extends Process {
 			$submit->attr('name', 'submit');
 			$submit->attr('id', 'install_now');
 			$submit->attr('value', $this->_('Install Now'));
-			$submit->icon = 'check-sign';
+			$submit->icon = 'check-square';
 			$form->add($submit);
 
 			$button = $this->modules->get('InputfieldButton');
 			$button->attr('href', '../');
 			$button->attr('value', $this->_('Leave Uninstalled'));
 			$button->class .= " ui-priority-secondary";
-			$button->icon = 'remove-sign';
+			$button->icon = 'times-circle';
 			$button->attr('id', 'no_install');
 			$form->add($button);
 
@@ -684,7 +684,7 @@ class ProcessModule extends Process {
 		$field->attr('id+name', 'uninstall'); 
 		$field->attr('value', $moduleName); 
 		$field->collapsed = Inputfield::collapsedYes; 
-		$field->icon = 'remove-sign';
+		$field->icon = 'times-circle';
 		$field->label = $this->_x("Uninstall", 'checkbox');
 
 		$reason = $this->modules->isUninstallable($moduleName, true); 
@@ -773,7 +773,7 @@ class ProcessModule extends Process {
 		$field->attr('id', 'ModuleInfo'); 
 		$field->attr('value', $table->render()); 
 		$field->label = $this->_x("Module Information", 'edit');
-		$field->icon = 'info-sign';
+		$field->icon = 'info-circle';
 		$form->prepend($field); 
 
 		$out .= $form->render();

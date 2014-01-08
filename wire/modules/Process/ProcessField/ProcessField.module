@@ -215,7 +215,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		$button = $this->modules->get('InputfieldButton');
 		$button->href = "./add"; 
 		$button->value = $this->_x('Add New Field', 'list button'); 
-		$button->icon = 'plus-sign';
+		$button->icon = 'plus-circle';
 		$out .= $button->render();
 
 		if($this->input->nosave) {
@@ -259,27 +259,27 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$flagDefs = array(
 			'Autojoin' => array(
-				'icon' => 'icon-signin',
+				'icon' => 'fa fa-sign-in',
 				'label' => $this->_x('autojoin', 'list notes')
 				),
 			'Global' => array(
-				'icon' => 'icon-globe',
+				'icon' => 'fa fa-globe',
 				'label' => $this->_x('global', 'list notes')
 				),
 			'System' => array(
-				'icon' => 'icon-puzzle-piece',
+				'icon' => 'fa fa-puzzle-piece',
 				'label' => $this->_x('system', 'list notes')
 				),
 			'Permanent' => array(
-				'icon' => 'icon-building',
+				'icon' => 'fa fa-building-o',
 				'label' => $this->_x('permanent', 'list notes')
 				),
 			'Required' => array(
-				'icon' => 'icon-asterisk', 
+				'icon' => 'fa fa-asterisk', 
 				'label' => $this->_x('required', 'list notes')
 				),
 			'Dependency' => array(
-				'icon' => 'icon-question-sign', 
+				'icon' => 'fa fa-question-circle', 
 				'label' => $this->_x('show if...', 'list notes')
 				)
 			);
@@ -328,7 +328,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			$flagsOut .= "<a href='#' class='fieldFlag fieldFlag$flagName tooltip' title='$flag[label]'>$icon</span></a>";
 		}
 
-		$icon = $field->icon ? "<i class='icon-" . str_replace('icon-', '', $this->wire('sanitizer')->name($field->icon)) . "'></i> " : '';
+		$icon = $field->icon ? "<i class='fa fa-" . str_replace(array('icon-', 'fa-'), '', $this->wire('sanitizer')->name($field->icon)) . "'></i> " : '';
 
 		return array(
 			$field->name => "edit?id={$field->id}",
@@ -561,7 +561,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$field = $this->modules->get('InputfieldCheckbox');
 		$field->label = $deleteLabel;
-		$field->icon = 'remove-sign';
+		$field->icon = 'times-circle';
 		$field->attr('id+name', "delete"); 
 		$field->attr('value', $this->field->id); 
 

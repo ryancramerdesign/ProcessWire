@@ -2337,6 +2337,8 @@ table {
   left: -3px;
   margin-top: 0.75em;
   margin-bottom: 0.25em; }
+  body.collapse-topnav #logo {
+    display: none; }
 
 #masthead {
   background: #444444;
@@ -2371,6 +2373,25 @@ table {
           color: #222222;
           background: #f0f0f0;
           text-decoration: none; }
+      #masthead #topnav > li.collapse-topnav-menu {
+        /* menu that displays when the topnav is collapsed */
+        display: none; }
+      body.collapse-topnav #masthead #topnav > li {
+        display: none;
+        /* hide all menu items... */ }
+        body.collapse-topnav #masthead #topnav > li.collapse-topnav-menu {
+          /* ...except for the ones with class .collapse-topnav-menu */
+          display: inline; }
+          body.collapse-topnav #masthead #topnav > li.collapse-topnav-menu > a {
+            -webkit-border-radius: 0;
+            -moz-border-radius: 0;
+            -ms-border-radius: 0;
+            -o-border-radius: 0;
+            border-radius: 0; }
+            body.collapse-topnav #masthead #topnav > li.collapse-topnav-menu > a > i {
+              /* move the hamburger up a bit */
+              position: relative;
+              top: -3px; }
     #masthead #topnav ul.dropdown-menu {
       display: none; }
   #masthead #ProcessPageSearchForm {
@@ -2470,6 +2491,9 @@ table {
   width: 100%;
   z-index: 102;
   overflow: visible; }
+  body.collapse-wiretabs #content .WireTabs {
+    top: 0;
+    margin: 5px 0 1px 0; }
   #content .WireTabs li {
     background: none;
     margin: 0;
@@ -2488,6 +2512,16 @@ table {
     background: none;
     position: relative;
     top: 1px; }
+    body.collapse-wiretabs #content .WireTabs a {
+      border: 1px solid gainsboro;
+      -webkit-border-radius: 5px;
+      -moz-border-radius: 5px;
+      -ms-border-radius: 5px;
+      -o-border-radius: 5px;
+      border-radius: 5px;
+      margin-bottom: 5px;
+      margin-right: 5px;
+      padding-top: 0.4em; }
     #content .WireTabs a em {
       border-bottom: 1px solid rgba(34, 34, 34, 0.2);
       font-weight: normal;
@@ -2501,6 +2535,9 @@ table {
       z-index: 100; }
       #content .WireTabs a.on em {
         border-color: transparent; }
+      body.collapse-wiretabs #content .WireTabs a.on {
+        background: #f0f0f0;
+        color: #222222; }
     #content .WireTabs a:hover {
       border: 1px solid gainsboro;
       border-bottom: none;
@@ -2518,6 +2555,9 @@ table {
       background: none;
       text-decoration: underline;
       border-color: transparent; }
+
+body.collapse-wiretabs #breadcrumbs {
+  border: none; }
 
 /**
  * PageList content
@@ -2604,8 +2644,7 @@ table {
         /* icon */
         padding: 0 0.25em 0 0;
         color: #bd363f; }
-        .content .PageList .PageListItem > a.PageListPage i.icon-lock, .content .PageList .PageListItem > a.PageListPage i.icon-unlock, .content .PageList .PageListItem > a.PageListPage i.icon-trash {
-          padding: 0 0 0 0.25em;
+        .content .PageList .PageListItem > a.PageListPage i.PageListStatusIcon {
           color: #777; }
   .content .PageList .PageListItemOpen > a.PageListPage {
     color: #bd363f;
@@ -2934,6 +2973,7 @@ body.modal .container {
   margin: 0;
   width: 100%;
   min-width: 300px;
+  max-width: 100%;
   padding-left: 1em;
   padding-right: 1em; }
 body.modal #notices {
@@ -2988,11 +3028,13 @@ body:not(.hasWireTabs) #headline .container {
 .InputfieldPageNameURL strong {
   font-weight: normal; }
 
-/*
-.topnav.dropdown-menu, .topnav.dropdown-menu .ui-menu-item {
-	border-radius: 0 !important; 
-}
-*/
+#tools-toggle {
+  width: 43px; }
+
+.fa {
+  /* font-awesome default icon size */
+  font-size: 14px; }
+
 /***********************************************************************************************
  * MEDIA QUERIES
  *

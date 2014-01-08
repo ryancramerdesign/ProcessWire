@@ -150,10 +150,10 @@ class ProcessLogin extends Process {
 			$out = $this->form->render();
 			$links = '';
 			if($this->allowForgot) {
-				$links .= "<div><a href='./?forgot=1'><i class='icon-question-sign'></i> " . $this->_("Forgot your password?") . "</a></div>"; // Forgot password link text
+				$links .= "<div><a href='./?forgot=1'><i class='fa fa-question-circle'></i> " . $this->_("Forgot your password?") . "</a></div>"; // Forgot password link text
 			}
 			$home = $this->pages->get("/"); 
-			$links .= "<div><a href='{$home->url}'><i class='icon-home'></i> {$home->title}</a></div>";
+			$links .= "<div><a href='{$home->url}'><i class='fa fa-home'></i> {$home->title}</a></div>";
 			if($links) $out .= "<p>$links</p>";
 			return $out; 
 		}

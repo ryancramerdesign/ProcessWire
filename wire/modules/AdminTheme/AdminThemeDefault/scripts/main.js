@@ -18,6 +18,7 @@ var ProcessWireAdminTheme = {
 		this.setupTooltips();
 		this.setupSearch();
 		this.setupDropdowns();
+		this.setupMobile();
 		// this.sizeTitle();
 		if($("body").hasClass('hasWireTabs') && $("ul.WireTabs").size() == 0) $("body").removeClass('hasWireTabs'); 
 		$('#content').removeClass('fouc_fix'); // FOUC fix
@@ -245,8 +246,82 @@ var ProcessWireAdminTheme = {
 
 		});
 
+		$("#tools-toggle").hover(function() {
+			var $icon = $(this).find("i"); 
+			hoverIcon = $icon.attr('data-hover'); 
+			var blurIcon = $icon.attr('class'); 	
+			$icon.attr('data-blur', blurIcon); 
+			$icon.attr('class', hoverIcon); 
+		}, function() {
+			var $icon = $(this).find("i"); 
+			$icon.attr('class', $icon.attr('data-blur')); 
+		}); 
+
 
 	}, 	
+
+	setupMobile: function() {
+		// collapse or expand the topnav menu according to whether it is wrapping to multiple lines
+		var collapsedTopnavAtBodyWidth = 0;
+		var collapsedTabsAtBodyWidth = 0;
+
+		var windowResize = function() {
+
+			// top navigation
+			var $topnav = $("#topnav"); 
+			var $body = $("body"); 
+			var height = $topnav.height();
+
+			if(height > 50) {
+				// topnav has wordwrapped
+				if(!$body.hasClass('collapse-topnav')) {
+					$body.addClass('collapse-topnav'); 
+					collapsedTopnavAtBodyWidth = $body.width();
+				}
+			} else if(collapsedTopnavAtBodyWidth > 0) {
+				// topnav is on 1 line
+				var width = $body.width();
+				if($body.hasClass('collapse-topnav') && width > collapsedTopnavAtBodyWidth) {
+					$body.removeClass('collapse-topnav'); 
+					collapsedTopnavAtBodyWidth = 0;
+				}
+			}
+
+			$topnav.children('.collapse-topnav-menu').children('a').click(function() {
+				// close menu
+				$(this).mouseleave();
+				return false; 
+			}); 
+
+
+			// wiretabs
+			var $wiretabs = $(".WireTabs"); 
+			if($wiretabs.size < 1) return;
+
+			$wiretabs.each(function() {
+				var $tabs = $(this);
+				var height = $tabs.height();
+				if(height > 65) {
+					if(!$body.hasClass('collapse-wiretabs')) {
+						$body.addClass('collapse-wiretabs'); 
+						collapsedTabsAtBodyWidth = $body.width();
+						console.log('collapse wiretabs'); 
+					}
+				} else if(collapsedTabsAtBodyWidth > 0) {
+					var width = $body.width();
+					if($body.hasClass('collapse-wiretabs') && width > collapsedTabsAtBodyWidth) {
+						$body.removeClass('collapse-wiretabs'); 
+						collapsedTabsAtBodyWidth = 0;
+						console.log('un-collapse wiretabs'); 
+					}
+				}
+			}); 
+		};
+
+		windowResize();
+		$(window).resize(windowResize);
+
+	}, 
 
 	/**
 	 * Give a notice to IE versions we don't support

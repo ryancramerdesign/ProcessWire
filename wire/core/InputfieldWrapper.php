@@ -78,7 +78,7 @@ class InputfieldWrapper extends Inputfield {
 		'item_description' => "\n<p class='description'>{out}</p>", 
 		'item_head' => "\n<h2>{out}</h2>", 
 		'item_notes' => "\n<p class='notes'>{out}</p>",
-		'item_icon' => "<i class='icon-{name}'></i> ",
+		'item_icon' => "<i class='fa fa-{name}'></i> ",
 		);
 
 	static protected $markup = array();
@@ -133,6 +133,7 @@ class InputfieldWrapper extends Inputfield {
 		$columnWidthSpacing = $this->wire('config')->inputfieldColumnWidthSpacing; 
 		$columnWidthSpacing = is_null($columnWidthSpacing) ? 1 : (int) $columnWidthSpacing; 
 		$this->set('columnWidthSpacing', $columnWidthSpacing); 
+		//$this->set('useDependencies', true); // whether or not to use consider field dependencies during processing
 	}
 
 	/**
@@ -347,7 +348,7 @@ class InputfieldWrapper extends Inputfield {
 					$label = $inputfield->label;
 					// if $inputfield has a property of entityEncodeLabel with a value of boolean FALSE, we don't entity encode
 					if($inputfield->entityEncodeLabel !== false) $label = $this->entityEncode($label);
-					$icon = $inputfield->icon ? str_replace('{name}', $this->sanitizer->name(str_replace('icon-', '', $inputfield->icon)), $markup['item_icon']) : ''; 
+					$icon = $inputfield->icon ? str_replace('{name}', $this->sanitizer->name(str_replace(array('icon-', 'fa-'), '', $inputfield->icon)), $markup['item_icon']) : ''; 
 					//$label = str_replace('{out}', $label, $markup['item_label_text']); 
 					$label = str_replace(array('{for}', '{out}'), array($for, $icon . $label), $markup['item_label']); 
 				}
@@ -409,6 +410,9 @@ class InputfieldWrapper extends Inputfield {
 			// skip over the field if it is not processable
 			if(!$this->isProcessable($child)) continue; 	
 
+			// pass along the dependencies valeu to child wrappers
+			//if($child instanceof InputfieldWrapper) $child->set('useDependencies', $this->useDependencies); 
+
 			// call the inputfield's processInput method
 			$child->processInput($input); 
 
@@ -436,6 +440,9 @@ class InputfieldWrapper extends Inputfield {
 		// skip over collapsedHidden or collapsedLocked inputfields, beacuse they are not saveable
 		if($inputfield->collapsed === Inputfield::collapsedHidden) return false;
 		if($inputfield->collapsed === Inputfield::collapsedLocked) return false;
+
+		// if dependencies aren't in use, we can skip the rest
+		//if(!$this->useDependencies) return true; 
 		
 		if(strlen($inputfield->getSetting('showIf')) || 
 			($inputfield->getSetting('required') && strlen($inputfield->getSetting('requiredIf')))) {

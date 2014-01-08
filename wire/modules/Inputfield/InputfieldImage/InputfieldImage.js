@@ -29,7 +29,7 @@ $(document).ready(function() {
 	}); 
 	
 	function setGridMode($parent) {
-		$parent.find("i.icon-th").replaceWith($("<i class='icon-list'></i>")); 
+		$parent.find("i.fa-th").replaceWith($("<i class='fa fa-list'></i>")); 
 		$parent.find(".InputfieldFileLink").each(function() {
 			var $a = $(this);
 			var $img = $a.children("img"); 
@@ -42,11 +42,11 @@ $(document).ready(function() {
 	function unsetGridMode($parent) {
 		$parent.removeClass('InputfieldImageGrid'); 
 		$parent.find(".InputfieldFileLink").css('background', 'none'); 
-		$parent.find("i.icon-list").replaceWith($("<i class='icon-th'></i>")); 
+		$parent.find("i.fa-list").replaceWith($("<i class='fa fa-th'></i>")); 
 	}
 
 	var $listToggle = $("<a class='InputfieldImageListToggle HideIfSingle HideIfEmpty' href='#'></a>")
-		.append("<i class='icon-th'></i>"); 
+		.append("<i class='fa fa-th'></i>"); 
 	$(".InputfieldImage .InputfieldHeader").append($listToggle); 
 	$(document).on('click', '.InputfieldImageListToggle', function() {
 		var $parent = $(this).parents(".InputfieldImage"); 

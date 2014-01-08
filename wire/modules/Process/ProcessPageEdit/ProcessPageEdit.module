@@ -329,7 +329,7 @@ class ProcessPageEdit extends Process {
 				$button = $this->modules->get("InputfieldButton"); 
 				$button->attr('id+name', 'AddPageBtn'); 
 				$button->attr('value', $this->_('Add New Page Here')); // Button: add new child page
-				$button->icon = 'plus-sign';
+				$button->icon = 'plus-circle';
 				$button->attr('href', "../add/?parent_id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
 				$field->append($button);
 			}
@@ -558,7 +558,7 @@ class ProcessPageEdit extends Process {
 				$deleteLabel = $this->_('Move to Trash'); // Move to trash checkbox label
 			}
 			$field->label = $deleteLabel;
-			$field->icon = 'trash';
+			$field->icon = 'trash-o';
 			$field->description = $this->_('Check the box to confirm that you want to do this.'); // Delete page confirmation instruction
 			$wrapper->append($field); 
 		}
@@ -903,7 +903,7 @@ class ProcessPageEdit extends Process {
 		$list = '';
 		foreach($this->page->template->fieldgroup as $field) {
 			if(!$template->fieldgroup->has($field)) 
-				$list .= "<li class='ui-state-error-text'> <i class='icon-remove-sign'></i> $field</li>";
+				$list .= "<li class='ui-state-error-text'> <i class='icon-times-circle'></i> $field</li>";
 		}
 		if(!$list) $this->executeSaveTemplate($template); 
 		$f->description = $this->_('Warning, changing the template will delete the following fields:'); // Headline that precedes list of fields that will be deleted as a result of template change

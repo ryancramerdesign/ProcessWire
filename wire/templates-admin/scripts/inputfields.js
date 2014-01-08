@@ -541,12 +541,12 @@ function InputfieldColumnWidths() {
  */
 function InputfieldStates() {
 	$(".InputfieldHeader, .Inputfield > .ui-widget-header").addClass("InputfieldStateToggle")
-		.prepend("<i class='toggle-icon icon-angle-down'></i>");
+		.prepend("<i class='toggle-icon fa fa-angle-down'></i>");
 	
 	$(document).on('click', '.InputfieldHeader, .Inputfield > .ui-widget-header', function() {
 		var $li = $(this).closest('.Inputfield');
 		$li.toggleClass('InputfieldStateCollapsed', 100);
-		$(this).children('i.toggle-icon').toggleClass('icon-angle-down icon-angle-right');
+		$(this).children('i.toggle-icon').toggleClass('fa-angle-down fa-angle-right');
 
 		// if($.effects && $.effects['highlight']) $li.children('.InputfieldHeader, .ui-widget-header').effect('highlight', {}, 300);
 		setTimeout('InputfieldColumnWidths()', 500); 
@@ -555,7 +555,7 @@ function InputfieldStates() {
 
 	// use different icon for open and closed
 	$(".Inputfields .InputfieldStateCollapsed > .InputfieldHeader i.toggle-icon, .Inputfields .InputfieldStateCollapsed > .ui-widget-header i.toggle-icon")
-		.removeClass('icon-angle-down').addClass('icon-angle-right');
+		.removeClass('fa-angle-down').addClass('fa-angle-right');
 
 	// display a detail with the HTML field name when the toggle icon is hovered
 	if(typeof config !== "undefined" && config.debug) {

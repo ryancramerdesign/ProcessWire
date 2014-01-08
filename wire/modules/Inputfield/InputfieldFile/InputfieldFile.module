@@ -173,7 +173,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			"\n\t<input type='hidden' class='InputfieldFileMaxFiles' value='{$this->maxFiles}' />" . 
 			"\n\t<input " . $this->getAttributesString($attrs) . " />" . 
 			"\n\t<span class='InputfieldFileValidExtensions detail'>" . htmlspecialchars(str_replace(' ', ', ', trim($extensions))) . "</span>" . 
-			"\n\t<span class='AjaxUploadDropHere description'><i class='icon-upload-alt'></i>&nbsp; " . $this->_('drag and drop files in here') . "</span>" . // Ajax upload instruction
+			"\n\t<span class='AjaxUploadDropHere description'><i class='fa fa-upload'></i>&nbsp; " . $this->_('drag and drop files in here') . "</span>" . // Ajax upload instruction
 			"\n</p>";
 
 		return $out; 
