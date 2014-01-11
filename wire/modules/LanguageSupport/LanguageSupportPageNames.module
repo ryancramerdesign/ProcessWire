@@ -270,9 +270,9 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			$requestPath = substr($requestPath, 0, $expectedPathLength); 
 		}
 		
-		if($expectedPath != $requestPath) {
+		if(trim($expectedPath, '/') != trim($requestPath, '/')) {
 			if($expectedPathLength && $useSlashURL) $expectedPath .= '/';
-			$redirectURL = wire('config')->urls->root . $expectedPath;
+			$redirectURL = wire('config')->urls->root . ltrim($expectedPath, '/');
 			
 		} else if($useSlashURL && !$hasSlashURL && strlen($expectedPath)) {
 			$redirectURL = wire('config')->urls->root . $expectedPath . '/';
@@ -280,6 +280,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		} else if(!$useSlashURL && $hasSlashURL && $pageNum == 1) {
 			$redirectURL = wire('config')->urls->root . $expectedPath; 
 		}
+
 		return $redirectURL; 	
 	}
 
