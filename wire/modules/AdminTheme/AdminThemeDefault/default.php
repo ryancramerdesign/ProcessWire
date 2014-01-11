@@ -84,9 +84,12 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");
 
 			<a id='logo' href='<?php echo $config->urls->admin?>'><img width='130' src="<?php echo $config->urls->adminTemplates?>styles/images/logo.png" alt="ProcessWire" /></a>
 
-			<?php echo tabIndent($searchForm, 3); ?>
-
-			<ul id='topnav'><?php echo renderTopNavItems(); ?></ul>
+			<?php 
+			if($user->isLoggedin()) {
+				echo $searchForm;
+				echo "<ul id='topnav'>" . renderTopNavItems() . "</ul>";
+			}
+			?>
 
 		</div>
 	</div>
@@ -100,7 +103,6 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");
 			<ul class='nav'>
 
 				<?php
-				// echo "<li><a class='sitelink' href='{$config->urls->root}'><i class='fa fa-home'></i></a><i class='fa fa-angle-right'></i></li>"; 
 				foreach($this->fuel('breadcrumbs') as $breadcrumb) {
 					$title = __($breadcrumb->title, __FILE__); 
 					echo "<li><a href='{$breadcrumb->url}'>{$title}</a><i class='fa fa-angle-right'></i></li>";
@@ -116,11 +118,11 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");
 	<div id="content" class="content fouc_fix">
 		<div class="container">
 
-			<?php if(trim($page->summary)) echo "<h2>{$page->summary}</h2>"; ?>
-
-			<?php if($page->body) echo $page->body; ?>
-
-			<?php echo $content?>
+			<?php 
+			if(trim($page->summary)) echo "<h2>{$page->summary}</h2>"; 
+			if($page->body) echo $page->body; 
+			echo $content; 
+			?>
 
 		</div>
 	</div>

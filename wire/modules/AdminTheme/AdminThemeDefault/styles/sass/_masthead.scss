@@ -71,6 +71,11 @@
 					> a {
 						@include border-radius(0); 
 
+						&.hover,
+						&:hover {
+							@include linear-gradient-vertical($masthead-bg, $topnav-link-hover-bg); 
+						}
+
 						> i {
 							/* move the hamburger up a bit */
 							position: relative;

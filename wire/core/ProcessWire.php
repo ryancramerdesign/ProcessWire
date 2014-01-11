@@ -85,6 +85,7 @@ class ProcessWire extends Wire {
 
 		$httpHosts = $config->httpHosts; 
 		$port = (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != 80) ? (':' . ((int) $_SERVER['SERVER_PORT'])) : '';
+		$host = '';
 
 		if(is_array($httpHosts) && count($httpHosts)) {
 			// validate from an allowed whitelist of http hosts
