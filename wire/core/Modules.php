@@ -613,24 +613,23 @@ class Modules extends WireArray {
 			if(!class_exists($class)) $reason = $reason1; 
 		}
 
-		if(!$reason) {
-
+		if(!$reason) { 
 			// if the moduleInfo contains a non-empty 'permanent' property, then it's not uninstallable
 			$info = $this->getModuleInfo($class); 
 			if(!empty($info['permanent'])) {
 				$reason = "Module is permanent"; 
 			} else {
 				$dependents = $this->getRequiresForUninstall($class); 	
-				if(count($dependents)) $reason = "Module is required by other modules that must be uninstalled first"; 
+				if(count($dependents)) $reason = "Module is required by other modules that must be removed first"; 
 			}
-		}
 
-		if(!$reason && in_array('Fieldtype', class_parents($class))) {
-			foreach(wire('fields') as $field) {
-				$fieldtype = get_class($field->type);
-				if($fieldtype == $class) { 
-					$reason = "This module is a Fieldtype currently in use by one or more fields";
-					break;
+			if(!$reason && in_array('Fieldtype', class_parents($class))) {
+				foreach(wire('fields') as $field) {
+					$fieldtype = get_class($field->type);
+					if($fieldtype == $class) { 
+						$reason = "This module is a Fieldtype currently in use by one or more fields";
+						break;
+					}
 				}
 			}
 		}
@@ -639,6 +638,89 @@ class Modules extends WireArray {
 	
 		return $reason ? false : true; 	
 	}
+
+	/**
+	 * Returns whether the module can be deleted (have it's files physically removed)
+	 *
+	 * @param string|Module $class
+	 * @param bool $returnReason If true, the reason why it can't be removed will be returned rather than boolean false.
+	 * @return bool|string 
+	 *
+	 */
+	public function isDeleteable($class, $returnReason = false) {
+
+		$reason = '';
+		$class = $this->getModuleClass($class); 
+
+		$filename = isset($this->installable[$class]) ? $this->installable[$class] : null;
+
+		if(empty($filename) || $this->isInstalled($class)) {
+			$reason = "Module must be uninstalled before it can be deleted.";
+
+		} else if(!is_file($filename)) {
+			$reason = "Module file does not exist";
+
+		} else if(strpos($filename, $this->modulePath2) !== 0) {
+			$reason = "Core modules may not be deleted.";
+
+		} else if(!is_writable($filename)) {
+			$reason = "We have no write access to the module file, it must be removed manually.";
+		}
+
+		if($returnReason && $reason) return $reason;
+	
+		return $reason ? false : true; 	
+	}
+
+	/**
+	 * Delete the given module, physically removing its files
+	 *
+	 * @param string $class
+	 * @return bool
+	 * @throws WireException If module can't be deleted, exception will be thrown containing reason. 
+	 *
+	 */
+	public function ___delete($class) {
+
+		$class = $this->getModuleClass($class); 
+		$reason = $this->isDeleteable($class, true); 
+		if($reason !== true) throw new WireException($reason); 
+
+		$filename = $this->installable[$class];
+		$basename = basename($filename); 
+
+		// double check that $class is consistent with the actual $basename	
+		if($basename === "$class.module" || $basename === "$class.module.php") {
+			// good, this is consistent with the format we require
+		} else {
+			throw new WireException("Unrecognized module filename format"); 
+		}
+
+		// now determine if module is the owner of the directory it exists in
+		// this is the case if the module class name is the same as the directory name
+
+		// full path to directory, i.e. .../site/modules/ProcessHello
+		$path = dirname($filename); 
+
+		// full path to parent directory, i.e. ../site/modules
+		$path = dirname($path); 
+
+		// first check that we are still in the /site/modules/, and ...
+		// now attempt to re-construct it with the $class as the directory name
+		if(strpos("$path/", $this->modulePath2) === 0 && is_file("$path/$class/$basename")) {
+			// we have a directory that we can recursively delete
+			$rmPath = "$path/$class/";
+			$this->message("Removing path: $rmPath", Notice::debug); 
+			$success = wireRmdir($rmPath, true); 
+
+		} else if(is_file($filename)) {
+			$this->message("Removing file: $filename", Notice::debug); 
+			$success = unlink($filename); 
+		}
+		
+		return $success; 
+	}
+
 
 	/**
 	 * Uninstall the given class name
@@ -932,6 +1014,8 @@ class Modules extends WireArray {
 	public function resetCache() {
 		$this->findModuleFiles($this->modulePath); 
 		if($this->modulePath2) $this->findModuleFiles($this->modulePath2); 
+		$this->load($this->modulePath); 
+		if($this->modulePath2) $this->load($this->modulePath2);
 	}
 
 	/**
