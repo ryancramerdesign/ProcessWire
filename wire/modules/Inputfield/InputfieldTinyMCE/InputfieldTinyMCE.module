@@ -28,7 +28,7 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 			'title' => 'TinyMCE',
 			'version' => 358,
 			'summary' => 'WYSIWYG rich text editor',
-			'permanent' => true, 
+			'permanent' => false, 
 			);
 	}
 

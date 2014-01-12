@@ -17,12 +17,12 @@
  *
  */
 
-class FieldtypePage extends FieldtypeMulti {
+class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page Reference',
-			'version' => 101,
+			'version' => 102,
 			'summary' => 'Field that stores one or more references to ProcessWire pages',
 			'permanent' => true, 
 			);
@@ -77,7 +77,12 @@ class FieldtypePage extends FieldtypeMulti {
 		foreach($this->fuel('fields') as $field) {
 			if(!$field->type instanceof FieldtypePage) continue; 
 			$table = $database->escapeTable($field->table);
+			// delete references to this page
 			$query = $database->prepare("DELETE FROM `$table` WHERE data=:page_id");
+			$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
+			$query->execute();
+			// delete references this page is keeping to other pages
+			$query = $database->prepare("DELETE FROM `$table` WHERE pages_id=:page_id");
 			$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
 			$query->execute();
 		}	
@@ -154,6 +159,7 @@ class FieldtypePage extends FieldtypeMulti {
 		// we're going to be dealing with $value as an array this point forward
 		// this is for compatibility with the Pages::getById function
 		if(!is_array($value)) $value = array($value); 
+		// $value = $this->validatePageIDs($page, $value); 
 		
 		if($field->derefAsPage > 0) {
 			// we're going to return a single page, NullPage or false
@@ -171,6 +177,7 @@ class FieldtypePage extends FieldtypeMulti {
 		
 		} else {
 			// we're going to return a PageArray
+			if(!count($value)) return $this->getBlankValue($page, $field); 
 			$pageArray = $this->fuel('pages')->getById($value, $template); 
 			foreach($pageArray as $pg) {
 				// remove any pages that have an unpublished status
@@ -180,6 +187,21 @@ class FieldtypePage extends FieldtypeMulti {
 			return $pageArray; 
 		}
 	}
+
+	/**
+	 * Pre-validate the given page IDs
+	 * 
+	 * @param Page $page
+	 * @param array $ids
+	 * @return array
+	protected function validatePageIDs(Page $page, array $ids) {
+		foreach($ids as $key => $id) {
+			// ensure no circular reference
+			if($id == $page->id) unset($ids[$key]); 
+		}
+		return $ids; 
+	}
+	 */
 
 	/**
 	 * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
@@ -343,6 +365,7 @@ class FieldtypePage extends FieldtypeMulti {
 			if($value instanceof PageArray) $value = $value->first();
 		}
 		$value = (($value instanceof Page) && $value->id) ? $value : $this->getBlankValue($page, $field); 
+		// if($page->id == $value->id) $value = $this->getBlankValue($page, $field); // prevent circular references
 		return $value; 
 	}
 
@@ -403,7 +426,10 @@ class FieldtypePage extends FieldtypeMulti {
 		}
 
 		if(!is_array($value)) $value = array($value); 
-		foreach($value as $pg) $pageArray->add($pg); 
+		foreach($value as $pg) {
+			// if($pg->id == $page->id) continue; // prevent circular references
+			$pageArray->add($pg); 
+		}
 
 		return $pageArray; 
 	}
@@ -651,6 +677,76 @@ class FieldtypePage extends FieldtypeMulti {
 		$checkbox->attr('value', 1); 
 		$checkbox->attr('checked', $field->allowUnpub ? 'checked' : ''); 
 		$inputfields->prepend($checkbox); 
+
+		return $inputfields;
+	}
+
+	/**
+	 * Find and clean orphaned references in each of FieldtypePage's tables
+	 *
+	 * Previous versions of PW had an issue where a reference to a deleted page could still exist in some instances.
+	 * This could cause "reference.count>0" type selectors to produce inaccurate results. This cleans up for that.
+	 * This may also be handy if a Page reference table has become corrupted by some other means. 
+ 	 *	
+	 *
+	 */
+	public function cleanOrphanedReferences() {
+
+		$database = $this->wire('database'); 
+		$totalCleaned = 0; 
+
+		foreach($this->wire('fields') as $field) {
+
+			if(!$field->type instanceof FieldtypePage) continue; 
+			$table = $database->escapeTable($field->getTable()); 
+
+			foreach(array('data', 'pages_id') as $key) {
+
+				$sql = "SELECT $table.pages_id, $table.data FROM $table LEFT JOIN pages ON $table.$key=pages.id WHERE pages.id IS NULL";
+				$query = $database->prepare($sql); 
+				$query->execute();
+				$numCleaned = 0; 
+
+				while($row = $query->fetch(PDO::FETCH_NUM)) {
+					list($pages_id, $data) = $row; 
+					$q = $database->prepare("DELETE FROM $table WHERE pages_id=:pages_id AND data=:data"); 
+					$q->bindValue(':pages_id', $pages_id, PDO::PARAM_INT); 
+					$q->bindValue(':data', $data, PDO::PARAM_INT); 
+					$q->execute();
+					$numCleaned++;
+				}
+
+				$totalCleaned += $numCleaned; 
+
+				if($numCleaned) $this->message("Fixed $numCleaned orphaned '$key' references for field '$field->name'"); 
+			}
+		}
+
+		if(!$totalCleaned) $this->message("No problems found"); 
+			else $this->message("Found and fixed a total of $totalCleaned issues."); 
+	}
+
+	/**
+	 * Module configuration screen
+	 *
+	 */
+	public static function getModuleConfigInputfields(array $data) {
+
+		$inputfields = new InputfieldWrapper();
+		$inputfield = wire('modules')->get('InputfieldCheckbox'); 
+		$inputfield->attr('name', '_clean'); 
+		$inputfield->attr('value', 1); 
+		$inputfield->label = 'Find and clean orphaned page references'; 
+		$inputfield->description = 'This cleans up for an issue in older versions of ProcessWire that could leave orphaned page references for deleted pages. If you are getting inaccurate results from page finding operations (especially with selectors using pageref.count), then you may want to run this.'; 
+		$inputfield->icon = 'eraser';
+		$inputfield->collapsed = Inputfield::collapsedYes; 
+		$inputfield->notes = 'Warning: To be safe you should back-up your database before running this.';
+		$inputfields->add($inputfield); 
+
+		if(wire('input')->post('_clean')) {
+			wire()->message("Finding and cleaning..."); 
+			wire('fieldtypes')->get('FieldtypePage')->cleanOrphanedReferences();
+		}
 
 		return $inputfields;
 	}

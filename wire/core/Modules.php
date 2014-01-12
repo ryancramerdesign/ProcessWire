@@ -653,9 +653,13 @@ class Modules extends WireArray {
 		$class = $this->getModuleClass($class); 
 
 		$filename = isset($this->installable[$class]) ? $this->installable[$class] : null;
+		$dirname = dirname($filename); 
 
 		if(empty($filename) || $this->isInstalled($class)) {
 			$reason = "Module must be uninstalled before it can be deleted.";
+
+		} else if(is_link($filename) || is_link($dirname) || is_link(dirname($dirname))) {
+			$reason = "Module is linked to another location";
 
 		} else if(!is_file($filename)) {
 			$reason = "Module file does not exist";

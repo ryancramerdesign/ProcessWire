@@ -324,7 +324,7 @@ class ProcessModule extends Process {
 					"<button type='$buttonType' id='install_$name' name='install' class='$buttonState ui-button ui-priority-secondary' value='$name'>" . 
 					"<span class='ui-button-text'><i class='fa fa-sign-in'></i> " . $this->_x('Install', 'button') . "</span></button>"; // Text for 'Install' button
 
-				if($allowDelete) $buttons .= 
+				if($allowDelete && $this->wire('modules')->isDeleteable($name)) $buttons .= 
 					"<button type='submit' id='delete_$name' name='delete' class='ui-state-default ui-priority-secondary ui-button' value='$name' onclick=\"$confirmJS\">" . 
 					"<span class='ui-button-text'><i class='fa fa-eraser'></i> " . $this->_x('Delete', 'button') . "</span></button>"; // Text for 'Delete' button
 
