@@ -215,6 +215,53 @@ function wireRmdir($path, $recursive = false) {
 }
 
 /**
+ * Change the mode of a file or directory, consistent with PW's chmodFile/chmodDir settings
+ * 
+ * @param string $path May be a directory or a filename
+ * @param bool $recursive If set to true, all files and directories in $path will be recursively set as well.
+ * @param string If you want to set the mode to something other than PW's chmodFile/chmodDir settings, 
+	you may override it by specifying it here. Ignored otherwise. Format should be a string, like "0755".
+ * @return bool Returns true if all changes were successful, or false if at least one chmod failed. 
+ *
+ */ 
+function wireChmod($path, $recursive = false, $chmod = null) {
+
+	if(is_null($chmod)) {
+		// default: pull values from PW config
+		$chmodFile = wire('config')->chmodFile;
+		$chmodDir = wire('config')->chmodDir;
+	} else {
+		// optional, manually specified string
+		if(!is_string($chmod)) throw new WireException("chmod must be specified as a string like '0755'"); 
+		$chmodFile = $chmod;
+		$chmodDir = $chmod;
+	}
+
+	$numFails = 0;
+
+	if(is_dir($path)) {
+		// $path is a directory
+		if($chmodDir) if(!chmod($path, octdec($chmodDir))) $numFails++;
+
+		// change mode of files in directory, if recursive
+		if($recursive) foreach(new DirectoryIterator($path) as $file) {
+			if($file->isDot()) continue; 
+			$mod = $file->isDir() ? $chmodDir : $chmodFile;     
+			if($mod) if(!chmod($file->getPathname(), octdec($mod))) $numFails++;
+			if($file->isDir()) {
+				if(!wireChmod($dir->getPathname(), true, $chmod)) $numFails++;
+			}
+		}
+	} else {
+		// $path is a file
+		$mod = $chmodFile; 
+		if($mod) if(!chmod($path, octdec($mod))) $numFails++;
+	}
+
+	return $numFails == 0; 
+}
+
+/**
  * Copy all files in directory $src to directory $dst
  * 
  * The default behavior is to also copy directories recursively. 
