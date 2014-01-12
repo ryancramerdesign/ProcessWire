@@ -53,7 +53,11 @@ class ProcessModule extends Process {
 	
 	public function __construct() {
 		$this->labels['download'] = $this->_('Download'); 
-		$this->labels['download_install'] = $this->input->get->update ? $this->_('Download and Update') : $this->_('Download and Install');
+		if($this->input->get->update) {
+			$this->labels['download_install'] = $this->_('Download and Update');
+		} else { 
+			$this->labels['download_install'] = $this->_('Download and Install');
+		}
 		$this->labels['check_new'] = $this->_('Check for New Modules'); 
 	}
 
@@ -87,6 +91,22 @@ class ProcessModule extends Process {
 				$this->modulesArray[$name] = 1; 
 				$this->session->message($this->_("Module Install") . " - " . $module->className); // Message that precedes the name of the module installed
 				$this->session->redirect("edit?name={$module->className}"); 
+			}
+		}
+
+		if($this->input->post->delete) {
+			$this->session->CSRF->validate();
+			$name = $this->input->post->delete;
+			if($name && isset($this->modulesArray[$name])) {
+				$info = $this->modules->getModuleInfo($name); 		
+				try {
+					$this->modules->delete($name); 
+					$this->message($this->_('Deleted module files') . ' - ' . $info['title']); 
+
+				} catch(WireException $e) {
+					$this->error($e->getMessage()); 
+				}
+				$this->session->redirect("./"); 
 			}
 		}
 		
@@ -158,7 +178,7 @@ class ProcessModule extends Process {
 		$tab->attr('class', 'WireTab');
 		
 		$markup = $this->modules->get('InputfieldMarkup');
-		$markup->value .= $this->renderListTable($siteModulesArray);
+		$markup->value .= $this->renderListTable($siteModulesArray, true);
 		$markup->notes = $this->_("To remove a module, click the module to edit, check the 'uninstall' box, then save. Once uninstalled, the module's file(s) may be removed from /site/modules/. If it still appears in the list above, you may need to click the 'check for new modules' button for ProcessWire to see the change."); // Instructions on how to remove a module
 		$tab->add($markup);
 		$form->add($tab); 
@@ -222,10 +242,11 @@ class ProcessModule extends Process {
 	 * Render a modules listing table, as it appears in the 'site' and 'core' tabs
 	 * 
 	 * @param array $modulesArray
+	 * @param bool $allowDelete Whether or not delete is allowed (dfeault=false)
 	 * @return string
 	 * 
 	 */
-	protected function renderListTable($modulesArray) {
+	protected function renderListTable($modulesArray, $allowDelete = false) {
 		if(!count($modulesArray)) return '';
 		
 		static $numCalls = 0; 
@@ -268,7 +289,8 @@ class ProcessModule extends Process {
 			$version = $this->formatVersion(isset($info['version']) ? $info['version'] : 0);
 			$summary = empty($info['summary']) ? '' : htmlspecialchars($info['summary'], ENT_QUOTES, 'UTF-8');
 			$summary .= empty($info['href']) ? '' : (" <a href='$info[href]'>" . $this->_('more') . "</a>");
-
+			$buttons = '';
+			$confirmJS = "return confirm('" . sprintf($this->_('Delete %s?'), $name) . "')";
 			$editUrl = "edit?name={$name}";
 
 			if(!$installed) {
@@ -290,16 +312,38 @@ class ProcessModule extends Process {
 				}
 
 				$title = "<span id='$name' class='$class'>$title</span>";
-				$buttonAttr = count($requires) ? " disabled='disabled'" : '';
-				$version .= "<button$buttonAttr type='submit' id='install_$name' name='install' class='install' value='$name'>" . $this->_x('Install', 'button') . "</button>"; // Text for 'Install' button
+
+				if(count($requires)) {
+					$buttonState = 'ui-state-default ui-state-disabled';
+					$buttonType = 'button';
+				} else {
+					$buttonState = 'ui-state-default';
+					$buttonType = 'submit';
+				}
+				$buttons .= 
+					"<button type='$buttonType' id='install_$name' name='install' class='$buttonState ui-button ui-priority-secondary' value='$name'>" . 
+					"<span class='ui-button-text'><i class='fa fa-sign-in'></i> " . $this->_x('Install', 'button') . "</span></button>"; // Text for 'Install' button
+
+				if($allowDelete) $buttons .= 
+					"<button type='submit' id='delete_$name' name='delete' class='ui-state-default ui-priority-secondary ui-button' value='$name' onclick=\"$confirmJS\">" . 
+					"<span class='ui-button-text'><i class='fa fa-eraser'></i> " . $this->_x('Delete', 'button') . "</span></button>"; // Text for 'Delete' button
+
+			
 				$editUrl = '#';
-			} else {
+
+			} else if($configurable) {
+
+				$buttons .= 
+					"<button type='button' class='ProcessModuleSettings ui-state-default ui-button'>" . 
+					"<span class='ui-button-text'><i class='fa fa-cog'></i> " . $this->_x('Settings', 'button') . "</span></button>"; // Text for 'Settings' button
 			}
+
+			if($buttons) $buttons = "<small class='buttons'>$buttons</small>";
 
 			$row = array(
 				$title => $editUrl,
 				$version,
-				$summary,
+				$summary . $buttons,
 				);
 
 			$table->row($row);
@@ -524,6 +568,7 @@ class ProcessModule extends Process {
 		
 		try {
 			$files = wireUnzipFile($file, $tmp_dir);
+			
 		} catch(Exception $e) {
 			if(is_file($file)) unlink($file);
 			$this->error($e->getMessage());
@@ -542,6 +587,7 @@ class ProcessModule extends Process {
 		if(is_dir($destination_directory)) {
 			if(wireCopy($from, $destination_directory)) {
 				$this->message($this->_('Successfully copied files to new directory:') . ' ' . str_replace($this->config->paths->root, '/', $destination_directory));
+				wireChmod($destination_directory, true); 
 				$success = true;
 			}
 		} else {
