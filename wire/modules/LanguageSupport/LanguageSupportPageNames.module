@@ -76,6 +76,12 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		 */
 		'inheritInactive' => 0,
 
+		/**
+		 * Whether or not the default language homepage should be served by a language segment.
+	 	 *
+		 */
+		'useHomeSegment' => 0,
+
 		);
 
 	/**
@@ -294,8 +300,8 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		if($page->id == 1) {
 			// special case: homepage
-			// $name = $isDefault ? $page->get("name") : $page->get("name$language"); 
 			$name = $isDefault ? '' : $page->get("name$language"); 
+			if($isDefault && $this->useHomeSegment) $name = $page->name;
 			if($name == self::HOME_NAME_DEFAULT || !strlen($name)) return '/';
 			return "/$name/";
 		}
@@ -734,9 +740,11 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 *
 	 */
 	public static function getModuleConfigInputfields(array $data) {
+
 		$module = wire('modules')->get('LanguageSupportPageNames'); 
 		$module->checkModuleVersion(true); 
 		$inputfields = new InputfieldWrapper();
+
 		foreach(wire('languages') as $language) {
 			$f = wire('modules')->get('InputfieldName'); 
 			$name = "pageNumUrlPrefix$language";
@@ -748,6 +756,16 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			$f->required = false;
 			$inputfields->add($f); 
 		}
+
+		$input = wire('modules')->get('InputfieldRadios'); 
+		$input->attr('name', 'useHomeSegment'); 
+		$input->label = __('Default language homepage URL is always "/"?'); // label for the home segment option
+		$input->description = __('Choose Yes if you want the homepage of your default language to be served by the root URL "/" (recommended). Choose No if you want your root URL to perform a redirect to "/default-language/".');  // description for the home segment option
+		$input->addOption(0, __('Yes (recommended)')); 	
+		$input->addOption(1, __('No')); 
+		$input->attr('value', empty($data['useHomeSegment']) ? 0 : 1); 
+		$inputfields->add($input); 
+
 		return $inputfields;
 	}
 
