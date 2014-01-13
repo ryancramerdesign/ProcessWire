@@ -759,11 +759,13 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		$input = wire('modules')->get('InputfieldRadios'); 
 		$input->attr('name', 'useHomeSegment'); 
-		$input->label = __('Default language homepage URL is always "/"?'); // label for the home segment option
-		$input->description = __('Choose Yes if you want the homepage of your default language to be served by the root URL "/" (recommended). Choose No if you want your root URL to perform a redirect to "/default-language/".');  // description for the home segment option
-		$input->addOption(0, __('Yes (recommended)')); 	
-		$input->addOption(1, __('No')); 
+		$input->label = __('Default language homepage URL is same as root URL?'); // label for the home segment option
+		$input->description = __('Choose **Yes** if you want the homepage of your default language to be served by the root URL **/** (recommended). Choose **No** if you want your root URL to perform a redirect to **/name/** (where /name/ is the default language name of your homepage).');  // description for the home segment option
+		$input->notes = __('This setting only affects the homepage behavior. If you select No, you must also make sure your homepage has a name defined for the default language.'); // notes for the home segment option
+		$input->addOption(0, __('Yes - Root URL serves default language homepage (recommended)')); 	
+		$input->addOption(1, __('No - Root URL performs a redirect to: /name/')); 
 		$input->attr('value', empty($data['useHomeSegment']) ? 0 : 1); 
+		$input->collapsed = Inputfield::collapsedYes; 
 		$inputfields->add($input); 
 
 		return $inputfields;
