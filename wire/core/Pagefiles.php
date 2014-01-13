@@ -97,6 +97,26 @@ class Pagefiles extends WireArray {
 	public function makeNew() {
 		$class = get_class($this); 
 		$newArray = new $class($this->page); 
+		$newArray->setField($this->field); 
+		return $newArray; 
+	}
+
+	/**
+	 * Make a copy, overriding the default clone method used by WireArray::makeCopy
+	 *
+	 * This is necessary because our __clone() makes new copies of each Pagefile (deep clone)
+	 * and we don't want that to occur for the regular find() and filter() operations that
+	 * make use of makeCopy().
+	 *
+	 * @return Pagefiles
+	 *
+	 */
+	public function makeCopy() {
+		$newArray = $this->makeNew();
+		foreach($this->data as $key => $value) $newArray[$key] = $value; 
+		foreach($this->extraData as $key => $value) $newArray->data($key, $value); 
+		$newArray->resetTrackChanges($this->trackChanges());
+		foreach($newArray as $item) $item->setPagefilesParent($newArray); 
 		return $newArray; 
 	}
 
@@ -106,7 +126,9 @@ class Pagefiles extends WireArray {
 	 */
 	public function __clone() {
 		foreach($this as $key => $pagefile) {
-			$this->set($key, clone $pagefile); 
+			$pagefile = clone $pagefile;
+			$pagefile->setPagefilesParent($this);
+			$this->set($key, $pagefile); 
 		}
 	}
 

@@ -85,6 +85,7 @@ class PageArray extends WireArray {
 	 * 
 	 * @param array|PageArray|Page $pages Pages to import. 
 	 * @return PageArray reference to current instance. 
+	 *
 	 */
 	public function import($pages) {
 		if(is_object($pages) && $pages instanceof Page) $pages = array($pages); 

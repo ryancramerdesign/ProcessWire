@@ -119,6 +119,29 @@ class Modules extends WireArray {
 	}
 
 	/**
+	 * Make a new/blank WireArray
+ 	 *
+	 */
+	public function makeNew() {
+		// ensures that find(), etc. operations don't initalize a new Modules() class
+		return new WireArray();
+	}
+
+	/**
+	 * Make a new populated copy of a WireArray containing all the modules
+	 *
+	 * @return WireArray
+ 	 *
+	 */
+	public function makeCopy() {
+		// ensures that find(), etc. operations don't initalize a new Modules() class
+		$copy = $this->makeNew();
+		foreach($this->data as $key => $value) $copy[$key] = $value; 
+		$copy->resetTrackChanges($this->trackChanges()); 
+		return $copy; 
+	}
+
+	/**
 	 * Initialize all the modules that are loaded at boot
 	 *
 	 */

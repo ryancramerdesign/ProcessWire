@@ -633,7 +633,7 @@ class ProcessModule extends Process {
 			$submit->attr('name', 'submit');
 			$submit->attr('id', 'install_now');
 			$submit->attr('value', $this->_('Install Now'));
-			$submit->icon = 'check-square';
+			$submit->icon = 'sign-in';
 			$form->add($submit);
 
 			$button = $this->modules->get('InputfieldButton');

@@ -105,7 +105,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	}
 
 	/**
-	 * Creates a new blank instance of itself. For internal use. 
+	 * Creates a new blank instance of itself, for internal use. 
 	 *
 	 * @return WireArray
 	 *
@@ -116,6 +116,18 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		return $newArray; 
 	}
 
+	/**
+	 * Creates a new populated (copy/cloen) instance of itself, for internal use.
+	 *
+	 * Same as a clone, except that descending classes may wish to replace the 
+	 * clone call a manually created WireArray to prevent deep cloning.
+	 *
+	 * @return WireArray
+	 *
+	 */
+	public function makeCopy() {
+		return clone $this; 
+	}
 
 	/**
 	 * Import items into this WireArray.
@@ -1072,7 +1084,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 */
 	public function find($selector) {
 		// non descructive
-		$a = clone $this; 
+		$a = $this->makeCopy();
 		if(!strlen($selector)) return $a;
 		$a->filter($selector); 	
 
@@ -1430,7 +1442,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 */
 	public function ___and($item) {
-		$a = clone $this; 
+		$a = $this->makeCopy();
 		$a->add($item); 
 		return $a; 
 	}

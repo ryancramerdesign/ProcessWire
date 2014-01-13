@@ -35,7 +35,6 @@ class Pagefile extends WireData {
 	 */
 	protected $pagefiles; 
 
-
 	/**
 	 * Construct a new Pagefile
 	 *
@@ -53,6 +52,7 @@ class Pagefile extends WireData {
 		$this->set('modified', 0); 
 		$this->set('created', 0); 
 	}
+
 
 	/**
 	 * Set the filename associated with this Pagefile
@@ -388,6 +388,15 @@ class Pagefile extends WireData {
 			$this->pagefiles->trackChange('item');
 		}
 		parent::___changed($what); 
+	}
+
+	/**
+	 * Set the parent array container
+	 *
+	 */
+	public function setPagefilesParent(Pagefiles $pagefiles) {
+		$this->pagefiles = $pagefiles; 
+		return $this;
 	}
 
 
