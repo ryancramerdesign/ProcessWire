@@ -171,6 +171,7 @@
 		border: 1px solid $subtle-border; 
 		border-top: none; 
 		background: $text-bg; 
+
 	}
 
 	/**
@@ -312,6 +313,7 @@
 				color: $ui-state-default-color; 
 			}
 		}
+
 	}
 
 	.InputfieldItemList:not(.InputfieldStateCollapsed) > .InputfieldHeader,
@@ -340,6 +342,11 @@
 	.InputfieldItemList .InputfieldItemList > .InputfieldHeader + .InputfieldContent {
 		/* unless the item is already a nested item list, then we are a little mroe subtle with it */ 
 		background: transparentize($subtle-bg, 0.6); 
+	}
+
+	.InputfieldItemList > .InputfieldHeader + .InputfieldContent.ui-state-hover {
+		/* drag n drop upload */
+		background: darken($subtle-bg, 5%);
 	}
 
 	.InputfieldPageNameURL {
@@ -483,7 +490,7 @@
 
 
 /****************************************************************************
- * Language Tabs
+ * ui-tabs and Language Tabs
  *
  */
 
@@ -503,74 +510,74 @@ $ui-tabs-container-bg: transparentize($subtle-bg, 0.3); /* note same as item nes
 	}
 }
 
-#content {
-	.ui-tabs {
+.ui-tabs,
+#content .ui-tabs {
 
-		border-color: $subtle-border;
-		border: none;
+	border-color: $subtle-border;
+	border: none;
 
-		.ui-tabs-nav {
-			background: $ui-tabs-container-bg;
-			border: none; 
-			padding-bottom: 0; 
-			padding-right: 1em;
-			padding-left: 0.5em;
-			border-bottom: 1px solid $subtle-border;
-			@include border-radius(0);
+	.ui-tabs-nav {
+		background: $ui-tabs-container-bg;
+		border: none; 
+		padding-bottom: 0; 
+		padding-right: 1em;
+		padding-left: 0.5em;
+		border-bottom: 1px solid $subtle-border;
+		@include border-radius(0);
 
-			> li {
-				position: relative;
-				top: 1px;
-				margin-top: 0.15em; 
+		> li {
+			position: relative;
+			top: 1px;
+			margin-top: 0.15em; 
 
-				&:first-child {
-					margin-left: 0.5em; 
-				}
-			}
-
-			.ui-state-default {
-				background: $wiretab-link-bg; 	
-				border: $wiretab-link-border;
-				border-bottom:none;
-
-				a.ui-tabs-anchor {
-					color: $wiretab-link-color;
-				}
-			}
-
-			.ui-tabs-active {
-				background: $wiretab-link-current-bg; 
-				border: $wiretab-link-current-border;
-				border-bottom:none;
-
-				a.ui-tabs-anchor {
-					color: $wiretab-link-current-color;
-					/*
-					position: relative;
-					top: 1px; 
-					*/
-				}
-			}
-			.ui-state-hover {
-				background: $wiretab-link-hover-bg; 
-				border: $wiretab-link-hover-border;
-				border-bottom:none;
-
-				a.ui-tabs-anchor {
-					color: $wiretab-link-hover-color;
-				}
-			}
-
-			a.ui-tabs-anchor {
-				font-weight: normal;
-				background: none; 
-
+			&:first-child {
+				margin-left: 0.5em; 
 			}
 		}
-	}
 
-	.ui-tabs-panel {
-		margin-bottom: 0;
+		.ui-state-default {
+			background: $wiretab-link-bg; 	
+			border: $wiretab-link-border;
+			border-bottom:none;
+
+			a.ui-tabs-anchor {
+				color: $wiretab-link-color;
+			}
+		}
+
+		.ui-tabs-active {
+			background: $wiretab-link-current-bg; 
+			border: $wiretab-link-current-border;
+			border-bottom:none;
+
+			a.ui-tabs-anchor {
+				color: $wiretab-link-current-color;
+				/*
+				position: relative;
+				top: 1px; 
+				*/
+			}
+		}
+		.ui-state-hover {
+			background: $wiretab-link-hover-bg; 
+			border: $wiretab-link-hover-border;
+			border-bottom:none;
+
+			a.ui-tabs-anchor {
+				color: $wiretab-link-hover-color;
+			}
+		}
+
+		a.ui-tabs-anchor {
+			font-weight: normal;
+			background: none; 
+
+		}
 	}
+}
+
+.ui-tabs-panel,
+#content .ui-tabs-panel {
+	margin-bottom: 0;
 }
 

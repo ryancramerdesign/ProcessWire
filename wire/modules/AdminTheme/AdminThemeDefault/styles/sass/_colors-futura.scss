@@ -131,3 +131,7 @@ $button-radius: 5px;
 $tabs-radius: 5px; 
 
 $input-bg: lighten($subtle-bg, 2%);
+
+$progressbar-bg: none; 
+$progressbar-value-bg: $masthead-bg; // $ui-state-hover-bg; 
+$progressbar-text-color: $reverse-text-color;  

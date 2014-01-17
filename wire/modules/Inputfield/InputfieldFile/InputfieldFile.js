@@ -186,6 +186,11 @@ $(document).ready(function() {
 						if(completion > 4) {
 							$progressBarValue.html("<span>" + parseInt(completion) + "%</span>");
 						}
+						/*
+						// code for freezing progressbar during testing
+						$progressBarValue.width("60%");
+						if(completion > 50) setTimeout(function() { alert('test'); }, 10); 
+						*/
 					} else {
 						// No data to calculate on
 					}

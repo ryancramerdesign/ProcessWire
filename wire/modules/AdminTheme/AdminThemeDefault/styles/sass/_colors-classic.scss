@@ -38,7 +38,7 @@ $item-header-bg: #d2e4ea;
 $item-header-bg: lighten($masthead-bg, 5%);
 $item-header-color: $dark-blue; 
 $item-header-color: $white; 
-$item-border: 1px solid $item-header-bg; 
+$item-border: 1px solid $subtle-border; 
 
 $action-link-font-size: 0.923076923076923em;
 $action-link-bg: lighten($green, 2%); 
@@ -135,6 +135,10 @@ $notes-font-size: 0.846153846153846em;
 
 $tabs-font-weight: normal;
 $input-bg: lighten($subtle-bg, 6%);
+
+$progressbar-bg: none; 
+$progressbar-value-bg: $ui-state-hover-bg; 
+$progressbar-text-color: $reverse-text-color;  
 
 /**
  * Modification styles 

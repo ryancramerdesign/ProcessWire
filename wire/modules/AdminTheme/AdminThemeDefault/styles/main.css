@@ -1911,6 +1911,29 @@ div + a > .ui-button {
 .ui-timepicker-div {
   margin-top: 1em; }
 
+.ui-progressbar,
+.Inputfields .InputfieldItemList .ui-progressbar {
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  -ms-border-radius: 0;
+  -o-border-radius: 0;
+  border-radius: 0;
+  border: none;
+  padding: 0;
+  background: #d8744e;
+  margin-top: 1px; }
+  .ui-progressbar .ui-progressbar-value,
+  .Inputfields .InputfieldItemList .ui-progressbar .ui-progressbar-value {
+    -webkit-border-radius: 0;
+    -moz-border-radius: 0;
+    -ms-border-radius: 0;
+    -o-border-radius: 0;
+    border-radius: 0;
+    background: #c7572c;
+    color: white;
+    margin: 0;
+    border: none; }
+
 /**
  * General form styles
  *
@@ -2193,6 +2216,9 @@ table {
   .Inputfields .InputfieldItemList .InputfieldItemList > .InputfieldHeader + .InputfieldContent {
     /* unless the item is already a nested item list, then we are a little mroe subtle with it */
     background: rgba(240, 239, 232, 0.4); }
+  .Inputfields .InputfieldItemList > .InputfieldHeader + .InputfieldContent.ui-state-hover {
+    /* drag n drop upload */
+    background: #e6e4d8; }
   .Inputfields .InputfieldPageNameURL {
     /* page name */
     font-size: 0.875em; }
@@ -2306,7 +2332,7 @@ table {
   display: none; }
 
 /****************************************************************************
- * Language Tabs
+ * ui-tabs and Language Tabs
  *
  */
 /* note same as item nested item list header */
@@ -2321,9 +2347,11 @@ table {
     padding-bottom: 0.5em;
     margin-bottom: 0; }
 
+.ui-tabs,
 #content .ui-tabs {
   border-color: #e6e4d8;
   border: none; }
+  .ui-tabs .ui-tabs-nav,
   #content .ui-tabs .ui-tabs-nav {
     background: rgba(240, 239, 232, 0.7);
     border: none;
@@ -2336,37 +2364,48 @@ table {
     -ms-border-radius: 0;
     -o-border-radius: 0;
     border-radius: 0; }
+    .ui-tabs .ui-tabs-nav > li,
     #content .ui-tabs .ui-tabs-nav > li {
       position: relative;
       top: 1px;
       margin-top: 0.15em; }
+      .ui-tabs .ui-tabs-nav > li:first-child,
       #content .ui-tabs .ui-tabs-nav > li:first-child {
         margin-left: 0.5em; }
+    .ui-tabs .ui-tabs-nav .ui-state-default,
     #content .ui-tabs .ui-tabs-nav .ui-state-default {
       background: none;
       border: 1px solid transparent;
       border-bottom: none; }
+      .ui-tabs .ui-tabs-nav .ui-state-default a.ui-tabs-anchor,
       #content .ui-tabs .ui-tabs-nav .ui-state-default a.ui-tabs-anchor {
         color: #615652; }
+    .ui-tabs .ui-tabs-nav .ui-tabs-active,
     #content .ui-tabs .ui-tabs-nav .ui-tabs-active {
       background: white;
       border: 1px solid #e6e4d8;
       border-bottom: none; }
+      .ui-tabs .ui-tabs-nav .ui-tabs-active a.ui-tabs-anchor,
       #content .ui-tabs .ui-tabs-nav .ui-tabs-active a.ui-tabs-anchor {
         color: #222222;
         /*
         position: relative;
         top: 1px; 
         */ }
+    .ui-tabs .ui-tabs-nav .ui-state-hover,
     #content .ui-tabs .ui-tabs-nav .ui-state-hover {
       background: rgba(255, 255, 255, 0.5);
       border: 1px solid #e6e4d8;
       border-bottom: none; }
+      .ui-tabs .ui-tabs-nav .ui-state-hover a.ui-tabs-anchor,
       #content .ui-tabs .ui-tabs-nav .ui-state-hover a.ui-tabs-anchor {
         color: #0e9d98; }
+    .ui-tabs .ui-tabs-nav a.ui-tabs-anchor,
     #content .ui-tabs .ui-tabs-nav a.ui-tabs-anchor {
       font-weight: normal;
       background: none; }
+
+.ui-tabs-panel,
 #content .ui-tabs-panel {
   margin-bottom: 0; }
 

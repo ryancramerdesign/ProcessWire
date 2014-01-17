@@ -418,3 +418,20 @@ button.ui-button.ui-state-default,
 	margin-top: 1em; 
 }
 
+.ui-progressbar,
+.Inputfields .InputfieldItemList .ui-progressbar {
+	@include border-radius(0); 
+	border: none; 
+	padding: 0; 
+	background: $progressbar-bg; 
+	margin-top: 1px; 
+
+	.ui-progressbar-value {
+		@include border-radius(0);
+		background: $progressbar-value-bg;
+		color: $progressbar-text-color; 
+		margin: 0;
+		border: none; 
+	}
+}
+

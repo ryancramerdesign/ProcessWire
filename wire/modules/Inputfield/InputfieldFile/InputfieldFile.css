@@ -5,7 +5,8 @@
 	cursor: move; 
 }
 
-	.InputfieldForm .Inputfields .InputfieldItemList .InputfieldContent.ui-state-hover {
+	.InputfieldItemList .InputfieldContent.ui-state-hover {
+		/* ajax upload drag over */
 		background: none;
 	}
 

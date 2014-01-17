@@ -43,6 +43,13 @@
 	display: none; 
 }
 
+.InputfieldImageGrid .AjaxUpload .InputfieldFileInfo {
+	display: block;
+	clear: both;
+	float: none; 
+	margin-top: 1em; 
+}
+
 .InputfieldImageGrid .InputfieldFileData label {
 	display: none; 
 }

@@ -166,4 +166,7 @@ $input-bg: lighten($subtle-bg, 3%);
 $input-line-height: 1.3em;
 $input-padding: 0.2em 0.3em;
 
+$progressbar-bg: $ui-state-default-bg; 
+$progressbar-value-bg: $ui-state-hover-bg;
+$progressbar-text-color: $reverse-text-color; 
 
