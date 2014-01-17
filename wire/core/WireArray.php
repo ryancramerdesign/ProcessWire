@@ -528,12 +528,15 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 * @param int $num Number of items to return. Optional and defaults to 1. 
 	 * @param bool $alwaysArray If true, then method will always return a container of items, even if it only contains 1. 
-	 * @return int|string|array|object|WireArray Returns value of item, or new WireArray of items if more than one requested. 
+	 * @return int|string|array|object|WireArray|null Returns value of item, or new WireArray of items if more than one requested. 
 	 */
 	public function getRandom($num = 1, $alwaysArray = false) {
 		$items = $this->makeNew(); 
 		$count = $this->count();
-		if(!$count) return $items; 
+		if(!$count) {
+			if($num == 1 && !$alwaysArray) return null;
+			return $items; 
+		}
 		$keys = array_rand($this->data, ($num > $count ? $count : $num)); 
 		if($num == 1 && !$alwaysArray) return $this->data[$keys]; 
 		if(!is_array($keys)) $keys = array($keys); 

@@ -4,6 +4,7 @@
  *
  */
 
+
 .InputfieldForm {
 
 	margin-bottom: 1em;
@@ -83,6 +84,7 @@
 		margin-bottom: -1px; /* non doubled border */
 		margin-top: 0;
 		background: $text-bg; 
+		color: $text-color; 
 
 		p.notes {
 			margin-bottom: 0; 
@@ -267,8 +269,8 @@
 		.InputfieldItemHeader {
 			/* file or repeater item header */
 			border: none;
-			background: $item-header-bg; /* LIGHT-GREEN */
-			color: $item-header-color; /* WHITE */
+			background: $item-header-bg; 
+			color: $item-header-color; 
 			padding-left: 0.25em; 
 			padding-right: 0.5em; 
 			cursor: move; 
@@ -322,6 +324,7 @@
 		background: transparentize($subtle-bg, 0.2); 
 	}
 
+	.hasLangTabs:not(.InputfieldStateCollapsed) > .InputfieldHeader, 
 	.InputfieldItemList:not(.InputfieldStateCollapsed) > .InputfieldHeader,
 	.InputfieldFieldset:not(.InputfieldStateCollapsed):not(.InputfieldRepeaterItem) > .InputfieldHeader,
 	.InputfieldFieldsetOpen:not(.InputfieldStateCollapsed) > .InputfieldHeader {
@@ -478,4 +481,96 @@
 	}
 }
 
+
+/****************************************************************************
+ * Language Tabs
+ *
+ */
+
+$ui-tabs-container-bg: transparentize($subtle-bg, 0.3); /* note same as item nested item list header */
+
+#content .Inputfields .langTabsContainer {
+	padding-top: 0;
+	padding-left: 0;
+	padding-right: 0;
+
+	p.description {
+		background: $ui-tabs-container-bg;
+		padding-left: 1em;
+		padding-right: 1em;
+		padding-bottom: 0.5em;
+		margin-bottom: 0;
+	}
+}
+
+#content {
+	.ui-tabs {
+
+		border-color: $subtle-border;
+		border: none;
+
+		.ui-tabs-nav {
+			background: $ui-tabs-container-bg;
+			border: none; 
+			padding-bottom: 0; 
+			padding-right: 1em;
+			padding-left: 0.5em;
+			border-bottom: 1px solid $subtle-border;
+			@include border-radius(0);
+
+			> li {
+				position: relative;
+				top: 1px;
+				margin-top: 0.15em; 
+
+				&:first-child {
+					margin-left: 0.5em; 
+				}
+			}
+
+			.ui-state-default {
+				background: $wiretab-link-bg; 	
+				border: $wiretab-link-border;
+				border-bottom:none;
+
+				a.ui-tabs-anchor {
+					color: $wiretab-link-color;
+				}
+			}
+
+			.ui-tabs-active {
+				background: $wiretab-link-current-bg; 
+				border: $wiretab-link-current-border;
+				border-bottom:none;
+
+				a.ui-tabs-anchor {
+					color: $wiretab-link-current-color;
+					/*
+					position: relative;
+					top: 1px; 
+					*/
+				}
+			}
+			.ui-state-hover {
+				background: $wiretab-link-hover-bg; 
+				border: $wiretab-link-hover-border;
+				border-bottom:none;
+
+				a.ui-tabs-anchor {
+					color: $wiretab-link-hover-color;
+				}
+			}
+
+			a.ui-tabs-anchor {
+				font-weight: normal;
+				background: none; 
+
+			}
+		}
+	}
+
+	.ui-tabs-panel {
+		margin-bottom: 0;
+	}
+}
 

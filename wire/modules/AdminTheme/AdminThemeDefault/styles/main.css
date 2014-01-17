@@ -1859,23 +1859,6 @@ div + a > .ui-button {
 #ProcessPageSearchAutocomplete li:first-child {
   margin-top: 0.6em; }
 
-#content .InputfieldForm .ui-tabs-nav {
-  background: rgba(240, 239, 232, 0.5);
-  background: -webkit-linear-gradient(top, rgba(240, 239, 232, 0.6) 0%, #f0efe8 100%);
-  border: none;
-  padding-bottom: 0;
-  padding-left: 0; }
-  #content .InputfieldForm .ui-tabs-nav li {
-    margin-top: 0.15em; }
-    #content .InputfieldForm .ui-tabs-nav li:first-child {
-      margin-left: 0.5em; }
-  #content .InputfieldForm .ui-tabs-nav a {
-    text-shadow: none; }
-  #content .InputfieldForm .ui-tabs-nav .ui-state-active,
-  #content .InputfieldForm .ui-tabs-nav .ui-state-active a {
-    color: #000;
-    background: #fff; }
-
 /**
  * ui-tooltip
  *
@@ -1927,35 +1910,6 @@ div + a > .ui-button {
 
 .ui-timepicker-div {
   margin-top: 1em; }
-
-#content .Inputfields .langTabsContainer {
-  padding-left: 0;
-  padding-right: 0; }
-  #content .Inputfields .langTabsContainer > p {
-    padding-left: 1em;
-    padding-right: 1em; }
-  #content .Inputfields .langTabsContainer .ui-tabs {
-    border-color: #e6e4d8;
-    border: none; }
-    #content .Inputfields .langTabsContainer .ui-tabs .ui-tabs-nav {
-      padding-left: 0.5em; }
-      #content .Inputfields .langTabsContainer .ui-tabs .ui-tabs-nav .ui-state-default {
-        background: none;
-        border: 1px solid transparent; }
-        #content .Inputfields .langTabsContainer .ui-tabs .ui-tabs-nav .ui-state-default a.ui-tabs-anchor {
-          color: #615652; }
-      #content .Inputfields .langTabsContainer .ui-tabs .ui-tabs-nav .ui-tabs-active {
-        background: white;
-        border: 1px solid #e6e4d8;
-        border-bottom: 1px solid #fff; }
-        #content .Inputfields .langTabsContainer .ui-tabs .ui-tabs-nav .ui-tabs-active a.ui-tabs-anchor {
-          color: #222222; }
-      #content .Inputfields .langTabsContainer .ui-tabs .ui-tabs-nav a.ui-tabs-anchor {
-        font-weight: normal;
-        background: none;
-        margin-top: 1px; }
-  #content .Inputfields .langTabsContainer .ui-tabs-panel {
-    margin-bottom: 0; }
 
 /**
  * General form styles
@@ -2078,7 +2032,8 @@ table {
     margin-bottom: -1px;
     /* non doubled border */
     margin-top: 0;
-    background: white; }
+    background: white;
+    color: #222222; }
     .Inputfields .Inputfield p.notes {
       margin-bottom: 0; }
     .Inputfields .Inputfield.ui-state-error {
@@ -2175,16 +2130,14 @@ table {
   .Inputfields .InputfieldFileList > li {
     margin-top: 0; }
   .Inputfields .InputfieldFileList .InputfieldFileItem {
-    border: 1px solid #f0efe8; }
+    border: 1px solid #e6e4d8; }
     .Inputfields .InputfieldFileList .InputfieldFileItem .ui-widget-content {
       border: none; }
   .Inputfields .InputfieldItemList .InputfieldItemHeader {
     /* file or repeater item header */
     border: none;
     background: #82be05;
-    /* LIGHT-GREEN */
     color: white;
-    /* WHITE */
     padding-left: 0.25em;
     padding-right: 0.5em;
     cursor: move;
@@ -2221,6 +2174,7 @@ table {
   .Inputfields .InputfieldFieldsetOpen > .InputfieldHeader + .InputfieldContent {
     /* Inputfields containing other items get a different background color */
     background: rgba(240, 239, 232, 0.8); }
+  .Inputfields .hasLangTabs:not(.InputfieldStateCollapsed) > .InputfieldHeader,
   .Inputfields .InputfieldItemList:not(.InputfieldStateCollapsed) > .InputfieldHeader,
   .Inputfields .InputfieldFieldset:not(.InputfieldStateCollapsed):not(.InputfieldRepeaterItem) > .InputfieldHeader,
   .Inputfields .InputfieldFieldsetOpen:not(.InputfieldStateCollapsed) > .InputfieldHeader {
@@ -2350,6 +2304,71 @@ table {
 .InputfieldRenderValueMode .InputfieldSubmit,
 .InputfieldRenderValueMode .InputfieldButton {
   display: none; }
+
+/****************************************************************************
+ * Language Tabs
+ *
+ */
+/* note same as item nested item list header */
+#content .Inputfields .langTabsContainer {
+  padding-top: 0;
+  padding-left: 0;
+  padding-right: 0; }
+  #content .Inputfields .langTabsContainer p.description {
+    background: rgba(240, 239, 232, 0.7);
+    padding-left: 1em;
+    padding-right: 1em;
+    padding-bottom: 0.5em;
+    margin-bottom: 0; }
+
+#content .ui-tabs {
+  border-color: #e6e4d8;
+  border: none; }
+  #content .ui-tabs .ui-tabs-nav {
+    background: rgba(240, 239, 232, 0.7);
+    border: none;
+    padding-bottom: 0;
+    padding-right: 1em;
+    padding-left: 0.5em;
+    border-bottom: 1px solid #e6e4d8;
+    -webkit-border-radius: 0;
+    -moz-border-radius: 0;
+    -ms-border-radius: 0;
+    -o-border-radius: 0;
+    border-radius: 0; }
+    #content .ui-tabs .ui-tabs-nav > li {
+      position: relative;
+      top: 1px;
+      margin-top: 0.15em; }
+      #content .ui-tabs .ui-tabs-nav > li:first-child {
+        margin-left: 0.5em; }
+    #content .ui-tabs .ui-tabs-nav .ui-state-default {
+      background: none;
+      border: 1px solid transparent;
+      border-bottom: none; }
+      #content .ui-tabs .ui-tabs-nav .ui-state-default a.ui-tabs-anchor {
+        color: #615652; }
+    #content .ui-tabs .ui-tabs-nav .ui-tabs-active {
+      background: white;
+      border: 1px solid #e6e4d8;
+      border-bottom: none; }
+      #content .ui-tabs .ui-tabs-nav .ui-tabs-active a.ui-tabs-anchor {
+        color: #222222;
+        /*
+        position: relative;
+        top: 1px; 
+        */ }
+    #content .ui-tabs .ui-tabs-nav .ui-state-hover {
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid #e6e4d8;
+      border-bottom: none; }
+      #content .ui-tabs .ui-tabs-nav .ui-state-hover a.ui-tabs-anchor {
+        color: #0e9d98; }
+    #content .ui-tabs .ui-tabs-nav a.ui-tabs-anchor {
+      font-weight: normal;
+      background: none; }
+#content .ui-tabs-panel {
+  margin-bottom: 0; }
 
 /***********************************************************************************************
  * MASTHEAD
@@ -2513,6 +2532,8 @@ table {
     margin-top: 0;
     float: right;
     border: none; }
+  body.modal #head_button {
+    top: 0; }
 
 /**
  * WireTabs
@@ -3022,6 +3043,15 @@ body.modal #footer,
 body.modal #masthead,
 body.modal #breadcrumbs,
 body.modal #headline {
+  display: none; }
+body.modal.hasWireTabs #breadcrumbs {
+  display: block; }
+  body.modal.hasWireTabs #breadcrumbs li {
+    display: none; }
+    body.modal.hasWireTabs #breadcrumbs li.title {
+      /* display only title in modal mode */
+      display: block; }
+body.modal #submit_save_top {
   display: none; }
 
 /***********************************************************************************************

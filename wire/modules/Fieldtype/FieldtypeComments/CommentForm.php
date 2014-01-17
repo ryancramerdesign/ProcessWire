@@ -182,7 +182,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 	 * A success message is shown rather than the form.
 	 *
 	 */
-	protected function renderSuccess() {
+	protected function renderSuccess($id = '') {
 
 		$pageID = (int) wire('input')->post->page_id; 
 		if($pageID && $this->options['redirectAfterPost']) {
@@ -197,7 +197,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 
 		$message = $this->commentsField && $this->commentsField->moderate == FieldtypeComments::moderateNone ? $this->options['successMessage'] : $this->options['pendingMessage']; 
 
-		$id = $this->options['attrs']['id']; 
+		if(!$id) $id = $this->options['attrs']['id']; 
 		$out = 	"\n<div id='$id' class='{$id}_success'>" . 
 			"\n\t" . $message . 
 			"\n</div>";
@@ -257,7 +257,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 			$divClass = 'error';
 
 		} else if($this->options['redirectAfterPost'] && $input->get('comment_success') == 1) {
-			$note = $this->renderSuccess();
+			$note = $this->renderSuccess("{$id}_success");
 			$showForm = false;
 		}
 

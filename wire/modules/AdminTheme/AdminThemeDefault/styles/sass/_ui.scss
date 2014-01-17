@@ -363,31 +363,6 @@ button.ui-button.ui-state-default,
 }
 
 
-#content .InputfieldForm .ui-tabs-nav {
-	background: transparentize($subtle-bg, 0.5);
-	background: -webkit-linear-gradient(top, transparentize($subtle-bg, 0.4) 0%, $subtle-bg 100%); 
-	border: none; 
-	padding-bottom: 0; 
-	padding-left: 0; 
-
-	li {
-		margin-top: 0.15em; 
-		&:first-child {
-			margin-left: 0.5em; 
-		}
-	}
-
-	a {
-		text-shadow: none; 
-	}
-
-	.ui-state-active,
-	.ui-state-active a {
-		color: #000;
-		background: #fff; 
-	}
-
-}
 
 /**
  * ui-tooltip
@@ -441,54 +416,5 @@ button.ui-button.ui-state-default,
 
 .ui-timepicker-div {
 	margin-top: 1em; 
-}
-
-#content .Inputfields .langTabsContainer {
-	padding-left: 0;
-	padding-right: 0;
-
-	> p {
-		padding-left: 1em;
-		padding-right: 1em;
-	}
-
-	.ui-tabs {
-
-		border-color: $subtle-border;
-		border: none;
-
-		.ui-tabs-nav {
-			padding-left: 0.5em;
-
-			.ui-state-default {
-				background: $wiretab-link-bg; 	
-				border: $wiretab-link-border;
-
-				a.ui-tabs-anchor {
-					color: $wiretab-link-color;
-				}
-			}
-
-			.ui-tabs-active {
-				background: $wiretab-link-current-bg; 
-				border: $wiretab-link-current-border;
-				border-bottom: 1px solid #fff;
-
-				a.ui-tabs-anchor {
-					color: $wiretab-link-current-color;
-				}
-			}
-
-			a.ui-tabs-anchor {
-				font-weight: normal;
-				background: none; 
-				margin-top: 1px; 
-			}
-		}
-	}
-
-	.ui-tabs-panel {
-		margin-bottom: 0;
-	}
 }
 

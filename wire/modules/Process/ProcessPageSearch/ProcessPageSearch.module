@@ -332,7 +332,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 		if(!$selector) {
 			$this->error($this->_("No search specified"));
-			return '';
+			return array('','');
 		}
 
 		$selector = trim($selector, ", ");

@@ -211,5 +211,9 @@
 		float: right; 
 		border: none;
 	}
+
+	body.modal & {
+		top: 0;
+	}
 }
 

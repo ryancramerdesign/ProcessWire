@@ -26,6 +26,8 @@ $(function(){
 			var $langTabsBox = $this.find(".langTabs"); 
 			var $langTabs = $langTabsBox.children("ul"); 
 
+			$langContent.parent('.Inputfield').addClass('hasLangTabs'); 
+
 
 			$langSupport.each(function(){
 
@@ -79,14 +81,17 @@ $(function(){
 		var $langTabsToggle = $langHeader.children(".langTabsToggle");
 		$langTabsToggle.toggle(function(){
 			$langContent.removeClass("langTabsContainer");
+			$langContent.parent('.Inputfield').removeClass('hasLangTabs'); 
 			$this.addClass('langTabsOff');
 			$langTabsBox.tabs( "destroy" );
-			$(this).attr("title","Collapse Language Tabs").find('i').removeClass("fa fa-folder-o").addClass("fa fa-folder-open-o");
+			$(this).attr("title","Collapse Language Tabs").find('i').removeClass("fa-folder-o").addClass("fa-folder-open-o");
+			
 		}, function(){
 			$langContent.addClass("langTabsContainer");
+			$langContent.parent('.Inputfield').addClass('hasLangTabs'); 
 			$this.removeClass('langTabsOff');
 			$langTabsBox.tabs();
-			$(this).attr("title","Expand Language Tabs").find('i').addClass("fa fa-folder-o").removeClass("fa fa-folder-open-o");
+			$(this).attr("title","Expand Language Tabs").find('i').addClass("fa-folder-o").removeClass("fa-folder-open-o");
 		});
 
 		$langTabsToggle.mouseout(function(){

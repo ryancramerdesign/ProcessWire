@@ -19,6 +19,7 @@
 @import 'table';
 @import 'pagination';
 
+
 /***********************************************************************************************
  * GENERAL
  *
@@ -361,6 +362,22 @@ body.modal {
 	#masthead,
 	#breadcrumbs, 
 	#headline {
+		display: none; 
+	}
+
+	&.hasWireTabs #breadcrumbs {
+		display: block;
+		li {
+			display: none; 
+
+			&.title {
+				/* display only title in modal mode */ 
+				display: block;
+			}
+		}
+	}
+
+	#submit_save_top {
 		display: none; 
 	}
 
