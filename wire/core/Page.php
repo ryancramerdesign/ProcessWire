@@ -136,6 +136,12 @@ class Page extends WireData implements Countable {
 	private $namePrevious; 
 
 	/**
+	 * The previous status used by this page, if it changed during runtime.
+	 *
+	 */
+	private $statusPrevious; 
+
+	/**
 	 * Reference to the Page's template file, used for output. Instantiated only when asked for. 
 	 *
 	 */
@@ -284,6 +290,7 @@ class Page extends WireData implements Countable {
 		$this->useFuel(false); // prevent fuel from being in local scope
 		$this->parentPrevious = null;
 		$this->templatePrevious = null;
+		$this->statusPrevious = null;
 	}
 
 	/**
@@ -356,6 +363,9 @@ class Page extends WireData implements Countable {
 				break;
 			case 'status':
 				$this->setStatus($value); 
+				break;
+			case 'statusPrevious':
+				$this->statusPrevious = is_null($value) ? null : (int) $value; 
 				break;
 			case 'name':
 				if($this->isLoaded) {
@@ -562,6 +572,7 @@ class Page extends WireData implements Countable {
 			case 'templatePrevious':
 			case 'parentPrevious':
 			case 'namePrevious':
+			case 'statusPrevious':
 			case 'isLoaded':
 			case 'isNew':
 			case 'pageNum':
@@ -771,7 +782,10 @@ class Page extends WireData implements Countable {
 			if($this->settings['status'] & Page::statusSystemID) $value = $value | Page::statusSystemID;
 			if($this->settings['status'] & Page::statusSystem) $value = $value | Page::statusSystem; 
 		}
-		if($this->settings['status'] != $value) $this->trackChange('status');
+		if($this->settings['status'] != $value) {
+			$this->trackChange('status');
+			$this->statusPrevious = $this->settings['status'];
+		}
 		$this->settings['status'] = $value;
 		if($value & Page::statusDeleted) {
 			// disable any instantiated filesManagers after page has been marked deleted

@@ -620,7 +620,7 @@ class Pages extends Wire {
 	/**
 	 * Execute query to save to pages table
 	 * 
-	 * triggers hook: saveReady
+	 * triggers hooks: saveReady, statusChangeReady (when status changed)
 	 * 
 	 * @param Page $page
 	 * @param array $options
@@ -634,6 +634,7 @@ class Pages extends Wire {
 		$user = $this->wire('user');
 		$userID = $user ? $user->id : $this->config->superUserPageID;
 		if(!$page->created_users_id) $page->created_users_id = $userID;
+		if($page->isChanged('status')) $this->statusChangeReady($page); 
 		$extraData = $this->saveReady($page);
 		$sql = '';
 
@@ -794,6 +795,7 @@ class Pages extends Wire {
 		if($page->namePrevious && $page->namePrevious != $page->name) $this->renamed($page);
 		if($page->parentPrevious) $this->moved($page);
 		if($page->templatePrevious) $this->templateChanged($page);
+		if(in_array('status', $changes)) $this->statusChanged($page); 
 
 		$this->debugLog('save', $page, true);
 
@@ -1449,6 +1451,69 @@ class Pages extends Wire {
 	 *
 	 */
 	protected function ___renamed(Page $page) { }
+
+	/**
+	 * Hook called when a page's has been changed and saved
+	 *
+	 * Previous status may be accessed at $page->statusPrevious
+	 *
+	 * @param Page $page 
+	 *
+	 */
+	protected function ___statusChanged(Page $page) {
+		$isPublished = !$page->isUnpublished();
+		$wasPublished = !($page->statusPrevious & Page::statusUnpublished);
+		if($isPublished && !$wasPublished) $this->published($page);
+		if(!$isPublished && $wasPublished) $this->unpublished($page);
+	}
+
+	/**
+	 * Hook called when a page's status is about to be changed and saved
+	 *
+	 * Previous status may be accessed at $page->statusPrevious
+	 *
+	 * @param Page $page 
+	 *
+	 */
+	protected function ___statusChangeReady(Page $page) {
+		$isPublished = !$page->isUnpublished();
+		$wasPublished = !($page->statusPrevious & Page::statusUnpublished);
+		if($isPublished && !$wasPublished) $this->publishReady($page);
+		if(!$isPublished && $wasPublished) $this->unpublishReady($page);
+	}
+
+	/**
+	 * Hook called after an unpublished page has just been published
+	 *
+	 * @param Page $page 
+	 *
+	 */
+	protected function ___published(Page $page) { }
+
+	/**
+	 * Hook called after published page has just been unpublished
+	 *
+	 * @param Page $page 
+	 *
+	 */
+	protected function ___unpublished(Page $page) { }
+
+	/**
+	 * Hook called right before an unpublished page is published and saved
+	 *
+	 * @param Page $page 
+	 *
+	 */
+	protected function ___publishReady(Page $page) { }
+
+	/**
+	 * Hook called right before a published page is unpublished and saved
+	 *
+	 * @param Page $page 
+	 *
+	 */
+	protected function ___unpublishReady(Page $page) { }
+
 
 }
 
