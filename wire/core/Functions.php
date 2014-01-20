@@ -249,7 +249,7 @@ function wireChmod($path, $recursive = false, $chmod = null) {
 			$mod = $file->isDir() ? $chmodDir : $chmodFile;     
 			if($mod) if(!chmod($file->getPathname(), octdec($mod))) $numFails++;
 			if($file->isDir()) {
-				if(!wireChmod($dir->getPathname(), true, $chmod)) $numFails++;
+				if(!wireChmod($file->getPathname(), true, $chmod)) $numFails++;
 			}
 		}
 	} else {
