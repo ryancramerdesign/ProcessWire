@@ -10,7 +10,7 @@ class InputfieldForm extends InputfieldWrapper {
 		return array(
 			'title' => __('Form', __FILE__), // Module Title
 			'summary' => __('Contains one or more fields in a form', __FILE__), // Module Summary
-			'version' => 103,
+			'version' => 104,
 			'permanent' => true, 
 			);
 	}
@@ -29,6 +29,11 @@ class InputfieldForm extends InputfieldWrapper {
 		$this->attr('class', trim($this->attr('class') . ' InputfieldForm'));
 		$attrs = $this->getAttributes();
 		unset($attrs['value']); 
+
+		if($this->input->get('modal') && strpos($attrs['action'], 'modal=1') === false) {
+			// retain a modal=1 state in the form action
+			$attrs['action'] .= (strpos($attrs['action'], '?') === false ? '?' : '&') . 'modal=1';
+		}
 
 		$description = $this->getSetting('description'); 
 		if($description) $description = "\n<h2>" . $this->entityEncode($description) . "</h2>"; 

@@ -11,6 +11,18 @@
 
 if(!defined("PROCESSWIRE")) die("This file may not be accessed directly.");
 
+/**
+ * Ensures a modal GET variable is retained through redirects, when appropriate
+ *
+ */
+function _hookSessionRedirectModal(HookEvent $event) {
+	$url = $event->arguments(0);    
+	if(strpos($url, 'modal=1') === false && strpos($url, '://') === false) {
+		$url .= (strpos($url, '?') === false ? '?' : '&') . 'modal=1';
+		$event->arguments(0, $url);    
+	}
+}
+
 // ensure core jQuery modules are loaded before others
 $modules->get("JqueryCore"); 
 $modules->get("JqueryUI"); 
@@ -46,6 +58,7 @@ if($page->process && $page->process != 'ProcessPageView') {
 		$controller->setProcessName($page->process); 
 		$initFile = $config->paths->adminTemplates . 'init.php'; 
 		if(is_file($initFile)) include($initFile); 
+		if($input->get->modal) $session->addHookBefore('redirect', null, '_hookSessionRedirectModal'); 
 		$content = $controller->execute();
 
 	} catch(Wire404Exception $e) {

@@ -90,6 +90,8 @@ class ProcessPageEdit extends Process {
 
 		if(!$this->isPost) $this->modules->get('JqueryWireTabs'); 
 
+		$title = $this->page->title;
+		if($title) $this->wire('processBrowserTitle', sprintf($this->_('Edit Page: %s'), $title)); 
 	}
 
 	/**

@@ -1,4 +1,4 @@
-# ProcessWire 2.3
+# ProcessWire 2.4
 
 ## About ProcessWire
 
@@ -23,8 +23,8 @@ ProcessWire is shockingly simple compared to what you may be used to.
 ### Requirements
 
 * A web server running Apache. 
-* PHP version 5.2.4 or greater (but PHP 5.3+ strongly preferred)
-* MySQL 5.0.15 or greater.
+* PHP version 5.3.8 or newer.
+* MySQL 5.0.15 or newer.
 * Apache must have mod_rewrite enabled. 
 * Apache must support .htaccess files. 
 
