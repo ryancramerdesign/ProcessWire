@@ -233,9 +233,10 @@ var ProcessWireAdminTheme = {
 			}).mouseleave(function() {
 				setTimeout(function() {
 					if($ul.is(":hover")) return;
+					$ul.find('ul').hide();
 					$ul.hide();
 					$a.removeClass('hover');
-				}, 250); 
+				}, 50); 
 			}); 
 
 			$ul.mouseleave(function() {
@@ -246,6 +247,7 @@ var ProcessWireAdminTheme = {
 
 		});
 
+		/*
 		$("#tools-toggle").hover(function() {
 			var $icon = $(this).find("i"); 
 			hoverIcon = $icon.attr('data-hover'); 
@@ -256,6 +258,7 @@ var ProcessWireAdminTheme = {
 			var $icon = $(this).find("i"); 
 			$icon.attr('class', $icon.attr('data-blur')); 
 		}); 
+		*/
 
 
 	}, 	

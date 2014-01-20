@@ -1777,6 +1777,9 @@ div + a > .ui-button {
     margin: 0 !important;
     padding: 0.5em 0.75em 0.5em 0.75em;
     cursor: pointer; }
+    .ui-menu .ui-menu-item a.on {
+      background: rgba(255, 255, 255, 0.2);
+      color: white; }
     .ui-menu .ui-menu-item a:hover, .ui-menu .ui-menu-item a.ui-state-focus, .ui-menu .ui-menu-item a.ui-state-active {
       background: rgba(255, 255, 255, 0.2);
       color: white; }
@@ -1918,7 +1921,7 @@ div + a > .ui-button {
   -ms-border-radius: 0;
   -o-border-radius: 0;
   border-radius: 0;
-  border: #e6e4d8;
+  border: none;
   padding: 0;
   background: #d8744e;
   margin-top: 1px; }
@@ -1929,7 +1932,10 @@ div + a > .ui-button {
     -ms-border-radius: 0;
     -o-border-radius: 0;
     border-radius: 0;
-    background: #c7572c; }
+    background: #c7572c;
+    color: white;
+    margin: 0;
+    border: none; }
 
 /**
  * General form styles

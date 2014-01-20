@@ -2,33 +2,46 @@
 if(!defined("PROCESSWIRE_INSTALL")) die(); 
 if(!isset($title)) $title = 'Title';
 if(!isset($formAction)) $formAction = './install.php';
-if(!isset($bgTitle)) $bgTitle = "Installer";
-?>
-<!DOCTYPE html>
-<html lang="en">
+?><!DOCTYPE html>
+<html lang="en"> 
 <head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta name="robots" content="noindex, nofollow" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 	<title><?php echo htmlentities($title, ENT_QUOTES, "UTF-8"); ?></title>
 
-	<meta name="robots" content="noindex, nofollow" />
+	<link type='text/css' href='wire/modules/AdminTheme/AdminThemeDefault/styles/main-warm.css' rel='stylesheet' />
+	<link type='text/css' href='wire/templates-admin/styles/font-awesome/css/font-awesome.min.css' rel='stylesheet' />
+	<script type='text/javascript' src='wire/modules/Jquery/JqueryCore/JqueryCore.js'></script>
+	<script type='text/javascript' src='wire/modules/Jquery/JqueryUI/JqueryUI.js'></script>
+	<script type='text/javascript' src='wire/modules/AdminTheme/AdminThemeDefault/scripts/main.js'></script>
 
-	<link rel="stylesheet" type="text/css" href="wire/templates-admin/styles/main.css" />
-	<link rel="stylesheet" type="text/css" href="wire/templates-admin/styles/ui.css" />
-	<link rel="stylesheet" type="text/css" href="wire/templates-admin/styles/inputfields.css" />
-	<link rel="stylesheet" type="text/css" href="wire/templates-admin/styles/install.css" />
-
-	<script type="text/javascript" src="wire/modules/Jquery/JqueryCore/JqueryCore.js"></script>
-	<script type="text/javascript" src="wire/templates-admin/scripts/install.js"></script>
 </head>
 <body>
-<p id='bgtitle'><?php echo htmlentities($bgTitle, ENT_QUOTES, "UTF-8"); ?></p>
-<div id="masthead" class="masthead">
-	<div class="container">
-		<a target='_blank' id='logo' href='http://processwire.com'><img src="wire/templates-admin/styles/images/logo.gif" alt="ProcessWire" /></a>
-		<h1 id='title'><?php echo htmlentities($title, ENT_QUOTES, "UTF-8"); ?></h1>
-	</div>
-</div>
 
-<div id="content" class="content">
-	<div class="container">
-		<form action='<?php echo htmlentities($formAction, ENT_QUOTES, "UTF-8"); ?>' method='post'>
+	<div id="masthead" class="masthead ui-helper-clearfix">
+		<div class="container">
+
+			<a id='logo' href='<?php echo $config->urls->admin?>'><img width='130' src="wire/modules/AdminTheme/AdminThemeDefault/styles/images/logo.png" alt="ProcessWire" /></a>
+
+		</div>
+	</div><!--/#masthead-->
+
+	<div id='breadcrumbs'>
+		<div class='container'>
+
+			<ul class='nav'>
+				<li class='title'><?php echo htmlentities($title, ENT_QUOTES, "UTF-8"); ?></li>
+			</ul>
+
+		</div>
+	</div><!--/#breadcrumbs-->
+
+	<div id="content" class="content">
+		<div class="container">
+			<?php if($formAction): ?>
+			<form action='<?php echo htmlentities($formAction, ENT_QUOTES, "UTF-8"); ?>' method='post'>
+			<?php endif; ?>
 

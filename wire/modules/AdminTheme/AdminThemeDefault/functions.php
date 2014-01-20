@@ -94,6 +94,9 @@ function renderAdminNotices($notices) {
 		$text = $notice->text; 
 		$icon = '';
 
+		if(strpos($text, '&') !== false) $text = html_entity_decode($text, ENT_QUOTES, "UTF-8"); 
+		$text = wire('sanitizer')->entities($text); 
+
 		if($notice instanceof NoticeError || $notice->flags & Notice::warning) {
 			$class = 'ui-state-error'; 
 			if($notice->flags & Notice::warning) {
@@ -135,13 +138,14 @@ function renderAdminNotices($notices) {
  */
 function renderTopNavItem(Page $p, $level = 0) {
 
-	$showItem = wire('user')->isSuperuser() ? true : false;
+	$isSuperuser = wire('user')->isSuperuser();
+	$showItem = $isSuperuser;
 	$info = array();
 	$children = $p->numChildren && !$level && $p->name != 'page' ? $p->children("check_access=0") : array();
 	$translationFile = dirname(__FILE__) . '/default.php';
 	$out = '';
 
-	if(!$level && !$showItem) { 
+	if(!$showItem) { 
 		$checkPages = count($children) ? $children : array($p); 
 		foreach($checkPages as $child) {
 			if($child->viewable()) {
@@ -170,7 +174,7 @@ function renderTopNavItem(Page $p, $level = 0) {
 			
 			$items = null;
 
-			if(wire('user')->isSuperuser()) {
+			if($isSuperuser) {
 				if($c->id == 11) {
 					$items = wire('templates'); 
 				} else if($c->id == 16) {
@@ -182,7 +186,7 @@ function renderTopNavItem(Page $p, $level = 0) {
 
 			if($items) {
 
-				$addLabel = __('Add New', dirname(__FILE__) . '/default.php');
+				$addLabel = __('Add New', $translationFile);
 				$out .= "<li><a href='$c->url'>" . __($c->title, $translationFile) . "</a><ul>" . 
 					"<li class='add'><a href='{$c->url}add'><i class='fa fa-plus-circle'></i> $addLabel</a></li>";
 
@@ -237,6 +241,8 @@ function renderTopNavItems() {
 		$outMobile .= "<li><a href='$p->url'>$p->title</a></li>";
 	}
 
+	$outTools .= "<li><a href='{$config->urls->root}'><i class='fa fa-eye'></i> " . __('View Site', __FILE__) . "</a></li>";
+
 	if($user->isLoggedin()) {
 		if($user->hasPermission('profile-edit')) {
 			$outTools .= 
@@ -248,13 +254,12 @@ function renderTopNavItems() {
 			"<i class='fa fa-power-off'></i> " . __('Logout', __FILE__) . "</a></li>";
 	}
 
-	$outTools .= "<li><a href='{$config->urls->root}'><i class='fa fa-eye'></i> " . __('Site', __FILE__) . "</a></li>";
 
 	$outMobile = "<ul id='topnav-mobile' class='dropdown-menu topnav' data-my='left top' data-at='left bottom'>$outMobile$outTools</ul>";
 
 	$out .= "<li>" . 
-		"<a id='tools-toggle' class='dropdown-toggle' href='{$config->urls->root}'>" . 
-		"<i data-hover='fa fa-eye' class='fa fa-wrench'></i></a>" . 
+		"<a target='_blank' id='tools-toggle' class='dropdown-toggle' href='{$config->urls->root}'>" . 
+		"<i class='fa fa-wrench'></i></a>" . 
 		"<ul class='dropdown-menu topnav' data-my='left top' data-at='left bottom'>" . $outTools . 
 		"</ul></li>";
 
@@ -265,4 +270,61 @@ function renderTopNavItems() {
 	return $out; 
 }
 
+/**
+ * Render the browser <title>
+ *
+ * @return string
+ *
+ */
+function renderBrowserTitle() {
+	$browserTitle = wire('processBrowserTitle'); 
+	if(!$browserTitle) $browserTitle = __(strip_tags(wire('page')->get('title|name')), __FILE__) . ' &bull; ProcessWire';
+	if(strpos($browserTitle, '&') !== false) $browserTitle = html_entity_decode($browserTitle, ENT_QUOTES, 'UTF-8'); // we don't want to make assumptions here
+	$browserTitle = wire('sanitizer')->entities($browserTitle, ENT_QUOTES, 'UTF-8'); 
+	$httpHost = wire('config')->httpHost;
+	if(strpos($httpHost, 'www.') === 0) $browserTitle = substr($browserTitle, 4); // remove www
+	if(strpos($httpHost, ':')) $httpHost = preg_replace('/:\d+/', '', $httpHost); // remove port
+	$browserTitle = wire('sanitizer')->entities($httpHost) . ' &bull; ' . $browserTitle; 
+	return $browserTitle; 
+}
+
+/**
+ * Render the class that will be used in the <body class=''> tag
+ *
+ * @return string
+ *
+ */
+function renderBodyClass() {
+	$page = wire('page');
+	$bodyClass = wire('input')->get->modal ? 'modal ' : '';
+	$bodyClass .= "id-{$page->id} template-{$page->template->name}";
+	if(wire('config')->js('JqueryWireTabs')) $bodyClass .= " hasWireTabs";
+	return $bodyClass; 
+}
+
+/**
+ * Render the required javascript 'config' variable for the document <head>
+ *
+ * @return string
+ *
+ */
+function renderJSConfig() {
+
+	$config = wire('config'); 
+
+	$jsConfig = $config->js();
+	$jsConfig['debug'] = $config->debug;
+
+	$jsConfig['urls'] = array(
+		'root' => $config->urls->root, 
+		'admin' => $config->urls->admin, 
+		'modules' => $config->urls->modules, 
+		'core' => $config->urls->core, 
+		'files' => $config->urls->files, 
+		'templates' => $config->urls->templates,
+		'adminTemplates' => $config->urls->adminTemplates,
+		); 
+
+	return "var config = " . json_encode($jsConfig);
+}
 

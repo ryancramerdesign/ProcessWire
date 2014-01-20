@@ -1800,6 +1800,9 @@ div + a > .ui-button {
     margin: 0 !important;
     padding: 0.5em 0.75em 0.5em 0.75em;
     cursor: pointer; }
+    .ui-menu .ui-menu-item a.on {
+      background: #435e67;
+      color: #a7e5f9; }
     .ui-menu .ui-menu-item a:hover, .ui-menu .ui-menu-item a.ui-state-focus, .ui-menu .ui-menu-item a.ui-state-active {
       background: #435e67;
       color: white; }

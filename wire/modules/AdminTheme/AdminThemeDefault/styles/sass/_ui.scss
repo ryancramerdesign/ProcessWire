@@ -255,6 +255,11 @@ button.ui-button.ui-state-default,
 			padding: 0.5em 0.75em 0.5em 0.75em; 
 			cursor: pointer; 
 
+			&.on {
+				background: $topnav-link-hover-bg; 
+				color: $topnav-link-color; 
+			}
+
 			&:hover,
 			&.ui-state-focus,
 			&.ui-state-active {

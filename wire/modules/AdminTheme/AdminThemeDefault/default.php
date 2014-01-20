@@ -27,11 +27,7 @@ if(!defined("PROCESSWIRE")) die();
 require_once(dirname(__FILE__) . "/functions.php"); 
 
 $searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm() : '';
-$bodyClass = $input->get->modal ? 'modal ' : '';
-$bodyClass .= "id-{$page->id} template-{$page->template->name}";
 if(!isset($content)) $content = '';
-$browserTitle = wire('processBrowserTitle'); 
-if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FILE__) . ' &bull; ProcessWire';
 
 $config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "main-$adminTheme->colors" : "main") . ".css?v=7"); 
 $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css"); 
@@ -47,35 +43,16 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-	<title><?php echo $browserTitle; ?></title>
+	<title><?php echo renderBrowserTitle(); ?></title>
 
-	<script type="text/javascript">
-		<?php
-
-		$jsConfig = $config->js();
-		$jsConfig['debug'] = $config->debug;
-		$jsConfig['urls'] = array(
-			'root' => $config->urls->root, 
-			'admin' => $config->urls->admin, 
-			'modules' => $config->urls->modules, 
-			'core' => $config->urls->core, 
-			'files' => $config->urls->files, 
-			'templates' => $config->urls->templates,
-			'adminTemplates' => $config->urls->adminTemplates,
-			); 
-
-		if(!empty($jsConfig['JqueryWireTabs'])) $bodyClass .= ' hasWireTabs'; 
-		?>
-
-		var config = <?php echo json_encode($jsConfig); ?>;
-	</script>
+	<script type="text/javascript"><?php echo renderJSConfig(); ?></script>
 
 	<?php foreach($config->styles->unique() as $file) echo "\n\t<link type='text/css' href='$file' rel='stylesheet' />"; ?>
 
 	<?php foreach($config->scripts->unique() as $file) echo "\n\t<script type='text/javascript' src='$file'></script>"; ?>
 
 </head>
-<body<?php if($bodyClass) echo " class='$bodyClass'"; ?>>
+<body class='<?php echo renderBodyClass(); ?>'>
 
 	<?php echo renderAdminNotices($notices); ?>
 
@@ -87,12 +64,12 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");
 			<?php 
 			if($user->isLoggedin()) {
 				echo $searchForm;
-				echo "<ul id='topnav'>" . renderTopNavItems() . "</ul>";
+				echo "\n\n<ul id='topnav'>" . renderTopNavItems() . "</ul>";
 			}
 			?>
 
 		</div>
-	</div>
+	</div><!--/#masthead-->
 
 
 	<div id='breadcrumbs'>
@@ -113,7 +90,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");
 			</ul>
 
 		</div>
-	</div>
+	</div><!--/#breadcrumbs-->
 
 	<div id="content" class="content fouc_fix">
 		<div class="container">
@@ -125,7 +102,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");
 			?>
 
 		</div>
-	</div>
+	</div><!--/#content-->
 
 
 	<div id="footer" class="footer">
@@ -150,7 +127,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");
 
 			<?php if($config->debug && $this->user->isSuperuser()) include($config->paths->adminTemplates . "debug.inc"); ?>
 		</div>
-	</div>
+	</div><!--/#footer-->
 
 </body>
 </html>
