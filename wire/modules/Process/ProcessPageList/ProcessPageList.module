@@ -407,13 +407,9 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 			if($page->id == $this->config->http404PageID) $label = $this->_('404 Page Not Found'); // Label for '404 Page Not Found' page in PageList // Overrides page title if used
 				else if($page->id == $this->config->adminRootPageID) $label = $this->_('Admin'); // Label for 'Admin' page in PageList // Overrides page title if used
 				else if($page->id == $this->config->trashPageID) $label = $this->_('Trash'); // Label for 'Trash' page in PageList // Overrides page title if used
-
-		} else if($page->id == 1) {
-				$label = $this->_('Home'); // Label for 'Home' page in PageList // Overrides page title if used
-		}
-
-		// if the label is the system default, then divert control to the page itself
-		if(in_array($label, array('Home', 'Trash', 'Admin', '404 Page Not Found'))) $label = '';
+			// if label is not overridden by a language pack, make $label blank to use the page title instead
+			if(in_array($label, array('Trash', 'Admin', '404 Page Not Found'))) $label = '';
+		} 
 
 		if(!$label) $label = $this->getPageLabel($page); 
 
