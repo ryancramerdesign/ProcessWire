@@ -29,10 +29,40 @@ abstract class Notice extends WireData {
 	 *
 	 */
 	const debug = 2;
+
+	/**
+	 * Flag indicates the notice is a warning
+	 *
+	 */
 	const warning = 4; 
+
+	/**
+	 * Flag indicates the notice will also be sent to the messages or errors log
+	 *
+	 */
 	const log = 8; 
+
+	/**
+	 * Flag indicates the notice will be logged, but not shown
+	 *
+	 */
 	const logOnly = 16;
 
+	/**
+	 * Flag indicates the notice is allowed to contain markup and won't be automatically entity encoded
+	 *
+	 * Note: entity encoding is done by the admin theme at output time. 
+	 *
+	 */
+	const allowMarkup = 32;
+
+	/**
+	 * Create the Notice
+	 *
+	 * @param string $text
+	 * @param int $flags
+	 *
+	 */
 	public function __construct($text, $flags = 0) {
 		$this->set('text', $text); 
 		$this->set('class', ''); 

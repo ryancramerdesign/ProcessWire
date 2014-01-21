@@ -94,8 +94,14 @@ function renderAdminNotices($notices) {
 		$text = $notice->text; 
 		$icon = '';
 
-		if(strpos($text, '&') !== false) $text = html_entity_decode($text, ENT_QUOTES, "UTF-8"); 
-		$text = wire('sanitizer')->entities($text); 
+		if($notice->flags & Notice::allowMarkup) {
+			// leave $text alone
+		} else {
+			// unencode entities, just in case module already entity encoded otuput
+			if(strpos($text, '&') !== false) $text = html_entity_decode($text, ENT_QUOTES, "UTF-8"); 
+			// entity encode it
+			$text = wire('sanitizer')->entities($text); 
+		}
 
 		if($notice instanceof NoticeError || $notice->flags & Notice::warning) {
 			$class = 'ui-state-error'; 
