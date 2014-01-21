@@ -109,8 +109,19 @@ class ProcessPageView extends Process {
 
 			try {
 				$this->wire->setStatus(ProcessWire::statusRender);
-				if($this->requestFile) $this->sendFile($page, $this->requestFile);
-					else return $page->render();
+
+				if($this->requestFile) {
+					$this->sendFile($page, $this->requestFile);
+
+				} else if($config->ajax) {
+					return $page->render();
+
+				} else {
+					$out = $page->render();
+					header("Connection: close"); 
+					$this->wire('session')->close();
+					return $out; 
+				}
 
 			} catch(Wire404Exception $e) {
 				return $this->pageNotFound($page, $this->requestURL);

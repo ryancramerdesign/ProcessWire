@@ -358,8 +358,17 @@ class Session extends Wire implements IteratorAggregate {
 		if($http301) header("HTTP/1.1 301 Moved Permanently");
 		header("Location: $url");
 		header("Connection: close"); 
-		if(wire('page')) wire('modules')->get('ProcessPageView')->finished();
+		$this->close();
+		if($this->wire('page')) $this->wire('modules')->get('ProcessPageView')->finished();
 		exit(0);
+	}
+
+	/**
+	 * Manually close the session, before program execution is done
+	 * 
+	 */
+	public function close() {
+		session_write_close();
 	}
 
 	/**

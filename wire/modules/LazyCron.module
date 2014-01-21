@@ -128,7 +128,7 @@ class LazyCron extends WireData implements Module {
 	 *
 	 */
 	public function init() {
-		$this->addHook('ProcessPageView::finished', $this, 'afterPageView'); 
+		if(!$this->wire('config')->ajax) $this->addHookAfter('ProcessPageView::finished', $this, 'afterPageView'); 
 	}
 
 	/**
