@@ -40,6 +40,22 @@ class ProcessPageView extends Process {
 	}
 
 	/**
+	 * Response types 
+	 *
+	 */
+	const responseTypeError = 0;
+	const responseTypeNormal = 1; 
+	const responseTypeAjax = 2; 
+	const responseTypeFile = 4; 
+	const responseTypeRedirect = 8; 
+
+	/**
+	 * Response type (see response type codes above)
+	 *
+	 */
+	protected $responseType = 1; 
+
+	/**
 	 * URL that should be redirected to for this request
  	 * 
 	 * Set by other methods in this class, and checked by the execute method before rendering. 
@@ -79,12 +95,14 @@ class ProcessPageView extends Process {
 	 */
 	protected $pageNumPrefix = null;
 
+
 	/**
 	 * Retrieve a page, check access, and render
  	 *
 	 */
 	public function ___execute() {
 
+		$this->responseType = self::responseTypeNormal;
 		$config = $this->config; 
 		if(is_array($config->pageNumUrlPrefixes)) foreach($config->pageNumUrlPrefixes as $prefix) {
 			$this->pageNumUrlPrefixes[$prefix] = $prefix;
@@ -111,9 +129,11 @@ class ProcessPageView extends Process {
 				$this->wire->setStatus(ProcessWire::statusRender);
 
 				if($this->requestFile) {
+					$this->responseType = self::responseTypeFile; 
 					$this->sendFile($page, $this->requestFile);
 
 				} else if($config->ajax) {
+					$this->responseType = self::responseTypeAjax;
 					return $page->render();
 
 				} else if(self::isHooked('ProcessPageView::finished()')) {
@@ -437,6 +457,7 @@ class ProcessPageView extends Process {
 	 */
 	protected function ___pageNotFound($page, $url, $triggerReady = false) {
 
+		$this->responseType = self::responseTypeError; 
 		$config = $this->config;
 
 		header("HTTP/1.1 404 Page Not Found"); 
@@ -450,6 +471,26 @@ class ProcessPageView extends Process {
 		} else {
 			return "404 page not found";
 		}
+	}
+
+	/**
+	 * Return the response type for this request, as one of the responseType constants
+	 *
+	 * @return int
+	 *
+	 */
+	public function getResponseType() {
+		return $this->responseType; 
+	}
+
+	/**
+	 * Set the response type for this request, see responseType constants in this class
+	 *
+	 * @param int $responseType
+	 *
+	 */
+	public function setResponseType($responseType) {
+		$this->responseType = (int) $responseType; 
 	}
 
 }

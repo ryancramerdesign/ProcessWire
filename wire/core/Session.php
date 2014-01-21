@@ -357,9 +357,11 @@ class Session extends Wire implements IteratorAggregate {
 		// perform the redirect
 		if($http301) header("HTTP/1.1 301 Moved Permanently");
 		header("Location: $url");
-		header("Connection: close"); 
-		$this->close();
-		if($this->wire('page')) $this->wire('modules')->get('ProcessPageView')->finished();
+		if($this->wire('page')) {
+			$process = $this->wire('modules')->get('ProcessPageView'); 
+			$process->setResponseType(ProcessPageView::responseTypeRedirect); 
+			$process->finished();
+		}
 		exit(0);
 	}
 

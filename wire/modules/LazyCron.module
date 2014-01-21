@@ -128,7 +128,7 @@ class LazyCron extends WireData implements Module {
 	 *
 	 */
 	public function init() {
-		if(!$this->wire('config')->ajax) $this->addHookAfter('ProcessPageView::finished', $this, 'afterPageView'); 
+		$this->addHookAfter('ProcessPageView::finished', $this, 'afterPageView'); 
 	}
 
 	/**
@@ -139,6 +139,10 @@ class LazyCron extends WireData implements Module {
 	 *
 	 */
 	public function afterPageView(HookEvent $e) {
+
+		// don't execute cron now if this is anything other than a normal response
+		$responseType = $e->object->getResponseType();
+		if($responseType != ProcessPageView::responseTypeNormal) return;
 
 		$time = time();
 		$filename = $this->config->paths->cache . "LazyCron.cache"; 
