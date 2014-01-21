@@ -116,11 +116,16 @@ class ProcessPageView extends Process {
 				} else if($config->ajax) {
 					return $page->render();
 
-				} else {
+				} else if(self::isHooked('ProcessPageView::finished()')) {
+					// allow for hooks that run after page has been fully sent (like LazyCron)
 					$out = $page->render();
+					header("Content-length: " . strlen($out)); 
 					header("Connection: close"); 
 					$this->wire('session')->close();
 					return $out; 
+
+				} else {
+					return $page->render();
 				}
 
 			} catch(Wire404Exception $e) {
