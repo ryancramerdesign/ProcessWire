@@ -247,20 +247,6 @@ var ProcessWireAdminTheme = {
 
 		});
 
-		/*
-		$("#tools-toggle").hover(function() {
-			var $icon = $(this).find("i"); 
-			hoverIcon = $icon.attr('data-hover'); 
-			var blurIcon = $icon.attr('class'); 	
-			$icon.attr('data-blur', blurIcon); 
-			$icon.attr('class', hoverIcon); 
-		}, function() {
-			var $icon = $(this).find("i"); 
-			$icon.attr('class', $icon.attr('data-blur')); 
-		}); 
-		*/
-
-
 	}, 	
 
 	setupMobile: function() {
@@ -291,11 +277,15 @@ var ProcessWireAdminTheme = {
 			}
 
 			$topnav.children('.collapse-topnav-menu').children('a').click(function() {
-				// close menu
-				$(this).mouseleave();
-				return false; 
+				if($(this).is(".hover")) {
+					// already open? close it. 
+					$(this).mouseleave();
+				} else {
+					// open it again
+					$(this).mouseenter();
+				}
+				return false;
 			}); 
-
 
 			// wiretabs
 			var $wiretabs = $(".WireTabs"); 
@@ -308,14 +298,14 @@ var ProcessWireAdminTheme = {
 					if(!$body.hasClass('collapse-wiretabs')) {
 						$body.addClass('collapse-wiretabs'); 
 						collapsedTabsAtBodyWidth = $body.width();
-						console.log('collapse wiretabs'); 
+						// console.log('collapse wiretabs'); 
 					}
 				} else if(collapsedTabsAtBodyWidth > 0) {
 					var width = $body.width();
 					if($body.hasClass('collapse-wiretabs') && width > collapsedTabsAtBodyWidth) {
 						$body.removeClass('collapse-wiretabs'); 
 						collapsedTabsAtBodyWidth = 0;
-						console.log('un-collapse wiretabs'); 
+						// console.log('un-collapse wiretabs'); 
 					}
 				}
 			}); 
