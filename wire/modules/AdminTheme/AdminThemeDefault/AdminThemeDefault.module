@@ -27,8 +27,8 @@ class AdminThemeDefault extends AdminTheme implements Module, ConfigurableModule
 		$field = wire('modules')->get('InputfieldRadios');
 		$field->attr('name', 'colors');
 		$field->label = __('Color Set'); 
-		$field->addOption('', __('Warm'));
 		$field->addOption('classic', __('Classic'));
+		$field->addOption('warm', __('Warm'));
 		$field->addOption('modern', __('Modern'));
 		$field->addOption('futura', __('Futura'));
 		$field->attr('value', isset($data['colors']) ? $data['colors'] : ''); 

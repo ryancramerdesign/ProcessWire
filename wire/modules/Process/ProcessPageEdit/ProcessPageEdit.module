@@ -497,9 +497,10 @@ class ProcessPageEdit extends Process {
 		$dateFormat = $this->config->dateFormat; 
 		$field = $this->modules->get("InputfieldMarkup"); 
 
-		$info = "\n<p>" . sprintf($this->_('Created by %1$s on %2$s'), $this->page->createdUser->name, date($dateFormat, $this->page->created)) . "</p>" . // Settings: created user/date information line
+		$info =	"\n<p>" . sprintf($this->_('Created by %1$s on %2$s'), $this->page->createdUser->name, date($dateFormat, $this->page->created)) . "</p>" . // Settings: created user/date information line
 			"\n<p>" . sprintf($this->_('Last modified by %1$s on %2$s'), $this->page->modifiedUser->name, date($dateFormat, $this->page->modified)) . "</p>"; // Settings: modified user/date information line
 
+		$field->attr('id+name', 'ProcessPageEditInfo'); 
 		$field->label = $this->_('Info'); // Settings: Info field label
 		$field->value = $info; 
 		$field->collapsed = Inputfield::collapsedYes; 

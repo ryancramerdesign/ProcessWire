@@ -2,9 +2,13 @@
 	font-weight: bold; 
 }
 
+#content em {
+	font-style: italic;
+}
+
 #content li {
 	margin: 3px 0;
-	padding: 3px 4px;
+	padding: 3px 10px;
 }
 
 #content a {
@@ -15,20 +19,11 @@
 	font-weight: bold; 
 }
 
-#content button {
-	padding: 2px 7px 2px 0; 
-	font-size: 1em;
+#content button.floated {
+	float: left; 
 }
 
-#content .ui-state-error {
-	font-weight: bold; 
-}
-
-#content h2 {
-	margin-top: 1.5em; 
-}
-
-#content form h2:first-child {
-        margin-top: 0;
+.container {
+ 	max-width: 760px; 
 }
 

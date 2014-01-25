@@ -47,9 +47,9 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");
 
 	<script type="text/javascript"><?php echo renderJSConfig(); ?></script>
 
-	<?php foreach($config->styles->unique() as $file) echo "\n\t<link type='text/css' href='$file' rel='stylesheet' />"; ?>
+	<?php foreach($config->styles as $file) echo "\n\t<link type='text/css' href='$file' rel='stylesheet' />"; ?>
 
-	<?php foreach($config->scripts->unique() as $file) echo "\n\t<script type='text/javascript' src='$file'></script>"; ?>
+	<?php foreach($config->scripts as $file) echo "\n\t<script type='text/javascript' src='$file'></script>"; ?>
 
 </head>
 <body class='<?php echo renderBodyClass(); ?>'>

@@ -64,7 +64,6 @@ class TemplateFile extends WireData {
 	 */
 	public function setFilename($filename) {
 		if(!$filename) return; 
-		if(!file_exists($filename)) throw new WireException("Template file does not exist: '$filename'"); 
 		$this->filename = $filename; 
 	}
 
@@ -122,11 +121,13 @@ class TemplateFile extends WireData {
 	 * Render the template -- execute it and return it's output
 	 *
 	 * @return string The output of the Template File
+	 * @throws WireException if template file doesn't exist
 	 *
 	 */
 	public function ___render() {
 
-		if(!$this->filename || !is_file($this->filename)) return ''; 
+		if(!$this->filename || !is_file($this->filename)) return '';
+		if(!file_exists($this->filename)) throw new WireException("Template file does not exist: '$this->filename'"); 
 
 		$this->savedDir = getcwd();	
 

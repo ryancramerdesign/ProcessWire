@@ -2755,6 +2755,9 @@ body.collapse-wiretabs #breadcrumbs {
   .content .PageList .PageListNumChildren {
     font-size: 0.833333em; }
 
+.PageListPagination a {
+  margin-bottom: 5px; }
+
 .content table th,
 .content table th.header,
 .content table.AdminDataList th,

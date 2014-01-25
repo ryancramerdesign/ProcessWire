@@ -12,7 +12,7 @@
  * reason, then you'll want to delete that file. This was implemented just in case someone doesn't delete the installer.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -47,7 +47,13 @@ class Installer {
 	 * Minimum required PHP version to install ProcessWire
 	 *
 	 */
-	const MIN_REQUIRED_PHP_VERSION = '5.2.4';
+	const MIN_REQUIRED_PHP_VERSION = '5.3.8';
+
+	/**
+	 * Test mode for installer development, non destructive
+	 *
+	 */
+	const TEST_MODE = false;
 
 	/**
 	 * File permissions, determined in the dbConfig function
@@ -65,14 +71,25 @@ class Installer {
 	protected $numErrors = 0; 
 
 	/**
+	 * Available color themes
+	 *
+	 */
+	protected $colors = array(
+		'classic',
+		'warm',
+		'modern',
+		'futura'
+		);
+
+	/**
 	 * Execution controller
 	 *
 	 */
 	public function execute() {
 
-		$title = "ProcessWire 2.3 Installation";
+		$title = "ProcessWire 2.4 Installation";
 
-		require("./wire/templates-admin/install-head.inc"); 
+		require("./wire/modules/AdminTheme/AdminThemeDefault/install-head.inc"); 
 
 		if(isset($_POST['step'])) switch($_POST['step']) {
 
@@ -94,7 +111,7 @@ class Installer {
 
 		} else $this->welcome();
 
-		require("./wire/templates-admin/install-foot.inc"); 
+		require("./wire/modules/AdminTheme/AdminThemeDefault/install-foot.inc"); 
 	}
 
 
@@ -104,9 +121,8 @@ class Installer {
 	 */
 	protected function welcome() {
 		$this->h("Welcome. This tool will guide you through the installation process."); 
-		$this->p("Thanks for choosing ProcessWire! If you downloaded this copy of ProcessWire from somewhere other than <a href='http://processwire.com/'>processwire.com</a> or <a href='https://github.com/ryancramerdesign/ProcessWire' target='_blank'>our GitHub page</a>, please download a fresh copy before installing.");
-		$this->p("Need help or have questions during installation? Please stop by the <a href='http://processwire.com/talk/' target='_blank'>ProcessWire support forums</a> and we'll be glad to help.");
-		$this->btn("Get Started", 1); 
+		$this->p("Thanks for choosing ProcessWire! If you downloaded this copy of ProcessWire from somewhere other than <a href='http://processwire.com/'>processwire.com</a> or <a href='https://github.com/ryancramerdesign/ProcessWire' target='_blank'>our GitHub page</a>, please download a fresh copy before installing. If you need help or have questions during installation, please stop by our <a href='http://processwire.com/talk/' target='_blank'>support board</a> and we'll be glad to help.");
+		$this->btn("Get Started", 1, 'sign-in'); 
 	}
 
 
@@ -115,7 +131,7 @@ class Installer {
 	 *
 	 */
 	protected function checkFunction($name, $label) {
-		if(function_exists($name)) $this->ok("OK: $label"); 
+		if(function_exists($name)) $this->ok("$label"); 
 			else $this->err("Fail: $label"); 
 	}
 
@@ -150,9 +166,13 @@ class Installer {
 		}
 		
 		if(extension_loaded('pdo_mysql')) {
-			$this->ok("OK: PDO (mysql) database"); 
+			$this->ok("PDO (mysql) database"); 
 		} else {
 			$this->err("PDO (pdo_mysql) is required (for MySQL database)"); 
+		}
+
+		if(self::TEST_MODE) {
+			$this->err("Example error message for test mode"); 
 		}
 
 		$this->checkFunction("filter_var", "Filter functions (filter_var)");
@@ -198,11 +218,12 @@ class Installer {
 		}
 
 		if($this->numErrors) {
-			$this->p("One or more errors were found above. Please correct these issues before proceeding or <a href='http://processwire.com/talk/'>contact ProcessWire support</a> if you have questions or think the error is incorrect.");
-			$this->btn("Check Again", 1); 
+			$this->p("One or more errors were found above. We recommend you correct these issues before proceeding or <a href='http://processwire.com/talk/'>contact ProcessWire support</a> if you have questions or think the error is incorrect. But if you want to proceed anyway, click Continue below.");
+			$this->btn("Check Again", 1, 'refresh', false, true); 
+			$this->btn("Continue to Next Step", 2, 'angle-right', true); 
+		} else {
+			$this->btn("Continue to Next Step", 2, 'angle-right', false); 
 		}
-
-		$this->btn("Continue to Next Step", 2); 
 	}
 
 	/**
@@ -252,10 +273,10 @@ class Installer {
 		$this->h("File Permissions"); 
 		$this->p(
 			"When ProcessWire creates directories or files, it assigns permissions to them. " . 
-			"Enter the most restrictive permissions possible that allow full read and write access to the web server (Apache) and yourself. " . 
+			"Enter the most restrictive permissions possible that give ProcessWire (and you) read and write access to the web server (Apache). " . 
 			"The safest setting to use varies from server to server. " . 
 			"If you are not on a dedicated server or private server, you may want to contact your web host to advise on what are the best permissions to use in your environment. " . 
-			"Should you opt to use the defaults provided, you can also adjust these permissions later (if necessary) by editing /site/config.php (near the bottom of the file). "
+			"Should you opt to use the defaults provided, you can also adjust these permissions later (if necessary) by editing <u>/site/config.php</u>. "
 			);
 
 		$this->p("Permissions must be 3 digits each.", "detail");
@@ -267,7 +288,7 @@ class Installer {
 
 		$this->btn("Continue", 4); 
 
-		$this->p("Note: After you click the button above, be patient &hellip; it may take a minute.");
+		$this->p("Note: After you click the button above, be patient &hellip; it may take a minute.", "detail");
 	}
 
 	/**
@@ -333,6 +354,8 @@ class Installer {
 	 */
 	protected function dbSaveConfigFile(array $values) {
 
+		if(self::TEST_MODE) return true; 
+
 		$salt = md5(mt_rand() . microtime(true)); 
 
 		$cfg = 	"\n/**" . 
@@ -377,6 +400,12 @@ class Installer {
 	 */
 	protected function profileImport($database) {
 
+		if(self::TEST_MODE) {
+			$this->ok("TEST MODE: Skipping profile import"); 
+			$this->adminAccount();
+			return;
+		}
+
 		$profile = "./site/install/";
 		if(!is_file("{$profile}install.sql")) die("No installation profile found in {$profile}"); 
 
@@ -415,6 +444,11 @@ class Installer {
 	 */
 	protected function profileImportFiles($fromPath) {
 
+		if(self::TEST_MODE) {
+			$this->ok("TEST MODE: Skipping file import - $fromPath"); 
+			return;
+		}
+
 		$dir = new DirectoryIterator($fromPath);
 
 		foreach($dir as $file) {
@@ -445,6 +479,8 @@ class Installer {
 	 *
 	 */
 	protected function profileImportSQL($database, $sqlDumpFile) {
+
+		if(self::TEST_MODE) return;
 
 		$fp = fopen($sqlDumpFile, "rb"); 	
 		while(!feof($fp)) {
@@ -487,14 +523,21 @@ class Installer {
 			$clean[$key] = $value;
 		}
 
-		$this->h("Admin Login Information");
-		$this->input("admin_name", "Admin Login URL", $clean['admin_name'], true, "name"); 
+		$this->h("Admin Panel Information");
+		$this->input("admin_name", "Admin Login URL", $clean['admin_name'], false, "name"); 
+		$js = "$('link#colors').attr('href', $('link#colors').attr('href').replace(/main-.*$/, 'main-' + $(this).val() + '.css'))";
+		echo "<p class='ui-helper-clearfix'><label>Color Theme<br /><select name='colors' id='colors' onchange=\"$js\">";
+		foreach($this->colors as $color) echo "<option value='$color'>" . ucfirst($color) . "</option>";
+		echo "</select></label> <span class='detail'><i class='fa fa-angle-left'></i> Change for a live preview*</span></p>";
+		$this->p("<i class='fa fa-info-circle'></i> You can change the admin URL later by editing the admin page and changing the name on the settings tab.<br /><i class='fa fa-info-circle'></i> You can change the colors later by going to Admin <i class='fa fa-angle-right'></i> Modules <i class='fa fa-angle-right detail'></i> Core <i class='fa fa-angle-right detail'></i> Admin Theme <i class='fa fa-angle-right'></i> Settings.", "detail"); 
+		$this->h("Admin Account Information");
 		$this->p("The account you create here will have superuser access, so please make sure to create a strong password.");
 		$this->input("username", "User", $clean['username'], false, "name"); 
 		$this->input("userpass", "Password", $clean['userpass'], false, "password"); 
 		$this->input("userpass_confirm", "Password (again)", $clean['userpass_confirm'], true, "password"); 
 		$this->input("useremail", "Email Address", $clean['useremail'], true, "email"); 
-		$this->p("Please remember the password you enter above as you will not be able to retrieve it again.");
+		$this->p("<i class='fa fa-warning'></i> Please remember the password you enter above as you will not be able to retrieve it again.", "detail");
+
 		$this->btn("Create Account", 5); 
 	}
 
@@ -543,8 +586,12 @@ class Installer {
 		$admin->name = $adminName;
 
 		try {
-			$wire->users->save($user); 
-			$wire->pages->save($admin);
+			if(self::TEST_MODE) {
+				$this->ok("TEST MODE: skipped user creation"); 
+			} else {
+				$wire->users->save($user); 
+				$wire->pages->save($admin);
+			}
 
 		} catch(Exception $e) {
 			$this->err($e->getMessage()); 
@@ -555,21 +602,40 @@ class Installer {
 
 		$this->h("Admin Account Saved");
 		$this->ok("User account saved: <b>{$user->name}</b>"); 
+
+		$colors = $wire->sanitizer->pageName($input->post->colors); 
+		if(!in_array($colors, $this->colors)) $colors = reset($this->colors); 
+		$theme = $wire->modules->getInstall('AdminThemeDefault'); 
+		$configData = $wire->modules->getModuleConfigData('AdminThemeDefault'); 
+		$configData['colors'] = $colors;
+		$wire->modules->saveModuleConfigData('AdminThemeDefault', $configData); 
+		$this->ok("Saved admin color set <b>$colors</b> - you will see this when you login."); 
+
 		$this->h("Complete &amp; Secure Your Installation");
-		$this->ok("Now that the installer is complete, it is highly recommended that you make ./site/config.php non-writable, for security."); 
+		$this->ok("It is recommended that you make <b>/site/config.php</b> non-writable, for security."); 
 
-		if(@unlink("./install.php")) $this->ok("Deleted this installer (./install.php) for security."); 
-			else $this->ok("Please delete this installer! The file is located in your web root at: ./install.php"); 
+		if(!self::TEST_MODE) {
+			if(@unlink("./install.php")) $this->ok("Deleted this installer (./install.php) for security."); 
+				else $this->ok("Please delete this installer! The file is located in your web root at: ./install.php"); 
+		}
 
-		$this->ok("There are additional configuration options available in this file that you may want to review: ./site/config.php"); 
-		$this->ok("To save space, you may delete this directory (and everything in it): ./site/install/ - it's no longer needed"); 
-		$this->ok("Note that future runtime errors are logged to: /site/assets/logs/errors.txt (not web accessible)"); 
+
+		$this->ok("There are additional configuration options available in <b>/site/config.php</b> that you may want to review."); 
+		$this->ok("To save space, you may optionally delete <b>/site/install/</b> - it's no longer needed."); 
+		$this->ok("Note that future runtime errors are logged to <b>/site/assets/logs/errors.txt</b> (not web accessible)."); 
+
 		$this->h("Use The Site!");
-		$this->p("Your admin URL is <a href='./$adminName/'>/$adminName/</a>. If you'd like, you may change this later by editing the admin page and changing the name."); 
-		$this->p("<a target='_blank' href='./'>View the Web Site</a> or <a href='./$adminName/'>Login to ProcessWire admin</a>");
+		$this->ok("Your admin URL is <a href='./$adminName/'>/$adminName/</a>"); 
+		$this->p("If you'd like, you may change this later by editing the admin page and changing the name.", "detail"); 
+		$this->btn("Login to Admin", 1, 'sign-in', false, true, "./$adminName/"); 
+		$this->btn("View Site ", 1, 'angle-right', true, false, "./"); 
+
+		//$this->p("<a target='_blank' href='./'>View the Web Site</a> or <a href='./$adminName/'>Login to ProcessWire admin</a>");
 
 		// set a define that indicates installation is completed so that this script no longer runs
-		file_put_contents("./site/assets/installed.php", "<?php // The existence of this file prevents the installer from running. Don't delete it unless you want to re-run the install or you have deleted ./install.php."); 
+		if(!self::TEST_MODE) {
+			file_put_contents("./site/assets/installed.php", "<?php // The existence of this file prevents the installer from running. Don't delete it unless you want to re-run the install or you have deleted ./install.php."); 
+		}
 
 	}
 
@@ -584,7 +650,7 @@ class Installer {
 	 */
 	protected function err($str) {
 		$this->numErrors++;
-		echo "\n<li class='ui-state-error'><span class='ui-icon ui-icon-alert'></span>$str</li>";
+		echo "\n<li class='ui-state-error'><i class='fa fa-exclamation-triangle'></i> $str</li>";
 		return false;
 	}
 
@@ -593,7 +659,7 @@ class Installer {
 	 *
 	 */
 	protected function ok($str) {
-		echo "\n<li class='ui-state-highlight'><span class='ui-icon ui-icon-check'></span>$str</li>";
+		echo "\n<li class='ui-state-highlight'><i class='fa fa-check-square-o'></i> $str</li>";
 		return true; 
 	}
 
@@ -601,8 +667,16 @@ class Installer {
 	 * Output a button 
 	 *
 	 */
-	protected function btn($label, $value) {
-		echo "\n<p><button name='step' type='submit' class='ui-button ui-widget ui-state-default ui-corner-all' value='$value'><span class='ui-button-text'><span class='ui-icon ui-icon-carat-1-e'></span>$label</span></a></button></p>";
+	protected function btn($label, $value, $icon = 'angle-right', $secondary = false, $float = false, $href ='') {
+		$class = $secondary ? 'ui-priority-secondary' : '';
+		if($float) $class .= " floated";
+		$type = 'submit';
+		if($href) $type = 'button';
+		if($href) echo "<a href='$href'>";
+		echo "\n<p><button name='step' type='$type' class='ui-button ui-widget ui-state-default $class ui-corner-all' value='$value'>";
+		echo "<span class='ui-button-text'><i class='fa fa-$icon'></i> $label</span>";
+		echo "</button></p>";
+		if($href) echo "</a>";
 	}
 
 	/**
@@ -657,6 +731,7 @@ class Installer {
 	 *
 	 */
 	protected function mkdir($path, $showNote = true) {
+		if(self::TEST_MODE) return;
 		if(mkdir($path)) {
 			chmod($path, octdec($this->chmodDir));
 			if($showNote) $this->ok("Created directory: $path"); 
@@ -672,6 +747,8 @@ class Installer {
 	 *
 	 */
 	protected function copyRecursive($src, $dst) {
+
+		if(self::TEST_MODE) return;
 
 		if(substr($src, -1) != '/') $src .= '/';
 		if(substr($dst, -1) != '/') $dst .= '/';
@@ -698,7 +775,7 @@ class Installer {
 
 /****************************************************************************************************/
 
-if(is_file("./site/assets/installed.php")) die("This installer has already run. Please delete it."); 
+if(!Installer::TEST_MODE && is_file("./site/assets/installed.php")) die("This installer has already run. Please delete it."); 
 error_reporting(E_ALL | E_STRICT); 
 $installer = new Installer();
 $installer->execute();
