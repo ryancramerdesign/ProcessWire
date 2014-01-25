@@ -23,6 +23,10 @@
 	float: left; 
 }
 
+#content label .detail {
+	font-weight: normal;
+}
+
 .container {
  	max-width: 760px; 
 }

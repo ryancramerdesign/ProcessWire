@@ -528,13 +528,13 @@ class Installer {
 		$js = "$('link#colors').attr('href', $('link#colors').attr('href').replace(/main-.*$/, 'main-' + $(this).val() + '.css'))";
 		echo "<p class='ui-helper-clearfix'><label>Color Theme<br /><select name='colors' id='colors' onchange=\"$js\">";
 		foreach($this->colors as $color) echo "<option value='$color'>" . ucfirst($color) . "</option>";
-		echo "</select></label> <span class='detail'><i class='fa fa-angle-left'></i> Change for a live preview*</span></p>";
+		echo "</select></label> <span class='detail'><i class='fa fa-angle-left'></i> Change for a live preview</span></p>";
 		$this->p("<i class='fa fa-info-circle'></i> You can change the admin URL later by editing the admin page and changing the name on the settings tab.<br /><i class='fa fa-info-circle'></i> You can change the colors later by going to Admin <i class='fa fa-angle-right'></i> Modules <i class='fa fa-angle-right detail'></i> Core <i class='fa fa-angle-right detail'></i> Admin Theme <i class='fa fa-angle-right'></i> Settings.", "detail"); 
 		$this->h("Admin Account Information");
 		$this->p("The account you create here will have superuser access, so please make sure to create a strong password.");
 		$this->input("username", "User", $clean['username'], false, "name"); 
 		$this->input("userpass", "Password", $clean['userpass'], false, "password"); 
-		$this->input("userpass_confirm", "Password (again)", $clean['userpass_confirm'], true, "password"); 
+		$this->input("userpass_confirm", "Password <small class='detail'>(again)</small>", $clean['userpass_confirm'], true, "password"); 
 		$this->input("useremail", "Email Address", $clean['useremail'], true, "email"); 
 		$this->p("<i class='fa fa-warning'></i> Please remember the password you enter above as you will not be able to retrieve it again.", "detail");
 
