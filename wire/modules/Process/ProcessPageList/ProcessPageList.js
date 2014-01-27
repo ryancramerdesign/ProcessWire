@@ -693,6 +693,9 @@ $(document).ready(function() {
 					$root.removeClass('PageListSortSaving'); 
 
 				}, 'json'); 
+				
+				// trigger pageMoved event
+				$li.trigger('pageMoved');
 
 				return true; // whether or not to allow the sort
 			}
