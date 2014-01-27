@@ -329,14 +329,15 @@ abstract class Fieldtype extends WireData implements Module {
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
 
 		$database = $this->wire('database');
-		$table = $database->escapeTable($table); 
-		$subfield = $database->escapeCol($subfield);
-		$value = $database->escapeStr($value); 
 
 		if(!$database->isOperator($operator)) 
 			throw new WireException("Operator '{$operator}' is not implemented in {$this->className}"); 
 
-		$query->where("{$table}.{$subfield}{$operator}'$value'"); // QA
+		$table = $database->escapeTable($table); 
+		$subfield = $database->escapeCol($subfield);
+		$quoteValue = $database->quote($value); 
+
+		$query->where("{$table}.{$subfield}{$operator}$quoteValue"); // QA
 		return $query; 
 	}
 
