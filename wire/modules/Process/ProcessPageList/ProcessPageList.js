@@ -694,6 +694,9 @@ $(document).ready(function() {
 
 				}, 'json'); 
 
+				// trigger pageMoved event: @teppokoivula
+				$li.trigger('pageMoved'); 
+
 				return true; // whether or not to allow the sort
 			}
 

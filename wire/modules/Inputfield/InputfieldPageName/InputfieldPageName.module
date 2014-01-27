@@ -203,13 +203,9 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		$field->attr('name', $name);
 		$field->attr('value', $replacements);
 		$field->attr('rows', 15); 
-		$field->label = "Character replacements";
-		$field->description =
-			"Enter the replacements that will occur when a user is entering characters into a page name field. " . 
-			"Enter one replacement per line in key=value format. " . 
-			"Meaning, on each new line, enter the character(s) you want to replace followed by an equals sign '=' and the ascii character(s) you want to replace with.";
-
-		$field->notes = "The replacement value for each must be one or more of: a-z, 0-9, dash, underscore or period.";
+		$field->label = __('Character replacements');
+		$field->description = __('Enter the replacements that will occur when a user is entering characters into a page name field. Enter one replacement per line in key=value format. Meaning, on each new line, enter the character(s) you want to replace followed by an equals sign "=" and the ascii character(s) you want to replace with.'); // Character replacements description
+		$field->notes = __('The replacement value for each must be one or more of: a-z, 0-9, dash, underscore or period.'); // Character replacements notes
 		$fields->append($field);
 
 		return $fields;

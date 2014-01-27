@@ -246,14 +246,13 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		wire('pages')->setOutputFormatting(true); 
 
 		$page = $event->object;
-
 		
 		if($page->status >= Page::statusUnpublished && !$page->viewable()) {
 			throw new WirePermissionException("Page '{$page->url}' is not currently viewable.");
 		}
 
-		$_page = $this->fuel('page'); // just in case one page is rendering another, save the previous
-		$config = wire('config');
+		$_page = $this->wire('page'); // just in case one page is rendering another, save the previous
+		$config = $this->wire('config');
 		$this->renderRecursionLevel++;
 		
 		// set the context of the new page to be system-wide
@@ -269,7 +268,6 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		if(is_string($options) && strlen($options)) $options = array('filename' => $options); // arg1 is filename
 		if(!is_array($options)) $options = array(); // no args specified
 		if(is_array($options2)) $options = array_merge($options2, $options); // arg2 is $options 
-
 
 		$defaultOptions = array(
 			'filename' => '', // default blank means filename comes from $page
@@ -305,8 +303,8 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 
 			// global prepend/append include files apply only to user-defined templates, not system templates
 			if(!($page->template->flags & Template::flagSystem)) {
-				if($options['prependFile']) $output->setPrependFilename($config->paths->templates . wire('sanitizer')->name($options['prependFile'])); 
-				if($options['appendFile']) $output->setAppendFilename($config->paths->templates . wire('sanitizer')->name($options['appendFile'])); 
+				if($options['prependFile']) $output->setPrependFilename($config->paths->templates . $this->wire('sanitizer')->name($options['prependFile'])); 
+				if($options['appendFile']) $output->setAppendFilename($config->paths->templates . $this->wire('sanitizer')->name($options['appendFile'])); 
 			}
 
 			// option to change the filename that is used for output rendering
@@ -380,7 +378,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		}
 
 		if($clearNow) {
-			$inputfields->message("Cleared $numFiles cache files for $numPages pages"); 
+			$inputfields->message(sprintf(__('Cleared %d cache files for %d pages'), $numFiles, $numPages)); 
 			$numPages = 0;
 		}
 
@@ -388,8 +386,8 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$f = Wire::getFuel('modules')->get('InputfieldCheckbox');
 		$f->attr('name', $name);
 		$f->attr('value', 1);
-		$f->label = "Clear the Page Render Disk Cache?"; 
-		$f->description = "There are currently $numPages pages cached in $path";
+		$f->label = __('Clear the Page Render Disk Cache?'); 
+		$f->description = sprintf(__('There are currently %d pages cached in %s'), $numPages, $path);
 
 		$inputfields->append($f);
 

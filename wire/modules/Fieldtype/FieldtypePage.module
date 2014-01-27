@@ -736,15 +736,15 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		$inputfield = wire('modules')->get('InputfieldCheckbox'); 
 		$inputfield->attr('name', '_clean'); 
 		$inputfield->attr('value', 1); 
-		$inputfield->label = 'Find and clean orphaned page references'; 
-		$inputfield->description = 'This cleans up for an issue in older versions of ProcessWire that could leave orphaned page references for deleted pages. If you are getting inaccurate results from page finding operations (especially with selectors using pageref.count), then you may want to run this.'; 
+		$inputfield->label = __('Find and clean orphaned page references'); 
+		$inputfield->description = __('This cleans up for an issue in older versions of ProcessWire that could leave orphaned page references for deleted pages. If you are getting inaccurate results from page finding operations (especially with selectors using pageref.count), then you may want to run this.'); // Find and clean description
 		$inputfield->icon = 'eraser';
 		$inputfield->collapsed = Inputfield::collapsedYes; 
-		$inputfield->notes = 'Warning: To be safe you should back-up your database before running this.';
+		$inputfield->notes = __('Warning: To be safe you should back-up your database before running this.'); // Find and clean notes
 		$inputfields->add($inputfield); 
 
 		if(wire('input')->post('_clean')) {
-			wire()->message("Finding and cleaning..."); 
+			wire()->message(__('Finding and cleaning...')); 
 			wire('fieldtypes')->get('FieldtypePage')->cleanOrphanedReferences();
 		}
 
