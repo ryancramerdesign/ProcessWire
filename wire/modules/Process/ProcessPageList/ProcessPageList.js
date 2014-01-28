@@ -693,6 +693,9 @@ $(document).ready(function() {
 					$root.removeClass('PageListSortSaving'); 
 
 				}, 'json'); 
+				
+				// trigger pageMoved event
+				$li.trigger('pageMoved');
 
 				// trigger pageMoved event: @teppokoivula
 				$li.trigger('pageMoved'); 
