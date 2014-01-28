@@ -32,6 +32,15 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
  * __("Modules"); 
  * __("Access"); 
  * __("Admin"); 
+ * __("Site"); 
+ * __("View Site"); 
+ * __("Languages"); 
+ * __("Users"); 
+ * __("Roles"); 
+ * __("Permissions"); 
+ * __("Templates"); 
+ * __("Fields"); 
+ * __("Add New"); 
  * 
  */
 
@@ -133,10 +142,10 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 				<?php 
 				echo $user->name;
 				if($user->hasPermission('profile-edit')): ?> / 
-				<a class='action' href='<?php echo $config->urls->admin; ?>profile/'><?php echo __('profile', __FILE__); ?></a> /
+				<a class='action' href='<?php echo $config->urls->admin; ?>profile/'><?php echo __('Profile', __FILE__); ?></a> /
 				<?php endif; ?>
 
-				<a class='action' href='<?php echo $config->urls->admin; ?>login/logout/'><?php echo __('logout', __FILE__); ?></a>
+				<a class='action' href='<?php echo $config->urls->admin; ?>login/logout/'><?php echo __('Logout', __FILE__); ?></a>
 			</span>
 
 			<?php endif; ?>

@@ -1,60 +1,50 @@
 <?php
 
-/*
- * Dynamic phrases that we want to be automatically translated
- *
- * These are in a comment so that they register with the parser, in place of the dynamic __() function calls with page titles. 
+/**
+ * default.php
  * 
- * __("Pages"); 
- * __("Setup"); 
- * __("Modules"); 
- * __("Access"); 
- * __("Admin"); 
- * __("Site"); 
- * __("Languages"); 
- * __("Users"); 
- * __("Roles"); 
- * __("Permissions"); 
- * __("Templates"); 
- * __("Fields"); 
- * __("Add New"); 
- * __("Not yet configured: See template family settings."); 
+ * Main markup template file for AdminThemeDefault
+ * 
+ * __('FOR TRANSLATORS: please translate the file /wire/templates-admin/default.php rather than this one.');
+ * 
  * 
  */
 
 if(!defined("PROCESSWIRE")) die();
 
-require_once(dirname(__FILE__) . "/functions.php"); 
-
-$searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm() : '';
 if(!isset($content)) $content = '';
+	
+$searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm() : '';
 
 $config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "main-$adminTheme->colors" : "main") . ".css?v=7"); 
 $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css"); 
 $config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=5"); 
-$config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5"); 
+$config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");
+	
+require_once(dirname(__FILE__) . "/AdminThemeDefaultHelpers.php");
+$helpers = new AdminThemeDefaultHelpers();
 
 ?><!DOCTYPE html>
-<html lang="<?php echo __('en', __FILE__); // HTML tag lang attribute
-	/* this intentionally on a separate line */ ?>"> 
+<html lang="<?php echo $helpers->_('en'); 
+	/* this intentionally on a separate line */ ?>">
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
 	<meta name="robots" content="noindex, nofollow" />
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-	<title><?php echo renderBrowserTitle(); ?></title>
+	<title><?php echo $helpers->renderBrowserTitle(); ?></title>
 
-	<script type="text/javascript"><?php echo renderJSConfig(); ?></script>
+	<script type="text/javascript"><?php echo $helpers->renderJSConfig(); ?></script>
 
 	<?php foreach($config->styles as $file) echo "\n\t<link type='text/css' href='$file' rel='stylesheet' />"; ?>
 
 	<?php foreach($config->scripts as $file) echo "\n\t<script type='text/javascript' src='$file'></script>"; ?>
 
 </head>
-<body class='<?php echo renderBodyClass(); ?>'>
+<body class='<?php echo $helpers->renderBodyClass(); ?>'>
 
-	<?php echo renderAdminNotices($notices); ?>
+	<?php echo $helpers->renderAdminNotices($notices); ?>
 
 	<div id="masthead" class="masthead ui-helper-clearfix">
 		<div class="container">
@@ -64,30 +54,19 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");
 			<?php 
 			if($user->isLoggedin()) {
 				echo $searchForm;
-				echo "\n\n<ul id='topnav'>" . renderTopNavItems() . "</ul>";
+				echo "\n\n<ul id='topnav'>" . $helpers->renderTopNavItems() . "</ul>";
 			}
 			?>
 
 		</div>
 	</div><!--/#masthead-->
 
-
 	<div id='breadcrumbs'>
 		<div class='container'>
 
-			<?php if(in_array($page->id, array(2,3,8))) echo renderAdminShortcuts(); /* 2,3,8=page-list admin page IDs */ ?>
+			<?php if(in_array($page->id, array(2,3,8))) echo $helpers->renderAdminShortcuts(); /* 2,3,8=page-list admin page IDs */ ?>
 
-			<ul class='nav'>
-
-				<?php
-				foreach($this->fuel('breadcrumbs') as $breadcrumb) {
-					$title = __($breadcrumb->title, __FILE__); 
-					echo "<li><a href='{$breadcrumb->url}'>{$title}</a><i class='fa fa-angle-right'></i></li>";
-				}
-				unset($title);
-				echo "<li class='title'>" . __(strip_tags($this->fuel->processHeadline ? $this->fuel->processHeadline : $page->get("title|name")), __FILE__) . "</li>";
-				?>
-			</ul>
+			<ul class='nav'><?php echo $helpers->renderBreadcrumbs(); ?></ul>
 
 		</div>
 	</div><!--/#breadcrumbs-->
@@ -104,28 +83,23 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");
 		</div>
 	</div><!--/#content-->
 
-
 	<div id="footer" class="footer">
 		<div class="container">
 			<p>
 			<?php if($user->isLoggedin()): ?>
-
 			<span id='userinfo'>
 				<i class='fa fa-user'></i> 
 				<?php 
-				if($user->hasPermission('profile-edit')): ?> <i class='fa fa-angle-right'></i>
-				<a class='action' href='<?php echo $config->urls->admin; ?>profile/'><?php echo $user->name; ?></a> <i class='fa fa-angle-right'></i>
+				if($user->hasPermission('profile-edit')): ?> 
+				<i class='fa fa-angle-right'></i> <a class='action' href='<?php echo $config->urls->admin; ?>profile/'><?php echo $user->name; ?></a> <i class='fa fa-angle-right'></i>
 				<?php endif; ?>
-
-				<a class='action' href='<?php echo $config->urls->admin; ?>login/logout/'><?php echo __('Logout', __FILE__); ?></a>
+				<a class='action' href='<?php echo $config->urls->admin; ?>login/logout/'><?php echo $helpers->_('Logout'); ?></a>
 			</span>
-
 			<?php endif; ?>
-
 			ProcessWire <?php echo $config->version . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?> 
 			</p>
 
-			<?php if($config->debug && $this->user->isSuperuser()) include($config->paths->adminTemplates . "debug.inc"); ?>
+			<?php if($config->debug && $this->user->isSuperuser()) include($config->paths->root . '/wire/templates-admin/debug.inc'); ?>
 		</div>
 	</div><!--/#footer-->
 

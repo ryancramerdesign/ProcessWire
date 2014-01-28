@@ -47,6 +47,25 @@ p span.ui-state-error {
         padding: 0.25em 0.5em;
 }
 
+.ui-dialog .ui-dialog-titlebar {
+	margin: 0;
+}
+
+.ui-dialog .ui-dialog-titlebar .ui-button {
+	/*
+	background: none; 
+	border: none; 	
+	*/
+	outline: none; 
+}
+
+.ui-dialog .ui-dialog-titlebar .ui-button .ui-icon {
+	position: relative; 
+	top: 0;
+	left: 0; 
+	margin: 0; 
+}
+
 .ui-dialog .ui-dialog-content {
 	padding: 0; 
 }
