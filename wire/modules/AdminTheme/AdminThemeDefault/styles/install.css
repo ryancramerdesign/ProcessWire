@@ -27,7 +27,53 @@
 	font-weight: normal;
 }
 
+#content h2 {
+	margin-bottom: 0.25em;
+	border-bottom: 1px dotted #ccc; 
+	padding-bottom: 0.25em;
+}
+
+#content h2 + p {
+	padding-top: 0.5em;
+	margin-top: 0;
+}
+
+#content p + h2,
+#content li + h2 {
+	margin-top: 1.5em;
+}
+
 .container {
  	max-width: 760px; 
 }
 
+#breadcrumbs ul li a {
+	margin: 0;
+	padding: 0;
+}
+
+#breadcrumbs li.title {
+	width: 50%; 
+	margin: 0; 
+	padding: 0; 
+}
+
+#breadcrumbs li.support {
+	margin: 0;
+	padding: 0;
+	text-align: right; 
+	width: 49%; 
+
+}
+
+@media only screen and (max-width: 767px) {
+	#logo {
+		display: block;
+	}
+}
+
+@media only screen and (max-width: 479px) {
+	#breadcrumbs li.support {
+		display: none; 
+	}
+}

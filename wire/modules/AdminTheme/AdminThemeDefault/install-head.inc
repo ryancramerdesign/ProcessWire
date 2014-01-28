@@ -35,6 +35,7 @@ if(!isset($formAction)) $formAction = './install.php';
 
 			<ul class='nav'>
 				<li class='title'><?php echo htmlentities($title, ENT_QUOTES, "UTF-8"); ?></li>
+				<li class='support'><a target='_blank' href='http://processwire.com/talk/'><i class='fa fa-comments'></i> Need help?</a></li>
 			</ul>
 
 		</div>

@@ -6,7 +6,7 @@
  * User-configurable options within ProcessWire
  *
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -14,14 +14,6 @@
  */
 
 if(!defined("PROCESSWIRE")) die();
-
-/**
- * Timezone: current timezone using PHP timeline options
- *
- * To change, see timezone list at: http://php.net/manual/en/timezones.php
- *
- */
-$config->timezone = 'America/New_York';
 
 /**
  * sessionName: default session name as used in session cookie
