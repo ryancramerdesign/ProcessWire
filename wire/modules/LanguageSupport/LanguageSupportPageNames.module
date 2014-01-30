@@ -20,8 +20,8 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	static public function getModuleInfo() {
 			return array(
 				'title' => 'Languages Support - Page Names',
-				'version' => 8,
-				'summary' => 'Required to use multi-language page names. Beta.',
+				'version' => 9,
+				'summary' => 'Required to use multi-language page names.',
 				'author' => 'Ryan Cramer',
 				'autoload' => true,
 				'singular' => true,
@@ -55,6 +55,12 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 *
 	 */
 	protected $force404 = null;
+
+	/**
+	 * Whether to bypass the functions provided by this module (like for a secure pagefile request)
+	 * 
+	 */
+	protected $bypass = false;
 
 	/**
 	 * Default configuration data
@@ -114,6 +120,8 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 *
 	 */
 	public function ready() {
+		// bypass means the request was to something in /site/assets/ that has no possibilty of language support
+		if($this->bypass) return;
 
 		$this->checkModuleVersion();
 		$this->addHookAfter('Page::path', $this, 'hookPagePath'); 
@@ -122,6 +130,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$this->addHook('Page::localName', $this, 'hookPageLocalName'); 
 		$this->addHook('Page::localUrl', $this, 'hookPageLocalUrl'); 
 		$this->addHook('Page::localPath', $this, 'hookPageLocalPath'); 
+		
 
 		// verify that page path doesn't have mixed languages where it shouldn't
 		$redirectURL = $this->verifyPath($this->requestPath);
@@ -149,6 +158,26 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	}
 
 	/**
+	 * Is the given path a site assets path? (i.e. /site/)
+	 * 
+	 * Determines whether this is a path we should attempt to perform any language processing on.
+	 * 
+	 * @param string $path
+	 * @return bool
+	 *
+	 */
+	protected function isAssetPath($path) {
+		$config = $this->wire('config');
+		// determine if this is a asset request, for compatibility with pagefileSecure
+		$segments = explode('/', trim($config->urls->assets, '/')); // start with [subdir]/site/assets
+		array_pop($segments); // pop off /assets, reduce to [subdir]/site
+		$sitePath = '/' . implode('/', $segments) . '/'; // combine to [/subdir]/site/
+		$sitePath = str_replace($config->urls->root, '', $sitePath); // remove possible subdir, reduce to: site/
+		// if it is a request to assets, then don't attempt to modify it
+		return strpos($path, $sitePath) === 0;
+	}
+
+	/**
 	 * Given a page path, return an updated version that lacks the language segment
 	 *
 	 * It extracts the language segment and uses that to later set the language
@@ -158,8 +187,8 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		if($path === '/' || !strlen($path)) return $path;
 		$trailingSlash = substr($path, -1) == '/';
 		$testPath = trim($path, '/') . '/';
-		$home = wire('pages')->get(1);
-		foreach(wire('languages') as $language) {
+		$home = $this->wire('pages')->get(1);
+		foreach($this->wire('languages') as $language) {
 			$name = $language->isDefault() ? $home->get("name") : $home->get("name$language"); 
 			if($name == self::HOME_NAME_DEFAULT) continue;
 			if(!strlen($name)) continue; 
@@ -336,8 +365,12 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		// save now, since ProcessPageView removes $_GET['it'] when it executes
 		$it = isset($_GET['it']) ? $_GET['it'] : '';
 		$this->requestPath = $it; 
-		$it = $this->updatePath($it); 
-		if($it != $this->requestPath) $_GET['it'] = $it;
+		if($this->isAssetPath($it)) {
+			$this->bypass = true; 
+		} else {
+			$it = $this->updatePath($it); 
+			if($it != $this->requestPath) $_GET['it'] = $it;
+		}
 	}
 
 	/**

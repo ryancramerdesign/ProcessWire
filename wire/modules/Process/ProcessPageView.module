@@ -198,7 +198,7 @@ class ProcessPageView extends Process {
 		if(!isset($it[0]) || $it[0] != '/') $it = "/$it";
 		if(strpos($it, '//') !== false) return null;
 
-		if(wire('config')->pagefileSecure) {
+		if($this->wire('config')->pagefileSecure) {
 			$page = $this->checkRequestFile($it);
 			if(is_object($page)) return $page; // Page or NullPage
 		}
@@ -274,7 +274,7 @@ class ProcessPageView extends Process {
 	 *
 	 */
 	protected function checkRequestFile(&$it) {
-		$config = wire('config');
+		$config = $this->wire('config');
 
 		// check for secured filename, method 1: actual file URL, minus leading "." or "-"
 		if(strpos(rtrim($config->urls->root, '/') . $it, $config->urls->files) === 0) {
@@ -447,10 +447,9 @@ class ProcessPageView extends Process {
 	 *
 	 * Method is hookable, for instance if you wanted to log 404s. 
 	 *
- 	 * @param Page|null $page Page that was found if applicable (like if user didn't have permission or $page's template threw the 404)
-	 * 	If not applicable then NULL will be given instead.
+ 	 * @param Page|null $page Page that was found if applicable (like if user didn't have permission or $page's template threw the 404). If not applicable then NULL will be given instead.
 	 * @param string $url The URL that the request originated from (like $_SERVER['REQUEST_URI'] but already sanitized)
-	 @ @param bool $triggerReady Whether or not the ready() hook should be triggered. 
+	 @ @param bool $triggerReady Whether or not the ready() hook should be triggered (default=false)
 	 * @return string
 	 * @throws WireException
 	 *
