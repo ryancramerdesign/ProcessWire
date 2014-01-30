@@ -43,6 +43,10 @@
 	margin-top: 1.5em;
 }
 
+#content form > li.ui-state-error:first-child {
+	margin-top: 1em; 
+}
+
 .container {
  	max-width: 760px; 
 }

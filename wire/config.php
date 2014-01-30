@@ -175,3 +175,24 @@ $config->chmodFile = "0666";
  */
 $config->maxPageNum = 999;
 
+/**
+ * httpHosts: For added security, specify the host names ProcessWire should recognize. 
+ *
+ * If your site may be accessed from multiple hostnames, you'll also want to use this setting.
+ * If left empty, the httpHost will be determined automatically, but use of this whitelist
+ * is recommended for production environments. 
+ * 
+ * If your hostname uses a port other than 80, make sure to include that as well. 
+ * For instance "localhost:8888". 
+ *
+ * This setting is now added to /site/config.php by the installer, so this commentary
+ * is primarily for those upgrading from older versions of ProcessWire. If that is you,
+ * then specify the httpHosts in /site/config.php rather than here. 
+ *
+ */
+$config->httpHosts = array(
+        //'domain.com',
+        //'www.domain.com',
+        //'localhost:8888',
+	);
+

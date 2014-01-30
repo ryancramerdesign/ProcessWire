@@ -164,28 +164,6 @@ $config->demo = false;
  */
 $config->debug = false; 
 
-
-/**
- * httpHosts: For added security, specify the host names ProcessWire should recognize. 
- *
- * If your site may be accessed from multiple hostnames, you'll want to use this setting.
- * 
- * If your server does not have a properly configured SERVER_NAME, or if the results of
- * API calls like $config->httpHost or $page->httpUrl return the incorrect http host, 
- * you'll want to configure the proper http host(s) with this setting. 
- *
- * If left empty (as it is by default), it will be ignored. 
- *
- * Note: if your hostname uses a port other than 80, make sure to include that as well. 
- * For instance "localhost:8888". 
- *
- */
-$config->httpHosts = array(
-	//'domain.com',
-	//'www.domain.com',
-	//'localhost:8888',
-);
-
 /**
  * dbCache: whether to allow MySQL query caching
  *

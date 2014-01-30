@@ -279,6 +279,17 @@ class Installer {
 		}
 
 		$defaults['timezone'] = $timezone; 
+		$defaults['httpHosts'] = strtolower(filter_var($_SERVER['HTTP_HOST'], FILTER_SANITIZE_URL));
+
+		if(strpos($defaults['httpHosts'], 'www.') === 0) {
+			$defaults['httpHosts'] .= "\n" . substr($defaults['httpHosts'], 4); 
+		} else if(substr_count($defaults['httpHosts'], '.') == 1) {
+			$defaults['httpHosts'] .= "\n" . "www.$defaults[httpHosts]";
+		}
+		if($_SERVER['SERVER_NAME'] && $_SERVER['SERVER_NAME'] != $_SERVER['HTTP_HOST']) {
+			$defaults['httpHosts'] .= "\n" . $_SERVER['SERVER_NAME']; 
+		}
+
 		$values = array_merge($defaults, $values); 
 
 		$this->h("Default Time Zone"); 
@@ -289,23 +300,26 @@ class Installer {
 		}
 		echo "</select></p>";
 
-
 		$this->h("File Permissions"); 
 		$this->p(
 			"When ProcessWire creates directories or files, it assigns permissions to them. " . 
 			"Enter the most restrictive permissions possible that give ProcessWire (and you) read and write access to the web server (Apache). " . 
 			"The safest setting to use varies from server to server. " . 
-			"If you are not on a dedicated server or private server, you may want to contact your web host to advise on what are the best permissions to use in your environment. " . 
-			"Should you opt to use the defaults provided, you can also adjust these permissions later (if necessary) by editing <u>/site/config.php</u>. "
+			"If you are not on a dedicated or private server, or are in any kind of shared environment, you may want to contact your web host to advise on what are the best permissions to use in your environment. " 
 			);
 
-		$this->p("Permissions must be 3 digits each.", "detail");
+		$this->p("Permissions must be 3 digits each. Should you opt to use the defaults provided, you can also adjust these permissions later if desired by editing <u>/site/config.php</u>.", "detail");
 
 		$this->input('chmodDir', 'Directories', $values['chmodDir']); 
 		$this->input('chmodFile', 'Files', $values['chmodFile'], true); 
 
-		if($cgi) $this->p("We detected that this file (install.php) is writable. That means Apache may be running as your user account. Given that, we populated the permissions above (755 &amp; 644) as possible good starting point.");
+		if($cgi) echo "<p class='detail' style='margin-top: 0;'>We detected that this file (install.php) is writable. That means Apache may be running as your user account. Given that, we populated the permissions above (755 &amp; 644) as possible starting point.</p>";
 
+		$this->h("HTTP Host Names"); 
+		$this->p("What host names will this installation run on now and in the future? Please enter one host per line. You may also choose to leave this blank to auto-detect on each request, but we recommend using this whitelist for the best security in production environments."); 
+		$this->p("This field is recommended but not required. You can set this later by editing the file <u>/site/config.php</u> (setting \$config->httpHosts).", "detail"); 
+		$rows = substr_count($values['httpHosts'], "\n") + 2; 
+		echo "<p><textarea name='httpHosts' rows='$rows' style='width: 100%;'>" . htmlentities($values['httpHosts'], ENT_QUOTES, 'UTF-8') . "</textarea></p>";
 
 		$this->btn("Continue", 4); 
 
@@ -361,6 +375,17 @@ class Installer {
 		if(isset($this->timezones[$timezone])) $values['timezone'] = $this->timezones[$timezone]; 
 			else $values['timezone'] = 'America/New_York';
 
+		$values['httpHosts'] = array();
+		$httpHosts = trim($_POST['httpHosts']); 
+		if(strlen($httpHosts)) {
+			$httpHosts = str_replace(array("'", '"'), '', $httpHosts); 
+			$httpHosts = explode("\n", $httpHosts); 
+			foreach($httpHosts as $key => $host) {
+				$httpHosts[$key] = strtolower(trim(filter_var($host, FILTER_SANITIZE_URL)));
+			}
+			$values['httpHosts'] = $httpHosts; 
+		} 
+
 		if($this->numErrors) {
 			$this->dbConfig($values);
 			return;
@@ -415,12 +440,23 @@ class Installer {
 			"\n\$config->timezone = '$values[timezone]';" . 	
 			"\n\n";
 
+		if(!empty($values['httpHosts'])) {
+			$cfg .= "" . 
+			"\n/**" . 
+			"\n * Installer: HTTP Hosts Whitelist" . 
+			"\n * " . 
+			"\n */" . 
+			"\n\$config->httpHosts = array("; 
+			foreach($values['httpHosts'] as $host) $cfg .= "'$host', ";
+			$cfg = rtrim($cfg, ", ") . ");\n\n";
+		}
+
 		if(($fp = fopen("./site/config.php", "a")) && fwrite($fp, $cfg)) {
 			fclose($fp); 
-			$this->ok("Saved database configuration to ./site/config.php"); 
+			$this->ok("Saved configuration to ./site/config.php"); 
 			return true; 
 		} else {
-			$this->err("Error saving database configuration to ./site/config.php. Please make sure it is writable."); 
+			$this->err("Error saving configuration to ./site/config.php. Please make sure it is writable."); 
 			return false;
 		}
 	}
