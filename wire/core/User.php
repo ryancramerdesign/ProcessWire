@@ -98,8 +98,12 @@ class User extends Page {
 	 *
 	 */
 	public function hasPermission($name, $context = null) {
-		if(is_null($context) || $context instanceof Page) return $this->hasPagePermission($name, $context); 
-		if($context instanceof Template) return $this->hasTemplatePermission($name, $context); 
+		if(is_null($context) || $context instanceof Page) {
+			return $this->isHooked('hasPagePermission()') ? $this->hasPagePermission($name, $context) : $this->___hasPagePermission($name, $context);
+		}
+		if($context instanceof Template) {
+			return $this->isHooked('hasTemplatePermission()') ? $this->hasTemplatePermission($name, $context) : $this->___hasTemplatePermission($name, $context); 
+		}
 		return false;
 	}
 
@@ -115,7 +119,7 @@ class User extends Page {
 	 * @return bool
 	 *
 	 */
-	protected function hasPagePermission($name, Page $page = null) {
+	protected function ___hasPagePermission($name, Page $page = null) {
 
 		if($this->isSuperuser()) return true; 
 
@@ -178,7 +182,7 @@ class User extends Page {
 	 * @throws WireException
 	 *
 	 */
-	protected function hasTemplatePermission($name, $template) {
+	protected function ___hasTemplatePermission($name, $template) {
 
 		if($name instanceof Template) $name = $name->name; 
 		if(is_object($name)) throw new WireException("Invalid type"); 
