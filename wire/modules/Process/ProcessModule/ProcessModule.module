@@ -25,7 +25,7 @@ class ProcessModule extends Process {
 		return array(
 			'title' => __('Modules', __FILE__), // getModuleInfo title          
 			'summary' => __('List, edit or install/uninstall modules', __FILE__), // getModuleInfo summary
-			'version' => 103, 
+			'version' => 104, 
 			'permanent' => true, 
 			'permission' => 'module-admin', 
 			);
@@ -141,6 +141,7 @@ class ProcessModule extends Process {
 		$uninstalledNames = array();
 		$siteModulesArray = array();
 		$coreModulesArray = array();
+		$wireDir = str_replace('/', DIRECTORY_SEPARATOR, '/wire/modules/'); 
 
 		foreach($modulesArray as $name => $installed) {
 			
@@ -158,8 +159,8 @@ class ProcessModule extends Process {
 			} catch(Exception $e) {
 				// $this->error($e->getMessage()); 
 			}
-			
-			if(strpos($filename, '/wire/modules/') !== false) {
+		
+			if(strpos($filename, $wireDir) !== false) {
 				$coreModulesArray[$name] = $installed;
 			} else {
 				$siteModulesArray[$name] = $installed;
