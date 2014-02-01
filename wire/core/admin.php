@@ -11,6 +11,8 @@
 
 if(!defined("PROCESSWIRE")) die("This file may not be accessed directly.");
 
+header("X-Frame-Options: SAMEORIGIN"); 
+
 /**
  * Ensures a modal GET variable is retained through redirects, when appropriate
  *
