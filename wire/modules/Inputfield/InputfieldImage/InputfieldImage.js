@@ -8,6 +8,12 @@ $(document).ready(function() {
 			titleSrc: function(item) {
 				return item.el.find('img').attr('alt'); 
 			}
+		},
+		callbacks: {
+			open: function() {
+				// for firefox, which launches Magnific after a sort
+				if($(".InputfieldFileJustSorted").size() > 0) this.close();
+			}
 		}
 	}; 
 
@@ -27,7 +33,7 @@ $(document).ready(function() {
 
 		return false;
 	}); 
-	
+
 	function setGridMode($parent) {
 		$parent.find("i.fa-th").replaceWith($("<i class='fa fa-list'></i>")); 
 		$parent.find(".InputfieldFileLink").each(function() {
