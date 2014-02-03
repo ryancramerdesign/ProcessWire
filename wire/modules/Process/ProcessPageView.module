@@ -136,13 +136,17 @@ class ProcessPageView extends Process {
 					$this->responseType = self::responseTypeAjax;
 					return $page->render();
 
+				/*
 				} else if(self::isHooked('ProcessPageView::finished()')) {
 					// allow for hooks that run after page has been fully sent (like LazyCron)
+					// removed for later analysis, as it worked on some servers and not others
+					// it also completely froze one server
 					$out = $page->render();
 					header("Content-length: " . strlen($out)); 
 					header("Connection: close"); 
 					$this->wire('session')->close();
 					return $out; 
+				*/
 
 				} else {
 					return $page->render();
