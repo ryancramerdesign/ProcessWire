@@ -30,6 +30,7 @@ class InputfieldCheckbox extends Inputfield {
 		$this->set('checkedValue', self::checkedValueDefault); 
 		$this->checkedValueIsLabel = false; // cancel line above
 		$this->set('uncheckedValue', self::uncheckedValueDefault); 
+		$this->set('label2', ''); // alternate label for checkbox only
 
 		// when autocheck set to 1, setting the value attribute to non-zero automatically triggered checked=checked attribute
 		$this->set('autocheck', 0); 
@@ -49,6 +50,7 @@ class InputfieldCheckbox extends Inputfield {
 		$attrs['value'] = $this->checkedValue; 
 		$label = $this->label;
 		if($this->checkedValueIsLabel) $label = $this->checkedValue;
+			else if($this->label2) $label = $this->label2; 
 		$out = 	"\n<label><input type='checkbox' " . $this->getAttributesString($attrs) . " /> " . $this->entityEncode($label) . "</label>"; 
 		return $out; 
 	}

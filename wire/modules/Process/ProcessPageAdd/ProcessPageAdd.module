@@ -9,11 +9,10 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -30,7 +29,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Page Add', __FILE__),          
 			'summary' => __('Add a new page', __FILE__), 
-			'version' => 101, 
+			'version' => 102, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
@@ -52,9 +51,58 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			else return parent::set($key, $value); 	
 	}
 
+	public function ___executeTemplate() {
+
+		$templateID = (int) $this->input->get->template_id; 
+		if(!$templateID) throw new WireException("No template specified"); 
+		$template = $this->templates->get($templateID); 
+		if(!$template) throw new WireException("Unknown template"); 
+		$parentTemplates = $template->parentTemplates; 
+		$parentTemplate = $this->wire('templates')->get(reset($parentTemplates)); 
+		if(!$parentTemplate) throw new WireException("Unable to locate parent template " . reset($parentTemplates)); 
+		$parents = $this->wire('pages')->find("template=$parentTemplate, include=hidden, limit=500, sort=name"); 
+		if(!count($parents)) throw new WireException("No usable parents match this template"); 
+
+		$templateLabel = $this->getTemplateLabel($template); 
+		$parentTemplateLabel = $this->getTemplateLabel($parentTemplate); 
+		$form = $this->wire('modules')->get('InputfieldForm'); 
+		$form->description = $this->getTemplateLabel($template); 
+		$form->method = 'get';
+		$form->action = './';
+		$form->attr('id', 'select_parent_form'); 
+		$f = $this->wire('modules')->get('InputfieldSelect'); 
+		$f->attr('name', 'parent_id'); 
+		$f->attr('id', 'select_parent_id'); 
+		$f->label = sprintf($this->_('Where do you want to add the new %s?'), strtolower($templateLabel)); 
+		$f->description = sprintf($this->_('Please select a parent **%s** page below:'), strtolower($parentTemplateLabel)); 
+
+		$options = array();
+		foreach($parents as $parent) {
+			if(!$parent->addable()) continue; 
+			$key = $parent->parent->title ? $parent->parent->title . " - " . $parent->parent->path : $parent->parent->path; 
+			if(!isset($options[$key])) $options[$key] = array();
+			$options[$key][$parent->id] = $parent->get('title|name'); 
+		}
+
+		ksort($options); 
+		foreach($options as $optgroupLabel => $optgroup) {
+			$f->addOption($optgroupLabel, $optgroup); 
+		}
+
+		$form->add($f);
+		$f = $this->wire('modules')->get('InputfieldSubmit');
+		$f->attr('id', 'select_parent_submit'); 
+		$form->add($f); 
+		return $form->render();
+	}
+
 	public function ___execute() {
 
-		Wire::setFuel('processHeadline', $this->_('Add New')); // Headline
+		$this->wire('processHeadline', $this->_('Add New')); // Headline
+
+		if($this->input->get->template_id && !$this->input->get->parent_id) {
+			return $this->executeTemplate();
+		}
 
 		if(!$this->parent_id) {
 			if(isset($_POST['parent_id'])) {
@@ -79,7 +127,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			$childTemplates = $this->parent->template->childTemplates;
 			$this->template = $this->templates->get(reset($childTemplates)); 	
 			if(!$this->isAllowedTemplate($this->template)) throw new WireException("You don't have access to the template required to add pages here"); 
-		}
+		} 
 
 		$this->form = $this->buildForm();
 		$this->form->setTrackChanges();
@@ -216,7 +264,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			$form->append($field); 
 
 		} else if(!count($_POST)) {
-			$this->message(sprintf($this->_("You are adding a page using the '%s' template"), $this->getTemplateLabel($this->template))); 
+			//$this->message(sprintf($this->_("You are adding a page using the '%s' template"), $this->getTemplateLabel($this->template))); 
 		}
 
 		$field = $this->modules->get('InputfieldHidden'); 

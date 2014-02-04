@@ -560,9 +560,10 @@ class ProcessPageEdit extends Process {
 			} else {
 				$deleteLabel = $this->_('Move to Trash'); // Move to trash checkbox label
 			}
-			$field->label = $deleteLabel;
 			$field->icon = 'trash-o';
+			$field->label = $deleteLabel;
 			$field->description = $this->_('Check the box to confirm that you want to do this.'); // Delete page confirmation instruction
+			$field->label2 = $this->_('Confirm'); 
 			$wrapper->append($field); 
 		}
 

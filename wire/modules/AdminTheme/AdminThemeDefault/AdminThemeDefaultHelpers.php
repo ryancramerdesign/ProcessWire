@@ -99,10 +99,17 @@ class AdminThemeDefaultHelpers extends WireData {
 		foreach(wire('templates') as $template) {
 			$parent = $template->getParentPage(true); 
 			if(!$parent) continue; 
+			if($parent->id) {
+				// one parent possible	
+				$qs = "?parent_id=$parent->id";
+			} else {
+				// multiple parents possible
+				$qs = "?template_id=$template->id";
+			}
 			$label = $template->label;
 			if($language) $label = $template->get("label$language");
 			if(empty($label)) $label = $template->name; 
-			$out .= "<li><a href='$url?parent_id=$parent->id'>$label</a></li>";
+			$out .= "<li><a href='$url$qs'>$label</a></li>";
 		}
 	
 		if(empty($out)) return '';
@@ -110,9 +117,9 @@ class AdminThemeDefaultHelpers extends WireData {
 		$label = $this->_('Add New'); 
 	
 		$out =	"<div id='head_button'>" . 	
-				"<button class='dropdown-toggle'><i class='fa fa-angle-down'></i> $label</button>" . 
-				"<ul class='dropdown-menu'>$out</ul>" . 
-				"</div>";
+			"<button class='dropdown-toggle'><i class='fa fa-angle-down'></i> $label</button>" . 
+			"<ul class='dropdown-menu'>$out</ul>" . 
+			"</div>";
 	
 		return $out; 
 	}

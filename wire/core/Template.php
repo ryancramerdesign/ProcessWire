@@ -519,12 +519,13 @@ class Template extends WireData implements Saveable {
 	 * Return the parent page that this template assumes new pages are added to 
 	 *
 	 * This is based on family settings, when applicable. 
-	 * It also takes into account user access.
+	 * It also takes into account user access, if requested (see arg 1). 
 	 *
 	 * If there is no shortcut parent, NULL is returned. 
+	 * If there are multiple possible shortcut parents, a NullPage is returned.
 	 *
 	 * @param bool $checkAccess Whether or not to check for user access to do this (default=false).
-	 * @return Page|null
+	 * @return Page|NullPage|null
 	 *
 	 */
 	public function getParentPage($checkAccess = false) {
@@ -545,14 +546,29 @@ class Template extends WireData implements Saveable {
 			$include = $checkAccess ? "hidden" : "all";
 			$parentPages = $this->wire('pages')->find("templates_id=$parentTemplate->id, include=$include, sort=status, limit=2"); 
 
-			// undetermined parent, zero or more than 1 copy
-			if(count($parentPages) != 1) continue; 
-			$parentPage = $parentPages->first();
+			$numParentPages = count($parentPages); 
 
-			if($checkAccess) {
-				$p = new Page();
-				$p->template = $this; 
-				if(!$parentPage->addable($p)) continue; 
+			// undetermined parent
+			if(!$numParentPages) continue; 
+
+			if($numParentPages > 1) {
+				// multiple possible parents
+				$parentPage = new NullPage();
+			} else {
+				// one possible parent
+				$parentPage = $parentPages->first();
+			}
+
+			if($checkAccess) { 
+				if($parentPage->id) {
+					// single defined parent
+					$p = new Page();
+					$p->template = $this; 
+					if(!$parentPage->addable($p)) continue; 
+				} else {
+					// multiple possible parents
+					if(!$this->wire('user')->hasPermission('page-create', $this)) continue; 
+				}
 			}
 
 			$foundParent = $parentPage; 

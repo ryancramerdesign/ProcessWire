@@ -7,6 +7,8 @@
  * As a result, this class includes functionality for, and checks for both single-and-multi selection values. 
  * Sublcasses will want to override the render method, but it's not necessary to override processInput().
  * Subclasses that select multiple values should implement the InputfieldHasArrayValue interface. 
+ * 
+ * @todo add support for 'required' attribute?
  *
  */
 class InputfieldSelect extends Inputfield {
@@ -44,7 +46,7 @@ class InputfieldSelect extends Inputfield {
 	/**
 	 * Add an option that may be selected
 	 *
-	 * If you want to add an optgroup, the the $value param as the label, and the label param as an array of options. 
+	 * If you want to add an optgroup, use the $value param as the label, and the label param as an array of options. 
 	 * Note that optgroups may not be applicable to other Inputfields that descend from InputfieldSelect.
 	 *
 	 * @param string $value Value that the option submits
