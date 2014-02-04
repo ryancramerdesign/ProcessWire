@@ -74,7 +74,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		$f->attr('name', 'parent_id'); 
 		$f->attr('id', 'select_parent_id'); 
 		$f->label = sprintf($this->_('Where do you want to add the new %s?'), strtolower($templateLabel)); 
-		$f->description = sprintf($this->_('Please select a parent **%s** page below:'), strtolower($parentTemplateLabel)); 
+		$f->description = sprintf($this->_('Please select a parent %s page below:'), strtolower($parentTemplateLabel)); 
 
 		$options = array();
 		foreach($parents as $parent) {

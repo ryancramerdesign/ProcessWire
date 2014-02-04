@@ -12,6 +12,9 @@ var ProcessWireAdminTheme = {
 	 *
 	 */
 	init: function() {
+		// fix annoying fouc with this particular button
+		var $button = $("#head_button > button.dropdown-toggle").hide();
+
 		this.setupCloneButton();
 		this.setupButtonStates();
 		this.setupFieldFocus();
@@ -23,6 +26,8 @@ var ProcessWireAdminTheme = {
 		if($("body").hasClass('hasWireTabs') && $("ul.WireTabs").size() == 0) $("body").removeClass('hasWireTabs'); 
 		$('#content').removeClass('fouc_fix'); // FOUC fix
 		this.browserCheck();
+
+		if($button.size() > 0) $button.show();
 	},
 
 	/**
