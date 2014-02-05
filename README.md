@@ -1,5 +1,31 @@
 # ProcessWire 2.4
 
+## Table of Contents
+
+1. [About ProcessWire](#about-processwire)
+2. [Installing ProcessWire](#installation)
+   - [Requirements](#requirements)
+   - [Installation from ZIP file](#installation-from-zip-file)
+   - [Installation from GitHub](#installation-from-github
+   - [Troubleshooting Installation](#troubleshooting-installation)
+       - [The homepage works but nothing else does](#the-homepage-works-but-nothing-else-does)
+       - [Resolving an Apache 500 error](#resolving-an-apache-500-error)
+       - [Resolving other error messages or a blank screen](#resolving-other-error-messages-or-a-blank-screen)
+3. [Upgrading ProcessWire](#upgrades)
+   - [Best Practices Before Upgrading](#best-practices-before-upgrading)
+   - [General Upgrade Process](#general-upgrade-process)
+       - [Replacing the /wire/ directory](#replacing-the-wire-directory)
+       - [Replacing the /index.php file](#replacing-the-indexphp-file)
+       - [Replacing the .htaccess file](#replacing-the-htaccess-file)
+       - [Additional upgrade notes](#additional-upgrade-notes)
+   - [Upgrading from ProcessWire 2.3](#upgrading-from-processwire-23)
+   - [Upgrading from ProcessWire 2.2](#upgrading-from-processwire-22)
+   - [Upgrading from ProcessWire 2.1](#upgrading-from-processwire-21)
+   - [Upgrading from ProcessWire 2.0](#upgrading-from-processwire-20)
+   - [Troubleshooting an Upgrade](#troubleshooting-an-upgrade)
+4. [Debug Mode](#debug-mode)
+5. [Support](#support)
+
 ## About ProcessWire
 
 ProcessWire is an open source content management system (CMS) and web 
@@ -54,17 +80,47 @@ you through the rest of the installation.
 
 ### Troubleshooting Installation
 
-If the homepage works, but nothing else does, then that means Apache
-is not properly reading your .htaccess file. Open the .htaccess file
-in and editor and read through the comments in the file for suggested
-changes. 
+#### The homepage works but nothing else does
+
+This indicates that Apache is not properly reading your .htaccess file. 
+First we need to determine if Apache is reading your .htacess file at all.
+To do this, open the .htaccess file in an editor and type in some random
+characters at the top, like `lkjalefkjalkef` and save. Load your site in 
+your browser. You should get a "500 Error". If you do not, that means 
+Apache is not reading your .htaccess file at all. If this is your case,
+contact your web host for further assistance. Or if maintaining your own
+server, look into the Apache *AllowOverride* directive which you may need
+to configure for the account in your httpd.conf file. 
+
+If the above test did result in a 500 error, then that is good because we
+know your .htaccess file is at least being used. Go ahead and remove the 
+random characters you added at the top. Now look further down in the 
+.htaccess file for suggested changes. Specially, you will want to look at 
+the *RewriteBase* directive, which is commented out (disabled) by default. 
+You may need to enable it.
+
+#### Resolving an Apache 500 error
+
+The presence of an Apache 500 error indicates that Apache does not
+like one or more of the directives in the .htaccess file. Open the
+.htaccess file in an editor and read the comments. Note those that 
+indicate the term "500 NOTE" and they will provide further instructions
+on optional directives you can try to comment out. Test one at a time,
+save and reload in your browser till you determine which directive is
+not working with your server.
+
+#### Resolving other error messages or a blank screen
 
 If you are getting an error message, a blank screen, or something
 else unexpected, see the section at the end of this document on 
 enabling debug mode. This will enable more detailed error reporting
 which may help to resolve any issues. 
 
-If the above suggestions don't help you to resolve the installation
+In addition, the ProcessWire error log is located in the file:
+/site/assets/logs/errors.txt - look in here to see if more information
+is available about the error message you have received. 
+
+If the above suggestions do not help you to resolve the installation
 error, please post in the [ProcessWire forums](http://processwire.com/talk). 
 
 
@@ -79,16 +135,14 @@ error, please post in the [ProcessWire forums](http://processwire.com/talk).
    compatible with the ProcessWire version you are upgrading to. 
    If you cannot confirm compatibility, uninstall the 3rd party 
    modules before upgrading, when possible. You can attempt to
-   re-install them after upgrading. If uninstalling is not an 
-   option, just be sure you have the ability to revert if for 
-   some reason one of your modules does not like the upgrade. 
+   re-install them after upgrading. If uninstalling is 
+   inconvenient, just be sure you have the ability to revert if for 
+   some reason one of your modules does not like the upgrade.
+   Modules that are compatible with ProcessWire 2.3 are generally
+   going to also be compatible with 2.4. 
 
 
 ### General Upgrade Process
-
-If you are upgrading from a version of ProcessWire earlier than 2.3,
-see the sections below for version-specific details before completing
-the general upgrade process. 
 
 Upgrading from one version of ProcessWire to another is a matter of
 replacing these files from your old version with those from the new:
@@ -99,9 +153,10 @@ replacing these files from your old version with those from the new:
 /.htaccess 
 ```
 
-Replacing the above directory/files is typically the only thing you
-need to do in order to upgrade. But please see below for more specific
-details about each of these: 
+Replacing the above directory/files is typically the primary thing you
+need to do in order to upgrade. But please see the version-to-version
+specific upgrade notes documented further in this section. Below are
+more details about how you should replace the files mentioned above.
 
 
 #### Replacing the /wire/ directory
@@ -139,6 +194,26 @@ Sometimes people have made changes to the .htaccess file. If this is
 the case for your site, remember to migrate those changes to the new
 .htaccess file. 
 
+#### Additional upgrade notes
+
+- If using Form Builder make sure you have the latest version,
+  as past versions did not support ProcessWire 2.4. 
+
+- If using ProCache you will need to go to the ProCache
+  settings after the upgrade to have it update your .htaccess file
+  again (since it was presumably replaced during the upgrade). 
+
+- After completing the upgrade test out your site thoroughly
+  to make sure everything continues to work as you expect. 
+
+- ProcessWire 2.4 comes with a new admin theme. After completing
+  your upgrade, you may choose a different color theme (if desired)
+  by going to Modules > Core > Default Admin Theme. 
+
+- If you want to return to the old admin theme or utilize an
+  existing 3rd party admin theme designed for 2.3 or earlier,
+  simply uninstall the Default Admin Theme module. 
+
 
 ### Upgrading from ProcessWire 2.3
 
@@ -169,13 +244,6 @@ files as well.
 $config->httpHosts = array('domain.com', 'www.domain.com'); 
 ```
 Replace domain.com with the hostname(s) your site runs from.
-
-**If using Form Builder** make sure you have the latest version,
-as past versions did not support ProcessWire 2.4. 
-
-**If using ProCache** you will need to go to the ProCache
-settings after the upgrade to have it update your .htaccess file
-again (since it was presumably replaced during the upgrade). 
 
 
 ### Upgrading from ProcessWire 2.2
@@ -211,6 +279,9 @@ again (since it was presumably replaced during the upgrade).
 If your site is not working after performing an upgrade, clear your
 modules cache. You can do this by removing all of these files:
 /site/assets/cache/Modules.*
+
+If using Form Builder, make sure you have version 0.2.2 or newer, as older
+versions did not support ProcessWire 2.4. 
 
 If your site still doesn't work, remove the /wire/ directory completely. 
 Then upload a fresh copy of the /wire/ directory. 
