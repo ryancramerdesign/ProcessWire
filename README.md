@@ -6,7 +6,7 @@
 2. [Installing ProcessWire](#installation)
    - [Requirements](#requirements)
    - [Installation from ZIP file](#installation-from-zip-file)
-   - [Installation from GitHub](#installation-from-github
+   - [Installation from GitHub](#installation-from-github)
    - [Troubleshooting Installation](#troubleshooting-installation)
        - [The homepage works but nothing else does](#the-homepage-works-but-nothing-else-does)
        - [Resolving an Apache 500 error](#resolving-an-apache-500-error)
@@ -234,7 +234,7 @@ This will show your PHP configuration. The PHP version should show
 PHP 5.3.8 or newer and there should be a distinct PDO section 
 (header and information) present in the output. 
 
-**To proceed with the upgrade** follow the general upgrade process 
+**To proceed with the upgrade** follow the [general upgrade process](#general-upgrade-process)
 above. You *will* want to replace your index.php and .htaccess 
 files as well.
 
@@ -303,9 +303,9 @@ intended for live or production sites, as the information reported could
 be a problem for security. So be sure not to leave debug mode on for
 any live/production sites. 
 
-1. Edit this file: /site/config.php
-2. Find this line: $config->debug = false; 
-3. Change the 'false' to 'true', like below, and save. 
+1. Edit this file: `/site/config.php`
+2. Find this line: `$config->debug = false;` 
+3. Change the `false` to `true`, like below, and save. 
 
 ```
 $config->debug = true; 
