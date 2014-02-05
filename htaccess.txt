@@ -66,6 +66,8 @@ DirectoryIndex index.php index.html index.htm
 
   # -----------------------------------------------------------------------------------------------
   # Set an environment variable so the installer can detect that mod_rewrite is active.
+  # Note that some web hosts don't support this. If you get a 500 error, you might try 
+  # commenting out this SetEnv line below. 
   # -----------------------------------------------------------------------------------------------
 
   SetEnv HTTP_MOD_REWRITE On

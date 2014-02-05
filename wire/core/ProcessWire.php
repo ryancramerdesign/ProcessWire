@@ -6,7 +6,7 @@
  * Initializes all the ProcessWire classes and prepares them for API use
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -32,8 +32,8 @@ require(PROCESSWIRE_CORE_PATH . "shutdown.php");
 class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
-	const versionMinor = 3; 
-	const versionRevision = 16; 
+	const versionMinor = 4; 
+	const versionRevision = 0; 
 	
 	const statusBoot = 0; // system is booting
 	const statusInit = 2; // system and modules are initializing

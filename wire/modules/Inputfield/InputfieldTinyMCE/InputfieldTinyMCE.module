@@ -153,7 +153,8 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 
 		$wrapper = $this->modules->get('InputfieldFieldset'); 
 		$wrapper->label = $this->_('TinyMCE Advanced Configuration Options'); 
-		$wrapper->description = $this->_('The following fields are specific to TinyMCE and details about these options can be found at the TinyMCE web site. In general it is best to use the defaults presented here unless you are familiar with TinyMCE configuration.'); // Description for TinyMCE custom config fields
+		$wrapper->description = $this->_('The following fields are specific to TinyMCE and details about these options can be found at the TinyMCE web site. In general it is best to use the defaults presented here unless you are familiar with TinyMCE configuration.') . ' '; // Description for TinyMCE custom config fields
+		$wrapper->description .= $this->_('For an alternative to TinyMCE, please check out our [CKEditor Inputfield](http://modules.processwire.com/modules/inputfield-ckeditor/) module, available in the modules directory.'); // Note about CKEditor
 		$wrapper->collapsed = Inputfield::collapsedYes; 
 
 		foreach($this->defaults as $key => $unused) {

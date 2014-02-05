@@ -79,7 +79,10 @@ error, please post in the [ProcessWire forums](http://processwire.com/talk).
    compatible with the ProcessWire version you are upgrading to. 
    If you cannot confirm compatibility, uninstall the 3rd party 
    modules before upgrading, when possible. You can attempt to
-   re-install them after upgrading. 
+   re-install them after upgrading. If uninstalling is not an 
+   option, just be sure you have the ability to revert if for 
+   some reason one of your modules does not like the upgrade. 
+
 
 ### General Upgrade Process
 
@@ -100,6 +103,7 @@ Replacing the above directory/files is typically the only thing you
 need to do in order to upgrade. But please see below for more specific
 details about each of these: 
 
+
 #### Replacing the /wire/ directory
 
 When you replace the /wire/ directory, make sure that you remove or 
@@ -112,12 +116,20 @@ your site, only to ProcessWire. All the files specific to your site
 are stored in /site/ and you would leave that directory alone during 
 an upgrade. 
 
+
 #### Replacing the /index.php file
 
 This file doesn't change often between minor versions. As a result,
-you don't need to replace this file unless it has changed. 
+you don't need to replace this file unless it has changed. BUt when
+in doubt, you should replace it. 
+
 
 #### Replacing the .htaccess file
+
+This is also a file that does not always change between versions.
+But when it changes, it is usually important for security that you 
+are up-to-date. When in doubt, replace your old .htaccess file with
+the htaccess.txt from the new version. 
 
 This file is initially named htaccess.txt in the ProcessWire source.
 You will want to remove your existing .htaccess file and rename the
@@ -126,6 +138,30 @@ new htaccess.txt to .htaccess
 Sometimes people have made changes to the .htaccess file. If this is
 the case for your site, remember to migrate those changes to the new
 .htaccess file. 
+
+
+### Upgrading from ProcessWire 2.3
+
+ProcessWire 2.4 has two new software requirements: 
+
+- PHP 5.3.8+ (ProcessWire 2.3 supported PHP 5.2)
+- PDO database driver (ProcessWire 2.3 used mysqli)
+
+Please confirm your server meets these requirements before upgrading.
+If you are not certain, paste the following into a test PHP file and 
+load it from your browser:
+
+```
+<?php phpinfo();
+```
+
+This will show your PHP configuration. The PHP version should show 
+PHP 5.3.8 or newer and there should be a distinct PDO section 
+(header and information) present in the output. 
+
+**To proceed with the upgrade** follow the general upgrade process 
+above. You *will* want to replace your index.php and .htaccess 
+files as well.
 
 
 ### Upgrading from ProcessWire 2.2
@@ -202,5 +238,5 @@ Get support in the ProcessWire forum at:
 
 ------
 
-ProcessWire, Copyright 2013 by Ryan Cramer Design, LLC
+ProcessWire, Copyright 2014 by Ryan Cramer Design, LLC
 
