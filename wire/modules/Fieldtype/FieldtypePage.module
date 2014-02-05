@@ -161,7 +161,7 @@ class FieldtypePage extends FieldtypeMulti {
 				$pageArray = $this->fuel('pages')->getById(array((int) reset($value)), $template); 
 				if(count($pageArray)) $pg = $pageArray->first();
 			}
-			if(!$pg || ($pg && $pg->status >= Page::statusUnpublished)) $pg = $this->getBlankValue($page, $field);
+            if(!$pg /*|| ($pg && $pg->status >= Page::statusUnpublished)*/) $pg = $this->getBlankValue($page, $field);
 			return $pg; 
 
 		} else {
