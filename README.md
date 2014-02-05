@@ -18,8 +18,7 @@
        - [Replacing the /index.php file](#replacing-the-indexphp-file)
        - [Replacing the .htaccess file](#replacing-the-htaccess-file)
        - [Additional upgrade notes](#additional-upgrade-notes)
-   - [Upgrading from ProcessWire 2.3](#upgrading-from-processwire-23)
-   - [Upgrading from ProcessWire 2.2](#upgrading-from-processwire-22)
+   - [Upgrading from ProcessWire 2.2 or 2.3](#upgrading-from-processwire-22-or-23)
    - [Upgrading from ProcessWire 2.1](#upgrading-from-processwire-21)
    - [Upgrading from ProcessWire 2.0](#upgrading-from-processwire-20)
    - [Troubleshooting an Upgrade](#troubleshooting-an-upgrade)
@@ -215,12 +214,12 @@ the case for your site, remember to migrate those changes to the new
   simply uninstall the Default Admin Theme module. 
 
 
-### Upgrading from ProcessWire 2.3
+### Upgrading from ProcessWire 2.2 or 2.3
 
 ProcessWire 2.4 has two new software requirements: 
 
-- PHP 5.3.8+ (ProcessWire 2.3 supported PHP 5.2)
-- PDO database driver (ProcessWire 2.3 used mysqli)
+- PHP 5.3.8+ (older versions supported PHP 5.2)
+- PDO database driver (older versions only used mysqli)
 
 Please confirm your server meets these requirements before upgrading.
 If you are not certain, paste the following into a test PHP file and 
@@ -246,19 +245,6 @@ $config->httpHosts = array('domain.com', 'www.domain.com');
 Replace domain.com with the hostname(s) your site runs from.
 
 
-### Upgrading from ProcessWire 2.2
-
-1. Follow the general upgrade process above. You *will* want to replace
-   your /index.php and .htaccess file as well.
-2. Clear your modules cache (see section below).
-3. Login to ProcessWire admin. You may get an error on the first web 
-   request you try, but that should only happen once, so just reload 
-   the page. 
-
-**To clear your modules cache:** Remove all of these files:
-/site/assets/cache/Modules.*
-
-
 ### Upgrading from ProcessWire 2.1
 
 1. First upgrade to [ProcessWire 2.2](https://github.com/ryancramerdesign/ProcessWire/tree/2.2.9).
@@ -275,6 +261,10 @@ Replace domain.com with the hostname(s) your site runs from.
 
 
 ### Troubleshooting an Upgrade
+
+If you get an error message when loading your site after an upgrade,
+hit "reload" in your browser once before doing anything else. If the error
+is now gone, the error was normal and your upgrade was successful. 
 
 If your site is not working after performing an upgrade, clear your
 modules cache. You can do this by removing all of these files:
