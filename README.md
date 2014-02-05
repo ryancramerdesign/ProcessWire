@@ -163,6 +163,20 @@ PHP 5.3.8 or newer and there should be a distinct PDO section
 above. You *will* want to replace your index.php and .htaccess 
 files as well.
 
+**In addition** we recommend adding the following line to your 
+/site/config.php: 
+```
+$config->httpHosts = array('domain.com', 'www.domain.com'); 
+```
+Replace domain.com with the hostname(s) your site runs from.
+
+**If using Form Builder** make sure you have the latest version,
+as past versions did not support ProcessWire 2.4. 
+
+**If using ProCache** you will need to go to the ProCache
+settings after the upgrade to have it update your .htaccess file
+again (since it was presumably replaced during the upgrade). 
+
 
 ### Upgrading from ProcessWire 2.2
 
