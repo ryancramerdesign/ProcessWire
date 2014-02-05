@@ -18,7 +18,7 @@
  *
  */
 
-class ProcessPageEditLink extends Process {
+class ProcessPageEditLink extends Process implements ConfigurableModule {
 
 	protected $page = null;
 
@@ -26,22 +26,44 @@ class ProcessPageEditLink extends Process {
 		return array(
 			'title' => 'Page Edit Link',          
 			'summary' => 'Provides a link capability as used by some Fieldtype modules (like TinyMCE)', 
-			'version' => 101, 
+			'version' => 105, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
 	}
 
+	const urlTypeAbsolute = 0;
+	const urlTypeRelativeBranch = 1; 
+	const urlTypeRelativeAll = 2; 
+	
+	protected $startLabel = '';
+
+	public function __construct() {
+		$this->set('urlType', self::urlTypeAbsolute); 
+	}
+
 	public function init() {
+		$this->startLabel = $this->_('Choose page'); 
 		$this->modules->get("ProcessPageList"); 	
 		$id = (int) $this->input->get->id; 
 		if($id) $this->page = $this->pages->get($id); 
 		if($this->page && $this->page->id && !$this->user->hasPermission("page-view", $this->page)) throw new WireException("You don't have access to this page"); 
+		if(!$this->page) $this->page = new NullPage();
+
 		//$target = $this->sanitizer->name($this->input->get->target); 
 		//$this->config->js('ProcessPageEditLinkTarget', $target); 
+
 		$this->config->js('ProcessPageEditLink', array(
-			'selectStartLabel' => $this->_("Choose page"), // Clickable link to start a page selection
-			)); 
+			'selectStartLabel' => $this->startLabel, 
+			'langID' => ($this->input->get->lang ? (int) $this->input->get->lang : 0),
+			'pageID' => $id,
+			'pageUrl' => $this->page->url,
+			'pageName' => $this->page->name, 
+			'rootParentUrl' => $this->page->rootParent->url,
+			'slashUrls' => $this->page->template->slashUrls,
+			'urlType' => $this->urlType
+			));
+
 		parent::init();
 	}
 
@@ -56,11 +78,22 @@ class ProcessPageEditLink extends Process {
 		$field->attr('id+name', 'link_page_url'); 
 		$form->append($field); 
 
-		$field = $this->modules->get("InputfieldInteger"); 
+		$field = $this->modules->get('InputfieldInteger'); 
+		$field->attr('id+name', 'link_page_id');
 		$field->label = $this->_("Link to Page");
-		$field->attr('id+name', 'link_page_id'); 
+		$field->startLabel = $this->startLabel;
 		$field->collapsed = Inputfield::collapsedYes; 
 		$form->append($field); 
+
+		if($this->page->numChildren) {
+			$field = $this->modules->get('InputfieldInteger'); 
+			$field->attr('id+name', 'child_page_id');
+			$field->label = $this->_("Link to Child Page");
+			$field->description = $this->_('This is the same as "Link to Page" above, but may quicker to use if linking to children of the current page.'); 
+			$field->startLabel = $this->startLabel;
+			$field->collapsed = Inputfield::collapsedYes; 
+			$form->append($field); 
+		}
 
 		$form->append($this->getFilesField()); 
 
@@ -83,7 +116,7 @@ class ProcessPageEditLink extends Process {
 
 	protected function getFiles() {
 		$files = array();
-		foreach($this->page->fields as $f) {
+		if($this->page->id) foreach($this->page->fields as $f) {
 			if(!$f->type instanceof FieldtypeFile) continue;
 			foreach($this->page->get($f->name) as $file) {
 				$files[$file->url] = $f->name . ' - ' . $file->basename; 
@@ -101,12 +134,25 @@ class ProcessPageEditLink extends Process {
 		$field->addOption('');
 		$field->addOptions($files); 
 		$field->collapsed = Inputfield::collapsedYes; 
-		$field->notes = $this->page->url; 
+		if($this->page->id) $field->notes = $this->page->url; 
 		$field->description = $this->_("To select a file from another page, click 'Link to Page' above and choose the page you want to select a file from."); // Instruction on how to select a file from another page
 		return $field;
 
 	}
 
+	public static function getModuleConfigInputfields(array $data) {
+		$inputfields = new InputfieldWrapper();
+		$f = wire('modules')->get('InputfieldRadios'); 
+		$f->attr('name', 'urlType'); 
+		$f->label = __('URL type for page links'); 
+		$f->addOption(self::urlTypeAbsolute, __('Absolute (default)')); 
+		$f->addOption(self::urlTypeRelativeBranch, __('Relative URLs in the same branches only') . '*'); 
+		$f->addOption(self::urlTypeRelativeAll, __('Relative URLs always') . '*'); 
+		$f->attr('value', isset($data['urlType']) ? $data['urlType'] : self::urlTypeAbsolute); 
+		$f->notes = __('*Currently experimental'); 
+		$inputfields->add($f); 
+		return $inputfields; 
+	}
 	
 
 }

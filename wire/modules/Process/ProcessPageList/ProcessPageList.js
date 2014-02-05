@@ -41,6 +41,9 @@ $(document).ready(function() {
 
 			// the page ID currently selected
 			selectedPageID: 0, 
+		
+			// language ID, if applicable
+			langID: 0,
 
 			// in 'select' mode, allow no value to be selected (to abort a selected value)
 			selectAllowUnselect: false,
@@ -85,7 +88,10 @@ $(document).ready(function() {
 			openPagination: 0, 
 
 			// ID sof the pages that we want to automatically open (default none) 
-			openPageIDs: []
+			openPageIDs: [],
+
+			// speed at which the slideUp/slideDown run (in ms)
+			speed: 200
 		}; 
 
 		$.extend(options, customOptions);
@@ -141,7 +147,7 @@ $(document).ready(function() {
 						$(this).text(options.selectCancelLabel); 
 
 					} else {
-						$root.children(".PageList").slideUp("fast", function() {
+						$root.children(".PageList").slideUp(options.speed, function() {
 							$(this).remove();
 						}); 
 						$(this).text(options.selectStartLabel); 
@@ -154,7 +160,7 @@ $(document).ready(function() {
 				$root.append($("<div></div>").addClass('PageListSelectHeader').append($pageLabel).append($actions)); 
 
 				if(options.selectShowPageHeader) { 
-					$.getJSON(options.ajaxURL + "?id=" + options.selectedPageID + "&render=JSON&start=0&limit=0", function(data) {
+					$.getJSON(options.ajaxURL + "?id=" + options.selectedPageID + "&render=JSON&start=0&limit=0&lang=" + options.langID, function(data) {
 						var parentPath = '';
 						if(options.selectShowPath) {
 							parentPath = data.page.path;
@@ -279,13 +285,13 @@ $(document).ready(function() {
 				//if(curPagination+1 < maxPaginationLinks && curPagination+1 < numPaginations) {
 				if(curPagination+1 < numPaginations) {
 					$nextBtn = $blankItem.clone();
-					$nextBtn.find("a").html("&gt;").attr('href', curPagination+1).addClass('ui-priority-secondary'); 
+					$nextBtn.find("a").html("<i class='fa fa-angle-right'></i>").attr('href', curPagination+1); // .addClass('ui-priority-secondary'); 
 					$list.append($nextBtn);
 				}
 
 				if(curPagination > 0) {
 					$prevBtn = $blankItem.clone();
-					$prevBtn.find("a").attr('href', curPagination-1).html("&lt;").addClass('ui-priority-secondary');
+					$prevBtn.find("a").attr('href', curPagination-1).html("<i class='fa fa-angle-left'></i>"); // .addClass('ui-priority-secondary');
 					$list.prepend($prevBtn); 
 				}
 
@@ -364,7 +370,7 @@ $(document).ready(function() {
 						loaded();
 						if(callback != undefined) callback();
 					} else { 
-						$children.slideDown("fast", function() {
+						$children.slideDown(options.speed, function() {
 							loaded();
 							if(callback != undefined) callback();
 						}); 
@@ -382,7 +388,7 @@ $(document).ready(function() {
 				}; 
 
 				if(!replace) $target.append($loading.show()); 
-				$.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&open=" + options.openPageIDs[0], processChildren); 
+				$.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&lang=" + options.langID + "&open=" + options.openPageIDs[0], processChildren); 
 			}
 
 			/**
@@ -401,6 +407,12 @@ $(document).ready(function() {
 				}); 	
 
 				$("a.PageListPage", $ul).click(clickChild); 
+				/*
+				.dblclick(function() {
+					var href = $(this).siblings('ul').find('li.PageListActionEdit a').attr('href');
+					if(href) window.open(href, "_self");
+				});
+				*/
 				$(".PageListActionMove a", $ul).click(clickMove); 
 				$(".PageListActionSelect a", $ul).click(clickSelect); 
 				$(".PageListTriggerOpen a.PageListPage", $ul).click();
@@ -484,7 +496,7 @@ $(document).ready(function() {
 				}
 
 				if($li.is(".PageListItemOpen")) {
-					$li.removeClass("PageListItemOpen").next(".PageList").slideUp("fast", function() { 
+					$li.removeClass("PageListItemOpen").next(".PageList").slideUp(options.speed, function() { 
 						$(this).remove(); 
 					}); 
 				} else {
@@ -563,7 +575,7 @@ $(document).ready(function() {
 					return cancelMove($li); 
 				}); 
 
-				$li.children("ul.PageListActions").before($("<span class='PageListMoveNote detail'>&lt; " + options.moveInstructionLabel + " </span>").append($cancelLink)); 
+				$li.children("ul.PageListActions").before($("<span class='PageListMoveNote detail'><i class='fa fa-sort'></i> " + options.moveInstructionLabel + " <i class='fa fa-angle-right'></i></span>").append($cancelLink)); 
 				$li.addClass('PageListSortItem'); 
 				$li.parent('.PageList').attr('id', 'PageListMoveFrom'); 
 
@@ -578,6 +590,7 @@ $(document).ready(function() {
 			 * Remove everything setup from an active 'move' 
 			 *
 			 * @param jQuery $li List item that initiated the 'move'
+			 * @return bool
 			 *
 			 */
 			function cancelMove($li) {
@@ -595,6 +608,7 @@ $(document).ready(function() {
 			 *
 			 * @param event e
 			 * @param jQueryUI ui
+			 * @return bool
 			 *
 			 */
 			function stopMove(e, ui) {
@@ -679,6 +693,9 @@ $(document).ready(function() {
 					$root.removeClass('PageListSortSaving'); 
 
 				}, 'json'); 
+
+				// trigger pageMoved event: @teppokoivula
+				$li.trigger('pageMoved'); 
 
 				return true; // whether or not to allow the sort
 			}

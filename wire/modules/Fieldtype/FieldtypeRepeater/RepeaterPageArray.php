@@ -63,6 +63,7 @@ class RepeaterPageArray extends PageArray {
 		$page = null;
 		$of = $this->parent->of(false); 
 
+		// first try to get a ready item, if available
 		foreach($this as $item) {
 			if($item->is(Page::statusUnpublished) && $item->is(Page::statusHidden)) {
 				$page = $item;
@@ -71,6 +72,7 @@ class RepeaterPageArray extends PageArray {
 		}
 
 		if(is_null($page)) { 
+			// no ready item available, get a new one
 			$page = $this->field->type->getBlankRepeaterPage($this->parent, $this->field); 
 			$this->add($page);
 		} else {
@@ -92,7 +94,6 @@ class RepeaterPageArray extends PageArray {
 	 * 
 	 * Note that this method has no relation/similarity to the getNewItem()/getNew() methods.
 	 *
-	 * @param array $items Array of items to populate (optional)
 	 * @return WireArray
 	 *
 	 */

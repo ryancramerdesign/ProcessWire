@@ -9,11 +9,10 @@
  * There may be multiple instances of Pageimages attached to a given Page (depending on what fields are in it's fieldgroup).
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -31,7 +30,7 @@ class Pageimages extends Pagefiles {
 	 * Add a new Pageimage item, or create one from it's filename and add it.
 	 *
 	 * @param Pageimage|string $item If item is a string (filename) then the Pageimage instance will be created automatically.
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function add($item) {

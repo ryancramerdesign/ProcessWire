@@ -24,10 +24,13 @@ var InputfieldPageListSelectMultiple = {
 			$ol.addClass('InputfieldPageListSelectMultipleSortable'); 
 		};
 
-		$('#' + $ol.attr('id') + '>li').live('mouseover', function() {
+		// $('#' + $ol.attr('id') + '>li').live('mouseover', function() {
+		$('#' + $ol.attr('id')).on('mouseover', '>li', function() {
+
 			$(this).removeClass('ui-state-default').addClass('ui-state-hover'); 
 			if(!$ol.is(".InputfieldPageListSelectMultipleSortable")) makeSortable($ol); 
-		}).live('mouseout', function() {
+		// }).live('mouseout', function() {
+		}).on('mouseout', '>li', function() {
 			$(this).removeClass('ui-state-hover').addClass('ui-state-default'); 
 		}); 
 

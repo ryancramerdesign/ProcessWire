@@ -66,6 +66,8 @@ DirectoryIndex index.php index.html index.htm
 
   # -----------------------------------------------------------------------------------------------
   # Set an environment variable so the installer can detect that mod_rewrite is active.
+  # Note that some web hosts don't support this. If you get a 500 error, you might try 
+  # commenting out this SetEnv line below. 
   # -----------------------------------------------------------------------------------------------
 
   SetEnv HTTP_MOD_REWRITE On
@@ -139,13 +141,16 @@ DirectoryIndex index.php index.html index.htm
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteCond %{REQUEST_FILENAME} !(favicon\.ico|robots\.txt)
 
-  # ----------------------------------------------------------------------------------------------- 
-  # Optional: Don't send missing image requests to ProcessWire (uncomment below to enable).
-  # This might be helpful if you are launching a new site and lots of images have moved. 
-  # It will reduce the load on the server not to have ProcessWire trying to serve those requests.
+  # -----------------------------------------------------------------------------------------------
+  # Prevent ProcessWire from attempting to serve images or anything in /site/assets/. 
+  # Both of these lines are optional, but can help to reduce server load. However, they
+  # are not compatible with the $config->pagefileSecure option (if enabled) and they 
+  # may produce an Apache 404 rather than your regular 404. You may uncomment the two lines
+  # below if you don't need to use the $config->pagefileSecure option.
   # ----------------------------------------------------------------------------------------------- 
 
-  # RewriteCond %{REQUEST_URI} !\.(gif|jpg|png|ico)$ [NC]
+  # RewriteCond %{REQUEST_FILENAME} !\.(jpg|jpeg|gif|png|ico)$ [NC]
+  # RewriteCond %{REQUEST_FILENAME} !(^|/)site/assets/
 
   # ----------------------------------------------------------------------------------------------- 
   # Pass control to ProcessWire if all the above directives allow us to this point.

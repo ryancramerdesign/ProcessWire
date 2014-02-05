@@ -11,7 +11,20 @@
 class Users extends PagesType {
 
 	protected $currentUser = null; 
-	protected $guestUser = null; 
+	protected $guestUser = null;
+	
+	/**
+	 * Like find() but returns only the first match as a Page object (not PageArray)
+	 *
+	 * This is an alias of the findOne() method for syntactic convenience and consistency.
+	 *
+	 * @param string $selectorString
+	 * @return Page|null
+	 */
+	public function get($selectorString) {
+		$user = parent::get($selectorString);
+		return $user; 
+	}
 
 	/**
 	 * Set the current system user (the $user API variable)
@@ -33,9 +46,10 @@ class Users extends PagesType {
 	 *
 	 */
 	protected function loaded(Page $page) {
-		static $guestID  = null;
-		if(is_null($guestID)) $guestID = $this->fuel('config')->guestUserRolePageID; 
-		if(!$page->roles->has("id=$guestID")) $page->roles->add($this->fuel('roles')->getGuestRole());
+		static $guestID = null;
+		if(is_null($guestID)) $guestID = $this->wire('config')->guestUserRolePageID; 
+		$roles = $page->get('roles'); 
+		if(!$roles->has("id=$guestID")) $page->get('roles')->add($this->wire('roles')->getGuestRole());
 	}
 
 	/**

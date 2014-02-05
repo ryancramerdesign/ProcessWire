@@ -31,3 +31,10 @@ class WirePermissionException extends WireException {}
  */
 class Wire404Exception extends WireException {}
 
+/**
+ * WireDatabaseException is the exception thrown by the Database class
+ *
+ * If you use this class without ProcessWire, change 'extends WireException' below to be just 'extends Exception'
+ *
+ */
+class WireDatabaseException extends WireException {}

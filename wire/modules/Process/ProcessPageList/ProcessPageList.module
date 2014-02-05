@@ -31,11 +31,17 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 */
 	const defaultLimit = 50; 
 
+	/**
+	 * Default animation speed (in ms) for the PageList
+	 *
+	 */
+	const defaultSpeed = 200; 
+
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page List',          
 			'summary' => 'List pages in a hierarchal tree structure', 
-			'version' => 102, 
+			'version' => 105, 
 			'permanent' => true, 
 			'permission' => 'page-edit'
 			);
@@ -63,6 +69,9 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 *	
 	 */
 	public function ___execute() {
+
+		$langID = (int) $this->wire('input')->get->lang; 
+		if($langID) $this->wire('user')->language = $this->languages->get($langID);
 
 		if(!$this->id) $this->id = isset($_GET['id']) ? (int) $_GET['id'] : 0; 
 		$this->openPage = $this->input->get->open ? $this->pages->get((int) $this->input->get->open) : new NullPage();
@@ -106,6 +115,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 				'openPagination' => (int) $this->input->get->n,
 				'showRootPage' => $this->showRootPage ? true : false, 
 				'limit' => $this->limit, 
+				'speed' => ($this->speed !== null ? (int) $this->speed : self::defaultSpeed),
 				'selectStartLabel' => $this->_('Change'), // Change a page selection
 				'selectCancelLabel' => $this->_('Cancel'), // Cancel a page selection
 				'selectSelectLabel' => $this->_('Select'), // Select a page
@@ -169,18 +179,22 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$field = $modules->get("InputfieldText"); 
 		$field->attr('name', 'pageLabelField'); 
 		$field->attr('value', !empty($data['pageLabelField']) ? $data['pageLabelField'] : 'title'); 
-		$field->label = "Name of page field to display"; 
-		$field->description = 
-			"Every page in a PageList is identified by a label, typically a title or headline field. You may specify which field it should use here. " . 
-			"To specify multiple fields, separate each field name with a space. If the field resolves to an object (like another page), then specify the property with a dot, i.e. anotherpage.title. " . 
-			"Note that if the field you specify resolves to a blank value then ProcessWire will use the page's 'name' field. ";
-		$field->notes = "You may optionally override this setting on a per-template basis in each template's 'advanced' settings.";
+		$field->label = __("Name of page field to display"); 
+		$field->description = __('Every page in a PageList is identified by a label, typically a title or headline field. You may specify which field it should use here. To specify multiple fields, separate each field name with a space. If the field resolves to an object (like another page), then specify the property with a dot, i.e. anotherpage.title. Note that if the field you specify resolves to a blank value then ProcessWire will use the page "name" field.'); // pageLabelField description
+		$field->notes = __('You may optionally override this setting on a per-template basis in each template "advanced" settings.'); // pageLabelField notes
 		$fields->append($field); 
 
 		$field = $modules->get("InputfieldInteger"); 
 		$field->attr('name', 'limit'); 
 		$field->attr('value', !empty($data['limit']) ? (int) $data['limit'] : self::defaultLimit); 
-		$field->label = "Number of pages to display before pagination";
+		$field->label = __('Number of pages to display before pagination');
+		$fields->append($field); 
+
+		$field = $modules->get("InputfieldInteger"); 
+		$field->attr('name', 'speed'); 
+		$field->attr('value', array_key_exists('speed', $data) ? (int) $data['speed'] : self::defaultSpeed); 
+		$field->label = __('Animation Speed (in ms)');
+		$field->description = __('This is the speed at which each branch in the page tree animates up or down. Lower numbers are faster but less visible. For no animation specify 0.'); // Animation speed description 
 		$fields->append($field); 
 
 		return $fields; 
@@ -307,7 +321,16 @@ abstract class ProcessPageListRender extends Wire {
 
 			if(strpos($field, ".")) {
 				list($field, $subfield) = explode(".", $field); 
-			} else $subfield = '';
+
+			} else if(strpos($field, 'icon-') === 0 || strpos($field, 'fa-') === 0) {
+				$field = str_replace(array('icon-', 'fa-'), 'fa-', $field); 
+				$field = $this->wire('sanitizer')->name($field); 
+				$value .= "<i class='icon fa $field'></i>";
+				continue; 
+
+			} else {
+				$subfield = '';
+			}
 
 			$v = $page->get($field); 
 
@@ -319,15 +342,13 @@ abstract class ProcessPageListRender extends Wire {
 				$v = date($this->fuel('config')->dateFormat, (int) $v); 
 			}
 
-			if($v) $value .= ($value ? ', ' : '') . "$v";
+			if(!strlen("$v")) continue; 
+			$value .= "<span class='label_$field'>" . htmlspecialchars(strip_tags("$v"), ENT_QUOTES, "UTF-8", false) . "</span>";
 		}
 
 		if(!strlen($value)) $value = $page->get("name"); 
 
-		$value = strip_tags($value); 
-		$value = htmlspecialchars($value, ENT_QUOTES, "UTF-8", false); 
-
-		return $value;
+		return trim($value);
 	}
 
 	abstract public function render();
@@ -374,9 +395,11 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 		$type = '';
 		$note = '';
 		$label = '';
+		$icon = '';
 
 		if($page->id == $this->config->trashPageID) {
 			$note = "&lt; " . $this->_("Trash open: drag pages below here to trash them"); // Message that appears next to the Trash page when open
+			$icon = 'trash-o';
 		}
 
 		if(in_array($page->id, $this->systemIDs)) {
@@ -384,15 +407,25 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 			if($page->id == $this->config->http404PageID) $label = $this->_('404 Page Not Found'); // Label for '404 Page Not Found' page in PageList // Overrides page title if used
 				else if($page->id == $this->config->adminRootPageID) $label = $this->_('Admin'); // Label for 'Admin' page in PageList // Overrides page title if used
 				else if($page->id == $this->config->trashPageID) $label = $this->_('Trash'); // Label for 'Trash' page in PageList // Overrides page title if used
-
-		} else if($page->id == 1) {
-				$label = $this->_('Home'); // Label for 'Home' page in PageList // Overrides page title if used
-		}
-
-		// if the label is the system default, then divert control to the page itself
-		if(in_array($label, array('Home', 'Trash', 'Admin', '404 Page Not Found'))) $label = '';
+			// if label is not overridden by a language pack, make $label blank to use the page title instead
+			if(in_array($label, array('Trash', 'Admin', '404 Page Not Found'))) $label = '';
+		} 
 
 		if(!$label) $label = $this->getPageLabel($page); 
+
+		if($page->getAccessParent() === $page && $page->parent->id) { 
+			if($page->getAccessTemplate()->hasRole('guest')) {
+				if(!$page->parent->getAccessTemplate()->hasRole('guest')) {
+					$class .= ' PageListAccessOn';
+					if(!$icon) $icon = 'unlock-alt';
+				}
+			} else if($page->parent->getAccessTemplate()->hasRole('guest')) {
+				$class .= ' PageListAccessOff'; 
+				if(!$icon) $icon = 'lock'; 
+			} 
+		}
+
+		if($icon) $label = $label . "<i class='PageListStatusIcon fa fa-$icon'></i>";
 
 		$a = array(
 			'id' => $page->id, 
@@ -403,16 +436,6 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 			'template' => $page->template->name, 
 			'actions' => $this->getPageActions($page), 
 			); 
-
-		if($page->getAccessParent() === $page && $page->parent->id) { 
-			if($page->getAccessTemplate()->hasRole('guest')) {
-				if(!$page->parent->getAccessTemplate()->hasRole('guest')) {
-					$class .= ' PageListAccessOn';
-				}
-			} else if($page->parent->getAccessTemplate()->hasRole('guest')) {
-				$class .= ' PageListAccessOff'; 
-			} 
-		}
 
 		if($class) $a['addClass'] = trim($class);
 		if($type) $a['type'] = $type;

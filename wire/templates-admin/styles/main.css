@@ -159,7 +159,7 @@ a {
 		margin: 0; 
 		position: absolute;
 		top: 165px; 
-                left: 0;
+        left: 0;
 		white-space: nowrap; 
 	}
 
@@ -172,7 +172,13 @@ a {
 		height: 17px; 
 		border: none;
 	}
-
+    #ProcessPageSearchStatus {
+        position: absolute;
+        top: 96px;
+        right: 10px; 
+        color: #999;
+    }
+    
 	/**
 	 * The main/primary button for a listing screen, appears in the masthead
 	 *
@@ -351,6 +357,11 @@ a {
 		color: #777; 
 		background: #feffd9; 
 	}
+		.content .description strong,
+		.content .notes strong {
+			color: #444; 
+			font-weight: bold; 
+		}
 
 	.content .error {
 		color: red;
@@ -414,6 +425,10 @@ a {
  *
  */
 
+#content .InputfieldForm .langTabsContainer {
+	padding-bottom: 1em;
+}
+
 .align_left,
 .align-left {
 	float: left;
@@ -469,6 +484,23 @@ a {
 
 	body.modal #sitelink {
 		display: none; 
+	}
+
+#debug table {
+	width: 100%; 
+}
+
+	#debug table th {
+		font-weight: bold;
+	}
+
+	#debug table td,
+	#debug table th {
+		vertical-align: top; 
+		padding: 3px 5px; 	
+		border-bottom: 1px dotted #ccc; 
+		border-left: 1px dotted #ccc; 
+		font-size: 12px; 
 	}
 
 /***********************************************************************************************

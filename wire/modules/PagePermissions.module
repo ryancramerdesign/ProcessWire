@@ -77,8 +77,13 @@ class PagePermissions extends WireData implements Module {
 		if($user->isSuperuser()) return true; 
 
 		// note there is an exception in the case of system pages, which require superuser to edit
-		if($page->status & Page::statusSystem) return false; 
+		if($page->status & Page::statusSystem) return false;
 
+		// If page is locked and user doesn't have permission to unlock, don't let them edit
+		if($page->status & Page::statusLocked) {
+			if(!$user->hasPermission("page-lock")) return false; 
+		}
+			
 		// special conditions apply if the page is a User
 		if($page instanceof User) {
 
@@ -90,6 +95,7 @@ class PagePermissions extends WireData implements Module {
 
 		// if the user doesn't have page-edit permission, don't let them go further
 		if(!$user->hasPermission("page-edit", $page)) return false;
+		
 
 		// now check if there is a page-publish permission in the system, and use it if so
 		$publish = $this->fuel('permissions')->get('page-publish'); 
@@ -154,13 +160,20 @@ class PagePermissions extends WireData implements Module {
 	/**
 	 * Is the page viewable by the current user?
 	 *
+	 * @param HookEvent $event
+	 *
 	 */
 	public function viewable($event) {
 
 		$page = $event->object; 
 		$viewable = true; 
 		$user = $this->fuel('user'); 
+		$u = $event->arguments(0); 
 
+		// allow specifying User instance as argument 0 
+		// this gives you a "viewable to user" capability
+		if($u && $u instanceof User) $user = $u;
+		
 		if($page->status >= Page::statusUnpublished) $viewable = false;
 			else if(!$page->template || !$page->template->filenameExists()) $viewable = false; 
 			else if($user->isSuperuser()) $viewable = true; 
@@ -172,8 +185,9 @@ class PagePermissions extends WireData implements Module {
 		if(!$viewable && !$user->isGuest() && $page->is(Page::statusUnpublished)) {
 			if($page->editable() && $page->template->filenameExists()) $viewable = true; 
 		}
+		
 
-		$event->return = $viewable; 
+		$event->return = $viewable;
 	}
 
 	/**
@@ -204,8 +218,12 @@ class PagePermissions extends WireData implements Module {
 	/**
 	 * Is the page listable by the current user?
 	 *
+	 * A listable page may appear in a listing, but doesn't mean that the user can actually 
+	 * view the page or that the page is renderable. 
+	 *
 	 */
 	public function listable($event) {
+
 		$page = $event->object; 
 		$user = $this->fuel('user'); 
 		$listable = true; 
@@ -213,6 +231,7 @@ class PagePermissions extends WireData implements Module {
 		if($user->isSuperuser()) $listable = true; 
 			else if($page->is(Page::statusUnpublished) && !$page->editable()) $listable = false;
 			else if($page->process && !$this->processViewable($page->process)) $listable = false;
+			else if($page->isTrash()) $listable = false; 
 			else if($page->getAccessTemplate()->guestSearchable) $listable = true; 
 			else if(!$user->hasPermission("page-view", $page)) $listable = false;
 

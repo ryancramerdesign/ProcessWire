@@ -17,11 +17,11 @@
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
- * @version 2.2
+ * @version 2.3
  *
  */
 
-define("PROCESSWIRE", 202); 
+define("PROCESSWIRE", 203); 
 
 /**
  * Build the ProcessWire configuration
@@ -92,6 +92,8 @@ function ProcessWireBootConfig() {
 	 */
 	$config = new Config();
 	$config->urls = new Paths($rootURL); 
+	$config->urls->wire = "$wireDir/";
+	$config->urls->site = "$siteDir/";
 	$config->urls->modules = "$wireDir/modules/";
 	$config->urls->siteModules = "$siteDir/modules/";
 	$config->urls->core = "$coreDir/"; 
@@ -151,8 +153,9 @@ function ProcessWireBootConfig() {
 	session_name($config->sessionName); 
 	ini_set('session.use_cookies', true); 
 	ini_set('session.use_only_cookies', 1);
+	ini_set('session.cookie_httponly', 1); 
 	ini_set("session.gc_maxlifetime", $config->sessionExpireSeconds); 
-	ini_set("session.save_path", rtrim($config->paths->sessions, '/')); 
+	if(ini_get('session.save_handler') == 'files') ini_set("session.save_path", rtrim($config->paths->sessions, '/')); 
 
 	return $config; 
 }

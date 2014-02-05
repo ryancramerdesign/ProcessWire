@@ -75,15 +75,6 @@ $(document).ready(function() {
 			if(resized) $img.addClass('resized'); 
 		});
 
-		$("#selected_image_description").focus(function() {
-			$(this).siblings('label').hide();
-		}).blur(function() {
-			if($(this).val().length < 1) $(this).siblings('label').show();
-		}).change(function() {
-			if($(this).val().length < 1) $(this).siblings('label').show();
-				else $(this).siblings('label').hide();
-		}).change();
-
 		populateResizeDimensions();
 	}; 
 

@@ -30,7 +30,25 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 			);
 	}
 
+	/**
+	 * Instance of Config, cached wire('config')
+	 *
+	 */
 	protected $config; 
+
+	/**
+	 * Stack of pages when rendering recursively
+	 *
+	 */
+	protected $pageStack = array();
+
+	/**
+	 * Keeps track of recursion level when rendering recursively
+	 *
+	 * Used to determine when pageStack should be maintained
+	 *
+	 */
+	protected $renderRecursionLevel = 0;
 
 	/**
 	 * Initialize the hooks
@@ -96,12 +114,21 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 *
 	 * Note that this does not check if the page is cachable. This is so that if a cachable setting changes the cache can still be removed. 
 	 *
-	 * @param Page
+	 * @param Page $page
+	 * @param array $options
 	 * @return CacheFile
+	 * @throws WireException
 	 *
 	 */
-	public function getCacheFile(Page $page) {
+	public function getCacheFile(Page $page, array $options = array()) {
 
+		$defaults = array(
+			'prependFile' => '',
+			'appendFile' => '', 
+			'filename' => '', 
+			);
+
+		$options = array_merge($defaults, $options); 
 		$path = $this->config->paths->cache . self::cacheDirName . "/";
 		$id = $page->id; 
 		$cacheTime = $page->template->cache_time; 
@@ -115,7 +142,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		if($this->config->chmodFile) $cacheFile->setChmodFile($this->config->chmodFile);
 		if($this->config->chmodDir) $cacheFile->setChmodDir($this->config->chmodDir);
 
-		if($this->fuel('page') === $page) {
+		if($this->wire('page') === $page) {
 			$secondaryID = '';
 			$pageNum = $this->input->pageNum; 
 			$urlSegments = $this->input->urlSegments; 
@@ -125,6 +152,11 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 					$secondaryID .= $this->sanitizer->pageName($urlSegment) . '+';
 				}
 			}
+
+			if($options['prependFile'] || $options['appendFile'] || $options['filename']) {
+				$secondaryID .= md5($options['prependFile'] . '+' . $options['appendFile'] . '+' . $options['filename']) . '+';
+			}
+
 			if($pageNum > 1) $secondaryID .= "page{$pageNum}";
 			$secondaryID = rtrim($secondaryID, '+'); 
 			if(wire('languages')) { 
@@ -142,7 +174,6 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	public function clearCacheFile($event) {
-
 		$page = $event->arguments[0]; 
 		if(!$page->template->cache_time) return;
 		$cacheExpire = $page->template->cacheExpire; 
@@ -192,61 +223,117 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 * If the page's template has caching enabled, then this method will return a cached page render, when valid, 
 	 * or save a new cache. Caches are only saved on guest users. 
 	 *
-	 * @param array options Options to modify the render behavior: 
-	 *      forceBuildCache: If true, the cache will be re-created for this page, regardless of whether it's expired or not. 
+	 * #param array|string options Array of options, or filename (string) to render. Options [all optional] may be: 
+	 *      forceBuildCache: If true, the cache will be re-created for this page, regardless of whether it's expired or not. (default=false)
+	 *	allowCache: Allow cache to be used when template settings ask for it. (default=true)
+	 *	filename: Filename to render, optionally relative to /site/templates/. Absolute paths must resolve somewhere in PW's install. (default=blank)
+	 *	prependFile: Filename to prepend to output, must be in /site/templates/. (default=$config->prependTemplateFile)
+	 *	appendFile: Filename to append to output, must be in /site/templates/. (default=$config->appendTemplateFile)
+	 *	pageStack: An array of pages, when recursively rendering. Used internally. You can examine it but not change it. 
+	 *	
+	 * #param array $options 
+	 *	If you specified a filename for the first option, you may use the options array mentioned above as 2nd argument.
+	 * 	This $options array will also be passed to the template as variable $options. Given that, you may add additional
+	 *	variables of your own names to $options as needed for communication with the template, if it suits your need. 
 	 *
+	 * @param HookEvent $event
 	 * @return string rendered data
+	 * @throws WirePermissionException|WireException
 	 *
 	 */
 	public function ___renderPage($event) {
 
 		wire('pages')->setOutputFormatting(true); 
 
-		// just in case one page is rendering another, save the previous
-		$_page = $this->fuel('page'); 
-		$page = $event->object; 
-
-		// set the context of the new page to be system-wide
-		// only applicable if rendering a page within a page
-		if(!$_page || $page->id != $_page->id) $this->setFuel('page', $page);
-		//if(!$page->id != $_page->id) $this->setFuel('page', $page);
-
-		$options = count($event->arguments) ? $event->arguments[0] : array();
-
+		$page = $event->object;
+		
 		if($page->status >= Page::statusUnpublished && !$page->viewable()) {
-			if($_page) $this->setFuel('page', $_page) ;
 			throw new WirePermissionException("Page '{$page->url}' is not currently viewable.");
 		}
 
-		$defaultOptions = array(
-			'forceBuildCache' => false,
-			);
-		$options = array_merge($defaultOptions, $options);
+		$_page = $this->wire('page'); // just in case one page is rendering another, save the previous
+		$config = $this->wire('config');
+		$this->renderRecursionLevel++;
+		
+		// set the context of the new page to be system-wide
+		// only applicable if rendering a page within a page
+		if(!$_page || $page->id != $_page->id) $this->wire('page', $page);
+		if($this->renderRecursionLevel > 1) $this->pageStack[] = $_page; 
 
-		$cacheAllowed = $this->isCacheAllowed($page); 
+		// arguments to $page->render() may be a string with filename to render or array of options
+		$options = $event->arguments(0);
+		$options2 = $event->arguments(1);
+
+		// normalize options to array
+		if(is_string($options) && strlen($options)) $options = array('filename' => $options); // arg1 is filename
+		if(!is_array($options)) $options = array(); // no args specified
+		if(is_array($options2)) $options = array_merge($options2, $options); // arg2 is $options 
+
+		$defaultOptions = array(
+			'filename' => '', // default blank means filename comes from $page
+			'prependFile' => $config->prependTemplateFile,
+			'appendFile' => $config->appendTemplateFile,
+			'allowCache' => true, 
+			'forceBuildCache' => false,
+			'pageStack' => array(), // set after array_merge
+			);
+
+		$options = array_merge($defaultOptions, $options);
+		$options['pageStack'] = $this->pageStack;
+
+		$cacheAllowed = $options['allowCache'] && $this->isCacheAllowed($page); 
 		$cacheFile = null;
 
 		if($cacheAllowed) {
-			$cacheFile = $this->getCacheFile($page);
+			$cacheFile = $this->getCacheFile($page, $options);
 			if(!$options['forceBuildCache'] && ($data = $cacheFile->get()) !== false) {
 				$event->return = $data;
-				if($_page) $this->setFuel('page', $_page);
+				if($_page) $this->wire('page', $_page);
 				return;
 			}
 		}
+		
 
 		$of = $page->of();
 		if(!$of) $page->of(true);
 
 		$data = '';
-		$config = wire('config');
-		$output = $page->output;
+		$output = $page->output(true);
 		if($output) {
+
+			// global prepend/append include files apply only to user-defined templates, not system templates
 			if(!($page->template->flags & Template::flagSystem)) {
-				// global prepend/append include files apply only to user-defined templates, not system templates
-				if($config->prependTemplateFile) $output->setPrependFilename($config->paths->templates . wire('sanitizer')->name($config->prependTemplateFile)); 
-				if($config->appendTemplateFile) $output->setAppendFilename($config->paths->templates . wire('sanitizer')->name($config->appendTemplateFile)); 
+				if($options['prependFile']) $output->setPrependFilename($config->paths->templates . $this->wire('sanitizer')->name($options['prependFile'])); 
+				if($options['appendFile']) $output->setAppendFilename($config->paths->templates . $this->wire('sanitizer')->name($options['appendFile'])); 
 			}
+
+			// option to change the filename that is used for output rendering
+			if($options['filename'] && strpos($options['filename'], '..') === false) {
+				$filename = $config->paths->templates . ltrim($options['filename'], '/');
+				$setFilename = '';
+				if(is_file($filename)) {
+					// path relative from /site/templates/
+					$setFilename = $filename; 
+				} else {
+					// absolute path, ensure it is somewhere within web root
+					$filename = $options['filename'];
+					if(strpos($filename, $config->paths->root) === 0 && is_file($filename)) $setFilename = $filename; 
+				}
+
+				if($setFilename) {
+					$output->setFilename($setFilename);
+					$options['filename'] = $setFilename;
+				} else {
+					throw new WireException("Invalid output file location or specified file does not exist. $setFilename"); 
+				}
+			} else {
+				$options['filename'] = $page->template->filename; 
+			}
+
+			// pass along the $options as a local variable to the template so that one can provide their 
+			// own additional variables in it if they want to
+			$output->set('options', $options);
+
 			$data = $output->render();
 		}
 
@@ -254,7 +341,11 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$event->return = $data; 
 
 		if(!$of) $page->of($of);
-		if($_page) $this->setFuel('page', $_page); 
+		if($_page && $_page->id != $page->id) {
+			$this->wire('page', $_page); 
+		}
+		if(count($this->pageStack)) array_pop($this->pageStack); 
+		$this->renderRecursionLevel--;
 	}
 
 	/**
@@ -287,7 +378,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		}
 
 		if($clearNow) {
-			$inputfields->message("Cleared $numFiles cache files for $numPages pages"); 
+			$inputfields->message(sprintf(__('Cleared %d cache files for %d pages'), $numFiles, $numPages)); 
 			$numPages = 0;
 		}
 
@@ -295,8 +386,8 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$f = Wire::getFuel('modules')->get('InputfieldCheckbox');
 		$f->attr('name', $name);
 		$f->attr('value', 1);
-		$f->label = "Clear the Page Render Disk Cache?"; 
-		$f->description = "There are currently $numPages pages cached in $path";
+		$f->label = __('Clear the Page Render Disk Cache?'); 
+		$f->description = sprintf(__('There are currently %d pages cached in %s'), $numPages, $path);
 
 		$inputfields->append($f);
 

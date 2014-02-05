@@ -15,6 +15,8 @@
  * 
  * http://processwire.com
  *
+ * @todo: option to have them collapsed by default (the repeater items themselves), ability to control labels of repeater items, and automatic sorting.
+ *
  */
 
 class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
@@ -328,6 +330,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 *
 	 * @param Page $page Page being edited
 	 * @param Field $field Field that needs an Inputfield
+	 * @return Inputfield
 	 *
 	 */
 	public function getInputfield(Page $page, Field $field) {
@@ -489,20 +492,6 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		$a = wire('pages')->find($selector);
 		$pageArray = new RepeaterPageArray($page, $field); 
 		$pageArray->import($a);
-
-		// check each item to make sure it can be here
-		foreach($pageArray as $p) {
-
-			$unpublished = $p->is(Page::statusUnpublished); 
-			$hidden = $p->is(Page::statusHidden); 
-
-			// hidden pages (assumed to be a ready page) should never be included when page is being viewed (outputFormatting)
-			if($hidden && $outputFormatting) $pageArray->remove($p); 
-
-			// unpublished items may only be included if the page is also unpublished (and presumably being previewed)
-			if($outputFormatting && $unpublished && !$page->is(Page::statusUnpublished)) $pageArray->remove($p);
-		}
-
 		$pageArray->resetTrackChanges(true); 
 
 		return $pageArray; 
@@ -559,7 +548,6 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 *
 	 * @param Page $page
 	 * @param Field $field
-	 * @param bool $create True means the page wil be created and saved, false means it won't
 	 * @return Page
 	 *
 	 */
@@ -593,6 +581,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 *
 	 * @param Field $field
 	 * @return Page
+	 * @throws WireException
 	 *
 	 */
 	protected function getRepeaterParent(Field $field) {
@@ -789,6 +778,28 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		}
 		*/
 
+		// remove ready items that shouldn't be here
+		foreach($value as $p) {
+
+			if($p->status < Page::statusHidden) continue; 
+			$remove = false; 
+
+			if($p->is(Page::statusHidden)) {
+				// hidden pages (assumed to be a ready page) should never be included when page is being viewed (outputFormatting)
+				$remove = true; 
+			} else if($p->is(Page::statusUnpublished) && !$page->is(Page::statusUnpublished)) {
+				// unpublished items may only be included if the page is also unpublished (and presumably being previewed)
+				$remove = true; 
+			}
+
+			if($remove) {
+				$trackChanges = $value->trackChanges();
+				$value->setTrackChanges(false); 
+				$value->remove($p); 
+				$value->setTrackChanges($trackChanges); 
+			}
+		}
+
 		return $value;
 	}
 
@@ -809,7 +820,25 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
 		if($subfield == 'count') { 
 			$value = (int) $value; 
-			$query->where("($table.count{$operator}$value)"); 
+
+			if(	($operator == '=' && $value == 0) || 
+				(in_array($operator, array('<', '<=')) && $value > -1) ||
+				($operator == '!=' && $value)) {
+
+				$templateIDs = array();
+				foreach($field->getTemplates() as $template) $templateIDs[] = (int) $template->id; 
+				if(count($templateIDs)) {
+					$templateIDs = implode(',', $templateIDs); 
+					$sql = 	"($table.count{$operator}$value OR " . 
+						"($table.count IS NULL AND pages.templates_id IN($templateIDs)))";
+					$query->where($sql); 
+				} else {
+					$query->where("1>2"); // forced non-match
+				}
+
+			} else {
+				$query->where("($table.count{$operator}$value)"); 
+			}
 
 		} else if($subfield == 'parent_id' || $subfield == 'parent') {  
 
@@ -1232,6 +1261,18 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 */
 	public static function getModuleConfigInputfields(array $data) {
 		return new InputfieldWrapper();
+	}
+
+	/**
+	 * Remove advanced options that aren't supposed with repeaters
+	 *
+	 */
+	public function ___getConfigAdvancedInputfields(Field $field) {
+		$inputfields = parent::___getConfigAdvancedInputfields($field);
+		// these two are potential troublemakers when it comes to repeaters
+		$inputfields->remove($inputfields->get('autojoin'));
+		$inputfields->remove($inputfields->get('global'));
+		return $inputfields;
 	}
 
 	/**

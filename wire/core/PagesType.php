@@ -7,15 +7,14 @@
  * a given page class/type, with predefined parent and template. 
  *
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
-class PagesType extends Wire implements IteratorAggregate {
+class PagesType extends Wire implements IteratorAggregate, Countable {
 
 	/**
 	 * Template defined for use in this PagesType
@@ -104,17 +103,20 @@ class PagesType extends Wire implements IteratorAggregate {
 	 * @return Page|null
 	 */
 	public function get($selectorString) {
-
+		
 		if(ctype_digit("$selectorString")) {
-			$pages = $this->pages->getById(array((int) $selectorString), $this->template, $this->parent_id); 
-			if(count($pages)) return $pages->first();
-				else return new NullPage();
+			$pages = $this->pages->getById(array((int) $selectorString), $this->template, $this->parent_id);
+			if(count($pages)) {
+				$page = $pages->first();
+				//$this->loaded($page);
+				return $page; 
+			} else return new NullPage();
 
 		} else if(strpos($selectorString, '=') === false) { 
 			$s = $this->sanitizer->name($selectorString); 
 			if($s === $selectorString) $selectorString = "name=$s"; 	
 		}
-			
+
 		$page = $this->pages->get($this->selectorString($selectorString)); 
 		if($page->id) $this->loaded($page);
 		return $page; 
@@ -131,6 +133,7 @@ class PagesType extends Wire implements IteratorAggregate {
 	 *
 	 * @param Page $page
 	 * @return bool True on success
+	 * @throws WireException
 	 *
 	 */
 	public function ___save(Page $page) {
@@ -149,6 +152,7 @@ class PagesType extends Wire implements IteratorAggregate {
 	 * @param Page $page
 	 * @param bool $recursive If set to true, then this will attempt to delete all children too. 
 	 * @return bool
+	 * @throws WireException
 	 *
 	 */
 	public function ___delete(Page $page, $recursive = false) {
@@ -207,6 +211,10 @@ class PagesType extends Wire implements IteratorAggregate {
 
 	public function getParent() {
 		return wire('pages')->get($this->parent_id);
+	}
+	
+	public function count() {
+		return $this->getParent()->numChildren();
 	}
 
 }

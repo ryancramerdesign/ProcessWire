@@ -1,11 +1,15 @@
-.Inputfields > li > .ui-widget-content > ul.InputfieldFileList > li {
+.Inputfields > li > .ui-widget-content > ul.InputfieldFileList > li,
+.Inputfields > li > .InputfieldContent > ul.InputfieldFileList > li {
 	margin: 0 0 1em 0;
 	position: relative; 
 	cursor: move; 
 }
 
-	ul.InputfieldFileList li p {
+	.InputfieldItemList .InputfieldContent.ui-state-hover {
+		/* ajax upload drag over */
+		background: none;
 	}
+
 
 	ul.InputfieldFileList li .InputfieldFileInfo, 
 	.AjaxUpload .InputfieldFileInfo {
@@ -53,6 +57,12 @@
 
 	ul.InputfieldFileList li .ui-icon {
 		float: left; 
+	}
+
+	.InputfieldFileEmpty .HideIfEmpty,
+	.InputfieldFileSingle .HideIfSingle,
+	.InputfieldFileMultiple .HideIfMultiple {
+		display: none !important; 
 	}
 
 	ul.InputfieldFileList li .InputfieldFileData {

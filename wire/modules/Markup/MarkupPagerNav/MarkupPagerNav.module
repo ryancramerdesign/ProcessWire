@@ -28,11 +28,10 @@
  *
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -50,7 +49,7 @@ class MarkupPagerNav extends Wire implements Module {
 		return array(
 			'title' => 'Pager (Pagination) Navigation', 
 			'summary' => 'Generates markup for pagination navigation', 
-			'version' => 102, 
+			'version' => 103, 
 			'permanent' => false, 
 			'singular' => false, 
 			'autoload' => false, 
@@ -85,6 +84,9 @@ class MarkupPagerNav extends Wire implements Module {
 
 		// Link markup. Place {url} for href attribute, and {out} for label content. 
 		'linkMarkup' => "<a href='{url}'><span>{out}</span></a>", 
+
+		// Link markup for current page. Place {url} for href attribute and {out} for label content. 
+		'currentLinkMarkup' => "<a href='{url}'><span>{out}</span></a>", 
 
 		// label used for the 'Next' button
 		'nextItemLabel' => 'Next', 
@@ -205,6 +207,7 @@ class MarkupPagerNav extends Wire implements Module {
 			} else {
 				$url .= $this->queryString; 
 			}
+
 			$class = isset($this->options[$item->type . 'ItemClass']) ? $this->options[$item->type . 'ItemClass'] : '';
 
 			if(!$key) $class .= ' ' . $this->options['firstItemClass']; 
@@ -213,7 +216,8 @@ class MarkupPagerNav extends Wire implements Module {
 			if($key === $firstNumberKey) $class .= ' ' . $this->options['firstNumberItemClass'];
 				else if($key === $lastNumberKey) $class .= ' ' . $this->options['lastNumberItemClass'];
 
-			$link = str_replace(array('{url}', '{out}'), array($url, $item->label), $this->options['linkMarkup']); 
+			$linkMarkup = isset($this->options[$item->type . 'LinkMarkup']) ? $this->options[$item->type . 'LinkMarkup'] : $this->options['linkMarkup'];
+			$link = str_replace(array('{url}', '{out}'), array($url, $item->label), $linkMarkup); 
 			$out .= str_replace(array('{class}', '{out}'), array(trim($class), $link), $this->options['itemMarkup']); 
 
 		}

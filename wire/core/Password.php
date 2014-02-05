@@ -70,7 +70,7 @@ class Password extends Wire {
 
 		if($key == 'pass') {
 			// setting the password
-			return $this->setPass($value);
+			$this->setPass($value);
 
 		} else if(array_key_exists($key, $this->data)) { 
 			// something other than pass
@@ -117,7 +117,6 @@ class Password extends Wire {
 	/**
 	 * Generate a random salt for the given hashType
 	 *
-	 * @param string $hashType Typically 'blowfish' or 'sha1' in ProcessWire. Provide blank string to auto-detect.
 	 * @return string
 	 *
 	 */
@@ -228,7 +227,8 @@ class Password extends Wire {
 	 * Note: When bowfish, returns the entire blowfish string which has the salt as the first 28 characters. 
 	 *
 	 * @param string $pass Raw password
-	 * @param string $hashType Typically 'blowfish' or 'sha1' in ProcessWire
+	 * @return string
+	 * @throws WireException
 	 *
 	 */
 	protected function hash($pass) {

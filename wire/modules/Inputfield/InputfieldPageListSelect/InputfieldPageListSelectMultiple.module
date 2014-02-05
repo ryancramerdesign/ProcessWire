@@ -14,13 +14,13 @@
  *
  */
 
-class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldHasArrayValue {
+class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldHasArrayValue, InputfieldPageListSelection {
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Page List Select Multiple', __FILE__), // Module Title
 			'summary' => __('Selection of multiple pages from a ProcessWire page tree list', __FILE__), // Module Summary
-			'version' => 100,
+			'version' => 101,
 			'permanent' => true, 
 			);
 	}
@@ -30,6 +30,11 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 		$this->fuel('modules')->get('ProcessPageList'); // prerequisite modules
 		$this->set('parent_id', 0); 
 		$this->set('labelFieldName', 'title'); 
+		$this->set('startLabel', $this->_('Add'));
+		$this->set('cancelLabel', $this->_('Cancel'));
+		$this->set('selectLabel', $this->_('Select'));
+		$this->set('unselectLabel', $this->_('Unselect'));
+		$this->set('moreLabel', $this->_('More'));
 	}
 
 	protected function renderListItem($label, $value, $class = '') {
@@ -49,18 +54,14 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 			return "<p class='error'>" . $this->_('Unable to render this field due to missing parent page in field settings.') . '</p>';
 		}
 
-		$out = '';
-		$selectStartLabel = $this->_('Add');
-		$selectCancelLabel = $this->cancelLabel;
-
-		$out .= "\n<ol id='{$this->id}_items'>"; 
-		$out .= $this->renderListItem("Label", "1", "itemTemplate"); 
+		$out = "\n<ol id='{$this->id}_items'>" . $this->renderListItem("Label", "1", "itemTemplate"); 
 
 		foreach($this->value as $page_id) {
 			$page = $this->pages->get((int) $page_id); 
 			if(!$page || !$page->id) continue; 
 			$out .= $this->renderListItem($page->get($this->labelFieldName), $page->id); 
 		}
+		
 		$out .= "\n</ol>";
 
 		$attrs = $this->getAttributes();
@@ -74,10 +75,13 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 			"t.ProcessPageList({ " . 
 				"mode: 'select', " . 
 				"rootPageID: {$this->parent_id}, " . 
-				"selectStartLabel: '$selectStartLabel', " . 
 				"selectShowPageHeader: false, " . 
-				"selectSelectHref: '#wrap_{$this->id}', " . 
-				"selectCancelLabel: '$selectCancelLabel' " . 
+				"selectSelectHref: '#wrap_{$this->id}', " .
+				"selectStartLabel: '$this->startLabel', " .
+				"selectCancelLabel: '$this->cancelLabel', " .
+				"selectSelectLabel: '$this->selectLabel', " .
+				"selectUnselectLabel: '$this->unselectLabel', " .
+				"moreLabel: '$this->moreLabel' " . 
 			"}).hide()" . 
 			".bind('pageSelected', t, InputfieldPageListSelectMultiple.pageSelected)" . 
 			"}); " . 

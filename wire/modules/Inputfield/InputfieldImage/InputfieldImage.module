@@ -1,12 +1,12 @@
 <?php
 
-class InputfieldImage extends InputfieldFile {
+class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Images', __FILE__), // Module Title
 			'summary' => __('One or more image uploads (sortable)', __FILE__), // Module Summary
-			'version' => 100,
+			'version' => 105,
 			'permanent' => true, 
 			);
 	}
@@ -18,15 +18,18 @@ class InputfieldImage extends InputfieldFile {
 		$this->set('maxWidth', ''); 
 		$this->set('maxHeight', ''); 
 		$this->set('adminThumbHeight', 100); 
-		$this->set('itemClass', 'InputfieldFile InputfieldImage ui-widget'); 
+		$this->set('itemClass', 'InputfieldFileItem InputfieldImage ui-widget'); 
+		$this->set('defaultGrid', 0); 
 		//$this->modules->get("InputfieldFile"); // force the JS and CSS from InputfieldFile to also be loaded
-		$this->modules->get("JqueryFancybox"); 
 	}
 
 	public function ___render() {
+		$this->modules->getInstall("JqueryMagnific"); 
 		$this->config->scripts->add($this->config->urls->InputfieldFile . "InputfieldFile.js");
 		$this->config->styles->add($this->config->urls->InputfieldFile . "InputfieldFile.css");
-		return parent::___render();
+		$out = parent::___render();
+		if($this->defaultGrid) $out .= "<span class='InputfieldImageDefaultGrid'></span>";
+		return $out; 
 	}
 
 	/**
@@ -68,8 +71,9 @@ class InputfieldImage extends InputfieldFile {
 			$thumb = $thumb->height($this->adminThumbHeight); 
 		}
 
-		$out = 	"\n\t\t<p class='InputfieldFileInfo ui-widget ui-widget-header'>" . 
-			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>" . 
+		$out = 	"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header'>" . 
+			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s HideIfSingle'></span>" .
+			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-1-e HideIfMultiple'></span>" . 
 			"\n\t\t\t<span class='InputfieldFileName'>{$pagefile->basename}</span> " . 
 			"\n\t\t\t<span class='InputfieldFileStats'>&bull; {$pagefile->filesizeStr} &bull; {$pagefile->width}x{$pagefile->height}</span> " . 
 			"\n\t\t\t<label class='InputfieldFileDelete'><input type='checkbox' name='delete_$id' value='1' /><span class='ui-icon ui-icon-trash'>Delete</span></label>" . 
@@ -97,6 +101,17 @@ class InputfieldImage extends InputfieldFile {
 		$field->description = $this->_('Thumbnails take up less space and make it easier to sort multiple images. If unchecked, the full (original) size image will be shown in the page editor.'); // Display thumbnails description
 		$inputfields->add($field); 
 
+		$field = $this->modules->get("InputfieldRadios"); 
+		$field->attr('name', 'defaultGrid'); 
+		$field->label = $this->_('Default View'); 
+		$field->addOption(0, $this->_('Rows')); 
+		$field->addOption(1, $this->_('Grid')); 
+		$field->showIf = 'maxFiles!=1';
+		$field->optionColumns = 1; 
+		$field->description = $this->_('Either view can be toggled by clicking the grid/row icon in the image field. This just defines which one is the default. The rows view is the recommended default.'); 
+		$field->attr('value', (int) $this->defaultGrid); 
+		$inputfields->add($field); 
+
 		$fieldset = $this->modules->get('InputfieldFieldset');
 		$fieldset->label = $this->_("Max Image Dimensions");
 		$fieldset->collapsed = $this->maxWidth || $this->maxHeight ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
@@ -107,6 +122,7 @@ class InputfieldImage extends InputfieldFile {
 		$field->attr('value', $this->maxWidth ? (int) $this->maxWidth : ''); 
 		$field->label = $this->_("Max width for uploaded images"); 
 		$field->description = $this->_("Enter the value in number of pixels or leave blank for no max."); // Max width description
+		$field->columnWidth = 50; 
 		$fieldset->add($field); 
 
 		$field = $this->modules->get("InputfieldInteger"); 
@@ -114,6 +130,7 @@ class InputfieldImage extends InputfieldFile {
 		$field->attr('value', $this->maxHeight ? (int) $this->maxHeight : ''); 
 		$field->label = $this->_("Max height for uploaded images"); 
 		$field->description = $this->_("Enter the value in number of pixels or leave blank for no max.");  // Max height description
+		$field->columnWidth = 50; 
 		$fieldset->add($field); 
 
 		$inputfields->add($fieldset); 

@@ -6,11 +6,10 @@
  * Represents a single image item attached to a page, typically via a FieldtypeImage field.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  * 
  * @property int $width Width of image, in pixels
@@ -59,6 +58,7 @@ class Pageimage extends Pagefile {
 	 *
 	 * @param Pagefiles $pagefiles 
 	 * @param string $filename Full path and filename to this pagefile
+	 * @throws WireException
 	 *
 	 */
 	public function __construct(Pagefiles $pagefiles, $filename) {
@@ -253,6 +253,46 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
+	 * Return an image no larger than the given width
+	 *
+	 * If source image is equal to or smaller than the requested dimension, 
+	 * then it will remain that way and the source image is returned (not a copy).
+	 * 
+	 * If the source image is larger than the requested dimension, then a new copy
+	 * will be returned at the requested dimension.
+	 *
+ 	 * @param int $n Maximum width
+	 * @param array $options Optional options array
+	 * @return Pageimage
+	 *
+	 */
+	public function maxWidth($n, array $options = array()) {
+		$options['upscaling'] = false;
+		if($this->width() > $n) return $this->width($n); 
+		return $this;
+	}
+
+	/**
+	 * Return an image no larger than the given height
+	 *
+	 * If source image is equal to or smaller than the requested dimension, 
+	 * then it will remain that way and the source image is returned (not a copy).
+	 * 
+	 * If the source image is larger than the requested dimension, then a new copy
+	 * will be returned at the requested dimension.
+	 *
+ 	 * @param int $n Maximum width
+	 * @param array $options Optional options array
+	 * @return Pageimage
+	 *
+	 */
+	public function maxHeight($n, array $options = array()) {
+		$options['upscaling'] = false;
+		if($this->height() > $n) return $this->height($n); 
+		return $this;
+	}
+
+	/**
 	 * Get all size variations of this Pageimage as a Pageimages array of Pageimage objects.
 	 *
 	 * This is useful after a delete of an image (for example). This method can be used to track down all the child files that also need to be deleted. 
@@ -266,7 +306,6 @@ class Pageimage extends Pagefile {
 
 		$variations = new Pageimages($this->pagefiles->page); 
 		$dir = new DirectoryIterator($this->pagefiles->path); 
-		$basename = basename($this->basename, "." . $this->ext()); 
 
 		foreach($dir as $file) {
 			if($file->isDir() || $file->isDot()) continue; 			
@@ -296,7 +335,7 @@ class Pageimage extends Pagefile {
 	 * @return bool|array Returns false if not a variation or array of it is
 	 *
 	 */
-	public function isVariation($basename) {
+	public function ___isVariation($basename) {
 
 		$variationName = basename($basename);
 		$originalName = basename($this->basename, "." . $this->ext());  // excludes extension
@@ -331,7 +370,7 @@ class Pageimage extends Pagefile {
 	/**
 	 * Delete all the alternate sizes associated with this Pageimage
 	 *
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function removeVariations() {
@@ -350,7 +389,7 @@ class Pageimage extends Pagefile {
 	 * Identify this Pageimage as a variation, by setting the Pageimage it was resized from
 	 *
 	 * @param Pageimage $image
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function setOriginal(Pageimage $image) {

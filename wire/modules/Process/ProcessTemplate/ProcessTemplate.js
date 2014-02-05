@@ -111,14 +111,14 @@ $(document).ready(function() {
 		$("#sortfield_fieldset").hide(); 
 	}
 
-	$("#wrap_noParents input").click(function() {
-		if($("#noParents_0:checked").size() > 0) {
-			$("#wrap_parentTemplates").slideDown(); 
+	$("#wrap_Inputfield_noParents input").click(function() {
+		if($("#Inputfield_noParents_0:checked").size() > 0) {
+			$("#wrap_Inputfield_parentTemplates").slideDown(); 
 		} else {	
-			$("#wrap_parentTemplates").slideUp(); 
+			$("#wrap_Inputfield_parentTemplates").slideUp(); 
 		}
 	}); 
-	if($("#noParents_1:checked").size() > 0) $("#wrap_parentTemplates").hide();
+	if($("#Inputfield_noParents_1:checked").size() > 0) $("#wrap_Inputfield_parentTemplates").hide();
 
 	// ----------------
 
@@ -197,12 +197,14 @@ $(document).ready(function() {
 
         // instantiate the WireTabs
 	var $templateEdit = $("#ProcessTemplateEdit"); 
-	$templateEdit.find('script').remove();
-	$templateEdit.WireTabs({
-                items: $(".Inputfields li.WireTab"),
-                id: 'TemplateEditTabs',
-		skipRememberTabIDs: ['WireTabDelete']
-                });
+	if($templateEdit.size() > 0) {
+		$templateEdit.find('script').remove();
+		$templateEdit.WireTabs({
+			items: $(".Inputfields li.WireTab"),
+			id: 'TemplateEditTabs',
+			skipRememberTabIDs: ['WireTabDelete']
+		});
+	}
 
 	
 

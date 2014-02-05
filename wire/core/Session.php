@@ -11,11 +11,10 @@
  * over the $_SESSION superglobal just in case we ever need to replace PHP's session handling in the future.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  *
  * @see http://processwire.com/api/cheatsheet/#session Cheatsheet
@@ -176,7 +175,7 @@ class Session extends Wire implements IteratorAggregate {
 	 *
 	 * @param string $key
 	 * @param mixed $value
- 	 * @return this
+ 	 * @return $this
 	 *
 	 */
 	public function set($key, $value) {
@@ -190,8 +189,8 @@ class Session extends Wire implements IteratorAggregate {
 	/**
 	 * Unsets a session variable
 	 *
- 	 * @param string $value
-	 * @return this
+ 	 * @param string $key
+	 * @return $this
 	 *
 	 */
 	public function remove($key) {
@@ -225,6 +224,9 @@ class Session extends Wire implements IteratorAggregate {
 
 	/**
 	 * Get the IP address of the current user
+	 * 
+	 * @param bool $int Return as a long integer for DB storage? (default=false)
+	 * @return string
 	 *
 	 */
 	public function getIP($int = false) {
@@ -292,6 +294,9 @@ class Session extends Wire implements IteratorAggregate {
 	 * Allow the user $name to login?
 	 *
 	 * Provided for use by hooks. 
+	 * 
+	 * @param string $name
+	 * @return bool
 	 *
 	 */
 	public function ___allowLogin($name) {
@@ -313,7 +318,7 @@ class Session extends Wire implements IteratorAggregate {
 	/**
 	 * Logout the current user, and clear all session variables
 	 *
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function ___logout() {
@@ -333,7 +338,12 @@ class Session extends Wire implements IteratorAggregate {
 	}
 
 	/**
-	 * Redirect this session to another URL
+	 * Redirect this session to another URL.
+	 * 
+	 * Execution halts within this function after redirect has been issued. 
+	 * 
+	 * @param string $url URL to redirect to
+	 * @param bool $http301 Should this be a permanent (301) redirect? (default=true). If false, it is a 302 temporary redirect.
 	 *
 	 */
 	public function ___redirect($url, $http301 = true) {
@@ -347,8 +357,20 @@ class Session extends Wire implements IteratorAggregate {
 		// perform the redirect
 		if($http301) header("HTTP/1.1 301 Moved Permanently");
 		header("Location: $url");
-		header("Connection: close"); 
+		if($this->wire('page')) {
+			$process = $this->wire('modules')->get('ProcessPageView'); 
+			$process->setResponseType(ProcessPageView::responseTypeRedirect); 
+			$process->finished();
+		}
 		exit(0);
+	}
+
+	/**
+	 * Manually close the session, before program execution is done
+	 * 
+	 */
+	public function close() {
+		session_write_close();
 	}
 
 	/**
@@ -366,6 +388,10 @@ class Session extends Wire implements IteratorAggregate {
 
 	/**
 	 * Queue a message to appear the next time session is instantiated
+	 * 
+	 * @param string $text
+	 * @param int $flags See Notice::flags
+	 * @return $this
 	 *
 	 */
 	public function message($text, $flags = 0) {
@@ -376,6 +402,10 @@ class Session extends Wire implements IteratorAggregate {
 	/**
 	 * Queue an error to appear the next time session is instantiated
 	 *
+	 * @param string $text
+	 * @param int $flags See Notice::flags
+	 * @return $this
+	 * 
 	 */
 	public function error($text, $flags = 0) {
 		$this->queueNotice($text, 'error', $flags); 

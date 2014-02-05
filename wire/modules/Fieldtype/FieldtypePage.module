@@ -10,20 +10,19 @@
  * /wire/core/FieldtypeMulti.php
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
-class FieldtypePage extends FieldtypeMulti {
+class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page Reference',
-			'version' => 100,
+			'version' => 102,
 			'summary' => 'Field that stores one or more references to ProcessWire pages',
 			'permanent' => true, 
 			);
@@ -74,10 +73,18 @@ class FieldtypePage extends FieldtypeMulti {
 	public function hookPagesDelete($event) {
 		if(!$event->return) return; // if delete failed, then don't continue
 		$page_id = $event->arguments[0]->id; 
+		$database = $this->wire('database');
 		foreach($this->fuel('fields') as $field) {
 			if(!$field->type instanceof FieldtypePage) continue; 
-			$sql = "DELETE FROM `{$field->table}` WHERE data='$page_id'";
-			$this->db->query($sql); 
+			$table = $database->escapeTable($field->table);
+			// delete references to this page
+			$query = $database->prepare("DELETE FROM `$table` WHERE data=:page_id");
+			$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
+			$query->execute();
+			// delete references this page is keeping to other pages
+			$query = $database->prepare("DELETE FROM `$table` WHERE pages_id=:page_id");
+			$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
+			$query->execute();
 		}	
 	}
 
@@ -99,60 +106,61 @@ class FieldtypePage extends FieldtypeMulti {
 		return $inputfield; 
 	}
 
-        /**
-         * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
+	/**
+	 * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
 	 *
-         * @param Page $page
-         * @param Field $field
-         * @param string|int|array $value
-         * @return string|int|array|object $value
-         *
-         */
-        public function ___wakeupValue(Page $page, Field $field, $value) {
+	 * @param Page $page
+	 * @param Field $field
+	 * @param string|int|array $value
+	 * @return string|int|array|object $value
+	 *
+	 */
+	public function ___wakeupValue(Page $page, Field $field, $value) {
 
 		$template = null;
 		$parent_id = null; 
-
+		
 		if($field->template_id) $template = $this->fuel('templates')->get($field->template_id); 
 		if($field->parent_id) $parent_id = $field->parent_id; 
-
+		
 		// handle $value if it's blank, Page, or PageArray
 		if($field->derefAsPage > 0) {
 			// value will ultimately be a single Page
 			if(!$value) return $this->getBlankValue($page, $field); 
-
+		
 			// if it's already a Page, then we're good: return it
 			if($value instanceof Page) return $value; 	
-
+		
 			// if it's a PageArray and should be a Page, determine what happens next
 			if($value instanceof PageArray) {
 				// if there's a Page in there, return the first one
 				if(count($value) > 0) return $value->first();
-
+		
 				// it's an empty array, so return whatever our default is
 				return $this->getBlankValue($page, $field); 
 			}
-
+		
 		} else {
 			// value will ultimately be multiple pages
-
+		
 			// if it's already a PageArray, great, just return it
 			if($value instanceof PageArray) return $value; 
-
+		
 			// setup our default/blank value 
 			$pageArray = $this->getBlankValue($page, $field); 
-
+		
 			// if $value is blank, then return our default/blank value
 			if(empty($value)) return $pageArray; 
 		}
-
+		
 		// if we made it this far, then we know that the value was not empty
 		// so it's going to need to be populated from one type to the target type
-
+		
 		// we're going to be dealing with $value as an array this point forward
 		// this is for compatibility with the Pages::getById function
 		if(!is_array($value)) $value = array($value); 
-
+		// $value = $this->validatePageIDs($page, $value); 
+		
 		if($field->derefAsPage > 0) {
 			// we're going to return a single page, NullPage or false
 			$pg = false;
@@ -161,51 +169,101 @@ class FieldtypePage extends FieldtypeMulti {
 				$pageArray = $this->fuel('pages')->getById(array((int) reset($value)), $template); 
 				if(count($pageArray)) $pg = $pageArray->first();
 			}
-			if(!$pg || ($pg && $pg->status >= Page::statusUnpublished)) $pg = $this->getBlankValue($page, $field);
+		
+			if($pg && $pg->status >= Page::statusUnpublished && !$field->allowUnpub) $pg = false; 
+			if(!$pg) $pg = $this->getBlankValue($page, $field); 
+		
 			return $pg; 
-
+		
 		} else {
 			// we're going to return a PageArray
+			if(!count($value)) return $this->getBlankValue($page, $field); 
 			$pageArray = $this->fuel('pages')->getById($value, $template); 
 			foreach($pageArray as $pg) {
 				// remove any pages that have an unpublished status
-				if($pg->status >= Page::statusUnpublished) $pageArray->remove($pg); 
+				if($pg->status >= Page::statusUnpublished && !$field->allowUnpub) $pageArray->remove($pg); 
 			}
 			$pageArray->resetTrackChanges(); 
 			return $pageArray; 
 		}
-        }
+	}
 
-        /**
-         * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
-         *              
-         * @param Page $page
-         * @param Field $field
-         * @param string|int|array|object $value
-         * @return string|int
-         *
-         */
-        public function ___sleepValue(Page $page, Field $field, $value) {
+	/**
+	 * Pre-validate the given page IDs
+	 * 
+	 * @param Page $page
+	 * @param array $ids
+	 * @return array
+	protected function validatePageIDs(Page $page, array $ids) {
+		foreach($ids as $key => $id) {
+			// ensure no circular reference
+			if($id == $page->id) unset($ids[$key]); 
+		}
+		return $ids; 
+	}
+	 */
 
+	/**
+	 * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
+	 *              
+	 * @param Page $page
+	 * @param Field $field
+	 * @param string|int|array|object $value
+	 * @return string|int
+	 *
+	 */
+	public function ___sleepValue(Page $page, Field $field, $value) {
+		
 		$sleepValue = array();
-
+		
 		if($field->derefAsPage > 0) {
 			// if the $value isn't specifically a Page, make it a blank array for storage
 			if(!$value instanceof Page || !$value->id) return $sleepValue; 
 			// if $value is a Page (not a NullPage) then place it's ID in an array for storage
+			$this->isValidPage($value, $field, $page, true);
 			$sleepValue[] = $value->id; 
 		} else {
 			// if $value isn't a PageArray then we'll store a blank array
 			if(!$value instanceof PageArray) return $sleepValue; 
 			// iterate through the array and place each Page ID
 			foreach($value as $pg) {
-				if(!$pg->id) continue; 
+				if(!$pg->id) continue;
+				$this->isValidPage($pg, $field, $page, true);
 				$sleepValue[] = $pg->id; 
 			}
 		}
-
+		
 		return $sleepValue;
-        }
+	}
+
+
+	/**
+	 * Format the given value for output. 
+	 *
+	 * In this case, we remove non-listable (unpublished) pages when necessary.
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @param string|int|WireArray|object $value
+	 * @return string
+	 *
+	 */
+	public function ___formatValue(Page $page, Field $field, $value) {
+		if($field->allowUnpub) return $value; 
+
+		// remove unpublished pages for front-end formatted output
+		if($value instanceof Page) {
+			if($value->is(Page::statusUnpublished)) $value = $this->getBlankValue($page, $field); 
+
+		} else if($value instanceof PageArray) {
+			foreach($value as $item) {
+				if($item->is(Page::statusUnpublished)) $value->remove($item); 
+			}
+		}
+
+		return $value;
+	}
+
 
 	/**
 	 * Return either a blank Page or a blank PageArray
@@ -229,14 +287,14 @@ class FieldtypePage extends FieldtypeMulti {
 		}
 
 	}
-
+	
 	/**
 	 * Given a string value return either a Page or PageArray
 	 *	
 	 * @param Page $page
 	 * @param Field $field
 	 * @param string $value
-	 * return Page|PageArray
+	 * @return Page|PageArray
 	 *
 	 */
 	protected function sanitizeValueString(Page $page, Field $field, $value) {
@@ -265,6 +323,12 @@ class FieldtypePage extends FieldtypeMulti {
 		} else if(strlen($value) && $value[0] == '/') {
 			// path to page
 			$result = $this->pages->get($value); 
+			
+		} else if($field->parent_id) {
+			// set by title
+			$result = $this->wire('pages')->get("parent_id=$field->parent_id, title=" . $this->wire('sanitizer')->selectorValue($value));
+			// set by name
+			if(!$result->id) $result = $this->wire('pages')->get("parent_id=$field->parent_id, name=" . $this->wire('sanitizer')->pageName($value)); 
 		}
 
 		return $result; 
@@ -280,10 +344,16 @@ class FieldtypePage extends FieldtypeMulti {
 	 *
 	 */
 	public function sanitizeValue(Page $page, Field $field, $value) {
-		if($field->derefAsPage > 0) return $this->sanitizeValuePage($page, $field, $value); 
-		return $this->sanitizeValuePageArray($page, $field, $value); 
+		if($field->derefAsPage > 0) {
+			// Page
+			$value = $this->sanitizeValuePage($page, $field, $value); 
+		} else {
+			// PageArray
+			$value = $this->sanitizeValuePageArray($page, $field, $value); 
+		}
+		return $value; 
 	}
-
+	
 	/**
 	 * Handles the sanitization of values when target is a single Page
 	 *
@@ -297,7 +367,32 @@ class FieldtypePage extends FieldtypeMulti {
 			$value = $this->sanitizeValueString($page, $field, $value); 
 			if($value instanceof PageArray) $value = $value->first();
 		}
-		return (($value instanceof Page) && $value->id) ? $value : $this->getBlankValue($page, $field); 
+		$value = (($value instanceof Page) && $value->id) ? $value : $this->getBlankValue($page, $field); 
+		// if($page->id == $value->id) $value = $this->getBlankValue($page, $field); // prevent circular references
+		return $value; 
+	}
+
+	/**
+	 * Validate that that $value is a valid Page for this field
+	 * 
+	 * @param Page $value The value to validate
+	 * @param Field $field The field the value is for
+	 * @param Page $forPage The page the value will exist on 
+	 * @param bool $throwException Whether to throw an exception when not valid (default=false)
+	 * @throws WireException
+	 * @return bool
+	 *
+	 */
+	public function isValidPage(Page $value, Field $field, Page $forPage, $throwException = false) {
+	
+		if(InputfieldPage::isValidPage($value, $field, $forPage)) {
+			$valid = true;
+		} else {
+			$valid = false;
+			if($throwException) throw new WireException("Page $value is not valid for $field->name");
+		}
+		
+		return $valid;
 	}
 
 	/**
@@ -334,7 +429,10 @@ class FieldtypePage extends FieldtypeMulti {
 		}
 
 		if(!is_array($value)) $value = array($value); 
-		foreach($value as $pg) $pageArray->add($pg); 
+		foreach($value as $pg) {
+			// if($pg->id == $page->id) continue; // prevent circular references
+			$pageArray->add($pg); 
+		}
 
 		return $pageArray; 
 	}
@@ -348,6 +446,7 @@ class FieldtypePage extends FieldtypeMulti {
 	 * @param string $operator
 	 * @param string $value
 	 * @return DatabaseSelectQuery
+	 * @throws WireException
 	 *
 	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
@@ -361,6 +460,7 @@ class FieldtypePage extends FieldtypeMulti {
 			'sort',
 			);
 
+		$database = $this->wire('database');
 
 		// if subfield is 'data' (meaning no subfield specified) and it's in the format of 'some-string', 
 		// then we assume this to be a page name
@@ -374,7 +474,7 @@ class FieldtypePage extends FieldtypeMulti {
 
 		} else if(in_array($subfield, $names)) { 
 
-			if(!$this->fuel('db')->isOperator($operator)) throw new WireException("Operator '$operator' is not implemented in {$this->classname}"); 
+			if(!$database->isOperator($operator)) throw new WireException("Operator '$operator' is not implemented in {$this->classname}"); 
 			
 			if(in_array($subfield, array('id', 'path', 'url'))) $subfield = 'data'; 
 
@@ -387,10 +487,11 @@ class FieldtypePage extends FieldtypeMulti {
 				}
 			}
 
-			$value = $this->fuel('db')->escape_string($value); 
+			$value = $database->escapeStr($value); 
+			$subfield = $database->escapeCol($subfield);
 
 			if($operator == '!=') {
-				$t = $query->field->getTable();
+				$t = $database->escapeTable($query->field->getTable());
 				$query->where("(SELECT COUNT(*) FROM $t WHERE $t.pages_id=pages.id AND $t.$subfield='$value')=0"); 
 			} else {
 				$query->where("($table.{$subfield}{$operator}'$value')"); // pages.id AND $table.pages_id{$operator}'$value')");
@@ -423,6 +524,7 @@ class FieldtypePage extends FieldtypeMulti {
 	 */
 	protected function getMatchQueryNative($query, $table, $subfield, $operator, $value) {
 
+		$database = $this->wire('database');
 
 		if(!in_array($subfield, $this->nativeNames)) return false; 
 
@@ -448,8 +550,10 @@ class FieldtypePage extends FieldtypeMulti {
 		} else $value = (int) $value; 
 
 		static $n = 0;
+		$table = $database->escapeTable($table);
 		$table2 = "_fieldtypepage" . (++$n);
-		$value = $this->fuel('db')->escape_string($value); 
+		$value = $database->escapeStr($value); 
+		$subfield = $database->escapeCol($subfield);
 
 		$query->join("pages AS $table2 ON $table2.$subfield$operator'$value'"); 
 		$query->where("($table.data=$table2.id)"); 
@@ -478,7 +582,9 @@ class FieldtypePage extends FieldtypeMulti {
 			$subfield = $subfield->name; 
 		}
 
-		$field = $query->field; 
+		$database = $this->wire('database');
+		$field = $query->field;
+		$table = $database->escapeTable($table);
 
 		// perform a separate find() operation for the subfield
 		$pageFinder = new PageFinder();
@@ -487,21 +593,26 @@ class FieldtypePage extends FieldtypeMulti {
 		// build a selector to find matching pagerefs 
 		// @todo should $selector include check_access=0 or even include=all?
 		$selector = 'include=hidden, ';
-		if($field->findPagesSelector) $selector .= $field->findPagesSelector . ", ";
+		if($field->findPagesSelector) {
+			// remove the existing include=hidden, only if selector specifies a different include=something
+			if(strpos($field->findPagesSelector, 'include=') !== false) $selector = '';
+			$selector .= $field->findPagesSelector . ", ";
+		}
 		if($field->parent_id) $selector .= "parent_id={$field->parent_id}, ";
 		if($field->template_id) $selector .= "templates_id={$field->template_id}, ";
 		// @todo note $field->findPagesCode is not implemented
 
 		if($operator == '!=') {
 
-			$selector .= "{$subfield}=$value, ";
+			$selector .= "$subfield=$value, ";
 			$matches = $pageFinder->find(new Selectors(trim($selector, ', ')));
 			if(count($matches)) { 
 				$ids = array();
-				foreach($matches as $match) $ids[$match['id']] = $match['id'];
+				foreach($matches as $match) $ids[$match['id']] = (int) $match['id'];
 				static $xcnt = 0; 
-				$t = 'x_' . $field->table . (++$xcnt);
-				$query->leftjoin("{$field->table} AS $t ON $t.pages_id=pages.id AND $t.data IN(" . implode(',', $ids) . ")"); 
+				$fieldTable = $database->escapeTable($field->table); 
+				$t = 'x_' . $fieldTable . (++$xcnt);
+				$query->leftjoin("$fieldTable AS $t ON $t.pages_id=pages.id AND $t.data IN(" . implode(',', $ids) . ")"); 
 				$query->parentQuery->where("$t.data IS NULL"); 
 			}
 
@@ -513,7 +624,7 @@ class FieldtypePage extends FieldtypeMulti {
 			// use the IDs found from the separate find() as our getMatchQuery
 			if(count($matches)) {
 				$ids = array();
-				foreach($matches as $match) $ids[$match['id']] = $match['id'];
+				foreach($matches as $match) $ids[$match['id']] = (int) $match['id'];
 				$query->where("$table.data IN(" . implode(',', $ids) . ")");
 			} else $query->where("1>2"); // forced non-match
 
@@ -551,7 +662,97 @@ class FieldtypePage extends FieldtypeMulti {
 
 		$select->attr('value', (int) $field->derefAsPage);  
 		$inputfields->append($select);
+
 		return $inputfields; 
 	}
+
+	/**
+	 * Return advanced configuration fields definable for each FieldtypePage
+	 *
+	 */
+	public function ___getConfigAdvancedInputfields(Field $field) {
+		$inputfields = parent::___getConfigAdvancedInputfields($field);
+
+		$checkbox = $this->modules->get('InputfieldCheckbox'); 
+		$checkbox->attr('name', 'allowUnpub'); 
+		$checkbox->label = $this->_('Allow unpublished pages?'); 
+		$checkbox->description = $this->_('When checked, unpublished pages are allowed in the field value. Unpublished pages will not appear on the front-end, except to those with edit access.'); // Description for allowUnpub option
+		$checkbox->attr('value', 1); 
+		$checkbox->attr('checked', $field->allowUnpub ? 'checked' : ''); 
+		$inputfields->prepend($checkbox); 
+
+		return $inputfields;
+	}
+
+	/**
+	 * Find and clean orphaned references in each of FieldtypePage's tables
+	 *
+	 * Previous versions of PW had an issue where a reference to a deleted page could still exist in some instances.
+	 * This could cause "reference.count>0" type selectors to produce inaccurate results. This cleans up for that.
+	 * This may also be handy if a Page reference table has become corrupted by some other means. 
+ 	 *	
+	 *
+	 */
+	public function cleanOrphanedReferences() {
+
+		$database = $this->wire('database'); 
+		$totalCleaned = 0; 
+
+		foreach($this->wire('fields') as $field) {
+
+			if(!$field->type instanceof FieldtypePage) continue; 
+			$table = $database->escapeTable($field->getTable()); 
+
+			foreach(array('data', 'pages_id') as $key) {
+
+				$sql = "SELECT $table.pages_id, $table.data FROM $table LEFT JOIN pages ON $table.$key=pages.id WHERE pages.id IS NULL";
+				$query = $database->prepare($sql); 
+				$query->execute();
+				$numCleaned = 0; 
+
+				while($row = $query->fetch(PDO::FETCH_NUM)) {
+					list($pages_id, $data) = $row; 
+					$q = $database->prepare("DELETE FROM $table WHERE pages_id=:pages_id AND data=:data"); 
+					$q->bindValue(':pages_id', $pages_id, PDO::PARAM_INT); 
+					$q->bindValue(':data', $data, PDO::PARAM_INT); 
+					$q->execute();
+					$numCleaned++;
+				}
+
+				$totalCleaned += $numCleaned; 
+
+				if($numCleaned) $this->message("Fixed $numCleaned orphaned '$key' references for field '$field->name'"); 
+			}
+		}
+
+		if(!$totalCleaned) $this->message("No problems found"); 
+			else $this->message("Found and fixed a total of $totalCleaned issues."); 
+	}
+
+	/**
+	 * Module configuration screen
+	 *
+	 */
+	public static function getModuleConfigInputfields(array $data) {
+
+		$inputfields = new InputfieldWrapper();
+		$inputfield = wire('modules')->get('InputfieldCheckbox'); 
+		$inputfield->attr('name', '_clean'); 
+		$inputfield->attr('value', 1); 
+		$inputfield->label = __('Find and clean orphaned page references'); 
+		$inputfield->description = __('This cleans up for an issue in older versions of ProcessWire that could leave orphaned page references for deleted pages. If you are getting inaccurate results from page finding operations (especially with selectors using pageref.count), then you may want to run this.'); // Find and clean description
+		$inputfield->icon = 'eraser';
+		$inputfield->collapsed = Inputfield::collapsedYes; 
+		$inputfield->notes = __('Warning: To be safe you should back-up your database before running this.'); // Find and clean notes
+		$inputfields->add($inputfield); 
+
+		if(wire('input')->post('_clean')) {
+			wire()->message(__('Finding and cleaning...')); 
+			wire('fieldtypes')->get('FieldtypePage')->cleanOrphanedReferences();
+		}
+
+		return $inputfields;
+	}
+
 }
 

@@ -15,10 +15,10 @@ class InputfieldEmail extends InputfieldText {
 	}
 
 	public function __construct() {
+		$this->setAttribute('name', 'email'); 
 		parent::__construct();
 		$this->setAttribute('type', 'email'); 
 		$this->setAttribute('maxlength', 512); 
-		$this->setAttribute('name', 'email'); 
 		$this->setAttribute('size', 0); 
 		$this->set('confirm', 0); // when 1, two inputs will appear and both must match
 		$this->set('confirmLabel', $this->_('Confirm')); 

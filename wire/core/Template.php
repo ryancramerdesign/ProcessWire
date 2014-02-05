@@ -8,18 +8,55 @@
  * Templates also maintain several properties which can affect the render behavior of pages using it. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  * 
  * @property int $id Get or set the template's numbered database ID.
  * @property string $name Get or set the template's name.
  * @property string $filename Get or set a template's filename, including path (this is auto-generated from the name, though you may modify it at runtime if it suits your need).
  * @property string $label Optional short text label to describe Template.
+ * @property int $fieldgroups_id ID of Fieldgroup assigned to this template. 
+ * @property int $flags Flags assigned to this template: see the flag* constants in Template class.
+ * @property int $cache_time Number of seconds pages using this template should cache for, or 0 for no cache. 
  * @property Fieldgroup $fieldgroup Get or set a template's Fieldgroup. Can also be used to iterate a template's fields.
  * @property Fieldgroup $fields Syntactical alias for $template->fieldgroup. Use whatever makes more sense for your code readability.
+ * @property Fieldgroup|null $fieldgroupPrevious Previous fieldgroup, if it was changed. Null if not. 
+ * @property int|bool $useRoles Whether or not this template defines access. 
+ * @property PageArray $roles Roles assigned to this template for general/view access. 
+ * @property array $editRoles Array of Role IDs representing roles that may edit pages using this template.
+ * @property array $addRoles Array of Role IDs representing roles that may add pages using this template.
+ * @property array $createRoles Array of Role IDs representing roles that may create pages using this template.
+ * @property int $childrenTemplatesID Template ID for child pages, or -1 if no children allowed. DEPRECATED
+ * @property string $sortfield Field that children of templates using this page should sort by. blank=page decides or sort=manual drag-n-drop
+ * @property int $noChildren Set to 1 to cancel use of childTemplates
+ * @property int $noParents Set to 1 to cancel use of parentTemplates
+ * @property array $childTemplates Array of template IDs that are allowed for children. blank array = any. 
+ * @property array $parentTemplates Array of template IDs that are allowed for parents. blank array = any.
+ * @property int $allowPageNum Allow page numbers in URLs? (0=no, 1=yes)
+ * @property int $allowChangeUser Allow the createdUser/created_users_id field of pages to be changed? (with API or in admin w/superuser only). 0=no, 1=yes
+ * @property int $redirectLogin Redirect when no access: 0 = 404, 1 = login page, url = URL to redirect to.
+ * @property int $urlSegments Allow URL segments on pages? (0=no, 1=yes)
+ * @property int $https Use https? 0 = http or https, 1 = https only, -1 = http only
+ * @property int $slashUrls Page URLs should have a trailing slash? 1 = yes, 0 = no	
+ * @property string $altFilename Alternate filename for template file, if not based on template name.
+ * @property int $guestSearchable Pages appear in search results even when user doesnt have access? (0=no, 1=yes)
+ * @property string $pageClass Class for instantiated page objects. Page assumed if blank, or specify class name. 
+ * @property string $pageLabelField CSV or space separated string of field names to be displayed by ProcessPageList (overrides those set with ProcessPageList config).
+ * @property int $noGlobal Template should ignore the global option of fields? (0=no, 1=yes)
+ * @property int $noMove Pages using this template are not moveable? (0=moveable, 1=not movable)
+ * @property int $noTrash Pages using this template may not go in trash? (i.e. they will be deleted not trashed) (0=trashable, 1=not trashable)
+ * @property int $noSettings Don't show a settings tab on pages using this template? (0=use settings tab, 1=no settings tab)
+ * @property int $noChangeTemplate Don't allow pages using this template to change their template? (0=template change allowed, 1=template change not allowed)
+ * @property int $noUnpublish Don't allow pages using this template to ever exist in an unpublished state - if page exists, it must be published. (0=page may be unpublished, 1=page may not be unpublished)
+ * @property int $nameContentTab Pages should display the name field on the content tab? (0=no, 1=yes)
+ * @property string $noCacheGetVars GET vars that trigger disabling the cache (only when cache_time > 0)
+ * @property string $noCachePostVars POST vars that trigger disabling the cache (only when cache_time > 0)
+ * @property int $useCacheForUsers Use cache for: 0 = only guest users, 1 = guests and logged in users
+ * @property int $cacheExpire Expire the cache for all pages when page using this template is saved? (1 = yes, 0 = no- only current page)
+ * @property array $cacheExpirePages Array of Page IDs that should be expired, when cacheExpire == Template::cacheExpireSpecific
+ * @property string $tags Optional tags that can group this template with others in the admin templates list 
  *
  */
 
@@ -139,6 +176,7 @@ class Template extends WireData implements Saveable {
 		'noTrash' => 0,			// pages using thsi template may not go in trash? (i.e. they will be deleted not trashed)
 		'noSettings' => 0, 		// don't show a 'settings' tab on pages using this template?
 		'noChangeTemplate' => 0, 	// don't allow pages using this template to change their template?
+		'noShortcut' => 0, 		// don't allow pages using this template to appear in shortcut "add new page" menu
 		'noUnpublish' => 0,		// don't allow pages using this template to ever exist in an unpublished state - if page exists, it must be published 
 		'nameContentTab' => 0, 		// pages should display the 'name' field on the content tab?	
 		'noCacheGetVars' => '',		// GET vars that trigger disabling the cache (only when cache_time > 0)
@@ -241,7 +279,8 @@ class Template extends WireData implements Saveable {
 	 *
 	 * @param string $key
 	 * @param mixed $value
-	 * @return this
+	 * @return $this
+	 * @throws WireException
 	 *
 	 */
 	public function set($key, $value) {
@@ -347,7 +386,8 @@ class Template extends WireData implements Saveable {
 	 * Set this Template's Fieldgroup
 	 *
 	 * @param Fieldgroup $fieldgroup
-	 * @return this
+	 * @return $this
+	 * @throws WireException
 	 *
 	 */
 	public function setFieldgroup(Fieldgroup $fieldgroup) {
@@ -386,7 +426,7 @@ class Template extends WireData implements Saveable {
 	/**
 	 * Save the template to database
 	 *
-	 * @return this|bool Returns Template if successful, or false if not
+	 * @return $this|bool Returns Template if successful, or false if not
 	 *
 	 */
 	public function save() {
@@ -400,6 +440,7 @@ class Template extends WireData implements Saveable {
 	 * Return corresponding template filename, including path
 	 *
 	 * @return string
+	 * @throws WireException
 	 *	
 	 */
 	public function filename() {
@@ -473,6 +514,69 @@ class Template extends WireData implements Saveable {
 		return $this->name; 
 	}
 
+
+	/**
+	 * Return the parent page that this template assumes new pages are added to 
+	 *
+	 * This is based on family settings, when applicable. 
+	 * It also takes into account user access, if requested (see arg 1). 
+	 *
+	 * If there is no shortcut parent, NULL is returned. 
+	 * If there are multiple possible shortcut parents, a NullPage is returned.
+	 *
+	 * @param bool $checkAccess Whether or not to check for user access to do this (default=false).
+	 * @return Page|NullPage|null
+	 *
+	 */
+	public function getParentPage($checkAccess = false) {
+
+		if($this->noParents || $this->noShortcut || !count($this->parentTemplates)) return null;	
+		$foundParent = null;
+
+		foreach($this->parentTemplates as $parentTemplateID) {
+
+			$parentTemplate = $this->wire('templates')->get((int) $parentTemplateID); 
+			if(!$parentTemplate) continue; 
+
+			// if the parent template doesn't have this as an allowed child template, exclude it 
+			if($parentTemplate->noChildren) continue; 
+			if(!in_array($this->id, $parentTemplate->childTemplates)) continue;
+
+			// sort=status ensures that a non-hidden page is given preference to a hidden page
+			$include = $checkAccess ? "hidden" : "all";
+			$parentPages = $this->wire('pages')->find("templates_id=$parentTemplate->id, include=$include, sort=status, limit=2"); 
+
+			$numParentPages = count($parentPages); 
+
+			// undetermined parent
+			if(!$numParentPages) continue; 
+
+			if($numParentPages > 1) {
+				// multiple possible parents
+				$parentPage = new NullPage();
+			} else {
+				// one possible parent
+				$parentPage = $parentPages->first();
+			}
+
+			if($checkAccess) { 
+				if($parentPage->id) {
+					// single defined parent
+					$p = new Page();
+					$p->template = $this; 
+					if(!$parentPage->addable($p)) continue; 
+				} else {
+					// multiple possible parents
+					if(!$this->wire('user')->hasPermission('page-create', $this)) continue; 
+				}
+			}
+
+			$foundParent = $parentPage; 
+			break;
+		}
+
+		return $foundParent;
+	}
 
 
 }

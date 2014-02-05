@@ -6,11 +6,10 @@
  * Represents a single file item attached to a page, typically via a FieldtypeFile field.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  *
  * @property string $url URL to the file on the server	
@@ -36,7 +35,6 @@ class Pagefile extends WireData {
 	 */
 	protected $pagefiles; 
 
-
 	/**
 	 * Construct a new Pagefile
 	 *
@@ -54,6 +52,7 @@ class Pagefile extends WireData {
 		$this->set('modified', 0); 
 		$this->set('created', 0); 
 	}
+
 
 	/**
 	 * Set the filename associated with this Pagefile
@@ -84,16 +83,15 @@ class Pagefile extends WireData {
 	 * Implies copying the file to the correct location (if not already there), and populating it's name
 	 *
 	 * @param string $filename Full path and filename of file to install
+	 * @throws WireException
 	 *
 	 */
 	protected function ___install($filename) {
 
-		$basename = $this->pagefiles->cleanBasename($filename, true); 
+		$basename = $this->pagefiles->cleanBasename($filename, true, false); 
 		$pathInfo = pathinfo($basename); 
 		$basename = basename($basename, ".$pathInfo[extension]"); 
 
-		// remove any extra dots in the filename
-		$basename = str_replace(".", "_", $basename); 
 		$basenameNoExt = $basename; 
 		$basename .= ".$pathInfo[extension]"; 
 
@@ -108,6 +106,7 @@ class Pagefile extends WireData {
 		$destination = $this->pagefiles->path() . $basename; 
 		if(!@copy($filename, $destination)) throw new WireException("Unable to copy: $filename => $destination"); 
 		if($this->config->chmodFile) chmod($this->pagefiles->path() . $basename, octdec($this->config->chmodFile));
+		$this->changed('file');
 		parent::set('basename', $basename); 
 			
 	}
@@ -119,7 +118,7 @@ class Pagefile extends WireData {
 	 *
 	 * @param string $key
 	 * @param mixed $value
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function set($key, $value) {
@@ -146,6 +145,7 @@ class Pagefile extends WireData {
 
 		switch($key) {
 			case 'url':
+			case 'httpUrl': 
 			case 'filename':
 			case 'description':
 			case 'tags':
@@ -161,6 +161,9 @@ class Pagefile extends WireData {
 				break;
 			case 'page': 
 				$value = $this->pagefiles->getPage(); 
+				break;
+			case 'field': 
+				$value = $this->pagefiles->getField(); 
 				break;
 			case 'modified':
 			case 'created':
@@ -201,6 +204,16 @@ class Pagefile extends WireData {
 	 */
 	public function url() {
 		return $this->pagefiles->url . $this->basename; 	
+	}
+
+	/**
+	 * Return the web accessible URL (with schema and hostname) to this Pagefile
+	 *
+	 */
+	public function httpUrl() {
+		$page = $this->pagefiles->getPage();
+		$url = substr($page->httpUrl(), 0, -1 * strlen($page->url())); 
+		return $url . $this->url(); 
 	}
 
 	/**
@@ -308,7 +321,7 @@ class Pagefile extends WireData {
 	 * Rename this file to $basename
 	 *
  	 * @param string $basename
-	 * @return string|false Returns basename on success, or boolean false if rename failed
+	 * @return string|bool Returns basename on success, or boolean false if rename failed
 	 *
 	 */
 	public function rename($basename) {
@@ -342,11 +355,25 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function hasTag($tag) {
+
 		$tags = $this->tags; 
 		if(empty($tags)) return false;
+
 		if(strpos($tags, ',') !== false) $tags = str_replace(',', ' ', $tags);
 		$tags = explode(' ', strtolower($tags)); 
-		return in_array(strtolower($tag), $tags); 
+
+		if(strpos($tag, '|') !== false) $findTags = explode('|', strtolower($tag)); 
+			else $findTags = array(strtolower($tag)); 
+
+		$found = false; 
+		foreach($findTags as $tag) {
+			if(in_array($tag, $tags)) {
+				$found = true; 
+				break;
+			}
+		}
+
+		return $found; 
 	}
 
 	/**
@@ -356,11 +383,20 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function ___changed($what) {
-		if(in_array($what, array('description', 'tags'))) {
+		if(in_array($what, array('description', 'tags', 'file'))) {
 			$this->set('modified', time()); 
 			$this->pagefiles->trackChange('item');
 		}
 		parent::___changed($what); 
+	}
+
+	/**
+	 * Set the parent array container
+	 *
+	 */
+	public function setPagefilesParent(Pagefiles $pagefiles) {
+		$this->pagefiles = $pagefiles; 
+		return $this;
 	}
 
 

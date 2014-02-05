@@ -81,7 +81,10 @@ abstract class DatabaseQuery extends WireData {
 	 *
 	 */
 	public function execute() {
-		return $this->fuel('db')->query($this); 
+		$database = $this->wire('database');
+		$query = $database->prepare($this->getQuery()); 
+		$query->execute();
+		return $query;
 	}
 
 }

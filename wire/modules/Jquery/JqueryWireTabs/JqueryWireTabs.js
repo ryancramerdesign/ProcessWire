@@ -14,6 +14,7 @@
 			cookieName: 'WireTabs',
 			items: null,
 			skipRememberTabIDs: [],
+			itemsParent: null,
 			id: ''
 		};
 			
@@ -32,7 +33,7 @@
 				if(!options.items) return; 
 				if(options.id.length) $tabList.attr('id', options.id); 
 				if(options.items.size() < 2) return;
-
+				
 				options.items.each(addTab); 
 				$target.prepend($tabList); 
 		
@@ -69,7 +70,10 @@
 					.html(title)
 					.click(tabClick); 
 				$tabList.append($("<li></li>").append($a)); 
-				$target.prepend($t.hide()); 
+				if(options.itemsParent === null) options.itemsParent = $t.parent(); 
+				$t.hide();
+				if($t.parent() != options.itemsParent) options.itemsParent.prepend($t);
+				//$target.prepend($t.hide()); 
 			}
 
 			function tabClick() {

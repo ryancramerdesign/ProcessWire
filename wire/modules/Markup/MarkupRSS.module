@@ -37,10 +37,13 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		'css' => '',
 		'copyright' => '',
 		'ttl' => 60,
+		'stripTags' => true, 
 		'itemTitleField' => 'title',
 		'itemDescriptionField' => 'summary',
 		'itemDescriptionLength' => 1024, 
 		'itemDateField' => 'created',
+		'itemAuthorField' => '', // i.e. createdUser.title or leave blank to not use
+		'itemAuthorElement' => 'dc:creator', // may be 'dc:creator' or 'author'
 		'header' => 'Content-Type: application/xml; charset=utf-8;',
 		'feedPages' => array(), 
 		); 
@@ -52,7 +55,7 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Markup RSS Feed', 
-			'version' => 100, 
+			'version' => 101, 
 			'summary' => 'Renders an RSS feed. Given a PageArray, renders an RSS feed of them.',
 			'permanent' => false, 
 			'singular' => false, 
@@ -82,19 +85,19 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 	 */
 	protected function renderHeader() {
 
-                $out = "<?xml version='1.0' encoding='utf-8' ?>\n";
-
-                if($this->xsl) $out .= "<?xml-stylesheet type='text/xsl' href='{$this->xsl}' ?>\n";
-                if($this->css) $out .= "<?xml-stylesheet type='text/css' href='{$this->css}' ?>\n";
+		$out = "<?xml version='1.0' encoding='utf-8' ?>\n";
+		
+		if($this->xsl) $out .= "<?xml-stylesheet type='text/xsl' href='{$this->xsl}' ?>\n";
+		if($this->css) $out .= "<?xml-stylesheet type='text/css' href='{$this->css}' ?>\n";
 		
 		if(!$this->url) $this->url = $this->page->httpUrl;
 
-                $out .= "<rss version='2.0'>\n" .
-                        "<channel>\n" .
-                        "\t<title>{$this->title}</title>\n" . 
-			"\t<link>{$this->url}</link>\n" . 
-			"\t<description>{$this->description}</description>\n" . 
-			"\t<pubDate>" . date(DATE_RFC2822) . "</pubDate>\n";
+				$out .= "<rss version='2.0' xmlns:dc='http://purl.org/dc/elements/1.1/'>\n" .
+						"<channel>\n" .
+						"\t<title>{$this->title}</title>\n" . 
+						"\t<link>{$this->url}</link>\n" . 
+						"\t<description>{$this->description}</description>\n" . 
+						"\t<pubDate>" . date(DATE_RFC2822) . "</pubDate>\n";
 
                 if($this->copyright) $out .= "\t<copyright>{$this->copyright}</copyright>\n";
                 if($this->ttl) $out .= "\t<ttl>{$this->ttl}</ttl>\n";
@@ -116,18 +119,27 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		} else {
 			$pubDate = '';
 		}
+	
+		$author = '';
+		if($this->itemAuthorField) {
+				$author = $page->getUnformatted($this->itemAuthorField); 
+				if(strlen($author)) {
+					$author = $this->wire('sanitizer')->entities($author); 
+					$author = "\t\t<$this->itemAuthorElement>$author</$this->itemAuthorElement>\n";	
+				} else $author = '';
+		}
 
 		$description = $page->get($this->itemDescriptionField); 
 		if(is_null($description)) $description = '';
 		$description = $this->truncateDescription(trim($description)); 
 
 		$out = 	"\t<item>\n" .
-			"\t\t<title>$title</title>\n" .
-			"\t\t<description><![CDATA[$description]]></description>\n" .
-			$pubDate .
-			"\t\t<link>{$page->httpUrl}</link>\n" .
-			"\n\t<guid>{$page->httpUrl}</guid>\n" . 
-			"\t</item>\n";
+				"\t\t<title>$title</title>\n" .
+				"\t\t<description><![CDATA[$description]]></description>\n" .
+				$pubDate . $author . 
+				"\t\t<link>{$page->httpUrl}</link>\n" .
+				"\n\t<guid>{$page->httpUrl}</guid>\n" . 
+				"\t</item>\n";
 
 		return $out; 
 	}
@@ -171,8 +183,8 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		$maxlen = $this->itemDescriptionLength;
 		if(!$maxlen) return $str;
 
-		// note: tags are not stripped if itemDescriptionLength == 0
-		$str = strip_tags($str); 
+		// note: tags are not stripped if itemDescriptionLength == 0 and stripTags == true
+		if($this->stripTags) $str = strip_tags($str); 
 
 		if(strlen($str) < $maxlen) return $str; 
 

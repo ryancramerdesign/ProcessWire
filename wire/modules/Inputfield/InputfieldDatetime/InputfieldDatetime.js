@@ -18,7 +18,8 @@ jQuery(document).ready(function($) {
 		if(pickerVisible) {
 			// datepicker always visible (inline)
 			var $datepicker = $("<div></div>"); 
-			$t.parent('p').after($datepicker); 
+			//$t.parent('p').after($datepicker); 
+			$t.after($datepicker); 
 		} else {
 			// datepicker doesn't appear till requested
 			var $datepicker = $t; 

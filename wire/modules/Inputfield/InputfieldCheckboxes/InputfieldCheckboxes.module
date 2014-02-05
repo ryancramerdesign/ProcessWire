@@ -20,6 +20,8 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 	}
 
 	public function ___render() {	
+
+		$this->checkDefaultValue();
 		$out = '';
 		$table = null;
 		$columns = (int) $this->optionColumns;

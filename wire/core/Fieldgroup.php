@@ -16,6 +16,9 @@
  * 
  * http://www.processwire.com
  * http://www.ryancramer.com
+ * 
+ * @property int $id Field ID
+ * @property string $name Field name
  *
  */
 class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
@@ -78,7 +81,9 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	/**
 	 * Add a field to this Fieldgroup
 	 *
- 	 * @param Field|string 
+	 * @param Field|string $field
+	 * @return $this|WireArray
+	 * @throws WireException
 	 *
 	 */
 	public function add($field) {
@@ -105,6 +110,7 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	 * than queue the removal. 
 	 *
 	 * @param Field|string $field
+	 * @return bool True on success, false on failure.
 	 *
 	 */
 	public function remove($field) {
@@ -134,7 +140,9 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	 *
 	 * This method is for use by Fieldgroups::save() and not intended for API usage. 
 	 * 
+	 * @internal
 	 * @param Field $field
+	 * @return bool
 	 *
 	 */
 	public function finishRemove(Field $field) {

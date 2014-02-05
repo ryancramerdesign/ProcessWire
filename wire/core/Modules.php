@@ -11,11 +11,10 @@
  * before using it. If it's a ModulePlaceholder, then the real Module can be instantiated/retrieved by $modules->get($className).
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -31,7 +30,7 @@ class Modules extends WireArray {
 	 * Flag indicating that the module should be instantiated at runtime, rather than when called upon. 
 	 *
 	 */
-	const flagsAutoload = 2; 
+	const flagsAutoload = 2;
 
 	/**
 	 * Array of modules that are not currently installed, indexed by className => filename
@@ -70,6 +69,12 @@ class Modules extends WireArray {
 	 *
 	 */
 	protected $initialized = false;
+
+	/**
+	 * Modules that specify an anonymous function returning true or false on whether they should be autoloaded
+	 *
+	 */
+	protected $conditionalAutoloadModules = array();
 
 	/**
 	 * Construct the Modules
@@ -114,25 +119,87 @@ class Modules extends WireArray {
 	}
 
 	/**
+	 * Make a new/blank WireArray
+ 	 *
+	 */
+	public function makeNew() {
+		// ensures that find(), etc. operations don't initalize a new Modules() class
+		return new WireArray();
+	}
+
+	/**
+	 * Make a new populated copy of a WireArray containing all the modules
+	 *
+	 * @return WireArray
+ 	 *
+	 */
+	public function makeCopy() {
+		// ensures that find(), etc. operations don't initalize a new Modules() class
+		$copy = $this->makeNew();
+		foreach($this->data as $key => $value) $copy[$key] = $value; 
+		$copy->resetTrackChanges($this->trackChanges()); 
+		return $copy; 
+	}
+
+	/**
 	 * Initialize all the modules that are loaded at boot
 	 *
 	 */
-	public function triggerInit() {
+	public function triggerInit($modules = null, $completed = array(), $level = 0) {
 
-		foreach($this as $module) {
-			// if the module is configurable, then load it's config data
-			// and set values for each before initializing themodule
-			$this->setModuleConfigData($module); 
-			$module->init();
+		$queue = array();
+		if(is_null($modules)) $modules = $this;
 
-			// if module is autoload (assumed here) and singular, then
-			// we no longer need the module's config data, so remove it
-			if($this->isSingular($module)) {
-				$id = $this->getModuleID($module); 
-				unset($this->configData[$id]); 
+		foreach($modules as $class => $module) {
+			// $info = call_user_func(array($module, 'getModuleInfo'));
+			$info = $module->getModuleInfo();
+			$skip = false;
+
+			if(isset($info['requires'])) {
+				// module requires other modules
+				$requires = is_array($info['requires']) ? $info['requires'] : array($info['requires']);
+				foreach($requires as $requiresClass) {
+					if(!in_array($requiresClass, $completed)) {
+						$dependencyInfo = $this->getModuleInfo($requiresClass);
+						// if dependency isn't an autoload one, then we can continue and not worry about it
+						if(empty($dependencyInfo['autoload'])) continue;
+						// dependency is autoload and required by this module, so queue this module to init later
+						$queue[$class] = $module;
+						$skip = true;
+						break;
+					}
+				}
 			}
+			if($skip) continue;
+			if($this->isAutoload($module)) $this->initModule($module);
+			$completed[] = $class;
 		}
-		$this->initialized = true; 
+
+		// if there is a dependency queue, go recursive till the queue is completed
+		if(count($queue) && $level < 3) $this->triggerInit($queue, $completed, $level+1);
+
+		$this->initialized = true;
+	}
+
+
+	/**
+	 * Initialize a single module
+	 *
+	 */
+	protected function initModule(Module $module) {
+		
+		// if the module is configurable, then load it's config data
+		// and set values for each before initializing themodule
+		$this->setModuleConfigData($module);
+		$module->init();
+
+		// if module is autoload (assumed here) and singular, then
+		// we no longer need the module's config data, so remove it
+		if($this->isSingular($module)) {
+			$id = $this->getModuleID($module);
+			unset($this->configData[$id]);
+		}
+		
 	}
 
 	/**
@@ -144,6 +211,21 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function triggerReady() {
+		
+		foreach($this->conditionalAutoloadModules as $className => $func) {
+			if(is_string($func)) {
+				// selector string
+				if(!$this->wire('page')->is($func)) continue; 
+			} else {
+				// anonymous function
+				if(!is_callable($func)) continue; 
+				if(!$func()) continue;
+			}
+			$module = new $className();
+			$this->set($className, $module); 
+			$this->initModule($module);
+		}
+		$this->conditionalAutoloadModules = array();
 
 		foreach($this as $module) {
 			if($module instanceof ModulePlaceholder) continue;
@@ -162,18 +244,20 @@ class Modules extends WireArray {
 	protected function load($path) {
 
 		static $installed = array();
+		$database = $this->wire('database');
 
 		if(!count($installed)) {
-			$result = $this->fuel('db')->query("SELECT id, class, flags, data FROM modules ORDER BY class"); // QA
-			while($row = $result->fetch_assoc()) {
+			$query = $database->prepare("SELECT id, class, flags, data FROM modules ORDER BY class"); // QA
+			$query->execute();
+			while($row = $query->fetch(PDO::FETCH_ASSOC)) {
 				if($row['flags'] & self::flagsAutoload) {
 					// preload config data for autoload modules since we'll need it again very soon
-					$this->configData[$row['id']] = wireDecodeJSON($row['data']); 
+					$this->configData[$row['id']] = wireDecodeJSON($row['data']);
 				}
 				unset($row['data']);
 				$installed[$row['class']] = $row;
 			}
-			$result->free();
+			$query->closeCursor();
 		}
 
 		$files = $this->findModuleFiles($path, true); 
@@ -183,10 +267,11 @@ class Modules extends WireArray {
 			$pathname = $path . $pathname;
 			$dirname = dirname($pathname);
 			$filename = basename($pathname); 
-			$basename = basename($filename, '.module'); 
+			$basename = basename($filename, '.php'); 
+			$basename = basename($basename, '.module');
 
 			// if the filename doesn't end with .module, then stop and move onto the next
-			if(!strpos($filename, '.module') || substr($filename, -7) !== '.module') continue; 
+			if(!strpos($filename, '.module') || (substr($filename, -7) !== '.module' && substr($filename, -11) !== '.module.php')) continue; 
 
 			//  if the filename doesn't start with the requested path, then continue
 			if(strpos($pathname, $path) !== 0) continue; 
@@ -208,7 +293,22 @@ class Modules extends WireArray {
 				// include the module and instantiate it but don't init() it,
 				// because it will be done by Modules::init()
 				include_once($pathname); 
-				$module = new $basename(); 
+				$moduleInfo = call_user_func(array($basename, 'getModuleInfo'));
+				// if not defined in getModuleInfo, then we'll accept the database flag as enough proof
+				// since the module may have defined it via an isAutoload() function
+				if(!isset($moduleInfo['autoload'])) $moduleInfo['autoload'] = true;
+				$autoload = $moduleInfo['autoload'];
+				// check for conditional autoload
+				if(!is_bool($autoload) && (is_string($autoload) || is_callable($autoload))) {
+					// anonymous function or selector string
+					$this->conditionalAutoloadModules[$basename] = $autoload;
+					$this->moduleIDs[$basename] = $info['id'];
+					continue; 
+				} else if($autoload) {
+					$module = new $basename();
+				} else {
+					continue; 
+				}
 
 			} else {
 				// placeholder for a module, which is not yet included and instantiated
@@ -239,12 +339,15 @@ class Modules extends WireArray {
 
 		static $startPath;
 
-		$config = $this->fuel('config');
+		$config = $this->wire('config');
 
 		if($level == 0) {
 			$startPath = $path;
 			$cacheFilename = $config->paths->cache . "Modules." . md5($path) . ".cache";
-			if($readCache && is_file($cacheFilename)) return explode("\n", file_get_contents($cacheFilename)); 
+			if($readCache && is_file($cacheFilename)) {
+				$cacheContents = explode("\n", file_get_contents($cacheFilename)); 
+				if(!empty($cacheContents)) return $cacheContents;
+			}
 		}
 
 		$files = array();
@@ -263,17 +366,19 @@ class Modules extends WireArray {
 			}
 
 			// if it's a directory with a .module file in it named the same as the dir, then descend into it
-			if($file->isDir() && ($level < 1 || is_file("$pathname/$filename.module"))) {
+			if($file->isDir() && ($level < 1 || (is_file("$pathname/$filename.module") || is_file("$pathname/$filename.module.php")))) {
 				$files = array_merge($files, $this->findModuleFiles($pathname, false, $level + 1));
 			}
 
-			// if the filename doesn't end with .module, then stop and move onto the next
-			if(!strpos($filename, '.module') || substr($filename, -7) !== '.module') continue; 
-
+			// if the filename doesn't end with .module or .module.php, then stop and move onto the next
+			if(	(!strpos($filename, '.module') || substr($filename, -7) !== '.module') && substr($filename, -11 !== '.module.php')) {
+					continue; 
+			}
+			
 			$files[] = str_replace($startPath, '', $pathname); 
 		}
 
-		if($level == 0) @file_put_contents($cacheFilename, implode("\n", $files), LOCK_EX); 
+		if($level == 0) @file_put_contents($cacheFilename, implode("\n", $files), LOCK_EX);  // remove LOCK_EX ?
 		if($config->chmodFile) @chmod($cacheFilename, octdec($config->chmodFile));
 
 		return $files;
@@ -309,7 +414,7 @@ class Modules extends WireArray {
 	public function get($key) {
 
 		$module = null; 
-		$justInstalled = false;
+		$needsInit = false; 
 
 		// check for optional module ID and convert to classname if found
 		if(ctype_digit("$key")) {
@@ -325,25 +430,47 @@ class Modules extends WireArray {
 				$class = $this->getModuleClass($placeholder); 
 				if($module instanceof ModulePlaceholder) $this->includeModule($module); 
 				$module = new $class(); 
-				if($this->isSingular($placeholder)) $this->set($key, $module); 
+				// if singular, save the instance so it can be used in later calls
+				if($this->isSingular($module)) $this->set($key, $module); 
+				$needsInit = true; 
 			}
 
 		} else if(array_key_exists($key, $this->getInstallable())) {
 			// check if the request is for an uninstalled module 
 			// if so, install it and return it 
 			$module = $this->install($key); 
-			$justInstalled = true; 
+			$needsInit = true; 
 		}
 
 		// skip autoload modules because they have already been initialized in the load() method
 		// unless they were just installed, in which case we need do init now
-		if($module && (!$this->isAutoload($module) || $justInstalled)) { 
+		if($module && $needsInit) { 
 			// if the module is configurable, then load it's config data
 			// and set values for each before initializing the module
 			$this->setModuleConfigData($module); 
 			$module->init();
 		}
 
+		return $module; 
+	}
+
+	/**
+	 * Get the requested module and reset cache + install it if necessary.
+	 *
+	 * This is exactly the same as get() except that this one will rebuild the modules cache if
+	 * it doesn't find the module at first. If the module is on the file system, this
+	 * one will return it in some instances that a regular get() can't. 
+	 *
+	 * @param string|int $key Module className or database ID
+	 * @return Module|null
+	 *
+	 */
+	public function getInstall($key) {
+		$module = $this->get($key); 
+		if(!$module) {
+			$this->resetCache();
+			$module = $this->get($key); 
+		}
 		return $module; 
 	}
 
@@ -422,6 +549,7 @@ class Modules extends WireArray {
 	 *
 	 * @param string $class
 	 * @return null|Module Returns null if unable to install, or instantiated Module object if successfully installed. 
+	 * @throws WireException
 	 *
 	 */
 	public function ___install($class) {
@@ -436,17 +564,18 @@ class Modules extends WireArray {
 
 		$module = new $class();
 
-		$flags = 0; 
+		$flags = 0;
+		$database = $this->wire('database');
+		$moduleID = 0;
+		
 		if($this->isSingular($module)) $flags = $flags | self::flagsSingular; 
 		if($this->isAutoload($module)) $flags = $flags | self::flagsAutoload; 
-
-		$sql = 	"INSERT INTO modules SET " . 
-			"class='" . $this->fuel('db')->escape_string($class) . "', " . 
-			"flags=$flags, " . 
-			"data='' ";
-
-		$result = $this->fuel('db')->query($sql); // QA
-		$moduleID = $this->fuel('db')->insert_id;
+	
+		$query = $database->prepare("INSERT INTO modules SET class=:class, flags=:flags, data=''"); 
+		$query->bindValue(":class", $class, PDO::PARAM_STR); 
+		$query->bindValue(":flags", $flags, PDO::PARAM_INT); 
+		if($query->execute()) $moduleID = (int) $database->lastInsertId();
+			
 		$this->moduleIDs[$class] = $moduleID;
 
 		$this->add($module); 
@@ -460,7 +589,9 @@ class Modules extends WireArray {
 			} catch(Exception $e) {
 				// remove the module from the modules table if the install failed
 				$moduleID = (int) $moduleID; 
-				$this->fuel('db')->query("DELETE FROM modules WHERE id='$moduleID' LIMIT 1"); // QA
+				$query = $database->prepare('DELETE FROM modules WHERE id=:id LIMIT 1'); // QA
+				$query->bindValue(":id", $moduleID, PDO::PARAM_INT); 
+				$query->execute();
 				throw new WireException("Unable to install module '$class': " . $e->getMessage()); 
 			}
 		}
@@ -505,24 +636,23 @@ class Modules extends WireArray {
 			if(!class_exists($class)) $reason = $reason1; 
 		}
 
-		if(!$reason) {
-
+		if(!$reason) { 
 			// if the moduleInfo contains a non-empty 'permanent' property, then it's not uninstallable
 			$info = $this->getModuleInfo($class); 
 			if(!empty($info['permanent'])) {
 				$reason = "Module is permanent"; 
 			} else {
 				$dependents = $this->getRequiresForUninstall($class); 	
-				if(count($dependents)) $reason = "Module is required by other modules that must be uninstalled first"; 
+				if(count($dependents)) $reason = "Module is required by other modules that must be removed first"; 
 			}
-		}
 
-		if(!$reason && in_array('Fieldtype', class_parents($class))) {
-			foreach(wire('fields') as $field) {
-				$fieldtype = get_class($field->type);
-				if($fieldtype == $class) { 
-					$reason = "This module is a Fieldtype currently in use by one or more fields";
-					break;
+			if(!$reason && in_array('Fieldtype', class_parents($class))) {
+				foreach(wire('fields') as $field) {
+					$fieldtype = get_class($field->type);
+					if($fieldtype == $class) { 
+						$reason = "This module is a Fieldtype currently in use by one or more fields";
+						break;
+					}
 				}
 			}
 		}
@@ -533,10 +663,98 @@ class Modules extends WireArray {
 	}
 
 	/**
+	 * Returns whether the module can be deleted (have it's files physically removed)
+	 *
+	 * @param string|Module $class
+	 * @param bool $returnReason If true, the reason why it can't be removed will be returned rather than boolean false.
+	 * @return bool|string 
+	 *
+	 */
+	public function isDeleteable($class, $returnReason = false) {
+
+		$reason = '';
+		$class = $this->getModuleClass($class); 
+
+		$filename = isset($this->installable[$class]) ? $this->installable[$class] : null;
+		$dirname = dirname($filename); 
+
+		if(empty($filename) || $this->isInstalled($class)) {
+			$reason = "Module must be uninstalled before it can be deleted.";
+
+		} else if(is_link($filename) || is_link($dirname) || is_link(dirname($dirname))) {
+			$reason = "Module is linked to another location";
+
+		} else if(!is_file($filename)) {
+			$reason = "Module file does not exist";
+
+		} else if(strpos($filename, $this->modulePath2) !== 0) {
+			$reason = "Core modules may not be deleted.";
+
+		} else if(!is_writable($filename)) {
+			$reason = "We have no write access to the module file, it must be removed manually.";
+		}
+
+		if($returnReason && $reason) return $reason;
+	
+		return $reason ? false : true; 	
+	}
+
+	/**
+	 * Delete the given module, physically removing its files
+	 *
+	 * @param string $class
+	 * @return bool
+	 * @throws WireException If module can't be deleted, exception will be thrown containing reason. 
+	 *
+	 */
+	public function ___delete($class) {
+
+		$class = $this->getModuleClass($class); 
+		$reason = $this->isDeleteable($class, true); 
+		if($reason !== true) throw new WireException($reason); 
+
+		$filename = $this->installable[$class];
+		$basename = basename($filename); 
+
+		// double check that $class is consistent with the actual $basename	
+		if($basename === "$class.module" || $basename === "$class.module.php") {
+			// good, this is consistent with the format we require
+		} else {
+			throw new WireException("Unrecognized module filename format"); 
+		}
+
+		// now determine if module is the owner of the directory it exists in
+		// this is the case if the module class name is the same as the directory name
+
+		// full path to directory, i.e. .../site/modules/ProcessHello
+		$path = dirname($filename); 
+
+		// full path to parent directory, i.e. ../site/modules
+		$path = dirname($path); 
+
+		// first check that we are still in the /site/modules/, and ...
+		// now attempt to re-construct it with the $class as the directory name
+		if(strpos("$path/", $this->modulePath2) === 0 && is_file("$path/$class/$basename")) {
+			// we have a directory that we can recursively delete
+			$rmPath = "$path/$class/";
+			$this->message("Removing path: $rmPath", Notice::debug); 
+			$success = wireRmdir($rmPath, true); 
+
+		} else if(is_file($filename)) {
+			$this->message("Removing file: $filename", Notice::debug); 
+			$success = unlink($filename); 
+		}
+		
+		return $success; 
+	}
+
+
+	/**
 	 * Uninstall the given class name
 	 *
 	 * @param string $class
 	 * @return bool
+	 * @throws WireException
 	 *
 	 */
 	public function ___uninstall($class) {
@@ -552,9 +770,10 @@ class Modules extends WireArray {
 			// note module's uninstall method may throw an exception to abort the uninstall
 			$module->uninstall();
 		}
-
-		$result = $this->fuel('db')->query("DELETE FROM modules WHERE class='" . $this->fuel('db')->escape_string($class) . "' LIMIT 1"); // QA
-		if(!$result) return false; 
+		$database = $this->wire('database'); 
+		$query = $database->prepare('DELETE FROM modules WHERE class=:class LIMIT 1'); // QA
+		$query->bindValue(":class", $class, PDO::PARAM_STR); 
+		$query->execute();
 
 		// check if there are any modules still installed that this one says it is responsible for installing
 		foreach($info['installs'] as $name) {
@@ -588,6 +807,7 @@ class Modules extends WireArray {
 	 *
 	 * @param string|Module $class
 	 * @return int
+	 * @throws WireException
 	 *
 	 */
 	public function getModuleID($class) {
@@ -612,7 +832,7 @@ class Modules extends WireArray {
 	 * 'ModulePlaceholder' rather than the correct className for a Module.
 	 *
 	 * @param string|int|Module
-	 * @return string|false The Module's class name or false if not found. 
+	 * @return string|bool The Module's class name or false if not found. 
 	 *	Note that 'false' is only possible if you give this method a non-Module, or an integer ID 
 	 * 	that doesn't correspond to a module ID. 
 	 *
@@ -702,13 +922,17 @@ class Modules extends WireArray {
 
 		// if the class doesn't implement ConfigurableModule, then it's not going to have any configData
 		if(!in_array('ConfigurableModule', class_implements($className))) return array();
-
-		$result = $this->fuel('db')->query("SELECT data FROM modules WHERE id=" . ((int) $id)); // QA
-		list($data) = $result->fetch_array(); 
+		
+		$database = $this->wire('database'); 
+		$query = $database->prepare("SELECT data FROM modules WHERE id=:id"); // QA
+		$query->bindValue(":id", (int) $id, PDO::PARAM_INT); 
+		$query->execute();
+		$data = $query->fetchColumn(); 
+		$query->closeCursor();
+		
 		if(empty($data)) $data = array();
 			else $data = wireDecodeJSON($data); 
 		$this->configData[$id] = $data; 
-		$result->free();
 
 		return $data; 	
 	}
@@ -744,6 +968,7 @@ class Modules extends WireArray {
 	 * @param string|Module $className
 	 * @param array $configData
 	 * @return bool True on success
+	 * @throws WireException
 	 *
 	 */
 	public function ___saveModuleConfigData($className, array $configData) {
@@ -751,7 +976,12 @@ class Modules extends WireArray {
 		if(!$id = $this->moduleIDs[$className]) throw new WireException("Unable to find ID for Module '$className'"); 
 		$this->configData[$id] = $configData; 
 		$json = count($configData) ? wireEncodeJSON($configData, true) : '';
-		return $this->fuel('db')->query("UPDATE modules SET data='" . $this->fuel('db')->escape_string($json) . "' WHERE id=" . ((int) $id)); // QA
+		$database = $this->wire('database'); 	
+		$query = $database->prepare("UPDATE modules SET data=:data WHERE id=:id"); // QA
+		$query->bindValue(":data", $json, PDO::PARAM_STR);
+		$query->bindValue(":id", (int) $id, PDO::PARAM_INT); 
+		$result = $query->execute();
+		return $result;
 	}
 
 	/**
@@ -780,16 +1010,20 @@ class Modules extends WireArray {
 	 * Is the given module Autoload (automatically loaded at runtime)?
 	 *
 	 * @param Module $module
-	 * @return bool 
+	 * @return bool|string Returns string "conditional" if conditional autoload, true if autoload, or false if not.  
  	 *
 	 */
 	public function isAutoload(Module $module) {
 		$info = $module->getModuleInfo();
-		if(isset($info['autoload'])) return $info['autoload'];
+		if(isset($info['autoload'])) {
+			// if autoload is a string (selector) or callable, then we flag it as autoload
+			if(is_string($info['autoload']) || is_callable($info['autoload'])) return "conditional"; 
+			return $info['autoload'];
+		}
 		if(method_exists($module, 'isAutoload')) return $module->isAutoload();
 		return false; 
 	}
-
+	
 	/**
 	 * Returns whether the modules have been initialized yet
 	 *
@@ -807,6 +1041,8 @@ class Modules extends WireArray {
 	public function resetCache() {
 		$this->findModuleFiles($this->modulePath); 
 		if($this->modulePath2) $this->findModuleFiles($this->modulePath2); 
+		$this->load($this->modulePath); 
+		if($this->modulePath2) $this->load($this->modulePath2);
 	}
 
 	/**
@@ -888,6 +1124,36 @@ class Modules extends WireArray {
 	 */
 	public function getRequiresForUninstall($class) {
 		return $this->getRequiredBy($class, false, true); 
+	}
+
+	/**
+	 * Given a module version number, format it in a consistent way as 3 parts: 1.2.3 
+	 * 
+	 * @param $version int|string
+	 * @return string
+	 * 
+	 */
+	public function formatVersion($version) {
+		$version = trim($version); 
+		if(!ctype_digit(str_replace('.', '', $version))) {
+			// if version has some characters other than digits or periods, remove them
+			$version = preg_replace('/[^\d.]/', '', $version); 
+		}
+		if(ctype_digit("$version")) {
+			// make sure version is at least 3 characters in length
+			if(strlen($version) < 3) $version = str_pad($version, 3, "0", STR_PAD_LEFT);
+			// if version has only digits, then insert periods
+			$version = preg_replace('/(\d)(?=\d)/', '$1.', $version); 
+			
+		} else if(strpos($version, '.') !== false) {
+			// version is a formatted string
+			if(strpos($version, '.') == strrpos($version, '.')) {
+				// only 1 period, like: 2.0 
+				if(preg_match('/^\d\.\d$/', $version)) $version .= ".0";
+			}
+		}
+		if(!strlen($version)) $version = '0.0.0';
+		return $version;
 	}
 
 }

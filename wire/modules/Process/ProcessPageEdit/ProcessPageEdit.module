@@ -36,7 +36,7 @@ class ProcessPageEdit extends Process {
 		return array(
 			'title' => 'Page Edit',          
 			'summary' => 'Edit a Page', 
-			'version' => 102, 
+			'version' => 103, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
@@ -90,6 +90,8 @@ class ProcessPageEdit extends Process {
 
 		if(!$this->isPost) $this->modules->get('JqueryWireTabs'); 
 
+		$title = $this->page->title;
+		if($title) $this->wire('processBrowserTitle', sprintf($this->_('Edit Page: %s'), $title)); 
 	}
 
 	/**
@@ -130,6 +132,7 @@ class ProcessPageEdit extends Process {
 			$this->form->description = '';
 		}
 		$out .= $this->form->render();
+		$out .= "<script>initPageEditForm();</script>"; // ends up being slightly faster than ready() (or at least appears that way)
 		return $out; 
 	}
 
@@ -229,7 +232,10 @@ class ProcessPageEdit extends Process {
 			$field->attr('name', '_pw_page_name'); 
 			$field->attr('value', $this->page->name); 
 			$field->required = $this->page->id != 1;
-			if(!$this->page->editable('name')) $field->attr('disabled', 'disabled'); 
+			if(!$this->page->editable('name')) {
+				$field->attr('disabled', 'disabled'); 
+				$field->required = false; 
+			}
 			if($this->page->parent) $field->parentPage = $this->page->parent;
 			$fields->prepend($field); 
 		}
@@ -238,7 +244,7 @@ class ProcessPageEdit extends Process {
 
 		if($this->page->addable() || $this->page->numChildren) $form->append($this->buildFormChildren()); 
 		if(!$this->page->template->noSettings) $form->append($this->buildFormSettings()); 
-		if($this->isTrash) $form->description = $this->_("This page is in the Trash"); 
+		if($this->isTrash) $this->message($this->_("This page is in the Trash")); 
 		if($this->page->deleteable()) $form->append($this->buildFormDelete());
 		if($this->page->viewable() && !$this->input->get->modal) $form->append($this->buildFormView()); 
 
@@ -248,11 +254,11 @@ class ProcessPageEdit extends Process {
 		if($this->page->is(Page::statusUnpublished)) {
 
 			if(get_class($this->page) == 'Page') {
-				if(!$form->description) $form->description = $this->_("This page is currently unpublished");
+				//if(!$form->description) $form->description = $this->_("This page is currently unpublished");
 				$field2 = $this->modules->get('InputfieldSubmit'); 
 				$field2->attr('name', 'submit_save'); 
 				$field2->attr('id', 'submit_save_unpublished'); 
-				$field2->class .= ' ui-priority-secondary'; 
+				$field2->class .= ' ui-priority-secondary head_button_clone'; 
 				$field2->attr('value', $this->_('Save + Keep Unpublished')); // Button: save unpublished
 			}
 
@@ -267,7 +273,7 @@ class ProcessPageEdit extends Process {
 		if($saveName) { 
 			$field = $this->modules->get('InputfieldSubmit');
 			$field->attr('id+name', $saveName); 
-			$field->attr('class', $field->class . ' head_button_clone'); 
+			if($saveName != 'submit_publish') $field->attr('class', $field->class . ' head_button_clone'); 
 			$field->attr('value', $saveLabel); 
 			$form->append($field); 
 		}
@@ -325,6 +331,7 @@ class ProcessPageEdit extends Process {
 				$button = $this->modules->get("InputfieldButton"); 
 				$button->attr('id+name', 'AddPageBtn'); 
 				$button->attr('value', $this->_('Add New Page Here')); // Button: add new child page
+				$button->icon = 'plus-circle';
 				$button->attr('href', "../add/?parent_id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
 				$field->append($button);
 			}
@@ -335,6 +342,7 @@ class ProcessPageEdit extends Process {
 			$sortfield = $this->page->sortfield && $this->page->sortfield != 'sort' ? $this->page->sortfield : '';
 			$fieldset = self::buildFormSortfield($sortfield, $this); 
 			$fieldset->label = $this->_('Sort Settings'); // Children sort settings field label
+			$fieldset->icon = 'sort';
 			$fieldset->description = $this->_("If you want all current and future children to automatically sort by a specific field, select the field below and optionally check the 'reverse' checkbox to make the sort descending. Leave the sort field blank if you want to be able to drag-n-drop to your own order."); // Sort settings description text
 			$wrapper->append($fieldset); 
 		}
@@ -394,7 +402,9 @@ class ProcessPageEdit extends Process {
 		$f->value = 1; 
 		$f->attr('id+name', 'sortfield_reverse'); 
 		$f->label = __('Reverse sort direction?', __FILE__); // Checkbox labe to reverse the sort direction
+		$f->icon = 'rotate-left';
 		if(substr($sortfield, 0, 1) == '-') $f->attr('checked', 'checked'); 
+		$f->showIf = "sortfield!='', sortfield!=sort";
 		$f->columnWidth = 40; 
 
 		$fieldset->append($f); 
@@ -487,9 +497,10 @@ class ProcessPageEdit extends Process {
 		$dateFormat = $this->config->dateFormat; 
 		$field = $this->modules->get("InputfieldMarkup"); 
 
-		$info = "\n<p>" . sprintf($this->_('Created by %1$s on %2$s'), $this->page->createdUser->name, date($dateFormat, $this->page->created)) . "</p>" . // Settings: created user/date information line
+		$info =	"\n<p>" . sprintf($this->_('Created by %1$s on %2$s'), $this->page->createdUser->name, date($dateFormat, $this->page->created)) . "</p>" . // Settings: created user/date information line
 			"\n<p>" . sprintf($this->_('Last modified by %1$s on %2$s'), $this->page->modifiedUser->name, date($dateFormat, $this->page->modified)) . "</p>"; // Settings: modified user/date information line
 
+		$field->attr('id+name', 'ProcessPageEditInfo'); 
 		$field->label = $this->_('Info'); // Settings: Info field label
 		$field->value = $info; 
 		$field->collapsed = Inputfield::collapsedYes; 
@@ -549,13 +560,15 @@ class ProcessPageEdit extends Process {
 			} else {
 				$deleteLabel = $this->_('Move to Trash'); // Move to trash checkbox label
 			}
+			$field->icon = 'trash-o';
 			$field->label = $deleteLabel;
 			$field->description = $this->_('Check the box to confirm that you want to do this.'); // Delete page confirmation instruction
+			$field->label2 = $this->_('Confirm'); 
 			$wrapper->append($field); 
 		}
 
 		if(count($wrapper->children())) {
-			$field = $this->modules->get('InputfieldSubmit');
+			$field = $this->modules->get('InputfieldButton');
 			$field->attr('id+name', 'submit_delete'); 
 			$field->value = $deleteLabel;
 			$wrapper->append($field);
@@ -610,25 +623,33 @@ class ProcessPageEdit extends Process {
 				$roleName = $role->name; 
 				if($roleName == 'guest') $roleName .= " " . $this->_('(everyone)'); // Identifies who guest is (everyone)
 				$permissions .= "page-view\n";
-
+				
+				$checkEditable = true; 
 				if($publishPermission->id && !$this->page->is(Page::statusUnpublished) && !$role->hasPermission('page-publish', $this->page)) {
-					continue; 
+					$checkEditable = false;
 				}
-
-				if($role->hasPermission('page-edit') && in_array($role->id, $editRoles)) { 
-					foreach($role->permissions as $permission) {
-						if($permission->name == 'page-view') continue;  // assumed
-						if(strpos($permission->name, 'page-') !== 0) continue; 
-						$permissions .= "{$permission->name}\n"; // only page-context permissions
+				
+				if(false !== ($key = array_search($role->id, $addRoles))) {
+					if($role->hasPermission('page-add')) {
+						$permissions .= "page-add\n";
+						unset($addRoles[$key]);
 					}
 				}
-				if(false !== ($key = array_search($role->id, $addRoles))) {
-					$permissions .= "page-add\n";
-					unset($addRoles[$key]); 
+				$editable = $role->hasPermission('page-edit') && in_array($role->id, $editRoles); 
+				if($checkEditable && $editable) {
+					foreach($role->permissions as $permission) {
+						if(strpos($permission->name, 'page-') !== 0) continue; 
+						if(in_array($permission->name, array('page-view', 'page-publish', 'page-create', 'page-add'))) continue;
+						$permissions .= "{$permission->name}\n"; // only page-context permissions
+					}
+					if($publishPermission->id && $role->hasPermission('page-publish', $this->page)) {
+						$permissions .= "page-publish\n";
+					}
 				}
-				if(in_array($role->id, $createRoles)) {
+				if(in_array($role->id, $createRoles) && $editable) {
 					$permissions .= "page-create\n";
 				}
+
 				$table->row(array($roleName, nl2br($permissions))); 
 			}
 
@@ -667,6 +688,7 @@ class ProcessPageEdit extends Process {
 			'sortfield_reverse', 
 			'submit_publish', 
 			'submit_save',
+			'delete_page',
 			);
 
 		if(!$level) $form->processInput($this->input->post);
@@ -707,6 +729,8 @@ class ProcessPageEdit extends Process {
 						$v->setFromInputfield($inputfield); 
 						$this->page->set($name, $v); 
 						$this->page->trackChange($name); 
+					} else {
+						$this->page->set($name, $inputfield->value); 
 					}
 				} else { 
 					$this->page->set($name, $inputfield->value);
@@ -883,7 +907,7 @@ class ProcessPageEdit extends Process {
 		$list = '';
 		foreach($this->page->template->fieldgroup as $field) {
 			if(!$template->fieldgroup->has($field)) 
-				$list .= "<li class='ui-state-highlight'><span class='ui-icon ui-icon-alert'></span> $field</li>";
+				$list .= "<li class='ui-state-error-text'> <i class='icon-times-circle'></i> $field</li>";
 		}
 		if(!$list) $this->executeSaveTemplate($template); 
 		$f->description = $this->_('Warning, changing the template will delete the following fields:'); // Headline that precedes list of fields that will be deleted as a result of template change

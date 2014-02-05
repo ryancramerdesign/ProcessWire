@@ -4,13 +4,13 @@
  * An Inputfield for handling file uploads
  *
  */
-class InputfieldFile extends Inputfield {
+class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Files', __FILE__), // Module Title
 			'summary' => __('One or more file uploads (sortable)', __FILE__), // Module Summary
-			'version' => 100,
+			'version' => 106,
 			'permanent' => true, 
 			);
 	}
@@ -46,10 +46,10 @@ class InputfieldFile extends Inputfield {
 		$this->set('overwrite', 0); 
 		$this->set('descriptionRows', 1); 
 		$this->set('destinationPath', ''); 
-		$this->set('itemClass', 'InputfieldFile ui-widget ui-widget-content'); 
+		$this->set('itemClass', 'InputfieldFileItem ui-widget ui-widget-content'); 
 		$this->set('descriptionFieldLabel', $this->_('Description')); // Description field label
 		$this->set('tagsFieldLabel', $this->_('Tags')); // Tags field label
-		$this->setAttribute('type', 'file'); 
+		$this->attr('type', 'file'); 
 
 		// get the max filesize
 		$filesize = trim(ini_get('post_max_size'));
@@ -83,22 +83,22 @@ class InputfieldFile extends Inputfield {
 		}
 	}
 
-        /**
-         * Set the parent of this Inputfield
-         *
-         * @param Inputfield $parent
-         *
-         */
-        public function setParent(InputfieldWrapper $parent) {
+	/**
+	 * Set the parent of this Inputfield
+	 *
+	 * @param InputfieldWrapper $parent
+	 * @return this
+	 *
+	 */
+	public function setParent(InputfieldWrapper $parent) {
 		parent::setParent($parent); 
 		$this->checkFormEnctype();
-                return $this;
-        }
+		return $this;
+	}
 
 	protected function pagefileId(Pagefile $pagefile) {
 		return $this->name . "_" . $pagefile->hash; 
 	}
-
 
 	protected function renderItemDescriptionField(Pagefile $pagefile, $id, $n) {
 		$out = '';
@@ -123,8 +123,9 @@ class InputfieldFile extends Inputfield {
 
 	protected function ___renderItem($pagefile, $id, $n) {
 
-		$out = 	"\n\t\t<p class='InputfieldFileInfo ui-state-default'>" . 
-			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>" . 
+		$out = 	"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-state-default ui-widget-header'>" . 
+			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s HideIfSingle HideIfEmpty'></span>" .
+			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-1-e HideIfMultiple'></span>" . 
 			"\n\t\t\t<a class='InputfieldFileName' href='{$pagefile->url}'>{$pagefile->basename}</a> " . 
 			"\n\t\t\t<span class='InputfieldFileStats'>{$pagefile->filesizeStr}</span> " . 
 			"\n\t\t\t<label class='InputfieldFileDelete'><input type='checkbox' name='delete_$id' value='1' /><span class='ui-icon ui-icon-trash'>Delete</span></label>" . 
@@ -146,7 +147,6 @@ class InputfieldFile extends Inputfield {
 		if(!$value) return '';
 		$out = '';
 		$n = 0; 
-		$itemClass = $this->itemClass; 
 
 		foreach($value as $k => $pagefile) {
 			$id = $this->pagefileId($pagefile);
@@ -173,7 +173,7 @@ class InputfieldFile extends Inputfield {
 			"\n\t<input type='hidden' class='InputfieldFileMaxFiles' value='{$this->maxFiles}' />" . 
 			"\n\t<input " . $this->getAttributesString($attrs) . " />" . 
 			"\n\t<span class='InputfieldFileValidExtensions detail'>" . htmlspecialchars(str_replace(' ', ', ', trim($extensions))) . "</span>" . 
-			"\n\t<span class='AjaxUploadDropHere description'><span class='ui-icon ui-icon-arrowreturnthick-1-s ui-priority-secondary'></span>&nbsp; " . $this->_('drag and drop files in here') . "</span>" . // Ajax upload instruction
+			"\n\t<span class='AjaxUploadDropHere description'><i class='fa fa-upload'></i>&nbsp; " . $this->_('drag and drop files in here') . "</span>" . // Ajax upload instruction
 			"\n</p>";
 
 		return $out; 

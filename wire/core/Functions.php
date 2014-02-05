@@ -6,11 +6,10 @@
  * Common API functions useful outside of class scope
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -36,6 +35,7 @@ function wire($name = 'wire') {
  * When a $name is specified, this function is identical to the wire() function.
  * Both functions exist more for consistent naming depending on usage. 
  *
+ * @deprecated
  * @param string $name If ommitted, returns a Fuel object with references to all the fuel.
  * @return mixed Fuel value if available, NULL if not. 
  *
@@ -125,7 +125,6 @@ function unregisterGLOBALS() {
  * 	- Specify true to allow all empty values to be retained.
  * 	- Specify an array of keys (from data) that should be retained if you want some retained and not others.
  * 	- Specify the digit 0 to retain values that are 0, but not other types of empty values.
- * @param array $keepKeys Array of keys from $data that should still be included even if blank (optional). Applicable only if $allowEmpty is true. 
  * @return string String of JSON data
  *
  */
@@ -182,6 +181,7 @@ function wireDecodeJSON($json) {
  *
  */ 
 function wireMkdir($path) {
+	// @todo make this function support a $recursive option
 	if(!is_dir($path)) if(!@mkdir($path)) return false;
 	$chmodDir = wire('config')->chmodDir;
 	if($chmodDir) chmod($path, octdec($chmodDir));
@@ -215,6 +215,131 @@ function wireRmdir($path, $recursive = false) {
 }
 
 /**
+ * Change the mode of a file or directory, consistent with PW's chmodFile/chmodDir settings
+ * 
+ * @param string $path May be a directory or a filename
+ * @param bool $recursive If set to true, all files and directories in $path will be recursively set as well.
+ * @param string If you want to set the mode to something other than PW's chmodFile/chmodDir settings, 
+	you may override it by specifying it here. Ignored otherwise. Format should be a string, like "0755".
+ * @return bool Returns true if all changes were successful, or false if at least one chmod failed. 
+ *
+ */ 
+function wireChmod($path, $recursive = false, $chmod = null) {
+
+	if(is_null($chmod)) {
+		// default: pull values from PW config
+		$chmodFile = wire('config')->chmodFile;
+		$chmodDir = wire('config')->chmodDir;
+	} else {
+		// optional, manually specified string
+		if(!is_string($chmod)) throw new WireException("chmod must be specified as a string like '0755'"); 
+		$chmodFile = $chmod;
+		$chmodDir = $chmod;
+	}
+
+	$numFails = 0;
+
+	if(is_dir($path)) {
+		// $path is a directory
+		if($chmodDir) if(!chmod($path, octdec($chmodDir))) $numFails++;
+
+		// change mode of files in directory, if recursive
+		if($recursive) foreach(new DirectoryIterator($path) as $file) {
+			if($file->isDot()) continue; 
+			$mod = $file->isDir() ? $chmodDir : $chmodFile;     
+			if($mod) if(!chmod($file->getPathname(), octdec($mod))) $numFails++;
+			if($file->isDir()) {
+				if(!wireChmod($file->getPathname(), true, $chmod)) $numFails++;
+			}
+		}
+	} else {
+		// $path is a file
+		$mod = $chmodFile; 
+		if($mod) if(!chmod($path, octdec($mod))) $numFails++;
+	}
+
+	return $numFails == 0; 
+}
+
+/**
+ * Copy all files in directory $src to directory $dst
+ * 
+ * The default behavior is to also copy directories recursively. 
+ * 
+ * @param string $src Path to copy files from
+ * @param string $dst Path to copy files to. Directory is created if it doesn't already exist.
+ * @param bool $recursive Whether to copy directories within recursively. Default=true.
+ * @return bool True on success, false on failure.
+ * 
+ */
+function wireCopy($src, $dst, $recursive = true) {
+
+	if(substr($src, -1) != '/') $src .= '/';
+	if(substr($dst, -1) != '/') $dst .= '/';
+
+	$dir = opendir($src);
+	if(!$dir) return false; 
+	if(!wireMkdir($dst)) return false;
+
+	while(false !== ($file = readdir($dir))) {
+		if($file == '.' || $file == '..') continue;
+		if($recursive && is_dir($src . $file)) {
+			wireCopy($src . $file, $dst . $file);
+		} else {
+			copy($src . $file, $dst . $file);
+			$chmodFile = wire('config')->chmodFile;
+			if($chmodFile) chmod($dst . $file, octdec($chmodFile));
+		}
+	}
+
+	closedir($dir);
+	return true;
+}
+
+/**
+ * Unzips the given ZIP file to the destination directory
+ * 
+ * @param $file ZIP file to extract
+ * @param $dst Directory where files should be unzipped into. Directory is created if it doesn't exist.
+ * @return array Returns an array of filenames (excluding $dst) that were unzipped.
+ * @throws WireException All error conditions result in WireException being thrown.
+ * 
+ */
+function wireUnzipFile($file, $dst) {
+
+	$dst = rtrim($dst, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+	
+	if(!class_exists('ZipArchive')) throw new WireException("PHP's ZipArchive class does not exist"); 
+	if(!is_file($file)) throw new WireException("ZIP file does not exist"); 
+	if(!is_dir($dst)) wireMkdir($dst);	
+	
+	$names = array();
+	$chmodFile = wire('config')->chmodFile; 
+	$chmodDir = wire('config')->chmodDir;
+	
+	$zip = new ZipArchive();
+	$res = $zip->open($file); 
+	if($res !== true) throw new WireException("Unable to open ZIP file, error code: $res"); 
+	
+	for($i = 0; $i < $zip->numFiles; $i++) {
+		$name = $zip->getNameIndex($i); 
+		if($zip->extractTo($dst, $name)) {
+			$names[$i] = $name; 
+			$filename = $dst . ltrim($name, '/');
+			if(is_dir($filename)) {
+				if($chmodDir) chmod($filename, octdec($chmodDir));
+			} else if(is_file($filename)) {
+				if($chmodFile) chmod($filename, octdec($chmodFile));
+			}
+		}
+	}
+	
+	$zip->close();
+	
+	return $names; 
+}
+
+/**
  * Send the contents of the given filename via http
  *
  * This function utilizes the $content->fileContentTypes to match file extension
@@ -226,6 +351,7 @@ function wireRmdir($path, $recursive = false) {
  * @param array $options Options that you may pass in, see $_options in function for details.
  * @param array $headers Headers that are sent, see $_headers in function for details. 
  *	To remove a header completely, make its value NULL and it won't be sent.
+ * @throws WireException
  *
  */
 function wireSendFile($filename, array $options = array(), array $headers = array()) {
@@ -286,35 +412,105 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
  * Based upon: http://www.php.net/manual/en/function.time.php#89415
  *
  * @param int|string $ts Unix timestamp or date string
+ * @param bool|int $abbreviate Whether to use abbreviations for shorter strings. 
+ * 	Specify boolean TRUE for abbreviations.
+ * 	Specify integer 1 for extra short abbreviations.
+ * 	Specify boolean FALSE or omit for no abbreviations.
  * @return string
  *
  */
-function wireRelativeTimeStr($ts) {
+function wireRelativeTimeStr($ts, $abbreviate = false) {
 
-	if(empty($ts)) return "No date provided";
+	if(empty($ts)) return __('Never', __FILE__); 
 
-	$periodsSingular = array(
-		__("second", __FILE__), 
-		__("minute", __FILE__), 
-		__("hour", __FILE__), 
-		__("day", __FILE__), 
-		__("week", __FILE__), 
-		__("month", __FILE__), 
-		__("year", __FILE__), 
-		__("decade", __FILE__)
-		);
+	$justNow = __('just now', __FILE__); 
+	$ago = __('ago', __FILE__); 
+	$prependAgo = '';
+	$fromNow = __('from now', __FILE__); 
+	$prependFromNow = '';
+	$space = ' ';
 
-	$periodsPlural = array(
-		__("seconds", __FILE__), 
-		__("minutes", __FILE__), 
-		__("hours", __FILE__), 
-		__("days", __FILE__), 
-		__("weeks", __FILE__), 
-		__("months", __FILE__), 
-		__("years", __FILE__), 
-		__("decades", __FILE__)
-		); 
+	if($abbreviate === 1) {
+		$justNow = __('now', __FILE__); 
+		$ago = '';
+		$prependAgo = '-';
+		$fromNow = '';
+		$prependFromNow = '+';
+		$space = ''; 
 
+		$periodsSingular = array(
+			__("s", __FILE__), 
+			__("m", __FILE__), 
+			__("hr", __FILE__), 
+			__("d", __FILE__), 
+			__("wk", __FILE__), 
+			__("mon", __FILE__), 
+			__("yr", __FILE__), 
+			__("decade", __FILE__)
+			);
+
+		$periodsPlural = array(
+			__("s", __FILE__), 
+			__("m", __FILE__), 
+			__("hr", __FILE__), 
+			__("d", __FILE__), 
+			__("wks", __FILE__), 
+			__("mths", __FILE__), 
+			__("yrs", __FILE__), 
+			__("decades", __FILE__)
+			); 
+	} else if($abbreviate === true) {
+
+		$justNow = __('now', __FILE__); 
+		$fromNow = '';
+		$prependFromNow = __('in', __FILE__) . ' ';
+
+		$periodsSingular = array(
+			__("sec", __FILE__), 
+			__("min", __FILE__), 
+			__("hr", __FILE__), 
+			__("day", __FILE__), 
+			__("week", __FILE__), 
+			__("month", __FILE__), 
+			__("year", __FILE__), 
+			__("decade", __FILE__)
+			);
+
+		$periodsPlural = array(
+			__("secs", __FILE__), 
+			__("mins", __FILE__), 
+			__("hrs", __FILE__), 
+			__("days", __FILE__), 
+			__("weeks", __FILE__), 
+			__("months", __FILE__), 
+			__("years", __FILE__), 
+			__("decades", __FILE__)
+			); 
+
+	} else {
+		$periodsSingular = array(
+			__("second", __FILE__), 
+			__("minute", __FILE__), 
+			__("hour", __FILE__), 
+			__("day", __FILE__), 
+			__("week", __FILE__), 
+			__("month", __FILE__), 
+			__("year", __FILE__), 
+			__("decade", __FILE__)
+			);
+		$periodsPlural = array(
+			__("seconds", __FILE__), 
+			__("minutes", __FILE__), 
+			__("hours", __FILE__), 
+			__("days", __FILE__), 
+			__("weeks", __FILE__), 
+			__("months", __FILE__), 
+			__("years", __FILE__), 
+			__("decades", __FILE__)
+			); 
+	}
+
+	
 	$lengths = array("60","60","24","7","4.35","12","10");
 	$now = time();
 	if(!ctype_digit("$ts")) $ts = strtotime($ts);
@@ -323,10 +519,12 @@ function wireRelativeTimeStr($ts) {
 	// is it future date or past date
 	if($now > $ts) {    
 		$difference = $now - $ts;
-		$tense = __("ago", __FILE__);
+		$tense = $ago; 
+		$prepend = $prependAgo; 
 	} else {
 		$difference = $ts - $now;
-		$tense = __("from now", __FILE__);
+		$tense = $fromNow; 
+		$prepend = $prependFromNow; 
 	}
 
 	for($j = 0; $difference >= $lengths[$j] && $j < count($lengths)-1; $j++) {
@@ -334,9 +532,11 @@ function wireRelativeTimeStr($ts) {
 	}
 
 	$difference = round($difference);
+	if(!$difference) return $justNow; 
+	
 	$periods = $difference != 1 ? $periodsPlural : $periodsSingular; 
 	$period = $periods[$j];
 
-	return sprintf('%d %2$s %3$s', (int) $difference, $period, $tense); // i.e. 2 days ago (d=qty, 2=period, 3=tense)
+	return sprintf('%s%d%s%s %s', $prepend, (int) $difference, $space, $period, $tense); // i.e. 2 days ago (d=qty, 2=period, 3=tense)
 }
 

@@ -7,6 +7,8 @@
  * As a result, this class includes functionality for, and checks for both single-and-multi selection values. 
  * Sublcasses will want to override the render method, but it's not necessary to override processInput().
  * Subclasses that select multiple values should implement the InputfieldHasArrayValue interface. 
+ * 
+ * @todo add support for 'required' attribute?
  *
  */
 class InputfieldSelect extends Inputfield {
@@ -31,20 +33,26 @@ class InputfieldSelect extends Inputfield {
 		return array(
 			'title' => __('Select', __FILE__), // Module Title
 			'summary' => __('Selection of a single value from a select pulldown', __FILE__), // Module Summary
-			'version' => 101,
+			'version' => 102,
 			'permanent' => true, 
 			);
+	}
+
+	public function __construct() {
+		parent::__construct();
+		$this->set('defaultValue', ''); 
 	}
 
 	/**
 	 * Add an option that may be selected
 	 *
-	 * If you want to add an optgroup, the the $value param as the label, and the label param as an array of options. 
+	 * If you want to add an optgroup, use the $value param as the label, and the label param as an array of options. 
 	 * Note that optgroups may not be applicable to other Inputfields that descend from InputfieldSelect.
 	 *
 	 * @param string $value Value that the option submits
 	 * @param string $label Optional label associated with the value (if null, value will be used as the label)
 	 * @param array $attributes Optional attributes to be associated with this option (i.e. a 'selected' attribute for an <option> tag)
+	 * @return $this
 	 *
 	 */
 	public function addOption($value, $label = null, array $attributes = null) {
@@ -228,11 +236,36 @@ class InputfieldSelect extends Inputfield {
 	}
 
 	/**
+	 * Check for default value and populate when appropriate
+	 *
+	 * This should be called at the beginning of render() and at the end of processInput()
+	 *
+	 */
+	protected function checkDefaultValue() {
+
+		if(!$this->required || !$this->defaultValue || !$this->isEmpty()) return;
+
+		// when a value is required and the value is empty and a default value is specified, we use it.
+		if($this instanceof InputfieldHasArrayValue) {
+			$value = explode("\n", $this->defaultValue); 
+			foreach($value as $k => $v) {
+				$value[$k] = trim($v); // remove possible extra LF
+			}
+		} else {
+			$value = $this->defaultValue; 
+			$pos = strpos($value, "\n"); 
+			if($pos) $value = substr($value, 0, $pos); 
+			$value = trim($value); 
+		}
+		$this->attr('value', $value); 
+	}
+
+	/**
 	 * Render and return the output for this Select
 	 *
 	 */
 	public function ___render() {
-
+		$this->checkDefaultValue();
 		$attrs = $this->getAttributes();
 		unset($attrs['value']); 
 
@@ -287,8 +320,8 @@ class InputfieldSelect extends Inputfield {
 	 * In this case we're having the Inputfield base process the input and we're going back and validating the value.
 	 * If the value(s) that were set aren't in our specific list of options, we remove them. This is a security measure.
 	 *
-	 *
-	 * @param array $input
+	 * @param WireInputData $input
+	 * @return $this
 	 *
 	 */
 	public function ___processInput(WireInputData $input) {
@@ -309,7 +342,10 @@ class InputfieldSelect extends Inputfield {
 
 		if($this instanceof InputfieldHasArrayValue) {
 			foreach($value as $k => $v) {
-				if(!$this->isOption($v)) unset($value[$k]); 
+				if(!$this->isOption($v)) {
+					$this->message("Removing invalid option: " . wire('sanitizer')->entities($value[$k]), Notice::debug); 
+					unset($value[$k]); 
+				}
 			}
 
 		} else if($value && !$this->isOption($value)) {
@@ -317,6 +353,7 @@ class InputfieldSelect extends Inputfield {
 		}
 
 		$this->setAttribute('value', $value); 
+		$this->checkDefaultValue();
 
 		return $this; 
 	}
@@ -333,6 +370,7 @@ class InputfieldSelect extends Inputfield {
 			if(is_array($value)) $this->options = $value; 	
 			return $this;
 		} 
+
 
 		return parent::set($key, $value); 
 	}
@@ -353,6 +391,9 @@ class InputfieldSelect extends Inputfield {
 		} else if($value === null || $value === false) {
 			return true; 
 
+		} else if($value == "0") {
+			if(!array_key_exists("$value", $this->options)) return true; 
+
 		} else {
 			return strlen($value) === 0; 
 		}
@@ -363,29 +404,41 @@ class InputfieldSelect extends Inputfield {
 
 		$inputfields = parent::___getConfigInputfields();
 
+		$f = $this->wire('modules')->get('InputfieldTextarea'); 
+		$f->attr('name', 'defaultValue'); 
+		$f->attr('value', $this->defaultValue); 
+		$f->label = $this->_('Default Value'); 
+		$f->description = $this->_('To have pre-selected default value(s), enter the option values (one per line) below. For page selections, this would be the page ID number(s).'); 
+		$f->notes = $this->_('This default value(s) option is available because you checked the "required" box above.'); 
+		$f->showIf = 'required>0';
+		$f->collapsed = Inputfield::collapsedBlank;
+		
+		$inputfields->add($f); 
+
 		// if dealing with an inputfield that has an associated fieldtype, 
 		// we don't need to perform the remaining configuration
-		if($this->hasFieldtype !== false) return $inputfields;
+		if($this->hasFieldtype === false) {
 
-		$isInputfieldSelect = $this->className() == 'InputfieldSelect';
+			$isInputfieldSelect = $this->className() == 'InputfieldSelect';
 
-		$f = wire('modules')->get('InputfieldTextarea'); 
-		$f->attr('name', 'options'); 
-		$value = implode("\n", $this->options); 
-		if(empty($value)) {
-			$value = "=\nOption 1\nOption 2\nOption 3";
-			if(!$isInputfieldSelect) $value = ltrim($value, '='); 
+			$f = wire('modules')->get('InputfieldTextarea'); 
+			$f->attr('name', 'options'); 
+			$value = implode("\n", $this->options); 
+			if(empty($value)) {
+				$value = "=\nOption 1\nOption 2\nOption 3";
+				if(!$isInputfieldSelect) $value = ltrim($value, '='); 
+			}
+			$f->attr('rows', 10); 
+			$f->label = $this->_('Options');
+			$f->description = $this->_('Enter the options that may be selected, one per line.');
+			$f->notes = 
+				($isInputfieldSelect ? $this->_('To precede your list with a blank option, enter just a equals sign "=" as the first option.') . "\n" : '') . 
+				$this->_('To make an option selected, precede it with a plus sign. Example: +My Option') . "\n" . 
+				$this->_('To keep a separate value and label, separate them with an equals sign. Example: value=My Option') . "\n" . 
+				($isInputfieldSelect ? $this->_('To create an optgroup (option group) indent the options in the group with 3 or more spaces.') : ''); 
+				
+			$inputfields->add($f); 
 		}
-		$f->attr('rows', 10); 
-		$f->label = $this->_('Options');
-		$f->description = $this->_('Enter the options that may be selected, one per line.');
-		$f->notes = 
-			($isInputfieldSelect ? $this->_('To precede your list with a blank option, enter just a equals sign "=" as the first option.') . "\n" : '') . 
-			$this->_('To make an option selected, precede it with a plus sign. Example: +My Option') . "\n" . 
-			$this->_('To keep a separate value and label, separate them with an equals sign. Example: value=My Option') . "\n" . 
-			($isInputfieldSelect ? $this->_('To create an optgroup (option group) indent the options in the group with 3 or more spaces.') : ''); 
-			
-		$inputfields->add($f); 
 
 		return $inputfields; 
 	}

@@ -23,3 +23,7 @@ site-skyscrapers
 .htaccess
 tmp
 upgrade.php
+.idea
+.svn
+.sass-cache
+.sass-cache/*

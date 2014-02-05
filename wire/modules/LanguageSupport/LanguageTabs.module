@@ -1,0 +1,70 @@
+<?php
+
+/**
+ * ProcessWire Language Field Tabs
+ *
+ * Organizes Language Fields into tabs for a cleaner easier to use interface
+ *
+ * By Adamspruijt, Copyright 2013
+ * 
+ * For ProcessWire 2.x 
+ * Copyright (C) 2013 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ *
+ */
+
+class LanguageTabs extends WireData implements Module {
+
+	public static function getModuleInfo() {
+
+		return array(
+			'title' => 'Languages Support - Tabs',
+			'version' => 109,
+			'summary' => 'Organizes multi-language fields into tabs for a cleaner easier to use interface.',
+			'author' => 'adamspruijt', 
+			'href' => '',
+			'singular' => true,
+			'autoload' => true,
+			'requires' => 'LanguageSupportFields'
+		);
+	}
+
+	public function init() { }
+
+	public function ready() {
+		if($this->page->template != 'admin') return;
+
+		$this->addHookAfter('ProcessPageEdit::execute', $this, 'loadTabs');
+		$this->addHookAfter('Process::executeEdit', $this, 'loadTabs');
+
+		$language = null;
+		// allow for specifying language in your "edit" page link, from front-end
+		// so if you want to focus on the Spanish tabs when the user clicks "edit"
+		// from /es/path/to/page/, then you can by using a page edit link like:
+		// <a href='{$config->urls->admin}page/edit/?id=$page->id&language=$user->language'>Edit</a>
+		$id = (int) $this->input->get->language;
+		if($id) $language = $this->languages->get($id); 
+
+		// if language is not specified as a GET variable, then use the user's language
+		if(!$language || !$language->id) $language = $this->user->language; 
+
+		// determine the index of the tab for the user's language	
+		$activeTab = 0; 	
+		foreach($this->languages as $index => $lang) {
+			if($lang->id == $language->id) $activeTab = $index; 
+		}
+
+		$settings = array(
+			'title' => $this->_('Expand Language Tabs'),
+			'activeTab' => $activeTab, 
+			); 
+
+		$this->config->js('LanguageTabs', $settings); 
+	}
+
+	public function loadTabs(){
+		$this->config->scripts->add($this->config->urls->LanguageTabs . "LanguageTabs.js");
+		$this->config->styles->add($this->config->urls->LanguageTabs . "LanguageTabs.css");
+	}
+}

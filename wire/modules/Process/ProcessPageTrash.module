@@ -23,12 +23,13 @@ class ProcessPageTrash extends Process {
 		return array(
 			'title' => __('Page Trash', __FILE__), // getModuleInfo title
 			'summary' => __('Handles emptying of Page trash', __FILE__), // getModuleInfo summary 
-			'version' => 100, 
+			'version' => 101, 
 			'permanent' => true, 
 			); 
 	}
 
 	protected $trashPages; 
+	protected $maxItems = 1000; 
 
 	/**
 	 * Check if an empty request has been received and delete if so, otherwise render a confirmation form
@@ -36,9 +37,10 @@ class ProcessPageTrash extends Process {
 	 */
 	public function ___execute() {
 
-		$this->trashPages = $this->pages->get($this->config->trashPageID)->children("status<" . Page::statusMax);
 
 		if(isset($_POST['submit_empty']) && !empty($_POST['confirm_empty'])) {
+			ini_set('max_execution_time', 60*10); 
+			$this->trashPages = $this->pages->get($this->config->trashPageID)->children("limit=$this->maxItems, status<" . Page::statusMax);
 			$this->session->CSRF->validate();
 			$this->session->message($this->_("The trash has been emptied")); 
 			foreach($this->trashPages as $t) $this->pages->delete($t, true); 
@@ -46,6 +48,7 @@ class ProcessPageTrash extends Process {
 			$this->session->redirect($this->config->urls->admin); 
 		} else {
 			// render a form showing what pages are in the trash and confirming they want to empty it
+			$this->trashPages = $this->pages->get($this->config->trashPageID)->children("limit=2, status<" . Page::statusMax);
 			return $this->render();
 		}
 	}	
@@ -75,6 +78,7 @@ class ProcessPageTrash extends Process {
 		$field->attr('value', 1); 
 		$field->label = $this->_('Empty trash');
 		$field->description = $this->_("Please confirm that you want to empty the page trash.");
+		$field->notes = $this->_("If there are too many items in the trash, you may have to empty it multiple times."); 
 		$form->add($field);
 
 		$field = $this->modules->get("InputfieldSubmit"); 

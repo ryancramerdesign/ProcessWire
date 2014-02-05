@@ -44,7 +44,8 @@ class CacheFile {
 	 * @param string $path Path where cache files will be created 
 	 * @param string|int $id An identifier for this particular cache, unique from others. 
 	 * 	Or leave blank if you are instantiating this class for no purpose except to expire cache files (optional).
-	 * @param int The number of seconds that this cache file remains valid
+	 * @param int $cacheTimeSeconds The number of seconds that this cache file remains valid
+	 * @throws WireException
 	 *
 	 */ 
 	public function __construct($path, $id, $cacheTimeSeconds) {
@@ -105,6 +106,7 @@ class CacheFile {
 	 *
 	 */
 	public function exists() {
+		if(!$this->secondaryID) return is_dir($this->path); 
 		$filename = $this->buildFilename(); 	
 		return is_file($filename); 
 	}
