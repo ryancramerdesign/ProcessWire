@@ -36,7 +36,6 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		'xsl' => '',
 		'css' => '',
 		'copyright' => '',
-		'enclosure' => '', // used for a files, if array specified, the first one is taken.
 		'width' => 400, // if an image is chosen for enclosure
 		'height' => 300, // if an image is chosen for enclosure
 		'boundingbox' => 0, // scale image till one of the edges reach the width or height 
@@ -45,6 +44,8 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		'itemDescriptionField' => 'summary',
 		'itemDescriptionLength' => 1024,
 		'itemDateField' => 'created',
+		'itemLinkField' => '',
+		'itemEnclosureField' => '', // used for a files, if array specified, the first one is taken.
 		'header' => 'Content-Type: application/xml; charset=utf-8;',
 		'feedPages' => array(),
 		);
@@ -120,6 +121,7 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		}
 
 		$enclosure = $this->enclosure($page);
+		$link = $this->link($page);
 
 		$description = $page->get($this->itemDescriptionField);
 		if(is_null($description)) $description = '';
@@ -130,7 +132,7 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 			"\t\t<description><![CDATA[$description]]></description>\n" .
 			$enclosure .
 			$pubDate .
-			"\t\t<link>{$page->httpUrl}</link>\n" .
+			$link .
 			"\t\t<guid>{$page->httpUrl}</guid>\n" .
 			"\t</item>\n";
 
@@ -205,18 +207,19 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		return trim(substr($str, 0, $bestPos+1));
 	}
 
-
 	/**
-	 * Creating the enclosure item tag for file or image. If the enclose is an image rescale the image if needed. 
+	 * Enclosure element of <item> could be a image or file. It has three required attributes. 
+	 * url says where the enclosure is located, length says how big it is in bytes, and type 
+	 * says what its type is, a standard MIME type.
 	 * 
 	 */
 	protected function enclosure(Page $page) {
 
 		$enclosure = '';
 
-		if(!$this->enclosure || !$page->template->hasField($this->enclosure)) return $enclosure;
+		if(!$this->itemEnclosureField || !$page->template->hasField($this->itemEnclosureField)) return $enclosure;
 
-		$string = $this->enclosure;
+		$string = $this->itemEnclosureField;
 		$field = $page->$string;
 		$count = count($field);
 
@@ -228,7 +231,6 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 
 		if($field && strlen($field->filename)) { 
 
-			// requires php 4.3
 			$finfo = finfo_open(FILEINFO_MIME_TYPE);
 			$type = finfo_file($finfo, $field->filename);
 			finfo_close($finfo);
@@ -239,7 +241,6 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 				$height = (int) $this->height;
 
 				if ($width && $height && $this->boundingbox) {
-					
 					$ratiox = $width / $field->width;
 					$ratioy = $height / $field->height;
 					
@@ -247,7 +248,6 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 					$height = min($ratiox, $ratioy) * $field->height;
 
 					$field = $field->size($width, $height);
-					
 				} else if($width || $height) {
 					$field = $field->size($width, $height);
 				}
@@ -259,6 +259,21 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		return $enclosure;
 	}
 
+	/**
+	 * By default the Page httpUrl is used as link. If itemLinkField is specified, that field is used
+	 * is used for the item link. For the guid item, we stil use the PageUrl. 
+	 * 
+	 */
+	protected function link(Page $page) {
+
+		if(!$this->itemLinkField) return "\t\t<link>{$page->httpUrl}</link>\n";
+		
+		$field = $this->itemLinkField;
+		$url = $this->sanitizer->url($page->$field);
+		
+		if(strlen($url)) return "\t\t<link>{$url}</link>\n";
+
+	}
 
 	/**
 	 * Provide fields for configuring this module
@@ -351,21 +366,30 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		$f3->addOption('modified');
 
 		$f4 = wire('modules')->get('InputfieldSelect');
-		$f4->attr('name', 'enclosure');
-		$f4->attr('value', $data['enclosure']);
-		$f4->label = "Default Feed Item File Field (enclosure)";
-		$f4->description = "The default field to use as an individual feed item's enclosure . (If the field contains an array of Pagesfiles, the first one will be used.)";
-		$f4->notes = "The image or file is added to item enclosure tag. Image sizing only occurs if the field is an instance of Pageimage.";
+		$f4->attr('name', 'itemLinkField');
+		$f4->attr('value', $data['itemLinkField']);
+		$f4->label = "Default Feed Item Link Field";
+		$f4->description = "The field to use as an individual feed item's link. Leave blank to use the de Page as link.";
+
+		$f5 = wire('modules')->get('InputfieldSelect');
+		$f5->attr('name', 'itemEnclosureField');
+		$f5->attr('value', $data['itemEnclosureField']);
+		$f5->label = "Default Feed Item File Field (enclosure)";
+		$f5->description = "The default field to use as an individual feed item's enclosure . (If the field contains an array of Pagesfiles, the first one will be used.)";
+		$f5->notes = "The image or file is added to item enclosure tag. Image sizing only occurs if the field is an instance of Pageimage.";
 
 		foreach(wire('fields') as $field) {
 
-			if($field->type instanceof FieldtypeText) {
+			// FieldtypeURL needs to be called before FieldtypeText
+			if($field->type instanceof FieldtypeURL) {
+				$f4->addOption($field->name);
+			} else if($field->type instanceof FieldtypeText) {
 				$f1->addOption($field->name);
 				$f2->addOption($field->name);
 			} else if($field->type instanceof FieldtypeDate) {
 				$f3->addOption($field->name);
 			} else if($field->type instanceof FieldtypeFile) {
-				$f4->addOption($field->name);
+				$f5->addOption($field->name);
 			}
 		}
 
@@ -374,6 +398,7 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		$inputfields->add($f2a);
 		$inputfields->add($f3);
 		$inputfields->add($f4);
+		$inputfields->add($f5);
 
 		$f = wire('modules')->get('InputfieldInteger');
 		$f->attr('name', 'width');
@@ -400,6 +425,5 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		$inputfields->add($f);
 
 		return $inputfields;
-
 	}
 }
