@@ -46,6 +46,7 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 	 *
 	 */
 	public function init() {
+		if($this->wire('config')->demo) return;
 		$this->session->addHookAfter('allowLogin', $this, 'sessionAllowLogin'); 
 	}
 

@@ -193,6 +193,9 @@ var ProcessWireAdminTheme = {
 		
 	},
 
+	// whether or not dropdown positions are currently being monitored
+	dropdownPositionsMonitored: false,
+
 	setupDropdowns: function() {
 
 		$("ul.dropdown-menu").each(function() {
@@ -251,6 +254,46 @@ var ProcessWireAdminTheme = {
 			}); 
 
 		});
+
+		// ajax loading of fields and templates
+		$(document).on('hover', 'ul.dropdown-menu a.has-ajax-items:not(.ajax-items-loaded)', function() {
+			var $a = $(this); 
+			$a.addClass('ajax-items-loaded'); 	
+			var url = $a.attr('href');
+			var $ul = $a.siblings('ul'); 
+
+			$.getJSON(url, function(data) {
+
+				// now add new event to monitor menu positions
+				if(!ProcessWireAdminTheme.dropdownPositionsMonitored && data.length > 10) {
+					ProcessWireAdminTheme.dropdownPositionsMonitored = true; 
+					var dropdownHover = function() {
+						var fromAttr = $a.attr('data-from'); 
+						if(!fromAttr) return;
+						var $from = $('#' + $a.attr('data-from')); 
+						setTimeout(function() { 
+							var fromLeft = $from.offset().left-1;
+							var $ul = $a.parent('li').parent('ul'); 
+							var thisLeft = $ul.offset().left;
+							if(thisLeft != fromLeft) $ul.css('left', fromLeft); 
+						}, 500); 
+					};
+					$(document).on('hover', 'ul.dropdown-menu a', dropdownHover); 
+				}
+
+				// populate the retrieved items
+				$.each(data, function(n) {
+					var item = this;
+					var $li = $("<li class='ui-menu-item'><a href='" + url + "edit?id=" + item.id + "'>" + item.name + "</a></li>"); 
+					$ul.append($li); 
+				}); 
+
+				// trigger the first call
+				dropdownHover();
+
+			}); 
+		}); 
+
 
 	}, 	
 

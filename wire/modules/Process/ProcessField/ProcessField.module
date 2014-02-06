@@ -23,7 +23,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Fields', __FILE__),
 			'summary' => __('Edit individual fields that hold page data', __FILE__),
-			'version' => 105,
+			'version' => 106,
 			'permanent' => true, 
 
 			// add this permission if you want this Process available for roles other than Superuser
@@ -61,6 +61,25 @@ class ProcessField extends Process implements ConfigurableModule {
 		$this->setFuel('processHeadline', $this->moduleInfo['title']); 
 		$this->saveButtonLabel = $this->_('Save'); // Save button label
 		return parent::init();
+	}
+
+	/**
+	 * Render JSON map of all fields
+	 *
+	 */
+	public function renderListJSON() {
+		$a = array();
+		$showAll = $this->wire('input')->get('all'); 
+		foreach($this->wire('fields') as $field) {
+			if(!$showAll && $field->flags & Field::flagSystem) continue; 
+			$a[] = array(
+				'id' => $field->id,
+				'name' => $field->name,
+				'flags' => $field->flags, 
+				);
+		}
+		header("Content-Type: application/json"); 
+		return json_encode($a); 
 	}
 
 	/**
@@ -155,6 +174,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	 *
 	 */
 	public function ___execute() {
+		if($this->wire('config')->ajax) return $this->renderListJSON();
 
 		$out = $this->getListFilterForm()->render() . "\n<div id='ProcessFieldList'>\n";
 		$fieldsByTag = array();

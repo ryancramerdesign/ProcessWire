@@ -19,17 +19,20 @@
  *
  */
 
-class ProcessModule extends Process {
+class ProcessModule extends Process implements ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Modules', __FILE__), // getModuleInfo title          
 			'summary' => __('List, edit or install/uninstall modules', __FILE__), // getModuleInfo summary
-			'version' => 104, 
+			'version' => 105, 
 			'permanent' => true, 
 			'permission' => 'module-admin', 
 			);
 	}
+
+	const defaultServiceUrl = 'http://modules.processwire.com/export-json/';
+	const defaultServiceKey = 'pw231';
 
 	protected $labels = array();
 
@@ -59,6 +62,9 @@ class ProcessModule extends Process {
 			$this->labels['download_install'] = $this->_('Download and Install');
 		}
 		$this->labels['check_new'] = $this->_('Check for New Modules'); 
+
+		$this->set('serviceUrl', self::defaultServiceUrl); 
+		$this->set('serviceKey', self::defaultServiceKey); 
 	}
 
 
@@ -375,14 +381,12 @@ class ProcessModule extends Process {
 		if($update) $this->wire('breadcrumbs')->add(new Breadcrumb("./?edit=$name", $name)); 
 
 		$redirectURL = $update ? "./edit?name=$name" : "./";
-		$apikey = 'pw231'; // @todo make this part of the module config rather than placed here
 		$className = $this->wire('sanitizer')->name($name);
-		$qs = "apikey=$apikey";
-		$url = "http://modules.processwire.com/export-json/$className/?$qs";
+		$url = trim($this->serviceUrl, '/') . "/$className/?apikey=" . $this->wire('sanitizer')->name($this->serviceKey);
 		$http = new WireHttp();
 		$data = $http->get($url); 
 		if(empty($data)) {
-			$this->error($this->_('Error retrieving data from web service URL'));
+			$this->error($this->_('Error retrieving data from web service URL') . ' - ' . $http->getError());
 			return $this->session->redirect($redirectURL);
 		}
 		$data = json_decode($data, true); 
@@ -826,6 +830,29 @@ class ProcessModule extends Process {
 		$out .= $form->render();
 
 		return $out; 
+	}
+
+	public static function getModuleConfigInputfields(array $data) {
+		if(empty($data['serviceUrl'])) $data['serviceUrl'] = self::defaultServiceUrl;
+		if(empty($data['serviceKey'])) $data['serviceKey'] = self::defaultServiceKey;
+
+		$inputfields = new InputfieldWrapper();
+
+		$f = wire('modules')->get('InputfieldURL'); 
+		$f->attr('name', 'serviceUrl'); 
+		$f->label = __('Modules Web Service URL'); 
+		$f->attr('value', $data['serviceUrl']); 
+		$f->columnWidth = 50;
+		$inputfields->add($f);
+
+		$f = wire('modules')->get('InputfieldText'); 
+		$f->attr('name', 'serviceKey'); 
+		$f->label = __('Modules Web Service API Key'); 
+		$f->attr('value', $data['serviceKey']); 
+		$f->columnWidth = 50;
+		$inputfields->add($f);
+
+		return $inputfields; 
 	}
 
 }

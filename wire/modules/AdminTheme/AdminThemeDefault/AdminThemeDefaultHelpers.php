@@ -10,7 +10,16 @@
  */ 
 
 class AdminThemeDefaultHelpers extends WireData {
-	
+
+	public function __construct() {
+		$renderType = $this->input->get->admin_theme_render;
+		if($renderType && $this->wire('user')->isSuperuser()) {
+			if($renderType == 'templates') echo $this->renderTemplatesNav();
+			if($renderType == 'fields') echo $this->renderFieldsNav();
+			exit; 
+		}
+	}
+
 	/**
 	 * Perform a translation, based on text from shared admin file: /wire/templates-admin/default.php
 	 * 
@@ -197,6 +206,7 @@ class AdminThemeDefaultHelpers extends WireData {
 		$isSuperuser = $this->wire('user')->isSuperuser();
 		$showItem = $isSuperuser;
 		$children = $p->numChildren && !$level && $p->name != 'page' ? $p->children("check_access=0") : array();
+		$adminURL = $this->wire('config')->urls->admin;
 		$out = '';
 	
 		if(!$showItem) { 
@@ -219,45 +229,20 @@ class AdminThemeDefaultHelpers extends WireData {
 		if(!$level && count($children)) {
 	
 			$class = trim("$class dropdown-toggle"); 
-			$out .= "<a href='$p->url' class='$class'>$title</a>"; 
+			$out .= "<a href='$p->url' id='topnav-page-$p' data-from='topnav-page-{$p->parent}' class='$class'>$title</a>"; 
 			$my = 'left-1 top';
 			if($p->name == 'access') $my = 'left top';
 			$out .= "<ul class='dropdown-menu topnav' data-my='$my' data-at='left bottom'>";
 	
 			foreach($children as $c) {
 				
-				$items = null;
-	
-				if($isSuperuser) {
-					if($c->id == 11) {
-						$items = $this->wire('templates'); 
-					} else if($c->id == 16) {
-						$items = $this->wire('fields'); 
-					}
-					if(count($items) > 100) $items = null; // don't build excessively large lists
-				}
-	
-	
-				if($items) {
+				if($isSuperuser && ($c->id == 11 || $c->id == 16)) {
+					// has ajax items
 	
 					$addLabel = $this->_('Add New');
-					$out .=	"<li><a href='$c->url'>" . $this->_($c->title) . "</a><ul>" . 
-							"<li class='add'><a href='{$c->url}add'><i class='fa fa-plus-circle'></i> $addLabel</a></li>";
-	
-					foreach($items as $item) {
-	
-						if($item instanceof Field) {
-							if($item->flags & Field::flagSystem) continue; 
-							if($item->type instanceof FieldtypeFieldsetOpen) continue; 
-	
-						} else if($item instanceof Template) {
-							if($item->flags & Template::flagSystem) continue; 
-						}
-						$out .= "<li><a href='{$c->url}edit?id=$item->id'>$item->name</a></li>";
-					}
-	
-					$out .= "</ul></li>";
-	
+					$out .=	"<li><a class='has-ajax-items' data-from='topnav-page-$p' href='$c->url'>" . $this->_($c->title) . "</a><ul>" . 
+						"<li class='add'><a href='{$c->url}add'><i class='fa fa-plus-circle'></i> $addLabel</a></li>" . 
+						"</ul></li>";
 				} else {
 					$out .= $this->renderTopNavItem($c, $level+1);
 				}
@@ -295,7 +280,7 @@ class AdminThemeDefaultHelpers extends WireData {
 			$outMobile .= "<li><a href='$p->url'>$p->title</a></li>";
 		}
 	
-		$outTools .= "<li><a href='{$config->urls->root}'><i class='fa fa-eye'></i> " . 
+		$outTools .=	"<li><a href='{$config->urls->root}'><i class='fa fa-eye'></i> " . 
 				$this->_('View Site') . "</a></li>";
 	
 		if($user->isLoggedin()) {
@@ -312,13 +297,13 @@ class AdminThemeDefaultHelpers extends WireData {
 		$outMobile = "<ul id='topnav-mobile' class='dropdown-menu topnav' data-my='left top' data-at='left bottom'>$outMobile$outTools</ul>";
 	
 		$out .=	"<li>" . 
-				"<a target='_blank' id='tools-toggle' class='dropdown-toggle' href='{$config->urls->root}'>" . 
-				"<i class='fa fa-wrench'></i></a>" . 
-				"<ul class='dropdown-menu topnav' data-my='left top' data-at='left bottom'>" . $outTools . 
-				"</ul></li>";
+			"<a target='_blank' id='tools-toggle' class='dropdown-toggle' href='{$config->urls->root}'>" . 
+			"<i class='fa fa-wrench'></i></a>" . 
+			"<ul class='dropdown-menu topnav' data-my='left top' data-at='left bottom'>" . $outTools . 
+			"</ul></li>";
 	
-		$out .= "<li class='collapse-topnav-menu'><a href='$admin->url' class='dropdown-toggle'>" . 
-				"<i class='fa fa-lg fa-bars'></i></a>$outMobile</li>";
+		$out .=	"<li class='collapse-topnav-menu'><a href='$admin->url' class='dropdown-toggle'>" . 
+			"<i class='fa fa-lg fa-bars'></i></a>$outMobile</li>";
 		
 		return $out; 
 	}
@@ -380,4 +365,5 @@ class AdminThemeDefaultHelpers extends WireData {
 	
 		return "var config = " . json_encode($jsConfig);
 	}
+
 }

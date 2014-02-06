@@ -232,9 +232,9 @@ class WireHttp extends Wire {
 		$context = @stream_context_create($options); 
 		$fp = @fopen($url, 'rb', false, $context); 
 		if(!$fp) {
-			$this->error = "fopen() failed, see result of getResponseHeader()";
-			if(isset($http_response_header)) $this->responseHeader = $http_response_header; 
-			return false;
+			//$this->error = "fopen() failed, see result of getResponseHeader()";
+			//if(isset($http_response_header)) $this->responseHeader = $http_response_header; 
+			return $this->sendSocket($url, $method); 
 		}
 
 		$result = @stream_get_contents($fp); 

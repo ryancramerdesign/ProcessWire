@@ -30,7 +30,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 104,
+			'version' => 105,
 			'permanent' => true, 
 	
 			// add this permission if you want this Process available for roles other than Superuser
@@ -70,10 +70,29 @@ class ProcessTemplate extends Process {
 	}
 
 	/**
+	 * Render a JSON map of all Templates
+	 *
+	 */
+	protected function renderListJSON() {
+		$a = array();
+		$showAll = $this->wire('input')->get('all'); 
+		foreach($this->wire('templates') as $template) {
+			if(!$showAll && $template->flags & Template::flagSystem) continue; 
+			$a[] = array(
+				'id' => $template->id, 
+				'name' => $template->name,
+				);
+		}
+		header("Content-Type: application/json"); 
+		return json_encode($a); 
+	}
+
+	/**
 	 * Execute the template list / default process
 	 *
 	 */
 	public function ___execute() {
+		if($this->wire('config')->ajax) return $this->renderListJSON(); 
 
 		$out = $this->getListFilterForm()->render() . "\n<div id='ProcessTemplateList'>\n";
 		$templatesByTag = array();
