@@ -122,6 +122,7 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 
 		$enclosure = $this->enclosure($page);
 		$link = $this->link($page);
+		$guid = $this->link($page, 'guid');
 
 		$description = $page->get($this->itemDescriptionField);
 		if(is_null($description)) $description = '';
@@ -133,7 +134,7 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 			$enclosure .
 			$pubDate .
 			$link .
-			"\t\t<guid>{$page->httpUrl}</guid>\n" .
+			$guid .
 			"\t</item>\n";
 
 		return $out;
@@ -152,9 +153,9 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		foreach($this->feedPages as $page) {
 			if(!$page->viewable()) continue;
 			$out .= $this->renderItem($page);
-				}
+		}
 
-				$out .= "</channel>\n</rss>\n";
+		$out .= "</channel>\n</rss>\n";
 
 		return $out;
 	}
@@ -264,15 +265,16 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 	 * is used for the item link. For the guid item, we stil use the PageUrl. 
 	 * 
 	 */
-	protected function link(Page $page) {
+	protected function link(Page $page, $tag = 'link') {
 
-		if(!$this->itemLinkField) return "\t\t<link>{$page->httpUrl}</link>\n";
+		if(!$this->itemLinkField) return "\t\t<{$tag}>{$page->httpUrl}</{$tag}>\n";
 		
 		$field = $this->itemLinkField;
 		$url = $this->sanitizer->url($page->$field);
 		
-		if(strlen($url)) return "\t\t<link>{$url}</link>\n";
-
+		if(strlen($url)) return "\t\t<{$tag}>{$url}</{$tag}>\n";
+		
+		return '';
 	}
 
 	/**
