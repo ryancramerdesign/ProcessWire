@@ -132,6 +132,7 @@
 
 		.InputfieldHeader {
 			/* different style for collapsed header */
+			display: block;
 			padding-bottom: 0.75em;
 			background: $label-link-collapsed-bg; 
 			border: 1px solid $subtle-border; 
@@ -143,6 +144,7 @@
 				border-color: $subtle-border; 
 				background: $text-bg; 
 			}
+
 		}
 		.InputfieldContent {
 			/* collapsed Inputfields don't show their content (only header) */
@@ -392,6 +394,10 @@
 	padding: 0.75em 0.25em 0.25em 1em;
 	margin: 0;
 	font-weight: $bold-weight; 
+}
+
+.Inputfields .Inputfield:not(.InputfieldStateCollapsed) > .InputfieldHeaderHidden > span {
+	display: none; 
 }
 
 /**

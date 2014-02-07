@@ -2087,6 +2087,7 @@ table {
       margin-left: none; }
   .Inputfields .InputfieldStateCollapsed .InputfieldHeader {
     /* different style for collapsed header */
+    display: block;
     padding-bottom: 0.75em;
     background: white;
     border: 1px solid #e6e4d8;
@@ -2259,6 +2260,9 @@ table {
   padding: 0.75em 0.25em 0.25em 1em;
   margin: 0;
   font-weight: bold; }
+
+.Inputfields .Inputfield:not(.InputfieldStateCollapsed) > .InputfieldHeaderHidden > span {
+  display: none; }
 
 /**
  * Required state

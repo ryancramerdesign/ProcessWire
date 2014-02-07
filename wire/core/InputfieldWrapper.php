@@ -72,7 +72,7 @@ class InputfieldWrapper extends Inputfield {
 		'list' => "\n<ul {attrs}>\n{out}\n</ul>\n",
 		'item' => "\n\t<li {attrs}>\n{out}\n\t</li>", 
 		'item_label' => "\n\t\t<label class='InputfieldHeader ui-widget-header' for='{for}'>{out}</label>",
-		//'item_label_text' => "<span class='toggle'>{out}</span>", 
+		'item_label_hidden' => "\n\t\t<label class='InputfieldHeader InputfieldHeaderHidden ui-widget-header'><span>{out}</span></label>",
 		'item_content' => "\n\t\t<div class='InputfieldContent ui-widget-content'>\n{out}\n\t\t</div>", 
 		'item_error' => "\n<p><span class='ui-state-error'>{out}</span></p>",
 		'item_description' => "\n<p class='description'>{out}</p>", 
@@ -343,14 +343,20 @@ class InputfieldWrapper extends Inputfield {
 			if($ffOut) {
 				$attrs = '';
 				$label = '';
-				if($inputfield->label && $inputfield->skipLabel !== Inputfield::skipLabelHeader) {
+				//if($inputfield->label && $inputfield->skipLabel !== Inputfield::skipLabelHeader) {
+				if($inputfield->label) {
 					$for = $inputfield->skipLabel ? '' : $inputfield->attr('id');
 					$label = $inputfield->label;
 					// if $inputfield has a property of entityEncodeLabel with a value of boolean FALSE, we don't entity encode
 					if($inputfield->entityEncodeLabel !== false) $label = $this->entityEncode($label);
 					$icon = $inputfield->icon ? str_replace('{name}', $this->sanitizer->name(str_replace(array('icon-', 'fa-'), '', $inputfield->icon)), $markup['item_icon']) : ''; 
-					//$label = str_replace('{out}', $label, $markup['item_label_text']); 
-					$label = str_replace(array('{for}', '{out}'), array($for, $icon . $label), $markup['item_label']); 
+					if($inputfield->skipLabel === Inputfield::skipLabelHeader) {
+						// label only shows when field is collapsed
+						$label = str_replace('{out}', $icon . $label, $markup['item_label_hidden']); 
+					} else {
+						// label always visible
+						$label = str_replace(array('{for}', '{out}'), array($for, $icon . $label), $markup['item_label']); 
+					}
 				}
 				$columnWidth = (int) $inputfield->getSetting('columnWidth');
 				$columnWidthAdjusted = $columnWidth + ($columnWidthTotal ? -1 * $columnWidthSpacing : 0);

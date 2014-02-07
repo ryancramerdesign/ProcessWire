@@ -2092,6 +2092,7 @@ table {
       margin-left: none; }
   .Inputfields .InputfieldStateCollapsed .InputfieldHeader {
     /* different style for collapsed header */
+    display: block;
     padding-bottom: 0.75em;
     background: #fdfdfd;
     border: 1px solid gainsboro;
@@ -2264,6 +2265,9 @@ table {
   padding: 0.75em 0.25em 0.25em 1em;
   margin: 0;
   font-weight: bold; }
+
+.Inputfields .Inputfield:not(.InputfieldStateCollapsed) > .InputfieldHeaderHidden > span {
+  display: none; }
 
 /**
  * Required state
@@ -2759,6 +2763,9 @@ body.collapse-wiretabs #breadcrumbs {
     padding: 0; }
   .content .PageList .PageListNumChildren {
     font-size: 0.833333em; }
+
+.PageListPagination a {
+  margin-bottom: 5px; }
 
 .content table th,
 .content table th.header,

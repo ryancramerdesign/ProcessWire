@@ -41,10 +41,11 @@ class InputfieldCheckbox extends Inputfield {
 	public function init() {
 		parent::init();
 		$this->attr('checked', ''); 
-		$this->set('skipLabel', Inputfield::skipLabelFor); // tell InputfieldWrapper not to use a 'for' attribute with it's autogen'd <label>
+		//$this->set('skipLabel', Inputfield::skipLabelFor); // tell InputfieldWrapper not to use a 'for' attribute with it's autogen'd <label>
 	}
 
 	public function ___render() {
+		$this->set('skipLabel', $this->description ? Inputfield::skipLabelFor : Inputfield::skipLabelHeader); 
 		// TBA: if($this->uncheckedValue) return $this->renderRadio();
 		$attrs = $this->getAttributes();
 		$attrs['value'] = $this->checkedValue; 
