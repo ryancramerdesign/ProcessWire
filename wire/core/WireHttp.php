@@ -203,6 +203,7 @@ class WireHttp extends Wire {
 
 		$this->error = '';
 		$this->responseHeader = array();
+		$unmodifiedURL = $url;
 
 		if(!empty($data)) $this->setData($data);
 		if($method !== 'GET') $method = 'POST';
@@ -212,9 +213,17 @@ class WireHttp extends Wire {
 		if(!ini_get('allow_url_fopen')) $useSocket = true; 
 		if($useSocket) return $this->sendSocket($url, $method); 
 
-		if(!empty($this->data)) $content = http_build_query($this->data); 
-			else if(!empty($this->rawData)) $content = $this->rawData; 
-			else $content = '';
+		if(!empty($this->data)) {
+			$content = http_build_query($this->data); 
+			if($method === 'GET' && strlen($content)) { 
+				$url .= (strpos($url, '?') === false ? '?' : '&') . $content; 
+				$content = '';
+			}
+		} else if(!empty($this->rawData)) {
+			$content = $this->rawData; 
+		} else {
+			$content = '';
+		}
 
 		$this->setHeader('content-length', strlen($content)); 
 
@@ -234,7 +243,7 @@ class WireHttp extends Wire {
 		if(!$fp) {
 			//$this->error = "fopen() failed, see result of getResponseHeader()";
 			//if(isset($http_response_header)) $this->responseHeader = $http_response_header; 
-			return $this->sendSocket($url, $method); 
+			return $this->sendSocket($unmodifiedURL, $method); 
 		}
 
 		$result = @stream_get_contents($fp); 
@@ -254,6 +263,7 @@ class WireHttp extends Wire {
 		$info = parse_url($url);
 		$host = $info['host'];
 		$path = empty($info['path']) ? '/' : $info['path'];
+		$query = empty($info['query']) ? '' : '?' . $info['query'];
 
 		if($info['scheme'] == 'https') {
 			$port = 443; 
@@ -263,13 +273,21 @@ class WireHttp extends Wire {
 			$scheme = '';
 		}
 
-		if(!empty($this->data)) $content = http_build_query($this->data); 
-			else if(!empty($this->rawData)) $content = $this->rawData; 
-			else $content = '';
+		if(!empty($this->data)) {
+			$content = http_build_query($this->data); 
+			if($method === 'GET' && strlen($content)) { 
+				$query .= (strpos($query, '?') === false ? '?' : '&') . $content; 
+				$content = '';
+			}
+		} else if(!empty($this->rawData)) {
+			$content = $this->rawData; 
+		} else {
+			$content = '';
+		}
 
 		$this->setHeader('content-length', strlen($content));
 
-		$request = "$method $path HTTP/1.0\r\nHost: $host\r\n";
+		$request = "$method $path$query HTTP/1.0\r\nHost: $host\r\n";
 
 		foreach($this->headers as $key => $value) {
 			$request .= "$key: $value\r\n";
