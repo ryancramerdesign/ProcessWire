@@ -104,6 +104,7 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		$this->set('parentPage', null); 
 		$this->set('sanitizeMethod', 'pageName');
 		$this->set('languageSupportLabel', ''); 
+		$this->set('slashUrls', 1); // whether a trailing slash should be shown in the URL preview
 
 		// optional checkbox associated with the input, for use with language support
 		$this->set('checkboxName', ''); // leave blank to disable 
@@ -143,8 +144,9 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		if($value && wire('modules')->isInstalled('LanguageSupportPageNames')) {
 			if(strlen($value)) $link = "<a href='" . rtrim(wire('config')->urls->root, '/') . rtrim($url, '/') . "/$value/'>";
 		}
-
-		$p = "\n<p id='{$this->id}_path' class='InputfieldPageNameURL'>";
+		
+		$slashUrls = (int) $this->slashUrls;
+		$p = "\n<p id='{$this->id}_path' data-slashUrls='$slashUrls' class='InputfieldPageNameURL'>";
 		if($link) $p .= $link;
 		$p .= "$url<strong></strong>";
 		if($link) $p .= "</a>";

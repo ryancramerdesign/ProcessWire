@@ -232,6 +232,7 @@ class ProcessPageEdit extends Process {
 			$field->attr('name', '_pw_page_name'); 
 			$field->attr('value', $this->page->name); 
 			$field->required = $this->page->id != 1;
+			$field->slashUrls = $this->page->template->slashUrls;
 			if(!$this->page->editable('name')) {
 				$field->attr('disabled', 'disabled'); 
 				$field->required = false; 
@@ -426,6 +427,7 @@ class ProcessPageEdit extends Process {
 			$field = $this->modules->get('InputfieldPageName');
 			$field->attr('value', $this->page->name); 
 			$field->attr('name', '_pw_page_name');
+			$field->slashUrls = $this->page->template->slashUrls;
 			if($field->value && !$this->page->editable('name')) $field->attr('disabled', 'disabled'); 
 			$field->required = $this->page->id != 1;
 			if($this->page->parent) $field->parentPage = $this->page->parent;

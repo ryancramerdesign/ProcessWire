@@ -231,6 +231,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		$field->parentPage = $this->parent; 
 		$field->attr('name', '_pw_page_name'); 
 		$field->required = true; 
+		if($this->template) $field->slashUrls = $this->template->slashUrls;
 		$form->append($field); 
 
 		if(!$this->template) { 

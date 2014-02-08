@@ -46,7 +46,8 @@ var InputfieldPageName = {
 
 	updatePreview: function($t, value) {
 		var $previewPath = $('#' + $t.attr('id') + '_path'); 
-		$previewPath.find("strong").text((value.length > 0 ? value + '/' : ''))
+		var slash = parseInt($previewPath.attr('data-slashUrls')) > 0 ? '/' : '';
+		$previewPath.find("strong").text((value.length > 0 ? value + slash : ''))
 	}
 };
 
