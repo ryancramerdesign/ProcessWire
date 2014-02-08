@@ -743,7 +743,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 
 		if($uninstallable) {
 			$field->description = $this->_("Uninstall this module? After uninstalling, you may remove the modules files from the server if it is not in use by any other modules."); // Uninstall field description
-			if(count($moduleInfo['installs'])) $field->notes = $this->_("This will also uninstall other modules") . " - " . implode(', ', $moduleInfo['installs']); // Text that precedes a list of modules that are also uninstalled
+			if(count($moduleInfo['installs'])) $field->notes = $this->_("This will also uninstall other modules") . " - " . implode(', ', $this->wire('modules')->getUninstalls($moduleName)); // Text that precedes a list of modules that are also uninstalled
 
 		} else {
 			$field->attr('disabled', 'disabled');

@@ -776,14 +776,7 @@ class Modules extends WireArray {
 		$query->execute();
 
 		// check if there are any modules still installed that this one says it is responsible for installing
-		foreach($info['installs'] as $name) {
-
-			// if module isn't installed, then great
-			if(!$this->isInstalled($name)) continue; 
-
-			// if an 'installs' module doesn't indicate that it requires this one, then leave it installed
-			$i = $this->getModuleInfo($name); 
-			if(!in_array($class, $i['requires'])) continue; 
+		foreach($this->getUninstalls($class) as $name) {
 
 			// catch uninstall exceptions at this point since original module has already been uninstalled
 			$label = "Module Auto Uninstall";
@@ -800,6 +793,41 @@ class Modules extends WireArray {
 		$this->remove($module); 
 
 		return true; 
+	}
+
+	/**
+	 * Return an array of other module class names that are uninstalled when the given one is
+	 * 
+	 * The opposite of this function is found in the getModuleInfo array property 'installs'. 
+	 * Note that 'installs' and uninstalls may be different, as only modules in the 'installs' list
+	 * that indicate 'requires' for the installer module will be uninstalled.
+	 * 
+	 * @param $class
+	 * @return array
+	 * 
+	 */
+	public function getUninstalls($class) {
+		
+		$uninstalls = array();
+		$class = $this->getModuleClass($class);
+		if(!$class) return $uninstalls;
+		$info = $this->getModuleInfo($class);
+		
+		// check if there are any modules still installed that this one says it is responsible for installing
+		foreach($info['installs'] as $name) {
+
+			// if module isn't installed, then great
+			if(!$this->isInstalled($name)) continue;
+
+			// if an 'installs' module doesn't indicate that it requires this one, then leave it installed
+			$i = $this->getModuleInfo($name);
+			if(!in_array($class, $i['requires'])) continue; 
+			
+			// add it to the uninstalls array
+			$uninstalls[] = $name;
+		}
+		
+		return $uninstalls;
 	}
 
 	/**
