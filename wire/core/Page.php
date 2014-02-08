@@ -1418,6 +1418,16 @@ class Page extends WireData implements Countable {
 	 *
 	 */
 	public function isPublic() {
+		return self::isHooked('Page::isPublic()') ? $this->__call('isPublic', array()) : $this->___isPublic();
+	}
+
+	/**
+	 * Implementation for the above isPublic function
+	 * 
+	 * @return bool
+	 * 
+	 */
+	protected function ___isPublic() {
 		if($this->status >= Page::statusUnpublished) return false;	
 		$template = $this->getAccessTemplate();
 		if(!$template || !$template->hasRole('guest')) return false;
