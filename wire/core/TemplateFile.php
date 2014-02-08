@@ -154,7 +154,7 @@ class TemplateFile extends WireData {
 	 *
 	 */
 	public function getArray() {
-		return array_merge(parent::getArray(), $this->fuel->getArray()); 
+		return array_merge($this->fuel->getArray(), parent::getArray()); 
 	}
 
 	/**
