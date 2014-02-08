@@ -774,6 +774,23 @@ class Modules extends WireArray {
 		$query = $database->prepare('DELETE FROM modules WHERE class=:class LIMIT 1'); // QA
 		$query->bindValue(":class", $class, PDO::PARAM_STR); 
 		$query->execute();
+	
+		// remove all hooks attached to this module
+		$hooks = $module instanceof Wire ? $module->getHooks() : array();
+		foreach($hooks as $hook) {
+			$this->message("Removed hook $class => " . $hook['options']['fromClass'] . " $hook[method]", Notice::debug); 
+			$module->removeHook($hook['id']); 
+		}
+	
+		// remove all hooks attached to other ProcessWire objects
+		$hooks = array_merge(wire()->getHooks('*'), Wire::$allLocalHooks);
+		foreach($hooks as $hook) {
+			$toClass = get_class($hook['toObject']); 
+			if($class === $toClass) {
+				$hook['toObject']->removeHook($hook['id']);
+				$this->message("Removed hook $class => " . $hook['options']['fromClass'] . " $hook[method]", Notice::debug); 
+			}
+		}
 
 		// check if there are any modules still installed that this one says it is responsible for installing
 		foreach($this->getUninstalls($class) as $name) {

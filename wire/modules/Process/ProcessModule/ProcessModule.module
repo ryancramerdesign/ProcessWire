@@ -805,6 +805,8 @@ class ProcessModule extends Process implements ConfigurableModule {
 			$version .= " - <a href='./?update=$moduleName'>" . $this->_('check for updates') . "</a>"; 
 		}
 
+		$hooksStr = $this->renderModuleHooks($moduleName); 	
+		
 		// build a table that displays module info
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->setEncodeEntities(false); 
@@ -817,8 +819,9 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$table->row(array($this->_x('Summary', 'edit'), $moduleInfo['summary'])); 
 		if($requirementsStr) $table->row(array($this->_x('Requires', 'edit'), $requirementsStr)); 
 		if($dependentsStr) $table->row(array($this->_x('Required By', 'edit'), $dependentsStr)); 
-		if(!empty($moduleInfo['permission'])) $table->row(array($this->_x('Required Permission', 'edit'), $moduleInfo['permission'])); 
-		if(!empty($moduleInfo['href'])) $table->row(array($this->_x('More Information', 'edit'), "<a class='label' href='$moduleInfo[href]'>$moduleInfo[href]</a>")); 
+		if(!empty($moduleInfo['permission'])) $table->row(array($this->_x('Required Permission', 'edit'), $moduleInfo['permission']));
+		if($hooksStr) $table->row(array($this->_x('Hooks To', 'edit'), $hooksStr)); 
+		if(!empty($moduleInfo['href'])) $table->row(array($this->_x('More Information', 'edit'), "<a class='label' href='$moduleInfo[href]'>$moduleInfo[href]</a>"));
 
 		$field = $this->modules->get("InputfieldMarkup"); 
 		$field->attr('id', 'ModuleInfo'); 
@@ -830,6 +833,18 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$out .= $form->render();
 
 		return $out; 
+	}
+	
+	protected function renderModuleHooks($moduleName) {
+		$out = '';
+		$hooks = array_merge($this->wire()->getHooks('*'), Wire::$allLocalHooks);
+		foreach($hooks as $hook) {
+			$toObject = !empty($hook['toObject']) ? $hook['toObject'] : '';
+			if(empty($toObject) || get_class($toObject) != $moduleName) continue;
+			$suffix = $hook['options']['type'] == 'method' ? '()' : '';
+			$out .= "<code>" . ($hook['options']['fromClass'] ? $hook['options']['fromClass'] . '::' : '') . "$hook[method]$suffix</code>, ";
+		}
+		return trim($out, ", "); 
 	}
 
 	public static function getModuleConfigInputfields(array $data) {
