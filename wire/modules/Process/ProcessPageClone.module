@@ -21,7 +21,7 @@ class ProcessPageClone extends Process {
 		return array(
 			'title' => __('Page Clone', __FILE__),
 			'summary' => __('Provides ability to clone/copy/duplicate pages in the admin. Adds a "copy" option to all applicable pages in the PageList.', __FILE__), 
-			'version' => 101, 
+			'version' => 102, 
 			'permanent' => false, 
 			'permission' => 'page-clone',
 			'autoload' => true,  // Note: most Process modules should not be 'autoload', this is an exception.
@@ -103,10 +103,10 @@ class ProcessPageClone extends Process {
 
 		$error = $this->_("Unable to load page");
 		$id = (int) $this->input->get->id;
-		if(!$id) throw new WireException("$error A"); 
+		if(!$id) throw new WireException($error); 
 		$this->page = $this->pages->get($id); 
-		if($this->page->id < 2) throw new WireException("$error B"); 
-		if(!$this->hasPermission($this->page)) throw new WirePermissionException("$error C"); 
+		if($this->page->id < 2) throw new WireException($error); 
+		if(!$this->hasPermission($this->page)) throw new WirePermissionException($error); 
 
 		if($this->input->post->submit_clone) $this->process();
 		return $this->render();	
@@ -130,7 +130,7 @@ class ProcessPageClone extends Process {
 		if(count($page->template->parentTemplates) && !in_array($page->parent->template->id, $page->template->parentTemplates)) return false; 
 		
 		if($user->isSuperuser()) return true; 
-		if($user->hasPermission('page-create', $page) && $user->hasPermission('page-clone', $page)) return true; 
+		if($user->hasPermission('page-create', $page) && $user->hasPermission('page-clone', $page) && $page->parent->addable()) return true; 
 
 		return false; 
 	}
