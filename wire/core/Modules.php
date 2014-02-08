@@ -656,7 +656,7 @@ class Modules extends WireArray {
 				}
 			}
 		}
-
+		
 		if($returnReason && $reason) return $reason;
 	
 		return $reason ? false : true; 	
@@ -788,9 +788,15 @@ class Modules extends WireArray {
 				$this->error("$label - $name - " . $e->getMessage()); 
 			}
 		}
+	
+		// add back to the installable list
+		if(class_exists("ReflectionClass")) {
+			$reflector = new ReflectionClass($class);
+			$this->installable[$class] = $reflector->getFileName(); 
+		}
 
 		unset($this->moduleIDs[$class]);
-		$this->remove($module); 
+		$this->remove($module);
 
 		return true; 
 	}
