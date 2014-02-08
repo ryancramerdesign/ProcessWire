@@ -7,4 +7,9 @@ $(document).ready(function() {
 		$("#wrap_Inputfield_roles input").attr('disabled', 'disabled');
 		//$("#wrap_submit_save").remove();
 	}
+
+	var $guestRole = $("#Inputfield_roles_37"); 
+	if($guestRole.size() > 0 && !$guestRole.is(":checked")) {
+		$guestRole.attr('checked', 'checked'); 
+	}
 }); 

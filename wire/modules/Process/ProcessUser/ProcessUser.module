@@ -20,7 +20,7 @@ class ProcessUser extends ProcessPageType {
 	static public function getModuleInfo() {
 		return array(
 			'title' => __('Users', __FILE__), // getModuleInfo title
-			'version' => 100, 
+			'version' => 101, 
 			'summary' => __('Manage system users', __FILE__), // getModuleInfo summary
 			'permanent' => true, 
 			'permission' => 'user-admin',
