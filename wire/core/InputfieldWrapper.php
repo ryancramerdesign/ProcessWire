@@ -257,6 +257,11 @@ class InputfieldWrapper extends Inputfield {
 		$lastInputfield = null;
 		$markup = array_merge(self::$defaultMarkup, self::$markup);
 		$classes = array_merge(self::$defaultClasses, self::$classes);
+	
+		// show description for tabs
+		if($this instanceof InputfieldFieldsetTabOpen && $this->description) {
+			$out .= str_replace('{out}', nl2br($this->entityEncode($this->description, true)), $markup['item_head']);
+		}
 		
 		foreach($children as $inputfield) {
 			$renderValueMode = $this->renderValueMode; 
