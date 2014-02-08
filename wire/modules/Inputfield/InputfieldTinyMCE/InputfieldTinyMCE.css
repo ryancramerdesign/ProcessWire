@@ -3,3 +3,7 @@
   -webkit-box-sizing: content-box;
   box-sizing: content-box;
 }
+
+#mce_fullscreen_container {
+	z-index: 99 !important;
+}
