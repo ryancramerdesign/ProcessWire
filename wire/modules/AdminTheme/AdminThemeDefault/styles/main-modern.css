@@ -1969,6 +1969,9 @@ textarea {
   border: 1px solid;
   border-color: #7c7c7c #c3c3c3 #dddddd #c3c3c3;
   background: #f6f9fb; }
+  input[disabled],
+  textarea[disabled] {
+    color: #959595; }
 
 input[type=file] {
   background: none;

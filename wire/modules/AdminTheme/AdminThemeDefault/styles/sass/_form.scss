@@ -29,7 +29,11 @@ textarea {
 	color: $input-color; 
 	border: $input-border; 
 	border-color: $input-border-color; 
-        background: $input-bg;
+	background: $input-bg;
+	
+	&[disabled] {
+		color: lighten($input-color, 45%);
+	}
 }
 
 input[type=file] {
