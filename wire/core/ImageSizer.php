@@ -1021,39 +1021,36 @@ class ImageSizer extends Wire {
 		if(isset($a['alpha'])) {
 			return $a['alpha'];
 		}
-		$f=@fopen($this->filename,'rb');
-		if($f===FALSE) return false;
+		$f = @fopen($this->filename,'rb');
+		if($f === false) return false;
 
-		//Check signature
-		if(@fread($f,8) != chr(137).'PNG'.chr(13).chr(10).chr(26).chr(10)) {
+		// Check signature
+		if(@fread($f,8) != chr(137) .'PNG' . chr(13) . chr(10) . chr(26) . chr(10)) {
 			@fclose($f);
 			return false;
 		}
-		//Read header chunk
-		@fread($f,4);
-		if(@fread($f,4) != 'IHDR') {
+		// Read header chunk
+		@fread($f, 4);
+		if(@fread($f, 4) != 'IHDR') {
 			@fclose($f);
 			return false;
 		}
 		$a['width']  = $this->freadint($f);
 		$a['height'] = $this->freadint($f);
-		$a['bits']   = ord(@fread($f,1));
+		$a['bits']   = ord(@fread($f, 1));
 		$a['alpha']  = false;
 
-		$ct = ord(@fread($f,1));
-		if($ct==0) {
+		$ct = ord(@fread($f, 1));
+		if($ct == 0) {
 			$a['channels'] = 1;
 			$a['colspace'] = 'DeviceGray';
-		}
-		elseif($ct==2) {
+		} else if($ct == 2) {
 			$a['channels'] = 3;
 			$a['colspace'] = 'DeviceRGB';
-		}
-		elseif($ct==3) {
+		} else if($ct == 3) {
 			$a['channels'] = 1;
 			$a['colspace'] = 'Indexed';
-		}
-		else{
+		} else {
 			$a['channels'] = $ct;
 			$a['colspace'] = 'DeviceRGB';
 			$a['alpha']	= true;
@@ -1064,17 +1061,17 @@ class ImageSizer extends Wire {
 
 
 	/**
-	 * reads a 4-byte integer from file
+	 * reads a 4-byte integer from file (@horst)
 	 *
 	 * @param filepointer
 	 * @return mixed
 	 *
 	 */
 	protected function freadint(&$f) {
-		$i=ord(@fread($f,1))<<24;
-		$i+=ord(@fread($f,1))<<16;
-		$i+=ord(@fread($f,1))<<8;
-		$i+=ord(@fread($f,1));
+		$i = ord(@fread($f, 1)) << 24;
+		$i += ord(@fread($f, 1)) << 16;
+		$i += ord(@fread($f, 1)) << 8;
+		$i += ord(@fread($f, 1));
 		return $i;
 	}
 
