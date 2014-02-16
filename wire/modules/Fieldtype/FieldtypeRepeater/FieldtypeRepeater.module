@@ -541,6 +541,19 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		return $sleepValue;
         }
 
+	public function ___exportValue(Page $page, Field $field, $value, array $options = array()) {
+		$a = array();
+		foreach($value as $k => $p) {
+			if($p->isUnpublished()) continue; 
+			$v = array();
+			foreach($p->template->fieldgroup as $f) {
+				$v[$f->name] = $f->type->exportValue($p, $f, $p->getUnformatted($f->name), $options); 
+			}
+			$a[] = $v; 
+		}
+		return $a; 	
+	}
+
 	/**
 	 * Return the parent used by the repeater pages for the given Page and Field
 	 *

@@ -166,6 +166,22 @@ class FieldtypeFile extends FieldtypeMulti {
 		return $sleepValue;
 	}
 
+	public function ___exportValue(Page $page, Field $field, $value, array $options = array()) {
+		$pagefiles = $value; 
+		$value = $this->sleepValue($page, $field, $value); 
+		foreach($value as $k => $v) {
+			$pagefile = $pagefiles->get($v['data']); 
+			$a = array(
+				'name' => $v['data'], 
+				'url' => $pagefile->httpUrl(),
+				'filesize' => $pagefile->filesize()
+				); 
+			unset($v['data']); 
+			$value[$k] = array_merge($a, $v); 
+		}
+		return $value; 	
+	}
+
 	public function getBlankValue(Page $page, Field $field) {
 		$pagefiles = new Pagefiles($page);
 		$pagefiles->setField($field); 

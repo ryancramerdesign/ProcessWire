@@ -236,6 +236,32 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		return $sleepValue;
 	}
 
+	public function ___exportValue(Page $page, Field $field, $value, array $options = array()) {
+		if($value instanceof Page) return $this->exportValuePage($page, $field, $value, $options); 	
+		if(!$value instanceof PageArray) return array();
+		$a = array();
+		foreach($value as $k => $v) {
+			$a[] = $this->exportValuePage($page, $field, $v, $options); 	
+		}
+		// in human mode just return the titles separated by a carriage return
+		if(!empty($options['human'])) return implode("\n", $a); 
+		return $a; 
+	}
+
+	protected function exportValuePage(Page $page, Field $field, Page $value, array $options = array()) {
+		if(!$value->id) return array();
+		// in human mode, just return the title or name
+		if(!empty($options['human'])) return $value->get('title|name'); 
+		// otherwise return an array of info
+		$a = array(); 
+		if($value->template && $value->template->fieldgroup->has('title')) $a['title'] = $value->getUnformatted('title'); 
+		$a['id'] = $value->id; 
+		$a['name'] = $value->name; 
+		$a['path'] = $value->path; 
+		$a['template'] = (string) $value->template;
+		$a['parent_id'] = $value->parent_id; 
+		return $a; 
+	}
 
 	/**
 	 * Format the given value for output. 

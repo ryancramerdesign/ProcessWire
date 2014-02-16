@@ -569,6 +569,7 @@ class Page extends WireData implements Countable {
 				$value = $this->template->fieldgroup; 
 				break; 
 			case 'template':
+			case 'templates_id':
 			case 'templatePrevious':
 			case 'parentPrevious':
 			case 'namePrevious':

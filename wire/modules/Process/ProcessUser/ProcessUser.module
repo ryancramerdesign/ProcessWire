@@ -50,7 +50,7 @@ class ProcessUser extends ProcessPageType {
 		// don't allow removal of the guest role
 		if(!$page->roles->has("name=guest")) {
 			$page->roles->add(wire('roles')->get('guest')); 	
-			$this->error($this->_("The guest role is required")); 
+			// $this->error($this->_("The guest role is required")); 
 		}
 
 		// check if user is editing themself

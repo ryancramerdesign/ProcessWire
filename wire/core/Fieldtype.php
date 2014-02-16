@@ -279,20 +279,25 @@ abstract class Fieldtype extends WireData implements Module {
 	 */
 
 	/**
-	 * Given an 'awake' value, as set by wakeupValue, convert the value to an exportable value for external consumption.
+	 * Given a value, return an portable version of it as either a string, int, float or array
 	 *
+	 * If an array is returned, it should only contain: strings, ints, floats or more arrays of those types.
 	 * This is intended for web service exports. 
+ 	 *
+	 * If not overridden, this takes on the same behavior as sleepValue(). However, if overridden, 
+	 * it is intended to be more verbose than wakeupValue, where applicable. 
 	 *
 	 * @param Page $page
 	 * @param Field $field
 	 * @param string|int|array|object $value
-	 * @return string|int|array
+	 * @param array $options Optional settings to shape the exported value, if needed. 
+	 * @return string|float|int|array
 	 *
-	public function ___exportValue(Page $page, Field $field, $value) {
+	 */
+	public function ___exportValue(Page $page, Field $field, $value, array $options = array()) {
 		$value = $this->sleepValue($page, $field, $value); 
 		return $value; 
 	}
-	 */
 
 	/**
 	 * Return the default value for this fieldtype (may be the same as blank value)

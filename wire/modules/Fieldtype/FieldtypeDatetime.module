@@ -362,6 +362,11 @@ class FieldtypeDatetime extends FieldtypeText {
 		return $this->formatDate($value, $format); 
 	}
 
+	public function ___exportValue(Page $page, Field $field, $value, array $options = array()) {
+		if(!$value) return '';
+		return date('Y-m-d H:i:s'); 
+	}
+
 	/**
 	 * Match a date/time value in the database, as used by PageFinder
 	 *
@@ -398,7 +403,8 @@ class FieldtypeDatetime extends FieldtypeText {
 	 *
 	 */
 	public function ___sleepValue(Page $page, Field $field, $value) {
-		return date('Y-m-d H:i:s', $this->_sanitizeValue($value)); 
+		$value = $this->_sanitizeValue($value); 
+		return is_int($value) ? date('Y-m-d H:i:s', $value) : '';
 	}
 
 	/**

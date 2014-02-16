@@ -184,7 +184,7 @@ function wireMkdir($path) {
 	// @todo make this function support a $recursive option
 	if(!is_dir($path)) if(!@mkdir($path)) return false;
 	$chmodDir = wire('config')->chmodDir;
-	if($chmodDir) chmod($path, octdec($chmodDir));
+	if($chmodDir) @chmod($path, octdec($chmodDir));
 	return true; 
 }
 
@@ -241,13 +241,13 @@ function wireChmod($path, $recursive = false, $chmod = null) {
 
 	if(is_dir($path)) {
 		// $path is a directory
-		if($chmodDir) if(!chmod($path, octdec($chmodDir))) $numFails++;
+		if($chmodDir) if(!@chmod($path, octdec($chmodDir))) $numFails++;
 
 		// change mode of files in directory, if recursive
 		if($recursive) foreach(new DirectoryIterator($path) as $file) {
 			if($file->isDot()) continue; 
 			$mod = $file->isDir() ? $chmodDir : $chmodFile;     
-			if($mod) if(!chmod($file->getPathname(), octdec($mod))) $numFails++;
+			if($mod) if(!@chmod($file->getPathname(), octdec($mod))) $numFails++;
 			if($file->isDir()) {
 				if(!wireChmod($file->getPathname(), true, $chmod)) $numFails++;
 			}
@@ -288,7 +288,7 @@ function wireCopy($src, $dst, $recursive = true) {
 		} else {
 			copy($src . $file, $dst . $file);
 			$chmodFile = wire('config')->chmodFile;
-			if($chmodFile) chmod($dst . $file, octdec($chmodFile));
+			if($chmodFile) @chmod($dst . $file, octdec($chmodFile));
 		}
 	}
 

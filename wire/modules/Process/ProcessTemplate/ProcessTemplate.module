@@ -904,7 +904,7 @@ class ProcessTemplate extends Process {
 		$notes = 'name, ';
 		foreach($template->fields as $f) if(!$f->type instanceof FieldtypeFieldsetOpen) $notes .= $f->name . ", ";
 		$field->notes = $this->_('You may enter one or more of these fields:') . ' ' . rtrim($notes, ", ");
-		$field->notes .= "\n" . $this->_('You may also enter an [icon name](http://fortawesome.github.io/Font-Awesome/icons/), for example: icon-file'); 
+		$field->notes .= "\n" . $this->_('You may also enter an [icon name](http://fontawesome.io/cheatsheet/), for example: icon-file or fa-file (either format works).'); 
 		$field->attr('value', $template->pageLabelField); 
 		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field); 
