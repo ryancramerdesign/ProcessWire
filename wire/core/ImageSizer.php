@@ -242,8 +242,8 @@ class ImageSizer extends Wire {
 
 		if(!$image) return false;
 
-		if($this->imageType != IMAGETYPE_PNG) { 
-			// @horst: linearize gamma to 1.0 - we do not use gamma correction with png because it doesn't respect transparency 
+		if($this->imageType != IMAGETYPE_PNG || ! $this->hasAlphaChannel()) { 
+			// @horst: linearize gamma to 1.0 - we do not use gamma correction with pngs containing alphachannel, because GD-lib  doesn't respect transparency here (is buggy) 
 			imagegammacorrect($image, 2.0, 1.0);
 		}
 
@@ -365,7 +365,11 @@ class ImageSizer extends Wire {
 
 			imagecopyresampled($thumb2, $thumb, 0, 0, $w1, $h1, $targetWidth, $targetHeight, $targetWidth, $targetHeight);
 
-			if($this->sharpening && $this->sharpening != 'none') $image = $this->imSharpen($thumb2, $this->sharpening); // @horst
+			if($this->sharpening && $this->sharpening != 'none') { // @horst
+				if(IMAGETYPE_PNG != $this->imageType || ! $this->hasAlphaChannel()) {
+					$image = $this->imSharpen($thumb2, $this->sharpening);
+				}
+			}
 		}
 
 		// write to file
@@ -377,6 +381,7 @@ class ImageSizer extends Wire {
 				$result = imagegif($thumb2, $dest); 
 				break;
 			case IMAGETYPE_PNG: 
+				if(! $this->hasAlphaChannel()) imagegammacorrect($thumb2, 1.0, 2.0);
 				// convert 1-100 (worst-best) scale to 0-9 (best-worst) scale for PNG 
 				$quality = round(abs(($this->quality - 100) / 11.111111)); 
 				$result = imagepng($thumb2, $dest, $quality); 
@@ -1002,5 +1007,75 @@ class ImageSizer extends Wire {
 		return true;
 	}
 
-}
 
+
+
+	/**
+	 * Check for alphachannel in PNGs (@horst)
+	 *
+	 * @return bool
+	 *
+	 */
+	protected function hasAlphaChannel() {
+		static $a = array();
+		if(isset($a['alpha'])) {
+			return $a['alpha'];
+		}
+		$f=@fopen($this->filename,'rb');
+		if($f===FALSE) return false;
+
+		//Check signature
+		if(@fread($f,8) != chr(137).'PNG'.chr(13).chr(10).chr(26).chr(10)) {
+			@fclose($f);
+			return false;
+		}
+		//Read header chunk
+		@fread($f,4);
+		if(@fread($f,4) != 'IHDR') {
+			@fclose($f);
+			return false;
+		}
+		$a['width']  = $this->freadint($f);
+		$a['height'] = $this->freadint($f);
+		$a['bits']   = ord(@fread($f,1));
+		$a['alpha']  = false;
+
+		$ct = ord(@fread($f,1));
+		if($ct==0) {
+			$a['channels'] = 1;
+			$a['colspace'] = 'DeviceGray';
+		}
+		elseif($ct==2) {
+			$a['channels'] = 3;
+			$a['colspace'] = 'DeviceRGB';
+		}
+		elseif($ct==3) {
+			$a['channels'] = 1;
+			$a['colspace'] = 'Indexed';
+		}
+		else{
+			$a['channels'] = $ct;
+			$a['colspace'] = 'DeviceRGB';
+			$a['alpha']	= true;
+		}
+		@fclose($f);
+		return $a['alpha'];
+	}
+
+
+	/**
+	 * reads a 4-byte integer from file
+	 *
+	 * @param filepointer
+	 * @return mixed
+	 *
+	 */
+	protected function freadint(&$f) {
+		$i=ord(@fread($f,1))<<24;
+		$i+=ord(@fread($f,1))<<16;
+		$i+=ord(@fread($f,1))<<8;
+		$i+=ord(@fread($f,1));
+		return $i;
+	}
+
+}
