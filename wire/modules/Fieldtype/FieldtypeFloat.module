@@ -22,7 +22,7 @@ class FieldtypeFloat extends Fieldtype {
 		return array(
 			'title' => __('Float', __FILE__),
 			'summary' => __('Field that stores a floating point (decimal) number', __FILE__),
-			'version' => 102,
+			'version' => 103,
 			'permanent' => true, 
 			);
 	}
@@ -46,8 +46,11 @@ class FieldtypeFloat extends Fieldtype {
 
 	public function sanitizeValue(Page $page, Field $field, $value) {
 		if(!strlen("$value")) return '';
-		if(is_null($field->precision)) $value = (float) $value;
-			else $value = round((float) $value, $field->precision); 
+		if(is_null($field->precision)) {
+			$value = (float) $value;
+		} else {
+			$value = round((float) $value, $field->precision);
+		}
 		return $value; 
 	}
 
@@ -66,8 +69,9 @@ class FieldtypeFloat extends Fieldtype {
 	}
 
 	public function ___sleepValue(Page $page, Field $field, $value) {
-
-		$value = number_format($value, $field->precision, ".", "");
+		$precision = $field->precision; 
+		if(is_null($precision)) $precision = self::getPrecision($value); 
+		$value = number_format($value, $precision, '.', '');
 
 		/*
 
@@ -89,6 +93,13 @@ class FieldtypeFloat extends Fieldtype {
 		$value = floatval($value); 
 		*/
 		return $value; 
+	}
+	
+	public static function getPrecision($value) {
+		$remainder = ceil($value) - $value;
+		$precision = strlen(ltrim($remainder, '0., '));
+		if(!$precision) $precision = 1; 
+		return $precision;
 	}
 
 	public function getDatabaseSchema(Field $field) {

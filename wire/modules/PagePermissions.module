@@ -36,7 +36,8 @@ class PagePermissions extends WireData implements Module {
 		$this->addHook('Page::publishable', $this, 'publishable'); 
 		$this->addHook('Page::viewable', $this, 'viewable'); 
 		$this->addHook('Page::listable', $this, 'listable'); 
-		$this->addHook('Page::deleteable', $this, 'deleteable'); 
+		$this->addHook('Page::deleteable', $this, 'deleteable');
+		$this->addHook('Page::deletable', $this, 'deleteable'); 
 		$this->addHook('Page::addable', $this, 'addable'); 
 		$this->addHook('Page::moveable', $this, 'moveable'); 
 		$this->addHook('Page::sortable', $this, 'sortable'); 
