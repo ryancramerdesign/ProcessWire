@@ -36,6 +36,27 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 * 
 	 */
 	protected $pdo = null;
+    
+	/**
+	 * 
+	 * Database username
+	 * 
+	 */
+	protected $username;
+
+	/**
+	 * 
+	 * Database password
+	 * 
+	 */
+	private $password;
+
+	/**
+	 * 
+	 * PDO options
+	 * 
+	 */
+	private $driver_options;
 
 	/**
 	 * Create a new PDO instance from ProcessWire $config API variable
@@ -63,7 +84,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		if($port) $dsn .= ";port=$port";
 		$driver_options = array(
 			PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'",
-			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION            
 			);
 		$database = new WireDatabasePDO($dsn, $username, $password, $driver_options); 
 		$database->setDebugMode($config->debug);
@@ -71,48 +92,81 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	}
 	
 	public function __construct($dsn, $username = null, $password = null, array $driver_options = array()) {
-		$this->pdo = new PDO($dsn, $username, $password, $driver_options); 	
+		$this->dsn = $dsn;
+		$this->username = $username;
+		$this->password = $password;
+		$this->driver_options = $driver_options;
+		$this->connect();
 	}
-	
+
+	/**
+	 * 
+	 * Get the connection information
+	 * 
+	 * If not connected or dropped will reconnect
+	 * 
+	 */
+	public function getConnection() {
+		if (! $this->pdo) {
+			$this->connect();
+		}
+		return $this->pdo;
+	}
+
+	/**
+	 * 
+	 * Connect to the database via PDO
+	 * 
+	 */
+	public function connect() {
+		$this->pdo = new PDO(
+			$this->dsn, 
+			$this->username, 
+			$this->password, 
+			$this->driver_options
+		);
+		return $this->pdo;
+	}
+
 	public function errorCode() {
-		return $this->pdo->errorCode();
+		return $this->getConnection()->errorCode();
 	}
 	
 	public function errorInfo() {
-		return $this->pdo->errorInfo();
+		return $this->getConnection()->errorInfo();
 	}
 	
 	public function getAttribute($attribute) {
-		return $this->pdo->getAttribute($attribute); 
+		return $this->getConnection()->getAttribute($attribute); 
 	}
 	
 	public function setAttribute($attribute, $value) {
-		return $this->pdo->setAttribute($attribute, $value); 
+		return $this->getConnection()->setAttribute($attribute, $value); 
 	}
 	
 	public function lastInsertId($name = null) {
-		return $this->pdo->lastInsertId($name); 
+		return $this->getConnection()->lastInsertId($name); 
 	}
 	
 	public function query($statement) {
 		if($this->debugMode) self::$queryLog[] = $statement;
-		return $this->pdo->query($statement); 
+		return $this->getConnection()->query($statement); 
 	}
 	
 	public function beginTransaction() {
-		return $this->pdo->beginTransaction();
+		return $this->getConnection()->beginTransaction();
 	}
 	
 	public function inTransaction() {
-		return $this->pdo->inTransaction();
+		return $this->getConnection()->inTransaction();
 	}
 	
 	public function commit() {
-		return $this->pdo->commit();
+		return $this->getConnection()->commit();
 	}
 	
 	public function rollBack() {
-		return $this->pdo->rollBack();
+		return $this->getConnection()->rollBack();
 	}
 
 	/**
@@ -129,12 +183,12 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	
 	public function prepare($statement, array $driver_options = array()) {
 		if($this->debugMode) self::$queryLog[] = $statement;
-		return $this->pdo->prepare($statement, $driver_options);
+		return $this->getConnection()->prepare($statement, $driver_options);
 	}
 	
 	public function exec($statement) {
 		if($this->debugMode) self::$queryLog[] = $statement;
-		return $this->pdo->exec($statement);
+		return $this->getConnection()->exec($statement);
 	}
 
 	/**
@@ -211,7 +265,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 *
 	 */
 	public function escapeStr($str) {
-		return substr($this->pdo->quote($str), 1, -1);
+		return substr($this->getConnection()->quote($str), 1, -1);
 	}
 
 	/**
@@ -234,7 +288,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 *
 	 */
 	public function quote($str) {
-		return $this->pdo->quote($str);
+		return $this->getConnection()->quote($str);
 	}
 
 	/**
@@ -254,7 +308,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	}
 	
 	public function __get($key) {
-		if($key == 'pdo') return $this->pdo;
+		if($key == 'pdo') return $this->getConnection();
 		return parent::__get($key);
 	}
 
