@@ -370,7 +370,12 @@ class Pages extends Wire {
 			$values = $name;
 			$name = isset($values['name']) ? $values['name'] : '';
 		}
-	
+
+		if(!is_object($template)) {
+			$template = $this->wire('templates')->get($template); 	
+			if(!$template) throw new WireException("Unknown template"); 
+		}
+
 		$pageClass = $template->pageClass ? $template->pageClass : 'Page';	
 		
 		$page = new $pageClass();	

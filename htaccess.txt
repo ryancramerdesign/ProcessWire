@@ -33,12 +33,33 @@ ErrorDocument 404 /index.php
 </Files>
 
 # -----------------------------------------------------------------------------------------------
+# Protect from XSS with Apache headers
+# -----------------------------------------------------------------------------------------------
+
+<IfModule mod_headers.c>
+  # prevent site from being loaded in an iframe on another site
+  # you will need to remove this one if you want to allow external iframes
+  Header always append X-Frame-Options SAMEORIGIN 
+
+  # to prevent cross site scripting (IE8+ proprietary)
+  Header set X-XSS-Protection "1; mode=block"
+
+  # prevent mime-based attacks via content sniffing (IE+Chrome)
+  # Header set X-Content-Type-Options "nosniff" 
+</IfModule>
+
+# -----------------------------------------------------------------------------------------------
 # Protect ProcessWire system files (part 1)
 # -----------------------------------------------------------------------------------------------
 
 <FilesMatch "\.(inc|info|module|sh|sql)$|^(\..*)$">
   Order allow,deny
 </FilesMatch>
+
+<Files .htaccess>
+  order allow,deny
+  deny from all
+</Files>
 
 # -----------------------------------------------------------------------------------------------
 # Override a few PHP settings that can't be changed at runtime (not required)

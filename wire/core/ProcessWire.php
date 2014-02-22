@@ -33,7 +33,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 4; 
-	const versionRevision = 0; 
+	const versionRevision = 1; 
 	
 	const statusBoot = 0; // system is booting
 	const statusInit = 2; // system and modules are initializing
@@ -89,9 +89,13 @@ class ProcessWire extends Wire {
 
 		if(is_array($httpHosts) && count($httpHosts)) {
 			// validate from an allowed whitelist of http hosts
-
-			$key = array_search(strtolower($_SERVER['SERVER_NAME']) . $port, $httpHosts, true); 
-			if($key === false) $key = array_search(strtolower($_SERVER['HTTP_HOST']), $httpHosts, true); 
+			$key = false; 
+			if(isset($_SERVER['SERVER_NAME'])) {
+				$key = array_search(strtolower($_SERVER['SERVER_NAME']) . $port, $httpHosts, true); 
+			}
+			if($key === false && isset($_SERVER['HTTP_HOST'])) {
+				$key = array_search(strtolower($_SERVER['HTTP_HOST']), $httpHosts, true); 
+			}
 			if($key === false) {
 				// no valid host found, default to first in whitelist
 				$host = reset($httpHosts);

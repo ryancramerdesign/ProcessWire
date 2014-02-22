@@ -75,8 +75,8 @@ class PageFinder extends Wire {
 			}
 		}
 
-		if(!is_null($maxStatus)) {
-			// if a status was already present in the selector, then just make sure the page isn't unpublished
+		if(!is_null($maxStatus) && empty($options['findAll'])) {
+			// if a status was already present in the selector, without a findAll, then just make sure the page isn't unpublished
 			if($maxStatus < Page::statusUnpublished) 
 				$selectors->add(new SelectorLessThan('status', Page::statusUnpublished)); 
 
