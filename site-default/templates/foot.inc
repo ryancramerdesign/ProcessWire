@@ -27,7 +27,7 @@
 
 	<div id="footer" class="footer">
 		<div class="container">
-			<p>Powered by <a href='http://processwire.com'>ProcessWire Open Source CMS/CMF</a> &copy; <?php echo date("Y"); ?> <a href="http://www.ryancramer.com">Ryan Cramer Design, LLC</a></p>
+			<p>Powered by <a href='http://processwire.com'>ProcessWire, an open source CMS/CMF</a> &copy; <?php echo date("Y"); ?></p>
 		</div>
 	</div>
 
