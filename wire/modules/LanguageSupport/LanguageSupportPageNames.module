@@ -331,8 +331,10 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			// special case: homepage
 			$name = $isDefault ? '' : $page->get("name$language"); 
 			if($isDefault && $this->useHomeSegment) $name = $page->name;
-			if($name == self::HOME_NAME_DEFAULT || !strlen($name)) return '/';
-			return "/$name/";
+			if($name == self::HOME_NAME_DEFAULT || !strlen($name)) {
+				return ($page->template->slashUrls || wire('page')->template == 'admin') ? '/' :
+			}
+			return ($page->template->slashUrls || wire('page')->template == 'admin') ? "/$name/" : "/$name";;
 		}
 
 		$path = '';
@@ -351,7 +353,9 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$name = $page->get("name$language|name"); 
 		$path = strlen($name) ? "$path/$name/" : "$path/";
 		
-		if(!$page->template->slashUrls && $path != '/') $path = rtrim($path, '/'); 
+		if((wire('page')->template != 'admin') && !$page->template->slashUrls && $path != '/') {
+			$path = rtrim($path, '/');
+		}
 		
 		return $path;
 	}
