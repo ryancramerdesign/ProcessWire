@@ -351,7 +351,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$name = $page->get("name$language|name"); 
 		$path = strlen($name) ? "$path/$name/" : "$path/";
 		
-		if(!$page->template->slashUrls && $path != '/') $path = rtrim($path, '/'); 
+		if(!$this->page->template == 'admin' && !$page->template->slashUrls && $path != '/') $path = rtrim($path, '/'); 
 		
 		return $path;
 	}
