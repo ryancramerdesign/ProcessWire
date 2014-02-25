@@ -71,7 +71,7 @@ class FieldtypeFloat extends Fieldtype {
 	public function ___sleepValue(Page $page, Field $field, $value) {
 		$precision = $field->precision; 
 		if(is_null($precision)) $precision = self::getPrecision($value); 
-		$value = number_format($value, $precision, '.', '');
+		if(!is_string($value)) $value = number_format($value, $precision, '.', '');
 
 		/*
 

@@ -218,6 +218,17 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	}
 
 	/**
+	 * Get a field that is part of this fieldgroup, in the context of this fieldgroup. 
+	 *
+	 * @param string|int|Field $key
+	 * @return Field|null
+	 *
+	 */
+	public function getFieldContext($key) {
+		return $this->getField($key, true); 
+	}
+
+	/**
 	 * Does this fieldgroup having the given field?
 	 *
 	 * @param string|int|Field $key

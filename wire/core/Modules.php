@@ -287,6 +287,8 @@ class Modules extends WireArray {
 
 			$info = $installed[$basename]; 
 			$this->setConfigPaths($basename, $dirname); 
+			$usePlaceholder = false;
+			$module = null; 
 
 			if($info['flags'] & self::flagsAutoload) { 
 				// this is an Autoload mdoule. 
@@ -303,14 +305,12 @@ class Modules extends WireArray {
 					// anonymous function or selector string
 					$this->conditionalAutoloadModules[$basename] = $autoload;
 					$this->moduleIDs[$basename] = $info['id'];
-					continue; 
 				} else if($autoload) {
 					$module = new $basename();
-				} else {
-					continue; 
 				}
+			}
 
-			} else {
+			if(is_null($module)) {
 				// placeholder for a module, which is not yet included and instantiated
 				$module = new ModulePlaceholder(); 
 				$module->setClass($basename); 
