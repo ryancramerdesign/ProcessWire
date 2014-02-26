@@ -1227,6 +1227,9 @@ class Pages extends Wire {
 
 		$this->pageIdCache = array();
 		$this->pageSelectorCache = array();
+
+		Page::$loadingStack = array();
+		Page::$instanceIDs = array(); 
 	}
 
 	/**
