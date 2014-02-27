@@ -279,6 +279,7 @@ class FieldtypeFile extends FieldtypeMulti {
 				$query = $database->prepare("SHOW COLUMNS FROM `$table` WHERE Field='modified'"); 
 				$query->execute();
 				$numRows = (int) $query->rowCount();
+				$query->closeCursor();
 				
 				if($numRows) {
 					$field->fileSchema = $field->fileSchema | self::fileSchemaDate; 
@@ -309,6 +310,7 @@ class FieldtypeFile extends FieldtypeMulti {
 				$query = $database->prepare("SHOW COLUMNS FROM `$table` WHERE Field='modified'"); 
 				$query->execute();
 				$numRows = (int) $query->rowCount();
+				$query->closeCursor();
 				
 				if($numRows) {
 					$field->fileSchema = $field->fileSchema | self::fileSchemaDate; 

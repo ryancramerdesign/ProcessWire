@@ -25,10 +25,31 @@ function _hookSessionRedirectModal(HookEvent $event) {
 	}
 }
 
+function _checkForHttpHostError($config) {
+
+	$valid = false;
+	$httpHost = strtolower($config->httpHost); 
+
+	if(isset($_SERVER['HTTP_HOST']) && $httpHost === strtolower($_SERVER['HTTP_HOST'])) {
+		$valid = true; 
+	} else if(isset($_SERVER['SERVER_NAME']) && $httpHost === strtolower($_SERVER['SERVER_NAME'])) {
+		$valid = true; 
+	}
+
+	if(!$valid) $config->error(
+		"Unrecognized HTTP host: <em>" . htmlentities($_SERVER['HTTP_HOST'], ENT_QUOTES, 'UTF-8') . "</em> - " . 
+		"Please update your <em>\$config->httpHosts</em> setting in <em>/site/config.php</em> - " . 
+		"<a target='_blank' href='http://processwire.com/api/variables/config/#httphosts'>read more</a>", 
+		Notice::allowMarkup
+		); 
+}
+
+// notify superuser if there is an http host error
+if($user->isSuperuser()) _checkForHttpHostError($config); 
+
 // ensure core jQuery modules are loaded before others
 $modules->get("JqueryCore"); 
 $modules->get("JqueryUI"); 
-
 
 // tell ProcessWire that any pages loaded from this point forward should have their outputFormatting turned off
 $pages->setOutputFormatting(false); 

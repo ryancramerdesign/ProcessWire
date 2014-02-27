@@ -45,4 +45,12 @@ class Debug {
 		}
 	}
 
+	/**
+	 * Remove a saved timer
+	 *
+	 */
+	static public function remove($key) {
+		unset(self::$timers[$key]); 
+	}
+
 }
