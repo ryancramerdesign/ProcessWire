@@ -368,7 +368,11 @@ class PageFinder extends Wire {
 				$lastSelector = $selector; 	
 			} // fields
 			
-			if(strlen($whereFields)) $where .= (strlen($where) ? 'AND ' : '') . "($whereFields)";
+			// if(strlen($whereFields)) $where .= (strlen($where) ? 'AND ' : '') . "($whereFields)";
+			if(strlen($whereFields)) {
+				if(strlen($where)) $where = "($where) AND ($whereFields)"; 
+					else $where .= "($whereFields)";
+			}
 		
 		} // selectors
 
