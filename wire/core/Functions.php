@@ -587,7 +587,7 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
  * 	bodyHTML: string
  * 	headers: associative array of header name => header value
  *	Any additional options will be sent along to the WireMail module or class, in tact.
- * @return int Returns number of messages sent
+ * @return int|WireMail Returns number of messages sent or WireMail object if no arguments specified. 
  *
  */
 
