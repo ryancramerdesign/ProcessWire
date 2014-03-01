@@ -100,10 +100,20 @@ class Languages extends PagesType {
 	}
 
 	/**
-	 * Hook called when a language is added
+	 * hook called when a language is added
 	 *
 	 */
 	public function ___added(Page $language) { 
+	}
+
+	/**
+	 * Reload all languages
+	 *
+	 */
+	public function reloadLanguages() {
+		$this->languages = null;
+		$this->languagesAll = null;
+		$this->getIterator(); 
 	}
 
 }
