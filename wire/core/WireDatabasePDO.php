@@ -59,8 +59,10 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		$password = $config->dbPass;
 		$name = $config->dbName;
 		$port = $config->dbPort;
+		$socket = $config->dbSocket;
 		$dsn = "mysql:dbname=$name;host=$host";
 		if($port) $dsn .= ";port=$port";
+		if ($socket) $dsn = "mysql:unix_socket=$socket;dbname=$name;";
 		$driver_options = array(
 			PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'",
 			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
