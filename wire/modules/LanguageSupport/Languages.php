@@ -96,13 +96,19 @@ class Languages extends PagesType {
 	 * Hook called when a language is deleted
 	 *
 	 */
-	public function ___deleted(Page $language) { }
+	public function ___deleted(Page $language) { 
+		$this->languages = null;
+		$this->languagesAll = null;
+	}
 
 	/**
 	 * Hook called when a language is added
 	 *
 	 */
-	public function ___added(Page $language) { }
+	public function ___added(Page $language) { 
+		$this->languages = null;
+		$this->languagesAll = null;
+	}
 
 }
 
