@@ -1197,6 +1197,20 @@ class Page extends WireData implements Countable {
 		return $changed; 	
 	}
 
+	/**
+	 * Clears out any tracked changes and turns change tracking ON or OFF
+	 *
+	 * @param bool $trackChanges True to turn change tracking ON, or false to turn OFF. Default of true is assumed. 
+	 * @return $this
+	 *
+	 */
+	public function resetTrackChanges($trackChanges = true) {
+		parent::resetTrackChanges($trackChanges); 
+		foreach($this->data as $key => $value) {
+			if(is_object($value) && $value instanceof Wire) $value->resetTrackChanges($trackChanges); 
+		}
+		return $this; 
+	}
 
 	/**
 	 * Returns the Page's ID in a string
