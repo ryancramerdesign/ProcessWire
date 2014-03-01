@@ -162,7 +162,7 @@ class ProcessPageClone extends Process {
 		$languages = $this->wire('languages'); 
 		$useLanguages = $languages;
 		if($useLanguages) {
-			$titleUseLanguages = $this->wire('fields')->get('title')->getInputfield($this->page)->useLanguages;
+			$titleUseLanguages = $this->page->template->fieldgroup->hasField('title') && $this->wire('fields')->get('title')->getInputfield($this->page)->useLanguages;
 			$nameUseLanguages = $this->wire('modules')->isInstalled('LanguageSupportPageNames'); 
 			if($titleUseLanguages) $titleField->useLanguages = true;
 			if($nameUseLanguages) $nameField->useLanguages = true; 
@@ -179,7 +179,7 @@ class ProcessPageClone extends Process {
 			}
 		}
 		
-		$form->add($titleField); 
+		if($this->page->template->fieldgroup->hasField('title')) $form->add($titleField); 
 		$form->add($nameField); 
 
 		$field = $this->modules->get("InputfieldCheckbox"); 
