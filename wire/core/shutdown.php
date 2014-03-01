@@ -70,7 +70,7 @@ function ProcessWireShutdown() {
 		if($config->ajax) $http = false;
 		if($config->adminEmail) {
 			$logMessage = "Page: $path\nUser: $userName\n\n" . str_replace("\t", "\n", $message);
-			@mail($config->adminEmail, 'ProcessWire Error Notification', $logMessage);
+			wireMail($config->adminEmail, $config->adminEmail, 'ProcessWire Error Notification', $logMessage);
 		}
 		if($config->paths->logs) {
 			$logMessage = "$userName\t$path\t" . str_replace("\n", " ", $message);

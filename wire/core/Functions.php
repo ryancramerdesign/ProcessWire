@@ -540,3 +540,77 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 	return sprintf('%s%d%s%s %s', $prepend, (int) $difference, $space, $period, $tense); // i.e. 2 days ago (d=qty, 2=period, 3=tense)
 }
 
+
+/**
+ * Send an email
+ *
+ * Note the order of arguments is different from PHP's mail() function. 
+ *
+ * This function will attempt to use an installed module that extends WireMail.
+ * If no module is installed, WireMail (which uses PHP mail) will be used instead.
+ *
+ * This function can be called in these ways:
+ *
+ * 1. Default usage: 
+ *    wireMail($to, $from, $subject, $body, $options); 
+ * 
+ * 2. Specify body and/or bodyHTML in $options array (perhaps with other options): 
+ *    wireMail($to, $from, $subject, $options); 
+ *
+ * 3. Specify both $body and $bodyHTML as arguments, but no $options: 
+ *    wireMail($to, $from, $subject, $body, $bodyHTML); 
+ *
+ * @param string|array $to Email address TO. For multiple, specify CSV string or array. 
+ * @param string $from Email address FROM.
+ * @param string $subject Email subject
+ * @param string|array $body Email body or omit to move straight to $options
+ * @param array|string $options Array of options OR the $bodyHTML string. Array $options are:
+ * 	body: string
+ * 	bodyHTML: string
+ * 	headers: associative array of header name => header value
+ *	Any additional options will be sent along to the WireMail module or class, in tact.
+ * @return int Returns number of messages sent
+ *
+ */
+
+function wireMail($to, $from, $subject, $body, $options = array()) { 
+
+	$defaults = array(
+		'body' => $body, 
+		'bodyHTML' => '', 
+		'headers' => array(), 
+		); 
+
+	if(is_array($body)) $options = $body; 
+	$options = array_merge($defaults, $options); 
+
+	$mail = null; 
+	$modules = wire('modules'); 
+	// attempt to locate an installed module that overrides WireMail
+	foreach($modules as $module) {
+		$parents = class_parents("$module"); 
+		if(in_array('WireMail', $parents) && $modules->isInstalled("$module")) { 
+			$mail = wire('modules')->get("$module"); 
+			break;
+		}
+	}
+	// if no module found, default to WireMail
+	if(is_null($mail)) $mail = new WireMail(); 
+
+	try {
+		// configure the mail
+		$mail->to($to)->from($from)->subject($subject)->body($options['body']); 
+		if(strlen($options['bodyHTML'])) $mail->bodyHTML($options['bodyHTML']); 
+		if(count($options['headers'])) foreach($options['headers'] as $k => $v) $mail->header($k, $v); 
+		// send along any options we don't recognize
+		foreach($options as $key => $value) {
+			if(!array_key_exists($key, $defaults)) $mail->$key = $value; 
+		}
+		$numSent = $mail->send(); 
+
+	} catch(Exception $e) {
+		$numSent = 0;
+	}
+
+	return $numSent; 	
+}
