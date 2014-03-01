@@ -82,7 +82,10 @@ class LanguagesPageFieldValue extends Wire {
 			// to avoid potential recursion 
 			$value = $value->getLanguageValue($languageID); 
 		}
-		if($value !== $existingValue) $this->trackChange('data'); 
+		if($value !== $existingValue) {
+			$this->trackChange('data'); 
+			$this->trackChange('data' . $languageID); 
+		}
 		$this->data[(int)$languageID] = $value;
 	}
 
