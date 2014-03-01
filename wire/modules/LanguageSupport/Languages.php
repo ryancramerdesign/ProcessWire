@@ -97,8 +97,6 @@ class Languages extends PagesType {
 	 *
 	 */
 	public function ___deleted(Page $language) { 
-		$this->languages = null;
-		$this->languagesAll = null;
 	}
 
 	/**
@@ -106,8 +104,6 @@ class Languages extends PagesType {
 	 *
 	 */
 	public function ___added(Page $language) { 
-		$this->languages = null;
-		$this->languagesAll = null;
 	}
 
 }
