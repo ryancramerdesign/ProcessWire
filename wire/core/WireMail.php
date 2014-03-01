@@ -9,6 +9,33 @@
  * 
  * http://processwire.com
  *
+ * USAGE:
+ *
+ * $mail = new WireMail(); 
+ * 
+ * // chained method call usage
+ * $mail->to('user@domain.com')->from('you@company.com')->subject('Message Subject')->body('Message Body')->send();
+ *
+ * // separate method call usage
+ * $mail->to('user@domain.com'); // specify CSV string or array for multiple addresses
+ * $mail->from('you@company.com'); 
+ * $mail->subject('Message Subject'); 
+ * $mail->body('Message Body'); 
+ * $mail->send();
+ *
+ * // you can also set values without function calls:
+ * $mail->to = 'user@domain.com';
+ * $mail->from = 'you@company.com';
+ * ...and so on.
+ *
+ * // other methods or properties you might set (or get)
+ * $mail->bodyHTML('<html><body><h1>Message Body</h1></body></html>'); 
+ * $mail->header('X-Mailer', 'ProcessWire'); 
+ * $mail->param('-f you@company.com'); // PHP mail() param (envelope from example)
+ *
+ * // note that the send() function always returns the quantity of messages sent
+ * $numSent = $mail->send();
+ *
  */
 
 class WireMail extends WireData implements WireMailInterface {
@@ -81,7 +108,7 @@ class WireMail extends WireData implements WireMailInterface {
 	 */
 	public function from($email) {
 
-		if(strpos($email, '<') !== false) && strpos($email, '>') !== false) {
+		if(strpos($email, '<') !== false && strpos($email, '>') !== false) {
 			// email has separate from name and email
 			if(preg_match('/^(.*?)<([^>]+)>.*$/', $email, $matches)) {
 				$this->mail['fromName'] = $this->sanitizeHeader($matches[1]);
@@ -168,7 +195,7 @@ class WireMail extends WireData implements WireMailInterface {
 	 */
 	public function param($value) {
 		if(is_null($value)) {
-			$this->mail['param'] = '';
+			$this->mail['param'] = array();
 		} else { 
 			$this->mail['param'][] = $value; 
 		}
@@ -186,14 +213,16 @@ class WireMail extends WireData implements WireMailInterface {
 	public function ___send() {
 
 		$header = '';
-		if($this->from) {
-			if($this->fromName) {
-				$fromName = $this->fromName; 
-				if(strpos($fromName, ',') !== false) $fromName = '"' . str_replace('"', ' ', $fromName) . '"';
-				$header = "From: $fromName <$this->from>"; 
-			} else {
-				$header = "From: $this->from";
-			}
+		$from = $this->from;
+		if(!strlen($from)) $from = $this->wire('config')->adminEmail;
+		if(!strlen($from)) $from = 'processwire@' . $this->wire('config')->httpHost; 
+
+		if($this->fromName) {
+			$fromName = $this->fromName; 
+			if(strpos($fromName, ',') !== false) $fromName = '"' . str_replace('"', ' ', $fromName) . '"';
+			$header = "From: $fromName <$from>"; 
+		} else {
+			$header = "From: $from";
 		}
 
 		foreach($this->header as $key => $value) $header .= "\r\n$key: $value";

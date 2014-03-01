@@ -542,9 +542,10 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 
 
 /**
- * Send an email
+ * Send an email or retrieve the mailer object
  *
- * Note the order of arguments is different from PHP's mail() function. 
+ * Note 1: The order of arguments is different from PHP's mail() function. 
+ * Note 2: If no arguments are specified it simply returns a WireMail object (see #4 below).
  *
  * This function will attempt to use an installed module that extends WireMail.
  * If no module is installed, WireMail (which uses PHP mail) will be used instead.
@@ -552,16 +553,33 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
  * This function can be called in these ways:
  *
  * 1. Default usage: 
+ * 
  *    wireMail($to, $from, $subject, $body, $options); 
  * 
+ *
  * 2. Specify body and/or bodyHTML in $options array (perhaps with other options): 
+ * 
  *    wireMail($to, $from, $subject, $options); 
  *
+ *
  * 3. Specify both $body and $bodyHTML as arguments, but no $options: 
+ * 
  *    wireMail($to, $from, $subject, $body, $bodyHTML); 
+ * 
+ *
+ * 4. Specify a blank call to wireMail() to get the WireMail sending object. This can
+ *    be either WireMail() or a class descending from it. If a WireMail descending
+ *    module is installed, it will be returned rather than WireMail():
+ * 
+ *    $mail = wireMail(); 
+ *    $mail->to('user@domain.com')->from('you@company.com'); 
+ *    $mail->subject('Mail Subject')->body('Mail Body Text')->bodyHTML('Body HTML'); 
+ *    $numSent = $mail->send();
+ * 
  *
  * @param string|array $to Email address TO. For multiple, specify CSV string or array. 
- * @param string $from Email address FROM.
+ * @param string $from Email address FROM. This may be an email address, or a combined name and email address. 
+ *	Example of combined name and email: Karen Cramer <karen@processwire.com>
  * @param string $subject Email subject
  * @param string|array $body Email body or omit to move straight to $options
  * @param array|string $options Array of options OR the $bodyHTML string. Array $options are:
@@ -573,19 +591,11 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
  *
  */
 
-function wireMail($to, $from, $subject, $body, $options = array()) { 
-
-	$defaults = array(
-		'body' => $body, 
-		'bodyHTML' => '', 
-		'headers' => array(), 
-		); 
-
-	if(is_array($body)) $options = $body; 
-	$options = array_merge($defaults, $options); 
+function wireMail($to = '', $from = '', $subject = '', $body = '', $options = array()) { 
 
 	$mail = null; 
 	$modules = wire('modules'); 
+
 	// attempt to locate an installed module that overrides WireMail
 	foreach($modules as $module) {
 		$parents = class_parents("$module"); 
@@ -596,6 +606,18 @@ function wireMail($to, $from, $subject, $body, $options = array()) {
 	}
 	// if no module found, default to WireMail
 	if(is_null($mail)) $mail = new WireMail(); 
+
+	if(empty($to)) return $mail;
+
+	$defaults = array(
+		'body' => $body, 
+		'bodyHTML' => '', 
+		'headers' => array(), 
+		); 
+
+	if(is_array($body)) $options = $body; 
+	$options = array_merge($defaults, $options); 
+
 
 	try {
 		// configure the mail
