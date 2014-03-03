@@ -607,7 +607,13 @@ function wireMail($to = '', $from = '', $subject = '', $body = '', $options = ar
 	// if no module found, default to WireMail
 	if(is_null($mail)) $mail = new WireMail(); 
 
-	if(empty($to)) return $mail;
+	// reset just in case module was not singular
+	$mail->to(); 
+
+	if(empty($to)) {
+		// use case #4: no arguments supplied, just return the WireMail object
+		return $mail;
+	}
 
 	$defaults = array(
 		'body' => $body, 
@@ -615,9 +621,17 @@ function wireMail($to = '', $from = '', $subject = '', $body = '', $options = ar
 		'headers' => array(), 
 		); 
 
-	if(is_array($body)) $options = $body; 
+	if(is_array($body)) {
+		// use case #2: body is provided in $options
+		$options = $body; 
+	} else if(is_string($options)) {
+		// use case #3: body and bodyHTML are provided, but no $options
+		$options = array('bodyHTML' => $options); 
+	} else {
+		// use case #1: default behavior
+	}
+		
 	$options = array_merge($defaults, $options); 
-
 
 	try {
 		// configure the mail
@@ -631,6 +645,7 @@ function wireMail($to = '', $from = '', $subject = '', $body = '', $options = ar
 		$numSent = $mail->send(); 
 
 	} catch(Exception $e) {
+		if(wire('config')->debug) $mail->error($e->getMessage());
 		$numSent = 0;
 	}
 

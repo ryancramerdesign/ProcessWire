@@ -45,7 +45,8 @@ class WireMail extends WireData implements WireMailInterface {
 	 *
 	 */
 	protected $mail = array(
-		'to' => array(),
+		'to' => array(), // to addresses - associative: both key and value are email (to prevent dups)
+		'toName' => array(), // to names - associative: indexed by 'to' email address, may be blank/null for any email 
 		'from' => '', 
 		'fromName' => '', 
 		'subject' => '', 
@@ -66,7 +67,7 @@ class WireMail extends WireData implements WireMailInterface {
 	}
 
 	public function __set($key, $value) {
-		if(array_key_exists($key, $this->mail)) $this->$key($value); 
+		if(array_key_exists($key, $this->mail)) $this->$key($value); // function call
 			else parent::__set($key, $value); 
 	}
 
@@ -82,41 +83,152 @@ class WireMail extends WireData implements WireMailInterface {
 	}
 
 	/**
+	 * Given an email string like "User <user@example.com>" extract and return email and username separately
+	 *
+	 * @param string $email
+	 * @return array() Index 0 contains email, index 1 contains username or blank if not set
+	 *
+	 */
+	protected function extractEmailAndName($email) {
+		$name = '';
+		if(strpos($email, '<') !== false && strpos($email, '>') !== false) {
+			// email has separate from name and email
+			if(preg_match('/^(.*?)<([^>]+)>.*$/', $email, $matches)) {
+				$name = $this->sanitizeHeader($matches[1]);
+				$email = $matches[2]; 
+			}
+		}
+		$email = $this->sanitizeEmail($email); 
+		return array($email, $name); 
+	}
+
+	/**
+	 * Given an email and name, bundle it to an RFC 2822 string
+	 *
+	 * If name is blank, then just the email will be returned
+	 *
+	 * @param string $email
+	 * @param string $name
+	 * @return string
+	 *
+	 */
+	protected function bundleEmailAndName($email, $name) {
+		$email = $this->sanitizeEmail($email); 
+		if(!strlen($name)) return $email;
+		$name = $this->sanitizeHeader($name); 
+		if(strpos($name, ',') !== false) {
+			// name contains a comma, so quote the value
+			$name = str_replace('"', '', $name); // remove existing quotes
+			$name = '"' . $name . '"'; // surround w/quotes
+		}
+		return "$name <$email>";
+	}
+
+	/**
 	 * Set the email to address
 	 *
-	 * @param string|array $email Specify a single email address or an array of multiple email addresses.
+	 * Each added email addresses appends to any addresses already supplied, unless
+	 * you specify NULL as the email address, in which case it clears them all.
+	 *
+	 * @param string|array|null $email Specify any ONE of the following: 
+	 *	1. Single email address or "User Name <user@example.com>" string. 
+	 * 	2. CSV string of #1. 
+	 * 	3. Non-associative array of #1. 
+	 * 	4. Associative array of (email => name)
+	 *	5. NULL (default value, to clear out any previously set values)
+	 * @param string $name Optionally provide a FROM name, applicable
+	 *	only when specifying #1 (single email) for the first argument. 
 	 * @return this 
 	 * @throws WireException if any provided emails were invalid
 	 *
 	 */
-	public function to($email) {
-		if(!is_array($email)) $email = explode(',', $email); 
-		$this->mail['to'] = array(); // clear
-		foreach($email as $e) {
-			$this->mail['to'][] = $this->sanitizeEmail($e); 
+	public function to($email = null, $name = null) {
+
+		if(is_null($email)) { 
+			// clear existing values
+			$this->mail['to'] = array(); 
+			$this->mail['toName'] = array();
+			return $this; 
 		}
+
+		$emails = is_array($email) ? $email : explode(',', $email); 
+
+		foreach($emails as $key => $value) {
+
+			$toName = '';
+			if(is_string($key)) {
+				// associative array
+				// email provided as $key, and $toName as value 
+				$toEmail = $key; 
+				$toName = $value; 
+
+			} else if(strpos($value, '<') !== false && strpos($value, '>') !== false) {
+				// toName supplied as: "User Name <user@example.com"
+				list($toEmail, $toName) = $this->extractEmailAndName($value); 
+
+			} else {
+				// just an email address, possibly with name as a function arg
+				$toEmail = $value; 
+			}
+
+			if(empty($toName)) $toName = $name; // use function arg if not overwritten
+			$toEmail = $this->sanitizeEmail($toEmail); 
+			$this->mail['to'][$toEmail] = $toEmail;
+			$this->mail['toName'][$toEmail] = $this->sanitizeHeader($toName); 
+		}
+
 		return $this; 
+	}
+
+	/**
+	 * Set the 'to' name
+	 *
+	 * It is preferable to do this with the to() method, but this is provided to ensure that 
+	 * all properties can be set with direct access, i.e. $mailer->toName = 'User Name';
+	 *
+ 	 * This sets the 'to name' for whatever the last added 'to' email address was.
+	 *
+	 * @param string 
+	 * @return this 
+	 * @throws WireException if you attempt to set a toName before a to email. 
+	 *
+	 */
+	public function toName($name) {
+		$emails = $this->mail['to']; 
+		if(!count($emails)) throw new WireException("Please set a 'to' address before setting a name."); 
+		$email = end($emails); 
+		$this->mail['toName'][$email] = $this->sanitizeHeader($name); 
+		return $this;
 	}
 
 	/**
 	 * Set the email from address
 	 *
-	 * @param string Must be a single email address
+	 * @param string Must be a single email address or "User Name <user@example.com>" string.
+	 * @param string|null An optional FROM name (same as setting/calling fromName)
 	 * @return this 
 	 * @throws WireException if provided email was invalid
 	 *
 	 */
-	public function from($email) {
+	public function from($email, $name = null) {
+		if(is_null($name)) list($email, $name) = $this->extractEmailAndName($email); 
+		if($name) $this->mail['fromName'] = $this->sanitizeHeader($name); 
+		$this->mail['from'] = $email;
+		return $this; 
+	}
 
-		if(strpos($email, '<') !== false && strpos($email, '>') !== false) {
-			// email has separate from name and email
-			if(preg_match('/^(.*?)<([^>]+)>.*$/', $email, $matches)) {
-				$this->mail['fromName'] = $this->sanitizeHeader($matches[1]);
-				$email = $matches[2];
-			}
-		}
-
-		$this->mail['from'] = $this->sanitizeEmail($email); 
+	/**
+	 * Set the 'from' name
+	 *
+	 * It is preferable to do this with the from() method, but this is provided to ensure that 
+	 * all properties can be set with direct access, i.e. $mailer->fromName = 'User Name';
+	 *
+	 * @param string 
+	 * @return this 
+	 *
+	 */
+	public function fromName($name) {
+		$this->mail['fromName'] = $this->sanitizeHeader($name); 
 		return $this; 
 	}
 
@@ -128,7 +240,7 @@ class WireMail extends WireData implements WireMailInterface {
 	 *
 	 */
 	public function subject($subject) {
-		$this->mail['subject'] = $this->wire('sanitizer')->emailHeader($subject); 	
+		$this->mail['subject'] = $this->sanitizeHeader($subject); 	
 		return $this; 
 	}
 
@@ -171,11 +283,11 @@ class WireMail extends WireData implements WireMailInterface {
 		if(is_null($value)) {
 			unset($this->mail['header'][$key]); 
 		} else { 
-			$k = $this->wire('sanitizer')->name($this->wire('sanitizer')->emailHeader($key)); 
+			$k = $this->wire('sanitizer')->name($this->sanitizeHeader($key)); 
 			// ensure consistent capitalization for all header keys
 			$k = ucwords(str_replace('-', ' ', $k)); 
 			$k = str_replace(' ', '-', $k); 
-			$v = $this->wire('sanitizer')->emailHeader($value); 
+			$v = $this->sanitizeHeader($value); 
 			$this->mail['header'][$k] = $v; 
 		}
 		return $this; 
@@ -217,13 +329,7 @@ class WireMail extends WireData implements WireMailInterface {
 		if(!strlen($from)) $from = $this->wire('config')->adminEmail;
 		if(!strlen($from)) $from = 'processwire@' . $this->wire('config')->httpHost; 
 
-		if($this->fromName) {
-			$fromName = $this->fromName; 
-			if(strpos($fromName, ',') !== false) $fromName = '"' . str_replace('"', ' ', $fromName) . '"';
-			$header = "From: $fromName <$from>"; 
-		} else {
-			$header = "From: $from";
-		}
+		$header = "From: " . ($this->fromName ? $this->bundleEmailAndName($from, $this->fromName) : $from);
 
 		foreach($this->header as $key => $value) $header .= "\r\n$key: $value";
 
@@ -258,7 +364,9 @@ class WireMail extends WireData implements WireMailInterface {
 
 		$numSent = 0;
 		foreach($this->to as $to) {
-			if(mail($to, $this->subject, $body, $header, $param)) $numSent++;
+			$toName = $this->mail['toName'][$to]; 
+			if($toName) $to = $this->bundleEmailAndName($to, $toName); // bundle to "User Name <user@example.com"
+			if(@mail($to, $this->subject, $body, $header, $param)) $numSent++;
 		}
 
 		return $numSent; 

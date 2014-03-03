@@ -16,22 +16,33 @@ interface WireMailInterface {
 	/**
 	 * Set the email to address
 	 *
-	 * @param string|array $email Specify a single email address or an array of multiple email addresses.
+	 * Each added email addresses appends to any addresses already supplied, unless
+	 * you specify NULL as the email address, in which case it clears them all.
+	 *
+	 * @param string|array|null $email Specify any ONE of the following: 
+	 *	1. Single email address or "User Name <user@example.com>" string. 
+	 * 	2. CSV string of #1. 
+	 * 	3. Non-associative array of #1. 
+	 * 	4. Associative array of (email => name)
+	 *	5. NULL (default value, to clear out any previously set values)
+	 * @param string $name Optionally provide a FROM name, applicable
+	 *	only when specifying #1 (single email) for the first argument. 
 	 * @return this 
 	 * @throws WireException if any provided emails were invalid
 	 *
 	 */
-	public function to($email);	
+	public function to($email = null, $name = null);	
 
 	/**
 	 * Set the email from address
 	 *
-	 * @param string Must be a single email address
+	 * @param string Must be a single email address or "User Name <user@example.com>" string.
+	 * @param string|null An optional FROM name (same as setting/calling fromName)
 	 * @return this 
 	 * @throws WireException if provided email was invalid
 	 *
 	 */
-	public function from($email); 
+	public function from($email, $name = null); 
 
 	/**
 	 * Set the email subject
@@ -49,7 +60,7 @@ interface WireMailInterface {
 	 * @return this 
 	 *
 	 */
-	public function body($message); 
+	public function body($body); 
 
 	/**
 	 * Set the email message body (HTML only)
