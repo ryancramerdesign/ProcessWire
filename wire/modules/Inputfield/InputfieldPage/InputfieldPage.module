@@ -504,6 +504,22 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$page->sort = $sort++;
 			$page->id = -1; // prevents the permissions check from failing
 
+			if(wire('modules')->isInstalled("LanguageSupport")) {
+                $titleField = $page->fields->get('title');
+
+                if ($titleField && $titleField->type instanceof FieldtypePageTitleLanguage) {
+                    $currentLanguage = wire('user')->language;
+                    foreach (wire('languages') as $language) {
+                        wire('user')->language = $language;
+                        $page->title = trim($title);
+                    }
+                    wire('user')->language = $currentLanguage;
+                }
+                if(wire('modules')->isInstalled("LanguageSupportPageNames")) {
+                    $page->name = $this->sanitizer->pageName(trim($title));
+                }
+            }
+            
 			// on first iteration perform a page-context access check
 			if(!$n && (!$parent->addable($page) || !$page->publishable())) {
 				$this->error("No access to add {$page->template} pages to {$parent->path}"); 
