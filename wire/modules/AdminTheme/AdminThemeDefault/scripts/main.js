@@ -288,6 +288,12 @@ var ProcessWireAdminTheme = {
 					$ul.append($li); 
 				}); 
 
+				$ul.find("a").click(function() {
+					// prevent a clicked link from jumping back to the top of page (makes the UI nicer)
+					window.location.href = $(this).attr('href');
+					return false; 
+				}); 
+
 				// trigger the first call
 				dropdownHover();
 
