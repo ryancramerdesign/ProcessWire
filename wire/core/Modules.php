@@ -152,22 +152,19 @@ class Modules extends WireArray {
 
 		foreach($modules as $class => $module) {
 			// $info = call_user_func(array($module, 'getModuleInfo'));
-			$info = $module->getModuleInfo();
+			$info = $this->getModuleInfo($module); 
 			$skip = false;
 
-			if(isset($info['requires'])) {
-				// module requires other modules
-				$requires = is_array($info['requires']) ? $info['requires'] : array($info['requires']);
-				foreach($requires as $requiresClass) {
-					if(!in_array($requiresClass, $completed)) {
-						$dependencyInfo = $this->getModuleInfo($requiresClass);
-						// if dependency isn't an autoload one, then we can continue and not worry about it
-						if(empty($dependencyInfo['autoload'])) continue;
-						// dependency is autoload and required by this module, so queue this module to init later
-						$queue[$class] = $module;
-						$skip = true;
-						break;
-					}
+			// module requires other modules
+			foreach($info['requires'] as $requiresClass) {
+				if(!in_array($requiresClass, $completed)) {
+					$dependencyInfo = $this->getModuleInfo($requiresClass);
+					// if dependency isn't an autoload one, then we can continue and not worry about it
+					if(empty($dependencyInfo['autoload'])) continue;
+					// dependency is autoload and required by this module, so queue this module to init later
+					$queue[$class] = $module;
+					$skip = true;
+					break;
 				}
 			}
 			if($skip) continue;
@@ -529,6 +526,8 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function isInstalled($class) {
+		if(is_object($class)) $class = $this->getModuleClass($class); 
+		if($class == 'PHP' || $class == 'ProcessWire') return true; 
 		return (parent::get($class) !== null);
 	}
 
@@ -921,12 +920,26 @@ class Modules extends WireArray {
 			'author' => '',
 			'summary' => '',
 			'href' => '',
-			'requires' => array(),
+			// this method converts this to array of module names, regardless of how the module specifies it
+			'requires' => array(), 
+			// module name is key, value is array($operator, $version). Note 'requiresVersions' index is created by this function.
+			'requiresVersions' => array(), 
+			// array of module class names
 			'installs' => array(),
 			);
 
 		if($module instanceof Module || ctype_digit("$module")) {
 			$module = $this->getModuleClass($module); 
+		}
+
+		if($module == 'PHP') {
+			$info['title'] = $module;
+			$info['version'] = PHP_VERSION; 
+			return $info;
+		} else if($module == 'ProcessWire') {
+			$info['title'] = $module; 
+			$info['version'] = $this->wire('config')->version; 
+			return $info;
 		}
 
 		if(!class_exists($module)) {
@@ -943,13 +956,34 @@ class Modules extends WireArray {
 			}
 		}
 
-		//$func = $module . "::getModuleInfo"; // requires PHP 5.2.3+
-		//return call_user_func($func);
 		$info = array_merge($info, call_user_func(array($module, 'getModuleInfo')));
 
 		// if $info[requires] or $info[installs] isn't already an array, make it one
-		if(!is_array($info['requires'])) $info['requires'] = array($info['requires']); 
-		if(!is_array($info['installs'])) $info['installs'] = array($info['installs']); 
+		if(!is_array($info['requires'])) {
+			$info['requires'] = str_replace(' ', '', $info['requires']); // remove whitespace
+			if(strpos($info['requires'], ',') !== false) $info['requires'] = explode(',', $info['requires']); 
+				else $info['requires'] = array($info['requires']); 
+		}
+
+		// populate requiresVersions
+		foreach($info['requires'] as $key => $class) {
+			if(!ctype_alnum($class)) {
+				// has a version string
+				list($class, $operator, $version) = $this->extractModuleOperatorVersion($class); 
+				$info['requires'][$key] = $class; // convert to just class
+			} else {
+				// no version string
+				$operator = '>=';
+				$version = 0; 
+			}
+			$info['requiresVersions'][$class] = array($operator, $version); 
+		}
+
+		if(!is_array($info['installs'])) {
+			$info['installs'] = str_replace(' ', '', $info['installs']); // remove whitespace
+			if(strpos($info['installs'], ',') !== false) $info['installs'] = explode(',', $info['installs']); 
+				else $info['installs'] = array($info['installs']); 
+		}
 
 		return $info;
 	}
@@ -1128,26 +1162,138 @@ class Modules extends WireArray {
 	 * 
 	 * @param string $class
 	 * @param bool $uninstalled Set to true to return only required modules that aren't yet installed or those that $class says it will install (via 'installs' property of getModuleInfo)
+	 * @param bool $versions Set to true to always include versions in the requirements list. Note versions are already include when the installed version is not adequate.
 	 * @return array()
 	 *
 	 */
-	public function getRequires($class, $uninstalled = false) {
+	public function getRequires($class, $uninstalled = false, $versions = false) {
 
 		$class = $this->getModuleClass($class); 
 		$info = $this->getModuleInfo($class); 
 		$requires = $info['requires']; 
 
 		// quick exit if arguments permit it 
-		if(!$uninstalled) return $requires; 
+		if(!$uninstalled) {
+			if($versions) foreach($requires as $key => $value) {
+				list($operator, $version) = $info['requiresVersions'][$value]; 
+				if(empty($version)) continue; 
+				if(ctype_digit("$version")) $version = $this->formatVersion($version); 
+				if(!empty($version)) $requires[$key] .= "$operator$version";
+			}
+			return $requires; 
+		}
 
-		foreach($requires as $key => $module) {
-			$c = $this->getModuleClass($module); 
-			if($this->isInstalled($c) || in_array($c, $info['installs'])) {
-				unset($requires[$key]); 		
+		foreach($requires as $key => $requiresClass) {
+
+			if(in_array($requiresClass, $info['installs'])) {
+				// if this module installs the required class, then we can stop now
+				// and we assume it's installing the version it wants
+				unset($requires[$key]); 
+			}
+
+			list($operator, $requiresVersion) = $info['requiresVersions'][$requiresClass];
+			$installed = true; 
+
+			if($requiresClass == 'PHP') {
+				$currentVersion = PHP_VERSION; 
+
+			} else if($requiresClass == 'ProcessWire') { 
+				$currentVersion = $this->wire('config')->version; 
+
+			} else if($this->isInstalled($requiresClass)) {
+				if(!$requiresVersion) {
+					// if no version is specified then requirement is already met
+					unset($requires[$key]); 
+					continue; 
+				}
+				$i = $this->getModuleInfo($requiresClass); 
+				$currentVersion = $i['version'];
+			} else {
+				// module is not installed
+				$installed = false; 
+			}
+
+			if($installed && $this->versionCompare($currentVersion, $requiresVersion, $operator)) {
+				// required version is installed
+				unset($requires[$key]); 
+
+			} else if(empty($requiresVersion)) {
+				// just the class name is fine
+				continue; 
+
+			} else {
+				// update the requires string to clarify what version it requires
+				if(ctype_digit("$requiresVersion")) $requiresVersion = $this->formatVersion($requiresVersion); 
+				$requires[$key] = "$requiresClass$operator$requiresVersion";
 			}
 		}
 
 		return $requires; 
+	}
+
+
+	/**
+	 * Compare one module version to another, returning TRUE if they match the $operator or FALSE otherwise
+	 *
+	 * @param int $currentVersion
+	 * @param int|string $requiredVersion
+	 * @param string $operator
+	 * @return bool
+	 *
+	 */
+	protected function versionCompare($currentVersion, $requiredVersion, $operator) {
+		$return = false;
+		if(is_string($requiredVersion)) {
+			if(!is_string($currentVersion)) $currentVersion = $this->formatVersion($currentVersion); 
+			$return = version_compare($currentVersion, $requiredVersion, $operator); 
+		} else {
+			switch($operator) {
+				case '=': $return = ($currentVersion == $requiredVersion); break;
+				case '>': $return = ($currentVersion > $requiredVersion); break;
+				case '<': $return = ($currentVersion < $requiredVersion); break;
+				case '>=': $return = ($currentVersion >= $requiredVersion); break;
+				case '<=': $return = ($currentVersion <= $requiredVersion); break;
+				case '!=': $return = ($currentVersion != $requiredVersion); break;
+			}
+		}
+		return $return;
+	}
+
+	/**
+	 * Return array of ($module, $operator, $requiredVersion)
+	 *
+	 * $version will be 0 and $operator blank if there are no requirements.
+	 * 
+	 * @param string $requires Module class name with operator and version string
+	 * @return array($moduleClass, $operator, $version)
+	 *
+	 */
+	protected function extractModuleOperatorVersion($require) {
+
+		if(ctype_alnum($require)) {
+			// no version is specified
+			return array($require, '', 0); 
+		}
+
+		$operators = array('<=', '>=', '<', '>', '!=', '='); 
+		$operator = '';
+		foreach($operators as $o) {
+			if(strpos($require, $o)) {
+				$operator = $o;
+				break;
+			}
+		}
+
+		// if no operator found, then no version is being specified
+		if(!$operator) return array($require, '', 0); 
+
+		// extract class and version
+		list($class, $version) = explode($operator, $require); 
+
+		// make version an integer if possible
+		if(ctype_digit("$version")) $version = (int) $version; 
+	
+		return array($class, $operator, $version); 
 	}
 
 	/**

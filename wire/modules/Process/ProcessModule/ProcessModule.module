@@ -717,11 +717,21 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$data = array();
 
 		$dependents = $this->modules->getRequiredBy($moduleName, true); 
-		$requirements = $this->modules->getRequires($moduleName); 
+		$requirements = $this->modules->getRequires($moduleName, false, true); 
 		$dependentsStr = '';
 		$requirementsStr = '';
 		foreach($dependents as $name) $dependentsStr .= ($dependentsStr ? ', ' : '') . "<a href='./edit?name=$name'>$name</a>";
-		foreach($requirements as $name) $requirementsStr .= ($requirementsStr ? ', ' : '') . "<a href='./edit?name=$name'>$name</a>";
+		foreach($requirements as $name) {
+			if(preg_match('/^([^<>!=]+)([<>!=]+.*)$/', $name, $matches)) {
+				$name = $matches[1];
+				$extra = "<span class='detail'>$matches[2]</span>";
+			} else $extra = '';
+			if($name == 'PHP' || $name == 'ProcessWire') {
+				$requirementsStr .= ($requirementsStr ? ', ' : '') . "$name$extra";
+			} else {
+				$requirementsStr .= ($requirementsStr ? ', ' : '') . "<a href='./edit?name=$name'>$name</a>$extra";
+			}
+		}
 
 		// include module configuration fields if provided
 		if(in_array('ConfigurableModule', class_implements($moduleName))) {

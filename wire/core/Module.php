@@ -77,7 +77,7 @@ interface Module {
 	 * 			'href' => 'http://www.domain.com/info/about/this/module/', 
 	 * 			'singular' => false,
 	 *			'autoload' => false,
-	 *			'requires' => array('HelloWorld', 'LazyCron'), 
+	 *			'requires' => array('HelloWorld>=1.0.1', 'PHP>=5.4.1', 'ProcessWire>=2.4.1'), 
 	 *			'installs' => array('Module1', 'Module2', 'Module3'),
 	 * 			);
 	 * 	}
@@ -90,8 +90,17 @@ interface Module {
 	 * 	+ version: an integer that indicates the version number, 101 = 1.0.1
 	 * 	+ summary: a summary of the module (1 sentence to 1 paragraph reommended)
 	 * 	- href: URL to more information about the module. 
-	 *	- requires: array of module class names that are required by this module in order to install.
-	 * 		If just one module is required, then it can also be a string with just the module name.
+	 *	- requires: array or CSV string of module class names that are required by this module in order to install.
+	 *		--
+	 *		Requires Module version: If a particular version of the module is required, then specify an operator
+	 *		and version number after the module name, like this: HelloWorld>=1.0.1
+	 *		--
+	 *		Requires PHP version: If a particular version of PHP is required, then specify 'PHP' as the module name
+	 *		followed by an operator and required version number, like this: PHP>=5.3.8
+	 *		--
+	 *		Requires ProcessWire version: If a particular version of ProcessWire is required, then specify 
+	 *		ProcessWire followed by an operator and required version number, like this: ProcessWire>=2.4.1
+	 *	
 	 *	- installs: array of module class names that this module will handle install/uninstall.
 	 *		This causes PW's dependency checker to ignore them and it is assumed your module will handle them (optional).	
 	 * 		If your module does not handle them, PW will automatically install/uninstall them immediately after your module.
