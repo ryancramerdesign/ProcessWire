@@ -251,9 +251,6 @@ class ImageSizer extends Wire {
 			$image = $this->imRotate($image, $orientations[0]);
 			if($orientations[0] == 90 || $orientations[0] == 270) {
 				// we have to swap width & height now!
-				$tmp = array($targetWidth, $targetHeight);
-				$targetWidth = $tmp[1];
-				$targetHeight = $tmp[0];
 				$tmp = array($this->getWidth(), $this->getHeight());
 				$this->setImageInfo($tmp[1], $tmp[0]);
 			}
