@@ -23,8 +23,15 @@ class InputfieldFieldsetTabOpen extends InputfieldFieldsetOpen {
 
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields();
-		$inputfields->remove($inputfields->get('collapsed')); 
-		$inputfields->remove($inputfields->get('columnWidth')); 
+		$inputfields->remove($inputfields->getChildByName('columnWidth')); 
+		$in = $inputfields->getChildByName('collapsed'); 
+		foreach($in->getOptions() as $key => $value) {
+			// tabs may not be collapsed
+			if($key != Inputfield::collapsedNo) $in->removeOption($key); 
+		}
+		// tabs don't support showIf
+		$in = $inputfields->getChildByName('showIf'); 
+		if($in) $in->getParent()->remove($in); 
 		return $inputfields; 
 	}
 
@@ -47,11 +54,6 @@ class FieldtypeFieldsetTabOpen extends FieldtypeFieldsetOpen {
 		return $inputfield; 
 	}
 
-	public function ___getConfigInputfields(Field $field) {
-		$inputfields = parent::___getConfigInputfields($field);
-		$inputfields->remove($inputfields->get('collapsed')); 
-		return $inputfields; 
-	}
 
 }
 
