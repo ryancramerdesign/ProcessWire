@@ -261,13 +261,14 @@ var ProcessWireAdminTheme = {
 			$a.addClass('ajax-items-loaded'); 	
 			var url = $a.attr('href');
 			var $ul = $a.siblings('ul'); 
+			var dropdownHover = null;
 
 			$.getJSON(url, function(data) {
 
 				// now add new event to monitor menu positions
 				if(!ProcessWireAdminTheme.dropdownPositionsMonitored && data.length > 10) {
 					ProcessWireAdminTheme.dropdownPositionsMonitored = true; 
-					var dropdownHover = function() {
+					dropdownHover = function() {
 						var fromAttr = $a.attr('data-from'); 
 						if(!fromAttr) return;
 						var $from = $('#' + $a.attr('data-from')); 
@@ -295,7 +296,7 @@ var ProcessWireAdminTheme = {
 				}); 
 
 				// trigger the first call
-				dropdownHover();
+				if(dropdownHover) dropdownHover();
 
 			}); 
 		}); 
