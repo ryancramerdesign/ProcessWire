@@ -10,7 +10,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		return array(
 			'title' => __('Files', __FILE__), // Module Title
 			'summary' => __('One or more file uploads (sortable)', __FILE__), // Module Summary
-			'version' => 106,
+			'version' => 107,
 			'permanent' => true, 
 			);
 	}
@@ -26,6 +26,12 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	 *
 	 */
 	protected $singleFileReplacement = false;
+
+	/**
+	 * Saved instanceof WireUpload in case API retrieval is needed (see getWireUpload() method)
+	 *
+	 */
+	protected $wireUpload = null;
 
 	/**
 	 * Initialize the InputfieldFile
@@ -262,10 +268,12 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 		if($this->maxFiles <= 1 || $total < $this->maxFiles) { 
 
-			$ul = new WireUpload($this->attr('name')); 
+			$ul = $this->getWireUpload();
+			$ul->setName($this->attr('name')); 
 			$ul->setDestinationPath($this->destinationPath); 
 			$ul->setOverwrite($this->overwrite); 
 			$ul->setAllowAjax(true);
+			if($this->maxFilesize) $ul->setMaxFileSize($this->maxFilesize); 
 
 			if($this->maxFiles == 1) {
 				$ul->setMaxFiles(1); 
@@ -332,6 +340,17 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			);
 
 		$this->ajaxResponses[] = $response; 
+	}
+
+	/**
+	 * Return the current WireUpload instance or create a new one if not yet created
+	 *
+	 * @return WireUpload
+	 *
+	 */
+	public function getWireUpload() {
+		if(is_null($this->wireUpload)) $this->wireUpload = new WireUpload($this->attr('name')); 
+		return $this->wireUpload; 
 	}
 
 
