@@ -31,7 +31,7 @@ class ProcessHome extends Process {
 	}
 
 	public function ___execute() {
-		$this->session->redirect("page/"); 
+		$this->session->redirect($this->page->child->url);
 	}	
 
 }
