@@ -213,6 +213,7 @@ class PageFinder extends Wire {
 
 			$fields = $selector->field; 
 			$fields = is_array($fields) ? $fields : array($fields); 
+			if(count($fields) > 1) $fields = $this->arrangeFields($fields); 
 			$fieldsStr = ':' . implode(':', $fields) . ':'; // for strpos
 			$field = reset($fields); // first field
 			if(strpos($field, '.')) list($field, $subfield) = explode('.', $field); 
@@ -240,7 +241,7 @@ class PageFinder extends Wire {
 				$this->getQueryNumChildren($query, $selector); 
 				continue; 
 
-			} else if($this->getFuel('fields')->isNativeName($field) || strpos($fieldsStr, ':parent.') !== false) {
+			} else if($this->wire('fields')->isNativeName($field) || strpos($fieldsStr, ':parent.') !== false) {
 				$this->getQueryNativeField($query, $selector, $fields); 
 				continue; 
 			} 
@@ -740,7 +741,7 @@ class PageFinder extends Wire {
 
 			if(strpos($field, '.')) list($field, $subfield) = explode('.', $field);
 
-			if(!$this->getFuel('fields')->isNativeName($field)) {
+			if(!$this->wire('fields')->isNativeName($field)) {
 				$subfield = $field;
 				$field = 'children';
 			}
@@ -981,6 +982,20 @@ class PageFinder extends Wire {
 			return "$a.$b";
 		}
 
+	}
+
+	/**
+	 * Arrange the order of field names where necessary
+	 *
+	 */
+	protected function arrangeFields(array $fields) {
+		$custom = array();
+		$native = array();
+		foreach($fields as $name) {
+			if($this->wire('fields')->isNativeName($name)) $native[] = $name;
+				else $custom[] = $name; 
+		}
+		return array_merge($native, $custom); 
 	}
 
 	/**

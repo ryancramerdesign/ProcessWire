@@ -114,9 +114,12 @@ class Selectors extends WireArray {
 	static public function stringHasOperator($str) {
 		$has = false;
 		foreach(self::$selectorTypes as $operator => $unused) {
+			if($operator == '&') continue; // this operator is too common in other contexts
 			if(strpos($str, $operator) !== false) {
-				$has = true;
-				break;
+				if(preg_match('/\b[_a-zA-Z0-9]+' . preg_quote($operator) . '/', $str)) {
+					$has = true;
+					break;
+				}
 			}	
 		}
 		return $has; 
