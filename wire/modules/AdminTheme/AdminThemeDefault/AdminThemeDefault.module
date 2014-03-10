@@ -14,7 +14,13 @@ class AdminThemeDefault extends AdminTheme implements Module, ConfigurableModule
 	public function init() {
 		parent::init(); 
 		if($this->isCurrent()) {
-			// this is the current admin theme
+			$customStyleFolder = wire('config')->urls->templates . 'AdminThemeDefault';
+			$styleFile = ($this->colors ? 'main-' . $this->colors : 'main') . '.css';
+			if (file_exists(wire('config')->paths->modules . 'AdminTheme/' . __CLASS__ . '/styles/' . $styleFile)) {
+				$this->page->stylesheet = wire('config')->urls->modules . 'AdminTheme/' . __CLASS__ . '/styles/' . $styleFile;
+			} elseif (file_exists(wire('config')->paths->templates . __CLASS__ . '/' . $styleFile)) {
+				$this->page->stylesheet = wire('config')->urls->templates . __CLASS__ . '/' . $styleFile;
+			}
 		}
 	}
 
@@ -31,6 +37,18 @@ class AdminThemeDefault extends AdminTheme implements Module, ConfigurableModule
 		$field->addOption('warm', __('Warm'));
 		$field->addOption('modern', __('Modern'));
 		$field->addOption('futura', __('Futura'));
+
+		// Add custom stylesheets from /site/template/AdminThemeDefault folder
+		$customStyleDir = wire('config')->paths->templates . 'AdminThemeDefault';
+		if (file_exists($customStyleDir)) {
+			foreach (new DirectoryIterator($customStyleDir) as $fileInfo) {
+				if($fileInfo->isDot() || $fileInfo->getExtension() != 'css') continue;
+				$fileName = str_replace('main-', '', $fileInfo->getBasename('.css'));
+				$prettyName = ucwords(str_replace('-', ' ', $fileName));
+				$field->addOption($fileName, __($prettyName));
+			}
+		}
+		
 		$field->attr('value', isset($data['colors']) ? $data['colors'] : ''); 
 		$field->optionColumns = 1; 
 		$inputfields->add($field); 		
