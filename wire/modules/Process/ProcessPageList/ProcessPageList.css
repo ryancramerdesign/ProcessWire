@@ -24,6 +24,9 @@
 	display: inline; 
 	padding-right: 0.25em; 
 }
+.PageListSelectHeader .PageListSelectName:empty {
+	display: none; 
+}
 
 .PageListRoot > .PageList {
 	margin-top: 0.5em; 
