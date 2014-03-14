@@ -1,4 +1,3 @@
-
 /**
  * ProcessWire Page List Process, JQuery Plugin
  *
@@ -468,7 +467,7 @@ $(document).ready(function() {
 						else if(action.name == options.selectUnselectLabel) actionName = 'Select'; 
 						else actionName = action.cn; // cn = className
 
-					var $a = $("<a></a>").text(action.name).attr('href', action.url); 
+					var $a = $("<a></a>").html(action.name).attr('href', action.url); 
 					$actions.append($("<li></li>").addClass('PageListAction' + actionName).append($a)); 
 				}); 
 
