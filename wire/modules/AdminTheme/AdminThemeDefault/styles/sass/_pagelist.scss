@@ -126,6 +126,10 @@
 				}
 			}
 
+			.PageListLoading {
+				top: 5px; 
+			}
+
 		}
 
 		.PageListItemOpen {
@@ -150,6 +154,8 @@
 		.PageListNumChildren {
 			font-size: 0.833333em;
 		}
+
+
 	}
 
 }

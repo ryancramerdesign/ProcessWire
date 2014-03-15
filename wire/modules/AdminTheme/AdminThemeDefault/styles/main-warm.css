@@ -2094,12 +2094,15 @@ table {
     padding-bottom: 0.75em;
     background: white;
     border: 1px solid #e6e4d8;
-    color: #a2a2a2; }
+    color: #a2a2a2;
+    /* Add ellipsis to collapsed fields per ceberlin */ }
     .Inputfields .InputfieldStateCollapsed .InputfieldHeader:hover {
       /* style for collapsed header when hovered */
       color: #f64704;
       border-color: #e6e4d8;
       background: white; }
+    .Inputfields .InputfieldStateCollapsed .InputfieldHeader:after {
+      content: " \2026"; }
   .Inputfields .InputfieldStateCollapsed .InputfieldContent {
     /* collapsed Inputfields don't show their content (only header) */
     display: none; }
@@ -2751,6 +2754,8 @@ body.collapse-wiretabs #breadcrumbs {
         color: #f64704; }
         .content .PageList .PageListItem > a.PageListPage i.PageListStatusIcon {
           color: #777; }
+    .content .PageList .PageListItem .PageListLoading {
+      top: 5px; }
   .content .PageList .PageListItemOpen > a.PageListPage {
     color: #f64704;
     background-color: none; }
@@ -2810,20 +2815,24 @@ body.collapse-wiretabs #breadcrumbs {
     padding: 0;
     margin: 1em 0; }
     .content .MarkupPagerNav li {
-      padding: 0;
       margin: 0;
       list-style: none;
-      display: inline;
-      padding: 6px 0;
-      background: none; }
+      display: inline-block;
+      background: none;
+      padding: 3px 0 0 0; }
       .content .MarkupPagerNav li a {
         padding: 4px 9px;
+        padding: 1px 7px;
         margin: 0;
         text-decoration: none; }
       .content .MarkupPagerNav li.MarkupPagerNavSeparator {
         border: none; }
   .content .PageListPagination {
     padding-top: 0.5em; }
+    .content .PageListPagination li {
+      margin: 0 4px 0 0; }
+      .content .PageListPagination li a {
+        padding: 0 6px; }
   .content .PageListPagination,
   .content .MarkupPagerNav {
     color: text-color;
@@ -2839,8 +2848,7 @@ body.collapse-wiretabs #breadcrumbs {
       -o-border-radius: 3px;
       border-radius: 3px;
       border: none;
-      display: inline-block;
-      padding: 0 6px; }
+      display: inline-block; }
       .content .PageListPagination a:hover,
       .content .MarkupPagerNav a:hover {
         color: white;
@@ -3184,12 +3192,7 @@ body:not(.hasWireTabs) #headline .container {
     padding-left: 10px; }
 
   #fieldgroupContext {
-    display: none; } }
-/* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
-/* Mobile Portrait Size to Mobile Landscape Size (devices and browsers) */
-@media only screen and (max-width: 479px) {
-  #logo {
-    display: block; }
+    display: none; }
 
   /**
    * Disregard column width when at mobile size
@@ -3198,7 +3201,12 @@ body:not(.hasWireTabs) #headline .container {
   .Inputfield {
     clear: both !important;
     width: 100% !important;
-    margin-left: 0 !important; }
+    margin-left: 0 !important; } }
+/* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
+/* Mobile Portrait Size to Mobile Landscape Size (devices and browsers) */
+@media only screen and (max-width: 479px) {
+  #logo {
+    display: block; }
 
   .container {
     width: 100%; }

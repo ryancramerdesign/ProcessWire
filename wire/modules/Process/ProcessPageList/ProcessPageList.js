@@ -233,7 +233,7 @@ $(document).ready(function() {
 					var info = $curList.data('paginationInfo'); 
 					if(!info) return false;
 					var $newList = getPaginationList(id, parseInt($(this).attr('href')) * info.limit, info.limit, info.total);
-					var $loading = $("<li class='PageListLoading'></li>"); 
+					var $loading = $("<li><span class='PageListLoading'></span></li>"); 
 					$curList.siblings(".PageList").remove(); // remove any open lists below current
 					$curList.replaceWith($newList); 
 					$newList.append($loading); 
@@ -468,7 +468,7 @@ $(document).ready(function() {
 						else if(action.name == options.selectUnselectLabel) actionName = 'Select'; 
 						else actionName = action.cn; // cn = className
 
-					var $a = $("<a></a>").text(action.name).attr('href', action.url); 
+					var $a = $("<a></a>").html(action.name).attr('href', action.url); 
 					$actions.append($("<li></li>").addClass('PageListAction' + actionName).append($a)); 
 				}); 
 

@@ -20,3 +20,19 @@ $classes['item'] = "Inputfield {class} Inputfield_{name}";
 $classes['item_error'] = "InputfieldStateError";
 InputfieldWrapper::setClasses($classes); 
 
+wire()->addHookBefore('MarkupPagerNav::render', null, 'hookMarkupPagerNavRender'); 
+
+/**
+ * Change the default prev/next links for MarkupPagerNav
+ *
+ */
+function hookMarkupPagerNavRender(HookEvent $event) {
+	$options = $event->arguments(1);
+	if(!isset($options['nextItemLabel'])) {
+		$options['nextItemLabel'] = "<i class='fa fa-angle-right'></i>";
+		$options['previousItemLabel'] = "<i class='fa fa-angle-left'></i>";
+		$options['separatorItemLabel'] = "<span class='detail'>&hellip;</span>";
+		$event->arguments(1, $options); 
+	}
+}
+

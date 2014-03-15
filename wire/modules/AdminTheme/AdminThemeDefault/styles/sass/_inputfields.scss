@@ -145,6 +145,11 @@
 				background: $text-bg; 
 			}
 
+			/* Add ellipsis to collapsed fields per ceberlin */
+			&:after{
+				content: " \2026";
+			}
+
 		}
 		.InputfieldContent {
 			/* collapsed Inputfields don't show their content (only header) */

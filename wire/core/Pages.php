@@ -534,7 +534,7 @@ class Pages extends Wire {
 				$saveable = false;
 				$reason = "Can't move '{$page->name}' because Template '{$page->parent->template}' used by '{$page->parent->path}' is not allowed by template '{$page->template->name}'.";
 
-			} else if(count($page->parent->children("name={$page->name}, id!=$page->id, status<" . Page::statusMax))) { 
+			} else if(count($page->parent->children("name={$page->name}, id!=$page->id, include=all"))) { 
 				$saveable = false;
 				$reason = "Chosen parent '{$page->parent->path}' already has a page named '{$page->name}'"; 
 			}
@@ -1041,7 +1041,7 @@ class Pages extends Wire {
 
 		if($page->numChildren) {
 			if(!$recursive) throw new WireException("Can't delete Page $page because it has one or more children."); 
-			foreach($page->children("status<" . Page::statusMax) as $child) {
+			foreach($page->children("include=all") as $child) {
 				if(!$this->delete($child, true)) throw new WireException("Error doing recursive page delete, stopped by page $child"); 
 			}
 		}
