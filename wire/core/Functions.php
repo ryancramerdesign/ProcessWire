@@ -398,7 +398,7 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
 		header("content-disposition: attachment; filename=\"$downloadFilename\"");
 	}
 
-	@ob_clean();
+	@ob_end_clean();
 	@flush();
 	readfile($filename);
 	if($options['exit']) exit;
