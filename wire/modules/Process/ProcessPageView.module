@@ -64,6 +64,12 @@ class ProcessPageView extends Process {
 	protected $redirectURL = '';
 
 	/**
+	 * True if any redirects should be delayed until after API ready() has been issued
+	 * 
+	 */
+	protected $delayRedirects = false; 
+
+	/**
 	 * Sanitized URL that generated this request
  	 * 
 	 * Set by the getPage() method and passed to the pageNotFound function.
@@ -120,10 +126,19 @@ class ProcessPageView extends Process {
 			$_page = $page; 
 			$page = $this->checkAccess($page); 
 			if(!$page) return $this->pageNotFound($_page, $this->requestURL, true); 
-			$this->checkProtocol($page); 
-			if($this->redirectURL) $this->session->redirect($this->redirectURL);
+			
+			if(!$this->delayRedirects) {
+				$this->checkProtocol($page); 
+				if($this->redirectURL) $this->session->redirect($this->redirectURL);
+			}
+			
 			$this->wire('page', $page); 
 			$this->ready();
+			
+			if($this->delayRedirects) {
+				$this->checkProtocol($page); 
+				if($this->redirectURL) $this->session->redirect($this->redirectURL);
+			}
 
 			try {
 				$this->wire->setStatus(ProcessWire::statusRender);
@@ -494,6 +509,18 @@ class ProcessPageView extends Process {
 	 */
 	public function setResponseType($responseType) {
 		$this->responseType = (int) $responseType; 
+	}
+
+	/**
+	 * Set whether any redirects should be performed after the API ready() call
+	 * 
+	 * This is used by LanguageSupportPageNames to delay redirects until after http/https schema is determined. 
+	 *
+	 * @param bool $delayRedirects
+	 *
+	 */
+	public function setDelayRedirects($delayRedirects) {
+		$this->delayRedirects = $delayRedirects ? true : false;
 	}
 
 }

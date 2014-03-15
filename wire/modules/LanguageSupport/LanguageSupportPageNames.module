@@ -364,6 +364,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 *
 	 */
 	public function hookProcessPageViewExecute(HookEvent $event) {
+		$event->object->setDelayRedirects(true); 
 		// save now, since ProcessPageView removes $_GET['it'] when it executes
 		$it = isset($_GET['it']) ? $_GET['it'] : '';
 		$this->requestPath = $it; 
@@ -495,6 +496,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	public function hookInputfieldPageNameProcess(HookEvent $event) {
 
 		$inputfield = $event->object; 
+		//$page = $this->process == 'ProcessPageEdit' ? $this->process->getPage() : new NullPage();
 		$page = $this->process->getPage();
 		$input = $event->arguments[0];
 
