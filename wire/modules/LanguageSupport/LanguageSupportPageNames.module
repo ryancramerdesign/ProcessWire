@@ -120,8 +120,6 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	 *
 	 */
 	public function ready() {
-		// bypass means the request was to something in /site/assets/ that has no possibilty of language support
-		if($this->bypass) return;
 
 		$this->checkModuleVersion();
 		$this->addHookAfter('Page::path', $this, 'hookPagePath'); 
@@ -129,8 +127,11 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$this->addHookBefore('Page::render', $this, 'hookPageRender'); 
 		$this->addHook('Page::localName', $this, 'hookPageLocalName'); 
 		$this->addHook('Page::localUrl', $this, 'hookPageLocalUrl'); 
-		$this->addHook('Page::localPath', $this, 'hookPageLocalPath'); 
-		
+		$this->addHook('Page::localPath', $this, 'hookPageLocalPath');
+
+		// bypass means the request was to something in /site/*/ that has no possibilty of language support
+		// note that the hooks above are added before this so that 404s can still be handled properly
+		if($this->bypass) return;
 
 		// verify that page path doesn't have mixed languages where it shouldn't
 		$redirectURL = $this->verifyPath($this->requestPath);
@@ -149,8 +150,9 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$this->addHookBefore('LanguageSupportFields::languageDeleted', $this, 'hookLanguageDeleted'); 
 		$this->addHookBefore('LanguageSupportFields::languageAdded', $this, 'hookLanguageAdded'); 
 
-		wire('pages')->addHookAfter('saveReady', $this, 'hookPageSaveReady');
-		wire('pages')->addHookAfter('saved', $this, 'hookPageSaved'); 
+		$this->wire('pages')->addHookAfter('saveReady', $this, 'hookPageSaveReady');
+		$this->wire('pages')->addHookAfter('saved', $this, 'hookPageSaved');
+		$this->wire('pages')->addHookAfter('setupNew', $this, 'hookPageSetupNew'); 
 		
 		$language = $this->wire('user')->language; 
 		$prefix = $this->get("pageNumUrlPrefix$language"); 
@@ -717,8 +719,49 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 			}
 			$extraData[$name] = $value; 
 		}
-	
+
 		$event->return = $extraData; 
+	}
+
+	/**
+	 * Hook into Pages::setupNew
+	 * 
+	 * Used to assign a $page->name when none has been assigned, like if a user has added
+	 * a page in another language but not configured anything for default language
+	 * 
+	 * @param HookEvent $event
+	 * 
+	 */
+	public function hookPageSetupNew(HookEvent $event) {
+		
+		$page = $event->arguments[0];
+		
+		// if page already has a name, then no need to continue
+		if($page->name) return;
+		
+		// account for possibility that a new page with non-default language name/title exists
+		// this prevents an exception from being thrown by Pages::save
+		$user = $this->wire('user');
+		$userTrackChanges = $user->trackChanges();
+		$userLanguage = $user->language;
+		if($userTrackChanges) $user->setTrackChanges(false); 
+		
+		foreach($this->wire('languages') as $language) {
+			if($language->isDefault()) continue; 
+			$user->language = $language; 
+			$name = $page->get("name$language"); 
+			if(strlen($name)) $page->name = $name; 
+			$title = $page->title;
+			if(strlen($title)) {
+				$page->title = $title;
+				if(!$page->name) $page->name = $this->wire('sanitizer')->pageName($title, Sanitizer::translate);
+			}
+			if($page->name) break;
+		}
+	
+		// restore user to previous state
+		$user->language = $userLanguage; 
+		if($userTrackChanges) $user->setTrackChanges(true); 
 	}
 
 	/**
