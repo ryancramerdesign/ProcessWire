@@ -71,7 +71,7 @@ class ProcessWire extends Wire {
 		if(!$config->templateExtension) $config->templateExtension = 'php';
 		if(!$config->httpHost) $config->httpHost = $this->getHttpHost($config); 
 
-		$config->https = !empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on'; 
+		$config->https = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
 		$config->ajax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest');
 		$config->version = self::versionMajor . "." . self::versionMinor . "." . self::versionRevision; 
 		$this->setStatus(self::statusBoot);
