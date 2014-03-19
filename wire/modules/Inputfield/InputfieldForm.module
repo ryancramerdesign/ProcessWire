@@ -167,7 +167,7 @@ class InputfieldForm extends InputfieldWrapper {
 					if(is_object($value)) $value = "$value";
 
 					if(!$selector->matches($value)) {
-						$this->debugNote("Selector failed to match \"$selector\" because value=$value"); 
+						$this->debugNote("Selector failed to match \"$selector\" because value=" . print_r($value, true)); 
 						$processNow = false;
 						break;
 					}

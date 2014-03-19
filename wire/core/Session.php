@@ -283,12 +283,21 @@ class Session extends Wire implements IteratorAggregate {
 
 			$this->setFuel('user', $user); 
 			$this->get('CSRF')->resetToken();
+			$this->loginSuccess($user); 
 
 			return $user; 
 		}
 
 		return null; 
 	}
+
+	/**
+	 * Login success method for hooks
+	 *
+	 * @param User $user
+	 *
+	 */
+	protected function ___loginSuccess(User $user) { }
 
 	/**
 	 * Allow the user $name to login?
@@ -331,11 +340,21 @@ class Session extends Wire implements IteratorAggregate {
 		$this->init();
 		session_regenerate_id(true);
 		$_SESSION[$this->className()] = array();
+		$user = $this->wire('user'); 
 		$guest = $this->fuel('users')->getGuestUser();
 		$this->fuel('users')->setCurrentUser($guest); 
 		$this->trackChange('logout'); 
+		$this->logoutSuccess($user); 
 		return $this; 
 	}
+
+	/**
+	 * Logout success method for hooks
+	 *
+	 * @param User $user
+	 *
+	 */
+	protected function ___logoutSuccess(User $user) { }
 
 	/**
 	 * Redirect this session to another URL.
