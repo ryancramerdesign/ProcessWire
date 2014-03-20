@@ -88,7 +88,11 @@ class ProcessProfile extends Process implements ConfigurableModule {
 			return;
 		}
 
+		$user->of(false);
+		$user->setTrackChanges(true);
+
 		foreach($user->fields as $field) {
+
 			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue;
 		
 			$inputfield = $form->get($field->name); 	
@@ -103,15 +107,21 @@ class ProcessProfile extends Process implements ConfigurableModule {
 
 			if($field->name == 'pass' && empty($value)) continue; 
 	
-			if($user->get($field->name) != $value) {	
+			if($user->get($field->name) !== $value) {	
 				$user->set($field->name, $value); 
-				$this->wire('pages')->saveField($user, $field->name); 
-				$message = $this->_('Profile saved') . ' - ' . $field->name; 
-				$this->message($message);
-				$this->wire('log')->message($message); 
 			}
 			
 		}
+
+		if($user->isChanged()) {
+			$changes = implode(', ', array_unique($user->getChanges())); 
+			$message = $this->_('Profile saved') . ' - ' . $changes; 
+			$this->message($message);
+			$this->wire('log')->message($message); 
+			$this->wire('users')->save($user);
+		}
+
+		$user->of(true); 
 
 	}
 

@@ -103,8 +103,12 @@ class InputfieldForm extends InputfieldWrapper {
 
 			// shift first $child off the array
 			$child = array_shift($delayedChildren);
+			$this->debugNote("Processing delayed child: $child->name ($child->label)"); 
 			$selectorString = $child->getSetting('showIf'); 
-			if(!strlen($selectorString)) continue; 
+			if(!strlen($selectorString)) {
+				$this->debugNote("Skipping $child->name ($child->label): No selector string"); 
+				continue; 
+			}
 			
 			$this->debugNote("showIf selector: $selectorString"); 
 			$selectors = new Selectors($selectorString); 
@@ -176,7 +180,7 @@ class InputfieldForm extends InputfieldWrapper {
 	
 				if(!$processNow) break;
 				
-				$this->debugNote("$child->name - matched: showIf($selector)");
+				$this->debugNote("$child->name ($child->label) - matched: showIf($selector)");
 				$processedN++;
 
 			} // $selectors
@@ -184,8 +188,8 @@ class InputfieldForm extends InputfieldWrapper {
 			if($subfield == 'count') $this->debugNote("actual count: $value"); 
 			
 			if(!$processNow) {
-				$this->debugNote("$child->name - did not match: showIf($selector)"); 
-				$this->debugNote("Skipped processing for: $child->name"); 
+				$this->debugNote("$child->name ($child->label) - did not match: showIf($selector)"); 
+				$this->debugNote("Skipped processing for: $child->name ($child->label)"); 
 				$child->set('showIfSkipped', true); // flag the field as skipped
 				$unprocessedN++;
 				// since this didn't match, then no other selectors in the group for this child can match, so break out of the selector loop
@@ -205,7 +209,11 @@ class InputfieldForm extends InputfieldWrapper {
 			if($child instanceof InputfieldWrapper) {
 				$delayed = $child->_getDelayedChildren(true); 
 				if(count($delayed)) {
-					foreach($delayed as $d) $this->debugNote("Delayed: $d->name"); 
+					foreach($delayed as $d) {
+						$dname = $d->attr('name'); 
+						if(!$dname) $dname = $d->attr('id');
+						$this->debugNote("Delayed: $dname ($d->label)"); 
+					}
 					$delayedChildren = array_merge($delayedChildren, $delayed); // add them to delayed children
 					$savedChildren = array_merge($savedChildren, $delayed); // add them to saved children (to be sent to requiredIf too)
 					$delayedN += count($delayed); 
@@ -276,7 +284,7 @@ class InputfieldForm extends InputfieldWrapper {
 						if(is_object($value)) $value = "$value";
 
 						if(!$selector->matches($value)) {
-							$this->debugNote("$name - did not match: requiredIf($selector)");
+							$this->debugNote("$name ($name.$subfield) - did not match: requiredIf($selector)");
 							$required = false;
 							break;
 						}

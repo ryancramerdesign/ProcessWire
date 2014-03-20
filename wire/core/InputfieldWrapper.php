@@ -459,6 +459,11 @@ class InputfieldWrapper extends Inputfield {
 			($inputfield->getSetting('required') && strlen($inputfield->getSetting('requiredIf')))) {
 			
 			$name = $inputfield->attr('name'); 
+			if(!$name) {
+				$name = $inputfield->attr('id'); 
+				if(!$name) $name = $this->wire('sanitizer')->fieldName($inputfield->label); 
+				$inputfield->attr('name', $name); 
+			}
 			$this->delayedChildren[$name] = $inputfield; 
 			return false;
 		}

@@ -65,14 +65,33 @@ abstract class WireAction extends WireData implements Module {
 	}
 
 	/**
+	 * Perform the action on the given item
+	 *
+	 * @param Wire $item Item to operate upon
+	 * @return bool True if the item was successfully operated upon, false if not. 
+	 *
+	 */
+	abstract protected function ___action($item);
+
+	/**
 	 * Execute the action for the given item
 	 *
 	 * @param Wire $item Item to operate upon
 	 * @return bool True if the item was successfully operated upon, false if not. 
 	 *
 	 */
-	public function ___execute($item) {
-		return $this->isValidItem($item);
+	public function execute($item) {
+		if(!$this->isValidItem($item)) return false;
+
+		try {
+			$result = $this->action($item); 
+
+		} catch(Exception $e) {
+			$result = false; 
+			$this->error($e->getMessage()); 
+		}
+
+		return $result; 
 	}
 
 	/**
@@ -113,6 +132,20 @@ abstract class WireAction extends WireData implements Module {
 	 */
 	public function getRunner() {
 		return $this->runner; 
+	}
+
+	public function message($text, $flags = 0) {
+		$runner = $this->getRunner(); 
+		if($runner) $runner->message($text, $flags); 
+			else parent::message($text, $flags); 
+		return $this; 
+	}
+
+	public function error($text, $flags = 0) {
+		$runner = $this->getRunner(); 
+		if($runner) $runner->error($text, $flags); 
+			else parent::error($text, $flags); 
+		return $this; 
 	}
 
 	public function isSingular() {
