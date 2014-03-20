@@ -1050,9 +1050,55 @@ class ImageSizer extends Wire {
 		} else {
 			$a['channels'] = $ct;
 			$a['colspace'] = 'DeviceRGB';
-			$a['alpha']	= true;
+			$a['alpha']	= true;        // alphatransparency in 24bit images !
 		}
+
+		if(ord(@fread($f,1))!=0) $errors[] = 'Unknown compression method!';
+		if(ord(@fread($f,1))!=0) $errors[] = 'Unknown filter method!';
+		if(ord(@fread($f,1))!=0) $errors[] = 'Interlacing not supported!';
+
+		//Scan chunks looking for palette, transparency and image data
+		@fread($f,4);
+		$pal='';
+		$trns='';
+		$data='';
+		do {
+			$n = $this->freadint($f);
+			$type = @fread($f,4);
+			if($type=='PLTE') {
+				//Read palette
+				$pal = @fread($f,$n);
+				@fread($f,4);
+			}
+			elseif($type=='tRNS') {
+				//Read transparency info
+				$t = @fread($f,$n);
+				if($ct==0) {
+					$trns = array(ord(substr($t,1,1)));
+				}
+				elseif($ct==2) {
+					$trns = array(ord(substr($t,1,1)),ord(substr($t,3,1)),ord(substr($t,5,1)));
+				}
+				else {
+					$pos = strpos($t,chr(0));
+					if(is_int($pos)) {
+						$trns = array($pos);
+					}
+				}
+				@fread($f,4);
+			}
+			elseif($type=='IEND') {
+				break;
+			}
+			else {
+				fread($f,$n+4);
+			}
+		} while($n);
+
 		@fclose($f);
+		if($a['colspace']=='Indexed' and empty($pal)) $errors[] = 'Missing palette!';
+		if(count($errors)>0) $a['errors'] = $errors;
+		if(!empty($trns)) $a['alpha'] = true;  // alphatransparency in 8bit images !
 		return $a['alpha'];
 	}
 
