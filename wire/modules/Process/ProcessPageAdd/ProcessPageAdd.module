@@ -62,6 +62,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		if(!$parentTemplate) throw new WireException("Unable to locate parent template " . reset($parentTemplates)); 
 		$parents = $this->wire('pages')->find("template=$parentTemplate, include=hidden, limit=500, sort=name"); 
 		if(!count($parents)) throw new WireException("No usable parents match this template"); 
+		if(count($parents) == 1) $this->wire('session')->redirect("./parent_id=" . $parents->first()->id);
 
 		$templateLabel = $this->getTemplateLabel($template); 
 		$parentTemplateLabel = $this->getTemplateLabel($parentTemplate); 
