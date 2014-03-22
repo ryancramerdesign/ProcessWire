@@ -1008,7 +1008,7 @@ class ImageSizer extends Wire {
 
 
 	/**
-	 * Check for alphachannel in PNGs (@horst)
+	 * Check for alphachannel in PNGs (@horst, initial code was from FPDF project: http://www.fpdf.org/)
 	 *
 	 * @return bool
 	 *
@@ -1052,18 +1052,23 @@ class ImageSizer extends Wire {
 			$a['colspace'] = 'DeviceRGB';
 			$a['alpha']	= true;        // alphatransparency in 24bit images !
 		}
+		if($a['alpha']) return true;   // early return
 
 		if(ord(@fread($f,1))!=0) $errors[] = 'Unknown compression method!';
 		if(ord(@fread($f,1))!=0) $errors[] = 'Unknown filter method!';
 		if(ord(@fread($f,1))!=0) $errors[] = 'Interlacing not supported!';
 
-		//Scan chunks looking for palette, transparency and image data
+		// Scan chunks looking for palette, transparency and image data
+		// http://www.w3.org/TR/2003/REC-PNG-20031110/#table53
+		// http://www.libpng.org/pub/png/book/chapter11.html#png.ch11.div.6
 		@fread($f,4);
 		$pal='';
 		$trns='';
 		$data='';
+		$counter=0;
 		do {
 			$n = $this->freadint($f);
+			$counter += $n;
 			$type = @fread($f,4);
 			if($type=='PLTE') {
 				//Read palette
@@ -1086,8 +1091,9 @@ class ImageSizer extends Wire {
 					}
 				}
 				@fread($f,4);
+				break; // no need for us to read further
 			}
-			elseif($type=='IEND') {
+			elseif($type=='IEND' || $type=='iDAT' || $counter>=2048) {
 				break;
 			}
 			else {
