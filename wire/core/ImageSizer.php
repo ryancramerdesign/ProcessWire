@@ -1093,7 +1093,7 @@ class ImageSizer extends Wire {
 				@fread($f,4);
 				break; // no need for us to read further
 			}
-			elseif($type=='IEND' || $type=='iDAT' || $counter>=2048) {
+			elseif($type=='IEND' || $type=='IDAT' || $counter>=2048) {
 				break;
 			}
 			else {
