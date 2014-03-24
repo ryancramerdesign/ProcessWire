@@ -285,38 +285,96 @@ class Pagefiles extends WireArray {
 	}
 
 	/**
-	 * Given a basename, this method returns a clean version containing valid characters 
+	 * Given a basename, this method returns a clean version containing valid characters
 	 *
 	 * @param string $basename May also be a full path/filename, but it will still return a basename
 	 * @param bool $originalize If true, it will generate an original filename if $basename already exists
-	 * @param bool $allowDots If true, dots "." are allowed in the basename portion of the filename. 
+	 * @param bool $allowDots If true, dots "." are allowed in the basename portion of the filename.
 	 * @return string
 	 *
-	 */ 
+	 */
 	public function cleanBasename($basename, $originalize = false, $allowDots = true) {
+    
+		$path = $this->path();
+		$dot = strrpos($basename, '.');
+		$ext = $dot ? substr($basename, $dot) : '';
 
-		$path = $this->path(); 
-		$dot = strrpos($basename, '.'); 
-		$ext = $dot ? substr($basename, $dot) : ''; 
-		$basename = strtolower(basename($basename, $ext)); 
+		$basename = basename($basename, $ext);
+
+    //thanks https://github.com/ionize/ionize/
+    $foreign_characters = array(
+    	'/ä|æ|ǽ/' => 'ae',
+    	'/ö/' => 'o',		// was oe
+    	'/œ/' => 'oe',
+    	'/ü/' => 'u',		// was ue
+    	'/Ä/' => 'A',		// was 'Ae'
+    	'/Ü/' => 'U',		// was 'Ue'
+    	'/Ö/' => 'O',		// was 'Oe'
+    	'/À|Á|Â|Ã|Ä|Å|Ǻ|Ā|Ă|Ą|Ǎ/' => 'A',
+    	'/à|á|â|ã|å|ǻ|ā|ă|ą|ǎ|ª/' => 'a',
+    	'/Ç|Ć|Ĉ|Ċ|Č/' => 'C',
+    	'/ç|ć|ĉ|ċ|č/' => 'c',
+    	'/Ð|Ď|Đ/' => 'D',
+    	'/ð|ď|đ/' => 'd',
+    	'/È|É|Ê|Ë|Ē|Ĕ|Ė|Ę|Ě/' => 'E',
+    	'/è|é|ê|ë|ē|ĕ|ė|ę|ě/' => 'e',
+    	'/Ĝ|Ğ|Ġ|Ģ/' => 'G',
+    	'/ĝ|ğ|ġ|ģ/' => 'g',
+    	'/Ĥ|Ħ/' => 'H',
+    	'/ĥ|ħ/' => 'h',
+    	'/Ì|Í|Î|Ï|Ĩ|Ī|Ĭ|Ǐ|Į|İ/' => 'I',
+    	'/ì|í|î|ï|ĩ|ī|ĭ|ǐ|į|ı/' => 'i',
+    	'/Ĵ/' => 'J',
+    	'/ĵ/' => 'j',
+    	'/Ķ/' => 'K',
+    	'/ķ/' => 'k',
+    	'/Ĺ|Ļ|Ľ|Ŀ|Ł/' => 'L',
+    	'/ĺ|ļ|ľ|ŀ|ł/' => 'l',
+    	'/Ñ|Ń|Ņ|Ň/' => 'N',
+    	'/ñ|ń|ņ|ň|ŉ/' => 'n',
+    	'/Ò|Ó|Ô|Õ|Ō|Ŏ|Ǒ|Ő|Ơ|Ø|Ǿ/' => 'O',
+    	'/ò|ó|ô|õ|ō|ŏ|ǒ|ő|ơ|ø|ǿ|º/' => 'o',
+    	'/Ŕ|Ŗ|Ř/' => 'R',
+    	'/ŕ|ŗ|ř/' => 'r',
+    	'/Ś|Ŝ|Ş|Š/' => 'S',
+    	'/ś|ŝ|ş|š|ſ/' => 's',
+    	'/Ţ|Ť|Ŧ/' => 'T',
+    	'/ţ|ť|ŧ/' => 't',
+    	'/Ù|Ú|Û|Ũ|Ū|Ŭ|Ů|Ű|Ų|Ư|Ǔ|Ǖ|Ǘ|Ǚ|Ǜ/' => 'U',
+    	'/ù|ú|û|ũ|ū|ŭ|ů|ű|ų|ư|ǔ|ǖ|ǘ|ǚ|ǜ/' => 'u',
+    	'/Ý|Ÿ|Ŷ/' => 'Y',
+    	'/ý|ÿ|ŷ/' => 'y',
+    	'/Ŵ/' => 'W',
+    	'/ŵ/' => 'w',
+    	'/Ź|Ż|Ž/' => 'Z',
+    	'/ź|ż|ž/' => 'z',
+    	'/Æ|Ǽ/' => 'AE',
+    	'/ß/'=> 'ss',
+    	'/Ĳ/' => 'IJ',
+    	'/ĳ/' => 'ij',
+    	'/Œ/' => 'OE',
+    	'/ƒ/' => 'f'
+    );
+
+    $basename = preg_replace(array_keys($foreign_characters), array_values($foreign_characters), $basename);
 		$basename = preg_replace('/[^-_.a-zA-Z0-9]/', '_', $basename);
-		if(!$allowDots) $basename = str_replace('.', '_', $basename); 
-		$ext = preg_replace('/[^a-z0-9.]/', '_', strtolower($ext)); 
+		if(!$allowDots) $basename = str_replace('.', '_', $basename);
+		$ext = preg_replace('/[^a-z0-9.]/', '_', strtolower($ext));
 		$basename .= $ext;
-		if($originalize) { 
-			$n = 0; 
+		if($originalize) {
+			$n = 0;
 			$p = pathinfo($basename);
 			while(is_file($path . $basename)) {
 				$n++;
 				$basename = "$p[filename]-$n.$p[extension]"; // @hani
-				// $basename = (++$n) . "_" . preg_replace('/^\d+_/', '', $basename); 
+				// $basename = (++$n) . "_" . preg_replace('/^\d+_/', '', $basename);
 			}
 		}
-		return $basename; 
+		return $basename;
 	}
 
 	public function uncache() {
-		//$this->page = null;		
+		//$this->page = null;
 	}
 
 	/**

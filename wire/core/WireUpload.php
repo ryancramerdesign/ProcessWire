@@ -145,67 +145,125 @@ class WireUpload extends Wire {
 	}
 
 	protected function isValidExtension($name) {
-		$pathInfo = pathinfo($name); 
+		$pathInfo = pathinfo($name);
 		$extension = strtolower($pathInfo['extension']);
 
 		if(in_array($extension, $this->badExtensions)) return false;
-		if(in_array($extension, $this->validExtensions)) return true; 
-		return false; 
+		if(in_array($extension, $this->validExtensions)) return true;
+		return false;
 	}
 
-	protected function isValidUpload($name, $size, $error) { 
+	protected function isValidUpload($name, $size, $error) {
 		$valid = false;
 
-		if($error && $error != UPLOAD_ERR_NO_FILE) $this->error($this->errorInfo[$error]); 
+		if($error && $error != UPLOAD_ERR_NO_FILE) $this->error($this->errorInfo[$error]);
 			else if(!$size) $valid = false; // no data
 			else if(!$this->isValidExtension($name)) {
-				$fname = $this->validateFilename($name); 
-				$this->error("$fname - " . $this->_('Invalid file extension, please use one of:') . ' ' . implode(', ', $this->validExtensions)); 
+				$fname = $this->validateFilename($name);
+				$this->error("$fname - " . $this->_('Invalid file extension, please use one of:') . ' ' . implode(', ', $this->validExtensions));
 			} else if($this->maxFileSize > 0 && $size > $this->maxFileSize) {
-				$fname = $this->validateFilename($name); 
-				$this->error("$fname - " . $this->_('Exceeds max allowed file size')); 
-			} else if($name[0] == '.') $valid = false; 
-			else $valid = true; 
+				$fname = $this->validateFilename($name);
+				$this->error("$fname - " . $this->_('Exceeds max allowed file size'));
+			} else if($name[0] == '.') $valid = false;
+			else $valid = true;
 
-		return $valid; 
+		return $valid;
 	}
 
 
 	protected function checkDestinationPath() {
 		if(!is_dir($this->destinationPath)) {
-			$this->error("Destination path does not exist {$this->destinationPath}"); 
+			$this->error("Destination path does not exist {$this->destinationPath}");
 		}
-		return true; 
+		return true;
 	}
 
 	protected function getUniqueFilename($destination) {
 
-		$cnt = 0; 
-		$p = pathinfo($destination); 
-		$basename = basename($p['basename'], ".$p[extension]"); 
+		$cnt = 0;
+		$p = pathinfo($destination);
+		$basename = basename($p['basename'], ".$p[extension]");
 
 		while(file_exists($destination)) {
-			$cnt++; 
-			$filename = "$basename-$cnt.$p[extension]"; 
-			$destination = "$p[dirname]/$filename"; 
+			$cnt++;
+			$filename = "$basename-$cnt.$p[extension]";
+			$destination = "$p[dirname]/$filename";
 		}
-	
-		return $destination; 	
+
+		return $destination;
 	}
 
-        public function validateFilename($value, $extensions = array()) {
+    public function validateFilename($value, $extensions = array()) {
 
-                $value = basename($value);
-		if($this->lowercase) $value = strtolower($value); 
-                $value = preg_replace('/[^-a-zA-Z0-9_\.]/', '_', $value);
-                $value = preg_replace('/__+/', '_', $value);
-                $value = trim($value, "_");
+    $value = basename($value);
+		if($this->lowercase) $value = strtolower($value);
+
+    //thanks https://github.com/ionize/ionize/
+    $foreign_characters = array(
+      '/ä|æ|ǽ/' => 'ae',
+      '/ö/' => 'o',		// was oe
+      '/œ/' => 'oe',
+      '/ü/' => 'u',		// was ue
+      '/Ä/' => 'A',		// was 'Ae'
+      '/Ü/' => 'U',		// was 'Ue'
+      '/Ö/' => 'O',		// was 'Oe'
+      '/À|Á|Â|Ã|Ä|Å|Ǻ|Ā|Ă|Ą|Ǎ/' => 'A',
+      '/à|á|â|ã|å|ǻ|ā|ă|ą|ǎ|ª/' => 'a',
+      '/Ç|Ć|Ĉ|Ċ|Č/' => 'C',
+      '/ç|ć|ĉ|ċ|č/' => 'c',
+      '/Ð|Ď|Đ/' => 'D',
+      '/ð|ď|đ/' => 'd',
+      '/È|É|Ê|Ë|Ē|Ĕ|Ė|Ę|Ě/' => 'E',
+      '/è|é|ê|ë|ē|ĕ|ė|ę|ě/' => 'e',
+      '/Ĝ|Ğ|Ġ|Ģ/' => 'G',
+      '/ĝ|ğ|ġ|ģ/' => 'g',
+      '/Ĥ|Ħ/' => 'H',
+      '/ĥ|ħ/' => 'h',
+      '/Ì|Í|Î|Ï|Ĩ|Ī|Ĭ|Ǐ|Į|İ/' => 'I',
+      '/ì|í|î|ï|ĩ|ī|ĭ|ǐ|į|ı/' => 'i',
+      '/Ĵ/' => 'J',
+      '/ĵ/' => 'j',
+      '/Ķ/' => 'K',
+      '/ķ/' => 'k',
+      '/Ĺ|Ļ|Ľ|Ŀ|Ł/' => 'L',
+      '/ĺ|ļ|ľ|ŀ|ł/' => 'l',
+      '/Ñ|Ń|Ņ|Ň/' => 'N',
+      '/ñ|ń|ņ|ň|ŉ/' => 'n',
+      '/Ò|Ó|Ô|Õ|Ō|Ŏ|Ǒ|Ő|Ơ|Ø|Ǿ/' => 'O',
+      '/ò|ó|ô|õ|ō|ŏ|ǒ|ő|ơ|ø|ǿ|º/' => 'o',
+      '/Ŕ|Ŗ|Ř/' => 'R',
+      '/ŕ|ŗ|ř/' => 'r',
+      '/Ś|Ŝ|Ş|Š/' => 'S',
+      '/ś|ŝ|ş|š|ſ/' => 's',
+      '/Ţ|Ť|Ŧ/' => 'T',
+      '/ţ|ť|ŧ/' => 't',
+      '/Ù|Ú|Û|Ũ|Ū|Ŭ|Ů|Ű|Ų|Ư|Ǔ|Ǖ|Ǘ|Ǚ|Ǜ/' => 'U',
+      '/ù|ú|û|ũ|ū|ŭ|ů|ű|ų|ư|ǔ|ǖ|ǘ|ǚ|ǜ/' => 'u',
+      '/Ý|Ÿ|Ŷ/' => 'Y',
+      '/ý|ÿ|ŷ/' => 'y',
+      '/Ŵ/' => 'W',
+      '/ŵ/' => 'w',
+      '/Ź|Ż|Ž/' => 'Z',
+      '/ź|ż|ž/' => 'z',
+      '/Æ|Ǽ/' => 'AE',
+      '/ß/'=> 'ss',
+      '/Ĳ/' => 'IJ',
+      '/ĳ/' => 'ij',
+      '/Œ/' => 'OE',
+      '/ƒ/' => 'f'
+    );
+
+
+    $value = preg_replace(array_keys($foreign_characters), array_values($foreign_characters), $value);
+    $value = preg_replace('/[^-a-zA-Z0-9_\.]/', '_', $value);
+    $value = preg_replace('/__+/', '_', $value);
+    $value = trim($value, "_");
 
 		$p = pathinfo($value);
 		$extension = strtolower($p['extension']);
-		$basename = basename($p['basename'], ".$extension"); 
+		$basename = basename($p['basename'], ".$extension");
 		// replace any dots in the basename with underscores
-		$basename = trim(str_replace(".", "_", $basename), "_"); 
+		$basename = trim(str_replace(".", "_", $basename), "_");
 		$value = "$basename.$extension";
 
                 if(count($extensions)) {
