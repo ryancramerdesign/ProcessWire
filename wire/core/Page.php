@@ -77,6 +77,7 @@ class Page extends WireData implements Countable {
 	const statusLocked = 4; 		// page locked for changes. Not enforced by the core, but checked by Process modules. 
 	const statusSystemID = 8; 		// page is for the system and may not be deleted or have it's id changed (everything else, okay)
 	const statusSystem = 16; 		// page is for the system and may not be deleted or have it's id, name, template or parent changed
+	const statusTemp = 512;			// page is temporary and 1+ day old unpublished pages with this status may be automatically deleted
 	const statusHidden = 1024;		// page is excluded selector methods like $pages->find() and $page->children() unless status is specified, like "status&1"
 	const statusUnpublished = 2048; 	// page is not published and is not renderable. 
 	const statusTrash = 8192; 		// page is in the trash

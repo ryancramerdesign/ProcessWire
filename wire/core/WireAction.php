@@ -95,6 +95,24 @@ abstract class WireAction extends WireData implements Module {
 	}
 
 	/**
+	 * Execute the action for multiple items at once
+	 *
+	 * @param array|WireArray $items Items to operate upon
+	 * @return int Returns quantity of items successfully operated upon
+	 *
+	 */
+	public function ___executeMultiple($items) {
+		if(!is_array($items) && !$items instanceof WireArray) {
+			throw new WireException("Expected an array or WireArray!"); 
+		}
+		$result = 0; 
+		foreach($items as $item) {
+			if($this->execute($item)) $result++;
+		}
+		return $result;
+	}
+
+	/**
 	 * Return any Inputfields needed to configure this action
 	 *
 	 * @return InputfieldWrapper

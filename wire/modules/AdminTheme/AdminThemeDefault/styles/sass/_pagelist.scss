@@ -145,6 +145,12 @@
 			}
 		}
 
+		.PageListStatusTemp:not(.PageListItemOpen) {
+			> a.PageListPage {
+				opacity: 0.3; 
+			}
+		}
+
 		.PageListPlaceholderItem {
 			border: none;
 			padding: 0;

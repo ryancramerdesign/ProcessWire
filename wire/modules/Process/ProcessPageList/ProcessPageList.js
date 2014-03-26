@@ -439,6 +439,7 @@ $(document).ready(function() {
 				if(child.status == 0) $li.addClass('PageListStatusOff disabled');
 				if(child.status & 2048) $li.addClass('PageListStatusUnpublished secondary'); 
 				if(child.status & 1024) $li.addClass('PageListStatusHidden secondary'); 
+				if(child.status & 512) $li.addClass('PageListStatusTemp secondary'); // typically combined with PageListStatusUnpublished
 				if(child.status & 16) $li.addClass('PageListStatusSystem'); 
 				if(child.status & 8) $li.addClass('PageListStatusSystem'); 
 				if(child.status & 4) $li.addClass('PageListStatusLocked'); 

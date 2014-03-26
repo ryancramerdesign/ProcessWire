@@ -544,28 +544,76 @@ class Pages extends Wire {
 	}
 
 	/**
-	 * Validate that a new page is in a saveable condition and correct it if not.
+	 * Auto-populate some fields for a new page that does not yet exist
 	 *
-	 * Currently just sets up up a unique page->name based on the title if one isn't provided already. 
+	 * Currently it does this: 
+	 * - Sets up a unique page->name based on the format or title if one isn't provided already. 
+	 * - Assigns a 'sort' value'. 
 	 * 
 	 * @param Page $page
 	 *
 	 */
-	protected function ___setupNew(Page $page) {
+	public function ___setupNew(Page $page) {
 
-		if(!$page->name && $page->title) {
-			$n = 0;
-			$pageName = $this->wire('sanitizer')->pageName($page->title, Sanitizer::translate); 
-			do {
-				$name = $pageName . ($n ? "-$n" : '');
-				$child = $page->parent->child("name=$name, include=all"); // see if another page already has the same name
-				$n++;
-			} while($child->id); 
-			$page->name = $name; 
+		if(!$page->parent()->id) {
+			// auto-assign a parent, if we can find one in family settings
+
+			$parentTemplates = $page->template->parentTemplates; 
+			$parent = null;
+
+			if(!empty($parentTemplates)) {
+				$idStr = implode('|', $parentTemplates); 
+				$parent = $this->get("include=hidden, template=$idStr"); 
+				if(!$parent->id) $parent = $this->get("include=all, template=$idStr"); 
+			}
+
+			if($parent->id) $page->parent = $parent; 
+		}
+
+		if(!$page->name) { 
+			// auto-assign a name if possible
+
+			$format = $page->template->pageNameFormat; 
+			$pageName = '';
+
+			if(strlen($format)) {
+
+				if(!ctype_alnum($format) && !preg_match('/^[-_a-zA-Z0-9]+$/', $format)) {
+					// it is a date format
+					$pageName = date($format); 
+				} else {
+					// predefined format
+					$pageName = $format; 
+				}
+
+			} else if(strlen($page->title)) {
+				$pageName = $page->title; 
+
+			} else {
+				// no name will be assigned
+			}
+
+			if(strlen($pageName)) { 
+				// make the name unique
+
+				$pageName = $this->wire('sanitizer')->pageName($pageName, Sanitizer::translate); 
+				$numChildren = $page->parent->numChildren();
+				$n = 0; 
+
+				do {
+					$name = $pageName; 
+					if($n > 0) $name .= "-" . ($numChildren+$n); 
+					$child = $page->parent->child("name=$name, include=all"); // see if another page already has the same name
+					$n++;
+				} while($child->id); 
+
+				$page->name = $name; 
+			}
 		}
 
 		if($page->sort < 0) {
-			$page->sort = $page->parent->numChildren;
+			// auto assign a sort
+			$page->sort = $page->parent->numChildren();
 		}
 	}
 	

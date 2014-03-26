@@ -911,6 +911,15 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 
+		$field = $this->modules->get('InputfieldText'); 
+		$field->attr('name', 'pageNameFormat');
+		$field->label = $this->_('Page Name Format');
+		$field->description = $this->_('Optionally specify a format for page names used when a new page is added. This enables the "Page Add" step to be skipped when adding a new page. This assumes your family settings define a single parent where new pages using this template will go.'); // Page name format, description
+		$field->notes = $this->_('When a new page is created and the name is not unique, an incrementing number will be appended to the end of it until it is unique. If your format includes any non-alphanumeric characters, it is assumed to be a [date format](http://www.php.net/manual/en/function.date.php). Non-alphanumeric characters still present in a formatted date are converted to hyphens.'); // Page name format, usage notes
+		$field->attr('value', $template->pageNameFormat); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$form->append($field); 
+
 		return $form; 
 	}
 
@@ -1403,6 +1412,7 @@ class ProcessTemplate extends Process {
 		$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
 		$this->template->guestSearchable = (int) $form->get('guestSearchable')->attr('value'); 
 		$this->template->pageLabelField = $this->fuel('sanitizer')->names($form->get('pageLabelField')->attr('value')); 
+		$this->template->pageNameFormat = $this->fuel('sanitizer')->text($form->get('pageNameFormat')->attr('value')); 
 		$this->template->cache_time = $form->get('cache_time')->attr('value'); 
 		$this->template->useCacheForUsers = (int) $form->get('useCacheForUsers')->attr('value');
 		$this->template->noCacheGetVars = $this->fuel('sanitizer')->names($form->get('noCacheGetVars')->attr('value')); 

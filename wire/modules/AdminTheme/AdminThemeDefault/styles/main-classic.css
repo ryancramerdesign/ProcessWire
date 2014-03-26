@@ -2784,6 +2784,8 @@ body.collapse-wiretabs #breadcrumbs {
     background-color: #ffffdd; }
   .content .PageList .PageListStatusHidden:not(.PageListItemOpen) > a.PageListPage {
     opacity: 0.6; }
+  .content .PageList .PageListStatusTemp:not(.PageListItemOpen) > a.PageListPage {
+    opacity: 0.3; }
   .content .PageList .PageListPlaceholderItem {
     border: none;
     padding: 0; }

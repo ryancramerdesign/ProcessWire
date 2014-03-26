@@ -29,7 +29,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Page Add', __FILE__),          
 			'summary' => __('Add a new page', __FILE__), 
-			'version' => 102, 
+			'version' => 103, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
@@ -129,6 +129,11 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			$this->template = $this->templates->get(reset($childTemplates)); 	
 			if(!$this->isAllowedTemplate($this->template)) throw new WireException("You don't have access to the template required to add pages here"); 
 		} 
+
+		if($this->template && strlen($this->template->pageNameFormat)) {
+			// quick add! 
+			$this->processQuickAdd($this->parent, $this->template); 
+		}
 
 		$this->form = $this->buildForm();
 		$this->form->setTrackChanges();
@@ -247,7 +252,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 
 			$defaultTemplateId = $this->parent->template->id; 
 			if($this->parent->numChildren > 0) { 
-				$sibling = $this->parent->child('sort=-created, status<' . Page::statusUnpublished);
+				$sibling = $this->parent->child('sort=-created, include=hidden');
 				if($sibling && $sibling->id) $defaultTemplateId = $sibling->template->id;
 			}
 			if(!$this->isAllowedTemplate($defaultTemplateId)) $defaultTemplateId = 0;
@@ -303,10 +308,82 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 	}
 
 	/**
+	 * Delete old 'quick add' pages that were never saved
+	 *
+	 */
+	protected function deleteOldTempPages() {
+
+		$old = time() - 86400; 
+		$items = $this->wire('pages')->find("include=all, modified<$old, limit=10, status&" . Page::statusTemp); 
+
+		foreach($items as $item) {
+			$this->message("Checking temporary item: $item->path", Notice::debug); 
+			if(!$item->is(Page::statusUnpublished)) continue; 
+			if(!$item->is(Page::statusTemp)) continue; 
+			if($item->modified > $old) continue; 
+			if($item->numChildren > 0) continue; 
+
+			$msg = "Automatically trashed unused page: $item->path";
+			$this->message($msg, Notice::debug); 
+			$this->wire('log')->message($msg); 
+
+			try { 
+				if(!$item->title) $item->title = $this->_('Unused temp page') . ' - ' . $item->name; 
+				$this->wire('pages')->trash($item); 
+			} catch(Exception $e) {
+				$this->error($e->getMessage()); 
+			}
+		}
+
+	}
+
+	/**
+	 * Perform a 'quick add' of a page and redirect to edit the page
+	 *
+	 * @param Page $parent
+	 * @param Template $template
+	 * @return bool Returns false if not success. Redirects if success.
+	 *
+	 */
+	protected function ___processQuickAdd(Page $parent, Template $template) {
+
+		$this->deleteOldTempPages();
+
+		$class = $template->pageClass ? $page->template->pageClass : 'Page';
+		$page = new $class(); 
+		$page->template = $template;	
+		$page->parent = $parent; 
+		$this->wire('pages')->setupNew($page); 
+		if(!strlen($page->name)) return false;
+		if(!$this->isAllowedTemplate($template)) return false; 
+		$page->addStatus(Page::statusUnpublished); 
+		$page->addStatus(Page::statusTemp); // ProcessPageEdit will remove this status the first time the page is saved
+
+		try {
+			$this->wire('pages')->save($page); 
+
+		} catch(Exception $e) {
+			$this->error($e->getMessage()); 
+			return false;
+		}
+
+		if($page->id) { 
+			$this->createdPageMessage($page); 
+			$this->session->redirect("../edit/?id=$page->id"); 
+		} else {
+			return false;
+		}
+	}
+
+	protected function createdPageMessage(Page $page) {
+		$this->session->message(sprintf($this->_('Created page %1$s using template: %2$s'), $page->parent->url . $page->name, $page->template->name)); 
+	}
+
+	/**
 	 * Save the submitted page add form
 	 *
 	 */
-	protected function processInput(Inputfield $form) {
+	protected function ___processInput(Inputfield $form) {
 
 		$this->page = new Page(); // must exist before processInput for language hooks
 		$form->processInput($this->input->post);
@@ -372,7 +449,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			return false;
 		}
 
-		$this->session->message(sprintf($this->_('Created page %1$s using template: %2$s'), $this->parent->url . $this->page->name, $template->name)); 
+		$this->createdPageMessage($this->page); 
 		$this->session->redirect("../edit/?id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
 	}
 

@@ -149,6 +149,9 @@ class ProcessPageEdit extends Process {
 				return;
 			}
 		}
+
+		// remove temporary status that may have been assigned by ProcessPageAdd quick add mode
+		if($this->page->is(Page::statusTemp)) $this->page->removeStatus(Page::statusTemp); 
 		
 		if($this->input->post->submit_delete) {
 
