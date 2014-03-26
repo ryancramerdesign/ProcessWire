@@ -702,7 +702,7 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
 	// find all tags
 	$tagOpen = preg_quote($options['tagOpen']);
 	$tagClose = preg_quote($options['tagClose']); 
-	$numFound = preg_match_all('/\b' . $tagOpen . '([-_.|a-zA-Z0-9]+)' . $tagClose . '\b/', $str, $matches);
+	$numFound = preg_match_all('/' . $tagOpen . '([-_.|a-zA-Z0-9]+)' . $tagClose . '/', $str, $matches);
 	if(!$numFound) return $str; 
 	$replacements = array();
 
