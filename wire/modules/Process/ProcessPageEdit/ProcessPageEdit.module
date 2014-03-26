@@ -36,7 +36,7 @@ class ProcessPageEdit extends Process {
 		return array(
 			'title' => 'Page Edit',          
 			'summary' => 'Edit a Page', 
-			'version' => 103, 
+			'version' => 104, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
@@ -102,6 +102,11 @@ class ProcessPageEdit extends Process {
 
 		if($this->config->ajax && (isset($_SERVER['HTTP_X_FIELDNAME']) || count($_POST))) return $this->ajaxSave($this->page);
 
+		if($this->page->is(Page::statusTemp) && $this->page->parent->template->childNameFormat == 'title') {
+			// make it set page name from page title
+			$this->page->name = '';
+		}
+
 		$this->form = $this->modules->get('InputfieldForm');
 		$this->form = $this->buildForm($this->form);
 		$this->form->setTrackChanges();
@@ -136,6 +141,21 @@ class ProcessPageEdit extends Process {
 		return $out; 
 	}
 
+	protected function checkPageName() {
+		// make sure we don't have a name collision
+		$n = 0; 
+		$name = '';
+		do {
+			$name = $this->page->name . ($n ? "-$n" : ""); 
+			$p = $this->wire('pages')->get("include=all, id!={$this->page->id}, parent={$this->page->parent}, name=$name"); 
+		} while($p->id && ++$n);
+
+		if($name != $this->page->name) {
+			$this->message(sprintf($this->_('Changed page URL name to "%s" because requested name was already taken.'), $name)); 
+			$this->page->name = $name; 
+		}
+	}
+
 	/**
 	 * Save a submitted Page Edit form 
 	 *
@@ -152,7 +172,7 @@ class ProcessPageEdit extends Process {
 
 		// remove temporary status that may have been assigned by ProcessPageAdd quick add mode
 		if($this->page->is(Page::statusTemp)) $this->page->removeStatus(Page::statusTemp); 
-		
+
 		if($this->input->post->submit_delete) {
 
 			if($this->input->post->delete_page) $this->deletePage();
@@ -163,10 +183,9 @@ class ProcessPageEdit extends Process {
 			$debug = wire('config')->debug; 
 			$numChanges = 0;
 
-			foreach(array_unique($this->page->getChanges()) as $change) {
-				if($debug) $this->message(sprintf($this->_('Change: %s'), $change)); // Message shown for each changed field
-				$numChanges++;
-			}
+			$changes = array_unique($this->page->getChanges()); 
+			$numChanges = count($changes); 
+			if($numChanges) $this->message(sprintf($this->_('Change: %s'), implode(', ', $changes)), Notice::debug); // Message shown for each changed field
 
 			$formErrors = 0; 
 			foreach($this->notices as $notice) {
@@ -186,7 +205,8 @@ class ProcessPageEdit extends Process {
 						$message = sprintf($this->_('Saved Page: %s'), $this->page->path) . $numChanges; // Message shown when page is saved
 						if($isUnpublished && $formErrors && $this->input->post->submit_publish) $message .= ' - ' . $this->_('Cannot be published until errors are corrected'); 
 					}
-					
+
+					if($this->page->isChanged('name')) $this->checkPageName();
 					$this->page->save();
 					$this->message($message); 
 

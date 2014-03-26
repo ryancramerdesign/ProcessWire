@@ -130,7 +130,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			if(!$this->isAllowedTemplate($this->template)) throw new WireException("You don't have access to the template required to add pages here"); 
 		} 
 
-		if($this->template && strlen($this->template->pageNameFormat)) {
+		if($this->template && strlen($this->parent->template->childNameFormat)) {
 			// quick add! 
 			$this->processQuickAdd($this->parent, $this->template); 
 		}
@@ -345,7 +345,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 	 * @return bool Returns false if not success. Redirects if success.
 	 *
 	 */
-	protected function ___processQuickAdd(Page $parent, Template $template) {
+	protected function ___processQuickAdd(Page $parent, Template $template) { 
 
 		$this->deleteOldTempPages();
 

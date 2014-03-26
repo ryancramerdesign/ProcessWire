@@ -573,12 +573,15 @@ class Pages extends Wire {
 		if(!$page->name) { 
 			// auto-assign a name if possible
 
-			$format = $page->template->pageNameFormat; 
+			$format = $page->parent()->template->childNameFormat; 
 			$pageName = '';
 
 			if(strlen($format)) {
 
-				if(!ctype_alnum($format) && !preg_match('/^[-_a-zA-Z0-9]+$/', $format)) {
+				if($format == 'title') {
+					$pageName = $this->_('untitled'); 
+
+				} else if(!ctype_alnum($format) && !preg_match('/^[-_a-zA-Z0-9]+$/', $format)) {
 					// it is a date format
 					$pageName = date($format); 
 				} else {

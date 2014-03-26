@@ -30,7 +30,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 105,
+			'version' => 106,
 			'permanent' => true, 
 	
 			// add this permission if you want this Process available for roles other than Superuser
@@ -911,14 +911,20 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 
+		/*
 		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('name', 'pageNameFormat');
 		$field->label = $this->_('Page Name Format');
-		$field->description = $this->_('Optionally specify a format for page names used when a new page is added. This enables the "Page Add" step to be skipped when adding a new page. This assumes your family settings define a single parent where new pages using this template will go.'); // Page name format, description
-		$field->notes = $this->_('When a new page is created and the name is not unique, an incrementing number will be appended to the end of it until it is unique. If your format includes any non-alphanumeric characters, it is assumed to be a [date format](http://www.php.net/manual/en/function.date.php). Non-alphanumeric characters still present in a formatted date are converted to hyphens.'); // Page name format, usage notes
+		$field->description = sprintf($this->_('Optionally specify a format for page names used when a new page is added. This enables the "Page Add" step to be skipped when adding a new page. In order to work, the template used by parent page(s) must define this template (%s) as the only one allowed for children (see the "family" tab on the template used by the parent).'), $this->template->name); // Page name format, description
+		$field->notes = $this->_('You may enter any text you like here. When a new page is created and the name is not unique, an incrementing number will be appended to the end of it until it is unique.') . "\n"; // Page name format notes: general
+		$field->notes .= $this->_('**If you want your page names to derive their value from the title field:** enter "title" above (without the quotes).') . "\n"; // Page name format notes: title 
+		$field->notes .= $this->_('**If you want your page names to reflect the created date/time:** enter a [date format](http://www.php.net/manual/en/function.date.php) above. Your date format must include at least one non-alphanumeric character (like a slash "/" or colon ":" for example) in order to be recognized as a date format. Example: "Y/m/d H:i:s" would result in page names like: "2014-10-30-12-39-01". As you can see, non-alphanumeric characters still present in a formatted date are converted to hyphens.') . ' '; // Page name format notes: date 
 		$field->attr('value', $template->pageNameFormat); 
 		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field); 
+		*/
+
+		// --------------------
 
 		return $form; 
 	}
@@ -1107,7 +1113,7 @@ class ProcessTemplate extends Process {
 		// --------------------
 
 		$field = $this->modules->get("InputfieldRadios"); 
-		$field->attr('id+name', 'noChildren'); 
+		$field->attr('name', 'noChildren'); 
 		$field->label = $this->_('May pages using this template have children?');
 		$field->addOption(0, $this->labels['Yes']); 
 		$field->addOption(1, $this->labels['No']); 
@@ -1132,6 +1138,20 @@ class ProcessTemplate extends Process {
 		// ----------------------
 
 		$field = $this->modules->get('InputfieldAsmSelect'); 
+		$field->attr('name', 'childTemplates'); 
+		$field->label = $this->_('Allowed template(s) for children');
+		$field->description = $this->_('Select the template(s) that will be allowed for children of pages using this template. Use this only if you specifically want to restrict placement of pages using this template.'); // childTemplates option, description
+
+		foreach($this->templates as $t) $field->addOption($t->id, $t->name);
+		$field->attr('value', $template->childTemplates); 
+		$field->collapsed = count($template->childTemplates) ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
+		$field->notes = $this->_("If none are selected then any are allowed, within the user's access limits. An example usage could be a 'news-list' template that is only allowed to have children using 'news-item' or 'press-release' templates."); // childTemplates option, notes
+		$field->showIf = 'noChildren!=1';
+		$form->add($field); 
+
+		// ----------------------
+
+		$field = $this->modules->get('InputfieldAsmSelect'); 
 		$field->attr('name', 'parentTemplates'); 
 		$field->label = $this->_('Allowed template(s) for parents');
 		$field->description = $this->_("Select the template(s) that will be allowed as parents for pages using this template. Use this only if you specifically want to restrict placement of pages using this template."); // parentTemplates option, description
@@ -1140,19 +1160,21 @@ class ProcessTemplate extends Process {
 		$field->attr('value', $template->parentTemplates); 
 		$field->collapsed = count($template->parentTemplates) ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
 		$field->notes = $this->_("If none are selected then any parent template is allowed, within the user's access limits. An example usage could be an 'employee' template that is only allowed to have a parent page using a 'company-directory' template."); // parentTemplates option, notes
+		$field->showIf = 'noParents!=1';
 		$form->add($field); 
 
-		// ----------------------
+		// --------------------
 
-		$field = $this->modules->get('InputfieldAsmSelect'); 
-		$field->attr('id+name', 'childTemplates'); 
-		$field->label = $this->_('Allowed template(s) for children');
-		$field->description = $this->_('Select the template(s) that will be allowed for children of pages using this template. Use this only if you specifically want to restrict placement of pages using this template.'); // childTemplates option, description
-
-		foreach($this->templates as $t) $field->addOption($t->id, $t->name);
-		$field->attr('value', $template->childTemplates); 
-		$field->collapsed = count($template->childTemplates) ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
-		$field->notes = $this->_("If none are selected then any are allowed, within the user's access limits. An example usage could be a 'news-list' template that is only allowed to have children using 'news-item' or 'press-release' templates."); // childTemplates option, notes
+		$field = $this->modules->get('InputfieldText'); 
+		$field->attr('name', 'childNameFormat');
+		$field->label = $this->_('Name format for children');
+		$field->description = $this->_('Optionally specify a format for page names used when a new child page is added. This enables the "Page Add" step to be skipped when adding a new page. In order to work, a single (1) template must be selected for the "Allowed template(s) for child pages" field above.'); // Page name format, description
+		$field->notes = $this->_('You may enter any text you like here. When a new page is created and the name is not unique, an incrementing number will be appended to the end of it until it is unique.') . "\n"; // Page name format notes: general
+		$field->notes .= $this->_('**If you want your page names to derive their value from the title field:** enter "title" above (without the quotes).') . "\n"; // Page name format notes: title 
+		$field->notes .= $this->_('**If you want your page names to reflect the created date/time:** enter a [date format](http://www.php.net/manual/en/function.date.php) above. Your date format must include at least one non-alphanumeric character (like a slash "/" or colon ":" for example) in order to be recognized as a date format. Example: "Y/m/d H:i:s" would result in page names like: "2014-10-30-12-39-01". As you can see, non-alphanumeric characters still present in a formatted date are converted to hyphens.') . ' '; // Page name format notes: date 
+		$field->attr('value', $template->childNameFormat); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$field->showIf = 'childTemplates.count=1, noChildren!=1'; 
 		$form->add($field); 
 
 		// --------------------
@@ -1178,10 +1200,11 @@ class ProcessTemplate extends Process {
 		// --------------------
 
 		$fieldset = ProcessPageEdit::buildFormSortfield($template->sortfield, $this); 
-		$fieldset->attr('id', 'sortfield_fieldset'); 
+		$fieldset->attr('name', 'sortfield_fieldset'); 
 		$fieldset->label = $this->_('Sort settings for children'); 
 		$fieldset->icon = 'sort';
 		$fieldset->description = $this->_('If you want children to automatically sort by a specific field, select it here. Otherwise select "None" to let this be set per-page instead. This overrides the page setting, so if you select anything other than "None", the sort option will not appear for pages using this template.'); 
+		$fieldset->showIf = 'noChildren!=1';
 		$form->add($fieldset); 
 
 
@@ -1412,7 +1435,7 @@ class ProcessTemplate extends Process {
 		$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
 		$this->template->guestSearchable = (int) $form->get('guestSearchable')->attr('value'); 
 		$this->template->pageLabelField = $this->fuel('sanitizer')->names($form->get('pageLabelField')->attr('value')); 
-		$this->template->pageNameFormat = $this->fuel('sanitizer')->text($form->get('pageNameFormat')->attr('value')); 
+		$this->template->childNameFormat = $this->fuel('sanitizer')->text($form->get('childNameFormat')->attr('value')); 
 		$this->template->cache_time = $form->get('cache_time')->attr('value'); 
 		$this->template->useCacheForUsers = (int) $form->get('useCacheForUsers')->attr('value');
 		$this->template->noCacheGetVars = $this->fuel('sanitizer')->names($form->get('noCacheGetVars')->attr('value')); 
@@ -1587,7 +1610,7 @@ class ProcessTemplate extends Process {
 
 
 		$fieldgroup->save();
-		if($this->config->debug) $this->message(sprintf($this->_('Saved fieldgroup: %s'), $fieldgroup->name)); 
+		$this->message(sprintf($this->_('Saved fieldgroup: %s'), $fieldgroup->name), Notice::debug); 
 
 		if(count($removedFields)) {
 			$url = "removeFields?id={$this->template->id}&fields=";
