@@ -651,3 +651,92 @@ function wireMail($to = '', $from = '', $subject = '', $body = '', $options = ar
 
 	return $numSent; 	
 }
+
+
+/**
+ * Given a string $str and values $vars, replace tags in the string with the values
+ *
+ * The $vars may also be an object, in which case values will be pulled as properties of the object. 
+ *
+ * By default, tags are specified in the format: {first_name} where first_name is the name of the
+ * variable to pull from $vars, '{' is the opening tag character, and '}' is the closing tag char.
+ *
+ * The tag parser can also handle subfields and OR tags, if $vars is an object that supports that.
+ * For instance {products.title} is a subfield, and {first_name|title|name} is an OR tag. 
+ *
+ * @param string $str The string to operate on (where the {tags} might be found)
+ * @param WireData|object|array Object or associative array to pull replacement values from. 
+ * @param array $options Array of optional changes to default behavior, including: 
+ * 	- tagOpen: The required opening tag character(s), default is '{'
+ *	- tagClose: The optional closing tag character(s), default is '}'
+ *	- recursive: If replacement value contains tags, populate those too? Default=false. 
+ *	- removeNullTags: If a tag resolves to a NULL, remove it? If false, tag will remain. Default=true. 
+ *	- entityEncode: Entity encode the values pulled from $vars? Default=false. 
+ *	- entityDecode: Entity decode the values pulled from $vars? Default=false.
+ * @return string String with tags populated. 
+ *
+ */
+function wirePopulateStringTags($str, $vars, array $options = array()) {
+
+	$defaults = array(
+		// opening tag (required)
+		'tagOpen' => '{', 
+		// closing tag (optional)
+		'tagClose' => '}', 
+		// if replacement value contains tags, populate those too?
+		'recursive' => false, 
+		// if a tag value resolves to a NULL, remove it? If false, tag will be left in tact.
+		'removeNullTags' => true, 
+		// entity encode values pulled from $vars?
+		'entityEncode' => false, 	
+		// entity decode values pulled from $vars?
+		'entityDecode' => false, 
+		);
+
+	$options = array_merge($defaults, $options); 
+
+	// check if this string even needs anything populated
+	if(strpos($str, $options['tagOpen']) === false) return $str; 
+	if(strlen($options['tagClose']) && strpos($str, $options['tagClose']) === false) return $str; 
+
+	// find all tags
+	$tagOpen = preg_quote($options['tagOpen']);
+	$tagClose = preg_quote($options['tagClose']); 
+	$numFound = preg_match_all('/\b' . $tagOpen . '([-_.|a-zA-Z0-9]+)' . $tagClose . '\b/', $str, $matches);
+	if(!$numFound) return $str; 
+	$replacements = array();
+
+	// create a list of replacements by finding replacement values in $vars
+	foreach($matches[1] as $key => $fieldName) {
+
+		$tag = $matches[0][$key];
+		if(isset($replacements[$tag])) continue; // if already found, don't continue
+
+		if(is_object($vars)) {
+			if($vars instanceof WireData) $fieldValue = $vars->get($fieldName); 
+				else $fieldValue = $vars->$fieldName; 
+		} else if(is_array($vars)) {
+			$fieldValue = isset($vars[$fieldName]) ? $vars[$fieldName] : null;
+		}
+
+		if($options['entityEncode']) $fieldValue = htmlentities($fieldValue, ENT_QUOTES, 'UTF-8', false); 
+		if($options['entityDecode']) $fieldValue = html_entity_decode($fieldValue, ENT_QUOTES, 'UTF-8'); 
+
+		$replacements[$tag] = $fieldValue; 
+	}
+
+	// replace the tags 
+	foreach($replacements as $tag => $value) {
+
+		// populate tags recursively, if asked to do so
+		if($options['recursive'] && strpos($value, $options['tagOpen'])) {
+			$opt = array_merge($options, array('recursive' => false)); // don't go recursive beyond 1 level
+			$value = wirePopulateStringTags($value, $vars, $opt); 
+		}
+
+		// replace tags with replacement values
+		$str = str_replace($tag, $value, $str); 
+	}
+
+	return $str; 
+}
