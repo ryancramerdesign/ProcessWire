@@ -306,6 +306,7 @@ abstract class ProcessPageListRender extends Wire {
 	public function ___getPageLabel(Page $page) {
 
 		$value = '';
+		$icon = '';
 
 		// if the page's template specifies a pageLabelField, use that 
 		$pageLabelField = trim($page->template->pageLabelField); 
@@ -325,7 +326,7 @@ abstract class ProcessPageListRender extends Wire {
 			} else if(strpos($field, 'icon-') === 0 || strpos($field, 'fa-') === 0) {
 				$field = str_replace(array('icon-', 'fa-'), 'fa-', $field); 
 				$field = $this->wire('sanitizer')->name($field); 
-				$value .= "<i class='icon fa $field'></i>";
+				$icon = "<i class='icon fa $field'></i>";
 				continue; 
 
 			} else {
@@ -348,7 +349,7 @@ abstract class ProcessPageListRender extends Wire {
 
 		if(!strlen($value)) $value = $page->get("name"); 
 
-		return trim($value);
+		return $icon . trim($value);
 	}
 
 	abstract public function render();
