@@ -1168,10 +1168,8 @@ class ProcessTemplate extends Process {
 		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('name', 'childNameFormat');
 		$field->label = $this->_('Name format for children');
-		$field->description = $this->_('Optionally specify a format for page names used when a new child page is added. This enables the "Page Add" step to be skipped when adding a new page. In order to work, a single (1) template must be selected for the "Allowed template(s) for child pages" field above.'); // Page name format, description
-		$field->notes = $this->_('You may enter any text you like here. When a new page is created and the name is not unique, an incrementing number will be appended to the end of it until it is unique.') . "\n"; // Page name format notes: general
-		$field->notes .= $this->_('**If you want your page names to derive their value from the title field:** enter "title" above (without the quotes).') . "\n"; // Page name format notes: title 
-		$field->notes .= $this->_('**If you want your page names to reflect the created date/time:** enter a [date format](http://www.php.net/manual/en/function.date.php) above. Your date format must include at least one non-alphanumeric character (like a slash "/" or colon ":" for example) in order to be recognized as a date format. Example: "Y/m/d H:i:s" would result in page names like: "2014-10-30-12-39-01". As you can see, non-alphanumeric characters still present in a formatted date are converted to hyphens.') . ' '; // Page name format notes: date 
+		$field->description = $this->_('Optionally specify a format for page names used when a new child page is added. This enables the "Page Add" step to be skipped when adding a new page. In order to work, a single (1) template must be selected for the "Allowed template(s) for children" field above.'); // Page name format, description
+		$field->notes = $this->_('Leave blank to disable. Enter "title" (without quotes) to auto-generate the name from the page title. More options including date formats are available as well. [More](http://processwire.com/api/modules/process-template/)') . "\n"; // Page name format notes
 		$field->attr('value', $template->childNameFormat); 
 		$field->collapsed = Inputfield::collapsedBlank;
 		$field->showIf = 'childTemplates.count=1, noChildren!=1'; 
