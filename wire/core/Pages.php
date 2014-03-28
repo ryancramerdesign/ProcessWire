@@ -579,7 +579,8 @@ class Pages extends Wire {
 			if(strlen($format)) {
 
 				if($format == 'title') {
-					$pageName = $this->_('untitled'); 
+					if(strlen($page->title)) $pageName = $page->title; 
+						else $pageName = $this->_('untitled'); 
 
 				} else if(!ctype_alnum($format) && !preg_match('/^[-_a-zA-Z0-9]+$/', $format)) {
 					// it is a date format
