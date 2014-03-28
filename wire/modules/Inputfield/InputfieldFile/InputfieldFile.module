@@ -55,6 +55,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		$this->set('itemClass', 'InputfieldFileItem ui-widget ui-widget-content'); 
 		$this->set('descriptionFieldLabel', $this->_('Description')); // Description field label
 		$this->set('tagsFieldLabel', $this->_('Tags')); // Tags field label
+		$this->set('noUpload', 0); // set to 1 to disable uploading to this field
 		$this->attr('type', 'file'); 
 
 		// get the max filesize
@@ -164,6 +165,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	}
 
 	protected function ___renderUpload($value) {
+		if($this->noUpload) return;
 
 		// enables user to choose more than one file
 		if($this->maxFiles != 1) $this->setAttribute('multiple', 'multiple'); 
@@ -190,6 +192,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	}
 
 	protected function ___fileAdded(Pagefile $pagefile) {
+		if($this->noUpload) return;
 
 		$message = $this->_('Added file:') . " {$pagefile->basename}"; // Label that precedes an added filename
 
@@ -266,40 +269,43 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		$changed = false; 
 		$total = count($this->value); 
 
-		if($this->maxFiles <= 1 || $total < $this->maxFiles) { 
+		if(!$this->noUpload) { 
 
-			$ul = $this->getWireUpload();
-			$ul->setName($this->attr('name')); 
-			$ul->setDestinationPath($this->destinationPath); 
-			$ul->setOverwrite($this->overwrite); 
-			$ul->setAllowAjax(true);
-			if($this->maxFilesize) $ul->setMaxFileSize($this->maxFilesize); 
+			if($this->maxFiles <= 1 || $total < $this->maxFiles) { 
 
-			if($this->maxFiles == 1) {
-				$ul->setMaxFiles(1); 
+				$ul = $this->getWireUpload();
+				$ul->setName($this->attr('name')); 
+				$ul->setDestinationPath($this->destinationPath); 
+				$ul->setOverwrite($this->overwrite); 
+				$ul->setAllowAjax(true);
+				if($this->maxFilesize) $ul->setMaxFileSize($this->maxFilesize); 
+
+				if($this->maxFiles == 1) {
+					$ul->setMaxFiles(1); 
+
+				} else if($this->maxFiles) {
+					$maxFiles = $this->maxFiles - $total; 
+					$ul->setMaxFiles($maxFiles); 
+
+				} else if($this->unzip) { 
+					$ul->setExtractArchives(true); 
+				}
+
+				$ul->setValidExtensions(explode(' ', trim($this->extensions))); 
+
+				foreach($ul->execute() as $filename) {
+					$this->processInputAddFile($filename); 
+					$changed = true; 
+				}
+
+				if($this->config->ajax) foreach($ul->getErrors() as $error) { 
+					$this->ajaxResponse(true, $error); 
+				}
 
 			} else if($this->maxFiles) {
-				$maxFiles = $this->maxFiles - $total; 
-				$ul->setMaxFiles($maxFiles); 
-
-			} else if($this->unzip) { 
-				$ul->setExtractArchives(true); 
+				// over the limit
+				$this->ajaxResponse(true, $this->_("Max file upload limit reached")); 
 			}
-
-			$ul->setValidExtensions(explode(' ', trim($this->extensions))); 
-
-			foreach($ul->execute() as $filename) {
-				$this->processInputAddFile($filename); 
-				$changed = true; 
-			}
-
-			if($this->config->ajax) foreach($ul->getErrors() as $error) { 
-				$this->ajaxResponse(true, $error); 
-			}
-
-		} else if($this->maxFiles) {
-			// over the limit
-			$this->ajaxResponse(true, $this->_("Max file upload limit reached")); 
 		}
 
 		$n = 0; 

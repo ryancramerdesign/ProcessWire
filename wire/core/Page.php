@@ -1583,6 +1583,8 @@ class Page extends WireData implements Countable {
 	 *
 	 */
 	public function uncache() {
+		$trackChanges = $this->trackChanges();
+		if($trackChanges) $this->setTrackChanges(false); 
 		if($this->template) {
 			foreach($this->template->fieldgroup as $field) {
 				$value = parent::get($field->name);
@@ -1594,6 +1596,7 @@ class Page extends WireData implements Countable {
 		}
 		if($this->filesManager) $this->filesManager->uncache(); 
 		$this->filesManager = null;
+		if($trackChanges) $this->setTrackChanges(true); 
 	}
 
 	/**
@@ -1735,7 +1738,7 @@ class Page extends WireData implements Countable {
 	static public function getStatuses() {
 		return self::$statuses;
 	}
-	
+
 }
 
 

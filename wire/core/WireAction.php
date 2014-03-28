@@ -29,6 +29,12 @@ abstract class WireAction extends WireData implements Module {
 	protected $runner = null;
 
 	/**
+	 * Text summary of what the action did (for logging, notifications, output)
+	 *
+	 */
+	protected $summary = '';
+
+	/**
 	 * Define any default values for configuration
 	 *
 	 */
@@ -164,6 +170,18 @@ abstract class WireAction extends WireData implements Module {
 		if($runner) $runner->error($text, $flags); 
 			else parent::error($text, $flags); 
 		return $this; 
+	}
+
+	/**
+	 * Get or set a text summary of what this action did
+	 *
+	 * @param string|null $text Set the summary or omit to only retrieve the summary
+	 * @return string Always returns the current summary text or blank string if not set
+	 *
+	 */
+	public function summary($text = null) {
+		if(!is_null($text)) $this->summary = $text;
+		return $this->summary;
 	}
 
 	public function isSingular() {

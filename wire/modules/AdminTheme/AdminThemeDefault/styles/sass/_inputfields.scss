@@ -457,11 +457,13 @@
 }
 
 
+.Inputfields > .InputfieldButton,
 .Inputfields > .InputfieldSubmit {
 	float: left; 
 	margin-bottom: 0.5em; 
 	margin-top: 0;
 }
+	.Inputfields .InputfieldButton + .InputfieldButton, 
 	.Inputfields .InputfieldSubmit + .InputfieldSubmit {
 		/* two buttons next to each other */
 		float: left; 
@@ -469,7 +471,8 @@
 		margin-top: 0;
 	}
 
-	.Inputfields .Inputfield:not(.InputfieldSubmit) + .InputfieldSubmit {
+	.Inputfields .Inputfield:not(.InputfieldSubmit):not(.InputfieldButton) + .InputfieldButton,
+	.Inputfields .Inputfield:not(.InputfieldSubmit):not(.InputfieldButton) + .InputfieldSubmit {
 		clear: left; 
 	}
 
