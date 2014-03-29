@@ -646,11 +646,13 @@ class Pages extends Wire {
 			'resetTrackChanges' => true,
 			);
 	
-		$user = $this->wire('user');
 		$options = array_merge($defaultOptions, $options); 
-		$language = $user->language && $user->language->id ? $user->language : null; 
-		// switch to default language so that saved fields and hooks don't need to be aware of language
-		if($language) $user->language = $this->wire('languages')->getDefault();
+		$user = $this->wire('user');
+		if($page->id != $user->id) {
+			$language = $user->language && $user->language->id ? $user->language : null; 
+			// switch to default language so that saved fields and hooks don't need to be aware of language
+			if($language) $user->language = $this->wire('languages')->getDefault();
+		} else $language = null;
 
 		$reason = '';
 		$isNew = $page->isNew();
