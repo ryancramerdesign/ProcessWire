@@ -111,11 +111,11 @@ class ProcessLanguage extends ProcessPageType {
 		$lastMod = date($this->config->dateFormat, filemtime($pagefile->filename)); 
 		$editLabel = $this->_x('Edit', 'edit-language-file'); 
 
-		$out = 	"<div class='InputfieldFileLanguageInfo'>" . 
+		$out = 	"<div class='InputfieldFileData InputfieldFileLanguageInfo'>" . 
 			"<ul class='actions'>" . 
 			"<li><a href='{$translationUrl}edit/?language_id={$page->id}&amp;textdomain=$textdomain'>$editLabel</a></li>" . 
 			"</ul>" . 
-			"<p><span class='InputfieldFileLanguageFilename'>/$file &#8212;</span> <span class='notes'>$message</span></p>" . 
+			"<span class='InputfieldFileLanguageFilename description'>/$file &#8212;</span> <span class='notes'>$message</span>" . 
 			"</div>";
 
 		$page->translator->unloadTextdomain($textdomain);
