@@ -204,7 +204,7 @@ class LanguageTranslator extends Wire {
 	 */
 	protected function textdomainString($textdomain) {
 
-		if(is_string($textdomain) && strpos($textdomain, DIRECTORY_SEPARATOR) !== false) $textdomain = $this->filenameToTextdomain($textdomain); 
+		if(is_string($textdomain) && (strpos($textdomain, DIRECTORY_SEPARATOR) !== false || strpos($textdomain, '/') !== false)) $textdomain = $this->filenameToTextdomain($textdomain); // @werker #424
 			else if(is_object($textdomain)) $textdomain = $this->objectToTextdomain($textdomain); 
 			else $textdomain = strtolower($textdomain); 
 
