@@ -90,6 +90,9 @@ class Pages extends Wire {
 		$this->sortfields = new PagesSortfields();
 	}
 
+	public function init() {
+		$this->getById($this->config->preloadPageIDs); 
+	}
 
 	/**
 	 * Given a Selector string, return the Page objects that match in a PageArray. 
@@ -98,12 +101,18 @@ class Pages extends Wire {
 	 * @param array $options 
 	 *	- findOne: boolean - apply optimizations for finding a single page and include pages with 'hidden' status (default: false)
 	 *	- getTotal: boolean - whether to set returning PageArray's "total" property (default: true except when findOne=true)
+	 *	- loadPages: boolean - whether to populate the returned PageArray with found pages (default: true). 
+	 *		The only reason why you'd want to change this to false would be if you only needed the count details from 
+	 *		the PageArray: getTotal(), getStart(), getLimit, etc. This is intended as an optimization for Pages::count().
 	 * @return PageArray
 	 *
 	 */
 	public function ___find($selectorString, $options = array()) {
 
 		// TODO selector strings with runtime fields, like url=/about/contact/, possibly as plugins to PageFinder
+
+		$loadPages = true; 
+		if(isset($options['loadPages'])) $loadPages = (bool) $options['loadPages'];
 
 		if(!strlen($selectorString)) return new PageArray();
 		if($selectorString === '/' || $selectorString === 'path=/') $selectorString = 1;
@@ -150,42 +159,47 @@ class Pages extends Wire {
 		$limit = $this->pageFinder->getLimit();
 		$start = $this->pageFinder->getStart();
 
-		// parent_id is null unless a single parent was specified in the selectors
-		$parent_id = $this->pageFinder->getParentID();
+		if($loadPages) { 
+			// parent_id is null unless a single parent was specified in the selectors
+			$parent_id = $this->pageFinder->getParentID();
 
-		$idsSorted = array(); 
-		$idsByTemplate = array();
+			$idsSorted = array(); 
+			$idsByTemplate = array();
 
-		// organize the pages by template ID
-		foreach($pages as $page) {
-			$tpl_id = $page['templates_id']; 
-			if(!isset($idsByTemplate[$tpl_id])) $idsByTemplate[$tpl_id] = array();
-			$idsByTemplate[$tpl_id][] = $page['id'];
-			$idsSorted[] = $page['id'];
-		}
-
-		if(count($idsByTemplate) > 1) {
-			// perform a load for each template, which results in unsorted pages
-			$unsortedPages = new PageArray();
-			foreach($idsByTemplate as $tpl_id => $ids) {
-				$unsortedPages->import($this->getById($ids, $this->templates->get($tpl_id), $parent_id)); 
+			// organize the pages by template ID
+			foreach($pages as $page) {
+				$tpl_id = $page['templates_id']; 
+				if(!isset($idsByTemplate[$tpl_id])) $idsByTemplate[$tpl_id] = array();
+				$idsByTemplate[$tpl_id][] = $page['id'];
+				$idsSorted[] = $page['id'];
 			}
 
-			// put pages back in the order that the selectorEngine returned them in, while double checking that the selector matches
-			$pages = new PageArray();
-			foreach($idsSorted as $id) {
-				foreach($unsortedPages as $page) { 
-					if($page->id == $id) {
-						$pages->add($page); 
-						break;
+			if(count($idsByTemplate) > 1) {
+				// perform a load for each template, which results in unsorted pages
+				$unsortedPages = new PageArray();
+				foreach($idsByTemplate as $tpl_id => $ids) {
+					$unsortedPages->import($this->getById($ids, $this->templates->get($tpl_id), $parent_id)); 
+				}
+
+				// put pages back in the order that the selectorEngine returned them in, while double checking that the selector matches
+				$pages = new PageArray();
+				foreach($idsSorted as $id) {
+					foreach($unsortedPages as $page) { 
+						if($page->id == $id) {
+							$pages->add($page); 
+							break;
+						}
 					}
 				}
+			} else {
+				// there is only one template used, so no resorting is necessary	
+				$pages = new PageArray();
+				reset($idsByTemplate); 
+				$pages->import($this->getById($idsSorted, $this->templates->get(key($idsByTemplate)), $parent_id)); 
 			}
+
 		} else {
-			// there is only one template used, so no resorting is necessary	
 			$pages = new PageArray();
-			reset($idsByTemplate); 
-			$pages->import($this->getById($idsSorted, $this->templates->get(key($idsByTemplate)), $parent_id)); 
 		}
 
 		$pages->setTotal($total); 
@@ -193,7 +207,7 @@ class Pages extends Wire {
 		$pages->setStart($start); 
 		$pages->setSelectors($selectors); 
 		$pages->setTrackChanges(true);
-		$this->selectorCache($selectorString, $options, $pages); 
+		if($loadPages) $this->selectorCache($selectorString, $options, $pages); 
 		if($this->config->debug) $this->debugLog('find', $selectorString, $pages); 
 
 		return $pages; 
@@ -492,8 +506,8 @@ class Pages extends Wire {
 	 *
 	 */
 	public function count($selectorString, $options = array()) {
-		// PW doesn't count when limit=1, which is why we limit=2
-		return $this->find("$selectorString, limit=2", $options)->getTotal();
+		$options['loadPages'] = false; 
+		return $this->find("$selectorString, limit=1", $options)->getTotal();
 	}
 
 	/**

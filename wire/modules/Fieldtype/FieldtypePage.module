@@ -555,7 +555,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		if(!in_array($subfield, $this->nativeNames)) return false; 
 
 		// we let the custom field query matcher handle the '!=' scenario
-		if($operator == '!=') return $this->getMatchQueryCustom($query, $table, $subfield, $operator, $value); 
+		if(!$database->isOperator($operator)) return $this->getMatchQueryCustom($query, $table, $subfield, $operator, $value); 
 
 		if($subfield == 'created' || $subfield == 'modified') {
 			if(!ctype_digit($value)) $value = strtotime($value); 
@@ -578,9 +578,9 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		static $n = 0;
 		$table = $database->escapeTable($table);
 		$table2 = "_fieldtypepage" . (++$n);
-		$value = $database->escapeStr($value); 
 		$subfield = $database->escapeCol($subfield);
 
+		$value = $database->escapeStr($value); 
 		$query->join("pages AS $table2 ON $table2.$subfield$operator'$value'"); 
 		$query->where("($table.data=$table2.id)"); 
 
@@ -610,6 +610,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 		$database = $this->wire('database');
 		$field = $query->field;
+		$group = $query->group; 
 		$table = $database->escapeTable($table);
 
 		// perform a separate find() operation for the subfield
@@ -628,10 +629,25 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		if($field->template_id) $selector .= "templates_id={$field->template_id}, ";
 		// @todo note $field->findPagesCode is not implemented
 
+		if(!is_null($group)) {
+			// combine with other selectors sharing the same group so that both must match in our subquery below
+			foreach($query->selectors as $item) {
+				if($item->group !== $group) continue; 
+				if($item === $query->selector) continue; 
+				list($itemField, $itemSubfield) = explode('.', $item->field); 
+				if($itemField != $field->name) continue; // only group the same fields together in one selector query
+				if(!preg_match('/^' . $group . '@' . $field->name . '\.(([_a-zA-z0-9]+).*)$/', (string) $item, $matches)) continue; 
+				// extract the field name portion so we just get the subfield and rest of the selector
+				$selector .= "$matches[1], ";
+			}
+		}
+		
+		$pageFinderOptions = array('getTotal' => false); 
+
 		if($operator == '!=') {
 
 			$selector .= "$subfield=$value, ";
-			$matches = $pageFinder->find(new Selectors(trim($selector, ', ')));
+			$matches = $pageFinder->find(new Selectors(trim($selector, ', ')), $pageFinderOptions);
 			if(count($matches)) { 
 				$ids = array();
 				foreach($matches as $match) $ids[$match['id']] = (int) $match['id'];
@@ -645,7 +661,8 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		} else {
 
 			$selector .= "{$subfield}$operator$value, ";
-			$matches = $pageFinder->find(new Selectors(trim($selector, ', ')));
+			$selectors = new Selectors(trim($selector, ', '));
+			$matches = $pageFinder->find($selectors, $pageFinderOptions);
 
 			// use the IDs found from the separate find() as our getMatchQuery
 			if(count($matches)) {

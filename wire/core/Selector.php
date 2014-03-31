@@ -53,11 +53,12 @@ abstract class Selector extends WireData {
 		$this->set('field', $field); 	
 		$this->set('value', $value); 
 		$this->set('not', $not); 
-		$this->set('str', ($not ? '!' : '') . (is_array($field) ? implode('|', $field) : $field) . $this->getOperator() . (is_array($value) ? implode("|", $value) : $value));
+		$this->set('group', null); 
 	}
 
 	public function get($key) {
 		if($key == 'operator') return $this->getOperator();
+		if($key == 'str') return $this->__toString();
 		return parent::get($key); 
 	}
 
@@ -174,7 +175,12 @@ abstract class Selector extends WireData {
 	 *
 	 */
 	public function __toString() {
-		return $this->str; 
+		$str = 	($this->not ? '!' : '') . 
+			(is_null($this->group) ? '' : $this->group . '@') . 
+			(is_array($this->field) ? implode('|', $this->field) : $this->field) . 
+			$this->getOperator() . 
+			(is_array($this->value) ? implode("|", $this->value) : $this->value);
+		return $str; 
 	}
 
 	/**

@@ -16,6 +16,7 @@
 
 if(!defined("PROCESSWIRE")) die();
 
+$config->rootPageID = 1; 
 $config->adminRootPageID = 2; 
 $config->trashPageID = 7; 
 $config->loginPageID = 23; 
@@ -30,6 +31,23 @@ $config->superUserRolePageID = 38;
 $config->userTemplateID = 3;
 $config->roleTemplateID = 4;
 $config->permissionTemplateID = 5; 
+
+/**
+ * Page IDs that will be preloaded with every request
+ * 
+ * This reduces number of total number of queries by reducing some on-demand queries
+ *
+ */
+$config->preloadPageIDs = array(
+	1, // root/homepage
+	2, // admin
+	28, // access
+	29, // users
+	30, // roles
+	37, // guest user role
+	38, // super user role
+	40, // guest user
+	);
 
 /**
  * templateExtension: expected extension for template files

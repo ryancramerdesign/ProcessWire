@@ -173,6 +173,7 @@ class ProcessWire extends Wire {
 		$fields->init();
 		$fieldgroups->init();
 		$templates->init();
+		$pages->init();
 
 		if(!$t = $templates->get('permission')) throw new WireException("Missing system template: 'permission'"); 
 		$permissions = new Permissions($t, $config->permissionsPageID); 

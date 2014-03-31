@@ -49,7 +49,9 @@ class PageFinder extends Wire {
 
 		foreach($selectors as $key => $selector) {
 
-			if($selector->field == 'status') {
+			$fieldName = $selector->field; 
+
+			if($fieldName == 'status') {
 				$value = $selector->value; 
 				if(!ctype_digit("$value")) {
 					// allow use of some predefined labels for Page statuses
@@ -67,22 +69,26 @@ class PageFinder extends Wire {
 				if(is_null($maxStatus) || $value > $maxStatus) 
 					$maxStatus = (int) $selector->value; 
 
-			} else if($selector->field == 'include' && $selector->operator == '=' && in_array($selector->value, array('hidden', 'all'))) {
+			} else if($fieldName == 'include' && $selector->operator == '=' && in_array($selector->value, array('hidden', 'all'))) {
 				if($selector->value == 'hidden') $options['findHidden'] = true; 
 					else if($selector->value == 'all') $options['findAll'] = true; 
 				$selectors->remove($key);
 
-			} else if($selector->field == 'check_access' || $selector->field == 'checkAccess') { 
+			} else if($fieldName == 'check_access' || $fieldName == 'checkAccess') { 
 				$this->checkAccess = ((int) $selector->value) > 0 ? true : false;
 				$selectors->remove($key); 
 
-			} else if($selector->field == 'limit') {
+			} else if($fieldName == 'limit') {
 				// for getTotal auto detect
 				$limit = (int) $selector->value; 	
 
-			} else if($selector->field == 'start ') {
+			} else if($fieldName == 'start ') {
 				// for getTotal auto detect
 				$start = (int) $selector->value; 	
+
+			} else if($fieldName == 'sort') {
+				// sorting is not needed if we are only retrieving totals
+				if($options['loadPages'] === false) $selectors->remove($selector); 
 			}
 		}
 
@@ -158,7 +164,15 @@ class PageFinder extends Wire {
 			 * false: never calculate total
 			 *
 			 */
-			'getTotal' => null
+			'getTotal' => null,
+
+			/**
+			 * This is an optimization used by the Pages::find method, but we observe it here as we may be able
+			 * to apply some additional optimizations in certain cases. For instance, if loadPages=false, then 
+			 * we can skip retrieval of IDs and omit sort fields.
+			 *
+			 */
+			'loadPages' => true
 
 			);
 
@@ -188,18 +202,20 @@ class PageFinder extends Wire {
 			$errorInfo = $stmt->errorInfo();
 			throw new PageFinderException($errorInfo[2]);
 		}
-		
-		while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+	
+		if($options['loadPages']) { 	
+			while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 
-			// determine score for this row
-			$score = 0;
-			foreach($row as $k => $v) if(strpos($k, '_score') === 0) {
-				$score += $v;
-				unset($row[$k]);
+				// determine score for this row
+				$score = 0;
+				foreach($row as $k => $v) if(strpos($k, '_score') === 0) {
+					$score += $v;
+					unset($row[$k]);
 
+				}
+				$row['score'] = $score;
+				$matches[] = $row;
 			}
-			$row['score'] = $score;
-			$matches[] = $row;
 		}
 		$stmt->closeCursor();
 			
@@ -247,6 +263,7 @@ class PageFinder extends Wire {
 			if(is_null($lastSelector)) $lastSelector = $selector; 
 
 			$fields = $selector->field; 
+			$group = $selector->group; // i.e. @field
 			$fields = is_array($fields) ? $fields : array($fields); 
 			if(count($fields) > 1) $fields = $this->arrangeFields($fields); 
 			$fieldsStr = ':' . implode(':', $fields) . ':'; // for strpos
@@ -332,7 +349,9 @@ class PageFinder extends Wire {
 						else $q = new DatabaseQuerySelect();
 
 					$q->set('field', $field); // original field if required by the fieldtype
+					$q->set('group', $group); // original group of the field, if required by the fieldtype
 					$q->set('selector', $selector); // original selector if required by the fieldtype
+					$q->set('selectors', $selectors); // original selectors (all) if required by the fieldtype
 					$q->set('parentQuery', $query);
 					$q = $fieldtype->getMatchQuery($q, $tableAlias, $subfield, $selector->operator, $value); 
 

@@ -187,13 +187,15 @@ class Selectors extends WireArray {
 		$cnt = 0; 
 		
 		while(strlen($str)) {
-		
+	
+			$group = $this->extractGroup($str); 	
 			$field = $this->extractField($str); 
 			$operator = $this->extractOperator($str, $this->getOperatorChars());
 			$value = $this->extractValue($str); 
 
 			if($field || strlen("$value")) {
 				$selector = $this->create($field, $operator, $value);
+				if(!is_null($group)) $selector->group = $group; 
 				$this->add($selector); 
 			}
 
@@ -202,6 +204,27 @@ class Selectors extends WireArray {
 
 	}
 
+	/**
+	 * Given a string like name@field=... or @field=... extract the part that comes before the @
+	 *
+	 * This part indicates the group name, which may also be blank to indicate grouping with other blank grouped items
+	 *
+	 * @return null|string
+	 *
+	 */
+	protected function extractGroup(&$str) {
+		$group = null;
+		$pos = strpos($str, '@'); 
+		if($pos === false) return $group; 
+		if($pos === 0) {
+			$group = '';
+			$str = substr($str, 1); 
+		} else if(preg_match('/^([-_a-zA-Z0-9]*)@(.*)/', $str, $matches)) {
+			$group = $matches[1]; 
+			$str = $matches[2];
+		}
+		return $group; 
+	}
 
 	/**
 	 * Given a string starting with a field, return that field, and remove it from $str. 
