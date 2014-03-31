@@ -96,7 +96,8 @@ class Pages extends Wire {
 	 *
 	 * @param string $selectorString
 	 * @param array $options 
-		- findOne: apply optimizations for finding a single page and include pages with 'hidden' status
+	 *	- findOne: boolean - apply optimizations for finding a single page and include pages with 'hidden' status (default: false)
+	 *	- getTotal: boolean - whether to set returning PageArray's "total" property (default: true except when findOne=true)
 	 * @return PageArray
 	 *
 	 */
@@ -210,7 +211,8 @@ class Pages extends Wire {
 	public function findOne($selectorString, $options = array()) {
 		if(empty($selectorString)) return new NullPage();
 		if($page = $this->getCache($selectorString)) return $page; 
-		$options['findOne'] = true; 
+		$defaults = array('findOne' => true, 'getTotal' => false); 
+		$options = array_merge($defaults, $options); 
 		$page = $this->find($selectorString, $options)->first();
 		if(!$page) $page = new NullPage();
 		return $page; 
@@ -232,14 +234,38 @@ class Pages extends Wire {
 	/**
 	 * Given an array or CSV string of Page IDs, return a PageArray 
 	 *
+	 * Optionally specify an $options array rather than a template for argument 2. When present, the 'template' and 'parent_id' arguments may be provided
+	 * in the given $options array. These options may be specified: 
+	 * 
+	 * - template: instance of Template (see $template argument)
+	 * - parent_id: integer (see $parent_id argument)
+	 * - getNumChildren: boolean, default=true. Specify false to disable retrieval and population of 'numChildren' Page property. 
+	 *
 	 * @param array|WireArray|string $ids Array of IDs or CSV string of IDs
-	 * @param Template|null $template Specify a template to make the load faster, because it won't have to attempt to join all possible fields... just those used by the template. 
-	 * @param int|null $parent_id Specify a parent to make the load faster, as it reduces the possibility for full table scans.
+	 * @param Template|array|null $template Specify a template to make the load faster, because it won't have to attempt to join all possible fields... just those used by the template. 
+	 *	Optionally specify an $options array instead, see the method notes above. 
+	 * @param int|null $parent_id Specify a parent to make the load faster, as it reduces the possibility for full table scans. 
+	 *	This argument is ignored when an options array is supplied for the $template. 
 	 * @return PageArray
 	 * @throws WireException
 	 *
 	 */
-	public function getById($ids, Template $template = null, $parent_id = null) {
+	public function getById($ids, $template = null, $parent_id = null) {
+	
+		$options = array(
+			'template' => null,
+			'parent_id' => null, 
+			'getNumChildren' => true
+			);
+
+		if(is_array($template)) {
+			// $template property specifies an array of options
+			$options = array_merge($options, $template); 
+			$template = $options['template'];
+			$parent_id = $options['parent_id'];
+		} else if(!is_null($template) && !$template instanceof Template) {
+			throw new WireException('getById argument 2 must be Template or $options array'); 
+		}
 
 		static $instanceID = 0;
 
@@ -305,7 +331,7 @@ class Pages extends Wire {
 				// note that "false AS isLoaded" triggers the setIsLoaded() function in Page intentionally
 				"false AS isLoaded, pages.templates_id AS templates_id, pages.*, " . 
 				($joinSortfield ? 'pages_sortfields.sortfield, ' : '') . 
-				"(SELECT COUNT(*) FROM pages AS children WHERE children.parent_id=pages.id) AS numChildren"
+				($options['getNumChildren'] ? '(SELECT COUNT(*) FROM pages AS children WHERE children.parent_id=pages.id) AS numChildren' : '')
 				); 
 
 			if($joinSortfield) $query->leftjoin('pages_sortfields ON pages_sortfields.pages_id=pages.id'); 
@@ -648,11 +674,14 @@ class Pages extends Wire {
 	
 		$options = array_merge($defaultOptions, $options); 
 		$user = $this->wire('user');
-		if($page->id != $user->id) {
+		$languages = $this->wire('languages'); 
+		$language = null;
+
+		// if language support active, switch to default language so that saved fields and hooks don't need to be aware of language
+		if($languages && $page->id != $user->id) {
 			$language = $user->language && $user->language->id ? $user->language : null; 
-			// switch to default language so that saved fields and hooks don't need to be aware of language
-			if($language) $user->language = $this->wire('languages')->getDefault();
-		} else $language = null;
+			if($language) $user->language = $languages->getDefault();
+		} 
 
 		$reason = '';
 		$isNew = $page->isNew();
@@ -672,7 +701,7 @@ class Pages extends Wire {
 
 		if(!$this->savePageQuery($page, $options)) return false;
 		$result = $this->savePageFinish($page, $isNew, $options);
-		if($language) $user->language = $language;
+		if($language) $user->language = $language; // restore language
 		return $result;
 	}
 

@@ -19,6 +19,7 @@ class PageFinderSyntaxException extends PageFinderException { }
 class PageFinder extends Wire {
 
 	protected $fieldgroups; 
+	protected $getTotal = true; // whether to sql_calc_rows_found
 	protected $total = 0;
 	protected $limit = 0; 
 	protected $start = 0;
@@ -43,6 +44,8 @@ class PageFinder extends Wire {
 	protected function setupStatusChecks(Selectors $selectors, array &$options) {
 
 		$maxStatus = null; 
+		$limit = 0; // for getTotal auto detection
+		$start = 0;
 
 		foreach($selectors as $key => $selector) {
 
@@ -72,6 +75,14 @@ class PageFinder extends Wire {
 			} else if($selector->field == 'check_access' || $selector->field == 'checkAccess') { 
 				$this->checkAccess = ((int) $selector->value) > 0 ? true : false;
 				$selectors->remove($key); 
+
+			} else if($selector->field == 'limit') {
+				// for getTotal auto detect
+				$limit = (int) $selector->value; 	
+
+			} else if($selector->field == 'start ') {
+				// for getTotal auto detect
+				$start = (int) $selector->value; 	
 			}
 		}
 
@@ -95,8 +106,19 @@ class PageFinder extends Wire {
 		}
 
 		if($options['findOne']) {
+			// findOne option is never paginated, always starts at 0
 			$selectors->add(new SelectorEqual('start', 0)); 
 			$selectors->add(new SelectorEqual('limit', 1)); 
+			// getTotal default is false when only finding 1 page
+			if(is_null($options['getTotal'])) $options['getTotal'] = false; 
+
+		} else if(!$limit && !$start) {
+			// getTotal is not necessary since there is no limit specified (getTotal=same as count)
+			if(is_null($options['getTotal'])) $options['getTotal'] = false; 
+
+		} else {
+			// get Total default is true when finding multiple pages
+			if(is_null($options['getTotal'])) $options['getTotal'] = true; 
 		}
 
 		$this->lastOptions = $options; 
@@ -127,6 +149,17 @@ class PageFinder extends Wire {
 			 *
 			 */
 			'findAll' => false,
+
+			/**
+			 * Whether the total quantity of matches should be determined and accessible from getTotal()
+			 *
+			 * null: determine automatically (disabled when limit=1, enabled in all other cases)
+			 * true: always calculate total
+			 * false: never calculate total
+			 *
+			 */
+			'getTotal' => null
+
 			);
 
 		$options = array_merge($defaultOptions, $options); 
@@ -138,6 +171,11 @@ class PageFinder extends Wire {
 		$this->getQueryNumChildren = 0;
 
 		$this->setupStatusChecks($selectors, $options);
+
+		// move getTotal option to a class property, after setupStatusChecks
+		$this->getTotal = $options['getTotal'];
+		unset($options['getTotal']); // so we get a notice if we try to access it
+
 		$database = $this->wire('database');
 		$cnt = count($selectors); 
 		$matches = array(); 
@@ -165,10 +203,7 @@ class PageFinder extends Wire {
 		}
 		$stmt->closeCursor();
 			
-		if($options['findOne']) {
-			$this->total = count($matches); 
-
-		} else if(count($query->limit)) {
+		if($this->getTotal) {
 			$this->total = (int) $database->query("SELECT FOUND_ROWS()")->fetchColumn();
 			
 		} else {
@@ -643,7 +678,7 @@ class PageFinder extends Wire {
 			}
 
 			$sql .= "$limit";
-			if($this->limit > 1) $query->select("SQL_CALC_FOUND_ROWS"); 
+			if($this->getTotal) $query->select("SQL_CALC_FOUND_ROWS"); 
 		}
 
 		if($sql) $query->limit($sql); 
