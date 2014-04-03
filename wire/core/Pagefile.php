@@ -382,12 +382,12 @@ class Pagefile extends WireData {
 	 * Alert the $pagefiles of the change 
 	 *
 	 */
-	public function ___changed($what) {
+	public function ___changed($what, $old = null, $new = null) {
 		if(in_array($what, array('description', 'tags', 'file'))) {
 			$this->set('modified', time()); 
 			$this->pagefiles->trackChange('item');
 		}
-		parent::___changed($what); 
+		parent::___changed($what, $old, $new); 
 	}
 
 	/**

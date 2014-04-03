@@ -711,6 +711,7 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
 
 		$tag = $matches[0][$key];
 		if(isset($replacements[$tag])) continue; // if already found, don't continue
+		$fieldValue = null;
 
 		if(is_object($vars)) {
 			if($vars instanceof WireData) $fieldValue = $vars->get($fieldName); 

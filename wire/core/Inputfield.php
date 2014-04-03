@@ -493,6 +493,8 @@ abstract class Inputfield extends WireData implements Module {
 			$this->error("Expected an array value and did not receive it"); 
 			return $this;
 		}
+		
+		$previousValue = $this->attr('value');
 
 		if(is_array($value)) {
 			// an array value was provided in the input
@@ -510,7 +512,7 @@ abstract class Inputfield extends WireData implements Module {
 				$values[] = $v; 
 			}
 
-			if($this->attr('value') !== $values) { 
+			if($previousValue !== $values) { 
 				// If it has changed, then update for the changed value
 				$changed = true; 
 				$this->setAttribute('value', $values); 
@@ -518,14 +520,14 @@ abstract class Inputfield extends WireData implements Module {
 
 		} else { 
 			// string value provided in the input
-			if("$value" !== (string) $this->attr('value')) {
+			if("$value" !== (string) $previousValue) {
 				$changed = true; 
 				$this->setAttribute('value', $value); 
 			}
 		}
 
 		if($changed) { 
-			$this->trackChange('value'); 
+			$this->trackChange('value', $previousValue, $value); 
 
 			// notify the parent of the change
 			if($parent = $this->getParent()) $parent->trackChange($this->name); 
@@ -699,13 +701,15 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 * We don't track changes to any other properties of Inputfields. 
 	 *
-	 * @param string $key
+	 * @param string $what Name of property that changed
+	 * @param mixed $old Previous value before change
+	 * @param mixed $new New value
 	 * @return $this
 	 *
 	 */
-	public function trackChange($key) {
-		if($key != 'value') return $this;
-		return parent::trackChange($key); 
+	public function trackChange($what, $old = null, $new = null) {
+		if($what != 'value') return $this;
+		return parent::trackChange($what, $old, $new); 
 	}
 
 	/**

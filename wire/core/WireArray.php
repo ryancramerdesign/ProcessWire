@@ -177,7 +177,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			$this->data[] = $item;
 		}
 
-		$this->trackChange("add"); 
+		$this->trackChange("add", null, $item); 
 		$this->trackAdd($item); 
 		return $this;
 	}
@@ -298,10 +298,10 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	public function set($key, $value) {
 
 		if(!$this->isValidItem($value)) throw new WireException("Item '$key' set to " . get_class($this) . " is not an allowed type"); 
-		if(!$this->isValidKey($key)) throw new WireException("Key '$key' is not an allowed key for " . get_class($this)); 
+		if(!$this->isValidKey($key)) throw new WireException("Key '$key' is not an allowed key for " . get_class($this));
 
+		$this->trackChange($key, isset($this->data[$key]) ? $this->data[$key] : null, $value); 
 		$this->data[$key] = $value; 
-		$this->trackChange("set"); 
 		$this->trackAdd($value); 
 		return $this; 
 	}
@@ -635,7 +635,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			array_unshift($this->data, $item); 
 		}
 		//if($item instanceof Wire) $item->setTrackChanges();
-		$this->trackChange('prepend'); 
+		$this->trackChange('prepend', null, $item); 
 		$this->trackAdd($item); 
 		return $this; 
 	}
@@ -673,7 +673,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 */
 	public function shift() {
 		$item = array_shift($this->data); 
-		$this->trackChange('shift');
+		$this->trackChange('shift', $item, null);
 		$this->trackRemove($item); 
 		return $item; 
 	}
@@ -700,7 +700,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 */
 	public function pop() {
 		$item = array_pop($this->data); 
-		$this->trackChange('pop');
+		$this->trackChange('pop', $item, null);
 		$this->trackRemove($item); 
 		return $item; 
 	}
@@ -722,10 +722,11 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		foreach($keys as $key) {
 			$data[$key] = $this->data[$key]; 
 		}
+		
+		$this->trackChange('shuffle', $this->data, $data); 
 
 		$this->data = $data; 
 
-		$this->trackChange('shuffle'); 
 		return $this; 
 	}
 
@@ -800,7 +801,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		if($this->has($key)) {
 			$item = $this->data[$key];
 			unset($this->data[$key]); 
-			$this->trackChange("remove"); 
+			$this->trackChange("remove", $item, null); 
 			$this->trackRemove($item); 
 			
 		}
@@ -856,10 +857,10 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		// no warning/error for issuing more properties though
 		// TODO: warning for random+more properties (and trackChange() too)
 		if($properties[0] == 'random') return $this->shuffle();
-
-		$this->data = $this->stableSort($this, $properties, $numNeeded);
-
-		$this->trackChange("sort:$propertiesStr");
+		
+		$data = $this->stableSort($this, $properties, $numNeeded);
+		$this->trackChange("sort:$propertiesStr", $this->data, $data);
+		$this->data = $data; 
 
 		return $this;
 	}
@@ -1019,7 +1020,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 
 			if($remove) $selectors->remove($selector);
 		}
-
+		
 		// now filter the data according to the selectors that remain
 		foreach($this->data as $key => $item) {
 			foreach($selectors as $selector) {

@@ -811,6 +811,7 @@ class Pages extends Wire {
 	 */
 	protected function savePageFinish(Page $page, $isNew, array $options) {
 		$changes = $page->getChanges();
+		$changesValues = $page->getChanges(true); 
 	
 		// update children counts for current/previous parent
 		if($isNew) {
@@ -892,7 +893,7 @@ class Pages extends Wire {
 		}
 
 		// trigger hooks
-		$this->saved($page, $changes);
+		$this->saved($page, $changes, $changesValues);
 		if($triggerAddedPage) $this->added($triggerAddedPage);
 		if($page->namePrevious && $page->namePrevious != $page->name) $this->renamed($page);
 		if($page->parentPrevious) $this->moved($page);
@@ -1457,9 +1458,13 @@ class Pages extends Wire {
 	 *
 	 * This is the same as Pages::save, except that it occurs before other save-related hooks (below),
 	 * Whereas Pages::save occurs after. In most cases, the distinction does not matter. 
+	 * 
+	 * @param Page $page The page that was saved
+	 * @param array $changes Array of field names that changed
+	 * @param array $values Array of values that changed, if values were being recorded, see Wire::getChanges(true) for details.
 	 *
 	 */
-	protected function ___saved(Page $page, array $changes = array()) { }
+	protected function ___saved(Page $page, array $changes = array(), $values = array()) { }
 
 	/**
 	 * Hook called when a new page has been added

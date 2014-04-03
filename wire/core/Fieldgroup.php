@@ -123,7 +123,7 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 		// can delete data for those fields
 		if(is_null($this->removedFields)) $this->removedFields = new FieldsArray();
 		$this->removedFields->add($field); 
-		$this->trackChange("remove:$field"); 
+		$this->trackChange("remove:$field", $field, null); 
 
 		// parent::remove($field->id); replaced with finishRemove() method below
 
@@ -292,7 +292,7 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 
 
 		if(isset($this->settings[$key])) {
-			if($this->settings[$key] !== $value) $this->trackChange($key); 
+			if($this->settings[$key] !== $value) $this->trackChange($key, $this->settings[$key], $value); 
 			$this->settings[$key] = $value; 
 
 		} else {

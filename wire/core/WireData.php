@@ -37,7 +37,7 @@ class WireData extends Wire implements IteratorAggregate {
 			return $this->setArray($value); 
 		}
 		$v = isset($this->data[$key]) ? $this->data[$key] : null;
-		if(!$this->isEqual($key, $v, $value)) $this->trackChange($key); 
+		if(!$this->isEqual($key, $v, $value)) $this->trackChange($key, $v, $value); 
 		$this->data[$key] = $value; 
 		return $this; 
 	}
@@ -214,8 +214,8 @@ class WireData extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function remove($key) {
+		$this->trackChange("unset:$key", $this->data[$key], null); 
 		unset($this->data[$key]); 
-		$this->trackChange("unset:$key"); 
 		return $this;
 	}
 
@@ -246,6 +246,7 @@ class WireData extends Wire implements IteratorAggregate {
 	 *
 	 * @param WireArray|WireData|string $items May be a WireData, WireArray or gettable property from this object that returns a WireData|WireArray.
 	 * @return WireArray
+	 * @throws WireException If invalid argument supplied
 	 *
 	 */
 	public function ___and($items) {

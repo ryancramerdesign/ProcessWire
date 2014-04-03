@@ -301,7 +301,7 @@ class Template extends WireData implements Saveable {
 				if($this->settings[$key] && ($this->settings['flags'] & Template::flagSystem) && in_array($key, array('id', 'name'))) {
 					throw new WireException("Template '$this' has the system flag and you may not change it's 'id' or 'name' fields. "); 
 				}
-				$this->trackChange($key); 
+				$this->trackChange($key, $this->settings[$key], $value); 
 			}
 			$this->settings[$key] = $value; 
 
@@ -393,7 +393,7 @@ class Template extends WireData implements Saveable {
 	 */
 	public function setFieldgroup(Fieldgroup $fieldgroup) {
 
-		if(is_null($this->fieldgroup) || $fieldgroup->id != $this->fieldgroup->id) $this->trackChange('fieldgroup'); 
+		if(is_null($this->fieldgroup) || $fieldgroup->id != $this->fieldgroup->id) $this->trackChange('fieldgroup', $this->fieldgroup, $fieldgroup); 
 
 		if($this->fieldgroup && $fieldgroup->id != $this->fieldgroup->id) {
 			// save record of the previous fieldgroup so that unused fields can be deleted during save()

@@ -277,6 +277,8 @@ class Page extends WireData implements Countable {
 		'sortfield' => 'sort', 
 		'modified_users_id' => 0, 
 		'created_users_id' => 0,
+		'created' => 0,
+		'modified' => 0,
 		); 
 
 	/**
@@ -359,7 +361,7 @@ class Page extends WireData implements Countable {
 			case 'num_children':
 				$value = (int) $value; 
 				if($key == 'num_children') $key = 'numChildren';
-				if($this->settings[$key] !== $value) $this->trackChange($key); 
+				if($this->settings[$key] !== $value) $this->trackChange($key, $this->settings[$key], $value); 
 				$this->settings[$key] = $value; 
 				break;
 			case 'status':
@@ -374,7 +376,7 @@ class Page extends WireData implements Countable {
 					$value = $this->wire('sanitizer')->pageName($value, $beautify); 
 					if($this->settings[$key] !== $value) {
 						if($this->settings[$key] && empty($this->namePrevious)) $this->namePrevious = $this->settings[$key];
-						$this->trackChange($key); 
+						$this->trackChange($key, $this->settings[$key], $value); 
 					}
 				}
 				$this->settings[$key] = $value; 
@@ -397,11 +399,15 @@ class Page extends WireData implements Countable {
 			case 'created': 
 			case 'modified':
 				if(!ctype_digit("$value")) $value = strtotime($value); 
-				$this->settings[$key] = (int) $value; 
+				$value = (int) $value; 
+				if($this->settings[$key] !== $value) $this->trackChange($key, $this->settings[$key], $value); 
+				$this->settings[$key] = $value;
 				break;
 			case 'created_users_id':
 			case 'modified_users_id': 
-				$this->settings[$key] = (int) $value; 
+				$value = (int) $value;
+				if($this->settings[$key] !== $value) $this->trackChange($key, $this->settings[$key], $value); 
+				$this->settings[$key] = $value; 
 				break;
 			case 'createdUser':
 			case 'modifiedUser':
@@ -410,7 +416,7 @@ class Page extends WireData implements Countable {
 			case 'sortfield':
 				if($this->template && $this->template->sortfield) break;
 				$value = $this->wire('pages')->sortfields()->decode($value); 
-				if($this->settings[$key] != $value) $this->trackChange($key); 
+				if($this->settings[$key] != $value) $this->trackChange($key, $this->settings[$key], $value); 
 				$this->settings[$key] = $value; 
 				break;
 			case 'isLoaded': 
@@ -785,7 +791,7 @@ class Page extends WireData implements Countable {
 			if($this->settings['status'] & Page::statusSystem) $value = $value | Page::statusSystem; 
 		}
 		if($this->settings['status'] != $value) {
-			$this->trackChange('status');
+			$this->trackChange('status', $this->settings['status'], $value);
 			$this->statusPrevious = $this->settings['status'];
 		}
 		$this->settings['status'] = $value;
@@ -806,7 +812,7 @@ class Page extends WireData implements Countable {
 		if($this->template && $this->template->id != $tpl->id) {
 			if($this->settings['status'] & Page::statusSystem) throw new WireException("Template changes are disallowed on this page"); 
 			if(is_null($this->templatePrevious)) $this->templatePrevious = $this->template; 
-			$this->trackChange('template'); 
+			$this->trackChange('template', $this->template, $tpl); 
 		}
 		if($tpl->sortfield) $this->settings['sortfield'] = $tpl->sortfield; 
 		$this->template = $tpl; 
@@ -820,7 +826,7 @@ class Page extends WireData implements Countable {
 	 */
 	protected function setParent(Page $parent) {
 		if($this->parent && $this->parent->id == $parent->id) return $this; 
-		$this->trackChange('parent');
+		$this->trackChange('parent', $this->parent, $parent);
 		if(($this->parent && $this->parent->id) && $this->parent->id != $parent->id) {
 			if($this->settings['status'] & Page::statusSystem) throw new WireException("Parent changes are disallowed on this page"); 
 			$this->parentPrevious = $this->parent; 
@@ -857,7 +863,7 @@ class Page extends WireData implements Countable {
 		}
 
 		$existingUserID = $this->settings[$field]; 
-		if($existingUserID != $user->id) $this->trackChange($field); 
+		if($existingUserID != $user->id) $this->trackChange($field, $existingUserID, $user->id); 
 		$this->settings[$field] = $user->id; 
 		return $this; 	
 	}
@@ -1691,7 +1697,7 @@ class Page extends WireData implements Countable {
 	 */
 	protected function isEqual($key, $value1, $value2) {
 		if($value1 === $value2) {
-			if(is_object($value1) && $value1 instanceof Wire && $value1->isChanged()) $this->trackChange($key);
+			if(is_object($value1) && $value1 instanceof Wire && $value1->isChanged()) $this->trackChange($key, $value1, $value2);
 			return true; 
 		} 
 		return false;

@@ -175,7 +175,7 @@ class Session extends Wire implements IteratorAggregate {
 	public function set($key, $value) {
 		$className = $this->className();
 		$oldValue = $this->get($key); 
-		if($value !== $oldValue) $this->trackChange($key); 
+		if($value !== $oldValue) $this->trackChange($key, $oldValue, $value); 
 		$_SESSION[$className][$key] = $value; 
 		return $this; 
 	}
@@ -258,12 +258,12 @@ class Session extends Wire implements IteratorAggregate {
 
 		if(!$this->allowLogin($name)) return null;
 
-		$name = $this->fuel('sanitizer')->username($name); 
-		$user = $this->fuel('users')->get("name=$name"); 
+		$name = $this->wire('sanitizer')->username($name); 
+		$user = $this->wire('users')->get("name=$name"); 
 
 		if($user->id && $this->authenticate($user, $pass)) { 
 
-			$this->trackChange('login'); 
+			$this->trackChange('login', $this->wire('user'), $user); 
 			session_regenerate_id(true);
 			$this->set('_user_id', $user->id); 
 			$this->set('_user_ts', time());
@@ -343,7 +343,7 @@ class Session extends Wire implements IteratorAggregate {
 		$user = $this->wire('user'); 
 		$guest = $this->wire('users')->getGuestUser();
 		$this->wire('users')->setCurrentUser($guest); 
-		$this->trackChange('logout'); 
+		$this->trackChange('logout', $user, $guest); 
 		if($user) $this->logoutSuccess($user); 
 		return $this; 
 	}

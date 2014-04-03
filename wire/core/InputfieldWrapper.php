@@ -616,7 +616,7 @@ class InputfieldWrapper extends Inputfield {
 	 */
 	public function resetTrackChanges($trackChanges = true) {
 		if(count($this->children)) foreach($this->children as $child) $child->resetTrackChanges($trackChanges); 
-		return parent::resetTrackChanges();
+		return parent::resetTrackChanges($trackChanges);
 	}
 
 	/**
