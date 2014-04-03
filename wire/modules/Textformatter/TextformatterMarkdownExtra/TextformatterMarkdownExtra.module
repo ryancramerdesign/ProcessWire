@@ -18,37 +18,16 @@ class TextformatterMarkdownExtra extends Textformatter {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Markdown Extra', 
-			'version' => 122, 
-			'summary' => "Markdown extra lightweight markup language by Michel Fortin based on Markdown by John Gruber", 
-			'url' => "http://michelf.com/projects/php-markdown/extra/", 
+			'title' => 'Markdown Extra',
+			'version' => 140,
+			'summary' => "Markdown extra lightweight markup language by Michel Fortin based on Markdown by John Gruber",
+			'url' => "http://michelf.com/projects/php-markdown/extra/",
 		); 
 	}
 
 	public function format(&$str) {
-		require_once("markdown.php"); 
-		$str = Markdown($str); 
-		// $this->markdownExtensions($str); 
+		require_once('Michelf/MarkdownExtra.inc.php'); 
+		$str = Michelf\MarkdownExtra::defaultTransform($str); 
 	}
 
-	/**
-	 * A couple RCD extentions to MarkDown syntax, to be executed after Markdown has already had it's way with the text
-	 *
-	 */
-	protected function markdownExtensions(&$str) {
-
-		// add id attribute to a tag, when followed by a #myid
-		if(strpos($str, '>#')) $str = preg_replace('/<([a-z][a-z0-9]*)([^>]*>.*?)(<\/\\1>)#([a-z][-_a-z0-9]*)\b/', '<$1 id="$4"$2$3', $str); 
-
-		// add class attribute to tag when followed by a .myclass
-		if(strpos($str, '>.')) $str = preg_replace('/<([a-z][a-z0-9]*)([^>]*>.*?)(<\/\\1>)\.([a-z][-_a-z0-9]*)\b/', '<$1 class="$4"$2$3', $str); 
-
-		// href links open in new window when followed by a plus sign, i.e. [google](http://google.com)+
-		if(strpos($str, '</a>+')) $str = preg_replace('/<a ([^>]+>.+?<\/a>)\+/', '<a target="_blank" $1', $str); 
-
-		// strip out comments
-		// if(strpos($text, '/*') !== false) $text = preg_replace('{/\*.*?\*/}s', '', $text); 
-		// if(strpos($text, '//') !== false) $text = preg_replace('{^//.*$}m', '', $text); 
-		
-	}
 }
