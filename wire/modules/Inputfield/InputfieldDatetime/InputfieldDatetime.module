@@ -92,7 +92,7 @@ class InputfieldDatetime extends Inputfield {
 		$useTime = false; 
 
 		if($this->datepicker) {
-			$this->attr('class', $this->attr('class') . " InputfieldDatetimeDatepicker InputfieldDatetimeDatepicker{$this->datepicker}"); 
+			$this->addClass("InputfieldDatetimeDatepicker InputfieldDatetimeDatepicker{$this->datepicker}"); 
 			if(strlen($timeFormat) && $this->datepicker != self::datepickerInline) {
 				// add in the timepicker script, if applicable
 				$useTime = true; 
