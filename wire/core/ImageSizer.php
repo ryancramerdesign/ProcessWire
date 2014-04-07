@@ -104,7 +104,7 @@ class ImageSizer extends Wire {
 	 * default sharpening mode: [ none | soft | medium | strong ]
 	 *
 	 */
-	protected $sharpening = 'soft';
+	protected $sharpening = 'none';
 
 
 	/**
