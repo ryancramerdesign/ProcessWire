@@ -29,6 +29,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		'findPagesCode' => '',
 		'findPagesSelector' => '',
 		'addable' => 0,
+		'inputfieldSeparator' => '\n',
 		'allowUnpub' => 0, // This option configured by FieldtypePage:Advanced
 		); 
 
@@ -353,8 +354,13 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		if($inputfield instanceof InputfieldHasArrayValue) {
 			// multi value
-			$description = $this->_('Enter the titles of the items you want to add, one per line. They will be created and added to your selection when you save the page.');
-			$input = "<textarea id='$key' name='$key' rows='5'></textarea>";
+			if ($this->inputfieldSeparator == '\n') { // @HueyGeek
+				$description = $this->_('Enter the titles of the items you want to add, one per line. They will be created and added to your selection when you save the page.');
+				$input = "<textarea id='$key' name='$key' rows='5'></textarea>";
+			} else {
+				$description = $this->_('Enter the titles of the items you want to add, comma separated. They will be created and added to your selection when you save the page.');
+				$input = "<input type='text' name='$key' id='$key' />";
+			}
 		} else {
 			// single value
 			$description = $this->_('Enter the title of the item you want to add. It will become selected when you save the page.');
@@ -473,7 +479,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		$parent = $this->pages->get($this->parent_id);
 		$sort = $parent->numChildren;
-		$titles = explode("\n", $value); 
+		$titles = explode($this->inputfieldSeparator, $value); 
 		$publishable = false;
 		$n = 0;
 
@@ -667,6 +673,19 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			if($this->addable) $field->attr('checked', 'checked'); 
 				else $field->collapsed = Inputfield::collapsedYes;
 			$inputfields->append($field); 
+		}
+		
+		$module = $this->modules->get($this->inputfield);
+		if($this->addable && $module instanceof InputfieldHasArrayValue) {
+			$field = $this->modules->get('InputfieldSelect');
+			$field->setAttribute('name', 'inputfieldSeparator');
+			$field->setAttribute('value', $this->inputfieldSeparator);
+			$field->label = $this->_('Input field separator');
+			$field->description = $this->_('Select separator to use for multiple pages additions.');
+			$field->addOption('\n', $this->_('Newline separated'));
+			$field->addOption(',', $this->_('Comma separated'));
+
+			$inputfields->append($field);
 		}
 
 		$this->configMode = false; // reverse what was set at the top of this function
