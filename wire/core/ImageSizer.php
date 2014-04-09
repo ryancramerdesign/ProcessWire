@@ -1026,10 +1026,7 @@ class ImageSizer extends Wire {
 	 */
 	protected function hasAlphaChannel() {
 		$errors = array();
-		static $a = array();
-		if(isset($a['alpha'])) {
-			return $a['alpha'];
-		}
+		$a = array();
 		$f = @fopen($this->filename,'rb');
 		if($f === false) return false;
 
