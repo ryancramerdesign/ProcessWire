@@ -938,6 +938,14 @@ class ImageSizer extends Wire {
 	 */
 	protected function imSharpen($im, $mode) {
 
+		// due to a bug in PHP's bundled GD-Lib with the function imageconvolution in some PHP versions
+		// we have to bypass this as a workaround for those who have to run on this PHP versions
+		// see: https://bugs.php.net/bug.php?id=66714
+		// and here under GD: http://php.net/ChangeLog-5.php#5.5.11
+		if(version_compare(phpversion(), '5.5.8', '>') && version_compare(phpversion(), '5.5.11', '<')) {
+			return $im;
+		}
+
 		switch($mode) {
 
 			case 'none':
