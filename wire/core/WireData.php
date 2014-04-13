@@ -214,7 +214,8 @@ class WireData extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function remove($key) {
-		$this->trackChange("unset:$key", $this->data[$key], null); 
+		$value = isset($this->data[$key]) ? $this->data[$key] : null;
+		$this->trackChange("unset:$key", $value, null); 
 		unset($this->data[$key]); 
 		return $this;
 	}
