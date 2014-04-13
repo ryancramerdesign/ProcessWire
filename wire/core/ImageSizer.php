@@ -106,6 +106,11 @@ class ImageSizer extends Wire {
 	 */
 	protected $sharpening = 'soft';
 
+	/**
+	 * Other options for 3rd party use
+	 *
+	 */
+	protected $options = array();
 
 	/**
 	 * Options allowed for sharpening
@@ -767,7 +772,9 @@ class ImageSizer extends Wire {
 				case 'quality': $this->setQuality($value); break;
 				case 'cropping': $this->setCropping($value); break;
 				
-				default: // unknown option
+				default: 
+					// unknown or 3rd party option
+					$this->options[$key] = $value; 
 			}
 		}
 		return $this; 
@@ -794,13 +801,15 @@ class ImageSizer extends Wire {
 	 *
 	 */
 	public function getOptions() {
-		return array(
+		$options = array(
 			'quality' => $this->quality, 
 			'cropping' => $this->cropping, 
 			'upscaling' => $this->upscaling,
 			'autoRotation' => $this->autoRotation,
 			'sharpening' => $this->sharpening
 			);
+		$options = array_merge($this->options, $options); 
+		return $options; 
 	}
 
 	public function __get($key) {
@@ -814,6 +823,7 @@ class ImageSizer extends Wire {
 			);
 		if(in_array($key, $keys)) return $this->$key; 
 		if(in_array($key, $this->optionNames)) return $this->$key; 
+		if(isset($this->options[$key])) return $this->options[$key]; 
 		return null;
 	}
 
