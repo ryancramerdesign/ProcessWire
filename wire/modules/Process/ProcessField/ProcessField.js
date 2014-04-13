@@ -19,7 +19,7 @@ $(document).ready(function() {
 		var showIf = $("#Inputfield_showIf").val();
 		var required = $("#Inputfield_required").is(":checked") ? true : false;
 	
-		if(showIf.length > 0) tpl = "<i class='fa fa-question-circle'></i>" + tpl;
+		if(showIf && showIf.length > 0) tpl = "<i class='fa fa-question-circle'></i>" + tpl;
 		if(required) tpl = "<i class='fa fa-asterisk'></i>" + tpl; 
 		var w = parseInt($columnWidth.val());
 		if(w == 100) w = 0;
