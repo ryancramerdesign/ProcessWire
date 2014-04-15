@@ -658,8 +658,8 @@ class ImageSizer extends Wire {
 			$cropping = (strpos($cropping[0], '%') !== false ? 'p' : 'd') . ((int) $cropping[0]) . 'x' . ((int) $cropping[1]);
 		}
 
-		// if crop is TRUE or FALSE, we don't reflect that in the filename, so make it blank
-		if(is_bool($cropping)) $cropping = '';
+		// if crop is boolean TRUE we should reflect that in the filename, if it is boolean FALSE we make it blank
+		if(is_bool($cropping)) $cropping = $cropping ? 'c' : '';
 
 		return $cropping;
 	}
