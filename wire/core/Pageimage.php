@@ -349,7 +349,7 @@ class Pageimage extends Pagefile {
 		$re = 	'/^'  . 
 			$originalName . '\.' .		// myfile. 
 			'(\d+)x(\d+)' .			// 50x50	
-			'([pd]\d+x\d+|[a-z]{1,2})?' . 	// nw or p30x40 or d30x40
+			'(c|[pd]\d+x\d+|[a-z]{1,2})?' . // c or nw or p30x40 or d30x40
 			'\.' . $this->ext() . 		// .jpg
 			'$/';
 
