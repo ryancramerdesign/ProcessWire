@@ -352,7 +352,7 @@ class Pagefiles extends WireArray {
 	}
 
 	public function trackChange($what, $old = null, $new = null) {
-		if($this->field && $this->page) $this->page->trackChange($this->field->name, $old, $new); 
+		if($this->field && $this->page) $this->page->trackChange($this->field->name); 
 		return parent::trackChange($what, $old, $new); 
 	}
 

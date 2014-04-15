@@ -250,11 +250,12 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			$form->append($field); 
 			*/
 
-			$defaultTemplateId = $this->parent->template->id; 
-			if($this->parent->numChildren > 0) { 
+			$defaultTemplateId = (int) $this->wire('input')->get('template_id'); 
+			if(!$defaultTemplateId && $this->parent->numChildren > 0) { 
 				$sibling = $this->parent->child('sort=-created, include=hidden');
 				if($sibling && $sibling->id) $defaultTemplateId = $sibling->template->id;
 			}
+			if(!$defaultTemplateId) $defaultTemplateId = $this->parent->template->id; 
 			if(!$this->isAllowedTemplate($defaultTemplateId)) $defaultTemplateId = 0;
 
 			$field = $this->modules->get('InputfieldSelect');
@@ -387,7 +388,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 
 		$this->page = new Page(); // must exist before processInput for language hooks
 		$form->processInput($this->input->post);
-		$this->session->CSRF->resetToken();
+		// $this->session->CSRF->resetToken(); // WHY?
 
 		$nameField = $form->children->get('_pw_page_name'); 	
 		$name = $nameField->value; 

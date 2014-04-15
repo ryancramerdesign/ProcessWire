@@ -32,6 +32,24 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		return $out; 
 	}
 
+	public function ___renderValue() {
+		$out = '';
+
+		foreach($this->attr('value') as $pageimage) {
+			$thumb = $pageimage; 
+			if($this->adminThumbs && $thumb->height > $this->adminThumbHeight) {
+				// create a variation for display with this inputfield
+				$thumb = $thumb->height($this->adminThumbHeight); 
+			}
+			$alt = $this->wire('sanitizer')->entities($thumb->description); 
+			$img = "<img src='$thumb->url' alt='$alt' />";
+			if($thumb !== $pageimage) $img = "<a class='InputfieldFileLink' target='_blank' href='$pageimage->url'>$img</a>";
+			$out .= $img;
+		}
+
+		return $out; 
+	}
+
 	/**
 	 * Resize images to max width/height if specified in field config and image is larger than max
 	 *
