@@ -252,7 +252,7 @@ class ProcessPageClone extends Process {
 		$clone = $this->pages->clone($page, $page->parent, $cloneTree);
 		if(!$clone->id) throw new WireException(sprintf($this->_("Unable to clone page %s"), $page->path));
 
-		if($titleField->useLanguages) {
+		if($titleField->useLanguages && is_object($clone->title)) {
 			foreach($this->wire('languages') as $language) {
 				$valueAttr = $language->isDefault() ? "value" : "value$language->id";
 				$value = $titleField->get($valueAttr);

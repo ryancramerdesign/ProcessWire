@@ -378,6 +378,8 @@ class LanguageSupportFields extends WireData implements Module {
 		//$value = $event->return;
 		$values = array();
 
+		if(!$value instanceof LanguagesPageFieldValue) return;
+
 		foreach(wire('languages') as $language) {
 			if($language->isDefault()) $key = 'data';
 				else $key = 'data' . $language->id; 

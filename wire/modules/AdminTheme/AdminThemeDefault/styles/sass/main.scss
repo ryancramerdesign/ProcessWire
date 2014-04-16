@@ -346,10 +346,13 @@ body.modal {
 		padding-left: 1em;
 		padding-right: 1em; 
 	}
-	#notices {
-		margin: 1px 0 0.75em 0;
-		a.notice-remove {
-			display: none; 
+
+	&:not(.hasWireTabs) { 
+		#notices {
+			margin: 1px 0 0.75em 0;
+			a.notice-remove {
+				display: none; 
+			}
 		}
 	}
 

@@ -210,7 +210,7 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 			}
 		}
 
-		if($useFieldgroupContext) {
+		if($useFieldgroupContext && $value) {
 			$value->flags = $value->flags | Field::flagFieldgroupContext;
 		}
 

@@ -3120,9 +3120,9 @@ body.modal .container {
   max-width: 100%;
   padding-left: 1em;
   padding-right: 1em; }
-body.modal #notices {
+body.modal:not(.hasWireTabs) #notices {
   margin: 1px 0 0.75em 0; }
-  body.modal #notices a.notice-remove {
+  body.modal:not(.hasWireTabs) #notices a.notice-remove {
     display: none; }
 body.modal .content h2 {
   margin: 1em 0 0.5em 0;
