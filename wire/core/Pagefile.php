@@ -203,6 +203,14 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function url() {
+		return self::isHooked('Pagefile::url()') ? $this->__call('url', array()) : $this->___url();
+	}
+
+	/**
+	 * Hookable version of url() method
+	 *
+	 */
+	protected function ___url() {
 		return $this->pagefiles->url . $this->basename; 	
 	}
 
@@ -210,7 +218,7 @@ class Pagefile extends WireData {
 	 * Return the web accessible URL (with schema and hostname) to this Pagefile
 	 *
 	 */
-	public function httpUrl() {
+	public function ___httpUrl() {
 		$page = $this->pagefiles->getPage();
 		$url = substr($page->httpUrl(), 0, -1 * strlen($page->url())); 
 		return $url . $this->url(); 
@@ -221,6 +229,14 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function filename() {
+		return self::isHooked('Pagefile::filename()') ? $this->__call('filename', array()) : $this->___filename();
+	}
+
+	/**
+	 * Hookable version of filename() method
+	 *
+	 */
+	protected function ___filename() {
 		return $this->pagefiles->path . $this->basename;
 	}
 

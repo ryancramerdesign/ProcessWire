@@ -445,8 +445,11 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 */
 	static public function isHooked($method) {
 		$hooked = false;
-		if(array_key_exists($method, self::$hookMethodCache)) $hooked = true; // fromClass::method() or fromClass::property
-			else if(in_array($method, self::$hookMethodCache)) $hooked = true; // method() or property
+		if(strpos($method, ':') !== false) {
+			if(array_key_exists($method, self::$hookMethodCache)) $hooked = true; // fromClass::method() or fromClass::property
+		} else {
+			if(in_array($method, self::$hookMethodCache)) $hooked = true; // method() or property
+		}
 		return $hooked; 
 	}
 

@@ -82,7 +82,11 @@ class Pageimage extends Pagefile {
 	 *
 	 */
 	public function url() {
-		return $this->pagefiles->url . $this->basename; 	
+		if(self::isHooked('Pagefile::url()') || self::isHooked('Pageimage::url()')) { 
+			return $this->__call('url', array()); 
+		} else { 
+			return $this->___url();
+		}
 	}
 
 	/**
@@ -90,7 +94,11 @@ class Pageimage extends Pagefile {
 	 *
 	 */
 	public function filename() {
-		return $this->pagefiles->path . $this->basename;
+		if(self::isHooked('Pagefile::filename()') || self::isHooked('Pageimage::filename()')) { 
+			return $this->__call('filename', array()); 
+		} else { 
+			return $this->___filename();
+		}
 	}
 
 	/**
