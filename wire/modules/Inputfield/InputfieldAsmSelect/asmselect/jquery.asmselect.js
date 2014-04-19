@@ -2,13 +2,11 @@
  * Alternate Select Multiple (asmSelect) 1.3 - jQuery Plugin
  * http://www.ryancramer.com/projects/asmselect/
  * 
- * Copyright (c) 2009-2012 by Ryan Cramer - http://www.ryancramer.com
+ * Copyright (c) 2009-2014 by Ryan Cramer - http://www.ryancramer.com
  * 
  * Dual licensed under the MIT (MIT-LICENSE.txt)
  * and GPL (GPL-LICENSE.txt) licenses.
  *
- * @TODO asmSelect would probably be more functional if a deleted item still appears in the list (with ui-state-error or the like) rather than disappearing immediately. 
- * 
  *
  */
 
@@ -27,6 +25,9 @@
 			hideWhenEmpty: false,					// Hide the <select> when there are no items available to select? 
 			debugMode: false,					// Debug mode keeps original select visible 
 			jQueryUI: true, 
+			hideDeleted: true,					// Hide items when deleted. If false, items remain but are marked for deletion
+			deletedOpacity: 0.5,					// opacity of deleted item, set to 1.0 to disable opacity adjustment (applicable only if hideDeleted=true)
+			deletedPrepend: '-', 					// Deleted item values are prepended with this character in the form submission (applicable only if hideDeleted=true)
 
 			removeLabel: '<span class="ui-icon ui-icon-trash">remove</span>', // Text used in the "remove" link
 			highlightAddedLabel: 'Added: ',				// Text that precedes highlight of added item
@@ -45,6 +46,7 @@
 			removeClass: 'asmListItemRemove',			// Class given to the "remove" link
 			editClass: 'asmListItemEdit',
 			highlightClass: 'asmHighlight',				// Class given to the highlight <span>
+			deletedClass: 'asmListItemDeleted',
 
 			editLink: '', 						// Optional URL options can link to with tag {value} replaced by option value, i.e. /path/to/page/edit?id={$value}
 			editLabel: '<span class="ui-icon ui-icon-extlink"></span>', // Text used in the "edit" link (if editLink is populated)
@@ -406,17 +408,37 @@
 			function dropListItem(optionId, highlightItem) {
 
 				// remove an item from the html list
-
-				if(highlightItem == undefined) var highlightItem = true; 
 				var $O = $('#' + optionId); 
 
-				$O.attr('selected', false); 
-				$item = $ol.children("li[rel=" + optionId + "]");
+				if(options.hideDeleted) {
 
-				dropListItemHide($item); 
-				enableSelectOption($("[rel=" + optionId + "]", options.removeWhenAdded ? $selectRemoved : $select));
+					if(highlightItem == undefined) var highlightItem = true; 
 
-				if(highlightItem) setHighlight($item, options.highlightRemovedLabel); 
+					$O.attr('selected', false); 
+					$item = $ol.children("li[rel=" + optionId + "]");
+
+					dropListItemHide($item); 
+					enableSelectOption($("[rel=" + optionId + "]", options.removeWhenAdded ? $selectRemoved : $select));
+
+					if(highlightItem) setHighlight($item, options.highlightRemovedLabel); 
+
+
+				} else {
+					// deleted item remains in list, but marked for deletion
+				
+					$item = $ol.children("li[rel=" + optionId + "]");
+					var value = $O.attr('value'); 
+					if(value == "undefined") value = $O.text();
+					if($item.hasClass(options.deletedClass)) {
+						$item.removeClass(options.deletedClass);
+						if(options.deletedOpacity != 1.0) $item.css('opacity', 1.0); 
+						$O.attr('value', value.substring(options.deletedPrepend.length)); 
+					} else {
+						$item.addClass(options.deletedClass);
+						if(options.deletedOpacity != 1.0) $item.css('opacity', options.deletedOpacity); 
+						$O.attr('value', options.deletedPrepend + value); 
+					}
+				}
 
 				triggerOriginalChange(optionId, 'drop'); 
 				

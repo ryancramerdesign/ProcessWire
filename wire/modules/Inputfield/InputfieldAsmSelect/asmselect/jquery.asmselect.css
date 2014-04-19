@@ -108,3 +108,7 @@ span.asmListItemDesc {
 	padding-top: 3px; 
 }
 
+.asmListItemDeleted,
+.asmListItemDeleted span {
+	text-decoration: line-through; 
+}
