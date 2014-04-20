@@ -174,6 +174,21 @@ class Pageimage extends Pagefile {
 	 */
 	public function size($width, $height, $options = array()) {
 
+		if(self::isHooked('Pageimage::size()')) {
+			return $this->__call('size', array($width, $height, $options)); 
+		} else { 
+			return $this->___size($width, $height, $options);
+		}
+	}
+
+	/**
+	 * Hookable version of size() with implementation
+	 *	
+	 * See comments for size() method above. 
+	 *
+	 */
+	protected function ___size($width, $height, $options) {
+
 		if(!is_array($options)) { 
 			if(is_string($options)) {
 				// optionally allow a string to be specified with crop direction, for shorter syntax
