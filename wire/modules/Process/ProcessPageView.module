@@ -297,10 +297,11 @@ class ProcessPageView extends Process {
 
 		// check for secured filename, method 1: actual file URL, minus leading "." or "-"
 		if(strpos(rtrim($config->urls->root, '/') . $it, $config->urls->files) === 0) {
-			if(preg_match('{/(\d+)/([-_.a-zA-Z0-9]+)$}', $it, $matches) && strpos($matches[2], '.')) {
+			if(preg_match('{/([\d\/]+)/([-_.a-zA-Z0-9]+)$}', $it, $matches) && strpos($matches[2], '.')) {
 				// request is consistent with those that would match to a file
 				$this->requestFile = $matches[2]; 	
-				$page = $this->pages->get((int) $matches[1]); // Page or NullPage
+				$idPath = str_replace('/', '', $matches[1]); 
+				$page = $this->pages->get((int) $idPath); // Page or NullPage
 				return $page; 
 			} else {
 				// request was to something in /site/assets/files/ but we don't recognize it

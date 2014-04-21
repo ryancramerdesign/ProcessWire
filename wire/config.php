@@ -151,6 +151,19 @@ $config->pagefileUrlPrefix = '-/';
 $config->pagefileSecurePathPrefix = '.';
 
 /**
+ * Set to true in /site/config.php if you want files to live in an extended path mapping system
+ * that limits the number of directories per path to under 2000. 
+ *
+ * Use this on large sites living on file systems with hard limits on quantity of directories
+ * allowed per directory level. For example, ext2 and its 30000 directory limit. 
+ *
+ * Please note that for existing sites, this applies only for new pages created from this
+ * point forward. 
+ *
+ */
+$config->pagefileExtendedPaths = false;
+
+/**
  * fileContentTypes: array of extention to content-type header, used by file passthru functions.
  *
  * Any content types that should be force-download should be preceded with a plus sign.

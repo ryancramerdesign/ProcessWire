@@ -177,12 +177,18 @@ function wireDecodeJSON($json) {
  * Create a directory that is writable to ProcessWire and uses the $config chmod settings
  * 
  * @param string $path
+ * @param bool $recursive If set to true, all directories will be created as needed to reach the end. 
  * @return bool
  *
  */ 
-function wireMkdir($path) {
-	// @todo make this function support a $recursive option
-	if(!is_dir($path)) if(!@mkdir($path)) return false;
+function wireMkdir($path, $recursive = false) {
+	if(!is_dir($path)) {
+		if($recursive) {
+			$parentPath = substr($path, 0, strrpos(rtrim($path, '/'), '/')); 
+			if(!is_dir($parentPath) && !wireMkdir($parentPath, true)) return false;
+		}
+		if(!@mkdir($path)) return false;
+	}
 	$chmodDir = wire('config')->chmodDir;
 	if($chmodDir) @chmod($path, octdec($chmodDir));
 	return true; 

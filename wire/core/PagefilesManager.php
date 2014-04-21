@@ -22,10 +22,28 @@ class PagefilesManager extends Wire {
 	const defaultSecurePathPrefix = '.';
 
 	/**
+	 * Prefix to all extended path directories
+	 *
+	 */
+	const extendedDirName = '0/';
+
+	/**
 	 * Reference to the Page object this PagefilesManager is managing
 	 *
 	 */
-	protected $page; 
+	protected $page;
+
+	/**
+	 * Cached copy of $path, once it has been determined
+	 *
+	 */
+	protected $path = null;
+
+	/**
+	 * Cached copy of $url, once it has been determined
+	 *
+	 */
+	protected $url = null;
 
 	/**
 	 * Construct the PagefilesManager and ensure all needed paths are created
@@ -124,7 +142,7 @@ class PagefilesManager extends Wire {
 	 */
 	protected function _createPath($path) {
 		if(is_dir($path)) return true; 
-		return wireMkdir($path); 
+		return wireMkdir($path, true); 
 	}
 
 	/**
@@ -165,8 +183,11 @@ class PagefilesManager extends Wire {
  	 *
 	 */
 	public function path() {
-		if(!$this->page->id) throw new WireException("New page '{$this->page->url}' must be saved before files can be accessed from it"); 
-		return self::_path($this->page); 
+		if(is_null($this->path)) {
+			if(!$this->page->id) throw new WireException("New page '{$this->page->url}' must be saved before files can be accessed from it"); 
+			$this->path = self::_path($this->page); 
+		}
+		return $this->path; 
 	}
 
 	/**
@@ -184,7 +205,13 @@ class PagefilesManager extends Wire {
 	 *
 	 */
 	public function ___url() {
-		return $this->config->urls->files . $this->page->id . '/';
+		if(!is_null($this->url)) return $this->url;
+		if(strpos($this->path(), "/" . self::extendedDirName)) {
+			$this->url = $this->config->urls->files . self::_dirExtended($this->page->id); 
+		} else {
+			$this->url = $this->config->urls->files . $this->page->id . '/';
+		}
+		return $this->url;
 	}
 
 	/**
@@ -200,6 +227,8 @@ class PagefilesManager extends Wire {
 	 *
 	 */
 	public function uncache() {
+		$this->url = null;
+		$this->path = null;
 		// $this->page = null;
 	}
 	
@@ -248,43 +277,86 @@ class PagefilesManager extends Wire {
 	 * Get the files path for a given page (whether it exists or not) - static
 	 *
 	 * @param Page $page
+	 * @param bool $extended Whether to force use of extended paths, primarily for recursive use by this function only
 	 * @return string 
  	 *
 	 */
-	static public function _path(Page $page) {
+	static public function _path(Page $page, $extended = false) {
 
 		$config = wire('config');
 		$path = $config->paths->files; 
-		$publicPath = $path . ((int) $page->id) . '/'; 
-
+		
 		$securePrefix = $config->pagefileSecurePathPrefix; 
 		if(!strlen($securePrefix)) $securePrefix = self::defaultSecurePathPrefix;
-
-		// securePath has the page ID preceded with a prefix which PW's htaccess blocks http requests to
-		$securePath = $path . $securePrefix . ((int) $page->id) . '/';
-
-		// we track this just in case the prefix was newly added to config.php, this prevents 
-		// losing track of the original directories
-		$securePath2 = $path . self::defaultSecurePathPrefix . ((int) $page->id) . '/';
+		
+		if($extended) {
+			$publicPath = $path . self::_dirExtended($page->id); 
+			$securePath = $path . self::_dirExtended($page->id, $securePrefix); 
+		} else {
+			$publicPath = $path . $page->id . '/';
+			$securePath = $path . $securePrefix . $page->id . '/';
+		}
 
 		if($page->isPublic() || !$config->pagefileSecure) {
 			// use the public path, renaming a secure path to public if it exists
 			if(is_dir($securePath) && !is_dir($publicPath)) {
 				@rename($securePath, $publicPath);
 			}
-			return $publicPath;
+			$filesPath = $publicPath;
+			
 		} else {
 			// use the secure path, renaming the public to secure if it exists
 			$hasSecurePath = is_dir($securePath);
 			if(is_dir($publicPath) && !$hasSecurePath) {
 				@rename($publicPath, $securePath);
 
-			} else if(!$hasSecurePath && is_dir($securePath2)) {
-				// if the secure path prefix has been changed from undefined to defined
-				@rename($securePath2, $securePath);
+			} else if(!$hasSecurePath && self::defaultSecurePathPrefix != $securePrefix) {
+				// we track this just in case the prefix was newly added to config.php, this prevents 
+				// losing track of the original directories
+				$securePath2 = $extended ? $path . self::_dirExtended($page->id, self::defaultSecurePathPrefix) : $path . self::defaultSecurePathPrefix . $page->id . '/';
+				if(is_dir($securePath2)) {
+					// if the secure path prefix has been changed from undefined to defined
+					@rename($securePath2, $securePath);
+				}
 			}
-			return $securePath;
+			$filesPath = $securePath;
 		}
+		
+		if(!$extended && $config->pagefileExtendedPaths && !is_dir($filesPath)) {
+			// if directory doesn't exist and extended mode is possible, specify use of the extended one
+			$filesPath = self::_path($page, true); 
+		}
+		
+		return $filesPath; 
+	}
+
+	/**
+	 * Generate the directory name (after /site/assets/files/)
+	 *
+	 * @param int $id
+	 * @param string $securePrefix Optional prefix to use for last segment in path
+	 * @return string
+	 *
+	 */
+	static public function _dirExtended($id, $securePrefix = '') {
+		
+		$len = strlen($id);
+
+		if($len > 3) {
+			if($len % 2 === 0) {
+				$id = "0$id"; // ensure all segments are 2 chars
+				$len++;
+			}
+			$path = chunk_split(substr($id, 0, $len-3), 2, '/') . $securePrefix . substr($id, $len-3);
+
+		} else if($len < 3) {
+			$path = $securePrefix . str_pad($id, 3, "0", STR_PAD_LEFT);
+
+		} else {
+			$path = $securePrefix . $id;
+		}
+		
+		return self::extendedDirName . $path . '/';	
 	}
 
 
