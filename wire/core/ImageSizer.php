@@ -168,6 +168,10 @@ class ImageSizer extends Wire {
 	 */
 	public function __construct($filename, $options = array()) {
 
+		// set the use of UnSharpMask as default, can be overwritten per pageimage options
+		// or per $config->imageSizerOptions in site/config.php
+		$this->options['useUSM'] = true;
+
 		// filling all options with global custom values from config.php
 		$options = array_merge($this->wire('config')->imageSizerOptions, $options); 
 		$this->setOptions($options);
@@ -654,8 +658,8 @@ class ImageSizer extends Wire {
 			$cropping = (strpos($cropping[0], '%') !== false ? 'p' : 'd') . ((int) $cropping[0]) . 'x' . ((int) $cropping[1]);
 		}
 
-		// if crop is TRUE or FALSE, we don't reflect that in the filename, so make it blank
-		if(is_bool($cropping)) $cropping = '';
+		// if crop is boolean TRUE we should reflect that in the filename, if it is boolean FALSE we make it blank
+		if(is_bool($cropping)) $cropping = $cropping ? 'c' : '';
 
 		return $cropping;
 	}
@@ -713,7 +717,7 @@ class ImageSizer extends Wire {
 			$ret = $this->sharpeningValues[$value]; 
 
 		} else if(is_bool($value)) {
-			$ret = $value ? "medium" : "none";
+			$ret = $value ? "soft" : "none";
 			
 		} else {
 			throw new WireException("Unknown value for sharpening"); 
@@ -939,17 +943,59 @@ class ImageSizer extends Wire {
 	}
 
 	/**
-	 * Sharpen image (@horst)
-	 *
-	 * @param resource $im
-	 * @param string $mode May be: none | soft | medium | strong
-	 * @return resource
-	 *
-	 */
+	* Sharpen image (@horst)
+	*
+	* @param resource $im
+	* @param string $mode May be: none | soft | medium | strong
+	* @return resource
+	*
+	*/
 	protected function imSharpen($im, $mode) {
-
+	
+		// due to a bug in PHP's bundled GD-Lib with the function imageconvolution in some PHP versions
+		// we have to bypass this for those who have to run on this PHP versions
+		// see: https://bugs.php.net/bug.php?id=66714
+		// and here under GD: http://php.net/ChangeLog-5.php#5.5.11
+		$buggyPHP = (version_compare(phpversion(), '5.5.8', '>') && version_compare(phpversion(), '5.5.11', '<')) ? true : false;
+		
+		// USM method is used for buggy PHP versions
+		// for regular versions it can be omitted per: useUSM = false passes as pageimage option
+		// or set in the site/config.php under $config->imageSizerOptions: 'useUSM' => false | true
+		if($buggyPHP || $this->useUSM) {
+		
+			switch($mode) {
+		
+				case 'none':
+					return $im;
+					break;
+		
+				case 'strong':
+					$amount=160;
+					$radius=1.0;
+					$threshold=7;
+					break;
+		
+				case 'medium':
+					$amount=130;
+					$radius=0.75;
+					$threshold=7;
+					break;
+		
+				case 'soft':
+				default:
+					$amount=100;
+					$radius=0.5;
+					$threshold=3;
+					break;
+			}
+			
+			return $this->UnsharpMask($im, $amount, $radius, $threshold);
+		}
+		
+		// if we do not use USM, we use our default sharpening method,
+		// entirely based on GDs imageconvolution
 		switch($mode) {
-
+		
 			case 'none':
 				return $im;
 				break;
@@ -957,34 +1003,34 @@ class ImageSizer extends Wire {
 			case 'strong':
 				$sharpenMatrix = array(
 					array( -1.2, -1, -1.2 ),
-					array( -1,   12, -1   ),
+					array( -1,   16, -1   ),
 					array( -1.2, -1, -1.2 )
 					);
 				break;
-
+			
 			case 'medium':
 				$sharpenMatrix = array(
-					array( -1, -1, -1 ),
-					array( -1, 16, -1 ),
-					array( -1, -1, -1 )
+					array( -1.1, -1, -1.1 ),
+					array( -1,   20, -1 ),
+					array( -1.1, -1, -1.1 )
 					);
 				break;
-
-
+			
 			case 'soft':
-				
 			default:
 				$sharpenMatrix = array(
 					array( -1, -1, -1 ),
-					array( -1, 20, -1 ),
+					array( -1, 24, -1 ),
 					array( -1, -1, -1 )
 					);
 				break;
 		}
+		
 		// calculate the sharpen divisor
 		$divisor = array_sum(array_map('array_sum', $sharpenMatrix));
 		$offset = 0;
-		if(!imageconvolution($im, $sharpenMatrix, $divisor, $offset)) return false; // TODO 5 -c errorhandling: Throw WireExeption
+		if(!imageconvolution($im, $sharpenMatrix, $divisor, $offset)) return false; // TODO 4 -c errorhandling: Throw WireException?
+		
 		return $im;
 	}
 
@@ -1028,10 +1074,7 @@ class ImageSizer extends Wire {
 	 */
 	protected function hasAlphaChannel() {
 		$errors = array();
-		static $a = array();
-		if(isset($a['alpha'])) {
-			return $a['alpha'];
-		}
+		$a = array();
 		$f = @fopen($this->filename,'rb');
 		if($f === false) return false;
 
@@ -1153,6 +1196,154 @@ class ImageSizer extends Wire {
 	public function setModified($modified) {
 		$this->modified = $modified ? true : false;
 		return $this;
+	}
+
+
+	protected function UnsharpMask($img, $amount, $radius, $threshold) {
+
+		///////////////////////////////////////////////////////////
+		//
+		//         Unsharp Mask for PHP - version 2.1.1
+		//
+		//    Unsharp mask algorithm by Torstein Hønsi 2003-07.
+		//             thoensi_at_netcom_dot_no.
+		//               Please leave this notice.
+		//
+		//          http://vikjavev.no/computing/ump.php
+		//
+		///////////////////////////////////////////////////////////
+		
+		// Attempt to calibrate the parameters to Photoshop:
+		if($amount > 500) $amount = 500;
+		$amount = $amount * 0.016;
+		if($radius > 50) $radius = 50;
+		$radius = $radius * 2;
+		if($threshold > 255) $threshold = 255;
+
+		$radius = abs(round($radius));     // Only integers make sense.
+		if($radius == 0) {
+			return $img;
+		}
+		$w = imagesx($img);
+		$h = imagesy($img);
+		$imgCanvas = imagecreatetruecolor($w, $h);
+		$imgBlur = imagecreatetruecolor($w, $h);
+
+		// due to a bug in PHP's bundled GD-Lib with the function imageconvolution in some PHP versions
+		// we have to bypass this for those who have to run on this PHP versions
+		// see: https://bugs.php.net/bug.php?id=66714
+		// and here under GD: http://php.net/ChangeLog-5.php#5.5.11
+		$buggyPHP = (version_compare(phpversion(), '5.5.8', '>') && version_compare(phpversion(), '5.5.11', '<')) ? true : false;
+
+		// Gaussian blur matrix:
+		//
+		//    1    2    1
+		//    2    4    2
+		//    1    2    1
+		//
+		//////////////////////////////////////////////////
+		if(function_exists('imageconvolution') && !$buggyPHP) {
+			$matrix = array(
+				array( 1, 2, 1 ),
+				array( 2, 4, 2 ),
+				array( 1, 2, 1 )
+				);
+			imagecopy ($imgBlur, $img, 0, 0, 0, 0, $w, $h);
+			imageconvolution($imgBlur, $matrix, 16, 0);
+		}
+		else {
+			// Move copies of the image around one pixel at the time and merge them with weight
+			// according to the matrix. The same matrix is simply repeated for higher radii.
+			for ($i = 0; $i < $radius; $i++)    {
+				imagecopy ($imgBlur, $img, 0, 0, 1, 0, $w - 1, $h); // left
+				imagecopymerge ($imgBlur, $img, 1, 0, 0, 0, $w, $h, 50); // right
+				imagecopymerge ($imgBlur, $img, 0, 0, 0, 0, $w, $h, 50); // center
+				imagecopy ($imgCanvas, $imgBlur, 0, 0, 0, 0, $w, $h);
+			
+				imagecopymerge ($imgBlur, $imgCanvas, 0, 0, 0, 1, $w, $h - 1, 33.33333 ); // up
+				imagecopymerge ($imgBlur, $imgCanvas, 0, 1, 0, 0, $w, $h, 25); // down
+			}
+		}
+
+		if($threshold>0) {
+			// Calculate the difference between the blurred pixels and the original
+			// and set the pixels
+			for($x = 0; $x < $w-1; $x++) { // each row
+				for($y = 0; $y < $h; $y++) { // each pixel
+				
+					$rgbOrig = ImageColorAt($img, $x, $y);
+					$rOrig = (($rgbOrig >> 16) & 0xFF);
+					$gOrig = (($rgbOrig >> 8) & 0xFF);
+					$bOrig = ($rgbOrig & 0xFF);
+					
+					$rgbBlur = ImageColorAt($imgBlur, $x, $y);
+					
+					$rBlur = (($rgbBlur >> 16) & 0xFF);
+					$gBlur = (($rgbBlur >> 8) & 0xFF);
+					$bBlur = ($rgbBlur & 0xFF);
+				
+					// When the masked pixels differ less from the original
+					// than the threshold specifies, they are set to their original value.
+					$rNew = (abs($rOrig - $rBlur) >= $threshold)
+						? max(0, min(255, ($amount * ($rOrig - $rBlur)) + $rOrig))
+						: $rOrig;
+					$gNew = (abs($gOrig - $gBlur) >= $threshold)
+						? max(0, min(255, ($amount * ($gOrig - $gBlur)) + $gOrig))
+						: $gOrig;
+					$bNew = (abs($bOrig - $bBlur) >= $threshold)
+						? max(0, min(255, ($amount * ($bOrig - $bBlur)) + $bOrig))
+						: $bOrig;
+					
+					if(($rOrig != $rNew) || ($gOrig != $gNew) || ($bOrig != $bNew)) {
+						$pixCol = ImageColorAllocate($img, $rNew, $gNew, $bNew);
+						ImageSetPixel($img, $x, $y, $pixCol);
+					}
+				}
+			}
+	        }
+	        else {
+			for($x = 0; $x < $w; $x++) { // each row
+				for($y = 0; $y < $h; $y++) { // each pixel
+					$rgbOrig = ImageColorAt($img, $x, $y);
+					$rOrig = (($rgbOrig >> 16) & 0xFF);
+					$gOrig = (($rgbOrig >> 8) & 0xFF);
+					$bOrig = ($rgbOrig & 0xFF);
+					
+					$rgbBlur = ImageColorAt($imgBlur, $x, $y);
+					
+					$rBlur = (($rgbBlur >> 16) & 0xFF);
+					$gBlur = (($rgbBlur >> 8) & 0xFF);
+					$bBlur = ($rgbBlur & 0xFF);
+					
+					$rNew = ($amount * ($rOrig - $rBlur)) + $rOrig;
+						if($rNew>255) {
+							$rNew=255;
+						} else if($rNew<0) {
+							$rNew=0;
+						}
+					$gNew = ($amount * ($gOrig - $gBlur)) + $gOrig;
+						if($gNew>255) {
+							$gNew=255;
+						}
+						else if($gNew<0) {
+							$gNew=0;
+						}
+					$bNew = ($amount * ($bOrig - $bBlur)) + $bOrig;
+						if($bNew>255) {
+							$bNew=255;
+						}
+						else if($bNew<0) {
+							$bNew=0;
+						}
+					$rgbNew = ($rNew << 16) + ($gNew <<8) + $bNew;
+					ImageSetPixel($img, $x, $y, $rgbNew);
+				}
+			}
+	        }
+		imagedestroy($imgCanvas);
+		imagedestroy($imgBlur);
+	
+		return $img;
 	}
 
 }
