@@ -249,7 +249,14 @@ class ImageSizer extends Wire {
 			case IMAGETYPE_JPEG: $image = @imagecreatefromjpeg($source); break;
 		}
 
-		if(!$image) return false;
+        if(!$image) {
+            switch($this->imageType) {
+                case IMAGETYPE_GIF: wire('log')->error("failed imagecreatefromgif for \n$source"); break;
+                case IMAGETYPE_PNG: wire('log')->error("failed imagecreatefrompng for \n$source"); break;
+                case IMAGETYPE_JPEG: wire('log')->error("failed imagecreatefromjpeg for \n$source"); break;
+            }
+            return 1;
+        }
 
 		if($this->imageType != IMAGETYPE_PNG || ! $this->hasAlphaChannel()) { 
 			// @horst: linearize gamma to 1.0 - we do not use gamma correction with pngs containing alphachannel, because GD-lib  doesn't respect transparency here (is buggy) 
@@ -403,10 +410,15 @@ class ImageSizer extends Wire {
 		if(isset($thumb) && is_resource($thumb)) @imagedestroy($thumb); // @horst
 		if(isset($thumb2) && is_resource($thumb2)) @imagedestroy($thumb2); // @horst
 
-		if($result === false) {
-			if(is_file($dest)) @unlink($dest); 
-			return false;
-		}
+        if($result === false) {
+            if(is_file($dest)) @unlink($dest);
+            switch($this->imageType) {
+                case IMAGETYPE_GIF: wire('log')->error("failed write to file with imagegif to \n$dest"); break;
+                case IMAGETYPE_PNG: wire('log')->error("failed write to file with imagepng to \n$dest"); break;
+                case IMAGETYPE_JPEG: wire('log')->error("failed write to file with imagejpeg to \n$dest"); break;
+            }
+            return 2;
+        }
 
 		unlink($source); 
 		rename($dest, $source); 
@@ -421,8 +433,10 @@ class ImageSizer extends Wire {
 					unlink($this->filename);
 					rename($dest, $this->filename);
 				} else {
-					// it was created a temp diskfile but not with all data in it
-					if(file_exists($dest)) @unlink($dest);
+                    // it was created a temp diskfile but not with all data in it
+                    if(file_exists($dest)) @unlink($dest);
+                    // we now have a file without metadata but still go on
+                    $this->error('failed to write back IPTC data for ' . $this->filename);
 				}
 			}
 		}
@@ -1372,5 +1386,57 @@ class ImageSizer extends Wire {
 
 		return $img;
 	}
+
+
+    /**
+    * can be called from Pageimage::size() if an Error occured
+    *
+    * @param integer $targetWidth
+    * @param integer $targetHeight
+    * @param string $filename
+    * @param boolean $errortext  optional, should be a little error text within the image?  'image error'
+    *
+    */
+    static public function errorImage($targetWidth, $targetHeight, $filename, $errortext = true) {
+        if(0==$targetWidth || 0==$targetHeight) {
+            $img = getimagesize($filename);
+            if(0==$targetWidth) $targetWidth = intval($targetHeight / $img[1] * $img[0]);
+            if(0==$targetHeight) $targetHeight = intval($targetWidth / $img[0] * $img[1]);
+        }
+        $canvas = imagecreatetruecolor($targetWidth, $targetHeight);
+        imagealphablending($canvas, false);
+        $bga = imagecolorallocatealpha($canvas, 128, 128, 128, 64);
+        imagefilledrectangle($canvas, 0, 0, $targetWidth, $targetHeight, $bga);
+        imagealphablending($canvas, true);
+        if($errortext) {
+            $imtext = imagecreatefromstring(self::base64errorimageText());
+            $res = @imagecopy($canvas, $imtext, 0, 0, 0, 0, imagesx($imtext), imagesy($imtext));
+            imagedestroy($imtext);
+            if(!$res) {
+                imagedestroy($canvas);
+                return false;
+            }
+        }
+        @imagealphablending($canvas, true);
+        @imagesavealpha($canvas, true);
+        $res = imagepng($canvas, $filename, 9);
+        imagedestroy($canvas);
+        return $res;
+    }
+
+    /**
+    * this is a little transparent png image with the white text: image error
+    *
+    * This faster and more bullet proofed than trying to use fonts with GD, because some php installlations could be compiled without it
+    *
+    */
+    static protected function base64errorimageText() {
+        return base64_decode(str_replace(array("\r\n","\n","\r"," "), '', "
+iVBORw0KGgoAAAANSUhEUgAAAFsAAAAUCAMAAADV5rESAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJ
+bWFnZVJlYWR5ccllPAAAAAZQTFRF////////VXz1bAAAAAJ0Uk5T/wDltzBKAAAAdklEQVR42uxU
+Ww7AIAhr73/puYlSF/fIDB9L4ENAoVQkgnGCxL7Exn95o0hZqotqwIzmU06PFFcWSAITbFe6pVpy
+dhqtPCVSOKxgK8IQeY+Nfu3eLidk3kdszHifcxZ5P72llpC+v59BBM33yDf/qsQOkE2AAQA0EgaE
+OPU+1gAAAABJRU5ErkJggg=="));
+    }
 
 }
