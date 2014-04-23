@@ -221,18 +221,28 @@ class Pageimage extends Pagefile {
 		$basename .= '.' . $width . 'x' . $height . $crop . "." . $this->ext();	// i.e. myfile.100x100.jpg or myfile.100x100nw.jpg
 		$filename = $this->pagefiles->path() . $basename; 
 
-		if(!is_file($filename)) {
-			if(@copy($this->filename(), $filename)) {
-				try { 
-					$sizer = new ImageSizer($filename); 
-					$sizer->setOptions($options);
-					$sizer->resize($width, $height); 
-				} catch(Exception $e) {
-					$this->error($e->getMessage()); 
-				}
-				if($this->config->chmodFile) chmod($filename, octdec($this->config->chmodFile));
-			}
-		}
+        if(!is_file($filename)) {
+            if(@copy($this->filename(), $filename)) {
+                try {
+                    $sizer = new ImageSizer($filename);
+                    $sizer->setOptions($options);
+                    $result = $sizer->resize($width, $height);
+                } catch(Exception $e) {
+                    wire('log')->error($e->getMessage());
+                    $this->error($e->getMessage());
+                }
+                if(true!==$result) {
+                    // if error isn't logged in ImageSizer we log it here
+                    if(!in_array($result, array(1,2))) wire('log')->error("Unknown error with ImageSizer and $filename");
+                    // create a wellsized blank error image for output
+                    ImageSizer::errorImage($width, $height, $filename);
+                }
+                if($this->config->chmodFile) chmod($filename, octdec($this->config->chmodFile));
+            } else {
+                wire('log')->error("Cannot copy file for ImageSizer! (from: $pageimage->filename) (to: $filename)");
+                // what's to do now?
+            }
+        }
 
 		$pageimage = clone $this; 
 		$pageimage->setFilename($filename); 	
