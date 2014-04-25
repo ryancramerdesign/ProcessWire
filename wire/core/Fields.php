@@ -471,6 +471,87 @@ class Fields extends WireSaveableItems {
 		return true; 	
 	}
 
+
+	/**
+	 * Physically delete all field data (from the database) used by pages of a given template
+	 *
+	 * This is for internal API use only. This method is intended only to be called by 
+	 * Fieldtype::deleteTemplateField
+	 * 
+	 * If you need to remove a field from a Fieldgroup, use Fieldgroup::remove(), and this
+	 * method will be call automatically at the appropriate time when save the fieldgroup. 
+	 *
+	 * @param Field $field
+	 * @param Template $template
+	 * @return bool Whether or not it was successful
+	 * @throws WireException when given a situation where deletion is not allowed
+	 *
+	 */
+	public function ___deleteFieldDataByTemplate(Field $field, Template $template) {
+
+		// first we need to determine if the $field->type module has its own
+		// deletePageField method separate from base: Fieldtype/FieldtypeMulti
+		$reflector = new ReflectionClass($field->type->className());
+		$hasDeletePageField = false;
+
+		foreach($reflector->getMethods() as $method) {
+			$methodName = $method->getName();
+			if($methodName != '___deletePageField') continue;
+			try {
+				new ReflectionMethod($reflector->getParentClass()->getName(), $methodName);
+				if(!in_array($method->getDeclaringClass()->getName(), array('Fieldtype', 'FieldtypeMulti'))) $hasDeletePageField = true;
+
+			} catch(Exception $e) {
+				// not there
+			}
+			break;
+		}
+
+		$selector = "templates_id=$template->id, include=all";
+		$numPages = $this->wire('pages')->count($selector); 
+		$success = true;
+
+		if($numPages <= 200 || $hasDeletePageField) {
+			
+			// not many pages to operate on, OR fieldtype has a custom deletePageField method, 
+			// so use verbose/slow method to delete the field from pages
+			
+			$items = $this->wire('pages')->find($selector); 
+			foreach($items as $page) {
+				try {
+					$field->type->deletePageField($page, $field);
+					// $this->message("Deleted '{$field->name}' from '{$page->path}'", Notice::debug);
+
+				} catch(Exception $e) {
+					$this->error($e->getMessage());
+					$success = false;
+				}
+
+			}
+
+		} else {
+			
+			// large number of pages to operate on: use fast method
+			
+			$database = $this->wire('database');
+			$table = $database->escapeTable($field->getTable());
+			$sql = 	"DELETE $table FROM $table " .
+					"INNER JOIN pages ON pages.id=$table.pages_id " .
+					"WHERE pages.templates_id=:templates_id";
+			$query = $database->prepare($sql);
+			$query->bindValue(':templates_id', $template->id, PDO::PARAM_INT);
+			try {
+				$query->execute();
+			} catch(Exception $e) {
+				$this->error($e->getMessage());
+				$success = false;
+			}
+		}
+
+		$this->message(sprintf($this->_('Deleted field "%s" data from %d pages.'), $field->name, $numPages));
+		return $success;
+	}
+
 	/**
 	 * Is the given field name native/permanent to the database?
 	 *

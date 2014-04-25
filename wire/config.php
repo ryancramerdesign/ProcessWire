@@ -65,6 +65,14 @@ $config->templateExtension = 'php';
 $config->dbCharset = 'utf8';
 
 /**
+ * Database engine to use. Use 'MyISAM' or 'InnoDB'. 
+ *
+ * Note that use of 'InnoDB' is currently experimental. Avoid changing this after install.
+ *
+ */
+$config->dbEngine = 'MyISAM'; 
+
+/**
  * userAuthHashType: hash method to use for passwords. typically 'md5' or 'sha1', 
  *
  * Can be any available with your PHP's hash() installation. For instance, you may prefer 

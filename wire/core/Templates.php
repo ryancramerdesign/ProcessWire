@@ -165,6 +165,10 @@ class Templates extends WireSaveableItems {
 				}
 			}
 			if(count($removeFields)) { 
+				foreach($removeFields as $field) {
+					$field->type->deleteTemplateField($item, $field); 
+				}
+				/*
 				$pages = $this->fuel('pages')->find("templates_id={$item->id}, check_access=0, status<" . Page::statusMax); 
 				foreach($pages as $page) {
 					foreach($removeFields as $field) {
@@ -172,6 +176,7 @@ class Templates extends WireSaveableItems {
 						if($this->fuel('config')->debug) $this->message("Removed field '$field' on page '{$page->url}'"); 
 					}
 				}
+				*/
 			}
 		}
 

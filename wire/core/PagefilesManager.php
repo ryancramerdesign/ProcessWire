@@ -206,7 +206,7 @@ class PagefilesManager extends Wire {
 	 */
 	public function ___url() {
 		if(!is_null($this->url)) return $this->url;
-		if(strpos($this->path(), "/" . self::extendedDirName)) {
+		if(strpos($this->path(), $this->config->paths->files . self::extendedDirName) !== false) {
 			$this->url = $this->config->urls->files . self::_dirExtended($this->page->id); 
 		} else {
 			$this->url = $this->config->urls->files . $this->page->id . '/';
