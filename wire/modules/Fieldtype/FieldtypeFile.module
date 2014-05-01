@@ -246,7 +246,7 @@ class FieldtypeFile extends FieldtypeMulti {
 
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
 
-		if(in_array($operator, array("*=", "~=", "%="))) {
+		if(in_array($operator, array("*=", "~=", "%=", "^=", "$="))) {
 			// fulltext match filename or description
 			$ft = new DatabaseQuerySelectFulltext($query); 
 			$ft->match($table, $subfield, $operator, $value); 
@@ -255,6 +255,12 @@ class FieldtypeFile extends FieldtypeMulti {
 			$query = parent::getMatchQuery($query, $table, $subfield, $operator, $value); 
 		}
 		return $query; 
+	}
+
+	public function ___getSelectorInfo(Field $field, array $data = array()) {
+		$info = parent::___getSelectorInfo($field, $data); 
+		$info['subfields']['data']['label'] = $this->_('filename'); 
+		return $info;
 	}
 
 	public function getDatabaseSchema(Field $field) {

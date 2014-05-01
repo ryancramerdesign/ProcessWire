@@ -438,6 +438,19 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
+	 * Return array with information about what properties and operators can be used with this field
+	 * 
+	 * @param Field $field
+	 * @param array $data Array of extra data, when/if needed
+	 * @return array See FieldSelectorInfo.php for details
+	 *
+	 */
+	public function ___getSelectorInfo(Field $field, array $data = array()) {
+		$selectorInfo = new FieldSelectorInfo(); 
+		return $selectorInfo->getSelectorInfo($field); 
+	}
+
+	/**
 	 * Load the given page field from the database table and return the value. 
 	 *
 	 * Return NULL if the value is not available. 

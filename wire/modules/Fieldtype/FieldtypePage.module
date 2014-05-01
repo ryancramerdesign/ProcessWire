@@ -688,6 +688,60 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 	}
 
 	/**
+	 * Return array with information about what properties and operators can be used with this field
+	 * 
+	 * @param Field $field
+	 * @param array $data
+	 * @return array
+	 *
+	 */
+	public function ___getSelectorInfo(Field $field, array $data = array()) {
+
+		$info = parent::___getSelectorInfo($field, $data); 
+		if(!isset($data['level'])) $data['level'] = 0;
+		$info['input'] = 'page';
+		if($data['level'] > 0) return $info;
+
+		$subfields = array();
+		$fieldgroups = array();
+
+		if($field->template_id) {
+			$template = $this->wire('templates')->get((int) $field->template_id);
+			if($template) $fieldgroups[] = $template->fieldgroup; 
+
+		} else if($field->parent_id) {
+
+			$parent = $this->wire('pages')->get((int) $field->parent_id); 
+
+			foreach($parent->template->childTemplates as $template_id) {
+				$template = $this->wire('templates')->get((int) $template_id); 		
+				if(!$template) continue; 
+				$fieldgroups[$template->fieldgroup->id] = $template->fieldgroup;
+			}
+
+			foreach($this->wire('templates') as $template) {
+				if(!in_array($parent->template->id, $template->parentTemplates)) continue; 
+				if(!$this->wire('pages')->count("parent=$field->parent_id, template=$template->id, include=all")) continue; 
+				$fieldgroups[$template->fieldgroup->id] = $template->fieldgroup; 
+			}
+		}
+
+		if(!count($fieldgroups)) $fieldgroups[] = $this->wire('fields'); 
+
+		foreach($fieldgroups as $fieldgroup) {
+			foreach($fieldgroup as $f) {
+				if(strpos("$f->type", "FieldtypeFieldset") === 0) continue; 
+				if(isset($subfields[$f->name])) continue; 
+				$subfields[$f->name] = $f->type->getSelectorInfo($f, array('level' => $data['level']+1)); 
+			}
+		}
+
+		$info['subfields'] = $subfields; 
+
+		return $info; 
+	}
+
+	/**
 	 * Return configuration fields definable for each FieldtypePage
 	 *
 	 */

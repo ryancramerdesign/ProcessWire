@@ -1,0 +1,933 @@
+<?php
+
+/**
+ * ProcessWire Selector Inputfield
+ *
+ * Concept by Antti Peisa
+ * Code by Ryan Cramer
+ * Sponsored by Avoine
+ * 
+ * ProcessWire 2.x 
+ * Copyright (C) 2014 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://processwire.com
+ *
+ */
+
+class InputfieldSelector extends Inputfield implements ConfigurableModule {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Selector',
+			'version' => 13,
+			'summary' => 'Build a page finding selector visually.',
+			'author' => 'Avoine + ProcessWire',
+			'autoload' => true, 
+			);
+	}
+
+	const debug = false; 
+
+	protected $operators = array();
+	protected $operatorsByType = array();
+	protected $operatorTrimChars = '';
+	protected $systemFields = array();
+	protected $systemPageFields = array();
+	protected $modifierFields = array();
+	protected $selectors = null; // instanceof Selectors, when rendering
+
+	public function __construct() {
+		// attrs and settings that may be changed with API usage or field settings
+		$this->attr('name', 'selector'); 
+		$this->set('addIcon', 'plus-circle'); 
+		$this->set('addLabel', $this->_('Add Field')); 
+
+		// whether to show a live preview in notes section
+		$this->set('preview', 1); 
+
+		// whether to show the live ajax number-of-page-matches counter
+		$this->set('counter', 1); 
+
+		// initial selector value: not changeable by user
+		$this->set('initValue', ''); 
+
+		// if false, blank values don't influence the resulting selector. if true, blank values are included in the selector
+		// when false, intended blank values are specified by a blank quoted string, like this: ""
+		$this->set('allowBlankValues', false); 
+
+		// whether or not inputs for the initValue should be shown (they won't be modifyable if shown)
+		$this->set('showInitValue', false); 
+
+		$this->set('dateFormat', $this->_('Y-m-d')); // date format 
+		$this->set('datePlaceholder', $this->_('yyyy-mm-dd')); // date format placeholder (what users see)
+		$this->set('timeFormat', $this->_('H:i')); // time format
+		$this->set('timePlaceholder', $this->_('hh:mm')); // time format placeholder (what users see)
+
+		parent::__construct();
+	}
+
+	public function ready() {
+
+		$input = $this->wire('input'); 
+		$name = $input->get('name'); 
+		$action = $input->get($this->className()); 
+
+		if(!$action || !$name) return;
+		if(!self::debug && !$this->wire('config')->ajax) return;
+		$this->attr('name', $this->wire('sanitizer')->fieldName($name)); // for session validity
+		if(!$this->sessionGet('valid')) return;
+		if(!$this->wire('user')->isLoggedin()) return;
+
+		$this->set('initValue', $this->sessionGet('initValue')); 
+		$this->setup();
+		$sanitizer = $this->wire('sanitizer'); 
+		$out = '';
+
+		if($action == 'field') { 
+			$out = $this->renderSelectField(); 
+
+		} else if($action == 'subfield' && ($fieldName = $input->get->field)) {
+			$fieldName = $sanitizer->name($fieldName); 
+			$out = $this->renderSelectSubfield($fieldName); 
+
+		} else if($action == 'opval' && ($fieldName = $input->get->field)) {
+			$fieldName = $sanitizer->name($fieldName); 
+			//$subfield = $input->get->subfield ? $sanitizer->name($input->get->subfield) : '';
+			//if($subfield) $fieldName = "$fieldName.$subfield";
+			$type = $sanitizer->name($input->get->type); 
+			$out = $this->renderOpval($fieldName, $type); 
+
+		} else if($action == 'test' && ($selector = $input->post->selector)) { 
+			$out = $this->renderTestSelector($selector); 
+
+		} else if($action == 'autocomplete' && ($fieldName = $input->get('field')) && ($q = $input->get('q'))) {
+			$out = $this->renderAutocomplete($sanitizer->fieldName($fieldName), $sanitizer->text($q)); 
+
+		} else {
+			$out = "Ajax request missing required info";
+		}
+	
+		echo $out; 
+		exit; 
+		
+	}
+
+	public function setup() {
+
+		$this->operators = array(
+			'=' => $this->_('Equals'), 
+			'!=' => $this->_('Not Equals'), 
+			'>' => $this->_('Greater Than'),
+			'<' => $this->_('Less Than'),
+			'>=' => $this->_('Greater Than or Equal'),
+			'<=' => $this->_('Less Than or Equal'),
+			'%=' => $this->_('Contains Text'), 
+			'*=' => $this->_('Contains Phrase'), 
+			'~=' => $this->_('Contains Words'), 
+			'^=' => $this->_('Starts With'), 
+			'$=' => $this->_('Ends With'), 
+			'.=' => $this->_('Ascending By'), 
+			'.=-' => $this->_('Descending By'), 
+			'@=' => $this->_('Has'),
+			'@!=' => $this->_('Does Not Have'),
+			'=""' => $this->_('Is Empty'), 
+			'!=""' => $this->_('Is Not Empty'), 
+			);
+
+		$this->operatorsByType = array(
+			'name' => array('=', '!=', '%='), 
+			'text' => array('%=', '*=', '~=', '^=', '$=', '=', '!=', '=""', '!=""'), 
+			'autocomplete' => array('=', '!='), 
+			'number' => array('=', '!=', '<', '>', '<=', '>='), 
+			'datetime' => array('=', '!=', '<', '>', '<=', '>='), 
+			'page' => array('@=', '@!='), 
+			'checkbox' => array('='), 
+			'sort' => array('.=', '.=-'),
+			'status' => array('@=', '@!='), 
+			); 
+	
+		// chars that are trimmed off operators before being used	
+		// enables different contexts for the same operator
+		$this->operatorTrimChars = '.@';
+	
+		$templates = array();
+		foreach($this->wire('templates') as $template) {
+			$templates[$template->id] = $template->label ? "$template->label ($template->name)" : $template->name; 
+		}
+
+		$users = array(); 
+		foreach($this->wire('users') as $user) {
+			$users[$user->id] = $user->name; 
+		}
+
+		$this->systemFields = array(
+			'template' => array(
+				'input' => 'select', 
+				'label' => $this->_('template'),
+				'options' => $templates, 
+				'sanitizer' => 'integer',
+				'operators' => array('=', '!='), 
+				),
+			'title' => array(
+				'input' => 'text',
+				'label' => $this->_('title')
+				), 
+			'id' => array(
+				'input' => 'number',
+				'label' => $this->_('id'),
+				'sanitizer' => 'integer',
+				),
+			'name' => array(
+				'input' => 'text', 
+				'label' => $this->_('name'),
+				'sanitizer' => 'pageName',
+				'operators' => array('=', '!=', '%='), 
+				),
+			'status' => array(
+				'input' => 'select',
+				'label' => $this->_('status'), 
+				'options' => array(
+					'hidden' => $this->_('Hidden'), 
+					'unpublished' => $this->_('Unpublished'), 
+					'locked' => $this->_('Locked'), 
+					'trash' => $this->_('Trash'), 
+					),
+				'sanitizer' => 'integer',
+				'operators' => array('@=', '@!='), 
+				),
+			'modified' => array(
+				'input' => 'datetime',
+				'label' => $this->_('last modified date'),
+				'operators' => $this->operatorsByType['datetime'], 
+				),
+			'modified_users_id' => array(
+				'input' => 'select', 
+				'label' => $this->_('last modified by user'),
+				'options' => $users,
+				'operators' => array('=', '!='), 
+				),
+			'created' => array(
+				'input' => 'datetime',
+				'label' => $this->_('created date'),
+				'operators' => $this->operatorsByType['datetime'], 
+				),
+			'created_users_id' => array(
+				'input' => 'select', 
+				'label' => $this->_('created by user'),
+				'options' => $users,
+				'operators' => array('=', '!='), 
+				),
+			'num_children' => array(
+				'input' => 'number',
+				'label' => $this->_('number of children'),
+				'sanitizer' => 'integer',
+				),
+			'count' => array(
+				'input' => 'number',
+				'label' => $this->_('count'),
+				'sanitizer' => 'integer',
+				),
+			'parent' => array(
+				'input' => 'text',
+				'label' => $this->_('parent'), 
+				'operators' => array('=', '!='), 
+				),
+			'parent.' => array(
+				'input' => 'subfields',
+				'label' => $this->_('parent...'), 
+				), 
+			'has_parent' => array(
+				'input' => 'text',
+				'label' => $this->_('has parent/ancestor'), 
+				'operators' => array('=', '!='), 
+				),
+			//'parent' => $this->_('parent'), 
+			); 
+
+		// system fields for page references
+		$this->systemPageFields = array(
+			'id' => $this->systemFields['id'], 
+			'name' => $this->systemFields['name'], 
+			'status' => $this->systemFields['status'], 
+			'modified' => $this->systemFields['modified'], 
+			'created' => $this->systemFields['created'], 
+			);
+
+		$this->modifierFields = array(
+			'sort' => array(
+				'input' => 'select', 
+				'label' => $this->_('sort'), 
+				'sanitizer' => 'fieldName', 
+				'operators' => array('.=', '.=-'),
+				'options' => array() // populated below
+				), 
+			'limit' => array(
+				'input' => 'integer', 
+				'label' => $this->_('limit'), 
+				'operators' => array('=')
+				),
+			'include' => array(
+				'input' => 'select', 
+				'label' => $this->_('include'), 
+				'options' => array(
+					'all' => $this->_('All'), 
+					'hidden' => $this->_('Hidden')
+					),
+				'operators' => array('=')
+				)
+			);
+
+		// populate the sort options
+		$options = array(); 
+		foreach($this->systemFields as $name => $f) {
+			$options[$name] = $f['label']; 
+		}
+		foreach($this->wire('fields') as $f) {
+			if(strpos($f->type, 'FieldtypeFieldset') === 0) continue; 
+			$options[$f->name] = $f->name;
+		}
+		ksort($options); 
+		$this->modifierFields['sort']['options'] = $options; 
+	}
+
+	/**
+	 * Set a session variable specific to this Inputfield instance
+	 *
+	 */
+	protected function sessionSet($key, $value) {
+		$s = $this->wire('session')->get($this->className());
+		if(!is_array($s)) $s = array(); 
+		if(count($s) > 10) $s = array_slice(-9); // prevent from growing too large
+		$id = 'id' . $this->wire('page')->id . "_" . $this->wire('sanitizer')->fieldName($this->attr('name')); 
+		if(!isset($s[$id])) $s[$id] = array();
+		$s[$id][$key] = $value; 
+		$this->wire('session')->set($this->className(), $s); 
+		return $this; 
+	}
+
+	/**
+	 * Retrieve a session variable specific to this Inputfield instance
+	 *
+	 */
+	protected function sessionGet($key) {
+		$s = $this->wire('session')->get($this->className());
+		if(!$s) return null;
+		$id = 'id' . $this->wire('page')->id . "_" . $this->wire('sanitizer')->fieldName($this->attr('name')); 
+		if(empty($s[$id])) return null;
+		if(empty($s[$id][$key])) return null;
+		return $s[$id][$key]; 
+	}
+
+	protected function renderTestSelector($selector) {
+		try {
+			$selector = $this->sanitizeSelectorString($selector); 
+			$cnt = $this->wire('pages')->count($selector);
+			$out = '';
+			// take into account a limit=n 
+			if(strpos($selector, 'limit=') !== false && preg_match('/\blimit=(\d+)/', $selector, $matches)) {
+				$out = ' ' . sprintf($this->_('(%d without limit)'), $cnt); 
+				if($cnt > $matches[1]) $cnt = $matches[1]; 
+			}
+			$out = sprintf($this->_n('matches %d page', 'matches %d pages', $cnt), $cnt) . $out;
+
+		} catch(Exception $e) {
+			$out = $e->getMessage();
+		}
+		return $out; 
+	}
+
+	protected function renderSelectField($settings = array(), $selectedValue = '') {
+
+		$defaults = array(
+			'name' => 'field', 
+			'class' => 'select-field',
+			'showModifiers' => true, 
+			'showSystem' => true, 
+			'customFields' => $this->wire('fields'), 
+			'prepend' => '',
+			'showSubfields' => true, 
+			'exclude' => array('count'),
+			'templates' => array(),
+			'type' => '', 
+			); 
+
+		$settings = array_merge($defaults, $settings); 
+		$out = '';
+
+		$selectedValueSubfield = '';
+		if(strpos($selectedValue, '.') !== false && !isset($this->systemFields[$selectedValue])) {
+			list($selectedValue, $selectedValueSubfield) = explode('.', $selectedValue); 
+		}
+		if($selectedValueSubfield) $selectedValue .= ".";
+
+		$inputName = $this->attr('name') . "__" . $settings['name'] . "[]"; 
+		$out .= "<select class='select-$settings[name]' name='$inputName' data-type='$settings[type]'>";
+		$out .= "<option></option>";
+
+		$optgroups = array(); 
+		if($settings['showSystem']) $optgroups[$this->_('System Fields')] = $this->systemFields;
+		if($settings['showModifiers']) $optgroups[$this->_('Modifiers')] = $this->modifierFields;
+	
+		foreach($optgroups as $optgroupLabel => $fields) {	
+			// build system fields optgroup
+			$out .= "<optgroup label='$optgroupLabel'>";
+			foreach($fields as $name => $field) {
+				if(in_array($name, $settings['exclude'])) continue; 
+				if(!$settings['showSubfields'] && substr($name, -1) == '.') continue; 
+				$label = $field['label'];
+				$selected = $selectedValue == $name ? ' selected' : '';
+				$out .= "<option$selected value='$name' data-templates='*'>$label</option>";
+			}
+			$out .= "</optgroup>";
+		}
+
+
+		// build custom fields optgroup
+		$label = $this->_('Custom Fields'); 
+		$out .= "<optgroup label='$label'>";
+
+		foreach($settings['customFields'] as $key => $field) {
+			if(in_array($field->name, $settings['exclude'])) continue; 
+			$allow = 0; 
+			if(count($settings['templates'])) {
+				foreach($settings['templates'] as $name) {
+					$template = $this->wire('templates')->get($name); 
+					if($template && $template->fieldgroup->hasField($field)) $allow++;
+				}
+		
+			} else $allow = 1; 
+
+			if($allow) $out .= $this->renderSelectFieldOption($field, $settings['showSubfields'], '', $selectedValue); 
+		}
+
+		$out .= "</optgroup>";
+		$out .= "</select>";
+		return $out; 
+	}
+
+	protected function hasSubfields(Field $field) {
+		return count($info['subfields']) > 0;
+	}
+
+	protected function renderSelectFieldOption(Field $field, $useSubfields = true, $templatesStr = '', $selectedValue = '') {
+
+		if($field->type instanceof FieldtypeFieldsetOpen) return '';
+		$out = '';
+		$selected = $field->name == $selectedValue ? ' selected' : '';
+
+		foreach($field->getTemplates() as $template) {
+			$templatesStr .= $template->id . '|';
+		}
+
+		$selectorInfo = $this->getSelectorInfo($field);
+
+		if($selectorInfo['input'] != 'none') {
+			$out = "<option$selected value='$field->name' data-templates='|$templatesStr'>$field->name</option>";
+		}
+
+		if($useSubfields) {
+
+			$hasSubfields = count($selectorInfo['subfields']) > 0; 
+			$selected = "$field->name." == $selectedValue ? ' selected' : '';
+			$option = "<option$selected value='$field->name.' data-templates='|$templatesStr'>$field->name &hellip;</option>";
+			$blankValue = $field->type->getBlankValue(new NullPage(), $field); 
+			$isPageField = $blankValue instanceof PageArray || $blankValue instanceof Page;
+			if($hasSubfields) $out .= $option;
+
+			if($isPageField && !$field->derefAsPage) {
+				$groupLabel = $this->_('(1)'); 
+				$selected = "@$field->name." == $selectedValue ? ' selected' : '';
+				$out .= "<option$selected value='@$field->name.' data-templates='|$templatesStr'>$field->name $groupLabel &hellip;</option>";
+			}
+		}
+
+		return $out; 
+	}
+
+	protected function renderSelectOperator($name, $type = '', $selectedValue = '', $operators = array()) {
+		$inputName = $this->attr('name') . "__operator[]"; 
+
+		if(!count($operators)) { 
+			if($type && isset($this->systemFields[$name]) && isset($this->systemFields[$name]['operators'])) {
+				$operators = $this->systemFields[$name]['operators'];
+
+			} else if($type && isset($this->modifierFields[$name]) && isset($this->modifierFields[$name]['operators'])) {
+				$operators = $this->modifierFields[$name]['operators'];
+
+			} else if($type && isset($this->operatorsByType[$type])) {
+				$operators = $this->operatorsByType[$type];
+			} else {
+				$operators = $this->operators; 
+			}
+		}
+
+		$out = "<select class='select-operator' name='$inputName'>";
+
+		foreach($operators as $key => $label) {
+			if(isset($this->operators[$label])) {
+				$operator = $label;
+				$label = $this->operators[$label]; 
+			} else {
+				$operator = $key;
+			}
+			$operator = ltrim($operator, $this->operatorTrimChars); 
+			//$label .= " ($operator)";
+			$selected = $operator == $selectedValue ? ' selected' : '';
+			$out .= "<option$selected value='$operator'>$label</option>";
+		}
+		$out .= "</select>";
+		return $out; 
+	}
+
+	public function getSelectorInfo($field) {
+		if(is_string($field)) {
+			if(isset($this->systemFields[$field])) return $this->systemFields[$field]; 
+			if(isset($this->modifierFields[$field])) return $this->modifierFields[$field]; 
+			$field = $this->wire('fields')->get($field); 
+		}
+		if(!$field || !$field instanceof Field) return array();
+		$info = $field->type->getSelectorInfo($field);
+		if($info['input'] == 'page') {
+			$info['subfields'] = array_merge($info['subfields'], $this->systemPageFields); 
+		}
+		if(!empty($info['subfields'])) ksort($info['subfields']);
+		return $info; 
+	}
+
+	protected function renderOpval($fieldName, $type = '', $selectedOperator = '', $selectedValue = '', $orChecked = false) { 
+
+		$inputName = $this->attr('name') . "__value[]"; 
+		$options = array();
+		$out = '';
+		$selector = ''; // autocomplete selector, if used
+		$selectedValueEntities = $this->wire('sanitizer')->entities($selectedValue); 
+		$operators = array();
+		$subfield = '';
+		if(strpos($fieldName, '.') !== false) list($fieldName, $subfield) = explode('.', $fieldName); 
+
+		if(isset($this->systemFields[$fieldName])) {
+
+			$info = $this->systemFields[$fieldName]; 
+			$type = $info['input'];
+			if(isset($info['options'])) $options = $info['options'];
+
+		} else if(isset($this->modifierFields[$fieldName])) { 
+
+			$info = $this->modifierFields[$fieldName]; 
+			$type = $info['input'];
+			if(isset($info['options'])) $options = $info['options'];
+
+		} else if($field = $this->wire('fields')->get($fieldName)) { 
+
+			$selectorInfo = $this->getSelectorInfo($field); 
+
+			if(count($selectorInfo)) {
+
+				if($subfield && isset($selectorInfo['subfields'][$subfield])) $selectorInfo = $selectorInfo['subfields'][$subfield]; 
+				$type = $selectorInfo['input']; 
+
+				if($type == 'page') {
+					if($subfield) $field = $this->wire('fields')->get($subfield); 
+					$selector = $this->useAutocomplete($field); 
+					if($selector) {
+						$type = 'autocomplete';
+					} else {
+						$page = new NullPage();
+						$inputfield = $field->getInputfield($page, $field); 
+						foreach($inputfield->getSelectablePages($page) as $item) {
+							$options[$item->id] = $item->get('title|name'); 
+						}
+					}
+				} else {
+					if(!empty($selectorInfo['operators'])) $operators = $selectorInfo['operators'];
+					if(!empty($selectorInfo['options'])) $options = $selectorInfo['options'];
+				}
+
+
+			} else {
+				// for backwards compatibility with pre-2.5
+				$type = 'text';
+			}
+		} else {
+			// throw new WireException("Unknown field: $fieldName"); 
+			$type = 'text'; 
+		}
+
+		if($type == 'text' && $selectedValue = '""' && in_array($selectedOperator, array('=', '!='))) {
+			$selectedOperator .= '""';
+			$selectedValue = '';
+		}
+
+		$out .= $this->renderSelectOperator($fieldName, $type, $selectedOperator, $operators) . " ";
+
+		if(in_array($type, array('select', 'page', 'checkbox'))) { 
+
+			$out .= "<select class='select-value input-value' name='$inputName'>";
+			$out .= "<option value=''></option>";
+			if($type != 'checkbox' && !isset($this->systemFields[$fieldName]) && !isset($this->modifierFields[$fieldName])) {
+				$selected = $selectedValue == '""' ? ' selected' : '';
+				$out .= "<option$selected value='\"\"'>" . $this->_('None') . "</option>";
+			}
+			foreach($options as $value => $label) {
+				$selected = $selectedValue == $value ? ' selected' : '';
+				$out .= "<option$selected value='$value'>$label</option>";
+			}
+			$out .= "</select>";
+
+		} else if($type == 'autocomplete') {
+			$placeholder = $this->_('Start typing...'); 
+			$selectedValueTitle = $this->wire('pages')->get((int) $selectedValueEntities)->get('title|name');
+			$out .= "<input value='$selectedValueEntities' class='input-value' name='$inputName' type='hidden' />";
+			$out .= "<input value='$selectedValueTitle' class='input-value-autocomplete' name='autocomplete_$inputName' placeholder='$placeholder' type='text' />";
+
+		} else if($type == 'datetime' || $type == 'date') {
+			$out .= $this->renderDateInput($inputName, $selectedValue, $type == 'datetime'); 
+			//$out .= "<input value='$selectedValueEntities' class='input-value input-value-datetime InputfieldDatetimeDatepicker3' name='$inputName' type='text' />";				
+
+		} else {
+			$out .= "<input value='$selectedValueEntities' class='input-value input-value-$type' name='$inputName' type='$type' />";
+		}
+
+		$orLabel = $this->_('Check box to make this row OR rather than AND');
+		$orChecked = $orChecked ? ' checked' : '';
+		$out .= "<input$orChecked class='input-or' type='checkbox' name='or_$inputName' value='1' title='$orLabel' />";
+
+		return $out; 
+	}
+
+	protected function renderDateInput($name, $value, $useTime = false) {
+		$inputfield = $this->wire('modules')->get('InputfieldDatetime'); 
+		$inputfield->attr('name', $name); 
+		$inputfield->attr('value', $value); 
+		$inputfield->datepicker = InputfieldDatetime::datepickerFocus; 
+		$inputfield->placeholder = $this->datePlaceholder; 
+		$inputfield->dateInputFormat = $this->dateFormat; 
+		$inputfield->addClass('input-value'); 
+		if($useTime) { 
+			$inputfield->timeInputFormat = $this->timeFormat;
+			$inputfield->placeholder .= ' ' . $this->timePlaceholder;
+		}
+		return $inputfield->render();
+	}
+
+	protected function renderSelectSubfield($fieldName, $selectedValue = '') {
+
+		if($fieldName == 'parent' || $fieldName == 'children') {
+			$fields = $this->wire('fields'); 
+			$out = $this->renderSelectField(array(
+				'name' => 'subfield', 
+				'class' => 'select-subfield', 
+				'type' => 'page', 
+				'showModifiers' => false, 
+				'showSubfields' => false, 
+				'customFields' => $fields,
+				'exclude' => array() // prevent exclusion of 'count'
+				), $selectedValue); 
+
+		} else if(isset($this->systemFields[$fieldName])) { 
+			return '';
+
+		} else { 
+			$field = $this->wire('fields')->get($fieldName); 
+			if(!$field) return "Unknown Field: $fieldName";
+			$selectorInfo = $this->getSelectorInfo($field); 
+			$inputName = $this->attr('name') . "__" . $field->name . "[]"; 
+			$out = "<select class='select-subfield' name='$inputName' data-type='$selectorInfo[input]'>";
+			$out .= "<option></option>";
+
+			foreach($selectorInfo['subfields'] as $name => $info) {
+				$selected = $selectedValue == $name ? ' selected' : '';
+				// $label = empty($info['label']) ? $name : $info['label']; 
+				$label = $name; 
+				$out .= "<option$selected value='$field->name.$name'>$label</option>";
+				
+			}
+			$out .= "</select>";
+			return $out; 
+		}
+
+		return $out; 
+
+	}
+
+
+	/**
+	 * Whether or not to use autocomplete
+	 *
+	 * If no, blank string is returned. 
+	 * If yes, then the selector string to find pages is returned. 
+	 *
+	 * @param Field $field
+	 * @param int $threshold If determined selectable quantity is <= this number, function will return blank.
+	 * @return string Selector string. Blank string means don't use autocomplete. 
+	 *
+	 */
+	protected function useAutocomplete(Field $field, $threshold = 100, $checkQuantity = true) {
+
+		if(!$field->type instanceof FieldtypePage) return ''; 
+
+		$selector = '';
+
+		// determine autocomplete state based on field settings and quantity of pages involved
+		if($field->findPagesSelector) {
+			// user-specified selector determines which pages match
+			$selector = trim($field->findPagesSelector, ', '); 
+			if($field->parent_id) $selector .= ",has_parent=" . (int) $field->parent_id; 
+		} else {
+			if($field->parent_id) $selector = "parent_id=" . (int) $field->parent_id; 
+		}
+
+		if($field->template_id) $selector .= ",templates_id=" . (int) $field->template_id; 
+
+		if(empty($selector)) {
+			// if it's using a runtime code to determine, then we can't use autocomplete
+			if($field->findPagesCode) return ''; 
+			// otherwise just populate a selector that can match anything
+			$selector = "id>0";
+		}
+
+		if(!$checkQuantity) return $selector; 
+
+		$quantity = $this->wire('pages')->count($selector); 
+
+		return $quantity > $threshold ? $selector : '';
+	}
+
+	protected function renderAutocomplete($fieldName, $q) {
+
+		header("Content-Type: application/json"); 
+
+		$data = array(
+			'field' => "$fieldName", 
+			'status' => 0, // 0=error, 1=success
+			'selector' => '', 
+			'items' => array()
+			);
+
+		$field = $this->wire('fields')->get($fieldName); 
+
+		if(!$field) {
+			$data['error'] = 'Field does not exist';
+			return json_encode($data); 
+		}
+
+		$selector = $this->useAutocomplete($field, 100, false); 
+
+		if(!$selector) {
+			$data['error'] = "Field '$field->name' does not require autocomplete";
+			return json_encode($data); 
+		}
+
+		$operator = '%=';
+		$searchFields = $field->searchFields; // used by InputfieldPageAutocomplete
+		$labelFieldName = $field->labelFieldName; 
+		$labelField = $this->wire('fields')->get($labelFieldName); 
+
+		if($searchFields) {
+			$searchFields = str_replace(' ', '|', trim($searchFields)); 
+
+		} else if($labelField && $labelField->type instanceof FieldtypeText) {
+			$searchFields = $labelFieldName; 
+
+		} else if($field->template_id && $this->wire('templates')->get($field->template_id)->fieldgroup->hasField('title')) {
+			$searchFields = 'title';
+			$labelFieldName = 'title';
+
+		} else {
+			$searchFields = 'name';
+			$labelFieldName = 'name';
+		}
+
+		$selector .= ", $searchFields%=" . $this->wire('sanitizer')->selectorValue($q);
+		$selector .= ", limit=50, include=hidden";
+
+		foreach($this->wire('pages')->find($selector) as $item) {
+			$data['items'][] = array(
+				'value' => $item->id, 
+				'label' => $item->get("$labelFieldName|name")
+				); 
+		}
+		$data['status'] = 1; 
+		$data['selector'] = $selector; 
+								
+		return json_encode($data); 
+	}
+
+	public function renderRow($select, $subfield, $opval, $class = '') {
+		
+		$out = "<li class='selector-row ui-helper-clearfix $class'>
+			$select
+			<span class='subfield'>$subfield</span> 
+			<span class='opval'>$opval</span> &nbsp; 
+			<a href='#' class='delete-row'><i class='fa fa-trash-o'></i></a>
+			</li>
+			";
+		return $out; 
+	}
+
+	public function setAttribute($key, $value) {
+		if($key == 'value') {
+			if($this->initValue && strpos($value, $this->initValue) === 0) {
+				// remove initValue from value so that inputs aren't drawn for it
+				$value = trim(substr($value, strlen($this->initValue)+1), ', '); 
+			}
+		}
+		return parent::setAttribute($key, $value); 
+	}
+
+	public function ___render() {
+		$this->renderDateInput('tmp', '', true); // to load css/js
+
+		$this->setup();
+
+		//$this->attr('value', 'title%=nano, company=1302, categories.title*=elec'); 
+		$value = trim($this->attr('value')); 
+		try {
+			$this->selectors = new Selectors($value); 
+		} catch(Exception $e) {
+			$this->error($e->getMessage()); 
+		}
+
+		// set a session variable so that ajax request know there has been a valid request
+		$this->sessionSet('valid', true); 
+		$this->sessionSet('initValue', $this->initValue); 
+
+		// determine if there are any initValue templates in play, so that we can pre-limit what fields are available
+		$templates = array();
+		$renderSelectOptions = array();
+		if($this->initValue) foreach(new Selectors($this->initValue) as $selector) {
+			if($selector->field == 'template') {
+				$templateValue = $selector->value; 
+				if(!is_array($templateValue)) $templateValue = array($templateValue); 
+				foreach($templateValue as $t) $templates[] = $this->wire('templates')->get($t)->name; 
+			}
+			if(count($templates)) $renderSelectOptions['templates'] = $templates; 
+		}
+
+
+		$select = $this->renderSelectField($renderSelectOptions);
+		$previewClass = $this->preview ? '' : ' selector-preview-disabled'; 
+		$counterClass = $this->counter ? '' : ' selector-counter-disabled';
+		$rows = $this->renderRow($select, '', '', 'selector-template-row'); 
+
+		foreach($this->selectors as $selector) {
+
+			$rowClass = '';
+			$orChecked = false;
+			$fields = $selector->field; 
+			if(!is_array($fields)) $fields = array($fields); 
+
+			foreach($fields as $fieldNum => $field) {
+
+				$field1 = $field;
+				$field2 = '';
+				$group = ''; 
+				$dot = strpos($field, '.'); 
+				if($dot && !isset($this->systemFields[$field])) {
+					$field1 = substr($field, 0, $dot); 
+					$field2 = substr($field, $dot+1); 
+				}
+		
+				$select = $this->renderSelectField(array(), $field); 
+				$select2 = $dot ? $this->renderSelectSubfield($field1, $field2) : ''; 	
+
+				if($select2) $rowClass .= " has-subfield";
+				if($fieldNum > 0) $rowClass .= " has-or-field";
+
+				$values = $selector->value; 
+				if(!is_array($values)) $values = array($values); 
+
+				foreach($values as $valueNum => $value) { 
+					if($valueNum > 0) $rowClass .= " has-or-value";
+					if($fieldNum > 0 || $valueNum > 0) $orChecked = true; 
+					if(!is_null($selector->group)) $group = '@';
+					$opval = $this->renderOpval($group . ($field2 ? $field2 : $field1), '', $selector->operator, $value, $orChecked); 
+					$rows .= $this->renderRow($select, $select2, $opval, $rowClass); 			
+				}
+			}
+		}
+
+		$notes = $this->_('Each selector row above says: field must match value. These are called AND conditions. In cases where the same field or value appears in more than one row, an OR condition is possible. The presence of a checkbox at the end of the row indicates this. Check this box to make the row an OR condition rather than an AND condition.');  // Description of OR checkbox
+
+		// attributes for our hidden input, populated by javascript as filters are added/changed/removed
+		$attr = array(
+			'type' => 'hidden', 
+			'id' => $this->attr('id'), 
+			'name' => $this->attr('name'), 
+			'value' => $this->attr('value'), 
+			'class' => 'selector-value', 
+			'data-template-ids' => implode(',', $this->getTemplatesFromInitValue($this->initValue)), 
+			);
+
+		if($this->allowBlankValues) $attr['class'] .= ' allow-blank';
+		$attrStr = $this->getAttributesString($attr);
+		$attr['value'] = $this->wire('sanitizer')->entities($attr['value']); 
+		$initValue = $this->wire('sanitizer')->entities($this->initValue); 
+
+		// starting output
+		$out =	"
+			<ul class='selector-list'>
+			$rows
+			</ul>
+			<a class='selector-add' href='#'><i class='fa fa-$this->addIcon'></i> $this->addLabel</a>
+			<span class='selector-counter$counterClass detail'></span>
+			<p class='selector-preview$previewClass' data-init-value='$initValue'>$attr[value]</p>
+			<input $attrStr />
+			<p class='detail or-notes'>$notes</p>
+
+			";
+
+		return $out; 
+	}
+
+	public function sanitizeSelectorString($selectorString) {
+
+		$initSelectors = new Selectors($this->initValue); 
+		$userSelectors = new Selectors($selectorString); 
+
+		$selector = (string) $initSelectors . ", ";
+		$selector .= (string) $userSelectors; 
+	
+		return trim($selector, ", "); 
+	}
+
+	/**
+	 * Returns array of template IDs
+	 *
+	 */
+	protected function getTemplatesFromInitValue($initValue) {
+		// determine if a template is enforced and populate allowedTemplates
+		$templates = array();
+		if(!$initValue || strpos($initValue, 'template=') === false) return array();
+		foreach(new Selectors($initValue) as $selector) {
+			if($selector->field == 'template') {
+				$value = is_array($selector->value) ? $selector->value : array($selector->value); 
+				foreach($value as $name) {
+					$t = $this->wire('templates')->get($name); 
+					if($t) $templates[] = $t->id;
+				}
+			}
+		}
+		return $templates; 
+	}
+
+	public function ___processInput(WireInputData $input) {
+		parent::___processInput($input); 
+		$value = $this->attr('value'); 
+		$this->attr('value', $this->sanitizeSelectorString($value)); 
+		return $this; 
+	}
+
+	public static function getModuleConfigInputfields(array $data) {
+		$form = new InputfieldWrapper();
+		$f = wire('modules')->get('InputfieldSelector'); 
+		$f->name = 'test';
+		$f->label = 'Selector Sandbox';
+		$f->description = 'This is here just in case you want to test out the functionality of this Inputfield.'; 
+		$form->add($f); 
+		return $form; 
+	}
+
+
+}

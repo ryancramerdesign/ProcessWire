@@ -267,6 +267,11 @@ class Modules extends WireArray {
 			$basename = basename($filename, '.php'); 
 			$basename = basename($basename, '.module');
 
+			if(class_exists($basename, false)) {
+				// possibly more than one of the same modules on the system 
+				continue; 
+			}
+
 			// if the filename doesn't end with .module, then stop and move onto the next
 			if(!strpos($filename, '.module') || (substr($filename, -7) !== '.module' && substr($filename, -11) !== '.module.php')) continue; 
 
@@ -368,10 +373,10 @@ class Modules extends WireArray {
 			}
 
 			// if the filename doesn't end with .module or .module.php, then stop and move onto the next
-			if(	(!strpos($filename, '.module') || substr($filename, -7) !== '.module') && substr($filename, -11 !== '.module.php')) {
-					continue; 
+			if((!strpos($filename, '.module') || substr($filename, -7) !== '.module') && substr($filename, -11 !== '.module.php')) {
+				continue; 
 			}
-			
+		
 			$files[] = str_replace($startPath, '', $pathname); 
 		}
 
@@ -479,7 +484,10 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function includeModule($module) {
-
+		$className = '';
+		if(is_object($module)) $className = $module->className();
+			else if(is_string($module)) $className = $module; 
+		if($className && class_exists($className, false)) return true; 
 		if(is_string($module)) $module = parent::get($module); 
 		if(!$module) return false; 
 
@@ -632,7 +640,7 @@ class Modules extends WireArray {
 
 		} else {
 			$this->includeModule($class); 
-			if(!class_exists($class)) $reason = $reason1; 
+			if(!class_exists($class, false)) $reason = $reason1; 
 		}
 
 		if(!$reason) { 
@@ -942,14 +950,14 @@ class Modules extends WireArray {
 			return $info;
 		}
 
-		if(!class_exists($module)) {
+		if(!class_exists($module, false)) {
 
 			if(isset($this->installable[$module])) {
 				$filename = $this->installable[$module]; 
 				include_once($filename); 
 			}
 
-			if(!class_exists($module)) {
+			if(!class_exists($module, false)) {
 				$info['title'] = $module; 
 				$info['summary'] = 'Inactive';
 				return $info;

@@ -43,6 +43,25 @@ abstract class FieldtypeMulti extends Fieldtype {
 	}
 
 	/**
+	 * Return array with information about what properties and operators can be used with this field
+	 * 
+	 * @param Field $field
+	 * @param array $data Array of extra data, when/if needed
+	 * @return array
+	 *
+	 */
+	public function ___getSelectorInfo(Field $field, array $data = array()) {
+		$info = parent::___getSelectorInfo($field, $data); 
+		$info['subfields']['count'] = array(
+			'name' => 'count',
+			'label' => $this->_('count'), 
+			'operators' => array('=', '!=', '<', '>', '<=', '>='), 
+			'input' => 'number'
+			);
+		return $info; 
+	}
+
+	/**
 	 * Get an array of Fieldtypes that are compatible with this one (i.e. ones the user may change the type to)
 	 *
 	 * @param Field $field Just in case it's needed
