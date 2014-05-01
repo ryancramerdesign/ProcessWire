@@ -47,6 +47,12 @@ class ProcessModule extends Process implements ConfigurableModule {
 	 *
 	 */
 	protected $deleteableModules = array();
+	
+	/**
+	 * Uninstallable module categories
+	 *
+	 */
+	protected $uninstallableCategories = array();
 
 	/**
 	 * Number of new modules found after a reset
@@ -62,6 +68,9 @@ class ProcessModule extends Process implements ConfigurableModule {
 			$this->labels['download_install'] = $this->_('Download and Install');
 		}
 		$this->labels['check_new'] = $this->_('Check for New Modules'); 
+		
+		$this->uninstallableCategories['language-pack'] = $this->_('Language Packs'); 
+		$this->uninstallableCategories['site-profile'] = $this->_('Site Profiles'); 
 
 		$this->set('serviceUrl', self::defaultServiceUrl); 
 		$this->set('serviceKey', self::defaultServiceKey); 
@@ -397,6 +406,13 @@ class ProcessModule extends Process implements ConfigurableModule {
 		if($data['status'] !== 'success') {
 			$this->error($this->_('Error reported by web service:') . ' ' . wire('sanitizer')->entities($data['error']));
 			return $this->session->redirect($redirectURL);	
+		}
+		foreach($data['categories'] as $category) {
+			$categoryName = wire('sanitizer')->entities($category['name']);
+			if(array_key_exists($categoryName, $this->uninstallableCategories)) {
+				$this->error(sprintf($this->_('%s are not installable from admin'), $this->uninstallableCategories[$categoryName])); 
+				return $this->session->redirect($redirectURL); 
+			}
 		}
 	
 		$form = $this->buildDownloadConfirmForm($data, $update);
