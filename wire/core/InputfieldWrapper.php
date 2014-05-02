@@ -306,7 +306,7 @@ class InputfieldWrapper extends Inputfield {
 			//if(count($errors)) $ffAttrs['class'] .= " ui-state-error InputfieldStateError"; 
 			if(count($errors)) $ffAttrs['class'] .= ' ' . $classes['item_error'];
 			if($required) $ffAttrs['class'] .= ' ' . $classes['item_required']; 
-			if(strlen($showIf)) {
+			if(strlen($showIf) && !$this->renderValueMode) { // note: $this->renderValueMode (rather than $renderValueMode) is intentional
 				// support for repeaters, added by soma:
 				if(strpos($inputfield->name, "_repeater") !== false) { 
 					$rep = explode("repeater", $inputfield->name);
