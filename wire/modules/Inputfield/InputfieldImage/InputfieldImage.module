@@ -34,8 +34,9 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 
 	public function ___renderValue() {
 		$out = '';
-
-		foreach($this->attr('value') as $pageimage) {
+		$value = $this->attr('value'); 
+		if(empty($value)) return '';
+		foreach($value as $pageimage) {
 			$thumb = $pageimage; 
 			if($this->adminThumbs && $thumb->height > $this->adminThumbHeight) {
 				// create a variation for display with this inputfield

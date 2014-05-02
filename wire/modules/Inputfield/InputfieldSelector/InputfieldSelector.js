@@ -248,9 +248,12 @@ var InputfieldSelector = {
 				var subfield = $row.find(".select-subfield").val();
 				if(subfield.length > 0) { 
 					if(subfield.indexOf('.') > 0) {
-						fieldName = subfield; // fieldName was already specified with subfield
+						// fieldName was already specified with subfield
+						if(fieldName.indexOf('@') > -1) fieldName = '@' + subfield; 
+							else fieldName = subfield; 
 					} else {
-						fieldName += subfield; // subfield needs to be appended to fieldName
+						// subfield needs to be appended to fieldName
+						fieldName += subfield; 
 					}
 					// .data is assumed and optional, so lets remove it since it's exteraneous
 					if(fieldName.indexOf('.data') > 0) fieldName = fieldName.replace(/\.data$/, ''); 

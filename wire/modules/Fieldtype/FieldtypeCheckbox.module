@@ -53,5 +53,19 @@ class FieldtypeCheckbox extends Fieldtype {
 		return $schema;
 	}
 
+	/**
+	 * Return array with information about what properties and operators can be used with this field
+	 * 
+	 * @param Field $field
+	 * @param array $data
+	 * @return array
+	 *
+	 */
+	public function ___getSelectorInfo(Field $field, array $data = array()) {
+		$info = parent::___getSelectorInfo($field, $data); 
+		$info['input'] = 'checkbox';
+		return $info; 
+	}
+
 }
 

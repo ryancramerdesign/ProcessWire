@@ -20,7 +20,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Selector',
-			'version' => 13,
+			'version' => 14,
 			'summary' => 'Build a page finding selector visually.',
 			'author' => 'Avoine + ProcessWire',
 			'autoload' => true, 
@@ -102,7 +102,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$out = $this->renderTestSelector($selector); 
 
 		} else if($action == 'autocomplete' && ($fieldName = $input->get('field')) && ($q = $input->get('q'))) {
-			$out = $this->renderAutocomplete($sanitizer->fieldName($fieldName), $sanitizer->text($q)); 
+			$out = $this->renderAutocomplete($sanitizer->name($fieldName), $sanitizer->text($q)); 
 
 		} else {
 			$out = "Ajax request missing required info";
@@ -135,6 +135,9 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'!=""' => $this->_('Is Not Empty'), 
 			);
 
+		// operators by input type
+		// this is a backup and/or for system fields, as these may also be specified
+		// with fieldtype's getSelectorInfo() method, which takes precedence
 		$this->operatorsByType = array(
 			'name' => array('=', '!=', '%='), 
 			'text' => array('%=', '*=', '~=', '^=', '$=', '=', '!=', '=""', '!=""'), 
@@ -142,7 +145,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'number' => array('=', '!=', '<', '>', '<=', '>='), 
 			'datetime' => array('=', '!=', '<', '>', '<=', '>='), 
 			'page' => array('@=', '@!='), 
-			'checkbox' => array('='), 
+			'checkbox' => array('=', '!='), 
 			'sort' => array('.=', '.=-'),
 			'status' => array('@=', '@!='), 
 			); 
@@ -557,6 +560,9 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		if($type == 'text' && $selectedValue = '""' && in_array($selectedOperator, array('=', '!='))) {
 			$selectedOperator .= '""';
 			$selectedValue = '';
+		} else if($type == 'checkbox') {
+			$operators = $this->operatorsByType['checkbox']; 
+			$options = array(0 => $this->_('Not Checked'), 1 => $this->_('Checked')); 
 		}
 
 		$out .= $this->renderSelectOperator($fieldName, $type, $selectedOperator, $operators) . " ";
@@ -570,7 +576,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				$out .= "<option$selected value='\"\"'>" . $this->_('None') . "</option>";
 			}
 			foreach($options as $value => $label) {
-				$selected = $selectedValue == $value ? ' selected' : '';
+				$selected = $selectedValue == $value && strlen($selectedValue) == strlen($value) ? ' selected' : '';
 				$out .= "<option$selected value='$value'>$label</option>";
 			}
 			$out .= "</select>";
@@ -704,6 +710,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'selector' => '', 
 			'items' => array()
 			);
+
+		if(strpos($fieldName, '.') !== false) {
+			list($ignored, $fieldName) = explode('.', $fieldName); 
+		}
 
 		$field = $this->wire('fields')->get($fieldName); 
 
