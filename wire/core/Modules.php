@@ -957,7 +957,7 @@ class Modules extends WireArray {
 				include_once($filename); 
 			}
 
-			if(!class_exists($module, false)) {
+			if(!class_exists($module)) {
 				$info['title'] = $module; 
 				$info['summary'] = 'Inactive';
 				return $info;
