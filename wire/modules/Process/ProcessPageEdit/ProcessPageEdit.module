@@ -1091,6 +1091,7 @@ class ProcessPageEdit extends Process {
 		$this->session->CSRF->validate(); // throws exception when invalid
 
 		$form = new InputfieldWrapper();
+		$form->useDependencies = false; 
 		$keys = array();
 
 		if(isset($_SERVER['HTTP_X_FIELDNAME'])) {
@@ -1109,6 +1110,7 @@ class ProcessPageEdit extends Process {
 			if(!$this->ajaxEditable($page, $key)) continue; 
 			if(!$inputfield = $field->getInputfield($page)) continue; 
 
+			$inputfield->showIf = ''; // cancel showIf dependencies since other fields may not be present
 			$inputfield->name = $key;
 			$inputfield->value = $page->get($key); 
 			$form->add($inputfield); 

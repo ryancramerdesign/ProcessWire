@@ -18,10 +18,10 @@ class InputfieldForm extends InputfieldWrapper {
 	const debug = false; // set to true to enable debug mode for field dependencies
 
 	public function __construct() {
+		$this->set('protectCSRF', true); 
 		parent::__construct();
 		$this->attr('method', 'post'); 
 		$this->attr('action', './'); 
-		$this->set('protectCSRF', true); 
 		$this->set('class', ''); 
 	}
 

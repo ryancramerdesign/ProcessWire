@@ -235,3 +235,19 @@ $config->httpHosts = array(
         //'localhost:8888',
 	);
 
+/**
+ * Settings specific to InputfieldWrapper class
+ *
+ * Setting useDependencies to false may enable to use depencencies in some places where
+ * they aren't currently supported, like files/images and repeaters. Note that setting it
+ * to false only disables it server-side. The javascript dependencies work either way. 
+ *
+ * Uncomment and paste into /site/config.php if you want to use this
+ * 
+ * $config->InputfieldWrapper = array(
+ *	'useDependencies' => true,
+ * 	'requiredLabel' => 'Missing required value', 
+ *	);
+ * 
+ */
+

@@ -129,11 +129,14 @@ class InputfieldWrapper extends Inputfield {
  		$this->children = new InputfieldsArray(); 
 		$this->set('skipLabel', Inputfield::skipLabelFor); 
 		$this->requiredLabel = $this->_('Missing required value');
-		$this->set('renderValueMode', false); 
 		$columnWidthSpacing = $this->wire('config')->inputfieldColumnWidthSpacing; 
 		$columnWidthSpacing = is_null($columnWidthSpacing) ? 1 : (int) $columnWidthSpacing; 
 		$this->set('columnWidthSpacing', $columnWidthSpacing); 
-		//$this->set('useDependencies', true); // whether or not to use consider field dependencies during processing
+		$this->set('useDependencies', true); // whether or not to use consider field dependencies during processing
+		// allow optional override of any above settings with a $config->InputfieldWrapper array. 
+		$settings = $this->wire('config')->InputfieldWrapper; 
+		if(is_array($settings)) foreach($settings as $key => $value) $this->set($key, $value);
+		$this->set('renderValueMode', false); 
 	}
 
 	/**
@@ -421,8 +424,10 @@ class InputfieldWrapper extends Inputfield {
 			// skip over the field if it is not processable
 			if(!$this->isProcessable($child)) continue; 	
 
-			// pass along the dependencies valeu to child wrappers
-			//if($child instanceof InputfieldWrapper) $child->set('useDependencies', $this->useDependencies); 
+			// pass along the dependencies value to child wrappers
+			if($child instanceof InputfieldWrapper && $this->useDependencies === false) {
+				$child->set('useDependencies', false); 
+			}
 
 			// call the inputfield's processInput method
 			$child->processInput($input); 
@@ -453,7 +458,7 @@ class InputfieldWrapper extends Inputfield {
 		if($inputfield->collapsed === Inputfield::collapsedLocked) return false;
 
 		// if dependencies aren't in use, we can skip the rest
-		//if(!$this->useDependencies) return true; 
+		if($this->useDependencies === false) return true; 
 		
 		if(strlen($inputfield->getSetting('showIf')) || 
 			($inputfield->getSetting('required') && strlen($inputfield->getSetting('requiredIf')))) {
