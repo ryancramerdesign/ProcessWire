@@ -330,6 +330,7 @@ class Pagefile extends WireData {
 	 *
 	 */
 	public function unlink() {
+		if(!strlen($this->basename) || !is_file($this->filename)) return true; 
 		return unlink($this->filename); 	
 	}
 

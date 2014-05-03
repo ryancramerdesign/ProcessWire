@@ -236,8 +236,8 @@ class ImageSizer extends Wire {
 
 		$orientations = null; // @horst
 		$needRotation = $this->autoRotation !== true ? false : ($this->checkOrientation($orientations) && (!empty($orientations[0]) || !empty($orientations[1])) ? true : false);
-		$needResizing = true; // $this->isResizeNecessary($targetWidth, $targetHeight);
-		//if(!$needResizing && !$needRotation) return true;
+		$needResizing = $this->isResizeNecessary($targetWidth, $targetHeight);
+		if(!$needResizing && !$needRotation) return true;
 
 		$source = $this->filename;
 		$dest = str_replace("." . $this->extension, "_tmp." . $this->extension, $source); 

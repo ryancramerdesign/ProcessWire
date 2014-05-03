@@ -438,6 +438,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$isPageField = $blankValue instanceof PageArray || $blankValue instanceof Page;
 			if($hasSubfields) $out .= $option;
 
+			// if(($isPageField && !$field->derefAsPage) || (!$isPageField && $blankValue instanceof WireArray)) {
 			if($isPageField && !$field->derefAsPage) {
 				$groupLabel = $this->_('(1)'); 
 				$selected = "@$field->name." == $selectedValue ? ' selected' : '';
