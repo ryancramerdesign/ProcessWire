@@ -275,7 +275,7 @@ class InputfieldWrapper extends Inputfield {
 			$showIf = $inputfield->getSetting('showIf'); 
 			
 			if($collapsed == Inputfield::collapsedHidden) continue; 
-			if($collapsed == Inputfield::collapsedLocked) $renderValueMode = true; 
+			if($collapsed == Inputfield::collapsedNoLocked || $collapsed == Inputfield::collapsedYesLocked) $renderValueMode = true;
 
 			if($renderValueMode) {
 				$ffOut = $inputfield->renderValue();
@@ -288,7 +288,7 @@ class InputfieldWrapper extends Inputfield {
 
 			if(!$inputfield instanceof InputfieldWrapper) {
 				$errors = $inputfield->getErrors(true);
-				if(count($errors)) $collapsed = Inputfield::collapsedNo; 
+				if(count($errors)) $collapsed = $renderValueMode ? Inputfield::collapsedNoLocked : Inputfield::collapsedNo; 
 				foreach($errors as $error) $ffOut = str_replace('{out}', $this->entityEncode($error, true), $markup['item_error']) . $ffOut; 
 			} else $errors = array();
 			
@@ -330,9 +330,10 @@ class InputfieldWrapper extends Inputfield {
 				$isEmpty = $inputfield->isEmpty();
 				if(($isEmpty && $inputfield instanceof InputfieldWrapper) || 
 					$collapsed === Inputfield::collapsedYes ||
-					$collapsed === Inputfield::collapsedLocked ||
+					$collapsed === Inputfield::collapsedYesLocked ||
 					$collapsed === true || 
 					($isEmpty && $collapsed === Inputfield::collapsedBlank) ||
+					($isEmpty && $collapsed === Inputfield::collapsedNoLocked) || // collapsedNoLocked assumed to be like a collapsedBlankLocked
 					(!$isEmpty && $collapsed === Inputfield::collapsedPopulated)) {
 						$ffAttrs['class'] .= ' ' . $classes['item_collapsed'];
 					}
@@ -455,7 +456,8 @@ class InputfieldWrapper extends Inputfield {
 	protected function isProcessable(Inputfield $inputfield) {
 		// skip over collapsedHidden or collapsedLocked inputfields, beacuse they are not saveable
 		if($inputfield->collapsed === Inputfield::collapsedHidden) return false;
-		if($inputfield->collapsed === Inputfield::collapsedLocked) return false;
+		if($inputfield->collapsed === Inputfield::collapsedNoLocked) return false;
+		if($inputfield->collapsed === Inputfield::collapsedYesLocked) return false;
 
 		// if dependencies aren't in use, we can skip the rest
 		if($this->useDependencies === false) return true; 

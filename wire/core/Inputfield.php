@@ -58,7 +58,9 @@ abstract class Inputfield extends WireData implements Module {
 	const collapsedBlank = 2; 	// will display collapsed only if blank
 	const collapsedHidden = 4; 	// will not be rendered in the form
 	const collapsedPopulated = 5; 	// will display collapsed only if populated
-	const collapsedLocked = 8;  // value is visible but not editable, otherwise same as collapsedYes
+	const collapsedNoLocked = 7;	// value is visible but not editable
+	const collapsedYesLocked = 8;  	// value is collapsed but not editable, otherwise same as collapsedYes
+	const collapsedLocked = 8; 	// for backwards compatibility
 
 	/**
 	 * Constants for skipLabel setting
@@ -582,7 +584,8 @@ abstract class Inputfield extends WireData implements Module {
 		$field->addOption(self::collapsedPopulated, $this->_("Collapsed only when populated")); 
 		$field->addOption(self::collapsedYes, $this->_("Always collapsed, requiring a click to open")); 
 		$field->addOption(self::collapsedHidden, $this->_("Hidden, not shown in the editor"));
-		$field->addOption(self::collapsedLocked, $this->_("Locked, value visible but not editable"));
+		$field->addOption(self::collapsedYesLocked, $this->_("Always collapsed and not editable (locked)"));
+		$field->addOption(self::collapsedNoLocked, $this->_("Open when populated and not editable (locked)"));
 		$field->attr('value', (int) $this->collapsed); 
 		$fieldset->append($field); 
 
