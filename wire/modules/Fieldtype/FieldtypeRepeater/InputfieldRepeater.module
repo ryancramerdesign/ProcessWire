@@ -81,6 +81,14 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 	}
 
 	/**
+	 * Construct the repeater label
+	 *
+	 */
+	public function ___renderRepeaterLabel($label, $cnt, $key, $page) {
+		return "$label #" . $cnt;
+	}
+
+	/**
 	 * Build and cache the form containing the repeaters
 	 *
 	 * @return InputfieldWrapper
@@ -150,7 +158,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 
 			$wrap = wire('modules')->get('InputfieldFieldset'); 
 			$wrap->addClass('InputfieldRepeaterItem');
-			$wrap->label = "$label #" . (++$cnt); 
+			$wrap->label = $this->renderRepeaterLabel($label, ++$cnt, $key, $page);
 
 			// add a hidden field that will be populated with a positive value for all visible repeater items
 			// this is so that processInput can see this item should be a published item
@@ -187,7 +195,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 
 		// create a new/blank item to be used as a template for any new items added
 		$wrap = wire('modules')->get('InputfieldFieldset'); 
-		$wrap->label = "$label #" . (++$cnt);
+		$wrap->label = $this->renderRepeaterLabel($label, ++$cnt, null, null);
 		$wrap->description = $this->_('This item will become editable after you save.');
 		$wrap->class = 'InputfieldRepeaterItem InputfieldRepeaterNewItem';
 		$wrap->collapsed = Inputfield::collapsedNo; 
