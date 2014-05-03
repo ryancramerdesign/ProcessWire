@@ -275,7 +275,7 @@ class InputfieldWrapper extends Inputfield {
 			$showIf = $inputfield->getSetting('showIf'); 
 			
 			if($collapsed == Inputfield::collapsedHidden) continue; 
-			if($collapsed == Inputfield::collapsedLocked) $renderValueMode = true; 
+			if($collapsed == Inputfield::locked || $collapsed == Inputfield::collapsedLocked) $renderValueMode = true;
 
 			if($renderValueMode) {
 				$ffOut = $inputfield->renderValue();
@@ -326,7 +326,7 @@ class InputfieldWrapper extends Inputfield {
 				$ffAttrs['class'] .= ' ' . $classes['item_required_if']; 
 			}
 
-			if($collapsed) {
+			if($collapsed && $collapsed != Inputfield::locked) {
 				$isEmpty = $inputfield->isEmpty();
 				if(($isEmpty && $inputfield instanceof InputfieldWrapper) || 
 					$collapsed === Inputfield::collapsedYes ||
@@ -456,6 +456,7 @@ class InputfieldWrapper extends Inputfield {
 		// skip over collapsedHidden or collapsedLocked inputfields, beacuse they are not saveable
 		if($inputfield->collapsed === Inputfield::collapsedHidden) return false;
 		if($inputfield->collapsed === Inputfield::collapsedLocked) return false;
+		if($inputfield->collapsed === Inputfield::locked) return false;
 
 		// if dependencies aren't in use, we can skip the rest
 		if($this->useDependencies === false) return true; 
