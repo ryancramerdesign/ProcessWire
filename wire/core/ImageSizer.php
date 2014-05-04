@@ -490,7 +490,7 @@ class ImageSizer extends Wire {
 	 */
 	protected function getProportionalWidth($targetHeight) {
 		$img =& $this->image;
-		return ($targetHeight / $img['height']) * $img['width'];
+		return ceil(($targetHeight / $img['height']) * $img['width']); // @horst
 	}
 
 	/**
@@ -499,7 +499,7 @@ class ImageSizer extends Wire {
 	 */
 	protected function getProportionalHeight($targetWidth) {
 		$img =& $this->image;
-		return ($targetWidth / $img['width']) * $img['height'];
+		return ceil(($targetWidth / $img['width']) * $img['height']); // @horst
 	}
 
 	/**
@@ -521,8 +521,8 @@ class ImageSizer extends Wire {
 
 		$img =& $this->image; 
 
-		if(!$targetHeight) $targetHeight = floor(($targetWidth / $img['width']) * $img['height']); 
-		if(!$targetWidth) $targetWidth = floor(($targetHeight / $img['height']) * $img['width']); 
+		if(!$targetHeight) $targetHeight = round(($targetWidth / $img['width']) * $img['height']); 
+		if(!$targetWidth) $targetWidth = round(($targetHeight / $img['height']) * $img['width']); 
 
 		$originalTargetWidth = $targetWidth;
 		$originalTargetHeight = $targetHeight; 
