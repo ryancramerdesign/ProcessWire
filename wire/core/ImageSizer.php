@@ -116,7 +116,7 @@ class ImageSizer extends Wire {
 	 * Options allowed for sharpening
 	 *
 	 */
-	protected $sharpeningValues = array(
+	static protected $sharpeningValues = array(
 		0 => 'none', // none
 		1 => 'soft',
 		2 => 'medium',
@@ -663,6 +663,8 @@ class ImageSizer extends Wire {
 
 		return $cropping;
 	}
+	
+	
 
 	/**
 	 * Turn on/off cropping and/or set cropping direction
@@ -695,6 +697,39 @@ class ImageSizer extends Wire {
 	}
 
 	/**
+	 * Given an unknown sharpening value, return the string representation of it
+	 *
+	 * Okay for use in filenames. Method added by @horst
+	 *
+	 * @param string|bool $value
+	 * @param bool $short
+	 * @return string
+	 *
+	 */
+	static public function sharpeningValueStr($value, $short = false) {
+
+		$sharpeningValues = self::$sharpeningValues;
+
+		if(is_string($value) && in_array(strtolower($value), $sharpeningValues)) {
+			$ret = strtolower($value);
+
+		} else if(is_int($value) && isset($sharpeningValues[$value])) {
+			$ret = $sharpeningValues[$value];
+
+		} else if(is_bool($value)) {
+			$ret = $value ? "soft" : "none";
+
+		} else {
+			// sharpening is unknown, return empty string
+			return '';
+		}
+
+		if(!$short) return $ret;    // return name
+		$flip = array_flip($sharpeningValues);
+		return 's' . $flip[$ret];   // return char s appended with the numbered index
+	}	
+	
+	/**
 	 * Set sharpening value: blank (for none), soft, medium, or strong
 	 * 
 	 * @param mixed $value
@@ -704,17 +739,11 @@ class ImageSizer extends Wire {
 	 */
 	public function setSharpening($value) {
 
-		/*
-		if(is_array($value) && count($value) === 3) {
-			// Horst: what is this for? 
-			$ret = $value;
-		*/
-
-		if(is_string($value) && in_array(strtolower($value), $this->sharpeningValues)) {
+		if(is_string($value) && in_array(strtolower($value), self::$sharpeningValues)) {
 			$ret = strtolower($value);
 
-		} else if(is_int($value) && isset($this->sharpeningValues[$value])) {
-			$ret = $this->sharpeningValues[$value]; 
+		} else if(is_int($value) && isset(self::$sharpeningValues[$value])) {
+			$ret = self::$sharpeningValues[$value]; 
 
 		} else if(is_bool($value)) {
 			$ret = $value ? "soft" : "none";
