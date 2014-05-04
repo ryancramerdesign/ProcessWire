@@ -359,6 +359,7 @@ class WireMail extends WireData implements WireMailInterface {
 				"$html\r\n\r\n" . 
 				"--$boundary--\r\n";
 		} else {
+			$header .= "\r\nContent-Type: text/plain; charset=\"utf-8\""; 
 			$body = $text; 
 		}
 
