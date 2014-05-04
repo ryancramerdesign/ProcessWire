@@ -467,7 +467,12 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function ___renderValue() {
-		$out = htmlentities($this->attr('value'), ENT_QUOTES, "UTF-8"); 
+
+		$value = $this->attr('value');
+		if (is_array($value)) {
+			$value = implode($this->_(', '), $value);
+		}
+		$out = htmlentities($value, ENT_QUOTES, "UTF-8");
 		return $out; 
 	}
 
