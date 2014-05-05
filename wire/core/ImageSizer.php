@@ -259,7 +259,8 @@ class ImageSizer extends Wire {
 
 		// optionally make defaultGamma configurable via $config->defaultGamma, instead of hardcoding its value
 		$this->defaultGamma = isset(wire('config')->defaultGamma) ? wire('config')->defaultGamma : $this->defaultGamma;
-		if(!is_float($this->defaultGamma) || 1 > $this->defaultGamma || 3 < $this->defaultGamma) $this->defaultGamma = 2.0;
+		if(1 > $this->defaultGamma || 4 < $this->defaultGamma) $this->defaultGamma = 2.0;
+		$this->defaultGamma = floatval($this->defaultGamma);
 		if($this->imageType != IMAGETYPE_PNG || ! $this->hasAlphaChannel()) {
 			// @horst: linearize gamma to 1.0 - we do not use gamma correction with pngs containing alphachannel, because GD-lib  doesn't respect transparency here (is buggy)
 			imagegammacorrect($image, $this->defaultGamma, 1.0);
