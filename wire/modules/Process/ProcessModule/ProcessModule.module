@@ -25,7 +25,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Modules', __FILE__), // getModuleInfo title          
 			'summary' => __('List, edit or install/uninstall modules', __FILE__), // getModuleInfo summary
-			'version' => 105, 
+			'version' => 106, 
 			'permanent' => true, 
 			'permission' => 'module-admin', 
 			);
@@ -47,6 +47,15 @@ class ProcessModule extends Process implements ConfigurableModule {
 	 *
 	 */
 	protected $deleteableModules = array();
+
+	/**
+	 * Categories of modules that we can't uninstall via this module
+	 * 
+	 */
+	protected $uninstallableCategories = array(
+		'language-pack',
+		'site-profile',
+	); 
 
 	/**
 	 * Number of new modules found after a reset
@@ -398,6 +407,14 @@ class ProcessModule extends Process implements ConfigurableModule {
 			$this->error($this->_('Error reported by web service:') . ' ' . wire('sanitizer')->entities($data['error']));
 			return $this->session->redirect($redirectURL);	
 		}
+	
+		$installable = true; 
+		foreach($data['categories'] as $category) {
+			if(!in_array($category['name'], $this->uninstallableCategories)) continue;
+			$this->error(sprintf($this->_('Sorry modules of type "%s" are not installable from the admin.'), $category['title']));
+			$installable = false;
+		}
+		if(!$installable) $this->session->redirect($redirectURL); 
 	
 		$form = $this->buildDownloadConfirmForm($data, $update);
 		return $form->render(); 	
