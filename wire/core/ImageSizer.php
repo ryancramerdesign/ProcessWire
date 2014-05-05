@@ -107,6 +107,12 @@ class ImageSizer extends Wire {
 	protected $sharpening = 'soft';
 
 	/**
+	* default gamma correction: 2.2 | 2.0 | 1.8 (can be overridden by setting it to $config->defaultGamma)
+	*
+	*/
+	protected $defaultGamma = 2.0;
+
+	/**
 	 * Other options for 3rd party use
 	 *
 	 */
@@ -251,9 +257,12 @@ class ImageSizer extends Wire {
 
 		if(!$image) return false;
 
-		if($this->imageType != IMAGETYPE_PNG || ! $this->hasAlphaChannel()) { 
-			// @horst: linearize gamma to 1.0 - we do not use gamma correction with pngs containing alphachannel, because GD-lib  doesn't respect transparency here (is buggy) 
-			imagegammacorrect($image, 2.0, 1.0);
+		// optionally make defaultGamma configurable via $config->defaultGamma, instead of hardcoding its value
+		$this->defaultGamma = isset(wire('config')->defaultGamma) ? wire('config')->defaultGamma : $this->defaultGamma;
+		if(!is_float($this->defaultGamma) || 1 > $this->defaultGamma || 3 < $this->defaultGamma) $this->defaultGamma = 2.0;
+		if($this->imageType != IMAGETYPE_PNG || ! $this->hasAlphaChannel()) {
+			// @horst: linearize gamma to 1.0 - we do not use gamma correction with pngs containing alphachannel, because GD-lib  doesn't respect transparency here (is buggy)
+			imagegammacorrect($image, $this->defaultGamma, 1.0);
 		}
 
 		if($needRotation) { // @horst
@@ -383,18 +392,18 @@ class ImageSizer extends Wire {
 		switch($this->imageType) {
 			case IMAGETYPE_GIF:
 				// correct gamma from linearized 1.0 back to 2.0
-				imagegammacorrect($thumb2, 1.0, 2.0);
+				imagegammacorrect($thumb2, 1.0, $this->defaultGamma);
 				$result = imagegif($thumb2, $dest); 
 				break;
 			case IMAGETYPE_PNG: 
-				if(! $this->hasAlphaChannel()) imagegammacorrect($thumb2, 1.0, 2.0);
+				if(! $this->hasAlphaChannel()) imagegammacorrect($thumb2, 1.0, $this->defaultGamma);
 				// convert 1-100 (worst-best) scale to 0-9 (best-worst) scale for PNG 
 				$quality = round(abs(($this->quality - 100) / 11.111111)); 
 				$result = imagepng($thumb2, $dest, $quality); 
 				break;
 			case IMAGETYPE_JPEG:
 				// correct gamma from linearized 1.0 back to 2.0
-				imagegammacorrect($thumb2, 1.0, 2.0);
+				imagegammacorrect($thumb2, 1.0, $this->defaultGamma);
 				$result = imagejpeg($thumb2, $dest, $this->quality); 
 				break;
 		}
