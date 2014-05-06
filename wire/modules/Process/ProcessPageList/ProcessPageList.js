@@ -725,7 +725,7 @@ $(document).ready(function() {
 					title = '';
 				}
 
-				if(id != $container.val()) $container.change().val(id);
+				if(id != $container.val()) $container.val(id).change();
 
 				if(options.selectShowPageHeader) { 
 					$header.children(".PageListSelectName").text(title); 
