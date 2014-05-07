@@ -128,9 +128,16 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			$childTemplates = $this->parent->template->childTemplates;
 			$this->template = $this->templates->get(reset($childTemplates)); 	
 			if(!$this->isAllowedTemplate($this->template)) throw new WireException("You don't have access to the template required to add pages here"); 
-		} 
 
-		if($this->template && strlen($this->parent->template->childNameFormat)) {
+		} else if($this->input->get('template_id')) { 
+			$templateID = (int) $this->input->get('template_id'); 
+			$template = $this->wire('templates')->get($templateID); 
+			if(!$template) throw new WireException("Unknown template specified"); 
+			if($this->isAllowedTemplate($template)) $this->template = $template; 
+				else throw new WireException("Template $template->name is not allowed here"); 
+		}
+
+		if($this->template && (strlen($this->parent->template->childNameFormat) || $this->input->get('name_format'))) {
 			// quick add! 
 			$this->processQuickAdd($this->parent, $this->template); 
 		}
@@ -240,40 +247,35 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		if($this->template) $field->slashUrls = $this->template->slashUrls;
 		$form->append($field); 
 
-		if(!$this->template) { 
+		/*
+		$field = $this->modules->get('InputfieldPageListSelect');
+		$field->label = "Parent";
+		$field->attr('name', 'parent_id'); 
+		$field->attr('value', $this->parent_id); 
+		$form->append($field); 
+		*/
 
-			/*
-			$field = $this->modules->get('InputfieldPageListSelect');
-			$field->label = "Parent";
-			$field->attr('name', 'parent_id'); 
-			$field->attr('value', $this->parent_id); 
-			$form->append($field); 
-			*/
-
-			$defaultTemplateId = (int) $this->wire('input')->get('template_id'); 
-			if(!$defaultTemplateId && $this->parent->numChildren > 0) { 
-				$sibling = $this->parent->child('sort=-created, include=hidden');
-				if($sibling && $sibling->id) $defaultTemplateId = $sibling->template->id;
-			}
-			if(!$defaultTemplateId) $defaultTemplateId = $this->parent->template->id; 
-			if(!$this->isAllowedTemplate($defaultTemplateId)) $defaultTemplateId = 0;
-
-			$field = $this->modules->get('InputfieldSelect');
-			$field->label = $this->_('Template'); // Template field label
-			$field->attr('name', 'template'); 
-			$field->attr('value', $defaultTemplateId); 
-			$field->required = true; 
-			$language = wire('languages') && wire('user')->language->id ? wire('user')->language : null;
-
-			foreach($this->getAllowedTemplates() as $template) {
-				$field->addOption($template->id, $this->getTemplateLabel($template)); 
-			}
-
-			$form->append($field); 
-
-		} else if(!count($_POST)) {
-			//$this->message(sprintf($this->_("You are adding a page using the '%s' template"), $this->getTemplateLabel($this->template))); 
+		$defaultTemplateId = (int) $this->wire('input')->get('template_id'); 
+		if(!$defaultTemplateId && $this->parent->numChildren > 0) { 
+			$sibling = $this->parent->child('sort=-created, include=hidden');
+			if($sibling && $sibling->id) $defaultTemplateId = $sibling->template->id;
 		}
+		if(!$defaultTemplateId) $defaultTemplateId = $this->parent->template->id; 
+		if(!$this->isAllowedTemplate($defaultTemplateId)) $defaultTemplateId = 0;
+
+		$field = $this->modules->get('InputfieldSelect');
+		$field->label = $this->_('Template'); // Template field label
+		$field->attr('name', 'template'); 
+		$field->attr('value', $defaultTemplateId); 
+		$field->required = true; 
+		$language = wire('languages') && wire('user')->language->id ? wire('user')->language : null;
+
+		foreach($this->getAllowedTemplates() as $template) {
+			if($this->template && $template->id != $this->template->id) continue; 
+			$field->addOption($template->id, $this->getTemplateLabel($template)); 
+		}
+
+		$form->append($field); 
 
 		$field = $this->modules->get('InputfieldHidden'); 
 		$field->attr('name', 'parent_id'); 
@@ -349,6 +351,14 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 	protected function ___processQuickAdd(Page $parent, Template $template) { 
 
 		$this->deleteOldTempPages();
+		$nameFormat = '';
+
+		if(!$parent->template->childNameFormat) {
+			// allow for nameFormat to come from a name_format GET variable
+			$nameFormat = $this->sanitizer->text($this->input->get('name_format')); 	
+			// temporarily assign to the template->childNameFormat property
+			if(strlen($nameFormat)) $parent->template->childNameFormat = $nameFormat;
+		}
 
 		$class = $template->pageClass ? $page->template->pageClass : 'Page';
 		$page = new $class(); 
@@ -368,12 +378,15 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			return false;
 		}
 
+		if(strlen($nameFormat)) $parent->template->childNameFormat = ''; // restore blank name format
+
 		if($page->id) { 
 			$this->createdPageMessage($page); 
 			$this->session->redirect("../edit/?id=$page->id"); 
 		} else {
 			return false;
 		}
+
 	}
 
 	protected function createdPageMessage(Page $page) {
