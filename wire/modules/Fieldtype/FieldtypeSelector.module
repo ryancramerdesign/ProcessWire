@@ -57,7 +57,7 @@ class FieldtypeSelector extends Fieldtype {
 
 	public function ___sleepValue(Page $page, Field $field, $value) {
 		$initValue = trim($field->initValue);
-		if($initValue && strpos($value, $initValue) === 0) {
+		if(strlen($initValue) && strpos($value, $initValue) === 0) {
 			$value = trim(substr($value, strlen($initValue)+1), ', '); 
 		}
 		return parent::___sleepValue($page, $field, $value); 
@@ -66,7 +66,7 @@ class FieldtypeSelector extends Fieldtype {
 	public function ___wakeupValue(Page $page, Field $field, $value) {
 		$value = parent::___wakeupValue($page, $field, $value); 
 		$initValue = trim($field->initValue);
-		if(strpos($value, $initValue) === false) {
+		if(strlen($initValue) && strpos($value, $initValue) === false) {
 			$value = "$initValue, $value";
 		}
 		return $value; 

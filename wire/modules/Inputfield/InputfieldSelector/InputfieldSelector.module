@@ -501,6 +501,14 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 	protected function renderOpval($fieldName, $type = '', $selectedOperator = '', $selectedValue = '', $orChecked = false) { 
 
+		/*
+		$this->message("fieldName: $fieldName"); 
+		$this->message("type: $type"); 
+		$this->message("selectedOperator: $selectedOperator"); 
+		$this->message("selectedValue: $selectedValue"); 
+		$this->message("orChecked: $orChecked"); 
+		*/
+
 		$inputName = $this->attr('name') . "__value[]"; 
 		$options = array();
 		$out = '';
@@ -830,17 +838,17 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			if(!is_array($fields)) $fields = array($fields); 
 
 			foreach($fields as $fieldNum => $field) {
-
+				$this->message("field=$field"); 
 				$field1 = $field;
 				$field2 = '';
-				$group = ''; 
+				$group = is_null($selector->group) ? '' : '@';
 				$dot = strpos($field, '.'); 
 				if($dot && !isset($this->systemFields[$field])) {
 					$field1 = substr($field, 0, $dot); 
 					$field2 = substr($field, $dot+1); 
 				}
 		
-				$select = $this->renderSelectField(array(), $field); 
+				$select = $this->renderSelectField(array(), $group . $field); 
 				$select2 = $dot ? $this->renderSelectSubfield($field1, $field2) : ''; 	
 
 				if($select2) $rowClass .= " has-subfield";
@@ -852,8 +860,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				foreach($values as $valueNum => $value) { 
 					if($valueNum > 0) $rowClass .= " has-or-value";
 					if($fieldNum > 0 || $valueNum > 0) $orChecked = true; 
-					if(!is_null($selector->group)) $group = '@';
-					$opval = $this->renderOpval($group . ($field2 ? $field2 : $field1), '', $selector->operator, $value, $orChecked); 
+					$opval = $this->renderOpval(($field2 ? $field2 : $field1), '', $selector->operator, $value, $orChecked); 
 					$rows .= $this->renderRow($select, $select2, $opval, $rowClass); 			
 				}
 			}
@@ -900,7 +907,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$selector = (string) $initSelectors . ", ";
 		$selector .= (string) $userSelectors; 
 	
-		return trim($selector, ", "); 
+		$selector = trim($selector, ", "); 
+		return $selector; 
 	}
 
 	/**

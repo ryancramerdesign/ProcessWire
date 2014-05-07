@@ -435,6 +435,7 @@ class ProcessTemplate extends Process {
 		$field = $this->modules->get("InputfieldText"); 
 		$field->label = $this->_('Create a new template without a file');
 		$field->description = $this->_('If you want to create a new template even though there is currently no file associated with it, enter the name of the template here.'); // Create template with no file, description
+		$field->description .= ' ' . $this->_('You may enter multiple template names by separating each with a space.'); 
 		$field->notes = $this->_('Do not include a file extension'); 
 		$field->attr('id+name', 'template_name'); 
 		$field->collapsed = count($templateFiles) ? Inputfield::collapsedYes : Inputfield::collapsedNo; 
