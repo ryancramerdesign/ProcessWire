@@ -32,10 +32,10 @@
 class Pages extends Wire {
 
 	/**
-	 * Instance of PageFinder for finding pages
+	 * Instance of PageFinder (when cached)
 	 *
 	 */
-	protected $pageFinder; 
+	protected $pageFinder = null; 
 
 	/**
 	 * Instance of Templates
@@ -86,7 +86,6 @@ class Pages extends Wire {
 	public function __construct() {
 		$this->config = $this->wire('config');
 		$this->templates = $this->wire('templates'); 
-		$this->pageFinder = new PageFinder(); 
 		$this->sortfields = new PagesSortfields();
 	}
 
@@ -112,7 +111,7 @@ class Pages extends Wire {
 		// TODO selector strings with runtime fields, like url=/about/contact/, possibly as plugins to PageFinder
 
 		$loadPages = true; 
-		if(isset($options['loadPages'])) $loadPages = (bool) $options['loadPages'];
+		if(array_key_exists('loadPages', $options)) $loadPages = (bool) $options['loadPages'];
 
 		if(!strlen($selectorString)) return new PageArray();
 		if($selectorString === '/' || $selectorString === 'path=/') $selectorString = 1;
@@ -150,18 +149,18 @@ class Pages extends Wire {
 		// if(strpos($selectorString, 'parent_id') === false) $selectorString .= ", status<" . Page::statusUnsearchable; 
 
 		$selectors = new Selectors($selectorString); 
-
-		$pages = $this->pageFinder->find($selectors, $options); 
+		$pageFinder = $this->getPageFinder();
+		$pages = $pageFinder->find($selectors, $options); 
 
 		// note that we save this pagination state here and set it at the end of this method
 		// because it's possible that more find operations could be executed as the pages are loaded
-		$total = $this->pageFinder->getTotal();
-		$limit = $this->pageFinder->getLimit();
-		$start = $this->pageFinder->getStart();
+		$total = $pageFinder->getTotal();
+		$limit = $pageFinder->getLimit();
+		$start = $pageFinder->getStart();
 
 		if($loadPages) { 
 			// parent_id is null unless a single parent was specified in the selectors
-			$parent_id = $this->pageFinder->getParentID();
+			$parent_id = $pageFinder->getParentID();
 
 			$idsSorted = array(); 
 			$idsByTemplate = array();
@@ -505,8 +504,9 @@ class Pages extends Wire {
 	 * @todo optimize this so that it only counts, and doesn't have to load any pages in the process. 
 	 *
 	 */
-	public function count($selectorString, $options = array()) {
+	public function count($selectorString, array $options = array()) {
 		$options['loadPages'] = false; 
+		$options['getTotal'] = true; 
 		return $this->find("$selectorString, limit=1", $options)->getTotal();
 	}
 
@@ -1310,8 +1310,7 @@ class Pages extends Wire {
 	 */
 	public function uncacheAll() {
 
-		unset($this->pageFinder); 
-		$this->pageFinder = new PageFinder(); 
+		$this->pageFinder = null;
 
 		unset($this->sortfields); 
 		$this->sortfields = new PagesSortfields();
@@ -1451,6 +1450,16 @@ class Pages extends Wire {
 		$debugLog = array();
 		foreach($this->debugLog as $item) if($item['action'] == $action) $debugLog[] = $item; 
 		return $debugLog; 
+	}
+
+	/**
+	 * Return a PageFinder object, ready to use
+	 *
+	 * @return PageFinder
+	 *
+	 */
+	public function getPageFinder() {
+		return new PageFinder();
 	}
 
 	/**

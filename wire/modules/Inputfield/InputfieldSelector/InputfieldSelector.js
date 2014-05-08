@@ -15,6 +15,11 @@ var InputfieldSelector = {
 		$(document).on('keyup', '.InputfieldSelector input.input-value', function() {
 			var $t = $(this); 
 			clearTimeout(timeout); 
+			if($t.hasClass("input-value-subselect") && InputfieldSelector.valueHasOperator($t.val())) {
+				var $preview = $t.parents('.selector-list').siblings('.selector-preview'); 
+				$preview.html('Subselect detected: when done <a href="#" onclick="return false">click here to commit your change</a>.'); 
+				return;
+			}
 			timeout = setTimeout(function() { InputfieldSelector.changeAny($t); }, 100); 
 		}); 
 
@@ -274,7 +279,12 @@ var InputfieldSelector = {
 			}
 
 			if(typeof value != "undefined") if(value.length) {
-				if(value.indexOf(',') > -1) {
+				
+				if($value.hasClass("input-value-subselect") && InputfieldSelector.valueHasOperator(value)) {
+					// value needs to be identified as a sub-selector
+					value = '[' + value + ']';
+
+				} else if(value.indexOf(',') > -1) {
 					// value needs to be quoted
 					if(value.indexOf('"') > -1) { 
 						if(value.indexOf("'") == -1) value = "'" + value + "'"; 
@@ -440,7 +450,23 @@ var InputfieldSelector = {
 	enableOption: function($option) {
 		$option.removeAttr('disabled');
 		
+	},
+	
+	valueHasOperator: function(value) {
+		var operators = ['=', '<', '>']; 
+		var hasOperator = false; 
+		for(n = 0; n < operators.length; n++) {
+			var pos = value.indexOf(operators[n]); 
+			// pos > 0 means there is an operator somewhere, and it's not escaped with a backslash
+			if(pos > -1 && value.substring(pos-1, 1) != '\\') {
+				hasOperator = true; 
+				break;
+			}
+		}
+		return hasOperator; 
 	}
+
+
 
 
 }; 

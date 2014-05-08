@@ -20,7 +20,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Selector',
-			'version' => 14,
+			'version' => 15,
 			'summary' => 'Build a page finding selector visually.',
 			'author' => 'Avoine + ProcessWire',
 			'autoload' => true, 
@@ -232,7 +232,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				'sanitizer' => 'integer',
 				),
 			'parent' => array(
-				'input' => 'text',
+				'input' => 'number',
 				'label' => $this->_('parent'), 
 				'operators' => array('=', '!='), 
 				),
@@ -333,6 +333,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				if($cnt > $matches[1]) $cnt = $matches[1]; 
 			}
 			$out = sprintf($this->_n('matches %d page', 'matches %d pages', $cnt), $cnt) . $out;
+			if(self::debug) $out .= " (" . $selector . ")";
 
 		} catch(Exception $e) {
 			$out = $e->getMessage();
@@ -601,7 +602,13 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			//$out .= "<input value='$selectedValueEntities' class='input-value input-value-datetime InputfieldDatetimeDatepicker3' name='$inputName' type='text' />";				
 
 		} else {
-			$out .= "<input value='$selectedValueEntities' class='input-value input-value-$type' name='$inputName' type='$type' />";
+			$inputType = $type; 
+			$inputClass = "input-value input-value-$type";
+			if($type == 'number') {
+				$inputType = 'text'; 
+				$inputClass .= " input-value-subselect"; // allow sub-selector strings
+			}
+			$out .= "<input value='$selectedValueEntities' class='$inputClass' name='$inputName' type='$inputType' />";
 		}
 
 		$orLabel = $this->_('Check box to make this row OR rather than AND');
@@ -796,6 +803,9 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	}
 
 	public function ___render() {
+
+		if(self::debug) $this->counter = true; 
+
 		$this->renderDateInput('tmp', '', true); // to load css/js
 
 		$this->setup();

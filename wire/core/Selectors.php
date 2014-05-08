@@ -187,15 +187,17 @@ class Selectors extends WireArray {
 		$cnt = 0; 
 		
 		while(strlen($str)) {
-	
+
+			$quote = '';	
 			$group = $this->extractGroup($str); 	
 			$field = $this->extractField($str); 
 			$operator = $this->extractOperator($str, $this->getOperatorChars());
-			$value = $this->extractValue($str); 
+			$value = $this->extractValue($str, $quote); 
 
 			if($field || strlen("$value")) {
 				$selector = $this->create($field, $operator, $value);
 				if(!is_null($group)) $selector->group = $group; 
+				if($quote) $selector->quote = $quote; 
 				$this->add($selector); 
 			}
 
@@ -266,17 +268,32 @@ class Selectors extends WireArray {
 	/**
 	 * Given a string starting with a value, return that value, and remove it from $str. 
 	 *
+	 * @param string $str String to extract value from
+	 * @param string $quote Automatically populated with quote type, if found
+	 * @return array|string Found values or value (excluding quotes)
+	 *
 	 */
-	protected function extractValue(&$str) {
+	protected function extractValue(&$str, &$quote) {
 
 		$str = trim($str); 
 		if(!strlen($str)) return '';
+		$quotes = array(
+			// opening => closing
+			'"' => '"', 
+			"'" => "'", 
+			'[' => ']', 
+			'{' => '}', 
+			'(' => ')', 
+			);
 
-		if($str[0] == '"' || $str[0] == "'") {
+		// if($str[0] == '"' || $str[0] == "'") {
+		if(in_array($str[0], array_keys($quotes))) {
 			$openingQuote = $str[0]; 
+			$closingQuote = $quotes[$openingQuote];
 			$n = 1; 
 		} else {
 			$openingQuote = '';
+			$closingQuote = '';
 			$n = 0; 
 		}
 
@@ -291,13 +308,14 @@ class Selectors extends WireArray {
 			if($openingQuote) {
 				// we are in a quoted value string
 
-				if($c == $openingQuote) {
+				if($c == $closingQuote) { // reference closing quote
 
 					if($lastc != '\\') {
 						// same quote that opened, and not escaped
 						// means the end of the value
 
 						$n++; // skip over quote 
+						$quote = $openingQuote; 
 						break;
 
 					} else {
@@ -329,13 +347,14 @@ class Selectors extends WireArray {
 		} while(++$n < self::maxValueLength); 
 
 		if(strlen("$value")) $str = substr($str, $n);
-		$str = ltrim($str, ' ,"\''); // should be executed even if blank value
+		$str = ltrim($str, ' ,"\']})'); // should be executed even if blank value
 
 		// check if a pipe character is present next, indicating an OR value may be provided
 		if(strlen($str) > 1 && substr($str, 0, 1) == '|') {
 			$str = substr($str, 1); 
 			// perform a recursive extract to account for all OR values
-			$v = $this->extractValue($str); 
+			$v = $this->extractValue($str, $quote); 
+			$quote = ''; // we don't support separately quoted OR values
 			$value = array($value); 
 			if(is_array($v)) $value = array_merge($value, $v); 
 				else $value[] = $v; 

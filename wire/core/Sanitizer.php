@@ -427,7 +427,7 @@ class Sanitizer extends Wire {
 
 		// disallow some characters in selector values
 		// @todo technically we only need to disallow at begin/end of string
-		$value = str_replace(array('*', '~', '`', '$', '^', '|', '<', '>', '='), ' ', $value);
+		$value = str_replace(array('*', '~', '`', '$', '^', '|', '<', '>', '=', '[', ']', '{', '}'), ' ', $value);
 	
 		// disallow greater/less than signs, unless they aren't forming a tag
 		// if(strpos($value, '<') !== false) $value = preg_replace('/<[^>]+>/su', ' ', $value); 

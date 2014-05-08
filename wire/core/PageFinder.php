@@ -138,6 +138,7 @@ class PageFinder extends Wire {
 	public function find(Selectors $selectors, $options = array()) {
 
 		$defaultOptions = array(
+
 			/**
 	 		 * Specify that you only want to find 1 page and don't need info for pagination
 			 * 	
@@ -172,7 +173,15 @@ class PageFinder extends Wire {
 			 * we can skip retrieval of IDs and omit sort fields.
 			 *
 			 */
-			'loadPages' => true
+			'loadPages' => true,
+
+			/**
+			 * When true, this function returns array of arrays containing page ID, parent ID, template ID and score.
+			 * When false, returns only an array of page IDs. returnVerbose=true is required by most usage from Pages 
+			 * class. False is only for specific cases. 
+			 *
+			 */
+			'returnVerbose' => true
 
 			);
 
@@ -213,8 +222,12 @@ class PageFinder extends Wire {
 					unset($row[$k]);
 
 				}
-				$row['score'] = $score;
-				$matches[] = $row;
+				if($options['returnVerbose']) { 
+					$row['score'] = $score;
+					$matches[] = $row;
+				} else {
+					$matches[] = $row['id']; 
+				}
 			}
 		}
 		$stmt->closeCursor();
@@ -229,6 +242,38 @@ class PageFinder extends Wire {
 		$this->lastOptions = $options; 
 
 		return $matches; 
+	}
+
+	/**
+	 * Same as find() but returns just a simple array of page IDs without any other info
+	 *
+	 * @param Selectors $selectors
+	 * @param array $options
+	 * @return array of page IDs
+	 *
+	 */
+	public function findIDs(Selectors $selectors, $options = array()) {
+		$options['returnVerbose'] = false; 
+		return $this->find($selectors, $options); 
+	}
+
+	/**
+	 * Pre-process the given selector to perform any necessary replacements
+	 *
+	 * This is primarily used to handle sub-selections, i.e. "bar=foo, id=[this=that, foo=bar]"
+	 *
+	 */
+	protected function preProcessSelector(Selector $selector) {
+		// i.e. field=[id>0, name=something, this=that]
+		if($selector->quote == '[' && !is_array($selector->value) && Selectors::stringHasSelector($selector->value)) {
+			// selector contains another embedded selector that we need to convert to page IDs
+			$selectors = new Selectors($selector->value); 
+			$pageFinder = new PageFinder();
+			$ids = $pageFinder->findIDs($selectors); 
+			// populate selector value with array of page IDs
+			$selector->value = count($ids) < 2 ? reset($ids) : $ids; 
+			$selector->quote = '';
+		}
 	}
 
 
@@ -254,7 +299,7 @@ class PageFinder extends Wire {
 		$database = $this->wire('database');
 
 		$query = new DatabaseQuerySelect();
-		$query->select(array('pages.id', 'pages.parent_id', 'pages.templates_id')); 
+		$query->select($options['returnVerbose'] ? array('pages.id', 'pages.parent_id', 'pages.templates_id') : array('pages.id')); 
 		$query->from("pages"); 
 		$query->groupby("pages.id"); 
 
@@ -262,6 +307,7 @@ class PageFinder extends Wire {
 
 			if(is_null($lastSelector)) $lastSelector = $selector; 
 
+			$this->preProcessSelector($selector); 
 			$fields = $selector->field; 
 			$group = $selector->group; // i.e. @field
 			$fields = is_array($fields) ? $fields : array($fields); 
@@ -270,7 +316,7 @@ class PageFinder extends Wire {
 			$field = reset($fields); // first field
 			if(strpos($field, '.')) list($field, $subfield) = explode('.', $field); 
 				else $subfield = '';
-			
+
 			// TODO Make native fields and path/url multi-field and multi-value aware
 			if($field == 'sort') {
 				$sortSelectors[] = $selector; 
@@ -808,15 +854,16 @@ class PageFinder extends Wire {
 					// convert parent fields like '/about/company/history' to the equivalent ID
 					foreach($values as $k => $v) {
 						if(ctype_digit("$v")) continue; 
+						if(strpos($v, '/') === false) $v = "/$v"; // prevent a plain string with no slashes
 						// convert path to id
-						$parent = $this->fuel('pages')->get($v); 
+						$parent = $this->wire('pages')->get($v); 
 						if(!$parent instanceof NullPage) $values[$k] = $parent->id; 
 							else $values[$k] = null;
 
 					}
 					$field = 'parent_id';
 
-					if($field == 'parent_id' && count($values) == 1 && $selector->getOperator() === '=') $this->parent_id = reset($values); 
+					if(count($values) == 1 && $selector->getOperator() === '=') $this->parent_id = reset($values); 
 
 				} else {
 					// matching by a parent's native or custom field (subfield)
@@ -824,8 +871,7 @@ class PageFinder extends Wire {
 					if(!$this->wire('fields')->isNativeName($subfield)) {
 						$finder = new PageFinder();
 						$s = $field == 'children' ? '' : 'children.count>0, ';
-						$matches = $finder->find(new Selectors("include=all, $s$subfield{$operator}" . implode('|', $values)));
-						foreach($matches as $match) $IDs[] = (int) $match['id'];
+						$IDs = $finder->findIDs(new Selectors("include=all, $s$subfield{$operator}" . implode('|', $values)));
 						if(!count($IDs)) $IDs[] = -1; // forced non match
 					} else {
 						// native
@@ -869,6 +915,11 @@ class PageFinder extends Wire {
 					if(!ctype_digit($value)) $value = strtotime($value); 
 					$value = date('Y-m-d H:i:s', $value); 
 				}
+
+				if(in_array($field, array('id', 'parent_id', 'templates_id'))) {
+					$value = (int) $value; 
+				}
+
 				if($field == 'name' && $operator == '~=') {
 					// handle one or more space-separated full words match to 'name' field in any order
 					$s = '';
