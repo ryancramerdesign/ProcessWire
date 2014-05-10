@@ -57,9 +57,11 @@ class InputfieldPageListSelectMultiple extends Inputfield implements InputfieldH
 		$out = "\n<ol id='{$this->id}_items'>" . $this->renderListItem("Label", "1", "itemTemplate"); 
 
 		foreach($this->value as $page_id) {
-			$page = $this->pages->get((int) $page_id); 
+			$page = $this->pages->get((int) $page_id);
+			$label = $page->get($this->labelFieldName);
+			if(!$label) $label = $page->id;
 			if(!$page || !$page->id) continue; 
-			$out .= $this->renderListItem($page->get($this->labelFieldName), $page->id); 
+			$out .= $this->renderListItem($label, $page->id); 
 		}
 		
 		$out .= "\n</ol>";
