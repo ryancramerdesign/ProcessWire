@@ -65,18 +65,12 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			throw new WireException("Invalid image"); 
 		}
 
-		if($this->maxWidth && $pagefile->width > $this->maxWidth) {
-			$pagefile2 = $pagefile->width($this->maxWidth); 
-			unlink($pagefile->filename); 
-			rename($pagefile2->filename, $pagefile->filename); 
+		if( ($this->maxWidth && $pagefile->width > $this->maxWidth) ||
+		    ($this->maxHeight && $pagefile->height > $this->maxHeight) ) {
+			$pagefile2 = $pagefile->size($this->maxWidth, $this->maxHeight, array('cropping'=>false));
+			unlink($pagefile->filename);
+			rename($pagefile2->filename, $pagefile->filename);
 			$pagefile->getImageInfo(true); // force it to reload it's dimensions
-		}
-
-		if($this->maxHeight && $pagefile->height > $this->maxHeight) {
-			$pagefile2 = $pagefile->height($this->maxHeight); 
-			unlink($pagefile->filename); 
-			rename($pagefile2->filename, $pagefile->filename); 
-			$pagefile->getImageInfo(true); 
 		}
 
 		if($pagefile2) {
