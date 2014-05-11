@@ -30,8 +30,29 @@ $(document).ready(function() {
 
     if($('#modules_form').size() > 0) {
         $('#modules_form').WireTabs({
-            items: $(".Inputfields li.WireTab")
+            items: $(".Inputfields li.WireTab"),
+			rememberTabs: true
         });
     }
+	
+	$("select.modules_section_select").change(function() {
+		var section = $(this).val();
+		var $sections = $(this).parent('p').siblings('.modules_section')
+		if(section == '') {
+			$sections.show();
+		} else {
+			$sections.hide();
+			$sections.filter('.modules_' + section).show();
+		}
+		document.cookie = $(this).attr('name') + '=' + section;
+		return true; 
+	}).change();
+
+
+	$(document).on('click', '#head_button a', function() { 
+		// when check for new modules is pressed, make sure the next screen goes to the 'New' tab
+		document.cookie = 'WireTabs=tab_new_modules';
+		return true; 
+	});
 
 }); 

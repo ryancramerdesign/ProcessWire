@@ -848,7 +848,6 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			if(!is_array($fields)) $fields = array($fields); 
 
 			foreach($fields as $fieldNum => $field) {
-				$this->message("field=$field"); 
 				$field1 = $field;
 				$field2 = '';
 				$group = is_null($selector->group) ? '' : '@';

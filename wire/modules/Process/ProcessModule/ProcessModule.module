@@ -189,6 +189,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 
 		$this->modules->get('JqueryWireTabs');
 		$tab = new InputfieldWrapper();
+		$tab->attr('id', 'tab_site_modules'); 
 		$tab->description = $this->_('/site/modules/ - Modules specific to your site');
 		$tab->attr('title', $this->_('Site'));
 		$tab->attr('class', 'WireTab');
@@ -201,6 +202,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		
 		$this->modules->get('JqueryWireTabs');
 		$tab = new InputfieldWrapper();
+		$tab->attr('id', 'tab_core_modules'); 
 		$tab->attr('title', $this->_('Core'));
 		$tab->attr('class', 'WireTab');
 		$tab->description = $this->_('/wire/modules/ - Modules included with the ProcessWire core'); 
@@ -210,8 +212,22 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$form->add($tab);
 		
 		$tab = new InputfieldWrapper();
+		$tab->attr('id', 'tab_new_modules'); 
 		$tab->attr('title', $this->_('New'));
 		$tab->attr('class', 'WireTab');
+		
+		$newModuleNames = $this->wire('session')->get('ProcessModuleNewModules'); 
+		$newModules = array();
+		if(!empty($newModuleNames)) {
+			foreach($modulesArray as $name => $installed) {
+				if(in_array($name, $newModuleNames)) $newModules[$name] = $installed;	
+			}
+			$markup = $this->modules->get('InputfieldMarkup');		
+			$markup->icon = 'lightbulb-o';
+			$markup->value = $this->renderListTable($newModules, false, false); 
+			$markup->label = $this->_('Newly Found Modules'); 
+			$tab->add($markup); 
+		}
 		
 		$fieldset = $this->modules->get('InputfieldFieldset');
 		$fieldset->label = $this->labels['download_install'];
@@ -232,6 +248,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$tab->add($fieldset);
 		
 		$fieldset = $this->modules->get('InputfieldFieldset');
+		$fieldset->attr('id', 'fieldset_check_new'); 
 		$fieldset->label = $this->labels['check_new'];
 		$fieldset->description = $this->_('If you have placed new modules in /site/modules/ yourself, click this button to find them.');
 		$fieldset->collapsed = Inputfield::collapsedYes; 
@@ -258,11 +275,12 @@ class ProcessModule extends Process implements ConfigurableModule {
 	 * Render a modules listing table, as it appears in the 'site' and 'core' tabs
 	 * 
 	 * @param array $modulesArray
-	 * @param bool $allowDelete Whether or not delete is allowed (dfeault=false)
+	 * @param bool $allowDelete Whether or not delete is allowed (default=false)
+	 * @param bool $allowSections Whether to show module sections/categories (default=true)
 	 * @return string
 	 * 
 	 */
-	protected function renderListTable($modulesArray, $allowDelete = false) {
+	protected function renderListTable($modulesArray, $allowDelete = false, $allowSections = true) {
 		if(!count($modulesArray)) return '';
 		
 		static $numCalls = 0; 
@@ -279,22 +297,29 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$total = 0;
 		$out = '';
 		$this->numFound = 0;
+		$newModules = $this->wire('session')->get('ProcessModuleNewModules');
+		if(!is_array($newModules)) $newModules = array();
 
 		$labelRequires = $this->_x("Requires", 'list'); // Label that precedes list of required prerequisite modules
 		$labelInstalls = $this->_x("Also Installs", 'list'); // Label that precedes list of other modules a given one installs
+		$sections = array();
+		$sectionsQty = array();
 
 		foreach($modulesArray as $name => $installed) {
 
 			if(strpos($name, $section) !== 0 || preg_match('/' . $section . '[^A-Z]/', $name)) {
 				if(!preg_match('/^([A-Za-z][a-z]+)/', $name, $matches)) $this->error(sprintf($this->_('Invalid module name: %s'), $name));
-				$section = $matches[1];
-				if($table) $out .= $table->render();
-				$table = $this->modules->get("MarkupAdminDataTable");
-				$table->setEncodeEntities(false);
-				$table->headerRow($tableHeader);
-				$out .= "\n<h2>$section</h2>";
+				if($allowSections || is_null($table)) { 
+					$section = $matches[1];
+					$sections[] = $section;
+					if($table) $out .= $table->render() . "</div>";
+					$table = $this->modules->get("MarkupAdminDataTable");
+					$table->setEncodeEntities(false);
+					$table->headerRow($tableHeader);
+					if($allowSections) $out .= "\n<div class='modules_section modules_$section'><h2>$section</h2>";
+				}
 			}
-
+			
 			$info = $this->modules->getModuleInfo($name); 
 			$interfaces = @class_implements($name, false);
 			$configurable = is_array($interfaces) && in_array('ConfigurableModule', $interfaces);
@@ -324,6 +349,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 				if(count($uninstalledPrev) && !in_array($name, $uninstalledPrev)) {
 					$class .= " new_module";
 					if(!$this->input->get->uninstalled) $this->message($this->_("Found new module") . " - <a href=\"#$name\">$name</a>", Notice::allowMarkup); // Message that precedes module name when new module is found
+					$newModules[] = $name; 
 					$this->numFound++;
 				}
 
@@ -364,10 +390,30 @@ class ProcessModule extends Process implements ConfigurableModule {
 
 			$table->row($row);
 			$total++;
+			
+			if(!isset($sectionsQty[$section])) $sectionsQty[$section] = 0;
+			$sectionsQty[$section]++;
 
 		}
 		$out .= $table->render();
-		return $out;
+
+		if($allowSections) {
+			$out .= "</div>";
+			$select = "<p><select name='modules_section$numCalls' class='modules_section_select'>";
+			$select .= "<option value=''>" . $this->_('Show All') . "</option>";
+			$current = $this->wire('input')->cookie("modules_section$numCalls");
+			foreach($sections as $section) {
+				$qty = $sectionsQty[$section]; 
+				$selected = $current == $section ? " selected='selected'" : "";
+				$select .= "<option$selected value='$section'>$section ($qty)</option>";
+			}
+			$select .= "</select></p>";
+			$out = $select . $out; 
+		}
+		
+		if($this->numFound) $this->wire('session')->set('ProcessModuleNewModules', $newModules); 
+		
+		return $out; 
 	}
 
 	/**
