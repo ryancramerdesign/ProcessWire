@@ -396,9 +396,7 @@ class ImageSizer extends Wire {
 				break;
 			case IMAGETYPE_PNG: 
 				if(! $this->hasAlphaChannel()) imagegammacorrect($thumb2, 1.0, $this->defaultGamma);
-				// convert 1-100 (worst-best) scale to 0-9 (best-worst) scale for PNG 
-				$quality = round(abs(($this->quality - 100) / 11.111111)); 
-				$result = imagepng($thumb2, $dest, $quality); 
+				$result = imagepng($thumb2, $dest, 9); 
 				break;
 			case IMAGETYPE_JPEG:
 				// correct gamma from linearized 1.0 back to 2.0
