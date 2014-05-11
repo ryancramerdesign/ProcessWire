@@ -107,6 +107,13 @@ class ImageSizer extends Wire {
 	protected $sharpening = 'soft';
 
 	/**
+	 * default gamma correction: 2.2 | 2.0 | 1.8 
+	 * can be overridden by setting it to $config->imageSizerOptions[defaultGamma]
+	 * 
+	 */
+	protected $defaultGamma = 2.0;
+
+	/**
 	 * Other options for 3rd party use
 	 *
 	 */
@@ -132,7 +139,8 @@ class ImageSizer extends Wire {
 		'upscaling',
 		'cropping',
 		'quality',
-		'sharpening'
+		'sharpening',
+		'defaultGamma',
 		);
 
 	/**
@@ -251,9 +259,9 @@ class ImageSizer extends Wire {
 
 		if(!$image) return false;
 
-		if($this->imageType != IMAGETYPE_PNG || ! $this->hasAlphaChannel()) { 
+		if($this->imageType != IMAGETYPE_PNG || !$this->hasAlphaChannel()) { 
 			// @horst: linearize gamma to 1.0 - we do not use gamma correction with pngs containing alphachannel, because GD-lib  doesn't respect transparency here (is buggy) 
-			imagegammacorrect($image, 2.0, 1.0);
+			imagegammacorrect($image, $this->defaultGamma, 1.0);
 		}
 
 		if($needRotation) { // @horst
@@ -383,18 +391,18 @@ class ImageSizer extends Wire {
 		switch($this->imageType) {
 			case IMAGETYPE_GIF:
 				// correct gamma from linearized 1.0 back to 2.0
-				imagegammacorrect($thumb2, 1.0, 2.0);
+				imagegammacorrect($thumb2, 1.0, $this->defaultGamma);
 				$result = imagegif($thumb2, $dest); 
 				break;
 			case IMAGETYPE_PNG: 
-				if(! $this->hasAlphaChannel()) imagegammacorrect($thumb2, 1.0, 2.0);
+				if(! $this->hasAlphaChannel()) imagegammacorrect($thumb2, 1.0, $this->defaultGamma);
 				// convert 1-100 (worst-best) scale to 0-9 (best-worst) scale for PNG 
 				$quality = round(abs(($this->quality - 100) / 11.111111)); 
 				$result = imagepng($thumb2, $dest, $quality); 
 				break;
 			case IMAGETYPE_JPEG:
 				// correct gamma from linearized 1.0 back to 2.0
-				imagegammacorrect($thumb2, 1.0, 2.0);
+				imagegammacorrect($thumb2, 1.0, $this->defaultGamma);
 				$result = imagejpeg($thumb2, $dest, $this->quality); 
 				break;
 		}
@@ -781,6 +789,23 @@ class ImageSizer extends Wire {
 		return $this; 
 	}
 
+	/**
+	 * Set default gamma value: 2.2 | 2.0 | 1.8
+	 *
+	 * @param float $value
+	 * @return $this
+	 * @throws WireException when given invalid value
+	 *
+	 */
+	public function setDefaultGamma($value = 2.0) {
+		if($value === 2.2 || $value === 2.0 || $value === 1.8) {
+			$this->defaultGamma = $value;
+		} else {
+			throw new WireException('Invalid defaultGamma value - must be 2.2, 2.0 or 1.8.'); 
+		}
+		return $this; 
+	}
+
 
 	/**
 	 * Alternative to the above set* functions where you specify all in an array
@@ -804,6 +829,7 @@ class ImageSizer extends Wire {
 				case 'sharpening': $this->setSharpening($value); break;
 				case 'quality': $this->setQuality($value); break;
 				case 'cropping': $this->setCropping($value); break;
+				case 'defaultGamma': $this->setDefaultGamma($value); break;
 				
 				default: 
 					// unknown or 3rd party option
@@ -839,7 +865,8 @@ class ImageSizer extends Wire {
 			'cropping' => $this->cropping, 
 			'upscaling' => $this->upscaling,
 			'autoRotation' => $this->autoRotation,
-			'sharpening' => $this->sharpening
+			'sharpening' => $this->sharpening,
+			'defaultGamma' => $this->defaultGamma
 			);
 		$options = array_merge($this->options, $options); 
 		return $options; 
