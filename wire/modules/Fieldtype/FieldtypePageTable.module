@@ -178,7 +178,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	}
 
 	public function ___getSelectorInfo(Field $field, array $data = array()) {
-		$info = $this->wire('modules')->get('FieldtypePage')->___getSelectorInfo($field, $data); 
+		$info = $this->wire('modules')->get('FieldtypePage')->getSelectorInfo($field, $data); 
 		$info['input'] = 'none';
 		return $info; 
 	}

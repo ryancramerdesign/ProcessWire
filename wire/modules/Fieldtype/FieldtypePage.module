@@ -559,7 +559,8 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 		if($subfield == 'created' || $subfield == 'modified') {
 			if(!ctype_digit($value)) $value = strtotime($value); 
-			$value = (int) $value; 
+			$value = (int) $value;
+			$value = date('Y-m-d H:i:s', $value); 
 
 		} else if(in_array($subfield, array('template', 'templates_id'))) {
 			$template = $this->templates->get($subfield); 

@@ -111,19 +111,24 @@ var InputfieldSelector = {
 		var action = 'opval';
 		$row.children('.opval').html(''); 
 
+		var $hiddenInput = $select.parents('.InputfieldSelector').find('.selector-value'); // .selector-value intentional!
+		var name = $hiddenInput.attr('name'); 
+		var type = $select.attr('data-type'); 
+
 		if(field.match(/\.$/)) {
 			action = 'subfield';
 			if(field.indexOf('@') > -1) field = field.substring(1, field.length-1); 
 				else field = field.substring(0, field.length-1); 
 			$row.addClass('has-subfield'); 
+		} else if(field.match(/\.id$/)) {
+			field = 'id';
+			action = 'opval';
+			type = 'selector';
 		} else if($select.is(".select-field")) { 
 			$row.children('.subfield').html(''); 
 			$row.removeClass('has-subfield'); 
 		}
 
-		var $hiddenInput = $select.parents('.InputfieldSelector').find('.selector-value'); // .selector-value intentional!
-		var name = $hiddenInput.attr('name'); 
-		var type = $select.attr('data-type'); 
 		var url = './?InputfieldSelector=' + action + '&field=' + field + '&type=' + type + '&name=' + name; 
 		var $spinner = $(InputfieldSelector.spinner); 
 
@@ -398,6 +403,10 @@ var InputfieldSelector = {
 				} else if(!si.mayOrValue && !si.mayOrField) {
 					si.checkbox.hide();
 				}
+			}
+			if(s.field.indexOf('.') != s.field.lastIndexOf('.')) {
+				// convert field.subfield.id to just field.subfield
+				s.field = s.field.substring(0, s.field.lastIndexOf('.')); 
 			}
 			selector += s.field + s.operator + s.value; 
 		}

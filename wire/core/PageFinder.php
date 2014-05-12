@@ -268,6 +268,33 @@ class PageFinder extends Wire {
 		if($selector->quote == '[' && !is_array($selector->value) && Selectors::stringHasSelector($selector->value)) {
 			// selector contains another embedded selector that we need to convert to page IDs
 			$selectors = new Selectors($selector->value); 
+			$hasTemplate = false; 
+			$hasParent = false; 
+			foreach($selectors as $s) {
+				if(is_array($s->field)) continue; 
+				if($s->field == 'template') $hasTemplate = true; 
+				if($s->field == 'parent' || $s->field == 'parent_id') $hasParent = true; 
+			}
+			// special handling for page references, detect if parent or template is defined, 
+			// and add it to the selector if available. This makes it faster. 
+			if(!$hasTemplate || !$hasParent) { 
+				$fields = is_array($selector->field) ? $selector->field : array($selector->field); 
+				$templates = array();
+				$parents = array();
+				$findSelector = '';
+				foreach($fields as $fieldName) { 
+					if(strpos($fieldName, '.') !== false) list($unused, $fieldName) = explode('.', $fieldName); 
+					$field = $this->wire('fields')->get($fieldName); 	
+					if(!$field) continue;
+					if(!$hasTemplate && $field->template_id) $templates[] = (int) $field->template_id; 
+					if(!$hasParent && $field->parent_id) $parents[] = (int) $field->parent_id; 
+					if($field->findPagesSelector && count($fields) == 1) $findSelector = $field->findPagesSelector;	
+				}
+				if(count($templates)) $selectors->prepend(new SelectorEqual('template', $templates));
+				if(count($parents)) $selectors->prepend(new SelectorEqual('parent_id', $parents)); 
+				if($findSelector) foreach(new Selectors($findSelector) as $s) $selectors->append($s); 
+			}
+			
 			$pageFinder = new PageFinder();
 			$ids = $pageFinder->findIDs($selectors); 
 			// populate selector value with array of page IDs
@@ -282,7 +309,8 @@ class PageFinder extends Wire {
 	 *
 	 * @TODO split this method up into more parts, it's too long
 	 *
-	 * @param array $selectors Array of selectors. 
+	 * @param array $selectors Array of selectors.
+	 * @param array $options 
 	 * @return string SQL statement. 
 	 * @throws PageFinderSyntaxException
 	 *

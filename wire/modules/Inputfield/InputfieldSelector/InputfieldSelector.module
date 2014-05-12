@@ -20,7 +20,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Selector',
-			'version' => 15,
+			'version' => 16,
 			'summary' => 'Build a page finding selector visually.',
 			'author' => 'Avoine + ProcessWire',
 			'autoload' => true, 
@@ -89,7 +89,12 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 		} else if($action == 'subfield' && ($fieldName = $input->get->field)) {
 			$fieldName = $sanitizer->name($fieldName); 
-			$out = $this->renderSelectSubfield($fieldName); 
+			if(strpos($fieldName, '.')) {
+				list($fieldName, $subfieldName) = explode('.', $fieldName); 
+				$out = $this->renderSelectSubfield($fieldName); 
+			} else {
+				$out = $this->renderSelectSubfield($fieldName); 
+			}
 
 		} else if($action == 'opval' && ($fieldName = $input->get->field)) {
 			$fieldName = $sanitizer->name($fieldName); 
@@ -131,6 +136,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'.=-' => $this->_('Descending By'), 
 			'@=' => $this->_('Has'),
 			'@!=' => $this->_('Does Not Have'),
+			'#=' => $this->_('Matches'),
+			'#!=' => $this->_('Does Not Match'),
 			'=""' => $this->_('Is Empty'), 
 			'!=""' => $this->_('Is Not Empty'), 
 			);
@@ -144,15 +151,16 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'autocomplete' => array('=', '!='), 
 			'number' => array('=', '!=', '<', '>', '<=', '>='), 
 			'datetime' => array('=', '!=', '<', '>', '<=', '>='), 
-			'page' => array('@=', '@!='), 
+			'page' => array('@=', '@!=', '#=', '#!='), 
 			'checkbox' => array('=', '!='), 
 			'sort' => array('.=', '.=-'),
 			'status' => array('@=', '@!='), 
+			'selector' => array('#=', '#!='), 
 			); 
 	
 		// chars that are trimmed off operators before being used	
 		// enables different contexts for the same operator
-		$this->operatorTrimChars = '.@';
+		$this->operatorTrimChars = '.@#';
 	
 		$templates = array();
 		foreach($this->wire('templates') as $template) {
@@ -531,6 +539,9 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$type = $info['input'];
 			if(isset($info['options'])) $options = $info['options'];
 
+		} else if($type == 'selector') {
+			// fine keep it
+
 		} else if($field = $this->wire('fields')->get($fieldName)) { 
 
 			$selectorInfo = $this->getSelectorInfo($field); 
@@ -548,8 +559,12 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 					} else {
 						$page = new NullPage();
 						$inputfield = $field->getInputfield($page, $field); 
-						foreach($inputfield->getSelectablePages($page) as $item) {
-							$options[$item->id] = $item->get('title|name'); 
+						if($inputfield instanceof InputfieldPage) { 
+							foreach($inputfield->getSelectablePages($page) as $item) {
+								$options[$item->id] = $item->get('title|name'); 
+							}
+						} else {
+							$type = 'number';
 						}
 					}
 				} else {
@@ -570,6 +585,9 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		if($type == 'text' && $selectedValue = '""' && in_array($selectedOperator, array('=', '!='))) {
 			$selectedOperator .= '""';
 			$selectedValue = '';
+		} else if($type == 'selector') { 
+			$operators = $this->operatorsByType['selector']; 
+			$type = 'text';
 		} else if($type == 'checkbox') {
 			$operators = $this->operatorsByType['checkbox']; 
 			$options = array(0 => $this->_('Not Checked'), 1 => $this->_('Checked')); 
@@ -659,10 +677,15 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$out .= "<option></option>";
 
 			foreach($selectorInfo['subfields'] as $name => $info) {
-				$selected = $selectedValue == $name ? ' selected' : '';
-				// $label = empty($info['label']) ? $name : $info['label']; 
 				$label = $name; 
-				$out .= "<option$selected value='$field->name.$name'>$label</option>";
+				if($info['input'] != 'none') {
+					$selected = $selectedValue == $name ? ' selected' : '';
+					$out .= "<option$selected value='$field->name.$name'>$label</option>";
+				}
+				if(!empty($info['subfields'])) {
+					$selected = $selectedValue == "$name." ? ' selected' : '';
+					$out .= "<option$selected value='$field->name.$name.id'>$label.id</option>";
+				}
 				
 			}
 			$out .= "</select>";
