@@ -635,7 +635,12 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			foreach($query->selectors as $item) {
 				if($item->group !== $group) continue; 
 				if($item === $query->selector) continue; 
-				list($itemField, $itemSubfield) = explode('.', $item->field); 
+				$itemField = $item->field; 
+				if(is_array($itemField)) {
+					if(count($itemField) > 1) throw new WireException("Selector not supported"); 
+					$itemField = reset($itemField); 
+				}
+				list($itemField, $itemSubfield) = explode('.', $itemField); 
 				if($itemField != $field->name) continue; // only group the same fields together in one selector query
 				if(!preg_match('/^' . $group . '@' . $field->name . '\.(([_a-zA-z0-9]+).*)$/', (string) $item, $matches)) continue; 
 				// extract the field name portion so we just get the subfield and rest of the selector

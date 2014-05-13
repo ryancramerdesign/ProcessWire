@@ -26,8 +26,18 @@ class InputfieldPageTable extends Inputfield {
 			);
 	}
 
+	/**
+	 * Labels for native fields, indexed by native field name
+	 * 
+	 * @var array
+	 * 
+	 */
 	protected $nativeLabels = array();
 
+	/**
+	 * Initialize and establish default values
+	 * 
+	 */
 	public function init() {
 
 		// fieldtype and inputfield config settings
@@ -55,6 +65,12 @@ class InputfieldPageTable extends Inputfield {
 		return parent::init();
 	}
 
+	/**
+	 * Render the PageTable Inputfield
+	 * 
+	 * @return string
+	 * 
+	 */
 	public function ___render() {
 
 		// make sure we've got enough info to generate a table
@@ -89,7 +105,6 @@ class InputfieldPageTable extends Inputfield {
 		$out .= "<div class='InputfieldPageTableAdd' data-url='$url'>" . $button->render() . "</div>";
 
 		if(!$this->wire('config')->ajax) { 
-			$page = $this->wire('page'); 	
 			$url = "./?id=$editID&InputfieldPageTableField=$this->name"; 
 			$out = "<div class='InputfieldPageTableContainer' data-url='$url'>$out</div>";
 			// input for sorting purposes
@@ -103,6 +118,13 @@ class InputfieldPageTable extends Inputfield {
 
 	}
 
+	/**
+	 * Render the outputted PageTable <table> 
+	 * 
+	 * @param array $columns Array of column name => width percent
+	 * @return string
+	 * 
+	 */
 	protected function ___renderTable(array $columns) {
 
 		$value = $this->attr('value'); 
@@ -158,12 +180,19 @@ class InputfieldPageTable extends Inputfield {
 			$labels[$column] = $label;
 		}
 
-		$out = 	$this->renderTableHead($columns, $labels) . 
-			$this->renderTableBody($value, $columns, $fields); 
+		$out = $this->renderTableHead($columns, $labels) . $this->renderTableBody($value, $columns, $fields); 
 
 		return $out; 		
 	}
 
+	/**
+	 * Render the table head, from <table> to </thead>
+	 * 
+	 * @param array $columns
+	 * @param array $labels
+	 * @return string
+	 * 
+	 */
 	protected function renderTableHead(array $columns, array $labels) {
 
 		$out = "<table class='AdminDataTable AdminDataList'><thead><tr>";
@@ -179,6 +208,15 @@ class InputfieldPageTable extends Inputfield {
 		return $out; 
 	}
 
+	/**
+	 * Render the table body, from <tbody> to </table>
+	 * 
+	 * @param PageArray $items
+	 * @param array $columns
+	 * @param array $fields
+	 * @return string
+	 * 
+	 */
 	protected function renderTableBody(PageArray $items, array $columns, array $fields) {
 		$out = "<tbody>";
 
@@ -193,6 +231,15 @@ class InputfieldPageTable extends Inputfield {
 		return $out; 
 	}
 
+	/**
+	 * Render an individual table row <tr> for a given PageTable item
+	 * 
+	 * @param Page $item
+	 * @param array $columns
+	 * @param array $fields
+	 * @return string
+	 * 
+	 */
 	protected function renderTableRow(Page $item, array $columns, array $fields) {
 
 		$out = '';
@@ -217,14 +264,33 @@ class InputfieldPageTable extends Inputfield {
 		return "<tr data-id='$item->id'$class>$out</tr>";	
 	}
 
+	/**
+	 * Render an individual <td> for a table row 
+	 * 
+	 * @param Page $item
+	 * @param array $fields
+	 * @param $column
+	 * @param $width
+	 * @param string $linkURL
+	 * @return string
+	 * 
+	 */
 	protected function renderTableCol(Page $item, array $fields, $column, $width, $linkURL = '') {
-
 		$out = $this->getItemValue($item, $fields, $column); 
 		if($linkURL) $out = "<a class='InputfieldPageTableEdit' data-url='$linkURL' href='#'>$out</a>";
 		$attr = $width ? " style='width: $width%'" : '';
 		return "<td$attr>$out</td>";
 	}
 
+	/**
+	 * Get the value for the given Page field identified by $column
+	 * 
+	 * @param Page $item
+	 * @param array $fields
+	 * @param $column
+	 * @return mixed|object|string
+	 * 
+	 */
 	protected function getItemValue(Page $item, array $fields, $column) {
 
 		$fieldName = $column;
@@ -261,6 +327,14 @@ class InputfieldPageTable extends Inputfield {
 		return $value; 
 	}
 
+	/**
+	 * Convert an object to a string for rendering in a table
+	 * 
+	 * @param $object
+	 * @param string $property Property to display from the object (default=title|name)
+	 * @return string
+	 * 
+	 */
 	protected function objectToString($object, $property = '') {
 
 		if($object instanceof WireArray) {
@@ -274,11 +348,18 @@ class InputfieldPageTable extends Inputfield {
 			$value = (string) $value; 
 		}
 
-		$value = $this->wire('sanitizer')->entities($value); 
+		$value = $this->wire('sanitizer')->entities(strip_tags($value)); 
 		$value = nl2br($value); 
 		return $value; 
 	}
 
+	/**
+	 * Process input submitted to a PageTable Inputfield
+	 * 
+	 * @param WireInputData $input
+	 * @return $this
+	 * 
+	 */
 	public function ___processInput(WireInputData $input) {
 
 		$name = $this->attr('name'); 
@@ -319,6 +400,17 @@ class InputfieldPageTable extends Inputfield {
 		return $this; 
 	}
 
+	/**
+	 * Set an attribute to the Inputfield
+	 *
+	 * In this case we capture set to the 'value' attribute to make sure it can only be a PageArray
+	 * 
+	 * @param array|string $key
+	 * @param int|string $value
+	 * @return $this
+	 * @throws WireException
+	 * 
+	 */
 	public function setAttribute($key, $value) {
 		if($key == 'value') {
 			if($value === null) $value = new PageArray();
@@ -327,6 +419,12 @@ class InputfieldPageTable extends Inputfield {
 		return parent::setAttribute($key, $value); 
 	}
 
+	/**
+	 * Determine a default set of columns for the PageTable based on the fields defined in the defined template
+	 * 
+	 * @return string of newline separated field names
+	 * 
+	 */
 	protected function getConfigDefaultColumns() {
 		$out = '';
 		if(!$this->template_id) return $out;
@@ -340,6 +438,12 @@ class InputfieldPageTable extends Inputfield {
 		return trim($out); 
 	}
 
+	/**
+	 * Get field configuration for input tab
+	 * 
+	 * @return InputfieldWrapper
+	 * 
+	 */
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields(); 
 

@@ -28,14 +28,23 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 			);
 	}
 
+	/**
+	 * Initialize the PageTable hooks
+	 * 
+	 */
 	public function init() {
-
 		$pages = $this->wire('pages'); 
 		$pages->addHookAfter('delete', $this, 'hookPagesDelete');
 		$pages->addHookAfter('deleteReady', $this, 'hookPagesDeleteReady'); 
 		$pages->addHookAfter('cloned', $this, 'hookPagesCloned'); 
 	}
 
+	/**
+	 * Hook called when a page is deleted
+	 * 
+	 * Used to delete references to the page in any PageTable tables
+	 *
+	 */
 	public function hookPagesDelete(HookEvent $event) {
 		$page = $event->arguments(0); 
 		foreach($this->wire('fields') as $field) {
@@ -49,6 +58,14 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 		}
 	}
 
+	/**
+	 * Hook called when a page is about to be deleted
+	 * 
+	 * This automatically trashes the PageTable pages that a deleted page owns, if the autoTrash option is true. 
+	 * This is really only applicable when PageTable pages are stored somewhere other than as children of the 
+	 * deleted page. 
+	 *
+	 */
 	public function hookPagesDeleteReady(HookEvent $event) {
 		$page = $event->arguments(0); 
 		foreach($page->template->fieldgroup as $field) {
@@ -64,6 +81,15 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 		}
 	}
 
+	/**
+	 * Hook called when a page is cloned
+	 * 
+	 * We use this to clone and save any PageTable fields owned by the cloned page. 
+	 * This ensures we don't get two pages referring to the same PageTable fields. 
+	 * 
+	 * @param HookEvent $event
+	 * 
+	 */
 	public function hookPagesCloned(HookEvent $event) {
 
 		static $clonedIDs = array();
@@ -96,6 +122,12 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 		}
 	}
 
+	/**
+	 * Install our ajax lister at ready() time, if the conditions are right
+	 * 
+	 * Note that additional conditions are required and checked for by InputfieldPageTableAjax class. 
+	 * 
+	 */
 	public function ready() {
 		if(	$this->wire('config')->ajax && 
 			$this->wire('input')->get('InputfieldPageTableField') && 
@@ -108,9 +140,12 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	}
 
 	/**
-	* Return the database schema in predefined format 
-	*
-	*/
+	 * Return the database schema used by this Fieldtype
+	 * 
+	 * @param Field $field
+	 * @return array
+	 * 
+	 */
 	public function getDatabaseSchema(Field $field) {
 		$schema = parent::getDatabaseSchema($field);
 		$schema['data'] = 'int NOT NULL';
@@ -118,16 +153,44 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 		return $schema;
 	}
 
+	/**
+	 * Get the match query for page selection, delegated to FieldtypePage
+	 * 
+	 * @param DatabaseQuerySelect $query
+	 * @param string $table
+	 * @param string $subfield
+	 * @param string $operator
+	 * @param mixed $value
+	 * @return DatabaseQuery
+	 * 
+	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
 		return $this->wire('modules')->get('FieldtypePage')->getMatchQuery($query, $table, $subfield, $operator, $value); 	
 	}
 
+	/**
+	 * Get the Inputfield used for input by PageTable
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @return Inputfield
+	 * 
+	 */
 	public function getInputfield(Page $page, Field $field) {
 		$inputfield = $this->modules->get('InputfieldPageTable'); 
 		$inputfield->attr('value', $page->getUnformatted($field->name)); 
 		return $inputfield; 
 	}
 
+	/**
+	 * Sanitize a PageTable value
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @param int|object|string|WireArray $value
+	 * @return int|object|PageArray|string|WireArray
+	 * 
+	 */
 	public function sanitizeValue(Page $page, Field $field, $value) {
 		if(is_array($value) && count($value)) $value = $this->wakeupValue($page, $field, $value); 
 		if(!$value instanceof PageArray) return new PageArray();	
@@ -138,17 +201,41 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 		return $value; 
 	}
 
+	/**
+	 * Return true or false as to whether the item is valid for this PageTable
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @param Page $item
+	 * @return bool
+	 * 
+	 */
 	protected function isValidItem(Page $page, Field $field, Page $item) {
-		//if($item->parent_id != $page->id) return false; 
 		if($item->template->id != $field->template_id) return false; 
 		return true; 
 	}
 
-
+	/**
+	 * Return a blank value used by a PageTable
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @return PageArray
+	 * 
+	 */
 	public function getBlankValue(Page $page, Field $field) {
 		return new PageArray();
 	}
 
+	/**
+	 * Return a formatted PageTable value, which is essentially a new PageArray with hidden items removed
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @param PageArray $value
+	 * @return PageArray
+	 *
+	 */
 	public function ___formatValue(Page $page, Field $field, $value) {
 		$formatted = new PageArray();
 		if(!$value instanceof PageArray) return $formatted; 
@@ -159,6 +246,15 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 		return $formatted; 
 	}
 
+	/**
+	 * Prep a value for storage
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @param PageArray $value
+	 * @return array
+	 * 
+	 */
 	public function ___sleepValue(Page $page, Field $field, $value) {
 		$sleepValue = array();
 		if(!$value instanceof PageArray) return $sleepValue; 
@@ -170,6 +266,15 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 		return $sleepValue; 
 	}
 
+	/**
+	 * Wake up a stored value
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @param array $value
+	 * @return PageArray
+	 *
+	 */
 	public function ___wakeupValue(Page $page, Field $field, $value) {
 		if(!is_array($value) || !count($value) || !$field->template_id) return $this->getBlankValue($page, $field); 
 		$template = $this->wire('templates')->get($field->template_id); 
@@ -177,14 +282,25 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 		return $items; 
 	}
 
+	/**
+	 * Get information used by selectors for querying this field
+	 * 
+	 * @param Field $field
+	 * @param array $data
+	 * @return array
+	 * 
+	 */
 	public function ___getSelectorInfo(Field $field, array $data = array()) {
 		$info = $this->wire('modules')->get('FieldtypePage')->getSelectorInfo($field, $data); 
-		$info['input'] = 'none';
+		$info['operators'] = array(); // force it to be non selectable, subfields only
 		return $info; 
 	}
 
 	/**
 	 * Return configuration fields definable for each FieldtypePage
+	 * 
+	 * @param Field $field
+	 * @return InputfieldWrapper
 	 *
 	 */
 	public function ___getConfigInputfields(Field $field) {

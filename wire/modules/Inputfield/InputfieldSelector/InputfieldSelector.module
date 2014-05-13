@@ -20,23 +20,74 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Selector',
-			'version' => 16,
+			'version' => 17,
 			'summary' => 'Build a page finding selector visually.',
 			'author' => 'Avoine + ProcessWire',
 			'autoload' => true, 
 			);
 	}
 
-	const debug = false; 
+	const debug = false;
 
+	/**
+	 * Contains all possible operators, indexed by operator with values as labels describing the operator
+	 * 
+	 * @var array
+	 */
 	protected $operators = array();
-	protected $operatorsByType = array();
-	protected $operatorTrimChars = '';
-	protected $systemFields = array();
-	protected $systemPageFields = array();
-	protected $modifierFields = array();
-	protected $selectors = null; // instanceof Selectors, when rendering
 
+	/**
+	 * Array indexed by input types to operator arrays where values are the operators (no labels)
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $operatorsByType = array();
+
+	/**
+	 * Characters that should be automatically trimmed from any operators
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $operatorTrimChars = '';
+
+	/**
+	 * Array of predefined system fields indexed by field name and Fieldtype::getSelectorInfo style arrays as the value
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $systemFields = array();
+
+	/**
+	 * Same as $systemFields except contains only system fields applicable to page references
+	 *
+	 * @var array
+	 *
+	 */
+	protected $systemPageFields = array();
+
+	/**
+	 * Fields that modify behaviors of selectors but don't refer to any data: sort, limit, include
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $modifierFields = array();
+	
+	/**
+	 * Instance of Selectors, when in the process of rendering
+	 * 
+	 * @var Selectors
+	 * 
+	 */
+	protected $selectors = null; 
+
+	/**
+	 * Initialize the default values used in Selector
+	 * 
+	 */
 	public function __construct() {
 		// attrs and settings that may be changed with API usage or field settings
 		$this->attr('name', 'selector'); 
@@ -67,6 +118,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		parent::__construct();
 	}
 
+	/**
+	 * Monitor and respond to AJAX events
+	 * 
+	 */
 	public function ready() {
 
 		$input = $this->wire('input'); 
@@ -82,19 +137,14 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$this->set('initValue', $this->sessionGet('initValue')); 
 		$this->setup();
 		$sanitizer = $this->wire('sanitizer'); 
-		$out = '';
 
 		if($action == 'field') { 
 			$out = $this->renderSelectField(); 
 
 		} else if($action == 'subfield' && ($fieldName = $input->get->field)) {
 			$fieldName = $sanitizer->name($fieldName); 
-			if(strpos($fieldName, '.')) {
-				list($fieldName, $subfieldName) = explode('.', $fieldName); 
-				$out = $this->renderSelectSubfield($fieldName); 
-			} else {
-				$out = $this->renderSelectSubfield($fieldName); 
-			}
+			if(strpos($fieldName, '.'))  list($fieldName, $subfieldName) = explode('.', $fieldName); 
+			$out = $this->renderSelectSubfield($fieldName); 
 
 		} else if($action == 'opval' && ($fieldName = $input->get->field)) {
 			$fieldName = $sanitizer->name($fieldName); 
@@ -107,7 +157,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$out = $this->renderTestSelector($selector); 
 
 		} else if($action == 'autocomplete' && ($fieldName = $input->get('field')) && ($q = $input->get('q'))) {
-			$out = $this->renderAutocomplete($sanitizer->name($fieldName), $sanitizer->text($q)); 
+			$out = $this->renderAutocompleteJSON($sanitizer->name($fieldName), $sanitizer->text($q)); 
 
 		} else {
 			$out = "Ajax request missing required info";
@@ -118,6 +168,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		
 	}
 
+	/**
+	 * Setup the shared structures and data used by Selector
+	 * 
+	 */
 	public function setup() {
 
 		$this->operators = array(
@@ -151,11 +205,12 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'autocomplete' => array('=', '!='), 
 			'number' => array('=', '!=', '<', '>', '<=', '>='), 
 			'datetime' => array('=', '!=', '<', '>', '<=', '>='), 
-			'page' => array('@=', '@!=', '#=', '#!='), 
+			'page' => array('@=', '@!='), 
 			'checkbox' => array('=', '!='), 
 			'sort' => array('.=', '.=-'),
 			'status' => array('@=', '@!='), 
-			'selector' => array('#=', '#!='), 
+			//'selector' => array('#=', '#!='),
+			'selector' => array('=', '!=', '<', '>', '<=', '>='), 
 			); 
 	
 		// chars that are trimmed off operators before being used	
@@ -304,6 +359,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 	/**
 	 * Set a session variable specific to this Inputfield instance
+	 * 
+	 * @param string $key
+	 * @param mixed $value
+	 * @return this
 	 *
 	 */
 	protected function sessionSet($key, $value) {
@@ -319,6 +378,9 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 	/**
 	 * Retrieve a session variable specific to this Inputfield instance
+	 * 
+	 * @param string $key
+	 * @return mixed
 	 *
 	 */
 	protected function sessionGet($key) {
@@ -329,7 +391,49 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		if(empty($s[$id][$key])) return null;
 		return $s[$id][$key]; 
 	}
+	
+	/**
+	 * Returns an array of selector information for the given Field or field name
+	 *
+	 * Front-end to Fieldtype::getSelectorInfo
+	 *
+	 * @param string|Field $field
+	 * @return array Blank array if information not available
+	 *
+	 */
+	public function getSelectorInfo($field) {
+		if(is_string($field)) {
+			if(isset($this->systemFields[$field])) return $this->systemFields[$field];
+			if(isset($this->modifierFields[$field])) return $this->modifierFields[$field];
+			$field = $this->wire('fields')->get($field);
+		}
+		if(!$field || !$field instanceof Field) return array();
+		$info = $field->type->getSelectorInfo($field);
+		if($info['input'] == 'page') {
+			$info['subfields'] = array_merge($info['subfields'], $this->systemPageFields);
+		}
+		if(!empty($info['subfields'])) ksort($info['subfields']);
+		return $info;
+	}
 
+	/**
+	 * Does the given $field have subfields?
+	 *
+	 * @param Field $field
+	 * @return bool
+	 *
+	 */
+	protected function hasSubfields(Field $field) {
+		return count($info['subfields']) > 0;
+	}
+
+	/**
+	 * Render the results of a selector test: how many pages match
+	 * 
+	 * @param $selector
+	 * @return string
+	 * 
+	 */
 	protected function renderTestSelector($selector) {
 		try {
 			$selector = $this->sanitizeSelectorString($selector); 
@@ -348,7 +452,15 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		}
 		return $out; 
 	}
-
+	
+	/**
+	 * Render the primary field <select>
+	 * 
+	 * @param array $settings See defaults list in method
+	 * @param string $selectedValue
+	 * @return string
+	 * 
+	 */
 	protected function renderSelectField($settings = array(), $selectedValue = '') {
 
 		$defaults = array(
@@ -394,7 +506,6 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$out .= "</optgroup>";
 		}
 
-
 		// build custom fields optgroup
 		$label = $this->_('Custom Fields'); 
 		$out .= "<optgroup label='$label'>";
@@ -415,13 +526,20 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 		$out .= "</optgroup>";
 		$out .= "</select>";
+		
 		return $out; 
 	}
 
-	protected function hasSubfields(Field $field) {
-		return count($info['subfields']) > 0;
-	}
-
+	/**
+	 * Render a single <option> for a <select>
+	 * 
+	 * @param Field $field
+	 * @param bool $useSubfields Optional, default=true
+	 * @param string $templatesStr Optional, default=''
+	 * @param string $selectedValue Optional, default=''
+	 * @return string
+	 * 
+	 */
 	protected function renderSelectFieldOption(Field $field, $useSubfields = true, $templatesStr = '', $selectedValue = '') {
 
 		if($field->type instanceof FieldtypeFieldsetOpen) return '';
@@ -434,7 +552,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 		$selectorInfo = $this->getSelectorInfo($field);
 
-		if($selectorInfo['input'] != 'none') {
+		if($selectorInfo['input'] != 'none' && count($selectorInfo['operators'])) {
 			$out = "<option$selected value='$field->name' data-templates='|$templatesStr'>$field->name</option>";
 		}
 
@@ -458,6 +576,16 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		return $out; 
 	}
 
+	/**
+	 * Render the operator <select>
+	 * 
+	 * @param $name
+	 * @param string $type Optional, default=''
+	 * @param string $selectedValue Optional, default=''
+	 * @param array $operators Optional, default=array()
+	 * @return string
+	 * 
+	 */
 	protected function renderSelectOperator($name, $type = '', $selectedValue = '', $operators = array()) {
 		$inputName = $this->attr('name') . "__operator[]"; 
 
@@ -489,26 +617,25 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$selected = $operator == $selectedValue ? ' selected' : '';
 			$out .= "<option$selected value='$operator'>$label</option>";
 		}
+		
 		$out .= "</select>";
+		
 		return $out; 
 	}
 
-	public function getSelectorInfo($field) {
-		if(is_string($field)) {
-			if(isset($this->systemFields[$field])) return $this->systemFields[$field]; 
-			if(isset($this->modifierFields[$field])) return $this->modifierFields[$field]; 
-			$field = $this->wire('fields')->get($field); 
-		}
-		if(!$field || !$field instanceof Field) return array();
-		$info = $field->type->getSelectorInfo($field);
-		if($info['input'] == 'page') {
-			$info['subfields'] = array_merge($info['subfields'], $this->systemPageFields); 
-		}
-		if(!empty($info['subfields'])) ksort($info['subfields']);
-		return $info; 
-	}
-
-	protected function renderOpval($fieldName, $type = '', $selectedOperator = '', $selectedValue = '', $orChecked = false) { 
+	/**
+	 * Render the operator <select> and value <input> or <select> or autocomplete
+	 * 
+	 * @param $fieldName
+	 * @param string $type
+	 * @param string $selectedOperator
+	 * @param string $selectedValue
+	 * @param bool $orChecked
+	 * @param Selector $selector
+	 * @return string
+	 * 
+	 */
+	protected function renderOpval($fieldName, $type = '', $selectedOperator = '', $selectedValue = '', $orChecked = false, Selector $selector = null) { 
 
 		/*
 		$this->message("fieldName: $fieldName"); 
@@ -521,114 +648,154 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$inputName = $this->attr('name') . "__value[]"; 
 		$options = array();
 		$out = '';
-		$selector = ''; // autocomplete selector, if used
 		$selectedValueEntities = $this->wire('sanitizer')->entities($selectedValue); 
 		$operators = array();
 		$subfield = '';
 		if(strpos($fieldName, '.') !== false) list($fieldName, $subfield) = explode('.', $fieldName); 
 
 		if(isset($this->systemFields[$fieldName])) {
-
+			// system field
 			$info = $this->systemFields[$fieldName]; 
 			$type = $info['input'];
 			if(isset($info['options'])) $options = $info['options'];
 
 		} else if(isset($this->modifierFields[$fieldName])) { 
-
+			// modified field
 			$info = $this->modifierFields[$fieldName]; 
 			$type = $info['input'];
 			if(isset($info['options'])) $options = $info['options'];
 
 		} else if($type == 'selector') {
-			// fine keep it
+			// selector field: do nothing here but skip it, and respond to it further down
 
 		} else if($field = $this->wire('fields')->get($fieldName)) { 
-
+			// custom field
 			$selectorInfo = $this->getSelectorInfo($field); 
-
+			
 			if(count($selectorInfo)) {
-
+				// information available for custom field
 				if($subfield && isset($selectorInfo['subfields'][$subfield])) $selectorInfo = $selectorInfo['subfields'][$subfield]; 
 				$type = $selectorInfo['input']; 
 
 				if($type == 'page') {
-					if($subfield) $field = $this->wire('fields')->get($subfield); 
-					$selector = $this->useAutocomplete($field); 
-					if($selector) {
+					// page field requires special treatment 
+					
+					if($subfield) {
+						// if there is a subfield, focus on that instead
+						$field = $this->wire('fields')->get($subfield);
+					}
+					
+					if(strlen($selectedValue) && !ctype_digit("$selectedValue") && Selectors::stringHasOperator($selectedValue)) {
+						// existing value already has a selector in it, so we can assume type=selector
+						$type = 'selector';
+						
+					} else if(!empty($selectorInfo['options'])) {
+						// this field specifies it's own options, so we'll use them
+						$options = $selectorInfo['options'];
+					
+					} else if($this->useAutocomplete($field)) {
+						// too many selectable options so use autocomplete
 						$type = 'autocomplete';
+						
 					} else {
+						// page field, non-autocomplete, no options specified, and no existing selector string exists
 						$page = new NullPage();
 						$inputfield = $field->getInputfield($page, $field); 
+						
 						if($inputfield instanceof InputfieldPage) { 
+							// get selectable options from InputfieldPage
 							foreach($inputfield->getSelectablePages($page) as $item) {
 								$options[$item->id] = $item->get('title|name'); 
 							}
+							
 						} else {
-							$type = 'number';
+							// something other than InputfieldPage, and we don't know the selectable options
+							// unless the selectorInfo has them
+							$type = 'selector';
 						}
 					}
 				} else {
+					// non-page custom field 
 					if(!empty($selectorInfo['operators'])) $operators = $selectorInfo['operators'];
 					if(!empty($selectorInfo['options'])) $options = $selectorInfo['options'];
 				}
 
-
 			} else {
-				// for backwards compatibility with pre-2.5
+				// no selector info available, only should occur pre-2.4.2
 				$type = 'text';
 			}
 		} else {
-			// throw new WireException("Unknown field: $fieldName"); 
+			// unknown field: throw an exception or just let them enter some text
 			$type = 'text'; 
 		}
 
+		// determine which operators should be used
 		if($type == 'text' && $selectedValue = '""' && in_array($selectedOperator, array('=', '!='))) {
+			// add blank quoted string to operator, to match up with our "has value" or "does not hae value" operators
 			$selectedOperator .= '""';
 			$selectedValue = '';
+			
 		} else if($type == 'selector') { 
+			// populate operators for the selector type
 			$operators = $this->operatorsByType['selector']; 
-			$type = 'text';
+			
 		} else if($type == 'checkbox') {
+			// populate operators and options for the checkbox type
 			$operators = $this->operatorsByType['checkbox']; 
 			$options = array(0 => $this->_('Not Checked'), 1 => $this->_('Checked')); 
 		}
 
+		// render the OPERATOR selection
 		$out .= $this->renderSelectOperator($fieldName, $type, $selectedOperator, $operators) . " ";
 
+	
+		// render the VALUE input
 		if(in_array($type, array('select', 'page', 'checkbox'))) { 
+			// render a <select> box for the value
 
 			$out .= "<select class='select-value input-value' name='$inputName'>";
 			$out .= "<option value=''></option>";
+			
 			if($type != 'checkbox' && !isset($this->systemFields[$fieldName]) && !isset($this->modifierFields[$fieldName])) {
+				// allow for a "None" option to find pages that have no selections for the field
 				$selected = $selectedValue == '""' ? ' selected' : '';
 				$out .= "<option$selected value='\"\"'>" . $this->_('None') . "</option>";
 			}
+		
+			// render each option
 			foreach($options as $value => $label) {
 				$selected = $selectedValue == $value && strlen($selectedValue) == strlen($value) ? ' selected' : '';
 				$out .= "<option$selected value='$value'>$label</option>";
 			}
+			
 			$out .= "</select>";
 
 		} else if($type == 'autocomplete') {
+			// render autocomplete input
 			$placeholder = $this->_('Start typing...'); 
 			$selectedValueTitle = $this->wire('pages')->get((int) $selectedValueEntities)->get('title|name');
 			$out .= "<input value='$selectedValueEntities' class='input-value' name='$inputName' type='hidden' />";
 			$out .= "<input value='$selectedValueTitle' class='input-value-autocomplete' name='autocomplete_$inputName' placeholder='$placeholder' type='text' />";
 
 		} else if($type == 'datetime' || $type == 'date') {
+			// render date/datetime input
 			$out .= $this->renderDateInput($inputName, $selectedValue, $type == 'datetime'); 
-			//$out .= "<input value='$selectedValueEntities' class='input-value input-value-datetime InputfieldDatetimeDatepicker3' name='$inputName' type='text' />";				
 
 		} else {
+			// render other input that uses an <input type='text'> whether text, number or selector
 			$inputType = $type; 
 			$inputClass = "input-value input-value-$type";
-			if($type == 'number') {
+			
+			if($type == 'number' || $type == 'selector') {
+				// adding this class tells InputfieldSelector.js that selector strings are allowed for this input
+				$inputClass .= " input-value-subselect"; 
 				$inputType = 'text'; 
-				$inputClass .= " input-value-subselect"; // allow sub-selector strings
 			}
+			
 			$out .= "<input value='$selectedValueEntities' class='$inputClass' name='$inputName' type='$inputType' />";
 		}
 
+		// end the opval row by rendering a checkbox for the OR option
 		$orLabel = $this->_('Check box to make this row OR rather than AND');
 		$orChecked = $orChecked ? ' checked' : '';
 		$out .= "<input$orChecked class='input-or' type='checkbox' name='or_$inputName' value='1' title='$orLabel' />";
@@ -636,6 +803,15 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		return $out; 
 	}
 
+	/**
+	 * Render a datepicker input
+	 * 
+	 * @param $name
+	 * @param $value
+	 * @param bool $useTime
+	 * @return mixed
+	 * 
+	 */
 	protected function renderDateInput($name, $value, $useTime = false) {
 		$inputfield = $this->wire('modules')->get('InputfieldDatetime'); 
 		$inputfield->attr('name', $name); 
@@ -651,9 +827,20 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		return $inputfield->render();
 	}
 
-	protected function renderSelectSubfield($fieldName, $selectedValue = '') {
+	/**
+	 * Render a subfield <select>
+	 * 
+	 * @param $fieldName
+	 * @param string $selectedValue
+	 * @param Selector $selector
+	 * @return string 
+	 * 
+	 */
+	protected function renderSelectSubfield($fieldName, $selectedValue = '', Selector $selector = null) {
 
 		if($fieldName == 'parent' || $fieldName == 'children') {
+			// for parent or children, use the existing functionality in renderSelectField
+			
 			$fields = $this->wire('fields'); 
 			$out = $this->renderSelectField(array(
 				'name' => 'subfield', 
@@ -664,36 +851,49 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				'customFields' => $fields,
 				'exclude' => array() // prevent exclusion of 'count'
 				), $selectedValue); 
-
-		} else if(isset($this->systemFields[$fieldName])) { 
-			return '';
-
-		} else { 
-			$field = $this->wire('fields')->get($fieldName); 
-			if(!$field) return "Unknown Field: $fieldName";
-			$selectorInfo = $this->getSelectorInfo($field); 
-			$inputName = $this->attr('name') . "__" . $field->name . "[]"; 
-			$out = "<select class='select-subfield' name='$inputName' data-type='$selectorInfo[input]'>";
-			$out .= "<option></option>";
-
-			foreach($selectorInfo['subfields'] as $name => $info) {
-				$label = $name; 
-				if($info['input'] != 'none') {
-					$selected = $selectedValue == $name ? ' selected' : '';
-					$out .= "<option$selected value='$field->name.$name'>$label</option>";
-				}
-				if(!empty($info['subfields'])) {
-					$selected = $selectedValue == "$name." ? ' selected' : '';
-					$out .= "<option$selected value='$field->name.$name.id'>$label.id</option>";
-				}
-				
-			}
-			$out .= "</select>";
 			return $out; 
 		}
 
-		return $out; 
+		if(isset($this->systemFields[$fieldName])) { 
+			// system fields (other than parent|children) don't have subfield selections
+			return '';
+		}
 
+		// check if this is a custom field		
+		$field = $this->wire('fields')->get($fieldName); 
+		if(!$field) return "Unknown Field: $fieldName"; // shouldn't happen, but for debugging
+		
+		// if we've reached this point we're dealing with a custom field
+		$selectorInfo = $this->getSelectorInfo($field); 
+		$inputName = $this->attr('name') . "__" . $field->name . "[]"; 
+		
+		$out = "<select class='select-subfield' name='$inputName' data-type='$selectorInfo[input]'>";
+		$out .= "<option></option>";
+	
+		// determine if there is a current value string and if it contains a selector string
+		$selectorValue = is_null($selector) ? '' : $selector->value; 
+		if(is_array($selectorValue)) $selectorValue = reset($selectorValue); 
+		$valueHasSelectorString = strlen($selectorValue) > 0 && Selectors::stringHasSelector($selectorValue);
+
+		// render all the subfield options
+		foreach($selectorInfo['subfields'] as $name => $info) {
+			$label = $name;
+			// render primary subfield selection (unless selector info says not to)
+			if($info['input'] != 'none') {
+				$selected = $selectedValue == $name && !$valueHasSelectorString ? ' selected' : '';
+				$out .= "<option$selected value='$field->name.$name'>$label</option>";
+			}
+			// render 'id' option if there are subfields: this enables one to specify a sub-selector string
+			// since selectors don't allow things like field.subfield.tertiaryfield
+			if(!empty($info['subfields'])) {
+				$selected = $selectedValue == $name && $valueHasSelectorString ? ' selected' : '';
+				$out .= "<option$selected value='$field->name.$name.id'>$label.id</option>";
+			}
+		}
+		
+		$out .= "</select>";
+
+		return $out; 
 	}
 
 
@@ -705,6 +905,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	 *
 	 * @param Field $field
 	 * @param int $threshold If determined selectable quantity is <= this number, function will return blank.
+	 * @param bool $checkQuantity 
 	 * @return string Selector string. Blank string means don't use autocomplete. 
 	 *
 	 */
@@ -738,11 +939,20 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 		return $quantity > $threshold ? $selector : '';
 	}
-
-	protected function renderAutocomplete($fieldName, $q) {
+	
+	/**
+	 * Render autocomplete results and return JSON string
+	 * 
+	 * @param string $fieldName
+	 * @param string $q Query string
+	 * @return string JSON
+	 * 
+	 */
+	protected function renderAutocompleteJSON($fieldName, $q) {
 
 		header("Content-Type: application/json"); 
 
+		// format for our returned JSON 
 		$data = array(
 			'field' => "$fieldName", 
 			'status' => 0, // 0=error, 1=success
@@ -768,7 +978,6 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			return json_encode($data); 
 		}
 
-		$operator = '%=';
 		$searchFields = $field->searchFields; // used by InputfieldPageAutocomplete
 		$labelFieldName = $field->labelFieldName; 
 		$labelField = $this->wire('fields')->get($labelFieldName); 
@@ -803,6 +1012,16 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		return json_encode($data); 
 	}
 
+	/**
+	 * Render a selector row <li>
+	 * 
+	 * @param string $select Rendered output for the <select>
+	 * @param string $subfield Rendered output for the subfield <select> if applicable
+	 * @param string $opval Rendered output for the operator <select> and value <input>
+	 * @param string $class Optional class for the row
+	 * @return string
+	 * 
+	 */
 	public function renderRow($select, $subfield, $opval, $class = '') {
 		
 		$out = "<li class='selector-row ui-helper-clearfix $class'>
@@ -815,6 +1034,14 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		return $out; 
 	}
 
+	/**
+	 * Set an attribute to this Inputfield, overridden from Inputfield class
+	 * 
+	 * @param array|string $key
+	 * @param int|string $value
+	 * @return $this
+	 * 
+	 */
 	public function setAttribute($key, $value) {
 		if($key == 'value') {
 			if($this->initValue && strpos($value, $this->initValue) === 0) {
@@ -825,17 +1052,25 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		return parent::setAttribute($key, $value); 
 	}
 
+	/**
+	 * Primary Inputfield render method
+	 * 
+	 * @return string
+	 * 
+	 */
 	public function ___render() {
 
-		if(self::debug) $this->counter = true; 
+		if(self::debug) $this->counter = true;
 
-		$this->renderDateInput('tmp', '', true); // to load css/js
+		// force load the CSS/JS files used for dates, since we don't know if they will be needed or not
+		$this->renderDateInput('tmp', '', true); 
 
+		// build the structures and default values
 		$this->setup();
 
-		//$this->attr('value', 'title%=nano, company=1302, categories.title*=elec'); 
-		$value = trim($this->attr('value')); 
+		// convert the value attribute to a Selectors object
 		try {
+			$value = trim($this->attr('value')); 
 			$this->selectors = new Selectors($value); 
 		} catch(Exception $e) {
 			$this->error($e->getMessage()); 
@@ -857,12 +1092,14 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			if(count($templates)) $renderSelectOptions['templates'] = $templates; 
 		}
 
-
 		$select = $this->renderSelectField($renderSelectOptions);
 		$previewClass = $this->preview ? '' : ' selector-preview-disabled'; 
 		$counterClass = $this->counter ? '' : ' selector-counter-disabled';
+		
+		// render the template row to start: this is duplicated with JS when a field added
 		$rows = $this->renderRow($select, '', '', 'selector-template-row'); 
 
+		// render all the rows for existing selector values already in this Inputfield's value
 		foreach($this->selectors as $selector) {
 
 			$rowClass = '';
@@ -870,6 +1107,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$fields = $selector->field; 
 			if(!is_array($fields)) $fields = array($fields); 
 
+			// render a row for each field in the $selector (usually 1)
 			foreach($fields as $fieldNum => $field) {
 				$field1 = $field;
 				$field2 = '';
@@ -881,7 +1119,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				}
 		
 				$select = $this->renderSelectField(array(), $group . $field); 
-				$select2 = $dot ? $this->renderSelectSubfield($field1, $field2) : ''; 	
+				$select2 = $dot ? $this->renderSelectSubfield($field1, $field2, $selector) : ''; 	
 
 				if($select2) $rowClass .= " has-subfield";
 				if($fieldNum > 0) $rowClass .= " has-or-field";
@@ -889,6 +1127,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				$values = $selector->value; 
 				if(!is_array($values)) $values = array($values); 
 
+				// render a row for each value in the selector (usually 1)
 				foreach($values as $valueNum => $value) { 
 					if($valueNum > 0) $rowClass .= " has-or-value";
 					if($fieldNum > 0 || $valueNum > 0) $orChecked = true; 
@@ -931,6 +1170,14 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		return $out; 
 	}
 
+
+	/**
+	 * Sanitize a selector string and return it
+	 * 
+	 * @param $selectorString
+	 * @return string
+	 * 
+	 */
 	public function sanitizeSelectorString($selectorString) {
 
 		$initSelectors = new Selectors($this->initValue); 
@@ -944,7 +1191,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	}
 
 	/**
-	 * Returns array of template IDs
+	 * Returns array of template IDs that correspond with any templates specified in the initValue
+	 * 
+	 * @param string $initValue
+	 * @return array of template IDs
 	 *
 	 */
 	protected function getTemplatesFromInitValue($initValue) {
@@ -963,6 +1213,13 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		return $templates; 
 	}
 
+	/**
+	 * Process input submitted to this Inputfield
+	 * 
+	 * @param WireInputData $input
+	 * @return $this
+	 * 
+	 */
 	public function ___processInput(WireInputData $input) {
 		parent::___processInput($input); 
 		$value = $this->attr('value'); 
@@ -970,6 +1227,13 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		return $this; 
 	}
 
+	/**
+	 * Module settings: provide a sandbox area for playing with the Inputfield
+	 * 
+	 * @param array $data
+	 * @return InputfieldsWrapper|InputfieldWrapper
+	 * 
+	 */
 	public static function getModuleConfigInputfields(array $data) {
 		$form = new InputfieldWrapper();
 		$f = wire('modules')->get('InputfieldSelector'); 

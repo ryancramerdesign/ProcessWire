@@ -1,13 +1,41 @@
 <?php
 
+/**
+ * Ajax handler for FieldtypePageTable/InputfieldPageTable
+ *
+ * Concept by Antti Peisa
+ * Code by Ryan Cramer
+ * Sponsored by Avoine
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2014 by Ryan Cramer
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ *
+ * http://processwire.com
+ *
+ */
+
 class InputfieldPageTableAjax extends Wire {
 
+	/**
+	 * Notes to display in the InputfieldPageTable's notes section
+	 * 
+	 * @var string
+	 */
 	protected $notes = '';
 
+	/**
+	 * Construct
+	 * 
+	 */
 	public function __construct() {
 		$this->checkAjax();
 	}
 
+	/**
+	 * Check if current request is a valid ajax request and call renderAjax() if it is.
+	 * 
+	 */
 	protected function checkAjax() { 
 
 		$input = $this->wire('input'); 
@@ -34,6 +62,13 @@ class InputfieldPageTableAjax extends Wire {
 		$this->renderAjax($page, $field); 
 	}
 
+	/**
+	 * Render the ajax request output directly and halt execution
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * 
+	 */
 	protected function renderAjax(Page $page, Field $field) {
 		$inputfield = $field->getInputfield($page); 
 		if(!$inputfield) return;
@@ -45,6 +80,15 @@ class InputfieldPageTableAjax extends Wire {
 		exit; 
 	}
 
+	/**
+	 * Handler for the InputfieldPageTableAdd ajax action
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @param Page $item
+	 * @return bool
+	 * 
+	 */
 	protected function addItem(Page $page, Field $field, Page $item) {
 		// add an item and save the field
 		if(!$item->id || $item->createdUser->id != $this->wire('user')->id) return false;

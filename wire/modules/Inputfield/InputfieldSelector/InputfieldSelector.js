@@ -1,9 +1,42 @@
+/**
+ * ProcessWire Selector Inputfield JS
+ *
+ * Concept by Antti Peisa
+ * Code by Ryan Cramer
+ * Sponsored by Avoine
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2014 by Ryan Cramer
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ *
+ * http://processwire.com
+ *
+ */
+
 var InputfieldSelector = {
 
-	selector: '', 
+	/**
+	 * Saved value of the preview selector shown to users
+	 * 
+	 */
+	selector: '',
+	
+	/**
+	 * Markup for the spinner that appears when ajax events are running
+	 * 
+	 */
 	spinner: "<i class='fa fa-lg fa-spin fa-spinner'></i>",
+
+	/**
+	 * Default border-color value, which we later attempt to modify and auto determine from the admin theme
+	 * 
+	 */
 	borderColor: '#eee',
 
+	/**
+	 * Initialize InputfieldSelector and attach all needed events
+	 * 
+	 */
 	init: function() {
 		$(document).on('change', '.InputfieldSelector select.select-field', InputfieldSelector.changeField); 
 		$(document).on('change', '.InputfieldSelector select.select-subfield', InputfieldSelector.changeField); 
@@ -66,7 +99,55 @@ var InputfieldSelector = {
 		}
 
 	},
+	
+	/**
+	 * Disable a <select> option
+	 *
+	 * @param $option
+	 *
+	 */
+	disableOption: function($option) {
+		$option.attr('disabled', 'disabled');
+	},
 
+	/**
+	 * Enable a <select> option
+	 *
+	 * @param $option
+	 *
+	 */
+	enableOption: function($option) {
+		$option.removeAttr('disabled');
+
+	},
+
+	/**
+	 * Does the given value (string) contain a selector operator?
+	 *
+	 * @param value
+	 * @returns {boolean}
+	 *
+	 */
+	valueHasOperator: function(value) {
+		var operators = ['=', '<', '>'];
+		var hasOperator = false;
+		for(n = 0; n < operators.length; n++) {
+			var pos = value.indexOf(operators[n]);
+			// pos > 0 means there is an operator somewhere, and it's not escaped with a backslash
+			if(pos > -1 && value.substring(pos-1, 1) != '\\') {
+				hasOperator = true;
+				break;
+			}
+		}
+		return hasOperator;
+	},
+
+	/**
+	 * Add a new InputfieldSelector row
+	 * 
+	 * @param $context
+	 * 
+	 */
 	addRow: function($context) {
 		var $list = $context.parents('.InputfieldSelector').find('.selector-list'); 
 		var $row = $list.find('.selector-template-row');
@@ -79,8 +160,14 @@ var InputfieldSelector = {
 		$list.append($newRow); 
 		$newRow.slideDown('fast');
 		InputfieldSelector.normalizeHeightRow($newRow); 
-	}, 
+	},
 
+	/**
+	 * Delete an InputfieldSelector row
+	 * 
+	 * @returns {boolean}
+	 * 
+	 */
 	deleteRow: function() {
 		var $row = $(this).parents(".selector-row");
 		var $selectField = $row.find(".select-field"); 
@@ -99,8 +186,16 @@ var InputfieldSelector = {
 			InputfieldSelector.changeAny($siblings.eq(0)); 
 		}); 
 		return false; 
-	}, 
+	},
 
+	/**
+	 * Event called when a field <select> has changed
+	 * 
+	 * This function initiates an ajax request to get the operator and value (opval) portion of the row.
+	 * 
+	 * @param $select
+	 * 
+	 */
 	changeField: function($select) {
 
 		//console.log('changeField'); 
@@ -162,16 +257,34 @@ var InputfieldSelector = {
 		}); 
 	},
 
+	/**
+	 * Normalize the height of a selector row so that all the inputs are visually vertically centered
+	 * 
+	 * @param $row
+	 * 
+	 */
 	normalizeHeightRow: function($row) {
 		InputfieldSelector.normalizeHeight($row.find(":input, i.fa")); 
 	},
 
+	/**
+	 * Normalize the height of all selector rows so that all the inputs are visually vertically centered
+	 *
+	 * @param $parent
+	 *
+	 */
 	normalizeHeightRows: function($parent) {
 		$parent.find(".selector-row").each(function() {
 			InputfieldSelector.normalizeHeightRow($(this)); 
 		}); 
 	},
 
+	/**
+	 * Normalize the height of all the given items so that all the inputs are visually vertically centered
+	 *
+	 * @param $items
+	 *
+	 */
 	normalizeHeight: function($items) {
 		var maxHeight = 0; 
 		$items.each(function() {
@@ -186,8 +299,16 @@ var InputfieldSelector = {
 				$(this).css('margin-top', targetHeight + 'px'); 
 			}
 		}); 
-	}, 
+	},
 
+	/**
+	 * Setup jQuery UI autocomplete for an input
+	 * 
+	 * @param $item
+	 * @param field
+	 * @param name
+	 * 
+	 */
 	setupAutocomplete: function($item, field, name) {
 
 		var $counter = $item.parents(".InputfieldSelector").find(".selector-counter"); 
@@ -224,8 +345,16 @@ var InputfieldSelector = {
 			InputfieldSelector.changeAny($item);
 			
 		}); 
-	}, 
+	},
 
+	/**
+	 * Event called when an operator or input value is changed
+	 * 
+	 * Primary goal is to convert the inputs to a selector string
+	 * 
+	 * @param $item
+	 * 
+	 */
 	changeAny: function($item) {
 
 		var selector = '';
@@ -376,7 +505,6 @@ var InputfieldSelector = {
 			
 		}
 
-
 		selector = '';
 		for(n = 0; n < selectors.length; n++) {
 			var s = selectors[n]; 
@@ -410,7 +538,6 @@ var InputfieldSelector = {
 			}
 			selector += s.field + s.operator + s.value; 
 		}
-
 
 		var $preview = $item.parents('.selector-list').siblings('.selector-preview'); 
 		var initValue = $preview.attr('data-init-value'); 
@@ -446,37 +573,11 @@ var InputfieldSelector = {
 
 		InputfieldSelector.selector = selector; 
 
-		$orNotes = $inputfield.find(".or-notes");
+		var $orNotes = $inputfield.find(".or-notes");
 		if(showOrNotes) $orNotes.fadeIn();
 			else $orNotes.hide();
 
-	},
-
-	disableOption: function($option) {
-		$option.attr('disabled', 'disabled');
-	}, 
-
-	enableOption: function($option) {
-		$option.removeAttr('disabled');
-		
-	},
-	
-	valueHasOperator: function(value) {
-		var operators = ['=', '<', '>']; 
-		var hasOperator = false; 
-		for(n = 0; n < operators.length; n++) {
-			var pos = value.indexOf(operators[n]); 
-			// pos > 0 means there is an operator somewhere, and it's not escaped with a backslash
-			if(pos > -1 && value.substring(pos-1, 1) != '\\') {
-				hasOperator = true; 
-				break;
-			}
-		}
-		return hasOperator; 
 	}
-
-
-
 
 }; 
 
