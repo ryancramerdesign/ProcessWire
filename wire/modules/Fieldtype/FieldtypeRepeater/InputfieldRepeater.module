@@ -223,7 +223,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		// a hidden checkbox with link that we use to identify when items have been added
 		$out = 	"\n<p class='InputfieldRepeaterAddItem'>" . 
 			"\n\t<input type='text' name='_{$this->name}_add_items' value='0' />" . 
-			"\n\t<a href='#' class='InputfieldRepeaterAddLink'><i class='fa fa-plus-circle'></i> " . $this->_('Add Item') . "</a>" . 
+			"\n\t<a href='#' class='InputfieldRepeaterAddLink'><i class='fa fa-plus-circle'></i> " . $this->_('Add') . " {$this->label}</a>" . 
 			"\n</p>";
 
 		return $this->buildForm()->render() . $out; 
