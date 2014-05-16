@@ -99,7 +99,7 @@ class PagePathHistory extends WireData implements Module {
 
 		$database = $this->wire('database');	
 	
-		$query = $database->prepare("INSERT INTO " . self::dbTableName . " SET path=:path, pages_id=:pages_id, created=NOW()");
+		$query = $database->prepare("INSERT INTO " . self::dbTableName . "(path,pages_id,created) VALUES(:path,:pages_id,'".date('Y-m-d H:i:s')."')");
 		$query->bindValue(":path", $path); 
 		$query->bindValue(":pages_id", $page->id, PDO::PARAM_INT);
 

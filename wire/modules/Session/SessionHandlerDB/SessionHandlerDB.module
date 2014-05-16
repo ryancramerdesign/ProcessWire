@@ -96,12 +96,10 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		$s = "user_id=$user_id, pages_id=$pages_id, data='$data'"; 
 		if($ip) $s .= ", ip=$ip";
 		if($ua) $s .= ", ua='$ua'";
-		$sql = 	"INSERT INTO $table SET id='$id', $s ";
-		$sql .= "ON DUPLICATE KEY UPDATE $s, ts=NOW()";
+		$sql = 	"REPLACE INTO $table SET id='$id', $s, ts='".date('Y-m-d H:i:s')."'";
 		
 		$query = $database->prepare($sql); 
 		$result = $query->execute() ? true : false;
-		$database->exec("SELECT RELEASE_LOCK('$id')");
 		
 		return $result; 
 	}

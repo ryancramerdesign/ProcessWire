@@ -169,7 +169,7 @@ class PageFinder extends Wire {
 			$this->total = count($matches); 
 
 		} else if(count($query->limit)) {
-			$this->total = (int) $database->query("SELECT FOUND_ROWS()")->fetchColumn();
+			$this->total = (int) $database->query("SELECT Count(1)")->fetchColumn();
 			
 		} else {
 			$this->total = count($matches);
@@ -638,7 +638,8 @@ class PageFinder extends Wire {
 			}
 
 			$sql .= "$limit";
-			if($this->limit > 1) $query->select("SQL_CALC_FOUND_ROWS"); 
+			if($this->limit > 1) 
+				$query->select("Count(1)"); 
 		}
 
 		if($sql) $query->limit($sql); 

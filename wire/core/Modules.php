@@ -571,7 +571,7 @@ class Modules extends WireArray {
 		if($this->isSingular($module)) $flags = $flags | self::flagsSingular; 
 		if($this->isAutoload($module)) $flags = $flags | self::flagsAutoload; 
 	
-		$query = $database->prepare("INSERT INTO modules SET class=:class, flags=:flags, data=''"); 
+		$query = $database->prepare("INSERT INTO modules(class,flags,data) VALUES(:class, :flags, '')"); 
 		$query->bindValue(":class", $class, PDO::PARAM_STR); 
 		$query->bindValue(":flags", $flags, PDO::PARAM_INT); 
 		if($query->execute()) $moduleID = (int) $database->lastInsertId();

@@ -134,10 +134,11 @@ class ProcessWire extends Wire {
 		$this->wire('sanitizer', new Sanitizer()); 
 
 		try {
-			$database = WireDatabasePDO::getInstance($config);
-			$this->wire('database', $database); 
-			$db = new DatabaseMysqli($config);
-			$this->wire('db', $db);
+			if (!empty($config->dbDSN))
+				$database = WireDatabasePDO_sqlite3::getInstance($config);
+			else
+				$database = WireDatabasePDO::getInstance($config);
+			$this->wire('database', $database);
 		} catch(Exception $e) {
 			// catch and re-throw to prevent DB connect info from ever appearing in debug backtrace
 			throw new WireDatabaseException($e->getMessage()); 

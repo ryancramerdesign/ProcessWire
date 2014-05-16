@@ -36,8 +36,16 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 *
 	 */
 	public function getDatabaseSchema(Field $field) {
+		$database = $this->wire('database');
+		
 		$schema = parent::getDatabaseSchema($field); 
-		$schema['sort'] = 'int unsigned NOT NULL'; 
+		
+		if (is_a($database, 'WireDatabasePDO')) {
+			$schema['sort'] = 'int unsigned NOT NULL'; 
+		} elseif (is_a($database, 'WireDatabasePDO_sqlite3')) {
+			$schema['sort'] = 'INTEGER NOT NULL'; 
+		}
+		
 		$schema['keys']['primary'] = 'PRIMARY KEY (pages_id, sort)'; 
 		return $schema; 
 	}

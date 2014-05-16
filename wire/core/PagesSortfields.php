@@ -33,9 +33,8 @@ class PagesSortfields extends Wire {
 
 		if($sortfield == 'sort' || !$sortfield) return $this->delete($page); 
 
-		$sql = 	"INSERT INTO pages_sortfields (pages_id, sortfield) " .
-				"VALUES(:page_id, :sortfield) " .
-				"ON DUPLICATE KEY UPDATE sortfield=VALUES(sortfield)";
+		$sql = 	"REPLACE INTO pages_sortfields (pages_id, sortfield) " .
+				"VALUES(:page_id, :sortfield)";
 		
 		$query = $database->prepare($sql);
 		$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);

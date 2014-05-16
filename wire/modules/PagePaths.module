@@ -168,8 +168,7 @@ class PagePaths extends WireData implements Module {
 		$_path = $database->escapeStr($path);
 		$numUpdated = 1;
 
-		$sql = 	"INSERT INTO $table (pages_id, path) VALUES(:id, :path) " . 
-				"ON DUPLICATE KEY UPDATE pages_id=VALUES(pages_id), path=VALUES(path)"; 
+		$sql = 	"REPLACE INTO $table (pages_id, path) VALUES(:id, :path) "; 
 	
 		$query = $database->prepare($sql);
 		$query->bindValue(":id", $id, PDO::PARAM_INT);	
