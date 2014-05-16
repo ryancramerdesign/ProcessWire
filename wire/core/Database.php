@@ -149,7 +149,7 @@ class Database extends mysqli implements WireDatabase {
 	/**
 	 * Is the given string a database comparison operator?
 	 *
-	 * @param string $str 1-2 character opreator to test
+	 * @param string $str 1-2 character operator to test
 	 * @return bool 
 	 *
 	 */

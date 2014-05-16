@@ -19,7 +19,7 @@
 class Role extends Page { 
 
 	/**
-	 * Create a new ROle page in memory. 
+	 * Create a new Role page in memory. 
 	 *
 	 */
 	public function __construct(Template $tpl = null) {
