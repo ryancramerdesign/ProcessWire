@@ -173,6 +173,11 @@ class Pagefiles extends WireArray {
 		return parent::get($key);
 	}
 
+	public function __get($key) {
+		if(in_array($key, array('page', 'field', 'url', 'path'))) return $this->get($key); 
+		return parent::__get($key); 
+	}
+
 	/**
 	 * Find all Pagefiles matching the given selector string or tag
 	 *
