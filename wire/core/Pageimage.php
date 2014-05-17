@@ -198,11 +198,13 @@ class Pageimage extends Pagefile {
 
 		// I was getting unnecessarily resized images without this code below,
 		// but this may be better solved in ImageSizer?
+		/*
 		$w = $this->width();
 		$h = $this->height();
 		if($w == $width && $h == $height) return $this; 
 		if(!$height && $w == $width) return $this; 
 		if(!$width && $h == $height) return $this; 
+		*/
 
 		if(!is_array($options)) { 
 			if(is_string($options)) {
