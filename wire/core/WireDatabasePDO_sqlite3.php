@@ -1,9 +1,9 @@
 <?php
 
 /**
- * ProcessWire PDO Database
+ * ProcessWire PDO Database using SQLite3
  *
- * Serves as a wrapper to PHP's PDO class
+ * Serves as a wrapper to PHP's PDO SQLITE class
  * 
  * ProcessWire 2.x 
  * Copyright (C) 2013 by Ryan Cramer 
@@ -11,13 +11,14 @@
  * 
  * http://processwire.com
  *
+ * @author David Yew <compleatguru@gmail.com>
  */
 
 /**
  * Database class provides a layer on top of mysqli
  *
  */
-class WireDatabasePDO extends Wire implements WireDatabase {
+class WireDatabasePDO_sqlite3 extends Wire implements WireDatabase {
 
 	/**
 	 * Log of all queries performed in this instance
@@ -29,7 +30,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 * Whether queries will be logged
 	 * 
 	 */
-	protected $debugMode = false;
+	protected $debugMode = true;
 
 	/**
 	 * Instance of PDO
@@ -58,15 +59,15 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		$username = $config->dbUser;
 		$password = $config->dbPass;
 		$name = $config->dbName;
-		$port = $config->dbPort;
-		$dsn = "mysql:dbname=$name;host=$host";
-		if($port) $dsn .= ";port=$port";
+		$dsn = $config->dbDSN;
+		if(!$dsn)
+		$dsn = 'sqlite:'.__DIR__.'/../data/schema.sqlite';
 		$driver_options = array(
-			PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'",
 			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-			);
-		$database = new WireDatabasePDO($dsn, $username, $password, $driver_options); 
-		$database->setDebugMode($config->debug);
+			);		
+		$database = new WireDatabasePDO_sqlite3($dsn, $username, $password, $driver_options);
+		$database->setDebugMode($config->debug);		
+		
 		return $database;
 	}
 	
@@ -127,6 +128,13 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		return self::$queryLog; 
 	}
 	
+	/**
+	 * Prepares a statement for execution and returns a statement object
+	 * 
+	 * @param string $statement
+	 * @param array $driver_options
+	 * @return PDOStatement
+	 */
 	public function prepare($statement, array $driver_options = array()) {
 		if($this->debugMode) self::$queryLog[] = $statement;
 		return $this->pdo->prepare($statement, $driver_options);
@@ -147,7 +155,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		static $tables = array();
 
 		if(!count($tables)) {
-			$query = $this->query("SHOW TABLES"); 			
+			$query = $this->query(".tables"); 			
 			while($col = $query->fetchColumn()) $tables[] = $col;
 		} 
 

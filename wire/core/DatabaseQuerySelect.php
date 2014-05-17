@@ -92,16 +92,11 @@ class DatabaseQuerySelect extends DatabaseQuery {
 
 		$sql = '';
 		$select = $this->select; 
-
-		// ensure that an SQL_CALC_FOUND_ROWS request comes first
-		while(($key = array_search("SQL_CALC_FOUND_ROWS", $select)) !== false) {
-			if(!$sql) $sql = "SELECT SQL_CALC_FOUND_ROWS ";	
-			unset($select[$key]); 
-		}
+		
 		if(!$sql) $sql = "SELECT ";
 
 		// $config->dbCache option for debugging purposes
-		if(wire('config')->dbCache === false) $sql .= "SQL_NO_CACHE "; 
+		if(wire('config')->dbCache === false && empty(wire('config')->dbDSN)) $sql .= "SQL_NO_CACHE "; 
 
 		foreach($select as $s) $sql .= "$s,";
 		$sql = rtrim($sql, ",") . " "; 

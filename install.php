@@ -1,5 +1,4 @@
 <?php
-
 /**
  * ProcessWire Installer
  *
@@ -206,6 +205,9 @@ class Installer {
 
 		if(is_writable("./site/config.php")) $this->ok("./site/config.php is writable"); 
 			else $this->err("Error: File ./site/config.php must be writable. Please adjust the permissions before continuing."); 
+			
+		if(is_writable(__DIR__.'/wire/data/')) $this->ok(__DIR__.'/wire/data/'." is writable"); 
+			else $this->err("Error: Directory ".__DIR__.'/wire/data/'." must be writable. Please adjust the permissions before continuing."); 
 
 		if(!is_file("./.htaccess") || !is_readable("./.htaccess")) {
 			if(@rename("./htaccess.txt", "./.htaccess")) $this->ok("Installed .htaccess"); 
@@ -233,7 +235,8 @@ class Installer {
 	 */
 	protected function dbConfig($values = array()) {
 
-		if(!is_file("./site/install/install.sql")) die("There is no installation profile in /site/. Please place one there before continuing. You can get it at processwire.com/download"); 
+		if(!is_file("./site/install/install.mysql.sql")) die("There is no installation profile in /site/. Please place one there before continuing. You can get it at processwire.com/download"); 
+		if(!is_file("./site/install/install.sqlite.sql")) die("There is no installation profile for sqlite in /site/. Please place one there before continuing. You can get it at processwire.com/download"); 
 
 		$this->h("MySQL Database"); 
 		$this->p("Please create a MySQL 5.x database and user account on your server. The user account should have full read, write and delete permissions on the database.* Once created, please enter the information for this database and account below:"); 
@@ -254,11 +257,17 @@ class Installer {
 				else $values[$key] = htmlspecialchars($value, ENT_QUOTES); 
 		}
 
-		$this->input('dbName', 'DB Name', $values['dbName']); 
-		$this->input('dbUser', 'DB User', $values['dbUser']);
+		$this->input('dbName', 'DB Name', $values['dbName'],false,'text',false); 
+		$this->input('dbUser', 'DB User', $values['dbUser'],false,'text',false);
 		$this->input('dbPass', 'DB Pass', $values['dbPass'], false, 'password', false); 
-		$this->input('dbHost', 'DB Host', $values['dbHost']); 
-		$this->input('dbPort', 'DB Port', $values['dbPort'], true); 
+		$this->input('dbHost', 'DB Host', $values['dbHost'],false,'text',false); 
+		$this->input('dbPort', 'DB Port', $values['dbPort'],true,'text',false);
+		
+		$this->h('SQLite Database');
+		$this->p('SQLite Database Full File Path');
+		$this->p('Ensure that the path is writable in order to create the SQLite database');
+		if(!isset($values['dbDSN'])) $values['dbDSN'] = __DIR__.'/wire/data/schema.sqlite';
+		$this->input('dbDSN', 'SQLITE DSN String', $values['dbDSN'],true,'text',false,['inputWidth'=>300,'width'=>315]); 
 
 		$cgi = false;
 		$defaults = array();
@@ -332,7 +341,7 @@ class Installer {
 	 */
 	protected function dbSaveConfig() {
 
-		$fields = array('dbUser', 'dbName', 'dbPass', 'dbHost', 'dbPort'); 	
+		$fields = array('dbUser', 'dbName', 'dbPass', 'dbHost', 'dbPort','dbDSN'); 	
 		$values = array();	
 
 		foreach($fields as $field) {
@@ -342,26 +351,42 @@ class Installer {
 		}
 
 		if(!$values['dbUser'] || !$values['dbName'] || !$values['dbPort']) {
+			if(!$values['dbDSN']){
 			$this->err("Missing database configuration fields"); 
 			return $this->dbConfig();
+			}
 		}
 
 		error_reporting(0); 
-		
-		$dsn = "mysql:dbname=$values[dbName];host=$values[dbHost];port=$values[dbPort]";
-		$driver_options = array(
-			PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'",
-			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+		if (!$values['dbDSN']) {
+			$dsn = "mysql:dbname=$values[dbName];host=$values[dbHost];port=$values[dbPort]";
+			$driver_options = array(
+				PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'",
+				PDO::ATTR_ERRMODE			 => PDO::ERRMODE_EXCEPTION
 			);
-		try {
-			$database = new PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options); 
-		} catch(Exception $e) {
-			$this->err("Database connection information did not work."); 
-			$this->err($e->getMessage());
-			$this->dbConfig($values);
-			return;
+			try {
+				$database = new PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options);
+			} catch (Exception $e) {
+				$this->err("Database connection information did not work.");
+				$this->err($e->getMessage());
+				$this->dbConfig($values);
+				return;
+			}
 		}
-
+		else{
+			try {
+				$dsn = 'sqlite:'.$values['dbDSN'];				
+				$database = new PDO($dsn);
+				$database->exec('PRAGMA journal_mode = WAL;');
+				$values['dbDSN']=$dsn;
+			} catch (Exception $e) {
+				$this->err("Database connection information did not work.");
+				$this->err($e->getMessage());
+				$this->dbConfig($values);
+				return;
+			}
+		}
+		
 		// file permissions
 		$fields = array('chmodDir', 'chmodFile');
 		foreach($fields as $field) {
@@ -392,10 +417,18 @@ class Installer {
 		}
 
 		$this->h("Test Database and Save Configuration");
+		if(!empty($values['dbName']))
 		$this->ok("Database connection successful to " . htmlspecialchars($values['dbName'])); 
+		else 
+		$this->ok("Database connection successful to " . htmlspecialchars(str_replace('sqlite:','',$values['dbDSN']))); 
 
-		if($this->dbSaveConfigFile($values)) $this->profileImport($database);
-			else $this->dbConfig($values);
+	if ($this->dbSaveConfigFile($values)) {
+			if (empty($values['dbDSN']))
+				$this->profileImport($database);
+			else
+				$this->profileImport($database, true);
+		} else
+			$this->dbConfig($values);
 	}
 
 	/**
@@ -412,6 +445,7 @@ class Installer {
 			"\n * Installer: Database Configuration" . 
 			"\n * " . 
 			"\n */" . 
+			"\n\$config->dbDSN = '$values[dbDSN]';" . 
 			"\n\$config->dbHost = '$values[dbHost]';" . 
 			"\n\$config->dbName = '$values[dbName]';" . 
 			"\n\$config->dbUser = '$values[dbUser]';" . 
@@ -465,8 +499,7 @@ class Installer {
 	 * Step 3b: Import profile
 	 *
 	 */
-	protected function profileImport($database) {
-
+	protected function profileImport($database,$isSQLite=false) {
 		if(self::TEST_MODE) {
 			$this->ok("TEST MODE: Skipping profile import"); 
 			$this->adminAccount();
@@ -474,31 +507,54 @@ class Installer {
 		}
 
 		$profile = "./site/install/";
-		if(!is_file("{$profile}install.sql")) die("No installation profile found in {$profile}"); 
-
-		// checks to see if the database exists using an arbitrary query (could just as easily be something else)
-		try {
-			$query = $database->prepare("SHOW COLUMNS FROM pages"); 
-			$result = $query->execute();
-		} catch(Exception $e) {
-			$result = false;
+		if (!$isSQLite) {
+			if (!is_file("{$profile}install.mysql.sql"))
+				die("No MySQL installation profile found in {$profile}");
+		}
+		else {
+			if (!is_file("{$profile}install.sqlite.sql"))
+				die("No SQLite installation profile found in {$profile}");
 		}
 
-		if(self::REPLACE_DB || !$result || $query->rowCount() == 0) {
+		// checks to see if the database exists using an arbitrary query (could just as easily be something else)
+		if (!$isSQLite) {
+			try {
+				$query = $database->prepare("SHOW COLUMNS FROM pages");
+				$result = $query->execute();
+			} catch (Exception $e) {
+				$result = false;
+			}
+			if (self::REPLACE_DB || !$result || $query->rowCount() == 0) {
 
-			$this->profileImportSQL($database, "./wire/core/install.sql"); 
-			$this->ok("Imported: ./wire/core/install.sql"); 
-			$this->profileImportSQL($database, $profile . "install.sql"); 
-			$this->ok("Imported: {$profile}install.sql"); 
+				$this->profileImportSQL($database, "./wire/core/install.sql");
+				$this->ok("Imported: ./wire/core/install.sql");
+				$this->profileImportSQL($database, $profile . "install.sql");
+				$this->ok("Imported: {$profile}install.sql");
 
-			if(is_dir($profile . "files")) $this->profileImportFiles($profile);
-				else $this->mkdir("./site/assets/files/"); 
-			$this->mkdir("./site/assets/cache/"); 
-			$this->mkdir("./site/assets/logs/"); 
-			$this->mkdir("./site/assets/sessions/"); 
+				if (is_dir($profile . "files"))
+					$this->profileImportFiles($profile);
+				else
+					$this->mkdir("./site/assets/files/");
+				$this->mkdir("./site/assets/cache/");
+				$this->mkdir("./site/assets/logs/");
+				$this->mkdir("./site/assets/sessions/");
+			} else {
+				$this->ok("A profile is already imported, skipping...");
+			}
+		}
+		else  {
+			$this->profileImportSQL($database, "./wire/core/install.sqlite.sql");
+			$this->ok("Imported: ./wire/core/install.sqlite.sql");
+			$this->profileImportSQL($database, $profile . "install.sqlite.sql");
+			$this->ok("Imported: {$profile}install.sqlite.sql");
 
-		} else {
-			$this->ok("A profile is already imported, skipping..."); 
+			if (is_dir($profile . "files"))
+				$this->profileImportFiles($profile);
+			else
+				$this->mkdir("./site/assets/files/");
+			$this->mkdir("./site/assets/cache/");
+			$this->mkdir("./site/assets/logs/");
+			$this->mkdir("./site/assets/sessions/");
 		}
 
 		$this->adminAccount();
@@ -768,9 +824,15 @@ class Installer {
 	 * Output an <input type='text'>
 	 *
 	 */
-	protected function input($name, $label, $value, $clear = false, $type = "text", $required = true) {
-		$width = 135; 
-		$required = $required ? "required='required'" : "";
+	protected function input($name, $label, $value, $clear = false, $type = "text", $required = true, array $htmlOptions=[]) {
+		if(isset($htmlOptions['width'])){
+			$width = $htmlOptions['width']; 
+		}
+		else{
+			$width = 135; 
+		}
+		
+		$required = $required ? "required='required'" : "";		
 		$pattern = '';
 		$note = '';
 		if($type == 'email') {
@@ -781,8 +843,12 @@ class Installer {
 			$pattern = "pattern='[-_a-z0-9]{2,50}' ";
 			if($name == 'admin_name') $width = ($width*2);
 			$note = "<small class='detail' style='font-weight: normal;'>(a-z 0-9)</small>";
+		}		
+		if(isset($htmlOptions['inputWidth'])){
+			$inputWidth = $htmlOptions['inputWidth'];
+		}else{
+			$inputWidth = $width - 15;
 		}
-		$inputWidth = $width - 15; 
 		$value = htmlentities($value, ENT_QUOTES, "UTF-8"); 
 		echo "\n<p style='width: {$width}px; float: left; margin-top: 0;'><label>$label $note<br /><input type='$type' name='$name' value='$value' $required $pattern style='width: {$inputWidth}px;' /></label></p>";
 		if($clear) echo "\n<br style='clear: both;' />";

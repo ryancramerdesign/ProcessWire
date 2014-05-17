@@ -405,16 +405,30 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function getDatabaseSchema(Field $field) {
-		$schema = array(
-			'pages_id' => 'int UNSIGNED NOT NULL', 
-			'data' => "int NOT NULL", // each Fieldtype should override this in particular
-			'keys' => array(
-				'primary' => 'PRIMARY KEY (`pages_id`)', 
-				'data' => 'KEY data (`data`)',
-			),
-			// any optional statements that should follow after the closing paren (i.e. engine, default charset, etc)
-			'xtra' => 'ENGINE=MyISAM DEFAULT CHARSET=utf8', 
-		); 
+		$database = $this->wire('database');
+		if (is_a($database, 'WireDatabasePDO')) {
+			$schema = array(
+				'pages_id'	 => 'int UNSIGNED NOT NULL',
+				'data'		 => "int NOT NULL", // each Fieldtype should override this in particular
+				'keys'		 => array(
+					'primary'	 => 'PRIMARY KEY (`pages_id`)',
+					'data'		 => 'KEY data (`data`)',
+				),
+				// any optional statements that should follow after the closing parent (i.e. engine, default charset, etc)
+				'xtra'		 => 'ENGINE=MyISAM DEFAULT CHARSET=utf8',
+			);
+		} elseif (is_a($database, 'WireDatabasePDO_sqlite3')) {
+			$schema = array(
+				'pages_id'	 => 'INTEGER NOT NULL',
+				'data'		 => "int NOT NULL", // each Fieldtype should override this in particular
+				'keys'		 => array(
+					'primary' => 'PRIMARY KEY (`pages_id`)',
+				),
+				// any optional statements that should follow after the closing parent(i.e. engine, default charset, etc)
+				'xtra'		 => 'CREATE INDEX IF NOT EXISTS ' . $field->table . '_data ON ' . $field->table . '(data);',
+			);
+		}
+		
 		return $schema; 
 	}
 
@@ -499,7 +513,7 @@ abstract class Fieldtype extends WireData implements Module {
 
 		$database = $this->wire('database');
 		$table = $database->escapeTable($field->table);
-		$schema = $this->trimDatabaseSchema($this->getDatabaseSchema($field)); 
+		$schema = $this->trimDatabaseSchema($this->getDatabaseSchema($field));
 		$fieldName = $database->escapeCol($field->name);
 
 		// now load any extra components (if applicable) in a fieldName__SubfieldName format.
@@ -551,29 +565,26 @@ abstract class Fieldtype extends WireData implements Module {
 
 		$page_id = (int) $page->id; 
 		$table = $database->escapeTable($field->table); 
-
+		
 		if(is_array($value)) { 
-
-			$sql1 = "INSERT INTO `$table` (pages_id";
+			
+			$sql1 = "REPLACE INTO `$table` (pages_id";
 			$sql2 = "VALUES('$page_id'";
-			$sql3 = "ON DUPLICATE KEY UPDATE ";
 
 			foreach($value as $k => $v) {
 				$k = $database->escapeCol($k);
 				$v = $database->escapeStr($v);
 				$sql1 .= ",$k";
 				$sql2 .= ",'$v'";
-				$sql3 .= "$k=VALUES($k), ";
 			}
 
-			$sql = "$sql1) $sql2) " . rtrim($sql3, ', ');
+			$sql = "$sql1) $sql2)";
 			
 		} else { 
 			$value = $database->escapeStr($value); 
 
-			$sql = 	"INSERT INTO `$table` (pages_id, data) " . 
-					"VALUES('$page_id', '$value') " . 
-					"ON DUPLICATE KEY UPDATE data=VALUES(data)";	
+			$sql = 	"REPLACE INTO `$table` (pages_id, data) " . 
+					"VALUES('$page_id', '$value') "; 
 		}
 		
 		$query = $database->prepare($sql);

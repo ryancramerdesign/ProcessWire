@@ -184,11 +184,26 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 
 		$database = $this->wire('database'); 
 		$table = $database->escapeTable($this->getTable());
-		$sql = "`$table` SET ";
+		
 		$id = (int) $item->id;
 		$this->saveReady($item); 
 		$data = $item->getTableData();
-
+						
+		if($id){
+			$sql = "`$table` SET ";
+		}
+		else{
+			$columnList = $data;
+			foreach($columnList as $columnName => $value){
+				if($value === 0 && $columnName=='id'){
+					unset($columnList[$columnName]);
+				}
+			}
+			
+			$columns = implode(',',array_keys($columnList));
+			$sql = "`$table` ($columns) VALUES(";
+		}
+		
 		foreach($data as $key => $value) {
 			if(!$this->saveItemKey($key)) continue; 
 			if($key == 'data') {
@@ -198,7 +213,13 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 			}
 			$key = $database->escapeTableCol($key);
 			$value = $database->escapeStr("$value"); 
-			$sql .= "`$key`='$value', ";
+			if($id){
+				$sql .= "`$key`='$value', ";
+			}
+			else{
+				$sql .= "'$value', ";
+			}
+			
 		}
 
 		$sql = rtrim($sql, ", "); 
@@ -210,7 +231,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 			$result = $query->execute();
 			
 		} else {
-			
+			$sql .=')';
 			$query = $database->prepare("INSERT INTO $sql"); 
 			$result = $query->execute();
 			if($result) {

@@ -244,6 +244,9 @@ class FieldtypeFile extends FieldtypeMulti {
 	public function getDatabaseSchema(Field $field) {
 
 		$database = $this->wire('database');
+		if(is_a($database, 'WireDatabasePDO_sqlite3')){
+			return $this->getSQLite3DatabaseSchema($field);
+		}
 		$schema = parent::getDatabaseSchema($field);
 		$table = $database->escapeTable($field->table); 
 
@@ -328,6 +331,122 @@ class FieldtypeFile extends FieldtypeMulti {
 			try {
 				$database->exec("ALTER TABLE `{$table}` DROP INDEX tags"); 
 				$database->exec("ALTER TABLE `{$table}` DROP tags"); 
+				$field->fileSchema = $field->fileSchema & ~self::fileSchemaTags;
+				$field->save();
+				$this->message("Dropped tags from DB schema for '{$field->name}'", Notice::log); 
+			} catch(Exception $e) {
+				$this->error("Error dropping tags from '{$field->name}' schema", Notice::log); 
+			}
+		}
+
+		if($field->fileSchema & self::fileSchemaTags) { 
+			$schema['tags'] = $schemaTags;
+			$schema['keys']['tags'] = $schemaTagsIndex;
+		}
+
+		return $schema;
+	}
+	
+	private function getSQLite3DatabaseSchema(Field $field) {
+		
+		$database = $this->wire('database');
+		$schema = parent::getDatabaseSchema($field);
+		$table = $database->escapeTable($field->table); 
+
+		$schema['data'] = 'TEXT NOT NULL';
+		$schema['description'] = "TEXT NOT NULL";
+		$schema['modified'] = "TEXT"; 
+		$schema['created'] = "TEXT"; 
+		$schema['xtra'] = 'CREATE INDEX IF NOT EXISTS ' . $field->table . '_description ON ' . $field->table . '(description);'.
+				'CREATE INDEX IF NOT EXISTS ' . $field->table . '_modified ON ' . $field->table . '(modified);'. 
+				'CREATE INDEX IF NOT EXISTS ' . $field->table . '_created ON ' . $field->table . '(created);'; 
+
+		if($field->id && !($field->fileSchema & self::fileSchemaDate)) {
+			// permanently add new 'modified' and 'created' column to file schema
+			$addDates = false;
+
+			try {
+				$query = $database->prepare("PRAGMA table_info($table);"); 
+				$result = $query->execute();
+								
+				$columnName = 'modified';
+				$FilterColumn = function($item) use($columnName){
+					return $item['name']==$columnName;
+				};
+				
+				$numRows = (int) count(array_filter($query->fetchAll(), $FilterColumn));
+				
+				if($numRows) {
+					$field->fileSchema = $field->fileSchema | self::fileSchemaDate; 
+					echo '<pre>$var'.print_r($field->fileSchema,true).'</pre>';exit;
+					$field->save();
+				} else {
+					$addDates = true; 
+				}
+			} catch(Exception $e) {
+				// intentionally blank
+				throw $e;
+			}
+
+			if($addDates) try {
+				$database->exec("ALTER TABLE `{$table}` ADD `modified` $schema[modified]");
+				$database->exec("ALTER TABLE `{$table}` ADD `created` $schema[created]");
+				$database->exec($schema['xtra']);
+				$field->fileSchema = $field->fileSchema | self::fileSchemaDate; 
+				$field->save();
+				$date = date('Y-m-d H:i:s'); 
+				$query = $database->prepare("UPDATE `$table` SET created=:created, modified=:modified"); 
+				$query->bindValue(":created", $date);
+				$query->bindValue(":modified", $date); 
+				$query->execute();
+				$this->message("Added created/modified to DB schema for '{$field->name}'", Notice::log); 
+				
+			} catch(Exception $e) {
+				
+				$query = $database->prepare("PRAGMA table_info($table);"); 
+				$result = $query->execute();
+								
+				$columnName = 'modified';
+				$FilterColumn = function($item) use($columnName){
+					return $item['name']==$columnName;
+				};
+				
+				$numRows = (int) count(array_filter($query->fetchAll(), $FilterColumn));
+				
+				if($numRows) {
+					$field->fileSchema = $field->fileSchema | self::fileSchemaDate; 
+					$field->save();
+				} else {
+					$this->error("Error adding created/modified to '{$field->name}' schema", Notice::log); 
+				}
+			
+			}
+		}
+
+		$tagsAction = null; // null=no change; 1=add tags, 0=remove tags
+		$schemaTags = 'varchar(255) NOT NULL'; 
+		$schemaTagsIndex = 'CREATE INDEX IF NOT EXISTS ' . $field->table . '_tags ON ' . $field->table . '(tags);';
+
+		if($field->useTags && !($field->fileSchema & self::fileSchemaTags)) $tagsAction = 'add';
+			else if(!$field->useTags && ($field->fileSchema & self::fileSchemaTags)) $tagsAction = 'remove';
+
+		if($tagsAction === 'add') {
+			// add tags field
+			try {
+				$database->exec("ALTER TABLE `{$table}` ADD tags $schemaTags");
+				$database->exec($schemaTagsIndex); 
+				$field->fileSchema = $field->fileSchema | self::fileSchemaTags; 
+				$field->save();
+				$this->message("Added tags to DB schema for '{$field->name}'", Notice::log); 
+			} catch(Exception $e) {
+				$this->error("Error adding tags to '{$field->name}' schema", Notice::log); 
+			}
+
+		} else if($tagsAction === 'remove') {
+			// remove tags field
+			try {
+				$database->exec("DROP INDEX {$table}_tags"); 
+//				$database->exec("ALTER TABLE `{$table}` DROP tags"); 
 				$field->fileSchema = $field->fileSchema & ~self::fileSchemaTags;
 				$field->save();
 				$this->message("Dropped tags from DB schema for '{$field->name}'", Notice::log); 

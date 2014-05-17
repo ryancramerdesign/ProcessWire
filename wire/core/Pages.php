@@ -303,7 +303,7 @@ class Pages extends Wire {
 
 			$query->select(
 				// note that "false AS isLoaded" triggers the setIsLoaded() function in Page intentionally
-				"false AS isLoaded, pages.templates_id AS templates_id, pages.*, " . 
+				"0 AS isLoaded, pages.templates_id AS templates_id, pages.*, " . 
 				($joinSortfield ? 'pages_sortfields.sortfield, ' : '') . 
 				"(SELECT COUNT(*) FROM pages AS children WHERE children.parent_id=pages.id) AS numChildren"
 				); 
@@ -661,25 +661,40 @@ class Pages extends Wire {
 		}
 		
 		if(empty($options['quiet'])) {
-			$sql = 'modified=NOW()';
+			$sql = 'modified="'.date('Y-m-d H:i:s').'"';
 			$data['modified_users_id'] = (int) $userID; 
 		} else {
 			// quiet option, use existing values already populated to page, when present
 			$data['modified_users_id'] = (int) ($page->modified_users_id ? $page->modified_users_id : $userID); 
 			$data['created_users_id'] = (int) ($page->created_users_id ? $page->created_users_id : $userID); 
 			if($page->modified > 0) $data['modified'] = date('Y-m-d H:i:s', $page->modified); 
-				else if($isNew) $sql = 'modified=NOW()';
+				else if($isNew) $sql = 'modified="'.date('Y-m-d H:i:s').'"';
 			if(!$isNew && $page->created > 0) $data['created'] = date('Y-m-d H:i:s', $page->created); 
 		}
-		foreach($data as $column => $value) {
-			$sql .= ", $column=" . (is_null($value) ? "NULL" : ":$column");
-		}
 		
-		$sql = trim($sql, ", "); 
-
+		
 		if($isNew) {
-			$query = $database->prepare("INSERT INTO pages SET $sql, created=NOW()");
+			
+			if (stripos($sql, 'modified') !== false) {
+				$data['modified'] = date('Y-m-d H:i:s');
+			}
+			$data['created'] = date('Y-m-d H:i:s');
+
+			$columns = array_keys($data);
+
+			$sql = "INSERT INTO pages(" . implode(',', $columns) . ") VALUES(";
+			foreach ($data as $column => $value) {
+				$sql .= (is_null($value) ? "NULL" : ":$column") . ',';
+			}
+			$sql = rtrim($sql, ',');
+			$sql .= ")";
+
+			$query = $database->prepare($sql);
 		}  else {
+			foreach ($data as $column => $value) {
+				$sql .= ", $column=" . (is_null($value) ? "NULL" : ":$column");
+			}
+			$sql = trim($sql, ", ");
 			$query = $database->prepare("UPDATE pages SET $sql WHERE id=:id");
 			$query->bindValue(":id", (int) $page->id, PDO::PARAM_INT);
 		}
@@ -833,7 +848,8 @@ class Pages extends Wire {
 				$user = $this->wire('user');
 				$userID = (int) ($user ? $user->id : $this->config->superUserPageID);
 				$database = $this->wire('database');
-				$query = $database->prepare("UPDATE pages SET modified_users_id=:userID, modified=NOW() WHERE id=:pageID"); 
+				$sql = "UPDATE pages SET modified_users_id=:userID, modified='".date('Y-m-d H:i:s')."' WHERE id=:pageID"; 
+				$query = $database->prepare($sql); 
 				$query->bindValue(':userID', $userID, PDO::PARAM_INT);
 				$query->bindValue(':pageID', $page->id, PDO::PARAM_INT);
 				$query->execute();

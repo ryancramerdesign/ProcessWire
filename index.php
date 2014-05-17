@@ -140,7 +140,7 @@ function ProcessWireBootConfig() {
 	 * If PW2 is not installed, go to the installer
 	 *
 	 */
-	if(!$config->dbName && is_file("./install.php") && strtolower($_SERVER['REQUEST_URI']) == strtolower($rootURL)) {
+	if((!$config->dbName && !$config->dbDSN)&& is_file("./install.php") && strtolower($_SERVER['REQUEST_URI']) == strtolower($rootURL)) {
 		require("./install.php");
 		exit(0);
 	}

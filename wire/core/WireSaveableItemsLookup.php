@@ -140,7 +140,8 @@ abstract class WireSaveableItemsLookup extends WireSaveableItems {
 		$sort = 0; 
 		if($item_id) foreach($item->getLookupItems() as $key => $value) {
 			$value_id = (int) $value->id; 
-			$query = $database->prepare("INSERT INTO $lookupTable SET {$table}_id=:item_id, $lookupField=:value_id, sort=:sort"); 
+			$sql = "INSERT INTO $lookupTable({$table}_id,$lookupField,sort) VALUES(:item_id,:value_id,:sort)";			
+			$query = $database->prepare($sql); 
 			$query->bindValue(":item_id", $item_id);
 			$query->bindValue(":value_id", $value_id);
 			$query->bindValue(":sort", $sort); 
