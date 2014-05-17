@@ -29,7 +29,7 @@
 
 #wrap_AddPageBtn,
 #wrap_AddPageBtn .InputfieldContent {
-	margin-top: 0;
+	float: none; 
 }
 
 /**
