@@ -47,6 +47,25 @@ p span.ui-state-error {
         padding: 0.25em 0.5em;
 }
 
+.ui-dialog .ui-dialog-titlebar {
+	margin: 0;
+}
+
+.ui-dialog .ui-dialog-titlebar .ui-button {
+	/*
+	background: none; 
+	border: none; 	
+	*/
+	outline: none; 
+}
+
+.ui-dialog .ui-dialog-titlebar .ui-button .ui-icon {
+	position: relative; 
+	top: 0;
+	left: 0; 
+	margin: 0; 
+}
+
 .ui-dialog .ui-dialog-content {
 	padding: 0; 
 }
@@ -73,6 +92,25 @@ p span.ui-state-error {
 
 .ui-accordion-header-icon {
 	display: none; 
+}
+
+
+/**
+ * jQuery UI autocomplete
+ *
+ */
+.ui-autocomplete {
+    box-shadow: 0 1px 3px 3px rgba(0,0,0,0.15);
+}
+.ui-autocomplete li {
+    border-bottom: 1px solid #eee; 
+}
+.ui-autocomplete li small {
+    opacity: 0.5; 
+}
+.ui-autocomplete .ui-widget-header a {
+    font-size: 0.9em;
+    font-weight: bold;
 }
 
 /**
@@ -196,6 +234,10 @@ p span.ui-state-error {
 			background: none; 
 			text-decoration: underline; 
 		}
+
+	.PageList a.PageListPage i {
+		margin-right: 0.25em; 
+	}
 
 	/**
 	 * Color of page when opened

@@ -12,10 +12,10 @@
  *
  * Note the 'js' class is removed after document.ready()
  *
- */
 #content.fouc_fix #ProcessPageEdit {
 	padding-top: 2.85em;
 }
+ */
 
 /**
  * Hide the edit/view/move actions for first (current) page since they aren't applicable in this context
@@ -48,6 +48,14 @@
 .Inputfields .InputfieldSubmit,
 .Inputfields .InputfieldSubmit .ui-widget-content {
         display: inline; 
+}
+
+/**
+ * Alternative to the above, float teh publish button left for side-by-side buttons
+ *
+ */
+#submit_publish {
+    float: left; 
 }
 
 /**

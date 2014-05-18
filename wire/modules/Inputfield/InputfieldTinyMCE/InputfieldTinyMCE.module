@@ -8,9 +8,8 @@
  */
 class InputfieldTinyMCE extends InputfieldTextarea {
 
-	//const TinyMCEVersion = '3.3.9.2';
-	//const TinyMCEVersion = '3.4.7';
 	const TinyMCEVersion = '3.5.8';
+	const TinyMCEFile = 'tiny_mce.js';
 
 	protected $defaults = array(
 		'theme_advanced_buttons1' => 'formatselect,|,bold,italic,|,bullist,numlist,|,link,unlink,|,image,|,code,|,fullscreen',
@@ -29,7 +28,7 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 			'title' => 'TinyMCE',
 			'version' => 358,
 			'summary' => 'WYSIWYG rich text editor',
-			'permanent' => true, 
+			'permanent' => false, 
 			);
 	}
 
@@ -40,7 +39,7 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 
 	public function ___render() {
 
-		$this->config->scripts->add($this->config->urls->InputfieldTinyMCE . "tinymce-" . self::TinyMCEVersion . "/tiny_mce.js");
+		$this->config->scripts->add($this->config->urls->InputfieldTinyMCE . "tinymce-" . self::TinyMCEVersion . '/' . self::TinyMCEFile);
 
 		$config = $this->defaults;
 
@@ -154,7 +153,8 @@ class InputfieldTinyMCE extends InputfieldTextarea {
 
 		$wrapper = $this->modules->get('InputfieldFieldset'); 
 		$wrapper->label = $this->_('TinyMCE Advanced Configuration Options'); 
-		$wrapper->description = $this->_('The following fields are specific to TinyMCE and details about these options can be found at the TinyMCE web site. In general it is best to use the defaults presented here unless you are familiar with TinyMCE configuration.'); // Description for TinyMCE custom config fields
+		$wrapper->description = $this->_('The following fields are specific to TinyMCE and details about these options can be found at the TinyMCE web site. In general it is best to use the defaults presented here unless you are familiar with TinyMCE configuration.') . ' '; // Description for TinyMCE custom config fields
+		$wrapper->description .= $this->_('For an alternative to TinyMCE, please check out our [CKEditor Inputfield](http://modules.processwire.com/modules/inputfield-ckeditor/) module, available in the modules directory.'); // Note about CKEditor
 		$wrapper->collapsed = Inputfield::collapsedYes; 
 
 		foreach($this->defaults as $key => $unused) {

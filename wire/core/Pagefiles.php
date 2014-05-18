@@ -9,11 +9,10 @@
  * There may be multiple instances of Pagefiles attached to a given Page (depending on what fields are in it's fieldgroup).
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  *
  * @property string $path Returns the full server disk path where files are stored	
@@ -30,6 +29,12 @@ class Pagefiles extends WireArray {
 	 *
 	 */
 	protected $page; 
+
+	/**
+	 * The Field object associated with these Pagefiles
+	 *
+	 */
+	protected $field; 
 
 	/**
 	 * Items to be deleted when Page is saved
@@ -69,8 +74,16 @@ class Pagefiles extends WireArray {
 		$page->filesManager(); 
 	}
 
+	public function setField(Field $field) {
+		$this->field = $field; 
+	}
+
 	public function getPage() {
 		return $this->page; 
+	}
+
+	public function getField() {
+		return $this->field; 
 	}
 
 	/**
@@ -78,12 +91,32 @@ class Pagefiles extends WireArray {
 	 *
 	 * Adapted here so that $this->page can be passed to the constructor of a newly created Pagefiles. 
 	 *
-	 * @param array $items Array of items to populate (optional)
 	 * @return WireArray
+	 * 
 	 */
 	public function makeNew() {
 		$class = get_class($this); 
 		$newArray = new $class($this->page); 
+		$newArray->setField($this->field); 
+		return $newArray; 
+	}
+
+	/**
+	 * Make a copy, overriding the default clone method used by WireArray::makeCopy
+	 *
+	 * This is necessary because our __clone() makes new copies of each Pagefile (deep clone)
+	 * and we don't want that to occur for the regular find() and filter() operations that
+	 * make use of makeCopy().
+	 *
+	 * @return Pagefiles
+	 *
+	 */
+	public function makeCopy() {
+		$newArray = $this->makeNew();
+		foreach($this->data as $key => $value) $newArray[$key] = $value; 
+		foreach($this->extraData as $key => $value) $newArray->data($key, $value); 
+		$newArray->resetTrackChanges($this->trackChanges());
+		foreach($newArray as $item) $item->setPagefilesParent($newArray); 
 		return $newArray; 
 	}
 
@@ -93,7 +126,9 @@ class Pagefiles extends WireArray {
 	 */
 	public function __clone() {
 		foreach($this as $key => $pagefile) {
-			$this->set($key, clone $pagefile); 
+			$pagefile = clone $pagefile;
+			$pagefile->setPagefilesParent($this);
+			$this->set($key, $pagefile); 
 		}
 	}
 
@@ -132,6 +167,7 @@ class Pagefiles extends WireArray {
 	 */
 	public function get($key) {
 		if($key == 'page') return $this->getPage(); 
+		if($key == 'field') return $this->getField(); 
 		if($key == 'url') return $this->url();
 		if($key == 'path') return $this->path(); 
 		return parent::get($key);
@@ -161,7 +197,7 @@ class Pagefiles extends WireArray {
 	 * Add a new Pagefile item, or create one from it's filename and add it.
 	 *
 	 * @param Pagefile|string $item If item is a string (filename) then the Pagefile instance will be created automatically.
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function add($item) {
@@ -190,7 +226,7 @@ class Pagefiles extends WireArray {
 	 * Delete a pagefile item, hookable alias of remove()
 	 *
 	 * @param Pagefile $item
-	 * @return this
+	 * @return $this
 	 *
 	 */
 	public function ___delete($item) {
@@ -203,7 +239,8 @@ class Pagefiles extends WireArray {
 	 * Deletes the filename associated with the Pagefile and removes it from this Pagefiles instance. 
 	 *
 	 * @param Pagefile $item
-	 * @return this
+	 * @return $this
+	 * @throws WireException
 	 *
 	 */
 	public function remove($item) {
@@ -220,7 +257,7 @@ class Pagefiles extends WireArray {
 	/**
 	 * Delete all files associated with this Pagefiles instance, leaving a blank Pagefiles instance. 
 	 *
-	 * @return this
+	 * @return $this
 	 *
 	 */ 
 	public function deleteAll() {
@@ -252,22 +289,27 @@ class Pagefiles extends WireArray {
 	 *
 	 * @param string $basename May also be a full path/filename, but it will still return a basename
 	 * @param bool $originalize If true, it will generate an original filename if $basename already exists
+	 * @param bool $allowDots If true, dots "." are allowed in the basename portion of the filename. 
 	 * @return string
 	 *
 	 */ 
-	public function cleanBasename($basename, $originalize = false) {
+	public function cleanBasename($basename, $originalize = false, $allowDots = true) {
 
 		$path = $this->path(); 
 		$dot = strrpos($basename, '.'); 
 		$ext = $dot ? substr($basename, $dot) : ''; 
 		$basename = strtolower(basename($basename, $ext)); 
-		$basename = preg_replace('/[^-_.a-zA-Z0-9]/', '_', $basename); 
-		$ext = preg_replace('/[^a-z0-9.]/', '_', $ext); 
+		$basename = preg_replace('/[^-_.a-zA-Z0-9]/', '_', $basename);
+		if(!$allowDots) $basename = str_replace('.', '_', $basename); 
+		$ext = preg_replace('/[^a-z0-9.]/', '_', strtolower($ext)); 
 		$basename .= $ext;
 		if($originalize) { 
 			$n = 0; 
+			$p = pathinfo($basename);
 			while(is_file($path . $basename)) {
-				$basename = (++$n) . "_" . preg_replace('/^\d+_/', '', $basename); 
+				$n++;
+				$basename = "$p[filename]-$n.$p[extension]"; // @hani
+				// $basename = (++$n) . "_" . preg_replace('/^\d+_/', '', $basename); 
 			}
 		}
 		return $basename; 
@@ -307,6 +349,11 @@ class Pagefiles extends WireArray {
 			break;
 		}
 		return $item;
+	}
+
+	public function trackChange($what) {
+		if($this->field && $this->page) $this->page->trackChange($this->field->name); 
+		return parent::trackChange($what); 
 	}
 
 }

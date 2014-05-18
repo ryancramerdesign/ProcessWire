@@ -93,12 +93,28 @@ class CommentForm extends Wire implements CommentFormInterface {
 			'text' => '',	// Comments
 			'submit' => '', // Submit
 			),
+
+		// values that will be already set, perhaps pulled from a user profile for instance (null = ignore)
+		'presets' => array(
+			'cite' => null,
+			'email' => null, 
+			'website' => null,
+			'text' => null,
+			),
+
+		// whether or not eht preset values above will be changeable by the user
+		// applies only for preset values that are not null. 
+		'presetsEditable' => false,
+
 		// the name of a field that must be set (and have any non-blank value), typically set in Javascript to keep out spammers
 		// to use it, YOU must set this with a <input hidden> field from your own javascript, somewhere in the form
 		'requireSecurityField' => '', 
+
 		// should a redirect be performed immediately after a comment is successfully posted?
 		'redirectAfterPost' => null, // null=unset (must be set to true to enable)
+
 		);
+
 
 	/**
 	 * Construct a CommentForm
@@ -166,7 +182,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 	 * A success message is shown rather than the form.
 	 *
 	 */
-	protected function renderSuccess() {
+	protected function renderSuccess($id = '') {
 
 		$pageID = (int) wire('input')->post->page_id; 
 		if($pageID && $this->options['redirectAfterPost']) {
@@ -181,7 +197,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 
 		$message = $this->commentsField && $this->commentsField->moderate == FieldtypeComments::moderateNone ? $this->options['successMessage'] : $this->options['pendingMessage']; 
 
-		$id = $this->options['attrs']['id']; 
+		if(!$id) $id = $this->options['attrs']['id']; 
 		$out = 	"\n<div id='$id' class='{$id}_success'>" . 
 			"\n\t" . $message . 
 			"\n</div>";
@@ -204,10 +220,12 @@ class CommentForm extends Wire implements CommentFormInterface {
 		$submitKey = $id . "_submit";
 		$inputValues = array('cite' => '', 'email' => '', 'website' => '', 'text' => ''); 
 		$user = wire('user'); 
+
 		if($user->isLoggedin()) {
 			$inputValues['cite'] = $user->name; 
 			$inputValues['email'] = $user->email;
 		}
+		
 		$input = $this->fuel('input'); 
 		$divClass = 'new';
 		$class = $attrs['class'] ? " class='$attrs[class]'" : '';
@@ -224,6 +242,10 @@ class CommentForm extends Wire implements CommentFormInterface {
 			unset($sessionValues);
 		}
 
+		foreach($options['presets'] as $key => $value) {
+			if(!is_null($value)) $inputValues[$key] = $value; 
+		}
+
 		$showForm = true; 
 		if($options['processInput'] && $input->post->$submitKey == 1) {
 			if($this->processInput()) return $this->renderSuccess(); // success, return
@@ -235,7 +257,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 			$divClass = 'error';
 
 		} else if($this->options['redirectAfterPost'] && $input->get('comment_success') == 1) {
-			$note = $this->renderSuccess();
+			$note = $this->renderSuccess("{$id}_success");
 			$showForm = false;
 		}
 
@@ -268,6 +290,12 @@ class CommentForm extends Wire implements CommentFormInterface {
 				"\n\t\t<input type='hidden' name='page_id' value='{$this->page->id}' />" . 
 				"\n\t</p>" . 
 				"\n</form>";
+
+			if(!$options['presetsEditable']) {
+				foreach($options['presets'] as $key => $value) {
+					if(!is_null($value)) $form = str_replace(" name='$key'", " name='$key' disabled='disabled'", $form); 
+				}
+			}
 		}
 
 		$out = 	"\n<div id='{$id}' class='{$id}_$divClass'>" . 	
@@ -294,7 +322,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 
 		$comment = new Comment(); 
 		$comment->user_agent = $_SERVER['HTTP_USER_AGENT']; 
-		$comment->ip = $_SERVER['REMOTE_ADDR']; 
+		$comment->ip = $this->wire('session')->getIP();
 		$comment->created_users_id = $this->user->id; 
 		$comment->sort = count($this->comments)+1; 
 
@@ -303,7 +331,11 @@ class CommentForm extends Wire implements CommentFormInterface {
 
 		foreach(array('cite', 'email', 'website', 'text') as $key) {
 			if($key == 'website' && (!$this->commentsField || !$this->commentsField->useWebsite)) continue; 
-			$comment->$key = $data->$key; // Comment performs sanitization/validation
+			if($this->options['presetsEditable'] || !isset($this->options['presets'][$key]) || $this->options['presets'][$key] === null) {
+				$comment->$key = $data->$key; // Comment performs sanitization/validation
+			} else {
+				$comment->$key = $this->options['presets'][$key];
+			}
 			if($key != 'website' && !$comment->$key) $errors[] = $key;
 			$this->inputValues[$key] = $comment->$key;
 			if($key != 'text') $sessionData[$key] = $comment->$key; 

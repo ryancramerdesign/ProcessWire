@@ -51,7 +51,18 @@
 	padding: 3px 0 3px 5px; 
 }
 
-.asmListSortable .asmListItemLabel {
+.asmListItemLabel .ui-icon,
+.asmListItemStatus .ui-icon,
+.asmListItemDesc .ui-icon {
+    position: relative;
+    top: -2px; 
+}
+
+
+.asmListSortable .asmListItemLabel,
+.asmListSortable .asmListItemHandle,
+.asmListSortable .asmListItemDesc,
+.asmListSortable .asmListItemStatus {
 	cursor: move; 
 }
 
@@ -93,7 +104,7 @@ span.asmListItemDesc {
 	/* position status text to the right side */
 	position: absolute;
 	top: 0;
-	left: 35%; 
+	left: 40%; 
 	padding-top: 3px; 
 }
 

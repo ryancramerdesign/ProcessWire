@@ -1,5 +1,6 @@
 
-.Inputfields .InputfieldRepeater > .ui-widget-content > ul.Inputfields {
+.Inputfields .InputfieldRepeater > .ui-widget-content > ul.Inputfields, /* old */
+.Inputfields .InputfieldRepeater > .InputfieldContent > ul.Inputfields { /* new */
 	margin-bottom: 0; 
 }
 
@@ -42,9 +43,10 @@
 
 .InputfieldRepeater .InputfieldFieldset > label > .InputfieldRepeaterTrash {
 	position: absolute;
-	right: 20px; 
+	right: 1em; 
 	margin-top: 0; 
 	z-index: 999; 
+	cursor: pointer; 
 }
 
 .InputfieldRepeater ul.Inputfields + .InputfieldRepeaterAddItem {

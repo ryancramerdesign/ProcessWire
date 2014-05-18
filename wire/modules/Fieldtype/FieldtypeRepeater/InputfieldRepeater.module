@@ -18,13 +18,13 @@
  *
  */
 
-class InputfieldRepeater extends Inputfield {
+class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Repeater', __FILE__), // Module Title
 			'summary' => __('Repeats fields from another template. Provides the input for FieldtypeRepeater.', __FILE__), // Module Summary
-			'version' => 100,
+			'version' => 101,
 			'requires' => 'FieldtypeRepeater',
 			);
 	}
@@ -84,6 +84,7 @@ class InputfieldRepeater extends Inputfield {
 	 * Build and cache the form containing the repeaters
 	 *
 	 * @return InputfieldWrapper
+	 * @throws WireException
 	 *
 	 */
 	protected function buildForm() {
@@ -148,6 +149,7 @@ class InputfieldRepeater extends Inputfield {
 			$sort->attr('value', $cnt);
 
 			$wrap = wire('modules')->get('InputfieldFieldset'); 
+			$wrap->addClass('InputfieldRepeaterItem');
 			$wrap->label = "$label #" . (++$cnt); 
 
 			// add a hidden field that will be populated with a positive value for all visible repeater items
@@ -159,7 +161,7 @@ class InputfieldRepeater extends Inputfield {
 			$wrap->add($f); 
 
 			if($page->is(Page::statusHidden)) {
-				$wrap->class = 'InputfieldRepeaterReady';
+				$wrap->addClass('InputfieldRepeaterReady');
 				$wrap->label .= ' - ' . $this->_('New');
 
 				// add a hidden field that will be removed upon revealing it with JS
@@ -187,7 +189,7 @@ class InputfieldRepeater extends Inputfield {
 		$wrap = wire('modules')->get('InputfieldFieldset'); 
 		$wrap->label = "$label #" . (++$cnt);
 		$wrap->description = $this->_('This item will become editable after you save.');
-		$wrap->class = 'InputfieldRepeaterNewItem';
+		$wrap->class = 'InputfieldRepeaterItem InputfieldRepeaterNewItem';
 		$wrap->collapsed = Inputfield::collapsedNo; 
 		$form->add($wrap);
 
@@ -206,8 +208,7 @@ class InputfieldRepeater extends Inputfield {
 		// a hidden checkbox with link that we use to identify when items have been added
 		$out = 	"\n<p class='InputfieldRepeaterAddItem'>" . 
 			"\n\t<input type='text' name='_{$this->name}_add_items' value='0' />" . 
-			"\n\t<span class='ui-icon ui-icon-plus'></span>" . 
-			"\n\t<a href='#' class='InputfieldRepeaterAddLink'>" . $this->_('Add Item') . "</a>" . 
+			"\n\t<a href='#' class='InputfieldRepeaterAddLink'><i class='fa fa-plus-circle'></i> " . $this->_('Add Item') . "</a>" . 
 			"\n</p>";
 
 		return $this->buildForm()->render() . $out; 

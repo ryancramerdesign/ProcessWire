@@ -16,6 +16,7 @@ var ProcessWireAdminTheme = {
 		this.setupButtonStates();
 		this.setupFieldFocus();
 		this.setupTooltips();
+		this.setupSearch();
 		this.sizeTitle();
 		$('#content').removeClass('fouc_fix'); // FOUC fix
 		this.browserCheck();
@@ -107,7 +108,7 @@ var ProcessWireAdminTheme = {
 		// add focus to the first text input, where applicable
 		jQuery('#content input[type=text]:visible:enabled:first:not(.hasDatepicker)').each(function() {
 			var $t = $(this); 
-			if(!$t.val() && !$t.is(".no_focus")) $t.focus();	
+			if(!$t.val() && !$t.is(".no_focus")) window.setTimeout(function() { $t.focus(); }, 1);
 		});
 
 	},
@@ -161,6 +162,65 @@ var ProcessWireAdminTheme = {
 	},
 
 	/**
+	 * Make the site search use autocomplete
+	 * 
+	 */
+	setupSearch: function() {
+
+		$.widget( "custom.adminsearchautocomplete", $.ui.autocomplete, {
+			_renderMenu: function(ul, items) {
+				var that = this;
+				var currentType = "";
+				$.each(items, function(index, item) {
+					if (item.type != currentType) {
+						ul.append("<li class='ui-widget-header'><a>" + item.type + "</a></li>" );
+						currentType = item.type;
+					}
+					ul.attr('id', 'ProcessPageSearchAutocomplete'); 
+					that._renderItemData(ul, item);
+				});
+			},
+			_renderItemData: function(ul, item) {
+				if(item.label == item.template) item.template = '';
+				ul.append("<li><a href='" + item.edit_url + "'>" + item.label + " <small>" + item.template + "</small></a></li>"); 
+			}
+		});
+		
+		var $input = $("#ProcessPageSearchQuery"); 
+		var $status = $("#ProcessPageSearchStatus"); 
+		
+		$input.adminsearchautocomplete({
+			minLength: 2,
+			position: { my : "right top", at: "right bottom" },
+			search: function(event, ui) {
+				$status.html("<img src='" + config.urls.modules + "Process/ProcessPageList/images/loading.gif'>");
+			},
+			source: function(request, response) {
+				var url = $input.parents('form').attr('action') + 'for?get=template_label,title&include=all&admin_search=' + request.term;
+				$.getJSON(url, function(data) {
+					var len = data.matches.length; 
+					if(len < data.total) $status.text(data.matches.length + '/' + data.total); 
+						else $status.text(len); 
+					response($.map(data.matches, function(item) {
+						return {
+							label: item.title,
+							value: item.title,
+							page_id: item.id,
+							template: item.template_label ? item.template_label : '',
+							edit_url: item.editUrl,
+							type: item.type
+						}
+					}));
+				});
+			},
+			select: function(event, ui) { }
+		}).blur(function() {
+			$status.text('');	
+		});
+		
+	},
+
+	/**
 	 * Give a notice to IE versions we don't support
 	 *
 	 */
@@ -169,8 +229,7 @@ var ProcessWireAdminTheme = {
 			$("#content .container").html("<h2>ProcessWire does not support IE7 and below at this time. Please try again with a newer browser.</h2>").show();
 	}
 
-}; 
-
+};
 
 $(document).ready(function() {
 	ProcessWireAdminTheme.init();

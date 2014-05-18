@@ -25,9 +25,9 @@ class CommentFilterAkismet extends CommentFilter implements Module, Configurable
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Comment Filter: Akismet',
-			'version' => 101,
-			'summary' => 'Uses the Akismet service to identify comment spam. Module plugin for the Comments Fieldtype.',
+			'title' => __('Comment Filter: Akismet', __FILE__),
+			'version' => 102,
+			'summary' => __('Uses the Akismet service to identify comment spam. Module plugin for the Comments Fieldtype.', __FILE__),
 			'permanent' => false, 
 			'singular' => false,
 			'autoload' => false,
@@ -101,10 +101,8 @@ class CommentFilterAkismet extends CommentFilter implements Module, Configurable
 		$f = Wire::getFuel('modules')->get('InputfieldText'); 
 		$f->attr('name', $name); 
 		$f->attr('value', $data[$name]); 
-		$f->label = 'Akismet Key';
-		$f->description = 
-			"If you want to have comments automatically identified as spam, the Comments fieldtype can utilize the Akismet service to do this. " . 
-			"In order to use it, you must enter an Akismet API key obtained from akismet.com. Use of this service is optional but recommended. ";
+		$f->label = __('Akismet Key');
+		$f->description = __('If you want to have comments automatically identified as spam, the Comments fieldtype can utilize the Akismet service to do this. In order to use it, you must enter an Akismet API key obtained from akismet.com. Use of this service is optional but recommended.'); // Akismet description
 
 		$inputfields->append($f);
 

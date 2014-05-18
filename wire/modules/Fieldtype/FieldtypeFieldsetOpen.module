@@ -100,7 +100,7 @@ class FieldtypeFieldsetOpen extends Fieldtype {
 	public function getLoadQuery(Field $field, DatabaseQuerySelect $query) {
 		return $query;
 	}
-
+	
 	/**
 	 * For hooks to share in determining if this is a field they want to operate on
 	 *

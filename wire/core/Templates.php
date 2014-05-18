@@ -6,11 +6,10 @@
  * Manages and provides access to all the Template instances
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -136,8 +135,9 @@ class Templates extends WireSaveableItems {
 	 *
 	 * If the template's fieldgroup has changed, then we delete data that's no longer applicable to the new fieldgroup. 
 	 *
-	 * @param Template $item 
+	 * @param Saveable|Template $item 
 	 * @return bool true on success
+	 * @throws WireException
 	 *
 	 */
 	public function ___save(Saveable $item) {
@@ -200,8 +200,8 @@ class Templates extends WireSaveableItems {
 	 *
 	 * Note that this also clones the Fieldgroup if the template being cloned has it's own named fieldgroup.
 	 *
-	 * @param Saveable $item Item to clone
-	 * @param bool|Saveable $item Returns the new clone on success, or false on failure
+	 * @param Template|Saveable $item Item to clone
+	 * @return bool|Saveable|Template $item Returns the new clone on success, or false on failure
 	 *
 	 */
 	public function ___clone(Saveable $item) {
@@ -243,13 +243,17 @@ class Templates extends WireSaveableItems {
 
 	/**
 	 * Return the number of pages using the provided Template
+	 * 
+	 * @param Template $tpl
+	 * @return int
 	 *
 	 */
 	public function getNumPages(Template $tpl) {
-		$result = $this->fuel('db')->query("SELECT COUNT(*) AS total FROM pages WHERE templates_id=" . ((int) $tpl->id)); // QA
-		$row = $result->fetch_assoc(); 
-		$result->free();
-		return (int) $row['total'];
+		$database = $this->wire('database');
+		$query = $database->prepare("SELECT COUNT(*) AS total FROM pages WHERE templates_id=:template_id"); // QA
+		$query->bindValue(":template_id", $tpl->id, PDO::PARAM_INT);
+		$query->execute();
+		return (int) $query->fetchColumn();	
 	}
 
 	/**

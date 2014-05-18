@@ -11,9 +11,24 @@
 
 if(!defined("PROCESSWIRE")) die("This file may not be accessed directly.");
 
+header("X-Frame-Options: SAMEORIGIN"); 
+
+/**
+ * Ensures a modal GET variable is retained through redirects, when appropriate
+ *
+ */
+function _hookSessionRedirectModal(HookEvent $event) {
+	$url = $event->arguments(0);    
+	if(strpos($url, 'modal=1') === false && strpos($url, '://') === false) {
+		$url .= (strpos($url, '?') === false ? '?' : '&') . 'modal=1';
+		$event->arguments(0, $url);    
+	}
+}
+
 // ensure core jQuery modules are loaded before others
 $modules->get("JqueryCore"); 
 $modules->get("JqueryUI"); 
+
 
 // tell ProcessWire that any pages loaded from this point forward should have their outputFormatting turned off
 $pages->setOutputFormatting(false); 
@@ -26,6 +41,7 @@ foreach($page->parents() as $p) {
 Wire::setFuel('breadcrumbs', $breadcrumbs); 
 $controller = null;
 $content = '';
+
 
 // enable modules to output their own ajax responses if they choose to
 if($config->ajax) ob_start();
@@ -42,6 +58,9 @@ if($page->process && $page->process != 'ProcessPageView') {
 
 		$controller = new ProcessController(); 
 		$controller->setProcessName($page->process); 
+		$initFile = $config->paths->adminTemplates . 'init.php'; 
+		if(is_file($initFile)) include($initFile); 
+		if($input->get->modal) $session->addHookBefore('redirect', null, '_hookSessionRedirectModal'); 
 		$content = $controller->execute();
 
 	} catch(Wire404Exception $e) {

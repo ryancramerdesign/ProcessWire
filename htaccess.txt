@@ -1,12 +1,13 @@
 #################################################################################################
 # START PROCESSWIRE HTACCESS DIRECTIVES
-# @version 2.3
+# @version 2.4
 #################################################################################################
 
 # -----------------------------------------------------------------------------------------------
 # Don't show directory indexes, but do follow symbolic links 
-# Note: some cloud hosting companies don't allow +FollowSymLinks
-# Uncomment +SymLinksifOwnerMatch and comment +FollowSymLinks if you have troubles
+# 500 NOTE: Some cloud hosting companies don't allow +FollowSymLinks. 
+# Uncomment +SymLinksifOwnerMatch and comment +FollowSymLinks if you have 500 errors. 
+# If that doesn't resolve the error, then set it back to +FollowSymLinks. 
 # -----------------------------------------------------------------------------------------------
 
 Options -Indexes
@@ -41,6 +42,7 @@ ErrorDocument 404 /index.php
 
 # -----------------------------------------------------------------------------------------------
 # Override a few PHP settings that can't be changed at runtime (not required)
+# 500 NOTE: Try commenting out this entire section below if getting Apache 500 errors.
 # -----------------------------------------------------------------------------------------------
 
 <IfModule mod_php5.c>
@@ -66,12 +68,14 @@ DirectoryIndex index.php index.html index.htm
 
   # -----------------------------------------------------------------------------------------------
   # Set an environment variable so the installer can detect that mod_rewrite is active.
+  # Note that some web hosts don't support this. If you get a 500 error, you might try 
+  # commenting out this SetEnv line below. 
   # -----------------------------------------------------------------------------------------------
 
   SetEnv HTTP_MOD_REWRITE On
 
   # -----------------------------------------------------------------------------------------------
-  # Optional: Set a rewrite base if rewrites aren't working properly on your server.
+  # OPTIONAL: Set a rewrite base if rewrites aren't working properly on your server.
   # And if your site directory starts with a "~" you will most likely have to use this.
   # -----------------------------------------------------------------------------------------------
 
@@ -86,7 +90,7 @@ DirectoryIndex index.php index.html index.htm
   RewriteRule "(^|/)\." - [F]
 
   # -----------------------------------------------------------------------------------------------
-  # Optional: Redirect users to the 'www.' version of the site (uncomment to enable).
+  # OPTIONAL: Redirect users to the 'www.' version of the site (uncomment to enable).
   # For example: http://processwire.com/ would be redirected to http://www.processwire.com/
   # -----------------------------------------------------------------------------------------------
 
@@ -139,13 +143,16 @@ DirectoryIndex index.php index.html index.htm
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteCond %{REQUEST_FILENAME} !(favicon\.ico|robots\.txt)
 
-  # ----------------------------------------------------------------------------------------------- 
-  # Optional: Don't send missing image requests to ProcessWire (uncomment below to enable).
-  # This might be helpful if you are launching a new site and lots of images have moved. 
-  # It will reduce the load on the server not to have ProcessWire trying to serve those requests.
+  # -----------------------------------------------------------------------------------------------
+  # OPTIONAL: Prevent ProcessWire from attempting to serve images or anything in /site/assets/. 
+  # Both of these lines are optional, but can help to reduce server load. However, they
+  # are not compatible with the $config->pagefileSecure option (if enabled) and they 
+  # may produce an Apache 404 rather than your regular 404. You may uncomment the two lines
+  # below if you don't need to use the $config->pagefileSecure option.
   # ----------------------------------------------------------------------------------------------- 
 
-  # RewriteCond %{REQUEST_URI} !\.(gif|jpg|png|ico)$ [NC]
+  # RewriteCond %{REQUEST_FILENAME} !\.(jpg|jpeg|gif|png|ico)$ [NC]
+  # RewriteCond %{REQUEST_FILENAME} !(^|/)site/assets/
 
   # ----------------------------------------------------------------------------------------------- 
   # Pass control to ProcessWire if all the above directives allow us to this point.
@@ -154,7 +161,7 @@ DirectoryIndex index.php index.html index.htm
   RewriteRule ^(.*)$ index.php?it=$1 [L,QSA]
 
   # ----------------------------------------------------------------------------------------------- 
-  # If using VirtualDocumentRoot: comment out the one above and use this one instead.
+  # 500 NOTE: If using VirtualDocumentRoot: comment out the one above and use this one instead.
   # ----------------------------------------------------------------------------------------------- 
   # RewriteRule ^(.*)$ /index.php?it=$1 [L,QSA]
 

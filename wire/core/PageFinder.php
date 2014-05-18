@@ -6,11 +6,10 @@
  * Matches selector strings to pages
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -26,13 +25,11 @@ class PageFinder extends Wire {
 	protected $parent_id = null;
 	protected $templates_id = null;
 	protected $checkAccess = true;
-	protected $options = array();
 	protected $getQueryNumChildren = 0; // number of times the function has been called
+	protected $lastOptions = array(); 
 
 	/**
 	 * Construct the PageFinder
-	 *
-	 * @param Fieldgroups $fieldgroups
 	 *
 	 */
 	public function __construct() {
@@ -43,10 +40,9 @@ class PageFinder extends Wire {
 	 * Pre-process the selectors to add Page status checks
 	 *
 	 */
-	protected function setupStatusChecks(Selectors $selectors) {
+	protected function setupStatusChecks(Selectors $selectors, array &$options) {
 
 		$maxStatus = null; 
-		$options = $this->options; 
 
 		foreach($selectors as $key => $selector) {
 
@@ -102,6 +98,9 @@ class PageFinder extends Wire {
 			$selectors->add(new SelectorEqual('start', 0)); 
 			$selectors->add(new SelectorEqual('limit', 1)); 
 		}
+
+		$this->lastOptions = $options; 
+
 	}
 
 	/**
@@ -129,48 +128,54 @@ class PageFinder extends Wire {
 			 */
 			'findAll' => false,
 			);
-		$options = array_merge($defaultOptions, $options); 
 
+		$options = array_merge($defaultOptions, $options); 
 		$this->start = 0; // reset for new find operation
 		$this->limit = 0; 
 		$this->parent_id = null;
 		$this->templates_id = null;
-		$this->options = $options; 
 		$this->checkAccess = true; 
-		$this->getQueryNumChildren = 0; 
+		$this->getQueryNumChildren = 0;
 
-		$this->setupStatusChecks($selectors); 
+		$this->setupStatusChecks($selectors, $options);
+		$database = $this->wire('database');
 		$cnt = count($selectors); 
 		$matches = array(); 
-		$query = $this->getQuery($selectors); 
-		if($this->fuel('config')->debug) $query->set('comment', "Selector: " . (string) $selectors); 
+		$query = $this->getQuery($selectors, $options); 
+		if($this->wire('config')->debug) $query->set('comment', "Selector: " . (string) $selectors); 
 
-		if(!$result = $query->execute()) throw new PageFinderException($this->db->error); 
-		$this->total = $result->num_rows; 
-		if(!$this->total) return $matches; 
-
-		while($row = $result->fetch_assoc()) {
+		$stmt = $query->execute();	
+		
+		if($stmt->errorCode() > 0) {
+			$errorInfo = $stmt->errorInfo();
+			throw new PageFinderException($errorInfo[2]);
+		}
+		
+		while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 
 			// determine score for this row
 			$score = 0;
 			foreach($row as $k => $v) if(strpos($k, '_score') === 0) {
-				$score += $v; 
-				unset($row[$k]); 
+				$score += $v;
+				unset($row[$k]);
 
 			}
-			$row['score'] = $score; 
-			$matches[] = $row; 
+			$row['score'] = $score;
+			$matches[] = $row;
 		}
-		$result->free();
-
+		$stmt->closeCursor();
+			
 		if($options['findOne']) {
 			$this->total = count($matches); 
 
 		} else if(count($query->limit)) {
-			$result = $this->db->query("SELECT FOUND_ROWS()"); 	
-			list($this->total) = $result->fetch_array();
-			$result->free();
+			$this->total = (int) $database->query("SELECT FOUND_ROWS()")->fetchColumn();
+			
+		} else {
+			$this->total = count($matches);
 		}
+
+		$this->lastOptions = $options; 
 
 		return $matches; 
 	}
@@ -183,18 +188,19 @@ class PageFinder extends Wire {
 	 *
 	 * @param array $selectors Array of selectors. 
 	 * @return string SQL statement. 
+	 * @throws PageFinderSyntaxException
 	 *
 	 */
-	protected function ___getQuery($selectors) {
+	protected function ___getQuery($selectors, array $options) {
 
 		$where = '';
 		$cnt = 1;
-		$fieldtypes = $this->fieldtypes;
 		$fieldCnt = array(); // counts number of instances for each field to ensure unique table aliases for ANDs on the same field
 		$lastSelector = null; 
 		$sortSelectors = array(); // selector containing 'sort=', which gets added last
 		$joins = array();
 		$startLimit = false; // true when the start/limit part of the query generation is done
+		$database = $this->wire('database');
 
 		$query = new DatabaseQuerySelect();
 		$query->select(array('pages.id', 'pages.parent_id', 'pages.templates_id')); 
@@ -239,6 +245,11 @@ class PageFinder extends Wire {
 				continue; 
 			} 
 
+			
+			// where SQL specific to the foreach() of fields below, if needed. 
+			// in this case only used by internally generated shortcuts like the blank value condition
+			$whereFields = '';	
+			
 			foreach($fields as $n => $field) {
 
 				// if a specific DB field from the table has been specified, then get it, otherwise assume 'data'
@@ -253,7 +264,7 @@ class PageFinder extends Wire {
 
 				// use actual table name if first instance, if second instance of table then add a number at the end
 				$tableAlias = $field->table . ($fieldCnt[$field->table] ? $fieldCnt[$field->table] : '');
-				$tableAlias = $this->db->escapeTable($tableAlias);
+				$tableAlias = $database->escapeTable($tableAlias);
 
 				$valueArray = is_array($selector->value) ? $selector->value : array($selector->value); 
 				$join = '';
@@ -261,36 +272,39 @@ class PageFinder extends Wire {
 
 				foreach($valueArray as $value) {
 
+					// shortcut for blank value condition: this ensures that NULL/non-existence is considered blank
+					// without this section the query would still work, but a blank value must actually be present in the field
+					if($subfield == 'data') {
+						if(empty($value) && in_array($selector->operator, array('=', '!=', '<>'))) {
+							// handle blank values -- look in table that has no pages_id relation back to pages, using the LEFT JOIN / IS NULL trick
+							// OR check for blank value as defined by the fieldtype
+							$blankValue = $database->escapeStr($fieldtype->getBlankValue(new NullPage(), $field)); 
+							if($field->table === $tableAlias) $query->leftjoin("$tableAlias ON $tableAlias.pages_id=pages.id"); 
+								else $query->leftjoin($database->escapeTable($field->table) . " AS $tableAlias ON $tableAlias.pages_id=pages.id");
+							$whereFields .= (strlen($whereFields) ? ' OR ' : ''); 
+							if($selector->operator == '=') {
+								$whereFields .= "($tableAlias.pages_id IS NULL OR $tableAlias.data='$blankValue')";
+							} else {
+								$whereFields .= "($tableAlias.pages_id IS NOT NULL AND $tableAlias.data!='$blankValue')";
+							}
+							unset($blankValue);
+							continue; 
+						}
+					} 
+					
 					if(isset($subqueries[$tableAlias])) $q = $subqueries[$tableAlias];
 						else $q = new DatabaseQuerySelect();
 
-					if($subfield == 'data' && empty($value) && in_array($selector->operator, array('=', '!=', '<>'))) {
-						// handle blank values -- look in table that has no pages_id relation back to pages, using the LEFT JOIN / IS NULL trick
-						// OR check for blank value as defined by the fieldtype
-						$blankValue = $this->db->escape_string($fieldtype->getBlankValue(new NullPage(), $field)); 
-						if($field->table === $tableAlias) $query->leftjoin("$tableAlias ON $tableAlias.pages_id=pages.id"); 
-							else $query->leftjoin("$field->table AS $tableAlias ON $tableAlias.pages_id=pages.id"); 
-						if($selector->operator == '=') {
-							$query->where("($tableAlias.pages_id IS NULL OR $tableAlias.data='$blankValue')"); 
-						} else {
-							$query->where("($tableAlias.pages_id IS NOT NULL AND $tableAlias.data!='$blankValue')"); 
-						}
-						unset($blankValue);
-						continue; 
+					$q->set('field', $field); // original field if required by the fieldtype
+					$q->set('selector', $selector); // original selector if required by the fieldtype
+					$q->set('parentQuery', $query);
+					$q = $fieldtype->getMatchQuery($q, $tableAlias, $subfield, $selector->operator, $value); 
 
-					} else {
-
-						$q->set('field', $field); // original field if required by the fieldtype
-						$q->set('selector', $selector); // original selector if required by the fieldtype
-						$q->set('parentQuery', $query);
-						$q = $fieldtype->getMatchQuery($q, $tableAlias, $subfield, $selector->operator, $value); 
-
-						if(count($q->select)) $query->select($q->select); 
-						if(count($q->join)) $query->join($q->join);
-						if(count($q->leftjoin)) $query->leftjoin($q->leftjoin);
-						if(count($q->orderby)) $query->orderby($q->orderby); 
-						if(count($q->groupby)) $query->groupby($q->groupby); 
-					}
+					if(count($q->select)) $query->select($q->select); 
+					if(count($q->join)) $query->join($q->join);
+					if(count($q->leftjoin)) $query->leftjoin($q->leftjoin);
+					if(count($q->orderby)) $query->orderby($q->orderby); 
+					if(count($q->groupby)) $query->groupby($q->groupby); 
 
 					if(count($q->where)) { 
 						// $and = $selector->not ? "AND NOT" : "AND";
@@ -300,7 +314,6 @@ class PageFinder extends Wire {
 						$sql = "($sql) "; 
 
 						if($selector->operator == '!=') {
-							//$sql = "(($sql) OR ($tableAlias.pages_id IS NULL))";
 							$join .= ($join ? "\n\t\tAND $sql " : $sql); 
 
 						} else if($selector->not) { 
@@ -318,9 +331,10 @@ class PageFinder extends Wire {
 				if($join) {
 					$joinType = 'join';
 
-					if(count($fields) > 1 || $subfield == 'count' 
-						|| ($selector->not && $selector->operator != '!=')) {
-						//|| (!$selector->not && $selector->operator == '!=')) {
+					if(count($fields) > 1 
+						|| $subfield == 'count' 
+						|| ($selector->not && $selector->operator != '!=') 
+						|| $selector->operator == '!=') {
 
 						$joinType = "leftjoin";
 
@@ -353,11 +367,13 @@ class PageFinder extends Wire {
 
 				$lastSelector = $selector; 	
 			} // fields
+			
+			if(strlen($whereFields)) $where .= (strlen($where) ? 'AND ' : '') . "($whereFields)";
 		
 		} // selectors
 
 		if($where) $query->where("($where)"); 
-		 $this->getQueryAllowedTemplates($query); 
+		$this->getQueryAllowedTemplates($query, $options); 
 
 		// complete the joins, matching up any conditions for the same table
 		foreach($joins as $j) {
@@ -375,7 +391,7 @@ class PageFinder extends Wire {
 	 * Determine which templates the user is allowed to view
 	 *
 	 */
-	protected function getQueryAllowedTemplates(DatabaseQuerySelect $query) {
+	protected function getQueryAllowedTemplates(DatabaseQuerySelect $query, $options) {
 
 		static $where = null;
 		static $where2 = null;
@@ -385,7 +401,7 @@ class PageFinder extends Wire {
 		// if($this->templates_id) return; 
 
 		// if findOne optimization is set, we don't check template access
-		if($this->options['findOne']) return;
+		if($options['findOne']) return;
 
 		// if access checking is disabled then skip this
 		if(!$this->checkAccess) return; 
@@ -501,6 +517,9 @@ class PageFinder extends Wire {
 		$field = is_array($selector->field) ? reset($selector->field) : $selector->field; 
 		$values = is_array($selector->value) ? $selector->value : array($selector->value); 	
 		$fields = $this->fuel('fields'); 
+		$database = $this->wire('database');
+		$user = $this->wire('user'); 
+		$language = $this->wire('languages') && $user->language ? $user->language : null;
 		
 		foreach($values as $value) {
 
@@ -508,8 +527,11 @@ class PageFinder extends Wire {
 			$lc = substr($value, -1); 
 			$value = trim($value, "-+"); 
 
-			if(strpos($value, ".")) list($value, $subValue) = explode(".", $value); // i.e. some_field.title
-				else $subValue = '';
+			if(strpos($value, ".")) {
+				list($value, $subValue) = explode(".", $value); // i.e. some_field.title
+			} else {
+				$subValue = '';
+			}
 
 			if($value == 'random') { 
 				$value = 'RAND()';
@@ -520,26 +542,39 @@ class PageFinder extends Wire {
 
 			} else if($value == 'parent') {
 				// sort by parent native field. does not work with non-native parent fields. 
+				$subValue = $database->escapeCol($subValue);
 				$tableAlias = "_sort_parent" . ($subValue ? "_$subValue" : ''); 
 				$query->join("pages AS $tableAlias ON $tableAlias.id=pages.parent_id"); 
 				$value = "$tableAlias." . ($subValue ? $subValue : "name"); 
 
 			} else if($value == 'template') { 
 				// sort by template
-				$tableAlias = $this->db->escapeTable("_sort_templates" . ($subValue ? "_$subValue" : '')); 
+				$tableAlias = $database->escapeTable("_sort_templates" . ($subValue ? "_$subValue" : '')); 
 				$query->join("templates AS $tableAlias ON $tableAlias.id=pages.templates_id"); 
-				$value = "$tableAlias." . ($subValue ? $this->db->escapeCol($subValue) : "name"); 
+				$value = "$tableAlias." . ($subValue ? $database->escapeCol($subValue) : "name"); 
 
 			} else if($fields->isNativeName($value)) {
-				if(!strpos($value, ".")) $value = "pages." . $this->db->escapeCol($value);
+				// sort by a native field
+				
+				if(!strpos($value, ".")) {
+					// native field with no subfield
+					if($value == 'name' && $language && !$language->isDefault()  && $this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
+						// substitute language-specific name field when LanguageSupportPageNames is active and language is not default
+						$value = "if(pages.name$language!='', pages.name$language, pages.name)";
+					} else {
+						$value = "pages." . $database->escapeCol($value);
+					}
+				}
 
 			} else {
+				
 				$field = $fields->get($value);
 				if(!$field) continue; 
-				$fieldName = $this->db->escapeCol($field->name); 
-				$subValue = $this->db->escapeCol($subValue);
+				
+				$fieldName = $database->escapeCol($field->name); 
+				$subValue = $database->escapeCol($subValue);
 				$tableAlias = "_sort_$fieldName". ($subValue ? "_$subValue" : '');
-				$table = $this->db->escapeTable($field->table);
+				$table = $database->escapeTable($field->table);
 
 				$query->leftjoin("$table AS $tableAlias ON $tableAlias.pages_id=pages.id");
 
@@ -552,8 +587,20 @@ class PageFinder extends Wire {
 					// so we also join the page and sort on it's name instead of the field's "data" field.
 					$tableAlias2 = "_sort_page_$fieldName" . ($subValue ? "_$subValue" : '');
 					$query->leftjoin("pages AS $tableAlias2 ON $tableAlias.data=$tableAlias2.id"); 
-					$value = "$tableAlias2." . ($subValue ? $subValue : "name");
+					if(!$subValue) $subValue = 'name';
+					$value = "$tableAlias2.$subValue";
+					
+					if($subValue == 'name' && $language && !$language->isDefault()  && $this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
+						// append language ID to 'name' when performing sorts within another language and LanguageSupportPageNames in place
+						$value = "if($value$language!='', $value$language, $value)";
+					}
+					
+				} else if(!$subValue && $language && !$language->isDefault() && $field->type instanceof FieldtypeLanguageInterface) {
+					// multi-language field, sort by the language version
+					$value = "if($tableAlias.data$language != '', $tableAlias.data$language, $tableAlias.data)";
+					
 				} else {
+					
 					$value = "$tableAlias." . ($subValue ? $subValue : "data"); ; 
 				}
 			}
@@ -603,6 +650,8 @@ class PageFinder extends Wire {
 	 *
 	 */ 
 	protected function ___getQueryJoinPath(DatabaseQuerySelect $query, $selector) {
+		
+		$database = $this->wire('database'); 
 
 		// determine whether we will include use of multi-language page names
 		if($this->modules->isInstalled('LanguageSupportPageNames') && count(wire('languages'))) {
@@ -632,7 +681,7 @@ class PageFinder extends Wire {
 			$selectorValue = $selector->value;
 			if($langNames) $selectorValue = wire('modules')->get('LanguageSupportPageNames')->updatePath($selectorValue); 
 			$parts = explode('/', rtrim($selectorValue, '/')); 
-			$part = $this->db->escape_string(array_pop($parts)); 
+			$part = $database->escapeStr(array_pop($parts)); 
 			$sql = "pages.name='$part'";
 			if($langNames) foreach($langNames as $name) $sql .= " OR pages.$name='$part'";
 			$query->where($sql); 
@@ -643,12 +692,16 @@ class PageFinder extends Wire {
 		$lastAlias = 'pages';
 
 		while($n = count($parts)) {
-			$part = $this->db->escape_string(array_pop($parts)); 
+			$part = $database->escapeStr(array_pop($parts)); 
 			if(strlen($part)) {
 				$alias = "parent$n";
 				//$query->join("pages AS $alias ON ($lastAlias.parent_id=$alias.id AND $alias.name='$part')");
 				$sql = "pages AS $alias ON ($lastAlias.parent_id=$alias.id AND ($alias.name='$part'";
-				if($langNames) foreach($langNames as $name) $sql .= " OR $alias.$name='$part'";
+				if($langNames) foreach($langNames as $id => $name) {
+					// $status = "status" . (int) $id;
+					// $sql .= " OR ($alias.$name='$part' AND $alias.$status>0) ";
+					$sql .= " OR $alias.$name='$part'";
+				}
 				$sql .= '))';
 				$query->join($sql); 
 
@@ -670,6 +723,7 @@ class PageFinder extends Wire {
 		$value = $selector->value; 
 		$values = is_array($value) ? $value : array($value); 
 		$SQL = '';
+		$database = $this->wire('database'); 
 
 		foreach($fields as $field) { 
 
@@ -686,6 +740,7 @@ class PageFinder extends Wire {
 				$subfield = $field;
 				$field = 'children';
 			}
+			if($field == 'child') $field = 'children';
 
 			if(in_array($field, array('parent', 'parent_id', 'children'))) {
 
@@ -707,7 +762,7 @@ class PageFinder extends Wire {
 				} else {
 					// matching by a parent's native or custom field (subfield)
 
-					if(!$this->getFuel('fields')->isNativeName($subfield)) {
+					if(!$this->wire('fields')->isNativeName($subfield)) {
 						$finder = new PageFinder();
 						$s = $field == 'children' ? '' : 'children.count>0, ';
 						$matches = $finder->find(new Selectors("include=all, $s$subfield{$operator}" . implode('|', $values)));
@@ -716,8 +771,13 @@ class PageFinder extends Wire {
 					} else {
 						// native
 						static $n = 0;
-						$table = "_parent_native" . (++$n);
-						$query->join("pages AS $table ON pages.parent_id=$table.id");
+						if($field == 'children') {
+							$table = "_children_native" . (++$n);
+							$query->join("pages AS $table ON $table.parent_id=pages.id");
+						} else {
+							$table = "_parent_native" . (++$n);
+							$query->join("pages AS $table ON pages.parent_id=$table.id");
+						}
 						$field = $subfield;
 					}
 				}
@@ -726,7 +786,7 @@ class PageFinder extends Wire {
 			if(count($IDs)) {
 				// parentIDs are IDs found via another query, and we don't need to match anything other than the parent ID
 				$in = $selector->not ? "NOT IN" : "IN"; 
-				$sql .= $field == 'children' ? "$table.parent_id " : "$table.id ";
+				$sql .= in_array($field, array('parent', 'parent_id')) ? "$table.parent_id " : "$table.id ";
 				$sql .= "$in(" . implode(',', $IDs) . ")";
 
 			} else foreach($values as $value) { 
@@ -754,23 +814,23 @@ class PageFinder extends Wire {
 					// handle one or more space-separated full words match to 'name' field in any order
 					$s = '';
 					foreach(explode(' ', $value) as $word) {
-						$word = $this->db->escape_string(wire('sanitizer')->pageName($word)); 
+						$word = $database->escapeStr(wire('sanitizer')->pageName($word)); 
 						$s .= ($s ? ' AND ' : '') . "$table.$field RLIKE '" . '[[:<:]]' . $word . '[[:>:]]' . "'";
 					}
 
 				} else if($field == 'name' && in_array($operator, array('%=', '^=', '$=', '%^=', '%$=', '*='))) {
 					// handle partial match to 'name' field
-					$value = $this->db->escape_string(wire('sanitizer')->pageName($value));
+					$value = $database->escapeStr(wire('sanitizer')->pageName($value));
 					if($operator == '^=' || $operator == '%^=') $value = "$value%";
 						else if($operator == '$=' || $operator == '%$=') $value = "%$value";
 						else $value = "%$value%";
 					$s = "$table.$field LIKE '$value'";
 					
-				} else if(!$this->db->isOperator($operator)) {
+				} else if(!$database->isOperator($operator)) {
 					throw new PageFinderSyntaxException("Operator '{$operator}' is not supported for '$field'."); 
 
 				} else {
-					$value = $this->db->escape_string($value); 
+					$value = $database->escapeStr($value); 
 					$s = "$table." . $field . $operator . ((ctype_digit("$value") && $field != 'name') ? ((int) $value) : "'$value'");
 				}
 
@@ -961,6 +1021,14 @@ class PageFinder extends Wire {
 	 */
 	public function getTemplatesID() {
 		return $this->templates_id; 
+	}
+
+	/**
+	 * Return array of the options provided to PageFinder, as well as those determined at runtime
+	 *
+	 */
+	public function getOptions() {
+		return $this->lastOptions; 
 	}
 
 }

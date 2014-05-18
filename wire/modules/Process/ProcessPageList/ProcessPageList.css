@@ -57,6 +57,9 @@
 	padding-bottom: 3px; 
 	line-height: 1em; 
 }
+.PageListItem > a span + span:before {
+	content: ', ';
+}
 
 /**
  * Style for the children label and notes
@@ -67,6 +70,18 @@
 .PageListSorting .PageListSortItem span.PageListMoveNote {
 	font-size: 0.9166em; 
 	padding-left: 0.25em; 
+}
+
+.PageList i.icon,
+.PageList .PageListStatusIcon {
+	font-size: 14px; 
+}
+.PageList i.icon {
+	display: inline-block;
+	width: 18px;
+}
+.PageList .PageListStatusIcon {
+	margin-left: 4px; 
 }
 
 
@@ -92,14 +107,18 @@
 
 .PageList .PageListAccessOff a.PageListPage,
 .PageList .PageListAccessOff a.PageListPage:hover {
+	/*
 	padding-right: 10px;
 	background: url(images/lock.gif) center right no-repeat; 
+	*/
 }
 
 .PageList .PageListAccessOn a.PageListPage,
 .PageList .PageListAccessOn a.PageListPage:hover {
+	/*
 	padding-right: 13px;
 	background: url(images/unlock.png) center right no-repeat; 
+	*/
 }
 
 

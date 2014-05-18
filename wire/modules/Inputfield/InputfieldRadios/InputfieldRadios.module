@@ -18,6 +18,7 @@ class InputfieldRadios extends InputfieldSelect {
 
 	public function ___render() {	
 
+		$this->checkDefaultValue();
 		$inline = false;
 		$columns = (int) $this->optionColumns;
 		if($columns === 1) $inline = true; 

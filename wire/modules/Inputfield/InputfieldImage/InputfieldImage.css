@@ -26,3 +26,79 @@
 }
 
 
+/**
+ * Grid mode
+ *
+ */
+.InputfieldImage .InputfieldHeader i.icon-th, 
+.InputfieldImage .InputfieldHeader i.icon-list {
+	font-size: 14px; 
+}
+
+.InputfieldImageGrid .InputfieldContent {
+	padding-right: 0;
+}
+
+.InputfieldImageGrid .InputfieldFileInfo {
+	display: none; 
+}
+
+.InputfieldImageGrid .AjaxUpload .InputfieldFileInfo {
+	display: block;
+	clear: both;
+	float: none; 
+	margin-top: 1em; 
+}
+
+.InputfieldImageGrid .InputfieldFileData label {
+	display: none; 
+}
+
+
+.InputfieldImageGrid .InputfieldFileList .InputfieldImage,
+.InputfieldImageGrid .InputfieldFileList .InputfieldFileData {
+	padding: 0;
+	margin: 0;
+	float: left; 
+	background: none; 
+	border: none; 
+}
+
+.InputfieldImageGrid .InputfieldFileList .InputfieldFileData a.InputfieldFileLink {
+	overflow: hidden; 
+	width: 100px;
+	height: 100px; 
+	background: #000; 
+	margin: 0 5px 5px 0;
+	display: block;
+	float: left; 
+	cursor: move; 
+}
+.InputfieldImageGrid .InputfieldFileList .InputfieldFileData a.InputfieldFileLink img {
+	max-width: 9999px;
+	width: auto; 
+	height: 100px; 
+	display: block;
+	margin: 0 auto;
+	display: none; 
+}
+
+.Inputfields .InputfieldImageGrid > .InputfieldContent > .InputfieldFileList > li {
+	margin: 0;
+}
+
+.InputfieldImageGrid .InputfieldFileUpload {
+	padding-top: 1em; 
+	clear: both; 
+	
+}
+
+.InputfieldImage .InputfieldHeader .InputfieldImageListToggle {
+	float: right;
+	padding-right: 1em; 
+	position: relative;
+}
+.InputfieldStateCollapsed .InputfieldHeader .InputfieldImageListToggle {
+	display: none; 
+}
+

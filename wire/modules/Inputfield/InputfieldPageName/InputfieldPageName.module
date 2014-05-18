@@ -16,6 +16,7 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 	}
 
 	public static $defaultReplacements = array(
+		'å' => 'a', 
 		'ä' => 'a',  
 		'ö' => 'o',  
 		'ü' => 'u',  
@@ -37,16 +38,19 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		'é' => 'e',
 		'ë' => 'e',
 		'ê' => 'e',
+		'ě' => 'e', 
 		'ì' => 'i',
 		'í' => 'i',
 		'ï' => 'i',
 		'î' => 'i',
+		'õ' => 'o', 
 		'ò' => 'o',
 		'ó' => 'o',
 		'ô' => 'o',
 		'ù' => 'u',
 		'ú' => 'u',
 		'û' => 'u',
+		'ů' => 'u',
 		'ñ' => 'n',
 		'ç' => 'c',
 		'č' => 'c',
@@ -100,6 +104,14 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		$this->set('parentPage', null); 
 		$this->set('sanitizeMethod', 'pageName');
 		$this->set('languageSupportLabel', ''); 
+		$this->set('slashUrls', 1); // whether a trailing slash should be shown in the URL preview
+
+		// optional checkbox associated with the input, for use with language support
+		$this->set('checkboxName', ''); // leave blank to disable 
+		$this->set('checkboxLabel', ''); 
+		$this->set('checkboxValue', ''); 
+		$this->set('checkboxChecked', false); 
+
 		$this->description = $this->_("Any combination of letters (a-z), numbers (0-9), dashes or underscores (no spaces)."); // Field description describing what characters are allowed
 	}
 
@@ -107,26 +119,42 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 
 		$url = $this->parentPage ? $this->parentPage->path : '';
 		$out = '';
+		$box = '';
 		
-		if($this->languageSupportLabel) $out .= "<div class='LanguageSupport'>" . 
-			"<label for='{$this->id}' class='LanguageSupportLabel detail'>$this->languageSupportLabel</label>";
-		$value = $this->attr('value'); 
+		if($this->languageSupportLabel) {
 
+			if($this->checkboxName) {
+				$checked = $this->checkboxChecked ? " checked='checked'" : '';
+				$name = wire('sanitizer')->entities($this->checkboxName); 
+				$value = wire('sanitizer')->entities($this->checkboxValue); 
+				$label = wire('sanitizer')->entities($this->checkboxLabel); 
+				$box = "<label class='checkbox detail'><input type='checkbox' name='$name' value='$value'$checked /> $label</label>";
+			}
+
+			$label = wire('sanitizer')->entities($this->languageSupportLabel); 
+			$id = wire('sanitizer')->entities($this->attr('id')); 
+			$out .= "<div class='LanguageSupport'>" . 
+					"<label for='$id' class='LanguageSupportLabel detail'>" . 
+					"$label</label>";
+		}
+
+		$value = $this->attr('value'); 
 		$link = '';
+
 		if($value && wire('modules')->isInstalled('LanguageSupportPageNames')) {
 			if(strlen($value)) $link = "<a href='" . rtrim(wire('config')->urls->root, '/') . rtrim($url, '/') . "/$value/'>";
 		}
-
-		$p = "\n<p id='{$this->id}_path' class='InputfieldPageNameURL'>";
+		
+		$slashUrls = (int) $this->slashUrls;
+		$p = "\n<p id='{$this->id}_path' data-slashUrls='$slashUrls' class='InputfieldPageNameURL'>";
 		if($link) $p .= $link;
 		$p .= "$url<strong></strong>";
 		if($link) $p .= "</a>";
 		$p .= "</p>";
 
-
 		$out .= $p;
 		$out .= parent::___render();
-		if($this->languageSupportLabel) $out .= "</div>";
+		if($this->languageSupportLabel) $out .= $box . "</div>";
 
 		// make the replacements part of the JS config	
 		$replacements = empty($this->replacements) ? self::$defaultReplacements : $this->replacements; 
@@ -177,13 +205,9 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		$field->attr('name', $name);
 		$field->attr('value', $replacements);
 		$field->attr('rows', 15); 
-		$field->label = "Character replacements";
-		$field->description =
-			"Enter the replacements that will occur when a user is entering characters into a page name field. " . 
-			"Enter one replacement per line in key=value format. " . 
-			"Meaning, on each new line, enter the character(s) you want to replace followed by an equals sign '=' and the ascii character(s) you want to replace with.";
-
-		$field->notes = "The replacement value for each must be one or more of: a-z, 0-9, dash, underscore or period.";
+		$field->label = __('Character replacements');
+		$field->description = __('Enter the replacements that will occur when a user is entering characters into a page name field. Enter one replacement per line in key=value format. Meaning, on each new line, enter the character(s) you want to replace followed by an equals sign "=" and the ascii character(s) you want to replace with.'); // Character replacements description
+		$field->notes = __('The replacement value for each must be one or more of: a-z, 0-9, dash, underscore or period.'); // Character replacements notes
 		$fields->append($field);
 
 		return $fields;

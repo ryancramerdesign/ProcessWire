@@ -81,6 +81,22 @@ $config->imageSizerOptions = array(
 	);
 
 /**
+ * Default prefix used for pagination, i.e. "page2", "page3", etc.
+ *
+ */
+$config->pageNumUrlPrefix = 'page';
+
+/**
+ * Multiple prefixes that may be used for detecting pagination
+ *
+ * Typically used for multi-language support and populated automatically at runtime by
+ * multi-language support modules. When populated, they override $config->pageNumUrlPrefix.
+ *
+ * $config->pageNumUrlPrefixes = array();
+ * 
+ */
+
+/**
  * Set to true in /site/config.php if you want files on non-public or unpublished pages to be 
  * protected from direct URL access. 
  *
@@ -151,5 +167,32 @@ $config->chmodDir = "0777";
  * This is overwritten at runtime with a more specific value in /site/config.php
  *
  */
-$config->chmodFile = "0666";    
+$config->chmodFile = "0666";
+
+/**
+ * Max number of supported paginations when using page numbers
+ * 
+ */
+$config->maxPageNum = 999;
+
+/**
+ * httpHosts: For added security, specify the host names ProcessWire should recognize. 
+ *
+ * If your site may be accessed from multiple hostnames, you'll also want to use this setting.
+ * If left empty, the httpHost will be determined automatically, but use of this whitelist
+ * is recommended for production environments. 
+ * 
+ * If your hostname uses a port other than 80, make sure to include that as well. 
+ * For instance "localhost:8888". 
+ *
+ * This setting is now added to /site/config.php by the installer, so this commentary
+ * is primarily for those upgrading from older versions of ProcessWire. If that is you,
+ * then specify the httpHosts in /site/config.php rather than here. 
+ *
+ */
+$config->httpHosts = array(
+        //'domain.com',
+        //'www.domain.com',
+        //'localhost:8888',
+	);
 

@@ -11,7 +11,7 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('asmSelect', __FILE__),
-			'version' => 110,
+			'version' => 112,
 			'summary' => __('Multiple selection, progressive enhancement to select multiple', __FILE__), // Module Summary
 			'href' => 'http://code.google.com/p/jquery-asmselect/',
 			'permanent' => true, 
@@ -47,10 +47,12 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 
 		// require javascript and css
 		$class = $this->className(); 
+		$info = self::getModuleInfo();
+		$ver = $info['version'];
 
-		$this->config->scripts->add($this->config->urls->$class . "asmselect/jquery.asmselect.js");
-		$this->config->styles->add($this->config->urls->$class . "$class.css");
-		$this->config->styles->add($this->config->urls->$class . "asmselect/jquery.asmselect.css");
+		$this->config->scripts->add($this->config->urls->$class . "asmselect/jquery.asmselect.js?v=$ver");
+		$this->config->styles->add($this->config->urls->$class . "$class.css?v=$ver");
+		$this->config->styles->add($this->config->urls->$class . "asmselect/jquery.asmselect.css?v=$ver");
 
 		$selectedOptions = $this->attr('value'); 
 		

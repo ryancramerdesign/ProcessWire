@@ -36,6 +36,8 @@ class Languages extends PagesType {
 	 *
 	 */
 	protected $languagesAll = null;
+	
+	protected $defaultLanguage = null;
 
 	/**
 	 * Construct this Languages PagesType
@@ -79,6 +81,15 @@ class Languages extends PagesType {
 			$this->languages->add($language); 
 		}
 		return $this->languages; 
+	}
+	
+	public function getDefault() {
+		if(!$this->defaultLanguage) throw new WireException('Default language not yet set');
+		return $this->defaultLanguage; 	
+	}
+	
+	public function setDefault(Language $language) {
+		$this->defaultLanguage = $language; 
 	}
 
 	/**

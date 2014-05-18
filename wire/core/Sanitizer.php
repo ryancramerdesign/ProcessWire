@@ -9,11 +9,10 @@
  * See the Wire class definition for more details about the addHook method. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  * @link http://processwire.com/api/variables/sanitizer/ Offical $sanitizer API variable Documentation
  *
@@ -48,12 +47,14 @@ class Sanitizer extends Wire {
 	 * @param string $value Value to filter
 	 * @param array $allowedExtras Additional characters that are allowed in the value
 	 * @param string 1 character replacement value for invalid characters
+	 * @param int $maxLength
+	 * @return string
 	 *
 	 */
-	protected function nameFilter($value, array $allowedExtras, $replacementChar) {
+	protected function nameFilter($value, array $allowedExtras, $replacementChar, $maxLength = 128) {
 
 		if(!is_string($value)) $value = (string) $value; 
-		if(strlen($value) > 128) $value = substr($value, 0, 128); 
+		if(strlen($value) > $maxLength) $value = substr($value, 0, $maxLength); 
 		if(ctype_alnum($value)) return $value; // quick exit if possible
 
 		if(!ctype_alnum(str_replace($allowedExtras, '', $value))) { 
@@ -83,6 +84,7 @@ class Sanitizer extends Wire {
 	 * @param string $delimeter Character that delimits values (optional)
 	 * @param array $allowedExtras Additional characters that are allowed in the value (optional)
 	 * @param string 1 character replacement value for invalid characters (optional)
+	 * @return string
 	 *
 	 */
 	public function names($value, $delimeter = ' ', $allowedExtras = array('-', '_', '.'), $replacementChar = '_') {
@@ -98,6 +100,9 @@ class Sanitizer extends Wire {
 
 	/**
 	 * Standard alphanumeric and underscore, per class or variable names in PHP
+	 * 
+	 * @param string $value
+	 * @return string
 	 *
 	 */
 	public function varName($value) {
@@ -108,6 +113,9 @@ class Sanitizer extends Wire {
 	 * Name filter as used by ProcessWire Fields
 	 * 
 	 * Note that dash and dot are excluded because they aren't allowed characters in PHP variables
+	 * 
+	 * @param string $value
+	 * @return string
 	 *
 	 */
 	public function fieldName($value) {
@@ -123,16 +131,18 @@ class Sanitizer extends Wire {
 	 * @param bool|int $beautify Should be true when creating a Page's name for the first time. Default is false. 
 	 *	You may also specify Sanitizer::translate (or number 2) for the $beautify param, which will make it translate letters
 	 *	based on the InputfieldPageName custom config settings. 
+	 * @param int $maxLength Maximum number of characters allowed in the name
 	 * @return string
 	 *
 	 */
-	public function pageName($value, $beautify = false) {
+	public function pageName($value, $beautify = false, $maxLength = 128) {
 
 		static $replacements = array();
 
 		if($beautify) { 
 
 			if($beautify === self::translate && $this->multibyteSupport) {
+				$value = mb_strtolower($value);
 
 				if(empty($replacements)) {
 					$configData = wire('modules')->getModuleConfigData('InputfieldPageName'); 
@@ -150,7 +160,7 @@ class Sanitizer extends Wire {
 			if($v) $value = $v; 
 		}
 
-		$value = strtolower($this->nameFilter($value, array('-', '_', '.'), '-')); 
+		$value = strtolower($this->nameFilter($value, array('-', '_', '.'), '-', $maxLength)); 
 
 		if($beautify) {
 			// remove leading or trailing dashes, underscores, dots
@@ -172,17 +182,27 @@ class Sanitizer extends Wire {
 	/**
 	 * Format required by ProcessWire user names
 	 *
+	 * @deprecated, use pageName instead.
+	 * @param string $value
+	 * @return string
+	 *
 	 */
 	public function username($value) {
+		return $this->pageName($value); 
+		/*
 		$value = trim($value); 
 		if(strlen($value) > 128) $value = substr($value, 0, 128); 
 		if(ctype_alnum(str_replace(array('-', '_', '.', '@'), '', $value))) return $value; 
 		return preg_replace('/[^-_.@a-zA-Z0-9]/', '_', trim($value)); 
+		*/
 	}
 
 	/**
 	 * Returns valid email address, or blank if it isn't valid
 	 *
+	 * @param string $value
+	 * @return string
+	 * 
 	 */ 
 	public function email($value) {
 		$value = filter_var($value, FILTER_SANITIZE_EMAIL); 
@@ -272,6 +292,7 @@ class Sanitizer extends Wire {
 	 * and won't always work with paths outside ProcessWire. 
 	 *
 	 * @param string $value Path 
+	 * @return string
 	 *
 	 */
 	public function path($value) {
@@ -354,6 +375,9 @@ class Sanitizer extends Wire {
 	 * Field name filter as used by ProcessWire Fields
 	 * 
 	 * Note that dash and dot are excluded because they aren't allowed characters in PHP variables
+	 * 
+	 * @param string $value
+	 * @return string
 	 *
 	 */
 	public function selectorField($value) {
@@ -366,9 +390,12 @@ class Sanitizer extends Wire {
 	 *
 	 * String value is assumed to be UTF-8. Replaces non-alphanumeric and non-space with space
 	 *
+	 * @param string $value
+	 * @param int $maxLength Maximum number of allowed characters
+	 * @return string
 	 * 
 	 */
-	public function selectorValue($value) {
+	public function selectorValue($value, $maxLength = 100) {
 
 		$value = trim($value); 
 		$quoteChar = '"';
@@ -393,15 +420,15 @@ class Sanitizer extends Wire {
 		if(strpos($value, '"') !== false) $value = str_replace('"', '', $value); 
 
 		// selector value is limited to 100 chars
-		if(strlen($value) > 100) {
-			if($this->multibyteSupport) $value = mb_substr($value, 0, 100, 'UTF-8'); 
-				else $value = substr($value, 0, 100); 
+		if(strlen($value) > $maxLength) {
+			if($this->multibyteSupport) $value = mb_substr($value, 0, $maxLength, 'UTF-8'); 
+				else $value = substr($value, 0, $maxLength); 
 		}
 
 		// disallow some characters in selector values
 		// @todo technically we only need to disallow at begin/end of string
 		$value = str_replace(array('*', '~', '`', '$', '^', '+', '|', '<', '>', '!', '='), ' ', $value);
-
+	
 		// disallow greater/less than signs, unless they aren't forming a tag
 		// if(strpos($value, '<') !== false) $value = preg_replace('/<[^>]+>/su', ' ', $value); 
 
@@ -423,10 +450,14 @@ class Sanitizer extends Wire {
 
 			// replace multiple space characters in sequence with just 1
 			$value = preg_replace('/\s\s+/u', ' ', $value); 
-
 		}
 
 		$value = trim($value);
+		if(!$needsQuotes && strlen($value)) {
+			$a = substr($value, 0, 1); 
+			$b = substr($value, -1); 
+			if((!ctype_alnum($a) && $a != '/') || (!ctype_alnum($b) && $b != '/')) $needsQuotes = true;
+		}
 		if($needsQuotes) $value = $quoteChar . $value . $quoteChar; 
 		return $value;
 

@@ -12,7 +12,7 @@
  * reason, then you'll want to delete that file. This was implemented just in case someone doesn't delete the installer.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -47,7 +47,13 @@ class Installer {
 	 * Minimum required PHP version to install ProcessWire
 	 *
 	 */
-	const MIN_REQUIRED_PHP_VERSION = '5.2.4';
+	const MIN_REQUIRED_PHP_VERSION = '5.3.8';
+
+	/**
+	 * Test mode for installer development, non destructive
+	 *
+	 */
+	const TEST_MODE = false;
 
 	/**
 	 * File permissions, determined in the dbConfig function
@@ -65,14 +71,26 @@ class Installer {
 	protected $numErrors = 0; 
 
 	/**
+	 * Available color themes
+	 *
+	 */
+	protected $colors = array(
+		'classic',
+		'warm',
+		'modern',
+		'futura'
+		);
+
+
+	/**
 	 * Execution controller
 	 *
 	 */
 	public function execute() {
 
-		$title = "ProcessWire 2.3 Installation";
+		$title = "ProcessWire 2.4 Installation";
 
-		require("./wire/templates-admin/install-head.inc"); 
+		require("./wire/modules/AdminTheme/AdminThemeDefault/install-head.inc"); 
 
 		if(isset($_POST['step'])) switch($_POST['step']) {
 
@@ -94,7 +112,7 @@ class Installer {
 
 		} else $this->welcome();
 
-		require("./wire/templates-admin/install-foot.inc"); 
+		require("./wire/modules/AdminTheme/AdminThemeDefault/install-foot.inc"); 
 	}
 
 
@@ -104,9 +122,8 @@ class Installer {
 	 */
 	protected function welcome() {
 		$this->h("Welcome. This tool will guide you through the installation process."); 
-		$this->p("Thanks for choosing ProcessWire! If you downloaded this copy of ProcessWire from somewhere other than <a href='http://processwire.com/'>processwire.com</a> or <a href='https://github.com/ryancramerdesign/ProcessWire' target='_blank'>our GitHub page</a>, please download a fresh copy before installing.");
-		$this->p("Need help or have questions during installation? Please stop by the <a href='http://processwire.com/talk/' target='_blank'>ProcessWire support forums</a> and we'll be glad to help.");
-		$this->btn("Get Started", 1); 
+		$this->p("Thanks for choosing ProcessWire! If you downloaded this copy of ProcessWire from somewhere other than <a href='http://processwire.com/'>processwire.com</a> or <a href='https://github.com/ryancramerdesign/ProcessWire' target='_blank'>our GitHub page</a>, please download a fresh copy before installing. If you need help or have questions during installation, please stop by our <a href='http://processwire.com/talk/' target='_blank'>support board</a> and we'll be glad to help.");
+		$this->btn("Get Started", 1, 'sign-in'); 
 	}
 
 
@@ -115,7 +132,7 @@ class Installer {
 	 *
 	 */
 	protected function checkFunction($name, $label) {
-		if(function_exists($name)) $this->ok("OK: $label"); 
+		if(function_exists($name)) $this->ok("$label"); 
 			else $this->err("Fail: $label"); 
 	}
 
@@ -148,9 +165,19 @@ class Installer {
 		} else {
 			$this->err("ProcessWire requires PHP version " . self::MIN_REQUIRED_PHP_VERSION . " or newer. You are running PHP " . PHP_VERSION);
 		}
+		
+		if(extension_loaded('pdo_mysql')) {
+			$this->ok("PDO (mysql) database"); 
+		} else {
+			$this->err("PDO (pdo_mysql) is required (for MySQL database)"); 
+		}
+
+		if(self::TEST_MODE) {
+			$this->err("Example error message for test mode"); 
+		}
 
 		$this->checkFunction("filter_var", "Filter functions (filter_var)");
-		$this->checkFunction("mysqli_connect", "MySQLi");
+		$this->checkFunction("mysqli_connect", "MySQLi (not required by core, but may be required by some 3rd party modules)");
 		$this->checkFunction("imagecreatetruecolor", "GD 2.0 or newer"); 
 		$this->checkFunction("json_encode", "JSON support");
 		$this->checkFunction("preg_match", "PCRE support"); 
@@ -166,7 +193,7 @@ class Installer {
 		} else {
 			// apache_get_modules doesn't work on a cgi installation.
 			// check for environment var set in htaccess file, as submitted by jmarjie. 
-			$mod_rewrite = getenv('HTTP_MOD_REWRITE') == 'On' ? true : false;
+			$mod_rewrite = getenv('HTTP_MOD_REWRITE') == 'On' || getenv('REDIRECT_HTTP_MOD_REWRITE') == 'On' ? true : false;
 			if($mod_rewrite) {
 				$this->ok("Found Apache module (cgi): mod_rewrite");
 			} else {
@@ -192,11 +219,12 @@ class Installer {
 		}
 
 		if($this->numErrors) {
-			$this->p("One or more errors were found above. Please correct these issues before proceeding or <a href='http://processwire.com/talk/'>contact ProcessWire support</a> if you have questions or think the error is incorrect.");
-			$this->btn("Check Again", 1); 
+			$this->p("One or more errors were found above. We recommend you correct these issues before proceeding or <a href='http://processwire.com/talk/'>contact ProcessWire support</a> if you have questions or think the error is incorrect. But if you want to proceed anyway, click Continue below.");
+			$this->btn("Check Again", 1, 'refresh', false, true); 
+			$this->btn("Continue to Next Step", 2, 'angle-right', true); 
+		} else {
+			$this->btn("Continue to Next Step", 2, 'angle-right', false); 
 		}
-
-		$this->btn("Continue to Next Step", 2); 
 	}
 
 	/**
@@ -212,6 +240,7 @@ class Installer {
 		$this->p("*Recommended permissions are select, insert, update, delete, create, alter, index, drop, create temporary tables, and lock tables.", "detail"); 
 
 		if(!isset($values['dbName'])) $values['dbName'] = '';
+		// @todo: are there PDO equivalents for the ini_get()s below?
 		if(!isset($values['dbHost'])) $values['dbHost'] = ini_get("mysqli.default_host"); 
 		if(!isset($values['dbPort'])) $values['dbPort'] = ini_get("mysqli.default_port"); 
 		if(!isset($values['dbUser'])) $values['dbUser'] = ini_get("mysqli.default_user"); 
@@ -227,11 +256,13 @@ class Installer {
 
 		$this->input('dbName', 'DB Name', $values['dbName']); 
 		$this->input('dbUser', 'DB User', $values['dbUser']);
-		$this->input('dbPass', 'DB Pass', $values['dbPass'], false, 'password'); 
+		$this->input('dbPass', 'DB Pass', $values['dbPass'], false, 'password', false); 
 		$this->input('dbHost', 'DB Host', $values['dbHost']); 
 		$this->input('dbPort', 'DB Port', $values['dbPort'], true); 
 
 		$cgi = false;
+		$defaults = array();
+
 		if(is_writable(__FILE__)) {
 			$defaults['chmodDir'] = "755";
 			$defaults['chmodFile'] = "644";
@@ -240,27 +271,59 @@ class Installer {
 			$defaults['chmodDir'] = "777";
 			$defaults['chmodFile'] = "666";
 		}
+
+		$timezone = isset($values['timezone']) ? $values['timezone'] : date_default_timezone_get(); 
+		if(!$timezone || !in_array($timezone, $this->timezones)) {
+			$timezone = ini_get('date.timezone'); 
+			if(!$timezone || !in_array($timezone, $this->timezones)) $timezone = 'America/New_York';
+		}
+
+		$defaults['timezone'] = $timezone; 
+		$defaults['httpHosts'] = strtolower(filter_var($_SERVER['HTTP_HOST'], FILTER_SANITIZE_URL));
+
+		if(strpos($defaults['httpHosts'], 'www.') === 0) {
+			$defaults['httpHosts'] .= "\n" . substr($defaults['httpHosts'], 4); 
+		} else if(substr_count($defaults['httpHosts'], '.') == 1) {
+			$defaults['httpHosts'] .= "\n" . "www.$defaults[httpHosts]";
+		}
+		if($_SERVER['SERVER_NAME'] && $_SERVER['SERVER_NAME'] != $_SERVER['HTTP_HOST']) {
+			$defaults['httpHosts'] .= "\n" . $_SERVER['SERVER_NAME']; 
+		}
+
 		$values = array_merge($defaults, $values); 
+
+		$this->h("Default Time Zone"); 
+		echo "<p><select name='timezone'>"; 
+		foreach($this->timezones as $key => $timezone) {
+			$selected = $timezone == $values['timezone'] ? " selected='selected'" : '';
+			echo "<option value=\"$key\"$selected>" . str_replace('_', ' ', $timezone) . "</option>";
+		}
+		echo "</select></p>";
 
 		$this->h("File Permissions"); 
 		$this->p(
 			"When ProcessWire creates directories or files, it assigns permissions to them. " . 
-			"Enter the most restrictive permissions possible that allow full read and write access to the web server (Apache) and yourself. " . 
+			"Enter the most restrictive permissions possible that give ProcessWire (and you) read and write access to the web server (Apache). " . 
 			"The safest setting to use varies from server to server. " . 
-			"If you are not on a dedicated server or private server, you may want to contact your web host to advise on what are the best permissions to use in your environment. " . 
-			"Should you opt to use the defaults provided, you can also adjust these permissions later (if necessary) by editing /site/config.php (near the bottom of the file). "
+			"If you are not on a dedicated or private server, or are in any kind of shared environment, you may want to contact your web host to advise on what are the best permissions to use in your environment. " 
 			);
 
-		$this->p("Permissions must be 3 digits each.", "detail");
+		$this->p("Permissions must be 3 digits each. Should you opt to use the defaults provided, you can also adjust these permissions later if desired by editing <u>/site/config.php</u>.", "detail");
 
 		$this->input('chmodDir', 'Directories', $values['chmodDir']); 
 		$this->input('chmodFile', 'Files', $values['chmodFile'], true); 
 
-		if($cgi) $this->p("We detected that this file (install.php) is writable. That means Apache may be running as your user account. Given that, we populated the permissions above (755 &amp; 644) as possible good starting point.");
+		if($cgi) echo "<p class='detail' style='margin-top: 0;'>We detected that this file (install.php) is writable. That means Apache may be running as your user account. Given that, we populated the permissions above (755 &amp; 644) as possible starting point.</p>";
+
+		$this->h("HTTP Host Names"); 
+		$this->p("What host names will this installation run on now and in the future? Please enter one host per line. You may also choose to leave this blank to auto-detect on each request, but we recommend using this whitelist for the best security in production environments."); 
+		$this->p("This field is recommended but not required. You can set this later by editing the file <u>/site/config.php</u> (setting \$config->httpHosts).", "detail"); 
+		$rows = substr_count($values['httpHosts'], "\n") + 2; 
+		echo "<p><textarea name='httpHosts' rows='$rows' style='width: 100%;'>" . htmlentities($values['httpHosts'], ENT_QUOTES, 'UTF-8') . "</textarea></p>";
 
 		$this->btn("Continue", 4); 
 
-		$this->p("Note: After you click the button above, be patient &hellip; it may take a minute.");
+		$this->p("Note: After you click the button above, be patient &hellip; it may take a minute.", "detail");
 	}
 
 	/**
@@ -284,15 +347,20 @@ class Installer {
 		}
 
 		error_reporting(0); 
-		$mysqli = new mysqli($values['dbHost'], $values['dbUser'], $values['dbPass'], $values['dbName'], $values['dbPort']); 	
-		error_reporting(E_ALL); 
-		if(!$mysqli || mysqli_connect_error()) {
-			$this->err(mysqli_connect_error()); 
+		
+		$dsn = "mysql:dbname=$values[dbName];host=$values[dbHost];port=$values[dbPort]";
+		$driver_options = array(
+			PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'",
+			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+			);
+		try {
+			$database = new PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options); 
+		} catch(Exception $e) {
 			$this->err("Database connection information did not work."); 
+			$this->err($e->getMessage());
 			$this->dbConfig($values);
 			return;
 		}
-		$mysqli->set_charset("utf8"); 
 
 		// file permissions
 		$fields = array('chmodDir', 'chmodFile');
@@ -303,6 +371,21 @@ class Installer {
 			$values[$field] = $value;
 		}
 
+		$timezone = (int) $_POST['timezone']; 
+		if(isset($this->timezones[$timezone])) $values['timezone'] = $this->timezones[$timezone]; 
+			else $values['timezone'] = 'America/New_York';
+
+		$values['httpHosts'] = array();
+		$httpHosts = trim($_POST['httpHosts']); 
+		if(strlen($httpHosts)) {
+			$httpHosts = str_replace(array("'", '"'), '', $httpHosts); 
+			$httpHosts = explode("\n", $httpHosts); 
+			foreach($httpHosts as $key => $host) {
+				$httpHosts[$key] = strtolower(trim(filter_var($host, FILTER_SANITIZE_URL)));
+			}
+			$values['httpHosts'] = $httpHosts; 
+		} 
+
 		if($this->numErrors) {
 			$this->dbConfig($values);
 			return;
@@ -311,7 +394,7 @@ class Installer {
 		$this->h("Test Database and Save Configuration");
 		$this->ok("Database connection successful to " . htmlspecialchars($values['dbName'])); 
 
-		if($this->dbSaveConfigFile($values)) $this->profileImport($mysqli);
+		if($this->dbSaveConfigFile($values)) $this->profileImport($database);
 			else $this->dbConfig($values);
 	}
 
@@ -320,6 +403,8 @@ class Installer {
 	 *
 	 */
 	protected function dbSaveConfigFile(array $values) {
+
+		if(self::TEST_MODE) return true; 
 
 		$salt = md5(mt_rand() . microtime(true)); 
 
@@ -347,14 +432,31 @@ class Installer {
 			"\n */" . 
 			"\n\$config->chmodDir = '0$values[chmodDir]'; // permission for directories created by ProcessWire" . 	
 			"\n\$config->chmodFile = '0$values[chmodFile]'; // permission for files created by ProcessWire " . 	
+			"\n" . 
+			"\n/**" . 
+			"\n * Installer: Time zone setting" . 
+			"\n * " . 
+			"\n */" . 
+			"\n\$config->timezone = '$values[timezone]';" . 	
 			"\n\n";
+
+		if(!empty($values['httpHosts'])) {
+			$cfg .= "" . 
+			"\n/**" . 
+			"\n * Installer: HTTP Hosts Whitelist" . 
+			"\n * " . 
+			"\n */" . 
+			"\n\$config->httpHosts = array("; 
+			foreach($values['httpHosts'] as $host) $cfg .= "'$host', ";
+			$cfg = rtrim($cfg, ", ") . ");\n\n";
+		}
 
 		if(($fp = fopen("./site/config.php", "a")) && fwrite($fp, $cfg)) {
 			fclose($fp); 
-			$this->ok("Saved database configuration to ./site/config.php"); 
+			$this->ok("Saved configuration to ./site/config.php"); 
 			return true; 
 		} else {
-			$this->err("Error saving database configuration to ./site/config.php. Please make sure it is writable."); 
+			$this->err("Error saving configuration to ./site/config.php. Please make sure it is writable."); 
 			return false;
 		}
 	}
@@ -363,19 +465,30 @@ class Installer {
 	 * Step 3b: Import profile
 	 *
 	 */
-	protected function profileImport($mysqli) {
+	protected function profileImport($database) {
+
+		if(self::TEST_MODE) {
+			$this->ok("TEST MODE: Skipping profile import"); 
+			$this->adminAccount();
+			return;
+		}
 
 		$profile = "./site/install/";
 		if(!is_file("{$profile}install.sql")) die("No installation profile found in {$profile}"); 
 
 		// checks to see if the database exists using an arbitrary query (could just as easily be something else)
-		$result = $mysqli->query("SHOW COLUMNS FROM pages"); 
+		try {
+			$query = $database->prepare("SHOW COLUMNS FROM pages"); 
+			$result = $query->execute();
+		} catch(Exception $e) {
+			$result = false;
+		}
 
-		if(self::REPLACE_DB || !$result || $result->num_rows == 0) {
+		if(self::REPLACE_DB || !$result || $query->rowCount() == 0) {
 
-			$this->profileImportSQL($mysqli, "./wire/core/install.sql"); 
+			$this->profileImportSQL($database, "./wire/core/install.sql"); 
 			$this->ok("Imported: ./wire/core/install.sql"); 
-			$this->profileImportSQL($mysqli, $profile . "install.sql"); 
+			$this->profileImportSQL($database, $profile . "install.sql"); 
 			$this->ok("Imported: {$profile}install.sql"); 
 
 			if(is_dir($profile . "files")) $this->profileImportFiles($profile);
@@ -397,6 +510,11 @@ class Installer {
 	 *
 	 */
 	protected function profileImportFiles($fromPath) {
+
+		if(self::TEST_MODE) {
+			$this->ok("TEST MODE: Skipping file import - $fromPath"); 
+			return;
+		}
 
 		$dir = new DirectoryIterator($fromPath);
 
@@ -427,7 +545,9 @@ class Installer {
 	 * Import profile SQL dump
 	 *
 	 */
-	protected function profileImportSQL($mysqli, $sqlDumpFile) {
+	protected function profileImportSQL($database, $sqlDumpFile) {
+
+		if(self::TEST_MODE) return;
 
 		$fp = fopen($sqlDumpFile, "rb"); 	
 		while(!feof($fp)) {
@@ -439,8 +559,12 @@ class Installer {
 				do { $line .= fgets($fp); } while(substr(trim($line), -1) != ';'); 
 			}
 
-			$mysqli->query($line); 	
-			if($mysqli->error) $this->err($mysqli->error); 
+			try {	
+				$database->exec($line); 
+			} catch(Exception $e) {
+				$this->err($e->getMessage()); 
+			}
+			
 		}
 	}
 
@@ -466,14 +590,22 @@ class Installer {
 			$clean[$key] = $value;
 		}
 
-		$this->h("Admin Login Information");
-		$this->input("admin_name", "Admin Login URL", $clean['admin_name'], true, "name"); 
-		$this->p("The account you create here will have superuser access, so please make sure to create a strong password.");
+		$this->h("Admin Panel Information");
+		$this->input("admin_name", "Admin Login URL", $clean['admin_name'], false, "name"); 
+		$js = "$('link#colors').attr('href', $('link#colors').attr('href').replace(/main-.*$/, 'main-' + $(this).val() + '.css'))";
+		echo "<p class='ui-helper-clearfix'><label>Color Theme<br /><select name='colors' id='colors' onchange=\"$js\">";
+		foreach($this->colors as $color) echo "<option value='$color'>" . ucfirst($color) . "</option>";
+		echo "</select></label> <span class='detail'><i class='fa fa-angle-left'></i> Change for a live preview</span></p>";
+		
+		$this->p("<i class='fa fa-info-circle'></i> You can change the admin URL later by editing the admin page and changing the name on the settings tab.<br /><i class='fa fa-info-circle'></i> You can change the colors later by going to Admin <i class='fa fa-angle-right'></i> Modules <i class='fa fa-angle-right detail'></i> Core <i class='fa fa-angle-right detail'></i> Admin Theme <i class='fa fa-angle-right'></i> Settings.", "detail"); 
+		$this->h("Admin Account Information");
+		$this->p("The account you create here will have superuser access, so please make sure to create a <a target='_blank' href='http://en.wikipedia.org/wiki/Password_strength'>strong password</a>.");
 		$this->input("username", "User", $clean['username'], false, "name"); 
 		$this->input("userpass", "Password", $clean['userpass'], false, "password"); 
-		$this->input("userpass_confirm", "Password (again)", $clean['userpass_confirm'], true, "password"); 
+		$this->input("userpass_confirm", "Password <small class='detail'>(again)</small>", $clean['userpass_confirm'], true, "password"); 
 		$this->input("useremail", "Email Address", $clean['useremail'], true, "email"); 
-		$this->p("Please remember the password you enter above as you will not be able to retrieve it again.");
+		$this->p("<i class='fa fa-warning'></i> Please remember the password you enter above as you will not be able to retrieve it again.", "detail");
+
 		$this->btn("Create Account", 5); 
 	}
 
@@ -522,8 +654,12 @@ class Installer {
 		$admin->name = $adminName;
 
 		try {
-			$wire->users->save($user); 
-			$wire->pages->save($admin);
+			if(self::TEST_MODE) {
+				$this->ok("TEST MODE: skipped user creation"); 
+			} else {
+				$wire->users->save($user); 
+				$wire->pages->save($admin);
+			}
 
 		} catch(Exception $e) {
 			$this->err($e->getMessage()); 
@@ -534,21 +670,40 @@ class Installer {
 
 		$this->h("Admin Account Saved");
 		$this->ok("User account saved: <b>{$user->name}</b>"); 
+
+		$colors = $wire->sanitizer->pageName($input->post->colors); 
+		if(!in_array($colors, $this->colors)) $colors = reset($this->colors); 
+		$theme = $wire->modules->getInstall('AdminThemeDefault'); 
+		$configData = $wire->modules->getModuleConfigData('AdminThemeDefault'); 
+		$configData['colors'] = $colors;
+		$wire->modules->saveModuleConfigData('AdminThemeDefault', $configData); 
+		$this->ok("Saved admin color set <b>$colors</b> - you will see this when you login."); 
+
 		$this->h("Complete &amp; Secure Your Installation");
-		$this->ok("Now that the installer is complete, it is highly recommended that you make ./site/config.php non-writable, for security."); 
+		$this->ok("It is recommended that you make <b>/site/config.php</b> non-writable, for security."); 
 
-		if(@unlink("./install.php")) $this->ok("Deleted this installer (./install.php) for security."); 
-			else $this->ok("Please delete this installer! The file is located in your web root at: ./install.php"); 
+		if(!self::TEST_MODE) {
+			if(@unlink("./install.php")) $this->ok("Deleted this installer (./install.php) for security."); 
+				else $this->ok("Please delete this installer! The file is located in your web root at: ./install.php"); 
+		}
 
-		$this->ok("There are additional configuration options available in this file that you may want to review: ./site/config.php"); 
-		$this->ok("To save space, you may delete this directory (and everything in it): ./site/install/ - it's no longer needed"); 
-		$this->ok("Note that future runtime errors are logged to: /site/assets/logs/errors.txt (not web accessible)"); 
+
+		$this->ok("There are additional configuration options available in <b>/site/config.php</b> that you may want to review."); 
+		$this->ok("To save space, you may optionally delete <b>/site/install/</b> - it's no longer needed."); 
+		$this->ok("Note that future runtime errors are logged to <b>/site/assets/logs/errors.txt</b> (not web accessible)."); 
+
 		$this->h("Use The Site!");
-		$this->p("Your admin URL is <a href='./$adminName/'>/$adminName/</a>. If you'd like, you may change this later by editing the admin page and changing the name."); 
-		$this->p("<a target='_blank' href='./'>View the Web Site</a> or <a href='./$adminName/'>Login to ProcessWire admin</a>");
+		$this->ok("Your admin URL is <a href='./$adminName/'>/$adminName/</a>"); 
+		$this->p("If you'd like, you may change this later by editing the admin page and changing the name.", "detail"); 
+		$this->btn("Login to Admin", 1, 'sign-in', false, true, "./$adminName/"); 
+		$this->btn("View Site ", 1, 'angle-right', true, false, "./"); 
+
+		//$this->p("<a target='_blank' href='./'>View the Web Site</a> or <a href='./$adminName/'>Login to ProcessWire admin</a>");
 
 		// set a define that indicates installation is completed so that this script no longer runs
-		file_put_contents("./site/assets/installed.php", "<?php // The existence of this file prevents the installer from running. Don't delete it unless you want to re-run the install or you have deleted ./install.php."); 
+		if(!self::TEST_MODE) {
+			file_put_contents("./site/assets/installed.php", "<?php // The existence of this file prevents the installer from running. Don't delete it unless you want to re-run the install or you have deleted ./install.php."); 
+		}
 
 	}
 
@@ -563,7 +718,7 @@ class Installer {
 	 */
 	protected function err($str) {
 		$this->numErrors++;
-		echo "\n<li class='ui-state-error'><span class='ui-icon ui-icon-alert'></span>$str</li>";
+		echo "\n<li class='ui-state-error'><i class='fa fa-exclamation-triangle'></i> $str</li>";
 		return false;
 	}
 
@@ -572,7 +727,7 @@ class Installer {
 	 *
 	 */
 	protected function ok($str) {
-		echo "\n<li class='ui-state-highlight'><span class='ui-icon ui-icon-check'></span>$str</li>";
+		echo "\n<li class='ui-state-highlight'><i class='fa fa-check-square-o'></i> $str</li>";
 		return true; 
 	}
 
@@ -580,8 +735,16 @@ class Installer {
 	 * Output a button 
 	 *
 	 */
-	protected function btn($label, $value) {
-		echo "\n<p><button name='step' type='submit' class='ui-button ui-widget ui-state-default ui-corner-all' value='$value'><span class='ui-button-text'><span class='ui-icon ui-icon-carat-1-e'></span>$label</span></a></button></p>";
+	protected function btn($label, $value, $icon = 'angle-right', $secondary = false, $float = false, $href ='') {
+		$class = $secondary ? 'ui-priority-secondary' : '';
+		if($float) $class .= " floated";
+		$type = 'submit';
+		if($href) $type = 'button';
+		if($href) echo "<a href='$href'>";
+		echo "\n<p><button name='step' type='$type' class='ui-button ui-widget ui-state-default $class ui-corner-all' value='$value'>";
+		echo "<span class='ui-button-text'><i class='fa fa-$icon'></i> $label</span>";
+		echo "</button></p>";
+		if($href) echo "</a>";
 	}
 
 	/**
@@ -605,9 +768,9 @@ class Installer {
 	 * Output an <input type='text'>
 	 *
 	 */
-	protected function input($name, $label, $value, $clear = false, $type = "text") {
+	protected function input($name, $label, $value, $clear = false, $type = "text", $required = true) {
 		$width = 135; 
-		$required = "required='required'";
+		$required = $required ? "required='required'" : "";
 		$pattern = '';
 		$note = '';
 		if($type == 'email') {
@@ -636,6 +799,7 @@ class Installer {
 	 *
 	 */
 	protected function mkdir($path, $showNote = true) {
+		if(self::TEST_MODE) return;
 		if(mkdir($path)) {
 			chmod($path, octdec($this->chmodDir));
 			if($showNote) $this->ok("Created directory: $path"); 
@@ -651,6 +815,8 @@ class Installer {
 	 *
 	 */
 	protected function copyRecursive($src, $dst) {
+
+		if(self::TEST_MODE) return;
 
 		if(substr($src, -1) != '/') $src .= '/';
 		if(substr($dst, -1) != '/') $dst .= '/';
@@ -672,12 +838,485 @@ class Installer {
 		return true; 
 	} 
 
+	protected $timezones = array(
+		'Africa/Abidjan',
+		'Africa/Accra',
+		'Africa/Addis_Ababa',
+		'Africa/Algiers',
+		'Africa/Asmara',
+		'Africa/Asmera',
+		'Africa/Bamako',
+		'Africa/Bangui',
+		'Africa/Banjul',
+		'Africa/Bissau',
+		'Africa/Blantyre',
+		'Africa/Brazzaville',
+		'Africa/Bujumbura',
+		'Africa/Cairo',
+		'Africa/Casablanca',
+		'Africa/Ceuta',
+		'Africa/Conakry',
+		'Africa/Dakar',
+		'Africa/Dar_es_Salaam',
+		'Africa/Djibouti',
+		'Africa/Douala',
+		'Africa/El_Aaiun',
+		'Africa/Freetown',
+		'Africa/Gaborone',
+		'Africa/Harare',
+		'Africa/Johannesburg',
+		'Africa/Juba',
+		'Africa/Kampala',
+		'Africa/Khartoum',
+		'Africa/Kigali',
+		'Africa/Kinshasa',
+		'Africa/Lagos',
+		'Africa/Libreville',
+		'Africa/Lome',
+		'Africa/Luanda',
+		'Africa/Lubumbashi',
+		'Africa/Lusaka',
+		'Africa/Malabo',
+		'Africa/Maputo',
+		'Africa/Maseru',
+		'Africa/Mbabane',
+		'Africa/Mogadishu',
+		'Africa/Monrovia',
+		'Africa/Nairobi',
+		'Africa/Ndjamena',
+		'Africa/Niamey',
+		'Africa/Nouakchott',
+		'Africa/Ouagadougou',
+		'Africa/Porto-Novo',
+		'Africa/Sao_Tome',
+		'Africa/Timbuktu',
+		'Africa/Tripoli',
+		'Africa/Tunis',
+		'Africa/Windhoek',
+		'America/Adak',
+		'America/Anchorage',
+		'America/Anguilla',
+		'America/Antigua',
+		'America/Araguaina',
+		'America/Argentina/Buenos_Aires',
+		'America/Argentina/Catamarca',
+		'America/Argentina/ComodRivadavia',
+		'America/Argentina/Cordoba',
+		'America/Argentina/Jujuy',
+		'America/Argentina/La_Rioja',
+		'America/Argentina/Mendoza',
+		'America/Argentina/Rio_Gallegos',
+		'America/Argentina/Salta',
+		'America/Argentina/San_Juan',
+		'America/Argentina/San_Luis',
+		'America/Argentina/Tucuman',
+		'America/Argentina/Ushuaia',
+		'America/Aruba',
+		'America/Asuncion',
+		'America/Atikokan',
+		'America/Atka',
+		'America/Bahia',
+		'America/Bahia_Banderas',
+		'America/Barbados',
+		'America/Belem',
+		'America/Belize',
+		'America/Blanc-Sablon',
+		'America/Boa_Vista',
+		'America/Bogota',
+		'America/Boise',
+		'America/Buenos_Aires',
+		'America/Cambridge_Bay',
+		'America/Campo_Grande',
+		'America/Cancun',
+		'America/Caracas',
+		'America/Catamarca',
+		'America/Cayenne',
+		'America/Cayman',
+		'America/Chicago',
+		'America/Chihuahua',
+		'America/Coral_Harbour',
+		'America/Cordoba',
+		'America/Costa_Rica',
+		'America/Creston',
+		'America/Cuiaba',
+		'America/Curacao',
+		'America/Danmarkshavn',
+		'America/Dawson',
+		'America/Dawson_Creek',
+		'America/Denver',
+		'America/Detroit',
+		'America/Dominica',
+		'America/Edmonton',
+		'America/Eirunepe',
+		'America/El_Salvador',
+		'America/Ensenada',
+		'America/Fort_Wayne',
+		'America/Fortaleza',
+		'America/Glace_Bay',
+		'America/Godthab',
+		'America/Goose_Bay',
+		'America/Grand_Turk',
+		'America/Grenada',
+		'America/Guadeloupe',
+		'America/Guatemala',
+		'America/Guayaquil',
+		'America/Guyana',
+		'America/Halifax',
+		'America/Havana',
+		'America/Hermosillo',
+		'America/Indiana/Indianapolis',
+		'America/Indiana/Knox',
+		'America/Indiana/Marengo',
+		'America/Indiana/Petersburg',
+		'America/Indiana/Tell_City',
+		'America/Indiana/Vevay',
+		'America/Indiana/Vincennes',
+		'America/Indiana/Winamac',
+		'America/Indianapolis',
+		'America/Inuvik',
+		'America/Iqaluit',
+		'America/Jamaica',
+		'America/Jujuy',
+		'America/Juneau',
+		'America/Kentucky/Louisville',
+		'America/Kentucky/Monticello',
+		'America/Knox_IN',
+		'America/Kralendijk',
+		'America/La_Paz',
+		'America/Lima',
+		'America/Los_Angeles',
+		'America/Louisville',
+		'America/Lower_Princes',
+		'America/Maceio',
+		'America/Managua',
+		'America/Manaus',
+		'America/Marigot',
+		'America/Martinique',
+		'America/Matamoros',
+		'America/Mazatlan',
+		'America/Mendoza',
+		'America/Menominee',
+		'America/Merida',
+		'America/Metlakatla',
+		'America/Mexico_City',
+		'America/Miquelon',
+		'America/Moncton',
+		'America/Monterrey',
+		'America/Montevideo',
+		'America/Montreal',
+		'America/Montserrat',
+		'America/Nassau',
+		'America/New_York',
+		'America/Nipigon',
+		'America/Nome',
+		'America/Noronha',
+		'America/North_Dakota/Beulah',
+		'America/North_Dakota/Center',
+		'America/North_Dakota/New_Salem',
+		'America/Ojinaga',
+		'America/Panama',
+		'America/Pangnirtung',
+		'America/Paramaribo',
+		'America/Phoenix',
+		'America/Port-au-Prince',
+		'America/Port_of_Spain',
+		'America/Porto_Acre',
+		'America/Porto_Velho',
+		'America/Puerto_Rico',
+		'America/Rainy_River',
+		'America/Rankin_Inlet',
+		'America/Recife',
+		'America/Regina',
+		'America/Resolute',
+		'America/Rio_Branco',
+		'America/Rosario',
+		'America/Santa_Isabel',
+		'America/Santarem',
+		'America/Santiago',
+		'America/Santo_Domingo',
+		'America/Sao_Paulo',
+		'America/Scoresbysund',
+		'America/Shiprock',
+		'America/Sitka',
+		'America/St_Barthelemy',
+		'America/St_Johns',
+		'America/St_Kitts',
+		'America/St_Lucia',
+		'America/St_Thomas',
+		'America/St_Vincent',
+		'America/Swift_Current',
+		'America/Tegucigalpa',
+		'America/Thule',
+		'America/Thunder_Bay',
+		'America/Tijuana',
+		'America/Toronto',
+		'America/Tortola',
+		'America/Vancouver',
+		'America/Virgin',
+		'America/Whitehorse',
+		'America/Winnipeg',
+		'America/Yakutat',
+		'America/Yellowknife',
+		'Antarctica/Casey',
+		'Antarctica/Davis',
+		'Antarctica/DumontDUrville',
+		'Antarctica/Macquarie',
+		'Antarctica/Mawson',
+		'Antarctica/McMurdo',
+		'Antarctica/Palmer',
+		'Antarctica/Rothera',
+		'Antarctica/South_Pole',
+		'Antarctica/Syowa',
+		'Antarctica/Vostok',
+		'Arctic/Longyearbyen',
+		'Asia/Aden',
+		'Asia/Almaty',
+		'Asia/Amman',
+		'Asia/Anadyr',
+		'Asia/Aqtau',
+		'Asia/Aqtobe',
+		'Asia/Ashgabat',
+		'Asia/Ashkhabad',
+		'Asia/Baghdad',
+		'Asia/Bahrain',
+		'Asia/Baku',
+		'Asia/Bangkok',
+		'Asia/Beirut',
+		'Asia/Bishkek',
+		'Asia/Brunei',
+		'Asia/Calcutta',
+		'Asia/Choibalsan',
+		'Asia/Chongqing',
+		'Asia/Chungking',
+		'Asia/Colombo',
+		'Asia/Dacca',
+		'Asia/Damascus',
+		'Asia/Dhaka',
+		'Asia/Dili',
+		'Asia/Dubai',
+		'Asia/Dushanbe',
+		'Asia/Gaza',
+		'Asia/Harbin',
+		'Asia/Hebron',
+		'Asia/Ho_Chi_Minh',
+		'Asia/Hong_Kong',
+		'Asia/Hovd',
+		'Asia/Irkutsk',
+		'Asia/Istanbul',
+		'Asia/Jakarta',
+		'Asia/Jayapura',
+		'Asia/Jerusalem',
+		'Asia/Kabul',
+		'Asia/Kamchatka',
+		'Asia/Karachi',
+		'Asia/Kashgar',
+		'Asia/Kathmandu',
+		'Asia/Katmandu',
+		'Asia/Khandyga',
+		'Asia/Kolkata',
+		'Asia/Krasnoyarsk',
+		'Asia/Kuala_Lumpur',
+		'Asia/Kuching',
+		'Asia/Kuwait',
+		'Asia/Macao',
+		'Asia/Macau',
+		'Asia/Magadan',
+		'Asia/Makassar',
+		'Asia/Manila',
+		'Asia/Muscat',
+		'Asia/Nicosia',
+		'Asia/Novokuznetsk',
+		'Asia/Novosibirsk',
+		'Asia/Omsk',
+		'Asia/Oral',
+		'Asia/Phnom_Penh',
+		'Asia/Pontianak',
+		'Asia/Pyongyang',
+		'Asia/Qatar',
+		'Asia/Qyzylorda',
+		'Asia/Rangoon',
+		'Asia/Riyadh',
+		'Asia/Saigon',
+		'Asia/Sakhalin',
+		'Asia/Samarkand',
+		'Asia/Seoul',
+		'Asia/Shanghai',
+		'Asia/Singapore',
+		'Asia/Taipei',
+		'Asia/Tashkent',
+		'Asia/Tbilisi',
+		'Asia/Tehran',
+		'Asia/Tel_Aviv',
+		'Asia/Thimbu',
+		'Asia/Thimphu',
+		'Asia/Tokyo',
+		'Asia/Ujung_Pandang',
+		'Asia/Ulaanbaatar',
+		'Asia/Ulan_Bator',
+		'Asia/Urumqi',
+		'Asia/Ust-Nera',
+		'Asia/Vientiane',
+		'Asia/Vladivostok',
+		'Asia/Yakutsk',
+		'Asia/Yekaterinburg',
+		'Asia/Yerevan',
+		'Atlantic/Azores',
+		'Atlantic/Bermuda',
+		'Atlantic/Canary',
+		'Atlantic/Cape_Verde',
+		'Atlantic/Faeroe',
+		'Atlantic/Faroe',
+		'Atlantic/Jan_Mayen',
+		'Atlantic/Madeira',
+		'Atlantic/Reykjavik',
+		'Atlantic/South_Georgia',
+		'Atlantic/St_Helena',
+		'Atlantic/Stanley',
+		'Australia/ACT',
+		'Australia/Adelaide',
+		'Australia/Brisbane',
+		'Australia/Broken_Hill',
+		'Australia/Canberra',
+		'Australia/Currie',
+		'Australia/Darwin',
+		'Australia/Eucla',
+		'Australia/Hobart',
+		'Australia/LHI',
+		'Australia/Lindeman',
+		'Australia/Lord_Howe',
+		'Australia/Melbourne',
+		'Australia/North',
+		'Australia/NSW',
+		'Australia/Perth',
+		'Australia/Queensland',
+		'Australia/South',
+		'Australia/Sydney',
+		'Australia/Tasmania',
+		'Australia/Victoria',
+		'Australia/West',
+		'Australia/Yancowinna',
+		'Europe/Amsterdam',
+		'Europe/Andorra',
+		'Europe/Athens',
+		'Europe/Belfast',
+		'Europe/Belgrade',
+		'Europe/Berlin',
+		'Europe/Bratislava',
+		'Europe/Brussels',
+		'Europe/Bucharest',
+		'Europe/Budapest',
+		'Europe/Busingen',
+		'Europe/Chisinau',
+		'Europe/Copenhagen',
+		'Europe/Dublin',
+		'Europe/Gibraltar',
+		'Europe/Guernsey',
+		'Europe/Helsinki',
+		'Europe/Isle_of_Man',
+		'Europe/Istanbul',
+		'Europe/Jersey',
+		'Europe/Kaliningrad',
+		'Europe/Kiev',
+		'Europe/Lisbon',
+		'Europe/Ljubljana',
+		'Europe/London',
+		'Europe/Luxembourg',
+		'Europe/Madrid',
+		'Europe/Malta',
+		'Europe/Mariehamn',
+		'Europe/Minsk',
+		'Europe/Monaco',
+		'Europe/Moscow',
+		'Europe/Nicosia',
+		'Europe/Oslo',
+		'Europe/Paris',
+		'Europe/Podgorica',
+		'Europe/Prague',
+		'Europe/Riga',
+		'Europe/Rome',
+		'Europe/Samara',
+		'Europe/San_Marino',
+		'Europe/Sarajevo',
+		'Europe/Simferopol',
+		'Europe/Skopje',
+		'Europe/Sofia',
+		'Europe/Stockholm',
+		'Europe/Tallinn',
+		'Europe/Tirane',
+		'Europe/Tiraspol',
+		'Europe/Uzhgorod',
+		'Europe/Vaduz',
+		'Europe/Vatican',
+		'Europe/Vienna',
+		'Europe/Vilnius',
+		'Europe/Volgograd',
+		'Europe/Warsaw',
+		'Europe/Zagreb',
+		'Europe/Zaporozhye',
+		'Europe/Zurich',
+		'Indian/Antananarivo',
+		'Indian/Chagos',
+		'Indian/Christmas',
+		'Indian/Cocos',
+		'Indian/Comoro',
+		'Indian/Kerguelen',
+		'Indian/Mahe',
+		'Indian/Maldives',
+		'Indian/Mauritius',
+		'Indian/Mayotte',
+		'Indian/Reunion',
+		'Pacific/Apia',
+		'Pacific/Auckland',
+		'Pacific/Chatham',
+		'Pacific/Chuuk',
+		'Pacific/Easter',
+		'Pacific/Efate',
+		'Pacific/Enderbury',
+		'Pacific/Fakaofo',
+		'Pacific/Fiji',
+		'Pacific/Funafuti',
+		'Pacific/Galapagos',
+		'Pacific/Gambier',
+		'Pacific/Guadalcanal',
+		'Pacific/Guam',
+		'Pacific/Honolulu',
+		'Pacific/Johnston',
+		'Pacific/Kiritimati',
+		'Pacific/Kosrae',
+		'Pacific/Kwajalein',
+		'Pacific/Majuro',
+		'Pacific/Marquesas',
+		'Pacific/Midway',
+		'Pacific/Nauru',
+		'Pacific/Niue',
+		'Pacific/Norfolk',
+		'Pacific/Noumea',
+		'Pacific/Pago_Pago',
+		'Pacific/Palau',
+		'Pacific/Pitcairn',
+		'Pacific/Pohnpei',
+		'Pacific/Ponape',
+		'Pacific/Port_Moresby',
+		'Pacific/Rarotonga',
+		'Pacific/Saipan',
+		'Pacific/Samoa',
+		'Pacific/Tahiti',
+		'Pacific/Tarawa',
+		'Pacific/Tongatapu',
+		'Pacific/Truk',
+		'Pacific/Wake',
+		'Pacific/Wallis',
+		'Pacific/Yap',
+		'UCT'
+	);
+
+
 
 }
 
 /****************************************************************************************************/
 
-if(is_file("./site/assets/installed.php")) die("This installer has already run. Please delete it."); 
+if(!Installer::TEST_MODE && is_file("./site/assets/installed.php")) die("This installer has already run. Please delete it."); 
 error_reporting(E_ALL | E_STRICT); 
 $installer = new Installer();
 $installer->execute();

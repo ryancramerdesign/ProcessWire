@@ -30,7 +30,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 102,
+			'version' => 105,
 			'permanent' => true, 
 	
 			// add this permission if you want this Process available for roles other than Superuser
@@ -64,9 +64,27 @@ class ProcessTemplate extends Process {
 			$this->numPages = $this->template->getNumPages();
 		}
 
-		$this->modules->get("JqueryWireTabs"); 
+		if($this->input->urlSegment1) $this->modules->get("JqueryWireTabs"); 
 
 		return parent::init();
+	}
+
+	/**
+	 * Render a JSON map of all Templates
+	 *
+	 */
+	protected function renderListJSON() {
+		$a = array();
+		$showAll = $this->wire('input')->get('all'); 
+		foreach($this->wire('templates') as $template) {
+			if(!$showAll && $template->flags & Template::flagSystem) continue; 
+			$a[] = array(
+				'id' => $template->id, 
+				'name' => $template->name,
+				);
+		}
+		header("Content-Type: application/json"); 
+		return json_encode($a); 
 	}
 
 	/**
@@ -74,6 +92,7 @@ class ProcessTemplate extends Process {
 	 *
 	 */
 	public function ___execute() {
+		if($this->wire('config')->ajax) return $this->renderListJSON(); 
 
 		$out = $this->getListFilterForm()->render() . "\n<div id='ProcessTemplateList'>\n";
 		$templatesByTag = array();
@@ -116,7 +135,8 @@ class ProcessTemplate extends Process {
 				ksort($templates);
 				$f = $this->modules->get('InputfieldMarkup');
 				$f->entityEncodeLabel = false;
-				$f->label = "<span class='labelIcon ui-icon ui-icon-tag'></span>" . $caseTags[$tag];
+				$f->label = $caseTags[$tag];
+				$f->icon = 'tags';
 				$f->value = $this->getListTable($templates)->render();
 				if(in_array($tag, $collapsedTags)) $f->collapsed = Inputfield::collapsedYes; 
 				$form->add($f);
@@ -131,6 +151,7 @@ class ProcessTemplate extends Process {
 		$button = $this->modules->get('InputfieldButton');
 		$button->href = "./add";
 		$button->value = $this->_x('Add New Template', 'list-button'); 
+		$button->icon = 'plus-circle';
 		$out .= $button->render();
 
 		if($this->input->nosave) {
@@ -150,7 +171,8 @@ class ProcessTemplate extends Process {
 
 		$fieldset = $this->modules->get("InputfieldFieldset"); 
 		$fieldset->entityEncodeLabel = false;
-		$fieldset->label = "<span class='labelIcon ui-icon ui-icon-wrench'></span>" . $this->_("Filters"); // Template list filters headline
+		$fieldset->label = $this->_("Filters"); // Template list filters headline
+		$fieldset->icon = 'filter';
 		$fieldset->collapsed = Inputfield::collapsedYes; 
 		$form->add($fieldset);
 		
@@ -235,27 +257,27 @@ class ProcessTemplate extends Process {
 		$flagDefs = array(
 			'system' => array(
 				'label' => $this->_x('system', 'list-note'),
-				'icon' => 'ui-icon-gear'
+				'icon' => 'puzzle-piece'
 				),
 			'access' => array(
 				'label' => $this->_x('access', 'list-note'),
-				'icon' => 'ui-icon-key'
+				'icon' => 'key'
 				),
 			'no-file' => array(
 				'label' => $this->_x('no-file', 'list-note'),
-				'icon' => 'ui-icon-alert'
+				'icon' => 'ban'
 				),
 			'cache' => array(
 				'label' => $this->_x('cache', 'list-note'),
-				'icon' => 'ui-icon-clock'
+				'icon' => 'clock-o'
 				),
 			'url-segments' => array(
 				'label' => $this->_x('URL segments', 'list-note'),
-				'icon' => 'ui-icon-transferthick-e-w'
+				'icon' => 'sitemap'
 				),
 			'page-numbers' => array(
 				'label' => $this->_x('Page numbers', 'list-note'),
-				'icon' => 'ui-icon-seek-next'
+				'icon' => 'list-ol'
 				)
 			);
 
@@ -279,7 +301,7 @@ class ProcessTemplate extends Process {
 			$class = 'templateFlag' . ucfirst($flag);
 			$flag = $flagDefs[$flag]; 
 			$label = str_replace('-', ' ', ucfirst($flag['label']));
-			$notes .= "<a class='tooltip templateFlag $class ui-priority-secondary' title='$label'><span class='ui-icon $flag[icon]'></span></a>";
+			$notes .= "<a class='tooltip templateFlag $class' title='$label'><i class='fa fa-$flag[icon]'></i>&nbsp;</a> ";
 		}
 
 		$numPages = $template->getNumPages(); 
@@ -293,7 +315,7 @@ class ProcessTemplate extends Process {
 		$row["{$template->name} "] = "edit?id={$template->id}";
 		$row[] = $this->sanitizer->entities($template->label);
 		$row[] = "$numFields ";
-		$row[] = "$numPages ";
+		$row["{$numPages} "] = "$numPagesLink"; // space is required to make it work
 		$row[] = $notes;
 		return $row; 
 	}
@@ -463,9 +485,9 @@ class ProcessTemplate extends Process {
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Basics', 'tab'));
 		$t->attr('class', 'WireTab'); 
-		$head = sprintf($this->_n('This template is used by 1 page', 'This template is used by %d pages', $this->numPages), $this->numPages);
-		if($this->numPages) $head = str_replace(" {$this->numPages} ", " [{$this->numPages}]({$this->config->urls->admin}page/search/?show_options=0&amp;template={$template->name}) ", $head); 
-		$t->head = $head; 
+		// $head = sprintf($this->_n('This template is used by 1 page', 'This template is used by %d pages', $this->numPages), $this->numPages);
+		// if($this->numPages) $head = str_replace(" {$this->numPages} ", " [{$this->numPages}]({$this->config->urls->admin}page/search/?show_options=0&amp;template={$template->name}) ", $head); 
+		// $t->head = $head; 
 		$f = $this->modules->get('InputfieldText'); 
 		$f->attr('name', 'templateLabel'); 
 		$f->attr('value', $template->label); 
@@ -484,35 +506,35 @@ class ProcessTemplate extends Process {
 		
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Access', 'tab'));
-		$t->head = $this->_('Manage template access');
+		// $t->head = $this->_('Manage template access');
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormAccess($template)); 
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Family', 'tab'));
-		$t->head = $this->_('Optional usage and placement in the page tree');
+		// $t->head = $this->_('Optional usage and placement in the page tree');
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormFamily($template)); 
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('URLs', 'tab'));
-		$t->head = $this->_('Optional settings for URLs of pages using this template');
+		// $t->head = $this->_('Optional settings for URLs of pages using this template');
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormURLs($template)); 
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Cache', 'tab'));
-		$t->head = $this->_("Output caching");
+		// $t->head = $this->_("Output caching");
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormCache($template)); 
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Advanced', 'tab'));
-		$t->head = $this->_('Optional advanced template settings');
+		// $t->head = $this->_('Optional advanced template settings');
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormAdvanced($template)); 
 		$form->add($t); 
@@ -520,7 +542,7 @@ class ProcessTemplate extends Process {
 		if($this->config->advanced) {
 			$t = new InputfieldWrapper();
 			$t->attr('title', $this->_x('System', 'tab'));
-			$t->head = $this->_('System-specific template settings');
+			// $t->head = $this->_('System-specific template settings');
 			$t->attr('class', 'WireTab'); 
 			$t->add($this->buildEditFormSystem($template)); 
 			$form->add($t); 
@@ -529,14 +551,14 @@ class ProcessTemplate extends Process {
 		$t = new InputfieldWrapper();
 		$t->attr('class', 'WireTab'); 
 		$t->attr('title', $this->_x('Import', 'tab'));
-		$t->head = $this->_('Import fields from another template');
+		// $t->head = $this->_('Import fields from another template');
 		$t->add($this->buildEditFormImport());
 		$form->add($t);
 
 		$t = new InputfieldWrapper();
 		$t->attr('title', $this->_x('Delete', 'tab'));
 		$t->attr('id', 'WireTabDelete'); 
-		$t->head = $this->_('Delete template');
+		// $t->head = $this->_('Delete template');
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormDelete($template)); 
 		$form->add($t); 	
@@ -562,6 +584,7 @@ class ProcessTemplate extends Process {
 		$field->label = $this->_('Confirm deletion'); 
 		$field->attr('id+name', "delete"); 
 		$field->attr('value', $template->id); 
+		$field->icon = 'times-circle';
 
 		$fieldgroup = $this->fuel('fieldgroups')->get($template->name); 
 		$numFieldgroupTemplates = 0;
@@ -661,11 +684,8 @@ class ProcessTemplate extends Process {
 
 		foreach($template->fieldgroup as $field) {
 			$field = $template->fieldgroup->getField($field->id, true); // get in context
-			$columnWidth = $field->columnWidth ? $field->columnWidth : '100';
-			$attrs = array(
-				'selected' => 'selected', 
-				'data-status' => ($field->columnWidth > 0 ? $field->columnWidth . '%': ' ')
-				);
+			$attrs = $this->getAsmListAttrs($field); 
+			$attrs['selected'] = 'selected';
 			$select->addOption($field->id, $field->name, $attrs);
 		}
 		
@@ -674,11 +694,43 @@ class ProcessTemplate extends Process {
 			if(($field->flags & Field::flagPermanent) && !$this->config->advanced) continue; 
 			$name = $field->name; 
 			if($field->flags & Field::flagSystem) $name .= "*";
-			$attrs = array('data-status' => ($field->columnWidth > 0 ? $field->columnWidth . '%': ' '));
+			$attrs = $this->getAsmListAttrs($field); 
 			$select->addOption($field->id, $name, $attrs); 
 		}
 	
 		return $select; 
+	}
+	
+	protected function getAsmListAttrs(Field $field) {
+		
+		$status = '';
+		$desc = '';
+		
+		if(!$field->type instanceof FieldtypeFieldsetClose) {
+			$desc = $field->label;
+			$maxDesc = 30;
+			if(strlen($desc) > $maxDesc) {
+				$desc = $this->wire('sanitizer')->entities(substr($desc, 0, $maxDesc));
+				$pos = strrpos($desc, ' ');
+				if($pos) $desc = substr($desc, 0, strrpos($desc, ' '));
+				$desc .= '&hellip;';
+			}
+
+			$status = str_replace('Fieldtype', '', $field->type);
+		}
+	
+		$icons = '';
+		if($field->required) $icons .= "<i class='fa fa-asterisk'></i>";
+		if($field->showIf) $icons .= "<i class='fa fa-question-circle'></i>";
+	
+		$status .= $field->columnWidth > 0 ? ' ' . $field->columnWidth . '%' : ' '; 
+		
+		$attrs = array(
+			'data-status' => $icons . $status,
+			'data-desc' => $desc
+			);
+		
+		return $attrs; 
 	}
 
 	protected function buildEditFormImport() {
@@ -713,6 +765,7 @@ class ProcessTemplate extends Process {
 		$field = $this->modules->get('InputfieldInteger'); 
 		$field->attr('id+name', 'cache_time');
 		$field->label = $this->_x('Cache Time', 'field-label');
+		$field->icon = 'clock-o';
 		$field->description = $this->_('To cache the output of this template, enter the time (in seconds) that the output should be cached. Caching can help significantly with page render time on resource-heavy pages. But caching should not be used on templates that need to process constantly changing data, like from forms or sessions. Also note that URL segments are cachable, but GET and POST vars are not.'); // Cach time description
 		$field->notes = $this->_('For example: 60 = 1 minute, 600 = 10 minutes, 3600 = 1 hour, 86400 = 1 day, 604800 = 1 week, 2419200 = 1 month.'); // Cache time notes/examples
 		$field->attr('value', $template->cache_time); 
@@ -795,6 +848,7 @@ class ProcessTemplate extends Process {
 		$field->attr('name', 'tags'); 
 		$field->attr('value', $template->tags); 
 		$field->label = $this->_('Tags');
+		$field->icon = 'tags';
 		$field->description = $this->_('If you want to visually group this template with others in the templates list, enter a one-word tag. Enter the same tag on other templates you want to group with. To specify multiple tags, separate each with a space. Use of tags may be worthwhile if your site has a large number of templates.'); // Description for field tags
 		$field->notes = 
 			$this->_('Each tag must be one word (hyphenation is okay).') . " " . 
@@ -850,6 +904,7 @@ class ProcessTemplate extends Process {
 		$notes = 'name, ';
 		foreach($template->fields as $f) if(!$f->type instanceof FieldtypeFieldsetOpen) $notes .= $f->name . ", ";
 		$field->notes = $this->_('You may enter one or more of these fields:') . ' ' . rtrim($notes, ", ");
+		$field->notes .= "\n" . $this->_('You may also enter an [icon name](http://fortawesome.github.io/Font-Awesome/icons/), for example: icon-file'); 
 		$field->attr('value', $template->pageLabelField); 
 		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field); 
@@ -1049,24 +1104,26 @@ class ProcessTemplate extends Process {
 		$field->addOption(1, $this->labels['No']); 
 		$field->attr('value', (int) $template->noChildren); 
 		$field->columnWidth = 50; 
+		$field->optionColumns = 1; 
 		$form->add($field);
 
 		// --------------------
 
 		$field = $this->modules->get("InputfieldRadios"); 
-		$field->attr('id+name', 'noParents'); 
+		$field->attr('name', 'noParents'); 
 		$field->label = $this->_('Can this template be used for new pages?');
 		// $field->notes = $this->_("An example of a template that you wouldn't want to be used for new pages is your 'homepage' template."); // noParents option, description
 		$field->addOption(0, $this->labels['Yes']); 
 		$field->addOption(1, $this->labels['No']); 
 		$field->attr('value', (int) $template->noParents); 
 		$field->columnWidth = 50; 
+		$field->optionColumns = 1; 
 		$form->add($field);
 
 		// ----------------------
 
 		$field = $this->modules->get('InputfieldAsmSelect'); 
-		$field->attr('id+name', 'parentTemplates'); 
+		$field->attr('name', 'parentTemplates'); 
 		$field->label = $this->_('Allowed template(s) for parents');
 		$field->description = $this->_("Select the template(s) that will be allowed as parents for pages using this template. Use this only if you specifically want to restrict placement of pages using this template."); // parentTemplates option, description
 
@@ -1091,9 +1148,30 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 
+		$field = $this->modules->get("InputfieldRadios"); 
+		$field->attr('name', 'noShortcut'); 
+		$field->label = $this->_('Show in the add-page shortcut menu?');
+		$field->description = $this->_('When checked, this template is eligible to appear on the "add new page" shortcut button/menu that appears on the main Pages screen. This assumes all other conditions are met (see below).'); 
+		$field->notes =	$this->_('**Conditions required for this to work**') .  
+			"\n" . 	$this->_('1. You must select a parent template (see: "allowed templates for parents" above). If more than 1 is selected, only the first will be used.') . 
+			"\n" . 	$this->_('2. The selected parent template must have defined this template as one allowed for children.') . 
+			"\n" .	$this->_('3. There may only be one instance of a page using the parent template in your system.') . 
+			"\n" . 	$this->_('4. The admin theme must support this feature.'); 
+		$field->addOption(0, $this->labels['Yes']); 
+		$field->addOption(1, $this->labels['No']); 
+		$field->attr('value', (int) $template->noShortcut); 
+		$field->collapsed = Inputfield::collapsedYes; 
+		$field->showIf = "parentTemplates.count>0, noParents!=1";
+		$field->optionColumns = 1; 
+		$form->add($field);
+
+
+		// --------------------
+
 		$fieldset = ProcessPageEdit::buildFormSortfield($template->sortfield, $this); 
 		$fieldset->attr('id', 'sortfield_fieldset'); 
 		$fieldset->label = $this->_('Sort settings for children'); 
+		$fieldset->icon = 'sort';
 		$fieldset->description = $this->_('If you want children to automatically sort by a specific field, select it here. Otherwise select "None" to let this be set per-page instead. This overrides the page setting, so if you select anything other than "None", the sort option will not appear for pages using this template.'); 
 		$form->add($fieldset); 
 
@@ -1112,6 +1190,7 @@ class ProcessTemplate extends Process {
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('id+name', 'allowPageNum');
 		$field->label = $this->_('Allow Page Numbers?');
+		$field->icon = 'list-ol';
 		$field->attr('value', 1); 
 		if($template->allowPageNum) $field->attr('checked', 'checked'); 
 			else $field->collapsed = Inputfield::collapsedYes;
@@ -1126,6 +1205,7 @@ class ProcessTemplate extends Process {
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('name', 'urlSegments');
 		$field->label = $this->_('Allow URL Segments?');
+		$field->icon = 'sitemap';
 		$field->description = $this->_("This template may optionally serve URL path segments below that of the page(s) using it.  For example, you may want a page with path /path/to/page/ to also handle requests for /path/to/page/segment1/ or /path/to/page/segment1/segment2/. By default, ProcessWire will throw a '404 Page Not Found' error when such a URL is accessed. But if you want ProcessWire to render the page instead, check the box below. You can then manully check the URL segments from your template file to respond to them."); // Allow URL segments, description
 		$field->notes = $this->_('Up to 3 URL segments are supported after the page URL. These may be any combination of lowercase ASCII letters (a-z), numbers (0-9), dashes and underscores. You can access the URL segments from your template API code by referencing the $input->urlSegment(n) function or $input->urlSegment[n] property (replacing [n] with 1, 2 or 3).'); // Allow URL segments, notes 
 		$field->notes .= "\n\n" . $this->_('For example, given the URL /path/to/page/a/b/c/, where /path/to/page/ is the page path, and /a/b/c/ are the segments: $input->urlSegment1 is "a", $input->urlSegment2 is "b", and $input->urlSegment3 is "c". If your template receives unknown URL segments, a best practice is to abort the request by throwing a 404 error. The API code to do this is: throw new Wire404Exception();'); // Allow URL segments, examples
@@ -1180,6 +1260,7 @@ class ProcessTemplate extends Process {
 		$field = $this->modules->get('InputfieldRadios'); 
 		$field->attr('id+name', 'useRoles');
 		$field->label = $this->_('Do you want to manage view and edit access for pages using this template?'); // Use Roles?
+		$field->icon = 'key';
 		$field->description = $this->_("If you select 'Yes' you can define what roles have access to pages using this template. If you select 'No' then pages using this template will inherit access from their parent pages."); // Use Roles, description
 		$field->addOption(1, $this->labels['Yes']);
 		$field->addOption(0, $this->labels['No']); 
@@ -1361,6 +1442,8 @@ class ProcessTemplate extends Process {
 			$this->template->noParents = 0;
 		}
 
+		$this->template->noShortcut = $this->input->post->noShortcut ? 1 : 0;
+
 		$sortfield = $this->sanitizer->name($_POST['sortfield']); 
 		if($sortfield && $sortfield != 'sort' && !empty($_POST['sortfield_reverse'])) $sortfield = '-' . $sortfield;
 		$this->template->sortfield = $sortfield;
@@ -1524,7 +1607,7 @@ class ProcessTemplate extends Process {
 
 		$list = '';
 		foreach($this->template->fieldgroup as $field) {
-			if(!$fieldgroup->has($field)) $list .= "<li class='ui-state-highlight'><span class='ui-icon ui-icon-alert'></span> $field</li>";
+			if(!$fieldgroup->has($field)) $list .= "<li class='ui-state-error-text'><i class='fa fa-times-circle'></i> $field</li>";
 		}
 
 		// if nothing will be lost with the fieldgroup change, then just do it now
@@ -1624,6 +1707,7 @@ class ProcessTemplate extends Process {
 
 		$checkboxes = $this->modules->get("InputfieldCheckboxes"); 
 		$checkboxes->label = $this->_('Remove fields from template');
+		$checkboxes->icon = 'times-circle';
 		$checkboxes->attr('name', 'remove_fields'); 
 		$checkboxes->description = $this->_("You have asked to remove one or more fields from the template. This will result in data associated with the fields below being permanently deleted. If the fields that are removed contain a lot of data, it may take time for this operation to complete after you confirm and submit this form. Please confirm that you understand this and want to delete the field(s) by checking the boxes below.");
 

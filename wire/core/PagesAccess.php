@@ -64,89 +64,93 @@ class PagesAccess extends Wire {
 	 * Rebuild the entire pages_access table (or a part of it) starting from the given parent_id
 	 *
 	 */
-	public function rebuild($parent_id = 1, $accessTemplateID = 0, $doDeletions = true) {
+	protected function rebuild($parent_id = 1, $accessTemplateID = 0, $doDeletions = true) {
 
 		$insertions = array();
 		$deletions = array();
 		$templates = $this->getTemplates();
 		$accessTemplates = $this->getAccessTemplates();
 		$parent_id = (int) $parent_id;
-		$accessTemplateID = (int) $accessTemplateID; 
+		$accessTemplateID = (int) $accessTemplateID;
+		$database = $this->wire('database');
 
-		if(!$accessTemplateID && $this->config->debug) $this->message("Rebuilding pages_access"); 
+		if(!$accessTemplateID && $this->config->debug) $this->message("Rebuilding pages_access");
 
 		if($parent_id == 1) {
 			// if we're going to be rebuilding the entire tree, then just delete all of them now
-			$this->db->query("DELETE FROM pages_access"); // QA
+			$database->exec("DELETE FROM pages_access"); // QA
 			$doDeletions = false;
 		}
 
 		// no access template supplied (likely because of blank call to rebuild()
 		// so we determine it automatically
 		if(!$accessTemplateID) {
-			$parent = $this->pages->get($parent_id); 	
-			$accessTemplateID = $parent->getAccessTemplate()->id; 
+			$parent = $this->pages->get($parent_id);
+			$accessTemplateID = $parent->getAccessTemplate()->id;
 		}
 
 		// if the accessTemplate has the guest role, it does not need to be in our pages_access table
 		// since access to it is assumed for everyone. So we tell it not to perform insertions, but 
 		// it should continue through the page tree
-		$template = $this->templates->get($accessTemplateID); 
+		$template = $this->templates->get($accessTemplateID);
 		$doInsertions = !$template->hasRole('guest');
 
-		$sql = 	"SELECT pages.id, pages.templates_id, count(children.id) AS numChildren " . 
-			"FROM pages " . 
-			"LEFT JOIN pages AS children ON children.parent_id=pages.id " . 
-			"WHERE pages.parent_id=$parent_id " .
-			"GROUP BY pages.id ";
+		$sql = 	"SELECT pages.id, pages.templates_id, count(children.id) AS numChildren " .
+				"FROM pages " .
+				"LEFT JOIN pages AS children ON children.parent_id=pages.id " .
+				"WHERE pages.parent_id=:parent_id " .
+				"GROUP BY pages.id ";
 
-		$result = $this->db->query($sql); // QA
+		$query = $database->prepare($sql); 
+		$query->bindValue(":parent_id", $parent_id, PDO::PARAM_INT);
+		$query->execute();
 
-		while($row = $result->fetch_row()) {
+		while($row = $query->fetch(PDO::FETCH_NUM)) {
 
-			list($id, $templates_id, $numChildren) = $row; 
+			list($id, $templates_id, $numChildren) = $row;
 
 			if(isset($accessTemplates[$templates_id])) {
 				// this page is defining access with it's template
 				// if there are children, rebuild those children with this template for access
-				if($numChildren) $this->rebuild($id, $templates_id, $doDeletions); 
+				if($numChildren) $this->rebuild($id, $templates_id, $doDeletions);
 			} else {
 				// this template is not defining access... 
 				if($doInsertions) {
 					// ...so save an entry for the page and the template that IS defining access 
-					$insertions[$id] = (int) $accessTemplateID; 
+					$insertions[$id] = (int) $accessTemplateID;
 
 				} else if($doDeletions) {
 					// ...or delete existing entries if guest access is present
-					$deletions[] = (int) $id; 
+					$deletions[] = (int) $id;
 				}
 				// if there are children, rebuild any of them with this access template where applicable
-				if($numChildren) $this->rebuild($id, $accessTemplateID, $doDeletions); 
+				if($numChildren) $this->rebuild($id, $accessTemplateID, $doDeletions);
 			}
 
 		}
-
-		$result->free();
+		
+		$query->closeCursor();
 
 		if(count($insertions)) {
 			// add the entries to the pages_access table
 			$sql = "INSERT INTO pages_access (pages_id, templates_id) VALUES ";
 			foreach($insertions as $id => $templates_id) {
 				$id = (int) $id;
-				$templates_id = (int) $templates_id; 
+				$templates_id = (int) $templates_id;
 				$sql .= "($id, $templates_id),";
 			}
 			$sql = rtrim($sql, ",") . " " . "ON DUPLICATE KEY UPDATE templates_id=VALUES(templates_id) ";
-			$this->db->query($sql); // QA
+			$query = $database->prepare($sql);
+			$query->execute();
 
 		} else if(count($deletions)) {
-			$sql = "DELETE FROM pages_access WHERE pages_id IN(" . implode(',', $deletions) . ')'; 
-			$this->db->query($sql); // QA
+			$sql = "DELETE FROM pages_access WHERE pages_id IN(" . implode(',', $deletions) . ')';
+			$query = $database->prepare($sql);
+			$query->execute();
 		}
 
 
 	}
-
 
 	/**
 	 * Update the pages_access table for the given Template
@@ -179,18 +183,25 @@ class PagesAccess extends Wire {
 		// this is the template where access is defined for this page
 		$accessParent = $page->getAccessParent();
 		$accessTemplate = $accessParent->template;
+		$database = $this->wire('database');
 
 		if(!$accessParent->id || $accessParent->id == $page->id) {
 			// page is the same as the one that defines access, so it doesn't need to be here
-			$this->db->query("DELETE FROM pages_access WHERE pages_id=$page_id"); 	
+			$query = $database->prepare("DELETE FROM pages_access WHERE pages_id=:page_id"); 	
+			$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
+			$query->execute();
 
 		} else {
 			$template_id = (int) $accessParent->template->id; 
-			$sql = 	"INSERT INTO pages_access (pages_id, templates_id) " . 
-				"VALUES($page_id, $template_id) " . 
-				"ON DUPLICATE KEY UPDATE templates_id=VALUES(templates_id) ";
 
-			$this->db->query($sql); // QA
+			$sql = 	"INSERT INTO pages_access (pages_id, templates_id) " .
+					"VALUES(:page_id, :template_id) " .
+					"ON DUPLICATE KEY UPDATE templates_id=VALUES(templates_id) ";
+			
+			$query = $database->prepare($sql);
+			$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
+			$query->bindValue(":template_id", $template_id, PDO::PARAM_INT);
+			$query->execute();
 		}
 
 		if($page->numChildren > 0) { 
@@ -213,7 +224,10 @@ class PagesAccess extends Wire {
  	 *
 	 */
 	public function deletePage(Page $page) {
-		$this->db->query("DELETE FROM pages_access WHERE pages_id=" . (int) $page->id); // QA
+		$database = $this->wire('database');
+		$query = $database->prepare("DELETE FROM pages_access WHERE pages_id=:page_id"); 
+		$query->bindValue(":page_id", $page->id, PDO::PARAM_INT); 
+		$query->execute();
 	}
 
 	/**

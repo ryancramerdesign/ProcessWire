@@ -6,7 +6,7 @@
  * User-configurable options within ProcessWire
  *
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -14,14 +14,6 @@
  */
 
 if(!defined("PROCESSWIRE")) die();
-
-/**
- * Timezone: current timezone using PHP timeline options
- *
- * To change, see timezone list at: http://php.net/manual/en/timezones.php
- *
- */
-$config->timezone = 'America/New_York';
 
 /**
  * sessionName: default session name as used in session cookie
@@ -124,9 +116,11 @@ $config->wireInputOrder = 'get post';
  *
  */
 $config->imageSizerOptions = array(
-	'upscaling' => true,
-	'cropping' => true, 
-	'quality' => 90,
+	'upscaling' => true, // upscale if necessary to reach target size?
+	'cropping' => true, // crop if necessary to reach target size?
+	'autoRotation' => true, // automatically correct orientation?
+	'sharpening' => 'soft', // sharpening: none | soft | medium | strong
+	'quality' => 90, // quality: 1-100 where higher is better but bigger
 	);
 
 /**

@@ -3,18 +3,13 @@
 /**
  * ProcessWire Image Select + Edit Process
  *
- * Provides the image selecting and editing capability for the TinyMCE Inputfield
- * Works in combination with /modules/Inputfield/InputfieldTinyMCE/plugins/pwimage/editor_plugin.js
- * 
- * For more details about how Process modules work, please see: 
- * /wire/core/Process.php 
+ * Provides the image selecting and editing capability for rich text editors (TinyMCE/CKEditor)
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -31,13 +26,14 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Edit Image',          
 			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)', 
-			'version' => 103, 
+			'version' => 105, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
 	}
 
 	protected static $defaultConfig = array(
+		'skipFields' => '',
 		'noSizeAttrs' => 0,
 		'alignLeftClass' => 'align_left',
 		'alignRightClass' => 'align_right',
@@ -105,10 +101,13 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$allImages = array();
 		$numImages = 0;
 		$numImageFields = 0;
+		$skipFields = explode(' ', $this->skipFields); 
 
 		iF(!$page->id) return $allImages; 
 
 		foreach($page->fields as $field) {
+
+			if(in_array($field->name, $skipFields)) continue; 
 
 			if($field->type instanceof FieldtypeRepeater) {
 				// get images that are possibly in a repeater
@@ -215,16 +214,18 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			"\n\t\t\t<label>" . $this->_('Width:') . " <input id='input_width' class='input_pixels' type='number' size='6' step='1' min='1' max='$originalWidth' value='$width' /></label>&nbsp; " . 
 			"\n\t\t\t<label>" . $this->_('Height:') . " <input id='input_height' class='input_pixels' type='number' size='6' step='1' min=1' max='$originalHeight' value='$height' /></label>" . 
 			"\n\t\t</span>&nbsp; " . 
-			"\n\t\t<span class='detail'>" . $this->_("You can drag also the lower right corner of the image to resize.") . "</span>" . 
+			"\n\t\t<span class='detail'>" . $this->_("You can also drag the lower right corner of the image to resize.") . "</span>" . 
 			"\n\t</p>";
 
 		$description = isset($_GET['description']) ? $this->input->get->description : $image->description; 
 		if(strlen($description) > 1024) $description = substr($description, 0, 1024); 
 		$description = htmlentities($description, ENT_QUOTES, "UTF-8"); 
 
+		$descriptionLabel = $this->_('Description'); 
+
 		$out .= "\n\t<p id='wrap_description'>" . 
-			"\n\t\t<label for='selected_image_description'>Description</label>" . 
-			"\n\t\t<input type='text' name='selected_image_description' id='selected_image_description' class='no_focus' value=\"$description\" />" . 
+			"\n\t\t<label for='selected_image_description'>$descriptionLabel</label>" . 
+			"\n\t\t<input type='text' placeholder='$descriptionLabel' name='selected_image_description' id='selected_image_description' class='no_focus' value=\"$description\" />" . 
 			"\n\t</p>"; 
 
 		$out .= "\n\t<p id='wrap_class'>" . 
@@ -313,6 +314,13 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	static public function getModuleConfigInputfields(array $data) {
 		$inputfields = new InputfieldWrapper();
 		$data = array_merge(self::$defaultConfig, $data); 
+
+		$f = wire('modules')->get('InputfieldText'); 
+		$f->attr('name', 'skipFields'); 
+		$f->attr('value', isset($data['skipFields']) ? $data['skipFields'] : ''); 
+		$f->label = __('Field names to skip for selection'); 
+		$f->description = __('Enter the names of any image fields (separated by a space) that you do not want to allow for selection with this module.'); 
+		$inputfields->add($f); 
 
 		$f = wire('modules')->get('InputfieldCheckbox');
 		$f->attr('name', 'noSizeAttrs'); 

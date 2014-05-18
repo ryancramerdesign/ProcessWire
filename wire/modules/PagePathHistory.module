@@ -96,21 +96,24 @@ class PagePathHistory extends WireData implements Module {
 		if($page->namePrevious) $path .= $page->namePrevious; 
 			else $path .= $page->name; 
 
-		$path = $this->db->escape_string($path);
 
-		$sql = "INSERT INTO " . self::dbTableName . " SET path='$path', pages_id={$page->id}, created=NOW()";
+		$database = $this->wire('database');	
 	
+		$query = $database->prepare("INSERT INTO " . self::dbTableName . " SET path=:path, pages_id=:pages_id, created=NOW()");
+		$query->bindValue(":path", $path); 
+		$query->bindValue(":pages_id", $page->id, PDO::PARAM_INT);
+
 		try {
-			$this->db->query($sql); 
+			$query->execute();
 
 		} catch(Exception $e) {
 			// catch the exception because it means there is already a past URL (duplicate)
-		}	
+		}
 
 		// delete any possible entries that overlap with the $page since are no longer applicable
-		$sql = "DELETE FROM " . self::dbTableName . " WHERE path='" . $this->db->escape_string(rtrim($page->path, '/')) . "' LIMIT 1";
-		$this->db->query($sql); 
-
+		$query = $database->prepare("DELETE FROM " . self::dbTableName . " WHERE path=:path LIMIT 1");
+		$query->bindValue(":path", rtrim($page->path, '/'));
+		$query->execute();
 	}
 
 	/**
@@ -151,21 +154,23 @@ class PagePathHistory extends WireData implements Module {
 		$pathRemoved = '';
 		$path = rtrim($path, '/');
 		$cnt = 0;
+		$database = $this->wire('database');
 
 		while(strlen($path) && !$page->id && $cnt < self::maxSegments) {
 
-			$sql = "SELECT pages_id FROM " . self::dbTableName . " WHERE path='" . $this->db->escape_string($path) . "'";
-			$result = $this->db->query($sql);
-
-			if($result->num_rows) {
-				list($pages_id) = $result->fetch_row(); 	
-				$page = $this->pages->get((int) $pages_id); 	
+			$query = $database->prepare("SELECT pages_id FROM " . self::dbTableName . " WHERE path=:path");
+			$query->bindValue(":path", $path); 
+			$query->execute();
+			if($query->rowCount() > 0) {
+				$pages_id = $query->fetchColumn();
+				$page = $this->pages->get((int) $pages_id);
 			} else {
-				$pos = strrpos($path, '/'); 
+				$pos = strrpos($path, '/');
 				$pathRemoved = substr($path, $pos) . $pathRemoved;
-				$path = substr($path, 0, $pos); 
+				$path = substr($path, 0, $pos);
 			}
-
+			$query->closeCursor();
+				
 			$cnt++;
 		} 
 
@@ -192,26 +197,29 @@ class PagePathHistory extends WireData implements Module {
 	 */
 	public function hookPageDeleted(HookEvent $event) {
 		$page = $event->arguments[0];
-		$this->db->query("DELETE FROM " . self::dbTableName . " WHERE pages_id=" . ((int) $page->id)); 
+		$database = $this->wire('database');
+		$query = $database->prepare("DELETE FROM " . self::dbTableName . " WHERE pages_id=:pages_id"); 
+		$query->bindValue(":pages_id", $page->id, PDO::PARAM_INT);
+		$query->execute();
 	}
 
 	public function ___install() {
 
 		$sql = 	"CREATE TABLE " . self::dbTableName . " (" . 
-			"path VARCHAR(255) NOT NULL, " . 
-			"pages_id INT UNSIGNED NOT NULL, " . 
-			"created TIMESTAMP NOT NULL, " . 
-			"PRIMARY KEY path (path), " . 
-			"INDEX pages_id (pages_id), " . 
-			"INDEX created (created) " . 
-			")";
+				"path VARCHAR(255) NOT NULL, " . 
+				"pages_id INT UNSIGNED NOT NULL, " . 
+				"created TIMESTAMP NOT NULL, " . 
+				"PRIMARY KEY path (path), " . 
+				"INDEX pages_id (pages_id), " . 
+				"INDEX created (created) " . 
+				")";
 
-		$this->db->query($sql); 
+		$this->wire('database')->query($sql); 
 
 	}
 
 	public function ___uninstall() {
-		$this->db->query("DROP TABLE " . self::dbTableName); 
+		$this->wire('database')->query("DROP TABLE " . self::dbTableName); 
 	}
 
 }

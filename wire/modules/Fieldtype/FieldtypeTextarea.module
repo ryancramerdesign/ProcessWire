@@ -25,10 +25,22 @@ class FieldtypeTextarea extends FieldtypeText {
 	 */
 	const defaultInputfieldClass = 'InputfieldTextarea';
 
+	/**
+	 * Indicates an unknown or plain text content type
+	 *
+ 	 */
+	const contentTypeUnknown = 0;
+
+	/**
+	 * Indicates a Markup/HTML content type
+	 *
+	 */
+	const contentTypeHTML = 1; 
+
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Textarea',
-			'version' => 100,
+			'version' => 103,
 			'summary' => 'Field that stores multiple lines of text',
 			'permanent' => true, 
 			);
@@ -36,15 +48,88 @@ class FieldtypeTextarea extends FieldtypeText {
 
 	public function init() {
 		$this->set('inputfieldClass', self::defaultInputfieldClass); 
+		$this->set('contentType', self::contentTypeUnknown); 
 		parent::init();
 	}
 
 	public function sanitizeValue(Page $page, Field $field, $value) {
 		return parent::sanitizeValue($page, $field, $value); 
 	}
+	
+	public function ___formatValue(Page $page, Field $field, $value) {
+		$value = parent::___formatValue($page, $field, $value);
+		return $value; 
+	}
+
+	public function ___sleepValue(Page $page, Field $field, $value) {
+		$value = parent::___sleepValue($page, $field, $value);
+		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, true);
+		return $value; 
+	}
+
+	public function ___loadPageField(Page $page, Field $field) {
+		$value = parent::___loadPageField($page, $field);
+		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, false);
+		return $value; 
+	}
+
+	/**
+	 * Content Type HTML replacements accounting for href and src attributes
+	 * 
+	 * This one handles a string value or array of string values (like for multi-language support)
+	 * 
+ 	 * @param string|array $value Value to look for attributes (or array of values)
+	 * @param bool $sleep When true, convert links starting with root URL to "/". When false, do the reverse. 
+	 * 	
+	 */
+	protected function htmlReplacements(&$value, $sleep = true) {
+		if(is_array($value)) {
+			foreach($value as $k => $v) {
+				$this->htmlReplacement($v, $sleep); 
+				$value[$k] = $v;
+			}
+		} else if(is_string($value)) {
+			$this->htmlReplacement($value, $sleep); 
+		}
+	}
+
+	/**
+	 * Content Type HTML replacements accounting for href and src attributes
+	 *
+	 * This ensures that sites migrated from one subdirectory to another, or from a subdirectory to
+	 * a non-subdir, or non-subdir to a subdir, continue working. This adds runtime context
+	 * to 'href' and 'src' attributes in HTML.
+	 * 
+	 * This method modifies the $value directly rather than returning it. 
+	 * 
+	 * In order to make the abstracted attributes identifiable to this function (so they can be reversed)
+	 * it replaces the space preceding the attribute name with a tab character. This ensures the HTML
+	 * underneath still remains compliant in case it is later extracted directly from the DB for 
+	 * data conversion or something like that. 
+	 *
+	 * @param string $value Value to look for attributes
+	 * @param bool $sleep When true, convert links starting with root URL to "/". When false, do the reverse. 
+	 * 
+	 */
+	protected function htmlReplacement(&$value, $sleep = true) {
+		$rootURL = $this->wire('config')->urls->root; 
+		if(stripos($value, 'href=') === false && stripos($value, 'src=') === false) return;
+		$replacements = array(
+			" href=\"$rootURL" => "\thref=\"/", 
+			" href='$rootURL" => "\thref='/", 
+			" src=\"$rootURL" => "\tsrc=\"/", 
+			" src='$rootURL" => "\tsrc='/", 
+			);
+		if($sleep) {
+			$value = str_ireplace(array_keys($replacements), array_values($replacements), $value); 
+		} else {
+			$value = str_ireplace(array_values($replacements), array_keys($replacements), $value); 
+		}
+	}
 
 	public function getInputfield(Page $page, Field $field) {
 		$inputfield = $this->modules->get($field->inputfieldClass ? $field->inputfieldClass : self::defaultInputfieldClass); 
+		if(!$inputfield) $inputfield = $this->modules->get(self::defaultInputfieldClass); 
 		$inputfield->class = $this->className();
 		return $inputfield; 
 	}
@@ -59,11 +144,11 @@ class FieldtypeTextarea extends FieldtypeText {
 	public function ___getConfigInputfields(Field $field) {
 
 		$inputfields = parent::___getConfigInputfields($field);
-		$f= $this->modules->get('InputfieldSelect');
+		$f = $this->modules->get('InputfieldSelect');
 		$f->attr('name', 'inputfieldClass'); 
 		$f->attr('value', $field->inputfieldClass ? $field->inputfieldClass : self::defaultInputfieldClass); 
 		$f->label = $this->_('Inputfield Type');
-		$f->description = $this->_('The type of field that will be used to collect input (Textarea is the default). Note that if you change this and submit, the available configuration options in the Inputfield Settings section below may change.');
+		$f->description = $this->_('The type of field that will be used to collect input (Textarea is the default). Note that if you change this and submit, the available configuration options in the "input" tab section may change.'); // Inputfield type description
 		$f->required = true; 
 
 		$baseClass = "InputfieldTextarea";
@@ -74,6 +159,15 @@ class FieldtypeTextarea extends FieldtypeText {
 
 		$inputfields->append($f); 	
 
+		$f = $this->modules->get('InputfieldRadios'); 
+		$f->attr('name', 'contentType'); 
+		$f->label = $this->_('Content Type'); 
+		$f->addOption(self::contentTypeUnknown, $this->_('Unknown')); 
+		$f->addOption(self::contentTypeHTML, $this->_('Markup/HTML')); 
+		$f->attr('value', (int) $field->contentType); 
+		$f->description = $this->_('The Markup/HTML option is recommended for fields using rich text editors (TinyMCE, CKEditor, etc.) and those containing HTML. It provides additional runtime filtering for quality assurance.'); // Content type description
+		$inputfields->append($f); 
+		
 		return $inputfields; 
 	}
 

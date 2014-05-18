@@ -119,10 +119,12 @@ var InputfieldPageAutocomplete = {
 			$ol.addClass('InputfieldPageAutocompleteSortable'); 
 		};
 
-		$('#' + $ol.attr('id') + '>li').live('mouseover', function() {
+		// $('#' + $ol.attr('id') + '>li').live('mouseover', function() {
+		$('#' + $ol.attr('id')).on('mouseover', '>li', function() { 
 			$(this).removeClass('ui-state-default').addClass('ui-state-hover'); 
 			makeSortable($ol); 
-		}).live('mouseout', function() {
+		// }).live('mouseout', function() {
+		}).on('mouseout', '>li', function() {
 			$(this).removeClass('ui-state-hover').addClass('ui-state-default'); 
 		}); 
 
@@ -169,7 +171,15 @@ var InputfieldPageAutocomplete = {
 		var $input = $('#' + id);
 		var value = '';
 		var addValue = '';
-		$ol.children(':not(.itemTemplate)').each(function() {
+		var max = parseInt($input.attr('data-max'));
+
+		var $children = $ol.children(':not(.itemTemplate)');
+		if(max > 0 && $children.size() > max) { 
+			while($children.size() > max) $children = $children.slice(1); 
+			$ol.children(':not(.itemTemplate)').replaceWith($children);
+		}
+	
+		$children.each(function() {
 			var v = parseInt($(this).children('.itemValue').text());
 			if(v > 0) {
 				value += ',' + v; 
@@ -189,14 +199,15 @@ var InputfieldPageAutocomplete = {
 
 $(document).ready(function() {
 
-	$(".InputfieldPageAutocomplete ol li a.itemRemove").live('click', function() {
+	//$(".InputfieldPageAutocomplete ol li a.itemRemove").live('click', function() { // live() deprecated
+	$(".InputfieldPageAutocomplete ol").on('click', 'a.itemRemove', function() {
 		var $li = $(this).parent(); 
 		var $ol = $li.parent(); 
 		var id = $li.children(".itemValue").text();
 		$li.remove();
 		InputfieldPageAutocomplete.rebuildInput($ol); 
 		return false; 
-	}); 
+	});
 
 }); 
 

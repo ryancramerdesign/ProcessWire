@@ -7,7 +7,8 @@ $(document).ready(function() {
 
 	if($.browser.msie && $.browser.version < 9) {
 		
-		$(".InputfieldFileDelete span.ui-icon").live("click", function() {
+		// $(".InputfieldFileDelete span.ui-icon").live("click", function() {
+		$(".InputfieldFileDelete").on("click", "span.ui-icon", function() {
 			
 			var input = $(this).prev('input'); 
 			if(input.is(":checked")){
@@ -22,9 +23,19 @@ $(document).ready(function() {
 		
 	} else {
 		// not IE < 9
-		$(this).find(".InputfieldFileDelete input").live('change', function() {
+		// $(this).find(".InputfieldFileDelete input").live('change', function() {
+		$(document).on('change', '.InputfieldFileDelete input', function() {
 			setInputfieldFileStatus($(this));
+
+		}).on('dblclick', '.InputfieldFileDelete', function() {
+			// enable double-click to delete all
+			var $input = $(this).find('input'); 
+			var $items = $(this).parents('.InputfieldFileList').find('.InputfieldFileDelete input');
+			if($input.is(":checked")) $items.removeAttr('checked').change();
+				else $items.attr('checked', 'checked').change();
+			return false; 
 		}); 
+
 	}
 
 	function setInputfieldFileStatus($t) {
@@ -46,12 +57,25 @@ $(document).ready(function() {
 	function initSortable($fileLists) { 
 
 		$fileLists.each(function() {
+			
+			var $this = $(this);
+			var qty = $this.children("li").size();
+			
+			var $inputfield = $this.closest('.Inputfield')
+		
+			if(qty < 2) {
+				// added to support additional controls when multiple items are present 
+				// and to hide them when not present
+				if(qty == 0) $inputfield.addClass('InputfieldFileEmpty').removeClass('InputfieldFileMultiple InputfieldFileSingle');
+					else $inputfield.addClass('InputfieldFileSingle').removeClass('InputfieldFileEmpty InputfieldFileMultiple');
+				// if we're dealing with a single item list, then don't continue with making it sortable
+				return;
+			} else {
+				$this.closest('.Inputfield').removeClass('InputfieldFileSingle InputfieldFileEmpty').addClass('InputfieldFileMultiple');
+			}
 
-			// if we're dealing with a single item list, then don't continue with making it sortable
-			if($(this).children("li").size() < 2) return; 
-
-			$(this).sortable({
-				axis: 'y', 
+			$this.sortable({
+				//axis: 'y', 
 				start: function(e, ui) {
 					ui.item.children(".InputfieldFileInfo").addClass("ui-state-highlight"); 
 				}, 
@@ -60,6 +84,10 @@ $(document).ready(function() {
 						$(this).find(".InputfieldFileSort").val(n); 
 					}); 
 					ui.item.children(".InputfieldFileInfo").removeClass("ui-state-highlight"); 
+					// Firefox has a habit of opening a lightbox popup after a lightbox trigger was used as a sort handle
+					// so we keep a 500ms class here to keep a handle on what was a lightbox trigger and what was a sort
+					$inputfield.addClass('InputfieldFileJustSorted'); 
+					setTimeout(function() { $inputfield.removeClass('InputfieldFileJustSorted'); }, 500); 
 				}
 			});
 
@@ -75,7 +103,8 @@ $(document).ready(function() {
 	 *
 	 */
 	function InitOldSchool() {
-		$(".InputfieldFileUpload input[type=file]").live('change', function() {
+		// $(".InputfieldFileUpload input[type=file]").live('change', function() {
+		$(document).on('change', '.InputfieldFileUpload input[type=file]', function() {
 			var $t = $(this); 
 			if($t.next("input.InputfieldFile").size() > 0) return; // not the last one
 			var maxFiles = parseInt($t.siblings('.InputfieldFileMaxFiles').val()); 
@@ -105,7 +134,7 @@ $(document).ready(function() {
 	 */
 	function InitHTML5() {
 
-		$(".InputfieldFileUpload").parent('.ui-widget-content').each(function(i) {
+		$(".InputfieldFileUpload").closest('.ui-widget-content, .InputfieldContent').each(function(i) {
 
 			var $this = $(this); 
 			var $form = $this.parents('form'); 
@@ -127,8 +156,9 @@ $(document).ready(function() {
 			var $fileList = $this.find(".InputfieldFileList"); 
 
 			if($fileList.size() < 1) {
-				$fileList = $("<ul class='InputfieldFileList InputfieldFileListBlank'></ul>"),
+				$fileList = $("<ul class='InputfieldFileList InputfieldFileListBlank'></ul>");
 				$this.prepend($fileList); 
+				$this.parent('.Inputfield').addClass('InputfieldFileEmpty'); 
 			}
 
 			var fileList = $fileList.get(0);
@@ -138,9 +168,9 @@ $(document).ready(function() {
 				
 			function uploadFile(file) {
 
-				var $progressItem = $('<li class="InputfieldFile ui-widget AjaxUpload"><p class="InputfieldFileInfo ui-widget ui-widget-header"></p></li>'),
+				var $progressItem = $('<li class="InputfieldFile ui-widget AjaxUpload"><p class="InputfieldFileInfo ui-widget ui-widget-header InputfieldItemHeader"></p></li>'),
 					$progressBar = $('<div class="ui-progressbar ui-widget ui-widget-content ui-corner-all" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>'),
-					$progressBarValue = $('<div class="ui-progressbar-value ui-widget-header ui-corner-left" style="width: 0%; "></div>'),
+					$progressBarValue = $('<div class="ui-progressbar-value ui-widget-header InputfieldItemHeader ui-corner-left" style="width: 0%; "></div>'),
 					img,
 					reader,
 					xhr,
@@ -160,6 +190,11 @@ $(document).ready(function() {
 						if(completion > 4) {
 							$progressBarValue.html("<span>" + parseInt(completion) + "%</span>");
 						}
+						/*
+						// code for freezing progressbar during testing
+						$progressBarValue.width("60%");
+						if(completion > 50) setTimeout(function() { alert('test'); }, 10); 
+						*/
 					} else {
 						// No data to calculate on
 					}
@@ -187,7 +222,11 @@ $(document).ready(function() {
 							if(r.replace) {
 								var $child = $this.find('.InputfieldFileList').children('li:eq(0)');
 								if($child.size() > 0) $child.slideUp('fast', function() { $child.remove(); });
-							} 
+							}
+                           
+							// ie10 file field stays populated, this fixes that
+							var $input = $this.find('input[type=file]');
+							if($input.val()) $input.replaceWith($input.clone(true));
 
 							var $markup = $(r.markup); 
 							$markup.hide();
@@ -227,7 +266,7 @@ $(document).ready(function() {
 
 				function errorItem(filename, message) { 
 					return 	'<li class="InputfieldFile ui-widget AjaxUpload">' + 
-						'<p class="InputfieldFileInfo ui-widget ui-widget-header ui-state-error">&nbsp; ' + filename  + ' ' + 
+						'<p class="InputfieldFileInfo ui-widget ui-widget-header InputfieldItemHeader ui-state-error">&nbsp; ' + filename  + ' ' + 
 						'<span class="InputfieldFileStats"> &bull; ' + message + '</span></p></li>';
 				}
 
@@ -297,5 +336,7 @@ $(document).ready(function() {
 	} else {
 		InitOldSchool();
 	}
+
+
 	
 }); 

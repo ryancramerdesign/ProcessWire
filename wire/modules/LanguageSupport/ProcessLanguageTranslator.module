@@ -261,12 +261,11 @@ class ProcessLanguageTranslator extends Process {
 
 		$numFound = $this->parseTranslatableFile($file); 
 
-		$out = '';
 		$form = $this->modules->get('InputfieldForm'); 
 		$form->attr('action', "./?textdomain=$textdomain"); 
 		$form->attr('method', 'post'); 
-		$form->description = "Translate " . basename($file, '.module') . " from English to " . $this->language->title; 
-		$form->value = "<p>Each of the inputs below represents a block of text to translate. <span class='description'>The text shown in this style is the text that should be translated from English to {$this->language->title}.</span> All inputs are optional: if you leave an input blank, the default English text will be used.</p>";
+		$form->description = "Translate " . basename($file, '.module') . " to " . $this->language->title; 
+		$form->value = "<p>Each of the inputs below represents a block of text to translate. <span class='description'>The text shown in this style is the text that should be translated to {$this->language->title}.</span> All inputs are optional: if you leave an input blank, the non-translated text will be used.</p>";
 
 		$translations = $this->translator->getTranslations($textdomain); 
 

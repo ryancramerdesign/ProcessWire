@@ -37,8 +37,14 @@ var editorCursorPosition; // for IE8
 					href = $nodeParent.attr('href');
 				}
 
-				var page_id = $("#Inputfield_id").val(); 
+				var page_id = $("#Inputfield_id").val();
 				var modalUri = config.urls.admin + 'page/link/?id=' + page_id + '&modal=1';
+				
+				// @soma: language support 
+				var $textarea = $(ed.getElement()); // get textarea of this instance
+				var $langwrapper = $textarea.closest('.LanguageSupport');
+				if($langwrapper.length) modalUri += "&lang=" + $langwrapper.data("language"); 
+				
 				var $iframe = $('<iframe id="pwlink_iframe" frameborder="0" src="' + modalUri + '"></iframe>'); 
 
 				$iframe.load(function() {
@@ -49,7 +55,7 @@ var editorCursorPosition; // for IE8
 				});
 
 				var windowWidth = $(window).width() -300; 
-				var windowHeight = $(window).height()-300; 
+				var windowHeight = $(window).height()-350; 
 				if(windowHeight > 800) windowHeight = 800; 
 
 				var insertLinkLabel = config.InputfieldTinyMCE.pwlink.label; 

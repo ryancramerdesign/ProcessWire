@@ -11,23 +11,23 @@ foreach($notices as $notice) {
 		$class = 'ui-state-error'; 
 		if($notice->flags & Notice::warning) {
 			$class .= ' NoticeWarning';
-			$icon = 'ui-icon-info';
+			$icon = 'warning';
 		} else {
 			$class .= ' ui-priority-primary NoticeError';
-			$icon = 'ui-icon-alert'; 
+			$icon = 'exclamation-triangle'; 
 		}
 	}
 
 	if($notice->flags & Notice::debug) {
 		$class .= ' ui-priority-secondary NoticeDebug';
-		if(!$icon) $icon = 'ui-icon-circle-arrow-e';
+		$icon = 'gear';
 	}
 
-	if(!$icon) $icon = 'ui-icon-info';
+	if(!$icon) $icon = 'check-square';
 
 	if($notice->class && $config->debug) $text = "{$notice->class}: $text";
 
-	echo "\n\t\t<li class='$class'><div class='container'><p><span class='ui-icon $icon'></span>{$text}</p></div></li>";
+	echo "\n\t\t<li class='$class'><div class='container'><p><i class='fa fa-$icon'></i> {$text}</p></div></li>";
 
 }
 

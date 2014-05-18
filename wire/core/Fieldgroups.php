@@ -74,14 +74,13 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	/**
 	 * Get the DatabaseQuerySelect to perform the load operation of items
 	 *
-	 * @param WireArray $items
 	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all. 
 	 * @return DatabaseQuerySelect
 	 *
 	 */
 	protected function getLoadQuery($selectors = null) {
 		$query = parent::getLoadQuery($selectors); 
-		$lookupTable = $this->fuel('db')->escapeTable($this->getLookupTable()); 
+		$lookupTable = $this->wire('database')->escapeTable($this->getLookupTable()); 
 		$query->select("$lookupTable.data"); // QA
 		return $query; 
 	}
@@ -92,6 +91,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 * The loading is delegated to WireSaveableItems.
 	 * After loaded, we check for any 'global' fields and add them to the Fieldgroup, if not already there.
 	 *
+	 * @param WireArray $items
 	 * @param Selectors|string|null $selectors Selectors or a selector string to find, or NULL to load all. 
 	 * @return WireArray Returns the same type as specified in the getAll() method.
 	 *
@@ -169,9 +169,12 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 *
 	 * @param Saveable $item Fieldgroup to save
 	 * @return bool True on success, false on failure
+	 * @throws WireException
 	 *
 	 */
 	public function ___save(Saveable $item) {
+
+		$database = $this->wire('database');
 
 		if($item->id && $item->removedFields) {
 
@@ -195,7 +198,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 
 						try { 
 							$field->type->deletePageField($page, $field); 
-							$page->save($field->name); 
+							// $page->save($field->name); 
 							if($this->fuel('config')->debug) $this->message("Deleted '{$field->name}' from '{$page->path}'"); 
 
 						} catch(Exception $e) {
@@ -214,8 +217,13 @@ class Fieldgroups extends WireSaveableItemsLookup {
 		$contextData = array();
 		if($item->id) { 
 			// save context data
-			$result = wire('db')->query("SELECT fields_id, data FROM fieldgroups_fields WHERE fieldgroups_id=" . (int) $item->id); // QA
-			while($row = $result->fetch_assoc()) $contextData[$row['fields_id']] = $row['data'];
+			$query = $database->prepare("SELECT fields_id, data FROM fieldgroups_fields WHERE fieldgroups_id=:item_id"); 
+			$query->bindValue(":item_id", (int) $item->id, PDO::PARAM_INT); 
+			$query->execute();
+			while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+				$contextData[$row['fields_id']] = $row['data'];
+			}
+			$query->closeCursor();
 		}
 
 		$result = parent::___save($item); 
@@ -223,10 +231,13 @@ class Fieldgroups extends WireSaveableItemsLookup {
 		if(count($contextData)) {
 			// restore context data
 			foreach($contextData as $fields_id => $data) {
-				$data = wire('db')->escape_string($data);
 				$fieldgroups_id = (int) $item->id; 
 				$fields_id = (int) $fields_id; 
-				wire('db')->query("UPDATE fieldgroups_fields SET data='$data' WHERE fieldgroups_id=$fieldgroups_id AND fields_id=$fields_id"); // QA
+				$query = $database->prepare("UPDATE fieldgroups_fields SET data=:data WHERE fieldgroups_id=:fieldgroups_id AND fields_id=:fields_id"); // QA
+				$query->bindValue(":data", $data, PDO::PARAM_STR); 
+				$query->bindValue(":fieldgroups_id", $fieldgroups_id, PDO::PARAM_INT);
+				$query->bindValue(":fields_id", $fields_id, PDO::PARAM_INT); 
+				$query->execute();
 			}
 		}
 
@@ -238,8 +249,9 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 *
 	 * Also deletes the references in fieldgroups_fields table
 	 *
-	 * @param Fieldgroup $fieldgroup
+	 * @param Saveable|Fieldgroup $item
 	 * @return Fieldgroups $this
+	 * @throws WireException
 	 *
 	 */
 	public function ___delete(Saveable $item) {
@@ -253,7 +265,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 			throw new WireException("Can't delete fieldgroup '{$item->name}' because it is in use by template(s): " . implode(', ', $templates)); 
 		}
 
-		parent::___delete($item); 
+		return parent::___delete($item); 
 	}
 
 	/**
@@ -264,8 +276,11 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 *
 	 */
 	public function deleteField(Field $field) {
-		$sql = "DELETE FROM fieldgroups_fields WHERE fields_id=" . ((int) $field->id); // QA
-		return $this->fuel('db')->query($sql); // QA
+		$database = $this->wire('database'); 
+		$query = $database->prepare("DELETE FROM fieldgroups_fields WHERE fields_id=:fields_id"); // QA
+		$query->bindValue(":fields_id", $field->id, PDO::PARAM_INT);
+		$result = $query->execute();
+		return $result;
 	}
 
 	/**
@@ -275,6 +290,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 *
 	 * @param Saveable $item Item to clone
 	 * @param bool|Saveable $item Returns the new clone on success, or false on failure
+	 * @return Saveable|Fieldgroup
 	 *
 	 */
 	public function ___clone(Saveable $item) {

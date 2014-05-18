@@ -1,4 +1,4 @@
-ProcessWire 2.2 is Copyright 2012 by Ryan Cramer / Ryan Cramer Design, LLC
+ProcessWire is Copyright 2013 by Ryan Cramer / Ryan Cramer Design, LLC
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

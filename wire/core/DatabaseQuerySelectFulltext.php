@@ -27,7 +27,7 @@
  */
 class DatabaseQuerySelectFulltext extends Wire {
 
-	const maxQueryValueLength = 50; 
+	const maxQueryValueLength = 500; 
 
 	protected $query; 
 
@@ -47,17 +47,18 @@ class DatabaseQuerySelectFulltext extends Wire {
 
 	public function match($tableName, $fieldName, $operator, $value) {
 
+		$database = $this->wire('database');
 		$query = $this->query; 
 		$value = substr(trim($value), 0, self::maxQueryValueLength); 
-		$tableName = $this->db->escapeTable($tableName); 
-		$fieldName = $this->db->escapeCol($fieldName); 
+		$tableName = $database->escapeTable($tableName); 
+		$fieldName = $database->escapeCol($fieldName); 
 		$tableField = "$tableName.$fieldName";
 
 		switch($operator) {
 
 			case '=':
 			case '!=': 
-				$v = $this->db->escape_string($value); 
+				$v = $database->escapeStr($value); 
 				$query->where("$tableField$operator'$v'"); 
 				break;	
 
@@ -77,21 +78,21 @@ class DatabaseQuerySelectFulltext extends Wire {
 				break;
 
 			case '%=':
-				$v = $this->db->escape_string($value); 
+				$v = $database->escapeStr($value); 
 				$v = $this->escapeLIKE($v); 
 				$query->where("$tableField LIKE '%$v%'"); // SLOW, but assumed
 				break;
 
 			case '^=':
 			case '%^=': // match at start using only LIKE (no index)
-				$v = $this->db->escape_string($value);
+				$v = $database->escapeStr($value);
 				$v = $this->escapeLIKE($v); 
 				$query->where("$tableField LIKE '$v%'"); 
 				break;
 
 			case '$=':
 			case '%$=': // RCD match at end using only LIKE (no index)
-				$v = $this->db->escape_string($value);
+				$v = $database->escapeStr($value);
 				$v = $this->escapeLIKE($v); 
 				$query->where("$tableField LIKE '%$v'"); 
 				break;
@@ -107,7 +108,8 @@ class DatabaseQuerySelectFulltext extends Wire {
 
 		$query = $this->query; 
 		$tableField = "$tableName.$fieldName";
-		$v = $this->db->escape_string($value); 
+		$database = $this->wire('database');
+		$v = $database->escapeStr($value); 
 
 		$n = 0; 
 		do {
@@ -119,7 +121,7 @@ class DatabaseQuerySelectFulltext extends Wire {
 		$query->orderby($scoreField . " DESC");
 
 		$partial = $operator != '~=';
-		$booleanValue = $this->db->escape_string($this->getBooleanQueryValue($value, true, $partial));
+		$booleanValue = $database->escapeStr($this->getBooleanQueryValue($value, true, $partial));
 		if($booleanValue) $j = "MATCH($tableField) AGAINST('$booleanValue' IN BOOLEAN MODE) "; 
 			else $j = '';
 			
@@ -128,7 +130,7 @@ class DatabaseQuerySelectFulltext extends Wire {
 
 			if($operator == '^=' || $operator == '$=') {
 				$type = 'RLIKE';
-				$v = $this->db->escape_string(preg_quote($value)); // note $value not $v
+				$v = $database->escapeStr(preg_quote($value)); // note $value not $v
 				$like = "[[:space:]]*(<[^>]+>)*[[:space:]]*"; 
 				if($operator == '^=') {
 					$like = "^" . $like . $v; 

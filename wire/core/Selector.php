@@ -11,11 +11,10 @@
  * @TODO should the individual Selector types be convereted to Modules?
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -68,10 +67,11 @@ abstract class Selector extends WireData {
 	 * Strict standards don't let us make static abstract methods, so this one throws an exception if it's not reimplemented.
 	 *
 	 * @return string
+	 * @throws WireException
 	 *
 	 */
 	public static function getOperator() {
-		throw new WireException("This method must be implemented by " . get_class($this)); 
+		throw new WireException("This getOperator method must be implemented"); 
 	}
 
 	/**
@@ -90,6 +90,7 @@ abstract class Selector extends WireData {
 	 * If the value held by this Selector is an array of values, it will check if any one of them matches the value supplied here. 
 	 *
 	 * @param string|int|Wire $value If given a Wire, then matches will also operate on OR field=value type selectors, where present
+	 * @return bool
 	 *
 	 */
 	public function matches($value) {
@@ -97,42 +98,58 @@ abstract class Selector extends WireData {
 		$matches = false;
 		$values1 = is_array($this->value) ? $this->value : array($this->value); 
 		$field = $this->field; 
+		$operator = $this->getOperator();
 
 		// prepare the value we are comparing
 		if(is_object($value)) {
-			if($value instanceof WireData) $value = $value->get($field);
+			if($this->wire('languages') && $value instanceof LanguagesPageFieldValue) $value = (string) $value; 
+				else if($value instanceof WireData) $value = $value->get($field);
+				else if($value instanceof WireArray && is_string($field) && !strpos($field, '.')) $value = (string) $value; // 123|456|789, etc.
 				else if($value instanceof Wire) $value = $value->$field; 
 			$value = (string) $value; 
 		}
 
-		if(strpos($value, '|') !== false) $value = explode('|', $value); 
+		if(is_string($value) && strpos($value, '|') !== false) $value = explode('|', $value); 
 		if(!is_array($value)) $value = array($value);
 		$values2 = $value; 
 		unset($value);
 
-		// now we're just dealing iwth 2 arrays: $values1 and $values2
+		// now we're just dealing with 2 arrays: $values1 and $values2
 		// $values1 is the value stored by the selector
 		// $values2 is the value passed into the matches() function
 
 		$numMatches = 0; 
-		if($this->getOperator() == '!=') $numMatchesRequired = (count($values1) + count($values2)) - 1; 
+		if($operator == '!=') $numMatchesRequired = (count($values1) + count($values2)) - 1; 
 			else $numMatchesRequired = 1; 
+		
+		$fields = is_array($field) ? $field : array($field); 
+		
+		foreach($fields as $field) {
+	
+			foreach($values1 as $v1) {
+	
+				if(is_object($v1)) {
+					if($v1 instanceof WireData) $v1 = $v1->get($field);
+						else if($v1 instanceof Wire) $v1 = $v1->$field; 
+				}
 
-		foreach($values1 as $v1) {
-
-			if(is_object($v1)) {
-				if($v1 instanceof WireData) $v1 = $v1->get($field);
-					else if($v1 instanceof Wire) $v1 = $v1->$field; 
+				foreach($values2 as $v2) {
+					if(empty($v2) && empty($v1)) {
+						// normalize empty values so that they will match if both considered "empty"
+						$v2 = '';
+						$v1 = '';
+					}
+					if($this->match($v2, $v1)) {
+						$numMatches++;
+					}
+				}
+	
+				if($numMatches >= $numMatchesRequired) {
+					$matches = true;
+					break;
+				}
 			}
-
-			foreach($values2 as $v2) {
-				if($this->match($v2, $v1)) $numMatches++;
-			}
-
-			if($numMatches >= $numMatchesRequired) {
-				$matches = true;
-				break;
-			}
+			if($matches) break;
 		}
 
 		return $matches; 
@@ -143,7 +160,7 @@ abstract class Selector extends WireData {
 	 *
 	 * Selectors should include a call to this in their matches function
 	 *
-	 * @param bool $condition
+	 * @param bool $matches
 	 * @return bool
 	 *
 	 */

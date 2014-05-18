@@ -3,15 +3,26 @@ h3.ui-widget-header {
 	margin-bottom: 0 !important; 
 	font-size: 1.2em; 
 }
-
+/*
 #content h2 {
 	margin-bottom: 0.5em; 
 }
+*/
 
 table.AdminDataList {
 	clear: both; 
 	margin-top: 0.5em; 
 	margin-bottom: 2em; 
+}
+
+table.AdminDataList td,
+table.AdminDataList th {
+	padding-right: 10px !important; 
+}
+
+#modules_form table.AdminDataList td:nth-child(2),
+#modules_form table.AdminDataList th:nth-child(2) {
+	text-align: center;
 }
 
 table.AdminDataList td:first-child,
@@ -20,13 +31,9 @@ table.AdminDataList th:first-child {
 	vertical-align: top; 
 }
 
-table.AdminDataList td,
-table.AdminDataList th {
-	padding-right: 10px !important; 
-}
 
 table.AdminDataList td:last-child {
-	width: 55%; 
+	width: 70%; 
 }
 
 table.AdminDataList td span.ui-icon {
@@ -44,6 +51,11 @@ table.AdminDataList td span.ui-icon {
 
 #ModuleInfo table.AdminDataList tr:last-child td {
 	border-bottom: none; 
+}
+
+table.AdminDataList td .buttons {
+	display: block;
+	margin: 0.25em 0;
 }
 
 .ConfigurableModule .ui-icon-gear {
@@ -76,5 +88,15 @@ a span.PermanentModule {
 	}
 
 #modules_form p.description {
-	margin-top: 0;
+	margin-top: 0; 
+	padding-top:1em;
+}
+
+#godownload,
+#install_now,
+#no_install {
+    float: left; 
+}
+#wrap_no_install .InputfieldContent {
+	padding-top: 1em; 
 }

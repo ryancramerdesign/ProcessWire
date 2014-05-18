@@ -156,6 +156,8 @@ class FieldtypeDatetime extends FieldtypeText {
 	 */
 	static public function stringToTimestamp($str, $format) {
 
+		if(empty($str)) return '';
+
 		// already a timestamp
 		if(ctype_digit(ltrim($str, '-'))) return (int) $str; 
 
@@ -343,6 +345,7 @@ class FieldtypeDatetime extends FieldtypeText {
 	 *
 	 */
 	protected function _sanitizeValue($value) {
+		if(empty($value)) return ''; 
 		// already a timestamp
 		if(ctype_digit(ltrim($value, '-'))) return (int) $value; 
 		return strtotime($value); 
@@ -364,9 +367,16 @@ class FieldtypeDatetime extends FieldtypeText {
 	 *
 	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
-		$value = date('Y-m-d H:i:s', $this->_sanitizeValue($value)); 
-		if($this->fuel('db')->isOperator($operator)) 
+		$value = (int) $this->_sanitizeValue($value); 
+		if($value) $value = date('Y-m-d H:i:s', $value); 
+			else $value = '';
+		$database = $this->wire('database');
+		if($database->isOperator($operator)) {
+			$table = $database->escapeTable($table);
+			$subfield = $database->escapeCol($subfield);
+			$value = $database->escapeStr($value);
 			$query->where("$table.{$subfield}{$operator}'$value'");
+		}
 
 		return $query; 
 	}
@@ -396,7 +406,10 @@ class FieldtypeDatetime extends FieldtypeText {
 	 *
 	 */
 	public function ___wakeupValue(Page $page, Field $field, $value) {
-		return strtotime($value); 
+		if(empty($value)) return '';
+		$value = strtotime($value); 
+		if($value === false) $value = '';
+		return $value; 
 	}
 
 	/**

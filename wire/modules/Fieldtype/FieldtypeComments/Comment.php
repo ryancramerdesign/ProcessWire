@@ -71,7 +71,7 @@ class Comment extends WireData {
 			return $this->users->get($this->settings['created_users_id']); 
 
 		} else if($key == 'gravatar') {
-			return $this->getGravatar();
+			return $this->gravatar();
 		}
 		return parent::get($key); 
 	}
@@ -100,7 +100,7 @@ class Comment extends WireData {
 	public function cleanCommentString($str) {
 		$str = strip_tags(trim($str)); 
 		if(strlen($str) > self::maxCommentBytes) $str = substr($str, 0, self::maxCommentBytes); 
-		$str = str_replace("\r", "\n", $str); 
+		$str = str_replace(array("\r\n", "\r"), "\n", $str); 
 		$str = preg_replace('{\n\n\n+}', "\n\n", $str); 
 		return $str; 
 	}

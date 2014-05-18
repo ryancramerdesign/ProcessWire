@@ -6,11 +6,10 @@
  * PageArray provides an array-like means for storing PageReferences and is utilized throughout ProcessWire. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -86,6 +85,7 @@ class PageArray extends WireArray {
 	 * 
 	 * @param array|PageArray|Page $pages Pages to import. 
 	 * @return PageArray reference to current instance. 
+	 *
 	 */
 	public function import($pages) {
 		if(is_object($pages) && $pages instanceof Page) $pages = array($pages); 
@@ -131,7 +131,7 @@ class PageArray extends WireArray {
 	/**
 	 * Does this PageArray contain the given index or Page? 
 	 *
-	 * @param Page|id $page Array index or Page object. 
+	 * @param Page|int $key Page Array index or Page object. 
 	 * @return bool True if the index or Page exists here, false if not. 
 	 */  
 	public function has($key) {
@@ -184,11 +184,14 @@ class PageArray extends WireArray {
 	 *
 	 * @param int $key Key of item to set.
 	 * @param Page $value Value of item. 
+	 * @return $this
+	 * 
 	 */
 	public function set($key, $value) {
 		$has = $this->has($key); 
 		parent::set($key, $value); 
 		if(!$has) $this->numTotal++;
+		return $this; 
 	}
 
 	/**
@@ -196,6 +199,7 @@ class PageArray extends WireArray {
 	 *
 	 * @param Page $item 
 	 * @return WireArray This instance.
+	 * 
 	 */
 	public function prepend($item) {
 		parent::prepend($item);
@@ -209,6 +213,7 @@ class PageArray extends WireArray {
 	 * 
 	 * @param int|Page $key
 	 * @return bool true if removed, false if not
+	 * 
 	 */
 	public function remove($key) {
 
@@ -234,6 +239,7 @@ class PageArray extends WireArray {
 	 * Shift the first Page off of the PageArray and return it. 
 	 * 
 	 * @return Page|NULL
+	 * 
 	 */
 	public function shift() {
 		if($this->numTotal) $this->numTotal--; 
@@ -244,6 +250,7 @@ class PageArray extends WireArray {
 	 * Pop the last page off of the PageArray and return it. 
 	 *
 	 * @return Page|NULL 
+	 * 
 	 */ 
 	public function pop() {
 		if($this->numTotal) $this->numTotal--; 
@@ -258,6 +265,7 @@ class PageArray extends WireArray {
 	 *
 	 * @param int $total 
 	 * @return PageArray reference to current instance.
+	 * 
 	 */
 	public function setTotal($total) { 
 		$this->numTotal = (int) $total; 
@@ -271,6 +279,7 @@ class PageArray extends WireArray {
 	 * Used for pagination. 
 	 *
 	 * @return int
+	 * 
 	 */
 	public function getTotal() {
 		return $this->numTotal;
@@ -285,6 +294,7 @@ class PageArray extends WireArray {
 	 * Used for pagination. 
 	 * 
 	 * @return int
+	 * 
 	 */
 	public function getLimit() {
 		if($this->numLimit) return $this->numLimit; 
@@ -296,9 +306,9 @@ class PageArray extends WireArray {
 	 * Set the 'start' limitor that resulted in this PageArray
 	 *
 	 * @param int $numStart; 
+	 * @return $this
 	 *
 	 */
-
 	public function setStart($numStart) {
 		$this->numStart = (int) $numStart; 
 		return $this;
@@ -324,6 +334,7 @@ class PageArray extends WireArray {
 	 *
 	 * @param int $numLimit
 	 * @return PageArray reference to current instance.
+	 * 
 	 */
 	public function setLimit($numLimit) {
 		$this->numLimit = $numLimit; 
@@ -334,10 +345,12 @@ class PageArray extends WireArray {
 	 * Set the Selectors that led to this PageArray, if applicable
 	 *
 	 * @param Selectors $selectors
+	 * @return $this
 	 *
 	 */
 	public function setSelectors(Selectors $selectors) {
 		$this->selectors = $selectors; 
+		return $this;
 	}
 
 	/**

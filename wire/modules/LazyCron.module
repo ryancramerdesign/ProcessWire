@@ -81,7 +81,7 @@ class LazyCron extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Lazy Cron', 
-			'version' => 100, 
+			'version' => 102, 
 			'summary' => 
 				"Provides hooks that are automatically executed at various intervals. " . 
 				"It is called 'lazy' because it's triggered by a pageview, so the interval " . 
@@ -128,7 +128,7 @@ class LazyCron extends WireData implements Module {
 	 *
 	 */
 	public function init() {
-		$this->addHook('ProcessPageView::finished', $this, 'afterPageView'); 
+		$this->addHookAfter('ProcessPageView::finished', $this, 'afterPageView'); 
 	}
 
 	/**
@@ -140,16 +140,40 @@ class LazyCron extends WireData implements Module {
 	 */
 	public function afterPageView(HookEvent $e) {
 
+		// don't execute cron now if this is anything other than a normal response
+		$responseType = $e->object->getResponseType();
+		if($responseType != ProcessPageView::responseTypeNormal) return;
+
 		$time = time();
 		$filename = $this->config->paths->cache . "LazyCron.cache"; 
+		$lockfile = $this->config->paths->cache . "LazyCronLock.cache"; 
 		$times = array();
 		$writeFile = false;
 
+		if(is_file($lockfile)) {
+			// other LazyCron process potentially running
+			if(filemtime($lockfile) < (time() - 3600)) {
+				// expired lock file, some fatal error must have occurred during last LazyCron run
+				@unlink($lockfile); 
+			} else {
+				// skip running this time as an active lock file exists
+				return;
+			}
+		}
+
+		if(!file_put_contents($lockfile, time(), LOCK_EX)) {
+			$this->error("Unable to write lock file: $lockfile", Notice::logOnly); 
+			return;
+		}
+		
 		if(is_file($filename)) {
 			$filedata = file($filename, FILE_IGNORE_NEW_LINES); 
 
 			// file is probably locked, so skip it this time
-			if($filedata === false) return; 
+			if($filedata === false) {
+				@unlink($lockfile);
+				return; 
+			}
 		} else {
 			// file does not exist
 			$filedata = false;
@@ -160,8 +184,12 @@ class LazyCron extends WireData implements Module {
 			foreach($this->timeFuncs as $seconds => $func) {
 				$lasttime = (int) (isset($filedata[$n]) ? $filedata[$n] : $time);
 				$elapsedTime = $time - $lasttime;
-				if($elapsedTime >= $seconds) {
-					$this->$func($elapsedTime);
+				if(empty($filedata[$n]) || $elapsedTime >= $seconds) {
+					try {
+						$this->$func($elapsedTime);
+					} catch(Exception $e) {
+						$this->error($e->getMessage(), Notice::logOnly); 
+					}
 					$lasttime = $time;
 					$writeFile = true;
 				}
@@ -171,7 +199,12 @@ class LazyCron extends WireData implements Module {
 		} else {
 			// file does not exist
 			$writeFile = true;
-			foreach($this->timeFuncs as $seconds => $unused) {
+			foreach($this->timeFuncs as $seconds => $func) {
+				try {
+					$this->$func(0);
+				} catch(Exception $e) {
+					$this->error($e->getMessage(), Notice::logOnly); 
+				}
 				$times[$seconds] = $time;
 			}
 		}
@@ -180,6 +213,7 @@ class LazyCron extends WireData implements Module {
 			if($this->config->chmodFile) @chmod($filename, octdec($this->config->chmodFile));
 		}
 
+		@unlink($lockfile); 
 	}
 
 	/**

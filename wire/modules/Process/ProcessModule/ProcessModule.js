@@ -1,8 +1,11 @@
 $(document).ready(function() {
 
+	/*
 	$(".ConfigurableModule").each(function() {
-		$(this).after($("<span class='ui-icon ui-icon-gear' style='float: right;'></span>").css('opacity', 0.5)); 
+		if($(this).parent().is('.not_installed')) return;
+		$(this).after($("<i class='fa fa-cog' style='float: right; margin-top: 3px;'></i>")); 
 	}); 
+	*/
 
 	$(".not_installed").parent("a").css('opacity', 0.6).click(function() {
 
@@ -13,10 +16,22 @@ $(document).ready(function() {
 		if(disabled && disabled.length > 0) {
 			alert("This module requires other modules to be installed first."); 
 		} else {
-			if(confirm("Do you want to install " + $(this).text() + "?")) $btn.click();
+			if(confirm("Install " + $(this).text() + "?")) $btn.click();
 		}
 
 		return false;
+	});
+
+	$("button.ProcessModuleSettings").click(function() {
+		console.log('click'); 
+		var $a = $(this).parents('tr').find('.ConfigurableModule').parent('a');
+		window.location.href = $a.attr('href'); 
 	}); 
+
+    if($('#modules_form').size() > 0) {
+        $('#modules_form').WireTabs({
+            items: $(".Inputfields li.WireTab")
+        });
+    }
 
 }); 

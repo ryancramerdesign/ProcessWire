@@ -55,6 +55,22 @@
 	padding: 1em; 
 }
 
+.Inputfields > .Inputfield > .ui-widget-content:before,
+.Inputfields > .Inputfield > .ui-widget-content:after {
+    /* @soma clearfix */
+    content: " ";
+    display: table;
+}
+.Inputfields > .Inputfield > .ui-widget-content:after {
+    /* @soma clearfix  */
+    clear: both;
+}
+
+.Inputfields > .Inputfield > .ui-widget-content {
+    /* the Inputfield's content, padded from the borders */
+    padding: 1em;
+}
+
 .Inputfields .ui-widget-header {
 	/* typically the Inputfield's <label> */
 	padding: 0.25em 0 0.25em 1em; 
@@ -90,8 +106,14 @@
 		clear: both; 
 		margin-left: 0; 
 	}
-
-
+    
+    .InputfieldForm .Inputfields .InputfieldColumnWidthFirstTmp, 
+    .InputfieldForm .Inputfields .InputfieldColumnWidthFirst.InputfieldStateHidden + .Inputfield {
+        /* for support of inputfield dependencies */
+        clear: both;
+        margin-left: 0; 
+    }
+    
 /**
  * Margin and padding tweaks to prevent doubled visual whitespace
  *
@@ -124,11 +146,26 @@
 .Inputfields .InputfieldStateToggle {
 	cursor: pointer;
 }
-	.Inputfields .InputfieldStateToggle span.ui-icon {
+
+	.Inputfields .InputfieldStateToggle span.ui-icon,
+	.Inputfields .InputfieldStateToggle i.toggle-icon {
 		/* the open/close icon that goes with most Inputfields */
+		float: right;
+		padding-right: 0.5em;
+	}
+	.Inputfields .InputfieldStateToggle i.toggle-icon {
+		padding-right: 0.75em;
+		line-height: 1.7em;
+		opacity: 0.5;
+	}
+
+
+	/*
+	.Inputfields .InputfieldStateToggle span.ui-icon {
 		float: right; 
 		padding-right: 0.25em; 
 	}
+	*/
 
 	.Inputfields > .InputfieldStateCollapsed .ui-widget-header {
 		/* collapsed Inputfields appear sightly faded */

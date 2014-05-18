@@ -6,11 +6,10 @@
  * Provides the base class for Textformatting Modules
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2013 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -55,7 +54,9 @@ abstract class Textformatter extends Wire implements Module {
 	 *
 	 * Override this function completely when providing your own text formatter. No need to call the parent.
 	 *
-	 * @param string $str
+	 * @param Page $page
+	 * @param Field $field
+	 * @param mixed $value
 	 *
 	 */
 	public function formatValue(Page $page, Field $field, &$value) {

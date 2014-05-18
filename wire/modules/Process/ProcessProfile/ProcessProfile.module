@@ -18,7 +18,7 @@ class ProcessProfile extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('User Profile', __FILE__), // getModuleInfo title          
 			'summary' => __('Enables user to change their password, email address and other settings that you define.', __FILE__), // getModuleInfo summary 
-			'version' => 100, 
+			'version' => 101, 
 			'permanent' => true, 
 			'permission' => 'profile-edit',
 			);
@@ -35,7 +35,7 @@ class ProcessProfile extends Process implements ConfigurableModule {
 	}
 
 	public function ___execute() {
-		$this->user = $this->fuel('user'); 
+		$this->user = $this->wire('user'); 
 		$this->setFuel('processHeadline', $this->_("Profile:") . ' ' . $this->user->name); // Primary Headline (precedes the username)
 		$form = $this->buildForm();
 		if($this->input->post->submit_save_profile) {
@@ -79,19 +79,40 @@ class ProcessProfile extends Process implements ConfigurableModule {
 	 *
 	 */
 	protected function processInput(Inputfield $form) {
+
+		$user = $this->user; 
 		$form->processInput($this->input->post);
+
 		if(count($form->getErrors())) {
 			$this->error($this->_("Profile not saved")); 
 			return;
 		}
-		foreach($this->user->fields as $field) {
-			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue; 
-			$this->user->set($field->name, $form->get($field->name)->value); 	
+
+		foreach($user->fields as $field) {
+			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue;
+		
+			$inputfield = $form->get($field->name); 	
+			$value = $inputfield->attr('value'); 
+			
+			if($field->name == 'email' && strlen($value)) {
+				if(count($this->users->find("id!={$user->id}, email=" . $this->sanitizer->selectorValue($value)))) {
+					$this->error(sprintf($this->_('Email address "%s" already in use by another user.'), $value));
+					continue; 
+				}
+			}
+
+			if($field->name == 'pass' && empty($value)) continue; 
+	
+			if($user->get($field->name) != $value) {	
+				$user->set($field->name, $value); 
+				$this->wire('pages')->saveField($user, $field->name); 
+				$message = $this->_('Profile saved') . ' - ' . $field->name; 
+				$this->message($message);
+				$this->wire('log')->message($message); 
+			}
+			
 		}
-		if($this->user->isChanged()) {
-			$this->user->save();
-			$this->message($this->_("Profile saved")); 
-		}
+
 	}
 
 	static public function getModuleConfigInputfields(array $data) {

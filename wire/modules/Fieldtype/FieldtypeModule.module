@@ -9,11 +9,10 @@
  * /wire/core/Fieldtype.php
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -22,7 +21,7 @@ class FieldtypeModule extends Fieldtype {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Module Reference',
-			'version' => 100,
+			'version' => 101,
 			'summary' => 'Field that stores a reference to another module',
 			'permanent' => true, 
 			);
@@ -54,10 +53,14 @@ class FieldtypeModule extends Fieldtype {
 
 	public function getInputfield(Page $page, Field $field) {
 
-		$inputfield = $this->modules->get('InputfieldSelect'); 
+		$inputfieldClass = $field->inputfieldClass ? $field->inputfieldClass : 'InputfieldSelect';
+		$inputfield = $this->modules->get($inputfieldClass); 
+		if(!$inputfield) $inputfield = $this->modules->get('InputfieldSelect'); 
+
 		$inputfield->attr('name', $field->name); 
 		$inputfield->class = $this->className(); 
-		$inputfield->addOption(0, ''); 
+		if($inputfieldClass == 'InputfieldSelect') $inputfield->addOption(0, ''); 
+		$options = array();
 
 		foreach($this->modules as $module) {
 			$found = false; 
@@ -70,7 +73,20 @@ class FieldtypeModule extends Fieldtype {
 				}
 			}
 			if(!$found) continue; 
-			$inputfield->addOption((string) $module); 
+			if($field->labelField == 'title') {
+				$info = $this->wire('modules')->getModuleInfo($module); 
+				$label = !empty($info['title']) ? $info['title'] : (string) $module;
+			} else {
+				$label = (string) $module; 
+			}
+
+			$options[$label] = $module; 
+		}
+
+		ksort($options); 
+
+		foreach($options as $label => $module) {
+			$inputfield->addOption((string) $module, $label); 
 		}
 
 		return $inputfield; 
@@ -100,20 +116,34 @@ class FieldtypeModule extends Fieldtype {
 		}
 
 		$f->attr('value', is_array($field->moduleTypes) ? $field->moduleTypes : array()); 
-		$f->label = "Module Types";
-		$f->description = "Check all of the module types that may be selectable in this field.";
+		$f->label = $this->_('Module Types');
+		$f->description = $this->_('Check all of the module types that may be selectable in this field.');
 		$inputfields->append($f); 
 
 		$f = $this->modules->get("InputfieldCheckbox"); 
 		$f->attr('name', 'instantiateModule'); 
 		$f->attr('value', (int) $field->instantiateModule);
-		$f->label = "Make this field an instance of the selected module?"; 
-		$f->description = 
-			"If checked, the field value will be an actual instance of the selected module. " . 
-			"If not checked, the field value will be a string containing the class name of the module.";
+		$f->label = $this->_('Make this field an instance of the selected module?'); 
+		$f->description = $this->_('If checked, the field value will be an actual instance of the selected module. If not checked, the field value will be a string containing the class name of the module.'); // instantiate module description
+		$inputfields->add($f); 
 
+		$f = $this->modules->get('InputfieldRadios'); 
+		$f->label = $this->_('Options Label'); 
+		$f->attr('name', 'labelField'); 
+		$f->addOption('', $this->_('Module Class Name')); 
+		$f->addOption('title', $this->_('Module Title')); 
+		$f->attr('value', $field->labelField); 
+		$f->columnWidth = 50; 
+		$inputfields->add($f); 
 
-		$inputfields->append($f); 
+		$f = $this->modules->get('InputfieldRadios'); 
+		$f->label = $this->_('Input Type'); 
+		$f->attr('name', 'inputfieldClass'); 
+		$f->addOption('', $this->_('Select')); 
+		$f->addOption('InputfieldRadios', $this->_('Radios')); 
+		$f->columnWidth = 50; 
+		$inputfields->add($f); 
+
 		return $inputfields; 			
 	}
 
