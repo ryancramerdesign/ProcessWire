@@ -123,11 +123,143 @@ class Pagefile extends WireData {
 	 */
 	public function set($key, $value) {
 		if($key == 'basename') $value = $this->pagefiles->cleanBasename($value, false); 
-		if($key == 'description') $value = $this->fuel('sanitizer')->textarea($value); 
+		if($key == 'description') return $this->setDescription($value); 
 		if($key == 'tags') $value = $this->fuel('sanitizer')->text($value);
 		if($key == 'modified') $value = ctype_digit("$value") ? (int) $value : strtotime($value); 
 		if($key == 'created') $value = ctype_digit("$value") ? (int) $value : strtotime($value); 
+
+		if(strpos($key, 'description') === 0 && preg_match('/^description(\d+)$/', $value, $matches)) {
+			// check if a language description is being set manually by description123 where 123 is language ID
+			$languages = $this->wire('languages'); 
+			if($languages) {
+				$language = $languages->get((int) $matches[1]); 
+				if($language && $language->id) return $this->setDescription($value, $language); 
+			}
+		}
+
 		return parent::set($key, $value); 
+	}
+
+	/**
+	 * Set a description, optionally parsing JSON language-specific descriptions to separate properties
+	 *
+	 * @param string $value
+	 * @param Language Langage to set it for. Omit to determine automatically. 
+	 * @return this
+	 *
+	 */
+	protected function setDescription($value, Page $language = null) {
+
+		if(!is_null($language) && $language->id) {
+			$name = "description";
+			if(!$language->isDefault()) $name .= $language->id; 
+			parent::set($name, $this->wire('sanitizer')->textarea($value)); 
+			return $this; 
+		}
+
+		// check if it contains JSON?
+		$first = substr($value, 0, 1); 
+		$last = substr($value, -1); 
+		if(($first == '{' && $last == '}') || ($first == '[' && $last == ']')) {
+			$values = json_decode($value, true); 
+		} else {
+			$values = array(); 
+		}
+
+		if($values && count($values)) {
+			$n = 0; 
+			foreach($values as $id => $v) {	
+				// first item is always default language. this ensures description will still
+				// work even if language support is later uninstalled. 
+				$name = $n > 0 ? "description$id" : "description"; 
+				parent::set($name, $this->wire('sanitizer')->textarea($v)); 
+				$n++; 
+			}
+		} else {
+			// no JSON values so assume regular language description
+			$languages = $this->wire('languages');
+			$language = $this->wire('user')->language; 
+			$value = $this->wire('sanitizer')->textarea($value); 
+
+			if($languages && $language && !$language->isDefault()) {
+				parent::set("description$language", $value); 
+			} else {
+				parent::set("description", $value); 
+			}
+		}
+
+		return $this;
+	}
+
+	/**
+	 * Get default description (no args), get description for a specific language (specify) or all languages (true)
+	 *
+	 * @param null|bool|Language
+	 *	Omit arguments or specify null to return description for current user language
+	 *	Specify a Language object to return description for that language, or to set the description for that language (if using 2nd argument)
+	 * 	Specify boolean true to return JSON string with all languages (if langauges not applicable, regular string returned)
+	 *	Specify boolean true to set JSON string (in $value argument) with all languages 
+	 * @param null|string Specify only when you are setting rather than getting a value. Specify the string description value. 
+	 * @return string
+	 *
+	 */
+	public function description($language = null, $value = null) {
+
+		if(!is_null($value)) {
+			// set description mode
+			if($language === true) {
+				// set all language descriptions
+				$this->setDescription($value); 
+			} else {
+				// set specific language description
+				$this->setDescription($value, $language); 
+			}
+			return $value; 
+		}
+
+		if((is_string($language) || is_int($language)) && $this->wire('languages')) {
+			// convert named or ID'd languages to Language object
+			$language = $this->wire('languages')->get($language); 
+		}
+
+		if(is_null($language)) {	
+			// return description for current user language, or inherit from default if not available
+			$user = $this->wire('user'); 
+			$value = null;
+			if($user->language && $user->language->id) $value = parent::get("description{$user->language}"); 
+			if(empty($value)) {
+				// inherit default language value
+				$value = parent::get("description"); 
+			}
+
+		} else if($language === true) {
+			// return JSON string of all languages if applicable
+			$languages = $this->wire('languages'); 
+			if($languages && $languages->count() > 1) {
+				$values = array(0 => parent::get("description"));
+				foreach($languages as $lang) {
+					if($lang->isDefault()) continue; 
+					$v = parent::get("description$lang"); 
+					if(empty($v)) continue; 
+					$values[$lang->id] = $v; 
+				}
+				$value = json_encode($values); 
+				
+			} else {
+				// no languages present so just return string with description
+				$value = parent::get("description"); 
+			}
+			
+		} else if(is_object($language) && $language->id) {
+			// return description for specific language or blank if not available
+			if($language->isDefault()) $value = parent::get("description"); 
+				else $value = parent::get("description$language"); 
+		}
+
+		// we only return strings, so return blank rather than null
+		if(is_null($value)) $value = '';
+
+		return $value; 
 	}
 
 	/**
@@ -246,16 +378,6 @@ class Pagefile extends WireData {
 	 */
 	public function basename() {
 		return parent::get('basename'); 
-	}
-
-	/**
-	 * Returns the value of the description field
-	 *
-	 * @return string
-	 *
-	 */
-	public function description() {
-		return parent::get('description'); 
 	}
 
 	/**

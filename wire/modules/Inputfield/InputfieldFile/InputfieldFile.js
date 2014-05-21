@@ -328,7 +328,7 @@ $(document).ready(function() {
 	/**
 	 * Progressive enchanchment for browsers that support html5 File API
 	 * 
-	 * #PageIDIndictator.size indicates PageEdit, which we're temporarily limiting AjaxUpload to
+	 * #PageIDIndictator.size indicates PageEdit, which we're limiting AjaxUpload to since only ProcessPageEdit has the ajax handler
 	 * 
 	 */
 	if (window.File && window.FileList && window.FileReader && $("#PageIDIndicator").size() > 0) {  

@@ -110,19 +110,60 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	protected function renderItemDescriptionField(Pagefile $pagefile, $id, $n) {
 		$out = '';
 
-		if($this->descriptionRows > 0) {
-			$description = htmlspecialchars($pagefile->description, ENT_QUOTES, "UTF-8"); 
-			if($this->descriptionRows > 1) $out = "<textarea name='description_$id' rows='{$this->descriptionRows}'>$description</textarea>";
-				else $out = "<input type='text' name='description_$id' id='description_$id' value='$description' />";
-			$out = "<label class='InputfieldFileDescription'><span class='detail'>{$this->descriptionFieldLabel}</span>$out</label>"; // Description field label
+		if($this->descriptionRows > 0) { 
+
+			$userLanguage = $this->wire('user')->language; 
+			$languages = $this->wire('languages'); 
+
+			if(!$userLanguage || !$languages || $languages->count() < 2) {
+				$numLanguages = 0;
+				$languages = array(null); 
+			} else {
+				$numLanguages = $languages->count();
+				if($numLanguages < 5) $width = 100 / $numLanguages;
+					else $width = 25; 
+			}
+
+			if($numLanguages) $out .= "<span class='InputfieldFileLanguageSupport ui-helper-clearfix'>";
+
+			foreach($languages as $language) { 
+
+				$descriptionFieldName = "description_$id";
+				$descriptionFieldLabel = $this->descriptionFieldLabel;
+				$labelClass = "detail";
+				
+				if($language) {
+					$descriptionFieldLabel = $this->wire('sanitizer')->entities($language->get('title|name')); 
+					if(!$language->isDefault()) $descriptionFieldName = "description{$language->id}_$id";
+					$out .= "<span style='width:$width%' class='InputfieldFileDescription LanguageSupport' data-language='$language'>"; // open wrapper
+					$labelClass .= ' LanguageSupportLabel';
+				} else {
+					$out .= "<span class='InputfieldFileDescription'>"; // open wrapper
+				}
+
+				$out .= "<label for='$descriptionFieldName' class='$labelClass'>$descriptionFieldLabel</label>";
+
+				$description = $this->wire('sanitizer')->entities($pagefile->description($language)); 
+
+				if($this->descriptionRows > 1) {
+					$out .= "<textarea name='$descriptionFieldName' id='$descriptionFieldName' rows='{$this->descriptionRows}'>$description</textarea>";
+				} else {
+					$out .= "<input type='text' name='$descriptionFieldName' id='$descriptionFieldName' value='$description' />";
+				}
+
+				$out .= "</span>";
+			}
+
+			if($numLanguages) $out .= "</span>";
 		}
 
 		if($this->useTags) {
 			$tags = htmlspecialchars($pagefile->tags, ENT_QUOTES, "UTF-8"); 
-			$out = 	"<label class='InputfieldFileTags'><span class='detail'>{$this->tagsFieldLabel}</span>" . 
+			$tags = $this->wire('sanitizer')->entities($pagefile->tags); 
+			$out .= "<span class='InputfieldFileTags'>" . 	
+				"<label for='tags_$id' class='detail'>{$this->tagsFieldLabel}</label>" . 
 				"<input type='text' name='tags_$id' id='tags_$id' value='$tags' />" . 
-				"</label>" . 
-				$out; 
+				"</span>";
 		}
 
 		return $out; 
@@ -137,7 +178,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			"\n\t\t\t<span class='InputfieldFileStats'>{$pagefile->filesizeStr}</span> " . 
 			"\n\t\t\t<label class='InputfieldFileDelete'><input type='checkbox' name='delete_$id' value='1' /><span class='ui-icon ui-icon-trash'>Delete</span></label>" . 
 			"\n\t\t</p>" . 
-			"\n\t\t<p class='InputfieldFileData description'>" . 
+			"\n\t\t<p class='InputfieldFileData description ui-widget-content'>" . 
 			"\n\t\t\t" . $this->renderItemDescriptionField($pagefile, $id, $n) . 
 			"\n\t\t\t<input class='InputfieldFileSort' type='text' name='sort_$id' value='$n' />" . 
 			"\n\t\t</p>";
@@ -160,7 +201,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			$out .= $this->renderItemWrap($this->renderItem($pagefile, $id, $n++)); 
 		}
 
-		if($out) $out = "\n<ul class='InputfieldFileList'>$out\n</ul>";
+		if($out) $out = "\n<ul class='InputfieldFileList ui-helper-clearfix'>$out\n</ul>";
 		return $out; 
 	}
 
@@ -233,8 +274,10 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 		$id = $this->name . '_' . $pagefile->hash; 		
 		$changed = false; 
+		$languages = $this->wire('languages'); 
+		$keys = $languages ? array('tags') : array('description', 'tags'); 
 
-		foreach(array('description', 'tags') as $key) { 
+		foreach($keys as $key) { 
 			if(isset($input[$key . '_' . $id])) { 
 				$value = trim($input[$key . '_' . $id]); 
 				if($value != $pagefile->$key) {
@@ -243,6 +286,17 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 				}
 			}
 		}
+
+		// multi-language descriptions
+		if($languages) foreach($languages as $language) {
+			$key = $language->isDefault() ? "description_$id" : "description{$language->id}_$id";
+			if(!isset($input[$key])) continue; 
+			$value = trim($input[$key]); 
+			if($value != $pagefile->description($language)) {
+				$pagefile->description($language, $value); 
+				$changed = true; 
+			}
+		}	
 
 		if(isset($input['delete_' . $id])) {
 			$this->processInputDeleteFile($pagefile); 

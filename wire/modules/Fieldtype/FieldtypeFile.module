@@ -120,7 +120,7 @@ class FieldtypeFile extends FieldtypeMulti {
 		foreach($value as $v) {
 			if(empty($v['data'])) continue; 
 			$pagefile = $this->getBlankPagefile($pagefiles, $v['data']); 
-			$pagefile->description = $v['description']; 
+			$pagefile->description(true, $v['description']); 
 			if(isset($v['modified'])) $pagefile->modified = $v['modified'];
 			if(isset($v['created'])) $pagefile->created = $v['created'];
 			if(isset($v['tags'])) $pagefile->tags = $v['tags'];
@@ -149,7 +149,7 @@ class FieldtypeFile extends FieldtypeMulti {
 		foreach($value as $pagefile) {
 			$item = array(
 				'data' => $pagefile->basename, 
-				'description' => $pagefile->description, 
+				'description' => $pagefile->description(true), 
 				); 
 	
 			if($field->fileSchema & self::fileSchemaDate) { 

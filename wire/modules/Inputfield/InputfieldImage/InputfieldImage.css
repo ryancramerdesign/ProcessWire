@@ -54,6 +54,10 @@
 	display: none; 
 }
 
+.InputfieldImageGrid .InputfieldFileList .InputfieldFileDescription,
+.InputfieldImageGrid .InputfieldFileList .InputfieldFileTags {
+	display: none; 
+}
 
 .InputfieldImageGrid .InputfieldFileList .InputfieldImage,
 .InputfieldImageGrid .InputfieldFileList .InputfieldFileData {
