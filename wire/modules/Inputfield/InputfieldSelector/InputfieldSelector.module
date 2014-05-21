@@ -20,7 +20,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Selector',
-			'version' => 17,
+			'version' => 18,
 			'summary' => 'Build a page finding selector visually.',
 			'author' => 'Avoine + ProcessWire',
 			'autoload' => true, 
@@ -308,6 +308,13 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				'label' => $this->_('has parent/ancestor'), 
 				'operators' => array('=', '!='), 
 				),
+			'_custom' => array(
+				'input' => 'text', 
+				'label' => $this->_('custom (field=value)'),
+				'operators' => array(),
+				'placeholder' => $this->_('field=value'),
+				),
+	
 			//'parent' => $this->_('parent'), 
 			); 
 
@@ -603,7 +610,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			}
 		}
 
-		$out = "<select class='select-operator' name='$inputName'>";
+		$disabled = count($operators) ? "" : " disabled='disabled'";
+		$out = "<select$disabled class='select-operator' name='$inputName'>";
 
 		foreach($operators as $key => $label) {
 			if(isset($this->operators[$label])) {
@@ -651,6 +659,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$selectedValueEntities = $this->wire('sanitizer')->entities($selectedValue); 
 		$operators = array();
 		$subfield = '';
+		$placeholder = '';
 		if(strpos($fieldName, '.') !== false) list($fieldName, $subfield) = explode('.', $fieldName); 
 
 		if(isset($this->systemFields[$fieldName])) {
@@ -658,6 +667,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$info = $this->systemFields[$fieldName]; 
 			$type = $info['input'];
 			if(isset($info['options'])) $options = $info['options'];
+			if(!empty($info['placeholder'])) $placeholder = $info['placeholder'];
 
 		} else if(isset($this->modifierFields[$fieldName])) { 
 			// modified field
@@ -792,7 +802,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				$inputType = 'text'; 
 			}
 			
-			$out .= "<input value='$selectedValueEntities' class='$inputClass' name='$inputName' type='$inputType' />";
+			$out .= "<input value='$selectedValueEntities' class='$inputClass' name='$inputName' type='$inputType' placeholder='$placeholder' />";
 		}
 
 		// end the opval row by rendering a checkbox for the OR option

@@ -418,7 +418,7 @@ var InputfieldSelector = {
 					// value needs to be identified as a sub-selector
 					value = '[' + value + ']';
 
-				} else if(value.indexOf(',') > -1) {
+				} else if(value.indexOf(',') > -1 && fieldName != '_custom') {
 					// value needs to be quoted
 					if(value.indexOf('"') > -1) { 
 						if(value.indexOf("'") == -1) value = "'" + value + "'"; 
@@ -536,7 +536,12 @@ var InputfieldSelector = {
 				// convert field.subfield.id to just field.subfield
 				s.field = s.field.substring(0, s.field.lastIndexOf('.')); 
 			}
-			selector += s.field + s.operator + s.value; 
+
+			if(s.field == '_custom') {
+				selector += s.value; 
+			} else {
+				selector += s.field + s.operator + s.value; 
+			}
 		}
 
 		var $preview = $item.parents('.selector-list').siblings('.selector-preview'); 

@@ -377,13 +377,26 @@ class PageFinder extends Wire {
 			// in this case only used by internally generated shortcuts like the blank value condition
 			$whereFields = '';	
 			
-			foreach($fields as $n => $field) {
+			foreach($fields as $n => $fieldName) {
 
 				// if a specific DB field from the table has been specified, then get it, otherwise assume 'data'
-				if(strpos($field, ".")) list($field, $subfield) = explode(".", $field); 	
+				if(strpos($fieldName, ".")) list($fieldName, $subfield) = explode(".", $fieldName); 	
 					else $subfield = 'data';
 
-				if(!$field = $this->fuel('fields')->get($field)) throw new PageFinderSyntaxException("Field does not exist: $fields[$n]");
+				if(!$field = $this->wire('fields')->get($fieldName)) {
+					// field does not exist, try to match an API variable
+					$value = $this->wire($fieldName); 
+					if(!$value) throw new PageFinderSyntaxException("Field does not exist: $fieldName");
+					if(count($fields) > 1) throw new PageFinderSyntaxException("You may only match 1 API variable at a time"); 
+					if(is_object($value)) {
+						if($subfield == 'data') $subfield = 'id';
+						$selector->field = $subfield; 
+					}
+					if(!$selector->matches($value)) {
+						$query->where("1>2"); // force non match
+					}
+					break;
+				}
 
 				// keep track of number of times this table name has appeared in the query
 				if(!isset($fieldCnt[$field->table])) $fieldCnt[$field->table] = 0; 
