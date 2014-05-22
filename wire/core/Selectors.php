@@ -194,6 +194,15 @@ class Selectors extends WireArray {
 			$operator = $this->extractOperator($str, $this->getOperatorChars());
 			$value = $this->extractValue($str, $quote); 
 
+			if($quote == '[' && !self::stringHasOperator($value)) {
+				// parse an API variable property to a string value
+				$v = $this->parseValue($value); 
+				if($v !== null) {
+					$value = $v;
+					$quote = '';
+				}
+			}
+
 			if($field || strlen("$value")) {
 				$selector = $this->create($field, $operator, $value);
 				if(!is_null($group)) $selector->group = $group; 
@@ -361,6 +370,24 @@ class Selectors extends WireArray {
 		}
 
 		return $value; 
+	}
+
+	/**
+	 * Given a value string with an "api_var" or "api_var.property" return the string value of the property
+	 *
+	 * @param string $value var or var.property
+	 * @return null|string Returns null if it doesn't resolve to anything or a string of the value it resolves to
+	 *
+	 */
+	public function parseValue($value) {
+		if(!preg_match('/^\$?[_a-zA-Z0-9]+(?:\.[_a-zA-Z0-9]+)?$/', $value)) return null;
+		$property = '';
+		if(strpos($value, '.')) list($value, $property) = explode('.', $value); 
+		$value = $this->wire($value); 
+		if(is_null($value)) return null; // does not resolve to API var
+		if(empty($property)) return (string) $value;  // no property requested, just return string value 
+		if(!is_object($value)) return null; // property requested, but value is not an object
+		return (string) $value->$property; 
 	}
 
 	public function __toString() {
