@@ -383,6 +383,8 @@ class Selectors extends WireArray {
 		if(!preg_match('/^\$?[_a-zA-Z0-9]+(?:\.[_a-zA-Z0-9]+)?$/', $value)) return null;
 		$property = '';
 		if(strpos($value, '.')) list($value, $property) = explode('.', $value); 
+		$allowed = array('session', 'page', 'user'); // @todo make the whitelist configurable
+		if(!in_array($value, $allowed)) return null; 
 		$value = $this->wire($value); 
 		if(is_null($value)) return null; // does not resolve to API var
 		if(empty($property)) return (string) $value;  // no property requested, just return string value 
