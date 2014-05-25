@@ -128,7 +128,7 @@ class PageTraversal {
 			} else if(is_int($selector)) {
 				if($parent->id == $selector) $stop = true; 
 
-			} else if($selector instanceof Page && $parnet->id == $selector->id) {
+			} else if($selector instanceof Page && $parent->id == $selector->id) {
 				$stop = true; 
 			}
 
