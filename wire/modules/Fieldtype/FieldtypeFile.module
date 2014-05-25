@@ -338,6 +338,16 @@ class FieldtypeFile extends FieldtypeMulti {
 		if($tagsAction === 'add') {
 			// add tags field
 			try {
+				$query = $database->prepare("SHOW COLUMNS FROM `$table` WHERE Field='tags'"); 
+				$query->execute();
+				$numRows = (int) $query->rowCount();
+				$query->closeCursor();
+			} catch(Exception $e) {
+				// probably in a clone, we can ignore and skip over any further changes
+				$numRows = 1; 
+			}
+
+			if(!$numRows) try {
 				$database->exec("ALTER TABLE `{$table}` ADD tags $schemaTags");
 				$database->exec("ALTER TABLE `{$table}` ADD $schemaTagsIndex"); 
 				$field->fileSchema = $field->fileSchema | self::fileSchemaTags; 
