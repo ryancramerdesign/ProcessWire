@@ -354,7 +354,13 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 	 *
 	 */
 	public function isEmpty() {
-		return count($this->attr('value')) == 0;
+		if(count($this->attr('value')) == 0) return true; 
+		$cnt = 0;
+		foreach($this->attr('value') as $item) {
+			if($item->is(Page::statusHidden) && $item->is(Page::statusUnpublished)) continue;
+			$cnt++;
+		}
+		return $cnt === 0; 
 	}
 
 	/**
