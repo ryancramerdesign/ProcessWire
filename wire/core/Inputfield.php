@@ -674,8 +674,10 @@ abstract class Inputfield extends WireData implements Module {
 		$key = $this->getErrorSessionKey();
 		$errors = $this->session->$key;			
 		if(!is_array($errors)) $errors = array();
-		$errors[] = $text; 
-		$this->session->set($key, $errors); 
+		if(!in_array($text, $errors)) {
+			$errors[] = $text; 
+			$this->session->set($key, $errors); 
+		}
 		return parent::error($text . " ({$this->name})", $flags); 
 	}
 

@@ -6,7 +6,7 @@ class InputfieldInteger extends Inputfield {
 		return array(
 			'title' => __('Integer', __FILE__), // Module Title
 			'summary' => __('Integer (positive or negative)', __FILE__), // Module Summary
-			'version' => 101,
+			'version' => 102,
 			'permanent' => true, 
 			);
 	}
@@ -66,7 +66,7 @@ class InputfieldInteger extends Inputfield {
 		$inRange = true;
 		$min = $this->attr('min');
 		$max = $this->attr('max');
-		if(strlen("$value") && ($min || $max)) {
+		if(strlen("$value")) {
 			if(strlen("$min") && ((int) $value) < ((int) $min)) {
 				$inRange = false;
 			}
@@ -82,7 +82,13 @@ class InputfieldInteger extends Inputfield {
 		if($key == 'value') {
 			$value = $this->sanitizeValue($value); 
 			if(strlen("$value") && !$this->isInRange($value)) {
-				$this->error(sprintf($this->_('Value is out of bounds (min=%1$s, max=%2$s'), $this->attr('min'), $this->attr('max')));
+				$min = $this->attr('min');
+				$max = $this->attr('max'); 
+				$any = $this->_('any'); 
+				if(!strlen("$min")) $min = $any;
+				if(!strlen("$max")) $max = $any;
+				$this->error(sprintf($this->_('Specified value %3$s removed because it is out of bounds (min=%1$s, max=%2$s)'), $min, $max, $value));
+				$value = $this->attr('value'); // restore previous value
 			}
 		}
 
@@ -92,6 +98,10 @@ class InputfieldInteger extends Inputfield {
 	public function set($key, $value) {
 		if($key == 'inputType') {
 			$this->attr('type', $value); 
+		} else if($key == 'min' || $key == 'max') {
+			if(strlen("$value")) {
+				$value = strpos($value, '.') !== false ? (float) $value : (int) $value; 
+			}
 		}
 		return parent::set($key, $value);
 	}
@@ -109,7 +119,7 @@ class InputfieldInteger extends Inputfield {
 		$f->description = $this->_('Choosing the "Number" type enables some additional client-side validation in browsers that support it.');
 		$inputfields->add($f);
 
-		$f = wire('modules')->get('InputfieldFloat');
+		$f = wire('modules')->get('InputfieldText');
 		$f->attr('name', 'min');
 		$f->attr('value', $this->attr('min')); 
 		$f->label = $this->_('Minimum Value'); 
@@ -117,7 +127,7 @@ class InputfieldInteger extends Inputfield {
 		$f->columnWidth = 50;
 		$inputfields->add($f);
 
-		$f = wire('modules')->get('InputfieldFloat');
+		$f = wire('modules')->get('InputfieldText');
 		$f->attr('name', 'max');
 		$f->attr('value', $this->attr('max')); 
 		$f->label = $this->_('Maximum Value'); 

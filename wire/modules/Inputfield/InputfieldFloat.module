@@ -37,7 +37,7 @@ class InputfieldFloat extends InputfieldInteger {
 		$inRange = true;
 		$min = $this->attr('min');
 		$max = $this->attr('max');
-		if(strlen("$value") && ($min || $max)) {
+		if(strlen("$value")) {
 			if(strlen("$min") && ((float) $value) < ((float) $min)) {
 				$inRange = false;
 			}
