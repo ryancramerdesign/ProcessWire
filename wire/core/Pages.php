@@ -501,7 +501,6 @@ class Pages extends Wire {
 	 * @param string $selectorString
 	 * @param array $options See $options in Pages::find 
 	 * @return int
-	 * @todo optimize this so that it only counts, and doesn't have to load any pages in the process. 
 	 *
 	 */
 	public function count($selectorString, array $options = array()) {
