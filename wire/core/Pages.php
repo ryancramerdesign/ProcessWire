@@ -507,6 +507,7 @@ class Pages extends Wire {
 	public function count($selectorString, array $options = array()) {
 		$options['loadPages'] = false; 
 		$options['getTotal'] = true; 
+		if($this->wire('config')->debug) $options['getTotalType'] = 'count'; // test count method when in debug mode
 		return $this->find("$selectorString, limit=1", $options)->getTotal();
 	}
 

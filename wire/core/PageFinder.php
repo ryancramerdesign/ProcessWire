@@ -18,8 +18,71 @@ class PageFinderSyntaxException extends PageFinderException { }
 
 class PageFinder extends Wire {
 
+	/**
+	 * Options (and their defaults) that may be provided as the 2nd argument to find()
+	 *
+	 */
+	protected $defaultOptions = array(
+
+		/**
+		 * Specify that you only want to find 1 page and don't need info for pagination
+		 * 	
+		 */
+		'findOne' => false,
+		
+		/**
+		 * Specify that it's okay for hidden pages to be included in the results	
+		 *
+		 */
+		'findHidden' => false,
+
+		/**
+		 * Specify that no page status should be excluded - results can include unpublished, trash, system, etc.
+		 *
+		 */
+		'findAll' => false,
+
+		/**
+		 * This is an optimization used by the Pages::find method, but we observe it here as we may be able
+		 * to apply some additional optimizations in certain cases. For instance, if loadPages=false, then 
+		 * we can skip retrieval of IDs and omit sort fields.
+		 *
+		 */
+		'loadPages' => true,
+
+		/**
+		 * When true, this function returns array of arrays containing page ID, parent ID, template ID and score.
+		 * When false, returns only an array of page IDs. returnVerbose=true is required by most usage from Pages 
+		 * class. False is only for specific cases. 
+		 *
+		 */
+		'returnVerbose' => true,
+
+		/**
+		 * Whether the total quantity of matches should be determined and accessible from getTotal()
+		 *
+		 * null: determine automatically (disabled when limit=1, enabled in all other cases)
+		 * true: always calculate total
+		 * false: never calculate total
+		 *
+		 */
+		'getTotal' => null,
+
+		/**
+		 * Method to use when counting total records
+		 *
+		 * If 'count', total will be calculated using a COUNT(*).
+		 * If 'calc, total will calculate using SQL_CALC_FOUND_ROWS.
+		 * If blank or something else, method will be determined automatically.
+		 * 
+		 */
+		'getTotalType' => 'calc',
+
+		); 
+
 	protected $fieldgroups; 
-	protected $getTotal = true; // whether to sql_calc_rows_found
+	protected $getTotal = true; // whether to find the total number of matches
+	protected $getTotalType = 'calc'; // May be: 'calc', 'count', or blank to auto-detect. 
 	protected $total = 0;
 	protected $limit = 0; 
 	protected $start = 0;
@@ -89,6 +152,19 @@ class PageFinder extends Wire {
 			} else if($fieldName == 'sort') {
 				// sorting is not needed if we are only retrieving totals
 				if($options['loadPages'] === false) $selectors->remove($selector); 
+
+			} else if($fieldName == 'getTotal' || $fieldName == 'get_total') {
+				// whether to retrieve the total, and optionally what type: calc or count
+				// this applies only if user hasn't themselves created a field called getTotal or get_total
+				if(!$this->wire('fields')->get($fieldName)) {
+					if(ctype_digit("$selector->value")) {
+						$options['getTotal'] = (bool) $selector->value; 
+					} else if(in_array($selector->value, array('calc', 'count'))) {
+						$options['getTotal'] = true; 
+						$options['getTotalType'] = $selector->value; 
+					}
+					$selectors->remove($selector); 
+				}
 			}
 		}
 
@@ -137,66 +213,19 @@ class PageFinder extends Wire {
 	 */
 	public function find(Selectors $selectors, $options = array()) {
 
-		$defaultOptions = array(
+		$options = array_merge($this->defaultOptions, $options); 
 
-			/**
-	 		 * Specify that you only want to find 1 page and don't need info for pagination
-			 * 	
-			 */
-			'findOne' => false,
-			
-			/**
-			 * Specify that it's okay for hidden pages to be included in the results	
-			 *
-			 */
-			'findHidden' => false,
-
-			/**
-			 * Specify that no page status should be excluded - results can include unpublished, trash, system, etc.
-			 *
-			 */
-			'findAll' => false,
-
-			/**
-			 * Whether the total quantity of matches should be determined and accessible from getTotal()
-			 *
-			 * null: determine automatically (disabled when limit=1, enabled in all other cases)
-			 * true: always calculate total
-			 * false: never calculate total
-			 *
-			 */
-			'getTotal' => null,
-
-			/**
-			 * This is an optimization used by the Pages::find method, but we observe it here as we may be able
-			 * to apply some additional optimizations in certain cases. For instance, if loadPages=false, then 
-			 * we can skip retrieval of IDs and omit sort fields.
-			 *
-			 */
-			'loadPages' => true,
-
-			/**
-			 * When true, this function returns array of arrays containing page ID, parent ID, template ID and score.
-			 * When false, returns only an array of page IDs. returnVerbose=true is required by most usage from Pages 
-			 * class. False is only for specific cases. 
-			 *
-			 */
-			'returnVerbose' => true
-
-			);
-
-		$options = array_merge($defaultOptions, $options); 
 		$this->start = 0; // reset for new find operation
 		$this->limit = 0; 
 		$this->parent_id = null;
 		$this->templates_id = null;
 		$this->checkAccess = true; 
 		$this->getQueryNumChildren = 0;
-
 		$this->setupStatusChecks($selectors, $options);
 
 		// move getTotal option to a class property, after setupStatusChecks
 		$this->getTotal = $options['getTotal'];
+		$this->getTotalType = $options['getTotalType'] == 'count' ? 'count' : 'calc'; 
 		unset($options['getTotal']); // so we get a notice if we try to access it
 
 		$database = $this->wire('database');
@@ -205,35 +234,50 @@ class PageFinder extends Wire {
 		$query = $this->getQuery($selectors, $options); 
 		if($this->wire('config')->debug) $query->set('comment', "Selector: " . (string) $selectors); 
 
-		$stmt = $query->execute();	
+		if($options['loadPages'] || $this->getTotalType == 'calc') {
+
+			$stmt = $query->execute();	
+			
+			if($stmt->errorCode() > 0) {
+				$errorInfo = $stmt->errorInfo();
+				throw new PageFinderException($errorInfo[2]);
+			}
 		
-		if($stmt->errorCode() > 0) {
-			$errorInfo = $stmt->errorInfo();
-			throw new PageFinderException($errorInfo[2]);
-		}
-	
-		if($options['loadPages']) { 	
-			while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+			if($options['loadPages']) { 	
+				while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 
-				// determine score for this row
-				$score = 0;
-				foreach($row as $k => $v) if(strpos($k, '_score') === 0) {
-					$score += $v;
-					unset($row[$k]);
+					// determine score for this row
+					$score = 0;
+					foreach($row as $k => $v) if(strpos($k, '_score') === 0) {
+						$score += $v;
+						unset($row[$k]);
 
-				}
-				if($options['returnVerbose']) { 
-					$row['score'] = $score;
-					$matches[] = $row;
-				} else {
-					$matches[] = $row['id']; 
+					}
+					if($options['returnVerbose']) { 
+						$row['score'] = $score;
+						$matches[] = $row;
+					} else {
+						$matches[] = $row['id']; 
+					}
 				}
 			}
-		}
-		$stmt->closeCursor();
+			$stmt->closeCursor();
+		} 
 			
 		if($this->getTotal) {
-			$this->total = (int) $database->query("SELECT FOUND_ROWS()")->fetchColumn();
+			if($this->getTotalType === 'count') {
+				$query->set('select', array('COUNT(*)')); 
+				$query->set('orderby', array()); 
+				$query->set('groupby', array()); 
+				$query->set('limit', array()); 
+				$stmt = $query->execute();
+				$errorInfo = $stmt->errorInfo();
+				if($stmt->errorCode() > 0) throw new PageFinderException($errorInfo[2]);
+				list($this->total) = $stmt->fetch(PDO::FETCH_NUM); 
+				$stmt->closeCursor();
+			} else {
+				$this->total = (int) $database->query("SELECT FOUND_ROWS()")->fetchColumn();
+			}
 			
 		} else {
 			$this->total = count($matches);
@@ -784,7 +828,8 @@ class PageFinder extends Wire {
 			}
 
 			$sql .= "$limit";
-			if($this->getTotal) $query->select("SQL_CALC_FOUND_ROWS"); 
+			
+			if($this->getTotal && $this->getTotalType != 'count') $query->select("SQL_CALC_FOUND_ROWS"); 
 		}
 
 		if($sql) $query->limit($sql); 

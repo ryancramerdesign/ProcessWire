@@ -34,6 +34,7 @@ class Debug {
 			preg_match('/(\.[0-9]+) ([0-9]+)/', microtime(), $time);
 			$startTime = doubleval($time[1]) + doubleval($time[2]);
 			if(!$key) $key = $startTime; 
+			while(isset(self::$timers[$key])) $key .= ".";
 			self::$timers[$key] = $startTime; 
 			return $key; 
 		} else {
