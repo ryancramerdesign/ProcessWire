@@ -20,7 +20,7 @@ class ProcessUser extends ProcessPageType {
 	static public function getModuleInfo() {
 		return array(
 			'title' => __('Users', __FILE__), // getModuleInfo title
-			'version' => 101, 
+			'version' => 102, 
 			'summary' => __('Manage system users', __FILE__), // getModuleInfo summary
 			'permanent' => true, 
 			'permission' => 'user-admin',
@@ -28,8 +28,22 @@ class ProcessUser extends ProcessPageType {
 	}
 
 	public function init() {
-		wire('pages')->addHookBefore('save', $this, 'hookPageSave');	
+		$this->wire('pages')->addHookBefore('save', $this, 'hookPageSave');	
 		parent::init();
+	}
+
+	public function ___executeEdit() {
+		if(!$this->wire('user')->isSuperuser()) { 
+			// prevent showing superuser role at all
+			$this->addHookAfter('InputfieldPage::getSelectablePages', function($event) {
+				if($event->object->attr('name') != 'roles') return;
+				$suRoleID = $this->wire('config')->superUserRolePageID; 
+				foreach($event->return as $role) {
+					if($role->id == $suRoleID) $event->return->remove($role); 	
+				}
+			}); 
+		}
+		return parent::___executeEdit();
 	}
 
 	/**
@@ -75,7 +89,8 @@ class ProcessUser extends ProcessPageType {
 		if($user->isSuperuser()) return;
 
 		// if not then we need to do the check below:
-		if($page->roles->has("name=superuser")) {
+		$suRole = $this->wire('roles')->get($this->wire('config')->superUserRolePageID); 
+		if($page->roles->has("name=superuser") || $page->roles->has($suRole)) { // unnecessarily redundant, but might as well
 			throw new WireException($this->_("You may not assign the superuser role")); 
 		}
 	}

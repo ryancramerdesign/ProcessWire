@@ -183,7 +183,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	 * @return PageArray
 	 * 
 	 */
-	public function getSelectablePages(Page $page) {
+	public function ___getSelectablePages(Page $page) {
 
 		$statusUnder = $this->allowUnpub ? Page::statusTrash : Page::statusUnpublished; 
 
