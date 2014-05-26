@@ -88,11 +88,12 @@ class PagePermissions extends WireData implements Module {
 		// special conditions apply if the page is a User
 		if($page instanceof User || $page->template->id == $this->wire('config')->userTemplateID) {
 
-			// if the user page being edited has a superuser role, and the current user doesn't, never let them edit regardless of any other permissions
-			if($page->hasRole('superuser') && !$user->hasRole('superuser')) return false; 
-
 			// if the current process is something other than ProcessUser, they don't have permission
 			if($this->wire('process') != 'ProcessUser') return false; 
+
+			// if the user page being edited has a superuser role, and the current user doesn't, never let them edit regardless of any other permissions
+			$suRole = $this->wire('roles')->get($this->wire('config')->superUserRolePageID); 
+			if($page->roles->has($suRole) && !$user->roles->has($suRole)) return false; 
 
 			// if we reach this point and user has user-admin permission, then they are good
 			if($user->hasPermission('user-admin')) return true; 
