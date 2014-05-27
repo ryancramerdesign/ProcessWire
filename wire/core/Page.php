@@ -826,6 +826,7 @@ class Page extends WireData implements Countable {
 	 */
 	protected function setParent(Page $parent) {
 		if($this->parent && $this->parent->id == $parent->id) return $this; 
+		if($parent->id && $this->id == $parent->id) throw new WireException("Page cannot be its own parent"); 
 		$this->trackChange('parent', $this->parent, $parent);
 		if(($this->parent && $this->parent->id) && $this->parent->id != $parent->id) {
 			if($this->settings['status'] & Page::statusSystem) throw new WireException("Parent changes are disallowed on this page"); 
