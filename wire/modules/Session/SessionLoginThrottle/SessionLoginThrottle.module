@@ -100,12 +100,13 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 						else throw new WireException($error); // ensures the error can't be missed in unknown API usage
 				} else {
 					$allowed = true; 
-					$attempts = 0; // there has been more than $requireSeconds since the previous attempt, so consider this as a first login attempt
-				}
 			} else {
 				$allowed = true; 
 			}
 			$attempts++;
+			
+			// if there has been more than $this->maxSeconds since the previous attempt, so consider this as a first login attempt
+			if ($time - $lastAttempt > $this->maxSeconds) $attempts = 1;
 			
 			$query = $database->prepare('UPDATE session_login_throttle SET attempts=:attempts, last_attempt=:time WHERE name=:name');
 			$query->bindValue(':attempts', $attempts);
