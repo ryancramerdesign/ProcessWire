@@ -19,7 +19,7 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Session Login Throttle', 
-			'version' => 102, 
+			'version' => 103, 
 			'summary' => 
 				'Throttles the frequency of logins for a given account, helps to reduce dictionary attacks ' . 
 				'by introducing an exponential delay between logins.',
@@ -100,6 +100,7 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 						else throw new WireException($error); // ensures the error can't be missed in unknown API usage
 				} else {
 					$allowed = true; 
+					$attempts = 0; // there has been more than $requireSeconds since the previous attempt, so consider this as a first login attempt
 				}
 			} else {
 				$allowed = true; 
