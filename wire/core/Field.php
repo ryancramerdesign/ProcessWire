@@ -402,6 +402,46 @@ class Field extends WireData implements Saveable {
 		return isset($this->settings[$key]); 
 	}
 
+	/**
+	 * Return field label for current language
+	 *
+	 * This is different from $this->label in that it knows about languages (when installed).
+	 *
+	 * @param Page|Language $language Optionally specify a language. If not specified user's current language is used.
+	 * @return string
+	 *
+	 */
+	public function getLabel($language = null) {
+		if(is_null($language)) $language = $this->wire('languages') ? $this->wire('user')->language : null;
+		if($language) {
+			$label = $this->get("label$language");
+			if(!strlen($label)) $label = $this->label;
+		} else {
+			$label = $this->label;
+		}
+		if(!strlen($label)) $label = $this->name;
+		return $label;
+	}
+
+	/**
+	 * Return field description for current language
+	 *
+	 * This is different from $this->description in that it knows about languages (when installed).
+	 *
+	 * @param Page|Language $language Optionally specify a language. If not specified user's current language is used.
+	 * @return string
+	 *
+	 */
+	public function getDescription($language = null) {
+		if(is_null($language)) $language = $this->wire('languages') ? $this->wire('user')->language : null;
+		if($language) {
+			$description = $this->get("description$language");
+			if(!strlen($description)) $description = $this->description;
+		} else {
+			$description = $this->description;
+		}
+		return $description;
+	}
 	
 }
 

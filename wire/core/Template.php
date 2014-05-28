@@ -579,6 +579,28 @@ class Template extends WireData implements Saveable {
 		return $foundParent;
 	}
 
+	/**
+	 * Return template label for current language, or specified language if provided
+	 * 
+	 * If no template label, return template name.
+	 * This is different from $this->label in that it knows about languages (when installed)
+	 * and it will always return something. If there's no label, you'll still get the name. 
+	 * 
+	 * @param Page|Language $language Optional, if not used then user's current language is used
+	 * @return string
+	 * 
+	 */
+	public function getLabel($language = null) {
+		if(is_null($language)) $language = $this->wire('languages') ? $this->wire('user')->language : null;
+		if($language) {
+			$label = $this->get("label$language"); 
+			if(!strlen($label)) $label = $this->label;
+		} else {
+			$label = $this->label;
+		}
+		if(!strlen($label)) $label = $this->name;
+		return $label;
+	}
 
 }
 

@@ -35,6 +35,14 @@ class InputfieldPageTable extends Inputfield {
 	protected $nativeLabels = array();
 
 	/**
+	 * Array of Template objects used for each row
+	 *
+	 * @var array
+	 *
+	 */
+	protected $rowTemplates = array();
+
+	/**
 	 * Initialize and establish default values
 	 * 
 	 */
@@ -42,7 +50,7 @@ class InputfieldPageTable extends Inputfield {
 
 		// fieldtype and inputfield config settings
 		$this->set('parent_id', 0); 
-		$this->set('template_id', 0); 
+		$this->set('template_id', 0); // placeholder only 
 		$this->set('columns', ''); 
 		$this->set('nameFormat', '');
 
@@ -75,7 +83,7 @@ class InputfieldPageTable extends Inputfield {
 
 		// make sure we've got enough info to generate a table
 		$errors = array();
-		if(!$this->template_id) $errors[] = $this->_('Please configure this field with a template selection before using it.');
+		if(!count($this->rowTemplates)) $errors[] = $this->_('Please configure this field with a template selection before using it.');
 		if(!$this->columns) $errors[] = $this->_('Please enter one or more columns in your field settings before using this field.'); 
 		if(count($errors)) return "<p class='ui-state-error'>" . implode('<br />', $errors) . "</p>";
 
@@ -91,20 +99,25 @@ class InputfieldPageTable extends Inputfield {
 		}
 
 		// render the table
-		$out = $this->renderTable($columns); 
+		$out = $this->renderTable($columns);
 
-		// render an 'Add New' button
-		$button = $this->wire('modules')->get('InputfieldButton'); 
-		$editID = (int) $this->wire('input')->get('id'); 
+		$editID = (int) $this->wire('input')->get('id');
 		$parentID = $this->parent_id ? $this->parent_id : $editID;
-		$button->icon = 'plus-circle';
-		$button->value = $this->_x('Add New', 'button'); 
 
-		$url = "../add/?modal=1&template_id=$this->template_id&parent_id=$parentID";
-		if($this->nameFormat) $url .= "&name_format=" . $this->wire('sanitizer')->entities($this->nameFormat);
-		$out .= "<div class='InputfieldPageTableAdd' data-url='$url'>" . $button->render() . "</div>";
+		// render the 'Add New' buttons for each template
+		$btn = '';
+		foreach($this->rowTemplates as $template) { 
+			$button = $this->wire('modules')->get('InputfieldButton'); 
+			$button->icon = 'plus-circle';
+			$button->value = count($this->rowTemplates) == 1 ? $this->_x('Add New', 'button') : $template->getLabel(); 
+	
+			$url = $this->wire('config')->urls->admin . "page/add/?modal=1&template_id=$template->id&parent_id=$parentID";
+			if($this->nameFormat) $url .= "&name_format=" . $this->wire('sanitizer')->entities($this->nameFormat);
+			$btn .= "<span class='InputfieldPageTableAdd' data-url='$url'>" . $button->render() . "</span>";
+		}
+		$out .= "<div class='InputfieldPageTableButtons ui-helper-clearfix'>$btn</div>";
 
-		if(!$this->wire('config')->ajax) { 
+		if(!$this->wire('config')->ajax) {
 			$url = "./?id=$editID&InputfieldPageTableField=$this->name"; 
 			$out = "<div class='InputfieldPageTableContainer' data-url='$url'>$out</div>";
 			// input for sorting purposes
@@ -130,8 +143,8 @@ class InputfieldPageTable extends Inputfield {
 		$value = $this->attr('value'); 
 		if(!count($value)) return ''; // if nothing in the value, just return blank
 		$this->wire('modules')->get('MarkupAdminDataTable'); // for styles
-		$language = $this->wire('languages') ? $this->wire('user')->language : '';
-		$template = $this->template_id ? $this->wire('templates')->get((int) $this->template_id) : null;
+		// $template = $this->template_id ? $this->wire('templates')->get((int) $this->template_id) : null;
+		$template = count($this->rowTemplates) > 0 ? reset($this->rowTemplates) : null;
 		$fields = array();
 		$labels = array();
 
@@ -151,7 +164,7 @@ class InputfieldPageTable extends Inputfield {
 				if(!$parentField) $parentField = $this->wire('fields')->get($parentFieldName); 
 
 				if($parentField) {
-					$label = $parentField->get("label$language|label|name"); 
+					$label = $parentField->getLabel(); 
 
 				} else if(isset($this->nativeLabels[$parentFieldName])) {
 					$label = $this->nativeLabels[$parentFieldName]; 
@@ -167,7 +180,7 @@ class InputfieldPageTable extends Inputfield {
 			if(!$field) $field = $this->wire('fields')->get($fieldName); 	
 
 			if($field) {
-				$label .= $field->get("label$language|label|name"); 
+				$label .= $field->getLabel(); 
 				$fields[$column] = $field; 
 
 			} else if(isset($this->nativeLabels[$fieldName])) { 
@@ -401,6 +414,24 @@ class InputfieldPageTable extends Inputfield {
 	}
 
 	/**
+	 * Set a property to this Inputfield
+	 *
+	 */
+	public function set($key, $value) {
+		if($key == 'template_id' && $value) {
+			// convert template_id to $this->rowTemplates array
+			if(!is_array($value)) $value = array($value);	
+			foreach($value as $id) {
+				$template = $this->wire('templates')->get($id); 
+				if($template) $this->rowTemplates[$id] = $template;
+			}
+			return $this; 
+		} else {
+			return parent::set($key, $value);
+		}
+	}
+
+	/**
 	 * Set an attribute to the Inputfield
 	 *
 	 * In this case we capture set to the 'value' attribute to make sure it can only be a PageArray
@@ -427,12 +458,22 @@ class InputfieldPageTable extends Inputfield {
 	 */
 	protected function getConfigDefaultColumns() {
 		$out = '';
-		if(!$this->template_id) return $out;
-		$template = $this->wire('templates')->get((int) $this->template_id); 
-		if(!$template) return $out;
+		if(!count($this->rowTemplates)) return $out;
+	
+		$fieldCounts = array();
+		foreach($this->rowTemplates as $template) {
+			foreach($template->fieldgroup as $field) {
+				if(!isset($fieldCounts[$field->name])) $fieldCounts[$field->name] = 1; 
+					else $fieldCounts[$field->name]++; 
+			}
+		}
+	
+		// sort most used to least used
+		if(count($this->rowTemplates) > 1) arsort($fieldCounts); 
+		
 		$n = 0;
-		foreach($template->fieldgroup as $field) {
-			$out .= $field->name . "\n";	
+		foreach(array_keys($fieldCounts) as $fieldName) {
+			$out .= $fieldName . "\n";	
 			if(++$n >= 5) break;
 		}
 		return trim($out); 
@@ -455,12 +496,12 @@ class InputfieldPageTable extends Inputfield {
 		$columns = $this->columns ? $this->columns : $this->getConfigDefaultColumns();
 		$f->attr('value', $columns); 
 
-		$template = $this->template_id ? $this->wire('templates')->get((int) $this->template_id) : null;
-
-		if($template) {
+		if(count($this->rowTemplates)) {
 			$options = array();
-			foreach($template->fieldgroup as $item) $options[$item->name] = $item->name; 
-			$f->notes .= $this->_('Custom fields assigned to your selected template include the following:') . ' **';
+			foreach($this->rowTemplates as $template) { 
+				foreach($template->fieldgroup as $item) $options[$item->name] = $item->name; 
+			}
+			$f->notes .= $this->_('Custom fields assigned to your selected templates include the following:') . ' **';
 			$f->notes .= implode(', ', $options) . '**';
 		} else {
 			$f->notes .= $this->_('To see a list of possible custom fields here, select a template on the Details tab, Save, and come back here.'); 

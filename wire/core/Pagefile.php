@@ -144,7 +144,7 @@ class Pagefile extends WireData {
 	 * Set a description, optionally parsing JSON language-specific descriptions to separate properties
 	 *
 	 * @param string $value
-	 * @param Language Langage to set it for. Omit to determine automatically. 
+	 * @param Page|Language Langage to set it for. Omit to determine automatically. 
 	 * @return this
 	 *
 	 */
@@ -243,7 +243,8 @@ class Pagefile extends WireData {
 					if(empty($v)) continue; 
 					$values[$lang->id] = $v; 
 				}
-				$value = json_encode($values); 
+				$flags = defined("JSON_UNESCAPED_UNICODE") ? JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES : 0; // more fulltext friendly
+				$value = json_encode($values, $flags); 
 				
 			} else {
 				// no languages present so just return string with description
