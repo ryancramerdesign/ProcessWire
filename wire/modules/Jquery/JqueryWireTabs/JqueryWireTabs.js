@@ -41,6 +41,26 @@
 				var $rememberTab = null;
 				var cookieTab = getTabCookie(); 
 
+				var hash = document.location.hash || "",
+					hashPrefix = "#tab-",
+					$activeTab,
+					hashDataKey = "WireTabsHash",
+					$tabs = $tabList.find("a");
+
+				$tabs.each(function() {
+					var $t = $(this);
+					var hashData = hashPrefix + $t.html().toLowerCase();
+					$t.data(hashDataKey, hashData);
+					if(hash === hashData) { $activeTab = $t; }
+
+				$tabs.click(function(e){
+					var newHash;
+					e.preventDefault();
+					if(newHash = $(this).data(hashDataKey)) {
+						document.location.hash = newHash;
+					}
+				});
+
 				if(options.rememberTabs == 0) {
 					$form.submit(function() { 
 						setTabCookie(lastTabID); 
@@ -52,8 +72,10 @@
 				if($rememberTab && $rememberTab.size() > 0) {
 					$rememberTab.click();
 					if(options.rememberTabs == 0) setTabCookie(''); // don't clear cookie when rememberTabs=1, so it continues
+				} else if($activeTab) {
+					$activeTab.click();
 				} else {
-					$tabList.children("li:first").children("a").click();
+					$tabs.first().click();
 				}
 			}
 
