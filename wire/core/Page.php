@@ -323,11 +323,12 @@ class Page extends WireData implements Countable {
 			if(!$field->type->isAutoload() && !isset($this->data[$name])) continue; // important for draft loading
 			$value = $this->get($name); 
 			// no need to clone non-objects, as they've already been cloned
-			if(!is_object($value)) continue;
-			// if value doesn't resolve to a page, then create a clone of it
-			if(!$value instanceof Page) $this->set($name, clone $value); // attempt re-commit
+			// no need to clone Page objects as we still want to reference the original page
+			if(!is_object($value) || $value instanceof Page) continue;
+			$value2 = clone $value; 
+			$this->set($name, $value2); // commit cloned value
 			// if value is Pagefiles, then tell it the new page
-			if($value instanceof Pagefiles) $this->get($name)->setPage($this); 
+			if($value2 instanceof Pagefiles) $value2->setPage($this); 
 
 		}
 		$this->instanceID .= ".clone";

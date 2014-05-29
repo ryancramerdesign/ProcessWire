@@ -63,6 +63,7 @@ class PagefilesManager extends Wire {
 	 */
 	public function init(Page $page) {
 		$this->setPage($page); 
+		$this->path = null; // to uncache, if this PagefilesManager has been cloned
 		$this->createPath();
 	}
 
@@ -115,7 +116,14 @@ class PagefilesManager extends Wire {
 				continue; 
 			}
 			if($file->isFile()) {
-				if(copy($file->getPathname(), $toPath . $file->getFilename())) $numCopied++;
+				$fromFile = $file->getPathname();
+				$toFile = $toPath . $file->getFilename();
+				if(copy($fromFile, $toFile)) {
+					$numCopied++;
+					// $this->message("Copied $fromFile => $toFile", Notice::debug); 
+				} else {
+					$this->error("Failed to copy: $fromFile"); 
+				}
 			}
 		}
 
