@@ -1446,8 +1446,7 @@ class ImageSizer extends Wire {
 	 * @param mixed $targetHeight  height of the targetimage
 	 *
 	 */
-	#protected function calculateUSMfactor($targetWidth, $targetHeight, $origWidth=null, $origHeight=null) {
-	public function calculateUSMfactor($targetWidth, $targetHeight, $origWidth=null, $origHeight=null) {
+	protected function calculateUSMfactor($targetWidth, $targetHeight, $origWidth=null, $origHeight=null) {
 
 		if(null===$origWidth) $origWidth = $this->getWidth();
 		if(null===$origHeight) $origHeight = $this->getHeight();
