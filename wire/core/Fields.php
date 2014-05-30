@@ -263,7 +263,10 @@ class Fields extends WireSaveableItems {
 		if(!$item->id) throw new WireException("Unable to delete from '" . $item->getTable() . "' for field that doesn't exist in fields table"); 
 
 		// if it's in use by any fieldgroups, then we don't allow it to be deleted
-		if($item->numFieldgroups()) throw new WireException("Unable to delete field '{$item->name}' because it is in use by " . $item->numFieldgroups() . " fieldgroups"); 
+		if($item->numFieldgroups()) {
+			$fieldgroupNames = $item->getFieldgroups()->implode("', '", "name");			
+			throw new WireException("Unable to delete field '{$item->name}' because it is in use by these fieldgroups: '$fieldgroupNames'");
+		}
 
 		// if it's a system field, it may not be deleted
 		if($item->flags & Field::flagSystem) throw new WireException("Unable to delete field '{$item->name}' because it is a system field."); 
