@@ -100,7 +100,7 @@ class ProcessPageType extends Process implements ConfigurableModule {
 		$pages = $this->pages->find($selector); 
 
 		foreach($pages as $page) {
-			if(!$page->editable()) continue; 
+			if(!$page->editable()) continue;
 			$n = 0; 
 			$row = array();
 			foreach($fieldNames as $name) {
