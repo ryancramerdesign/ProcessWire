@@ -622,8 +622,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			}
 			$operator = ltrim($operator, $this->operatorTrimChars); 
 			//$label .= " ($operator)";
-			$selected = $operator == $selectedValue ? ' selected' : '';
-			$out .= "<option$selected value='$operator'>$label</option>";
+			$selected = $operator === $selectedValue ? ' selected' : '';
+			$out .= "<option$selected value='" . $this->wire('sanitizer')->entities($operator) . "'>$label</option>";
 		}
 		
 		$out .= "</select>";
@@ -740,7 +740,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		}
 
 		// determine which operators should be used
-		if($type == 'text' && $selectedValue = '""' && in_array($selectedOperator, array('=', '!='))) {
+		if($type == 'text' && $selectedValue == '""' && in_array($selectedOperator, array('=', '!='))) {
 			// add blank quoted string to operator, to match up with our "has value" or "does not hae value" operators
 			$selectedOperator .= '""';
 			$selectedValue = '';
