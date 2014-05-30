@@ -63,6 +63,22 @@ class Selectors extends WireArray {
 	}
 
 	/**
+	 * Import items into this WireArray.
+	 * 
+	 * @throws WireException
+	 * @param string|WireArray $items Items to import.
+	 * @return WireArray This instance.
+	 *
+	 */
+	public function import($items) {
+		if(is_string($items)) {
+			$this->extractString($items); 	
+		} else {
+			return parent::import($items); 
+		}
+	}
+
+	/**
 	 * Per WireArray interface, return true if the item is a Selector instance
 	 *
 	 */
@@ -75,7 +91,7 @@ class Selectors extends WireArray {
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Selector();
+		return new SelectorEqual('','');
 	}
 
 	/**
@@ -214,12 +230,13 @@ class Selectors extends WireArray {
 		}
 
 	}
-
+	
 	/**
 	 * Given a string like name@field=... or @field=... extract the part that comes before the @
 	 *
 	 * This part indicates the group name, which may also be blank to indicate grouping with other blank grouped items
 	 *
+	 * @param string $str
 	 * @return null|string
 	 *
 	 */
@@ -243,6 +260,12 @@ class Selectors extends WireArray {
 	 */
 	protected function extractField(&$str) {
 		$field = '';
+		
+		if(strpos($str, '(') === 0) {
+			// OR selector where specification of field name is optional and = operator is assumed
+			$str = '=(' . substr($str, 1); 
+			return $field; 
+		}
 
 		if(preg_match('/^(!?[_|.a-zA-Z0-9]+)(.*)/', $str, $matches)) {
 
