@@ -200,11 +200,11 @@ class Templates extends WireSaveableItems {
 			$pages = wire("pages")->find("template.id={$item->id}");
 			
 			// implode by names
-			$pageNames = "'" . $pages->implode("', '", "name") . "'";
+			$pageNames = $pages->implode("', '", "name");
 			// or even implode by paths
-			// $pageNames = "'" . $pages->implode("', '", "path") . "'";
+			// $pageNames = $pages->implode("', '", "path");
 
-			throw new WireException("Can't delete template '{$item->name}' because it is used by these pages: $pageNames");
+			throw new WireException("Can't delete template '{$item->name}' because it is used by these pages: '$pageNames'");
 		}
 
 		return parent::___delete($item);
