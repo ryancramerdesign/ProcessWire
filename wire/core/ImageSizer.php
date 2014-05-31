@@ -252,11 +252,9 @@ class ImageSizer extends Wire {
 
 		$orientations = null; // @horst
 		$needRotation = $this->autoRotation !== true ? false : ($this->checkOrientation($orientations) && (!empty($orientations[0]) || !empty($orientations[1])) ? true : false);
-		$needResizing = $this->isResizeNecessary($targetWidth, $targetHeight);
-		if(!$needResizing && !$needRotation) return true;
 
 		$source = $this->filename;
-		$dest = str_replace("." . $this->extension, "_tmp." . $this->extension, $source); 
+		$dest = str_replace("." . $this->extension, "_tmp." . $this->extension, $source);
 		$image = null;
 
 		switch($this->imageType) { // @teppo
@@ -267,8 +265,8 @@ class ImageSizer extends Wire {
 
 		if(!$image) return false;
 
-		if($this->imageType != IMAGETYPE_PNG || !$this->hasAlphaChannel()) { 
-			// @horst: linearize gamma to 1.0 - we do not use gamma correction with pngs containing alphachannel, because GD-lib  doesn't respect transparency here (is buggy) 
+		if($this->imageType != IMAGETYPE_PNG || !$this->hasAlphaChannel()) {
+			// @horst: linearize gamma to 1.0 - we do not use gamma correction with pngs containing alphachannel, because GD-lib  doesn't respect transparency here (is buggy)
 			$this->gammaCorrection($image, true);
 		}
 
@@ -284,115 +282,51 @@ class ImageSizer extends Wire {
 			}
 		}
 
-		if($needResizing) {
 
-			list($gdWidth, $gdHeight, $targetWidth, $targetHeight) = $this->getResizeDimensions($targetWidth, $targetHeight); 
+		// here we check for cropping, upscaling, sharpening
+		// we get all dimensions at first, before any image operation !
+		list($gdWidth, $gdHeight, $targetWidth, $targetHeight) = $this->getResizeDimensions($targetWidth, $targetHeight);
+		$x1 = ($gdWidth / 2) - ($targetWidth / 2);
+		$y1 = ($gdHeight / 2) - ($targetHeight / 2);
+		$this->getCropDimensions($x1, $y1, $gdWidth, $targetWidth, $gdHeight, $targetHeight);
 
-			$thumb = imagecreatetruecolor($gdWidth, $gdHeight);  
+		// now lets check what operations are necessary:
+		if($gdWidth==$targetWidth && $gdWidth==$this->image['width'] && $gdHeight==$this->image['height'] && $gdHeight==$targetHeight) {
 
-			if($this->imageType == IMAGETYPE_PNG) { 
-				// @adamkiss PNG transparency
-				imagealphablending($thumb, false); 
-				imagesavealpha($thumb, true); 
+			// this is the case if the original size is requested or a greater size but upscaling is set to false
+		
+			@imagedestroy($image); 
+			return true;
 
-			} else if($this->imageType == IMAGETYPE_GIF) {
-				// @mrx GIF transparency
-				$transparentIndex = ImageColorTransparent($image);
-				$transparentColor = $transparentIndex != -1 ? ImageColorsForIndex($image, $transparentIndex) : 0;
-				if(!empty($transparentColor)) {
-					$transparentNew = ImageColorAllocate($thumb, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
-					$transparentNewIndex = ImageColorTransparent($thumb, $transparentNew);
-					ImageFill($thumb, 0, 0, $transparentNewIndex);
-				}
+		} elseif($gdWidth==$targetWidth && $gdHeight==$targetHeight) {
 
-			} else {
-				$bgcolor = imagecolorallocate($thumb, 0, 0, 0);  
-				imagefilledrectangle($thumb, 0, 0, $gdWidth, $gdHeight, $bgcolor);
-				imagealphablending($thumb, false);
-			}
+			// this is the case if we scale up or down _without_ cropping
 
+			$thumb = imagecreatetruecolor($gdWidth, $gdHeight);
+			$this->prepareImageLayer($thumb, $image);
 			imagecopyresampled($thumb, $image, 0, 0, 0, 0, $gdWidth, $gdHeight, $this->image['width'], $this->image['height']);
-			$thumb2 = imagecreatetruecolor($targetWidth, $targetHeight);
 
-			if($this->imageType == IMAGETYPE_PNG) { 
-				// @adamkiss PNG transparency
-				imagealphablending($thumb2, false); 
-				imagesavealpha($thumb2, true); 
+		} else {
 
-			} else if($this->imageType == IMAGETYPE_GIF) {
-				// @mrx GIF transparency
-				if(!empty($transparentColor)) {
-					$transparentNew = ImageColorAllocate($thumb2, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
-					$transparentNewIndex = ImageColorTransparent($thumb2, $transparentNew);
-					ImageFill($thumb2, 0, 0, $transparentNewIndex);
-				}
+			// we have to scale up or down and to _crop_
 
-			} else {
-				$bgcolor = imagecolorallocate($thumb2, 0, 0, 0);  
-				imagefilledrectangle($thumb2, 0, 0, $targetWidth, $targetHeight, 0);
-				imagealphablending($thumb2, false);
-			}
+			$thumb2 = imagecreatetruecolor($gdWidth, $gdHeight);
+			$this->prepareImageLayer($thumb2, $image);
+			imagecopyresampled($thumb2, $image, 0, 0, 0, 0, $gdWidth, $gdHeight, $this->image['width'], $this->image['height']);
 
-			$w1 = ($gdWidth / 2) - ($targetWidth / 2);
-			$h1 = ($gdHeight / 2) - ($targetHeight / 2);
+			$thumb = imagecreatetruecolor($targetWidth, $targetHeight);
+			$this->prepareImageLayer($thumb, $image);
+			imagecopyresampled($thumb, $thumb2, 0, 0, $x1, $y1, $targetWidth, $targetHeight, $targetWidth, $targetHeight);
+			imagedestroy($thumb2);
 
-			if(is_string($this->cropping)) switch($this->cropping) { 
-				// @interrobang crop directions
-				case 'nw':
-					$w1 = 0;
-					$h1 = 0;
-					break;
-				case 'n':
-					$h1 = 0;
-					break;
-				case 'ne':
-					$w1 = $gdWidth - $targetWidth;
-					$h1 = 0;
-					break;
-				case 'w':
-					$w1 = 0;
-					break;
-				case 'e':
-					$w1 = $gdWidth - $targetWidth;
-					break;
-				case 'sw':
-					$w1 = 0;
-					$h1 = $gdHeight - $targetHeight;
-					break;
-				case 's':
-					$h1 = $gdHeight - $targetHeight;
-					break;
-				case 'se':
-					$w1 = $gdWidth - $targetWidth;
-					$h1 = $gdHeight - $targetHeight;
-					break;
-				default: // center or false, we do nothing
+		}
 
-			} else if(is_array($this->cropping)) {
-				// @interrobang + @u-nikos
-				if(strpos($this->cropping[0], '%') === false) $pointX = (int) $this->cropping[0];
-					else $pointX = $gdWidth * ((int) $this->cropping[0] / 100);
-
-				if(strpos($this->cropping[1], '%') === false) $pointY = (int) $this->cropping[1];
-					else $pointY = $gdHeight * ((int) $this->cropping[1] / 100);
-
-				if($pointX < $targetWidth / 2) $w1 = 0;
-					else if($pointX > ($gdWidth - $targetWidth / 2)) $w1 = $gdWidth - $targetWidth;
-					else $w1 = $pointX - $targetWidth / 2;
-
-				if($pointY < $targetHeight / 2) $h1 = 0;
-					else if($pointY > ($gdHeight - $targetHeight / 2)) $h1 = $gdHeight - $targetHeight;
-					else $h1 = $pointY - $targetHeight / 2;
-			}
-
-			imagecopyresampled($thumb2, $thumb, 0, 0, $w1, $h1, $targetWidth, $targetHeight, $targetWidth, $targetHeight);
-
-			if($this->sharpening && $this->sharpening != 'none') { // @horst
-				if(IMAGETYPE_PNG != $this->imageType || ! $this->hasAlphaChannel()) {
-					// is needed for the USM sharpening function to calculate the best sharpening params
-					$this->usmValue = $this->calculateUSMfactor($targetWidth, $targetHeight);
-					$image = $this->imSharpen($thumb2, $this->sharpening);
-				}
+		// optionally apply sharpening to the final thumb
+		if($this->sharpening && $this->sharpening != 'none') { // @horst
+			if(IMAGETYPE_PNG != $this->imageType || ! $this->hasAlphaChannel()) {
+				// is needed for the USM sharpening function to calculate the best sharpening params
+				$this->usmValue = $this->calculateUSMfactor($targetWidth, $targetHeight);
+				$thumb = $this->imSharpen($thumb, $this->sharpening);
 			}
 		}
 
@@ -401,18 +335,18 @@ class ImageSizer extends Wire {
 		switch($this->imageType) {
 			case IMAGETYPE_GIF:
 				// correct gamma from linearized 1.0 back to 2.0
-				$this->gammaCorrection($thumb2, false);
-				$result = imagegif($thumb2, $dest); 
+				$this->gammaCorrection($thumb, false);
+				$result = imagegif($thumb, $dest);
 				break;
-			case IMAGETYPE_PNG: 
-				if(!$this->hasAlphaChannel()) $this->gammaCorrection($thumb2, false);
+			case IMAGETYPE_PNG:
+				if(! $this->hasAlphaChannel()) $this->gammaCorrection($thumb, false);
 				// always use highest compression level for PNG (9) per @horst
-				$result = imagepng($thumb2, $dest, 9);
+				$result = imagepng($thumb, $dest, 9);
 				break;
 			case IMAGETYPE_JPEG:
 				// correct gamma from linearized 1.0 back to 2.0
-				$this->gammaCorrection($thumb2, false);
-				$result = imagejpeg($thumb2, $dest, $this->quality); 
+				$this->gammaCorrection($thumb, false);
+				$result = imagejpeg($thumb, $dest, $this->quality);
 				break;
 		}
 
@@ -421,18 +355,18 @@ class ImageSizer extends Wire {
 		if(isset($thumb2) && is_resource($thumb2)) @imagedestroy($thumb2); // @horst
 
 		if($result === false) {
-			if(is_file($dest)) @unlink($dest); 
+			if(is_file($dest)) @unlink($dest);
 			return false;
 		}
 
-		unlink($source); 
-		rename($dest, $source); 
+		unlink($source);
+		rename($dest, $source);
 
 		// @horst: if we've retrieved IPTC-Metadata from sourcefile, we write it back now
 		if($this->iptcRaw) {
 			$content = iptcembed($this->iptcPrepareData(), $this->filename);
 			if($content !== false) {
-				$dest = preg_replace('/\.' . $this->extension . '$/', '_tmp.' . $this->extension, $this->filename); 
+				$dest = preg_replace('/\.' . $this->extension . '$/', '_tmp.' . $this->extension, $this->filename);
 				if(strlen($content) == @file_put_contents($dest, $content, LOCK_EX)) {
 					// on success we replace the file
 					unlink($this->filename);
@@ -444,9 +378,9 @@ class ImageSizer extends Wire {
 			}
 		}
 
-		$this->loadImageInfo($this->filename); 
-		$this->modified = true; 
-		
+		$this->loadImageInfo($this->filename);
+		$this->modified = true;
+
 		return true;
 	}
 
@@ -1495,6 +1429,109 @@ class ImageSizer extends Wire {
 		$res = $res < 0 ? $res * -1 : $res; // avoid negative numbers
 
 		return $res;
+	}
+
+	/**
+	 * prepares a new created GD image resource according to the IMAGETYPE
+	 *
+	 * Intended for use by the resize() method
+	 *
+	 * @param GD-resource $im, destination resource needs to be prepared
+	 * @param GD-resource $image, with GIF we need to read from source resource
+	 * @return void
+	 *
+	 */
+	protected function prepareImageLayer(&$im, &$image) {
+
+		if($this->imageType == IMAGETYPE_PNG) {
+			// @adamkiss PNG transparency
+			imagealphablending($im, false);
+			imagesavealpha($im, true);
+
+		} else if($this->imageType == IMAGETYPE_GIF) {
+			// @mrx GIF transparency
+			$transparentIndex = imagecolortransparent($image);
+			$transparentColor = $transparentIndex != -1 ? imagecolorsforindex($image, $transparentIndex) : 0;
+			if(!empty($transparentColor)) {
+				$transparentNew = imagecolorallocate($im, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+				$transparentNewIndex = imagecolortransparent($im, $transparentNew);
+				imagefill($im, 0, 0, $transparentNewIndex);
+			}
+
+		} else {
+			$bgcolor = imagecolorallocate($im, 0, 0, 0);
+			imagefilledrectangle($im, 0, 0, imagesx($im), imagesy($im), $bgcolor);
+			imagealphablending($im, false);
+		}
+
+	}
+
+	/**
+	 * check if cropping is needed, if yes, populate x- and y-position to params $w1 and $h1
+	 *
+	 * Intended for use by the resize() method
+	 *
+	 * @param int $w1 - byReference
+	 * @param int $h1 - byReference
+	 * @param int $gdWidth
+	 * @param int $targetWidth
+	 * @param int $gdHeight
+	 * @param int $targetHeight
+	 * @return void
+	 *
+	 */
+	protected function getCropDimensions(&$w1, &$h1, $gdWidth, $targetWidth, $gdHeight, $targetHeight) {
+
+		if(is_string($this->cropping)) {
+			switch($this->cropping) {
+				case 'nw':
+					$w1 = 0;
+					$h1 = 0;
+					break;
+				case 'n':
+					$h1 = 0;
+					break;
+				case 'ne':
+					$w1 = $gdWidth - $targetWidth;
+					$h1 = 0;
+					break;
+				case 'w':
+					$w1 = 0;
+					break;
+				case 'e':
+					$w1 = $gdWidth - $targetWidth;
+					break;
+				case 'sw':
+					$w1 = 0;
+					$h1 = $gdHeight - $targetHeight;
+					break;
+				case 's':
+					$h1 = $gdHeight - $targetHeight;
+					break;
+				case 'se':
+					$w1 = $gdWidth - $targetWidth;
+					$h1 = $gdHeight - $targetHeight;
+					break;
+				default: // center or false, we do nothing
+			}
+		}
+		elseif(is_array($this->cropping)) {
+			// @interrobang + @u-nikos
+			if(strpos($this->cropping[0], '%') === false) $pointX = (int) $this->cropping[0];
+				else $pointX = $gdWidth * ((int) $this->cropping[0] / 100);
+
+			if(strpos($this->cropping[1], '%') === false) $pointY = (int) $this->cropping[1];
+				else $pointY = $gdHeight * ((int) $this->cropping[1] / 100);
+
+			if($pointX < $targetWidth / 2) $w1 = 0;
+				else if($pointX > ($gdWidth - $targetWidth / 2)) $w1 = $gdWidth - $targetWidth;
+				else $w1 = $pointX - $targetWidth / 2;
+
+			if($pointY < $targetHeight / 2) $h1 = 0;
+				else if($pointY > ($gdHeight - $targetHeight / 2)) $h1 = $gdHeight - $targetHeight;
+				else $h1 = $pointY - $targetHeight / 2;
+		}
+
 	}
 
 }
