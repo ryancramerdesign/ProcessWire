@@ -107,8 +107,10 @@ class ImageSizer extends Wire {
 	protected $sharpening = 'soft';
 
 	/**
-	 * default gamma correction: 2.2 | 2.0 | 1.8 
-	 * can be overridden by setting it to $config->imageSizerOptions[defaultGamma]
+	 * default gamma correction: 0.5 - 4.0 | -1 to disable gammacorrection, default = 2.0
+	 * 
+	 * can be overridden by setting it to $config->imageSizerOptions['defaultGamma']
+	 * or passing it along with image options array
 	 * 
 	 */
 	protected $defaultGamma = 2.0;
@@ -153,6 +155,12 @@ class ImageSizer extends Wire {
 		'jpeg' => IMAGETYPE_JPEG,
 		'png' => IMAGETYPE_PNG,
 		);
+
+	/**
+	 * Indicates how much an image should be sharpened
+	 * 
+	 */
+	protected $usmValue = 100; 
 
 	/**
 	 * Result of iptcparse(), if available
@@ -261,7 +269,7 @@ class ImageSizer extends Wire {
 
 		if($this->imageType != IMAGETYPE_PNG || !$this->hasAlphaChannel()) { 
 			// @horst: linearize gamma to 1.0 - we do not use gamma correction with pngs containing alphachannel, because GD-lib  doesn't respect transparency here (is buggy) 
-			imagegammacorrect($image, $this->defaultGamma, 1.0);
+			$this->gammaCorrection($image, true);
 		}
 
 		if($needRotation) { // @horst
@@ -381,6 +389,8 @@ class ImageSizer extends Wire {
 
 			if($this->sharpening && $this->sharpening != 'none') { // @horst
 				if(IMAGETYPE_PNG != $this->imageType || ! $this->hasAlphaChannel()) {
+					// is needed for the USM sharpening function to calculate the best sharpening params
+					$this->usmValue = $this->calculateUSMfactor($targetWidth, $targetHeight);
 					$image = $this->imSharpen($thumb2, $this->sharpening);
 				}
 			}
@@ -391,17 +401,17 @@ class ImageSizer extends Wire {
 		switch($this->imageType) {
 			case IMAGETYPE_GIF:
 				// correct gamma from linearized 1.0 back to 2.0
-				imagegammacorrect($thumb2, 1.0, $this->defaultGamma);
+				$this->gammaCorrection($thumb2, false);
 				$result = imagegif($thumb2, $dest); 
 				break;
 			case IMAGETYPE_PNG: 
-				if(! $this->hasAlphaChannel()) imagegammacorrect($thumb2, 1.0, $this->defaultGamma);
+				if(!$this->hasAlphaChannel()) $this->gammaCorrection($thumb2, false);
 				// always use highest compression level for PNG (9) per @horst
 				$result = imagepng($thumb2, $dest, 9);
 				break;
 			case IMAGETYPE_JPEG:
 				// correct gamma from linearized 1.0 back to 2.0
-				imagegammacorrect($thumb2, 1.0, $this->defaultGamma);
+				$this->gammaCorrection($thumb2, false);
 				$result = imagejpeg($thumb2, $dest, $this->quality); 
 				break;
 		}
@@ -789,18 +799,18 @@ class ImageSizer extends Wire {
 	}
 
 	/**
-	 * Set default gamma value: 2.2 | 2.0 | 1.8
+	 * Set default gamma value: 0.5 - 4.0 | -1
 	 *
-	 * @param float $value
+	 * @param float|int $value 0.5 to 4.0 or -1 to disable
 	 * @return $this
 	 * @throws WireException when given invalid value
 	 *
 	 */
 	public function setDefaultGamma($value = 2.0) {
-		if($value === 2.2 || $value === 2.0 || $value === 1.8) {
+		if($value === -1 || ($value >= 0.5 && $value <= 4.0)) {
 			$this->defaultGamma = $value;
 		} else {
-			throw new WireException('Invalid defaultGamma value - must be 2.2, 2.0 or 1.8.'); 
+			throw new WireException('Invalid defaultGamma value - must be 0.5 - 4.0 or -1 to disable gammacorrection');
 		}
 		return $this; 
 	}
@@ -1007,6 +1017,11 @@ class ImageSizer extends Wire {
 	 */
 	protected function imSharpen($im, $mode) {
 
+		// check if we have to use an individual value for "useUSM"
+		if(isset($this->options['useUSM'])) {
+			$this->useUSM = $this->getBooleanValue($this->options['useUSM']);
+		}
+
 		// due to a bug in PHP's bundled GD-Lib with the function imageconvolution in some PHP versions
 		// we have to bypass this for those who have to run on this PHP versions
 		// see: https://bugs.php.net/bug.php?id=66714
@@ -1040,10 +1055,16 @@ class ImageSizer extends Wire {
 				default:
 					$amount=100;
 					$radius=0.5;
-					$threshold=3;
+					$threshold=7;
 					break;
 			}
 
+			// calculate the final amount according to the usmValue
+			$this->usmValue = $this->usmValue < 0 ? 0 : ($this->usmValue > 100 ? 100 : $this->usmValue);
+			if(0 == $this->usmValue) return $im;
+			$amount = intval($amount / 100 * $this->usmValue);
+
+			// apply unsharp mask filter
 			return $this->UnsharpMask($im, $amount, $radius, $threshold);
 		}
 
@@ -1220,6 +1241,28 @@ class ImageSizer extends Wire {
 		return $a['alpha'];	
 	}
 
+	/**
+	 * apply GammaCorrection to an image (@horst)
+	 * 
+	 * with mode = true it linearizes an image to 1
+	 * with mode = false it set it back to the originating gamma value
+	 *
+	 * @param GD-image-resource $image
+	 * @param boolean $mode
+	 *
+	 */
+	protected function gammaCorrection(&$image, $mode) {
+		if(-1 == $this->defaultGamma || !is_bool($mode)) return;
+		if($mode) {
+			// linearizes to 1.0
+			if(imagegammacorrect($image, $this->defaultGamma, 1.0)) $this->gammaLinearized = true;
+		} else {
+			if(!isset($this->gammaLinearized) || !$this->gammaLinearized) return;
+			// switch back to original Gamma
+			if(imagegammacorrect($image, 1.0, $this->defaultGamma)) unset($this->gammaLinearized);
+		}
+	}
+
 
 	/**
 	 * reads a 4-byte integer from file (@horst)
@@ -1394,6 +1437,64 @@ class ImageSizer extends Wire {
 		imagedestroy($imgBlur);
 
 		return $img;
+	}
+
+	/**
+	 * return an integer value indicating how much an image should be sharpened
+	 * according to resizing scalevalue and absolute target dimensions
+	 *
+	 * @param mixed $targetWidth width of the targetimage
+	 * @param mixed $targetHeight height of the targetimage
+	 * @param mixed $origWidth
+	 * @param mixed $origHeight
+	 * @return int
+	 *
+	 */
+	protected function calculateUSMfactor($targetWidth, $targetHeight, $origWidth = null, $origHeight = null) {
+
+		if(null === $origWidth) $origWidth = $this->getWidth();
+		if(null === $origHeight) $origHeight = $this->getHeight();
+		$w = ceil($targetWidth / $origWidth * 100);
+		$h = ceil($targetHeight / $origHeight * 100);
+
+		// select the resizing scalevalue with check for crop images
+		if($w==$h || ($w-1)==$h || ($w+1)==$h) {  // equal, no crop
+			$resizingScalevalue = $w;
+			$target = $targetWidth;
+		}
+		else { // crop
+			if(($w<$h && $w<100) || ($w>$h && $h>100)) {
+				$resizingScalevalue = $w;
+				$target = $targetWidth;
+			}
+			elseif(($w<$h && $w>100) || ($w>$h && $h<100)) {
+				$resizingScalevalue = $h;
+				$target = $targetHeight;
+			}
+		}
+
+		// adjusting with respect to the scalefactor
+		$resizingScalevalue = ($resizingScalevalue * -1) + 100;
+		$resizingScalevalue = $resizingScalevalue < 0 ? $resizingScalevalue * -1 : $resizingScalevalue;
+		if($resizingScalevalue>0 && $resizingScalevalue<10) $resizingScalevalue += 15;
+		elseif($resizingScalevalue>9 && $resizingScalevalue<25) $resizingScalevalue += 20;
+		elseif($resizingScalevalue>24 && $resizingScalevalue<40) $resizingScalevalue += 35;
+		elseif($resizingScalevalue>39 && $resizingScalevalue<55) $resizingScalevalue += 20;
+		elseif($resizingScalevalue>54 && $resizingScalevalue<70) $resizingScalevalue +=  5;
+		elseif($resizingScalevalue>69 && $resizingScalevalue<80) $resizingScalevalue -= 10;
+
+		// adjusting with respect to absolute dimensions
+		if($target < 50) $res = intval($resizingScalevalue / 18 * 3);
+		elseif($target < 100) $res = intval($resizingScalevalue / 18 * 4);
+		elseif($target < 200) $res = intval($resizingScalevalue / 18 * 6);
+		elseif($target < 300) $res = intval($resizingScalevalue / 18 * 8);
+		elseif($target < 400) $res = intval($resizingScalevalue / 18 * 10);
+		elseif($target < 500) $res = intval($resizingScalevalue / 18 * 12);
+		elseif($target < 600) $res = intval($resizingScalevalue / 18 * 15);
+		elseif($target > 599) $res = $resizingScalevalue;
+		$res = $res < 0 ? $res * -1 : $res; // avoid negative numbers
+
+		return $res;
 	}
 
 }
