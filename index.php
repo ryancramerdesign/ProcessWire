@@ -108,6 +108,14 @@ function ProcessWireBootConfig() {
 	$config->paths->sessions = $config->paths->assets . "sessions/";
 
 	/*
+	 * Setup required software versions
+	 *
+	 */
+	$config->versions = new WireData();
+	$config->versions->php   = '5.3.8';
+	$config->versions->mysql = '5.0.15';
+
+	/*
 	 * Styles and scripts are CSS and JS files, as used by the admin application.
 	 * But reserved here if needed by other apps and templates.
 	 *
