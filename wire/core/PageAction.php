@@ -14,7 +14,6 @@ abstract class PageAction extends WireAction implements Module {
 	 *
 	 * @return array
 	 *
-	 */
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'PageAction (abstract)', 
@@ -22,6 +21,7 @@ abstract class PageAction extends WireAction implements Module {
 			'version' => 0
 			);
 	}
+	 */
 
 	/**
 	 * Return the string type (class name) of items that this action operates upon

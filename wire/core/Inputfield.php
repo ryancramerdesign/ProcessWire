@@ -129,7 +129,6 @@ abstract class Inputfield extends WireData implements Module {
 	/**
 	 * Get information about this module
 	 *
-	 */
 	public static function getModuleInfo() {
 		return array(
 			'title' => '',
@@ -137,6 +136,7 @@ abstract class Inputfield extends WireData implements Module {
 			'summary' => '', 
 			); 
 	}
+	 */
 
 	/**
 	 * Per the Module interface, init() is called when the system is ready for API usage
@@ -157,8 +157,8 @@ abstract class Inputfield extends WireData implements Module {
 	 */
 	public function hookRender($event) {
 		$class = $this->className();
-		$info = $this->getModuleInfo();
-		$version = (int) $info['version'];
+		$info = $this->wire('modules')->getModuleInfo($this, array('verbose' => false));
+		$version = (int) isset($info['version']) ? $info['version'] : 0;
 		if(is_file($this->config->paths->$class . "$class.css")) $this->config->styles->add($this->config->urls->$class . "$class.css?v=$version"); 
 		if(is_file($this->config->paths->$class . "$class.js")) $this->config->scripts->add($this->config->urls->$class . "$class.js?v=$version"); 
 	}

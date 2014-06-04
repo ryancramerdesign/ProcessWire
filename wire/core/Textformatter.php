@@ -25,7 +25,6 @@ abstract class Textformatter extends Wire implements Module {
 	 *
 	 * @return array
 	 *
-	 */
 	public static function getModuleInfo() {
 		// just an example, should be overridden
 		return array(
@@ -34,6 +33,7 @@ abstract class Textformatter extends Wire implements Module {
 			'summary' => '', 
 			); 
 	}
+	 */
 
 	/**
 	 * Format the given text string

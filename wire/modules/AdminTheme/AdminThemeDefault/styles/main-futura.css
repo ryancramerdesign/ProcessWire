@@ -2318,18 +2318,21 @@ table {
     background: none;
     border: none; }
 
+.Inputfields > .InputfieldButton,
 .Inputfields > .InputfieldSubmit {
   float: left;
   margin-bottom: 0.5em;
   margin-top: 0; }
 
+.Inputfields .InputfieldButton + .InputfieldButton,
 .Inputfields .InputfieldSubmit + .InputfieldSubmit {
   /* two buttons next to each other */
   float: left;
   margin-left: 0.5em;
   margin-top: 0; }
 
-.Inputfields .Inputfield:not(.InputfieldSubmit) + .InputfieldSubmit {
+.Inputfields .Inputfield:not(.InputfieldSubmit):not(.InputfieldButton) + .InputfieldButton,
+.Inputfields .Inputfield:not(.InputfieldSubmit):not(.InputfieldButton) + .InputfieldSubmit {
   clear: left; }
 
 .Inputfield .LanguageSupport {
@@ -2696,6 +2699,8 @@ body.collapse-wiretabs #breadcrumbs {
   .content .PageListStatusIcon {
     color: #888888;
     font-size: 14px; }
+  .content .actions {
+    line-height: 1.3em; }
   .content ul.actions li,
   .content .PageListActions li,
   .content li.action {
@@ -2721,8 +2726,8 @@ body.collapse-wiretabs #breadcrumbs {
     border-radius: 3px;
     border: none !important;
     font-weight: bold; }
-  .content .actions a:hover,
-  .content li.action a:hover,
+  .content li.action a:hover, .content .actions a:hover,
+  .content .PageList .actions a:hover,
   .content .PageListMoveNote a:hover {
     /* action links hovered */
     color: white;
@@ -2766,6 +2771,8 @@ body.collapse-wiretabs #breadcrumbs {
     background-color: none; }
   .content .PageList .PageListStatusHidden:not(.PageListItemOpen) > a.PageListPage {
     opacity: 0.6; }
+  .content .PageList .PageListStatusTemp:not(.PageListItemOpen) > a.PageListPage {
+    opacity: 0.3; }
   .content .PageList .PageListPlaceholderItem {
     border: none;
     padding: 0; }
@@ -3097,9 +3104,9 @@ body.modal .container {
   max-width: 100%;
   padding-left: 1em;
   padding-right: 1em; }
-body.modal #notices {
+body.modal:not(.hasWireTabs) #notices {
   margin: 1px 0 0.75em 0; }
-  body.modal #notices a.notice-remove {
+  body.modal:not(.hasWireTabs) #notices a.notice-remove {
     display: none; }
 body.modal .content h2 {
   margin: 1em 0 0.5em 0;

@@ -17,7 +17,6 @@ abstract class Fieldtype extends WireData implements Module {
 	/**
 	 * Get information about this module
 	 *
-	 */
 	public static function getModuleInfo() {
 		return array(
 			'title' => '', 
@@ -25,6 +24,7 @@ abstract class Fieldtype extends WireData implements Module {
 			'summary' => '', 
 			); 
 	}
+	 */
 
 	/**
 	 * Per Module interface, this template method is called when all system classes are loaded and ready for API usage

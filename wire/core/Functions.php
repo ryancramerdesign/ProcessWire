@@ -520,7 +520,7 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 	$lengths = array("60","60","24","7","4.35","12","10");
 	$now = time();
 	if(!ctype_digit("$ts")) $ts = strtotime($ts);
-	if(empty($ts)) return "Bad date";
+	if(empty($ts)) return "";
 
 	// is it future date or past date
 	if($now > $ts) {    
