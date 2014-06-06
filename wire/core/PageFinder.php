@@ -129,8 +129,9 @@ class PageFinder extends Wire {
 					// allow use of some predefined labels for Page statuses
 					if($value == 'hidden') $selector->value = Page::statusHidden; 
 						else if($value == 'unpublished') $selector->value = Page::statusUnpublished; 
-						else if($value == 'locked') $selector->value = Page::statusLocked; 
-						else if($value == 'max') $selector->value = Page::statusMax; 
+						else if($value == 'locked') $selector->value = Page::statusLocked;
+						else if($value == 'trash') $selector->value = Page::statusTrash; 
+						else if($value == 'max') $selector->value = Page::statusMax;
 						else $selector->value = 1; 
 
 					if($selector->operator == '=') {

@@ -319,10 +319,12 @@ class AdminThemeDefaultHelpers extends WireData {
 		if(!$browserTitle) $browserTitle = $this->_(strip_tags(wire('page')->get('title|name'))) . ' &bull; ProcessWire';
 		if(strpos($browserTitle, '&') !== false) $browserTitle = html_entity_decode($browserTitle, ENT_QUOTES, 'UTF-8'); // we don't want to make assumptions here
 		$browserTitle = $this->wire('sanitizer')->entities($browserTitle, ENT_QUOTES, 'UTF-8'); 
-		$httpHost = $this->wire('config')->httpHost;
-		if(strpos($httpHost, 'www.') === 0) $httpHost = substr($httpHost, 4); // remove www
-		if(strpos($httpHost, ':')) $httpHost = preg_replace('/:\d+/', '', $httpHost); // remove port
-		$browserTitle = $this->wire('sanitizer')->entities($httpHost) . ' &bull; ' . $browserTitle; 
+		if(!$this->wire('input')->get('modal')) {
+			$httpHost = $this->wire('config')->httpHost;
+			if(strpos($httpHost, 'www.') === 0) $httpHost = substr($httpHost, 4); // remove www
+			if(strpos($httpHost, ':')) $httpHost = preg_replace('/:\d+/', '', $httpHost); // remove port
+			$browserTitle .= ' &bull; ' . $this->wire('sanitizer')->entities($httpHost);
+		}
 		return $browserTitle; 
 	}
 	
