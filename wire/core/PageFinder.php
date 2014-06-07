@@ -449,7 +449,7 @@ class PageFinder extends Wire {
 				$this->getQueryNumChildren($query, $selector); 
 				continue; 
 
-			} else if($this->wire('fields')->isNativeName($field) || strpos($fieldsStr, ':parent.') !== false) {
+			} else if($this->wire('fields')->isNative($field) || strpos($fieldsStr, ':parent.') !== false) {
 				$this->getQueryNativeField($query, $selector, $fields); 
 				continue; 
 			} 
@@ -847,7 +847,7 @@ class PageFinder extends Wire {
 				$query->join("templates AS $tableAlias ON $tableAlias.id=pages.templates_id"); 
 				$value = "$tableAlias." . ($subValue ? $database->escapeCol($subValue) : "name"); 
 
-			} else if($fields->isNativeName($value)) {
+			} else if($fields->isNative($value)) {
 				// sort by a native field
 				
 				if(!strpos($value, ".")) {
@@ -1031,7 +1031,7 @@ class PageFinder extends Wire {
 
 			if(strpos($field, '.')) list($field, $subfield) = explode('.', $field);
 
-			if(!$this->wire('fields')->isNativeName($field)) {
+			if(!$this->wire('fields')->isNative($field)) {
 				$subfield = $field;
 				$field = 'children';
 			}
@@ -1058,7 +1058,7 @@ class PageFinder extends Wire {
 				} else {
 					// matching by a parent's native or custom field (subfield)
 
-					if(!$this->wire('fields')->isNativeName($subfield)) {
+					if(!$this->wire('fields')->isNative($subfield)) {
 						$finder = new PageFinder();
 						$s = $field == 'children' ? '' : 'children.count>0, ';
 						$IDs = $finder->findIDs(new Selectors("include=all, $s$subfield{$operator}" . implode('|', $values)));
@@ -1109,8 +1109,10 @@ class PageFinder extends Wire {
 				if(in_array($field, array('id', 'parent_id', 'templates_id'))) {
 					$value = (int) $value; 
 				}
+				
+				$isName = $field === 'name' || strpos($field, 'name') === 0; 
 
-				if($field == 'name' && $operator == '~=') {
+				if($isName && $operator == '~=') {
 					// handle one or more space-separated full words match to 'name' field in any order
 					$s = '';
 					foreach(explode(' ', $value) as $word) {
@@ -1118,7 +1120,7 @@ class PageFinder extends Wire {
 						$s .= ($s ? ' AND ' : '') . "$table.$field RLIKE '" . '[[:<:]]' . $word . '[[:>:]]' . "'";
 					}
 
-				} else if($field == 'name' && in_array($operator, array('%=', '^=', '$=', '%^=', '%$=', '*='))) {
+				} else if($isName && in_array($operator, array('%=', '^=', '$=', '%^=', '%$=', '*='))) {
 					// handle partial match to 'name' field
 					$value = $database->escapeStr(wire('sanitizer')->pageName($value));
 					if($operator == '^=' || $operator == '%^=') $value = "$value%";
@@ -1288,7 +1290,7 @@ class PageFinder extends Wire {
 		$custom = array();
 		$native = array();
 		foreach($fields as $name) {
-			if($this->wire('fields')->isNativeName($name)) $native[] = $name;
+			if($this->wire('fields')->isNative($name)) $native[] = $name;
 				else $custom[] = $name; 
 		}
 		return array_merge($native, $custom); 
