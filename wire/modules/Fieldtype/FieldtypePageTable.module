@@ -102,13 +102,20 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	
 		foreach($copy->template->fieldgroup as $field) {
 			if(!$field->type instanceof FieldtypePageTable) continue; 
-			if(!$field->parent_id) continue; // let that be handled manually since recursive clones are already an option
+			//if(!$field->parent_id) continue; // let that be handled manually since recursive clones are already an option
+			$parent = $field->parent_id ? $this->wire('pages')->get($field->parent_id) : $copy; 
 			$value = $copy->getUnformatted($field->name); 
 			if(!count($value)) continue; 
 			$newValue = new PageArray();
 			foreach($value as $item) {
 				try { 
-					$newItem = $this->wire('pages')->clone($item); 
+					$newItem = null;
+					if(!$field->parent_id && $copy->numChildren) {
+						// value was already cloned by API with recursive option?
+						$newItem = $this->wire('pages')->get("parent=$copy, name=$item->name"); 
+						if(!$newItem->id) $newItem = null; 
+					}
+					if(!$newItem) $newItem = $this->wire('pages')->clone($item, $parent); 
 					if($newItem->id) {
 						$newValue->add($newItem); 
 						$this->wire('pages')->message("Cloned item $item->path", Notice::debug); 
