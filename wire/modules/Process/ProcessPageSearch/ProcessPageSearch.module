@@ -23,7 +23,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Search',
 			'summary' => 'Provides a page search engine for admin use.',
-			'version' => 104,
+			'version' => 105,
 			'permanent' => true,
 			'permission' => 'page-edit',
 			);
@@ -52,8 +52,9 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	protected $fieldOptions = array();
 	protected $customSorts = array();
 	protected $operators = array();
-	protected $resultLimit = 50;
+	protected $resultLimit = 25;
 	protected $maxLimit = 250;
+	protected $lister = null;
 	
 	/**
 	 * Mode indicating admin ajax search, set by GET var admin_search=1
@@ -63,7 +64,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	 * 
 	 */
 	protected $adminSearchMode = false;
-
+	
 	public function init() {
 
 		foreach($this->fields as $field) {
@@ -73,7 +74,6 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		}
 
 		sort($this->fieldOptions);
-
 		parent::init();
 	}
 
@@ -112,11 +112,38 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	 *
 	 */
 	public function ___execute() {
-		$this->fullSetup();
-		$this->processInput();
-		list($selector, $displaySelector) = $this->buildSelector();
-		$matches = $this->pages->find($selector);
-		return $this->render($matches, $displaySelector);
+		
+		if($this->wire('user')->hasPermission('lister')) {
+			if($this->wire('modules')->isInstalled('ProcessPageLister')) {
+				$this->lister = $this->wire('modules')->get('ProcessPageLister');
+			}
+		}
+		
+		$ajax = $this->wire('config')->ajax; 
+
+		if($this->lister && $ajax) {
+			// we will just let Lister do it's thing, since it remembers settings in session
+			return $this->lister->execute(); 
+		} else {
+			$this->fullSetup();
+			$this->processInput();
+			list($selector, $displaySelector, $initSelector, $defaultSelector) = $this->buildSelector();
+		}
+		
+		if($this->lister) {
+			$lister = $this->lister;
+			if(count($_GET)) $lister->sessionClear();
+			$lister->initSelector = $initSelector;
+			$lister->defaultSelector = $defaultSelector;
+			$lister->defaultSort = 'relevance';
+			$lister->limit = $this->resultLimit; 
+			$lister->preview = false; 
+			$lister->columns = $this->getDisplayFields();
+			return $lister->execute();
+		} else {
+			$matches = $this->pages->find($selector);
+			return $this->render($matches, $displaySelector);
+		}
 	}
 
 	/**
@@ -248,6 +275,28 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	}
 
 	/**
+	 * Return array of fields to display in results
+	 *
+	 */
+	protected function getDisplayFields() {
+		$display = $this->input->get('display');
+		if(!strlen($display)) $display = $this->input->get('get'); // as required by ProcessPageSearch API 
+		if(!strlen($display)) $display = $this->displayField;
+		if(!strlen($display)) $display = 'title path';
+		$display = str_replace(',', ' ', $display);
+		$display = explode(' ', $display); // convert to array
+
+		foreach($display as $key => $name) {
+			$name = $this->sanitizer->fieldName($name);
+			$display[$key] = $name;
+			if($this->isSelectableFieldName($name)) continue;
+			if(in_array($name, array('url', 'path', 'httpUrl'))) continue;
+			unset($display[$key]);
+		}
+		return $display;
+	}
+
+	/**
 	 * Render the search results
 	 *
 	 */
@@ -257,20 +306,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		if($displaySelector) $this->message(sprintf($this->_n('Found %1$d page using selector: %2$s', 'Found %1$d pages using selector: %2$s', $matches->getTotal()), $matches->getTotal(), $displaySelector));
 
 		// determine what fields will be displayed
-		$display = $this->input->get('display');
-		if(!strlen($display)) $display = $this->input->get('get'); // as required by ProcessPageSearch API 
-		if(!strlen($display)) $display = $this->displayField; 
-		if(!strlen($display)) $display = 'title path';
-		$display = str_replace(',', ' ', $display);
-		$display = explode(' ', $display); // convert to array
-
-		foreach($display as $key => $name) {
-			$name = $this->sanitizer->fieldName($name);
-			$display[$key] = $name; 
-			if($this->isSelectableFieldName($name)) continue; 
-			if(in_array($name, array('url', 'path', 'httpUrl'))) continue; 
-			unset($display[$key]); 
-		}
+		$display = $this->getDisplayFields();
 		$this->input->whitelist('display', implode(',', $display)); 
 
 		if($this->config->ajax) {
@@ -296,7 +332,9 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	 *
 	 */
 	protected function buildSelector() {
-		$selector = '';
+		$selector = ''; // for regular ProcessPageSearch
+		$initSelector = ''; // for Lister, non-changable part of the selector
+		$defaultSelector = ''; // for Lister, changeable filters
 
 		// search query text
 		$q = $this->input->whitelist('q');
@@ -328,32 +366,50 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		}
 
 		// determine if search limited to a specific template
-		if($this->input->whitelist('template')) $selector .= ", template=" . $this->input->whitelist('template');
+		if($this->input->whitelist('template')) {
+			$selector .= ", template=" . $this->input->whitelist('template');
+		}
 
 		if(!$selector) {
 			$this->error($this->_("No search specified"));
-			return array('','');
+			return array('','','','');
 		}
 
 		$selector = trim($selector, ", ");
 
-		// highlight the selector that was used
-		$displaySelector = $selector;
+		$displaySelector = $selector; // highlight the selector that was used for display purposes
+		$defaultSelector = $selector; // user changable selector in Lister
+		$initSelector = '' ; // non-user changable selector in Lister
+		$s = ''; // anything added to this will be populated to both $selector and $initSelector below
 
 		// limit results for pagination
-		$selector .= ", limit={$this->resultLimit}";
+		$s = ", limit={$this->resultLimit}";
+		
+		$adminRootPage = $this->wire('pages')->get($this->wire('config')->adminRootPageID); 
 
 		// exclude admin repeater pages unless the admin template is chosen
 		if(!$this->input->whitelist('template')) {
-			$repeaters = wire('pages')->get(wire('config')->adminRootPageID)->child('name=repeaters, include=all');
-			if($repeaters->id) $selector .= ", has_parent!={$repeaters->id}";
+			// but only for superuser, as we're excluding all admin pages for non-superusers
+			if($this->user->isSuperuser()) {
+				$repeaters = $adminRootPage->child('name=repeaters, include=all');
+				if($repeaters->id) $s .= ", has_parent!={$repeaters->id}";
+			}
 		}
 
 		// include hidden pages
-		if($this->user->isSuperuser()) $selector .= ", include=all";
-			else $selector .= ", status<" . Page::statusUnpublished;
-
-		return array($selector, $displaySelector); 
+		if($this->user->isSuperuser()) {
+			$s .= ", include=all";
+		} else {
+			// non superuser doesn't get any admin pages in their results
+			$s .= ", has_parent!=$adminRootPage"; 
+			// if user has any kind of edit access, allow unpublished pages to be included
+			if($this->user->hasPermission('page-edit')) $s .= ", include=unpublished";
+		}
+		
+		$selector .= $s; 
+		$initSelector .= $s; 
+		
+		return array($selector, $displaySelector, trim($initSelector, ', '), $defaultSelector); 
 	}
 
 	/**
@@ -687,7 +743,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		foreach($this->wire('modules') as $module) {
 			//if($module instanceof ModulePlaceholder) continue; 
 			$name = $module->className();
-			$info = $module->getModuleInfo();
+			$info = $this->wire('modules')->getModuleInfo($module);
 			$title = $module instanceof ModulePlaceholder ? $name : $info['title'];
 			if(stripos($name . $title, $q) !== false) $results[] = array(
 				'id' => $module->id,
@@ -813,8 +869,9 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 		$q = substr($this->input->get->q, 0, 128);
 		$q = htmlentities($q, ENT_QUOTES, "UTF-8");
+		$adminURL = $this->wire('config')->urls->admin; 
 
-		$out = 	"\n<form id='ProcessPageSearchForm' action='{$this->config->urls->admin}page/search/' method='get'>" .
+		$out = 	"\n<form id='ProcessPageSearchForm' data-action='{$adminURL}page/search/' action='{$adminURL}page/search/' method='get'>" .
 			"\n\t<label for='ProcessPageSearchQuery'><i class='fa fa-search'></i></label>" . 
 			"\n\t<input type='text' id='ProcessPageSearchQuery' name='q' value='$q' />" .
 			"\n\t<input type='submit' id='ProcessPageSearchSubmit' name='search' value='Search' />" . //" . $this->_x('Search', 'input') . "' />" . // Text that appears as the placeholder text in the top search submit input

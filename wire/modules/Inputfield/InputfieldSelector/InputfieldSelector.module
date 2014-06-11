@@ -20,7 +20,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Selector',
-			'version' => 18,
+			'version' => 19,
 			'summary' => 'Build a page finding selector visually.',
 			'author' => 'Avoine + ProcessWire',
 			'autoload' => true, 
@@ -29,6 +29,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 	const debug = false;
 
+	const allowBlankValues = 32; //  blank values are allowed in selector or if not present, blank values allowed and represented by =""
+	
 	/**
 	 * Contains all possible operators, indexed by operator with values as labels describing the operator
 	 * 
@@ -82,7 +84,25 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	 * @var Selectors
 	 * 
 	 */
-	protected $selectors = null; 
+	protected $selectors = null;
+
+	/**
+	 * Variable names that should be picked up through the session each time
+	 *
+	 */
+	protected $sessionVarNames = array(
+		'allowSystemCustomFields',
+		'allowSystemNativeFields',
+		'allowSystemTemplates',
+		'allowSubselectors',
+		'allowSubfields',
+		'allowSubfieldGroups',
+		'allowModifiers',
+		'dateFormat',
+		'datePlaceholder',
+		'timeFormat',
+		'timePlaceholder',
+		);
 
 	/**
 	 * Initialize the default values used in Selector
@@ -103,8 +123,15 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		// initial selector value: not changeable by user
 		$this->set('initValue', ''); 
 
-		// if false, blank values don't influence the resulting selector. if true, blank values are included in the selector
-		// when false, intended blank values are specified by a blank quoted string, like this: ""
+		// what is allowed
+		$this->set('allowSystemCustomFields', false); 
+		$this->set('allowSystemNativeFields', true); 
+		$this->set('allowSystemTemplates', false);
+		$this->set('allowSubselectors', true); 
+		$this->set('allowSubfields', true); 
+		$this->set('allowSubfieldGroups', true); 
+		$this->set('allowModifiers', true);
+		// blank values are allowed in selector or if not present, blank values allowed and represented by =""
 		$this->set('allowBlankValues', false); 
 
 		// whether or not inputs for the initValue should be shown (they won't be modifyable if shown)
@@ -130,6 +157,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 		if(!$action || !$name) return;
 		if(!self::debug && !$this->wire('config')->ajax) return;
+		
 		$this->attr('name', $this->wire('sanitizer')->fieldName($name)); // for session validity
 		if(!$this->sessionGet('valid')) return;
 		if(!$this->wire('user')->isLoggedin()) return;
@@ -137,6 +165,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$this->set('initValue', $this->sessionGet('initValue')); 
 		$this->setup();
 		$sanitizer = $this->wire('sanitizer'); 
+		
+		foreach($this->sessionVarNames as $key) {
+			$this->set($key, $this->sessionGet($key));
+		}
 
 		if($action == 'field') { 
 			$out = $this->renderSelectField(); 
@@ -167,7 +199,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		exit; 
 		
 	}
-
+	
 	/**
 	 * Setup the shared structures and data used by Selector
 	 * 
@@ -219,14 +251,23 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	
 		$templates = array();
 		foreach($this->wire('templates') as $template) {
+			if(($template->flags & Template::flagSystem) && !$this->allowSystemTemplates) {
+				continue; 
+			}
 			$templates[$template->id] = $template->label ? "$template->label ($template->name)" : $template->name; 
 		}
 
+		// make users selectable if there are under 100 of them
+		// otherwise utilize the user ID property
 		$users = array(); 
-		foreach($this->wire('users') as $user) {
-			$users[$user->id] = $user->name; 
+		$numUsers = $this->wire('pages')->count("template=user, include=all"); 
+		if($numUsers < 100) { 
+			foreach($this->wire('users') as $user) {
+				$users[$user->id] = $user->name; 
+			}
 		}
 
+		// system fields definitions
 		$this->systemFields = array(
 			'template' => array(
 				'input' => 'select', 
@@ -267,16 +308,16 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				'label' => $this->_('last modified date'),
 				'operators' => $this->operatorsByType['datetime'], 
 				),
-			'modified_users_id' => array(
-				'input' => 'select', 
-				'label' => $this->_('last modified by user'),
-				'options' => $users,
-				'operators' => array('=', '!='), 
-				),
 			'created' => array(
 				'input' => 'datetime',
 				'label' => $this->_('created date'),
 				'operators' => $this->operatorsByType['datetime'], 
+				),
+			'modified_users_id' => array(
+				'input' => 'select',
+				'label' => $this->_('last modified by user'),
+				'options' => $users,
+				'operators' => array('=', '!='),
 				),
 			'created_users_id' => array(
 				'input' => 'select', 
@@ -317,6 +358,13 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	
 			//'parent' => $this->_('parent'), 
 			); 
+		
+		if(!count($users)) {
+			$this->systemFields['modified_users_id']['type'] = 'number';
+			unset($this->systemFields['modified_users_id']['options']);
+			$this->systemFields['created_users_id']['type'] = 'number';
+			unset($this->systemFields['created_users_id']['options']); 
+		}
 
 		// system fields for page references
 		$this->systemPageFields = array(
@@ -344,8 +392,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				'input' => 'select', 
 				'label' => $this->_('include'), 
 				'options' => array(
+					'hidden' => $this->_('Hidden'),
+					'unpublished' => $this->_('Hidden + Unpublished'),
+					'trash' => $this->_('Hidden + Unpublished + Trash'),
 					'all' => $this->_('All'), 
-					'hidden' => $this->_('Hidden')
 					),
 				'operators' => array('=')
 				)
@@ -453,6 +503,20 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			}
 			$out = sprintf($this->_n('matches %d page', 'matches %d pages', $cnt), $cnt) . $out;
 			if(self::debug) $out .= " (" . $selector . ")";
+	
+			if($cnt > 0) { 
+				// bookmarks for Lister
+				$bookmark = array(
+					'defaultSelector' => $selector, 
+					'initSelector' => $this->initValue,
+					);
+				$this->wire('modules')->includeModule('ProcessPageLister'); 
+				$id = ((int) $this->wire('input')->get('id')) . '_' . $this->attr('name'); 
+				$url = ProcessPageLister::addSessionBookmark($id, $bookmark); 
+				if($url) {
+					$out .= " (<a target='_blank' href='$url'>" . $this->_('show') . "</a>)";
+				}
+			}
 
 		} catch(Exception $e) {
 			$out = $e->getMessage();
@@ -473,12 +537,13 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$defaults = array(
 			'name' => 'field', 
 			'class' => 'select-field',
-			'showModifiers' => true, 
-			'showSystem' => true, 
+			'showModifiers' => $this->allowModifiers, 
+			'showSystem' => $this->allowSystemNativeFields,
+			'showSubfields' => $this->allowSubfields,
+			'showSubfieldGroups' => $this->allowSubfieldGroups, 
 			'customFields' => $this->wire('fields'), 
 			'prepend' => '',
-			'showSubfields' => true, 
-			'exclude' => array('count'),
+			'exclude' => array('count', 'pass'),
 			'templates' => array(),
 			'type' => '', 
 			); 
@@ -505,6 +570,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$out .= "<optgroup label='$optgroupLabel'>";
 			foreach($fields as $name => $field) {
 				if(in_array($name, $settings['exclude'])) continue; 
+				if($name == 'template' && count($settings['templates']) == 1) continue; // if only 1 template allowed, don't allow selection
 				if(!$settings['showSubfields'] && substr($name, -1) == '.') continue; 
 				$label = $field['label'];
 				$selected = $selectedValue == $name ? ' selected' : '';
@@ -512,13 +578,16 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			}
 			$out .= "</optgroup>";
 		}
+		
 
 		// build custom fields optgroup
 		$label = $this->_('Custom Fields'); 
 		$out .= "<optgroup label='$label'>";
 
 		foreach($settings['customFields'] as $key => $field) {
-			if(in_array($field->name, $settings['exclude'])) continue; 
+			$fieldName = $field->name; 
+			if(in_array($fieldName, $settings['exclude'])) continue; 
+			if(($field->flags & Field::flagSystem) && !$this->allowSystemCustomFields) continue; 
 			$allow = 0; 
 			if(count($settings['templates'])) {
 				foreach($settings['templates'] as $name) {
@@ -526,9 +595,11 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 					if($template && $template->fieldgroup->hasField($field)) $allow++;
 				}
 		
-			} else $allow = 1; 
+			} else $allow = 1;
 
-			if($allow) $out .= $this->renderSelectFieldOption($field, $settings['showSubfields'], '', $selectedValue); 
+			if($allow) {
+				$out .= $this->renderSelectFieldOption($field, $settings, $selectedValue);
+			}
 		}
 
 		$out .= "</optgroup>";
@@ -538,45 +609,58 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	}
 
 	/**
+	 * Given a field, return a "|" separated string of template IDs using that field
+	 * 
+	 * @param Field $field
+	 * @return string
+	 * 
+	 */
+	protected function getTemplateIdsUsingField(Field $field) {
+		static $fieldsToTemplates = array(); 
+		if(isset($fieldsToTemplates[$field->name])) return $fieldsToTemplates[$field->name];
+		$templateIDs = array();
+		foreach($this->wire('templates') as $template) {
+			if($template->fieldgroup->hasField($field)) $templateIDs[] = $template->id; 
+		}
+		$idStr = implode('|', $templateIDs); 
+		$fieldsToTemplates[$field->name] = $idStr; 
+		return $idStr; 
+	}
+
+	/**
 	 * Render a single <option> for a <select>
 	 * 
 	 * @param Field $field
-	 * @param bool $useSubfields Optional, default=true
-	 * @param string $templatesStr Optional, default=''
+	 * @param array $settings 
 	 * @param string $selectedValue Optional, default=''
 	 * @return string
 	 * 
 	 */
-	protected function renderSelectFieldOption(Field $field, $useSubfields = true, $templatesStr = '', $selectedValue = '') {
+	protected function renderSelectFieldOption(Field $field, array $settings, $selectedValue = '') {
 
 		if($field->type instanceof FieldtypeFieldsetOpen) return '';
 		$out = '';
 		$selected = $field->name == $selectedValue ? ' selected' : '';
-
-		foreach($field->getTemplates() as $template) {
-			$templatesStr .= $template->id . '|';
-		}
-
+		$templatesStr = $this->getTemplateIdsUsingField($field); 
 		$selectorInfo = $this->getSelectorInfo($field);
 
 		if($selectorInfo['input'] != 'none' && count($selectorInfo['operators'])) {
-			$out = "<option$selected value='$field->name' data-templates='|$templatesStr'>$field->name</option>";
+			$out = "<option$selected value='$field->name' data-templates='|$templatesStr|'>$field->name</option>";
 		}
 
-		if($useSubfields) {
+		if(!empty($settings['showSubfields'])) {
 
 			$hasSubfields = count($selectorInfo['subfields']) > 0; 
 			$selected = "$field->name." == $selectedValue ? ' selected' : '';
-			$option = "<option$selected value='$field->name.' data-templates='|$templatesStr'>$field->name &hellip;</option>";
+			$option = "<option$selected value='$field->name.' data-templates='|$templatesStr|'>$field->name &hellip;</option>";
 			$blankValue = $field->type->getBlankValue(new NullPage(), $field); 
 			$isPageField = $blankValue instanceof PageArray || $blankValue instanceof Page;
 			if($hasSubfields) $out .= $option;
 
-			// if(($isPageField && !$field->derefAsPage) || (!$isPageField && $blankValue instanceof WireArray)) {
-			if($isPageField && !$field->derefAsPage) {
+			if(!empty($settings['showSubfieldGroups']) && $isPageField && !$field->derefAsPage) {
 				$groupLabel = $this->_('(1)'); 
 				$selected = "@$field->name." == $selectedValue ? ' selected' : '';
-				$out .= "<option$selected value='@$field->name.' data-templates='|$templatesStr'>$field->name $groupLabel &hellip;</option>";
+				$out .= "<option$selected value='@$field->name.' data-templates='|$templatesStr|'>$field->name $groupLabel &hellip;</option>";
 			}
 		}
 
@@ -668,6 +752,11 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$type = $info['input'];
 			if(isset($info['options'])) $options = $info['options'];
 			if(!empty($info['placeholder'])) $placeholder = $info['placeholder'];
+			
+			if($fieldName == 'template' && $selectedValue && !ctype_digit("$selectedValue")) {
+				$template = $this->wire('templates')->get($this->wire('sanitizer')->name($selectedValue)); 
+				if($template) $selectedValue = $template->id; 
+			}
 
 		} else if(isset($this->modifierFields[$fieldName])) { 
 			// modified field
@@ -895,7 +984,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			}
 			// render 'id' option if there are subfields: this enables one to specify a sub-selector string
 			// since selectors don't allow things like field.subfield.tertiaryfield
-			if(!empty($info['subfields'])) {
+			if(!empty($info['subfields']) && $this->allowSubselectors) {
 				$selected = $selectedValue == $name && $valueHasSelectorString ? ' selected' : '';
 				$out .= "<option$selected value='$field->name.$name.id'>$label.id</option>";
 			}
@@ -1089,6 +1178,11 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		// set a session variable so that ajax request know there has been a valid request
 		$this->sessionSet('valid', true); 
 		$this->sessionSet('initValue', $this->initValue); 
+	
+		// all other session variables tha tneed to be remembered
+		foreach($this->sessionVarNames as $key) {
+			$this->sessionSet($key, $this->$key); 
+		}
 
 		// determine if there are any initValue templates in play, so that we can pre-limit what fields are available
 		$templates = array();
@@ -1107,7 +1201,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$counterClass = $this->counter ? '' : ' selector-counter-disabled';
 		
 		// render the template row to start: this is duplicated with JS when a field added
-		$rows = $this->renderRow($select, '', '', 'selector-template-row'); 
+		$rows = $this->renderRow($select, '', '', 'selector-template-row');
 
 		// render all the rows for existing selector values already in this Inputfield's value
 		foreach($this->selectors as $selector) {
@@ -1159,7 +1253,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'data-template-ids' => implode(',', $this->getTemplatesFromInitValue($this->initValue)), 
 			);
 
-		if($this->allowBlankValues) $attr['class'] .= ' allow-blank';
+		if($this->allow & self::allowBlankValues) $attr['class'] .= ' allow-blank';
 		$attrStr = $this->getAttributesString($attr);
 		$attr['value'] = $this->wire('sanitizer')->entities($attr['value']); 
 		$initValue = $this->wire('sanitizer')->entities($this->initValue); 
@@ -1192,6 +1286,14 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 		$initSelectors = new Selectors($this->initValue); 
 		$userSelectors = new Selectors($selectorString); 
+		
+		foreach($userSelectors as $s) {
+			if($s->quote == '[' && !$this->allowSubselectors) {
+				$this->error("Subselectors are disabled"); 
+				$userSelectors->remove($s);
+				$userSelectors->add(new SelectorLessThan('id', 0)); // forced non match
+			}
+		}
 
 		$selector = (string) $initSelectors . ", ";
 		$selector .= (string) $userSelectors; 
@@ -1199,6 +1301,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$selector = trim($selector, ", "); 
 		return $selector; 
 	}
+
 
 	/**
 	 * Returns array of template IDs that correspond with any templates specified in the initValue

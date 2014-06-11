@@ -64,7 +64,11 @@ $helpers = new AdminThemeDefaultHelpers();
 	<div id='breadcrumbs'>
 		<div class='container'>
 
-			<?php if(in_array($page->id, array(2,3,8))) echo $helpers->renderAdminShortcuts(); /* 2,3,8=page-list admin page IDs */ ?>
+			<?php 
+			if($page->process == 'ProcessPageList' || ($page->name == 'lister' && $page->parent->name == 'page')) {
+				echo $helpers->renderAdminShortcuts(); 
+			}
+			?>
 
 			<ul class='nav'><?php echo $helpers->renderBreadcrumbs(); ?></ul>
 

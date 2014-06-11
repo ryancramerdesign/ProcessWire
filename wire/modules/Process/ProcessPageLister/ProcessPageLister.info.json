@@ -1,0 +1,13 @@
+{
+	"title": "Lister",
+	"summary": "Admin tool for finding and listing pages by any property.", 
+	"version": 16, 
+	"author": "Ryan Cramer", 
+	"icon": "search", 
+	"requires": "ProcessWire>=2.4.3, InputfieldSelector>=9", 
+	"singular": false, 
+	"permission": "page-lister",
+	"permissions": {
+		"page-lister": "Use Page Lister" 
+	}
+}

@@ -28,6 +28,8 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
  * These are in a comment so that they register with the parser, in place of the dynamic __() function calls with page titles. 
  * 
  * __("Pages"); 
+ * __("Tree"); 
+ * __("Find"); 
  * __("Setup"); 
  * __("Modules"); 
  * __("Access"); 

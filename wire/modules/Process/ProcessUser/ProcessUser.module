@@ -20,16 +20,46 @@ class ProcessUser extends ProcessPageType {
 	static public function getModuleInfo() {
 		return array(
 			'title' => __('Users', __FILE__), // getModuleInfo title
-			'version' => 102, 
+			'version' => 103, 
 			'summary' => __('Manage system users', __FILE__), // getModuleInfo summary
 			'permanent' => true, 
 			'permission' => 'user-admin',
+			'icon' => 'group', 
 			); 
 	}
+	
+	protected $lister = null;
 
 	public function init() {
 		$this->wire('pages')->addHookBefore('save', $this, 'hookPageSave');	
 		parent::init();
+	
+		if($this->wire('user')->hasPermission('lister')) {
+			if($this->wire('modules')->isInstalled('ProcessPageListerPro')) {
+				$this->lister = $this->wire('modules')->get('ProcessPageListerPro');
+			}
+			if((!$this->lister || !$this->lister->isValid()) && $this->wire('modules')->isInstalled('ProcessPageLister')) {
+				$this->lister = $this->wire('modules')->get('ProcessPageLister'); 
+			}
+		}
+	}
+
+	protected function renderList($selector = '', $pagerOptions = array()) {
+		if(!$this->lister) return parent::renderList($selector, $pagerOptions); 
+		$selector = "template=$this->template, $selector";
+		$lister = $this->lister; 
+		$lister->initSelector = $selector;
+		$lister->columns = $this->showFields;
+		$lister->defaultSelector = "name%=, roles=";
+		$lister->defaultSort = 'name';
+		$lister->parent = $this->page;
+		$lister->template = $this->template;
+		$lister->editMode = ProcessPageLister::windowModeDirect; 
+		$lister->editURL = './edit/';
+		$lister->addURL = './add/';
+		$lister->delimiters = array('roles' => ', '); 
+		$lister->allowSystem = true; 
+		return $lister->execute();
 	}
 
 	public function ___executeEdit() {
@@ -47,7 +77,7 @@ class ProcessUser extends ProcessPageType {
 			if($role->id == $suRoleID) $event->return->remove($role);
 		}
 	}
-
+	
 	/**
 	 * Perform a security check to make sure that a non-superuser isn't assigning superuser access to themselves or someone else. 
 	 *

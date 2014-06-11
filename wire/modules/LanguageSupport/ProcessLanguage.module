@@ -24,6 +24,7 @@ class ProcessLanguage extends ProcessPageType {
 			'summary' => __('Manage system languages', __FILE__),
 			'author' => 'Ryan Cramer',
 			'requires' => 'LanguageSupport',
+			'icon' => 'language', 
 			);
 	}
 

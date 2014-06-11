@@ -37,6 +37,18 @@ class PageFinder extends Wire {
 		'findHidden' => false,
 
 		/**
+		 * Specify that it's okay for hidden AND unpublished pages to be included in the results
+		 *
+		 */
+		'findUnpublished' => false,
+
+		/**
+		 * Specify that it's okay for hidden AND unpublished AND trashed pages to be included in the results
+		 *
+		 */
+		'findTrash' => false, 
+		
+		/**
 		 * Specify that no page status should be excluded - results can include unpublished, trash, system, etc.
 		 *
 		 */
@@ -142,8 +154,10 @@ class PageFinder extends Wire {
 				if(is_null($maxStatus) || $value > $maxStatus) 
 					$maxStatus = (int) $selector->value; 
 
-			} else if($fieldName == 'include' && $selector->operator == '=' && in_array($selector->value, array('hidden', 'all'))) {
-				if($selector->value == 'hidden') $options['findHidden'] = true; 
+			} else if($fieldName == 'include' && $selector->operator == '=' && in_array($selector->value, array('hidden', 'all', 'unpublished', 'trash'))) {
+				if($selector->value == 'hidden') $options['findHidden'] = true;
+					else if($selector->value == 'unpublished') $options['findUnpublished'] = true;
+					else if($selector->value == 'trash') $options['findTrash'] = true; 
 					else if($selector->value == 'all') $options['findAll'] = true; 
 				$selectors->remove($key);
 
@@ -190,7 +204,13 @@ class PageFinder extends Wire {
 
 		} else if($options['findOne'] || $options['findHidden']) {
 			// findHidden|findOne option, apply optimizations enabling hidden pages to be loaded
-			$selectors->add(new SelectorLessThan('status', Page::statusUnpublished)); 
+			$selectors->add(new SelectorLessThan('status', Page::statusUnpublished));
+			
+		} else if($options['findUnpublished']) {
+			$selectors->add(new SelectorLessThan('status', Page::statusTrash)); 
+			
+		} else if($options['findTrash']) { 
+			$selectors->add(new SelectorLessThan('status', Page::statusDeleted)); 
 
 		} else {
 			// no status is present, so exclude everything hidden and above
@@ -920,7 +940,7 @@ class PageFinder extends Wire {
 
 			$this->limit = $limit; 
 
-			if(is_null($start) && ($input = $this->fuel('input'))) {
+			if(is_null($start) && ($input = $this->wire('input'))) {
 				// if not specified in the selector, assume the 'start' property from the default page's pageNum
 				$pageNum = $input->pageNum - 1; // make it zero based for calculation
 				$start = $pageNum * $limit; 

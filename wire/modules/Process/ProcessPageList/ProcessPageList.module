@@ -43,7 +43,8 @@ class ProcessPageList extends Process implements ConfigurableModule {
 			'summary' => 'List pages in a hierarchal tree structure', 
 			'version' => 105, 
 			'permanent' => true, 
-			'permission' => 'page-edit'
+			'permission' => 'page-edit',
+			'icon' => 'sitemap',
 			);
 	}
 
@@ -81,9 +82,27 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		if(!$this->page->listable()) throw new WirePermissionException("You don't have access to list page {$this->page->url}"); 
 		$this->page->setOutputFormatting(false); 
 
-		// ensure that we use the page's title is always consistent in the admin (i.e. 'Pages' not 'Page List')
-		$p = wire('page'); 
-		if($p->name == 'list' && $p->process == $this) $p->title = $p->parent->title; 
+		$p = $this->wire('page'); 
+		
+		if($p->name == 'list' && $p->process == $this) {
+			// ensure that we use the page's title is always consistent in the admin (i.e. 'Pages' not 'Page List')
+			$p->title = $p->parent->title; 
+		}
+		
+		if($p->process == $this && $this->wire('input')->get('mode') != 'select') {
+			// store information about the last page list so that it can later be linked to again by ProcessPageEdit
+			$n = 1; 
+			if($this->start >= $this->limit) $n = ($this->start / $this->limit)+1; 	
+			$lastPageList = $this->session->get('lastPageList'); 
+			if(!is_array($lastPageList)) $lastPageList = array();
+				else $lastPageList = array_slice($lastPageList, 0, 10, true); 
+			$lastPageList[$this->page->id] = array(
+				'title' => $this->page->get('title|name'), 
+				'url' => $this->wire('page')->url,
+				'n' => $n
+				);
+			$this->session->set('lastPageList', $lastPageList); 
+		}
 
 		return $this->render();
 
@@ -112,9 +131,10 @@ class ProcessPageList extends Process implements ConfigurableModule {
 				'ajaxMoveURL' => $this->config->urls->admin . "page/sort/",
 				'rootPageID' => $this->id, 
 				'openPageIDs' => $openPageIDs, 
-				'openPagination' => (int) $this->input->get->n,
+				'openPagination' => (int) $this->input->get->n, // @todo: make it openPaginations and correspond to openPageIDs
 				'showRootPage' => $this->showRootPage ? true : false, 
 				'limit' => $this->limit, 
+				'start' => $this->start, 
 				'speed' => ($this->speed !== null ? (int) $this->speed : self::defaultSpeed),
 				'selectStartLabel' => $this->_('Change'), // Change a page selection
 				'selectCancelLabel' => $this->_('Cancel'), // Cancel a page selection

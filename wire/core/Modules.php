@@ -1050,6 +1050,8 @@ class Modules extends WireArray {
 			'summary' => '',
 			// URL to module details
 			'href' => '',
+			// Optional name of icon representing this module (currently font-awesome icon names, excluding the "fa-" portion)
+			'icon' => '', 
 			// this method converts this to array of module names, regardless of how the module specifies it
 			'requires' => array(),
 			// module name is key, value is array($operator, $version). Note 'requiresVersions' index is created by this function.

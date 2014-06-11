@@ -23,9 +23,8 @@ class ProcessPermission extends ProcessPageType {
 			'version' => 100, 
 			'summary' => __('Manage system permissions', __FILE__), // getModuleInfo summary
 			'permanent' => true, 
-			
-			// add this permission if you want this Process available for roles other than Superuser
-			'permission' => 'permission-admin',
+			'permission' => 'permission-admin', // add this permission if you want this Process available for roles other than Superuser
+			'icon' => 'gear', 
 			); 
 	}
 	

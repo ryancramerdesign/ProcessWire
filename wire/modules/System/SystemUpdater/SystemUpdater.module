@@ -40,7 +40,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 			 * This version number is important, as this updater keeps the systemVersion up with this version
 			 *
 			 */
-			'version' => 4, 
+			'version' => 5, 
 			);
 	}
 
@@ -123,7 +123,15 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	public static function getModuleConfigInputfields(array $data) {
-		return new InputfieldWrapper();
+		$inputfields = new InputfieldWrapper();
+		$f = wire('modules')->get('InputfieldInteger'); 
+		$f->attr('name', 'systemVersion'); 
+		$f->label = __('System Version'); 
+		$f->description = __('This lets you re-apply a system version update by reducing the version number, if for some reason it becomes necessary.');
+		$f->notes = __('Do not change this unless you have been instructed to do so.');
+		$f->attr('value', $data['systemVersion']); 
+		$inputfields->add($f);
+		return $inputfields;
 	}
 
 

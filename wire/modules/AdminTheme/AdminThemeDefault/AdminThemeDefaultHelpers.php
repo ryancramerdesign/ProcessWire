@@ -191,6 +191,18 @@ class AdminThemeDefaultHelpers extends WireData {
 		return $out; 
 	}
 	
+	public function getPageIcon(Page $p) {
+		$icon = '';
+		if($p->template == 'admin') {
+			$info = $this->wire('modules')->getModuleInfo($p->process, array('verbose' => false));
+			if(!empty($info['icon'])) $icon = $info['icon'];
+		}
+		if($p->page_icon) $icon = $p->page_icon; // allow for option of an admin field overriding the module icon
+		if(!$icon && $p->parent->id != $this->wire('config')->adminRootPageID) $icon = 'file-o ui-priority-secondary';
+		if($icon) $icon = "<i class='fa fa-fw fa-$icon'></i>&nbsp;";
+		return $icon;
+	}
+	
 	/**
 	 * Render a single top navigation item for the given page
 	 *
@@ -205,7 +217,7 @@ class AdminThemeDefaultHelpers extends WireData {
 	
 		$isSuperuser = $this->wire('user')->isSuperuser();
 		$showItem = $isSuperuser;
-		$children = $p->numChildren && !$level && $p->name != 'page' ? $p->children("check_access=0") : array();
+		$children = $p->numChildren && !$level ? $p->children("check_access=0") : array();
 		$adminURL = $this->wire('config')->urls->admin;
 		$out = '';
 	
@@ -218,9 +230,12 @@ class AdminThemeDefaultHelpers extends WireData {
 				}
 			}
 		}
+
+		// don't bother with a drop-down here if only 1 child
+		if($p->name == 'page' && count($children) == 1) $children = array();
 	
 		if(!$showItem) return '';
-	
+		
 		$class = strpos(wire('page')->path, $p->path) === 0 ? 'on' : '';
 		$title = strip_tags((string)$p->get('title|name')); 
 		$title = $this->_($title); // translate from context of default.php
@@ -231,16 +246,17 @@ class AdminThemeDefaultHelpers extends WireData {
 			$class = trim("$class dropdown-toggle"); 
 			$out .= "<a href='$p->url' id='topnav-page-$p' data-from='topnav-page-{$p->parent}' class='$class'>$title</a>"; 
 			$my = 'left-1 top';
-			if($p->name == 'access') $my = 'left top';
+			if(in_array($p->name, array('access', 'page'))) $my = 'left top';
 			$out .= "<ul class='dropdown-menu topnav' data-my='$my' data-at='left bottom'>";
 	
 			foreach($children as $c) {
 				
 				if($isSuperuser && ($c->id == 11 || $c->id == 16)) {
 					// has ajax items
-	
+					$icon = $this->getPageIcon($c);
 					$addLabel = $this->_('Add New');
-					$out .=	"<li><a class='has-ajax-items' data-from='topnav-page-$p' href='$c->url'>" . $this->_($c->title) . "</a><ul>" . 
+					$out .=	
+						"<li><a class='has-ajax-items' data-from='topnav-page-$p' href='$c->url'>$icon" . $this->_($c->title) . "</a><ul>" . 
 						"<li class='add'><a href='{$c->url}add'><i class='fa fa-plus-circle'></i> $addLabel</a></li>" . 
 						"</ul></li>";
 				} else {
@@ -251,8 +267,15 @@ class AdminThemeDefaultHelpers extends WireData {
 			$out .= "</ul>";
 	
 		} else {
+			
 			$class = $class ? " class='$class'" : '';
-			$out .= "<a href='$p->url'$class>$title</a>"; 
+			$url = $p->url;
+			$icon = $level > 0 ? $this->getPageIcon($p) : '';
+			
+			// The /page/ and /page/list/ are the same process, so just keep them on /page/ instead. 
+			if(strpos($url, '/page/list/') !== false) $url = str_replace('/page/list/', '/page/', $url); 
+			
+			$out .= "<a href='$url'$class>$icon$title</a>"; 
 		}
 	
 		$out .= "</li>";
@@ -280,18 +303,19 @@ class AdminThemeDefaultHelpers extends WireData {
 			$outMobile .= "<li><a href='$p->url'>$p->title</a></li>";
 		}
 	
-		$outTools .=	"<li><a href='{$config->urls->root}'><i class='fa fa-eye'></i> " . 
-				$this->_('View Site') . "</a></li>";
+		$outTools .=	
+			"<li><a href='{$config->urls->root}'><i class='fa fa-fw fa-eye'></i> " . 
+			$this->_('View Site') . "</a></li>";
 	
 		if($user->isLoggedin()) {
 			if($user->hasPermission('profile-edit')) {
 				$outTools .= 
-					"<li><a href='{$config->urls->admin}profile/'><i class='fa fa-user'></i> " . 
+					"<li><a href='{$config->urls->admin}profile/'><i class='fa fa-fw fa-user'></i> " . 
 					$this->_('Profile') . " <small>{$user->name}</small></a></li>";
 			}
 			$outTools .= 
 				"<li><a href='{$config->urls->admin}login/logout/'>" . 
-				"<i class='fa fa-power-off'></i> " . $this->_('Logout') . "</a></li>";
+				"<i class='fa fa-fw fa-power-off'></i> " . $this->_('Logout') . "</a></li>";
 		}
 	
 		$outMobile = "<ul id='topnav-mobile' class='dropdown-menu topnav' data-my='left top' data-at='left bottom'>$outMobile$outTools</ul>";

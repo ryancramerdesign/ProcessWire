@@ -160,7 +160,7 @@ $(document).ready(function() {
 				$root.append($("<div></div>").addClass('PageListSelectHeader').append($pageLabel).append($actions)); 
 
 				if(options.selectShowPageHeader) { 
-					$.getJSON(options.ajaxURL + "?id=" + options.selectedPageID + "&render=JSON&start=0&limit=0&lang=" + options.langID, function(data) {
+					$.getJSON(options.ajaxURL + "?id=" + options.selectedPageID + "&render=JSON&start=0&limit=0&lang=" + options.langID + "&mode=" + options.mode, function(data) {
 						var parentPath = '';
 						if(options.selectShowPath) {
 							parentPath = data.page.path;
@@ -377,18 +377,22 @@ $(document).ready(function() {
 					}
 
 					// if a pagination is requested to be opened, and it exists, then open it
-					if(options.openPagination > 0) {
-						var $a = $(".PageListPagination" + options.openPagination + ">a");
+					if(options.openPagination > 1) {
+						//var $a = $(".PageListPagination" + (options.openPagination-1) + ">a");
+						var $a = $(".PageListPagination a[href=" + (options.openPagination-1) + "]");
 						if($a.size() > 0) {
 							$a.click();	
 							options.openPagination = 0;
+						} else {
+							// last pagination link
+							$(".PageListPagination9 a").click();
 						}
 					}
 
 				}; 
 
 				if(!replace) $target.append($loading.show()); 
-				$.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&lang=" + options.langID + "&open=" + options.openPageIDs[0], processChildren); 
+				$.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&lang=" + options.langID + "&open=" + options.openPageIDs[0] + "&mode=" + options.mode, processChildren); 
 			}
 
 			/**

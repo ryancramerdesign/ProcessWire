@@ -1,0 +1,1048 @@
+<?php
+
+/**
+ * Process Lister
+ *     __    _      __           
+ *    / /   (_)____/ /____  _____
+ *   / /   / / ___/ __/ _ \/ ___/
+ *  / /___/ (__  ) /_/  __/ /    
+ * /_____/_/____/\__/\___/_/     
+ *
+ * Provides an alternative listing view for pages using specific templates. 
+ *
+ * ProcessWire 2.x 
+ * Copyright (C) 2014 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * http://processwire.com
+ *
+ * @todo: InputfieldPageTable should only show template options viewable to user
+ * 
+ * For support of actions, new edit modules, and custom configurable Listers, 
+ * check out ListerPro at http://processwire.com/ListerPro/
+ *
+ */
+
+class ProcessPageLister extends Process implements ConfigurableModule {
+
+	/**
+	 * Makes additional info appear for Lister development
+	 *
+	 */
+	const debug = false;
+
+	/**
+	 * Name of session variable used for Lister bookmarks
+	 *
+	 */
+	const sessionBookmarksName = '_lister_bookmarks';
+
+	/**
+	 * Constants for the $window config option
+	 *
+	 */
+	const windowModeNone = 0; // regular link
+	const windowModeModal = 2; // opens modal
+	const windowModeBlank = 4; // opens target=_blank
+	const windowModeHide = 8; // doesn't show
+	const windowModeDirect = 16; // click takes you directly there
+
+	/**
+	 * Instance of InputfieldSelector
+	 *
+	 */
+	protected $inputfieldSelector = null;
+
+	/**
+	 * Cached totals per selector, so we don't have to re-calculate on each pagination
+	 *
+	 */
+	protected $knownTotal = array(
+		'selector' => '', 
+		'total' => null, // null=unset, integer=set
+		);
+
+	/**
+	 * Default columns to display when none configured
+	 *
+	 */
+	protected $defaultColumns = array('title', 'template', 'parent', 'modified', 'modified_users_id'); 
+
+	/**
+	 * Default selector to use when none defined
+	 *
+	 */
+	protected $defaultInitSelector = '';
+
+	/**
+	 * IDs of pages that should appear open automatically
+	 * 
+	 * May be set by GET variable 'open' or by openPageIDs setting. 
+	 *
+	 */
+	protected $openPageIDs = array();
+
+	/**
+	 * Initalize module config variables
+	 *
+	 */
+	public function __construct() {
+
+		$this->defaultColumns = array('title', 'template', 'parent', 'modified', 'modified_users_id'); 
+	
+		// default init selector
+		$initSelector = "has_parent!=2"; // exclude admin
+		
+		/*
+		if($this->wire('user')->isSuperuser()) {
+			$initSelector .= "include=all";
+		} else if($this->wire('user')->hasPermission('page-edit')) {
+			$initSelector .= "include=unpublished";
+		} else {
+			$initSelector .= "include=hidden";
+		}
+		*/
+
+		// exclude admin pages from defaultInitSelector when user is not superuser
+		// if(!$this->wire('user')->isSuperuser()) $initSelector .= ", has_parent!=" . $this->wire('config')->adminRootPageID; 
+
+		// the initial selector string that all further selections are filtered by
+		// this selector string is not visible to user are MAY NOT be removed or changed, 
+		// except for 'sort' properties. 
+		$this->set('initSelector', $initSelector); 
+
+		// the default selector string that appears but MAY be removed or changed
+		$this->set('defaultSelector', "template=, title%="); 
+
+		// Array of status labels of status_name => label
+		$this->set('statusLabels', array()); 
+
+		// Unique ID specific to this Lister instance 
+		$this->set('listerID', $this->wire('page')->name . "." . $this->wire('user')->id . "." . time()); 
+
+		// Parent page for all listed children (optional)
+		$this->set('parent', null); 
+
+		// Template page for all listed children (optional)
+		$this->set('template', null);
+
+		// Array of columns (field names) to display in the lister
+		$this->set('columns', $this->defaultColumns);
+
+		// Delimiters for multi-value column values, indexed by field name
+		$this->set('delimiters', array());
+
+		// Default field to sort by
+		$this->set('defaultSort', '-modified');
+
+		// Max items to show per pagination
+		$this->set('defaultLimit', 25); 
+
+		// image width/height for thumbnail images
+		$this->set('imageWidth', 0);
+		$this->set('imageHeight', 100);
+		$this->set('imageFirst', 0); 
+
+		// view and edit window modes
+		$this->set('viewMode', self::windowModeNone); 
+		$this->set('editMode', self::windowModeNone); 
+		$this->set('editURL', $this->wire('config')->urls->admin . 'page/edit/'); 
+		$this->set('addURL', $this->wire('config')->urls->admin . 'page/add/'); 
+
+		// columns that may not be displayed
+		$this->set('disallowColumns', array('pass', 'config')); 
+
+		// whether or not system templates/fields are allowed for selection
+		// for system fields, it only refers to system custom fields excluding title
+		$this->set('allowSystem', false); 
+	
+		// whether or not to show the selector string preview in InputfieldSelector
+		$this->set('preview', self::debug); 
+	
+		$nameLabel = $this->_('Name'); 
+		$createdLabel = $this->_('Created'); 
+		$modifiedLabel = $this->_('Modified'); 
+		$modifiedUserLabel = $this->_('Mod By'); 
+		$createdUserLabel = $this->_('Created By'); 
+		$templateLabel = $this->_('Template'); 
+		$statusLabel = $this->_('Status'); 
+		$parentLabel = $this->_('Parent'); 
+
+		// Array of system page labels of field_name => label
+		$this->set('systemLabels', array(
+			'name' => $nameLabel, 
+			'status' => $statusLabel, 
+			'template' => $templateLabel,
+			'templates_id' => $templateLabel,
+			'modified' => $modifiedLabel,	
+			'created' => $createdLabel, 
+			'modified_users_id' => $modifiedUserLabel, 
+			'created_users_id' => $createdUserLabel,
+			'parent' => $parentLabel
+			));
+
+		$this->statusLabels = array(
+			Page::statusHidden => $this->_('Hidden'),
+			Page::statusUnpublished => $this->_('Unpublished'), 
+			Page::statusLocked => $this->_('Locked'), 
+			Page::statusTrash => $this->_('Trash'), 
+			);
+
+		// remembering pagination
+		$pageNum = $this->wire('input')->pageNum; 
+		$pageNum2 = (int) $this->sessionGet('pageNum'); 
+		if($this->wire('input')->get('pageNum')) { 
+			// okay, keep pageNum
+		} else if($pageNum > 1) {
+			// okay, also just fine
+		} else if($pageNum2 > 1) {
+			$pageNum = $pageNum2; 
+		}
+		
+		$this->sessionSet('pageNum', $pageNum); 
+		$this->wire('input')->setPageNum($pageNum); 
+	}
+
+	/**
+	 * Initalize lister variables
+	 *
+	 */
+	public function init() {
+		
+		$this->checkSessionBookmark();
+		
+		$columns = $this->sessionGet('columns'); 
+		if($columns) $this->columns = $columns; 
+
+		if($this->wire('config')->ajax) { 
+			$s = $this->getInputfieldSelector();
+			if(!$this->template) { 
+				$template = $this->getSelectorTemplates("$this->initSelector, $s->value"); 
+				if(count($template)) $this->set('template', reset($template)); 
+			}
+		}
+
+		$knownTotal = $this->sessionGet('knownTotal');
+		if(is_array($knownTotal)) $this->knownTotal = $knownTotal;
+
+		if(count($_POST)) $this->processInput();
+
+		parent::init();
+	}
+	
+	/**
+	 * Check and process session bookmarks
+	 *
+	 * If a session_bookmark GET variable is provided with a number that corresponds to session variable
+	 * PageListerBookmarks[session_bookmark] then this function will pull out and use any settings
+	 * specified there rather than the defaults.
+	 *
+	 */
+	protected function checkSessionBookmark() {
+		// account for bookmarks specified in session
+		$id = $this->wire('input')->get('session_bookmark');
+		if(is_null($id)) return false;
+		$id = $this->wire('sanitizer')->name($id); 
+
+		$bookmarks = $this->wire('session')->get(self::sessionBookmarksName);
+
+		if(!is_array($bookmarks) || !isset($bookmarks[$id]) || !is_array($bookmarks[$id])) {
+			$this->error($this->_('Unrecognized bookmark or bookmark no longer active'));
+			return false;
+		}
+	
+		$this->message("Using session bookmark: $id", Notice::debug); 
+		$this->sessionClear();
+
+		foreach($bookmarks[$id] as $key => $value) {
+			if(array_key_exists($key, $this->data)) {
+				$this->set($key, $value);
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Given a unique ID and an array of Lister settings (in $bookmark) return a URL to view those pages in Lister
+	 *
+	 * @param string $id ID or name of bookmark
+	 * @param array $bookmark Bookmark data
+	 * @return string Returns URL to Lister with this bookmark or blank on failure (like if user doesn't have access)
+	 *
+	 */
+	public static function addSessionBookmark($id, array $bookmark) {
+	
+		$user = wire('user');
+		if(!$user->isSuperuser() && !$user->hasPermission('page-lister')) return '';
+		
+		$maxBookmarks = 30;
+		$bookmarks = wire("session")->get(self::sessionBookmarksName);
+		if(!is_array($bookmarks)) $bookmarks = array();
+	
+		if(count($bookmarks) > $maxBookmarks) {
+			// trim bookmarks to max size
+			$bookmarks = array_slice($bookmarks, -1 * $maxBookmarks, null, true); 
+		}
+	
+		$bookmarks[$id] = $bookmark;
+		wire("session")->set(self::sessionBookmarksName, $bookmarks);
+		
+		return wire('config')->urls->admin . "page/lister/?session_bookmark=$id";
+	}
+
+	
+	/**
+	 * Get the InputfieldSelector instance for this Lister
+	 *
+	 * @return InputfieldSelector
+	 *
+	 */
+	public function getInputfieldSelector() {
+		if($this->inputfieldSelector) return $this->inputfieldSelector; 
+		$s = $this->modules->get('InputfieldSelector'); 
+		$s->attr('name', 'filters'); 
+		$s->attr('id', 'ProcessListerFilters'); 
+		$s->initValue = $this->initSelector; 
+		$s->label = $this->_('Filters'); 
+		$s->addLabel = $this->_('Add Filter'); 
+		$s->icon = 'search-plus';
+		$s->preview = $this->preview; 
+		$s->counter = false;
+		$s->allowSystemCustomFields = $this->allowSystem; 
+		$s->allowSystemTemplates = $this->allowSystem; 
+		$s->allowSubfieldGroups = false; // we only support in ListerPro
+		$s->allowSubselectors = false; // we only support in ListerPro
+		$selector = $this->sessionGet('selector'); 
+		if(!strlen($selector)) $selector = $this->defaultSelector; 
+		if($this->initSelector) $selector = str_replace($this->initSelector, '', $selector); // ensure that $selector does not contain initSelector
+		$s->attr('value', $selector); 
+		$this->inputfieldSelector = $s; 
+		return $s; 
+	}
+
+	/**
+	 * Set a Lister setting 
+	 *
+	 * @param string $key
+	 * @param mixed $value
+	 * @return this
+	 *
+	 */
+	public function set($key, $value) {
+		if($key == 'openPageIDs' && is_array($value)) {
+			$this->openPageIDs = $value; 
+			return $this; 
+		}
+		return parent::set($key, $value);
+	}
+
+	/**
+	 * Set a Lister session variable
+	 *
+	 * @param string $key
+	 * @param string|int $value
+	 *
+	 */
+	public function sessionSet($key, $value) {
+		$key = $this->page->name . '_lister_' . $key;
+		if(is_null($value)) $this->session->remove($key);
+			else $this->session->set($key, $value);
+	}
+
+	/**
+	 * Get a Lister session variable
+	 *
+	 * @param string $key
+	 * @return string|int|null
+	 *
+	 */
+	public function sessionGet($key) {
+		$key = $this->page->name . '_lister_' . $key;
+		return $this->session->get($key); 
+	}
+
+	/**
+	 * Clear all Lister session variables
+	 *
+	 */
+	public function sessionClear() {
+		$name = $this->page->name; 
+		foreach($this->session as $key => $value) {
+			if(strpos($key, "{$name}_lister_") === 0) $this->session->remove($key); 
+		}
+	}
+	
+
+	/**
+	 * Process input for the filters form and populate session variables with the results
+	 *
+	 */
+	protected function processInput() {
+
+		if($this->input->post('filters') !== null) {
+			$is = $this->getInputfieldSelector();
+			$is->processInput($this->input->post); 
+			$selector = $this->sessionGet("selector"); 
+			if($selector != $is->value) {
+				$this->sessionSet("selector", $is->value); 
+				$this->sessionSet("pageNum", 1); 
+				$this->wire('input')->setPageNum(1);
+			}
+			
+		} 
+
+		if($this->input->post('columns') !== null) { 
+			$columns = array();
+			foreach($this->input->post('columns') as $name) {
+				$name = $this->wire('sanitizer')->name($name); 	
+				$columns[] = $name; 
+			}
+			if(count($columns)) {
+				$this->sessionSet('columns', $columns); 
+				$this->columns = $columns; 
+			}
+		}
+
+		$sort = $this->input->post('sort');
+		if(!is_null($sort)) {
+			$sort = $this->sanitizer->name($sort); 
+			$this->sessionSet("sort", $sort); 
+			$this->sort = $sort; 
+		}
+	}
+
+	/**
+	 * Build the columns asmSelect
+	 *
+	 */
+	public function buildColumnsField() {
+
+		$fields = $this->template ? $this->template->fieldgroup : $this->wire('fields'); 
+		$options = $this->getSystemColumns();
+
+		$f = $this->modules->get('InputfieldAsmSelect'); 
+		$f->attr('name', 'columns'); 
+		$f->label = $this->_('Default columns'); 
+		$f->description = $this->_('Select and sort the columns that will display in the pages list table.');
+		$f->notes = $this->_('The user can optionally change which columns are shown, so these will just serve as the defaults.'); // columns description
+		$f->icon = 'table';
+
+		foreach($fields as $field) {
+			if($this->allowColumnField($field)) $options[] = $field->name; 
+		}
+
+		sort($options); 
+		foreach($options as $option) $f->addOption($option); 
+		$f->attr('value', $this->columns); 
+		return $f; 
+	}
+
+	/**
+	 * Get plain array of system field names, for use as columns in buildColumnsField
+	 *
+	 */
+	protected function getSystemColumns() {
+		$systemColumns = array_keys($this->systemLabels); 
+		$systemColumns = array_merge($systemColumns, array('id', 'name', 'path')); 
+		return $systemColumns; 
+	}
+
+	/**
+	 * Whether or not to allow the given $field as a column, for buildColumnsField
+	 *
+	 */
+	protected function allowColumnField(Field $field) {
+		if(in_array($field->name, $this->disallowColumns)) return false;
+		if($field->type instanceof FieldtypeFieldsetOpen) return false;
+		return true; 
+	}
+
+	/**
+	 * Build the Lister columns form
+	 *
+	 * @return InputfieldForm
+	 *
+	 */
+	protected function buildColumnsForm() {
+
+		$form = $this->modules->get('InputfieldForm'); 
+		$form->attr('id', 'ProcessListerColumnsForm');
+		$form->method = 'get';
+		$form->action = './';
+		$form->class .= ' WireTab';
+		$form->attr('title', $this->_x('Columns', 'tab'));
+
+		$f = $this->buildColumnsField();
+		$f->description .= ' ' . $this->_('The changes you make here should be reflected immediately in the results below.');
+		$f->attr('id', 'lister_columns'); 
+		$f->label = $this->_('What columns to show in the results'); 
+		$f->notes = '';
+		$form->add($f); 
+
+		return $form;
+	}
+
+	/**
+	 * Build the Lister filters form
+	 *
+	 * @return InputfieldForm
+	 *
+	 */
+	protected function buildFiltersForm() {
+
+		$form = $this->modules->get('InputfieldForm'); 
+		$form->attr('id', 'ProcessListerFiltersForm');
+		$form->method = 'get';
+		$form->action = './';
+		$form->class .= ' WireTab';
+
+		$f = $this->getInputfieldSelector();
+		$f->class .= ' WireTab';	
+		$form->attr('title', $f->label); 
+		$f->label = $this->_('What pages to show'); 
+		$form->add($f);
+
+		$f = $this->modules->get('InputfieldHidden'); 
+		$f->attr('name', 'sort'); 
+		$f->attr('id', 'lister_sort'); 
+		$f->attr('value', $this->sessionGet('sort')); 
+		$form->add($f); 
+
+		return $form; 
+	}
+
+
+	/**
+	 * Get the selector string to be used in finding results
+	 *
+	 * @param int $limit Max number of results per pagination
+	 * @return string
+	 *
+	 */
+	public function ___getSelector($limit = null) {
+
+		$selector = $this->sessionGet('selector');
+		if(!$selector) $selector = $this->initSelector; 
+		if(strpos($selector, $this->initSelector) === false) $selector = "$this->initSelector, $selector";
+
+		if(stripos($selector, 'limit=') === false) {
+			// no limit is specified in the selector
+			if($limit) {
+				$selector .= ", limit=" . (int) $limit; 
+			} else if(is_null($limit)) {
+				$selector .= ", limit=" . $this->defaultLimit; 
+				$limit = $this->defaultLimit; 
+			}
+
+		} else if(!is_null($limit)) { 
+			// limit is specified in both the selector and the arguments. 
+			// we don't allow specifying limit in selector if one is specified in the arguments
+			$selector = preg_replace('/[, ]*\blimit=\d+/i', '', $selector); 
+			if($limit > 0) $selector .= ", limit=" . (int) $limit; 
+		}
+
+		if(stripos($selector, 'sort=') !== false) {
+			// we don't allow specifying the sort in the selector
+			// since it is covered by the $this->sort property
+			$selector = preg_replace('/[, ]*\bsort=([^,]|$)+/i', '', $selector); 
+		}
+
+		$sort = $this->sessionGet("sort");
+		if(!$sort) $sort = $this->defaultSort; 
+		if(!$sort || $sort == 'path') $sort = 'name';
+		if($sort == '-path') $sort = '-name';
+		$selector .= ", sort=$sort";
+
+		if(stripos($selector, 'include=') === false) {
+			$selector .= ", include=unpublished"; 
+		}
+
+		$selector = trim($selector, ', '); 
+
+		return $selector; 
+	}
+
+	/**
+	 * Determine allowed templates from selector string
+	 * 
+	 * If a template is specified in the selector, keep track of it so that we may use it
+	 * for determining what fields to show and 'add new' page features. 
+	 *
+	 * @param string $selector
+	 * @return array
+	 *
+	 */
+	protected function getSelectorTemplates($selector) {
+		$templates = array();
+		if(stripos($selector, 'template=') === false) return array();
+		if(!preg_match('/\btemplate=([^,]+)/i', $selector, $matches)) return array();
+		$template = explode('|', $matches[1]); 
+		foreach($template as $t) {
+			$t = $this->wire('templates')->get($t); 
+			if($t && $t instanceof Template) $templates[] = $t; 
+		}
+		return $templates; 
+	}
+
+	/**
+	 * Build the Lister table containing results
+	 *
+	 * @param PageArray $results
+	 * @return MarkupAdminDataTable
+	 *
+	 */
+	protected function buildListerTable(PageArray $results) {
+
+		$table = $this->modules->get('MarkupAdminDataTable');
+		$columns = $this->sessionGet('columns'); 
+		if(!$columns) $columns = $this->columns; 
+		$fields = array();
+		$header = array();
+
+		foreach($columns as $key => $name) {
+			$subname = '';
+			if(strpos($name, '.')) list($name, $subname) = explode('.', $name); 
+			$field = $this->template ? $this->template->fieldgroup->getField($name, true) : $this->fields->get($name); 
+			$label = $field ? $field->getLabel() : ''; 
+			if(!$label) $label = isset($this->systemLabels[$name]) ? $this->systemLabels[$name] : $name; 
+			if($subname) {
+				$subfield = $this->fields->get($subname); 
+				$label .= ".";
+				if($subfield) $label .= $subfield->getLabel();
+					else $label .= $subname;
+			}
+			$header[$key] = "$label<b>$name</b>";
+			$fields[$name] = $field; 
+		}
+
+		$table->headerRow($header); 
+		$table->setEncodeEntities(false); 
+		$table->setSortable(false); 
+
+		foreach($results as $p) {
+			$table->row($this->buildListerTableRow($p, $fields, $columns)); 
+		}
+
+		return $table;
+	}
+
+	/**
+	 * Build the Lister table row from a Page
+	 *
+	 * @param Page $p
+	 * @param array $fields
+	 * @param array $columns
+	 * @return array
+	 *
+	 */
+	protected function buildListerTableRow(Page $p, array $fields, array $columns) { 
+
+		$p->of(false);
+		$values = array();
+
+		foreach($columns as $cnt => $name) {
+			$value = $this->buildListerTableCol($p, $fields, $name); 
+			if(!$cnt) $value = $this->buildListerTableColActions($p, $value); 
+			$values[] = $value; 
+		}
+
+		return $values; 
+	}
+
+	/**
+	 * Build the Lister table column from a Page and column name
+	 *
+	 * @param Page $p
+	 * @param array $fields
+	 * @param string $name
+	 * @param mixed $value
+	 * @return string
+	 *
+	 */
+	protected function buildListerTableCol(Page $p, array $fields, $name, $value = null) {
+
+		$subname = '';
+		$fullname = $name; 
+		if(strpos($name, '.')) list($name, $subname) = explode('.', $name); 
+		if($name == 'config' || $subname == 'config') return 'Not allowed';
+
+		$field = isset($fields[$name]) ? $fields[$name] : null;
+		if(is_null($value)) $value = $p->getUnformatted($name); 
+		$delimiter = isset($this->delimiters[$fullname]) ? $this->delimiters[$fullname] : "<br />";
+
+		if($subname == 'count' && $value instanceof WireArray) {
+			// count
+			$value = $value->count();
+
+		} else if($value instanceof Page || $value instanceof PageArray) {
+			// pages
+			if($value instanceof Page) $value = array($value); 
+			$newValue = array();
+			if(!$subname) $subname = 'title|name';
+			foreach($value as $v) {
+				$newValue[] = $this->buildListerTableCol($v, $fields, $subname); 
+			}
+			$value = implode($delimiter, $newValue); 
+
+		} else if($value instanceof WireArray || is_array($value)) {
+			// unknown iterable value
+			if($value instanceof Pageimages && $this->imageFirst) $value = array($value->first());
+			$values = array();
+			foreach($value as $k => $v) {
+				if(empty($v)) continue; 
+				if($subname == 'data') $v = (string) $v; 
+				if($subname && is_object($v)) $v = $v->$subname; 
+				if($v instanceof Pageimage) {
+					if($this->imageWidth || $this->imageHeight) $v = $v->size($this->imageWidth, $this->imageHeight); 
+					$v = "<img alt='' src='$v->url' />";
+					
+				} else if($v instanceof Pagefile) {
+					$v = "<a href='$v->url'>$v->basename</a>";
+				} else {
+					$v = $this->wire('sanitizer')->entities($v); 
+				}
+				$values[] = (string) $v; 
+			}
+			$value = implode($delimiter, $values); 
+
+		} else if(in_array($name, array('created', 'modified'))) {
+			// date modified or created
+			$value = "<span class='datetime'>" . wireRelativeTimeStr($value, true) . "</span>";
+
+		} else if($field && $field->type instanceof FieldtypeDatetime) {
+			// datetime field
+			$value = $field->type->formatValue($p, $field, $value); 
+			$value = "<span class='datetime'>$value</span>";
+
+		} else if($field && $field->type instanceof FieldtypeCheckbox) {
+			// checkbox field
+			$value = $value ? "<i class='fa fa-check-square-o'></i>" : "<i class='fa fa-square-o'></i>"; 
+
+		} else if(in_array($name, array('modified_users_id', 'created_users_id'))) {
+			// user field
+			$value = $this->wire('users')->get((int) $value)->name; 
+
+		} else if($name == 'status') {
+			// status
+			$value = array();
+			foreach($this->statusLabels as $status => $label) if($p->is($status)) $value[] = $label;	
+			$value = implode(', ', $value); 
+			
+		} else {
+			// other or unknown
+			$value = $this->sanitizer->entities($value); 
+		}
+
+		return $value; 
+
+	}
+
+	/**
+	 * Build the Lister table column clickable actions
+	 * 
+	 * This essentially wraps the given $value with additional markup to open action links. 
+	 *
+	 * @param Page $p
+	 * @param string $value
+	 * @return string
+	 *
+	 */
+	protected function buildListerTableColActions(Page $p, $value) {
+		$class = '';
+		$icon = '';
+		$isTrash = false; 
+		if(!strlen($value)) $value = $this->_('Blank'); 
+		if($p->is(Page::statusHidden)) $class .= " PageListStatusHidden";
+		if($p->is(Page::statusUnpublished)) $class .= " PageListStatusUnpublished";
+		if($p->is(Page::statusLocked)) $class .= " PageListStatusLocked";
+		if($p->is(Page::statusTrash)) {
+			$isTrash = true; 	
+			$class .= " PageListStatusTrash PageListStatusUnpublished";
+			$icon = "<i class='fa fa-trash-o'></i> ";
+		}
+		if($class) $value = "<span class='" . trim($class) . "'>$value</span>";
+
+		$viewMode = $this->viewMode;
+		$editMode = $this->editMode; 
+		$editable = $editMode != self::windowModeHide ? $p->editable() : false;
+		$viewable = $viewMode != self::windowModeHide ? $p->viewable() : false; 
+		$addable = $editMode != self::windowModeHide ? $p->addable() : false; 
+
+		if($editable || $viewable || $addable) {
+			$directURL = '';
+			$class2 = ''; // $viewable && $editable ? '' : ' autoclick'; 
+			$actionsOut = '';
+			if($editable) {
+				$editURL = $this->editURL . "?id=$p->id";
+				$class = $editMode == self::windowModeModal ? " modal" : "";
+				$target = $editMode == self::windowModeBlank ? " target='_blank'" : "";
+				if($editMode == self::windowModeDirect) $directURL = $editURL;
+				$actionsOut .= "<a$target class='PageEdit$class$class2' href='$editURL'>" . $this->_('edit') . "</a>&nbsp;";
+			}
+			if($viewable) { 
+				$class = $viewMode == self::windowModeModal ? " modal" : "";
+				$target = $viewMode == self::windowModeBlank ? " target='_blank'" : "";
+				if($viewMode == self::windowModeDirect) $directURL = $p->url;
+				$actionsOut .= "<a$target class='PageView$class$class2' href='$p->url'>" . $this->_('view') . "</a>&nbsp;";
+			}
+			if($addable) {
+				$addURL = $this->addURL . "?parent_id=$p->id";
+				$class = $editMode == self::windowModeModal ? " modal" : "";
+				$target = $editMode == self::windowModeBlank ? " target='_blank'" : "";
+				$actionsOut .= "<a$target class='PageAdd PageEdit$class$class2' href='$addURL'>" . $this->_('new') . "</a>&nbsp;";
+			}
+
+			if($directURL) {
+				// click goes directly to edit or view
+				$value = "$icon<a id='page$p->id' href='$directURL'>$value</a>";
+			} else {
+				// click opens actions
+				if($actionsOut) $actionsOut = "<div class='actions'>$actionsOut</div>";
+				$class = 'actions_toggle';
+				if(in_array($p->id, $this->openPageIDs)) {
+					$class .= ' open';
+					unset($this->openPageIDs[$p->id]); 
+					$this->sessionSet('openPageIDs', $this->openPageIDs); // ensure it is only used once
+				}
+				$value = "$icon<a class='$class' id='page$p->id' href='#'>$value</a> $actionsOut";
+			}
+		}
+		if($isTrash) $value = "<div class='ui-priority-secondary'>$value</div>";
+		return $value; 
+	}
+
+
+	/**
+	 * Find the pages from the given selector string
+	 *
+	 * @param string $selector
+	 * @return PageArray
+ 	 *
+	 */
+	protected function ___findResults($selector) {
+		$options = array();
+
+		$knownSelector = preg_replace('/\b(start=\d+|limit=\d+)/', '', $selector); 
+		if($this->knownTotal['selector'] != $knownSelector) {
+			$this->knownTotal['selector'] = $knownSelector; 
+			$this->knownTotal['total'] = null;
+		}
+
+		// if total is already known, don't bother having the engine count it
+		if(!is_null($this->knownTotal['total'])) $options['getTotal'] = false;
+
+		try {
+			$results = $selector ? $this->wire('pages')->find($selector, $options) : new PageArray();
+
+		} catch(Exception $e) {
+			$this->error($e->getMessage());
+			$results = new PageArray();
+		}
+
+		if(is_null($this->knownTotal['total'])) {
+			$total = $results->getTotal();
+			$this->knownTotal['total'] = $total;
+			$this->sessionSet('knownTotal', $this->knownTotal); 
+		} else {
+			$total = $this->knownTotal['total']; 
+			$results->setTotal($total); 
+		}
+
+		return $results; 
+	}
+
+
+	/**
+	 * Find and render the results (ajax)
+	 *
+	 * This is only called if the request comes from ajax
+	 * 
+	 * @param string|null $selector
+	 * @return string
+ 	 *
+	 */
+	protected function ___renderResults($selector = null) {
+
+		if(is_null($selector)) $selector = $this->getSelector();
+		if(!count($this->columns)) $this->columns = $this->defaultColumns; 
+		$results = $this->findResults($selector); 
+		$out = '';
+		$count = count($results);
+		$start = $results->getStart();
+		$limit = $results->getLimit();
+		$total = $results->getTotal();
+		$end = $start+$count; 
+		$pagerOut = '';
+		$errorOut = '';
+		
+		if(count($results)) {
+			$table = $this->buildListerTable($results);
+			$tableOut = $table->render();
+			$headline = sprintf($this->_('%1$d to %2$d of %3$d'), $start+1, $end, $total); 
+			if($total > $limit) {
+				$pager = $this->modules->get('MarkupPagerNav'); 
+				$pagerOut = $pager->render($results);
+				$pageURL = $this->wire('page')->url; 
+				$pagerOut = str_replace($pageURL . "'", $pageURL . "?pageNum=1'", $pagerOut); // specifically identify page1
+			} else {
+				$pagerOut = '';
+			}
+
+		} else {
+			$headline = $this->_('No results.');
+			$tableOut = "<div class='ui-helper-clearfix'></div>";
+		}
+		
+		foreach($this->wire('notices') as $notice) {
+			if($notice instanceof NoticeError) {
+				$out .= "<p class='ui-state-error-text'>$notice->text</p>";
+			}
+		}
+
+		$out .= "<h2 class='lister_headline'>$headline " . 
+				"<span id='lister_open_cnt' class='ui-priority-secondary'>" . 
+				"<i class='fa fa-check-square-o'></i> <span>0</span> " . $this->_('open') . "</span></h2>" . 
+				$pagerOut . $tableOut . $pagerOut; 
+
+		if(self::debug) $selector .= " " . print_r($debug, true); 
+		if($this->wire('config')->debug) $out .= "<p id='ProcessListerSelector' class='notes'>$selector</p>";
+
+		return $out; 
+	}
+
+	/**
+	 * Execute the 'reset' action, which resets columns, filters, and anything else stored in the session
+	 * 
+	 */
+	public function ___executeReset() {
+		$this->sessionClear();
+		$this->session->remove(self::sessionBookmarksName); 
+		$this->message($this->_('All settings have been reset.'));
+		if(strpos($this->wire('input')->urlSegmentStr, '/reset/')) $this->session->redirect('../');
+			else $this->session->redirect('./'); 
+	}
+
+	/**
+	 * Setup openPageIDs variables to keep track of which pages should automatically open
+	 * 
+	 * These are used by the buildListerTableColumnActions method. 
+	 *
+	 */
+	protected function setupOpenPageIDs() {
+		if(count($this->openPageIDs)) $ids = $this->openPageIDs;
+			else if($this->wire('input')->get('open')) $ids = explode(',', $this->wire('input')->get('open'));
+			else $ids = $this->sessionGet('openPageIDs');
+		$openPageIDs = array();
+		if(is_array($ids)) {
+			foreach($ids as $id) {
+				$id = (int) $id;
+				$openPageIDs[$id] = $id;
+			}
+		}
+		$this->openPageIDs = $openPageIDs;
+		$this->sessionSet('openPageIDs', $openPageIDs);
+	}
+
+	/**
+	 * Execute the main Lister action, which is to render the Lister
+	 * 
+	 * @return string
+ 	 *
+	 */
+	public function ___execute() {
+		
+		if($this->wire('modules')->isInstalled('ProcessLister') && $this->wire('user')->isSuperuser()) {
+			$this->error('Please uninstall Modules > Site > ProcessLister - this module (ProcessPageLister) has now replaced it.'); 
+		}
+		
+		$this->setupOpenPageIDs();
+	
+		if($this->wire('config')->ajax) {
+			return $this->renderResults();
+		}
+
+		if($this->wire('input')->get('reset')) {
+			return $this->executeReset();
+		}
+
+		$selector = $this->sessionGet('selector'); 
+		if(!$selector) $this->sessionSet('selector', $this->defaultSelector); 
+
+		$this->modules->get('JqueryWireTabs'); 
+		$this->modules->get('MarkupAdminDataTable'); // to ensure css/js load
+
+		$out = '';
+		$out .= $this->buildFiltersForm()->render();
+		$out .= $this->buildColumnsForm()->render();
+		$out .= $this->renderExtras(); 
+		$out .= "<div id='ProcessListerResults' class='PageList'></div>";
+
+		$action = '';
+		if($this->parent && $this->parent->id) { 
+			$action = "?parent_id={$this->parent->id}"; 
+
+		} else if($this->template && ($parent = $this->template->getParentPage(true))) {
+			if($parent->id) $action = "?parent_id={$parent->id}"; // defined parent
+				else $action = "?template_id={$this->template->id}"; // multiple possible parents
+		}
+		
+		if($action) {
+			$btn = $this->wire('modules')->get('InputfieldButton'); 
+			$btn->attr('value', $this->_('Add New')); 
+			$btn->href = $this->addURL . $action; 
+			$btn->icon = 'plus-circle';
+			$out .= $btn->render();
+		}
+
+		$info = $this->wire('modules')->getModuleInfo($this); 
+		$out .= "<p class='detail version'>$info[title] v$info[version] &beta;</p>";
+		return "<div id='ProcessLister'>$out</div>"; 
+	}
+
+	/**
+	 * Render additional tabs, setup so that descending classes can use as a template method
+	 *
+	 * @return string
+	 *
+	 */
+	public function renderExtras() {
+		$out = "<div id='ProcessListerRefreshTab' title='Refresh' class='WireTab'></div>";
+		$out .= "<div id='ProcessListerResetTab' title='Reset' class='WireTab'></div>";
+		return $out; 
+	}
+
+	/**
+	 * Install Lister
+	 *
+	 */
+	public function ___install() {
+	}
+
+	/**
+	 * Uninstall Lister
+	 *
+	 */
+	public function ___uninstall() {
+
+		/*
+		$moduleID = $this->modules->getModuleID($this); 
+		$pages = $this->pages->find("template=admin, process=$moduleID, include=all"); 
+		foreach($pages as $page) {
+			// if we found the page, let the user know and delete it
+			if($page->process != $this) continue; // not really necessary
+			$this->message("Deleting Page: {$page->path}"); 
+			$page->delete();
+		}
+		*/
+
+	}
+	
+	public static function getModuleConfigInputfields(array $data) {
+		return new InputfieldWrapper();
+	}
+
+}
+
+// we don't want lister bound to the default 999 pagination limit
+wire('config')->maxPageNum = 99999; 

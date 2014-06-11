@@ -23,7 +23,7 @@ class ProcessList extends Process {
 		return array(
 			'title' => __('List', __FILE__), // getModuleInfo title          
 			'summary' => __('Lists the Process assigned to each child page of the current', __FILE__), // getModuleInfo summary
-			'version' => 100, 
+			'version' => 101, 
 			'permanent' => true, 
 			'permission' => 'page-view',
 			);
@@ -41,13 +41,15 @@ class ProcessList extends Process {
 			if(!$child->viewable()) continue; 
 			if($child->process) {
 				$info = $this->modules->getModuleInfo($child->process); 	
-				$title = htmlspecialchars($info['title']); 
-				$summary = htmlspecialchars($info['summary']);
+				$icon = $info['icon'] ? "<i style='float: right;' class='fa fa-3x fa-fw fa-$info[icon] ui-priority-secondary'></i> " : '';
+				$title = $this->wire('sanitizer')->entities($info['title']); 
+				$summary = $this->wire('sanitizer')->entities($info['summary']);
 			} else {
 				$title = $child->get("title|name"); 
-				$summary = $this->_('No description available');
+				$summary = ''; // $this->_('No description available');
+				$icon = '';
 			}
-			$out .= "\n\t<dt><a class='label' href='{$child->url}'>$title</a></dt>";
+			$out .= "\n\t<dt><a class='label' href='{$child->url}'>$icon$title</a></dt>";
 			if($summary) $out .= "\n\t<dd>$summary</dd>";
 			$cnt++;
 		}

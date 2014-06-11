@@ -565,7 +565,7 @@ var InputfieldSelector = {
 				$counter.html(InputfieldSelector.spinner).fadeIn('fast'); 
 				$.post('./?InputfieldSelector=test&name=' + $hiddenInput.attr('name'), { selector: selector }, function(data) {
 					$counter.hide();
-					$counter.text(data); 
+					$counter.html(data); 
 					// $counter.html("<a href='" + config.urls.admin + 'page/search/for?' + selectorURL + "'>" + $counter.text() + "</a>"); 
 					$counter.show();
 				}); 

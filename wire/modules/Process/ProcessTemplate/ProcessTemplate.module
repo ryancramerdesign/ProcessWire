@@ -32,6 +32,7 @@ class ProcessTemplate extends Process {
 			'summary' => __('List and edit the templates that control page output', __FILE__),
 			'version' => 106,
 			'permanent' => true, 
+			'icon' => 'cubes', 
 	
 			// add this permission if you want this Process available for roles other than Superuser
 			'permission' => 'template-admin', 

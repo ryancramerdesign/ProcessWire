@@ -166,7 +166,7 @@ var ProcessWireAdminTheme = {
 				$("#topnav").show();
 			},
 			source: function(request, response) {
-				var url = $input.parents('form').attr('action') + 'for?get=template_label,title&include=all&admin_search=' + request.term;
+				var url = $input.parents('form').attr('data-action') + 'for?get=template_label,title&include=all&admin_search=' + request.term;
 				$.getJSON(url, function(data) {
 					var len = data.matches.length; 
 					if(len < data.total) $status.text(data.matches.length + '/' + data.total); 

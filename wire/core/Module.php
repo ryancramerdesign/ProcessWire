@@ -154,6 +154,9 @@ interface Module {
 	 *      see the 'permissions' option below this. 
 	 *  - permissions: array of permissions that PW will install (and uninstall) automatically.
 	 *      Permissions should be in the format: array('permission-name' => 'Permission description')
+	 *  - icon: optional icon name (string) to represent this module
+	 * 		Currently uses font-awesome icon names as seen at http://fortawesome.github.io/Font-Awesome/
+	 * 		Omit the "fa-" part, leaving just the icon name.
 	 *
 	 * @return array
 	 *

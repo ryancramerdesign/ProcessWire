@@ -1,0 +1,140 @@
+
+#ProcessLister {
+	margin-top: -2px; 
+}
+
+#ProcessListerResultsTab {
+	padding-top: 0.5em; 
+}
+
+.datetime {
+	white-space: nowrap; 
+}
+
+#ProcessListerResults p {
+	margin: 1em 0;
+}
+
+#ProcessListerResults table.AdminDataTable {
+	clear: both; 
+}
+
+#ProcessListerResults thead th b {
+	display: none; 
+}
+
+#ProcessListerResults td {
+	/*position: relative; */
+	font-size: 0.928571428571429em;
+
+}
+
+#ProcessListerResults th {
+	font-size: 0.857142857142857em; 
+}
+/*
+#ProcessListerResults a.PageEdit {
+	margin-right: 1em; 
+}
+
+#ProcessListerResults a.PageView {
+	display: none; 
+}
+*/
+#ProcessListerResults .actions {
+	display: none;
+	line-height: 1.3em;
+}
+/*
+#ProcessListerResults tr:hover {
+	background: #ffffdd; 
+}
+*/
+/*
+#ProcessListerResults tr:hover a.PageView,
+#ProcessListerResults tr:hover a.PageEdit {
+	font-size: 14px; 
+	display: inline;
+}
+*/
+#ProcessListerResults + a button {
+	float: left; 
+	margin-right: 0;
+	margin-top: 0;
+}
+
+.PageListStatusUnpublished {
+	text-decoration: line-through; 
+	opacity: 0.5; 
+}
+
+.PageListStatusHidden {
+	opacity: 0.5; 
+}
+
+#ProcessListerSpinner {
+	margin-left: 0.5em; 
+	font-size: 20px; 
+	position: relative;
+}
+#ProcessListerSpinner i {
+	position: absolute;
+	top: -15px;
+	left: 0; 
+}
+
+
+#content .lister_headline {
+	float: left; 
+}
+
+#lister_open_cnt {
+	display: none; 
+}
+
+#ProcessListerResults .MarkupPagerNav {
+	float: right; 
+}
+
+#ProcessListerResults table + .MarkupPagerNav {
+	margin: 0;
+}
+
+
+#filters_spinner {
+	float: right; 
+	margin-top: 4px; 
+}
+
+#ProcessListerRefreshTab {
+	float: right; 
+}
+
+p.version {
+	clear: both; 
+	padding-top: 1em; 
+}
+
+
+@media only screen and (max-width: 767px) {
+
+	/*
+	#ProcessListerResults table.AdminDataTable th:not(:first-child),
+	#ProcessListerResults table.AdminDataTable td:not(:first-child) {
+		display: none; 
+	}
+	*/
+
+	#content .lister_headline {
+		float: none;
+		clear: both; 
+	}
+	#content .MarkupPagerNav {
+		float: none; 
+	}
+	#ProcessListerResults table + .MarkupPagerNav {
+		margin-bottom: 1em;
+	}
+}
+
+

@@ -33,7 +33,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 4; 
-	const versionRevision = 3; 
+	const versionRevision = 4; 
 	
 	const statusBoot = 0; // system is booting
 	const statusInit = 2; // system and modules are initializing
@@ -217,8 +217,12 @@ class ProcessWire extends Wire {
 			$this->wire('modules')->triggerInit();
 			
 		} else if($status == self::statusReady) {
-			$this->wire('modules')->triggerReady();
+			$this->ready();
 		}
+	}
+
+	protected function ___ready() {
+		$this->wire('modules')->triggerReady();
 	}
 
 	/**
