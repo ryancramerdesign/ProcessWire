@@ -375,7 +375,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	protected function sessionSet($key, $value) {
 		$s = $this->wire('session')->get($this->className());
 		if(!is_array($s)) $s = array(); 
-		if(count($s) > 10) $s = array_slice(-9); // prevent from growing too large
+		if(count($s) > 10) $s = array_slice($s, -9); // prevent from growing too large
 		$id = 'id' . $this->wire('page')->id . "_" . $this->wire('sanitizer')->fieldName($this->attr('name')); 
 		if(!isset($s[$id])) $s[$id] = array();
 		$s[$id][$key] = $value; 
@@ -622,8 +622,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			}
 			$operator = ltrim($operator, $this->operatorTrimChars); 
 			//$label .= " ($operator)";
-			$selected = $operator == $selectedValue ? ' selected' : '';
-			$out .= "<option$selected value='$operator'>$label</option>";
+			$selected = $operator === $selectedValue ? ' selected' : '';
+			$out .= "<option$selected value='" . $this->wire('sanitizer')->entities($operator) . "'>$label</option>";
 		}
 		
 		$out .= "</select>";
@@ -740,7 +740,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		}
 
 		// determine which operators should be used
-		if($type == 'text' && $selectedValue = '""' && in_array($selectedOperator, array('=', '!='))) {
+		if($type == 'text' && $selectedValue == '""' && in_array($selectedOperator, array('=', '!='))) {
 			// add blank quoted string to operator, to match up with our "has value" or "does not hae value" operators
 			$selectedOperator .= '""';
 			$selectedValue = '';

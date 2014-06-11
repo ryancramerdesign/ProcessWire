@@ -16,7 +16,7 @@
  *
  */
 
-class ProcessPageEdit extends Process {
+class ProcessPageEdit extends Process implements WirePageEditor {
 
 	protected $form; 
 	protected $page; 
@@ -1144,6 +1144,7 @@ class ProcessPageEdit extends Process {
 	 * Returns true if this page may be ajax saved (user has access), or false if not
 	 *
 	 * @param Page $page
+	 * @param string $fieldName Optional field name
 	 * @return bool
 	 *
 	 */

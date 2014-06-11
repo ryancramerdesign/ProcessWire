@@ -200,6 +200,11 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 
 			$templates[$t->id] = $t;
 		}
+	
+		if($this->template == 'user' && !isset($templates[$this->template->id]) && $user->hasPermission('user-admin')) {
+			// account for the unique situation of user-admin permission
+			$templates[$this->template->id] = $this->template;
+		}
 
 		$this->allowedTemplates = $templates;
 
@@ -260,21 +265,35 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			$sibling = $this->parent->child('sort=-created, include=hidden');
 			if($sibling && $sibling->id) $defaultTemplateId = $sibling->template->id;
 		}
-		if(!$defaultTemplateId) $defaultTemplateId = $this->parent->template->id; 
-		if(!$this->isAllowedTemplate($defaultTemplateId)) $defaultTemplateId = 0;
+		if(!$defaultTemplateId) $defaultTemplateId = $this->parent->template->id;
+		$allowedTemplates = $this->getAllowedTemplates(); 
+		if(!count($allowedTemplates)) throw new WireException($this->_('No templates allowed for adding new pages here.')); 
+		if($this->template && !isset($allowedTemplates[$this->template->id])) throw new WireException(sprintf($this->_('Template "%s" is not allowed here.'), $this->template->name)); 
+		if(!isset($allowedTemplates[$defaultTemplateId])) $defaultTemplateId = 0; 
+		
+		if(count($allowedTemplates) == 1 || $this->template) {
 
-		$field = $this->modules->get('InputfieldSelect');
-		$field->label = $this->_('Template'); // Template field label
-		$field->attr('name', 'template'); 
-		$field->attr('value', $defaultTemplateId); 
-		$field->required = true; 
-		$language = wire('languages') && wire('user')->language->id ? wire('user')->language : null;
-
-		foreach($this->getAllowedTemplates() as $template) {
-			if($this->template && $template->id != $this->template->id) continue; 
-			$field->addOption($template->id, $this->getTemplateLabel($template)); 
+			// only 1 template can be used here, so store it in a hidden field (no need for selection)
+			$template = $this->template ? $this->template : reset($allowedTemplates); 
+			$field = $this->modules->get('InputfieldHidden');
+			$field->attr('name', 'template'); 
+			$field->attr('value', $template->id); 
+			
+		} else {
+			// multiple templates are possible so give them a select
+	
+			$field = $this->modules->get('InputfieldSelect');
+			$field->attr('value', $defaultTemplateId); 
+	
+			foreach($allowedTemplates as $template) {
+				if($this->template && $template->id != $this->template->id) continue; 
+				$field->addOption($template->id, $this->getTemplateLabel($template)); 
+			}
 		}
-
+		
+		$field->label = $this->_('Template'); // Template field label
+		$field->attr('name', 'template');
+		$field->required = true; 
 		$form->append($field); 
 
 		$field = $this->modules->get('InputfieldHidden'); 

@@ -19,7 +19,8 @@
 		font-size: 14px;
 	}
 
-	ul.actions {
+	.actions {
+		line-height: 1.2em; 
 	}
 		ul.actions li,
 		.PageListActions li,
@@ -52,8 +53,8 @@
 		border: $action-link-border !important; 
 		font-weight: $bold-weight; 
 	}
-		.actions a:hover,
-		li.action a:hover,
+		li.action a:hover, .actions a:hover,
+		.PageList .actions a:hover,
 		.PageListMoveNote a:hover {
 			/* action links hovered */
 			color: $action-link-hover-color; 
@@ -74,7 +75,7 @@
 	*/
 
 	.PageListActionMore a {
-		margin-top: 0.5em; 
+		margin-top: 0.25em; 
 	}
 
 	.PageListSelectName {

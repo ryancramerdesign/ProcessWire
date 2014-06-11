@@ -92,12 +92,25 @@ $pagelist-link-open-bg: #ffffdd;
 $pagelist-link-active-color: $black; 
 $pagelist-link-icon-color: lighten($pagelist-link-color, 15%); /*#CC0048; */
 
+/*
 $pagination-font-size: 0.769230769230769em; 
 $pagination-link-color: $reverse-text-color;
 $pagination-link-bg: $green; 
 $pagination-link-current-color: $text-color; 
 $pagination-link-current-bg: $subtle-bg;
 $pagination-link-hover-color: $white;
+$pagination-link-hover-bg: $pink;
+$pagination-link-active-color: $white; 
+$pagination-link-active-bg: $dark-pink; 
+$pagination-link-border-radius: 2px; 
+*/
+
+$pagination-font-size: 0.769230769230769em; 
+$pagination-link-color: $text-color;
+$pagination-link-bg: $subtle-bg; 
+$pagination-link-current-color: $white; 
+$pagination-link-current-bg: $pink;
+$pagination-link-hover-color: $white; 
 $pagination-link-hover-bg: $pink;
 $pagination-link-active-color: $white; 
 $pagination-link-active-bg: $dark-pink; 

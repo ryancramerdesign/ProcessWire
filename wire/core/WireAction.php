@@ -13,7 +13,6 @@ abstract class WireAction extends WireData implements Module {
 	 *
 	 * @return array
 	 *
-	 */
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'WireAction (abstract)', 
@@ -21,6 +20,7 @@ abstract class WireAction extends WireData implements Module {
 			'version' => 0
 			);
 	}
+	 */
 
 	/**
 	 * Instance of the object that is running this action
@@ -105,6 +105,7 @@ abstract class WireAction extends WireData implements Module {
 	 *
 	 * @param array|WireArray $items Items to operate upon
 	 * @return int Returns quantity of items successfully operated upon
+	 * @throws WireException when it receives an unexpected type for $items
 	 *
 	 */
 	public function ___executeMultiple($items) {

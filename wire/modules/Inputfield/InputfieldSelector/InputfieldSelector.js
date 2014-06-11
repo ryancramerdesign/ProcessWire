@@ -98,6 +98,12 @@ var InputfieldSelector = {
 			}); 
 		}
 
+		$(".InputfieldSelector").each(function() {
+			if($(this).find(".selector-preview-disabled").size() > 0) return;
+			// force items to populate previews
+			$(this).find(".input-value:eq(0)").change();
+		}); 
+
 	},
 	
 	/**

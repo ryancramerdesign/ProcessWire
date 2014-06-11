@@ -238,7 +238,7 @@
 				if(disabled == undefined) var disabled = false; 
 
 				var $O = $('#' + optionId); 
-				var $option = $("<option>" + $O.text() + "</option>")
+				var $option = $("<option>" + $O.html() + "</option>")
 					.val($O.val())
 					.attr('rel', optionId);
 

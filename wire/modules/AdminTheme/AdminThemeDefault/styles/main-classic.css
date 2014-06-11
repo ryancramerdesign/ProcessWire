@@ -16,6 +16,18 @@
  *
  */
 /*#CC0048; */
+/*
+$pagination-font-size: 0.769230769230769em; 
+$pagination-link-color: $reverse-text-color;
+$pagination-link-bg: $green; 
+$pagination-link-current-color: $text-color; 
+$pagination-link-current-bg: $subtle-bg;
+$pagination-link-hover-color: $white;
+$pagination-link-hover-bg: $pink;
+$pagination-link-active-color: $white; 
+$pagination-link-active-bg: $dark-pink; 
+$pagination-link-border-radius: 2px; 
+*/
 /* transparentize($subtle-bg, 0.5); */
 /**
  * Modification styles 
@@ -1555,16 +1567,18 @@ body .ui-tooltip {
 
 /* Overlays */
 .ui-widget-overlay {
-  background: #aaaaaa url(images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x;
-  opacity: .3;
-  filter: Alpha(Opacity=30); }
+  background: #000;
+  /* url(images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x; */
+  opacity: .7;
+  filter: Alpha(Opacity=70); }
 
 .ui-widget-shadow {
   margin: -8px 0 0 -8px;
   padding: 8px;
-  background: #aaaaaa url(images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x;
-  opacity: .3;
-  filter: Alpha(Opacity=30);
+  /*background: #aaaaaa url(images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x;*/
+  background: #000;
+  opacity: .8;
+  filter: Alpha(Opacity=70);
   border-radius: 8px; }
 
 /****************************************************************************************
@@ -2717,6 +2731,8 @@ body.collapse-wiretabs #breadcrumbs {
   .content .PageListStatusIcon {
     color: #888888;
     font-size: 14px; }
+  .content .actions {
+    line-height: 1.2em; }
   .content ul.actions li,
   .content .PageListActions li,
   .content li.action {
@@ -2742,8 +2758,8 @@ body.collapse-wiretabs #breadcrumbs {
     border-radius: 3px;
     border: none !important;
     font-weight: bold; }
-  .content .actions a:hover,
-  .content li.action a:hover,
+  .content li.action a:hover, .content .actions a:hover,
+  .content .PageList .actions a:hover,
   .content .PageListMoveNote a:hover {
     /* action links hovered */
     color: white;
@@ -2753,7 +2769,7 @@ body.collapse-wiretabs #breadcrumbs {
     text-transform: lowercase;
     cursor: move; }
   .content .PageListActionMore a {
-    margin-top: 0.5em; }
+    margin-top: 0.25em; }
   .content .PageListSelectName {
     margin-right: 0.5em; }
     .content .PageListSelectName i {
@@ -2825,7 +2841,8 @@ body.collapse-wiretabs #breadcrumbs {
     border-left: none;
     padding-left: 0; }
   .content .AdminDataList tr:hover td,
-  .content .AdminDataList tr:hover th {
+  .content .AdminDataList tr:hover th,
+  .content .AdminDataList tr.open td {
     background: #ffffdd; }
   .content .AdminDataList td a {
     color: #db1174; }
@@ -2867,8 +2884,8 @@ body.collapse-wiretabs #breadcrumbs {
     font-size: 0.76923em; }
     .content .PageListPagination a,
     .content .MarkupPagerNav a {
-      background: #93bf0d;
-      color: white;
+      background: #e4ebee;
+      color: #222222;
       font-weight: bold;
       -webkit-border-radius: 2px;
       -moz-border-radius: 2px;
@@ -2887,8 +2904,8 @@ body.collapse-wiretabs #breadcrumbs {
         background: #b50e60; }
   .content .PageListPaginationCurrent a,
   .content .MarkupPagerNavOn a {
-    color: #222222;
-    background: #e4ebee; }
+    color: white;
+    background: #db1174; }
 
 /***********************************************************************************************
  * GENERAL

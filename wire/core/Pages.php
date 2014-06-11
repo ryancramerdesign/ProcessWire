@@ -839,7 +839,11 @@ class Pages extends Wire {
 
 		// save each individual Fieldtype data in the fields_* tables
 		foreach($page->fieldgroup as $field) {
-			if($field->type) $field->type->savePageField($page, $field);
+			if($field->type) try { 
+				$field->type->savePageField($page, $field);
+			} catch(Exception $e) {
+				$this->error(sprintf($this->_('Error saving field "%s"'), $field->name) . ' - ' . $e->getMessage()); 
+			}
 		}
 
 		// return outputFormatting state

@@ -87,9 +87,9 @@
 			<?php 
 			foreach($modules as $module) {
 				if($module instanceof ModulePlaceholder) continue; 
-				$info = $module->getModuleInfo();
+				$info = $modules->getModuleInfo($module, array('verbose' => false));
 				echo "<tr>";
-				echo "<td>" . get_class($module) . "</td>"; 
+				echo "<td>$info[name]</td>"; 
 				echo "<td>$info[version]</td>";
 				echo "<td>$info[title]</td>";
 				echo "</tr>";

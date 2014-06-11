@@ -70,10 +70,8 @@ class Fields extends WireSaveableItems {
 	 *
 	 * For example, a Field can't be given one of these names. 
 	 *
-	 * @TODO This really doesn't belong here. This check can be performed from a Page without needing to maintain this silly list.
-	 *
 	 */
-	static protected $nativeNames = array(
+	static protected $nativeNamesSystem = array(
 		'id', 
 		'parent_id', 
 		'parent', // alias
@@ -113,8 +111,18 @@ class Fields extends WireSaveableItems {
 		'description',
 		'data',
 		'isNew',
-		); 
+		);
 
+	/**
+	 * Field names that are native/permanent to this instance of ProcessWire (configurable at runtime)
+	 *
+	 */
+	protected $nativeNamesLocal = array();
+
+	/**
+	 * Construct
+	 *
+	 */
 	public function __construct() {
 		$this->fieldsArray = new FieldsArray();
 	}
@@ -240,8 +248,6 @@ class Fields extends WireSaveableItems {
 	 *
 	 * This enables you to re-create field tables when migrating over entries from the Fields table manually (via SQL dumps or the like)
 	 *
- 	 * @param Field $field
-	 *
 	 */
 	public function checkFieldTables() {
 		foreach($this as $field) $this->checkFieldTable($field); 
@@ -263,7 +269,10 @@ class Fields extends WireSaveableItems {
 		if(!$item->id) throw new WireException("Unable to delete from '" . $item->getTable() . "' for field that doesn't exist in fields table"); 
 
 		// if it's in use by any fieldgroups, then we don't allow it to be deleted
-		if($item->numFieldgroups()) throw new WireException("Unable to delete field '{$item->name}' because it is in use by " . $item->numFieldgroups() . " fieldgroups"); 
+		if($item->numFieldgroups()) {
+			$names = $item->getFieldgroups()->implode("', '", "name");
+			throw new WireException("Unable to delete field '{$item->name}' because it is in use by these fieldgroups: '$names'");
+		}
 
 		// if it's a system field, it may not be deleted
 		if($item->flags & Field::flagSystem) throw new WireException("Unable to delete field '{$item->name}' because it is a system field."); 
@@ -554,13 +563,39 @@ class Fields extends WireSaveableItems {
 
 	/**
 	 * Is the given field name native/permanent to the database?
+	 * 
+	 * This is deprecated, please us $fields->isNative($name) instead. 
+	 *
+	 * @param string $name
+	 * @return bool
+	 * @deprecated
+	 *
+	 */
+	public static function isNativeName($name) {
+		return wire('fields')->isNative($name);
+	}
+
+	/**
+	 * Is the given field name native/permanent to the database?
 	 *
 	 * @param string $name
 	 * @return bool
 	 *
 	 */
-	public static function isNativeName($name) {
-		return in_array($name, self::$nativeNames); 
+	public function isNative($name) {
+		if(in_array($name, self::$nativeNamesSystem)) return true; 
+		if(in_array($name, $this->nativeNamesLocal)) return true;
+		return false; 
+	}
+
+	/**
+	 * Add a new name to be recognized as a native field name
+	 *
+	 * @param string $name
+	 *
+	 */
+	public function setNative($name) {
+		$this->nativeNamesLocal[] = $name; 
 	}
 
 	/**

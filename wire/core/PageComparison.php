@@ -88,19 +88,22 @@ class PageComparison {
 					$value = array($value->id, $value->path); 
 				} else if($value instanceof PageArray) {
 					// if it's a PageArray, then get the ID and path of all of them
+					// @todo add support for @ selectors
 					$_value = array();
 					foreach($value as $v) {
 						$_value[] = $v->id; 
 						$_value[] = $v->path; 
 					}
 					$value = $_value;
+				} else if($value instanceof Template) {
+					$value = array($value->id, $value->name); 
 				} else {
 					// otherwise just get the string value of the object
 					$value = "$value";
 				}
 						
 			} else if(is_array($value)) {
-				// ok: seector matches will accept an array
+				// ok: selector matches will accept an array
 			} else {
 				// convert to a string value, whatever it may be
 				$value = "$value";

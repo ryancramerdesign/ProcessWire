@@ -108,9 +108,11 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 
 		// tell ProcessPageView which segments are allowed for pagination
 		$pageNumUrlPrefixes = array();
+		$fields = $this->wire('fields');
 		foreach($this->wire('languages') as $language) {
 			$pageNumUrlPrefix = $this->get("pageNumUrlPrefix$language"); 
 			if($pageNumUrlPrefix) $pageNumUrlPrefixes[] = $pageNumUrlPrefix;
+			$fields->setNative("name$language"); 
 		}
 		if(count($pageNumUrlPrefixes)) $this->wire('config')->set('pageNumUrlPrefixes', $pageNumUrlPrefixes); 
 	}

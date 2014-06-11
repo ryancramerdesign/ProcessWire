@@ -102,13 +102,20 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	
 		foreach($copy->template->fieldgroup as $field) {
 			if(!$field->type instanceof FieldtypePageTable) continue; 
-			if(!$field->parent_id) continue; // let that be handled manually since recursive clones are already an option
+			//if(!$field->parent_id) continue; // let that be handled manually since recursive clones are already an option
+			$parent = $field->parent_id ? $this->wire('pages')->get($field->parent_id) : $copy; 
 			$value = $copy->getUnformatted($field->name); 
 			if(!count($value)) continue; 
 			$newValue = new PageArray();
 			foreach($value as $item) {
 				try { 
-					$newItem = $this->wire('pages')->clone($item); 
+					$newItem = null;
+					if(!$field->parent_id && $copy->numChildren) {
+						// value was already cloned by API with recursive option?
+						$newItem = $this->wire('pages')->get("parent=$copy, name=$item->name"); 
+						if(!$newItem->id) $newItem = null; 
+					}
+					if(!$newItem) $newItem = $this->wire('pages')->clone($item, $parent); 
 					if($newItem->id) {
 						$newValue->add($newItem); 
 						$this->wire('pages')->message("Cloned item $item->path", Notice::debug); 
@@ -211,8 +218,14 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	 * 
 	 */
 	protected function isValidItem(Page $page, Field $field, Page $item) {
-		if($item->template->id != $field->template_id) return false; 
-		return true; 
+		$template_id = $field->template_id; 
+		if(is_array($template_id)) {
+			if(in_array($item->template->id, $template_id)) return true; 
+		} else {
+			// old style for backwards compatibility
+			if($template_id == $item->template->id) return true; 
+		}
+		return false; 
 	}
 
 	/**
@@ -276,9 +289,18 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	 *
 	 */
 	public function ___wakeupValue(Page $page, Field $field, $value) {
-		if(!is_array($value) || !count($value) || !$field->template_id) return $this->getBlankValue($page, $field); 
-		$template = $this->wire('templates')->get($field->template_id); 
-		$items = $this->wire('pages')->getById($value, $template); 
+		if(!is_array($value) || !count($value) || empty($field->template_id)) return $this->getBlankValue($page, $field);
+		$template_id = $field->template_id; 
+		if(!is_array($template_id)) { 
+			$template_id = $template_id ? array($template_id) : array();
+		}
+		if(count($template_id) == 1) {
+			$template = $this->wire('templates')->get(reset($template_id));
+			$items = $this->wire('pages')->getById($value, $template); 
+		} else {
+			$items = $this->wire('pages')->getById($value); 
+		}
+			
 		return $items; 
 	}
 
@@ -307,15 +329,19 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 
 		$inputfields = parent::___getConfigInputfields($field);
 
-		$f = $this->wire('modules')->get('InputfieldSelect');
+		$f = $this->wire('modules')->get('InputfieldAsmSelect');
 		$f->attr('name', 'template_id');
-		$f->label = $this->_('Select a template for items');
-		$f->addOption(0, ''); 
-		foreach($this->wire('templates') as $template) $f->addOption($template->id, $template->name); 
-		$f->attr('value', (int) $field->template_id);
+		$f->label = $this->_('Select one or more templates for items');
+		foreach($this->wire('templates') as $template) {
+			if($template->flags & Template::flagSystem) continue; 
+			$f->addOption($template->id, $template->name); 
+		}
+		$value = $field->template_id; 
+		if(!is_array($value)) $value = $value ? array($value) : array();
+		$f->attr('value', $value); 
 		$f->required = true; 
-		$f->description = $this->_('This is the template that will be used by pages managed from this field. You may wish to create a new template specific to the needs of this field.'); 
-		$f->notes = $this->_('Please hit Save after selecting a template and the remaining configuration on the Input tab will contain more context.'); 
+		$f->description = $this->_('These are the templates that will be used by pages managed from this field. You may wish to create a new template specific to the needs of this field.'); // Templates selection description
+		$f->notes = $this->_('Please hit Save after selecting a template and the remaining configuration on the Input tab will contain more context.'); // Templates selection n otes 
 		$inputfields->add($f);
 
 		$f = $this->wire('modules')->get('InputfieldPageListSelect'); 
@@ -332,7 +358,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 		$f->attr('value', 1); 
 		if($field->autoTrash) $f->attr('checked', 'checked'); 
 		$f->label = $this->_('Trash items when page is deleted?'); 
-		$f->description = $this->_('When checked, items created/managed by a given page will be automatically trashed when that page is deleted. If not checked, the items will remain under the parent you selected above.'); 
+		$f->description = $this->_('When checked, items created/managed by a given page will be automatically trashed when that page is deleted. If not checked, the items will remain under the parent you selected above.'); // autoTrash option description
 		$f->notes = $this->_('This option applies only if you have selected a parent above.'); 
 		$f->collapsed = Inputfield::collapsedBlank;
 		$inputfields->add($f); 

@@ -151,7 +151,6 @@ class Modules extends WireArray {
 		if(is_null($modules)) $modules = $this;
 
 		foreach($modules as $class => $module) {
-			// $info = call_user_func(array($module, 'getModuleInfo'));
 			$info = $this->getModuleInfo($module); 
 			$skip = false;
 
@@ -188,7 +187,7 @@ class Modules extends WireArray {
 		// if the module is configurable, then load it's config data
 		// and set values for each before initializing themodule
 		$this->setModuleConfigData($module);
-		$module->init();
+		if(method_exists($module, 'init')) $module->init();
 
 		// if module is autoload (assumed here) and singular, then
 		// we no longer need the module's config data, so remove it
@@ -272,7 +271,7 @@ class Modules extends WireArray {
 				continue; 
 			}
 
-			// if the filename doesn't end with .module, then stop and move onto the next
+			// if the filename doesn't end with .module or .module.php, then stop and move onto the next
 			if(!strpos($filename, '.module') || (substr($filename, -7) !== '.module' && substr($filename, -11) !== '.module.php')) continue; 
 
 			//  if the filename doesn't start with the requested path, then continue
@@ -297,7 +296,7 @@ class Modules extends WireArray {
 				// include the module and instantiate it but don't init() it,
 				// because it will be done by Modules::init()
 				include_once($pathname); 
-				$moduleInfo = call_user_func(array($basename, 'getModuleInfo'));
+				$moduleInfo = $this->getModuleInfo($basename, array('verbose' => false)); 
 				// if not defined in getModuleInfo, then we'll accept the database flag as enough proof
 				// since the module may have defined it via an isAutoload() function
 				if(!isset($moduleInfo['autoload'])) $moduleInfo['autoload'] = true;
@@ -395,7 +394,7 @@ class Modules extends WireArray {
 	 *
 	 */
 	protected function setConfigPaths($moduleName, $path) {
-		$config = $this->fuel('config'); 
+		$config = $this->wire('config'); 
 		$path = rtrim($path, '/'); 
 		$path = substr($path, strlen($config->paths->root)) . '/';
 		$config->paths->set($moduleName, $path);
@@ -411,6 +410,7 @@ class Modules extends WireArray {
 	 *
 	 * @param string|int $key Module className or database ID
 	 * @return Module|null
+	 * @throws WirePermissionException If module requires a particular permission the user does not have
 	 *
 	 */
 	public function get($key) {
@@ -450,7 +450,12 @@ class Modules extends WireArray {
 			// if the module is configurable, then load it's config data
 			// and set values for each before initializing the module
 			$this->setModuleConfigData($module); 
-			$module->init();
+			if(method_exists($module, 'init')) $module->init(); 
+		}
+		
+		$info = $this->getModuleInfo($module, array('verbose' => false)); 
+		if(!empty($info['permission']) && !$this->wire('user')->hasPermission($info['permission'])) {
+			throw new WirePermissionException($this->_('You do not have permission to execute this module') . ' - ' . $class);
 		}
 
 		return $module; 
@@ -604,16 +609,32 @@ class Modules extends WireArray {
 		}
 
 		$info = $this->getModuleInfo($class); 
+	
+		// if this module has custom permissions defined in its getModuleInfo()['permissions'] array, install them 
+		foreach($info['permissions'] as $name => $title) {
+			$name = $this->wire('sanitizer')->pageName($name); 
+			if(ctype_digit("$name") || empty($name)) continue; // permission name not valid
+			$permission = $this->wire('permissions')->get($name); 
+			if($permission->id) continue; // permision already there
+			try {
+				$permission = $this->wire('permissions')->add($name); 
+				$permission->title = $title; 
+				$this->wire('permissions')->save($permission); 
+				$this->message(sprintf($this->_('Added Permission: %s'), $permission->name)); 
+			} catch(Exception $e) {
+				$this->error(sprintf($this->_('Error adding permission: %s'), $name)); 
+			}
+		}
 
 		// check if there are any modules in 'installs' that this module didn't handle installation of, and install them
-		$label = "Module Auto Install:";
+		$label = $this->_('Module Auto Install');
 		foreach($info['installs'] as $name) {
 			if(!$this->isInstalled($name)) {
 				try { 
 					$this->install($name); 
-					$this->message("$label $name"); 
+					$this->message("$label: $name"); 
 				} catch(Exception $e) {
-					$this->error("$label $name - " . $e->getMessage()); 	
+					$this->error("$label: $name - " . $e->getMessage()); 	
 				}
 			}
 		}
@@ -803,13 +824,13 @@ class Modules extends WireArray {
 		foreach($this->getUninstalls($class) as $name) {
 
 			// catch uninstall exceptions at this point since original module has already been uninstalled
-			$label = "Module Auto Uninstall";
+			$label = $this_>_('Module Auto Uninstall');
 			try { 
 				$this->uninstall($name); 
-				$this->message("$label - $name"); 
+				$this->message("$label: $name"); 
 
 			} catch(Exception $e) {
-				$this->error("$label - $name - " . $e->getMessage()); 
+				$this->error("$label: $name - " . $e->getMessage()); 
 			}
 		}
 	
@@ -821,6 +842,22 @@ class Modules extends WireArray {
 
 		unset($this->moduleIDs[$class]);
 		$this->remove($module);
+	
+		// delete permissions installed by this module
+		if(isset($info['permissions']) && is_array($info['permissions'])) {
+			foreach($info['permissions'] as $name => $title) {
+				$name = $this->wire('sanitizer')->pageName($name); 
+				if(ctype_digit("$name") || empty($name)) continue; 
+				$permission = $this->wire('permissions')->get($name); 
+				if(!$permission->id) continue; 
+				try { 
+					$this->wire('permissions')->delete($permission); 
+					$this->message(sprintf($this->_('Deleted Permission: %s'), $name)); 
+				} catch(Exception $e) {
+					$this->error(sprintf($this->_('Error deleting permission: %s'), $name)); 
+				}
+			}
+		}
 
 		return true; 
 	}
@@ -912,87 +949,190 @@ class Modules extends WireArray {
 		return false; 
 	}
 
+	protected function getModuleInfoExternal($moduleName) {
+		
+		// ...attempt to load info by info file (Module.info.php or Module.info.json)
+		if(!empty($this->installable[$moduleName])) {
+			$path = dirname($this->installable[$moduleName]) . '/';
+		} else {
+			$path = $this->wire('config')->paths->$moduleName;
+		}
+		
+		if(empty($path)) return array();
+
+		// module exists and has a dedicated path on the file system
+		// we will try to get info from a PHP or JSON info file
+		$filePHP = $path . "$moduleName.info.php";
+		$fileJSON = $path . "$moduleName.info.json";
+
+		$info = array();
+		if(is_file($filePHP)) {
+			include($filePHP); // will populate $info automatically
+			
+		} else if(is_file($fileJSON)) {
+			$info = file_get_contents($fileJSON);
+			$info = json_decode($info, true);
+			if(!$info) throw new WireException("Invalid JSON module info for $moduleName");
+		} 
+		
+		return $info; 
+	}
+	
+	protected function getModuleInfoInternal($module) {
+		$info = array();
+		if($module instanceof ModulePlaceholder) $module = $module->className();
+		if($module instanceof Module) {
+			if(method_exists($module, 'getModuleInfo')) {
+				$info = $module::getModuleInfo();
+			}
+		} else if($module) {
+			if(method_exists($module, 'getModuleInfo')) {
+				$info = call_user_func(array($module, 'getModuleInfo'));
+			}
+		}
+		return $info; 
+	}
+	
+	protected function getModuleInfoSystem($moduleName) {
+		
+		if($moduleName === 'PHP') {
+			$info = array();
+			$info['name'] = $moduleName;
+			$info['title'] = $moduleName;
+			$info['version'] = PHP_VERSION;
+			return $info;
+
+		} else if($moduleName === 'ProcessWire') {
+			$info = array();
+			$info['name'] = $moduleName;
+			$info['title'] = $moduleName;
+			$info['version'] = $this->wire('config')->version;
+			$info['requiresVersions'] = array(
+				'PHP' => '>=5.3.8',
+				'PHP_modules' => 'PDO,mysqli',
+				'Apache_modules' => 'mod_rewrite',
+				'MySQL' => '>=5.0.15',
+			);
+			$info['requires'] = array_keys($info['requiresVersions']);
+		}
+		
+		return $info;
+
+	}
 
 	/**
 	 * Returns the standard array of information for a Module
 	 *
 	 * @param string|Module|int $module May be class name, module instance, or module ID
+	 * @param array $options Optional options to modify behavior of what gets returned
+	 * 		- verbose: true (specify false to return only what is returned by the module's getModuleInfo method)
 	 * @return array
+	 * @throws WireException when a module exists but has no means of returning module info
 	 *	
 	 */
-	public function getModuleInfo($module) {
-
-		$info = array(
+	public function getModuleInfo($module, array $options = array()) {
+		
+		if(!isset($options['verbose'])) $options['verbose'] = true; 
+		
+		$info = array();
+		$moduleName = $module; 
+		
+		static $verboseInfo = array(
+			// module class name 
+			'name' => '',
+			// module title
 			'title' => '',
+			// module version
 			'version' => 0,
+			// who authored the module?
 			'author' => '',
+			// summary of what this module does
 			'summary' => '',
+			// URL to module details
 			'href' => '',
 			// this method converts this to array of module names, regardless of how the module specifies it
-			'requires' => array(), 
+			'requires' => array(),
 			// module name is key, value is array($operator, $version). Note 'requiresVersions' index is created by this function.
-			'requiresVersions' => array(), 
+			'requiresVersions' => array(),
 			// array of module class names
 			'installs' => array(),
+			// permission required to execute this module
+			'permission' => '',
+			// permissions automaticall installed/uninstalled with this module. array of ('permission-name' => 'Description')
+			'permissions' => array(),
 			);
 
-		if($module instanceof Module || ctype_digit("$module")) {
-			$module = $this->getModuleClass($module); 
-		}
-
-		if($module == 'PHP') {
-			$info['title'] = $module;
-			$info['version'] = PHP_VERSION; 
-			return $info;
-		} else if($module == 'ProcessWire') {
-			$info['title'] = $module; 
-			$info['version'] = $this->wire('config')->version; 
-			return $info;
-		}
-
-		if(!class_exists($module, false)) {
-
-			if(isset($this->installable[$module])) {
-				$filename = $this->installable[$module]; 
-				include_once($filename); 
-			}
-
-			if(!class_exists($module)) {
-				$info['title'] = $module; 
-				$info['summary'] = 'Inactive';
-				return $info;
-			}
-		}
-
-		$info = array_merge($info, call_user_func(array($module, 'getModuleInfo')));
-
-		// if $info[requires] or $info[installs] isn't already an array, make it one
-		if(!is_array($info['requires'])) {
-			$info['requires'] = str_replace(' ', '', $info['requires']); // remove whitespace
-			if(strpos($info['requires'], ',') !== false) $info['requires'] = explode(',', $info['requires']); 
-				else $info['requires'] = array($info['requires']); 
-		}
-
-		// populate requiresVersions
-		foreach($info['requires'] as $key => $class) {
-			if(!ctype_alnum($class)) {
-				// has a version string
-				list($class, $operator, $version) = $this->extractModuleOperatorVersion($class); 
-				$info['requires'][$key] = $class; // convert to just class
+		if($module instanceof Module) {
+			// module is an instance
+			$moduleName = method_exists($module, 'className') ? $module->className() : get_class($module); 
+			$info = $this->getModuleInfoInternal($module); 
+			if(!count($info)) $info = $this->getModuleInfoExternal($moduleName); 
+			
+		} else if(in_array($module, array('PHP', 'ProcessWire'))) {
+			// module is a system 
+			$info = $this->getModuleInfoSystem($module); 
+			
+		} else {
+			// module is a class name or ID
+			if(ctype_digit("$module")) $module = $this->getModuleClass($module);
+	
+			if(class_exists($moduleName, false)) {
+				// module is already in memory, check internal first, then external
+				$info = $this->getModuleInfoInternal($moduleName); 
+				if(!count($info)) $info = $this->getModuleInfoExternal($moduleName); 
+				
 			} else {
-				// no version string
-				$operator = '>=';
-				$version = 0; 
+				// module is not in memory, check external first, then internal
+				$info = $this->getModuleInfoExternal($moduleName); 
+				if(!count($info) && isset($this->installable[$moduleName])) {
+					// info not available externally, attempt to locate it interally
+					include_once($this->installable[$moduleName]);
+					$info = $this->getModuleInfoInternal($moduleName); 
+				}
 			}
-			$info['requiresVersions'][$class] = array($operator, $version); 
+		}
+		
+		if(!count($info)) {
+			$info = $options['verbose'] ? $verboseInfo : array();
+			$info['title'] = $module;
+			$info['summary'] = 'Inactive';
+			$info['error'] = 'Unable to locate module';
+			return $info;
+		}
+		
+		if($options['verbose']) {
+			
+			$info = array_merge($verboseInfo, $info); 
+	
+			// if $info[requires] or $info[installs] isn't already an array, make it one
+			if(!is_array($info['requires'])) {
+				$info['requires'] = str_replace(' ', '', $info['requires']); // remove whitespace
+				if(strpos($info['requires'], ',') !== false) $info['requires'] = explode(',', $info['requires']); 
+					else $info['requires'] = array($info['requires']); 
+			}
+	
+			// populate requiresVersions
+			foreach($info['requires'] as $key => $class) {
+				if(!ctype_alnum($class)) {
+					// has a version string
+					list($class, $operator, $version) = $this->extractModuleOperatorVersion($class); 
+					$info['requires'][$key] = $class; // convert to just class
+				} else {
+					// no version string
+					$operator = '>=';
+					$version = 0; 
+				}
+				$info['requiresVersions'][$class] = array($operator, $version); 
+			}
+	
+			if(!is_array($info['installs'])) {
+				$info['installs'] = str_replace(' ', '', $info['installs']); // remove whitespace
+				if(strpos($info['installs'], ',') !== false) $info['installs'] = explode(',', $info['installs']); 
+					else $info['installs'] = array($info['installs']); 
+			}
 		}
 
-		if(!is_array($info['installs'])) {
-			$info['installs'] = str_replace(' ', '', $info['installs']); // remove whitespace
-			if(strpos($info['installs'], ',') !== false) $info['installs'] = explode(',', $info['installs']); 
-				else $info['installs'] = array($info['installs']); 
-		}
-
+		$info['name'] = $moduleName; 
 		return $info;
 	}
 
@@ -1092,10 +1232,9 @@ class Modules extends WireArray {
  	 *
 	 */
 	public function isSingular(Module $module) {
-		$info = $module->getModuleInfo();
+		$info = $this->getModuleInfo($module, array('verbose' => false));
 		if(isset($info['singular'])) return $info['singular'];
 		if(method_exists($module, 'isSingular')) return $module->isSingular();
-		// $info = call_user_func(array($module, 'getModuleInfo'));
 		return false;
 	}
 
@@ -1107,7 +1246,7 @@ class Modules extends WireArray {
  	 *
 	 */
 	public function isAutoload(Module $module) {
-		$info = $module->getModuleInfo();
+		$info = $this->getModuleInfo($module, array('verbose' => false));
 		if(isset($info['autoload'])) {
 			// if autoload is a string (selector) or callable, then we flag it as autoload
 			if(is_string($info['autoload']) || is_callable($info['autoload'])) return "conditional"; 
@@ -1272,8 +1411,8 @@ class Modules extends WireArray {
 	 *
 	 * $version will be 0 and $operator blank if there are no requirements.
 	 * 
-	 * @param string $requires Module class name with operator and version string
-	 * @return array($moduleClass, $operator, $version)
+	 * @param string $require Module class name with operator and version string
+	 * @return array of array($moduleClass, $operator, $version)
 	 *
 	 */
 	protected function extractModuleOperatorVersion($require) {

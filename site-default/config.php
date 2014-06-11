@@ -121,6 +121,7 @@ $config->imageSizerOptions = array(
 	'autoRotation' => true, // automatically correct orientation?
 	'sharpening' => 'soft', // sharpening: none | soft | medium | strong
 	'quality' => 90, // quality: 1-100 where higher is better but bigger
+	'defaultGamma' => 2.0, // defaultGamma: 0.5 to 4.0 or -1 to disable gamma correction (default=2.0)
 	);
 
 /**

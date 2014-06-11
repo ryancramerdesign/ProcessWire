@@ -5,8 +5,8 @@ function InputfieldPageTableDialog() {
 	var title = $a.attr('data-title'); 
 	var closeOnSave = true; 
 	var $iframe = $('<iframe class="InputfieldPageTableDialog" frameborder="0" src="' + url + '"></iframe>');
-	var windowWidth = $(window).width()-300;
-	var windowHeight = $(window).height()-300;
+	var windowWidth = $(window).width()-100;
+	var windowHeight = $(window).height()-220;
 	//if(windowHeight > 800) windowHeight = 800;
 	var $container = $(this).parents('.InputfieldPageTableContainer'); 
 	var dialogPageID = 0;
@@ -15,7 +15,7 @@ function InputfieldPageTableDialog() {
 		modal: true,
 		height: windowHeight,
 		width: windowWidth,
-		position: [150,80],
+		position: [50,49],
 		close: function(event, ui) {
 			if(dialogPageID > 0) {
 				$.get($container.attr('data-url') + '&InputfieldPageTableAdd=' + dialogPageID, function(data) { 

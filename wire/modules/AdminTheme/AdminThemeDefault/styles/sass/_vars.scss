@@ -105,11 +105,12 @@ $topnav-link-hover-bg: transparentize($reverse-text-color, 0.8);
 $topnav-link-current-color: $text-color; 
 $topnav-link-current-bg: $subtle-bg;
 
-$action-link-color: $green;
+$action-link-font-size: 0.923076923076923em;
+$action-link-color: $white;
 $action-link-font-size: 1em; 
-$action-link-bg: none; 
+$action-link-bg: $light-green; 
 $action-link-border: none; 
-$action-link-hover-color: $reverse-text-color;
+$action-link-hover-color: $white;
 $action-link-hover-bg: $cyan;
 $action-link-hover-border: 1px solid $cyan;
 $action-link-active-color: $reverse-text-color; 

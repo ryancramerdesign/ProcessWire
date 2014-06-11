@@ -35,15 +35,17 @@ class ProcessUser extends ProcessPageType {
 	public function ___executeEdit() {
 		if(!$this->wire('user')->isSuperuser()) { 
 			// prevent showing superuser role at all
-			$this->addHookAfter('InputfieldPage::getSelectablePages', function($event) {
-				if($event->object->attr('name') != 'roles') return;
-				$suRoleID = $this->wire('config')->superUserRolePageID; 
-				foreach($event->return as $role) {
-					if($role->id == $suRoleID) $event->return->remove($role); 	
-				}
-			}); 
+			$this->addHookAfter('InputfieldPage::getSelectablePages', $this, 'hookGetSelectablePages'); 
 		}
 		return parent::___executeEdit();
+	}
+	
+	public function hookGetSelectablePages($event) {
+		if($event->object->attr('name') != 'roles') return;
+		$suRoleID = $this->wire('config')->superUserRolePageID;
+		foreach($event->return as $role) {
+			if($role->id == $suRoleID) $event->return->remove($role);
+		}
 	}
 
 	/**

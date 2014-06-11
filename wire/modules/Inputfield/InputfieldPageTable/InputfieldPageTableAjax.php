@@ -43,7 +43,8 @@ class InputfieldPageTableAjax extends Wire {
 		if(!$fieldName) return;
 
 		$processPage = $this->wire('page'); 
-		if($processPage->process != 'ProcessPageEdit') return; // die('process is not ProcessPageEdit'); 			
+		// if(!is_a($processPage->process, 'WirePageEditor', true)) return; // not ProcessPageEdit or compatible, requires PHP 5.3.9+
+		if(!in_array('WirePageEditor', class_implements((string) $processPage->process))) return; // not ProcessPageEdit or compatible
 
 		$field = $this->wire('fields')->get($this->wire('sanitizer')->fieldName($fieldName)); 
 		if(!$field || !$field->type instanceof FieldtypePageTable) return; // die('field does not exist or is not FieldtypePageTable'); 

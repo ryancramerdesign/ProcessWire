@@ -45,7 +45,7 @@ abstract class Selector extends WireData {
 	public function __construct($field, $value) {
 
 		$not = false; 
-		if(!is_array($field) && $field[0] == '!') {
+		if(!is_array($field) && isset($field[0]) && $field[0] == '!') {
 			$not = true; 
 			$field = ltrim($field, '!'); 
 		}
