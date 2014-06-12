@@ -87,6 +87,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	 *
 	 */
 	public function __construct() {
+		if(!$this->wire('page')) return;
 
 		$this->defaultColumns = array('title', 'template', 'parent', 'modified', 'modified_users_id'); 
 	
@@ -116,9 +117,6 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		// Array of status labels of status_name => label
 		$this->set('statusLabels', array()); 
-
-		// Unique ID specific to this Lister instance 
-		$this->set('listerID', $this->wire('page')->name . "." . $this->wire('user')->id . "." . time()); 
 
 		// Parent page for all listed children (optional)
 		$this->set('parent', null); 
@@ -208,6 +206,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	 *
 	 */
 	public function init() {
+		if(!$this->wire('page')) return;
 		
 		$this->checkSessionBookmark();
 		
@@ -951,6 +950,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
  	 *
 	 */
 	public function ___execute() {
+		if(!$this->wire('page')) return;
 		
 		if($this->wire('modules')->isInstalled('ProcessLister') && $this->wire('user')->isSuperuser()) {
 			$this->error('Please uninstall Modules > Site > ProcessLister - this module (ProcessPageLister) has now replaced it.'); 

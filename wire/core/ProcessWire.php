@@ -214,13 +214,25 @@ class ProcessWire extends Wire {
 		$config->status = $status;
 		
 		if($status == self::statusInit) {
-			$this->wire('modules')->triggerInit();
+			$this->init();
 			
 		} else if($status == self::statusReady) {
 			$this->ready();
 		}
 	}
 
+	/**
+	 * Hookable init for anyone that wants to hook immediately before any autoload modules initialized or after all modules initialized
+	 * 
+	 */
+	protected function ___init() {
+		$this->wire('modules')->triggerInit();
+	}
+
+	/**
+	 * Hookable ready for anyone that wants to hook immediately before any autoload modules ready or after all modules ready
+	 *
+	 */
 	protected function ___ready() {
 		$this->wire('modules')->triggerReady();
 	}

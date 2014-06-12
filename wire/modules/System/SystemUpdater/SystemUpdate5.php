@@ -4,13 +4,14 @@
  * Add Lister and make children of admin /page/ hidden
  *
  */
-class SystemUpdate5 extends Wire implements SystemUpdateInterface {
-
+class SystemUpdate5 extends SystemUpdate {
+	
 	public function execute() {
-		$this->wire()->addHookAfter('ProcessWire::ready', $this, 'executeAtReady'); 
+		$this->wire()->addHookAfter('ProcessWire::init', $this, 'executeAtInit'); 
+		return 0; // indicates we will update system version ourselves when ready
 	}
 
-	public function executeAtReady($event) {
+	public function executeAtInit($event) {
 		
 		// remember user's language setting, if applicable
 
@@ -26,21 +27,25 @@ class SystemUpdate5 extends Wire implements SystemUpdateInterface {
 		// our general system pages
 
 		$admin = $this->wire('pages')->get($this->wire('config')->adminRootPageID); 
-		$page = $admin->child("name=page, include=all"); 
+		$page = $this->wire('pages')->get("parent=$admin, name=page, include=all"); 
+		
+		if(!$page->id) {
+			
+			$this->error("Unable to locate: {$admin->path}page/"); 
+			
+		} else foreach($page->children("include=all") as $child) {
 
-		foreach($page->children("include=all") as $child) {
-
-			if($child->name == 'table') continue;  // not likely
+			if($child->name == 'lister') continue;  // not likely
 
 			$of = $child->of();
 			$child->of(false);
 
 			if($child->name == 'list') {
-				// change title from "Pages" to "List" for better navigation
+				// change title from "Page List" to "Tree" for better navigation
 				if($child->title == 'Page List') {
 					$child->title = 'Tree';
 					try {
-						$this->wire('pages')->___save($child); 
+						$this->wire('pages')->___saveField($child, 'title', array('quiet' => true)); 
 						$this->message("Updated title for: $child->path"); 
 					} catch(Exception $e) {
 						$this->error("Error updating title for: $child->path"); 
@@ -52,7 +57,7 @@ class SystemUpdate5 extends Wire implements SystemUpdateInterface {
 			$child->addStatus(Page::statusHidden); 
 
 			try {
-				$this->wire('pages')->___save($child); 
+				$this->wire('pages')->___save($child, array('quiet' => true)); 
 				$this->message("Updated status for: $child->path", Notice::debug); 
 
 			} catch(Exception $e) {
@@ -62,7 +67,7 @@ class SystemUpdate5 extends Wire implements SystemUpdateInterface {
 			$child->of($of); 
 		}
 
-		$this->modules->resetCache();
+		$this->wire('modules')->resetCache();
 	
 		try {
 			// make sure we've got the InputfieldSelector module ready to use
@@ -101,19 +106,19 @@ class SystemUpdate5 extends Wire implements SystemUpdateInterface {
 		*/
 
 
-		$table = $page->child("name=lister, include=all"); 
-		if(!$table->id) {
-			$table = new Page();
-			$table->template = 'admin';
-			$table->parent = $page;
-			$table->name = 'lister';
-			$table->title = 'Find';
-			$table->process = 'ProcessPageLister';
+		$lister = $page->child("name=lister, include=all"); 
+		if(!$lister->id) {
+			$lister = new Page();
+			$lister->template = 'admin';
+			$lister->parent = $page;
+			$lister->name = 'lister';
+			$lister->title = 'Find';
+			$lister->process = 'ProcessPageLister';
 			try {
-				$this->wire('pages')->___save($table); 
-				$this->message("Created page: $table->path"); 
+				$this->wire('pages')->save($lister); 
+				$this->message("Created page: $lister->path"); 
 			} catch(Exception $e) {
-				$this->error("Error creating: /$page->path/$table->name/ - " . $e->getMessage()); 
+				$this->error("Error creating: /$page->path/$lister->name/ - " . $e->getMessage()); 
 			}
 		}
 		
@@ -127,5 +132,8 @@ class SystemUpdate5 extends Wire implements SystemUpdateInterface {
 	
 		// restore user's language setting, if applicable	
 		if($language) $user->language = $language; 
+	
+		// now update the system version
+		$this->updater->saveSystemVersion(5); 
 	}
 }
