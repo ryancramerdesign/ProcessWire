@@ -21,7 +21,7 @@ class InputfieldPageTable extends Inputfield {
 		return array(
 			'title' => __('ProFields: Page Table', __FILE__), // Module Title
 			'summary' => __('Inputfield to accompany FieldtypePageTable', __FILE__), // Module Summary
-			'version' => 4,
+			'version' => 5,
 			'requires' => 'FieldtypePageTable'
 			);
 	}
@@ -382,14 +382,16 @@ class InputfieldPageTable extends Inputfield {
 		$ids = explode('|', $input->$name); 
 		$value = $this->attr('value'); 
 		$sorted = new PageArray();	
+		$changed = false; 
 
 		// trash items that have been deleted
 		foreach($deleteIDs as $id) {
 			foreach($value as $item) {
 				if($id != $item->id) continue; 
-				if(!$item->deleteable()) continue; 
-				$this->wire('pages')->trash($item); 	
+				if(!$item->deleteable()) continue;
 				$value->remove($item); 
+				$this->wire('pages')->trash($item); 	
+				$changed = true; 
 			}
 		}
 
@@ -405,7 +407,9 @@ class InputfieldPageTable extends Inputfield {
 			if(!in_array($item->id, $ids)) $sorted->add($item); 
 		}
 
-		if("$value" != "$sorted") {
+		if("$value" != "$sorted") $changed = true; 
+		
+		if($changed) {
 			$this->setAttribute('value', $sorted); 
 			$this->trackChange('value'); 
 		}

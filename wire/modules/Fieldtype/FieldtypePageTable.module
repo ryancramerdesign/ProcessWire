@@ -20,7 +20,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'ProFields: Page Table',
-			'version' => 4,
+			'version' => 5,
 			'summary' => 'A fieldtype containing a group of editable pages.',
 			'installs' => 'InputfieldPageTable',
 			'autoload' => true, 
@@ -35,7 +35,10 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	public function init() {
 		$pages = $this->wire('pages'); 
 		$pages->addHookAfter('delete', $this, 'hookPagesDelete');
-		$pages->addHookAfter('deleteReady', $this, 'hookPagesDeleteReady'); 
+		$pages->addHookAfter('deleteReady', $this, 'hookPagesDeleteReady');
+		$pages->addHookAfter('trashed', $this, 'hookPagesTrashed');
+		$pages->addHookAfter('unpublished', $this, 'hookPagesUnpublished');
+		$pages->addHookAfter('published', $this, 'hookPagesPublished'); 
 		$pages->addHookAfter('cloned', $this, 'hookPagesCloned'); 
 	}
 
@@ -61,7 +64,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	/**
 	 * Hook called when a page is about to be deleted
 	 * 
-	 * This automatically trashes the PageTable pages that a deleted page owns, if the autoTrash option is true. 
+	 * This automatically trashes the PageTable pages that a deleted page owns, if the unpubOnDelete option is true. 
 	 * This is really only applicable when PageTable pages are stored somewhere other than as children of the 
 	 * deleted page. 
 	 *
@@ -70,13 +73,98 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 		$page = $event->arguments(0); 
 		foreach($page->template->fieldgroup as $field) {
 			if(!$field->type instanceof FieldtypePageTable) continue; 
-			if(!$field->parent_id || !$field->autoTrash) continue; 
+			if(is_null($field->trashOnDelete) && !is_null($field->autoTrash)) $field->trashOnDelete = $field->autoTrash;
+			if(!$field->parent_id || !$field->trashOnDelete) continue; 
 			$value = $page->getUnformatted($field->name); 
 			if(!count($value)) continue; 
 			foreach($value as $item) {	
-				if($item->isTrash()) continue; 
-				$this->wire('pages')->message("Auto Trash Item: $item->url", Notice::debug); 
-				$this->wire('pages')->trash($item); 
+				$deleted = false; 
+				if($field->trashOnDelete == 2) {
+					$this->wire('pages')->message("Auto Delete PageTable Item: $item->url", Notice::debug); 
+					try {
+						$this->wire('pages')->delete($item); 
+						$deleted = true; 
+					} catch(Exception $e) {
+						$this->wire('pages')->error($e->getMessage(), Notice::debug); 
+					}
+				}
+				if(!$deleted) {
+					if($item->isTrash()) continue; 
+					$this->wire('pages')->message("Auto Trash PageTable Item: $item->url", Notice::debug);
+					$this->wire('pages')->trash($item);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Hook called when a page has been trashed
+	 *
+	 */
+	public function hookPagesTrashed(HookEvent $event) {
+		$page = $event->arguments(0);
+		foreach($page->template->fieldgroup as $field) {
+			if(!$field->type instanceof FieldtypePageTable) continue;
+			if(!$field->parent_id || !$field->unpubOnTrash) continue;
+			$value = $page->getUnformatted($field->name);
+			if(!count($value)) continue;
+			foreach($value as $item) {
+				$this->wire('pages')->message("Auto Unpublish PageTable Item: $item->url", Notice::debug);
+				$of = $item->of();
+				$item->of(false);
+				$item->addStatus(Page::statusUnpublished); 
+				$item->save();
+				$item->of($of);
+			}
+		}
+	}
+	
+	/**
+	 * Hook called when a page has been unpublished
+	 *
+	 */
+	public function hookPagesUnpublished(HookEvent $event) {
+		$page = $event->arguments(0);
+		foreach($page->template->fieldgroup as $field) {
+			if(!$field->type instanceof FieldtypePageTable) continue;
+			if(!$field->parent_id || !$field->unpubOnUnpub) continue;
+			$value = $page->getUnformatted($field->name);
+			if(!count($value)) continue;
+			foreach($value as $item) {
+				$of = $item->of();
+				$item->of(false);
+				if($field->unpubOnUnpub == 2) {
+					$this->wire('pages')->message("Auto Hide PageTable Item: $item->url", Notice::debug);
+					$item->addStatus(Page::statusHidden);
+				} else {
+					$this->wire('pages')->message("Auto Unpublish PageTable Item: $item->url", Notice::debug);
+					$item->addStatus(Page::statusUnpublished);
+				}
+				$item->save();
+				$item->of($of);
+			}
+		}
+	}
+	
+	/**
+	 * Hook called when a page has been published
+	 *
+	 */
+	public function hookPagesPublished(HookEvent $event) {
+		$page = $event->arguments(0);
+		foreach($page->template->fieldgroup as $field) {
+			if(!$field->type instanceof FieldtypePageTable) continue;
+			if(!$field->parent_id || $field->unpubOnUnpub != 2) continue;
+			$value = $page->getUnformatted($field->name);
+			if(!count($value)) continue;
+			foreach($value as $item) {
+				if(!$item->is(Page::statusHidden)) continue; 
+				$of = $item->of();
+				$item->of(false);
+				$this->wire('pages')->message("Auto Un-hide PageTable Item: $item->url", Notice::debug);
+				$item->removeStatus(Page::statusHidden);
+				$item->save();
+				$item->of($of);
 			}
 		}
 	}
@@ -112,7 +200,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 					$newItem = null;
 					if(!$field->parent_id && $copy->numChildren) {
 						// value was already cloned by API with recursive option?
-						$newItem = $this->wire('pages')->get("parent=$copy, name=$item->name"); 
+						$newItem = $this->wire('pages')->get("parent=$copy, name=$item->name, include=all"); 
 						if(!$newItem->id) $newItem = null; 
 					}
 					if(!$newItem) $newItem = $this->wire('pages')->clone($item, $parent); 
@@ -122,6 +210,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 					}
 				} catch(Exception $e) {
 					$this->wire('pages')->error("Error cloning $item->path"); 
+					$this->wire('pages')->error($e->getMessage(), Notice::debug); 
 				}
 			}
 			$copy->set($field->name, $newValue); 
@@ -326,6 +415,13 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	 *
 	 */
 	public function ___getConfigInputfields(Field $field) {
+		
+		if($field->autoTrash !== null) { // autoTrash was renamed to trashOnDelete
+			if($field->trashOnDelete === null) {	
+				$field->trashOnDelete = $field->autoTrash; 
+			}
+			unset($field->autoTrash); 
+		}
 
 		$inputfields = parent::___getConfigInputfields($field);
 
@@ -341,18 +437,19 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 		$f->attr('value', $value); 
 		$f->required = true; 
 		$f->description = $this->_('These are the templates that will be used by pages managed from this field. You may wish to create a new template specific to the needs of this field.'); // Templates selection description
-		$f->notes = $this->_('Please hit Save after selecting a template and the remaining configuration on the Input tab will contain more context.'); // Templates selection n otes 
+		$f->notes = $this->_('Please hit Save after selecting a template and the remaining configuration on the Input tab will contain more context.'); // Templates selection notes 
 		$inputfields->add($f);
 
 		$f = $this->wire('modules')->get('InputfieldPageListSelect'); 
 		$f->attr('name', 'parent_id'); 
 		$f->label = $this->_('Select a parent for items'); 
-		$f->description = $this->_('All items created and managed from this field will live under the parent you select here.'); 
-		$f->notes = $this->_('This is optional. If no parent is selected, then items will be placed as children of the page being edited.'); 
+		$f->description = $this->_('All items created and managed from this field will live under the parent you select here.');
+		$f->notes = $this->_('If no parent is selected, then items will be placed as children of the page being edited.'); 
 		$f->collapsed = $field->parent_id ? Inputfield::collapsedNo : Inputfield::collapsedYes;
 		$f->attr('value', (int) $field->parent_id); 
 		$inputfields->add($f);
-
+		
+		/*
 		$f = $this->wire('modules')->get('InputfieldCheckbox'); 
 		$f->attr('name', 'autoTrash'); 
 		$f->attr('value', 1); 
@@ -361,8 +458,54 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 		$f->description = $this->_('When checked, items created/managed by a given page will be automatically trashed when that page is deleted. If not checked, the items will remain under the parent you selected above.'); // autoTrash option description
 		$f->notes = $this->_('This option applies only if you have selected a parent above.'); 
 		$f->collapsed = Inputfield::collapsedBlank;
-		$inputfields->add($f); 
+		$inputfields->add($f);
+		*/
+		
+		$fieldset = $this->wire('modules')->get('InputfieldFieldset'); 
+		$fieldset->label = $this->_('Page Behaviors');
+		$fieldset->showIf = 'parent_id!=""';
+		$inputfields->add($fieldset);
+		
+		$labels = array(
+			'nothing' => $this->_('Nothing'), 
+			'trash' => $this->_('Trash them'),
+			'delete' => $this->_('Delete them'),
+			'unpub' => $this->_('Unpublish them'), 
+			'hide' => $this->_('Hide them'), 
+			);
+		
+		$f = $this->wire('modules')->get('InputfieldRadios');
+		$f->attr('name', 'trashOnDelete');
+		$f->label = $this->_('Delete');
+		$f->description = sprintf($this->_('What should happen to "%s" items when the containing page is permanently deleted?'), $field->name); 
+		$f->addOption(0, $labels['nothing']); 
+		$f->addOption(1, $labels['trash']);
+		$f->addOption(2, $labels['delete']); 
+		$f->attr('value', (int) $field->trashOnDelete); // aka autoTrash
+		$f->columnWidth = 33; 
+		$fieldset->add($f); 
 
+		$f = $this->wire('modules')->get('InputfieldRadios');
+		$f->attr('name', 'unpubOnTrash');
+		$f->label = $this->_('Trash');
+		$f->description = sprintf($this->_('What should happen to "%s" items when the containing page is trashed?'), $field->name); 
+		$f->addOption(0, $labels['nothing']);
+		$f->addOption(1, $labels['unpub']);
+		$f->attr('value', (int) $field->unpubOnTrash);
+		$f->columnWidth = 33; 
+		$fieldset->add($f); 
+		
+		$f = $this->wire('modules')->get('InputfieldRadios');
+		$f->attr('name', 'unpubOnUnpub');
+		$f->label = $this->_('Unpublish');
+		$f->description = sprintf($this->_('What should happen to "%s" items when the containing page is unpublished?'), $field->name); 
+		$f->addOption(0, $labels['nothing']);
+		$f->addOption(1, $labels['unpub']);
+		$f->addOption(2, $labels['hide']);
+		$f->attr('value', (int) $field->unpubOnUnpub);
+		$f->columnWidth = 33; 
+		$fieldset->add($f); 
+		
 		return $inputfields;
 	}
 

@@ -1210,7 +1210,7 @@ class Pages extends Wire {
 		}
 
 		// make sure that we have a unique name
-		while(count($parent->children("name=$name"))) {
+		while(count($parent->children("name=$name, include=all"))) {
 			$name = $page->name . '-' . (++$n); 
 		}
 
