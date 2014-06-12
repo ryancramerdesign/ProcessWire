@@ -363,6 +363,9 @@ class Fields extends WireSaveableItems {
 		// keep all in the same order so that it's easier to compare (by eye) in the DB
 		ksort($data);
 
+		// inject updated context back into model
+		$fieldgroup->setFieldContextArray($field->id, $data);
+
 		// if there is something in data, then JSON encode it. If it's empty then make it null.
 		$data = count($data) ? wireEncodeJSON($data, true) : null;
 

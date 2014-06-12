@@ -406,6 +406,17 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 			else return array();
 	}
 
+	/**
+	 * Set an array of context data for the given field ID
+	 * 
+	 * @param int $field_id Field ID
+	 * @param array $data
+	 * 
+	 */
+	public function setFieldContextArray($field_id, $data) {
+		$this->fieldContexts[$field_id] = $data;
+	}
+
 }
 
 
