@@ -718,17 +718,18 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		} else if($field->parent_id) {
 
 			$parent = $this->wire('pages')->get((int) $field->parent_id); 
-
-			foreach($parent->template->childTemplates as $template_id) {
-				$template = $this->wire('templates')->get((int) $template_id); 		
-				if(!$template) continue; 
-				$fieldgroups[$template->fieldgroup->id] = $template->fieldgroup;
-			}
-
-			foreach($this->wire('templates') as $template) {
-				if(!in_array($parent->template->id, $template->parentTemplates)) continue; 
-				if(!$this->wire('pages')->count("parent=$field->parent_id, template=$template->id, include=all")) continue; 
-				$fieldgroups[$template->fieldgroup->id] = $template->fieldgroup; 
+			if($parent->id) {
+				foreach($parent->template->childTemplates as $template_id) {
+					$template = $this->wire('templates')->get((int) $template_id); 		
+					if(!$template) continue; 
+					$fieldgroups[$template->fieldgroup->id] = $template->fieldgroup;
+				}
+	
+				foreach($this->wire('templates') as $template) {
+					if(!in_array($parent->template->id, $template->parentTemplates)) continue; 
+					if(!$this->wire('pages')->count("parent=$field->parent_id, template=$template->id, include=all")) continue; 
+					$fieldgroups[$template->fieldgroup->id] = $template->fieldgroup; 
+				}
 			}
 		}
 
