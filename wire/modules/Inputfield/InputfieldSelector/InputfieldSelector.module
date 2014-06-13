@@ -20,7 +20,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Selector',
-			'version' => 19,
+			'version' => 20,
 			'summary' => 'Build a page finding selector visually.',
 			'author' => 'Avoine + ProcessWire',
 			'autoload' => true, 
