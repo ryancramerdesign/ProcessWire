@@ -43,24 +43,34 @@ class ProcessUser extends ProcessPageType {
 			}
 		}
 	}
-
-	protected function renderList($selector = '', $pagerOptions = array()) {
-		if(!$this->lister) return parent::renderList($selector, $pagerOptions); 
+	
+	protected function getLister($selector = '') {
 		$selector = "template=$this->template, $selector";
-		$lister = $this->lister; 
+		$lister = $this->lister;
 		$lister->initSelector = $selector;
 		$lister->columns = $this->showFields;
 		$lister->defaultSelector = "name%=, roles=";
 		$lister->defaultSort = 'name';
 		$lister->parent = $this->page;
 		$lister->template = $this->template;
-		$lister->editMode = ProcessPageLister::windowModeDirect; 
+		if($lister->className() == 'ProcessPageLister') $lister->editMode = ProcessPageLister::windowModeDirect;
 		$lister->editURL = './edit/';
 		$lister->addURL = './add/';
-		$lister->delimiters = array('roles' => ', '); 
+		$lister->delimiters = array('roles' => ', ');
 		$lister->allowSystem = true; 
+		return $lister;
+	}
+
+	protected function renderList($selector = '', $pagerOptions = array()) {
+		if(!$this->lister) return parent::renderList($selector, $pagerOptions); 
+		$lister = $this->getLister($selector);
 		return $lister->execute();
 	}
+	
+	public function executeConfig() { return $this->getLister()->executeConfig(); }
+	public function executeViewport() { return $this->getLister()->executeViewport(); }
+	public function executeReset() { return $this->getLister()->executeReset(); }
+	public function executeActions() { return $this->getLister()->executeActions(); }
 
 	public function ___executeEdit() {
 		if(!$this->wire('user')->isSuperuser()) { 

@@ -29,8 +29,6 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 	const debug = false;
 
-	const allowBlankValues = 32; //  blank values are allowed in selector or if not present, blank values allowed and represented by =""
-	
 	/**
 	 * Contains all possible operators, indexed by operator with values as labels describing the operator
 	 * 
@@ -1253,7 +1251,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'data-template-ids' => implode(',', $this->getTemplatesFromInitValue($this->initValue)), 
 			);
 
-		if($this->allow & self::allowBlankValues) $attr['class'] .= ' allow-blank';
+		if($this->allowBlankValues) $attr['class'] .= ' allow-blank';
 		$attrStr = $this->getAttributesString($attr);
 		$attr['value'] = $this->wire('sanitizer')->entities($attr['value']); 
 		$initValue = $this->wire('sanitizer')->entities($this->initValue); 
