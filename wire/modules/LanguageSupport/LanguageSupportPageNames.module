@@ -541,7 +541,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		if(!wire('pages')->outputFormatting) return;
 
 		$language = wire('user')->language; 
-		if($language->isDefault()) return;
+		if(!$language || $language->isDefault()) return;
 
 		$status = "status" . (int) $language->id;	
 		$query->where("pages.$status>0"); 
