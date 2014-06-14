@@ -228,6 +228,7 @@ function wireRmdir($path, $recursive = false) {
  * @param string If you want to set the mode to something other than PW's chmodFile/chmodDir settings, 
 	you may override it by specifying it here. Ignored otherwise. Format should be a string, like "0755".
  * @return bool Returns true if all changes were successful, or false if at least one chmod failed. 
+ * @throws WireException when it receives incorrect chmod format
  *
  */ 
 function wireChmod($path, $recursive = false, $chmod = null) {
@@ -305,8 +306,8 @@ function wireCopy($src, $dst, $recursive = true) {
 /**
  * Unzips the given ZIP file to the destination directory
  * 
- * @param $file ZIP file to extract
- * @param $dst Directory where files should be unzipped into. Directory is created if it doesn't exist.
+ * @param string $file ZIP file to extract
+ * @param string $dst Directory where files should be unzipped into. Directory is created if it doesn't exist.
  * @return array Returns an array of filenames (excluding $dst) that were unzipped.
  * @throws WireException All error conditions result in WireException being thrown.
  * 
@@ -317,7 +318,7 @@ function wireUnzipFile($file, $dst) {
 	
 	if(!class_exists('ZipArchive')) throw new WireException("PHP's ZipArchive class does not exist"); 
 	if(!is_file($file)) throw new WireException("ZIP file does not exist"); 
-	if(!is_dir($dst)) wireMkdir($dst);	
+	if(!is_dir($dst)) wireMkdir($dst, true);	
 	
 	$names = array();
 	$chmodFile = wire('config')->chmodFile; 

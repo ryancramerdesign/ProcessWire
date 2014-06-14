@@ -32,7 +32,7 @@ class WireUpload extends Wire {
 	protected $errors = array();
 	protected $allowAjax = false;
 
-	static protected $unzipCommand = 'unzip -j -qq -n /src/ -x __MACOSX .* -d /dst/';
+	// static protected $unzipCommand = 'unzip -j -qq -n /src/ -x __MACOSX .* -d /dst/';
 
 	protected $errorInfo = array(); 
 
@@ -60,9 +60,11 @@ class WireUpload extends Wire {
 			if(is_array($badExtensions)) $this->badExtensions = $badExtensions; 			
 		}	
 
+		/*
 		if($this->config->uploadUnzipCommand) {
 			self::setUnzipCommand($this->config->uploadUnzipCommand); 
 		}
+		*/
 	
 	}
 
@@ -193,13 +195,12 @@ class WireUpload extends Wire {
 		return $destination; 	
 	}
 
-        public function validateFilename($value, $extensions = array()) {
-
-                $value = basename($value);
+	public function validateFilename($value, $extensions = array()) {
+		$value = basename($value);
 		if($this->lowercase) $value = strtolower($value); 
-                $value = preg_replace('/[^-a-zA-Z0-9_\.]/', '_', $value);
-                $value = preg_replace('/__+/', '_', $value);
-                $value = trim($value, "_");
+		$value = preg_replace('/[^-a-zA-Z0-9_\.]/', '_', $value);
+		$value = preg_replace('/__+/', '_', $value);
+		$value = trim($value, "_");
 
 		$p = pathinfo($value);
 		$extension = strtolower($p['extension']);
@@ -208,13 +209,12 @@ class WireUpload extends Wire {
 		$basename = trim(str_replace(".", "_", $basename), "_"); 
 		$value = "$basename.$extension";
 
-                if(count($extensions)) {
-                        if(!in_array($extension, $extensions)) $value = false;
-                }
+		if(count($extensions)) {
+			if(!in_array($extension, $extensions)) $value = false;
+		}
 
-                return $value;
-        }
-
+		return $value;
+	}
 
 	protected function saveUpload($tmp_name, $filename, $ajax = false) {
 
@@ -263,17 +263,26 @@ class WireUpload extends Wire {
 		// unzip with command line utility
 
 		$files = array(); 
-		if(!self::$unzipCommand) return false; 
-
 		$dir = dirname($zipFile) . '/';
-		$tmpDir = $dir . '.zip_tmp/'; 
+		$tmpDir = $dir . '.zip_tmp/';
+	
+		try {
+			if(!count(wireUnzipFile($zipFile, $tmpDir))) {
+				throw new WireException($this->_('No files found in ZIP file'));
+			}
+		} catch(Exception $e) {
+			$this->error($e->getMessage());
+			wireRmdir($tmpDir);
+			unlink($zipFile); 
+			return $files;
+		}
 
-		if(!mkdir($tmpDir)) return $files; 
-
+		/* OLD METHOD (for reference)
 		$unzipCommand = self::$unzipCommand;	
 		$unzipCommand = str_replace('/src/', escapeshellarg($zipFile), $unzipCommand); 
 		$unzipCommand = str_replace('/dst/', $tmpDir, $unzipCommand); 
 		$str = exec($unzipCommand); 
+		*/
 		
 		$files = new DirectoryIterator($tmpDir); 	
 		$cnt = 0; 
@@ -302,7 +311,7 @@ class WireUpload extends Wire {
 			}
 		}
 
-		rmdir($tmpDir); 
+		wireRmdir($tmpDir); 
 		unlink($zipFile); 
 
 		if(!$cnt) return false; 
@@ -338,8 +347,9 @@ class WireUpload extends Wire {
 	}
 
 	static public function setUnzipCommand($unzipCommand) {
-		if(strpos($unzipCommand, '/src/') && strpos($unzipCommand, '/dst/')) 
-			self::$unzipCommand = $unzipCommand; 
+		wire()->error("Deprecated: WireUpload::unzipCommand calls can be removed because they do nothing", Notice::debug); 
+		// if(strpos($unzipCommand, '/src/') && strpos($unzipCommand, '/dst/')) 
+		//	self::$unzipCommand = $unzipCommand; 
 	}
 	
 	static public function getUnzipCommand() {
