@@ -193,9 +193,13 @@ class ProcessController extends Wire {
 	public function ___execute() {
 
 		$content = '';
+		$debug = $this->wire('config')->debug; 
 		if($process = $this->getProcess()) { 
 			if($method = $this->getProcessMethodName($this->process)) {
+				$className = $this->process->className();
+				if($debug) Debug::timer("$className.$method()"); 
 				$content = $this->process->$method();
+				if($debug) Debug::saveTimer("$className.$method()"); 
 			} else {
 				throw new ProcessController404Exception("Unrecognized path");
 			}

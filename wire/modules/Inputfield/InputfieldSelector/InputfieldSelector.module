@@ -23,7 +23,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'version' => 20,
 			'summary' => 'Build a page finding selector visually.',
 			'author' => 'Avoine + ProcessWire',
-			'autoload' => true, 
+			'autoload' => "template=admin", 
 			);
 	}
 

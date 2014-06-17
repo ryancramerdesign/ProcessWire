@@ -25,7 +25,7 @@ class SessionLoginThrottle extends WireData implements Module, ConfigurableModul
 				'by introducing an exponential delay between logins.',
 			'permanent' => false, 
 			'singular' => true, 
-			'autoload' => true, 
+			'autoload' => function() { return count($_POST) > 0;  }
 			);
 	}
 

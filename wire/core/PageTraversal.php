@@ -36,13 +36,13 @@ class PageTraversal {
 			// onlyVisible takes the place of selector
 			$onlyVisible = $selector; 
 			if(!$onlyVisible) return $page->get('numChildren');
-			return $page->children('limit=2')->getTotal();
+			return $this->wire('pages')->count("parent_id=$page->id"); 
 
 		} else if(empty($selector) || !is_string($selector)) {
 			return $page->get('numChildren'); 
 
 		} else {
-			return wire('pages')->count("parent_id=$page->id, $selector"); 
+			return $this->wire('pages')->count("parent_id=$page->id, $selector"); 
 		}
 	}
 
@@ -57,6 +57,8 @@ class PageTraversal {
 	 */
 	public function children(Page $page, $selector = '', $options = array()) {
 		if(!$page->numChildren) return new PageArray();
+		$defaults = array('caller' => 'page.children'); 
+		$options = array_merge($defaults, $options); 
 		if($selector) $selector .= ", ";
 		$selector = "parent_id={$page->id}, $selector"; 
 		if(strpos($selector, 'sort=') === false) {
@@ -80,6 +82,8 @@ class PageTraversal {
 	 */
 	public function child(Page $page, $selector = '', $options = array()) {
 		if(!$page->numChildren) return new NullPage();
+		$defaults = array('getTotal' => false, 'caller' => 'page.child'); 
+		$options = array_merge($defaults, $options); 
 		$selector .= ($selector ? ', ' : '') . "limit=1";
 		if(strpos($selector, 'start=') === false) $selector .= ", start=0"; // prevent pagination
 		$children = $this->children($page, $selector, $options); 
@@ -175,7 +179,8 @@ class PageTraversal {
 			$parent = $page->parent();
 			$selector .= "sort=" . ($parent ? $parent->sortfield : 'sort'); 
 		}
-		return wire('pages')->find(trim($selector, ", ")); 
+		$options = array('caller' => 'page.siblings'); 
+		return wire('pages')->find(trim($selector, ", "), $options); 
 	}
 
 	/**

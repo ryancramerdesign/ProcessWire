@@ -103,14 +103,18 @@ class Pages extends Wire {
 	 *	- loadPages: boolean - whether to populate the returned PageArray with found pages (default: true). 
 	 *		The only reason why you'd want to change this to false would be if you only needed the count details from 
 	 *		the PageArray: getTotal(), getStart(), getLimit, etc. This is intended as an optimization for Pages::count().
+	 *  - caller: string - optional name of calling function, for debugging purposes, i.e. pages.count
 	 * @return PageArray
 	 *
 	 */
 	public function ___find($selectorString, $options = array()) {
 
 		// TODO selector strings with runtime fields, like url=/about/contact/, possibly as plugins to PageFinder
+		
+		static $numCalls = 0;
 
 		$loadPages = true; 
+		$debug = $this->wire('config')->debug; 
 		if(array_key_exists('loadPages', $options)) $loadPages = (bool) $options['loadPages'];
 
 		if(!strlen($selectorString)) return new PageArray();
@@ -129,7 +133,7 @@ class Pages extends Wire {
 					$page = $this->getById(array((int) $s)); 
 					$pageArray = new PageArray();
 					$value = $page ? $pageArray->add($page) : $pageArray; 
-					if($this->config->debug) $this->debugLog('find', $selectorString . " [optimized]", $value); 
+					if($debug) $this->debugLog('find', $selectorString . " [optimized]", $value); 
 					return $value; 
 				}
 			}
@@ -138,7 +142,7 @@ class Pages extends Wire {
 		// see if this has been cached and return it if so
 		$pages = $this->getSelectorCache($selectorString, $options); 
 		if(!is_null($pages)) {
-			if($this->config->debug) $this->debugLog('find', $selectorString, $pages . ' [from-cache]'); 
+			if($debug) $this->debugLog('find', $selectorString, $pages . ' [from-cache]'); 
 			return $pages; 
 		}
 
@@ -148,8 +152,11 @@ class Pages extends Wire {
 		// if a specific parent wasn't requested, then we assume they don't want results with status >= Page::statusUnsearchable
 		// if(strpos($selectorString, 'parent_id') === false) $selectorString .= ", status<" . Page::statusUnsearchable; 
 
+		$numCalls++;
+		$caller = isset($options['caller']) ? $options['caller'] : 'pages.find';
 		$selectors = new Selectors($selectorString); 
 		$pageFinder = $this->getPageFinder();
+		if($debug) Debug::timer("$caller($selectorString)", true); 
 		$pages = $pageFinder->find($selectors, $options); 
 
 		// note that we save this pagination state here and set it at the end of this method
@@ -207,7 +214,17 @@ class Pages extends Wire {
 		$pages->setSelectors($selectors); 
 		$pages->setTrackChanges(true);
 		if($loadPages) $this->selectorCache($selectorString, $options, $pages); 
-		if($this->config->debug) $this->debugLog('find', $selectorString, $pages); 
+		if($this->config->debug) $this->debugLog('find', $selectorString, $pages);
+		
+		if($debug) {
+			$count = $pages->count();
+			$note = ($count == $total ? $count : $count . "/$total") . " page(s)";
+			if($count) {
+				$note .= ": " . $pages->first()->path; 
+				if($count > 1) $note .= " ... " . $pages->last()->path;  
+			}
+			Debug::saveTimer("$caller($selectorString)", $note); 
+		}
 
 		return $pages; 
 		//return $pages->filter($selectors); 
@@ -224,7 +241,7 @@ class Pages extends Wire {
 	public function findOne($selectorString, $options = array()) {
 		if(empty($selectorString)) return new NullPage();
 		if($page = $this->getCache($selectorString)) return $page; 
-		$defaults = array('findOne' => true, 'getTotal' => false); 
+		$defaults = array('findOne' => true, 'getTotal' => false, 'caller' => 'pages.get'); 
 		$options = array_merge($defaults, $options); 
 		$page = $this->find($selectorString, $options)->first();
 		if(!$page) $page = new NullPage();
@@ -353,7 +370,7 @@ class Pages extends Wire {
 			foreach($fields as $field) { 
 				if(!($field->flags & Field::flagAutojoin)) continue; 
 				$table = $database->escapeTable($field->table); 
-				if(!$field->type->getLoadQueryAutojoin($field, $query)) continue; // autojoin not allowed
+				if(!$field->type || !$field->type->getLoadQueryAutojoin($field, $query)) continue; // autojoin not allowed
 				$query->leftjoin("$table ON $table.pages_id=pages.id"); // QA
 			}
 
@@ -506,6 +523,7 @@ class Pages extends Wire {
 	public function count($selectorString, array $options = array()) {
 		$options['loadPages'] = false; 
 		$options['getTotal'] = true; 
+		$options['caller'] = 'pages.count';
 		if($this->wire('config')->debug) $options['getTotalType'] = 'count'; // test count method when in debug mode
 		return $this->find("$selectorString, limit=1", $options)->getTotal();
 	}

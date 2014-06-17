@@ -484,6 +484,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * Get a regular PHP array of all the items in this WireArray. 
 	 *
 	 * @return array Copy of the array that WireArray uses internally. 
+	 * 
 	 */
 	public function getArray() {
 		return $this->data; 
@@ -495,6 +496,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * This is for syntax convenience, as it simply eturns this instance of the WireArray. 
 	 *
 	 * @return WireArray
+	 * 
 	 */
 	public function getAll() {
 		return $this;
@@ -505,6 +507,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * Returns an array of all keys used in this WireArray. 
 	 * 
 	 * @return array Keys used in the WireArray.
+	 * 
 	 */
 	public function getKeys() {
 		return array_keys($this->data); 
@@ -514,6 +517,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * Returns an array of all values used in this WireArray. 
 	 * 
 	 * @return array Values used in the WireArray.
+	 * 
 	 */
 	public function getValues() {
 		return array_values($this->data); 

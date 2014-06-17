@@ -73,7 +73,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 			 * This version number is important, as this updater keeps the systemVersion up with this version
 			 *
 			 */
-			'version' => 5, 
+			'version' => 6, 
 			);
 	}
 
@@ -97,7 +97,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 	public function setConfigData(array $data) {
 		$this->configData = array_merge($this->configData, $data);
 	}
-
+	
 	/**
 	 * Perform version checks and update as needed
 	 *
@@ -169,6 +169,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 				$msg = $errorMessage . " - " . $e->getMessage(); 
 				if($update) $update->error($msg); 
 					else $this->error($msg); 
+				$success = false;
 			}
 			if(!$success) {
 				if($success === false) $update->error($errorMessage);

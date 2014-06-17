@@ -19,7 +19,7 @@
  */
 
 class Modules extends WireArray {
-
+	
 	/**
 	 * Flag indicating the module may have only one instance at runtime. 
 	 *
@@ -31,6 +31,12 @@ class Modules extends WireArray {
 	 *
 	 */
 	const flagsAutoload = 2;
+
+	/**
+	 * Filename for module info cache file
+	 *
+	 */
+	const moduleInfoCacheName = 'Modules.info';
 
 	/**
 	 * Array of modules that are not currently installed, indexed by className => filename
@@ -71,10 +77,28 @@ class Modules extends WireArray {
 	protected $initialized = false;
 
 	/**
+	 * Whether or not module debug mode is active
+	 *
+	 */
+	protected $debug = false; 
+
+	/**
+	 * Becomes an array if debug mode is on
+	 *
+	 */
+	protected $debugLog = array();
+
+	/**
 	 * Modules that specify an anonymous function returning true or false on whether they should be autoloaded
 	 *
 	 */
 	protected $conditionalAutoloadModules = array();
+
+	/**
+	 * Cache of module information
+	 *
+	 */
+	protected $moduleInfoCache = array();
 
 	/**
 	 * Construct the Modules
@@ -86,7 +110,8 @@ class Modules extends WireArray {
 	 */
 	public function __construct($path, $path2 = null) {
 		$this->setTrackChanges(false); 
-		$this->modulePath = $path; 
+		$this->modulePath = $path;
+		$this->loadModuleInfoCache();
 		$this->load($path); 
 		if($path2 && is_dir($path2)) {
 			$this->modulePath2 = $path2; 
@@ -146,11 +171,16 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function triggerInit($modules = null, $completed = array(), $level = 0) {
-
+	
+		if($this->debug) $debugKey = $this->debugTimerStart("triggerInit$level"); 
 		$queue = array();
 		if(is_null($modules)) $modules = $this;
 
 		foreach($modules as $class => $module) {
+			
+			if($module instanceof ModulePlaceholder && !$module->autoload) continue; 
+			
+			if($this->debug) $debugKey2 = $this->debugTimerStart("triggerInit$level($class)"); 
 			$info = $this->getModuleInfo($module); 
 			$skip = false;
 
@@ -166,36 +196,74 @@ class Modules extends WireArray {
 					break;
 				}
 			}
-			if($skip) continue;
-			if($this->isAutoload($module)) $this->initModule($module);
-			$completed[] = $class;
+			if(!$skip) {
+				if($info['autoload'] !== false) {
+					if($info['autoload'] === true || $this->isAutoload($module)) $this->initModule($module);
+				}
+				$completed[] = $class;
+			}
+			if($this->debug) $this->debugTimerStop($debugKey2); 
 		}
 
 		// if there is a dependency queue, go recursive till the queue is completed
 		if(count($queue) && $level < 3) $this->triggerInit($queue, $completed, $level+1);
 
 		$this->initialized = true;
+		if($this->debug) if($debugKey) $this->debugTimerStop($debugKey);
+		if(!$level && empty($this->moduleInfoCache)) $this->saveModuleInfoCache();
 	}
 
+	/**
+	 * Given a class name, return the constructed module
+	 *
+	 */
+	protected function newModule($className) {
+		if($this->debug) $debugKey = $this->debugTimerStart("newModule($className)"); 
+		if(!class_exists($className, false)) $this->includeModule($className); 
+		$module = new $className(); 
+		if($this->debug) $this->debugTimerStop($debugKey); 
+		return $module; 
+	}
 
 	/**
 	 * Initialize a single module
+	 * 
+	 * @param Module $module
+	 * @param bool $clearSettings If true, module settings will be cleared when appropriate to save space. 
 	 *
 	 */
-	protected function initModule(Module $module) {
+	protected function initModule(Module $module, $clearSettings = true) {
 		
 		// if the module is configurable, then load it's config data
 		// and set values for each before initializing themodule
 		$this->setModuleConfigData($module);
-		if(method_exists($module, 'init')) $module->init();
+		
+		if(method_exists($module, 'init')) {
+			$className = get_class($module); 
+			if($this->debug) $debugKey = $this->debugTimerStart("initModule($className)"); 
+			$module->init();
+			if($this->debug) $this->debugTimerStop($debugKey);
+		}
 
 		// if module is autoload (assumed here) and singular, then
 		// we no longer need the module's config data, so remove it
-		if($this->isSingular($module)) {
+		if($clearSettings && $this->isSingular($module)) {
 			$id = $this->getModuleID($module);
 			unset($this->configData[$id]);
 		}
 		
+	}
+
+	/**
+	 * Call ready for a single module
+	 *
+	 */
+	protected function readyModule(Module $module) {
+		if(method_exists($module, 'ready')) {
+			if($this->debug) $debugKey = $this->debugTimerStart("readyModule(" . $module->className() . ")"); 
+			$module->ready();
+			if($this->debug) $this->debugTimerStop($debugKey); 
+		}
 	}
 
 	/**
@@ -207,6 +275,7 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function triggerReady() {
+		if($this->debug) $debugKey = $this->debugTimerStart("triggerReady"); 
 		
 		foreach($this->conditionalAutoloadModules as $className => $func) {
 			if(is_string($func)) {
@@ -217,7 +286,7 @@ class Modules extends WireArray {
 				if(!is_callable($func)) continue; 
 				if(!$func()) continue;
 			}
-			$module = new $className();
+			$module = $this->newModule($className); 
 			$this->set($className, $module); 
 			$this->initModule($module);
 		}
@@ -226,9 +295,13 @@ class Modules extends WireArray {
 		foreach($this as $module) {
 			if($module instanceof ModulePlaceholder) continue;
 			if(!method_exists($module, 'ready')) continue;
+			$info = $this->getModuleInfo($module); 
+			if($info['autoload'] === false) continue; 
 			if(!$this->isAutoload($module)) continue; 
-			$module->ready();
+			$this->readyModule($module);
 		}
+		
+		if($this->debug) $this->debugTimerStop($debugKey); 
 	}
 
 	/**
@@ -241,6 +314,7 @@ class Modules extends WireArray {
 
 		static $installed = array();
 		$database = $this->wire('database');
+		if($this->debug) $debugKey = $this->debugTimerStart("load($path)"); 
 
 		if(!count($installed)) {
 			$query = $database->prepare("SELECT id, class, flags, data FROM modules ORDER BY class"); // QA
@@ -278,7 +352,7 @@ class Modules extends WireArray {
 			if(strpos($pathname, $path) !== 0) continue; 
 
 			// if the file isn't there, it was probably uninstalled, so ignore it
-			if(!is_file($pathname)) continue; 
+			if(!file_exists($pathname)) continue;
 
 			// if the module isn't installed, then stop and move on to next
 			if(!array_key_exists($basename, $installed)) {	
@@ -288,26 +362,33 @@ class Modules extends WireArray {
 
 			$info = $installed[$basename]; 
 			$this->setConfigPaths($basename, $dirname); 
-			$usePlaceholder = false;
 			$module = null; 
+			$autoload = false;
 
 			if($info['flags'] & self::flagsAutoload) { 
 				// this is an Autoload mdoule. 
 				// include the module and instantiate it but don't init() it,
 				// because it will be done by Modules::init()
-				include_once($pathname); 
-				$moduleInfo = $this->getModuleInfo($basename, array('verbose' => false)); 
+				$moduleInfo = $this->getModuleInfo($basename); 
 				// if not defined in getModuleInfo, then we'll accept the database flag as enough proof
 				// since the module may have defined it via an isAutoload() function
 				if(!isset($moduleInfo['autoload'])) $moduleInfo['autoload'] = true;
 				$autoload = $moduleInfo['autoload'];
+				if($autoload === 'function') {
+					// function is stored by the moduleInfo cache to indicate we need to call a dynamic functino specified with the module itself
+					include_once($pathname); 
+					$i = $basename::getModuleInfo();
+					$autoload = isset($i['autoload']) ? $i['autoload'] : true;
+				}
 				// check for conditional autoload
 				if(!is_bool($autoload) && (is_string($autoload) || is_callable($autoload))) {
 					// anonymous function or selector string
 					$this->conditionalAutoloadModules[$basename] = $autoload;
 					$this->moduleIDs[$basename] = $info['id'];
+					$autoload = true; 
 				} else if($autoload) {
-					$module = new $basename();
+					include_once($pathname); 
+					$module = $this->newModule($basename); 
 				}
 			}
 
@@ -316,12 +397,15 @@ class Modules extends WireArray {
 				$module = new ModulePlaceholder(); 
 				$module->setClass($basename); 
 				$module->singular = $info['flags'] & self::flagsSingular; 
+				$module->autoload = $autoload;
 				$module->file = $pathname; 
 			}
 
 			$this->moduleIDs[$basename] = $info['id']; 
 			$this->set($basename, $module); 
 		}
+		
+		if($this->debug) $this->debugTimerStop($debugKey); 
 
 	}
 
@@ -341,13 +425,29 @@ class Modules extends WireArray {
 		static $startPath;
 
 		$config = $this->wire('config');
+		$cache = $this->wire('cache'); 
 
+		/*
 		if($level == 0) {
 			$startPath = $path;
 			$cacheFilename = $config->paths->cache . "Modules." . md5($path) . ".cache";
 			if($readCache && is_file($cacheFilename)) {
 				$cacheContents = explode("\n", file_get_contents($cacheFilename)); 
 				if(!empty($cacheContents)) return $cacheContents;
+			}
+		}
+		*/
+		
+		if($level == 0) {
+			$startPath = $path;
+			$cacheName = "Modules." . str_replace($this->wire('config')->paths->root, '', $path);
+			//$cacheFilename = $config->paths->cache . $cacheName . ".cache";
+			if($readCache && $cache) {
+				$cacheContents = $cache->get($cacheName); 
+				if(!empty($cacheContents)) {
+					$cacheContents = explode("\n", $cacheContents); 
+					return $cacheContents;
+				}
 			}
 		}
 
@@ -379,8 +479,11 @@ class Modules extends WireArray {
 			$files[] = str_replace($startPath, '', $pathname); 
 		}
 
-		if($level == 0) @file_put_contents($cacheFilename, implode("\n", $files), LOCK_EX);  // remove LOCK_EX ?
-		if($config->chmodFile) @chmod($cacheFilename, octdec($config->chmodFile));
+		if($level == 0) {
+			if($cache) $cache->save($cacheName, implode("\n", $files), WireCache::noExpire); 
+			//@file_put_contents($cacheFilename, implode("\n", $files), LOCK_EX);  // remove LOCK_EX ?
+		}
+		//if($config->chmodFile) @chmod($cacheFilename, octdec($config->chmodFile));
 
 		return $files;
 	}
@@ -431,7 +534,7 @@ class Modules extends WireArray {
 				$placeholder = $module; 
 				$class = $this->getModuleClass($placeholder); 
 				if($module instanceof ModulePlaceholder) $this->includeModule($module); 
-				$module = new $class(); 
+				$module = $this->newModule($class); 
 				// if singular, save the instance so it can be used in later calls
 				if($this->isSingular($module)) $this->set($key, $module); 
 				$needsInit = true; 
@@ -449,11 +552,12 @@ class Modules extends WireArray {
 		if($module && $needsInit) { 
 			// if the module is configurable, then load it's config data
 			// and set values for each before initializing the module
-			$this->setModuleConfigData($module); 
-			if(method_exists($module, 'init')) $module->init(); 
+			// $this->setModuleConfigData($module); 
+			// if(method_exists($module, 'init')) $module->init(); 
+			$this->initModule($module, false); 
 		}
 		
-		$info = $this->getModuleInfo($module, array('verbose' => false)); 
+		$info = $this->getModuleInfo($module); 
 		if(!empty($info['permission']) && !$this->wire('user')->hasPermission($info['permission'])) {
 			throw new WirePermissionException($this->_('You do not have permission to execute this module') . ' - ' . $class);
 		}
@@ -574,7 +678,7 @@ class Modules extends WireArray {
 		$requires = $this->getRequiresForInstall($class); 
 		if(count($requires)) throw new WireException("Module $class requires: " . implode(", ", $requires)); 
 
-		$module = new $class();
+		$module = $this->newModule($class);
 
 		$flags = 0;
 		$database = $this->wire('database');
@@ -789,7 +893,10 @@ class Modules extends WireArray {
 
 		$class = $this->getModuleClass($class); 
 		$reason = $this->isUninstallable($class, true); 
-		if($reason !== true) throw new WireException("$class - Can't Uninstall - $reason"); 
+		if($reason !== true) {
+			// throw new WireException("$class - Can't Uninstall - $reason"); 
+			return false;
+		}
 
 		$info = $this->getModuleInfo($class); 
 		$module = $this->get($class); 
@@ -979,17 +1086,25 @@ class Modules extends WireArray {
 	}
 	
 	protected function getModuleInfoInternal($module) {
+		
 		$info = array();
-		if($module instanceof ModulePlaceholder) $module = $module->className();
+		
+		if($module instanceof ModulePlaceholder) {
+			$this->includeModule($module); 
+			$module = $module->className();
+		}
+		
 		if($module instanceof Module) {
 			if(method_exists($module, 'getModuleInfo')) {
 				$info = $module::getModuleInfo();
 			}
+			
 		} else if($module) {
 			if(method_exists($module, 'getModuleInfo')) {
 				$info = call_user_func(array($module, 'getModuleInfo'));
 			}
 		}
+		
 		return $info; 
 	}
 	
@@ -1025,7 +1140,6 @@ class Modules extends WireArray {
 	 *
 	 * @param string|Module|int $module May be class name, module instance, or module ID
 	 * @param array $options Optional options to modify behavior of what gets returned
-	 * 		- verbose: true (specify false to return only what is returned by the module's getModuleInfo method)
 	 * @return array
 	 * @throws WireException when a module exists but has no means of returning module info
 	 *	
@@ -1062,11 +1176,17 @@ class Modules extends WireArray {
 			'permission' => '',
 			// permissions automaticall installed/uninstalled with this module. array of ('permission-name' => 'Description')
 			'permissions' => array(),
+			// true if module is autoload, false if not. null=unknown
+			'autoload' => null,
+			// true if module is singular, false if not. null=unknown
+			'singular' => null,
 			);
 
 		if($module instanceof Module) {
 			// module is an instance
 			$moduleName = method_exists($module, 'className') ? $module->className() : get_class($module); 
+			// return from cache if available
+			if(empty($options['noCache']) && !empty($this->moduleInfoCache[$moduleName])) return $this->moduleInfoCache[$moduleName]; 
 			$info = $this->getModuleInfoInternal($module); 
 			if(!count($info)) $info = $this->getModuleInfoExternal($moduleName); 
 			
@@ -1075,8 +1195,13 @@ class Modules extends WireArray {
 			$info = $this->getModuleInfoSystem($module); 
 			
 		} else {
+			
 			// module is a class name or ID
 			if(ctype_digit("$module")) $module = $this->getModuleClass($module);
+			// return from cache if available
+			if(empty($options['noCache']) && !empty($this->moduleInfoCache[$module])) {
+				return $this->moduleInfoCache[$module];
+			}
 	
 			if(class_exists($moduleName, false)) {
 				// module is already in memory, check internal first, then external
@@ -1085,56 +1210,54 @@ class Modules extends WireArray {
 				
 			} else {
 				// module is not in memory, check external first, then internal
-				$info = $this->getModuleInfoExternal($moduleName); 
-				if(!count($info) && isset($this->installable[$moduleName])) {
+				$info = $this->getModuleInfoExternal($moduleName);
+				if(!count($info)) {
+					if(isset($this->installable[$moduleName])) include_once($this->installable[$moduleName]); 
 					// info not available externally, attempt to locate it interally
-					include_once($this->installable[$moduleName]);
 					$info = $this->getModuleInfoInternal($moduleName); 
 				}
 			}
 		}
 		
 		if(!count($info)) {
-			$info = $options['verbose'] ? $verboseInfo : array();
+			$info = $verboseInfo; 
 			$info['title'] = $module;
 			$info['summary'] = 'Inactive';
 			$info['error'] = 'Unable to locate module';
 			return $info;
 		}
 		
-		if($options['verbose']) {
-			
-			$info = array_merge($verboseInfo, $info); 
-	
-			// if $info[requires] or $info[installs] isn't already an array, make it one
-			if(!is_array($info['requires'])) {
-				$info['requires'] = str_replace(' ', '', $info['requires']); // remove whitespace
-				if(strpos($info['requires'], ',') !== false) $info['requires'] = explode(',', $info['requires']); 
-					else $info['requires'] = array($info['requires']); 
+		$info = array_merge($verboseInfo, $info); 
+
+		// if $info[requires] or $info[installs] isn't already an array, make it one
+		if(!is_array($info['requires'])) {
+			$info['requires'] = str_replace(' ', '', $info['requires']); // remove whitespace
+			if(strpos($info['requires'], ',') !== false) $info['requires'] = explode(',', $info['requires']); 
+				else $info['requires'] = array($info['requires']); 
+		}
+
+		// populate requiresVersions
+		foreach($info['requires'] as $key => $class) {
+			if(!ctype_alnum($class)) {
+				// has a version string
+				list($class, $operator, $version) = $this->extractModuleOperatorVersion($class); 
+				$info['requires'][$key] = $class; // convert to just class
+			} else {
+				// no version string
+				$operator = '>=';
+				$version = 0; 
 			}
-	
-			// populate requiresVersions
-			foreach($info['requires'] as $key => $class) {
-				if(!ctype_alnum($class)) {
-					// has a version string
-					list($class, $operator, $version) = $this->extractModuleOperatorVersion($class); 
-					$info['requires'][$key] = $class; // convert to just class
-				} else {
-					// no version string
-					$operator = '>=';
-					$version = 0; 
-				}
-				$info['requiresVersions'][$class] = array($operator, $version); 
-			}
-	
-			if(!is_array($info['installs'])) {
-				$info['installs'] = str_replace(' ', '', $info['installs']); // remove whitespace
-				if(strpos($info['installs'], ',') !== false) $info['installs'] = explode(',', $info['installs']); 
-					else $info['installs'] = array($info['installs']); 
-			}
+			$info['requiresVersions'][$class] = array($operator, $version); 
+		}
+
+		if(!is_array($info['installs'])) {
+			$info['installs'] = str_replace(' ', '', $info['installs']); // remove whitespace
+			if(strpos($info['installs'], ',') !== false) $info['installs'] = explode(',', $info['installs']); 
+				else $info['installs'] = array($info['installs']); 
 		}
 
 		$info['name'] = $moduleName; 
+		
 		return $info;
 	}
 
@@ -1235,7 +1358,7 @@ class Modules extends WireArray {
 	 */
 	public function isSingular(Module $module) {
 		$info = $this->getModuleInfo($module, array('verbose' => false));
-		if(isset($info['singular'])) return $info['singular'];
+		if(isset($info['singular']) && $info['singular'] !== null) return $info['singular'];
 		if(method_exists($module, 'isSingular')) return $module->isSingular();
 		return false;
 	}
@@ -1249,7 +1372,7 @@ class Modules extends WireArray {
 	 */
 	public function isAutoload(Module $module) {
 		$info = $this->getModuleInfo($module, array('verbose' => false));
-		if(isset($info['autoload'])) {
+		if(isset($info['autoload']) && $info['autoload'] !== null) {
 			// if autoload is a string (selector) or callable, then we flag it as autoload
 			if(is_string($info['autoload']) || is_callable($info['autoload'])) return "conditional"; 
 			return $info['autoload'];
@@ -1273,8 +1396,9 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function resetCache() {
-		$this->findModuleFiles($this->modulePath); 
-		if($this->modulePath2) $this->findModuleFiles($this->modulePath2); 
+		$this->clearModuleInfoCache();
+		$this->findModuleFiles($this->modulePath, false); 
+		if($this->modulePath2) $this->findModuleFiles($this->modulePath2, false); 
 		$this->load($this->modulePath); 
 		if($this->modulePath2) $this->load($this->modulePath2);
 	}
@@ -1501,6 +1625,108 @@ class Modules extends WireArray {
 		if(!strlen($version)) $version = '0.0.0';
 		return $version;
 	}
+	
+	/**
+	 * Load the module information cache
+	 * 
+	 * @return bool
+	 * 
+	 */
+	protected function loadModuleInfoCache() {
+		$data = $this->wire('cache')->get(self::moduleInfoCacheName); 	
+		if($data) { 
+			$data = json_decode($data, true); 
+			if(is_array($data)) $this->moduleInfoCache = $data; 
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Clear the module information cache
+	 * 
+	 */
+	protected function clearModuleInfoCache() {
+		$this->wire('cache')->delete(self::moduleInfoCacheName); 
+		$this->saveModuleInfoCache();
+	}
+
+	/**
+	 * Save the module information cache
+	 * 
+	 */
+	protected function saveModuleInfoCache() {
+		
+		$this->moduleInfoCache = array();
+		
+		foreach($this as $module) {
+			
+			$class = $module->className();
+			$info = $this->getModuleInfo($class); 
+			
+			if(is_null($info['autoload'])) {
+				$info['autoload'] = $this->isAutoload($module); 
+			} else if(!is_bool($info['autoload']) && !is_string($info['autoload']) && is_callable($info['autoload'])) {
+				// runtime function, identify it only with 'function' so that it can be recognized later as one that
+				// needs to be dynamically loaded
+				$info['autoload'] = 'function';
+			}
+			
+			if(is_null($info['singular'])) {
+				$info['singular'] = $this->isSingular($module); 
+			} 
+			
+			if(!empty($info['error'])) continue;
+			
+			$this->moduleInfoCache[$class] = $info; 
+		}
+		
+		$this->wire('cache')->save(self::moduleInfoCacheName, json_encode($this->moduleInfoCache), WireCache::noExpire); 
+	}
+
+	/**
+	 * Start a debug timer, only works when module debug mode is on ($this->debug)
+	 * 
+	 * @param $note
+	 * @return int|null Returns a key for the debug timer
+	 * 
+	 */
+	protected function debugTimerStart($note) {
+		if(!$this->debug) return null;
+		$key = count($this->debugLog);
+		while(isset($this->debugLog[$key])) $key++;
+		$this->debugLog[$key] = array(
+			0 => Debug::timer("Modules$key"),
+			1 => $note
+		);
+		return $key;
+	}
+
+	/**
+	 * Stop a debug timer, only works when module debug mode is on ($this->debug)
+	 *
+	 * @param int $key The key returned by debugTimerStart
+	 *
+	 */
+	protected function debugTimerStop($key) {
+		if(!$this->debug) return;
+		$log = $this->debugLog[$key];
+		$timerKey = $log[0];
+		$log[0] = Debug::timer($timerKey);
+		$this->debugLog[$key] = $log;
+		Debug::clearTimer($timerKey);
+	}
+
+	/**
+	 * Return a log of module construct, init and ready times, active only when debug mode is on ($this->debug)
+	 *
+	 * @return array
+	 *
+	 */
+	public function getDebugLog() {
+		return $this->debugLog;
+	}
+
 
 }
 

@@ -295,20 +295,32 @@ class Pagefiles extends WireArray {
 	 * @param string $basename May also be a full path/filename, but it will still return a basename
 	 * @param bool $originalize If true, it will generate an original filename if $basename already exists
 	 * @param bool $allowDots If true, dots "." are allowed in the basename portion of the filename. 
+	 * @param bool $translate True if we should translated accented characters to ascii equivalents (rather than substituting underscores)
 	 * @return string
 	 *
 	 */ 
-	public function cleanBasename($basename, $originalize = false, $allowDots = true) {
+	public function cleanBasename($basename, $originalize = false, $allowDots = true, $translate = false) {
 
-		$path = $this->path(); 
+		$basename = strtolower($basename); 
 		$dot = strrpos($basename, '.'); 
 		$ext = $dot ? substr($basename, $dot) : ''; 
-		$basename = strtolower(basename($basename, $ext)); 
-		$basename = preg_replace('/[^-_.a-zA-Z0-9]/', '_', $basename);
-		if(!$allowDots) $basename = str_replace('.', '_', $basename); 
-		$ext = preg_replace('/[^a-z0-9.]/', '_', strtolower($ext)); 
+		$basename = basename($basename, $ext);
+		$test = str_replace(array('-', '_', '.'), '', $basename);
+		
+		if(!ctype_alnum($test)) {
+			if($translate) {
+				$basename = $this->wire('sanitizer')->filename($basename, Sanitizer::translate); 
+			} else {
+				$basename = preg_replace('/[^-_.a-z0-9]/', '_', $basename);
+			}
+		}
+		
+		if(!ctype_alnum(ltrim($ext, '.'))) $ext = preg_replace('/[^a-z0-9.]/', '_', $ext); 
+		if(!$allowDots && strpos($basename, '.') !== false) $basename = str_replace('.', '_', $basename); 
 		$basename .= $ext;
+
 		if($originalize) { 
+			$path = $this->path(); 
 			$n = 0; 
 			$p = pathinfo($basename);
 			while(is_file($path . $basename)) {
@@ -317,6 +329,7 @@ class Pagefiles extends WireArray {
 				// $basename = (++$n) . "_" . preg_replace('/^\d+_/', '', $basename); 
 			}
 		}
+
 		return $basename; 
 	}
 

@@ -24,7 +24,7 @@ class ProcessPageClone extends Process {
 			'version' => 102, 
 			'permanent' => false, 
 			'permission' => 'page-clone',
-			'autoload' => true,  // Note: most Process modules should not be 'autoload', this is an exception.
+			'autoload' => "process=ProcessPageList",  // Note: most Process modules should not be 'autoload', this is an exception.
 			); 
 	}
 

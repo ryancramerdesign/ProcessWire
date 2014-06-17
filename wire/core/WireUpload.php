@@ -198,8 +198,9 @@ class WireUpload extends Wire {
 	public function validateFilename($value, $extensions = array()) {
 		$value = basename($value);
 		if($this->lowercase) $value = strtolower($value); 
-		$value = preg_replace('/[^-a-zA-Z0-9_\.]/', '_', $value);
-		$value = preg_replace('/__+/', '_', $value);
+		$value = $this->wire('sanitizer')->filename($value, Sanitizer::translate); 
+		//$value = preg_replace('/[^-a-zA-Z0-9_\.]/', '_', $value);
+		//$value = preg_replace('/__+/', '_', $value);
 		$value = trim($value, "_");
 
 		$p = pathinfo($value);

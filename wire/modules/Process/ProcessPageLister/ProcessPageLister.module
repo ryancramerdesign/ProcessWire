@@ -539,7 +539,6 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				$selector .= ", limit=" . (int) $limit; 
 			} else if(is_null($limit)) {
 				$selector .= ", limit=" . $this->defaultLimit; 
-				$limit = $this->defaultLimit; 
 			}
 
 		} else if(!is_null($limit)) { 
@@ -561,13 +560,128 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if($sort == '-path') $sort = '-name';
 		$selector .= ", sort=$sort";
 
-		if(stripos($selector, 'include=') === false) {
-			$selector .= ", include=unpublished"; 
-		}
-
 		$selector = trim($selector, ', '); 
+		
+		$selector = $this->validateSelector($selector); 
 
 		return $selector; 
+	}
+	
+	protected function validateSelector($selector) {
+		
+		$user = $this->wire('user');
+		
+		if($user->isSuperuser()) {
+			if(stripos($selector, 'include=') === false) {
+				$selector .= ", include=unpublished";
+			}
+			return $selector;
+		}
+		
+		$selectors = new Selectors($selector);
+		$templates = array();
+		$changed = false;
+		$templateSelector = null;
+		$includeSelector = null;
+		
+		foreach($selectors as $s) {
+			
+			$fields = is_array($s->field) ? $s->field : array($s->field);
+			$values = is_array($s->value) ? $s->value : array($s->value);
+			
+			foreach($fields as $key => $name) {
+				$fields[$key] = strtolower($name); 
+			}
+			
+			if(in_array($fields, 'check_access') || in_array($fields, 'checkaccess')) {
+				
+				// don't allow non-superusers to specify a check_access property
+				$selectors->remove($s);
+				$this->error("check_access property not allowed here"); 
+				$changed = true;
+			} 
+			
+			if(in_array('template', $fields) || in_array('template_id', $fields) || in_array('templates_id', $fields)) {
+				
+				foreach($values as $key => $value) {
+					
+					$value = $this->wire('sanitizer')->templateName($value); 
+					if(ctype_digit("$value")) $value = (int) $value;
+					$template = $this->wire('templates')->get($value); 	
+					
+					if(!$template) {
+						unset($values[$key]); 
+						$s->value = $values; 
+						$changed = true; 
+						if($value) $this->error("Unknown templates specified"); 
+						
+					} else if(!$user->hasPermission('page-view', $template)) {
+						unset($values[$key]);
+						$s->value = $values;
+						$changed = true;
+						$this->error("Template specified for which page-view access does not exist."); 
+						
+					} else {
+						$templates[] = $template;
+					}
+				}
+				$templateSelector = $s; 
+			} 
+			
+			if(in_array('include', $fields)) {
+				
+				if(count($values) > 1) throw new WireException("The 'include=' selector may not have more than 1 value.");
+				$includeSelector = $s; 
+				$value = strtolower(trim(reset($values))); 
+				if($value != 'unpublished' && $value != 'hidden') {
+					// value must be 'all' or 'trash', which we don't allow
+					$selectors->remove($s);
+					if($value) $this->error("Specified 'include=' mode is not allowed here."); 
+					$changed = true; 
+				}
+				
+			}
+		}
+		
+		if($includeSelector) {
+			$includeMode = $includeSelector->value; 
+			
+			if(count($templates)) {
+				// user specified 1 or more templates
+				$numEditable = 0;
+				// determine how many templates are editable
+				foreach($templates as $template) {
+					if($user->hasPermission('page-edit', $template)) $numEditable++;
+				}
+				// if all specified templates are editable, include=unpublished is allowed
+				if($numEditable == count($templates)) {
+					// include=unpublished is allowed
+				} else if($includeMode == 'unpublished') {
+					// include=unpublished is not allowed
+					$this->error("Not all specified templates are editable. Only 'include=hidden' is allowed."); 
+					$includeSelector->value = 'hidden';
+					$changed = true; 
+				}
+				
+			} else {
+				// with no template specified
+				// only allow a max include mode of hidden
+				// regardless of edit access
+				if($includeMode != 'hidden') {
+					$this->error("No templates specified so 'include=hidden' is max allowed include mode."); 
+					$includeSelector->value = 'hidden';
+					$changed = true; 
+				}
+			}
+		}
+		
+		if($changed) {
+			// rebuild the selector string and return it
+			return (string) $selectors;
+		} 
+	
+		// return unmodified
+		return $selector;
 	}
 
 	/**
@@ -819,6 +933,21 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		return $value; 
 	}
 
+	/**
+	 * Remove blank items like "template=, " from the selector string
+	 *
+	 * Blank items have a use for defaultSelector, but not for actually finding pages. 
+	 *
+	 * @param string $selector
+	 * @return string
+ 	 *
+	 */
+	public function removeBlankSelectors($selector) {
+		$selector = preg_replace('/,\s*@?[_a-z0-9]+(=|!=|<=?|>=?|%=|\^=|\$=|\*=|~=)(?=,)/i', '', ",$selector");
+		$selector = trim($selector, ',');
+		return $selector;
+	}
+
 
 	/**
 	 * Find the pages from the given selector string
@@ -828,10 +957,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
  	 *
 	 */
 	protected function ___findResults($selector) {
-	
-		// remove blank items
-		$selector = preg_replace('/,\s*@?[_a-z0-9]+(=|!=|<=?|>=?|%=|\^=|\$=|\*=|~=)(?=,)/i', '', ",$selector");
-		$selector = trim($selector, ',');
+
+		$selector = $this->removeBlankSelectors($selector); 	
 		
 		// remove start and/or limit
 		$knownSelector = preg_replace('/\b(start=\d+|limit=\d+),?/', '', $selector); 

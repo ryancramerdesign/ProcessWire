@@ -18,17 +18,40 @@ class Fieldtypes extends WireArray {
 	/**
 	 * Instance of Modules class
 	 *
-	 */
 	protected $modules; 
+	 */
+	
+	protected $preloaded = false;
 
 	/**
 	 * Construct this Fieldtypes object and load all Fieldtype modules 
 	 *
  	 */
 	public function init() {
-		$this->modules = $this->getFuel('modules'); 
-		$fieldtypes = $this->modules->find('className^=Fieldtype'); 
-		foreach($fieldtypes as $fieldtype) $this->add($fieldtype); 
+		foreach($this->wire('modules') as $module) {
+			if(strpos($module->className(), 'Fieldtype') === 0) {
+				// if($module instanceof ModulePlaceholder) $module = $this->wire('modules')->get($module->className());
+				$this->add($module); 
+			}
+		}
+	}
+
+	/**
+	 * Convert all ModulePlaceholders to Fieldtype modules
+	 * 
+	 */
+	protected function preload() {
+		if($this->preloaded) return;
+		$debug = $this->wire('config')->debug; 
+		if($debug) Debug::timer('Fieldtypes.preload'); 
+		foreach($this->data as $key => $module) {
+			if($module instanceof ModulePlaceholder) {
+				$fieldtype = $this->wire('modules')->get($module->className()); 
+				$this->data[$key] = $fieldtype; 
+			}
+		}
+		if($debug) Debug::saveTimer('Fieldtypes.preload'); 
+		$this->preloaded = true; 
 	}
 
 	/**
@@ -90,16 +113,44 @@ class Fieldtypes extends WireArray {
 		if(strpos($key, 'Fieldtype') !== 0) $key = "Fieldtype" . ucfirst($key); 
 
 		if(!$fieldtype = parent::get($key)) {
-			$fieldtype = $this->modules->get($key); 
+			$fieldtype = $this->wire('modules')->get($key); 
 		}
 
 		if($fieldtype instanceof ModulePlaceholder) {
-			$fieldtype = $this->modules->get($fieldtype->className()); 			
+			$fieldtype = $this->wire('modules')->get($fieldtype->className()); 			
 			$this->set($key, $fieldtype); 
 		}
 
 		return $fieldtype; 
 	}
+
+	/**
+	 * Below we account for all get() related functions in WireArray to preload the fieldtypes
+	 * 
+	 * This ensures there are no ModulePlaceholders present when results from any of these methods.
+	 * 
+	 */
+
+	public function getArray() { $this->preload(); return parent::getArray(); }
+	public function getAll() { $this->preload(); return parent::getAll(); }
+	public function getValues() { $this->preload(); return parent::getValues(); }
+	public function getRandom($num = 1, $alwaysArray = false) { $this->preload(); return parent::getRandom($num, $alwaysArray);  }
+	public function slice($start, $limit = 0) { $this->preload(); return parent::slice($start, $limit);  }
+	public function shift() { $this->preload(); return parent::shift(); }
+	public function pop() { $this->preload(); return parent::pop(); }
+	public function eq($num) { $this->preload(); return parent::eq($num); }
+	public function first() { $this->preload(); return parent::first(); }
+	public function last() { $this->preload(); return parent::last(); }
+	public function sort($properties) { $this->preload(); return parent::sort($properties); }
+	protected function filterData($selectors, $not = false) { $this->preload(); return parent::filterData($selectors, $not); }
+	public function makeCopy() { $this->preload(); return parent::makeCopy(); }
+	public function makeNew() { $this->preload(); return parent::makeNew(); }
+	public function getIterator() { $this->preload(); return parent::getIterator(); }
+	public function getNext($item) { $this->preload(); return parent::getNext($item); }
+	public function getPrev($item) { $this->preload(); return parent::getPrev($item); }
+	
+	
+	
 }
 
 
