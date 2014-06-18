@@ -566,7 +566,16 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		return $selector; 
 	}
-	
+
+	/**
+	 * Validate the given selector string for current user's access
+	 *
+	 * @param string $selector
+	 * @return string
+	 * @throws WireException
+	 * @todo move to separate class so that this functionality can be used elsewhere
+	 *
+	 */
 	protected function validateSelector($selector) {
 		
 		$user = $this->wire('user');

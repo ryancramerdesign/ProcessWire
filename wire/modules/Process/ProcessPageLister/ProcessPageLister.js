@@ -132,6 +132,7 @@ var ProcessLister = {
 				ProcessLister.spinner.fadeOut(); 
 				
 				setTimeout(function() {
+					ProcessLister.results.trigger('loaded'); 
 					$("a.actions_toggle.open").click().removeClass('open'); // auto open items corresponding to "open" get var
 				}, 250); 
 				

@@ -36,13 +36,13 @@ class PageTraversal {
 			// onlyVisible takes the place of selector
 			$onlyVisible = $selector; 
 			if(!$onlyVisible) return $page->get('numChildren');
-			return $this->wire('pages')->count("parent_id=$page->id"); 
+			return $page->wire('pages')->count("parent_id=$page->id"); 
 
 		} else if(empty($selector) || !is_string($selector)) {
 			return $page->get('numChildren'); 
 
 		} else {
-			return $this->wire('pages')->count("parent_id=$page->id, $selector"); 
+			return $page->wire('pages')->count("parent_id=$page->id, $selector"); 
 		}
 	}
 
@@ -66,7 +66,7 @@ class PageTraversal {
 			if(!$sortfield) $sortfield = $page->sortfield;
 			$selector .= "sort=$sortfield";
 		}
-		return wire('pages')->find(trim($selector, ", "), $options); 
+		return $page->wire('pages')->find(trim($selector, ", "), $options); 
 	}
 
 	/**
@@ -180,7 +180,7 @@ class PageTraversal {
 			$selector .= "sort=" . ($parent ? $parent->sortfield : 'sort'); 
 		}
 		$options = array('caller' => 'page.siblings'); 
-		return wire('pages')->find(trim($selector, ", "), $options); 
+		return $page->wire('pages')->find(trim($selector, ", "), $options); 
 	}
 
 	/**

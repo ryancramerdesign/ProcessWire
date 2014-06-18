@@ -127,9 +127,9 @@ class ProcessPageView extends Process {
 		}
 
 		$this->pages->setOutputFormatting(true); 
-		if($debug) Debug::timer('ProcessPageView.getPage'); 
+		if($debug) Debug::timer('ProcessPageView.getPage()'); 
 		$page = $this->getPage();
-		if($debug) Debug::saveTimer('ProcessPageView.getPage', $page->path); 
+		if($debug) Debug::saveTimer('ProcessPageView.getPage()', $page->path); 
 
 		if($page && $page->id) { 
 			$page->setOutputFormatting(true); 
