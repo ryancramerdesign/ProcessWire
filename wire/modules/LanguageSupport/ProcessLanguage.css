@@ -14,13 +14,13 @@
 	padding-top: 0;
 }
 
-.InputfieldFile .InputfieldFileLanguageInfo .actions {
-	position: absolute; 
-	top: 0;
-	right: 1em; 
-	margin: 0; 
-}
-
 .InputfieldFileList .InputfieldFileLanguageInfo {
 	margin-top: -1em; 
+}
+
+.InputfieldFileList .InputfieldFileLanguageInfo a i.hover-only {
+	display: none;
+}
+.InputfieldFileList .InputfieldFileLanguageInfo a:hover i.hover-only {
+	display: inline;
 }

@@ -139,6 +139,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$this->set('datePlaceholder', $this->_('yyyy-mm-dd')); // date format placeholder (what users see)
 		$this->set('timeFormat', $this->_('H:i')); // time format
 		$this->set('timePlaceholder', $this->_('hh:mm')); // time format placeholder (what users see)
+		
 
 		parent::__construct();
 	}
@@ -333,6 +334,11 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				'label' => $this->_('count'),
 				'sanitizer' => 'integer',
 				),
+			'path' => array(
+				'input' => 'text', 
+				'label' => $this->_('path/URL'), 
+				'operators' => $this->operatorsByType['text'], 
+				),
 			'parent' => array(
 				'input' => 'number',
 				'label' => $this->_('parent'), 
@@ -512,7 +518,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				$id = ((int) $this->wire('input')->get('id')) . '_' . $this->attr('name'); 
 				$url = ProcessPageLister::addSessionBookmark($id, $bookmark); 
 				if($url) {
-					$out .= " (<a target='_blank' href='$url'>" . $this->_('show') . "</a>)";
+					$title = $this->_('Pages that match your selector'); 
+					$out .= " (<a class='modal' title='$title' href='$url&minimal=1'>" . $this->_('show') . "</a>)";
 				}
 			}
 
@@ -1156,6 +1163,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	 * 
 	 */
 	public function ___render() {
+		// tell jQuery UI we want it to load the modal component which makes a.modal open modal windows
+		$this->wire('modules')->get('JqueryUI')->use('modal'); 
 
 		if(self::debug) $this->counter = true;
 

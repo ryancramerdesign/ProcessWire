@@ -129,9 +129,9 @@ class ProcessPageView extends Process {
 		$this->pages->setOutputFormatting(true); 
 		if($debug) Debug::timer('ProcessPageView.getPage()'); 
 		$page = $this->getPage();
-		if($debug) Debug::saveTimer('ProcessPageView.getPage()', $page->path); 
 
-		if($page && $page->id) { 
+		if($page && $page->id) {
+			if($debug) Debug::saveTimer('ProcessPageView.getPage()', $page->path); 
 			$page->setOutputFormatting(true); 
 			$_page = $page; 
 			$page = $this->checkAccess($page); 
@@ -353,7 +353,7 @@ class ProcessPageView extends Process {
 			// meets the requirements for a page number: last portion of URL and starts with 'page'
 			$pageNum = (int) $this->pageNum; 
 			if($pageNum < 1) $pageNum = 1;
-			if($pageNum > 1) {
+			if($pageNum > 1 && !$this->wire('user')->isLoggedin()) {
 				$maxPageNum = $this->wire('config')->maxPageNum; 
 				if(!$maxPageNum) $maxPageNum = 999;
 				if($pageNum > $maxPageNum) return false; 

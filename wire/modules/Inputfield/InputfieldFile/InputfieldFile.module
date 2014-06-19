@@ -10,7 +10,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		return array(
 			'title' => __('Files', __FILE__), // Module Title
 			'summary' => __('One or more file uploads (sortable)', __FILE__), // Module Summary
-			'version' => 108,
+			'version' => 109,
 			'permanent' => true, 
 			);
 	}
@@ -134,7 +134,9 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 				$labelClass = "detail";
 				
 				if($language) {
-					$descriptionFieldLabel = $this->wire('sanitizer')->entities($language->get('title|name')); 
+					$descriptionFieldLabel = (string) $language->getUnformatted('title'); 
+					if(empty($descriptionFieldLabel)) $descriptionFieldLabel = $language->get('name'); 
+					$descriptionFieldLabel = $this->wire('sanitizer')->entities($descriptionFieldLabel); 
 					if(!$language->isDefault()) $descriptionFieldName = "description{$language->id}_$id";
 					$out .= "<span style='width:$width%' class='InputfieldFileDescription LanguageSupport' data-language='$language'>"; // open wrapper
 					$labelClass .= ' LanguageSupportLabel';

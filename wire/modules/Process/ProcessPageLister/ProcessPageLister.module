@@ -16,10 +16,16 @@
  * 
  * http://processwire.com
  *
- * @todo: InputfieldPageTable should only show template options viewable to user
- * 
  * For support of actions, new edit modules, and custom configurable Listers, 
  * check out ListerPro at http://processwire.com/ListerPro/
+ * 
+ * GET vars recognized by Lister:
+ * session_bookmark: name of session bookmark (session_bookmark=...)
+ * pageNum: page number, if specified as GET var rather than URL segment (pageNum=1)
+ * open: CSV string of page IDs that should be open/selected (open=1,2,3)
+ * reset: Initiates reset of filters (reset=1)
+ * minimal: Minimal mode shows only results and nothing else (minimal=1, usually combined with modal=1)
+ * 
  *
  */
 
@@ -460,9 +466,29 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	 *
 	 */
 	protected function allowColumnField(Field $field) {
+		
 		if(in_array($field->name, $this->disallowColumns)) return false;
 		if($field->type instanceof FieldtypeFieldsetOpen) return false;
-		return true; 
+		
+		static $templates = array();
+		if(empty($templates)) {
+			$templates = $this->getSelectorTemplates($this->initSelector); 
+		}
+		
+		if(count($templates)) {
+			$allow = false; 
+			foreach($templates as $template) {
+				if($template->fieldgroup->hasField($field)) {
+					$allow = true;
+					break;
+				}
+			}
+			
+		} else {
+			$allow = true; 
+		}
+		
+		return $allow; 
 	}
 
 	/**
@@ -700,13 +726,16 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	 * for determining what fields to show and 'add new' page features. 
 	 *
 	 * @param string $selector
+	 * @param bool $getArray
 	 * @return array
 	 *
 	 */
-	protected function getSelectorTemplates($selector) {
+	public function getSelectorTemplates($selector, $getArray = true) {
+		$return = $getArray ? array() : '';
 		$templates = array();
-		if(stripos($selector, 'template=') === false) return array();
-		if(!preg_match('/\btemplate=([^,]+)/i', $selector, $matches)) return array();
+		if(stripos($selector, 'template=') === false) return $return;
+		if(!preg_match('/\btemplate=([^,]+)/i', $selector, $matches)) return $return;
+		if(!$getArray) return $matches[1]; // return pipe separated string
 		$template = explode('|', $matches[1]); 
 		foreach($template as $t) {
 			$t = $this->wire('templates')->get($t); 
@@ -1127,9 +1156,11 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$this->modules->get('MarkupAdminDataTable'); // to ensure css/js load
 
 		$out = '';
-		$out .= $this->buildFiltersForm()->render();
-		$out .= $this->buildColumnsForm()->render();
-		$out .= $this->renderExtras(); 
+		if(!$this->wire('input')->get('minimal')) {
+			$out .= $this->buildFiltersForm()->render();
+			$out .= $this->buildColumnsForm()->render();
+			$out .= $this->renderExtras(); 
+		}
 		$out .= "<div id='ProcessListerResults' class='PageList $this->className'></div>";
 
 		$action = '';
@@ -1141,7 +1172,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				else $action = "?template_id={$this->template->id}"; // multiple possible parents
 		}
 		
-		if($action) {
+		if($action && !$this->wire('input')->get('minimal')) {
 			$btn = $this->wire('modules')->get('InputfieldButton'); 
 			$btn->attr('value', $this->_('Add New')); 
 			$btn->href = $this->addURL . $action; 

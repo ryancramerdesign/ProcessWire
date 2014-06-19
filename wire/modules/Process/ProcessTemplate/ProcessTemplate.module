@@ -244,6 +244,7 @@ class ProcessTemplate extends Process {
 		$header[] = $this->_x('Label', 'list-thead');
 		$header[] = $this->_x('Fields', 'list-thead');
 		$header[] = $this->_x('Pages', 'list-thead');
+		$header[] = $this->_x('Modified', 'list-thead');
 		$header[] = '&nbsp;';
 		$table->headerRow($header);
 		
@@ -317,6 +318,7 @@ class ProcessTemplate extends Process {
 		$row[] = $this->sanitizer->entities($template->label);
 		$row[] = "$numFields ";
 		$row["{$numPages} "] = "$numPagesLink"; // space is required to make it work
+		$row[] = $template->modified > 0 ? "<span style='display: none;'>$template->modified</span>" . wireRelativeTimeStr($template->modified) : '';
 		$row[] = $notes;
 		return $row; 
 	}

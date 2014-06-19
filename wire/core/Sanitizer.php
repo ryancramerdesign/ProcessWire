@@ -103,7 +103,7 @@ class Sanitizer extends Wire {
 		$value = preg_replace('/[^' . $chars . ']/', $replacementChar, $value); 
 
 		// remove leading or trailing dashes, underscores, dots
-		if($beautify) $value = trim($value, implode('', $allowedExtras));
+		if($beautify) $value = trim($value, $extras);
 
 		return $value; 
 	}
@@ -117,10 +117,13 @@ class Sanitizer extends Wire {
 	 *	based on the InputfieldPageName custom config settings.
 	 * @param int $maxLength Maximum number of characters allowed in the name
 	 * @param string $replacement Replacement character for invalid chars: one of -_.
+	 * @param array $options Extra options to replace default 'beautify' behaviors
+	 * 	- allowAdjacentExtras: Whether to allow [-_.] chars next to each other (default=false)
+	 * 	- allowDoubledReplacement: Whether to allow two of the same replacement chars [-_] next to each other (default=false)
 	 * @return string
 	 * 
 	 */
-	public function name($value, $beautify = false, $maxLength = 128, $replacement = '_') {
+	public function name($value, $beautify = false, $maxLength = 128, $replacement = '_', $options = array()) {
 	
 		$allowedExtras = array('-', '_', '.'); 
 		$allowedExtrasStr = '-_.';
@@ -128,22 +131,25 @@ class Sanitizer extends Wire {
 		$value = $this->nameFilter($value, $allowedExtras, $replacement, $beautify, $maxLength);
 		
 		if($beautify) {
-			// remove leading or trailing dashes, underscores, dots
-			$value = trim($value, $allowedExtrasStr);
+			
 			$hasExtras = false;
-
 			foreach($allowedExtras as $c) {
 				$hasExtras = strpos($value, $c) !== false;
 				if($hasExtras) break;
 			}
 			
 			if($hasExtras) {
-				// replace any of '-_.' next to each other with a single $replacement
-				$value = preg_replace('/[' . $allowedExtrasStr . ']{2,}/', $replacement, $value);
-	
-				// replace double'd replacements
-				$r = "$replacement$replacement";
-				if(strpos($value, $r) !== false) $value = preg_replace('/' . $r . '+/', $replacement, $value);
+				
+				if(empty($options['allowAdjacentExtras'])) {
+					// replace any of '-_.' next to each other with a single $replacement
+					$value = preg_replace('/[' . $allowedExtrasStr . ']{2,}/', $replacement, $value);
+				}
+
+				if(empty($options['allowDoubledReplacement'])) {
+					// replace double'd replacements
+					$r = "$replacement$replacement";
+					if(strpos($value, $r) !== false) $value = preg_replace('/' . $r . '+/', $replacement, $value);
+				}
 	
 				// replace double dots
 				if(strpos($value, '..') !== false) $value = preg_replace('/\.\.+/', '.', $value);
@@ -279,7 +285,10 @@ class Sanitizer extends Wire {
 	 *
 	 */
 	public function filename($value, $beautify = false, $maxLength = 128) {
-		return $this->name($value, $beautify, $maxLength, '_'); 
+		return $this->name($value, $beautify, $maxLength, '_', array(
+			'allowAdjacentExtras' => true, // language translation filenames require doubled "--" chars, others may too
+			)
+		); 
 	}
 
 	/**

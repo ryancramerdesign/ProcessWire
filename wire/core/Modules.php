@@ -480,7 +480,7 @@ class Modules extends WireArray {
 		}
 
 		if($level == 0) {
-			if($cache) $cache->save($cacheName, implode("\n", $files), WireCache::noExpire); 
+			if($cache) $cache->save($cacheName, implode("\n", $files), WireCache::expireNever); 
 			//@file_put_contents($cacheFilename, implode("\n", $files), LOCK_EX);  // remove LOCK_EX ?
 		}
 		//if($config->chmodFile) @chmod($cacheFilename, octdec($config->chmodFile));
@@ -1396,6 +1396,7 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function resetCache() {
+		if($this->wire('config')->systemVersion < 6) return;
 		$this->clearModuleInfoCache();
 		$this->findModuleFiles($this->modulePath, false); 
 		if($this->modulePath2) $this->findModuleFiles($this->modulePath2, false); 
@@ -1681,7 +1682,7 @@ class Modules extends WireArray {
 			$this->moduleInfoCache[$class] = $info; 
 		}
 		
-		$this->wire('cache')->save(self::moduleInfoCacheName, json_encode($this->moduleInfoCache), WireCache::noExpire); 
+		$this->wire('cache')->save(self::moduleInfoCacheName, json_encode($this->moduleInfoCache), WireCache::expireNever); 
 	}
 
 	/**

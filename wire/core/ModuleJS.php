@@ -35,16 +35,128 @@ abstract class ModuleJS extends WireData implements Module {
 			); 
 	}
 
+
+	/**
+	 * Array of component names to filenames
+	 *
+	 * @var array
+	 *
+	 */
+	protected $components = array();
+
+	/**
+	 * Components that have been requested
+	 *
+	 * @var array
+	 *
+	 */
+	protected $requested = array();
+
+	/**
+	 * True after module has been init'd, required by add()
+	 *
+	 * @var bool
+	 *
+	 */
+	protected $initialized = false;
+
+	/**
+	 * Whether to automatically load CSS files with the same name as this module
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $loadStyles = true;
+	
+	/**
+	 * Whether to automatically load JS files with the same name as this module
+	 *
+	 * @var bool
+	 *
+	 */
+	protected $loadScripts = true; 
+	
+	/**
+	 * Add an optional component that can be used with this module
+	 *
+	 * @param string $name
+	 * @param string $file
+	 * @return this
+	 *
+	 */
+	public function addComponent($name, $file) {
+		$this->components[$name] = $file;
+		return $this;
+	}
+
+	/**
+	 * Add an array of optional components
+	 *
+	 * @param array $components
+	 * @return this
+	 *
+	 */
+	public function addComponents(array $components) {
+		$this->components = array_merge($this->components, $components);
+		return $this;
+	}
+
 	/**
 	 * Per the Module interface, Initialize the Process, loading any related CSS or JS files
 	 *
 	 */
-	public function init() { 
+	public function init() {
+		
 		$class = $this->className();
 		$info = $this->wire('modules')->getModuleInfo($this, array('verbose' => false));
-		$version = (int) isset($info['version']) ? $info['version'] : 0; 
-		if(is_file($this->config->paths->$class . "$class.css")) $this->config->styles->add($this->config->urls->$class . "$class.css?v=$version"); 
-		if(is_file($this->config->paths->$class . "$class.js")) $this->config->scripts->add($this->config->urls->$class . "$class.js?v=$version"); 
+		$version = (int) isset($info['version']) ? $info['version'] : 0;
+		
+		if($this->loadStyles && file_exists($this->config->paths->$class . "$class.css")) {
+			$this->config->styles->add($this->config->urls->$class . "$class.css?v=$version");
+		}
+		if($this->loadScripts && file_exists($this->config->paths->$class . "$class.js")) {
+			$this->config->scripts->add($this->config->urls->$class . "$class.js?v=$version"); 
+		}
+
+		if(count($this->requested)) {
+			foreach($this->requested as $name) {
+				$url = $this->components[$name]; 
+				if(strpos($url, '/') === false) $url = $this->wire('config')->urls->$class . $url;
+				$url .= "?v=$version";
+				$this->wire('config')->scripts->add($url);
+			}
+			$this->requested = array();
+		}
+
+		$this->initialized = true;
+	}
+
+	/**
+	 * Use an extra named component
+	 *
+	 * @param $name
+	 * @return this
+	 *
+	 */
+	public function ___use($name) {
+
+		$name = $this->wire('sanitizer')->name($name);
+		$class = $this->className();
+
+		if(!isset($this->components[$name])) {
+			$this->error("Unrecognized $class component requested: $name");
+			return $this;
+		}
+
+		if($this->initialized) {
+			$url = $this->components[$name];
+			if(strpos($url, '/') === false) $url = $this->wire('config')->urls->$class . $url;
+			$this->wire('config')->scripts->add($url);
+		} else {
+			$this->requested[$name] = $name;
+		}
+
+		return $this;
 	}
 
 	public function ___install() { }

@@ -1495,7 +1495,9 @@ class Pages extends Wire {
 	 * @param array $values Array of values that changed, if values were being recorded, see Wire::getChanges(true) for details.
 	 *
 	 */
-	protected function ___saved(Page $page, array $changes = array(), $values = array()) { }
+	protected function ___saved(Page $page, array $changes = array(), $values = array()) { 
+		$this->wire('cache')->maintenance($page);
+	}
 
 	/**
 	 * Hook called when a new page has been added
@@ -1559,7 +1561,9 @@ class Pages extends Wire {
 	 * Hook called when a page and it's data have been deleted
 	 *
 	 */
-	protected function ___deleted(Page $page) { }
+	protected function ___deleted(Page $page) { 
+		$this->wire('cache')->maintenance($page);
+	}
 
 	/**
 	 * Hook called when a page is about to be cloned, but before data has been touched

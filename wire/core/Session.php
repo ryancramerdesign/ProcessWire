@@ -374,13 +374,13 @@ class Session extends Wire implements IteratorAggregate {
 		}
 
 		// perform the redirect
-		if($http301) header("HTTP/1.1 301 Moved Permanently");
-		header("Location: $url");
 		if($this->wire('page')) {
 			$process = $this->wire('modules')->get('ProcessPageView'); 
 			$process->setResponseType(ProcessPageView::responseTypeRedirect); 
 			$process->finished();
 		}
+		if($http301) header("HTTP/1.1 301 Moved Permanently");
+		header("Location: $url");
 		exit(0);
 	}
 

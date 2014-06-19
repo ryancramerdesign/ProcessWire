@@ -187,6 +187,7 @@ class Template extends WireData implements Saveable {
 		'cacheExpirePages' => array(),	// array of Page IDs that should be expired, when cacheExpire == Template::cacheExpireSpecific
 		'label' => '',			// label that describes what this template is for (optional)
 		'tags' => '',			// optional tags that can group this template with others in the admin templates list 
+		'modified' => 0, 		// last modified time for template or template file
 		); 
 
 
@@ -377,7 +378,7 @@ class Template extends WireData implements Saveable {
 			$value = $this->config->paths->templates . basename($value); 
 		}
 
-		if(is_file($value)) {
+		if(file_exists($value)) {
 			$this->filename = $value; 
 			$this->filenameExists = true; 
 		}
@@ -421,7 +422,7 @@ class Template extends WireData implements Saveable {
 	 *
 	 */
 	public function getNumPages() {
-		return Wire::getFuel('templates')->getNumPages($this); 	
+		return $this->wire('templates')->getNumPages($this); 	
 	}
 
 	/**
@@ -432,7 +433,7 @@ class Template extends WireData implements Saveable {
 	 */
 	public function save() {
 
-		$result = Wire::getFuel('templates')->save($this); 	
+		$result = $this->wire('templates')->save($this); 	
 
 		return $result ? $this : false; 
 	}
@@ -451,12 +452,34 @@ class Template extends WireData implements Saveable {
 		if(!$this->settings['name']) throw new WireException("Template must be assigned a name before 'filename' can be accessed"); 
 
 		if($this->altFilename) {
-			$altFilename = $this->fuel('templates')->path . basename($this->altFilename, "." . $this->config->templateExtension) . "." . $this->config->templateExtension; 
+			$altFilename = $this->wire('templates')->path . basename($this->altFilename, "." . $this->config->templateExtension) . "." . $this->config->templateExtension; 
 			$this->filename = $altFilename; 
 		} else {
-			$this->filename = $this->fuel('templates')->path . $this->settings['name'] . '.' . $this->config->templateExtension;
+			$this->filename = $this->wire('templates')->path . $this->settings['name'] . '.' . $this->config->templateExtension;
 		}
+	
+		if($this->filenameExists()) {
+			$modified = filemtime($this->filename);
+			if($modified > $this->modified) {
+				$this->modified = $modified;
+				// tell it to save the template after the request is finished
+				$this->addHookAfter('ProcessWire::finished', $this, 'hookFinished'); 
+			}
+		}
+		
 		return $this->filename;
+	}
+
+	/**
+	 * Saves a template after the request is complete
+	 * 
+	 * @param HookEvent $e
+	 * 
+	 */
+	public function hookFinished(HookEvent $e) {
+		foreach($this->wire('templates') as $template) {
+			if($template->isChanged('modified')) $template->save();
+		}
 	}
 
 	/**
@@ -467,7 +490,7 @@ class Template extends WireData implements Saveable {
 	 */
 	public function filenameExists() {
 		if(!is_null($this->filenameExists)) return $this->filenameExists; 
-		$this->filenameExists = is_file($this->filename()); 
+		$this->filenameExists = file_exists($this->filename()); 
 		return $this->filenameExists; 
 	}
 

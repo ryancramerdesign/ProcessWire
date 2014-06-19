@@ -147,11 +147,14 @@ class WireUpload extends Wire {
 	}
 
 	protected function isValidExtension($name) {
+		
 		$pathInfo = pathinfo($name); 
+		if(!isset($pathInfo['extension'])) return false;
 		$extension = strtolower($pathInfo['extension']);
 
 		if(in_array($extension, $this->badExtensions)) return false;
 		if(in_array($extension, $this->validExtensions)) return true; 
+		
 		return false; 
 	}
 
@@ -204,6 +207,7 @@ class WireUpload extends Wire {
 		$value = trim($value, "_");
 
 		$p = pathinfo($value);
+		if(!isset($p['extension'])) return false;
 		$extension = strtolower($p['extension']);
 		$basename = basename($p['basename'], ".$extension"); 
 		// replace any dots in the basename with underscores
@@ -268,15 +272,17 @@ class WireUpload extends Wire {
 		$tmpDir = $dir . '.zip_tmp/';
 	
 		try {
-			if(!count(wireUnzipFile($zipFile, $tmpDir))) {
+			$files = wireUnzipFile($zipFile, $tmpDir); 
+			if(!count($files)) {
 				throw new WireException($this->_('No files found in ZIP file'));
 			}
 		} catch(Exception $e) {
 			$this->error($e->getMessage());
-			wireRmdir($tmpDir);
+			wireRmdir($tmpDir, true);
 			unlink($zipFile); 
 			return $files;
 		}
+	
 
 		/* OLD METHOD (for reference)
 		$unzipCommand = self::$unzipCommand;	
@@ -285,35 +291,34 @@ class WireUpload extends Wire {
 		$str = exec($unzipCommand); 
 		*/
 		
-		$files = new DirectoryIterator($tmpDir); 	
 		$cnt = 0; 
 
 		foreach($files as $file) {
+			
+			$pathname = $tmpDir . $file;
 
-			if($file->isDot() || $file->isDir()) continue; 
-
-			if(!$this->isValidUpload($file->getFilename(), $file->getSize(), UPLOAD_ERR_OK)) {
-				unlink($file->getPathname()); 
+			if(!$this->isValidUpload($file, filesize($pathname), UPLOAD_ERR_OK)) {
+				@unlink($pathname); 
 				continue; 
 			}
 
 			//$destination = $dir . $file->getFilename(); 
-			$basename = $file->getFilename(); 
+			$basename = $file;
 			$basename = $this->validateFilename($basename, $this->validExtensions); 
 
 			if($basename) $destination = $this->getUniqueFilename($dir . $basename); 
 				else $destination = '';
 
-			if($destination && rename($file->getPathname(), $destination)) {
+			if($destination && rename($pathname, $destination)) {
 				$this->completedFilenames[] = basename($destination); 
 				$cnt++; 
 			} else {
-				unlink($file->getPathname()); 
+				@unlink($pathname); 
 			}
 		}
 
-		wireRmdir($tmpDir); 
-		unlink($zipFile); 
+		wireRmdir($tmpDir, true); 
+		@unlink($zipFile); 
 
 		if(!$cnt) return false; 
 		return true; 	

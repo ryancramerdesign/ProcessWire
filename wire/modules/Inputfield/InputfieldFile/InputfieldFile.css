@@ -162,4 +162,10 @@
 	}
 }
 
-
+.InputfieldFileLanguageSupport.stacked .LanguageSupport {
+	/* same as above, but a class for JS to apply */
+	float: none;
+	display: block;
+	padding: 0;
+	width: 100% !important;
+}

@@ -337,6 +337,11 @@ $(document).ready(function() {
 		InitOldSchool();
 	}
 
-
+	if(typeof config.LanguageSupport != "undefined") {
+		$(".InputfieldFileLanguageSupport").each(function() {
+			var $item = $(this).find('.InputfieldFileDescription:eq(0)');
+			if($item.width() <= 250) $(this).addClass('stacked'); 
+		}); 
+	}
 	
 }); 
