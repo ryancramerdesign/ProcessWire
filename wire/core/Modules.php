@@ -1140,6 +1140,7 @@ class Modules extends WireArray {
 	 *
 	 * @param string|Module|int $module May be class name, module instance, or module ID
 	 * @param array $options Optional options to modify behavior of what gets returned
+	 * 	- noCache: prevents use of cache to retrieve the module info
 	 * @return array
 	 * @throws WireException when a module exists but has no means of returning module info
 	 *	
@@ -1147,6 +1148,7 @@ class Modules extends WireArray {
 	public function getModuleInfo($module, array $options = array()) {
 		
 		if(!isset($options['verbose'])) $options['verbose'] = true; 
+		if(!isset($options['noCache'])) $options['noCache'] = false;
 		
 		$info = array();
 		$moduleName = $module; 
@@ -1659,11 +1661,23 @@ class Modules extends WireArray {
 	protected function saveModuleInfoCache() {
 		
 		$this->moduleInfoCache = array();
+		$user = $this->wire('user'); 
+		$languages = $this->wire('languages'); 
+		
+		if($languages) {
+			// switch to default language to prevent caching of translated title/summary data
+			$language = $user->language; 
+			try { 
+				if($language && $language->id && !$language->isDefault()) $user->language = $languages->getDefault(); // save
+			} catch(Exception $e) {
+				$this->error($e->getMessage());
+			}
+		}
 		
 		foreach($this as $module) {
 			
 			$class = $module->className();
-			$info = $this->getModuleInfo($class); 
+			$info = $this->getModuleInfo($class, array('noCache' => true)); 
 			
 			if(is_null($info['autoload'])) {
 				$info['autoload'] = $this->isAutoload($module); 
@@ -1683,6 +1697,7 @@ class Modules extends WireArray {
 		}
 		
 		$this->wire('cache')->save(self::moduleInfoCacheName, json_encode($this->moduleInfoCache), WireCache::expireNever); 
+		if($languages && $language) $user->language = $language; // restore
 	}
 
 	/**
