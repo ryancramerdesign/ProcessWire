@@ -153,7 +153,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 
 		if(!class_exists($class)) throw new WireException("Requested PageList renderer does not exist"); 
 
-		if($this->limit) $children = $this->page->children("start={$this->start}, limit={$this->limit}, status<" . Page::statusMax);
+		if($this->limit) $children = $this->find("start={$this->start}, limit={$this->limit}, status<" . Page::statusMax, $this->page);
 			else $children = new PageArray();
 
 		$renderer = new $class($this->id, $this->page, $children); 
@@ -162,6 +162,10 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$renderer->setPageLabelField($this->pageLabelField); 
 
 		return $renderer->render();
+	}
+	
+	public function ___find($selectorString, Page $page) {
+		return $page->children($selectorString); 
 	}
 
 	/**

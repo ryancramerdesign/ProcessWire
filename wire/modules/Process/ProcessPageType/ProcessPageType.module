@@ -17,7 +17,7 @@
  *
  */
 
-class ProcessPageType extends Process implements ConfigurableModule {
+class ProcessPageType extends Process implements ConfigurableModule, WirePageEditor {
 
 	static public function getModuleInfo() {
 		return array(
@@ -30,9 +30,11 @@ class ProcessPageType extends Process implements ConfigurableModule {
 
 	protected $pages;
 	protected $template = null;
+	protected $editor = null;
 
 	public function __construct() {
 		$this->set('showFields', array('name')); 
+		$this->set('addLabel', $this->_('Add New')); 
 	}
 
 	public function init() {
@@ -40,7 +42,10 @@ class ProcessPageType extends Process implements ConfigurableModule {
 		$this->config->styles->add($this->config->urls->ProcessPageType . 'ProcessPageType.css');
 
 		$this->pages = $this->wire($this->page->name); 
-		if(is_null($this->pages)) $this->pages = $this->wire('pages'); 
+		if(is_null($this->pages) || !$this->pages instanceof PagesType) {
+			// $this->error("Unable to find API variable named '{$this->page->name}' (of type: PagesType)", Notice::debug); 
+			$this->pages = $this->wire('pages'); 
+		}
 		if($this->pages instanceof PagesType) $this->template = $this->pages->getTemplate();
 
 		parent::init();
@@ -56,8 +61,8 @@ class ProcessPageType extends Process implements ConfigurableModule {
 
 	public function ___executeEdit() {
 		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->page->get('title|name'))); 
-		$editor = $this->modules->get("ProcessPageEdit"); 
-		return $editor->execute();
+		$this->editor = $this->modules->get("ProcessPageEdit"); 
+		return $this->editor->execute();
 	}
 
 	public function ___executeAdd() {
@@ -71,7 +76,7 @@ class ProcessPageType extends Process implements ConfigurableModule {
 	protected function renderList($selector = '', $pagerOptions = array()) {
 		$out = '';
 
-		if(!$this->pages->getTemplate()) {
+		if(!$this->pages instanceof PagesType || !$this->pages->getTemplate()) {
 			$form = $this->getTemplateFilterForm();		
 			$out = $form->render();
 		}
@@ -93,6 +98,7 @@ class ProcessPageType extends Process implements ConfigurableModule {
 
 		$table->headerRow($fieldLabels); 
 		$pages = $this->pages->find($selector); 
+		$numRows = 0;
 
 		foreach($pages as $page) {
 			if(!$page->editable()) continue;
@@ -112,17 +118,25 @@ class ProcessPageType extends Process implements ConfigurableModule {
 				$n++;
 			}
 			$table->row($row); 
+			$numRows++;
 		}
 
-		if($this->page->addable()) $table->action(array($this->_('Add New') => 'add/')); 
+		if($this->page->addable()) $table->action(array($this->addLabel => 'add/')); 
 
 		if($pages->getTotal() > count($pages)) {
 			$pager = $this->modules->get("MarkupPagerNav"); 
 			$out .= $pager->render($pages, $pagerOptions);
 		}
 
+		if(!$numRows) $out .= $this->renderEmptyList($pages);
+
 		$out .= $table->render();
 
+		return $out; 
+	}
+
+	protected function renderEmptyList(PageArray $pages) {
+		$out = "<p>" . $this->_('No items to display yet.') . "</p>";
 		return $out; 
 	}
 
@@ -194,6 +208,11 @@ class ProcessPageType extends Process implements ConfigurableModule {
 		$inputfields->add($f);
 
 		return $inputfields;
+	}
+	
+	public function getPage() {
+		if($this->editor) return $this->editor->getPage();
+		return new NullPage();
 	}
 	
 }

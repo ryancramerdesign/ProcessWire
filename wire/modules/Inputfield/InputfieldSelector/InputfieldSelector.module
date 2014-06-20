@@ -429,7 +429,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	protected function sessionSet($key, $value) {
 		$s = $this->wire('session')->get($this->className());
 		if(!is_array($s)) $s = array(); 
-		if(count($s) > 10) $s = array_slice($s, -9); // prevent from growing too large
+		if(count($s) > 30) $s = array_slice($s, -9); // prevent from growing too large
 		$id = 'id' . $this->wire('page')->id . "_" . $this->wire('sanitizer')->fieldName($this->attr('name')); 
 		if(!isset($s[$id])) $s[$id] = array();
 		$s[$id][$key] = $value; 
@@ -519,7 +519,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				$url = ProcessPageLister::addSessionBookmark($id, $bookmark); 
 				if($url) {
 					$title = $this->_('Pages that match your selector'); 
-					$out .= " (<a class='modal' title='$title' href='$url&minimal=1'>" . $this->_('show') . "</a>)";
+					$out .= " (<a class='pw-modal' title='$title' href='$url&minimal=1'>" . $this->_('show') . "</a>)";
 				}
 			}
 

@@ -648,13 +648,15 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 						unset($values[$key]); 
 						$s->value = $values; 
 						$changed = true; 
-						if($value) $this->error("Unknown templates specified"); 
-						
+						if($value) $this->error("Unknown templates specified");
+
+						/*
 					} else if(!$user->hasPermission('page-view', $template)) {
 						unset($values[$key]);
 						$s->value = $values;
 						$changed = true;
 						$this->error("Template specified for which page-view access does not exist."); 
+						*/
 						
 					} else {
 						$templates[] = $template;
@@ -995,7 +997,6 @@ class ProcessPageLister extends Process implements ConfigurableModule {
  	 *
 	 */
 	protected function ___findResults($selector) {
-
 		$selector = $this->removeBlankSelectors($selector); 	
 		
 		// remove start and/or limit
@@ -1048,6 +1049,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if(is_null($selector)) $selector = $this->getSelector();
 		if(!count($this->columns)) $this->columns = $this->defaultColumns; 
 		$results = $this->findResults($selector); 
+		//$findSelector = $results->getSelectors();
 		$out = '';
 		$count = count($results);
 		$start = $results->getStart();
@@ -1078,6 +1080,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		foreach($this->wire('notices') as $notice) {
 			if($notice instanceof NoticeError) {
 				$out .= "<p class='ui-state-error-text'>$notice->text</p>";
+			} else {
+				if(self::debug) $out .= "<p class='ui-state-highlight'>$notice->text</p>";
 			}
 		}
 
@@ -1088,6 +1092,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		if($this->wire('config')->debug) {
 			$out .= "<p id='ProcessListerSelector' class='notes'>" . $this->wire('sanitizer')->entities($this->finalSelector) . "</p>";
+			//$out .= "<p id='ProcessListerSelector' class='notes'>" . $this->wire('sanitizer')->entities($findSelector) . "</p>";
 		}
 
 		return $out; 

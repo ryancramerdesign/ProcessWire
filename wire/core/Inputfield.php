@@ -114,6 +114,7 @@ abstract class Inputfield extends WireData implements Module {
 		$this->set('showIf', ''); 		// optional conditions selector
 		$this->set('columnWidth', ''); 	// percent width of the field. blank or 0 = 100.
 		$this->set('skipLabel', self::skipLabelNo); // See the skipLabel constants
+		$this->set('wrapClass', ''); // optional class to apply to the wrapper
 
 		// default ID attribute if no 'id' attribute set
 		$this->defaultID = $this->className() . self::$numInstances; 

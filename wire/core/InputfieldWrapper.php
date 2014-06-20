@@ -382,6 +382,7 @@ class InputfieldWrapper extends Inputfield {
 				}
 				if(!isset($ffAttrs['id'])) $ffAttrs['id'] = 'wrap_' . $inputfield->attr('id'); 
 				$ffAttrs['class'] = str_replace('Inputfield_ ', '', $ffAttrs['class']); 
+				if($inputfield->wrapClass) $ffAttrs['class'] .= " " . $inputfield->wrapClass; 
 				foreach($ffAttrs as $k => $v) {
 					$attrs .= " $k='" . $this->entityEncode(trim($v)) . "'";
 				}

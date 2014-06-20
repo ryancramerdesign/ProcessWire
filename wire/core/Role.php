@@ -19,13 +19,33 @@
 class Role extends Page { 
 
 	/**
-	 * Create a new ROle page in memory. 
+	 * Create a new Role page in memory. 
 	 *
 	 */
 	public function __construct(Template $tpl = null) {
-		if(is_null($tpl)) $tpl = $this->fuel('templates')->get('role'); 
-		$this->parent = $this->fuel('pages')->get($this->fuel('config')->rolesPageID); 
+		if(is_null($tpl)) $tpl = $this->getPredefinedTemplate();
+		$this->parent = $this->getPredefinedParent();
 		parent::__construct($tpl); 
+	}
+
+	/**
+	 * Get predefined template (template method)
+	 * 
+	 * @return Template
+	 *
+	 */
+	protected function getPredefinedTemplate() {
+		return $this->wire('templates')->get('role'); 
+	}
+
+	/**
+	 * Get predefined parent page (template method)
+	 * 
+	 * @return Page
+	 *
+	 */
+	protected function getPredefinedParent() {
+		return $this->wire('pages')->get($this->wire('config')->rolesPageID); 
 	}
 
 	/**

@@ -166,7 +166,7 @@ class PageArray extends WireArray {
 			parent::add($page); 
 			$this->numTotal++;
 
-		} else if($page instanceof PageArray) {
+		} else if($page instanceof PageArray || is_array($page)) {
 			return $this->import($page);
 
 		} else if(ctype_digit("$page")) {

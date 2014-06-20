@@ -20,20 +20,20 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	 * Return information about the module
 	 *
 	 */
-        static public function getModuleInfo() {
-                return array(
-					'title' => 'Languages Support',
-					'version' => 101,
-					'summary' => 'ProcessWire multi-language support.',
-					'author' => 'Ryan Cramer',
-					'autoload' => true,
-					'singular' => true,
-					'installs' => array(
-						'ProcessLanguage', 
-						'ProcessLanguageTranslator', 
-						)
-					);
-        }
+	static public function getModuleInfo() {
+		return array(
+			'title' => 'Languages Support',
+			'version' => 101,
+			'summary' => 'ProcessWire multi-language support.',
+			'author' => 'Ryan Cramer',
+			'autoload' => true,
+			'singular' => true,
+			'installs' => array(
+				'ProcessLanguage', 
+				'ProcessLanguageTranslator', 
+				)
+			);
+	}
 
 	/**
 	 * Name of template used for language pages

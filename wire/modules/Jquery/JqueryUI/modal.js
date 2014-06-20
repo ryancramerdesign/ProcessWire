@@ -1,5 +1,5 @@
 $(document).ready(function() {
-	$(document).on('click', 'a.modal', function() { 
+	$(document).on('click', 'a.pw-modal', function() { 
 		
 		var $a = $(this);
 		var href = $a.attr('href');

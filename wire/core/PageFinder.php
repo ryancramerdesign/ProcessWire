@@ -241,7 +241,7 @@ class PageFinder extends Wire {
 	 * Return all pages matching the given selector.
 	 *
 	 */
-	public function find(Selectors $selectors, $options = array()) {
+	public function ___find(Selectors $selectors, $options = array()) {
 
 		$options = array_merge($this->defaultOptions, $options); 
 
