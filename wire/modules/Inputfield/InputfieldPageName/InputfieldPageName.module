@@ -142,10 +142,10 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 		$link = '';
 
 		if($value && wire('modules')->isInstalled('LanguageSupportPageNames')) {
-            if (strlen($value)) {
-                $lastSegment = ((int) $this->slashUrls) ? "/$value/" : $value;
-                $link = "<a href='" . rtrim(wire('config')->urls->root, '/') . rtrim($url, '/') . "/$lastSegment'>";
-            }
+			if (strlen($value)) {
+				$lastSegment = ((int) $this->slashUrls) ? "/$value/" : $value;
+				$link = "<a href='" . rtrim(wire('config')->urls->root, '/') . rtrim($url, '/') . "/$lastSegment'>";
+			}
 		}
 		
 		$slashUrls = (int) $this->slashUrls;
