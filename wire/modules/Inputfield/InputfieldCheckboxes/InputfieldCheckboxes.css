@@ -8,21 +8,26 @@
 .InputfieldCheckboxes table,
 .InputfieldCheckboxesColumns,
 .InputfieldCheckboxesFloated {
-	width: 100%; 
+	width: 100%;
 }
 
 .Inputfields .InputfieldCheckboxesFloated li,
 .Inputfields .InputfieldCheckboxesColumns li {
 	display: block;
-	float: left; 
+	float: left;
 }
 
 .Inputfields .InputfieldCheckboxesFloated li {
-	padding-right: 1em; 
+	padding-right: 1em;
 }
 
 .inputfields .InputfieldCheckboxesColumns li {
-	padding-right: 1%; 
-	padding-bottom: 1%; 
+	padding-right: 1%;
+	padding-bottom: 1%;
+}
+
+.InputfieldCheckboxesSelectAll {
+	margin-top: 4px;
+	font-size: .8em;
 }
 
