@@ -240,6 +240,9 @@ class Pageimage extends Pagefile {
 		$filename = $this->pagefiles->path() . $basename; 
 
 		if(!is_file($filename)) {
+			if(false===ImageSizer::checkMemoryForImage($this->filename())) {
+// @Ryan: a check could also be done here, - or in the ImageSizer
+			}
 			if(@copy($this->filename(), $filename)) {
 				try { 
 					$sizer = new ImageSizer($filename); 

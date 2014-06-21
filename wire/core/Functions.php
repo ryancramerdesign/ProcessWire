@@ -748,3 +748,31 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
 
 	return $str; 
 }
+
+
+
+
+
+
+
+// read PHP maxMemory from php.ini
+function wireReadMaxMem() {
+	$sMem = trim(ini_get('memory_limit'));
+	preg_match('/^[0-9].*([k|K|m|M|g|G])$/', $sMem, $match);  // @Ryan: please check that RegEx :)
+	$char = isset($match[1]) ? $match[1] : '';
+	switch(strtoupper($char)) {
+		case 'G':
+			$maxMem = intval(str_replace(array('G', 'g'), '', $sMem)) * 1073741824;
+			break;
+		case 'M':
+			$maxMem = intval(str_replace(array('M', 'm'), '', $sMem)) * 1048576;
+			break;
+		case 'K':
+			$maxMem = intval(str_replace(array('K', 'k'), '', $sMem)) * 1024;
+			break;
+		default:
+			$maxMem = intval($sMem);
+	}
+	return is_int($maxMem) && 0<$maxMem ? $maxMem : 0;
+}
+
