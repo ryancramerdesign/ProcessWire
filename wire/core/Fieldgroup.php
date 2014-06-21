@@ -123,7 +123,7 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 		// can delete data for those fields
 		if(is_null($this->removedFields)) $this->removedFields = new FieldsArray();
 		$this->removedFields->add($field); 
-		$this->trackChange("remove:$field"); 
+		$this->trackChange("remove:$field", $field, null); 
 
 		// parent::remove($field->id); replaced with finishRemove() method below
 
@@ -210,11 +210,22 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 			}
 		}
 
-		if($useFieldgroupContext) {
+		if($useFieldgroupContext && $value) {
 			$value->flags = $value->flags | Field::flagFieldgroupContext;
 		}
 
 		return $value; 
+	}
+
+	/**
+	 * Get a field that is part of this fieldgroup, in the context of this fieldgroup. 
+	 *
+	 * @param string|int|Field $key
+	 * @return Field|null
+	 *
+	 */
+	public function getFieldContext($key) {
+		return $this->getField($key, true); 
 	}
 
 	/**
@@ -281,7 +292,7 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 
 
 		if(isset($this->settings[$key])) {
-			if($this->settings[$key] !== $value) $this->trackChange($key); 
+			if($this->settings[$key] !== $value) $this->trackChange($key, $this->settings[$key], $value); 
 			$this->settings[$key] = $value; 
 
 		} else {
@@ -393,6 +404,17 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	public function getFieldContextArray($field_id) {
 		if(isset($this->fieldContexts[$field_id])) return $this->fieldContexts[$field_id];
 			else return array();
+	}
+
+	/**
+	 * Set an array of context data for the given field ID
+	 * 
+	 * @param int $field_id Field ID
+	 * @param array $data
+	 * 
+	 */
+	public function setFieldContextArray($field_id, $data) {
+		$this->fieldContexts[$field_id] = $data;
 	}
 
 }

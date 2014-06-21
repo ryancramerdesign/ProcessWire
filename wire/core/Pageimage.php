@@ -54,6 +54,12 @@ class Pageimage extends Pagefile {
 		); 
 
 	/**
+	 * Last size error, if one occurred. 
+	 *
+	 */
+	protected $error = '';
+
+	/**
 	 * Construct a new Pagefile
 	 *
 	 * @param Pagefiles $pagefiles 
@@ -82,7 +88,11 @@ class Pageimage extends Pagefile {
 	 *
 	 */
 	public function url() {
-		return $this->pagefiles->url . $this->basename; 	
+		if(self::isHooked('Pagefile::url()') || self::isHooked('Pageimage::url()')) { 
+			return $this->__call('url', array()); 
+		} else { 
+			return $this->___url();
+		}
 	}
 
 	/**
@@ -90,7 +100,11 @@ class Pageimage extends Pagefile {
 	 *
 	 */
 	public function filename() {
-		return $this->pagefiles->path . $this->basename;
+		if(self::isHooked('Pagefile::filename()') || self::isHooked('Pageimage::filename()')) { 
+			return $this->__call('filename', array()); 
+		} else { 
+			return $this->___filename();
+		}
 	}
 
 	/**
@@ -109,6 +123,7 @@ class Pageimage extends Pagefile {
 		if($key == 'width') return $this->width();
 		if($key == 'height') return $this->height();
 		if($key == 'original') return $this->getOriginal();
+		if($key == 'error') return $this->error; 
 		return parent::get($key); 
 	}
 
@@ -166,6 +181,31 @@ class Pageimage extends Pagefile {
 	 */
 	public function size($width, $height, $options = array()) {
 
+		if(self::isHooked('Pageimage::size()')) {
+			return $this->__call('size', array($width, $height, $options)); 
+		} else { 
+			return $this->___size($width, $height, $options);
+		}
+	}
+
+	/**
+	 * Hookable version of size() with implementation
+	 *	
+	 * See comments for size() method above. 
+	 *
+	 */
+	protected function ___size($width, $height, $options) {
+
+		// I was getting unnecessarily resized images without this code below,
+		// but this may be better solved in ImageSizer?
+		/*
+		$w = $this->width();
+		$h = $this->height();
+		if($w == $width && $h == $height) return $this; 
+		if(!$height && $w == $width) return $this; 
+		if(!$width && $h == $height) return $this; 
+		*/
+
 		if(!is_array($options)) { 
 			if(is_string($options)) {
 				// optionally allow a string to be specified with crop direction, for shorter syntax
@@ -186,6 +226,7 @@ class Pageimage extends Pagefile {
 			'quality' => 90
 			);
 
+		$this->error = '';
 		$configOptions = wire('config')->imageSizerOptions; 
 		if(!is_array($configOptions)) $configOptions = array();
 		$options = array_merge($defaultOptions, $configOptions, $options); 
@@ -203,15 +244,36 @@ class Pageimage extends Pagefile {
 				try { 
 					$sizer = new ImageSizer($filename); 
 					$sizer->setOptions($options);
-					$sizer->resize($width, $height); 
+					if($sizer->resize($width, $height)) {
+						if($this->config->chmodFile) chmod($filename, octdec($this->config->chmodFile));
+					} else {
+						$this->error = "ImageSizer::resize($width, $height) failed for $filename";
+					}
 				} catch(Exception $e) {
-					$this->error($e->getMessage()); 
+					$this->error = $e->getMessage(); 
 				}
-				if($this->config->chmodFile) chmod($filename, octdec($this->config->chmodFile));
+			} else {
+				$this->error("Unable to copy $this->filename => $filename"); 
 			}
 		}
 
 		$pageimage = clone $this; 
+
+		// if desired, user can check for property of $pageimage->error to see if an error occurred. 
+		// if an error occurred, that error property will be populated with details
+		if($this->error) { 
+			// error condition: unlink copied file 
+			if(is_file($filename)) unlink($filename); 
+
+			// write an invalid image so it's clear something failed
+			// todo: maybe return a 1-pixel blank image instead?
+			$data = "This is intentionally invalid image data.\n$this->error";
+			if(file_put_contents($filename, $data) !== false) wireChmod($filename); 
+
+			// we also tell PW about it for logging and/or admin purposes
+			$this->error($this->error); 
+		}
+
 		$pageimage->setFilename($filename); 	
 		$pageimage->setOriginal($this); 
 
@@ -439,6 +501,23 @@ class Pageimage extends Pagefile {
 			return true; 
 		}
 		return false; 
+	}
+
+	/**
+	 * Install this Pagefile
+	 *
+	 * Implies copying the file to the correct location (if not already there), and populating it's name
+	 *
+	 * @param string $filename Full path and filename of file to install
+	 * @throws WireException
+	 *
+	 */
+	protected function ___install($filename) {
+		parent::___install($filename); 
+		if(!$this->width()) {
+			parent::unlink();
+			throw new WireException($this->_('Unable to install invalid image')); 
+		}
 	}
 }
 

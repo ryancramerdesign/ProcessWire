@@ -55,18 +55,35 @@ class WireLog extends Wire {
 	 * 
 	 * @param string $name Name of log to save to (word consisting of [-._a-z0-9] and no extension)
 	 * @param string $text Text to save to the log
+	 * @param array $options Options to modify behavior (defaults: showUser=true, showPage=true, delimiter=\t)
 	 * @return bool Whether it was written (usually assumed to be true)
 	 * @throws WireException
 	 * 
 	 */
-	public function ___save($name, $text) {
+	public function ___save($name, $text, $options = array()) {
+		
+		$defaults = array(
+			'showUser' => true,
+			'showPage' => true, 
+			'delimiter' => "\t"
+			);
+		
+		$options = array_merge($defaults, $options); 
 		$log = new FileLog($this->getFilename($name));
-		$log->setDelimeter("\t");
-		$user = $this->wire('user');
-		$page = $this->wire('page');
+		$log->setDelimeter($options['delimiter']);
 		$text = str_replace(array("\r", "\n", "\t"), ' ', strip_tags($text));
-		$line = ($user ? $user->name : "?") . "\t" . ($page ? $page->httpUrl : "?") . "\t" . $text;
-		return $log->save($line);
+		
+		if($options['showPage']) {
+			$page = $this->wire('page');
+			$text = ($page && $page->id ? $page->httpUrl : "page?") . "$options[delimiter]$text";
+		}
+		
+		if($options['showUser']) {
+			$user = $this->wire('user');
+			$text = ($user && $user->id ? $user->name : "user?") . "$options[delimiter]$text";
+		}
+		
+		return $log->save($text);
 	}
 
 	/**
@@ -113,7 +130,7 @@ class WireLog extends Wire {
 	 * 
 	 * @param string $name Name of log 
 	 * @param int|string $dateFrom Unix timestamp or string date/time to start from 
-	 * @param int|string $dateFrom Unix timestamp or string date/time to end at (default = now)
+	 * @param int|string $dateTo Unix timestamp or string date/time to end at (default = now)
 	 * @return array
 	 * 
 	 */

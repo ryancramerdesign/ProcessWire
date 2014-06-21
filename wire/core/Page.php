@@ -77,6 +77,7 @@ class Page extends WireData implements Countable {
 	const statusLocked = 4; 		// page locked for changes. Not enforced by the core, but checked by Process modules. 
 	const statusSystemID = 8; 		// page is for the system and may not be deleted or have it's id changed (everything else, okay)
 	const statusSystem = 16; 		// page is for the system and may not be deleted or have it's id, name, template or parent changed
+	const statusTemp = 512;			// page is temporary and 1+ day old unpublished pages with this status may be automatically deleted
 	const statusHidden = 1024;		// page is excluded selector methods like $pages->find() and $page->children() unless status is specified, like "status&1"
 	const statusUnpublished = 2048; 	// page is not published and is not renderable. 
 	const statusTrash = 8192; 		// page is in the trash
@@ -276,6 +277,8 @@ class Page extends WireData implements Countable {
 		'sortfield' => 'sort', 
 		'modified_users_id' => 0, 
 		'created_users_id' => 0,
+		'created' => 0,
+		'modified' => 0,
 		); 
 
 	/**
@@ -320,11 +323,12 @@ class Page extends WireData implements Countable {
 			if(!$field->type->isAutoload() && !isset($this->data[$name])) continue; // important for draft loading
 			$value = $this->get($name); 
 			// no need to clone non-objects, as they've already been cloned
-			if(!is_object($value)) continue;
-			// if value doesn't resolve to a page, then create a clone of it
-			if(!$value instanceof Page) $this->set($name, clone $value); // attempt re-commit
+			// no need to clone Page objects as we still want to reference the original page
+			if(!is_object($value) || $value instanceof Page) continue;
+			$value2 = clone $value; 
+			$this->set($name, $value2); // commit cloned value
 			// if value is Pagefiles, then tell it the new page
-			if($value instanceof Pagefiles) $this->get($name)->setPage($this); 
+			if($value2 instanceof Pagefiles) $value2->setPage($this); 
 
 		}
 		$this->instanceID .= ".clone";
@@ -358,7 +362,7 @@ class Page extends WireData implements Countable {
 			case 'num_children':
 				$value = (int) $value; 
 				if($key == 'num_children') $key = 'numChildren';
-				if($this->settings[$key] !== $value) $this->trackChange($key); 
+				if($this->settings[$key] !== $value) $this->trackChange($key, $this->settings[$key], $value); 
 				$this->settings[$key] = $value; 
 				break;
 			case 'status':
@@ -373,7 +377,7 @@ class Page extends WireData implements Countable {
 					$value = $this->wire('sanitizer')->pageName($value, $beautify); 
 					if($this->settings[$key] !== $value) {
 						if($this->settings[$key] && empty($this->namePrevious)) $this->namePrevious = $this->settings[$key];
-						$this->trackChange($key); 
+						$this->trackChange($key, $this->settings[$key], $value); 
 					}
 				}
 				$this->settings[$key] = $value; 
@@ -396,11 +400,15 @@ class Page extends WireData implements Countable {
 			case 'created': 
 			case 'modified':
 				if(!ctype_digit("$value")) $value = strtotime($value); 
-				$this->settings[$key] = (int) $value; 
+				$value = (int) $value; 
+				if($this->settings[$key] !== $value) $this->trackChange($key, $this->settings[$key], $value); 
+				$this->settings[$key] = $value;
 				break;
 			case 'created_users_id':
 			case 'modified_users_id': 
-				$this->settings[$key] = (int) $value; 
+				$value = (int) $value;
+				if($this->settings[$key] !== $value) $this->trackChange($key, $this->settings[$key], $value); 
+				$this->settings[$key] = $value; 
 				break;
 			case 'createdUser':
 			case 'modifiedUser':
@@ -409,7 +417,7 @@ class Page extends WireData implements Countable {
 			case 'sortfield':
 				if($this->template && $this->template->sortfield) break;
 				$value = $this->wire('pages')->sortfields()->decode($value); 
-				if($this->settings[$key] != $value) $this->trackChange($key); 
+				if($this->settings[$key] != $value) $this->trackChange($key, $this->settings[$key], $value); 
 				$this->settings[$key] = $value; 
 				break;
 			case 'isLoaded': 
@@ -569,6 +577,7 @@ class Page extends WireData implements Countable {
 				$value = $this->template->fieldgroup; 
 				break; 
 			case 'template':
+			case 'templates_id':
 			case 'templatePrevious':
 			case 'parentPrevious':
 			case 'namePrevious':
@@ -783,7 +792,7 @@ class Page extends WireData implements Countable {
 			if($this->settings['status'] & Page::statusSystem) $value = $value | Page::statusSystem; 
 		}
 		if($this->settings['status'] != $value) {
-			$this->trackChange('status');
+			$this->trackChange('status', $this->settings['status'], $value);
 			$this->statusPrevious = $this->settings['status'];
 		}
 		$this->settings['status'] = $value;
@@ -804,7 +813,7 @@ class Page extends WireData implements Countable {
 		if($this->template && $this->template->id != $tpl->id) {
 			if($this->settings['status'] & Page::statusSystem) throw new WireException("Template changes are disallowed on this page"); 
 			if(is_null($this->templatePrevious)) $this->templatePrevious = $this->template; 
-			$this->trackChange('template'); 
+			$this->trackChange('template', $this->template, $tpl); 
 		}
 		if($tpl->sortfield) $this->settings['sortfield'] = $tpl->sortfield; 
 		$this->template = $tpl; 
@@ -818,7 +827,8 @@ class Page extends WireData implements Countable {
 	 */
 	protected function setParent(Page $parent) {
 		if($this->parent && $this->parent->id == $parent->id) return $this; 
-		$this->trackChange('parent');
+		if($parent->id && $this->id == $parent->id) throw new WireException("Page cannot be its own parent"); 
+		$this->trackChange('parent', $this->parent, $parent);
 		if(($this->parent && $this->parent->id) && $this->parent->id != $parent->id) {
 			if($this->settings['status'] & Page::statusSystem) throw new WireException("Parent changes are disallowed on this page"); 
 			$this->parentPrevious = $this->parent; 
@@ -855,7 +865,7 @@ class Page extends WireData implements Countable {
 		}
 
 		$existingUserID = $this->settings[$field]; 
-		if($existingUserID != $user->id) $this->trackChange($field); 
+		if($existingUserID != $user->id) $this->trackChange($field, $existingUserID, $user->id); 
 		$this->settings[$field] = $user->id; 
 		return $this; 	
 	}
@@ -1196,6 +1206,20 @@ class Page extends WireData implements Countable {
 		return $changed; 	
 	}
 
+	/**
+	 * Clears out any tracked changes and turns change tracking ON or OFF
+	 *
+	 * @param bool $trackChanges True to turn change tracking ON, or false to turn OFF. Default of true is assumed. 
+	 * @return $this
+	 *
+	 */
+	public function resetTrackChanges($trackChanges = true) {
+		parent::resetTrackChanges($trackChanges); 
+		foreach($this->data as $key => $value) {
+			if(is_object($value) && $value instanceof Wire) $value->resetTrackChanges($trackChanges); 
+		}
+		return $this; 
+	}
 
 	/**
 	 * Returns the Page's ID in a string
@@ -1567,6 +1591,8 @@ class Page extends WireData implements Countable {
 	 *
 	 */
 	public function uncache() {
+		$trackChanges = $this->trackChanges();
+		if($trackChanges) $this->setTrackChanges(false); 
 		if($this->template) {
 			foreach($this->template->fieldgroup as $field) {
 				$value = parent::get($field->name);
@@ -1578,6 +1604,7 @@ class Page extends WireData implements Countable {
 		}
 		if($this->filesManager) $this->filesManager->uncache(); 
 		$this->filesManager = null;
+		if($trackChanges) $this->setTrackChanges(true); 
 	}
 
 	/**
@@ -1672,7 +1699,7 @@ class Page extends WireData implements Countable {
 	 */
 	protected function isEqual($key, $value1, $value2) {
 		if($value1 === $value2) {
-			if(is_object($value1) && $value1 instanceof Wire && $value1->isChanged()) $this->trackChange($key);
+			if(is_object($value1) && $value1 instanceof Wire && $value1->isChanged()) $this->trackChange($key, $value1, $value2);
 			return true; 
 		} 
 		return false;
@@ -1719,7 +1746,7 @@ class Page extends WireData implements Countable {
 	static public function getStatuses() {
 		return self::$statuses;
 	}
-	
+
 }
 
 

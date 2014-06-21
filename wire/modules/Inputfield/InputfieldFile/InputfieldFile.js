@@ -244,7 +244,7 @@ $(document).ready(function() {
 				
 				// Here we go
 				xhr.open("POST", postUrl, true);
-				xhr.setRequestHeader("X-FILENAME", file.name);
+				xhr.setRequestHeader("X-FILENAME", unescape(encodeURIComponent(file.name)));
 				xhr.setRequestHeader("X-FIELDNAME", fieldName);
 				xhr.setRequestHeader("Content-Type", "application/octet-stream"); // fix issue 96-Pete
 				xhr.setRequestHeader("X-" + postTokenName, postTokenValue);
@@ -278,7 +278,7 @@ $(document).ready(function() {
 						if(extensions.indexOf(extension) == -1) {
 							$fileList.append(errorItem(files[i].name, extension + ' is a invalid file extension, please use one of:  ' + extensions)); 
 
-						} else if(files[i].size > maxFilesize && maxFilesize > 2000000) { 
+						} else if(files[i].size > maxFilesize && maxFilesize > 2000000) {
 							// I do this test only if maxFilesize is at least 2M (php default). 
 							// There might (not sure though) be some issues to get that value so don't want to overvalidate here -apeisa
 							$fileList.append(errorItem(files[i].name, 'Filesize ' + parseInt(files[i].size / 1024, 10) +' kb is too big. Maximum allowed is ' + parseInt(maxFilesize / 1024, 10) + ' kb')); 
@@ -328,7 +328,7 @@ $(document).ready(function() {
 	/**
 	 * Progressive enchanchment for browsers that support html5 File API
 	 * 
-	 * #PageIDIndictator.size indicates PageEdit, which we're temporarily limiting AjaxUpload to
+	 * #PageIDIndictator.size indicates PageEdit, which we're limiting AjaxUpload to since only ProcessPageEdit has the ajax handler
 	 * 
 	 */
 	if (window.File && window.FileList && window.FileReader && $("#PageIDIndicator").size() > 0) {  
@@ -337,6 +337,11 @@ $(document).ready(function() {
 		InitOldSchool();
 	}
 
-
+	if(typeof config.LanguageSupport != "undefined") {
+		$(".InputfieldFileLanguageSupport").each(function() {
+			var $item = $(this).find('.InputfieldFileDescription:eq(0)');
+			if($item.width() <= 250) $(this).addClass('stacked'); 
+		}); 
+	}
 	
 }); 

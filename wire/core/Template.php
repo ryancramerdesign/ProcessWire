@@ -170,6 +170,7 @@ class Template extends WireData implements Saveable {
 		'altFilename' => '',		// alternate filename for template file, if not based on template name
 		'guestSearchable' => 0, 	// pages appear in search results even when user doesn't have access?
 		'pageClass' => '', 		// class for instantiated page objects. 'Page' assumed if blank, or specify class name. 
+		'childNameFormat' => '',	// Name format for child pages. when specified, the page-add UI step can be skipped when adding chilcren. Counter appended till unique. Date format assumed if any non-pageName chars present. Use 'title' to pull from title field. 
 		'pageLabelField' => '',		// CSV or space separated string of field names to be displayed by ProcessPageList (overrides those set with ProcessPageList config)
 		'noGlobal' => 0, 		// template should ignore the 'global' option of fields?
 		'noMove' => 0,			// pages using this template are not moveable?
@@ -186,6 +187,7 @@ class Template extends WireData implements Saveable {
 		'cacheExpirePages' => array(),	// array of Page IDs that should be expired, when cacheExpire == Template::cacheExpireSpecific
 		'label' => '',			// label that describes what this template is for (optional)
 		'tags' => '',			// optional tags that can group this template with others in the admin templates list 
+		'modified' => 0, 		// last modified time for template or template file
 		); 
 
 
@@ -300,7 +302,7 @@ class Template extends WireData implements Saveable {
 				if($this->settings[$key] && ($this->settings['flags'] & Template::flagSystem) && in_array($key, array('id', 'name'))) {
 					throw new WireException("Template '$this' has the system flag and you may not change it's 'id' or 'name' fields. "); 
 				}
-				$this->trackChange($key); 
+				$this->trackChange($key, $this->settings[$key], $value); 
 			}
 			$this->settings[$key] = $value; 
 
@@ -376,7 +378,7 @@ class Template extends WireData implements Saveable {
 			$value = $this->config->paths->templates . basename($value); 
 		}
 
-		if(is_file($value)) {
+		if(file_exists($value)) {
 			$this->filename = $value; 
 			$this->filenameExists = true; 
 		}
@@ -392,7 +394,7 @@ class Template extends WireData implements Saveable {
 	 */
 	public function setFieldgroup(Fieldgroup $fieldgroup) {
 
-		if(is_null($this->fieldgroup) || $fieldgroup->id != $this->fieldgroup->id) $this->trackChange('fieldgroup'); 
+		if(is_null($this->fieldgroup) || $fieldgroup->id != $this->fieldgroup->id) $this->trackChange('fieldgroup', $this->fieldgroup, $fieldgroup); 
 
 		if($this->fieldgroup && $fieldgroup->id != $this->fieldgroup->id) {
 			// save record of the previous fieldgroup so that unused fields can be deleted during save()
@@ -420,7 +422,7 @@ class Template extends WireData implements Saveable {
 	 *
 	 */
 	public function getNumPages() {
-		return Wire::getFuel('templates')->getNumPages($this); 	
+		return $this->wire('templates')->getNumPages($this); 	
 	}
 
 	/**
@@ -431,7 +433,7 @@ class Template extends WireData implements Saveable {
 	 */
 	public function save() {
 
-		$result = Wire::getFuel('templates')->save($this); 	
+		$result = $this->wire('templates')->save($this); 	
 
 		return $result ? $this : false; 
 	}
@@ -450,12 +452,34 @@ class Template extends WireData implements Saveable {
 		if(!$this->settings['name']) throw new WireException("Template must be assigned a name before 'filename' can be accessed"); 
 
 		if($this->altFilename) {
-			$altFilename = $this->fuel('templates')->path . basename($this->altFilename, "." . $this->config->templateExtension) . "." . $this->config->templateExtension; 
+			$altFilename = $this->wire('templates')->path . basename($this->altFilename, "." . $this->config->templateExtension) . "." . $this->config->templateExtension; 
 			$this->filename = $altFilename; 
 		} else {
-			$this->filename = $this->fuel('templates')->path . $this->settings['name'] . '.' . $this->config->templateExtension;
+			$this->filename = $this->wire('templates')->path . $this->settings['name'] . '.' . $this->config->templateExtension;
 		}
+	
+		if($this->filenameExists()) {
+			$modified = filemtime($this->filename);
+			if($modified > $this->modified) {
+				$this->modified = $modified;
+				// tell it to save the template after the request is finished
+				$this->addHookAfter('ProcessWire::finished', $this, 'hookFinished'); 
+			}
+		}
+		
 		return $this->filename;
+	}
+
+	/**
+	 * Saves a template after the request is complete
+	 * 
+	 * @param HookEvent $e
+	 * 
+	 */
+	public function hookFinished(HookEvent $e) {
+		foreach($this->wire('templates') as $template) {
+			if($template->isChanged('modified')) $template->save();
+		}
 	}
 
 	/**
@@ -466,7 +490,7 @@ class Template extends WireData implements Saveable {
 	 */
 	public function filenameExists() {
 		if(!is_null($this->filenameExists)) return $this->filenameExists; 
-		$this->filenameExists = is_file($this->filename()); 
+		$this->filenameExists = file_exists($this->filename()); 
 		return $this->filenameExists; 
 	}
 
@@ -578,6 +602,28 @@ class Template extends WireData implements Saveable {
 		return $foundParent;
 	}
 
+	/**
+	 * Return template label for current language, or specified language if provided
+	 * 
+	 * If no template label, return template name.
+	 * This is different from $this->label in that it knows about languages (when installed)
+	 * and it will always return something. If there's no label, you'll still get the name. 
+	 * 
+	 * @param Page|Language $language Optional, if not used then user's current language is used
+	 * @return string
+	 * 
+	 */
+	public function getLabel($language = null) {
+		if(is_null($language)) $language = $this->wire('languages') ? $this->wire('user')->language : null;
+		if($language) {
+			$label = $this->get("label$language"); 
+			if(!strlen($label)) $label = $this->label;
+		} else {
+			$label = $this->label;
+		}
+		if(!strlen($label)) $label = $this->name;
+		return $label;
+	}
 
 }
 

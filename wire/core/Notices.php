@@ -112,9 +112,18 @@ class Notices extends WireArray {
 	}
 
 	public function add($item) {
+
 		if($item->flags & Notice::debug) {
 			if(!$this->wire('config')->debug) return $this;
 		}
+
+		// check for duplicates
+		$dup = false; 
+		foreach($this as $notice) {
+			if($notice->text == $item->text && $notice->flags == $item->flags) $dup = true; 
+		}
+
+		if($dup) return $this; 
 	
 		if(($item->flags & Notice::log) || ($item->flags & Notice::logOnly)) {
 			$this->addLog($item);

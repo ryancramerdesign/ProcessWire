@@ -33,12 +33,19 @@ class Sanitizer extends Wire {
 	protected $multibyteSupport = false;
 
 	/**
+	 * Array of allowed ascii characters for name filters
+	 *
+	 */
+	protected $allowedASCII = array();
+
+	/**
 	 * Construct the sanitizer
 	 *
 	 */
 	public function __construct() {
 		$this->multibyteSupport = function_exists("mb_strlen"); 
 		if($this->multibyteSupport) mb_internal_encoding("UTF-8");
+		$this->allowedASCII = str_split('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789');
 	}
 
 	/**
@@ -47,24 +54,56 @@ class Sanitizer extends Wire {
 	 * @param string $value Value to filter
 	 * @param array $allowedExtras Additional characters that are allowed in the value
 	 * @param string 1 character replacement value for invalid characters
+	 * @param bool $beautify Whether to beautify the string, specify Sanitizer::translate to perform transliteration. 
 	 * @param int $maxLength
 	 * @return string
 	 *
 	 */
-	protected function nameFilter($value, array $allowedExtras, $replacementChar, $maxLength = 128) {
+	public function nameFilter($value, array $allowedExtras, $replacementChar, $beautify = false, $maxLength = 128) {
+		
+		static $replacements = array();
 
-		if(!is_string($value)) $value = (string) $value; 
-		if(strlen($value) > $maxLength) $value = substr($value, 0, $maxLength); 
-		if(ctype_alnum($value)) return $value; // quick exit if possible
+		if(!is_string($value)) $value = (string) $value;
+		
+		$allowed = array_merge($this->allowedASCII, $allowedExtras); 
+		$needsWork = strlen(str_replace($allowed, '', $value)); 
 
-		if(!ctype_alnum(str_replace($allowedExtras, '', $value))) { 
-			$value = str_replace(array("'", '"'), '', $value); // blank out any quotes
-			$value = filter_var($value, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH | FILTER_FLAG_NO_ENCODE_QUOTES); 
-			$chars = '';
-			foreach($allowedExtras as $char) $chars .= $char; 
-			$chars .= 'a-zA-Z0-9';
-			$value = preg_replace('/[^' . $chars . ']/', $replacementChar, $value); 
+		if($beautify && $needsWork) {
+			if($beautify === self::translate && $this->multibyteSupport) {
+				$value = mb_strtolower($value);
+
+				if(empty($replacements)) {
+					$configData = $this->wire('modules')->getModuleConfigData('InputfieldPageName');
+					$replacements = empty($configData['replacements']) ? InputfieldPageName::$defaultReplacements : $configData['replacements'];
+				}
+
+				foreach($replacements as $from => $to) {
+					if(mb_strpos($value, $from) !== false) {
+						$value = mb_eregi_replace($from, $to, $value);
+					}
+				}
+			}
+
+			$v = iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", $value);
+			if($v) $value = $v;
+			$needsWork = strlen(str_replace($allowed, '', $value)); 
 		}
+
+		if(strlen($value) > $maxLength) $value = substr($value, 0, $maxLength); 
+		if(!$needsWork)  return $value; // quick exit if possible
+
+		$value = str_replace(array("'", '"'), '', $value); // blank out any quotes
+		$value = filter_var($value, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH | FILTER_FLAG_NO_ENCODE_QUOTES); 
+		$extras = implode('', $allowedExtras); 
+		$chars = $extras . 'a-zA-Z0-9';
+		if(in_array('-', $allowedExtras) && strpos($chars, '-') !== 0) {
+			// if hyphen present, ensure its first (per PCRE requirements)
+			$chars = '-' . str_replace('-', '', $chars); 
+		}
+		$value = preg_replace('{[^' . $chars . ']}', $replacementChar, $value); 
+
+		// remove leading or trailing dashes, underscores, dots
+		if($beautify) $value = trim($value, $extras);
 
 		return $value; 
 	}
@@ -72,9 +111,58 @@ class Sanitizer extends Wire {
 	/**
 	 * Standard alphanumeric and dash, underscore, dot name 
 	 *
+	 * @param string $value
+	 * @param bool|int $beautify Should be true when creating a name for the first time. Default is false.
+	 *	You may also specify Sanitizer::translate (or number 2) for the $beautify param, which will make it translate letters
+	 *	based on the InputfieldPageName custom config settings.
+	 * @param int $maxLength Maximum number of characters allowed in the name
+	 * @param string $replacement Replacement character for invalid chars: one of -_.
+	 * @param array $options Extra options to replace default 'beautify' behaviors
+	 * 	- allowAdjacentExtras (bool): Whether to allow [-_.] chars next to each other (default=false)
+	 * 	- allowDoubledReplacement (bool): Whether to allow two of the same replacement chars [-_] next to each other (default=false)
+	 *  - allowedExtras (array): Specify allowed characters (default=[-_.], not including the brackets)
+	 * @return string
+	 * 
 	 */
-	public function name($value) {
-		return $this->nameFilter($value, array('-', '_', '.'), '_'); 
+	public function name($value, $beautify = false, $maxLength = 128, $replacement = '_', $options = array()) {
+	
+		if(!empty($options['allowedExtras']) && is_array($options['allowedExtras'])) {
+			$allowedExtras = $options['allowedExtras']; 
+			$allowedExtrasStr = implode('', $allowedExtras); 
+		} else {
+			$allowedExtras = array('-', '_', '.');
+			$allowedExtrasStr = '-_.';
+		}
+			
+		$value = $this->nameFilter($value, $allowedExtras, $replacement, $beautify, $maxLength);
+		
+		if($beautify) {
+			
+			$hasExtras = false;
+			foreach($allowedExtras as $c) {
+				$hasExtras = strpos($value, $c) !== false;
+				if($hasExtras) break;
+			}
+			
+			if($hasExtras) {
+				
+				if(empty($options['allowAdjacentExtras'])) {
+					// replace any of '-_.' next to each other with a single $replacement
+					$value = preg_replace('/[' . $allowedExtrasStr . ']{2,}/', $replacement, $value);
+				}
+
+				if(empty($options['allowDoubledReplacement'])) {
+					// replace double'd replacements
+					$r = "$replacement$replacement";
+					if(strpos($value, $r) !== false) $value = preg_replace('/' . $r . '+/', $replacement, $value);
+				}
+	
+				// replace double dots
+				if(strpos($value, '..') !== false) $value = preg_replace('/\.\.+/', '.', $value);
+			}
+		}
+		
+		return $value; 
 	}
 
 	/**
@@ -84,15 +172,16 @@ class Sanitizer extends Wire {
 	 * @param string $delimeter Character that delimits values (optional)
 	 * @param array $allowedExtras Additional characters that are allowed in the value (optional)
 	 * @param string 1 character replacement value for invalid characters (optional)
+	 * @param bool $beautify
 	 * @return string
 	 *
 	 */
-	public function names($value, $delimeter = ' ', $allowedExtras = array('-', '_', '.'), $replacementChar = '_') {
+	public function names($value, $delimeter = ' ', $allowedExtras = array('-', '_', '.'), $replacementChar = '_', $beautify = false) {
 		$replace = array(',', '|', '  ');
 		if($delimeter != ' ' && !in_array($delimeter, $replace)) $replace[] = $delimeter; 
 		$value = str_replace($replace, ' ', $value);
 		$allowedExtras[] = ' ';
-		$value = $this->nameFilter($value, $allowedExtras, $replacementChar);
+		$value = $this->nameFilter($value, $allowedExtras, $replacementChar, $beautify, 128);
 		if($delimeter != ' ') $value = str_replace(' ', $delimeter, $value); 
 		return $value; 
 	}
@@ -115,11 +204,30 @@ class Sanitizer extends Wire {
 	 * Note that dash and dot are excluded because they aren't allowed characters in PHP variables
 	 * 
 	 * @param string $value
+	 * @param bool|int $beautify Should be true when creating a name for the first time. Default is false.
+	 *	You may also specify Sanitizer::translate (or number 2) for the $beautify param, which will make it translate letters
+	 *	based on the InputfieldPageName custom config settings.
+	 * @param int $maxLength Maximum number of characters allowed in the name
 	 * @return string
 	 *
 	 */
-	public function fieldName($value) {
-		return $this->nameFilter($value, array('_'), '_'); 
+	public function fieldName($value, $beautify = false, $maxLength = 128) {
+		return $this->nameFilter($value, array('_'), '_', $beautify, $maxLength); 
+	}
+	
+	/**
+	 * Name filter as used by ProcessWire Templates
+	 *
+	 * @param string $value
+	 * @param bool|int $beautify Should be true when creating a name for the first time. Default is false.
+	 *	You may also specify Sanitizer::translate (or number 2) for the $beautify param, which will make it translate letters
+	 *	based on the InputfieldPageName custom config settings.
+	 * @param int $maxLength Maximum number of characters allowed in the name
+	 * @return string
+	 *
+	 */
+	public function templateName($value, $beautify = false, $maxLength = 128) {
+		return $this->nameFilter($value, array('_', '-'), '-', $beautify, $maxLength);
 	}
 
 	/**
@@ -136,47 +244,21 @@ class Sanitizer extends Wire {
 	 *
 	 */
 	public function pageName($value, $beautify = false, $maxLength = 128) {
+		return strtolower($this->name($value, $beautify, $maxLength, '-')); 
+	}
 
-		static $replacements = array();
-
-		if($beautify) { 
-
-			if($beautify === self::translate && $this->multibyteSupport) {
-				$value = mb_strtolower($value);
-
-				if(empty($replacements)) {
-					$configData = wire('modules')->getModuleConfigData('InputfieldPageName'); 
-					$replacements = empty($configData['replacements']) ? InputfieldPageName::$defaultReplacements : $configData['replacements'];
-				}
-
-				foreach($replacements as $from => $to) {
-					if(mb_strpos($value, $from) !== false) {
-						$value = mb_eregi_replace($from, $to, $value); 
-					}
-				}
-			}
-
-			$v = iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", $value); 
-			if($v) $value = $v; 
-		}
-
-		$value = strtolower($this->nameFilter($value, array('-', '_', '.'), '-', $maxLength)); 
-
-		if($beautify) {
-			// remove leading or trailing dashes, underscores, dots
-			$value = trim($value, '-_.'); 
-
-			// replace any of '-_.' next to each other with a single dash
-			$value = preg_replace('/[-_.]{2,}/', '-', $value); 
-
-			// replace double dashes
-			if(strpos($value, '--') !== false) $value = preg_replace('/--+/', '-', $value); 
-
-			// replace double dots
-			if(strpos($value, '..') !== false) $value = preg_replace('/\.\.+/', '.', $value); 
-		}
-
-		return $value; 
+	/**
+	 * Name filter for ProcessWire Page names with transliteration
+	 *
+	 * This is the same as calling pageName with the Sanitizer::translate option for $beautify.
+	 *
+	 * @param string $value
+	 * @param int $maxLength Maximum number of characters allowed in the name
+	 * @return string
+	 *
+	 */
+	public function pageNameTranslate($value, $maxLength = 128) {
+		return $this->pageName($value, self::translate, $maxLength);
 	}
 
 	/**
@@ -196,6 +278,67 @@ class Sanitizer extends Wire {
 		return preg_replace('/[^-_.@a-zA-Z0-9]/', '_', trim($value)); 
 		*/
 	}
+
+	/**
+	 * Name filter for ProcessWire filenames (basenames only, not paths)
+	 *
+	 * @param string $value
+	 * @param bool|int $beautify Should be true when creating a file's name for the first time. Default is false.
+	 *	You may also specify Sanitizer::translate (or number 2) for the $beautify param, which will make it translate letters
+	 *	based on the InputfieldPageName custom config settings.
+	 * @param int $maxLength Maximum number of characters allowed in the name
+	 * @return string
+	 *
+	 */
+	public function filename($value, $beautify = false, $maxLength = 128) {
+		return $this->name($value, $beautify, $maxLength, '_', array(
+			'allowAdjacentExtras' => true, // language translation filenames require doubled "--" chars, others may too
+			)
+		); 
+	}
+
+	/**
+	 * Hookable alias of filename method for case consistency with other name methods (preferable to use filename)
+	 *
+	 */
+	public function ___fileName($value, $beautify = false, $maxLength = 128) {
+		return $this->filename($value, $beautify, $maxLength); 
+	}
+
+	/**
+	 * Return the given path if valid, or blank if not.
+	 *
+	 * Path is validated per ProcessWire "name" convention of ascii only [-_./a-z0-9]
+	 * As a result, this function is primarily useful for validating ProcessWire paths,
+	 * and won't always work with paths outside ProcessWire.
+	 * 
+	 * @param string $value Path
+	 * @param int $maxLength
+	 * @return string
+	 *
+	 */
+	public function path($value, $maxLength = 1024) {
+		if(!preg_match('{^[-_./a-z0-9]+$}iD', $value)) return '';
+		if(strpos($value, '/./') !== false || strpos($value, '//') !== false) $value = '';
+		return $value;
+	}
+
+	/**
+	 * Sanitize a page path name
+	 * 
+	 * Returned path is not guaranteed to be valid or match a page, just sanitized. 
+	 *
+	 * @param string $value
+	 * @param bool $beautify
+	 * @param int $maxLength
+	 * @return string
+	 *
+	 */
+	public function pagePathName($value, $beautify = false, $maxLength = 1024) {
+		$options = array('allowedExtras' => array('/', '-', '_', '.'));
+		return $this->name($value, $beautify, $maxLength, '-', $options); 
+	}
+
 
 	/**
 	 * Returns valid email address, or blank if it isn't valid
@@ -282,23 +425,6 @@ class Sanitizer extends Wire {
 		if(!isset($options['maxBytes'])) $options['maxBytes'] = $options['maxLength'] * 3; 
 
 		return $this->text($value, $options); 
-	}
-
-	/**
-	 * Return the given path if valid, or blank if not. 
-	 *
-	 * Path is validated per ProcessWire "name" convention of ascii only [-_./a-z0-9]
-	 * As a result, this function is primarily useful for validating ProcessWire paths,
-	 * and won't always work with paths outside ProcessWire. 
-	 *
-	 * @param string $value Path 
-	 * @return string
-	 *
-	 */
-	public function path($value) {
-		if(!preg_match('{^[-_./a-z0-9]+$}iD', $value)) return '';
-		if(strpos($value, '/./') !== false || strpos($value, '//') !== false) $value = '';		
-		return $value;
 	}
 
 	/**
@@ -427,7 +553,7 @@ class Sanitizer extends Wire {
 
 		// disallow some characters in selector values
 		// @todo technically we only need to disallow at begin/end of string
-		$value = str_replace(array('*', '~', '`', '$', '^', '+', '|', '<', '>', '!', '='), ' ', $value);
+		$value = str_replace(array('*', '~', '`', '$', '^', '|', '<', '>', '=', '[', ']', '{', '}'), ' ', $value);
 	
 		// disallow greater/less than signs, unless they aren't forming a tag
 		// if(strpos($value, '<') !== false) $value = preg_replace('/<[^>]+>/su', ' ', $value); 
@@ -452,7 +578,9 @@ class Sanitizer extends Wire {
 			$value = preg_replace('/\s\s+/u', ' ', $value); 
 		}
 
-		$value = trim($value);
+		$value = trim($value); // trim any kind of whitespace
+		$value = trim($value, '+!'); // chars to remove from begin and end 
+		
 		if(!$needsQuotes && strlen($value)) {
 			$a = substr($value, 0, 1); 
 			$b = substr($value, -1); 

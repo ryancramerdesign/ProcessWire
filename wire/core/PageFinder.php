@@ -18,7 +18,89 @@ class PageFinderSyntaxException extends PageFinderException { }
 
 class PageFinder extends Wire {
 
+	/**
+	 * Options (and their defaults) that may be provided as the 2nd argument to find()
+	 *
+	 */
+	protected $defaultOptions = array(
+
+		/**
+		 * Specify that you only want to find 1 page and don't need info for pagination
+		 * 	
+		 */
+		'findOne' => false,
+		
+		/**
+		 * Specify that it's okay for hidden pages to be included in the results	
+		 *
+		 */
+		'findHidden' => false,
+
+		/**
+		 * Specify that it's okay for hidden AND unpublished pages to be included in the results
+		 *
+		 */
+		'findUnpublished' => false,
+
+		/**
+		 * Specify that it's okay for hidden AND unpublished AND trashed pages to be included in the results
+		 *
+		 */
+		'findTrash' => false, 
+		
+		/**
+		 * Specify that no page status should be excluded - results can include unpublished, trash, system, etc.
+		 *
+		 */
+		'findAll' => false,
+
+		/**
+		 * This is an optimization used by the Pages::find method, but we observe it here as we may be able
+		 * to apply some additional optimizations in certain cases. For instance, if loadPages=false, then 
+		 * we can skip retrieval of IDs and omit sort fields.
+		 *
+		 */
+		'loadPages' => true,
+
+		/**
+		 * When true, this function returns array of arrays containing page ID, parent ID, template ID and score.
+		 * When false, returns only an array of page IDs. returnVerbose=true is required by most usage from Pages 
+		 * class. False is only for specific cases. 
+		 *
+		 */
+		'returnVerbose' => true,
+
+		/**
+		 * When true, only the DatabaseQuery object is returned by find(), for internal use. 
+		 * 
+		 */
+		'returnQuery' => false, 
+
+		/**
+		 * Whether the total quantity of matches should be determined and accessible from getTotal()
+		 *
+		 * null: determine automatically (disabled when limit=1, enabled in all other cases)
+		 * true: always calculate total
+		 * false: never calculate total
+		 *
+		 */
+		'getTotal' => null,
+
+		/**
+		 * Method to use when counting total records
+		 *
+		 * If 'count', total will be calculated using a COUNT(*).
+		 * If 'calc, total will calculate using SQL_CALC_FOUND_ROWS.
+		 * If blank or something else, method will be determined automatically.
+		 * 
+		 */
+		'getTotalType' => 'calc',
+
+		); 
+
 	protected $fieldgroups; 
+	protected $getTotal = true; // whether to find the total number of matches
+	protected $getTotalType = 'calc'; // May be: 'calc', 'count', or blank to auto-detect. 
 	protected $total = 0;
 	protected $limit = 0; 
 	protected $start = 0;
@@ -27,6 +109,9 @@ class PageFinder extends Wire {
 	protected $checkAccess = true;
 	protected $getQueryNumChildren = 0; // number of times the function has been called
 	protected $lastOptions = array(); 
+	protected $extraOrSelectors = array(); // one from each field must match
+	protected $extraSubSelectors = array(); // subselectors that are added in after getQuery()
+	//protected $nativeWheres = array(); // where statements for native fields, to be reused in subselects where appropriate.
 
 	/**
 	 * Construct the PageFinder
@@ -43,17 +128,22 @@ class PageFinder extends Wire {
 	protected function setupStatusChecks(Selectors $selectors, array &$options) {
 
 		$maxStatus = null; 
+		$limit = 0; // for getTotal auto detection
+		$start = 0;
 
 		foreach($selectors as $key => $selector) {
 
-			if($selector->field == 'status') {
+			$fieldName = $selector->field; 
+
+			if($fieldName == 'status') {
 				$value = $selector->value; 
 				if(!ctype_digit("$value")) {
 					// allow use of some predefined labels for Page statuses
 					if($value == 'hidden') $selector->value = Page::statusHidden; 
 						else if($value == 'unpublished') $selector->value = Page::statusUnpublished; 
-						else if($value == 'locked') $selector->value = Page::statusLocked; 
-						else if($value == 'max') $selector->value = Page::statusMax; 
+						else if($value == 'locked') $selector->value = Page::statusLocked;
+						else if($value == 'trash') $selector->value = Page::statusTrash; 
+						else if($value == 'max') $selector->value = Page::statusMax;
 						else $selector->value = 1; 
 
 					if($selector->operator == '=') {
@@ -64,30 +154,63 @@ class PageFinder extends Wire {
 				if(is_null($maxStatus) || $value > $maxStatus) 
 					$maxStatus = (int) $selector->value; 
 
-			} else if($selector->field == 'include' && $selector->operator == '=' && in_array($selector->value, array('hidden', 'all'))) {
-				if($selector->value == 'hidden') $options['findHidden'] = true; 
+			} else if($fieldName == 'include' && $selector->operator == '=' && in_array($selector->value, array('hidden', 'all', 'unpublished', 'trash'))) {
+				if($selector->value == 'hidden') $options['findHidden'] = true;
+					else if($selector->value == 'unpublished') $options['findUnpublished'] = true;
+					else if($selector->value == 'trash') $options['findTrash'] = true; 
 					else if($selector->value == 'all') $options['findAll'] = true; 
 				$selectors->remove($key);
 
-			} else if($selector->field == 'check_access' || $selector->field == 'checkAccess') { 
+			} else if($fieldName == 'check_access' || $fieldName == 'checkAccess') { 
 				$this->checkAccess = ((int) $selector->value) > 0 ? true : false;
 				$selectors->remove($key); 
+
+			} else if($fieldName == 'limit') {
+				// for getTotal auto detect
+				$limit = (int) $selector->value; 	
+
+			} else if($fieldName == 'start ') {
+				// for getTotal auto detect
+				$start = (int) $selector->value; 	
+
+			} else if($fieldName == 'sort') {
+				// sorting is not needed if we are only retrieving totals
+				if($options['loadPages'] === false) $selectors->remove($selector); 
+
+			} else if($fieldName == 'getTotal' || $fieldName == 'get_total') {
+				// whether to retrieve the total, and optionally what type: calc or count
+				// this applies only if user hasn't themselves created a field called getTotal or get_total
+				if(!$this->wire('fields')->get($fieldName)) {
+					if(ctype_digit("$selector->value")) {
+						$options['getTotal'] = (bool) $selector->value; 
+					} else if(in_array($selector->value, array('calc', 'count'))) {
+						$options['getTotal'] = true; 
+						$options['getTotalType'] = $selector->value; 
+					}
+					$selectors->remove($selector); 
+				}
 			}
 		}
 
-		if(!is_null($maxStatus)) {
-			// if a status was already present in the selector, then just make sure the page isn't unpublished
+		if(!is_null($maxStatus) && empty($options['findAll'])) {
+			// if a status was already present in the selector, without a findAll, then just make sure the page isn't unpublished
 			if($maxStatus < Page::statusUnpublished) 
 				$selectors->add(new SelectorLessThan('status', Page::statusUnpublished)); 
 
 		} else if($options['findAll']) { 
 			// findAll option means that unpublished, hidden, trash, system may be included
-			$selectors->add(new SelectorLessThan('status', Page::statusMax)); 
+			// $selectors->add(new SelectorLessThan('status', Page::statusMax)); 
 			$this->checkAccess = false;	
 
 		} else if($options['findOne'] || $options['findHidden']) {
 			// findHidden|findOne option, apply optimizations enabling hidden pages to be loaded
-			$selectors->add(new SelectorLessThan('status', Page::statusUnpublished)); 
+			$selectors->add(new SelectorLessThan('status', Page::statusUnpublished));
+			
+		} else if($options['findUnpublished']) {
+			$selectors->add(new SelectorLessThan('status', Page::statusTrash)); 
+			
+		} else if($options['findTrash']) { 
+			$selectors->add(new SelectorLessThan('status', Page::statusDeleted)); 
 
 		} else {
 			// no status is present, so exclude everything hidden and above
@@ -95,8 +218,19 @@ class PageFinder extends Wire {
 		}
 
 		if($options['findOne']) {
+			// findOne option is never paginated, always starts at 0
 			$selectors->add(new SelectorEqual('start', 0)); 
 			$selectors->add(new SelectorEqual('limit', 1)); 
+			// getTotal default is false when only finding 1 page
+			if(is_null($options['getTotal'])) $options['getTotal'] = false; 
+
+		} else if(!$limit && !$start) {
+			// getTotal is not necessary since there is no limit specified (getTotal=same as count)
+			if(is_null($options['getTotal'])) $options['getTotal'] = false; 
+
+		} else {
+			// get Total default is true when finding multiple pages
+			if(is_null($options['getTotal'])) $options['getTotal'] = true; 
 		}
 
 		$this->lastOptions = $options; 
@@ -107,69 +241,74 @@ class PageFinder extends Wire {
 	 * Return all pages matching the given selector.
 	 *
 	 */
-	public function find(Selectors $selectors, $options = array()) {
+	public function ___find(Selectors $selectors, $options = array()) {
 
-		$defaultOptions = array(
-			/**
-	 		 * Specify that you only want to find 1 page and don't need info for pagination
-			 * 	
-			 */
-			'findOne' => false,
-			
-			/**
-			 * Specify that it's okay for hidden pages to be included in the results	
-			 *
-			 */
-			'findHidden' => false,
+		$options = array_merge($this->defaultOptions, $options); 
 
-			/**
-			 * Specify that no page status should be excluded - results can include unpublished, trash, system, etc.
-			 *
-			 */
-			'findAll' => false,
-			);
-
-		$options = array_merge($defaultOptions, $options); 
 		$this->start = 0; // reset for new find operation
 		$this->limit = 0; 
 		$this->parent_id = null;
 		$this->templates_id = null;
 		$this->checkAccess = true; 
 		$this->getQueryNumChildren = 0;
-
 		$this->setupStatusChecks($selectors, $options);
+
+		// move getTotal option to a class property, after setupStatusChecks
+		$this->getTotal = $options['getTotal'];
+		$this->getTotalType = $options['getTotalType'] == 'count' ? 'count' : 'calc'; 
+		unset($options['getTotal']); // so we get a notice if we try to access it
+
 		$database = $this->wire('database');
 		$cnt = count($selectors); 
 		$matches = array(); 
 		$query = $this->getQuery($selectors, $options); 
-		if($this->wire('config')->debug) $query->set('comment', "Selector: " . (string) $selectors); 
+		//if($this->wire('config')->debug) $query->set('comment', "Selector: " . (string) $selectors); 
+		if($options['returnQuery']) return $query; 
 
-		$stmt = $query->execute();	
-		
-		if($stmt->errorCode() > 0) {
-			$errorInfo = $stmt->errorInfo();
-			throw new PageFinderException($errorInfo[2]);
-		}
-		
-		while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+		if($options['loadPages'] || $this->getTotalType == 'calc') {
 
-			// determine score for this row
-			$score = 0;
-			foreach($row as $k => $v) if(strpos($k, '_score') === 0) {
-				$score += $v;
-				unset($row[$k]);
-
-			}
-			$row['score'] = $score;
-			$matches[] = $row;
-		}
-		$stmt->closeCursor();
+			$stmt = $query->execute();	
 			
-		if($options['findOne']) {
-			$this->total = count($matches); 
+			if($stmt->errorCode() > 0) {
+				$errorInfo = $stmt->errorInfo();
+				throw new PageFinderException($errorInfo[2]);
+			}
+		
+			if($options['loadPages']) { 	
+				while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
 
-		} else if(count($query->limit)) {
-			$this->total = (int) $database->query("SELECT FOUND_ROWS()")->fetchColumn();
+					// determine score for this row
+					$score = 0;
+					foreach($row as $k => $v) if(strpos($k, '_score') === 0) {
+						$score += $v;
+						unset($row[$k]);
+
+					}
+					if($options['returnVerbose']) { 
+						$row['score'] = $score;
+						$matches[] = $row;
+					} else {
+						$matches[] = $row['id']; 
+					}
+				}
+			}
+			$stmt->closeCursor();
+		} 
+			
+		if($this->getTotal) {
+			if($this->getTotalType === 'count') {
+				$query->set('select', array('COUNT(*)')); 
+				$query->set('orderby', array()); 
+				$query->set('groupby', array()); 
+				$query->set('limit', array()); 
+				$stmt = $query->execute();
+				$errorInfo = $stmt->errorInfo();
+				if($stmt->errorCode() > 0) throw new PageFinderException($errorInfo[2]);
+				list($this->total) = $stmt->fetch(PDO::FETCH_NUM); 
+				$stmt->closeCursor();
+			} else {
+				$this->total = (int) $database->query("SELECT FOUND_ROWS()")->fetchColumn();
+			}
 			
 		} else {
 			$this->total = count($matches);
@@ -180,13 +319,100 @@ class PageFinder extends Wire {
 		return $matches; 
 	}
 
+	/**
+	 * Same as find() but returns just a simple array of page IDs without any other info
+	 *
+	 * @param Selectors $selectors
+	 * @param array $options
+	 * @return array of page IDs
+	 *
+	 */
+	public function findIDs(Selectors $selectors, $options = array()) {
+		$options['returnVerbose'] = false; 
+		return $this->find($selectors, $options); 
+	}
+
+	/**
+	 * Pre-process the given selector to perform any necessary replacements
+	 *
+	 * This is primarily used to handle sub-selections, i.e. "bar=foo, id=[this=that, foo=bar]"
+	 * 
+	 * @param Selector $selector
+	 * @return bool Returns false if selector should be skipped over by getQuery()
+	 *
+	 */
+	protected function preProcessSelector(Selector $selector) {
+		
+		if($selector->quote && !is_array($selector->value) && Selectors::stringHasSelector($selector->value)) {
+			
+			// selector contains an embedded quoted selector
+			if($selector->quote == '[') {
+				// i.e. field=[id>0, name=something, this=that]
+				// selector contains another embedded selector that we need to convert to page IDs
+				
+				$selectors = new Selectors($selector->value); 
+				$hasTemplate = false; 
+				$hasParent = false; 
+				foreach($selectors as $s) {
+					if(is_array($s->field)) continue; 
+					if($s->field == 'template') $hasTemplate = true; 
+					if($s->field == 'parent' || $s->field == 'parent_id') $hasParent = true; 
+				}
+				// special handling for page references, detect if parent or template is defined, 
+				// and add it to the selector if available. This makes it faster. 
+				if(!$hasTemplate || !$hasParent) { 
+					$fields = is_array($selector->field) ? $selector->field : array($selector->field); 
+					$templates = array();
+					$parents = array();
+					$findSelector = '';
+					foreach($fields as $fieldName) { 
+						if(strpos($fieldName, '.') !== false) list($unused, $fieldName) = explode('.', $fieldName); 
+						$field = $this->wire('fields')->get($fieldName); 	
+						if(!$field) continue;
+						if(!$hasTemplate && $field->template_id) $templates[] = (int) $field->template_id; 
+						if(!$hasParent && $field->parent_id) $parents[] = (int) $field->parent_id; 
+						if($field->findPagesSelector && count($fields) == 1) $findSelector = $field->findPagesSelector;	
+					}
+					if(count($templates)) $selectors->prepend(new SelectorEqual('template', $templates));
+					if(count($parents)) $selectors->prepend(new SelectorEqual('parent_id', $parents)); 
+					if($findSelector) foreach(new Selectors($findSelector) as $s) $selectors->append($s); 
+				}
+				
+				$pageFinder = new PageFinder();
+				$ids = $pageFinder->findIDs($selectors); 
+				// populate selector value with array of page IDs
+				$selector->value = count($ids) < 2 ? reset($ids) : $ids; 
+				$selector->quote = '';
+
+				/*
+				} else {
+					$fieldName = $selector->field ? $selector->field : 'none';
+					if(!isset($this->extraSubSelectors[$fieldName])) $this->extraSubSelectors[$fieldName] = array();
+					$this->extraSubSelectors[$fieldName][] = new Selectors($selector->value);
+					return false;
+				}
+				*/
+				
+			} else if($selector->quote == '(') {
+				// selector contains an quoted selector. At least one () quoted selector must match for each field specified in front of it
+				$fieldName = $selector->field ? $selector->field : 'none';
+				if(!isset($this->extraOrSelectors[$fieldName])) $this->extraOrSelectors[$fieldName] = array();
+				$this->extraOrSelectors[$fieldName][] = new Selectors($selector->value); 
+				return false;
+			}
+		}
+		
+		return true;
+	}
+
 
 	/**
 	 * Given one or more selectors, create the SQL query for finding pages.
 	 *
 	 * @TODO split this method up into more parts, it's too long
 	 *
-	 * @param array $selectors Array of selectors. 
+	 * @param array $selectors Array of selectors.
+	 * @param array $options 
 	 * @return string SQL statement. 
 	 * @throws PageFinderSyntaxException
 	 *
@@ -203,21 +429,24 @@ class PageFinder extends Wire {
 		$database = $this->wire('database');
 
 		$query = new DatabaseQuerySelect();
-		$query->select(array('pages.id', 'pages.parent_id', 'pages.templates_id')); 
+		$query->select($options['returnVerbose'] ? array('pages.id', 'pages.parent_id', 'pages.templates_id') : array('pages.id')); 
 		$query->from("pages"); 
 		$query->groupby("pages.id"); 
 
-		foreach($selectors as $selectorCnt => $selector) {
+		foreach($selectors as $selector) {
 
 			if(is_null($lastSelector)) $lastSelector = $selector; 
-
+			if(!$this->preProcessSelector($selector)) continue; 
+			
 			$fields = $selector->field; 
+			$group = $selector->group; // i.e. @field
 			$fields = is_array($fields) ? $fields : array($fields); 
+			if(count($fields) > 1) $fields = $this->arrangeFields($fields); 
 			$fieldsStr = ':' . implode(':', $fields) . ':'; // for strpos
 			$field = reset($fields); // first field
 			if(strpos($field, '.')) list($field, $subfield) = explode('.', $field); 
 				else $subfield = '';
-			
+
 			// TODO Make native fields and path/url multi-field and multi-value aware
 			if($field == 'sort') {
 				$sortSelectors[] = $selector; 
@@ -240,7 +469,7 @@ class PageFinder extends Wire {
 				$this->getQueryNumChildren($query, $selector); 
 				continue; 
 
-			} else if($this->getFuel('fields')->isNativeName($field) || strpos($fieldsStr, ':parent.') !== false) {
+			} else if($this->wire('fields')->isNative($field) || strpos($fieldsStr, ':parent.') !== false) {
 				$this->getQueryNativeField($query, $selector, $fields); 
 				continue; 
 			} 
@@ -250,13 +479,26 @@ class PageFinder extends Wire {
 			// in this case only used by internally generated shortcuts like the blank value condition
 			$whereFields = '';	
 			
-			foreach($fields as $n => $field) {
+			foreach($fields as $n => $fieldName) {
 
 				// if a specific DB field from the table has been specified, then get it, otherwise assume 'data'
-				if(strpos($field, ".")) list($field, $subfield) = explode(".", $field); 	
+				if(strpos($fieldName, ".")) list($fieldName, $subfield) = explode(".", $fieldName); 	
 					else $subfield = 'data';
 
-				if(!$field = $this->fuel('fields')->get($field)) throw new PageFinderSyntaxException("Field does not exist: $fields[$n]");
+				if(!$field = $this->wire('fields')->get($fieldName)) {
+					// field does not exist, try to match an API variable
+					$value = $this->wire($fieldName); 
+					if(!$value) throw new PageFinderSyntaxException("Field does not exist: $fieldName");
+					if(count($fields) > 1) throw new PageFinderSyntaxException("You may only match 1 API variable at a time"); 
+					if(is_object($value)) {
+						if($subfield == 'data') $subfield = 'id';
+						$selector->field = $subfield; 
+					}
+					if(!$selector->matches($value)) {
+						$query->where("1>2"); // force non match
+					}
+					break;
+				}
 
 				// keep track of number of times this table name has appeared in the query
 				if(!isset($fieldCnt[$field->table])) $fieldCnt[$field->table] = 0; 
@@ -296,7 +538,9 @@ class PageFinder extends Wire {
 						else $q = new DatabaseQuerySelect();
 
 					$q->set('field', $field); // original field if required by the fieldtype
+					$q->set('group', $group); // original group of the field, if required by the fieldtype
 					$q->set('selector', $selector); // original selector if required by the fieldtype
+					$q->set('selectors', $selectors); // original selectors (all) if required by the fieldtype
 					$q->set('parentQuery', $query);
 					$q = $fieldtype->getMatchQuery($q, $tableAlias, $subfield, $selector->operator, $value); 
 
@@ -368,7 +612,11 @@ class PageFinder extends Wire {
 				$lastSelector = $selector; 	
 			} // fields
 			
-			if(strlen($whereFields)) $where .= (strlen($where) ? 'AND ' : '') . "($whereFields)";
+			// if(strlen($whereFields)) $where .= (strlen($where) ? 'AND ' : '') . "($whereFields)";
+			if(strlen($whereFields)) {
+				if(strlen($where)) $where = "($where) AND ($whereFields)"; 
+					else $where .= "($whereFields)";
+			}
 		
 		} // selectors
 
@@ -382,9 +630,75 @@ class PageFinder extends Wire {
 		}
 
 		if(count($sortSelectors)) foreach(array_reverse($sortSelectors) as $s) $this->getQuerySortSelector($query, $s);
+		$this->postProcessQuery($query); 
 
 		return $query; 
 
+	}
+	
+	protected function postProcessQuery($parentQuery) {
+		
+		if(count($this->extraOrSelectors)) {
+			// there were embedded OR selectors where one of them must match
+			// i.e. id>0, field=(selector string), field=(selector string)
+			// in the above example at least one 'field' must match
+			// the 'field' portion is used only as a group name and isn't 
+			// actually used as part of the resulting query or than to know
+			// what groups should be OR'd together
+
+			$sqls = array();
+			foreach($this->extraOrSelectors as $groupName => $selectorGroup) {
+				$n = 0;
+				$sql = "\tpages.id IN (\n";
+				foreach($selectorGroup as $selectors) {
+					$pageFinder = new PageFinder();	
+					$query = $pageFinder->find($selectors, array(
+						'returnQuery' => true, 
+						'returnVerbose' => false,
+						'findAll' => true
+						));
+					if($n > 0) $sql .= " \n\tOR pages.id IN (\n";
+					$query->set('groupby', array());
+					$query->set('select', array('pages.id')); 
+					$query->set('orderby', array()); 
+					// foreach($this->nativeWheres as $where) $query->where($where);  // doesn't seem to speed anything up, MySQL must already optimize for this
+					$sql .= tabIndent("\t\t" . $query->getQuery() . "\n)", 2);
+					$n++;
+				}
+				$sqls[] = $sql;
+			}
+			if(count($sqls)) {
+				$sql = implode(" \n) AND (\n ", $sqls);
+				$parentQuery->where("(\n$sql\n)"); 
+			}
+		}
+	
+		/* Possibly move existing subselectors to work like this rather than how they currently are
+		if(count($this->extraSubSelectors)) {
+			$sqls = array();
+			foreach($this->extraSubSelectors as $fieldName => $selectorGroup) {
+				$fieldName = $this->wire('database')->escapeCol($fieldName); 
+				$n = 0;
+				$sql = "\tpages.id IN (\n";
+				foreach($selectorGroup as $selectors) {
+					$pageFinder = new PageFinder();
+					$query = $pageFinder->find($selectors, array('returnQuery' => true, 'returnVerbose' => false));
+					if($n > 0) $sql .= " \n\tAND pages.id IN (\n";
+					$query->set('groupby', array());
+					$query->set('select', array('pages.id'));
+					$query->set('orderby', array());
+					// foreach($this->nativeWheres as $where) $query->where($where); 
+					$sql .= tabIndent("\t\t" . $query->getQuery() . "\n)", 2);
+					$n++;
+				}
+				$sqls[] = $sql;
+			}
+			if(count($sqls)) {
+				$sql = implode(" \n) AND (\n ", $sqls);
+				$parentQuery->where("(\n$sql\n)");
+			}
+		}
+		*/
 	}
 
 	/**
@@ -553,7 +867,7 @@ class PageFinder extends Wire {
 				$query->join("templates AS $tableAlias ON $tableAlias.id=pages.templates_id"); 
 				$value = "$tableAlias." . ($subValue ? $database->escapeCol($subValue) : "name"); 
 
-			} else if($fields->isNativeName($value)) {
+			} else if($fields->isNative($value)) {
 				// sort by a native field
 				
 				if(!strpos($value, ".")) {
@@ -626,7 +940,7 @@ class PageFinder extends Wire {
 
 			$this->limit = $limit; 
 
-			if(is_null($start) && ($input = $this->fuel('input'))) {
+			if(is_null($start) && ($input = $this->wire('input'))) {
 				// if not specified in the selector, assume the 'start' property from the default page's pageNum
 				$pageNum = $input->pageNum - 1; // make it zero based for calculation
 				$start = $pageNum * $limit; 
@@ -638,7 +952,8 @@ class PageFinder extends Wire {
 			}
 
 			$sql .= "$limit";
-			if($this->limit > 1) $query->select("SQL_CALC_FOUND_ROWS"); 
+			
+			if($this->getTotal && $this->getTotalType != 'count') $query->select("SQL_CALC_FOUND_ROWS"); 
 		}
 
 		if($sql) $query->limit($sql); 
@@ -736,7 +1051,7 @@ class PageFinder extends Wire {
 
 			if(strpos($field, '.')) list($field, $subfield) = explode('.', $field);
 
-			if(!$this->getFuel('fields')->isNativeName($field)) {
+			if(!$this->wire('fields')->isNative($field)) {
 				$subfield = $field;
 				$field = 'children';
 			}
@@ -749,24 +1064,25 @@ class PageFinder extends Wire {
 					// convert parent fields like '/about/company/history' to the equivalent ID
 					foreach($values as $k => $v) {
 						if(ctype_digit("$v")) continue; 
+						$v = $this->wire('sanitizer')->pagePathName($v); 
+						if(strpos($v, '/') === false) $v = "/$v"; // prevent a plain string with no slashes
 						// convert path to id
-						$parent = $this->fuel('pages')->get($v); 
+						$parent = $this->wire('pages')->get($v); 
 						if(!$parent instanceof NullPage) $values[$k] = $parent->id; 
 							else $values[$k] = null;
 
 					}
 					$field = 'parent_id';
 
-					if($field == 'parent_id' && count($values) == 1 && $selector->getOperator() === '=') $this->parent_id = reset($values); 
+					if(count($values) == 1 && $selector->getOperator() === '=') $this->parent_id = reset($values); 
 
 				} else {
 					// matching by a parent's native or custom field (subfield)
 
-					if(!$this->wire('fields')->isNativeName($subfield)) {
+					if(!$this->wire('fields')->isNative($subfield)) {
 						$finder = new PageFinder();
 						$s = $field == 'children' ? '' : 'children.count>0, ';
-						$matches = $finder->find(new Selectors("include=all, $s$subfield{$operator}" . implode('|', $values)));
-						foreach($matches as $match) $IDs[] = (int) $match['id'];
+						$IDs = $finder->findIDs(new Selectors("include=all, $s$subfield{$operator}" . implode('|', $values)));
 						if(!count($IDs)) $IDs[] = -1; // forced non match
 					} else {
 						// native
@@ -810,17 +1126,24 @@ class PageFinder extends Wire {
 					if(!ctype_digit($value)) $value = strtotime($value); 
 					$value = date('Y-m-d H:i:s', $value); 
 				}
-				if($field == 'name' && $operator == '~=') {
+
+				if(in_array($field, array('id', 'parent_id', 'templates_id'))) {
+					$value = (int) $value; 
+				}
+				
+				$isName = $field === 'name' || strpos($field, 'name') === 0; 
+
+				if($isName && $operator == '~=') {
 					// handle one or more space-separated full words match to 'name' field in any order
 					$s = '';
 					foreach(explode(' ', $value) as $word) {
-						$word = $database->escapeStr(wire('sanitizer')->pageName($word)); 
+						$word = $database->escapeStr($this->wire('sanitizer')->pageName($word)); 
 						$s .= ($s ? ' AND ' : '') . "$table.$field RLIKE '" . '[[:<:]]' . $word . '[[:>:]]' . "'";
 					}
 
-				} else if($field == 'name' && in_array($operator, array('%=', '^=', '$=', '%^=', '%$=', '*='))) {
+				} else if($isName && in_array($operator, array('%=', '^=', '$=', '%^=', '%$=', '*='))) {
 					// handle partial match to 'name' field
-					$value = $database->escapeStr(wire('sanitizer')->pageName($value));
+					$value = $database->escapeStr($this->wire('sanitizer')->pageName($value));
 					if($operator == '^=' || $operator == '%^=') $value = "$value%";
 						else if($operator == '$=' || $operator == '%$=') $value = "%$value";
 						else $value = "%$value%";
@@ -830,6 +1153,7 @@ class PageFinder extends Wire {
 					throw new PageFinderSyntaxException("Operator '{$operator}' is not supported for '$field'."); 
 
 				} else {
+					if($isName) $value = $this->wire('sanitizer')->pageName($value); 
 					$value = $database->escapeStr($value); 
 					$s = "$table." . $field . $operator . ((ctype_digit("$value") && $field != 'name') ? ((int) $value) : "'$value'");
 				}
@@ -852,6 +1176,7 @@ class PageFinder extends Wire {
 		if(count($fields) > 1) $SQL = "($SQL)";
 
 		$query->where($SQL); 
+		//$this->nativeWheres[] = $SQL; 
 	}
 
 	/**
@@ -977,6 +1302,20 @@ class PageFinder extends Wire {
 			return "$a.$b";
 		}
 
+	}
+
+	/**
+	 * Arrange the order of field names where necessary
+	 *
+	 */
+	protected function arrangeFields(array $fields) {
+		$custom = array();
+		$native = array();
+		foreach($fields as $name) {
+			if($this->wire('fields')->isNative($name)) $native[] = $name;
+				else $custom[] = $name; 
+		}
+		return array_merge($native, $custom); 
 	}
 
 	/**

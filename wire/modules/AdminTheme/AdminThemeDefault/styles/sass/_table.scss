@@ -38,7 +38,8 @@
 		}
 
 		tr:hover td,
-		tr:hover th {
+		tr:hover th,
+		tr.open td {
 			background: $notes-bg; 
 		}
 

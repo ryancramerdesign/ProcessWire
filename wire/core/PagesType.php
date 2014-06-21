@@ -213,8 +213,12 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 		return wire('pages')->get($this->parent_id);
 	}
 	
-	public function count() {
-		return $this->getParent()->numChildren();
+	public function count($selectorString = '', array $options = array()) {
+		if(empty($selectorString) && empty($options)) return $this->getParent()->numChildren();
+		$selectorString = $this->selectorString($selectorString); 
+		$defaults = array('findAll' => true); 
+		$options = array_merge($defaults, $options); 
+		return $this->wire('pages')->count($selectorString, $options); 
 	}
 
 }

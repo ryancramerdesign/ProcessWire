@@ -17,12 +17,12 @@
  *
  */
 
-class ProcessPageType extends Process implements ConfigurableModule {
+class ProcessPageType extends Process implements ConfigurableModule, WirePageEditor {
 
 	static public function getModuleInfo() {
 		return array(
 			'title' => __('Page Type', __FILE__), // getModuleInfo title
-			'version' => 100, 
+			'version' => 101, 
 			'summary' => __('List, Edit and Add pages of a specific type', __FILE__), // getModuleInfo summary
 			'permanent' => true, 
 			); 
@@ -30,19 +30,23 @@ class ProcessPageType extends Process implements ConfigurableModule {
 
 	protected $pages;
 	protected $template = null;
+	protected $editor = null;
 
 	public function __construct() {
 		$this->set('showFields', array('name')); 
+		$this->set('addLabel', $this->_('Add New')); 
 	}
 
 	public function init() {
-
 		$this->config->scripts->add($this->config->urls->ProcessPageType . 'ProcessPageType.js'); 
-		$this->config->styles->add($this->config->urls->ProcessPageType . 'ProcessPageType.css'); 
+		$this->config->styles->add($this->config->urls->ProcessPageType . 'ProcessPageType.css');
 
-		$this->pages = $this->fuel($this->page->name); 
-		if(is_null($this->pages)) $this->pages = $this->fuel('pages'); 
-		if($this->pages instanceof PagesType) $this->template = $this->pages->getTemplate(); 
+		$this->pages = $this->wire($this->page->name); 
+		if(is_null($this->pages) || !$this->pages instanceof PagesType) {
+			// $this->error("Unable to find API variable named '{$this->page->name}' (of type: PagesType)", Notice::debug); 
+			$this->pages = $this->wire('pages'); 
+		}
+		if($this->pages instanceof PagesType) $this->template = $this->pages->getTemplate();
 
 		parent::init();
 	}
@@ -56,13 +60,13 @@ class ProcessPageType extends Process implements ConfigurableModule {
 	}
 
 	public function ___executeEdit() {
-		$this->fuel->breadcrumbs->add(new Breadcrumb('../', $this->page->get('title|name'))); 
-		$editor = $this->modules->get("ProcessPageEdit"); 
-		return $editor->execute();
+		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->page->get('title|name'))); 
+		$this->editor = $this->modules->get("ProcessPageEdit"); 
+		return $this->editor->execute();
 	}
 
 	public function ___executeAdd() {
-		$this->fuel->breadcrumbs->add(new Breadcrumb('../', $this->page->get('title|name'))); 
+		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->page->get('title|name'))); 
 		$editor = $this->modules->get("ProcessPageAdd"); 
 		$editor->template = $this->template; 
 		$editor->parent_id = $this->page->id;
@@ -70,10 +74,9 @@ class ProcessPageType extends Process implements ConfigurableModule {
 	}
 
 	protected function renderList($selector = '', $pagerOptions = array()) {
-
 		$out = '';
 
-		if(!$this->pages->getTemplate()) {
+		if(!$this->pages instanceof PagesType || !$this->pages->getTemplate()) {
 			$form = $this->getTemplateFilterForm();		
 			$out = $form->render();
 		}
@@ -89,49 +92,56 @@ class ProcessPageType extends Process implements ConfigurableModule {
 				continue; 
 			}
 			$field = wire('fields')->get($name); 	
-			$languageID = wire('user')->language ? wire('user')->language->id : '';
-			$label = $field->get('label' . $languageID);
-			if(!$label) $label = $field->label; 
-			if(!$label) $label = $name; 
+			$label = $field->getLabel();
 			$fieldLabels[$key] = htmlentities($label, ENT_QUOTES, "UTF-8");
 		}
 
 		$table->headerRow($fieldLabels); 
 		$pages = $this->pages->find($selector); 
+		$numRows = 0;
 
 		foreach($pages as $page) {
-			if(!$page->editable()) continue; 
+			if(!$page->editable()) continue;
 			$n = 0; 
 			$row = array();
 			foreach($fieldNames as $name) {
 				if(!$n) {
-					$value = htmlentities($page->get($name), ENT_QUOTES, 'UTF-8') . ' ';
+					$value = htmlentities($page->getUnformatted($name), ENT_QUOTES, 'UTF-8') . ' ';
 					$status = '';
 					if($page->is(Page::statusUnpublished)) $status .= 'PageListStatusUnpublished ';
 					if($page->is(Page::statusHidden)) $status .= 'PageListStatusHidden ';
 					if($status) $value = "<span class='" . trim($status) . "'>$value</span>";
 					$row[$value] = "edit/?id={$page->id}";
 				} else {
-					$row[] = $this->renderListFieldValue($name, $page->get($name)); 
+					$row[] = $this->renderListFieldValue($name, $page->getUnformatted($name)); 
 				}
 				$n++;
 			}
 			$table->row($row); 
+			$numRows++;
 		}
 
-		if($this->page->addable()) $table->action(array($this->_('Add New') => 'add/')); 
+		if($this->page->addable()) $table->action(array($this->addLabel => 'add/')); 
 
 		if($pages->getTotal() > count($pages)) {
 			$pager = $this->modules->get("MarkupPagerNav"); 
 			$out .= $pager->render($pages, $pagerOptions);
 		}
 
+		if(!$numRows) $out .= $this->renderEmptyList($pages);
+
 		$out .= $table->render();
 
 		return $out; 
 	}
 
+	protected function renderEmptyList(PageArray $pages) {
+		$out = "<p>" . $this->_('No items to display yet.') . "</p>";
+		return $out; 
+	}
+
 	protected function renderListFieldValue($name, $value) {
+		
 		if(is_string($value) || is_int($value)) return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); 
 		if(is_array($value)) return htmlspecialchars(print_r($value, true), ENT_QUOTES, 'UTF-8'); 
 		if(is_object($value)) {
@@ -144,7 +154,8 @@ class ProcessPageType extends Process implements ConfigurableModule {
 				return nl2br(rtrim($out, ", ")); 
 
 			} else if($value instanceof Wire) {
-				return $value->name; 
+				if($value->name) return $value->name; 
+				return (string) $value; 
 			}
 		}
 		
@@ -197,6 +208,11 @@ class ProcessPageType extends Process implements ConfigurableModule {
 		$inputfields->add($f);
 
 		return $inputfields;
+	}
+	
+	public function getPage() {
+		if($this->editor) return $this->editor->getPage();
+		return new NullPage();
 	}
 	
 }

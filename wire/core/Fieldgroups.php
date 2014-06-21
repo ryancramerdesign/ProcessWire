@@ -65,7 +65,7 @@ class Fieldgroups extends WireSaveableItemsLookup {
 	 *
 	 */
 	protected $fieldgroupsArray; 
-
+	
 	public function init() {
 		$this->fieldgroupsArray = new FieldgroupsArray();
 		$this->load($this->fieldgroupsArray);
@@ -178,35 +178,22 @@ class Fieldgroups extends WireSaveableItemsLookup {
 
 		if($item->id && $item->removedFields) {
 
-			foreach($this->fuel('templates') as $template) {
+			foreach($this->wire('templates') as $template) {
 
 				if($template->fieldgroup->id !== $item->id) continue; 
 
-				foreach($item->removedFields as $field) { 
+				foreach($item->removedFields as $field) {
 
+					// make sure the field is valid to delete from this template
 					if(($field->flags & Field::flagGlobal) && !$template->noGlobal) {
-						throw new WireException("Field '$field' may not be removed from fieldgroup '{$item->name}' because it is globally required (Field::flagGlobal)"); 
+						throw new WireException("Field '$field' may not be removed from fieldgroup '{$item->name}' because it is globally required (Field::flagGlobal)");
 					}
 
 					if($field->flags & Field::flagPermanent) {
-						throw new WireException("Field '$field' may not be removed from fieldgroup '{$item->name}' because it is permanent."); 
+						throw new WireException("Field '$field' may not be removed from fieldgroup '{$item->name}' because it is permanent.");
 					}
 
-					$pages = $this->fuel('pages')->find("templates_id={$template->id}, check_access=0, status<" . Page::statusMax); 
-
-					foreach($pages as $page) {
-
-						try { 
-							$field->type->deletePageField($page, $field); 
-							// $page->save($field->name); 
-							if($this->fuel('config')->debug) $this->message("Deleted '{$field->name}' from '{$page->path}'"); 
-
-						} catch(Exception $e) {
-							$this->error($e->getMessage()); 
-						}
-
-					}
-
+					$field->type->deleteTemplateField($template, $field); 
 					$item->finishRemove($field); 
 				}
 			}
@@ -303,7 +290,6 @@ class Fieldgroups extends WireSaveableItemsLookup {
 		return $item; 	
 		*/
 	}
-
 
 }
 

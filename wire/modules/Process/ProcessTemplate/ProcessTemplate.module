@@ -30,8 +30,9 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 105,
+			'version' => 106,
 			'permanent' => true, 
+			'icon' => 'cubes', 
 	
 			// add this permission if you want this Process available for roles other than Superuser
 			'permission' => 'template-admin', 
@@ -243,6 +244,7 @@ class ProcessTemplate extends Process {
 		$header[] = $this->_x('Label', 'list-thead');
 		$header[] = $this->_x('Fields', 'list-thead');
 		$header[] = $this->_x('Pages', 'list-thead');
+		$header[] = $this->_x('Modified', 'list-thead');
 		$header[] = '&nbsp;';
 		$table->headerRow($header);
 		
@@ -316,6 +318,7 @@ class ProcessTemplate extends Process {
 		$row[] = $this->sanitizer->entities($template->label);
 		$row[] = "$numFields ";
 		$row["{$numPages} "] = "$numPagesLink"; // space is required to make it work
+		$row[] = $template->modified > 0 ? "<span style='display: none;'>$template->modified</span>" . wireRelativeTimeStr($template->modified) : '';
 		$row[] = $notes;
 		return $row; 
 	}
@@ -435,6 +438,7 @@ class ProcessTemplate extends Process {
 		$field = $this->modules->get("InputfieldText"); 
 		$field->label = $this->_('Create a new template without a file');
 		$field->description = $this->_('If you want to create a new template even though there is currently no file associated with it, enter the name of the template here.'); // Create template with no file, description
+		$field->description .= ' ' . $this->_('You may enter multiple template names by separating each with a space.'); 
 		$field->notes = $this->_('Do not include a file extension'); 
 		$field->attr('id+name', 'template_name'); 
 		$field->collapsed = count($templateFiles) ? Inputfield::collapsedYes : Inputfield::collapsedNo; 
@@ -681,6 +685,7 @@ class ProcessTemplate extends Process {
 		$select->attr('title', $this->_('Add Field')); 
 		$select->setAsmSelectOption('sortable', true); 
 		$select->setAsmSelectOption('editLink', wire('config')->urls->admin . "setup/field/edit?id={value}&fieldgroup_id={$template->fieldgroup->id}&modal=1&process_template=1"); 
+		$select->setAsmSelectOption('hideDeleted', false); 
 
 		foreach($template->fieldgroup as $field) {
 			$field = $template->fieldgroup->getField($field->id, true); // get in context
@@ -904,10 +909,25 @@ class ProcessTemplate extends Process {
 		$notes = 'name, ';
 		foreach($template->fields as $f) if(!$f->type instanceof FieldtypeFieldsetOpen) $notes .= $f->name . ", ";
 		$field->notes = $this->_('You may enter one or more of these fields:') . ' ' . rtrim($notes, ", ");
-		$field->notes .= "\n" . $this->_('You may also enter an [icon name](http://fortawesome.github.io/Font-Awesome/icons/), for example: icon-file'); 
+		$field->notes .= "\n" . $this->_('You may also enter an [icon name](http://fontawesome.io/cheatsheet/), for example: icon-file or fa-file (either format works).'); 
 		$field->attr('value', $template->pageLabelField); 
 		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field); 
+
+		// --------------------
+
+		/*
+		$field = $this->modules->get('InputfieldText'); 
+		$field->attr('name', 'pageNameFormat');
+		$field->label = $this->_('Page Name Format');
+		$field->description = sprintf($this->_('Optionally specify a format for page names used when a new page is added. This enables the "Page Add" step to be skipped when adding a new page. In order to work, the template used by parent page(s) must define this template (%s) as the only one allowed for children (see the "family" tab on the template used by the parent).'), $this->template->name); // Page name format, description
+		$field->notes = $this->_('You may enter any text you like here. When a new page is created and the name is not unique, an incrementing number will be appended to the end of it until it is unique.') . "\n"; // Page name format notes: general
+		$field->notes .= $this->_('**If you want your page names to derive their value from the title field:** enter "title" above (without the quotes).') . "\n"; // Page name format notes: title 
+		$field->notes .= $this->_('**If you want your page names to reflect the created date/time:** enter a [date format](http://www.php.net/manual/en/function.date.php) above. Your date format must include at least one non-alphanumeric character (like a slash "/" or colon ":" for example) in order to be recognized as a date format. Example: "Y/m/d H:i:s" would result in page names like: "2014-10-30-12-39-01". As you can see, non-alphanumeric characters still present in a formatted date are converted to hyphens.') . ' '; // Page name format notes: date 
+		$field->attr('value', $template->pageNameFormat); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$form->append($field); 
+		*/
 
 		// --------------------
 
@@ -1098,7 +1118,7 @@ class ProcessTemplate extends Process {
 		// --------------------
 
 		$field = $this->modules->get("InputfieldRadios"); 
-		$field->attr('id+name', 'noChildren'); 
+		$field->attr('name', 'noChildren'); 
 		$field->label = $this->_('May pages using this template have children?');
 		$field->addOption(0, $this->labels['Yes']); 
 		$field->addOption(1, $this->labels['No']); 
@@ -1123,6 +1143,20 @@ class ProcessTemplate extends Process {
 		// ----------------------
 
 		$field = $this->modules->get('InputfieldAsmSelect'); 
+		$field->attr('name', 'childTemplates'); 
+		$field->label = $this->_('Allowed template(s) for children');
+		$field->description = $this->_('Select the template(s) that will be allowed for children of pages using this template. Use this only if you specifically want to restrict placement of pages using this template.'); // childTemplates option, description
+
+		foreach($this->templates as $t) $field->addOption($t->id, $t->name);
+		$field->attr('value', $template->childTemplates); 
+		$field->collapsed = count($template->childTemplates) ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
+		$field->notes = $this->_("If none are selected then any are allowed, within the user's access limits. An example usage could be a 'news-list' template that is only allowed to have children using 'news-item' or 'press-release' templates."); // childTemplates option, notes
+		$field->showIf = 'noChildren!=1';
+		$form->add($field); 
+
+		// ----------------------
+
+		$field = $this->modules->get('InputfieldAsmSelect'); 
 		$field->attr('name', 'parentTemplates'); 
 		$field->label = $this->_('Allowed template(s) for parents');
 		$field->description = $this->_("Select the template(s) that will be allowed as parents for pages using this template. Use this only if you specifically want to restrict placement of pages using this template."); // parentTemplates option, description
@@ -1131,19 +1165,19 @@ class ProcessTemplate extends Process {
 		$field->attr('value', $template->parentTemplates); 
 		$field->collapsed = count($template->parentTemplates) ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
 		$field->notes = $this->_("If none are selected then any parent template is allowed, within the user's access limits. An example usage could be an 'employee' template that is only allowed to have a parent page using a 'company-directory' template."); // parentTemplates option, notes
+		$field->showIf = 'noParents!=1';
 		$form->add($field); 
 
-		// ----------------------
+		// --------------------
 
-		$field = $this->modules->get('InputfieldAsmSelect'); 
-		$field->attr('id+name', 'childTemplates'); 
-		$field->label = $this->_('Allowed template(s) for children');
-		$field->description = $this->_('Select the template(s) that will be allowed for children of pages using this template. Use this only if you specifically want to restrict placement of pages using this template.'); // childTemplates option, description
-
-		foreach($this->templates as $t) $field->addOption($t->id, $t->name);
-		$field->attr('value', $template->childTemplates); 
-		$field->collapsed = count($template->childTemplates) ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
-		$field->notes = $this->_("If none are selected then any are allowed, within the user's access limits. An example usage could be a 'news-list' template that is only allowed to have children using 'news-item' or 'press-release' templates."); // childTemplates option, notes
+		$field = $this->modules->get('InputfieldText'); 
+		$field->attr('name', 'childNameFormat');
+		$field->label = $this->_('Name format for children');
+		$field->description = $this->_('Optionally specify a format for page names used when a new child page is added. This enables the "Page Add" step to be skipped when adding a new page. In order to work, a single (1) template must be selected for the "Allowed template(s) for children" field above.'); // Page name format, description
+		$field->notes = $this->_('Leave blank to disable. Enter "title" (without quotes) to auto-generate the name from the page title. More options including date formats are available as well. [More](http://processwire.com/api/modules/process-template/)') . "\n"; // Page name format notes
+		$field->attr('value', $template->childNameFormat); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$field->showIf = 'childTemplates.count=1, noChildren!=1'; 
 		$form->add($field); 
 
 		// --------------------
@@ -1169,10 +1203,11 @@ class ProcessTemplate extends Process {
 		// --------------------
 
 		$fieldset = ProcessPageEdit::buildFormSortfield($template->sortfield, $this); 
-		$fieldset->attr('id', 'sortfield_fieldset'); 
+		$fieldset->attr('name', 'sortfield_fieldset'); 
 		$fieldset->label = $this->_('Sort settings for children'); 
 		$fieldset->icon = 'sort';
 		$fieldset->description = $this->_('If you want children to automatically sort by a specific field, select it here. Otherwise select "None" to let this be set per-page instead. This overrides the page setting, so if you select anything other than "None", the sort option will not appear for pages using this template.'); 
+		$fieldset->showIf = 'noChildren!=1';
 		$form->add($fieldset); 
 
 
@@ -1403,6 +1438,7 @@ class ProcessTemplate extends Process {
 		$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
 		$this->template->guestSearchable = (int) $form->get('guestSearchable')->attr('value'); 
 		$this->template->pageLabelField = $this->fuel('sanitizer')->names($form->get('pageLabelField')->attr('value')); 
+		$this->template->childNameFormat = $this->fuel('sanitizer')->text($form->get('childNameFormat')->attr('value')); 
 		$this->template->cache_time = $form->get('cache_time')->attr('value'); 
 		$this->template->useCacheForUsers = (int) $form->get('useCacheForUsers')->attr('value');
 		$this->template->noCacheGetVars = $this->fuel('sanitizer')->names($form->get('noCacheGetVars')->attr('value')); 
@@ -1548,18 +1584,10 @@ class ProcessTemplate extends Process {
 		$fieldgroup = $this->template->fieldgroup;
 		if($fieldgroup->name != $this->template->name) return; 
 
-		foreach($fieldgroup as $field) {
-			if(!in_array($field->id, $ids)) {
-				if(($field->flags & Field::flagGlobal) && !$this->template->noGlobal) {
-					$this->error(sprintf($this->_('Field "%s" may not be removed because it is globally required by all fieldgroups'), $field)); 
-				} else { 
-					$removedFields->add($field); 
-				}
-			}
-		}
-
 		foreach($ids as $id) {
 			if(!($id = (int) $id)) continue; 
+			$isDeleted = $id < 0; 
+			$id = abs($id); 
 			if(!$field = $this->fields->get($id)) continue; 
 			if(!$fieldgroup->has($field)) {
 				$fieldgroup->append($field); 
@@ -1567,6 +1595,13 @@ class ProcessTemplate extends Process {
 			} else { 
 				$field = $fieldgroup->getField($field->id, true); // get in context
 				$fieldgroup->append($field); 
+			}
+			if($isDeleted) {
+				if(($field->flags & Field::flagGlobal) && !$this->template->noGlobal) {
+					$this->error(sprintf($this->_('Field "%s" may not be removed because it is globally required by all fieldgroups'), $field)); 
+				} else { 
+					$removedFields->add($field); 
+				}
 			}
 		}
 
@@ -1577,7 +1612,7 @@ class ProcessTemplate extends Process {
 
 
 		$fieldgroup->save();
-		if($this->config->debug) $this->message(sprintf($this->_('Saved fieldgroup: %s'), $fieldgroup->name)); 
+		$this->message(sprintf($this->_('Saved fieldgroup: %s'), $fieldgroup->name), Notice::debug); 
 
 		if(count($removedFields)) {
 			$url = "removeFields?id={$this->template->id}&fields=";

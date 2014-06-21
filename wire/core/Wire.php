@@ -445,8 +445,11 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 */
 	static public function isHooked($method) {
 		$hooked = false;
-		if(array_key_exists($method, self::$hookMethodCache)) $hooked = true; // fromClass::method() or fromClass::property
-			else if(in_array($method, self::$hookMethodCache)) $hooked = true; // method() or property
+		if(strpos($method, ':') !== false) {
+			if(array_key_exists($method, self::$hookMethodCache)) $hooked = true; // fromClass::method() or fromClass::property
+		} else {
+			if(in_array($method, self::$hookMethodCache)) $hooked = true; // method() or property
+		}
 		return $hooked; 
 	}
 
@@ -623,23 +626,32 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * CHANGE TRACKING
 	 *
 	 */
-	
-	/**
-	 * Is change tracking turned on?
-	 * 
-	 * @var bool
-	 *
-	 */
-	protected $trackChanges = false;
 
 	/**
-	 * Array containing the names of properties that were changed while change tracking was ON.
+	 * Predefined track change mode: track names only (default)
+	 *
+	 */
+	const trackChangesOn = 2;
+	const trackChangesValues = 4;
+	
+	/**
+	 * Track changes mode
+	 * 
+	 * @var int Bitmask
+	 *
+	 */
+	private $trackChanges = 0;
+
+	/**
+	 * Array containing the names of properties (as array keys) that were changed while change tracking was ON.
+	 * 
+	 * Array values are insignificant unless trackChangeMode is trackChangesValues (1), in which case the values are the previous values.
 	 * 
 	 * @var array
 	 *
 	 */
 	private $changes = array();
-
+	
 	/**
 	 * Has the given property changed? 
 	 *
@@ -651,7 +663,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 */
 	public function isChanged($what = '') {
 		if(!$what) return count($this->changes) > 0; 
-		return in_array($what, $this->changes); 
+		return array_key_exists($what, $this->changes); 
 	}
 
 	/**
@@ -662,26 +674,54 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * Descending objects should trigger this via $this->changed('name') when a property they are tracking has changed.
 	 * 
 	 * @param string $what Name of property that changed
+	 * @param mixed $old Previous value before change 
+	 * @param mixed $new New value
 	 *
 	 */
-	public function ___changed($what) {
+	public function ___changed($what, $old = null, $new = null) {
 		// for hooks to listen to 
 	}
 
 	/**
 	 * Track a change to a property in this object
 	 *
-	 * The change will only be recorded if self::$trackChanges is true. 
+	 * The change will only be recorded if $this->trackChanges is a positive value. 
 	 *
 	 * @param string $what Name of property that changed
+	 * @param mixed $old Previous value before change
+	 * @param mixed $new New value
 	 * @return $this
 	 * 
 	 */
-	public function trackChange($what) {
-		if($this->trackChanges) {
-			$this->changes[] = $what; 	
-			$this->changed($what); // triggers ___changed hook
+	public function trackChange($what, $old = null, $new = null) {
+		
+		if($this->trackChanges & self::trackChangesOn) {
+			
+			// establish it as changed
+			if(array_key_exists($what, $this->changes)) {
+				// remember last value so we can avoid duplication in hooks or storage
+				$lastValue = end($this->changes[$what]); 
+			} else {
+				$lastValue = null;
+				$this->changes[$what] = array();
+			}
+		
+			if(is_null($old) || is_null($new) || $lastValue !== $new) {
+				$this->changed($what, $old, $new); // triggers ___changed hook
+			}
+			
+			if($this->trackChanges & self::trackChangesValues) {
+				// track changed values, but avoid successive duplication of same value
+				if(is_object($old) && $old === $new) $old = clone $old; // keep separate copy of objects for old value
+				if($lastValue !== $old || !count($this->changes[$what])) $this->changes[$what][] = $old; 
+				
+			} else {
+				// don't track changed values, just names of fields
+				$this->changes[$what][] = null;
+			}
+			
 		}
+		
 		return $this; 
 	}
 
@@ -693,37 +733,46 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * 
 	 */
 	public function untrackChange($what) {
-		$key = array_search($what, $this->changes); 	
-		if($key !== false) unset($this->changes[$key]); 
+		unset($this->changes[$what]); 
 		return $this; 
 	}
 
 	/**
 	 * Turn change tracking ON or OFF
 	 *
-	 * @param bool $trackChanges True to turn on, false to turn off. If not specified, true is assumed. 
+	 * @param bool|int $trackChanges True to turn on, false to turn off. Integer to specify bitmask. 
 	 * @return $this
 	 *
 	 */
 	public function setTrackChanges($trackChanges = true) {
-		$this->trackChanges = $trackChanges ? true : false; 
+		if(is_bool($trackChanges) || !$trackChanges) {
+			// turn change track on or off
+			if($trackChanges) $this->trackChanges = $this->trackChanges | self::trackChangesOn; // add bit
+				else $this->trackChanges = $this->trackChanges & ~self::trackChangesOn; // remove bit
+		} else if(is_int($trackChanges)) {
+			// set bitmask
+			$allowed = array(self::trackChangesOn, self::trackChangesValues, self::trackChangesOn | self::trackChangesValues); 
+			if(in_array($trackChanges, $allowed)) $this->trackChanges = $trackChanges; 
+		}
 		return $this; 
 	}
 
 	/**
 	 * Returns true if change tracking is on, or false if it's not. 
 	 *
-	 * @return bool
+	 * @param bool $getMode When true, the track changes mode bitmask will be returned rather than a boolean
+	 * @return bool|int 
 	 * 
 	 */
-	public function trackChanges() {
-		return $this->trackChanges; 
+	public function trackChanges($getMode = false) {
+		if($getMode) return $this->trackChanges; 
+		return $this->trackChanges & self::trackChangesOn;	
 	}
 
 	/**
 	 * Clears out any tracked changes and turns change tracking ON or OFF
 	 *
-	 * @param bool $trackChanges True to turn change tracking ON, or false to turn OFF. Default of true is assumed. 
+	 * @param bool $trackChanges True to turn change tracking ON, or false to turn OFF. Default of true is assumed.
 	 * @return $this
 	 *
 	 */
@@ -735,11 +784,13 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	/**
 	 * Return an array of properties that have changed while change tracking was on. 
 	 *
+	 * @param bool $getValues If true, then an associative array will be returned containing an array of previous values, oldest to newest. 
 	 * @return array
 	 *
 	 */
-	public function getChanges() {
-		return $this->changes; 
+	public function getChanges($getValues = false) {
+		if($getValues) return $this->changes; 
+		return array_keys($this->changes); 
 	}
 
 	

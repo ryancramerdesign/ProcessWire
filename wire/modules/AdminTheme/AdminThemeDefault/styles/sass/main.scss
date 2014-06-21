@@ -346,10 +346,13 @@ body.modal {
 		padding-left: 1em;
 		padding-right: 1em; 
 	}
-	#notices {
-		margin: 1px 0 0.75em 0;
-		a.notice-remove {
-			display: none; 
+
+	&:not(.hasWireTabs) { 
+		#notices {
+			margin: 1px 0 0.75em 0;
+			a.notice-remove {
+				display: none; 
+			}
 		}
 	}
 
@@ -490,6 +493,17 @@ body:not(.hasWireTabs) #headline .container {
 		display: none; 
 	}
 
+	/**
+	 * Disregard column width when at mobile size
+	 *
+	 */
+	.Inputfield {
+		clear: both !important;
+		width: 100% !important;
+		margin-left: 0 !important;
+	}
+
+
 }
 
 /* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
@@ -500,16 +514,6 @@ body:not(.hasWireTabs) #headline .container {
 @media only screen and (max-width: 479px) {
 	#logo {
 		display: block;
-	}
-
-	/**
-	 * Disregard column width when at mobile size
-	 *
-	 */
-	.Inputfield {
-		clear: both !important;
-		width: 100% !important;
-		margin-left: 0 !important;
 	}
 
 	.container {

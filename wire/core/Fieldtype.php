@@ -17,7 +17,6 @@ abstract class Fieldtype extends WireData implements Module {
 	/**
 	 * Get information about this module
 	 *
-	 */
 	public static function getModuleInfo() {
 		return array(
 			'title' => '', 
@@ -25,6 +24,7 @@ abstract class Fieldtype extends WireData implements Module {
 			'summary' => '', 
 			); 
 	}
+	 */
 
 	/**
 	 * Per Module interface, this template method is called when all system classes are loaded and ready for API usage
@@ -279,20 +279,25 @@ abstract class Fieldtype extends WireData implements Module {
 	 */
 
 	/**
-	 * Given an 'awake' value, as set by wakeupValue, convert the value to an exportable value for external consumption.
+	 * Given a value, return an portable version of it as either a string, int, float or array
 	 *
+	 * If an array is returned, it should only contain: strings, ints, floats or more arrays of those types.
 	 * This is intended for web service exports. 
+ 	 *
+	 * If not overridden, this takes on the same behavior as sleepValue(). However, if overridden, 
+	 * it is intended to be more verbose than wakeupValue, where applicable. 
 	 *
 	 * @param Page $page
 	 * @param Field $field
 	 * @param string|int|array|object $value
-	 * @return string|int|array
+	 * @param array $options Optional settings to shape the exported value, if needed. 
+	 * @return string|float|int|array
 	 *
-	public function ___exportValue(Page $page, Field $field, $value) {
+	 */
+	public function ___exportValue(Page $page, Field $field, $value, array $options = array()) {
 		$value = $this->sleepValue($page, $field, $value); 
 		return $value; 
 	}
-	 */
 
 	/**
 	 * Return the default value for this fieldtype (may be the same as blank value)
@@ -405,6 +410,8 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 */
 	public function getDatabaseSchema(Field $field) {
+		$engine = $this->wire('config')->dbEngine; 
+		$charset = $this->wire('config')->dbCharset;
 		$schema = array(
 			'pages_id' => 'int UNSIGNED NOT NULL', 
 			'data' => "int NOT NULL", // each Fieldtype should override this in particular
@@ -413,7 +420,7 @@ abstract class Fieldtype extends WireData implements Module {
 				'data' => 'KEY data (`data`)',
 			),
 			// any optional statements that should follow after the closing paren (i.e. engine, default charset, etc)
-			'xtra' => 'ENGINE=MyISAM DEFAULT CHARSET=utf8', 
+			'xtra' => "ENGINE=$engine DEFAULT CHARSET=$charset", 
 		); 
 		return $schema; 
 	}
@@ -428,6 +435,19 @@ abstract class Fieldtype extends WireData implements Module {
 	public function trimDatabaseSchema(array $schema) {
 		unset($schema['pages_id'], $schema['keys'], $schema['xtra'], $schema['sort']); 
 		return $schema; 
+	}
+
+	/**
+	 * Return array with information about what properties and operators can be used with this field
+	 * 
+	 * @param Field $field
+	 * @param array $data Array of extra data, when/if needed
+	 * @return array See FieldSelectorInfo.php for details
+	 *
+	 */
+	public function ___getSelectorInfo(Field $field, array $data = array()) {
+		$selectorInfo = new FieldSelectorInfo(); 
+		return $selectorInfo->getSelectorInfo($field); 
 	}
 
 	/**
@@ -637,6 +657,25 @@ abstract class Fieldtype extends WireData implements Module {
 		$result = $query->execute();
 		return $result;
 
+	}
+
+	/**
+	 * Delete the given Field from all pages using the given template, without loading those pages
+	 * 
+	 * ProcessWire will use this method rather than deletePageField in cases where the quantity of items
+	 * to delete is high (above 200 at time this was written). However, if your individual Fieldtype
+	 * defines it's own ___deletePageField method (separate from the one above) then it'll still get used. 
+	 * 
+	 * This was added so that mass deletions can happen without loading every page, which may not be feasible
+	 * when dealing with thousands of pages. 
+	 * 
+	 * @param Template $template
+	 * @param Field $field
+	 * @return bool
+	 * 
+	 */
+	public function ___deleteTemplateField(Template $template, Field $field) {
+		return $this->wire('fields')->deleteFieldDataByTemplate($field, $template); 
 	}
 
 	/**

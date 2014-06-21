@@ -16,6 +16,7 @@
 
 if(!defined("PROCESSWIRE")) die();
 
+$config->rootPageID = 1; 
 $config->adminRootPageID = 2; 
 $config->trashPageID = 7; 
 $config->loginPageID = 23; 
@@ -32,6 +33,23 @@ $config->roleTemplateID = 4;
 $config->permissionTemplateID = 5; 
 
 /**
+ * Page IDs that will be preloaded with every request
+ * 
+ * This reduces number of total number of queries by reducing some on-demand queries
+ *
+ */
+$config->preloadPageIDs = array(
+	1, // root/homepage
+	2, // admin
+	28, // access
+	29, // users
+	30, // roles
+	37, // guest user role
+	38, // super user role
+	40, // guest user
+	);
+
+/**
  * templateExtension: expected extension for template files
  *
  */
@@ -45,6 +63,14 @@ $config->templateExtension = 'php';
  *
  */
 $config->dbCharset = 'utf8';
+
+/**
+ * Database engine to use. Use 'MyISAM' or 'InnoDB'. 
+ *
+ * Note that use of 'InnoDB' is currently experimental. Avoid changing this after install.
+ *
+ */
+$config->dbEngine = 'MyISAM'; 
 
 /**
  * userAuthHashType: hash method to use for passwords. typically 'md5' or 'sha1', 
@@ -133,6 +159,19 @@ $config->pagefileUrlPrefix = '-/';
 $config->pagefileSecurePathPrefix = '.';
 
 /**
+ * Set to true in /site/config.php if you want files to live in an extended path mapping system
+ * that limits the number of directories per path to under 2000. 
+ *
+ * Use this on large sites living on file systems with hard limits on quantity of directories
+ * allowed per directory level. For example, ext2 and its 30000 directory limit. 
+ *
+ * Please note that for existing sites, this applies only for new pages created from this
+ * point forward. 
+ *
+ */
+$config->pagefileExtendedPaths = false;
+
+/**
  * fileContentTypes: array of extention to content-type header, used by file passthru functions.
  *
  * Any content types that should be force-download should be preceded with a plus sign.
@@ -195,4 +234,20 @@ $config->httpHosts = array(
         //'www.domain.com',
         //'localhost:8888',
 	);
+
+/**
+ * Settings specific to InputfieldWrapper class
+ *
+ * Setting useDependencies to false may enable to use depencencies in some places where
+ * they aren't currently supported, like files/images and repeaters. Note that setting it
+ * to false only disables it server-side. The javascript dependencies work either way. 
+ *
+ * Uncomment and paste into /site/config.php if you want to use this
+ * 
+ * $config->InputfieldWrapper = array(
+ *	'useDependencies' => true,
+ * 	'requiredLabel' => 'Missing required value', 
+ *	);
+ * 
+ */
 

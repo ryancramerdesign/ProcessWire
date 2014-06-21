@@ -77,39 +77,46 @@ interface HasLookupItems {
 interface WireTrackable {
 
 	/**
-	 * Turn change tracking on (or off). 
+	 * Turn change tracking ON or OFF
 	 *
-	 * By default change tracking is off until turned on. 
-	 *
-	 */
-	public function setTrackChanges($trackChanges = true); 
-
-
-	/**
-	 * Track a change to the name of the variable provided.	
-	 *
-	 * @param string $what The name of the variable that changed. 
+	 * @param bool|int $trackChanges True to turn on, false to turn off. Integer to specify bitmask.
+	 * @return $this
 	 *
 	 */
-	public function trackChange($what); 	
+	public function setTrackChanges($trackChanges = true);
 
-	
 	/**
-	 * Has this object changed since tracking was turned on?
+	 * Track a change to a property in this object
 	 *
-	 * @param string $what Optional indictator of variable name 
+	 * The change will only be recorded if self::$trackChanges is true.
+	 *
+	 * @param string $what Name of property that changed
+	 * @param mixed $old Previous value before change
+	 * @param mixed $new New value
+	 * @return $this
+	 *
+	 */
+	public function trackChange($what, $old = null, $new = null);
+
+	/**
+	 * Has the given property changed?
+	 *
+	 * Applicable only for properties you are tracking while $trackChanges is true.
+	 *
+	 * @param string $what Name of property, or if left blank, check if any properties have changed.
 	 * @return bool
 	 *
-	 */
+	 */	
 	public function isChanged($what = ''); 
 
 	/**
-	 * Get array of all changes
+	 * Return an array of properties that have changed while change tracking was on.
 	 *
+	 * @param bool $getValues If true, then an associative array will be retuned with field names and previous values.
 	 * @return array
 	 *
 	 */
-	public function getChanges();
+	public function getChanges($getValues = false);
 
 }
 
@@ -399,4 +406,15 @@ interface WireDatabase {
 	 *
 	 */
 	public function isOperator($str);
+}
+
+/**
+ * Interface for Process modules that can edit pages (ProcessPageEdit being the most obvious)
+ *
+ */
+interface WirePageEditor {
+	/**
+	 * @return Page The current page being edited
+	 */
+	public function getPage(); 	
 }

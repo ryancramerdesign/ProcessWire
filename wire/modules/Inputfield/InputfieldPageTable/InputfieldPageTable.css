@@ -1,0 +1,31 @@
+.InputfieldPageTable .PageListStatusUnpublished td {
+	text-decoration: line-through; 
+}
+
+.InputfieldPageTable .PageListStatusHidden td {
+	opacity: 0.5; 
+}
+
+.InputfieldPageTable .PageListStatusTrash td {
+	opacity: 0.25; 
+}
+
+.InputfieldPageTable tr.InputfieldPageTableDelete td {
+	text-decoration: line-through; 
+}
+
+.Inputfields .InputfieldPageTable .PageListStatusUnpublished td:last-child,
+.Inputfields .InputfieldPageTable .PageListStatusHidden td:last-child {
+	text-decoration: none; 
+	opacity: 1; 
+}
+
+.InputfieldPageTable td:not(:last-child) {
+	cursor: move; 
+}
+
+.Inputfields .InputfieldPageTable td ul,
+.Inputfields .InputfieldPageTable td ul li {
+	margin: 0;
+}
+

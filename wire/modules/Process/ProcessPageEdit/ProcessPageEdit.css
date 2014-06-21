@@ -27,8 +27,9 @@
 	display: none !important; 
 }
 
-#wrap_AddPageBtn {
-	margin-top: 1em; 	
+#wrap_AddPageBtn,
+#wrap_AddPageBtn .InputfieldContent {
+	float: none; 
 }
 
 /**

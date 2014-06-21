@@ -91,6 +91,7 @@
 					if(options.rememberTabs == 1) setTabCookie(newTabID); 
 					lastTabID = newTabID; 
 				}
+				$(document).trigger('wiretabclick', [ $newTab, $oldTab ]); 
 				return false; 
 			}
 

@@ -61,7 +61,6 @@ class FileLog {
 		$str = $this->cleanStr($str); 
 
 		if($fp = fopen($this->logFilename, "a")) {
-
 			$trys = 0; 
 			$stop = false;
 
@@ -126,7 +125,7 @@ class FileLog {
 	 * Return an array of entries that exist in the given range of dates
 	 * 
 	 * @param int|string $dateFrom Unix timestamp or string date/time to start from 
-	 * @param int|string $dateFrom Unix timestamp or string date/time to end at (default = now)
+	 * @param int|string $dateTo Unix timestamp or string date/time to end at (default = now)
 	 * @return array
 	 * 
 	 */

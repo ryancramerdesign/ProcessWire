@@ -295,4 +295,20 @@ class User extends Page {
 		return !$this->isGuest();
 	}
 
+	/**
+	 * Get the value for a non-native User field
+	 *
+	 * @param string $key
+	 * @return null|mixed
+	 *
+	 */
+	protected function getFieldValue($key) {
+		$value = parent::getFieldValue($key);
+		if(!$value && $key == 'language') {
+			$languages = $this->wire('languages');
+			if($languages) $value = $languages->getDefault();
+		}
+		return $value;
+	}
+
 }

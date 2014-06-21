@@ -106,12 +106,26 @@ class ImageSizer extends Wire {
 	 */
 	protected $sharpening = 'soft';
 
+	/**
+	 * default gamma correction: 0.5 - 4.0 | -1 to disable gammacorrection, default = 2.0
+	 * 
+	 * can be overridden by setting it to $config->imageSizerOptions['defaultGamma']
+	 * or passing it along with image options array
+	 * 
+	 */
+	protected $defaultGamma = 2.0;
+
+	/**
+	 * Other options for 3rd party use
+	 *
+	 */
+	protected $options = array();
 
 	/**
 	 * Options allowed for sharpening
 	 *
 	 */
-	protected $sharpeningValues = array(
+	static protected $sharpeningValues = array(
 		0 => 'none', // none
 		1 => 'soft',
 		2 => 'medium',
@@ -127,7 +141,8 @@ class ImageSizer extends Wire {
 		'upscaling',
 		'cropping',
 		'quality',
-		'sharpening'
+		'sharpening',
+		'defaultGamma',
 		);
 
 	/**
@@ -140,6 +155,12 @@ class ImageSizer extends Wire {
 		'jpeg' => IMAGETYPE_JPEG,
 		'png' => IMAGETYPE_PNG,
 		);
+
+	/**
+	 * Indicates how much an image should be sharpened
+	 * 
+	 */
+	protected $usmValue = 100; 
 
 	/**
 	 * Result of iptcparse(), if available
@@ -162,6 +183,10 @@ class ImageSizer extends Wire {
 	 *
 	 */
 	public function __construct($filename, $options = array()) {
+
+		// set the use of UnSharpMask as default, can be overwritten per pageimage options
+		// or per $config->imageSizerOptions in site/config.php
+		$this->options['useUSM'] = true;
 
 		// filling all options with global custom values from config.php
 		$options = array_merge($this->wire('config')->imageSizerOptions, $options); 
@@ -220,16 +245,11 @@ class ImageSizer extends Wire {
 	 * @param int $targetHeight Target height in pixels, or 0 for proportional to width. Optional-if not specified, 0 is assumed.
 	 * @return bool True if the resize was successful
  	 *
-	 * @todo this method has become too long and needs to be split into smaller dedicated parts 
-	 *
 	 */
 	public function ___resize($targetWidth, $targetHeight = 0) {
 
 		$orientations = null; // @horst
 		$needRotation = $this->autoRotation !== true ? false : ($this->checkOrientation($orientations) && (!empty($orientations[0]) || !empty($orientations[1])) ? true : false);
-		$needResizing = true; // $this->isResizeNecessary($targetWidth, $targetHeight);
-		//if(!$needResizing && !$needRotation) return true;
-
 		$source = $this->filename;
 		$dest = str_replace("." . $this->extension, "_tmp." . $this->extension, $source); 
 		$image = null;
@@ -242,18 +262,15 @@ class ImageSizer extends Wire {
 
 		if(!$image) return false;
 
-		if($this->imageType != IMAGETYPE_PNG) { 
-			// @horst: linearize gamma to 1.0 - we do not use gamma correction with png because it doesn't respect transparency 
-			imagegammacorrect($image, 2.0, 1.0);
+		if($this->imageType != IMAGETYPE_PNG || !$this->hasAlphaChannel()) { 
+			// @horst: linearize gamma to 1.0 - we do not use gamma correction with pngs containing alphachannel, because GD-lib  doesn't respect transparency here (is buggy) 
+			$this->gammaCorrection($image, true);
 		}
 
 		if($needRotation) { // @horst
 			$image = $this->imRotate($image, $orientations[0]);
 			if($orientations[0] == 90 || $orientations[0] == 270) {
 				// we have to swap width & height now!
-				$tmp = array($targetWidth, $targetHeight);
-				$targetWidth = $tmp[1];
-				$targetHeight = $tmp[0];
 				$tmp = array($this->getWidth(), $this->getHeight());
 				$this->setImageInfo($tmp[1], $tmp[0]);
 			}
@@ -262,110 +279,50 @@ class ImageSizer extends Wire {
 			}
 		}
 
-		if($needResizing) {
+		// here we check for cropping, upscaling, sharpening
+		// we get all dimensions at first, before any image operation !
+		list($gdWidth, $gdHeight, $targetWidth, $targetHeight) = $this->getResizeDimensions($targetWidth, $targetHeight);
+		$x1 = ($gdWidth / 2) - ($targetWidth / 2);
+		$y1 = ($gdHeight / 2) - ($targetHeight / 2);
+		$this->getCropDimensions($x1, $y1, $gdWidth, $targetWidth, $gdHeight, $targetHeight);
 
-			list($gdWidth, $gdHeight, $targetWidth, $targetHeight) = $this->getResizeDimensions($targetWidth, $targetHeight); 
+		// now lets check what operations are necessary:
+		if($gdWidth == $targetWidth && $gdWidth == $this->image['width'] &&  $gdHeight == $this->image['height'] && $gdHeight == $targetHeight) {
+			
+			// this is the case if the original size is requested or a greater size but upscaling is set to false
+			
+			@imagedestroy($image);
+			return true;
+			
+		} else if($gdWidth == $targetWidth && $gdHeight == $targetHeight) {
+			
+			// this is the case if we scale up or down _without_ cropping
 
-			$thumb = imagecreatetruecolor($gdWidth, $gdHeight);  
-
-			if($this->imageType == IMAGETYPE_PNG) { 
-				// @adamkiss PNG transparency
-				imagealphablending($thumb, false); 
-				imagesavealpha($thumb, true); 
-
-			} else if($this->imageType == IMAGETYPE_GIF) {
-				// @mrx GIF transparency
-				$transparentIndex = ImageColorTransparent($image);
-				$transparentColor = $transparentIndex != -1 ? ImageColorsForIndex($image, $transparentIndex) : 0;
-				if(!empty($transparentColor)) {
-					$transparentNew = ImageColorAllocate($thumb, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
-					$transparentNewIndex = ImageColorTransparent($thumb, $transparentNew);
-					ImageFill($thumb, 0, 0, $transparentNewIndex);
-				}
-
-			} else {
-				$bgcolor = imagecolorallocate($thumb, 0, 0, 0);  
-				imagefilledrectangle($thumb, 0, 0, $gdWidth, $gdHeight, $bgcolor);
-				imagealphablending($thumb, false);
-			}
-
+			$thumb = imagecreatetruecolor($gdWidth, $gdHeight);
+			$this->prepareImageLayer($thumb, $image);
 			imagecopyresampled($thumb, $image, 0, 0, 0, 0, $gdWidth, $gdHeight, $this->image['width'], $this->image['height']);
-			$thumb2 = imagecreatetruecolor($targetWidth, $targetHeight);
+			
+		} else {
+			
+			// we have to scale up or down and to _crop_
 
-			if($this->imageType == IMAGETYPE_PNG) { 
-				// @adamkiss PNG transparency
-				imagealphablending($thumb2, false); 
-				imagesavealpha($thumb2, true); 
+			$thumb2 = imagecreatetruecolor($gdWidth, $gdHeight);
+			$this->prepareImageLayer($thumb2, $image);
+			imagecopyresampled($thumb2, $image, 0, 0, 0, 0, $gdWidth, $gdHeight, $this->image['width'], $this->image['height']);
 
-			} else if($this->imageType == IMAGETYPE_GIF) {
-				// @mrx GIF transparency
-				if(!empty($transparentColor)) {
-					$transparentNew = ImageColorAllocate($thumb2, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
-					$transparentNewIndex = ImageColorTransparent($thumb2, $transparentNew);
-					ImageFill($thumb2, 0, 0, $transparentNewIndex);
-				}
+			$thumb = imagecreatetruecolor($targetWidth, $targetHeight);
+			$this->prepareImageLayer($thumb, $image);
+			imagecopyresampled($thumb, $thumb2, 0, 0, $x1, $y1, $targetWidth, $targetHeight, $targetWidth, $targetHeight);
+			imagedestroy($thumb2);
+		}
 
-			} else {
-				$bgcolor = imagecolorallocate($thumb2, 0, 0, 0);  
-				imagefilledrectangle($thumb2, 0, 0, $targetWidth, $targetHeight, 0);
-				imagealphablending($thumb2, false);
+		// optionally apply sharpening to the final thumb
+		if($this->sharpening && $this->sharpening != 'none') { // @horst
+			if(IMAGETYPE_PNG != $this->imageType || ! $this->hasAlphaChannel()) {
+				// is needed for the USM sharpening function to calculate the best sharpening params
+				$this->usmValue = $this->calculateUSMfactor($targetWidth, $targetHeight);
+				$thumb = $this->imSharpen($thumb, $this->sharpening);
 			}
-
-			$w1 = ($gdWidth / 2) - ($targetWidth / 2);
-			$h1 = ($gdHeight / 2) - ($targetHeight / 2);
-
-			if(is_string($this->cropping)) switch($this->cropping) { 
-				// @interrobang crop directions
-				case 'nw':
-					$w1 = 0;
-					$h1 = 0;
-					break;
-				case 'n':
-					$h1 = 0;
-					break;
-				case 'ne':
-					$w1 = $gdWidth - $targetWidth;
-					$h1 = 0;
-					break;
-				case 'w':
-					$w1 = 0;
-					break;
-				case 'e':
-					$w1 = $gdWidth - $targetWidth;
-					break;
-				case 'sw':
-					$w1 = 0;
-					$h1 = $gdHeight - $targetHeight;
-					break;
-				case 's':
-					$h1 = $gdHeight - $targetHeight;
-					break;
-				case 'se':
-					$w1 = $gdWidth - $targetWidth;
-					$h1 = $gdHeight - $targetHeight;
-					break;
-				default: // center or false, we do nothing
-
-			} else if(is_array($this->cropping)) {
-				// @interrobang + @u-nikos
-				if(strpos($this->cropping[0], '%') === false) $pointX = (int) $this->cropping[0];
-					else $pointX = $gdWidth * ((int) $this->cropping[0] / 100);
-
-				if(strpos($this->cropping[1], '%') === false) $pointY = (int) $this->cropping[1];
-					else $pointY = $gdHeight * ((int) $this->cropping[1] / 100);
-
-				if($pointX < $targetWidth / 2) $w1 = 0;
-					else if($pointX > ($gdWidth - $targetWidth / 2)) $w1 = $gdWidth - $targetWidth;
-					else $w1 = $pointX - $targetWidth / 2;
-
-				if($pointY < $targetHeight / 2) $h1 = 0;
-					else if($pointY > ($gdHeight - $targetHeight / 2)) $h1 = $gdHeight - $targetHeight;
-					else $h1 = $pointY - $targetHeight / 2;
-			}
-
-			imagecopyresampled($thumb2, $thumb, 0, 0, $w1, $h1, $targetWidth, $targetHeight, $targetWidth, $targetHeight);
-
-			if($this->sharpening && $this->sharpening != 'none') $image = $this->imSharpen($thumb2, $this->sharpening); // @horst
 		}
 
 		// write to file
@@ -373,18 +330,18 @@ class ImageSizer extends Wire {
 		switch($this->imageType) {
 			case IMAGETYPE_GIF:
 				// correct gamma from linearized 1.0 back to 2.0
-				imagegammacorrect($thumb2, 1.0, 2.0);
-				$result = imagegif($thumb2, $dest); 
+				$this->gammaCorrection($thumb, false);
+				$result = imagegif($thumb, $dest); 
 				break;
 			case IMAGETYPE_PNG: 
-				// convert 1-100 (worst-best) scale to 0-9 (best-worst) scale for PNG 
-				$quality = round(abs(($this->quality - 100) / 11.111111)); 
-				$result = imagepng($thumb2, $dest, $quality); 
+				if(!$this->hasAlphaChannel()) $this->gammaCorrection($thumb, false);
+				// always use highest compression level for PNG (9) per @horst
+				$result = imagepng($thumb, $dest, 9);
 				break;
 			case IMAGETYPE_JPEG:
 				// correct gamma from linearized 1.0 back to 2.0
-				imagegammacorrect($thumb2, 1.0, 2.0);
-				$result = imagejpeg($thumb2, $dest, $this->quality); 
+				$this->gammaCorrection($thumb, false);
+				$result = imagejpeg($thumb, $dest, $this->quality); 
 				break;
 		}
 
@@ -479,7 +436,7 @@ class ImageSizer extends Wire {
 	 */
 	protected function getProportionalWidth($targetHeight) {
 		$img =& $this->image;
-		return ($targetHeight / $img['height']) * $img['width'];
+		return ceil(($targetHeight / $img['height']) * $img['width']); // @horst
 	}
 
 	/**
@@ -488,7 +445,7 @@ class ImageSizer extends Wire {
 	 */
 	protected function getProportionalHeight($targetWidth) {
 		$img =& $this->image;
-		return ($targetWidth / $img['width']) * $img['height'];
+		return ceil(($targetWidth / $img['width']) * $img['height']); // @horst
 	}
 
 	/**
@@ -510,8 +467,8 @@ class ImageSizer extends Wire {
 
 		$img =& $this->image; 
 
-		if(!$targetHeight) $targetHeight = floor(($targetWidth / $img['width']) * $img['height']); 
-		if(!$targetWidth) $targetWidth = floor(($targetHeight / $img['height']) * $img['width']); 
+		if(!$targetHeight) $targetHeight = round(($targetWidth / $img['width']) * $img['height']); 
+		if(!$targetWidth) $targetWidth = round(($targetHeight / $img['height']) * $img['width']); 
 
 		$originalTargetWidth = $targetWidth;
 		$originalTargetHeight = $targetHeight; 
@@ -652,6 +609,8 @@ class ImageSizer extends Wire {
 
 		return $cropping;
 	}
+	
+	
 
 	/**
 	 * Turn on/off cropping and/or set cropping direction
@@ -684,6 +643,39 @@ class ImageSizer extends Wire {
 	}
 
 	/**
+	 * Given an unknown sharpening value, return the string representation of it
+	 *
+	 * Okay for use in filenames. Method added by @horst
+	 *
+	 * @param string|bool $value
+	 * @param bool $short
+	 * @return string
+	 *
+	 */
+	static public function sharpeningValueStr($value, $short = false) {
+
+		$sharpeningValues = self::$sharpeningValues;
+
+		if(is_string($value) && in_array(strtolower($value), $sharpeningValues)) {
+			$ret = strtolower($value);
+
+		} else if(is_int($value) && isset($sharpeningValues[$value])) {
+			$ret = $sharpeningValues[$value];
+
+		} else if(is_bool($value)) {
+			$ret = $value ? "soft" : "none";
+
+		} else {
+			// sharpening is unknown, return empty string
+			return '';
+		}
+
+		if(!$short) return $ret;    // return name
+		$flip = array_flip($sharpeningValues);
+		return 's' . $flip[$ret];   // return char s appended with the numbered index
+	}	
+	
+	/**
 	 * Set sharpening value: blank (for none), soft, medium, or strong
 	 * 
 	 * @param mixed $value
@@ -693,20 +685,14 @@ class ImageSizer extends Wire {
 	 */
 	public function setSharpening($value) {
 
-		/*
-		if(is_array($value) && count($value) === 3) {
-			// Horst: what is this for? 
-			$ret = $value;
-		*/
-
-		if(is_string($value) && in_array(strtolower($value), $this->sharpeningValues)) {
+		if(is_string($value) && in_array(strtolower($value), self::$sharpeningValues)) {
 			$ret = strtolower($value);
 
-		} else if(is_int($value) && isset($this->sharpeningValues[$value])) {
-			$ret = $this->sharpeningValues[$value]; 
+		} else if(is_int($value) && isset(self::$sharpeningValues[$value])) {
+			$ret = self::$sharpeningValues[$value]; 
 
 		} else if(is_bool($value)) {
-			$ret = $value ? "medium" : "none";
+			$ret = $value ? "soft" : "none";
 			
 		} else {
 			throw new WireException("Unknown value for sharpening"); 
@@ -741,6 +727,23 @@ class ImageSizer extends Wire {
 		return $this; 
 	}
 
+	/**
+	 * Set default gamma value: 0.5 - 4.0 | -1
+	 *
+	 * @param float|int $value 0.5 to 4.0 or -1 to disable
+	 * @return $this
+	 * @throws WireException when given invalid value
+	 *
+	 */
+	public function setDefaultGamma($value = 2.0) {
+		if($value === -1 || ($value >= 0.5 && $value <= 4.0)) {
+			$this->defaultGamma = $value;
+		} else {
+			throw new WireException('Invalid defaultGamma value - must be 0.5 - 4.0 or -1 to disable gammacorrection');
+		}
+		return $this; 
+	}
+
 
 	/**
 	 * Alternative to the above set* functions where you specify all in an array
@@ -764,8 +767,11 @@ class ImageSizer extends Wire {
 				case 'sharpening': $this->setSharpening($value); break;
 				case 'quality': $this->setQuality($value); break;
 				case 'cropping': $this->setCropping($value); break;
+				case 'defaultGamma': $this->setDefaultGamma($value); break;
 				
-				default: // unknown option
+				default: 
+					// unknown or 3rd party option
+					$this->options[$key] = $value; 
 			}
 		}
 		return $this; 
@@ -792,13 +798,16 @@ class ImageSizer extends Wire {
 	 *
 	 */
 	public function getOptions() {
-		return array(
+		$options = array(
 			'quality' => $this->quality, 
 			'cropping' => $this->cropping, 
 			'upscaling' => $this->upscaling,
 			'autoRotation' => $this->autoRotation,
-			'sharpening' => $this->sharpening
+			'sharpening' => $this->sharpening,
+			'defaultGamma' => $this->defaultGamma
 			);
+		$options = array_merge($this->options, $options); 
+		return $options; 
 	}
 
 	public function __get($key) {
@@ -812,6 +821,7 @@ class ImageSizer extends Wire {
 			);
 		if(in_array($key, $keys)) return $this->$key; 
 		if(in_array($key, $this->optionNames)) return $this->$key; 
+		if(isset($this->options[$key])) return $this->options[$key]; 
 		return null;
 	}
 
@@ -936,45 +946,99 @@ class ImageSizer extends Wire {
 	 */
 	protected function imSharpen($im, $mode) {
 
+		// check if we have to use an individual value for "useUSM"
+		if(isset($this->options['useUSM'])) {
+			$this->useUSM = $this->getBooleanValue($this->options['useUSM']);
+		}
+
+		// due to a bug in PHP's bundled GD-Lib with the function imageconvolution in some PHP versions
+		// we have to bypass this for those who have to run on this PHP versions
+		// see: https://bugs.php.net/bug.php?id=66714
+		// and here under GD: http://php.net/ChangeLog-5.php#5.5.11
+		$buggyPHP = (version_compare(phpversion(), '5.5.8', '>') && version_compare(phpversion(), '5.5.11', '<')) ? true : false;
+
+		// USM method is used for buggy PHP versions
+		// for regular versions it can be omitted per: useUSM = false passes as pageimage option
+		// or set in the site/config.php under $config->imageSizerOptions: 'useUSM' => false | true
+		if($buggyPHP || $this->useUSM) {
+
+			switch($mode) {
+
+				case 'none':
+					return $im;
+					break;
+
+				case 'strong':
+					$amount=160;
+					$radius=1.0;
+					$threshold=7;
+					break;
+
+				case 'medium':
+					$amount=130;
+					$radius=0.75;
+					$threshold=7;
+					break;
+
+				case 'soft':
+				default:
+					$amount=100;
+					$radius=0.5;
+					$threshold=7;
+					break;
+			}
+
+			// calculate the final amount according to the usmValue
+			$this->usmValue = $this->usmValue < 0 ? 0 : ($this->usmValue > 100 ? 100 : $this->usmValue);
+			if(0 == $this->usmValue) return $im;
+			$amount = intval($amount / 100 * $this->usmValue);
+
+			// apply unsharp mask filter
+			return $this->UnsharpMask($im, $amount, $radius, $threshold);
+		}
+
+		// if we do not use USM, we use our default sharpening method,
+		// entirely based on GDs imageconvolution
 		switch($mode) {
 
 			case 'none':
 				return $im;
 				break;
-			
+
 			case 'strong':
 				$sharpenMatrix = array(
 					array( -1.2, -1, -1.2 ),
-					array( -1,   12, -1   ),
+					array( -1,   16, -1   ),
 					array( -1.2, -1, -1.2 )
-					);
+				);
 				break;
 
 			case 'medium':
 				$sharpenMatrix = array(
-					array( -1, -1, -1 ),
-					array( -1, 16, -1 ),
-					array( -1, -1, -1 )
-					);
+					array( -1.1, -1, -1.1 ),
+					array( -1,   20, -1 ),
+					array( -1.1, -1, -1.1 )
+				);
 				break;
 
-
 			case 'soft':
-				
 			default:
 				$sharpenMatrix = array(
 					array( -1, -1, -1 ),
-					array( -1, 20, -1 ),
+					array( -1, 24, -1 ),
 					array( -1, -1, -1 )
-					);
+				);
 				break;
 		}
+
 		// calculate the sharpen divisor
 		$divisor = array_sum(array_map('array_sum', $sharpenMatrix));
 		$offset = 0;
-		if(!imageconvolution($im, $sharpenMatrix, $divisor, $offset)) return false; // TODO 5 -c errorhandling: Throw WireExeption
+		if(!imageconvolution($im, $sharpenMatrix, $divisor, $offset)) return false; // TODO 4 -c errorhandling: Throw WireException?
+
 		return $im;
 	}
+
 
 	/**
 	 * Check orientation (@horst)
@@ -1002,5 +1066,470 @@ class ImageSizer extends Wire {
 		return true;
 	}
 
-}
+	/**
+	 * Check for alphachannel in PNGs
+	 *
+	 * This method by Horst, who also credits initial code as coming from the FPDF project: 
+	 * http://www.fpdf.org/
+	 *
+	 * @return bool
+	 *
+	 */
+	protected function hasAlphaChannel() {
+		$errors = array();
+		$a = array();
+		$f = @fopen($this->filename,'rb');
+		if($f === false) return false;
 
+		// Check signature
+		if(@fread($f,8) != chr(137) .'PNG' . chr(13) . chr(10) . chr(26) . chr(10)) {
+			@fclose($f);
+			return false;
+		}
+		// Read header chunk
+		@fread($f, 4);
+		if(@fread($f, 4) != 'IHDR') {
+			@fclose($f);
+			return false;
+		}
+		$a['width']  = $this->freadint($f);
+		$a['height'] = $this->freadint($f);
+		$a['bits']   = ord(@fread($f, 1));
+		$a['alpha']  = false;
+
+		$ct = ord(@fread($f, 1));
+		if($ct == 0) {
+			$a['channels'] = 1;
+			$a['colspace'] = 'DeviceGray';
+		} else if($ct == 2) {
+			$a['channels'] = 3;
+			$a['colspace'] = 'DeviceRGB';
+		} else if($ct == 3) {
+			$a['channels'] = 1;
+			$a['colspace'] = 'Indexed';
+		} else {
+			$a['channels'] = $ct;
+			$a['colspace'] = 'DeviceRGB';
+			$a['alpha']	= true; // alphatransparency in 24bit images !
+		}
+
+		if($a['alpha']) return true;   // early return
+
+		if(ord(@fread($f, 1)) != 0) $errors[] = 'Unknown compression method!';
+		if(ord(@fread($f, 1)) != 0) $errors[] = 'Unknown filter method!';
+		if(ord(@fread($f, 1)) != 0) $errors[] = 'Interlacing not supported!';
+
+		// Scan chunks looking for palette, transparency and image data
+		// http://www.w3.org/TR/2003/REC-PNG-20031110/#table53
+		// http://www.libpng.org/pub/png/book/chapter11.html#png.ch11.div.6
+		@fread($f, 4);
+		$pal = '';
+		$trns = '';
+		$counter = 0;
+		
+		do {
+			$n = $this->freadint($f);
+			$counter += $n;
+			$type = @fread($f, 4);
+			
+			if($type == 'PLTE') {
+				// Read palette
+				$pal = @fread($f, $n);
+				@fread($f, 4);
+				
+			} else if($type == 'tRNS') {
+				// Read transparency info
+				$t = @fread($f, $n);
+				if($ct == 0) {
+					$trns = array(ord(substr($t, 1, 1)));
+				} else if($ct == 2) {
+					$trns = array(ord(substr($t, 1, 1)), ord(substr($t, 3, 1)), ord(substr($t, 5, 1)));
+				} else {
+					$pos = strpos($t, chr(0));
+					if(is_int($pos)) {
+						$trns = array($pos);
+					}
+				}
+				@fread($f, 4);
+				break;
+				
+			} else if($type == 'IEND' || $type == 'IDAT' || $counter >= 2048) {
+				break;
+				
+			} else {
+				fread($f, $n + 4);
+			}
+			
+		} while($n);
+
+		@fclose($f);
+		if($a['colspace'] == 'Indexed' and empty($pal)) $errors[] = 'Missing palette!';
+		if(count($errors) > 0) $a['errors'] = $errors;
+		if(!empty($trns)) $a['alpha'] = true;  // alphatransparency in 8bit images !
+		
+		return $a['alpha'];	
+	}
+
+	/**
+	 * apply GammaCorrection to an image (@horst)
+	 * 
+	 * with mode = true it linearizes an image to 1
+	 * with mode = false it set it back to the originating gamma value
+	 *
+	 * @param GD-image-resource $image
+	 * @param boolean $mode
+	 *
+	 */
+	protected function gammaCorrection(&$image, $mode) {
+		if(-1 == $this->defaultGamma || !is_bool($mode)) return;
+		if($mode) {
+			// linearizes to 1.0
+			if(imagegammacorrect($image, $this->defaultGamma, 1.0)) $this->gammaLinearized = true;
+		} else {
+			if(!isset($this->gammaLinearized) || !$this->gammaLinearized) return;
+			// switch back to original Gamma
+			if(imagegammacorrect($image, 1.0, $this->defaultGamma)) unset($this->gammaLinearized);
+		}
+	}
+
+
+	/**
+	 * reads a 4-byte integer from file (@horst)
+	 *
+	 * @param filepointer
+	 * @return mixed
+	 *
+	 */
+	protected function freadint(&$f) {
+		$i = ord(@fread($f, 1)) << 24;
+		$i += ord(@fread($f, 1)) << 16;
+		$i += ord(@fread($f, 1)) << 8;
+		$i += ord(@fread($f, 1));
+		return $i;
+	}
+
+	/**
+	 * Set whether the image was modified
+	 *
+	 * Public so that other modules/hooks can adjust this property if needed.
+	 * Not for general API use
+	 *
+	 * @param bool $modified
+	 * @return this
+	 *
+	 */
+	public function setModified($modified) {
+		$this->modified = $modified ? true : false;
+		return $this;
+	}
+
+
+	/**
+	 * Unsharp Mask for PHP - version 2.1.1
+ 	 *	
+	 * Unsharp mask algorithm by Torstein Hønsi 2003-07.
+	 * thoensi_at_netcom_dot_no.
+	 * Please leave this notice.
+	 *
+	 * http://vikjavev.no/computing/ump.php
+	 *
+	 */
+	protected function unsharpMask($img, $amount, $radius, $threshold) {
+
+
+		// Attempt to calibrate the parameters to Photoshop:
+		if($amount > 500) $amount = 500;
+		$amount = $amount * 0.016;
+		if($radius > 50) $radius = 50;
+		$radius = $radius * 2;
+		if($threshold > 255) $threshold = 255;
+
+		$radius = abs(round($radius));     // Only integers make sense.
+		if($radius == 0) {
+			return $img;
+		}
+		$w = imagesx($img);
+		$h = imagesy($img);
+		$imgCanvas = imagecreatetruecolor($w, $h);
+		$imgBlur = imagecreatetruecolor($w, $h);
+
+		// due to a bug in PHP's bundled GD-Lib with the function imageconvolution in some PHP versions
+		// we have to bypass this for those who have to run on this PHP versions
+		// see: https://bugs.php.net/bug.php?id=66714
+		// and here under GD: http://php.net/ChangeLog-5.php#5.5.11
+		$buggyPHP = (version_compare(phpversion(), '5.5.8', '>') && version_compare(phpversion(), '5.5.11', '<')) ? true : false;
+
+		// Gaussian blur matrix:
+		//
+		//    1    2    1
+		//    2    4    2
+		//    1    2    1
+		//
+		//////////////////////////////////////////////////
+		if(function_exists('imageconvolution') && !$buggyPHP) {
+			$matrix = array(
+				array( 1, 2, 1 ),
+				array( 2, 4, 2 ),
+				array( 1, 2, 1 )
+			);
+			imagecopy ($imgBlur, $img, 0, 0, 0, 0, $w, $h);
+			imageconvolution($imgBlur, $matrix, 16, 0);
+		} else {
+			// Move copies of the image around one pixel at the time and merge them with weight
+			// according to the matrix. The same matrix is simply repeated for higher radii.
+			for ($i = 0; $i < $radius; $i++)    {
+				imagecopy ($imgBlur, $img, 0, 0, 1, 0, $w - 1, $h); // left
+				imagecopymerge ($imgBlur, $img, 1, 0, 0, 0, $w, $h, 50); // right
+				imagecopymerge ($imgBlur, $img, 0, 0, 0, 0, $w, $h, 50); // center
+				imagecopy ($imgCanvas, $imgBlur, 0, 0, 0, 0, $w, $h);
+
+				imagecopymerge ($imgBlur, $imgCanvas, 0, 0, 0, 1, $w, $h - 1, 33.33333 ); // up
+				imagecopymerge ($imgBlur, $imgCanvas, 0, 1, 0, 0, $w, $h, 25); // down
+			}
+		}
+
+		if($threshold>0) {
+			// Calculate the difference between the blurred pixels and the original
+			// and set the pixels
+			for($x = 0; $x < $w-1; $x++) { // each row
+				for($y = 0; $y < $h; $y++) { // each pixel
+
+					$rgbOrig = ImageColorAt($img, $x, $y);
+					$rOrig = (($rgbOrig >> 16) & 0xFF);
+					$gOrig = (($rgbOrig >> 8) & 0xFF);
+					$bOrig = ($rgbOrig & 0xFF);
+
+					$rgbBlur = ImageColorAt($imgBlur, $x, $y);
+
+					$rBlur = (($rgbBlur >> 16) & 0xFF);
+					$gBlur = (($rgbBlur >> 8) & 0xFF);
+					$bBlur = ($rgbBlur & 0xFF);
+
+					// When the masked pixels differ less from the original
+					// than the threshold specifies, they are set to their original value.
+					$rNew = (abs($rOrig - $rBlur) >= $threshold)
+						? max(0, min(255, ($amount * ($rOrig - $rBlur)) + $rOrig))
+						: $rOrig;
+					$gNew = (abs($gOrig - $gBlur) >= $threshold)
+						? max(0, min(255, ($amount * ($gOrig - $gBlur)) + $gOrig))
+						: $gOrig;
+					$bNew = (abs($bOrig - $bBlur) >= $threshold)
+						? max(0, min(255, ($amount * ($bOrig - $bBlur)) + $bOrig))
+						: $bOrig;
+
+					if(($rOrig != $rNew) || ($gOrig != $gNew) || ($bOrig != $bNew)) {
+						$pixCol = ImageColorAllocate($img, $rNew, $gNew, $bNew);
+						ImageSetPixel($img, $x, $y, $pixCol);
+					}
+				}
+			}
+		} else {
+			for($x = 0; $x < $w; $x++) { // each row
+				for($y = 0; $y < $h; $y++) { // each pixel
+					$rgbOrig = ImageColorAt($img, $x, $y);
+					$rOrig = (($rgbOrig >> 16) & 0xFF);
+					$gOrig = (($rgbOrig >> 8) & 0xFF);
+					$bOrig = ($rgbOrig & 0xFF);
+
+					$rgbBlur = ImageColorAt($imgBlur, $x, $y);
+
+					$rBlur = (($rgbBlur >> 16) & 0xFF);
+					$gBlur = (($rgbBlur >> 8) & 0xFF);
+					$bBlur = ($rgbBlur & 0xFF);
+
+					$rNew = ($amount * ($rOrig - $rBlur)) + $rOrig;
+					if($rNew>255) {
+						$rNew=255;
+					} else if($rNew<0) {
+						$rNew=0;
+					}
+					$gNew = ($amount * ($gOrig - $gBlur)) + $gOrig;
+					if($gNew>255) {
+						$gNew=255;
+					}
+					else if($gNew<0) {
+						$gNew=0;
+					}
+					$bNew = ($amount * ($bOrig - $bBlur)) + $bOrig;
+					if($bNew>255) {
+						$bNew=255;
+					}
+					else if($bNew<0) {
+						$bNew=0;
+					}
+					$rgbNew = ($rNew << 16) + ($gNew <<8) + $bNew;
+					ImageSetPixel($img, $x, $y, $rgbNew);
+				}
+			}
+		}
+		imagedestroy($imgCanvas);
+		imagedestroy($imgBlur);
+
+		return $img;
+	}
+
+	/**
+	 * return an integer value indicating how much an image should be sharpened
+	 * according to resizing scalevalue and absolute target dimensions
+	 *
+	 * @param mixed $targetWidth width of the targetimage
+	 * @param mixed $targetHeight height of the targetimage
+	 * @param mixed $origWidth
+	 * @param mixed $origHeight
+	 * @return int
+	 *
+	 */
+	protected function calculateUSMfactor($targetWidth, $targetHeight, $origWidth = null, $origHeight = null) {
+
+		if(null === $origWidth) $origWidth = $this->getWidth();
+		if(null === $origHeight) $origHeight = $this->getHeight();
+		$w = ceil($targetWidth / $origWidth * 100);
+		$h = ceil($targetHeight / $origHeight * 100);
+
+		// select the resizing scalevalue with check for crop images
+		if($w==$h || ($w-1)==$h || ($w+1)==$h) {  // equal, no crop
+			$resizingScalevalue = $w;
+			$target = $targetWidth;
+		}
+		else { // crop
+			if(($w<$h && $w<100) || ($w>$h && $h>100)) {
+				$resizingScalevalue = $w;
+				$target = $targetWidth;
+			}
+			elseif(($w<$h && $w>100) || ($w>$h && $h<100)) {
+				$resizingScalevalue = $h;
+				$target = $targetHeight;
+			}
+		}
+
+		// adjusting with respect to the scalefactor
+		$resizingScalevalue = ($resizingScalevalue * -1) + 100;
+		$resizingScalevalue = $resizingScalevalue < 0 ? $resizingScalevalue * -1 : $resizingScalevalue;
+		if($resizingScalevalue>0 && $resizingScalevalue<10) $resizingScalevalue += 15;
+		elseif($resizingScalevalue>9 && $resizingScalevalue<25) $resizingScalevalue += 20;
+		elseif($resizingScalevalue>24 && $resizingScalevalue<40) $resizingScalevalue += 35;
+		elseif($resizingScalevalue>39 && $resizingScalevalue<55) $resizingScalevalue += 20;
+		elseif($resizingScalevalue>54 && $resizingScalevalue<70) $resizingScalevalue +=  5;
+		elseif($resizingScalevalue>69 && $resizingScalevalue<80) $resizingScalevalue -= 10;
+
+		// adjusting with respect to absolute dimensions
+		if($target < 50) $res = intval($resizingScalevalue / 18 * 3);
+		elseif($target < 100) $res = intval($resizingScalevalue / 18 * 4);
+		elseif($target < 200) $res = intval($resizingScalevalue / 18 * 6);
+		elseif($target < 300) $res = intval($resizingScalevalue / 18 * 8);
+		elseif($target < 400) $res = intval($resizingScalevalue / 18 * 10);
+		elseif($target < 500) $res = intval($resizingScalevalue / 18 * 12);
+		elseif($target < 600) $res = intval($resizingScalevalue / 18 * 15);
+		elseif($target > 599) $res = $resizingScalevalue;
+		$res = $res < 0 ? $res * -1 : $res; // avoid negative numbers
+
+		return $res;
+	}
+
+	/**
+	 * prepares a new created GD image resource according to the IMAGETYPE
+	 *
+	 * Intended for use by the resize() method
+	 *
+	 * @param GD-resource $im, destination resource needs to be prepared
+	 * @param GD-resource $image, with GIF we need to read from source resource
+	 * @return void
+	 *
+	 */
+	protected function prepareImageLayer(&$im, &$image) {
+
+		if($this->imageType == IMAGETYPE_PNG) {
+			// @adamkiss PNG transparency
+			imagealphablending($im, false);
+			imagesavealpha($im, true);
+
+		} else if($this->imageType == IMAGETYPE_GIF) {
+			// @mrx GIF transparency
+			$transparentIndex = imagecolortransparent($image);
+			$transparentColor = $transparentIndex != -1 ? imagecolorsforindex($image, $transparentIndex) : 0;
+			if(!empty($transparentColor)) {
+				$transparentNew = imagecolorallocate($im, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
+				$transparentNewIndex = imagecolortransparent($im, $transparentNew);
+				imagefill($im, 0, 0, $transparentNewIndex);
+			}
+
+		} else {
+			$bgcolor = imagecolorallocate($im, 0, 0, 0);
+			imagefilledrectangle($im, 0, 0, imagesx($im), imagesy($im), $bgcolor);
+			imagealphablending($im, false);
+		}
+
+	}
+
+	/**
+	 * check if cropping is needed, if yes, populate x- and y-position to params $w1 and $h1
+	 *
+	 * Intended for use by the resize() method
+	 *
+	 * @param int $w1 - byReference
+	 * @param int $h1 - byReference
+	 * @param int $gdWidth
+	 * @param int $targetWidth
+	 * @param int $gdHeight
+	 * @param int $targetHeight
+	 * @return void
+	 *
+	 */
+	protected function getCropDimensions(&$w1, &$h1, $gdWidth, $targetWidth, $gdHeight, $targetHeight) {
+
+		if(is_string($this->cropping)) {
+			
+			switch($this->cropping) {
+				case 'nw':
+					$w1 = 0;
+					$h1 = 0;
+					break;
+				case 'n':
+					$h1 = 0;
+					break;
+				case 'ne':
+					$w1 = $gdWidth - $targetWidth;
+					$h1 = 0;
+					break;
+				case 'w':
+					$w1 = 0;
+					break;
+				case 'e':
+					$w1 = $gdWidth - $targetWidth;
+					break;
+				case 'sw':
+					$w1 = 0;
+					$h1 = $gdHeight - $targetHeight;
+					break;
+				case 's':
+					$h1 = $gdHeight - $targetHeight;
+					break;
+				case 'se':
+					$w1 = $gdWidth - $targetWidth;
+					$h1 = $gdHeight - $targetHeight;
+					break;
+				default: // center or false, we do nothing
+			}
+			
+		} else if(is_array($this->cropping)) {
+			// @interrobang + @u-nikos
+			if(strpos($this->cropping[0], '%') === false) $pointX = (int) $this->cropping[0];
+				else $pointX = $gdWidth * ((int) $this->cropping[0] / 100);
+
+			if(strpos($this->cropping[1], '%') === false) $pointY = (int) $this->cropping[1];
+				else $pointY = $gdHeight * ((int) $this->cropping[1] / 100);
+
+			if($pointX < $targetWidth / 2) $w1 = 0;
+				else if($pointX > ($gdWidth - $targetWidth / 2)) $w1 = $gdWidth - $targetWidth;
+				else $w1 = $pointX - $targetWidth / 2;
+
+			if($pointY < $targetHeight / 2) $h1 = 0;
+				else if($pointY > ($gdHeight - $targetHeight / 2)) $h1 = $gdHeight - $targetHeight;
+				else $h1 = $pointY - $targetHeight / 2;
+		}
+
+	}
+
+
+
+}

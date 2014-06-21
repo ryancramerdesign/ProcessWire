@@ -58,7 +58,9 @@ abstract class Inputfield extends WireData implements Module {
 	const collapsedBlank = 2; 	// will display collapsed only if blank
 	const collapsedHidden = 4; 	// will not be rendered in the form
 	const collapsedPopulated = 5; 	// will display collapsed only if populated
-	const collapsedLocked = 8;  // value is visible but not editable, otherwise same as collapsedYes
+	const collapsedNoLocked = 7;	// value is visible but not editable
+	const collapsedYesLocked = 8;  	// value is collapsed but not editable, otherwise same as collapsedYes
+	const collapsedLocked = 8; 	// for backwards compatibility
 
 	/**
 	 * Constants for skipLabel setting
@@ -112,6 +114,7 @@ abstract class Inputfield extends WireData implements Module {
 		$this->set('showIf', ''); 		// optional conditions selector
 		$this->set('columnWidth', ''); 	// percent width of the field. blank or 0 = 100.
 		$this->set('skipLabel', self::skipLabelNo); // See the skipLabel constants
+		$this->set('wrapClass', ''); // optional class to apply to the wrapper
 
 		// default ID attribute if no 'id' attribute set
 		$this->defaultID = $this->className() . self::$numInstances; 
@@ -127,7 +130,6 @@ abstract class Inputfield extends WireData implements Module {
 	/**
 	 * Get information about this module
 	 *
-	 */
 	public static function getModuleInfo() {
 		return array(
 			'title' => '',
@@ -135,6 +137,7 @@ abstract class Inputfield extends WireData implements Module {
 			'summary' => '', 
 			); 
 	}
+	 */
 
 	/**
 	 * Per the Module interface, init() is called when the system is ready for API usage
@@ -155,8 +158,8 @@ abstract class Inputfield extends WireData implements Module {
 	 */
 	public function hookRender($event) {
 		$class = $this->className();
-		$info = $this->getModuleInfo();
-		$version = (int) $info['version'];
+		$info = $this->wire('modules')->getModuleInfo($this, array('verbose' => false));
+		$version = (int) isset($info['version']) ? $info['version'] : 0;
 		if(is_file($this->config->paths->$class . "$class.css")) $this->config->styles->add($this->config->urls->$class . "$class.css?v=$version"); 
 		if(is_file($this->config->paths->$class . "$class.js")) $this->config->scripts->add($this->config->urls->$class . "$class.js?v=$version"); 
 	}
@@ -465,7 +468,15 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function ___renderValue() {
-		$out = htmlentities($this->attr('value'), ENT_QUOTES, "UTF-8"); 
+		$value = $this->attr('value');
+		if(is_array($value)) {
+			if(!count($value)) return '';
+			$out = "<ul>";
+			foreach($value as $v) $out .= "<li>" . $this->wire('sanitizer')->entities($v) . "</li>";
+			$out .= "</ul>";
+		} else {
+			$out = $this->wire('sanitizer')->entities($value); 
+		}
 		return $out; 
 	}
 
@@ -493,6 +504,8 @@ abstract class Inputfield extends WireData implements Module {
 			$this->error("Expected an array value and did not receive it"); 
 			return $this;
 		}
+		
+		$previousValue = $this->attr('value');
 
 		if(is_array($value)) {
 			// an array value was provided in the input
@@ -510,7 +523,7 @@ abstract class Inputfield extends WireData implements Module {
 				$values[] = $v; 
 			}
 
-			if($this->attr('value') !== $values) { 
+			if($previousValue !== $values) { 
 				// If it has changed, then update for the changed value
 				$changed = true; 
 				$this->setAttribute('value', $values); 
@@ -518,14 +531,14 @@ abstract class Inputfield extends WireData implements Module {
 
 		} else { 
 			// string value provided in the input
-			if("$value" !== (string) $this->attr('value')) {
+			if("$value" !== (string) $previousValue) {
 				$changed = true; 
 				$this->setAttribute('value', $value); 
 			}
 		}
 
 		if($changed) { 
-			$this->trackChange('value'); 
+			$this->trackChange('value', $previousValue, $value); 
 
 			// notify the parent of the change
 			if($parent = $this->getParent()) $parent->trackChange($this->name); 
@@ -580,7 +593,8 @@ abstract class Inputfield extends WireData implements Module {
 		$field->addOption(self::collapsedPopulated, $this->_("Collapsed only when populated")); 
 		$field->addOption(self::collapsedYes, $this->_("Always collapsed, requiring a click to open")); 
 		$field->addOption(self::collapsedHidden, $this->_("Hidden, not shown in the editor"));
-		$field->addOption(self::collapsedLocked, $this->_("Locked, value visible but not editable"));
+		$field->addOption(self::collapsedYesLocked, $this->_("Always collapsed and not editable (locked)"));
+		$field->addOption(self::collapsedNoLocked, $this->_("Open when populated and not editable (locked)"));
 		$field->attr('value', (int) $this->collapsed); 
 		$fieldset->append($field); 
 
@@ -661,8 +675,10 @@ abstract class Inputfield extends WireData implements Module {
 		$key = $this->getErrorSessionKey();
 		$errors = $this->session->$key;			
 		if(!is_array($errors)) $errors = array();
-		$errors[] = $text; 
-		$this->session->set($key, $errors); 
+		if(!in_array($text, $errors)) {
+			$errors[] = $text; 
+			$this->session->set($key, $errors); 
+		}
 		return parent::error($text . " ({$this->name})", $flags); 
 	}
 
@@ -699,13 +715,15 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 * We don't track changes to any other properties of Inputfields. 
 	 *
-	 * @param string $key
+	 * @param string $what Name of property that changed
+	 * @param mixed $old Previous value before change
+	 * @param mixed $new New value
 	 * @return $this
 	 *
 	 */
-	public function trackChange($key) {
-		if($key != 'value') return $this;
-		return parent::trackChange($key); 
+	public function trackChange($what, $old = null, $new = null) {
+		if($what != 'value') return $this;
+		return parent::trackChange($what, $old, $new); 
 	}
 
 	/**

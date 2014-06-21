@@ -23,9 +23,8 @@ class ProcessRole extends ProcessPageType {
 			'version' => 100, 
 			'summary' => __('Manage user roles and what permissions are attached', __FILE__), // getModuleInfo summary 
 			'permanent' => true, 
-
-			// add this permission if you want this Process available for roles other than Superuser
-			'permission' => 'role-admin',
+			'permission' => 'role-admin', // add this permission if you want this Process available for roles other than Superuser
+			'icon' => 'gears',
 			); 
 	}
 	

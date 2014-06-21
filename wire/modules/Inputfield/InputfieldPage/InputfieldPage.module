@@ -183,7 +183,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	 * @return PageArray
 	 * 
 	 */
-	public function getSelectablePages(Page $page) {
+	public function ___getSelectablePages(Page $page) {
 
 		$statusUnder = $this->allowUnpub ? Page::statusTrash : Page::statusUnpublished; 
 
@@ -285,7 +285,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 				$inputfield->parent_id = $this->parent_id;
 			} else if($this->findPagesCode) {
 				// @teppokoivula: use findPagesCode to return single parent page
-				$child = $this->findPagesCode();
+				$child = $this->findPagesCode($page);
 				if($child instanceof Page) $inputfield->parent_id = $child->id; 
 			}
 			if($this->template_id) $inputfield->template_id = $this->template_id; 
@@ -362,13 +362,10 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		}
 
 		$notes = sprintf($this->_('New pages will be added to %s'), $parent->path);
-		$label = $this->_('Create New'); 
+		$label ="<i class='fa fa-plus-circle'></i> " . $this->_('Create New'); 
 
 		$out = 	"\n<div class='InputfieldPageAdd'>" . 	
-			"\n\t<p class='InputfieldPageAddButton'>" . 
-			"\n\t\t<span class='ui-icon ui-icon-plus'></span> " . 
-			"\n\t\t<a href='#'>$label</a>" . 
-			"\n\t</p>" . 
+			"\n\t<p class='InputfieldPageAddButton'><a href='#'>$label</a></p>" . 
 			"\n\t<p class='InputfieldPageAddItems'>" . 
 			"\n\t\t<label class='description' for='$key'>$description</label>" . 
 			"\n\t\t$input" . 

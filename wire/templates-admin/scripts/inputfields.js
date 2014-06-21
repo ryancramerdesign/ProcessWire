@@ -543,7 +543,7 @@ function InputfieldStates() {
 	$(".InputfieldHeader, .Inputfield > .ui-widget-header").addClass("InputfieldStateToggle")
 		.prepend("<i class='toggle-icon fa fa-angle-down'></i>");
 	
-	$(document).on('click', '.InputfieldHeader, .Inputfield > .ui-widget-header', function() {
+	$(document).on('click', '.InputfieldStateToggle', function() {
 		var $li = $(this).closest('.Inputfield');
 		$li.toggleClass('InputfieldStateCollapsed', 100);
 		$(this).children('i.toggle-icon').toggleClass('fa-angle-down fa-angle-right');

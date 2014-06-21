@@ -23,7 +23,7 @@ class PagePermissions extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page Permissions', 
-			'version' => 102, 
+			'version' => 104, 
 			'summary' => 'Adds various permission methods to Page objects that are used by Process modules.',
 			'permanent' => true, 
 			'singular' => true,
@@ -36,7 +36,8 @@ class PagePermissions extends WireData implements Module {
 		$this->addHook('Page::publishable', $this, 'publishable'); 
 		$this->addHook('Page::viewable', $this, 'viewable'); 
 		$this->addHook('Page::listable', $this, 'listable'); 
-		$this->addHook('Page::deleteable', $this, 'deleteable'); 
+		$this->addHook('Page::deleteable', $this, 'deleteable');
+		$this->addHook('Page::deletable', $this, 'deleteable'); 
 		$this->addHook('Page::addable', $this, 'addable'); 
 		$this->addHook('Page::moveable', $this, 'moveable'); 
 		$this->addHook('Page::sortable', $this, 'sortable'); 
@@ -71,7 +72,7 @@ class PagePermissions extends WireData implements Module {
 	 */
 	protected function pageEditable(Page $page) {
 
-		$user = $this->fuel('user');
+		$user = $this->wire('user');
 
 		// superuser can always do whatever they want
 		if($user->isSuperuser()) return true; 
@@ -85,20 +86,24 @@ class PagePermissions extends WireData implements Module {
 		}
 			
 		// special conditions apply if the page is a User
-		if($page instanceof User) {
+		if($page instanceof User || $page->template->id == $this->wire('config')->userTemplateID) {
+
+			// if the current process is something other than ProcessUser, they don't have permission
+			if($this->wire('process') != 'ProcessUser') return false;
 
 			// if the user page being edited has a superuser role, and the current user doesn't, never let them edit regardless of any other permissions
-			if($page->hasRole('superuser') && !$user->hasRole('superuser')) return false; 
+			$suRole = $this->wire('roles')->get($this->wire('config')->superUserRolePageID); 
+			if($page->roles->has($suRole) && !$user->roles->has($suRole)) return false;
 
-			if($user->hasPermission('user-admin')) return true; 
+			// if we reach this point and user has user-admin permission, then they are good
+			if($user->hasPermission('user-admin'))  return true;
 		}
 
 		// if the user doesn't have page-edit permission, don't let them go further
 		if(!$user->hasPermission("page-edit", $page)) return false;
-		
 
 		// now check if there is a page-publish permission in the system, and use it if so
-		$publish = $this->fuel('permissions')->get('page-publish'); 
+		$publish = $this->wire('permissions')->get('page-publish'); 
 		if($publish->id) {
 
 			// if user has the page-publish permission here, then we're good
@@ -126,7 +131,7 @@ class PagePermissions extends WireData implements Module {
 
 		if($name == 'id' && ($page->status & Page::statusSystemID)) return false; 
 
-		$user = $this->fuel('user'); 
+		$user = $this->wire('user'); 
 
 		if($page->status & Page::statusSystem) {
 			if(in_array($name, array('id', 'name', 'template', 'templates_id', 'parent', 'parent_id'))) {
@@ -167,7 +172,7 @@ class PagePermissions extends WireData implements Module {
 
 		$page = $event->object; 
 		$viewable = true; 
-		$user = $this->fuel('user'); 
+		$user = $this->wire('user'); 
 		$u = $event->arguments(0); 
 
 		// allow specifying User instance as argument 0 
@@ -200,12 +205,12 @@ class PagePermissions extends WireData implements Module {
 	 */
 	protected function processViewable($process) {
 
-		$user = $this->fuel('user');
+		$user = $this->wire('user');
 
 		if($user->isGuest()) return false;
 		if($user->isSuperuser()) return true; 
 
-		$info = $this->fuel('modules')->getModuleInfo($process); 
+		$info = $this->wire('modules')->getModuleInfo($process); 
 		$permissionName = empty($info['permission']) ? '' : $info['permission'];
 
 		// if the process module doesn't explicitely define a permission, 
@@ -225,10 +230,11 @@ class PagePermissions extends WireData implements Module {
 	public function listable($event) {
 
 		$page = $event->object; 
-		$user = $this->fuel('user'); 
+		$user = $this->wire('user'); 
 		$listable = true; 
 
 		if($user->isSuperuser()) $listable = true; 
+			else if($page instanceof User && $user->hasPermission('user-admin')) $listable = true; 
 			else if($page->is(Page::statusUnpublished) && !$page->editable()) $listable = false;
 			else if($page->process && !$this->processViewable($page->process)) $listable = false;
 			else if($page->isTrash()) $listable = false; 
@@ -244,11 +250,14 @@ class PagePermissions extends WireData implements Module {
 	 */
 	public function deleteable($event) {
 		$page = $event->object;
-		$deleteable = $this->pages->isDeleteable($page); 
-		if($deleteable) $deleteable = $page->editable() && $this->user->hasPermission("page-delete", $page);
-		if($deleteable && $page instanceof User) {
-			if($page->id == $this->user->id) $deleteable = false; 
-				else if($page->hasRole('superuser') && !$this->user->hasRole('superuser')) $deleteable = false; 
+		$user = $this->wire('user'); 
+		if($page instanceof User && $user->hasPermission('user-admin')) {
+			$deleteable = true;
+			if($page->id == $user->id) $deleteable = false; // can't delete self
+			if($page->hasRole('superuser') && !$user->hasRole('superuser')) $deleteable = false; // non-superuser can't delete superuser
+		} else { 
+			$deleteable = $this->pages->isDeleteable($page); 
+			if($deleteable) $deleteable = $page->editable() && $user->hasPermission("page-delete", $page);
 		}
 		$event->return = $deleteable;
 	}
@@ -263,7 +272,7 @@ class PagePermissions extends WireData implements Module {
 	public function addable($event) {
 
 		$page = $event->object; 
-		$user = $this->fuel('user'); 
+		$user = $this->wire('user'); 
 		$addable = false; 
 
 		if($page->template->noChildren) {
@@ -272,7 +281,7 @@ class PagePermissions extends WireData implements Module {
 		} else if($user->isSuperuser()) {
 			$addable = true; 
 
-		} else if($page->id == $this->fuel('config')->usersPageID && $user->hasPermission('user-admin')) {
+		} else if($page->id == $this->wire('config')->usersPageID && $user->hasPermission('user-admin')) {
 			// users with user-admin access adding a page to users: add access is assumed
 			// rather than us having a separate 'users' template where access is defined
 			$addable = true; 
@@ -312,18 +321,22 @@ class PagePermissions extends WireData implements Module {
 			// see if the user has access to one of them 
 
 			foreach($page->template->childTemplates as $id) {
-				$template = $this->fuel('templates')->get($id);
+				$template = $this->wire('templates')->get($id);
 				if(!$template->useRoles) $template = $page->getAccessTemplate();
 				//if($user->hasPermission('page-edit', $template)) $has = true;           
 				if($user->hasPermission('page-create', $template)) $has = true;           
 				if($has) break;
 			}
+			
+		} else if($page->id == $this->wire('config')->usersPageID && $user->hasPermission('user-admin')) {
+			// user-admin permission implies create access to the 'user' template
+			$has = true; 
 
 		} else {
 			// page's template does not specify templates for children
 			// so check to see if they have edit access to ANY template that can be used
 
-			foreach($this->fuel('templates') as $template) { 
+			foreach($this->wire('templates') as $template) { 
 				// if($template->noParents) continue; 
 				if($template->parentTemplates && !in_array($page->template->id, $template->parentTemplates)) continue; 
 				// if($template->flags & Template::flagSystem) continue;
@@ -373,7 +386,7 @@ class PagePermissions extends WireData implements Module {
 	 */
 	protected function publishable($event) {
 
-		$user = $this->fuel('user');
+		$user = $this->wire('user');
 		$event->return = true;
 
 		if($user->isSuperuser()) return;

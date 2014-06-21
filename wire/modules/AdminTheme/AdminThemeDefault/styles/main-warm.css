@@ -1532,16 +1532,18 @@ body .ui-tooltip {
 
 /* Overlays */
 .ui-widget-overlay {
-  background: #aaaaaa url(images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x;
-  opacity: .3;
-  filter: Alpha(Opacity=30); }
+  background: #000;
+  /* url(images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x; */
+  opacity: .7;
+  filter: Alpha(Opacity=70); }
 
 .ui-widget-shadow {
   margin: -8px 0 0 -8px;
   padding: 8px;
-  background: #aaaaaa url(images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x;
-  opacity: .3;
-  filter: Alpha(Opacity=30);
+  /*background: #aaaaaa url(images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x;*/
+  background: #000;
+  opacity: .8;
+  filter: Alpha(Opacity=70);
   border-radius: 8px; }
 
 /****************************************************************************************
@@ -2094,12 +2096,15 @@ table {
     padding-bottom: 0.75em;
     background: white;
     border: 1px solid #e6e4d8;
-    color: #a2a2a2; }
+    color: #a2a2a2;
+    /* Add ellipsis to collapsed fields per ceberlin */ }
     .Inputfields .InputfieldStateCollapsed .InputfieldHeader:hover {
       /* style for collapsed header when hovered */
       color: #f64704;
       border-color: #e6e4d8;
       background: white; }
+    .Inputfields .InputfieldStateCollapsed .InputfieldHeader:after {
+      content: " \2026"; }
   .Inputfields .InputfieldStateCollapsed .InputfieldContent {
     /* collapsed Inputfields don't show their content (only header) */
     display: none; }
@@ -2310,18 +2315,21 @@ table {
     background: none;
     border: none; }
 
+.Inputfields > .InputfieldButton,
 .Inputfields > .InputfieldSubmit {
   float: left;
   margin-bottom: 0.5em;
   margin-top: 0; }
 
+.Inputfields .InputfieldButton + .InputfieldButton,
 .Inputfields .InputfieldSubmit + .InputfieldSubmit {
   /* two buttons next to each other */
   float: left;
   margin-left: 0.5em;
   margin-top: 0; }
 
-.Inputfields .Inputfield:not(.InputfieldSubmit) + .InputfieldSubmit {
+.Inputfields .Inputfield:not(.InputfieldSubmit):not(.InputfieldButton) + .InputfieldButton,
+.Inputfields .Inputfield:not(.InputfieldSubmit):not(.InputfieldButton) + .InputfieldSubmit {
   clear: left; }
 
 .Inputfield .LanguageSupport {
@@ -2688,6 +2696,8 @@ body.collapse-wiretabs #breadcrumbs {
   .content .PageListStatusIcon {
     color: #888888;
     font-size: 14px; }
+  .content .actions {
+    line-height: 1.2em; }
   .content ul.actions li,
   .content .PageListActions li,
   .content li.action {
@@ -2705,16 +2715,16 @@ body.collapse-wiretabs #breadcrumbs {
   .content .PageList .actions a,
   .content .PageListMoveNote a {
     /* action links */
-    color: #6f9d0e;
-    background: none;
+    color: white;
+    background: #82be05;
     padding: 0 4px 0 4px;
     display: inline-block;
     font-size: 1em;
     border-radius: 3px;
     border: none !important;
     font-weight: bold; }
-  .content .actions a:hover,
-  .content li.action a:hover,
+  .content li.action a:hover, .content .actions a:hover,
+  .content .PageList .actions a:hover,
   .content .PageListMoveNote a:hover {
     /* action links hovered */
     color: white;
@@ -2724,7 +2734,7 @@ body.collapse-wiretabs #breadcrumbs {
     text-transform: lowercase;
     cursor: move; }
   .content .PageListActionMore a {
-    margin-top: 0.5em; }
+    margin-top: 0.25em; }
   .content .PageListSelectName {
     margin-right: 0.5em; }
     .content .PageListSelectName i {
@@ -2751,11 +2761,15 @@ body.collapse-wiretabs #breadcrumbs {
         color: #f64704; }
         .content .PageList .PageListItem > a.PageListPage i.PageListStatusIcon {
           color: #777; }
+    .content .PageList .PageListItem .PageListLoading {
+      top: 5px; }
   .content .PageList .PageListItemOpen > a.PageListPage {
     color: #f64704;
     background-color: none; }
   .content .PageList .PageListStatusHidden:not(.PageListItemOpen) > a.PageListPage {
     opacity: 0.6; }
+  .content .PageList .PageListStatusTemp:not(.PageListItemOpen) > a.PageListPage {
+    opacity: 0.3; }
   .content .PageList .PageListPlaceholderItem {
     border: none;
     padding: 0; }
@@ -2792,7 +2806,8 @@ body.collapse-wiretabs #breadcrumbs {
     border-left: none;
     padding-left: 0; }
   .content .AdminDataList tr:hover td,
-  .content .AdminDataList tr:hover th {
+  .content .AdminDataList tr:hover th,
+  .content .AdminDataList tr.open td {
     background: #ffffdd; }
   .content .AdminDataList td a {
     color: #6f9d0e; }
@@ -2810,20 +2825,24 @@ body.collapse-wiretabs #breadcrumbs {
     padding: 0;
     margin: 1em 0; }
     .content .MarkupPagerNav li {
-      padding: 0;
       margin: 0;
       list-style: none;
-      display: inline;
-      padding: 6px 0;
-      background: none; }
+      display: inline-block;
+      background: none;
+      padding: 3px 0 0 0; }
       .content .MarkupPagerNav li a {
         padding: 4px 9px;
+        padding: 1px 7px;
         margin: 0;
         text-decoration: none; }
       .content .MarkupPagerNav li.MarkupPagerNavSeparator {
         border: none; }
   .content .PageListPagination {
     padding-top: 0.5em; }
+    .content .PageListPagination li {
+      margin: 0 4px 0 0; }
+      .content .PageListPagination li a {
+        padding: 0 6px; }
   .content .PageListPagination,
   .content .MarkupPagerNav {
     color: text-color;
@@ -2839,8 +2858,7 @@ body.collapse-wiretabs #breadcrumbs {
       -o-border-radius: 3px;
       border-radius: 3px;
       border: none;
-      display: inline-block;
-      padding: 0 6px; }
+      display: inline-block; }
       .content .PageListPagination a:hover,
       .content .MarkupPagerNav a:hover {
         color: white;
@@ -3084,9 +3102,9 @@ body.modal .container {
   max-width: 100%;
   padding-left: 1em;
   padding-right: 1em; }
-body.modal #notices {
+body.modal:not(.hasWireTabs) #notices {
   margin: 1px 0 0.75em 0; }
-  body.modal #notices a.notice-remove {
+  body.modal:not(.hasWireTabs) #notices a.notice-remove {
     display: none; }
 body.modal .content h2 {
   margin: 1em 0 0.5em 0;
@@ -3184,12 +3202,7 @@ body:not(.hasWireTabs) #headline .container {
     padding-left: 10px; }
 
   #fieldgroupContext {
-    display: none; } }
-/* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
-/* Mobile Portrait Size to Mobile Landscape Size (devices and browsers) */
-@media only screen and (max-width: 479px) {
-  #logo {
-    display: block; }
+    display: none; }
 
   /**
    * Disregard column width when at mobile size
@@ -3198,7 +3211,12 @@ body:not(.hasWireTabs) #headline .container {
   .Inputfield {
     clear: both !important;
     width: 100% !important;
-    margin-left: 0 !important; }
+    margin-left: 0 !important; } }
+/* Mobile Landscape Size to Tablet Portrait (devices and browsers) */
+/* Mobile Portrait Size to Mobile Landscape Size (devices and browsers) */
+@media only screen and (max-width: 479px) {
+  #logo {
+    display: block; }
 
   .container {
     width: 100%; }

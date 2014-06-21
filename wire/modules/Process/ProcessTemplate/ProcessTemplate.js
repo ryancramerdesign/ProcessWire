@@ -94,6 +94,7 @@ $(document).ready(function() {
 
 	$("#wrap_redirectLogin input").click(redirectLoginClick); 
 
+	/*
 	// ----------------
 	// family
 
@@ -119,6 +120,7 @@ $(document).ready(function() {
 		}
 	}); 
 	if($("#Inputfield_noParents_1:checked").size() > 0) $("#wrap_Inputfield_parentTemplates").hide();
+	*/
 
 	// ----------------
 

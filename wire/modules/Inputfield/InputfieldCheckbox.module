@@ -114,11 +114,11 @@ class InputfieldCheckbox extends Inputfield {
 	public function ___processInput(WireInputData $input) {
 
 		if(!empty($input[$this->name])) {
-			if(!$this->attr('checked')) $this->trackChange('value'); 
+			if(!$this->attr('checked')) $this->trackChange('value', $this->uncheckedValue, $this->checkedValue); 
 			parent::attr('checked', 'checked'); 
 			parent::attr('value', $this->checkedValue); 
 		} else {
-			if($this->attr('checked')) $this->trackChange('value'); 
+			if($this->attr('checked')) $this->trackChange('value', $this->checkedValue, $this->uncheckedValue); 
 			parent::attr('checked', ''); 
 			parent::attr('value', $this->uncheckedValue); 
 			

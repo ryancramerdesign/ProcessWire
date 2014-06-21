@@ -1,6 +1,6 @@
 ul.Inputfields #wrap_login_name,
 ul.Inputfields #wrap_login_pass {
-	width: 155px; 
+	width: 190px; 
 	clear: none; 
 	float: left;
 	margin-top: 0;
@@ -9,7 +9,7 @@ ul.Inputfields #wrap_login_pass {
 
 ul.Inputfields #login_name,
 ul.Inputfields #login_pass {
-	width: 123px; 	
+	width: 100%; 	
 }
 
 ul.Inputfields .InputfieldSubmit {

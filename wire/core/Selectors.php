@@ -63,6 +63,22 @@ class Selectors extends WireArray {
 	}
 
 	/**
+	 * Import items into this WireArray.
+	 * 
+	 * @throws WireException
+	 * @param string|WireArray $items Items to import.
+	 * @return WireArray This instance.
+	 *
+	 */
+	public function import($items) {
+		if(is_string($items)) {
+			$this->extractString($items); 	
+		} else {
+			return parent::import($items); 
+		}
+	}
+
+	/**
 	 * Per WireArray interface, return true if the item is a Selector instance
 	 *
 	 */
@@ -75,7 +91,7 @@ class Selectors extends WireArray {
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Selector();
+		return new SelectorEqual('','');
 	}
 
 	/**
@@ -114,9 +130,12 @@ class Selectors extends WireArray {
 	static public function stringHasOperator($str) {
 		$has = false;
 		foreach(self::$selectorTypes as $operator => $unused) {
+			if($operator == '&') continue; // this operator is too common in other contexts
 			if(strpos($str, $operator) !== false) {
-				$has = true;
-				break;
+				if(preg_match('/\b[_a-zA-Z0-9]+' . preg_quote($operator) . '/', $str)) {
+					$has = true;
+					break;
+				}
 			}	
 		}
 		return $has; 
@@ -184,13 +203,26 @@ class Selectors extends WireArray {
 		$cnt = 0; 
 		
 		while(strlen($str)) {
-		
+
+			$quote = '';	
+			$group = $this->extractGroup($str); 	
 			$field = $this->extractField($str); 
 			$operator = $this->extractOperator($str, $this->getOperatorChars());
-			$value = $this->extractValue($str); 
+			$value = $this->extractValue($str, $quote); 
+
+			if($quote == '[' && !self::stringHasOperator($value)) {
+				// parse an API variable property to a string value
+				$v = $this->parseValue($value); 
+				if($v !== null) {
+					$value = $v;
+					$quote = '';
+				}
+			}
 
 			if($field || strlen("$value")) {
 				$selector = $this->create($field, $operator, $value);
+				if(!is_null($group)) $selector->group = $group; 
+				if($quote) $selector->quote = $quote; 
 				$this->add($selector); 
 			}
 
@@ -198,7 +230,29 @@ class Selectors extends WireArray {
 		}
 
 	}
-
+	
+	/**
+	 * Given a string like name@field=... or @field=... extract the part that comes before the @
+	 *
+	 * This part indicates the group name, which may also be blank to indicate grouping with other blank grouped items
+	 *
+	 * @param string $str
+	 * @return null|string
+	 *
+	 */
+	protected function extractGroup(&$str) {
+		$group = null;
+		$pos = strpos($str, '@'); 
+		if($pos === false) return $group; 
+		if($pos === 0) {
+			$group = '';
+			$str = substr($str, 1); 
+		} else if(preg_match('/^([-_a-zA-Z0-9]*)@(.*)/', $str, $matches)) {
+			$group = $matches[1]; 
+			$str = $matches[2];
+		}
+		return $group; 
+	}
 
 	/**
 	 * Given a string starting with a field, return that field, and remove it from $str. 
@@ -206,6 +260,12 @@ class Selectors extends WireArray {
 	 */
 	protected function extractField(&$str) {
 		$field = '';
+		
+		if(strpos($str, '(') === 0) {
+			// OR selector where specification of field name is optional and = operator is assumed
+			$str = '=(' . substr($str, 1); 
+			return $field; 
+		}
 
 		if(preg_match('/^(!?[_|.a-zA-Z0-9]+)(.*)/', $str, $matches)) {
 
@@ -240,17 +300,32 @@ class Selectors extends WireArray {
 	/**
 	 * Given a string starting with a value, return that value, and remove it from $str. 
 	 *
+	 * @param string $str String to extract value from
+	 * @param string $quote Automatically populated with quote type, if found
+	 * @return array|string Found values or value (excluding quotes)
+	 *
 	 */
-	protected function extractValue(&$str) {
+	protected function extractValue(&$str, &$quote) {
 
 		$str = trim($str); 
 		if(!strlen($str)) return '';
+		$quotes = array(
+			// opening => closing
+			'"' => '"', 
+			"'" => "'", 
+			'[' => ']', 
+			'{' => '}', 
+			'(' => ')', 
+			);
 
-		if($str[0] == '"' || $str[0] == "'") {
+		// if($str[0] == '"' || $str[0] == "'") {
+		if(in_array($str[0], array_keys($quotes))) {
 			$openingQuote = $str[0]; 
+			$closingQuote = $quotes[$openingQuote];
 			$n = 1; 
 		} else {
 			$openingQuote = '';
+			$closingQuote = '';
 			$n = 0; 
 		}
 
@@ -265,13 +340,14 @@ class Selectors extends WireArray {
 			if($openingQuote) {
 				// we are in a quoted value string
 
-				if($c == $openingQuote) {
+				if($c == $closingQuote) { // reference closing quote
 
 					if($lastc != '\\') {
 						// same quote that opened, and not escaped
 						// means the end of the value
 
 						$n++; // skip over quote 
+						$quote = $openingQuote; 
 						break;
 
 					} else {
@@ -303,19 +379,40 @@ class Selectors extends WireArray {
 		} while(++$n < self::maxValueLength); 
 
 		if(strlen("$value")) $str = substr($str, $n);
-		$str = ltrim($str, ' ,"\''); // should be executed even if blank value
+		$str = ltrim($str, ' ,"\']})'); // should be executed even if blank value
 
 		// check if a pipe character is present next, indicating an OR value may be provided
 		if(strlen($str) > 1 && substr($str, 0, 1) == '|') {
 			$str = substr($str, 1); 
 			// perform a recursive extract to account for all OR values
-			$v = $this->extractValue($str); 
+			$v = $this->extractValue($str, $quote); 
+			$quote = ''; // we don't support separately quoted OR values
 			$value = array($value); 
 			if(is_array($v)) $value = array_merge($value, $v); 
 				else $value[] = $v; 
 		}
 
 		return $value; 
+	}
+
+	/**
+	 * Given a value string with an "api_var" or "api_var.property" return the string value of the property
+	 *
+	 * @param string $value var or var.property
+	 * @return null|string Returns null if it doesn't resolve to anything or a string of the value it resolves to
+	 *
+	 */
+	public function parseValue($value) {
+		if(!preg_match('/^\$?[_a-zA-Z0-9]+(?:\.[_a-zA-Z0-9]+)?$/', $value)) return null;
+		$property = '';
+		if(strpos($value, '.')) list($value, $property) = explode('.', $value); 
+		$allowed = array('session', 'page', 'user'); // @todo make the whitelist configurable
+		if(!in_array($value, $allowed)) return null; 
+		$value = $this->wire($value); 
+		if(is_null($value)) return null; // does not resolve to API var
+		if(empty($property)) return (string) $value;  // no property requested, just return string value 
+		if(!is_object($value)) return null; // property requested, but value is not an object
+		return (string) $value->$property; 
 	}
 
 	public function __toString() {

@@ -33,7 +33,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 4; 
-	const versionRevision = 0; 
+	const versionRevision = 5; 
 	
 	const statusBoot = 0; // system is booting
 	const statusInit = 2; // system and modules are initializing
@@ -41,12 +41,15 @@ class ProcessWire extends Wire {
 	const statusRender = 8; // $page's template is being rendered
 	const statusFinished = 16; // request has been delivered
 	const statusFailed = 1024; // request failed due to exception or 404
+	
+	protected $debug = false; 
 
 	/**
 	 * Given a Config object, instantiates ProcessWire and it's API
  	 *
 	 */ 
 	public function __construct(Config $config) {
+		$this->debug = $config->debug; 
 		$this->config($config); 
 		$this->load($config);
 	}
@@ -71,7 +74,7 @@ class ProcessWire extends Wire {
 		if(!$config->templateExtension) $config->templateExtension = 'php';
 		if(!$config->httpHost) $config->httpHost = $this->getHttpHost($config); 
 
-		$config->https = !empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on'; 
+		$config->https = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
 		$config->ajax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest');
 		$config->version = self::versionMajor . "." . self::versionMinor . "." . self::versionRevision; 
 		$this->setStatus(self::statusBoot);
@@ -89,9 +92,13 @@ class ProcessWire extends Wire {
 
 		if(is_array($httpHosts) && count($httpHosts)) {
 			// validate from an allowed whitelist of http hosts
-
-			$key = array_search(strtolower($_SERVER['SERVER_NAME']) . $port, $httpHosts, true); 
-			if($key === false) $key = array_search(strtolower($_SERVER['HTTP_HOST']), $httpHosts, true); 
+			$key = false; 
+			if(isset($_SERVER['SERVER_NAME'])) {
+				$key = array_search(strtolower($_SERVER['SERVER_NAME']) . $port, $httpHosts, true); 
+			}
+			if($key === false && isset($_SERVER['HTTP_HOST'])) {
+				$key = array_search(strtolower($_SERVER['HTTP_HOST']), $httpHosts, true); 
+			}
 			if($key === false) {
 				// no valid host found, default to first in whitelist
 				$host = reset($httpHosts);
@@ -127,6 +134,11 @@ class ProcessWire extends Wire {
  	 *
 	 */
 	public function load(Config $config) {
+		
+		if($this->debug) {
+			Debug::timer('boot'); 
+			Debug::timer('boot.load'); 
+		}
 
 		$this->wire('wire', $this, true);
 		$this->wire('log', new WireLog(), true); 
@@ -142,10 +154,18 @@ class ProcessWire extends Wire {
 			// catch and re-throw to prevent DB connect info from ever appearing in debug backtrace
 			throw new WireDatabaseException($e->getMessage()); 
 		}
+		
+		$cache = new WireCache(); 
+		$this->wire('cache', $cache); 
 
-		$modules = new Modules($config->paths->modules, $config->paths->siteModules);
-		Wire::setFuel('modules', $modules, true); 
-
+		try { 		
+			if($this->debug) Debug::timer('boot.load.modules');
+			$modules = new Modules($config->paths->modules, $config->paths->siteModules);
+			if($this->debug) Debug::saveTimer('boot.load.modules');
+			$this->wire('modules', $modules, true); 
+		} catch(Exception $e) {
+			$this->error($e->getMessage()); 
+		}
 		$updater = $modules->get('SystemUpdater'); 
 		if(!$updater) {
 			$modules->resetCache();
@@ -165,22 +185,29 @@ class ProcessWire extends Wire {
 		$pages = new Pages();
 		$this->wire('pages', $pages, true);
 
-		$fieldtypes->init();
-		$fields->init();
-		$fieldgroups->init();
-		$templates->init();
-
+		$this->initVar('fieldtypes', $fieldtypes);
+		$this->initVar('fields', $fields);
+		$this->initVar('fieldgroups', $fieldgroups);
+		$this->initVar('templates', $templates);
+		$this->initVar('pages', $pages); 
+	
+		if($this->debug) Debug::timer('boot.load.permissions'); 
 		if(!$t = $templates->get('permission')) throw new WireException("Missing system template: 'permission'"); 
 		$permissions = new Permissions($t, $config->permissionsPageID); 
-		$this->wire('permissions', $permissions, true); 
+		$this->wire('permissions', $permissions, true);
+		if($this->debug) Debug::saveTimer('boot.load.permissions');
 
+		if($this->debug) Debug::timer('boot.load.roles'); 
 		if(!$t = $templates->get('role')) throw new WireException("Missing system template: 'role'"); 
 		$roles = new Roles($t, $config->rolesPageID); 
-		$this->wire('roles', $roles, true); 
+		$this->wire('roles', $roles, true);
+		if($this->debug) Debug::saveTimer('boot.load.roles');
 
+		if($this->debug) Debug::timer('boot.load.users'); 
 		if(!$t = $templates->get('user')) throw new WireException("Missing system template: 'user'"); 
 		$users = new Users($t, $config->usersPageID); 
-		$this->wire('users', $users, true); 
+		$this->wire('users', $users, true);
+		if($this->debug) Debug::saveTimer('boot.load.users'); 
 
 		// the current user can only be determined after the session has been initiated
 		$session = new Session(); 
@@ -189,9 +216,23 @@ class ProcessWire extends Wire {
 		$this->wire('input', new WireInput(), true); 
 
 		// populate admin URL before modules init()
-		$config->urls->admin = $config->urls->root . ltrim($pages->_path($config->adminRootPageID), '/'); 
+		$config->urls->admin = $config->urls->root . ltrim($pages->_path($config->adminRootPageID), '/');
 
+		if($this->debug) Debug::saveTimer('boot.load', 'includes all boot.load timers');
 		$this->setStatus(self::statusInit);
+	}
+	
+	/**
+	 * Initialize the given API var
+	 * 
+	 * @param string $name
+	 * @param Wire $value
+	 * 
+	 */
+	protected function initVar($name, $value) {
+		if($this->debug) Debug::timer("boot.load.$name");
+		$value->init();
+		if($this->debug) Debug::saveTimer("boot.load.$name"); 
 	}
 
 	/**
@@ -209,11 +250,43 @@ class ProcessWire extends Wire {
 		$config->status = $status;
 		
 		if($status == self::statusInit) {
-			$this->wire('modules')->triggerInit();
+			$this->init();
 			
 		} else if($status == self::statusReady) {
-			$this->wire('modules')->triggerReady();
+			$this->ready();
+			if($this->debug) Debug::saveTimer('boot', 'includes all boot timers'); 
+			
+		} else if($status == self::statusFinished) {
+			$this->finished();
 		}
+	}
+
+	/**
+	 * Hookable init for anyone that wants to hook immediately before any autoload modules initialized or after all modules initialized
+	 * 
+	 */
+	protected function ___init() {
+		if($this->debug) Debug::timer('boot.modules.autoload.init'); 
+		$this->wire('modules')->triggerInit();
+		if($this->debug) Debug::saveTimer('boot.modules.autoload.init'); 
+	}
+
+	/**
+	 * Hookable ready for anyone that wants to hook immediately before any autoload modules ready or after all modules ready
+	 *
+	 */
+	protected function ___ready() {
+		if($this->debug) Debug::timer('boot.modules.autoload.ready'); 
+		$this->wire('modules')->triggerReady();
+		if($this->debug) Debug::saveTimer('boot.modules.autoload.ready'); 
+	}
+
+	/**
+	 * Hookable ready for anyone that wants to hook when the request is finished
+	 *
+	 */
+	protected function ___finished() {
+		$this->wire('cache')->maintenance();
 	}
 
 	/**

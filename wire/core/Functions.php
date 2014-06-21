@@ -177,14 +177,20 @@ function wireDecodeJSON($json) {
  * Create a directory that is writable to ProcessWire and uses the $config chmod settings
  * 
  * @param string $path
+ * @param bool $recursive If set to true, all directories will be created as needed to reach the end. 
  * @return bool
  *
  */ 
-function wireMkdir($path) {
-	// @todo make this function support a $recursive option
-	if(!is_dir($path)) if(!@mkdir($path)) return false;
+function wireMkdir($path, $recursive = false) {
+	if(!is_dir($path)) {
+		if($recursive) {
+			$parentPath = substr($path, 0, strrpos(rtrim($path, '/'), '/')); 
+			if(!is_dir($parentPath) && !wireMkdir($parentPath, true)) return false;
+		}
+		if(!@mkdir($path)) return false;
+	}
 	$chmodDir = wire('config')->chmodDir;
-	if($chmodDir) chmod($path, octdec($chmodDir));
+	if($chmodDir) @chmod($path, octdec($chmodDir));
 	return true; 
 }
 
@@ -222,6 +228,7 @@ function wireRmdir($path, $recursive = false) {
  * @param string If you want to set the mode to something other than PW's chmodFile/chmodDir settings, 
 	you may override it by specifying it here. Ignored otherwise. Format should be a string, like "0755".
  * @return bool Returns true if all changes were successful, or false if at least one chmod failed. 
+ * @throws WireException when it receives incorrect chmod format
  *
  */ 
 function wireChmod($path, $recursive = false, $chmod = null) {
@@ -241,13 +248,13 @@ function wireChmod($path, $recursive = false, $chmod = null) {
 
 	if(is_dir($path)) {
 		// $path is a directory
-		if($chmodDir) if(!chmod($path, octdec($chmodDir))) $numFails++;
+		if($chmodDir) if(!@chmod($path, octdec($chmodDir))) $numFails++;
 
 		// change mode of files in directory, if recursive
 		if($recursive) foreach(new DirectoryIterator($path) as $file) {
 			if($file->isDot()) continue; 
 			$mod = $file->isDir() ? $chmodDir : $chmodFile;     
-			if($mod) if(!chmod($file->getPathname(), octdec($mod))) $numFails++;
+			if($mod) if(!@chmod($file->getPathname(), octdec($mod))) $numFails++;
 			if($file->isDir()) {
 				if(!wireChmod($file->getPathname(), true, $chmod)) $numFails++;
 			}
@@ -288,7 +295,7 @@ function wireCopy($src, $dst, $recursive = true) {
 		} else {
 			copy($src . $file, $dst . $file);
 			$chmodFile = wire('config')->chmodFile;
-			if($chmodFile) chmod($dst . $file, octdec($chmodFile));
+			if($chmodFile) @chmod($dst . $file, octdec($chmodFile));
 		}
 	}
 
@@ -299,8 +306,8 @@ function wireCopy($src, $dst, $recursive = true) {
 /**
  * Unzips the given ZIP file to the destination directory
  * 
- * @param $file ZIP file to extract
- * @param $dst Directory where files should be unzipped into. Directory is created if it doesn't exist.
+ * @param string $file ZIP file to extract
+ * @param string $dst Directory where files should be unzipped into. Directory is created if it doesn't exist.
  * @return array Returns an array of filenames (excluding $dst) that were unzipped.
  * @throws WireException All error conditions result in WireException being thrown.
  * 
@@ -311,7 +318,7 @@ function wireUnzipFile($file, $dst) {
 	
 	if(!class_exists('ZipArchive')) throw new WireException("PHP's ZipArchive class does not exist"); 
 	if(!is_file($file)) throw new WireException("ZIP file does not exist"); 
-	if(!is_dir($dst)) wireMkdir($dst);	
+	if(!is_dir($dst)) wireMkdir($dst, true);	
 	
 	$names = array();
 	$chmodFile = wire('config')->chmodFile; 
@@ -398,7 +405,7 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
 		header("content-disposition: attachment; filename=\"$downloadFilename\"");
 	}
 
-	@ob_clean();
+	@ob_end_clean();
 	@flush();
 	readfile($filename);
 	if($options['exit']) exit;
@@ -514,7 +521,7 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 	$lengths = array("60","60","24","7","4.35","12","10");
 	$now = time();
 	if(!ctype_digit("$ts")) $ts = strtotime($ts);
-	if(empty($ts)) return "Bad date";
+	if(empty($ts)) return "";
 
 	// is it future date or past date
 	if($now > $ts) {    
@@ -540,3 +547,204 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 	return sprintf('%s%d%s%s %s', $prepend, (int) $difference, $space, $period, $tense); // i.e. 2 days ago (d=qty, 2=period, 3=tense)
 }
 
+
+/**
+ * Send an email or retrieve the mailer object
+ *
+ * Note 1: The order of arguments is different from PHP's mail() function. 
+ * Note 2: If no arguments are specified it simply returns a WireMail object (see #4 below).
+ *
+ * This function will attempt to use an installed module that extends WireMail.
+ * If no module is installed, WireMail (which uses PHP mail) will be used instead.
+ *
+ * This function can be called in these ways:
+ *
+ * 1. Default usage: 
+ * 
+ *    wireMail($to, $from, $subject, $body, $options); 
+ * 
+ *
+ * 2. Specify body and/or bodyHTML in $options array (perhaps with other options): 
+ * 
+ *    wireMail($to, $from, $subject, $options); 
+ *
+ *
+ * 3. Specify both $body and $bodyHTML as arguments, but no $options: 
+ * 
+ *    wireMail($to, $from, $subject, $body, $bodyHTML); 
+ * 
+ *
+ * 4. Specify a blank call to wireMail() to get the WireMail sending object. This can
+ *    be either WireMail() or a class descending from it. If a WireMail descending
+ *    module is installed, it will be returned rather than WireMail():
+ * 
+ *    $mail = wireMail(); 
+ *    $mail->to('user@domain.com')->from('you@company.com'); 
+ *    $mail->subject('Mail Subject')->body('Mail Body Text')->bodyHTML('Body HTML'); 
+ *    $numSent = $mail->send();
+ * 
+ *
+ * @param string|array $to Email address TO. For multiple, specify CSV string or array. 
+ * @param string $from Email address FROM. This may be an email address, or a combined name and email address. 
+ *	Example of combined name and email: Karen Cramer <karen@processwire.com>
+ * @param string $subject Email subject
+ * @param string|array $body Email body or omit to move straight to $options
+ * @param array|string $options Array of options OR the $bodyHTML string. Array $options are:
+ * 	body: string
+ * 	bodyHTML: string
+ * 	headers: associative array of header name => header value
+ *	Any additional options will be sent along to the WireMail module or class, in tact.
+ * @return int|WireMail Returns number of messages sent or WireMail object if no arguments specified. 
+ *
+ */
+
+function wireMail($to = '', $from = '', $subject = '', $body = '', $options = array()) { 
+
+	$mail = null; 
+	$modules = wire('modules'); 
+
+	// attempt to locate an installed module that overrides WireMail
+	foreach($modules as $module) {
+		$parents = class_parents("$module"); 
+		if(in_array('WireMail', $parents) && $modules->isInstalled("$module")) { 
+			$mail = wire('modules')->get("$module"); 
+			break;
+		}
+	}
+	// if no module found, default to WireMail
+	if(is_null($mail)) $mail = new WireMail(); 
+
+	// reset just in case module was not singular
+	$mail->to(); 
+
+	if(empty($to)) {
+		// use case #4: no arguments supplied, just return the WireMail object
+		return $mail;
+	}
+
+	$defaults = array(
+		'body' => $body, 
+		'bodyHTML' => '', 
+		'headers' => array(), 
+		); 
+
+	if(is_array($body)) {
+		// use case #2: body is provided in $options
+		$options = $body; 
+	} else if(is_string($options)) {
+		// use case #3: body and bodyHTML are provided, but no $options
+		$options = array('bodyHTML' => $options); 
+	} else {
+		// use case #1: default behavior
+	}
+		
+	$options = array_merge($defaults, $options); 
+
+	try {
+		// configure the mail
+		$mail->to($to)->from($from)->subject($subject)->body($options['body']); 
+		if(strlen($options['bodyHTML'])) $mail->bodyHTML($options['bodyHTML']); 
+		if(count($options['headers'])) foreach($options['headers'] as $k => $v) $mail->header($k, $v); 
+		// send along any options we don't recognize
+		foreach($options as $key => $value) {
+			if(!array_key_exists($key, $defaults)) $mail->$key = $value; 
+		}
+		$numSent = $mail->send(); 
+
+	} catch(Exception $e) {
+		if(wire('config')->debug) $mail->error($e->getMessage());
+		$numSent = 0;
+	}
+
+	return $numSent; 	
+}
+
+
+/**
+ * Given a string $str and values $vars, replace tags in the string with the values
+ *
+ * The $vars may also be an object, in which case values will be pulled as properties of the object. 
+ *
+ * By default, tags are specified in the format: {first_name} where first_name is the name of the
+ * variable to pull from $vars, '{' is the opening tag character, and '}' is the closing tag char.
+ *
+ * The tag parser can also handle subfields and OR tags, if $vars is an object that supports that.
+ * For instance {products.title} is a subfield, and {first_name|title|name} is an OR tag. 
+ *
+ * @param string $str The string to operate on (where the {tags} might be found)
+ * @param WireData|object|array Object or associative array to pull replacement values from. 
+ * @param array $options Array of optional changes to default behavior, including: 
+ * 	- tagOpen: The required opening tag character(s), default is '{'
+ *	- tagClose: The optional closing tag character(s), default is '}'
+ *	- recursive: If replacement value contains tags, populate those too? Default=false. 
+ *	- removeNullTags: If a tag resolves to a NULL, remove it? If false, tag will remain. Default=true. 
+ *	- entityEncode: Entity encode the values pulled from $vars? Default=false. 
+ *	- entityDecode: Entity decode the values pulled from $vars? Default=false.
+ * @return string String with tags populated. 
+ *
+ */
+function wirePopulateStringTags($str, $vars, array $options = array()) {
+
+	$defaults = array(
+		// opening tag (required)
+		'tagOpen' => '{', 
+		// closing tag (optional)
+		'tagClose' => '}', 
+		// if replacement value contains tags, populate those too?
+		'recursive' => false, 
+		// if a tag value resolves to a NULL, remove it? If false, tag will be left in tact.
+		'removeNullTags' => true, 
+		// entity encode values pulled from $vars?
+		'entityEncode' => false, 	
+		// entity decode values pulled from $vars?
+		'entityDecode' => false, 
+		);
+
+	$options = array_merge($defaults, $options); 
+
+	// check if this string even needs anything populated
+	if(strpos($str, $options['tagOpen']) === false) return $str; 
+	if(strlen($options['tagClose']) && strpos($str, $options['tagClose']) === false) return $str; 
+
+	// find all tags
+	$tagOpen = preg_quote($options['tagOpen']);
+	$tagClose = preg_quote($options['tagClose']); 
+	$numFound = preg_match_all('/' . $tagOpen . '([-_.|a-zA-Z0-9]+)' . $tagClose . '/', $str, $matches);
+	if(!$numFound) return $str; 
+	$replacements = array();
+
+	// create a list of replacements by finding replacement values in $vars
+	foreach($matches[1] as $key => $fieldName) {
+
+		$tag = $matches[0][$key];
+		if(isset($replacements[$tag])) continue; // if already found, don't continue
+		$fieldValue = null;
+
+		if(is_object($vars)) {
+			if($vars instanceof WireData) $fieldValue = $vars->get($fieldName); 
+				else $fieldValue = $vars->$fieldName; 
+		} else if(is_array($vars)) {
+			$fieldValue = isset($vars[$fieldName]) ? $vars[$fieldName] : null;
+		}
+
+		if($options['entityEncode']) $fieldValue = htmlentities($fieldValue, ENT_QUOTES, 'UTF-8', false); 
+		if($options['entityDecode']) $fieldValue = html_entity_decode($fieldValue, ENT_QUOTES, 'UTF-8'); 
+
+		$replacements[$tag] = $fieldValue; 
+	}
+
+	// replace the tags 
+	foreach($replacements as $tag => $value) {
+
+		// populate tags recursively, if asked to do so
+		if($options['recursive'] && strpos($value, $options['tagOpen'])) {
+			$opt = array_merge($options, array('recursive' => false)); // don't go recursive beyond 1 level
+			$value = wirePopulateStringTags($value, $vars, $opt); 
+		}
+
+		// replace tags with replacement values
+		$str = str_replace($tag, $value, $str); 
+	}
+
+	return $str; 
+}

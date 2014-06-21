@@ -84,12 +84,18 @@
 			</tr>
 			</thead>
 			<tbody>
-			<?php 
+			<?php
+			$numLoaded = 0;
+			$numSkipped = 0;
 			foreach($modules as $module) {
-				if($module instanceof ModulePlaceholder) continue; 
-				$info = $module->getModuleInfo();
+				if($module instanceof ModulePlaceholder) {
+					$numSkipped++;
+					continue; 
+				}
+				$numLoaded++;
+				$info = $modules->getModuleInfo($module, array('verbose' => false));
 				echo "<tr>";
-				echo "<td>" . get_class($module) . "</td>"; 
+				echo "<td>$info[name]</td>"; 
 				echo "<td>$info[version]</td>";
 				echo "<td>$info[title]</td>";
 				echo "</tr>";
@@ -97,6 +103,10 @@
 			?>
 			</tbody>
 			</table>
+			<p class='description'><?php echo 
+				sprintf(__('%d modules loaded', __FILE__), $numLoaded) . ' / ' . 
+				sprintf(__('%d not loaded', __FILE__), $numSkipped); 
+			?></p>
 			</div>
 		</div>
 
@@ -145,6 +155,25 @@
 			<?php foreach(WireDatabasePDO::getQueryLog() as $n => $sql) echo "\n<tr><th>$n</th><td>$sql</td></tr>"; ?>
 			</tbody>
 			</table>
+			</div>
+		</div>
+		
+		<div class="container">
+			<h3><a href='#'><?php echo __('Timers', __FILE__); ?></a></h3>
+			<div>
+				<table>
+					<tbody>
+					<?php 
+					$timers = Debug::getSavedTimers();
+					foreach($timers as $name => $timer) echo "\n<tr><th>$name</th><td>$timer</td></tr>"; ?>
+					</tbody>
+				</table>
+				<p class='description'>To add more timers here&hellip;</p>
+				<pre>
+Debug::timer('timer-name'); // start timer, you make up the name
+execute_some_code(); // any amount of code you want to time
+Debug::saveTimer('timer-name', 'optional notes'); // stop and save timer
+				</pre>
 			</div>
 		</div>
 

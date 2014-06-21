@@ -55,7 +55,7 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Markup RSS Feed', 
-			'version' => 101, 
+			'version' => 102, 
 			'summary' => 'Renders an RSS feed. Given a PageArray, renders an RSS feed of them.',
 			'permanent' => false, 
 			'singular' => false, 
@@ -97,7 +97,7 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 						"\t<title>{$this->title}</title>\n" . 
 						"\t<link>{$this->url}</link>\n" . 
 						"\t<description>{$this->description}</description>\n" . 
-						"\t<pubDate>" . date(DATE_RFC2822) . "</pubDate>\n";
+						"\t<pubDate>" . date(DATE_RSS) . "</pubDate>\n";
 
                 if($this->copyright) $out .= "\t<copyright>{$this->copyright}</copyright>\n";
                 if($this->ttl) $out .= "\t<ttl>{$this->ttl}</ttl>\n";
@@ -113,20 +113,23 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 
 		$title = strip_tags($page->get($this->itemTitleField));
 		if(empty($title)) return '';
+		$title = html_entity_decode($title, ENT_QUOTES, 'UTF-8'); 
+		$title = htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); 
+		$title = str_replace('&#039;', '&apos;', $title); 
 
 		if($this->itemDateField && ($ts = $page->getUnformatted($this->itemDateField))) {
-			$pubDate = "\t\t<pubDate>" . date(DATE_RFC2822, $ts) . "</pubDate>\n";
+			$pubDate = "\t\t<pubDate>" . date(DATE_RSS, $ts) . "</pubDate>\n";
 		} else {
 			$pubDate = '';
 		}
 	
 		$author = '';
 		if($this->itemAuthorField) {
-				$author = $page->getUnformatted($this->itemAuthorField); 
-				if(strlen($author)) {
-					$author = $this->wire('sanitizer')->entities($author); 
-					$author = "\t\t<$this->itemAuthorElement>$author</$this->itemAuthorElement>\n";	
-				} else $author = '';
+			$author = $page->getUnformatted($this->itemAuthorField); 
+			if(strlen($author)) {
+				$author = $this->wire('sanitizer')->entities($author); 
+				$author = "\t\t<$this->itemAuthorElement>$author</$this->itemAuthorElement>\n";	
+			} else $author = '';
 		}
 
 		$description = $page->get($this->itemDescriptionField); 
@@ -157,9 +160,9 @@ class MarkupRSS extends WireData implements Module, ConfigurableModule {
 		foreach($this->feedPages as $page) {
 			if(!$page->viewable()) continue;
 			$out .= $this->renderItem($page);
-                }
+		}
 
-                $out .= "</channel>\n</rss>\n";
+		$out .= "</channel>\n</rss>\n";
 
 		return $out; 
 	}

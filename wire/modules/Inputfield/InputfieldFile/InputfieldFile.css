@@ -79,11 +79,17 @@
 	ul.InputfieldFileList li .InputfieldFileTags,
 	ul.InputfieldFileList li .InputfieldFileDescription {
 		font-weight: normal;
+		margin: 0;
+		/*
+		padding: 0 1em 1em 1em;
+		*/
+		/*
 		margin: -0.25em 0 0 0;
+		*/
 	}
 		ul.InputfieldFileList li .InputfieldFileTags input,
 		ul.InputfieldFileList li .InputfieldFileDescription input {
-			width: 99.5%; 
+			width: 100%; 
 		}
 
 		ul.InputfieldFileList li .InputfieldFileTags input {
@@ -104,8 +110,9 @@
 	display: block;
 }
 
-.InputfieldFileUpload {
+.Inputfields .InputfieldFileUpload {
 	position: relative;
+	margin: 0; 
 }
 	.InputfieldFileUpload input[type=file] {
 		display: block;
@@ -137,4 +144,28 @@
 	margin: 3px 5px;
 }
 
+.InputfieldFileLanguageSupport .LanguageSupport {
+	float: left; 
+	padding: 0;
+}
 
+.InputfieldFileLanguageSupport .LanguageSupport {
+	padding-right: 0.5em;
+}
+
+@media only screen and (max-width: 767px) {
+	.InputfieldFileLanguageSupport .LanguageSupport {
+		float: none; 
+		display: block;
+		padding: 0;
+		width: 100% !important; 
+	}
+}
+
+.InputfieldFileLanguageSupport.stacked .LanguageSupport {
+	/* same as above, but a class for JS to apply */
+	float: none;
+	display: block;
+	padding: 0;
+	width: 100% !important;
+}

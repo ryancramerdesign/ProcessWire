@@ -49,12 +49,6 @@ class Session extends Wire implements IteratorAggregate {
 	protected $CSRF = null; 
 
 	/**
-	 * IP address of current session in integer format (used as cache by getIP function)
-	 *
-	 */
-	private $ip = null;
-
-	/**
 	 * Start the session and set the current User if a session is active
 	 *
 	 * Assumes that you have already performed all session-specific ini_set() and session_name() calls 
@@ -181,7 +175,7 @@ class Session extends Wire implements IteratorAggregate {
 	public function set($key, $value) {
 		$className = $this->className();
 		$oldValue = $this->get($key); 
-		if($value !== $oldValue) $this->trackChange($key); 
+		if($value !== $oldValue) $this->trackChange($key, $oldValue, $value); 
 		$_SESSION[$className][$key] = $value; 
 		return $this; 
 	}
@@ -226,20 +220,26 @@ class Session extends Wire implements IteratorAggregate {
 	 * Get the IP address of the current user
 	 * 
 	 * @param bool $int Return as a long integer for DB storage? (default=false)
-	 * @return string
+	 * @param bool $useClient Give preference to client headers for IP? HTTP_CLIENT_IP and HTTP_X_FORWARDED_FOR (default=false)
+	 * @return string|int Returns string by default, or integer if $int argument indicates to.
 	 *
 	 */
-	public function getIP($int = false) {
-		if(is_null($this->ip)) { 
+	public function getIP($int = false, $useClient = false) {
+
+		if($useClient) { 
 			if(!empty($_SERVER['HTTP_CLIENT_IP'])) $ip = $_SERVER['HTTP_CLIENT_IP']; 
 				else if(!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
 				else if(!empty($_SERVER['REMOTE_ADDR'])) $ip = $_SERVER['REMOTE_ADDR']; 
-				else $ip = '';
-			$ip = ip2long($ip);
-			$this->ip = $ip;
+				else $ip = '0.0.0.0';
+			// It's possible for X_FORWARDED_FOR to have more than one CSV separated IP address, per @tuomassalo
+			if(strpos($ip, ',') !== false) list($ip) = explode(',', $ip); 
+
 		} else {
-			$ip = $this->ip; 
+			$ip = $_SERVER['REMOTE_ADDR']; 
 		}
+
+		// sanitize by converting to and from integer
+		$ip = ip2long($ip);
 		if(!$int) $ip = long2ip($ip);
 		return $ip;
 	}
@@ -258,12 +258,12 @@ class Session extends Wire implements IteratorAggregate {
 
 		if(!$this->allowLogin($name)) return null;
 
-		$name = $this->fuel('sanitizer')->username($name); 
-		$user = $this->fuel('users')->get("name=$name"); 
+		$name = $this->wire('sanitizer')->username($name); 
+		$user = $this->wire('users')->get("name=$name"); 
 
 		if($user->id && $this->authenticate($user, $pass)) { 
 
-			$this->trackChange('login'); 
+			$this->trackChange('login', $this->wire('user'), $user); 
 			session_regenerate_id(true);
 			$this->set('_user_id', $user->id); 
 			$this->set('_user_ts', time());
@@ -283,12 +283,21 @@ class Session extends Wire implements IteratorAggregate {
 
 			$this->setFuel('user', $user); 
 			$this->get('CSRF')->resetToken();
+			$this->loginSuccess($user); 
 
 			return $user; 
 		}
 
 		return null; 
 	}
+
+	/**
+	 * Login success method for hooks
+	 *
+	 * @param User $user
+	 *
+	 */
+	protected function ___loginSuccess(User $user) { }
 
 	/**
 	 * Allow the user $name to login?
@@ -331,11 +340,21 @@ class Session extends Wire implements IteratorAggregate {
 		$this->init();
 		session_regenerate_id(true);
 		$_SESSION[$this->className()] = array();
-		$guest = $this->fuel('users')->getGuestUser();
-		$this->fuel('users')->setCurrentUser($guest); 
-		$this->trackChange('logout'); 
+		$user = $this->wire('user'); 
+		$guest = $this->wire('users')->getGuestUser();
+		$this->wire('users')->setCurrentUser($guest); 
+		$this->trackChange('logout', $user, $guest); 
+		if($user) $this->logoutSuccess($user); 
 		return $this; 
 	}
+
+	/**
+	 * Logout success method for hooks
+	 *
+	 * @param User $user
+	 *
+	 */
+	protected function ___logoutSuccess(User $user) { }
 
 	/**
 	 * Redirect this session to another URL.
@@ -355,13 +374,13 @@ class Session extends Wire implements IteratorAggregate {
 		}
 
 		// perform the redirect
-		if($http301) header("HTTP/1.1 301 Moved Permanently");
-		header("Location: $url");
 		if($this->wire('page')) {
 			$process = $this->wire('modules')->get('ProcessPageView'); 
 			$process->setResponseType(ProcessPageView::responseTypeRedirect); 
 			$process->finished();
 		}
+		if($http301) header("HTTP/1.1 301 Moved Permanently");
+		header("Location: $url");
 		exit(0);
 	}
 

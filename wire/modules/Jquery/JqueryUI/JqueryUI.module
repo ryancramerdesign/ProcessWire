@@ -2,16 +2,21 @@
 
 class JqueryUI extends ModuleJS { 
 
-        public static function getModuleInfo() {
-                return array(
-                        'title' => 'jQuery UI',
-                        'version' => 193,
-                        'summary' => 'jQuery UI as required by ProcessWire and plugins',
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'jQuery UI',
+			'version' => 193,
+			'summary' => 'jQuery UI as required by ProcessWire and plugins',
 			'href' => 'http://ui.jquery.com', 
 			'permanent' => true, 
-                        );
-        }
+		);
+	}
+	
+	public function __construct() {
+		$this->addComponents(array(
+			'modal' => 'modal.js'
+			));
+	}
 
-	// note ModuleJS automatically loads any JS or CSS files with the same basename as this module
 
 }

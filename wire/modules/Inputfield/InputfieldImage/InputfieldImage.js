@@ -51,7 +51,7 @@ $(document).ready(function() {
 		$parent.find("i.fa-list").replaceWith($("<i class='fa fa-th'></i>")); 
 	}
 
-	var $listToggle = $("<a class='InputfieldImageListToggle HideIfSingle HideIfEmpty' href='#'></a>")
+	var $listToggle = $("<a class='InputfieldImageListToggle HideIfEmpty' href='#'></a>")
 		.append("<i class='fa fa-th'></i>"); 
 	$(".InputfieldImage .InputfieldHeader").append($listToggle); 
 	$(document).on('click', '.InputfieldImageListToggle', function() {

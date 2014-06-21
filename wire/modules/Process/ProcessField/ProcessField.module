@@ -25,9 +25,8 @@ class ProcessField extends Process implements ConfigurableModule {
 			'summary' => __('Edit individual fields that hold page data', __FILE__),
 			'version' => 106,
 			'permanent' => true, 
-
-			// add this permission if you want this Process available for roles other than Superuser
-			'permission' => 'field-admin', 
+			'permission' => 'field-admin', // add this permission if you want this Process available for roles other than Superuser
+			'icon' => 'cube', 
 			);
 	}
 
@@ -794,9 +793,10 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$this->form->processInput($this->input->post); 
 		$this->saveInputfields($this->form); 
+		$errors = array();
 
-		if(!$this->field->name) $this->error($this->_("Field name is required")); 
-			else if(!$this->field->type) $this->error($this->_("Field type is required")); 
+		if(!$this->field->name) $errors[] = $this->_("Field name is required"); 
+			else if(!$this->field->type) $errors[] = $this->_("Field type is required"); 
 			else if(!$this->field->id) {
 				$this->field->save();
 				$this->session->message($this->_('Added Field') . " - {$this->field->name}"); 
@@ -823,7 +823,10 @@ class ProcessField extends Process implements ConfigurableModule {
 			}
 		}
 
-		if($this->notices->hasErrors()) return $this->executeAdd();
+		if(count($errors)) {
+			foreach($errors as $error) $this->error($error); 
+			return $this->executeAdd();
+		}
 		
 		if($this->listAfterSave) $this->session->redirect("./"); 
 			else $this->session->redirect("edit?id={$this->field->id}"); 

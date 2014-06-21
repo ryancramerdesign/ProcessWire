@@ -32,10 +32,10 @@
 class Pages extends Wire {
 
 	/**
-	 * Instance of PageFinder for finding pages
+	 * Instance of PageFinder (when cached)
 	 *
 	 */
-	protected $pageFinder; 
+	protected $pageFinder = null; 
 
 	/**
 	 * Instance of Templates
@@ -86,23 +86,36 @@ class Pages extends Wire {
 	public function __construct() {
 		$this->config = $this->wire('config');
 		$this->templates = $this->wire('templates'); 
-		$this->pageFinder = new PageFinder(); 
 		$this->sortfields = new PagesSortfields();
 	}
 
+	public function init() {
+		$this->getById($this->config->preloadPageIDs); 
+	}
 
 	/**
 	 * Given a Selector string, return the Page objects that match in a PageArray. 
 	 *
 	 * @param string $selectorString
 	 * @param array $options 
-		- findOne: apply optimizations for finding a single page and include pages with 'hidden' status
+	 *	- findOne: boolean - apply optimizations for finding a single page and include pages with 'hidden' status (default: false)
+	 *	- getTotal: boolean - whether to set returning PageArray's "total" property (default: true except when findOne=true)
+	 *	- loadPages: boolean - whether to populate the returned PageArray with found pages (default: true). 
+	 *		The only reason why you'd want to change this to false would be if you only needed the count details from 
+	 *		the PageArray: getTotal(), getStart(), getLimit, etc. This is intended as an optimization for Pages::count().
+	 *  - caller: string - optional name of calling function, for debugging purposes, i.e. pages.count
 	 * @return PageArray
 	 *
 	 */
 	public function ___find($selectorString, $options = array()) {
 
 		// TODO selector strings with runtime fields, like url=/about/contact/, possibly as plugins to PageFinder
+		
+		static $numCalls = 0;
+
+		$loadPages = true; 
+		$debug = $this->wire('config')->debug; 
+		if(array_key_exists('loadPages', $options)) $loadPages = (bool) $options['loadPages'];
 
 		if(!strlen($selectorString)) return new PageArray();
 		if($selectorString === '/' || $selectorString === 'path=/') $selectorString = 1;
@@ -120,7 +133,7 @@ class Pages extends Wire {
 					$page = $this->getById(array((int) $s)); 
 					$pageArray = new PageArray();
 					$value = $page ? $pageArray->add($page) : $pageArray; 
-					if($this->config->debug) $this->debugLog('find', $selectorString . " [optimized]", $value); 
+					if($debug) $this->debugLog('find', $selectorString . " [optimized]", $value); 
 					return $value; 
 				}
 			}
@@ -129,7 +142,7 @@ class Pages extends Wire {
 		// see if this has been cached and return it if so
 		$pages = $this->getSelectorCache($selectorString, $options); 
 		if(!is_null($pages)) {
-			if($this->config->debug) $this->debugLog('find', $selectorString, $pages . ' [from-cache]'); 
+			if($debug) $this->debugLog('find', $selectorString, $pages . ' [from-cache]'); 
 			return $pages; 
 		}
 
@@ -139,52 +152,60 @@ class Pages extends Wire {
 		// if a specific parent wasn't requested, then we assume they don't want results with status >= Page::statusUnsearchable
 		// if(strpos($selectorString, 'parent_id') === false) $selectorString .= ", status<" . Page::statusUnsearchable; 
 
+		$numCalls++;
+		$caller = isset($options['caller']) ? $options['caller'] : 'pages.find';
 		$selectors = new Selectors($selectorString); 
-
-		$pages = $this->pageFinder->find($selectors, $options); 
+		$pageFinder = $this->getPageFinder();
+		if($debug) Debug::timer("$caller($selectorString)", true); 
+		$pages = $pageFinder->find($selectors, $options); 
 
 		// note that we save this pagination state here and set it at the end of this method
 		// because it's possible that more find operations could be executed as the pages are loaded
-		$total = $this->pageFinder->getTotal();
-		$limit = $this->pageFinder->getLimit();
-		$start = $this->pageFinder->getStart();
+		$total = $pageFinder->getTotal();
+		$limit = $pageFinder->getLimit();
+		$start = $pageFinder->getStart();
 
-		// parent_id is null unless a single parent was specified in the selectors
-		$parent_id = $this->pageFinder->getParentID();
+		if($loadPages) { 
+			// parent_id is null unless a single parent was specified in the selectors
+			$parent_id = $pageFinder->getParentID();
 
-		$idsSorted = array(); 
-		$idsByTemplate = array();
+			$idsSorted = array(); 
+			$idsByTemplate = array();
 
-		// organize the pages by template ID
-		foreach($pages as $page) {
-			$tpl_id = $page['templates_id']; 
-			if(!isset($idsByTemplate[$tpl_id])) $idsByTemplate[$tpl_id] = array();
-			$idsByTemplate[$tpl_id][] = $page['id'];
-			$idsSorted[] = $page['id'];
-		}
-
-		if(count($idsByTemplate) > 1) {
-			// perform a load for each template, which results in unsorted pages
-			$unsortedPages = new PageArray();
-			foreach($idsByTemplate as $tpl_id => $ids) {
-				$unsortedPages->import($this->getById($ids, $this->templates->get($tpl_id), $parent_id)); 
+			// organize the pages by template ID
+			foreach($pages as $page) {
+				$tpl_id = $page['templates_id']; 
+				if(!isset($idsByTemplate[$tpl_id])) $idsByTemplate[$tpl_id] = array();
+				$idsByTemplate[$tpl_id][] = $page['id'];
+				$idsSorted[] = $page['id'];
 			}
 
-			// put pages back in the order that the selectorEngine returned them in, while double checking that the selector matches
-			$pages = new PageArray();
-			foreach($idsSorted as $id) {
-				foreach($unsortedPages as $page) { 
-					if($page->id == $id) {
-						$pages->add($page); 
-						break;
+			if(count($idsByTemplate) > 1) {
+				// perform a load for each template, which results in unsorted pages
+				$unsortedPages = new PageArray();
+				foreach($idsByTemplate as $tpl_id => $ids) {
+					$unsortedPages->import($this->getById($ids, $this->templates->get($tpl_id), $parent_id)); 
+				}
+
+				// put pages back in the order that the selectorEngine returned them in, while double checking that the selector matches
+				$pages = new PageArray();
+				foreach($idsSorted as $id) {
+					foreach($unsortedPages as $page) { 
+						if($page->id == $id) {
+							$pages->add($page); 
+							break;
+						}
 					}
 				}
+			} else {
+				// there is only one template used, so no resorting is necessary	
+				$pages = new PageArray();
+				reset($idsByTemplate); 
+				$pages->import($this->getById($idsSorted, $this->templates->get(key($idsByTemplate)), $parent_id)); 
 			}
+
 		} else {
-			// there is only one template used, so no resorting is necessary	
 			$pages = new PageArray();
-			reset($idsByTemplate); 
-			$pages->import($this->getById($idsSorted, $this->templates->get(key($idsByTemplate)), $parent_id)); 
 		}
 
 		$pages->setTotal($total); 
@@ -192,8 +213,18 @@ class Pages extends Wire {
 		$pages->setStart($start); 
 		$pages->setSelectors($selectors); 
 		$pages->setTrackChanges(true);
-		$this->selectorCache($selectorString, $options, $pages); 
-		if($this->config->debug) $this->debugLog('find', $selectorString, $pages); 
+		if($loadPages) $this->selectorCache($selectorString, $options, $pages); 
+		if($this->config->debug) $this->debugLog('find', $selectorString, $pages);
+		
+		if($debug) {
+			$count = $pages->count();
+			$note = ($count == $total ? $count : $count . "/$total") . " page(s)";
+			if($count) {
+				$note .= ": " . $pages->first()->path; 
+				if($count > 1) $note .= " ... " . $pages->last()->path;  
+			}
+			Debug::saveTimer("$caller($selectorString)", $note); 
+		}
 
 		return $pages; 
 		//return $pages->filter($selectors); 
@@ -210,7 +241,8 @@ class Pages extends Wire {
 	public function findOne($selectorString, $options = array()) {
 		if(empty($selectorString)) return new NullPage();
 		if($page = $this->getCache($selectorString)) return $page; 
-		$options['findOne'] = true; 
+		$defaults = array('findOne' => true, 'getTotal' => false, 'caller' => 'pages.get'); 
+		$options = array_merge($defaults, $options); 
 		$page = $this->find($selectorString, $options)->first();
 		if(!$page) $page = new NullPage();
 		return $page; 
@@ -232,14 +264,38 @@ class Pages extends Wire {
 	/**
 	 * Given an array or CSV string of Page IDs, return a PageArray 
 	 *
+	 * Optionally specify an $options array rather than a template for argument 2. When present, the 'template' and 'parent_id' arguments may be provided
+	 * in the given $options array. These options may be specified: 
+	 * 
+	 * - template: instance of Template (see $template argument)
+	 * - parent_id: integer (see $parent_id argument)
+	 * - getNumChildren: boolean, default=true. Specify false to disable retrieval and population of 'numChildren' Page property. 
+	 *
 	 * @param array|WireArray|string $ids Array of IDs or CSV string of IDs
-	 * @param Template|null $template Specify a template to make the load faster, because it won't have to attempt to join all possible fields... just those used by the template. 
-	 * @param int|null $parent_id Specify a parent to make the load faster, as it reduces the possibility for full table scans.
+	 * @param Template|array|null $template Specify a template to make the load faster, because it won't have to attempt to join all possible fields... just those used by the template. 
+	 *	Optionally specify an $options array instead, see the method notes above. 
+	 * @param int|null $parent_id Specify a parent to make the load faster, as it reduces the possibility for full table scans. 
+	 *	This argument is ignored when an options array is supplied for the $template. 
 	 * @return PageArray
 	 * @throws WireException
 	 *
 	 */
-	public function getById($ids, Template $template = null, $parent_id = null) {
+	public function getById($ids, $template = null, $parent_id = null) {
+	
+		$options = array(
+			'template' => null,
+			'parent_id' => null, 
+			'getNumChildren' => true
+			);
+
+		if(is_array($template)) {
+			// $template property specifies an array of options
+			$options = array_merge($options, $template); 
+			$template = $options['template'];
+			$parent_id = $options['parent_id'];
+		} else if(!is_null($template) && !$template instanceof Template) {
+			throw new WireException('getById argument 2 must be Template or $options array'); 
+		}
 
 		static $instanceID = 0;
 
@@ -305,7 +361,7 @@ class Pages extends Wire {
 				// note that "false AS isLoaded" triggers the setIsLoaded() function in Page intentionally
 				"false AS isLoaded, pages.templates_id AS templates_id, pages.*, " . 
 				($joinSortfield ? 'pages_sortfields.sortfield, ' : '') . 
-				"(SELECT COUNT(*) FROM pages AS children WHERE children.parent_id=pages.id) AS numChildren"
+				($options['getNumChildren'] ? '(SELECT COUNT(*) FROM pages AS children WHERE children.parent_id=pages.id) AS numChildren' : '')
 				); 
 
 			if($joinSortfield) $query->leftjoin('pages_sortfields ON pages_sortfields.pages_id=pages.id'); 
@@ -314,7 +370,7 @@ class Pages extends Wire {
 			foreach($fields as $field) { 
 				if(!($field->flags & Field::flagAutojoin)) continue; 
 				$table = $database->escapeTable($field->table); 
-				if(!$field->type->getLoadQueryAutojoin($field, $query)) continue; // autojoin not allowed
+				if(!$field->type || !$field->type->getLoadQueryAutojoin($field, $query)) continue; // autojoin not allowed
 				$query->leftjoin("$table ON $table.pages_id=pages.id"); // QA
 			}
 
@@ -370,7 +426,12 @@ class Pages extends Wire {
 			$values = $name;
 			$name = isset($values['name']) ? $values['name'] : '';
 		}
-	
+
+		if(!is_object($template)) {
+			$template = $this->wire('templates')->get($template); 	
+			if(!$template) throw new WireException("Unknown template"); 
+		}
+
 		$pageClass = $template->pageClass ? $template->pageClass : 'Page';	
 		
 		$page = new $pageClass();	
@@ -457,12 +518,14 @@ class Pages extends Wire {
 	 * @param string $selectorString
 	 * @param array $options See $options in Pages::find 
 	 * @return int
-	 * @todo optimize this so that it only counts, and doesn't have to load any pages in the process. 
 	 *
 	 */
-	public function count($selectorString, $options = array()) {
-		// PW doesn't count when limit=1, which is why we limit=2
-		return $this->find("$selectorString, limit=2", $options)->getTotal();
+	public function count($selectorString, array $options = array()) {
+		$options['loadPages'] = false; 
+		$options['getTotal'] = true; 
+		$options['caller'] = 'pages.count';
+		if($this->wire('config')->debug) $options['getTotalType'] = 'count'; // test count method when in debug mode
+		return $this->find("$selectorString, limit=1", $options)->getTotal();
 	}
 
 	/**
@@ -529,7 +592,7 @@ class Pages extends Wire {
 				$saveable = false;
 				$reason = "Can't move '{$page->name}' because Template '{$page->parent->template}' used by '{$page->parent->path}' is not allowed by template '{$page->template->name}'.";
 
-			} else if(count($page->parent->children("name={$page->name}, id!=$page->id, status<" . Page::statusMax))) { 
+			} else if(count($page->parent->children("name={$page->name}, id!=$page->id, include=all"))) { 
 				$saveable = false;
 				$reason = "Chosen parent '{$page->parent->path}' already has a page named '{$page->name}'"; 
 			}
@@ -539,28 +602,80 @@ class Pages extends Wire {
 	}
 
 	/**
-	 * Validate that a new page is in a saveable condition and correct it if not.
+	 * Auto-populate some fields for a new page that does not yet exist
 	 *
-	 * Currently just sets up up a unique page->name based on the title if one isn't provided already. 
+	 * Currently it does this: 
+	 * - Sets up a unique page->name based on the format or title if one isn't provided already. 
+	 * - Assigns a 'sort' value'. 
 	 * 
 	 * @param Page $page
 	 *
 	 */
-	protected function ___setupNew(Page $page) {
+	public function ___setupNew(Page $page) {
 
-		if(!$page->name && $page->title) {
-			$n = 0;
-			$pageName = $this->wire('sanitizer')->pageName($page->title, Sanitizer::translate); 
-			do {
-				$name = $pageName . ($n ? "-$n" : '');
-				$child = $page->parent->child("name=$name, include=all"); // see if another page already has the same name
-				$n++;
-			} while($child->id); 
-			$page->name = $name; 
+		if(!$page->parent()->id) {
+			// auto-assign a parent, if we can find one in family settings
+
+			$parentTemplates = $page->template->parentTemplates; 
+			$parent = null;
+
+			if(!empty($parentTemplates)) {
+				$idStr = implode('|', $parentTemplates); 
+				$parent = $this->get("include=hidden, template=$idStr"); 
+				if(!$parent->id) $parent = $this->get("include=all, template=$idStr"); 
+			}
+
+			if($parent->id) $page->parent = $parent; 
+		}
+
+		if(!$page->name) { 
+			// auto-assign a name if possible
+
+			$format = $page->parent()->template->childNameFormat; 
+			$pageName = '';
+
+			if(strlen($format)) {
+
+				if($format == 'title') {
+					if(strlen($page->title)) $pageName = $page->title; 
+						else $pageName = $this->_('untitled'); 
+
+				} else if(!ctype_alnum($format) && !preg_match('/^[-_a-zA-Z0-9]+$/', $format)) {
+					// it is a date format
+					$pageName = date($format); 
+				} else {
+					// predefined format
+					$pageName = $format; 
+				}
+
+			} else if(strlen($page->title)) {
+				$pageName = $page->title; 
+
+			} else {
+				// no name will be assigned
+			}
+
+			if(strlen($pageName)) { 
+				// make the name unique
+
+				$pageName = $this->wire('sanitizer')->pageName($pageName, Sanitizer::translate); 
+				$numChildren = $page->parent->numChildren();
+				$n = 0; 
+
+				do {
+					$name = $pageName; 
+					if($n > 0) $name .= "-" . ($numChildren+$n); 
+					$child = $page->parent->child("name=$name, include=all"); // see if another page already has the same name
+					$n++;
+				} while($child->id); 
+
+				$page->name = $name; 
+			}
 		}
 
 		if($page->sort < 0) {
-			$page->sort = $page->parent->numChildren;
+			// auto assign a sort
+			$page->sort = $page->parent->numChildren();
 		}
 	}
 	
@@ -589,11 +704,16 @@ class Pages extends Wire {
 			'resetTrackChanges' => true,
 			);
 	
-		$user = $this->wire('user');
 		$options = array_merge($defaultOptions, $options); 
-		$language = $user->language && $user->language->id ? $user->language : null; 
-		// switch to default language so that saved fields and hooks don't need to be aware of language
-		if($language) $user->language = $this->wire('languages')->getDefault();
+		$user = $this->wire('user');
+		$languages = $this->wire('languages'); 
+		$language = null;
+
+		// if language support active, switch to default language so that saved fields and hooks don't need to be aware of language
+		if($languages && $page->id != $user->id) {
+			$language = $user->language && $user->language->id ? $user->language : null; 
+			if($language) $user->language = $languages->getDefault();
+		} 
 
 		$reason = '';
 		$isNew = $page->isNew();
@@ -613,7 +733,7 @@ class Pages extends Wire {
 
 		if(!$this->savePageQuery($page, $options)) return false;
 		$result = $this->savePageFinish($page, $isNew, $options);
-		if($language) $user->language = $language;
+		if($language) $user->language = $language; // restore language
 		return $result;
 	}
 
@@ -709,6 +829,7 @@ class Pages extends Wire {
 	 */
 	protected function savePageFinish(Page $page, $isNew, array $options) {
 		$changes = $page->getChanges();
+		$changesValues = $page->getChanges(true); 
 	
 		// update children counts for current/previous parent
 		if($isNew) {
@@ -736,7 +857,11 @@ class Pages extends Wire {
 
 		// save each individual Fieldtype data in the fields_* tables
 		foreach($page->fieldgroup as $field) {
-			if($field->type) $field->type->savePageField($page, $field);
+			if($field->type) try { 
+				$field->type->savePageField($page, $field);
+			} catch(Exception $e) {
+				$this->error(sprintf($this->_('Error saving field "%s"'), $field->name) . ' - ' . $e->getMessage()); 
+			}
 		}
 
 		// return outputFormatting state
@@ -790,7 +915,7 @@ class Pages extends Wire {
 		}
 
 		// trigger hooks
-		$this->saved($page, $changes);
+		$this->saved($page, $changes, $changesValues);
 		if($triggerAddedPage) $this->added($triggerAddedPage);
 		if($page->namePrevious && $page->namePrevious != $page->name) $this->renamed($page);
 		if($page->parentPrevious) $this->moved($page);
@@ -1036,7 +1161,7 @@ class Pages extends Wire {
 
 		if($page->numChildren) {
 			if(!$recursive) throw new WireException("Can't delete Page $page because it has one or more children."); 
-			foreach($page->children("status<" . Page::statusMax) as $child) {
+			foreach($page->children("include=all") as $child) {
 				if(!$this->delete($child, true)) throw new WireException("Error doing recursive page delete, stopped by page $child"); 
 			}
 		}
@@ -1103,7 +1228,7 @@ class Pages extends Wire {
 		}
 
 		// make sure that we have a unique name
-		while(count($parent->children("name=$name"))) {
+		while(count($parent->children("name=$name, include=all"))) {
 			$name = $page->name . '-' . (++$n); 
 		}
 
@@ -1207,8 +1332,7 @@ class Pages extends Wire {
 	 */
 	public function uncacheAll() {
 
-		unset($this->pageFinder); 
-		$this->pageFinder = new PageFinder(); 
+		$this->pageFinder = null;
 
 		unset($this->sortfields); 
 		$this->sortfields = new PagesSortfields();
@@ -1222,6 +1346,9 @@ class Pages extends Wire {
 
 		$this->pageIdCache = array();
 		$this->pageSelectorCache = array();
+
+		Page::$loadingStack = array();
+		Page::$instanceIDs = array(); 
 	}
 
 	/**
@@ -1348,13 +1475,29 @@ class Pages extends Wire {
 	}
 
 	/**
+	 * Return a PageFinder object, ready to use
+	 *
+	 * @return PageFinder
+	 *
+	 */
+	public function getPageFinder() {
+		return new PageFinder();
+	}
+
+	/**
 	 * Hook called after a page is successfully saved
 	 *
 	 * This is the same as Pages::save, except that it occurs before other save-related hooks (below),
 	 * Whereas Pages::save occurs after. In most cases, the distinction does not matter. 
+	 * 
+	 * @param Page $page The page that was saved
+	 * @param array $changes Array of field names that changed
+	 * @param array $values Array of values that changed, if values were being recorded, see Wire::getChanges(true) for details.
 	 *
 	 */
-	protected function ___saved(Page $page, array $changes = array()) { }
+	protected function ___saved(Page $page, array $changes = array(), $values = array()) { 
+		$this->wire('cache')->maintenance($page);
+	}
 
 	/**
 	 * Hook called when a new page has been added
@@ -1418,7 +1561,9 @@ class Pages extends Wire {
 	 * Hook called when a page and it's data have been deleted
 	 *
 	 */
-	protected function ___deleted(Page $page) { }
+	protected function ___deleted(Page $page) { 
+		$this->wire('cache')->maintenance($page);
+	}
 
 	/**
 	 * Hook called when a page is about to be cloned, but before data has been touched

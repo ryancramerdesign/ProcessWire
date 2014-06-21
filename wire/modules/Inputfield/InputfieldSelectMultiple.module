@@ -8,7 +8,7 @@ class InputfieldSelectMultiple extends InputfieldSelect implements InputfieldHas
 		return array(
 			'title' => __('Select Multiple', __FILE__), // Module Title
 			'summary' => __('Select multiple items from a list', __FILE__), // Module Summary
-			'version' => 100,
+			'version' => 101,
 			'permanent' => true, 
 			);
 	}
@@ -26,7 +26,7 @@ class InputfieldSelectMultiple extends InputfieldSelect implements InputfieldHas
 	 *
 	 */
 	public function addOption($value, $label = null, array $attributes = null) {
-		if(!$value) return $this; 
+		if(is_null($value) || (is_string($value) && !strlen($value))) return $this; 
 		return parent::addOption($value, $label, $attributes); 
 	}
 

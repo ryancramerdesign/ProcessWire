@@ -70,10 +70,8 @@ class Fields extends WireSaveableItems {
 	 *
 	 * For example, a Field can't be given one of these names. 
 	 *
-	 * @TODO This really doesn't belong here. This check can be performed from a Page without needing to maintain this silly list.
-	 *
 	 */
-	static protected $nativeNames = array(
+	static protected $nativeNamesSystem = array(
 		'id', 
 		'parent_id', 
 		'parent', // alias
@@ -113,8 +111,18 @@ class Fields extends WireSaveableItems {
 		'description',
 		'data',
 		'isNew',
-		); 
+		);
 
+	/**
+	 * Field names that are native/permanent to this instance of ProcessWire (configurable at runtime)
+	 *
+	 */
+	protected $nativeNamesLocal = array();
+
+	/**
+	 * Construct
+	 *
+	 */
 	public function __construct() {
 		$this->fieldsArray = new FieldsArray();
 	}
@@ -240,8 +248,6 @@ class Fields extends WireSaveableItems {
 	 *
 	 * This enables you to re-create field tables when migrating over entries from the Fields table manually (via SQL dumps or the like)
 	 *
- 	 * @param Field $field
-	 *
 	 */
 	public function checkFieldTables() {
 		foreach($this as $field) $this->checkFieldTable($field); 
@@ -263,7 +269,10 @@ class Fields extends WireSaveableItems {
 		if(!$item->id) throw new WireException("Unable to delete from '" . $item->getTable() . "' for field that doesn't exist in fields table"); 
 
 		// if it's in use by any fieldgroups, then we don't allow it to be deleted
-		if($item->numFieldgroups()) throw new WireException("Unable to delete field '{$item->name}' because it is in use by " . $item->numFieldgroups() . " fieldgroups"); 
+		if($item->numFieldgroups()) {
+			$names = $item->getFieldgroups()->implode("', '", "name");
+			throw new WireException("Unable to delete field '{$item->name}' because it is in use by these fieldgroups: '$names'");
+		}
 
 		// if it's a system field, it may not be deleted
 		if($item->flags & Field::flagSystem) throw new WireException("Unable to delete field '{$item->name}' because it is a system field."); 
@@ -353,6 +362,9 @@ class Fields extends WireSaveableItems {
 
 		// keep all in the same order so that it's easier to compare (by eye) in the DB
 		ksort($data);
+
+		// inject updated context back into model
+		$fieldgroup->setFieldContextArray($field->id, $data);
 
 		// if there is something in data, then JSON encode it. If it's empty then make it null.
 		$data = count($data) ? wireEncodeJSON($data, true) : null;
@@ -471,6 +483,101 @@ class Fields extends WireSaveableItems {
 		return true; 	
 	}
 
+
+	/**
+	 * Physically delete all field data (from the database) used by pages of a given template
+	 *
+	 * This is for internal API use only. This method is intended only to be called by 
+	 * Fieldtype::deleteTemplateField
+	 * 
+	 * If you need to remove a field from a Fieldgroup, use Fieldgroup::remove(), and this
+	 * method will be call automatically at the appropriate time when save the fieldgroup. 
+	 *
+	 * @param Field $field
+	 * @param Template $template
+	 * @return bool Whether or not it was successful
+	 * @throws WireException when given a situation where deletion is not allowed
+	 *
+	 */
+	public function ___deleteFieldDataByTemplate(Field $field, Template $template) {
+
+		// first we need to determine if the $field->type module has its own
+		// deletePageField method separate from base: Fieldtype/FieldtypeMulti
+		$reflector = new ReflectionClass($field->type->className());
+		$hasDeletePageField = false;
+
+		foreach($reflector->getMethods() as $method) {
+			$methodName = $method->getName();
+			if($methodName != '___deletePageField') continue;
+			try {
+				new ReflectionMethod($reflector->getParentClass()->getName(), $methodName);
+				if(!in_array($method->getDeclaringClass()->getName(), array('Fieldtype', 'FieldtypeMulti'))) $hasDeletePageField = true;
+
+			} catch(Exception $e) {
+				// not there
+			}
+			break;
+		}
+
+		$selector = "templates_id=$template->id, include=all";
+		$numPages = $this->wire('pages')->count($selector); 
+		$success = true;
+
+		if($numPages <= 200 || $hasDeletePageField) {
+			
+			// not many pages to operate on, OR fieldtype has a custom deletePageField method, 
+			// so use verbose/slow method to delete the field from pages
+			
+			$items = $this->wire('pages')->find($selector); 
+			foreach($items as $page) {
+				try {
+					$field->type->deletePageField($page, $field);
+					// $this->message("Deleted '{$field->name}' from '{$page->path}'", Notice::debug);
+
+				} catch(Exception $e) {
+					$this->error($e->getMessage());
+					$success = false;
+				}
+
+			}
+
+		} else {
+			
+			// large number of pages to operate on: use fast method
+			
+			$database = $this->wire('database');
+			$table = $database->escapeTable($field->getTable());
+			$sql = 	"DELETE $table FROM $table " .
+					"INNER JOIN pages ON pages.id=$table.pages_id " .
+					"WHERE pages.templates_id=:templates_id";
+			$query = $database->prepare($sql);
+			$query->bindValue(':templates_id', $template->id, PDO::PARAM_INT);
+			try {
+				$query->execute();
+			} catch(Exception $e) {
+				$this->error($e->getMessage());
+				$success = false;
+			}
+		}
+
+		$this->message(sprintf($this->_('Deleted field "%s" data from %d pages.'), $field->name, $numPages));
+		return $success;
+	}
+
+	/**
+	 * Is the given field name native/permanent to the database?
+	 * 
+	 * This is deprecated, please us $fields->isNative($name) instead. 
+	 *
+	 * @param string $name
+	 * @return bool
+	 * @deprecated
+	 *
+	 */
+	public static function isNativeName($name) {
+		return wire('fields')->isNative($name);
+	}
+
 	/**
 	 * Is the given field name native/permanent to the database?
 	 *
@@ -478,8 +585,20 @@ class Fields extends WireSaveableItems {
 	 * @return bool
 	 *
 	 */
-	public static function isNativeName($name) {
-		return in_array($name, self::$nativeNames); 
+	public function isNative($name) {
+		if(in_array($name, self::$nativeNamesSystem)) return true; 
+		if(in_array($name, $this->nativeNamesLocal)) return true;
+		return false; 
+	}
+
+	/**
+	 * Add a new name to be recognized as a native field name
+	 *
+	 * @param string $name
+	 *
+	 */
+	public function setNative($name) {
+		$this->nativeNamesLocal[] = $name; 
 	}
 
 	/**

@@ -541,6 +541,19 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		return $sleepValue;
         }
 
+	public function ___exportValue(Page $page, Field $field, $value, array $options = array()) {
+		$a = array();
+		foreach($value as $k => $p) {
+			if($p->isUnpublished()) continue; 
+			$v = array();
+			foreach($p->template->fieldgroup as $f) {
+				$v[$f->name] = $f->type->exportValue($p, $f, $p->getUnformatted($f->name), $options); 
+			}
+			$a[] = $v; 
+		}
+		return $a; 	
+	}
+
 	/**
 	 * Return the parent used by the repeater pages for the given Page and Field
 	 *
@@ -1148,6 +1161,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		$select->attr('title', $this->_('Add Field'));
 		$select->setAsmSelectOption('sortable', true);
 		$select->setAsmSelectOption('editLink', wire('config')->urls->admin . "setup/field/edit?id={value}&fieldgroup_id={$template->fieldgroup->id}&modal=1&process_template=1");
+		$select->setAsmSelectOption('hideDeleted', false);
 
 		foreach($template->fieldgroup as $f) {
 			$f = $template->fieldgroup->getField($f->id, true); // get in context

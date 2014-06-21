@@ -20,18 +20,74 @@ class ProcessUser extends ProcessPageType {
 	static public function getModuleInfo() {
 		return array(
 			'title' => __('Users', __FILE__), // getModuleInfo title
-			'version' => 101, 
+			'version' => 103, 
 			'summary' => __('Manage system users', __FILE__), // getModuleInfo summary
 			'permanent' => true, 
 			'permission' => 'user-admin',
+			'icon' => 'group', 
 			); 
 	}
+	
+	protected $lister = null;
 
 	public function init() {
-		wire('pages')->addHookBefore('save', $this, 'hookPageSave');	
+		$this->wire('pages')->addHookBefore('save', $this, 'hookPageSave');	
 		parent::init();
+	
+		if($this->wire('user')->hasPermission('lister')) {
+			if($this->wire('modules')->isInstalled('ProcessPageListerPro')) {
+				$this->lister = $this->wire('modules')->get('ProcessPageListerPro');
+			}
+			if((!$this->lister || !$this->lister->isValid()) && $this->wire('modules')->isInstalled('ProcessPageLister')) {
+				$this->lister = $this->wire('modules')->get('ProcessPageLister'); 
+			}
+		}
+	}
+	
+	protected function getLister($selector = '') {
+		$selector = "template=$this->template, $selector";
+		$lister = $this->lister;
+		$lister->initSelector = $selector;
+		$lister->columns = $this->showFields;
+		$lister->defaultSelector = "name%=, roles=";
+		$lister->defaultSort = 'name';
+		$lister->parent = $this->page;
+		$lister->template = $this->template;
+		if($lister->className() == 'ProcessPageLister') $lister->editMode = ProcessPageLister::windowModeDirect;
+		$lister->editURL = './edit/';
+		$lister->addURL = './add/';
+		$lister->delimiters = array('roles' => ', ');
+		$lister->allowSystem = true; 
+		return $lister;
 	}
 
+	protected function renderList($selector = '', $pagerOptions = array()) {
+		if(!$this->lister) return parent::renderList($selector, $pagerOptions); 
+		$lister = $this->getLister($selector);
+		return $lister->execute();
+	}
+	
+	public function executeConfig() { return $this->getLister()->executeConfig(); }
+	public function executeViewport() { return $this->getLister()->executeViewport(); }
+	public function executeReset() { return $this->getLister()->executeReset(); }
+	public function executeActions() { return $this->getLister()->executeActions(); }
+
+	public function ___executeEdit() {
+		if(!$this->wire('user')->isSuperuser()) { 
+			// prevent showing superuser role at all
+			$this->addHookAfter('InputfieldPage::getSelectablePages', $this, 'hookGetSelectablePages'); 
+		}
+		return parent::___executeEdit();
+	}
+	
+	public function hookGetSelectablePages($event) {
+		if($event->object->attr('name') != 'roles') return;
+		$suRoleID = $this->wire('config')->superUserRolePageID;
+		foreach($event->return as $role) {
+			if($role->id == $suRoleID) $event->return->remove($role);
+		}
+	}
+	
 	/**
 	 * Perform a security check to make sure that a non-superuser isn't assigning superuser access to themselves or someone else. 
 	 *
@@ -50,7 +106,7 @@ class ProcessUser extends ProcessPageType {
 		// don't allow removal of the guest role
 		if(!$page->roles->has("name=guest")) {
 			$page->roles->add(wire('roles')->get('guest')); 	
-			$this->error($this->_("The guest role is required")); 
+			// $this->error($this->_("The guest role is required")); 
 		}
 
 		// check if user is editing themself
@@ -75,7 +131,8 @@ class ProcessUser extends ProcessPageType {
 		if($user->isSuperuser()) return;
 
 		// if not then we need to do the check below:
-		if($page->roles->has("name=superuser")) {
+		$suRole = $this->wire('roles')->get($this->wire('config')->superUserRolePageID); 
+		if($page->roles->has("name=superuser") || $page->roles->has($suRole)) { // unnecessarily redundant, but might as well
 			throw new WireException($this->_("You may not assign the superuser role")); 
 		}
 	}

@@ -65,23 +65,57 @@ interface Module {
 
 	/**
 	 * Return an array of module information
+	 * 
+	 * This array of information may be returned in 1 of 3 ways: 
+	 * 	1. By a static method in your module class named getModuleInfo().
+	 * 	2. By a YourModuleClass.info.php file that populates an $info array.
+	 * 	3. By a YourModuleClass.info.json file that contains an info object. 
+	 * 
+	 * Each of these are demonstrated below: 
 	 *
-	 * Example:
+	 * 1. Using a static getModuleInfo method:  
+	 * ---------------------------------------
 	 * 
 	 * 	public static function getModuleInfo() {
 	 * 		return array(
-	 * 			'title' => 'Your Module's Title',
+	 * 			'title' => 'Your Module Title',
 	 * 			'version' => 100,
 	 *			'author' => 'Ryan Cramer',
 	 * 			'summary' => 'Description of what this module does and who made it.',
 	 * 			'href' => 'http://www.domain.com/info/about/this/module/', 
 	 * 			'singular' => false,
 	 *			'autoload' => false,
-	 *			'requires' => array('HelloWorld', 'LazyCron'), 
+	 *			'requires' => array('HelloWorld>=1.0.1', 'PHP>=5.4.1', 'ProcessWire>=2.4.1'), 
 	 *			'installs' => array('Module1', 'Module2', 'Module3'),
 	 * 			);
 	 * 	}
 	 * 
+	 * 
+	 * 2. Using a YourModuleClass.info.php file: 
+	 * -----------------------------------------
+	 * 
+	 * Your file should populate an $info variable with an array exactly like described for #1 above, i.e. 
+	 * 
+	 * 	$info = array(
+	 * 		'title' => 'Your Module Title', 
+	 * 		'version' => 100, 
+	 * 		// and so on, like the static version above 
+	 * 		);
+	 * 
+	 * 3. Using a YourModuleClass.info.json file: 
+	 * ------------------------------------------
+	 * 
+	 * Your JSON file should contain nothing but an object/map of the module info: 
+	 * 
+	 * 	{
+	 * 		title: 'Your Module title',
+	 * 		version: '100,
+	 * 		// and so on
+	 * 	}
+	 * 
+	 * 
+	 * More details about the data your module info should return
+	 * ----------------------------------------------------------
 	 *
 	 * The retured array is associative with the following fields. Fields bulleted with a "+" are required and 
  	 * fields bulleted with a "-" are optional, and fields bulleted with a "*" may be optional (see details): 
@@ -90,8 +124,17 @@ interface Module {
 	 * 	+ version: an integer that indicates the version number, 101 = 1.0.1
 	 * 	+ summary: a summary of the module (1 sentence to 1 paragraph reommended)
 	 * 	- href: URL to more information about the module. 
-	 *	- requires: array of module class names that are required by this module in order to install.
-	 * 		If just one module is required, then it can also be a string with just the module name.
+	 *	- requires: array or CSV string of module class names that are required by this module in order to install.
+	 *		--
+	 *		Requires Module version: If a particular version of the module is required, then specify an operator
+	 *		and version number after the module name, like this: HelloWorld>=1.0.1
+	 *		--
+	 *		Requires PHP version: If a particular version of PHP is required, then specify 'PHP' as the module name
+	 *		followed by an operator and required version number, like this: PHP>=5.3.8
+	 *		--
+	 *		Requires ProcessWire version: If a particular version of ProcessWire is required, then specify 
+	 *		ProcessWire followed by an operator and required version number, like this: ProcessWire>=2.4.1
+	 *	
 	 *	- installs: array of module class names that this module will handle install/uninstall.
 	 *		This causes PW's dependency checker to ignore them and it is assumed your module will handle them (optional).	
 	 * 		If your module does not handle them, PW will automatically install/uninstall them immediately after your module.
@@ -106,11 +149,19 @@ interface Module {
 	 * 		If you don't provide an isAutoload() method, then you should provide this property here. 
 	 * 	- permanent: boolean, for core only. True only if the module is permanent and uninstallable. 
 	 *		This is true only of PW core modules, so leave this out elsewhere.
+	 *  - permission: name of permission required of a user before PW will instantiate the module.
+	 *      Note that PW will not install this permission if it doesn't yet exist. To have it installed automatically,
+	 *      see the 'permissions' option below this. 
+	 *  - permissions: array of permissions that PW will install (and uninstall) automatically.
+	 *      Permissions should be in the format: array('permission-name' => 'Permission description')
+	 *  - icon: optional icon name (string) to represent this module
+	 * 		Currently uses font-awesome icon names as seen at http://fortawesome.github.io/Font-Awesome/
+	 * 		Omit the "fa-" part, leaving just the icon name.
 	 *
 	 * @return array
 	 *
-	 */
 	public static function getModuleInfo(); 
+	 */
 
 	/**
 	 * Method to initialize the module. 
@@ -121,8 +172,8 @@ interface Module {
 	 * bootstrap process. This is before PW has started retrieving or rendering a page. If you need to have the
 	 * API ready with the $page ready as well, then see the ready() method below this one. 
 	 *
-	 */
 	public function init();
+	 */
 
 	/**
 	 * Method called when API is fully ready and the $page is determined and set, but before a page is rendered.

@@ -287,7 +287,7 @@ class FieldtypeComments extends FieldtypeMulti {
 			$this->_x('Status', 'email-body') . ": $status\n" . 
 			$this->_x('Text', 'email-body') . ": {$comment->text}\n\n";
 
-		return mail($field->notificationEmail, $subject, $body, "From: $from"); 
+		return wireMail($field->notificationEmail, $from, $subject, $body); 
 	}
 
 	/**

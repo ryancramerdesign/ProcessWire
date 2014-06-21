@@ -148,10 +148,12 @@ class Templates extends WireSaveableItems {
 
 		$rolesChanged = $item->isChanged('useRoles');
 
-		if($this->fuel('pages')->get("/")->template->id == $item->id) {
+		if($this->wire('pages')->get("/")->template->id == $item->id) {
 			if(!$item->useRoles) throw new WireException("Template '{$item}' is used by the homepage and thus must manage access"); 
 			if(!$item->hasRole("guest")) throw new WireException("Template '{$item}' is used by the homepage and thus must have the 'guest' role assigned."); 
 		}
+		
+		if(!$item->isChanged('modified')) $item->modified = time();
 
 		$result = parent::___save($item); 
 
@@ -165,6 +167,10 @@ class Templates extends WireSaveableItems {
 				}
 			}
 			if(count($removeFields)) { 
+				foreach($removeFields as $field) {
+					$field->type->deleteTemplateField($item, $field); 
+				}
+				/*
 				$pages = $this->fuel('pages')->find("templates_id={$item->id}, check_access=0, status<" . Page::statusMax); 
 				foreach($pages as $page) {
 					foreach($removeFields as $field) {
@@ -172,6 +178,7 @@ class Templates extends WireSaveableItems {
 						if($this->fuel('config')->debug) $this->message("Removed field '$field' on page '{$page->url}'"); 
 					}
 				}
+				*/
 			}
 		}
 
@@ -179,6 +186,8 @@ class Templates extends WireSaveableItems {
 			$access = new PagesAccess();
 			$access->updateTemplate($item); 
 		}
+		
+		$this->wire('cache')->maintenance($item);
 
 		return $result; 
 	}
@@ -192,7 +201,9 @@ class Templates extends WireSaveableItems {
 		$cnt = $item->getNumPages();
 		if($cnt > 0) throw new WireException("Can't delete template '{$item->name}' because it is used by $cnt pages.");  
 
-		return parent::___delete($item);
+		$return = parent::___delete($item);
+		$this->wire('cache')->maintenance($item); 
+		return $return;
 	}
 
 	/**

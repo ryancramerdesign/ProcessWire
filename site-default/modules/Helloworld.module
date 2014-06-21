@@ -47,6 +47,9 @@ class Helloworld extends WireData implements Module {
 			// hooks won't get attached unless some other code calls the module on it's own.
 			// Note that autoload modules are almost always also 'singular' (seen above).
 			'autoload' => true, 
+		
+			// Optional font-awesome icon name, minus the 'fa-' part
+			'icon' => 'smile-o', 
 			);
 	}
 

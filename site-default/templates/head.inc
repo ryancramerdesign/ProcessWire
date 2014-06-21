@@ -60,12 +60,18 @@
 				// If the section we are in is the current (identified by $page->rootParent)
 				// then note it with <a class='on'> so we can style it differently in our CSS. 
 				// In this case we also want the homepage to be part of our top navigation, 
-				// so we prepend it to the pages we cycle through:
+				// so we prepend it to the pages we cycle through. Lastly, we append our
+				// admin page, to ensure that users new to ProcessWire can find it. However,
+				// we recommend removing that from any production site since it's generally
+				// not a good idea to link to your admin login page. 
 				
 				$homepage = $pages->get("/"); 
 				$children = $homepage->children;
 				$children->prepend($homepage); 
-		
+
+				// adds an admin page link - remove from production sites
+				$children->append($pages->get($config->adminRootPageID)); 
+
 				foreach($children as $child) {
 					$class = $child === $page->rootParent ? " class='on'" : '';
 					echo "<li><a$class href='{$child->url}'>{$child->title}</a></li>";

@@ -45,7 +45,7 @@ abstract class Selector extends WireData {
 	public function __construct($field, $value) {
 
 		$not = false; 
-		if(!is_array($field) && $field[0] == '!') {
+		if(!is_array($field) && isset($field[0]) && $field[0] == '!') {
 			$not = true; 
 			$field = ltrim($field, '!'); 
 		}
@@ -53,11 +53,13 @@ abstract class Selector extends WireData {
 		$this->set('field', $field); 	
 		$this->set('value', $value); 
 		$this->set('not', $not); 
-		$this->set('str', ($not ? '!' : '') . (is_array($field) ? implode('|', $field) : $field) . $this->getOperator() . (is_array($value) ? implode("|", $value) : $value));
+		$this->set('group', null); // group name identified with 'group_name@' before a field name
+		$this->set('quote', ''); // if $value in quotes, this contains either: ', ", [, {, or (, indicating quote type (set by Selectors class)
 	}
 
 	public function get($key) {
 		if($key == 'operator') return $this->getOperator();
+		if($key == 'str') return $this->__toString();
 		return parent::get($key); 
 	}
 
@@ -174,7 +176,19 @@ abstract class Selector extends WireData {
 	 *
 	 */
 	public function __toString() {
-		return $this->str; 
+		$openingQuote = $this->quote; 
+		$closingQuote = $openingQuote; 
+		if($openingQuote) {
+			if($openingQuote == '[') $closingQuote = ']'; 	
+				else if($openingQuote == '{') $closingQuote = '}';
+				else if($openingQuote == '(') $closingQuote = ')';
+		}
+		$str = 	($this->not ? '!' : '') . 
+			(is_null($this->group) ? '' : $this->group . '@') . 
+			(is_array($this->field) ? implode('|', $this->field) : $this->field) . 
+			$this->getOperator() . 
+			(is_array($this->value) ? implode("|", $this->value) : $openingQuote . $this->value . $closingQuote);
+		return $str; 
 	}
 
 	/**

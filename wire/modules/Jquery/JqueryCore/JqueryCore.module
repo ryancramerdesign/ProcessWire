@@ -1,17 +1,56 @@
 <?php
 
+/**
+ * Class JqueryCore
+ * 
+ * jQuery core + optional extras
+ * 
+ */
+
 class JqueryCore extends ModuleJS { 
-
-        public static function getModuleInfo() {
-                return array(
-                        'title' => 'jQuery Core',
-                        'version' => 183,
-                        'summary' => 'jQuery Core as required by ProcessWire Admin and plugins',
+	
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'jQuery Core',
+			'version' => 183,
+			'summary' => 'jQuery Core as required by ProcessWire Admin and plugins',
 			'href' => 'http://jquery.com', 
-			'permanent' => true
-                        );
-        }
+			'permanent' => true,
+			'singular' => true,
+			'autoload' => false
+			);
+	}
 
-	// note ModuleJS automatically loads any JS or CSS files with the same basename as this module
+	/**
+	 * Set devMode to true in order to test/develop with newer versions of jQuery
+	 * 
+	 */
+	const devMode = false;
 
+	
+	public function __construct() {
+		$this->addComponents(array(
+			'core-dev' => 'jquery-1.11.1.js',
+			'migrate-dev' => 'jquery-migrate-1.2.1.js',
+			'cookie' => 'jquery.cookie.js',
+			));
+		
+	}
+
+	/**
+	 * Initialize JqueryCore
+	 * 
+	 */
+	public function init() {
+		
+		if(self::devMode) {	
+			$this->use('core-dev');
+			$this->use('migrate-dev');
+			$this->loadStyles = false;
+			$this->loadScripts = false;
+		}
+		
+		parent::init();
+	
+	}
 }

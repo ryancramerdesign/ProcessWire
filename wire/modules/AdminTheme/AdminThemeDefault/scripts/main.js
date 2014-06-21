@@ -65,8 +65,8 @@ var ProcessWireAdminTheme = {
 
 		// if there are buttons in the format "a button" without ID attributes, copy them into the masthead
 		// or buttons in the format button.head_button_clone with an ID attribute.
-		// var $buttons = $("#content a[id=] button[id=], #content button.head_button_clone[id!=]"); 
-		var $buttons = $("#content a:not([id]) button:not([id]), #content button.head_button_clone[id!=]"); 
+		var $buttons = $("#content a[id=''] button[id=''], #content button.head_button_clone[id!='']"); 
+		//var $buttons = $("#content a:not([id]) button:not([id]), #content button.head_button_clone[id!=]"); 
 
 		// don't continue if no buttons here or if we're in IE
 		if($buttons.size() == 0 || $.browser.msie) return;
@@ -166,7 +166,7 @@ var ProcessWireAdminTheme = {
 				$("#topnav").show();
 			},
 			source: function(request, response) {
-				var url = $input.parents('form').attr('action') + 'for?get=template_label,title&include=all&admin_search=' + request.term;
+				var url = $input.parents('form').attr('data-action') + 'for?get=template_label,title&include=all&admin_search=' + request.term;
 				$.getJSON(url, function(data) {
 					var len = data.matches.length; 
 					if(len < data.total) $status.text(data.matches.length + '/' + data.total); 
@@ -261,13 +261,14 @@ var ProcessWireAdminTheme = {
 			$a.addClass('ajax-items-loaded'); 	
 			var url = $a.attr('href');
 			var $ul = $a.siblings('ul'); 
+			var dropdownHover = null;
 
 			$.getJSON(url, function(data) {
 
 				// now add new event to monitor menu positions
 				if(!ProcessWireAdminTheme.dropdownPositionsMonitored && data.length > 10) {
 					ProcessWireAdminTheme.dropdownPositionsMonitored = true; 
-					var dropdownHover = function() {
+					dropdownHover = function() {
 						var fromAttr = $a.attr('data-from'); 
 						if(!fromAttr) return;
 						var $from = $('#' + $a.attr('data-from')); 
@@ -288,8 +289,14 @@ var ProcessWireAdminTheme = {
 					$ul.append($li); 
 				}); 
 
+				$ul.find("a").click(function() {
+					// prevent a clicked link from jumping back to the top of page (makes the UI nicer)
+					window.location.href = $(this).attr('href');
+					return false; 
+				}); 
+
 				// trigger the first call
-				dropdownHover();
+				if(dropdownHover) dropdownHover();
 
 			}); 
 		}); 

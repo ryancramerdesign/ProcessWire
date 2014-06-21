@@ -160,7 +160,7 @@ $(document).ready(function() {
 				$root.append($("<div></div>").addClass('PageListSelectHeader').append($pageLabel).append($actions)); 
 
 				if(options.selectShowPageHeader) { 
-					$.getJSON(options.ajaxURL + "?id=" + options.selectedPageID + "&render=JSON&start=0&limit=0&lang=" + options.langID, function(data) {
+					$.getJSON(options.ajaxURL + "?id=" + options.selectedPageID + "&render=JSON&start=0&limit=0&lang=" + options.langID + "&mode=" + options.mode, function(data) {
 						var parentPath = '';
 						if(options.selectShowPath) {
 							parentPath = data.page.path;
@@ -233,7 +233,7 @@ $(document).ready(function() {
 					var info = $curList.data('paginationInfo'); 
 					if(!info) return false;
 					var $newList = getPaginationList(id, parseInt($(this).attr('href')) * info.limit, info.limit, info.total);
-					var $loading = $("<li class='PageListLoading'></li>"); 
+					var $loading = $("<li><span class='PageListLoading'></span></li>"); 
 					$curList.siblings(".PageList").remove(); // remove any open lists below current
 					$curList.replaceWith($newList); 
 					$newList.append($loading); 
@@ -377,18 +377,22 @@ $(document).ready(function() {
 					}
 
 					// if a pagination is requested to be opened, and it exists, then open it
-					if(options.openPagination > 0) {
-						var $a = $(".PageListPagination" + options.openPagination + ">a");
+					if(options.openPagination > 1) {
+						//var $a = $(".PageListPagination" + (options.openPagination-1) + ">a");
+						var $a = $(".PageListPagination a[href=" + (options.openPagination-1) + "]");
 						if($a.size() > 0) {
 							$a.click();	
 							options.openPagination = 0;
+						} else {
+							// last pagination link
+							$(".PageListPagination9 a").click();
 						}
 					}
 
 				}; 
 
 				if(!replace) $target.append($loading.show()); 
-				$.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&lang=" + options.langID + "&open=" + options.openPageIDs[0], processChildren); 
+				$.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&lang=" + options.langID + "&open=" + options.openPageIDs[0] + "&mode=" + options.mode, processChildren); 
 			}
 
 			/**
@@ -439,6 +443,7 @@ $(document).ready(function() {
 				if(child.status == 0) $li.addClass('PageListStatusOff disabled');
 				if(child.status & 2048) $li.addClass('PageListStatusUnpublished secondary'); 
 				if(child.status & 1024) $li.addClass('PageListStatusHidden secondary'); 
+				if(child.status & 512) $li.addClass('PageListStatusTemp secondary'); // typically combined with PageListStatusUnpublished
 				if(child.status & 16) $li.addClass('PageListStatusSystem'); 
 				if(child.status & 8) $li.addClass('PageListStatusSystem'); 
 				if(child.status & 4) $li.addClass('PageListStatusLocked'); 
@@ -468,7 +473,7 @@ $(document).ready(function() {
 						else if(action.name == options.selectUnselectLabel) actionName = 'Select'; 
 						else actionName = action.cn; // cn = className
 
-					var $a = $("<a></a>").text(action.name).attr('href', action.url); 
+					var $a = $("<a></a>").html(action.name).attr('href', action.url); 
 					$actions.append($("<li></li>").addClass('PageListAction' + actionName).append($a)); 
 				}); 
 
@@ -724,7 +729,7 @@ $(document).ready(function() {
 					title = '';
 				}
 
-				if(id != $container.val()) $container.change().val(id);
+				if(id != $container.val()) $container.val(id).change();
 
 				if(options.selectShowPageHeader) { 
 					$header.children(".PageListSelectName").text(title); 

@@ -4,11 +4,13 @@ $(document).ready(function() {
 
 	var options = {
 		selectStartLabel: config.ProcessPageEditLink.selectStartLabel,
+		selectSelectLabel: config.ProcessPageEditLink.selectStartLabel,
 		langID: config.ProcessPageEditLink.langID
 		// openPageIDs: config.ProcessPageEditLink.openPageIDs
 		};
 	var options2 = {
 		selectStartLabel: options.selectStartLabel,
+		selectSelectLabel: options.selectStartLabel,
 		langID: options.langID,
 		rootPageID: config.ProcessPageEditLink.pageID
 		};

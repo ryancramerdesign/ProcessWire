@@ -128,7 +128,7 @@ class ProcessController extends Wire {
 
 		// verify that there is adequate permission to execute the Process
 		$permissionName = '';
-		$info = $this->modules->getModuleInfo($processName); 
+		$info = $this->wire('modules')->getModuleInfo($processName, array('verbose' => false)); 
 		if(!empty($info['permission'])) $permissionName = $info['permission']; 
 
 		$this->hasPermission($permissionName, true); // throws exception if no permission
@@ -145,6 +145,8 @@ class ProcessController extends Wire {
 	 * Does the current user have permission to execute the given process name?
 	 *
 	 * Note: an empty permission name is accessible only by the superuser
+	 * 
+	 * @todo: This may now be completely unnecessary since permission checking is built into Modules.php
 	 *
 	 * @param string $permissionName
 	 * @param bool $throw Whether to throw an Exception if the user does not have permission
@@ -191,9 +193,13 @@ class ProcessController extends Wire {
 	public function ___execute() {
 
 		$content = '';
+		$debug = $this->wire('config')->debug; 
 		if($process = $this->getProcess()) { 
 			if($method = $this->getProcessMethodName($this->process)) {
+				$className = $this->process->className();
+				if($debug) Debug::timer("$className.$method()"); 
 				$content = $this->process->$method();
+				if($debug) Debug::saveTimer("$className.$method()"); 
 			} else {
 				throw new ProcessController404Exception("Unrecognized path");
 			}

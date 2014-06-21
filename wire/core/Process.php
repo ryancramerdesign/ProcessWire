@@ -22,7 +22,6 @@ abstract class Process extends WireData implements Module {
 	 * The 'permission' property is specific to Process instances, and allows you to specify the name of a permission
 	 * required to execute this process. 
 	 *
- 	 */
 	public static function getModuleInfo() {
 		return array(
 			'title' => '',		// printable name/title of module
@@ -33,6 +32,7 @@ abstract class Process extends WireData implements Module {
 			'permission' => '', 	// name of permission required to execute this Process (optional)
 			); 
 	}
+ 	 */
 
 	/**
 	 * Per the Module interface, Initialize the Process, loading any related CSS or JS files
@@ -40,8 +40,8 @@ abstract class Process extends WireData implements Module {
 	 */
 	public function init() { 
 		$class = $this->className();
-		$info = $this->getModuleInfo(); 
-		$version = (int) $info['version'];
+		$info = $this->wire('modules')->getModuleInfo($this, array('verbose' => false)); 
+		$version = (int) isset($info['version']) ? $info['version'] : 0;
 		if(is_file($this->config->paths->$class . "$class.css")) $this->config->styles->add($this->config->urls->$class . "$class.css?v=$version"); 
 		if(is_file($this->config->paths->$class . "$class.js")) $this->config->scripts->add($this->config->urls->$class . "$class.js?v=$version"); 
 	}

@@ -8,22 +8,19 @@
 	text-transform: none; 
 }
 
-.InputfieldFile .InputfieldFileLanguageInfo {
+.Inputfields .InputfieldFile .InputfieldFileLanguageInfo {
 	position: relative; 
 	margin-top: 0; 
-}
-
-.InputfieldFile .InputfieldFileLanguageInfo .actions {
-	position: absolute; 
-	top: 0;
-	right: 1em; 
+	padding-top: 0;
 }
 
 .InputfieldFileList .InputfieldFileLanguageInfo {
 	margin-top: -1em; 
 }
 
-.InputfieldFileList .InputfieldFileLanguageInfo p {
-	padding: 0 1em 1em 1em; 
-	margin-top: 0; 
+.InputfieldFileList .InputfieldFileLanguageInfo a i.hover-only {
+	display: none;
+}
+.InputfieldFileList .InputfieldFileLanguageInfo a:hover i.hover-only {
+	display: inline;
 }

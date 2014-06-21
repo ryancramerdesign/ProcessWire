@@ -1161,16 +1161,17 @@ body .ui-tooltip {
 
 /* Overlays */
 .ui-widget-overlay {
-	background: #aaaaaa url(images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x;
-	opacity: .3;
-	filter: Alpha(Opacity=30);
+	background: #000; /* url(images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x; */
+	opacity: .7;
+	filter: Alpha(Opacity=70);
 }
 .ui-widget-shadow {
 	margin: -8px 0 0 -8px;
 	padding: 8px;
-	background: #aaaaaa url(images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x;
-	opacity: .3;
-	filter: Alpha(Opacity=30);
+	/*background: #aaaaaa url(images/ui-bg_flat_0_aaaaaa_40x100.png) 50% 50% repeat-x;*/
+	background: #000; 
+	opacity: .8;
+	filter: Alpha(Opacity=70);
 	border-radius: 8px;
 }
 

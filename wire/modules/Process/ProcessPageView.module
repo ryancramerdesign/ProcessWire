@@ -64,6 +64,12 @@ class ProcessPageView extends Process {
 	protected $redirectURL = '';
 
 	/**
+	 * True if any redirects should be delayed until after API ready() has been issued
+	 * 
+	 */
+	protected $delayRedirects = false; 
+
+	/**
 	 * Sanitized URL that generated this request
  	 * 
 	 * Set by the getPage() method and passed to the pageNotFound function.
@@ -95,6 +101,13 @@ class ProcessPageView extends Process {
 	 */
 	protected $pageNumPrefix = null;
 
+	public function __construct() {
+		// no parent call intentional
+	}
+	
+	public function init() {
+		// no parent call intentional
+	}
 
 	/**
 	 * Retrieve a page, check access, and render
@@ -104,6 +117,7 @@ class ProcessPageView extends Process {
 
 		$this->responseType = self::responseTypeNormal;
 		$config = $this->config; 
+		$debug = $config->debug; 
 		if(is_array($config->pageNumUrlPrefixes)) foreach($config->pageNumUrlPrefixes as $prefix) {
 			$this->pageNumUrlPrefixes[$prefix] = $prefix;
 		}
@@ -113,17 +127,28 @@ class ProcessPageView extends Process {
 		}
 
 		$this->pages->setOutputFormatting(true); 
+		if($debug) Debug::timer('ProcessPageView.getPage()'); 
 		$page = $this->getPage();
 
-		if($page && $page->id) { 
+		if($page && $page->id) {
+			if($debug) Debug::saveTimer('ProcessPageView.getPage()', $page->path); 
 			$page->setOutputFormatting(true); 
 			$_page = $page; 
 			$page = $this->checkAccess($page); 
 			if(!$page) return $this->pageNotFound($_page, $this->requestURL, true); 
-			$this->checkProtocol($page); 
-			if($this->redirectURL) $this->session->redirect($this->redirectURL);
+			
+			if(!$this->delayRedirects) {
+				$this->checkProtocol($page); 
+				if($this->redirectURL) $this->session->redirect($this->redirectURL);
+			}
+			
 			$this->wire('page', $page); 
 			$this->ready();
+			
+			if($this->delayRedirects) {
+				$this->checkProtocol($page); 
+				if($this->redirectURL) $this->session->redirect($this->redirectURL);
+			}
 
 			try {
 				$this->wire->setStatus(ProcessWire::statusRender);
@@ -282,10 +307,11 @@ class ProcessPageView extends Process {
 
 		// check for secured filename, method 1: actual file URL, minus leading "." or "-"
 		if(strpos(rtrim($config->urls->root, '/') . $it, $config->urls->files) === 0) {
-			if(preg_match('{/(\d+)/([-_.a-zA-Z0-9]+)$}', $it, $matches) && strpos($matches[2], '.')) {
+			if(preg_match('{/([\d\/]+)/([-_.a-zA-Z0-9]+)$}', $it, $matches) && strpos($matches[2], '.')) {
 				// request is consistent with those that would match to a file
 				$this->requestFile = $matches[2]; 	
-				$page = $this->pages->get((int) $matches[1]); // Page or NullPage
+				$idPath = str_replace('/', '', $matches[1]); 
+				$page = $this->pages->get((int) $idPath); // Page or NullPage
 				return $page; 
 			} else {
 				// request was to something in /site/assets/files/ but we don't recognize it
@@ -327,7 +353,7 @@ class ProcessPageView extends Process {
 			// meets the requirements for a page number: last portion of URL and starts with 'page'
 			$pageNum = (int) $this->pageNum; 
 			if($pageNum < 1) $pageNum = 1;
-			if($pageNum > 1) {
+			if($pageNum > 1 && !$this->wire('user')->isLoggedin()) {
 				$maxPageNum = $this->wire('config')->maxPageNum; 
 				if(!$maxPageNum) $maxPageNum = 999;
 				if($pageNum > $maxPageNum) return false; 
@@ -447,16 +473,15 @@ class ProcessPageView extends Process {
 	}
 
 	/**
-	 * Called when a page is not found, sends 404 header, and displays the configured 404 page instead. 
+	 * Called when a page is not found, sends 404 header, and displays the configured 404 page instead.
 	 *
-	 * Method is hookable, for instance if you wanted to log 404s. 
+	 * Method is hookable, for instance if you wanted to log 404s.
 	 *
- 	 * @param Page|null $page Page that was found if applicable (like if user didn't have permission or $page's template threw the 404). If not applicable then NULL will be given instead.
+	 * @param Page|null $page Page that was found if applicable (like if user didn't have permission or $page's template threw the 404). If not applicable then NULL will be given instead.
 	 * @param string $url The URL that the request originated from (like $_SERVER['REQUEST_URI'] but already sanitized)
-	 @ @param bool $triggerReady Whether or not the ready() hook should be triggered (default=false)
-	 * @return string
+	 * @param bool $triggerReady Whether or not the ready() hook should be triggered (default=false)
 	 * @throws WireException
-	 *
+	 * @return string
 	 */
 	protected function ___pageNotFound($page, $url, $triggerReady = false) {
 
@@ -494,6 +519,18 @@ class ProcessPageView extends Process {
 	 */
 	public function setResponseType($responseType) {
 		$this->responseType = (int) $responseType; 
+	}
+
+	/**
+	 * Set whether any redirects should be performed after the API ready() call
+	 * 
+	 * This is used by LanguageSupportPageNames to delay redirects until after http/https schema is determined. 
+	 *
+	 * @param bool $delayRedirects
+	 *
+	 */
+	public function setDelayRedirects($delayRedirects) {
+		$this->delayRedirects = $delayRedirects ? true : false;
 	}
 
 }
