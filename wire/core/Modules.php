@@ -517,9 +517,25 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function get($key) {
+		return $this->getModule($key);
+	}
 
-		$module = null; 
-		$needsInit = false; 
+	/**
+	 * Get the requested Module or NULL if it doesn't exist + specify one or more options
+	 * 
+	 * @param string|int $key Module className or database ID
+	 * @param array $options Optional settings to change load behavior:
+	 * 	- noPermissionCheck: Specify true to disable module permission checks (and resulting exception). 
+	 *  - noInstall: Specify true to prevent a non-installed module from installing from this request.
+	 *  - noInit: Specify true to prevent the module from being initialized. 
+	 * @return Module|null
+	 * @throws WirePermissionException If module requires a particular permission the user does not have
+	 * 
+	 */
+	public function getModule($key, array $options = array()) {
+		
+		$module = null;
+		$needsInit = false;
 
 		// check for optional module ID and convert to classname if found
 		if(ctype_digit("$key")) {
@@ -531,37 +547,39 @@ class Modules extends WireArray {
 			// check if it's a placeholder, and if it is then include/instantiate/init the real module 
 			// OR check if it's non-singular, so that a new instance is created
 			if($module instanceof ModulePlaceholder || !$this->isSingular($module)) {
-				$placeholder = $module; 
-				$class = $this->getModuleClass($placeholder); 
-				if($module instanceof ModulePlaceholder) $this->includeModule($module); 
-				$module = $this->newModule($class); 
+				$placeholder = $module;
+				$class = $this->getModuleClass($placeholder);
+				if($module instanceof ModulePlaceholder) $this->includeModule($module);
+				$module = $this->newModule($class);
 				// if singular, save the instance so it can be used in later calls
-				if($this->isSingular($module)) $this->set($key, $module); 
-				$needsInit = true; 
+				if($this->isSingular($module)) $this->set($key, $module);
+				$needsInit = true;
 			}
 
-		} else if(array_key_exists($key, $this->getInstallable())) {
+		} else if(empty($options['noInstall']) && array_key_exists($key, $this->getInstallable())) {
 			// check if the request is for an uninstalled module 
 			// if so, install it and return it 
-			$module = $this->install($key); 
-			$needsInit = true; 
+			$module = $this->install($key);
+			$needsInit = true;
+		}
+		
+		if($module && empty($options['noPermissionCheck'])) {
+			$info = $this->getModuleInfo($module);
+			if(!empty($info['permission']) && !$this->wire('user')->hasPermission($info['permission'])) {
+				throw new WirePermissionException($this->_('You do not have permission to execute this module') . ' - ' . $class);
+			}
 		}
 
 		// skip autoload modules because they have already been initialized in the load() method
 		// unless they were just installed, in which case we need do init now
-		if($module && $needsInit) { 
+		if($module && $needsInit) {
 			// if the module is configurable, then load it's config data
 			// and set values for each before initializing the module
 			// $this->setModuleConfigData($module); 
 			// if(method_exists($module, 'init')) $module->init(); 
-			$this->initModule($module, false); 
+			if(empty($options['noInit'])) $this->initModule($module, false);
 		}
 		
-		$info = $this->getModuleInfo($module); 
-		if(!empty($info['permission']) && !$this->wire('user')->hasPermission($info['permission'])) {
-			throw new WirePermissionException($this->_('You do not have permission to execute this module') . ' - ' . $class);
-		}
-
 		return $module; 
 	}
 
