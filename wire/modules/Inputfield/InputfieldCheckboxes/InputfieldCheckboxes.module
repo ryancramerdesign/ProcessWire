@@ -15,6 +15,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 		$this->set('table', false); 
 		$this->set('thead', ''); 
 		$this->set('optionColumns', 0); 
+		wire('modules')->get('JqueryCore');
 		parent::init();
 		$this->set('size', null); // cancel 'size' attribute used by select multiple
 	}
@@ -32,7 +33,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 		if($this->table) {
 			$table = $this->modules->get("MarkupAdminDataTable"); 
 			$table->setEncodeEntities(false);
-			if($this->thead) $table->headerRow(explode('|', htmlspecialchars($this->thead))); 
+			if($this->thead) $table->headerRow(explode('|', htmlspecialchars($this->thead)));
 
 		} else if($columns) {
 
@@ -63,7 +64,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 			$attrs = $this->getOptionAttributesString($attrs);
 			if($attrs) $attrs = ' ' . $attrs; 
 
-			$value = $this->entityEncode($value); 
+			$value = $this->entityEncode($value);
 
 			$input = "<label$attrs>" . 
 				"<input$checked " . 
@@ -79,11 +80,21 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 			} else {
 				$out .= "\n\t<li$liAttr>" . $input . $value . "</label></li>";
 			}
-			
+
 		}
 
-		if($table) $out .= $table->render();
-			else $out .= "\n</ul>";
+		if($table) {
+			$out .= $table->render();
+		} else {
+			$out .= "\n</ul>";
+			if(!$columns) {
+				$out .= "<div class='InputfieldCheckboxesSelectAll'>" .
+					" <a href='javascript:;'>Select all</a></div>" .
+					"<script>var InputfieldCheckboxesConfig = {" .
+					"\tselectAll: '" . $this->_('Select all') . "'," .
+					"\tdeSelectAll: '" . $this->_('Deselect all') . "'" .
+					"};</script>";
+			}
 
 		return $out; 
 
@@ -105,7 +116,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 		$f->description = $this->_('If you want the checkboxes to display in columns (rather than stacked), enter the number of columns you want to use (up to 10). To display checkboxes side-by-side (inline) enter 1.'); 
 		$f->attr('name', 'optionColumns'); 
 		$f->attr('value', (int) $this->optionColumns); 
-		$inputfields->add($f);	
+		$inputfields->add($f); 
 		return $inputfields; 
 	}
 
