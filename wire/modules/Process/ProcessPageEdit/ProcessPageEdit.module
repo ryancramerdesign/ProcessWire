@@ -237,11 +237,6 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 */
 	protected function ___buildForm(InputfieldForm $form) {
 
-
-		$fields = $this->page->getInputfields();
-		$fields->attr('id', $this->className() . 'Content'); 
-		$fields->attr('title', $this->_('Content')); // Tab Label: Content
-
 		$form->attr('id+name', 'ProcessPageEdit'); 
 		$form->attr('action', './?id=' . $this->id . ($this->input->get->modal ? "&modal=1" : '')); 
 		$form->attr('method', 'post'); 
@@ -249,22 +244,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$form->attr('class', 'ui-helper-clearfix template_' . $this->page->template . ' class_' . $this->page->className); 
 		$form->attr('autocomplete', 'off'); 
 
-		if($this->page->template->nameContentTab) {
-			// name
-			$field = $this->modules->get('InputfieldPageName');
-			$field->attr('name', '_pw_page_name'); 
-			$field->attr('value', $this->page->name); 
-			$field->required = $this->page->id != 1;
-			$field->slashUrls = $this->page->template->slashUrls;
-			if(!$this->page->editable('name')) {
-				$field->attr('disabled', 'disabled'); 
-				$field->required = false; 
-			}
-			if($this->page->parent) $field->parentPage = $this->page->parent;
-			$fields->prepend($field); 
-		}
-
-		$form->append($fields); 
+		$form->append($this->buildFormContent()); 
 
 		if($this->page->addable() || $this->page->numChildren) $form->append($this->buildFormChildren()); 
 		if(!$this->page->template->noSettings) $form->append($this->buildFormSettings()); 
@@ -320,6 +300,34 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		return $form; 
 	}
 
+	/**
+	 * Build the 'content' tab on the Page Edit form
+ 	 *
+	 */
+	protected function ___buildFormContent() {
+
+		$fields = $this->page->getInputfields();
+		$fields->attr('id', $this->className() . 'Content'); 
+		$fields->attr('title', $this->_('Content')); // Tab Label: Content
+
+		if($this->page->template->nameContentTab) {
+			// name
+			$field = $this->modules->get('InputfieldPageName');
+			$field->attr('name', '_pw_page_name'); 
+			$field->attr('value', $this->page->name); 
+			$field->required = $this->page->id != 1;
+			$field->slashUrls = $this->page->template->slashUrls;
+			if(!$this->page->editable('name')) {
+				$field->attr('disabled', 'disabled'); 
+				$field->required = false; 
+			}
+			if($this->page->parent) $field->parentPage = $this->page->parent;
+			$fields->prepend($field); 
+		}
+
+		return $fields;
+    }
+    
 	/**
 	 * Build the 'children' tab on the Page Edit form
  	 *
