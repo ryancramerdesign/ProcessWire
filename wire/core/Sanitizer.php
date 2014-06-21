@@ -100,7 +100,7 @@ class Sanitizer extends Wire {
 			// if hyphen present, ensure its first (per PCRE requirements)
 			$chars = '-' . str_replace('-', '', $chars); 
 		}
-		$value = preg_replace('/[^' . $chars . ']/', $replacementChar, $value); 
+		$value = preg_replace('{[^' . $chars . ']}', $replacementChar, $value); 
 
 		// remove leading or trailing dashes, underscores, dots
 		if($beautify) $value = trim($value, $extras);
@@ -118,16 +118,22 @@ class Sanitizer extends Wire {
 	 * @param int $maxLength Maximum number of characters allowed in the name
 	 * @param string $replacement Replacement character for invalid chars: one of -_.
 	 * @param array $options Extra options to replace default 'beautify' behaviors
-	 * 	- allowAdjacentExtras: Whether to allow [-_.] chars next to each other (default=false)
-	 * 	- allowDoubledReplacement: Whether to allow two of the same replacement chars [-_] next to each other (default=false)
+	 * 	- allowAdjacentExtras (bool): Whether to allow [-_.] chars next to each other (default=false)
+	 * 	- allowDoubledReplacement (bool): Whether to allow two of the same replacement chars [-_] next to each other (default=false)
+	 *  - allowedExtras (array): Specify allowed characters (default=[-_.], not including the brackets)
 	 * @return string
 	 * 
 	 */
 	public function name($value, $beautify = false, $maxLength = 128, $replacement = '_', $options = array()) {
 	
-		$allowedExtras = array('-', '_', '.'); 
-		$allowedExtrasStr = '-_.';
-		
+		if(!empty($options['allowedExtras']) && is_array($options['allowedExtras'])) {
+			$allowedExtras = $options['allowedExtras']; 
+			$allowedExtrasStr = implode('', $allowedExtras); 
+		} else {
+			$allowedExtras = array('-', '_', '.');
+			$allowedExtrasStr = '-_.';
+		}
+			
 		$value = $this->nameFilter($value, $allowedExtras, $replacement, $beautify, $maxLength);
 		
 		if($beautify) {
@@ -292,6 +298,49 @@ class Sanitizer extends Wire {
 	}
 
 	/**
+	 * Hookable alias of filename method for case consistency with other name methods (preferable to use filename)
+	 *
+	 */
+	public function ___fileName($value, $beautify = false, $maxLength = 128) {
+		return $this->filename($value, $beautify, $maxLength); 
+	}
+
+	/**
+	 * Return the given path if valid, or blank if not.
+	 *
+	 * Path is validated per ProcessWire "name" convention of ascii only [-_./a-z0-9]
+	 * As a result, this function is primarily useful for validating ProcessWire paths,
+	 * and won't always work with paths outside ProcessWire.
+	 * 
+	 * @param string $value Path
+	 * @param int $maxLength
+	 * @return string
+	 *
+	 */
+	public function path($value, $maxLength = 1024) {
+		if(!preg_match('{^[-_./a-z0-9]+$}iD', $value)) return '';
+		if(strpos($value, '/./') !== false || strpos($value, '//') !== false) $value = '';
+		return $value;
+	}
+
+	/**
+	 * Sanitize a page path name
+	 * 
+	 * Returned path is not guaranteed to be valid or match a page, just sanitized. 
+	 *
+	 * @param string $value
+	 * @param bool $beautify
+	 * @param int $maxLength
+	 * @return string
+	 *
+	 */
+	public function pagePathName($value, $beautify = false, $maxLength = 1024) {
+		$options = array('allowedExtras' => array('/', '-', '_', '.'));
+		return $this->name($value, $beautify, $maxLength, '-', $options); 
+	}
+
+
+	/**
 	 * Returns valid email address, or blank if it isn't valid
 	 *
 	 * @param string $value
@@ -376,23 +425,6 @@ class Sanitizer extends Wire {
 		if(!isset($options['maxBytes'])) $options['maxBytes'] = $options['maxLength'] * 3; 
 
 		return $this->text($value, $options); 
-	}
-
-	/**
-	 * Return the given path if valid, or blank if not. 
-	 *
-	 * Path is validated per ProcessWire "name" convention of ascii only [-_./a-z0-9]
-	 * As a result, this function is primarily useful for validating ProcessWire paths,
-	 * and won't always work with paths outside ProcessWire. 
-	 *
-	 * @param string $value Path 
-	 * @return string
-	 *
-	 */
-	public function path($value) {
-		if(!preg_match('{^[-_./a-z0-9]+$}iD', $value)) return '';
-		if(strpos($value, '/./') !== false || strpos($value, '//') !== false) $value = '';		
-		return $value;
 	}
 
 	/**

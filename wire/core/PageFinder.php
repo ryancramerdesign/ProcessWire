@@ -1064,6 +1064,7 @@ class PageFinder extends Wire {
 					// convert parent fields like '/about/company/history' to the equivalent ID
 					foreach($values as $k => $v) {
 						if(ctype_digit("$v")) continue; 
+						$v = $this->wire('sanitizer')->pagePathName($v); 
 						if(strpos($v, '/') === false) $v = "/$v"; // prevent a plain string with no slashes
 						// convert path to id
 						$parent = $this->wire('pages')->get($v); 
@@ -1136,13 +1137,13 @@ class PageFinder extends Wire {
 					// handle one or more space-separated full words match to 'name' field in any order
 					$s = '';
 					foreach(explode(' ', $value) as $word) {
-						$word = $database->escapeStr(wire('sanitizer')->pageName($word)); 
+						$word = $database->escapeStr($this->wire('sanitizer')->pageName($word)); 
 						$s .= ($s ? ' AND ' : '') . "$table.$field RLIKE '" . '[[:<:]]' . $word . '[[:>:]]' . "'";
 					}
 
 				} else if($isName && in_array($operator, array('%=', '^=', '$=', '%^=', '%$=', '*='))) {
 					// handle partial match to 'name' field
-					$value = $database->escapeStr(wire('sanitizer')->pageName($value));
+					$value = $database->escapeStr($this->wire('sanitizer')->pageName($value));
 					if($operator == '^=' || $operator == '%^=') $value = "$value%";
 						else if($operator == '$=' || $operator == '%$=') $value = "%$value";
 						else $value = "%$value%";
@@ -1152,6 +1153,7 @@ class PageFinder extends Wire {
 					throw new PageFinderSyntaxException("Operator '{$operator}' is not supported for '$field'."); 
 
 				} else {
+					if($isName) $value = $this->wire('sanitizer')->pageName($value); 
 					$value = $database->escapeStr($value); 
 					$s = "$table." . $field . $operator . ((ctype_digit("$value") && $field != 'name') ? ((int) $value) : "'$value'");
 				}
