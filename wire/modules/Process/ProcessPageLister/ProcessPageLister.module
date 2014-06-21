@@ -628,7 +628,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				$fields[$key] = strtolower($name); 
 			}
 			
-			if(in_array($fields, 'check_access') || in_array($fields, 'checkaccess')) {
+			if(in_array('check_access', $fields) || in_array('checkaccess', $fields)) {
 				
 				// don't allow non-superusers to specify a check_access property
 				$selectors->remove($s);
