@@ -140,15 +140,16 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 
 		$value = $this->attr('value'); 
 		$link = '';
+		$slashUrls = (int) $this->slashUrls;
 
-		if($value && wire('modules')->isInstalled('LanguageSupportPageNames')) {
-			if(strlen($value)) $link = "<a href='" . rtrim(wire('config')->urls->root, '/') . rtrim($url, '/') . "/$value/'>";
+		if(strlen($value) && wire('modules')->isInstalled('LanguageSupportPageNames')) {
+			$link = $this->wire('config')->urls->root . trim($url, '/') . "/$value" . ($slashUrls ? '/' : ''); 
+			$link = "<a href='$link'>";
 		}
 		
-		$slashUrls = (int) $this->slashUrls;
 		$p = "\n<p id='{$this->id}_path' data-slashUrls='$slashUrls' class='InputfieldPageNameURL'>";
 		if($link) $p .= $link;
-		$p .= "$url<strong></strong>";
+		$p .= rtrim($url, '/') . "/<strong></strong>";
 		if($link) $p .= "</a>";
 		$p .= "</p>";
 

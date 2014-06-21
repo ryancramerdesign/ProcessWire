@@ -54,12 +54,19 @@ class Selectors extends WireArray {
 	static $operatorChars = array();
 
 	/**
+	 * Original saved selector string, used for debugging purposes
+	 *
+	 */
+	protected $selectorStr = '';
+
+	/**
 	 * Given a selector string, extract it into one or more corresponding Selector objects, iterable in this object.
 	 *
 	 */
 	public function __construct($selectorStr) {
+		$this->selectorStr = $selectorStr; 
 		if(empty(self::$selectorTypes)) Selector::loadSelectorTypes();
-		$this->extractString($selectorStr); 
+		$this->extractString(trim($selectorStr)); 
 	}
 
 	/**
@@ -184,7 +191,10 @@ class Selectors extends WireArray {
 	 *
 	 */
 	protected function create($field, $operator, $value) {
-		if(!isset(self::$selectorTypes[$operator])) throw new WireException("Unknown Selector operator: '$operator' -- was your selector value properly escaped?"); 
+		if(!isset(self::$selectorTypes[$operator])) {
+			$debug = $this->wire('config')->debug ? "field='$field', value='$value', selector: '$this->selectorStr'" : "";
+			throw new WireException("Unknown Selector operator: '$operator' -- was your selector value properly escaped? $debug"); 
+		}
 		$class = self::$selectorTypes[$operator]; 
 		$selector = new $class($field, $value); 
 		return $selector; 		

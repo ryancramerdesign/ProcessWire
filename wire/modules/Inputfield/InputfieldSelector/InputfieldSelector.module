@@ -1198,7 +1198,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			if($selector->field == 'template') {
 				$templateValue = $selector->value; 
 				if(!is_array($templateValue)) $templateValue = array($templateValue); 
-				foreach($templateValue as $t) $templates[] = $this->wire('templates')->get($t)->name; 
+				foreach($templateValue as $t) {
+					$template = $this->wire('templates')->get($t);
+					if($template) $templates[] = $template->name; 
+				}
 			}
 			if(count($templates)) $renderSelectOptions['templates'] = $templates; 
 		}
