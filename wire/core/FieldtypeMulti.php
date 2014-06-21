@@ -117,13 +117,13 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 * the table, so other fieldtypes may want to override this and return an array of associative arrays containing a 'data' field
 	 * and any other fields that map to the table. i.e. $values[] = array('data' => $data, 'description' => $description), etc. 
 	 * See FieldtypePagefiles module class for an example of this. 
-         *              
-         * @param Page $page
-         * @param Field $field
-         * @param string|int|array|object $value
-         * @return string|int
-         *
-         */
+	 *              
+	 * @param Page $page
+	 * @param Field $field
+	 * @param string|int|array|object $value
+	 * @return string|int
+	 *
+	 */
 	public function ___sleepValue(Page $page, Field $field, $value) {
 		$values = array();
 		if(!$value instanceof WireArray) return $values; 

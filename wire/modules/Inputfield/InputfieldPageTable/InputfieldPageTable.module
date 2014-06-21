@@ -21,7 +21,7 @@ class InputfieldPageTable extends Inputfield {
 		return array(
 			'title' => __('ProFields: Page Table', __FILE__), // Module Title
 			'summary' => __('Inputfield to accompany FieldtypePageTable', __FILE__), // Module Summary
-			'version' => 5,
+			'version' => 6,
 			'requires' => 'FieldtypePageTable'
 			);
 	}

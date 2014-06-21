@@ -20,7 +20,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'ProFields: Page Table',
-			'version' => 5,
+			'version' => 6,
 			'summary' => 'A fieldtype containing a group of editable pages.',
 			'installs' => 'InputfieldPageTable',
 			'autoload' => true, 
@@ -345,6 +345,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 			if($item->status >= Page::statusHidden) continue; 
 			$formatted->add($item); 
 		}
+		$formatted->data('notSaveable', true); 
 		return $formatted; 
 	}
 
@@ -354,12 +355,14 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	 * @param Page $page
 	 * @param Field $field
 	 * @param PageArray $value
+	 * @throws WireException
 	 * @return array
 	 * 
 	 */
 	public function ___sleepValue(Page $page, Field $field, $value) {
 		$sleepValue = array();
 		if(!$value instanceof PageArray) return $sleepValue; 
+		if($value->data('notSaveable')) throw new WireException("Field '$field->name' from page $page->id is not saveable because it is a formatted value."); 
 		foreach($value as $item) {
 			if(!$item->id) continue; 
 			if(!$this->isValidItem($page, $field, $item)) continue; 

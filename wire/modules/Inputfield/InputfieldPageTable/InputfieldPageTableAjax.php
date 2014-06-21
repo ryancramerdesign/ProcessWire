@@ -55,6 +55,9 @@ class InputfieldPageTableAjax extends Wire {
 		$page = $this->wire('pages')->get($pageID); 
 		if(!$page->id) return;
 		if(!$page->editable()) return;
+		
+		$page->of(false);
+		$page->get($field->name); // preload, fixes issue #518 with formatted version getting loaded when it shouldn't
 
 		// check for new item that should be added
 		$itemID = (int) $input->get('InputfieldPageTableAdd'); 
