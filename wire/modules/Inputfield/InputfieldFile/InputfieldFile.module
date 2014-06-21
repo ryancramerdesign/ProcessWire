@@ -231,6 +231,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 	}
 
 	public function ___render() {
+		if(!$this->extensions) $this->error($this->_('No file extensions are defined for this field.')); 
 		return $this->renderList($this->value) . $this->renderUpload($this->value);
 	}
 

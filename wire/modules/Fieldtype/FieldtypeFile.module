@@ -54,6 +54,8 @@ class FieldtypeFile extends FieldtypeMulti {
 		$inputfield->class = $this->className();
 
 		$this->setupHooks($page, $field, $inputfield); 
+	
+		if(!$field->extensions) $this->error(sprintf($this->_('Field "%s" is not yet ready to use and needs to be configured.'), $field->name)); 
 
 		return $inputfield;
 	}
