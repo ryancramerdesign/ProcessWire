@@ -118,6 +118,9 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 	public function ___render() {
 
 		$url = $this->parentPage ? $this->parentPage->path : '';
+		if (!trim($url,'/') && $this->parentPage->id == 1 && $this->parentPage->name) {
+			$url = '/' . $this->parentPage->name;
+		}
 		$out = '';
 		$box = '';
 		
