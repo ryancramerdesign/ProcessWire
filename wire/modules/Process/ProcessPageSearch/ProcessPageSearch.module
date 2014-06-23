@@ -865,7 +865,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		return $a; 
 	}
 
-	public function renderSearchForm($placeholder = null) {
+	public function renderSearchForm($placeholder = '') {
 
 		$q = substr($this->input->get->q, 0, 128);
 		$q = htmlentities($q, ENT_QUOTES, "UTF-8");
