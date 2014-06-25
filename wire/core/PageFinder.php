@@ -259,9 +259,9 @@ class PageFinder extends Wire {
 		unset($options['getTotal']); // so we get a notice if we try to access it
 
 		$database = $this->wire('database');
-		$cnt = count($selectors); 
 		$matches = array(); 
-		$query = $this->getQuery($selectors, $options); 
+		$query = $this->getQuery($selectors, $options);
+
 		//if($this->wire('config')->debug) $query->set('comment', "Selector: " . (string) $selectors); 
 		if($options['returnQuery']) return $query; 
 
@@ -285,7 +285,7 @@ class PageFinder extends Wire {
 
 					}
 					if($options['returnVerbose']) { 
-						$row['score'] = $score;
+						$row['score'] = $score; // @todo do we need this anymore?
 						$matches[] = $row;
 					} else {
 						$matches[] = $row['id']; 
@@ -297,10 +297,10 @@ class PageFinder extends Wire {
 			
 		if($this->getTotal) {
 			if($this->getTotalType === 'count') {
-				$query->set('select', array('COUNT(*)')); 
+				$query->set('select', array('COUNT(*)'));
 				$query->set('orderby', array()); 
 				$query->set('groupby', array()); 
-				$query->set('limit', array()); 
+				$query->set('limit', array());
 				$stmt = $query->execute();
 				$errorInfo = $stmt->errorInfo();
 				if($stmt->errorCode() > 0) throw new PageFinderException($errorInfo[2]);
@@ -413,7 +413,7 @@ class PageFinder extends Wire {
 	 *
 	 * @param array $selectors Array of selectors.
 	 * @param array $options 
-	 * @return string SQL statement. 
+	 * @return DatabaseQuerySelect 
 	 * @throws PageFinderSyntaxException
 	 *
 	 */
@@ -631,6 +631,7 @@ class PageFinder extends Wire {
 
 		if(count($sortSelectors)) foreach(array_reverse($sortSelectors) as $s) $this->getQuerySortSelector($query, $s);
 		$this->postProcessQuery($query); 
+		
 
 		return $query; 
 
@@ -700,7 +701,7 @@ class PageFinder extends Wire {
 		}
 		*/
 	}
-
+	
 	/**
 	 * Determine which templates the user is allowed to view
 	 *
@@ -710,6 +711,8 @@ class PageFinder extends Wire {
 		static $where = null;
 		static $where2 = null;
 		static $leftjoin = null;
+		
+		$hasWhereHook = self::isHooked('PageFinder::getQueryAllowedTemplatesWhere()');
 
 		// if a template was specified in the search, then we won't attempt to verify access
 		// if($this->templates_id) return; 
@@ -720,15 +723,19 @@ class PageFinder extends Wire {
 		// if access checking is disabled then skip this
 		if(!$this->checkAccess) return; 
 
-		$user = $this->fuel('user'); 
+		$user = $this->wire('user'); 
 
 		// no need to perform this checking if the user is superuser
 		if($user->isSuperuser()) return; 
 
 		// if we've already figured out this part from a previous query, then use it
 		if(!is_null($where)) {
+			if($hasWhereHook) {
+				$where = $this->getQueryAllowedTemplatesWhere($query, $where);
+				$where2 = $this->getQueryAllowedTemplatesWhere($query, $where2);
+			}
 			$query->where($where);
-			$query->where($where2);
+			$query->where($where2); 
 			$query->leftjoin($leftjoin);
 			return;
 		}
@@ -739,11 +746,11 @@ class PageFinder extends Wire {
 		// array of templates they are NOT allowed to access
 		$noTemplates = array();
 
-		$guestRoleID = $this->fuel('config')->guestUserRolePageID; 
+		$guestRoleID = $this->wire('config')->guestUserRolePageID; 
 
 		if($user->isGuest()) {
 			// guest 
-			foreach($this->fuel('templates') as $template) {
+			foreach($this->wire('templates') as $template) {
 				if($template->guestSearchable || !$template->useRoles) {
 					$yesTemplates[$template->id] = $template;
 					continue; 
@@ -758,11 +765,11 @@ class PageFinder extends Wire {
 		} else {
 			// other logged-in user
 			$userRoleIDs = array();
-			foreach($this->fuel('user')->roles as $role) {
+			foreach($user->roles as $role) {
 				$userRoleIDs[] = $role->id; 
 			}
 
-			foreach($this->fuel('templates') as $template) {
+			foreach($this->wire('templates') as $template) {
 				if($template->guestSearchable || !$template->useRoles) {
 					$yesTemplates[$template->id] = $template;
 					continue; 
@@ -776,7 +783,7 @@ class PageFinder extends Wire {
 		}
 
 		// determine which templates the user is not allowed to access
-		foreach($this->fuel('templates') as $template) {
+		foreach($this->wire('templates') as $template) {
 			if(!isset($yesTemplates[$template->id])) $noTemplates[$template->id] = $template;
 		}
 
@@ -796,7 +803,8 @@ class PageFinder extends Wire {
 			$leftjoin = rtrim($leftjoin, ",") . "))";
 			$query->leftjoin($leftjoin);
 			$where2 = "pages_access.pages_id IS NULL"; 
-			$query->where($where2);
+			if($hasWhereHook) $where2 = $this->getQueryAllowedTemplatesWhere($query, $where2);
+			$query->where($where2); 
 		}
 
 		if($noCnt > 0 && $noCnt < $yesCnt) {
@@ -811,7 +819,6 @@ class PageFinder extends Wire {
 			$in .= ((int) $template->id) . ",";
 		}
 
-
 		$in = rtrim($in, ","); 
 		$where = "pages.templates_id ";
 
@@ -823,7 +830,23 @@ class PageFinder extends Wire {
 			$where = "<0"; // no match possible
 		}
 
-		$query->where($where); 
+		// allow for hooks to modify or add to the WHERE conditions
+		if($hasWhereHook) $where = $this->getQueryAllowedTemplatesWhere($query, $where);
+		$query->where($where);	
+	}
+
+	/**
+	 * Method that allows external hooks to add to or modify the access control WHERE conditions 
+	 * 
+	 * Called only if it's hooked. To utilize it, modify the $where argument in a BEFORE hook
+	 * or the $event->return in an AFTER hook.
+	 * 
+	 * @param DatabaseQuerySelect $query
+	 * @param string $where SQL string for WHERE statement, not including the actual "WHERE"
+	 * @return string
+	 */
+	protected function ___getQueryAllowedTemplatesWhere(DatabaseQuerySelect $query, $where) {
+		return $where;
 	}
 
 	protected function getQuerySortSelector(DatabaseQuerySelect $query, Selector $selector) {

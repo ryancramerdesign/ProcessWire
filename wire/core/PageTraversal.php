@@ -23,11 +23,12 @@ class PageTraversal {
 	 * include only visible children. See the options for the $selector argument. 
 	 *
 	 * @param Page $page
-	 * @param bool|string $selector 
+	 * @param bool|string|int $selector 
 	 *	When not specified, result includes all children without conditions, same as $page->numChildren property.
 	 *	When a string, a selector string is assumed and quantity will be counted based on selector.
 	 * 	When boolean true, number includes only visible children (excludes unpublished, hidden, no-access, etc.)
 	 *	When boolean false, number includes all children without conditions, including unpublished, hidden, no-access, etc.
+	 * 	When integer 1 number includes viewable children (as opposed to visible, viewable includes hidden pages + it also includes unpublished pages if user has page-edit permission).
 	 * @return int Number of children
 	 *
 	 */
@@ -37,6 +38,14 @@ class PageTraversal {
 			$onlyVisible = $selector; 
 			if(!$onlyVisible) return $page->get('numChildren');
 			return $page->wire('pages')->count("parent_id=$page->id"); 
+			
+		} else if($selector === 1) { 
+			// viewable pages only
+			$numChildren = $page->get('numChildren');
+			if(!$numChildren) return 0;
+			if($page->wire('user')->isSuperuser()) return $numChildren;
+			if($page->wire('user')->hasPermission('page-edit')) return $page->wire('pages')->count("parent_id=$page->id, include=unpublished");
+			return $page->wire('pages')->count("parent_id=$page->id, include=hidden"); 
 
 		} else if(empty($selector) || !is_string($selector)) {
 			return $page->get('numChildren'); 

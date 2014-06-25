@@ -336,6 +336,8 @@ class InputfieldPageTable extends Inputfield {
 				$value = date($this->_('Y-m-d H:i'), (int) $value); // Date format for created/modified
 			}
 		}
+		
+		if(!strlen($value)) $value = "<span class='ui-priority-secondary'>" . $this->_('[blank]') . "</span>";
 
 		return $value; 
 	}

@@ -143,8 +143,9 @@ error, please post in the [ProcessWire forums](http://processwire.com/talk).
 
 ### General Upgrade Process
 
-Upgrading from one version of ProcessWire to another is a matter of
-replacing these files from your old version with those from the new:
+Upgrading from one version of ProcessWire to another is a matter of 
+deleting these files/directories from your old version, and putting 
+in fresh copies from the new version:  
 
 ```
 /wire/
@@ -152,15 +153,24 @@ replacing these files from your old version with those from the new:
 /.htaccess 
 ```
 
-Replacing the above directory/files is typically the primary thing you
-need to do in order to upgrade. But please see the version-to-version
-specific upgrade notes documented further in this section. Below are
-more details about how you should replace the files mentioned above.
+Deleting and replacing the above directory/files is typically the 
+primary thing you need to do in order to upgrade. But please see 
+the version-to-version specific upgrade notes documented further 
+in this section. Below are more details about how you should 
+replace the files mentioned above.
+
+*NOTE: Renaming is an alternative to deleting, which gives you a quicker 
+path to revert should you want to. For example, you might rename
+your /wire/ directory to be /.wire-2.3.0/ with ".wire" rather than 
+"wire" to ensure the directory is hidden, and the 2.3.0 indicating the 
+version that it was. Once your upgrade is safely in place, you could 
+delete that .wire.230 directory.*
+
 
 
 #### Replacing the /wire/ directory
 
-When you replace the /wire/ directory, make sure that you remove or 
+When you put in the new /wire/ directory, make sure that you remove or 
 rename the old one first. If you just copy or FTP changed files into
 the existing /wire/ directory, you will end up with both old and new
 files, which will cause an error. 
@@ -174,7 +184,7 @@ an upgrade.
 #### Replacing the /index.php file
 
 This file doesn't change often between minor versions. As a result,
-you don't need to replace this file unless it has changed. BUt when
+you don't need to replace this file unless it has changed. But when
 in doubt, you should replace it. 
 
 

@@ -616,6 +616,18 @@ class Modules extends WireArray {
 			else if(is_string($module)) $className = $module; 
 		if($className && class_exists($className, false)) return true; 
 		if(is_string($module)) $module = parent::get($module); 
+		
+		if(!$module && $className) {
+			// found this to be necessary in @jacmaes PHP 5.3.14 upgrading from PW 2.4.4 to 2.4.5
+			$path = $this->wire('config')->paths->$className;
+			if($path) {
+				$file = $path . $className . ".module";
+				if(!file_exists($file)) $file = $path . $className . ".module.php";
+				@include_once($file);
+				if(class_exists($className, false)) return true;
+			}
+		}
+		
 		if(!$module) return false; 
 
 		if($module instanceof ModulePlaceholder) {
@@ -1118,6 +1130,7 @@ class Modules extends WireArray {
 			}
 			
 		} else if($module) {
+			if(is_string($module) && !class_exists($module)) $this->includeModule($module);  
 			if(method_exists($module, 'getModuleInfo')) {
 				$info = call_user_func(array($module, 'getModuleInfo'));
 			}

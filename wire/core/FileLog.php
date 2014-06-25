@@ -21,7 +21,7 @@ class FileLog {
 	protected $logFilename = false; 
 	protected $itemsLogged = array(); 
 	protected $delimeter = ':';
-	protected $maxLineLength = 2048;
+	protected $maxLineLength = 8192;
 	protected $fileExtension = 'txt';
 
 	/**
@@ -41,7 +41,7 @@ class FileLog {
 	}
 
 	protected function cleanStr($str) {
-		$str = strip_tags($str); 
+		//$str = strip_tags($str); 
 		$str = preg_replace('/[\r\n]/', ' ', $str); 
 		$str = trim($str); 
 		if(strlen($str) > $this->maxLineLength) $str = substr($str, 0, $this->maxLineLength); 

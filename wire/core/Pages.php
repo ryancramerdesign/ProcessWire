@@ -157,7 +157,7 @@ class Pages extends Wire {
 		$selectors = new Selectors($selectorString); 
 		$pageFinder = $this->getPageFinder();
 		if($debug) Debug::timer("$caller($selectorString)", true); 
-		$pages = $pageFinder->find($selectors, $options); 
+		$pagesInfo = $pageFinder->find($selectors, $options); 
 
 		// note that we save this pagination state here and set it at the end of this method
 		// because it's possible that more find operations could be executed as the pages are loaded
@@ -173,7 +173,7 @@ class Pages extends Wire {
 			$idsByTemplate = array();
 
 			// organize the pages by template ID
-			foreach($pages as $page) {
+			foreach($pagesInfo as $page) {
 				$tpl_id = $page['templates_id']; 
 				if(!isset($idsByTemplate[$tpl_id])) $idsByTemplate[$tpl_id] = array();
 				$idsByTemplate[$tpl_id][] = $page['id'];
@@ -213,6 +213,7 @@ class Pages extends Wire {
 		$pages->setStart($start); 
 		$pages->setSelectors($selectors); 
 		$pages->setTrackChanges(true);
+		
 		if($loadPages) $this->selectorCache($selectorString, $options, $pages); 
 		if($this->config->debug) $this->debugLog('find', $selectorString, $pages);
 		
@@ -225,9 +226,14 @@ class Pages extends Wire {
 			}
 			Debug::saveTimer("$caller($selectorString)", $note); 
 		}
+	
+		if($this->hasHook('found()')) $this->found($pages, array(
+			'pageFinder' => $pageFinder, 
+			'pagesInfo' => $pagesInfo, 
+			'options' => $options
+			));
 
 		return $pages; 
-		//return $pages->filter($selectors); 
 	}
 
 	/**
@@ -524,7 +530,8 @@ class Pages extends Wire {
 		$options['loadPages'] = false; 
 		$options['getTotal'] = true; 
 		$options['caller'] = 'pages.count';
-		if($this->wire('config')->debug) $options['getTotalType'] = 'count'; // test count method when in debug mode
+		$options['returnVerbose'] = false;
+		//if($this->wire('config')->debug) $options['getTotalType'] = 'count'; // test count method when in debug mode
 		return $this->find("$selectorString, limit=1", $options)->getTotal();
 	}
 
@@ -1658,6 +1665,18 @@ class Pages extends Wire {
 	 *
 	 */
 	protected function ___unpublishReady(Page $page) { }
+
+	/**
+	 * Hook called at the end of a $pages->find(), includes extra info not seen in the resulting PageArray
+	 *
+	 * @param PageArray $pages The pages that were found
+	 * @param array $details Extra information on how the pages were found, including: 
+	 * 	- PageFinder $pageFinder The PageFinder instance that was used
+	 * 	- array $pagesInfo The array returned by PageFinder
+	 * 	- array $options Options that were passed to $pages->find()
+	 *
+	 */
+	protected function ___found(PageArray $pages, array $details) { }
 
 
 }

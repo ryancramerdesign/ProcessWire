@@ -316,7 +316,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	public function __call($method, $arguments) {
 		$result = $this->runHooks($method, $arguments); 
 		if(!$result['methodExists'] && !$result['numHooksRun']) {
-			if($this->fuel('config')->disableUnknownMethodException) return null;
+			if($this->wire('config')->disableUnknownMethodException) return null;
 			throw new WireException("Method " . $this->className() . "::$method does not exist or is not callable in this context"); 
 		}
 		return $result['return'];
@@ -400,18 +400,22 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * Return all hooks associated with this class instance or method (if specified)
 	 *
 	 * @param string $method Optional method that hooks will be limited to. Or specify '*' to return all hooks everywhere.
+	 * @param int $type Type of hooks to return: 0=all, 1=local only, 2=static only
 	 * @return array
 	 *
 	 */
-	public function getHooks($method = '') {
+	public function getHooks($method = '', $type = 0) {
 
-		$hooks = $this->localHooks; 
+		$hooks = $type === 2 ? array() : $this->localHooks; 
 
-		foreach(self::$staticHooks as $className => $staticHooks) {
-			// join in any related static hooks to the instance hooks
-			if($this instanceof $className || $method == '*') {
-				// TODO determine if the local vs static priority level may be damaged by the array_merge
-				$hooks = array_merge($hooks, $staticHooks); 
+		if($type !== 1) {
+			// static hooks
+			foreach(self::$staticHooks as $className => $staticHooks) {
+				// join in any related static hooks to the instance hooks
+				if($this instanceof $className || $method == '*') {
+					// TODO determine if the local vs static priority level may be damaged by the array_merge
+					$hooks = array_merge($hooks, $staticHooks); 
+				}
 			}
 		}
 
@@ -431,6 +435,8 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 * This is for optimization use. It does not distinguish about class instance. 
 	 * It only distinguishes about class if you provide a class with the $method argument (i.e. Class::).
+	 * As a result, a true return value indicates something "might" be hooked, as opposed to be 
+	 * being definitely hooked. 
 	 *
 	 * If checking for a hooked method, it should be in the form "Class::method()" or "method()". 
 	 * If checking for a hooked property, it should be in the form "Class::property" or "property". 
@@ -440,10 +446,13 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * 	Class::property
 	 * 	method()
 	 * 	property
+	 * @param Wire|null $instance Optional instance to check against (see isThisHooked method for details)
+	 * 	Note that if specifying an $instance, you may not use the Class::method() or Class::property options for $method argument.
 	 * @return bool
 	 *
 	 */
-	static public function isHooked($method) {
+	static public function isHooked($method, Wire $instance = null) {
+		if($instance) return $instance->hasHook($method); 
 		$hooked = false;
 		if(strpos($method, ':') !== false) {
 			if(array_key_exists($method, self::$hookMethodCache)) $hooked = true; // fromClass::method() or fromClass::property
@@ -451,6 +460,59 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 			if(in_array($method, self::$hookMethodCache)) $hooked = true; // method() or property
 		}
 		return $hooked; 
+	}
+
+	/**
+	 * Similar to isHooked(), returns true if the method or property hooked, false if it isn't.
+	 *
+	 * Accomplishes the same thing as the static isHooked() method, but this is non-static, more accruate, 
+	 * and potentially slower than isHooked(). Less for optimization use, more for accuracy use. 
+	 * 
+	 * It checks for both static hooks and local hooks, but only accepts a method() or property
+	 * name as an argument (i.e. no Class::something) since the class context is assumed from the current 
+	 * instance. Unlike isHooked() it also analyzes the instance's class parents for hooks, making it 
+	 * more accurate. As a result, this method works well for more than just optimization use. 
+	 *
+	 * If checking for a hooked method, it should be in the form "method()".
+	 * If checking for a hooked property, it should be in the form "property".
+	 *
+	 * @param string $method Method() or property name
+	 * @return bool
+	 * @throws WireException whe you try to call it with a Class::something() type method. 
+	 *
+	 */
+	public function hasHook($method) {
+		
+		$hooked = false;
+		if(strpos($method, '::') !== false) {
+			throw new WireException("You may only specify a 'method()' or 'property', not 'Class::something'.");
+		}
+		
+		// quick exit when possible
+		if(!in_array($method, self::$hookMethodCache)) return false; 
+
+		// first check local hooks attached to this instance
+		$_method = rtrim($method, '()'); 
+		foreach($this->localHooks as $hook) {
+			if($hook['method'] != $_method) continue; 
+			// @todo differentiate between hooked property and method
+			$hooked = true;
+			break;
+		}
+
+		// then check static hooks with this class and parents
+		if(!$hooked) { 
+			$classes = class_parents($this, false);
+			array_unshift($classes, get_class($this));
+			foreach($classes as $class) {
+				if(array_key_exists("$class::$method", self::$hookMethodCache)) {
+					$hooked = true;
+					break;
+				}
+			}
+		}
+		
+		return $hooked;	
 	}
 
 	/**

@@ -87,26 +87,33 @@ function ProcessWireShutdown() {
 	// we populate $why if we're going to show error details for any of the following reasons: 
 	// otherwise $why will NOT be populated with anything
 	if($debug) $why = "site is in debug mode (\$config->debug = true; in /site/config.php).";
-	else if(!$http) $why = "you are using the command line API.";
-	else if($user && $user->isSuperuser()) $why = "you are logged in as a Superuser.";
-	else if($config && is_file($config->paths->root . "install.php")) $why = "/install.php still exists.";
-	else if($config && !is_file($config->paths->assets . "active.php")) {
-		// no login has ever occurred or user hasn't logged in since upgrade before this check was in place
-		// check the date the site was installed to ensure we're not dealing with an upgrade
-		$installed = $config->paths->assets . "installed.php";
-		if(!is_file($installed) || (filemtime($installed) > (time() - 21600))) {
-			// site was installed within the last 6 hours, safe to assume it's a new install
-			$why = "Superuser has never logged in.";
+		else if(!$http) $why = "you are using the command line API.";
+		else if($user && $user->isSuperuser()) $why = "you are logged in as a Superuser.";
+		else if($config && is_file($config->paths->root . "install.php")) $why = "/install.php still exists.";
+		else if($config && !is_file($config->paths->assets . "active.php")) {
+			// no login has ever occurred or user hasn't logged in since upgrade before this check was in place
+			// check the date the site was installed to ensure we're not dealing with an upgrade
+			$installed = $config->paths->assets . "installed.php";
+			if(!is_file($installed) || (filemtime($installed) > (time() - 21600))) {
+				// site was installed within the last 6 hours, safe to assume it's a new install
+				$why = "Superuser has never logged in.";
+			}
 		}
-	}
 
 	if($why) {
 		// when in debug mode, we can assume the message was already shown, so we just say why.
 		// when not in debug mode, we display the full error message since error_reporting and display_errors are off.
 		$why = "This error message was shown because $why $who";
-		if($http) $why = "<em>$why</em>";
-		$message = $debug ? $why : "$message\n\n$why";
-		echo ($http ? "\n\n<p class='error WireFatalError'>" . nl2br($message) . "</p>\n\n" : "\n\n$message\n\n");
+		$html = "<p><b>{message}</b><br /><small>{why}</small></p>";
+		if($http) {
+			if($config && $config->fatalErrorHTML) $html = $config->fatalErrorHTML;
+			$html = str_replace(array('{message}', '{why}'), array(
+				nl2br(htmlspecialchars($message, ENT_QUOTES, "UTF-8", false)),
+				htmlspecialchars($why, ENT_QUOTES, "UTF-8", false)), $html); 
+			echo "\n\n$html\n\n";
+		} else {
+			echo "\n\n$message\n\n$why\n\n";
+		}
 	} else {
 		// public fatal error that doesn't reveal anything specific
 		if($http) header("HTTP/1.1 500 Internal Server Error");

@@ -236,6 +236,14 @@ $config->httpHosts = array(
 	);
 
 /**
+ * HTML used for fatal error messages in HTTP mode
+ *
+ * Should use inline styles since no guarantee stylesheets are present when these are displayed. 
+ * 
+ */
+$config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5em;font-family:sans-serif;'><b>{message}</b><br /><small>{why}</small></p>";
+
+/**
  * Settings specific to InputfieldWrapper class
  *
  * Setting useDependencies to false may enable to use depencencies in some places where
@@ -250,4 +258,6 @@ $config->httpHosts = array(
  *	);
  * 
  */
+
+
 

@@ -914,7 +914,7 @@ class Page extends WireData implements Countable {
 	 *
 	 */
 	public function numChildren($selector = null) {
-		if(!$this->settings['numChildren'] || is_null($selector)) return $this->settings['numChildren']; 
+		if(!$this->settings['numChildren'] && is_null($selector)) return $this->settings['numChildren']; 
 		return $this->traversal()->numChildren($this, $selector); 
 	}
 

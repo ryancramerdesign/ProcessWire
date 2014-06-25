@@ -386,7 +386,7 @@ abstract class ProcessPageListRender extends Wire {
 	}
 
 	public function getMoreURL() {
-		if($this->limit && ($this->page->numChildren > ($this->start + $this->limit))) {
+		if($this->limit && ($this->page->numChildren(1) > ($this->start + $this->limit))) {
 			$start = $this->start + $this->limit; 
 			return $this->config->urls->admin . "page/list/?&id={$this->page->id}&start=$start&render=" . $this->getRenderName(); 
 		}
@@ -461,7 +461,7 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 			'id' => $page->id, 
 			'label' => $label,
 			'status' => $page->status, 
-			'numChildren' => $page->numChildren, 
+			'numChildren' => $page->numChildren(1), 
 			'path' => $page->path(), 
 			'template' => $page->template->name, 
 			'actions' => $this->getPageActions($page), 

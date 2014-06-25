@@ -71,7 +71,7 @@ class WireLog extends Wire {
 		$options = array_merge($defaults, $options); 
 		$log = new FileLog($this->getFilename($name));
 		$log->setDelimeter($options['delimiter']);
-		$text = str_replace(array("\r", "\n", "\t"), ' ', strip_tags($text));
+		$text = str_replace(array("\r", "\n", "\t"), ' ', $text);
 		
 		if($options['showPage']) {
 			$page = $this->wire('page');
