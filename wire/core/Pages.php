@@ -1303,7 +1303,7 @@ class Pages extends Wire {
 	public function getCache($id = null) {
 		if(!$id) return $this->pageIdCache; 
 		if(!ctype_digit("$id")) $id = str_replace('id=', '', $id); 
-		$id = (int) $id; 
+		if(ctype_digit("$id")) $id = (int) $id; 
 		if(!isset($this->pageIdCache[$id])) return null; 
 		$page = $this->pageIdCache[$id];
 		$page->setOutputFormatting($this->outputFormatting); 
