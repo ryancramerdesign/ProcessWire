@@ -798,6 +798,10 @@ class Pages extends Wire {
 				else if($isNew) $sql = 'modified=NOW()';
 			if(!$isNew && $page->created > 0) $data['created'] = date('Y-m-d H:i:s', $page->created); 
 		}
+		
+		if(isset($data['modified_users_id'])) $page->modified_users_id = $data['modified_users_id'];
+		if(isset($data['created_users_id'])) $page->created_users_id = $data['created_users_id']; 
+		
 		foreach($data as $column => $value) {
 			$sql .= ", $column=" . (is_null($value) ? "NULL" : ":$column");
 		}

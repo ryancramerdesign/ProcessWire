@@ -28,5 +28,38 @@ class ProcessRole extends ProcessPageType {
 			); 
 	}
 	
+	public function init() {
+		parent::init();
+		$this->addHookBefore('InputfieldForm::render', $this, 'hookFormRender'); 
+	}
+	
+	public function hookFormRender(HookEvent $event) {
+		$form = $event->object;
+		$f = $form->getChildByName('permissions');
+		if(!$f) return;
+		$f->notes = $this->_('*Note that checking the page-edit permission here means only that the role can be selected for edit access at the template level. Simply assigning the page-edit permission here does grant edit permission until it is also selected in one or more template access control settings.');
+		$f = $f->getInputfield();
+		$f->table = true;
+		$f->thead = 'name|title';
+		$options = $f->getOptions();
+		$pageViewID = 0; 
+		
+		foreach($options as $name => $label) $f->removeOption($name);
+		foreach($this->wire('permissions') as $permission) {
+				$name = $permission->name;
+				if($name == 'page-edit') $name .= " *";
+				if($name == 'page-view') {
+					$name .= " " . $this->_('(required)');
+					$pageViewID = $permission->id; 
+				}
+				$f->addOption($permission->id, "$name|$permission->title");
+		}
+		$value = $f->attr('value');
+		if(!in_array($pageViewID, $value)) {
+				$value[] = $pageViewID; 
+				$f->attr('value', $value);
+		}
+	}
+	
 }
 

@@ -961,7 +961,7 @@ class Modules extends WireArray {
 		foreach($this->getUninstalls($class) as $name) {
 
 			// catch uninstall exceptions at this point since original module has already been uninstalled
-			$label = $this_>_('Module Auto Uninstall');
+			$label = $this->_('Module Auto Uninstall');
 			try { 
 				$this->uninstall($name); 
 				$this->message("$label: $name"); 

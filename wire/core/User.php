@@ -214,10 +214,13 @@ class User extends Page {
 				if(!in_array($role->id, $template->createRoles)) continue; 
 				$name = 'page-edit'; // swap permission to page-edit since create managed at template and requires page-edit
 			}
+			
+			if($name == 'page-edit' && !in_array($role->id, $template->editRoles)) continue;
 
-			if($name == 'page-edit' && !in_array($role->id, $template->editRoles)) continue; 
-
-			if($name == 'page-add' && !in_array($role->id, $template->addRoles)) continue; 
+			if($name == 'page-add') {
+				if(!in_array($role->id, $template->addRoles)) continue;
+				$name = 'page-edit';
+			}
 
 			if($role->hasPermission($name)) {
 				$has = true;
