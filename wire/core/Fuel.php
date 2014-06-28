@@ -28,11 +28,11 @@ class Fuel implements IteratorAggregate {
 	 * 
 	 */
 	public function set($key, $value, $lock = false) {
-		if(in_array($key, $this->lock) && $value !== $this->data[$key]) {
-			throw new WireException("API variable '$name' is locked and may not be set again"); 
+		if(isset($this->lock[$key]) && $value !== $this->data[$key]) {
+			throw new WireException("API variable '$key' is locked and may not be set again"); 
 		}
 		$this->data[$key] = $value; 
-		if($lock) $this->lock[] = $key;
+		if($lock) $this->lock[$key] = true;
 		return $this;
 	}
 
@@ -46,6 +46,7 @@ class Fuel implements IteratorAggregate {
 	public function remove($key) {
 		if(isset($this->data[$key])) {
 			unset($this->data[$key]);
+			unset($this->lock[$key]);
 			return true;
 		}
 		return false;
