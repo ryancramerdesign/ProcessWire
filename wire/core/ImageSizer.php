@@ -89,6 +89,16 @@ class ImageSizer extends Wire {
 	protected $cropping = true;
 
 	/**
+	 * This can be populated on a per image basis. It provides cropping first and then resizing, the opposite of the default behave
+	 *
+	 * It needs an array with 4 params: x y w h for the cropping rectangle
+	 *
+	 * Default is: null
+	 *
+	 */
+	protected $cropExtra = null;
+
+	/**
 	 * Was the given image modified?
 	 *
 	 */
@@ -278,6 +288,23 @@ class ImageSizer extends Wire {
 			if($orientations[1] > 0) {
 				$image = $this->imFlip($image, ($orientations[1] == 2 ? true : false));
 			}
+		}
+
+		// if there is requested to crop _before_ resize, we do it here @horst
+		if(is_array($this->cropExtra)) {
+			$imageTemp = imagecreatetruecolor(imagesx($image), imagesy($image));  // create an intermediate memory image
+			imagecopy($imageTemp, $image, 0, 0, 0, 0, imagesx($image), imagesy($image)); // copy our initial image into the intermediate one
+			imagedestroy($image); // release the initial image
+			// get crop values and create a new initial image
+			list($x, $y, $w, $h) = $this->cropExtra;
+			$image = imagecreatetruecolor($w, $h);
+			$this->prepareImageLayer($image, $imageTemp);
+			imagecopy($image, $imageTemp, 0, 0, $x, $y, $w, $h);
+			unset($x, $y, $w, $h);
+			// now release the intermediate image and update settings
+			imagedestroy($imageTemp);
+			$this->setImageInfo(imagesx($image), imagesy($image));
+			// $this->cropping = false; // ?? set this to prevent overhead with the following manipulation ??
 		}
 
 		// here we check for cropping, upscaling, sharpening
@@ -633,6 +660,45 @@ class ImageSizer extends Wire {
 	}
 
 	/**
+	 * Set values for cropExtra rectangle, which enables cropping before resizing
+	 *
+	 * Added by @horst
+	 *
+	 * @param array $value containing 4 params (x y w h) indexed or associative
+	 * @return $this
+	 * @throws WireException when given invalid value
+	 *
+	 */
+	public function setCropExtra($value) {
+
+		$this->cropExtra = null;
+
+		if(!is_array($value) || 4 != count($value)) {
+			throw new WireException('Missing or wrong param Array for ImageSizer-cropExtra!');
+		}
+
+		if(array_keys($value) === range(0, count($value) - 1)) {
+			// we have a zerobased sequential array, we assume this order: x y w h
+			list($x, $y, $w, $h) = $value;
+		} else {
+			// check for associative array
+			foreach(array('x','y','w','h') as $v) {
+				if(isset($value[$v])) $$v = $value[$v];
+			}
+		}
+
+		foreach(array('x', 'y', 'w', 'h') as $k) {
+			$v = isset($$k) ? $$k : -1;
+			if(!is_int($v) || $v < 0) throw new WireException("Missing or wrong param $k for ImageSizer-cropExtra!");
+			if(('w' == $k || 'h' == $k) && 0 == $v) throw new WireException("Wrong param $k for ImageSizer-cropExtra!");
+		}
+
+		$this->cropExtra = array($x, $y, $w, $h);
+
+		return $this;
+	}
+
+	/**
  	 * Set the image quality 1-100, where 100 is highest quality
 	 *
 	 * @param int $n
@@ -773,6 +839,7 @@ class ImageSizer extends Wire {
 				case 'quality': $this->setQuality($value); break;
 				case 'cropping': $this->setCropping($value); break;
 				case 'defaultGamma': $this->setDefaultGamma($value); break;
+				case 'cropExtra': $this->setCropExtra($value); break;
 				
 				default: 
 					// unknown or 3rd party option
@@ -809,7 +876,8 @@ class ImageSizer extends Wire {
 			'upscaling' => $this->upscaling,
 			'autoRotation' => $this->autoRotation,
 			'sharpening' => $this->sharpening,
-			'defaultGamma' => $this->defaultGamma
+			'defaultGamma' => $this->defaultGamma,
+			'cropExtra' => $this->cropExtra, 
 			);
 		$options = array_merge($this->options, $options); 
 		return $options; 
