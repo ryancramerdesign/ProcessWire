@@ -189,11 +189,13 @@ class ImageSizer extends Wire {
 		$this->options['useUSM'] = true;
 
 		// filling all options with global custom values from config.php
-		$options = array_merge($this->wire('config')->imageSizerOptions, $options); 
+		$options = array_merge($this->wire('config')->imageSizerOptions, $options);
 		$this->setOptions($options);
 
 		if(!$this->loadImageInfo($filename)) {
-			throw new WireException(basename($filename) . " is not a recogized image"); 
+			if(isset($this->enoughMemory) && false===$this->enoughMemory) return;
+			$msg = isset($this->exceptionMessage) && is_string($this->exceptionMessage) ? $this->exceptionMessage : $this->_(' is not a recognized image');
+			throw new WireException(basename($filename) . ' ' . $msg); 
 		}
 	}
 
@@ -210,6 +212,14 @@ class ImageSizer extends Wire {
 		$additionalInfo = array();
 		$info = @getimagesize($this->filename, $additionalInfo);
 		if($info === false) return false;
+		
+		// early check for available memory
+		$this->enoughMemory = true;
+		if(false===self::checkMemoryForImage($info)) {
+			$this->enoughMemory = false;
+			$this->exceptionMessage = $this->_('there is not enough memory available to load and resize this image');
+			return false;
+		}
 
 		if(function_exists("exif_imagetype")) {
 			$this->imageType = exif_imagetype($filename); 
@@ -349,6 +359,10 @@ class ImageSizer extends Wire {
 		if(isset($thumb) && is_resource($thumb)) @imagedestroy($thumb); // @horst
 		if(isset($thumb2) && is_resource($thumb2)) @imagedestroy($thumb2); // @horst
 
+		$image = null;
+		if(isset($thumb)) $thumb = null;
+		if(isset($thumb2)) $thumb2 = null;
+		
 		if($result === false) {
 			if(is_file($dest)) @unlink($dest); 
 			return false;
@@ -1531,5 +1545,36 @@ class ImageSizer extends Wire {
 	}
 
 
+	
+	/**
+	 * calculation if there is enough memory available at runtime for loading and resizing an given imagefile
+	 * 
+	 * @param mixed (array or string) $infoOrFilename - string fullpath to imagefile or array from getimagesize()
+	 * @param float or int $faktor - default for GD-lib is 2.5
+	 * 
+	 * @return bool true | false if a calculation was possible, or null if the MaxMem from php.ini is missing
+	 * 
+	 */
+	static public function checkMemoryForImage($infoOrFilename, $faktor=2.5) {
+		static $phpMaxMem = null; // with this static there is only one call to the wireReadMaxMem() function per pageRendering, regardless how many images should be resized
+		if(null===$phpMaxMem) $phpMaxMem = wireReadMaxMem();
+		if(0===$phpMaxMem) return null; // we couldn't read the MaxMemorySetting, so we do not know if there is enough or not
+		if(is_array($infoOrFilename)) {
+			$info = $infoOrFilename;
+		} elseif(is_file($infoOrFilename) && is_readable($infoOrFilename)) {
+			$info = getimagesize($infoOrFilename);
+		} else {
+			return null;
+		}
+		if(!isset($info[0]) || !isset($info[1]) || !is_int($info[0]) || !is_int($info[1])) return null;
+		$faktor = (is_float($faktor) || is_int($faktor)) && (0<$faktor && 5>$faktor) ? $faktor : 2.5;
+		$channels = isset($info['channels']) && $info['channels']>0 && $info['channels']<=4 ? $info['channels'] : 3;
+		$imgMem = $info[0] * $info[1] * $channels;
+		// read current allocated memory
+		$curMem = memory_get_usage(true);  // memory_get_usage() is always available with PHP since 5.2.1
+		// check if we have enough RAM to resize the image
+		return ($phpMaxMem - $curMem >= $faktor * $imgMem) ? true : false;
+	}
+	
 
 }
