@@ -598,7 +598,7 @@ class Sanitizer extends Wire {
 	 * http://www.php.net/manual/en/function.htmlentities.php
 	 *
 	 * @param string $str
-	 * @param int $flags
+	 * @param int|bool $flags Specify 
 	 * @param string $encoding
 	 * @param bool $doubleEncode
 	 * @return string
@@ -606,6 +606,19 @@ class Sanitizer extends Wire {
 	 */
 	public function entities($str, $flags = ENT_QUOTES, $encoding = 'UTF-8', $doubleEncode = true) {
 		return htmlentities($str, $flags, $encoding, $doubleEncode); 
+	}
+	
+	/**
+	 * Same as entities() method but won't double encode something if already encoded
+	 *
+	 * @param string $str
+	 * @param int|bool $flags Specify
+	 * @param string $encoding
+	 * @return string
+	 *
+	 */
+	public function entities1($str, $flags = ENT_QUOTES, $encoding = 'UTF-8') {
+		return htmlentities($str, $flags, $encoding, false);
 	}
 
 	public function __toString() {
