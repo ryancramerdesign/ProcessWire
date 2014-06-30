@@ -468,7 +468,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			if(isset($this->modifierFields[$field])) return $this->modifierFields[$field];
 			$field = $this->wire('fields')->get($field);
 		}
-		if(!$field || !$field instanceof Field) return array();
+		if(!$field || !$field instanceof Field || !$field->type) return array();
 		$info = $field->type->getSelectorInfo($field);
 		if($info['input'] == 'page') {
 			$info['subfields'] = array_merge($info['subfields'], $this->systemPageFields);
@@ -648,6 +648,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$selected = $field->name == $selectedValue ? ' selected' : '';
 		$templatesStr = $this->getTemplateIdsUsingField($field); 
 		$selectorInfo = $this->getSelectorInfo($field);
+		if(empty($selectorInfo)) return '';
 
 		if($selectorInfo['input'] != 'none' && count($selectorInfo['operators'])) {
 			$out = "<option$selected value='$field->name' data-templates='|$templatesStr|'>$field->name</option>";

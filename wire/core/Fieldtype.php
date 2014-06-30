@@ -581,7 +581,7 @@ abstract class Fieldtype extends WireData implements Module {
 			foreach($value as $k => $v) {
 				$k = $database->escapeCol($k);
 				$v = $database->escapeStr($v);
-				$sql1 .= ",$k";
+				$sql1 .= ",`$k`";
 				$sql2 .= ",'$v'";
 				$sql3 .= "$k=VALUES($k), ";
 			}

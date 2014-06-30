@@ -23,7 +23,7 @@ class FieldtypeImage extends FieldtypeFile {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Images',
-			'version' => 100,
+			'version' => 101,
 			'summary' => 'Field that stores one or more GIF, JPG, or PNG images',
 			'permanent' => true, 
 			);
@@ -68,6 +68,16 @@ class FieldtypeImage extends FieldtypeFile {
 			$value[$k]['height'] = $img->height();
 		}
 		return $value; 	
+	}
+
+	public function ___getConfigInputfields(Field $field) {
+
+		$inputfields = parent::___getConfigInputfields($field);
+		$f = $inputfields->get('outputString'); 
+		$f->attr('placeholder', "i.e. <img src='{url}' alt='{description}' />");
+		$f->notes .= ", {width}, {height}";
+		
+		return $inputfields; 
 	}
 
 

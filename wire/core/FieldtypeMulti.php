@@ -108,8 +108,8 @@ abstract class FieldtypeMulti extends Fieldtype {
 		return $target; 
 	}
 
-        /**
-         * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
+	/**
+	 * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
 	 *
 	 * FieldtypeMulti::savePageField expects values as an array, so we convert the $value object to an array
 	 *
@@ -220,7 +220,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 				$keys = array('data'); 
 			}
 
-			$sql = "INSERT INTO `$table` (pages_id, sort, " . implode(', ', $keys) . ") VALUES";
+			$sql = "INSERT INTO `$table` (pages_id, sort, `" . implode('`, `', $keys) . "`) VALUES";
 			$sort = 0; 	
 
 			// cycle through the values to generate the query
@@ -240,7 +240,6 @@ abstract class FieldtypeMulti extends Fieldtype {
 			}	
 
 			$sql = rtrim($sql, ", "); 
-			
 			$query = $database->prepare($sql);	
 			$result = $query->execute();
 			

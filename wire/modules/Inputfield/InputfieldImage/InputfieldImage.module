@@ -6,7 +6,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		return array(
 			'title' => __('Images', __FILE__), // Module Title
 			'summary' => __('One or more image uploads (sortable)', __FILE__), // Module Summary
-			'version' => 106,
+			'version' => 107,
 			'permanent' => true, 
 			);
 	}
@@ -16,7 +16,9 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$this->set('extensions', 'JPG JPEG GIF PNG');
 		$this->set('adminThumbs', false); 
 		$this->set('maxWidth', ''); 
-		$this->set('maxHeight', ''); 
+		$this->set('maxHeight', '');
+		$this->set('minWidth', '');
+		$this->set('minHeight', ''); 
 		$this->set('adminThumbHeight', 100); 
 		$this->set('itemClass', 'InputfieldFileItem InputfieldImage ui-widget'); 
 		$this->set('defaultGrid', 0); 
@@ -62,7 +64,13 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 
 		if(!$pagefile->width) {
 			$pagefile->unlink();
-			throw new WireException("Invalid image"); 
+			throw new WireException($this->_('Invalid image')); 
+		}
+		
+		if(($this->minWidth && $pagefile->width < $this->minWidth) || ($this->minHeight && $pagefile->height < $this->minHeight)) {
+			$actualDimensions = $pagefile->width . 'x' . $pagefile->height; 
+			$requiredDimensions = $this->minWidth . 'x' . $this->minHeight;
+			throw new WireException(sprintf($this->_('Image of %s does not meet minimum size requirements'), $actualDimensions) . " ($requiredDimensions)"); 
 		}
 
 		if(($this->maxWidth && $pagefile->width > $this->maxWidth) || ($this->maxHeight && $pagefile->height > $this->maxHeight)) {
@@ -136,11 +144,12 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$fieldset->collapsed = $this->maxWidth || $this->maxHeight ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
 		$fieldset->description = $this->_("Optionally enter the max width and/or height of uploaded images. If specified, images will be resized at upload time when they exceed either the max width or height. The resize is performed at upload time, and thus does not affect any images in the system, or images added via the API."); // Max image dimensions description
 
+		$description = $this->_("Enter the value in number of pixels or leave blank for no max."); // Min/Max width/height description
 		$field = $this->modules->get("InputfieldInteger"); 
 		$field->attr('name', 'maxWidth'); 
 		$field->attr('value', $this->maxWidth ? (int) $this->maxWidth : ''); 
 		$field->label = $this->_("Max width for uploaded images"); 
-		$field->description = $this->_("Enter the value in number of pixels or leave blank for no max."); // Max width description
+		$field->description = $description;
 		$field->columnWidth = 50; 
 		$fieldset->add($field); 
 
@@ -148,9 +157,33 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$field->attr('name', 'maxHeight'); 
 		$field->attr('value', $this->maxHeight ? (int) $this->maxHeight : ''); 
 		$field->label = $this->_("Max height for uploaded images"); 
-		$field->description = $this->_("Enter the value in number of pixels or leave blank for no max.");  // Max height description
+		$field->description = $description;
 		$field->columnWidth = 50; 
 		$fieldset->add($field); 
+
+		$inputfields->add($fieldset);
+	
+		// min image dimensions
+		$fieldset = $this->modules->get('InputfieldFieldset');
+		$fieldset->label = $this->_("Min Image Dimensions");
+		$fieldset->collapsed = $this->minWidth || $this->minHeight ? Inputfield::collapsedNo : Inputfield::collapsedYes;
+		$fieldset->description = $this->_("Optionally enter the minimum width and/or height of uploaded images. If specified, images that don't meet these minimums will be refused."); // Max image dimensions description
+
+		$field = $this->modules->get("InputfieldInteger");
+		$field->attr('name', 'minWidth');
+		$field->attr('value', $this->minWidth ? (int) $this->minWidth : '');
+		$field->label = $this->_("Min width for uploaded images");
+		$field->description = $description;
+		$field->columnWidth = 50;
+		$fieldset->add($field);
+
+		$field = $this->modules->get("InputfieldInteger");
+		$field->attr('name', 'minHeight');
+		$field->attr('value', $this->minHeight ? (int) $this->minHeight : '');
+		$field->label = $this->_("Min height for uploaded images");
+		$field->description = $description;
+		$field->columnWidth = 50;
+		$fieldset->add($field);
 
 		$inputfields->add($fieldset); 
 		

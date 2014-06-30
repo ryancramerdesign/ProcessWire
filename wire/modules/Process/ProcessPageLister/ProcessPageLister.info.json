@@ -6,6 +6,7 @@
 	"icon": "search", 
 	"requires": "ProcessWire>=2.4.3, InputfieldSelector>=9", 
 	"singular": false, 
+	"permanent": true,
 	"permission": "page-lister",
 	"permissions": {
 		"page-lister": "Use Page Lister" 

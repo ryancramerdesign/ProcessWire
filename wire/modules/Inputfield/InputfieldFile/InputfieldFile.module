@@ -265,7 +265,13 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 		$this->value->add($filename); 
 		$item = $this->value->last();
-		$this->fileAdded($item); 
+		try {
+			$this->fileAdded($item); 
+		} catch(Exception $e) {
+			$item->unlink();
+			$this->value->remove($item); 
+			throw new WireException($e->getMessage()); 
+		}
 	}
 
 	protected function ___processInputDeleteFile(Pagefile $pagefile) {

@@ -18,13 +18,18 @@
  */
 
 class FieldtypeFile extends FieldtypeMulti {
+	
+	const outputFormatAuto = 0;
+	const outputFormatArray = 1; 
+	const outputFormatSingle = 2; 
+	const outputFormatString = 30; 
 
 	protected $defaultInputfieldClass = '';
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Files', __FILE__),
-			'version' => 103,
+			'version' => 104,
 			'summary' => __('Field that stores one or more files', __FILE__),
 			'permanent' => true, 
 			);
@@ -229,6 +234,26 @@ class FieldtypeFile extends FieldtypeMulti {
 
 		if(!$value instanceof Pagefiles) return $value; 
 
+		$textformatters = $field->textformatters; 
+		if(!is_array($textformatters)) $textformatters = array();
+		if($field->entityEncode && !count($textformatters)) $textformatters[] = 'TextformatterEntities';
+		$useTags = $field->useTags; 
+	
+		foreach($textformatters as $name) {
+			$textformatter = $this->wire('modules')->get($name); 
+			if(!$textformatter) continue;
+			foreach($value as $v) {
+				$description = $v->description;
+				$textformatter->formatValue($page, $field, $description);	
+				$v->description = $description; 
+				if($useTags) {
+					$tags = $v->tags; 
+					$textformatter->formatValue($page, $field, $tags); 
+					$v->tags = $tags; 
+				}
+			}
+		}
+
 		if($field->entityEncode) { 
 			foreach($value as $k => $v) {
 				if($v->formatted()) continue; 
@@ -237,13 +262,53 @@ class FieldtypeFile extends FieldtypeMulti {
 				$v->formatted = true; 
 			}
 		}
-
-		if($field->maxFiles == 1) {
-			if(count($value)) $value = $value->first();
-				else $value = null;
+		
+		$isEmpty = count($value) == 0;
+		
+		switch((int) $field->outputFormat) {
+			
+			case self::outputFormatArray:
+				// we are already in this format so don't need to do anything
+				break;
+			
+			case self::outputFormatSingle:
+				$value = $isEmpty ? null : $value->first();
+				break;
+			
+			case self::outputFormatString:
+				$value = $this->formatValueString($page, $field, $value); 
+				break;
+			
+			default: // outputFormatAuto
+				if($field->maxFiles == 1) { 
+					$value = $isEmpty ? null : $value->first();
+				}
 		}
-
+		
+		if($isEmpty && $field->defaultValuePage) {
+			$defaultPage = $this->wire('pages')->get((int) $field->defaultValuePage); 
+			if($defaultPage->id && $defaultPage->id != $page->id) {
+				$value = $defaultPage->get($field->name);	
+			}
+		}
+		
 		return $value; 
+	}
+	
+	protected function ___formatValueString(Page $page, Field $field, $value) {
+		$out = '';
+		$outputString = $field->outputString;
+		if(empty($outputString)) $outputString = '{url}';
+		preg_match_all('/\{([_a-zA-Z0-9]+)\}/', $outputString, $matches);
+		foreach($value as $item) {
+			$s = $outputString;
+			foreach($matches[1] as $key => $match) {
+				$v = $item->$match;
+				$s = str_replace($matches[0][$key], $v, $s);
+			}
+			$out .= $s;
+		}
+		return $out; 
 	}
 
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
@@ -435,6 +500,7 @@ class FieldtypeFile extends FieldtypeMulti {
 
 		$inputfields = parent::___getConfigInputfields($field);
 
+		// extensions
 		$f = $this->modules->get('InputfieldTextarea');
 		$f->attr('name', 'extensions'); 
 		$f->attr('value', $field->extensions ? $field->extensions : $this->getDefaultFileExtensions()); 
@@ -443,22 +509,78 @@ class FieldtypeFile extends FieldtypeMulti {
 		$f->description = $this->_('Enter all file extensions allowed by this upload field. Separate each extension by a space. No periods or commas. This field is not case sensitive.'); // Valid file extensions description
 		$inputfields->append($f);
 
+		// max files
 		$f = $this->modules->get('InputfieldInteger');
 		$f->attr('name', 'maxFiles'); 
 		$f->attr('value', (int) $field->maxFiles); 
-		$f->attr('size', 4); 
+		$f->attr('size', 4);
 		$f->label = $this->_('Maximum files allowed');
-		$f->description = $this->_('Enter 0 for no limit. If you enter 1, the API will dereference this field as a single file rather than an array (when the Page has output formatting on, as it does by default).'); // Max files description
+		$f->description = $this->_('0=No limit'); 
+		$f->collapsed = Inputfield::collapsedBlank;
 		$inputfields->append($f); 
+	
+		// output format
+		$f = $this->modules->get('InputfieldRadios'); 
+		$f->attr('name', 'outputFormat'); 
+		$f->label = $this->_('Formatted value'); 
+		$f->description = $this->_('Select the type of value you want this field to provide when accessed from the API on the front-end of your site.'); 
+		$f->notes = $this->_('When output formatting is off, the value is always an array (WireArray).'); 
+		$f->addOption(self::outputFormatAuto, $this->_('Automatic (single item or null when max files set to 1, array of items otherwise)')); 
+		$f->addOption(self::outputFormatArray, $this->_('Array of items'));
+		$f->addOption(self::outputFormatSingle, $this->_('Single item (null if empty)')); 
+		$f->addOption(self::outputFormatString, $this->_('Rendered string of text (that you provide)')); 
+		$f->attr('value', (int) $field->outputFormat); 
+		$f->collapsed = Inputfield::collapsedBlank;
+		$inputfields->add($f);
+	
+		// output string
+		$f = $this->modules->get('InputfieldText');
+		$f->attr('name', 'outputString');
+		$f->label = $this->_('Rendered string of text');
+		$f->attr('placeholder', "i.e. <a href='{url}'>{description}</a>");
+		$f->attr('value', $field->outputString ? $field->outputString : '');
+		$f->description = $this->_('Provide the rendered string of text you want to output as the value of this field. If the field contains multiple items, this string will be rendered multiple times. If the field contains no items, a blank string will be used.');
+		$f->notes = $this->_('You may use any of the following tags:') . ' {url}, {description}, {tags}';
+		$f->showIf = "outputFormat=" . self::outputFormatString;
+		$inputfields->add($f);
 
-		$f = $this->modules->get("InputfieldCheckbox"); 
-		$f->attr('name', 'entityEncode'); 
-		$f->attr('value', 1); 
-		if($field->entityEncode) $f->attr('checked', 'checked'); 
-		$f->label = $this->_('Entity encode file description/tags? (recommended)'); 
-		$f->description = $this->_('If checked, the file description fields will be entity encoded (when the Page has output formatting on, as it does by default).'); // Entity encode description
-		$inputfields->append($f); 
+		// default value page
+		$f = $this->modules->get('InputfieldPageListSelect'); 
+		$f->attr('name', 'defaultValuePage'); 
+		$f->label = $this->_('Default value (when empty)'); 
+		$f->description = $this->_('Optionally select a page that will contain the default value (in this same field). You may wish to create a page specifically for this purpose.'); 
+		$f->attr('value', (int) $field->defaultValuePage); 
+		$f->collapsed = $field->defaultValuePage ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
+		$inputfields->add($f); 
+	
+		// textformatters
+		$f = $this->modules->get('InputfieldAsmSelect');
+		$f->setAttribute('name', 'textformatters');
+		$f->label = $this->_('Text formatters (for file descriptions)');
+		$f->description = $this->_('Select one or more text formatters (and their order) that will be applied to the file description when output formatting is active. The HTML Entity Encoder is recommended as a minimum.'); 
 
+		foreach($this->wire('modules') as $module) {
+			$className = $module->className();
+			if(strpos($className, 'Textformatter') !== 0) continue; 
+			$info = $this->wire('modules')->getModuleInfo($module); 
+			$f->addOption($className, "$info[title]");
+		}
+		
+		if(!is_array($field->textformatters)) {
+			$field->textformatters = $field->entityEncode ? array('TextformatterEntities') : array();
+		}
+		$f->attr('value', $field->textformatters); 
+		$inputfields->add($f); 
+
+		// entity encode (deprecated)
+		$f = $this->modules->get("InputfieldHidden");
+		$f->attr('name', 'entityEncode');
+		$f->attr('value', '');
+		if($field->entityEncode) $f->attr('checked', 'checked');
+		$inputfields->append($f);
+		$field->entityEncode = null;
+
+		// use tags
 		$f = $this->modules->get("InputfieldCheckbox"); 
 		$f->attr('name', 'useTags'); 
 		$f->attr('value', 1); 
@@ -469,6 +591,7 @@ class FieldtypeFile extends FieldtypeMulti {
 		
 		$inputfields->append($f); 
 
+		// inputfield class
 		$f = $this->modules->get('InputfieldSelect');
 		$f->attr('name', 'inputfieldClass');
 		$f->label = $this->_('Inputfield Type');
@@ -476,7 +599,8 @@ class FieldtypeFile extends FieldtypeMulti {
 		$f->required = true;
 		$baseClass = $this->defaultInputfieldClass;
 		
-		foreach($this->fuel('modules')->find("className^=Inputfield") as $fm) {
+		foreach($this->wire('modules') as $fm) {
+			if(strpos($fm->className(), 'Inputfield') !== 0) continue;
 			if("$fm" == $baseClass || is_subclass_of("$fm", $baseClass))
 				$f->addOption("$fm", str_replace("Inputfield", '', "$fm"));
 		}

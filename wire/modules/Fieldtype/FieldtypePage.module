@@ -737,6 +737,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 		foreach($fieldgroups as $fieldgroup) {
 			foreach($fieldgroup as $f) {
+				if(!$f->type) continue; 
 				if(strpos("$f->type", "FieldtypeFieldset") === 0) continue; 
 				if(isset($subfields[$f->name])) continue; 
 				$subfields[$f->name] = $f->type->getSelectorInfo($f, array('level' => $data['level']+1)); 
