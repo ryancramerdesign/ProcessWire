@@ -557,7 +557,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		$selector = $this->sessionGet('selector');
 		if(!$selector) $selector = $this->initSelector; 
-		if(strpos($selector, $this->initSelector) === false) $selector = "$this->initSelector, $selector";
+		if($this->initSelector && strpos($selector, $this->initSelector) === false) $selector = "$this->initSelector, $selector";
 
 		if(stripos($selector, 'limit=') === false) {
 			// no limit is specified in the selector

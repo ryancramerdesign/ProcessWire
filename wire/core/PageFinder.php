@@ -369,7 +369,10 @@ class PageFinder extends Wire {
 						if(strpos($fieldName, '.') !== false) list($unused, $fieldName) = explode('.', $fieldName); 
 						$field = $this->wire('fields')->get($fieldName); 	
 						if(!$field) continue;
-						if(!$hasTemplate && $field->template_id) $templates[] = (int) $field->template_id; 
+						if(!$hasTemplate && $field->template_id) {
+							if(is_array($field->template_id)) $templates = array_merge($templates, $field->template_id); 
+								else $templates[] = (int) $field->template_id; 
+						}
 						if(!$hasParent && $field->parent_id) $parents[] = (int) $field->parent_id; 
 						if($field->findPagesSelector && count($fields) == 1) $findSelector = $field->findPagesSelector;	
 					}

@@ -985,7 +985,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$label = $name;
 			// render primary subfield selection (unless selector info says not to)
 			if($info['input'] != 'none') {
-				$selected = $selectedValue == $name && !$valueHasSelectorString ? ' selected' : '';
+				$selected = $selectedValue == $name && (!$valueHasSelectorString || empty($info['subfields'])) ? ' selected' : '';
+				//$selected = $selectedValue == $name ? ' selected' : '';
 				$out .= "<option$selected value='$field->name.$name'>$label</option>";
 			}
 			// render 'id' option if there are subfields: this enables one to specify a sub-selector string
@@ -1029,7 +1030,14 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			if($field->parent_id) $selector = "parent_id=" . (int) $field->parent_id; 
 		}
 
-		if($field->template_id) $selector .= ",templates_id=" . (int) $field->template_id; 
+		if($field->template_id) {
+			$selector .= ",templates_id=";
+			if(is_array($field->template_id)) {
+				if(count($field->template_id)) $selector .= implode('|', $field->template_id); 
+			} else {
+				$selector .= (int) $field->template_id; 
+			}
+		}
 
 		if(empty($selector)) {
 			// if it's using a runtime code to determine, then we can't use autocomplete
@@ -1086,6 +1094,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$searchFields = $field->searchFields; // used by InputfieldPageAutocomplete
 		$labelFieldName = $field->labelFieldName; 
 		$labelField = $this->wire('fields')->get($labelFieldName); 
+		$template_id = (int) (is_array($field->template_id) ? reset($field->template_id) : $field->template_id); 
+		$template = $template_id ? $this->wire('templates')->get($template_id) : null;
 
 		if($searchFields) {
 			$searchFields = str_replace(' ', '|', trim($searchFields)); 
@@ -1093,7 +1103,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		} else if($labelField && $labelField->type instanceof FieldtypeText) {
 			$searchFields = $labelFieldName; 
 
-		} else if($field->template_id && $this->wire('templates')->get($field->template_id)->fieldgroup->hasField('title')) {
+		} else if($template && $template->fieldgroup->hasField('title')) {
 			$searchFields = 'title';
 			$labelFieldName = 'title';
 

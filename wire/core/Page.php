@@ -9,7 +9,7 @@
  * 2. Accessing the related hierarchy of pages (i.e. parents, children, sibling pages)
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -48,7 +48,12 @@
  * @property int $sort Sort order of this page relative to siblings (applicable when manual sorting is used).  
  * @property string $sortfield Field that a page is sorted by relative to its siblings (default=sort, which means drag/drop manual)
  * 
+ * Methods added by PageRender.module: 
+ * -----------------------------------
  * @method string render() Returns rendered page markup. echo $page->render();
+ * 
+ * Methods added by PagePermissions.module: 
+ * ----------------------------------------
  * @method bool viewable() Returns true if the page is viewable by the current user, false if not. 
  * @method bool editable() Returns true if the page is editable by the current user, false if not. Optionally specify a field to see if that field is editable.
  * @method bool publishable() Returns true if the page is publishable by the current user, false if not. 
@@ -57,6 +62,11 @@
  * @method bool addable($pageToAdd) Returns true if the current user can add children to the page, false if not. Optionally specify the page to be added for additional access checking. 
  * @method bool moveable($newParent) Returns true if the current user can move this page. Optionally specify the new parent to check if the page is moveable to that parent. 
  * @method bool sortable() Returns true if the current user can change the sort order of the current page (within the same parent). 
+ *
+ * Methods added by LanguageSupport.module (not installed by default) 
+ * ------------------------------------------------------------------
+ * @method Page setLanguageValue($language, $fieldName, $value) Set value for field in language (requires LanguageSupport module). $language may be ID, language name or Language object.
+ * @method Page getLanguageValue($language, $fieldName) Get value for field in language (requires LanguageSupport module). $language may be ID, language name or Language object. 
  *
  */
 

@@ -712,11 +712,17 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		$fieldgroups = array();
 
 		if($field->template_id) {
-			$template = $this->wire('templates')->get((int) $field->template_id);
-			if($template) $fieldgroups[] = $template->fieldgroup; 
+			// determine fieldgroup(s) from template setting
+			// template_id can be int or array of ints
+			$template_id = $field->template_id; 
+			if(!is_array($template_id)) $template_id = array($template_id); 
+			foreach($template_id as $tid) {
+				$template = $this->wire('templates')->get((int) $tid);
+				if($template) $fieldgroups[] = $template->fieldgroup; 
+			}
 
 		} else if($field->parent_id) {
-
+			// determine fieldgroup(s) from family settings
 			$parent = $this->wire('pages')->get((int) $field->parent_id); 
 			if($parent->id) {
 				foreach($parent->template->childTemplates as $template_id) {
@@ -733,7 +739,10 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			}
 		}
 
-		if(!count($fieldgroups)) $fieldgroups[] = $this->wire('fields'); 
+		if(!count($fieldgroups)) {
+			// if no fieldgorups found, then we have no choice but to use all fields
+			$fieldgroups[] = $this->wire('fields'); 
+		}
 
 		foreach($fieldgroups as $fieldgroup) {
 			foreach($fieldgroup as $f) {

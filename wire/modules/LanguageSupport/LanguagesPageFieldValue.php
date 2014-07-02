@@ -7,12 +7,11 @@
  * Copyright (C) 2012 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
-class LanguagesPageFieldValue extends Wire {
+class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface {
 
 	/**
 	 * Inherit default language value when blank
