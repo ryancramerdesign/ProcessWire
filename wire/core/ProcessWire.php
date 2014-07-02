@@ -33,7 +33,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 4; 
-	const versionRevision = 5; 
+	const versionRevision = 6; 
 	
 	const statusBoot = 0; // system is booting
 	const statusInit = 2; // system and modules are initializing
