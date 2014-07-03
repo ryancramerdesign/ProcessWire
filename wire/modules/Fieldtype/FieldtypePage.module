@@ -627,7 +627,11 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			$selector .= $field->findPagesSelector . ", ";
 		}
 		if($field->parent_id) $selector .= "parent_id={$field->parent_id}, ";
-		if($field->template_id) $selector .= "templates_id={$field->template_id}, ";
+		if(is_array($field->template_id)) {
+			if(count($field->template_id)) $selector .= "templates_id=" . implode('|', $field->template_id) . ", ";
+		} else if($field->template_id) { 
+			$selector .= "templates_id=$field->template_id, ";
+		}
 		// @todo note $field->findPagesCode is not implemented
 
 		if(!is_null($group)) {

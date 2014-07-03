@@ -253,6 +253,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	protected function checkSessionBookmark() {
 		// account for bookmarks specified in session
 		$id = $this->wire('input')->get('session_bookmark');
+		$clear = $id; 
+		if(!$id) $id = $this->sessionGet('bookmark'); 
 		if(is_null($id)) return false;
 		$id = $this->wire('sanitizer')->name($id); 
 
@@ -260,11 +262,15 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		if(!is_array($bookmarks) || !isset($bookmarks[$id]) || !is_array($bookmarks[$id])) {
 			$this->error($this->_('Unrecognized bookmark or bookmark no longer active'));
+			$this->sessionClear();
 			return false;
 		}
-	
-		$this->message("Using session bookmark: $id", Notice::debug); 
-		$this->sessionClear();
+
+		if($clear) { 
+			$this->message("Using session bookmark: $id", Notice::debug); 
+			$this->sessionClear();
+			$this->sessionSet('bookmark', $id); 
+		}
 
 		foreach($bookmarks[$id] as $key => $value) {
 			if(array_key_exists($key, $this->data)) {
