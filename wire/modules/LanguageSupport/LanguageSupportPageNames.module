@@ -326,20 +326,22 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 	public function getPagePath(Page $page, Language $language) {
 
 		$isDefault = $language->isDefault();
-
-		if($page->id == 1) {
+		
+		$rootPageID = wire('config')->rootPageID;
+		
+		if($page->id == $rootPageID) {
 			// special case: homepage
 			$name = $isDefault ? '' : $page->get("name$language"); 
 			if($isDefault && $this->useHomeSegment) $name = $page->name;
 			if($name == self::HOME_NAME_DEFAULT || !strlen($name)) return '/';
-			return "/$name/";
+			return $page->template->slashUrls ? "/$name/" : "/$name";
 		}
 
 		$path = '';
 
 		foreach($page->parents() as $parent) {
 			$name = $isDefault ? $parent->get("name") : $parent->get("name$language|name"); 
-			if($parent->id == 1) { 
+			if($parent->id == $rootPageID) { 
 				// bypass ProcessWire's default homepage name of 'home', as we don't want it in URLs
 				if($name == self::HOME_NAME_DEFAULT) continue; 
 				// avoid having default language name inherited at homepage level
