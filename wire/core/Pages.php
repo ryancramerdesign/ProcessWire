@@ -116,6 +116,8 @@ class Pages extends Wire {
 		$loadPages = true; 
 		$debug = $this->wire('config')->debug; 
 		if(array_key_exists('loadPages', $options)) $loadPages = (bool) $options['loadPages'];
+		
+		$selectorString = preg_replace('/(\r\n|\n)/', '', $selectorString);
 
 		if(!strlen($selectorString)) return new PageArray();
 		if($selectorString === '/' || $selectorString === 'path=/') $selectorString = 1;
