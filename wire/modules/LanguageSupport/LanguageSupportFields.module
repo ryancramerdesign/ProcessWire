@@ -58,7 +58,8 @@ class LanguageSupportFields extends WireData implements Module {
 
 		// load other required classes
 		$dirname = dirname(__FILE__); 
-		require_once($dirname . '/FieldtypeLanguageInterface.php'); 
+		require_once($dirname . '/FieldtypeLanguageInterface.php');
+		require_once($dirname . '/LanguagesValueInterface.php');
 		require_once($dirname . '/LanguagesPageFieldValue.php'); 
 		$this->addHookAfter('FieldtypeLanguageInterface::loadPageField', $this, 'fieldtypeLoadPageField'); 
 		$this->addHookAfter('FieldtypeLanguageInterface::wakeupValue', $this, 'fieldtypeWakeupValue'); 
