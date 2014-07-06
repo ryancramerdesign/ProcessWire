@@ -60,6 +60,19 @@ class Selectors extends WireArray {
 	protected $selectorStr = '';
 
 	/**
+	 * Types of quotes selector values may be surrounded in
+	 *
+	 */
+	protected $quotes = array(
+		// opening => closing
+		'"' => '"',
+		"'" => "'",
+		'[' => ']',
+		'{' => '}',
+		'(' => ')',
+		);
+
+	/**
 	 * Given a selector string, extract it into one or more corresponding Selector objects, iterable in this object.
 	 *
 	 */
@@ -135,16 +148,50 @@ class Selectors extends WireArray {
 	 *
 	 */
 	static public function stringHasOperator($str) {
+		
+		static $letters = 'abcdefghijklmnopqrstuvwxyz';
+		static $digits = '_0123456789';
+		
 		$has = false;
+		
 		foreach(self::$selectorTypes as $operator => $unused) {
+			
 			if($operator == '&') continue; // this operator is too common in other contexts
-			if(strpos($str, $operator) !== false) {
-				if(preg_match('/\b[_a-zA-Z0-9]+' . preg_quote($operator) . '/', $str)) {
-					$has = true;
-					break;
-				}
-			}	
+			
+			$pos = strpos($str, $operator); 
+			if(!$pos) continue; // if pos is 0 or false, move onto the next
+			
+			// possible match: confirm that field name precedes an operator
+			// if(preg_match('/\b[_a-zA-Z0-9]+' . preg_quote($operator) . '/', $str)) {
+			
+			$c = $str[$pos-1]; // letter before the operator
+			
+			if(stripos($letters, $c) !== false) {
+				// if a letter appears as the character before operator, then we're good
+				$has = true; 
+				
+			} else if(strpos($digits, $c) !== false) {
+				// if a digit appears as the character before operator, we need to confirm there is at least one letter
+				// as there can't be a field named 123, for example, which would mean the operator is likely something 
+				// to do with math equations, which we would refuse as a valid selector operator
+				$n = $pos-1; 	
+				while($n > 0) {
+					$c = $str[--$n];
+					if(stripos($letters, $c) !== false) {
+						// if found a letter, then we've got something valid
+						$has = true; 
+						break;
+						
+					} else if(strpos($digits, $c) === false) {
+						// if we've got a non-digit (and non-letter) then definitely not valid
+						break;
+					}
+				} 
+			}
+			
+			if($has) break;
 		}
+		
 		return $has; 
 	}
 
@@ -306,6 +353,66 @@ class Selectors extends WireArray {
 		return $operator; 
 	}
 
+	/**
+	 * Early-exit optimizations for extractValue
+	 * 
+	 * @param string $str String to extract value from, $str will be modified if extraction successful
+	 * @param string $openingQuote Opening quote character, if string has them, blank string otherwise
+	 * @param string $closingQuote Closing quote character, if string has them, blank string otherwise
+	 * @return mixed Returns found value if successful, boolean false if not
+	 *
+	 */
+	protected function extractValueQuick(&$str, $openingQuote, $closingQuote) {
+		
+		// determine where value ends
+		$commaPos = strpos($str, $closingQuote . ',');
+
+		if($commaPos === false) {
+			// value is the last one in $str
+			$commaPos = strlen($str); 
+			
+		} else if($commaPos && $str[$commaPos-1] === '//') {
+			// escaped comma or closing quote means no optimization possible here
+			return false; 
+		}
+		
+		// extract the value for testing
+		$value = substr($str, 0, $commaPos);
+	
+		if($openingQuote) {
+			// if there were quotes, trim them out
+			$value = trim($value, $openingQuote . $closingQuote); 
+		}
+
+		// determine if there are any embedded quotes in the value
+		$hasEmbeddedQuotes = false; 
+		foreach($this->quotes as $open => $close) {
+			if(strpos($value, $open)) $hasEmbeddedQuotes = true; 
+		}
+		
+		// if value contains quotes anywhere inside of it, abort optimization
+		if($hasEmbeddedQuotes) return false;
+	
+		// does the value contain possible OR conditions?
+		if(strpos($value, '|') !== false) {
+			
+			// if there is an escaped pipe, abort optimization attempt
+			if(strpos($value, '\\' . '|') !== false) return false; 
+		
+			// if value was surrounded in "quotes" or 'quotes' abort optimization attempt
+			// as the pipe is a literal value rather than an OR
+			if($openingQuote == '"' || $openingQuote == "'") return false;
+		
+			// we have valid OR conditions, so convert to an array
+			$value = explode('|', $value); 
+		}
+
+		// if we reach this point we have a successful extraction and can remove value from str
+		$str = $commaPos ? trim(substr($str, $commaPos+1)) : '';
+
+		// successful optimization
+		return $value; 
+	}
 
 	/**
 	 * Given a string starting with a value, return that value, and remove it from $str. 
@@ -319,25 +426,19 @@ class Selectors extends WireArray {
 
 		$str = trim($str); 
 		if(!strlen($str)) return '';
-		$quotes = array(
-			// opening => closing
-			'"' => '"', 
-			"'" => "'", 
-			'[' => ']', 
-			'{' => '}', 
-			'(' => ')', 
-			);
-
-		// if($str[0] == '"' || $str[0] == "'") {
-		if(in_array($str[0], array_keys($quotes))) {
+		
+		if(isset($this->quotes[$str[0]])) {
 			$openingQuote = $str[0]; 
-			$closingQuote = $quotes[$openingQuote];
+			$closingQuote = $this->quotes[$openingQuote];
 			$n = 1; 
 		} else {
 			$openingQuote = '';
 			$closingQuote = '';
 			$n = 0; 
 		}
+		
+		$value = $this->extractValueQuick($str, $openingQuote, $closingQuote); // see if we can do a quick exit
+		if($value !== false) return $value; 
 
 		$value = '';
 		$lastc = '';
