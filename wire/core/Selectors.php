@@ -379,6 +379,9 @@ class Selectors extends WireArray {
 		// extract the value for testing
 		$value = substr($str, 0, $commaPos);
 	
+		// if there is an operator present, it might be a subselector or OR-group
+		if(self::stringHasOperator($value)) return false;
+	
 		if($openingQuote) {
 			// if there were quotes, trim them out
 			$value = trim($value, $openingQuote . $closingQuote); 

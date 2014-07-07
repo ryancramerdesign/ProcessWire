@@ -745,6 +745,7 @@ class Page extends WireData implements Countable {
 		if(!is_null($value)) return $this->outputFormatting ? $field->type->formatValue($this, $field, $value) : $value; 
 		$track = $this->trackChanges();
 		$this->setTrackChanges(false); 
+		if(!$field->type) return null;
 		$value = $field->type->loadPageField($this, $field); 
 		if(is_null($value)) $value = $field->type->getDefaultValue($this, $field); 
 			else $value = $field->type->wakeupValue($this, $field, $value); 

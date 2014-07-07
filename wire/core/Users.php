@@ -33,10 +33,22 @@ class Users extends PagesType {
 	 *
 	 */
 	public function setCurrentUser(User $user) {
-		if(!$user->roles->has("id=" . $this->fuel('config')->guestUserRolePageID)) {
-			$guestRole = $this->fuel('roles')->getGuestRole();
+		
+		$hasGuest = false;
+		$guestRoleID = $this->wire('config')->guestUserRolePageID; 
+		
+		if($user->roles) foreach($user->roles as $role) {
+			if($role->id == $guestRoleID) {
+				$hasGuest = true; 	
+				break;
+			}
+		}
+		
+		if(!$hasGuest && $user->roles) {
+			$guestRole = $this->wire('roles')->getGuestRole();
 			$user->roles->add($guestRole);
 		}
+		
 		$this->currentUser = $user; 
 		Wire::setFuel('user', $user); 
 	}
