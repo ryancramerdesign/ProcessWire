@@ -195,6 +195,41 @@ var InputfieldSelector = {
 	},
 
 	/**
+	 * Toggle all field <select> to use either names or labels
+	 *
+	 * @param $select
+	 *
+	 */
+	changeFieldToggle: function($select) {
+		
+		var $rootParent = $select.parents(".InputfieldSelector");
+		var currentSetting = $rootParent.hasClass('InputfieldSelector_names') ? 'names' : 'labels';
+		var newSetting = (currentSetting === 'labels' ? 'names' : 'labels');
+
+		$rootParent.find(".select-field, .select-subfield").each(function() {
+			$(this).find('option').each(function() {
+				var name = $(this).attr('data-name'); 
+				if(!name) {
+					if($(this).attr('value') == 'toggle-names-labels') {
+						$(this).html($(this).attr('data-' + currentSetting)); 
+					}
+					return;
+				}
+				if(currentSetting == 'labels') {
+					$(this).html(name); 
+				} else {
+					$(this).html($(this).attr('data-label'));
+				}
+			}); 
+		});
+		
+		$rootParent.removeClass('InputfieldSelector_' + currentSetting)
+			.addClass('InputfieldSelector_' + newSetting); 
+		$select.val($select.attr('data-selected')); 
+		return false; 
+	},
+
+	/**
 	 * Event called when a field <select> has changed
 	 * 
 	 * This function initiates an ajax request to get the operator and value (opval) portion of the row.
@@ -208,9 +243,11 @@ var InputfieldSelector = {
 		var $select = $(this); 
 		var field = $select.val();
 		if(!field || field.length == 0) return;
+		if(field == 'toggle-names-labels') return InputfieldSelector.changeFieldToggle($select);
 		var $row = $select.parents('.selector-row'); 
 		var action = 'opval';
 		$row.children('.opval').html(''); 
+		$select.attr('data-selected', field); // so we can remember previous value
 
 		var $hiddenInput = $select.parents('.InputfieldSelector').find('.selector-value'); // .selector-value intentional!
 		var name = $hiddenInput.attr('name'); 

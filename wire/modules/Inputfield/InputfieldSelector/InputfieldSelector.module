@@ -12,6 +12,37 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
+ * 
+ * SETTINGS
+ * ========
+ * Below are settings that may be passed to InputfieldSelector to customize the output and behavior.
+ * Each of the settings below is shown with the default value. In cases where you see a 0 or a 1, 
+ * the 0 indicates OFF and the 1 indicates ON. 
+ *
+ * value=[selecotor string] 			Value that user can change.
+ * initValue=[selector string]			Initial value that user can't change.
+ * addIcon=plus-circle					Icon used for the "Add Field" link.
+ * addLabel=Add Field					Text used for the "Add Field" link
+ * preview=1							Whether to show a live preview of selector in notes section.
+ * counter=1							Whether to show a live "number of matches" indicator.
+ * allowSystemCustomFields=0			Allow system custom fields to appear in field selects?
+ * allowSystemNativeFields=1			Allow system native fields to appear in field selects?
+ * allowSystemTemplates=0				Allow selection of system templates (user, role, etc.)?
+ * allowSubselectors=1					Allow use of subselectors?
+ * allowSubfields=1						Allow use of subfields?
+ * allowSubfieldGroups=1				Allow @grouping of subfields (like for page references)?
+ * allowModifiers=1						Allow use of modifiers like include, limit?
+ * allowBlankValues=0					When no value is present, should it contribute to the selector?
+ * showInitValue=0						Show non-modifiable inputs for the initValue?
+ * showFieldLabels=0					Show field labels rather than names?
+ * dateFormat=Y-m-d						Default PHP date() format for date fields.
+ * datePlaceholder=yyyy-mm-dd			Placeholder attribute text for date fields.
+ * timeFormat=H:i						Default PHP date() format for time component of date fields.
+ * timePlaceholder=hh:mm				Placeholder attribute time component of date fields.
+ * showOptgroups=1						Whether or not to separate sytem, field, subfields, etc. into their own optgroups. If turned off, all types of fields will be shown together A-Z.
+ * optgroupsOrder=[see below]			Order and presence of field selection option groups.
+ * optgroupsOrder=system,field,subfield,group,modifier,adjust	
+ *
  *
  */
 
@@ -20,7 +51,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Selector',
-			'version' => 20,
+			'version' => 21,
 			'summary' => 'Build a page finding selector visually.',
 			'author' => 'Avoine + ProcessWire',
 			'autoload' => "template=admin", 
@@ -103,45 +134,86 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		);
 
 	/**
+	 * Default values of each setting, for outside configuration
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $defaultSettings = array();
+	
+	/**
 	 * Initialize the default values used in Selector
+	 * 
+	 * See the comments a the top of this file for descriptions of all settings initialized here. 
 	 * 
 	 */
 	public function __construct() {
-		// attrs and settings that may be changed with API usage or field settings
-		$this->attr('name', 'selector'); 
-		$this->set('addIcon', 'plus-circle'); 
-		$this->set('addLabel', $this->_('Add Field')); 
-
-		// whether to show a live preview in notes section
-		$this->set('preview', 1); 
-
-		// whether to show the live ajax number-of-page-matches counter
-		$this->set('counter', 1); 
-
-		// initial selector value: not changeable by user
-		$this->set('initValue', ''); 
-
-		// what is allowed
-		$this->set('allowSystemCustomFields', false); 
-		$this->set('allowSystemNativeFields', true); 
-		$this->set('allowSystemTemplates', false);
-		$this->set('allowSubselectors', true); 
-		$this->set('allowSubfields', true); 
-		$this->set('allowSubfieldGroups', true); 
-		$this->set('allowModifiers', true);
-		// blank values are allowed in selector or if not present, blank values allowed and represented by =""
-		$this->set('allowBlankValues', false); 
-
-		// whether or not inputs for the initValue should be shown (they won't be modifyable if shown)
-		$this->set('showInitValue', false); 
-
-		$this->set('dateFormat', $this->_('Y-m-d')); // date format 
-		$this->set('datePlaceholder', $this->_('yyyy-mm-dd')); // date format placeholder (what users see)
-		$this->set('timeFormat', $this->_('H:i')); // time format
-		$this->set('timePlaceholder', $this->_('hh:mm')); // time format placeholder (what users see)
 		
-
+		$this->attr('name', 'selector'); // default name, which presumably will be changed
+		$this->setting('preview', 1); // whether to show a live preview in notes section
+		$this->setting('counter', 1); // whether to show the live ajax number-of-page-matches counter
+		$this->setting('initValue', ''); // initial selector value: not changeable by user
+		$this->setting('addIcon', 'plus-circle');
+		$this->setting('addLabel', $this->_('Add Field')); 
+		
+		$this->set('subfieldIdentifier', ' &hellip;');
+		$this->set('groupIdentifier', ' ' . $this->_('(1)')); // group identifier
+		
+		// what is allowed
+		$this->setting('allowSystemCustomFields', false); 
+		$this->setting('allowSystemNativeFields', true); 
+		$this->setting('allowSystemTemplates', false);
+		$this->setting('allowSubselectors', true); 
+		$this->setting('allowSubfields', true); 
+		$this->setting('allowSubfieldGroups', true); 
+		$this->setting('allowModifiers', true);
+		$this->setting('allowBlankValues', false); // blank values are allowed in selector or if not present, blank values allowed and represented by =""
+		$this->setting('showInitValue', false); // whether or not inputs for the initValue should be shown (they won't be modifyable if shown)
+		$this->setting('showFieldLabels', false); // makes it use field labels, rather than names (when true)
+		$this->setting('showOptgroups', true); // show option groups to separate system, field, subfield, etc. 
+		$this->setting('optgroupsOrder', 'system,field,subfield,group,modifier,adjust'); // field selection option groups and order to render them in (applicable only if showOptgroups=true)
+		$this->setting('dateFormat', $this->_('Y-m-d')); // date format 
+		$this->setting('datePlaceholder', $this->_('yyyy-mm-dd')); // date format placeholder (what users see)
+		$this->setting('timeFormat', $this->_('H:i')); // time format
+		$this->setting('timePlaceholder', $this->_('hh:mm')); // time format placeholder (what users see)
+		
 		parent::__construct();
+	}
+
+	/**
+	 * Same as set() except that this remembers the default value populated to it for later retrieval from getDefaultSettings()
+	 * 
+	 * @param $key
+	 * @param $value
+	 * 
+	 */
+	protected function setting($key, $value) {
+		$this->set($key, $value); 
+		$this->defaultSettings[$key] = $value; 
+	}
+
+	/**
+	 * Return the default settings
+	 * 
+	 * @return array of key=>value
+	 * 
+	 */
+	public function getDefaultSettings() {
+		return $this->defaultSettings;
+	}
+
+	/**
+	 * Return the configured settings
+	 *
+	 * @return array of key=>value
+	 *
+	 */
+	public function getSettings() {
+		$settings = $this->defaultSettings; 
+		foreach($this->getArray() as $key => $value) {
+			if(array_key_exists($key, $settings)) $settings[$key] = $value; 
+		}
+		return $settings; 
 	}
 
 	/**
@@ -265,34 +337,36 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				$users[$user->id] = $user->name; 
 			}
 		}
+		
+		$titleField = $this->wire('fields')->get('title'); 
 
 		// system fields definitions
 		$this->systemFields = array(
 			'template' => array(
 				'input' => 'select', 
-				'label' => $this->_('template'),
+				'label' => $this->_('Template'),
 				'options' => $templates, 
 				'sanitizer' => 'integer',
 				'operators' => array('=', '!='), 
 				),
 			'title' => array(
 				'input' => 'text',
-				'label' => $this->_('title')
+				'label' => ($titleField ? $titleField->getLabel() : 'Title')
 				), 
 			'id' => array(
 				'input' => 'number',
-				'label' => $this->_('id'),
+				'label' => $this->_('ID'),
 				'sanitizer' => 'integer',
 				),
 			'name' => array(
 				'input' => 'text', 
-				'label' => $this->_('name'),
+				'label' => $this->_('Name'),
 				'sanitizer' => 'pageName',
 				'operators' => array('=', '!=', '%='), 
 				),
 			'status' => array(
 				'input' => 'select',
-				'label' => $this->_('status'), 
+				'label' => $this->_('Status'), 
 				'options' => array(
 					'hidden' => $this->_('Hidden'), 
 					'unpublished' => $this->_('Unpublished'), 
@@ -304,58 +378,58 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				),
 			'modified' => array(
 				'input' => 'datetime',
-				'label' => $this->_('last modified date'),
+				'label' => $this->_('Modified date'),
 				'operators' => $this->operatorsByType['datetime'], 
 				),
 			'created' => array(
 				'input' => 'datetime',
-				'label' => $this->_('created date'),
+				'label' => $this->_('Created date'),
 				'operators' => $this->operatorsByType['datetime'], 
 				),
 			'modified_users_id' => array(
 				'input' => 'select',
-				'label' => $this->_('last modified by user'),
+				'label' => $this->_('Modified by user'),
 				'options' => $users,
 				'operators' => array('=', '!='),
 				),
 			'created_users_id' => array(
 				'input' => 'select', 
-				'label' => $this->_('created by user'),
+				'label' => $this->_('Created by user'),
 				'options' => $users,
 				'operators' => array('=', '!='), 
 				),
 			'num_children' => array(
 				'input' => 'number',
-				'label' => $this->_('number of children'),
+				'label' => $this->_('Number of children'),
 				'sanitizer' => 'integer',
 				),
 			'count' => array(
 				'input' => 'number',
-				'label' => $this->_('count'),
+				'label' => $this->_('Count'),
 				'sanitizer' => 'integer',
 				),
 			'path' => array(
 				'input' => 'text', 
-				'label' => $this->_('path/URL'), 
+				'label' => $this->_('Path/URL'), 
 				'operators' => $this->operatorsByType['text'], 
 				),
 			'parent' => array(
 				'input' => 'number',
-				'label' => $this->_('parent'), 
+				'label' => $this->_x('Parent', 'parent-only'), 
 				'operators' => array('=', '!='), 
 				),
 			'parent.' => array(
 				'input' => 'subfields',
-				'label' => $this->_('parent...'), 
+				'label' => $this->_x('Parent',' parent-with-subfield'), 
 				), 
 			'has_parent' => array(
 				'input' => 'text',
-				'label' => $this->_('has parent/ancestor'), 
+				'label' => $this->_('Has parent/ancestor'), 
 				'operators' => array('=', '!='), 
 				),
 			'_custom' => array(
 				'input' => 'text', 
-				'label' => $this->_('custom (field=value)'),
+				'label' => $this->_('Custom (field=value)'),
 				'operators' => array(),
 				'placeholder' => $this->_('field=value'),
 				),
@@ -382,19 +456,19 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$this->modifierFields = array(
 			'sort' => array(
 				'input' => 'select', 
-				'label' => $this->_('sort'), 
+				'label' => $this->_('Sort'), 
 				'sanitizer' => 'fieldName', 
 				'operators' => array('.=', '.=-'),
 				'options' => array() // populated below
 				), 
 			'limit' => array(
 				'input' => 'integer', 
-				'label' => $this->_('limit'), 
+				'label' => $this->_('Limit'), 
 				'operators' => array('=')
 				),
 			'include' => array(
 				'input' => 'select', 
-				'label' => $this->_('include'), 
+				'label' => $this->_('Include'), 
 				'options' => array(
 					'hidden' => $this->_('Hidden'),
 					'unpublished' => $this->_('Hidden + Unpublished'),
@@ -546,6 +620,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'showSystem' => $this->allowSystemNativeFields,
 			'showSubfields' => $this->allowSubfields,
 			'showSubfieldGroups' => $this->allowSubfieldGroups, 
+			'showFieldLabels' => $this->showFieldLabels, 
+			'showOptgroups' => $this->showOptgroups, 
 			'customFields' => $this->wire('fields'), 
 			'prepend' => '',
 			'exclude' => array('count', 'pass'),
@@ -554,7 +630,6 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			); 
 
 		$settings = array_merge($defaults, $settings); 
-		$out = '';
 
 		$selectedValueSubfield = '';
 		if(strpos($selectedValue, '.') !== false && !isset($this->systemFields[$selectedValue])) {
@@ -562,34 +637,61 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		}
 		if($selectedValueSubfield) $selectedValue .= ".";
 
-		$inputName = $this->attr('name') . "__" . $settings['name'] . "[]"; 
-		$out .= "<select class='select-$settings[name]' name='$inputName' data-type='$settings[type]'>";
-		$out .= "<option></option>";
+	
+		$outAll = array();
+		$outSections = array(
+			'system' => '', 	
+			'field' => '', 
+			'subfield' => '', 
+			'group' => '',
+			'modifier' => '', 
+			'adjust' => '', 
+			);
+		
+		$outLabels = array(
+			'system' => $this->_x('System fields', 'optgroup-label'),
+			'field' => $this->_x('Fields', 'optgroup-label'),
+			'subfield' => $this->_x('Subfields', 'optgroup-label'),
+			'group' => $this->_x('Fields matching same (1) item', 'optgroup-label'),
+			'modifier' => $this->_x('Modifiers', 'optgroup-label'),
+			'adjust' => $this->_('Adjustments', 'optgroup-label'),
+			);
 
 		$optgroups = array(); 
-		if($settings['showSystem']) $optgroups[$this->_('System Fields')] = $this->systemFields;
-		if($settings['showModifiers']) $optgroups[$this->_('Modifiers')] = $this->modifierFields;
-	
-		foreach($optgroups as $optgroupLabel => $fields) {	
+		if($settings['showSystem']) $optgroups['system'] = $this->systemFields;
+		if($settings['showModifiers']) $optgroups['modifier'] = $this->modifierFields;
+
+		foreach($optgroups as $optgroupName => $fields) {	
 			// build system fields optgroup
-			$out .= "<optgroup label='$optgroupLabel'>";
+			$out = '';
 			foreach($fields as $name => $field) {
 				if(in_array($name, $settings['exclude'])) continue; 
 				if($name == 'template' && count($settings['templates']) == 1) continue; // if only 1 template allowed, don't allow selection
-				if(!$settings['showSubfields'] && substr($name, -1) == '.') continue; 
+				$hasSubfields = substr($name, -1) == '.';
+				if(!$settings['showSubfields'] && $hasSubfields) continue;
+				$_name = $name; // $_name is for output only
+				if($hasSubfields) $_name = rtrim($_name, '.') . $this->subfieldIdentifier;
 				$label = $field['label'];
+				if($settings['showFieldLabels'] == 2) $label .= " [$name]";
+				if($hasSubfields) $label .= $this->subfieldIdentifier;
 				$selected = $selectedValue == $name ? ' selected' : '';
-				$out .= "<option$selected value='$name' data-templates='*'>$label</option>";
+				if($_name == '_custom') $_name = strtolower($label); // always use label for _custom
+				$text = $settings['showFieldLabels'] ? $label : $_name;
+				$o = "<option$selected " . 
+					"value='$name' " . 
+					"data-templates='*' " .
+					"data-name='$_name' " . 
+					"data-label='$label'" . 
+					">$text</option>";
+				$out .= $o;
+				$outAll[trim($name, '_')] = $o;
 			}
-			$out .= "</optgroup>";
+			$outSections[$optgroupName] = $out;
+			unset($out);
 		}
 		
-
 		// build custom fields optgroup
-		$label = $this->_('Custom Fields'); 
-		$out .= "<optgroup label='$label'>";
-
-		foreach($settings['customFields'] as $key => $field) {
+		foreach($settings['customFields'] as $field) {
 			$fieldName = $field->name; 
 			if(in_array($fieldName, $settings['exclude'])) continue; 
 			if(($field->flags & Field::flagSystem) && !$this->allowSystemCustomFields) continue; 
@@ -599,15 +701,41 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 					$template = $this->wire('templates')->get($name); 
 					if($template && $template->fieldgroup->hasField($field)) $allow++;
 				}
-		
 			} else $allow = 1;
-
 			if($allow) {
-				$out .= $this->renderSelectFieldOption($field, $settings, $selectedValue);
+				$data = $this->renderSelectFieldOption($field, $settings, $selectedValue);
+				foreach($data as $key => $o) {
+					if($key == 'all') {
+						$outAll = array_merge($outAll, $o); 
+					}  else {
+						$outSections[$key] .= $o;
+					}
+				}
 			}
 		}
+		
+		
+		$dataLabels = $this->_('Switch to field labels');
+		$dataNames = $this->_('Switch to field names');
+		$dataDefault = $settings['showFieldLabels'] ? $dataNames : $dataLabels; 
+		$outSections['adjust'] = "<option data-labels='$dataLabels' data-names='$dataNames' value='toggle-names-labels'>$dataDefault</option>";
+			
+		$inputName = $this->attr('name') . "__" . $settings['name'] . "[]";
+		$out = "<select class='select-$settings[name]' name='$inputName' data-type='$settings[type]' data-selected='$selectedValue'><option></option>";
 
-		$out .= "</optgroup>";
+		if(!$this->showOptgroups) {
+			ksort($outAll);
+			foreach($outAll as $o) $out .= $o;
+			$this->optgroupsOrder = 'modifier,adjust';
+		}
+	
+		foreach(explode(',', $this->optgroupsOrder) as $name) {
+			$name = strtolower(trim($name)); 
+			if(empty($outSections[$name])) continue;
+			$optgroupLabel = $outLabels[$name];
+			$out .= "<optgroup label='$optgroupLabel'>$outSections[$name]</optgroup>";
+		}
+		
 		$out .= "</select>";
 		
 		return $out; 
@@ -643,30 +771,65 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	 */
 	protected function renderSelectFieldOption(Field $field, array $settings, $selectedValue = '') {
 
-		if($field->type instanceof FieldtypeFieldsetOpen) return '';
-		$out = '';
+		if($field->type instanceof FieldtypeFieldsetOpen) return array();
+		$out = array('field' => '', 'subfield' => '', 'group' => '', 'all' => array()); 
 		$selected = $field->name == $selectedValue ? ' selected' : '';
 		$templatesStr = $this->getTemplateIdsUsingField($field); 
 		$selectorInfo = $this->getSelectorInfo($field);
-		if(empty($selectorInfo)) return '';
+		if(empty($selectorInfo)) return array();
+		
+		$label = $this->wire('sanitizer')->entities($field->getLabel());
+		if($settings['showFieldLabels'] == 2) $label .= " [$field->name]";
+		$text = $settings['showFieldLabels'] ? $label : $field->name;
 
 		if($selectorInfo['input'] != 'none' && count($selectorInfo['operators'])) {
-			$out = "<option$selected value='$field->name' data-templates='|$templatesStr|'>$field->name</option>";
+			
+			$o = "<option$selected " . 
+				"value='$field->name' " . 
+				"data-templates='|$templatesStr|' " . 
+				"data-name='$field->name' " . 
+				"data-label='$label'" . 
+				">$text</option>";
+			
+			$out['field'] .= $o;
+			$out['all']["$field->name 1"] = $o; 
 		}
 
 		if(!empty($settings['showSubfields'])) {
 
 			$hasSubfields = count($selectorInfo['subfields']) > 0; 
 			$selected = "$field->name." == $selectedValue ? ' selected' : '';
-			$option = "<option$selected value='$field->name.' data-templates='|$templatesStr|'>$field->name &hellip;</option>";
+			if($settings['showFieldLabels'] == 2) $label .= " [$name]";
+			
+			$option = "<option$selected " .
+				"value='$field->name.' " . 
+				"data-templates='|$templatesStr|' " . 
+				"data-name='$field->name{$this->subfieldIdentifier}' " . 
+				"data-label='$label{$this->subfieldIdentifier}'" . 
+				">$text{$this->subfieldIdentifier}</option>";
+			
 			$blankValue = $field->type->getBlankValue(new NullPage(), $field); 
 			$isPageField = $blankValue instanceof PageArray || $blankValue instanceof Page;
-			if($hasSubfields) $out .= $option;
+			
+			if($hasSubfields) {
+				$out['subfield'] .= $option;
+				$out['all']["$field->name 2"] = $option;
+			}
 
 			if(!empty($settings['showSubfieldGroups']) && $isPageField && !$field->derefAsPage) {
-				$groupLabel = $this->_('(1)'); 
+				$name = $field->name . ' ' . $this->groupIdentifier . $this->subfieldIdentifier;
+				$label .= ' ' . $this->groupIdentifier . $this->subfieldIdentifier;
+				$text .= ' ' . $this->groupIdentifier . $this->subfieldIdentifier;
 				$selected = "@$field->name." == $selectedValue ? ' selected' : '';
-				$out .= "<option$selected value='@$field->name.' data-templates='|$templatesStr|'>$field->name $groupLabel &hellip;</option>";
+				$o = "<option$selected " .
+					"value='@$field->name.' " . 
+					"data-templates='|$templatesStr|' " . 
+					"data-name='$name' " . 
+					"data-label='$label'" . 
+					">$text</option>";
+				
+				$out['group'] .= $o;
+				$out['all']["$field->name 3"] = $o;
 			}
 		}
 
@@ -971,7 +1134,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		// if we've reached this point we're dealing with a custom field
 		$selectorInfo = $this->getSelectorInfo($field); 
 		$inputName = $this->attr('name') . "__" . $field->name . "[]"; 
-		
+	
+		$outSub = ''; // subselector optgroup output
 		$out = "<select class='select-subfield' name='$inputName' data-type='$selectorInfo[input]'>";
 		$out .= "<option></option>";
 	
@@ -982,19 +1146,41 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 		// render all the subfield options
 		foreach($selectorInfo['subfields'] as $name => $info) {
-			$label = $name;
+			
+			if(isset($this->systemFields[$name])) {
+				$label = isset($this->systemFields[$name]['label']) ? $this->systemFields[$name]['label'] : $name;
+			} else if(!empty($info['label'])) {
+				$label = $info['label'];
+			} else {
+				$f = $this->wire('fields')->get($name); 
+				$label = $f ? $f->getLabel() : $name; 
+			}
+				
+			$label = $this->wire('sanitizer')->entities($label); 
 			// render primary subfield selection (unless selector info says not to)
 			if($info['input'] != 'none') {
 				$selected = $selectedValue == $name && (!$valueHasSelectorString || empty($info['subfields'])) ? ' selected' : '';
-				//$selected = $selectedValue == $name ? ' selected' : '';
-				$out .= "<option$selected value='$field->name.$name'>$label</option>";
+				$out .= "<option$selected " .
+					"value='$field->name.$name' " . 
+					"data-name='$name' " . 
+					"data-label='$label' " . 
+					">$label</option>";
 			}
 			// render 'id' option if there are subfields: this enables one to specify a sub-selector string
 			// since selectors don't allow things like field.subfield.tertiaryfield
 			if(!empty($info['subfields']) && $this->allowSubselectors) {
 				$selected = $selectedValue == $name && $valueHasSelectorString ? ' selected' : '';
-				$out .= "<option$selected value='$field->name.$name.id'>$label.id</option>";
+				$outSub .= "<option$selected " . 
+					"value='$field->name.$name.id' " . 
+					"data-name='$name.id' " . 
+					"data-label='$label'" . 
+					">$label</option>";
 			}
+		}
+		
+		if($outSub) {
+			$label = $this->_('Match by ID (subselector)'); 
+			$out .= "<optgroup label='$label'>$outSub</optgroup>";
 		}
 		
 		$out .= "</select>";
@@ -1184,6 +1370,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 		// build the structures and default values
 		$this->setup();
+		
+		$this->wrapClass .= ' InputfieldSelector_' . ($this->showFieldLabels ? 'labels' : 'names'); 
 
 		// convert the value attribute to a Selectors object
 		try {

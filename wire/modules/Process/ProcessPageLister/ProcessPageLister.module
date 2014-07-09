@@ -19,7 +19,9 @@
  * For support of actions, new edit modules, and custom configurable Listers, 
  * check out ListerPro at http://processwire.com/ListerPro/
  * 
+ * 
  * GET vars recognized by Lister:
+ * 
  * session_bookmark: name of session bookmark (session_bookmark=...)
  * pageNum: page number, if specified as GET var rather than URL segment (pageNum=1)
  * open: CSV string of page IDs that should be open/selected (open=1,2,3)
@@ -331,7 +333,6 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$s->allowSystemTemplates = $this->allowSystem; 
 		$s->allowSubfieldGroups = false; // we only support in ListerPro
 		$s->allowSubselectors = false; // we only support in ListerPro
-		$s->allowBlankValues = true; 
 		$selector = $this->sessionGet('selector'); 
 		if(!strlen($selector)) $selector = $this->defaultSelector; 
 		if($this->initSelector) $selector = str_replace($this->initSelector, '', $selector); // ensure that $selector does not contain initSelector
