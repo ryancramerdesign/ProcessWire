@@ -162,6 +162,8 @@ class ProcessModule extends Process implements ConfigurableModule {
 			
 			if($installed) {
 				$installedArray[$name] = $installed;
+				$errors = $this->modules->getDependencyErrors($name); 
+				if($errors) foreach($errors as $error) $this->error($error); 
 			} else {
 				$uninstalledNames[] = $name;
 				$uninstalledArray[$name] = $installed;

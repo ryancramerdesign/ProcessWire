@@ -99,6 +99,12 @@ class Modules extends WireArray {
 	 *
 	 */
 	protected $moduleInfoCache = array();
+	
+	/**
+	 * Cache of module information from DB used across multiple calls temporarily by load() method
+	 *
+	 */
+	protected $modulesTableCache = array();
 
 	/**
 	 * Construct the Modules
@@ -112,11 +118,13 @@ class Modules extends WireArray {
 		$this->setTrackChanges(false); 
 		$this->modulePath = $path;
 		$this->loadModuleInfoCache();
+		$this->loadModulesTable();
 		$this->load($path); 
 		if($path2 && is_dir($path2)) {
 			$this->modulePath2 = $path2; 
 			$this->load($path2);
 		}
+		$this->modulesTableCache = array(); // clear out data no longer needed
 	}
 
 	/**
@@ -215,13 +223,35 @@ class Modules extends WireArray {
 
 	/**
 	 * Given a class name, return the constructed module
+	 * 
+	 * @param string $className Module class name
+	 * @return Module
 	 *
 	 */
 	protected function newModule($className) {
 		if($this->debug) $debugKey = $this->debugTimerStart("newModule($className)"); 
 		if(!class_exists($className, false)) $this->includeModule($className); 
 		$module = new $className(); 
-		if($this->debug) $this->debugTimerStop($debugKey); 
+		if($this->debug) $this->debugTimerStop($debugKey);
+		return $module; 
+	}
+
+	/**
+	 * Return a new ModulePlaceholder for the given className
+	 * 
+	 * @param string $className Module class this placeholder will stand in for
+	 * @param string $file Full path and filename of $className
+	 * @param bool $singular Is the module a singular module?
+	 * @param bool $autoload Is the module an autoload module?
+	 * @return ModulePlaceholder
+	 *
+	 */
+	protected function newModulePlaceholder($className, $file, $singular, $autoload) { 
+		$module = new ModulePlaceholder();
+		$module->setClass($className);
+		$module->singular = $singular;
+		$module->autoload = $autoload;
+		$module->file = $file;
 		return $module; 
 	}
 
@@ -305,6 +335,27 @@ class Modules extends WireArray {
 	}
 
 	/**
+	 * Retrieve the installed module info as stored in the database
+	 *
+	 * @return array Indexed by module class name => array of module info
+	 *
+	 */
+	protected function loadModulesTable() {
+		$database = $this->wire('database');
+		$query = $database->prepare("SELECT id, class, flags, data FROM modules ORDER BY class"); // QA
+		$query->execute();
+		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+			if($row['flags'] & self::flagsAutoload) {
+				// preload config data for autoload modules since we'll need it again very soon
+				$this->configData[$row['id']] = wireDecodeJSON($row['data']);
+			}
+			unset($row['data']);
+			$this->modulesTableCache[$row['class']] = $row;
+		}
+		$query->closeCursor();
+	}
+
+	/**
 	 * Given a disk path to the modules, instantiate all installed modules and keep track of all uninstalled (installable) modules. 
 	 *
 	 * @param string $path 
@@ -312,101 +363,173 @@ class Modules extends WireArray {
 	 */
 	protected function load($path) {
 
-		static $installed = array();
-		$database = $this->wire('database');
 		if($this->debug) $debugKey = $this->debugTimerStart("load($path)"); 
 
-		if(!count($installed)) {
-			$query = $database->prepare("SELECT id, class, flags, data FROM modules ORDER BY class"); // QA
-			$query->execute();
-			while($row = $query->fetch(PDO::FETCH_ASSOC)) {
-				if($row['flags'] & self::flagsAutoload) {
-					// preload config data for autoload modules since we'll need it again very soon
-					$this->configData[$row['id']] = wireDecodeJSON($row['data']);
+		$installed =& $this->modulesTableCache;
+		$modulesLoaded = array();
+		$modulesDelayed = array();
+		$modulesRequired = array();
+		
+		foreach($this->findModuleFiles($path, true) as $pathname) {
+			
+			$pathname = trim($pathname); 
+			$requires = array();
+			$moduleName = $this->loadModule($path, $pathname, $requires, $installed);
+			if(!$moduleName) continue; 
+			
+			if(count($requires)) {
+				
+				// module not loaded because it required other module(s) not yet loaded
+				foreach($requires as $requiresModuleName) {
+					if(!isset($modulesRequired[$requiresModuleName])) $modulesRequired[$requiresModuleName] = array();
+					if(!isset($modulesDelayed[$moduleName])) $modulesDelayed[$moduleName] = array();
+					// queue module for later load
+					$modulesRequired[$requiresModuleName][$moduleName] = $pathname;
+					$modulesDelayed[$moduleName][] = $requiresModuleName;
 				}
-				unset($row['data']);
-				$installed[$row['class']] = $row;
+				
+			} else {
+				
+				// module was successfully loaded
+				$modulesLoaded[$moduleName] = 1;
+
+				// now determine if this module had any other modules waiting on it as a dependency
+				do { 
+					// if no other modules require this one, then we can stop
+					if(!isset($modulesRequired[$moduleName])) break;
+					
+					// name of delayed module loaded (if loaded)
+					$loadedName = '';
+					
+					// iternate through delayed modules that require this one
+					foreach($modulesRequired[$moduleName] as $delayedName => $delayedPathName) {
+						$loadNow = true; 
+						foreach($modulesDelayed[$delayedName] as $requiresModuleName) {
+							if(!isset($modulesLoaded[$requiresModuleName])) $loadNow = false;
+						}
+						if($loadNow) {
+							// all conditions satisified to load delayed module
+							unset($modulesDelayed[$delayedName]); 
+							unset($modulesRequired[$moduleName][$delayedName]); 
+							$unused = array(); 
+							$loadedName = $this->loadModule($path, $delayedPathName, $unused, $installed); 
+							if($loadedName) $modulesLoaded[$loadedName] = 1; 
+						} else {
+							// delayed module will be loaded when its last dependency is met
+						}
+					}
+			
+					// stuff it back in for another round
+					// in case the loaded module accounts for yet another dependency
+					$moduleName = $loadedName; 
+					
+				} while($moduleName);
 			}
-			$query->closeCursor();
 		}
-
-		$files = $this->findModuleFiles($path, true); 
-
-		foreach($files as $pathname) {
-
-			$pathname = $path . $pathname;
-			$dirname = dirname($pathname);
-			$filename = basename($pathname); 
-			$basename = basename($filename, '.php'); 
-			$basename = basename($basename, '.module');
-
-			if(class_exists($basename, false)) {
-				// possibly more than one of the same modules on the system 
-				continue; 
-			}
-
-			// if the filename doesn't end with .module or .module.php, then stop and move onto the next
-			if(!strpos($filename, '.module') || (substr($filename, -7) !== '.module' && substr($filename, -11) !== '.module.php')) continue; 
-
-			//  if the filename doesn't start with the requested path, then continue
-			if(strpos($pathname, $path) !== 0) continue; 
-
-			// if the file isn't there, it was probably uninstalled, so ignore it
-			if(!file_exists($pathname)) continue;
-
-			// if the module isn't installed, then stop and move on to next
-			if(!array_key_exists($basename, $installed)) {	
-				$this->installable[$basename] = $pathname; 
-				continue; 
-			}
-
-			$info = $installed[$basename]; 
-			$this->setConfigPaths($basename, $dirname); 
-			$module = null; 
-			$autoload = false;
-
-			if($info['flags'] & self::flagsAutoload) { 
-				// this is an Autoload mdoule. 
-				// include the module and instantiate it but don't init() it,
-				// because it will be done by Modules::init()
-				$moduleInfo = $this->getModuleInfo($basename); 
-				// if not defined in getModuleInfo, then we'll accept the database flag as enough proof
-				// since the module may have defined it via an isAutoload() function
-				if(!isset($moduleInfo['autoload'])) $moduleInfo['autoload'] = true;
-				$autoload = $moduleInfo['autoload'];
-				if($autoload === 'function') {
-					// function is stored by the moduleInfo cache to indicate we need to call a dynamic functino specified with the module itself
-					include_once($pathname); 
-					$i = $basename::getModuleInfo();
-					$autoload = isset($i['autoload']) ? $i['autoload'] : true;
-				}
-				// check for conditional autoload
-				if(!is_bool($autoload) && (is_string($autoload) || is_callable($autoload))) {
-					// anonymous function or selector string
-					$this->conditionalAutoloadModules[$basename] = $autoload;
-					$this->moduleIDs[$basename] = $info['id'];
-					$autoload = true; 
-				} else if($autoload) {
-					include_once($pathname); 
-					$module = $this->newModule($basename); 
-				}
-			}
-
-			if(is_null($module)) {
-				// placeholder for a module, which is not yet included and instantiated
-				$module = new ModulePlaceholder(); 
-				$module->setClass($basename); 
-				$module->singular = $info['flags'] & self::flagsSingular; 
-				$module->autoload = $autoload;
-				$module->file = $pathname; 
-			}
-
-			$this->moduleIDs[$basename] = $info['id']; 
-			$this->set($basename, $module); 
+		
+		if(count($modulesDelayed)) foreach($modulesDelayed as $moduleName => $requiredNames) {
+			$this->error("Module '$moduleName' dependecy not fulfilled for: " . implode(', ', $requiredNames), Notice::debug);
 		}
 		
 		if($this->debug) $this->debugTimerStop($debugKey); 
+	}
 
+	/**
+	 * Load a module into memory (companion to load bootstrap method)
+	 * 
+	 * @param string $basepath Base path of modules being processed (path provided to the load method)
+	 * @param string $pathname
+	 * @param array $requires This method will populate this array with required dependencies (class names) if present.
+	 * @param array $installed Array of installed modules info, indexed by module class name
+	 * @return Returns module name (classname) 
+	 * 
+	 */
+	protected function loadModule($basepath, $pathname, array &$requires, array &$installed) {
+		
+		$pathname = $basepath . $pathname;
+		$dirname = dirname($pathname);
+		$filename = basename($pathname);
+		$basename = basename($filename, '.php');
+		$basename = basename($basename, '.module');
+		$requires = array();
+
+		if(class_exists($basename, false)) {
+			// possibly more than one of the same modules on the system 
+			// or module was already loaded from dependencies of another module
+			return $basename;
+		}
+
+		// if the filename doesn't end with .module or .module.php, then stop and move onto the next
+		if(!strpos($filename, '.module') || (substr($filename, -7) !== '.module' && substr($filename, -11) !== '.module.php')) return false;
+		
+		//  if the filename doesn't start with the requested path, then continue
+		if(strpos($pathname, $basepath) !== 0) return ''; 
+
+		// if the file isn't there, it was probably uninstalled, so ignore it
+		if(!file_exists($pathname)) return '';
+
+		// if the module isn't installed, then stop and move on to next
+		if(!array_key_exists($basename, $installed)) {
+			$this->installable[$basename] = $pathname;
+			return '';
+		}
+
+		$info = $installed[$basename];
+		$this->setConfigPaths($basename, $dirname);
+		$module = null;
+		$autoload = false;
+
+		if($info['flags'] & self::flagsAutoload) {
+			// this is an Autoload mdoule. 
+			// include the module and instantiate it but don't init() it,
+			// because it will be done by Modules::init()
+			$moduleInfo = $this->getModuleInfo($basename);
+
+			// determine if module has dependencies that are not yet met
+			if(count($moduleInfo['requires'])) {
+				foreach($moduleInfo['requires'] as $requiresClass) {
+					if(!class_exists($requiresClass, false)) {
+						$requiresInfo = $this->getModuleInfo($requiresClass); 
+						if(!empty($requiresInfo['error']) || $requiresInfo['autoload'] === true || !$this->isInstalled($requiresClass)) {	
+							// we only handle autoload===true since load() only instantiates other autoload===true modules
+							$requires[] = $requiresClass;
+						}
+					}
+				}
+				if(count($requires)) return $basename;
+			}
+
+			// if not defined in getModuleInfo, then we'll accept the database flag as enough proof
+			// since the module may have defined it via an isAutoload() function
+			if(!isset($moduleInfo['autoload'])) $moduleInfo['autoload'] = true;
+			$autoload = $moduleInfo['autoload'];
+			if($autoload === 'function') {
+				// function is stored by the moduleInfo cache to indicate we need to call a dynamic function specified with the module itself
+				include_once($pathname);
+				$i = $basename::getModuleInfo();
+				$autoload = isset($i['autoload']) ? $i['autoload'] : true;
+			}
+			// check for conditional autoload
+			if(!is_bool($autoload) && (is_string($autoload) || is_callable($autoload))) {
+				// anonymous function or selector string
+				$this->conditionalAutoloadModules[$basename] = $autoload;
+				$this->moduleIDs[$basename] = $info['id'];
+				$autoload = true;
+			} else if($autoload) {
+				include_once($pathname);
+				$module = $this->newModule($basename);
+			}
+		}
+
+		if(is_null($module)) {
+			// placeholder for a module, which is not yet included and instantiated
+			$module = $this->newModulePlaceholder($basename, $pathname, $info['flags'] & self::flagsSingular, $autoload);
+		}
+
+		$this->moduleIDs[$basename] = $info['id'];
+		$this->set($basename, $module);
+		
+		return $basename; 
 	}
 
 	/**
@@ -440,7 +563,7 @@ class Modules extends WireArray {
 		
 		if($level == 0) {
 			$startPath = $path;
-			$cacheName = "Modules." . str_replace($this->wire('config')->paths->root, '', $path);
+			$cacheName = "Modules." . str_replace($config->paths->root, '', $path);
 			//$cacheFilename = $config->paths->cache . $cacheName . ".cache";
 			if($readCache && $cache) {
 				$cacheContents = $cache->get($cacheName); 
@@ -541,7 +664,7 @@ class Modules extends WireArray {
 		if(ctype_digit("$key")) {
 			if(!$key = array_search($key, $this->moduleIDs)) return null;
 		}
-
+		
 		if($module = parent::get($key)) {
 
 			// check if it's a placeholder, and if it is then include/instantiate/init the real module 
@@ -564,7 +687,7 @@ class Modules extends WireArray {
 		}
 		
 		if($module && empty($options['noPermissionCheck'])) {
-			$info = $this->getModuleInfo($module);
+			$info = $this->getModuleInfo($key);
 			if(!empty($info['permission']) && !$this->wire('user')->hasPermission($info['permission'])) {
 				throw new WirePermissionException($this->_('You do not have permission to execute this module') . ' - ' . $class);
 			}
@@ -1172,6 +1295,7 @@ class Modules extends WireArray {
 	 * @param string|Module|int $module May be class name, module instance, or module ID
 	 * @param array $options Optional options to modify behavior of what gets returned
 	 * 	- noCache: prevents use of cache to retrieve the module info
+	 *  - noInclude: prevents include() of the module file, applicable only if it hasn't already been included
 	 * @return array
 	 * @throws WireException when a module exists but has no means of returning module info
 	 *	
@@ -1629,6 +1753,43 @@ class Modules extends WireArray {
 	public function getRequiresForUninstall($class) {
 		return $this->getRequiredBy($class, false, true); 
 	}
+	
+	/**
+	 * Return array of dependency errors for given module name
+	 *
+	 * @param $moduleName
+	 * @return array If no errors, array will be blank. If errors, array will be of strings (error messages)
+	 *
+	 */
+	public function getDependencyErrors($moduleName) {
+
+		$moduleName = $this->getModuleClass($moduleName);
+		$info = $this->getModuleInfo($moduleName);
+		$errors = array();
+
+		if(empty($info['requires'])) return $errors;
+
+		foreach($info['requires'] as $requiresName) {
+			$error = '';
+
+			if(!$this->isInstalled($requiresName)) {
+				$error = $requiresName;
+
+			} else if(!empty($info['requiresVersions'][$requiresName])) {
+				list($operator, $version) = $info['requiresVersions'][$requiresName];
+				$info2 = $this->getModuleInfo($requiresName); 
+				$requiresVersion = $info2['version'];
+				if(!empty($version) && !$this->versionCompare($requiresVersion, $version, $operator)) {
+					$error = "$requiresName $operator $version";
+				}
+			}
+
+			if($error) $errors[] = sprintf($this->_('Failed module dependency: %s requires %s'), $moduleName, $error);
+		}
+
+		return $errors;
+	}
+
 
 	/**
 	 * Given a module version number, format it in a consistent way as 3 parts: 1.2.3 
@@ -1761,7 +1922,7 @@ class Modules extends WireArray {
 		$timerKey = $log[0];
 		$log[0] = Debug::timer($timerKey);
 		$this->debugLog[$key] = $log;
-		Debug::clearTimer($timerKey);
+		Debug::removeTimer($timerKey);
 	}
 
 	/**
