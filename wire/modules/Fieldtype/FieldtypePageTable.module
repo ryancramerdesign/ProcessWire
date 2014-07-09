@@ -20,11 +20,10 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'ProFields: Page Table',
-			'version' => 6,
+			'version' => 7,
 			'summary' => 'A fieldtype containing a group of editable pages.',
 			'installs' => 'InputfieldPageTable',
 			'autoload' => true, 
-			'requires' => 'ProcessWire>=2.4.2'
 			);
 	}
 
@@ -362,6 +361,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	public function ___sleepValue(Page $page, Field $field, $value) {
 		$sleepValue = array();
 		if(!$value instanceof PageArray) return $sleepValue; 
+		if($field->sortfields) $value->sort($field->sortfields); 
 		if($value->data('notSaveable')) throw new WireException("Field '$field->name' from page $page->id is not saveable because it is a formatted value."); 
 		foreach($value as $item) {
 			if(!$item->id) continue; 
@@ -381,16 +381,31 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 	 *
 	 */
 	public function ___wakeupValue(Page $page, Field $field, $value) {
+		
 		if(!is_array($value) || !count($value) || empty($field->template_id)) return $this->getBlankValue($page, $field);
+		
 		$template_id = $field->template_id; 
+		
 		if(!is_array($template_id)) { 
 			$template_id = $template_id ? array($template_id) : array();
 		}
+		
 		if(count($template_id) == 1) {
 			$template = $this->wire('templates')->get(reset($template_id));
-			$items = $this->wire('pages')->getById($value, $template); 
 		} else {
-			$items = $this->wire('pages')->getById($value); 
+			$template = null;
+		}
+		
+		if($field->sortfields) {
+			$selector = $template ? "template=$template, " : ""; 
+			$selector .= "include=unpublished, id=" . implode('|', $value);
+			foreach(explode(',', $field->sortfields) as $sortfield) {
+				$selector .= ", sort=" . $this->wire('sanitizer')->name(trim($sortfield));
+			}
+			$items = $this->wire('pages')->find($selector); 
+			
+		} else {
+			$items = $this->wire('pages')->getById($value, $template); 
 		}
 			
 		return $items; 
@@ -465,7 +480,7 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 		*/
 		
 		$fieldset = $this->wire('modules')->get('InputfieldFieldset'); 
-		$fieldset->label = $this->_('Page Behaviors');
+		$fieldset->label = $this->_('Page behaviors');
 		$fieldset->showIf = 'parent_id!=""';
 		$inputfields->add($fieldset);
 		
@@ -508,6 +523,16 @@ class FieldtypePageTable extends FieldtypeMulti implements Module {
 		$f->attr('value', (int) $field->unpubOnUnpub);
 		$f->columnWidth = 33; 
 		$fieldset->add($f); 
+		
+		$f = $this->wire('modules')->get('InputfieldText'); 
+		$f->attr('name', 'sortfields'); 
+		$f->label = $this->_('Sort fields'); 
+		$f->description = $this->_('Enter the field name that you want your table to sort by. For a descending sort, precede the field name with a hyphen, i.e. "-date" rather than "date".'); // sort description 1 
+		$f->description .= ' ' . $this->_('You may specify multiple sort fields by separating each with a comma, i.e. "last_name, first_name, -birthday".'); // sort description 2
+		$f->notes = $this->_('Leave this blank for manual drag-and-drop sorting (default).'); 
+		$f->collapsed = Inputfield::collapsedBlank;
+		$f->attr('value', $field->sortfields); 
+		$inputfields->add($f); 
 		
 		return $inputfields;
 	}

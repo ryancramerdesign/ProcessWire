@@ -38,6 +38,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 	 */
 	protected $nativeNames = array(
 		'name', 
+		'status',
 		'template',
 		'templates_id',
 		'parent',
@@ -570,6 +571,14 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		} else if(in_array($subfield, array('parent', 'parent_id'))) {
 			if(!ctype_digit("$value")) $value = $this->pages->get($value)->id; 
 			$subfield = 'parent_id';	
+			
+		} else if($subfield == 'status') {
+			$statuses = Page::getStatuses();
+			if(ctype_digit("$value")) {
+				$value = (int) $value; 
+			} else if(isset($statuses[$value])) {
+				$value = $statuses[$value]; 
+			} else $value = 0;
 		
 		} else if($subfield == 'name') {
 			$value = $this->sanitizer->pageName($value); 
@@ -597,6 +606,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 	 * @param string $operator
 	 * @param string $value
 	 * @return bool true if used, false if not
+	 * @throws WireException if selector not supported
 	 *
 	 */
 	protected function getMatchQueryCustom($query, $table, $subfield, $operator, $value) {
