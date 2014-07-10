@@ -126,7 +126,7 @@ abstract class WireAction extends WireData implements Module {
 	 *
 	 */
 	public function ___getConfigInputfields() {
-		$info = $this->wire('modules')->getModuleInfo($this->className());
+		$info = $this->wire('modules')->getModuleInfoVerbose($this->className());
 		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
 		$fieldset->label = $info['title'];
 		$fieldset->description = $info['summary'];

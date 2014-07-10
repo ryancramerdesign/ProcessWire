@@ -42,7 +42,7 @@ class ProcessList extends Process {
 			
 			if($child->process) {
 				
-				$info = $this->modules->getModuleInfo($child->process, array('noCache' => true)); 	
+				$info = $this->modules->getModuleInfoVerbose($child->process, array('noCache' => true)); 	
 				$icon = $info['icon'] ? "<i style='float: right;' class='fa fa-3x fa-fw fa-$info[icon] ui-priority-secondary'></i> " : '';
 				$title = $info['title']; 
 				$titleTranslated = __($title, '/wire/templates-admin/default.php'); 

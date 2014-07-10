@@ -37,6 +37,12 @@ class Modules extends WireArray {
 	 *
 	 */
 	const moduleInfoCacheName = 'Modules.info';
+	
+	/**
+	 * Filename for verbose module info cache file
+	 *
+	 */
+	const moduleInfoCacheVerboseName = 'ModulesVerbose.info';
 
 	/**
 	 * Array of modules that are not currently installed, indexed by className => filename
@@ -65,10 +71,16 @@ class Modules extends WireArray {
 	protected $modulePath2  = '';
 
 	/**
-	 * Cached module configuration data
+	 * Cached module configuration data indexed by module ID
 	 *
 	 */
 	protected $configData = array();
+	
+	/**
+	 * Module created dates indexed by module ID
+	 *
+	 */
+	protected $createdDates = array();
 
 	/**
 	 * Have the modules been init'd() ?
@@ -99,6 +111,12 @@ class Modules extends WireArray {
 	 *
 	 */
 	protected $moduleInfoCache = array();
+	
+	/**
+	 * Cache of module information (verbose text) including: summary, author, href
+	 *
+	 */
+	protected $moduleInfoCacheVerbose = array();
 	
 	/**
 	 * Cache of module information from DB used across multiple calls temporarily by load() method
@@ -342,21 +360,28 @@ class Modules extends WireArray {
 	 */
 	protected function loadModulesTable() {
 		$database = $this->wire('database');
-		$query = $database->prepare("SELECT id, class, flags, data FROM modules ORDER BY class"); // QA
+		// we use SELECT * so that this select won't be broken by future DB schema additions
+		// Currently: id, class, flags, data, with created added at sysupdate 7
+		$query = $database->prepare("SELECT * FROM modules ORDER BY class"); // QA
 		$query->execute();
 		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+			$moduleID = (int) $row['id'];
 			if($row['flags'] & self::flagsAutoload) {
 				// preload config data for autoload modules since we'll need it again very soon
-				$this->configData[$row['id']] = wireDecodeJSON($row['data']);
+				$this->configData[$moduleID] = strlen($row['data']) ? wireDecodeJSON($row['data']) : array();
 			}
 			unset($row['data']);
+			if(isset($row['created']) && $row['created'] != '0000-00-00 00:00:00') {
+				$row['created'] = strtotime($row['created']); 
+				$this->createdDates[$moduleID] = $row['created']; 
+			}
 			$this->modulesTableCache[$row['class']] = $row;
 		}
 		$query->closeCursor();
 	}
 
 	/**
-	 * Given a disk path to the modules, instantiate all installed modules and keep track of all uninstalled (installable) modules. 
+	 * Given a disk path to the modules, determine all installed modules and keep track of all uninstalled (installable) modules. 
 	 *
 	 * @param string $path 
 	 *
@@ -453,7 +478,7 @@ class Modules extends WireArray {
 		$basename = basename($basename, '.module');
 		$requires = array();
 
-		if(class_exists($basename, false)) {
+		if(class_exists($basename, false) && parent::get($basename)) {
 			// possibly more than one of the same modules on the system 
 			// or module was already loaded from dependencies of another module
 			return $basename;
@@ -817,19 +842,33 @@ class Modules extends WireArray {
 	 * Install the given class name
 	 *
 	 * @param string $class
+	 * @param bool $dependencies When true (default), dependencies will also be installed where possible. Specify false to prevent installation of uninstalled dependencies. 
 	 * @return null|Module Returns null if unable to install, or instantiated Module object if successfully installed. 
 	 * @throws WireException
 	 *
 	 */
-	public function ___install($class) {
+	public function ___install($class, $dependencies = true) {
 
 		if(!$this->isInstallable($class)) return null; 
-		$pathname = $this->installable[$class]; 	
-		require_once($pathname); 
-		$this->setConfigPaths($class, dirname($pathname)); 
 
 		$requires = $this->getRequiresForInstall($class); 
-		if(count($requires)) throw new WireException("Module $class requires: " . implode(", ", $requires)); 
+		if(count($requires)) {
+			$installable = false; 
+			if($dependencies) {
+				$installable = true; 
+				foreach($requires as $requiresModule) {
+					if(!$this->isInstallable($requiresModule)) $installable = false;
+				}
+				if($installable) foreach($requires as $requiresModule) {
+					$this->install($requiresModule, $dependencies); 
+				}
+			}
+			if(!$installable) throw new WireException("Module $class requires: " . implode(", ", $requires)); 
+		}
+		
+		$pathname = $this->installable[$class];
+		require_once($pathname);
+		$this->setConfigPaths($class, dirname($pathname)); 
 
 		$module = $this->newModule($class);
 
@@ -840,11 +879,17 @@ class Modules extends WireArray {
 		if($this->isSingular($module)) $flags = $flags | self::flagsSingular; 
 		if($this->isAutoload($module)) $flags = $flags | self::flagsAutoload; 
 	
-		$query = $database->prepare("INSERT INTO modules SET class=:class, flags=:flags, data=''"); 
+		$query = $database->prepare("INSERT INTO modules SET class=:class, flags=:flags, data='', created=NOW()"); 
 		$query->bindValue(":class", $class, PDO::PARAM_STR); 
 		$query->bindValue(":flags", $flags, PDO::PARAM_INT); 
-		if($query->execute()) $moduleID = (int) $database->lastInsertId();
-			
+		
+		try {
+			if($query->execute()) $moduleID = (int) $database->lastInsertId();
+		} catch(Exception $e) {
+			$this->error($e->getMessage()); 
+			return null;
+		}
+		
 		$this->moduleIDs[$class] = $moduleID;
 
 		$this->add($module); 
@@ -1162,14 +1207,17 @@ class Modules extends WireArray {
 	 *
 	 * @param string|Module $class
 	 * @return int
-	 * @throws WireException
 	 *
 	 */
 	public function getModuleID($class) {
 
 		if(is_object($class)) {
-			if($class instanceof Module) $class = $this->getModuleClass($class); 
-				else throw new WireException("Unknown module type"); 
+			if($class instanceof Module) {
+				$class = $this->getModuleClass($class); 
+			} else {
+				// Class is not a module
+				return 0; 
+			}
 		}
 
 		return isset($this->moduleIDs[$class]) ? (int) $this->moduleIDs[$class] : 0; 
@@ -1228,11 +1276,15 @@ class Modules extends WireArray {
 		$info = array();
 		if(is_file($filePHP)) {
 			include($filePHP); // will populate $info automatically
+			if(!is_array($info) || !count($info)) $this->error("Invalid PHP module info file for $moduleName"); 
 			
 		} else if(is_file($fileJSON)) {
 			$info = file_get_contents($fileJSON);
 			$info = json_decode($info, true);
-			if(!$info) throw new WireException("Invalid JSON module info for $moduleName");
+			if(!$info) {
+				$info = array();
+				$this->error("Invalid JSON module info file for $moduleName");
+			}
 		} 
 		
 		return $info; 
@@ -1266,6 +1318,7 @@ class Modules extends WireArray {
 		
 		if($moduleName === 'PHP') {
 			$info = array();
+			$info['id'] = 0; 
 			$info['name'] = $moduleName;
 			$info['title'] = $moduleName;
 			$info['version'] = PHP_VERSION;
@@ -1273,6 +1326,7 @@ class Modules extends WireArray {
 
 		} else if($moduleName === 'ProcessWire') {
 			$info = array();
+			$info['id'] = 0; 
 			$info['name'] = $moduleName;
 			$info['title'] = $moduleName;
 			$info['version'] = $this->wire('config')->version;
@@ -1294,6 +1348,7 @@ class Modules extends WireArray {
 	 *
 	 * @param string|Module|int $module May be class name, module instance, or module ID
 	 * @param array $options Optional options to modify behavior of what gets returned
+	 *  - verbose: Makes the info also include summary, author and href (they will be usually blank without this option specified)
 	 * 	- noCache: prevents use of cache to retrieve the module info
 	 *  - noInclude: prevents include() of the module file, applicable only if it hasn't already been included
 	 * @return array
@@ -1302,24 +1357,28 @@ class Modules extends WireArray {
 	 */
 	public function getModuleInfo($module, array $options = array()) {
 		
-		if(!isset($options['verbose'])) $options['verbose'] = true; 
+		if(!isset($options['verbose'])) $options['verbose'] = false; 
 		if(!isset($options['noCache'])) $options['noCache'] = false;
 		
 		$info = array();
-		$moduleName = $module; 
+		$moduleName = $module;
+		$moduleID = $this->getModuleID($module); 
+		$fromCache = false;  // was the data loaded from cache?
 		
-		static $verboseInfo = array(
+		static $infoTemplate = array(
+			// module database ID
+			'id' => 0, 
 			// module class name 
 			'name' => '',
 			// module title
 			'title' => '',
 			// module version
 			'version' => 0,
-			// who authored the module?
+			// who authored the module? (included in 'verbose' mode only)
 			'author' => '',
-			// summary of what this module does
+			// summary of what this module does (included in 'verbose' mode only)
 			'summary' => '',
-			// URL to module details
+			// URL to module details (included in 'verbose' mode only)
 			'href' => '',
 			// Optional name of icon representing this module (currently font-awesome icon names, excluding the "fa-" portion)
 			'icon' => '', 
@@ -1331,21 +1390,29 @@ class Modules extends WireArray {
 			'installs' => array(),
 			// permission required to execute this module
 			'permission' => '',
-			// permissions automaticall installed/uninstalled with this module. array of ('permission-name' => 'Description')
+			// permissions automatically installed/uninstalled with this module. array of ('permission-name' => 'Description')
 			'permissions' => array(),
 			// true if module is autoload, false if not. null=unknown
 			'autoload' => null,
 			// true if module is singular, false if not. null=unknown
 			'singular' => null,
+			// unix-timestamp date/time module added to system (for uninstalled modules, it is the file date)
+			'created' => 0, 
+			// is the module currently installed? (boolean)
+			'installed' => false, 
 			);
-
+	
 		if($module instanceof Module) {
 			// module is an instance
 			$moduleName = method_exists($module, 'className') ? $module->className() : get_class($module); 
 			// return from cache if available
-			if(empty($options['noCache']) && !empty($this->moduleInfoCache[$moduleName])) return $this->moduleInfoCache[$moduleName]; 
-			$info = $this->getModuleInfoInternal($module); 
-			if(!count($info)) $info = $this->getModuleInfoExternal($moduleName); 
+			if(empty($options['noCache']) && !empty($this->moduleInfoCache[$moduleID])) {
+				$info = $this->moduleInfoCache[$moduleID]; 
+				$fromCache = true; 
+			} else {
+				$info = $this->getModuleInfoExternal($moduleName); 
+				if(!count($info)) $info = $this->getModuleInfoInternal($module); 
+			}
 			
 		} else if(in_array($module, array('PHP', 'ProcessWire'))) {
 			// module is a system 
@@ -1355,15 +1422,16 @@ class Modules extends WireArray {
 			
 			// module is a class name or ID
 			if(ctype_digit("$module")) $module = $this->getModuleClass($module);
+			
 			// return from cache if available
-			if(empty($options['noCache']) && !empty($this->moduleInfoCache[$module])) {
-				return $this->moduleInfoCache[$module];
-			}
-	
-			if(class_exists($moduleName, false)) {
-				// module is already in memory, check internal first, then external
-				$info = $this->getModuleInfoInternal($moduleName); 
-				if(!count($info)) $info = $this->getModuleInfoExternal($moduleName); 
+			if(empty($options['noCache']) && !empty($this->moduleInfoCache[$moduleID])) {
+				$info = $this->moduleInfoCache[$moduleID];
+				$fromCache = true; 
+				
+			} else if(class_exists($moduleName, false)) {
+				// module is already in memory, check external first, then internal
+				$info = $this->getModuleInfoExternal($moduleName);
+				if(!count($info)) $info = $this->getModuleInfoInternal($moduleName); 
 				
 			} else {
 				// module is not in memory, check external first, then internal
@@ -1376,47 +1444,87 @@ class Modules extends WireArray {
 			}
 		}
 		
-		if(!count($info)) {
-			$info = $verboseInfo; 
+		if(!$fromCache && !count($info)) {
+			$info = $infoTemplate; 
 			$info['title'] = $module;
 			$info['summary'] = 'Inactive';
 			$info['error'] = 'Unable to locate module';
 			return $info;
 		}
 		
-		$info = array_merge($verboseInfo, $info); 
+		$info = array_merge($infoTemplate, $info); 
+		$info['id'] = $moduleID; 
 
-		// if $info[requires] or $info[installs] isn't already an array, make it one
-		if(!is_array($info['requires'])) {
-			$info['requires'] = str_replace(' ', '', $info['requires']); // remove whitespace
-			if(strpos($info['requires'], ',') !== false) $info['requires'] = explode(',', $info['requires']); 
-				else $info['requires'] = array($info['requires']); 
-		}
+		if($fromCache) {
 
-		// populate requiresVersions
-		foreach($info['requires'] as $key => $class) {
-			if(!ctype_alnum($class)) {
-				// has a version string
-				list($class, $operator, $version) = $this->extractModuleOperatorVersion($class); 
-				$info['requires'][$key] = $class; // convert to just class
-			} else {
-				// no version string
-				$operator = '>=';
-				$version = 0; 
+			if($options['verbose']) { 
+				if(empty($this->moduleInfoCacheVerbose)) $this->loadModuleInfoCacheVerbose();
+				if(!empty($this->moduleInfoCacheVerbose[$moduleID])) {
+					$info = array_merge($info, $this->moduleInfoCacheVerbose[$moduleID]); 
+				}
 			}
-			$info['requiresVersions'][$class] = array($operator, $version); 
-		}
-
-		if(!is_array($info['installs'])) {
-			$info['installs'] = str_replace(' ', '', $info['installs']); // remove whitespace
-			if(strpos($info['installs'], ',') !== false) $info['installs'] = explode(',', $info['installs']); 
-				else $info['installs'] = array($info['installs']); 
-		}
-
-		$info['name'] = $moduleName; 
+			
+		} else {
+			
+			// we skip everything else when module comes from cache since we can safely assume the checks below 
+			// are already accounted for in the cached module info
+			
+			// if $info[requires] or $info[installs] isn't already an array, make it one
+			if(!is_array($info['requires'])) {
+				$info['requires'] = str_replace(' ', '', $info['requires']); // remove whitespace
+				if(strpos($info['requires'], ',') !== false) $info['requires'] = explode(',', $info['requires']); 
+					else $info['requires'] = array($info['requires']); 
+			}
+	
+			// populate requiresVersions
+			foreach($info['requires'] as $key => $class) {
+				if(!ctype_alnum($class)) {
+					// has a version string
+					list($class, $operator, $version) = $this->extractModuleOperatorVersion($class); 
+					$info['requires'][$key] = $class; // convert to just class
+				} else {
+					// no version string
+					$operator = '>=';
+					$version = 0; 
+				}
+				$info['requiresVersions'][$class] = array($operator, $version); 
+			}
+	
+			if(!is_array($info['installs'])) {
+				$info['installs'] = str_replace(' ', '', $info['installs']); // remove whitespace
+				if(strpos($info['installs'], ',') !== false) $info['installs'] = explode(',', $info['installs']); 
+					else $info['installs'] = array($info['installs']); 
+			}
+	
+			$info['name'] = $moduleName; 
+			
+		} 
 		
+		if(isset($this->createdDates[$moduleID])) $info['created'] = $this->createdDates[$moduleID]; 
+		$info['installed'] = isset($this->installable[$moduleName]) ? false : true; 
+		if(!$info['installed'] && !$info['created'] && isset($this->installable[$moduleName])) {
+			$info['created'] = (int) filemtime($this->installable[$moduleName]); 
+		}
+				
 		return $info;
 	}
+
+	/**
+	 * Returns the verbose array of information for a Module
+	 *
+	 * @param string|Module|int $module May be class name, module instance, or module ID
+	 * @param array $options Optional options to modify behavior of what gets returned
+	 * 	- noCache: prevents use of cache to retrieve the module info
+	 *  - noInclude: prevents include() of the module file, applicable only if it hasn't already been included
+	 * @return array
+	 * @throws WireException when a module exists but has no means of returning module info
+	 *
+	 */
+	public function getModuleInfoVerbose($module, array $options = array()) {
+		$options['verbose'] = true; 
+		return $this->getModuleInfo($module, $options); 
+	}
+
 
 	/**
 	 * Given a class name, return an array of configuration data specified for the Module
@@ -1514,7 +1622,7 @@ class Modules extends WireArray {
  	 *
 	 */
 	public function isSingular(Module $module) {
-		$info = $this->getModuleInfo($module, array('verbose' => false));
+		$info = $this->getModuleInfo($module); 
 		if(isset($info['singular']) && $info['singular'] !== null) return $info['singular'];
 		if(method_exists($module, 'isSingular')) return $module->isSingular();
 		return false;
@@ -1528,7 +1636,7 @@ class Modules extends WireArray {
  	 *
 	 */
 	public function isAutoload(Module $module) {
-		$info = $this->getModuleInfo($module, array('verbose' => false));
+		$info = $this->getModuleInfo($module); 
 		if(isset($info['autoload']) && $info['autoload'] !== null) {
 			// if autoload is a string (selector) or callable, then we flag it as autoload
 			if(is_string($info['autoload']) || is_callable($info['autoload'])) return "conditional"; 
@@ -1831,7 +1939,25 @@ class Modules extends WireArray {
 		$data = $this->wire('cache')->get(self::moduleInfoCacheName); 	
 		if($data) { 
 			$data = json_decode($data, true); 
-			if(is_array($data)) $this->moduleInfoCache = $data; 
+			// if module class name keys in use (i.e. ProcessModule) it's an older version of 
+			// module info cache, so we skip over it to force its re-creation
+			if(is_array($data) && !isset($data['ProcessModule'])) $this->moduleInfoCache = $data; 
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Load the module information cache (verbose info: summary, author, href)
+	 *
+	 * @return bool
+	 *
+	 */
+	protected function loadModuleInfoCacheVerbose() {
+		$data = $this->wire('cache')->get(self::moduleInfoCacheVerboseName);
+		if($data) {
+			$data = json_decode($data, true);
+			if(is_array($data)) $this->moduleInfoCacheVerbose = $data;
 			return true;
 		}
 		return false;
@@ -1842,7 +1968,8 @@ class Modules extends WireArray {
 	 * 
 	 */
 	protected function clearModuleInfoCache() {
-		$this->wire('cache')->delete(self::moduleInfoCacheName); 
+		$this->wire('cache')->delete(self::moduleInfoCacheName);
+		$this->wire('cache')->delete(self::moduleInfoCacheVerboseName); 
 		$this->saveModuleInfoCache();
 	}
 
@@ -1853,6 +1980,8 @@ class Modules extends WireArray {
 	protected function saveModuleInfoCache() {
 		
 		$this->moduleInfoCache = array();
+		$this->moduleInfoCacheVerbose = array();
+		
 		$user = $this->wire('user'); 
 		$languages = $this->wire('languages'); 
 		
@@ -1869,10 +1998,14 @@ class Modules extends WireArray {
 		foreach($this as $module) {
 			
 			$class = $module->className();
-			$info = $this->getModuleInfo($class, array('noCache' => true)); 
+			$info = $this->getModuleInfo($class, array('noCache' => true, 'verbose' => true));
+			if(!empty($info['error']) || empty($info['id'])) continue;
+			$moduleID = (int) $info['id']; 
+			unset($info['id']); // no need to double store this property since it is already the array key
 			
 			if(is_null($info['autoload'])) {
 				$info['autoload'] = $this->isAutoload($module); 
+				
 			} else if(!is_bool($info['autoload']) && !is_string($info['autoload']) && is_callable($info['autoload'])) {
 				// runtime function, identify it only with 'function' so that it can be recognized later as one that
 				// needs to be dynamically loaded
@@ -1881,14 +2014,22 @@ class Modules extends WireArray {
 			
 			if(is_null($info['singular'])) {
 				$info['singular'] = $this->isSingular($module); 
-			} 
+			}
 			
-			if(!empty($info['error'])) continue;
+			$verboseKeys = array('summary', 'author', 'href'); 
+			$verboseInfo = array();
+
+			foreach($verboseKeys as $key) {
+				if(!empty($info[$key])) $verboseInfo[$key] = $info[$key]; 
+				unset($info[$key]); 
+			}
 			
-			$this->moduleInfoCache[$class] = $info; 
+			$this->moduleInfoCache[$moduleID] = $info; 
+			$this->moduleInfoCacheVerbose[$moduleID] = $verboseInfo; 
 		}
 		
-		$this->wire('cache')->save(self::moduleInfoCacheName, json_encode($this->moduleInfoCache), WireCache::expireNever); 
+		$this->wire('cache')->save(self::moduleInfoCacheName, json_encode($this->moduleInfoCache), WireCache::expireNever);
+		$this->wire('cache')->save(self::moduleInfoCacheVerboseName, json_encode($this->moduleInfoCacheVerbose), WireCache::expireNever); 
 		if($languages && $language) $user->language = $language; // restore
 	}
 

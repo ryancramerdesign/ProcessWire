@@ -54,5 +54,9 @@ $(document).ready(function() {
 		document.cookie = 'WireTabs=tab_new_modules';
 		return true; 
 	});
+	
+	$("#Inputfield_new_seconds").change(function() {
+		$(this).parents('form').submit();
+	}); 
 
 }); 

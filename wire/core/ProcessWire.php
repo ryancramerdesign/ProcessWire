@@ -33,7 +33,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 4; 
-	const versionRevision = 6; 
+	const versionRevision = 7; 
 	
 	const statusBoot = 0; // system is booting
 	const statusInit = 2; // system and modules are initializing
@@ -164,6 +164,7 @@ class ProcessWire extends Wire {
 			if($this->debug) Debug::saveTimer('boot.load.modules');
 			$this->wire('modules', $modules, true); 
 		} catch(Exception $e) {
+			if(!$modules) throw new WireException($e->getMessage()); 	
 			$this->error($e->getMessage()); 
 		}
 		$updater = $modules->get('SystemUpdater'); 

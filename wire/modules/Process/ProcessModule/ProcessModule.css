@@ -97,3 +97,11 @@ a span.PermanentModule {
 #no_install {
     float: left; 
 }
+
+#modules_form select.modules_filter {
+	margin-top: 0.75em;
+}
+#modules_form #Inputfield_new_seconds {
+	margin-bottom: 1em;
+}
+

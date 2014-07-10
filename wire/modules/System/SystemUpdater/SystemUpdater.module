@@ -73,7 +73,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 			 * This version number is important, as this updater keeps the systemVersion up with this version
 			 *
 			 */
-			'version' => 6, 
+			'version' => 7, 
 			);
 	}
 
@@ -222,8 +222,6 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 		$f->description = __('This lets you re-apply a system version update by reducing the version number.');
 		$f->attr('value', $data['systemVersion']); 
 		$inputfields->add($f);
-		
-		
 		
 		return $inputfields;
 	}
