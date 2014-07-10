@@ -999,9 +999,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 		// determine which operators should be used
 		if($type == 'text' && $selectedValue == '""' && in_array($selectedOperator, array('=', '!='))) {
-			// add blank quoted string to operator, to match up with our "has value" or "does not hae value" operators
+			// add blank quoted string to operator, to match up with our "has value" or "does not have value" operators
 			$selectedOperator .= '""';
 			$selectedValue = '';
+			$selectedValueEntities = '';
 			
 		} else if($type == 'selector') { 
 			// populate operators for the selector type
@@ -1054,7 +1055,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$inputType = $type; 
 			$inputClass = "input-value input-value-$type";
 			
-			if($type == 'number' || $type == 'selector') {
+			if($type == 'number' || $type == 'selector' || $fieldName == 'id' || $subfield == 'id') {
 				// adding this class tells InputfieldSelector.js that selector strings are allowed for this input
 				$inputClass .= " input-value-subselect"; 
 				$inputType = 'text'; 
@@ -1418,6 +1419,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$rowClass = '';
 			$orChecked = false;
 			$fields = $selector->field; 
+			$quote = $selector->quote; 
 			if(!is_array($fields)) $fields = array($fields); 
 
 			// render a row for each field in the $selector (usually 1)
@@ -1444,6 +1446,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				foreach($values as $valueNum => $value) { 
 					if($valueNum > 0) $rowClass .= " has-or-value";
 					if($fieldNum > 0 || $valueNum > 0) $orChecked = true; 
+					if(!strlen($value) && $quote) $value = "$quote{$value}$quote";
 					$opval = $this->renderOpval(($field2 ? $field2 : $field1), '', $selector->operator, $value, $orChecked); 
 					$rows .= $this->renderRow($select, $select2, $opval, $rowClass); 			
 				}
@@ -1492,7 +1495,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	 * 
 	 */
 	public function sanitizeSelectorString($selectorString) {
-
+		
 		$initSelectors = new Selectors($this->initValue); 
 		$userSelectors = new Selectors($selectorString); 
 		
@@ -1506,8 +1509,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 		$selector = (string) $initSelectors . ", ";
 		$selector .= (string) $userSelectors; 
-	
-		$selector = trim($selector, ", "); 
+		$selector = trim($selector, ", ");
 		return $selector; 
 	}
 

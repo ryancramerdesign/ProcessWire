@@ -594,8 +594,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$selector .= ", sort=$sort";
 
 		$selector = trim($selector, ', '); 
-		
-		$selector = $this->validateSelector($selector); 
+		$selector = $this->validateSelector($selector);
 
 		return $selector; 
 	}

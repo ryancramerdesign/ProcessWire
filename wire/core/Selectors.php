@@ -366,6 +366,12 @@ class Selectors extends WireArray {
 		
 		// determine where value ends
 		$commaPos = strpos($str, $closingQuote . ',');
+		
+		if($commaPos === false && $closingQuote) {
+			// if closing quote and comma didn't match, try to match just comma in case of "something"<space>,
+			$commaPos = strpos(substr($str, 1), ',');
+			if($commaPos !== false) $commaPos++;
+		}
 
 		if($commaPos === false) {
 			// value is the last one in $str
@@ -411,7 +417,8 @@ class Selectors extends WireArray {
 		}
 
 		// if we reach this point we have a successful extraction and can remove value from str
-		$str = $commaPos ? trim(substr($str, $commaPos+1)) : '';
+		// $str = $commaPos ? trim(substr($str, $commaPos+1)) : '';
+		$str = trim(substr($str, $commaPos+1));
 
 		// successful optimization
 		return $value; 
@@ -433,6 +440,7 @@ class Selectors extends WireArray {
 		if(isset($this->quotes[$str[0]])) {
 			$openingQuote = $str[0]; 
 			$closingQuote = $this->quotes[$openingQuote];
+			$quote = $openingQuote; 
 			$n = 1; 
 		} else {
 			$openingQuote = '';

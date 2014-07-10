@@ -583,7 +583,7 @@ var InputfieldSelector = {
 			if(s.field == '_custom') {
 				selector += s.value; 
 			} else {
-				selector += s.field + s.operator + s.value; 
+				selector += s.field + s.operator + $.trim(s.value); 
 			}
 		}
 
