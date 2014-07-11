@@ -931,6 +931,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$table->row(array($this->_x('File', 'edit'), $filename)); 
 		$table->row(array($this->_x('ID', 'edit'), $moduleId)); 
 		$table->row(array($this->_x('Version', 'edit'), $version)); 
+		if(!empty($moduleInfo['created'])) $table->row(array($this->_x('Installed', 'edit'), wireRelativeTimeStr($moduleInfo['created'])));
 		if(!empty($moduleInfo['author'])) $table->row(array($this->_x('Author', 'edit'), $moduleInfo['author'])); 
 		$table->row(array($this->_x('Summary', 'edit'), $moduleInfo['summary'])); 
 		if($requirementsStr) $table->row(array($this->_x('Requires', 'edit'), $requirementsStr)); 

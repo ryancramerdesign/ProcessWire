@@ -878,8 +878,10 @@ class Modules extends WireArray {
 		
 		if($this->isSingular($module)) $flags = $flags | self::flagsSingular; 
 		if($this->isAutoload($module)) $flags = $flags | self::flagsAutoload; 
-	
-		$query = $database->prepare("INSERT INTO modules SET class=:class, flags=:flags, data='', created=NOW()"); 
+
+		$sql = "INSERT INTO modules SET class=:class, flags=:flags, data=''";
+		if($this->wire('config')->systemVersion >=7) $sql .= ", created=NOW()";
+		$query = $database->prepare($sql); 
 		$query->bindValue(":class", $class, PDO::PARAM_STR); 
 		$query->bindValue(":flags", $flags, PDO::PARAM_INT); 
 		
