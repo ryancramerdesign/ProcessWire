@@ -144,7 +144,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$fieldset->collapsed = $this->maxWidth || $this->maxHeight ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
 		$fieldset->description = $this->_("Optionally enter the max width and/or height of uploaded images. If specified, images will be resized at upload time when they exceed either the max width or height. The resize is performed at upload time, and thus does not affect any images in the system, or images added via the API."); // Max image dimensions description
 
-		$description = $this->_("Enter the value in number of pixels or leave blank for no max."); // Min/Max width/height description
+		$description = $this->_("Enter the value in number of pixels or leave blank for no restriction."); // Min/Max width/height description
 		$field = $this->modules->get("InputfieldInteger"); 
 		$field->attr('name', 'maxWidth'); 
 		$field->attr('value', $this->maxWidth ? (int) $this->maxWidth : ''); 
