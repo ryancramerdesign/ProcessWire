@@ -1505,7 +1505,12 @@ class Modules extends WireArray {
 		if(isset($this->createdDates[$moduleID])) $info['created'] = $this->createdDates[$moduleID]; 
 		$info['installed'] = isset($this->installable[$moduleName]) ? false : true; 
 		if(!$info['installed'] && !$info['created'] && isset($this->installable[$moduleName])) {
-			$info['created'] = (int) filemtime($this->installable[$moduleName]); 
+			// uninstalled modules get their created date from the file or dir that they are in (whichever is newer)
+			$pathname = $this->installable[$moduleName]; 
+			$filemtime = (int) filemtime($pathname); 
+			$dirname = dirname($pathname); 
+			$dirmtime = substr($dirname, -7) == 'modules' ? 0 : (int) filemtime($dirname); 
+			$info['created'] = $dirmtime > $filemtime ? $dirmtime : $filemtime;
 		}
 				
 		return $info;

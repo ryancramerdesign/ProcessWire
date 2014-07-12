@@ -190,6 +190,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 				$reflector = new ReflectionClass($name);
 				$filename = $reflector->getFileName();
 			} catch(Exception $e) {
+				$filename = '';
 				// $this->error($e->getMessage()); 
 			}
 		

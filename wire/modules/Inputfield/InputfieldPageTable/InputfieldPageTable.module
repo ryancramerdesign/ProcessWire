@@ -360,7 +360,7 @@ class InputfieldPageTable extends Inputfield {
 			$value = $object->$property; 
 			if(is_object($value)) $value = $this->objectToString($value); 
 		} else {
-			$value = (string) $value; 
+			$value = (string) $object;
 		}
 
 		$value = $this->wire('sanitizer')->entities(strip_tags($value)); 
