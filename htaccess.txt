@@ -1,6 +1,7 @@
 #################################################################################################
 # START PROCESSWIRE HTACCESS DIRECTIVES
-# @version 2.4
+# @version 2.5
+# @indexVersion 250
 #################################################################################################
 
 # -----------------------------------------------------------------------------------------------
@@ -49,17 +50,29 @@ ErrorDocument 404 /index.php
 </IfModule>
 
 # -----------------------------------------------------------------------------------------------
-# Protect ProcessWire system files (part 1)
+# Protect ProcessWire system files (part 1A) for Apache versions older than 2.4:
+# APACHE 2.4+ NOTE: Comment out this section and uncomment second 1B below it.
 # -----------------------------------------------------------------------------------------------
 
-<FilesMatch "\.(inc|info|module|sh|sql)$|^(\..*)$">
+<FilesMatch "\.(inc|info|info\.json|module|sh|sql)$|^(\..*)$">
   Order allow,deny
 </FilesMatch>
-
 <Files .htaccess>
   order allow,deny
   deny from all
 </Files>
+
+# -----------------------------------------------------------------------------------------------
+# Protect ProcessWire system files (part 1B) for Apache versions 2.4 and newer: 
+# APACHE 2.4+ NOTE: Uncomment this section and remove or comment out section 1A above. 
+# -----------------------------------------------------------------------------------------------
+
+# <FilesMatch "\.(inc|info|info\.json|module|sh|sql)$|^(\..*)$">
+#   Require all denied 
+# </FilesMatch>
+# <Files .htaccess>
+#   Require all denied
+# </Files>
 
 # -----------------------------------------------------------------------------------------------
 # Override a few PHP settings that can't be changed at runtime (not required)
@@ -93,7 +106,9 @@ DirectoryIndex index.php index.html index.htm
   # commenting out this SetEnv line below. 
   # -----------------------------------------------------------------------------------------------
 
-  SetEnv HTTP_MOD_REWRITE On
+  <IfModule mod_env.c>
+    SetEnv HTTP_MOD_REWRITE On
+  </IfModule>
 
   # -----------------------------------------------------------------------------------------------
   # OPTIONAL: Set a rewrite base if rewrites aren't working properly on your server.
@@ -118,6 +133,16 @@ DirectoryIndex index.php index.html index.htm
   # RewriteCond %{HTTP_HOST} !^www\. [NC]
   # RewriteRule ^ http://www.%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+  # ----------------------------------------------------------------------------------------------- 
+  # OPTIONAL: Send URLs with non name-format characters to 404 page
+  # Remove this section if it interferes with URLs of any other software you may be running. 
+  # ----------------------------------------------------------------------------------------------- 
+
+  RewriteCond %{REQUEST_URI} "[^-_.a-zA-Z0-9/~]"
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(.*)$ index.php?it=/http404/ [L,QSA]
+
   # -----------------------------------------------------------------------------------------------
   # Access Restrictions: Protect ProcessWire system files
   # -----------------------------------------------------------------------------------------------
@@ -139,11 +164,11 @@ DirectoryIndex index.php index.html index.htm
   # Block access to any PHP files in /site/assets/
   RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/assets($|/|/.*\.php)$ [OR]
   # Block access to any PHP files in core or core module directories
-  RewriteCond %{REQUEST_URI} (^|/)wire/(core|modules)/.*\.(php|inc|tpl|module)$ [OR]
+  RewriteCond %{REQUEST_URI} (^|/)wire/(core|modules)/.*\.(php|inc|tpl|module|info\.json)$ [OR]
   # Block access to any PHP files in /site/modules/
-  RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/modules/.*\.(php|inc|tpl|module)$ [OR]
+  RewriteCond %{REQUEST_URI} (^|/)(site|site-[^/]+)/modules/.*\.(php|inc|tpl|module|info\.json)$ [OR]
   # Block access to any software identifying txt files
-  RewriteCond %{REQUEST_URI} (^|/)(COPYRIGHT|INSTALL|README|htaccess)\.(txt|md)$ [OR]
+  RewriteCond %{REQUEST_URI} (^|/)(COPYRIGHT|INSTALL|README|htaccess)\.(txt|md|textile)$ [OR]
   # Block all http access to the default/uninstalled site-default directory
   RewriteCond %{REQUEST_URI} (^|/)site-default/
   # If any conditions above match, isssue a 403 forbidden

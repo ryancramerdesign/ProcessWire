@@ -13,7 +13,7 @@
  *
  */
 
-register_shutdown_function('ProcessWireShutDown');
+register_shutdown_function('ProcessWireShutdown');
 
 function ProcessWireShutdown() {
 

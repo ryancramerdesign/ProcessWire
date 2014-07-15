@@ -1509,7 +1509,7 @@ class Modules extends WireArray {
 			$pathname = $this->installable[$moduleName]; 
 			$filemtime = (int) filemtime($pathname); 
 			$dirname = dirname($pathname); 
-			$dirmtime = substr($dirname, -7) == 'modules' ? 0 : (int) filemtime($dirname); 
+			$dirmtime = substr($dirname, -7) == 'modules' || strpos($dirname, '/wire/modules/') !== false ? 0 : (int) filemtime($dirname); 
 			$info['created'] = $dirmtime > $filemtime ? $dirmtime : $filemtime;
 		}
 				

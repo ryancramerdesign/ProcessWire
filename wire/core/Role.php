@@ -49,25 +49,40 @@ class Role extends Page {
 	}
 
 	/**
-	 * Does this role have the given permission name or object?
+	 * Does this role have the given permission name, id or object?
 	 *
-	 * @param string|Permission
+	 * @param string|int|Permission
 	 * @return bool
 	 *
 	 */
 	public function hasPermission($name) {
+		$has = false; 
+		
+		if(empty($name)) {	
+			// do nothing
+		
+		} else if($name instanceof Page) {
+			$has = $this->permissions->has($name); 
 
-		if($name instanceof Page) {
-			$permission = $name; 
+		} else if(ctype_digit("$name")) {
+			$name = (int) $name; 
+			foreach($this->permissions as $permission) {
+				if(((int) $permission->id) === $name) {
+					$has = true;
+					break;
+				}
+			}
 
-		} else if(ctype_digit("$name")) { 
-			$permission = $this->fuel('permissions')->get("id=$name"); 
-
-		} else {
-			$permission = $this->fuel('permissions')->get("name=$name"); 
+		} else if(is_string($name)) {
+			foreach($this->permissions as $permission) {
+				if($permission->name === $name) {
+					$has = true;
+					break;
+				}
+			}
 		}
-
-		return $this->permissions->has($permission); 
+		
+		return $has; 
 	}
 
 	/**

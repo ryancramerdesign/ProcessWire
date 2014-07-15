@@ -42,12 +42,35 @@ class User extends Page {
 	 *
 	 */
 	public function hasRole($role) {
-		$roles = $this->get('roles'); 
-		if(empty($roles)) return false; 
-		if(is_object($role) && $role instanceof Role) return $roles->has($role); 
-		if(ctype_digit("$role")) return $roles->has("id=$role"); 
-		if(is_string($role)) return $roles->has("name=$role"); 
-		return false;
+		
+		$roles = $this->get('roles');
+		$has = false; 
+		
+		if(empty($roles)) {
+			// do nothing
+			
+		} else if(is_object($role) && $role instanceof Page) {
+			$has = $roles->has($role); 
+			
+		} else if(ctype_digit("$role")) {
+			$role = (int) $role; 
+			foreach($roles as $r) {
+				if(((int) $r->id) === $role) {
+					$has = true; 
+					break;
+				}
+			}
+			
+		} else if(is_string($role)) {
+			foreach($roles as $r) {
+				if($r->name === $role) {
+					$has = true;
+					break;
+				}
+			}
+		}
+		
+		return $has;
 	}
 
 	/**
@@ -264,14 +287,14 @@ class User extends Page {
 	 *
 	 */
 	public function isSuperuser() {
-		$config = $this->fuel('config');
+		$config = $this->wire('config');
 		if($this->id === $config->superUserPageID) return true; 
 		if($this->id === $config->guestUserPageID) return false;
-		$superuserRoleID = $config->superUserRolePageID; 
+		$superuserRoleID = (int) $config->superUserRolePageID; 
 		$roles = $this->get('roles');
 		if(empty($roles)) return false;
 		$is = false;
-		foreach($roles as $role) if($role->id == $superuserRoleID) {
+		foreach($roles as $role) if(((int) $role->id) === $superuserRoleID) {
 			$is = true;
 			break;
 		}
@@ -285,7 +308,7 @@ class User extends Page {
 	 *
 	 */ 
 	public function isGuest() {
-		return $this->id === $this->fuel('config')->guestUserPageID; 
+		return $this->id === $this->wire('config')->guestUserPageID; 
 	}
 
 	/**

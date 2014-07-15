@@ -33,7 +33,9 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 4; 
-	const versionRevision = 7; 
+	const versionRevision = 8; 
+	
+	const indexVersion = 250; // required version for index.php file (represented by PROCESSWIRE define)
 	
 	const statusBoot = 0; // system is booting
 	const statusInit = 2; // system and modules are initializing
@@ -76,7 +78,9 @@ class ProcessWire extends Wire {
 
 		$config->https = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
 		$config->ajax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest');
+		$config->cli = (!isset($_SERVER['SERVER_SOFTWARE']) && (php_sapi_name() == 'cli' || ($_SERVER['argc'] > 0 && is_numeric($_SERVER['argc']))));
 		$config->version = self::versionMajor . "." . self::versionMinor . "." . self::versionRevision; 
+		
 		$this->setStatus(self::statusBoot);
 	}
 

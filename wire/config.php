@@ -7,7 +7,7 @@
  * These may be overridden in the /site/config.php, but it is not recommended.
  *
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -23,6 +23,7 @@ $config->loginPageID = 23;
 $config->http404PageID = 27;
 $config->usersPageID = 29; 
 $config->rolesPageID = 30; 
+$config->externalPageID = 27; 
 $config->permissionsPageID = 31; 
 $config->guestUserPageID = 40; 
 $config->superUserPageID = 41; 
@@ -214,6 +215,7 @@ $config->chmodFile = "0666";
  */
 $config->maxPageNum = 999;
 
+
 /**
  * httpHosts: For added security, specify the host names ProcessWire should recognize. 
  *
@@ -259,5 +261,40 @@ $config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5e
  * 
  */
 
+/***********************************************************************************
+ * The following are runtime-only settings that are set automatically and cannot be 
+ * overwritten from your /site/config.php file. 
+ * 
+ */
+
+/**
+ * https: This is automatically set to TRUE when the request is an HTTPS request
+ *
+ */
+$config->https = false;
+
+/**
+ * ajax: This is automatically set to TRUE when the request is an AJAX request.
+ *
+ */
+$config->ajax = false;
+
+/**
+ * external: This is automatically set to TRUE when PW is externally bootstrapped.
+ *
+ */
+$config->external = false;
+
+/**
+ * cli: This is automatically set to TRUE when PW is booted as a command line (non HTTP) script.
+ *
+ */
+$config->cli = false;
+
+/**
+ * version: This is automatically populated with the current PW version string (i.e. 2.5.0)
+ *
+ */
+$config->version = '';
 
 

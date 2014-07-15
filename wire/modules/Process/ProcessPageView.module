@@ -33,7 +33,7 @@ class ProcessPageView extends Process {
 		return array(
 			'title' => __('Page View', __FILE__), // getModuleInfo title
 			'summary' => __('All page views are routed through this Process', __FILE__), // getModuleInfo summary 
-			'version' => 102, 
+			'version' => 103, 
 			'permanent' => true, 
 			'permission' => 'page-view',
 			);
@@ -48,6 +48,7 @@ class ProcessPageView extends Process {
 	const responseTypeAjax = 2; 
 	const responseTypeFile = 4; 
 	const responseTypeRedirect = 8; 
+	const responseTypeExternal = 16; 
 
 	/**
 	 * Response type (see response type codes above)
@@ -111,9 +112,14 @@ class ProcessPageView extends Process {
 
 	/**
 	 * Retrieve a page, check access, and render
+	 * 
+	 * @param bool $internal True if request should be interanally processed. False if PW is bootstrapped externally. 
+	 * @return string Output of request
  	 *
 	 */
-	public function ___execute() {
+	public function ___execute($internal = true) {
+	
+		if(!$internal) return $this->executeExternal();
 
 		$this->responseType = self::responseTypeNormal;
 		$config = $this->config; 
@@ -151,7 +157,7 @@ class ProcessPageView extends Process {
 			}
 
 			try {
-				$this->wire->setStatus(ProcessWire::statusRender);
+				$this->wire()->setStatus(ProcessWire::statusRender);
 
 				if($this->requestFile) {
 					$this->responseType = self::responseTypeFile; 
@@ -160,18 +166,6 @@ class ProcessPageView extends Process {
 				} else if($config->ajax) {
 					$this->responseType = self::responseTypeAjax;
 					return $page->render();
-
-				/*
-				} else if(self::isHooked('ProcessPageView::finished()')) {
-					// allow for hooks that run after page has been fully sent (like LazyCron)
-					// removed for later analysis, as it worked on some servers and not others
-					// it also completely froze one server
-					$out = $page->render();
-					header("Content-length: " . strlen($out)); 
-					header("Connection: close"); 
-					$this->wire('session')->close();
-					return $out; 
-				*/
 
 				} else {
 					return $page->render();
@@ -185,6 +179,27 @@ class ProcessPageView extends Process {
 			return $this->pageNotFound(new NullPage(), $this->requestURL, true); 
 		}
 
+	}
+
+	/**
+	 * Method executed when externally bootstrapped
+	 * 
+	 * @return blank string
+	 * 
+	 */
+	public function ___executeExternal() {
+		$this->setResponseType(self::responseTypeExternal);
+		$config = $this->wire('config'); 
+		$config->external = true; 
+		if($config->externalPageID) {
+			$page = $this->wire('pages')->get((int) $config->externalPageID); 
+		} else {
+			$page = new NullPage();
+		}
+		$this->wire('page', $page);
+		$this->ready();
+		$this->wire()->setStatus(ProcessWire::statusRender);
+		return '';
 	}
 
 	/**

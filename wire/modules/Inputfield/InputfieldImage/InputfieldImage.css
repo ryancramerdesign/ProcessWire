@@ -56,7 +56,7 @@
 
 .InputfieldImageGrid .InputfieldFileList .InputfieldFileDescription,
 .InputfieldImageGrid .InputfieldFileList .InputfieldFileTags {
-	display: none; 
+	display: none !important; 
 }
 
 .InputfieldImageGrid .InputfieldFileList .InputfieldImage,

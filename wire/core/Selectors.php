@@ -78,7 +78,6 @@ class Selectors extends WireArray {
 	 */
 	public function __construct($selectorStr) {
 		$this->selectorStr = $selectorStr; 
-		if(empty(self::$selectorTypes)) Selector::loadSelectorTypes();
 		$this->extractString(trim($selectorStr)); 
 	}
 
@@ -149,6 +148,7 @@ class Selectors extends WireArray {
 	 */
 	static public function stringHasOperator($str) {
 		
+		
 		static $letters = 'abcdefghijklmnopqrstuvwxyz';
 		static $digits = '_0123456789';
 		
@@ -206,24 +206,28 @@ class Selectors extends WireArray {
 	 */
 	static public function stringHasSelector($str) {
 
-		if(!self::stringHasOperator($str)) return false; 
-
-		if(preg_match('/^([-._a-zA-Z0-9|]+)([' . implode('', self::getOperatorChars()) . ']+)/', $str, $matches)) {
+		if(!self::stringHasOperator($str)) {
+			
+			$has = false;
+			
+		} else if(preg_match('/^([-._a-zA-Z0-9|]+)([' . implode('', self::getOperatorChars()) . ']+)/', $str, $matches)) {
 
 			$field = $matches[1]; 
 			$operator = $matches[2]; 
 
-			// fields can't start with a dash or a period or a pipe
-			if(in_array($field[0], array('-', '.', '|'))) return false;
-
-			// if it's not an operator we recognize then abort
-			if(!isset(self::$selectorTypes[$operator])) return false;
-
-			// if we made it here, then we've found a selector
-			return true; 
+			if(in_array($field[0], array('-', '.', '|'))) {
+				// fields can't start with a dash or a period or a pipe
+				$has = false; 
+			} else if(!isset(self::$selectorTypes[$operator])) {
+				// if it's not an operator we recognize then abort
+				$has = false; 
+			} else {
+				// if we made it here, then we've found a selector
+				$has = true; 
+			}
 		}
-
-		return false;
+		
+		return $has;
 	}
 
 
@@ -548,3 +552,5 @@ class Selectors extends WireArray {
 	
 
 }
+
+Selector::loadSelectorTypes();

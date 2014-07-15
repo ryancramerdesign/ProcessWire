@@ -71,6 +71,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 			$this->labels['download_install'] = $this->_('Download and Install');
 		}
 		$this->labels['check_new'] = $this->_('Check for New Modules'); 
+		$this->labels['installed_date'] = $this->_('Installed'); 
 
 		$this->set('serviceUrl', self::defaultServiceUrl); 
 		$this->set('serviceKey', self::defaultServiceKey); 
@@ -263,7 +264,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$select->attr('value', $newSeconds);
 		$markup = $this->modules->get('InputfieldMarkup');
 		$markup->icon = 'lightbulb-o';
-		$markup->value = $select->render() . $this->renderListTable($newModulesArray, false, false);
+		$markup->value = $select->render() . $this->renderListTable($newModulesArray, false, false, true);
 		$markup->label = $this->_('Recently Found and Installed Modules');
 		$tab->add($markup); 
 		
@@ -316,10 +317,11 @@ class ProcessModule extends Process implements ConfigurableModule {
 	 * @param array $modulesArray
 	 * @param bool $allowDelete Whether or not delete is allowed (default=false)
 	 * @param bool $allowSections Whether to show module sections/categories (default=true)
+	 * @param bool $allowDates Whether to show created dates (default=false)
 	 * @return string
 	 * 
 	 */
-	protected function renderListTable($modulesArray, $allowDelete = false, $allowSections = true) {
+	protected function renderListTable($modulesArray, $allowDelete = false, $allowSections = true, $allowDates = false) {
 		
 		if(!count($modulesArray)) return "<div class='detail'>" . $this->_('No modules found.') . "</div>";
 		
@@ -422,6 +424,12 @@ class ProcessModule extends Process implements ConfigurableModule {
 			}
 
 			if($buttons) $buttons = "<small class='buttons'>$buttons</small>";
+			
+			if($allowDates) { 
+				$summary .= "<br /><span class='detail date'>";
+				$summary .= $installed ? $this->labels['installed_date'] : $this->_('Found');
+				$summary .= ': ' . wireRelativeTimeStr($info['created']) . "</span>";
+			}
 
 			$row = array(
 				$title => $editUrl,
@@ -932,7 +940,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$table->row(array($this->_x('File', 'edit'), $filename)); 
 		$table->row(array($this->_x('ID', 'edit'), $moduleId)); 
 		$table->row(array($this->_x('Version', 'edit'), $version)); 
-		if(!empty($moduleInfo['created'])) $table->row(array($this->_x('Installed', 'edit'), wireRelativeTimeStr($moduleInfo['created'])));
+		if(!empty($moduleInfo['created'])) $table->row(array($this->labels['installed_date'], wireRelativeTimeStr($moduleInfo['created'])));
 		if(!empty($moduleInfo['author'])) $table->row(array($this->_x('Author', 'edit'), $moduleInfo['author'])); 
 		$table->row(array($this->_x('Summary', 'edit'), $moduleInfo['summary'])); 
 		if($requirementsStr) $table->row(array($this->_x('Requires', 'edit'), $requirementsStr)); 

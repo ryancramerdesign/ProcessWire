@@ -16,11 +16,11 @@
  * 
  * http://processwire.com
  *
- * @version 2.4
+ * @version 2.5
  *
  */
 
-define("PROCESSWIRE", 240); 
+define("PROCESSWIRE", 250); // index version
 
 /**
  * Build the ProcessWire configuration
@@ -159,9 +159,28 @@ function ProcessWireBootConfig() {
 	return $config; 
 }
 
+/**
+ * Shutdown function for cleanup of externally bootstrapped requests
+ *
+ */
+function ProcessWireExternalShutdown() {
+	if(error_get_last()) return;
+	$process = wire('process'); 
+	if($process == 'ProcessPageView') $process->finished();
+}
+
+/**
+ * Determine if the request is one we should handle (internal) or one that another
+ * script coming after this (external) will handle. 
+ *
+ */
+$internal = isset($_SERVER['HTTP_HOST']) && realpath(__FILE__) == realpath($_SERVER['SCRIPT_FILENAME']);
+if(!$internal) register_shutdown_function('ProcessWireExternalShutdown'); 
+
 /*
  * If you include ProcessWire's index.php from another script, or from a
- * command-line script, the $wire variable is your connection to the API.
+ * command-line script, the $wire variable or wire() function is your 
+ * connection to the API of this ProcessWire instance. 
  *
  */
 $process = null;
@@ -178,30 +197,16 @@ $config = ProcessWireBootConfig();
  *
  */
 try { 
+	
 	/*
-	 * Bootstrap ProcessWire's core and make the API available with $wire
+	 * Bootstrap ProcessWire's core and make the API available with $wire or wire()
 	 *
 	 */
-	$wire = new ProcessWire($config); 
-
-	/* 
-	 * If we're not being called from another shell script or PHP page, then run the PageView process
-	 *
-	 */
-	if(isset($_SERVER['HTTP_HOST']) && realpath(__FILE__) == realpath($_SERVER['SCRIPT_FILENAME'])) {
-		$process = $wire->modules->get("ProcessPageView"); 
-		$wire->setFuel('process', $process); 
-		echo $process->execute();
-		$process->finished();
-
-	} else {
-		/*
-		 * Some other script included this for non-http use or access to the API without 
-		 * rendering any pages at this time. The $wire var may be used to access 
-		 * the API after including this file. 
-		 *
-		 */
-	}
+	$wire = new ProcessWire($config);
+	$process = $wire->modules->get('ProcessPageView');
+	$wire->wire('process', $process); 
+	echo $process->execute($internal);
+	if($internal) $process->finished();
 
 } catch(Exception $e) {
 
@@ -209,7 +214,6 @@ try {
 	 * Formulate error message and send to the error handler
 	 *
 	 */
-
 	if($process) $process->failed($e);
 	$errorMessage = "Exception: " . $e->getMessage() . " (in " . $e->getFile() . " line " . $e->getLine() . ")";
 	if($config->debug || ($wire && $wire->user && $wire->user->isSuperuser())) $errorMessage .= "\n\n" . $e->getTraceAsString();
