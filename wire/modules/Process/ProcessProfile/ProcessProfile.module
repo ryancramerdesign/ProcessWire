@@ -61,7 +61,8 @@ class ProcessProfile extends Process implements ConfigurableModule {
 		$form->attr('autocomplete', 'off'); 
 
 		foreach($this->user->fields as $field) {
-			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue; 
+			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue;
+			$field = $this->user->fields->getFieldContext($field);
 			$inputfield = $field->getInputfield($this->user);
 			$inputfield->value = $this->user->get($field->name); 
 			$form->add($inputfield); 
@@ -94,6 +95,7 @@ class ProcessProfile extends Process implements ConfigurableModule {
 		foreach($user->fields as $field) {
 
 			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue;
+			$field = $this->user->fields->getFieldContext($field);
 		
 			$inputfield = $form->get($field->name); 	
 			$value = $inputfield->attr('value'); 

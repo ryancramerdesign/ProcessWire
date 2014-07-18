@@ -30,7 +30,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 106,
+			'version' => 107,
 			'permanent' => true, 
 			'icon' => 'cubes', 
 	
@@ -915,6 +915,63 @@ class ProcessTemplate extends Process {
 		$form->append($field); 
 
 		// --------------------
+		
+		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
+		$fieldset->label = $this->_('Template Toggles'); 
+		$fieldset->description = $this->_('You should generally leave these toggles unchecked unless you have a specific need covered here.'); 
+		$form->add($fieldset); 
+		
+		$field = $this->modules->get('InputfieldCheckbox');
+		$field->attr('name', 'noChangeTemplate');
+		$field->label = $this->_("Don't allow pages to change their template?");
+		$field->description = $this->_("When checked, pages using this template will be unable to change to another template."); // noChangeTemplate option, description
+		if($this->wire('config')->advanced) $field->notes = $this->_('API: $template->noChangeTemplate = 1; // or 0 to disable'); // noChangeTemplate option, API notes
+
+		$field->attr('value', 1);
+		if($template->noChangeTemplate) {
+			$field->attr('checked', 'checked');
+			$form->collapsed = Inputfield::collapsedNo;
+		} else {
+			$field->collapsed = Inputfield::collapsedYes;
+		}
+		$fieldset->append($field);
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox');
+		$field->attr('name', 'noUnpublish');
+		$field->label = $this->_("Don't allow unpublished pages");
+		$field->description = $this->_("When checked, pages using this template may only exist in a published state and may not be unpublished."); // noUnpublish option, description
+		if($this->wire('config')->advanced) $field->notes = $this->_('API: $template->noUnpublish = 1; // or 0 to disable'); // noUnpublish option, API notes
+
+		$field->attr('value', 1);
+		if($template->noUnpublish) {
+			$field->attr('checked', 'checked');
+			$form->collapsed = Inputfield::collapsedNo;
+		} else {
+			$field->collapsed = Inputfield::collapsedYes;
+		}
+		$fieldset->append($field);
+
+		// --------------------
+
+		$field = $this->modules->get('InputfieldCheckbox');
+		$field->attr('name', 'allowChangeUser');
+		$field->label = $this->_("Allow the 'created user' to be changed on pages?");
+		$field->description = $this->_("When checked, pages using this template will have an option to change the 'created by user' (for superusers only). It will also enable the \$page->createdUser or \$page->created_users_id fields to be saved via the API."); // allowChangeUser option, description
+		if($this->wire('config')->advanced) $field->notes = $this->_('API: $template->allowChangeUser = 1; // or 0 to disable. default is 0.'); // allowChangeUser option, API notes
+
+		$field->attr('value', 1);
+		if($template->allowChangeUser) {
+			$field->attr('checked', 'checked');
+			$form->collapsed = Inputfield::collapsedNo;
+		} else {
+			$field->collapsed = Inputfield::collapsedYes;
+		}
+		$fieldset->append($field);
+
+		// --------------------
+
 
 		/*
 		$field = $this->modules->get('InputfieldText'); 
@@ -1003,73 +1060,38 @@ class ProcessTemplate extends Process {
 		$form->append($field); 
 
 		// --------------------
-
-		$field = $this->modules->get('InputfieldCheckbox'); 
+		
+		$field = $this->modules->get('InputfieldCheckbox');
 		$field->attr('name', 'noMove');
 		$field->label = $this->_("Don't allow pages to be moved?");
 		$field->description = $this->_("If you want to prevent pages using this template from being moved (changing parent) then check this box."); // noMove option, description
-		$field->notes = $this->_('API: $template->noMove = 1; // or 0 to disable'); // noMove option, API notes
+		if($this->wire('config')->advanced) $field->notes = $this->_('API: $template->noMove = 1; // or 0 to disable'); // noMove option, API notes
 
-		$field->attr('value', 1); 
+		$field->attr('value', 1);
 		if($template->noMove) {
-			$field->attr('checked', 'checked'); 
+			$field->attr('checked', 'checked');
 			$form->collapsed = Inputfield::collapsedNo;
-		} else { 
+		} else {
 			$field->collapsed = Inputfield::collapsedYes;
 		}
-		$form->append($field); 
+		$fieldset->append($field);
 
 		// --------------------
 
-		$field = $this->modules->get('InputfieldCheckbox'); 
-		$field->attr('name', 'noChangeTemplate');
-		$field->label = $this->_("Don't allow pages to change their template?");
-		$field->description = $this->_("When checked, pages using this template will be unable to change to another template."); // noChangeTemplate option, description
-		$field->notes = $this->_('API: $template->noChangeTemplate = 1; // or 0 to disable'); // noChangeTemplate option, API notes
-
-		$field->attr('value', 1); 
-		if($template->noChangeTemplate) {
-			$field->attr('checked', 'checked'); 
-			$form->collapsed = Inputfield::collapsedNo;
-		} else { 
-			$field->collapsed = Inputfield::collapsedYes;
-		}
-		$form->append($field); 
-
-		// --------------------
-
-		$field = $this->modules->get('InputfieldCheckbox'); 
-		$field->attr('name', 'noUnpublish');
-		$field->label = $this->_("Don't allow unpublished pages");
-		$field->description = $this->_("When checked, pages using this template may only exist in a published state and may not be unpublished."); // noUnpublish option, description
-		$field->notes = $this->_('API: $template->noUnpublish = 1; // or 0 to disable'); // noUnpublish option, API notes
-
-		$field->attr('value', 1); 
-		if($template->noUnpublish) {
-			$field->attr('checked', 'checked'); 
-			$form->collapsed = Inputfield::collapsedNo;
-		} else { 
-			$field->collapsed = Inputfield::collapsedYes;
-		}
-		$form->append($field); 
-
-
-		// --------------------
-
-		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field = $this->modules->get('InputfieldCheckbox');
 		$field->attr('name', 'noTrash');
 		$field->label = $this->_("Disable Trash Option?");
 		$field->description = $this->_("When checked, pages using this template will not have the option of being sent to the trash."); // noTrash option, description
-		$field->notes = $this->_('API: $template->noTrash = 1; // or 0 to disable'); // noTrash option, API notes
+		if($this->wire('config')->advanced) $field->notes = $this->_('API: $template->noTrash = 1; // or 0 to disable'); // noTrash option, API notes
 
-		$field->attr('value', 1); 
+		$field->attr('value', 1);
 		if($template->noTrash) {
-			$field->attr('checked', 'checked'); 
+			$field->attr('checked', 'checked');
 			$form->collapsed = Inputfield::collapsedNo;
-		} else { 
+		} else {
 			$field->collapsed = Inputfield::collapsedYes;
 		}
-		$form->append($field); 
+		$fieldset->append($field);
 
 		// --------------------
 
@@ -1081,23 +1103,6 @@ class ProcessTemplate extends Process {
 
 		$field->attr('value', 1); 
 		if($template->noSettings) {
-			$field->attr('checked', 'checked'); 
-			$form->collapsed = Inputfield::collapsedNo;
-		} else { 
-			$field->collapsed = Inputfield::collapsedYes;
-		}
-		$form->append($field); 
-
-		// --------------------
-
-		$field = $this->modules->get('InputfieldCheckbox'); 
-		$field->attr('name', 'allowChangeUser');
-		$field->label = $this->_("Allow the 'created user' to be changed on pages?");
-		$field->description = $this->_("When checked, pages using this template will have an option to change the 'created by user' (for superusers only). It will also enable the \$page->createdUser or \$page->created_users_id fields to be saved via the API."); // allowChangeUser option, description
-		$field->notes = $this->_('API: $template->allowChangeUser = 1; // or 0 to disable. default is 0.'); // allowChangeUser option, API notes
-
-		$field->attr('value', 1); 
-		if($template->allowChangeUser) {
 			$field->attr('checked', 'checked'); 
 			$form->collapsed = Inputfield::collapsedNo;
 		} else { 
@@ -1445,6 +1450,10 @@ class ProcessTemplate extends Process {
 		$this->template->noCachePostVars = $this->fuel('sanitizer')->names($form->get('noCachePostVars')->attr('value')); 
 		$this->template->cacheExpire = (int) $form->get('cacheExpire')->attr('value');
 		$this->template->tags = $this->sanitizer->text($form->get('tags')->attr('value'));
+		$this->template->noUnpublish = (int) $form->get('noUnpublish')->attr('value');
+		$this->template->noChangeTemplate = (int) $form->get('noChangeTemplate')->attr('value');
+		$this->template->allowChangeUser = (int) $form->get('allowChangeUser')->attr('value');
+
 
 		// template label, including multi language versions if applicable
 		$templateLabel = $form->get('templateLabel'); 
@@ -1485,19 +1494,16 @@ class ProcessTemplate extends Process {
 		$this->template->sortfield = $sortfield;
 
 
+		// advanced 	
 		// system
-
 		if($this->config->advanced) { 
-			if($form->get('flagSystem')->attr('value')) $this->template->flags = $this->template->flags | Template::flagSystem; 
+			if($form->get('flagSystem')->attr('value')) $this->template->flags = $this->template->flags | Template::flagSystem;
+			$this->template->noMove = (int) $form->get('noMove')->attr('value');
 			$this->template->pageClass = $this->sanitizer->varName($form->get('pageClass')->attr('value'));
 			$this->template->noGlobal = (int) $form->get('noGlobal')->attr('value');
-			$this->template->noMove = (int) $form->get('noMove')->attr('value');
-			$this->template->noUnpublish = (int) $form->get('noUnpublish')->attr('value');
-			$this->template->noTrash = (int) $form->get('noTrash')->attr('value');
 			$this->template->noSettings = (int) $form->get('noSettings')->attr('value');
-			$this->template->noChangeTemplate = (int) $form->get('noChangeTemplate')->attr('value');
+			$this->template->noTrash = (int) $form->get('noTrash')->attr('value');
 			$this->template->nameContentTab = (int) $form->get('nameContentTab')->attr('value');
-			$this->template->allowChangeUser = (int) $form->get('allowChangeUser')->attr('value');
 		}
 
 		// save roles

@@ -898,7 +898,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			
 		} else {
 			// other or unknown
-			$value = $this->sanitizer->entities($value); 
+			if($subname == 'data') $value = (string) $value;
+			if($subname && is_object($value)) $value = $value->$subname;
+			$value = $this->wire('sanitizer')->entities($value); 
 		}
 
 		return $value; 
