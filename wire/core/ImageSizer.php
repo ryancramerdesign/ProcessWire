@@ -1519,7 +1519,7 @@ class ImageSizer extends Wire {
 		} else if($this->imageType == IMAGETYPE_GIF) {
 			// @mrx GIF transparency
 			$transparentIndex = imagecolortransparent($image);
-			$transparentColor = $transparentIndex != -1 ? imagecolorsforindex($image, $transparentIndex) : 0;
+			$transparentColor = $transparentIndex != -1 ? @imagecolorsforindex($image, $transparentIndex) : 0;
 			if(!empty($transparentColor)) {
 				$transparentNew = imagecolorallocate($im, $transparentColor['red'], $transparentColor['green'], $transparentColor['blue']);
 				$transparentNewIndex = imagecolortransparent($im, $transparentNew);
