@@ -1074,7 +1074,7 @@ class ProcessTemplate extends Process {
 		} else {
 			$field->collapsed = Inputfield::collapsedYes;
 		}
-		$fieldset->append($field);
+		$form->append($field);
 
 		// --------------------
 
@@ -1091,7 +1091,7 @@ class ProcessTemplate extends Process {
 		} else {
 			$field->collapsed = Inputfield::collapsedYes;
 		}
-		$fieldset->append($field);
+		$form->append($field);
 
 		// --------------------
 
