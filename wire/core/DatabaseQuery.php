@@ -81,9 +81,17 @@ abstract class DatabaseQuery extends WireData {
 	 *
 	 */
 	public function execute() {
-		$database = $this->wire('database');
-		$query = $database->prepare($this->getQuery()); 
-		$query->execute();
+		try {
+			$database = $this->wire('database');
+			$query = $database->prepare($this->getQuery());
+			$query->execute();
+		} catch (Exception $e) {
+			$msg = $e->getMessage();
+			if (strstr($msg, 'MySQL server has gone away')) {
+				$database->closePdo();
+			}
+			throw new Exception($e->getMessage());
+		}
 		return $query;
 	}
 
