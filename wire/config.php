@@ -246,6 +246,14 @@ $config->httpHosts = array(
 $config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5em;font-family:sans-serif;'><b>{message}</b><br /><small>{why}</small></p>";
 
 /**
+ * When checking for new template files, files matching this PCRE regex will be ignored. 
+ *  
+ * In the default below, we are ignoring files that begin with an underscore. 
+ *
+ */
+$config->ignoreTemplateFileRegex = '/^_/';
+
+/**
  * Settings specific to InputfieldWrapper class
  *
  * Setting useDependencies to false may enable to use depencencies in some places where

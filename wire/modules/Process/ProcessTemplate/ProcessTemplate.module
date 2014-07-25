@@ -336,12 +336,14 @@ class ProcessTemplate extends Process {
 		$ext = "." . $this->config->templateExtension; 
 		$prependTemplateFile = $this->config->prependTemplateFile;
 		$appendTemplateFile = $this->config->appendTemplateFile;
+		$ignoreRegex = $this->wire('config')->ignoreTemplateFileRegex; 
 
 		foreach($dir as $file) {
 			if($file->isDir() || $file->isDot()) continue; 
 			$filename = $file->getFilename();
 			if($filename == $prependTemplateFile || $filename == $appendTemplateFile) continue; // skip over prepend/append files
 			if(substr($filename, -1 * strlen($ext)) != $ext) continue; 
+			if($ignoreRegex && preg_match($ignoreRegex, $filename)) continue;
 			$basename = basename($file->getFilename(), $ext); 
 			if(count($this->fuel('templates')->find("name=$basename"))) continue; 
 			$templateFiles[] = $basename; 
@@ -1070,13 +1072,14 @@ class ProcessTemplate extends Process {
 		$field->attr('value', 1);
 		if($template->noMove) {
 			$field->attr('checked', 'checked');
-			$form->collapsed = Inputfield::collapsedNo;
+			$field->collapsed = Inputfield::collapsedNo;
 		} else {
 			$field->collapsed = Inputfield::collapsedYes;
 		}
-		$fieldset->append($field);
+		$form->append($field);
 
 		// --------------------
+
 
 		$field = $this->modules->get('InputfieldCheckbox');
 		$field->attr('name', 'noTrash');
@@ -1091,9 +1094,8 @@ class ProcessTemplate extends Process {
 		} else {
 			$field->collapsed = Inputfield::collapsedYes;
 		}
-		$fieldset->append($field);
+		$form->append($field);
 
-		// --------------------
 
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('name', 'noSettings');
