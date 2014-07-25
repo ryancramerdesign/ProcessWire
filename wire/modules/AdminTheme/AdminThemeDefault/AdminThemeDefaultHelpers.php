@@ -194,7 +194,7 @@ class AdminThemeDefaultHelpers extends WireData {
 	public function getPageIcon(Page $p) {
 		$icon = '';
 		if($p->template == 'admin') {
-			$info = $this->wire('modules')->getModuleInfo($p->process, array('verbose' => false));
+			$info = $this->wire('modules')->getModuleInfo($p->process); 
 			if(!empty($info['icon'])) $icon = $info['icon'];
 		}
 		if($p->page_icon) $icon = $p->page_icon; // allow for option of an admin field overriding the module icon

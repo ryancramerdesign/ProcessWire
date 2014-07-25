@@ -1,0 +1,155 @@
+<?php
+
+/**
+ * ProcessWire HTML Purifier module
+ *
+ * Serves as a front-end to the HTML Purifier software:
+ * http://htmlpurifier.org
+ *
+ * USAGE:
+ *
+ *   $purifier = $modules->get('MarkupHTMLPurifier');
+ *   $cleanHTML = $purifier->purify($dirtyHTML); 
+ *
+ * To specify custom settings to HTML Purifier, perform set()
+ * calls before calling purify(). For example, UTF-8 encoding
+ * is assumed, so if you wanted ISO-8859-1 instead, you'd do:
+ *
+ *   $purifier->set('Core.Encoding', 'ISO-8859-1'); 
+ *
+ * For a full list of HTML Purifier config options, see: 
+ * http://htmlpurifier.org/live/configdoc/plain.html
+ *
+ * HTML Purifier by: http://htmlpurifier.org
+ * ProcessWire module by Ryan Cramer
+ *
+ */
+
+class MarkupHTMLPurifier extends WireData implements Module {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'HTML Purifier', 
+			'summary' => 'Front-end to the HTML Purifier library.', 
+			'version' => 104, 
+			'singular' => false, 
+			'autoload' => false, 
+			);
+	}
+
+	/**
+	 * HTML Purifier settings
+	 *
+	 */
+	protected $settings = null; 
+
+	/**
+	 * Cached instance of HTMLPurifier
+	 *
+	 */
+	protected $purifier = null; 
+
+	/**
+	 * Generate HTML Purifier settings object
+	 *
+	 */
+	public function __construct() {
+		require_once(dirname(__FILE__) . '/htmlpurifier/HTMLPurifier.standalone.php'); 
+		$this->settings = HTMLPurifier_Config::createDefault();
+		$this->settings->autoFinalize = false;
+	}
+
+	/**
+	 * Initialize the module and create default settings
+	 *
+	 */
+	public function init() {
+		$this->settings->set('Cache.SerializerPath', $this->getCachePath());
+	}
+
+	/**
+	 * Return the cache path used by HTML Purifier
+	 *
+	 */
+	protected function getCachePath()  {
+		$cachePath = wire('config')->paths->cache . $this->className() . '/';
+		if(!is_dir($cachePath)) wireMkdir($cachePath); 
+		return $cachePath;
+	}
+
+	/**
+	 * Return the current settings
+	 *
+	 * @return HTMLPurifier_Config
+	 *
+	 */
+	public function getConfig() {
+		return $this->settings; 
+	}
+
+	/**
+	 * Get the HTMLPurifier instance
+	 *
+	 * @return HTMLPurifier
+	 *
+	 */
+	public function getPurifier() {
+		if(is_null($this->purifier)) $this->purifier = new HTMLPurifier($this->settings); 	
+		return $this->purifier; 
+	}
+
+	/**
+	 * Purify the given dirty HTML and return the clean HTML
+	 *
+	 * @param string Dirty HTML
+ 	 * @return string Clean HTML
+	 *
+	 */
+	public function purify($html) {
+		return $this->getPurifier()->purify($html); 
+	}
+
+	/**
+	 * Set an HTMLPurifier config option 
+	 *
+	 * See configuration options at: http://htmlpurifier.org/live/configdoc/plain.html
+	 *
+	 * @param string $key
+	 * @param string $value
+	 * @return this
+	 *
+	 */
+	public function set($key, $value) {
+		if(strpos($key, '.')) {
+			// HTML Purifier setting: http://htmlpurifier.org/live/configdoc/plain.html
+			$this->purifier = null;
+			$this->settings->set($key, $value); 
+			return $this;	
+		} 
+		// some other setting
+		return parent::set($key, $value); 
+	}
+
+	/**
+	 * Get an HTMLPurifier config option
+	 *
+ 	 * @param string $key
+	 * @return string|null
+	 *
+	 */
+	public function get($key) {
+		if(strpos($key, '.')) return $this->settings->get($key);
+		return parent::get($key);
+	}
+
+	/**
+	 * Uninstall by removing the cache path and files
+	 *
+	 */
+	public function ___uninstall() {
+		$cachePath = $this->getCachePath();
+		wireRmdir($cachePath, true); 
+		$this->message("Removed: $cachePath"); 
+	}
+
+}

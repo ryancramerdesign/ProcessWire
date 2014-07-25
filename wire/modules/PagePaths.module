@@ -8,7 +8,7 @@
  *
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -22,7 +22,7 @@ class PagePaths extends WireData implements Module {
 		return array(
 			'title' => 'Page Paths', 
 			'version' => 1, 
-			'summary' => "Enables page paths/urls to be queryable by selectors. Also offers potential for improved load performance. Builds an index at install (may take time on a large site). Beta Test.",
+			'summary' => "Enables page paths/urls to be queryable by selectors. Also offers potential for improved load performance. Builds an index at install (may take time on a large site).",
 			'singular' => true, 
 			'autoload' => true, 
 			);

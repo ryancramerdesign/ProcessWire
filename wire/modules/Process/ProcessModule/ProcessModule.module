@@ -25,7 +25,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Modules', __FILE__), // getModuleInfo title          
 			'summary' => __('List, edit or install/uninstall modules', __FILE__), // getModuleInfo summary
-			'version' => 108, 
+			'version' => 109, 
 			'permanent' => true, 
 			'permission' => 'module-admin', 
 			);
@@ -237,7 +237,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$tab->attr('id', 'tab_new_modules'); 
 		$tab->attr('title', $this->_('New'));
 		$tab->attr('class', 'WireTab');
-	
+
 		/*
 		$newModuleNames = $this->wire('session')->get('ProcessModuleNewModules'); 
 		$newModules = array();
@@ -253,6 +253,12 @@ class ProcessModule extends Process implements ConfigurableModule {
 		}
 		*/
 		
+		if($this->wire('session')->ProcessModuleNewModules) {
+			foreach($this->wire('session')->ProcessModuleNewModules as $name => $created) {
+				if(!is_numeric($name) && !isset($newModulesArray[$name])) $newModulesArray[$name] = 0;
+			}
+		}
+		
 		$select = $this->wire('modules')->get('InputfieldSelect'); 
 		$select->attr('name', 'new_seconds'); 
 		$select->addClass('modules_filter'); 
@@ -264,7 +270,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$select->attr('value', $newSeconds);
 		$markup = $this->modules->get('InputfieldMarkup');
 		$markup->icon = 'lightbulb-o';
-		$markup->value = $select->render() . $this->renderListTable($newModulesArray, false, false, true);
+		$markup->value = $select->render() . $this->renderListTable($newModulesArray, false, false, true, true);
 		$markup->label = $this->_('Recently Found and Installed Modules');
 		$tab->add($markup); 
 		
@@ -318,10 +324,11 @@ class ProcessModule extends Process implements ConfigurableModule {
 	 * @param bool $allowDelete Whether or not delete is allowed (default=false)
 	 * @param bool $allowSections Whether to show module sections/categories (default=true)
 	 * @param bool $allowDates Whether to show created dates (default=false)
+	 * @param bool $allowClasses Whether to show module class names(default=false)
 	 * @return string
 	 * 
 	 */
-	protected function renderListTable($modulesArray, $allowDelete = false, $allowSections = true, $allowDates = false) {
+	protected function renderListTable($modulesArray, $allowDelete = false, $allowSections = true, $allowDates = false, $allowClasses = false) {
 		
 		if(!count($modulesArray)) return "<div class='detail'>" . $this->_('No modules found.') . "</div>";
 		
@@ -347,6 +354,8 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$sections = array();
 		$sectionsQty = array();
 
+		$titles = array();
+		
 		foreach($modulesArray as $name => $installed) {
 
 			if(strpos($name, $section) !== 0 || preg_match('/' . $section . '[^A-Z]/', $name)) {
@@ -366,6 +375,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 			$interfaces = @class_implements($name, false);
 			$configurable = is_array($interfaces) && in_array('ConfigurableModule', $interfaces);
 			$title = !empty($info['title']) ? htmlspecialchars($info['title'], ENT_QUOTES, 'UTF-8') : substr($name, strlen($section));
+			if($allowClasses) $title .= " <small class='ModuleClass ui-priority-secondary'>[$name]</small>";
 			if($info['icon']) $title = "<i class='fa fa-fw fa-$info[icon]'></i> $title"; 
 			$class = $configurable ? 'ConfigurableModule' : '';
 			if(!empty($info['permanent'])) $class .= ($class ? ' ' : '') . 'PermanentModule';
@@ -392,22 +402,22 @@ class ProcessModule extends Process implements ConfigurableModule {
 				if(count($uninstalledPrev) && !in_array($name, $uninstalledPrev)) {
 					$class .= " new_module";
 					if(!$this->input->get->uninstalled) $this->message($this->_("Found new module") . " - <a href=\"#$name\">$name</a>", Notice::allowMarkup); // Message that precedes module name when new module is found
-					$newModules[] = $name; 
+					$newModules[$name] = time();
 					$this->numFound++;
 				}
 
 				$title = "<span id='$name' class='$class'>$title</span>";
 
 				if(count($requires)) {
-					$buttonState = 'ui-state-default ui-state-disabled';
-					$buttonType = 'button';
+					//$buttonState = 'ui-state-default ui-state-disabled';
+					//$buttonType = 'button';
 				} else {
 					$buttonState = 'ui-state-default';
 					$buttonType = 'submit';
+					$buttons .=
+						"<button type='$buttonType' id='install_$name' name='install' class='$buttonState ui-button ui-priority-secondary' value='$name'>" .
+						"<span class='ui-button-text'><i class='fa fa-sign-in'></i> " . $this->_x('Install', 'button') . "</span></button>"; // Text for 'Install' button
 				}
-				$buttons .= 
-					"<button type='$buttonType' id='install_$name' name='install' class='$buttonState ui-button ui-priority-secondary' value='$name'>" . 
-					"<span class='ui-button-text'><i class='fa fa-sign-in'></i> " . $this->_x('Install', 'button') . "</span></button>"; // Text for 'Install' button
 
 				if($allowDelete && $this->wire('modules')->isDeleteable($name)) $buttons .= 
 					"<button type='submit' id='delete_$name' name='delete' class='ui-state-default ui-priority-secondary ui-button' value='$name' onclick=\"$confirmJS\">" . 
@@ -428,7 +438,8 @@ class ProcessModule extends Process implements ConfigurableModule {
 			if($allowDates) { 
 				$summary .= "<br /><span class='detail date'>";
 				$summary .= $installed ? $this->labels['installed_date'] : $this->_('Found');
-				$summary .= ': ' . wireRelativeTimeStr($info['created']) . "</span>";
+				$created = isset($newModules[$name]) ? $newModules[$name] : $info['created']; 
+				$summary .= ': ' . wireRelativeTimeStr($created) . "</span>";
 			}
 
 			$row = array(
@@ -445,7 +456,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 
 		}
 		$out .= $table->render();
-
+		
 		if($allowSections) {
 			$out .= "</div>";
 			$select = "<p><select name='modules_section$numCalls' class='modules_filter modules_section_select'>";

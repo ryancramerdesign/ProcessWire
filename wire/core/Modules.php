@@ -479,8 +479,20 @@ class Modules extends WireArray {
 		$requires = array();
 
 		if(class_exists($basename, false) && parent::get($basename)) {
-			// possibly more than one of the same modules on the system 
-			// or module was already loaded from dependencies of another module
+			// module was already loaded
+			$dir = rtrim($this->wire('config')->paths->$basename, '/'); 
+			if($dir && $dirname != $dir) {
+				// there are two copies of the module on the file system (likely one in /site/modules/ and another in /wire/modules/)
+				$err = sprintf($this->_('Warning: there appear to be two copies of module "%s" on the file system.'), $basename) . ' ';
+				$err .= $this->_('Please remove the one in <u>/site/modules/</u> unless you need them both present for some reason.');
+				$this->wire('log')->error($err); 
+				$rootPath = $this->wire('config')->paths->root; 
+				$dir = str_replace($rootPath, '/', $dir) . "/$filename";
+				$dirname = str_replace($rootPath, '/', $dirname) . "/$filename";
+				$err .= "<br /><pre>1. $dir\n2. $dirname</pre>";
+				$user = $this->wire('user'); 
+				if($user && $user->isSuperuser()) $this->error($err, Notice::allowMarkup); 
+			}
 			return $basename;
 		}
 
@@ -1317,9 +1329,9 @@ class Modules extends WireArray {
 	}
 	
 	protected function getModuleInfoSystem($moduleName) {
-		
+
+		$info = array();
 		if($moduleName === 'PHP') {
-			$info = array();
 			$info['id'] = 0; 
 			$info['name'] = $moduleName;
 			$info['title'] = $moduleName;
@@ -1327,7 +1339,6 @@ class Modules extends WireArray {
 			return $info;
 
 		} else if($moduleName === 'ProcessWire') {
-			$info = array();
 			$info['id'] = 0; 
 			$info['name'] = $moduleName;
 			$info['title'] = $moduleName;

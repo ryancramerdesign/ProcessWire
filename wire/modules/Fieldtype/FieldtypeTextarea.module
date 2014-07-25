@@ -128,8 +128,36 @@ class FieldtypeTextarea extends FieldtypeText {
 	}
 
 	public function getInputfield(Page $page, Field $field) {
+		
 		$inputfield = $this->modules->get($field->inputfieldClass ? $field->inputfieldClass : self::defaultInputfieldClass); 
-		if(!$inputfield) $inputfield = $this->modules->get(self::defaultInputfieldClass); 
+		
+		if(!$inputfield) {
+			
+			$inputfield = $this->modules->get(self::defaultInputfieldClass);
+			$editURL = $this->wire('config')->urls->admin . "setup/field/edit?id=$field->id";
+			$modulesURL = $this->wire('config')->urls->admin . "module/";
+			$findURL = "http://modules.processwire.com/search/?q=$field->inputfieldClass";
+			$tab = '<br /> &nbsp; &nbsp; &nbsp;';
+			
+			$note = "<br /><small>TO INSTALL:$tab 1. <a href='$modulesURL'>Go to Modules</a>.$tab 2. click the \"New\" tab. $tab 3. For \"Module Class Name\" paste in \"$field->inputfieldClass\". $tab 4. Click \"Download &amp; Install\".";
+			$note .= "<br />TO CHANGE: $tab 1. <a href='$editURL'>Edit the field</a>. $tab 2. Click the \"Details\" tab. $tab 3. Select the \"Inputfield Type\". $tab 4. Click \"Save\".</small>";
+		
+			if($field->inputfieldClass == 'InputfieldTinyMCE') {
+				$this->error(
+					"Field '$field->name' uses TinyMCE, which is no longer part of the core. " . 
+					"Please install <a target='_blank' href='$findURL'>TinyMCE</a> " . 
+					"or change it to use CKEditor (or another).$note", 
+					Notice::allowMarkup); 
+				
+			} else if($field->inputfieldClass) {
+				$this->error(
+					"The module \"$field->inputfieldClass\" specified to provide input for field \"$field->name\" was not found. " . 
+					"Please <a target='_blank' href='$findURL'>install $field->inputfieldClass</a> " . 
+					"or convert the field to use another input type.$note", 
+					Notice::allowMarkup); 
+			}
+		}
+		
 		$inputfield->class = $this->className();
 		return $inputfield; 
 	}

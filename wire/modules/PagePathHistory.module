@@ -8,11 +8,10 @@
  *
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  * 
  *
  */
@@ -23,8 +22,7 @@ class PagePathHistory extends WireData implements Module {
 		return array(
 			'title' => 'Page Path History', 
 			'version' => 1, 
-			'summary' => "Keeps track of past URLs where pages have lived and automatically redirects (301 permament) to the new location whenever the past URL is accessed. BETA TEST ONLY.",
-			'href' => 'http://processwire.com',
+			'summary' => "Keeps track of past URLs where pages have lived and automatically redirects (301 permament) to the new location whenever the past URL is accessed.",
 			'singular' => true, 
 			'autoload' => true, 
 			);
