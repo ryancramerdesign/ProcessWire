@@ -1,28 +1,12 @@
 <?php 
 
-/**
- * Site map template
- *
- */
+// sitemap.php template file
+// Generate navigation that descends up to 4 levels into the tree.
+// See the _func.php for the renderNav() function definition. 
 
-include("./head.inc"); 
+$content = renderNav($homepage, 4); 
 
-function sitemapListPage($page) {
-
-	echo "<li><a href='{$page->url}'>{$page->title}</a> ";	
-
-	if($page->numChildren) {
-		echo "<ul>";
-		foreach($page->children as $child) sitemapListPage($child); 
-		echo "</ul>";
-	}
-
-	echo "</li>";
-}
-
-echo "<ul class='sitemap'>";
-sitemapListPage($pages->get("/")); 
-echo "</ul>";
-
-include("./foot.inc"); 
+// if you want the line below to happen automatically, uncomment
+// the $config->appendTemplateFile line in /site/config.php 
+include("./_main.php"); 
 

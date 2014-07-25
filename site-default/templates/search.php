@@ -1,49 +1,52 @@
 <?php
 
-/**
- * Search template
- *
- */
+// look for a GET variable named 'q' and sanitize it
+$q = $sanitizer->text($input->get->q); 
 
-$out = '';
-
-if($q = $sanitizer->selectorValue($input->get->q)) {
-
+// did $q have anything in it?
+if($q) { 
 	// Send our sanitized query 'q' variable to the whitelist where it will be
-	// picked up and echoed in the search box by the head.inc file.
+	// picked up and echoed in the search box by _main.php file. Now we could just use
+	// another variable initialized in _init.php for this, but it's a best practice
+	// to use this whitelist since it can be read by other modules. That becomes 
+	// valuable when it comes to things like pagination. 
 	$input->whitelist('q', $q); 
 
-	// Search the title, body and sidebar fields for our query text.
+	// Sanitize for placement within a selector string. This is important for any 
+	// values that you plan to bundle in a selector string like we are doing here.
+	$q = $sanitizer->selectorValue($q); 
+
+	// Search the title and body fields for our query text.
 	// Limit the results to 50 pages. 
-	// Exclude results that use the 'admin' template. 
-	$matches = $pages->find("title|body|sidebar~=$q, limit=50"); 
+	$selector = "title|body~=$q, limit=50"; 
 
-	$count = count($matches); 
+	// If user has access to admin pages, lets exclude them from the search results.
+	// Note that 2 is the ID of the admin page, so this excludes all results that have
+	// that page as one of the parents/ancestors. This isn't necessary if the user 
+	// doesn't have access to view admin pages. So it's not technically necessary to
+	// have this here, but we thought it might be a good way to introduce has_parent.
+	if($user->isLoggedin()) $selector .= ", has_parent!=2"; 
 
-	if($count) {
-		$out .= "<h2>Found $count pages matching your query:</h2>" . 
-			"<ul class='nav'>";
+	// Find pages that match the selector
+	$matches = $pages->find($selector); 
 
-		foreach($matches as $m) {
-			$out .= "<li><p><a href='{$m->url}'>{$m->title}</a><br />{$m->summary}</p></li>";
-		}
-
-		$out .= "</ul>";
-
+	// did we find any matches?
+	if($matches->count) {
+		// yes we did
+		$content = "<h2>Found $matches->count pages matching your query:</h2>";
+		// we'll use our renderNav function (in _func.php) to render the navigation
+		$content .= renderNav($matches, 0, 'summary'); 
 	} else {
-		$out .= "<h2>Sorry, no results were found.</h2>";
+		// we didn't find any
+		$content = "<h2>Sorry, no results were found.</h2>";
 	}
+
 } else {
-	$out .= "<h2>Please enter a search term in the search box (upper right corner)</h2>";
+	// no search terms provided
+	$content = "<h2>Please enter a search term in the search box (upper right corner)</h2>";
 }
 
-// Note that we stored our output in $out before printing it because we wanted to execute
-// the search before including the header template. This is because the header template 
-// displays the current search query in the search box (via the $input->whitelist) and 
-// we wanted to make sure we had that setup before including the header template. 
+// if you want the line below to happen automatically, uncomment
+// the $config->appendTemplateFile line in /site/config.php 
+include("./_main.php"); 
 
-include("./head.inc"); 
-
-echo $out; 
-
-include("./foot.inc"); 

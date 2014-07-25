@@ -47,23 +47,15 @@ $config->sessionFingerprint = true;
  * Uncomment and edit to enable.
  *
  */
-// $config->prependTemplateFile = '_init.php';
+$config->prependTemplateFile = '_init.php';
 
 /**
  * appendTemplateFile: PHP file in /site/templates/ that will be loaded after each page's template file
  *
  * Uncomment and edit to enable.
  *
+$config->appendTemplateFile = '_main.php';
  */
-// $config->appendTemplateFile = '_done.php';
-
-/**
- * uploadUnzipCommand: shell command to unzip archives, used by WireUpload class. 
- *
- * If unzip doesn't work, you may need to precede 'unzip' with a path.
- *
- */
-$config->uploadUnzipCommand = 'unzip -j -qq -n /src/ -x __MACOSX .* -d /dst/';
 
 /**
  * uploadBadExtensions: file extensions that are always disallowed from uploads

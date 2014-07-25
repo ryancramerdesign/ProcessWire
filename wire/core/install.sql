@@ -200,6 +200,7 @@ CREATE TABLE `modules` (
   `class` varchar(128) character set ascii NOT NULL,
   `flags` int(11) NOT NULL default '0',
   `data` text NOT NULL,
+  `created` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
   PRIMARY KEY  (`id`),
   UNIQUE KEY `class` (`class`)
 ) ENGINE=MyISAM AUTO_INCREMENT=148 DEFAULT CHARSET=utf8;
