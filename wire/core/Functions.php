@@ -125,36 +125,66 @@ function unregisterGLOBALS() {
  * 	- Specify true to allow all empty values to be retained.
  * 	- Specify an array of keys (from data) that should be retained if you want some retained and not others.
  * 	- Specify the digit 0 to retain values that are 0, but not other types of empty values.
+ * @param bool $beautify Beautify the encoded data when possible for better human readability? (requires PHP 5.4+)
  * @return string String of JSON data
  *
  */
-function wireEncodeJSON(array $data, $allowEmpty = false) {
+function wireEncodeJSON(array $data, $allowEmpty = false, $beautify = false) {
+	if($allowEmpty !== true) $data = wireMinArray($data, $allowEmpty, true); 
+	if(!count($data)) return '';
+	$flags = 0; 
+	if($beautify && defined("JSON_PRETTY_PRINT")) $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+	return json_encode($data, $flags);
+}
 
+/**
+ * Minimize an array to remove empty values
+ *
+ * @param array $data Array to reduce
+ * @param bool|array $allowEmpty Should empty values be allowed in the encoded data?
+ *	- Specify false to exclude all empty values (this is the default if not specified).
+ * 	- Specify true to allow all empty values to be retained (thus no point in calling this function). 
+ * 	- Specify an array of keys (from data) that should be retained if you want some retained and not others.
+ * 	- Specify the digit 0 to retain values that are 0, but not other types of empty values.
+ * @param bool $convert Perform type conversions where appropriate: i.e. convert digit-only string to integer
+ * @return array
+ *
+ */
+function wireMinArray(array $data, $allowEmpty = false, $convert = false) {
+	
 	foreach($data as $key => $value) {
 
-		// make sure ints are stored as ints
-		if(is_string($value) && ctype_digit("$value") && $value <= PHP_INT_MAX) $value = (int) $value;
+		if($convert && is_string($value)) { 
+			// make sure ints are stored as ints
+			if(ctype_digit("$value") && $value <= PHP_INT_MAX) {
+				if($value === "0" || $value[0] != '0') { // avoid octal conversions (leading 0)
+					$value = (int) $value;
+				}
+			}
+		} else if(is_array($value) && count($value)) {
+			$value = wireMinArray($value, $allowEmpty, $convert); 	
+		}
 
 		$data[$key] = $value;
 
 		// skip empty values whether blank, 0, empty array, etc. 
-		if(empty($value)) { 
+		if(empty($value)) {
 
 			if($allowEmpty === 0 && $value === 0) {
 				// keep it because $allowEmpty === 0 means to keep 0 values only
 
 			} else if(is_array($allowEmpty) && !in_array($key, $allowEmpty)) {
 				// remove it because it's not specifically allowed in allowEmpty
-				unset($data[$key]); 
+				unset($data[$key]);
 
 			} else if(!$allowEmpty) {
 				// remove the empty value
-				unset($data[$key]); 
+				unset($data[$key]);
 			}
 		}
 	}
-	if(!count($data)) return '';
-	return json_encode($data);
+	
+	return $data; 
 }
 
 /**
