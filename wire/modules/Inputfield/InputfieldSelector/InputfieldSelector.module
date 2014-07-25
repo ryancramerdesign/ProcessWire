@@ -654,7 +654,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'subfield' => $this->_x('Subfields', 'optgroup-label'),
 			'group' => $this->_x('Fields matching same (1) item', 'optgroup-label'),
 			'modifier' => $this->_x('Modifiers', 'optgroup-label'),
-			'adjust' => $this->_('Adjustments', 'optgroup-label'),
+			'adjust' => $this->_x('Adjustments', 'optgroup-label'),
 			);
 
 		$optgroups = array(); 
