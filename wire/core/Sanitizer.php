@@ -592,13 +592,15 @@ class Sanitizer extends Wire {
 	}
 
 	/**
+	 * Entity encode a string
+	 *
 	 * Wrapper for PHP's htmlentities function that contains typical ProcessWire usage defaults
 	 *
 	 * The arguments used hre are identical to those for PHP's htmlentities function: 
 	 * http://www.php.net/manual/en/function.htmlentities.php
 	 *
 	 * @param string $str
-	 * @param int|bool $flags Specify 
+	 * @param int|bool $flags See PHP htmlentities function for flags. 
 	 * @param string $encoding
 	 * @param bool $doubleEncode
 	 * @return string
@@ -609,16 +611,71 @@ class Sanitizer extends Wire {
 	}
 	
 	/**
-	 * Same as entities() method but won't double encode something if already encoded
+	 * Entity encode a string and don't double encode something if already encoded
 	 *
 	 * @param string $str
-	 * @param int|bool $flags Specify
+	 * @param int|bool $flags See PHP htmlentities function for flags. 
 	 * @param string $encoding
 	 * @return string
 	 *
 	 */
 	public function entities1($str, $flags = ENT_QUOTES, $encoding = 'UTF-8') {
 		return htmlentities($str, $flags, $encoding, false);
+	}
+
+	/**
+	 * Remove entity encoded characters from a string. 
+	 * 
+	 * Wrapper for PHP's html_entity_decode function that contains typical ProcessWire usage defaults
+	 *
+	 * The arguments used hre are identical to those for PHP's heml_entity_decode function: 
+	 * http://www.php.net/manual/en/function.html-entity-decode.php
+	 *
+	 * @param string $str
+	 * @param int|bool $flags See PHP html_entity_decode function for flags. 
+	 * @param string $encoding
+	 * @return string
+	 *
+	 */
+	public function removeEntities($str, $flags = ENT_QUOTES, $encoding = 'UTF-8') {
+		return htmlentities($str, $flags, $encoding, $doubleEncode); 
+	}
+
+	/**
+	 * Purify HTML markup using HTML Purifier
+	 * 
+	 * See: http://htmlpurifier.org
+	 * 
+	 * @param string $str String to purify
+	 * @param array $options See config options at: http://htmlpurifier.org/live/configdoc/plain.html
+	 * @return string
+	 * @throws WireException if given something other than a string
+	 *
+	 */
+	public function purify($str, array $options = array()) {
+		static $purifier = null;
+		static $_options = array();
+		if(!is_string($str)) throw new WireException("Sanitizer::purify requires a string"); 
+		if(is_null($purifier) || print_r($options, true) != print_r($_options, true)) {
+			$purifier = $this->purifier($options);
+			$_options = $options; 
+		}
+		return $purifier->purify($str); 
+	}
+
+	/**
+	 * Return a new HTML Purifier instance
+	 *
+	 * See: http://htmlpurifier.org
+	 *
+	 * @param array $options See config options at: http://htmlpurifier.org/live/configdoc/plain.html
+	 * @return MarkupHTMLPurifier
+	 *
+	 */
+	public function purifier(array $options = array()) {
+		$purifier = $this->wire('modules')->get('MarkupHTMLPurifier');
+		foreach($options as $key => $value) $purifier->set($key, $value); 
+		return $purifier;
 	}
 
 	public function __toString() {
