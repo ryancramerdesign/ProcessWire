@@ -646,7 +646,12 @@ class Page extends WireData implements Countable {
 				break;
 			case 'numChildrenVisible':
 			case 'numVisibleChildren':
+			case 'hasChildren': 
 				$value = $this->numChildren(true);
+				break;
+			case 'editUrl':
+			case 'editURL':
+				$value = $this->wire('config')->urls->admin . "page/edit/?id=$this->id";
 				break;
 			default:
 				if($key && isset($this->settings[(string)$key])) return $this->settings[$key]; 
@@ -927,6 +932,23 @@ class Page extends WireData implements Countable {
 	public function numChildren($selector = null) {
 		if(!$this->settings['numChildren'] && is_null($selector)) return $this->settings['numChildren']; 
 		return $this->traversal()->numChildren($this, $selector); 
+	}
+
+	/**
+	 * Similar to numChildren except that default behavior is to exclude non-visible children.
+	 * 
+	 * This method may be more convenient for front-end navigation use than the numChildren() method. 
+	 * 
+	 * @param bool|string $selector
+	 *	When not specified, result is quantity of visible children (excludes unpublished, hidden, no-access, etc.)
+	 *	When a string, a selector string is assumed and quantity will be counted based on selector.
+	 * 	When boolean true, number includes only visible children (this is the default behavior, so no need to specify this value).
+	 *	When boolean false, number includes all children without conditions, including unpublished, hidden, no-access, etc.
+	 * @return int Number of children
+	 * 
+	 */
+	public function hasChildren($selector = true) {
+		return $this->numChildren($selector);
 	}
 
 	/**
