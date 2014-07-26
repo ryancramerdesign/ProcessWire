@@ -299,4 +299,8 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		return parent::__get($key);
 	}
 
+	public function closePdo()
+	{
+		$this->pdo = null;
+	}
 }
