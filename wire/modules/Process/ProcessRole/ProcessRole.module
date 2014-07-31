@@ -20,7 +20,7 @@ class ProcessRole extends ProcessPageType {
 	static public function getModuleInfo() {
 		return array(
 			'title' => __('Roles', __FILE__), // getModuleInfo title
-			'version' => 100, 
+			'version' => 101, 
 			'summary' => __('Manage user roles and what permissions are attached', __FILE__), // getModuleInfo summary 
 			'permanent' => true, 
 			'permission' => 'role-admin', // add this permission if you want this Process available for roles other than Superuser
@@ -37,27 +37,42 @@ class ProcessRole extends ProcessPageType {
 		$form = $event->object;
 		$f = $form->getChildByName('permissions');
 		if(!$f) return;
-		$f->notes = $this->_('*Note that checking the page-edit permission here means only that the role can be selected for edit access at the template level. Simply assigning the page-edit permission here does grant edit permission until it is also selected in one or more template access control settings.');
+		$f->notes = "&dagger; " . $this->_('Indicated permissions open more permission options that are revealed after checking the box and saving the page.') . "\n\n" . 
+			$this->_('*Note that checking the page-edit permission here means only that the role can be selected for edit access at the template level. Simply assigning the page-edit permission here does grant edit permission until it is also selected in one or more template access control settings.');
 		$f = $f->getInputfield();
 		$f->table = true;
-		$f->thead = 'name|title';
+		$f->thead = $this->_('name|title'); // Table head with each column title separated by a pipe "|"
+		$value = $f->attr('value');
 		$options = $f->getOptions();
 		$pageViewID = 0; 
+		$parentPermissions = array();
 		
 		foreach($options as $name => $label) $f->removeOption($name);
+		
 		foreach($this->wire('permissions') as $permission) {
-				$name = $permission->name;
-				if($name == 'page-edit') $name .= " *";
-				if($name == 'page-view') {
-					$name .= " " . $this->_('(required)');
-					$pageViewID = $permission->id; 
-				}
-				$f->addOption($permission->id, "$name|$permission->title");
+			$parentPermission = $permission->getParentPermission();
+			if($parentPermission->id) {
+				if(!isset($parentPermissions[$parentPermission->id])) $parentPermissions[$parentPermission->id] = array();
+				$parentPermissions[$parentPermission->id][$permission->id] = $permission->name;
+			}
 		}
-		$value = $f->attr('value');
+		
+		foreach($this->wire('permissions') as $permission) {
+			$parentPermission = $permission->getParentPermission();
+			if($parentPermission->id && !in_array($parentPermission->id, $value)) continue;
+			$name = $permission->name;
+			if($name == 'page-edit') $name .= " *";
+			if($name == 'page-view') {
+				$name .= " " . $this->_('(required)');
+				$pageViewID = $permission->id; 
+			}
+			if(isset($parentPermissions[$permission->id])) $name .= " &dagger;";
+			$title = str_replace('|', ' ', $permission->title); 
+			$f->addOption($permission->id, "$name|$title"); 
+		}
 		if(!in_array($pageViewID, $value)) {
-				$value[] = $pageViewID; 
-				$f->attr('value', $value);
+			$value[] = $pageViewID; 
+			$f->attr('value', $value);
 		}
 	}
 	

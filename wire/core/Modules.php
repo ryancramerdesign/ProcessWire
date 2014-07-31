@@ -484,7 +484,7 @@ class Modules extends WireArray {
 			if($dir && $dirname != $dir) {
 				// there are two copies of the module on the file system (likely one in /site/modules/ and another in /wire/modules/)
 				$err = sprintf($this->_('Warning: there appear to be two copies of module "%s" on the file system.'), $basename) . ' ';
-				$err .= $this->_('Please remove the one in <u>/site/modules/</u> unless you need them both present for some reason.');
+				$err .= $this->_('Please remove the one in /site/modules/ unless you need them both present for some reason.');
 				$this->wire('log')->error($err); 
 				$rootPath = $this->wire('config')->paths->root; 
 				$dir = str_replace($rootPath, '/', $dir) . "/$filename";

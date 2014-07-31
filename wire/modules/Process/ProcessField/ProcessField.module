@@ -23,7 +23,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Fields', __FILE__),
 			'summary' => __('Edit individual fields that hold page data', __FILE__),
-			'version' => 106,
+			'version' => 107,
 			'permanent' => true, 
 			'permission' => 'field-admin', // add this permission if you want this Process available for roles other than Superuser
 			'icon' => 'cube', 
@@ -34,7 +34,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	protected $field;
 	protected $id; 
 	protected $moduleInfo = array();
-	protected $saveButtonLabel = '';
+	protected $labels = array();
 
 	/**
 	 * Optional context fieldgroup
@@ -58,7 +58,12 @@ class ProcessField extends Process implements ConfigurableModule {
 		if($this->input->urlSegment1 == 'edit') $this->modules->get("JqueryWireTabs");
 		$this->moduleInfo = self::getModuleInfo();
 		$this->setFuel('processHeadline', $this->moduleInfo['title']); 
-		$this->saveButtonLabel = $this->_('Save'); // Save button label
+		$this->labels = array(
+			'save' => $this->_('Save'), // Save button label
+			'import' => $this->_('Import'), 
+			'export' => $this->_('Export'),
+			'ok' => $this->_('Ok')
+			);
 		return parent::init();
 	}
 
@@ -232,9 +237,27 @@ class ProcessField extends Process implements ConfigurableModule {
 		$out .= "\n</div><!--/#ProcessFieldList-->";
 
 		$button = $this->modules->get('InputfieldButton');
+		$button->id = 'add_field_button'; 
 		$button->href = "./add"; 
 		$button->value = $this->_x('Add New Field', 'list button'); 
 		$button->icon = 'plus-circle';
+		$button->addClass('head_button_clone');
+		$out .= $button->render();
+	
+		$button = $this->modules->get('InputfieldButton');
+		$button->id = 'import_button';
+		$button->href = "./import/";
+		$button->value = $this->labels['import'];
+		$button->icon = 'paste';
+		$button->addClass('ui-priority-secondary');
+		$out .= $button->render();
+		
+		$button = $this->modules->get('InputfieldButton');
+		$button->id = 'export_button'; 
+		$button->href = "./export/";
+		$button->value = $this->labels['export'];
+		$button->icon = 'copy';
+		$button->addClass('ui-priority-secondary');
 		$out .= $button->render();
 
 		if($this->input->nosave) {
@@ -243,12 +266,12 @@ class ProcessField extends Process implements ConfigurableModule {
 			$this->session->remove('ProcessFieldListShowSystem');
 		}
 
-                return $out;
+		return $out;
 	}	
 
 	protected function ___getListTable($fields) {
 
-                $table = $this->modules->get("MarkupAdminDataTable");
+		$table = $this->modules->get("MarkupAdminDataTable");
 
 		$headerRow = array(
 			$this->_x('Name', 'list thead'), 
@@ -257,11 +280,11 @@ class ProcessField extends Process implements ConfigurableModule {
 			$this->_x('Templates', 'list thead quantity')
 			);
 
-                $table->headerRow($headerRow);
+		$table->headerRow($headerRow);
 		$table->setEncodeEntities(false);
 		$numRows = 0;
 
-                foreach($fields as $field) {
+		foreach($fields as $field) {
 			$row = $this->getListTableRow($field);
 			if(!empty($row)) {
 				$table->row($row); 
@@ -523,7 +546,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		}
 
 		$field = $this->modules->get('InputfieldSubmit');
-		$field->attr('value', $this->saveButtonLabel); 
+		$field->attr('value', $this->labels['save']); 
 		$field->attr('name', 'submit_save_field'); 
 		$field->class .= ' head_button_clone';
 		$form->add($field); 
@@ -967,6 +990,42 @@ class ProcessField extends Process implements ConfigurableModule {
 		$this->session->redirect("edit?id={$this->field->id}"); 	
 	}
 
+
+	/**
+	 * Execute import 
+	 * 
+	 * @return string
+	 * @throws WireException if given invalid import data
+	 *
+	 */
+	public function ___executeImport() {
+		
+		$this->wire('processHeadline', $this->labels['import']);
+		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->moduleInfo['title']));
+		
+		require(dirname(__FILE__) . '/ProcessFieldExportImport.php');
+		$o = new ProcessFieldExportImport();
+		$form = $o->buildImport();
+		return $form->render();
+	}
+
+	/**
+	 * Execute export
+	 * 
+	 * @return string
+	 *
+	 */
+	public function ___executeExport() {
+		
+		$this->wire('processHeadline', $this->labels['export']);
+		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->moduleInfo['title'])); 
+		
+		require(dirname(__FILE__) . '/ProcessFieldExportImport.php'); 
+		$o = new ProcessFieldExportImport();
+		$form = $o->buildExport();
+		return $form->render();
+	}
+	
 	/**
 	 * Build a form allowing configuration of this Module
 	 *

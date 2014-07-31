@@ -813,6 +813,93 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 	}
 
 	/**
+	 * Export configuration values for external consumption
+	 *
+	 * Use this method to externalize any config values when necessary.
+	 * For example, internal IDs should be converted to GUIDs where possible.
+	 * 
+	 * FieldtypePage: Note the exported config values here are actually from 
+	 * InputfieldPage, but we're handling them in here rather than 
+	 * InputfieldPage::exportConfigData() to increase the reusability of these
+	 * conversions (parent_id and template_id) which are common conversions
+	 * used by other Fieldtypes. 
+	 *
+	 * @param Field $field
+	 * @param array $data
+	 * @return array
+	 *
+	 */
+	public function ___exportConfigData(Field $field, array $data) {
+		$data = parent::___exportConfigData($field, $data); 
+		if(!empty($data['parent_id']) && ctype_digit("$data[parent_id]")) {
+			// convert parent ID to parent path
+			$data['parent_id'] = $this->wire('pages')->get((int) $data['parent_id'])->path;
+		}
+		if(!empty($data['template_id'])) { 
+			if(is_array($data['template_id'])) {
+				// convert array of template ids to template names
+				foreach($data['template_id'] as $key => $id) {
+					if(ctype_digit("$id")) continue;
+					$template = $this->wire('templates')->get((int) $id);
+					if($template) $data['template_id'][$key] = $template->name;
+				}
+			} else if(ctype_digit("$data[template_id]")) {
+				// convert template id to template name
+				$template = $this->wire('templates')->get((int) $data['template_id']);
+				if($template) $data['template_id'] = $template->name;
+			}
+		}
+		return $data;
+	}
+
+	/**
+	 * Convert an array of exported data to a format that will be understood internally
+	 * 
+	 * FieldtypePage: Note the mported config values here are actually from
+	 * InputfieldPage, but we're handling them in here rather than
+	 * InputfieldPage::importConfigData() to increase the reusability of these
+	 * conversions (parent_id and template_id) which are common conversions
+	 * used by other Fieldtypes.
+	 *
+	 *
+	 * @param Field $field
+	 * @param array $data
+	 * @return array Data as given and modified as needed. Also included is $data[errors], an associative array
+	 *	indexed by property name containing errors that occurred during import of config data.
+	 *
+	 */
+	public function ___importConfigData(Field $field, array $data) {
+		$data = parent::___importConfigData($field, $data);
+		// parent page
+		if(!empty($data['parent_id']) && !ctype_digit("$data[parent_id]")) {
+			// we have a page apth rather than id
+			$id = $this->wire('pages')->get("path=" . $this->wire('sanitizer')->selectorValue($data['parent_id']))->id;
+			if(!$id) $data['errors']['parent_id'] = $this->_('Unable to find page') . " - $data[parent_id].";
+			$data['parent_id'] = $id;
+		}
+		// template
+		if(!empty($data['template_id'])) {
+			// template_id can be an id or array of IDs, but we will be importing a template name or array of them
+			$errors = array();
+			$isArray = is_array($data['template_id']); 
+			if(!$isArray) $data['template_id'] = array($data['template_id']); 
+			foreach($data['template_id'] as $key => $name) { 
+				if(ctype_digit("$name")) continue; 
+				// we have a template name rather than id
+				$template = $this->wire('templates')->get($this->wire('sanitizer')->name($name));
+				if($template) {
+					$data['template_id'][$key] = $template->id;
+				} else {
+					$errors[] = $this->_('Unable to find template') . " - $name.";
+				}
+			}
+			if(!$isArray) $data['template_id'] = reset($data['template_id']);
+			if(count($errors)) $data['errors']['template_id'] = implode(" \n", $errors); 
+		}
+		return $data;
+	}
+
+	/**
 	 * Find and clean orphaned references in each of FieldtypePage's tables
 	 *
 	 * Previous versions of PW had an issue where a reference to a deleted page could still exist in some instances.

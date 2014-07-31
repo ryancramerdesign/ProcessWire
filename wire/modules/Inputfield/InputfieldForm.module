@@ -43,7 +43,7 @@ class InputfieldForm extends InputfieldWrapper {
 
 		$description = $this->getSetting('description'); 
 		if($description) $description = "\n<h2>" . $this->entityEncode($description) . "</h2>"; 
-
+		
 		$attrStr = $this->getAttributesString($attrs); 
 
 		if($this->protectCSRF && $this->attr('method') == 'post') {
@@ -56,7 +56,7 @@ class InputfieldForm extends InputfieldWrapper {
 
 		$out = 	"\n<form $attrStr>" . 
 			$description . 
-			parent::___render() . 
+			parent::___render() .
 			$tokenField . 
 			"\n</form>";
 
@@ -80,6 +80,7 @@ class InputfieldForm extends InputfieldWrapper {
 	 * 
 	 * @param WireInputData $input
 	 * @param array $delayedChildren
+	 * @return array
 	 * 
 	 */
 	protected function processInputShowIf(WireInputData $input, array $delayedChildren) {

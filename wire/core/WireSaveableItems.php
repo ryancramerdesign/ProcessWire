@@ -33,7 +33,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	 *
 	 */
 	abstract public function getTable();
-
+	
 
 	/**
 	 * Return the default name of the field that load() should sort by (default is none)
@@ -224,6 +224,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 			$this->saved($item);
 			$this->resetTrackChanges();
 		}
+		
 		return $result;
 	}
 
@@ -382,7 +383,8 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	 * @param Saveable $item
 	 *
 	 */
-	public function ___saved(Saveable $item) { }
+	public function ___saved(Saveable $item) { 
+	}
 	
 	/**
 	 * Hook that runs right after a new item has been added. 
@@ -400,6 +402,9 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	 * @param Saveable $item
 	 *
 	 */
-	public function ___deleted(Saveable $item) { }
-	
+	public function ___deleted(Saveable $item) { 
+	}
+
+
+
 }

@@ -60,7 +60,7 @@
  *
  */
 
-class Template extends WireData implements Saveable {
+class Template extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Flag used to indicate the field is a system-only field and thus can't be deleted or have it's name changed
@@ -188,6 +188,7 @@ class Template extends WireData implements Saveable {
 		'label' => '',			// label that describes what this template is for (optional)
 		'tags' => '',			// optional tags that can group this template with others in the admin templates list 
 		'modified' => 0, 		// last modified time for template or template file
+		'titleNames' => 0, 		// future page title changes re-create the page names too? (recommend only if PagePathHistory is installed)
 		); 
 
 
@@ -230,7 +231,20 @@ class Template extends WireData implements Saveable {
 		} else if(is_array($this->_roles)) {
 			$roles = new PageArray();
 			if(count($this->_roles)) {
-				$roles->import($this->pages->getById($this->_roles)); 
+				$test = implode('0', $this->_roles); // test to see if it's all digits (IDs)
+				if(ctype_digit("$test")) {
+					$roles->import($this->pages->getById($this->_roles)); 
+				} else {
+					// role names
+					foreach($this->_roles as $name) {
+						$role = $this->wire('roles')->get($name); 
+						if($role->id) {
+							$roles->add($role); 
+						} else {
+							$this->error("Unable to load role: $name"); 
+						}
+					}
+				}
 			}
 			$this->_roles = $roles;
 			return $this->_roles;
@@ -292,11 +306,20 @@ class Template extends WireData implements Saveable {
 
 		} else if(isset($this->settings[$key])) { 
 
-			if($key == 'id') $value = (int) $value; 
-				else if($key == 'name') $value = $this->fuel('sanitizer')->name($value); 
-				else if($key == 'fieldgroups_id') return $this->setFieldgroup($this->getFuel('fieldgroups')->get($value)); 
-				else if($key == 'cache_time' || $key == 'cacheTime') $value = (int) $value; 
-				else $value = '';
+			if($key == 'id') {
+				$value = (int) $value; 
+			} else if($key == 'name') {
+				$value = $this->wire('sanitizer')->name($value); 
+			} else if($key == 'fieldgroups_id') {
+				$fieldgroup = $this->wire('fieldgroups')->get($value); 
+				if($fieldgroup) $this->setFieldgroup($fieldgroup); 
+					else $this->error("Unable to load fieldgroup: $value"); 
+				return $this;
+			} else if($key == 'cache_time' || $key == 'cacheTime') {
+				$value = (int) $value; 
+			} else {
+				$value = '';
+			}
 
 			if($this->settings[$key] != $value) {
 				if($this->settings[$key] && ($this->settings['flags'] & Template::flagSystem) && in_array($key, array('id', 'name'))) {
@@ -325,18 +348,59 @@ class Template extends WireData implements Saveable {
 			}
 
 		} else if($key == 'sortfield') {
-			$value = $this->fuel('pages')->sortfields()->decode($value, '');	
+			$value = $this->wire('pages')->sortfields()->decode($value, '');	
 			parent::set($key, $value); 
 
-		} else if(in_array($key, array('addRoles', 'editRoles', 'createRoles', 'childTemplates', 'parentTemplates'))) {
+		} else if(in_array($key, array('addRoles', 'editRoles', 'createRoles'))) {
 			if(!is_array($value)) $value = array();
-			foreach($value as $k => $v) $value[(int)$k] = (int) $v; 
+			foreach($value as $k => $v) {
+				if(!is_int($v)) {
+					if(is_object($v)) {
+						$v = $v->id; 
+					} else if(is_string($v) && !ctype_digit("$v")) {
+						$role = $this->wire('roles')->get($v); 
+						if(!$role->id) $this->error("Unable to load role: $v"); 
+						$v = $role->id; 
+					}
+				}
+				if($v) $value[(int)$k] = (int) $v;
+			}
+			parent::set($key, $value); 
+			
+		} else if(in_array($key, array('childTemplates', 'parentTemplates'))) {
+			if(!is_array($value)) $value = array();
+			foreach($value as $k => $v) {
+				if(!is_int($v)) {
+					if(is_object($v)) {
+						$v = $v->id; 
+					} else if(!ctype_digit("$v")) {
+						$t = $this->wire('templates')->get($v);
+						if(!$t) $this->error("Unable to load template: $v"); 
+						$v = $t ? $t->id : 0; 
+					}
+				}
+				if($v) $value[(int)$k] = (int) $v; 
+			}
 			parent::set($key, $value); 
 
 		} else if(in_array($key, array('noChildren', 'noParents'))) {
 			$value = (int) $value;
 			if(!$value) $value = null; // enforce null over 0
 			parent::set($key, $value);
+			
+		} else if($key == 'cacheExpirePages') {
+			if(!is_array($value)) $value = array();
+			foreach($value as $k => $v) {
+				if(is_object($v)) {
+					$v = $v->id; 
+				} else if(!ctype_digit("$v")) {
+					$p = $this->wire('pages')->get($v);
+					if(!$p->id) $this->error("Unable to load page: $v"); 
+					$v = $p->id; 
+				}
+				$value[(int)$k] = (int) $v; 
+			}
+			parent::set($key, $value); 
 
 		} else {
 			parent::set($key, $value); 
@@ -516,7 +580,7 @@ class Template extends WireData implements Saveable {
 	}
 
 	/**
-	 * Per Saveable interface
+	 * Per Saveable interface: return data for storage in table
 	 *
 	 */
 	public function getTableData() {
@@ -530,6 +594,73 @@ class Template extends WireData implements Saveable {
 		return $tableData; 
 	}
 
+	/**
+	 * Per Saveable interface: return data for external storage
+	 *
+	 */
+	public function getExportData() {
+		
+		$data = $this->getTableData();
+	
+		// flatten
+		foreach($data['data'] as $key => $value) {
+			$data[$key] = $value;
+		}
+	
+		// remove unnecessary
+		unset($data['data']); 
+	
+		// convert fieldgroup to guid
+		$fieldgroup = $this->wire('fieldgroups')->get((int) $data['fieldgroups_id']); 
+		if($fieldgroup) $data['fieldgroups_id'] = $fieldgroup->name;
+	
+		// convert family settings to guids
+		foreach(array('parentTemplates', 'childTemplates') as $key) {
+			if(!isset($data[$key])) continue;
+			$values = array();
+			foreach($data[$key] as $id) {
+				$template = $this->wire('templates')->get((int) $id); 			
+				$values[] = $template->name;
+			}
+			$data[$key] = $values;
+		}
+	
+		// convert roles to guids
+		foreach(array('roles', 'editRoles', 'addRoles', 'createRoles') as $key) {
+			if(!isset($data[$key])) continue; 
+			$values = array();
+			foreach($data[$key] as $id) { 
+				$role = $id instanceof Role ? $id : $this->wire('roles')->get((int) $id); 
+				$values[] = $role->name;
+			}
+			$data[$key] = $values; 
+		}
+	
+		// convert pages to guids
+		if(!empty($data['cacheExpirePages'])) {
+			$values = array();
+			foreach($data['cacheExpirePages'] as $id) {
+				$page = $this->wire('pages')->get((int) $id); 
+				if(!$page->id) continue; 
+				$values[] = $page->path;
+			}
+		}
+		
+		return $data; 
+	}
+
+	/**
+	 * Given an array of export data, import it
+	 * 
+	 * @param array $data
+	 * @return bool True if successful, false if not
+	 *
+	 */
+	public function setImportData(array $data) {
+		foreach($data as $key => $value) $this->set($key, $value);
+		return true;
+	}
+	
 	/**
 	 * The string value of a Template is always it's name
 	 *

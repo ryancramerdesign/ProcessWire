@@ -183,5 +183,27 @@ class FieldtypeText extends Fieldtype {
 		return $inputfields; 
 	}
 
+	/**
+	 * Convert an array of exported data to a format that will be understood internally
+	 *
+	 * @param Field $field
+	 * @param array $data
+	 * @return array Data as given and modified as needed. Also included is $data[errors], an associative array
+	 *	indexed by property name containing errors that occurred during import of config data.
+	 *
+	 */
+	public function ___importConfigData(Field $field, array $data) {
+		if(isset($data['textformatters']) && is_array($data['textformatters'])) {
+			$errors = array();
+			foreach($data['textformatters'] as $className) {
+				if(!$this->wire('modules')->isInstalled($className)) {
+					$errors[] = "Requires module '$className' to be installed";
+				}
+			}
+			if(count($errors)) $data['errors']['textformatters'] = implode(" \n", $errors); 
+		}
+		return $data;
+	}
+
 }
 

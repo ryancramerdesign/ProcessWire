@@ -84,6 +84,20 @@ $(document).ready(function() {
 		window.location = href; 
 	});
 	
-	$("a.fieldFlag").click(function() { return false; }); 
+	$("a.fieldFlag").click(function() { return false; });
+
+	$("#export_data").click(function() { $(this).select(); });
+	
+	$(".import_toggle input[type=radio]").change(function() {
+		var $table = $(this).parents('p.import_toggle').next('table');
+		var $fieldset = $(this).closest('.InputfieldFieldset'); 
+		if($(this).is(":checked") && $(this).val() == 0) {
+			$table.hide();
+			$fieldset.addClass('ui-priority-secondary');
+		} else {
+			$table.show();
+			$fieldset.removeClass('ui-priority-secondary');
+		}
+	}).change();
 
 });

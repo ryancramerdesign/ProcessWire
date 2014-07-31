@@ -21,7 +21,7 @@
  * @property string $name Field name
  *
  */
-class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
+class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupItems {
 
 	/**
 	 * Permanent/common settings for a Fieldgroup, fields in the database
@@ -281,15 +281,51 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	 * @param string $key
 	 * @param string|int|object $value
 	 * @return Fieldgroup $this
+	 * @throws WireException if passed invalid data
 	 *
 	 */
 	public function set($key, $value) {
 
 		if($key == 'data') return $this; // we don't have a data field here
 
-		if($key == 'id') $value = (int) $value; 
-			else if($key == 'name') $value = $this->fuel('sanitizer')->name($value); 
-
+		if($key == 'id') {
+			$value = (int) $value; 
+			
+		} else if($key == 'name') {
+			$value = $this->wire('sanitizer')->name($value); 
+			
+		} else if($key == '_fields') {
+			// import new field data
+			if(!is_array($value)) throw new WireException("_fields must be an array"); 
+			foreach($value as $name) {
+				$field = $this->wire('fields')->get($name); 
+				if(!$field) {
+					$this->error("Unable to load field: $name"); 
+					continue; 
+				}
+				$this->add($field); 
+			}
+			return $this; 
+			
+		} else if($key == '_contexts') {
+			// import new field contexts
+			if(!is_array($value)) throw new WireException("_contexts must be an array"); 
+			foreach($value as $name => $context) {
+				$field = $this->wire('fields')->get($name); 
+				if(!$field) {
+					$this->error("Unable to load field for context: $name"); 
+					continue; 
+				}
+				$id = $field->id; 
+				if(isset($this->fieldContexts[$id])) {
+					$this->fieldContexts[$id] = array_merge($this->fieldContexts[$id], $context); 
+				} else {
+					$this->fieldContexts[$id] = $context; 
+				}
+			}
+			
+			return $this; 
+		}
 
 		if(isset($this->settings[$key])) {
 			if($this->settings[$key] !== $value) $this->trackChange($key, $this->settings[$key], $value); 
@@ -327,6 +363,55 @@ class Fieldgroup extends WireArray implements Saveable, HasLookupItems {
 	 */
 	public function getTableData() {
 		return $this->settings; 
+	}
+
+	/**
+	 * Per Saveable interface: return data for external storage
+	 *
+	 */
+	public function getExportData() {
+		$data = $this->getTableData();
+		$fields = array();
+		$contexts = array();
+		foreach($this as $field) {
+			$fields[] = $field->name; 
+			if(isset($this->fieldContexts[$field->id])) $contexts[$field->name] = $this->fieldContexts[$field->id];
+		}
+		$data['_fields'] = $fields;
+		$data['_contexts'] = $contexts; 
+		return $data;
+	}
+
+	/**
+	 * Given an export data array, import it back to the class and return what happened
+	 *
+	 * @param array $data
+	 * @return array Returns array(
+	 * 	[property_name] => array(
+	 * 		'old' => 'old value',	// old value, always a string
+	 * 		'new' => 'new value',	// new value, always a string
+	 * 		'error' => 'error message or blank if no error'
+	 * 	)
+	 *
+	 */
+	public function setImportData(array $data) {
+		$return = array();
+		$this->errors("clear");
+		$_data = $this->getExportData();
+		foreach($data as $key => $value) {
+			$old = isset($_data[$key]) ? $_data[$key] : null;
+			if(is_array($old)) $old = print_r($old, true); 
+			$new = is_array($value) ? print_r($value, true) : $value; 
+			if($old == $new) continue; 
+			$this->set($key, $value);
+			$error = (string) $this->errors("first clear"); 
+			$return[$key] = array(
+				'old' => $old, 
+				'new' => $value, 
+				'error' => $error, 
+			);
+		}
+		return $return;
 	}
 
 	/**

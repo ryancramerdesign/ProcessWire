@@ -10,11 +10,20 @@
  * ...and so on...
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
+ * 
+ * Optional special permissions that affect $page->editable() behavior:
+ * 
+ * 1. page-publish: when installed, editable() returns false, when it would otherwise return true, 
+ *    on published pages, if user doesn't have page-publish permission in their roles. 
+ * 
+ * 2. page-edit-created: when installed, editable() returns false, when it would otherwise 
+ *    return true, if user's role has this permission and they are not the $page->createdUser. 
+ *    This is a permission that reduces access rather than increasing it. Note that
+ *    page-edit-created does nothing if the user doesn't have page-edit permission. 
  *
  */
 
@@ -23,7 +32,7 @@ class PagePermissions extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page Permissions', 
-			'version' => 104, 
+			'version' => 105, 
 			'summary' => 'Adds various permission methods to Page objects that are used by Process modules.',
 			'permanent' => true, 
 			'singular' => true,
@@ -31,6 +40,26 @@ class PagePermissions extends WireData implements Module {
 			);
 	}
 
+	/**
+	 * Do we have page-publish permission in the system?
+	 * 
+	 * @var null|bool Null=unset state
+	 * 
+	 */
+	protected $hasPagePublish = null;
+	
+	/**
+	 * Do we have page-edit-created permission in the system?
+	 *
+	 * @var null|bool Null=unset state
+	 *
+	 */
+	protected $hasPageEditCreated = null;
+
+	/**
+	 * Establish permission hooks
+	 *
+	 */
 	public function init() {
 		$this->addHook('Page::editable', $this, 'editable'); 
 		$this->addHook('Page::publishable', $this, 'publishable'); 
@@ -102,15 +131,23 @@ class PagePermissions extends WireData implements Module {
 		// if the user doesn't have page-edit permission, don't let them go further
 		if(!$user->hasPermission("page-edit", $page)) return false;
 
+		// check if the system has a page-edit-created permission installed
+		if(is_null($this->hasPageEditCreated)) $this->hasPageEditCreated = $this->wire('permissions')->get('page-edit-created')->id > 0;
+		if($this->hasPageEditCreated) {
+			// page-edit-created permission is installed, so we have to account for it 
+			// if user is not the one that created this page, don't allow them to edit it
+			if($page->created_users_id != $user->id) return false;
+		}
+
 		// now check if there is a page-publish permission in the system, and use it if so
-		$publish = $this->wire('permissions')->get('page-publish'); 
-		if($publish->id) {
+		if(is_null($this->hasPagePublish)) $this->hasPagePublish = $this->wire('permissions')->get('page-publish')->id > 0;
+		if($this->hasPagePublish) {
 
 			// if user has the page-publish permission here, then we're good
-			if($user->hasPermission('page-publish', $page)) return true; 
+			if($user->hasPermission('page-publish', $page)) return true;
 
 			// if the page is unpublished then we're fine too
-			if($page->is(Page::statusUnpublished)) return true; 
+			if($page->is(Page::statusUnpublished)) return true;
 
 			// otherwise user cannot edit this page
 			return false;

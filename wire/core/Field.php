@@ -22,7 +22,7 @@
  * @property string $label
  *
  */
-class Field extends WireData implements Saveable {
+class Field extends WireData implements Saveable, Exportable {
 
 	/**  
 	 * Field should be automatically joined to the page at page load time
@@ -161,6 +161,96 @@ class Field extends WireData implements Saveable {
 		$a = $this->settings; 
 		$a['data'] = $this->data; 
 		return $a;
+	}
+
+
+	/**
+	 * Per Saveable interface: return data for external storage
+	 *
+	 */
+	public function getExportData() {
+		if($this->type) {
+			$data = $this->getTableData();
+			$data['type'] = $this->type->className();
+		} else {
+			$data['type'] = '';
+		}
+		if(isset($data['data'])) $data = array_merge($data, $data['data']); // flatten
+		unset($data['data']); 
+		if($this->type) $data = $this->type->exportConfigData($this, $data); 
+		$flagOptions = array(
+			'autojoin' => self::flagAutojoin,
+			'global' => self::flagGlobal,
+			'system' => self::flagSystem,
+			'permanent' => self::flagPermanent
+			);
+		$flags = $this->flags;
+		foreach($flagOptions as $name => $value) {
+			unset($data[$name]); 
+		}
+		$data['flags'] = $flags;
+		return $data;
+	}
+
+	/**
+	 * Given an export data array, import it back to the class and return what happened
+	 *
+	 * @param array $data
+	 * @return array Returns array(
+	 * 	[property_name] => array(
+	 * 
+	 * 		// old value (in string comparison format)
+	 * 		'old' => 'old value',
+	 * 
+	 * 		// new value (in string comparison format)
+	 * 		'new' => 'new value',	
+	 * 
+	 *		// error message (string) or messages (array) 
+	 * 		'error' => 'error message or blank if no error' ,
+	 * 	)
+	 *
+	 */
+	public function setImportData(array $data) {
+		
+		$changes = array();
+		$data['errors'] = array();
+		$_data = $this->getExportData();
+	
+		// compare old data to new data to determine what's changed
+		foreach($data as $key => $value) {
+			if($key == 'errors') continue; 
+			$data['errors'][$key] = ''; 
+			$old = isset($_data[$key]) ? $_data[$key] : ''; 
+			if(is_array($old)) $old = wireEncodeJSON($old, true); 
+			$new = is_array($value) ? wireEncodeJSON($value, true) : $value; 
+			if($old === $new || (empty($old) && empty($new))) continue; 
+			$changes[$key] = array(
+				'old' => $old,
+				'new' => $new, 
+				'error' => '', // to be populated by Fieldtype::importConfigData when applicable
+				);
+		}
+
+		// prep data for actual import
+		if(!empty($data['type']) && ((string) $this->type) != $data['type']) {
+			$this->type = $this->wire('fieldtypes')->get($data['type']); 
+		}
+		
+		if(!$this->type) $this->type = $this->wire('fieldtypes')->get('FieldtypeText');
+		$data = $this->type->importConfigData($this, $data); 
+		
+		// populate import data
+		foreach($changes as $key => $change) {
+			$this->errors("clear"); 
+			$this->set($key, $data[$key]);
+			if(!empty($data['errors'][$key])) $error = $data['errors'][$key];
+				else $error = $this->errors("last clear");
+			// just in case they switched it to an array of multiple errors, convert back to string
+			if(is_array($error)) $error = implode(" \n", $error); 
+			$changes[$key]['error'] = $error;
+		}
+		
+		return $changes;
 	}
 
 	/**

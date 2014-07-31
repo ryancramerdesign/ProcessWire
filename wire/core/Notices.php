@@ -75,6 +75,10 @@ abstract class Notice extends WireData {
 	 * 
 	 */
 	abstract public function getLogName();
+	
+	public function __toString() {
+		return $this->text; 
+	}
 }
 
 /**

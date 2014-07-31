@@ -657,6 +657,44 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
+	 * Export configuration values for external consumption
+	 *
+	 * Use this method to externalize any config values when necessary.
+	 * For example, internal IDs should be converted to GUIDs where possible.
+	 * 
+	 * Most Inputfields do not need to implement this.
+	 *
+	 * @param array $data
+	 * @return array
+	 *
+	 */
+	public function ___exportConfigData(array $data) {
+		$inputfields = $this->getConfigInputfields(); 
+		if(!$inputfields || !count($inputfields)) return $data;
+		foreach($inputfields->getAll() as $inputfield) {
+			if(isset($data[$inputfield->name])) continue;
+			$value = $inputfield->isEmpty() ? '' : $inputfield->value;
+			if(is_object($value)) $value = (string) $value;
+			$data[$inputfield->name] = $value;
+		}
+		return $data;
+	}
+
+	/**
+	 * Convert an array of exported data to a format that will be understood internally (opposite of exportConfigData)
+	 * 
+	 * Most Inputfields do not need to implement this.
+	 *
+	 * @param array $data
+	 * @return array Data as given and modified as needed. Also included is $data[errors], an associative array
+	 * 	indexed by property name containing errors that occurred during import of config data. 
+	 *
+	 */
+	public function ___importConfigData(array $data) {
+		return $data;
+	}
+
+	/**
 	 * Returns a unique key variable used to store errors in the session
 	 *
 	 */
@@ -679,11 +717,15 @@ abstract class Inputfield extends WireData implements Module {
 			$errors[] = $text; 
 			$this->session->set($key, $errors); 
 		}
-		return parent::error($text . " ({$this->name})", $flags); 
+		$text .= $this->name ? " ($this->name)" : "";
+		return parent::error($text, $flags); 
 	}
 
 	/**
 	 * Return array of strings containing errors that occurred during processInput
+	 * 
+	 * Note that this is different from Wire::errors() in that it retrieves errors from the session
+	 * rather than just the current run. 
 	 *
 	 * @param bool $clear Optionally clear the errors after getting them. Default=false.
 	 * @return array
@@ -693,10 +735,13 @@ abstract class Inputfield extends WireData implements Module {
 		$key = $this->getErrorSessionKey();
 		$errors = $this->session->get($key);
 		if(!is_array($errors)) $errors = array();
-		if($clear) $this->session->remove($key); 
+		if($clear) {
+			$this->session->remove($key); 
+			parent::errors("clear"); 
+		}
 		return $errors; 
 	}
-
+	
 	/**
 	 * Does this Inputfield have the requested property or attribute?
 	 *

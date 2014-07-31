@@ -347,7 +347,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		// we want to check that this page actually has the field before creating ready pages
 		// this is just since PW may call getInputfield with a dummyPage (usually homepage) for tests
 		// and we don't want to go on creating readyPages or setting up parent/template where not used
-		if($page->template->fieldgroup->has($field)) {
+		if($page->template && $page->template->fieldgroup->has($field)) {
 			$pageArray = $this->createReadyPages($page, $field, $pageArray); 
 		}
 		$page->set($field->name, $pageArray); 

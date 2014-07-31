@@ -860,6 +860,8 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * NOTICES AND LOGS
 	 *
 	 */
+	
+	protected $_notices = array('errors' => array(), 'messages' => array());
 
 	/**
 	 * Record an informational or 'success' message in the system-wide notices. 
@@ -875,7 +877,8 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		if($flags === true) $flags = Notice::log; 
 		$notice = new NoticeMessage($text, $flags); 
 		$notice->class = $this->className();
-		$this->wire('notices')->add($notice); 
+		$this->wire('notices')->add($notice);
+		$this->_notices['messages'][] = $notice;
 		return $this; 
 	}
 
@@ -896,7 +899,45 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		$notice = new NoticeError($text, $flags); 
 		$notice->class = $this->className();
 		$this->wire('notices')->add($notice); 
+		$this->_notices['errors'][] = $notice;
 		return $this; 
+	}
+
+	/**
+	 * Return errors recorded by this object
+	 * 
+	 * @param string|array $options One or more of array elements or space separated string of: clear, last, first, str
+	 * 	clear: Current items will be cleared out
+	 * 	first: only first item will be returned (string)
+	 * 	last: only last item will be returned (string)
+	 * @return array|string Array of NoticeError error messages or string if last, first or str option was specified.
+	 * 
+	 */
+	public function errors($options = array()) {
+		if(!is_array($options)) $options = explode(' ', $options); 
+		$options[] = 'errors';
+		return $this->messages($options); 
+	}
+
+	/**
+	 * Return messages recorded by this object
+	 *
+	 * @param string|array $options One or more of array elements or space separated string of: clear, last, first, str, errors
+	 * 	clear: Current items will be cleared out
+	 * 	first: only first item will be returned (string)
+	 * 	last: only last item will be returned (string)
+	 * 	errors: returns errors rather than messages.
+	 * @return array|string Array of NoticeError error messages or string if last, first or str option was specified.
+	 *
+	 */
+	public function messages($options = array()) {
+		if(!is_array($options)) $options = explode(' ', $options); 
+		$type = in_array('errors', $options) ? 'errors' : 'messages';
+		$messages = $this->_notices[$type];
+		if(in_array('clear', $options)) $this->_notices[$type] = array();
+		if(in_array('first', $options)) return reset($messages); 
+		if(in_array('last', $options)) return end($messages); 
+		return $messages; 
 	}
 	
 	/*******************************************************************************************************

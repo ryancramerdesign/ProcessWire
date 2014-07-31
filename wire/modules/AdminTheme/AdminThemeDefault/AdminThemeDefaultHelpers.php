@@ -218,11 +218,11 @@ class AdminThemeDefaultHelpers extends WireData {
 		$isSuperuser = $this->wire('user')->isSuperuser();
 		$showItem = $isSuperuser;
 		$children = $p->numChildren && !$level ? $p->children("check_access=0") : array();
-		$adminURL = $this->wire('config')->urls->admin;
+		$numChildren = count($children); 
 		$out = '';
 	
 		if(!$showItem) { 
-			$checkPages = count($children) ? $children : array($p); 
+			$checkPages = $numChildren ? $children : array($p); 
 			foreach($checkPages as $child) {
 				if($child->viewable()) {
 					$showItem = true;
@@ -230,14 +230,17 @@ class AdminThemeDefaultHelpers extends WireData {
 				}
 			}
 		}
-
-		// don't bother with a drop-down here if only 1 child
-		if($p->name == 'page' && count($children) == 1) $children = array();
-	
-		if(!$showItem) return '';
 		
-		$class = strpos(wire('page')->path, $p->path) === 0 ? 'on' : '';
-		$title = strip_tags((string)$p->get('title|name')); 
+		if(!$showItem) return '';
+
+		if($numChildren && $p->name == 'page') {
+			// don't bother with a drop-down for "Pages" if user will only see 1 "tree" item, duplicating the tab
+			if($numChildren == 2 && !$isSuperuser && !$this->wire('user')->hasPermission('page-lister')) $children = array();
+			if($numChildren == 1) $children = array();
+		}
+
+		$class = strpos($this->wire('page')->path, $p->path) === 0 ? 'on' : '';
+		$title = strip_tags((string) $p->get('title|name')); 
 		$title = $this->_($title); // translate from context of default.php
 		$out .= "<li>";
 	

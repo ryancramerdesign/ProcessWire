@@ -164,6 +164,52 @@ abstract class Fieldtype extends WireData implements Module {
 
 		return $inputfields;
 	}
+	
+	/**
+	 * Export configuration values for external consumption
+	 *
+	 * Use this method to externalize any config values when necessary.
+	 * For example, internal IDs should be converted to GUIDs where possible.
+	 *
+	 * @param Field $field
+	 * @param array $data
+	 * @return array
+	 *
+	 */
+	public function ___exportConfigData(Field $field, array $data) {
+		// make sure all potential values are accounted for in the export data
+		$sets = array(
+			$this->getConfigInputfields($field), 
+			$this->getConfigAdvancedInputfields($field)
+		);
+		foreach($sets as $inputfields) {
+			if(!$inputfields || !count($inputfields)) continue; 
+			foreach($inputfields->getAll() as $inputfield) {
+				if(isset($data[$inputfield->name])) continue; 
+				$value = $inputfield->isEmpty() ? '' : $inputfield->value; 
+				if(is_object($value)) $value = (string) $value; 
+				$data[$inputfield->name] = $value; 
+			}
+		}
+		$inputfield = $this->getInputfield(new NullPage(), $field); 
+		if($inputfield) $data = $inputfield->exportConfigData($data); 
+		return $data;
+	}
+
+	/**
+	 * Convert an array of exported data to a format that will be understood internally (opposite of exportConfigData)
+	 *
+	 * @param Field $field
+	 * @param array $data
+	 * @return array Data as given and modified as needed. Also included is $data[errors], an associative array
+	 *	indexed by property name containing errors that occurred during import of config data.
+	 *
+	 */
+	public function ___importConfigData(Field $field, array $data) {
+		$inputfield = $this->getInputfield(new NullPage(), $field);
+		if($inputfield) $data = $inputfield->importConfigData($data);
+		return $data;
+	}
 
 	/**
 	 * Get an array of Fieldtypes that are compatible with this one (i.e. ones the user may change the type to)
