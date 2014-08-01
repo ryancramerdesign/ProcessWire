@@ -142,13 +142,17 @@ class Session extends Wire implements IteratorAggregate {
 	 * Get a session variable
 	 *
 	 * @param string $key
+	 * @param null|object|string $ns Optional namespace to limit to
 	 * @return mixed
 	 *
 	 */
-	public function get($key) {
+	public function get($key, $ns = null) {
 		if($key == 'CSRF') {
 			if(is_null($this->CSRF)) $this->CSRF = new SessionCSRF();
 			return $this->CSRF; 
+		} else if(!is_null($ns)) {
+			// regular arguments with namespace
+			return $this->getFor($ns, $key);
 		}
 		$className = $this->className();
 		return isset($_SESSION[$className][$key]) ? $_SESSION[$className][$key] : null; 
@@ -157,22 +161,26 @@ class Session extends Wire implements IteratorAggregate {
 	/**
 	 * Get all session variables
  	 *
+	 * @param $ns Optional namespace
 	 * @return array
 	 *
 	 */
-	public function getAll() {
+	public function getAll($ns = null) {
+		if(!is_null($ns)) return $this->getFor($ns, ''); 
 		return $_SESSION[$this->className()]; 
 	}
 
 	/**
 	 * Set a session variable
-	 *
+	 * 
 	 * @param string $key
 	 * @param mixed $value
+	 * @param object|string Optional namespace
  	 * @return $this
 	 *
 	 */
-	public function set($key, $value) {
+	public function set($key, $value, $ns = null) {
+		if(!is_null($ns)) return $this->setFor($ns, $key, $value); 
 		$className = $this->className();
 		$oldValue = $this->get($key); 
 		if($value !== $oldValue) $this->trackChange($key, $oldValue, $value); 
