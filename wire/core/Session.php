@@ -141,18 +141,18 @@ class Session extends Wire implements IteratorAggregate {
 	/**
 	 * Get a session variable
 	 *
-	 * @param string $key
-	 * @param null|object|string $ns Optional namespace to limit to
+	 * @param string|object $key Key to get, or object if namespace
+	 * @param string $_key Key to get if first argument is namespace, omit otherwise
 	 * @return mixed
 	 *
 	 */
-	public function get($key, $ns = null) {
+	public function get($key, $_key = null) {
 		if($key == 'CSRF') {
 			if(is_null($this->CSRF)) $this->CSRF = new SessionCSRF();
 			return $this->CSRF; 
-		} else if(!is_null($ns)) {
-			// regular arguments with namespace
-			return $this->getFor($ns, $key);
+		} else if(is_object($key)) {
+			// namespace
+			return $this->getFor($key, $_key);
 		}
 		$className = $this->className();
 		return isset($_SESSION[$className][$key]) ? $_SESSION[$className][$key] : null; 
@@ -173,14 +173,14 @@ class Session extends Wire implements IteratorAggregate {
 	/**
 	 * Set a session variable
 	 * 
-	 * @param string $key
-	 * @param mixed $value
-	 * @param object|string Optional namespace
+	 * @param string|object $key Key to set OR object for namespace
+	 * @param string|mixed $value Value to set OR key if first argument is namespace
+	 * @param mixed $_value Value to set if first argument is namespace. Omit otherwise.
  	 * @return $this
 	 *
 	 */
-	public function set($key, $value, $ns = null) {
-		if(!is_null($ns)) return $this->setFor($ns, $key, $value); 
+	public function set($key, $value, $_value = null) {
+		if(is_object($key)) return $this->setFor($key, $value, $_value); 
 		$className = $this->className();
 		$oldValue = $this->get($key); 
 		if($value !== $oldValue) $this->trackChange($key, $oldValue, $value); 
