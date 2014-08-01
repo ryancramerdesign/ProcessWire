@@ -45,14 +45,10 @@ body.modal #fieldgroupContext {
     margin-left: 0.5em; 
 }
 
-/*
-#content label.ui-widget-header .labelIcon {
-	float: left; 
-	margin: 0 0 0 -5px; 
-	position: relative;
-	top: 1px; 
-}
-*/
+/**
+ * Import/export 
+ *
+ */
 
 #add_field_button,
 #export_button,
@@ -75,7 +71,7 @@ body.modal #fieldgroupContext {
 
 #import_form table {
 	margin-top: 1em;
-	margin-bottom: 2em; 
+	margin-bottom: 1em; 
 }
 
 #import_form table th,

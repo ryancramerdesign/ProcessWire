@@ -50,6 +50,16 @@ class ProcessFieldExportImport extends Wire {
 				if(strlen($label) > $maxLabel) $maxLabel = strlen($label);
 				$numFields++;
 			}
+		
+			$fieldName = $this->_('NAME');
+			$fieldLabel = $this->_('LABEL');
+			$fieldType = $this->_('TYPE'); 
+			
+			$label = $fieldName . ' ' . str_repeat('.', $maxName - strlen($fieldName) + 3) . ' ' .
+				$fieldLabel . str_repeat('.', $maxLabel - strlen($fieldLabel) + 3) . ' ' .
+				$fieldType;
+			
+			$f->addOption(0, $label, array('disabled' => 'disabled'));
 			
 			foreach($this->wire('fields') as $field) {
 				$fieldLabel = $field->getLabel();
@@ -60,7 +70,7 @@ class ProcessFieldExportImport extends Wire {
 			}
 			
 			$f->notes = $this->_('Shift+Click to select multiple in sequence. Ctrl+Click (or Cmd+Click) to select multiple individually. Ctrl+A (or Cmd+A) to select all.');
-			$f->attr('size', $numFields);
+			$f->attr('size', $numFields+1);
 			$form->add($f);
 
 			$f = $this->wire('modules')->get('InputfieldSubmit');

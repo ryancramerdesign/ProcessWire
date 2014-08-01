@@ -87,7 +87,8 @@ $(document).ready(function() {
 	$("a.fieldFlag").click(function() { return false; });
 
 	$("#export_data").click(function() { $(this).select(); });
-	
+
+	// export and import functions	
 	$(".import_toggle input[type=radio]").change(function() {
 		var $table = $(this).parents('p.import_toggle').next('table');
 		var $fieldset = $(this).closest('.InputfieldFieldset'); 

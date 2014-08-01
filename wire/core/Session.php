@@ -181,6 +181,48 @@ class Session extends Wire implements IteratorAggregate {
 	}
 
 	/**
+	 * Get a session variable within a given namespace
+	 *
+	 * @param string|object $ns namespace string or object
+	 * @param string $key Specify blank string to return all vars in the namespace
+	 * @return mixed
+	 *
+	 */
+	public function getFor($ns, $key) {
+		if(is_object($ns)) {
+			if($ns instanceof Wire) $ns = $ns->className();
+				else $ns = get_class($ns); 
+		}
+		$data = $this->get($ns); 
+		if(!is_array($data)) $data = array();
+		if($key === '') return $data;
+		return isset($data[$key]) ? $data[$key] : null;
+	}
+
+	/**
+	 * Set a session variable within a given namespace
+	 * 
+	 * To remove a namespace, call $session->remove(namespace)
+	 *
+	 * @param string|object $ns namespace string or object
+	 * @param string $key
+	 * @param mixed $value Specify null to unset key
+	 * @return $this
+	 *
+	 */
+	public function setFor($ns, $key, $value) {
+		if(is_object($ns)) {
+			if($ns instanceof Wire) $ns = $ns->className();
+				else $ns = get_class($ns);
+		}
+		$data = $this->get($ns); 
+		if(!is_array($data)) $data = array();
+		if(is_null($value)) unset($data[$key]); 
+			else $data[$key] = $value; 
+		return $this->set($ns, $data); 
+	}
+
+	/**
 	 * Unsets a session variable
 	 *
  	 * @param string $key
