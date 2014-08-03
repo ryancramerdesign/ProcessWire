@@ -29,7 +29,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Page Add', __FILE__),          
 			'summary' => __('Add a new page', __FILE__), 
-			'version' => 103, 
+			'version' => 104, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
@@ -145,7 +145,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		$this->form = $this->buildForm();
 		$this->form->setTrackChanges();
 
-		if($this->input->post->submit_save) $this->processInput($this->form); 
+		if($this->input->post->submit_save || $this->input->post->submit_publish) $this->processInput($this->form); 
 
 		$this->setupBreadcrumbs();
 
@@ -270,29 +270,37 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		if(!count($allowedTemplates)) throw new WireException($this->_('No templates allowed for adding new pages here.')); 
 		if($this->template && !isset($allowedTemplates[$this->template->id])) throw new WireException(sprintf($this->_('Template "%s" is not allowed here.'), $this->template->name)); 
 		if(!isset($allowedTemplates[$defaultTemplateId])) $defaultTemplateId = 0; 
+		$numPublishable = 0; 
 		
 		if(count($allowedTemplates) == 1 || $this->template) {
 
 			// only 1 template can be used here, so store it in a hidden field (no need for selection)
 			$template = $this->template ? $this->template : reset($allowedTemplates); 
 			$field = $this->modules->get('InputfieldHidden');
-			$field->attr('name', 'template'); 
+			$field->attr('id+name', 'template'); 
 			$field->attr('value', $template->id); 
+			$field->attr('data-publish', (int) (count($template->fieldgroup) == 1 && $template->fieldgroup->hasField('title')));
 			
 		} else {
 			// multiple templates are possible so give them a select
 	
 			$field = $this->modules->get('InputfieldSelect');
-			$field->attr('value', $defaultTemplateId); 
 	
 			foreach($allowedTemplates as $template) {
 				if($this->template && $template->id != $this->template->id) continue; 
-				$field->addOption($template->id, $this->getTemplateLabel($template)); 
+				$numFields = count($template->fieldgroup); 	
+				if($numFields == 1 && $template->fieldgroup->hasField('title')) { 
+					$isPublishable = 1; 
+					$numPublishable++;
+				} else $isPublishable = 0; 
+				$field->addOption($template->id, $this->getTemplateLabel($template), array('data-publish' => $isPublishable)); 
 			}
+			
+			$field->attr('value', $defaultTemplateId); 
 		}
 		
 		$field->label = $this->_('Template'); // Template field label
-		$field->attr('name', 'template');
+		$field->attr('id+name', 'template');
 		$field->required = true; 
 		$form->append($field); 
 
@@ -300,14 +308,29 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		$field->attr('name', 'parent_id'); 
 		$field->attr('value', $this->parent_id); 
 		$form->append($field);
-
+	
 		$field = $this->modules->get('InputfieldSubmit');
-		$field->attr('id+name', 'submit_save'); 
-		$field->attr('value', $this->_('Save')); // Save button
-		$form->append($field); 
+		$field->attr('name', 'submit_save'); 
+		$field->attr('value', $this->_('Save')); 
+		$field->addClass('head_button_clone'); 
+		$form->append($field);
+		
+		if($numPublishable && !$this->noAutoPublish) {
+			$allowPublish = true;
+			if(!$this->wire('user')->isSuperuser()) {
+				$publishPermission = $this->wire('permissions')->get('page-publish');
+				if($publishPermission->id && !$this->wire('user')->hasPermission('page-publish')) $allowPublish = false;
+			}
+			if($allowPublish) {
+				$field = $this->modules->get('InputfieldSubmit');
+				$field->attr('id+name', 'submit_publish');
+				$field->attr('value', $this->_('Save + Publish'));
+				$field->addClass('ui-priority-secondary');
+				$form->append($field);
+			}
+		}
 
-		$allowedTemplates = $this->getAllowedTemplates();	
-
+		// $allowedTemplates = $this->getAllowedTemplates();	
 		if(count($allowedTemplates) == 1) {
 			$t = reset($allowedTemplates);
 			$form->description = $this->getTemplateLabel($t); 
@@ -430,10 +453,12 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			return false; 
 		}
 
+		/*
 		if($this->parent->child("name=$name, include=all")->id) {
-			$nameField->error($this->_("The name you selected is already in use. Please select another.")); 
+			$nameField->error($this->_("The name you selected is already in use. Please select another."));
 			return false;
 		}
+		*/
 
 		$template = $this->template; 
 		if(is_null($template)) { 
@@ -448,7 +473,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		$this->page->name = $name; 
 		$this->page->sort = $this->parent->numChildren; 
 
-		$publishNow = $this->page->publishable();
+		$publishNow = $this->page->publishable() && $this->wire('input')->post('submit_publish');
 		$languages = wire('languages'); 
 
 		foreach($this->page->fields as $field) {
@@ -475,14 +500,16 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 
 		if(!$publishNow) $this->page->addStatus(Page::statusUnpublished); 
 
+		$pageName = $this->page->name; 
 		try {
-			$this->pages->save($this->page); 
+			$this->pages->save($this->page, array('adjustName' => true)); 
 		} catch(Exception $e) {
 			$this->error($e->getMessage()); 
 			return false;
 		}
 
 		$this->createdPageMessage($this->page); 
+		if($pageName != $this->page->name) $this->error(sprintf($this->_('Warning, the name you selected "%1$s" was already in use and has been changed to "%2$s".'), $pageName, $this->page->name));
 		$this->session->redirect("../edit/?id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
 	}
 

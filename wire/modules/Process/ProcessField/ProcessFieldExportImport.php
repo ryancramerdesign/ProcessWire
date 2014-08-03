@@ -1,6 +1,10 @@
 <?php
 
 class ProcessFieldExportImport extends Wire {
+	
+	public function __construct() {
+		set_time_limit(600); 
+	}
 
 	/**
 	 * Return export data for all given $exportFields

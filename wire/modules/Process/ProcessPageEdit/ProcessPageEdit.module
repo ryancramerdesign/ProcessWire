@@ -279,6 +279,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			$field->attr('id+name', $saveName); 
 			if($saveName != 'submit_publish') $field->attr('class', $field->class . ' head_button_clone'); 
 			$field->attr('value', $saveLabel); 
+			$field->addClass('head_button_clone'); 
 			$form->append($field); 
 		}
 
