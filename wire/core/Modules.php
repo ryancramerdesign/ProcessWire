@@ -626,6 +626,11 @@ class Modules extends WireArray {
 				$filename = str_replace(DIRECTORY_SEPARATOR, '/', $filename); 
 			}
 
+			if(strpos($pathname, '/.') !== false) {
+				$pos = strrpos(rtrim($pathname, '/'), '/');
+				if($pathname[$pos+1] == '.') continue; // skip hidden files and dirs
+			}
+
 			// if it's a directory with a .module file in it named the same as the dir, then descend into it
 			if($file->isDir() && ($level < 1 || (is_file("$pathname/$filename.module") || is_file("$pathname/$filename.module.php")))) {
 				$files = array_merge($files, $this->findModuleFiles($pathname, false, $level + 1));
