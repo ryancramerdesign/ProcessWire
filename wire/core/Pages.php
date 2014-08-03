@@ -540,19 +540,31 @@ class Pages extends Wire {
 	 *
 	 * @param Page $page
 	 * @param string $reason Text containing the reason why it can't be saved (assuming it's not saveable)
+	 * @param string $fieldName Optional fieldname to limit check to. 
 	 * @return bool True if saveable, False if not
 	 *
 	 */
-	public function isSaveable(Page $page, &$reason) {
+	public function isSaveable(Page $page, &$reason, $fieldName = '') {
 
 		$saveable = false; 
 		$outputFormattingReason = "Call \$page->setOutputFormatting(false) before getting/setting values that will be modified and saved. "; 
+		$corrupted = array(); 
+		if($fieldName && is_object($fieldName)) $fieldName = $fieldName->name;
+		
+		if($page->is(Page::statusCorrupted)) {
+			$corruptedFields = $page->_statusCorruptedFields; 
+			foreach($page->getChanges() as $change) {
+				if(isset($corruptedFields[$change])) $corrupted[] = $change;
+			}
+			// if focused on a specific field... 
+			if($fieldName && !in_array($fieldName, $corrupted)) $corrupted = array();
+		}
 
 		if($page instanceof NullPage) $reason = "Pages of type NullPage are not saveable";
 			else if((!$page->parent || $page->parent instanceof NullPage) && $page->id !== 1) $reason = "It has no parent assigned"; 
 			else if(!$page->template) $reason = "It has no template assigned"; 
 			else if(!strlen(trim($page->name)) && $page->id != 1) $reason = "It has an empty 'name' field"; 
-			else if($page->is(Page::statusCorrupted)) $reason = $outputFormattingReason . " [Page::statusCorrupted]";
+			else if(count($corrupted)) $reason = $outputFormattingReason . " [Page::statusCorrupted] fields: " . implode(', ', $corrupted);
 			else if($page->id == 1 && !$page->template->useRoles) $reason = "Selected homepage template cannot be used because it does not define access.";
 			else if($page->id == 1 && !$page->template->hasRole('guest')) $reason = "Selected homepage template cannot be used because it does not have the required 'guest' role in it's access settings.";
 			else $saveable = true; 
@@ -561,6 +573,7 @@ class Pages extends Wire {
 		if($saveable && $page->outputFormatting) {
 			// iternate through recorded changes to see if any custom fields involved
 			foreach($page->getChanges() as $change) {
+				if($fieldName && $change != $fieldName) continue; 
 				if($page->template->fieldgroup->getField($change) !== null) {
 					$reason = $outputFormattingReason . " [$change]";	
 					$saveable = false;
@@ -569,6 +582,7 @@ class Pages extends Wire {
 			}
 			// iterate through already-loaded data to see if any are objects that have changed
 			if($saveable) foreach($page->getArray() as $key => $value) {
+				if($fieldName && $key != $fieldName) continue; 
 				if(!$page->template->fieldgroup->getField($key)) continue; 
 				if(is_object($value) && $value instanceof Wire && $value->isChanged()) {
 					$reason = $outputFormattingReason . " [$key]";
@@ -677,6 +691,7 @@ class Pages extends Wire {
 				} while($child->id); 
 
 				$page->name = $name; 
+				$page->set('_hasAutogenName', true); // for savePageQuery, provides adjustName behavior for new pages
 			}
 		}
 
@@ -700,6 +715,7 @@ class Pages extends Wire {
 	 * 		'uncacheAll' => boolean - Whether the memory cache should be cleared (default=true)
 	 * 		'resetTrackChanges' => boolean - Whether the page's change tracking should be reset (default=true)
 	 * 		'quiet' => boolean - When true, modified date and modified_users_id won't be updated (default=false)
+	 *		'adjustName' => boolean - Adjust page name to ensure it is unique within its parent (default=false)
 	 * @return bool True on success, false on failure
 	 * @throws WireException
 	 *
@@ -709,6 +725,7 @@ class Pages extends Wire {
 		$defaultOptions = array(
 			'uncacheAll' => true,
 			'resetTrackChanges' => true,
+			'adjustName' => false, 
 			);
 	
 		$options = array_merge($defaultOptions, $options); 
@@ -751,7 +768,8 @@ class Pages extends Wire {
 	 * 
 	 * @param Page $page
 	 * @param array $options
-	 * @return PDOStatement
+	 * @return bool
+	 * @throws Exception
 	 * 
 	 */
 	protected function savePageQuery(Page $page, array $options) {
@@ -819,12 +837,50 @@ class Pages extends Wire {
 			if(is_null($value)) continue; // already bound above
 			$query->bindValue(":$column", $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
 		}
-	
-		if(!$query->execute()) return false;
+
+
+		$n = 0;
+
+		do { 
+			$result = false; 
+			$errorCode = 0;
+
+			try { 	
+				$result = false;
+				$result = $query->execute();
+
+			} catch(Exception $e) {
+
+				$errorCode = $e->getCode();
+
+				// while setupNew() already attempts to uniqify a page name with an incrementing
+				// number, there is a chance that two processes running at once might end up with
+				// the same number, so we account for the possibility here by re-trying queries
+				// that trigger duplicate-entry exceptions 
+
+				if($errorCode == 23000 && ($page->_hasAutogenName || $options['adjustName'])) { 
+					// attempt to re-generate page name
+					if(preg_match('/^(.+?)-(\d+)$/', $page->name, $matches)) {
+						// page already has a trailing number
+						$n = $matches[2]; 
+						$pageName = $matches[1]; 
+					} else {
+						$pageName =  $page->name;
+					}
+					$page->name = $pageName . '-' . (++$n); 
+					$query->bindValue(':name', $page->name); 
+					
+				} else {
+					// a different exception that we don't catch, so re-throw it
+					throw $e;
+				}
+			}
+
+		} while($errorCode == 23000); 
+
+		if($result && ($isNew || !$page->id)) $page->id = $database->lastInsertId();
 		
-		if($isNew || !$page->id) $page->id = $database->lastInsertId();
-		
-		return true; 
+		return $result; 
 	}
 
 	/**
@@ -865,9 +921,13 @@ class Pages extends Wire {
 		// disable outputFormatting and save state
 		$of = $page->of();
 		$page->of(false);
+	
+		// when a page is statusCorrupted, it records what fields are corrupted in _statusCorruptedFields array
+		$corruptedFields = $page->is(Page::statusCorrupted) ? $page->_statusCorruptedFields : array();
 
 		// save each individual Fieldtype data in the fields_* tables
 		foreach($page->fieldgroup as $field) {
+			if(isset($corruptedFields[$field->name])) continue; // don't even attempt save of corrupted field
 			if($field->type) try { 
 				$field->type->savePageField($page, $field);
 			} catch(Exception $e) {
@@ -954,7 +1014,7 @@ class Pages extends Wire {
 
 		$reason = '';
 		if($page->isNew()) throw new WireException("Can't save field from a new page - please save the entire page first"); 
-		if(!$this->isSaveable($page, $reason)) throw new WireException("Can't save field from page {$page->id}: {$page->path}: $reason"); 
+		if(!$this->isSaveable($page, $reason, $field)) throw new WireException("Can't save field from page {$page->id}: {$page->path}: $reason"); 
 		if($field && (is_string($field) || is_int($field))) $field = $this->fuel('fields')->get($field);
 		if(!$field instanceof Field) throw new WireException("Unknown field supplied to saveField for page {$page->id}");
 		if(!$page->fields->has($field)) throw new WireException("Page {$page->id} does not have field {$field->name}"); 

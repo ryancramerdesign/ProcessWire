@@ -74,7 +74,7 @@ abstract class Notice extends WireData {
 	 * @return string Name of log (basename)
 	 * 
 	 */
-	abstract public function getLogName();
+	abstract public function getName();
 	
 	public function __toString() {
 		return $this->text; 
@@ -86,7 +86,7 @@ abstract class Notice extends WireData {
  *
  */
 class NoticeMessage extends Notice { 
-	public function getLogName() {
+	public function getName() {
 		return 'messages';
 	}
 }
@@ -96,7 +96,7 @@ class NoticeMessage extends Notice {
  *
  */
 class NoticeError extends Notice { 
-	public function getLogName() {
+	public function getName() {
 		return 'errors';
 	}
 }
@@ -140,7 +140,7 @@ class Notices extends WireArray {
 	protected function addLog($item) {
 		$text = $item->text;
 		if($this->wire('config')->debug && $item->class) $text .= " ($item->class)"; 
-		$this->wire('log')->save($item->getLogName(), $text); 
+		$this->wire('log')->save($item->getName(), $text); 
 	}
 
 	public function hasErrors() {

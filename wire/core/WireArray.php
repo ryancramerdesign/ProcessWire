@@ -814,6 +814,19 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	}
 
 	/**
+	 * Removes multiple items at once
+	 *
+	 * @param array|Wire|string|WireArray Items to remove
+	 * @return this
+	 * 
+	 */
+	public function removeItems($items) {
+		if(!self::iterable($items)) $items = array($items);
+		foreach($items as $item) $this->remove($item); 
+		return $this;
+	}
+
+	/**
 	 * Removes all items from the WireArray
 	 *
 	 */

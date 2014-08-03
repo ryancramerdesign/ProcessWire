@@ -150,7 +150,7 @@ class Session extends Wire implements IteratorAggregate {
 		if($key == 'CSRF') {
 			if(is_null($this->CSRF)) $this->CSRF = new SessionCSRF();
 			return $this->CSRF; 
-		} else if(is_object($key)) {
+		} else if(!is_null($_key)) {
 			// namespace
 			return $this->getFor($key, $_key);
 		}
@@ -180,7 +180,7 @@ class Session extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function set($key, $value, $_value = null) {
-		if(is_object($key)) return $this->setFor($key, $value, $_value); 
+		if(!is_null($_value)) return $this->setFor($key, $value, $_value); 
 		$className = $this->className();
 		$oldValue = $this->get($key); 
 		if($value !== $oldValue) $this->trackChange($key, $oldValue, $value); 

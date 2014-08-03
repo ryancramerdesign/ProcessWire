@@ -47,6 +47,7 @@
  * @property string $namePrevious Previous name, if changed. Blank if not. 
  * @property int $sort Sort order of this page relative to siblings (applicable when manual sorting is used).  
  * @property string $sortfield Field that a page is sorted by relative to its siblings (default=sort, which means drag/drop manual)
+ * @property null|array _statusCorruptedFields Field names that caused the page to have Page::statusCorrupted status. 
  * 
  * Methods added by PageRender.module: 
  * -----------------------------------
@@ -525,6 +526,10 @@ class Page extends WireData implements Countable {
 			// There is a good chance they are trying to set a formatted value, and we don't allow this situation because the 
 			// possibility of data corruption is high. We set the Page::statusCorrupted status so that Pages::save() can abort.
 			$this->set('status', $this->status | self::statusCorrupted); 
+			$corruptedFields = $this->get('_statusCorruptedFields');
+			if(!is_array($corruptedFields)) $corruptedFields = array();
+			$corruptedFields[$field->name] = $field->name;
+			$this->set('_statusCorruptedFields', $corruptedFields); 
 		}
 
 		// isLoaded so sanitizeValue can determine if it can perform a typecast rather than a full sanitization (when helpful)
