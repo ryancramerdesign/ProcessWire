@@ -391,8 +391,8 @@ class AdminThemeDefaultHelpers extends WireData {
 			'templates' => $config->urls->templates,
 			'adminTemplates' => $config->urls->adminTemplates,
 			); 
-	
-		return "var config = " . json_encode($jsConfig);
+
+		return "var config = " . wireEncodeJSON($jsConfig, true, $config->debug);
 	}
 
 }

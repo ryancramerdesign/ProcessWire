@@ -24,8 +24,13 @@ $(document).ready(function() {
 
 	CKEDITOR.disableAutoInline = true; 
 
-	if($inlines.size() > 0) {
+	// add external plugins in /site/modules/InputfieldCKEditor/plugins/[name]/plugin.js
+	for(var name in config.InputfieldCKEditor.plugins) {
+		var file = config.InputfieldCKEditor.plugins[name];
+		CKEDITOR.plugins.addExternal(name, file, ''); 
+	}
 
+	if($inlines.size() > 0) {
 
 		$inlines.mouseover(function() {
 			// we initialize the inline editor only when moused over
