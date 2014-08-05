@@ -21,11 +21,8 @@ class FieldtypeCache extends Fieldtype {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Cache',
-			'version' => 100,
-			'summary' => 
-				'Caches the values of other fields for fewer runtime queries. ' . 
-				'Can also be used to combine multiple text fields and have ' . 
-				'them all be searchable under the cached field name. '
+			'version' => 101,
+			'summary' => 'Caches the values of other fields for fewer runtime queries. Can also be used to combine multiple text fields and have them all be searchable under the cached field name.'
 			);
 	}
 
@@ -105,9 +102,13 @@ class FieldtypeCache extends Fieldtype {
 		$database = $this->wire('database');
 		$table = $database->escapeTable($field->getTable()); 
 		$query = $database->prepare("SELECT COUNT(*) FROM `$table`"); 
-		$query->execute();
-		$num = (int) $query->fetchColumn();
-		$query->closeCursor();
+		try {
+			$query->execute();
+			$num = (int) $query->fetchColumn();
+			$query->closeCursor();
+		} catch(Exception $e) {
+			$num = 0;
+		}
 		return $num; 
 	}
 
@@ -120,7 +121,7 @@ class FieldtypeCache extends Fieldtype {
 			if(!$template->fields->has($field)) continue; 
 			$numTemplates++;
 			$numTemplatePages = 0; 
-			$pages = $this->pages->find("template=$template, check_access=0"); 
+			$pages = $this->pages->find("template=$template, include=all"); 
 			foreach($pages as $page) {
 				$page->save($field->name); 
 				$numPages++;
@@ -154,7 +155,7 @@ class FieldtypeCache extends Fieldtype {
 		$inputfields->append($select);
 
 		$checkbox = $this->modules->get("InputfieldCheckbox"); 
-		$checkbox->attr('name', 'regenerateCache');
+		$checkbox->attr('name', '_regenerateCache');
 		$checkbox->attr('value', 1); 
 		$checkbox->attr('checked', ''); 
 		$checkbox->label = "Regenerate Cache?";
@@ -166,7 +167,7 @@ class FieldtypeCache extends Fieldtype {
 			"one or more templates before using this cache generation/regeneration tool.";
 
 		$checkbox->notes = "The cache currently contains data from " . $this->getNumPagesCached($field) . " pages.";
-		if($this->input->post->regenerateCache) $this->regenerateCache($field); 
+		if($this->input->post->_regenerateCache) $this->regenerateCache($field); 
 		$inputfields->append($checkbox); 
 
 		$checkbox = $this->modules->get("InputfieldCheckbox"); 
