@@ -344,6 +344,48 @@ $config->https = false;
 $config->ajax = false;
 
 /**
+ * get: This is automatically set to TRUE when the request is an GET request.
+ *
+ */
+$config->get = false;
+
+/**
+ * post: This is automatically set to TRUE when the request is an POST request.
+ *
+ */
+$config->post = false;
+
+/**
+ * put: This is automatically set to TRUE when the request is an PUT request.
+ *
+ */
+$config->put = false;
+
+/**
+ * patch: This is automatically set to TRUE when the request is an PATCH request.
+ *
+ */
+$config->patch = false;
+
+/**
+ * options: This is automatically set to TRUE when the request is an OPTIONS request.
+ *
+ */
+$config->options = false;
+
+/**
+ * delete: This is automatically set to TRUE when the request is an DELETE request.
+ *
+ */
+$config->delete = false;
+
+/**
+ * mobile: This is automatically set to TRUE when the request is an MOBILE request.
+ *
+ */
+$config->mobile = false;
+
+/**
  * external: This is automatically set to TRUE when PW is externally bootstrapped.
  *
  */
