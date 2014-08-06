@@ -60,6 +60,7 @@ class ProcessWire extends Wire {
 		return $this->className() . " " . self::versionMajor . "." . self::versionMinor . "." . self::versionRevision; 
 	}
 
+         
 	/**
 	 * Populate ProcessWire's configuration with runtime and optional variables
  	 *
@@ -76,14 +77,89 @@ class ProcessWire extends Wire {
 		if(!$config->templateExtension) $config->templateExtension = 'php';
 		if(!$config->httpHost) $config->httpHost = $this->getHttpHost($config); 
 
-		$config->https = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
-		$config->ajax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest');
+		
+        // Request Types
+        $config->https = $this->requestIs('ssl'); 
+        $config->ajax = $this->requestIs('ajax');
+        $config->get = $this->requestIs('get');
+        
+        $config->post = $this->requestIs('post');
+        $config->put = $this->requestIs('put');
+        $config->patch = $this->requestIs('patch');
+        
+        $config->delete = $this->requestIs('delete');
+        $config->options = $this->requestIs('options');
+        $config->mobile = $this->requestIs('mobile');
+        
 		$config->cli = (!isset($_SERVER['SERVER_SOFTWARE']) && (php_sapi_name() == 'cli' || ($_SERVER['argc'] > 0 && is_numeric($_SERVER['argc']))));
 		$config->version = self::versionMajor . "." . self::versionMinor . "." . self::versionRevision; 
 		
 		$this->setStatus(self::statusBoot);
 	}
 
+    /**
+     * 
+     * Request helper function
+     * @author @clsource
+     * @param  String $type
+     * @return Boolean
+     * method based on the Lime Project
+     * https://github.com/aheinze/Lime/
+     * Copyright (c) 2014 Artur Heinze
+     */
+     protected function requestIs($type){
+
+         switch(strtolower($type)){
+             case 'ajax':
+             return (
+                 (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && ($_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest'))       ||
+                 (isset($_SERVER["CONTENT_TYPE"]) && stripos($_SERVER["CONTENT_TYPE"],'application/json')!==false)           ||
+                 (isset($_SERVER["HTTP_CONTENT_TYPE"]) && stripos($_SERVER["HTTP_CONTENT_TYPE"],'application/json')!==false)
+             );
+             break;
+
+             case 'mobile':
+
+             $mobileDevices = array(
+                 "midp","240x320","blackberry","netfront","nokia","panasonic","portalmmm","sharp","sie-","sonyericsson",
+                 "symbian","windows ce","benq","mda","mot-","opera mini","philips","pocket pc","sagem","samsung",
+                 "sda","sgh-","vodafone","xda","iphone", "ipod","android"
+             );
+
+             return preg_match('/(' . implode('|', $mobileDevices). ')/i',strtolower($_SERVER['HTTP_USER_AGENT']));
+             break;
+
+             case 'post':
+             return (strtolower($_SERVER['REQUEST_METHOD']) == 'post');
+             break;
+
+             case 'get':
+             return (strtolower($_SERVER['REQUEST_METHOD']) == 'get');
+             break;
+
+             case 'put':
+             return (strtolower($_SERVER['REQUEST_METHOD']) == 'put');
+             break;
+      
+             case 'options':
+             return (strtolower($_SERVER['REQUEST_METHOD']) == 'options');
+             break;
+      
+             case 'patch':
+             return (strtolower($_SERVER['REQUEST_METHOD']) == 'patch');
+             break;
+
+             case 'delete':
+             return (strtolower($_SERVER['REQUEST_METHOD']) == 'delete');
+             break;
+
+             case 'ssl':
+             return (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+             break;
+         }
+
+         return false;
+     }
 	/**
 	 * Safely determine the HTTP host
 	 *
@@ -308,6 +384,7 @@ class ProcessWire extends Wire {
 		$this->wire($key, $value, $lock);
 		return $this;
 	}
+    
 	
 }
 
