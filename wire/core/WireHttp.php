@@ -46,6 +46,20 @@ class WireHttp extends Wire {
 	 *
 	 */
 	protected $error = '';
+    
+    /*
+     * Allowed request methods
+     * 
+     */
+    protected $allowedMethods = array(
+        'GET', 
+        'POST', 
+        'PUT', 
+        'PATCH', 
+        'DELETE', 
+        'OPTIONS', 
+        'HEAD'
+    );
 
 	/**
 	 * Send to a URL using POST
@@ -71,6 +85,56 @@ class WireHttp extends Wire {
 	public function get($url, $data = array()) {
 		return $this->send($url, $data, 'GET');
 	}
+    
+    /**
+	 * Send to a URL using PUT
+	 * @author @clsource
+	 * @param string $url URL to post to (including http:// or https://)
+	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
+	 * @return bool|string False on failure or string of contents received on success.
+	 *
+	 */
+	public function put($url, $data = array()) {
+        if(!isset($this->headers['content-type'])) $this->setHeader('content-type', 'application/x-www-form-urlencoded; charset=utf-8');
+		return $this->send($url, $data, 'PUT');
+	}
+    
+    /**
+	 * Send to a URL using PATCH
+	 * @author @clsource
+	 * @param string $url URL to post to (including http:// or https://)
+	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
+	 * @return bool|string False on failure or string of contents received on success.
+	 *
+	 */
+	public function patch($url, $data = array()) {
+        if(!isset($this->headers['content-type'])) $this->setHeader('content-type', 'application/x-www-form-urlencoded; charset=utf-8');
+		return $this->send($url, $data, 'PATCH');
+	}
+    
+    /**
+	 * Send to a URL using DELETE
+	 * @author @clsource
+	 * @param string $url URL to post to (including http:// or https://)
+	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
+	 * @return bool|string False on failure or string of contents received on success.
+	 *
+	 */
+	public function delete($url, $data = array()) {
+		return $this->send($url, $data, 'DELETE');
+	}
+    
+    /**
+	 * Send to a URL using OPTIONS
+	 * @author @clsource
+	 * @param string $url URL to post to (including http:// or https://)
+	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
+	 * @return bool|string False on failure or string of contents received on success.
+	 *
+	 */
+	public function options($url, $data = array()) {
+		return $this->send($url, $data, 'OPTIONS');
+	}
 
 	/**
 	 * Send to a URL that responds with JSON using GET and return the resulting array or object
@@ -84,13 +148,78 @@ class WireHttp extends Wire {
 	public function getJSON($url, $assoc = true, $data = array()) {
 		return json_decode($this->get($url, $data), $assoc); 
 	}
+    
+    /**
+	 * Send to a URL that responds with JSON using POST and return the resulting array or object
+	 * @author @clsource
+	 * @param string $url URL to post to (including http:// or https://)
+	 * @param bool $assoc Default is to return an array (specified by TRUE). If you want an object instead, specify FALSE. 
+	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
+	 * @return bool|array|object False on failure or an array or object on success. 
+	 *
+	 */
+	public function postJSON($url, $assoc = true, $data = array()) {
+		return json_decode($this->post($url, $data), $assoc); 
+	}
+    
+    /**
+	 * Send to a URL that responds with JSON using PUT and return the resulting array or object
+	 * @author @clsource
+	 * @param string $url URL to post to (including http:// or https://)
+	 * @param bool $assoc Default is to return an array (specified by TRUE). If you want an object instead, specify FALSE. 
+	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
+	 * @return bool|array|object False on failure or an array or object on success. 
+	 *
+	 */
+	public function putJSON($url, $assoc = true, $data = array()) {
+		return json_decode($this->put($url, $data), $assoc); 
+	}
+    
+    /**
+	 * Send to a URL that responds with JSON using PATCH and return the resulting array or object
+	 * @author @clsource
+	 * @param string $url URL to post to (including http:// or https://)
+	 * @param bool $assoc Default is to return an array (specified by TRUE). If you want an object instead, specify FALSE. 
+	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
+	 * @return bool|array|object False on failure or an array or object on success. 
+	 *
+	 */
+	public function patchJSON($url, $assoc = true, $data = array()) {
+		return json_decode($this->patch($url, $data), $assoc); 
+	}
+    
+    /**
+	 * Send to a URL that responds with JSON using DELETE and return the resulting array or object
+	 * @author @clsource
+	 * @param string $url URL to post to (including http:// or https://)
+	 * @param bool $assoc Default is to return an array (specified by TRUE). If you want an object instead, specify FALSE. 
+	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
+	 * @return bool|array|object False on failure or an array or object on success. 
+	 *
+	 */
+	public function deleteJSON($url, $assoc = true, $data = array()) {
+		return json_decode($this->delete($url, $data), $assoc); 
+	}
+    
+    /**
+	 * Send to a URL that responds with JSON using OPTIONS and return the resulting array or object
+	 * @author @clsource
+	 * @param string $url URL to post to (including http:// or https://)
+	 * @param bool $assoc Default is to return an array (specified by TRUE). If you want an object instead, specify FALSE. 
+	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
+	 * @return bool|array|object False on failure or an array or object on success. 
+	 *
+	 */
+	public function optionsJSON($url, $assoc = true, $data = array()) {
+		return json_decode($this->options($url, $data), $assoc); 
+	}
 
 	/**
 	 * Send to a URL using HEAD (@horst)
 	 *
 	 * @param string $url URL to request (including http:// or https://)
 	 * @param mixed $data Array of data to send (if not already set before) or raw data to send
-	 * @return bool|array False on failure or Arrray with ResponseHeaders on success.
+	 * @return bool|array False on failure or Array with ResponseHeaders on success.
 	 *
 	 */
 	public function head($url, $data = array()) {
@@ -205,8 +334,10 @@ class WireHttp extends Wire {
 		$this->responseHeader = array();
 		$unmodifiedURL = $url;
 
+        
 		if(!empty($data)) $this->setData($data);
-		if($method !== 'GET') $method = 'POST';
+        
+		if(!in_array(strtoupper(trim($method)), $this->allowedMethods)) $method = 'POST';
 
 		$useSocket = false; 
 		if(strpos($url, 'https://') === 0 && !extension_loaded('openssl')) $useSocket = true; 
@@ -258,7 +389,10 @@ class WireHttp extends Wire {
 	protected function sendSocket($url, $method = 'POST') {
 
 		$timeoutSeconds = 3; 
-		if($method != 'GET') $method = 'POST';
+
+                
+        if(!in_array(strtoupper(trim($method)), $this->allowedMethods)) $method = 'POST';
+
 
 		$info = parse_url($url);
 		$host = $info['host'];
