@@ -443,7 +443,6 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 
 		$this->page = new Page(); // must exist before processInput for language hooks
 		$form->processInput($this->input->post);
-		// $this->session->CSRF->resetToken(); // WHY?
 
 		$nameField = $form->children->get('_pw_page_name'); 	
 		$name = $nameField->value; 

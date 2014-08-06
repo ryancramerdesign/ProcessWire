@@ -64,9 +64,9 @@ class Session extends Wire implements IteratorAggregate {
 
 		if(empty($_SESSION[$className])) $_SESSION[$className] = array();
 
-		if($userID = $this->get('_user_id')) {
+		if($userID = $this->get('_user', 'id')) {
 			if($this->isValidSession()) {
-				$user = $this->fuel('users')->get($userID); 
+				$user = $this->wire('users')->get($userID); 
 			} else {
 				$this->logout();
 			}
@@ -111,19 +111,19 @@ class Session extends Wire implements IteratorAggregate {
 		$sessionName = session_name();
 
 		if($this->config->sessionChallenge) {
-			if(empty($_COOKIE[$sessionName . "_challenge"]) || ($this->get('_user_challenge') != $_COOKIE[$sessionName . "_challenge"])) {
+			if(empty($_COOKIE[$sessionName . "_challenge"]) || ($this->get('_user', 'challenge') != $_COOKIE[$sessionName . "_challenge"])) {
 				$valid = false; 
 			}
 		}	
 
 		if($this->config->sessionFingerprint) {
-			if(($this->getIP(true) . $_SERVER['HTTP_USER_AGENT']) != $this->get("_user_fingerprint")) {
+			if(md5(($this->getIP(true) . $_SERVER['HTTP_USER_AGENT'])) != $this->get('_user', 'fingerprint')) {
 				$valid = false; 
 			}
 		}
 
 		if($this->config->sessionExpireSeconds) {
-			$ts = (int) $this->get('_user_ts');
+			$ts = (int) $this->get('_user', 'ts');
 			if($ts < (time() - $this->config->sessionExpireSeconds)) {
 				// session time expired
 				$valid = false;
@@ -131,7 +131,7 @@ class Session extends Wire implements IteratorAggregate {
 			}
 		}
 
-		if($valid) $this->set('_user_ts', time());
+		if($valid) $this->set('_user', 'ts', time());
 
 
 		return $valid; 
@@ -155,7 +155,15 @@ class Session extends Wire implements IteratorAggregate {
 			return $this->getFor($key, $_key);
 		}
 		$className = $this->className();
-		return isset($_SESSION[$className][$key]) ? $_SESSION[$className][$key] : null; 
+		$value = isset($_SESSION[$className][$key]) ? $_SESSION[$className][$key] : null;
+		
+		if(is_null($value) && is_null($_key) && strpos($key, '_user_') === 0) {
+			// for backwards compatiblity with non-core modules or templates that may be checking _user_[property]
+			// not currently aware of any instances, but this is just a precaution
+			return $this->get('_user', str_replace('_user_', '', $key)); 
+		}
+		
+		return $value; 
 	}
 
 	/**
@@ -197,10 +205,7 @@ class Session extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function getFor($ns, $key) {
-		if(is_object($ns)) {
-			if($ns instanceof Wire) $ns = $ns->className();
-				else $ns = get_class($ns); 
-		}
+		$ns = $this->getNamespace($ns); 
 		$data = $this->get($ns); 
 		if(!is_array($data)) $data = array();
 		if($key === '') return $data;
@@ -219,10 +224,7 @@ class Session extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function setFor($ns, $key, $value) {
-		if(is_object($ns)) {
-			if($ns instanceof Wire) $ns = $ns->className();
-				else $ns = get_class($ns);
-		}
+		$ns = $this->getNamespace($ns); 
 		$data = $this->get($ns); 
 		if(!is_array($data)) $data = array();
 		if(is_null($value)) unset($data[$key]); 
@@ -233,13 +235,42 @@ class Session extends Wire implements IteratorAggregate {
 	/**
 	 * Unsets a session variable
 	 *
- 	 * @param string $key
+ 	 * @param string|object $key or namespace string/object
+	 * @param string|bool|null $_key Omit this argument unless first argument is a namespace. 
+	 * 	If first argument is namespace and you want to remove a property from the namespace, provide key here. 
+	 * 	If first argument is namespace and you want to remove all properties from the namespace, provide boolean TRUE. 
 	 * @return $this
 	 *
 	 */
-	public function remove($key) {
-		unset($_SESSION[$this->className()][$key]); 
+	public function remove($key, $_key = null) {
+		if(is_null($_key)) {	
+			unset($_SESSION[$this->className()][$key]); 
+		} else if(is_bool($_key)) {
+			unset($_SESSION[$this->className()][$this->getNamespace($key)]); 
+		} else {
+			unset($_SESSION[$this->className()][$this->getNamespace($key)][$_key]); 
+		}
 		return $this; 
+	}
+
+	/**
+	 * Given a namespace object or string, return the namespace string
+	 * 
+	 * @param object|string $ns
+	 * @return string
+	 * @throws WireException if given invalid namespace type
+	 *
+	 */
+	protected function getNamespace($ns) {
+		if(is_object($ns)) {
+			if($ns instanceof Wire) $ns = $ns->className();
+				else $ns = get_class($ns);
+		} else if(is_string($ns)) {
+			// good
+		} else {
+			throw new WireException("Session namespace must be string or object"); 
+		}
+		return $ns; 
 	}
 
 	/**
@@ -315,24 +346,25 @@ class Session extends Wire implements IteratorAggregate {
 
 			$this->trackChange('login', $this->wire('user'), $user); 
 			session_regenerate_id(true);
-			$this->set('_user_id', $user->id); 
-			$this->set('_user_ts', time());
+			$this->set('_user', 'id', $user->id); 
+			$this->set('_user', 'ts', time());
 
 			if($this->config->sessionChallenge) {
 				// create new challenge
-				$challenge = md5(mt_rand() . $this->get('_user_id') . microtime()); 
-				$this->set('_user_challenge', $challenge); 
+				$pass = new Password();
+				$challenge = $pass->randomBase64String(32);
+				$this->set('_user', 'challenge', $challenge); 
 				// set challenge cookie to last 30 days (should be longer than any session would feasibly last)
 				setcookie(session_name() . '_challenge', $challenge, time()+60*60*24*30, '/', null, false, true); 
 			}
 
 			if($this->config->sessionFingerprint) {
 				// remember a fingerprint that tracks the user's IP and user agent
-				$this->set('_user_fingerprint', $this->getIP(true) . $_SERVER['HTTP_USER_AGENT']); 
+				$this->set('_user', 'fingerprint', md5($this->getIP(true) . $_SERVER['HTTP_USER_AGENT'])); 
 			}
 
 			$this->setFuel('user', $user); 
-			$this->get('CSRF')->resetToken();
+			$this->get('CSRF')->resetAll();
 			$this->loginSuccess($user); 
 
 			return $user; 
