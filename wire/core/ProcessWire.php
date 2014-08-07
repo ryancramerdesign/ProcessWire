@@ -33,7 +33,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 4; 
-	const versionRevision = 10; 
+	const versionRevision = 11; 
 	
 	const indexVersion = 250; // required version for index.php file (represented by PROCESSWIRE define)
 	
@@ -164,9 +164,11 @@ class ProcessWire extends Wire {
 
 		try { 		
 			if($this->debug) Debug::timer('boot.load.modules');
-			$modules = new Modules($config->paths->modules, $config->paths->siteModules);
-			if($this->debug) Debug::saveTimer('boot.load.modules');
+			$modules = new Modules($config->paths->modules);
+			$modules->addPath($config->paths->siteModules);
 			$this->wire('modules', $modules, true); 
+			$modules->init();
+			if($this->debug) Debug::saveTimer('boot.load.modules');
 		} catch(Exception $e) {
 			if(!$modules) throw new WireException($e->getMessage()); 	
 			$this->error($e->getMessage()); 

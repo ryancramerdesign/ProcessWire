@@ -59,16 +59,24 @@ class Modules extends WireArray {
 	protected $moduleIDs = array();
 
 	/**
-	 * Path where system modules are stored
+	 * Full system paths where modules are stored
+	 * 
+	 * index 0 must be the core modules path (/i.e. /wire/modules/)
 	 *
 	 */
+	protected $paths = array();
+
+	/**
+	 * Path where system modules are stored
+	 *
 	protected $modulePath = '';
+	 */
 
 	/**
 	 * Path where site-specific modules are stored
 	 *
-	 */
 	protected $modulePath2  = '';
+	 */
 
 	/**
 	 * Cached module configuration data indexed by module ID
@@ -127,20 +135,47 @@ class Modules extends WireArray {
 	/**
 	 * Construct the Modules
 	 *
-	 * @param string $path Path to modules
-	 * @param string $path2 Optional path to siteModules
-	 * @see load()
+	 * @param string $path Core modules path (you may add other paths with addPath method)
 	 *
 	 */
-	public function __construct($path, $path2 = null) {
-		$this->setTrackChanges(false); 
-		$this->modulePath = $path;
+	public function __construct($path) {
+		$this->addPath($path); 
+	}
+
+	/**
+	 * Add another modules path, must be called before init()
+	 *
+	 * @param string $path 
+	 *
+	 */
+	public function addPath($path) {
+		$this->paths[] = $path;
+	}
+
+	/**
+	 * Return all assigned module root paths
+	 *
+	 * @return array of modules paths, with index 0 always being the core modules path.
+	 *
+	 */
+	public function getPaths() {
+		return $this->paths; 
+	}
+
+	/**
+	 * Initialize modules
+	 * 
+	 * Must be called after construct before this class is ready to use
+	 * 
+	 * @see load()
+	 * 
+	 */
+	public function init() {
+		$this->setTrackChanges(false);
 		$this->loadModuleInfoCache();
 		$this->loadModulesTable();
-		$this->load($path); 
-		if($path2 && is_dir($path2)) {
-			$this->modulePath2 = $path2; 
-			$this->load($path2);
+		foreach($this->paths as $path) {
+			$this->load($path);
 		}
 		$this->modulesTableCache = array(); // clear out data no longer needed
 	}
@@ -1036,7 +1071,7 @@ class Modules extends WireArray {
 		} else if(!is_file($filename)) {
 			$reason = "Module file does not exist";
 
-		} else if(strpos($filename, $this->modulePath2) !== 0) {
+		} else if(strpos($filename, $this->paths[0]) === 0) {
 			$reason = "Core modules may not be deleted.";
 
 		} else if(!is_writable($filename)) {
@@ -1079,11 +1114,17 @@ class Modules extends WireArray {
 		$path = dirname($filename); 
 
 		// full path to parent directory, i.e. ../site/modules
-		$path = dirname($path); 
+		$path = dirname($path);
 
-		// first check that we are still in the /site/modules/, and ...
+		// first check that we are still in the /site/modules/ (or another non core modules path)
+		$inPath = false;
+		foreach($this->paths as $key => $modulesPath) {
+			if($key === 0) continue; // skip core modules path
+			if(strpos("$path/", $modulesPath) === 0) $inPath = true; 
+		}
+
 		// now attempt to re-construct it with the $class as the directory name
-		if(strpos("$path/", $this->modulePath2) === 0 && is_file("$path/$class/$basename")) {
+		if($inPath && is_file("$path/$class/$basename")) {
 			// we have a directory that we can recursively delete
 			$rmPath = "$path/$class/";
 			$this->message("Removing path: $rmPath", Notice::debug); 
@@ -1686,10 +1727,8 @@ class Modules extends WireArray {
 	public function resetCache() {
 		if($this->wire('config')->systemVersion < 6) return;
 		$this->clearModuleInfoCache();
-		$this->findModuleFiles($this->modulePath, false); 
-		if($this->modulePath2) $this->findModuleFiles($this->modulePath2, false); 
-		$this->load($this->modulePath); 
-		if($this->modulePath2) $this->load($this->modulePath2);
+		foreach($this->paths as $path) $this->findModuleFiles($path, false); 
+		foreach($this->paths as $path) $this->load($path); 
 	}
 
 	/**

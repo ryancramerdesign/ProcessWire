@@ -19,12 +19,15 @@ spl_autoload_register('ProcessWireClassLoader');
  */
 function ProcessWireClassLoader($className) {
 
+	static $modules = null;
+
 	$file = PROCESSWIRE_CORE_PATH . "$className.php";
 
 	if(is_file($file)) {
 		require($file);
 
-	} else if($modules = wire('modules')) {
-		$modules->includeModule($className);
+	} else {
+		if(is_null($modules)) $modules = wire('modules');
+		if($modules) $modules->includeModule($className);
 	}
 }
