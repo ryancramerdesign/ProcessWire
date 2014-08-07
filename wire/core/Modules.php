@@ -133,6 +133,17 @@ class Modules extends WireArray {
 	protected $modulesTableCache = array();
 
 	/**
+	 * Array of moduleName => substituteModuleName to be used when moduleName doesn't exist
+	 * 
+	 * Primarily for providing backwards compatiblity with modules assumed installed that 
+	 * may no longer be in core. 
+	 * 
+	 * see setSubstitutes() method
+	 *
+	 */
+	protected $substitutes = array();
+
+	/**
 	 * Construct the Modules
 	 *
 	 * @param string $path Core modules path (you may add other paths with addPath method)
@@ -721,6 +732,28 @@ class Modules extends WireArray {
 	}
 
 	/**
+	 * Attempt to find a substitute for moduleName and return module if found or null if not
+	 * 
+	 * @param $moduleName
+	 * @param array $options See getModule() options
+	 * @return Module|null
+	 * 
+	 */
+	protected function getSubstituteModule($moduleName, array $options = array()) {
+		
+		$module = null;
+		$options['noSubstitute'] = true; // prevent recursion
+		
+		while(isset($this->substitutes[$moduleName]) && !$module) {
+			$substituteName = $this->substitutes[$moduleName];
+			$module = $this->getModule($substituteName, $options);
+			if(!$module) $moduleName = $substituteName;
+		}
+		
+		return $module;
+	}
+
+	/**
 	 * Get the requested Module or NULL if it doesn't exist + specify one or more options
 	 * 
 	 * @param string|int $key Module className or database ID
@@ -728,6 +761,7 @@ class Modules extends WireArray {
 	 * 	- noPermissionCheck: Specify true to disable module permission checks (and resulting exception). 
 	 *  - noInstall: Specify true to prevent a non-installed module from installing from this request.
 	 *  - noInit: Specify true to prevent the module from being initialized. 
+	 *  - noSubstitute: Specify true to prevent inclusion of a substitute module. 
 	 * @return Module|null
 	 * @throws WirePermissionException If module requires a particular permission the user does not have
 	 * 
@@ -742,7 +776,13 @@ class Modules extends WireArray {
 			if(!$key = array_search($key, $this->moduleIDs)) return null;
 		}
 		
-		if($module = parent::get($key)) {
+		$module = parent::get($key); 
+		if(!$module && empty($options['noSubstitute'])) {
+			$module = $this->getSubstituteModule($key, $options); 
+			if($module) return $module; // returned module is ready to use
+		}
+		
+		if($module) {
 
 			// check if it's a placeholder, and if it is then include/instantiate/init the real module 
 			// OR check if it's non-singular, so that a new instance is created
@@ -2138,6 +2178,33 @@ class Modules extends WireArray {
 		return $this->debugLog;
 	}
 
+	/**
+	 * Substitute one module for another, to be used only when $moduleName doesn't exist. 
+	 *
+	 * @param string $moduleName Module class name that may need a substitute
+	 * @param string $substituteName Module class name you want to substitute when $moduleName isn't found.
+	 * 	Specify null to remove substitute.
+	 *
+	 */
+	public function setSubstitute($moduleName, $substituteName = null) {
+		if(is_null($substituteName)) {
+			unset($this->substitues[$moduleName]);
+		} else {
+			$this->substitutes[$moduleName] = $substituteName; 
+		}
+	}
+
+	/**
+	 * Substitute modules for other modules, to be used only when $moduleName doesn't exist.
+	 * 
+	 * This appends existing entries rather than replacing them. 
+	 *
+	 * @param array $substitutes Array of module name => substitute module name
+	 *
+	 */
+	public function setSubstitutes(array $substitutes) {
+		$this->substitutes = array_merge($this->substitutes, $substitutes); 
+	}
 
 }
 

@@ -254,6 +254,17 @@ $config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5e
 $config->ignoreTemplateFileRegex = '/^_/';
 
 /**
+ * Substitute module names for when requested module doesn't exist
+ * 
+ * Array of module name => substitute module name
+ * 
+ */
+$config->substituteModules = array(
+	// TinyMCE replaced with CKEditor as default RTE in 2.4.9+
+	'InputfieldTinyMCE' => 'InputfieldCKEditor' 
+	);
+
+/**
  * Settings specific to InputfieldWrapper class
  *
  * Setting useDependencies to false may enable to use depencencies in some places where

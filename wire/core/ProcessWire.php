@@ -167,6 +167,7 @@ class ProcessWire extends Wire {
 			$modules = new Modules($config->paths->modules);
 			$modules->addPath($config->paths->siteModules);
 			$this->wire('modules', $modules, true); 
+			$modules->setSubstitutes($config->substituteModules); 
 			$modules->init();
 			if($this->debug) Debug::saveTimer('boot.load.modules');
 		} catch(Exception $e) {
