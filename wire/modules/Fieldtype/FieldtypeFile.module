@@ -60,7 +60,18 @@ class FieldtypeFile extends FieldtypeMulti {
 
 		$this->setupHooks($page, $field, $inputfield); 
 	
-		if(!$field->extensions) $this->error(sprintf($this->_('Field "%s" is not yet ready to use and needs to be configured.'), $field->name)); 
+		if(!$field->extensions) {
+			if($page->id && $page->template->fieldgroup->hasField($field)) {
+				// message that appears on page being edited with this field
+				$this->error(sprintf($this->_('Field "%s" is not yet ready to use and needs to be configured.'), $field->name)); 
+			} else if(!count($_POST)) {
+				// message that appears during configuration, but suppressed during post to prevent it from appearing after save
+				$this->message(
+					$this->_('Settings have not yet been committed.') . "<br /><small>" . 
+					$this->_('Please review the settings on this page and save once more (even if you do not change anything) to confirm you accept them.') . "</small>", 
+					Notice::allowMarkup); 
+			}
+		}
 
 		return $inputfield;
 	}
