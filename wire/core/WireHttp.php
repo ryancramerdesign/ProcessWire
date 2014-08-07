@@ -331,29 +331,58 @@ class WireHttp extends Wire {
 	 */
 	public function download($fromURL, $toFile, array $options = array()) {
 
-		if((substr($fromURL, 0, 8) == 'https://') && !extension_loaded('openssl')) {
+		$http = stripos($fromURL, 'http://') === 0; 
+		$https = stripos($fromURL, 'https://') === 0;
+		
+		if(!$http && !$https) {
+			throw new WireException($this->_('Download URLs must begin with http:// or https://'));
+		}
+		
+		if(function_exists('curl_init')) $useMethod = 'curl';
+			else if(ini_get('allow_url_fopen')) $useMethod = 'fopen';
+			else throw new WireException($this->_('File download not supported (allow_url_fopen disabled and/or CURL not installed)')); 
+		
+		if($useMethod == 'fopen' && $https && !extension_loaded('openssl')) {
 			throw new WireException($this->_('WireHttp::download-OpenSSL extension required but not available.'));
 		}
-
-		// Define the options
-		$defaultOptions = array(
-				'max_redirects' => 3
-				); 
-		$options = array_merge($defaultOptions, $options);
-		$context = stream_context_create(array('http' => $options));
-
-		// download the file
-		$content = file_get_contents($fromURL, false, $context);
-		if($content === false) {
-			throw new WireException($this->_('File could not be downloaded:') . ' ' . htmlentities($fromURL));
-		}
-
+		
 		if(($fp = fopen($toFile, 'wb')) === false) {
-			throw new WireException($this->_('fopen error for filename:') . ' ' . htmlentities($toFile));
+			throw new WireException($this->_('fopen error for filename:') . ' ' . $toFile);
 		}
 
-		fwrite($fp, $content);
-		fclose($fp);
+		if($useMethod == 'fopen') {
+			
+			// Define the options
+			$defaultOptions = array('max_redirects' => 3); 
+			$options = array_merge($defaultOptions, $options);
+			$context = stream_context_create(array('http' => $options));
+	
+			// download the file
+			$content = file_get_contents($fromURL, false, $context);
+			fwrite($fp, $content);
+			fclose($fp); 
+			
+			if($content === false) {
+				unlink($toFile); 
+				throw new WireException($this->_('File could not be downloaded:') . ' ' . htmlentities($fromURL));
+			}
+			
+		} else if($useMethod == 'curl') {
+			
+			$fromURL = str_replace(' ', '%20', $fromURL); 
+			$curl = curl_init($fromURL);
+			curl_setopt($curl, CURLOPT_TIMEOUT, 50);
+			curl_setopt($curl, CURLOPT_FILE, $fp); // write curl response to file
+			curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+			$result = curl_exec($curl);
+			curl_close($curl);
+			fclose($fp);
+			if($result === false) {
+				unlink($toFile); 
+				throw new WireException(curl_error($curl));
+			}
+			
+		}
 		
 		$chmodFile = $this->wire('config')->chmodFile; 
 		if($chmodFile) chmod($toFile, octdec($chmodFile));
