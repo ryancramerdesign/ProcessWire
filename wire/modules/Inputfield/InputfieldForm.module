@@ -47,9 +47,7 @@ class InputfieldForm extends InputfieldWrapper {
 		$attrStr = $this->getAttributesString($attrs); 
 
 		if($this->protectCSRF && $this->attr('method') == 'post') {
-			$tokenName = wire('session')->CSRF->getTokenName();
-			$tokenValue = wire('session')->CSRF->getTokenValue();
-			$tokenField = "<input type='hidden' id='_post_token' name='$tokenName' value='$tokenValue' />";
+			$tokenField = $this->wire('session')->CSRF->renderInput(); 
 		} else {
 			$tokenField = '';
 		}
@@ -65,7 +63,7 @@ class InputfieldForm extends InputfieldWrapper {
 
 	public function ___processInput(WireInputData $input) {
 		
-		if($this->protectCSRF && $this->attr('method') == 'post') wire('session')->CSRF->validate(); // throws exception if invalid
+		if($this->protectCSRF && $this->attr('method') == 'post') $this->wire('session')->CSRF->validate(); // throws exception if invalid
 		$result = parent::___processInput($input); 		
 		
 		$delayedChildren = $this->_getDelayedChildren(true); 

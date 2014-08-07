@@ -141,7 +141,7 @@ $(document).ready(function() {
 			var postUrl = $form.attr('action'); 
 
 			// CSRF protection
-			var $postToken = $form.find('#_post_token'); 
+			var $postToken = $form.find('input._post_token'); 
 			var postTokenName = $postToken.attr('name');
 			var postTokenValue = $postToken.val();
 

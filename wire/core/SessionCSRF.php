@@ -33,7 +33,7 @@ class SessionCSRF extends Wire {
 	public function getTokenName($id = '') {
 		$tokenName = $this->session->get($this, "name$id"); 
 		if(!$tokenName) { 
-			$tokenName = 'TOKEN' . mt_rand() . "_" . time(); // token name always ends with timestamp
+			$tokenName = 'TOKEN' . mt_rand() . "X" . time(); // token name always ends with timestamp
 			$this->session->set($this, "name$id", $tokenName);
 		}
 		return $tokenName; 
@@ -67,7 +67,7 @@ class SessionCSRF extends Wire {
 	 */
 	public function getTokenTime($id = '') {
 		$name = $this->getTokenName($id);
-		$time = (int) substr($name, strrpos($name, '_')+1); 
+		$time = (int) substr($name, strrpos($name, 'X')+1); 
 		return $time; 
 	}
 
