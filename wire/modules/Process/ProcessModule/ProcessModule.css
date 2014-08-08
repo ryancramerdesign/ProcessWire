@@ -89,7 +89,9 @@ a span.PermanentModule {
 
 #modules_form p.description {
 	margin-top: 0; 
+	/*
 	padding-top:1em;
+	*/
 }
 
 #godownload,
@@ -105,4 +107,8 @@ a span.PermanentModule {
 	margin-bottom: 1em;
 }
 
-
+#modules_form .InputfieldFileValidExtensions {
+	/* this becomes redundant in module upload */
+	display: none;
+	
+}

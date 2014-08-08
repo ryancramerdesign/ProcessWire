@@ -1,29 +1,25 @@
 $(document).ready(function() {
 
-	/*
-	$(".ConfigurableModule").each(function() {
-		if($(this).parent().is('.not_installed')) return;
-		$(this).after($("<i class='fa fa-cog' style='float: right; margin-top: 3px;'></i>")); 
-	}); 
-	*/
-
 	$(".not_installed").parent("a").css('opacity', 0.6).click(function() {
 
 		var id = $(this).children(".not_installed").attr('id');
 		var $btn = $("#install_" + id); 
 		var disabled = $btn.attr('disabled'); 	
-		
-		if(disabled && disabled.length > 0) {
-			alert("This module requires other modules to be installed first."); 
+	
+		if($btn.size()) {	
+			$btn.effect('highlight', 1000);
 		} else {
-			if(confirm("Install " + $(this).text() + "?")) $btn.click();
+			var color = $(this).css('color'); 
+			$(this).closest('tr').find('.requires')
+				.attr('data-color', $(this).css('color'))
+				.css('color', color)
+				.effect('highlight', 1000); 
 		}
-
+		
 		return false;
 	});
 
 	$("button.ProcessModuleSettings").click(function() {
-		console.log('click'); 
 		var $a = $(this).parents('tr').find('.ConfigurableModule').parent('a');
 		window.location.href = $a.attr('href'); 
 	}); 
@@ -58,5 +54,7 @@ $(document).ready(function() {
 	$("#Inputfield_new_seconds").change(function() {
 		$(this).parents('form').submit();
 	}); 
+	
+	$("#wrap_upload_module").removeClass('InputfieldItemList'); 
 
 }); 

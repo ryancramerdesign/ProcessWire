@@ -573,8 +573,14 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 	
 	$periods = $difference != 1 ? $periodsPlural : $periodsSingular; 
 	$period = $periods[$j];
+	
+	// return sprintf('%s%d%s%s %s', $prepend, (int) $difference, $space, $period, $tense); // i.e. 2 days ago (d=qty, 2=period, 3=tense)
 
-	return sprintf('%s%d%s%s %s', $prepend, (int) $difference, $space, $period, $tense); // i.e. 2 days ago (d=qty, 2=period, 3=tense)
+	$quantity = $prepend . $difference . $space; 
+	$format = __('Q P T', __FILE__); // Relative time order: Q=Quantity, P=Period, T=Tense (i.e. 2 Days Ago)
+	$out = str_replace(array('Q', 'P', 'T'), array(" $quantity", " $period", " $tense"), $format); 
+	if($abbreviate === 1) $out = str_replace("$quantity $period", "$quantity$period", $out); 
+	return trim($out); 
 }
 
 

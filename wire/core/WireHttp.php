@@ -349,6 +349,9 @@ class WireHttp extends Wire {
 		if(($fp = fopen($toFile, 'wb')) === false) {
 			throw new WireException($this->_('fopen error for filename:') . ' ' . $toFile);
 		}
+		
+		$errorCodes = array(400, 401, 404, 500, 502, 503); 
+		$error = '';
 
 		if($useMethod == 'fopen') {
 			
@@ -360,11 +363,13 @@ class WireHttp extends Wire {
 			// download the file
 			$content = file_get_contents($fromURL, false, $context);
 			fwrite($fp, $content);
-			fclose($fp); 
+			fclose($fp);
+
+			list($version, $httpCode, $msg) = explode(' ', $http_response_header[0], 3);
 			
-			if($content === false) {
+			if($content === false || in_array($httpCode, $errorCodes)) {
 				unlink($toFile); 
-				throw new WireException($this->_('File could not be downloaded:') . ' ' . htmlentities($fromURL));
+				$error = "HTTP $httpCode $msg";
 			}
 			
 		} else if($useMethod == 'curl') {
@@ -375,13 +380,18 @@ class WireHttp extends Wire {
 			curl_setopt($curl, CURLOPT_FILE, $fp); // write curl response to file
 			curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
 			$result = curl_exec($curl);
+			$httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 			curl_close($curl);
 			fclose($fp);
-			if($result === false) {
-				unlink($toFile); 
-				throw new WireException(curl_error($curl));
+			if($result === false || in_array($httpCode, $errorCodes)) {
+				$error = "HTTP $httpCode " . curl_error($curl); 
 			}
 			
+		}
+		
+		if($error) {
+			unlink($toFile);
+			throw new WireException( $this->_('File could not be downloaded') . ' ' . htmlentities("($fromURL) $error"));
 		}
 		
 		$chmodFile = $this->wire('config')->chmodFile; 

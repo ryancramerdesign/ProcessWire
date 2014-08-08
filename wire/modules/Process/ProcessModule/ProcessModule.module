@@ -25,7 +25,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Modules', __FILE__), // getModuleInfo title          
 			'summary' => __('List, edit or install/uninstall modules', __FILE__), // getModuleInfo summary
-			'version' => 109, 
+			'version' => 111, 
 			'permanent' => true, 
 			'permission' => 'module-admin', 
 			);
@@ -70,6 +70,10 @@ class ProcessModule extends Process implements ConfigurableModule {
 		} else { 
 			$this->labels['download_install'] = $this->_('Download and Install');
 		}
+		$this->labels['download_dir'] = $this->_('Add Module From Directory');
+		$this->labels['upload'] = $this->_('Upload');
+		$this->labels['upload_zip'] = $this->_('Add Module From Upload');
+		$this->labels['download_zip'] = $this->_('Add Module From URL');
 		$this->labels['check_new'] = $this->_('Check for New Modules'); 
 		$this->labels['installed_date'] = $this->_('Installed'); 
 
@@ -135,6 +139,16 @@ class ProcessModule extends Process implements ConfigurableModule {
 			return $this->downloadConfirm($this->input->post->download_name);
 		}
 		
+		if($this->input->post->upload) {
+			$this->session->CSRF->validate();
+			$this->uploadModule(); 
+		}
+		
+		if($this->input->post->download_zip && $this->input->post->download_zip_url) {
+			$this->session->CSRF->validate();
+			$this->downloadFromURL($this->input->post->download_zip_url); 		
+		}
+		
 		if($this->input->get->update) {
 			$name = $this->sanitizer->name($this->input->get->update); 
 			if(isset($this->modulesArray[$name])) return $this->downloadConfirm($name, true); 
@@ -162,7 +176,12 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$siteModulesArray = array();
 		$coreModulesArray = array();
 		$newModulesArray = array();
-		$wireDir = str_replace('/', DIRECTORY_SEPARATOR, '/wire/modules/'); 
+		
+		// by default, core modules don't appear in the "new" list, 
+		// this array contains a list of core modules that are allowed to appear there
+		$newCoreModules = array(
+			'InputfieldCKEditor'
+			);
 		
 		if($this->wire('input')->post('new_seconds')) {
 			$this->wire('session')->set('ProcessModuleNewSeconds', (int) $this->wire('input')->post('new_seconds')); 
@@ -183,19 +202,11 @@ class ProcessModule extends Process implements ConfigurableModule {
 		
 			$info = $this->modules->getModuleInfoVerbose($name); 
 			
-			if($info['created'] > 0 && $info['created'] > (time()-$newSeconds)) {
-				$newModulesArray[$name] = $installed; 
-			}
+			$isNew = !$info['core'] || ($info['core'] && in_array($name, $newCoreModules));
+			if($isNew) $isNew = $info['created'] > 0 && $info['created'] > (time()-$newSeconds);
+			if($isNew) $newModulesArray[$name] = $installed; 
 			
-			try {
-				$reflector = new ReflectionClass($name);
-				$filename = $reflector->getFileName();
-			} catch(Exception $e) {
-				$filename = '';
-				// $this->error($e->getMessage()); 
-			}
-		
-			if(strpos($filename, $wireDir) !== false) {
+			if($info['core']) {
 				$coreModulesArray[$name] = $installed;
 			} else {
 				$siteModulesArray[$name] = $installed;
@@ -205,6 +216,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$form = $this->modules->get('InputfieldForm');
 		$form->attr('action', './'); 
 		$form->attr('method', 'post'); 
+		$form->attr('enctype', 'multipart/form-data'); 
 		$form->attr('id', 'modules_form');
 
 		$this->modules->get('JqueryWireTabs');
@@ -275,9 +287,10 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$tab->add($markup); 
 		
 		$fieldset = $this->modules->get('InputfieldFieldset');
-		$fieldset->label = $this->labels['download_install'];
+		$fieldset->label = $this->labels['download_dir'];
 		$fieldset->icon = 'cloud-download';
-		if($this->wire('input')->post('new_seconds')) $fieldset->collapsed = Inputfield::collapsedYes; 
+		//if($this->wire('input')->post('new_seconds')) $fieldset->collapsed = Inputfield::collapsedYes; 
+		$fieldset->collapsed = Inputfield::collapsedYes;
 		$f = $this->modules->get('InputfieldName');
 		$f->attr('id+name', 'download_name');
 		$f->label = $this->_('Module Class Name');
@@ -286,9 +299,54 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$f->attr('placeholder', $this->_('ModuleClassName')); // placeholder
 		$f->required = false; 
 		$fieldset->add($f);
+		
 		$f = $this->modules->get('InputfieldSubmit');
 		$f->attr('id+name', 'download');
 		$f->value = $this->labels['download_install'];
+		$f->icon = $fieldset->icon;
+		$fieldset->add($f);
+		$tab->add($fieldset);
+		
+		$fieldset = $this->modules->get('InputfieldFieldset');
+		$fieldset->label = $this->labels['download_zip'];
+		$fieldset->icon = 'download';
+		$fieldset->collapsed = Inputfield::collapsedYes;
+		$trustNote = $this->_('Be absolutely certain that you trust the source of the ZIP file.'); 
+		
+		$f = $this->modules->get('InputfieldURL');
+		$f->attr('id+name', 'download_zip_url');
+		$f->label = $this->_('Module ZIP file URL');
+		$f->description = $this->_('Download a ZIP file containing a module. If you download a module that is already installed, the installed version will be overwritten with the newly downloaded version.'); 
+		$f->notes = $trustNote; 
+		$f->attr('placeholder', $this->_('http://domain.com/ModuleName.zip')); // placeholder
+		$f->required = false;
+		$fieldset->add($f);
+
+		$f = $this->modules->get('InputfieldSubmit');
+		$f->attr('id+name', 'download_zip');
+		$f->value = $this->labels['download'];
+		$f->icon = $fieldset->icon;
+		$fieldset->add($f);
+		$tab->add($fieldset);
+		
+		$fieldset = $this->modules->get('InputfieldFieldset'); 
+		$fieldset->label = $this->labels['upload_zip'];
+		$fieldset->icon = 'upload';
+		$fieldset->collapsed = Inputfield::collapsedYes;
+		$f = $this->modules->get('InputfieldFile');
+		$f->extensions = 'zip';
+		$f->maxFiles = 1; 
+		$f->descriptionRows = 0;
+		$f->overwrite = true; 
+		$f->attr('id+name', 'upload_module');
+		$f->label = $this->_('Module ZIP File');
+		$f->description = $this->_('Upload a ZIP file containing module file(s). If you upload a module that is already installed, it will be overwritten with the one you upload.'); 
+		$f->notes = $trustNote; 
+		$f->required = false;
+		$fieldset->add($f);
+		$f = $this->modules->get('InputfieldSubmit');
+		$f->attr('id+name', 'upload');
+		$f->value = $this->labels['upload'];
 		$f->icon = $fieldset->icon;
 		$fieldset->add($f);
 		$tab->add($fieldset);
@@ -354,8 +412,6 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$sections = array();
 		$sectionsQty = array();
 
-		$titles = array();
-		
 		foreach($modulesArray as $name => $installed) {
 
 			if(strpos($name, $section) !== 0 || preg_match('/' . $section . '[^A-Z]/', $name)) {
@@ -391,11 +447,11 @@ class ProcessModule extends Process implements ConfigurableModule {
 
 				if(count($info['requires'])) {
 					$requires = $this->modules->getRequiresForInstall($name);
-					if(count($requires)) $summary .= "<br /><span class='notes'>$labelRequires - " . implode(', ', $requires) . "</span>";
+					if(count($requires)) $summary .= "<br /><span class='notes requires'>$labelRequires - " . implode(', ', $requires) . "</span>";
 				} else $requires = array();
 
 				if(count($info['installs'])) {
-					$summary .= "<br /><span class='detail'>$labelInstalls - " . implode(', ', $info['installs']) . "</span>";
+					$summary .= "<br /><span class='detail installs'>$labelInstalls - " . implode(', ', $info['installs']) . "</span>";
 				}
 
 				$class = 'not_installed';
@@ -470,10 +526,98 @@ class ProcessModule extends Process implements ConfigurableModule {
 			$select .= "</select></p>";
 			$out = $select . $out; 
 		}
+
+		$resetNewModules = false; 
+		foreach($newModules as $key => $newModule) {
+			$info = $this->wire('modules')->getModuleInfoVerbose($newModule); 
+			if(!$info['file'] || !file_exists($info['file'])) {
+				unset($newModules[$key]); 
+				$resetNewModules = true;
+			}
+		}
+		if($this->numFound) $resetNewModules = true; 
 		
-		if($this->numFound) $this->wire('session')->set('ProcessModuleNewModules', $newModules); 
+		if($resetNewModules) $this->wire('session')->set('ProcessModuleNewModules', $newModules); 
 		
 		return $out; 
+	}
+	
+	protected function uploadModule() {
+		
+		if(!$this->canUploadDownload()) {
+			$this->error($this->_('Unable to complete upload')); 
+			$this->wire('session')->redirect("./"); 
+		}
+		
+		$tmp_dir = $this->wire('config')->paths->cache . 'ProcessModuleUpload/';
+		if(!is_dir($tmp_dir)) wireMkdir($tmp_dir); 
+		$ul = new WireUpload('upload_module'); 	
+		$ul->setValidExtensions(array('zip')); 
+		$ul->setMaxFiles(1); 
+		$ul->setOverwrite(true); 
+		$ul->setDestinationPath($tmp_dir); 
+		$ul->setExtractArchives(false); 
+		$ul->setLowercase(false);
+		$files = $ul->execute();
+		if(!count($files)) {
+			$this->error($this->_('No uploads found')); 
+		} else { 
+			$file = $tmp_dir . reset($files);
+			$success = $this->unzipModule($file, $tmp_dir); 
+			if($success) $this->modules->resetCache();
+		}
+		wireRmdir($tmp_dir, true); 
+		$this->wire('session')->redirect("./"); 
+	}
+	
+	protected function canUploadDownload($notify = true) {
+		$can = true; 
+		if(!is_writable($this->config->paths->cache)) {
+			if($notify) $this->error($this->_('Make sure /site/assets/cache/ directory is writeable for PHP.'));
+			$can = false;
+		}
+		if(!is_writable($this->config->paths->siteModules)) {
+			if($notify) $this->error($this->_('Make sure your site modules directory (/site/modules/) is writeable for PHP.'));
+			$can = false;
+		}
+		if(!class_exists('ZipArchive')) {
+			if($notify) $this->error($this->_('ZipArchive class is required and your PHP does not appear to have it.'));
+			$can = false;
+		}
+		
+		return $can;
+	}
+	
+	protected function downloadFromURL($url) {
+		
+		if(!preg_match('{^https?://}i', $url)) throw new WireException("Invalid URL: $url");
+		
+		$tmp_dir = $this->config->paths->cache . 'ProcessModuleDownload/';
+		if(!is_dir($tmp_dir)) wireMkdir($tmp_dir);
+	
+		$tmp_name = 'module-tmp.zip';
+		if(preg_match('/([_a-z0-9]\.zip)$/i', $url, $matches)) $tmp_name = $matches[1]; 
+		$tmp_zip = $tmp_dir . $tmp_name; 
+
+		// download the zip file and save it in assets directory
+		$success = false;
+		$http = new WireHttp();
+
+		try {
+			$file = $http->download($url, $tmp_zip);
+			$this->message($this->_('Downloaded ZIP file:') . ' ' . $this->wire('sanitizer')->entities($url));
+		} catch(Exception $e) {
+			$this->error($e->getMessage());
+			@unlink($tmp_zip); 
+			return $this->wire('session')->redirect('./');
+		}
+
+		if(is_file($file)) $success = $this->unzipModule($file, $tmp_dir); 
+
+		// reset modules cache, so we can install the module and PW knows about it
+		if($success) $this->modules->resetCache();
+		wireRmdir($tmp_dir, true); 
+		$this->wire('session')->redirect('./'); 
 	}
 
 	/**
@@ -486,15 +630,13 @@ class ProcessModule extends Process implements ConfigurableModule {
 	 */
 	protected function downloadConfirm($name, $update = false) {
 		
-		if(!is_writable($this->config->paths->cache)) $this->error($this->_('Make sure /site/assets/cache/ directory is writeable for PHP.'));
-		if(!is_writable($this->config->paths->siteModules)) $this->error($this->_('Make sure your site modules directory (/site/modules/) is writeable for PHP.'));
-		if(!class_exists('ZipArchive')) $this->error($this->_('ZipArchive class is required and your PHP does not appear to have it.'));
+		$this->canUploadDownload();
 
 		$info = self::getModuleInfo();
 		$this->wire('processHeadline', $this->labels['download_install']); 
 		$this->wire('breadcrumbs')->add(new Breadcrumb('./', $info['title']));
 		if($update) $this->wire('breadcrumbs')->add(new Breadcrumb("./?edit=$name", $name)); 
-
+		
 		$redirectURL = $update ? "./edit?name=$name" : "./";
 		$className = $this->wire('sanitizer')->name($name);
 		$url = trim($this->serviceUrl, '/') . "/$className/?apikey=" . $this->wire('sanitizer')->name($this->serviceKey);
@@ -560,7 +702,8 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$form->add($markup);
 		
 		$installed = $this->modules->isInstalled($data['class_name']) ? $this->modules->getModuleInfoVerbose($data['class_name']) : null;
-		
+	
+		$moduleVersionNote = '';
 		if($installed) {
 			$installedVersion = $this->formatVersion($installed['version']); 
 			if($installedVersion == $data['module_version']) {
@@ -571,6 +714,8 @@ class ProcessModule extends Process implements ConfigurableModule {
 			} else {
 				if(version_compare($installedVersion, $data['module_version']) < 0) {
 					$this->message($this->_('An update to this module is available!')); 
+				} else {
+					$moduleVersionNote = " <span class='ui-state-error-text'>(" . $this->_('older than the one you already have installed!') . ")</span>";
 				}
 			}
 		} else {
@@ -580,7 +725,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$table = $this->wire('modules')->get('MarkupAdminDataTable');
 		$table->setEncodeEntities(false);
 		$table->row(array($this->_x('Class', 'install-table'), $this->wire('sanitizer')->entities($data['class_name'])));
-		$table->row(array($this->_x('Version', 'install-table'), $this->wire('sanitizer')->entities($data['module_version'])));
+		$table->row(array($this->_x('Version', 'install-table'), $this->wire('sanitizer')->entities($data['module_version']) . $moduleVersionNote));
 		$table->row(array($this->_x('Installed?', 'install-table'), $installedVersion)); 
 		$table->row(array($this->_x('Authors', 'install-table'), $this->wire('sanitizer')->entities($authors)));
 		$table->row(array($this->_x('Summary', 'install-table'), $this->wire('sanitizer')->entities($data['summary'])));
@@ -688,47 +833,133 @@ class ProcessModule extends Process implements ConfigurableModule {
 		
 		try {
 			$file = $http->download($url, $tmp_zip);
-			$this->message($this->_('Downloaded ZIP file:') . ' ' . htmlentities($url));
+			$this->message($this->_('Downloaded ZIP file:') . ' ' . $this->wire('sanitizer')->entities($url));
 		} catch(Exception $e) {
 			$this->error($e->getMessage());
 			return $this->wire('session')->redirect('./');
 		}
-		
-		try {
-			$files = wireUnzipFile($file, $tmp_dir);
-			
-		} catch(Exception $e) {
-			if(is_file($file)) unlink($file);
-			$this->error($e->getMessage());
-			return $this->wire('session')->redirect('./');
-		}
-		
-		$extracted_directory_name = trim($files[0], '/'); 
-		if(is_dir($tmp_dir . $extracted_directory_name)) $extracted_directory_name .= '/';
-			else $extracted_directory_name = '';
-		
-		// now create module directory and copy files over
-		$from = $tmp_dir . $extracted_directory_name;
-		
-		if(!is_dir($destination_directory)) wireMkdir($destination_directory); 
-		
-		if(is_dir($destination_directory)) {
-			if(wireCopy($from, $destination_directory)) {
-				$this->message($this->_('Successfully copied files to new directory:') . ' ' . str_replace($this->config->paths->root, '/', $destination_directory));
-				wireChmod($destination_directory, true); 
-				$success = true;
-			}
-		} else {
-			$this->error($this->_('Could not create directory:') . ' ' . $destination_directory);
-		}
-
-		if(!wireRmdir($tmp_dir, true)) $this->error($this->_('Could not delete downloaded temporary files:') . ' ' . $tmp_dir, Notice::log);
-		if(!$success) return $this->error($this->_('There seems to be a problem with downloading or writing the module.'));
+	
+		$success = $this->unzipModule($file, $tmp_dir, $destination_directory); 
+		if(!$success) $this->wire('session')->redirect('./'); 
 
 		// reset modules cache, so we can install the module and PW knows about it
 		$this->modules->resetCache();
 		$form = $this->buildDownloadSuccessForm($class_name);
 		return $form->render();
+	}
+
+	/**
+	 * Unzip the module file to tmp_dir and then copy to destination_directory
+	 * 
+	 * @param $file
+	 * @param $tmp_dir
+	 * @param string $destination_directory Optionally omit to have this method determine it automatically. 
+	 * @return bool
+	 * @throws WireException
+	 * 
+	 */
+	protected function unzipModule($file, $tmp_dir, $destination_directory = '') {
+		
+		$success = false; 
+		$autodir = false;  // automatically determine destination directory
+		$tmp_dir = rtrim($tmp_dir, '/') . "/unzip/";
+		$mkdirDestination = false; 
+		$mkdirTmp = false; 
+		$moduleName = $this->wire('sanitizer')->name(basename($file, '.zip')); 
+		
+		if(!$destination_directory) {
+			if(!$moduleName) throw new WireException("Unable to determine module name"); // not likely
+			$destination_directory = $this->wire('config')->paths->siteModules . $moduleName . "/"; 
+			$autodir = true; 
+		}
+		
+		if(!is_dir($tmp_dir)) {
+			if(!wireMkdir($tmp_dir, true)) {
+				$this->error("Unable to create temporary directory: $tmp_dir"); 
+				return false; 
+			}
+			$mkdirTmp = true;
+		}
+		
+		try {
+			$files = wireUnzipFile($file, $tmp_dir);
+
+		} catch(Exception $e) {
+			if(is_file($file)) unlink($file);
+			$this->error($e->getMessage());
+			wireRmdir($tmp_dir, true); 
+			return false;
+		}
+	
+		$moduleFiles = array();
+		$moduleDirs = array();
+		foreach($files as $f) {
+			$this->message("Extracted: $f", Notice::debug); 
+			// determine which file should be responsible for the name
+			if(strpos($f, '/') !== false) {
+				$dir = dirname($f); 
+				if($dir != '.') $moduleDirs[$dir] = $dir;
+			}
+			if(!preg_match('{^(.*?/|)([a-zA-Z0-9]+)\.module(\.php)?$}', $f, $matches)) continue;
+			$moduleFiles[] = $matches[2]; 
+		}
+		
+		if(!count($moduleFiles)) {
+			$this->error($this->_('Unable to find any module files in ZIP file')); 
+			wireRmdir($tmp_dir, true);
+			return false; 
+		}
+		
+		$extracted_directory_name = trim($files[0], '/');
+		if(is_dir($tmp_dir . $extracted_directory_name) && $extracted_directory_name[0] != '.') {
+			$extracted_directory_name = $this->wire('sanitizer')->name($extracted_directory_name) . '/';
+			if($autodir) $destination_directory = $this->wire('config')->paths->siteModules . $extracted_directory_name;
+		} else {
+			$extracted_directory_name = '';
+		}
+		
+		if($autodir && count($moduleDirs) <= 1) {
+			// find shortest module file name to serve as directory name
+			// but only if there weren't multiple directories in the archive. 
+			// if there were multiple directories, we defer to the ZIP name
+			$min = 1024; 
+			foreach($moduleFiles as $f) {
+				if(strlen($f) < $min) {
+					$destination_directory = $this->wire('config')->paths->siteModules . $f . "/";
+					$min = strlen($f); 
+				}
+			}
+		}
+
+		// now create module directory and copy files over
+		$from = $tmp_dir . $extracted_directory_name;
+		if(!is_dir($destination_directory)) wireMkdir($destination_directory, true);
+		$dirLabel = str_replace($this->config->paths->root, '/', $destination_directory);
+
+		if(is_dir($destination_directory)) {
+			$mkdirDestination = true; 
+			if(wireCopy($from, $destination_directory)) {
+				$this->message($this->_('Successfully copied files to new directory:') . ' ' . $dirLabel);
+				wireChmod($destination_directory, true);
+				$success = true;
+			} else {
+				$this->error($this->_('Unable to copy files to new directory:') . ' ' . $dirLabel); 
+			}
+		} else {
+			$this->error($this->_('Could not create directory:') . ' ' . $dirLabel);
+		}
+
+		if(!wireRmdir($tmp_dir, true)) $this->error($this->_('Could not delete temp dir:') . ' ' . $tmp_dir, Notice::log);
+		
+		if(!$success) {
+			$this->error($this->_('There seems to be a problem with downloading or writing the module.'));
+			if($mkdirDestination) {
+				if(!wireRmdir($destination_directory, true)) $this->error($this->_('Could not delete failed module dir:') . ' ' . $destination_directory, Notice::log); 
+			}
+			
+		}
+		
+		return $success; 
 	}
 
 	/**
@@ -931,13 +1162,8 @@ class ProcessModule extends Process implements ConfigurableModule {
 		}
 	
 		$version = $this->formatVersion($moduleInfo['version']);
-		try {
-			$reflector = new ReflectionClass($moduleName);
-			$filename = preg_replace('{^.*?(/(?:wire|site)/.*)$}', '$1', $reflector->getFileName()); 
-		} catch(Exception $e) {
-			$filename = '';
-		}
-		if(strpos($filename, '/wire/modules/') === false) {
+		$filename = $moduleInfo['file']; 
+		if(!$moduleInfo['core']) {
 			$version .= " - <a href='./?update=$moduleName'>" . $this->_('check for updates') . "</a>"; 
 		}
 
