@@ -25,7 +25,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Modules', __FILE__), // getModuleInfo title          
 			'summary' => __('List, edit or install/uninstall modules', __FILE__), // getModuleInfo summary
-			'version' => 111, 
+			'version' => 112, 
 			'permanent' => true, 
 			'permission' => 'module-admin', 
 			);
@@ -79,6 +79,8 @@ class ProcessModule extends Process implements ConfigurableModule {
 
 		$this->set('serviceUrl', self::defaultServiceUrl); 
 		$this->set('serviceKey', self::defaultServiceKey); 
+		
+		require(dirname(__FILE__) . '/ProcessModuleInstall.php'); 
 	}
 
 
@@ -141,12 +143,12 @@ class ProcessModule extends Process implements ConfigurableModule {
 		
 		if($this->input->post->upload) {
 			$this->session->CSRF->validate();
-			$this->uploadModule(); 
+			$this->executeUpload('upload_module'); 
 		}
 		
 		if($this->input->post->download_zip && $this->input->post->download_zip_url) {
 			$this->session->CSRF->validate();
-			$this->downloadFromURL($this->input->post->download_zip_url); 		
+			$this->executeDownloadURL($this->input->post->download_zip_url); 		
 		}
 		
 		if($this->input->get->update) {
@@ -541,84 +543,6 @@ class ProcessModule extends Process implements ConfigurableModule {
 		
 		return $out; 
 	}
-	
-	protected function uploadModule() {
-		
-		if(!$this->canUploadDownload()) {
-			$this->error($this->_('Unable to complete upload')); 
-			$this->wire('session')->redirect("./"); 
-		}
-		
-		$tmp_dir = $this->wire('config')->paths->cache . 'ProcessModuleUpload/';
-		if(!is_dir($tmp_dir)) wireMkdir($tmp_dir); 
-		$ul = new WireUpload('upload_module'); 	
-		$ul->setValidExtensions(array('zip')); 
-		$ul->setMaxFiles(1); 
-		$ul->setOverwrite(true); 
-		$ul->setDestinationPath($tmp_dir); 
-		$ul->setExtractArchives(false); 
-		$ul->setLowercase(false);
-		$files = $ul->execute();
-		if(!count($files)) {
-			$this->error($this->_('No uploads found')); 
-		} else { 
-			$file = $tmp_dir . reset($files);
-			$success = $this->unzipModule($file, $tmp_dir); 
-			if($success) $this->modules->resetCache();
-		}
-		wireRmdir($tmp_dir, true); 
-		$this->wire('session')->redirect("./"); 
-	}
-	
-	protected function canUploadDownload($notify = true) {
-		$can = true; 
-		if(!is_writable($this->config->paths->cache)) {
-			if($notify) $this->error($this->_('Make sure /site/assets/cache/ directory is writeable for PHP.'));
-			$can = false;
-		}
-		if(!is_writable($this->config->paths->siteModules)) {
-			if($notify) $this->error($this->_('Make sure your site modules directory (/site/modules/) is writeable for PHP.'));
-			$can = false;
-		}
-		if(!class_exists('ZipArchive')) {
-			if($notify) $this->error($this->_('ZipArchive class is required and your PHP does not appear to have it.'));
-			$can = false;
-		}
-		
-		return $can;
-	}
-	
-	protected function downloadFromURL($url) {
-		
-		if(!preg_match('{^https?://}i', $url)) throw new WireException("Invalid URL: $url");
-		
-		$tmp_dir = $this->config->paths->cache . 'ProcessModuleDownload/';
-		if(!is_dir($tmp_dir)) wireMkdir($tmp_dir);
-	
-		$tmp_name = 'module-tmp.zip';
-		if(preg_match('/([_a-z0-9]\.zip)$/i', $url, $matches)) $tmp_name = $matches[1]; 
-		$tmp_zip = $tmp_dir . $tmp_name; 
-
-		// download the zip file and save it in assets directory
-		$success = false;
-		$http = new WireHttp();
-
-		try {
-			$file = $http->download($url, $tmp_zip);
-			$this->message($this->_('Downloaded ZIP file:') . ' ' . $this->wire('sanitizer')->entities($url));
-		} catch(Exception $e) {
-			$this->error($e->getMessage());
-			@unlink($tmp_zip); 
-			return $this->wire('session')->redirect('./');
-		}
-
-		if(is_file($file)) $success = $this->unzipModule($file, $tmp_dir); 
-
-		// reset modules cache, so we can install the module and PW knows about it
-		if($success) $this->modules->resetCache();
-		wireRmdir($tmp_dir, true); 
-		$this->wire('session')->redirect('./'); 
-	}
 
 	/**
 	 * Checks for compatibility, polls the modules directory web service and returns rendered markup for the download info table and confirmation form
@@ -630,8 +554,6 @@ class ProcessModule extends Process implements ConfigurableModule {
 	 */
 	protected function downloadConfirm($name, $update = false) {
 		
-		$this->canUploadDownload();
-
 		$info = self::getModuleInfo();
 		$this->wire('processHeadline', $this->labels['download_install']); 
 		$this->wire('breadcrumbs')->add(new Breadcrumb('./', $info['title']));
@@ -794,7 +716,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 	 * 
 	 * Most code lifted from Soma's Modules Manager
 	 * 
-	 * @return string Rendered outpu
+	 * @return string Rendered output or redirect
 	 * @throws WireException
 	 * 
 	 */
@@ -809,157 +731,23 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$this->modules->resetCache();
 
 		$url = $this->session->ProcessModuleDownloadURL;
-		$class_name = $this->session->ProcessModuleClassName;
+		$className = $this->session->ProcessModuleClassName;
 		
 		$this->session->remove('ProcessModuleDownloadURL');
 		$this->session->remove('ProcessModuleClassName'); 
 		
 		if(!$url) throw new WireException("No download URL specified"); 
-		if(!$class_name) throw new WireException("No class name specified");
+		if(!$className) throw new WireException("No class name specified");
 
-		$destination_directory = $this->config->paths->siteModules . $class_name;
-		if(is_dir($destination_directory) && !is_writable($destination_directory)) {	
-			$this->error($this->_('Destination directory already exists and is not writable:') . ' ' . $destination_directory); 
+		$destinationDir = $this->wire('config')->paths->siteModules . $className . '/';
+		$install = new ProcessModuleInstall();
+		
+		$completedDir = $install->downloadModule($url, $destinationDir);
+		if($completedDir) {
+			return $this->buildDownloadSuccessForm($className)->render();
+		} else {
 			return $this->session->redirect('../'); 
 		}
-		
-		$tmp_dir = $this->config->paths->cache . 'ProcessModuleDownload/';
-		if(!is_dir($tmp_dir)) wireMkdir($tmp_dir); 
-		$tmp_zip = $tmp_dir . 'module-tmp.zip';
-
-		// download the zip file and save it in assets directory
-		$success = false;
-		$http = new WireHttp();
-		
-		try {
-			$file = $http->download($url, $tmp_zip);
-			$this->message($this->_('Downloaded ZIP file:') . ' ' . $this->wire('sanitizer')->entities($url));
-		} catch(Exception $e) {
-			$this->error($e->getMessage());
-			return $this->wire('session')->redirect('./');
-		}
-	
-		$success = $this->unzipModule($file, $tmp_dir, $destination_directory); 
-		if(!$success) $this->wire('session')->redirect('./'); 
-
-		// reset modules cache, so we can install the module and PW knows about it
-		$this->modules->resetCache();
-		$form = $this->buildDownloadSuccessForm($class_name);
-		return $form->render();
-	}
-
-	/**
-	 * Unzip the module file to tmp_dir and then copy to destination_directory
-	 * 
-	 * @param $file
-	 * @param $tmp_dir
-	 * @param string $destination_directory Optionally omit to have this method determine it automatically. 
-	 * @return bool
-	 * @throws WireException
-	 * 
-	 */
-	protected function unzipModule($file, $tmp_dir, $destination_directory = '') {
-		
-		$success = false; 
-		$autodir = false;  // automatically determine destination directory
-		$tmp_dir = rtrim($tmp_dir, '/') . "/unzip/";
-		$mkdirDestination = false; 
-		$mkdirTmp = false; 
-		$moduleName = $this->wire('sanitizer')->name(basename($file, '.zip')); 
-		
-		if(!$destination_directory) {
-			if(!$moduleName) throw new WireException("Unable to determine module name"); // not likely
-			$destination_directory = $this->wire('config')->paths->siteModules . $moduleName . "/"; 
-			$autodir = true; 
-		}
-		
-		if(!is_dir($tmp_dir)) {
-			if(!wireMkdir($tmp_dir, true)) {
-				$this->error("Unable to create temporary directory: $tmp_dir"); 
-				return false; 
-			}
-			$mkdirTmp = true;
-		}
-		
-		try {
-			$files = wireUnzipFile($file, $tmp_dir);
-
-		} catch(Exception $e) {
-			if(is_file($file)) unlink($file);
-			$this->error($e->getMessage());
-			wireRmdir($tmp_dir, true); 
-			return false;
-		}
-	
-		$moduleFiles = array();
-		$moduleDirs = array();
-		foreach($files as $f) {
-			$this->message("Extracted: $f", Notice::debug); 
-			// determine which file should be responsible for the name
-			if(strpos($f, '/') !== false) {
-				$dir = dirname($f); 
-				if($dir != '.') $moduleDirs[$dir] = $dir;
-			}
-			if(!preg_match('{^(.*?/|)([a-zA-Z0-9]+)\.module(\.php)?$}', $f, $matches)) continue;
-			$moduleFiles[] = $matches[2]; 
-		}
-		
-		if(!count($moduleFiles)) {
-			$this->error($this->_('Unable to find any module files in ZIP file')); 
-			wireRmdir($tmp_dir, true);
-			return false; 
-		}
-		
-		$extracted_directory_name = trim($files[0], '/');
-		if(is_dir($tmp_dir . $extracted_directory_name) && $extracted_directory_name[0] != '.') {
-			$extracted_directory_name = $this->wire('sanitizer')->name($extracted_directory_name) . '/';
-			if($autodir) $destination_directory = $this->wire('config')->paths->siteModules . $extracted_directory_name;
-		} else {
-			$extracted_directory_name = '';
-		}
-		
-		if($autodir && count($moduleDirs) <= 1) {
-			// find shortest module file name to serve as directory name
-			// but only if there weren't multiple directories in the archive. 
-			// if there were multiple directories, we defer to the ZIP name
-			$min = 1024; 
-			foreach($moduleFiles as $f) {
-				if(strlen($f) < $min) {
-					$destination_directory = $this->wire('config')->paths->siteModules . $f . "/";
-					$min = strlen($f); 
-				}
-			}
-		}
-
-		// now create module directory and copy files over
-		$from = $tmp_dir . $extracted_directory_name;
-		if(!is_dir($destination_directory)) wireMkdir($destination_directory, true);
-		$dirLabel = str_replace($this->config->paths->root, '/', $destination_directory);
-
-		if(is_dir($destination_directory)) {
-			$mkdirDestination = true; 
-			if(wireCopy($from, $destination_directory)) {
-				$this->message($this->_('Successfully copied files to new directory:') . ' ' . $dirLabel);
-				wireChmod($destination_directory, true);
-				$success = true;
-			} else {
-				$this->error($this->_('Unable to copy files to new directory:') . ' ' . $dirLabel); 
-			}
-		} else {
-			$this->error($this->_('Could not create directory:') . ' ' . $dirLabel);
-		}
-
-		if(!wireRmdir($tmp_dir, true)) $this->error($this->_('Could not delete temp dir:') . ' ' . $tmp_dir, Notice::log);
-		
-		if(!$success) {
-			$this->error($this->_('There seems to be a problem with downloading or writing the module.'));
-			if($mkdirDestination) {
-				if(!wireRmdir($destination_directory, true)) $this->error($this->_('Could not delete failed module dir:') . ' ' . $destination_directory, Notice::log); 
-			}
-			
-		}
-		
-		return $success; 
 	}
 
 	/**
@@ -1015,6 +803,22 @@ class ProcessModule extends Process implements ConfigurableModule {
 		}
 		
 		return $form;
+	}
+	
+	/**********************************************************************************************************************************************************/
+	
+	public function ___executeUpload($inputName = '') {
+		if(!$inputName) throw new WireException("This URL may be be accessed directly"); 
+		$install = new ProcessModuleInstall();
+		$install->uploadModule($inputName);
+		$this->session->redirect('./'); 
+	}
+	
+	public function ___executeDownloadURL($url = '') {
+		if(!$url) throw new WireException("This URL may be be accessed directly");
+		$install = new ProcessModuleInstall();
+		$install->downloadModule($url);
+		$this->session->redirect('./'); 
 	}
 
 	/**********************************************************************************************************************************************************/

@@ -1152,19 +1152,19 @@ class Modules extends WireArray {
 		// now determine if module is the owner of the directory it exists in
 		// this is the case if the module class name is the same as the directory name
 
-		// full path to directory, i.e. .../site/modules/ProcessHello
-		$path = dirname($filename); 
-		// saved module path
-		$thisModulePath = $path; 
-
-		// full path to parent directory, i.e. ../site/modules
-		$path = dirname($path);
+		$path = dirname($filename); // full path to directory, i.e. .../site/modules/ProcessHello
+		$name = basename($path); // just name of directory that module is, i.e. ProcessHello
+		$parentPath = dirname($path); // full path to parent directory, i.e. ../site/modules
+		$backupPath = $parentPath . "/.$name"; // backup path, in case module is backed up
 
 		// first check that we are still in the /site/modules/ (or another non core modules path)
-		$inPath = false;
+		$inPath = false; // is module somewhere beneath /site/modules/ ?
+		$inRoot = false; // is module in /site/modules/ root? i.e. /site/modules/ModuleName.module
+		
 		foreach($this->paths as $key => $modulesPath) {
 			if($key === 0) continue; // skip core modules path
-			if(strpos("$path/", $modulesPath) === 0) $inPath = true; 
+			if(strpos("$parentPath/", $modulesPath) === 0) $inPath = true; 
+			if($modulesPath === $path) $inRoot = true; 
 		}
 
 		$basename = basename($basename, '.php');
@@ -1177,40 +1177,60 @@ class Modules extends WireArray {
 			"$basename.info.json",
 			);
 		
-		$numDeleted = 0;
-		
 		if($inPath) { 
-			$numModules = 0; // num modules in dir other than this one
-			$numDirs = 0; // num dirs below this module dir (ideally none)
-			foreach(new DirectoryIterator($thisModulePath) as $file) {
-				if($file->isDot()) continue;
-				if($file->isDir()) {
-					$numDirs++;
-					continue; 
-				}
-				if(in_array($file->getBasename(), $files)) continue; // skip known files
-				if(preg_match('{^(' . $basename . '\.[-_.a-zA-Z0-9]+)$}', $file->getBasename(), $matches)) {
-					$files[] = $matches[1]; 
-				}
-				if(preg_match('{(\.module|\.module.php)$}', $file->getBasename())) $numModules++;
-			}
+			// module is in /site/modules/[ModuleName]/
 			
-			if(!$numModules && !$numDirs) {
+			$numOtherModules = 0; // num modules in dir other than this one
+			$numLinks = 0; // number of symbolic links
+			$dirs = array("$path/"); 
+			
+			do {
+				$dir = array_shift($dirs); 
+				$this->message("Scanning: $dir", Notice::debug); 
+				
+				foreach(new DirectoryIterator($dir) as $file) {
+					if($file->isDot()) continue;
+					if($file->isLink()) {
+						$numLinks++;
+						continue; 
+					}
+					if($file->isDir()) {
+						$dirs[] = $file->getPathname();
+						continue; 
+					}
+					if(in_array($file->getBasename(), $files)) continue; // skip known files
+					if(strpos($file->getBasename(), '.module') && preg_match('{(\.module|\.module.php)$}', $file->getBasename())) {
+						// another module exists in this dir, so we don't want to delete that
+						$numOtherModules++;
+					}
+					if(preg_match('{^(' . $basename . '\.[-_.a-zA-Z0-9]+)$}', $file->getBasename(), $matches)) {
+						// keep track of potentially related files in case we have to delete them individually
+						$files[] = $matches[1]; 
+					}
+				}
+			} while(count($dirs)); 
+			
+			if(!$inRoot && !$numOtherModules && !$numLinks) {
 				// the modulePath had no other modules or directories in it, so we can delete it entirely
-				$success = wireRmdir($thisModulePath, true); 
-				$this->message("Removing directory: $thisModulePath", Notice::debug); 
-				$files = array();
+				$success = wireRmdir($path, true); 
+				if($success) {
+					$this->message("Removed directory: $path", Notice::debug);
+					if(is_dir($backupPath)) {
+						if(wireRmdir($backupPath, true)) $this->message("Removed directory: $backupPath", Notice::debug); 
+					}
+					$files = array();
+				} else {
+					$this->error("Failed to remove directory: $path", Notice::debug); 
+				}
 			}
-			
 		}
 
 		// remove module files individually 
 		foreach($files as $file) {
-			$file = "$thisModulePath/$file";
+			$file = "$path/$file";
 			if(!file_exists($file)) continue;
 			if(unlink($file)) {
-				$this->message("Removing file: $file", Notice::debug);
-				$numDeleted++; 
+				$this->message("Removed file: $file", Notice::debug);
 			} else {
 				$this->error("Unable to remove file: $file", Notice::debug);
 			}

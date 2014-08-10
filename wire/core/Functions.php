@@ -212,6 +212,7 @@ function wireDecodeJSON($json) {
  *
  */ 
 function wireMkdir($path, $recursive = false) {
+	if(!strlen($path)) return false; 
 	if(!is_dir($path)) {
 		if($recursive) {
 			$parentPath = substr($path, 0, strrpos(rtrim($path, '/'), '/')); 
@@ -783,4 +784,21 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
 	}
 
 	return $str; 
+}
+
+
+/**
+ * Return a new temporary directory/path ready to use for files
+ * 
+ * @param object|string $name Provide the object that needs the temp dir, or name your own string
+ * @param int $maxAge Maximum age of temp dir files in seconds
+ * @return WireTempDir
+ * 
+ */
+function wireTempDir($name, $maxAge = 120) {
+	static $tempDirs = array();
+	if(isset($tempDirs[$name])) return $tempDirs[$name]; 
+	$tempDir = new WireTempDir($name, $maxAge); 
+	$tempDirs[$name] = $tempDir; 
+	return $tempDir; 
 }

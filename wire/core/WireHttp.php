@@ -6,22 +6,106 @@
  * Provides capability for sending POST/GET requests to URLs
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
  *
  */
 
-class WireHttp extends Wire { 
+class WireHttp extends Wire {
+	
+	const debug = false; 
+
+	/**
+	 * Default value for $headers, when reset
+	 *
+	 */
+	protected $defaultHeaders = array(
+		'charset' => 'utf-8',
+		);
 
 	/**
 	 * Headers to include in the request
 	 *
 	 */
-	protected $headers = array(
-		'charset' => 'utf-8',
+	protected $headers = array();
+
+	/**
+	 * HTTP error codes
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $errorCodes = array(
+		400 => 'Bad Request',
+		401 => 'Unauthorized',
+		402 => 'Payment Required',
+		403 => 'Forbidden',
+		404 => 'Not Found',
+		405 => 'Method Not Allowed',
+		406 => 'Not Acceptable',
+		407 => 'Proxy Authentication Required',
+		408 => 'Request Timeout',
+		409 => 'Conflict',
+		410 => 'Gone',
+		411 => 'Length Required',
+		412 => 'Precondition Failed',
+		413 => 'Request Entity Too Large',
+		414 => 'Request-URI Too Long',
+		415 => 'Unsupported Media Type',
+		416 => 'Requested Range Not Satisfiable',
+		417 => 'Expectation Failed',
+		419 => 'Authentication Timeout (not in RFC 2616)',
+		420 => 'Enhance Your Calm ',
+		422 => 'Unprocessable Entity (WebDAV; RFC 4918)',
+		423 => 'Locked (WebDAV; RFC 4918)',
+		424 => 'Failed Dependency (WebDAV; RFC 4918)',
+		426 => 'Upgrade Required',
+		428 => 'Precondition Required (RFC 6585)',
+		429 => 'Too Many Requests (RFC 6585)',
+		431 => 'Request Header Fields Too Large (RFC 6585)',
+		440 => 'Login Timeout (Microsoft)',
+		444 => 'No Response (Nginx)',
+		449 => 'Retry With (Microsoft)',
+		450 => 'Blocked by Windows Parental Controls (Microsoft)',
+		451 => 'Redirect (Microsoft)',
+		451 => 'Unavailable For Legal Reasons (Internet draft)',
+		494 => 'Request Header Too Large (Nginx)',
+		495 => 'Cert Error (Nginx)',
+		496 => 'No Cert (Nginx)',
+		497 => 'HTTP to HTTPS (Nginx)',
+		498 => 'Token expired/invalid (Esri)',
+		499 => 'Client Closed Request (Nginx)',
+		499 => 'Token required (Esri)',
+		500 => 'Internal Server Error',
+		501 => 'Not Implemented',
+		502 => 'Bad Gateway',
+		503 => 'Service Unavailable',
+		504 => 'Gateway Timeout',
+		505 => 'HTTP Version Not Supported',
+		506 => 'Variant Also Negotiates (RFC 2295)',
+		507 => 'Insufficient Storage (WebDAV; RFC 4918)',
+		508 => 'Loop Detected (WebDAV; RFC 5842)',
+		509 => 'Bandwidth Limit Exceeded (Apache bw/limited extension)[25]',
+		510 => 'Not Extended (RFC 2774)',
+		511 => 'Network Authentication Required (RFC 6585)',
+		520 => 'Origin Error (Cloudflare)',
+		521 => 'Web server is down (Cloudflare)',
+		522 => 'Connection timed out (Cloudflare)',
+		523 => 'Proxy Declined Request (Cloudflare)',
+		524 => 'A timeout occurred (Cloudflare)',
+		598 => 'Network read timeout error (Unknown)',
+		599 => 'Network connect timeout error (Unknown)',
 		);
+
+	/**
+	 * Last HTTP code
+	 * 
+	 * @var int
+	 * 
+	 */
+	protected $httpCode = 0;
 
 	/**
 	 * Data to send in the request
@@ -42,10 +126,45 @@ class WireHttp extends Wire {
 	protected $responseHeader = array();
 
 	/**
+	 * Last response headers parsed into key => value properties
+	 * 
+	 * Note that keys are always lowercase
+	 *
+	 */
+	protected $responseHeaders = array();
+	
+	/**
 	 * Last error message
 	 *
 	 */
 	protected $error = '';
+
+	/**
+	 * Whether the system supports CURL
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $hasCURL = false;
+	
+	/**
+	 * Whether the system supports fopen of URLs 
+	 *
+	 * @var bool
+	 *
+	 */
+	protected $hasFopen = false;
+
+	/**
+	 * Construct/initialize
+	 * 
+	 */
+	public function __construct() {
+		$this->hasCURL = function_exists('curl_init');
+		$this->hasFopen = ini_get('allow_url_fopen');
+		$this->resetRequest();
+		$this->resetResponse();
+	}
 
 	/**
 	 * Send to a URL using POST
@@ -201,17 +320,15 @@ class WireHttp extends Wire {
 	 */
 	protected function send($url, $data = array(), $method = 'POST') { 
 
-		$this->error = '';
-		$this->responseHeader = array();
+		$this->resetResponse();
 		$unmodifiedURL = $url;
 
 		if(!empty($data)) $this->setData($data);
 		if($method !== 'GET') $method = 'POST';
 
-		$useSocket = false; 
-		if(strpos($url, 'https://') === 0 && !extension_loaded('openssl')) $useSocket = true; 
-		if(!ini_get('allow_url_fopen')) $useSocket = true; 
-		if($useSocket) return $this->sendSocket($url, $method); 
+		if(!$this->hasFopen || strpos($url, 'https://') === 0 && !extension_loaded('openssl')) {
+			return $this->sendSocket($url, $method); 
+		}
 
 		if(!empty($this->data)) {
 			$content = http_build_query($this->data); 
@@ -247,7 +364,7 @@ class WireHttp extends Wire {
 		}
 
 		$result = @stream_get_contents($fp); 
-		if(isset($http_response_header)) $this->responseHeader = $http_response_header; 
+		if(isset($http_response_header)) $this->setResponseHeader($http_response_header); 
 		return $result;
 	}
 
@@ -256,7 +373,10 @@ class WireHttp extends Wire {
 	 *
 	 */
 	protected function sendSocket($url, $method = 'POST') {
+		
+		static $level = 0; // recursion level
 
+		$this->resetResponse();
 		$timeoutSeconds = 3; 
 		if($method != 'GET') $method = 'POST';
 
@@ -306,12 +426,25 @@ class WireHttp extends Wire {
 			fclose($fs);
 		}
 		if(strlen($errstr)) $this->error = $errno . ': ' . $errstr; 
-
+	
 		// skip past the headers in the response, so that it is consistent with 
 		// the results returned by the regular send() method
 		$pos = strpos($response, "\r\n\r\n"); 
-		$this->responseHeader = explode("\r\n", substr($response, 0, $pos)); 
+		$this->setResponseHeader(explode("\r\n", substr($response, 0, $pos))); 
 		$response = substr($response, $pos+4); 
+
+		// if response resulted in a redirect, follow it 
+		if($this->httpCode == 301 || $this->httpCode == 302) {
+			// follow redirects
+			$location = $this->getResponseHeader('location'); 
+			if(!empty($location) && ++$level <= 5) {
+				if(strpos($location, '://') === false && preg_match('{(https?://[^/]+)}i', $url, $matches)) {
+					// if location is relative, convert to absolute
+					$location = $matches[1] . '/' . ltrim($location, '/'); 
+				}
+				return $this->sendSocket($location, $method); 	
+			}
+		}
 
 		return $response;
 
@@ -320,11 +453,13 @@ class WireHttp extends Wire {
 	/**
 	 * Download a file from a URL and save it locally
 	 * 
-	 * Code originated from @soma's Modules Manager
+	 * First it will attempt to use CURL. If that fails, it will try fopen, 
+	 * unless you specify a useMethod in $options.
 	 * 
-	 * @param $fromURL URL of file you want to download.
-	 * @param $toFile Filename you want to save it to (including full path).
-	 * @param array $options Optional aptions array for PHP's stream_context_create().
+	 * @param string $fromURL URL of file you want to download.
+	 * @param string $toFile Filename you want to save it to (including full path).
+	 * @param array $options Optional aptions array for PHP's stream_context_create(), plus these optional options: 
+	 * 	- useMethod (string): Specify "curl", "fopen" or "socket" to force a specific method (default=autodetect)
 	 * @return string Filename that was downloaded (including full path).
 	 * @throws WireException All error conditions throw exceptions. 
 	 * 
@@ -333,65 +468,66 @@ class WireHttp extends Wire {
 
 		$http = stripos($fromURL, 'http://') === 0; 
 		$https = stripos($fromURL, 'https://') === 0;
+		$allowMethods = array('curl', 'fopen', 'socket');
+		$triedMethods = array();
 		
 		if(!$http && !$https) {
 			throw new WireException($this->_('Download URLs must begin with http:// or https://'));
 		}
 		
-		if(function_exists('curl_init')) $useMethod = 'curl';
-			else if(ini_get('allow_url_fopen')) $useMethod = 'fopen';
-			else throw new WireException($this->_('File download not supported (allow_url_fopen disabled and/or CURL not installed)')); 
-		
-		if($useMethod == 'fopen' && $https && !extension_loaded('openssl')) {
-			throw new WireException($this->_('WireHttp::download-OpenSSL extension required but not available.'));
+		if(isset($options['useMethod'])) {
+			$useMethod = $options['useMethod'];
+			unset($options['useMethod']);
+			if(!in_array($useMethod, $allowMethods)) throw new WireException("Unrecognized useMethod: $useMethod"); 
+			if($useMethod == 'curl' && !$this->hasCURL) throw new WireException("System does not support CURL");
+			if($useMethod == 'fopen' && !$this->hasFopen) throw new WireException("System does not support fopen"); 
+		} else {
+			if($this->hasCURL) $useMethod = 'curl';
+				else if($this->hasFopen) $useMethod = 'fopen';
+				else $useMethod = 'socket';
 		}
 		
 		if(($fp = fopen($toFile, 'wb')) === false) {
 			throw new WireException($this->_('fopen error for filename:') . ' ' . $toFile);
 		}
-		
-		$errorCodes = array(400, 401, 404, 500, 502, 503); 
-		$error = '';
 
-		if($useMethod == 'fopen') {
-			
-			// Define the options
-			$defaultOptions = array('max_redirects' => 3); 
-			$options = array_merge($defaultOptions, $options);
-			$context = stream_context_create(array('http' => $options));
-	
-			// download the file
-			$content = file_get_contents($fromURL, false, $context);
-			fwrite($fp, $content);
-			fclose($fp);
-
-			list($version, $httpCode, $msg) = explode(' ', $http_response_header[0], 3);
-			
-			if($content === false || in_array($httpCode, $errorCodes)) {
-				unlink($toFile); 
-				$error = "HTTP $httpCode $msg";
-			}
-			
-		} else if($useMethod == 'curl') {
-			
-			$fromURL = str_replace(' ', '%20', $fromURL); 
-			$curl = curl_init($fromURL);
-			curl_setopt($curl, CURLOPT_TIMEOUT, 50);
-			curl_setopt($curl, CURLOPT_FILE, $fp); // write curl response to file
-			curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-			$result = curl_exec($curl);
-			$httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-			curl_close($curl);
-			fclose($fp);
-			if($result === false || in_array($httpCode, $errorCodes)) {
-				$error = "HTTP $httpCode " . curl_error($curl); 
-			}
-			
+		// CURL
+		if($useMethod == 'curl') {
+			$triedMethods[] = 'curl';
+			$result = $this->downloadCURL($fromURL, $fp, $options);
+			if($result === false && !$this->httpCode) {
+				$useMethod = $this->hasFopen ? 'fopen' : 'socket'; 
+			}	
 		}
 		
-		if($error) {
+		// FOPEN 
+		if($useMethod == 'fopen') {
+			$triedMethods[] = 'fopen';
+			if($https && !extension_loaded('openssl')) {
+				// WireHttp::download-OpenSSL extension required but not available, fallback to socket
+				$useMethod = 'socket';
+			} else {
+				$result = $this->downloadFopen($fromURL, $fp, $options);
+				if($result === false && !$this->httpCode) $useMethod = 'socket'; 
+			}
+		}
+	
+		// SOCKET
+		if($useMethod == 'socket') {
+			$triedMethods[] = 'socket';
+			$this->downloadSocket($fromURL, $fp, $options); 
+		}
+		
+		fclose($fp); 
+			
+		$methods = implode(", ", $triedMethods);
+		if($this->error || in_array($this->httpCode, $this->errorCodes)) {
 			unlink($toFile);
-			throw new WireException( $this->_('File could not be downloaded') . ' ' . htmlentities("($fromURL) $error"));
+			$error = $this->_('File could not be downloaded') . ' ' . htmlentities("($fromURL) ") . $this->getError() . " (tried: $methods)";
+			throw new WireException($error); 
+		} else {
+			$bytes = filesize($toFile); 
+			$this->message("Downloaded " . htmlentities($fromURL) . " => $toFile (using: $methods) [$bytes bytes]", Notice::debug); 
 		}
 		
 		$chmodFile = $this->wire('config')->chmodFile; 
@@ -401,15 +537,189 @@ class WireHttp extends Wire {
 	}
 
 	/**
-	 * Get the last HTTP response header
+	 * Download file using CURL 
 	 * 
-	 * Useful to examine for errors if your request returned false
+	 * @param string $fromURL
+	 * @param resource $fp Open file pointer
+	 * @param array $options
+	 * @return bool True if successful false if not
+	 * 
+	 */
+	protected function downloadCURL($fromURL, $fp, array $options) {
+		
+		$this->resetResponse();
+		$fromURL = str_replace(' ', '%20', $fromURL);
+		
+		$curl = curl_init($fromURL);
+		
+		curl_setopt($curl, CURLOPT_TIMEOUT, 50);
+		curl_setopt($curl, CURLOPT_FILE, $fp); // write curl response to file
+		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+		
+		$result = curl_exec($curl);
+		if($result) $this->httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		curl_close($curl);
+
+		if($result === false) {
+			$this->error = curl_error($curl);
+		} else if(in_array($this->httpCode, $this->errorCodes)) {
+			$error = curl_error($curl);
+			if($error) $this->error = $error;
+		}
+		
+		return $result; 
+	}
+
+	/**
+	 * Download file using fopen
 	 *
-	 * @return array
+	 * @param string $fromURL
+	 * @param resource $fp Open file pointer
+	 * @param array $options
+	 * @return bool True if successful false if not
 	 *
 	 */
-	public function getResponseHeader() {
-		return $this->responseHeader; 
+	protected function downloadFopen($fromURL, $fp, array $options) {
+		
+		$this->resetResponse();
+
+		// Define the options
+		$defaultOptions = array('max_redirects' => 3);
+		$options = array_merge($defaultOptions, $options);
+		$context = stream_context_create(array('http' => $options));
+
+		// download the file
+		$content = file_get_contents($fromURL, false, $context);
+
+		if(isset($http_response_header)) $this->setResponseHeader($http_response_header);
+
+		if($content === false) {
+			$result = false;
+		} else {
+			$result = true; 
+			fwrite($fp, $content);
+		}
+		
+		return $result; 
+	}
+	
+	/**
+	 * Download file using sockets
+	 *
+	 * @param string $fromURL
+	 * @param resource $fp Open file pointer
+	 * @param array $options
+	 * @return bool True if successful false if not
+	 *
+	 */
+	protected function downloadSocket($fromURL, $fp, array $options) {
+		$this->resetResponse();
+		$this->resetRequest();
+
+		// download the file
+		$content = $this->sendSocket($fromURL, 'GET');
+		fwrite($fp, $content);
+		if(empty($content) && !$this->error) $this->error = 'no data received'; 
+		return $this->error ? false : true; 
+	}
+
+	/**
+	 * Get the last HTTP response headers (normal array)
+	 * 
+	 * Useful to examine for errors if your request returned false
+	 * However, the getResponseHeaders() plural method may be better
+	 * and this one is kept primarily for backwards compatibility.
+	 *
+	 * @param string $key Optional header name you want to get
+	 * @return array|string|null
+	 *
+	 */
+	public function getResponseHeader($key = '') {
+		if(!empty($key)) return $this->getResponseHeaders($key);
+		return $this->responseHeader;
+	}
+	
+	/**
+	 * Get the last HTTP response headers (associative array)
+	 *
+	 * All headers are translated to key => value properties in the array. 
+	 * The keys are always lowercase. 
+	 *
+	 * @param string $key Optional header name you want to get
+	 * @return array|string|null
+	 *
+	 */
+	public function getResponseHeaders($key = '') {
+		if(!empty($key)) {
+			$key = strtolower($key);
+			return isset($this->responseHeaders[$key]) ? $this->responseHeaders[$key] : null;
+		}
+		return $this->responseHeaders;
+	}
+	
+	/**
+	 * Set the response header
+	 *
+	 * @param array
+	 *
+	 */
+	protected function setResponseHeader(array $responseHeader) {
+		
+		$this->responseHeader = $responseHeader;
+		
+		if(isset($responseHeader[0])) {
+			$properties = explode(' ', $responseHeader[0]);
+			$httpCode = isset($properties[1]) ? (int) $properties[1] : 0;
+			$message = isset($properties[2]) ? $properties[2] : '';
+		} else {
+			$httpCode = 0;
+			$message = '';
+		}
+		
+		$this->httpCode = (int) $httpCode;
+		if(in_array($this->httpCode, $this->errorCodes)) $this->error = $message;
+
+		// parsed version
+		$this->responseHeaders = array();
+		foreach($responseHeader as $header) {
+			$pos = strpos($header, ':');
+			if($pos !== false) {
+				$key = trim(strtolower(substr($header, 0, $pos)));
+				$value = trim(substr($header, $pos+1));
+			} else {
+				$key = $header;
+				$value = '';
+			}
+			if(!isset($this->responseHeaders[$key])) $this->responseHeaders[$key] = $value;
+		}
+	
+		/*
+		if(self::debug && count($responseHeader)) {
+			$this->message("httpCode: $this->httpCode, message: $message"); 
+			$this->message("<pre>" . print_r($this->getResponseHeader(true), true) . "</pre>", Notice::allowMarkup);
+		}
+		*/
+	}
+
+	/**
+	 * Reset all response properties
+	 *
+	 */
+	protected function resetResponse() {
+		$this->responseHeader = array();
+		$this->responseHeaders = array();
+		$this->httpCode = 0;
+		$this->error = '';
+	}
+
+	/**
+	 * Reset all request data
+	 *
+	 */
+	protected function resetRequest() {
+		$this->data = array();
+		$this->rawData = null;
+		$this->headers = $this->defaultHeaders;
 	}
 
 	/**
@@ -419,7 +729,32 @@ class WireHttp extends Wire {
 	 *
 	 */
 	public function getError() {
-		return $this->error; 
-	}	
+		$error = $this->error; 
+		if(in_array($this->httpCode, $this->errorCodes)) {
+			$error = "$this->httpCode " . $this->errorCodes[$this->httpCode] . ": $error";
+		}
+		return $error; 
+	}
+
+	/**
+	 * Get last HTTP error code
+	 *
+	 * @return int
+	 *
+	 */
+	protected function getHttpCode() {
+		return $this->httpCode; 
+	}
+
+	/**
+	 * Return array of all possible HTTP error codes as (code => description)
+	 * 
+	 * @return array
+	 * 
+	 */
+	public function getErrorCodes() {
+		return $this->errorCodes;
+	}
+
 
 }
