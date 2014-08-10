@@ -521,7 +521,7 @@ class WireHttp extends Wire {
 		fclose($fp); 
 			
 		$methods = implode(", ", $triedMethods);
-		if($this->error || in_array($this->httpCode, $this->errorCodes)) {
+		if($this->error || isset($this->errorCodes[$this->httpCode])) {
 			unlink($toFile);
 			$error = $this->_('File could not be downloaded') . ' ' . htmlentities("($fromURL) ") . $this->getError() . " (tried: $methods)";
 			throw new WireException($error); 
@@ -558,14 +558,9 @@ class WireHttp extends Wire {
 		
 		$result = curl_exec($curl);
 		if($result) $this->httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-		curl_close($curl);
 
-		if($result === false) {
-			$this->error = curl_error($curl);
-		} else if(in_array($this->httpCode, $this->errorCodes)) {
-			$error = curl_error($curl);
-			if($error) $this->error = $error;
-		}
+		if($result === false) $this->error = curl_error($curl);
+		curl_close($curl);
 		
 		return $result; 
 	}
@@ -677,7 +672,7 @@ class WireHttp extends Wire {
 		}
 		
 		$this->httpCode = (int) $httpCode;
-		if(in_array($this->httpCode, $this->errorCodes)) $this->error = $message;
+		if(isset($this->errorCodes[$this->httpCode])) $this->error = $this->errorCodes[$this->httpCode]; 
 
 		// parsed version
 		$this->responseHeaders = array();
@@ -730,7 +725,7 @@ class WireHttp extends Wire {
 	 */
 	public function getError() {
 		$error = $this->error; 
-		if(in_array($this->httpCode, $this->errorCodes)) {
+		if(isset($this->errorCodes[$this->httpCode])) {
 			$error = "$this->httpCode " . $this->errorCodes[$this->httpCode] . ": $error";
 		}
 		return $error; 
