@@ -73,7 +73,7 @@ class ProcessModuleInstall extends Wire {
 			if($file->isDot()) continue; 
 			
 			if($file->isDir() && $level < $maxLevel) {
-				$_files = $this->findAllModuleFiles($file->getPathname());
+				$_files = $this->findModuleFiles($file->getPathname());
 				$files = array_merge($_files, $files); 	
 				
 			} else if($file->isFile()) {
