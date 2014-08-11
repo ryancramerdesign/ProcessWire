@@ -26,6 +26,12 @@ class WireHttp extends Wire {
 		);
 
 	/**
+	 * Schemes wwe are allowed to use
+	 *
+	 */
+	protected $allowSchemes = array('http', 'https'); 
+
+	/**
 	 * Headers to include in the request
 	 *
 	 */
@@ -160,7 +166,7 @@ class WireHttp extends Wire {
 	 * 
 	 */
 	public function __construct() {
-		$this->hasCURL = function_exists('curl_init');
+		$this->hasCURL = function_exists('curl_init') && !ini_get('safe_mode') && !ini_get('open_basedir');
 		$this->hasFopen = ini_get('allow_url_fopen');
 		$this->resetRequest();
 		$this->resetResponse();
@@ -320,6 +326,8 @@ class WireHttp extends Wire {
 	 */
 	protected function send($url, $data = array(), $method = 'POST') { 
 
+		$url = $this->validateURL($url, false); 
+		if(empty($url)) return false;
 		$this->resetResponse();
 		$unmodifiedURL = $url;
 
@@ -466,6 +474,7 @@ class WireHttp extends Wire {
 	 */
 	public function download($fromURL, $toFile, array $options = array()) {
 
+		$fromURL = $this->validateURL($fromURL, true); 
 		$http = stripos($fromURL, 'http://') === 0; 
 		$https = stripos($fromURL, 'https://') === 0;
 		$allowMethods = array('curl', 'fopen', 'socket');
@@ -697,6 +706,31 @@ class WireHttp extends Wire {
 	}
 
 	/**
+	 * Validate a URL for WireHttp use
+	 *
+	 * @param string $url
+	 * @param bool $throw Whether to throw exception on validation fail (default=false)
+	 * @throws Exception|WireException
+	 * @return string $url Valid URL or blank string on failure
+	 * 
+	 */
+	public function validateURL($url, $throw = false) {
+		$options = array(
+			'allowRelative' => false, 
+			'allowSchemes' => $this->allowSchemes, 
+			'requireScheme' => true, 
+			'throw' => true,
+			);
+		try {
+			$url = $this->wire('sanitizer')->url($url, $options); 
+		} catch(WireException $e) {
+			if($throw) throw $e; 
+			$url = '';
+		}
+		return $url;
+	}
+
+	/**
 	 * Reset all response properties
 	 *
 	 */
@@ -749,6 +783,43 @@ class WireHttp extends Wire {
 	 */
 	public function getErrorCodes() {
 		return $this->errorCodes;
+	}
+
+	/**
+	 * Set schemes WireHttp is allowed to access (default=[http, https])
+	 *
+	 * @param array|string $schemes Array of schemes or space-separated string of schemes
+	 * @param bool $replace Specify true to replace any existing schemes already allowed (default=false)
+	 * @return this
+	 *
+	 */
+	public function setAllowSchemes($schemes, $replace = false) {
+		if(is_string($schemes)) {
+			$str = strtolower($schemes); 
+			$schemes = array();
+			$str = str_replace(',', ' ', $str); 
+			foreach(explode(' ', $str) as $scheme) {
+				if($scheme) $schemes[] = $scheme;
+			}
+		}
+		if(is_array($schemes)) {
+			if($replace) {
+				$this->allowSchemes = $schemes;
+			} else {
+				$this->allowSchemes = array_merge($this->allowSchemes, $schemes); 
+			}
+		}
+		return $this;
+	}
+
+	/**
+	 * Return array of allowed schemes
+	 * 
+	 * @return array
+	 * 
+	 */
+	public function getAllowSchemes() {
+		return $this->allowSchemes; 
 	}
 
 

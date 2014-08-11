@@ -438,9 +438,16 @@ class Sanitizer extends Wire {
 	 * your output should always entity encoded any URLs that came from user input. 
 	 *
 	 * @param string $value URL
-	 * @param bool|array $options Array of options including: allowRelative or allowQuerystring (both booleans)
+	 * @param bool|array $options Array of options including: 
+	 * 	- allowRelative (boolean) Whether to allow relative URLs, i.e. those without domains (default=true)
+	 * 	- allowQuerystring (boolean) Whether to allow query strings (default=true)
+	 * 	- allowSchemes (array) Array of allowed schemes, lowercase (default=[] any)
+	 *	- disallowSchemes (array) Array of disallowed schemes, lowercase (default=[file])
+	 * 	- requireScheme (bool) Specify true to require a scheme in the URL, if one not present, it will be added to non-relative URLs (default=true)
+	 * 	- throw (bool) Throw exceptions on invalid URLs (default=false)
 	 *	Previously this was the boolean $allowRelative, and that usage will still work for backwards compatibility.
 	 * @return string
+	 * @throws WireException on invalid URLs, only if $options['throw'] is true. 
 	 * @todo add TLD validation
 	 *
 	 */
@@ -449,22 +456,40 @@ class Sanitizer extends Wire {
 		$defaultOptions = array(
 			'allowRelative' => true, 
 			'allowQuerystring' => true,
+			'allowSchemes' => array(), 
+			'disallowSchemes' => array('file'), 
+			'requireScheme' => true, 
+			'throw' => false,
 			);
 
 		if(!is_array($options)) {
-			$defaultOptions['allowRelative'] = (bool) $options;
+			$defaultOptions['allowRelative'] = (bool) $options; // backwards compatibility with old API
 			$options = array();
 		}
 
 		$options = array_merge($defaultOptions, $options);
 
 		if(!strlen($value)) return '';
+		
+		$scheme = parse_url($value, PHP_URL_SCHEME); 
+		if($scheme !== false && strlen($scheme)) {
+			$scheme = strtolower($scheme);
+			$schemeError = false;
+			if(!empty($options['allowSchemes']) && !in_array($scheme, $options['allowSchemes'])) $schemeError = true; 
+			if(!empty($options['disallowSchemes']) && in_array($scheme, $options['disallowSchemes'])) $schemeError = true; 
+			if($schemeError) {
+				$error = sprintf($this->_('URL: Scheme "%s" is not allowed'), $scheme);
+				if($options['throw']) throw new WireException($error);
+				$this->error($error);
+				$value = str_ireplace(array("$scheme:///", "$scheme://"), '', $value); 
+			}
+		}
 
 		// this filter_var sanitizer just removes invalid characters that don't appear in domains or paths
 		$value = filter_var($value, FILTER_SANITIZE_URL); 
 	
-		if(!strpos($value, '://')) {
-			// URL is missing protocol, or is local/relative
+		if(!$scheme) {
+			// URL is missing scheme/protocol, or is local/relative
 
 			if($options['allowRelative']) {
 				// determine if this is a domain name 
@@ -472,7 +497,7 @@ class Sanitizer extends Wire {
 				if(strpos($value, '.') && preg_match('{^([^\s_.]+\.)?[^-_\s.][^\s_.]+\.([a-z]{2,6})([./:#]|$)}i', $value, $matches)) {
 					// most likely a domain name
 					// $tld = $matches[3]; // TODO add TLD validation to confirm it's a domain name
-					$value = filter_var("http://$value", FILTER_VALIDATE_URL); 
+					$value = filter_var("http://$value", FILTER_VALIDATE_URL); // add scheme for validation
 
 				} else if($options['allowQuerystring']) {
 					// we'll construct a fake domain so we can use FILTER_VALIDATE_URL rules
@@ -487,10 +512,17 @@ class Sanitizer extends Wire {
 				}
 				
 			} else {
-				// relative urls aren't allowed, so add the protocol and validate
+				// relative urls aren't allowed, so add the scheme/protocol and validate
 				$value = filter_var("http://$value", FILTER_VALIDATE_URL); 
 			}
+			
+			if(!$options['requireScheme']) {
+				// if a scheme was added above (for filter_var validation) and it's not required, remove it
+				$value = str_replace('http://', '', $value); 
+			}
+				
 		} else {
+			// URL already has a scheme
 			$value = filter_var($value, FILTER_VALIDATE_URL); 
 		}
 
