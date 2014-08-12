@@ -377,7 +377,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 			self::$purifier->set('Attr.AllowedFrameTargets', array('_blank')); // allow links opened in new window/tab
 			self::$purifier->set('Attr.EnableID', stripos($this->toolbar, 'anchor') !== false); // for anchor plugin use of id and name attributes
 			$value = self::$purifier->purify($value); 
-			$newLength = strlen($value);
+			// $newLength = strlen($value);
 			// if($length != $newLength) $this->message("HTML Purifier: $this->name (before: $length bytes, after: $newLength bytes)", Notice::debug);
 		}
 
@@ -399,7 +399,8 @@ class InputfieldCKEditor extends InputfieldTextarea {
 
 		// convert non-breaking space to regular space
 		if(in_array(self::toggleCleanNBSP, $this->toggles)) {
-			$value = str_ireplace('&nbsp;', ' ', $value); 
+			$value = str_ireplace('&nbsp;', ' ', $value);
+			$value = str_replace("\xc2\xa0",' ', $value);
 		}
 
 		return $value; 

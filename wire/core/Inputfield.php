@@ -61,6 +61,7 @@ abstract class Inputfield extends WireData implements Module {
 	const collapsedNoLocked = 7;	// value is visible but not editable
 	const collapsedYesLocked = 8;  	// value is collapsed but not editable, otherwise same as collapsedYes
 	const collapsedLocked = 8; 	// for backwards compatibility
+	const collapsedNever = 9; // input may not be collapsed
 
 	/**
 	 * Constants for skipLabel setting
@@ -568,7 +569,10 @@ abstract class Inputfield extends WireData implements Module {
 	/**
 	 * Get any custom configuration fields for this Inputfield
 	 *
-	 * Intended to be extended or overriden
+	 * Intended to be extended by each Inputfield as needed to add more config options. 
+	 * 
+	 * NOTE: Inputfields with a name that starts with an underscore, i.e. "_myname" are assumed to be for runtime
+	 * use and are NOT stored in the database.
 	 *
 	 * @return InputfieldWrapper
 	 *
@@ -588,7 +592,8 @@ abstract class Inputfield extends WireData implements Module {
 		$field->attr('name', 'collapsed'); 
 		$field->label = $this->_('Presentation'); 
 		$field->description = $this->_("How should this field be displayed in the editor?");
-		$field->addOption(self::collapsedNo, $this->_('Always open (default)')); 
+		$field->addOption(self::collapsedNo, $this->_('Always open (default)'));
+		$field->addOption(self::collapsedNever, $this->_('Always open and cannot be collapsed')); 
 		$field->addOption(self::collapsedBlank, $this->_("Collapsed only when blank")); 
 		$field->addOption(self::collapsedPopulated, $this->_("Collapsed only when populated")); 
 		$field->addOption(self::collapsedYes, $this->_("Always collapsed, requiring a click to open")); 
@@ -663,7 +668,7 @@ abstract class Inputfield extends WireData implements Module {
 	 * For example, internal IDs should be converted to GUIDs where possible.
 	 * 
 	 * Most Inputfields do not need to implement this.
-	 *
+	 * 
 	 * @param array $data
 	 * @return array
 	 *
@@ -672,7 +677,6 @@ abstract class Inputfield extends WireData implements Module {
 		$inputfields = $this->getConfigInputfields(); 
 		if(!$inputfields || !count($inputfields)) return $data;
 		foreach($inputfields->getAll() as $inputfield) {
-			if(isset($data[$inputfield->name])) continue;
 			$value = $inputfield->isEmpty() ? '' : $inputfield->value;
 			if(is_object($value)) $value = (string) $value;
 			$data[$inputfield->name] = $value;

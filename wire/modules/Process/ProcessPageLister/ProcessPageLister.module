@@ -353,6 +353,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if($key == 'openPageIDs' && is_array($value)) {
 			$this->openPageIDs = $value; 
 			return $this; 
+		} else if($key == 'parent' && !$value instanceof Page) {
+			$value = $this->wire('pages')->get($value); 
 		}
 		return parent::set($key, $value);
 	}

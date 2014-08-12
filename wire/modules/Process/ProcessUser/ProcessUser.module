@@ -47,17 +47,34 @@ class ProcessUser extends ProcessPageType {
 	protected function getLister($selector = '') {
 		$selector = "template=$this->template, $selector";
 		$lister = $this->lister;
-		$lister->initSelector = $selector;
-		$lister->columns = $this->showFields;
-		$lister->defaultSelector = "name%=, roles=";
-		$lister->defaultSort = 'name';
-		$lister->parent = $this->page;
-		$lister->template = $this->template;
 		if($lister->className() == 'ProcessPageLister') $lister->editMode = ProcessPageLister::windowModeDirect;
-		$lister->editURL = './edit/';
-		$lister->addURL = './add/';
-		$lister->delimiters = array('roles' => ', ');
-		$lister->allowSystem = true; 
+		
+		$properties = array(
+			'initSelector' => $selector,
+			'columns' => $this->showFields,
+			'defaultSelector' => "name%=, roles=",
+			'defaultSort' => 'name',
+			'parent' => $this->page,
+			'template' => $this->template,
+			'editURL' => './edit/',
+			'addURL' => './add/',
+			'delimiters' => array('roles' => ', '),
+			'allowSystem' => true,
+			);
+		
+		foreach($properties as $name => $value) {
+			$lister->$name = $value; 
+		}
+		
+		if($lister->className() == 'ProcessPageListerPro') {
+			$data = $this->wire('modules')->getModuleConfigData('ProcessPageListerPro'); 
+			if(isset($data['settings'][$this->page->name])) {
+				foreach($data['settings'][$this->page->name] as $key => $value) {
+					$lister->$key = $value; 
+				}
+			}
+		} 
+		
 		return $lister;
 	}
 

@@ -304,8 +304,8 @@ class InputfieldWrapper extends Inputfield {
 			$ffAttrs = array(
 				'class' => str_replace(array('{class}', '{name}'), array($inputfield->className(), $inputfield->attr('name')), $classes['item'])
 				);
-			
 			if($inputfield instanceof InputfieldItemList) $ffAttrs['class'] .= " InputfieldItemList";
+			if($collapsed) $ffAttrs['class'] .= " collapsed$collapsed";
 
 			//if(count($errors)) $ffAttrs['class'] .= " ui-state-error InputfieldStateError"; 
 			if(count($errors)) $ffAttrs['class'] .= ' ' . $classes['item_error'];

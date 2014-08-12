@@ -861,7 +861,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 */
 	
-	protected $_notices = array('errors' => array(), 'messages' => array());
+	protected $_notices = array('errors' => null, 'messages' => null);
 
 	/**
 	 * Record an informational or 'success' message in the system-wide notices. 
@@ -877,8 +877,9 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		if($flags === true) $flags = Notice::log; 
 		$notice = new NoticeMessage($text, $flags); 
 		$notice->class = $this->className();
+		if(is_null($this->_notices['messages'])) $this->_notices['messages'] = new Notices();
 		$this->wire('notices')->add($notice);
-		$this->_notices['messages'][] = $notice;
+		$this->_notices['messages']->add($notice);
 		return $this; 
 	}
 
@@ -898,23 +899,25 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		if($flags === true) $flags = Notice::log; 
 		$notice = new NoticeError($text, $flags); 
 		$notice->class = $this->className();
-		$this->wire('notices')->add($notice); 
-		$this->_notices['errors'][] = $notice;
+		if(is_null($this->_notices['errors'])) $this->_notices['errors'] = new Notices();
+		$this->wire('notices')->add($notice);
+		$this->_notices['errors']->add($notice);
 		return $this; 
 	}
 
 	/**
 	 * Return errors recorded by this object
 	 * 
-	 * @param string|array $options One or more of array elements or space separated string of: clear, last, first, str
-	 * 	clear: Current items will be cleared out
+	 * @param string|array $options One or more of array elements or space separated string of:
 	 * 	first: only first item will be returned (string)
 	 * 	last: only last item will be returned (string)
-	 * @return array|string Array of NoticeError error messages or string if last, first or str option was specified.
+	 * 	all: include all items of type (messages or errors) beyond the scope of this object
+	 * 	clear: clear out all items that are returned from this method (includes both local and global)
+	 * @return Notices|string Array of NoticeError error messages or string if last, first or str option was specified.
 	 * 
 	 */
 	public function errors($options = array()) {
-		if(!is_array($options)) $options = explode(' ', $options); 
+		if(!is_array($options)) $options = explode(' ', strtolower($options)); 
 		$options[] = 'errors';
 		return $this->messages($options); 
 	}
@@ -922,22 +925,37 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	/**
 	 * Return messages recorded by this object
 	 *
-	 * @param string|array $options One or more of array elements or space separated string of: clear, last, first, str, errors
-	 * 	clear: Current items will be cleared out
+	 * @param string|array $options One or more of array elements or space separated string of:
 	 * 	first: only first item will be returned (string)
 	 * 	last: only last item will be returned (string)
+	 * 	all: include all items of type (messages or errors) beyond the scope of this object
+	 * 	clear: clear out all items that are returned from this method (includes both local and global)
 	 * 	errors: returns errors rather than messages.
-	 * @return array|string Array of NoticeError error messages or string if last, first or str option was specified.
+	 * @return Notices|string Array of NoticeError error messages or string if last, first or str option was specified.
 	 *
 	 */
 	public function messages($options = array()) {
-		if(!is_array($options)) $options = explode(' ', $options); 
+		if(!is_array($options)) $options = explode(' ', strtolower($options)); 
 		$type = in_array('errors', $options) ? 'errors' : 'messages';
-		$messages = $this->_notices[$type];
-		if(in_array('clear', $options)) $this->_notices[$type] = array();
-		if(in_array('first', $options)) return reset($messages); 
-		if(in_array('last', $options)) return end($messages); 
-		return $messages; 
+		$clear = in_array('clear', $options); 
+		if(in_array('all', $options)) {
+			// get all of either messages or errors (either in or out of this object instance)
+			$value = new Notices();
+			foreach($this->wire('notices') as $notice) {
+				if($notice->getName() != $type) continue;
+				$value->add($notice);
+				if($clear) $this->wire('notices')->remove($notice); // clear global
+			}
+			if($clear) $this->_notices[$type] = null; // clear local
+		} else {
+			// get messages or errors specific to this object instance
+			$value = is_null($this->_notices[$type]) ? new Notices() : $this->_notices[$type];
+			if(in_array('first', $options)) $value = $clear ? $value->shift() : $value->first();
+				else if(in_array('last', $options)) $value = $clear ? $value->pop() : $value->last(); 
+				else if($clear) $this->_notices[$type] = null;
+			if($clear && $value) $this->wire('notices')->removeItems($value); // clear from global notices
+		}
+		return $value; 
 	}
 	
 	/*******************************************************************************************************

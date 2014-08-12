@@ -106,22 +106,29 @@ class InputfieldCheckbox extends Inputfield {
 		if($key == 'checkedValue' && $value != self::checkedValueDefault) $this->checkedValueIsLabel = true; 
 		return parent::set($key, $value); 
 	}	
+	
+	public function isChecked() {
+		$checked = $this->attr('checked'); 
+		return !empty($checked); 
+	}
 
 	public function isEmpty() {
-		return $this->attr('value') != $this->checkedValue; 
+		// return $this->attr('value') != $this->checkedValue; 
+		return !$this->isChecked();
 	}
 
 	public function ___processInput(WireInputData $input) {
 
-		if(!empty($input[$this->name])) {
-			if(!$this->attr('checked')) $this->trackChange('value', $this->uncheckedValue, $this->checkedValue); 
+		$value = $input[$this->name];
+		$checked = $this->isChecked();
+		if(!empty($value)) {
+			if(!$checked) $this->trackChange('value', $this->uncheckedValue, $this->checkedValue); 
 			parent::attr('checked', 'checked'); 
 			parent::attr('value', $this->checkedValue); 
 		} else {
-			if($this->attr('checked')) $this->trackChange('value', $this->checkedValue, $this->uncheckedValue); 
+			if($checked) $this->trackChange('value', $this->checkedValue, $this->uncheckedValue); 
 			parent::attr('checked', ''); 
 			parent::attr('value', $this->uncheckedValue); 
-			
 		}
 
 		return $this; 

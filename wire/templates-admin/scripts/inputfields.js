@@ -540,16 +540,32 @@ function InputfieldColumnWidths() {
  * 
  */
 function InputfieldStates() {
-	$(".InputfieldHeader, .Inputfield > .ui-widget-header").addClass("InputfieldStateToggle")
+	$(".Inputfield:not(.collapsed9) > .InputfieldHeader, .Inputfield:not(.collapsed9) > .ui-widget-header")
+		.addClass("InputfieldStateToggle")
 		.prepend("<i class='toggle-icon fa fa-angle-down'></i>");
 	
-	$(document).on('click', '.InputfieldStateToggle', function() {
-		var $li = $(this).closest('.Inputfield');
-		$li.toggleClass('InputfieldStateCollapsed', 100);
-		$(this).children('i.toggle-icon').toggleClass('fa-angle-down fa-angle-right');
+	$(document).on('click', '.InputfieldStateToggle, .toggle-icon', function() {
+		var $t = $(this);
+		var $li = $t.closest('.Inputfield');
+		var isIcon = $t.hasClass('toggle-icon');
+		var $icon = isIcon ? $t : $li.children('.InputfieldHeader, .ui-widget-header').find('.toggle-icon'); 
+		if($li.hasClass("InputfieldStateCollapsed") || $li.hasClass("InputfieldStateWasCollapsed") || isIcon) {
+			$li.addClass('InputfieldStateWasCollapsed'); // this class only used here
+			$li.toggleClass('InputfieldStateCollapsed', 100, function() {
+				$li.find(":input:visible:eq(0)").focus();
+			});
+			$icon.toggleClass('fa-angle-down fa-angle-right');
+			setTimeout('InputfieldColumnWidths()', 500); 
+		} else {
+			var color1 = $icon.css('color');
+			var color2 = $li.children('.InputfieldHeader, .ui-widget-header').css('color'); 
+			$icon.css('color', color2);
+			$icon.effect('pulsate', 300, function() {
+				$icon.css('color', color1); 
+			});
+			$li.find(":input:visible:eq(0)").focus();
+		}
 
-		// if($.effects && $.effects['highlight']) $li.children('.InputfieldHeader, .ui-widget-header').effect('highlight', {}, 300);
-		setTimeout('InputfieldColumnWidths()', 500); 
 		return false;
 	});
 

@@ -87,6 +87,9 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 * Classes implementing this method should call upon this parent method to obtain the InputfieldWrapper, and then 
 	 * append their own Inputfields to that. 
+	 * 
+	 * NOTE: Inputfields with a name that starts with an underscore, i.e. "_myname" are assumed to be for runtime 
+	 * use and are NOT stored in the database. 
 	 *
 	 * @param Field $field
 	 * @return InputfieldWrapper
@@ -110,6 +113,9 @@ abstract class Fieldtype extends WireData implements Module {
 	 * Get inputfields for advanced settings of the Field and Fieldtype
 	 *
 	 * In most cases, you will want to override getConfigInputfields rather than this method
+	 * 
+	 * NOTE: Inputfields with a name that starts with an underscore, i.e. "_myname" are assumed to be for runtime
+	 * use and are NOT stored in the database.
 	 *
 	 * @TODO should this be moved back into modules/Process/ProcessField.module? (that's where it is saved)
 	 *
@@ -170,13 +176,17 @@ abstract class Fieldtype extends WireData implements Module {
 	 *
 	 * Use this method to externalize any config values when necessary.
 	 * For example, internal IDs should be converted to GUIDs where possible.
-	 *
+	 * 
 	 * @param Field $field
 	 * @param array $data
 	 * @return array
 	 *
 	 */
 	public function ___exportConfigData(Field $field, array $data) {
+		
+		// set an exportMode variable in case anything needs to know about this
+		$this->set('_exportMode', true);
+		
 		// make sure all potential values are accounted for in the export data
 		$sets = array(
 			$this->getConfigInputfields($field), 
@@ -185,14 +195,15 @@ abstract class Fieldtype extends WireData implements Module {
 		foreach($sets as $inputfields) {
 			if(!$inputfields || !count($inputfields)) continue; 
 			foreach($inputfields->getAll() as $inputfield) {
-				if(isset($data[$inputfield->name])) continue; 
 				$value = $inputfield->isEmpty() ? '' : $inputfield->value; 
 				if(is_object($value)) $value = (string) $value; 
 				$data[$inputfield->name] = $value; 
 			}
 		}
 		$inputfield = $this->getInputfield(new NullPage(), $field); 
-		if($inputfield) $data = $inputfield->exportConfigData($data); 
+		if($inputfield) {
+			$data = $inputfield->exportConfigData($data);
+		}
 		return $data;
 	}
 

@@ -89,13 +89,25 @@ class Field extends WireData implements Saveable, Exportable {
 	 * If the field type changed, this is the previous fieldtype so that it can be changed at save time
 	 *
 	 */
-	protected $prevFieldtype; 
+	protected $prevFieldtype;
+
+	/**
+	 * Accessed properties, becomes array when set to true, null when set to false
+	 * 
+	 * Used for keeping track of which properties are accessed during a request, to help determine which
+	 * $data properties might no longer be in use. 
+	 * 
+	 * @var null|array
+	 * 
+	 */
+	protected $trackGets = null;
 
 	/**
 	 * True if lowercase tables should be enforce, false if not (null = unset). Cached from $config
 	 *
 	 */
 	static protected $lowercaseTables = null;
+	
 
 	/**
 	 * Set a native setting or a dynamic data property for this Field
@@ -118,8 +130,11 @@ class Field extends WireData implements Saveable, Exportable {
 				$value = (int) $value; 
 			}
 
-		if(isset($this->settings[$key])) $this->settings[$key] = $value; 
-			else return parent::set($key, $value); 
+		if(isset($this->settings[$key])) {
+			$this->settings[$key] = $value; 
+		} else {
+			return parent::set($key, $value); 
+		}
 
 		return $this; 
 	}
@@ -148,9 +163,41 @@ class Field extends WireData implements Saveable, Exportable {
 			else if($key == 'prevTable') return $this->prevTable; 
 			else if($key == 'prevFieldtype') return $this->prevFieldtype; 
 			else if(isset($this->settings[$key])) return $this->settings[$key]; 
-		return parent::get($key); 
+		$value = parent::get($key); 
+		if(is_array($this->trackGets)) $this->trackGets($key); 
+		return $value; 
+	}
+	
+	/**
+	 * Turn on tracking for accessed properties
+	 *
+	 * @param bool|string $key
+	 * 	Omit to retrieve current trackGets value.
+	 * 	Specify true to enable Get tracking.
+	 * 	Specify false to disable (and reset) Get tracking.
+	 * 	Specify string key to track.
+	 * @return bool|array Returns current state of trackGets when no arguments provided.
+	 * 	Otherwise it just returns true.
+	 *
+	 */
+	public function trackGets($key = null) {
+		if(is_null($key)) {
+			// return current value
+			return array_keys($this->trackGets);
+		} else if($key === true) {
+			// enable tracking
+			if(!is_array($this->trackGets)) $this->trackGets = array();
+		} else if($key === false) {
+			// disable tracking
+			$this->trackGets = null;
+		} else if(!is_int($key) && is_array($this->trackGets)) {
+			// track a key
+			$this->trackGets[$key] = 1;
+		}
+		return true;
 	}
 
+	
 	/**
 	 * Return a key=>value array of the data associated with the database table per Saveable interface
 	 *
@@ -160,38 +207,46 @@ class Field extends WireData implements Saveable, Exportable {
 	public function getTableData() {
 		$a = $this->settings; 
 		$a['data'] = $this->data; 
+		foreach($a['data'] as $key => $value) {
+			// remove runtime data (properties beginning with underscore)
+			if(strpos($key, '_') === 0) unset($a['data'][$key]); 
+		}
 		return $a;
 	}
-
 
 	/**
 	 * Per Saveable interface: return data for external storage
 	 *
 	 */
 	public function getExportData() {
+		
 		if($this->type) {
 			$data = $this->getTableData();
 			$data['type'] = $this->type->className();
 		} else {
 			$data['type'] = '';
 		}
+		
 		if(isset($data['data'])) $data = array_merge($data, $data['data']); // flatten
 		unset($data['data']); 
-		if($this->type) $data = $this->type->exportConfigData($this, $data); 
-		$flagOptions = array(
-			'autojoin' => self::flagAutojoin,
-			'global' => self::flagGlobal,
-			'system' => self::flagSystem,
-			'permanent' => self::flagPermanent
-			);
-		$flags = $this->flags;
-		foreach($flagOptions as $name => $value) {
-			unset($data[$name]); 
+		
+		if($this->type) {
+			$typeData = $this->type->exportConfigData($this, $data);
+			foreach($typeData as $key => $value) {
+				// exclude fields beginning with underscore as they are assumed to be for runtime use only
+				if(strpos($key, '_') === 0) unset($typeData[$key]); 
+			}
+			$data = array_merge($typeData, $data); 
 		}
-		$data['flags'] = $flags;
+		
+		// remove named flags from data since the 'flags' property already covers them
+		$flagOptions = array('autojoin', 'global', 'system', 'permanent');
+		foreach($flagOptions as $name) unset($data[$name]);
+		
+		$data['flags'] = $this->flags;
 		return $data;
 	}
-
+	
 	/**
 	 * Given an export data array, import it back to the class and return what happened
 	 *
@@ -223,7 +278,7 @@ class Field extends WireData implements Saveable, Exportable {
 			$old = isset($_data[$key]) ? $_data[$key] : ''; 
 			if(is_array($old)) $old = wireEncodeJSON($old, true); 
 			$new = is_array($value) ? wireEncodeJSON($value, true) : $value; 
-			if($old === $new || (empty($old) && empty($new))) continue; 
+			if($old === $new || (empty($old) && empty($new)) || (((string) $old) === ((string) $new))) continue; 
 			$changes[$key] = array(
 				'old' => $old,
 				'new' => $new, 
@@ -241,14 +296,18 @@ class Field extends WireData implements Saveable, Exportable {
 		
 		// populate import data
 		foreach($changes as $key => $change) {
-			$this->errors("clear"); 
+			$this->errors('clear all');
 			$this->set($key, $data[$key]);
-			if(!empty($data['errors'][$key])) $error = $data['errors'][$key];
-				else $error = $this->errors("last clear");
-			// just in case they switched it to an array of multiple errors, convert back to string
-			if(is_array($error)) $error = implode(" \n", $error); 
-			$changes[$key]['error'] = $error;
+			if(!empty($data['errors'][$key])) {
+				$error = $data['errors'][$key];
+				// just in case they switched it to an array of multiple errors, convert back to string
+				if(is_array($error)) $error = implode(" \n", $error); 
+			} else {
+				$error = $this->errors('last');
+			}
+			$changes[$key]['error'] = $error ? $error : '';
 		}
+		$this->errors('clear all');
 		
 		return $changes;
 	}
@@ -417,6 +476,7 @@ class Field extends WireData implements Saveable, Exportable {
 		// custom field settings
 		foreach($this->data as $key => $value) {
 			if($inputfield->has($key)) {
+				if(is_array($this->trackGets)) $this->trackGets($key); 
 				$inputfield->set($key, $value); 
 			}
 		}
