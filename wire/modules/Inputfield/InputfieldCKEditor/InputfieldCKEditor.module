@@ -337,7 +337,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	 *
 	 */
 	protected function renderNormal() {
-		$out = parent::___render() . "<script>CKEDITOR.replace('$this->name', config.$this->configName);</script>";
+		$out = parent::___render() . "<script>CKEDITOR.replace('Inputfield_$this->name', config.$this->configName);</script>";
 		return $out; 
 	}
 
