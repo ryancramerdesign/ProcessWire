@@ -205,6 +205,7 @@ class Pageimage extends Pagefile {
 		if(!$height && $w == $width) return $this; 
 		if(!$width && $h == $height) return $this; 
 		*/
+		// Should be solved now after PR #506 for ImageSizer! (horst)
 
 		if(!is_array($options)) { 
 			if(is_string($options)) {
@@ -223,7 +224,9 @@ class Pageimage extends Pagefile {
 		$defaultOptions = array(
 			'upscaling' => true,
 			'cropping' => true,
-			'quality' => 90
+			'quality' => 90,
+			'sharpening' => 'soft',
+			'defaultGamma' => 2.0
 			);
 
 		$this->error = '';
@@ -235,11 +238,17 @@ class Pageimage extends Pagefile {
 		$height = (int) $height; 
 		$crop = ImageSizer::croppingValueStr($options['cropping']); 	
 
-		$basename = basename($this->basename(), "." . $this->ext()); 		// i.e. myfile
-		$basename .= '.' . $width . 'x' . $height . $crop . "." . $this->ext();	// i.e. myfile.100x100.jpg or myfile.100x100nw.jpg
+		$suffix = isset($options['suffix']) ? self::prepareSuffix($options['suffix']) : '';
+		$suffix = strlen($suffix)>0 ? '-' . $suffix : '';
+
+		$basename = basename($this->basename(), "." . $this->ext()); 		                // i.e. myfile
+		$basename .= '.' . $width . 'x' . $height . $crop . $suffix . "." . $this->ext();	// i.e. myfile.100x100.jpg or myfile.100x100nw.jpg or myfile.100x100-suffix.jpg or myfile.100x100nw-suffix.jpg
 		$filename = $this->pagefiles->path() . $basename; 
 
-		if(!is_file($filename)) {
+		$forcenew = isset($options['forcenew']) && true===$options['forcenew'] ? true : false;
+		if($forcenew) @unlink($filename);
+		
+		if(!is_file($filename) || $forcenew) {
 			if(@copy($this->filename(), $filename)) {
 				try { 
 					$sizer = new ImageSizer($filename); 
@@ -404,26 +413,32 @@ class Pageimage extends Pagefile {
 
 		// if originalName is already a variation filename, remove the variation info from it.
 		// reduce to original name, i.e. all info after (and including) a period
+		
+// @Ryan: I think this preg_match does not work with variations like "basename.-suffix.jpg"
 		if(strpos($originalName, '.') && preg_match('/^([^.]+)\.\d+x\d+/', $originalName, $matches)) {
 			$originalName = $matches[1];
 		}
 
-		$re = 	'/^'  . 
-			$originalName . '\.' .		// myfile. 
-			'(\d+)x(\d+)' .			// 50x50	
-			'([pd]\d+x\d+|[a-z]{1,2})?' . 	// nw or p30x40 or d30x40
-			'\.' . $this->ext() . 		// .jpg
+// @Ryan: Or this regexp does not work with variations like "basename.-suffix.jpg"
+		$re = '/^' .
+			$originalName . '\.' .        // myfile.
+			'(\d+)x(\d+)' .               // 50x50
+			'([pd]\d+x\d+|[a-z]{1,2})?' . // nw or p30x40 or d30x40
+			'(-[a-z0-9_-]+)?' .           // optional suffix of hyphen + [a-z0-9_-]
+			'\.' . $this->ext() .         // .jpg
 			'$/';
 
 		// if regex does not match, return false
 		if(!preg_match($re, $variationName, $matches)) return false;
 
+// @Ryan: the info will not work with variations like "basename.-suffix.jpg" too, I think
 		// this is a variation, return array of info
 		$info = array(
 			'original' => $originalName . '.' . $this->ext(), 
-			'width' => $matches[1],
-			'height' => $matches[2], 
-			'crop' => (isset($matches[3]) ? $matches[3] : '')
+			'width' => (isset($matches[1]) ? $matches[1] : 0),
+			'height' => (isset($matches[2]) ? $matches[2] : 0),
+			'crop' => (isset($matches[3]) ? $matches[3] : ''),
+			'suffix' => (isset($matches[4]) ? $matches[4] : '')
 			);
 
 		return $info;
@@ -519,5 +534,82 @@ class Pageimage extends Pagefile {
 			throw new WireException($this->_('Unable to install invalid image')); 
 		}
 	}
-}
 
+
+	
+
+
+
+	static protected function prepareSuffix($suffix) {
+		$suffix = is_string($suffix) ? $suffix : '';
+		return preg_replace('/[^a-z0-9_]/', '', strtolower($suffix));
+	}
+
+	
+	static public function addSuffix($filename, $suffix) {
+		$suffix = self::prepareSuffix($suffix);
+		if(strlen($suffix)==0) {
+			return $filename;
+		}
+		$pathinfo = pathinfo($filename);
+		$name = $pathinfo['filename'];
+		if(!strpos($name, '.')) {
+			// it is an original filename, not a variation name
+			return $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'] . '.-' . $suffix . '.' . $pathinfo['extension'];
+		}
+		
+		// it is a variation name, we need to look if the requested suffix is already set or not
+		$re = '/^.*?\..*?-([a-z0-9_-]+)?$/';
+		if(!preg_match($re, $name, $matches)) {
+			// there are no suffixes set
+			return $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'] . '-' . $suffix . '.' . $pathinfo['extension'];
+		}
+        
+		// there are already suffixes set
+		$suffixes = explode('-', $matches[1]);
+		if(is_array($suffixes) && in_array($suffix, $suffixes)) {
+			// the requested suffix is already set
+			return $filename;
+		}
+		
+		// we add the requested suffix
+		return $pathinfo['dirname'] . DIRECTORY_SEPARATOR . $pathinfo['filename'] . '-' . $suffix . '.' . $pathinfo['extension'];
+	}
+
+
+	
+	public function getFileBySuffix($suffix, $onlyPartial=false) {
+		$suffix = self::prepareSuffix($suffix);
+		if(strlen($suffix)==0) {
+			return '';
+		}
+		
+		$originalName = basename($this->basename, "." . $this->ext());  // excludes extension
+		$variationName = $originalName . '.-' . $suffix . '.' . $this->ext();
+		if(true!==$onlyPartial) {
+			$filename = $this->pageimages->path . $variationName;
+			return file_exists($filename) ? $filename : '';
+		}
+
+// @Ryan: because of pageimage::isVariation does not match variations like "basename.-suffix.jpg"
+// the partial suffixes here do not work too!
+		// we have to check for a partial suffix
+		foreach($this->getVariations() as $variation) {
+			$pathinfo = pathinfo($variation->filename);
+			$name = $pathinfo['filename'];
+			$re = '/^.*?\..*?-([a-z0-9_-]+)?$/';
+			if(!preg_match($re, $name, $matches)) {
+				continue; // there are no suffixes set
+			}
+			// there are suffixes set
+			$suffixes = explode('-', $matches[1]);
+			if(is_array($suffixes) && in_array($suffix, $suffixes)) {
+				return $variation->filename;
+			}
+			continue; // nothing found with this variation
+		}
+		
+		return '';
+	}
+	
+}
