@@ -21,7 +21,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'CKEditor',
-			'version' => 122, 
+			'version' => 123, 
 			'summary' => __('CKEditor textarea rich text editor.', __FILE__),
 			'installs' => array('MarkupHTMLPurifier'), 
 			);
@@ -126,6 +126,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$this->set('removePlugins', self::REMOVE_PLUGINS); 
 		$this->set('extraAllowedContent', self::EXTRA_ALLOWED_CONTENT); 
 		$this->set('formatTags', self::FORMAT_TAGS); 
+		$this->set('customOptions', ''); // custom user-defined config options
 		
 		foreach($this->findPlugins() as $name => $file) {
 			$this->set("plugin_$name", ""); // json string of each plugin config settings
@@ -229,6 +230,23 @@ class InputfieldCKEditor extends InputfieldTextarea {
 			if(empty($value)) continue;
 			$value = $this->convertPluginSettingsStr($value);
 			if($value) $settings[$name] = $value;
+		}
+
+		$configURL = $this->wire('config')->urls->siteModules . $class . '/';
+		$configPath = $this->wire('config')->paths->siteModules . $class . '/';
+		
+		if(file_exists($configPath . "config-$this->name.js")) {
+			$settings['customConfig'] = $configURL . "config-$this->name.js"; 
+		} else if(file_exists($configPath . "config.js")) {
+			$settings['customConfig'] = $configURL . "config.js";
+		} else {
+			// defaults to the one in /wire/modules/Inputfield/InputfieldCKEditor/ckeditor-x.x.x/config.js
+		}
+	
+		$customOptions = $this->get('customOptions'); 
+		if($customOptions) {
+			$value = $this->convertPluginSettingsStr($customOptions);
+			if($value) $settings = array_merge($settings, $value);
 		}
 
 		// optimization to remember the name of our JS config entry to prevent redundancy in multi-lang fields
@@ -337,7 +355,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	 *
 	 */
 	protected function renderNormal() {
-		$out = parent::___render() . "<script>CKEDITOR.replace('Inputfield_$this->name', config.$this->configName);</script>";
+		$out = parent::___render() . "<script>CKEDITOR.replace('$this->id', config.$this->configName);</script>";
 		return $out; 
 	}
 
@@ -478,7 +496,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 				} else {
 					// line needs to be surrounded in quotes
 					$v = str_replace('"', '\\"', $v); // escape existing quotes
-					$v = '"' . $v . '"';
+					$v = '"' . trim($v) . '"';
 				}
 				
 				$k = trim($k, '"\''); // if property is quoted, unquote it
@@ -515,6 +533,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	
 		$yes = $this->_('Yes');
 		$no = $this->_('No');
+		$example = '**' . $this->_('Example:') . '** ';
 
 		$f = $inputfields->get('stripTags');
 		if($f) $inputfields->remove($f);
@@ -607,7 +626,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$f = $this->modules->get("InputfieldText");
 		$f->label = $this->_('Custom Editor CSS File (regular mode)');
 		$f->description = $descriptionCustomCss; 
-		$f->notes = $this->_('Example: /site/modules/InputfieldCKEditor/contents.css') . "\n$instructionsCustomCss  $pathNote";
+		$f->notes = $example . "/site/modules/InputfieldCKEditor/contents.css\n$instructionsCustomCss  $pathNote";
 		$f->attr('name', 'contentsCss');
 		$value = $this->get('contentsCss');
 		$f->collapsed = Inputfield::collapsedBlank;
@@ -618,7 +637,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$f = $this->modules->get("InputfieldText");
 		$f->label = $this->_('Custom Editor CSS File (inline mode)');
 		$f->description = $descriptionCustomCss; 
-		$f->notes .= $this->_('**Example:** /site/modules/InputfieldCKEditor/contents-inline.css') . "\n$instructionsCustomCss $pathNote"; 
+		$f->notes .= $example . "/site/modules/InputfieldCKEditor/contents-inline.css\n$instructionsCustomCss $pathNote"; 
 		$f->attr('name', 'contentsInlineCss');
 		$value = $this->get('contentsInlineCss');
 		$f->collapsed = Inputfield::collapsedBlank;
@@ -629,7 +648,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$f = $this->modules->get("InputfieldText");
 		$f->label = $this->_('Custom Editor JS Styles Set');
 		$f->description = $this->_('This option enables you to specify custom styles for selection in your editor. It requires that you have a "Styles" item in your toolbar settings above.'); // styles set description
-		$f->notes = $this->_('**Example:** mystyles:/site/modules/InputfieldCKEditor/mystyles.js'); // styles set example
+		$f->notes = $example . "mystyles:/site/modules/InputfieldCKEditor/mystyles.js"; 
 		$f->notes .= "\n" . $this->_('Please see our [instructions](https://github.com/ryancramerdesign/ProcessWire/blob/dev/wire/modules/Inputfield/InputfieldCKEditor/README.md#custom-editor-js-styles-set) on how to use this.') . " $pathNote"; // styles set notes
 		$f->attr('name', 'stylesSet');
 		$value = $this->get('stylesSet');
@@ -637,6 +656,29 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$f->attr('value', $value);
 		$wrapper->add($f);
 		
+		$descriptionJSON = $this->_('If used, enter one per line of **property: value**, or use a JSON string.'); 
+		
+		$f = $this->modules->get('InputfieldTextarea');
+		$f->attr('name', "customOptions");
+		$f->label = $this->_('Custom Config Options');
+		$f->description = $this->_('Use this when you want to specify CKEditor config settings beyond those available on this screen.') . " $descriptionJSON";
+		$f->collapsed = Inputfield::collapsedBlank;
+		$value = $this->get("customOptions");
+		if($value) {
+			$test = $this->convertPluginSettingsStr($value, '');
+			if($test === false) {
+				$f->error($this->_('Custom Config Options failed JSON validation.'));
+			}
+		}
+		$f->attr('value', $value ? $value : '');
+		$f->notes = $example . "uiColor: #438ef0\n" . 
+			$this->_('If preferred, these settings can also be set in one of these files:') .
+			"\n[/site/modules/InputfieldCKEditor/config.js](https://github.com/ryancramerdesign/ProcessWire/blob/dev/site-default/modules/InputfieldCKEditor/config.js) - " . 
+			$this->_('for all CKEditor fields') . " " .
+			"\n[/site/modules/InputfieldCKEditor/config-$this->name.js](https://github.com/ryancramerdesign/ProcessWire/blob/dev/site-default/modules/InputfieldCKEditor/config-body.js) - " . 
+			$this->_('only for this CKEditor field');
+		$wrapper->add($f);
+
 		$fieldset = $this->modules->get('InputfieldFieldset');
 		$fieldset->attr('name', '_plugins_fieldset'); 
 		$fieldset->label = $this->_('Plugins'); 
@@ -655,14 +697,14 @@ class InputfieldCKEditor extends InputfieldTextarea {
 			$f->addOption($name, $label); 
 		}
 		$f->attr('value', $this->extraPlugins); 
-		$fieldset->add($f); 
+		$fieldset->add($f);
 		
 		foreach($plugins as $name => $file) {
 			if($name == 'pwimage' || $name == 'pwlink') continue;
 			$f = $this->modules->get('InputfieldTextarea');
 			$f->attr('name', "plugin_$name"); 
 			$f->label = sprintf($this->_('%s settings'), ucfirst($name));
-			$f->description = $this->_('If used, enter one per line of **property: value**, or use a JSON string.'); 
+			$f->description = $descriptionJSON;
 			$f->collapsed = Inputfield::collapsedBlank;
 			$value = $this->get("plugin_$name"); 
 			if($value) {
@@ -690,13 +732,13 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$f = $this->modules->get("InputfieldText");
 		$f->label = $this->_('Remove Plugins');
 		$f->description = $this->_('Comma separated list of removed plugins that CKEditor should not load.'); 
-		$f->notes = $this->_('Example: link,image');
+		$f->notes = $example . 'link,image';
 		$f->attr('name', 'removePlugins');
 		$value = $this->get('removePlugins');
 		$f->collapsed = ($value == self::REMOVE_PLUGINS ? Inputfield::collapsedYes : Inputfield::collapsedNo);
 		$f->attr('value', $value);
 		$fieldset->add($f);
-
+		
 		$inputfields->add($wrapper); 
 
 		return $inputfields; 
