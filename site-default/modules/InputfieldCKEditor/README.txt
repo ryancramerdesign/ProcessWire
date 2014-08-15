@@ -26,3 +26,15 @@ Optional configuration for the CKEditor Styles option. To use this file, go to y
 CKEditor field settings and set the Custom Styles Set to be this file. 
 
 
+config.js
+=========
+Custom config file used by all CKEditor instances (except instances configured by their
+own custom config file, see below...)
+
+
+config-body.js
+==============
+Example of field-specific custom config file. This one applies to a field named "body". 
+Note that these config settings can also be specified directly in your CKEditor field
+settings in the admin, which many may prefer. 
+

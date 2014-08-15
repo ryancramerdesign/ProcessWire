@@ -220,7 +220,7 @@ class Template extends WireData implements Saveable, Exportable {
 	 * @return PageArray
 	 *
 	 */
-	protected function getRoles() {
+	public function getRoles() {
 
 		if(is_null($this->_roles)) {
 			return new PageArray();
@@ -229,6 +229,7 @@ class Template extends WireData implements Saveable, Exportable {
 			return $this->_roles;
 		
 		} else if(is_array($this->_roles)) {
+			$errors = array();
 			$roles = new PageArray();
 			if(count($this->_roles)) {
 				$test = implode('0', $this->_roles); // test to see if it's all digits (IDs)
@@ -241,11 +242,12 @@ class Template extends WireData implements Saveable, Exportable {
 						if($role->id) {
 							$roles->add($role); 
 						} else {
-							$this->error("Unable to load role: $name"); 
+							$errors[] = $name; 
 						}
 					}
 				}
 			}
+			if(count($errors) && $this->useRoles) $this->error("Unable to load role(s): " . implode(', ', $errors)); 
 			$this->_roles = $roles;
 			return $this->_roles;
 		} else {
@@ -310,10 +312,10 @@ class Template extends WireData implements Saveable, Exportable {
 				$value = (int) $value; 
 			} else if($key == 'name') {
 				$value = $this->wire('sanitizer')->name($value); 
-			} else if($key == 'fieldgroups_id') {
+			} else if($key == 'fieldgroups_id' && $value) {
 				$fieldgroup = $this->wire('fieldgroups')->get($value); 
 				if($fieldgroup) $this->setFieldgroup($fieldgroup); 
-					else $this->error("Unable to load fieldgroup: $value"); 
+					else $this->error("Unable to load fieldgroup '$value' for template $this->name"); 
 				return $this;
 			} else if($key == 'cache_time' || $key == 'cacheTime') {
 				$value = (int) $value; 
@@ -331,7 +333,7 @@ class Template extends WireData implements Saveable, Exportable {
 
 		} else if($key == 'fieldgroup' || $key == 'fields') {
 			$this->setFieldgroup($value); 
-
+			
 		} else if($key == 'filename') {
 			$this->setFilename($value); 
 
@@ -359,7 +361,7 @@ class Template extends WireData implements Saveable, Exportable {
 						$v = $v->id; 
 					} else if(is_string($v) && !ctype_digit("$v")) {
 						$role = $this->wire('roles')->get($v); 
-						if(!$role->id) $this->error("Unable to load role: $v"); 
+						if(!$role->id && $this->_importMode && $this->useRoles) $this->error("Unable to load role: $v"); 
 						$v = $role->id; 
 					}
 				}
@@ -375,7 +377,9 @@ class Template extends WireData implements Saveable, Exportable {
 						$v = $v->id; 
 					} else if(!ctype_digit("$v")) {
 						$t = $this->wire('templates')->get($v);
-						if(!$t) $this->error("Unable to load template: $v"); 
+						if(!$t && $this->_importMode) {
+							$this->error("Unable to load template '$v' for '$this->name.$key'"); 
+						}
 						$v = $t ? $t->id : 0; 
 					}
 				}
@@ -596,57 +600,10 @@ class Template extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Per Saveable interface: return data for external storage
-	 *
+	 * 
 	 */
 	public function getExportData() {
-		
-		$data = $this->getTableData();
-	
-		// flatten
-		foreach($data['data'] as $key => $value) {
-			$data[$key] = $value;
-		}
-	
-		// remove unnecessary
-		unset($data['data']); 
-	
-		// convert fieldgroup to guid
-		$fieldgroup = $this->wire('fieldgroups')->get((int) $data['fieldgroups_id']); 
-		if($fieldgroup) $data['fieldgroups_id'] = $fieldgroup->name;
-	
-		// convert family settings to guids
-		foreach(array('parentTemplates', 'childTemplates') as $key) {
-			if(!isset($data[$key])) continue;
-			$values = array();
-			foreach($data[$key] as $id) {
-				$template = $this->wire('templates')->get((int) $id); 			
-				$values[] = $template->name;
-			}
-			$data[$key] = $values;
-		}
-	
-		// convert roles to guids
-		foreach(array('roles', 'editRoles', 'addRoles', 'createRoles') as $key) {
-			if(!isset($data[$key])) continue; 
-			$values = array();
-			foreach($data[$key] as $id) { 
-				$role = $id instanceof Role ? $id : $this->wire('roles')->get((int) $id); 
-				$values[] = $role->name;
-			}
-			$data[$key] = $values; 
-		}
-	
-		// convert pages to guids
-		if(!empty($data['cacheExpirePages'])) {
-			$values = array();
-			foreach($data['cacheExpirePages'] as $id) {
-				$page = $this->wire('pages')->get((int) $id); 
-				if(!$page->id) continue; 
-				$values[] = $page->path;
-			}
-		}
-		
-		return $data; 
+		return $this->wire('templates')->getExportData($this); 	
 	}
 
 	/**
@@ -654,11 +611,16 @@ class Template extends WireData implements Saveable, Exportable {
 	 * 
 	 * @param array $data
 	 * @return bool True if successful, false if not
-	 *
+	 * @return array Returns array(
+	 * 	[property_name] => array(
+	 * 		'old' => 'old value', // old value (in string comparison format)
+	 * 		'new' => 'new value', // new value (in string comparison format)
+	 * 		'error' => 'error message or blank if no error'  // error message (string) or messages (array)
+	 * 		)
+	 * 
 	 */
 	public function setImportData(array $data) {
-		foreach($data as $key => $value) $this->set($key, $value);
-		return true;
+		return $this->wire('templates')->setImportData($this, $data); 
 	}
 	
 	/**
@@ -684,53 +646,7 @@ class Template extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	public function getParentPage($checkAccess = false) {
-
-		if($this->noParents || $this->noShortcut || !count($this->parentTemplates)) return null;	
-		$foundParent = null;
-
-		foreach($this->parentTemplates as $parentTemplateID) {
-
-			$parentTemplate = $this->wire('templates')->get((int) $parentTemplateID); 
-			if(!$parentTemplate) continue; 
-
-			// if the parent template doesn't have this as an allowed child template, exclude it 
-			if($parentTemplate->noChildren) continue; 
-			if(!in_array($this->id, $parentTemplate->childTemplates)) continue;
-
-			// sort=status ensures that a non-hidden page is given preference to a hidden page
-			$include = $checkAccess ? "hidden" : "all";
-			$parentPages = $this->wire('pages')->find("templates_id=$parentTemplate->id, include=$include, sort=status, limit=2"); 
-
-			$numParentPages = count($parentPages); 
-
-			// undetermined parent
-			if(!$numParentPages) continue; 
-
-			if($numParentPages > 1) {
-				// multiple possible parents
-				$parentPage = new NullPage();
-			} else {
-				// one possible parent
-				$parentPage = $parentPages->first();
-			}
-
-			if($checkAccess) { 
-				if($parentPage->id) {
-					// single defined parent
-					$p = new Page();
-					$p->template = $this; 
-					if(!$parentPage->addable($p)) continue; 
-				} else {
-					// multiple possible parents
-					if(!$this->wire('user')->hasPermission('page-create', $this)) continue; 
-				}
-			}
-
-			$foundParent = $parentPage; 
-			break;
-		}
-
-		return $foundParent;
+		return $this->wire('templates')->getParentPage($this, $checkAccess); 
 	}
 
 	/**

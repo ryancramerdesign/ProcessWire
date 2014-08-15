@@ -49,3 +49,53 @@ span.asmFieldsetIndent {
 	margin-right: 0.5em; 
 }
 
+/**
+ * Import/export 
+ *
+ */
+
+#ProcessTemplateList + a > button, 
+#export_button,
+#import_button {
+	margin-top: 0;
+}
+#export_button,
+#import_button {
+	float: right;
+	margin-left: 0.25em;
+}
+
+#export_templates,
+#export_data,
+#import_data {
+	width: 100%;
+	font-family: monospace;
+	padding: 5px;
+}
+
+#import_form table {
+	margin-top: 1em;
+	margin-bottom: 1em; 
+}
+
+#import_form table th,
+#import_form table td {
+	width: 33.33333%; 
+}
+
+#import_form .InputfieldFieldset {
+	margin-bottom: 1em;
+}
+
+#import_form ul.ui-state-error-text li {
+	margin: 0;
+}
+
+#import_form .import_toggle {
+	margin-bottom: 0;
+}
+
+#import_form .import_toggle label {
+	margin-right: 0.5em;
+	display: inline;
+}

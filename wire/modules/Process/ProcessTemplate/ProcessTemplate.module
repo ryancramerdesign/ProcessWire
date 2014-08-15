@@ -30,7 +30,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 107,
+			'version' => 108,
 			'permanent' => true, 
 			'icon' => 'cubes', 
 	
@@ -51,6 +51,8 @@ class ProcessTemplate extends Process {
 			'Yes' => $this->_('Yes'), 
 			'No' => $this->_('No'), 
 			'Are you sure?' => $this->_('Are you sure?'),
+			'Export' => $this->_('Export'),
+			'Import' => $this->_('Import')
 			);
 
 		if(isset($_POST['id'])) {
@@ -153,6 +155,23 @@ class ProcessTemplate extends Process {
 		$button->href = "./add";
 		$button->value = $this->_x('Add New Template', 'list-button'); 
 		$button->icon = 'plus-circle';
+		$button->addClass('add_template_button head_button_clone'); 
+		$out .= $button->render();
+
+		$button = $this->modules->get('InputfieldButton');
+		$button->id = 'import_button';
+		$button->href = "./import/";
+		$button->value = $this->labels['Import'];
+		$button->icon = 'paste';
+		$button->addClass('ui-priority-secondary');
+		$out .= $button->render();
+
+		$button = $this->modules->get('InputfieldButton');
+		$button->id = 'export_button';
+		$button->href = "./export/";
+		$button->value = $this->labels['Export']; 
+		$button->icon = 'copy';
+		$button->addClass('ui-priority-secondary');
 		$out .= $button->render();
 
 		if($this->input->nosave) {
@@ -310,7 +329,7 @@ class ProcessTemplate extends Process {
 		$numPagesLink = $this->config->urls->admin . "page/search/?show_options=1&template={$template->name}&sort=title";
 
 		$numFields = count($template->fieldgroup);
-		if($template->fieldgroup->name != $template->name) $numFields .= " " . $template->fieldgroup->name; 
+		if($template->fieldgroup && $template->fieldgroup->name != $template->name) $numFields .= " " . $template->fieldgroup->name; 
 		$numFieldsLink = "../field/?templates_id={$template->id}&nosave=1";
 
 		$row = array();
@@ -597,7 +616,7 @@ class ProcessTemplate extends Process {
 		if($fieldgroup) {
 			foreach($this->fuel('templates') as $tpl) {
 				if($tpl->id == $template->id) continue; 
-				if($tpl->fieldgroup->id == $fieldgroup->id) $numFieldgroupTemplates++;
+				if($tpl->fieldgroup && $tpl->fieldgroup->id == $fieldgroup->id) $numFieldgroupTemplates++;
 			}
 		}
 
@@ -634,7 +653,7 @@ class ProcessTemplate extends Process {
 		$field->attr('value', $template->fieldgroup->id); 
 		$field->required = true; 
 		$field->description = $this->_("By default, each template manages it's own group of fields. If you want to have this template use the fields from another template, select it here."); // Fieldgroup description
-
+		
 		foreach($this->fieldgroups->getAll()->sort('name') as $fieldgroup) {
 			$name = $fieldgroup->name; 
 			if($name == $template->name) {
@@ -642,7 +661,7 @@ class ProcessTemplate extends Process {
 			} else {
 				$tpl = $this->templates->get($name); 
 				// if the template is not using it's own fieldgroup, don't include it in the list
-				if($tpl && $tpl->name && $tpl->fieldgroup->name != $tpl->name) continue; 
+				if($tpl && $tpl->name && $tpl->fieldgroup && $tpl->fieldgroup->name != $tpl->name) continue; 
 			}
 			$field->addOption($fieldgroup->id, $name); 
 		}
@@ -1875,6 +1894,41 @@ class ProcessTemplate extends Process {
 	 */
 	public function ___fieldAdded(Field $field, Template $template) { 
 		$this->message(sprintf($this->_('Added field "%1$s" to template/fieldgroup "%2$s"'), $field, $template)); 
+	}
+
+
+	/**
+	 * Execute import
+	 *
+	 * @return string
+	 *
+	 */
+	public function ___executeImport() {
+
+		$this->wire('processHeadline', $this->labels['Import']);
+		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->moduleInfo['title']));
+
+		require(dirname(__FILE__) . '/ProcessTemplateExportImport.php');
+		$o = new ProcessTemplateExportImport();
+		$form = $o->buildImport();
+		return $form->render();
+	}
+
+	/**
+	 * Execute export
+	 *
+	 * @return string
+	 *
+	 */
+	public function ___executeExport() {
+
+		$this->wire('processHeadline', $this->labels['Export']);
+		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->moduleInfo['title']));
+
+		require(dirname(__FILE__) . '/ProcessTemplateExportImport.php');
+		$o = new ProcessTemplateExportImport();
+		$form = $o->buildExport();
+		return $form->render();
 	}
 
 

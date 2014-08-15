@@ -115,13 +115,13 @@ class Modules extends WireArray {
 	protected $moduleInfoCache = array();
 	
 	/**
-	 * Cache of module information (verbose text) including: summary, author, href, file, core
+	 * Cache of module information (verbose text) including: summary, author, href, file, core, configurable
 	 *
 	 */
 	protected $moduleInfoCacheVerbose = array();
 	
 	/**
-	 * Cache of module information (verbose for uninstalled) including: summary, author, href, file, core
+	 * Cache of module information (verbose for uninstalled) including: summary, author, href, file, core, configurable
 	 * 
 	 * Note that this one is indexed by class name rather than by ID (since uninstalled modules have no ID)
 	 *
@@ -1520,7 +1520,7 @@ class Modules extends WireArray {
 	 *
 	 * @param string|Module|int $module May be class name, module instance, or module ID
 	 * @param array $options Optional options to modify behavior of what gets returned
-	 *  - verbose: Makes the info also include summary, author, file, core and href (they will be usually blank without this option specified)
+	 *  - verbose: Makes the info also include summary, author, file, core, configurable and href (they will be usually blank without this option specified)
 	 * 	- noCache: prevents use of cache to retrieve the module info
 	 *  - noInclude: prevents include() of the module file, applicable only if it hasn't already been included
 	 * @return array
@@ -1576,6 +1576,8 @@ class Modules extends WireArray {
 			'file' => null, 
 			// verbose mode only: this is set to true when the module is a core module, false when it's not, and null when it's not determined
 			'core' => null, 
+			// verbose mode only: this is set to true when the module is configurable, false when it's not, and null when it's not determined
+			'configurable' => null, 
 			);
 	
 		if($module instanceof Module) {
@@ -1687,8 +1689,11 @@ class Modules extends WireArray {
 			// module name
 			$info['name'] = $moduleName;
 			// module file	
-			$info['file'] = $this->getModuleFile($moduleName, true);
+			$info['file'] = $this->getModuleFile($moduleName, false);
 			if($info['file']) $info['core'] = strpos($info['file'], '/wire/modules/') !== false;
+			// module configurable?
+			$interfaces = @class_implements($moduleName, false); 
+			$info['configurable'] = is_array($interfaces) && isset($interfaces['ConfigurableModule']); 
 			
 			// created date
 			if(isset($this->createdDates[$moduleID])) $info['created'] = $this->createdDates[$moduleID];
@@ -1701,6 +1706,7 @@ class Modules extends WireArray {
 				$dirmtime = substr($dirname, -7) == 'modules' || strpos($dirname, $this->paths[0]) !== false ? 0 : (int) filemtime($dirname);
 				$info['created'] = $dirmtime > $filemtime ? $dirmtime : $filemtime;
 			}
+			if($moduleName == 'AdminThemeReno') $this->message('AdminThemeReno: ' . date('Y-m-d H:i a', $info['created']) . ", " . wireRelativeTimeStr($info['created'], true)); 
 		} 
 	
 		return $info;
@@ -2296,7 +2302,7 @@ class Modules extends WireArray {
 			
 				if($installed) { 
 					
-					$verboseKeys = array('summary', 'author', 'href', 'file', 'core'); 
+					$verboseKeys = array('summary', 'author', 'href', 'file', 'core', 'configurable'); 
 					$verboseInfo = array();
 		
 					foreach($verboseKeys as $key) {

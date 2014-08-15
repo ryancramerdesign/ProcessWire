@@ -208,6 +208,31 @@ $(document).ready(function() {
 		});
 	}
 
+
+	// export and import functions	
+	$("#export_data").click(function() { $(this).select(); });
 	
+	$(".import_toggle input[type=radio]").change(function() {
+		var $table = $(this).parents('p.import_toggle').next('table');
+		var $fieldset = $(this).closest('.InputfieldFieldset'); 
+		if($(this).is(":checked") && $(this).val() == 0) {
+			$table.hide();
+			$fieldset.addClass('ui-priority-secondary');
+		} else {
+			$table.show();
+			$fieldset.removeClass('ui-priority-secondary');
+		}
+	}).change();
+	
+	$("#import_form table td:not(:first-child)").each(function() {
+		var html = $(this).html();
+		var refresh = false; 
+		if(html.substring(0,1) == '{') {
+			html = '<pre>' + html + '</pre>';
+			html = html.replace(/<br>/g, "");
+			refresh = true; 
+		}
+		if(refresh) $(this).html(html);
+	}); 
 
 }); 

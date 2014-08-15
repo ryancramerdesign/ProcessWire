@@ -291,5 +291,198 @@ class Fieldgroups extends WireSaveableItemsLookup {
 		*/
 	}
 
+	/**
+	 * Save contexts for all fields in the given fieldgroup 
+	 * 
+	 * @param Fieldgroup $fieldgroup
+	 * @return int Number of field contexts saved
+	 * 
+	 */
+	public function ___saveContext(Fieldgroup $fieldgroup) {
+		$contexts = $fieldgroup->getFieldContextArray();
+		$numSaved = 0;
+		foreach($contexts as $fieldID => $context) {
+			$field = $fieldgroup->getFieldContext($fieldID); 
+			if($this->wire('fields')->saveFieldgroupContext($field, $fieldgroup)) $numSaved++;
+		}
+		return $numSaved; 
+	}
+	
+	/**
+	 * Export config data for the given fieldgroup
+	 * 
+	 * @param Fieldgroup $fieldgroup
+	 * @return array
+	 *
+	 */
+	public function ___getExportData(Fieldgroup $fieldgroup) {
+		$data = $fieldgroup->getTableData();
+		$fields = array();
+		$contexts = array();
+		foreach($fieldgroup as $field) {
+			$fields[] = $field->name;
+			$fieldContexts = $fieldgroup->getFieldContextArray();
+			if(isset($fieldContexts[$field->id])) {
+				$contexts[$field->name] = $fieldContexts[$field->id];
+			} else {
+				$contexts[$field->name] = array();
+			}
+		}
+		$data['fields'] = $fields;
+		$data['contexts'] = $contexts;
+		return $data;
+	}
+
+	/**
+	 * Given an export data array, import it back to the class and return what happened
+	 *
+	 * Changes are not committed until the item is saved
+	 *
+	 * @param Fieldgroup $fieldgroup
+	 * @param array $data
+	 * @return array Returns array(
+	 * 	[property_name] => array(
+	 * 		'old' => 'old value',	// old value, always a string
+	 * 		'new' => 'new value',	// new value, always a string
+	 * 		'error' => 'error message or blank if no error'
+	 * 	)
+	 * @throws WireException if given invalid data
+	 *
+	 */
+	public function ___setImportData(Fieldgroup $fieldgroup, array $data) {
+
+		$return = array(
+			'fields' => array(
+				'old' => '',
+				'new' => '',
+				'error' => array()
+			),
+			'contexts' => array(
+				'old' => '',
+				'new' => '',
+				'error' => array()
+			),
+		);
+
+		$fieldgroup->setTrackChanges(true);
+		$fieldgroup->errors("clear");
+		$_data = $this->getExportData($fieldgroup);
+		$rmFields = array();
+
+		if(isset($data['fields'])) {
+			// field data
+			$old = "\n" . implode("\n", $_data['fields']) . "\n";
+			$new = "\n" . implode("\n", $data['fields']) . "\n";
+
+			if($old !== $new) {
+
+				$return['fields']['old'] = $old;
+				$return['fields']['new'] = $new;
+
+				// figure out which fields should be removed
+				foreach($fieldgroup as $field) {
+					$fieldNames[$field->name] = $field->name;
+					if(!in_array($field->name, $data['fields'])) {
+						$fieldgroup->remove($field);
+						$label = "-$field->name";
+						$return['fields']['new'] .= $label . "\n";;
+						$rmFields[] = $field->name;
+					}
+				}
+
+				// figure out which fields should be added
+				foreach($data['fields'] as $name) {
+					$field = $this->wire('fields')->get($name);
+					if(in_array($name, $rmFields)) continue;
+					if(!$field) {
+						$error = sprintf($this->_('Unable to find field: %s'), $name);
+						$return['fields']['error'][] = $error;
+						$label = str_replace("\n$name\n", "\n?$name\n", $return['fields']['new']);
+						$return['fields']['new'] = $label;
+						continue;
+					}
+					if(!$fieldgroup->hasField($field)) {
+						$label = str_replace("\n$field->name\n", "\n+$field->name\n", $return['fields']['new']);
+						$return['fields']['new'] = $label;
+						$fieldgroup->add($field);
+					} else {
+						$field = $fieldgroup->getField($field->name, true); // in context
+						$fieldgroup->add($field);
+						$label = str_replace("\n$field->name\n", "\n$field->name\n", $return['fields']['new']);
+						$return['fields']['new'] = $label;
+					}
+				}
+
+			}
+
+			$return['fields']['new'] = trim($return['fields']['new']);
+			$return['fields']['old'] = trim($return['fields']['old']);
+		}
+
+		if(isset($data['contexts'])) {
+			// context data
+			foreach($data['contexts'] as $key => $value) {
+				// remove items where they are both empty
+				if(empty($value) && empty($_data['contexts'][$key])) {
+					unset($data['contexts'][$key], $_data['contexts'][$key]);
+				}
+			}
+
+			foreach($_data['contexts'] as $key => $value) {
+				// remove items where they are both empty
+				if(empty($value) && empty($data['contexts'][$key])) {
+					unset($data['contexts'][$key], $_data['contexts'][$key]);
+				}
+			}
+
+			$old = wireEncodeJSON($_data['contexts'], true, true);
+			$new = wireEncodeJSON($data['contexts'], true, true);
+
+			if($old !== $new) {
+
+				$return['contexts']['old'] = trim($old);
+				$return['contexts']['new'] = trim($new);
+
+				foreach($data['contexts'] as $name => $context) {
+					$field = $fieldgroup->getField($name, true); // in context
+					if(!$field) {
+						if(!empty($context)) $return['contexts']['error'][] = sprintf($this->_('Unable to find field to set field context: %s'), $name);
+						continue;
+					}
+					$id = $field->id;
+					$fieldContexts = $fieldgroup->getFieldContextArray();
+					if(isset($fieldContexts[$id]) || !empty($context)) {
+						$fieldgroup->setFieldContextArray($id, $context); 
+						$fieldgroup->trackChange('fieldContexts');
+					}
+				}
+			}
+		}
+
+		// other data
+		foreach($data as $key => $value) {
+			if($key == 'fields' || $key == 'contexts') continue;
+			$old = isset($_data[$key]) ? $_data[$key] : null;
+			if(is_array($old)) $old = wireEncodeJSON($old, true, false);
+			$new = is_array($value) ? wireEncodeJSON($value, true, false) : $value;
+			if($old == $new) continue;
+			$fieldgroup->set($key, $value);
+			$error = (string) $fieldgroup->errors("first clear");
+			$return[$key] = array(
+				'old' => $old,
+				'new' => $value,
+				'error' => $error,
+			);
+		}
+		
+		if(count($rmFields)) {
+			$return['fields']['error'][] = sprintf($this->_('Warning, all data in these field(s) will be permanently deleted (please confirm): %s'), implode(', ', $rmFields));
+		}
+
+		$fieldgroup->errors('clear');
+
+		return $return;
+	}
+
 }
 

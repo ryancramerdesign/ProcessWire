@@ -294,37 +294,6 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 		} else if($key == 'name') {
 			$value = $this->wire('sanitizer')->name($value); 
 			
-		} else if($key == '_fields') {
-			// import new field data
-			if(!is_array($value)) throw new WireException("_fields must be an array"); 
-			foreach($value as $name) {
-				$field = $this->wire('fields')->get($name); 
-				if(!$field) {
-					$this->error("Unable to load field: $name"); 
-					continue; 
-				}
-				$this->add($field); 
-			}
-			return $this; 
-			
-		} else if($key == '_contexts') {
-			// import new field contexts
-			if(!is_array($value)) throw new WireException("_contexts must be an array"); 
-			foreach($value as $name => $context) {
-				$field = $this->wire('fields')->get($name); 
-				if(!$field) {
-					$this->error("Unable to load field for context: $name"); 
-					continue; 
-				}
-				$id = $field->id; 
-				if(isset($this->fieldContexts[$id])) {
-					$this->fieldContexts[$id] = array_merge($this->fieldContexts[$id], $context); 
-				} else {
-					$this->fieldContexts[$id] = $context; 
-				}
-			}
-			
-			return $this; 
 		}
 
 		if(isset($this->settings[$key])) {
@@ -370,48 +339,26 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 *
 	 */
 	public function getExportData() {
-		$data = $this->getTableData();
-		$fields = array();
-		$contexts = array();
-		foreach($this as $field) {
-			$fields[] = $field->name; 
-			if(isset($this->fieldContexts[$field->id])) $contexts[$field->name] = $this->fieldContexts[$field->id];
-		}
-		$data['_fields'] = $fields;
-		$data['_contexts'] = $contexts; 
-		return $data;
+		return $this->wire('fieldgroups')->getExportData($this); 
 	}
 
 	/**
 	 * Given an export data array, import it back to the class and return what happened
+	 * 
+	 * Changes are not committed until the item is saved
 	 *
-	 * @param array $data
+	 * @param array $data 
 	 * @return array Returns array(
 	 * 	[property_name] => array(
 	 * 		'old' => 'old value',	// old value, always a string
 	 * 		'new' => 'new value',	// new value, always a string
 	 * 		'error' => 'error message or blank if no error'
 	 * 	)
-	 *
+	 * @throws WireException if given invalid data
+	 * 
 	 */
 	public function setImportData(array $data) {
-		$return = array();
-		$this->errors("clear");
-		$_data = $this->getExportData();
-		foreach($data as $key => $value) {
-			$old = isset($_data[$key]) ? $_data[$key] : null;
-			if(is_array($old)) $old = print_r($old, true); 
-			$new = is_array($value) ? print_r($value, true) : $value; 
-			if($old == $new) continue; 
-			$this->set($key, $value);
-			$error = (string) $this->errors("first clear"); 
-			$return[$key] = array(
-				'old' => $old, 
-				'new' => $value, 
-				'error' => $error, 
-			);
-		}
-		return $return;
+		return $this->wire('fieldgroups')->setImportData($this, $data); 
 	}
 
 	/**
@@ -482,13 +429,14 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	/**
 	 * Return an array of context data for the given field ID
 	 *
-	 * @param $field_id Field ID
+	 * @param int|null $field_id Field ID or omit to return all field contexts
 	 * @return array 
 	 *
 	 */
-	public function getFieldContextArray($field_id) {
+	public function getFieldContextArray($field_id = null) {
+		if(is_null($field_id)) return $this->fieldContexts;
 		if(isset($this->fieldContexts[$field_id])) return $this->fieldContexts[$field_id];
-			else return array();
+		return array();
 	}
 
 	/**
@@ -500,6 +448,16 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 */
 	public function setFieldContextArray($field_id, $data) {
 		$this->fieldContexts[$field_id] = $data;
+	}
+
+	/**
+	 * Save field contexts for this fieldgroup
+	 * 
+	 * @return int Number of contexts saved
+	 * 
+	 */
+	public function saveContext() {
+		return $this->wire('fieldgroups')->saveContext($this); 
 	}
 
 }

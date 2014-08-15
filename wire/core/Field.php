@@ -232,10 +232,6 @@ class Field extends WireData implements Saveable, Exportable {
 		
 		if($this->type) {
 			$typeData = $this->type->exportConfigData($this, $data);
-			foreach($typeData as $key => $value) {
-				// exclude fields beginning with underscore as they are assumed to be for runtime use only
-				if(strpos($key, '_') === 0) unset($typeData[$key]); 
-			}
 			$data = array_merge($typeData, $data); 
 		}
 		
@@ -244,6 +240,12 @@ class Field extends WireData implements Saveable, Exportable {
 		foreach($flagOptions as $name) unset($data[$name]);
 		
 		$data['flags'] = $this->flags;
+		
+		foreach($data as $key => $value) {
+			// exclude properties beginning with underscore as they are assumed to be for runtime use only
+			if(strpos($key, '_') === 0) unset($data[$key]);
+		}
+		
 		return $data;
 	}
 	
