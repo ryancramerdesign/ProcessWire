@@ -159,12 +159,14 @@ abstract class Inputfield extends WireData implements Module {
 	 */
 	public function hookRender($event) {
 		$class = $this->className();
+		$url = $this->config->urls->$class;
+		$path = $this->config->paths->$class;
 		$info = $this->wire('modules')->getModuleInfo($this, array('verbose' => false));
 		$version = (int) isset($info['version']) ? $info['version'] : 0;
-		if(is_file($this->config->paths->$class . "$class.css")) $this->config->styles->add($this->config->urls->$class . "$class.css?v=$version"); 
-		if(is_file($this->config->paths->$class . "$class.js")) $this->config->scripts->add($this->config->urls->$class . "$class.js?v=$version"); 
+		if(file_exists("$path$class.css")) $this->config->styles->add("$url$class.css?v=$version");
+		if(file_exists("$path$class.js")) $this->config->scripts->add("$url$class.js?v=$version"); 
 	}
-
+	
 	/**
 	 * Per the Module interface, install() is called when this Inputfield is instally installed
 	 *

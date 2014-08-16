@@ -167,6 +167,17 @@ $config->debug = false;
 $config->dbCache = true;
 
 /**
+ * dbPath: path to mysql/mysqldump commands on the file system
+ *
+ * This enables faster backups and imports when available
+ *
+ * Example: /usr/bin/
+ * Example: /Applications/MAMP/Library/bin/
+ *
+ */ 
+$config->dbPath = '';
+
+/**
  * Force any created field_* tables to be lowercase
  *
  * Recommend value is true except for existing installations that already have mixed case tables. 

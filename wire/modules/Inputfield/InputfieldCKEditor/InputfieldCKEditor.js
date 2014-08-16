@@ -1,9 +1,22 @@
 /**
  * InputfieldCKEditor.js
  *
- * Initialization for CKEditor, currently exclusive to CKE inline mode
+ * Initialization for CKEditor
  *
  */
+
+/**
+ * Add external plugins
+ * 
+ * These are located in:
+ * 	/wire/modules/Inputfield/InputfieldCKEditor/plugins/[name]/plugin.js (core external plugins)
+ * 	/site/modules/InputfieldCKEditor/plugins/[name]/plugin.js (site external plugins)
+ * 
+ */
+for(var name in config.InputfieldCKEditor.plugins) {
+	var file = config.InputfieldCKEditor.plugins[name];
+	CKEDITOR.plugins.addExternal(name, file, '');
+}
 
 /**
  * A collection of inline editor instances 
@@ -23,12 +36,6 @@ $(document).ready(function() {
 	var pageID = $("#Inputfield_id").val();
 
 	CKEDITOR.disableAutoInline = true; 
-
-	// add external plugins in /site/modules/InputfieldCKEditor/plugins/[name]/plugin.js
-	for(var name in config.InputfieldCKEditor.plugins) {
-		var file = config.InputfieldCKEditor.plugins[name];
-		CKEDITOR.plugins.addExternal(name, file, ''); 
-	}
 
 	if($inlines.size() > 0) {
 
