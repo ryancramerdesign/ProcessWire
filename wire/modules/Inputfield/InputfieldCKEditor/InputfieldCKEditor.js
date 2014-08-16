@@ -32,6 +32,21 @@ var inlineCKEditors = [];
  */ 
 $(document).ready(function() {
 
+	/**
+	 * Regular editors
+	 * 
+	 */
+	
+	for(var editorID in config.InputfieldCKEditor.editors) {
+		var cfgName = config.InputfieldCKEditor.editors[editorID];
+		CKEDITOR.replace(editorID, config[cfgName]);
+	}
+
+	/**
+	 * Inline editors
+	 * 
+	 */
+
 	var $inlines = $(".InputfieldCKEditorInline"); 
 	var pageID = $("#Inputfield_id").val();
 
