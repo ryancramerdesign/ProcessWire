@@ -137,14 +137,22 @@ class Pageimage extends Pagefile {
 			else if($this->imageInfo['width']) $checkImage = false; 
 			else $checkImage = true; 
 
-		if($checkImage && ($info = @getimagesize($this->filename))) {
-			$this->imageInfo['width'] = $info[0]; 
-			$this->imageInfo['height'] = $info[1]; 
+		if($checkImage) { 
+			if($this->ext == 'svg') {
+				if($xml = @file_get_contents($this->filename)) {
+					$a = simplexml_load_string($xml)->attributes();
+					$this->imageInfo['width'] = (int) str_replace('px', '', $a->width);
+					$this->imageInfo['height'] = (int) str_replace('px', '', $a->height);
+				}
+			} else if($info = @getimagesize($this->filename)) {
+				$this->imageInfo['width'] = $info[0]; 
+				$this->imageInfo['height'] = $info[1]; 
+			}
 		}
 
 		return $this->imageInfo; 
 	}
-
+	
 	/**
 	 * Return a Pageimage object sized/cropped to the specified dimensions. 
 	 *
@@ -205,6 +213,8 @@ class Pageimage extends Pagefile {
 		if(!$height && $w == $width) return $this; 
 		if(!$width && $h == $height) return $this; 
 		*/
+		
+		if($this->ext == 'svg') return $this; 
 
 		if(!is_array($options)) { 
 			if(is_string($options)) {
@@ -519,5 +529,6 @@ class Pageimage extends Pagefile {
 			throw new WireException($this->_('Unable to install invalid image')); 
 		}
 	}
+
 }
 

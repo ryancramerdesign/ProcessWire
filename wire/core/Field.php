@@ -502,9 +502,13 @@ class Field extends WireData implements Saveable, Exportable {
 			$inputfields->head = $this->_('Field type details');
 			$inputfields->attr('title', $this->_('Details'));
 
-			$fieldtypeInputfields = $this->type->getConfigInputfields($this); 
-			if($fieldtypeInputfields) foreach($fieldtypeInputfields as $inputfield) {
-				$inputfields->append($inputfield); 
+			try {
+				$fieldtypeInputfields = $this->type->getConfigInputfields($this); 
+				if($fieldtypeInputfields) foreach($fieldtypeInputfields as $inputfield) {
+					$inputfields->append($inputfield); 
+				}
+			} catch(Exception $e) {
+				$this->error($e->getMessage()); 
 			}
 
 			if(count($inputfields)) $wrapper->append($inputfields); 

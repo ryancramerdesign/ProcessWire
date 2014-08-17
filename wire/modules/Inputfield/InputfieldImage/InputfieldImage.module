@@ -62,7 +62,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$filename = $pagefile->filename; 
 		$pagefile2 = null;
 
-		if(!$pagefile->width) {
+		if(!$pagefile->width) { 
 			$pagefile->unlink();
 			throw new WireException($this->_('Invalid image')); 
 		}
@@ -75,8 +75,10 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 
 		if(($this->maxWidth && $pagefile->width > $this->maxWidth) || ($this->maxHeight && $pagefile->height > $this->maxHeight)) {
 			$pagefile2 = $pagefile->size($this->maxWidth, $this->maxHeight, array('cropping' => false));
-			unlink($pagefile->filename);
-			rename($pagefile2->filename, $pagefile->filename);
+			if($pagefile->filename != $pagefile2->filename) {
+				unlink($pagefile->filename);
+				rename($pagefile2->filename, $pagefile->filename);
+			}
 			$pagefile->getImageInfo(true); // force it to reload it's dimensions
 		}
 
@@ -91,11 +93,15 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 
 		$thumb = $pagefile; 
 		$error = '';
+		$imgAttr = '';
 
-		if($this->adminThumbs && $thumb->height > $this->adminThumbHeight) {
-			// create a variation for display with this inputfield
-			$thumb = $thumb->height($this->adminThumbHeight); 
-			if($thumb->error) $error = "<span class='ui-state-error-text'>$thumb->error</span>";
+		if($this->adminThumbs) {
+			if($thumb->height > $this->adminThumbHeight) {
+				// create a variation for display with this inputfield
+				$thumb = $thumb->height($this->adminThumbHeight); 
+				if($thumb->error) $error = "<span class='ui-state-error-text'>$thumb->error</span>";
+			}
+			$imgAttr = " height='$this->adminThumbHeight'";
 		}
 
 		$out = 	"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header'>" . 
@@ -108,7 +114,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveTop' href='#'><span class='ui-icon ui-icon-arrowthickstop-1-n'></span></a> " . 
 			"\n\t\t</p>" . 
 			"\n\t\t<p class='InputfieldFileData ui-widget ui-widget-content'>" . 
-			"\n\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->url}'><img src='{$thumb->url}' alt='{$pagefile->basename}' /></a>" . 
+			"\n\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->url}'><img src='{$thumb->url}' alt='{$pagefile->basename}'$imgAttr /></a>" . 
 			"\n\t\t\t" . $error . $this->renderItemDescriptionField($pagefile, $id, $n) . 
 			"\n\t\t\t<input class='InputfieldFileSort' type='text' name='sort_$id' value='$n' />" . 
 			"\n\t\t</p>";
