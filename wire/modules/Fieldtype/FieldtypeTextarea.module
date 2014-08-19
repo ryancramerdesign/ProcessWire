@@ -66,12 +66,20 @@ class FieldtypeTextarea extends FieldtypeText {
 		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, true);
 		return $value; 
 	}
+	
+	public function ___wakeupValue(Page $page, Field $field, $value) {
+		$value = parent::___wakeupValue($page, $field, $value);
+		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, false);
+		return $value;
+	}
 
+	/*
 	public function ___loadPageField(Page $page, Field $field) {
 		$value = parent::___loadPageField($page, $field);
 		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, false);
 		return $value; 
 	}
+	*/
 
 	/**
 	 * Content Type HTML replacements accounting for href and src attributes

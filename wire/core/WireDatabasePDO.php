@@ -303,4 +303,26 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		$this->pdo = null;
 	}
 
+	/**
+	 * Retrieve new instance of WireDatabaseBackups ready to use with this connection
+	 * 
+	 * See WireDatabaseBackup class for usage. 
+	 * 
+	 * @return WireDatabaseBackup
+	 * @throws Exception on fatal error
+	 * 
+	 */
+	public function backups() {
+	
+		$path = $this->wire('config')->paths->assets . 'backups/database/';
+		if(!is_dir($path)) wireMkdir($path, true); 
+
+		$backups = new WireDatabaseBackup($path); 
+		$backups->setDatabase($this);
+		$backups->setDatabaseConfig($this->wire('config'));
+		$backups->setBackupOptions(array('user' => $this->wire('user')->name)); 
+	
+		return $backups; 
+	}
+
 }
