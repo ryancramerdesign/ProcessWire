@@ -95,4 +95,39 @@ abstract class Process extends WireData implements Module {
 		return false; 
 	}
 
+	/**
+	 * Set the current headline to appear in the interface
+	 * 
+	 * @param string $headline
+	 * @return this
+	 *
+	 */
+	public function ___headline($headline) {
+		$this->wire('processHeadline', $headline); 
+		return $this; 
+	}
+
+	/**
+	 * Add a breadcrumb
+	 * 
+	 * @param string $href
+	 * @param string $label
+	 * @return this
+	 *
+	 */
+	public function ___breadcrumb($href, $label) {
+		$pos = strpos($label, '/'); 
+		if($pos !== false && strpos($href, '/') === false) {
+			// arguments got reversed, we'll work with it anyway...
+			if($pos === 0 || $label[0] == '.' || substr($label, -1) == '/') {
+				$_href = $href; 
+				$href = $label;
+				$label = $_href;
+			}
+		}
+		$this->wire('breadcrumbs')->add(new Breadcrumb($href, $label));
+		return $this;
+	}
+	
+
 }

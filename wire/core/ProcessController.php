@@ -194,12 +194,25 @@ class ProcessController extends Wire {
 
 		$content = '';
 		$debug = $this->wire('config')->debug; 
+		$breadcrumbs = $this->wire('breadcrumbs'); 
+		$headline = $this->wire('processHeadline'); 
+		$numBreadcrumbs = $breadcrumbs ? count($breadcrumbs) : null;
 		if($process = $this->getProcess()) { 
 			if($method = $this->getProcessMethodName($this->process)) {
 				$className = $this->process->className();
 				if($debug) Debug::timer("$className.$method()"); 
 				$content = $this->process->$method();
 				if($debug) Debug::saveTimer("$className.$method()"); 
+				if($method != 'execute') {
+					// some method other than the main one
+					if(!is_null($numBreadcrumbs) && $numBreadcrumbs === count($breadcrumbs)) {
+						// process added no breadcrumbs, but there should be more
+						if($headline === $this->wire('processHeadline')) $process->headline(str_replace('execute', '', $method)); 
+						$moduleInfo = $this->wire('modules')->getModuleInfo($process);
+						$href = substr($this->wire('input')->url(), -1) == '/' ? '../' : './';
+						$process->breadcrumb($href, $moduleInfo['title']); 
+					}
+				}
 			} else {
 				throw new ProcessController404Exception("Unrecognized path");
 			}

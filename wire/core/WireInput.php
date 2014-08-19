@@ -239,7 +239,7 @@ class WireInput {
 			$this->urlSegments = $urlSegments; 
 		} else {
 			// set
-			$this->urlSegments[$num] = (string) $value; 	
+			$this->urlSegments[$num] = wire('sanitizer')->name($value); 	
 		}
 	}
 
@@ -282,6 +282,9 @@ class WireInput {
 		if($key == 'pageNum') return $this->pageNum; 
 		if($key == 'urlSegments') return $this->urlSegments; 
 		if($key == 'urlSegmentsStr' || $key == 'urlSegmentStr') return implode('/', $this->urlSegments); 
+		if($key == 'url') return $this->url();
+		if($key == 'fragment') return $this->fragment();
+		if($key == 'queryString') return $this->queryString();
 
 		if(strpos($key, 'urlSegment') === 0) {
 			if(strlen($key) > 10) $num = (int) substr($key, 10); 
@@ -312,6 +315,56 @@ class WireInput {
 
 	public function __isset($key) {
 		return $this->__get($key) !== null;
+	}
+
+	/**
+	 * URL that initiated the current request, including URL segments
+	 * 
+	 * Note that this does not include query string or fragment
+	 * 
+	 * @return string
+	 * 
+	 */
+	public function url() {
+	
+		$page = wire('page'); 
+		$url = $page && $page->id ? wire('page')->url : ''; 
+		
+		$segmentStr = $this->urlSegmentStr; 
+		if(strlen($segmentStr)) {
+			$url = rtrim($url, '/') . '/';
+			$url .= $segmentStr;
+			$info = parse_url($_SERVER['REQUEST_URI']);
+			if(!empty($info['path']) && substr($info['path'], -1) == '/') $url .= '/'; // trailing slash
+		}
+		
+		return $url;
+	}
+
+	/**
+	 * Anchor/fragment for current request (i.e. #fragment)
+	 * 
+	 * Note that this is not sanitized
+	 *
+	 * @return string
+	 *
+	 */
+	public function fragment() {
+		if(strpos($_SERVER['REQUEST_URI'], '#') === false) return '';
+		$info = parse_url($_SERVER['REQUEST_URI']);
+		return empty($info['fragment']) ? '' : $info['fragment']; 
+	}
+
+	/**
+	 * Return the query string that was part of this request or blank if none
+	 * 
+	 * Note that this is not sanitized.
+	 * 
+	 * @return string
+	 * 
+	 */
+	public function queryString() {
+		return $this->getVars->queryString();
 	}
 }
 
