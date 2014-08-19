@@ -11,6 +11,8 @@
  * 
  * http://www.processwire.com
  * http://www.ryancramer.com
+ * 
+ * see readme file for further links regarding module development
  *
  */
 
@@ -67,9 +69,11 @@ class Helloworld extends WireData implements Module {
 
 
 		// add a 'hello' method to every page that returns "Hello World"
+		// use $page->hello() in your template to display output
 		$this->addHook('Page::hello', $this, 'example3'); 
 
 		// add a 'hello_world' property to every page that returns "Hello [user]"
+		// use $page->hello_world in your template to display output
 		$this->addHookProperty('Page::hello_world', $this, 'example4'); 
 
 	}
