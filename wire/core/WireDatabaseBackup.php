@@ -17,7 +17,7 @@
  * 
  * Initialization
  * ==============
- * $backup = new WireDataseBackup('/path/to/backups/');
+ * $backup = new WireDatabaseBackup('/path/to/backups/');
  * $backup->setDatabase($this->database); // optional, if ommitted it will attempt it's own connection
  * $backup->setDatabaseConfig($this->config); // optional, only if setDatabase() was called
  * 
@@ -543,7 +543,7 @@ class WireDatabaseBackup {
 		
 		fwrite($fp, self::fileHeader . " $json\n"); 
 		fclose($fp); 
-		wireChmod($fp); 
+		wireChmod($file); 
 		return true; 
 	}
 
