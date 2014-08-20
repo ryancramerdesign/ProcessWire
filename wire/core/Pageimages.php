@@ -45,4 +45,31 @@ class Pageimages extends Pagefiles {
 	public function makeBlankItem() {
 		return new Pageimage($this, ''); 
 	}
+
+	/**
+	 * Does this field have the given file name? If so, return it, if not return null.
+	 *
+	 * @param string $name Basename is assumed
+	 * @return null|Pagefile Returns Pagefile object if found, null if not
+	 *
+	 */
+	public function getFile($name) {
+	
+		$hasFile = parent::getFile($name); 
+		if($hasFile) return $hasFile; 
+		$name = basename($name);
+		$pos = strpos($name, '.'); 
+		$base = substr($name, 0, $pos); 
+		
+		foreach($this as $pagefile) {
+			if(strpos($pagefile->basename, $base) !== 0) continue; 
+			// they start the same, is it a variation?
+			if(!$pagefile->isVariation($name)) continue; 
+			// if we are here we found a variation
+			$hasFile = $pagefile; 
+			break;
+		}
+		
+		return $hasFile;
+	}
 }

@@ -90,6 +90,34 @@ class PagefilesManager extends Wire {
 		}
 		return $files; 
 	}
+	
+	/**
+	 * Get the Pagefile/Pageimage object containing the given filename
+	 *
+	 * @param string $name If given a URL/path, this will traverse to other pages. If given a basename, it will stay with current page.
+	 * @return Pagefile|null Returns Pagefile object if found, null if not
+	 *
+	 */
+	public function getFile($name) {
+		$pagefile = null;
+		if(strpos($name, '/') !== false) {
+			$pageID = self::dirToPageID($name);
+			if(!$pageID) return null;
+			$page = $this->wire('pages')->get($pageID);
+			if(!$page->id) return null;
+		} else {
+			$page = $this->page;
+		}
+		foreach($page->fieldgroup as $field) {
+			if(!$field->type instanceof FieldtypeFile) continue;
+			$pagefiles = $page->get($field->name);
+			$pagefile = $pagefiles->getFile($name);
+			if(!$pagefile) continue;
+			break;
+		}
+		return $pagefile;
+	}
+
 
 	/**
 	 * Recursively copy all files in $fromPath to $toPath, for internal use
@@ -367,5 +395,31 @@ class PagefilesManager extends Wire {
 		return self::extendedDirName . $path . '/';	
 	}
 
+	/**
+	 * Given a dir (URL or path) to a files directory, return the page ID associated with it
+	 *
+	 * @param string $dir Maybe extended or regular, path or URL
+	 * @return int
+	 *
+	 */ 
+	static public function dirToPageID($dir) {
+
+		$parts = explode('/', $dir); 
+		$pageID = '';
+		$securePrefix = wire('config')->pagefileSecurePathPrefix; 
+		if(!strlen($securePrefix)) $securePrefix = self::defaultSecurePathPrefix;
+
+		foreach(array_reverse($parts) as $key => $part) {
+			$part = ltrim($part, $securePrefix); 
+			if(!ctype_digit($part)) {
+				if(!$key) continue; // first item, likely a filename, skip it
+				break; // not first item means end of ID sequence
+			}
+			$id = ltrim($part, '0'); // remove leading 0 and dash
+			$pageID = $id . $pageID; 
+		}
+
+		return (int) $pageID; 
+	}
 
 }

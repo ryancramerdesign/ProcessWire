@@ -97,8 +97,13 @@
 		var node = selection.getStartElement();
 		var $node = $(node);
 		var nodeParent = node.getParent();
-		var $nodeParent = $(nodeParent);
-		var src = $node.attr('src'); 
+		var src = $node.attr('src');
+		var $linkWrapper = null; // if img is wrapped in link, this is it
+	
+		if(nodeParent.$.nodeName.toUpperCase() === 'A') {
+			$linkWrapper = $(nodeParent.getOuterHtml()); 
+			$linkWrapper.find('img').remove();
+		}
 		
 		if(src) { 
 			
@@ -108,7 +113,7 @@
 			imgWidth = $node.attr('width');
 			imgHeight = $node.attr('height'); 
 			imgDescription = $node.attr('alt'); 
-			imgLink = (nodeParent.$.nodeName === "A") ? nodeParent.$.href : '';
+			imgLink = (nodeParent.$.nodeName.toUpperCase() === "A") ? nodeParent.$.href : '';
 
 			parts = parts.reverse();
 			page_id = 0; 
@@ -165,12 +170,12 @@
 
 								var $i = $iframe.contents();
 								var $img = $("#selected_image", $i); 
-								//var src = $img.attr('src'); 
 								var width = $img.attr('width');
 								var height = $img.attr('height'); 
 								var alt = $("#selected_image_description", $i).val();
-								var cls = $img.removeClass('ui-resizable').attr('class'); 
-								var link = $("#selected_image_link:checked", $i).val();
+								var cls = $img.removeClass('ui-resizable').attr('class');
+								var $linkToLarger = $('#selected_image_link', $i); 
+								var link = $linkToLarger.is(":checked") ? $linkToLarger.val() : ''; // link to larger version
 								var html = '<img class="' + cls + '" src="' + src + '" '; 
 
 								if(alt && alt.length > 0) alt = $("<div />").text(alt).html().replace(/"/g, '&quot;'); 
@@ -178,8 +183,29 @@
 								if(width > 0) html += 'width="' + width + '" '; 
 								if(height > 0) html += 'height="' + height + '" '; 
 								html += 'alt="' + alt + '" />';
-								if(link && link.length > 0) html = "<a href='" + link + "'>" + html + "</a>";
-								if(nodeParent && nodeParent.$.nodeName === "A") selection.selectElement(nodeParent); // add it to the selection 
+							
+								if($linkWrapper) {	
+									// img was wrapped in an <a>...</a>
+									if(link && link.length > 0) {
+										$linkWrapper.attr('href', link).attr('data-cke-saved-href', link); // populate existing link with new href
+									} else if($linkToLarger.attr('data-was-checked') == 1) {
+										// box was checked but no longer is
+										$linkWrapper = null;
+									}
+									if($linkWrapper === null) $linkWrapper = $(html); 
+										else $linkWrapper.append($(html)); 
+									html = $linkWrapper.wrap($("<div>")).parent().html(); // outerHTML
+								
+								} else if(link && link.length > 0) {
+									html = "<a href='" + link + "'>" + html + "</a>";
+								}
+								
+								if(nodeParent && nodeParent.$.nodeName.toUpperCase() === "A") {
+									// if parent node is already a link, we'll replace it too
+									// @todo, omit if other text?
+									selection.selectElement(nodeParent);
+								}
+								
 								editor.insertHtml(html); 
 								$iframe.dialog("close"); 
 							}
@@ -190,7 +216,6 @@
 							$iframe.dialog("disable").dialog("option", "title", config.InputfieldCKEditor.pwimage.savingNote); // Saving Image
 							$img.removeClass("resized"); 
 
-							var cls = $img.attr('class'); 
 							var width = $img.attr('width');
 							if(!width) width = $img.width();
 							var height = $img.attr('height'); 

@@ -61,6 +61,8 @@ class FieldtypeTextarea extends FieldtypeText {
 		return $value; 
 	}
 
+
+
 	public function ___sleepValue(Page $page, Field $field, $value) {
 		$value = parent::___sleepValue($page, $field, $value);
 		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, true);
@@ -72,7 +74,7 @@ class FieldtypeTextarea extends FieldtypeText {
 		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, false);
 		return $value;
 	}
-
+	
 	/*
 	public function ___loadPageField(Page $page, Field $field) {
 		$value = parent::___loadPageField($page, $field);

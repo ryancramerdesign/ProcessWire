@@ -182,7 +182,8 @@ class ProcessModule extends Process implements ConfigurableModule {
 		// by default, core modules don't appear in the "new" list, 
 		// this array contains a list of core modules that are allowed to appear there
 		$newCoreModules = array(
-			'InputfieldCKEditor'
+			'InputfieldCKEditor',
+			'TextformatterImgQA',
 			);
 		
 		if($this->wire('input')->post('new_seconds')) {
@@ -434,14 +435,14 @@ class ProcessModule extends Process implements ConfigurableModule {
 			// $interfaces = @class_implements($name, false);
 			// $configurable = is_array($interfaces) && in_array('ConfigurableModule', $interfaces);
 			$configurable = $info['configurable'];
-			$title = !empty($info['title']) ? htmlspecialchars($info['title'], ENT_QUOTES, 'UTF-8') : substr($name, strlen($section));
+			$title = !empty($info['title']) ? $this->wire('sanitizer')->entities1($info['title']) : substr($name, strlen($section));
 			if($allowClasses) $title .= " <small class='ModuleClass ui-priority-secondary'>[$name]</small>";
 			if($info['icon']) $title = "<i class='fa fa-fw fa-$info[icon]'></i> $title"; 
 			$class = $configurable ? 'ConfigurableModule' : '';
 			if(!empty($info['permanent'])) $class .= ($class ? ' ' : '') . 'PermanentModule';
 			if($class) $title = "<span class='$class'>$title</span>";
 			$version = $this->formatVersion(isset($info['version']) ? $info['version'] : 0);
-			$summary = empty($info['summary']) ? '' : htmlspecialchars($info['summary'], ENT_QUOTES, 'UTF-8');
+			$summary = empty($info['summary']) ? '' : $this->wire('sanitizer')->entities1($info['summary']);
 			$summary .= empty($info['href']) ? '' : (" <a href='$info[href]'>" . $this->_('more') . "</a>");
 			$buttons = '';
 			$confirmJS = "return confirm('" . sprintf($this->_('Delete %s?'), $name) . "')";
@@ -658,7 +659,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 
 		$links = array();
 
-		$moduleName = wire('sanitizer')->entities($data['name']);
+		$moduleName = wire('sanitizer')->entities1($data['name']);
 		$links[] = "<a target='_blank' href='http://modules.processwire.com/modules/$moduleName/'>" . $this->_('More Information') . "</a>";
 
 		if($data['project_url']) {
@@ -964,7 +965,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		// entity encode module info since it's turned off in our table
 		foreach($moduleInfo as $key => $value) {
 			if(!is_string($value)) continue; 
-			$moduleInfo[$key] = htmlspecialchars($value, ENT_QUOTES, "UTF-8"); 
+			$moduleInfo[$key] = $this->wire('sanitizer')->entities1($value);
 		}
 	
 		$version = $this->formatVersion($moduleInfo['version']);

@@ -374,4 +374,23 @@ class Pagefiles extends WireArray {
 		return parent::trackChange($what, $old, $new); 
 	}
 
+	/**
+	 * Get the given file
+	 * 
+	 * @param string $name
+	 * @return null|Pagefile
+	 * 
+	 */
+	public function getFile($name) {
+		$hasFile = null;
+		$name = basename($name);
+		foreach($this as $pagefile) {
+			if($pagefile->basename == $name) {
+				$hasFile = $pagefile;
+				break;
+			}
+		}
+		return $hasFile;
+	}
+
 }

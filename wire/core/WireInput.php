@@ -285,6 +285,7 @@ class WireInput {
 		if($key == 'url') return $this->url();
 		if($key == 'fragment') return $this->fragment();
 		if($key == 'queryString') return $this->queryString();
+		if($key == 'scheme') return $this->scheme();
 
 		if(strpos($key, 'urlSegment') === 0) {
 			if(strlen($key) > 10) $num = (int) substr($key, 10); 
@@ -365,6 +366,18 @@ class WireInput {
 	 */
 	public function queryString() {
 		return $this->getVars->queryString();
+	}
+
+	/**
+	 * Return the current access scheme/protocol 
+	 *
+	 * Note that this is only useful for http/https, as we don't detect other schemes.
+	 *
+	 * @return string either "https" or "http"
+	 *
+	 */
+	public function scheme() {
+		return wire('config')->https ? 'https' : 'http'; 
 	}
 }
 

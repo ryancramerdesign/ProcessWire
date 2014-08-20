@@ -14,6 +14,16 @@
  */
 
 class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
+	
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Page Edit Image',
+			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)',
+			'version' => 106,
+			'permanent' => true,
+			'permission' => 'page-edit',
+		);
+	}
 
 	protected $maxImageWidth = 835; 
 	protected $page = null;
@@ -21,16 +31,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	protected $file = '';
 	protected $editWidth = 0;
 	protected $editHeight = 0;
-
-	public static function getModuleInfo() {
-		return array(
-			'title' => 'Page Edit Image',          
-			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)', 
-			'version' => 105, 
-			'permanent' => true, 
-			'permission' => 'page-edit',
-			);
-	}
+	protected $extensions = 'jpg|jpeg|gif|png|svg';
 
 	protected static $defaultConfig = array(
 		'skipFields' => '',
@@ -53,11 +54,12 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 
 		// if no ID was specified, then retrieive ID from filename path, if it's there
 		if($this->input->get->file) {
-			if(preg_match('{(\d+)[/,][^/,]+\.(jpe?g|gif|png)$}iD', $this->input->get->file, $matches)) {
+			if(preg_match('{(\d+)[/,][^/,]+\.(' . $this->extensions . ')$}iD', $this->input->get->file, $matches)) {
 				$id = (int) $matches[1]; 
 
 			} else if(preg_match('{^' . wire('config')->urls->root . '([-_./a-zA-Z0-9]*/)' . wire('config')->pagefileUrlPrefix . 
-				'[^/]+\.(jpe?g|gif|png)$}iD', $this->input->get->file, $matches)) {
+				'[^/]+\.(' . $this->extensions . ')$}iD', $this->input->get->file, $matches)) {
+				
 				// pagefileSecure URL format, with page path in the URL
 				$this->page = wire('pages')->get('/' . $matches[1]);
 				$id = $this->page->id;
@@ -83,7 +85,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$images = $this->getImages($this->page);
 		$filename = basename($this->input->get->file); 
 		if(strpos($filename, ',') === false) $filename = $this->page->id . ',' . $filename; // prepend ID if it's not there, needed for ajax in-editor resize
-		if(!preg_match('/\.(jpe?g|gif|png)$/iD', $filename, $matches)) throw new WireException("Unknown image file"); 
+		if(!preg_match('/\.(' . $this->extensions . ')$/iD', $filename, $matches)) throw new WireException("Unknown image file"); 
 
 		// get the original, non resized version, if present
 		if(preg_match('/(\.(\d+)x(\d+))\.' . $matches[1] . '$/', $filename, $matches)) {
@@ -256,7 +258,14 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		if($width && $height) $attrs['height'] = $height; 
 
 		if($width != $originalWidth) { 
-			$checked = $this->input->get->link == $image->url ? " checked='checked'" : '';
+			$imgURL = str_replace($this->wire('config')->urls->root, '/', $image->url); 
+			$imgLink = trim($this->input->get->link);
+			if($imgLink) {
+				$test = substr($imgLink, -1 * strlen($imgURL));
+				$checked = $test == $imgURL ? " checked='checked' data-was-checked='1'" : "";
+			} else {
+				$checked = '';
+			}
 			$out .= "\n\t<p id='wrap_link_original'>" . 
 				"\n\t\t<label>" . 
 				"\n\t\t\t<input type='checkbox'$checked name='selected_image_link' id='selected_image_link' value='{$image->url}' /> " . $this->_('Link to Larger Version?') . 

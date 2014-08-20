@@ -418,7 +418,7 @@ class Pageimage extends Pagefile {
 			$originalName = $matches[1];
 		}
 
-		$re = 	'/^'  . 
+		$re = '/^'  . 
 			$originalName . '\.' .		// myfile. 
 			'(\d+)x(\d+)' .			// 50x50	
 			'([pd]\d+x\d+|[a-z]{1,2})?' . 	// nw or p30x40 or d30x40
@@ -433,8 +433,12 @@ class Pageimage extends Pagefile {
 			'original' => $originalName . '.' . $this->ext(), 
 			'width' => $matches[1],
 			'height' => $matches[2], 
-			'crop' => (isset($matches[3]) ? $matches[3] : '')
+			'crop' => (isset($matches[3]) ? $matches[3] : ''),
 			);
+		
+		if(!$this->original) {
+			$this->original = $this->pagefiles->get($info['original']); 
+		}
 
 		return $info;
 	}

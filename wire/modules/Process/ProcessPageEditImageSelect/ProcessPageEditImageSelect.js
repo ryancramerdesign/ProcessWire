@@ -18,8 +18,24 @@ $(document).ready(function() {
 		function populateResizeDimensions() {
 			var w = $img.width();
 			var h = $img.height();
+			
+			if(h >= maxHeight || w >= maxWidth) {
+				w = maxWidth;
+				h = maxHeight;
+				$("#selected_image_link").removeAttr('checked'); 
+				$("#wrap_link_original").hide();
+			} else {
+				if(!$("#wrap_link_original").is(":visible")) {
+					$("#wrap_link_original").fadeIn();
+					if($("#wrap_link_original").attr('data-was-checked') == 1) {
+						$("#wrap_link_original").attr('checked', 'checked'); 
+					}
+				}
+			}
+
 			$("#input_width").val(w); 
 			$("#input_height").val(h); 
+			
 			$img.attr('width', w); 
 			$img.attr('height', h); 
 		}
@@ -52,8 +68,9 @@ $(document).ready(function() {
 
 			w = Math.floor(w);
 			h = Math.floor(h);
-
+			
 			if(w < 1 || h < 1 || w == $img.attr('width') || h == $img.attr('height') || w > maxWidth || h > maxHeight) {
+				
 				$("#input_width").val($img.attr('width')); 
 				$("#input_height").val($img.attr('height')); 
 				return false;

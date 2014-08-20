@@ -21,7 +21,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'CKEditor',
-			'version' => 125, 
+			'version' => 126, 
 			'summary' => __('CKEditor textarea rich text editor.', __FILE__),
 			'installs' => array('MarkupHTMLPurifier'), 
 			);
@@ -140,6 +140,8 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		if($key == 'extraPlugins' && is_string($value)) {
 			$value = str_replace(' ', '', $value); 
 			$value = explode(',', $value); 
+		} else if($key == 'extraAllowedContent') {
+			$value = str_replace(array("\r\n", "\n"), "; ", trim($value)); 
 		}
 		
 		return parent::set($key, $value); 
@@ -627,14 +629,16 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$f->attr('value', $value);
 		$wrapper->add($f);
 
-		$f = $this->modules->get("InputfieldText");
+		$f = $this->modules->get("InputfieldTextarea");
 		$f->label = $this->_('Extra Allowed Content');
 		$f->description = $this->_('Allowed content rules per CKEditor [extraAllowedContent](http://docs.ckeditor.com/#!/api/CKEDITOR.config-cfg-extraAllowedContent) option. Applies only if the "Use ACF" checkbox above is checked.'); 
-		$f->notes = $this->_('See [details](http://docs.ckeditor.com/#!/guide/dev_allowed_content_rules-section-2) in CKEditor documentation.');
+		$f->description .= ' ' . $this->_('You may enter multiple rules by putting each on its own line.'); 
+		$f->notes = $example . "img[alt,!src,width,height]\n" . $this->_('The above example would allow alt, src, width and height attributes for img tags, with the src attribute always required.') . "\n" . 
+			$this->_('See [details](http://docs.ckeditor.com/#!/guide/dev_allowed_content_rules-section-2) in CKEditor documentation.');
 		$f->attr('name', 'extraAllowedContent');
 		$value = $this->get('extraAllowedContent');
 		$f->collapsed = ($value == self::EXTRA_ALLOWED_CONTENT ? Inputfield::collapsedYes : Inputfield::collapsedNo);
-		$f->attr('value', $value);
+		$f->attr('value', str_replace("; ", "\n", $value)); // convert to multi-line for ease of input
 		$wrapper->add($f);
 
 		$pathNote = $this->_('Paths should be relative to your ProcessWire installation root (i.e. if site is running from a subdirectory, exclude that part).'); 

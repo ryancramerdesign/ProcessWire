@@ -96,12 +96,14 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$imgAttr = '';
 
 		if($this->adminThumbs) {
-			if($thumb->height > $this->adminThumbHeight) {
+			$thumbHeight = $thumb->height; 
+			if($thumbHeight > $this->adminThumbHeight) {
 				// create a variation for display with this inputfield
 				$thumb = $thumb->height($this->adminThumbHeight); 
 				if($thumb->error) $error = "<span class='ui-state-error-text'>$thumb->error</span>";
+				$thumbHeight = $this->adminThumbHeight;
 			}
-			$imgAttr = " height='$this->adminThumbHeight'";
+			$imgAttr = " height='$thumbHeight'";
 		}
 
 		$out = 	"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header'>" . 
