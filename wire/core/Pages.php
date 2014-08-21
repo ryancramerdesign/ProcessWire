@@ -858,17 +858,22 @@ class Pages extends Wire {
 				// the same number, so we account for the possibility here by re-trying queries
 				// that trigger duplicate-entry exceptions 
 
-				if($errorCode == 23000 && ($page->_hasAutogenName || $options['adjustName'])) { 
+				if($errorCode == 23000 && ($page->_hasAutogenName || $options['adjustName'])) {
+					// Integrity constraint violation: 1062 Duplicate entry 'background-3552' for key 'name3894_parent_id'
 					// attempt to re-generate page name
-					if(preg_match('/^(.+?)-(\d+)$/', $page->name, $matches)) {
+					$nameField = 'name';
+					// account for the duplicate possibly being a multi-language name field
+					if($this->wire('languages') && preg_match('/\b(name\d*)_parent_id\b/', $e->getMessage(), $matches)) $nameField = $matches[1]; 
+					// get either 'name' or 'name123' (where 123 is language ID)
+					$pageName = $page->$nameField;
+					// determine if current name format already has a trailing number
+					if(preg_match('/^(.+?)-(\d+)$/', $pageName, $matches)) {
 						// page already has a trailing number
 						$n = $matches[2]; 
 						$pageName = $matches[1]; 
-					} else {
-						$pageName =  $page->name;
 					}
 					$page->name = $pageName . '-' . (++$n); 
-					$query->bindValue(':name', $page->name); 
+					$query->bindValue(":$nameField", $page->name); 
 					
 				} else {
 					// a different exception that we don't catch, so re-throw it
