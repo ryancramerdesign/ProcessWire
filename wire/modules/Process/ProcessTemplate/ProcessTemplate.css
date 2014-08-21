@@ -44,6 +44,10 @@ span.asmFieldsetIndent {
 	top: 2px; 
 }
 
+#ProcessTemplateList .InputfieldMarkup {
+	margin-bottom: 1em;
+}
+
 
 .asmListItemStatus i {
 	margin-right: 0.5em; 

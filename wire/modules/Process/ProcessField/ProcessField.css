@@ -45,6 +45,10 @@ body.modal #fieldgroupContext {
     margin-left: 0.5em; 
 }
 
+#ProcessFieldList .InputfieldMarkup {
+	margin-bottom: 1em;
+}
+
 /**
  * Import/export 
  *
