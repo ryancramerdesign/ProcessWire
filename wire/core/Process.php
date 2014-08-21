@@ -6,11 +6,10 @@
  * Process is the base Module class for each part of ProcessWire's web admin.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -21,18 +20,35 @@ abstract class Process extends WireData implements Module {
 	 *
 	 * The 'permission' property is specific to Process instances, and allows you to specify the name of a permission
 	 * required to execute this process. 
+	 * 
+	 * Note that you may want your Process module to use the 'page' property defined below. To make use of it, make
+	 * sure it is included in your module info, and make sure your Process module either omits install/uninstall methods,
+	 * or calls the ones in this class, i.e. 
+	 * 
+	 * public function ___install() {
+	 *   parent::___install(); 
+	 * }
 	 *
+	 */
+	
+	/*
 	public static function getModuleInfo() {
 		return array(
-			'title' => '',		// printable name/title of module
-			'version' => 1, 	// version number of module
-			'summary' => '', 	// one sentence summary of module
-			'href' => '', 		// URL to more information (optional)
-			'permanent' => true, 	// true if module is permanent and thus not uninstallable (3rd party modules should specify 'false')
-			'permission' => '', 	// name of permission required to execute this Process (optional)
+			'title' => '',				// printable name/title of module
+			'version' => 1, 			// version number of module
+			'summary' => '', 			// one sentence summary of module
+			'href' => '', 				// URL to more information (optional)
+			'permanent' => true, 		// true if module is permanent and thus not uninstallable (3rd party modules should specify 'false')
+			'permission' => '', 		// name of permission required to execute this Process (optional)
+			'permissions' => array(..),	// see Module.php for details
+	 		'page' => array( 			// optionally install/uninstall a page for this process automatically
+	 			'name' => 'page-name', 	// name of page to create
+	 			'parent' => 'setup', 	// parent name (under admin) or omit or blank to assume admin root
+	 			'title' => 'Title', 	// title of page, or omit to use the title already specified above
+	 			)
 			); 
 	}
- 	 */
+ 	*/
 
 	/**
 	 * Per the Module interface, Initialize the Process, loading any related CSS or JS files
@@ -45,22 +61,6 @@ abstract class Process extends WireData implements Module {
 		if(is_file($this->config->paths->$class . "$class.css")) $this->config->styles->add($this->config->urls->$class . "$class.css?v=$version"); 
 		if(is_file($this->config->paths->$class . "$class.js")) $this->config->scripts->add($this->config->urls->$class . "$class.js?v=$version"); 
 	}
-
-	/**
-	 * Per the Module interface, Install the Process module
-	 *
-	 * By default a permission equal to the name of the class is installed, unless overridden with the 'permission' property in getModuleInfo().
-	 *
-	 */
-	public function ___install() { }
-
-	/**
-	 * Uninstall this Process
-	 *
-	 * Note that the Modules class handles removal of any Permissions that the Process may have installed 
-	 *
-	 */
-	public function ___uninstall() { }
 
 	/**
 	 * Execute this Process and return the output 
@@ -128,6 +128,102 @@ abstract class Process extends WireData implements Module {
 		$this->wire('breadcrumbs')->add(new Breadcrumb($href, $label));
 		return $this;
 	}
-	
+
+	/**
+	 * Per the Module interface, Install the Process module
+	 *
+	 * By default a permission equal to the name of the class is installed, unless overridden with the 'permission' property in getModuleInfo().
+	 *
+	 */
+	public function ___install() {
+		$info = $this->wire('modules')->getModuleInfo($this, array('noCache' => true)); 
+		// if a 'page' property is provided in the moduleInfo, we will create a page and assign this process automatically
+		if(!empty($info['page'])) { // bool, array, or string
+			$a = array('name' => '', 'parent' => null, 'title' => '', 'template' => 'admin'); 
+			if(is_array($info['page'])) $a = array_merge($a, $info['page']); 
+				else if(is_string($info['page'])) $a['name'] = $info['page'];
+			$this->installPage($a['name'], $a['parent'], $a['title'], $a['template']); 
+		}
+	}
+
+	/**
+	 * Uninstall this Process
+	 *
+	 * Note that the Modules class handles removal of any Permissions that the Process may have installed
+	 *
+	 */
+	public function ___uninstall() {
+		$info = $this->wire('modules')->getModuleInfo($this, array('noCache' => true));
+		// if a 'page' property is provided in the moduleInfo, we will trash pages using this Process automatically
+		if(!empty($info['page'])) $this->uninstallPage();
+	}
+
+
+	/**
+	 * Install a dedicated page for this Process module and assign it this Process
+	 * 
+	 * To be called by Process module's ___install() method. 
+	 *
+	 * @param string $name Desired name of page, or omit (or blank) to use module name
+	 * @param Page|string|int|null Parent for the page, with one of the following:
+	 * 	- name of parent, relative to admin root, i.e. "setup"
+	 * 	- Page object of parent
+	 * 	- path to parent
+	 * 	- parent ID
+	 * 	- Or omit and admin root is assumed
+	 * @param string $title Omit or blank to pull title from module information
+	 * @param string|Template Template to use for page (omit to assume 'admin')
+	 * @return Page Returns the page that was created
+	 * @throws WireException if page can't be created
+	 *
+	 */
+	protected function ___installPage($name = '', $parent = null, $title = '', $template = 'admin') {
+		$info = $this->wire('modules')->getModuleInfo($this);
+		$name = $this->wire('sanitizer')->pageName($name);
+		if(!strlen($name)) $name = strtolower(preg_replace('/([A-Z])/', '-$1', str_replace('Process', '', $this->className()))); 
+		$adminPage = $this->wire('pages')->get($this->wire('config')->adminRootPageID); 
+		if($parent instanceof Page) $parent = $parent; // nice
+			else if(ctype_digit("$parent")) $parent = $this->wire('pages')->get((int) $parent); 
+			else if(strpos($parent, '/') !== false) $parent = $this->wire('pages')->get($parent); 
+			else if($parent) $parent = $adminPage->child("include=all, name=" . $this->wire('sanitizer')->pageName($parent)); 
+		if(!$parent || !$parent->id) $parent = $adminPage; // default
+		$page = $parent->child("include=all, name=$name"); // does it already exist?
+		if($page->id && $page->process == $this) return $page; // return existing copy
+		$page = new Page();
+		$page->template = $template ? $template : 'admin';
+		$page->name = $name; 
+		$page->parent = $parent; 
+		$page->process = $this;
+		$page->title = $title ? $title : $info['title'];
+		$this->wire('pages')->save($page, array('adjustName' => true)); 
+		if(!$page->id) throw new WireException("Unable to create page: $parent->path$name"); 
+		$this->message(sprintf($this->_('Created Page: %s'), $page->path)); 
+		return $page;
+	}
+
+	/**
+	 * Uninstall (trash) dedicated pages for this Process module
+	 *
+	 * If there is more than one page using this Process, it will trash them all.
+	 * 
+	 * To be called by the Process module's ___uninstall() method. 
+	 * 
+	 * @return int Number of pages trashed
+	 *
+	 */
+	protected function ___uninstallPage() {
+		$moduleID = $this->wire('modules')->getModuleID($this);
+		if(!$moduleID) return 0;
+		$n = 0; 
+		foreach($this->wire('pages')->find("process=$moduleID, include=all") as $page) {
+			if($page->process != $this) continue; 
+			$page->process = null;
+			$this->message(sprintf($this->_('Trashed Page: %s'), $page->path)); 
+			$this->wire('pages')->trash($page);
+			$n++;
+		}
+		return $n;
+	}
+
 
 }
