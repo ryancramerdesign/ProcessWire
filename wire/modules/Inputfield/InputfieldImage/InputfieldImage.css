@@ -13,6 +13,7 @@
 	top: 2px; 
 }
 .InputfieldImage a.InputfieldFileMove {
+	float: right;
 	width: 20px; 
 	padding-right: 20px; 
 	visibility: hidden; 
