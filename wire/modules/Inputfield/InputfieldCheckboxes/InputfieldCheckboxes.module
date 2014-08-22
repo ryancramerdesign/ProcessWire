@@ -15,6 +15,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 		$this->set('table', false); 
 		$this->set('thead', ''); 
 		$this->set('optionColumns', 0); 
+		wire('modules')->get('JqueryCore');
 		parent::init();
 		$this->set('size', null); // cancel 'size' attribute used by select multiple
 	}
@@ -50,7 +51,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 			$ulClass = 'InputfieldCheckboxesStacked';
 		}
 
-		if(!$table) $out = "\n<ul class='$ulClass'>";
+		if(!$table) $out = "\n<ul class='$ulClass' id='checkboxes-{$this->name}'>";
 
 		foreach($this->getOptions() as $key => $value) {
 			$checked = '';
@@ -79,11 +80,21 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 			} else {
 				$out .= "\n\t<li$liAttr>" . $input . $value . "</label></li>";
 			}
-			
+
 		}
 
-		if($table) $out .= $table->render();
-			else $out .= "\n</ul>";
+		if($table) {
+			$out .= $table->render();
+		} else {
+			$out .= "\n</ul>";
+			if(!$columns) {
+				$out .= "<div class='InputfieldCheckboxesSelectAll' id='checkboxes-{$this->name}-select-all'>" .
+					" <a href='javascript:;'>Select all</a></div>" .
+					"<script>var InputfieldCheckboxesConfig = InputfieldCheckboxesConfig || {" .
+					"\tselectAll: '" . $this->_('Select all') . "'," .
+					"\tdeSelectAll: '" . $this->_('Deselect all') . "'" .
+					"};</script>";
+			}
 
 		return $out; 
 
@@ -105,7 +116,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 		$f->description = $this->_('If you want the checkboxes to display in columns (rather than stacked), enter the number of columns you want to use (up to 10). To display checkboxes side-by-side (inline) enter 1.'); 
 		$f->attr('name', 'optionColumns'); 
 		$f->attr('value', (int) $this->optionColumns); 
-		$inputfields->add($f);	
+		$inputfields->add($f);  
 		return $inputfields; 
 	}
 
