@@ -960,12 +960,14 @@ class Modules extends WireArray {
 			if(!$installable) throw new WireException("Module $class requires: " . implode(", ", $requires)); 
 		}
 		
+		$languages = $this->wire('languages');
+		if($languages) $languages->setDefault();
+
 		$pathname = $this->installable[$class];
 		require_once($pathname);
 		$this->setConfigPaths($class, dirname($pathname)); 
 
 		$module = $this->newModule($class);
-
 		$flags = 0;
 		$database = $this->wire('database');
 		$moduleID = 0;
@@ -982,6 +984,7 @@ class Modules extends WireArray {
 		try {
 			if($query->execute()) $moduleID = (int) $database->lastInsertId();
 		} catch(Exception $e) {
+			if($languages) $languages->unsetDefault();
 			$this->error($e->getMessage()); 
 			return null;
 		}
@@ -989,8 +992,8 @@ class Modules extends WireArray {
 		$this->moduleIDs[$class] = $moduleID;
 
 		$this->add($module); 
-		unset($this->installable[$class]); 
-
+		unset($this->installable[$class]);
+		
 		// note: the module's install is called here because it may need to know it's module ID for installation of permissions, etc. 
 		if(method_exists($module, '___install') || method_exists($module, 'install')) {
 			try {
@@ -1002,6 +1005,7 @@ class Modules extends WireArray {
 				$query = $database->prepare('DELETE FROM modules WHERE id=:id LIMIT 1'); // QA
 				$query->bindValue(":id", $moduleID, PDO::PARAM_INT); 
 				$query->execute();
+				if($languages) $languages->unsetDefault(); 
 				throw new WireException("Unable to install module '$class': " . $e->getMessage()); 
 			}
 		}
@@ -1017,9 +1021,11 @@ class Modules extends WireArray {
 			try {
 				$permission = $this->wire('permissions')->add($name); 
 				$permission->title = $title; 
-				$this->wire('permissions')->save($permission); 
+				$this->wire('permissions')->save($permission);
+				if($languages) $languages->unsetDefault(); 
 				$this->message(sprintf($this->_('Added Permission: %s'), $permission->name)); 
 			} catch(Exception $e) {
+				if($languages) $languages->unsetDefault(); 
 				$this->error(sprintf($this->_('Error adding permission: %s'), $name)); 
 			}
 		}
@@ -1036,6 +1042,8 @@ class Modules extends WireArray {
 				}
 			}
 		}
+		
+		if($languages) $languages->unsetDefault(); 
 
 		return $module; 
 	}

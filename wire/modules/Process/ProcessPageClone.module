@@ -302,6 +302,7 @@ class ProcessPageClone extends Process {
 		$page->parent = $parent; 
 		$page->name = 'clone';
 		$page->process = $this; 
+		$page->addStatus(Page::statusHidden);
 		$page->save();
 		$this->message("Added new page: {$page->path}"); 
 

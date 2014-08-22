@@ -240,7 +240,8 @@ class AdminThemeDefaultHelpers extends WireData {
 		}
 
 		$class = strpos($this->wire('page')->path, $p->path) === 0 ? 'on' : '';
-		$title = strip_tags((string) $p->get('title|name')); 
+		$title = strip_tags((string) $p->title); 
+		if(!strlen($title)) $title = $p->name; 
 		$title = $this->_($title); // translate from context of default.php
 		$out .= "<li>";
 	

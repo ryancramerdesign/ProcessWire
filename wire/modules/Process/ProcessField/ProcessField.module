@@ -401,14 +401,16 @@ class ProcessField extends Process implements ConfigurableModule {
 	 */
 	public function ___executeEdit() {
 		
-		// keep track of what gets retrieved from eachfield
-		foreach($this->wire('fields') as $field) $field->trackGets(true); 
-
 		if(is_null($this->form)) $this->buildEditForm();
 
 		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
 
 		if($this->field->id) {
+			if($this->session->get($this, 'optimize') == $this->field->id) {
+				// keep track of what gets retrieved from each field
+				foreach($this->wire('fields') as $field) $field->trackGets(true);
+			}
+
 			$headline = sprintf($this->_x('Edit Field: %s', 'edit headline'), $this->field->name); // Headilne when editing a field
 
 		} else {
@@ -420,7 +422,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$this->identifyContextChanges();
 
-		if($this->field->id) {
+		if($this->field->id && !$this->fieldgroup && $this->session->get($this, 'optimize') == $this->field->id) {
 			// this is outside of buildEditForm intentionally, in case anything has hooked buildEditForm and adding properties to it
 			$alert = $this->buildEditFormAlert();	
 			if(!is_null($alert)) $this->form->add($alert); 
@@ -435,8 +437,11 @@ class ProcessField extends Process implements ConfigurableModule {
 
 	protected function buildEditFormAlert() {
 
+		$this->field->type->getDatabaseSchema($this->field); // may add to trackGets, so we include it (i.e. FieldtypeFile and fileSchema)
 		$gets = $this->field->trackGets();
 		$xkeys = array();
+		$numRows = 0; 
+		$checkLabel = $this->_('Check field reported:') . ' ';
 		
 		if(is_array($gets)) {
 			foreach($this->field->data as $key => $value) {
@@ -445,22 +450,66 @@ class ProcessField extends Process implements ConfigurableModule {
 				$xkeys[] = $key;
 			}
 		}
+
+		foreach($this->wire('fields') as $field) {
+			$table = $field->getTable();
+			$query = $this->database->prepare("SELECT * FROM $table LEFT JOIN pages ON $table.pages_id=pages.id WHERE pages.id IS NULL"); 
+			try {
+				$query->execute();
+				$cnt = $query->rowCount();
+				if($cnt > 0) {
+					if($field->name == $this->field->name) {
+						$message = $checkLabel . sprintf($this->_('%d orphaned table rows found'), $cnt); 
+						$numRows = $cnt; 
+						$n = 0; 
+						while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+							$message .= "\n<small>pages_id: $row[pages_id], data: " . $this->sanitizer->entities($row['data']) . "</small>";
+							if(++$n >= 100) break;
+						}
+						if($n >= 100) $message .= "\n" . $this->_('...and so on...');
+					} else {
+						$message = sprintf($this->_('Please run this check on field %s'), "<a href='./edit?id=$field->id'>$field->name</a>");
+					}
+					$this->error(nl2br($message), Notice::allowMarkup); 
+				}
+			} catch(Exception $e) {
+			}
+		}
 		
-		if(!count($xkeys)) return null;
+		if(!count($xkeys) && !$numRows) {
+			$this->message($checkLabel . sprintf($this->_('No issues found for field %s'), $this->field->name)); 
+			$this->session->remove($this, 'optimize'); 
+			return null;
+		}
 		
 		$form = new InputfieldWrapper();
 		$form->attr('class', 'WireTab');
 		$form->attr('id', 'alert');
 		$form->attr('title', $this->_x('Alert', 'tab'));
-		$f = $this->wire('modules')->get('InputfieldCheckboxes'); 
-		$f->attr('name', '_remove_keys'); 
-		$f->label = $this->_('Unknown Properties'); 
-		$f->description = $this->_('The following properties were found with this field, but do not appear to be in use. Check the box next to each property you want to remove.'); 
-		$f->icon = 'exclamation-triangle';
-		foreach($xkeys as $key) $f->addOption($key); 
-		$this->wire('session')->set($this, '_remove_keys', $xkeys); 
-		$form->add($f); 
-		$this->message($this->_('There appear to be unknown properties in this field. Please see the "Alert" tab.')); 
+		
+		if(count($xkeys)) {
+			$f = $this->wire('modules')->get('InputfieldCheckboxes'); 
+			$f->attr('name', '_remove_keys'); 
+			$f->label = $this->_('Unknown Properties'); 
+			$f->description = $this->_('The following properties were found with this field with zero accesses during configuration. Sometimes this can indicate that the properties are no longer in use. Check the box next to each property you want to remove. If you are not sure, there is no harm in just leaving them there.'); 
+			$f->icon = 'exclamation-triangle';
+			foreach($xkeys as $key) $f->addOption($key); 
+			$this->wire('session')->set($this, '_remove_keys', $xkeys); 
+			$form->add($f); 
+			$this->error($checkLabel . $this->_('Potential unknown properties found in this field. Please see the "Alert" tab.')); 
+		}
+	
+		if($numRows) {
+			$f = $this->wire('modules')->get('InputfieldCheckbox'); 
+			$f->attr('name', '_remove_rows');
+			$f->label = sprintf($this->_('Remove %d orphaned table rows?'), $numRows);
+			$f->description = $this->_('We found rows of data in the table for this field that do not match up with any page.'); 
+			$f->icon = 'exclamation-triangle';
+			$f->attr('value', $this->field->id); 
+			$f->autocheck = false;
+			$form->add($f); 
+		}
+		
 		return $form; 
 	}
 
@@ -829,6 +878,14 @@ class ProcessField extends Process implements ConfigurableModule {
 			$this->_('Each tag must be one word (hyphenation is okay).') . " " . 
 			$this->_('To make a tag collapsed in the fields list, prepend a hyphen to it, like this: -hello');
 		$form->prepend($field); 
+		
+		$field = $this->modules->get('InputfieldCheckbox'); 
+		$field->attr('name', '_optimize'); 
+		$field->label = $this->_('Check field data'); 
+		$field->icon = 'medkit';
+		$field->description = $this->_('Check the field for unused data or other possible optimizations. If any issues are found, you will have the opportunity to correct them from the Alert tab after saving.'); 
+		$field->collapsed = Inputfield::collapsedBlank;
+		$form->add($field); 
 
 		return $form;
 	}
@@ -870,16 +927,31 @@ class ProcessField extends Process implements ConfigurableModule {
 				
 			} else {
 				
-				$removeKeys = $this->wire('input')->post('_remove_keys'); 
+				$optimized = false; 
+				
+				$removeKeys = $this->wire('input')->post('_remove_keys');
 				if($removeKeys && count($removeKeys)) {
-					$_removeKeys = $this->wire('session')->get($this, '_remove_keys'); 
+					$_removeKeys = $this->wire('session')->get($this, '_remove_keys');
 					foreach($removeKeys as $xkey) {
 						if(!in_array($xkey, $_removeKeys)) continue; // validate via session
 						$this->field->remove($xkey);
-						$this->message(sprintf($this->_('Removed unused property: %s'), $xkey)); 
+						$this->message(sprintf($this->_('Removed unused property: %s'), $xkey));
 					}
+					$optimized = true; 
 				}
-
+				
+				if($this->input->post('_remove_rows') == $this->field->id) {
+					$table = $this->field->getTable();
+					$query = $this->database->prepare("DELETE $table FROM $table LEFT JOIN pages ON $table.pages_id=pages.id WHERE pages.id IS NULL");
+					$query->execute();
+					$cnt = $query->rowCount();
+					if($cnt) $this->message($this->field->name . ": " . sprintf($this->_('Deleted %d orphaned rows'), $cnt));
+					$optimized = true; 
+				}
+		
+				if($optimized) $this->session->remove($this, 'optimize'); 
+					else if($this->input->post('_optimize')) $this->session->set($this, 'optimize', $this->field->id); 
+				
 				$this->message($this->_('Saved Field') . " - {$this->field->name}"); 
 				$this->field->save();
 				$this->fieldSaved($this->field); 

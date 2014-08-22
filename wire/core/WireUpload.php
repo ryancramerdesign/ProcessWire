@@ -160,17 +160,21 @@ class WireUpload extends Wire {
 
 	protected function isValidUpload($name, $size, $error) { 
 		$valid = false;
+		$fname = $this->wire('sanitizer')->name($name); 
 
-		if($error && $error != UPLOAD_ERR_NO_FILE) $this->error($this->errorInfo[$error]); 
-			else if(!$size) $valid = false; // no data
-			else if(!$this->isValidExtension($name)) {
-				$fname = $this->validateFilename($name); 
-				$this->error("$fname - " . $this->_('Invalid file extension, please use one of:') . ' ' . implode(', ', $this->validExtensions)); 
-			} else if($this->maxFileSize > 0 && $size > $this->maxFileSize) {
-				$fname = $this->validateFilename($name); 
-				$this->error("$fname - " . $this->_('Exceeds max allowed file size')); 
-			} else if($name[0] == '.') $valid = false; 
-			else $valid = true; 
+		if($error && $error != UPLOAD_ERR_NO_FILE) {
+			$this->error($this->errorInfo[$error]); 
+		} else if(!$size) {
+			$valid = false; // no data
+		} else if($name[0] == '.') {
+			$valid = false; 
+		} else if(!$this->isValidExtension($name)) {
+			$this->error("$fname - " . $this->_('Invalid file extension, please use one of:') . ' ' . implode(', ', $this->validExtensions)); 
+		} else if($this->maxFileSize > 0 && $size > $this->maxFileSize) {
+			$this->error("$fname - " . $this->_('Exceeds max allowed file size')); 
+		} else {
+			$valid = true; 
+		}
 
 		return $valid; 
 	}
@@ -200,6 +204,7 @@ class WireUpload extends Wire {
 
 	public function validateFilename($value, $extensions = array()) {
 		$value = basename($value);
+		if($value[0] == '.') return false; // no hidden files
 		if($this->lowercase) $value = strtolower($value); 
 		$value = $this->wire('sanitizer')->filename($value, Sanitizer::translate); 
 		//$value = preg_replace('/[^-a-zA-Z0-9_\.]/', '_', $value);

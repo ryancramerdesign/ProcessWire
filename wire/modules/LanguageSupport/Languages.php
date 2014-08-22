@@ -40,6 +40,12 @@ class Languages extends PagesType {
 	protected $defaultLanguage = null;
 
 	/**
+	 * Saved language from a goDefault() call
+	 * 
+	 */
+	protected $savedLanguage = null;
+
+	/**
 	 * Construct this Languages PagesType
 	 *
 	 */
@@ -87,9 +93,38 @@ class Languages extends PagesType {
 		if(!$this->defaultLanguage) throw new WireException('Default language not yet set');
 		return $this->defaultLanguage; 	
 	}
-	
-	public function setDefault(Language $language) {
-		$this->defaultLanguage = $language; 
+
+	/**
+	 * Set default language (if given a $language) OR set current user to have default language if no arguments given
+	 * 
+	 * If called with no arguments, it should later be followed up with an unsetDefault() call to restore language setting.
+	 * 
+	 * @param Language $language
+	 * 
+	 */
+	public function setDefault(Language $language = null) {
+		if(is_null($language)) {
+			// save current user language setting and make current language default
+			if(!$this->defaultLanguage) return;
+			$user = $this->wire('user');
+			if($user->language->id == $this->defaultLanguage->id) return; // already default
+			$this->savedLanguage = $user->language;
+			$user->language = $this->defaultLanguage; 
+		} else {
+			// set what language is the default
+			$this->defaultLanguage = $language; 
+		}
+	}
+
+	/**
+	 * Switch back to previous language
+	 * 
+	 * Should only be called after a previous setDefault(null) call. 
+	 * 
+	 */
+	public function unsetDefault() { 
+		if(!$this->savedLanguage || !$this->defaultLanguage) return;
+		$this->wire('user')->language = $this->savedLanguage; 
 	}
 
 	/**
