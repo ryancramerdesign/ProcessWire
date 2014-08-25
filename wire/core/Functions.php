@@ -306,23 +306,45 @@ function wireChmod($path, $recursive = false, $chmod = null) {
  * 
  * @param string $src Path to copy files from
  * @param string $dst Path to copy files to. Directory is created if it doesn't already exist.
- * @param bool $recursive Whether to copy directories within recursively. Default=true.
+ * @param bool|array Array of options: 
+ * 	- recursive (boolean): Whether to copy directories within recursively. (default=true)
+ * 	- allowEmptyDirs (boolean): Copy directories even if they are empty? (default=true)
+ * 	- If a boolean is specified for $options, it is assumed to be the 'recursive' option. 
  * @return bool True on success, false on failure.
  * 
  */
-function wireCopy($src, $dst, $recursive = true) {
+function wireCopy($src, $dst, $options = array()) {
+	
+	$defaults = array(
+		'recursive' => true,
+		'allowEmptyDirs' => true,
+		);
 
+	if(is_bool($options)) $options = array('recursive' => $options); 
+	$options = array_merge($defaults, $options); 
+	
 	if(substr($src, -1) != '/') $src .= '/';
 	if(substr($dst, -1) != '/') $dst .= '/';
 
 	$dir = opendir($src);
 	if(!$dir) return false; 
+	
+	if(!$options['allowEmptyDirs']) {
+		$isEmpty = true; 
+		while(false !== ($file = readdir($dir))) {
+			if($file == '.' || $file == '..') continue;
+			$isEmpty = false;
+			break;
+		}
+		if($isEmpty) return true; 
+	}
+	
 	if(!wireMkdir($dst)) return false;
 
 	while(false !== ($file = readdir($dir))) {
 		if($file == '.' || $file == '..') continue;
-		if($recursive && is_dir($src . $file)) {
-			wireCopy($src . $file, $dst . $file);
+		if($options['recursive'] && is_dir($src . $file)) {
+			wireCopy($src . $file, $dst . $file, $options);
 		} else {
 			copy($src . $file, $dst . $file);
 			$chmodFile = wire('config')->chmodFile;
@@ -375,6 +397,98 @@ function wireUnzipFile($file, $dst) {
 	$zip->close();
 	
 	return $names; 
+}
+
+/**
+ * Creates a ZIP file
+ * 
+ * @param string $zipfile Full path and filename to create or update (i.e. /path/to/myfile.zip)
+ * @param array|string $files Array of files to add (full path and filename), or directory (string) to add.
+ * 	If given a directory, it will recursively add everything in that directory.
+ * @param array $options Associative array of:
+ * 	- allowHidden (boolean or array): allow hidden files? May be boolean, or array of hidden files (basenames) you allow. (default=false)
+ * 		Note that if you actually specify a hidden file in your $files argument, then that overrides this. 
+ * 	- allowEmptyDirs (boolean): allow empty directories in the ZIP file? (default=true)
+ * 	- overwrite (boolean): Replaces ZIP file if already present (rather than adding to it) (default=false)
+ * 	- exclude (array): Files or directories to exclude
+ * 	- dir (string): Directory name to prepend to added files in the ZIP
+ * @return Returns associative array of:
+ * 	- files => array(all files that were added), 
+ * 	- errors => array(files that failed to add, if any)
+ * @throws WireException Original ZIP file creation error conditions result in WireException being thrown.
+ * 
+ */
+function wireZipFile($zipfile, $files, array $options = array()) {
+	
+	$defaults = array(
+		'allowHidden' => false,
+		'allowEmptyDirs' => true,
+		'overwrite' => false, 
+		'exclude' => array(), // files or dirs to exclude
+		'dir' => '', 
+		'zip' => null, // internal use: holds ZipArchive instance for recursive use
+		);
+	
+	$return = array(
+		'files' => array(),
+		'errors' => array(), 
+		);
+	
+	if(!empty($options['zip']) && !empty($options['dir']) && $options['zip'] instanceof ZipArchive) {
+		// internal recursive call
+		$recursive = true;
+		$zip = $options['zip']; // ZipArchive instance
+		
+	} else if(is_string($zipfile)) {
+		if(!class_exists('ZipArchive')) throw new WireException("PHP's ZipArchive class does not exist");
+		$options = array_merge($defaults, $options); 
+		$zippath = dirname($zipfile);
+		if(!is_dir($zippath)) throw new WireException("Path for ZIP file ($zippath) does not exist"); 
+		if(!is_writable($zippath)) throw new WireException("Path for ZIP file ($zippath) is not writable"); 
+		if(empty($files)) throw new WireException("Nothing to add to ZIP file $zipfile"); 
+		if(is_file($zipfile) && $options['overwrite'] && !unlink($zipfile)) throw new WireException("Unable to overwrite $zipfile"); 
+		if(!is_array($files)) $files = array($files);
+		if(!is_array($options['exclude'])) $options['exclude'] = array($options['exclude']);
+		$recursive = false;
+		$zip = new ZipArchive();
+		if($zip->open($zipfile, ZipArchive::CREATE) !== true) throw new WireException("Unable to create ZIP: $zipfile"); 
+		
+	} else {
+		throw new WireException("Invalid zipfile argument"); 
+	}
+	
+	$dir = strlen($options['dir']) ? rtrim($options['dir'], '/') . '/' : ''; 
+	
+	foreach($files as $file) {
+		$basename = basename($file);
+		$name = $dir . $basename;
+		if($basename[0] == '.' && $recursive) { 
+			if(!$options['allowHidden']) continue; 
+			if(is_array($options['allowHidden']) && !in_array($basename, $options['allowHidden'])) continue;
+		}
+		if(count($options['exclude']) && (in_array($name, $options['exclude']) || in_array("$name/", $options['exclude']))) continue; 
+		if(is_dir($file)) {
+			$_files = array();
+			foreach(new DirectoryIterator($file) as $f) if(!$f->isDot()) $_files[] = $f->getPathname();
+			if(count($_files)) {
+				$zip->addEmptyDir($name); 
+				$options['dir'] = "$name/";
+				$options['zip'] = $zip;
+				$_return = wireZipFile($zipfile, $_files, $options);
+				foreach($_return['files'] as $s) $return['files'][] = $s;
+				foreach($_return['errors'] as $s) $return['errors'][] = $s;
+			} else if($options['allowEmptyDirs']) {
+				$zip->addEmptyDir($name); 
+			}
+		} else if(file_exists($file)) {
+			if($zip->addFile($file, $name)) $return['files'][] = $name;
+				else $return['errors'][] = $name;
+		}
+	}
+	
+	if(!$recursive) $zip->close();
+	
+	return $return;
 }
 
 /**
