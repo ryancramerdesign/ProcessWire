@@ -391,11 +391,12 @@ class Fields extends WireSaveableItems {
 	 * Change a field's type
 	 *
 	 * @param Field $field1 Field with the new type
+	 * @param bool $keepSettings Whether or not to keep custom $data settings (default=false)
 	 * @throws WireException
 	 * @return bool
 	 *
 	 */
-	protected function ___changeFieldtype(Field $field1) {
+	protected function ___changeFieldtype(Field $field1, $keepSettings = false) {
 
 		if(!$field1->prevFieldtype) throw new WireException("changeFieldType requires that the given field has had a type change"); 
 
@@ -468,14 +469,16 @@ class Fields extends WireSaveableItems {
 
 		$field1->type = $field2->type; 
 
-		// clear out the custom data, which contains settings specific to the Inputfield and Fieldtype
-		foreach($field1->getArray() as $key => $value) {
-			// skip fields that may be shared among any fieldtype
-			if(in_array($key, array('description', 'required', 'collapsed', 'notes'))) continue; 
-			// skip over language labels/descriptions
-			if(preg_match('/^(description|label|notes)\d+/', $key)) continue; 
-			// remove the custom field
-			$field1->remove($key); 
+		if(!$keepSettings) {
+			// clear out the custom data, which contains settings specific to the Inputfield and Fieldtype
+			foreach($field1->getArray() as $key => $value) {
+				// skip fields that may be shared among any fieldtype
+				if(in_array($key, array('description', 'required', 'collapsed', 'notes'))) continue; 
+				// skip over language labels/descriptions
+				if(preg_match('/^(description|label|notes)\d+/', $key)) continue; 
+				// remove the custom field
+				$field1->remove($key); 
+			}
 		}
 
 		$this->changedType($field1, $fromType, $toType); 

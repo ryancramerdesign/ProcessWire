@@ -23,7 +23,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Fields', __FILE__),
 			'summary' => __('Edit individual fields that hold page data', __FILE__),
-			'version' => 107,
+			'version' => 108,
 			'permanent' => true, 
 			'permission' => 'field-admin', // add this permission if you want this Process available for roles other than Superuser
 			'icon' => 'cube', 
@@ -1078,6 +1078,14 @@ class ProcessField extends Process implements ConfigurableModule {
 		$f->attr('value', $newType->className()); 
 		$f->label = $this->_("Confirm field type change");
 		$f->description = $this->_("If you are sure you want to change the field type, check the box below and submit this form."); // Confirm change description
+		$form->append($f);
+		
+		$f = $this->modules->get("InputfieldCheckbox");
+		$f->attr('name', 'keep_settings');
+		$f->label = $this->_('Keep field settings?'); 
+		$f->description = $this->_('Check this box to retain all the custom settings for this field (from the Details and Input tabs). This is desirable if the new field type has the same or similar configuration properties to the old field type. However, it can also result in unnecessary or redundant configuration data taking up space in the field. You can always analyze this later from: Advanced > Check field data.'); // Keep field settings description
+		$f->attr('checked', 'checked'); 
+		$f->showIf = 'confirm_type=' . $newType->className();
 		$form->append($f); 
 	
 		$f = $this->modules->get("InputfieldHidden"); 	
@@ -1108,12 +1116,20 @@ class ProcessField extends Process implements ConfigurableModule {
 		if($type = $this->fieldtypes->get($type)) {
 			$this->session->CSRF->validate();
 			$this->message($this->_("Field type changed")); 
+			$this->wire('fields')->addHookBefore('changeFieldtype', $this, 'hookFieldsChangeFieldtype'); 
 			$this->field->type = $type; 
 			$this->field->save();
 			$this->fieldChangedType($this->field); 
 		}
 	
 		$this->session->redirect("edit?id={$this->field->id}"); 	
+	}
+	
+	public function hookFieldsChangeFieldtype(HookEvent $event) {
+		// FYI: $field = $event->arguments(0); $keepSettings = $event->arguments(1); 
+		if($this->input->post('keep_settings')) {
+			$event->arguments(1, true); 
+		}
 	}
 
 
