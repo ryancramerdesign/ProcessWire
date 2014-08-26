@@ -96,12 +96,12 @@ $config->maxUrlSegments = 4;
 /**
  * Order that variables with the $input API var are handled when you access $input->var
  *
- * This does not affect the dedicated $input->get/post/cookie/whitelist variables/functions. 
- * Possible values are a combination of: "get post cookie whitelist" in any order, separated by 1 space.
+ * This does not affect the dedicated $input->get/post/param/cookie/whitelist variables/functions. 
+ * Possible values are a combination of: "get post param cookie whitelist" in any order, separated by 1 space.
  * To disable $input->var from considering get/post/cookie, make wireInputOrder blank.
  *
  */
-$config->wireInputOrder = 'get post'; 
+$config->wireInputOrder = 'get post param'; 
 
 /**
  * Default ImageSizer options, as used by $page->image->size(w, h), for example. 

@@ -126,6 +126,7 @@ class WireInput {
 
 	protected $getVars = null;
 	protected $postVars = null;
+    protected $paramVars = null;
 	protected $cookieVars = null;
 	protected $whitelist = null;
 	protected $urlSegments = array();
@@ -158,6 +159,36 @@ class WireInput {
 		if(is_null($this->postVars)) $this->postVars = new WireInputData($_POST); 
 		return $key ? $this->postVars->__get($key) : $this->postVars; 
 	}
+    
+    /**
+	 * Retrieve a REQUEST value or all REQUEST values
+     * 
+	 * @author @clsource
+     * 
+	 * @param string $key
+	 *	If populated, returns the value corresponding to the key or NULL if it doesn't exist.
+	 *	If blank, returns reference to the WireDataInput containing all REQUEST vars. 
+	 * @return null|mixed|WireInputData
+     * 
+     * method based on the Lime Project
+     * https://github.com/aheinze/Lime/
+     * Copyright (c) 2014 Artur Heinze
+	 *
+	 */
+    public function param($key = '') {
+        // check for php://input and merge with $_REQUEST
+        if ((isset($_SERVER["CONTENT_TYPE"]) && 
+            stripos($_SERVER["CONTENT_TYPE"],'application/json') !== false) ||
+            (isset($_SERVER["HTTP_CONTENT_TYPE"]) && 
+            stripos($_SERVER["HTTP_CONTENT_TYPE"],'application/json') !== false)) {
+              if ($json = json_decode(@file_get_contents('php://input'), true)) {
+                  $_REQUEST = array_merge($_REQUEST, $json);
+              }
+          }
+          
+        if(is_null($this->paramVars)) $this->paramVars = new WireInputData($_REQUEST); 
+		return $key ? $this->paramVars->__get($key) : $this->paramVars; 
+    }
 
 	/**
 	 * Retrieve a COOKIE value or all COOKIE values
@@ -294,13 +325,13 @@ class WireInput {
 		}
 
 		$value = null;
-		$gpc = array('get', 'post', 'cookie', 'whitelist'); 
+		$gpc = array('get', 'post', 'param', 'cookie', 'whitelist'); 
 
 		if(in_array($key, $gpc)) {
 			$value = $this->$key(); 
 
 		} else {
-			// Like PHP's $_REQUEST where accessing $input->var considers get/post/cookie/whitelist
+			// Like PHP's $_REQUEST where accessing $input->var considers get/post/param/cookie/whitelist/
 			// what it actually considers depends on what's set in the $config->wireInputOrder variable
 			$order = (string) wire('config')->wireInputOrder; 
 			if(!$order) return null;

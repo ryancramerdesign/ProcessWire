@@ -173,6 +173,61 @@ $config->pagefileSecurePathPrefix = '.';
 $config->pagefileExtendedPaths = false;
 
 /**
+ * statusCodes: array of extention to status-code header, 
+ * based on the Lime Project
+ * https://github.com/aheinze/Lime/
+ * Copyright (c) 2014 Artur Heinze
+ *
+ */
+$config->statusCodes = array(
+       // Informational 1xx
+       100 => 'Continue',
+       101 => 'Switching Protocols',
+       // Successful 2xx
+       200 => 'OK',
+       201 => 'Created',
+       202 => 'Accepted',
+       203 => 'Non-Authoritative Information',
+       204 => 'No Content',
+       205 => 'Reset Content',
+       206 => 'Partial Content',
+       // Redirection 3xx
+       300 => 'Multiple Choices',
+       301 => 'Moved Permanently',
+       302 => 'Found',
+       303 => 'See Other',
+       304 => 'Not Modified',
+       305 => 'Use Proxy',
+       307 => 'Temporary Redirect',
+       // Client Error 4xx
+       400 => 'Bad Request',
+       401 => 'Unauthorized',
+       402 => 'Payment Required',
+       403 => 'Forbidden',
+       404 => 'Not Found',
+       405 => 'Method Not Allowed',
+       406 => 'Not Acceptable',
+       407 => 'Proxy Authentication Required',
+       408 => 'Request Timeout',
+       409 => 'Conflict',
+       410 => 'Gone',
+       411 => 'Length Required',
+       412 => 'Precondition Failed',
+       413 => 'Request Entity Too Large',
+       414 => 'Request-URI Too Long',
+       415 => 'Unsupported Media Type',
+       416 => 'Request Range Not Satisfiable',
+       417 => 'Expectation Failed',
+       // Server Error 5xx
+       500 => 'Internal Server Error',
+       501 => 'Not Implemented',
+       502 => 'Bad Gateway',
+       503 => 'Service Unavailable',
+       504 => 'Gateway Timeout',
+       505 => 'HTTP Version Not Supported'
+);
+
+/**
  * fileContentTypes: array of extention to content-type header, used by file passthru functions.
  *
  * Any content types that should be force-download should be preceded with a plus sign.
@@ -180,17 +235,73 @@ $config->pagefileExtendedPaths = false;
  *
  */
 $config->fileContentTypes = array(
-	'?' => '+application/octet-stream',
-	'pdf' => '+application/pdf',
-	'doc' => '+application/msword',
-	'docx' => '+application/msword',
-	'xls' => '+application/excel',
-	'xlsx' => '+application/excel',
-	'rtf' => '+application/rtf',
-	'gif' => 'image/gif',
-	'jpg' => 'image/jpeg',
-	'jpeg' => 'image/jpeg',
-	'png' => 'image/x-png',
+	'?'     => '+application/octet-stream',
+	'pdf'   => '+application/pdf',
+	'doc'   => '+application/msword',
+	'docx'  => '+application/msword',
+	'xls'   => '+application/excel',
+	'xlsx'  => '+application/excel',
+	'rtf'   => '+application/rtf',
+	'gif'   => 'image/gif',
+	'jpg'   => 'image/jpeg',
+	'jpeg'  => 'image/jpeg',
+	'png'   => 'image/x-png',
+    'asc'   => 'text/plain',
+    'au'    => '+audio/basic',
+    'avi'   => '+video/x-msvideo',
+    'bin'   => '+application/octet-stream',
+    'class' => 'application/octet-stream',
+    'css'   => 'text/css',
+    'csv'   => 'application/vnd.ms-excel',
+    'doc'   => '+application/msword',
+    'dll'   => '+application/octet-stream',
+    'dvi'   => '+application/x-dvi',
+    'exe'   => '+application/octet-stream',
+    'htm'   => 'text/html',
+    'html'  => 'text/html',
+    'json'  => 'application/json',
+    'js'    => 'application/x-javascript',
+    'txt'   => 'text/plain',
+    'bmp'   => 'image/bmp',
+    'rss'   => 'application/rss+xml',
+    'atom'  => 'application/atom+xml',
+    'jpe'   => 'image/jpeg',
+    'ico'   => 'image/vnd.microsoft.icon',
+    'mpeg'  => '+video/mpeg',
+    'mpg'   => '+video/mpeg',
+    'mpe'   => '+video/mpeg',
+    'qt'    => '+video/quicktime',
+    'mov'   => '+video/quicktime',
+    'wmv'   => '+video/x-ms-wmv',
+    'mp2'   => '+audio/mpeg',
+    'mp3'   => '+audio/mpeg',
+    'rm'    => '+audio/x-pn-realaudio',
+    'ram'   => '+audio/x-pn-realaudio',
+    'rpm'   => '+audio/x-pn-realaudio-plugin',
+    'ra'    => '+audio/x-realaudio',
+    'wav'   => '+audio/x-wav',
+    'zip'   => '+application/zip',
+    'pdf'   => '+application/pdf',
+    'ppt'   => '+application/vnd.ms-powerpoint',
+    'wbxml' => 'application/vnd.wap.wbxml',
+    'wmlc'  => 'application/vnd.wap.wmlc',
+    'wmlsc' => 'application/vnd.wap.wmlscriptc',
+    'spl'   => 'application/x-futuresplash',
+    'gtar'  => '+application/x-gtar',
+    'gzip'  => '+application/x-gzip',
+    'swf'   => 'application/x-shockwave-flash',
+    'tar'   => '+application/x-tar',
+    'xhtml' => 'application/xhtml+xml',
+    'snd'   => '+audio/basic',
+    'midi'  => '+audio/midi',
+    'mid'   => '+audio/midi',
+    'm3u'   => '+audio/x-mpegurl',
+    'tiff'  => 'image/tiff',
+    'tif'   => 'image/tiff',
+    'wml'   => 'text/vnd.wap.wml',
+    'wmls'  => 'text/vnd.wap.wmlscript',
+    'xsl'   => 'text/xml',
+    'xml'   => 'text/xml'
 	);
 
 /** 
@@ -297,6 +408,48 @@ $config->https = false;
  *
  */
 $config->ajax = false;
+
+/**
+ * get: This is automatically set to TRUE when the request is an GET request.
+ *
+ */
+$config->get = false;
+
+/**
+ * post: This is automatically set to TRUE when the request is an POST request.
+ *
+ */
+$config->post = false;
+
+/**
+ * put: This is automatically set to TRUE when the request is an PUT request.
+ *
+ */
+$config->put = false;
+
+/**
+ * patch: This is automatically set to TRUE when the request is an PATCH request.
+ *
+ */
+$config->patch = false;
+
+/**
+ * options: This is automatically set to TRUE when the request is an OPTIONS request.
+ *
+ */
+$config->options = false;
+
+/**
+ * delete: This is automatically set to TRUE when the request is an DELETE request.
+ *
+ */
+$config->delete = false;
+
+/**
+ * mobile: This is automatically set to TRUE when the request is an MOBILE request.
+ *
+ */
+$config->mobile = false;
 
 /**
  * external: This is automatically set to TRUE when PW is externally bootstrapped.
