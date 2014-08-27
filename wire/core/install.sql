@@ -86,15 +86,9 @@ CREATE TABLE `field_title` (
   KEY `data_exact` (`data`(255)),
   FULLTEXT KEY `data` (`data`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-INSERT INTO `field_title` (`pages_id`, `data`) VALUES (14,'Edit Template');
-INSERT INTO `field_title` (`pages_id`, `data`) VALUES (15,'Add Template');
-INSERT INTO `field_title` (`pages_id`, `data`) VALUES (12,'Templates');
+
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES (11,'Templates');
-INSERT INTO `field_title` (`pages_id`, `data`) VALUES (19,'Field groups');
-INSERT INTO `field_title` (`pages_id`, `data`) VALUES (20,'Edit Fieldgroup');
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES (16,'Fields');
-INSERT INTO `field_title` (`pages_id`, `data`) VALUES (17,'Fields');
-INSERT INTO `field_title` (`pages_id`, `data`) VALUES (18,'Edit Field');
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES (22,'Setup');
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES (3,'Pages');
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES (6,'Add Page');
@@ -121,7 +115,7 @@ INSERT INTO `field_title` (`pages_id`, `data`) VALUES (35,'Move pages (change pa
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES (36,'View pages');
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES (50,'Sort child pages');
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES (51,'Change templates on pages');
-INSERT INTO `field_title` (`pages_id`, `data`) VALUES (52,'Administer users (role must also have template edit access)');
+INSERT INTO `field_title` (`pages_id`, `data`) VALUES (52,'Administer users');
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES (53,'User can update profile/password');
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES (54,'Lock or unlock a page');
 
@@ -212,7 +206,6 @@ INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (30,'InputfieldFor
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (6,'FieldtypeFile',0,'');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (7,'ProcessPageEdit',1,'');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (10,'ProcessLogin',0,'');
-INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (147,'TextformatterPstripper',1,'');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (12,'ProcessPageList',0,'{\"pageLabelField\":\"title\",\"paginationLimit\":25,\"limit\":50}');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (121,'ProcessPageEditLink',1,'');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (14,'ProcessPageSort',0,'');
@@ -251,8 +244,6 @@ INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (56,'InputfieldIma
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (57,'FieldtypeImage',0,'');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (60,'InputfieldPage',0,'{\"inputfieldClasses\":[\"InputfieldSelect\",\"InputfieldSelectMultiple\",\"InputfieldCheckboxes\",\"InputfieldRadios\",\"InputfieldAsmSelect\",\"InputfieldPageListSelect\",\"InputfieldPageListSelectMultiple\"]}');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (61,'TextformatterEntities',0,'');
-INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (145,'TextformatterMarkdownExtra',1,'');
-INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (146,'TextformatterSmartypants',1,'');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (66,'ProcessUser',0,'{\"showFields\":[\"name\",\"email\",\"roles\"]}');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (67,'MarkupAdminDataTable',0,'');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (68,'ProcessRole',0,'{\"showFields\":[\"name\"]}');
@@ -267,11 +258,9 @@ INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (85,'InputfieldInt
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (86,'InputfieldPageName',0,'');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (87,'ProcessHome',0,'');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (90,'InputfieldFloat',0,'');
-INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (92,'InputfieldTinyMCE',0,'');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (94,'InputfieldDatetime',0,'');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (98,'MarkupPagerNav',0,'');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (129,'ProcessPageEditImageSelect',1,'');
-INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (102,'JqueryFancybox',1,'');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (103,'JqueryTableSorter',1,'');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (104,'ProcessPageSearch',1,'{\"searchFields\":\"title body\",\"displayField\":\"title path\"}');
 INSERT INTO `modules` (`id`, `class`, `flags`, `data`) VALUES (105,'FieldtypeFieldsetOpen',1,'');

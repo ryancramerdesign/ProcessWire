@@ -318,6 +318,7 @@ class Sanitizer extends Wire {
 	 *
 	 */
 	public function path($value, $maxLength = 1024) {
+		if(DIRECTORY_SEPARATOR != '/') $value = str_replace(DIRECTORY_SEPARATOR, '/', $value); 
 		if(!preg_match('{^[-_./a-z0-9]+$}iD', $value)) return '';
 		if(strpos($value, '/./') !== false || strpos($value, '//') !== false) $value = '';
 		return $value;

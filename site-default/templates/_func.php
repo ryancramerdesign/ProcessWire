@@ -5,6 +5,8 @@
  * 
  * Example of shared functions used by template files
  *
+ * This file is currently included by _init.php 
+ *
  */
 
 /** 

@@ -15,15 +15,18 @@
  * them at all! This _init.php > [template].php > _main.php scheme is just
  * the methodology we chose to use in this particular site profile, and as you
  * dig deeper, you'll find many others ways to do the same thing. 
+ * 
+ * This file is automatically appended to all template files as a result of 
+ * $config->appendTemplateFile = '_main.php'; in /site/config.php. 
  *
  * In any given template file, if you do not want this main markup file 
- * included, simply set $useMain=false; in that template file. This would be
- * the case if you wanted to echo markup directly from your template file or
- * if you were using a template file for some other kind of output like an
- * RSS feed or sitemap.xml for example. 
+ * included, go in your admin to Setup > Templates > [some-template] > and 
+ * click on the "Files" tab. Check the box to "Disable automatic append of
+ * file _main.php". You would do this if you wanted to echo markup directly 
+ * from your template file or if you were using a template file for some other
+ * kind of output like an RSS feed or sitemap.xml, for example. 
  *
  */
-if(!$useMain) return; 
 ?><!DOCTYPE html>
 <html lang="en">
 <head>

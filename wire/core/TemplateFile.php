@@ -22,16 +22,16 @@ class TemplateFile extends WireData {
 	protected $filename;
 
 	/**
-	 * Optional filename that is prepended to the render
+	 * Optional filenames that are prepended to the render
 	 *
 	 */
-	protected $prependFilename;
+	protected $prependFilename = array();
 
 	/**
-	 * Optional filename that is appended to the render
+	 * Optional filenames that are appended to the render
 	 *
 	 */
-	protected $appendFilename; 
+	protected $appendFilename = array(); 
 
 	/**
 	 * The saved directory location before render() was called
@@ -76,10 +76,9 @@ class TemplateFile extends WireData {
 	 */
 	public function setPrependFilename($filename) {
 		if($filename && is_file($filename)) {
-			$this->prependFilename = $filename; 
+			$this->prependFilename[] = $filename; 
 			return true; 
 		} else {
-			$this->prependFilename = '';
 			return false;
 		}
 	}
@@ -93,10 +92,9 @@ class TemplateFile extends WireData {
 	 */
 	public function setAppendFilename($filename) {
 		if($filename && is_file($filename)) {
-			$this->appendFilename = $filename; 
+			$this->appendFilename[] = $filename; 
 			return true; 
 		} else {
-			$this->appendFilename = '';
 			return false;
 		}
 	}
@@ -136,9 +134,9 @@ class TemplateFile extends WireData {
 
 		extract($fuel); 
 		ob_start();
-		if($this->prependFilename) require($this->prependFilename);
+		foreach($this->prependFilename as $_filename) require($_filename);
 		require($this->filename); 
-		if($this->appendFilename) require($this->appendFilename);
+		foreach($this->appendFilename as $_filename) require($_filename);
 		$out = "\n" . ob_get_contents() . "\n";
 		ob_end_clean();
 

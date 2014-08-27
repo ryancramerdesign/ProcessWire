@@ -138,8 +138,12 @@ class FieldtypeTextarea extends FieldtypeText {
 	}
 
 	public function getInputfield(Page $page, Field $field) {
-		
-		$inputfield = $this->modules->get($field->inputfieldClass ? $field->inputfieldClass : self::defaultInputfieldClass); 
+	
+		if($field->inputfieldClass) {
+			$inputfield = $this->modules->getModule($field->inputfieldClass, array('noSubstitute' => true)); 
+		} else {
+			$inputfield = $this->modules->get(self::defaultInputfieldClass); 
+		}
 		
 		if(!$inputfield) {
 			
@@ -153,6 +157,7 @@ class FieldtypeTextarea extends FieldtypeText {
 			$note .= "<br />TO CHANGE: $tab 1. <a href='$editURL'>Edit the field</a>. $tab 2. Click the \"Details\" tab. $tab 3. Select the \"Inputfield Type\". $tab 4. Click \"Save\".</small>";
 		
 			if($field->inputfieldClass == 'InputfieldTinyMCE') {
+				$this->wire('modules')->getInstall('InputfieldCKEditor'); // install it so it's ready for them
 				$this->error(
 					"Field '$field->name' uses TinyMCE, which is no longer part of the core. " . 
 					"Please install <a target='_blank' href='$findURL'>TinyMCE</a> " . 

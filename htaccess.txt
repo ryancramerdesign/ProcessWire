@@ -147,6 +147,8 @@ DirectoryIndex index.php index.html index.htm
   # Access Restrictions: Protect ProcessWire system files
   # -----------------------------------------------------------------------------------------------
 
+  # Allow screenshot files (for install.php only: this 1 line below may be removed after install)
+  RewriteCond %{REQUEST_URI} !(^|/)site-[^/]+/install/[^/]+\.(jpg|jpeg|png|gif)$
   # Block access to any htaccess files
   RewriteCond %{REQUEST_URI} (^|/)\.htaccess$ [NC,OR]
   # Block access to protected assets directories

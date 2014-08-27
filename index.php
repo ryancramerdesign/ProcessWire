@@ -140,9 +140,15 @@ function ProcessWireBootConfig() {
 	 * If PW2 is not installed, go to the installer
 	 *
 	 */
-	if(!$config->dbName && is_file("./install.php") && strtolower($_SERVER['REQUEST_URI']) == strtolower($rootURL)) {
-		require("./install.php");
-		exit(0);
+	if(!$config->dbName) { 
+		if(is_file("./install.php") && strtolower($_SERVER['REQUEST_URI']) == strtolower($rootURL)) {
+			require("./install.php");
+			exit(0);
+		} else {
+			header("HTTP/1.1 404 Page Not Found");
+			echo "404 page not found (no site configuration or install.php available)";
+			exit(0); 
+		}
 	}
 
 	/*

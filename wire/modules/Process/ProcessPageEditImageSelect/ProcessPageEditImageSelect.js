@@ -100,7 +100,7 @@ $(document).ready(function() {
 	if($img.size() > 0) {
 		$img = $img.first();
 
-		if($img.width() > 0) {
+		if($img.width() > 0 && $img.height() > 0) {
 			setupImage($img); 
 		} else {
 			$img.load(function() {

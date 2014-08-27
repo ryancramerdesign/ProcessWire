@@ -23,7 +23,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		return array(
 			'title' => __('Page Render', __FILE__), // Module Title
 			'summary' => __('Adds a render method to Page and caches page output.', __FILE__), // Module Summary
-			'version' => 102, 
+			'version' => 103, 
 			'permanent' => true, 
 			'singular' => true, 
 			'autoload' => true, 
@@ -224,11 +224,13 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 * or save a new cache. Caches are only saved on guest users. 
 	 *
 	 * #param array|string options Array of options, or filename (string) to render. Options [all optional] may be: 
-	 *      forceBuildCache: If true, the cache will be re-created for this page, regardless of whether it's expired or not. (default=false)
+	 * 	forceBuildCache: If true, the cache will be re-created for this page, regardless of whether it's expired or not. (default=false)
 	 *	allowCache: Allow cache to be used when template settings ask for it. (default=true)
 	 *	filename: Filename to render, optionally relative to /site/templates/. Absolute paths must resolve somewhere in PW's install. (default=blank)
 	 *	prependFile: Filename to prepend to output, must be in /site/templates/. (default=$config->prependTemplateFile)
+	 * 	prependFiles: Array of additional filenames to prepend to output, must be relative to /site/templates/ (default=array($page->template->prependFile))
 	 *	appendFile: Filename to append to output, must be in /site/templates/. (default=$config->appendTemplateFile)
+	 * 	appendFiles: Array of additional filenames to append to output, must be relative to /site/templates/ (default=array($page->template->appendFile))
 	 *	pageStack: An array of pages, when recursively rendering. Used internally. You can examine it but not change it. 
 	 *	
 	 * #param array $options 
@@ -271,8 +273,10 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 
 		$defaultOptions = array(
 			'filename' => '', // default blank means filename comes from $page
-			'prependFile' => $config->prependTemplateFile,
-			'appendFile' => $config->appendTemplateFile,
+			'prependFile' => $page->template->noPrependTemplateFile ? null : $config->prependTemplateFile,
+			'prependFiles' => $page->template->prependFile ? array($page->template->prependFile) : array(), 
+			'appendFile' => $page->template->noAppendTemplateFile ? null : $config->appendTemplateFile,
+			'appendFiles' => $page->template->appendFile ? array($page->template->appendFile) : array(),
 			'allowCache' => true, 
 			'forceBuildCache' => false,
 			'pageStack' => array(), // set after array_merge
@@ -303,8 +307,23 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 
 			// global prepend/append include files apply only to user-defined templates, not system templates
 			if(!($page->template->flags & Template::flagSystem)) {
-				if($options['prependFile']) $output->setPrependFilename($config->paths->templates . $this->wire('sanitizer')->name($options['prependFile'])); 
-				if($options['appendFile']) $output->setAppendFilename($config->paths->templates . $this->wire('sanitizer')->name($options['appendFile'])); 
+				/*
+				if($options['prependFile']) array_unshift($options['prependFiles'], $options['prependFile']); //$output->setPrependFilename($config->paths->templates . $this->wire('sanitizer')->name($options['prependFile'])); 
+				if($options['appendFile']) array_unshift($options['appendFiles'], $options['appendFile']); //$output->setPrependFilename($config->paths->templates . $this->wire('sanitizer')->name($options['prependFile'])); 
+				if($options['appendFile']) $output->setAppendFilename($config->paths->templates . $this->wire('sanitizer')->name($options['appendFile']));
+				// files defined at template level
+				*/
+				foreach(array('prependFile' => 'prependFiles', 'appendFile' => 'appendFiles') as $singular => $plural) {
+					if($options[$singular]) array_unshift($options[$plural], $options[$singular]);
+					foreach($options[$plural] as $file) {
+						if(!ctype_alnum(str_replace(array(".", "-", "_", "/"), "", $file))) continue;
+						if(strpos($file, '..') !== false || strpos($file, '/.') !== false) continue; 
+						$file = $config->paths->templates . trim($file, '/');
+						if(!is_file($file)) continue; 
+						if($plural == 'prependFiles') $output->setPrependFilename($file); 
+							else $output->setAppendFilename($file); 
+					}
+				}
 			}
 
 			// option to change the filename that is used for output rendering

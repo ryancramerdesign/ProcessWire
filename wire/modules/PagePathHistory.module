@@ -210,9 +210,9 @@ class PagePathHistory extends WireData implements Module {
 				"PRIMARY KEY path (path), " . 
 				"INDEX pages_id (pages_id), " . 
 				"INDEX created (created) " . 
-				")";
+				") ENGINE={$this->config->dbEngine} DEFAULT CHARSET={$this->config->dbCharset}";
 
-		$this->wire('database')->query($sql); 
+		$this->wire('database')->exec($sql); 
 
 	}
 

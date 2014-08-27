@@ -75,7 +75,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		$a = array();
 		$showAll = $this->wire('input')->get('all'); 
 		foreach($this->wire('fields') as $field) {
-			if(!$showAll && $field->flags & Field::flagSystem) continue; 
+			if(!$showAll && ($field->flags & Field::flagSystem) && $field->name != 'title') continue; 
 			$a[] = array(
 				'id' => $field->id,
 				'name' => $field->name,

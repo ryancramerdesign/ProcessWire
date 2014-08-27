@@ -548,6 +548,12 @@ class ProcessTemplate extends Process {
 		// $t->head = $this->_('Optional settings for URLs of pages using this template');
 		$t->attr('class', 'WireTab'); 
 		$t->add($this->buildEditFormURLs($template)); 
+		$form->add($t);
+		
+		$t = new InputfieldWrapper();
+		$t->attr('title', $this->_x('Files', 'tab'));
+		$t->attr('class', 'WireTab');
+		$t->add($this->buildEditFormFile($template));
 		$form->add($t); 
 
 		$t = new InputfieldWrapper();
@@ -906,19 +912,6 @@ class ProcessTemplate extends Process {
 		$field->label = $this->_('Duplicate/clone this template?');
 		$field->description = $this->_('Check the box below if you want to create a duplicate/clone copy of this template. The clone will be created when you save. If your templates directory is writable and the template has a file, it will also be cloned.'); // Clone template, description
 		$field->collapsed = Inputfield::collapsedYes; 
-		$form->append($field); 
-
-		// --------------------
-
-		$field = $this->modules->get('InputfieldText'); 
-		$field->attr('name', 'altFilename');
-		$field->label = $this->_('Alternate Template Filename');
-		$defaultFilename = $this->template->name . "." . $this->config->templateExtension;
-		$field->description = sprintf($this->_("The template's filename, if different from: %s"), $defaultFilename);
-		$field->notes = sprintf($this->_('Template files are assumed to be in directory: %s'), $this->config->urls->templates) . "\n" . 
-			sprintf($this->_('Template file extension is assumed to be: %s'), '.' . $this->config->templateExtension);
-		$field->attr('value', $template->altFilename); 
-		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field); 
 
 		// --------------------
@@ -1310,6 +1303,69 @@ class ProcessTemplate extends Process {
 		return $form; 
 	}
 
+	protected function buildEditFormFile(Template $template) {
+
+		$form = new InputfieldWrapper();
+		$form->attr('id', 'files');
+		
+		// --------------------
+
+		$field = $this->modules->get('InputfieldText');
+		$field->attr('name', 'altFilename');
+		$field->label = $this->_('Alternate Template Filename');
+		$defaultFilename = $template->name . "." . $this->config->templateExtension;
+		$field->description = sprintf($this->_("The template's filename, if different from: %s"), $defaultFilename);
+		$field->notes = sprintf($this->_('Template files are assumed to be in directory: %s'), $this->config->urls->templates) . "\n" .
+			sprintf($this->_('Template file extension is assumed to be: %s'), '.' . $this->config->templateExtension);
+		$field->attr('value', $template->altFilename);
+		$form->append($field);
+
+		// --------------------
+		
+		$f = $this->modules->get('InputfieldText');
+		$f->attr('id+name', 'prependFile');
+		$f->attr('value', $template->prependFile);
+		$f->label = $this->_('Prepend File');
+		$f->description = $this->_('File to prepend to template file during page render. Must be relative to /site/templates/.'); // prependFile description
+		$f->columnWidth = 50;
+		$form->add($f);
+
+		$f = $this->modules->get('InputfieldText');
+		$f->attr('id+name', 'appendFile');
+		$f->attr('value', $template->appendFile);
+		$f->label = $this->_('Append File');
+		$f->description = $this->_('File to append to template file during page render. Must be relative to /site/templates/.'); // appendFile description
+		$f->columnWidth = 50;
+		$form->add($f);
+		
+		// --------------------
+
+		if($this->wire('config')->prependTemplateFile) {
+			$field1 = $this->modules->get('InputfieldCheckbox');
+			$field1->attr('id+name', 'noPrependTemplateFile');
+			$field1->label = sprintf($this->_('Disable automatic prepend of file: %s'), $this->wire('config')->prependTemplateFile);
+			//$field1->description = $this->_('This option disables the $config->prependTemplateFile setting in /site/config.php for this template only.'); 
+			if($template->noPrependTemplateFile) $field1->attr('checked', 'checked'); 
+			$form->add($field1); 
+		} else $field1 = null;
+		
+		if($this->wire('config')->appendTemplateFile) {
+			$field2 = $this->modules->get('InputfieldCheckbox');
+			$field2->attr('id+name', 'noAppendTemplateFile');
+			$field2->label = sprintf($this->_('Disable automatic append of file: %s'), $this->wire('config')->appendTemplateFile);
+			//$field2->description = $this->_('This option disables the $config->appendTemplateFile setting in /site/config.php for this template only.'); 
+			if($template->noAppendTemplateFile) $field2->attr('checked', 'checked');
+			$form->add($field2); 
+		} else $field2 = null;
+		
+		if($field1 && $field2) {
+			$field1->columnWidth = 50;
+			$field2->columnWidth = 50;
+		}
+		
+		
+		return $form;
+	}
 
 	protected function buildEditFormAccess(Template $template) {
 
@@ -1474,7 +1530,25 @@ class ProcessTemplate extends Process {
 		$this->template->noUnpublish = (int) $form->get('noUnpublish')->attr('value');
 		$this->template->noChangeTemplate = (int) $form->get('noChangeTemplate')->attr('value');
 		$this->template->allowChangeUser = (int) $form->get('allowChangeUser')->attr('value');
-
+		$this->template->noPrependTemplateFile = (int) $this->input->post('noPrependTemplateFile'); // field may not be present on all submissions
+		$this->template->noAppendTemplateFile = (int) $this->input->post('noAppendTemplateFile'); // field may not be present on all submissions
+		$this->template->tags = $this->sanitizer->text($form->get('tags')->attr('value'));
+		
+		foreach(array('prependFile', 'appendFile') as $name) {
+			$value = $form->get($name)->attr('value'); 
+			if(empty($value)) {
+				$value = '';
+			} else {
+				$value = trim(trim($this->sanitizer->path($value), '/'));
+				if(strpos($value, '..')) $value = '';
+				if($value) {
+					if(!is_file($this->config->paths->templates . $value)) {
+						$this->error("$name: " . $this->config->urls->templates . $value . " - " . $this->_('Warning, file does not exist')); 
+					}
+				} 
+			}
+			$this->template->$name = $value;	
+		}
 
 		// template label, including multi language versions if applicable
 		$templateLabel = $form->get('templateLabel'); 

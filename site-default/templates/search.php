@@ -46,7 +46,3 @@ if($q) {
 	$content = "<h2>Please enter a search term in the search box (upper right corner)</h2>";
 }
 
-// if you want the line below to happen automatically, uncomment
-// the $config->appendTemplateFile line in /site/config.php 
-include("./_main.php"); 
-

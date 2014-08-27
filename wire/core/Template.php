@@ -189,6 +189,10 @@ class Template extends WireData implements Saveable, Exportable {
 		'tags' => '',			// optional tags that can group this template with others in the admin templates list 
 		'modified' => 0, 		// last modified time for template or template file
 		'titleNames' => 0, 		// future page title changes re-create the page names too? (recommend only if PagePathHistory is installed)
+		'noPrependTemplateFile' => 0, // disable automatic inclusion of $config->prependTemplateFile 
+		'noAppendTemplateFile' => 0, // disable automatic inclusion of $config->appendTemplateFile
+		'prependFile' => '', // file to prepend (relative to /site/templates/)
+		'appendFile' => '', // file to append (relative to /site/templates/)
 		); 
 
 

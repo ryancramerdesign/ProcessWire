@@ -6,7 +6,3 @@
 
 $content = renderNav($homepage, 4); 
 
-// if you want the line below to happen automatically, uncomment
-// the $config->appendTemplateFile line in /site/config.php 
-include("./_main.php"); 
-

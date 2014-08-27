@@ -11,15 +11,6 @@
 
 class AdminThemeDefaultHelpers extends WireData {
 
-	public function __construct() {
-		$renderType = $this->input->get->admin_theme_render;
-		if($renderType && $this->wire('user')->isSuperuser()) {
-			if($renderType == 'templates') echo $this->renderTemplatesNav();
-			if($renderType == 'fields') echo $this->renderFieldsNav();
-			exit; 
-		}
-	}
-
 	/**
 	 * Perform a translation, based on text from shared admin file: /wire/templates-admin/default.php
 	 * 

@@ -207,6 +207,7 @@ class PagePaths extends WireData implements Module {
 		$table = self::dbTableName;
 		$database = $this->wire('database');
 		$engine = $this->wire('config')->dbEngine;
+		$charset = $this->wire('config')->dbCharset;
 
 		$database->query("DROP TABLE IF EXISTS $table"); 
 
@@ -216,7 +217,7 @@ class PagePaths extends WireData implements Module {
 				"PRIMARY KEY pages_id (pages_id), " .
 				"UNIQUE KEY path (path(500)), " . 
 				"FULLTEXT KEY path_fulltext (path)" . 
-				") ENGINE=$engine";
+				") ENGINE=$engine DEFAULT CHARSET=$charset";
 
 		$database->query($sql); 
 		$numUpdated = $this->updatePagePath(1, '/'); 

@@ -15,6 +15,3 @@ if($page->rootParent->hasChildren > 1) {
 	$sidebar = renderNav($page->rootParent, 3) . $page->sidebar; 
 }
 
-// if you want the line below to happen automatically, uncomment
-// the $config->appendTemplateFile line in /site/config.php 
-include("./_main.php"); 
