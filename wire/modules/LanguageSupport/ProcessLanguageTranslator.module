@@ -118,10 +118,15 @@ class ProcessLanguageTranslator extends Process {
 			$table->headerRow(array('file')); 
 			$table->row(array("No files in this language")); 
 		}
+		
+		$btn = $this->modules->get('InputfieldButton');
+		$btn->href = $url . 'add/';
+		$btn->icon = 'plane';
+		$btn->addClass('head_button_clone'); 
 
-		$table->action(array('Translate New File' => $url . 'add/')); 
+		//$table->action(array('Translate File' => $url . 'add/')); 
 
-		$out = $table->render();
+		$out = $table->render() . $btn->render();
 		return $out; 
 	}
 
@@ -134,31 +139,92 @@ class ProcessLanguageTranslator extends Process {
 	public function ___executeAdd() {
 
 		$this->addBreadcrumbs();
-
+		$this->headline('Select File'); 
+		
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->attr('method', 'post'); 
 		$form->attr('action', "./?language_id={$this->language->id}"); 
-		$form->description = sprintf("Add new file to translate to %s", $this->language->title);
+		$form->description = sprintf("Select file for translation to %s", $this->language->get('title|name'));
+		$useCache = $this->input->post->submit_refresh ? false : true;
+		
+		$files = array(
+			'site' => $this->findTranslatableFiles($this->wire('config')->paths->site, $useCache), 	
+			'wire' => $this->findTranslatableFiles($this->wire('config')->paths->wire, $useCache)
+			);
+		
+		$textdomains = array();
+		foreach($this->language->language_files as $file) {
+			$textdomain = basename($file->basename, '.json'); 
+			$textdomains[$textdomain] = wireRelativeTimeStr($file->modified);
+		}
 	
-		$field = $this->modules->get("InputfieldText"); 	
-		$field->attr('name', 'filename'); 		
-		$field->label = 'File to translate';
+		foreach(array_keys($files) as $key) {
+			$field = $this->modules->get('InputfieldSelect');
+			$field->attr('name', 'file_' . $key);
+			$field->label = "Translatable files in /$key/"; 
+			$field->attr('onchange', "jQuery('#submit_add').click()"); 
+			$field->columnWidth = 50; 
+			$value = $files[$key];
+			$optgroups = array(
+				'Untranslated' => array(),
+				'Translated' => array(), 
+				);
+			foreach($value as $file) {
+				$textdomain = $this->translator->filenameToTextdomain($file); 
+				$label = $file;
+				if(isset($textdomains[$textdomain])) {
+					$label .= " (" . $textdomains[$textdomain] . ")";
+					$optgroups['Translated'][$file] = $label;
+				} else {
+					$optgroups['Untranslated'][$file] = $label;
+				}
+			}
+			$field->addOptions($optgroups); 
+			$form->add($field); 
+		}
+
+		$field = $this->modules->get('InputfieldText'); 
+		$field->attr('name', 'filename');
+		$field->label = 'Enter file to translate';
 		$field->description = "Enter the path and filename to translate. This should be entered relative to the site's root installation.";
 		$field->notes = "Example: /wire/modules/Process/ProcessPageList/ProcessPageList.module";
+		$field->collapsed = Inputfield::collapsedYes; 
 		$form->add($field);
 
 		$submit = $this->modules->get("InputfieldSubmit"); 
-		$submit->attr('name', 'submit_add'); 
-		$submit->attr('value', 'Add File'); 
+		$submit->attr('id+name', 'submit_add'); 
+		$submit->icon = 'plane';
+		$submit->addClass('head_button_clone'); 
+		$form->add($submit);
+		
+		$submit = $this->modules->get("InputfieldSubmit");
+		$submit->attr('name', 'submit_refresh');
+		$submit->attr('value', 'Refresh File List');
+		$submit->addClass('ui-priority-secondary'); 
+		$submit->icon = 'refresh';
 		$form->add($submit); 
 
-		if($this->input->post->submit_add) $this->processAdd($field);
-
+		if($this->input->post->submit_add) {
+			if($this->input->post->filename) {
+				$this->processAdd($field);
+			} else {
+				$file = $this->input->post->file_site;
+				if(!$file) $file = $this->input->post->file_wire;
+				if($file && (isset($files['site'][$file]) || isset($files['wire'][$file]))) {
+					$textdomain = $this->translator->filenameToTextdomain($file); 
+					if(!isset($textdomains[$textdomain])) $textdomain = $this->translator->addFileToTranslate($file);
+					if($textdomain) return $this->session->redirect("../edit/?language_id={$this->language->id}&textdomain=$textdomain"); 
+				} else {
+					$this->error("Nothing to add"); 
+				}
+			}
+				
+		}
 		return $form->render();
 	}
-
+	
 	/**
-	 * Process the 'add' form 
+	 * Process the 'add' form: file input manually 
 	 *
 	 */
 	protected function ___processAdd($field) {
@@ -251,6 +317,8 @@ class ProcessLanguageTranslator extends Process {
 	public function ___executeEdit() {
 
 		$this->addBreadcrumbs();
+		$this->breadcrumb('../add/', 'Select File'); 
+		$this->headline('Translate File'); 
 
 		$textdomain = $this->input->get->textdomain;
 		$file = $this->translator->textdomainToFilename($textdomain); 
@@ -344,7 +412,90 @@ class ProcessLanguageTranslator extends Process {
 		$languagesPage = $this->pages->get($this->modules->get('LanguageSupport')->languagesPageID);
 		$url = $languagesPage->url;
 		$this->fuel->breadcrumbs->add(new Breadcrumb($url, $languagesPage->title)); 
-		$this->fuel->breadcrumbs->add(new Breadcrumb($url . "edit/?id={$this->language->id}", $this->language->title));
+		$this->fuel->breadcrumbs->add(new Breadcrumb($url . "edit/?id={$this->language->id}", $this->language->get('title|name')));
+	}
+
+	/**
+	 * Find all translation files recursively, starting from $path
+	 *
+	 */
+	public function findTranslatableFiles($path, $useCache = true) {
+		
+		if(!is_dir($path)) throw new WireException("$path does not exist or is not a directory");
+
+		static $level = 0;
+	
+		if(!$level) { 
+			$cacheKey = "files_" . md5($path); 
+			if($useCache) {
+				$files = $this->session->get($this, $cacheKey); 
+				if($files !== null) return $files;
+			}
+		} else {
+			$cacheKey = '';
+		}
+		
+		$files = array();
+		$dirs = array();
+		$root = $this->wire('config')->paths->root; 
+	
+		$find1 = array('$this->_(',  '$this->_n(',  '$this->_x(');
+		$find2 = array('__(', '_n(', '_x(');
+		
+		foreach(new DirectoryIterator($path) as $file) {
+			
+			if($file->isDot()) continue;
+			if($file->isDir()) {
+				if(substr($file->getBasename(), 0, 1) == '.') continue; // skip hidden;
+				$pathname = $file->getPathname();
+				if(strpos($pathname, '/site/assets/') !== false) continue; // avoid descending into /site/assets/
+				$dirs[] = $pathname; 
+				continue; 
+			}
+			
+			$ext = $file->getExtension();
+			if($ext != 'php' && $ext != 'module' && $ext != 'inc') continue; 
+			$pathname = $file->getPathname();
+			$text = file_get_contents($pathname); 
+			$found = false; 
+			
+			foreach($find1 as $s) {
+				if(strpos($text, $s) !== false) {
+					$found = true;
+					break;
+				}
+			}
+			if(!$found) foreach($find2 as $s) {
+				$pos = strpos($text, $s); 
+				if($pos === false) continue; 
+				$c = substr($text, $pos-1, 1); // character before __(
+				if(!ctype_alnum($c) && $c != '_') {
+					// not a character that would appear in a variable function definition, so we'll take it
+					$found = true; 
+					break;
+				}
+			}
+			
+			if($found) {
+				$pathname = str_replace($root, '/', $pathname); 
+				$files[$pathname] = $pathname; 
+			}
+		}
+	
+		$level++;
+		if($level <= 20) { // 20=max directory nesting level
+			foreach($dirs as $dir) {
+				$_files = $this->findTranslatableFiles($dir); 
+				$files = array_merge($files, $_files); 
+			}
+		}
+		$level--;
+		
+		if($cacheKey) {
+			$this->session->set($this, $cacheKey, $files); 
+		}
+		
+		return $files; 
 	}
 	
 }

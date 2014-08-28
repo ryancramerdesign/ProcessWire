@@ -55,6 +55,7 @@ class ProcessLanguage extends ProcessPageType {
 	 *
 	 */
 	public function init() {
+		$this->addHookBefore('InputfieldFile::render', $this, 'renderInputfieldFile'); 
 		$this->addHookAfter('InputfieldFile::renderItem', $this, 'renderInputfieldFileItem'); 
 		$this->addHookAfter('InputfieldFile::renderUpload', $this, 'renderInputfieldFileUpload'); 
 		parent::init();
@@ -66,6 +67,16 @@ class ProcessLanguage extends ProcessPageType {
 			$this->translationUrl = wire('pages')->get($support->languageTranslatorPageID)->url;
 		}
 		return $this->translationUrl; 
+	}
+	
+	/**
+	 * Hook for InputfieldFile::renderItem
+	 *
+	 * In this case we add an 'edit' link to the translator and some info about the translation file.
+	 *
+	 */
+	public function renderInputfieldFile(HookEvent $event) {
+		$event->object->descriptionRows = 0;
 	}
 
 	/**
@@ -135,14 +146,25 @@ class ProcessLanguage extends ProcessPageType {
 
 		$translationUrl = $this->translationUrl();
 		$page = $event->arguments[0]->get('page'); 
-		$label = $this->_('Translate New File'); 
+		$out = '';
 		
-		$btn = $this->wire('modules')->get('InputfieldButton'); 
-		$btn->href = "{$translationUrl}add/?language_id={$page->id}";
-		$btn->value = $label;
-		$btn->icon = 'plane';
-
-		$event->return .= "<p>" . $btn->render() . "</p>";
+		$btn1 = $this->wire('modules')->get('InputfieldButton'); 
+		$btn1->href = "{$translationUrl}add/?language_id={$page->id}";
+		$btn1->value = $this->_('Translate File'); 
+		$btn1->icon = 'plane';
+		$btn1->addClass('head_button_clone');
+		$out .= $btn1->render();
+	
+		if(count($page->language_files)) { 
+			$btn2 = $this->wire('modules')->get('InputfieldButton');
+			$btn2->href = "../download/?language_id={$page->id}";
+			$btn2->value = $this->_('Download ZIP');
+			$btn2->icon = 'cloud-download';
+			$btn2->addClass('ui-priority-secondary'); 
+			$out .= $btn2->render();
+		}
+		
+		$event->return .= "<p>$out</p>";
 	}
 
 	/**
@@ -159,6 +181,31 @@ class ProcessLanguage extends ProcessPageType {
 			return (string) $value;
 		} else {
 			return parent::renderListFieldValue($name, $value); 
+		}
+	}
+
+	/**
+	 * Create and send a ZIP of translation files
+	 *
+	 */
+	public function ___executeDownload() {
+		$id = (int) $this->input->get('language_id'); 
+		if(!$id) throw new WireException("No language specified"); 
+		$language = $this->wire('languages')->get($id); 
+		if(!$language->id) throw new WireException("Unknown language"); 
+		$path = $language->language_files->path();
+		$files = array();
+		foreach($language->language_files as $file) {
+			$files[] = $file->filename;
+		}
+		$zipfile = $path . $language->name . ".zip";
+		$info = wireZipFile($zipfile, $files, array("overwrite" => true)); 
+		if(!count($info['files'])) {
+			$this->error("Error adding files to ZIP"); 
+			$this->session->redirect('../'); 
+		} else {
+			wireSendFile($zipfile); 
+			exit(0);
 		}
 	}
 

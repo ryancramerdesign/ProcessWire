@@ -24,3 +24,7 @@
 .InputfieldFileList .InputfieldFileLanguageInfo a:hover i.hover-only {
 	display: inline;
 }
+
+#wrap_Inputfield_language_files p.InputfieldFileData.description {
+	padding: 0 0 1em 0;
+}
