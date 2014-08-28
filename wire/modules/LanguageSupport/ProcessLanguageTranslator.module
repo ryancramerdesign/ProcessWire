@@ -62,6 +62,7 @@ class ProcessLanguageTranslator extends Process {
 		if($id = $this->input->get->language_id) $this->setLanguage((int) $id); 
 			else if($this->session->translateLanguageID) $this->setLanguage($this->session->translateLanguageID); 
 			// else throw new WireException("No language specified"); 
+		parent::init();
 	}
 
 	/**
@@ -139,12 +140,14 @@ class ProcessLanguageTranslator extends Process {
 	public function ___executeAdd() {
 
 		$this->addBreadcrumbs();
-		$this->headline('Select File'); 
+		$this->headline('Select File(s)'); 
 		
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->attr('method', 'post'); 
 		$form->attr('action', "./?language_id={$this->language->id}"); 
-		$form->description = sprintf("Select file for translation to %s", $this->language->get('title|name'));
+		//$form->description = sprintf("Select file(s) for translation to %s", $this->language->get('title|name'));
+		$languageTitle = $this->language->get('title|name'); 
+		$form->description = "Double click any file to edit $languageTitle translations for it. Or select a file (or multiple files) and click Submit to create new $languageTitle translation files.";
 		$useCache = $this->input->post->submit_refresh ? false : true;
 		
 		$files = array(
@@ -155,37 +158,70 @@ class ProcessLanguageTranslator extends Process {
 		$textdomains = array();
 		foreach($this->language->language_files as $file) {
 			$textdomain = basename($file->basename, '.json'); 
-			$textdomains[$textdomain] = wireRelativeTimeStr($file->modified);
+			$textdomains[$textdomain] = $textdomain; 
 		}
 	
 		foreach(array_keys($files) as $key) {
-			$field = $this->modules->get('InputfieldSelect');
+			$field = $this->modules->get('InputfieldSelectMultiple');
 			$field->attr('name', 'file_' . $key);
 			$field->label = "Translatable files in /$key/"; 
-			$field->attr('onchange', "jQuery('#submit_add').click()"); 
-			$field->columnWidth = 50; 
+			$field->addClass('TranslationFileSelect'); 
+			$field->icon = 'plane';
+			$field->attr('size', 20); 
 			$value = $files[$key];
+			
+			$translated = 'Translation files exist';
+			$untranslated = 'No translation files exist';
 			$optgroups = array(
-				'Untranslated' => array(),
-				'Translated' => array(), 
+				$translated => array(), 
+				$untranslated => array(),
 				);
+			$maxLength = 0; 
 			foreach($value as $file) {
 				$textdomain = $this->translator->filenameToTextdomain($file); 
 				$label = $file;
+				if(strlen($file) > $maxLength) $maxLength = strlen($file); 
+				$basename = basename($file); 
+				if(strpos($file, '.module')) {
+					$basename = basename($basename, '.php');
+					$basename = basename($basename, '.module'); 
+					if(strpos($basename, '.module') === false) { 
+						$moduleInfo = $this->modules->getModuleInfo($basename); 
+						if($moduleInfo['title']) $label .= "\t" . $moduleInfo['title'];
+					}
+				}
+				
 				if(isset($textdomains[$textdomain])) {
-					$label .= " (" . $textdomains[$textdomain] . ")";
-					$optgroups['Translated'][$file] = $label;
+					$optgroups[$translated][$file] = $label;
 				} else {
-					$optgroups['Untranslated'][$file] = $label;
+					$optgroups[$untranslated][$file] = $label;
 				}
 			}
-			$field->addOptions($optgroups); 
+			
+			foreach($optgroups as $name => $_files) {
+				foreach($_files as $file => $label) {
+					if(strpos($label, "\t") === false) continue; 
+					list($filename, $moduleName) = explode("\t", $label); 
+					$label = str_pad("$filename ", $maxLength+10, '.', STR_PAD_RIGHT) . " " . $moduleName;
+					$optgroups[$name][$file] = $label;
+				}
+			}
+			
+			if(count($optgroups[$translated]) && count($optgroups[$untranslated])) {
+				$field->addOptions($optgroups); 
+			} else if(count($optgroups[$translated])) {
+				$field->addOptions($optgroups[$translated]); 
+			} else if(count($optgroups[$untranslated])) {
+				$field->addOptions($optgroups[$untranslated]); 
+			}
+				
 			$form->add($field); 
 		}
 
 		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('name', 'filename');
 		$field->label = 'Enter file to translate';
+		$field->icon = 'code';
 		$field->description = "Enter the path and filename to translate. This should be entered relative to the site's root installation.";
 		$field->notes = "Example: /wire/modules/Process/ProcessPageList/ProcessPageList.module";
 		$field->collapsed = Inputfield::collapsedYes; 
@@ -207,15 +243,26 @@ class ProcessLanguageTranslator extends Process {
 		if($this->input->post->submit_add) {
 			if($this->input->post->filename) {
 				$this->processAdd($field);
+				
 			} else {
-				$file = $this->input->post->file_site;
-				if(!$file) $file = $this->input->post->file_wire;
-				if($file && (isset($files['site'][$file]) || isset($files['wire'][$file]))) {
-					$textdomain = $this->translator->filenameToTextdomain($file); 
-					if(!isset($textdomains[$textdomain])) $textdomain = $this->translator->addFileToTranslate($file);
-					if($textdomain) return $this->session->redirect("../edit/?language_id={$this->language->id}&textdomain=$textdomain"); 
-				} else {
-					$this->error("Nothing to add"); 
+				$textdomains = array();
+				foreach(array('site' => 'file_site', 'wire' => 'file_wire') as $key => $name) {
+					$postFiles = $this->input->post->$name; 
+					if(!count($postFiles)) continue; 
+					foreach($postFiles as $file) { 
+						if(!isset($files[$key][$file])) continue; 
+						$textdomain = $this->translator->filenameToTextdomain($file); 
+						if(!isset($textdomains[$textdomain])) {
+							$textdomain = $this->translator->addFileToTranslate($file);
+							if($textdomain) $this->message("Added $file"); 
+						}
+						if($textdomain) $textdomains[] = $textdomain; 
+					}
+				}
+				if(count($textdomains) == 1) {
+					return $this->session->redirect("../edit/?language_id={$this->language->id}&textdomain=" . reset($textdomains)); 
+				} else if(count($textdomains) > 1) {
+					// render form again
 				}
 			}
 				
@@ -317,7 +364,7 @@ class ProcessLanguageTranslator extends Process {
 	public function ___executeEdit() {
 
 		$this->addBreadcrumbs();
-		$this->breadcrumb('../add/', 'Select File'); 
+		$this->breadcrumb('../add/', 'Select File(s)'); 
 		$this->headline('Translate File'); 
 
 		$textdomain = $this->input->get->textdomain;
