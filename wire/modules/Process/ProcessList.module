@@ -44,14 +44,16 @@ class ProcessList extends Process {
 				
 				$info = $this->modules->getModuleInfoVerbose($child->process, array('noCache' => true)); 	
 				$icon = $info['icon'] ? "<i style='float: right;' class='fa fa-3x fa-fw fa-$info[icon] ui-priority-secondary'></i> " : '';
-				$title = $info['title']; 
+				$title = $child->title;
+				if(!strlen($title)) $title = $info['title'];
+				if(!strlen($title)) $title = $child->name;
 				$titleTranslated = __($title, '/wire/templates-admin/default.php'); 
-				if($titleTranslated != $title)  $title = $titleTranslated; 
-				$title = $this->wire('sanitizer')->entities($title); 
+				if($titleTranslated && $titleTranslated != $title) $title = $titleTranslated; 
+				$title = $this->wire('sanitizer')->entities1($title); 
 				if($child->summary) $summary = $child->summary; 
 					else $summary = $info['summary'];
 					
-				$summary = $this->wire('sanitizer')->entities($summary);
+				$summary = $this->wire('sanitizer')->entities1($summary);
 				$class = '';
 				
 			} else {
