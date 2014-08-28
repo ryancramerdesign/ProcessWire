@@ -162,7 +162,7 @@
 	}
 }
 
-.InputfieldFileLanguageSupport.stacked .LanguageSupport {
+.InputfieldFileList.LanguageSupportStack .LanguageSupport {
 	/* same as above, but a class for JS to apply */
 	float: none;
 	display: block;
