@@ -341,14 +341,14 @@ $(document).ready(function() {
 	 * Multi-language description boxes stack vertically rather than horizontally whenever their width gets too small
 	 * 
  	 */
-	if(typeof config.LanguageSupport != "undefined") {
+	var hasLanguages = (typeof config.LanguageSupport != "undefined");
+	var minDescriptionWidth = 250; // descriptions will stack vertically when their width is this or smaller...
+	var minContainerWidth = 767; // ...or when the container width is this or smaller
+	var resizeActive = false;
+	var stackClass = 'LanguageSupportStack';
 	
-		var minDescriptionWidth = 250; // descriptions will stack vertically when their width is this or smaller...
-		var minContainerWidth = 767; // ...or when the container width is this or smaller
-		var resizeActive = false;
-		var stackClass = 'LanguageSupportStack';
-		var resizeDescriptionBoxes = function() {
-			if($(window).width() <= minContainerWidth) return; // media query already handles this
+	var windowResize = function() {
+		if(hasLanguages && $(window).width() > minContainerWidth) {
 			$(".InputfieldFileList").each(function() {
 				var $t = $(this);
 				if($t.children().length == 0) return;
@@ -364,13 +364,22 @@ $(document).ready(function() {
 					$t.removeClass(stackClass); 
 				}
 			});
-			resizeActive = false;
 		}
-		$(window).resize(function() {
-			if(resizeActive) return;
-			resizeActive = true; 
-			setTimeout(resizeDescriptionBoxes, 500); 
-		}).resize();
+		$(".AjaxUploadDropHere").each(function() {
+			var $t = $(this); 
+			if($t.parent().width() <= minContainerWidth) {
+				$t.hide();
+			} else {
+				$t.show();
+			}
+		}); 
+		resizeActive = false;
 	}
+	
+	$(window).resize(function() {
+		if(resizeActive) return;
+		resizeActive = true; 
+		setTimeout(windowResize, 1000); 
+	}).resize();
 	
 }); 
