@@ -769,7 +769,8 @@ class Modules extends WireArray {
 	 * 
 	 */
 	public function getModule($key, array $options = array()) {
-		
+	
+		if(empty($key)) return null;
 		$module = null;
 		$needsInit = false;
 
