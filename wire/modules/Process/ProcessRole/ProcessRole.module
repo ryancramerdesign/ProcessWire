@@ -37,6 +37,7 @@ class ProcessRole extends ProcessPageType {
 		$form = $event->object;
 		$f = $form->getChildByName('permissions');
 		if(!$f) return;
+		$f->label = $this->_('Permissions'); 
 		$f->notes = "&dagger; " . $this->_('Indicated permissions open more permission options that are revealed after checking the box and saving the page.') . "\n\n" . 
 			$this->_('*Note that checking the page-edit permission here means only that the role can be selected for edit access at the template level. Simply assigning the page-edit permission here does grant edit permission until it is also selected in one or more template access control settings.');
 		$f = $f->getInputfield();

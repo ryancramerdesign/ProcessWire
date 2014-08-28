@@ -42,6 +42,11 @@ class ProcessUser extends ProcessPageType {
 				$this->lister = $this->wire('modules')->get('ProcessPageLister'); 
 			}
 		}
+	
+		// make this field translatable
+		$roles = $this->wire('fields')->get('roles'); 
+		$roles->label = $this->_('Roles'); 
+		$roles->description = $this->_("User will inherit the permissions assigned to each role. You may assign multiple roles to a user. When accessing a page, the user will only inherit permissions from the roles that are also assigned to the page's template."); // Roles description
 	}
 	
 	protected function getLister($selector = '') {
