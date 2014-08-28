@@ -573,7 +573,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		}
 		$data = json_decode($data, true); 
 		if(empty($data)) {
-			$this->error($this->_('Error decoding JSON from from web service')); 
+			$this->error($this->_('Error decoding JSON from web service')); 
 			return $this->session->redirect($redirectURL);
 		}
 		if($data['status'] !== 'success') {

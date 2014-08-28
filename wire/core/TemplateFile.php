@@ -37,7 +37,13 @@ class TemplateFile extends WireData {
 	 * The saved directory location before render() was called
 	 *
 	 */
-	protected $savedDir; 
+	protected $savedDir;
+
+	/**
+	 * Throw exceptions when files don't exist?
+	 * 
+	 */
+	protected $throwExceptions = true;
 
 	/**
 	 * Variables that will be applied globally to this and all other TemplateFile instances
@@ -59,26 +65,41 @@ class TemplateFile extends WireData {
 	 * Sets the template file name, replacing whatever was set in the constructor
 	 *
 	 * @param string $filename Full path and filename to the PHP template file
-	 * @throws WireException
+	 * @return bool true on success, false if file doesn't exist
+	 * @throws WireException if file doesn't exist (unless throwExceptions is disabled)
 	 *
 	 */
 	public function setFilename($filename) {
-		if(!$filename) return; 
-		$this->filename = $filename; 
+		if(empty($filename)) return false;
+		if(is_file($filename)) {
+			$this->filename = $filename;
+			return true;
+		} else {
+			$error = "Filename doesn't exist: $filename";
+			if($this->throwExceptions) throw new WireException($error);
+			$this->error($error); 
+			$this->filename = $filename; // in case it will exist when render() is called
+			return false;
+		}
 	}
 
 	/**
 	 * Set a file to prepend to the template file at render time
 	 * 
 	 * @param string $filename
-	 * @return bool Returns false if file doesn't exist. 
+	 * @return bool Returns true on success, false if file doesn't exist.
+	 * @throws WireException if file doesn't exist (unless throwExceptions is disabled)
 	 *
 	 */
 	public function setPrependFilename($filename) {
-		if($filename && is_file($filename)) {
+		if(empty($filename)) return false;
+		if(is_file($filename)) {
 			$this->prependFilename[] = $filename; 
 			return true; 
 		} else {
+			$error = "Append filename doesn't exist: $filename"; 
+			if($this->throwExceptions) throw new WireException($error);
+			$this->error($error); 
 			return false;
 		}
 	}
@@ -87,14 +108,19 @@ class TemplateFile extends WireData {
 	 * Set a file to append to the template file at render time
 	 * 
 	 * @param string $filename
-	 * @return bool Returns false if file doesn't exist. 
+	 * @return bool Returns true on success false if file doesn't exist. 
+	 * @throws WireException if file doesn't exist (unless throwExceptions is disabled)
 	 *
 	 */
 	public function setAppendFilename($filename) {
-		if($filename && is_file($filename)) {
+		if(empty($filename)) return false;
+		if(is_file($filename)) {
 			$this->appendFilename[] = $filename; 
 			return true; 
 		} else {
+			$error = "Prepend filename doesn't exist: $filename";
+			if($this->throwExceptions) throw new WireException($error);
+			$this->error($error); 
 			return false;
 		}
 	}
@@ -124,8 +150,13 @@ class TemplateFile extends WireData {
 	 */
 	public function ___render() {
 
-		if(!$this->filename || !is_file($this->filename)) return '';
-		if(!file_exists($this->filename)) throw new WireException("Template file does not exist: '$this->filename'"); 
+		if(!$this->filename) return '';
+		if(!file_exists($this->filename)) {
+			$error = "Template file does not exist: '$this->filename'";
+			if($this->throwExceptions) throw new WireException($error);
+			$this->error($error); 
+			return '';
+		}
 
 		$this->savedDir = getcwd();	
 
@@ -169,6 +200,16 @@ class TemplateFile extends WireData {
 		if($value = parent::get($property)) return $value; 
 		if(isset(self::$globals[$property])) return self::$globals[$property];
 		return null;
+	}
+
+	/**
+	 * Call this with boolean false to disable exceptions when file doesn't exist
+	 * 
+	 * @param bool $throwExceptions
+	 * 
+	 */
+	public function setThrowExceptions($throwExceptions) {
+		$this->throwExceptions = $throwExceptions ? true : false;
 	}
 
 	/**

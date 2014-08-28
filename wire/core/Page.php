@@ -1334,7 +1334,9 @@ class Page extends WireData implements Countable {
 	public function output($forceNew = false) {
 		if($this->output && !$forceNew) return $this->output; 
 		if(!$this->template) return null;
-		$this->output = new TemplateFile($this->template->filename); 
+		$this->output = new TemplateFile();
+		$this->output->setThrowExceptions(false); 
+		$this->output->setFilename($this->template->filename); 
 		$fuel = self::getAllFuel();
 		$this->output->set('wire', $fuel); 
 		foreach($fuel as $key => $value) $this->output->set($key, $value); 
