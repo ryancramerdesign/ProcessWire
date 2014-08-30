@@ -716,6 +716,7 @@ class Pages extends Wire {
 	 * 		'resetTrackChanges' => boolean - Whether the page's change tracking should be reset (default=true)
 	 * 		'quiet' => boolean - When true, modified date and modified_users_id won't be updated (default=false)
 	 *		'adjustName' => boolean - Adjust page name to ensure it is unique within its parent (default=false)
+	 * 		'forceID' => integer - use this ID instead of an auto-assigned on (new page) or current ID (existing page)
 	 * @return bool True on success, false on failure
 	 * @throws WireException
 	 *
@@ -726,6 +727,7 @@ class Pages extends Wire {
 			'uncacheAll' => true,
 			'resetTrackChanges' => true,
 			'adjustName' => false, 
+			'forceID' => 0
 			);
 	
 		$options = array_merge($defaultOptions, $options); 
@@ -800,6 +802,8 @@ class Pages extends Wire {
 			if($page->id) $data['id'] = (int) $page->id;
 			$data['created_users_id'] = (int) $userID;
 		}
+		
+		if($options['forceID']) $data['id'] = (int) $options['forceID'];
 
 		if($page->template->allowChangeUser) {
 			$data['created_users_id'] = (int) $page->created_users_id;
@@ -829,15 +833,14 @@ class Pages extends Wire {
 		if($isNew) {
 			$query = $database->prepare("INSERT INTO pages SET $sql, created=NOW()");
 		}  else {
-			$query = $database->prepare("UPDATE pages SET $sql WHERE id=:id");
-			$query->bindValue(":id", (int) $page->id, PDO::PARAM_INT);
+			$query = $database->prepare("UPDATE pages SET $sql WHERE id=:page_id");
+			$query->bindValue(":page_id", (int) $page->id, PDO::PARAM_INT);
 		}
 
 		foreach($data as $column => $value) {
 			if(is_null($value)) continue; // already bound above
 			$query->bindValue(":$column", $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
 		}
-
 
 		$n = 0;
 
@@ -884,6 +887,7 @@ class Pages extends Wire {
 		} while($errorCode == 23000); 
 
 		if($result && ($isNew || !$page->id)) $page->id = $database->lastInsertId();
+		if($options['forceID']) $page->id = (int) $options['forceID'];
 		
 		return $result; 
 	}
@@ -919,8 +923,8 @@ class Pages extends Wire {
 			$this->saved($page, array());
 			return true;
 		}
-
-		// if page has a files path, trigger filesManager's save
+		
+		// if page has a files path (or might have previously), trigger filesManager's save
 		if(PagefilesManager::hasPath($page)) $page->filesManager->save();
 
 		// disable outputFormatting and save state
@@ -933,7 +937,8 @@ class Pages extends Wire {
 		// save each individual Fieldtype data in the fields_* tables
 		foreach($page->fieldgroup as $field) {
 			if(isset($corruptedFields[$field->name])) continue; // don't even attempt save of corrupted field
-			if($field->type) try { 
+			if(!$field->type) continue;
+			try {
 				$field->type->savePageField($page, $field);
 			} catch(Exception $e) {
 				$this->error(sprintf($this->_('Error saving field "%s"'), $field->name) . ' - ' . $e->getMessage()); 
@@ -1226,18 +1231,20 @@ class Pages extends Wire {
 	 * this method will throw an exception. If a recursive delete fails for any reason, an exception will be thrown.
 	 *
 	 * @param Page $page
-	 * @param bool $recursive If set to true, then this will attempt to delete all children too. 
+	 * @param bool $recursive If set to true, then this will attempt to delete all children too.
+	 * @param array $options Optional settings to change behavior (for the future)
 	 * @return bool
-	 * @throws WireException
+	 * @throws WireException on fatal error
 	 *
 	 */
-	public function ___delete(Page $page, $recursive = false) {
+	public function ___delete(Page $page, $recursive = false, array $options = array()) {
 
 		if(!$this->isDeleteable($page)) throw new WireException("This page may not be deleted"); 
 
 		if($page->numChildren) {
-			if(!$recursive) throw new WireException("Can't delete Page $page because it has one or more children."); 
-			foreach($page->children("include=all") as $child) {
+			if(!$recursive) {
+				throw new WireException("Can't delete Page $page because it has one or more children."); 
+			} else foreach($page->children("include=all") as $child) {
 				if(!$this->delete($child, true)) throw new WireException("Error doing recursive page delete, stopped by page $child"); 
 			}
 		}
@@ -1288,6 +1295,8 @@ class Pages extends Wire {
 	 * @param Page $parent New parent, if different (default=same parent)
 	 * @param bool $recursive Clone the children too? (default=true)
 	 * @param array $options Optional options that can be passed to clone or save
+	 * 	- forceID (int): force a specific ID
+	 * 	- set (array): Array of properties to set to the clone (you can also do this later)
 	 * @return Page the newly cloned page or a NullPage() with id=0 if unsuccessful.
 	 *
 	 */
@@ -1308,7 +1317,6 @@ class Pages extends Wire {
 			$name = $page->name . '-' . (++$n); 
 		}
 
-
 		// Ensure all data is loaded for the page
 		foreach($page->template->fieldgroup as $field) {
 			$page->get($field->name); 
@@ -1316,10 +1324,17 @@ class Pages extends Wire {
 
 		// clone in memory
 		$copy = clone $page; 
-		$copy->id = 0; 
+		$copy->id = isset($options['forceID']) ? (int) $options['forceID'] : 0; 
 		$copy->setIsNew(true); 
 		$copy->name = $name; 
 		$copy->parent = $parent; 
+		
+		// set any properties indicated in options	
+		if(isset($options['set']) && is_array($options['set'])) {
+			foreach($options['set'] as $key => $value) {
+				$copy->set($key, $value); 
+			}
+		}
 
 		// tell PW that all the data needs to be saved
 		foreach($copy->template->fieldgroup as $field) {

@@ -124,10 +124,11 @@ class PagefilesManager extends Wire {
 	 *
 	 * @param string $fromPath Path to copy from
 	 * @param string $toPath Path to copy to
+	 * @param bool $rename Rename files rather than copy? (makes this perform like a move rather than copy)
 	 * @return int Number of files copied
 	 *
 	 */
-	protected function _copyFiles($fromPath, $toPath) {
+	protected function _copyFiles($fromPath, $toPath, $rename = false) {
 
 		if(!is_dir($toPath)) return 0; 
 
@@ -137,16 +138,23 @@ class PagefilesManager extends Wire {
 	
 		foreach(new DirectoryIterator($fromPath) as $file) {
 			if($file->isDot()) continue; 
+			
 			if($file->isDir()) {
-				$newPath = $toPath . $file->getFilename() . '/';
-				$this->_createPath($newPath); 
-				$numCopied += $this->_copyFiles($file->getPathname(), $newPath); 
-				continue; 
-			}
-			if($file->isFile()) {
+				$fromDir = $file->getPathname();
+				$toDir = $toPath . $file->getFilename() . '/';
+				if($rename && rename($fromDir, $toDir)) {
+					$numCopied++;
+				} else {
+					$this->_createPath($toDir); 
+					$numCopied += $this->_copyFiles($fromDir, $toDir, $rename); 
+					if($rename) wireRmdir($fromDir, true); // this line not likely to ever be executed
+				}
+				
+			} else if($file->isFile()) {
 				$fromFile = $file->getPathname();
 				$toFile = $toPath . $file->getFilename();
-				if(copy($fromFile, $toFile)) {
+				$success = $rename ? rename($fromFile, $toFile) : copy($fromFile, $toFile);
+				if($success) { 
 					$numCopied++;
 					// $this->message("Copied $fromFile => $toFile", Notice::debug); 
 				} else {
@@ -167,6 +175,18 @@ class PagefilesManager extends Wire {
 	 */
 	public function copyFiles($toPath) {
 		return $this->_copyFiles($this->path(), $toPath); 
+	}
+
+	/**
+	 * Recursively move all files managed by this PagefilesManager into a new path
+	 *
+	 * @param $toPath string Path of directory to move files into.
+	 * @return int Number of files/directories moved.
+	 *
+	 */
+	public function moveFiles($toPath) {
+		$this->_createPath($toPath); 
+		return $this->_copyFiles($this->path(), $toPath, true); 
 	}
 
 	/**
@@ -197,12 +217,9 @@ class PagefilesManager extends Wire {
 	 */
 	public function emptyPath($rmdir = false) {
 		$path = $this->path();
-		$dir = new DirectoryIterator($path); 
-		foreach($dir as $file) {
-			if($file->isDir() || $file->isDot()) continue; 
-			if($file->isFile()) unlink($file->getPathname()); 
-		}
-		if($rmdir) rmdir($path); 
+		if(!is_dir($path)) return;
+		wireRmdir($path, true); 
+		if(!$rmdir) $this->_createPath($path); 
 	}
 
 	/**

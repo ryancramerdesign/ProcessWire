@@ -190,7 +190,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			'created' => $createdLabel, 
 			'modified_users_id' => $modifiedUserLabel, 
 			'created_users_id' => $createdUserLabel,
-			'parent' => $parentLabel
+			'parent' => $parentLabel,
+			'num_children' => $this->_('Num Children'),
 			));
 
 		$this->statusLabels = array(

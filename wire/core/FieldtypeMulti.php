@@ -190,6 +190,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 		
 		$database = $this->wire('database');
 		$values = $page->get($field->name);
+		$schema = array();
 
 		if(is_object($values)) {
 			 if(!$values->isChanged() && !$page->isChanged($field->name)) return true; 
@@ -233,7 +234,12 @@ abstract class FieldtypeMulti extends Fieldtype {
 				// cycle through the keys, which represent DB fields (i.e. data, description, etc.) and generate the insert query
 				foreach($keys as $key) {
 					$v = $value[$key]; 
-					$sql .= "'" . $database->escapeStr("$v") . "', ";
+					if(is_null($v)) {
+						if(empty($schema)) $schema = $this->getDatabaseSchema($field); 
+						$sql .= isset($schema[$key]) && stripos($schema[$key], ' DEFAULT NULL') ? "NULL, " : "'', ";
+					} else {
+						$sql .= "'" . $database->escapeStr("$v") . "', ";
+					}
 				}
 				$sql = rtrim($sql, ", ") . "), ";
 				$sort++; 	

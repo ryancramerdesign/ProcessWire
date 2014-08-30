@@ -179,7 +179,7 @@ class ProcessLanguageTranslator extends Process {
 			$maxLength = 0; 
 			foreach($value as $file) {
 				$textdomain = $this->translator->filenameToTextdomain($file); 
-				$label = $file;
+				$label = substr($file, 5);
 				if(strlen($file) > $maxLength) $maxLength = strlen($file); 
 				$basename = basename($file); 
 				if(strpos($file, '.module')) {
@@ -202,7 +202,7 @@ class ProcessLanguageTranslator extends Process {
 				foreach($_files as $file => $label) {
 					if(strpos($label, "\t") === false) continue; 
 					list($filename, $moduleName) = explode("\t", $label); 
-					$label = str_pad("$filename ", $maxLength+10, '.', STR_PAD_RIGHT) . " " . $moduleName;
+					$label = str_pad("$filename ", $maxLength, '.', STR_PAD_RIGHT) . " " . $moduleName;
 					$optgroups[$name][$file] = $label;
 				}
 			}

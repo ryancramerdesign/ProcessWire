@@ -94,7 +94,7 @@ class InputfieldInteger extends Inputfield {
 
 		return parent::setAttribute($key, $value); 
 	}
-
+	
 	public function set($key, $value) {
 		if($key == 'inputType') {
 			$this->attr('type', $value); 

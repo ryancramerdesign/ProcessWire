@@ -461,6 +461,8 @@ abstract class Fieldtype extends WireData implements Module {
 	 * );
 	 *
 	 * At minimum, each Fieldtype must add a 'data' field as well as an index for it. 
+	 * 
+	 * If you want a PHP NULL value to become a NULL in the database, your column definition must specify: DEFAULT NULL
 	 *
 	 * @param Field $field In case it's needed for the schema, but usually should not. 
 	 * @return array
@@ -628,6 +630,7 @@ abstract class Fieldtype extends WireData implements Module {
 
 		$page_id = (int) $page->id; 
 		$table = $database->escapeTable($field->table); 
+		$schema = array();
 
 		if(is_array($value)) { 
 
@@ -637,19 +640,34 @@ abstract class Fieldtype extends WireData implements Module {
 
 			foreach($value as $k => $v) {
 				$k = $database->escapeCol($k);
-				$v = $database->escapeStr($v);
 				$sql1 .= ",`$k`";
-				$sql2 .= ",'$v'";
+				
+				if(is_null($v)) {
+					// check if schema explicitly allows NULL
+					if(empty($schema)) $schema = $this->getDatabaseSchema($field); 
+					$sql2 .= isset($schema[$k]) && stripos($schema[$k], ' DEFAULT NULL') ? ",NULL" : ",''";
+				} else {
+					$v = $database->escapeStr($v);
+					$sql2 .= ",'$v'";
+				}
+				
 				$sql3 .= "$k=VALUES($k), ";
 			}
 
 			$sql = "$sql1) $sql2) " . rtrim($sql3, ', ');
 			
-		} else { 
-			$value = $database->escapeStr($value); 
+		} else {
+			
+			if(is_null($value)) {
+				// check if schema explicitly allows NULL
+				$schema = $this->getDatabaseSchema($field); 
+				$value = isset($schema[$k]) && stripos($schema[$k], ' DEFAULT NULL') ? "NULL" : "''";
+			} else {
+				$value = "'" . $database->escapeStr($value) . "'";
+			}
 
 			$sql = 	"INSERT INTO `$table` (pages_id, data) " . 
-					"VALUES('$page_id', '$value') " . 
+					"VALUES('$page_id', $value) " . 
 					"ON DUPLICATE KEY UPDATE data=VALUES(data)";	
 		}
 		
@@ -715,7 +733,51 @@ abstract class Fieldtype extends WireData implements Module {
 		return $result;
 
 	}
+	
+	/**
+	 * Empty out the DB table data for page field, but leave everything else in tact
+	 *
+	 * In most cases this may be nearly identical to deletePageField, but would be different
+	 * for things like page references where we wouldn't want relational data deleted.
+	 *
+	 * @param Page $page
+	 * @param Field $field Field object
+	 * @return bool True on success, false on DB delete failure.
+	 * @throws WireException
+	 *
+	 */
+	public function ___emptyPageField(Page $page, Field $field) {
+		if(!$field->id) throw new WireException("Unable to empty from '{$field->table}' for field that doesn't exist in fields table");
+		$table = $this->wire('database')->escapeTable($field->table);
+		$query = $this->wire('database')->prepare("DELETE FROM `$table` WHERE pages_id=:page_id");
+		$query->bindValue(":page_id", $page->id, PDO::PARAM_INT);
+		return $query->execute();
+	}
 
+	
+	/**
+	 * Move this field's data from one page to another
+	 *
+	 * @param Page $src Source Page
+	 * @param Page $dst Destination Page
+	 * @param Field $field
+	 * @return bool
+	 *
+	 */
+	public function ___replacePageField(Page $src, Page $dst, Field $field) {
+		$database = $this->wire('database');
+		$table = $database->escapeTable($field->table);
+		$this->emptyPageField($dst, $field); 
+		// move the data
+		$sql = "UPDATE `$table` SET pages_id=:dstID WHERE pages_id=:srcID";
+		$query = $this->wire('database')->prepare($sql);
+		$query->bindValue(':dstID', (int) $dst->id);
+		$query->bindValue(':srcID', (int) $src->id);
+		$result = $query->execute();
+		return $result;
+	}
+
+	
 	/**
 	 * Delete the given Field from all pages using the given template, without loading those pages
 	 * 
