@@ -3,6 +3,9 @@
  *
  */
 
+@import 'vars';
+@import 'mixins';
+
 $green: #70B340;
 $light-green: $green; 
 $red: #B81C22;
@@ -135,3 +138,5 @@ $input-bg: lighten($subtle-bg, 2%);
 $progressbar-bg: none; 
 $progressbar-value-bg: $masthead-bg; // $ui-state-hover-bg; 
 $progressbar-text-color: $reverse-text-color;  
+
+@import 'main';

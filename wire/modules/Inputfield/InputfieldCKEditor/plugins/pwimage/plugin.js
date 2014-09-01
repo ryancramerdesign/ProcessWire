@@ -86,6 +86,7 @@
 	function loadIframeImagePicker(editor) {
 
 		var page_id = $("#Inputfield_id").val(); 
+		var edit_page_id = page_id; 
 		var file = '';
 		var imgClass = '';
 		var imgWidth = 0;
@@ -126,7 +127,7 @@
 		}
 
 		var modalUri = config.urls.admin + 'page/image/';
-		var queryString = '?id=' + page_id + '&modal=1';
+		var queryString = '?id=' + page_id + '&edit_page_id=' + edit_page_id + '&modal=1';
 
 		var windowHeight = $(window).height() - 350; 
 		var windowWidth = $(window).width() - 200; 

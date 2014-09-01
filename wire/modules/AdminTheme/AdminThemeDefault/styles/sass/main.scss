@@ -3,11 +3,6 @@
  *
  */
 
-@import 'vars';
-@import 'mixins';
-@import 'colors-classic';
-//@import 'colors-modern';
-//@import 'colors-futura';
 @import 'reset';
 @import 'jquery-ui'; 
 @import 'ui';
@@ -70,18 +65,18 @@ a {
 
 	&:hover {
 		color: $link-hover-color; 
-		background: $link-hover-bg; 
+		background-color: $link-hover-bg; 
 	}
 
 	&.on {
 		// on/active link color 
-		background: $link-current-bg; 
+		background-color: $link-current-bg; 
 		color: $link-current-color; 
 	}
 
 	&:active {
 		color: $link-active-color;
-		background: $link-active-bg; 
+		background-color: $link-active-bg; 
 	}
 }
 

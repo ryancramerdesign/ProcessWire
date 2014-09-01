@@ -3,6 +3,9 @@
  *
  */
 
+@import 'vars';
+@import 'mixins';
+
 $red: #a30000;
 $pink: #F21E69; 
 $dark-pink: darken($pink, 10%); 
@@ -139,3 +142,5 @@ $input-bg: lighten($subtle-bg, 2%);
 $progressbar-bg: $pink;
 $progressbar-value-bg: $dark-pink; 
 $progressbar-text-color: $reverse-text-color;  
+
+@import 'main';
