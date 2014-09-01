@@ -108,6 +108,24 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
+	 * Returns array of suffixes for this file or true/false if this file has the given suffix
+	 * 
+	 * When providing a suffix, this method can be thought of: hasSuffix(suffix)
+	 * 
+	 * @param string $s Optionally provide suffix to return true/false if file has the suffix
+	 * @return array|bool 
+	 * 
+	 */
+	public function suffix($s = '') {
+		$info = $this->isVariation(parent::get('basename')); 
+		if(strlen($s)) {
+			return $info ? in_array($s, $info['suffix']) : false;
+		} else {
+			return $info ? $info['suffix'] : array();
+		}
+	}
+
+	/**
 	 * Returns the basename of this Pagefile
 	 *
 	 */
@@ -180,7 +198,14 @@ class Pageimage extends Pagefile {
 	 *
 	 * @param int $width
 	 * @param int $height
-	 * @param array|string|int $options Array of options to override default behavior (quality=90, upscaling=true, cropping=center).
+	 * @param array|string|int $options Array of options (or selector string) to override default behavior: 
+	 * 	- quality=90 (quality setting 1-100)
+	 * 	- upscaling=true (allow image to be upscaled?)
+	 * 	- cropping=center (cropping mode, see ImagSizer class for options)
+	 * 	- suffix=word (your suffix word in fieldName format, or use array of words for multiple)
+	 * 	- forceNew=true (force re-creation of the image?)
+	 * 	- sharpening=soft (specify: none, soft, medium, strong)
+	 * 	- autoRotation=true (automatically correct rotation of images that provide the info)
 	 *	Or you may specify a string|bool with with 'cropping' value if you don't need to combine with other options.
 	 *	Or you may specify an integer with 'quality' value if you don't need to combine with other options.
 	 * 	Or you may specify a boolean with 'upscaling' value if you don't need to combine with other options.
@@ -233,7 +258,9 @@ class Pageimage extends Pagefile {
 		$defaultOptions = array(
 			'upscaling' => true,
 			'cropping' => true,
-			'quality' => 90
+			'quality' => 90,
+			'suffix' => array(), // can be array of suffixes or string of 1 suffix
+			'forceNew' => false,  // force it to create new image even if already exists
 			);
 
 		$this->error = '';
@@ -244,12 +271,26 @@ class Pageimage extends Pagefile {
 		$width = (int) $width;
 		$height = (int) $height; 
 		$crop = ImageSizer::croppingValueStr($options['cropping']); 	
+		
+		$suffixStr = '';
+		if(!empty($options['suffix'])) {
+			$suffix = is_array($options['suffix']) ? $options['suffix'] : array($options['suffix']);
+			sort($suffix); 
+			foreach($suffix as $key => $s) {
+				$s = strtolower($this->wire('sanitizer')->fieldName($s)); 
+				if(empty($s)) unset($suffix[$key]); 
+					else $suffix[$key] = $s; 
+			}
+			if(count($suffix)) $suffixStr = '-' . implode('-', $suffix); 
+		}
 
 		$basename = basename($this->basename(), "." . $this->ext()); 		// i.e. myfile
-		$basename .= '.' . $width . 'x' . $height . $crop . "." . $this->ext();	// i.e. myfile.100x100.jpg or myfile.100x100nw.jpg
+		$basename .= '.' . $width . 'x' . $height . $crop . $suffixStr . "." . $this->ext();	// i.e. myfile.100x100.jpg or myfile.100x100nw-suffix1-suffix2.jpg
 		$filename = $this->pagefiles->path() . $basename; 
+		$exists = file_exists($filename); 
 
-		if(!is_file($filename)) {
+		if(!$exists || $options['forceNew']) {
+			if($exists && $options['forceNew']) unlink($filename); 
 			if(@copy($this->filename(), $filename)) {
 				try { 
 					$sizer = new ImageSizer($filename); 
@@ -365,33 +406,65 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
-	 * Get all size variations of this Pageimage as a Pageimages array of Pageimage objects.
+	 * Get all size variations of this Pageimage 
 	 *
 	 * This is useful after a delete of an image (for example). This method can be used to track down all the child files that also need to be deleted. 
 	 *
-	 * @return Pageimages
+	 * @param array $options One or more options of: 
+	 * 	- info (bool): when true, method returns variation info arrays rather than Pageimage objects
+	 * 	- width (int): only variations with given width will be returned
+	 * 	- height (int): only variations with given height will be returned
+	 * 	- width>= (int): only variations with width greater than or equal to given will be returned
+	 * 	- height>= (int): only variations with height greater than or equal to given will be returned
+	 * 	- width<= (int): only variations with width less than or equal to given will be returned
+	 * 	- height<= (int): only variations with height less than or equal to given will be returned
+	 * 	- suffix (string): only variations having the given suffix will be returned
+	 * @return Pageimages|array Returns Pageimages array of Pageimage instances. Only returns regular array if $options[info] is true.
 	 *
 	 */
-	public function getVariations() {
+	public function getVariations(array $options = array()) {
 
 		if(!is_null($this->variations)) return $this->variations; 
 
 		$variations = new Pageimages($this->pagefiles->page); 
 		$dir = new DirectoryIterator($this->pagefiles->path); 
+		$infos = array();
 
 		foreach($dir as $file) {
 			if($file->isDir() || $file->isDot()) continue; 			
-			if(!$this->isVariation($file->getFilename())) continue; 
-			$pageimage = clone $this; 
-			$pathname = $file->getPathname();
-			if(DIRECTORY_SEPARATOR != '/') $pathname = str_replace(DIRECTORY_SEPARATOR, '/', $pathname);
-			$pageimage->setFilename($pathname); 
-			$pageimage->setOriginal($this); 
-			$variations->add($pageimage); 
+			$info = $this->isVariation($file->getFilename());
+			if(!$info) continue; 
+			$allow = true;
+			if(count($options)) foreach($options as $option => $value) {
+				switch($option) {
+					case 'width': $allow = $info['width'] == $value; break;
+					case 'width>=': $allow = $info['width'] >= $value; break;
+					case 'width<=': $allow = $info['width'] <= $value; break;
+					case 'height': $allow = $info['height'] == $value; break;
+					case 'height>=': $allow = $info['height'] >= $value; break;
+					case 'height<=': $allow = $info['height'] <= $value; break;
+					case 'suffix': $allow = in_array($value, $info['suffix']); break;
+				}
+			}
+			if(!$allow) continue; 
+			if(!empty($options['info'])) {
+				$infos[$file->getBasename()] = $info;
+			} else {
+				$pageimage = clone $this; 
+				$pathname = $file->getPathname();
+				if(DIRECTORY_SEPARATOR != '/') $pathname = str_replace(DIRECTORY_SEPARATOR, '/', $pathname);
+				$pageimage->setFilename($pathname); 
+				$pageimage->setOriginal($this); 
+				$variations->add($pageimage); 
+			}
 		}
 
-		$this->variations = $variations; 
-		return $variations; 
+		if(!empty($options['info'])) {
+			return $infos;
+		} else {
+			$this->variations = $variations;
+			return $variations; 
+		}
 	}
 
 	/**
@@ -402,6 +475,7 @@ class Pageimage extends Pagefile {
 	 * - width: Specified width
 	 * - height: Specified height
 	 * - crop: Cropping info string or blank if none
+	 * - suffix: array of suffixes
 	 * 
 	 * @param string $basename Filename to check
 	 * @return bool|array Returns false if not a variation or array of it is
@@ -414,30 +488,56 @@ class Pageimage extends Pagefile {
 
 		// if originalName is already a variation filename, remove the variation info from it.
 		// reduce to original name, i.e. all info after (and including) a period
-		if(strpos($originalName, '.') && preg_match('/^([^.]+)\.\d+x\d+/', $originalName, $matches)) {
+		if(strpos($originalName, '.') && preg_match('/^([^.]+)\.(?:\d+x\d+|-[_a-z0-9]+)/', $originalName, $matches)) {
 			$originalName = $matches[1];
 		}
 
-		$re = '/^'  . 
-			$originalName . '\.' .		// myfile. 
-			'(\d+)x(\d+)' .			// 50x50	
+		// variation name with size dimensions and optionally suffix
+		$re1 = '/^'  . 
+			$originalName . '\.' .			// myfile. 
+			'(\d+)x(\d+)' .					// 50x50	
 			'([pd]\d+x\d+|[a-z]{1,2})?' . 	// nw or p30x40 or d30x40
-			'\.' . $this->ext() . 		// .jpg
+			'(?:-([-_a-z0-9]+))?' . 		// -suffix1 or -suffix1-suffix2, etc.
+			'\.' . $this->ext() . 			// .jpg
 			'$/';
+	
+		// variation name with suffix only
+		$re2 = '/^' . 						
+			$originalName . '\.-' . 		// myfile.-
+			'([-_a-z0-9]+)' . 				// suffix1 or suffix1-suffix2, etc. 
+			'\.' . $this->ext() . 			// .jpg
+			'$/'; 
 
 		// if regex does not match, return false
-		if(!preg_match($re, $variationName, $matches)) return false;
+		if(preg_match($re1, $variationName, $matches)) {
+			
+			// this is a variation with dimensions, return array of info
+			$info = array(
+				'original' => $originalName . '.' . $this->ext(),
+				'width' => $matches[1],
+				'height' => $matches[2],
+				'crop' => (isset($matches[3]) ? $matches[3] : ''),
+				'suffix' => (isset($matches[4]) ? explode('-', $matches[4]) : array()),
+				);
 
-		// this is a variation, return array of info
-		$info = array(
-			'original' => $originalName . '.' . $this->ext(), 
-			'width' => $matches[1],
-			'height' => $matches[2], 
-			'crop' => (isset($matches[3]) ? $matches[3] : ''),
-			);
 		
+		} else if(preg_match($re2, $variationName, $matches)) {
+		
+			// this is a variation only with suffix
+			$info = array(
+				'original' => $originalName . '.' . $this->ext(),
+				'width' => 0,
+				'height' => 0,
+				'crop' => '',
+				'suffix' => explode('-', $matches[1])
+				);
+			
+		} else {
+			return false; 
+		}
+
 		if(!$this->original) {
-			$this->original = $this->pagefiles->get($info['original']); 
+			$this->original = $this->pagefiles->get($info['original']);
 		}
 
 		return $info;

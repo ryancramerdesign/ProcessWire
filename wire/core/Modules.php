@@ -1715,7 +1715,6 @@ class Modules extends WireArray {
 				$dirmtime = substr($dirname, -7) == 'modules' || strpos($dirname, $this->paths[0]) !== false ? 0 : (int) filemtime($dirname);
 				$info['created'] = $dirmtime > $filemtime ? $dirmtime : $filemtime;
 			}
-			if($moduleName == 'AdminThemeReno') $this->message('AdminThemeReno: ' . date('Y-m-d H:i a', $info['created']) . ", " . wireRelativeTimeStr($info['created'], true)); 
 		} 
 	
 		return $info;
