@@ -334,6 +334,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$s->allowSystemTemplates = $this->allowSystem; 
 		$s->allowSubfieldGroups = false; // we only support in ListerPro
 		$s->allowSubselectors = false; // we only support in ListerPro
+		$s->exclude = 'sort';
 		$selector = $this->sessionGet('selector'); 
 		if(!strlen($selector)) $selector = $this->defaultSelector; 
 		if($this->initSelector) $selector = str_replace($this->initSelector, '', $selector); // ensure that $selector does not contain initSelector

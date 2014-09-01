@@ -33,6 +33,7 @@
  * allowSubfieldGroups=1				Allow @grouping of subfields (like for page references)?
  * allowModifiers=1						Allow use of modifiers like include, limit?
  * allowBlankValues=0					When no value is present, should it contribute to the selector?
+ * exclude=								One or more (CSV) fields to disallow selection for
  * showInitValue=0						Show non-modifiable inputs for the initValue?
  * showFieldLabels=0					Show field labels rather than names?
  * dateFormat=Y-m-d						Default PHP date() format for date fields.
@@ -51,7 +52,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Selector',
-			'version' => 21,
+			'version' => 22,
 			'summary' => 'Build a page finding selector visually.',
 			'author' => 'Avoine + ProcessWire',
 			'autoload' => "template=admin", 
@@ -172,6 +173,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$this->setting('showFieldLabels', false); // makes it use field labels, rather than names (when true)
 		$this->setting('showOptgroups', true); // show option groups to separate system, field, subfield, etc. 
 		$this->setting('optgroupsOrder', 'system,field,subfield,group,modifier,adjust'); // field selection option groups and order to render them in (applicable only if showOptgroups=true)
+		$this->setting('exclude', ''); // CSV fields to disallow
 		$this->setting('dateFormat', $this->_('Y-m-d')); // date format 
 		$this->setting('datePlaceholder', $this->_('yyyy-mm-dd')); // date format placeholder (what users see)
 		$this->setting('timeFormat', $this->_('H:i')); // time format
@@ -630,6 +632,11 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			); 
 
 		$settings = array_merge($defaults, $settings); 
+		if($this->exclude) {
+			$exclude = is_array($this->exclude) ? $this->exclude : explode(',', $this->exclude); 
+			foreach($exclude as $k => $v) $exclude[$k] = trim($v); 
+			$settings['exclude'] = array_merge($settings['exclude'], $exclude); 
+		}
 
 		$selectedValueSubfield = '';
 		if(strpos($selectedValue, '.') !== false && !isset($this->systemFields[$selectedValue])) {
