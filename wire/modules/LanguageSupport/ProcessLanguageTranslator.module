@@ -98,36 +98,39 @@ class ProcessLanguageTranslator extends Process {
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$url = $this->pages->get("template=admin, name=language-translations")->url;
 		$this->message('url ' . $url); 
+		$out = '';
 
-		if(count($this->language->language_files)) { 
-			$table->headerRow(array(
-				'file', 
-				'phrases', 
-				'last modified', 
-				)); 
-			foreach($this->language->language_files as $file) {
-				$textdomain = basename($file->basename, '.json'); 
-				$data = $this->translator->getTextdomain($textdomain); 
-				$table->row(array(
-					$data['file'] => $url . "edit/?textdomain=$textdomain",
-					count($data['translations']), 
-					date($this->config->dateFormat, filemtime($file->filename))	
+		foreach(array('language_files', 'language_files_site') as $fieldName) { 
+			if(!$this->language->$fieldName) continue; // language_files_site not installed
+			if(count($this->language->$fieldName)) { 
+				$table->headerRow(array(
+					'file', 
+					'phrases', 
+					'last modified', 
 					)); 
-				$this->translator->unloadTextdomain($textdomain); 
+				foreach($this->language->$fieldName as $file) {
+					$textdomain = basename($file->basename, '.json'); 
+					$data = $this->translator->getTextdomain($textdomain); 
+					$table->row(array(
+						$data['file'] => $url . "edit/?textdomain=$textdomain",
+						count($data['translations']), 
+						date($this->config->dateFormat, filemtime($file->filename))	
+						)); 
+					$this->translator->unloadTextdomain($textdomain); 
+				}
+			} else {
+				$table->headerRow(array('file')); 
+				$table->row(array("No files in this language for field $fieldName")); 
 			}
-		} else {
-			$table->headerRow(array('file')); 
-			$table->row(array("No files in this language")); 
+			$out .= $table->render();
 		}
 		
 		$btn = $this->modules->get('InputfieldButton');
 		$btn->href = $url . 'add/';
 		$btn->icon = 'plane';
-		$btn->addClass('head_button_clone'); 
+		$btn->addClass('head_button_clone');
+		$out .= $btn->render();
 
-		//$table->action(array('Translate File' => $url . 'add/')); 
-
-		$out = $table->render() . $btn->render();
 		return $out; 
 	}
 
@@ -156,9 +159,12 @@ class ProcessLanguageTranslator extends Process {
 			);
 		
 		$textdomains = array();
-		foreach($this->language->language_files as $file) {
-			$textdomain = basename($file->basename, '.json'); 
-			$textdomains[$textdomain] = $textdomain; 
+		foreach(array('language_files', 'language_files_site') as $fieldName) { 
+			if(!$this->language->$fieldName) continue; 
+			foreach($this->language->$fieldName as $file) {
+				$textdomain = basename($file->basename, '.json'); 
+				$textdomains[$textdomain] = $textdomain; 
+			}
 		}
 	
 		foreach(array_keys($files) as $key) {
@@ -245,7 +251,7 @@ class ProcessLanguageTranslator extends Process {
 				$this->processAdd($field);
 				
 			} else {
-				$textdomains = array();
+				$newTextdomains = array();
 				foreach(array('site' => 'file_site', 'wire' => 'file_wire') as $key => $name) {
 					$postFiles = $this->input->post->$name; 
 					if(!count($postFiles)) continue; 
@@ -256,12 +262,12 @@ class ProcessLanguageTranslator extends Process {
 							$textdomain = $this->translator->addFileToTranslate($file);
 							if($textdomain) $this->message("Added $file"); 
 						}
-						if($textdomain) $textdomains[] = $textdomain; 
+						if($textdomain) $newTextdomains[] = $textdomain; 
 					}
 				}
-				if(count($textdomains) == 1) {
-					return $this->session->redirect("../edit/?language_id={$this->language->id}&textdomain=" . reset($textdomains)); 
-				} else if(count($textdomains) > 1) {
+				if(count($newTextdomains) == 1) {
+					return $this->session->redirect("../edit/?language_id={$this->language->id}&textdomain=" . reset($newTextdomains)); 
+				} else if(count($newTextdomains) > 1) {
 					// render form again
 				}
 			}
@@ -372,7 +378,11 @@ class ProcessLanguageTranslator extends Process {
 		if(!$file) throw new WireException("Unable to load textdomain"); 
 		$file = $this->config->paths->root . $file; 
 
-		if(!is_file($file)) throw new WireException("Translation file does not exist: $file"); 
+		if(!is_file($file)) {
+			$file = str_replace($this->wire('config')->paths->root, '/', $file); 
+			$this->error("File does not exist: $file (Translation file not needed? Textdomain: $textdomain)"); 
+			$this->session->redirect('../add/'); 
+		}
 
 		$numFound = $this->parseTranslatableFile($file); 
 

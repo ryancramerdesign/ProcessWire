@@ -254,6 +254,7 @@ class FieldtypeFile extends FieldtypeMulti {
 			$textformatter = $this->wire('modules')->get($name); 
 			if(!$textformatter) continue;
 			foreach($value as $v) {
+				if($v->formatted()) continue; 
 				$description = $v->description;
 				$textformatter->formatValue($page, $field, $description);	
 				$v->description = $description; 
@@ -262,9 +263,11 @@ class FieldtypeFile extends FieldtypeMulti {
 					$textformatter->formatValue($page, $field, $tags); 
 					$v->tags = $tags; 
 				}
+				$v->formatted = true; 
 			}
 		}
 
+		/*
 		if($field->entityEncode) { 
 			foreach($value as $k => $v) {
 				if($v->formatted()) continue; 
@@ -273,6 +276,7 @@ class FieldtypeFile extends FieldtypeMulti {
 				$v->formatted = true; 
 			}
 		}
+		*/
 		
 		$isEmpty = count($value) == 0;
 		

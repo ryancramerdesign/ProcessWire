@@ -47,28 +47,16 @@ class LanguageSupportInstall extends Wire {
 		$languagesPage->sort = $setupPage->numChildren; 
 		$languagesPage->save();
 		$configData['languagesPageID'] = $languagesPage->id; 
-
-		// create the 'language_files' field used by the 'language' fieldgroup
-		$field = new Field();	
-		$field->type = $this->modules->get("FieldtypeFile"); 
-		$field->name = 'language_files';
-		$field->label = 'Language Translation Files';	
-		$field->extensions = 'json';
-		$field->maxFiles = 0; 
-		$field->inputfieldClass = 'InputfieldFile';	
-		$field->unzip = 1; 	
-		$field->descriptionRows = 1; 
-		$field->flags = Field::flagSystem | Field::flagPermanent;
-		$field->save();
-		$this->message("Created field: language_files"); 
+		
 
 		// create the fieldgroup to be used by the language template
 		$fieldgroup = new Fieldgroup(); 
 		$fieldgroup->name = LanguageSupport::languageTemplateName;
-		$fieldgroup->add($this->fields->get('title')); 
-		$fieldgroup->add($field); // language_files
+		$fieldgroup->add($this->fields->get('title'));
 		$fieldgroup->save();
-		$this->message("Created fieldgroup: " . LanguageSupport::languageTemplateName . " ($fieldgroup->id)"); 
+		$this->message("Created fieldgroup: " . LanguageSupport::languageTemplateName . " ($fieldgroup->id)");
+
+		$this->addFilesFields($fieldgroup);
 
 		// create the template used by Language pages
 		$template = new Template();	
@@ -154,6 +142,55 @@ class LanguageSupportInstall extends Wire {
 		$this->message("Language Support Installed! Click to the 'Setup' menu to begin defining languages."); 
 
 	}
+	
+	public function addFilesFields($fieldgroup) {
+		
+		// create the 'language_files_site' field used by the 'language' fieldgroup
+		$field = $this->wire('fields')->get('language_files_site');
+		if(!$field) {
+			$field = new Field();
+			$field->type = $this->modules->get("FieldtypeFile");
+			$field->name = 'language_files_site';
+			$field->label = 'Site Translation Files';
+			$field->extensions = 'json';
+			$field->maxFiles = 0;
+			$field->inputfieldClass = 'InputfieldFile';
+			$field->unzip = 1;
+			$field->flags = Field::flagSystem | Field::flagPermanent;
+			$field->save();
+			$this->message("Created field: language_files_site");
+		}
+		// update
+		$field->label = 'Site Translation Files';
+		$field->description = 'Use this for field for translations specific to your site (like files in /site/templates/ for example).';
+		$field->descriptionRows = 0;
+		$field->save();
+		$fieldgroup->add($field);
+		
+		// create the 'language_files' field used by the 'language' fieldgroup
+		$field = $this->wire('fields')->get('language_files');
+		if(!$field) {
+			$field = new Field();
+			$field->type = $this->modules->get("FieldtypeFile");
+			$field->name = 'language_files';
+			$field->label = 'Core Translation Files';
+			$field->extensions = 'json';
+			$field->maxFiles = 0;
+			$field->inputfieldClass = 'InputfieldFile';
+			$field->unzip = 1;
+			$field->flags = Field::flagSystem | Field::flagPermanent;
+			$field->save();
+			$this->message("Created field: language_files");
+		}
+		// update
+		$field->label = 'Core Translation Files';
+		$field->description = 'Use this for field for [language packs](http://modules.processwire.com/categories/language-pack/). To delete all files, double-click the trash can for any file, then save.';
+		$field->descriptionRows = 0;
+		$field->save();
+		$fieldgroup->add($field); 
+		
+		$fieldgroup->save();
+	}
 
 	/**
 	 * Uninstall the module and related modules
@@ -221,6 +258,14 @@ class LanguageSupportInstall extends Wire {
 			$field->flags = 0;
 			$this->message("Removing field: {$field->name}"); 
 			$this->fields->delete($field); 
+		}
+		
+		$field = $this->fields->get("language_files_site");
+		if($field) {
+			$field->flags = Field::flagSystemOverride;
+			$field->flags = 0;
+			$this->message("Removing field: {$field->name}");
+			$this->fields->delete($field);
 		}
 
 		Wire::setFuel('languages', null); 

@@ -46,7 +46,15 @@ class ProcessLanguage extends ProcessPageType {
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->set('showFields', array('name', 'title', 'language_files'));
+		
+		// check if 2.5 update needed to add new language_files_site field
+		if(!$this->wire('fields')->get('language_files_site')) {
+			include(dirname(__FILE__) . '/LanguageSupportInstall.php');
+			$installer = new LanguageSupportInstall();
+			$installer->addFilesFields($this->wire('fieldgroups')->get(LanguageSupport::languageTemplateName));
+		}
+		$showFields = array('name', 'title', 'language_files', 'language_files_site'); 
+		$this->set('showFields', $showFields); 
 		require_once(dirname(__FILE__) . '/LanguageParser.php'); 
 	}
 
@@ -146,18 +154,19 @@ class ProcessLanguage extends ProcessPageType {
 
 		$translationUrl = $this->translationUrl();
 		$page = $event->arguments[0]->get('page'); 
+		$inputfield = $event->object; 
 		$out = '';
 		
 		$btn1 = $this->wire('modules')->get('InputfieldButton'); 
 		$btn1->href = "{$translationUrl}add/?language_id={$page->id}";
 		$btn1->value = $this->_('Translate File'); 
 		$btn1->icon = 'plane';
-		$btn1->addClass('head_button_clone');
+		if($inputfield->name == 'language_files') $btn1->addClass('head_button_clone');
 		$out .= $btn1->render();
 	
-		if(count($page->language_files)) { 
+		if(count($inputfield->attr('value'))) {
 			$btn2 = $this->wire('modules')->get('InputfieldButton');
-			$btn2->href = "../download/?language_id={$page->id}";
+			$btn2->href = "../download/?language_id={$page->id}&field=" . $inputfield->attr('name');
 			$btn2->value = $this->_('Download ZIP');
 			$btn2->icon = 'cloud-download';
 			$btn2->addClass('ui-priority-secondary'); 
@@ -174,7 +183,7 @@ class ProcessLanguage extends ProcessPageType {
 	 *
 	 */
 	protected function renderListFieldValue($name, $value) {
-		if($name == 'language_files') {
+		if($name == 'language_files' || $name == 'language_files_site') {
 			return count($value); 
 		} else if($name == 'title') { 
 			if(!$value) return '(blank)';
@@ -192,13 +201,16 @@ class ProcessLanguage extends ProcessPageType {
 		$id = (int) $this->input->get('language_id'); 
 		if(!$id) throw new WireException("No language specified"); 
 		$language = $this->wire('languages')->get($id); 
+		$fieldName = $this->input->get('field') == 'language_files_site' ? 'language_files_site' : 'language_files';
 		if(!$language->id) throw new WireException("Unknown language"); 
-		$path = $language->language_files->path();
+		$path = $language->$fieldName->path();
 		$files = array();
-		foreach($language->language_files as $file) {
+		foreach($language->$fieldName as $file) {
 			$files[] = $file->filename;
 		}
-		$zipfile = $path . $language->name . ".zip";
+		$zipname = $language->name . "-"; 	
+		$zipname .= $fieldName == 'language_files' ? 'wire' : 'site';
+		$zipfile = "$path$zipname.zip";
 		$info = wireZipFile($zipfile, $files, array("overwrite" => true)); 
 		if(!count($info['files'])) {
 			$this->error("Error adding files to ZIP"); 

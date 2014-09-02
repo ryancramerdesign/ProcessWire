@@ -406,11 +406,6 @@ class ProcessField extends Process implements ConfigurableModule {
 		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
 
 		if($this->field->id) {
-			if($this->session->get($this, 'optimize') == $this->field->id) {
-				// keep track of what gets retrieved from each field
-				foreach($this->wire('fields') as $field) $field->trackGets(true);
-			}
-
 			$headline = sprintf($this->_x('Edit Field: %s', 'edit headline'), $this->field->name); // Headilne when editing a field
 
 		} else {
@@ -597,6 +592,11 @@ class ProcessField extends Process implements ConfigurableModule {
 		if($this->input->post->fieldgroup_id) $fieldgroup_id = (int) $this->input->post->fieldgroup_id; 
 			else if($this->input->get->fieldgroup_id && !count($_POST)) $fieldgroup_id = (int) $this->input->get->fieldgroup_id; 
 			else $fieldgroup_id = 0;
+		
+		if($this->field->id && $this->session->get($this, 'optimize') == $this->field->id) {
+			// keep track of what gets retrieved from each field
+			foreach($this->wire('fields') as $field) $field->trackGets(true);
+		}
 
 		$form = $this->modules->get('InputfieldForm');
 		$form->attr('id+name', 'ProcessFieldEdit'); 

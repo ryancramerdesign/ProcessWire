@@ -411,7 +411,13 @@ class LanguageTranslator extends Wire {
 		if($result && $this->config->chmodFile) chmod($file, octdec($this->config->chmodFile));
 
 		if($result) {
-			$this->currentLanguage->language_files->add($file); 
+			$fieldName = 'language_files';
+			if(strpos($textdomain, 'wire--') !== 0)	{
+				if($this->wire('fields')->get('language_files_site')) {
+					$fieldName = 'language_files_site';
+				} 
+			}
+			$this->currentLanguage->$fieldName->add($file); 
 			$this->currentLanguage->save();
 		}
 

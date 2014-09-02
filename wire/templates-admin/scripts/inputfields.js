@@ -552,7 +552,13 @@ function InputfieldStates() {
 		if($li.hasClass("InputfieldStateCollapsed") || $li.hasClass("InputfieldStateWasCollapsed") || isIcon) {
 			$li.addClass('InputfieldStateWasCollapsed'); // this class only used here
 			$li.toggleClass('InputfieldStateCollapsed', 100, function() {
-				$li.find(":input:visible:eq(0)").focus();
+				var $input = $li.find(":input:visible");
+				if($input.size() == 1 && !$input.is('button')) { 
+					var t = $input.attr('type'); 
+					if($input.is('textarea') || t == 'text' || t == 'email' || t == 'url' || t == 'number') {
+						$input.focus();
+					}
+				}
 			});
 			$icon.toggleClass('fa-angle-down fa-angle-right');
 			setTimeout('InputfieldColumnWidths()', 500); 

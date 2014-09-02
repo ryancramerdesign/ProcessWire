@@ -61,8 +61,6 @@ class FieldtypeTextarea extends FieldtypeText {
 		return $value; 
 	}
 
-
-
 	public function ___sleepValue(Page $page, Field $field, $value) {
 		$value = parent::___sleepValue($page, $field, $value);
 		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, true);
@@ -70,18 +68,18 @@ class FieldtypeTextarea extends FieldtypeText {
 	}
 	
 	public function ___wakeupValue(Page $page, Field $field, $value) {
+		// note: we do this here in addition to loadPageField to account for values that came
+		// from external resources (not loaded from DB). 
 		$value = parent::___wakeupValue($page, $field, $value);
 		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, false);
 		return $value;
 	}
 	
-	/*
 	public function ___loadPageField(Page $page, Field $field) {
 		$value = parent::___loadPageField($page, $field);
 		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, false);
 		return $value; 
 	}
-	*/
 
 	/**
 	 * Content Type HTML replacements accounting for href and src attributes
@@ -122,17 +120,29 @@ class FieldtypeTextarea extends FieldtypeText {
 	 * 
 	 */
 	protected function htmlReplacement(&$value, $sleep = true) {
-		$rootURL = $this->wire('config')->urls->root; 
+		
+		// see if quick exit possible
 		if(stripos($value, 'href=') === false && stripos($value, 'src=') === false) return;
+		
+		$rootURL = $this->wire('config')->urls->root; 
+		
 		$replacements = array(
 			" href=\"$rootURL" => "\thref=\"/", 
 			" href='$rootURL" => "\thref='/", 
 			" src=\"$rootURL" => "\tsrc=\"/", 
 			" src='$rootURL" => "\tsrc='/", 
 			);
+		
 		if($sleep) {
+			// sleep 
 			$value = str_ireplace(array_keys($replacements), array_values($replacements), $value); 
+			
+		} else if(strpos($value, "\t") === false) {
+			// no wakeup necessary (quick exit)
+			return;
+			
 		} else {
+			// wakeup
 			$value = str_ireplace(array_values($replacements), array_keys($replacements), $value); 
 		}
 	}
