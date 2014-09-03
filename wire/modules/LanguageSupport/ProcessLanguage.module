@@ -47,12 +47,6 @@ class ProcessLanguage extends ProcessPageType {
 	public function __construct() {
 		parent::__construct();
 		
-		// check if 2.5 update needed to add new language_files_site field
-		if(!$this->wire('fields')->get('language_files_site')) {
-			require_once(dirname(__FILE__) . '/LanguageSupportInstall.php');
-			$installer = new LanguageSupportInstall();
-			$installer->addFilesFields($this->wire('fieldgroups')->get(LanguageSupport::languageTemplateName));
-		}
 		$showFields = array('name', 'title', 'language_files', 'language_files_site'); 
 		$this->set('showFields', $showFields); 
 		require_once(dirname(__FILE__) . '/LanguageParser.php'); 
@@ -191,6 +185,16 @@ class ProcessLanguage extends ProcessPageType {
 		} else {
 			return parent::renderListFieldValue($name, $value); 
 		}
+	}
+
+	public function ___execute() { 
+		// check if 2.5 update needed to add new language_files_site field
+		if(!$this->wire('fields')->get('language_files_site')) {
+			require_once(dirname(__FILE__) . '/LanguageSupportInstall.php');
+			$installer = new LanguageSupportInstall();
+			$installer->addFilesFields($this->wire('fieldgroups')->get(LanguageSupport::languageTemplateName));
+		}
+		return parent::___execute();
 	}
 
 	/**
