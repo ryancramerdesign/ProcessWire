@@ -11,7 +11,7 @@
  * 
  * http://www.processwire.com
  * http://www.ryancramer.com
- *
+ * 
  */
 
 class ProcessLanguageTranslator extends Process {
@@ -474,6 +474,9 @@ class ProcessLanguageTranslator extends Process {
 
 	/**
 	 * Find all translation files recursively, starting from $path
+	 * 
+	 * To prevent a file from being identified as translatable, place this text somewhere in it a PHP comment: 
+	 * __(file-not-translatable)
 	 *
 	 */
 	public function findTranslatableFiles($path, $useCache = true) {
@@ -532,6 +535,9 @@ class ProcessLanguageTranslator extends Process {
 					break;
 				}
 			}
+		
+			// files containing __(file-not-translatable) anywhere are non-translatable (like this one)
+			if($found && strpos($text, '__(file-not-translatable)') !== false) $found = false;
 			
 			if($found) {
 				$pathname = str_replace($root, '/', $pathname); 
