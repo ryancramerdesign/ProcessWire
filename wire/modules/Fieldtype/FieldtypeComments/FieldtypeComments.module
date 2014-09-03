@@ -429,7 +429,17 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->attr('value', $field->$name); 
 		$f->label = $this->_('Notification E-Mail');
 		$f->description = $this->_('E-mail address to be notified when a new comment is posted. Separate multiple email addresses with commas.');
-		$inputfields->append($f); 
+		$inputfields->append($f);
+		
+		$name = 'notifySpam';
+		$f = $this->fuel('modules')->get('InputfieldCheckbox');
+		$f->attr('name', $name);
+		$f->attr('value', 1);
+		if($field->$name) $f->attr('checked', 'checked');
+		$f->label = $this->_('Send e-mail notification on spam?');
+		$f->description = $this->_('When checked, ProcessWire will still send you an e-mail notification even if the message is identified as spam.');
+		$f->columnWidth = 50;
+		$inputfields->append($f);
 
 		$name = 'sortNewest'; 
 		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
@@ -438,6 +448,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->attr('checked', $field->$name ? 'checked' : ''); 
 		$f->label = $this->_('Sort newest to oldest?');
 		$f->description = $this->_('By default, comments will sort chronologically (oldest to newest). To reverse that behavior check this box.');
+		$f->columnWidth = 50;
 		$inputfields->append($f); 
 
 		$name = 'useWebsite'; 
@@ -447,6 +458,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->attr('checked', $field->$name ? 'checked' : ''); 
 		$f->label = $this->_('Use website field in comment form?');
 		$f->description = $this->_('When checked, the comment submission form will also include a website field.');
+		$f->columnWidth = 50;
 		$inputfields->append($f); 
 
 		$name = 'redirectAfterPost';
@@ -456,15 +468,27 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->attr('checked', $field->$name ? 'checked' : ''); 
 		$f->label = $this->_('Redirect after comment post?');
 		$f->description = $this->_('When checked, ProcessWire will issue a redirect after the comment is posted in order to prevent double submissions. Recommended.');
-		$inputfields->append($f); 
-
-		$name = 'notifySpam';
-		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
-		$f->attr('name', $name); 
+		$f->columnWidth = 50;
+		$inputfields->append($f);
+		
+		$name = 'quietSave';
+		$f = $this->fuel('modules')->get('InputfieldCheckbox');
+		$f->attr('name', $name);
 		$f->attr('value', 1);
-		if($field->$name) $f->attr('checked', 'checked');
-		$f->label = $this->_('Send e-mail notification on spam?');
-		$f->description = $this->_('When checked, ProcessWire will still send you an e-mail notification even if the message is identified as spam.');
+		$f->attr('checked', $field->$name ? 'checked' : '');
+		$f->label = $this->_('Quiet save?');
+		$f->columnWidth = 50;
+		$f->description = $this->_('When checked, the page modification time and user will not be updated when a comment is added.');
+		$inputfields->append($f);
+		
+		$name = 'useAkismet';
+		$f = $this->fuel('modules')->get('InputfieldCheckbox');
+		$f->attr('name', $name);
+		$f->attr('value', 1);
+		$f->attr('checked', $field->$name ? 'checked' : '');
+		$f->label = $this->_('Use Akismet Spam Filter Service?');
+		$f->description = $this->_('This service will automatically identify most spam. Before using it, please ensure that you have entered an Akismet API key under Modules > Comment Filter: Akismet.');
+		$f->columnWidth = 50;
 		$inputfields->append($f); 
 
 		$name = 'useGravatar'; 
@@ -482,14 +506,6 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->collapsed = Inputfield::collapsedBlank;
 		$inputfields->append($f); 
 
-		$name = 'useAkismet'; 
-		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
-		$f->attr('name', $name); 
-		$f->attr('value', 1); 
-		$f->attr('checked', $field->$name ? 'checked' : ''); 
-		$f->label = $this->_('Use Akismet Spam Filter Service?');
-		$f->description = $this->_('This service will automatically identify most spam. Before using it, please ensure that you have entered an Akismet API key under Modules > Comment Filter: Akismet.');
-		$inputfields->append($f); 
 
 		$name = 'deleteSpamDays';
 		$f = $this->fuel('modules')->get('InputfieldInteger'); 
@@ -499,8 +515,8 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->attr('value', $field->$name); 
 		$f->label = $this->_('Number of days after which to delete spam');
 		$f->description = $this->_('After the number of days indicated, spam will be automatically deleted.');
-		$inputfields->append($f); 
-
+		$inputfields->append($f);
+		
 		$name = 'schemaVersion'; 
 		$f = $this->fuel('modules')->get('InputfieldHidden');
 		$f->attr('name', $name);

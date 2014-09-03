@@ -112,6 +112,9 @@ class CommentForm extends Wire implements CommentFormInterface {
 
 		// should a redirect be performed immediately after a comment is successfully posted?
 		'redirectAfterPost' => null, // null=unset (must be set to true to enable)
+		
+		// When a comment is saved to a page, avoid updating the modified time/user
+		'quietSave' => false,
 
 		);
 
@@ -165,6 +168,9 @@ class CommentForm extends Wire implements CommentFormInterface {
 		// populate the vlaue of redirectAfterPost
 		if($this->commentsField && is_null($this->options['redirectAfterPost'])) {
 			$this->options['redirectAfterPost'] = (bool) $this->commentsField->redirectAfterPost;
+		}
+		if($this->commentsField && $this->commentsField->quietSave) {
+			$this->options['quietSave'] = true; 
 		}
 	}
 
@@ -345,7 +351,9 @@ class CommentForm extends Wire implements CommentFormInterface {
 			if($this->comments->add($comment) && $this->commentsField) {
 				$outputFormatting = $this->page->outputFormatting; 
 				$this->page->setOutputFormatting(false);
-				$this->page->save($this->commentsField->name); 
+				$saveOptions = array();
+				if($this->options['quietSave']) $saveOptions['quiet'] = true; 
+				$this->page->save($this->commentsField->name, $saveOptions); 
 				$this->page->setOutputFormatting($outputFormatting); 
 				$this->postedComment = $comment; 
 				wire('session')->set('CommentForm', $sessionData);
