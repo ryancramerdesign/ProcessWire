@@ -49,7 +49,7 @@ class ProcessLanguage extends ProcessPageType {
 		
 		// check if 2.5 update needed to add new language_files_site field
 		if(!$this->wire('fields')->get('language_files_site')) {
-			include(dirname(__FILE__) . '/LanguageSupportInstall.php');
+			require_once(dirname(__FILE__) . '/LanguageSupportInstall.php');
 			$installer = new LanguageSupportInstall();
 			$installer->addFilesFields($this->wire('fieldgroups')->get(LanguageSupport::languageTemplateName));
 		}
