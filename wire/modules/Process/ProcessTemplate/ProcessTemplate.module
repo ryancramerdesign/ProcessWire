@@ -334,7 +334,7 @@ class ProcessTemplate extends Process {
 
 		$row = array();
 		$row["{$template->name} "] = "edit?id={$template->id}";
-		$row[] = $this->sanitizer->entities($template->label);
+		$row[] = $this->sanitizer->entities($template->getLabel());
 		$row[] = "$numFields ";
 		$row["{$numPages} "] = "$numPagesLink"; // space is required to make it work
 		$row[] = $template->modified > 0 ? "<span style='display: none;'>$template->modified</span>" . wireRelativeTimeStr($template->modified) : '';

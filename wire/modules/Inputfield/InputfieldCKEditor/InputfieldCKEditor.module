@@ -211,7 +211,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 			'removePlugins' => $this->removePlugins,
 			'toolbar' => $this->toolbarStringToArray($this->toolbar),
 			'format_tags' => rtrim($this->formatTags, '; '), 
-			'defaultLanguage' => $this->_x('en', 'language-pack'), // CKEditor default language pack to use
+			'language' => $this->_x('en', 'language-pack'), // CKEditor default language pack to use
 			// 'enterMode' => 'CKEDITOR.ENTER_P', // already the default, can be left out
 			'entities' => false,
 			);
