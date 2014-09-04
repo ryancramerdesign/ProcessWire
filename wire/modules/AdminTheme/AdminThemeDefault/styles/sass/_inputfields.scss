@@ -480,6 +480,9 @@
 .Inputfield .LanguageSupport {
 	margin-bottom: 1em; 
 }
+.Inputfield .LanguageSupport:last-child {
+	margin-bottom: 0;
+}
 
 /****************************************************************************
  * Render Value Mode 

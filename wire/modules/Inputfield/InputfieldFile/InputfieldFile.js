@@ -337,34 +337,10 @@ $(document).ready(function() {
 		InitOldSchool();
 	}
 
-	/**
-	 * Multi-language description boxes stack vertically rather than horizontally whenever their width gets too small
-	 * 
- 	 */
-	var hasLanguages = (typeof config.LanguageSupport != "undefined");
-	var minDescriptionWidth = 250; // descriptions will stack vertically when their width is this or smaller...
 	var minContainerWidth = 767; // ...or when the container width is this or smaller
 	var resizeActive = false;
-	var stackClass = 'LanguageSupportStack';
 	
 	var windowResize = function() {
-		if(hasLanguages && $(window).width() > minContainerWidth) {
-			$(".InputfieldFileList").each(function() {
-				var $t = $(this);
-				if($t.children().length == 0) return;
-				var add = false;
-				if($t.width() <= minContainerWidth) {
-					add = true; 
-				} else if($t.find('.InputfieldFileDescription:eq(0)').width() <= minDescriptionWidth) {
-					add = true;
-				}
-				if(add) {
-					$t.addClass(stackClass);
-				} else {
-					$t.removeClass(stackClass); 
-				}
-			});
-		}
 		$(".AjaxUploadDropHere").each(function() {
 			var $t = $(this); 
 			if($t.parent().width() <= minContainerWidth) {

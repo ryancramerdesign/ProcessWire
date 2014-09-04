@@ -75,18 +75,20 @@
 		font-weight: bold; 
 		margin: 0.5em 0;
 	}
+	
+	#content ul.InputfieldFileList li .langTabs > ul {
+		padding-left: 0;
+	}
 
 	ul.InputfieldFileList li .InputfieldFileTags,
 	ul.InputfieldFileList li .InputfieldFileDescription {
 		font-weight: normal;
 		margin: 0;
-		/*
-		padding: 0 1em 1em 1em;
-		*/
-		/*
-		margin: -0.25em 0 0 0;
-		*/
+		padding: 0;
 	}
+		ul.InputfieldFileList li .hasLangTabs .InputfieldFileDescription {
+			padding-top: 0.5em;
+		}
 		ul.InputfieldFileList li .InputfieldFileTags input,
 		ul.InputfieldFileList li .InputfieldFileDescription input {
 			width: 100%; 
@@ -144,28 +146,7 @@
 	margin: 3px 5px;
 }
 
-.InputfieldFileLanguageSupport .LanguageSupport {
-	float: left; 
-	padding: 0;
-}
-
-.InputfieldFileLanguageSupport .LanguageSupport {
-	padding-right: 0.5em;
-}
-
-@media only screen and (max-width: 767px) {
-	.InputfieldFileLanguageSupport .LanguageSupport {
-		float: none; 
-		display: block;
-		padding: 0;
-		width: 100% !important; 
-	}
-}
-
-.InputfieldFileList.LanguageSupportStack .LanguageSupport {
-	/* same as above, but a class for JS to apply */
-	float: none;
+.Inputfields .InputfieldFileList .langTabsContainer + .InputfieldFileTags {
 	display: block;
-	padding: 0;
-	width: 100% !important;
+	margin-top: 0.5em;
 }

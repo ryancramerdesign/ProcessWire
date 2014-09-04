@@ -6,7 +6,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		return array(
 			'title' => __('Images', __FILE__), // Module Title
 			'summary' => __('One or more image uploads (sortable)', __FILE__), // Module Summary
-			'version' => 108,
+			'version' => 109,
 			'permanent' => true, 
 			);
 	}
@@ -106,7 +106,8 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			$imgAttr = " height='$thumbHeight'";
 		}
 
-		$out = 	"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header'>" . 
+		$out = 	
+			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header'>" . 
 			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s HideIfSingle'></span>" .
 			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-1-e HideIfMultiple'></span>" . 
 			"\n\t\t\t<span class='InputfieldFileName'>{$pagefile->basename}</span> " . 
@@ -115,11 +116,11 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveBottom' href='#' title='" . $this->_('Move to bottom') . "'><span class='ui-icon ui-icon-arrowthickstop-1-s'></span></a> " . 
 			"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveTop' href='#' title='" . $this->_('Move to top') . "'><span class='ui-icon ui-icon-arrowthickstop-1-n'></span></a> " . 
 			"\n\t\t</p>" . 
-			"\n\t\t<p class='InputfieldFileData ui-widget ui-widget-content'>" . 
+			"\n\t\t<div class='InputfieldFileData ui-widget ui-widget-content'>" . 
 			"\n\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->url}'><img src='{$thumb->url}' alt='{$pagefile->basename}'$imgAttr /></a>" . 
 			"\n\t\t\t" . $error . $this->renderItemDescriptionField($pagefile, $id, $n) . 
 			"\n\t\t\t<input class='InputfieldFileSort' type='text' name='sort_$id' value='$n' />" . 
-			"\n\t\t</p>";
+			"\n\t\t</div>";
 
 		return $out; 
 	}

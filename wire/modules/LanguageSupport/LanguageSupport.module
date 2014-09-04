@@ -173,9 +173,6 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			$this->LanguageSupportFields->LS_init(); 
 		}
 		
-		if($this->wire('modules')->isInstalled('LanguageTabs')) {
-			$this->languageTabs = $this->wire('modules')->get('LanguageTabs');
-		}
 	}
 
 	/**
@@ -184,7 +181,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	 */
 	public function ready() {
 		// styles used by our Inputfield hooks
-		if(wire('page')->template == 'admin') { 
+		if($this->wire('page')->template == 'admin') { 
 			$this->config->styles->add($this->config->urls->LanguageSupport . "LanguageSupport.css"); 
 			$language = $this->wire('user')->language;
 			$this->config->js('LanguageSupport', array(
@@ -194,6 +191,9 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 					'title' => (string) $language->title, 
 					)
 			));
+			if($this->wire('modules')->isInstalled('LanguageTabs')) {
+				$this->languageTabs = $this->wire('modules')->get('LanguageTabs');
+			}
 		}
 
 		// if languageSupportFields is here, then we have to deal with pages that loaded before this module did
@@ -271,9 +271,11 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	 */
 	public function hookInputfieldAfterRender(HookEvent $event) {
 
+		static $numLanguages = null;
 		$inputfield = $event->object; 
 		$name = $inputfield->attr('name'); 
-		$languages = $this->wire('languages'); 
+		$languages = $this->wire('languages');
+		if(is_null($numLanguages)) $numLanguages = $languages->count();
 
 		// provide an automatic translation for some system/default fields if they've not been overridden in the fields editor
 		if($name == 'language' && $inputfield->label == 'Language') $inputfield->label = $this->_('Language'); // Label for 'language' field in user profile
@@ -290,7 +292,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		}
 
 		// if inputfield doesn't have a 'useLanguages' var set in it, then we're done, abort
-		if(!$inputfield->useLanguages) return; 
+		if(!$inputfield->useLanguages || $numLanguages < 2) return;
 
 		// keep originals to restore later (including $name, which we already got above)
 		$id = $inputfield->attr('id');
@@ -332,7 +334,9 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$inputfield->required = $required; 
 		$inputfield->setTrackChanges($trackChanges);
 		
-		if($this->languageTabs) $out = $this->languageTabs->renderTabs($inputfield, $out); 
+		if($this->languageTabs) {
+			$out = $this->languageTabs->renderTabs($inputfield, $out); 
+		}
 		
 		$event->return = $out; 
 	}

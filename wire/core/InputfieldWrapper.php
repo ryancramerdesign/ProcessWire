@@ -361,12 +361,13 @@ class InputfieldWrapper extends Inputfield {
 					// if $inputfield has a property of entityEncodeLabel with a value of boolean FALSE, we don't entity encode
 					if($inputfield->entityEncodeLabel !== false) $label = $this->entityEncode($label);
 					$icon = $inputfield->icon ? str_replace('{name}', $this->sanitizer->name(str_replace(array('icon-', 'fa-'), '', $inputfield->icon)), $markup['item_icon']) : ''; 
+					$toggle = $collapsed == Inputfield::collapsedNever ? '' : $markup['item_toggle']; 
 					if($inputfield->skipLabel === Inputfield::skipLabelHeader) {
 						// label only shows when field is collapsed
-						$label = str_replace('{out}', $icon . $label . $markup['item_toggle'], $markup['item_label_hidden']); 
+						$label = str_replace('{out}', $icon . $label . $toggle, $markup['item_label_hidden']); 
 					} else {
 						// label always visible
-						$label = str_replace(array('{for}', '{out}'), array($for, $icon . $label . $markup['item_toggle']), $markup['item_label']); 
+						$label = str_replace(array('{for}', '{out}'), array($for, $icon . $label . $toggle), $markup['item_label']); 
 					}
 				}
 				$columnWidth = (int) $inputfield->getSetting('columnWidth');

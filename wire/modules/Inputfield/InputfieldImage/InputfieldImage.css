@@ -55,6 +55,7 @@
 	display: none; 
 }
 
+.InputfieldImageGrid .InputfieldFileList .langTabsContainer,
 .InputfieldImageGrid .InputfieldFileList .InputfieldFileDescription,
 .InputfieldImageGrid .InputfieldFileList .InputfieldFileTags {
 	display: none !important; 
