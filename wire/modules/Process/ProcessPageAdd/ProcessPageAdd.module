@@ -424,7 +424,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 
 		if($page->id) { 
 			$this->createdPageMessage($page); 
-			$this->session->redirect("../edit/?id=$page->id"); 
+			$this->session->redirect("../edit/?id=$page->id&new=1"); 
 		} else {
 			return false;
 		}
@@ -509,7 +509,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 
 		$this->createdPageMessage($this->page); 
 		if($pageName != $this->page->name) $this->error(sprintf($this->_('Warning, the name you selected "%1$s" was already in use and has been changed to "%2$s".'), $pageName, $this->page->name));
-		$this->session->redirect("../edit/?id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
+		$this->session->redirect("../edit/?id={$this->page->id}&new=1" . ($this->input->get->modal ? "&modal=1" : ''));
 	}
 
 	/**

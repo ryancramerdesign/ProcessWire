@@ -51,7 +51,7 @@ class InputfieldForm extends InputfieldWrapper {
 		} else {
 			$tokenField = '';
 		}
-
+		
 		$out = 	"\n<form $attrStr>" . 
 			$description . 
 			parent::___render() .
@@ -308,6 +308,5 @@ class InputfieldForm extends InputfieldWrapper {
 			
 		}
 	}
-
 }
 

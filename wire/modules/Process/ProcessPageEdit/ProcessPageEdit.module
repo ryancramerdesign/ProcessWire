@@ -31,12 +31,13 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	protected $useSettings = true; 
 	protected $useChildren = true; 
 	protected $useView = true; 
+	protected $tabs = array();
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page Edit',          
 			'summary' => 'Edit a Page', 
-			'version' => 104, 
+			'version' => 105, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
@@ -136,6 +137,10 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			$out .= "<h2>" . $this->form->description . "</h2>";
 			$this->form->description = '';
 		}
+	
+		$tabs = $this->wire('modules')->get('JqueryWireTabs')->renderTabList($this->tabs, array('id' => 'PageEditTabs')); 
+		$this->form->value = $tabs; 
+		
 		$out .= $this->form->render();
 		$out .= "<script>initPageEditForm();</script>"; // ends up being slightly faster than ready() (or at least appears that way)
 		return $out; 
@@ -244,13 +249,43 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$form->attr('class', 'ui-helper-clearfix template_' . $this->page->template . ' class_' . $this->page->className); 
 		$form->attr('autocomplete', 'off'); 
 
-		$form->append($this->buildFormContent()); 
+		// determine what content fields should become tabs
+		$contentTab = $this->buildFormContent();
+		$tabs = array();
+		$tabWrap = null;
+		$tabOpen = null;
+		foreach($contentTab as $inputfield) {
+			if($inputfield->className == 'InputfieldFieldsetTabOpen' && !$tabOpen) {
+				// open new tab
+				$tabOpen = $inputfield; 
+				$tabWrap = new InputfieldWrapper();
+				$tabWrap->attr('title', $tabOpen->label);
+				$tabWrap->id = $tabOpen->id; 
+				$contentTab->remove($inputfield); 
+				$this->tabs[$tabOpen->id] = $this->wire('sanitizer')->entities1($tabOpen->label);
+				
+			} else if($tabOpen) {
+				// already have a tab open
+				if($inputfield->attr('name') == $tabOpen->attr('name') . '_END') {
+					// close tab
+					$tabs[] = $tabWrap; 
+					$tabOpen = null;
+				} else {
+					// add to already open tab
+					$tabWrap->add($inputfield); 
+				}
+				$contentTab->remove($inputfield); 
+			}
+		}
+		$form->append($contentTab); 
+		foreach($tabs as $tab) $form->append($tab); 
 
 		if($this->page->addable() || $this->page->numChildren) $form->append($this->buildFormChildren()); 
 		if(!$this->page->template->noSettings) $form->append($this->buildFormSettings()); 
 		if($this->isTrash) $this->message($this->_("This page is in the Trash")); 
 		if($this->page->deleteable()) $form->append($this->buildFormDelete());
-		if($this->page->viewable() && !$this->input->get->modal) $form->append($this->buildFormView()); 
+		//if($this->page->viewable() && !$this->input->get->modal) $form->append($this->buildFormView());
+		if($this->page->viewable() && !$this->input->get->modal) $this->buildFormView(); 
 
 		$field2 = null;
 		$saveName = '';
@@ -308,8 +343,11 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	protected function ___buildFormContent() {
 
 		$fields = $this->page->getInputfields();
-		$fields->attr('id', $this->className() . 'Content');
-		$fields->attr('title', $this->_('Content')); // Tab Label: Content
+		$id = $this->className() . 'Content'; 
+		$title = $this->_('Content'); // Tab Label: Content
+		$fields->attr('id', $id); 
+		$fields->attr('title', $title); 
+		$this->tabs[$id] = $title;
 
 		if($this->page->template->nameContentTab) {
 			// name
@@ -336,10 +374,12 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	protected function ___buildFormChildren() {
 
 		$wrapper = new InputfieldWrapper();
-		$wrapper->attr('id', $this->className() . 'Children'); 
+		$id = $this->className() . 'Children';
+		$wrapper->attr('id', $id); 
 		$title = $this->_('Children'); // Tab Label: Children
 		if($this->page->numChildren) $title = "<em>$title</em>";
 		$wrapper->attr('title', $title); 
+		$this->tabs[$id] = $title;
 		$templateSortfield = $this->page->template->sortfield;
 
 		if(!$this->isPost) { 
@@ -451,8 +491,11 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	protected function ___buildFormSettings() {
 
 		$wrapper = new InputfieldWrapper();
-		$wrapper->attr('id', $this->className() . 'Settings'); 
-		$wrapper->attr('title', $this->_('Settings')); // Tab Label: Settings
+		$id = $this->className() . 'Settings';
+		$title = $this->_('Settings'); // Tab Label: Settings
+		$wrapper->attr('id', $id); 
+		$wrapper->attr('title', $title); 
+		$this->tabs[$id] = $title;
 
 		// name
 		if(($this->page->id > 1 || wire('modules')->isInstalled('LanguageSupportPageNames')) && !$this->page->template->nameContentTab) {
@@ -578,10 +621,12 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$isTrash = $this->page->isTrash();
 		$isRestorable = $isTrash && $this->page->parent_id == $this->config->trashPageID; 
 
-		$wrapper = new InputfieldWrapper(); 	
-		$wrapper->attr('id', $this->className() . 'Delete');
+		$wrapper = new InputfieldWrapper();
+		$id = $this->className() . 'Delete';
 		$deleteLabel = $this->_('Delete'); // Tab Label: Delete
+		$wrapper->attr('id', $id); 
 		$wrapper->attr('title', $deleteLabel); 
+		$this->tabs[$id] = $deleteLabel;
 
 		if($this->page->deleteable()) {
 
@@ -619,12 +664,9 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 */ 
 	protected function buildFormView() {
 		$label = $this->_('View'); // Tab Label: View
-		$field = new InputfieldMarkup(); 
-		$field->attr('id', $this->className() . 'View'); 
-		$field->attr('title', $label); 
-		$field->attr('class', 'InputfieldWrapper'); 
-		$field->attr('value', "<a href='{$this->page->httpUrl}'>$label</a>"); 
-		return $field;
+		$id = $this->className() . 'View';
+		$a = "<a id='_ProcessPageEditView' href='{$this->page->httpUrl}'>$label</a>"; 
+		$this->tabs[$id] = $a;
 	}
 
 	/**

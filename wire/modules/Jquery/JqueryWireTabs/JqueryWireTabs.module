@@ -1,15 +1,26 @@
 <?php
 
+/**
+ * jQuery Tabs for ProcessWire
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2014 by Ryan Cramer
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ *
+ * http://processwire.com
+ * 
+ */
+
 class JqueryWireTabs extends ModuleJS implements ConfigurableModule { 
 
-        public static function getModuleInfo() {
-                return array(
-                        'title' => __('jQuery Wire Tabs Plugin', __FILE__),
-                        'summary' => __('Provides a jQuery plugin for generating tabs in ProcessWire.', __FILE__),
-                        'version' => 103,
+	public static function getModuleInfo() {
+		return array(
+			'title' => __('jQuery Wire Tabs Plugin', __FILE__),
+			'summary' => __('Provides a jQuery plugin for generating tabs in ProcessWire.', __FILE__),
+			'version' => 104,
 			'permanent' => true, 
-                        );
-        }
+		);
+	}
 
 	const rememberTabsNever = -1;
 	const rememberTabsSubmit = 0; 
@@ -35,5 +46,34 @@ class JqueryWireTabs extends ModuleJS implements ConfigurableModule {
 		$f->attr('value', (isset($data['rememberTabs']) ? (int) $data['rememberTabs'] : self::rememberTabsSubmit)); 
 		$inputfields->add($f);
 		return $inputfields; 
+	}
+
+	/**
+	 * Pre-render a tab list (optional, as this is JS generated if not pre-rendered)
+	 * 
+	 * @param array $tabs array of (tabID => title)
+	 * @param array $options to modify behavior
+	 * @return string
+	 * 
+	 */
+	public function renderTabList(array $tabs, array $options = array()) {
+		$defaults = array(
+			'class' => 'WireTabs nav',
+			'id' => '', 
+		);
+		$options = array_merge($defaults, $options); 
+		$out = "<ul class='$options[class]'" . ($options['id'] ? " id='$options[id]'" : "") . ">";
+		
+		foreach($tabs as $tabID => $title) {
+			//$title = $this->wire('sanitizer')->entities1($title);
+			if(strpos($title, '<a ') !== false) {
+				$out .= "<li>$title</li>";
+			} else {
+				$out .= "<li><a href='#$tabID' id='_$tabID'>$title</a></li>";
+			}
+		}
+		
+		$out .= "</ul>";
+		return $out; 
 	}
 }

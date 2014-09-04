@@ -27,6 +27,21 @@ for(var name in config.InputfieldCKEditor.plugins) {
 var inlineCKEditors = [];
 
 /**
+ * CKEditors hidden in jQuery UI tabs sometimes don't work so this initializes them when they become visible
+ *
+ */ 
+function initCKEditorTab(event, ui) {
+	var $t = ui.newTab; 
+	var $a = $t.find('a'); 
+	if($a.hasClass('InputfieldCKEditor_init')) return;
+	var editorID = $a.attr('data-editorID');
+	var cfgName = $a.attr('data-cfgName');
+	CKEDITOR.replace(editorID, config[cfgName]);
+	$a.addClass('InputfieldCKEditor_init'); 
+	ui.oldTab.find('a').addClass('InputfieldCKEditor_init'); // in case it was the starting one
+}
+
+/**
  * Prepare inline editors
  *
  */ 
@@ -39,7 +54,19 @@ $(document).ready(function() {
 	
 	for(var editorID in config.InputfieldCKEditor.editors) {
 		var cfgName = config.InputfieldCKEditor.editors[editorID];
-		CKEDITOR.replace(editorID, config[cfgName]);
+		var $editor = $('#' + editorID);
+		var $parent = $editor.parent();
+		
+		if($parent.hasClass('ui-tabs-panel') && $parent.css('display') == 'none') {
+			// CKEditor in a jQuery UI tab (like langTabs)
+			var parentID = $editor.parent().attr('id'); 
+			var $a = $parent.closest('.ui-tabs, .langTabs').find('a[href=#' + parentID + ']');
+			$a.attr('data-editorID', editorID).attr('data-cfgName', cfgName); 
+			$parent.closest('.ui-tabs, .langTabs').on('tabsactivate', initCKEditorTab); 
+		} else { 
+			// visible CKEditor
+			CKEDITOR.replace(editorID, config[cfgName]);
+		}
 	}
 
 	/**

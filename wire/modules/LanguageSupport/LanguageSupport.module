@@ -22,7 +22,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	static public function getModuleInfo() {
 		return array(
 			'title' => 'Languages Support',
-			'version' => 102,
+			'version' => 103,
 			'summary' => 'ProcessWire multi-language support.',
 			'author' => 'Ryan Cramer',
 			'autoload' => true,
@@ -69,6 +69,12 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	protected $LanguageSupportFields = null;
+
+	/**
+	 * Instanceof LanguageTabs, if installed
+	 *
+	 */
+	protected $languageTabs = null;
 
 	/**
 	 * Construct and set our dynamic config vars
@@ -162,9 +168,13 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$this->addHook('Page::setLanguageValue', $this, 'hookPageSetLanguageValue');
 		$this->addHook('Page::getLanguageValue', $this, 'hookPageGetLanguageValue'); 
 
-		if(wire('modules')->isInstalled('LanguageSupportFields')) {
+		if($this->wire('modules')->isInstalled('LanguageSupportFields')) {
 			$this->LanguageSupportFields = wire('modules')->get('LanguageSupportFields'); 
 			$this->LanguageSupportFields->LS_init(); 
+		}
+		
+		if($this->wire('modules')->isInstalled('LanguageTabs')) {
+			$this->languageTabs = $this->wire('modules')->get('LanguageTabs');
 		}
 	}
 
@@ -222,6 +232,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 
 		$userLanguage = $this->wire('user')->language; 
 		if(!$userLanguage) return;
+		
 	
 		// set 'value' attribute to default language values	
 		if($userLanguage->id !== $this->defaultLanguagePageID) {
@@ -246,7 +257,7 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$label = (string) $language->title;
 		if(!strlen($label)) $label = $language->name; 
 		
-		$out  = "\n<div class='LanguageSupport' data-language='$language->id'>" . 
+		$out  = "\n<div class='LanguageSupport' id='langTab_$id' data-language='$language->id'>" . 
 				"\n<label for='$id' class='LanguageSupportLabel detail'>$label</label>" . $out . 
 				"\n</div>";
 		return $out; 
@@ -288,8 +299,9 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 
 		$trackChanges = $inputfield->trackChanges(); 
 		$inputfield->setTrackChanges(false); 
+		if($this->languageTabs) $this->languageTabs->resetTabs();
 		$out = '';
-
+		
 		foreach($languages as $language) {
 			$languageID = (int) $language->id; 
 
@@ -311,14 +323,17 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			}
 
 			$out .= $this->wrapInputfieldOutput($o, $newID, $language);
+			if($this->languageTabs) $this->languageTabs->addTab($inputfield, $language); 
 		}
 
 		$inputfield->setAttribute('name', $name);
 		$inputfield->setAttribute('id', $id);
 		$inputfield->setAttribute('value', $value);
 		$inputfield->required = $required; 
-		$inputfield->setTrackChanges($trackChanges); 
-
+		$inputfield->setTrackChanges($trackChanges);
+		
+		if($this->languageTabs) $out = $this->languageTabs->renderTabs($inputfield, $out); 
+		
 		$event->return = $out; 
 	}
 

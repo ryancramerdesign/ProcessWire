@@ -79,6 +79,7 @@ class InputfieldWrapper extends Inputfield {
 		'item_head' => "\n<h2>{out}</h2>", 
 		'item_notes' => "\n<p class='notes'>{out}</p>",
 		'item_icon' => "<i class='fa fa-{name}'></i> ",
+		'item_toggle' => "<i class='toggle-icon fa fa-angle-down' data-to='fa-angle-down fa-angle-right'></i>", 
 		);
 
 	static protected $markup = array();
@@ -362,10 +363,10 @@ class InputfieldWrapper extends Inputfield {
 					$icon = $inputfield->icon ? str_replace('{name}', $this->sanitizer->name(str_replace(array('icon-', 'fa-'), '', $inputfield->icon)), $markup['item_icon']) : ''; 
 					if($inputfield->skipLabel === Inputfield::skipLabelHeader) {
 						// label only shows when field is collapsed
-						$label = str_replace('{out}', $icon . $label, $markup['item_label_hidden']); 
+						$label = str_replace('{out}', $icon . $label . $markup['item_toggle'], $markup['item_label_hidden']); 
 					} else {
 						// label always visible
-						$label = str_replace(array('{for}', '{out}'), array($for, $icon . $label), $markup['item_label']); 
+						$label = str_replace(array('{for}', '{out}'), array($for, $icon . $label . $markup['item_toggle']), $markup['item_label']); 
 					}
 				}
 				$columnWidth = (int) $inputfield->getSetting('columnWidth');
@@ -386,7 +387,9 @@ class InputfieldWrapper extends Inputfield {
 				foreach($ffAttrs as $k => $v) {
 					$attrs .= " $k='" . $this->entityEncode(trim($v)) . "'";
 				}
-				if($inputfield->className() != 'InputfieldWrapper') $ffOut = str_replace('{out}', $ffOut, $markup['item_content']); 
+				$markupItemContent = $markup['item_content'];
+				if($inputfield->contentClass) $markupItemContent = preg_replace('/( class=[\'"][^\'"]+)/', '$1 ' . trim($inputfield->contentClass), $markupItemContent, 1); 
+				if($inputfield->className() != 'InputfieldWrapper') $ffOut = str_replace('{out}', $ffOut, $markupItemContent); 
 				$out .= str_replace(array('{attrs}', '{out}'), array(trim($attrs), $label . $ffOut), $markup['item']); 
 				$lastInputfield = $inputfield;
 			}

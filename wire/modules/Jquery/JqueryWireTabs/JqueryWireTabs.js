@@ -1,41 +1,57 @@
 /**
- * Wire Tabs, jQuery plugin
- *
- * Developed by Ryan Cramer for ProcessWire
- *
- */
-
+  * jQuery Tabs for ProcessWire
+  *
+  * ProcessWire 2.x
+  * Copyright (C) 2014 by Ryan Cramer
+  * Licensed under GNU/GPL v2, see LICENSE.TXT
+  *
+  * http://processwire.com
+  *
+  */
 (function($) {
 
 	$.fn.WireTabs = function(customOptions) {
 
 		var options = {
-			rememberTabs: config.JqueryWireTabs.rememberTabs, // -1 = no, 0 = only after submit, 1 = always
+			rememberTabs: 0, // -1 = no, 0 = only after submit, 1 = always
 			cookieName: 'WireTabs',
 			items: null,
 			skipRememberTabIDs: [],
 			itemsParent: null,
-			id: ''
+			id: '' // id for tabList. if already exists, existing tabList will be used
 		};
-			
+		
+		if(config.JqueryWireTabs.rememberTabs != "undefined") {
+			options.rememberTabs = config.JqueryWireTabs.rememberTabs;
+		}
 		var totalTabs = 0; 
 
 		$.extend(options, customOptions);
 
 		return this.each(function(index) {
 
-			var $tabList = $("<ul></ul>").addClass("WireTabs nav");
+			var $tabList = null;
 			var $target = $(this); 
 			var lastTabID = ''; // ID attribute of last tab that was clicked
+			var generate = true; // generate markup/manipulate DOM?
 
 			function init() {
 
-				if(!options.items) return; 
-				if(options.id.length) $tabList.attr('id', options.id); 
+				if(!options.items) return;
 				if(options.items.size() < 2) return;
 				
+				if(options.id.length) {
+					$tabList = $("#" + options.id);
+					if($tabList.length) generate = false;
+						else $tabList = null;
+				}
+				if(!$tabList) {
+					$tabList = $("<ul></ul>").addClass("WireTabs nav");
+					if(options.id.length) $tabList.attr('id', options.id); 
+				}
+				
 				options.items.each(addTab); 
-				$target.prepend($tabList); 
+				if(generate) $target.prepend($tabList); // DOM manipulation
 		
 				var $form = $target; 	
 				var $rememberTab = null;
@@ -62,17 +78,23 @@
 				var $t = $(this);
 				if(!$t.attr('id')) $t.attr('id', "WireTab" + totalTabs); 
 				var title = $t.attr('title') || $t.attr('id'); 
-				$t.removeAttr('title'); 
+				$t.removeAttr('title');
 				var href = $t.attr('id'); 
-				var $a = $("<a></a>")
-					.attr('href', '#' + href)
-					.attr('id', '_' + href) // ID equal to tab content ID, but preceded with underscore
-					.html(title)
-					.click(tabClick); 
-				$tabList.append($("<li></li>").append($a)); 
-				if(options.itemsParent === null) options.itemsParent = $t.parent(); 
+				var $a = $('a#_' + href); // does it already exist?
+				if($a.length > 0) {
+					$a.click(tabClick); 
+				} else {
+					var $a = $("<a></a>")
+						.attr('href', '#' + href)
+						.attr('id', '_' + href) // ID equal to tab content ID, but preceded with underscore
+						.html(title)
+						.click(tabClick); 
+					$tabList.append($("<li></li>").append($a)); 
+				}
 				$t.hide();
-				if($t.parent() != options.itemsParent) options.itemsParent.prepend($t);
+				// the following removed to prevent DOM manipulation if the tab content:
+				// if(options.itemsParent === null) options.itemsParent = $t.parent(); 
+				//if($t.parent() != options.itemsParent) options.itemsParent.prepend($t);
 				//$target.prepend($t.hide()); 
 			}
 

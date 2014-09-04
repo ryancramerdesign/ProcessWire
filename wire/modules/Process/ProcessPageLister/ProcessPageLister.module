@@ -1193,6 +1193,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			$btn = $this->wire('modules')->get('InputfieldButton'); 
 			$btn->attr('value', $this->_('Add New')); 
 			$btn->href = $this->addURL . $action; 
+			$btn->addClass('head_button_clone'); 
 			$btn->icon = 'plus-circle';
 			$out .= $btn->render();
 		}
