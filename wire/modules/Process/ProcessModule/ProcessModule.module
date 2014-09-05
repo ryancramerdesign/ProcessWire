@@ -268,7 +268,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 			$tab->add($markup); 
 		}
 		*/
-		
+
 		if($this->wire('session')->ProcessModuleNewModules) {
 			foreach($this->wire('session')->ProcessModuleNewModules as $name => $created) {
 				if(!is_numeric($name) && !isset($newModulesArray[$name])) $newModulesArray[$name] = 0;
@@ -437,7 +437,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 			// $configurable = is_array($interfaces) && in_array('ConfigurableModule', $interfaces);
 			$configurable = $info['configurable'];
 			$title = !empty($info['title']) ? $this->wire('sanitizer')->entities1($info['title']) : substr($name, strlen($section));
-			if($allowClasses) $title .= " <small class='ModuleClass ui-priority-secondary'>[$name]</small>";
+			if($allowClasses) $title .= "<br /><small class='ModuleClass ui-priority-secondary'>$name</small>";
 			if($info['icon']) $title = "<i class='fa fa-fw fa-$info[icon]'></i> $title"; 
 			$class = $configurable ? 'ConfigurableModule' : '';
 			if(!empty($info['permanent'])) $class .= ($class ? ' ' : '') . 'PermanentModule';
@@ -970,7 +970,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		}
 	
 		$version = $this->formatVersion($moduleInfo['version']);
-		$filename = $moduleInfo['file']; 
+		$filename = str_replace($this->wire('config')->paths->root, '/', $moduleInfo['file']); 
 		if(!$moduleInfo['core']) {
 			$version .= " - <a href='./?update=$moduleName'>" . $this->_('check for updates') . "</a>"; 
 		}

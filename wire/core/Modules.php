@@ -420,7 +420,6 @@ class Modules extends WireArray {
 			}
 			unset($row['data']);
 			if(isset($row['created']) && $row['created'] != '0000-00-00 00:00:00') {
-				$row['created'] = strtotime($row['created']); 
 				$this->createdDates[$moduleID] = $row['created']; 
 			}
 			$this->modulesTableCache[$row['class']] = $row;
@@ -937,28 +936,52 @@ class Modules extends WireArray {
 	 * Install the given class name
 	 *
 	 * @param string $class
-	 * @param bool $dependencies When true (default), dependencies will also be installed where possible. Specify false to prevent installation of uninstalled dependencies. 
+	 * @param array|bool $options Associative array of: 
+	 * 	- dependencies (boolean, default=true): When true, dependencies will also be installed where possible. Specify false to prevent installation of uninstalled modules. 
+	 * 	- resetCache (boolean, default=true): When true, module caches will be reset after installation. 
 	 * @return null|Module Returns null if unable to install, or instantiated Module object if successfully installed. 
 	 * @throws WireException
 	 *
 	 */
-	public function ___install($class, $dependencies = true) {
+	public function ___install($class, $options = array()) {
+		
+		$defaults = array(
+			'dependencies' => true, 
+			'resetCache' => true, 
+			);
+		if(is_bool($options)) { 
+			// dependencies argument allowed instead of $options, for backwards compatibility
+			$dependencies = $options; 
+			$options = array('dependencies' => $dependencies);
+		} 
+		$options = array_merge($defaults, $options); 
+		$dependencyOptions = $options; 
+		$dependencyOptions['resetCache'] = false; 
 
 		if(!$this->isInstallable($class)) return null; 
 
 		$requires = $this->getRequiresForInstall($class); 
 		if(count($requires)) {
+			$error = '';
 			$installable = false; 
-			if($dependencies) {
+			if($options['dependencies']) {
 				$installable = true; 
 				foreach($requires as $requiresModule) {
 					if(!$this->isInstallable($requiresModule)) $installable = false;
 				}
-				if($installable) foreach($requires as $requiresModule) {
-					$this->install($requiresModule, $dependencies); 
+				if($installable) {
+					foreach($requires as $requiresModule) {
+						if(!$this->install($requiresModule, $dependencyOptions)) {
+							$error = $this->_('Unable to install required module') . " - $requiresModule. "; 
+							$installable = false;
+							break;
+						}
+					}
 				}
 			}
-			if(!$installable) throw new WireException("Module $class requires: " . implode(", ", $requires)); 
+			if(!$installable) {
+				throw new WireException($error . "Module $class requires: " . implode(", ", $requires)); 
+			}
 		}
 		
 		$languages = $this->wire('languages');
@@ -1011,7 +1034,7 @@ class Modules extends WireArray {
 			}
 		}
 
-		$info = $this->getModuleInfo($class); 
+		$info = $this->getModuleInfo($class, array('noCache' => true)); 
 	
 		// if this module has custom permissions defined in its getModuleInfo()['permissions'] array, install them 
 		foreach($info['permissions'] as $name => $title) {
@@ -1033,18 +1056,20 @@ class Modules extends WireArray {
 
 		// check if there are any modules in 'installs' that this module didn't handle installation of, and install them
 		$label = $this->_('Module Auto Install');
+		
 		foreach($info['installs'] as $name) {
 			if(!$this->isInstalled($name)) {
 				try { 
-					$this->install($name); 
+					$this->install($name, $dependencyOptions); 
 					$this->message("$label: $name"); 
 				} catch(Exception $e) {
 					$this->error("$label: $name - " . $e->getMessage()); 	
 				}
 			}
 		}
-		
-		if($languages) $languages->unsetDefault(); 
+	
+		if($languages) $languages->unsetDefault();
+		if($options['resetCache']) $this->clearModuleInfoCache();
 
 		return $module; 
 	}
@@ -1604,7 +1629,7 @@ class Modules extends WireArray {
 		} else if(in_array($module, array('PHP', 'ProcessWire'))) {
 			// module is a system 
 			$info = $this->getModuleInfoSystem($module); 
-			return $info; 
+			return array_merge($infoTemplate, $info);
 			
 		} else {
 			
@@ -1613,8 +1638,8 @@ class Modules extends WireArray {
 			
 			// return from cache if available
 			if(empty($options['noCache']) && !empty($this->moduleInfoCache[$moduleID])) {
-					$info = $this->moduleInfoCache[$moduleID];
-					$fromCache = true; 
+				$info = $this->moduleInfoCache[$moduleID];
+				$fromCache = true; 
 				
 			} else if(empty($options['noCache']) && $moduleID == 0) {
 				// uninstalled module
@@ -1652,7 +1677,7 @@ class Modules extends WireArray {
 		}
 		
 		$info = array_merge($infoTemplate, $info); 
-		$info['id'] = (int) $moduleID; 
+		$info['id'] = (int) $moduleID;
 
 		if($fromCache) {
 			
@@ -1705,7 +1730,7 @@ class Modules extends WireArray {
 			$info['configurable'] = is_array($interfaces) && isset($interfaces['ConfigurableModule']); 
 			
 			// created date
-			if(isset($this->createdDates[$moduleID])) $info['created'] = $this->createdDates[$moduleID];
+			if(isset($this->createdDates[$moduleID])) $info['created'] = strtotime($this->createdDates[$moduleID]);
 			$info['installed'] = isset($this->installable[$moduleName]) ? false : true;
 			if(!$info['installed'] && !$info['created'] && isset($this->installable[$moduleName])) {
 				// uninstalled modules get their created date from the file or dir that they are in (whichever is newer)
@@ -1716,6 +1741,10 @@ class Modules extends WireArray {
 				$info['created'] = $dirmtime > $filemtime ? $dirmtime : $filemtime;
 			}
 		} 
+		
+		if(empty($info['created']) && isset($this->createdDates[$moduleID])) {
+			$info['created'] = strtotime($this->createdDates[$moduleID]);
+		}
 	
 		return $info;
 	}
@@ -1979,20 +2008,29 @@ class Modules extends WireArray {
 	/**
 	 * Return an array of module class names required by the given one
 	 * 
+	 * Default behavior is to return all listed requirements, whether they are currently met by
+	 * the environment or not. Specify TRUE for the 2nd argument to return only requirements
+	 * that are not currently met. 
+	 * 
 	 * @param string $class
-	 * @param bool $uninstalled Set to true to return only required modules that aren't yet installed or those that $class says it will install (via 'installs' property of getModuleInfo)
-	 * @param bool $versions Set to true to always include versions in the requirements list. Note versions are already include when the installed version is not adequate.
-	 * @return array()
+	 * @param bool $onlyMissing Set to true to return only required modules/versions that aren't 
+	 * 	yet installed or don't have the right version. It excludes those that the class says it 
+	 * 	will install (via 'installs' property of getModuleInfo)
+	 * @param null|bool $versions Set to true to always include versions in the returned requirements list. 
+	 * 	Set to null to always exclude versions in requirements list (so only module class names will be there).
+	 * 	Set to false (which is the default) to include versions only when version is the dependency issue.
+	 * 	Note versions are already included when the installed version is not adequate.
+	 * @return array of strings each with ModuleName Operator Version, i.e. "ModuleName>=1.0.0"
 	 *
 	 */
-	public function getRequires($class, $uninstalled = false, $versions = false) {
-
+	public function getRequires($class, $onlyMissing = false, $versions = false) {
+		
 		$class = $this->getModuleClass($class); 
 		$info = $this->getModuleInfo($class); 
 		$requires = $info['requires']; 
 
 		// quick exit if arguments permit it 
-		if(!$uninstalled) {
+		if(!$onlyMissing) {
 			if($versions) foreach($requires as $key => $value) {
 				list($operator, $version) = $info['requiresVersions'][$value]; 
 				if(empty($version)) continue; 
@@ -2025,7 +2063,7 @@ class Modules extends WireArray {
 					unset($requires[$key]); 
 					continue; 
 				}
-				$i = $this->getModuleInfo($requiresClass); 
+				$i = $this->getModuleInfo($requiresClass, array('noCache' => true)); 
 				$currentVersion = $i['version'];
 			} else {
 				// module is not installed
@@ -2039,6 +2077,10 @@ class Modules extends WireArray {
 			} else if(empty($requiresVersion)) {
 				// just the class name is fine
 				continue; 
+				
+			} else if(is_null($versions)) {
+				// request is for no versions to be included (just class names)
+				$requires[$key] = $requiresClass; 
 
 			} else {
 				// update the requires string to clarify what version it requires
@@ -2133,6 +2175,7 @@ class Modules extends WireArray {
 	 * Return an array of module class names required by the given one to be uninstalled before this one.
 	 *
 	 * Excludes modules that the given one says it handles via it's 'installs' getModuleInfo property.
+	 * Module class names in returned array include operator and version in the string. 
 	 * 
 	 * @param string $class
 	 * @return array()
@@ -2255,7 +2298,10 @@ class Modules extends WireArray {
 	protected function clearModuleInfoCache() {
 		$this->wire('cache')->delete(self::moduleInfoCacheName);
 		$this->wire('cache')->delete(self::moduleInfoCacheVerboseName);
-		$this->wire('cache')->delete(self::moduleInfoCacheUninstalledName); 
+		$this->wire('cache')->delete(self::moduleInfoCacheUninstalledName);
+		$this->moduleInfoCache = array();
+		$this->moduleInfoCacheVerbose = array();
+		$this->moduleInfoCacheUninstalled = array();
 		$this->saveModuleInfoCache();
 	}
 
@@ -2331,6 +2377,7 @@ class Modules extends WireArray {
 		$this->wire('cache')->save(self::moduleInfoCacheName, json_encode($this->moduleInfoCache), WireCache::expireNever);
 		$this->wire('cache')->save(self::moduleInfoCacheVerboseName, json_encode($this->moduleInfoCacheVerbose), WireCache::expireNever);
 		$this->wire('cache')->save(self::moduleInfoCacheUninstalledName, json_encode($this->moduleInfoCacheUninstalled), WireCache::expireNever); 
+		
 		if($languages && $language) $user->language = $language; // restore
 	}
 

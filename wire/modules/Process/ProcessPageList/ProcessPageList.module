@@ -97,8 +97,8 @@ class ProcessPageList extends Process implements ConfigurableModule {
 			if(!is_array($lastPageList)) $lastPageList = array();
 				else $lastPageList = array_slice($lastPageList, 0, 10, true); 
 			$lastPageList[$this->page->id] = array(
-				'title' => $this->page->get('title|name'), 
-				'url' => $this->wire('page')->url,
+				'title' => (string) $this->page->get('title|name'), 
+				'url' => (string) $this->wire('page')->url,
 				'n' => $n
 				);
 			$this->session->set('lastPageList', $lastPageList); 

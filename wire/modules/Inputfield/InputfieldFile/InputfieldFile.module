@@ -160,7 +160,9 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			}
 			
 			if($numLanguages && $hasLangTabs) {
+				$ajax = $this->wire('config')->ajax;
 				$out = "<div class='hasLangTabs langTabsContainer'><div class='langTabs'><ul>$tabs</ul>$out</div></div>";
+				if($ajax) $out .= "<script>setupLanguageTabs($('#wrap_" . $this->attr('id') . "'));</script>";
 			}
 
 		}
