@@ -416,7 +416,11 @@ class ProcessPageView extends Process {
 		$redirectLogin = $page->getAccessTemplate()->redirectLogin;
 
 		if($redirectLogin) {
-			if(ctype_digit("$redirectLogin")) {
+			$config = $this->wire('config');
+			$disallowIDs = array($config->trashPageID); // don't allow login redirect for these pages
+			if($page->id && in_array($page->id, $disallowIDs)) {
+				$page = null;
+			} else if(ctype_digit("$redirectLogin")) {
 				$redirectLogin = (int) $redirectLogin;
 				if($redirectLogin == 1) $redirectLogin = $this->config->loginPageID; 
 				//$this->error("You don't have permission to access this page"); 

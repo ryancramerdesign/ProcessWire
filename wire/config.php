@@ -645,6 +645,11 @@ $config->cli = false;
 $config->version = '';
 
 
+/**
+ * versionName: This is automatically populated with the current PW version name (i.e. 2.5.0 dev)
+ *
+ */
+$config->versionName = '';
 
 
 
