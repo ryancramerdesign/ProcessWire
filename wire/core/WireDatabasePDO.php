@@ -309,13 +309,16 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 * See WireDatabaseBackup class for usage. 
 	 * 
 	 * @return WireDatabaseBackup
-	 * @throws Exception on fatal error
+	 * @throws WireException|Exception on fatal error
 	 * 
 	 */
 	public function backups() {
 	
 		$path = $this->wire('config')->paths->assets . 'backups/database/';
-		if(!is_dir($path)) wireMkdir($path, true); 
+		if(!is_dir($path)) {
+			wireMkdir($path, true); 
+			if(!is_dir($path)) throw new WireException("Unable to create path for backups: $path"); 
+		}
 
 		$backups = new WireDatabaseBackup($path); 
 		$backups->setDatabase($this);

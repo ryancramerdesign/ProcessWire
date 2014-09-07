@@ -31,9 +31,18 @@ table.AdminDataList th:first-child {
 	vertical-align: top; 
 }
 
+table.AdminDataList td p.module-summary {
+	margin: 0;
+}
+
+table.AdminDataList td .requires,
+table.AdminDataList td .date,
+table.AdminDataList td .installs {
+	display: block;
+}
 
 table.AdminDataList td:last-child {
-	width: 70%; 
+	width: 70%;
 }
 
 table.AdminDataList td span.ui-icon {

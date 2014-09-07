@@ -207,6 +207,8 @@ $config->templateExtension = 'php';
  * Directory mode
  *
  * Octal string permissions assigned to directories created by ProcessWire
+ * This value should always be overwritten by site-specific settings as 0777 
+ * is too open for many installations. 
  *
  * @var string
  *
@@ -217,12 +219,13 @@ $config->chmodDir = "0777";
  * File mode
  *
  * Octal string permissions assigned to files created by ProcessWire
+ * This value should always be overwritten by site-specific settings as 0666
+ * is too open for many installations. 
  *
  * @var string
  *
  */
 $config->chmodFile = "0666";
-
 
 /**
  * Bad file extensions for uploads

@@ -71,7 +71,7 @@ if($page->process && $page->process != 'ProcessPageView') {
 	try {
 
 		if($config->demo && !in_array($page->process, array('ProcessLogin'))) {
-			if(count($_POST)) $this->error("Saving is disabled in this demo"); 
+			if(count($_POST)) $this->error("Features that use POST variables are disabled in this demo"); 
 			foreach($_POST as $k => $v) unset($_POST[$k]); 
 			foreach($_FILES as $k => $v) unset($_FILES[$k]); 
 			$input->post->removeAll();

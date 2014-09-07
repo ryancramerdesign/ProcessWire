@@ -25,7 +25,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Modules', __FILE__), // getModuleInfo title          
 			'summary' => __('List, edit or install/uninstall modules', __FILE__), // getModuleInfo summary
-			'version' => 112, 
+			'version' => 113, 
 			'permanent' => true, 
 			'permission' => 'module-admin', 
 			);
@@ -139,6 +139,8 @@ class ProcessModule extends Process implements ConfigurableModule {
 		if($this->input->post->download && $this->input->post->download_name) {
 			$this->session->CSRF->validate();
 			return $this->downloadConfirm($this->input->post->download_name);
+		} else if($this->input->get->download_name) {
+			return $this->downloadConfirm($this->input->get->download_name); 
 		}
 		
 		if($this->input->post->upload) {
@@ -444,7 +446,9 @@ class ProcessModule extends Process implements ConfigurableModule {
 			if($class) $title = "<span class='$class'>$title</span>";
 			$version = $this->formatVersion(isset($info['version']) ? $info['version'] : 0);
 			$summary = empty($info['summary']) ? '' : $this->wire('sanitizer')->entities1($info['summary']);
+			if(strpos($summary, '&lt;') !== false) $summary = preg_replace('/([^\s]{35})[^\s]{20,}/', '$1...', $summary); // prevent excessively long text without whitespace
 			$summary .= empty($info['href']) ? '' : (" <a href='$info[href]'>" . $this->_('more') . "</a>");
+			if($summary) $summary = "<p class='module-summary'>$summary</p>";
 			$buttons = '';
 			$confirmJS = "return confirm('" . sprintf($this->_('Delete %s?'), $name) . "')";
 			$editUrl = "edit?name={$name}";
@@ -453,11 +457,18 @@ class ProcessModule extends Process implements ConfigurableModule {
 
 				if(count($info['requires'])) {
 					$requires = $this->modules->getRequiresForInstall($name);
-					if(count($requires)) $summary .= "<br /><span class='notes requires'>$labelRequires - " . implode(', ', $requires) . "</span>";
+					if(count($requires)) {
+						foreach($requires as $key => $value) {
+							$nameOnly = preg_replace('/^([_a-zA-Z0-9]+)[=<>]+.*$/', '$1', $value);
+							$requiresInfo = $this->modules->getModuleInfo($nameOnly); 
+							if(!empty($requiresInfo['error'])) $requires[$key] = "<a href='./?download_name=$nameOnly'>$value</a>";
+						}
+						$summary .= "<span class='notes requires'>$labelRequires - " . implode(', ', $requires) . "</span>";
+					}
 				} else $requires = array();
 
 				if(count($info['installs'])) {
-					$summary .= "<br /><span class='detail installs'>$labelInstalls - " . implode(', ', $info['installs']) . "</span>";
+					$summary .= "<span class='detail installs'>$labelInstalls - " . implode(', ', $info['installs']) . "</span>";
 				}
 
 				$class = 'not_installed';
@@ -498,7 +509,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 			if($buttons) $buttons = "<small class='buttons'>$buttons</small>";
 			
 			if($allowDates) { 
-				$summary .= "<br /><span class='detail date'>";
+				$summary .= "<span class='detail date'>";
 				$summary .= $installed ? $this->labels['installed_date'] : $this->_('Found');
 				$created = isset($newModules[$name]) ? $newModules[$name] : $info['created']; 
 				$summary .= ': ' . wireRelativeTimeStr($created) . "</span>";
@@ -557,14 +568,15 @@ class ProcessModule extends Process implements ConfigurableModule {
 	 * 
 	 */
 	protected function downloadConfirm($name, $update = false) {
-		
+	
+		$name = $this->wire('sanitizer')->name($name); 
 		$info = self::getModuleInfo();
 		$this->wire('processHeadline', $this->labels['download_install']); 
 		$this->wire('breadcrumbs')->add(new Breadcrumb('./', $info['title']));
 		if($update) $this->wire('breadcrumbs')->add(new Breadcrumb("./?edit=$name", $name)); 
 		
 		$redirectURL = $update ? "./edit?name=$name" : "./";
-		$className = $this->wire('sanitizer')->name($name);
+		$className = $name; 
 		$url = trim($this->serviceUrl, '/') . "/$className/?apikey=" . $this->wire('sanitizer')->name($this->serviceKey);
 		$http = new WireHttp();
 		$data = $http->get($url); 
@@ -767,6 +779,16 @@ class ProcessModule extends Process implements ConfigurableModule {
 
 		// check if modules isn't already installed and this isn't an update
 		if(!$this->modules->isInstalled($className)) {
+			
+			$info = $this->wire('modules')->getModuleInfoVerbose($className);
+			$requires = array();
+			if(count($info['requires'])) $requires = $this->modules->getRequiresForInstall($className);
+			if(count($requires)) { 
+				foreach($requires as $moduleName) {
+					$this->error("$className - " . sprintf($this->_('Requires module "%s" before it can be installed'), $moduleName), Notice::warning | Notice::allowMarkup); 
+				}
+				$this->wire('session')->redirect('../'); 
+			}
 
 			$this->wire('processHeadline', $this->_('Downloaded:') . ' ' . $className);
 
@@ -779,7 +801,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 			$f->attr('name', 'install');
 			$f->attr('value', $className);
 			$form->add($f);
-
+		
 			$submit = $this->modules->get('InputfieldSubmit');
 			$submit->attr('name', 'submit');
 			$submit->attr('id', 'install_now');
@@ -934,7 +956,9 @@ class ProcessModule extends Process implements ConfigurableModule {
 		if(count($form->children)) {
 			$field = $this->modules->get("InputfieldSubmit"); 
 			$field->attr('name', 'submit_save_module'); 
-			$form->append($field); 
+			$field->addClass('head_button_clone'); 
+			$form->append($field);
+			
 		} else {
 			$this->message($this->_("This module doesn't have any fields to configure")); 
 		}

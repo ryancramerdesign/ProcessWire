@@ -771,7 +771,7 @@ class WireHttp extends Wire {
 	 * @return int
 	 *
 	 */
-	protected function getHttpCode() {
+	public function getHttpCode() {
 		return $this->httpCode; 
 	}
 

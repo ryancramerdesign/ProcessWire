@@ -1311,6 +1311,7 @@ class Page extends WireData implements Countable {
 	 *
 	 */
 	public function httpUrl() {
+		if(!$this->template) return '';
 
 		switch($this->template->https) {
 			case -1: $protocol = 'http'; break;
