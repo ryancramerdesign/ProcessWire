@@ -55,7 +55,8 @@ class FieldtypeTextLanguage extends FieldtypeText implements FieldtypeLanguageIn
 			// note that we use otherLanguagePageIDs rather than wire('languages') because
 			// it's possible that this method may be called before the languages are known 
 			foreach($languageSupport->otherLanguagePageIDs as $languageID) {
-				$schema['data' . $languageID] = $schema['data']; 
+				// $schema['data' . $languageID] = $schema['data'];
+				$schema['data' . $languageID] = 'text';
 				$schema['keys']["data_exact{$languageID}"] = "KEY `data_exact{$languageID}` (`data{$languageID}`(255))";
 				$schema['keys']["data{$languageID}"] = "FULLTEXT KEY `data{$languageID}` (`data{$languageID}`)";
 			}

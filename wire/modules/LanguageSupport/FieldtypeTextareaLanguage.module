@@ -50,7 +50,8 @@ class FieldtypeTextareaLanguage extends FieldtypeTextarea implements FieldtypeLa
 			$schema = parent::getDatabaseSchema($field);
 			$languageSupport = wire('modules')->get('LanguageSupport'); 
 			foreach($languageSupport->otherLanguagePageIDs as $languageID) {
-				$schema['data' . $languageID] = $schema['data']; 
+				// $schema['data' . $languageID] = $schema['data'];
+				$schema['data' . $languageID] = 'mediumtext';
 				$schema['keys']["data{$languageID}"] = "FULLTEXT KEY `data{$languageID}` (`data{$languageID}`)";
 			}
 			return $schema;
