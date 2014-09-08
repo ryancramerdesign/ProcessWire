@@ -226,7 +226,11 @@ class LanguageParser extends Wire {
 		$this->numFound++;
 
 		// check if there are comments in the $tail and record them if so
-		if(($pos = strpos($tail, '//')) !== false) $comments = substr($tail, $pos+2); 
+		if(($pos = strpos($tail, '//')) !== false) {
+			$comments = substr($tail, $pos+2);			
+		} else if (($posStart = strpos($tail, '/*')) > 0 && ($posEnd = strpos($tail, '*/')) > $posStart) {
+			$comments = substr($tail, $posStart+2, $posEnd-$posStart-2);
+		}
 
 		// check if a plural was found and set an automatic comment to indicate which is which
 		if($plural) {
