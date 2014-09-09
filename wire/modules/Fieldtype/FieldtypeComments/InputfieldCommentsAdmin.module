@@ -30,7 +30,7 @@ class InputfieldCommentsAdmin extends Inputfield implements InputfieldItemList {
 		parent::init();
 	}
 
-	protected function renderItem(Comment $comment, $n) {
+	protected function ___renderItem(Comment $comment, $n) {
 
 		$statuses = array(
 			Comment::statusApproved => $this->_x('Approved', 'comment-status'),

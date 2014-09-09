@@ -81,7 +81,11 @@ class FieldtypeCache extends Fieldtype {
 			$f = $this->fields->get($name); 
 			if($f) $value[$name] = $f->type->sleepValue($page, $f, $page->get($name)); 
 		}
-		return json_encode($value); 
+		if(defined("JSON_UNESCAPED_UNICODE")) {
+			return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); 
+		} else {
+			return json_encode($value); 
+		}
 	}
 
 	public function ___savePageField(Page $page, Field $field) {

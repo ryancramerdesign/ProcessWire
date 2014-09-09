@@ -157,6 +157,7 @@ class ProcessPageView extends Process {
 			}
 
 			try {
+				if($page->id == $config->http404PageID) $this->header404();
 				$this->wire()->setStatus(ProcessWire::statusRender);
 
 				if($this->requestFile) {
@@ -506,8 +507,7 @@ class ProcessPageView extends Process {
 
 		$this->responseType = self::responseTypeError; 
 		$config = $this->config;
-
-		header("HTTP/1.1 404 Page Not Found"); 
+		$this->header404();
 
 		if($config->http404PageID) {
 			$page = $this->pages->get($config->http404PageID); 
@@ -518,6 +518,16 @@ class ProcessPageView extends Process {
 		} else {
 			return "404 page not found";
 		}
+	}
+
+	/**
+	 * Send a 404 header, but not more than once per request
+	 * 
+	 */
+	protected function header404() {
+		static $n = 0;
+		if(!$n) header("HTTP/1.1 404 Page Not Found"); 
+		$n++;
 	}
 
 	/**

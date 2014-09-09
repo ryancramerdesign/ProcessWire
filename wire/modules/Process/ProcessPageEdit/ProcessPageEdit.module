@@ -516,7 +516,6 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			$language = wire('user')->language; 
 
 			$field = $this->modules->get('InputfieldSelect');
-			$field->label = $this->_('Template'); // Settings: Template field label
 			$field->attr('id+name', 'template'); 
 			$field->attr('value', $this->page->template->id); 
 			$field->required = true; 
@@ -527,8 +526,12 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 				if(!$label) $label = $template->label ? $template->label : $template->name;
 				$field->addOption($template->id, $label); 
 			}
-			$wrapper->add($field); 
+		} else {
+			$field = $this->modules->get('InputfieldMarkup');
+			$field->attr('value', "<p>" . $this->page->template->getLabel() . "</p>"); 
 		}
+		$field->label = $this->_('Template'); // Settings: Template field label
+		$wrapper->add($field); 
 
 		// parent
 		if($this->page->id > 1 && $this->page->editable('parent')) {
@@ -570,17 +573,32 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 *
 	 */
 	protected function buildFormInfo() {
-
-		$dateFormat = $this->config->dateFormat; 
+		$page = $this->page; 
+		$dateFormat = $this->config->dateFormat;
+		$unknown = '[?]';
 		$field = $this->modules->get("InputfieldMarkup"); 
+		$createdName = $page->createdUser->name; 
+		$modifiedName = $page->modifiedUser->name; 
+		if(empty($createdName)) $createdName = $unknown;
+		if(empty($modifiedName)) $modifiedName = $unknown;
+		if($this->wire('user')->isSuperuser()) {
+			$url = $this->wire('config')->urls->admin . 'access/user/edit/?id=';
+			if($createdName != $unknown) $createdName = "<a href='$url{$page->createdUser->id}'>$createdName</a>";
+			if($modifiedName != $unknown) $modifiedName = "<a href='$url{$page->modifiedUser->id}'>$modifiedName</a>";
+		}
+		$lowestDate = strtotime('1974-10-10');
+		$createdDate = $page->created > $lowestDate ? date($dateFormat, $page->created) . " (" . wireRelativeTimeStr($page->created) . ")" : $unknown;
+		$modifiedDate = $page->modified > $lowestDate ? date($dateFormat, $page->modified) . " (" . wireRelativeTimeStr($page->modified) . ")" : $unknown; 
 
-		$info =	"\n<p>" . sprintf($this->_('Created by %1$s on %2$s'), $this->page->createdUser->name, date($dateFormat, $this->page->created)) . "</p>" . // Settings: created user/date information line
-			"\n<p>" . sprintf($this->_('Last modified by %1$s on %2$s'), $this->page->modifiedUser->name, date($dateFormat, $this->page->modified)) . "</p>"; // Settings: modified user/date information line
+		$info =	"\n<p>" . 
+				sprintf($this->_('Created by %1$s on %2$s'), $createdName, $createdDate) . "<br />" . // Settings: created user/date information line
+				sprintf($this->_('Last modified by %1$s on %2$s'), $modifiedName, $modifiedDate) . // Settings: modified user/date information line
+				"</p>"; 
 
 		$field->attr('id+name', 'ProcessPageEditInfo'); 
 		$field->label = $this->_('Info'); // Settings: Info field label
 		$field->value = $info; 
-		$field->collapsed = Inputfield::collapsedYes; 
+		//$field->collapsed = Inputfield::collapsedYes; 
 		return $field; 
 	}
 

@@ -182,6 +182,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 * @param Page $page
 	 * @param Field $field
 	 * @return bool
+	 * @throws WireException on failure
 	 *
 	 */
 	public function ___savePageField(Page $page, Field $field) {
@@ -247,7 +248,13 @@ abstract class FieldtypeMulti extends Fieldtype {
 
 			$sql = rtrim($sql, ", "); 
 			$query = $database->prepare($sql);	
-			$result = $query->execute();
+			try {
+				$result = $query->execute();
+			} catch(Exception $e) {
+				$msg = $e->getMessage();
+				if($this->wire('config')->debug && $this->wire('config')->advanced) $msg .= "\n$sql";
+				throw new WireException($msg); 
+			}
 			
 			return $result; 
 		}

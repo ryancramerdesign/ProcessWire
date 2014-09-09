@@ -369,7 +369,7 @@ class Selectors extends WireArray {
 	protected function extractValueQuick(&$str, $openingQuote, $closingQuote) {
 		
 		// determine where value ends
-		$commaPos = strpos($str, $closingQuote . ',');
+		$commaPos = strpos("$str,", $closingQuote . ','); // "$str," just in case value is last and no trailing comma
 		
 		if($commaPos === false && $closingQuote) {
 			// if closing quote and comma didn't match, try to match just comma in case of "something"<space>,

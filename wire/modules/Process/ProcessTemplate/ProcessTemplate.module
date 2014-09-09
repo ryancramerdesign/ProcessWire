@@ -251,16 +251,25 @@ class ProcessTemplate extends Process {
 
 		$table = $this->modules->get("MarkupAdminDataTable"); 
 		$table->setEncodeEntities(false); 
+		$useLabels = false;
+		
+		foreach($templates as $template) {
+			$label = $template->getLabel();
+			if($label && $label != $template->name) {
+				$useLabels = true;
+				break;
+			}
+		}
 
 		$rows = array();
 		foreach($templates as $template) {
-			$row = $this->getListTableRow($template);
+			$row = $this->getListTableRow($template, $useLabels);
 			if(!empty($row)) $rows[] = $row;
 		}
 
 		$header = array();
 		$header[] = $this->_x('Name', 'list-thead');
-		$header[] = $this->_x('Label', 'list-thead');
+		if($useLabels) $header[] = $this->_x('Label', 'list-thead');
 		$header[] = $this->_x('Fields', 'list-thead');
 		$header[] = $this->_x('Pages', 'list-thead');
 		$header[] = $this->_x('Modified', 'list-thead');
@@ -272,7 +281,7 @@ class ProcessTemplate extends Process {
 		return $table;
 	}
 
-	public function ___getListTableRow(Template $template) {
+	public function ___getListTableRow(Template $template, $useLabel = true) {
 
 		$flags = array();
 		$flagDefs = array(
@@ -334,7 +343,7 @@ class ProcessTemplate extends Process {
 
 		$row = array();
 		$row["{$template->name} "] = "edit?id={$template->id}";
-		$row[] = $this->sanitizer->entities($template->getLabel());
+		if($useLabel) $row[] = $this->sanitizer->entities($template->getLabel());
 		$row[] = "$numFields ";
 		$row["{$numPages} "] = "$numPagesLink"; // space is required to make it work
 		$row[] = $template->modified > 0 ? "<span style='display: none;'>$template->modified</span>" . wireRelativeTimeStr($template->modified) : '';
