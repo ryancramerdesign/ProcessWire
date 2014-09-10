@@ -66,7 +66,8 @@ class PagePermissions extends WireData implements Module {
 		$this->addHook('Page::viewable', $this, 'viewable'); 
 		$this->addHook('Page::listable', $this, 'listable'); 
 		$this->addHook('Page::deleteable', $this, 'deleteable');
-		$this->addHook('Page::deletable', $this, 'deleteable'); 
+		$this->addHook('Page::deletable', $this, 'deleteable');
+		$this->addHook('Page::trashable', $this, 'trashable'); 
 		$this->addHook('Page::addable', $this, 'addable'); 
 		$this->addHook('Page::moveable', $this, 'moveable'); 
 		$this->addHook('Page::sortable', $this, 'sortable'); 
@@ -294,9 +295,26 @@ class PagePermissions extends WireData implements Module {
 			if($page->hasRole('superuser') && !$user->hasRole('superuser')) $deleteable = false; // non-superuser can't delete superuser
 		} else { 
 			$deleteable = $this->pages->isDeleteable($page); 
-			if($deleteable) $deleteable = $page->editable() && $user->hasPermission("page-delete", $page);
+			if($deleteable && !$user->isSuperuser()) {
+				// make sure the page is editable and user has page-delete permission, if not dealing with superuser
+				$deleteable = $page->editable() && $user->hasPermission("page-delete", $page);
+			}
 		}
 		$event->return = $deleteable;
+	}
+
+	/**
+	 * Is the page trashable by the current user?
+	 *
+	 */
+	public function trashable($event) {
+		$page = $event->object;
+		if($page->is(Page::statusTrash) || $page->template->noTrash) {
+			// if page is already in trash, or template doesn't allow placement in trash, we return false
+			$event->return = false;
+			return;
+		}
+		$this->deleteable($event);
 	}
 
 	/**

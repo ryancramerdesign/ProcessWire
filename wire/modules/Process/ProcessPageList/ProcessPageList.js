@@ -42,9 +42,15 @@ $(document).ready(function() {
 			// the page ID currently selected
 			selectedPageID: 0, 
 		
+			// id of the admin page
+			adminPageID: 2, 
+		
+			// id of the trash page
+			trashPageID: 7, 
+		
 			// language ID, if applicable
 			langID: 0,
-
+			
 			// in 'select' mode, allow no value to be selected (to abort a selected value)
 			selectAllowUnselect: false,
 
@@ -67,7 +73,10 @@ $(document).ready(function() {
 			selectUnselectLabel: 'Unselect',
 
 			// label used for 'more' in paginated lists
-			moreLabel: 'More', 
+			moreLabel: 'More',
+			
+			// label used for 'trash' button in Move mode
+			trashLabel: 'Trash', 
 
 			// label used for the move instruction
 			moveInstructionLabel: "Click and drag to move", 
@@ -449,6 +458,7 @@ $(document).ready(function() {
 				if(child.status & 4) $li.addClass('PageListStatusLocked'); 
 				if(child.addClass && child.addClass.length) $li.addClass(child.addClass); 
 				if(child.type && child.type.length > 0) if(child.type == 'System') $li.addClass('PageListStatusSystem'); 
+				if(child.rm) $li.addClass('trashable'); 
 
 				$(options.openPageIDs).each(function(n, id) {
 					if(child.id == id) $li.addClass('PageListTriggerOpen'); 
@@ -578,9 +588,22 @@ $(document).ready(function() {
 
 				var $cancelLink = $("<a href='#'>" + options.selectCancelLabel + "</a>").click(function() { 
 					return cancelMove($li); 
-				}); 
-
-				$li.children("ul.PageListActions").before($("<span class='PageListMoveNote detail'><i class='fa fa-sort'></i> " + options.moveInstructionLabel + " <i class='fa fa-angle-right'></i></span>").append($cancelLink)); 
+				});
+				
+				var $actions = $li.children("ul.PageListActions");
+				var $moveAction = $("<span class='PageListMoveNote detail'><i class='fa fa-fw fa-sort'></i> " + options.moveInstructionLabel + "<i class='fa fa-fw fa-angle-left'></i></span>");
+				$moveAction.append($cancelLink);
+				
+				if($li.hasClass('trashable')) { 
+					var $trashLink = $("<a class='PageListActionTrash ui-priority-secondary' href='#'><i class='fa fa-trash-o'></i> " + options.trashLabel + "</i></a>").click(function() {
+						trashPage($li);
+					});
+					$li.addClass('ui-helper-clearfix');
+					$moveAction.append($trashLink);
+				}
+				
+				$actions.before($moveAction); 
+				
 				$li.addClass('PageListSortItem'); 
 				$li.parent('.PageList').attr('id', 'PageListMoveFrom'); 
 
@@ -607,7 +630,31 @@ $(document).ready(function() {
 				$root.removeClass('PageListSorting'); 
 				return false; 
 			}
-
+			
+			/**
+			 * Remove everything setup from an active 'move'
+			 *
+			 * @param jQuery $li List item that initiated the 'move'
+			 * @return bool
+			 *
+			 */
+			function trashPage($li) {
+				var $trash = $root.find('.PageListID' + options.trashPageID);
+				if(!$trash.hasClass('PageListItemOpen')) {
+					$root.removeClass('PageListSorting'); 
+					$trash.children('a').click();
+					$root.addClass('PageListSorting'); 
+				}
+				var $trashList = $trash.next('.PageList');
+				if($trashList.length == 0) {
+					$trashList = $("<div class='PageList'></div>");
+					$trash.after($trashList);
+				}
+				$trashList.prepend($li);
+				var ui = { item: $li };
+				stopMove(null, ui);
+			}
+			
 			/**
 			 * Event called when the mouse stops after performing a 'move'
 			 *

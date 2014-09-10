@@ -224,6 +224,10 @@
 	margin: 0 !important; 
 }
 
+.PageListActionTrash {
+	float: right;
+}
+
 /********************************************************************************************************
  * PageListPagination
  *

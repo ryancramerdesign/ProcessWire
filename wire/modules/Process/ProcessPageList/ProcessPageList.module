@@ -24,6 +24,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	protected $openPage; 
 	protected $start; 
 	protected $render; 
+	protected $trashLabel;
 
 	/**
 	 * Default max pages to show before pagination (configurable in the module editor)
@@ -41,7 +42,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page List',          
 			'summary' => 'List pages in a hierarchal tree structure', 
-			'version' => 105, 
+			'version' => 106, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			'icon' => 'sitemap',
@@ -51,7 +52,8 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	public function __construct() {
 		$this->showRootPage = true; 
 		$this->pageLabelField = 'title';
-		$this->limit = self::defaultLimit; 
+		$this->limit = self::defaultLimit;
+		$this->trashLabel = $this->_('Trash'); // Label for 'Trash' page in PageList // Overrides page title if used
 	}
 
 	/**
@@ -103,7 +105,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 				);
 			$this->session->set('lastPageList', $lastPageList); 
 		}
-
+		
 		return $this->render();
 
 	}	
@@ -142,6 +144,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 				'selectUnselectLabel' => $this->_('Unselect'), // Unselect a page
 				'moreLabel' => $this->_('More'), // Show more pages
 				'moveInstructionLabel' => $this->_('Click and drag to move'), // Instruction on how to move a page
+				'trashLabel' => $this->trashLabel, 
 				)); 
 
 			$tokenName = $this->session->CSRF->getTokenName();
@@ -239,6 +242,7 @@ abstract class ProcessPageListRender extends Wire {
 	protected $limit; 
 	protected $pageLabelField = 'title';
 	protected $actionLabels = array();
+	protected $superuser = false;
 
 	public function __construct($id, Page $page, PageArray $children) {
 		$this->id = $id; 
@@ -246,6 +250,7 @@ abstract class ProcessPageListRender extends Wire {
 		$this->children = $children; 		
 		$this->start = 0;
 		$this->limit = 0; 
+		$this->superuser = $this->wire('user')->isSuperuser();
 	}
 
 	public function setStart($n) {
@@ -284,7 +289,7 @@ abstract class ProcessPageListRender extends Wire {
 
 		if($page->id == $this->config->trashPageID) {
 
-			if($this->user->isSuperuser()) $actions[] = array(
+			if($this->superuser) $actions[] = array(
 				'cn' => 'Empty', 
 				'name' => $this->actionLabels['empty'], 
 				'url' => "{$adminUrl}page/trash/"
@@ -434,7 +439,7 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 			$type = 'System';
 			if($page->id == $this->config->http404PageID) $label = $this->_('404 Page Not Found'); // Label for '404 Page Not Found' page in PageList // Overrides page title if used
 				else if($page->id == $this->config->adminRootPageID) $label = $this->_('Admin'); // Label for 'Admin' page in PageList // Overrides page title if used
-				else if($page->id == $this->config->trashPageID) $label = $this->_('Trash'); // Label for 'Trash' page in PageList // Overrides page title if used
+				else if($page->id == $this->config->trashPageID) $label = $this->trashLabel; // Label for 'Trash' page in PageList // Overrides page title if used
 			// if label is not overridden by a language pack, make $label blank to use the page title instead
 			if(in_array($label, array('Trash', 'Admin', '404 Page Not Found'))) $label = '';
 		} 
@@ -464,6 +469,7 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 			'numChildren' => $page->numChildren(1), 
 			'path' => $page->path(), 
 			'template' => $page->template->name, 
+			'rm' => $this->superuser && $page->trashable(), 
 			'actions' => $this->getPageActions($page), 
 			); 
 
@@ -494,10 +500,8 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 			$children[] = $child;
 		}
 
-		foreach($extraPages as $page) {
-			if($this->user->isSuperuser()) {
-				$children[] = $this->renderChild($page); 
-			}
+		if($this->superuser) foreach($extraPages as $page) {
+			$children[] = $this->renderChild($page); 
 		}
 
 		$json = array(

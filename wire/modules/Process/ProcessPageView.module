@@ -139,9 +139,9 @@ class ProcessPageView extends Process {
 		if($page && $page->id) {
 			if($debug) Debug::saveTimer('ProcessPageView.getPage()', $page->path); 
 			$page->setOutputFormatting(true); 
-			$_page = $page; 
+			$_page = $page;
 			$page = $this->checkAccess($page); 
-			if(!$page) return $this->pageNotFound($_page, $this->requestURL, true); 
+			if(!$page || $_page->id == $config->http404PageID) return $this->pageNotFound($_page, $this->requestURL, true); 
 			
 			if(!$this->delayRedirects) {
 				$this->checkProtocol($page); 
@@ -157,7 +157,6 @@ class ProcessPageView extends Process {
 			}
 
 			try {
-				if($page->id == $config->http404PageID) $this->header404();
 				$this->wire()->setStatus(ProcessWire::statusRender);
 
 				if($this->requestFile) {

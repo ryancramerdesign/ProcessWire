@@ -695,6 +695,7 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 	$format = str_replace(array('Q', 'P', 'T'), array('{Q}', '{P}', '{T}'), $format); 
 	$out = str_replace(array('{Q}', '{P}', '{T}'), array(" $quantity", " $period", " $tense"), $format); 
 	if($abbreviate === 1) $out = str_replace("$quantity $period", "$quantity$period", $out); 
+	if(strpos($out, '  ') !== false) $out = preg_replace('/\s\s+/', ' ', $out); 
 	return trim($out); 
 }
 
