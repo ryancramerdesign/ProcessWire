@@ -582,9 +582,9 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		if(empty($createdName)) $createdName = $unknown;
 		if(empty($modifiedName)) $modifiedName = $unknown;
 		if($this->wire('user')->isSuperuser()) {
-			$url = $this->wire('config')->urls->admin . 'access/user/edit/?id=';
-			if($createdName != $unknown) $createdName = "<a href='$url{$page->createdUser->id}'>$createdName</a>";
-			if($modifiedName != $unknown) $modifiedName = "<a href='$url{$page->modifiedUser->id}'>$modifiedName</a>";
+			$url = $this->wire('config')->urls->admin . 'access/users/edit/?id=';
+			if($createdName != $unknown && $page->createdUser instanceof User) $createdName = "<a href='$url{$page->createdUser->id}'>$createdName</a>";
+			if($modifiedName != $unknown && $page->modifiedUser instanceof User) $modifiedName = "<a href='$url{$page->modifiedUser->id}'>$modifiedName</a>";
 		}
 		$lowestDate = strtotime('1974-10-10');
 		$createdDate = $page->created > $lowestDate ? date($dateFormat, $page->created) . " (" . wireRelativeTimeStr($page->created) . ")" : $unknown;
