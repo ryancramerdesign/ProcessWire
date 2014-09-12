@@ -1,15 +1,24 @@
 <?php
 
 /**
- * AdminThemeDefaultHelpers.php
+ * AdminThemeRenoHelpers.php
  * 
- * Rendering helper functions for use with ProcessWire admin theme.
- * 
- * __('FOR TRANSLATORS: please translate the file /wire/templates-admin/default.php rather than this one.'); 
+ * Rendering helper functions for use with for AdminThemeReno
+ * Copyright (C) 2014 by Tom Reno (Renobird)
+ * http://www.tomrenodesign.com
  *
- */ 
+ * ProcessWire 2.x
+ * Copyright (C) 2014 by Ryan Cramer
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ *
+ * http://processwire.com
+ *
+ * @todo: make this extend AdminThemeDefaultHelpers so that all the methods that are the same between
+ * the two can be removed. 
+ * 
+ */
 
-class AdminThemeDefaultHelpers extends WireData {
+class AdminThemeRenoHelpers extends WireData {
 
 	/**
 	 * Perform a translation, based on text from shared admin file: /wire/templates-admin/default.php
@@ -20,6 +29,11 @@ class AdminThemeDefaultHelpers extends WireData {
 	 */
 	public function _($text) {
 		return __($text, $this->wire('config')->paths->root . 'wire/templates-admin/default.php'); 
+	}
+
+	public function adminTheme() { 
+		$adminTheme = $this->wire('adminTheme');
+		return $adminTheme; 
 	}
 
 	/**
@@ -48,7 +62,7 @@ class AdminThemeDefaultHelpers extends WireData {
 			$title = $this->wire('sanitizer')->entities1($this->_($breadcrumb->title));
 			$out .= "<li><a href='{$breadcrumb->url}'>{$title}</a><i class='fa fa-angle-right'></i></li>";
 		}
-		if($appendCurrent) $out .= "<li class='title'>" . $this->getHeadline() . "</li>";
+		if($appendCurrent) $out .= "<li><a href='{$breadcrumb->url}'>{$this->getHeadline()}</a></li>";
 		return $out; 
 	}
 
@@ -78,6 +92,7 @@ class AdminThemeDefaultHelpers extends WireData {
 	
 		return $file; 
 	}
+	
 	
 	/**
 	 * Render the populated shortcuts head button or blank when not applicable
@@ -117,8 +132,8 @@ class AdminThemeDefaultHelpers extends WireData {
 		$label = $this->_('Add New'); 
 	
 		$out =	"<div id='head_button'>" . 	
-			"<button class='dropdown-toggle'><i class='fa fa-angle-down'></i> $label</button>" . 
-			"<ul class='dropdown-menu'>$out</ul>" . 
+			"<button class='ui-button dropdown-toggle'><i class='fa fa-angle-down'></i> $label</button>" . 
+			"<ul class='dropdown-menu shortcuts'>$out</ul>" . 
 			"</div>";
 	
 		return $out; 
@@ -169,51 +184,117 @@ class AdminThemeDefaultHelpers extends WireData {
 				$icon = 'gear';
 			}
 	
-			if(!$icon) $icon = 'check-square';
+			if(!$icon) $icon = 'check-circle';
 	
 			if($notice->class && $config->debug) $text = "{$notice->class}: $text";
 	
 			$remove = $n ? '' : "<a class='notice-remove' href='#'><i class='fa fa-times-circle'></i></a>";
 	
-			$out .= "\n\t\t<li class='$class'><div class='container'><p>$remove<i class='fa fa-$icon'></i> {$text}</p></div></li>";
+			$out .= "\n\t\t<li class='$class'>$remove<i class='fa fa-$icon'></i> {$text}</li>";
 		}
 	
 		$out .= "\n\t</ul><!--/notices-->";
 		return $out; 
 	}
 	
-	public function getPageIcon(Page $p) {
-		$icon = '';
-		if($p->template == 'admin') {
-			$info = $this->wire('modules')->getModuleInfo($p->process); 
-			if(!empty($info['icon'])) $icon = $info['icon'];
+	/**
+	 * Render quicklinks. Designed to be called by renderSideNav()
+	 * @return string
+	 */
+
+	public function renderQuicklinks($items) {
+
+		if ($items instanceof Templates){
+			$parentPath = wire("config")->urls->admin . "setup/template/";
+			$title = "Templates";
+		} else if ($items instanceof Fields) {
+			$parentPath = wire("config")->urls->admin . "setup/field/";
+			$title = "Fields";
 		}
-		if($p->page_icon) $icon = $p->page_icon; // allow for option of an admin field overriding the module icon
-		if(!$icon && $p->parent->id != $this->wire('config')->adminRootPageID) $icon = 'file-o ui-priority-secondary';
-		if($icon) $icon = "<i class='fa fa-fw fa-$icon'></i>&nbsp;";
-		return $icon;
+
+		$out = "<ul class='quicklinks'>" .
+		"<li class='quicklink-close'><i class='fa fa-bolt'></i> {$title} <div class='close'><i class='fa fa-times'></i></div></li>".
+		"<li class='add'><a href='{$parentPath}add'><i class='fa fa-plus-circle'></i> Add New</a></li>";
+
+		foreach($items as $item) {
+
+			if($item instanceof Field) {
+				if(($item->flags & Field::flagSystem) && $item->name != 'title') continue; 
+				if($item->type instanceof FieldtypeFieldsetOpen) continue; 
+
+			} else if($item instanceof Template) {
+				if($item->flags & Template::flagSystem) continue; 
+			}
+			$out .= "<li><a href='{$parentPath}{$items->url}edit?id=$item->id'>$item->name</a></li>";
+		}
+
+		$out .= "</ul>";
+
+		return $out;
+
 	}
+
+	/**
+	 * Render top navigation items
+	 * @return string
+	 */
+	
+	public function renderTopNavItems() {
+
+		$out = '';
+		$user = $this->wire('user');
+		$config = wire("config");
+		$adminTheme = $this->wire('adminTheme');
+
+		$adminTheme->avatar_field != '' ?  $imgField = $user->get($adminTheme->avatar_field) : $imgField = '';
+
+			if ($imgField != ''){
+				count($imgField) ? $img = $imgField->first() : $img = $imgField;
+				$out .= "<li class='avatar'><a href='{$config->urls->admin}profile/'>";
+				$userImg = $img->size(48,48); // render at 2x for hi-dpi
+				$out .= "<img src={$img->url} /> <span>{$user->name}</span>";
+				$out .= "</a></li>";
+
+			} else {
+				$out .= "<li><a href='{$config->urls->admin}profile/'><i class='fa fa-user'></i> <span>{$user->name}</span></a></li>";
+			}
+		
+		// view site
+		$out .= "<li><a href='{$config->urls->root}'><i class='fa {$adminTheme->home}'></i></a></li>";
+
+		// logout
+		$out .= "<li><a href='{$config->urls->admin}login/logout/'><i class='fa {$adminTheme->signout}'></i></a></li>";
+
+		return $out;
+
+	}
+
 	
 	/**
-	 * Render a single top navigation item for the given page
+	 * Render a side navigation items
 	 *
-	 * This function designed primarily to be called by the renderTopNavItems() function. 
+	 * This function designed primarily to be called by the renderSideNavItems() function. 
 	 *
 	 * @param Page $p
-	 * @param int $level Recursion level (default=0)
 	 * @return string
 	 *
 	 */
-	public function renderTopNavItem(Page $p, $level = 0) {
-	
+	public function renderSideNavItem(Page $p) {
+		
 		$isSuperuser = $this->wire('user')->isSuperuser();
 		$showItem = $isSuperuser;
-		$children = $p->numChildren && !$level ? $p->children("check_access=0") : array();
-		$numChildren = count($children); 
+		$children = $p->numChildren ? $p->children("check_access=0") : array();
+		$adminURL = $this->wire('config')->urls->admin;
+		$quicklinks = array('11','16'); // array of page ids that use quicklinks.
 		$out = '';
-	
+		$iconName = $p->name;
+		$this->adminTheme()->$iconName ? $icon = $this->adminTheme()->$iconName : $icon = 'fa-file-text-o';
+		
+		// don't bother with a drop-down here if only 1 child
+		if($p->name == 'page' && !$isSuperuser) $children = array();
+
 		if(!$showItem) { 
-			$checkPages = $numChildren ? $children : array($p); 
+			$checkPages = count($children) ? $children : array($p); 
 			foreach($checkPages as $child) {
 				if($child->viewable()) {
 					$showItem = true;
@@ -221,111 +302,84 @@ class AdminThemeDefaultHelpers extends WireData {
 				}
 			}
 		}
-		
+	
 		if(!$showItem) return '';
-
-		if($numChildren && $p->name == 'page') {
-			// don't bother with a drop-down for "Pages" if user will only see 1 "tree" item, duplicating the tab
-			if($numChildren == 2 && !$isSuperuser && !$this->wire('user')->hasPermission('page-lister')) $children = array();
-			if($numChildren == 1) $children = array();
-		}
-
-		$class = strpos($this->wire('page')->path, $p->path) === 0 ? 'on' : '';
-		$title = strip_tags((string) $p->title); 
-		if(!strlen($title)) $title = $p->name; 
+	
+		$class = strpos(wire('page')->path, $p->path) === 0 ? 'current' : ''; // current class
+		$class .= count($children) > 0 ? " parent" : ''; // parent class
+		$title = strip_tags((string)$p->get('title|name')); 
 		$title = $this->_($title); // translate from context of default.php
+		
+
 		$out .= "<li>";
 	
-		if(!$level && count($children)) {
-	
-			$class = trim("$class dropdown-toggle"); 
-			$out .= "<a href='$p->url' id='topnav-page-$p' data-from='topnav-page-{$p->parent}' class='$class'>$title</a>"; 
-			$my = 'left-1 top';
-			if(in_array($p->name, array('access', 'page'))) $my = 'left top';
-			$out .= "<ul class='dropdown-menu topnav' data-my='$my' data-at='left bottom'>";
-	
+		if(count($children)) {
+
+			$out .= "<a href='$p->url' class='$class $p->name '><i class='fa {$icon}'></i> $title</a>"; 
+			$out .= "<ul>";
+
 			foreach($children as $c) {
 				
-				if($isSuperuser && ($c->id == 11 || $c->id == 16)) {
-					// has ajax items
-					$icon = $this->getPageIcon($c);
-					$addLabel = $this->_('Add New');
-					$out .=	
-						"<li><a class='has-ajax-items' data-from='topnav-page-$p' href='$c->url'>$icon" . $this->_($c->title) . "</a><ul>" . 
-						"<li class='add'><a href='{$c->url}add'><i class='fa fa-plus-circle'></i> $addLabel</a></li>" . 
-						"</ul></li>";
-				} else {
-					$out .= $this->renderTopNavItem($c, $level+1);
+				$showQuickLinks = false;
+				$class = strpos(wire('page')->path, $c->path) === 0 ? 'current' : ''; // child current class
+				
+				if($c->viewable()) {
+
+					$isSuperuser && in_array($c->id, $quicklinks) ? $showQuickLinks = true : '';
+					$showQuickLinks ? $qlink = "<i class='quicklink-open fa fa-bolt'></i>" : $qlink = '';
+					
+					$url = $c->url;
+			
+					// The /page/ and /page/list/ are the same process, so just keep them on /page/ instead. 
+					if(strpos($url, '/page/list/') !== false) $url = str_replace('/page/list/', '/page/', $url); 
+
+					$out .= "<li><a href='$url' class='$class'>" . $this->_($c->title) . $qlink ."</a>";
+						
+						if ($showQuickLinks){
+							$c->id == 11 ? $type = "templates" : '';
+							$c->id == 16 ? $type = "fields" : '';
+							$out .= $this->renderQuicklinks(wire($type)); // not thrilled with this solution. Explore options.
+						}
+				
+					$out .= "</li>";
+					
 				}
 			}
-	
+
 			$out .= "</ul>";
-	
+
 		} else {
 			
-			$class = $class ? " class='$class'" : '';
-			$url = $p->url;
-			$icon = $level > 0 ? $this->getPageIcon($p) : '';
-			
-			// The /page/ and /page/list/ are the same process, so just keep them on /page/ instead. 
-			if(strpos($url, '/page/list/') !== false) $url = str_replace('/page/list/', '/page/', $url); 
-			
-			$out .= "<a href='$url'$class>$icon$title</a>"; 
+			$class = $class ? " class='$class $p->name'" : "class='$p->name'";
+			$out .= "<a href='$p->url' $class><i class='fa {$icon}'></i> $title</a>"; 
+
 		}
-	
-		$out .= "</li>";
-	
-		return $out; 
-	}
+
+	$out .= "</li>";
+
+	return $out; 
+}
 	
 	/**
-	 * Render all top navigation items, ready to populate in ul#topnav
+	 * Render all sidenav navigation items, ready to populate in ul#main-nav
 	 *
 	 * @return string
 	 *
 	 */
-	public function renderTopNavItems() {
+	public function renderSideNavItems() {
 		$out = '';
-		$outMobile = '';
-		$outTools = '';
 		$admin = $this->wire('pages')->get(wire('config')->adminRootPageID); 
 		$config = $this->wire('config'); 
 		$user = $this->wire('user'); 
 	
 		foreach($admin->children("check_access=0") as $p) {
 			if(!$p->viewable()) continue; 
-			$out .= $this->renderTopNavItem($p);
-			$outMobile .= "<li><a href='$p->url'>$p->title</a></li>";
+			$out .= $this->renderSideNavItem($p);
+			
 		}
-	
-		$outTools .=	
-			"<li><a href='{$config->urls->root}'><i class='fa fa-fw fa-eye'></i> " . 
-			$this->_('View Site') . "</a></li>";
-	
-		if($user->isLoggedin()) {
-			if($user->hasPermission('profile-edit')) {
-				$outTools .= 
-					"<li><a href='{$config->urls->admin}profile/'><i class='fa fa-fw fa-user'></i> " . 
-					$this->_('Profile') . " <small>{$user->name}</small></a></li>";
-			}
-			$outTools .= 
-				"<li><a href='{$config->urls->admin}login/logout/'>" . 
-				"<i class='fa fa-fw fa-power-off'></i> " . $this->_('Logout') . "</a></li>";
-		}
-	
-		$outMobile = "<ul id='topnav-mobile' class='dropdown-menu topnav' data-my='left top' data-at='left bottom'>$outMobile$outTools</ul>";
-	
-		$out .=	"<li>" . 
-			"<a target='_blank' id='tools-toggle' class='dropdown-toggle' href='{$config->urls->root}'>" . 
-			"<i class='fa fa-wrench'></i></a>" . 
-			"<ul class='dropdown-menu topnav' data-my='left top' data-at='left bottom'>" . $outTools . 
-			"</ul></li>";
-	
-		$out .=	"<li class='collapse-topnav-menu'><a href='$admin->url' class='dropdown-toggle'>" . 
-			"<i class='fa fa-lg fa-bars'></i></a>$outMobile</li>";
-		
 		return $out; 
 	}
+
 	
 	/**
 	 * Render the browser <title>
@@ -338,12 +392,10 @@ class AdminThemeDefaultHelpers extends WireData {
 		if(!$browserTitle) $browserTitle = $this->_(strip_tags(wire('page')->get('title|name'))) . ' &bull; ProcessWire';
 		if(strpos($browserTitle, '&') !== false) $browserTitle = html_entity_decode($browserTitle, ENT_QUOTES, 'UTF-8'); // we don't want to make assumptions here
 		$browserTitle = $this->wire('sanitizer')->entities($browserTitle, ENT_QUOTES, 'UTF-8'); 
-		if(!$this->wire('input')->get('modal')) {
-			$httpHost = $this->wire('config')->httpHost;
-			if(strpos($httpHost, 'www.') === 0) $httpHost = substr($httpHost, 4); // remove www
-			if(strpos($httpHost, ':')) $httpHost = preg_replace('/:\d+/', '', $httpHost); // remove port
-			$browserTitle .= ' &bull; ' . $this->wire('sanitizer')->entities($httpHost);
-		}
+		$httpHost = $this->wire('config')->httpHost;
+		if(strpos($httpHost, 'www.') === 0) $httpHost = substr($httpHost, 4); // remove www
+		if(strpos($httpHost, ':')) $httpHost = preg_replace('/:\d+/', '', $httpHost); // remove port
+		$browserTitle = $this->wire('sanitizer')->entities($httpHost) . ' &bull; ' . $browserTitle; 
 		return $browserTitle; 
 	}
 	
@@ -383,8 +435,8 @@ class AdminThemeDefaultHelpers extends WireData {
 			'templates' => $config->urls->templates,
 			'adminTemplates' => $config->urls->adminTemplates,
 			); 
-
-		return "var config = " . wireEncodeJSON($jsConfig, true, $config->debug);
+	
+		return "var config = " . json_encode($jsConfig);
 	}
 
 }
