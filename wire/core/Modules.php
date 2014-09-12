@@ -146,6 +146,22 @@ class Modules extends WireArray {
 	protected $substitutes = array();
 
 	/**
+	 * Properties that only appear in 'verbose' moduleInfo
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $moduleInfoVerboseKeys = array(
+		'summary', 
+		'author', 
+		'href', 
+		'file', 
+		'core', 
+		'configurable', 
+		'versionStr',
+		); 
+
+	/**
 	 * Construct the Modules
 	 *
 	 * @param string $path Core modules path (you may add other paths with addPath method)
@@ -840,7 +856,7 @@ class Modules extends WireArray {
 		$module = $this->get($key); 
 		if(!$module) {
 			$this->resetCache();
-			$module = $this->get($key); 
+			$module = $this->getModule($key); 
 		}
 		return $module; 
 	}
@@ -910,14 +926,46 @@ class Modules extends WireArray {
 	/**
 	 * Is the given class name installed?
 	 *
-	 * @param string $class
+	 * @param string $class Just a ModuleClassName, or optionally: ModuleClassName>=1.2.3 (operator and version)
 	 * @return bool
 	 *
 	 */
 	public function isInstalled($class) {
-		if(is_object($class)) $class = $this->getModuleClass($class); 
-		if($class == 'PHP' || $class == 'ProcessWire') return true; 
-		return (parent::get($class) !== null);
+
+		if(is_object($class)) $class = $this->getModuleClass($class);
+
+		$operator = null;
+		$requiredVersion = null;
+		$currentVersion = null;
+		
+		if(!ctype_alnum($class)) {
+			// class has something other than just a classnae, likely operator + version
+			if(preg_match('/^([a-zA-Z0-9_]+)\s*([<>=!]+)\s*([\d.]+)$/', $class, $matches)) {
+				$class = $matches[1];
+				$operator = $matches[2];
+				$requiredVersion = $matches[3];
+			}
+		}
+		
+		if($class === 'PHP' || $class === 'ProcessWire') {
+			$installed = true; 
+			if(!is_null($requiredVersion)) {
+				$currentVersion = $class === 'PHP' ? PHP_VERSION : $this->wire('config')->version; 
+			}
+		} else {
+			$installed = parent::get($class) !== null;
+			if($installed && !is_null($requiredVersion)) {
+				$info = $this->getModuleInfo($class); 
+				$currentVersion = $info['version'];
+			}
+		}
+	
+		if($installed && !is_null($currentVersion)) {
+			$installed = $this->versionCompare($currentVersion, $requiredVersion, $operator); 
+		}
+	
+		return $installed;
+		
 	}
 
 
@@ -1464,6 +1512,13 @@ class Modules extends WireArray {
 		return false; 
 	}
 
+	/**
+	 * Retrieve module info from ModuleName.info.json or ModuleName.info.php
+	 * 
+	 * @param $moduleName
+	 * @return array
+	 * 
+	 */
 	protected function getModuleInfoExternal($moduleName) {
 		
 		// ...attempt to load info by info file (Module.info.php or Module.info.json)
@@ -1496,7 +1551,14 @@ class Modules extends WireArray {
 		
 		return $info; 
 	}
-	
+
+	/**
+	 * Retrieve module info from internal getModuleInfo function in the class
+	 * 
+	 * @param $module
+	 * @return array
+	 * 
+	 */
 	protected function getModuleInfoInternal($module) {
 		
 		$info = array();
@@ -1521,6 +1583,29 @@ class Modules extends WireArray {
 		return $info; 
 	}
 	
+	/**
+	 * Pull module info directly from the module file's getModuleInfo without letting PHP parse it
+	 * 
+	 * Useful for getting module info from modules that extend another module not already on the file system.
+	 *
+	 * @param $className
+	 * @return array Only includes module info specified in the module file itself.
+	 *
+	 */
+	protected function getModuleInfoInternalSafe($className) {
+		// future addition
+		// load file, preg_split by /^\s*(public|private|protected)[^;{]+function\s*([^)]*)[^{]*{/
+		// isolate the one that starts has getModuleInfo in matches[1]
+		// parse data from matches[2]
+	}
+
+	/**
+	 * Retrieve module info for system properties: PHP or ProcessWire
+	 * 
+	 * @param $moduleName
+	 * @return array
+	 * 
+	 */
 	protected function getModuleInfoSystem($moduleName) {
 
 		$info = array();
@@ -1537,13 +1622,17 @@ class Modules extends WireArray {
 			$info['title'] = $moduleName;
 			$info['version'] = $this->wire('config')->version;
 			$info['requiresVersions'] = array(
-				'PHP' => '>=5.3.8',
-				'PHP_modules' => 'PDO,mysqli',
-				'Apache_modules' => 'mod_rewrite',
-				'MySQL' => '>=5.0.15',
+				'PHP' => array('>=', '5.3.8'),
+				'PHP_modules' => array('=', 'PDO,mysqli'),
+				'Apache_modules' => array('=', 'mod_rewrite'),
+				'MySQL' => array('>=', '5.0.15'),
 			);
 			$info['requires'] = array_keys($info['requiresVersions']);
+		} else {
+			return array();
 		}
+		
+		$info['versionStr'] = $info['version'];
 		
 		return $info;
 
@@ -1554,11 +1643,12 @@ class Modules extends WireArray {
 	 *
 	 * @param string|Module|int $module May be class name, module instance, or module ID
 	 * @param array $options Optional options to modify behavior of what gets returned
-	 *  - verbose: Makes the info also include summary, author, file, core, configurable and href (they will be usually blank without this option specified)
+	 *  - verbose: Makes the info also include summary, author, file, core, configurable, href, versionStr (they will be usually blank without this option specified)
 	 * 	- noCache: prevents use of cache to retrieve the module info
 	 *  - noInclude: prevents include() of the module file, applicable only if it hasn't already been included
 	 * @return array
 	 * @throws WireException when a module exists but has no means of returning module info
+	 * @todo move all getModuleInfo methods to their own ModuleInfo class and break this method down further. 
 	 *	
 	 */
 	public function getModuleInfo($module, array $options = array()) {
@@ -1580,6 +1670,8 @@ class Modules extends WireArray {
 			'title' => '',
 			// module version
 			'version' => 0,
+			// module version (always formatted string)
+			'versionStr' => '0.0.0', 
 			// who authored the module? (included in 'verbose' mode only)
 			'author' => '',
 			// summary of what this module does (included in 'verbose' mode only)
@@ -1713,18 +1805,20 @@ class Modules extends WireArray {
 				}
 				$info['requiresVersions'][$class] = array($operator, $version); 
 			}
-	
+
+			// what does it install?
 			if(!is_array($info['installs'])) {
 				$info['installs'] = str_replace(' ', '', $info['installs']); // remove whitespace
 				if(strpos($info['installs'], ',') !== false) $info['installs'] = explode(',', $info['installs']); 
 					else $info['installs'] = array($info['installs']); 
 			}
-
-			// module name
-			$info['name'] = $moduleName;
-			// module file	
-			$info['file'] = $this->getModuleFile($moduleName, false);
-			if($info['file']) $info['core'] = strpos($info['file'], '/wire/modules/') !== false;
+	
+			// misc
+			$info['versionStr'] = $this->formatVersion($info['version']); // versionStr
+			$info['name'] = $moduleName; // module name
+			$info['file'] = $this->getModuleFile($moduleName, false); // module file	
+			if($info['file']) $info['core'] = strpos($info['file'], '/wire/modules/') !== false; // is it core?
+			
 			// module configurable?
 			$interfaces = @class_implements($moduleName, false); 
 			$info['configurable'] = is_array($interfaces) && isset($interfaces['ConfigurableModule']); 
@@ -1740,6 +1834,8 @@ class Modules extends WireArray {
 				$dirmtime = substr($dirname, -7) == 'modules' || strpos($dirname, $this->paths[0]) !== false ? 0 : (int) filemtime($dirname);
 				$info['created'] = $dirmtime > $filemtime ? $dirmtime : $filemtime;
 			}
+			
+			if(!$options['verbose']) foreach($this->moduleInfoVerboseKeys as $key) unset($info[$key]); 
 		} 
 		
 		if(empty($info['created']) && isset($this->createdDates[$moduleID])) {
@@ -1764,7 +1860,6 @@ class Modules extends WireArray {
 		$options['verbose'] = true; 
 		return $this->getModuleInfo($module, $options); 
 	}
-
 
 	/**
 	 * Given a class name, return an array of configuration data specified for the Module
@@ -2096,28 +2191,36 @@ class Modules extends WireArray {
 	/**
 	 * Compare one module version to another, returning TRUE if they match the $operator or FALSE otherwise
 	 *
-	 * @param int $currentVersion
-	 * @param int|string $requiredVersion
+	 * @param int|string $currentVersion May be a number like 123 or a formatted version like 1.2.3
+	 * @param int|string $requiredVersion May be a number like 123 or a formatted version like 1.2.3
 	 * @param string $operator
 	 * @return bool
 	 *
 	 */
-	protected function versionCompare($currentVersion, $requiredVersion, $operator) {
-		$return = false;
-		if(is_string($requiredVersion)) {
-			if(!is_string($currentVersion)) $currentVersion = $this->formatVersion($currentVersion); 
-			$return = version_compare($currentVersion, $requiredVersion, $operator); 
-		} else {
+	public function versionCompare($currentVersion, $requiredVersion, $operator) {
+		
+		if(ctype_digit("$currentVersion") && ctype_digit("$requiredVersion")) {
+			// integer comparison is ok
+			$currentVersion = (int) $currentVersion;
+			$requiredVersion = (int) $requiredVersion;
+			$result = false;
+			
 			switch($operator) {
-				case '=': $return = ($currentVersion == $requiredVersion); break;
-				case '>': $return = ($currentVersion > $requiredVersion); break;
-				case '<': $return = ($currentVersion < $requiredVersion); break;
-				case '>=': $return = ($currentVersion >= $requiredVersion); break;
-				case '<=': $return = ($currentVersion <= $requiredVersion); break;
-				case '!=': $return = ($currentVersion != $requiredVersion); break;
+				case '=': $result = ($currentVersion == $requiredVersion); break;
+				case '>': $result = ($currentVersion > $requiredVersion); break;
+				case '<': $result = ($currentVersion < $requiredVersion); break;
+				case '>=': $result = ($currentVersion >= $requiredVersion); break;
+				case '<=': $result = ($currentVersion <= $requiredVersion); break;
+				case '!=': $result = ($currentVersion != $requiredVersion); break;
 			}
+			return $result;
 		}
-		return $return;
+
+		// if either version has no periods or only one, like "1.2" then format it to stanard: "1.2.0"
+		if(substr_count($currentVersion, '.') < 2) $currentVersion = $this->formatVersion($currentVersion);
+		if(substr_count($requiredVersion, '.') < 2) $requiredVersion = $this->formatVersion($requiredVersion); 
+		
+		return version_compare($currentVersion, $requiredVersion, $operator); 
 	}
 
 	/**
@@ -2230,25 +2333,46 @@ class Modules extends WireArray {
 	 * 
 	 */
 	public function formatVersion($version) {
-		$version = trim($version); 
+		
+		$version = trim($version);
+
 		if(!ctype_digit(str_replace('.', '', $version))) {
 			// if version has some characters other than digits or periods, remove them
 			$version = preg_replace('/[^\d.]/', '', $version); 
 		}
+		
 		if(ctype_digit("$version")) {
-			// make sure version is at least 3 characters in length
-			if(strlen($version) < 3) $version = str_pad($version, 3, "0", STR_PAD_LEFT);
-			// if version has only digits, then insert periods
-			$version = preg_replace('/(\d)(?=\d)/', '$1.', $version); 
+			// version contains only digits
+			// make sure version is at least 3 characters in length, left padded with 0s
+			$len = strlen($version); 
+
+			if($len < 3) {
+				$version = str_pad($version, 3, "0", STR_PAD_LEFT);
+
+			} else if($len > 3) {
+				// they really need to use a string for this type of version, 
+				// as we can't really guess, but we'll try, converting 1234 to 1.2.34
+			}
+
+			// $version = preg_replace('/(\d)(?=\d)/', '$1.', $version); 
+			$version = 
+				substr($version, 0, 1) . '.' . 
+				substr($version, 1, 1) . '.' . 
+				substr($version, 2); 
 			
 		} else if(strpos($version, '.') !== false) {
 			// version is a formatted string
 			if(strpos($version, '.') == strrpos($version, '.')) {
-				// only 1 period, like: 2.0 
+				// only 1 period, like: 2.0, convert that to 2.0.0
 				if(preg_match('/^\d\.\d$/', $version)) $version .= ".0";
 			}
+			
+		} else {
+			// invalid version?
 		}
+		
 		if(!strlen($version)) $version = '0.0.0';
+		
 		return $version;
 	}
 	
@@ -2356,12 +2480,12 @@ class Modules extends WireArray {
 			
 				if($installed) { 
 					
-					$verboseKeys = array('summary', 'author', 'href', 'file', 'core', 'configurable'); 
+					$verboseKeys = $this->moduleInfoVerboseKeys; 
 					$verboseInfo = array();
 		
 					foreach($verboseKeys as $key) {
 						if(!empty($info[$key])) $verboseInfo[$key] = $info[$key]; 
-						unset($info[$key]); 
+						unset($info[$key]); // remove from regular moduleInfo 
 					}
 					
 					$this->moduleInfoCache[$moduleID] = $info; 

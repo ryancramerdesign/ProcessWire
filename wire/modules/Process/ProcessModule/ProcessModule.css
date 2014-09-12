@@ -121,3 +121,8 @@ a span.PermanentModule {
 	display: none;
 	
 }
+
+#content.fouc_fix .WireTab,
+#content.fouc_fix .WireTabs li {
+	display: none; 
+}

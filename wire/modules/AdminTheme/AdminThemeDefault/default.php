@@ -16,7 +16,7 @@ if(!isset($content)) $content = '';
 	
 $searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm() : '';
 
-$config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "main-$adminTheme->colors" : "main") . ".css?v=7"); 
+$config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "main-$adminTheme->colors" : "main-classic") . ".css?v=8"); 
 $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css"); 
 $config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=7"); 
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=5");

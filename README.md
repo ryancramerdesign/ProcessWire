@@ -1,4 +1,4 @@
-# ProcessWire 2.4
+# ProcessWire 2.5
 
 ## Table of Contents
 
@@ -18,6 +18,7 @@
        - [Replacing the /index.php file](#replacing-the-indexphp-file)
        - [Replacing the .htaccess file](#replacing-the-htaccess-file)
        - [Additional upgrade notes](#additional-upgrade-notes)
+   - [Upgrading from ProcessWire 2.4](#upgrading-from-processwire-24)
    - [Upgrading from ProcessWire 2.2 or 2.3](#upgrading-from-processwire-22-or-23)
    - [Upgrading from ProcessWire 2.1](#upgrading-from-processwire-21)
    - [Upgrading from ProcessWire 2.0](#upgrading-from-processwire-20)
@@ -137,8 +138,12 @@ error, please post in the [ProcessWire forums](http://processwire.com/talk).
    re-install them after upgrading. If uninstalling is 
    inconvenient, just be sure you have the ability to revert if for 
    some reason one of your modules does not like the upgrade.
-   Modules that are compatible with ProcessWire 2.3 are generally
-   going to also be compatible with 2.4. 
+   Modules that are compatible with ProcessWire 2.4 are generally
+   going to also be compatible with 2.5. 
+
+If you prefer an automatic/web-based upgrade, an
+[upgrade module](https://github.com/ryancramerdesign/ProcessWireUpgrade)
+is available for upgrading to 2.5. 
 
 
 ### General Upgrade Process
@@ -161,11 +166,10 @@ replace the files mentioned above.
 
 *NOTE: Renaming is an alternative to deleting, which gives you a quicker 
 path to revert should you want to. For example, you might rename
-your /wire/ directory to be /.wire-2.3.0/ with ".wire" rather than 
-"wire" to ensure the directory is hidden, and the 2.3.0 indicating the 
+your /wire/ directory to be /.wire-2.4.0/ with ".wire" rather than 
+"wire" to ensure the directory is hidden, and the 2.4.0 indicating the 
 version that it was. Once your upgrade is safely in place, you could 
-delete that .wire.230 directory.*
-
+delete that .wire-2.4.0 directory (or keep it around).*
 
 
 #### Replacing the /wire/ directory
@@ -203,10 +207,11 @@ Sometimes people have made changes to the .htaccess file. If this is
 the case for your site, remember to migrate those changes to the new
 .htaccess file. 
 
+
 #### Additional upgrade notes
 
 - If using Form Builder make sure you have the latest version,
-  as past versions did not support ProcessWire 2.4. 
+  as past versions did not support ProcessWire 2.4/2.5. 
 
 - If using ProCache you will need to go to the ProCache
   settings after the upgrade to have it update your .htaccess file
@@ -215,18 +220,30 @@ the case for your site, remember to migrate those changes to the new
 - After completing the upgrade test out your site thoroughly
   to make sure everything continues to work as you expect. 
 
-- ProcessWire 2.4 comes with a new admin theme. After completing
-  your upgrade, you may choose a different color theme (if desired)
-  by going to Modules > Core > Default Admin Theme. 
+- ProcessWire 2.4/2.5 come with new admin themes. After completing
+  your upgrade, you may install or configure these admin themes. 
 
-- If you want to return to the old admin theme or utilize an
-  existing 3rd party admin theme designed for 2.3 or earlier,
-  simply uninstall the Default Admin Theme module. 
+
+### Upgrading from ProcessWire 2.4
+
+The general upgrade process may be followed to perform this upgrade.
+Please note the following:
+
+- While not urgent, you *will* want to replace your [.htaccess](#replacing-the-htaccess-file)
+  and [index.php](#replacing-the-indexphp-file) files as part of the upgrade. 
+
+- 2.5 drops TinyMCE as the rich text editor and replaces it with 
+  CKEditor. After installation of 2.5, you will see an error message
+  on any pages that use TinyMCE. From this point, you may either 
+  install TinyMCE or switch your fields using TinyMCE to CKEditor. 
+  To switch to CKEditor, go to Setup > Fields > [field] > Details,
+  and change the *Inputfield Type* to CKEditor (it may already be
+  selected), then be sure to Save. 
 
 
 ### Upgrading from ProcessWire 2.2 or 2.3
 
-ProcessWire 2.4 has two new software requirements: 
+ProcessWire 2.4 and 2.5 have two new software requirements: 
 
 - PHP 5.3.8+ (older versions supported PHP 5.2)
 - PDO database driver (older versions only used mysqli)
@@ -281,7 +298,7 @@ modules cache. You can do this by removing all of these files:
 /site/assets/cache/Modules.*
 
 If using Form Builder, make sure you have version 0.2.2 or newer, as older
-versions did not support ProcessWire 2.4. 
+versions did not support ProcessWire 2.4/2.5+. 
 
 If your site still doesn't work, remove the /wire/ directory completely. 
 Then upload a fresh copy of the /wire/ directory. 
@@ -311,9 +328,10 @@ any live/production sites.
 $config->debug = true; 
 ```
 
-This can be found near the bottom of the file. It will make PHP and 
-ProcessWire report all errors, warnings, notices, etc. Of course, you'll
-want to set it back to false once you've resolved any issues. 
+This can be found near the bottom of the file, or you can add it if not
+already there. It will make PHP and ProcessWire report all errors, warnings,
+notices, etc. Of course, you'll want to set it back to false once you've 
+resolved any issues. 
 
 
 ## Support

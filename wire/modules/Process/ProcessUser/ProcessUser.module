@@ -34,7 +34,7 @@ class ProcessUser extends ProcessPageType {
 		$this->wire('pages')->addHookBefore('save', $this, 'hookPageSave');	
 		parent::init();
 	
-		if($this->wire('user')->hasPermission('lister')) {
+		if($this->wire('user')->hasPermission('page-lister')) {
 			if($this->wire('modules')->isInstalled('ProcessPageListerPro')) {
 				$this->lister = $this->wire('modules')->get('ProcessPageListerPro');
 			}

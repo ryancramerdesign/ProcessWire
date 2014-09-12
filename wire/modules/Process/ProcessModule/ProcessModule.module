@@ -19,20 +19,17 @@
  *
  */
 
-class ProcessModule extends Process implements ConfigurableModule {
+class ProcessModule extends Process {
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Modules', __FILE__), // getModuleInfo title          
 			'summary' => __('List, edit or install/uninstall modules', __FILE__), // getModuleInfo summary
-			'version' => 113, 
+			'version' => 114, 
 			'permanent' => true, 
 			'permission' => 'module-admin', 
 			);
 	}
-
-	const defaultServiceUrl = 'http://modules.processwire.com/export-json/';
-	const defaultServiceKey = 'pw231';
 
 	protected $labels = array();
 
@@ -75,11 +72,10 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$this->labels['upload_zip'] = $this->_('Add Module From Upload');
 		$this->labels['download_zip'] = $this->_('Add Module From URL');
 		$this->labels['check_new'] = $this->_('Check for New Modules'); 
-		$this->labels['installed_date'] = $this->_('Installed'); 
+		$this->labels['installed_date'] = $this->_('Installed');
+		$this->labels['requires'] = $this->_x("Requires", 'list'); // Label that precedes list of required prerequisite modules
+		$this->labels['installs'] = $this->_x("Also Installs", 'list'); // Label that precedes list of other modules a given one installs
 
-		$this->set('serviceUrl', self::defaultServiceUrl); 
-		$this->set('serviceKey', self::defaultServiceKey); 
-		
 		require(dirname(__FILE__) . '/ProcessModuleInstall.php'); 
 	}
 
@@ -160,7 +156,9 @@ class ProcessModule extends Process implements ConfigurableModule {
 
 		if($this->input->get->reset == 1) {
 			$this->modules->resetCache();
-			$this->session->redirect("./?reset=2");
+			$edit = $this->input->get->edit;
+			if($edit) $this->session->redirect("./edit?name=" . $this->sanitizer->fieldName($edit) . "&reset=2"); 
+				else $this->session->redirect("./?reset=2");
 		}
 
 		return $this->renderList();
@@ -172,6 +170,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 	 *
 	 */
 	protected function renderList() {
+		
 		
 		$modulesArray = $this->modulesArray; 
 		$installedArray = array();
@@ -296,7 +295,6 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$fieldset->label = $this->labels['download_dir'];
 		$fieldset->icon = 'cloud-download';
 		//if($this->wire('input')->post('new_seconds')) $fieldset->collapsed = Inputfield::collapsedYes; 
-		$fieldset->collapsed = Inputfield::collapsedYes;
 		$f = $this->modules->get('InputfieldName');
 		$f->attr('id+name', 'download_name');
 		$f->label = $this->_('Module Class Name');
@@ -413,8 +411,6 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$newModules = $this->wire('session')->get('ProcessModuleNewModules');
 		if(!is_array($newModules)) $newModules = array();
 
-		$labelRequires = $this->_x("Requires", 'list'); // Label that precedes list of required prerequisite modules
-		$labelInstalls = $this->_x("Also Installs", 'list'); // Label that precedes list of other modules a given one installs
 		$sections = array();
 		$sectionsQty = array();
 
@@ -463,12 +459,12 @@ class ProcessModule extends Process implements ConfigurableModule {
 							$requiresInfo = $this->modules->getModuleInfo($nameOnly); 
 							if(!empty($requiresInfo['error'])) $requires[$key] = "<a href='./?download_name=$nameOnly'>$value</a>";
 						}
-						$summary .= "<span class='notes requires'>$labelRequires - " . implode(', ', $requires) . "</span>";
+						$summary .= "<span class='notes requires'>" . $this->labels['requires'] . " - " . implode(', ', $requires) . "</span>";
 					}
 				} else $requires = array();
 
 				if(count($info['installs'])) {
-					$summary .= "<span class='detail installs'>$labelInstalls - " . implode(', ', $info['installs']) . "</span>";
+					$summary .= "<span class='detail installs'>" . $this->labels['installs'] . " - " . implode(', ', $info['installs']) . "</span>";
 				}
 
 				$class = 'not_installed';
@@ -577,7 +573,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 		
 		$redirectURL = $update ? "./edit?name=$name" : "./";
 		$className = $name; 
-		$url = trim($this->serviceUrl, '/') . "/$className/?apikey=" . $this->wire('sanitizer')->name($this->serviceKey);
+		$url = trim($this->wire('config')->moduleServiceURL, '/') . "/$className/?apikey=" . $this->wire('sanitizer')->name($this->wire('config')->moduleServiceKey);
 		$http = new WireHttp();
 		$data = $http->get($url); 
 		if(empty($data)) {
@@ -669,6 +665,37 @@ class ProcessModule extends Process implements ConfigurableModule {
 		$table->row(array($this->_x('Summary', 'install-table'), $this->wire('sanitizer')->entities($data['summary'])));
 		$table->row(array($this->_x('Release State', 'install-table'), $this->wire('sanitizer')->entities($data['release_state']['title'])));
 		$table->row(array($this->_x('Compatibility', 'install-table'), $this->wire('sanitizer')->entities($compat)));
+		
+		// $this->message("<pre>" . print_r($data, true) . "</pre>", Notice::allowMarkup); 
+		$installable = true; 
+		if(!empty($data['requires_versions'])) {
+			$requiresVersions = array();
+			foreach($data['requires_versions'] as $name => $requires) {
+				list($op, $ver) = $requires;
+				$label = $ver ? $this->sanitizer->entities("$name $op $ver") : $this->sanitizer->entities($name);
+				if($this->modules->isInstalled("$name$op$ver") || in_array($name, $data['installs'])) {
+					// installed
+					$requiresVersions[] = "$label <i class='fa fa-fw fa-thumbs-up'></i>";
+				} else if($this->modules->isInstalled($name)) {
+					// installed, but version isn't adequate
+					$installable = false;
+					$info = $this->modules->getModuleInfo($name);
+					$requiresVersions[] = $this->sanitizer->entities($name) . " " . $this->modules->formatVersion($info['version']) . " " . 
+						"<span class='ui-state-error-text'>" . $this->sanitizer->entities("$op $ver") . " " . 
+						"<i class='fa fa-fw fa-thumbs-down'></i></span>";
+				} else {
+					// not installed at all
+					$requiresVersions[] = "<span class='ui-state-error-text'>$label <i class='fa fa-fw fa-thumbs-down'></i></span>";
+					$installable = false; 
+				}
+			}
+			$table->row(array($this->labels['requires'], implode('<br />', $requiresVersions))); 
+			if(!$installable) $this->error("Module is not installable because not all required dependencies are currently met."); 
+		}
+		if(!empty($data['installs'])) {
+			$installs = $this->sanitizer->entities(implode("\n", $data['installs'])); 
+			$table->row(array($this->labels['installs'], nl2br($installs))); 
+		}
 
 		$links = array();
 
@@ -701,7 +728,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 
 		$markup->value = $table->render();
 
-		if($data['download_url']) {
+		if($installable && $data['download_url']) {
 			$btn = $this->wire('modules')->get('InputfieldSubmit');
 			$btn->attr('id+name', 'godownload');
 			$btn->value = $this->labels['download_install'];
@@ -822,7 +849,7 @@ class ProcessModule extends Process implements ConfigurableModule {
 			$this->wire('processHeadline', $this->_('Updated:') . ' ' . $className);
 			$form->description = sprintf($this->_('%s was updated successfully.'), $className);
 			$button = $this->modules->get('InputfieldButton');
-			$button->attr('href', "../edit?name=$className");
+			$button->attr('href', "../?reset=1&edit=$className");
 			$button->attr('value', $this->_('Continue to module settings'));
 			$button->attr('id', 'gosettings');
 			$form->add($button);
@@ -1040,29 +1067,6 @@ class ProcessModule extends Process implements ConfigurableModule {
 			$out .= "<code>" . ($hook['options']['fromClass'] ? $hook['options']['fromClass'] . '::' : '') . "$hook[method]$suffix</code>, ";
 		}
 		return trim($out, ", "); 
-	}
-
-	public static function getModuleConfigInputfields(array $data) {
-		if(empty($data['serviceUrl'])) $data['serviceUrl'] = self::defaultServiceUrl;
-		if(empty($data['serviceKey'])) $data['serviceKey'] = self::defaultServiceKey;
-
-		$inputfields = new InputfieldWrapper();
-
-		$f = wire('modules')->get('InputfieldURL'); 
-		$f->attr('name', 'serviceUrl'); 
-		$f->label = __('Modules Web Service URL'); 
-		$f->attr('value', $data['serviceUrl']); 
-		$f->columnWidth = 50;
-		$inputfields->add($f);
-
-		$f = wire('modules')->get('InputfieldText'); 
-		$f->attr('name', 'serviceKey'); 
-		$f->label = __('Modules Web Service API Key'); 
-		$f->attr('value', $data['serviceKey']); 
-		$f->columnWidth = 50;
-		$inputfields->add($f);
-
-		return $inputfields; 
 	}
 
 }

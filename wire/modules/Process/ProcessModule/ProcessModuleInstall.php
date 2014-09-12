@@ -288,7 +288,7 @@ class ProcessModuleInstall extends Wire {
 		$backupDir = "$parentDir/.$name/";
 		if(is_dir($backupDir)) wireRmdir($backupDir, true); // if there's already an old backup copy, remove it
 		if(rename($moduleDir, $backupDir)) {
-			$this->message(sprintf($this->_('Backed up existing %s'), $name) . " => $backupDir");
+			$this->message(sprintf($this->_('Backed up existing %s'), $name) . " => " . str_replace($this->wire('config')->paths->root, '/', $backupDir));
 			return true; 
 		}
 		return false;

@@ -28,9 +28,10 @@
  * 5. Files and assets
  * 6. HTTP and input 
  * 7. Database
- * 8. Misc
- * 9. Runtime 
- * 10. System
+ * 8. Modules
+ * 9. Misc
+ * 10. Runtime 
+ * 11. System
  * 
  */
 
@@ -267,6 +268,7 @@ $config->pagefileSecure = false;
  * @deprecated
  *
  * $config->pagefileUrlPrefix = '-/';
+ * 
  */
 
 /**
@@ -274,15 +276,16 @@ $config->pagefileSecure = false;
  *
  * One or more characters prefixed to the pathname of secured file dirs.
  *
- * This should be some prefix that the .htaccess file knows to block requests for. This is typically
- * overridden as '-' in /site/config.php, but kept as '.' in this file for fallback/backwards
- * compatibility with pre 2.3 htaccess files. It is preferred for this to be '-' in your site/config.php.
+ * If use of this feature originated with a pre-2.3 install, this may need to be 
+ * specified as "." rather than "-". 
  *
  */
-$config->pagefileSecurePathPrefix = '.';
+$config->pagefileSecurePathPrefix = '-';
 
 /**
  * Use extended file mapping? Enable this if you expect to have >30000 pages in your site.
+ * 
+ * Warning: The extended file mapping feature is not yet widely tested, so consider it beta.
  *
  * Set to true in /site/config.php if you want files to live in an extended path mapping system
  * that limits the number of directories per path to under 2000.
@@ -292,7 +295,7 @@ $config->pagefileSecurePathPrefix = '.';
  *
  * Please note that for existing sites, this applies only for new pages created from this
  * point forward.
- *
+ * 
  * @var bool
  *
  */
@@ -303,6 +306,8 @@ $config->pagefileExtendedPaths = false;
  *
  * Any content types that should be force-download should be preceded with a plus sign.
  * The '?' index must be present to represent a default for all not present.
+ * 
+ * @var array
  *
  */
 $config->fileContentTypes = array(
@@ -323,6 +328,8 @@ $config->fileContentTypes = array(
  * Image sizer options
  *
  * Default ImageSizer options, as used by $page->image->size(w, h), for example.
+ * 
+ * @var array
  *
  */
 $config->imageSizerOptions = array(
@@ -381,6 +388,8 @@ $config->httpHosts = array(
  * This is set automatically by ProcessWire at runtime, consisting of one of the values 
  * specified in $config->httpHosts. However, if you set a value for this, it will override
  * ProcessWire's runtime value. 
+ * 
+ * @var string
  * 
  */
 $config->httpHost = '';
@@ -554,7 +563,43 @@ $config->dbSocket = '';
 
 
 
-/*** 8. MISC ************************************************************************************/
+
+/*** 8. MODULES *********************************************************************************/
+
+/**
+ * URL to modules directory service
+ *
+ * @var string
+ *
+ */
+$config->moduleServiceURL = 'http://modules.processwire.com/export-json/';
+
+/**
+ * API key for modules directory service
+ *
+ * @var string
+ *
+ */
+$config->moduleServiceKey = 'pw250';
+
+/**
+ * Substitute modules
+ *
+ * Names of substitutute mdoules for when requested module doesn't exist
+ *
+ * array associative, of module name => replacement name
+ *
+ */
+$config->substituteModules = array(
+	// TinyMCE replaced with CKEditor as default RTE in 2.4.9+
+	'InputfieldTinyMCE' => 'InputfieldCKEditor'
+);
+
+
+
+
+
+/*** 9. MISC ************************************************************************************/
 
 /**
  * Admin email address
@@ -580,19 +625,6 @@ $config->adminEmail = '';
 $config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5em;font-family:sans-serif;'><b>{message}</b><br /><small>{why}</small></p>";
 
 /**
- * Substitute modules
- * 
- * Names of substitutute mdoules for when requested module doesn't exist
- * 
- * array associative, of module name => replacement name 
- * 
- */
-$config->substituteModules = array(
-	// TinyMCE replaced with CKEditor as default RTE in 2.4.9+
-	'InputfieldTinyMCE' => 'InputfieldCKEditor' 
-	);
-
-/**
  * Settings specific to InputfieldWrapper class
  *
  * Setting useDependencies to false may enable to use depencencies in some places where
@@ -609,9 +641,7 @@ $config->substituteModules = array(
  */
 
 
-
-
-/*** 9. RUNTIME *********************************************************************************
+/*** 10. RUNTIME ********************************************************************************
  * 
  * The following are runtime-only settings and cannot be changed from /site/config.php
  * 
@@ -656,7 +686,7 @@ $config->versionName = '';
 
 
 
-/*** 10. SYSTEM *********************************************************************************
+/*** 11. SYSTEM *********************************************************************************
  * 
  * Values in this section are not meant to be changed
  *
