@@ -23,7 +23,7 @@ $searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSear
 
 $config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "$adminTheme->colors" : "main") . ".css?v=7"); 
 $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css");
-if($languages) $config->styles->append($config->urls->adminTemplates . "styles/lang.css"); 
+if(wire('languages')) $config->styles->append($config->urls->adminTemplates . "styles/lang.css"); 
 $config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=6"); 
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=6");
 
