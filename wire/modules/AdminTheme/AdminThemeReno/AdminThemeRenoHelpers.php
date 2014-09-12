@@ -408,7 +408,7 @@ class AdminThemeRenoHelpers extends WireData {
 	public function renderBodyClass() {
 		$page = $this->wire('page');
 		$bodyClass = $this->wire('input')->get->modal ? 'modal ' : '';
-		$bodyClass .= "id-{$page->id} template-{$page->template->name}";
+		$bodyClass .= "id-{$page->id} template-{$page->template->name} pw-init";
 		if(wire('config')->js('JqueryWireTabs')) $bodyClass .= " hasWireTabs";
 		return $bodyClass; 
 	}

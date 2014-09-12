@@ -22,8 +22,12 @@ var ProcessWireAdminTheme = {
 		this.setupSidebarNav();
 		this.setupSpinner();
 		// this.sizeTitle();
-		if($("body").hasClass('hasWireTabs') && $("ul.WireTabs").size() == 0) $("body").removeClass('hasWireTabs'); 
-		$('#content').removeClass('fouc_fix'); // FOUC fix
+		var $body = $("body"); 
+		var $html = $("html"); 
+		if($body.hasClass('hasWireTabs') && $("ul.WireTabs").size() == 0) $body.removeClass('hasWireTabs'); 
+		$('#content').removeClass('fouc_fix'); // FOUC fix, deprecated
+		$body.removeClass('pw-init').addClass('pw-ready'); 
+		$html.removeClass('pw-init').addClass('pw-ready'); 
 		this.browserCheck();
 	},
 

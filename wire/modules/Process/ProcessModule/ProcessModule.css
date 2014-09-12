@@ -122,7 +122,10 @@ a span.PermanentModule {
 	
 }
 
-#content.fouc_fix .WireTab,
-#content.fouc_fix .WireTabs li {
+.pw-init #modules_form, 
+.pw-init .WireTab,
+.pw-init .WireTabs li {
 	display: none; 
 }
+
+
