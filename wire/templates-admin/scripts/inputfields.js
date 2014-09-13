@@ -1,6 +1,6 @@
 /**
  * inputfields.js - JS specific to behavior of ProcessWire inputfields.
- * 
+ *
  * For other admin theme developers: you do not need to include this file in your admin theme
  * unless you want to (and it's better not to). Instead you should direct your admin theme to
  * load this exact file: $config->urls->root . 'wire/templates-admin/scripts/inputfields.js';
@@ -23,13 +23,13 @@ var InputfieldDependenciesProcessing = false;
 function InputfieldDependencies() {
 
 	if(InputfieldDependenciesProcessing) return;
-	InputfieldDependenciesProcessing = true; 
+	InputfieldDependenciesProcessing = true;
 
 	$(".InputfieldStateShowIf, .InputfieldStateRequiredIf").each(function() {
 
 		 // Wrapper of field that we are operating on (i.e. #wrap_Inputfield_[name])
 		var $fieldToShow = $(this);
-		
+
 		//Name of the field contained by $fieldToShow
 		var fieldNameToShow = $fieldToShow.attr('id').replace(/wrap_Inputfield_/, '');
 
@@ -38,19 +38,19 @@ function InputfieldDependencies() {
 
 		/**
 		 * Convert string value to integer or float when appropriate
-		 * 
+		 *
 		 * @param str string
 		 * @param str2 string Optional second value for context
 		 * @return string|int|float
-		 * 
+		 *
 		 */
 		function parseValue(str, str2) {
-			
+
 			str = jQuery.trim(str);
 			if(str.length > 0 && !jQuery.isNumeric(str)) {
-				return str; 
+				return str;
 			}
-			
+
 			if(str.length == 0) {
 				// empty value: should it be a blank or a 0?
 				var t = typeof str2;
@@ -61,28 +61,28 @@ function InputfieldDependencies() {
 					return str;
 				} else {
 					// no context, assume blank
-					return str; 	
+					return str;
 				}
 			}
-			
+
 			var dot1 = str.indexOf('.');
 			var dot2 = str.lastIndexOf('.');
-			
+
 			if(dot1 == -1 && /^-?\d+$/.test(str)) {
 				// no dot present, and all numbers so must be integer
 				return parseInt(str);
 			}
-			
+
 			if(dot2 > -1 && dot1 != dot2) {
 				// more than one dot, can't be a float
-				return str; 
+				return str;
 			}
-			
+
 			if(/^-?[\d.]+$/.test(str)) {
 				// looks to be a float
 				return parseFloat(str);
 			}
-			
+
 			return str;
 		}
 
@@ -91,7 +91,7 @@ function InputfieldDependencies() {
 		 *
 		 */
 		function inputfieldChange() {
-			InputfieldDependenciesProcessing = true; 
+			InputfieldDependenciesProcessing = true;
 
 			consoleLog('-------------------------------------------------------------------');
 			consoleLog('Field "' + $fieldToShow.attr('id') + '" detected a change to a dependency field! Beginning dependency checks...');
@@ -100,22 +100,35 @@ function InputfieldDependencies() {
 			var numVisibilityChanges = 0;
 
 			var totalMatched = 0;
-			var show = true; 
-			var requiredMatches = 0; 
+			var show = true;
+			var requiredMatches = 0;
 			var notRequiredMatches = 0;
 
 			for(var c = 0; c < conditions.length; c++) {
 
-				// current condition we are checking in this iteration 
+				// current condition we are checking in this iteration
 				var condition = conditions[c];
 
 				consoleLog('----');
 				consoleLog('Start Dependency ' + c);
 				consoleLog('Condition type: ' + condition.type);
 				consoleLog('Field: ' + condition.field);
-				if(condition.subfield.length > 0) consoleLog('Subfield: ' + condition.subfield); 
+				if(condition.subfield.length > 0) consoleLog('Subfield: ' + condition.subfield);
 				consoleLog('Operator: ' + condition.operator);
 				consoleLog('Required value: ' + condition.value);
+				consoleLog('typeof condition.value: ' + typeof condition.value);
+
+				// convert condition.value to an array, splitting it on pipes if present in a string
+				if ( !jQuery.isArray(condition.value) ) {
+
+					if ( typeof condition.value === 'string' )
+						condition.value = condition.value.split('|');
+					else
+						condition.value = [ condition.value ];
+
+				}
+
+				consoleLog(condition.value);
 
 				// matched contains positive value when condition matches
 				var matched = 0;
@@ -130,14 +143,23 @@ function InputfieldDependencies() {
 					consoleLog('Detected checkbox or radio: ' + condition.field);
 					if(condition.subfield == 'count' || condition.subfield == 'count-checkbox') {
 						// count number of matching checked inputs
-						$field = $("#wrap_Inputfield_" + condition.field + " :input"); 
+						$field = $("#wrap_Inputfield_" + condition.field + " :input");
 						value = $("#wrap_Inputfield_" + condition.field + " :checked").size();
-						consoleLog('Using count checkbox condition'); 
+						consoleLog('Using count checkbox condition');
 						condition.subfield = 'count-checkbox';
 					} else {
-						$field = $("#Inputfield_" + condition.field + "_" + condition.value);
+						consoleLog('condition.value.length = ' + condition.value.length);
+						// in the case of radio / checkboxes we're only allowing a single field match
+						for(var cv = 0; cv < condition.value.length; cv++) {
+							consoleLog('condition.value[cv] = ' + condition.value[cv]);
+							$field = $("#Inputfield_" + condition.field + "_" + condition.value[cv]);
+							if ( $field.length ) break;
+						}
 					}
 				}
+
+				consoleLog($field);
+				consoleLog('$field.length = ' + $field.length);
 
 				// value of the dependency field we are checking
 				if(value === null) value = $field.val();
@@ -148,12 +170,12 @@ function InputfieldDependencies() {
 				// prefer blank to null for our chcks
 				if(value == null) value = '';
 
-				// special case for checkbox and radios: 
+				// special case for checkbox and radios:
 				// if the field is not checked then we assume a blank value
 				var attrType = $field.attr('type');
 				if((attrType == 'checkbox' || attrType == 'radio') && !$field.is(":checked")) value = '';
 
-				// special case for 'count' subfield condition, 
+				// special case for 'count' subfield condition,
 				// where we take the value's length rather than the value
 				if(condition.subfield == 'count') value = value.length;
 
@@ -169,28 +191,38 @@ function InputfieldDependencies() {
 					// string: single value array
 					values[0] = value;
 				}
-			
+
 				// also allow for matching a "0" as an unchecked value
 				if((attrType == 'checkbox' || attrType == 'radio') && !$field.is(":checked")) values[1] = '0';
-				
+
+				// hold the current conditon
+				var conditionValue;
+
 				// cycle through the values (most of the time, just 1 value).
 				// increment variable 'show' each time a condition matches
 				for(var n = 0; n < values.length; n++) {
-					value = parseValue(values[n], condition.value);
-					
-					switch(condition.operator) {
-						case '=': if(value == condition.value) matched++; break;
-						case '!=': if(value != condition.value) matched++; break;
-						case '>': if(value > condition.value) matched++; break;
-						case '<': if(value < condition.value) matched++; break;
-						case '>=': if(value >= condition.value) matched++; break;
-						case '<=': if(value <= condition.value) matched++; break;
-						case '*=':
-						case '%=': if(value.indexOf(condition.value) > -1) matched++; break;
+
+					for(var cv = 0; cv < condition.value.length; cv++) {
+
+						conditionValue = condition.value[cv];
+						value = parseValue(values[n], conditionValue);
+
+						switch(condition.operator) {
+							case '=': if(value == conditionValue) matched++; break;
+							case '!=': if(value != conditionValue) matched++; break;
+							case '>': if(value > conditionValue) matched++; break;
+							case '<': if(value < conditionValue) matched++; break;
+							case '>=': if(value >= conditionValue) matched++; break;
+							case '<=': if(value <= conditionValue) matched++; break;
+							case '*=':
+							case '%=': if(value.indexOf(conditionValue) > -1) matched++; break;
+						}
+
 					}
 
 					consoleLog('Value #' + n + ' - Current value: ' + value);
 					consoleLog('Value #' + n + ' - Matched? ' + (matched > 0 ? 'YES' : 'NO'));
+
 				}
 
 				consoleLog('----');
@@ -217,7 +249,7 @@ function InputfieldDependencies() {
 
 			// consoleLog('Summary (required/matched): ' + conditions.length + ' / ' + show);
 
-			var required = requiredMatches > 0 && notRequiredMatches == 0; 
+			var required = requiredMatches > 0 && notRequiredMatches == 0;
 
 			if(show) {
 				consoleLog('Determined that field "' + fieldNameToShow + '" should be visible.');
@@ -240,7 +272,7 @@ function InputfieldDependencies() {
 					consoleLog('Field is already hidden.');
 				}
 				if(required) {
-					consoleLog('Field is required but cancelling that since it is not visible.'); 
+					consoleLog('Field is required but cancelling that since it is not visible.');
 					required = false;
 				}
 			}
@@ -358,7 +390,7 @@ function InputfieldDependencies() {
 
 function InputfieldColumnWidths() {
 
-	var colspacing = null; 
+	var colspacing = null;
 
 	/**
 	 * Return the current with of $item based on its "style" attribute
@@ -370,7 +402,7 @@ function InputfieldColumnWidths() {
 		var pct = parseInt(style.match(/width:\s*(\d+)/i)[1]);
 		// store the original width in another attribute, for later retrieval
 		if(!$item.attr('data-original-width')) $item.attr('data-original-width', pct);
-		// consoleLog('getWidth(' + $item.attr('id') + '): ' + pct + '%'); 
+		// consoleLog('getWidth(' + $item.attr('id') + '): ' + pct + '%');
 		return pct;
 	}
 
@@ -410,19 +442,19 @@ function InputfieldColumnWidths() {
 
 	function setHeight($item, maxColHeight) {
 		var h = getHeight($item);
-		consoleLog("setHeight: " + $item.find("label").text() + " >> " + maxColHeight + ' (' + h + ')'); 
+		consoleLog("setHeight: " + $item.find("label").text() + " >> " + maxColHeight + ' (' + h + ')');
 		if(h == maxColHeight) return;
 		if($item.hasClass('InputfieldStateCollapsed')) return;
-		var pad = maxColHeight-h; 
+		var pad = maxColHeight-h;
 		if(pad < 0) pad = 0;
-		var $container = $item.children('.InputfieldContent, .ui-widget-content'); 
+		var $container = $item.children('.InputfieldContent, .ui-widget-content');
 		if(pad == 0) {
 			// do nothing, already the right height
 		} else {
-			consoleLog('Adjusting ' + $item.attr('id') + ' from ' + h + ' to ' + maxColHeight); 
+			consoleLog('Adjusting ' + $item.attr('id') + ' from ' + h + ' to ' + maxColHeight);
 			var $spacer = $("<div class='maxColHeightSpacer'></div>");
-			$container.append($spacer); 
-			$spacer.height(pad); 
+			$container.append($spacer);
+			$spacer.height(pad);
 		}
 	}
 
@@ -434,8 +466,8 @@ function InputfieldColumnWidths() {
 	$(".InputfieldColumnWidthFirst.InputfieldColumnWidth:visible").each(function() {
 
 		if(colspacing === null) {
-			colspacing = $(this).parents('form').attr('data-colspacing'); 
-			if(typeof colspacing == 'undefined') colspacing = 1; 
+			colspacing = $(this).parents('form').attr('data-colspacing');
+			if(typeof colspacing == 'undefined') colspacing = 1;
 		}
 
 		var $firstItem = $(this);
@@ -457,7 +489,7 @@ function InputfieldColumnWidths() {
 			var $leadItem = $items.eq(0);
 		} else {
 			// lead item is first item
-			var $leadItem = $firstItem; 
+			var $leadItem = $firstItem;
 		}
 
 		// remove any spacers already present for adjusting height
@@ -480,16 +512,16 @@ function InputfieldColumnWidths() {
 			itemWidth = getWidth($item);
 			rowWidth += itemWidth;
 			var h = getHeight($item);
-			if(h > maxColHeight) maxColHeight = h; 
+			if(h > maxColHeight) maxColHeight = h;
 		});
 
 		// ensure that all columns in the same row share the same height
 		var lab = $leadItem.find("label").text();
-		consoleLog('maxColHeight: ' + lab + ' = ' + maxColHeight); 
+		consoleLog('maxColHeight: ' + lab + ' = ' + maxColHeight);
 
 		if(maxColHeight > 0) {
-			setHeight($leadItem, maxColHeight); 
-			$items.each(function() { setHeight($(this), maxColHeight); }); 
+			setHeight($leadItem, maxColHeight);
+			$items.each(function() { setHeight($(this), maxColHeight); });
 		}
 
 		// if the current rowWidth is less than the full width, expand the last item as needed to fill the row
@@ -527,7 +559,7 @@ function InputfieldColumnWidths() {
 		}
 
 		if($firstItem.is(".InputfieldStateHidden")) {
-			// If the first item is not part of the row, setup a temporary class to let the 
+			// If the first item is not part of the row, setup a temporary class to let the
 			// $leadItem behave in the same way as the first item
 			$leadItem.addClass("InputfieldColumnWidthFirstTmp");
 		}
@@ -537,93 +569,72 @@ function InputfieldColumnWidths() {
 
 /**
  * Setup the toggles for Inputfields and the animations that occur between opening and closing
- * 
+ *
  */
 function InputfieldStates() {
-	
-	$(".Inputfield:not(.collapsed9) > .InputfieldHeader, .Inputfield:not(.collapsed9) > .ui-widget-header").addClass("InputfieldStateToggle");
-	
-	$(document).on('click', '.InputfieldStateToggle, .toggle-icon', function() {
-		var $t = $(this);
-		var $li = $t.closest('.Inputfield');
-		var isIcon = $t.hasClass('toggle-icon');
-		var $icon = isIcon ? $t : $li.children('.InputfieldHeader, .ui-widget-header').find('.toggle-icon'); 
-		if($li.hasClass("InputfieldStateCollapsed") || $li.hasClass("InputfieldStateWasCollapsed") || isIcon) {
-			$li.addClass('InputfieldStateWasCollapsed'); // this class only used here
-			$li.toggleClass('InputfieldStateCollapsed', 100, function() {
-				var $input = $li.find(":input:visible");
-				if($input.size() == 1 && !$input.is('button')) { 
-					var t = $input.attr('type'); 
-					if($input.is('textarea') || t == 'text' || t == 'email' || t == 'url' || t == 'number') {
-						$input.focus();
-					}
-				}
-			});
-			$icon.toggleClass($icon.attr('data-to')); // data-to=classes to toggle
-			setTimeout('InputfieldColumnWidths()', 500); 
-		} else {
-			var color1 = $icon.css('color');
-			var color2 = $li.children('.InputfieldHeader, .ui-widget-header').css('color'); 
-			$icon.css('color', color2);
-			$icon.effect('pulsate', 300, function() {
-				$icon.css('color', color1); 
-			});
-			$li.find(":input:visible:eq(0)").focus();
-		}
+	$(".InputfieldHeader, .Inputfield > .ui-widget-header").addClass("InputfieldStateToggle")
+		.prepend("<i class='toggle-icon fa fa-angle-down'></i>");
 
+	$(document).on('click', '.InputfieldStateToggle', function() {
+		var $li = $(this).closest('.Inputfield');
+		$li.toggleClass('InputfieldStateCollapsed', 100);
+		$(this).children('i.toggle-icon').toggleClass('fa-angle-down fa-angle-right');
+
+		// if($.effects && $.effects['highlight']) $li.children('.InputfieldHeader, .ui-widget-header').effect('highlight', {}, 300);
+		setTimeout('InputfieldColumnWidths()', 500);
 		return false;
 	});
 
 	// use different icon for open and closed
-	var $icon = $(".Inputfields .InputfieldStateCollapsed > .InputfieldHeader i.toggle-icon, .Inputfields .InputfieldStateCollapsed > .ui-widget-header i.toggle-icon");
-	$icon.toggleClass($icon.attr('data-to')); 
+	$(".Inputfields .InputfieldStateCollapsed > .InputfieldHeader i.toggle-icon, .Inputfields .InputfieldStateCollapsed > .ui-widget-header i.toggle-icon")
+		.removeClass('fa-angle-down').addClass('fa-angle-right');
 
 	// display a detail with the HTML field name when the toggle icon is hovered
 	if(typeof config !== "undefined" && config.debug) {
 		$('label.InputfieldHeader > i.toggle-icon').hover(function() {
 			var $label = $(this).parent('label');
 			if($label.size() == 0) return;
-			var text = $label.attr('for').replace(/^Inputfield_/, ''); 
-			$label.append(" <span class='detail'>" + text + "</span>"); 
-			
+			var text = $label.attr('for').replace(/^Inputfield_/, '');
+			$label.append(" <span class='detail'>" + text + "</span>");
+
 		}, function() {
 			var $label = $(this).parent('label');
 			if($label.size() == 0) return;
 			$label.find('span.detail').remove();
-		}); 
+		});
 	}
 
 }
 
 /*********************************************************************************************/
-	
+
 function overflowAdjustments() {
 	// ensures an overflow-y scroll is set when the content height is less than window height
 	// this makes a permanently visible scrollbar, preventing jumps in ui-menus
-	var $body = $("body"); 
+	var $body = $("body");
 	var documentHeight = $(document).height();
 	var windowHeight = $(window).height();
-	
-	consoleLog('documentHeight=' + documentHeight + ', windowHeight=' + windowHeight); 
+
+	consoleLog('documentHeight=' + documentHeight + ', windowHeight=' + windowHeight);
 
 	if(documentHeight > windowHeight) {
 		// there is already a scrollbar
 		if($body.css('overflow-y') == 'scroll') {
 			$body.css('overflow-y', 'visible');
-			consoleLog("Setting overflow-y to visible"); 
+			consoleLog("Setting overflow-y to visible");
 		}
 	} else {
 		// force a scrollbar
 		$body.css('overflow-y', 'scroll');
-		consoleLog("Setting overflow-y to scroll"); 
+		consoleLog("Setting overflow-y to scroll");
 	}
 }
 
 var InputfieldWindowResizeQueued = false;
 
 function InputfieldWindowResizeActions() {
-	consoleLog('InputfieldWindowResizeActions()'); 
-	InputfieldColumnWidths(); 
+	consoleLog('InputfieldWindowResizeActions()');
+	InputfieldColumnWidths();
 	InputfieldWindowResizeQueued = false;
 	// overflowAdjustments();
 }
@@ -636,18 +647,18 @@ $(document).ready(function() {
 
 	var windowResized = function() {
 		if(InputfieldWindowResizeQueued) return;
-		InputfieldWindowResizeQueued = true; 
-		setTimeout('InputfieldWindowResizeActions()', 2000); 	
+		InputfieldWindowResizeQueued = true;
+		setTimeout('InputfieldWindowResizeActions()', 2000);
 	};
 	var tabClicked = function() {
 		if(InputfieldWindowResizeQueued) return;
-		InputfieldWindowResizeQueued = true; 
-		setTimeout('InputfieldWindowResizeActions()', 500); 	
-		return true; 
-	}; 
+		InputfieldWindowResizeQueued = true;
+		setTimeout('InputfieldWindowResizeActions()', 500);
+		return true;
+	};
 
-	$(window).resize(windowResized); 
-	$("ul.WireTabs > li > a").click(tabClicked); 
+	$(window).resize(windowResized);
+	$("ul.WireTabs > li > a").click(tabClicked);
 
-	// setTimeout('overflowAdjustments()', 100); 
-}); 
+	// setTimeout('overflowAdjustments()', 100);
+});
