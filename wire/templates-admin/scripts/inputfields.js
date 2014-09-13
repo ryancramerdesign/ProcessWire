@@ -572,22 +572,43 @@ function InputfieldColumnWidths() {
  *
  */
 function InputfieldStates() {
-	$(".InputfieldHeader, .Inputfield > .ui-widget-header").addClass("InputfieldStateToggle")
-		.prepend("<i class='toggle-icon fa fa-angle-down'></i>");
 
-	$(document).on('click', '.InputfieldStateToggle', function() {
-		var $li = $(this).closest('.Inputfield');
-		$li.toggleClass('InputfieldStateCollapsed', 100);
-		$(this).children('i.toggle-icon').toggleClass('fa-angle-down fa-angle-right');
+	$(".Inputfield:not(.collapsed9) > .InputfieldHeader, .Inputfield:not(.collapsed9) > .ui-widget-header").addClass("InputfieldStateToggle");
 
-		// if($.effects && $.effects['highlight']) $li.children('.InputfieldHeader, .ui-widget-header').effect('highlight', {}, 300);
-		setTimeout('InputfieldColumnWidths()', 500);
+	$(document).on('click', '.InputfieldStateToggle, .toggle-icon', function() {
+		var $t = $(this);
+		var $li = $t.closest('.Inputfield');
+		var isIcon = $t.hasClass('toggle-icon');
+		var $icon = isIcon ? $t : $li.children('.InputfieldHeader, .ui-widget-header').find('.toggle-icon');
+		if($li.hasClass("InputfieldStateCollapsed") || $li.hasClass("InputfieldStateWasCollapsed") || isIcon) {
+			$li.addClass('InputfieldStateWasCollapsed'); // this class only used here
+			$li.toggleClass('InputfieldStateCollapsed', 100, function() {
+				var $input = $li.find(":input:visible");
+				if($input.size() == 1 && !$input.is('button')) {
+					var t = $input.attr('type');
+					if($input.is('textarea') || t == 'text' || t == 'email' || t == 'url' || t == 'number') {
+						$input.focus();
+					}
+				}
+			});
+			$icon.toggleClass($icon.attr('data-to')); // data-to=classes to toggle
+			setTimeout('InputfieldColumnWidths()', 500);
+		} else {
+			var color1 = $icon.css('color');
+			var color2 = $li.children('.InputfieldHeader, .ui-widget-header').css('color');
+			$icon.css('color', color2);
+			$icon.effect('pulsate', 300, function() {
+				$icon.css('color', color1);
+			});
+			$li.find(":input:visible:eq(0)").focus();
+		}
+
 		return false;
 	});
 
 	// use different icon for open and closed
-	$(".Inputfields .InputfieldStateCollapsed > .InputfieldHeader i.toggle-icon, .Inputfields .InputfieldStateCollapsed > .ui-widget-header i.toggle-icon")
-		.removeClass('fa-angle-down').addClass('fa-angle-right');
+	var $icon = $(".Inputfields .InputfieldStateCollapsed > .InputfieldHeader i.toggle-icon, .Inputfields .InputfieldStateCollapsed > .ui-widget-header i.toggle-icon");
+	$icon.toggleClass($icon.attr('data-to'));
 
 	// display a detail with the HTML field name when the toggle icon is hovered
 	if(typeof config !== "undefined" && config.debug) {
