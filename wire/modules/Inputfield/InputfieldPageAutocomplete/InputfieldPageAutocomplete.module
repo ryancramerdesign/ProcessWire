@@ -188,7 +188,12 @@ _OUT;
 		if(strpos($selector, 'limit=') === false) $selector .= ",limit=50";
 
 		// replace non-escaped commas with ampersands
-		$selector = preg_replace('/(?<!\\\\),/', '&', $selector); 
+		$selector = preg_replace('/(?<!\\\\),\s*/', '&', $selector); 
+		
+		if(strpos($selector, '.')) {
+			// replace things like children.count with children-count since "." is not allowed in URL var names
+			$selector = preg_replace('/(^|&)([_a-zA-Z0-9]+)\.([_a-zA-Z0-9]+)=/', '$1$2-$3=', $selector); 
+		}
 
 		// specify what label field we want to retrieve
 		$selector .= "&get={$this->labelFieldName}";

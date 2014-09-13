@@ -492,7 +492,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		}
 
 		if(in_array($name, $this->nativeSorts)) $is = true; 
- 			else if(in_array($name, array('parent', 'template', 'template_label', 'has_parent'))) $is = true; 
+ 			else if(in_array($name, array('parent', 'template', 'template_label', 'has_parent', 'hasParent', 'children', 'numChildren', 'num_children', 'count'))) $is = true; 
 			else if(!$level && in_array($name, array('include', 'status', 'check_access'))) $is = true; 
 			else if(in_array($name, $this->fieldOptions)) $is = true; 
 
