@@ -122,7 +122,7 @@ interface Module {
 	 * 
 	 * 	+ title: The module's title. 
 	 * 	+ version: an integer that indicates the version number, 101 = 1.0.1
-	 * 	+ summary: a summary of the module (1 sentence to 1 paragraph reommended)
+	 * 	+ summary: a summary of the module (1 sentence to 1 paragraph recommended)
 	 * 	- href: URL to more information about the module. 
 	 *	- requires: array or CSV string of module class names that are required by this module in order to install.
 	 *		--

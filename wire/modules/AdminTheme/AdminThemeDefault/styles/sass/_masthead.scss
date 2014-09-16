@@ -90,7 +90,7 @@
 		ul.dropdown-menu {
 			display: none; 
 		}
-
+		
 	} /* #topnav */ 
 
 	#ProcessPageSearchForm {
@@ -219,5 +219,11 @@
 
 .pw-init #head_button {
 	display: none; 
+}
+
+.has-items-icon {
+	float: right;
+	position: relative;
+	top: 4px;
 }
 

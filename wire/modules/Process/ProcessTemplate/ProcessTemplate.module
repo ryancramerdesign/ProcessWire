@@ -33,6 +33,7 @@ class ProcessTemplate extends Process {
 			'version' => 108,
 			'permanent' => true, 
 			'icon' => 'cubes', 
+			'useNavJSON' => true, 
 	
 			// add this permission if you want this Process available for roles other than Superuser
 			'permission' => 'template-admin', 
@@ -52,7 +53,8 @@ class ProcessTemplate extends Process {
 			'No' => $this->_('No'), 
 			'Are you sure?' => $this->_('Are you sure?'),
 			'Export' => $this->_('Export'),
-			'Import' => $this->_('Import')
+			'Import' => $this->_('Import'),
+			'Add New' => $this->_x('Add New Template', 'list-button'),
 			);
 
 		if(isset($_POST['id'])) {
@@ -73,8 +75,8 @@ class ProcessTemplate extends Process {
 	}
 
 	/**
-	 * Render a JSON map of all Templates
-	 *
+	 * Render a JSON map of all Templates (old method, but should be kept)
+	 * 
 	 */
 	protected function renderListJSON() {
 		$a = array();
@@ -88,6 +90,32 @@ class ProcessTemplate extends Process {
 		}
 		header("Content-Type: application/json"); 
 		return json_encode($a); 
+	}
+
+	/**
+	 * Output JSON list of navigation items for this (intended to for ajax use)
+	 * 
+	 * For 2.5+ admin themes
+	 *
+	 */
+	public function ___executeNavJSON(array $options = array()) {
+		$templates = $this->wire('templates');
+		
+		// pull icons out of pageLabelField and populate to an 'icon' property for JSON nav
+		foreach($templates as $t) {
+			$label = $t->pageLabelField;
+			if(empty($label)) continue;
+			if(strpos($label, "fa-") !== false || strpos($label, "icon-") !== false) {
+				if(preg_match('/(?:fa|icon)-([-a-z0-9]+)/', $label, $matches)) {
+					$t->set('icon', $matches[1]); 
+				}
+			}
+		}
+		
+		$options['items'] = $templates;
+		$options['itemLabel'] = 'name';
+		
+		return parent::___executeNavJSON($options);
 	}
 
 	/**
@@ -153,7 +181,7 @@ class ProcessTemplate extends Process {
 
 		$button = $this->modules->get('InputfieldButton');
 		$button->href = "./add";
-		$button->value = $this->_x('Add New Template', 'list-button'); 
+		$button->value = $this->labels['Add New']; 
 		$button->icon = 'plus-circle';
 		$button->addClass('add_template_button head_button_clone'); 
 		$out .= $button->render();

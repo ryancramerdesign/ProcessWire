@@ -76,6 +76,7 @@
 }
 
 .PageList i.icon,
+.PageList i.fa, 
 .PageList .PageListStatusIcon {
 	font-size: 14px; 
 }

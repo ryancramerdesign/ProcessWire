@@ -46,7 +46,22 @@ abstract class Process extends WireData implements Module {
 	 			'parent' => 'setup', 	// parent name (under admin) or omit or blank to assume admin root
 	 			'title' => 'Title', 	// title of page, or omit to use the title already specified above
 	 			)
-			); 
+			),
+			'useNavJSON' => true, 		// Supports JSON navigation?
+			'nav' => array(				// Optional navigation options for admin theme drop downs
+				array(
+					'url' => 'action/',
+					'label' => 'Some Action', 
+					'permission' => 'some-permission', // optional permission required to access this item
+					'icon' => 'folder-o', // optional icon
+					'navJSON' => 'navJSON/?custom=1' // optional JSON url to get items, relative to page URL that Process module lives on
+				),
+				array(
+					'url' => 'action2/',
+					'label' => 'Another Action', 
+					'icon' => 'plug',
+				),
+			),
 	}
  	*/
 
@@ -224,6 +239,79 @@ abstract class Process extends WireData implements Module {
 		}
 		return $n;
 	}
+
+	/**
+	 * Return JSON data of items managed by this Process for use in navigation
+	 * 
+	 * Optional/applicable only to Process modules that manage groups of items.
+	 * 
+	 * This method is only used if your getModuleInfo returns TRUE for useNavJSON
+	 * 
+	 * @param array $options For descending classes to modify behavior (see $defaults in method)
+	 * @return string rendered JSON string
+	 * @throws Wire404Exception if getModuleInfo() doesn't specify useNavJSON=true;
+	 * 
+	 */
+	public function ___executeNavJSON(array $options = array()) {
+		
+		$defaults = array(
+			'items' => array(),
+			'itemLabel' => 'name', 
+			'edit' => 'edit?id={id}', // URL segment for edit
+			'add' => 'add', // URL segment for add
+			'addLabel' => __('Add New', '/wire/templates-admin/default.php'),
+			'iconKey' => 'icon', // property/field containing icon, when applicable
+			'icon' => '', // default icon to use for items
+			);
+		
+		$options = array_merge($defaults, $options); 
+		$moduleInfo = $this->modules->getModuleInfo($this); 
+		if(empty($moduleInfo['useNavJSON'])) throw new Wire404Exception();
+		
+		$page = $this->wire('page');
+		$data = array(
+			'url' => $page->url,
+			'label' => $this->_((string) $page->get('title|name')),
+			'icon' => empty($moduleInfo['icon']) ? '' : $moduleInfo['icon'], // label icon
+			'add' => array(
+				'url' => $options['add'],
+				'label' => $options['addLabel'], 
+			),
+			'list' => array(),
+		);
+		
+		foreach($options['items'] as $item) {
+			$icon = '';
+			if(is_object($item)) {
+				$id = $item->id;
+				$name = $item->name; 
+				$label = (string) $item->{$options['itemLabel']};
+				$icon = $item->{$options['iconKey']};
+			} else if(is_array($item)) {
+				$id = $item['id'];
+				$name = $item['name'];
+				$label = $item[$options['itemLabel']];
+			} else {
+				$this->error("Item must be object or array: $item"); 
+				continue;
+			}
+			if(empty($icon) && $options['icon']) $icon = $options['icon'];
+			$_label = $label;
+			$label = $this->wire('sanitizer')->entities1($label);
+			while(isset($data['list'][$_label])) $_label .= "_";
+			$data['list'][$_label] = array(
+				'url' => str_replace(array('{id}', '{name}'), array($id, $name), $options['edit']),
+				'label' => $label,
+				'icon' => $icon, 
+			);
+		}
+		ksort($data['list']); // sort alpha
+		$data['list'] = array_values($data['list']); 
+
+		if($this->wire('config')->ajax) header("Content-Type: application/json");
+		return json_encode($data);
+	}
+
 
 
 }

@@ -258,11 +258,10 @@ Debug::saveTimer('timer-name', 'optional notes'); // stop and save timer
 				heightStyle: 'content'
 			}).hide();
 			$("#debug_toggle").click(function() {
-				$("#debug").slideDown();
-				$(this).hide();
-				var n = $(document).height();
-				$('html, body').animate({ scrollTop: n },'50');
-				return false;
+				if ($('#debug').is(":hidden")) $("#debug").slideDown();
+					else $("#debug").slideUp();
+				$('html, body').animate({ scrollTop: $(document).height() },'50');
+				return false;	
 			}); 
 		}); 
 	</script>

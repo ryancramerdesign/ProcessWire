@@ -217,6 +217,11 @@ var ProcessWireAdminTheme = {
 				return true; 
 			});
 
+			$ul.find(".has-items").each(function() {
+				var $icon = $("<i class='has-items-icon fa fa-angle-right ui-priority-secondary'></i>");
+				$(this).append($icon);
+			}); 
+
 			var lastOffset = null; 
 
 			$a.mouseenter(function() {
@@ -258,51 +263,77 @@ var ProcessWireAdminTheme = {
 
 		});
 
+		var $hoveredItem = null; 
+		
+		function dropdownHover($a) {
+			var fromAttr = $a.attr('data-from');
+			if(!fromAttr) return;
+			var $from = $('#' + $a.attr('data-from'));
+			if($from.length > 0) setTimeout(function() {
+				var fromLeft = $from.offset().left;
+				//if($a.attr('id') == 'topnav-page-22') fromLeft--;
+				var $ul = $a.closest('li').parent('ul');
+				var thisLeft = $ul.offset().left;
+				if(thisLeft != fromLeft) $ul.css('left', fromLeft);
+			}, 500); 
+		}
+		
 		// ajax loading of fields and templates
-		$(document).on('hover', 'ul.dropdown-menu a.has-ajax-items:not(.ajax-items-loaded)', function() {
+		$(document).on('mouseenter', 'ul.dropdown-menu a.has-ajax-items:not(.ajax-items-loaded)', function() {
 			var $a = $(this); 
-			$a.addClass('ajax-items-loaded'); 	
-			var url = $a.attr('href');
-			var $ul = $a.siblings('ul'); 
-			var dropdownHover = null;
+			$hoveredItem = $a;
+			
+			setTimeout(function() { 
+				if(!$hoveredItem || $hoveredItem != $a) return; // user wasn't hovered long enough for this to be their intent
+				
+				$a.addClass('ajax-items-loaded'); 	
+				// var url = $a.attr('href');
+				var url = $a.attr('data-json');
+				var $ul = $a.siblings('ul'); 
+				var setupDropdownHover = false;
+				var $itemsIcon =  $a.children('.has-items-icon');
+				$itemsIcon.removeClass('fa-angle-right').addClass('fa-spinner fa-spin'); 
+	
+				$.getJSON(url, function(data) {
+					$itemsIcon.removeClass('fa-spinner fa-spin').addClass('fa-angle-right'); 
+	
+					// now add new event to monitor menu positions
+					if(!ProcessWireAdminTheme.dropdownPositionsMonitored && data.list.length > 10) {
+						ProcessWireAdminTheme.dropdownPositionsMonitored = true; 
+						setupDropdownHover = true; 
+						$(document).on('hover', 'ul.dropdown-menu a', function() {
+							dropdownHover($(this));
+						}); 
+					}
+	
+					if(data.add) {				
+						var $li = $("<li class='add'><a style='white-space:nowrap' href='" + data.url + data.add.url + "'><i class='fa fa-fw fa-plus-circle'></i>" + data.add.label + "</a></li>");
+						$ul.append($li);
+					}
+					// populate the retrieved items
+					$.each(data.list, function(n) {
+						var icon = '';
+						if(this.icon) icon = "<i class='ui-priority-secondary fa fa-fw fa-" + this.icon + "'></i>";
+						var $li = $("<li class='ui-menu-item'><a style='white-space:nowrap' href='" + data.url + this.url + "'>" + icon + this.label + "</a></li>");
+						$ul.append($li);
+					}); 
+	
+					$ul.find("a").click(function() {
+						// prevent a clicked link from jumping back to the top of page (makes the UI nicer)
+						window.location.href = $(this).attr('href');
+						return false; 
+					}); 
 
-			$.getJSON(url, function(data) {
-
-				// now add new event to monitor menu positions
-				if(!ProcessWireAdminTheme.dropdownPositionsMonitored && data.length > 10) {
-					ProcessWireAdminTheme.dropdownPositionsMonitored = true; 
-					dropdownHover = function() {
-						var fromAttr = $a.attr('data-from'); 
-						if(!fromAttr) return;
-						var $from = $('#' + $a.attr('data-from')); 
-						setTimeout(function() { 
-							var fromLeft = $from.offset().left-1;
-							var $ul = $a.parent('li').parent('ul'); 
-							var thisLeft = $ul.offset().left;
-							if(thisLeft != fromLeft) $ul.css('left', fromLeft); 
-						}, 500); 
-					};
-					$(document).on('hover', 'ul.dropdown-menu a', dropdownHover); 
-				}
-
-				// populate the retrieved items
-				$.each(data, function(n) {
-					var item = this;
-					var $li = $("<li class='ui-menu-item'><a href='" + url + "edit?id=" + item.id + "'>" + item.name + "</a></li>"); 
-					$ul.append($li); 
-				}); 
-
-				$ul.find("a").click(function() {
-					// prevent a clicked link from jumping back to the top of page (makes the UI nicer)
-					window.location.href = $(this).attr('href');
-					return false; 
-				}); 
-
-				// trigger the first call
-				if(dropdownHover) dropdownHover();
-
-			}); 
-		}); 
+					// trigger the first call
+					dropdownHover($a);
+					
+				}); // getJSON
+				
+			}, 250); // setTimeout
+			
+		}).on('mouseleave', 'ul.dropdown-menu a.has-ajax-items', function() {
+			$hoveredItem = null;
+		});
 
 
 	}, 	

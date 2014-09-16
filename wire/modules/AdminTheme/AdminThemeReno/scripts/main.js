@@ -58,10 +58,30 @@ var ProcessWireAdminTheme = {
 		    }
 		});
 
-		$("#main-nav a.parent").click(function(){
-			$(this).toggleClass('open').next('ul').slideToggle('fast');
+		// this bit of code below monitors single click vs. double click
+		// on double click it goes to the page linked by the nav item 
+		// on single click it opens or closes the nav
+		var clickTimer = null, numClicks = 0;
+		$("#main-nav a.parent").dblclick(function(e) {
+			e.preventDefault();
+		}).click(function() {
+			var $a = $(this);
+			numClicks++;
+			if(numClicks === 1) {
+				clickTimer = setTimeout(function() { 
+					// single click occurred
+					$a.toggleClass('open').next('ul').slideToggle('fast');
+					numClicks = 0; 
+				}, 200); 
+			} else {
+				// double click occurred
+				clearTimeout(clickTimer);
+				numClicks = 0;
+				return true; 
+			}
 			return false;
 		});
+			
 
 		$(".quicklink-open").click(function(event){
 			$(this).toggleClass('active').parent().next('ul.quicklinks').toggle();
@@ -69,7 +89,33 @@ var ProcessWireAdminTheme = {
 			$(this).parent().parent().siblings().find('.quicklink-open').removeClass('active');
 			event.stopPropagation();
 			//psuedo elements are not part of the DOM, need to remove current arrows by adding a class to the current item.
-			$('#main-nav .current:not(.open)').addClass('no-arrow'); 
+			$('#main-nav .current:not(.open)').addClass('no-arrow');
+	
+			// below is used to populate quicklinks via ajax json services on Process modules that provide it
+			var $ul = $(this).parent().next('ul.quicklinks');
+			var jsonURL = $ul.attr('data-json'); 
+			if(jsonURL.length > 0 && !$ul.hasClass('json-loaded')) {
+				$ul.addClass('json-loaded');
+				var $spinner = $ul.find('.quicklinks-spinner');
+				var spinnerSavedClass = $spinner.attr('class');
+				$spinner.removeClass(spinnerSavedClass).addClass('fa fa-fw fa-spin fa-spinner'); 
+				$.getJSON(jsonURL, function(data) {
+					if(data.add) {
+						var $li = $("<li class='add'><a href='" + data.url + data.add.url + "'><i class='fa fa-fw fa-plus-circle'></i>" + data.add.label + "</a></li>");
+						$ul.append($li);
+					}
+					// populate the retrieved items
+					$.each(data.list, function(n) {
+						var icon = '';
+						if(this.icon) icon = "<i class='fa fa-fw fa-" + this.icon + "'></i>";
+						var $li = $("<li><a style='white-space:nowrap' href='" + data.url + this.url + "'>" + icon + this.label + "</a></li>");
+						$ul.append($li);
+					});
+					$spinner.removeClass('fa-spin fa-spinner').addClass(spinnerSavedClass);
+					if(data.icon.length > 0) $spinner.removeClass('fa-bolt').addClass('fa-' + data.icon);
+				}); 				
+			}
+			
 			return false;
 		});
 

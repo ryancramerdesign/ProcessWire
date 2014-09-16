@@ -731,8 +731,21 @@ class Page extends WireData implements Countable {
 		$keys = explode('|', $multiKey); 
 
 		foreach($keys as $key) {
-			$value = $this->getFieldValue($key);
-			if(is_string($value)) $value = trim($value); 
+			$value = $this->get($key);
+			
+			if(is_object($value)) {
+				// like LanguagesPageFieldValue or WireArray
+				$str = trim((string) $value); 
+				if(!strlen($str)) continue; 
+				
+			} else if(is_array($value)) {
+				// array with no items
+				if(!count($value)) continue;
+				
+			} else if(is_string($value)) {
+				$value = trim($value); 
+			}
+			
 			if($value) break;
 		}
 

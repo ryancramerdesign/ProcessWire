@@ -27,6 +27,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			'permanent' => true, 
 			'permission' => 'field-admin', // add this permission if you want this Process available for roles other than Superuser
 			'icon' => 'cube', 
+			'useNavJSON' => true,
 			);
 	}
 
@@ -68,7 +69,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	}
 
 	/**
-	 * Render JSON map of all fields
+	 * Render JSON map of all fields (old method, but should be kept for backwards compatibility)
 	 *
 	 */
 	public function renderListJSON() {
@@ -84,6 +85,18 @@ class ProcessField extends Process implements ConfigurableModule {
 		}
 		header("Content-Type: application/json"); 
 		return json_encode($a); 
+	}
+
+	/**
+	 * Output JSON list of navigation items for this (intended to for ajax use)
+	 *
+	 * For 2.5+ admin theme navigation
+	 *
+	 */
+	public function ___executeNavJSON(array $options = array()) {
+		$options['items'] = $this->wire('fields');
+		$options['itemLabel'] = 'name';
+		return parent::___executeNavJSON($options);
 	}
 
 	/**

@@ -2,8 +2,8 @@ $(document).ready(function() {
 
 	$(".not_installed").parent("a").css('opacity', 0.6).click(function() {
 
-		var id = $(this).children(".not_installed").attr('id');
-		var $btn = $("#install_" + id); 
+		var name = $(this).children(".not_installed").attr('data-name');
+		var $btn = $(".install_" + name + ":visible"); 
 		var disabled = $btn.attr('disabled'); 	
 	
 		if($btn.size()) {	

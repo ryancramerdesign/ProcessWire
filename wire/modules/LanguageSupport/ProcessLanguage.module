@@ -25,6 +25,7 @@ class ProcessLanguage extends ProcessPageType {
 			'author' => 'Ryan Cramer',
 			'requires' => 'LanguageSupport',
 			'icon' => 'language', 
+			'useNavJSON' => true,
 			);
 	}
 
@@ -49,6 +50,7 @@ class ProcessLanguage extends ProcessPageType {
 		
 		$showFields = array('name', 'title', 'language_files', 'language_files_site'); 
 		$this->set('showFields', $showFields); 
+		$this->set('jsonListLabel', 'title|name'); 
 		require_once(dirname(__FILE__) . '/LanguageParser.php'); 
 	}
 
@@ -224,6 +226,5 @@ class ProcessLanguage extends ProcessPageType {
 			exit(0);
 		}
 	}
-
 }
 

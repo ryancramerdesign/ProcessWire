@@ -25,6 +25,7 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 			'version' => 101, 
 			'summary' => __('List, Edit and Add pages of a specific type', __FILE__), // getModuleInfo summary
 			'permanent' => true, 
+			'useNavJSON' => true, 
 			); 
 	}
 
@@ -35,6 +36,7 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 	public function __construct() {
 		$this->set('showFields', array('name')); 
 		$this->set('addLabel', $this->_('Add New')); 
+		$this->set('jsonListLabel', 'name'); // what to use for 'label' property in JSON nav data
 	}
 
 	public function init() {
@@ -58,6 +60,25 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 	public function ___executeList() {
 		return $this->renderList("limit=25, status<" . Page::statusMax);
 	}
+
+	/**
+	 * Output JSON list of navigation items for this (intended to for ajax use)
+	 *
+	 */
+	public function ___executeNavJSON(array $options = array()) {
+		
+		$limit = (int) $this->wire('input')->get('limit');
+		if(!$limit || $limit > 100) $limit = 100;
+		$start = (int) $this->wire('input')->get('start');
+		$pages = $this->pages->find("start=$start, limit=$limit");
+
+		$options['add'] = 'add/'; 
+		$options['items'] = $pages;
+		$options['edit'] = "edit/?id={id}"; 
+		$options['itemLabel'] = $this->jsonListLabel;
+		
+		return parent::___executeNavJSON($options); 
+	}	
 
 	public function ___executeEdit() {
 		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->page->get('title|name'))); 

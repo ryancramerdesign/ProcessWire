@@ -64,7 +64,16 @@
 					}); 
 				}
 
-				if(cookieTab.length > 0 && options.rememberTabs > -1) $rememberTab = $tabList.find("a#_" + cookieTab);
+				var hash = document.location.hash.replace("#",""); // thanks to @da-fecto
+				if(hash.length) {
+					$rememberTab = $tabList.find("a#_" + hash); 
+					if($rememberTab.length == 0) {
+						$rememberTab = null;
+					} else {
+						document.location.hash = '';
+					}
+				}
+				if($rememberTab == null && cookieTab.length > 0 && options.rememberTabs > -1) $rememberTab = $tabList.find("a#_" + cookieTab);
 				if($rememberTab && $rememberTab.size() > 0) {
 					$rememberTab.click();
 					if(options.rememberTabs == 0) setTabCookie(''); // don't clear cookie when rememberTabs=1, so it continues

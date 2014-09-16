@@ -5,7 +5,7 @@ class AdminThemeDefault extends AdminTheme implements Module, ConfigurableModule
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Default Admin Theme',
-			'version' => 1,
+			'version' => 2,
 			'summary' => 'Minimal admin theme that supports all ProcessWire features.',
 			'autoload' => 'template=admin'
 			); 

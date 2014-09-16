@@ -53,6 +53,8 @@ abstract class AdminTheme extends WireData implements Module {
 		// then module author probably forgot the right 'autoload' string, so this 
 		// serves as secondary stopgap to keep this module from loading when it shouldn't.
 		if(!$this->wire('page') || $this->wire('page')->template != 'admin') return;
+		
+		if(self::$numAdminThemes > 1 && !$this->wire('fields')->get('admin_theme')) $this->install();
 
 		// if admin theme has already been set, then no need to continue
 		if($this->wire('adminTheme')) return; 
@@ -76,6 +78,7 @@ abstract class AdminTheme extends WireData implements Module {
 			$this->config->paths->set('adminTemplates', $this->config->paths->get($this->className())); 
 			$this->config->urls->set('adminTemplates', $this->config->urls->get($this->className())); 
 		}
+		
 	}
 
 	/**
@@ -134,6 +137,7 @@ abstract class AdminTheme extends WireData implements Module {
 
 	public function ___uninstall() { 
 
+		/*
 		if(self::$numAdminThemes > 1) return;
 
 		// this is the last installed admin theme
@@ -148,6 +152,7 @@ abstract class AdminTheme extends WireData implements Module {
 
 		$this->wire('fields')->delete($field); 
 		$this->message($this->_('Removed field "admin_theme" from system.')); 
+		*/
 	}
 }
 

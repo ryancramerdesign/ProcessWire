@@ -25,6 +25,7 @@ class ProcessRole extends ProcessPageType {
 			'permanent' => true, 
 			'permission' => 'role-admin', // add this permission if you want this Process available for roles other than Superuser
 			'icon' => 'gears',
+			'useNavJSON' => true,
 			); 
 	}
 	

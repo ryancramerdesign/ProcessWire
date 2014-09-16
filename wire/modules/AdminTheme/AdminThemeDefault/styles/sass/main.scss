@@ -440,10 +440,13 @@ body:not(.hasWireTabs) #headline .container {
 	width: 43px; 
 }
 
-.fa {
-	/* font-awesome default icon size */
-	font-size: 14px; 
-}
+/* font-awesome default icon sizes */
+.fa { font-size: 14px !important; }
+.fa-lg { font-size: 18.66666px !important; }
+.fa-2x { font-size: 28px !important; }
+.fa-3x { font-size: 42px !important; }
+.fa-4x { font-size: 56px !important; }
+.fa-5x { font-size: 70px !important; }
 
 
 /***********************************************************************************************

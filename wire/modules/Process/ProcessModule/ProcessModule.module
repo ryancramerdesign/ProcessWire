@@ -25,10 +25,36 @@ class ProcessModule extends Process {
 		return array(
 			'title' => __('Modules', __FILE__), // getModuleInfo title          
 			'summary' => __('List, edit or install/uninstall modules', __FILE__), // getModuleInfo summary
-			'version' => 115, 
+			'version' => 116, 
 			'permanent' => true, 
 			'permission' => 'module-admin', 
-			);
+			'useNavJSON' => true,
+			'nav' => array(
+				array(
+					'url' => '?site#tab_site_modules',
+					'label' => 'Site', 
+					'icon' => 'plug',
+					'navJSON' => 'navJSON/?site=1'
+				),
+				array(
+					'url' => '?core#tab_core_modules',
+					'label' => 'Core', 
+					'icon' => 'plug',
+					'navJSON' => 'navJSON/?core=1',
+				),
+				array(
+					'url' => '?configurable#tab_configurable_modules',
+					'label' => 'Configure',
+					'icon' => 'gear',
+					'navJSON' => 'navJSON/?configurable=1',
+				),
+				array(
+					'url' => '?reset=1',
+					'label' => 'Reset Cache',
+					'icon' => 'refresh',
+				)
+			)
+		);
 	}
 
 	protected $labels = array();
@@ -75,6 +101,10 @@ class ProcessModule extends Process {
 		$this->labels['installed_date'] = $this->_('Installed');
 		$this->labels['requires'] = $this->_x("Requires", 'list'); // Label that precedes list of required prerequisite modules
 		$this->labels['installs'] = $this->_x("Also Installs", 'list'); // Label that precedes list of other modules a given one installs
+		$this->labels['reset'] = $this->_('Reset Cache'); 
+		$this->labels['core'] = $this->_('Core');
+		$this->labels['site'] = $this->_('Site');
+		$this->labels['configure'] = $this->_('Configure');
 
 		require(dirname(__FILE__) . '/ProcessModuleInstall.php'); 
 	}
@@ -89,6 +119,52 @@ class ProcessModule extends Process {
 	 */
 	protected function formatVersion($version) {
 		return $this->wire('modules')->formatVersion($version); 
+	}
+
+	/**
+	 * Output JSON list of navigation items for this (intended to for ajax use)
+	 *
+	 * For 2.5+ admin themes
+	 *
+	 */
+	public function ___executeNavJSON(array $options = array()) {
+		$page = $this->wire('page');
+		$data = array(
+			'url' => $page->url,
+			'label' => (string) $page->get('title|name'),
+			'icon' => 'plug', 
+			'add' => array(
+				'url' => "?new#tab_new_modules", 
+				'label' => __('Add New', '/wire/templates-admin/default.php'),
+			),
+			'list' => array(),
+		);
+		
+		$site = $this->wire('input')->get('site');
+		$core = $this->wire('input')->get('core');
+		$configurable = $this->wire('input')->get('configurable');
+
+		foreach($this->wire('modules') as $module) {
+			$info = $this->wire('modules')->getModuleInfoVerbose($module); 
+			if($site && $info['core']) continue; 
+			if($core && !$info['core']) continue; 
+			if($configurable && !$info['configurable']) continue; 
+			$label = $info['name'];
+			$_label = $label;
+			while(isset($data['list'][$_label])) $_label .= "_";
+			if(empty($info['icon'])) $info['icon'] = $info['configurable'] ? 'gear' : 'plug';
+			$data['list'][$_label] = array(
+				'url' => "edit?name=$info[name]",
+				'label' => $label,
+				'icon' => $info['icon'], 
+			);
+		}
+		
+		ksort($data['list']);
+		$data['list'] = array_values($data['list']); 
+
+		if($this->wire('config')->ajax) header("Content-Type: application/json");
+		return json_encode($data);
 	}
 
 	/**
@@ -175,6 +251,7 @@ class ProcessModule extends Process {
 		$modulesArray = $this->modulesArray; 
 		$installedArray = array();
 		$uninstalledArray = array();
+		$configurableArray = array();
 		$uninstalledNames = array();
 		$siteModulesArray = array();
 		$coreModulesArray = array();
@@ -215,6 +292,8 @@ class ProcessModule extends Process {
 			} else {
 				$siteModulesArray[$name] = $installed;
 			}
+			
+			if($info['configurable']) $configurableArray[$name] = $installed;
 		}
 
 		$form = $this->modules->get('InputfieldForm');
@@ -224,9 +303,12 @@ class ProcessModule extends Process {
 		$form->attr('id', 'modules_form');
 
 		$this->modules->get('JqueryWireTabs');
+		
+		// site 
+		
 		$tab = new InputfieldWrapper();
 		$tab->attr('id', 'tab_site_modules'); 
-		$tab->attr('title', $this->_('Site'));
+		$tab->attr('title', $this->labels['site']);
 		$tab->attr('class', 'WireTab');
 		
 		$markup = $this->modules->get('InputfieldMarkup');
@@ -238,11 +320,13 @@ class ProcessModule extends Process {
 		$tab->add($markup);
 		$form->add($tab); 
 		
-		$this->modules->get('JqueryWireTabs');
+		// core
+		
 		$tab = new InputfieldWrapper();
 		$tab->attr('id', 'tab_core_modules'); 
-		$tab->attr('title', $this->_('Core'));
+		$tab->attr('title', $this->labels['core']);
 		$tab->attr('class', 'WireTab');
+		
 		$markup = $this->modules->get('InputfieldMarkup');
 		$markup->value = $this->renderListTable($coreModulesArray);
 		$markup->label = $this->_('/wire/modules/ - Modules included with the ProcessWire core');
@@ -250,25 +334,41 @@ class ProcessModule extends Process {
 		$tab->add($markup); 
 		$form->add($tab);
 		
+		// configurable
+		
+		$tab = new InputfieldWrapper();
+		$tab->attr('id', 'tab_configurable_modules');
+		$tab->attr('title', $this->labels['configure']);
+		$tab->attr('class', 'WireTab');
+
+		$markup = $this->modules->get('InputfieldMarkup');
+		$markup->value = $this->renderListTable($configurableArray, true, true, false, false, true);
+		$markup->label = $this->_('Modules that have configuration options');
+		$markup->icon = 'folder-open-o';
+		$tab->add($markup);
+		$form->add($tab);
+
+		// uninstalled
+
+		$tab = new InputfieldWrapper();
+		$tab->attr('id', 'tab_uninstalled_modules');
+		$tab->attr('title', $this->_('Uninstalled'));
+		$tab->attr('class', 'WireTab');
+
+		$markup = $this->modules->get('InputfieldMarkup');
+		$markup->value = $this->renderListTable($uninstalledArray, true, true, false, false, true);
+		$markup->label = $this->_('Modules on the file system that are not currently installed');
+		$markup->icon = 'folder-open-o';
+		$tab->add($markup);
+		$form->add($tab);
+
+
+		// new
+		
 		$tab = new InputfieldWrapper();
 		$tab->attr('id', 'tab_new_modules'); 
 		$tab->attr('title', $this->_('New'));
 		$tab->attr('class', 'WireTab');
-
-		/*
-		$newModuleNames = $this->wire('session')->get('ProcessModuleNewModules'); 
-		$newModules = array();
-		if(!empty($newModuleNames)) {
-			foreach($modulesArray as $name => $installed) {
-				if(in_array($name, $newModuleNames)) $newModules[$name] = $installed;	
-			}
-			$markup = $this->modules->get('InputfieldMarkup');		
-			$markup->icon = 'lightbulb-o';
-			$markup->value = $this->renderListTable($newModules, false, false); 
-			$markup->label = $this->_('Newly Found Modules'); 
-			$tab->add($markup); 
-		}
-		*/
 
 		if($this->wire('session')->ProcessModuleNewModules) {
 			foreach($this->wire('session')->ProcessModuleNewModules as $name => $created) {
@@ -387,10 +487,11 @@ class ProcessModule extends Process {
 	 * @param bool $allowSections Whether to show module sections/categories (default=true)
 	 * @param bool $allowDates Whether to show created dates (default=false)
 	 * @param bool $allowClasses Whether to show module class names(default=false)
+	 * @param bool $allowType Whether to show if module is site or core
 	 * @return string
 	 * 
 	 */
-	protected function renderListTable($modulesArray, $allowDelete = false, $allowSections = true, $allowDates = false, $allowClasses = false) {
+	protected function renderListTable($modulesArray, $allowDelete = false, $allowSections = true, $allowDates = false, $allowClasses = false, $allowType = false) {
 		
 		if(!count($modulesArray)) return "<div class='detail'>" . $this->_('No modules found.') . "</div>";
 		
@@ -441,6 +542,7 @@ class ProcessModule extends Process {
 			if(!empty($info['permanent'])) $class .= ($class ? ' ' : '') . 'PermanentModule';
 			if($class) $title = "<span class='$class'>$title</span>";
 			$version = $this->formatVersion(isset($info['version']) ? $info['version'] : 0);
+			if($allowType) $version .= "<br /><small class='ModuleClass ui-priority-secondary'>" . ($info['core'] ? $this->labels['core'] : $this->labels['site']) . "</small>";
 			$summary = empty($info['summary']) ? '' : $this->wire('sanitizer')->entities1($info['summary']);
 			if(strpos($summary, '&lt;') !== false) $summary = preg_replace('/([^\s]{35})[^\s]{20,}/', '$1...', $summary); // prevent excessively long text without whitespace
 			$summary .= empty($info['href']) ? '' : (" <a href='$info[href]'>" . $this->_('more') . "</a>");
@@ -475,7 +577,7 @@ class ProcessModule extends Process {
 					$this->numFound++;
 				}
 
-				$title = "<span id='$name' class='$class'>$title</span>";
+				$title = "<span data-name='$name' class='$class'>$title</span>";
 
 				if(count($requires)) {
 					//$buttonState = 'ui-state-default ui-state-disabled';
@@ -484,12 +586,12 @@ class ProcessModule extends Process {
 					$buttonState = 'ui-state-default';
 					$buttonType = 'submit';
 					$buttons .=
-						"<button type='$buttonType' id='install_$name' name='install' class='$buttonState ui-button ui-priority-secondary' value='$name'>" .
+						"<button type='$buttonType' name='install' data-install='$name' class='install_$name $buttonState ui-button ui-priority-secondary' value='$name'>" .
 						"<span class='ui-button-text'><i class='fa fa-sign-in'></i> " . $this->_x('Install', 'button') . "</span></button>"; // Text for 'Install' button
 				}
 
 				if($allowDelete && $this->wire('modules')->isDeleteable($name)) $buttons .= 
-					"<button type='submit' id='delete_$name' name='delete' class='ui-state-default ui-priority-secondary ui-button' value='$name' onclick=\"$confirmJS\">" . 
+					"<button type='submit' name='delete' data-delete='$name' class='delete_$name ui-state-default ui-priority-secondary ui-button' value='$name' onclick=\"$confirmJS\">" . 
 					"<span class='ui-button-text'><i class='fa fa-eraser'></i> " . $this->_x('Delete', 'button') . "</span></button>"; // Text for 'Delete' button
 
 			

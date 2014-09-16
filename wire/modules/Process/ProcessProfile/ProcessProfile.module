@@ -64,7 +64,8 @@ class ProcessProfile extends Process implements ConfigurableModule {
 			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue;
 			$field = $this->user->fields->getFieldContext($field);
 			$inputfield = $field->getInputfield($this->user);
-			$inputfield->value = $this->user->get($field->name); 
+			$inputfield->value = $this->user->get($field->name);
+			if($field->name == 'admin_theme' && !$inputfield->value) $inputfield->value = 'AdminThemeDefault';
 			$form->add($inputfield); 
 		}
 

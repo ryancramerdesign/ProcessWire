@@ -168,6 +168,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		// for system fields, it only refers to system custom fields excluding title
 		$this->set('allowSystem', false); 
 	
+		// allow include=all or check_access=0 mode when user is non-superuser?
+		$this->set('allowIncludeAll', false); 
+	
 		// whether or not to show the selector string preview in InputfieldSelector
 		$this->set('preview', self::debug); 
 	
@@ -639,11 +642,12 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			}
 			
 			if(in_array('check_access', $fields) || in_array('checkaccess', $fields)) {
-				
-				// don't allow non-superusers to specify a check_access property
-				$selectors->remove($s);
-				$this->error("check_access property not allowed here"); 
-				$changed = true;
+				if(!$this->allowIncludeAll) { 
+					// don't allow non-superusers to specify a check_access property
+					$selectors->remove($s);
+					$this->error("check_access property not allowed here"); 
+					$changed = true;
+				}
 			} 
 			
 			if(in_array('template', $fields) || in_array('template_id', $fields) || in_array('templates_id', $fields)) {
@@ -682,9 +686,13 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				$value = strtolower(trim(reset($values))); 
 				if($value != 'unpublished' && $value != 'hidden') {
 					// value must be 'all' or 'trash', which we don't allow
-					$selectors->remove($s);
-					if($value) $this->error("Specified 'include=' mode is not allowed here."); 
-					$changed = true; 
+					if($value == 'all' && $this->allowIncludeAll) { 
+						// ok, override
+					} else { 
+						$selectors->remove($s);
+						if($value) $this->error("Specified 'include=' mode is not allowed here."); 
+						$changed = true; 
+					}
 				}
 				
 			}
@@ -697,8 +705,10 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				// user specified 1 or more templates
 				$numEditable = 0;
 				// determine how many templates are editable
+				$test = new Page();
 				foreach($templates as $template) {
-					if($user->hasPermission('page-edit', $template)) $numEditable++;
+					$test->template = $template;
+					if($test->editable()) $numEditable++;
 				}
 				// if all specified templates are editable, include=unpublished is allowed
 				if($numEditable == count($templates)) {

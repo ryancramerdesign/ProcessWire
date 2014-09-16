@@ -25,6 +25,7 @@ class ProcessUser extends ProcessPageType {
 			'permanent' => true, 
 			'permission' => 'user-admin',
 			'icon' => 'group', 
+			'useNavJSON' => true,
 			); 
 	}
 	
@@ -50,7 +51,8 @@ class ProcessUser extends ProcessPageType {
 	}
 	
 	protected function getLister($selector = '') {
-		$selector = "template=$this->template, $selector";
+		
+		$selector = "template=$this->template, include=unpublished, check_access=0, $selector";
 		$lister = $this->lister;
 		if($lister->className() == 'ProcessPageLister') $lister->editMode = ProcessPageLister::windowModeDirect;
 		
@@ -65,6 +67,7 @@ class ProcessUser extends ProcessPageType {
 			'addURL' => './add/',
 			'delimiters' => array('roles' => ', '),
 			'allowSystem' => true,
+			'allowIncludeAll' => true, 
 			);
 		
 		foreach($properties as $name => $value) {

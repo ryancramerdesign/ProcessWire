@@ -53,33 +53,6 @@ class AdminThemeDefaultHelpers extends WireData {
 	}
 
 	/**
-	 * Return the filename used for admin colors
-	 *
-	 * @return string
-	 *
-	 */
-	public function getAdminColorsFile() { 
-	
-		$user = $this->wire('user');
-		$adminTheme = $this->wire('adminTheme'); 
-		$defaultFile = 'main.css';
-		$colors = $adminTheme->colors; 
-	
-		if($user->isLoggedin() && $user->admin_colors && $user->admin_colors->id) {
-			$colors = $user->admin_colors->name; 
-		}
-	
-		if(!$colors) return $defaultFile; // default
-	
-		$colors = $this->wire('sanitizer')->pageName($colors);
-		$file = "main-$colors.css";
-	
-		if(!is_file(dirname(__FILE__) . "/styles/$file")) $file = $defaultFile;
-	
-		return $file; 
-	}
-	
-	/**
 	 * Render the populated shortcuts head button or blank when not applicable
 	 *
 	 * @return string
@@ -91,12 +64,10 @@ class AdminThemeDefaultHelpers extends WireData {
 		$config = $this->wire('config');
 		
 		if($user->isGuest() || !$user->hasPermission('page-edit')) return '';
-	
-		$language = $user->language && $user->language->id && !$user->language->isDefault() ? $user->language : null;
 		$url = $config->urls->admin . 'page/add/';
 		$out = '';
 	
-		foreach(wire('templates') as $template) {
+		foreach($this->wire('templates') as $template) {
 			$parent = $template->getParentPage(true); 
 			if(!$parent) continue; 
 			if($parent->id) {
@@ -106,19 +77,18 @@ class AdminThemeDefaultHelpers extends WireData {
 				// multiple parents possible
 				$qs = "?template_id=$template->id";
 			}
-			$label = $template->label;
-			if($language) $label = $template->get("label$language");
-			if(empty($label)) $label = $template->name; 
+			$label = $this->wire('sanitizer')->entities1($template->getLabel());
 			$out .= "<li><a href='$url$qs'>$label</a></li>";
 		}
 	
 		if(empty($out)) return '';
 	
-		$label = $this->_('Add New'); 
+		$label = $this->getAddNewLabel();
 	
-		$out =	"<div id='head_button'>" . 	
-			"<button class='dropdown-toggle'><i class='fa fa-angle-down'></i> $label</button>" . 
-			"<ul class='dropdown-menu'>$out</ul>" . 
+		$out =	
+			"<div id='head_button'>" . 	
+			"<button class='ui-button dropdown-toggle'><i class='fa fa-angle-down'></i> $label</button>" . 
+			"<ul class='dropdown-menu shortcuts'>$out</ul>" . 
 			"</div>";
 	
 		return $out; 
@@ -127,61 +97,93 @@ class AdminThemeDefaultHelpers extends WireData {
 	/**
 	 * Render runtime notices div#notices
 	 *
+	 * @param array $options See defaults in method
 	 * @param Notices $notices
 	 * @return string
 	 *
 	 */
-	public function renderAdminNotices($notices) {
+	public function renderAdminNotices($notices, array $options = array()) {
+		
+		$defaults = array(
+			'messageClass' => 'ui-state-highlight NoticeMessage', // class for messages
+			'messageIcon' => 'check-square', // default icon to show with notices
+
+			'warningClass' => 'ui-state-error NoticeWarning', // class for warnings
+			'warningIcon' => 'warning', // icon for warnings
+
+			'errorClass' => 'ui-state-error ui-priority-primary NoticeError', // class for errors
+			'errorIcon' => 'exclamation-triangle', // icon for errors
+		
+			'debugClass' => 'ui-priority-secondary NoticeDebug', // class for debug items (appended)
+			'debugIcon' => 'gear', // icon for debug notices
+		
+			'closeClass' => 'notice-remove', // class for close notices link <a>
+			'closeIcon' => 'times-circle', // icon for close notices link
 	
+			'listMarkup' => "\n\t<ul id='notices' class='ui-widget'>{out}</ul><!--/notices-->", 
+			'itemMarkup' => "\n\t\t<li class='{class}'><div class='container'><p>{remove}<i class='fa fa-{icon}'></i> {text}</p></div></li>",
+			);
+
 		if(!count($notices)) return '';
+		$options = array_merge($defaults, $options); 
 		$config = $this->wire('config'); 
-	
-		$out = "<ul id='notices' class='ui-widget'>";
+		$out = '';
 	
 		foreach($notices as $n => $notice) {
 	
-			$class = 'ui-state-highlight NoticeMessage';
 			$text = $notice->text; 
-			$icon = '';
-	
 			if($notice->flags & Notice::allowMarkup) {
 				// leave $text alone
 			} else {
-				// unencode entities, just in case module already entity encoded otuput
+				// unencode entities, just in case module already entity some or all of output
 				if(strpos($text, '&') !== false) $text = html_entity_decode($text, ENT_QUOTES, "UTF-8"); 
 				// entity encode it
 				$text = $this->wire('sanitizer')->entities($text); 
 			}
 	
-			if($notice instanceof NoticeError || $notice->flags & Notice::warning) {
-				$class = 'ui-state-error'; 
-				if($notice->flags & Notice::warning) {
-					$class .= ' NoticeWarning';
-					$icon = 'warning';
-				} else {
-					$class .= ' ui-priority-primary NoticeError';
-					$icon = 'exclamation-triangle'; 
-				}
+			if($notice instanceof NoticeError) {
+				$class = $options['errorClass'];
+				$icon = $options['errorIcon']; 
+			} else if($notice->flags & Notice::warning) {
+				$class = $options['warningClass'];
+				$icon = $options['warningIcon'];
+			} else {
+				$class = $options['messageClass'];
+				$icon = $options['messageIcon'];
 			}
 	
 			if($notice->flags & Notice::debug) {
-				$class .= ' ui-priority-secondary NoticeDebug';
-				$icon = 'gear';
+				$class .= " " . $options['debugClass'];
+				$icon = $options['debugIcon'];
 			}
-	
-			if(!$icon) $icon = 'check-square';
-	
+
+			// indicate which class the notice originated from in debug mode
 			if($notice->class && $config->debug) $text = "{$notice->class}: $text";
-	
-			$remove = $n ? '' : "<a class='notice-remove' href='#'><i class='fa fa-times-circle'></i></a>";
-	
-			$out .= "\n\t\t<li class='$class'><div class='container'><p>$remove<i class='fa fa-$icon'></i> {$text}</p></div></li>";
+
+			// show remove link for first item only
+			$remove = $n ? '' : "<a class='$options[closeClass]' href='#'><i class='fa fa-$options[closeIcon]'></i></a>";
+			
+			$replacements = array(
+				'{class}' => $class, 
+				'{remove}' => $remove, 
+				'{icon}' => $icon,
+				'{text}' => $text, 
+				);
+			
+			$out .= str_replace(array_keys($replacements), array_values($replacements), $options['itemMarkup']); 
 		}
-	
-		$out .= "\n\t</ul><!--/notices-->";
+		
+		$out = str_replace('{out}', $out, $options['listMarkup']); 
 		return $out; 
 	}
-	
+
+	/**
+	 * Get markup for icon used by the given page
+	 * 
+	 * @param Page $p
+	 * @return mixed|null|string
+	 * 
+	 */
 	public function getPageIcon(Page $p) {
 		$icon = '';
 		if($p->template == 'admin') {
@@ -236,27 +238,52 @@ class AdminThemeDefaultHelpers extends WireData {
 		$title = $this->_($title); // translate from context of default.php
 		$out .= "<li>";
 	
+		if(!$numChildren && $p->template == 'admin' && $p->process) {
+			$moduleInfo = $this->wire('modules')->getModuleInfo($p->process); 
+			if(!empty($moduleInfo['nav'])) $children = $moduleInfo['nav'];
+		}
+	
 		if(!$level && count($children)) {
 	
 			$class = trim("$class dropdown-toggle"); 
 			$out .= "<a href='$p->url' id='topnav-page-$p' data-from='topnav-page-{$p->parent}' class='$class'>$title</a>"; 
 			$my = 'left-1 top';
-			if(in_array($p->name, array('access', 'page'))) $my = 'left top';
+			if(in_array($p->name, array('access', 'page', 'module'))) $my = 'left top';
 			$out .= "<ul class='dropdown-menu topnav' data-my='$my' data-at='left bottom'>";
 	
-			foreach($children as $c) {
+			if($children instanceof PageArray) foreach($children as $c) {
+			
+				if(!$c->process) continue; 
+				$moduleInfo = $this->wire('modules')->getModuleInfo($c->process); 
+				if($isSuperuser) $hasPermission = true; 
+					else if(isset($moduleInfo['permission'])) $hasPermission = $this->wire('user')->hasPermission($moduleInfo['permission']); 	
+					else $hasPermission = false;
 				
-				if($isSuperuser && ($c->id == 11 || $c->id == 16)) {
+				if(!$hasPermission) continue; 
+				
+				if(!empty($moduleInfo['useNavJSON'])) {
 					// has ajax items
 					$icon = $this->getPageIcon($c);
-					$addLabel = $this->_('Add New');
 					$out .=	
-						"<li><a class='has-ajax-items' data-from='topnav-page-$p' href='$c->url'>$icon" . $this->_($c->title) . "</a><ul>" . 
-						"<li class='add'><a href='{$c->url}add'><i class='fa fa-plus-circle'></i> $addLabel</a></li>" . 
-						"</ul></li>";
+						"<li><a class='has-items has-ajax-items' data-from='topnav-page-$p' data-json='{$c->url}navJSON/' " . 
+						"href='$c->url'>$icon" . $this->_($c->title) . "</a><ul></ul></li>";
+					
+				} else if(!empty($moduleInfo['nav'])) {
+					// process defines its own subnav
+					$icon = $this->getPageIcon($c);
+					$title = $this->_($c->title); 
+					if(!$title) $title = $c->name; 
+					$out .= 
+						"<li><a class='has-items' data-from='topnav-page-$p' href='$c->url'>$icon$title</a>" . 
+						"<ul>" . $this->renderTopNavItemArray($c, $moduleInfo['nav']) . "</ul></li>";
+					
 				} else {
+					// regular nav item
 					$out .= $this->renderTopNavItem($c, $level+1);
 				}
+				
+			} else if(is_array($children) && count($children)) {
+				$out .= $this->renderTopNavItemArray($p, $children); 
 			}
 	
 			$out .= "</ul>";
@@ -277,7 +304,35 @@ class AdminThemeDefaultHelpers extends WireData {
 	
 		return $out; 
 	}
-	
+
+	/**
+	 * Renders static navigation from an array coming from getModuleInfo()['nav'] array (see wire/core/Process.php)
+	 * 
+	 * @param Page $p
+	 * @param array $nav
+	 * @return string
+	 * 
+	 */
+	protected function renderTopNavItemArray(Page $p, array $nav) {
+		// process module with 'nav' property
+		$out = '';
+		$textdomain = str_replace($this->wire('config')->paths->root, '/', $this->wire('modules')->getModuleFile($p->process));
+		
+		foreach($nav as $item) {
+			if(!empty($item['permission']) && !$this->wire('user')->hasPermission($item['permission'])) continue;
+			$icon = empty($item['icon']) ? '' : "<i class='fa fa-fw fa-$item[icon]'></i>&nbsp;";
+			$label = __($item['label'], $textdomain); // translate from context of Process module
+			if(empty($item['navJSON'])) {
+				$out .= "<li><a href='{$p->url}$item[url]'>$icon$label</a></li>";
+			} else {
+				$out .= 
+					"<li><a class='has-items has-ajax-items' data-from='topnav-page-$p' data-json='{$p->url}$item[navJSON]' " . 
+					"href='{$p->url}$item[url]'>$icon$label</a><ul></ul></li>";
+			}
+		}
+		return $out; 
+	}
+
 	/**
 	 * Render all top navigation items, ready to populate in ul#topnav
 	 *
@@ -288,8 +343,8 @@ class AdminThemeDefaultHelpers extends WireData {
 		$out = '';
 		$outMobile = '';
 		$outTools = '';
-		$admin = $this->wire('pages')->get(wire('config')->adminRootPageID); 
 		$config = $this->wire('config'); 
+		$admin = $this->wire('pages')->get($config->adminRootPageID); 
 		$user = $this->wire('user'); 
 	
 		foreach($admin->children("check_access=0") as $p) {
@@ -315,18 +370,64 @@ class AdminThemeDefaultHelpers extends WireData {
 	
 		$outMobile = "<ul id='topnav-mobile' class='dropdown-menu topnav' data-my='left top' data-at='left bottom'>$outMobile$outTools</ul>";
 	
-		$out .=	"<li>" . 
+		$out .=	
+			"<li>" . 
 			"<a target='_blank' id='tools-toggle' class='dropdown-toggle' href='{$config->urls->root}'>" . 
 			"<i class='fa fa-wrench'></i></a>" . 
 			"<ul class='dropdown-menu topnav' data-my='left top' data-at='left bottom'>" . $outTools . 
 			"</ul></li>";
 	
-		$out .=	"<li class='collapse-topnav-menu'><a href='$admin->url' class='dropdown-toggle'>" . 
+		$out .=	
+			"<li class='collapse-topnav-menu'><a href='$admin->url' class='dropdown-toggle'>" . 
 			"<i class='fa fa-lg fa-bars'></i></a>$outMobile</li>";
 		
 		return $out; 
 	}
 	
+	/**
+	 * Returns editable items of array('url to edit' => 'label) or booean if $checkOnly is true
+	 *
+	 * @param Page $page
+	 * @param bool $checkOnly Specify true to have this method return true/false if items are available.
+	 * 
+	 * @return bool|array
+	 *
+	 */
+	protected function ___getEditableItems(Page $page, $checkOnly = false) {
+
+		$items = array();
+		if(!$this->wire('user')->isSuperuser()) {
+			if($checkOnly) return false; 
+			return array();
+		}
+
+		if($page->id == 11) {
+
+			if($checkOnly) return true;
+			
+			$url = $this->wire('config')->urls->admin . 'setup/template/edit?id=';
+			foreach($this->wire('templates') as $template) {
+				if($template->flags & Template::flagSystem) continue;
+				$items[$url . $template->id] = $template->name;
+			}
+			
+		} else if($page->id == 16) {
+
+			if($checkOnly) return true;
+			
+			$url = $this->wire('config')->urls->admin . 'setup/field/edit?id=';
+			foreach($this->wire('fields') as $field) {
+				if(($field->flags & Field::flagSystem) && $field->name != 'title') continue;
+				$items[$url . $field->id] = $field->name;
+			}
+			
+		} else {
+			if($checkOnly) return false; 
+		}
+
+		return $items;
+	}
+
 	/**
 	 * Render the browser <title>
 	 *
@@ -357,7 +458,7 @@ class AdminThemeDefaultHelpers extends WireData {
 		$page = $this->wire('page');
 		$bodyClass = $this->wire('input')->get->modal ? 'modal ' : '';
 		$bodyClass .= "id-{$page->id} template-{$page->template->name} pw-init";
-		if(wire('config')->js('JqueryWireTabs')) $bodyClass .= " hasWireTabs";
+		if($this->wire('config')->js('JqueryWireTabs')) $bodyClass .= " hasWireTabs";
 		return $bodyClass; 
 	}
 	
@@ -386,5 +487,10 @@ class AdminThemeDefaultHelpers extends WireData {
 
 		return "var config = " . wireEncodeJSON($jsConfig, true, $config->debug);
 	}
+	
+	public function getAddNewLabel() {
+		return $this->_('Add New');
+	}
+
 
 }

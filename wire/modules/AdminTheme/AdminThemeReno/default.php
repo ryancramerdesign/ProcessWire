@@ -25,7 +25,7 @@ $config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminThem
 $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css");
 if(wire('languages')) $config->styles->append($config->urls->adminTemplates . "styles/lang.css"); 
 $config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=6"); 
-$config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=6");
+$config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=7");
 
 require_once(dirname(__FILE__) . "/AdminThemeRenoHelpers.php");
 $helpers = new AdminThemeRenoHelpers();
@@ -80,7 +80,7 @@ $helpers = new AdminThemeRenoHelpers();
 			<?php echo $helpers->renderAdminNotices($notices); ?>
 		
 			<div id="breadcrumbs">
-				<ul class="nav"><?php echo $helpers->renderBreadcrumbs($appendCurrent = false); ?></ul>
+				<ul class="nav"><?php echo $helpers->renderBreadcrumbs(false); ?></ul>
 			</div>
 
 			<div id="headline">
