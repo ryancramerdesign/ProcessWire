@@ -331,8 +331,24 @@ class WireUpload extends Wire {
 			$basename = $file;
 			$basename = $this->validateFilename($basename, $this->validExtensions); 
 
-			if($basename) $destination = $this->getUniqueFilename($dir . $basename); 
-				else $destination = '';
+			if($basename) {
+				$destination = $dir . $basename;
+				if(file_exists($destination) && $this->overwrite) {
+					$bakName = $basename;
+					do {
+						$bakName = "_$bakName";
+						$bakDestination = $dir . $bakName;
+					} while(file_exists($bakDestination));
+					rename($destination, $bakDestination);
+					$this->wire('log')->message("Renamed $destination => $bakDestination");
+					$this->overwrittenFiles[$bakDestination] = $destination;
+					
+				} else {
+					$destination = $this->getUniqueFilename($dir . $basename); 
+				}
+			} else {
+				$destination = '';
+			}
 
 			if($destination && rename($pathname, $destination)) {
 				$this->completedFilenames[] = basename($destination); 

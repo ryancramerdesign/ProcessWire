@@ -211,7 +211,7 @@ $(document).ready(function() {
 					var response = $.parseJSON(xhr.responseText); 
 					if(response.error !== undefined) response = [response];
 					
-					// note the following loop will always contain only 1 item 
+					// note the following loop will always contain only 1 item, unless a file containing more files (ZIP file) was uploaded
 					for(var n = 0; n < response.length; n++) {
 
 						var r = response[n]; 
@@ -243,8 +243,7 @@ $(document).ready(function() {
 								var $item = null;
 								// find an existing item having the same basename
 								$fileList.children('.InputfieldFileItemExisting').each(function() {
-									if($item !== null) return; // if already found, don't bother checking more
-									if($(this).find('.InputfieldFileName').text() == basename) {
+									if($item === null && $(this).find('.InputfieldFileName').text() == basename) {
 										// filenames match
 										$item = $(this);
 									}
@@ -255,13 +254,10 @@ $(document).ready(function() {
 									var $newLink = $markup.find(".InputfieldFileLink"); 
 									var $info = $item.find(".InputfieldFileInfo"); 
 									var $link = $item.find(".InputfieldFileLink"); 
-									$item.slideUp("fast", function() {
-										$info.html($newInfo.html());
-										$link.html($newLink.html());
-										$item.slideDown();
-										$item.addClass('InputfieldFileItemExisting'); 
-										$link.trigger('change');
-									}); 
+									$info.html($newInfo.html() + "<i class='fa fa-check'></i>");
+									$link.html($newLink.html());
+									$item.addClass('InputfieldFileItemExisting'); 
+									$item.effect('highlight', 500); 
 								} else {
 									// didn't find a match, just append
 									$fileList.append($markup);
