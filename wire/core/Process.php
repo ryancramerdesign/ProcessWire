@@ -286,7 +286,7 @@ abstract class Process extends WireData implements Module {
 				$id = $item->id;
 				$name = $item->name; 
 				$label = (string) $item->{$options['itemLabel']};
-				$icon = $item->{$options['iconKey']};
+				$icon = str_replace(array('icon-', 'fa-'),'', $item->{$options['iconKey']});
 			} else if(is_array($item)) {
 				$id = $item['id'];
 				$name = $item['name'];
