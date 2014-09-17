@@ -11,7 +11,6 @@ sess_*
 *.cache
 *.swp
 *.swo
-*.sh
 site-default/config-dev.php
 site-default/assets/logs
 site-default/assets/files
