@@ -12,6 +12,8 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
+ * 
+ * @property int|string $version Current admin theme version
  *
  */
 
@@ -35,6 +37,14 @@ abstract class AdminTheme extends WireData implements Module {
 	}
 
 	/**
+	 * Current admin theme version (cached from module info)
+	 * 
+	 * @var int
+	 * 
+	 */
+	protected $version = 0;
+
+	/**
 	 * Keeps track of quantity of admin themes installed so that we know when to add profile field
 	 *
 	 */
@@ -48,6 +58,9 @@ abstract class AdminTheme extends WireData implements Module {
 	 */
 	public function init() { 
 		self::$numAdminThemes++;
+		
+		$info = $this->wire('modules')->getModuleInfo($this);
+		$this->version = $info['version'];
 
 		// if module has been called when it shouldn't (per the 'autoload' conditional)
 		// then module author probably forgot the right 'autoload' string, so this 
@@ -79,6 +92,11 @@ abstract class AdminTheme extends WireData implements Module {
 			$this->config->urls->set('adminTemplates', $this->config->urls->get($this->className())); 
 		}
 		
+	}
+	
+	public function get($key) {
+		if($key == 'version') return $this->version;
+		return parent::get($key); 
 	}
 
 	/**

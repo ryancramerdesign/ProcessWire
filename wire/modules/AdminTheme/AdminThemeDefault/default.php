@@ -15,11 +15,12 @@ if(!defined("PROCESSWIRE")) die();
 if(!isset($content)) $content = '';
 	
 $searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm() : '';
+$version = $adminTheme->version;
 
-$config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "main-$adminTheme->colors" : "main-classic") . ".css?v=9"); 
-$config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css?v=420"); 
-$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=7"); 
-$config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=9");
+$config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "main-$adminTheme->colors" : "main-classic") . ".css?v=$version"); 
+$config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css?v=$version"); 
+$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=$version"); 
+$config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=$version");
 	
 require_once(dirname(__FILE__) . "/AdminThemeDefaultHelpers.php");
 $helpers = new AdminThemeDefaultHelpers();
@@ -79,7 +80,7 @@ $helpers = new AdminThemeDefaultHelpers();
 		<div class="container">
 
 			<?php 
-			if(trim($page->summary)) echo "<h2>{$page->summary}</h2>"; 
+			if(trim($page->summary)) echo "<h2>$page->summary</h2>"; 
 			if($page->body) echo $page->body; 
 			echo $content; 
 			?>

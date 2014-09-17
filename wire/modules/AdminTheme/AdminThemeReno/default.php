@@ -18,14 +18,13 @@
 if(!defined("PROCESSWIRE")) die();
 
 if(!isset($content)) $content = '';
+$version = $adminTheme->version;
+$searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm($adminTheme->getSearchPlaceholder()) : '';
 
-$searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm(__('Type here to search', __FILE__)) : '';
-
-$config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "$adminTheme->colors" : "main") . ".css?v=7"); 
-$config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css");
-if(wire('languages')) $config->styles->append($config->urls->adminTemplates . "styles/lang.css"); 
-$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=6"); 
-$config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=7");
+$config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "$adminTheme->colors" : "main") . ".css?v=$version"); 
+$config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css?v=$version");
+$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=$version"); 
+$config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=$version");
 
 require_once(dirname(__FILE__) . "/AdminThemeRenoHelpers.php");
 $helpers = new AdminThemeRenoHelpers();
@@ -91,7 +90,7 @@ $helpers = new AdminThemeRenoHelpers();
 			<div id="content" class="content fouc_fix">
 
 				<?php
-				if(trim($page->summary)) echo "<h2>{$page->summary}</h2>";
+				if(trim($page->summary)) echo "<h2>$page->summary</h2>";
 				if($page->body) echo $page->body;
 				echo $content;
 				?>
@@ -105,7 +104,7 @@ $helpers = new AdminThemeRenoHelpers();
 						<?php if($user->hasPermission('profile-edit')): ?> 
 							<a class="action" href="<?php echo $config->urls->admin; ?>profile/"><i class="fa fa-user"></i> <?php echo $user->name; ?></a>  
 						<?php endif; ?>
-							<a class="action" href="<?php echo $config->urls->admin; ?>login/logout/"><i class="fa fa-times"></i> <?php echo __('Logout', __FILE__); ?></a>
+							<a class="action" href="<?php echo $config->urls->admin; ?>login/logout/"><i class="fa fa-times"></i> <?php echo $helpers->_('Logout'); ?></a>
 						</span>
 					<?php endif; ?>
 					ProcessWire <?php echo $config->versionName . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?> 

@@ -171,7 +171,7 @@ var ProcessWireAdminTheme = {
 		// if there are buttons in the format "a button" without ID attributes, copy them into the masthead
 		// or buttons in the format button.head_button_clone with an ID attribute.
 		// var $buttons = $("#content a[id=] button[id=], #content button.head_button_clone[id!=]"); 
-		var $buttons = $("#content a:not([id]) button:not([id]), #content button.head_button_clone[id!=]"); 
+		var $buttons = $("#content a[id=''] button[id=''], #content button.head_button_clone[id!='']");
 
 		// don't continue if no buttons here or if we're in IE
 		if($buttons.size() == 0 || $.browser.msie) return;

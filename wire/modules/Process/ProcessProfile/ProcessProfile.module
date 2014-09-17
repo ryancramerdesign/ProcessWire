@@ -66,6 +66,7 @@ class ProcessProfile extends Process implements ConfigurableModule {
 			$inputfield = $field->getInputfield($this->user);
 			$inputfield->value = $this->user->get($field->name);
 			if($field->name == 'admin_theme' && !$inputfield->value) $inputfield->value = 'AdminThemeDefault';
+			if($field->type instanceof FieldtypeFile) $inputfield->noAjax = true; 
 			$form->add($inputfield); 
 		}
 

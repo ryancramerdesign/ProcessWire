@@ -163,9 +163,13 @@ $(document).ready(function() {
 
 			var fileList = $fileList.get(0);
 			var maxFiles = parseInt($this.find('.InputfieldFileMaxFiles').val()); 
+			
+			$fileList.children().addClass('InputfieldFileItemExisting'); // identify items that are already there
 
 			$this.find('.AjaxUploadDropHere').show();
-				
+			
+			var doneTimer = null; // for AjaxUploadDone event
+			
 			function uploadFile(file) {
 
 				var $progressItem = $('<li class="InputfieldFile ui-widget AjaxUpload"><p class="InputfieldFileInfo ui-widget ui-widget-header InputfieldItemHeader"></p></li>'),
@@ -199,17 +203,19 @@ $(document).ready(function() {
 						// No data to calculate on
 					}
 				}, false);
+
 				
-				// File uploaded
+				// File uploaded: called for each file
 				xhr.addEventListener("load", function() {
 
 					var response = $.parseJSON(xhr.responseText); 
 					if(response.error !== undefined) response = [response];
-
+					
+					// note the following loop will always contain only 1 item 
 					for(var n = 0; n < response.length; n++) {
 
 						var r = response[n]; 
-
+						
 						if(r.error) {
 							var $pi = $progressItem.clone(); 
 							$pi.find(".InputfieldFileInfo").addClass('ui-state-error'); 
@@ -228,17 +234,57 @@ $(document).ready(function() {
 							var $input = $this.find('input[type=file]');
 							if($input.val()) $input.replaceWith($input.clone(true));
 
-							var $markup = $(r.markup); 
+							var $markup = $(r.markup);
 							$markup.hide();
-							$fileList.append($markup); 
-							$markup.slideDown(); 
+
+							// look for and handle replacements
+							if(r.overwrite) {
+								var basename = $markup.find('.InputfieldFileName').text();
+								var $item = null;
+								// find an existing item having the same basename
+								$fileList.children('.InputfieldFileItemExisting').each(function() {
+									if($item !== null) return; // if already found, don't bother checking more
+									if($(this).find('.InputfieldFileName').text() == basename) {
+										// filenames match
+										$item = $(this);
+									}
+								});
+								if($item !== null) {
+									// found replacement
+									var $newInfo = $markup.find(".InputfieldFileInfo");
+									var $newLink = $markup.find(".InputfieldFileLink"); 
+									var $info = $item.find(".InputfieldFileInfo"); 
+									var $link = $item.find(".InputfieldFileLink"); 
+									$item.slideUp("fast", function() {
+										$info.html($newInfo.html());
+										$link.html($newLink.html());
+										$item.slideDown();
+										$item.addClass('InputfieldFileItemExisting'); 
+										$link.trigger('change');
+									}); 
+								} else {
+									// didn't find a match, just append
+									$fileList.append($markup);
+									$markup.slideDown();
+									$markup.addClass('InputfieldFileItemExisting');
+								}
+								
+							} else {
+								// overwrite mode not active
+								$fileList.append($markup);
+								$markup.slideDown();
+							}
 						}
-							
+						
 					}
 
 					$progressItem.remove();
-					if(maxFiles != 1 && !$fileList.is('.ui-sortable')) initSortable($fileList); 
-					$fileList.trigger('AjaxUploadDone'); // for things like fancybox that need to be re-init'd
+					
+					if(doneTimer) clearTimeout(doneTimer); 
+					doneTimer = setTimeout(function() { 
+						if(maxFiles != 1 && !$fileList.is('.ui-sortable')) initSortable($fileList); 
+						$fileList.trigger('AjaxUploadDone'); // for things like fancybox that need to be re-init'd
+					}, 500); 
 
 				}, false);
 				

@@ -28,4 +28,5 @@
 #wrap_Inputfield_language_files_site .InputfieldFileData.description,
 #wrap_Inputfield_language_files .InputfieldFileData.description {
 	padding: 1em 0 0 0;
+	border-bottom: none;
 }

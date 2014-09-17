@@ -53,7 +53,6 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$this->showRootPage = true; 
 		$this->pageLabelField = 'title';
 		$this->limit = self::defaultLimit;
-		$this->trashLabel = $this->_('Trash'); // Label for 'Trash' page in PageList // Overrides page title if used
 	}
 
 	/**
@@ -75,6 +74,8 @@ class ProcessPageList extends Process implements ConfigurableModule {
 
 		$langID = (int) $this->wire('input')->get->lang; 
 		if($langID) $this->wire('user')->language = $this->languages->get($langID);
+		
+		$this->trashLabel = $this->_('Trash'); // Label for 'Trash' page in PageList // Overrides page title if used
 
 		if(!$this->id) $this->id = isset($_GET['id']) ? (int) $_GET['id'] : 0; 
 		$this->openPage = $this->input->get->open ? $this->pages->get((int) $this->input->get->open) : new NullPage();
@@ -163,6 +164,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		$renderer->setStart($this->start); 
 		$renderer->setLimit($this->limit); 
 		$renderer->setPageLabelField($this->pageLabelField); 
+		$renderer->setLabel('trash', $this->trashLabel);
 
 		return $renderer->render();
 	}
@@ -243,6 +245,7 @@ abstract class ProcessPageListRender extends Wire {
 	protected $pageLabelField = 'title';
 	protected $actionLabels = array();
 	protected $superuser = false;
+	protected $labels = array();
 
 	public function __construct($id, Page $page, PageArray $children) {
 		$this->id = $id; 
@@ -259,6 +262,10 @@ abstract class ProcessPageListRender extends Wire {
 
 	public function setLimit($n) {
 		$this->limit = (int) $n; 
+	}
+	
+	public function setLabel($key, $value) {
+		$this->labels[$key] = $value; 
 	}
 
 	public function setPageLabelField($pageLabelField) {
@@ -439,7 +446,7 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 			$type = 'System';
 			if($page->id == $this->config->http404PageID) $label = $this->_('404 Page Not Found'); // Label for '404 Page Not Found' page in PageList // Overrides page title if used
 				else if($page->id == $this->config->adminRootPageID) $label = $this->_('Admin'); // Label for 'Admin' page in PageList // Overrides page title if used
-				else if($page->id == $this->config->trashPageID) $label = $this->trashLabel; // Label for 'Trash' page in PageList // Overrides page title if used
+				else if($page->id == $this->config->trashPageID && isset($this->labels['trash'])) $label = $this->labels['trash']; // Label for 'Trash' page in PageList // Overrides page title if used
 			// if label is not overridden by a language pack, make $label blank to use the page title instead
 			if(in_array($label, array('Trash', 'Admin', '404 Page Not Found'))) $label = '';
 		} 

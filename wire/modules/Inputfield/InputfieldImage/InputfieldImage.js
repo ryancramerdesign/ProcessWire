@@ -33,14 +33,17 @@ $(document).ready(function() {
 
 		return false;
 	}); 
+	
+	function setGridModeItem($a) {
+		var $img = $a.children("img");
+		$a.css('background', '#000 url(' + $img.attr('src') + ') center center no-repeat');
+		if($img.width() > 99 && $img.height() > 99) $a.css('background-size', 'cover'); 
+	}
 
 	function setGridMode($parent) {
 		$parent.find("i.fa-th").replaceWith($("<i class='fa fa-list'></i>")); 
 		$parent.find(".InputfieldFileLink").each(function() {
-			var $a = $(this);
-			var $img = $a.children("img"); 
-			$a.css('background', '#000 url(' + $img.attr('src') + ') center center no-repeat'); 
-			if($img.width() > 99 && $img.height() > 99) $a.css('background-size', 'cover'); 
+			setGridModeItem($(this));
 		}); 
 		$parent.addClass('InputfieldImageGrid'); 
 	}
@@ -68,7 +71,10 @@ $(document).ready(function() {
 	$(document).on('AjaxUploadDone', '.InputfieldImage .InputfieldFileList', function() {
 		$("a.InputfieldFileLink", $(this)).magnificPopup(magnificOptions); 
 		var $parent = $(this).parents('.InputfieldImage'); 
-		if($parent.is(".InputfieldImageGrid")) setGridMode($parent);
+		if($parent.is(".InputfieldImageGrid")) {
+			unsetGridMode($parent);
+			setGridMode($parent);
+		}
 	}); 
 
 });

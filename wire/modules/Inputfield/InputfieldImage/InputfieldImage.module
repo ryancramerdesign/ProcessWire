@@ -6,7 +6,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		return array(
 			'title' => __('Images', __FILE__), // Module Title
 			'summary' => __('One or more image uploads (sortable)', __FILE__), // Module Summary
-			'version' => 109,
+			'version' => 110,
 			'permanent' => true, 
 			);
 	}
@@ -105,6 +105,11 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			}
 			$imgAttr = " height='$thumbHeight'";
 		}
+		
+		$thumbUrl = $thumb->url; 
+		
+		// ensure cached image doesn't get shown when replacing same filename
+		if($this->overwrite) $thumbUrl .= "?m=" . filemtime($pagefile->pathname);  
 
 		$out = 	
 			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header'>" . 
@@ -117,7 +122,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveTop' href='#' title='" . $this->_('Move to top') . "'><span class='ui-icon ui-icon-arrowthickstop-1-n'></span></a> " . 
 			"\n\t\t</p>" . 
 			"\n\t\t<div class='InputfieldFileData ui-widget ui-widget-content'>" . 
-			"\n\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->url}'><img src='{$thumb->url}' alt='{$pagefile->basename}'$imgAttr /></a>" . 
+			"\n\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->url}'><img src='$thumbUrl' alt='{$pagefile->basename}'$imgAttr /></a>" . 
 			"\n\t\t\t" . $error . $this->renderItemDescriptionField($pagefile, $id, $n) . 
 			"\n\t\t\t<input class='InputfieldFileSort' type='text' name='sort_$id' value='$n' />" . 
 			"\n\t\t</div>";

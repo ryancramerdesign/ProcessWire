@@ -84,19 +84,21 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		if($imgField != '') {
 			count($imgField) ? $img = $imgField->first() : $img = $imgField;
 			$out .= "<li class='avatar'><a href='{$config->urls->admin}profile/'>";
-			$userImg = $img->size(48,48); // render at 2x for hi-dpi
-			$out .= "<img src={$img->url} /> <span>{$user->name}</span>";
+			$userImg = $img->size(52,52); // render at 2x for hi-dpi (52x52 for 26x26)
+			$out .= "<img src='$userImg->url' alt='$user->name' /> <span>$user->name</span>";
 			$out .= "</a></li>";
 
 		} else {
-			$out .= "<li><a href='{$config->urls->admin}profile/'><i class='fa fa-user'></i> <span>{$user->name}</span></a></li>";
+			$title = $this->_('Profile');
+			$out .= "<li><a title='$title' href='{$config->urls->admin}profile/'><i class='fa fa-user'></i> <span>$user->name</span></a></li>";
 		}
 		
 		// view site
 		$out .= "<li><a href='{$config->urls->root}'><i class='fa {$adminTheme->home}'></i></a></li>";
 
 		// logout
-		$out .= "<li><a href='{$config->urls->admin}login/logout/'><i class='fa {$adminTheme->signout}'></i></a></li>";
+		$label = $this->_('Logout');
+		$out .= "<li><a title='$label' href='{$config->urls->admin}login/logout/'><i class='fa {$adminTheme->signout}'></i></a></li>";
 
 		return $out;
 

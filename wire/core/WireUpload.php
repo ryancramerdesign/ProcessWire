@@ -31,6 +31,7 @@ class WireUpload extends Wire {
 	protected $badExtensions = array('php', 'php3', 'phtml', 'exe', 'cfm', 'shtml', 'asp', 'pl', 'cgi', 'sh'); 
 	protected $errors = array();
 	protected $allowAjax = false;
+	protected $overwrittenFiles = array();
 
 	// static protected $unzipCommand = 'unzip -j -qq -n /src/ -x __MACOSX .* -d /dst/';
 
@@ -66,6 +67,13 @@ class WireUpload extends Wire {
 		}
 		*/
 	
+	}
+
+	public function __destruct() {
+		// cleanup files that were backed up when overwritten
+		foreach($this->overwrittenFiles as $bakDestination => $destination) {
+			if(is_file($bakDestination)) unlink($bakDestination);
+		}
 	}
 
 	public function execute() {
@@ -225,7 +233,7 @@ class WireUpload extends Wire {
 
 		return $value;
 	}
-
+	
 	protected function saveUpload($tmp_name, $filename, $ajax = false) {
 
 		if(!$this->checkDestinationPath()) return false; 
@@ -234,11 +242,23 @@ class WireUpload extends Wire {
 		if($this->lowercase) $filename = strtolower($filename); 
 		$destination = $this->destinationPath . $filename;
 		$p = pathinfo($destination); 
+		$exists = file_exists($destination); 
 
 		if(!$this->overwrite && $filename != $this->overwriteFilename) {
 			// overwrite not allowed, so find a new name for it
 			$destination = $this->getUniqueFilename($destination); 
 			$filename = basename($destination); 
+			
+		} else if($exists && $this->overwrite) {
+			// file already exists in destination and will be overwritten
+			// here we back it up temporarily, and we don't remove the backup till __destruct()
+			$bakName = $filename; 
+			do {
+				$bakName = "_$bakName";
+				$bakDestination = $this->destinationPath . $bakName;
+			} while(file_exists($bakDestination)); 
+			rename($destination, $bakDestination);
+			$this->overwrittenFiles[$bakDestination] = $destination;
 		}
 
 		if($ajax) $success = @rename($tmp_name, $destination);
@@ -422,6 +442,19 @@ class WireUpload extends Wire {
 		$errors = $this->errors; 
 		if($clear) $this->errors = array();
 		return $errors;
+	}
+
+	/**
+	 * Get files that were overwritten (for overwrite mode only)
+	 * 
+	 * WireUpload keeps a temporary backup of replaced files. The backup will be removed at __destruct()
+	 * You may retrieve backed up files temporarily if needed. 
+	 * 
+	 * @return array associative array of ('backup path/file' => 'replaced basename')
+	 * 
+	 */
+	public function getOverwrittenFiles() {
+		return $this->overwrittenFiles;
 	}
 
 

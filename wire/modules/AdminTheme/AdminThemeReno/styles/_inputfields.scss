@@ -391,6 +391,7 @@ table {
 		border-style: solid;
 		border-color: darken($item-border-color, 4%);
 		background: $item-bg;
+		border-top: none;
 	}
 
 	.InputfieldItemList .InputfieldItemHeader {
