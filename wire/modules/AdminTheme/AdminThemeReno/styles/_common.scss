@@ -403,6 +403,21 @@ body.id-23 {
 		text-align: center;
 		font-size: 14px; // font awesome renders clearer at 14px;
 	}
+	
+	#main-nav a.current i.current-icon {
+		// added by ryan
+		float: right;
+		margin-right: 11px;
+		margin-top: 4px; 
+	}
+	
+	#main-nav a.has-quicklinks.current {
+		// added by ryan
+		&.no-arrow i.current-icon,
+		&:hover i.current-icon {
+			display: none;
+		}
+	}
 
 	#main-nav > li > a.current:not(.parent) > i{
 		color: $mainnav-link-current-color;

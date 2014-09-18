@@ -9,7 +9,7 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Reno',
-			'version' => 8,
+			'version' => 9,
 			'summary' => __('Admin theme for ProcessWire 2.5 by Tom Reno (Renobird)', __FILE__),
 			'autoload' => "template=admin",
 			'author' => "Tom Reno (Renobird)"

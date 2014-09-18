@@ -81,12 +81,30 @@ var ProcessWireAdminTheme = {
 			}
 			return false;
 		});
+		
+		$("#main-nav li > ul > li > a").hover(function() {
+			var $a = $(this);
+			var newIcon = $a.attr('data-icon'); 
+			if(newIcon.length == 0) return;
+			var $icon = $a.parent('li').parent('ul').prev('a').children('i');
+			$icon.attr('data-icon', $icon.attr('class'));
+			$icon.attr('class', 'fa fa-' + $a.attr('data-icon')); 
+			
+		}, function() {
+			var $a = $(this);
+			var newIcon = $a.attr('data-icon');
+			if(newIcon.length == 0) return;
+			var $icon = $a.parent('li').parent('ul').prev('a').children('i');
+			$icon.attr('class', $icon.attr('data-icon'));
+		}); 
 			
 
 		$(".quicklink-open").click(function(event){
+			
 			$(this).toggleClass('active').parent().next('ul.quicklinks').toggle();
 			$(this).parent().parent().siblings().find('ul.quicklinks').hide();
 			$(this).parent().parent().siblings().find('.quicklink-open').removeClass('active');
+			$(this).effect('pulsate', 100); 
 			event.stopPropagation();
 			//psuedo elements are not part of the DOM, need to remove current arrows by adding a class to the current item.
 			$('#main-nav .current:not(.open)').addClass('no-arrow');

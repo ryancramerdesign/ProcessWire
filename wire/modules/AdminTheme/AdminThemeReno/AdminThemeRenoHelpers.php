@@ -197,9 +197,12 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 				} else if(!empty($moduleInfo['nav'])) {
 					$quicklinks = $this->renderQuicklinks($c, $moduleInfo['nav'], $title); 
 				}
-
+				
+				$icon = isset($moduleInfo['icon']) ? $moduleInfo['icon'] : '';
 				$toggle = $quicklinks ? "<i class='quicklink-open fa fa-bolt'></i>" : "";
-				$out .= "<li><a href='$url' class='$class'>$title$toggle</a>" . $quicklinks;
+				if($class == 'current' && $icon) $title .= "<i class='fa fa-fw fa-$icon current-icon'></i> ";
+				if($quicklinks) $class .= " has-quicklinks";
+				$out .= "<li><a href='$url' class='$class' data-icon='$icon'>$title$toggle</a>" . $quicklinks;
 				$out .= "</li>";
 			}
 
