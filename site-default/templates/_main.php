@@ -26,6 +26,8 @@
  * from your template file or if you were using a template file for some other
  * kind of output like an RSS feed or sitemap.xml, for example. 
  *
+ * See the README.txt file for more information. 
+ *
  */
 ?><!DOCTYPE html>
 <html lang="en">

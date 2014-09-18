@@ -1,4 +1,7 @@
-# ProcessWire 2.5
+# Welcome to ProcessWire 2.5
+
+This document is in Markdown. An HTML formatted version of this document 
+can be read at: http://processwire.com/download/readme
 
 ## Table of Contents
 
@@ -227,18 +230,41 @@ the case for your site, remember to migrate those changes to the new
 ### Upgrading from ProcessWire 2.4
 
 The general upgrade process may be followed to perform this upgrade.
-Please note the following:
+In addition, please note the following:
 
-- While not urgent, you *will* want to replace your [.htaccess](#replacing-the-htaccess-file)
+- **New .htaccess and index.php files**    
+  While not urgent, you *will* want to replace your [.htaccess](#replacing-the-htaccess-file)
   and [index.php](#replacing-the-indexphp-file) files as part of the upgrade. 
+  If you have modified either of those files, it's okay to leave them in 
+  place temporarily, as you can still use ProcessWire 2.5 with the old 
+  .htaccess and index.php files in place. But we recommend updating them
+  when you can. 
+  
+- **Does your site depend on other sites loading it in an iframe?**  
+  Related to the above point, the new .htaccess file contains an option
+  that you will need to disable if your site relies upon other sites
+  loading yours in an `<iframe>`. If this is your case, please delete or 
+  comment out this line in your .htaccess file:   
+  `Header always append X-Frame-Options SAMEORIGIN`
 
-- 2.5 drops TinyMCE as the rich text editor and replaces it with 
+- **TinyMCE rich text editor was replaced with CKEditor**    
+  2.5 drops TinyMCE as the rich text editor and replaces it with 
   CKEditor. After installation of 2.5, you will see an error message
   on any pages that use TinyMCE. From this point, you may either 
-  install TinyMCE or switch your fields using TinyMCE to CKEditor. 
-  To switch to CKEditor, go to Setup > Fields > [field] > Details,
+  [install TinyMCE](mods.pw/7H) or switch your fields using TinyMCE
+  to CKEditor. To switch to CKEditor, go to Setup > Fields > [field] > Details,
   and change the *Inputfield Type* to CKEditor (it may already be
   selected), then be sure to Save. 
+  
+- **Already have CKEditor or HTML Purifier installed?**   
+  A couple of modules that were previously 3rd party (site) modules 
+  are now core (wire) modules in ProcessWire 2.5. If you have either
+  the *InputfieldCKEditor* or *MarkupHTMLPurifier* modules installed,
+  you will get warnings about that after upgrading. The warnings will 
+  tell you to remove the dirs/files for those modules that you have in 
+  /site/modules/. Don't be alarmed, as this is not an error, just a 
+  warning notice. But it is a good idea to remove duplicate copies 
+  of these modules when possible. 
 
 
 ### Upgrading from ProcessWire 2.2 or 2.3

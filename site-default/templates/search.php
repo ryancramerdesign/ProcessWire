@@ -1,5 +1,8 @@
 <?php
 
+// search.php template file
+// See README.txt for more information. 
+
 // look for a GET variable named 'q' and sanitize it
 $q = $sanitizer->text($input->get->q); 
 

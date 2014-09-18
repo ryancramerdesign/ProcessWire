@@ -7,6 +7,8 @@
  *
  * This file is currently included by _init.php 
  *
+ * For more information see README.txt
+ *
  */
 
 /** 

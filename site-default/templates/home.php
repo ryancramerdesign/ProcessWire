@@ -1,6 +1,7 @@
 <?php 
 
 // home.php (homepage) template file. 
+// See README.txt for more information
 
 // Primary content is the page body copy and navigation to children. 
 // See the _func.php file for the renderNav() function example
@@ -12,11 +13,13 @@ if(count($page->images)) {
 	$image = $page->images->getRandom();
 	// resize it to 400 pixels wide
 	$image = $image->width(400); 
-	// output the image at the top of the sidebar
-	$sidebar = "<img src='$image->url' alt='$image->description' />$page->sidebar";	
+	// output the image at the top of the sidebar...
+	$sidebar = "<img src='$image->url' alt='$image->description' />";
+	// ...and append sidebar text under the image
+	$sidebar .= $page->sidebar;	
 } else {
 	// no images... 
-	// append sidebar content if the page has it
+	// append sidebar text if the page has it
 	$sidebar = $page->sidebar; 
 }
 

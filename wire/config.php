@@ -597,9 +597,18 @@ $config->substituteModules = array(
 
 
 
-
-
 /*** 9. MISC ************************************************************************************/
+
+/**
+ * Default admin theme module for guest and users that haven't already selected one
+ *
+ * Core options include: AdminThemeDefault or AdminThemeReno.
+ * Additional options will depend on what other 3rd party AdminTheme modules you have installed.
+ *
+ * @var string
+ *
+ */
+$config->defaultAdminTheme = 'AdminThemeDefault';
 
 /**
  * Admin email address

@@ -79,8 +79,8 @@ abstract class AdminTheme extends WireData implements Module {
 			// there is user specified admin theme
 			// check if this is the one that should be used
 			if($adminTheme == $this->className()) $isCurrent = true; 
-
-		} else {
+			
+		} else if($this->wire('config')->defaultAdminTheme == $this->className()) {
 			// there is no user specified admin theme, so use this one
 			$isCurrent = true; 
 		}
