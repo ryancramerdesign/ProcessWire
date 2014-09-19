@@ -70,11 +70,14 @@ var ProcessWireAdminTheme = {
 			
 		}).click(function() {
 			var $a = $(this);
+			$a.addClass('just-clicked'); 
 			numClicks++;
 			if(numClicks === 1) {
 				clickTimer = setTimeout(function() { 
 					// single click occurred
-					$a.toggleClass('open').next('ul').slideToggle('fast');
+					$a.toggleClass('open').next('ul').slideToggle('fast', function() {
+						$a.removeClass('just-clicked'); 
+					});
 					numClicks = 0; 
 				}, 200); 
 			} else {
@@ -100,6 +103,7 @@ var ProcessWireAdminTheme = {
 				// needs to be opened
 				setTimeout(function() {
 					if(!$a.hasClass('hover-temp')) return;
+					if($a.hasClass('just-clicked')) return;
 					$("#main-nav > li > a.open:not(.hover-temp)").each(function() { 
 						// close sections that are currently open
 						var $t = $(this);
