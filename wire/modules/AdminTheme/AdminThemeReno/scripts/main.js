@@ -57,13 +57,17 @@ var ProcessWireAdminTheme = {
 		        $('#main-nav .current').removeClass('no-arrow');
 		    }
 		});
+		
+		///////////////////////////////////////////////////////////////////
 
 		// this bit of code below monitors single click vs. double click
 		// on double click it goes to the page linked by the nav item 
 		// on single click it opens or closes the nav
+		
 		var clickTimer = null, numClicks = 0;
 		$("#main-nav a.parent").dblclick(function(e) {
 			e.preventDefault();
+			
 		}).click(function() {
 			var $a = $(this);
 			numClicks++;
@@ -80,7 +84,42 @@ var ProcessWireAdminTheme = {
 				return true; 
 			}
 			return false;
+				
 		});
+
+		///////////////////////////////////////////////////////////////////
+		
+		$("#main-nav > li").mouseover(function() {
+			// hover actions open hovered item, and close others
+			var $li = $(this);
+			var $a = $li.children('a');
+			var $ul = $li.children('ul');
+			if($ul.is(":visible")) {
+				// already open
+			} else {
+				// needs to be opened
+				setTimeout(function() {
+					if(!$a.hasClass('hover-temp')) return;
+					$("#main-nav > li > a.open:not(.hover-temp)").each(function() { 
+						// close sections that are currently open
+						var $t = $(this);
+						var $u = $t.next('ul:visible'); 
+						if($u.length > 0) {
+							if($u.find('.quicklinks-open').length > 0) $u.find('.quicklink-close').click();
+							$u.slideUp('fast');
+						}
+						$(this).removeClass('open')
+					});
+					$a.addClass('open').next('ul').slideDown('fast');
+				}, 500);
+				$a.addClass('hover-temp'); 
+			}
+		}).mouseout(function() {
+			var $a = $(this).children('a');
+			$a.removeClass('hover-temp'); 
+		});
+
+		///////////////////////////////////////////////////////////////////
 		
 		$("#main-nav li > ul > li > a").hover(function() {
 			var $a = $(this);
@@ -96,15 +135,20 @@ var ProcessWireAdminTheme = {
 			if(newIcon.length == 0) return;
 			var $icon = $a.parent('li').parent('ul').prev('a').children('i');
 			$icon.attr('class', $icon.attr('data-icon'));
-		}); 
-			
+		});
 
+		///////////////////////////////////////////////////////////////////
+
+		var quicklinkTimer = null;
+		
 		$(".quicklink-open").click(function(event){
-			
-			$(this).toggleClass('active').parent().next('ul.quicklinks').toggle();
-			$(this).parent().parent().siblings().find('ul.quicklinks').hide();
-			$(this).parent().parent().siblings().find('.quicklink-open').removeClass('active');
-			$(this).effect('pulsate', 100); 
+		
+			var $this = $(this);
+			$this.parent().addClass('quicklinks-open');
+			$this.toggleClass('active').parent().next('ul.quicklinks').toggle();
+			$this.parent().parent().siblings().find('ul.quicklinks').hide();
+			$this.parent().parent().siblings().find('.quicklink-open').removeClass('active').parent('a').removeClass('quicklinks-open');
+			$this.effect('pulsate', 100); 
 			event.stopPropagation();
 			//psuedo elements are not part of the DOM, need to remove current arrows by adding a class to the current item.
 			$('#main-nav .current:not(.open)').addClass('no-arrow');
@@ -135,10 +179,23 @@ var ProcessWireAdminTheme = {
 			}
 			
 			return false;
+			
+		}).mouseover(function() {
+			var $this = $(this);
+			if($this.parent().hasClass('quicklinks-open')) return;
+			$this.addClass('hover-temp'); 
+			clearTimeout(quicklinkTimer); 
+			quicklinkTimer = setTimeout(function() {
+				if($this.hasClass('hover-temp')) $this.click();
+			}, 500); 
+				
+		}).mouseout(function() {
+			$(this).removeClass('hover-temp'); 
 		});
 
 		$(".quicklink-close").click(function(){
-			$(this).closest('ul.quicklinks').hide();
+			$(this).parent().removeClass('quicklinks-open'); 
+			$(this).closest('ul.quicklinks').hide().prev('a').removeClass('quicklinks-open'); 
 			$('.quicklink-open').removeClass('active');
 			$('#main-nav .current').removeClass('no-arrow'); 
 			return false;

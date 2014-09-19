@@ -227,3 +227,15 @@
 	top: 4px;
 }
 
+.dropdown-menu.shortcuts {
+	border-radius: 5px !important;
+	
+	li:first-child a {
+		border-top-left-radius: 5px !important;
+		border-top-right-radius: 5px !important;
+	}
+	li:last-child a {
+		border-bottom-left-radius: 5px !important;
+		border-bottom-right-radius: 5px !important; 
+	}
+}

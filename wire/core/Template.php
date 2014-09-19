@@ -676,6 +676,24 @@ class Template extends WireData implements Saveable, Exportable {
 		return $label;
 	}
 
+	/**
+	 * Return the icon name used by this template (if specified in pageLabeField)
+	 * 
+	 * @param bool $prefix Specify true if you want the icon prefix (icon- or fa-) to be included (default=false).
+	 * @return string
+	 * 
+	 */
+	public function getIcon($prefix = false) {
+		$label = $this->pageLabelField; 
+		$icon = '';
+		if(strpos($label, 'icon-') !== false || strpos($label, 'fa-') !== false) {
+			if(preg_match('/\b(icon-|fa-)([^\s,]+)/', $label, $matches)) {
+				$icon = $prefix ? $matches[1] . $matches[2] : $matches[2];
+			}
+		}
+		return $icon;
+	}
+
 }
 
 

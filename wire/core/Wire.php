@@ -242,6 +242,12 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 */
 	
 	/**
+	 * Debug hooks
+	 *
+	 */
+	const ___debug = false;
+
+	/**
 	 * When a hook is specified, there are a few options which can be overridden: This array outlines those options and the defaults.
 	 *
 	 * - type: may be either 'method' or 'property'. If property, then it will respond to $obj->property rather than $obj->method().
@@ -314,11 +320,35 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 */ 
 	public function __call($method, $arguments) {
-		$result = $this->runHooks($method, $arguments); 
+		if(self::___debug) {
+			static $timers = array();
+			$timerName = get_class($this) . "::$method";
+			$notes = array();
+			foreach($arguments as $argument) {
+				if(is_object($argument)) $notes[] = get_class($argument);
+				else if(is_array($argument)) $notes[] = "array(" . count($argument) . ")";
+				else if(strlen($argument) > 20) $notes[] = substr($argument, 0, 20) . '...';
+			}
+			$timerName .= "(" . implode(', ', $notes) . ")";
+			if(isset($timers[$timerName])) {
+				$timers[$timerName]++;
+				$timerName .= " #" . $timers[$timerName];
+			} else {
+				$timers[$timerName] = 1;
+			}
+			Debug::timer($timerName);
+			$result = $this->runHooks($method, $arguments);
+			Debug::saveTimer($timerName); 
+			
+		} else {
+			$result = $this->runHooks($method, $arguments); 
+		}
+		
 		if(!$result['methodExists'] && !$result['numHooksRun']) {
 			if($this->wire('config')->disableUnknownMethodException) return null;
 			throw new WireException("Method " . $this->className() . "::$method does not exist or is not callable in this context"); 
 		}
+		
 		return $result['return'];
 	}
 

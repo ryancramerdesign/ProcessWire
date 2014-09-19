@@ -117,10 +117,15 @@
 	border-bottom: $notices-border-bottom;
 
 	li {
-		padding: 0.2em 1.5em !important;
-		&:first-child { padding-top: 0.6em !important; }
-		&:last-child { padding-bottom: 0.6em !important; }
+		padding: 0.6em 1.5em !important;
 	}
+
+	li.NoticeError + li.NoticeError,
+	li.NoticeWarning + li.NoticeWarning, 
+	li.NoticeMessage + li.NoticeMessage {
+		padding-top: 0 !important;
+	}
+	
 
 	& .ui-priority-secondary {
 		background: $highlight-bg !important;

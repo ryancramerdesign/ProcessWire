@@ -77,8 +77,10 @@ class AdminThemeDefaultHelpers extends WireData {
 				// multiple parents possible
 				$qs = "?template_id=$template->id";
 			}
+			$icon = $template->getIcon();
+			if(!$icon) $icon = "plus-circle";
 			$label = $this->wire('sanitizer')->entities1($template->getLabel());
-			$out .= "<li><a href='$url$qs'>$label</a></li>";
+			$out .= "<li><a href='$url$qs'><i class='fa fa-fw fa-$icon'></i>&nbsp;$label</a></li>";
 		}
 	
 		if(empty($out)) return '';
@@ -88,7 +90,7 @@ class AdminThemeDefaultHelpers extends WireData {
 		$out =	
 			"<div id='head_button'>" . 	
 			"<button class='ui-button dropdown-toggle'><i class='fa fa-angle-down'></i> $label</button>" . 
-			"<ul class='dropdown-menu shortcuts'>$out</ul>" . 
+			"<ul class='dropdown-menu shortcuts' data-at='right bottom+1'>$out</ul>" . 
 			"</div>";
 	
 		return $out; 

@@ -71,7 +71,7 @@ $mainnav-link-color: $text-color;
 $mainnav-sub-link-color: $text-color;
 $mainnav-link-bg: darken($mainnav-bg-color, 2%); 
 $mainnav-link-hover-color: '';
-$mainnav-sub-link-hover-color: '';
+$mainnav-sub-link-hover-color: $mainnav-sub-link-color;
 $mainnav-sub-link-hover-bg: darken($mainnav-bg-color, 9%);
 $mainnav-link-hover-bg: darken($mainnav-bg-color, 9%);
 $mainnav-link-current-color: $white;
