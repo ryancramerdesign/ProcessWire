@@ -10,12 +10,8 @@
 @import 'lang';
 
 $wide-screen-width: 1200px; 
-$xwide-screen-width: 1400px; 
-$xxwide-screen-width: 1590px; 
 $mainnav-width: 210px; 
 $mainnav-width-wide: 260px; 
-$mainnav-width-xwide: 290px; 
-$mainnav-width-xxwide: 320px; 
 
 /***********************************************************************************************
  * GENERAL
@@ -370,12 +366,6 @@ body.id-23 {
 	@media only screen and (min-width: $wide-screen-width) {
 		width: $mainnav-width-wide;
 	}
-	@media only screen and (min-width: $xwide-screen-width) {
-		width: $mainnav-width-xwide;
-	}
-	@media only screen and (min-width: $xxwide-screen-width) {
-		width: $mainnav-width-xxwide;
-	}
 
 	&.toggle {
 		left: -999px;
@@ -483,7 +473,7 @@ body.id-23 {
 		padding: 4px 0 4px 20px;
 		font-weight: normal;
 		position: relative;
-		color: transparentize($mainnav-sub-link-color, 0.25);
+		color: $mainnav-sub-link-color;
 		margin-bottom: 1px;
 		
 		&.quicklinks-open {
@@ -501,10 +491,7 @@ body.id-23 {
 		}
 	
 		span {
-			@media only screen and (min-width: $xwide-screen-width) {
-				padding-left: 28px;
-			}
-			@media only screen and (min-width: $xxwide-screen-width) {
+			@media only screen and (min-width: $wide-screen-width) {
 				padding-left: 28px;
 			}
 		}
@@ -535,14 +522,6 @@ body.id-23 {
 		@media only screen and (min-width: $wide-screen-width) {
 			left: $mainnav-width-wide;
 			width: $mainnav-width-wide+20px; 
-		}
-		@media only screen and (min-width: $xwide-screen-width) {
-			left: $mainnav-width-xwide;
-			width: $mainnav-width-xwide+20px; 
-		}
-		@media only screen and (min-width: $xxwide-screen-width) {
-			left: $mainnav-width-xxwide;
-			width: $mainnav-width-xxwide+20px; 
 		}
 
 		& li a {
@@ -670,12 +649,6 @@ body.id-23 {
 
 	@media only screen and (min-width: $wide-screen-width) {
 		margin-left: $mainnav-width-wide;
-	}
-	@media only screen and (min-width: $xwide-screen-width) {
-		margin-left: $mainnav-width-xwide;
-	}
-	@media only screen and (min-width: $xxwide-screen-width) {
-		margin-left: $mainnav-width-xxwide;
 	}
 
 	&.toggle {

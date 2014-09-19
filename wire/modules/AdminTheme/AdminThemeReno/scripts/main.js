@@ -105,6 +105,7 @@ var ProcessWireAdminTheme = {
 		});
 
 		///////////////////////////////////////////////////////////////////
+		/*
 		
 		$("#main-nav > li").mouseover(function() {
 			// hover actions open hovered item, and close others
@@ -127,9 +128,11 @@ var ProcessWireAdminTheme = {
 			var $a = $(this).children('a');
 			$a.removeClass('hover-temp'); 
 		});
+		*/
 
 		///////////////////////////////////////////////////////////////////
-		
+	
+		/*
 		$("#main-nav li > ul > li > a").hover(function() {
 			var $a = $(this);
 			var newIcon = $a.attr('data-icon'); 
@@ -145,6 +148,7 @@ var ProcessWireAdminTheme = {
 			var $icon = $a.parent('li').parent('ul').prev('a').children('i');
 			$icon.attr('class', $icon.attr('data-icon'));
 		});
+		*/
 
 		///////////////////////////////////////////////////////////////////
 
