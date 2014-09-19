@@ -202,7 +202,7 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 				$toggle = $quicklinks ? "<i class='quicklink-open fa fa-bolt'></i>" : "";
 				if($class == 'current' && $icon) $title .= "<i class='fa fa-fw fa-$icon current-icon'></i> ";
 				if($quicklinks) $class .= " has-quicklinks";
-				$out .= "<li><a href='$url' class='$class' data-icon='$icon'>$title$toggle</a>" . $quicklinks;
+				$out .= "<li><a href='$url' class='$class' data-icon='$icon'><span>$title</span>$toggle</a>" . $quicklinks;
 				$out .= "</li>";
 			}
 
@@ -211,7 +211,7 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		} else {
 			
 			$class = $class ? " class='$class $p->name'" : "class='$p->name'";
-			$out .= "<a href='$p->url' $class><i class='fa {$icon}'></i> $title</a>"; 
+			$out .= "<a href='$p->url' $class><i class='fa {$icon}'></i> <span>$title</span></a>"; 
 
 		}
 

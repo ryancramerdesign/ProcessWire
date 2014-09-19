@@ -393,6 +393,11 @@ body.id-23 {
 		color: $mainnav-link-color;
 		font-weight: normal;
 		position: relative;
+		overflow: hidden;
+	}
+	
+	#main-nav a span {
+		white-space: nowrap;
 	}
 
 	#main-nav > li > a:hover{
@@ -492,6 +497,15 @@ body.id-23 {
 
 			& .quicklink-open{
 				visibility: visible;
+			}
+		}
+	
+		span {
+			@media only screen and (min-width: $xwide-screen-width) {
+				padding-left: 28px;
+			}
+			@media only screen and (min-width: $xxwide-screen-width) {
+				padding-left: 28px;
 			}
 		}
 	}
