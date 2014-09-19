@@ -60,16 +60,16 @@ var ProcessWireAdminTheme = {
 		
 		///////////////////////////////////////////////////////////////////
 		
-		function closeOpenSections() {
+		function closeOpenQuicklinks() {
 			$("#main-nav > li > a.open:not(.hover-temp):not(.just-clicked)").each(function() {
 				// close sections that are currently open
 				var $t = $(this);
 				var $u = $t.next('ul:visible');
 				if($u.length > 0) {
 					if($u.find('.quicklinks-open').length > 0) $u.find('.quicklink-close').click();
-					$u.slideUp('fast');
+					//$u.slideUp('fast');
 				}
-				$(this).removeClass('open').removeClass('current'); 
+				//$(this).removeClass('open').removeClass('current'); 
 			});
 		}
 
@@ -88,7 +88,7 @@ var ProcessWireAdminTheme = {
 			if(numClicks === 1) {
 				clickTimer = setTimeout(function() { 
 					// single click occurred
-					closeOpenSections();
+					closeOpenQuicklinks();
 					$a.toggleClass('open').next('ul').slideToggle('fast', function() {
 						$a.removeClass('just-clicked'); 
 					});
@@ -155,6 +155,7 @@ var ProcessWireAdminTheme = {
 		var quicklinkTimer = null;
 		
 		$(".quicklink-open").click(function(event){
+			closeOpenQuicklinks();
 		
 			var $this = $(this);
 			$this.parent().addClass('quicklinks-open');
@@ -182,7 +183,7 @@ var ProcessWireAdminTheme = {
 					// populate the retrieved items
 					$.each(data.list, function(n) {
 						var icon = '';
-						if(this.icon) icon = "<i class='fa fa-fw fa-" + this.icon + "'></i>";
+						// if(this.icon) icon = "<i class='fa fa-fw fa-" + this.icon + "'></i>";
 						var $li = $("<li><a style='white-space:nowrap' href='" + data.url + this.url + "'>" + icon + this.label + "</a></li>");
 						$ul.append($li);
 					});
