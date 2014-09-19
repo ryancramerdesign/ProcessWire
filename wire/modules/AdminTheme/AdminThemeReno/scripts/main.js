@@ -190,6 +190,7 @@ var ProcessWireAdminTheme = {
 			$this.addClass('hover-temp'); 
 			clearTimeout(quicklinkTimer); 
 			quicklinkTimer = setTimeout(function() {
+				if($this.parent().hasClass('quicklinks-open')) return;
 				if($this.hasClass('hover-temp')) $this.click();
 			}, 500); 
 				
