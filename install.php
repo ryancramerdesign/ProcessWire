@@ -77,8 +77,6 @@ class Installer {
 	protected $colors = array(
 		'classic',
 		'warm',
-		'modern',
-		'futura'
 		);
 
 
@@ -147,7 +145,12 @@ class Installer {
 	 * 
 	 */
 	protected function findProfiles() {
-		$profiles = array();
+		$profiles = array(
+			'site-beginner' => null,
+			'site-default' => null, // preferred starting order
+			'site-languages' => null, 
+			'site-blank' => null
+			); 
 		$dirTests = array(
 			'install', 
 			'templates',
@@ -177,6 +180,10 @@ class Installer {
 			}
 			$profiles[$name] = $profile;
 		}
+		// remove any preferred starting order profiles that weren't present
+		foreach($profiles as $name => $profile) {
+			if(is_null($profile)) unset($profiles[$name]); 	
+		}
 		return $profiles; 
 	}
 	
@@ -190,7 +197,7 @@ class Installer {
 			//$selected = $name == 'site-default' ? " selected='selected'" : "";
 			$options .= "<option value='$name'>$title</option>"; 
 			$out .= "<div class='profile-preview' id='$name' style='display: none;'>";
-			if(!empty($profile['summary'])) $out .= "<p class='detail'>$profile[summary]</p>";
+			if(!empty($profile['summary'])) $out .= "<p>$profile[summary]</p>";
 				else $out .= "<p class='detail'>No summary.</p>";
 			if(!empty($profile['screenshot'])) {
 				$file = $profile['screenshot'];
@@ -203,15 +210,16 @@ class Installer {
 		}
 		
 		echo "
-			<p>A site profile is a ready-to-use and modify site for ProcessWire. 
+			<p>A site installation profile is a ready-to-use and modify site for ProcessWire. 
 			If you are just getting started with ProcessWire, we recommend choosing
 			the <em>Default</em> site profile. If you already know what you are doing,
 			you might prefer the <em>Blank</em> site profile. 
 			<p>
 			<select name='profile' id='select-profile'>
-			<option value=''>Select a site profile</option>
+			<option value=''>Installation Profiles</option>
 			$options
 			</select>
+			<span class='detail'><i class='fa fa-angle-left'></i> Select each installation profile to see more information and a preview.</span>
 			</p>
 			$out
 			<script type='text/javascript'>
@@ -230,7 +238,7 @@ class Installer {
 	 */
 	protected function initProfile() {
 	
-		$this->h('Site Profile'); 
+		$this->h('Site Installation Profile'); 
 		
 		if(is_file("./site/install/install.sql")) {
 			$this->ok("Found installation profile in /site/install/");
@@ -803,7 +811,7 @@ class Installer {
 		
 		$this->p("<i class='fa fa-info-circle'></i> You can change the admin URL later by editing the admin page and changing the name on the settings tab.<br /><i class='fa fa-info-circle'></i> You can change the colors later by going to Admin <i class='fa fa-angle-right'></i> Modules <i class='fa fa-angle-right detail'></i> Core <i class='fa fa-angle-right detail'></i> Admin Theme <i class='fa fa-angle-right'></i> Settings.", "detail"); 
 		$this->h("Admin Account Information");
-		$this->p("The account you create here will have superuser access, so please make sure to create a <a target='_blank' href='http://en.wikipedia.org/wiki/Password_strength'>strong password</a>.");
+		$this->p("You will use this account to login to your ProcessWire admin. It will have superuser access, so please make sure to create a <a target='_blank' href='http://en.wikipedia.org/wiki/Password_strength'>strong password</a>.");
 		$this->input("username", "User", $clean['username'], false, "name"); 
 		$this->input("userpass", "Password", $clean['userpass'], false, "password"); 
 		$this->input("userpass_confirm", "Password <small class='detail'>(again)</small>", $clean['userpass_confirm'], true, "password"); 

@@ -15,7 +15,7 @@
  * This is here to demonstrate an example of a shared function and usage is completely optional.
  *
  * @param array|PageArray $items
- * @param int $depth How many levels of navigation below current should it go?
+ * @param int $maxDepth How many levels of navigation below current should it go?
  * @param string $fieldNames Any extra field names to display (separate multiple fields with a space)
  * @param string $class CSS class name for containing <ul>
  * @return string
