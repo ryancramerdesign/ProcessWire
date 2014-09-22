@@ -200,7 +200,7 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 				
 				$icon = isset($moduleInfo['icon']) ? $moduleInfo['icon'] : '';
 				$toggle = $quicklinks ? "<i class='quicklink-open fa fa-bolt'></i>" : "";
-				if($class == 'current' && $icon) $title .= "<i class='fa fa-fw fa-$icon current-icon'></i> ";
+				if($class == 'current' && $icon) $title = "<i class='fa fa-fw fa-$icon current-icon'></i>$title";
 				if($quicklinks) $class .= " has-quicklinks";
 				$out .= "<li><a href='$url' class='$class' data-icon='$icon'><span>$title</span>$toggle</a>" . $quicklinks;
 				$out .= "</li>";

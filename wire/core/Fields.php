@@ -178,6 +178,7 @@ class Fields extends WireSaveableItems {
 	public function ___save(Saveable $item) {
 
 		if($item->flags & Field::flagFieldgroupContext) throw new WireException("Field $item is not saveable because it is in a specific context"); 
+		if(!strlen($item->name)) throw new WireException("Field name is required"); 
 
 		$database = $this->wire('database');
 		$isNew = $item->id < 1;

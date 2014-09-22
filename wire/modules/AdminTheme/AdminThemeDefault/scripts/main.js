@@ -219,7 +219,7 @@ var ProcessWireAdminTheme = {
 
 			$ul.find(".has-items").each(function() {
 				var $icon = $("<i class='has-items-icon fa fa-angle-right ui-priority-secondary'></i>");
-				$(this).append($icon);
+				$(this).prepend($icon);
 			}); 
 
 			var lastOffset = null; 

@@ -542,6 +542,7 @@ class Field extends WireData implements Saveable, Exportable {
 		if(is_null(self::$lowercaseTables)) self::$lowercaseTables = $this->config->dbLowercaseTables ? true : false;
 		$name = $this->settings['name'];
 		if(self::$lowercaseTables) $name = strtolower($name); 
+		if(!strlen($name)) throw new WireException("Field 'name' is required"); 
 		return "field_" . $name;
 	}
 
