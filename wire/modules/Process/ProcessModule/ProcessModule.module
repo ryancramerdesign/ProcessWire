@@ -493,7 +493,7 @@ class ProcessModule extends Process {
 	 */
 	protected function renderListTable($modulesArray, $allowDelete = false, $allowSections = true, $allowDates = false, $allowClasses = false, $allowType = false) {
 		
-		if(!count($modulesArray)) return "<div class='detail'>" . $this->_('No modules found.') . "</div>";
+		if(!count($modulesArray)) return "<div class='ProcessModuleNoneFound'>" . $this->_('No modules found.') . "</div>";
 		
 		static $numCalls = 0; 
 		$numCalls++;

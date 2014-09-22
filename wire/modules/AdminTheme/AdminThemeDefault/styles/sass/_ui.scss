@@ -254,6 +254,7 @@ button.ui-button.ui-state-default,
 			margin: 0 !important; 
 			padding: 0.5em 0.75em 0.5em 0.75em; 
 			cursor: pointer; 
+			white-space: nowrap; 
 
 			&.on {
 				background: $topnav-link-hover-bg; 
@@ -271,30 +272,40 @@ button.ui-button.ui-state-default,
 				display: none; 
 			}
 		}
-
+		
 		.ui-menu {
+			border-left: 1px solid lighten($masthead-bg, 5%);
+			@include border-radius($menu-radius); 
+		}
+
+		.ui-menu.navJSON {
 			border-left: 1px solid lighten($masthead-bg, 5%); 
 			padding-bottom: 0.5em; 
 			@include border-radius($menu-radius); 
 
-			.ui-menu-item {
+			.ui-menu-item:not(.add) {
 				line-height: 1em; 
 
 				a {
 					padding-top: 0;
 					padding-bottom: 0; 
 				}
-
-				&:first-child a {
-					padding-top: 0.5em;
-					padding-bottom: 0.5em;
-					background: lighten($masthead-bg, 5%); 
-					&:hover {
-						background: $topnav-link-hover-bg; 
-					}
+			}
+			
+			.ui-menu-item.add {
+				background: lighten($masthead-bg, 5%);
+				
+				&:hover {
+					background: $topnav-link-hover-bg;
 				}
 			}
+			
+			&.length0 { // 0 items, no padding necessary at bottom
+				padding-bottom: 0;
+			}
 		}
+		
+		
 	}
 }
 

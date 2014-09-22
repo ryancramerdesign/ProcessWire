@@ -307,16 +307,18 @@ var ProcessWireAdminTheme = {
 					}
 	
 					if(data.add) {				
-						var $li = $("<li class='add'><a style='white-space:nowrap' href='" + data.url + data.add.url + "'><i class='fa fa-fw fa-plus-circle'></i>" + data.add.label + "</a></li>");
+						var $li = $("<li class='ui-menu-item add'><a href='" + data.url + data.add.url + "'><i class='fa fa-fw fa-plus-circle'></i>" + data.add.label + "</a></li>");
 						$ul.append($li);
 					}
 					// populate the retrieved items
 					$.each(data.list, function(n) {
 						var icon = '';
 						if(this.icon) icon = "<i class='ui-priority-secondary fa fa-fw fa-" + this.icon + "'></i>";
-						var $li = $("<li class='ui-menu-item'><a style='white-space:nowrap' href='" + data.url + this.url + "'>" + icon + this.label + "</a></li>");
+						var $li = $("<li class='ui-menu-item'><a href='" + data.url + this.url + "'>" + icon + this.label + "</a></li>");
 						$ul.append($li);
 					}); 
+					
+					$ul.addClass('navJSON').addClass('length' + parseInt(data.list.length)); 
 	
 					$ul.find("a").click(function() {
 						// prevent a clicked link from jumping back to the top of page (makes the UI nicer)
