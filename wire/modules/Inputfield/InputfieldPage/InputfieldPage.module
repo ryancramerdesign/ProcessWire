@@ -120,8 +120,9 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	public static function isValidPage(Page $page, $field, Page $editPage = null) {
 		
 		if(!$field instanceof Field) $field = wire('fields')->get($field);
-		if(!$field instanceof Field) throw new WireException('isValidPage requires a valid Field or field name'); 
-		
+		if(!$field instanceof Field) throw new WireException('isValidPage requires a valid Field or field name');
+		if($editPage && $page->id == $editPage->id) return false; // prevent circular reference
+
 		$valid = true;
 		
 		if($field->findPagesSelector) { 
