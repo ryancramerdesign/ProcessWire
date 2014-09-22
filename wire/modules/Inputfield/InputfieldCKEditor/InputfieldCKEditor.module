@@ -538,8 +538,8 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$str = "{ $str }";
 		$data = json_decode($str, true);
 		
-		if($data === false) return false; 
-		if(is_string($returnType)) return trim(wireEncodeJSON($data, true, true), "{}\r\n "); 
+		if($data === false || is_null($data)) return false; 
+		if(is_string($returnType)) $data = trim(wireEncodeJSON($data, true, true), "{}\r\n "); 
 		return $data; 
 	}
 
