@@ -82,7 +82,7 @@ class ProcessTemplate extends Process {
 		$a = array();
 		$showAll = $this->wire('input')->get('all'); 
 		foreach($this->wire('templates') as $template) {
-			if(!$showAll && $template->flags & Template::flagSystem) continue; 
+			if(!$showAll && ($template->flags & Template::flagSystem)) continue; 
 			$a[] = array(
 				'id' => $template->id, 
 				'name' => $template->name,
@@ -102,17 +102,13 @@ class ProcessTemplate extends Process {
 		$templates = $this->wire('templates');
 		
 		// pull icons out of pageLabelField and populate to an 'icon' property for JSON nav
+		$templatesArray = array();
 		foreach($templates as $t) {
-			$label = $t->pageLabelField;
-			if(empty($label)) continue;
-			if(strpos($label, "fa-") !== false || strpos($label, "icon-") !== false) {
-				if(preg_match('/(?:fa|icon)-([-a-z0-9]+)/', $label, $matches)) {
-					$t->set('icon', $matches[1]); 
-				}
-			}
+			if($t->flags & Template::flagSystem) continue; 
+			$templatesArray[] = $t;
 		}
 		
-		$options['items'] = $templates;
+		$options['items'] = $templatesArray;
 		$options['itemLabel'] = 'name';
 		
 		return parent::___executeNavJSON($options);

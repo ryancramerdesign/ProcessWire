@@ -94,7 +94,12 @@ class ProcessField extends Process implements ConfigurableModule {
 	 *
 	 */
 	public function ___executeNavJSON(array $options = array()) {
-		$options['items'] = $this->wire('fields');
+		$fieldsArray = array();
+		foreach($this->wire('fields') as $field) {
+			if($field->flags & Field::flagSystem) continue;
+			$fieldsArray[] = $field; 
+		}
+		$options['items'] = $fieldsArray;
 		$options['itemLabel'] = 'name';
 		return parent::___executeNavJSON($options);
 	}

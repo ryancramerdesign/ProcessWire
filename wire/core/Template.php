@@ -211,6 +211,7 @@ class Template extends WireData implements Saveable, Exportable {
 		if($key == 'fieldgroupPrevious') return $this->fieldgroupPrevious; 
 		if($key == 'roles') return $this->getRoles();
 		if($key == 'cacheTime') $key = 'cache_time'; // for camel case consistency
+		if($key == 'icon') return $this->getIcon();
 
 		return isset($this->settings[$key]) ? $this->settings[$key] : parent::get($key); 
 	}

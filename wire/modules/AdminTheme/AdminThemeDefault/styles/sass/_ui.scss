@@ -280,16 +280,25 @@ button.ui-button.ui-state-default,
 
 		.ui-menu.navJSON {
 			border-left: 1px solid lighten($masthead-bg, 5%); 
-			padding-bottom: 0.5em; 
-			@include border-radius($menu-radius); 
+			@include border-radius($menu-radius);
 
 			.ui-menu-item:not(.add) {
-				line-height: 1em; 
-
+				line-height: 1em;
+				
 				a {
 					padding-top: 0;
-					padding-bottom: 0; 
+					padding-bottom: 0;
+					
 				}
+				
+				&:first-child {
+					padding-top: 0.5em;
+				}
+				
+				&:last-child {
+					padding-bottom: 0.5em;
+				}
+
 			}
 			
 			.ui-menu-item.add {
@@ -298,6 +307,10 @@ button.ui-button.ui-state-default,
 				&:hover {
 					background: $topnav-link-hover-bg;
 				}
+			}
+			
+			.ui-menu-item.add + .ui-menu-item:not(.add) {
+				padding-top: 0.3em;
 			}
 			
 			&.length0 { // 0 items, no padding necessary at bottom

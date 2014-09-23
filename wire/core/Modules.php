@@ -973,13 +973,20 @@ class Modules extends WireArray {
 	 * Is the given class name not installed?
 	 *
 	 * @param string $class
+	 * @param bool $now Is module installable RIGHT NOW? This makes it check that all dependencies are already fulfilled (default=false)
 	 * @return bool
  	 *
 	 */
-	public function isInstallable($class) {
-		return array_key_exists($class, $this->installable); 
+	public function isInstallable($class, $now = false) {
+		$installable = array_key_exists($class, $this->installable); 
+		if(!$installable) return false;
+		if($now) {
+			$requires = $this->getRequiresForInstall($class); 
+			if(count($requires)) return false;
+		}
+		return $installable;
 	}
-
+	
 	/**
 	 * Install the given class name
 	 *
@@ -1406,6 +1413,8 @@ class Modules extends WireArray {
 				}
 			}
 		}
+		
+		$this->resetCache();
 
 		return true; 
 	}
