@@ -457,6 +457,9 @@ class PagePermissions extends WireData implements Module {
 		// if there is no page-publish permission, then it's publishable
 		$perm = wire('permissions')->get('page-publish'); 
 		if(!$perm->id) return;
+	
+		// if Page is a user, and user has user-admin permission, they can also publish the user
+		if($page instanceof User && $user->hasPermission('user-admin')) return;
 
 		// check if user has the permission assigned
 		if($user->hasPermission('page-publish', $page)) return;

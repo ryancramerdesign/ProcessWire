@@ -71,6 +71,9 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 		if(!$limit || $limit > 100) $limit = 100;
 		$start = (int) $this->wire('input')->get('start');
 		$pages = $this->pages->find("start=$start, limit=$limit");
+		foreach($pages as $page) {
+			if(!$page->editable()) $pages->remove($page);
+		}
 
 		$options['add'] = 'add/'; 
 		$options['items'] = $pages;

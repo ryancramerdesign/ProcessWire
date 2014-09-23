@@ -182,7 +182,7 @@ INSERT INTO `field_title` (`pages_id`, `data`) VALUES('35', 'Move pages (change 
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES('36', 'View pages');
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES('50', 'Sort child pages');
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES('51', 'Change templates on pages');
-INSERT INTO `field_title` (`pages_id`, `data`) VALUES('52', 'Administer users (role must also have template edit access)');
+INSERT INTO `field_title` (`pages_id`, `data`) VALUES('52', 'Administer users');
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES('53', 'User can update profile/password');
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES('54', 'Lock or unlock a page');
 INSERT INTO `field_title` (`pages_id`, `data`) VALUES('1', 'Home');

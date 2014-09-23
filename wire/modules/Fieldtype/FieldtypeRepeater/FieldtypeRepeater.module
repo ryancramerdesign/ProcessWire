@@ -498,10 +498,10 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 
         }
 
-        /**
-         * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
-	 *
-	 * In this case, the sleepValue doesn't represent the actual value as they are stored in pages. 
+		/**
+	 	 * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
+		 *
+		 * In this case, the sleepValue doesn't represent the actual value as they are stored in pages. 
          *              
          * @param Page $page
          * @param Field $field
@@ -739,7 +739,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 * @param Page $page
 	 * @param Field $field
 	 * @param string $value
-	 * return Page|PageArray
+	 * @return Page|PageArray
 	 *
 	 */
 	protected function sanitizeValueString(Page $page, Field $field, $value) {
