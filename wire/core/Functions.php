@@ -137,6 +137,23 @@ function wireEncodeJSON(array $data, $allowEmpty = false, $beautify = false) {
 	return json_encode($data, $flags);
 }
 
+
+/**
+ * Decode JSON to array
+ *
+ * Uses json_decode and works the same way except that arrays are forced.
+ * This is the counterpart to the wireEncodeJSON() function.
+ *
+ * @param string $json A JSON encoded string
+ * @return array
+ *
+ */
+function wireDecodeJSON($json) {
+	if(empty($json) || $json == '[]') return array();
+	return json_decode($json, true);
+}
+
+
 /**
  * Minimize an array to remove empty values
  *
@@ -185,21 +202,6 @@ function wireMinArray(array $data, $allowEmpty = false, $convert = false) {
 	}
 	
 	return $data; 
-}
-
-/**
- * Decode JSON to array
- *
- * Uses json_decode and works the same way except that arrays are forced.
- * This is the counterpart to the wireEncodeJSON() function.
- * 
- * @param string $json A JSON encoded string
- * @return array
- *
- */
-function wireDecodeJSON($json) {
-	if(empty($json) || $json == '[]') return array();
-	return json_decode($json, true); 
 }
 
 
@@ -568,10 +570,12 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
  * 	Specify boolean TRUE for abbreviations.
  * 	Specify integer 1 for extra short abbreviations.
  * 	Specify boolean FALSE or omit for no abbreviations.
+ * @param bool $useTense Whether to append a tense like "ago" or "from now",
+ * 	May be ok to disable in situations where all times are assumed in future or past
  * @return string
  *
  */
-function wireRelativeTimeStr($ts, $abbreviate = false) {
+function wireRelativeTimeStr($ts, $abbreviate = false, $useTense = true) {
 
 	if(empty($ts)) return __('Never', __FILE__); 
 
@@ -678,6 +682,11 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 		$tense = $fromNow; 
 		$prepend = $prependFromNow; 
 	}
+	
+	if(!$useTense) {
+		$prepend = '';
+		$tense = '';
+	}
 
 	for($j = 0; $difference >= $lengths[$j] && $j < count($lengths)-1; $j++) {
 		$difference /= $lengths[$j];
@@ -694,8 +703,8 @@ function wireRelativeTimeStr($ts, $abbreviate = false) {
 	$format = __('Q P T', __FILE__); // Relative time order: Q=Quantity, P=Period, T=Tense (i.e. 2 Days Ago)
 	$format = str_replace(array('Q', 'P', 'T'), array('{Q}', '{P}', '{T}'), $format); 
 	$out = str_replace(array('{Q}', '{P}', '{T}'), array(" $quantity", " $period", " $tense"), $format); 
-	if($abbreviate === 1) $out = str_replace("$quantity $period", "$quantity$period", $out); 
-	if(strpos($out, '  ') !== false) $out = preg_replace('/\s\s+/', ' ', $out); 
+	if($abbreviate === 1) $out = str_replace(" ", "", $out); // no space when extra-abbreviate is active
+		else if(strpos($out, '  ') !== false) $out = preg_replace('/\s\s+/', ' ', $out); 
 	return trim($out); 
 }
 
@@ -916,4 +925,178 @@ function wireTempDir($name, $maxAge = 120) {
 	$tempDir = new WireTempDir($name, $maxAge); 
 	$tempDirs[$name] = $tempDir; 
 	return $tempDir; 
+}
+
+/**
+ * Given a filename, render it as a ProcessWire template file
+ * 
+ * This is a shortcut to using the TemplateFile class. 
+ * 
+ * File is assumed relative to /site/templates/ (or a directory within there) unless you specify a full path. 
+ * If you specify a full path, it will accept files in or below site/templates/, site/modules/, wire/modules/.
+ * 
+ * Note this function returns the output for you to output wherever you want (delayed output).
+ * For direct output, use the wireInclude() function instead. 
+ * 
+ * @param $filename Assumed relative to /site/templates/ unless you provide a full path name with the filename.
+ * 	If you provide a path, it must resolve somewhere in site/templates/, site/modules/ or wire/modules/.
+ * @param array $vars Optional associative array of variables to send to template file. 
+ * 	Please note that all template files automatically receive all API variables already (you don't have to provide them)
+ * @param array $options Associative array of options to modify behavior: 
+ * 	- defaultPath: Path where files are assumed to be when only filename or relative filename is specified (default=/site/templates/)
+ *  - autoExtension: Extension to assume when no ext in filename, make blank for no auto assumption (default=php) 
+ * 	- allowedPaths: Array of paths that are allowed (default is templates, core modules and site modules)
+ * 	- allowDotDot: Allow use of ".." in paths? (default=false)
+ * 	- throwExceptions: Throw exceptions when fatal error occurs? (default=true)
+ * @return string|bool Rendered template file or boolean false on fatal error (and throwExceptions disabled)
+ * @throws WireException if template file doesn't exist
+ * 
+ */
+function wireRenderFile($filename, array $vars = array(), array $options = array()) {
+	
+	$paths = wire('config')->paths; 
+	$defaults = array(
+		'defaultPath' => $paths->templates, 
+		'autoExtension' => 'php', 
+		'allowedPaths' => array(
+			$paths->templates,
+			$paths->adminTemplates, 
+			$paths->modules,
+			$paths->siteModules
+			),
+		'allowDotDot' => false, 
+		'throwExceptions' => true, 
+		);
+	
+	$options = array_merge($defaults, $options); 
+	if(DIRECTORY_SEPARATOR != '/') $filename = str_replace(DIRECTORY_SEPARATOR, '/', $filename);
+	
+	// add .php extension if filename doesn't already have an extension
+	if($options['autoExtension'] && !strrpos(basename($filename), '.')) {
+		$filename .= "." . $options['autoExtension'];
+	}
+	
+	if(!$options['allowDotDot'] && strpos($filename, '..')) {
+		// make path relative to /site/templates/ if filename is not an absolute path
+		$error = 'Filename may not have ".."'; 
+		if($options['throwExceptions']) throw new WireException($error); 
+		wire()->error($error);
+		return false;
+	}
+	
+	if($options['defaultPath'] && strpos($filename, './') === 0) {
+		$filename = $options['defaultPath'] . substr($filename, 2);
+		
+	} else if($options['defaultPath'] && strpos($filename, '/') !== 0) {
+		// filename is relative to defaultPath (typically /site/templates/)
+		$filename = $options['defaultPath'] . $filename;
+		
+	} else if(strpos($filename, '/') !== false) {
+		// filename is absolute, make sure it's in a location we consider safe
+		$allowed = false;
+		foreach($options['allowedPaths'] as $path) {
+			if(strpos($filename, $path) === 0) $allowed = true;
+		}
+		if(!$allowed) {
+			$error = "Filename $filename is not in an allowed path."; 
+			if($options['throwExceptions']) throw new WireException($error); 
+			wire()->error($error); 
+			return false;
+		}
+	}
+	
+	// render file and return output
+	$t = new TemplateFile(); 
+	$t->setThrowExceptions($options['throwExceptions']);
+	$t->setFilename($filename);
+	foreach($vars as $key => $value) $t->set($key, $value);
+	return $t->render();
+}
+
+/**
+ * Include a PHP file passing it all API variables and optionally your own specified variables
+ * 
+ * This is the same as PHP's include() function except for the following: 
+ * - It receives all API variables and optionally your custom variables
+ * - If your filename is not absolute, it doesn't look in PHP's include path, only in the current dir.
+ * - It only allows including files that are part of the PW installation: templates, core modules or site modules
+ * - It will assume a ".php" extension if filename has no extension.
+ * 
+ * Note this function produced direct output. To retrieve output as a return value, use the 
+ * wireTemplateFile function instead. 
+ * 
+ * @param $filename
+ * @param array $vars Optional variables you want to hand to the include (associative array)
+ * @param array $options Array of options to modify behavior: 
+ * 	- func: Function to use: include, include_once, require or require_once (default=include)
+ *  - autoExtension: Extension to assume when no ext in filename, make blank for no auto assumption (default=php) 
+ * 	- allowedPaths: Array of paths include files are allowed from. Note current dir is always allowed.
+ * @return bool Returns true 
+ * @throws WireException if file doesn't exist or is not allowed
+ * 
+ */
+function wireIncludeFile($filename, array $vars = array(), array $options = array()) {
+
+	$paths = wire('config')->paths; 
+	$defaults = array(
+		'func' => 'include',
+		'autoExtension' => 'php', 
+		'allowedPaths' => array(
+			$paths->templates,
+			$paths->adminTemplates, 
+			$paths->modules,
+			$paths->siteModules
+		)
+	);
+	
+	$options = array_merge($defaults, $options); 
+	$filename = trim($filename);
+	if(DIRECTORY_SEPARATOR != '/') $filename = str_replace(DIRECTORY_SEPARATOR, '/', $filename);
+	
+	// add .php extension if filename doesn't already have an extension
+	if($options['autoExtension'] && !strrpos(basename($filename), '.')) {
+		$filename .= "." . $options['autoExtension']; 
+	}
+	
+	if(strpos($filename, '..') !== false) {
+		// if backtrack/relative components, convert to real path
+		$_filename = $filename; 
+		$filename = realpath($filename); 
+		if($filename === false) throw new WireException("File does not exist: $_filename"); 
+	}
+	
+	if(strpos($filename, '//') !== false) {
+		throw new WireException("File is not allowed (double-slash): $filename"); 
+	}
+
+	if(strpos($filename, './') !== 0) {
+		// file does not specify "current directory"
+		$slashPos = strpos($filename, '/');
+		// If no absolute path specified, ensure it only looks in current directory
+		if($slashPos !== 0 && strpos($filename, ':/') === false) $filename = "./$filename";
+	}
+	
+	if(strpos($filename, '/') === 0 || strpos($filename, ':/') !== false) {
+		// absolute path, make sure it's part of PW's installation
+		$allowed = false;
+		foreach($options['allowedPaths'] as $path) {
+			if(strpos($filename, $path) === 0) $allowed = true; 	
+		}
+		if(!$allowed) throw new WireException("File is not in an allowed path: $filename"); 
+	}
+	
+	if(!file_exists($filename)) throw new WireException("File does not exist: $filename"); 
+	
+	// extract all API vars
+	$fuel = array_merge(Wire::getAllFuel()->getArray(), $vars); 
+	extract($fuel);
+
+	// include the file
+	$func = $options['func'];
+	if($func == 'require') require($filename);
+		else if($func == 'require_once') require_once($filename);
+		else if($func == 'include_once') include_once($filename);
+		else include($filename);
+	
+	return true; 
 }

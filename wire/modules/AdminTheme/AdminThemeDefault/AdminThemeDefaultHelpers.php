@@ -263,14 +263,7 @@ class AdminThemeDefaultHelpers extends WireData {
 				
 				if(!$hasPermission) continue; 
 				
-				if(!empty($moduleInfo['useNavJSON'])) {
-					// has ajax items
-					$icon = $this->getPageIcon($c);
-					$out .=	
-						"<li><a class='has-items has-ajax-items' data-from='topnav-page-$p' data-json='{$c->url}navJSON/' " . 
-						"href='$c->url'>$icon" . $this->_($c->title) . "</a><ul></ul></li>";
-					
-				} else if(!empty($moduleInfo['nav'])) {
+				if(!empty($moduleInfo['nav'])) {
 					// process defines its own subnav
 					$icon = $this->getPageIcon($c);
 					$title = $this->_($c->title); 
@@ -279,6 +272,13 @@ class AdminThemeDefaultHelpers extends WireData {
 						"<li><a class='has-items' data-from='topnav-page-$p' href='$c->url'>$icon$title</a>" . 
 						"<ul>" . $this->renderTopNavItemArray($c, $moduleInfo['nav']) . "</ul></li>";
 					
+				} else if(!empty($moduleInfo['useNavJSON'])) {
+					// has ajax items
+					$icon = $this->getPageIcon($c);
+					$out .=
+						"<li><a class='has-items has-ajax-items' data-from='topnav-page-$p' data-json='{$c->url}navJSON/' " .
+						"href='$c->url'>$icon" . $this->_($c->title) . "</a><ul></ul></li>";
+
 				} else {
 					// regular nav item
 					$out .= $this->renderTopNavItem($c, $level+1);

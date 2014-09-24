@@ -282,7 +282,7 @@ class Fields extends WireSaveableItems {
 		$this->fuel('fieldgroups')->deleteField($item); 
 
 		// drop the field's table
-		$item->type->deleteField($item); 
+		if($item->type) $item->type->deleteField($item); 
 
 		return parent::___delete($item); 
 	}

@@ -1085,7 +1085,8 @@ class Modules extends WireArray {
 				$query->bindValue(":id", $moduleID, PDO::PARAM_INT); 
 				$query->execute();
 				if($languages) $languages->unsetDefault(); 
-				throw new WireException("Unable to install module '$class': " . $e->getMessage()); 
+				$this->error("Unable to install module '$class': " . $e->getMessage()); 
+				return null;
 			}
 		}
 

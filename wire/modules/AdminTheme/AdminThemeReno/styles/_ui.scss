@@ -412,10 +412,6 @@ button.ui-state-disabled{
 		cursor: pointer;
 	}
 
-	li small {
-		opacity: 0.7; 
-	}
-
 	.ui-widget-header{
 		border: none; 
 		margin: 0;
@@ -467,6 +463,10 @@ button.ui-state-disabled{
 
 .ui-menu a{
 	border-width: 0;
+	
+	small {
+		opacity: 0.7;
+	}
 } 
 
 .ui-menu a.ui-state-focus {
@@ -486,6 +486,7 @@ button.ui-state-disabled{
 	font-size: 0.9em;
 	padding: 0.3em 1.2em;
 	line-height: 1em;
+	
 }
 
 .ui-menu

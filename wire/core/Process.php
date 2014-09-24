@@ -257,11 +257,13 @@ abstract class Process extends WireData implements Module {
 		$defaults = array(
 			'items' => array(),
 			'itemLabel' => 'name', 
+			'itemLabel2' => '', // smaller secondary label, when needed
 			'edit' => 'edit?id={id}', // URL segment for edit
 			'add' => 'add', // URL segment for add
 			'addLabel' => __('Add New', '/wire/templates-admin/default.php'),
 			'iconKey' => 'icon', // property/field containing icon, when applicable
 			'icon' => '', // default icon to use for items
+			'sort' => true, // automatically sort items A-Z?
 			);
 		
 		$options = array_merge($defaults, $options); 
@@ -279,6 +281,8 @@ abstract class Process extends WireData implements Module {
 			),
 			'list' => array(),
 		);
+		
+		if(empty($options['add'])) $data['add'] = null;
 		
 		foreach($options['items'] as $item) {
 			$icon = '';
@@ -299,13 +303,22 @@ abstract class Process extends WireData implements Module {
 			$_label = $label;
 			$label = $this->wire('sanitizer')->entities1($label);
 			while(isset($data['list'][$_label])) $_label .= "_";
+		
+			if($options['itemLabel2']) {
+				$label2 = $item->{$options['itemLabel2']}; 
+				if(strlen($label2)) {
+					$label2 = $this->wire('sanitizer')->entities1($label2);
+					$label .= " <small>$label2</small>";
+				}
+			}
+			
 			$data['list'][$_label] = array(
 				'url' => str_replace(array('{id}', '{name}'), array($id, $name), $options['edit']),
 				'label' => $label,
 				'icon' => $icon, 
 			);
 		}
-		ksort($data['list']); // sort alpha
+		if($options['sort']) ksort($data['list']); // sort alpha
 		$data['list'] = array_values($data['list']); 
 
 		if($this->wire('config')->ajax) header("Content-Type: application/json");

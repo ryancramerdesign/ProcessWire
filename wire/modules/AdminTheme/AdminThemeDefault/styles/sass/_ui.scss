@@ -271,6 +271,10 @@ button.ui-button.ui-state-default,
 			.ui-menu-icon {
 				display: none; 
 			}
+			
+			small {
+				opacity: 0.5;
+			}
 		}
 		
 		.ui-menu {
@@ -283,12 +287,13 @@ button.ui-button.ui-state-default,
 			@include border-radius($menu-radius);
 
 			.ui-menu-item:not(.add) {
-				line-height: 1em;
+				line-height: 1.1em;
+				//font-size: 0.866666666666667em;
+				font-size: 0.933333333333333em;
 				
 				a {
 					padding-top: 0;
 					padding-bottom: 0;
-					
 				}
 				
 				&:first-child {
@@ -361,10 +366,6 @@ button.ui-button.ui-state-default,
 			@include border-radius($menu-radius); 
 			background: $masthead-bg; 
 
-		}
-
-		small {
-			opacity: 0.5; 
 		}
 	}
 	.ui-widget-header {

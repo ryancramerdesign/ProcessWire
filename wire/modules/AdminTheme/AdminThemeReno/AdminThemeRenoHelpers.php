@@ -192,11 +192,13 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 				$quicklinks = '';
 				
 				if(!empty($moduleInfo['useNavJSON'])) {
+					// NOTE: 'useNavJSON' comes before 'nav' for AdminThemeReno only, since it does not support navJSON beyond one level
+					// meaning this bypasses 'nav' if the module happens to also provide navJSON (see ProcessRecentPages example)
 					if(empty($navJSON)) $navJSON = "navJSON/";
 					$quicklinks = $this->renderQuicklinks($c, array(), $title, $navJSON); 
 				} else if(!empty($moduleInfo['nav'])) {
 					$quicklinks = $this->renderQuicklinks($c, $moduleInfo['nav'], $title); 
-				}
+			}
 				
 				$icon = isset($moduleInfo['icon']) ? $moduleInfo['icon'] : '';
 				$toggle = $quicklinks ? "<i class='quicklink-open fa fa-bolt'></i>" : "";

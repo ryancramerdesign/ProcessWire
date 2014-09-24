@@ -890,7 +890,7 @@ class ProcessModule extends Process {
 		$btn = $this->wire('modules')->get('InputfieldButton');
 		$btn->attr('name', 'cancel');
 		$btn->href = $update ? "./edit?name=$data[class_name]" : './';
-		$btn->value = $this->labels['Cancel']; 
+		$btn->value = $this->labels['cancel']; 
 		$btn->icon = 'times-circle';
 		$btn->class .= ' ui-priority-secondary';
 		$form->add($btn);
