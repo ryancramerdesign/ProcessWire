@@ -24,6 +24,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=$ver
 	
 require_once(dirname(__FILE__) . "/AdminThemeDefaultHelpers.php");
 $helpers = new AdminThemeDefaultHelpers();
+$extras = $adminTheme->getExtraMarkup();
 
 ?><!DOCTYPE html>
 <html lang="<?php echo $helpers->_('en'); 
@@ -41,11 +42,16 @@ $helpers = new AdminThemeDefaultHelpers();
 	<?php foreach($config->styles as $file) echo "\n\t<link type='text/css' href='$file' rel='stylesheet' />"; ?>
 
 	<?php foreach($config->scripts as $file) echo "\n\t<script type='text/javascript' src='$file'></script>"; ?>
+	
+	<?php echo $extras['head']; ?>
 
 </head>
 <body class='<?php echo $helpers->renderBodyClass(); ?>'>
 
-	<?php echo $helpers->renderAdminNotices($notices); ?>
+	<?php 
+	echo $helpers->renderAdminNotices($notices); 
+	echo $extras['notices']; 
+	?>
 
 	<div id="masthead" class="masthead ui-helper-clearfix">
 		<div class="container">
@@ -57,6 +63,7 @@ $helpers = new AdminThemeDefaultHelpers();
 				echo $searchForm;
 				echo "\n\n<ul id='topnav'>" . $helpers->renderTopNavItems() . "</ul>";
 			}
+			echo $extras['masthead']; 
 			?>
 
 		</div>
@@ -83,6 +90,7 @@ $helpers = new AdminThemeDefaultHelpers();
 			if(trim($page->summary)) echo "<h2>$page->summary</h2>"; 
 			if($page->body) echo $page->body; 
 			echo $content; 
+			echo $extras['content'];
 			?>
 
 		</div>
@@ -104,9 +112,14 @@ $helpers = new AdminThemeDefaultHelpers();
 			ProcessWire <?php echo $config->versionName . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?> 
 			</p>
 
-			<?php if($config->debug && $this->user->isSuperuser()) include($config->paths->root . '/wire/templates-admin/debug.inc'); ?>
+			<?php 
+			echo $extras['footer'];
+			if($config->debug && $this->user->isSuperuser()) include($config->paths->root . '/wire/templates-admin/debug.inc'); 
+			?>
 		</div>
 	</div><!--/#footer-->
+
+	<?php echo $extras['body']; ?>
 
 </body>
 </html>

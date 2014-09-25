@@ -351,9 +351,18 @@ class Modules extends WireArray {
 		$this->setModuleConfigData($module);
 		
 		if(method_exists($module, 'init')) {
-			$className = get_class($module); 
-			if($this->debug) $debugKey = $this->debugTimerStart("initModule($className)"); 
-			$module->init();
+			if($this->debug) {
+				$className = get_class($module); 
+				$debugKey = $this->debugTimerStart("initModule($className)"); 
+			}
+		
+			try { 
+				$module->init();
+			} catch(Exception $e) {
+				$className = get_class($module); 
+				$this->error("Module $className failed init - " . $e->getMessage(), Notice::log); 
+			}
+			
 			if($this->debug) $this->debugTimerStop($debugKey);
 		}
 

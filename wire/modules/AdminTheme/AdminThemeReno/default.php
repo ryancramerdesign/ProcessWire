@@ -28,6 +28,7 @@ $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=$ver
 
 require_once(dirname(__FILE__) . "/AdminThemeRenoHelpers.php");
 $helpers = new AdminThemeRenoHelpers();
+$extras = $adminTheme->getExtraMarkup();
 
 ?>
 <!DOCTYPE html>
@@ -64,6 +65,8 @@ $helpers = new AdminThemeRenoHelpers();
 					<?php echo $helpers->renderTopNavItems(); ?>
 				</ul>
 
+				<?php echo $extras['masthead']; ?>
+
 		</div>
 
 		<div id="sidebar" class="mobile">
@@ -71,12 +74,17 @@ $helpers = new AdminThemeRenoHelpers();
 			<ul id="main-nav">
 				<?php echo $helpers->renderSideNavItems($page); ?>
 			</ul>
+			
+			<?php echo $extras['sidebar']; ?>
 
 		</div>
 
 		<div id="main">
 
-			<?php echo $helpers->renderAdminNotices($notices); ?>
+			<?php 
+			echo $helpers->renderAdminNotices($notices);
+			echo $extras['notices'];
+			?>
 		
 			<div id="breadcrumbs">
 				<ul class="nav"><?php echo $helpers->renderBreadcrumbs(false); ?></ul>
@@ -93,6 +101,7 @@ $helpers = new AdminThemeRenoHelpers();
 				if(trim($page->summary)) echo "<h2>$page->summary</h2>";
 				if($page->body) echo $page->body;
 				echo $content;
+				echo $extras['content'];
 				?>
 
 			</div>
@@ -110,10 +119,14 @@ $helpers = new AdminThemeRenoHelpers();
 					ProcessWire <?php echo $config->versionName . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?> 
 				</p>
 				
-				<?php if($config->debug && $user->isSuperuser()) include($config->paths->root . "wire/templates-admin/debug.inc"); ?>
+				<?php
+				echo $extras['footer'];
+				if($config->debug && $user->isSuperuser()) include($config->paths->root . "wire/templates-admin/debug.inc"); 
+				?>
 
 			</div><!--/#footer-->
 		</div> <!-- /#main -->
 	</div> <!-- /#wrap -->
+	<?php echo $extras['body']; ?>
 </body>
 </html>

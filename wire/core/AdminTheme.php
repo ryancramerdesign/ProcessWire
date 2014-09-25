@@ -108,6 +108,31 @@ abstract class AdminTheme extends WireData implements Module {
 	}
 
 	/**
+	 * Enables hooks to append extra markup to various sections of the admin page
+	 * 
+	 * @return array Associative array containing the following properties, any of 
+	 * which may be populated or empty: 
+	 * 	- head
+	 * 	- body
+	 * 	- masthead
+	 * 	- content
+	 * 	- footer
+	 * 	- sidebar
+	 * 
+	 */
+	public function ___getExtraMarkup() {
+		return array(
+			'head' => '',
+			'notices' => '', 
+			'body' => '',
+			'masthead' => '',
+			'content' => '',
+			'footer' => '',
+			'sidebar' => '', // sidebar not used in all admin themes
+		);
+	}
+
+	/**
 	 * Install the admin theme
 	 *
 	 * Other admin themes using an install() method must call this install before their own.
