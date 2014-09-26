@@ -460,10 +460,14 @@ class InputfieldWrapper extends Inputfield {
 	 * 
 	 */
 	protected function isProcessable(Inputfield $inputfield) {
-		// skip over collapsedHidden or collapsedLocked inputfields, beacuse they are not saveable
-		if($inputfield->collapsed === Inputfield::collapsedHidden) return false;
-		if($inputfield->collapsed === Inputfield::collapsedNoLocked) return false;
-		if($inputfield->collapsed === Inputfield::collapsedYesLocked) return false;
+		// visibility settings that aren't saveable
+		static $skipTypes = array(
+			Inputfield::collapsedHidden,
+			Inputfield::collapsedLocked,
+			Inputfield::collapsedNoLocked,
+			Inputfield::collapsedYesLocked
+			);
+		if(in_array((int) $inputfield->collapsed, $skipTypes)) return false;
 
 		// if dependencies aren't in use, we can skip the rest
 		if($this->useDependencies === false) return true; 
