@@ -684,9 +684,15 @@ class Modules extends WireArray {
 		}
 
 		$files = array();
-		$dir = new DirectoryIterator($path); 
 		
-		foreach($dir as $file) {
+		try {
+			$dir = new DirectoryIterator($path); 
+		} catch(Exception $e) {
+			$this->error($e->getMessage()); 
+			$dir = null;
+		}
+		
+		if($dir) foreach($dir as $file) {
 
 			if($file->isDot()) continue; 
 
@@ -716,11 +722,9 @@ class Modules extends WireArray {
 			$files[] = str_replace($startPath, '', $pathname); 
 		}
 
-		if($level == 0) {
+		if($level == 0 && $dir !== null) {
 			if($cache) $cache->save($cacheName, implode("\n", $files), WireCache::expireNever); 
-			//@file_put_contents($cacheFilename, implode("\n", $files), LOCK_EX);  // remove LOCK_EX ?
 		}
-		//if($config->chmodFile) @chmod($cacheFilename, octdec($config->chmodFile));
 
 		return $files;
 	}
