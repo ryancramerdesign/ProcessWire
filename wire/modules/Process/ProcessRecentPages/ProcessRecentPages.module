@@ -1,0 +1,166 @@
+<?php
+
+/**
+ * Recent pages list for admin
+ *
+ * ProcessWire 2.x 
+ * Copyright (C) 2014 by Ryan Cramer 
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ * 
+ * @todo: make everything configurable
+ * 
+ * http://processwire.com
+ *
+ */
+
+class ProcessRecentPages extends Process {
+
+	/**
+	 * Return information about this module (required)
+	 *
+	 */
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Recent Pages', 
+			'summary' => 'Shows a list of recently edited pages in your admin.', 
+			'version' => 1, 
+			'author' => 'Ryan Cramer', 
+			'href' => 'http://modules.processwire.com/', 
+			'icon' => 'clock-o',
+			'permission' => 'page-edit-recent', 
+			'permissions' => array(
+				'page-edit-recent' => 'Can see recently edited pages'
+				),
+			'requires' => 'ProcessWire>=2.5.0, ProcessPageLister', 
+			'page' => array(
+				'name' => 'recent-pages', 
+				'parent' => 'page',
+				'title' => 'Recent', 
+				),
+			'useNavJSON' => true, 
+			'nav' => array(
+					array(
+						'url' => '?edited=1&me=1', 
+						'label' => 'Edited by me', 
+						'navJSON' => 'navJSON/?edited=1&me=1', 
+					),
+					array(
+						'url' => '?added=1&me=1', 
+						'label' => 'Added by me',
+						'navJSON' => 'navJSON/?added=1&me=1', 
+					),
+					array(
+						'url' => '?edited=1', 
+						'label' => 'Edited by any',
+						'navJSON' => 'navJSON/?edited=1', 
+					),
+					array(
+						'url' => '?added=1', 
+						'label' => 'Added by any',
+						'navJSON' => 'navJSON/?added=1&me=1', 
+					)
+				),
+			);
+			
+	}
+
+	public function init() {
+		$this->addHookProperty('Page::recentTimeStr', $this, 'hookPageRecentTimeStr'); 
+		parent::init();
+	}
+
+	public function hookPageRecentTimeStr(HookEvent $event) {	
+		$page = $event->object; 
+		$time = $this->getSort() == '-created' ? $page->created : $page->modified; 
+		$event->return = wireRelativeTimeStr($time, true, false); 
+	}
+
+	public function ___executeNavJSON(array $options = array()) {
+
+		$options['add'] = '';
+		$options['iconKey'] = 'template.icon';
+		$options['itemLabel'] = 'title|name';
+		$options['itemLabel2'] = 'recentTimeStr';
+		$options['sort'] = false; 
+
+		$selector = str_replace(',,', ',', $this->getSelectorString());
+		
+		$items = $this->pages->find("$selector, limit=25"); 
+		if(!$this->wire('user')->isSuperuser()) foreach($items as $item) {
+			if(!$item->editable()) $items->remove($item); 
+		}
+		$options['items'] = $items; 
+
+		return parent::___executeNavJSON($options); 
+	}
+
+	protected function getSelectorString() {
+
+		$oldest = strtotime("-6 MONTH"); 
+		$sort = $this->getSort();
+		$selector = "include=unpublished, sort=$sort";
+
+		// exclude repeaters
+		$repeaters = $this->wire('pages')->get("template=admin, name=repeaters, include=all"); 
+		if($repeaters->id) $selector .= ", has_parent!=$repeaters"; 
+
+		if($this->input->get('me')) {
+			if($sort == '-modified') {
+				$selector .= ",,modified_users_id=$this->user, modified>=$oldest";
+			} else if($sort == '-created') {
+				$selector .= ",,created_users_id=$this->user, created>=$oldest";
+			}
+		}
+
+		return $selector;
+	}
+
+	protected function getSort() {
+		if($this->input->get('added')) {
+			return "-created";
+		} else {
+			return "-modified";
+		}
+	}
+
+	/**
+	 * This function is executed when a page with your Process assigned is accessed. 
+ 	 *
+	 * This can be seen as your main or index function. You'll probably want to replace
+	 * everything in this function. 
+	 *
+	 */
+	public function ___execute() {
+
+		$selector = $this->getSelectorString();
+		if(strpos($selector, ',,') !== false) { 
+			list($initSelector, $defaultSelector) = explode(',,', $selector); 
+		} else {
+			$initSelector = $selector;
+			$defaultSelector = '';
+		}
+
+		$a = array(
+			'initSelector' => $initSelector, 
+			'defaultSelector' => $defaultSelector, 
+			'defaultSort' => $this->getSort(), 
+			); 
+
+		$url = ProcessPageLister::addSessionBookmark('recent-pages', $a); 
+
+		if($url) {
+			$this->session->redirect($url); 
+		} else {
+			$this->error("This feature requires page-lister permission"); 
+		}
+		
+	}	
+
+	public function ___executeEdit() {
+		$id = (int) $this->input->get('id'); 
+		if(!$id) throw new WireException("No page ID"); 
+		$this->session->redirect("../edit/?id=$id"); 
+	}
+
+}
+
