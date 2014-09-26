@@ -533,6 +533,7 @@ abstract class Inputfield extends WireData implements Module {
 			}
 
 		} else { 
+			if(ctype_digit("$value") && (((int) $value) <= PHP_INT_MAX)) $value = (int) "$value"; // force digit strings as integers
 			// string value provided in the input
 			if("$value" !== (string) $previousValue) {
 				$changed = true; 
