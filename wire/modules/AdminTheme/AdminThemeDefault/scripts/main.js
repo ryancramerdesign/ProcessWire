@@ -40,8 +40,9 @@ var ProcessWireAdminTheme = {
 	setupTooltips: function() {
 		$("a.tooltip").tooltip({ 
 			position: {
-				my: "center bottom-20",
-				at: "center top",
+				my: "center bottom", // bottom-20
+				at: "center top"
+				/*
 				using: function(position, feedback) {
 					$(this).css(position);
 					$("<div>")
@@ -50,6 +51,7 @@ var ProcessWireAdminTheme = {
 						.addClass(feedback.horizontal)
 						.appendTo(this);
 				}
+				*/
 			}
 		}).hover(function() {
 			$(this).addClass('ui-state-hover');

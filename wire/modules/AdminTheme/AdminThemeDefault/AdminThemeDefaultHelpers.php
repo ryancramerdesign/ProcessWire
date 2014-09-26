@@ -123,7 +123,7 @@ class AdminThemeDefaultHelpers extends WireData {
 			'closeIcon' => 'times-circle', // icon for close notices link
 	
 			'listMarkup' => "\n\t<ul id='notices' class='ui-widget'>{out}</ul><!--/notices-->", 
-			'itemMarkup' => "\n\t\t<li class='{class}'><div class='container'><p>{remove}<i class='fa fa-{icon}'></i> {text}</p></div></li>",
+			'itemMarkup' => "\n\t\t<li class='{class}'><div class='container'><p>{remove}<i class='fa fa-fw fa-{icon}'></i> {text}</p></div></li>",
 			);
 
 		if(!count($notices)) return '';
