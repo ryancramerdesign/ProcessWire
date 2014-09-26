@@ -37,7 +37,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		return array(
 			'title' => 'Page Edit',          
 			'summary' => 'Edit a Page', 
-			'version' => 105, 
+			'version' => 106, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);

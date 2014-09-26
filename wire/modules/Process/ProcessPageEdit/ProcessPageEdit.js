@@ -22,4 +22,7 @@ function initPageEditForm() {
 		$("#ProcessPageEdit").submit();
 	}); 
 
+	// prevent Firefox from sending two requests for same click
+	$("#AddPageBtn").click(function() { return false; }); 
+
 }
