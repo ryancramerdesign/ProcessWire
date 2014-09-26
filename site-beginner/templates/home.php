@@ -5,4 +5,3 @@
 // See basic-page.php for more.
 
 include("./basic-page.php"); 
-

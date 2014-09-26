@@ -2,14 +2,20 @@ Welcome to the Default/Basic Site Profile (Beginner Edition)
 ============================================================
 
 This is a plain text document. If you are currently online with 
-internet access, you might prefer to read the HTML version of this
-document located at this URL:
+internet access, you will find it much nicer to read an HTML
+formatted version of this document located at:
 
 http://processwire.com/docs/tutorials/default-site-profile/
 
 Are you already somewhat familiar with ProcessWire and/or PHP? You
-might prefer to use the Intermediate Edition of this profile, which
-uses the delayed output strategy more commonly used on larger sites. 
+might also want to look into the Intermediate Edition of this profile.
+
+Need multi-language support? The multi-language version of this 
+default site profile is a good place to start. 
+
+Both the intermediate and multi-language versions of this site 
+profile are available as installation options when installing 
+ProcessWire. 
 
 Introduction
 ============

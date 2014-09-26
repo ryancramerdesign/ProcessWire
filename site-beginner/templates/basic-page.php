@@ -1,4 +1,4 @@
-<?php include("./_head.php"); // include header markup ?>
+<?php include('./_head.php'); // include header markup ?>
 
 <div id='content'>
 
@@ -89,5 +89,5 @@
 
 </div><!-- end sidebar -->
 
-<?php include("./_foot.php"); // include footer markup ?>
+<?php include('./_foot.php'); // include footer markup ?>
 

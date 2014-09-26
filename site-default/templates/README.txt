@@ -1,11 +1,25 @@
-Welcome to the Default Site Profile
-===================================
+Welcome to the Default Site Profile (Intermediate Edition)
+==========================================================
 
 This is a plain text document. If you are currently online with 
-internet access, you might prefer to read the HTML version of this
-document located at this URL:
+internet access, you will find it much nicer to read an HTML
+formatted version of this document located at:
 
 http://processwire.com/docs/tutorials/default-site-profile/
+
+If you are just getting started with ProcessWire, you might 
+also want to look into the beginner edition of this site profile.
+
+Need multi-language support? The multi-language version of this 
+default site profile is a good place to start. 
+
+Both the beginner and multi-language versions of this site 
+profile are available as installation options when installing 
+ProcessWire. 
+
+
+Introduction
+============
 
 Just getting started with ProcessWire and aren't totally clear on what
 template files are? The good news is that template files aren't anything 

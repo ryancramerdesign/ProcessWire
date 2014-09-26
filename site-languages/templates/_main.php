@@ -46,6 +46,7 @@
 		<?php
 		$currentLanguage = $user->language; // remember language
 		foreach($languages as $language) {
+			if(!$page->viewable($language)) continue; // is page viewable in this language?
 			$user->language = $language; 
 			if($language->id == $currentLanguage->id) {
 				echo "<li class='current'>";
