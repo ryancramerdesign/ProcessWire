@@ -20,7 +20,7 @@ class ProcessUser extends ProcessPageType {
 	static public function getModuleInfo() {
 		return array(
 			'title' => __('Users', __FILE__), // getModuleInfo title
-			'version' => 103, 
+			'version' => 104, 
 			'summary' => __('Manage system users', __FILE__), // getModuleInfo summary
 			'permanent' => true, 
 			'permission' => 'user-admin',
@@ -34,8 +34,11 @@ class ProcessUser extends ProcessPageType {
 	public function init() {
 		$this->wire('pages')->addHookBefore('save', $this, 'hookPageSave');	
 		parent::init();
-	
-		if($this->wire('user')->hasPermission('page-lister')) {
+		
+		// init lister, but only if executing an action that will use it
+		$segment = $this->wire('input')->urlSegment1;
+		$user = $this->wire('user'); 
+		if(!in_array($segment, array('edit', 'add', 'navJSON')) && $user->hasPermission('page-lister')) {
 			if($this->wire('modules')->isInstalled('ProcessPageListerPro')) {
 				$this->lister = $this->wire('modules')->get('ProcessPageListerPro');
 			}
@@ -43,7 +46,6 @@ class ProcessUser extends ProcessPageType {
 				$this->lister = $this->wire('modules')->get('ProcessPageLister'); 
 			}
 		}
-	
 		// make this field translatable
 		$roles = $this->wire('fields')->get('roles'); 
 		$roles->label = $this->_('Roles'); 
@@ -54,6 +56,7 @@ class ProcessUser extends ProcessPageType {
 		
 		$selector = "template=$this->template, include=unpublished, check_access=0, $selector";
 		$lister = $this->lister;
+		if(!$lister) return null;
 		if($lister->className() == 'ProcessPageLister') $lister->editMode = ProcessPageLister::windowModeDirect;
 		
 		$properties = array(
@@ -87,8 +90,8 @@ class ProcessUser extends ProcessPageType {
 	}
 
 	protected function renderList($selector = '', $pagerOptions = array()) {
-		if(!$this->lister) return parent::renderList($selector, $pagerOptions); 
 		$lister = $this->getLister($selector);
+		if(!$lister) return parent::renderList($selector, $pagerOptions); 
 		return $lister->execute();
 	}
 	
@@ -98,10 +101,14 @@ class ProcessUser extends ProcessPageType {
 	public function executeActions() { return $this->getLister()->executeActions(); }
 
 	public function ___executeEdit() {
+		
 		if(!$this->wire('user')->isSuperuser()) { 
 			// prevent showing superuser role at all
 			$this->addHookAfter('InputfieldPage::getSelectablePages', $this, 'hookGetSelectablePages'); 
 		}
+		
+		$this->addHookAfter('ProcessPageEdit::buildForm', $this, 'hookPageEditBuildForm'); 
+		
 		return parent::___executeEdit();
 	}
 	
@@ -110,6 +117,15 @@ class ProcessUser extends ProcessPageType {
 		$suRoleID = $this->wire('config')->superUserRolePageID;
 		foreach($event->return as $role) {
 			if($role->id == $suRoleID) $event->return->remove($role);
+		}
+	}
+	
+	public function hookPageEditBuildForm(HookEvent $event) {
+		$form = $event->return;
+		$theme = $form->getChildByName('admin_theme');
+		if(!$theme) return;
+		if(!$theme->attr('value')) {
+			$theme->attr('value', $this->wire('config')->defaultAdminTheme); 
 		}
 	}
 	
