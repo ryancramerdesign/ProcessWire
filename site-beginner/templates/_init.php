@@ -3,6 +3,12 @@
 /**
  * Shared functions or variables for all template files 
  *
+ * This file is automatically prepended to all template files as a result of:
+ * $config->prependTemplateFile = '_init.php'; in /site/config.php. 
+ *
+ * If you want to disable this automatic inclusion for any given template, 
+ * go in your admin to Setup > Templates > [some-template] and click on the 
+ * "Files" tab. Check the box to "Disable automatic prepend file". 
  */
 
 /** 
