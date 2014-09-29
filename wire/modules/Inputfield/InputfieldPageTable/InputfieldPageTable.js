@@ -18,7 +18,10 @@ function InputfieldPageTableDialog() {
 		position: [50,49],
 		close: function(event, ui) {
 			if(dialogPageID > 0) {
-				$.get($container.attr('data-url') + '&InputfieldPageTableAdd=' + dialogPageID, function(data) { 
+				var ajaxURL = $container.attr('data-url') + '&InputfieldPageTableAdd=' + dialogPageID;
+				var sort = $container.siblings(".InputfieldPageTableSort").val();
+				if(sort.length) ajaxURL += '&InputfieldPageTableSort=' + sort.replace(/\|/g, ',');
+				$.get(ajaxURL, function(data) { 
 					$container.html(data); 
 					$container.effect('highlight', 1000); 
 					InputfieldPageTableSortable($container.find('table')); 
@@ -140,4 +143,11 @@ $(document).ready(function() {
 	$(document).on('click', 'a.InputfieldPageTableDelete', InputfieldPageTableDelete); 
 
 	InputfieldPageTableSortable($(".InputfieldPageTable table"));
+	
+	$(".InputfieldPageTableOrphansAll").click(function() {
+		var $checkboxes = $(this).closest('.InputfieldPageTableOrphans').find('input'); 
+		if($checkboxes.eq(0).is(":checked")) $checkboxes.removeAttr('checked'); 
+			else $checkboxes.attr('checked', 'checked'); 
+		return false;
+	}); 
 }); 

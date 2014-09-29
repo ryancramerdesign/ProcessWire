@@ -393,15 +393,16 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 	protected function ___processQuickAdd(Page $parent, Template $template) { 
 
 		$this->deleteOldTempPages();
-		$nameFormat = '';
-
-		if(!$parent->template->childNameFormat) {
-			// allow for nameFormat to come from a name_format GET variable
-			$nameFormat = $this->sanitizer->text($this->input->get('name_format')); 	
+		// allow for nameFormat to come from a name_format GET variable
+		$nameFormat = $this->sanitizer->text($this->input->get('name_format')); 
+		$nameFormatTemplate = $parent->template->childNameFormat;
+		if(strlen($nameFormat)) {
 			// temporarily assign to the template->childNameFormat property
-			if(strlen($nameFormat)) $parent->template->childNameFormat = $nameFormat;
+			$parent->template->childNameFormat = $nameFormat;
+		} else {
+			// if not specified in get variable, next check parent template for setting
+			$nameFormat = $nameFormatTemplate;
 		}
-
 		$class = $template->pageClass ? $page->template->pageClass : 'Page';
 		$page = new $class(); 
 		$page->template = $template;	
@@ -411,6 +412,14 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		if(!$this->isAllowedTemplate($template)) return false; 
 		$page->addStatus(Page::statusUnpublished); 
 		$page->addStatus(Page::statusTemp); // ProcessPageEdit will remove this status the first time the page is saved
+	
+		// if languages are in use, make the new page inherit the parent's language status (active vs. inactive)
+		$languages = $this->wire('languages'); 
+		if($languages) foreach($languages as $language) {
+			if($language->isDefault()) continue; 
+			$languageStatus = $parent->get("status$language"); 
+			if($languageStatus) $page->set("status$language", $languageStatus); 
+		}
 
 		try {
 			$this->wire('pages')->save($page); 
@@ -420,7 +429,9 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			return false;
 		}
 
-		if(strlen($nameFormat)) $parent->template->childNameFormat = ''; // restore blank name format
+		if(strlen($nameFormat) && $nameFormat != $nameFormatTemplate) {
+			$parent->template->childNameFormat = $nameFormatTemplate; // restore original name format
+		}
 
 		if($page->id) { 
 			$this->createdPageMessage($page); 

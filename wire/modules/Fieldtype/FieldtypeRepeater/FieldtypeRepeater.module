@@ -202,7 +202,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 				//$pageArray = $ownerPage->getUnformatted($field->name); 	
 				//echo var_export($pageArray); 
 				$grandparent = $this->getRepeaterParent($field);
-                		$parent = $grandparent->child('name=' . self::repeaterPageNamePrefix . $ownerPage->id . ', include=all');
+				$parent = $grandparent->child('name=' . self::repeaterPageNamePrefix . $ownerPage->id . ', include=all');
 				if(!$parent->id) continue; 
 				$child = $parent->child('include=all, id=' . $repeaterPage->id);
 				if($child->id) { 
@@ -264,6 +264,14 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		$id = str_replace($_SERVER['HTTP_X_FIELDNAME'], $this->ajaxFieldName, $id); 
 		$arguments[1] = $id; 
 		$event->arguments = $arguments; 
+	
+		// update id attribute of the Inputfield itself
+		// so that anything in InputfieldFile referring to it's overall id attribute
+		// reflects the actual id attribute of the Inputfield
+		$inputfield = $event->object; 
+		$id = $inputfield->attr('id');
+		$id = str_replace($_SERVER['HTTP_X_FIELDNAME'], $this->ajaxFieldName, $id); 
+		$inputfield->attr('id', $id); 
 	}
 
 	/**
