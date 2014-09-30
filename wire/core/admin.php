@@ -34,6 +34,8 @@ function _checkForHttpHostError($config) {
 		$valid = true; 
 	} else if(isset($_SERVER['SERVER_NAME']) && $httpHost === strtolower($_SERVER['SERVER_NAME'])) {
 		$valid = true; 
+	} else if($config->httpUseXForwardedHost === true && isset($_SERVER['HTTP_X_FORWARDED_HOST']) && $httpHost === strtolower($_SERVER['HTTP_X_FORWARDED_HOST'])) {
+		$valid = true; 
 	}
 
 	if(!$valid) $config->error(

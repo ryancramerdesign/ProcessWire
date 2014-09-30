@@ -16,6 +16,7 @@
  *
  * @property bool $ajax If the current request is an ajax (asynchronous javascript) request, this is set to true.
  * @property string $httpHost Current HTTP host name.
+ * @property bool $httpUseXForwardedHost Use HTTP_X_FORWARDED_HOST header when available, this is set to false.
  * @property bool $https If the current request is an HTTPS request, this is set to true.
  * @property string $version Current ProcessWire version string (i.e. "2.2.3")
  * 

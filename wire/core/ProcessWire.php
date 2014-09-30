@@ -95,17 +95,24 @@ class ProcessWire extends Wire {
 	protected function getHttpHost(Config $config) {
 
 		$httpHosts = $config->httpHosts; 
-		$port = (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != 80) ? (':' . ((int) $_SERVER['SERVER_PORT'])) : '';
+		$envHostKeys = array('SERVER_NAME', 'HTTP_HOST');
+		if($config->httpUseXForwardedHost === true){
+			array_unshift($envHostKeys,'HTTP_X_FORWARDED_HOST');
+		}
+		$port = (isset($_SERVER['SERVER_PORT']) && !in_array($_SERVER['SERVER_PORT'], array(80, 443))) ? (':' . ((int) $_SERVER['SERVER_PORT'])) : '';
 		$host = '';
 
 		if(is_array($httpHosts) && count($httpHosts)) {
 			// validate from an allowed whitelist of http hosts
 			$key = false; 
-			if(isset($_SERVER['SERVER_NAME'])) {
-				$key = array_search(strtolower($_SERVER['SERVER_NAME']) . $port, $httpHosts, true); 
-			}
-			if($key === false && isset($_SERVER['HTTP_HOST'])) {
-				$key = array_search(strtolower($_SERVER['HTTP_HOST']), $httpHosts, true); 
+
+			foreach($envHostKeys as $envHostKey){
+				if(isset($_SERVER[$envHostKey])) {
+					$key = array_search(strtolower($_SERVER[$envHostKey]) . $port, $httpHosts, true); 
+					if($key !== false){
+						break;
+					}
+				}
 			}
 			if($key === false) {
 				// no valid host found, default to first in whitelist
@@ -116,16 +123,13 @@ class ProcessWire extends Wire {
 			}
 
 		} else {
-			// pull from server_name or http_host and sanitize
-			
-			if(isset($_SERVER['SERVER_NAME']) && $host = $_SERVER['SERVER_NAME']) {
-				// no whitelist available, so defer to server_name
-				$host .= $port; 
 
-			} else if(isset($_SERVER['HTTP_HOST']) && $host = $_SERVER['HTTP_HOST']) {
-				// fallback to sanitized http_host if server_name not available
-				// note that http_host already includes port if not 80
-				$host = $_SERVER['HTTP_HOST'];
+			// pull from x_forwarded_host, server_name, or http_host and sanitize
+			foreach($envHostKeys as $envHostKey){
+				if(isset($_SERVER[$envHostKey])) {
+					$host = $_SERVER[$envHostKey] . $port;
+					break;
+				}
 			}
 
 			// sanitize since it did not come from a whitelist
