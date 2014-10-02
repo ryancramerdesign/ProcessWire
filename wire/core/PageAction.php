@@ -16,7 +16,7 @@ abstract class PageAction extends WireAction implements Module {
 	 *
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'PageAction (abstract)', 
+			'title' => 'PageAction (abstract)',
 			'summary' => 'Base class for PageActions',
 			'version' => 0
 			);
@@ -37,7 +37,7 @@ abstract class PageAction extends WireAction implements Module {
 	 * Perform the action on the given item
 	 *
 	 * @param Page $item Page item to operate upon
-	 * @return bool True if the item was successfully operated upon, false if not. 
+	 * @return bool True if the item was successfully operated upon, false if not.
 	 *
 	abstract protected function ___action($item);
 	 */

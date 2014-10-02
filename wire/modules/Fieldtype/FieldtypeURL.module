@@ -5,13 +5,13 @@
  *
  * Stores a valid URL value, whether local/relative or a URL that includes a protocol.
  *
- * For documentation about the fields used in this class, please see:  
+ * For documentation about the fields used in this class, please see:
  * /wire/core/Fieldtype.php
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -24,7 +24,7 @@ class FieldtypeURL extends FieldtypeText {
 			'title' => __('URL', __FILE__),
 			'version' => 100,
 			'summary' => __('Field that stores a URL', __FILE__),
-			'permanent' => true, 
+			'permanent' => true,
 			);
 	}
 
@@ -37,36 +37,36 @@ class FieldtypeURL extends FieldtypeText {
 	 *
 	 */
 	public function sanitizeValue(Page $page, Field $field, $value) {
-		return $this->sanitizer->url($value, $field->noRelative ? false : true); 
+		return $this->sanitizer->url($value, $field->noRelative ? false : true);
 	}
 
 
 	public function getInputfield(Page $page, Field $field) {
-		$inputfield = $this->modules->get('InputfieldURL'); 
-		$inputfield->set('noRelative', $field->noRelative); 
-		$inputfield->set('addRoot', $field->addRoot); 
-		return $inputfield; 
+		$inputfield = $this->modules->get('InputfieldURL');
+		$inputfield->set('noRelative', $field->noRelative);
+		$inputfield->set('addRoot', $field->addRoot);
+		return $inputfield;
 	}
 
 	public function ___formatValue(Page $page, Field $field, $value) {
 		if($field->addRoot && !$field->noRelative && substr($value, 0, 1) == '/') {
 			$root = rtrim($this->config->urls->root, '/');
-			$value = $root . $value; 
-		}		
-		return $value; 
+			$value = $root . $value;
+		}
+		return $value;
 	}
 
 	public function ___getConfigInputfields(Field $field) {
 		$inputfields = parent::___getConfigInputfields($field);
 
-		$f = $inputfields->getChildByName('textformatters'); 
-		$f->notes .= " " . $this->_('The "HTML Entity Encoder" text formatter is recommended for URL fields.'); 
+		$f = $inputfields->getChildByName('textformatters');
+		$f->notes .= " " . $this->_('The "HTML Entity Encoder" text formatter is recommended for URL fields.');
 
 		$f = $this->modules->get('InputfieldRadios');
 		$f->attr('name', 'noRelative');
 		$f->label = $this->_('Allow relative/local URLs without "http://" at the beginning?');
-		$f->addOption(0, 'Yes'); 
-		$f->addOption(1, 'No'); 
+		$f->addOption(0, 'Yes');
+		$f->addOption(1, 'No');
 		$f->attr('value', $field->noRelative ? 1 : 0);
 		$f->description = $this->_('Local/relative URLs are those without scheme and domain.');
 		$inputfields->add($f);
@@ -74,8 +74,8 @@ class FieldtypeURL extends FieldtypeText {
 		$f = $this->modules->get('InputfieldRadios');
 		$f->attr('name', 'addRoot');
 		$f->label = $this->_("Prepend site's root path to local/relative URLs?");
-		$f->addOption(1, 'Yes'); 
-		$f->addOption(0, 'No'); 
+		$f->addOption(1, 'Yes');
+		$f->addOption(0, 'No');
 		$f->attr('value', $field->addRoot ? 1 : 0);
 		$f->description = $this->_("This option will automatically prepend the site's root path to any URLs that start with a slash, like /some/path/. This is useful if your site is running from a subdirectory because you won't have to include that subdirectory in the URLs you enter into this field. Should you later move your site to the root of a domain (or another subdirectory) you won't have to worry about broken URLs. With this option enabled, always enter URLs as if the site were running from the root of a domain, regardless of whether it's running from a subdirectory or not. Naturally this is applicable only if you selected 'Yes' to allowing local/relative URLs in the field above. Developers may also want to note that this option applies only when a page's outputFormatting is on."); // addRoot description
 		$f->notes = $this->_("Ensures that URLs aren't broken when moving a site from a subdirectory to root (the most common example)."); // addRoot notes

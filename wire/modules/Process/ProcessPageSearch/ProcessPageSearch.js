@@ -56,13 +56,13 @@ ProcessPageSearch = {
 
 $(document).ready(function() {
 	/*
-	var $searchQuery = $("#ProcessPageSearchQuery"); 
+	var $searchQuery = $("#ProcessPageSearchQuery");
 	var label = $('#ProcessPageSearchSubmit').val();
 
 	$searchQuery.focus(function() {
 		$(this).prev('label').hide();
 	}).blur(function() {
 		$(this).prev('label').show();
-	}); 
+	});
 	*/
 });

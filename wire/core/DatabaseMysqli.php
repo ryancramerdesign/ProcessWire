@@ -1,21 +1,21 @@
 <?php
 /**
  * Temporary wrapper to mysqli Database class for mysqli => PDO transition
- * 
+ *
  * This is for temporary use while transitioning from mysqli to PDO
- * 
- * It's entire purpose is to ensure that a $db API variable is available, while not 
+ *
+ * It's entire purpose is to ensure that a $db API variable is available, while not
  * actually instantiating mysqli (and forming a mysql connection) until the $db
  * variable is called upon to do something.
- * 
+ *
  */
 
 class DatabaseMysqli {
 
-	protected $config = null;	
+	protected $config = null;
 	protected $db = null;
 	protected $callers = array();
-	
+
 	public function __construct(Config $config) {
 		$this->config = $config;
 	}
@@ -25,20 +25,20 @@ class DatabaseMysqli {
 		if($this->config->debug) $this->recordCaller($key, $type);
 		return $this->db;
 	}
-	
+
 	public function __get($key) {
 		return $this->db($key, 'property')->$key;
 	}
-	
+
 	public function __call($method, $arguments) {
 		$db = $this->db($method, 'method');
 		return call_user_func_array(array($db, $method), $arguments);
 	}
-	
+
 	public function isInstantiated() {
 		return $this->db !== null;
 	}
-	
+
 	public function getCallers() {
 		return $this->callers;
 	}

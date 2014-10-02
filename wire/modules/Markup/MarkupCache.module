@@ -3,25 +3,25 @@
 /**
  * ProcessWire Markup Cache module
  *
- * A simple way to cache segments of markup in your templates. 
- * A simpler front end to ProcessWire's CacheFile class. 
+ * A simple way to cache segments of markup in your templates.
+ * A simpler front end to ProcessWire's CacheFile class.
  *
  * Example usage:
- * 
- * $cache = $modules->get("MarkupCache"); 
+ *
+ * $cache = $modules->get("MarkupCache");
  * if(!$data = $cache->get("cityOptions")) {
  * 	foreach($pages->find("template=city, sort=name") as $city) {
  * 		$data .= "<option value='{$city->id}'>{$city->title}</option>";
  *	}
- *	$cache->save($data); 
+ *	$cache->save($data);
  * }
- * echo $data; 
+ * echo $data;
  *
  *
- * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2011 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -40,12 +40,12 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 	public static function getModuleInfo() {
 
 		return array(
-			'title' => 'Markup Cache', 
-			'version' => 101, 
+			'title' => 'Markup Cache',
+			'version' => 101,
 			'summary' => 'A simple way to cache segments of markup in your templates. ',
 			'href' => 'http://www.processwire.com/api/modules/markupcache/',
-			'singular' => true, 
-			'autoload' => true, 
+			'singular' => true,
+			'autoload' => true,
 			);
 	}
 
@@ -60,10 +60,10 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 	 * Boolean indicating whether we've already cleared the cache.
 	 *
 	 */
-	protected $cleared = false; 
+	protected $cleared = false;
 
 	/**
-	 * Path to cache files, as set by the init() method. 
+	 * Path to cache files, as set by the init() method.
 	 *
 	 */
 	protected $path = '';
@@ -72,7 +72,7 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 	 * Non zero when caches shouldn't expire on page save
 	 *
 	 */
-	protected $noExpire = 0; 
+	protected $noExpire = 0;
 
 	/**
 	 * Generate the module's path, static so it can be used by the static getModuleConfigInputfields function
@@ -88,21 +88,21 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 	 */
 	public function init() {
 		$this->path = self::path();
-		if(!$this->noExpire) $this->pages->addHookAfter('save', $this, 'expire'); 
+		if(!$this->noExpire) $this->pages->addHookAfter('save', $this, 'expire');
 	}
 
 	/**
 	 * Get cached data identified by 'uniqueName' or false if cache not available
 	 *
-	 * @param string $uniqueName A unique string or number to identify this cache, i.e. 'citiesList' 
-	 * @param int $seconds The number of seconds the cache should live. 
-	 * @return Returns the cache data, or FALSE if it has expired and needs to be re-created. 
+	 * @param string $uniqueName A unique string or number to identify this cache, i.e. 'citiesList'
+	 * @param int $seconds The number of seconds the cache should live.
+	 * @return Returns the cache data, or FALSE if it has expired and needs to be re-created.
 	 *
 	 */
 	public function get($uniqueName, $seconds = 3600) {
 		$cache = new CacheFile($this->path, $uniqueName, $seconds);
-		if(!$cache) throw new WireException("Unable to create cache '{$this->path}/$uniqueName'"); 
-		$this->cache = $cache; 
+		if(!$cache) throw new WireException("Unable to create cache '{$this->path}/$uniqueName'");
+		$this->cache = $cache;
 		return $this->cache->get();
 	}
 
@@ -112,14 +112,14 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 	 * Must be preceded by a call to get() so that you have set the cache unique name
 	 *
 	 * @param string $data Data to cache
-	 * @return int Number of bytes written to cache, or FALSE on failure. 
+	 * @return int Number of bytes written to cache, or FALSE on failure.
 	 *
 	 */
 	public function save($data) {
-		if(!$this->cache) throw new WireException("You must attempt to retrieve a cache first, before you can save it."); 	
-		$result = $this->cache->save($data); 
+		if(!$this->cache) throw new WireException("You must attempt to retrieve a cache first, before you can save it.");
+		$result = $this->cache->save($data);
 		$this->cache = null;
-		return $result; 
+		return $result;
 	}
 
 	/**
@@ -132,12 +132,12 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 		 * that way if we're saving 100+ pages, we aren't clearing the cache 100+ times
 		 *
 		 */
-		if($this->cleared) return; 
+		if($this->cleared) return;
 
-		if($this->cache) $cache = $this->cache; 
-			else $cache = new CacheFile($this->path, '', 0); 
-		$cache->expireAll(); 
-		$this->cleared = true; 
+		if($this->cache) $cache = $this->cache;
+			else $cache = new CacheFile($this->path, '', 0);
+		$cache->expireAll();
+		$this->cleared = true;
 	}
 
 	/**
@@ -148,12 +148,12 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 	 */
 	protected static function _removeAll() {
 		$path = self::path();
-		try { 
-			$num = CacheFile::removeAll($path, true); 
+		try {
+			$num = CacheFile::removeAll($path, true);
 		} catch(Exception $e) {
 			$num = 0;
 		}
-		return $num; 
+		return $num;
 	}
 
 	/**
@@ -161,7 +161,7 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 	 *
 	 */
 	public function removeAll() {
-		return self::_removeAll(); 
+		return self::_removeAll();
 	}
 
 	/**
@@ -169,13 +169,13 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 	 *
 	 */
 	public function __set($key, $value) {
-		if($key == 'noExpire') $this->noExpire = (int) $value; 
+		if($key == 'noExpire') $this->noExpire = (int) $value;
 		// intentionally left blank
 	}
 
 	/**
 	 * Provide cache clearing capability in the module's configuration
-	 *	
+	 *
  	 */
 	static public function getModuleConfigInputfields(array $data) {
 
@@ -195,7 +195,7 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 		$f->attr('value', 1);
 		$f->attr('checked', '');
 		$f->label = "Clear the MarkupCache?";
-		$f->notes = $message; 
+		$f->notes = $message;
 		$f->description = "This will remove all files and directories used by the MarkupCache";
 		$inputfields->append($f);
 
@@ -203,8 +203,8 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 		$f->attr('name', 'noExpire');
 		$f->attr('value', empty($data['noExpire']) ? 0 : 1);
 		$f->label = "Expire markup caches when pages are saved?";
-		$f->description = "If you want to ensure stale data is never shown, you should choose: Yes. If you want to maximize performance, you should choose: No."; 
-		$f->addOption(0, "Yes - Expire markup caches"); 
+		$f->description = "If you want to ensure stale data is never shown, you should choose: Yes. If you want to maximize performance, you should choose: No.";
+		$f->addOption(0, "Yes - Expire markup caches");
 		$f->addOption(1, "No - Don't expire markup caches");
 		$inputfields->append($f);
 
@@ -217,8 +217,8 @@ class MarkupCache extends Wire implements Module, ConfigurableModule {
 	 */
 	public function ___uninstall() {
 		$numFiles = $this->removeAll();
-		$this->message("Removed $numFiles MarkupCache files"); 
+		$this->message("Removed $numFiles MarkupCache files");
 	}
 
-	
+
 }

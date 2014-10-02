@@ -4,11 +4,11 @@
  * ProcessWire Entities Textformatter
  *
  * Formats text with PHP's htmlspecialchars() function.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -20,14 +20,14 @@ class TextformatterEntities extends Textformatter {
 		return array(
 			'title' => __('HTML Entity Encoder (htmlspecialchars)', __FILE__), // Module Title
 			'summary' => __("Entity encode ampersands, quotes (single and double) and greater-than/less-than signs using htmlspecialchars(str, ENT_QUOTES). It is recommended that you use this on all text/textarea fields except those using a rich text editor like TinyMCE or a markup language like Markdown.", __FILE__), // Module Summary
-			'version' => 100, 
-		); 
+			'version' => 100,
+		);
 	}
 
 	public function format(&$str) {
 		static $charset = false;
 		if($charset === false) $charset = $this->config->dbCharset;
-		if($charset == 'utf8') $str = htmlspecialchars($str, ENT_QUOTES, "UTF-8"); 
-			else $str = htmlspecialchars($str, ENT_QUOTES); 
+		if($charset == 'utf8') $str = htmlspecialchars($str, ENT_QUOTES, "UTF-8");
+			else $str = htmlspecialchars($str, ENT_QUOTES);
 	}
 }

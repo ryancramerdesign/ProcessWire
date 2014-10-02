@@ -3,10 +3,10 @@
 /**
  * Multi-language support fields module
  *
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -31,13 +31,13 @@ class LanguageSupportFields extends WireData implements Module {
 				'installs' => array(
 					'FieldtypePageTitleLanguage',
 					'FieldtypeTextareaLanguage',
-					'FieldtypeTextLanguage', 
+					'FieldtypeTextLanguage',
 					)
 				);
         }
 
 	/**
-	 * Cached names of fields that are dealing in multiple languages. 
+	 * Cached names of fields that are dealing in multiple languages.
 	 *
 	 */
 	protected $multilangFields = array();
@@ -57,16 +57,16 @@ class LanguageSupportFields extends WireData implements Module {
 	public function __construct() {
 
 		// load other required classes
-		$dirname = dirname(__FILE__); 
-		require_once($dirname . '/LanguagesValueInterface.php'); 
-		require_once($dirname . '/FieldtypeLanguageInterface.php'); 
-		require_once($dirname . '/LanguagesPageFieldValue.php'); 
-		$this->addHookAfter('FieldtypeLanguageInterface::loadPageField', $this, 'fieldtypeLoadPageField'); 
-		$this->addHookAfter('FieldtypeLanguageInterface::wakeupValue', $this, 'fieldtypeWakeupValue'); 
-		$this->addHookAfter('FieldtypeLanguageInterface::getConfigInputfields', $this, 'fieldtypeGetConfigInputfields'); 
+		$dirname = dirname(__FILE__);
+		require_once($dirname . '/LanguagesValueInterface.php');
+		require_once($dirname . '/FieldtypeLanguageInterface.php');
+		require_once($dirname . '/LanguagesPageFieldValue.php');
+		$this->addHookAfter('FieldtypeLanguageInterface::loadPageField', $this, 'fieldtypeLoadPageField');
+		$this->addHookAfter('FieldtypeLanguageInterface::wakeupValue', $this, 'fieldtypeWakeupValue');
+		$this->addHookAfter('FieldtypeLanguageInterface::getConfigInputfields', $this, 'fieldtypeGetConfigInputfields');
 	}
 
-	public function init() { 
+	public function init() {
 		// intentionally left blank
 	}
 
@@ -76,35 +76,35 @@ class LanguageSupportFields extends WireData implements Module {
 	 */
 	public function LS_init() {
 
-		$this->addHookBefore('FieldtypeLanguageInterface::sleepValue', $this, 'fieldtypeSleepValue'); 
-		$this->addHookBefore('PageFinder::getQuery', $this, 'pageFinderGetQuery'); 
-		$this->addHookBefore('Fieldtype::formatValue', $this, 'hookFieldtypeFormatValue'); 
+		$this->addHookBefore('FieldtypeLanguageInterface::sleepValue', $this, 'fieldtypeSleepValue');
+		$this->addHookBefore('PageFinder::getQuery', $this, 'pageFinderGetQuery');
+		$this->addHookBefore('Fieldtype::formatValue', $this, 'hookFieldtypeFormatValue');
 
 		$languageNames = array();
-		$fieldNames = array(); 
+		$fieldNames = array();
 
 		foreach(wire('languages') as $language) {
-			$languageNames[] = $language->name; 
+			$languageNames[] = $language->name;
 		}
 
 		// keep track of which fields are multilanguage
 		foreach(wire('fields') as $field) {
 			if($field->type instanceof FieldtypeLanguageInterface) {
-				$this->multilangFields[] = $field->name; 	
+				$this->multilangFields[] = $field->name;
 			}
-			$fieldNames[] = $field->name; 
+			$fieldNames[] = $field->name;
 		}
 
 		// determine which fields have language alternates, i.e. 'title_es' is an alternate for 'title'
 		foreach($fieldNames as $fieldName) {
 			foreach($languageNames as $languageName) {
-				$altName = $fieldName . '_' . $languageName; 
+				$altName = $fieldName . '_' . $languageName;
 				if(in_array($altName, $fieldNames)) {
 					if(!isset($this->multilangAlternateFields[$fieldName])) $this->multilangAlternateFields[$fieldName] = array();
-					$this->multilangAlternateFields[$fieldName][] = $altName; 
+					$this->multilangAlternateFields[$fieldName][] = $altName;
 				}
 			}
-		}	
+		}
 	}
 
 	/**
@@ -112,53 +112,53 @@ class LanguageSupportFields extends WireData implements Module {
 	 *
 	 */
 	public function LS_ready() {
-		$this->languages->addHook('added', $this, 'hookLanguageAdded'); 
-		$this->languages->addHook('deleted', $this, 'hookLanguageDeleted'); 
+		$this->languages->addHook('added', $this, 'hookLanguageAdded');
+		$this->languages->addHook('deleted', $this, 'hookLanguageDeleted');
 	}
 
 	/**
 	 * Hook into FieldtypeText::formatValue
 	 *
-	 * Replace a value of one field with the value from another field that has the same name, but with the language name appended to it. 
+	 * Replace a value of one field with the value from another field that has the same name, but with the language name appended to it.
 	 * Example: title and title_es
 	 *
 	 */
 	public function hookFieldtypeFormatValue(HookEvent $event) {
 
-		$field = $event->arguments[1]; 
+		$field = $event->arguments[1];
 		if($field->name == 'language') return;
 
-		$language = wire('user')->get('language'); 
+		$language = wire('user')->get('language');
 		if(!$language || !$language->id || $language->isDefault()) return;
 
 		// exit quickly if we can determine now we don't need to continue
-		if(!isset($this->multilangAlternateFields[$field->name])) return; 
+		if(!isset($this->multilangAlternateFields[$field->name])) return;
 
-		$page = $event->arguments[0]; 
+		$page = $event->arguments[0];
 
 		// determine name of language field, if present.
 		// note that if the language name contains dashes or dots (- or .) the field name should contain underscores there instead
-		$newName = $field->name . '_' . str_replace(array('-', '.'), '_', $language->name); 
+		$newName = $field->name . '_' . str_replace(array('-', '.'), '_', $language->name);
 		$newField = $page->fields->getField($newName);
 		if(!$newField) return;
 
 		// unformatted so nothing can modify it first
-		$value = $page->getUnformatted($newName); 
+		$value = $page->getUnformatted($newName);
 
 		// if the page doesn't have a populated language-specific field, then exit
 		// this will make it fallback to the default language value
 		if(empty($value)) return;
 		if(is_object($value)) {
 			if($value instanceof WireArray && !$value->count()) return;
-			if($value instanceof NullPage) return; 
+			if($value instanceof NullPage) return;
 		}
 
 		// we have a new field: swap $field with $newField in the arguments
 		$newValue = $page->get($newName); // get formatted version
-		$arguments = $event->arguments; 
-		$arguments[1] = $newField; 
-		$arguments[2] = $newValue; 
-		$event->arguments = $arguments; 
+		$arguments = $event->arguments;
+		$arguments[1] = $newField;
+		$arguments[2] = $newValue;
+		$event->arguments = $arguments;
 	}
 
 	/**
@@ -169,18 +169,18 @@ class LanguageSupportFields extends WireData implements Module {
 
 		$language = $event->arguments[0];
 
-		if($language->template->name != LanguageSupport::languageTemplateName) return; 
+		if($language->template->name != LanguageSupport::languageTemplateName) return;
 
 		foreach($this->multilangFields as $name) {
-			$field = wire('fields')->get($name); 	
-			if($field) $this->fieldLanguageAdded($field, $language); 
+			$field = wire('fields')->get($name);
+			if($field) $this->fieldLanguageAdded($field, $language);
 		}
 
-		$this->languageAdded($language); 
+		$this->languageAdded($language);
 	}
 
 	/**
-	 * Hookable function called when a new language is added 
+	 * Hookable function called when a new language is added
 	 *
 	 */
 	public function ___languageAdded(Page $language) {
@@ -194,14 +194,14 @@ class LanguageSupportFields extends WireData implements Module {
 	public function hookLanguageDeleted(HookEvent $event) {
 
 		$language = $event->arguments[0];
-		if($language->template->name != LanguageSupport::languageTemplateName) return; 
+		if($language->template->name != LanguageSupport::languageTemplateName) return;
 
 		foreach($this->multilangFields as $name) {
-			$field = wire('fields')->get($name); 	
-			if($field) $this->fieldLanguageRemoved($field, $language); 
+			$field = wire('fields')->get($name);
+			if($field) $this->fieldLanguageRemoved($field, $language);
 		}
 
-		$this->languageDeleted($language); 
+		$this->languageDeleted($language);
 	}
 
 	/**
@@ -220,27 +220,27 @@ class LanguageSupportFields extends WireData implements Module {
 	protected function ___fieldLanguageAdded(Field $field, Page $language) {
 
 		if($language->isDefault) return;
-		
+
 		if(!($field->type instanceof FieldtypeLanguageInterface)) return;
-		
+
 		$schema = $field->type->getDatabaseSchema($field);
 		$database = $this->wire('database');
 		$table = $database->escapeTable($field->table);
 
 		foreach($schema as $name => $value) {
-			if(!preg_match('/[^\d]+' . $language->id . '$/', $name)) continue; 
+			if(!preg_match('/[^\d]+' . $language->id . '$/', $name)) continue;
 			// field in schema ends with the language ID
-			$database->exec("ALTER TABLE `{$table}` ADD `$name` $value"); 
+			$database->exec("ALTER TABLE `{$table}` ADD `$name` $value");
 		}
 
 		foreach($schema['keys'] as $name => $value) {
-			if(!preg_match('/[^\d]+' . $language->id . '$/', $name)) continue; 
+			if(!preg_match('/[^\d]+' . $language->id . '$/', $name)) continue;
 			// index in schema ends with the language ID
-			$database->exec("ALTER TABLE `{$table}` ADD $value"); 
+			$database->exec("ALTER TABLE `{$table}` ADD $value");
 		}
 
 	}
-	
+
 	/**
 	 * Called when a language is removed from the system for each field that implements FieldtypeLanguageInterface
 	 *
@@ -248,18 +248,18 @@ class LanguageSupportFields extends WireData implements Module {
 	protected function ___fieldLanguageRemoved(Field $field, Page $language) {
 
 		if($language->isDefault) return;
-		
+
 		if(!($field->type instanceof FieldtypeLanguageInterface)) return;
-		
+
 		$schema = $field->type->getDatabaseSchema($field);
 		$database = $this->wire('database');
 		$table = $database->escapeTable($field->table);
 
 		foreach($schema as $name => $value) {
-			if(!preg_match('/[^\d]+' . $language->id . '$/', $name)) continue; 
-			try { 
-				$database->exec("ALTER TABLE `{$table}` DROP COLUMN `$name`"); 
-			} catch(Exception $e) { 
+			if(!preg_match('/[^\d]+' . $language->id . '$/', $name)) continue;
+			try {
+				$database->exec("ALTER TABLE `{$table}` DROP COLUMN `$name`");
+			} catch(Exception $e) {
 				// just catch, no need for fatal errors here
 			}
 		}
@@ -280,48 +280,48 @@ class LanguageSupportFields extends WireData implements Module {
 
 		if(!$user->language || !$user->language->id || $user->language->isDefault()) return;
 
-		$arguments = $event->arguments; 
-		$selectors = $arguments[0]; 
+		$arguments = $event->arguments;
+		$selectors = $arguments[0];
 
 		foreach($selectors as $key => $selector) {
 
-			$changed = false; 
+			$changed = false;
 			$fields = $selector->field;
 			$fields = is_array($fields) ? $fields : array($fields);
 
 			foreach($fields as $key => $field) {
 
 				$subfield = '';
-				if(strpos($field, '.')) list($field, $subfield) = explode('.', $field); 
-				
+				if(strpos($field, '.')) list($field, $subfield) = explode('.', $field);
+
 				$field = $database->escapeCol($field);
 				$subfield = $database->escapeCol($subfield);
 
 				if(isset($this->multilangAlternateFields[$field])) {
 					// account for multilang alternates like 'title_es' for 'title'
-					$altName = $field . '_' . $database->escapeCol($user->language->name); 
+					$altName = $field . '_' . $database->escapeCol($user->language->name);
 					if(in_array($altName, $this->multilangAlternateFields[$field])) {
 						if($subfield) $altName .= ".$subfield";
-						array_unshift($fields, $altName); 
-						$changed = true; 
+						array_unshift($fields, $altName);
+						$changed = true;
 					}
 				}
 
 				// next we account for actual multilang fields
-				if(!in_array($field, $this->multilangFields)) continue; 
+				if(!in_array($field, $this->multilangFields)) continue;
 				if(!$subfield) $subfield = 'data';
 
 				if($subfield === 'data') {
-					array_unshift($fields, "$field.$subfield" . (int) $user->language->id); 
-					$changed = true; 
+					array_unshift($fields, "$field.$subfield" . (int) $user->language->id);
+					$changed = true;
 				}
 			}
 
 			if($changed) $selector->field = $fields;
 		}
 
-		$arguments[0] = $selectors; 
-		$event->arguments = $arguments; 
+		$arguments[0] = $selectors;
+		$event->arguments = $arguments;
 	}
 
 	/**
@@ -333,10 +333,10 @@ class LanguageSupportFields extends WireData implements Module {
 	public function fieldtypeLoadPageField(HookEvent $event) {
 		$page = $event->arguments[0];
 		$field = $event->arguments[1];
-		$value = $event->return; 
-		if($value instanceof LanguagesPageFieldValue) return; 
-		$v = new LanguagesPageFieldValue($value); 
-		$v->setField($field); 
+		$value = $event->return;
+		if($value instanceof LanguagesPageFieldValue) return;
+		$v = new LanguagesPageFieldValue($value);
+		$v->setField($field);
 		$event->return = $v;
 	}
 
@@ -350,16 +350,16 @@ class LanguageSupportFields extends WireData implements Module {
 
 		$page = $event->arguments[0];
 		$field = $event->arguments[1];
-		$value = $event->return; 
+		$value = $event->return;
 
 		if($value instanceof LanguagesPageFieldValue) {
-			$value->setTrackChanges(true); 
-			$value->setField($field); 
+			$value->setTrackChanges(true);
+			$value->setField($field);
 			// good
 		} else if(is_array($value)) {
-			$value = new LanguagesPageFieldValue($value); 
-			$value->setTrackChanges(true); 
-			$value->setField($field); 
+			$value = new LanguagesPageFieldValue($value);
+			$value->setTrackChanges(true);
+			$value->setField($field);
 			$event->return = $value;
 		}
 
@@ -375,7 +375,7 @@ class LanguageSupportFields extends WireData implements Module {
 
 		$page = $event->arguments[0];
 		$field = $event->arguments[1];
-		$value = $event->arguments[2]; 
+		$value = $event->arguments[2];
 		//$value = $event->return;
 		$values = array();
 
@@ -383,40 +383,40 @@ class LanguageSupportFields extends WireData implements Module {
 
 		foreach(wire('languages') as $language) {
 			if($language->isDefault()) $key = 'data';
-				else $key = 'data' . $language->id; 
-			$values[$key] = $value->getLanguageValue($language->id); 
+				else $key = 'data' . $language->id;
+			$values[$key] = $value->getLanguageValue($language->id);
 		}
-		
+
 		/*
 		if(!strlen($values['data'])) foreach($values as $k => $v) {
 			// prevent the possibility of the default language having
 			// a blank value while some other language has a populated value
 			if(!strlen($v)) continue;
-			$values['data'] = $v; 
+			$values['data'] = $v;
 			break;
 		}
 		*/
-	
+
 		// ensure that sleepValue is getting an array
 		$event->setArgument(2, $values);
-		// $event->return = $values; 
+		// $event->return = $values;
 	}
 
 	public function fieldtypeGetConfigInputfields(HookEvent $event) {
 
-		$field = $event->arguments(0); 
-		$inputfields = $event->return;		
-		
-		$f = wire('modules')->get('InputfieldRadios'); 
-		$f->attr('name', 'langBlankInherit'); 
-		$f->label = $this->_('Language Support / Blank Behavior'); 
-		$f->description = $this->_("What should happen when this field's value is blank?"); 
-		$f->notes = $this->_('Applies only to non-default language values on the front-end of your site.'); 
-		$f->addOption(LanguagesPageFieldValue::langBlankInheritDefault, $this->_('Inherit value from default language')); 
-		$f->addOption(LanguagesPageFieldValue::langBlankInheritNone, $this->_('Remain blank')); 
-		$f->attr('value', (int) $field->langBlankInherit); 
+		$field = $event->arguments(0);
+		$inputfields = $event->return;
+
+		$f = wire('modules')->get('InputfieldRadios');
+		$f->attr('name', 'langBlankInherit');
+		$f->label = $this->_('Language Support / Blank Behavior');
+		$f->description = $this->_("What should happen when this field's value is blank?");
+		$f->notes = $this->_('Applies only to non-default language values on the front-end of your site.');
+		$f->addOption(LanguagesPageFieldValue::langBlankInheritDefault, $this->_('Inherit value from default language'));
+		$f->addOption(LanguagesPageFieldValue::langBlankInheritNone, $this->_('Remain blank'));
+		$f->attr('value', (int) $field->langBlankInherit);
 		$f->collapsed = Inputfield::collapsedBlank;
-		$inputfields->add($f); 
+		$inputfields->add($f);
 	}
 
 	/**
@@ -429,7 +429,7 @@ class LanguageSupportFields extends WireData implements Module {
 	 *
 	 */
 	public function getAlternateFields($fieldName) {
-		if(isset($this->multilangAlternateFields[$fieldName])) return $this->multilangAlternateFields[$fieldName]; 
+		if(isset($this->multilangAlternateFields[$fieldName])) return $this->multilangAlternateFields[$fieldName];
 		return array();
 	}
 
@@ -437,19 +437,19 @@ class LanguageSupportFields extends WireData implements Module {
 	 * Given an alternate field name, return the parent (default-language) version of it
 	 *
 	 * @param string $altFieldName
-	 * @param bool $returnLanguage Specify true if you want this function to return the language rather than the parent field name. 
+	 * @param bool $returnLanguage Specify true if you want this function to return the language rather than the parent field name.
 	 * @return string Returns blank string if none found
 	 *
 	 */
 	public function getAlternateFieldParent($altFieldName, $returnLanguage = false) {
-		$pos = strrpos($altFieldName, '_'); 
+		$pos = strrpos($altFieldName, '_');
 		if(!$pos) return '';
 		$parentName = substr($altFieldName, 0, $pos);
-		// $this->message($parentName); 
+		// $this->message($parentName);
 		if(isset($this->multilangAlternateFields[$parentName]) && in_array($altFieldName, $this->multilangAlternateFields[$parentName])) {
-			if(!$returnLanguage) return $parentName; 
-			$languageName = substr($altFieldName, $pos+1); 
-			return wire('languages')->get($languageName); 
+			if(!$returnLanguage) return $parentName;
+			$languageName = substr($altFieldName, $pos+1);
+			return wire('languages')->get($languageName);
 		}
 		return '';
 	}
@@ -470,7 +470,7 @@ class LanguageSupportFields extends WireData implements Module {
 	 *
 	 */
 	public function ___install() {
-		$this->modules->get('FieldtypeTextLanguage'); 
+		$this->modules->get('FieldtypeTextLanguage');
 	}
 
 	/**
@@ -481,9 +481,9 @@ class LanguageSupportFields extends WireData implements Module {
 		// first check if there are any fields using the LanguageInterface
 		$errors = '';
 		foreach(wire('fields') as $field) {
-			if($field->type instanceof FieldtypeLanguageInterface) $errors .= $field->name . ", "; 
+			if($field->type instanceof FieldtypeLanguageInterface) $errors .= $field->name . ", ";
 		}
-		if($errors) throw new WireException("Can't uninstall because these fields use the language interface: " . rtrim($errors, ", ")); 
+		if($errors) throw new WireException("Can't uninstall because these fields use the language interface: " . rtrim($errors, ", "));
 	}
 
 }

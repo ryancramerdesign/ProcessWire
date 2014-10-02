@@ -16,10 +16,10 @@ class InputfieldURL extends InputfieldText {
 
 	public function __construct() {
 		parent::__construct();
-		$this->setAttribute('type', 'text'); 
-		$this->setAttribute('maxlength', 1024); 
-		$this->setAttribute('size', 0); 
-		$this->setAttribute('name', 'href'); 
+		$this->setAttribute('type', 'text');
+		$this->setAttribute('maxlength', 1024);
+		$this->setAttribute('size', 0);
+		$this->setAttribute('name', 'href');
 		$this->label = 'URL';
 		$this->set('noRelative', 0); // whether relative URLs are disabled
 		$this->set('addRoot', 0); // whether to prepend root path
@@ -37,9 +37,9 @@ class InputfieldURL extends InputfieldText {
 	protected function setAttributeValue($value) {
 
 		if(strlen($value)) {
-			$value = trim($value); 
-			$unsanitized = $value; 
-			$value = $this->fuel('sanitizer')->url($value, $this->noRelative ? false : true); 	
+			$value = trim($value);
+			$unsanitized = $value;
+			$value = $this->fuel('sanitizer')->url($value, $this->noRelative ? false : true);
 
 			if(!$value || $unsanitized != $value && "http://$unsanitized" != $value) {
 				$this->error($this->name . ': ' . $this->_("Error found - please check that it is a valid URL")); // Error message when invalid URL found
@@ -50,7 +50,7 @@ class InputfieldURL extends InputfieldText {
 
 		} else $value = '';
 
-		return $value; 
+		return $value;
 	}
 
 	public function ___getConfigInputfields() {

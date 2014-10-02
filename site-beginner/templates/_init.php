@@ -1,11 +1,11 @@
 <?php
 
 /**
- * Shared functions or variables for all template files 
+ * Shared functions or variables for all template files
  *
  */
 
-/** 
+/**
  * Given a group of pages render a tree of navigation
  *
  * @param Page|PageArray $items Page to start the navigation tree from or pages to render
@@ -16,9 +16,9 @@
 function renderNavTree($items, $maxDepth = 3) {
 
 	if($items instanceof Page) {
-		// if we've been given a single page rather than a group of them, 
+		// if we've been given a single page rather than a group of them,
 		// convert it to a group (PageArray rather than Page)
-		$page = $items; 
+		$page = $items;
 		$items = new PageArray();
 		$items->add($page);
 	}
@@ -45,9 +45,9 @@ function renderNavTree($items, $maxDepth = 3) {
 		$out .= "<a href='$item->url'>$item->title</a>";
 
 		// if the item has children and we're allowed to output tree navigation (maxDepth)
-		// then call this same function again for the item's children 
+		// then call this same function again for the item's children
 		if($item->hasChildren() && $maxDepth) {
-			$out .= renderNavTree($item->children, $maxDepth-1); 
+			$out .= renderNavTree($item->children, $maxDepth-1);
 		}
 
 		// close the list item
@@ -58,7 +58,7 @@ function renderNavTree($items, $maxDepth = 3) {
 	$out .= "</ul>";
 
 	// return the markup we generated above
-	return $out; 
+	return $out;
 }
 
 

@@ -2,19 +2,19 @@
 /**
  * General editor styles (inline only)
  *
- * See contents.css for regular mode styles. 
+ * See contents.css for regular mode styles.
  *
  */
 
-$cke-font-family: Arial, sans-serif; 
-$cke-font-color: #333; 
+$cke-font-family: Arial, sans-serif;
+$cke-font-color: #333;
 $cke-background: #fff;
 
-$cke-headline-color: #222; 
+$cke-headline-color: #222;
 
-$cke-link-color: #444; 
-$cke-link-background: none; 
-$cke-link-hover-color: #222; 
+$cke-link-color: #444;
+$cke-link-background: none;
+$cke-link-hover-color: #222;
 $cke-link-hover-background: #ffffdd;
 
 .InputfieldForm .InputfieldCKEditorInline {
@@ -22,34 +22,34 @@ $cke-link-hover-background: #ffffdd;
 	font-family: $cke-font-family;
 
 	p, li, dl, td {
-		font-size: 1em; 
+		font-size: 1em;
 		color: $cke-font-color;
-		background: $cke-background; 
+		background: $cke-background;
 	}
 
 	a {
 		color: $cke-link-color;
 		background: $cke-link-background;
-		text-decoration: underline; 
+		text-decoration: underline;
 
 		&:hover {
 			color: $cke-link-hover-color;
-			background: $cke-link-hover-background; 
+			background: $cke-link-hover-background;
 		}
 	}
 
 	i, em {
-		font-style: italic; 
+		font-style: italic;
 	}
 
 	b, strong {
-		font-weight: bold; 
+		font-weight: bold;
 	}
 
 	strong em,
 	em strong {
-		font-weight: bold; 
-		font-style: italic; 
+		font-weight: bold;
+		font-style: italic;
 	}
 
 	small {
@@ -59,7 +59,7 @@ $cke-link-hover-background: #ffffdd;
 	ul li,
 	ol li {
 		list-style: disc;
-		display: list-item; 
+		display: list-item;
 		margin: 0 0 0 2em;
 	}
 
@@ -69,14 +69,14 @@ $cke-link-hover-background: #ffffdd;
 
 	blockquote {
 		padding-left: 1em;
-		border-left: 3px solid #ccc; 
+		border-left: 3px solid #ccc;
 	}
 
 	h1, h2, h3, h4, h5 {
-		color: $cke-headline-color; 
+		color: $cke-headline-color;
 		font-family: $cke-font-family;
 		font-weight: normal;
-		text-transform: none; 
+		text-transform: none;
 	}
 
 	h1 {
@@ -86,7 +86,7 @@ $cke-link-hover-background: #ffffdd;
 		font-size: 1.7em;
 	}
 	h3 {
-		font-size: 1.5em; 
+		font-size: 1.5em;
 	}
 	h4 {
 		font-size: 1.3em;
@@ -100,14 +100,14 @@ $cke-link-hover-background: #ffffdd;
 
 	table td,
 	table th {
-		padding: 3px; 
+		padding: 3px;
 	}
 
 	table th {
-		font-weight: bold; 
+		font-weight: bold;
 	}
 
 	img.cke_anchor {
-		display: inline; 
+		display: inline;
 	}
 }

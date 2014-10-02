@@ -1,17 +1,17 @@
 <?php
 
 class ProcessFieldExportImport extends Wire {
-	
+
 	public function __construct() {
-		set_time_limit(600); 
+		set_time_limit(600);
 	}
 
 	/**
 	 * Return export data for all given $exportFields
-	 * 
+	 *
 	 * @param array $exportFields field names
 	 * @return array
-	 * 
+	 *
 	 */
 	protected function getExportData(array $exportFields) {
 		$data = array();
@@ -20,9 +20,9 @@ class ProcessFieldExportImport extends Wire {
 			$a = $field->getExportData();
 			$data[$field->name] = $a;
 		}
-		return $data; 
+		return $data;
 	}
-	
+
 	/**
 	 * Execute export
 	 *
@@ -47,24 +47,24 @@ class ProcessFieldExportImport extends Wire {
 			$maxName = 0;
 			$maxLabel = 0;
 			$numFields = 0;
-			
+
 			foreach($this->wire('fields') as $field) {
 				if(strlen($field->name) > $maxName) $maxName = strlen($field->name);
 				$label = $field->getLabel();
 				if(strlen($label) > $maxLabel) $maxLabel = strlen($label);
 				$numFields++;
 			}
-		
+
 			$fieldName = $this->_('NAME');
 			$fieldLabel = $this->_('LABEL');
-			$fieldType = $this->_('TYPE'); 
-			
+			$fieldType = $this->_('TYPE');
+
 			$label = $fieldName . ' ' . str_repeat('.', $maxName - strlen($fieldName) + 3) . ' ' .
 				$fieldLabel . str_repeat('.', $maxLabel - strlen($fieldLabel) + 3) . ' ' .
 				$fieldType;
-			
+
 			$f->addOption(0, $label, array('disabled' => 'disabled'));
-			
+
 			foreach($this->wire('fields') as $field) {
 				$fieldLabel = $field->getLabel();
 				$label = $field->name . ' ' . str_repeat('.', $maxName - strlen($field->name) + 3) . ' ' .
@@ -72,7 +72,7 @@ class ProcessFieldExportImport extends Wire {
 					str_replace('Fieldtype', '', $field->type);
 				$f->addOption($field->name, $label);
 			}
-			
+
 			$f->notes = $this->_('Shift+Click to select multiple in sequence. Ctrl+Click (or Cmd+Click) to select multiple individually. Ctrl+A (or Cmd+A) to select all.');
 			$f->attr('size', $numFields+1);
 			$form->add($f);
@@ -95,7 +95,7 @@ class ProcessFieldExportImport extends Wire {
 
 			$f = $this->wire('modules')->get('InputfieldButton');
 			$f->href = './';
-			$f->value = $this->_x('Ok', 'button'); 
+			$f->value = $this->_x('Ok', 'button');
 			$form->add($f);
 		}
 
@@ -104,17 +104,17 @@ class ProcessFieldExportImport extends Wire {
 
 	/**
 	 * Build Textarea input form to past JSON data into
-	 * 
+	 *
 	 * @return InputfieldForm
-	 * 
+	 *
 	 */
 	protected function ___buildInputDataForm() {
-		
+
 		$form = $this->modules->get('InputfieldForm');
 		$form->action = './';
 		$form->method = 'post';
 		$form->attr('id', 'import_form');
-		
+
 		$f = $this->modules->get('InputfieldTextarea');
 		$f->attr('name', 'import_data');
 		$f->label = $this->_x('Import', 'button');
@@ -128,8 +128,8 @@ class ProcessFieldExportImport extends Wire {
 		$f->attr('name', 'submit_import');
 		$f->attr('value', $this->_('Preview'));
 		$form->add($f);
-		
-		return $form; 
+
+		return $form;
 	}
 
 	/**
@@ -140,9 +140,9 @@ class ProcessFieldExportImport extends Wire {
 	 *
 	 */
 	public function ___buildImport() {
-		
+
 		if($this->input->post('submit_commit')) return $this->processImport();
-		
+
 		$verify = (int) $this->input->get('verify');
 		if($verify) {
 			$json = $this->session->get('FieldImportData');
@@ -164,7 +164,7 @@ class ProcessFieldExportImport extends Wire {
 		$numExistingFields = 0;
 		$numNewFields = 0;
 		$notices = $this->wire('notices');
-		
+
 		if(!$verify) $notices->removeAll();
 
 		// iterate through data for each field
@@ -192,7 +192,7 @@ class ProcessFieldExportImport extends Wire {
 			$markup = $this->modules->get('InputfieldMarkup');
 			$markup->value = "";
 			$fieldset->add($markup);
-			
+
 			$savedFieldData = $field->getExportData();
 			try {
 				$changes = $field->setImportData($fieldData);
@@ -210,26 +210,26 @@ class ProcessFieldExportImport extends Wire {
 			$f->thead .= $this->_('New Value');
 
 			foreach($changes as $property => $info) {
-				
+
 				if(!$new && $property == 'type') {
 					$this->error(sprintf($this->_('We recommend changing the type of this field to "%s" manually, then coming back here to apply additional changes.'), $info['new']));
 				}
-				
+
 				$oldValue = str_replace('|', ' ', $info['old']);
 				$newValue = str_replace('|', ' ', $info['new']);
 				$numChangesField++;
 				$numChangesTotal++;
-				
+
 				if($info['error']) {
 					$this->error("$name.$property: $info[error]");
 					$attr = array();
 				} else {
 					$attr = array('checked' => 'checked');
 				}
-				
+
 				if($new) $optionValue = "$property|$newValue";
 					else $optionValue = "$property|$oldValue|$newValue";
-				
+
 				$f->addOption($property, $optionValue, $attr);
 			}
 
@@ -238,14 +238,14 @@ class ProcessFieldExportImport extends Wire {
 				if(!$notice instanceof NoticeError) continue;
 				$errors[] = $this->wire('sanitizer')->entities1($notice->text);
 			}
-			
+
 			if(count($errors)) {
 				$icon = "<i class='fa fa-exclamation-triangle'></i>";
 				$markup->value .= "<ul class='ui-state-error-text'><li>$icon " . implode("</li><li>$icon ", $errors) . '</li></ul>';
 				$fieldset->label .= ' (' . sprintf($this->_n('%d error', '%d errors', count($errors)), count($errors)) . ')';
 				$numErrors++;
 			}
-			
+
 			if(!$verify) $notices->removeAll();
 
 			if($numChangesField) {
@@ -266,7 +266,7 @@ class ProcessFieldExportImport extends Wire {
 
 			$importLabel = $this->_('Modify this field?');
 			if($new) $importLabel = $this->_('Create this field?');
-			
+
 			$markup->value .=
 				"<p class='import_toggle'>$importLabel " .
 				"<label><input$yes type='radio' name='import_field_$name' value='1' /> " . $this->_x('Yes', 'yes-import') . "</label>" .
@@ -279,30 +279,30 @@ class ProcessFieldExportImport extends Wire {
 		}
 
 		if($numChangesTotal) {
-			
+
 			if($verify) {
 				$form->description = $this->_('Sometimes it may take two commits before all changes are applied. Please review any pending changes below and commit them as needed.');
 			} else {
 				$form->description = $this->_('Please review the changes below and commit them when ready. If there are any changes that you do not want applied, uncheck the boxes where appropriate.');
 			}
-			
+
 			$f = $this->modules->get('InputfieldSubmit');
 			$f->attr('name', 'submit_commit');
 			$f->attr('value', $this->_('Commit Changes'));
 			$f->addClass('head_button_clone');
 			$form->add($f);
-			
-		} else { 
-			
+
+		} else {
+
 			if($verify) {
 				$form->description = $this->_('Your changes have been applied!');
 			} else {
 				$form->description = $this->_('No changes were found');
 			}
-			
+
 			$f = $this->modules->get('InputfieldButton');
 			$f->href = './';
-			$f->value = $this->_x('Ok', 'button'); 
+			$f->value = $this->_x('Ok', 'button');
 			$form->add($f);
 		}
 
@@ -310,19 +310,19 @@ class ProcessFieldExportImport extends Wire {
 		if($numErrors) $this->error(sprintf($this->_n('Errors were found in %d field', 'Errors were found in %d fields', $numErrors), $numErrors));
 		if($numNewFields) $this->message(sprintf($this->_n('Found %d new field to add', 'Found %d new fields to add', $numNewFields), $numNewFields));
 		if($numExistingFields) $this->message(sprintf($this->_n('Found %d existing field to update', 'Found %d existing fields to update', $numExistingFields), $numExistingFields));
-		
+
 		return $form;
 	}
-	
+
 	/**
-	 * Commit changed field data 
+	 * Commit changed field data
 	 *
 	 */
 	protected function ___processImport() {
 
 		$data = $this->session->get('FieldImportData');
 		if(!$data) throw new WireException("Invalid import data");
-		
+
 		$numChangedFields = 0;
 		$numAddedFields = 0;
 		$skipFieldNames = array();
@@ -331,13 +331,13 @@ class ProcessFieldExportImport extends Wire {
 		foreach($data as $name => $fieldData) {
 
 			$name = $this->wire('sanitizer')->fieldName($name);
-			
+
 			if(!$this->input->post("import_field_$name")) {
 				$skipFieldNames[] = $name;
 				unset($data[$name]);
 				continue;
 			}
-			
+
 			$field = $this->wire('fields')->get($name);
 
 			if(!$field) {
@@ -351,31 +351,31 @@ class ProcessFieldExportImport extends Wire {
 			unset($fieldData['id']);
 			foreach($fieldData as $property => $value) {
 				if(!in_array($property, $this->input->post("field_$name"))) {
-					unset($fieldData[$property]); 
+					unset($fieldData[$property]);
 				}
 			}
-			
+
 			try {
 				$changes = $field->setImportData($fieldData);
 				foreach($changes as $key => $info) $this->message($this->_('Saved:') . " $name.$key => $info[new]");
 				$field->save();
 				if($new) {
 					$numAddedFields++;
-					$this->message($this->_('Added field') . ' - ' . $name); 
+					$this->message($this->_('Added field') . ' - ' . $name);
 				} else {
 					$numChangedFields++;
-					$this->message($this->_('Modified field') . ' - ' . $name); 
+					$this->message($this->_('Modified field') . ' - ' . $name);
 				}
 			} catch(Exception $e) {
 				$this->error($e->getMessage());
 			}
-			
+
 			$data[$name] = $fieldData;
 		}
-		
+
 		$this->session->set('FieldImportSkipNames', $skipFieldNames);
-		$this->session->set('FieldImportData', $data); 
-		$numSkippedFields = count($skipFieldNames); 
+		$this->session->set('FieldImportData', $data);
+		$numSkippedFields = count($skipFieldNames);
 		if($numAddedFields) $this->message(sprintf($this->_n('Added %d field', 'Added %d fields', $numAddedFields), $numAddedFields));
 		if($numChangedFields) $this->message(sprintf($this->_n('Modified %d field', 'Modified %d fields', $numChangedFields), $numChangedFields));
 		if($numSkippedFields) $this->message(sprintf($this->_n('Skipped %d field', 'Skipped %d fields', $numSkippedFields), $numSkippedFields));

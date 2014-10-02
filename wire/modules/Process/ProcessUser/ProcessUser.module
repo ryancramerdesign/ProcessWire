@@ -3,13 +3,13 @@
 /**
  * ProcessWire User Process
  *
- * For more details about how Process modules work, please see: 
- * /wire/core/Process.php 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * For more details about how Process modules work, please see:
+ * /wire/core/Process.php
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -20,45 +20,45 @@ class ProcessUser extends ProcessPageType {
 	static public function getModuleInfo() {
 		return array(
 			'title' => __('Users', __FILE__), // getModuleInfo title
-			'version' => 104, 
+			'version' => 104,
 			'summary' => __('Manage system users', __FILE__), // getModuleInfo summary
-			'permanent' => true, 
+			'permanent' => true,
 			'permission' => 'user-admin',
-			'icon' => 'group', 
+			'icon' => 'group',
 			'useNavJSON' => true,
-			); 
+			);
 	}
-	
+
 	protected $lister = null;
 
 	public function init() {
-		$this->wire('pages')->addHookBefore('save', $this, 'hookPageSave');	
+		$this->wire('pages')->addHookBefore('save', $this, 'hookPageSave');
 		parent::init();
-		
+
 		// init lister, but only if executing an action that will use it
 		$segment = $this->wire('input')->urlSegment1;
-		$user = $this->wire('user'); 
+		$user = $this->wire('user');
 		if(!in_array($segment, array('edit', 'add', 'navJSON')) && $user->hasPermission('page-lister')) {
 			if($this->wire('modules')->isInstalled('ProcessPageListerPro')) {
 				$this->lister = $this->wire('modules')->get('ProcessPageListerPro');
 			}
 			if((!$this->lister || !$this->lister->isValid()) && $this->wire('modules')->isInstalled('ProcessPageLister')) {
-				$this->lister = $this->wire('modules')->get('ProcessPageLister'); 
+				$this->lister = $this->wire('modules')->get('ProcessPageLister');
 			}
 		}
 		// make this field translatable
-		$roles = $this->wire('fields')->get('roles'); 
-		$roles->label = $this->_('Roles'); 
+		$roles = $this->wire('fields')->get('roles');
+		$roles->label = $this->_('Roles');
 		$roles->description = $this->_("User will inherit the permissions assigned to each role. You may assign multiple roles to a user. When accessing a page, the user will only inherit permissions from the roles that are also assigned to the page's template."); // Roles description
 	}
-	
+
 	protected function getLister($selector = '') {
-		
+
 		$selector = "template=$this->template, include=unpublished, check_access=0, $selector";
 		$lister = $this->lister;
 		if(!$lister) return null;
 		if($lister->className() == 'ProcessPageLister') $lister->editMode = ProcessPageLister::windowModeDirect;
-		
+
 		$properties = array(
 			'initSelector' => $selector,
 			'columns' => $this->showFields,
@@ -70,48 +70,48 @@ class ProcessUser extends ProcessPageType {
 			'addURL' => './add/',
 			'delimiters' => array('roles' => ', '),
 			'allowSystem' => true,
-			'allowIncludeAll' => true, 
+			'allowIncludeAll' => true,
 			);
-		
+
 		foreach($properties as $name => $value) {
-			$lister->$name = $value; 
+			$lister->$name = $value;
 		}
-		
+
 		if($lister->className() == 'ProcessPageListerPro') {
-			$data = $this->wire('modules')->getModuleConfigData('ProcessPageListerPro'); 
+			$data = $this->wire('modules')->getModuleConfigData('ProcessPageListerPro');
 			if(isset($data['settings'][$this->page->name])) {
 				foreach($data['settings'][$this->page->name] as $key => $value) {
-					$lister->$key = $value; 
+					$lister->$key = $value;
 				}
 			}
-		} 
-		
+		}
+
 		return $lister;
 	}
 
 	protected function renderList($selector = '', $pagerOptions = array()) {
 		$lister = $this->getLister($selector);
-		if(!$lister) return parent::renderList($selector, $pagerOptions); 
+		if(!$lister) return parent::renderList($selector, $pagerOptions);
 		return $lister->execute();
 	}
-	
+
 	public function executeConfig() { return $this->getLister()->executeConfig(); }
 	public function executeViewport() { return $this->getLister()->executeViewport(); }
 	public function executeReset() { return $this->getLister()->executeReset(); }
 	public function executeActions() { return $this->getLister()->executeActions(); }
 
 	public function ___executeEdit() {
-		
-		if(!$this->wire('user')->isSuperuser()) { 
+
+		if(!$this->wire('user')->isSuperuser()) {
 			// prevent showing superuser role at all
-			$this->addHookAfter('InputfieldPage::getSelectablePages', $this, 'hookGetSelectablePages'); 
+			$this->addHookAfter('InputfieldPage::getSelectablePages', $this, 'hookGetSelectablePages');
 		}
-		
-		$this->addHookAfter('ProcessPageEdit::buildForm', $this, 'hookPageEditBuildForm'); 
-		
+
+		$this->addHookAfter('ProcessPageEdit::buildForm', $this, 'hookPageEditBuildForm');
+
 		return parent::___executeEdit();
 	}
-	
+
 	public function hookGetSelectablePages($event) {
 		if($event->object->attr('name') != 'roles') return;
 		$suRoleID = $this->wire('config')->superUserRolePageID;
@@ -119,35 +119,35 @@ class ProcessUser extends ProcessPageType {
 			if($role->id == $suRoleID) $event->return->remove($role);
 		}
 	}
-	
+
 	public function hookPageEditBuildForm(HookEvent $event) {
 		$form = $event->return;
 		$theme = $form->getChildByName('admin_theme');
 		if(!$theme) return;
 		if(!$theme->attr('value')) {
-			$theme->attr('value', $this->wire('config')->defaultAdminTheme); 
+			$theme->attr('value', $this->wire('config')->defaultAdminTheme);
 		}
 	}
-	
+
 	/**
-	 * Perform a security check to make sure that a non-superuser isn't assigning superuser access to themselves or someone else. 
+	 * Perform a security check to make sure that a non-superuser isn't assigning superuser access to themselves or someone else.
 	 *
 	 */
 	public function hookPageSave(HookEvent $event) {
 
-		$arguments = $event->arguments; 
-		$page = $arguments[0]; 
+		$arguments = $event->arguments;
+		$page = $arguments[0];
 
 		// don't handle anything other than User page saves
-		if(!$page instanceof User) return; 
+		if(!$page instanceof User) return;
 
 		$pages = wire('pages');
 		$user = wire('user');
 
 		// don't allow removal of the guest role
 		if(!$page->roles->has("name=guest")) {
-			$page->roles->add(wire('roles')->get('guest')); 	
-			// $this->error($this->_("The guest role is required")); 
+			$page->roles->add(wire('roles')->get('guest'));
+			// $this->error($this->_("The guest role is required"));
 		}
 
 		// check if user is editing themself
@@ -157,26 +157,26 @@ class ProcessUser extends ProcessPageType {
 			$pages->uncache($page); 	// take it out of the cache
 			$user = $pages->get($page->id); // get a fresh copy of their account from the DB (pre-modified)
 			$pages->cache($copy); 		// put the modified version back into the cache
-			$arguments[0] = $copy;		// restore it to the arguments sent to $pages->save 
+			$arguments[0] = $copy;		// restore it to the arguments sent to $pages->save
 			$event->arguments = $arguments;
 			$page = $copy;
 
 			// don't let superusers remove their superuser role
 			if($user->isSuperuser() && !$page->roles->has("name=superuser")) {
-				throw new WireException($this->_("You may not remove the superuser role from yourself")); 
+				throw new WireException($this->_("You may not remove the superuser role from yourself"));
 			}
 
-		} 
+		}
 
 		// if they are superuser, then all is good, no need to continue
 		if($user->isSuperuser()) return;
 
 		// if not then we need to do the check below:
-		$suRole = $this->wire('roles')->get($this->wire('config')->superUserRolePageID); 
+		$suRole = $this->wire('roles')->get($this->wire('config')->superUserRolePageID);
 		if($page->roles->has("name=superuser") || $page->roles->has($suRole)) { // unnecessarily redundant, but might as well
-			throw new WireException($this->_("You may not assign the superuser role")); 
+			throw new WireException($this->_("You may not assign the superuser role"));
 		}
 	}
-	
+
 }
 

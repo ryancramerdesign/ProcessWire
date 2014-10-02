@@ -5,15 +5,15 @@
  *
  * A base class for filtering comments from an external service.
  *
- * Primarily for Akismet (and CommentFilterAkismet), but kept as a base abstract class to 
+ * Primarily for Akismet (and CommentFilterAkismet), but kept as a base abstract class to
  * serve as an interface for adding more in the future.
  *
- * Note that portions of code in here arefrom Akismet API examples. 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Note that portions of code in here arefrom Akismet API examples.
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -21,23 +21,23 @@
 
 abstract class CommentFilter extends WireData {
 
-	protected $comment; 
+	protected $comment;
 
 	public function __construct() {
-		$this->set('appUserAgent', 'ProcessWire'); 
-		$this->set('charset', 'utf-8'); 
-		$this->set('homeURL', 'http://' . $this->config->httpHost); 
-		$this->set('apiKey', ''); 
+		$this->set('appUserAgent', 'ProcessWire');
+		$this->set('charset', 'utf-8');
+		$this->set('homeURL', 'http://' . $this->config->httpHost);
+		$this->set('apiKey', '');
 	}
 
 	public function init() {
 	}
 
 	public function setComment(Comment $comment) {
-		$this->comment = $comment; 
-		$this->set('pageUrl', $this->homeURL . $this->fuel('page')->url); 
-		if(!$comment->ip) $comment->ip = $_SERVER['REMOTE_ADDR']; 
-		if(!$comment->user_agent) $comment->user_agent = $_SERVER['HTTP_USER_AGENT']; 
+		$this->comment = $comment;
+		$this->set('pageUrl', $this->homeURL . $this->fuel('page')->url);
+		if(!$comment->ip) $comment->ip = $_SERVER['REMOTE_ADDR'];
+		if(!$comment->user_agent) $comment->user_agent = $_SERVER['HTTP_USER_AGENT'];
 	}
 
 	protected function httpPost($request, $host, $path, $port = 80) {
@@ -59,11 +59,11 @@ abstract class CommentFilter extends WireData {
 			$response = explode("\r\n\r\n", $response, 2);
 		}
 		return $response;
-	}  
+	}
 
 	protected function setIsSpam($isSpam) {
-		if($isSpam) $this->comment->status = Comment::statusSpam; 
-			else $this->comment->status = Comment::statusPending; 
+		if($isSpam) $this->comment->status = Comment::statusSpam;
+			else $this->comment->status = Comment::statusPending;
 	}
 
 	abstract public function checkSpam(); // check if spam
@@ -71,7 +71,7 @@ abstract class CommentFilter extends WireData {
 	abstract public function submitSpam(); // unidentified spam
 
 	abstract public function submitHam(); // false positive
-	
+
 }
 
 

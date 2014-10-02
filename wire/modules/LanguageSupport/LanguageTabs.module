@@ -6,11 +6,11 @@
  * Organizes Language Fields into tabs for a cleaner easier to use interface
  *
  * By Adamspruijt and Ryan Cramer, Copyright 2013/2014
- * 
- * For ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ *
+ * For ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  *
  */
 
@@ -21,7 +21,7 @@ class LanguageTabs extends WireData implements Module {
 			'title' => 'Languages Support - Tabs',
 			'version' => 111,
 			'summary' => 'Organizes multi-language fields into tabs for a cleaner easier to use interface.',
-			'author' => 'adamspruijt, ryan', 
+			'author' => 'adamspruijt, ryan',
 			'singular' => true,
 			'autoload' => "template=admin",
 			'requires' => 'LanguageSupportFields'
@@ -30,19 +30,19 @@ class LanguageTabs extends WireData implements Module {
 
 	/**
 	 * Temporary storage of tabs created from addTab() method
-	 * 
+	 *
 	 * @var array of strings
-	 * 
+	 *
 	 */
 	protected $tabs = array();
 
 	/**
 	 * Add hooks, setup JS config, and determine active tab
-	 * 
+	 *
 	 */
 	public function ready() {
 		if($this->wire('page')->template != 'admin') return;
-		$this->addHookAfter('InputfieldForm::render', $this, 'hookRenderInputfieldForm'); 
+		$this->addHookAfter('InputfieldForm::render', $this, 'hookRenderInputfieldForm');
 
 		$language = null;
 		// allow for specifying language in your "edit" page link, from front-end
@@ -50,35 +50,35 @@ class LanguageTabs extends WireData implements Module {
 		// from /es/path/to/page/, then you can by using a page edit link like:
 		// <a href='{$config->urls->admin}page/edit/?id=$page->id&language=$user->language'>Edit</a>
 		$id = (int) $this->input->get->language;
-		if($id) $language = $this->languages->get($id); 
+		if($id) $language = $this->languages->get($id);
 
 		// if language is not specified as a GET variable, then use the user's language
-		if(!$language || !$language->id) $language = $this->user->language; 
+		if(!$language || !$language->id) $language = $this->user->language;
 
-		// determine the index of the tab for the user's language	
-		$activeTab = 0; 	
+		// determine the index of the tab for the user's language
+		$activeTab = 0;
 		foreach($this->languages as $index => $lang) {
-			if($lang->id == $language->id) $activeTab = $index; 
+			if($lang->id == $language->id) $activeTab = $index;
 		}
 
 		$settings = array(
 			'labelOpen' => $this->_('Expand Language Tabs'),
-			'labelClose' => $this->_('Collapse/Convert Back to Tabs'), 
-			'activeTab' => $activeTab, 
-			); 
+			'labelClose' => $this->_('Collapse/Convert Back to Tabs'),
+			'activeTab' => $activeTab,
+			);
 
-		$this->config->js('LanguageTabs', $settings); 
+		$this->config->js('LanguageTabs', $settings);
 	}
 
 	/**
 	 * Init language tabs in form immediately after form render
-	 * 
+	 *
 	 * @param HookEvent $e
-	 * 
+	 *
 	 */
 	public function hookRenderInputfieldForm(HookEvent $e) {
 		if(strpos($e->return, 'LanguageSupport') === false) return;
-		$id = $e->object->attr('id'); 
+		$id = $e->object->attr('id');
 		$e->return .= "<script>setupLanguageTabs($('#$id'));</script>";
 		$this->config->scripts->add($this->config->urls->LanguageTabs . "LanguageTabs.js");
 		$this->config->styles->add($this->config->urls->LanguageTabs . "LanguageTabs.css");
@@ -86,7 +86,7 @@ class LanguageTabs extends WireData implements Module {
 
 	/**
 	 * Clear any stored tabs
-	 * 
+	 *
 	 */
 	public function resetTabs() {
 		$this->tabs = array();
@@ -94,31 +94,31 @@ class LanguageTabs extends WireData implements Module {
 
 	/**
 	 * Add a new tab, to be later retrieved by renderTabs()
-	 * 
+	 *
 	 * @param Inputfield $inputfield
 	 * @param Language $language
-	 * 
+	 *
 	 */
 	public function addTab(Inputfield $inputfield, Language $language) {
 		$class = $inputfield->isEmpty() ? " class='langTabEmpty'" : "";
 		$title = $this->wire('sanitizer')->entities1($language->get('title|name'));
-		$id = $inputfield->attr('id'); 
+		$id = $inputfield->attr('id');
 		$this->tabs[] = "<li><a$class href='#langTab_$id'>$title</a></li>";
 	}
 
 	/**
 	 * Render output for all added tabs
-	 * 
+	 *
 	 * Note that if only 1 tab has been added, tabs won't be displayed (no point in it).
-	 * This method automatically calls resetTabs() after rendering. 
-	 * 
+	 * This method automatically calls resetTabs() after rendering.
+	 *
 	 * @param Inputfield $inputfield
-	 * @param $content Content that will have the tabs 
+	 * @param $content Content that will have the tabs
 	 * @return string Modified $content with tabs
-	 * 
+	 *
 	 */
 	public function renderTabs(Inputfield $inputfield, $content) {
-		if(count($this->tabs) > 1) { 
+		if(count($this->tabs) > 1) {
 			$inputfield->wrapClass .= " hasLangTabs";
 			$inputfield->contentClass .= " langTabsContainer";
 			$tabs = implode('', $this->tabs);
@@ -128,7 +128,7 @@ class LanguageTabs extends WireData implements Module {
 			// do nothing, just return content because there was only 1 tab (no render necessary)
 		}
 		$this->resetTabs();
-		return $content; 
+		return $content;
 	}
 
 }

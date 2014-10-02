@@ -2,9 +2,9 @@
 
 <div id='content'>
 
-	<?php 
-	$maxDepth = 4; 
-	echo renderNavTree($pages->get('/'), $maxDepth); 
+	<?php
+	$maxDepth = 4;
+	echo renderNavTree($pages->get('/'), $maxDepth);
 	// see the _init.php for the renderNavTree function
 	?>
 

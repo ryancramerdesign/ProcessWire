@@ -3,14 +3,14 @@
 /**
  * ProcessWire WireData
  *
- * This is the base data container class used throughout ProcessWire. 
- * It provides get and set access to properties internally stored in a $data array. 
- * Otherwise it is identical to the Wire class. 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * This is the base data container class used throughout ProcessWire.
+ * It provides get and set access to properties internally stored in a $data array.
+ * Otherwise it is identical to the Wire class.
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -21,10 +21,10 @@ class WireData extends Wire implements IteratorAggregate {
 	 * Array where get/set properties are stored
 	 *
 	 */
-	protected $data = array(); 
+	protected $data = array();
 
 	/**
-	 * Set a value 
+	 * Set a value
 	 *
 	 * @param string $key
 	 * @param mixed $value
@@ -34,12 +34,12 @@ class WireData extends Wire implements IteratorAggregate {
 	public function set($key, $value) {
 		if($key == 'data') {
 			if(!is_array($value)) $value = (array) $value;
-			return $this->setArray($value); 
+			return $this->setArray($value);
 		}
 		$v = isset($this->data[$key]) ? $this->data[$key] : null;
-		if(!$this->isEqual($key, $v, $value)) $this->trackChange($key, $v, $value); 
-		$this->data[$key] = $value; 
-		return $this; 
+		if(!$this->isEqual($key, $v, $value)) $this->trackChange($key, $v, $value);
+		$this->data[$key] = $value;
+		return $this;
 	}
 
 	/**
@@ -54,7 +54,7 @@ class WireData extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function setQuietly($key, $value) {
-		$track = $this->trackChanges(); 
+		$track = $this->trackChanges();
 		$this->setTrackChanges(false);
 		$this->set($key, $value);
 		if($track) $this->setTrackChanges(true);
@@ -64,8 +64,8 @@ class WireData extends Wire implements IteratorAggregate {
 	/**
 	 * Is $value1 equal to $value2?
 	 *
-	 * This template method provided so that descending classes can optionally determine 
- 	 * whether a change should be tracked. 
+	 * This template method provided so that descending classes can optionally determine
+ 	 * whether a change should be tracked.
 	 *
 	 * @param string $key Name of the key that triggered the check (see WireData::set)
 	 * @param mixed $value1
@@ -75,7 +75,7 @@ class WireData extends Wire implements IteratorAggregate {
 	 */
 	protected function isEqual($key, $value1, $value2) {
 		// $key intentionally not used here, but may be used by descending classes
-		return $value1 === $value2; 	
+		return $value1 === $value2;
 	}
 
 	/**
@@ -87,8 +87,8 @@ class WireData extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function setArray(array $data) {
-		foreach($data as $key => $value) $this->set($key, $value); 
-		return $this; 
+		foreach($data as $key => $value) $this->set($key, $value);
+		return $this;
 	}
 
 	/**
@@ -96,25 +96,25 @@ class WireData extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function __set($key, $value) {
-		$this->set($key, $value); 
+		$this->set($key, $value);
 	}
 
 	/**
 	 * Provides direct reference access to retrieve values in the $data array
 	 *
-	 * If the given $key is an object, it will cast it to a string. 
-	 * If the given key is a string with "|" pipe characters in it, it will try all till it finds a value. 
+	 * If the given $key is an object, it will cast it to a string.
+	 * If the given key is a string with "|" pipe characters in it, it will try all till it finds a value.
 	 *
  	 * @param string|object $key
-	 * @return mixed|null Returns null if the key was not found. 
+	 * @return mixed|null Returns null if the key was not found.
 	 *
 	 */
 	public function get($key) {
 		if(is_object($key)) $key = "$key";
-		if(array_key_exists($key, $this->data)) return $this->data[$key]; 
+		if(array_key_exists($key, $this->data)) return $this->data[$key];
 		if(strpos($key, '|')) {
-			$keys = explode('|', $key); 
-			foreach($keys as $k) if($value = $this->get($k)) return $value; 
+			$keys = explode('|', $key);
+			foreach($keys as $k) if($value = $this->get($k)) return $value;
 		}
 		return parent::__get($key); // back to Wire
 	}
@@ -124,7 +124,7 @@ class WireData extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function getArray() {
-		return $this->data; 
+		return $this->data;
 	}
 
 	/**
@@ -132,7 +132,7 @@ class WireData extends Wire implements IteratorAggregate {
 	 *
 	 * Static version for internal core use. Use the non-static getDot() instead.
 	 *
-	 * @param string $key 
+	 * @param string $key
 	 * @param Wire $from The instance you want to pull the value from
 	 * @return null|mixed Returns value if found or null if not
 	 *
@@ -167,30 +167,30 @@ class WireData extends Wire implements IteratorAggregate {
 						$value = count($value);
 					} else {
 						$a = array();
-						foreach($value as $v) $a[] = $v->get($key); 	
-						$value = $a; 
+						foreach($value as $v) $a[] = $v->get($key);
+						$value = $a;
 					}
 				}
 			}
 		} else {
 			// there is a dot property remaining and nothing to send it to
-			$value = null; 
+			$value = null;
 		}
-		return $value; 
+		return $value;
 	}
 
 	/**
 	 * Get a property via dot syntax: field.subfield.subfield
 	 *
-	 * Some classes of WireData may choose to add a call to this as part of their 
+	 * Some classes of WireData may choose to add a call to this as part of their
 	 * get() method as a syntax convenience.
 	 *
-	 * @param string $key 
+	 * @param string $key
 	 * @return null|mixed Returns value if found or null if not
 	 *
 	 */
 	public function getDot($key) {
-		return self::_getDot($key, $this); 
+		return self::_getDot($key, $this);
 	}
 
 	/**
@@ -203,7 +203,7 @@ class WireData extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function __get($key) {
-		return $this->get($key); 
+		return $this->get($key);
 	}
 
 	/**
@@ -215,8 +215,8 @@ class WireData extends Wire implements IteratorAggregate {
 	 */
 	public function remove($key) {
 		$value = isset($this->data[$key]) ? $this->data[$key] : null;
-		$this->trackChange("unset:$key", $value, null); 
-		unset($this->data[$key]); 
+		$this->trackChange("unset:$key", $value, null);
+		unset($this->data[$key]);
 		return $this;
 	}
 
@@ -225,24 +225,24 @@ class WireData extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function getIterator() {
-		return new ArrayObject($this->data); 
+		return new ArrayObject($this->data);
 	}
 
 	/**
 	 * Does this WireData have the given property in it's $data?
 	 *
-	 * @param string $key	
+	 * @param string $key
 	 * @return bool
 	 *
 	 */
 	public function has($key) {
-		return ($this->get($key) !== null); 
+		return ($this->get($key) !== null);
 	}
 
 	/**
 	 * Take the current item and append the given items, returning a new WireArray
 	 *
-	 * This is for syntactic convenience, i.e. 
+	 * This is for syntactic convenience, i.e.
 	 * if($page->and($page->parents)->has("featured=1")) { ... }
 	 *
 	 * @param WireArray|WireData|string $items May be a WireData, WireArray or gettable property from this object that returns a WireData|WireArray.
@@ -252,29 +252,29 @@ class WireData extends Wire implements IteratorAggregate {
 	 */
 	public function ___and($items) {
 
-		if(is_string($items)) $items = $this->get($items); 
+		if(is_string($items)) $items = $this->get($items);
 
 		if($items instanceof WireArray) {
 			// great, that's what we want
-			$a = clone $items; 
+			$a = clone $items;
 			$a->prepend($this);
 		} else if($items instanceof WireData) {
 			// single item
 			$className = get_class($this) . 'Array';
-			if(!class_exists($className)) $className = 'WireArray';		
-			$a = new $className(); 
+			if(!class_exists($className)) $className = 'WireArray';
+			$a = new $className();
 			$a->add($this);
-			$a->add($items); 
+			$a->add($items);
 		} else {
 			// unknown
-			throw new WireException('Invalid argument provided to WireData::and(...)'); 
+			throw new WireException('Invalid argument provided to WireData::and(...)');
 		}
 
-		return $a; 
+		return $a;
 	}
 
 	/**
-	 * Ensures that isset() and empty() work for this classes properties. 
+	 * Ensures that isset() and empty() work for this classes properties.
 	 *
 	 */
 	public function __isset($key) {
@@ -282,11 +282,11 @@ class WireData extends Wire implements IteratorAggregate {
 	}
 
 	/**
-	 * Ensures that unset() works for this classes data. 
+	 * Ensures that unset() works for this classes data.
 	 *
 	 */
 	public function __unset($key) {
-		$this->remove($key); 
+		$this->remove($key);
 	}
 
 }

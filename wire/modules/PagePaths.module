@@ -3,16 +3,16 @@
 /**
  * ProcessWire Page Paths
  *
- * Keeps a cache of page paths to improve performance and 
+ * Keeps a cache of page paths to improve performance and
  * make paths more queryable by selectors.
  *
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2014 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
- * 
+ *
  *
  */
 
@@ -20,11 +20,11 @@ class PagePaths extends WireData implements Module {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Page Paths', 
-			'version' => 1, 
+			'title' => 'Page Paths',
+			'version' => 1,
 			'summary' => "Enables page paths/urls to be queryable by selectors. Also offers potential for improved load performance. Builds an index at install (may take time on a large site).",
-			'singular' => true, 
-			'autoload' => true, 
+			'singular' => true,
+			'autoload' => true,
 			);
 	}
 
@@ -39,9 +39,9 @@ class PagePaths extends WireData implements Module {
 	 *
 	 */
 	public function init() {
-		$this->pages->addHook('moved', $this, 'hookPageMoved'); 
-		$this->pages->addHook('renamed', $this, 'hookPageMoved'); 
-		$this->pages->addHook('added', $this, 'hookPageMoved'); 
+		$this->pages->addHook('moved', $this, 'hookPageMoved');
+		$this->pages->addHook('renamed', $this, 'hookPageMoved');
+		$this->pages->addHook('added', $this, 'hookPageMoved');
 		$this->pages->addHook('deleted', $this, 'hookPageDeleted');
 	}
 
@@ -51,7 +51,7 @@ class PagePaths extends WireData implements Module {
 	 */
 	public function hookPageMoved(HookEvent $event) {
 		$page = $event->arguments[0];
-		$this->updatePagePath($page->id, $page->path); 
+		$this->updatePagePath($page->id, $page->path);
 	}
 
 
@@ -62,7 +62,7 @@ class PagePaths extends WireData implements Module {
 	public function hookPageDeleted(HookEvent $event) {
 		$page = $event->arguments[0];
 		$database = $this->wire('database');
-		$query = $database->prepare("DELETE FROM " . self::dbTableName . " WHERE pages_id=:pages_id"); 
+		$query = $database->prepare("DELETE FROM " . self::dbTableName . " WHERE pages_id=:pages_id");
 		$query->bindValue(":pages_id", $page->id, PDO::PARAM_INT);
 		$query->execute();
 	}
@@ -76,9 +76,9 @@ class PagePaths extends WireData implements Module {
 	 */
 	public function getPath($id) {
 		$table = self::dbTableName;
-		$id = (int) $id; 
+		$id = (int) $id;
 		$database = $this->wire('database');
-		$query = $database->prepare("SELECT path FROM `$table` WHERE pages_id=:pages_id"); 
+		$query = $database->prepare("SELECT path FROM `$table` WHERE pages_id=:pages_id");
 		$query->bindValue(":pages_id", $id, PDO::PARAM_INT);
 		$query->execute();
 		if(!$query->rowCount()) return null;
@@ -99,10 +99,10 @@ class PagePaths extends WireData implements Module {
 		$database = $this->wire('database');
 		$path = trim($path, '/');
 		$query = $database->prepare("SELECT pages_id FROM $table WHERE path=:path");
-		$query->bindValue(":path", $path); 
+		$query->bindValue(":path", $path);
 		$query->execute();
 		if(!$query->rowCount()) return null;
-		$id = $query->fetchColumn(); 
+		$id = $query->fetchColumn();
 		return (int) $id;
 	}
 
@@ -123,14 +123,14 @@ class PagePaths extends WireData implements Module {
 		$value = $selector->value;
 		$joinType = $selector->not ? 'leftjoin' : 'join';
 
-		$query->join("$table AS $alias ON pages.id=$alias.pages_id"); 
+		$query->join("$table AS $alias ON pages.id=$alias.pages_id");
 
 		if(in_array($selector->operator, array('=', '!=', '<>', '>', '<', '>=', '<='))) {
 			if(!is_array($value)) $value = array($value);
 			$where = '';
 			foreach($value as $path) {
 				if($where) $where .= $selector->not ? " AND " : " OR ";
-				$path = $this->wire('database')->escapeStr(trim($path, '/')); 
+				$path = $this->wire('database')->escapeStr(trim($path, '/'));
 				$where .= ($selector->not ? "NOT " : "") . "$alias.path{$selector->operator}'$path'";
 			}
 			$query->where("($where)");
@@ -152,7 +152,7 @@ class PagePaths extends WireData implements Module {
 	/**
 	 * Updates path for $page and all children
 	 *
-	 * @param int $id 
+	 * @param int $id
 	 * @param string $path
 	 * @param bool $hasChildren Omit if true or unknown
 	 * @param int $level Recursion level, you should omit this param
@@ -168,32 +168,32 @@ class PagePaths extends WireData implements Module {
 		$_path = $database->escapeStr($path);
 		$numUpdated = 1;
 
-		$sql = 	"INSERT INTO $table (pages_id, path) VALUES(:id, :path) " . 
-				"ON DUPLICATE KEY UPDATE pages_id=VALUES(pages_id), path=VALUES(path)"; 
-	
+		$sql = 	"INSERT INTO $table (pages_id, path) VALUES(:id, :path) " .
+				"ON DUPLICATE KEY UPDATE pages_id=VALUES(pages_id), path=VALUES(path)";
+
 		$query = $database->prepare($sql);
-		$query->bindValue(":id", $id, PDO::PARAM_INT);	
-		$query->bindValue(":path", $_path); 
+		$query->bindValue(":id", $id, PDO::PARAM_INT);
+		$query->bindValue(":path", $_path);
 		$query->execute();
 
 		if($hasChildren) {
 
-			$sql = 	"SELECT pages.id, pages.name, COUNT(children.id) FROM pages " . 
-					"LEFT JOIN pages AS children ON children.id=pages.parent_id " . 
-					"WHERE pages.parent_id=:id " . 
+			$sql = 	"SELECT pages.id, pages.name, COUNT(children.id) FROM pages " .
+					"LEFT JOIN pages AS children ON children.id=pages.parent_id " .
+					"WHERE pages.parent_id=:id " .
 					"GROUP BY pages.id ";
-		
+
 			$query = $database->prepare($sql);
 			$query->bindValue(":id", $id, PDO::PARAM_INT);
-			$query->execute();	
-			
+			$query->execute();
+
 			while($row = $query->fetch(PDO::FETCH_NUM)) {
 				list($id, $name, $numChildren) = $row;
 				$numUpdated += $this->updatePagePath($id, "$path/$name", $numChildren > 0, $level+1);
 			}
 		}
 
-		if(!$level) $this->message(sprintf($this->_n('Updated %d path', 'Updated %d paths', $numUpdated), $numUpdated)); 
+		if(!$level) $this->message(sprintf($this->_n('Updated %d path', 'Updated %d paths', $numUpdated), $numUpdated));
 
 		return $numUpdated;
 	}
@@ -203,24 +203,24 @@ class PagePaths extends WireData implements Module {
 	 *
 	 */
 	public function ___install() {
-		
+
 		$table = self::dbTableName;
 		$database = $this->wire('database');
 		$engine = $this->wire('config')->dbEngine;
 		$charset = $this->wire('config')->dbCharset;
 
-		$database->query("DROP TABLE IF EXISTS $table"); 
+		$database->query("DROP TABLE IF EXISTS $table");
 
-		$sql = 	"CREATE TABLE $table (" . 
-				"pages_id int(10) unsigned NOT NULL, " . 
-				"path text CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL, " . 
+		$sql = 	"CREATE TABLE $table (" .
+				"pages_id int(10) unsigned NOT NULL, " .
+				"path text CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL, " .
 				"PRIMARY KEY pages_id (pages_id), " .
-				"UNIQUE KEY path (path(500)), " . 
-				"FULLTEXT KEY path_fulltext (path)" . 
+				"UNIQUE KEY path (path(500)), " .
+				"FULLTEXT KEY path_fulltext (path)" .
 				") ENGINE=$engine DEFAULT CHARSET=$charset";
 
-		$database->query($sql); 
-		$numUpdated = $this->updatePagePath(1, '/'); 
+		$database->query($sql);
+		$numUpdated = $this->updatePagePath(1, '/');
 	}
 
 	/**
@@ -228,7 +228,7 @@ class PagePaths extends WireData implements Module {
 	 *
 	 */
 	public function ___uninstall() {
-		$this->wire('database')->query("DROP TABLE " . self::dbTableName); 
+		$this->wire('database')->query("DROP TABLE " . self::dbTableName);
 	}
 
 }

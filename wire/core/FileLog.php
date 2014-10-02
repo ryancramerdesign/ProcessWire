@@ -4,11 +4,11 @@
  * ProcessWire FileLog
  *
  * Creates and maintains a text-based log file.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -18,8 +18,8 @@
 
 class FileLog {
 
-	protected $logFilename = false; 
-	protected $itemsLogged = array(); 
+	protected $logFilename = false;
+	protected $itemsLogged = array();
 	protected $delimeter = ':';
 	protected $maxLineLength = 8192;
 	protected $fileExtension = 'txt';
@@ -29,55 +29,55 @@ class FileLog {
  	 *
 	 * @param string $path Path where the log will be stored (path should have trailing slash)
 	 * 	This may optionally include the filename if you intend to leave the second param blank.
-	 * @param string $identifier Basename for the log file, not including the extension. 
-	 * 
+	 * @param string $identifier Basename for the log file, not including the extension.
+	 *
 	 */
 	public function __construct($path, $identifier = '') {
 		if($identifier) {
 			$this->logFilename = "$path$identifier.{$this->fileExtension}";
 		} else {
-			$this->logFilename = $path; 
+			$this->logFilename = $path;
 		}
 	}
 
 	protected function cleanStr($str) {
-		//$str = strip_tags($str); 
-		$str = preg_replace('/[\r\n]/', ' ', $str); 
-		$str = trim($str); 
-		if(strlen($str) > $this->maxLineLength) $str = substr($str, 0, $this->maxLineLength); 
-		return $str; 	
+		//$str = strip_tags($str);
+		$str = preg_replace('/[\r\n]/', ' ', $str);
+		$str = trim($str);
+		if(strlen($str) > $this->maxLineLength) $str = substr($str, 0, $this->maxLineLength);
+		return $str;
 	}
 
 	public function save($str) {
 
-		if(!$this->logFilename) return false; 
+		if(!$this->logFilename) return false;
 
-		$hash = md5($str); 
+		$hash = md5($str);
 
 		// if we've already logged this during this session, then don't do it again
-		if(in_array($hash, $this->itemsLogged)) return true; 
+		if(in_array($hash, $this->itemsLogged)) return true;
 
-		$ts = date("Y-m-d H:i:s"); 
-		$str = $this->cleanStr($str); 
+		$ts = date("Y-m-d H:i:s");
+		$str = $this->cleanStr($str);
 
 		if($fp = fopen($this->logFilename, "a")) {
-			$trys = 0; 
+			$trys = 0;
 			$stop = false;
 
 			while(!$stop) {
 				if(flock($fp, LOCK_EX)) {
-					fwrite($fp, "$ts{$this->delimeter}$str\n"); 
-					flock($fp, LOCK_UN); 
-					$this->itemsLogged[] = $hash; 
-					$stop = true; 
+					fwrite($fp, "$ts{$this->delimeter}$str\n");
+					flock($fp, LOCK_UN);
+					$this->itemsLogged[] = $hash;
+					$stop = true;
 				} else {
 					usleep(2000);
-					if($trys++ > 20) $stop = true; 
+					if($trys++ > 20) $stop = true;
 				}
 			}
 
-			fclose($fp); 
-			return true; 
+			fclose($fp);
+			return true;
 		} else {
 			return false;
 		}
@@ -85,7 +85,7 @@ class FileLog {
 	}
 
 	public function size() {
-		return filesize($this->logFilename); 
+		return filesize($this->logFilename);
 	}
 
 	public function filename() {
@@ -93,11 +93,11 @@ class FileLog {
 	}
 
 	public function pathname() {
-		return $this->logFilename; 
+		return $this->logFilename;
 	}
 
 	public function mtime() {
-		return filemtime($this->logFilename); 
+		return filemtime($this->logFilename);
 	}
 
 	public function get($chunkSize = 4096) {
@@ -106,109 +106,109 @@ class FileLog {
 		// same as a unix tail function
 		// returns an array of lines
 
-		$chunkNum = 1; 	
-		$chunkSize = 4096; 		
-		$offset = -1 * ($chunkSize * $chunkNum); 
+		$chunkNum = 1;
+		$chunkSize = 4096;
+		$offset = -1 * ($chunkSize * $chunkNum);
 		$lines = array();
 
-		if(!$fp = fopen($this->logFilename, "r")) return $lines; 
-	
-		fseek($fp, $offset, SEEK_END);
-		$data = fread($fp, $chunkSize); 
-		fclose($fp); 
+		if(!$fp = fopen($this->logFilename, "r")) return $lines;
 
-		$lines = explode("\n", $data); 
-		return array_reverse($lines); 
+		fseek($fp, $offset, SEEK_END);
+		$data = fread($fp, $chunkSize);
+		fclose($fp);
+
+		$lines = explode("\n", $data);
+		return array_reverse($lines);
 	}
 
 	/**
 	 * Return an array of entries that exist in the given range of dates
-	 * 
-	 * @param int|string $dateFrom Unix timestamp or string date/time to start from 
+	 *
+	 * @param int|string $dateFrom Unix timestamp or string date/time to start from
 	 * @param int|string $dateTo Unix timestamp or string date/time to end at (default = now)
 	 * @return array
-	 * 
+	 *
 	 */
 	public function getDate($dateFrom, $dateTo = 0) {
 
 		$lines = array();
-		if(is_string($dateFrom)) $dateFrom = strtotime($dateFrom); 
-		if(is_string($dateTo)) $dateTo = strtotime($dateTo); 
-		if(!$dateFrom) return $lines; 
-		if(!$dateTo) $dateTo = time() + 3600; 
+		if(is_string($dateFrom)) $dateFrom = strtotime($dateFrom);
+		if(is_string($dateTo)) $dateTo = strtotime($dateTo);
+		if(!$dateFrom) return $lines;
+		if(!$dateTo) $dateTo = time() + 3600;
 
-		if(!$fp = fopen($this->logFilename, "r")) return $lines; 
+		if(!$fp = fopen($this->logFilename, "r")) return $lines;
 
 		while(($line = fgets($fp)) !== false) {
-			$parts = explode($this->delimeter, $line); 	
-			$date = strtotime($parts[0]); 
+			$parts = explode($this->delimeter, $line);
+			$date = strtotime($parts[0]);
 			if($date >= $dateFrom && $date <= $dateTo) {
-				$lines[] = $line; 
+				$lines[] = $line;
 			}
 		}
 
-		fclose($fp); 
-		return $lines; 
+		fclose($fp);
+		return $lines;
 	}
 
 	public function prune($bytes) {
 
-		$filename = $this->logFilename; 
+		$filename = $this->logFilename;
 
 		// prune this log file to $bytes size
 
-		if(!$filename || filesize($filename) <= $bytes) return 0; 
+		if(!$filename || filesize($filename) <= $bytes) return 0;
 
-		$fpr = fopen($filename, "r"); 	
-		$fpw = fopen("$filename.new", "w"); 
+		$fpr = fopen($filename, "r");
+		$fpw = fopen("$filename.new", "w");
 		if(!$fpr || !$fpw) return false;
 
-		fseek($fpr, ($bytes * -1), SEEK_END); 
+		fseek($fpr, ($bytes * -1), SEEK_END);
 		fgets($fpr, 1024); // first line likely just a partial line, so skip it
 		$cnt = 0;
 
 		while(!feof($fpr)) {
-			$line = fgets($fpr, 1024); 
-			fwrite($fpw, $line); 
+			$line = fgets($fpr, 1024);
+			fwrite($fpw, $line);
 			$cnt++;
 		}
 
 		fclose($fpw);
-		fclose($fpr); 
+		fclose($fpr);
 
 		if($cnt) {
-			unlink($filename); 
-			rename("$filename.new", $filename); 
+			unlink($filename);
+			rename("$filename.new", $filename);
 		} else {
-			@unlink("$filename.new"); 
+			@unlink("$filename.new");
 		}
-	
-		return $cnt;	
+
+		return $cnt;
 	}
 
 
 	public function __toString() {
-		return $this->filename(); 
-	}	
+		return $this->filename();
+	}
 
 	public function setDelimiter($c) {
-		$this->delimeter = $c; 
+		$this->delimeter = $c;
 	}
 
 	public function setDelimeter($c) {
-		$this->setDelimiter($c); 
+		$this->setDelimiter($c);
 	}
 
 	public function setMaxLineLength($c) {
-		$this->maxLineLength = (int) $c; 
+		$this->maxLineLength = (int) $c;
 	}
-	
+
 	public function getMaxLineLength() {
 		return $this->maxLineLength;
 	}
 
 	public function setFileExtension($ext) {
-		$this->fileExtension = $ext; 
+		$this->fileExtension = $ext;
 	}
 }
 

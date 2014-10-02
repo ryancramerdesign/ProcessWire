@@ -1,33 +1,33 @@
 .content {
 
-	table th, 
+	table th,
 	table th.header,
-	table.AdminDataList th, 
+	table.AdminDataList th,
 	h4 {
-		color: $table-th-color; 
+		color: $table-th-color;
 	}
-	
+
 	table.AdminDataList th.headerSortUp,
 	table.AdminDataList th.headerSortDown,
 	table th.headerSortUp,
 	table th.headerSortDown,
 	table th:hover {
-		color: $table-th-active-color; 
+		color: $table-th-active-color;
 	}
 
 	.AdminDataList {
-		margin-top: 0; 
+		margin-top: 0;
 
 		.container > & {
-			margin-top: 1em; 
+			margin-top: 1em;
 		}
 
 		thead th,
 		thead th.header,
 		tbody td {
-			border-left: 1px dotted #ccc; 
-			padding-left: 8px; 
-			border-color: darken($subtle-border, 5%); 
+			border-left: 1px dotted #ccc;
+			padding-left: 8px;
+			border-color: darken($subtle-border, 5%);
 		}
 
 		thead th:first-child,
@@ -40,15 +40,15 @@
 		tr:hover td,
 		tr:hover th,
 		tr.open td {
-			background: $notes-bg; 
+			background: $notes-bg;
 		}
 
 		td a {
-			color: $alt-link-color; 
+			color: $alt-link-color;
 		}
 
 		td a:hover {
-			color: $link-hover-color; 
+			color: $link-hover-color;
 		}
 	}
 }

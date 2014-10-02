@@ -4,7 +4,7 @@
  */
 
 @import 'reset';
-@import 'jquery-ui'; 
+@import 'jquery-ui';
 @import 'ui';
 @import 'form';
 @import 'inputfields';
@@ -21,92 +21,92 @@
  */
 
 *, *:before, *:after {
-	-moz-box-sizing: border-box; 
-	-webkit-box-sizing: border-box; 
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
 	box-sizing: border-box;
 }
 
 body {
-	background: $footer-bg; 
-	font-size: 100%; 
-	color: $text-color; 
+	background: $footer-bg;
+	font-size: 100%;
+	color: $text-color;
 
 	&.modal {
-		background-color: $text-bg; 
+		background-color: $text-bg;
 	}
 }
 	body,
 	.ui-dialog,
 	.ui-button,
-	button, 
+	button,
 	input,
-	th, td, 
-	select, 
+	th, td,
+	select,
 	textarea {
-		font-weight: $normal-weight; 
-		font-family: $regular-font; 
+		font-weight: $normal-weight;
+		font-family: $regular-font;
 	}
 
-.container, 
+.container,
 .ui-dialog {
-	line-height: $base-line-height; 
-	font-size: $base-font-size; 
+	line-height: $base-line-height;
+	font-size: $base-font-size;
 }
 
 .container {
-	position: relative; 
-	width: 95%; 
-	max-width: $container-max-width; 
-	margin: 0 auto; 
+	position: relative;
+	width: 95%;
+	max-width: $container-max-width;
+	margin: 0 auto;
 }
 
 a {
-	color: $link-color; 
+	color: $link-color;
 
 	&:hover {
-		color: $link-hover-color; 
-		background-color: $link-hover-bg; 
+		color: $link-hover-color;
+		background-color: $link-hover-bg;
 	}
 
 	&.on {
-		// on/active link color 
-		background-color: $link-current-bg; 
-		color: $link-current-color; 
+		// on/active link color
+		background-color: $link-current-bg;
+		color: $link-current-color;
 	}
 
 	&:active {
 		color: $link-active-color;
-		background-color: $link-active-bg; 
+		background-color: $link-active-bg;
 	}
 }
 
 strong {
-	font-weight: bold; 
+	font-weight: bold;
 }
 
 em {
-	font-style: italic; 
+	font-style: italic;
 }
 
 .description {
-	color: $medium-text-color; 
+	color: $medium-text-color;
 	margin: 0.5em 0;
 }
 
-.notes, 
+.notes,
 .detail {
-	color: $medium-text-color; 
+	color: $medium-text-color;
 	font-size: 0.875em;
-	line-height: 1.5em; 
+	line-height: 1.5em;
 }
 .notes {
-	background: $notes-bg; 
+	background: $notes-bg;
 }
 
 .description strong,
 .notes strong {
-	color: $medium-text-color; 
-	font-weight: $bold-weight; 
+	color: $medium-text-color;
+	font-weight: $bold-weight;
 }
 
 .align_left,
@@ -118,28 +118,28 @@ em {
 .align_right,
 .align-right {
 	float: right;
-	margin: 0 0 0.5em 1em; 
+	margin: 0 0 0.5em 1em;
 }
 
 .align_center,
 .align-center {
 	display: block;
 	margin-left: auto;
-	margin-right: auto; 
+	margin-right: auto;
 }
 
 
 .error {
-	background: $error-bg; 
-	color: $error-color; 
-	font-weight: $bold-weight; 
-	font-size: 0.9166666em;	
+	background: $error-bg;
+	color: $error-color;
+	font-weight: $bold-weight;
+	font-size: 0.9166666em;
 }
 
 .WireFatalError {
-	background: $error-bg; 
-	color: $reverse-text-color; 
-	padding: 1em; 
+	background: $error-bg;
+	color: $reverse-text-color;
+	padding: 1em;
 	position: relative;
 	z-index: 9999;
 }
@@ -151,20 +151,20 @@ em {
  */
 
 #content {
-	/* main content area */ 
-	position: relative; 
-	padding-bottom: 2em; 
+	/* main content area */
+	position: relative;
+	padding-bottom: 2em;
 	padding-top: 1px;
-	z-index: 0; 
-	background: $text-bg; 
+	z-index: 0;
+	background: $text-bg;
 
 	.container {
-		min-height: 50px; 
+		min-height: 50px;
 
 		> form,
 		> .ui-helper-clearfix > form {
 			position: relative;
-			top: -1px; 
+			top: -1px;
 		}
 	}
 }
@@ -177,7 +177,7 @@ em {
 	}
 
 	.nav a.label {
-		font-size: 1em; 
+		font-size: 1em;
 	}
 
 	p,
@@ -190,15 +190,15 @@ em {
 
 	h2 {
 		margin: 1em 0;
-		font-size: 1.4em; 
-		line-height: 1.2em; 
-		color: $medium-text-color; 
+		font-size: 1.4em;
+		line-height: 1.2em;
+		color: $medium-text-color;
 
 		a {
 			text-decoration: underline;
 
 			&:hover {
-				color: $reverse-text-color; 
+				color: $reverse-text-color;
 				background: $link-hover-color;
 				text-decoration: none;
 			}
@@ -207,7 +207,7 @@ em {
 
 	h3 {
 		margin: 1em 0;
-		font-size: 1.2em; 
+		font-size: 1.2em;
 	}
 
 	h4 {
@@ -218,15 +218,15 @@ em {
 
 
 	li {
-		margin: 1em 0; 
+		margin: 1em 0;
 		display: block;
-		list-style: disc; 
+		list-style: disc;
 	}
 
 	ol li {
-		display: list-item; 
+		display: list-item;
 		list-style-type: decimal;
-		margin-left: 1em; 
+		margin-left: 1em;
 	}
 
 
@@ -243,19 +243,19 @@ em {
 		dt,
 		dt {
 			display: block;
-			font-weight: $bold-weight; 
-			padding-top: 0.75em; 
+			font-weight: $bold-weight;
+			padding-top: 0.75em;
 		}
 		dt a {
-			text-transform: none; 
-			color: $alt-link-color; 
+			text-transform: none;
+			color: $alt-link-color;
 		}
 		dt a:hover {
-			color: $link-hover-color; 
+			color: $link-hover-color;
 		}
 		dl dd {
-			padding-bottom: 0.75em; 
-			border-bottom: 1px solid $subtle-border; 
+			padding-bottom: 0.75em;
+			border-bottom: 1px solid $subtle-border;
 		}
 }
 
@@ -265,15 +265,15 @@ em {
  */
 
 #footer {
-	margin: 2em 0 2em 0; 
-	font-size: $footer-font-size; 
-	color: $footer-color; 
+	margin: 2em 0 2em 0;
+	font-size: $footer-font-size;
+	color: $footer-color;
 
 	a {
-		color: $footer-link-color; 
+		color: $footer-link-color;
 	}
 	a:hover {
-		text-decoration: underline; 
+		text-decoration: underline;
 	}
 
 	p {
@@ -281,45 +281,45 @@ em {
 	}
 
 	#userinfo {
-		display: block; 
-		float: right; 
+		display: block;
+		float: right;
 	}
 
 }
 
 
 #debug {
-	margin-top: 2em; 
+	margin-top: 2em;
 
 	.container {
-		width: 100%; 
+		width: 100%;
 	}
 
 	p {
-		margin: 1em 0; 
+		margin: 1em 0;
 	}
 
 	ol {
-		margin: 1em 0; 
+		margin: 1em 0;
 	}
 
 	h4 {
-		font-weight: $bold-weight; 
+		font-weight: $bold-weight;
 	}
 
 	table {
-		width: 100%; 
+		width: 100%;
 
 		th {
 			font-weight: $bold-weight;
 		}
 
 		td, th {
-			vertical-align: top; 
-			padding: 3px 5px; 	
-			border-bottom: 1px dotted $light-text-color; 
-			border-left: 1px dotted $light-text-color; 
-			font-size: 12px; 
+			vertical-align: top;
+			padding: 3px 5px;
+			border-bottom: 1px dotted $light-text-color;
+			border-left: 1px dotted $light-text-color;
+			font-size: 12px;
 		}
 
 	}
@@ -338,49 +338,49 @@ em {
 body.modal {
 
 	.container {
-		margin: 0; 
-		width: 100%; 
-		min-width: 300px; 
-		max-width: 100%; 
+		margin: 0;
+		width: 100%;
+		min-width: 300px;
+		max-width: 100%;
 		padding-left: 1em;
-		padding-right: 1em; 
+		padding-right: 1em;
 	}
 
-	&:not(.hasWireTabs) { 
+	&:not(.hasWireTabs) {
 		#notices {
 			margin: 1px 0 0.75em 0;
 			a.notice-remove {
-				display: none; 
+				display: none;
 			}
 		}
 	}
 
 	.content h2 {
 		margin: 1em 0 0.5em 0;
-		font-size: 1.3em; 
+		font-size: 1.3em;
 	}
 
 	#footer,
 	#masthead,
-	#breadcrumbs, 
+	#breadcrumbs,
 	#headline {
-		display: none; 
+		display: none;
 	}
 
 	&.hasWireTabs #breadcrumbs {
 		display: block;
 		li {
-			display: none; 
+			display: none;
 
 			&.title {
-				/* display only title in modal mode */ 
+				/* display only title in modal mode */
 				display: block;
 			}
 		}
 	}
 
 	#submit_save_top {
-		display: none; 
+		display: none;
 	}
 
 }
@@ -395,32 +395,32 @@ body.id-3 #breadcrumbs ul li:not(:first-child):not(:last-child),
 body.id-23 #breadcrumbs ul li:not(:first-child):not(:last-child),
 body.id-8 #breadcrumbs ul li:not(:first-child):not(:last-child) {
 	/* hide extraneous breadcrumbs when in admin root */
-	display: none; 
+	display: none;
 }
 
 body.id-23 #content form {
-	margin-top: 1em; 
+	margin-top: 1em;
 }
 
 #content .container > form,
 #content .container > .ui-helper-clearfix > form {
 	/* for wiretabs and/or forms to line up with headline area */
-	top: $form-top-margin-adjustment; 
+	top: $form-top-margin-adjustment;
 }
 
 body:not(.hasWireTabs) #headline .container {
-	min-height: 40px; 
+	min-height: 40px;
 }
 
 .content > .container > #PageListContainer {
-	margin-top: 0; 
+	margin-top: 0;
 }
 
 .hasWireTabs .content #fieldgroupContext {
 	/* context selection in field editor */
 	top: -2.25em;
-	right: 0; 
-	z-index: 102; 
+	right: 0;
+	z-index: 102;
 }
 
 #ModuleEditForm .AdminDataTable tr td:first-child {
@@ -428,7 +428,7 @@ body:not(.hasWireTabs) #headline .container {
 }
 
 #addLinksMenu {
-	min-width: 150px; 
+	min-width: 150px;
 }
 
 .InputfieldPageNameURL strong {
@@ -437,7 +437,7 @@ body:not(.hasWireTabs) #headline .container {
 }
 
 #tools-toggle {
-	width: 43px; 
+	width: 43px;
 }
 
 /* font-awesome default icon sizes */
@@ -468,31 +468,31 @@ body:not(.hasWireTabs) #headline .container {
 	}
 
 	#masthead #topnav {
-		float: left; 
+		float: left;
 	}
 
 	body #masthead #topnav a,
 	body #content .WireTabs li a {
 		padding-left: 0.75em;
-		padding-right: 0.75em; 
+		padding-right: 0.75em;
 	}
 
 	#logo {
-		display: none; 
+		display: none;
 	}
 
 	#masthead,
-	#headline, 
-	#breadcrumbs, 
-	#notices p, 
+	#headline,
+	#breadcrumbs,
+	#notices p,
 	body:not(.modal) #content,
 	#footer {
 		padding-right: 10px;
-		padding-left: 10px; 
+		padding-left: 10px;
 	}
 
 	#fieldgroupContext {
-		display: none; 
+		display: none;
 	}
 
 	/**
@@ -519,19 +519,19 @@ body:not(.hasWireTabs) #headline .container {
 	}
 
 	.container {
-		width: 100%; 
+		width: 100%;
 	}
 	#footer #userinfo {
 		float: none;
 	}
 	#footer {
-		text-align: center; 
-	}	
+		text-align: center;
+	}
 
 	.AjaxUploadDropHere {
-		display: none !important; 
+		display: none !important;
 	}
-		
+
 
 }
 

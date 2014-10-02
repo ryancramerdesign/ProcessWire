@@ -3,27 +3,27 @@
 /**
  * ProcessWire Page Permissions Module
  *
- * Adds convenience methods to all Page objects for checking permissions, i.e. 
- * 
+ * Adds convenience methods to all Page objects for checking permissions, i.e.
+ *
  * if($page->editable()) { do something }
  * if(!$page->viewable()) { echo "sorry you can't view this"; }
  * ...and so on...
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2014 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
- * 
+ *
  * Optional special permissions that affect $page->editable() behavior:
- * 
- * 1. page-publish: when installed, editable() returns false, when it would otherwise return true, 
- *    on published pages, if user doesn't have page-publish permission in their roles. 
- * 
- * 2. page-edit-created: when installed, editable() returns false, when it would otherwise 
- *    return true, if user's role has this permission and they are not the $page->createdUser. 
+ *
+ * 1. page-publish: when installed, editable() returns false, when it would otherwise return true,
+ *    on published pages, if user doesn't have page-publish permission in their roles.
+ *
+ * 2. page-edit-created: when installed, editable() returns false, when it would otherwise
+ *    return true, if user's role has this permission and they are not the $page->createdUser.
  *    This is a permission that reduces access rather than increasing it. Note that
- *    page-edit-created does nothing if the user doesn't have page-edit permission. 
+ *    page-edit-created does nothing if the user doesn't have page-edit permission.
  *
  */
 
@@ -31,23 +31,23 @@ class PagePermissions extends WireData implements Module {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Page Permissions', 
-			'version' => 105, 
+			'title' => 'Page Permissions',
+			'version' => 105,
 			'summary' => 'Adds various permission methods to Page objects that are used by Process modules.',
-			'permanent' => true, 
+			'permanent' => true,
 			'singular' => true,
-			'autoload' => true, 
+			'autoload' => true,
 			);
 	}
 
 	/**
 	 * Do we have page-publish permission in the system?
-	 * 
+	 *
 	 * @var null|bool Null=unset state
-	 * 
+	 *
 	 */
 	protected $hasPagePublish = null;
-	
+
 	/**
 	 * Do we have page-edit-created permission in the system?
 	 *
@@ -61,37 +61,37 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 */
 	public function init() {
-		$this->addHook('Page::editable', $this, 'editable'); 
-		$this->addHook('Page::publishable', $this, 'publishable'); 
-		$this->addHook('Page::viewable', $this, 'viewable'); 
-		$this->addHook('Page::listable', $this, 'listable'); 
+		$this->addHook('Page::editable', $this, 'editable');
+		$this->addHook('Page::publishable', $this, 'publishable');
+		$this->addHook('Page::viewable', $this, 'viewable');
+		$this->addHook('Page::listable', $this, 'listable');
 		$this->addHook('Page::deleteable', $this, 'deleteable');
 		$this->addHook('Page::deletable', $this, 'deleteable');
-		$this->addHook('Page::trashable', $this, 'trashable'); 
-		$this->addHook('Page::addable', $this, 'addable'); 
-		$this->addHook('Page::moveable', $this, 'moveable'); 
-		$this->addHook('Page::sortable', $this, 'sortable'); 
-		// $this->addHook('Template::createable', $this, 'createable'); 
+		$this->addHook('Page::trashable', $this, 'trashable');
+		$this->addHook('Page::addable', $this, 'addable');
+		$this->addHook('Page::moveable', $this, 'moveable');
+		$this->addHook('Page::sortable', $this, 'sortable');
+		// $this->addHook('Template::createable', $this, 'createable');
 	}
 
 	/**
 	 * Is the page editable by the current user?
 	 *
-	 * A field name may optionally be specified as the first argument, in which case the field on that page will also be checked for access. 
+	 * A field name may optionally be specified as the first argument, in which case the field on that page will also be checked for access.
 	 *
 	 */
 	public function editable($event) {
 
-		$page = $event->object; 
+		$page = $event->object;
 
 		if(!$this->pageEditable($page)) {
 			$event->return = false;
 
 		} else if(isset($event->arguments[0])) {
-			$event->return = $this->fieldEditable($page, $event->arguments[0]); 
+			$event->return = $this->fieldEditable($page, $event->arguments[0]);
 
 		} else {
-			$event->return = true; 
+			$event->return = true;
 		}
 
 	}
@@ -105,16 +105,16 @@ class PagePermissions extends WireData implements Module {
 		$user = $this->wire('user');
 
 		// superuser can always do whatever they want
-		if($user->isSuperuser()) return true; 
+		if($user->isSuperuser()) return true;
 
 		// note there is an exception in the case of system pages, which require superuser to edit
 		if($page->status & Page::statusSystem) return false;
 
 		// If page is locked and user doesn't have permission to unlock, don't let them edit
 		if($page->status & Page::statusLocked) {
-			if(!$user->hasPermission("page-lock")) return false; 
+			if(!$user->hasPermission("page-lock")) return false;
 		}
-			
+
 		// special conditions apply if the page is a User
 		if($page instanceof User || $page->template->id == $this->wire('config')->userTemplateID) {
 
@@ -122,7 +122,7 @@ class PagePermissions extends WireData implements Module {
 			if($this->wire('process') != 'ProcessUser') return false;
 
 			// if the user page being edited has a superuser role, and the current user doesn't, never let them edit regardless of any other permissions
-			$suRole = $this->wire('roles')->get($this->wire('config')->superUserRolePageID); 
+			$suRole = $this->wire('roles')->get($this->wire('config')->superUserRolePageID);
 			if($page->roles->has($suRole) && !$user->roles->has($suRole)) return false;
 
 			// if we reach this point and user has user-admin permission, then they are good
@@ -135,7 +135,7 @@ class PagePermissions extends WireData implements Module {
 		// check if the system has a page-edit-created permission installed
 		if(is_null($this->hasPageEditCreated)) $this->hasPageEditCreated = $this->wire('permissions')->get('page-edit-created')->id > 0;
 		if($this->hasPageEditCreated) {
-			// page-edit-created permission is installed, so we have to account for it 
+			// page-edit-created permission is installed, so we have to account for it
 			// if user is not the one that created this page, don't allow them to edit it
 			if($page->created_users_id != $user->id) return false;
 		}
@@ -154,7 +154,7 @@ class PagePermissions extends WireData implements Module {
 			return false;
 		}
 
-		return true; 
+		return true;
 	}
 
 
@@ -163,13 +163,13 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 */
 	protected function fieldEditable(Page $page, $name) {
-	
-		if(!is_string($name)) return false; 
-		if(!strlen($name)) return true; 
 
-		if($name == 'id' && ($page->status & Page::statusSystemID)) return false; 
+		if(!is_string($name)) return false;
+		if(!strlen($name)) return true;
 
-		$user = $this->wire('user'); 
+		if($name == 'id' && ($page->status & Page::statusSystemID)) return false;
+
+		$user = $this->wire('user');
 
 		if($page->status & Page::statusSystem) {
 			if(in_array($name, array('id', 'name', 'template', 'templates_id', 'parent', 'parent_id'))) {
@@ -179,25 +179,25 @@ class PagePermissions extends WireData implements Module {
 
 		if($name == 'template' || $name == 'templates_id') {
 			if($page->template->noChangeTemplate) return false;
-			if(!$user->hasPermission('page-template', $page)) return false; 
+			if(!$user->hasPermission('page-template', $page)) return false;
 		}
 
 		if($name == 'parent' || $name == 'parent_id') {
-			if($page->template->noMove) return false; 
-			if(!$user->hasPermission('page-move', $page)) return false; 
+			if($page->template->noMove) return false;
+			if(!$user->hasPermission('page-move', $page)) return false;
 		}
 
 		if($name == 'sortfield') {
-			if(!$user->hasPermission('page-sort', $page)) return false; 
+			if(!$user->hasPermission('page-sort', $page)) return false;
 		}
 
 		if($name == 'roles') {
-			if(!$user->hasPermission('user-admin')) return false; 
+			if(!$user->hasPermission('user-admin')) return false;
 		}
 
 		// FUTURE: check per-field edit access
 
-		return true; 
+		return true;
 	}
 
 	/**
@@ -208,27 +208,27 @@ class PagePermissions extends WireData implements Module {
 	 */
 	public function viewable($event) {
 
-		$page = $event->object; 
-		$viewable = true; 
-		$user = $this->wire('user'); 
-		$u = $event->arguments(0); 
+		$page = $event->object;
+		$viewable = true;
+		$user = $this->wire('user');
+		$u = $event->arguments(0);
 
-		// allow specifying User instance as argument 0 
+		// allow specifying User instance as argument 0
 		// this gives you a "viewable to user" capability
 		if($u && $u instanceof User) $user = $u;
-		
+
 		if($page->status >= Page::statusUnpublished) $viewable = false;
-			else if(!$page->template || !$page->template->filenameExists()) $viewable = false; 
-			else if($user->isSuperuser()) $viewable = true; 
+			else if(!$page->template || !$page->template->filenameExists()) $viewable = false;
+			else if($user->isSuperuser()) $viewable = true;
 			else if($page->process) $viewable = $this->processViewable($page->process);
 			else if(!$user->hasPermission("page-view", $page)) $viewable = false;
-			else if($page->isTrash()) $viewable = false; 
+			else if($page->isTrash()) $viewable = false;
 
 		// if the page is editable by the current user, force it to be viewable
 		if(!$viewable && !$user->isGuest() && $page->is(Page::statusUnpublished)) {
-			if($page->editable() && $page->template->filenameExists()) $viewable = true; 
+			if($page->editable() && $page->template->filenameExists()) $viewable = true;
 		}
-		
+
 
 		$event->return = $viewable;
 	}
@@ -246,40 +246,40 @@ class PagePermissions extends WireData implements Module {
 		$user = $this->wire('user');
 
 		if($user->isGuest()) return false;
-		if($user->isSuperuser()) return true; 
+		if($user->isSuperuser()) return true;
 
-		$info = $this->wire('modules')->getModuleInfo($process); 
+		$info = $this->wire('modules')->getModuleInfo($process);
 		$permissionName = empty($info['permission']) ? '' : $info['permission'];
 
-		// if the process module doesn't explicitely define a permission, 
+		// if the process module doesn't explicitely define a permission,
 		// then we assume the user doesn't have access
 		if(!$permissionName) return false;
 
-		return $user->hasPermission($permissionName); 
+		return $user->hasPermission($permissionName);
 	}
 
 	/**
 	 * Is the page listable by the current user?
 	 *
-	 * A listable page may appear in a listing, but doesn't mean that the user can actually 
-	 * view the page or that the page is renderable. 
+	 * A listable page may appear in a listing, but doesn't mean that the user can actually
+	 * view the page or that the page is renderable.
 	 *
 	 */
 	public function listable($event) {
 
-		$page = $event->object; 
-		$user = $this->wire('user'); 
-		$listable = true; 
+		$page = $event->object;
+		$user = $this->wire('user');
+		$listable = true;
 
-		if($user->isSuperuser()) $listable = true; 
-			else if($page instanceof User && $user->hasPermission('user-admin')) $listable = true; 
+		if($user->isSuperuser()) $listable = true;
+			else if($page instanceof User && $user->hasPermission('user-admin')) $listable = true;
 			else if($page->is(Page::statusUnpublished) && !$page->editable()) $listable = false;
 			else if($page->process && !$this->processViewable($page->process)) $listable = false;
-			else if($page->isTrash()) $listable = false; 
-			else if($page->getAccessTemplate()->guestSearchable) $listable = true; 
+			else if($page->isTrash()) $listable = false;
+			else if($page->getAccessTemplate()->guestSearchable) $listable = true;
 			else if(!$user->hasPermission("page-view", $page)) $listable = false;
 
-		$event->return = $listable; 
+		$event->return = $listable;
 	}
 
 	/**
@@ -288,13 +288,13 @@ class PagePermissions extends WireData implements Module {
 	 */
 	public function deleteable($event) {
 		$page = $event->object;
-		$user = $this->wire('user'); 
+		$user = $this->wire('user');
 		if($page instanceof User && $user->hasPermission('user-admin')) {
 			$deleteable = true;
 			if($page->id == $user->id) $deleteable = false; // can't delete self
 			if($page->hasRole('superuser') && !$user->hasRole('superuser')) $deleteable = false; // non-superuser can't delete superuser
-		} else { 
-			$deleteable = $this->pages->isDeleteable($page); 
+		} else {
+			$deleteable = $this->pages->isDeleteable($page);
 			if($deleteable && !$user->isSuperuser()) {
 				// make sure the page is editable and user has page-delete permission, if not dealing with superuser
 				$deleteable = $page->editable() && $user->hasPermission("page-delete", $page);
@@ -326,20 +326,20 @@ class PagePermissions extends WireData implements Module {
 	 */
 	public function addable($event) {
 
-		$page = $event->object; 
-		$user = $this->wire('user'); 
-		$addable = false; 
+		$page = $event->object;
+		$user = $this->wire('user');
+		$addable = false;
 
 		if($page->template->noChildren) {
-			$addable = false; 
+			$addable = false;
 
 		} else if($user->isSuperuser()) {
-			$addable = true; 
+			$addable = true;
 
 		} else if($page->id == $this->wire('config')->usersPageID && $user->hasPermission('user-admin')) {
 			// users with user-admin access adding a page to users: add access is assumed
 			// rather than us having a separate 'users' template where access is defined
-			$addable = true; 
+			$addable = true;
 
 		} else if($user->hasPermission('page-add', $page)) {
 			// user has page-add permission, now we need to check that they have access
@@ -349,10 +349,10 @@ class PagePermissions extends WireData implements Module {
 
 		// check if a $page is provided as the first argument for additional access checking
 		if($addable && isset($event->arguments[0]) && $event->arguments[0] instanceof Page) {
-			$addPage = $event->arguments[0]; 
+			$addPage = $event->arguments[0];
 			if(count($page->template->childTemplates) && !in_array($addPage->template->id, $page->template->childTemplates)) {
 				$addable = false;
-			}	
+			}
 		}
 
 
@@ -363,45 +363,45 @@ class PagePermissions extends WireData implements Module {
 	 * Checks that a parent is addable within the context of it's template (i.e. has page-create for the template)
 	 *
 	 * When this function is called, it has already been determined that the user has page-add permission.
-	 * So this is just narrowing down to make sure they have access on a template. 
+	 * So this is just narrowing down to make sure they have access on a template.
 	 *
 	 */
 	protected function addableTemplate(Page $page, User $user) {
 
-		$has = false; 
+		$has = false;
 
 		if(count($page->template->childTemplates)) {
 
 			// page's template defines specific templates for children
-			// see if the user has access to one of them 
+			// see if the user has access to one of them
 
 			foreach($page->template->childTemplates as $id) {
 				$template = $this->wire('templates')->get($id);
 				if(!$template->useRoles) $template = $page->getAccessTemplate();
-				//if($user->hasPermission('page-edit', $template)) $has = true;           
-				if($user->hasPermission('page-create', $template)) $has = true;           
+				//if($user->hasPermission('page-edit', $template)) $has = true;
+				if($user->hasPermission('page-create', $template)) $has = true;
 				if($has) break;
 			}
-			
+
 		} else if($page->id == $this->wire('config')->usersPageID && $user->hasPermission('user-admin')) {
 			// user-admin permission implies create access to the 'user' template
-			$has = true; 
+			$has = true;
 
 		} else {
 			// page's template does not specify templates for children
 			// so check to see if they have edit access to ANY template that can be used
 
-			foreach($this->wire('templates') as $template) { 
-				// if($template->noParents) continue; 
-				if($template->parentTemplates && !in_array($page->template->id, $template->parentTemplates)) continue; 
+			foreach($this->wire('templates') as $template) {
+				// if($template->noParents) continue;
+				if($template->parentTemplates && !in_array($page->template->id, $template->parentTemplates)) continue;
 				// if($template->flags & Template::flagSystem) continue;
-				//$has = $user->hasPermission('page-edit', $template); 
-				$has = $user->hasPermission('page-create', $template); 
+				//$has = $user->hasPermission('page-edit', $template);
+				$has = $user->hasPermission('page-create', $template);
 				if($has) break;
 			}
 		}
 
-		return $has; 
+		return $has;
 	}
 
 	/**
@@ -412,13 +412,13 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 */
 	public function moveable($event) {
-		$page = $event->object; 
+		$page = $event->object;
 		$moveable = $page->editable('parent');
 		if($moveable && count($event->arguments) && $event->arguments[0] instanceof Page) {
 			$parent = $event->arguments[0];
 			$moveable = $parent->addable($page);
 		}
-		if($page->id == 1) $moveable = false; 
+		if($page->id == 1) $moveable = false;
 		$event->return = $moveable;
 	}
 
@@ -427,16 +427,16 @@ class PagePermissions extends WireData implements Module {
 	 *
 	 */
 	public function sortable($event) {
-		$page = $event->object; 
-		$sortable = false; 
-		if($page->id > 1 && $page->editable() && $this->user->hasPermission('page-sort', $page->parent)) $sortable = true; 
+		$page = $event->object;
+		$sortable = false;
+		if($page->id > 1 && $page->editable() && $this->user->hasPermission('page-sort', $page->parent)) $sortable = true;
 		$event->return = $sortable;
 	}
 
 	/**
 	 * Is the page publishable by the current user?
 	 *
-	 * A field name may optionally be specified as the first argument, in which case the field on that page will also be checked for access. 
+	 * A field name may optionally be specified as the first argument, in which case the field on that page will also be checked for access.
 	 *
 	 */
 	protected function publishable($event) {
@@ -446,7 +446,7 @@ class PagePermissions extends WireData implements Module {
 
 		if($user->isSuperuser()) return;
 
-		$page = $event->object; 
+		$page = $event->object;
 
 		// if page isn't editable, it certainly can't be publishable
 		if(!$page->editable()) {
@@ -455,9 +455,9 @@ class PagePermissions extends WireData implements Module {
 		}
 
 		// if there is no page-publish permission, then it's publishable
-		$perm = wire('permissions')->get('page-publish'); 
+		$perm = wire('permissions')->get('page-publish');
 		if(!$perm->id) return;
-	
+
 		// if Page is a user, and user has user-admin permission, they can also publish the user
 		if($page instanceof User && $user->hasPermission('user-admin')) return;
 
@@ -465,35 +465,35 @@ class PagePermissions extends WireData implements Module {
 		if($user->hasPermission('page-publish', $page)) return;
 
 		// if we made it here, then page is not publishable
-		$event->return = false; 
+		$event->return = false;
 	}
 
 	/**
 	 * Can the user create pages from this template?
 	 *
-	 * Optional argument 1 may be a parent page for context, i.e. can we create a page with this parent. 
+	 * Optional argument 1 may be a parent page for context, i.e. can we create a page with this parent.
 	 *
 	public function createable($event) {
 
-		$template = $event->object; 
-		$user = $this->fuel('user'); 
-		$createable = false; 
+		$template = $event->object;
+		$user = $this->fuel('user');
+		$createable = false;
 
 		if($template->noParents) {
-			$createable = false; 
+			$createable = false;
 
 		} else if($user->isSuperuser()) {
-			$createable = true; 
+			$createable = true;
 
 		} else if($user->hasPermission('page-create', $template)) {
-			$createable = true; 
+			$createable = true;
 		}
 
 		// check if a parent $page is provided as the first argument for additional access checking
 		if($createable && isset($event->arguments[0]) && $event->arguments[0] instanceof Page) {
-			$parent = $event->arguments[0]; 
-			if($parent->template->noChildren || (count($parent->template->childTemplates) && !in_array($template->id, $parent->template->childTemplates))) $createable = false; 
-			if($createable) $createable = $parent->addable(); 
+			$parent = $event->arguments[0];
+			if($parent->template->noChildren || (count($parent->template->childTemplates) && !in_array($template->id, $parent->template->childTemplates))) $createable = false;
+			if($createable) $createable = $parent->addable();
 		}
 
 		$event->return = $createable;

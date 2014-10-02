@@ -1,2 +1,2 @@
-<?php 
-include("./basic-page.php"); 
+<?php
+include("./basic-page.php");

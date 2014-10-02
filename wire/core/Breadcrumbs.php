@@ -3,12 +3,12 @@
 /**
  * ProcessWire Breadcrumbs
  *
- * Provides basic breadcrumb capability 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Provides basic breadcrumb capability
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -22,8 +22,8 @@
  */
 class Breadcrumb extends WireData {
 	public function __construct($url = '', $title = '') {
-		$this->set('url', $url); 
-		$this->set('title', $title); 
+		$this->set('url', $url);
+		$this->set('title', $title);
 	}
 }
 
@@ -42,13 +42,13 @@ class Breadcrumbs extends WireArray {
 	public function add($item) {
 
 		if($item instanceof Page) {
-			$page = $item; 
+			$page = $item;
 			$item = new Breadcrumb();
-			$item->title = $page->get("title|name"); 
+			$item->title = $page->get("title|name");
 			$item->url = $page->url;
-		} 
+		}
 
-		return parent::add($item); 
+		return parent::add($item);
 	}
 
 }

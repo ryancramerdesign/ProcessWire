@@ -3,10 +3,10 @@
 /**
  * ProcessWire Language (single) Page Class
  *
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -17,7 +17,7 @@ class Language extends Page {
 	/**
 	 * Whether this Language represents the default
 	 *
-	 */ 
+	 */
 	protected $isDefaultLanguage = false;
 
 	/**
@@ -35,8 +35,8 @@ class Language extends Page {
 	 */
 	public function get($key) {
 		if($key == 'translator') return $this->translator();
-		if($key == 'isDefault' || $key == 'isDefaultLanguage') return $this->isDefaultLanguage; 
-		return parent::get($key); 
+		if($key == 'isDefault' || $key == 'isDefaultLanguage') return $this->isDefaultLanguage;
+		return parent::get($key);
 	}
 
 	/**
@@ -44,15 +44,15 @@ class Language extends Page {
 	 *
 	 */
 	public function translator() {
-		return wire('languages')->translator($this); 
-	}	
+		return wire('languages')->translator($this);
+	}
 
 	/**
 	 * Targets this as the default language
 	 *
 	 */
-	public function setIsDefaultLanguage() { 
-		$this->isDefaultLanguage = true; 
+	public function setIsDefaultLanguage() {
+		$this->isDefaultLanguage = true;
 	}
 
 	/**
@@ -60,7 +60,7 @@ class Language extends Page {
 	 *
 	 */
 	public function isDefault() {
-		return $this->isDefaultLanguage || $this->name == 'default'; 
+		return $this->isDefaultLanguage || $this->name == 'default';
 	}
 }
 

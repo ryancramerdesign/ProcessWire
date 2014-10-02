@@ -8,8 +8,8 @@ class SystemUpdate4 extends SystemUpdate {
 
 	public function execute() {
 		$this->modules->resetCache();
-		$this->modules->install('AdminThemeDefault'); 
-		$this->message("Added new default admin theme. To configure or remove this theme, see Modules > Core > Admin > Default Admin Theme."); 
+		$this->modules->install('AdminThemeDefault');
+		$this->message("Added new default admin theme. To configure or remove this theme, see Modules > Core > Admin > Default Admin Theme.");
 		return true;
 	}
 }

@@ -8,9 +8,9 @@
 interface FieldtypeLanguageInterface {
 
 	/*
-	 * This interface is symbolic only and doesn't require any additional methods, 
-	 * however you do need to add an 'implements FieldtypeLanguageInterface' when defining your class. 
-	 * 
+	 * This interface is symbolic only and doesn't require any additional methods,
+	 * however you do need to add an 'implements FieldtypeLanguageInterface' when defining your class.
+	 *
 	 */
 
 }

@@ -5,13 +5,13 @@
  *
  * This Fieldtype stores an ON/OFF toggle via a single checkbox. The ON value is 1 and OFF value is 0.
  *
- * For documentation about the fields used in this class, please see:  
+ * For documentation about the fields used in this class, please see:
  * /wire/core/Fieldtype.php
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -24,47 +24,47 @@ class FieldtypeCheckbox extends Fieldtype {
 			'title' => 'Checkbox',
 			'version' => 100,
 			'summary' => 'This Fieldtype stores an ON/OFF toggle via a single checkbox. The ON value is 1 and OFF value is 0.',
-			'permanent' => true, 
+			'permanent' => true,
 			);
 	}
 
 	public function getBlankValue(Page $page, Field $field) {
-		return 0; 
+		return 0;
 	}
 
 	public function sanitizeValue(Page $page, Field $field, $value) {
-		return $value ? 1 : 0; 
+		return $value ? 1 : 0;
 	}
 
 	public function getInputfield(Page $page, Field $field) {
-		$inputfield = $this->modules->get('InputfieldCheckbox'); 
-		$inputfield->set('checkedValue', 1); 
-		$inputfield->set('uncheckedValue', 0); 
-		$value = $page->get($field->name); 
-		if($value) $inputfield->attr('checked', 'checked'); 
+		$inputfield = $this->modules->get('InputfieldCheckbox');
+		$inputfield->set('checkedValue', 1);
+		$inputfield->set('uncheckedValue', 0);
+		$value = $page->get($field->name);
+		if($value) $inputfield->attr('checked', 'checked');
 		$inputfield->class = $this->className();
-		return $inputfield; 
+		return $inputfield;
 	}
 
 	public function getDatabaseSchema(Field $field) {
-		$schema = parent::getDatabaseSchema($field); 
+		$schema = parent::getDatabaseSchema($field);
 		$schema['data'] = "tinyint NOT NULL";
-		$schema['keys']['data'] = 'KEY data (data)'; 
+		$schema['keys']['data'] = 'KEY data (data)';
 		return $schema;
 	}
 
 	/**
 	 * Return array with information about what properties and operators can be used with this field
-	 * 
+	 *
 	 * @param Field $field
 	 * @param array $data
 	 * @return array
 	 *
 	 */
 	public function ___getSelectorInfo(Field $field, array $data = array()) {
-		$info = parent::___getSelectorInfo($field, $data); 
+		$info = parent::___getSelectorInfo($field, $data);
 		$info['input'] = 'checkbox';
-		return $info; 
+		return $info;
 	}
 
 }

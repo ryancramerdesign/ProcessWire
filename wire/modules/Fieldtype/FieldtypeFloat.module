@@ -3,15 +3,15 @@
 /**
  * ProcessWire Float Fieldtype
  *
- * Field that stores a floating point number. 
+ * Field that stores a floating point number.
  *
- * For documentation about the fields used in this class, please see:  
+ * For documentation about the fields used in this class, please see:
  * /wire/core/Fieldtype.php
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -23,25 +23,25 @@ class FieldtypeFloat extends Fieldtype {
 			'title' => __('Float', __FILE__),
 			'summary' => __('Field that stores a floating point (decimal) number', __FILE__),
 			'version' => 103,
-			'permanent' => true, 
+			'permanent' => true,
 			);
 	}
 
 	public function ___getCompatibleFieldtypes(Field $field) {
-		$fieldtypes = parent::___getCompatibleFieldtypes($field); 
+		$fieldtypes = parent::___getCompatibleFieldtypes($field);
 		foreach($fieldtypes as $type) {
-			if(	!$type instanceof FieldtypeInteger && 
+			if(	!$type instanceof FieldtypeInteger &&
 				!$type instanceof FieldtypeFloat &&
 				$type != 'FieldtypeText') {
 
-				$fieldtypes->remove($type); 
+				$fieldtypes->remove($type);
 			}
 		}
-		return $fieldtypes; 
+		return $fieldtypes;
 	}
 
 	public function getBlankValue(Page $page, Field $field) {
-		return ''; 
+		return '';
 	}
 
 	public function sanitizeValue(Page $page, Field $field, $value) {
@@ -51,26 +51,26 @@ class FieldtypeFloat extends Fieldtype {
 		} else {
 			$value = round((float) $value, $field->precision);
 		}
-		return $value; 
+		return $value;
 	}
 
 	/*
 	public function formatValue(Page $page, Field $field, $value) {
 		// @todo add support for number_format options
-		return $value; 	
+		return $value;
 	}
 	*/
 
 	public function getInputfield(Page $page, Field $field) {
-		$inputfield = $this->modules->get('InputfieldFloat'); 
+		$inputfield = $this->modules->get('InputfieldFloat');
 		$inputfield->class = $this->className();
-		$inputfield->precision = $field->precision; 
-		return $inputfield; 
+		$inputfield->precision = $field->precision;
+		return $inputfield;
 	}
 
 	public function ___sleepValue(Page $page, Field $field, $value) {
-		$precision = $field->precision; 
-		if(is_null($precision)) $precision = self::getPrecision($value); 
+		$precision = $field->precision;
+		if(is_null($precision)) $precision = self::getPrecision($value);
 		if(!is_string($value)) $value = number_format($value, $precision, '.', '');
 
 		/*
@@ -84,26 +84,26 @@ class FieldtypeFloat extends Fieldtype {
 			}
 		}
 
-		if(!empty($info['mon_decimal_point'])) { 
+		if(!empty($info['mon_decimal_point'])) {
 			if($info["mon_decimal_point"] !== '.' && strpos($value, $info["mon_decimal_point"]) !== false) {
 				$value = str_replace($info["mon_decimal_point"] , ".", $value);
 			}
 		}
 
-		$value = floatval($value); 
+		$value = floatval($value);
 		*/
-		return $value; 
+		return $value;
 	}
-	
+
 	public static function getPrecision($value) {
 		$remainder = ceil($value) - $value;
 		$precision = strlen(ltrim($remainder, '0., '));
-		if(!$precision) $precision = 1; 
+		if(!$precision) $precision = 1;
 		return $precision;
 	}
 
 	public function getDatabaseSchema(Field $field) {
-		$schema = parent::getDatabaseSchema($field); 
+		$schema = parent::getDatabaseSchema($field);
 		$schema['data'] = 'float NOT NULL';
 		return $schema;
 	}
@@ -111,16 +111,16 @@ class FieldtypeFloat extends Fieldtype {
 	public function ___getConfigInputfields(Field $field) {
 		$inputfields = parent::___getConfigInputfields($field);
 
-		if(is_null($field->precision)) $field->precision = 2; 
+		if(is_null($field->precision)) $field->precision = 2;
 
 		$f = $this->modules->get('InputfieldInteger');
-		$f->attr('name', 'precision'); 
+		$f->attr('name', 'precision');
 		$f->label = $this->_('Number of decimal digits to round to');
-		$f->attr('value', $field->precision); 
-		$f->attr('size', 8); 
+		$f->attr('value', $field->precision);
+		$f->attr('size', 8);
 		$inputfields->append($f);
 
-		return $inputfields; 
+		return $inputfields;
 	}
 
 }

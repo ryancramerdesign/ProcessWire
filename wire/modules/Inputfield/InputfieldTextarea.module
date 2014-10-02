@@ -6,46 +6,46 @@
  */
 class InputfieldTextarea extends InputfieldText {
 
-	const defaultRows = 5; 
+	const defaultRows = 5;
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Textarea', __FILE__), // Module Title
 			'summary' => __('Multiple lines of text', __FILE__), // Module Summary
 			'version' => 103,
-			'permanent' => true, 
+			'permanent' => true,
 			);
 	}
 
 
 	public function init() {
 		parent::init();
-		$this->setAttribute('rows', self::defaultRows); 
-		$this->setAttribute('maxlength', 1024*8); 
+		$this->setAttribute('rows', self::defaultRows);
+		$this->setAttribute('maxlength', 1024*8);
 	}
 
 	public function ___render() {
 
 		$attrs = $this->getAttributes();
-		unset($attrs['value'], $attrs['size'], $attrs['type']); 
-		if($this->hasFieldtype !== false) unset($attrs['maxlength']); 
+		unset($attrs['value'], $attrs['size'], $attrs['type']);
+		if($this->hasFieldtype !== false) unset($attrs['maxlength']);
 
-		$out = 	"\n<textarea " . $this->getAttributesString($attrs) . ">" . 
-			htmlspecialchars($this->value, ENT_QUOTES, "UTF-8") . 
+		$out = 	"\n<textarea " . $this->getAttributesString($attrs) . ">" .
+			htmlspecialchars($this->value, ENT_QUOTES, "UTF-8") .
 			"</textarea>";
-		return $out; 
+		return $out;
 	}
 
 	protected function setAttributeValue($value) {
-		if($this->maxlength > 0 && $this->hasFieldtype === false) { 
+		if($this->maxlength > 0 && $this->hasFieldtype === false) {
 			$value = wire('sanitizer')->textarea($value, array(
-				'maxLength' => $this->maxlength, 
-				'maxBytes' => $this->maxlength*3, 
-				'stripTags' => false, 
-				)); 
+				'maxLength' => $this->maxlength,
+				'maxBytes' => $this->maxlength*3,
+				'stripTags' => false,
+				));
 		}
 		if($this->stripTags) $value = strip_tags($value);
-		return $value; 
+		return $value;
 	}
 
 	/**
@@ -64,17 +64,17 @@ class InputfieldTextarea extends InputfieldText {
 		$inputfields = parent::___getConfigInputfields();
 		$inputfields->remove($inputfields->get('size')); // size is not applicable to textarea
 		$inputfields->remove($inputfields->get('pattern')); // pattern is not applicable to textarea
-		if($this->hasFieldtype !== false) $inputfields->remove($inputfields->get('maxlength')); 
+		if($this->hasFieldtype !== false) $inputfields->remove($inputfields->get('maxlength'));
 
-		$field = $this->modules->get('InputfieldInteger'); 
-		$field->setAttribute('name', 'rows'); 
+		$field = $this->modules->get('InputfieldInteger');
+		$field->setAttribute('name', 'rows');
 		$field->label = $this->_('Rows');
-		$field->setAttribute('value', $this->attr('rows') > 0 ? $this->attr('rows') : self::defaultRows); 
-		$field->setAttribute('size', 3); 
-		$field->description = $this->_('The number of rows initially shown for this field.'); 
-		if($field->attr('value') == self::defaultRows) $field->collapsed = Inputfield::collapsedYes; 
+		$field->setAttribute('value', $this->attr('rows') > 0 ? $this->attr('rows') : self::defaultRows);
+		$field->setAttribute('size', 3);
+		$field->description = $this->_('The number of rows initially shown for this field.');
+		if($field->attr('value') == self::defaultRows) $field->collapsed = Inputfield::collapsedYes;
 		$inputfields->append($field);
 
-		return $inputfields; 
+		return $inputfields;
 	}
 }

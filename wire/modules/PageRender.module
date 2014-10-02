@@ -3,14 +3,14 @@
 /**
  * ProcessWire PageRender Module
  *
- * Adds a render method to Page, as used by the PageView Process. 
+ * Adds a render method to Page, as used by the PageView Process.
  * This module is also able to cache page renders.
  * It hooks into Pages and Fieldtypes to ensure cache files are cleaned/deleted when pages are saved/deleted.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -23,10 +23,10 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		return array(
 			'title' => __('Page Render', __FILE__), // Module Title
 			'summary' => __('Adds a render method to Page and caches page output.', __FILE__), // Module Summary
-			'version' => 103, 
-			'permanent' => true, 
-			'singular' => true, 
-			'autoload' => true, 
+			'version' => 103,
+			'permanent' => true,
+			'singular' => true,
+			'autoload' => true,
 			);
 	}
 
@@ -34,7 +34,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 * Instance of Config, cached wire('config')
 	 *
 	 */
-	protected $config; 
+	protected $config;
 
 	/**
 	 * Stack of pages when rendering recursively
@@ -55,10 +55,10 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	public function init() {
-		$this->config = $this->fuel('config'); 
-		$this->addHook('Page::render', $this, 'renderPage'); 
-		$this->pages->addHookAfter('save', $this, 'clearCacheFile'); 
-		$this->pages->addHookAfter('delete', $this, 'clearCacheFile'); 
+		$this->config = $this->fuel('config');
+		$this->addHook('Page::render', $this, 'renderPage');
+		$this->pages->addHookAfter('save', $this, 'clearCacheFile');
+		$this->pages->addHookAfter('delete', $this, 'clearCacheFile');
 		// $this->addHookAfter('Fieldtype::savePageField', $this, 'savePageField'); // removed, see note in commented function
 	}
 
@@ -68,7 +68,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 * Removed because too much compromise in speed, but kept here for reference in case we determine a faster solution.
 	 *
 	public function savePageField($event) {
-		$page = $event->arguments[0]; 
+		$page = $event->arguments[0];
 		if(!$page->template->cache_time) return;
 		$this->getCacheFile($page)->remove();
 	}
@@ -83,36 +83,36 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 */
 	public function isCacheAllowed($page) {
 
-		if(!$page->template || !$page->template->cache_time) return false; 
+		if(!$page->template || !$page->template->cache_time) return false;
 
 		if(!$this->user->isGuest()) {
-			if(!$page->template->useCacheForUsers) return false; 
+			if(!$page->template->useCacheForUsers) return false;
 			if($page->editable()) return false;
 		}
 
 		$allowed = true;
 
 		if(count($_GET) && $page->template->noCacheGetVars) {
-			$vars = explode(' ', $page->template->noCacheGetVars); 
-			foreach($vars as $name) if($name && isset($_GET[$name])) $allowed = false; 
-		} 
+			$vars = explode(' ', $page->template->noCacheGetVars);
+			foreach($vars as $name) if($name && isset($_GET[$name])) $allowed = false;
+		}
 
 		if($allowed && count($_POST) && $page->template->noCachePostVars) {
-			$vars = explode(' ', $page->template->noCachePostVars); 
-			foreach($vars as $name) if($name && isset($_POST[$name])) $allowed = false; 
+			$vars = explode(' ', $page->template->noCachePostVars);
+			foreach($vars as $name) if($name && isset($_POST[$name])) $allowed = false;
 		}
 
 		// NOTE: other modules may set a session var of PageRenderNoCachePage containing a page ID to temporarily
-		// remove caching for some page, if necessary. 
+		// remove caching for some page, if necessary.
 		if($this->session->PageRenderNoCachePage && $this->session->PageRenderNoCachePage == $page->id) $allowed = false;
 
-		return $allowed; 
+		return $allowed;
 	}
 
 	/**
 	 * Get a CacheFile object corresponding to this Page
 	 *
-	 * Note that this does not check if the page is cachable. This is so that if a cachable setting changes the cache can still be removed. 
+	 * Note that this does not check if the page is cachable. This is so that if a cachable setting changes the cache can still be removed.
 	 *
 	 * @param Page $page
 	 * @param array $options
@@ -124,15 +124,15 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 
 		$defaults = array(
 			'prependFile' => '',
-			'appendFile' => '', 
-			'filename' => '', 
+			'appendFile' => '',
+			'filename' => '',
 			);
 
-		$options = array_merge($defaults, $options); 
+		$options = array_merge($defaults, $options);
 		$path = $this->config->paths->cache . self::cacheDirName . "/";
-		$id = $page->id; 
-		$cacheTime = $page->template->cache_time; 
-		
+		$id = $page->id;
+		$cacheTime = $page->template->cache_time;
+
 		if(!is_dir($path)) {
 			if(!@mkdir($path)) throw new WireException("Cache path does not exist: $path");
 			if($this->config->chmodDir) chmod($path, octdec($this->config->chmodDir));
@@ -144,8 +144,8 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 
 		if($this->wire('page') === $page) {
 			$secondaryID = '';
-			$pageNum = $this->input->pageNum; 
-			$urlSegments = $this->input->urlSegments; 
+			$pageNum = $this->input->pageNum;
+			$urlSegments = $this->input->urlSegments;
 
 			if(count($urlSegments)) {
 				foreach($urlSegments as $urlSegment) {
@@ -158,13 +158,13 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 			}
 
 			if($pageNum > 1) $secondaryID .= "page{$pageNum}";
-			$secondaryID = rtrim($secondaryID, '+'); 
-			if(wire('languages')) { 
-				$language = wire('user')->language; 
+			$secondaryID = rtrim($secondaryID, '+');
+			if(wire('languages')) {
+				$language = wire('user')->language;
 				if($language && $language->id && !$language->isDefault()) $secondaryID .= "_" . $language->id;
 			}
 			if($secondaryID) $cacheFile->setSecondaryID($secondaryID);
-		}	
+		}
 
 		return $cacheFile;
 	}
@@ -174,56 +174,56 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	public function clearCacheFile($event) {
-		$page = $event->arguments[0]; 
+		$page = $event->arguments[0];
 		if(!$page->template->cache_time) return;
-		$cacheExpire = $page->template->cacheExpire; 
+		$cacheExpire = $page->template->cacheExpire;
 
 		if($cacheExpire == Template::cacheExpireNone) {
-			if($event->method == 'delete') $cacheExpire = Template::cacheExpirePage; 
+			if($event->method == 'delete') $cacheExpire = Template::cacheExpirePage;
 				else return;
 		}
 
-		$cacheFile = $this->getCacheFile($page); 
+		$cacheFile = $this->getCacheFile($page);
 
 		if($cacheExpire == Template::cacheExpireSite) {
 			// expire entire cache
 
 			$cacheFile->expireAll();
-			if($this->config->debug) $this->message("Expired page cache for entire site"); 
+			if($this->config->debug) $this->message("Expired page cache for entire site");
 
-		} else if($cacheExpire == Template::cacheExpireParents || $cacheExpire == Template::cacheExpireSpecific) { 
+		} else if($cacheExpire == Template::cacheExpireParents || $cacheExpire == Template::cacheExpireSpecific) {
 			// expire specific pages or parents
 
 			$selected = array();
 
 			if($cacheExpire == Template::cacheExpireParents) {
-				$selected = $page->parents; 
+				$selected = $page->parents;
 
 			} else if(is_array($page->template->cacheExpirePages) && count($page->template->cacheExpirePages)) {
-				$selected = $this->fuel('pages')->getById($page->template->cacheExpirePages); 				
+				$selected = $this->fuel('pages')->getById($page->template->cacheExpirePages);
 			}
 
 			foreach($selected as $p) {
-				if(!$p->template->cache_time) continue; 
-				$cf = $this->getCacheFile($p); 
+				if(!$p->template->cache_time) continue;
+				$cf = $this->getCacheFile($p);
 				if($cf->exists()) $cf->remove();
-				if($this->config->debug) $this->message("Cleared cache file: $cf"); 
+				if($this->config->debug) $this->message("Cleared cache file: $cf");
 			}
 		}
 
 		if($cacheFile->exists()) {
 			$cacheFile->remove();
-			if($this->config->debug) $this->message("Cleared cache file: $cacheFile"); 
+			if($this->config->debug) $this->message("Cleared cache file: $cacheFile");
 		}
 	}
 
 	/**
 	 * Return a string with the rendered output of this Page (per it's Template)
 	 *
-	 * If the page's template has caching enabled, then this method will return a cached page render, when valid, 
-	 * or save a new cache. Caches are only saved on guest users. 
+	 * If the page's template has caching enabled, then this method will return a cached page render, when valid,
+	 * or save a new cache. Caches are only saved on guest users.
 	 *
-	 * #param array|string options Array of options, or filename (string) to render. Options [all optional] may be: 
+	 * #param array|string options Array of options, or filename (string) to render. Options [all optional] may be:
 	 * 	forceBuildCache: If true, the cache will be re-created for this page, regardless of whether it's expired or not. (default=false)
 	 *	allowCache: Allow cache to be used when template settings ask for it. (default=true)
 	 *	filename: Filename to render, optionally relative to /site/templates/. Absolute paths must resolve somewhere in PW's install. (default=blank)
@@ -231,12 +231,12 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 * 	prependFiles: Array of additional filenames to prepend to output, must be relative to /site/templates/ (default=array($page->template->prependFile))
 	 *	appendFile: Filename to append to output, must be in /site/templates/. (default=$config->appendTemplateFile)
 	 * 	appendFiles: Array of additional filenames to append to output, must be relative to /site/templates/ (default=array($page->template->appendFile))
-	 *	pageStack: An array of pages, when recursively rendering. Used internally. You can examine it but not change it. 
-	 *	
-	 * #param array $options 
+	 *	pageStack: An array of pages, when recursively rendering. Used internally. You can examine it but not change it.
+	 *
+	 * #param array $options
 	 *	If you specified a filename for the first option, you may use the options array mentioned above as 2nd argument.
 	 * 	This $options array will also be passed to the template as variable $options. Given that, you may add additional
-	 *	variables of your own names to $options as needed for communication with the template, if it suits your need. 
+	 *	variables of your own names to $options as needed for communication with the template, if it suits your need.
 	 *
 	 * @param HookEvent $event
 	 * @return string rendered data
@@ -245,10 +245,10 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 	 */
 	public function ___renderPage($event) {
 
-		wire('pages')->setOutputFormatting(true); 
+		wire('pages')->setOutputFormatting(true);
 
 		$page = $event->object;
-		
+
 		if($page->status >= Page::statusUnpublished && !$page->viewable()) {
 			throw new WirePermissionException("Page '{$page->url}' is not currently viewable.");
 		}
@@ -256,11 +256,11 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$_page = $this->wire('page'); // just in case one page is rendering another, save the previous
 		$config = $this->wire('config');
 		$this->renderRecursionLevel++;
-		
+
 		// set the context of the new page to be system-wide
 		// only applicable if rendering a page within a page
 		if(!$_page || $page->id != $_page->id) $this->wire('page', $page);
-		if($this->renderRecursionLevel > 1) $this->pageStack[] = $_page; 
+		if($this->renderRecursionLevel > 1) $this->pageStack[] = $_page;
 
 		// arguments to $page->render() may be a string with filename to render or array of options
 		$options = $event->arguments(0);
@@ -269,15 +269,15 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		// normalize options to array
 		if(is_string($options) && strlen($options)) $options = array('filename' => $options); // arg1 is filename
 		if(!is_array($options)) $options = array(); // no args specified
-		if(is_array($options2)) $options = array_merge($options2, $options); // arg2 is $options 
+		if(is_array($options2)) $options = array_merge($options2, $options); // arg2 is $options
 
 		$defaultOptions = array(
 			'filename' => '', // default blank means filename comes from $page
 			'prependFile' => $page->template->noPrependTemplateFile ? null : $config->prependTemplateFile,
-			'prependFiles' => $page->template->prependFile ? array($page->template->prependFile) : array(), 
+			'prependFiles' => $page->template->prependFile ? array($page->template->prependFile) : array(),
 			'appendFile' => $page->template->noAppendTemplateFile ? null : $config->appendTemplateFile,
 			'appendFiles' => $page->template->appendFile ? array($page->template->appendFile) : array(),
-			'allowCache' => true, 
+			'allowCache' => true,
 			'forceBuildCache' => false,
 			'pageStack' => array(), // set after array_merge
 			);
@@ -285,7 +285,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$options = array_merge($defaultOptions, $options);
 		$options['pageStack'] = $this->pageStack;
 
-		$cacheAllowed = $options['allowCache'] && $this->isCacheAllowed($page); 
+		$cacheAllowed = $options['allowCache'] && $this->isCacheAllowed($page);
 		$cacheFile = null;
 
 		if($cacheAllowed) {
@@ -296,7 +296,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 				return;
 			}
 		}
-		
+
 
 		$of = $page->of();
 		if(!$of) $page->of(true);
@@ -308,8 +308,8 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 			// global prepend/append include files apply only to user-defined templates, not system templates
 			if(!($page->template->flags & Template::flagSystem)) {
 				/*
-				if($options['prependFile']) array_unshift($options['prependFiles'], $options['prependFile']); //$output->setPrependFilename($config->paths->templates . $this->wire('sanitizer')->name($options['prependFile'])); 
-				if($options['appendFile']) array_unshift($options['appendFiles'], $options['appendFile']); //$output->setPrependFilename($config->paths->templates . $this->wire('sanitizer')->name($options['prependFile'])); 
+				if($options['prependFile']) array_unshift($options['prependFiles'], $options['prependFile']); //$output->setPrependFilename($config->paths->templates . $this->wire('sanitizer')->name($options['prependFile']));
+				if($options['appendFile']) array_unshift($options['appendFiles'], $options['appendFile']); //$output->setPrependFilename($config->paths->templates . $this->wire('sanitizer')->name($options['prependFile']));
 				if($options['appendFile']) $output->setAppendFilename($config->paths->templates . $this->wire('sanitizer')->name($options['appendFile']));
 				// files defined at template level
 				*/
@@ -317,11 +317,11 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 					if($options[$singular]) array_unshift($options[$plural], $options[$singular]);
 					foreach($options[$plural] as $file) {
 						if(!ctype_alnum(str_replace(array(".", "-", "_", "/"), "", $file))) continue;
-						if(strpos($file, '..') !== false || strpos($file, '/.') !== false) continue; 
+						if(strpos($file, '..') !== false || strpos($file, '/.') !== false) continue;
 						$file = $config->paths->templates . trim($file, '/');
-						if(!is_file($file)) continue; 
-						if($plural == 'prependFiles') $output->setPrependFilename($file); 
-							else $output->setAppendFilename($file); 
+						if(!is_file($file)) continue;
+						if($plural == 'prependFiles') $output->setPrependFilename($file);
+							else $output->setAppendFilename($file);
 					}
 				}
 			}
@@ -332,24 +332,24 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 				$setFilename = '';
 				if(is_file($filename)) {
 					// path relative from /site/templates/
-					$setFilename = $filename; 
+					$setFilename = $filename;
 				} else {
 					// absolute path, ensure it is somewhere within web root
 					$filename = $options['filename'];
-					if(strpos($filename, $config->paths->root) === 0 && is_file($filename)) $setFilename = $filename; 
+					if(strpos($filename, $config->paths->root) === 0 && is_file($filename)) $setFilename = $filename;
 				}
 
 				if($setFilename) {
 					$output->setFilename($setFilename);
 					$options['filename'] = $setFilename;
 				} else {
-					throw new WireException("Invalid output file location or specified file does not exist. $setFilename"); 
+					throw new WireException("Invalid output file location or specified file does not exist. $setFilename");
 				}
 			} else {
-				$options['filename'] = $page->template->filename; 
+				$options['filename'] = $page->template->filename;
 			}
 
-			// pass along the $options as a local variable to the template so that one can provide their 
+			// pass along the $options as a local variable to the template so that one can provide their
 			// own additional variables in it if they want to
 			$output->set('options', $options);
 
@@ -357,13 +357,13 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		}
 
 		if($data && $cacheAllowed && $cacheFile) $cacheFile->save($data);
-		$event->return = $data; 
+		$event->return = $data;
 
 		if(!$of) $page->of($of);
 		if($_page && $_page->id != $page->id) {
-			$this->wire('page', $_page); 
+			$this->wire('page', $_page);
 		}
-		if(count($this->pageStack)) array_pop($this->pageStack); 
+		if(count($this->pageStack)) array_pop($this->pageStack);
 		$this->renderRecursionLevel--;
 	}
 
@@ -378,26 +378,26 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$numFiles = 0;
 		$inputfields = new InputfieldWrapper();
 		$dir = null;
-		$clearNow = Wire::getFuel('input')->post->clearCache ? true : false; 
+		$clearNow = Wire::getFuel('input')->post->clearCache ? true : false;
 
 		try { $dir = new DirectoryIterator($path); } catch(Exception $e) { }
 
 		if($dir) foreach($dir as $file) {
-			if(!$file->isDir() || $file->isDot() || !ctype_digit($file->getFilename())) continue; 
-			$numPages++; 
-			if(!$clearNow) continue; 
-			$d = new DirectoryIterator($file->getPathname()); 
+			if(!$file->isDir() || $file->isDot() || !ctype_digit($file->getFilename())) continue;
+			$numPages++;
+			if(!$clearNow) continue;
+			$d = new DirectoryIterator($file->getPathname());
 			foreach($d as $f) {
 				if(!$f->isDir() && preg_match('/\.cache$/D', $f->getFilename())) {
-					$numFiles++; 
-					@unlink($f->getPathname()); 
+					$numFiles++;
+					@unlink($f->getPathname());
 				}
 			}
-			@rmdir($file->getPathname()); 
+			@rmdir($file->getPathname());
 		}
 
 		if($clearNow) {
-			$inputfields->message(sprintf(__('Cleared %d cache files for %d pages'), $numFiles, $numPages)); 
+			$inputfields->message(sprintf(__('Cleared %d cache files for %d pages'), $numFiles, $numPages));
 			$numPages = 0;
 		}
 
@@ -405,7 +405,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$f = Wire::getFuel('modules')->get('InputfieldCheckbox');
 		$f->attr('name', $name);
 		$f->attr('value', 1);
-		$f->label = __('Clear the Page Render Disk Cache?'); 
+		$f->label = __('Clear the Page Render Disk Cache?');
 		$f->description = sprintf(__('There are currently %d pages cached in %s'), $numPages, $path);
 
 		$inputfields->append($f);

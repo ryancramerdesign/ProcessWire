@@ -48,51 +48,51 @@ class WireLog extends Wire {
 
 	/**
 	 * Save text to a caller-defined log
-	 * 
-	 * If the log doesn't currently exist, it will be created. 
-	 * 
+	 *
+	 * If the log doesn't currently exist, it will be created.
+	 *
 	 * The log filename is /site/assets/logs/[name].txt
-	 * 
+	 *
 	 * @param string $name Name of log to save to (word consisting of [-._a-z0-9] and no extension)
 	 * @param string $text Text to save to the log
 	 * @param array $options Options to modify behavior (defaults: showUser=true, showPage=true, delimiter=\t)
 	 * @return bool Whether it was written (usually assumed to be true)
 	 * @throws WireException
-	 * 
+	 *
 	 */
 	public function ___save($name, $text, $options = array()) {
-		
+
 		$defaults = array(
 			'showUser' => true,
-			'showPage' => true, 
+			'showPage' => true,
 			'delimiter' => "\t"
 			);
-		
-		$options = array_merge($defaults, $options); 
+
+		$options = array_merge($defaults, $options);
 		$log = new FileLog($this->getFilename($name));
 		$log->setDelimeter($options['delimiter']);
 		$text = str_replace(array("\r", "\n", "\t"), ' ', $text);
-		
+
 		if($options['showPage']) {
 			$page = $this->wire('page');
 			$text = ($page && $page->id ? $page->httpUrl : "page?") . "$options[delimiter]$text";
 		}
-		
+
 		if($options['showUser']) {
 			$user = $this->wire('user');
 			$text = ($user && $user->id ? $user->name : "user?") . "$options[delimiter]$text";
 		}
-		
+
 		return $log->save($text);
 	}
 
 	/**
 	 * Get the full filename (including path) for the given log name
-	 * 
+	 *
 	 * @param string $name
 	 * @return string
 	 * @throws WireException
-	 * 
+	 *
 	 */
 	public function getFilename($name) {
 		if($name !== $this->wire('sanitizer')->pageName($name)) throw new WireException("Log name must contain only [-_.a-z0-9] with no extension");
@@ -101,12 +101,12 @@ class WireLog extends Wire {
 
 	/**
 	 * Return the given number of entries from the end of log file
-	 * 
-	 * @param string $name Name of log 
+	 *
+	 * @param string $name Name of log
 	 * @param int $limit Number of entries to retrieve (default = 10)
 	 * @return array
 	 * @todo add pagination capability
-	 * 
+	 *
 	 */
 	public function get($name, $limit = 10) {
 		$log = new FileLog($this->getFilename($name));
@@ -118,26 +118,26 @@ class WireLog extends Wire {
 			$lines = $log->get($chunkSize);
 			$cnt = count($lines);
 			if(!$cnt || $cnt >= $limit || $lastCnt == $cnt) break;
-			$lastCnt = $cnt; 
+			$lastCnt = $cnt;
 			$chunkSize += ($limit - $cnt) * $log->getMaxLineLength();
-		} 
+		}
 		if($cnt > $limit) $lines = array_slice($lines, 0, $limit);
-		return $lines;	
+		return $lines;
 	}
 
 	/**
 	 * Return an array of entries that exist in the given range of dates
-	 * 
-	 * @param string $name Name of log 
-	 * @param int|string $dateFrom Unix timestamp or string date/time to start from 
+	 *
+	 * @param string $name Name of log
+	 * @param int|string $dateFrom Unix timestamp or string date/time to start from
 	 * @param int|string $dateTo Unix timestamp or string date/time to end at (default = now)
 	 * @return array
-	 * 
+	 *
 	 */
 	public function getDate($name, $dateFrom, $dateTo = 0) {
 		$log = new FileLog($this->getFilename($name));
 		$log->setDelimeter("\t");
-		return $log->getDate($dateFrom, $dateTo); 
+		return $log->getDate($dateFrom, $dateTo);
 	}
 
 }

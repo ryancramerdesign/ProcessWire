@@ -4,21 +4,21 @@
  * ProcessWire Configuration File
  *
  * Configuration options for ProcessWire
- * 
+ *
  * To override any of these options, copy the option you want to modify to
  * /site/config.php and adjust as you see fit. Options in /site/config.php
- * override those in this file. 
- * 
- * You may also make up your own configuration options by assigning them 
- * in /site/config.php 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * override those in this file.
+ *
+ * You may also make up your own configuration options by assigning them
+ * in /site/config.php
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2014 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
- * 
+ *
  * TABLE OF CONTENTS
  * ===============================
  * 1. System modes
@@ -26,13 +26,13 @@
  * 3. Session
  * 4. Template files
  * 5. Files and assets
- * 6. HTTP and input 
+ * 6. HTTP and input
  * 7. Database
  * 8. Modules
  * 9. Misc
- * 10. Runtime 
+ * 10. Runtime
  * 11. System
- * 
+ *
  */
 
 if(!defined("PROCESSWIRE")) die();
@@ -41,11 +41,11 @@ if(!defined("PROCESSWIRE")) die();
 
 /**
  * Enable debug mode?
- * 
- * Debug mode causes additional info to appear for use during dev and debugging. 
+ *
+ * Debug mode causes additional info to appear for use during dev and debugging.
  * This is almost always recommended for sites in development. However, you should
- * always have this disabled for live/production sites. 
- * 
+ * always have this disabled for live/production sites.
+ *
  * @var bool
  *
  */
@@ -53,10 +53,10 @@ $config->debug = false;
 
 /**
  * Enable PW development/advanced mode?
- * 
+ *
  * Turns on additional options in ProcessWire Admin that aren't applicable in all instances.
  * Recommended mode is false, except for ProcessWire developers.
- * 
+ *
  * @var bool
  *
  */
@@ -64,9 +64,9 @@ $config->advanced = false;
 
 /**
  * Enable demo mode?
- * 
+ *
  * If true, disables save functions in Process modules (admin).
- * 
+ *
  */
 $config->demo = false;
 
@@ -77,13 +77,13 @@ $config->demo = false;
 
 /**
  * Default time zone
- * 
+ *
  * Must be a [PHP timezone string](http://php.net/manual/en/timezones.php)
  *
- * @var string 
- * 
+ * @var string
+ *
  */
-$config->timezone = 'America/New_York'; 
+$config->timezone = 'America/New_York';
 
 /**
  * System date format
@@ -104,9 +104,9 @@ $config->dateFormat = 'Y-m-d H:i:s';
 
 /**
  * Session name
- * 
+ *
  * Default session name as used in session cookie
- * 
+ *
  * @var string
  *
  */
@@ -114,9 +114,9 @@ $config->sessionName = 'wire';
 
 /**
  * Session expiration seconds
- * 
+ *
  * How many seconds of inactivity before session expires
- * 
+ *
  * @var int
  *
  */
@@ -124,9 +124,9 @@ $config->sessionExpireSeconds = 86400;
 
 /**
  * Use session challenge?
- * 
+ *
  * Should login sessions have a challenge key? (for extra security, recommended)
- * 
+ *
  * @var bool
  *
  */
@@ -134,10 +134,10 @@ $config->sessionChallenge = true;
 
 /**
  * Use session fingerprint?
- * 
+ *
  * Should login sessions be tied to IP and user agent?
  * More secure, but will conflict with dynamic IPs.
- * 
+ *
  * @var bool
  *
  */
@@ -160,22 +160,22 @@ $config->userAuthHashType = 'sha1';
 /*** 4. TEMPLATE FILES **************************************************************************/
 
 /**
- * Prepend template file 
- * 
+ * Prepend template file
+ *
  * PHP file in /site/templates/ that will be loaded before each page's template file.
  * Example: _init.php
- * 
+ *
  * @var string
  *
  */
 $config->prependTemplateFile = '';
 
 /**
- * Append template file 
- * 
+ * Append template file
+ *
  * PHP file in /site/templates/ that will be loaded after each page's template file.
  * Example: _main.php
- * 
+ *
  * @var string
  *
  */
@@ -208,8 +208,8 @@ $config->templateExtension = 'php';
  * Directory mode
  *
  * Octal string permissions assigned to directories created by ProcessWire
- * This value should always be overwritten by site-specific settings as 0777 
- * is too open for many installations. 
+ * This value should always be overwritten by site-specific settings as 0777
+ * is too open for many installations.
  *
  * @var string
  *
@@ -221,7 +221,7 @@ $config->chmodDir = "0777";
  *
  * Octal string permissions assigned to files created by ProcessWire
  * This value should always be overwritten by site-specific settings as 0666
- * is too open for many installations. 
+ * is too open for many installations.
  *
  * @var string
  *
@@ -230,9 +230,9 @@ $config->chmodFile = "0666";
 
 /**
  * Bad file extensions for uploads
- * 
+ *
  * File extensions that are always disallowed from uploads (each separated by a space).
- * 
+ *
  * @var string
  *
  */
@@ -268,7 +268,7 @@ $config->pagefileSecure = false;
  * @deprecated
  *
  * $config->pagefileUrlPrefix = '-/';
- * 
+ *
  */
 
 /**
@@ -276,15 +276,15 @@ $config->pagefileSecure = false;
  *
  * One or more characters prefixed to the pathname of secured file dirs.
  *
- * If use of this feature originated with a pre-2.3 install, this may need to be 
- * specified as "." rather than "-". 
+ * If use of this feature originated with a pre-2.3 install, this may need to be
+ * specified as "." rather than "-".
  *
  */
 $config->pagefileSecurePathPrefix = '-';
 
 /**
  * Use extended file mapping? Enable this if you expect to have >30000 pages in your site.
- * 
+ *
  * Warning: The extended file mapping feature is not yet widely tested, so consider it beta.
  *
  * Set to true in /site/config.php if you want files to live in an extended path mapping system
@@ -295,7 +295,7 @@ $config->pagefileSecurePathPrefix = '-';
  *
  * Please note that for existing sites, this applies only for new pages created from this
  * point forward.
- * 
+ *
  * @var bool
  *
  */
@@ -306,7 +306,7 @@ $config->pagefileExtendedPaths = false;
  *
  * Any content types that should be force-download should be preceded with a plus sign.
  * The '?' index must be present to represent a default for all not present.
- * 
+ *
  * @var array
  *
  */
@@ -328,7 +328,7 @@ $config->fileContentTypes = array(
  * Image sizer options
  *
  * Default ImageSizer options, as used by $page->image->size(w, h), for example.
- * 
+ *
  * @var array
  *
  */
@@ -343,11 +343,11 @@ $config->imageSizerOptions = array(
 
 /**
  * Temporary directory for uploads
- * 
+ *
  * Optionally override PHP's upload_tmp_dir with your own.
- * 
+ *
  * @var string
- * 
+ *
  * $config->uploadTmpDir = dirname(__FILE__) . '/assets/uploads/'; // example
  *
  */
@@ -384,13 +384,13 @@ $config->httpHosts = array(
 
 /**
  * Runtime HTTP host
- * 
- * This is set automatically by ProcessWire at runtime, consisting of one of the values 
+ *
+ * This is set automatically by ProcessWire at runtime, consisting of one of the values
  * specified in $config->httpHosts. However, if you set a value for this, it will override
- * ProcessWire's runtime value. 
- * 
+ * ProcessWire's runtime value.
+ *
  * @var string
- * 
+ *
  */
 $config->httpHost = '';
 
@@ -406,14 +406,14 @@ $config->protectCSRF = true;
 
 /**
  * Maximum URL segments
- * 
+ *
  * Maximum number of extra stacked URL segments allowed in a page's URL (including page numbers).
  *
  * i.e. /path/to/page/s1/s2/s3 where s1, s2 and s3 are URL segments that don't resolve to a page, but can be
  * checked in the API via $input->urlSegment1, $input->urlSegment2, $input->urlSegment3, etc.
  * To use this, your template settings (under the URL tab) must take advantage of it. Only change this
  * number if you need more (or fewer) URL segments for some reason.
- * 
+ *
  * @var int
  *
  */
@@ -474,31 +474,31 @@ $config->wireInputOrder = 'get post';
 
 /**
  * Database character set
- * 
- * utf8 is the only recommended value for this. 
  *
- * Note that you should probably not add/change this on an existing site. i.e. don't add this to 
- * an existing ProcessWire installation without asking how in the ProcessWire forums. 
+ * utf8 is the only recommended value for this.
+ *
+ * Note that you should probably not add/change this on an existing site. i.e. don't add this to
+ * an existing ProcessWire installation without asking how in the ProcessWire forums.
  *
  */
 $config->dbCharset = 'utf8';
 
 /**
  * Database engine
- * 
- * MyISAM is the recommended value, but you may also use InnoDB (experimental). 
+ *
+ * MyISAM is the recommended value, but you may also use InnoDB (experimental).
  *
  * Note that use of 'InnoDB' is currently experimental. Avoid changing this after install.
- * 
+ *
  */
 $config->dbEngine = 'MyISAM';
 
 /**
  * Allow MySQL query caching?
- * 
+ *
  * Set to false to to disable query caching. This will make everything run slower so should
  * only used for DB debugging purposes.
- * 
+ *
  * @var bool
  *
  */
@@ -506,14 +506,14 @@ $config->dbCache = true;
 
 /**
  * MySQL database exec path
- * 
+ *
  * Path to mysql/mysqldump commands on the file system
  *
  * This enables faster backups and imports when available.
  *
  * Example: /usr/bin/
  * Example: /Applications/MAMP/Library/bin/
- * 
+ *
  * @param string
  *
  */
@@ -521,10 +521,10 @@ $config->dbPath = '';
 
 /**
  * Force lowercase tables?
- * 
+ *
  * Force any created field_* tables to be lowercase.
  * Recommend value is true except for existing installations that already have mixed case tables.
- * 
+ *
  * @var bool
  *
  */
@@ -532,25 +532,25 @@ $config->dbLowercaseTables = true;
 
 /**
  * Database username
- * 
+ *
  */
 $config->dbUser = '';
 
 /**
  * Database password
- * 
+ *
  */
 $config->dbPass = '';
 
 /**
  * Database host
- * 
+ *
  */
 $config->dbHost = '';
 
 /**
  * Database port
- * 
+ *
  */
 $config->dbPort = 3306;
 
@@ -622,14 +622,14 @@ $config->adminEmail = '';
 
 /**
  * Fatal error HTML
- * 
+ *
  * HTML used for fatal error messages in HTTP mode.
  *
- * This should use inline styles since no guarantee stylesheets are present when these are displayed. 
+ * This should use inline styles since no guarantee stylesheets are present when these are displayed.
  * String should contain two placeholders: {message} and {why}
- * 
+ *
  * @var string
- * 
+ *
  */
 $config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5em;font-family:sans-serif;'><b>{message}</b><br /><small>{why}</small></p>";
 
@@ -638,22 +638,22 @@ $config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5e
  *
  * Setting useDependencies to false may enable to use depencencies in some places where
  * they aren't currently supported, like files/images and repeaters. Note that setting it
- * to false only disables it server-side. The javascript dependencies work either way. 
+ * to false only disables it server-side. The javascript dependencies work either way.
  *
  * Uncomment and paste into /site/config.php if you want to use this
- * 
+ *
  * $config->InputfieldWrapper = array(
  *	'useDependencies' => true,
- * 	'requiredLabel' => 'Missing required value', 
+ * 	'requiredLabel' => 'Missing required value',
  *	);
- * 
+ *
  */
 
 
 /*** 10. RUNTIME ********************************************************************************
- * 
+ *
  * The following are runtime-only settings and cannot be changed from /site/config.php
- * 
+ *
  */
 
 /**
@@ -696,7 +696,7 @@ $config->versionName = '';
 
 
 /*** 11. SYSTEM *********************************************************************************
- * 
+ *
  * Values in this section are not meant to be changed
  *
  */

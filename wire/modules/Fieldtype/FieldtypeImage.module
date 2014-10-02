@@ -3,16 +3,16 @@
 /**
  * ProcessWire Image Fieldtype
  *
- * Field that stores one or more image files. 
+ * Field that stores one or more image files.
  *
- * For documentation about the fields used in this class, please see:  
+ * For documentation about the fields used in this class, please see:
  * /wire/core/Fieldtype.php
  * /wire/core/FieldtypeMulti.php
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -25,28 +25,28 @@ class FieldtypeImage extends FieldtypeFile {
 			'title' => 'Images',
 			'version' => 101,
 			'summary' => 'Field that stores one or more GIF, JPG, or PNG images',
-			'permanent' => true, 
+			'permanent' => true,
 			);
 	}
 
 	public function getBlankValue(Page $page, Field $field) {
 		$pageimages = new Pageimages($page);
 		$pageimages->setField($field);
-		$pageimages->setTrackChanges(true); 
-		return $pageimages; 
+		$pageimages->setTrackChanges(true);
+		return $pageimages;
 	}
 
 	protected function getBlankPagefile(Pagefiles $pagefiles, $filename) {
-		return new Pageimage($pagefiles, $filename); 
+		return new Pageimage($pagefiles, $filename);
 	}
 
 	/*
 	public function getInputfield(Page $page, Field $field) {
 
 		// even though we don't want this input field, call it anyway
-		parent::getInputfield($page, $field); 
+		parent::getInputfield($page, $field);
 
-		$inputfield = $this->modules->get("InputfieldImage"); 
+		$inputfield = $this->modules->get("InputfieldImage");
 		$inputfield->class = $this->className();
 
 		$this->setupHooks($page, $field, $inputfield);
@@ -60,24 +60,24 @@ class FieldtypeImage extends FieldtypeFile {
 	}
 
 	public function ___exportValue(Page $page, Field $field, $value, array $options = array()) {
-		$pagefiles = $value; 
-		$value = parent::___exportValue($page, $field, $value, $options); 
+		$pagefiles = $value;
+		$value = parent::___exportValue($page, $field, $value, $options);
 		foreach($value as $k => $v) {
-			$img = $pagefiles->get($v['name']); 
+			$img = $pagefiles->get($v['name']);
 			$value[$k]['width'] = $img->width();
 			$value[$k]['height'] = $img->height();
 		}
-		return $value; 	
+		return $value;
 	}
 
 	public function ___getConfigInputfields(Field $field) {
 
 		$inputfields = parent::___getConfigInputfields($field);
-		$f = $inputfields->get('outputString'); 
+		$f = $inputfields->get('outputString');
 		$f->attr('placeholder', "i.e. <img src='{url}' alt='{description}' />");
 		$f->notes .= ", {width}, {height}";
-		
-		return $inputfields; 
+
+		return $inputfields;
 	}
 
 
