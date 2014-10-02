@@ -4,14 +4,14 @@
  * ProcessWire Page List Process
  *
  * Generates the ajax/js hierarchal page lists used throughout ProcessWire
- * 
- * For more details about how Process modules work, please see: 
- * /wire/core/Process.php 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ *
+ * For more details about how Process modules work, please see:
+ * /wire/core/Process.php
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -19,38 +19,38 @@
 
 class ProcessPageList extends Process implements ConfigurableModule {
 
-	protected $page; 
-	protected $id; 
-	protected $openPage; 
-	protected $start; 
-	protected $render; 
+	protected $page;
+	protected $id;
+	protected $openPage;
+	protected $start;
+	protected $render;
 	protected $trashLabel;
 
 	/**
 	 * Default max pages to show before pagination (configurable in the module editor)
 	 *
 	 */
-	const defaultLimit = 50; 
+	const defaultLimit = 50;
 
 	/**
 	 * Default animation speed (in ms) for the PageList
 	 *
 	 */
-	const defaultSpeed = 200; 
+	const defaultSpeed = 200;
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Page List',          
-			'summary' => 'List pages in a hierarchal tree structure', 
-			'version' => 107, 
-			'permanent' => true, 
+			'title' => 'Page List',
+			'summary' => 'List pages in a hierarchal tree structure',
+			'version' => 107,
+			'permanent' => true,
 			'permission' => 'page-edit',
 			'icon' => 'sitemap',
 			);
 	}
 
 	public function __construct() {
-		$this->showRootPage = true; 
+		$this->showRootPage = true;
 		$this->pageLabelField = 'title';
 		$this->limit = self::defaultLimit;
 	}
@@ -61,55 +61,55 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 */
 	public function init() {
 		parent::init();
-		$this->start = isset($_GET['start']) ? (int) $_GET['start'] : 0; 
-		$this->limit = (isset($_GET['limit']) && $_GET['limit'] < $this->limit) ? (int) $_GET['limit'] : $this->limit; 
+		$this->start = isset($_GET['start']) ? (int) $_GET['start'] : 0;
+		$this->limit = (isset($_GET['limit']) && $_GET['limit'] < $this->limit) ? (int) $_GET['limit'] : $this->limit;
 		$this->render = isset($_GET['render']) ? strtoupper($this->sanitizer->name($_GET['render'])) : '';
 	}
 
 	/**
 	 * Execute the Page List
-	 *	
+	 *
 	 */
 	public function ___execute() {
 
-		$langID = (int) $this->wire('input')->get->lang; 
+		$langID = (int) $this->wire('input')->get->lang;
 		if($langID) $this->wire('user')->language = $this->languages->get($langID);
-		
+
 		$this->trashLabel = $this->_('Trash'); // Label for 'Trash' page in PageList // Overrides page title if used
 
-		if(!$this->id) $this->id = isset($_GET['id']) ? (int) $_GET['id'] : 0; 
+		if(!$this->id) $this->id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 		$this->openPage = $this->input->get->open ? $this->pages->get((int) $this->input->get->open) : new NullPage();
-		$this->page = $this->pages->get("id=" . ($this->id ? $this->id : 1) . ", status<" . Page::statusMax); 
+		$this->page = $this->pages->get("id=" . ($this->id ? $this->id : 1) . ", status<" . Page::statusMax);
 
-		if(!$this->page) throw new Wire404Exception("Unable to load page {$this->id}"); 
-		if(!$this->page->listable()) throw new WirePermissionException("You don't have access to list page {$this->page->url}"); 
-		$this->page->setOutputFormatting(false); 
+		if(!$this->page) throw new Wire404Exception("Unable to load page {$this->id}");
+		if(!$this->page->listable()) throw new WirePermissionException("You don't have access to list page {$this->page->url}");
+		$this->page->setOutputFormatting(false);
 
-		$p = $this->wire('page'); 
-		
+		$p = $this->wire('page');
+
 		if($p->name == 'list' && $p->process == $this) {
 			// ensure that we use the page's title is always consistent in the admin (i.e. 'Pages' not 'Page List')
-			$p->title = $p->parent->title; 
+			$p->title = $p->parent->title;
 		}
-		
+
 		if($p->process == $this && $this->wire('input')->get('mode') != 'select') {
 			// store information about the last page list so that it can later be linked to again by ProcessPageEdit
-			$n = 1; 
-			if($this->start >= $this->limit) $n = ($this->start / $this->limit)+1; 	
-			$lastPageList = $this->session->get('lastPageList'); 
+			$n = 1;
+			if($this->start >= $this->limit) $n = ($this->start / $this->limit)+1;
+			$lastPageList = $this->session->get('lastPageList');
 			if(!is_array($lastPageList)) $lastPageList = array();
-				else $lastPageList = array_slice($lastPageList, 0, 10, true); 
+				else $lastPageList = array_slice($lastPageList, 0, 10, true);
 			$lastPageList[$this->page->id] = array(
-				'title' => (string) $this->page->get('title|name'), 
+				'title' => (string) $this->page->get('title|name'),
 				'url' => (string) $this->wire('page')->url,
 				'n' => $n
 				);
-			$this->session->set('lastPageList', $lastPageList); 
+			$this->session->set('lastPageList', $lastPageList);
 		}
-		
+
 		return $this->render();
 
-	}	
+	}
 
 	/**
 	 * Render the Page List
@@ -122,22 +122,22 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		if(!$this->render) {
 			$openPageIDs = array();
 			if($this->openPage->id > 1) {
-				$openPageIDs[] = $this->openPage->id; 
+				$openPageIDs[] = $this->openPage->id;
 				foreach($this->openPage->parents() as $parent) {
-					if($parent->id > 1) $openPageIDs[] = $parent->id; 
+					if($parent->id > 1) $openPageIDs[] = $parent->id;
 				}
 			}
 
 			$this->fuel('config')->js('ProcessPageList', array(
-				'containerID' => 'PageListContainer', 
-				'ajaxURL' => $this->config->urls->admin . "page/list/", 
+				'containerID' => 'PageListContainer',
+				'ajaxURL' => $this->config->urls->admin . "page/list/",
 				'ajaxMoveURL' => $this->config->urls->admin . "page/sort/",
-				'rootPageID' => $this->id, 
-				'openPageIDs' => $openPageIDs, 
+				'rootPageID' => $this->id,
+				'openPageIDs' => $openPageIDs,
 				'openPagination' => (int) $this->input->get->n, // @todo: make it openPaginations and correspond to openPageIDs
-				'showRootPage' => $this->showRootPage ? true : false, 
-				'limit' => $this->limit, 
-				'start' => $this->start, 
+				'showRootPage' => $this->showRootPage ? true : false,
+				'limit' => $this->limit,
+				'start' => $this->start,
 				'speed' => ($this->speed !== null ? (int) $this->speed : self::defaultSpeed),
 				'selectStartLabel' => $this->_('Change'), // Change a page selection
 				'selectCancelLabel' => $this->_('Cancel'), // Cancel a page selection
@@ -145,32 +145,32 @@ class ProcessPageList extends Process implements ConfigurableModule {
 				'selectUnselectLabel' => $this->_('Unselect'), // Unselect a page
 				'moreLabel' => $this->_('More'), // Show more pages
 				'moveInstructionLabel' => $this->_('Click and drag to move'), // Instruction on how to move a page
-				'trashLabel' => $this->trashLabel, 
-				)); 
+				'trashLabel' => $this->trashLabel,
+				));
 
 			$tokenName = $this->session->CSRF->getTokenName();
 			$tokenValue = $this->session->CSRF->getTokenValue();
 			return 	"\n<div id='PageListContainer' data-token-name='$tokenName' data-token-value='$tokenValue'></div>"; // CSRF tokens
 		}
 
-		$class = "ProcessPageListRender" . $this->render; 
+		$class = "ProcessPageListRender" . $this->render;
 
-		if(!class_exists($class)) throw new WireException("Requested PageList renderer does not exist"); 
+		if(!class_exists($class)) throw new WireException("Requested PageList renderer does not exist");
 
 		if($this->limit) $children = $this->find("start={$this->start}, limit={$this->limit}, status<" . Page::statusMax, $this->page);
 			else $children = new PageArray();
 
-		$renderer = new $class($this->id, $this->page, $children); 
-		$renderer->setStart($this->start); 
-		$renderer->setLimit($this->limit); 
-		$renderer->setPageLabelField($this->pageLabelField); 
+		$renderer = new $class($this->id, $this->page, $children);
+		$renderer->setStart($this->start);
+		$renderer->setLimit($this->limit);
+		$renderer->setPageLabelField($this->pageLabelField);
 		$renderer->setLabel('trash', $this->trashLabel);
 
 		return $renderer->render();
 	}
-	
+
 	public function ___find($selectorString, Page $page) {
-		return $page->children($selectorString); 
+		return $page->children($selectorString);
 	}
 
 	/**
@@ -179,10 +179,10 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 */
 	public function set($key, $value) {
 		if($key == 'id') { // allow setting by other modules, overrides $_GET value of ID
-			$this->id = (int) $value; 
-			return $this; 
+			$this->id = (int) $value;
+			return $this;
 		}
-		return parent::set($key, $value); 
+		return parent::set($key, $value);
 	}
 
 	/**
@@ -190,9 +190,9 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	 *
 	 */
 	public function setupBreadcrumbs() {
-		if($this->fuel->process != $this || !$this->fuel->breadcrumbs) return; 
+		if($this->fuel->process != $this || !$this->fuel->breadcrumbs) return;
 		foreach($this->page->parents() as $p) {
-			$this->fuel->breadcrumbs->add(new Breadcrumb($this->config->urls->admin . "page/list/?id=" . $p->id, $p->get("title|name"))); 
+			$this->fuel->breadcrumbs->add(new Breadcrumb($this->config->urls->admin . "page/list/?id=" . $p->id, $p->get("title|name")));
 		}
 	}
 
@@ -203,30 +203,30 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	static public function getModuleConfigInputfields(array $data) {
 
 		$fields = new InputfieldWrapper();
-		$modules = Wire::getFuel('modules'); 
+		$modules = Wire::getFuel('modules');
 
-		$field = $modules->get("InputfieldText"); 
-		$field->attr('name', 'pageLabelField'); 
-		$field->attr('value', !empty($data['pageLabelField']) ? $data['pageLabelField'] : 'title'); 
-		$field->label = __("Name of page field to display"); 
+		$field = $modules->get("InputfieldText");
+		$field->attr('name', 'pageLabelField');
+		$field->attr('value', !empty($data['pageLabelField']) ? $data['pageLabelField'] : 'title');
+		$field->label = __("Name of page field to display");
 		$field->description = __('Every page in a PageList is identified by a label, typically a title or headline field. You may specify which field it should use here. To specify multiple fields, separate each field name with a space. If the field resolves to an object (like another page), then specify the property with a dot, i.e. anotherpage.title. Note that if the field you specify resolves to a blank value then ProcessWire will use the page "name" field.'); // pageLabelField description
 		$field->notes = __('You may optionally override this setting on a per-template basis in each template "advanced" settings.'); // pageLabelField notes
-		$fields->append($field); 
+		$fields->append($field);
 
-		$field = $modules->get("InputfieldInteger"); 
-		$field->attr('name', 'limit'); 
-		$field->attr('value', !empty($data['limit']) ? (int) $data['limit'] : self::defaultLimit); 
+		$field = $modules->get("InputfieldInteger");
+		$field->attr('name', 'limit');
+		$field->attr('value', !empty($data['limit']) ? (int) $data['limit'] : self::defaultLimit);
 		$field->label = __('Number of pages to display before pagination');
-		$fields->append($field); 
+		$fields->append($field);
 
-		$field = $modules->get("InputfieldInteger"); 
-		$field->attr('name', 'speed'); 
-		$field->attr('value', array_key_exists('speed', $data) ? (int) $data['speed'] : self::defaultSpeed); 
+		$field = $modules->get("InputfieldInteger");
+		$field->attr('name', 'speed');
+		$field->attr('value', array_key_exists('speed', $data) ? (int) $data['speed'] : self::defaultSpeed);
 		$field->label = __('Animation Speed (in ms)');
-		$field->description = __('This is the speed at which each branch in the page tree animates up or down. Lower numbers are faster but less visible. For no animation specify 0.'); // Animation speed description 
-		$fields->append($field); 
+		$field->description = __('This is the speed at which each branch in the page tree animates up or down. Lower numbers are faster but less visible. For no animation specify 0.'); // Animation speed description
+		$fields->append($field);
 
-		return $fields; 
+		return $fields;
 	}
 
 }
@@ -237,39 +237,39 @@ class ProcessPageList extends Process implements ConfigurableModule {
  */
 abstract class ProcessPageListRender extends Wire {
 
-	protected $id; 
-	protected $page; 
-	protected $children; 
-	protected $start; 
-	protected $limit; 
+	protected $id;
+	protected $page;
+	protected $children;
+	protected $start;
+	protected $limit;
 	protected $pageLabelField = 'title';
 	protected $actionLabels = array();
 	protected $superuser = false;
 	protected $labels = array();
 
 	public function __construct($id, Page $page, PageArray $children) {
-		$this->id = $id; 
-		$this->page = $page; 
-		$this->children = $children; 		
+		$this->id = $id;
+		$this->page = $page;
+		$this->children = $children;
 		$this->start = 0;
-		$this->limit = 0; 
+		$this->limit = 0;
 		$this->superuser = $this->wire('user')->isSuperuser();
 	}
 
 	public function setStart($n) {
-		$this->start = (int) $n; 
+		$this->start = (int) $n;
 	}
 
 	public function setLimit($n) {
-		$this->limit = (int) $n; 
+		$this->limit = (int) $n;
 	}
-	
+
 	public function setLabel($key, $value) {
-		$this->labels[$key] = $value; 
+		$this->labels[$key] = $value;
 	}
 
 	public function setPageLabelField($pageLabelField) {
-		$this->pageLabelField = $pageLabelField; 
+		$this->pageLabelField = $pageLabelField;
 	}
 
 	/**
@@ -279,10 +279,10 @@ abstract class ProcessPageListRender extends Wire {
 	 * @return array of $label => $url
 	 *
 	 */
-	public function ___getPageActions(Page $page) {	
+	public function ___getPageActions(Page $page) {
 
 		$actions = array();
-		$adminUrl = $this->config->urls->admin; 
+		$adminUrl = $this->config->urls->admin;
 
 		if(!count($this->actionLabels)) $this->actionLabels = array(
 			'edit' => $this->_('Edit'), 	// Edit page action
@@ -297,43 +297,43 @@ abstract class ProcessPageListRender extends Wire {
 		if($page->id == $this->config->trashPageID) {
 
 			if($this->superuser) $actions[] = array(
-				'cn' => 'Empty', 
-				'name' => $this->actionLabels['empty'], 
+				'cn' => 'Empty',
+				'name' => $this->actionLabels['empty'],
 				'url' => "{$adminUrl}page/trash/"
-				); 
+				);
 
 		} else {
 
 			if($page->editable()) $actions[] = array(
-				'cn' => 'Edit', 
-				'name' => $this->actionLabels['edit'], 
+				'cn' => 'Edit',
+				'name' => $this->actionLabels['edit'],
 				'url' => "{$adminUrl}page/edit/?id={$page->id}"
 				);
 
 			if($page->viewable())  $actions[] = array(
-				'cn' => 'View', 
-				'name' => $this->actionLabels['view'], 
+				'cn' => 'View',
+				'name' => $this->actionLabels['view'],
 				'url' => $page->httpUrl
 				);
 
 			if($page->addable()) $actions[] = array(
-				'cn' => 'New', 
-				'name' => $this->actionLabels['add'], 
+				'cn' => 'New',
+				'name' => $this->actionLabels['add'],
 				'url' => "{$adminUrl}page/add/?parent_id={$page->id}"
 				);
 
 			if($page->id > 1 && ($page->moveable() || ($page->sortable() && $page->sortfield == 'sort'))) $actions[] = array(
-				'cn' => 'Move', 
-				'name' => $this->actionLabels['move'], 
+				'cn' => 'Move',
+				'name' => $this->actionLabels['move'],
 				'url' => '#'
-				); 
+				);
 		}
 
-		return $actions; 
+		return $actions;
 	}
 
 	/**
-	 * Return the Page's label text, whether that originates from the Page's name, headline, title, etc. 
+	 * Return the Page's label text, whether that originates from the Page's name, headline, title, etc.
 	 *
 	 * @param Page $page
 	 * @return string
@@ -344,49 +344,49 @@ abstract class ProcessPageListRender extends Wire {
 		$value = '';
 		$icon = '';
 
-		// if the page's template specifies a pageLabelField, use that 
-		$pageLabelField = trim($page->template->pageLabelField); 
+		// if the page's template specifies a pageLabelField, use that
+		$pageLabelField = trim($page->template->pageLabelField);
 
 		// otherwise use the one specified with this instance
 		if(!strlen($pageLabelField)) $pageLabelField = $this->pageLabelField;
 
 		// convert to array
-		if(strpos($pageLabelField, ' ')) $fields = explode(' ', $pageLabelField); 
-			else $fields = array($pageLabelField); 
+		if(strpos($pageLabelField, ' ')) $fields = explode(' ', $pageLabelField);
+			else $fields = array($pageLabelField);
 
 		//if($page->is(Page::statusTemp)) $icon = "<i class='icon fa fa-star-half-o'></i>";
 
 		foreach($fields as $field) {
 
 			if(strpos($field, ".")) {
-				list($field, $subfield) = explode(".", $field); 
+				list($field, $subfield) = explode(".", $field);
 
 			} else if(strpos($field, 'icon-') === 0 || strpos($field, 'fa-') === 0) {
-				$field = str_replace(array('icon-', 'fa-'), 'fa-', $field); 
-				$field = $this->wire('sanitizer')->name($field); 
+				$field = str_replace(array('icon-', 'fa-'), 'fa-', $field);
+				$field = $this->wire('sanitizer')->name($field);
 				if(!$icon) $icon = "<i class='icon fa $field'></i>";
-				continue; 
+				continue;
 
 			} else {
 				$subfield = '';
 			}
 
-			$v = $page->get($field); 
+			$v = $page->get($field);
 
 			if($subfield && is_object($v)) {
 				if($v instanceof WireArray && count($v)) $v = $v->first();
 				$v = $v->get($subfield);
 
 			} else if(($field == 'created' || $field == 'modified') && ctype_digit("$v")) {
-				$v = date($this->fuel('config')->dateFormat, (int) $v); 
+				$v = date($this->fuel('config')->dateFormat, (int) $v);
 			}
 
-			if(!strlen("$v")) continue; 
+			if(!strlen("$v")) continue;
 			$value .= "<span class='label_$field'>" . htmlspecialchars(strip_tags("$v"), ENT_QUOTES, "UTF-8", false) . "</span>";
 		}
 
 
-		if(!strlen($value)) $value = $page->get("name"); 
+		if(!strlen($value)) $value = $page->get("name");
 
 		return $icon . trim($value);
 	}
@@ -399,12 +399,12 @@ abstract class ProcessPageListRender extends Wire {
 
 	public function getMoreURL() {
 		if($this->limit && ($this->page->numChildren(1) > ($this->start + $this->limit))) {
-			$start = $this->start + $this->limit; 
-			return $this->config->urls->admin . "page/list/?&id={$this->page->id}&start=$start&render=" . $this->getRenderName(); 
+			$start = $this->start + $this->limit;
+			return $this->config->urls->admin . "page/list/?&id={$this->page->id}&start=$start&render=" . $this->getRenderName();
 		}
 		return '';
 	}
-	
+
 }
 
 /**
@@ -417,20 +417,20 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 
 	public function __construct($id, Page $page, PageArray $children) {
 
-		parent::__construct($id, $page, $children); 
+		parent::__construct($id, $page, $children);
 
 		$this->systemIDs = array(
-			$this->config->http404PageID, 
-			$this->config->adminRootPageID, 
-			$this->config->trashPageID, 
+			$this->config->http404PageID,
+			$this->config->adminRootPageID,
+			$this->config->trashPageID,
 			$this->config->loginPageID,
-			); 
+			);
 	}
 
 	protected function renderChild(Page $page) {
 
-		$outputFormatting = $page->outputFormatting; 
-		$page->setOutputFormatting(true); 
+		$outputFormatting = $page->outputFormatting;
+		$page->setOutputFormatting(true);
 		$class = '';
 		$type = '';
 		$note = '';
@@ -449,20 +449,20 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 				else if($page->id == $this->config->trashPageID && isset($this->labels['trash'])) $label = $this->labels['trash']; // Label for 'Trash' page in PageList // Overrides page title if used
 			// if label is not overridden by a language pack, make $label blank to use the page title instead
 			if(in_array($label, array('Trash', 'Admin', '404 Page Not Found'))) $label = '';
-		} 
+		}
 
-		if(!$label) $label = $this->getPageLabel($page); 
+		if(!$label) $label = $this->getPageLabel($page);
 
-		if($page->getAccessParent() === $page && $page->parent->id) { 
+		if($page->getAccessParent() === $page && $page->parent->id) {
 			if($page->getAccessTemplate()->hasRole('guest')) {
 				if(!$page->parent->getAccessTemplate()->hasRole('guest')) {
 					$class .= ' PageListAccessOn';
 					if(!$icon) $icon = 'unlock-alt';
 				}
 			} else if($page->parent->getAccessTemplate()->hasRole('guest')) {
-				$class .= ' PageListAccessOff'; 
-				if(!$icon) $icon = 'lock'; 
-			} 
+				$class .= ' PageListAccessOff';
+				if(!$icon) $icon = 'lock';
+			}
 		}
 
 		if(!$icon && $page->is(Page::statusTemp)) $icon = 'bolt';
@@ -470,55 +470,55 @@ class ProcessPageListRenderJSON extends ProcessPageListRender {
 		if($icon) $label = $label . "<i class='PageListStatusIcon fa fa-$icon'></i>";
 
 		$a = array(
-			'id' => $page->id, 
+			'id' => $page->id,
 			'label' => $label,
-			'status' => $page->status, 
-			'numChildren' => $page->numChildren(1), 
-			'path' => $page->path(), 
-			'template' => $page->template->name, 
-			'rm' => $this->superuser && $page->trashable(), 
-			'actions' => $this->getPageActions($page), 
-			); 
+			'status' => $page->status,
+			'numChildren' => $page->numChildren(1),
+			'path' => $page->path(),
+			'template' => $page->template->name,
+			'rm' => $this->superuser && $page->trashable(),
+			'actions' => $this->getPageActions($page),
+			);
 
 		if($class) $a['addClass'] = trim($class);
 		if($type) $a['type'] = $type;
-		if($note) $a['note'] = $note; 
-		
+		if($note) $a['note'] = $note;
+
 
 		$page->setOutputFormatting($outputFormatting);
 
-		return $a; 
+		return $a;
 	}
-	
+
 	public function render() {
 
-		$children = array();	
+		$children = array();
 
 		$extraPages = array(); // pages forced to bottom of list
 
 		foreach($this->children as $page) {
 
 			if(in_array($page->id, $this->systemIDs)) {
-				$extraPages[] = $page; 
-				continue; 
+				$extraPages[] = $page;
+				continue;
 			}
 
-			$child = $this->renderChild($page); 
+			$child = $this->renderChild($page);
 			$children[] = $child;
 		}
 
 		if($this->superuser) foreach($extraPages as $page) {
-			$children[] = $this->renderChild($page); 
+			$children[] = $this->renderChild($page);
 		}
 
 		$json = array(
 			'page' => $this->renderChild($this->page),
-			'children' => $children, 
-			'start' => $this->start, 
-			'limit' => $this->limit, 
-			); 
+			'children' => $children,
+			'start' => $this->start,
+			'limit' => $this->limit,
+			);
 
-		return json_encode($json); 
+		return json_encode($json);
 	}
 
 }
@@ -537,43 +537,43 @@ class ProcessPageListRenderXHTML extends ProcessPageListRender {
 		$out = "<ul class='PageList'>";
 
 		foreach($this->children as $page) {
-			$out .= $this->listPage($page); 
+			$out .= $this->listPage($page);
 		}
 
 		if($moreURL = $this->getMoreURL()) {
 			$out .= "<li class='action'><a href='" . $this->getMoreURL() . "'>More</a></li>";
 		}
-	
+
 		$out .= "</ul>";
 
 		$out = "<div class='PageListRoot PageListXHTML'>$out</div>";
 
-		return $out; 
+		return $out;
 	}
 
 	protected function listPage(Page $page) {
 
 		if(!$this->user->hasPermission("ProcessPageList", $page)) return '';
 
-		$classes = implode(' ', $this->getPageClasses($page)); 
-		$actions = $this->getPageActions($page); 
-		$label = $this->getPageLabel($page); 
+		$classes = implode(' ', $this->getPageClasses($page));
+		$actions = $this->getPageActions($page);
+		$label = $this->getPageLabel($page);
 
 		$out = "<li class='PageListItem' rel='{$page->id}'><a class='PageListPage $classes' href='./?process=PageList&id={$page->id}&render=xhtml'>$label</a> ";
 
 		if($page->numChildren) $out .= "<span class='PageListNumChildren'>{$page->numChildren}</span> ";
 
-		if(count($actions)) { 
-			$out .= "<ul class='actions'>"; 
+		if(count($actions)) {
+			$out .= "<ul class='actions'>";
 			foreach($actions as $action) {
-				$s = $this->sanitizer->name($action['name']); 
+				$s = $this->sanitizer->name($action['name']);
 				$out .= "<li><a class='PageListAction$s' href='$action[url]'>$action[name]</a></li>";
 			}
 			$out .= "</ul>";
 		}
 
-		$out .= "</li>"; 
-		return $out; 	
+		$out .= "</li>";
+		return $out;
 	}
 
 	public function ___getPageClasses(Page $page) {
@@ -581,7 +581,7 @@ class ProcessPageListRenderXHTML extends ProcessPageListRender {
 		if(!$page->status) $classes[] = 'PageListStatusOff';
 		if(Page::statusHidden & $page->status) $classes[] = 'PageListStatusHidden';
 		if(Page::statusLocked & $page->status) $classes[] = 'PageListStatusLocked';
-		return $classes; 
+		return $classes;
 	}
 }
 */

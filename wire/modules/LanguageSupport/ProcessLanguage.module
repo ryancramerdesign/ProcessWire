@@ -1,15 +1,15 @@
 <?php
 
 /**
- * ProcessWire Language Process, displays languages in Setup > Languages > 
- * 
+ * ProcessWire Language Process, displays languages in Setup > Languages >
+ *
  * It also contains the hooks for altering the output of the InputfieldFile to hold language info and links.
  * This is the process assigned to processwire/setup/languages/.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -24,7 +24,7 @@ class ProcessLanguage extends ProcessPageType {
 			'summary' => __('Manage system languages', __FILE__),
 			'author' => 'Ryan Cramer',
 			'requires' => 'LanguageSupport',
-			'icon' => 'language', 
+			'icon' => 'language',
 			'useNavJSON' => true,
 			);
 	}
@@ -47,37 +47,37 @@ class ProcessLanguage extends ProcessPageType {
 	 */
 	public function __construct() {
 		parent::__construct();
-		
-		$showFields = array('name', 'title', 'language_files', 'language_files_site'); 
-		$this->set('showFields', $showFields); 
-		$this->set('jsonListLabel', 'title|name'); 
-		require_once(dirname(__FILE__) . '/LanguageParser.php'); 
+
+		$showFields = array('name', 'title', 'language_files', 'language_files_site');
+		$this->set('showFields', $showFields);
+		$this->set('jsonListLabel', 'title|name');
+		require_once(dirname(__FILE__) . '/LanguageParser.php');
 	}
 
 	/**
-	 * Add InputfieldFile hooks 
+	 * Add InputfieldFile hooks
 	 *
 	 */
 	public function init() {
-		$this->addHookBefore('InputfieldFile::render', $this, 'renderInputfieldFile'); 
-		$this->addHookAfter('InputfieldFile::renderItem', $this, 'renderInputfieldFileItem'); 
+		$this->addHookBefore('InputfieldFile::render', $this, 'renderInputfieldFile');
+		$this->addHookAfter('InputfieldFile::renderItem', $this, 'renderInputfieldFileItem');
 		$this->addHookAfter('InputfieldFile::renderUpload', $this, 'renderInputfieldFileUpload');
-		$this->addHookBefore('InputfieldFile::processInput', $this, 'processInputfieldFileInput'); 
+		$this->addHookBefore('InputfieldFile::processInput', $this, 'processInputfieldFileInput');
 		parent::init();
 	}
 
 	protected function translationUrl() {
 		if(!$this->translationUrl) {
-			$support = wire('modules')->get('LanguageSupport'); 
+			$support = wire('modules')->get('LanguageSupport');
 			$this->translationUrl = wire('pages')->get($support->languageTranslatorPageID)->url;
 		}
-		return $this->translationUrl; 
+		return $this->translationUrl;
 	}
-	
+
 	public function processInputfieldFileInput(HookEvent $event) {
-		$event->object->overwrite = true; 
+		$event->object->overwrite = true;
 	}
-	
+
 	/**
 	 * Hook for InputfieldFile::renderItem
 	 *
@@ -97,16 +97,16 @@ class ProcessLanguage extends ProcessPageType {
 	 */
 	public function renderInputfieldFileItem(HookEvent $event) {
 
-		$translationUrl = $this->translationUrl(); 
-		$pagefile = $event->arguments[0]; 
-		$page = $pagefile->get('page'); 
+		$translationUrl = $this->translationUrl();
+		$pagefile = $event->arguments[0];
+		$page = $pagefile->get('page');
 		$textdomain = basename($pagefile->basename, '.json');
 
 		$data = $page->translator->getTextdomain($textdomain);
-		$file = $data['file']; 
+		$file = $data['file'];
 		$pathname = wire('config')->paths->root . $file;
 		$translations =& $data['translations'];
-		$total = count($translations); 
+		$total = count($translations);
 		$parser = new LanguageParser($page->translator, $pathname);
 		$untranslated = $parser->getUntranslated();
 		$numPending = 0;
@@ -120,29 +120,29 @@ class ProcessLanguage extends ProcessPageType {
 			if(!isset($untranslated[$hash])) $numAbandoned++;
 		}
 
-		$total += $numAbandoned; 
+		$total += $numAbandoned;
 		$message = sprintf($this->_n("%d phrase", "%d phrases", $total), $total);
 
 		if($numAbandoned || $numPending) {
 			$message .= " <span class='ui-state-error-text'>(";
-			if($numAbandoned) $message .= sprintf($this->_('%d abandoned'), $numAbandoned); 
-			if($numPending) $message .= ($numAbandoned ? ', ' : '') . sprintf($this->_('%d blank'), $numPending); 
+			if($numAbandoned) $message .= sprintf($this->_('%d abandoned'), $numAbandoned);
+			if($numPending) $message .= ($numAbandoned ? ', ' : '') . sprintf($this->_('%d blank'), $numPending);
 			$message .= ")</span>";
 		}
 
-		$lastMod = date($this->config->dateFormat, filemtime($pagefile->filename)); 
-		$editLabel = $this->_x('Edit', 'edit-language-file'); 
+		$lastMod = date($this->config->dateFormat, filemtime($pagefile->filename));
+		$editLabel = $this->_x('Edit', 'edit-language-file');
 
-		$out = 	
-			"<div class='InputfieldFileData InputfieldFileLanguageInfo'>" . 
+		$out =
+			"<div class='InputfieldFileData InputfieldFileLanguageInfo'>" .
 			"<span class='InputfieldFileLanguageFilename description'>/$file &#8212;</span> <span class='notes'>$message</span> " .
-			"<a class='action' href='{$translationUrl}edit/?language_id={$page->id}&amp;textdomain=$textdomain'>&nbsp; " . 
-			"<i class='fa fa-edit'></i> $editLabel <i class='fa fa-angle-double-right hover-only'></i></a>" . 
+			"<a class='action' href='{$translationUrl}edit/?language_id={$page->id}&amp;textdomain=$textdomain'>&nbsp; " .
+			"<i class='fa fa-edit'></i> $editLabel <i class='fa fa-angle-double-right hover-only'></i></a>" .
 			"</div>";
 
 		$page->translator->unloadTextdomain($textdomain);
 
-		$event->return .= $out; 
+		$event->return .= $out;
 
 	}
 
@@ -155,26 +155,26 @@ class ProcessLanguage extends ProcessPageType {
 	public function renderInputfieldFileUpload(HookEvent $event) {
 
 		$translationUrl = $this->translationUrl();
-		$page = $event->arguments[0]->get('page'); 
-		$inputfield = $event->object; 
+		$page = $event->arguments[0]->get('page');
+		$inputfield = $event->object;
 		$out = '';
-		
-		$btn1 = $this->wire('modules')->get('InputfieldButton'); 
+
+		$btn1 = $this->wire('modules')->get('InputfieldButton');
 		$btn1->href = "{$translationUrl}add/?language_id={$page->id}";
-		$btn1->value = $this->_('Translate File'); 
+		$btn1->value = $this->_('Translate File');
 		$btn1->icon = 'plane';
 		if($inputfield->name == 'language_files') $btn1->addClass('head_button_clone');
 		$out .= $btn1->render();
-	
+
 		if(count($inputfield->attr('value'))) {
 			$btn2 = $this->wire('modules')->get('InputfieldButton');
 			$btn2->href = "../download/?language_id={$page->id}&field=" . $inputfield->attr('name');
 			$btn2->value = $this->_('Download ZIP');
 			$btn2->icon = 'cloud-download';
-			$btn2->addClass('ui-priority-secondary'); 
+			$btn2->addClass('ui-priority-secondary');
 			$out .= $btn2->render();
 		}
-		
+
 		$event->return .= "<p>$out</p>";
 	}
 
@@ -186,16 +186,16 @@ class ProcessLanguage extends ProcessPageType {
 	 */
 	protected function renderListFieldValue($name, $value) {
 		if($name == 'language_files' || $name == 'language_files_site') {
-			return count($value); 
-		} else if($name == 'title') { 
+			return count($value);
+		} else if($name == 'title') {
 			if(!$value) return '(blank)';
 			return (string) $value;
 		} else {
-			return parent::renderListFieldValue($name, $value); 
+			return parent::renderListFieldValue($name, $value);
 		}
 	}
 
-	public function ___execute() { 
+	public function ___execute() {
 		// check if 2.5 update needed to add new language_files_site field
 		if(!$this->wire('fields')->get('language_files_site')) {
 			require_once(dirname(__FILE__) . '/LanguageSupportInstall.php');
@@ -210,25 +210,25 @@ class ProcessLanguage extends ProcessPageType {
 	 *
 	 */
 	public function ___executeDownload() {
-		$id = (int) $this->input->get('language_id'); 
-		if(!$id) throw new WireException("No language specified"); 
-		$language = $this->wire('languages')->get($id); 
+		$id = (int) $this->input->get('language_id');
+		if(!$id) throw new WireException("No language specified");
+		$language = $this->wire('languages')->get($id);
 		$fieldName = $this->input->get('field') == 'language_files_site' ? 'language_files_site' : 'language_files';
-		if(!$language->id) throw new WireException("Unknown language"); 
+		if(!$language->id) throw new WireException("Unknown language");
 		$path = $language->$fieldName->path();
 		$files = array();
 		foreach($language->$fieldName as $file) {
 			$files[] = $file->filename;
 		}
-		$zipname = $language->name . "-"; 	
+		$zipname = $language->name . "-";
 		$zipname .= $fieldName == 'language_files' ? 'wire' : 'site';
 		$zipfile = "$path$zipname.zip";
-		$info = wireZipFile($zipfile, $files, array("overwrite" => true)); 
+		$info = wireZipFile($zipfile, $files, array("overwrite" => true));
 		if(!count($info['files'])) {
-			$this->error("Error adding files to ZIP"); 
-			$this->session->redirect('../'); 
+			$this->error("Error adding files to ZIP");
+			$this->session->redirect('../');
 		} else {
-			wireSendFile($zipfile); 
+			wireSendFile($zipfile);
 			exit(0);
 		}
 	}

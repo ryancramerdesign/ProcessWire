@@ -4,16 +4,16 @@
  * ProcessWire Bootstrap
  *
  * This file may be used to bootstrap either the http web accessible
- * version, or the command line client version of ProcessWire. 
+ * version, or the command line client version of ProcessWire.
  *
  * Note: if you happen to change any directory references in here, please
  * do so after you have installed the site, as the installer is not informed
- * of any changes made in this file. 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * of any changes made in this file.
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2014 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  * @version 2.5
@@ -35,7 +35,7 @@ function ProcessWireBootConfig() {
 	 *
 	 */
 	$rootPath = dirname(__FILE__);
-	if(DIRECTORY_SEPARATOR != '/') $rootPath = str_replace(DIRECTORY_SEPARATOR, '/', $rootPath); 
+	if(DIRECTORY_SEPARATOR != '/') $rootPath = str_replace(DIRECTORY_SEPARATOR, '/', $rootPath);
 
 	if(isset($_SERVER['HTTP_HOST'])) {
 		$httpHost = strtolower($_SERVER['HTTP_HOST']);
@@ -45,7 +45,7 @@ function ProcessWireBootConfig() {
 
 		// check if we're being included from another script and adjust the rootPath accordingly
 		$sf = empty($_SERVER['SCRIPT_FILENAME']) ? '' : dirname(realpath($_SERVER['SCRIPT_FILENAME']));
-		$f = dirname(realpath(__FILE__)); 
+		$f = dirname(realpath(__FILE__));
 		if($sf && $sf != $f && strpos($sf, $f) === 0) {
 			$x = rtrim(substr($sf, strlen($f)), '/');
 			$rootURL = substr($rootURL, 0, strlen($rootURL) - strlen($x));
@@ -61,9 +61,9 @@ function ProcessWireBootConfig() {
 	/*
 	 * Allow for an optional /index.config.php file that can point to a different site configuration per domain/host.
 	 *
-	 */     
-	$siteDir = 'site'; 
-	$indexConfigFile = $rootPath . "/index.config.php"; 
+	 */
+	$siteDir = 'site';
+	$indexConfigFile = $rootPath . "/index.config.php";
 
 	if(is_file($indexConfigFile)) {
 		// optional config file is present in root
@@ -71,7 +71,7 @@ function ProcessWireBootConfig() {
 		$hostConfig = function_exists("ProcessWireHostSiteConfig") ? ProcessWireHostSiteConfig() : array();
 		if($httpHost && isset($hostConfig[$httpHost])) $siteDir = $hostConfig[$httpHost];
 			else if(isset($hostConfig['*'])) $siteDir = $hostConfig['*']; // default override
-	} 
+	}
 
 	// other default directories
 	$wireDir = 'wire';
@@ -90,12 +90,12 @@ function ProcessWireBootConfig() {
 	 *
 	 */
 	$config = new Config();
-	$config->urls = new Paths($rootURL); 
+	$config->urls = new Paths($rootURL);
 	$config->urls->wire = "$wireDir/";
 	$config->urls->site = "$siteDir/";
 	$config->urls->modules = "$wireDir/modules/";
 	$config->urls->siteModules = "$siteDir/modules/";
-	$config->urls->core = "$coreDir/"; 
+	$config->urls->core = "$coreDir/";
 	$config->urls->assets = "$assetsDir/";
 	$config->urls->cache = "$assetsDir/cache/";
 	$config->urls->logs = "$assetsDir/logs/";
@@ -103,7 +103,7 @@ function ProcessWireBootConfig() {
 	$config->urls->tmp = "$assetsDir/tmp/";
 	$config->urls->templates = "$siteDir/templates/";
 	$config->urls->adminTemplates = is_dir("$siteDir/$adminTplDir") ? "$siteDir/$adminTplDir/" : "$wireDir/$adminTplDir/";
-	$config->paths = clone $config->urls; 
+	$config->paths = clone $config->urls;
 	$config->paths->root = $rootPath . '/';
 	$config->paths->sessions = $config->paths->assets . "sessions/";
 
@@ -122,7 +122,7 @@ function ProcessWireBootConfig() {
 	include("$rootPath/$wireDir/config.php");
 	$configFile = "$rootPath/$siteDir/config.php";
 	$configFileDev = "$rootPath/$siteDir/config-dev.php";
-	@include(is_file($configFileDev) ? $configFileDev : $configFile); 
+	@include(is_file($configFileDev) ? $configFileDev : $configFile);
 
 	/*
 	 * If debug mode is on then echo all errors, if not then disable all error reporting
@@ -140,14 +140,14 @@ function ProcessWireBootConfig() {
 	 * If PW2 is not installed, go to the installer
 	 *
 	 */
-	if(!$config->dbName) { 
+	if(!$config->dbName) {
 		if(is_file("./install.php") && strtolower($_SERVER['REQUEST_URI']) == strtolower($rootURL)) {
 			require("./install.php");
 			exit(0);
 		} else {
 			header("HTTP/1.1 404 Page Not Found");
 			echo "404 page not found (no site configuration or install.php available)";
-			exit(0); 
+			exit(0);
 		}
 	}
 
@@ -155,14 +155,14 @@ function ProcessWireBootConfig() {
 	 * Prepare any PHP ini_set options
 	 *
 	 */
-	session_name($config->sessionName); 
-	ini_set('session.use_cookies', true); 
+	session_name($config->sessionName);
+	ini_set('session.use_cookies', true);
 	ini_set('session.use_only_cookies', 1);
-	ini_set('session.cookie_httponly', 1); 
-	ini_set("session.gc_maxlifetime", $config->sessionExpireSeconds); 
-	if(ini_get('session.save_handler') == 'files') ini_set("session.save_path", rtrim($config->paths->sessions, '/')); 
+	ini_set('session.cookie_httponly', 1);
+	ini_set("session.gc_maxlifetime", $config->sessionExpireSeconds);
+	if(ini_get('session.save_handler') == 'files') ini_set("session.save_path", rtrim($config->paths->sessions, '/'));
 
-	return $config; 
+	return $config;
 }
 
 /**
@@ -171,22 +171,22 @@ function ProcessWireBootConfig() {
  */
 function ProcessWireExternalShutdown() {
 	if(error_get_last()) return;
-	$process = wire('process'); 
+	$process = wire('process');
 	if($process == 'ProcessPageView') $process->finished();
 }
 
 /**
  * Determine if the request is one we should handle (internal) or one that another
- * script coming after this (external) will handle. 
+ * script coming after this (external) will handle.
  *
  */
 $internal = isset($_SERVER['HTTP_HOST']) && realpath(__FILE__) == realpath($_SERVER['SCRIPT_FILENAME']);
-if(!$internal) register_shutdown_function('ProcessWireExternalShutdown'); 
+if(!$internal) register_shutdown_function('ProcessWireExternalShutdown');
 
 /*
  * If you include ProcessWire's index.php from another script, or from a
- * command-line script, the $wire variable or wire() function is your 
- * connection to the API of this ProcessWire instance. 
+ * command-line script, the $wire variable or wire() function is your
+ * connection to the API of this ProcessWire instance.
  *
  */
 $process = null;
@@ -196,21 +196,21 @@ $wire = null;
  * Build the ProcessWire configuration
  *
  */
-$config = ProcessWireBootConfig(); 
+$config = ProcessWireBootConfig();
 
 /*
  * Load and execute ProcessWire
  *
  */
-try { 
-	
+try {
+
 	/*
 	 * Bootstrap ProcessWire's core and make the API available with $wire or wire()
 	 *
 	 */
 	$wire = new ProcessWire($config);
 	$process = $wire->modules->get('ProcessPageView');
-	$wire->wire('process', $process); 
+	$wire->wire('process', $process);
 	echo $process->execute($internal);
 	if($internal) $process->finished();
 
@@ -223,6 +223,6 @@ try {
 	if($process) $process->failed($e);
 	$errorMessage = "Exception: " . $e->getMessage() . " (in " . $e->getFile() . " line " . $e->getLine() . ")";
 	if($config->debug || ($wire && $wire->user && $wire->user->isSuperuser())) $errorMessage .= "\n\n" . $e->getTraceAsString();
-	trigger_error($errorMessage, E_USER_ERROR); 
+	trigger_error($errorMessage, E_USER_ERROR);
 }
 

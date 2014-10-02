@@ -9,8 +9,8 @@
 @import 'inputfields';
 @import 'lang';
 
-$wide-screen-width: 1200px; 
-$mainnav-width: 210px; 
+$wide-screen-width: 1200px;
+$mainnav-width: 210px;
 $mainnav-width-wide: 230px; // bigger sidebar for wide screen?
 
 /***********************************************************************************************
@@ -281,7 +281,7 @@ body.id-23 {
 				color: $text-color;
 				background: darken($subtle-bg, 4%) !important;
 			}
-			
+
 			i.fa {
 				color: $mainnav-icon-color;
 			}
@@ -384,12 +384,12 @@ body.id-23 {
 		font-weight: normal;
 		position: relative;
 		overflow: hidden;
-		
+
 		small {
 			opacity: 0.6;
 		}
 	}
-	
+
 	#main-nav a span {
 		white-space: nowrap;
 	}
@@ -416,14 +416,14 @@ body.id-23 {
 		text-align: center;
 		font-size: 14px; // font awesome renders clearer at 14px;
 	}
-	
+
 	#main-nav a.current i.current-icon {
 		// added by ryan
 		float: right;
 		margin-right: 11px;
-		margin-top: 4px; 
+		margin-top: 4px;
 	}
-	
+
 	#main-nav a.has-quicklinks.current {
 		// added by ryan
 		&.no-arrow i.current-icon,
@@ -479,7 +479,7 @@ body.id-23 {
 		position: relative;
 		color: $mainnav-sub-link-color;
 		margin-bottom: 1px;
-		
+
 		&.quicklinks-open {
 			background: $mainnav-sub-link-hover-bg;
 			color: $mainnav-sub-link-color;
@@ -493,7 +493,7 @@ body.id-23 {
 				visibility: visible;
 			}
 		}
-	
+
 		span {
 			@media only screen and (min-width: $wide-screen-width) {
 				// icon indentation
@@ -528,20 +528,20 @@ body.id-23 {
 
 		@media only screen and (min-width: $wide-screen-width) {
 			left: $mainnav-width-wide;
-			width: $mainnav-width-wide+20px; 
+			width: $mainnav-width-wide+20px;
 		}
 
 		& li a {
 			color: $quicklinks-link-color;
-			
+
 			i.fa {
 				float: right;
 				color: $mainnav-icon-color;
 				margin-top: 4px;
-				margin-right: 7px; 
+				margin-right: 7px;
 			}
 		}
-		
+
 		& li a:hover {
 			color: $quicklinks-hover-color;
 			background: $quicklinks-hover-bg;
@@ -550,7 +550,7 @@ body.id-23 {
 		& li.add a {
 			color: $quicklinks-addnew-color;
 			i.fa {
-				float: none; 
+				float: none;
 				color: $quicklinks-addnew-color;
 				margin-top: 0;
 				margin-right: 0;
@@ -720,7 +720,7 @@ body.id-23 {
 }
 
 body.hasWireTabs #breadcrumbs {
-	// border-bottom: $tabs-height solid $breadcrumbs-bg; 
+	// border-bottom: $tabs-height solid $breadcrumbs-bg;
 }
 
 #ProcessPageSearchForm {
@@ -1020,7 +1020,7 @@ body.hasWireTabs #breadcrumbs {
 	.PageList .actions a,
 	.PageListMoveNote a {
 		/* action links */
-		// color: $action-link-color; 
+		// color: $action-link-color;
 		// background: $action-link-bg;
 		padding: 0 4px 0 4px;
 		display: inline-block;
@@ -1306,7 +1306,7 @@ body.hasWireTabs #breadcrumbs {
 		left:0;
 		top: 1px;
 		width: 100%;
-		// z-index: 100; 
+		// z-index: 100;
 
 		li {
 			background: none;
@@ -1328,9 +1328,9 @@ body.hasWireTabs #breadcrumbs {
 			border-radius: 3px 3px 0 0;
 			color: $link;
 			// height: $tabs-height;
-			//background: $wiretab-link-bg; 
+			//background: $wiretab-link-bg;
 			// position: relative;
-			// top: 1px; 
+			// top: 1px;
 
 			em {
 				border-bottom: none;
@@ -1344,7 +1344,7 @@ body.hasWireTabs #breadcrumbs {
 			border-left-color: $border-color;
 			background: $white;
 			// border-bottom: 1px solid $wiretab-link-current-bg;
-			// border-bottom: 2px solid $dark-link; 
+			// border-bottom: 2px solid $dark-link;
 			// position: relative;
 
 			em {
@@ -1353,10 +1353,10 @@ body.hasWireTabs #breadcrumbs {
 		}
 
 		a:hover {
-			// border: $wiretab-link-hover-border; 
-			// border-bottom: none; 
+			// border: $wiretab-link-hover-border;
+			// border-bottom: none;
 			color: $wiretab-link-hover-color;
-			// background: $wiretab-link-hover-bg; 
+			// background: $wiretab-link-hover-bg;
 
 			em {
 				border: none;
@@ -1658,7 +1658,7 @@ body:not(.hasWireTabs) #headline .container {
 	}
 
 	#masthead #topnav {
-		// float: left; 
+		// float: left;
 	}
 
 	body #masthead #topnav a,

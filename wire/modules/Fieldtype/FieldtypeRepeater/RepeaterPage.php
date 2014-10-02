@@ -3,10 +3,10 @@
 /**
  * RepeaterPage represents an individual repeater page item
  *
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -17,13 +17,13 @@ class RepeaterPage extends Page {
 	 * Page instance that has this repeater item on it
 	 *
 	 */
-	protected $forPage = null;		
+	protected $forPage = null;
 
 	/**
 	 * Field instance that contains this repeater item
 	 *
 	 */
-	protected $forField = null;		
+	protected $forField = null;
 
 	/**
 	 * Set the page that owns this repeater item
@@ -33,7 +33,7 @@ class RepeaterPage extends Page {
 	 *
 	 */
 	public function setForPage(Page $forPage) {
-		$this->forPage = $forPage; 
+		$this->forPage = $forPage;
 		return $this;
 	}
 
@@ -45,10 +45,10 @@ class RepeaterPage extends Page {
 	 */
 	public function getForPage() {
 
-		if(!is_null($this->forPage)) return $this->forPage; 
+		if(!is_null($this->forPage)) return $this->forPage;
 
 		// ownerPage is usually set by FieldtypeRepeater::wakeupValue
-		// but if this repeater was loaded from somewhere else, that won't 
+		// but if this repeater was loaded from somewhere else, that won't
 		// have happened, so we have to determine it from it's location
 
 		$parentName = $this->parent()->name;
@@ -57,7 +57,7 @@ class RepeaterPage extends Page {
 		if(strpos($parentName, $prefix) === 0) {
 			// determine owner page from parent name in format: for-page-1234
 			$forID = (int) substr($parentName, strlen($prefix));
-			$this->forPage = wire('pages')->get($forID); 
+			$this->forPage = wire('pages')->get($forID);
 		} else {
 			// this probably can't occur, but here just in case
 			$this->forPage = new NullPage();
@@ -87,13 +87,13 @@ class RepeaterPage extends Page {
 	public function getForField() {
 		if(!is_null($this->forField)) return $this->forField;
 
-		$grandparentName = $this->parent()->parent()->name; 	
+		$grandparentName = $this->parent()->parent()->name;
 		$prefix = FieldtypeRepeater::fieldPageNamePrefix;  // for-field-
 
 		if(strpos($grandparentName, $prefix) === 0) {
 			// determine field from grandparent name in format: for-field-1234
 			$forID = (int) substr($grandparentName, strlen($prefix));
-			$this->forField = wire('fields')->get($forID); 
+			$this->forField = wire('fields')->get($forID);
 		}
 
 		return $this->forPage;

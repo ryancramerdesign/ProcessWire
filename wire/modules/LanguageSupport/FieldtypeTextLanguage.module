@@ -1,14 +1,14 @@
 <?php
 
-require_once(dirname(__FILE__) . '/FieldtypeLanguageInterface.php'); 
+require_once(dirname(__FILE__) . '/FieldtypeLanguageInterface.php');
 
 /**
  * Multi-language capable text field
  *
- * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2011 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -35,12 +35,12 @@ class FieldtypeTextLanguage extends FieldtypeText implements FieldtypeLanguageIn
 			// great, already what we wanted
 		} else {
 			// convert it to a LanguagesPageFieldValue
-			$str = (string) $value; 
-			$value = $page->getUnformatted($field->name); 
+			$str = (string) $value;
+			$value = $page->getUnformatted($field->name);
 			if(is_string($value)) $value = new LanguagesPageFieldValue($value); // #98
-			$value->setLanguageValue(wire('user')->language->id, $str); 
+			$value->setLanguageValue(wire('user')->language->id, $str);
 		}
-		return $value; 
+		return $value;
 	}
 
         /**
@@ -48,12 +48,12 @@ class FieldtypeTextLanguage extends FieldtypeText implements FieldtypeLanguageIn
          *
          */
         public function getDatabaseSchema(Field $field) {
-	 
+
 			$schema = parent::getDatabaseSchema($field);
-			$languageSupport = wire('modules')->get('LanguageSupport'); 
-	
+			$languageSupport = wire('modules')->get('LanguageSupport');
+
 			// note that we use otherLanguagePageIDs rather than wire('languages') because
-			// it's possible that this method may be called before the languages are known 
+			// it's possible that this method may be called before the languages are known
 			foreach($languageSupport->otherLanguagePageIDs as $languageID) {
 				// $schema['data' . $languageID] = $schema['data'];
 				$schema['data' . $languageID] = 'text';
@@ -69,7 +69,7 @@ class FieldtypeTextLanguage extends FieldtypeText implements FieldtypeLanguageIn
 	 *
 	 */
 	public function formatValue(Page $page, Field $field, $value) {
-		return parent::formatValue($page, $field, (string) $value); 
+		return parent::formatValue($page, $field, (string) $value);
 	}
 
 }

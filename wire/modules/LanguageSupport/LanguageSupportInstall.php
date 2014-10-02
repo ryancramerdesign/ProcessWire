@@ -3,19 +3,19 @@
 /**
  * Installer and uninstaller for LanguageSupport module
  *
- * Split off into a seprate class/file because it's only needed once and 
+ * Split off into a seprate class/file because it's only needed once and
  * didn't want to keep all this code in the main module that's loaded every request.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
  */
 
-class LanguageSupportInstall extends Wire { 
+class LanguageSupportInstall extends Wire {
 
 	/**
 	 * Install the module and related modules
@@ -25,32 +25,32 @@ class LanguageSupportInstall extends Wire {
 
 		$configData = array();
 
-		if($this->templates->get(LanguageSupport::languageTemplateName)) 
-			throw new WireException("There is already a template installed called 'language'"); 
+		if($this->templates->get(LanguageSupport::languageTemplateName))
+			throw new WireException("There is already a template installed called 'language'");
 
-		if($this->fields->get(LanguageSupport::languageFieldName)) 
-			throw new WireException("There is already a field installed called 'language'"); 
+		if($this->fields->get(LanguageSupport::languageFieldName))
+			throw new WireException("There is already a field installed called 'language'");
 
-		$adminPage = $this->pages->get($this->config->adminRootPageID); 
-		$setupPage = $adminPage->child("name=setup"); 
-		if(!$setupPage->id) throw new WireException("Unable to locate {$adminPage->path}setup/"); 
+		$adminPage = $this->pages->get($this->config->adminRootPageID);
+		$setupPage = $adminPage->child("name=setup");
+		if(!$setupPage->id) throw new WireException("Unable to locate {$adminPage->path}setup/");
 
 		// create the languages parent page
-		$languagesPage = new Page(); 
-		$languagesPage->parent = $setupPage; 
-		$languagesPage->template = $this->templates->get('admin'); 
+		$languagesPage = new Page();
+		$languagesPage->parent = $setupPage;
+		$languagesPage->template = $this->templates->get('admin');
 		$languagesPage->process = $this->modules->get('ProcessLanguage'); // INSTALL ProcessLanguage module
-		$this->message("Installed ProcessLanguage"); 
+		$this->message("Installed ProcessLanguage");
 		$languagesPage->name = 'languages';
 		$languagesPage->title = 'Languages';
-		$languagesPage->status = Page::statusSystem; 
-		$languagesPage->sort = $setupPage->numChildren; 
+		$languagesPage->status = Page::statusSystem;
+		$languagesPage->sort = $setupPage->numChildren;
 		$languagesPage->save();
-		$configData['languagesPageID'] = $languagesPage->id; 
-		
+		$configData['languagesPageID'] = $languagesPage->id;
+
 
 		// create the fieldgroup to be used by the language template
-		$fieldgroup = new Fieldgroup(); 
+		$fieldgroup = new Fieldgroup();
 		$fieldgroup->name = LanguageSupport::languageTemplateName;
 		$fieldgroup->add($this->fields->get('title'));
 		$fieldgroup->save();
@@ -59,92 +59,92 @@ class LanguageSupportInstall extends Wire {
 		$this->addFilesFields($fieldgroup);
 
 		// create the template used by Language pages
-		$template = new Template();	
+		$template = new Template();
 		$template->name = LanguageSupport::languageTemplateName;
-		$template->fieldgroup = $fieldgroup; 
-		$template->parentTemplates = array($adminPage->template->id); 
-		$template->slashUrls = 1; 
+		$template->fieldgroup = $fieldgroup;
+		$template->parentTemplates = array($adminPage->template->id);
+		$template->slashUrls = 1;
 		$template->pageClass = 'Language';
 		$template->pageLabelField = 'name';
-		$template->noGlobal = 1; 
-		$template->noMove = 1; 
-		$template->noTrash = 1; 
-		$template->noUnpublish = 1; 
-		$template->noChangeTemplate = 1; 
-		$template->nameContentTab = 1; 
-		$template->flags = Template::flagSystem; 
+		$template->noGlobal = 1;
+		$template->noMove = 1;
+		$template->noTrash = 1;
+		$template->noUnpublish = 1;
+		$template->noChangeTemplate = 1;
+		$template->nameContentTab = 1;
+		$template->flags = Template::flagSystem;
 		$template->save();
-		$this->message("Created Template: " . LanguageSupport::languageTemplateName); 
+		$this->message("Created Template: " . LanguageSupport::languageTemplateName);
 
 		// create the default language page
 		$default = new Language();
-		$default->template = $template; 
-		$default->parent = $languagesPage; 
+		$default->template = $template;
+		$default->parent = $languagesPage;
 		$default->name = 'default';
-		$default->title = 'Default'; 
-		$default->status = Page::statusSystem; 
+		$default->title = 'Default';
+		$default->status = Page::statusSystem;
 		$default->save();
-		$configData['defaultLanguagePageID'] = $default->id; 
+		$configData['defaultLanguagePageID'] = $default->id;
 		$configData['otherLanguagePageIDs'] = array(); // non-default language IDs placeholder
-		$this->message("Created Default Language Page: {$default->path}"); 
+		$this->message("Created Default Language Page: {$default->path}");
 
 		// create the translator page and process
-		$translatorPage = new Page(); 
-		$translatorPage->parent = $setupPage; 
-		$translatorPage->template = $this->templates->get('admin'); 
-		$translatorPage->status = Page::statusHidden | Page::statusSystem; 
+		$translatorPage = new Page();
+		$translatorPage->parent = $setupPage;
+		$translatorPage->template = $this->templates->get('admin');
+		$translatorPage->status = Page::statusHidden | Page::statusSystem;
 		$translatorPage->process = $this->modules->get('ProcessLanguageTranslator'); // INSTALL ProcessLanguageTranslator
-		$this->message("Installed ProcessLanguageTranslator"); 
+		$this->message("Installed ProcessLanguageTranslator");
 		$translatorPage->name = 'language-translator';
 		$translatorPage->title = 'Language Translator';
 		$translatorPage->save();
-		$configData['languageTranslatorPageID'] = $translatorPage->id; 
-		$this->message("Created Language Translator Page: {$translatorPage->path}"); 
+		$configData['languageTranslatorPageID'] = $translatorPage->id;
+		$this->message("Created Language Translator Page: {$translatorPage->path}");
 
 		// save the module config data
-		$this->modules->saveModuleConfigData('LanguageSupport', $configData); 
-		
+		$this->modules->saveModuleConfigData('LanguageSupport', $configData);
+
 		// install 'language' field that will be added to the user fieldgroup
-		$field = new Field(); 
-		$field->type = $this->modules->get("FieldtypePage"); 
-		$field->name = LanguageSupport::languageFieldName; 
+		$field = new Field();
+		$field->type = $this->modules->get("FieldtypePage");
+		$field->name = LanguageSupport::languageFieldName;
 		$field->label = 'Language';
-		$field->derefAsPage = 1; 	
-		$field->parent_id = $languagesPage->id; 
+		$field->derefAsPage = 1;
+		$field->parent_id = $languagesPage->id;
 		$field->labelFieldName = 'title';
 		$field->inputfield = 'InputfieldRadios';
-		$field->required = 1; 
-		$field->flags = Field::flagSystem | Field::flagPermanent; 
+		$field->required = 1;
+		$field->flags = Field::flagSystem | Field::flagPermanent;
 		$field->save();
-		$this->message("Created Langage Field: " . LanguageSupport::languageFieldName); 
+		$this->message("Created Langage Field: " . LanguageSupport::languageFieldName);
 
 		// make the 'language' field part of the profile fields the user may edit
-		$profileConfig = $this->modules->getModuleConfigData('ProcessProfile'); 	
+		$profileConfig = $this->modules->getModuleConfigData('ProcessProfile');
 		$profileConfig['profileFields'][] = 'language';
-		$this->modules->saveModuleConfigData('ProcessProfile', $profileConfig); 
+		$this->modules->saveModuleConfigData('ProcessProfile', $profileConfig);
 
 		// add to 'user' fieldgroup
-		$userFieldgroup = $this->templates->get('user')->fieldgroup; 
-		$userFieldgroup->add($field); 
+		$userFieldgroup = $this->templates->get('user')->fieldgroup;
+		$userFieldgroup->add($field);
 		$userFieldgroup->save();
-		$this->message("Added field 'language' to user profile"); 
+		$this->message("Added field 'language' to user profile");
 
 		// update all users to have the default value set for this field
-		$n = 0; 
+		$n = 0;
 		foreach($this->users as $user) {
 			$user->set('language', $default);
 			$user->save();
 			$n++;
 		}
 
-		$this->message("Added default language to $n user profiles"); 
+		$this->message("Added default language to $n user profiles");
 
-		$this->message("Language Support Installed! Click to the 'Setup' menu to begin defining languages."); 
+		$this->message("Language Support Installed! Click to the 'Setup' menu to begin defining languages.");
 
 	}
-	
+
 	public function addFilesFields($fieldgroup) {
-		
+
 		// create the 'language_files_site' field used by the 'language' fieldgroup
 		$field = $this->wire('fields')->get('language_files_site');
 		if(!$field) {
@@ -166,7 +166,7 @@ class LanguageSupportInstall extends Wire {
 		$field->descriptionRows = 0;
 		$field->save();
 		$fieldgroup->add($field);
-		
+
 		// create the 'language_files' field used by the 'language' fieldgroup
 		$field = $this->wire('fields')->get('language_files');
 		if(!$field) {
@@ -187,8 +187,8 @@ class LanguageSupportInstall extends Wire {
 		$field->description = 'Use this field for [language packs](http://modules.processwire.com/categories/language-pack/). To delete all files, double-click the trash can for any file, then save.';
 		$field->descriptionRows = 0;
 		$field->save();
-		$fieldgroup->add($field); 
-		
+		$fieldgroup->add($field);
+
 		$fieldgroup->save();
 	}
 
@@ -198,24 +198,24 @@ class LanguageSupportInstall extends Wire {
 	 */
 	public function ___uninstall() {
 
-		$language = wire('user')->language; 
-		if($language && $language->id && !$language->isDefault) throw new WireException("Please switch your language back to the default language before uninstalling"); 
+		$language = wire('user')->language;
+		if($language && $language->id && !$language->isDefault) throw new WireException("Please switch your language back to the default language before uninstalling");
 
 		// uninstall the components 1 by 1
-		$configData = wire('modules')->getModuleConfigData('LanguageSupport'); 
+		$configData = wire('modules')->getModuleConfigData('LanguageSupport');
 
-		$field = $this->fields->get(LanguageSupport::languageFieldName); 
-		if($field) { 
-			$field->flags = Field::flagSystemOverride; 
-			$field->flags = 0; 
-			$userFieldgroup = $this->templates->get('user')->fieldgroup; 
-			if($userFieldgroup) { 
-				$userFieldgroup->remove($field); 
+		$field = $this->fields->get(LanguageSupport::languageFieldName);
+		if($field) {
+			$field->flags = Field::flagSystemOverride;
+			$field->flags = 0;
+			$userFieldgroup = $this->templates->get('user')->fieldgroup;
+			if($userFieldgroup) {
+				$userFieldgroup->remove($field);
 				$userFieldgroup->save();
-				$this->message("Removed language field from user profiles"); 
+				$this->message("Removed language field from user profiles");
 			}
-			$this->fields->delete($field); 	
-			$this->message("Removing field: $field"); 
+			$this->fields->delete($field);
+			$this->message("Removing field: $field");
 		}
 
 		$deletePageIDs = array(
@@ -224,42 +224,42 @@ class LanguageSupportInstall extends Wire {
 			$configData['languagesPageID']
 			);
 
-		// remove any language pages that are in the trash		
-		$trashLanguages = wire('pages')->get(wire('config')->trashPageID)->find("include=all, template=" . LanguageSupport::languageTemplateName); 
-		foreach($trashLanguages as $p) $deletePageIDs[] = $p->id; 
+		// remove any language pages that are in the trash
+		$trashLanguages = wire('pages')->get(wire('config')->trashPageID)->find("include=all, template=" . LanguageSupport::languageTemplateName);
+		foreach($trashLanguages as $p) $deletePageIDs[] = $p->id;
 
 		foreach($deletePageIDs as $id) {
-			$page = $this->pages->get($id); 
-			if(!$page->id) continue; 
-			$page->status = Page::statusSystemOverride; 
+			$page = $this->pages->get($id);
+			if(!$page->id) continue;
+			$page->status = Page::statusSystemOverride;
 			$page->status = 0;
-			$this->message("Removing page: {$page->path}"); 
-			$this->pages->delete($page, true); 
+			$this->message("Removing page: {$page->path}");
+			$this->pages->delete($page, true);
 		}
 
-		$template = $this->templates->get(LanguageSupport::languageTemplateName); 	
-		if($template) { 
-			$template->flags = Template::flagSystemOverride; 
+		$template = $this->templates->get(LanguageSupport::languageTemplateName);
+		if($template) {
+			$template->flags = Template::flagSystemOverride;
 			$template->flags = 0;
 
-			$this->message("Removing template: {$template->name}"); 
-			$this->templates->delete($template); 
+			$this->message("Removing template: {$template->name}");
+			$this->templates->delete($template);
 		}
 
-		$fieldgroup = $this->fieldgroups->get(LanguageSupport::languageTemplateName); 
-		if($fieldgroup) { 
-			$this->message("Removing fieldgroup: $fieldgroup"); 
-			$this->fieldgroups->delete($fieldgroup); 
+		$fieldgroup = $this->fieldgroups->get(LanguageSupport::languageTemplateName);
+		if($fieldgroup) {
+			$this->message("Removing fieldgroup: $fieldgroup");
+			$this->fieldgroups->delete($fieldgroup);
 		}
 
-		$field = $this->fields->get("language_files"); 
-		if($field) { 
-			$field->flags = Field::flagSystemOverride; 
+		$field = $this->fields->get("language_files");
+		if($field) {
+			$field->flags = Field::flagSystemOverride;
 			$field->flags = 0;
-			$this->message("Removing field: {$field->name}"); 
-			$this->fields->delete($field); 
+			$this->message("Removing field: {$field->name}");
+			$this->fields->delete($field);
 		}
-		
+
 		$field = $this->fields->get("language_files_site");
 		if($field) {
 			$field->flags = Field::flagSystemOverride;
@@ -268,11 +268,11 @@ class LanguageSupportInstall extends Wire {
 			$this->fields->delete($field);
 		}
 
-		Wire::setFuel('languages', null); 
-		$uninstallModules = array('ProcessLanguage', 'ProcessLanguageTranslator'); 
+		Wire::setFuel('languages', null);
+		$uninstallModules = array('ProcessLanguage', 'ProcessLanguageTranslator');
 		foreach($uninstallModules as $name) {
-			$this->modules->uninstall($name); 
-			$this->message("Uninstalled Module: $name"); 
+			$this->modules->uninstall($name);
+			$this->message("Uninstalled Module: $name");
 		}
 
 	}

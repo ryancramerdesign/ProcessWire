@@ -8,11 +8,11 @@
  * be passed between methods and objects that add to it without knowledge
  * of what other methods/objects have done to it. It also means being able
  * to build a complex query without worrying about correct syntax placement.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -24,15 +24,15 @@ class DatabaseQuerySelect extends DatabaseQuery {
 	 *
 	 */
 	public function __construct() {
-		$this->set('select', array()); 
-		$this->set('join', array()); 
-		$this->set('from', array()); 
-		$this->set('leftjoin', array()); 
-		$this->set('where', array()); 
-		$this->set('orderby', array()); 
-		$this->set('groupby', array()); 
-		$this->set('limit', array()); 
-		$this->set('comment', ''); 
+		$this->set('select', array());
+		$this->set('join', array());
+		$this->set('from', array());
+		$this->set('leftjoin', array());
+		$this->set('where', array());
+		$this->set('orderby', array());
+		$this->set('groupby', array());
+		$this->set('limit', array());
+		$this->set('comment', '');
 	}
 
 	/**
@@ -41,23 +41,23 @@ class DatabaseQuerySelect extends DatabaseQuery {
 	 */
 	public function getQuery() {
 
-		$sql = 	$this->getQuerySelect() . 
-			$this->getQueryFrom() . 
-			$this->getQueryJoin($this->join, "JOIN") . 
-			$this->getQueryJoin($this->leftjoin, "LEFT JOIN") . 
-			$this->getQueryWhere() . 
-			$this->getQueryGroupby() . 
-			$this->getQueryOrderby() . 
-			$this->getQueryLimit(); 
+		$sql = 	$this->getQuerySelect() .
+			$this->getQueryFrom() .
+			$this->getQueryJoin($this->join, "JOIN") .
+			$this->getQueryJoin($this->leftjoin, "LEFT JOIN") .
+			$this->getQueryWhere() .
+			$this->getQueryGroupby() .
+			$this->getQueryOrderby() .
+			$this->getQueryLimit();
 
 		if($this->get('comment') && $this->wire('config')->debug) {
 			// NOTE: PDO thinks ? and :str param identifiers in /* comments */ are real params
 			// so we str_replace them out of the comment, and only support comments in debug mode
-			$comment = str_replace(array('*/', '?', ':'), '', $this->comment); 
+			$comment = str_replace(array('*/', '?', ':'), '', $this->comment);
 			$sql .= "/* $comment */";
 		}
 
-		return $sql; 
+		return $sql;
 	}
 
 	/**
@@ -65,54 +65,54 @@ class DatabaseQuerySelect extends DatabaseQuery {
 	 *
 	 * @param string|array $value
 	 * @param bool $prepend Should the value be prepended onto the existing value? default is to append rather than prepend.
-	 * 	Note that $prepend is applicable only when you pass this method a string. $prepend is ignored if you pass an array. 
+	 * 	Note that $prepend is applicable only when you pass this method a string. $prepend is ignored if you pass an array.
 	 * @return this
 	 *
 	 */
 	public function orderby($value, $prepend = false) {
 
-		$oldValue = $this->get('orderby'); 
+		$oldValue = $this->get('orderby');
 
 		if(is_array($value)) {
-			$this->set('orderby', array_merge($oldValue, $value)); 
+			$this->set('orderby', array_merge($oldValue, $value));
 
-		} else if($prepend) { 
-			array_unshift($oldValue, $value); 
-			$this->set('orderby', $oldValue); 
+		} else if($prepend) {
+			array_unshift($oldValue, $value);
+			$this->set('orderby', $oldValue);
 
 		} else {
 			$oldValue[] = $value;
-			$this->set('orderby', $oldValue); 
+			$this->set('orderby', $oldValue);
 		}
 
-		return $this; 
+		return $this;
 	}
 
 	protected function getQuerySelect() {
 
 		$sql = '';
-		$select = $this->select; 
+		$select = $this->select;
 
 		// ensure that an SQL_CALC_FOUND_ROWS request comes first
 		while(($key = array_search("SQL_CALC_FOUND_ROWS", $select)) !== false) {
-			if(!$sql) $sql = "SELECT SQL_CALC_FOUND_ROWS ";	
-			unset($select[$key]); 
+			if(!$sql) $sql = "SELECT SQL_CALC_FOUND_ROWS ";
+			unset($select[$key]);
 		}
 		if(!$sql) $sql = "SELECT ";
 
 		// $config->dbCache option for debugging purposes
-		if(wire('config')->dbCache === false) $sql .= "SQL_NO_CACHE "; 
+		if(wire('config')->dbCache === false) $sql .= "SQL_NO_CACHE ";
 
 		foreach($select as $s) $sql .= "$s,";
-		$sql = rtrim($sql, ",") . " "; 
+		$sql = rtrim($sql, ",") . " ";
 		return $sql;
 	}
 
 	protected function getQueryFrom() {
 		$sql = "\nFROM ";
-		foreach($this->from as $s) $sql .= "`$s`,";	
-		$sql = rtrim($sql, ",") . " "; 
-		return $sql; 
+		foreach($this->from as $s) $sql .= "`$s`,";
+		$sql = rtrim($sql, ",") . " ";
+		return $sql;
 	}
 
 	protected function getQueryJoin(array $join, $type) {
@@ -137,8 +137,8 @@ class DatabaseQuerySelect extends DatabaseQuery {
 			// if it starts with 'HAVING' then we will determine placement
 			// this is a shortcut to combine multiple HAVING statements with ANDs
 			if(stripos($s, 'HAVING ') === 0) {
-				$having[] = substr($s, 7); 
-				continue; 
+				$having[] = substr($s, 7);
+				continue;
 			}
 			$sql .= "$s,";
 		}
@@ -149,7 +149,7 @@ class DatabaseQuerySelect extends DatabaseQuery {
 			foreach($having as $n => $h) {
 				if($n > 0) $sql .= " AND ";
 				$sql .= $h;
-				
+
 			}
 		}
 
@@ -161,11 +161,11 @@ class DatabaseQuerySelect extends DatabaseQuery {
 
 	protected function getQueryLimit() {
 		if(!count($this->limit)) return '';
-		$limit = $this->limit; 
+		$limit = $this->limit;
 		$sql = "\nLIMIT " . reset($limit) . " ";
-		return $sql; 
+		return $sql;
 	}
 
-	
+
 }
 

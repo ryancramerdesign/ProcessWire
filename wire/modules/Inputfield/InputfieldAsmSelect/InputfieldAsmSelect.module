@@ -14,7 +14,7 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 			'version' => 114,
 			'summary' => __('Multiple selection, progressive enhancement to select multiple', __FILE__), // Module Summary
 			'href' => 'http://code.google.com/p/jquery-asmselect/',
-			'permanent' => true, 
+			'permanent' => true,
 			);
 	}
 
@@ -22,31 +22,31 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 
 		// asmSelect requires jQuery UI, so we enforce it being loaded here
 		wire('modules')->get('JqueryCore'); // required by jQuery UI
-		wire('modules')->get('JqueryUI'); 
+		wire('modules')->get('JqueryUI');
 
-		parent::init(); 
+		parent::init();
 
-		$this->setAsmSelectOption('sortable', true); 
+		$this->setAsmSelectOption('sortable', true);
 
 		// an optional edit or detail link where items can be modified or viewed
 		// i.e. /path/to/page/?id={value} where {value} is replaced with option value
-		$this->setAsmSelectOption('editLink', ''); 
+		$this->setAsmSelectOption('editLink', '');
 
 		// only applicable if editLink is set. set to false if you don't want edit link to be modal
-		$this->setAsmSelectOption('editLinkModal', true); 
+		$this->setAsmSelectOption('editLinkModal', true);
 
 		// cancel the 'size' attribute used by select multiple
-		$this->set('size', null); 
+		$this->set('size', null);
 	}
 
 	public function setAsmSelectOption($key, $value) {
-		$this->asmOptions[$key] = $value; 
+		$this->asmOptions[$key] = $value;
 	}
 
 	public function ___render() {
 
 		// require javascript and css
-		$class = $this->className(); 
+		$class = $this->className();
 		$info = self::getModuleInfo();
 		$ver = $info['version'];
 
@@ -54,18 +54,18 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 		$this->config->styles->add($this->config->urls->$class . "$class.css?v=$ver");
 		$this->config->styles->add($this->config->urls->$class . "asmselect/jquery.asmselect.css?v=$ver");
 
-		$selectedOptions = $this->attr('value'); 
-		
+		$selectedOptions = $this->attr('value');
+
 		foreach($selectedOptions as $id) {
-			if(!isset($this->options[$id])) continue; 
-			$label = $this->options[$id]; 
-			unset($this->options[$id]); 	
-			$this->addOption($id, $label); 
+			if(!isset($this->options[$id])) continue;
+			$label = $this->options[$id];
+			unset($this->options[$id]);
+			$this->addOption($id, $label);
 		}
 
-		$this->config->js($this->id, $this->asmOptions); 
+		$this->config->js($this->id, $this->asmOptions);
 
 		return parent::___render();
-		
+
 	}
 }

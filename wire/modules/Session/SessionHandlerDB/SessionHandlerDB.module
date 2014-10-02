@@ -5,10 +5,10 @@
  *
  * @see /wire/core/SessionHandler.php
  *
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  *
  */
@@ -17,8 +17,8 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Session Handler Database', 
-			'version' => 2, 
+			'title' => 'Session Handler Database',
+			'version' => 2,
 			'summary' => "Installing this module makes ProcessWire store sessions in the database rather than the file system. Note that this module will log you out after install or uninstall.",
 			'installs' => array('ProcessSessionDB')
 			);
@@ -34,7 +34,7 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 	 * Quick reference to database
 	 *
 	 */
-	protected $database; 
+	protected $database;
 
 	/**
 	 * Construct
@@ -55,22 +55,22 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 	 *
 	 */
 	public function read($id) {
-		
-		$table = self::dbTableName; 
+
+		$table = self::dbTableName;
 		$database = $this->database;
 		$data = '';
-		
-		$query = $database->prepare("SELECT GET_LOCK(:id, 10)"); 
-		$query->execute(array(":id" => $id)); 
+
+		$query = $database->prepare("SELECT GET_LOCK(:id, 10)");
+		$query->execute(array(":id" => $id));
 		$query = $database->prepare("SELECT data FROM `$table` WHERE id=:id");
-		$query->execute(array(":id" => $id)); 
+		$query->execute(array(":id" => $id));
 		if($query->rowCount()) {
 			$data = $query->fetchColumn();
 			if(empty($data)) $data = '';
 		}
 		$query->closeCursor();
-			
-		return $data; 
+
+		return $data;
 	}
 
 	/**
@@ -87,39 +87,39 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		$user = $this->wire('user');
 		$page = $this->wire('page');
 		$id = $database->escapeStr($id);
-		$user_id = $user && $user->id ? (int) $user->id : 0; 
+		$user_id = $user && $user->id ? (int) $user->id : 0;
 		$pages_id = $page && $page->id ? (int) $page->id : 0;
 		$data = $database->escapeStr($data);
 		$ua = ($this->useUA && isset($_SERVER['HTTP_USER_AGENT'])) ? $database->escapeStr(substr($_SERVER['HTTP_USER_AGENT'], 0, 255)) : '';
 		$ip = $this->useIP ? ((int) wire('session')->getIP(true)) : '';
-		
-		$s = "user_id=$user_id, pages_id=$pages_id, data='$data'"; 
+
+		$s = "user_id=$user_id, pages_id=$pages_id, data='$data'";
 		if($ip) $s .= ", ip=$ip";
 		if($ua) $s .= ", ua='$ua'";
 		$sql = 	"INSERT INTO $table SET id='$id', $s ";
 		$sql .= "ON DUPLICATE KEY UPDATE $s, ts=NOW()";
-		
-		$query = $database->prepare($sql); 
+
+		$query = $database->prepare($sql);
 		$result = $query->execute() ? true : false;
 		$database->exec("SELECT RELEASE_LOCK('$id')");
-		
-		return $result; 
+
+		return $result;
 	}
 
 	/**
 	 * Destroy the session indicated by the given session ID
 	 *
 	 * @param string $id Session ID
-	 * @return bool True on success, false on failure 
+	 * @return bool True on success, false on failure
 	 *
 	 */
 	public function destroy($id) {
 		$table = self::dbTableName;
 		$database = $this->database;
-		$query = $database->prepare("DELETE FROM `$table` WHERE id=:id"); 
-		$query->execute(array(":id" => $id)); 
+		$query = $database->prepare("DELETE FROM `$table` WHERE id=:id");
+		$query->execute(array(":id" => $id));
 		setcookie(session_name(), '', time()-3600);
-		return true; 
+		return true;
 	}
 
 	/**
@@ -130,8 +130,8 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 	 *
 	 */
 	public function gc($seconds) {
-		$table = self::dbTableName; 
-		$seconds = (int) $seconds; 
+		$table = self::dbTableName;
+		$seconds = (int) $seconds;
 		$sql = "DELETE FROM `$table` WHERE ts < DATE_SUB(NOW(), INTERVAL $seconds SECOND)";
 		return $this->database->exec($sql);
 	}
@@ -141,24 +141,24 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 	 *
 	 */
 	public function ___install() {
-		
+
 		$table = self::dbTableName;
 
-		$sql = 	"CREATE TABLE `$table` (" . 
-				"id CHAR(32) NOT NULL, " . 
-				"user_id INT UNSIGNED NOT NULL, " . 
-				"pages_id INT UNSIGNED NOT NULL, " . 
-				"data TEXT NOT NULL, " . 
-				"ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, " . 
-				"ip INT UNSIGNED NOT NULL DEFAULT 0, " . 
-				"ua VARCHAR(255) NOT NULL DEFAULT '', " . 
-				"PRIMARY KEY (id), " . 
-				"INDEX (pages_id), " . 
-				"INDEX (user_id), " . 
-				"INDEX (ts) " . 
+		$sql = 	"CREATE TABLE `$table` (" .
+				"id CHAR(32) NOT NULL, " .
+				"user_id INT UNSIGNED NOT NULL, " .
+				"pages_id INT UNSIGNED NOT NULL, " .
+				"data TEXT NOT NULL, " .
+				"ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, " .
+				"ip INT UNSIGNED NOT NULL DEFAULT 0, " .
+				"ua VARCHAR(255) NOT NULL DEFAULT '', " .
+				"PRIMARY KEY (id), " .
+				"INDEX (pages_id), " .
+				"INDEX (user_id), " .
+				"INDEX (ts) " .
 				") ENGINE=InnoDB DEFAULT CHARSET=utf8";
 
-		$this->database->query($sql); 
+		$this->database->query($sql);
 	}
 
 	/**
@@ -166,7 +166,7 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 	 *
 	 */
 	public function ___uninstall() {
-		$this->database->query("DROP TABLE " . self::dbTableName); 
+		$this->database->query("DROP TABLE " . self::dbTableName);
 	}
 
 	/**
@@ -178,27 +178,27 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		$form = new InputfieldWrapper();
 
 		// check if their DB table is the latest version
-		$query = wire('database')->query("SHOW COLUMNS FROM " . self::dbTableName . " WHERE field='ip'"); 
+		$query = wire('database')->query("SHOW COLUMNS FROM " . self::dbTableName . " WHERE field='ip'");
 		if(!$query->rowCount()) {
-			wire('modules')->error("DB format changed - You must uninstall this module and re-install before configuring."); 
+			wire('modules')->error("DB format changed - You must uninstall this module and re-install before configuring.");
 			return $form;
 		}
 
 		$description = __('Checking this box will enable the data to be displayed in your admin sessions list.', __FILE__);
 
-		$f = wire('modules')->get('InputfieldCheckbox'); 
-		$f->attr('name', 'useIP'); 
+		$f = wire('modules')->get('InputfieldCheckbox');
+		$f->attr('name', 'useIP');
 		$f->attr('value', 1);
-		$f->attr('checked', empty($data['useIP']) ? '' : 'checked'); 
-		$f->label = __('Track IP addresses in session data?', __FILE__); 
+		$f->attr('checked', empty($data['useIP']) ? '' : 'checked');
+		$f->label = __('Track IP addresses in session data?', __FILE__);
 		$f->description = $description;
 		$form->add($f);
 
-		$f = wire('modules')->get('InputfieldCheckbox'); 
-		$f->attr('name', 'useUA'); 
+		$f = wire('modules')->get('InputfieldCheckbox');
+		$f->attr('name', 'useUA');
 		$f->attr('value', 1);
-		$f->attr('checked', empty($data['useUA']) ? '' : 'checked'); 
-		$f->label = __('Track user agent in session data?', __FILE__); 
+		$f->attr('checked', empty($data['useUA']) ? '' : 'checked');
+		$f->label = __('Track user agent in session data?', __FILE__);
 		$f->notes = __('The user agent typically contains information about the browser being used.', __FILE__);
 		$f->description = $description;
 		$form->add($f);

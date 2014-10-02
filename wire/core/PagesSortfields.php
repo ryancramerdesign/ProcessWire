@@ -4,11 +4,11 @@
  * ProcessWire PagesSortfields
  *
  * Manages the table for the sortfield property for Page children.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -24,24 +24,24 @@ class PagesSortfields extends Wire {
 	 */
 	public function save(Page $page) {
 
-		if(!$page->id) return false; 
-		if(!$page->isChanged('sortfield')) return true; 
+		if(!$page->id) return false;
+		if(!$page->isChanged('sortfield')) return true;
 
-		$page_id = (int) $page->id; 
+		$page_id = (int) $page->id;
 		$database = $this->wire('database');
-		$sortfield = $this->encode($page->sortfield); 
+		$sortfield = $this->encode($page->sortfield);
 
-		if($sortfield == 'sort' || !$sortfield) return $this->delete($page); 
+		if($sortfield == 'sort' || !$sortfield) return $this->delete($page);
 
 		$sql = 	"INSERT INTO pages_sortfields (pages_id, sortfield) " .
 				"VALUES(:page_id, :sortfield) " .
 				"ON DUPLICATE KEY UPDATE sortfield=VALUES(sortfield)";
-		
+
 		$query = $database->prepare($sql);
 		$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
 		$query->bindValue(":sortfield", $sortfield, PDO::PARAM_STR);
 		$result = $query->execute();
-		
+
 		return $result;
 	}
 
@@ -55,15 +55,15 @@ class PagesSortfields extends Wire {
 	public function delete(Page $page) {
 		$database = $this->wire('database');
 		$query = $database->prepare("DELETE FROM pages_sortfields WHERE pages_id=:page_id"); // QA
-		$query->bindValue(":page_id", $page->id, PDO::PARAM_INT); 
+		$query->bindValue(":page_id", $page->id, PDO::PARAM_INT);
 		$result = $query->execute();
 		return $result;
 	}
 
 	/**
-	 * Decodes a sortfield from a signed integer or string to a field name 
+	 * Decodes a sortfield from a signed integer or string to a field name
 	 *
-	 * The returned fieldname is preceded with a dash if the sortfield is reversed. 
+	 * The returned fieldname is preceded with a dash if the sortfield is reversed.
 	 *
 	 * @param string|int $sortfield
 	 * @param string $default Default sortfield name (default='sort')
@@ -75,26 +75,26 @@ class PagesSortfields extends Wire {
 		$reverse = false;
 
 		if(substr($sortfield, 0, 1) == '-') {
-			$sortfield = substr($sortfield, 1); 
-			$reverse = true; 	
+			$sortfield = substr($sortfield, 1);
+			$reverse = true;
 		}
 
 		if(ctype_digit("$sortfield") || !Fields::isNativeName($sortfield)) {
 			$field = $this->fuel('fields')->get($sortfield);
-			if($field) $sortfield = $field->name; 
+			if($field) $sortfield = $field->name;
 				else $sortfield = '';
 		}
 
 		if(!$sortfield) $sortfield = $default;
 			else if($reverse) $sortfield = "-$sortfield";
 
-		return $sortfield; 
+		return $sortfield;
 	}
 
 	/**
 	 * Encodes a sortfield from a fieldname to a signed integer (ID) representing a custom field, or native field name
 	 *
-	 * The returned value will be a negative value (or string preceded by a dash) if the sortfield is reversed. 
+	 * The returned value will be a negative value (or string preceded by a dash) if the sortfield is reversed.
 	 *
 	 * @param string $sortfield
 	 * @param string $default Default sortfield name (default='sort')
@@ -103,15 +103,15 @@ class PagesSortfields extends Wire {
 	 */
 	public function encode($sortfield, $default = 'sort') {
 
-		$reverse = false; 
-	
-		if(substr($sortfield, 0, 1) == '-') {	
-			$reverse = true; 
-			$sortfield = substr($sortfield, 1); 
+		$reverse = false;
+
+		if(substr($sortfield, 0, 1) == '-') {
+			$reverse = true;
+			$sortfield = substr($sortfield, 1);
 		}
 
-		if($sortfield && !Fields::isNativeName($sortfield)) { 
-			if($field = $this->fuel('fields')->get($sortfield)) $sortfield = $field->id; 
+		if($sortfield && !Fields::isNativeName($sortfield)) {
+			if($field = $this->fuel('fields')->get($sortfield)) $sortfield = $field->id;
 				else $sortfield = '';
 		}
 
@@ -121,6 +121,6 @@ class PagesSortfields extends Wire {
 			$sortfield = $default;
 		}
 
-		return $sortfield; 
+		return $sortfield;
 	}
 }

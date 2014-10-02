@@ -1,16 +1,16 @@
 <?php
 
 /**
- * ProcessWire Session Handler 
+ * ProcessWire Session Handler
  *
  * This is an abstract class for a session handler module to extend from.
  * It provides the interface and some basic functions. For an example, see:
  * /wire/modules/Session/SessionHandlerDB/SessionHandlerDB.module
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  *
@@ -23,8 +23,8 @@ abstract class WireSessionHandler extends WireData implements Module {
 	 *
 	 */
 	public function __construct() {
-		$this->addHookBefore('Session::init', $this, 'attach'); 
-		register_shutdown_function('session_write_close'); 
+		$this->addHookBefore('Session::init', $this, 'attach');
+		register_shutdown_function('session_write_close');
 	}
 
 	/**
@@ -38,7 +38,7 @@ abstract class WireSessionHandler extends WireData implements Module {
 	 *
 	 */
 	public function attach() {
-		session_set_save_handler(	
+		session_set_save_handler(
 			array($this, 'open'),
 			array($this, 'close'),
 			array($this, 'read'),
@@ -57,7 +57,7 @@ abstract class WireSessionHandler extends WireData implements Module {
 	 *
 	 */
 	public function open($path, $name) {
-		return true; 
+		return true;
 	}
 
 	/**
@@ -67,9 +67,9 @@ abstract class WireSessionHandler extends WireData implements Module {
 	 *
 	 */
 	public function close() {
-		return true; 
+		return true;
 	}
-	
+
 	/**
 	 * Read and return data for session indicated by $id
 	 *
@@ -86,13 +86,13 @@ abstract class WireSessionHandler extends WireData implements Module {
 	 * @param string Serialized data to write
 	 *
 	 */
-	abstract public function write($id, $data); 
+	abstract public function write($id, $data);
 
 	/**
 	 * Destroy the session indicated by the given session ID
 	 *
 	 * @param string $id Session ID
-	 * @return bool True on success, false on failure 
+	 * @return bool True on success, false on failure
 	 *
 	 */
 	abstract public function destroy($id);
@@ -119,8 +119,8 @@ abstract class WireSessionHandler extends WireData implements Module {
 	 *
 	 */
 	public function isAutoload() {
-		return true; 
+		return true;
 	}
-	
+
 
 }

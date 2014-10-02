@@ -21,15 +21,15 @@
 			$("#add_city_btn").click(function() {
 
 				var city = $("#add_city").val();
-				var $option = $("<option></option>").text(city).attr("selected", true); 
+				var $option = $("<option></option>").text(city).attr("selected", true);
 
 				$("#cities").append($option).change();
 				$("#add_city").val('');
 
-				return false; 
-			}); 
-			
-		}); 
+				return false;
+			});
+
+		});
 
 	</script>
 
@@ -40,9 +40,9 @@
 <body>
 
 	<h1>Example 2: Modifying the select from jQuery</h1>
-	
+
 	<h3>
-	This example demonstrates how you can modify the contents of the select, and how you should 
+	This example demonstrates how you can modify the contents of the select, and how you should
 	trigger a change() event on the select after you have modified it.
 	</h3>
 
@@ -50,7 +50,7 @@
 
 		<label for="cities">what are your favorite cities?</label>
 		<select id="cities" multiple="multiple" name="cities[]" title="Please Select">
-                        <option>Amsterdam</option>      
+                        <option>Amsterdam</option>
                         <option selected="selected">Atlanta</option>
                         <option selected="selected">Baltimore</option>
                         <option>Boston</option>

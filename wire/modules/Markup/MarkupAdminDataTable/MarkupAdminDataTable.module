@@ -2,32 +2,32 @@
 
 class MarkupAdminDataTable extends ModuleJS {
 
-	protected $headerRow = array(); 
+	protected $headerRow = array();
 	protected $footerRow = array();
 	protected $rows = array();
 	protected $actions = array();
-	protected $encodeEntities = true; 
-	protected $sortable = true; 
+	protected $encodeEntities = true;
+	protected $sortable = true;
 	protected $class = '';
 	protected $caption = '';
-	
+
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Admin Data Table', 
-			'summary' => 'Generates XHTML markup for data tables used by ProcessWire admin', 
-			'version' => 102, 
-			'permanent' => true, 
+			'title' => 'Admin Data Table',
+			'summary' => 'Generates XHTML markup for data tables used by ProcessWire admin',
+			'version' => 102,
+			'permanent' => true,
 			);
 	}
 
 	public function init() {
 		parent::init();
-		$this->modules->get("JqueryTableSorter"); 
+		$this->modules->get("JqueryTableSorter");
 	}
 
 	public function headerRow(array $a) {
-		$this->headerRow = $a; 
-		return $this; 
+		$this->headerRow = $a;
+		return $this;
 	}
 
 	public function footerRow(array $a) {
@@ -37,7 +37,7 @@ class MarkupAdminDataTable extends ModuleJS {
 
 	public function row(array $a) {
 		$this->rows[] = $this->setupRow($a);
-		return $this; 
+		return $this;
 	}
 
 	protected function setupRow(array $a) {
@@ -45,19 +45,19 @@ class MarkupAdminDataTable extends ModuleJS {
 
 		foreach($a as $k => $v) {
 			if(is_string($k)) {
-				// Associative arrays get converted to: 
+				// Associative arrays get converted to:
 				// Anchor Text => URL
 				$v = "<a href='$v'>" . $this->encode($k) . "</a>";
 			} else {
-				$v = $this->encode($v); 
+				$v = $this->encode($v);
 			}
-			$row[] = $v; 
+			$row[] = $v;
 		}
 		return $row;
 	}
 
 	public function action(array $action) {
-		foreach($action as $label => $url) { 
+		foreach($action as $label => $url) {
 			$this->actions[$label] = $url;
 		}
 		return $this;
@@ -65,12 +65,12 @@ class MarkupAdminDataTable extends ModuleJS {
 
 	public function ___render() {
 
-		$tableClass = trim("AdminDataTable AdminDataList {$this->class}"); 
-		if($this->sortable) $tableClass .= " AdminDataTableSortable"; 
+		$tableClass = trim("AdminDataTable AdminDataList {$this->class}");
+		if($this->sortable) $tableClass .= " AdminDataTableSortable";
 		$out = '';
 		$maxCols = 0;
 
-		if(count($this->rows)) { 
+		if(count($this->rows)) {
 			$out = "\n<table class='$tableClass'>";
 
 			if($this->caption) $out .= "\n\t<caption>{$this->caption}</caption>";
@@ -78,8 +78,8 @@ class MarkupAdminDataTable extends ModuleJS {
 			if(count($this->headerRow)) {
 				$out .= "\n\t<thead>\n\t<tr>";
 				foreach($this->headerRow as $th) {
-					$th = $this->encode($th); 
-					$out .= "\n\t\t<th>$th</th>"; 
+					$th = $this->encode($th);
+					$out .= "\n\t\t<th>$th</th>";
 					$maxCols++;
 				}
 				$out .= "\n\t</tr>\n\t</thead>";
@@ -88,7 +88,7 @@ class MarkupAdminDataTable extends ModuleJS {
 			if(count($this->footerRow)) {
 				$out .= "\n\t<tfoot>\n\t<tr>";
 				foreach($this->footerRow as $td) {
-					$out .= "\n\t\t\t<td>$td</td>"; 
+					$out .= "\n\t\t\t<td>$td</td>";
 				}
 				$out .= "\n\t</tr>\n\t</tfoot>";
 			}
@@ -96,11 +96,11 @@ class MarkupAdminDataTable extends ModuleJS {
 			$out .= "\n\t<tbody>";
 			foreach($this->rows as $row) {
 				$cols = count($row);
-				if($cols > $maxCols) $maxCols = $cols; 
+				if($cols > $maxCols) $maxCols = $cols;
 				if($cols < $maxCols) for(; $cols < $maxCols; $cols++) $row[] = '&nbsp;';
 				$out .= "\n\t\t<tr>";
 				foreach($row as $td) {
-					$out .= "\n\t\t\t<td>$td</td>"; 
+					$out .= "\n\t\t\t<td>$td</td>";
 				}
 				$out .= "\n\t\t</tr>";
 			}
@@ -112,7 +112,7 @@ class MarkupAdminDataTable extends ModuleJS {
 		if(count($this->actions)) {
 			$out .= "\n<p>";
 			foreach($this->actions as $label => $url) {
-				$button = $this->modules->get("InputfieldButton"); 
+				$button = $this->modules->get("InputfieldButton");
 				$button->href = $url;
 				$button->value = $label;
 				$out .= $button->render();
@@ -120,20 +120,20 @@ class MarkupAdminDataTable extends ModuleJS {
 			$out .= "\n</p>";
 		}
 
-		return $out; 
+		return $out;
 	}
 
 	protected function encode($str) {
-		if(!$this->encodeEntities) return $str; 
-		return htmlspecialchars($str, ENT_QUOTES); 
-	}	
+		if(!$this->encodeEntities) return $str;
+		return htmlspecialchars($str, ENT_QUOTES);
+	}
 
 	public function setEncodeEntities($encodeEntities = true) {
-		$this->encodeEntities = $encodeEntities ? true : false; 
+		$this->encodeEntities = $encodeEntities ? true : false;
 	}
 
 	public function setClass($class) {
-		$this->class = $this->encode($class); 
+		$this->class = $this->encode($class);
 	}
 
 	public function setSortable($sortable) {
@@ -141,17 +141,17 @@ class MarkupAdminDataTable extends ModuleJS {
 	}
 
 	public function setCaption($caption) {
-		$this->caption = $this->encode($caption); 
+		$this->caption = $this->encode($caption);
 	}
 
 	/** the following are specific to the Module interface **/
 
 	public function isSingular() {
-		return false; 
+		return false;
 	}
 
 	public function isAutoload() {
-		return false; 
+		return false;
 	}
 
 }

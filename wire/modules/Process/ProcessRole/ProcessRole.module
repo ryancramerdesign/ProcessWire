@@ -3,13 +3,13 @@
 /**
  * ProcessWire Role Process
  *
- * For more details about how Process modules work, please see: 
- * /wire/core/Process.php 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * For more details about how Process modules work, please see:
+ * /wire/core/Process.php
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -20,37 +20,37 @@ class ProcessRole extends ProcessPageType {
 	static public function getModuleInfo() {
 		return array(
 			'title' => __('Roles', __FILE__), // getModuleInfo title
-			'version' => 101, 
-			'summary' => __('Manage user roles and what permissions are attached', __FILE__), // getModuleInfo summary 
-			'permanent' => true, 
+			'version' => 101,
+			'summary' => __('Manage user roles and what permissions are attached', __FILE__), // getModuleInfo summary
+			'permanent' => true,
 			'permission' => 'role-admin', // add this permission if you want this Process available for roles other than Superuser
 			'icon' => 'gears',
 			'useNavJSON' => true,
-			); 
+			);
 	}
-	
+
 	public function init() {
 		parent::init();
-		$this->addHookBefore('InputfieldForm::render', $this, 'hookFormRender'); 
+		$this->addHookBefore('InputfieldForm::render', $this, 'hookFormRender');
 	}
-	
+
 	public function hookFormRender(HookEvent $event) {
 		$form = $event->object;
 		$f = $form->getChildByName('permissions');
 		if(!$f) return;
-		$f->label = $this->_('Permissions'); 
-		$f->notes = "&dagger; " . $this->_('Indicated permissions open more permission options that are revealed after checking the box and saving the page.') . "\n\n" . 
+		$f->label = $this->_('Permissions');
+		$f->notes = "&dagger; " . $this->_('Indicated permissions open more permission options that are revealed after checking the box and saving the page.') . "\n\n" .
 			$this->_('*Note that checking the page-edit permission here means only that the role can be selected for edit access at the template level. Simply assigning the page-edit permission here does grant edit permission until it is also selected in one or more template access control settings.');
 		$f = $f->getInputfield();
 		$f->table = true;
 		$f->thead = $this->_('name|title'); // Table head with each column title separated by a pipe "|"
 		$value = $f->attr('value');
 		$options = $f->getOptions();
-		$pageViewID = 0; 
+		$pageViewID = 0;
 		$parentPermissions = array();
-		
+
 		foreach($options as $name => $label) $f->removeOption($name);
-		
+
 		foreach($this->wire('permissions') as $permission) {
 			$parentPermission = $permission->getParentPermission();
 			if($parentPermission->id) {
@@ -58,7 +58,7 @@ class ProcessRole extends ProcessPageType {
 				$parentPermissions[$parentPermission->id][$permission->id] = $permission->name;
 			}
 		}
-		
+
 		foreach($this->wire('permissions') as $permission) {
 			$parentPermission = $permission->getParentPermission();
 			if($parentPermission->id && !in_array($parentPermission->id, $value)) continue;
@@ -66,17 +66,17 @@ class ProcessRole extends ProcessPageType {
 			if($name == 'page-edit') $name .= " *";
 			if($name == 'page-view') {
 				$name .= " " . $this->_('(required)');
-				$pageViewID = $permission->id; 
+				$pageViewID = $permission->id;
 			}
 			if(isset($parentPermissions[$permission->id])) $name .= " &dagger;";
-			$title = str_replace('|', ' ', $permission->title); 
-			$f->addOption($permission->id, "$name|$title"); 
+			$title = str_replace('|', ' ', $permission->title);
+			$f->addOption($permission->id, "$name|$title");
 		}
 		if(!in_array($pageViewID, $value)) {
-			$value[] = $pageViewID; 
+			$value[] = $pageViewID;
 			$f->attr('value', $value);
 		}
 	}
-	
+
 }
 

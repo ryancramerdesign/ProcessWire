@@ -5,17 +5,17 @@
  *
  * Pagefiles are a collection of Pagefile objects.
  *
- * Typically a Pagefiles object will be associated with a specific field attached to a Page. 
+ * Typically a Pagefiles object will be associated with a specific field attached to a Page.
  * There may be multiple instances of Pagefiles attached to a given Page (depending on what fields are in it's fieldgroup).
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  *
- * @property string $path Returns the full server disk path where files are stored	
+ * @property string $path Returns the full server disk path where files are stored
  * @property string $url Returns the URL where files are stored
  * @property Page $page Returns the $page that contains this set of files
  * @method Pagefiles delete() delete(Pagefile $file) Removes the file and deletes from disk when page is saved (alias of remove)
@@ -28,13 +28,13 @@ class Pagefiles extends WireArray {
 	 * The Page object associated with these Pagefiles
 	 *
 	 */
-	protected $page; 
+	protected $page;
 
 	/**
 	 * The Field object associated with these Pagefiles
 	 *
 	 */
-	protected $field; 
+	protected $field;
 
 	/**
 	 * Items to be deleted when Page is saved
@@ -49,13 +49,13 @@ class Pagefiles extends WireArray {
 	protected $hookIDs = array();
 
 	/**
-	 * Construct an instantance of Pagefiles 
+	 * Construct an instantance of Pagefiles
 	 *
 	 * @param Page $page The page associated with this Pagefiles instance
 	 *
 	 */
 	public function __construct(Page $page) {
-		$this->setPage($page); 
+		$this->setPage($page);
 	}
 
 	public function __destruct() {
@@ -64,41 +64,41 @@ class Pagefiles extends WireArray {
 
 	protected function removeHooks() {
 		if(count($this->hookIDs) && $this->page && $this->page->filesManager) {
-			foreach($this->hookIDs as $id) $this->page->filesManager->removeHook($id); 
+			foreach($this->hookIDs as $id) $this->page->filesManager->removeHook($id);
 		}
 	}
 
 	public function setPage(Page $page) {
-		$this->page = $page; 
+		$this->page = $page;
 		// call the filesmanager, just to ensure paths are where they should be
-		$page->filesManager(); 
+		$page->filesManager();
 	}
 
 	public function setField(Field $field) {
-		$this->field = $field; 
+		$this->field = $field;
 	}
 
 	public function getPage() {
-		return $this->page; 
+		return $this->page;
 	}
 
 	public function getField() {
-		return $this->field; 
+		return $this->field;
 	}
 
 	/**
-	 * Creates a new blank instance of itself. For internal use, part of the WireArray interface. 
+	 * Creates a new blank instance of itself. For internal use, part of the WireArray interface.
 	 *
-	 * Adapted here so that $this->page can be passed to the constructor of a newly created Pagefiles. 
+	 * Adapted here so that $this->page can be passed to the constructor of a newly created Pagefiles.
 	 *
 	 * @return WireArray
-	 * 
+	 *
 	 */
 	public function makeNew() {
-		$class = get_class($this); 
-		$newArray = new $class($this->page); 
-		$newArray->setField($this->field); 
-		return $newArray; 
+		$class = get_class($this);
+		$newArray = new $class($this->page);
+		$newArray->setField($this->field);
+		return $newArray;
 	}
 
 	/**
@@ -113,11 +113,11 @@ class Pagefiles extends WireArray {
 	 */
 	public function makeCopy() {
 		$newArray = $this->makeNew();
-		foreach($this->data as $key => $value) $newArray[$key] = $value; 
-		foreach($this->extraData as $key => $value) $newArray->data($key, $value); 
+		foreach($this->data as $key => $value) $newArray[$key] = $value;
+		foreach($this->extraData as $key => $value) $newArray->data($key, $value);
 		$newArray->resetTrackChanges($this->trackChanges());
-		foreach($newArray as $item) $item->setPagefilesParent($newArray); 
-		return $newArray; 
+		foreach($newArray as $item) $item->setPagefilesParent($newArray);
+		return $newArray;
 	}
 
 	/**
@@ -128,7 +128,7 @@ class Pagefiles extends WireArray {
 		foreach($this as $key => $pagefile) {
 			$pagefile = clone $pagefile;
 			$pagefile->setPagefilesParent($this);
-			$this->set($key, $pagefile); 
+			$this->set($key, $pagefile);
 		}
 	}
 
@@ -145,7 +145,7 @@ class Pagefiles extends WireArray {
 	 *
 	 */
 	public function getItemKey($item) {
-		return $item->basename; 
+		return $item->basename;
 	}
 
 	/**
@@ -153,7 +153,7 @@ class Pagefiles extends WireArray {
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Pagefile($this, ''); 
+		return new Pagefile($this, '');
 	}
 
 	/**
@@ -166,16 +166,16 @@ class Pagefiles extends WireArray {
 	 *
 	 */
 	public function get($key) {
-		if($key == 'page') return $this->getPage(); 
-		if($key == 'field') return $this->getField(); 
+		if($key == 'page') return $this->getPage();
+		if($key == 'field') return $this->getField();
 		if($key == 'url') return $this->url();
-		if($key == 'path') return $this->path(); 
+		if($key == 'path') return $this->path();
 		return parent::get($key);
 	}
 
 	public function __get($key) {
-		if(in_array($key, array('page', 'field', 'url', 'path'))) return $this->get($key); 
-		return parent::__get($key); 
+		if(in_array($key, array('page', 'field', 'url', 'path'))) return $this->get($key);
+		return parent::__get($key);
 	}
 
 	/**
@@ -187,14 +187,14 @@ class Pagefiles extends WireArray {
 	public function find($selector) {
 		if(!Selectors::stringHasOperator($selector)) {
 			// if there is no selector operator in the strong, consider it a tag first
-			$value = $this->findTag($selector); 
+			$value = $this->findTag($selector);
 			// if it didn't match any tag, then see if it matches in some other way
-			if(!count($value)) $value = parent::find($selector); 
+			if(!count($value)) $value = parent::find($selector);
 		} else {
 			// there is an operator so we send it straight to WireArray
-			$value = parent::find($selector);		
+			$value = parent::find($selector);
 		}
-		return $value; 
+		return $value;
 	}
 	 */
 
@@ -208,10 +208,10 @@ class Pagefiles extends WireArray {
 	public function add($item) {
 
 		if(is_string($item)) {
-			$item = new Pagefile($this, $item); 
+			$item = new Pagefile($this, $item);
 		}
 
-		return parent::add($item); 
+		return parent::add($item);
 	}
 
 	/**
@@ -224,7 +224,7 @@ class Pagefiles extends WireArray {
 		}
 		$this->unlinkQueue = array();
 		$this->removeHooks();
-		return $this; 
+		return $this;
 	}
 
 	/**
@@ -235,13 +235,13 @@ class Pagefiles extends WireArray {
 	 *
 	 */
 	public function ___delete($item) {
-		return $this->remove($item); 
+		return $this->remove($item);
 	}
 
 	/**
 	 * Delete/remove a Pagefile item
 	 *
-	 * Deletes the filename associated with the Pagefile and removes it from this Pagefiles instance. 
+	 * Deletes the filename associated with the Pagefile and removes it from this Pagefiles instance.
 	 *
 	 * @param Pagefile $item
 	 * @return $this
@@ -249,28 +249,28 @@ class Pagefiles extends WireArray {
 	 *
 	 */
 	public function remove($item) {
-		if(is_string($item)) $item = $this->get($item); 
-		if(!$this->isValidItem($item)) throw new WireException("Invalid type to {$this->className}::remove(item)"); 
+		if(is_string($item)) $item = $this->get($item);
+		if(!$this->isValidItem($item)) throw new WireException("Invalid type to {$this->className}::remove(item)");
 		if(!count($this->unlinkQueue)) {
-			$this->hookIDs[] = $this->page->filesManager->addHookBefore('save', $this, 'hookPageSave'); 
+			$this->hookIDs[] = $this->page->filesManager->addHookBefore('save', $this, 'hookPageSave');
 		}
-		$this->unlinkQueue[] = $item; 
-		parent::remove($item); 
-		return $this; 
+		$this->unlinkQueue[] = $item;
+		parent::remove($item);
+		return $this;
 	}
 
 	/**
-	 * Delete all files associated with this Pagefiles instance, leaving a blank Pagefiles instance. 
+	 * Delete all files associated with this Pagefiles instance, leaving a blank Pagefiles instance.
 	 *
 	 * @return $this
 	 *
-	 */ 
+	 */
 	public function deleteAll() {
 		foreach($this as $item) {
-			$this->delete($item); 
+			$this->delete($item);
 		}
 
-		return $this; 
+		return $this;
 	}
 
 	/**
@@ -290,51 +290,51 @@ class Pagefiles extends WireArray {
 	}
 
 	/**
-	 * Given a basename, this method returns a clean version containing valid characters 
+	 * Given a basename, this method returns a clean version containing valid characters
 	 *
 	 * @param string $basename May also be a full path/filename, but it will still return a basename
 	 * @param bool $originalize If true, it will generate an original filename if $basename already exists
-	 * @param bool $allowDots If true, dots "." are allowed in the basename portion of the filename. 
+	 * @param bool $allowDots If true, dots "." are allowed in the basename portion of the filename.
 	 * @param bool $translate True if we should translated accented characters to ascii equivalents (rather than substituting underscores)
 	 * @return string
 	 *
-	 */ 
+	 */
 	public function cleanBasename($basename, $originalize = false, $allowDots = true, $translate = false) {
 
-		$basename = strtolower($basename); 
-		$dot = strrpos($basename, '.'); 
-		$ext = $dot ? substr($basename, $dot) : ''; 
+		$basename = strtolower($basename);
+		$dot = strrpos($basename, '.');
+		$ext = $dot ? substr($basename, $dot) : '';
 		$basename = basename($basename, $ext);
 		$test = str_replace(array('-', '_', '.'), '', $basename);
-		
+
 		if(!ctype_alnum($test)) {
 			if($translate) {
-				$basename = $this->wire('sanitizer')->filename($basename, Sanitizer::translate); 
+				$basename = $this->wire('sanitizer')->filename($basename, Sanitizer::translate);
 			} else {
 				$basename = preg_replace('/[^-_.a-z0-9]/', '_', $basename);
 			}
 		}
-		
-		if(!ctype_alnum(ltrim($ext, '.'))) $ext = preg_replace('/[^a-z0-9.]/', '_', $ext); 
-		if(!$allowDots && strpos($basename, '.') !== false) $basename = str_replace('.', '_', $basename); 
+
+		if(!ctype_alnum(ltrim($ext, '.'))) $ext = preg_replace('/[^a-z0-9.]/', '_', $ext);
+		if(!$allowDots && strpos($basename, '.') !== false) $basename = str_replace('.', '_', $basename);
 		$basename .= $ext;
 
-		if($originalize) { 
-			$path = $this->path(); 
-			$n = 0; 
+		if($originalize) {
+			$path = $this->path();
+			$n = 0;
 			$p = pathinfo($basename);
 			while(is_file($path . $basename)) {
 				$n++;
 				$basename = "$p[filename]-$n.$p[extension]"; // @hani
-				// $basename = (++$n) . "_" . preg_replace('/^\d+_/', '', $basename); 
+				// $basename = (++$n) . "_" . preg_replace('/^\d+_/', '', $basename);
 			}
 		}
 
-		return $basename; 
+		return $basename;
 	}
 
 	public function uncache() {
-		//$this->page = null;		
+		//$this->page = null;
 	}
 
 	/**
@@ -345,11 +345,11 @@ class Pagefiles extends WireArray {
 	 *
 	 */
 	public function findTag($tag) {
-		$items = $this->makeNew();		
+		$items = $this->makeNew();
 		foreach($this as $pagefile) {
 			if($pagefile->hasTag($tag)) $items->add($pagefile);
 		}
-		return $items; 
+		return $items;
 	}
 
 	/**
@@ -362,7 +362,7 @@ class Pagefiles extends WireArray {
 	public function getTag($tag) {
 		$item = null;
 		foreach($this as $pagefile) {
-			if(!$pagefile->hasTag($tag)) continue; 
+			if(!$pagefile->hasTag($tag)) continue;
 			$item = $pagefile;
 			break;
 		}
@@ -370,16 +370,16 @@ class Pagefiles extends WireArray {
 	}
 
 	public function trackChange($what, $old = null, $new = null) {
-		if($this->field && $this->page) $this->page->trackChange($this->field->name); 
-		return parent::trackChange($what, $old, $new); 
+		if($this->field && $this->page) $this->page->trackChange($this->field->name);
+		return parent::trackChange($what, $old, $new);
 	}
 
 	/**
 	 * Get the given file
-	 * 
+	 *
 	 * @param string $name
 	 * @return null|Pagefile
-	 * 
+	 *
 	 */
 	public function getFile($name) {
 		$hasFile = null;

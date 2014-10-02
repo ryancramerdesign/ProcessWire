@@ -1,13 +1,13 @@
-<?php 
+<?php
 
 /**
  * Page template
  *
  */
 
-include("./head.inc"); 
+include("./head.inc");
 
 echo $page->body;
 
-include("./foot.inc"); 
+include("./foot.inc");
 

@@ -4,11 +4,11 @@
  * ProcessWire Templates
  *
  * Manages and provides access to all the Template instances
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -20,15 +20,15 @@
 class TemplatesArray extends WireArray {
 
 	public function isValidItem($item) {
-		return $item instanceof Template; 	
+		return $item instanceof Template;
 	}
 
 	public function isValidKey($key) {
-		return is_int($key) || ctype_digit($key); 
+		return is_int($key) || ctype_digit($key);
 	}
 
 	public function getItemKey($item) {
-		return $item->id; 
+		return $item->id;
 	}
 
 	public function makeBlankItem() {
@@ -51,19 +51,19 @@ class Templates extends WireSaveableItems {
 	 * Reference to all the Fieldgroups
 	 *
 	 */
-	protected $fieldgroups = null; 
+	protected $fieldgroups = null;
 
 	/**
 	 * WireArray of all Template instances
 	 *
 	 */
-	protected $templatesArray; 
+	protected $templatesArray;
 
 	/**
 	 * Path where Template files are stored
 	 *
 	 */
-	protected $path; 
+	protected $path;
 
 	/**
 	 * Construct the Templates
@@ -73,7 +73,7 @@ class Templates extends WireSaveableItems {
 	 *
 	 */
 	public function __construct(Fieldgroups $fieldgroups, $path) {
-		$this->fieldgroups = $fieldgroups; 
+		$this->fieldgroups = $fieldgroups;
 		$this->templatesArray = new TemplatesArray();
 		$this->path = $path;
 	}
@@ -83,7 +83,7 @@ class Templates extends WireSaveableItems {
 	 *
 	 */
 	public function init() {
-		$this->load($this->templatesArray); 
+		$this->load($this->templatesArray);
 	}
 
 	/**
@@ -95,11 +95,11 @@ class Templates extends WireSaveableItems {
 	}
 
 	/**
-	 * Return a new blank item 
+	 * Return a new blank item
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Template(); 
+		return new Template();
 	}
 
 	/**
@@ -124,39 +124,39 @@ class Templates extends WireSaveableItems {
 	 */
 	public function get($key) {
 		if($key == 'path') return $this->path;
-		$value = $this->templatesArray->get($key); 
+		$value = $this->templatesArray->get($key);
 		if(is_null($value)) $value = parent::get($key);
-		return $value; 
+		return $value;
 	}
 
 
 	/**
-	 * Update or insert template to database 
+	 * Update or insert template to database
 	 *
-	 * If the template's fieldgroup has changed, then we delete data that's no longer applicable to the new fieldgroup. 
+	 * If the template's fieldgroup has changed, then we delete data that's no longer applicable to the new fieldgroup.
 	 *
-	 * @param Saveable|Template $item 
+	 * @param Saveable|Template $item
 	 * @return bool true on success
 	 * @throws WireException
 	 *
 	 */
 	public function ___save(Saveable $item) {
 
-		$isNew = $item->id < 1; 
+		$isNew = $item->id < 1;
 
-		if(!$item->fieldgroup) throw new WireException("Template '$item' cannot be saved because it has no fieldgroup assigned"); 
-		if(!$item->fieldgroup->id) throw new WireException("You must save Fieldgroup '{$item->fieldgroup->name}' before adding to Template '{$item}'"); 
+		if(!$item->fieldgroup) throw new WireException("Template '$item' cannot be saved because it has no fieldgroup assigned");
+		if(!$item->fieldgroup->id) throw new WireException("You must save Fieldgroup '{$item->fieldgroup->name}' before adding to Template '{$item}'");
 
 		$rolesChanged = $item->isChanged('useRoles');
 
 		if($this->wire('pages')->get("/")->template->id == $item->id) {
-			if(!$item->useRoles) throw new WireException("Template '{$item}' is used by the homepage and thus must manage access"); 
-			if(!$item->hasRole("guest")) throw new WireException("Template '{$item}' is used by the homepage and thus must have the 'guest' role assigned."); 
+			if(!$item->useRoles) throw new WireException("Template '{$item}' is used by the homepage and thus must manage access");
+			if(!$item->hasRole("guest")) throw new WireException("Template '{$item}' is used by the homepage and thus must have the 'guest' role assigned.");
 		}
-		
+
 		if(!$item->isChanged('modified')) $item->modified = time();
 
-		$result = parent::___save($item); 
+		$result = parent::___save($item);
 
 		if($result && !$isNew && $item->fieldgroupPrevious && $item->fieldgroupPrevious->id != $item->fieldgroup->id) {
 			// the fieldgroup has been changed
@@ -164,46 +164,46 @@ class Templates extends WireSaveableItems {
 			$removeFields = new FieldsArray();
 			foreach($item->fieldgroupPrevious as $field) {
 				if(!$item->fieldgroup->has($field)) {
-					$removeFields->add($field); 
+					$removeFields->add($field);
 				}
 			}
-			if(count($removeFields)) { 
+			if(count($removeFields)) {
 				foreach($removeFields as $field) {
-					$field->type->deleteTemplateField($item, $field); 
+					$field->type->deleteTemplateField($item, $field);
 				}
 				/*
-				$pages = $this->fuel('pages')->find("templates_id={$item->id}, check_access=0, status<" . Page::statusMax); 
+				$pages = $this->fuel('pages')->find("templates_id={$item->id}, check_access=0, status<" . Page::statusMax);
 				foreach($pages as $page) {
 					foreach($removeFields as $field) {
-						$field->type->deletePageField($page, $field); 
-						if($this->fuel('config')->debug) $this->message("Removed field '$field' on page '{$page->url}'"); 
+						$field->type->deletePageField($page, $field);
+						if($this->fuel('config')->debug) $this->message("Removed field '$field' on page '{$page->url}'");
 					}
 				}
 				*/
 			}
 		}
 
-		if($rolesChanged) { 
+		if($rolesChanged) {
 			$access = new PagesAccess();
-			$access->updateTemplate($item); 
+			$access->updateTemplate($item);
 		}
-		
+
 		$this->wire('cache')->maintenance($item);
 
-		return $result; 
+		return $result;
 	}
 
 	/**
-	 * Delete a template and unset it from this object. 
+	 * Delete a template and unset it from this object.
 	 *
 	 */
 	public function ___delete(Saveable $item) {
-		if($item->flags & Template::flagSystem) throw new WireException("Can't delete template '{$item->name}' because it is a system template."); 
+		if($item->flags & Template::flagSystem) throw new WireException("Can't delete template '{$item->name}' because it is a system template.");
 		$cnt = $item->getNumPages();
-		if($cnt > 0) throw new WireException("Can't delete template '{$item->name}' because it is used by $cnt pages.");  
+		if($cnt > 0) throw new WireException("Can't delete template '{$item->name}' because it is used by $cnt pages.");
 
 		$return = parent::___delete($item);
-		$this->wire('cache')->maintenance($item); 
+		$this->wire('cache')->maintenance($item);
 		return $return;
 	}
 
@@ -219,32 +219,32 @@ class Templates extends WireSaveableItems {
 	public function ___clone(Saveable $item) {
 
 		$original = $item;
-		$item = clone $item; 
+		$item = clone $item;
 
 		if($item->flags & Template::flagSystem) {
 			// we want to avoid creating clones that have system flags
-			$item->flags = $item->flags | Template::flagSystemOverride; 
+			$item->flags = $item->flags | Template::flagSystemOverride;
 			$item->flags = $item->flags & ~Template::flagSystem;
 			$item->flags = $item->flags & ~Template::flagSystemOverride;
 		}
 
 		$item->id = 0; // note this must be after removing system flags
 
-		$fieldgroup = $item->fieldgroup; 
+		$fieldgroup = $item->fieldgroup;
 
 		if($fieldgroup->name == $item->name) {
 			// if the fieldgroup and the item have the same name, we'll also clone the fieldgroup
-			$fieldgroup = wire('fieldgroups')->clone($fieldgroup); 	
+			$fieldgroup = wire('fieldgroups')->clone($fieldgroup);
 			$item->fieldgroup = $fieldgroup;
 		}
 
 		$item = parent::___clone($item);
 
-		if($item && $item->id && !$item->altFilename) { 
+		if($item && $item->id && !$item->altFilename) {
 			// now that we have a clone, lets also clone the template file, if it exists
-			$path = $this->fuel('config')->paths->templates; 
-			$file = $path . $item->name . '.' . $this->fuel('config')->templateExtension; 
-			if($original->filenameExists() && is_writable($path) && !file_exists($file)) { 
+			$path = $this->fuel('config')->paths->templates;
+			$file = $path . $item->name . '.' . $this->fuel('config')->templateExtension;
+			if($original->filenameExists() && is_writable($path) && !file_exists($file)) {
 				if(copy($original->filename, $file)) $item->filename = $file;
 			}
 		}
@@ -255,7 +255,7 @@ class Templates extends WireSaveableItems {
 
 	/**
 	 * Return the number of pages using the provided Template
-	 * 
+	 *
 	 * @param Template $tpl
 	 * @return int
 	 *
@@ -265,7 +265,7 @@ class Templates extends WireSaveableItems {
 		$query = $database->prepare("SELECT COUNT(*) AS total FROM pages WHERE templates_id=:template_id"); // QA
 		$query->bindValue(":template_id", $tpl->id, PDO::PARAM_INT);
 		$query->execute();
-		return (int) $query->fetchColumn();	
+		return (int) $query->fetchColumn();
 	}
 
 	/**
@@ -273,19 +273,19 @@ class Templates extends WireSaveableItems {
 	 *
 	 */
 	protected function encodeData(array $value) {
-		return wireEncodeJSON($value, array('slashUrls')); 	
+		return wireEncodeJSON($value, array('slashUrls'));
 	}
 
 	/**
 	 * Return data for external storage
-	 * 
+	 *
 	 * @param Template $template
 	 * @return array
 	 *
 	 */
 	public function ___getExportData(Template $template) {
 
-		$template->set('_exportMode', true); 
+		$template->set('_exportMode', true);
 		$data = $template->getTableData();
 
 		// flatten
@@ -342,7 +342,7 @@ class Templates extends WireSaveableItems {
 		$data['fieldgroupFields'] = $fieldgroupData['fields'];
 		$data['fieldgroupContexts'] = $fieldgroupData['contexts'];
 
-		$template->set('_exportMode', false); 
+		$template->set('_exportMode', false);
 		return $data;
 	}
 
@@ -362,7 +362,7 @@ class Templates extends WireSaveableItems {
 	 */
 	public function ___setImportData(Template $template, array $data) {
 
-		$template->set('_importMode', true); 
+		$template->set('_importMode', true);
 		$fieldgroupData = array();
 		$changes = array();
 		$_data = $this->getExportData($template);
@@ -435,7 +435,7 @@ class Templates extends WireSaveableItems {
 		}
 
 		$template->errors('clear');
-		$template->set('_importMode', false); 
+		$template->set('_importMode', false);
 
 		return $changes;
 	}
@@ -464,7 +464,7 @@ class Templates extends WireSaveableItems {
 			$parentTemplate = $this->wire('templates')->get((int) $parentTemplateID);
 			if(!$parentTemplate) continue;
 
-			// if the parent template doesn't have this as an allowed child template, exclude it 
+			// if the parent template doesn't have this as an allowed child template, exclude it
 			if($parentTemplate->noChildren) continue;
 			if(!in_array($template->id, $parentTemplate->childTemplates)) continue;
 

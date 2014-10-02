@@ -2,14 +2,14 @@
 
 /**
  * ProcessWire Languages (plural) Class
- * 
- * Class for managing Language-type pages.
- * Acts as the $wire->languages API variable. 
  *
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Class for managing Language-type pages.
+ * Acts as the $wire->languages API variable.
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -36,12 +36,12 @@ class Languages extends PagesType {
 	 *
 	 */
 	protected $languagesAll = null;
-	
+
 	protected $defaultLanguage = null;
 
 	/**
 	 * Saved language from a goDefault() call
-	 * 
+	 *
 	 */
 	protected $savedLanguage = null;
 
@@ -50,7 +50,7 @@ class Languages extends PagesType {
 	 *
 	 */
 	public function __construct(Template $template, $parent_id) {
-		parent::__construct($template, $parent_id); 
+		parent::__construct($template, $parent_id);
 	}
 
 	/**
@@ -58,20 +58,20 @@ class Languages extends PagesType {
 	 *
 	 */
 	public function translator(Language $language) {
-		if(is_null($this->translator)) $this->translator = new LanguageTranslator($language); 
+		if(is_null($this->translator)) $this->translator = new LanguageTranslator($language);
 			else $this->translator->setCurrentLanguage($language);
-		return $this->translator; 
+		return $this->translator;
 	}
 
 	/**
 	 * Returns ALL languages, including those in the trash or unpublished, etc. (inactive)
 	 *
-	 * Note: to get all active languages, just iterate the $languages API var. 
+	 * Note: to get all active languages, just iterate the $languages API var.
 	 *
 	 */
 	public function getAll() {
-		if($this->languagesAll) return $this->languagesAll; 
-		$this->languagesAll = $this->pages->find("template={$this->template->name}, include=all"); 
+		if($this->languagesAll) return $this->languagesAll;
+		$this->languagesAll = $this->pages->find("template={$this->template->name}, include=all");
 		return $this->languagesAll;
 	}
 
@@ -80,27 +80,27 @@ class Languages extends PagesType {
 	 *
 	 */
 	public function getIterator() {
-		if($this->languages) return $this->languages; 
+		if($this->languages) return $this->languages;
 		$this->languages = new PageArray();
-		foreach($this->getAll() as $language) { 
-			if($language->is(Page::statusUnpublished) || $language->is(Page::statusHidden)) continue; 
-			$this->languages->add($language); 
+		foreach($this->getAll() as $language) {
+			if($language->is(Page::statusUnpublished) || $language->is(Page::statusHidden)) continue;
+			$this->languages->add($language);
 		}
-		return $this->languages; 
+		return $this->languages;
 	}
-	
+
 	public function getDefault() {
 		if(!$this->defaultLanguage) throw new WireException('Default language not yet set');
-		return $this->defaultLanguage; 	
+		return $this->defaultLanguage;
 	}
 
 	/**
 	 * Set default language (if given a $language) OR set current user to have default language if no arguments given
-	 * 
+	 *
 	 * If called with no arguments, it should later be followed up with an unsetDefault() call to restore language setting.
-	 * 
+	 *
 	 * @param Language $language
-	 * 
+	 *
 	 */
 	public function setDefault(Language $language = null) {
 		if(is_null($language)) {
@@ -109,36 +109,36 @@ class Languages extends PagesType {
 			$user = $this->wire('user');
 			if($user->language->id == $this->defaultLanguage->id) return; // already default
 			$this->savedLanguage = $user->language;
-			$user->language = $this->defaultLanguage; 
+			$user->language = $this->defaultLanguage;
 		} else {
 			// set what language is the default
-			$this->defaultLanguage = $language; 
+			$this->defaultLanguage = $language;
 		}
 	}
 
 	/**
 	 * Switch back to previous language
-	 * 
-	 * Should only be called after a previous setDefault(null) call. 
-	 * 
+	 *
+	 * Should only be called after a previous setDefault(null) call.
+	 *
 	 */
-	public function unsetDefault() { 
+	public function unsetDefault() {
 		if(!$this->savedLanguage || !$this->defaultLanguage) return;
-		$this->wire('user')->language = $this->savedLanguage; 
+		$this->wire('user')->language = $this->savedLanguage;
 	}
 
 	/**
 	 * Hook called when a language is deleted
 	 *
 	 */
-	public function ___deleted(Page $language) { 
+	public function ___deleted(Page $language) {
 	}
 
 	/**
 	 * hook called when a language is added
 	 *
 	 */
-	public function ___added(Page $language) { 
+	public function ___added(Page $language) {
 	}
 
 	/**
@@ -148,7 +148,7 @@ class Languages extends PagesType {
 	public function reloadLanguages() {
 		$this->languages = null;
 		$this->languagesAll = null;
-		$this->getIterator(); 
+		$this->getIterator();
 	}
 
 }

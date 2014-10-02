@@ -1,17 +1,17 @@
 /**
  * Establish tabs for all ".langTabs" elements in the given element
- * 
+ *
  * @param $form
- * 
+ *
  */
 function setupLanguageTabs($form) {
 	var $langTabs;
-	if($form.hasClass('langTabs')) $langTabs = $form; 
+	if($form.hasClass('langTabs')) $langTabs = $form;
 		else $langTabs = $form.find('.langTabs');
 	$langTabs.each(function() {
 		var $this = $(this);
 		if($this.hasClass('ui-tabs')) return;
-		var $parent = $this.parent('.InputfieldContent'); 
+		var $parent = $this.parent('.InputfieldContent');
 		$this.tabs({ active: config.LanguageTabs.activeTab });
 		var $span = $("<span></span>")
 			.attr('title', config.LanguageTabs.title)
@@ -23,9 +23,9 @@ function setupLanguageTabs($form) {
 
 /**
  * Click event that toggles language tabs on/off
- * 
+ *
  * @returns {boolean}
- * 
+ *
  */
 function toggleLanguageTabs() {
 	var $this = $(this);
@@ -53,7 +53,7 @@ function toggleLanguageTabs() {
 	return false;
 }
 
-$(document).ready(function() { 
-	$(document).on('click', '.langTabsToggle', toggleLanguageTabs); 
-}); 
+$(document).ready(function() {
+	$(document).on('click', '.langTabsToggle', toggleLanguageTabs);
+});
 

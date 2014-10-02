@@ -4,15 +4,15 @@
  * ProcessWire Page Path History
  *
  * Keeps track of past URLs where pages have lived and automatically 301 redirects
- * to the new location whenever the past URL is accessed. 
+ * to the new location whenever the past URL is accessed.
  *
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2014 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
- * 
+ *
  *
  */
 
@@ -20,11 +20,11 @@ class PagePathHistory extends WireData implements Module {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Page Path History', 
-			'version' => 1, 
+			'title' => 'Page Path History',
+			'version' => 1,
 			'summary' => "Keeps track of past URLs where pages have lived and automatically redirects (301 permament) to the new location whenever the past URL is accessed.",
-			'singular' => true, 
-			'autoload' => true, 
+			'singular' => true,
+			'autoload' => true,
 			);
 	}
 
@@ -38,7 +38,7 @@ class PagePathHistory extends WireData implements Module {
 	 * Minimum age in seconds that a page must be before we'll bother remembering it's previous path
 	 *
 	 */
-	const minimumAge = 120; 
+	const minimumAge = 120;
 
 	/**
 	 * Maximum segments to support in a redirect URL
@@ -46,7 +46,7 @@ class PagePathHistory extends WireData implements Module {
 	 * Used to place a limit on recursion and paths
 	 *
 	 */
-	const maxSegments = 10; 
+	const maxSegments = 10;
 
 
 	/**
@@ -54,10 +54,10 @@ class PagePathHistory extends WireData implements Module {
 	 *
 	 */
 	public function init() {
-		$this->pages->addHook('moved', $this, 'hookPageMoved'); 
-		$this->pages->addHook('renamed', $this, 'hookPageMoved'); 
+		$this->pages->addHook('moved', $this, 'hookPageMoved');
+		$this->pages->addHook('renamed', $this, 'hookPageMoved');
 		$this->pages->addHook('deleted', $this, 'hookPageDeleted');
-		$this->addHook('ProcessPageView::pageNotFound', $this, 'hookPageNotFound'); 
+		$this->addHook('ProcessPageView::pageNotFound', $this, 'hookPageNotFound');
 	}
 
 	/**
@@ -68,7 +68,7 @@ class PagePathHistory extends WireData implements Module {
 
 		$page = $event->arguments[0];
 		if($page->template == 'admin') return;
-		$age = time() - $page->created; 
+		$age = time() - $page->created;
 		if($age < self::minimumAge) return;
 
 		// note that the paths we store have no trailing slash
@@ -81,7 +81,7 @@ class PagePathHistory extends WireData implements Module {
 		if($page->parentPrevious) {
 
 			// if former or current parent is in trash, then don't bother saving redirects
-			if($page->parentPrevious->isTrash() || $page->parent->isTrash()) return; 
+			if($page->parentPrevious->isTrash() || $page->parent->isTrash()) return;
 
 			// the start of our redirect URL will be the previous parent's URL
 			$path = $page->parentPrevious->path;
@@ -91,14 +91,14 @@ class PagePathHistory extends WireData implements Module {
 			$path = $page->parent->path;
 		}
 
-		if($page->namePrevious) $path .= $page->namePrevious; 
-			else $path .= $page->name; 
+		if($page->namePrevious) $path .= $page->namePrevious;
+			else $path .= $page->name;
 
 
-		$database = $this->wire('database');	
-	
+		$database = $this->wire('database');
+
 		$query = $database->prepare("INSERT INTO " . self::dbTableName . " SET path=:path, pages_id=:pages_id, created=NOW()");
-		$query->bindValue(":path", $path); 
+		$query->bindValue(":path", $path);
 		$query->bindValue(":pages_id", $page->id, PDO::PARAM_INT);
 
 		try {
@@ -119,14 +119,14 @@ class PagePathHistory extends WireData implements Module {
 	 *
 	 */
 	public function hookPageNotFound(HookEvent $event) {
-		
-		$page = $event->arguments[0]; 
+
+		$page = $event->arguments[0];
 
 		// If there is a page object set, then it means the 404 was triggered
-		// by the user not having access to it, or by the $page's template 
-		// throwing a 404 exception. In either case, we don't want to do a 
+		// by the user not having access to it, or by the $page's template
+		// throwing a 404 exception. In either case, we don't want to do a
 		// redirect if there is a $page since any 404 is intentional there.
-		if($page && $page->id) return; 
+		if($page && $page->id) return;
 
 		$path = $event->arguments[1];
 		$page = $this->getPage($path);
@@ -135,7 +135,7 @@ class PagePathHistory extends WireData implements Module {
 			// if a page was found, redirect to it
 			$this->session->redirect($page->url);
 		}
-		
+
 	}
 
 	/**
@@ -157,7 +157,7 @@ class PagePathHistory extends WireData implements Module {
 		while(strlen($path) && !$page->id && $cnt < self::maxSegments) {
 
 			$query = $database->prepare("SELECT pages_id FROM " . self::dbTableName . " WHERE path=:path");
-			$query->bindValue(":path", $path); 
+			$query->bindValue(":path", $path);
 			$query->execute();
 			if($query->rowCount() > 0) {
 				$pages_id = $query->fetchColumn();
@@ -168,25 +168,25 @@ class PagePathHistory extends WireData implements Module {
 				$path = substr($path, 0, $pos);
 			}
 			$query->closeCursor();
-				
+
 			$cnt++;
-		} 
+		}
 
 		// if no page was found, then we can stop trying now
-		if(!$page->id) return $page; 
+		if(!$page->id) return $page;
 
 		if($cnt > 1) {
 			// a parent match was found if our counter is > 1
-			$parent = $page; 
+			$parent = $page;
 			// use the new parent path and add the removed components back on to it
-			$path = rtrim($parent->path, '/') . $pathRemoved; 
+			$path = rtrim($parent->path, '/') . $pathRemoved;
 			// see if it might exist at the new parent's URL
-			$page = $this->pages->get($path); 
+			$page = $this->pages->get($path);
 			// if not, then go recursive, trying again
-			if(!$page->id && $level < self::maxSegments) $page = $this->getPage($path, $level+1); 
+			if(!$page->id && $level < self::maxSegments) $page = $this->getPage($path, $level+1);
 		}
-	
-		return $page; 	
+
+		return $page;
 	}
 
 	/**
@@ -196,28 +196,28 @@ class PagePathHistory extends WireData implements Module {
 	public function hookPageDeleted(HookEvent $event) {
 		$page = $event->arguments[0];
 		$database = $this->wire('database');
-		$query = $database->prepare("DELETE FROM " . self::dbTableName . " WHERE pages_id=:pages_id"); 
+		$query = $database->prepare("DELETE FROM " . self::dbTableName . " WHERE pages_id=:pages_id");
 		$query->bindValue(":pages_id", $page->id, PDO::PARAM_INT);
 		$query->execute();
 	}
 
 	public function ___install() {
 
-		$sql = 	"CREATE TABLE " . self::dbTableName . " (" . 
-				"path VARCHAR(255) NOT NULL, " . 
-				"pages_id INT UNSIGNED NOT NULL, " . 
-				"created TIMESTAMP NOT NULL, " . 
-				"PRIMARY KEY path (path), " . 
-				"INDEX pages_id (pages_id), " . 
-				"INDEX created (created) " . 
+		$sql = 	"CREATE TABLE " . self::dbTableName . " (" .
+				"path VARCHAR(255) NOT NULL, " .
+				"pages_id INT UNSIGNED NOT NULL, " .
+				"created TIMESTAMP NOT NULL, " .
+				"PRIMARY KEY path (path), " .
+				"INDEX pages_id (pages_id), " .
+				"INDEX created (created) " .
 				") ENGINE={$this->config->dbEngine} DEFAULT CHARSET={$this->config->dbCharset}";
 
-		$this->wire('database')->exec($sql); 
+		$this->wire('database')->exec($sql);
 
 	}
 
 	public function ___uninstall() {
-		$this->wire('database')->query("DROP TABLE " . self::dbTableName); 
+		$this->wire('database')->query("DROP TABLE " . self::dbTableName);
 	}
 
 }

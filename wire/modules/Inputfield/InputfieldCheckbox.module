@@ -3,7 +3,7 @@
 /**
  * An Inputfield for handling a single checkbox
  *
- * Note: if you want a checkbox already checked, you need to add a setAttribute('checked', 'checked'); 
+ * Note: if you want a checkbox already checked, you need to add a setAttribute('checked', 'checked');
  *
  */
 class InputfieldCheckbox extends Inputfield {
@@ -13,11 +13,11 @@ class InputfieldCheckbox extends Inputfield {
 			'title' => __('Checkbox', __FILE__), // Module Title
 			'summary' => __('Single checkbox toggle', __FILE__), // Module Summary
 			'version' => 101,
-			'permanent' => true, 
+			'permanent' => true,
 			);
 	}
 
-	const checkedValueDefault = 1; 
+	const checkedValueDefault = 1;
 	const uncheckedValueDefault = '';
 
 	/**
@@ -27,33 +27,33 @@ class InputfieldCheckbox extends Inputfield {
 	protected $checkedValueIsLabel = false;
 
 	public function __construct() {
-		$this->set('checkedValue', self::checkedValueDefault); 
+		$this->set('checkedValue', self::checkedValueDefault);
 		$this->checkedValueIsLabel = false; // cancel line above
-		$this->set('uncheckedValue', self::uncheckedValueDefault); 
+		$this->set('uncheckedValue', self::uncheckedValueDefault);
 		$this->set('label2', ''); // alternate label for checkbox only
 
 		// when autocheck set to 1, setting the value attribute to non-zero automatically triggered checked=checked attribute
-		$this->set('autocheck', 0); 
+		$this->set('autocheck', 0);
 
 		parent::__construct();
 	}
 
 	public function init() {
 		parent::init();
-		$this->attr('checked', ''); 
+		$this->attr('checked', '');
 		//$this->set('skipLabel', Inputfield::skipLabelFor); // tell InputfieldWrapper not to use a 'for' attribute with it's autogen'd <label>
 	}
 
 	public function ___render() {
-		$this->set('skipLabel', $this->description ? Inputfield::skipLabelFor : Inputfield::skipLabelHeader); 
+		$this->set('skipLabel', $this->description ? Inputfield::skipLabelFor : Inputfield::skipLabelHeader);
 		// TBA: if($this->uncheckedValue) return $this->renderRadio();
 		$attrs = $this->getAttributes();
-		$attrs['value'] = $this->checkedValue; 
+		$attrs['value'] = $this->checkedValue;
 		$label = $this->label;
 		if($this->checkedValueIsLabel) $label = $this->checkedValue;
-			else if($this->label2) $label = $this->label2; 
-		$out = 	"\n<label><input type='checkbox' " . $this->getAttributesString($attrs) . " /> " . $this->entityEncode($label) . "</label>"; 
-		return $out; 
+			else if($this->label2) $label = $this->label2;
+		$out = 	"\n<label><input type='checkbox' " . $this->getAttributesString($attrs) . " /> " . $this->entityEncode($label) . "</label>";
+		return $out;
 	}
 
 	/* TBA: May move to be a separate 'toggle' Inputfield, keeping for reference
@@ -61,37 +61,37 @@ class InputfieldCheckbox extends Inputfield {
 
 		$attrs = $this->getAttributes();
 
-		$attrs['value'] = $this->checkedValue; 
+		$attrs['value'] = $this->checkedValue;
 		$attrs['checked'] = $this->attr('value') == $this->checkedValue ? 'checked' : '';
-		if(empty($attrs['checked'])) unset($attrs['checked']); 
+		if(empty($attrs['checked'])) unset($attrs['checked']);
 		$label = $this->entityEncode($this->checkedValue);
-		$out = "\n<label><input type='radio' " . $this->getAttributesString($attrs) . " /> $label</label> "; 
+		$out = "\n<label><input type='radio' " . $this->getAttributesString($attrs) . " /> $label</label> ";
 
-		$attrs['value'] = $this->uncheckedValue; 
+		$attrs['value'] = $this->uncheckedValue;
 		$attrs['checked'] = $this->attr('value') == $this->uncheckedValue ? 'checked' : '';
-		if(empty($attrs['checked'])) unset($attrs['checked']); 
+		if(empty($attrs['checked'])) unset($attrs['checked']);
 		$label = $this->entityEncode($this->uncheckedValue);
-		$out .= "\n<label><input type='radio' " . $this->getAttributesString($attrs) . " /> $label</label> "; 
+		$out .= "\n<label><input type='radio' " . $this->getAttributesString($attrs) . " /> $label</label> ";
 
-		return $out; 
+		return $out;
 	}
 	*/
 
 	public function ___renderValue() {
 		$value = $this->attr('value');
 		if($value != self::uncheckedValueDefault && $value != $this->uncheckedValue) {
-			$value = $this->checkedValue; 
+			$value = $this->checkedValue;
 		} else {
 			$value = $this->uncheckedValue;
 		}
-		return $value; 
+		return $value;
 	}
 
 	public function setAttribute($key, $value) {
 
-		if($key == 'value' && $value && $value != $this->uncheckedValue) { 
+		if($key == 'value' && $value && $value != $this->uncheckedValue) {
 			if($value != self::checkedValueDefault) {
-				$this->checkedValue = $value; 
+				$this->checkedValue = $value;
 				$this->checkedValueIsLabel = false;
 			}
 			// autocheck mode: when non-zero 'value' set, then 'checked=checked' is assumed
@@ -99,21 +99,21 @@ class InputfieldCheckbox extends Inputfield {
 		}
 
 
-		return parent::setAttribute($key, $value); 
+		return parent::setAttribute($key, $value);
 	}
 
 	public function set($key, $value) {
-		if($key == 'checkedValue' && $value != self::checkedValueDefault) $this->checkedValueIsLabel = true; 
-		return parent::set($key, $value); 
-	}	
-	
+		if($key == 'checkedValue' && $value != self::checkedValueDefault) $this->checkedValueIsLabel = true;
+		return parent::set($key, $value);
+	}
+
 	public function isChecked() {
-		$checked = $this->attr('checked'); 
-		return !empty($checked); 
+		$checked = $this->attr('checked');
+		return !empty($checked);
 	}
 
 	public function isEmpty() {
-		// return $this->attr('value') != $this->checkedValue; 
+		// return $this->attr('value') != $this->checkedValue;
 		return !$this->isChecked();
 	}
 
@@ -122,16 +122,16 @@ class InputfieldCheckbox extends Inputfield {
 		$value = $input[$this->name];
 		$checked = $this->isChecked();
 		if(!empty($value)) {
-			if(!$checked) $this->trackChange('value', $this->uncheckedValue, $this->checkedValue); 
-			parent::attr('checked', 'checked'); 
-			parent::attr('value', $this->checkedValue); 
+			if(!$checked) $this->trackChange('value', $this->uncheckedValue, $this->checkedValue);
+			parent::attr('checked', 'checked');
+			parent::attr('value', $this->checkedValue);
 		} else {
-			if($checked) $this->trackChange('value', $this->checkedValue, $this->uncheckedValue); 
-			parent::attr('checked', ''); 
-			parent::attr('value', $this->uncheckedValue); 
+			if($checked) $this->trackChange('value', $this->checkedValue, $this->uncheckedValue);
+			parent::attr('checked', '');
+			parent::attr('value', $this->uncheckedValue);
 		}
 
-		return $this; 
+		return $this;
 	}
 
 	public function ___getConfigInputfields() {
@@ -145,8 +145,8 @@ class InputfieldCheckbox extends Inputfield {
 		$f->attr('value', $this->checkedValue);
 		$f->label = $this->_('Checked Value');
 		$f->collapsed = $this->checkedValue == self::checkedValueDefault ? Inputfield::collapsedYes : Inputfield::collapsedNo;
-		$f->description = $this->_('When populated with something other than "1", this will appear as a label directly next to the checkbox.'); 
-		$f->required = true; 
+		$f->description = $this->_('When populated with something other than "1", this will appear as a label directly next to the checkbox.');
+		$f->required = true;
 		$inputfields->add($f);
 
 		$f = wire('modules')->get('InputfieldText');

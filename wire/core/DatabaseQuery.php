@@ -9,42 +9,42 @@
  * be passed between methods and objects that add to it without knowledge
  * of what other methods/objects have done to it. It also means being able
  * to build a complex query without worrying about correct syntax placement.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
  */
-abstract class DatabaseQuery extends WireData { 
+abstract class DatabaseQuery extends WireData {
 
 	/**
 	 * Enables calling the various parts of a query as functions for a fluent interface.
-	 * 
-	 * i.e. $query->select("id")->from("mytable")->orderby("name"); 
-	 * See DatabaseSelectQuery class for an example. 
+	 *
+	 * i.e. $query->select("id")->from("mytable")->orderby("name");
+	 * See DatabaseSelectQuery class for an example.
 	 *
 	 */
 	public function __call($method, $args) {
-		if(!$this->has($method)) return parent::__call($method, $args); 
-		$curValue = $this->get($method); 
-		$value = $args[0]; 
-		if(empty($value)) return $this; 
-		if(is_array($value)) $curValue = array_merge($curValue, $value); 
-			else $curValue[] = trim($value, ", "); 
-		$this->set($method, $curValue); 
-		return $this; 
+		if(!$this->has($method)) return parent::__call($method, $args);
+		$curValue = $this->get($method);
+		$value = $args[0];
+		if(empty($value)) return $this;
+		if(is_array($value)) $curValue = array_merge($curValue, $value);
+			else $curValue[] = trim($value, ", ");
+		$this->set($method, $curValue);
+		return $this;
 	}
 
 	public function __set($key, $value) {
-		if(is_array($this->$key)) $this->__call($key, array($value)); 
+		if(is_array($this->$key)) $this->__call($key, array($value));
 	}
 
 	public function __get($key) {
 		if($key == 'query') return $this->getQuery();
-			else return parent::__get($key); 
+			else return parent::__get($key);
 	}
 
 	/**
@@ -53,12 +53,12 @@ abstract class DatabaseQuery extends WireData {
 	 */
 	public function merge(DatabaseQuery $query) {
 		foreach($query as $key => $value) {
-			$this->$key = $value; 	
+			$this->$key = $value;
 		}
-		return $this; 
+		return $this;
 	}
 
-	/** 
+	/**
 	 * Generate the SQL query based on everything set in this DatabaseQuery object
 	 *
 	 */
@@ -70,7 +70,7 @@ abstract class DatabaseQuery extends WireData {
 	 */
 	protected function getQueryWhere() {
 		if(!count($this->where)) return '';
-		$where = $this->where; 
+		$where = $this->where;
 		$sql = "\nWHERE " . array_shift($where) . " ";
 		foreach($where as $s) $sql .= "\nAND $s ";
 		return $sql;
@@ -82,13 +82,13 @@ abstract class DatabaseQuery extends WireData {
 	 */
 	public function execute() {
 		$database = $this->wire('database');
-		try { 
-			$query = $database->prepare($this->getQuery()); 
+		try {
+			$query = $database->prepare($this->getQuery());
 			$query->execute();
 		} catch(Exception $e) {
 			$msg = $e->getMessage();
 			if(stripos($msg, 'MySQL server has gone away') !== false) $database->closeConnection();
-			throw new WireException($msg); 
+			throw new WireException($msg);
 		}
 		return $query;
 	}

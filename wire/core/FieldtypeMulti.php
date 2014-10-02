@@ -4,11 +4,11 @@
  * ProcessWire FieldtypeMulti
  *
  * Interface and some functionality for Fieldtypes that can contain multiple values.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -36,29 +36,29 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 *
 	 */
 	public function getDatabaseSchema(Field $field) {
-		$schema = parent::getDatabaseSchema($field); 
-		$schema['sort'] = 'int unsigned NOT NULL'; 
-		$schema['keys']['primary'] = 'PRIMARY KEY (pages_id, sort)'; 
-		return $schema; 
+		$schema = parent::getDatabaseSchema($field);
+		$schema['sort'] = 'int unsigned NOT NULL';
+		$schema['keys']['primary'] = 'PRIMARY KEY (pages_id, sort)';
+		return $schema;
 	}
 
 	/**
 	 * Return array with information about what properties and operators can be used with this field
-	 * 
+	 *
 	 * @param Field $field
 	 * @param array $data Array of extra data, when/if needed
 	 * @return array
 	 *
 	 */
 	public function ___getSelectorInfo(Field $field, array $data = array()) {
-		$info = parent::___getSelectorInfo($field, $data); 
+		$info = parent::___getSelectorInfo($field, $data);
 		$info['subfields']['count'] = array(
 			'name' => 'count',
-			'label' => $this->_('count'), 
-			'operators' => array('=', '!=', '<', '>', '<=', '>='), 
+			'label' => $this->_('count'),
+			'operators' => array('=', '!=', '<', '>', '<=', '>='),
 			'input' => 'number'
 			);
-		return $info; 
+		return $info;
 	}
 
 	/**
@@ -71,9 +71,9 @@ abstract class FieldtypeMulti extends Fieldtype {
 	public function ___getCompatibleFieldtypes(Field $field) {
 		$fieldtypes = new Fieldtypes();
 		foreach($this->fuel('fieldtypes') as $fieldtype) {
-			if($fieldtype instanceof FieldtypeMulti) $fieldtypes->add($fieldtype); 
+			if($fieldtype instanceof FieldtypeMulti) $fieldtypes->add($fieldtype);
 		}
-		return $fieldtypes; 
+		return $fieldtypes;
 	}
 
 	/**
@@ -97,27 +97,27 @@ abstract class FieldtypeMulti extends Fieldtype {
 	/**
 	 * Process the value to convert it from array to whatever object it needs to be
 	 *
-	 */ 
+	 */
 	public function ___wakeupValue(Page $page, Field $field, $value) {
 		$target = $this->getBlankValue($page, $field);
-		if(!is_array($value)) $value = array($value); 
+		if(!is_array($value)) $value = array($value);
 		foreach($value as $val) {
-			$target->add($val); 
+			$target->add($val);
 		}
 		$target->resetTrackChanges(true);
-		return $target; 
+		return $target;
 	}
 
 	/**
-	 * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
+	 * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB.
 	 *
 	 * FieldtypeMulti::savePageField expects values as an array, so we convert the $value object to an array
 	 *
-	 * Note that FieldtypeMulti is designed around potentially supporting more than just the 'data' field in 
+	 * Note that FieldtypeMulti is designed around potentially supporting more than just the 'data' field in
 	 * the table, so other fieldtypes may want to override this and return an array of associative arrays containing a 'data' field
-	 * and any other fields that map to the table. i.e. $values[] = array('data' => $data, 'description' => $description), etc. 
-	 * See FieldtypePagefiles module class for an example of this. 
-	 *              
+	 * and any other fields that map to the table. i.e. $values[] = array('data' => $data, 'description' => $description), etc.
+	 * See FieldtypePagefiles module class for an example of this.
+	 *
 	 * @param Page $page
 	 * @param Field $field
 	 * @param string|int|array|object $value
@@ -126,12 +126,12 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 */
 	public function ___sleepValue(Page $page, Field $field, $value) {
 		$values = array();
-		if(!$value instanceof WireArray) return $values; 
+		if(!$value instanceof WireArray) return $values;
 		foreach($value as $v) {
 			// note $v is typecast as string, which calls __toString if it's an object
 			$values[] = "$v";
 		}
-		return $values; 
+		return $values;
 	}
 
 	/**
@@ -142,12 +142,12 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 *
 	 * @param Page $page
 	 * @param Field $field
-	 * @return WireArray 
+	 * @return WireArray
 	 *
 	public function ___loadPageField(Page $page, Field $field) {
 
 		if(!$page->id) return null;
-		if(!$field->id) throw new WireException("Unable to load '{$field->table}' for field that doesn't exist in fields table"); 
+		if(!$field->id) throw new WireException("Unable to load '{$field->table}' for field that doesn't exist in fields table");
 
 		$values = array();
 
@@ -160,16 +160,16 @@ abstract class FieldtypeMulti extends Fieldtype {
 		while($row = $result->fetch_assoc()) {
 
 			// unset the fields that are only applicable to the DB
-			unset($row['sort'], $row['pages_id']); 
+			unset($row['sort'], $row['pages_id']);
 
 			// if the only field left is 'data', then we extract that to be the value.
 			// but if there are multiple values remaining, then we include them all,
 			// which will ultimately be converted to the relevant object type by wakeupValue()
-			if(count($row) == 1) $values[] = $row['data']; 
-				else $values[] = $row; 
+			if(count($row) == 1) $values[] = $row['data'];
+				else $values[] = $row;
 		}
 
-		return $values; 
+		return $values;
 	}
 	 */
 
@@ -177,7 +177,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 * Per the Fieldtype interface, Save the given Field from the given Page to the database
 	 *
 	 * Because the number of values may have changed, this method plays it safe and deletes all the old values
-	 * and reinserts them as new. 
+	 * and reinserts them as new.
 	 *
 	 * @param Page $page
 	 * @param Field $field
@@ -188,82 +188,82 @@ abstract class FieldtypeMulti extends Fieldtype {
 	public function ___savePageField(Page $page, Field $field) {
 
 		if(!$page->id || !$field->id) return false;
-		
+
 		$database = $this->wire('database');
 		$values = $page->get($field->name);
 		$schema = array();
 
 		if(is_object($values)) {
-			 if(!$values->isChanged() && !$page->isChanged($field->name)) return true; 
-		} else if(!$page->isChanged($field->name)) return true; 
+			 if(!$values->isChanged() && !$page->isChanged($field->name)) return true;
+		} else if(!$page->isChanged($field->name)) return true;
 
-		$values = $this->sleepValue($page, $field, $values); 
-		$table = $database->escapeTable($field->table); 
-		$page_id = (int) $page->id; 
+		$values = $this->sleepValue($page, $field, $values);
+		$table = $database->escapeTable($field->table);
+		$page_id = (int) $page->id;
 
 		// since we don't manage IDs of existing values for multi fields, we delete the existing data and insert all of it again
 		$query = $database->prepare("DELETE FROM `$table` WHERE pages_id=:page_id"); // QA
-		$query->bindValue(":page_id", $page_id, PDO::PARAM_INT); 
+		$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
 		$query->execute();
-		
+
 		if(count($values)) {
 
 			// get first value to find key definition
-			$value = reset($values); 
+			$value = reset($values);
 
 			// if the first value is not an associative (key indexed) array, then force it to be with 'data' as the key.
 			// this is to allow for this method to be able to save fields that have more than just a 'data' field,
 			// even though most instances will probably just use only the data field
 
 			if(is_array($value)) {
-				$keys = array_keys($value); 
-				foreach($keys as $k => $v) $keys[$k] = $database->escapeTableCol($v); 
+				$keys = array_keys($value);
+				foreach($keys as $k => $v) $keys[$k] = $database->escapeTableCol($v);
 			} else {
-				$keys = array('data'); 
+				$keys = array('data');
 			}
 
 			$sql = "INSERT INTO `$table` (pages_id, sort, `" . implode('`, `', $keys) . "`) VALUES";
-			$sort = 0; 	
+			$sort = 0;
 
 			// cycle through the values to generate the query
 			foreach($values as $value) {
 				$sql .= "($page_id, $sort, ";
 
 				// if the value is not an associative array, then force it to be one
-				if(!is_array($value)) $value = array('data' => $value); 
+				if(!is_array($value)) $value = array('data' => $value);
 
 				// cycle through the keys, which represent DB fields (i.e. data, description, etc.) and generate the insert query
 				foreach($keys as $key) {
-					$v = $value[$key]; 
+					$v = $value[$key];
 					if(is_null($v)) {
-						if(empty($schema)) $schema = $this->getDatabaseSchema($field); 
+						if(empty($schema)) $schema = $this->getDatabaseSchema($field);
 						$sql .= isset($schema[$key]) && stripos($schema[$key], ' DEFAULT NULL') ? "NULL, " : "'', ";
 					} else {
 						$sql .= "'" . $database->escapeStr("$v") . "', ";
 					}
 				}
 				$sql = rtrim($sql, ", ") . "), ";
-				$sort++; 	
-			}	
+				$sort++;
+			}
 
-			$sql = rtrim($sql, ", "); 
-			$query = $database->prepare($sql);	
+			$sql = rtrim($sql, ", ");
+			$query = $database->prepare($sql);
 			try {
 				$result = $query->execute();
 			} catch(Exception $e) {
 				$msg = $e->getMessage();
 				if($this->wire('config')->debug && $this->wire('config')->advanced) $msg .= "\n$sql";
-				throw new WireException($msg); 
+				throw new WireException($msg);
 			}
-			
-			return $result; 
+
+			return $result;
 		}
 
-		return true; 
+		return true;
 	}
 
 	/**
-	 * Return the query used for Autojoining this field (if different from getLoadQuery) or NULL if autojoin not allowed. 
+	 * Return the query used for Autojoining this field (if different from getLoadQuery) or NULL if autojoin not allowed.
 	 *
 	 * @param Field $field
 	 * @param DatabaseQuerySelect $query
@@ -271,21 +271,21 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 *
 	 */
 	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) {
-		$table = $this->database->escapeTable($field->table);	
-		$schema = $this->trimDatabaseSchema($this->getDatabaseSchema($field)); 
-		$fieldName = $this->database->escapeCol($field->name); 
-		$separator = self::multiValueSeparator; 
+		$table = $this->database->escapeTable($field->table);
+		$schema = $this->trimDatabaseSchema($this->getDatabaseSchema($field));
+		$fieldName = $this->database->escapeCol($field->name);
+		$separator = self::multiValueSeparator;
 		foreach($schema as $key => $unused) {
 			$query->select("GROUP_CONCAT($table.$key SEPARATOR '$separator') AS `{$fieldName}__$key`"); // QA
-		}		
-		return $query; 
+		}
+		return $query;
 	}
 
 
 	/**
 	 * Get the query that matches a Fieldtype table's data with a given value
 	 *
-	 * Possible template method: If overridden, children should NOT call this parent method. 
+	 * Possible template method: If overridden, children should NOT call this parent method.
 	 *
 	 * @param DatabaseQuerySelect $query
 	 * @param string $table The table name to use
@@ -301,7 +301,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 		$n = self::$getMatchQueryCount;
 
 		$field = $query->field;
-		$database = $this->wire('database'); 
+		$database = $this->wire('database');
 		$table = $database->escapeTable($table);
 
 		if($subfield === 'count' && ctype_digit(ltrim("$value", '-')) && in_array($operator, array("=", "!=", ">", "<", ">=", "<="))) {
@@ -318,10 +318,10 @@ abstract class FieldtypeMulti extends Fieldtype {
 				"GROUP BY $c.pages_id " .
 				") $t ON $t.pages_id=pages.id");
 
-			if( (in_array($operator, array('<', '<=', '!=')) && $value) || 
+			if( (in_array($operator, array('<', '<=', '!=')) && $value) ||
 				(in_array($operator, array('>', '>=')) && $value < 0) ||
 				(in_array($operator, array('=', '>=')) && !$value)) {
-				// allow for possible zero values	
+				// allow for possible zero values
 				$query->where("(num_$t{$operator}$value OR num_$t IS NULL)"); // QA
 			} else {
 				// non zero values
@@ -331,7 +331,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 			// only allow matches using templates with the requested field
 			$sql = 'pages.templates_id IN(';
 			foreach($field->getTemplates() as $template) {
-				$sql .= ((int) $template->id) . ',';	
+				$sql .= ((int) $template->id) . ',';
 			}
 			$sql = rtrim($sql, ',') . ')';
 			$query->where($sql); // QA

@@ -3,7 +3,7 @@
 /**
  * Image Sizer Interface
  *
- */ 
+ */
 
 interface ImageSizerInterface {
 
@@ -23,7 +23,7 @@ interface ImageSizerInterface {
 	 * Note: Some code used in this method is adapted from code found in comments at php.net for the GD functions
 	 *
 	 * @param int $targetWidth
-	 * @param int $targetHeight 
+	 * @param int $targetHeight
 	 * @return bool True if the resize was successful
 	 *
 	 */
@@ -73,7 +73,7 @@ interface ImageSizerInterface {
 	 *
 	 * @param array $options May contain the following (show with default values):
 	 *	'quality' => 90,
-	 *	'cropping' => true, 
+	 *	'cropping' => true,
 	 *	'upscaling' => true
 	 * @return ImageSizerInterface
 	 *
@@ -92,7 +92,7 @@ interface ImageSizerInterface {
 	 * Was the image modified?
 	 *
 	 * @return bool
-	 *	
+	 *
 	 */
 	public function isModified();
 

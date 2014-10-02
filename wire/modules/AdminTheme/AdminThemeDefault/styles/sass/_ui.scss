@@ -4,17 +4,17 @@
  */
 
 .ui-icon {
-	float: left; 
-	margin-right: 2px; 
+	float: left;
+	margin-right: 2px;
 }
 
 .ui-widget {
-	font-size: 1em; 
+	font-size: 1em;
 }
 
 .Inputfields li:not(.Inputfield) .ui-widget-header .ui-icon,
 .ui-state-default .ui-icon,
-.ui-state-hover .ui-icon, 
+.ui-state-hover .ui-icon,
 .ui-state-highlight .ui-icon,
 .ui-state-error .ui-icon {
 	/* use white icons */
@@ -28,7 +28,7 @@
 
 .content {
 	.ui-widget-content a {
-		color: $link-color; 
+		color: $link-color;
 	}
 
 	li.ui-state-default,
@@ -37,7 +37,7 @@
 		border-color: $ui-state-default-bg; /* LIGHT-ORANGE */
 		color: $ui-state-default-color; /* WHITE */
 	}
-	li.ui-state-default a, 
+	li.ui-state-default a,
 	.ui-widget-content li.ui-state-default a {
 		color: $ui-state-default-color; /* WHITE */
 	}
@@ -45,7 +45,7 @@
 	.ui-widget-content li.ui-state-hover {
 		background: $ui-state-hover-bg; /* LIGHT-KHAKI */
 		border-color: $ui-state-hover-bg; /* LIGHT-KHAKI */
-		color: $ui-state-hover-color; 
+		color: $ui-state-hover-color;
 	}
 	li.ui-state-hover a,
 	.ui-widget-content li.ui-state-hover a {
@@ -53,11 +53,11 @@
 	}
 }
 
-.InputfieldForm .ui-accordion-header, 
+.InputfieldForm .ui-accordion-header,
 .ui-accordion-header {
-	padding-left: 1.5em; 
-	background: $button-bg; 
-	border: none; 
+	padding-left: 1.5em;
+	background: $button-bg;
+	border: none;
 	color: $reverse-text-color;
 }
 	.InputfieldForm .ui-accordion-header a,
@@ -73,60 +73,60 @@
 }
 
 /**
- * Highlight and error states 
+ * Highlight and error states
  *
  */
 
-.ui-state-highlight, 
-.ui-widget-content .ui-state-highlight, 
+.ui-state-highlight,
+.ui-widget-content .ui-state-highlight,
 .ui-widget-header .ui-state-highlight {
-	color: $highlight-color; 
+	color: $highlight-color;
 	background: $highlight-bg; /* HIGHLIGHT */
-	border: $highlight-border; 
+	border: $highlight-border;
 }
-	
+
 
 .ui-state-error,
 .ui-widget-content .ui-state-error {
-	background: $error-bg;	
-	color: $error-color; 
-	border: none; 
-	font-weight: $bold-weight; 
+	background: $error-bg;
+	color: $error-color;
+	border: none;
+	font-weight: $bold-weight;
 }
 
-#notices .ui-state-highlight, 
+#notices .ui-state-highlight,
 #notices .ui-state-error {
-	padding: 0.25em 0; 
-	border: none; 
-	border-bottom: $highlight-border; 
-	color: $highlight-color; 
+	padding: 0.25em 0;
+	border: none;
+	border-bottom: $highlight-border;
+	color: $highlight-color;
 }
 	#notices .ui-state-error {
-		color: $error-color; 
+		color: $error-color;
 	}
 	#notices .ui-state-highlight a {
-		color: $highlight-color; 
+		color: $highlight-color;
 	}
 	#notices .ui-state-error a {
-		color: $error-color; 
+		color: $error-color;
 	}
 	#notices .ui-state-highlight .ui-icon,
 	#notices .ui-state-error .ui-icon {
 		position: relative;
-		top: 2px; 
+		top: 2px;
 	}
 
 	#notices .notice-remove {
-		float: right; 
-		color: $highlight-color; 
-		text-decoration: none; 
-		padding: 0 0.5em 0 1em; 
+		float: right;
+		color: $highlight-color;
+		text-decoration: none;
+		padding: 0 0.5em 0 1em;
 	}
-	
+
 
 	.ui-state-highlight a,
 	.ui-state-error a {
-		text-decoration: underline; 
+		text-decoration: underline;
 	}
 
 	p span.ui-state-error {
@@ -139,38 +139,38 @@
  */
 
 .ui-dialog {
-	@include border-radius(0); 
-	border: none; 
+	@include border-radius(0);
+	border: none;
 	padding: 0;
 
 	.ui-dialog-titlebar {
 		margin: 0;
 		background: $masthead-bg;
-		border: none; 
-		color: $topnav-link-color; 
-		@include border-radius(0); 
+		border: none;
+		color: $topnav-link-color;
+		@include border-radius(0);
 
 		.ui-button {
-			background: none; 
-			border: none; 		
-			outline: none; 
-		
+			background: none;
+			border: none;
+			outline: none;
+
 		}
 	}
 
 	.ui-dialog-buttonpane {
-		background: $subtle-bg; 
-		border: none; 
+		background: $subtle-bg;
+		border: none;
 		margin-top: 0;
 	}
 
 	.ui-dialog-content {
-		padding: 0; 
+		padding: 0;
 		max-width: 100%; /* prevents safari overflow */
 	}
-	
+
 }
-	
+
 .ui-widget-overlay {
 	background: $text-color; /* BLACK */
 }
@@ -180,16 +180,16 @@
  *
  */
 
-.ui-button, 
-button.ui-button.ui-state-default, 
+.ui-button,
+button.ui-button.ui-state-default,
 .ui-button.ui-state-default {
-	color: $button-color; /* WHITE */ 
+	color: $button-color; /* WHITE */
 	background: $button-bg; /* LIGHT-GREEN */
 	border: 1px solid $button-border; /* LIGHT-GREEN */
 	font-weight: $bold-weight;
-	padding: 0.6em 1.1em; 
-	font-size: 1em !important; 
-	border-radius: $button-radius; 
+	padding: 0.6em 1.1em;
+	font-size: 1em !important;
+	border-radius: $button-radius;
 }
 	button.ui-button span {
 		&.ui-button-text {
@@ -197,21 +197,21 @@ button.ui-button.ui-state-default,
 		}
 	}
 
-	.ui-button:hover, 
-	button.ui-button.ui-state-hover, 
+	.ui-button:hover,
+	button.ui-button.ui-state-hover,
 	.ui-button.ui-state-hover,
-	button.ui-button.ui-state-active, 
+	button.ui-button.ui-state-active,
 	.ui-button.ui-state-active {
-		box-shadow: none !important; 
+		box-shadow: none !important;
 		color: $button-hover-color;
 		background: $button-hover-bg; /* CYAN */
 		border: 1px solid $button-hover-border; /* CYAN */
 		font-weight: $bold-weight;
 		font-size: 1em !important;
-		text-decoration: none; 
+		text-decoration: none;
 	}
 
-	button.ui-button.ui-state-active, 
+	button.ui-button.ui-state-active,
 	.ui-button.ui-state-active {
 		color: $button-active-color;
 		background: $button-active-bg; /* CYAN */
@@ -224,10 +224,10 @@ button.ui-button.ui-state-default,
 
 /**
  * ui-slider
- * 
+ *
  */
 
-.ui-slider .ui-slider-range, 
+.ui-slider .ui-slider-range,
 .ui-widget .ui-slider .ui-slider-range,
 .ui-widget-content .ui-slider .ui-slider-range {
 	background: $link-hover-color; /* CYAN */
@@ -242,93 +242,93 @@ button.ui-button.ui-state-default,
 
 .ui-menu {
 	background: $masthead-bg;
-	border: none; 
-	padding: 0; 
+	border: none;
+	padding: 0;
 
 	.ui-menu-item {
 
 		a {
-			font-size: $base-font-size; 
-			color: $topnav-link-color; 
+			font-size: $base-font-size;
+			color: $topnav-link-color;
 			border: none;
-			margin: 0 !important; 
-			padding: 0.5em 0.75em 0.5em 0.75em; 
-			cursor: pointer; 
-			white-space: nowrap; 
+			margin: 0 !important;
+			padding: 0.5em 0.75em 0.5em 0.75em;
+			cursor: pointer;
+			white-space: nowrap;
 
 			&.on {
-				background: $topnav-link-hover-bg; 
-				color: $topnav-link-color; 
+				background: $topnav-link-hover-bg;
+				color: $topnav-link-color;
 			}
 
 			&:hover,
 			&.ui-state-focus,
 			&.ui-state-active {
-				background: $topnav-link-hover-bg; 
-				color: $topnav-link-hover-color; 
+				background: $topnav-link-hover-bg;
+				color: $topnav-link-hover-color;
 			}
 
 			.ui-menu-icon {
-				display: none; 
+				display: none;
 			}
-			
+
 			small {
 				opacity: 0.5;
 			}
 		}
-		
+
 		.ui-menu {
 			border-left: 1px solid lighten($masthead-bg, 5%);
-			@include border-radius($menu-radius); 
+			@include border-radius($menu-radius);
 		}
 
 		.ui-menu.navJSON {
-			border-left: 1px solid lighten($masthead-bg, 5%); 
+			border-left: 1px solid lighten($masthead-bg, 5%);
 			@include border-radius($menu-radius);
 
 			.ui-menu-item:not(.add) {
 				line-height: 1.1em;
 				//font-size: 0.866666666666667em;
 				font-size: 0.933333333333333em;
-				
+
 				a {
 					padding-top: 0;
 					padding-bottom: 0;
 				}
-				
+
 				&:first-child {
 					padding-top: 0.5em;
 				}
-				
+
 				&:last-child {
 					padding-bottom: 0.5em;
 				}
 
 			}
-			
+
 			.ui-menu-item.add {
 				background: lighten($masthead-bg, 5%);
-				
+
 				&:hover {
 					background: $topnav-link-hover-bg;
 				}
 			}
-			
+
 			.ui-menu-item.add + .ui-menu-item:not(.add) {
 				padding-top: 0.3em;
 			}
-			
+
 			&.length0 { // 0 items, no padding necessary at bottom
 				padding-bottom: 0;
 			}
 		}
-		
-		
+
+
 	}
 }
 
 .dropdown-menu {
-	/* dropdown menu for admin theme */ 
+	/* dropdown menu for admin theme */
 	display: none;
 	border-radius: 0 !important;
 
@@ -340,7 +340,7 @@ button.ui-button.ui-state-default,
 		}
 	}
 	li {
-		min-width: 10em; 
+		min-width: 10em;
 	}
 }
 
@@ -355,41 +355,41 @@ button.ui-button.ui-state-default,
 	/*
 	box-shadow: 0 1px 3px 3px rgba(0,0,0,0.15);
 	*/
-	z-index: 200 !important; 
-	@include border-radius($menu-radius); 
-	background: none; 
+	z-index: 200 !important;
+	@include border-radius($menu-radius);
+	background: none;
 
 	li {
-		background: $masthead-bg !important; 
+		background: $masthead-bg !important;
 		a {
-			cursor: pointer; 
-			@include border-radius($menu-radius); 
-			background: $masthead-bg; 
+			cursor: pointer;
+			@include border-radius($menu-radius);
+			background: $masthead-bg;
 
 		}
 	}
 	.ui-widget-header {
-		background: none; 
-		border: none; 
+		background: none;
+		border: none;
 		&:hover {
-			border: none; 
+			border: none;
 			margin: 0;
 		}
 
 		a, a:hover {
 			font-weight: $bold-weight !important;
-			background: lighten($masthead-bg, 5%); 
-			color: $topnav-link-hover-color; 
+			background: lighten($masthead-bg, 5%);
+			color: $topnav-link-hover-color;
 			border: none;
 			margin: 0;
-			text-shadow: none; 
-			pointer: arrow; 
+			text-shadow: none;
+			pointer: arrow;
 		}
 	}
 }
 
 #ProcessPageSearchAutocomplete li:first-child {
-	margin-top: 0.6em; 
+	margin-top: 0.6em;
 }
 
 
@@ -406,8 +406,8 @@ button.ui-button.ui-state-default,
 	box-shadow: 0 0 7px $text-color;
 }
 	.ui-tooltip, .arrow:after {
-		background: $text-color; 
-		border: 2px solid $reverse-text-color; 
+		background: $text-color;
+		border: 2px solid $reverse-text-color;
 	}
 	.arrow {
 		width: 70px;
@@ -432,7 +432,7 @@ button.ui-button.ui-state-default,
 		top: -20px;
 		width: 25px;
 		height: 25px;
-		box-shadow: 6px 5px 9px -9px $text-color; 
+		box-shadow: 6px 5px 9px -9px $text-color;
 		-webkit-transform: rotate(45deg);
 		-moz-transform: rotate(45deg);
 		-ms-transform: rotate(45deg);
@@ -445,23 +445,23 @@ button.ui-button.ui-state-default,
 	}
 
 .ui-timepicker-div {
-	margin-top: 1em; 
+	margin-top: 1em;
 }
 
 .ui-progressbar,
 .Inputfields .InputfieldItemList .ui-progressbar {
-	@include border-radius(0); 
-	border: none; 
-	padding: 0; 
-	background: $progressbar-bg; 
-	margin-top: 1px; 
+	@include border-radius(0);
+	border: none;
+	padding: 0;
+	background: $progressbar-bg;
+	margin-top: 1px;
 
 	.ui-progressbar-value {
 		@include border-radius(0);
 		background: $progressbar-value-bg;
-		color: $progressbar-text-color; 
+		color: $progressbar-text-color;
 		margin: 0;
-		border: none; 
+		border: none;
 	}
 }
 
