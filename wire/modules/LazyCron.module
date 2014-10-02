@@ -4,46 +4,46 @@
  * ProcessWire LazyCron Module
  * ===========================
  *
- * Provides hooks that are automatically executed at various intervals. 
- * It is called 'lazy' because it's triggered by a pageview, so it's accuracy 
- * executing at specific times will depend upon how may pageviews your site gets. 
+ * Provides hooks that are automatically executed at various intervals.
+ * It is called 'lazy' because it's triggered by a pageview, so it's accuracy
+ * executing at specific times will depend upon how may pageviews your site gets.
  * So when a specified time is triggered, it's guaranteed to have been that length
- * of time OR longer. This is fine for most cases. 
+ * of time OR longer. This is fine for most cases.
  * But here's how you make it NOT lazy:
- * 
- * Setup a real CRON job to pull a page from your site once per minute. 
+ *
+ * Setup a real CRON job to pull a page from your site once per minute.
  * Here is an example of a command that you could schedule to execute once per
  * minute:
- * 
- * wget --quiet --no-cache -O - http://www.your-site.com > /dev/null
- * 
- * This module is compatible with ProcessWire 2.1 only. 
  *
- * 
- * USAGE IN YOUR MODULES: 
+ * wget --quiet --no-cache -O - http://www.your-site.com > /dev/null
+ *
+ * This module is compatible with ProcessWire 2.1 only.
+ *
+ *
+ * USAGE IN YOUR MODULES:
  * ----------------------
  *
  * // In your own module or template, add the function you want executed:
  * public function myFunc(HookEvent $e) { echo "30 Minutes have passed!"; }
- * 
- * // Then add the hook to it in your module's init() function:
- * $this->addHook('LazyCron::every30Minutes', $this, 'myFunc'); 
  *
- * 
- * PROCEDURAL USAGE (i.e. in templates): 
+ * // Then add the hook to it in your module's init() function:
+ * $this->addHook('LazyCron::every30Minutes', $this, 'myFunc');
+ *
+ *
+ * PROCEDURAL USAGE (i.e. in templates):
  * -------------------------------------
- * 
+ *
  * // create your hook function
  * function myHook(HookEvent $e) { echo "30 Minutes have passed!"; }
- * 
- * // add a hook to it:
- * $wire->addHook('LazyCron::every30Minutes', null, 'myFunc'); 
  *
- * 
+ * // add a hook to it:
+ * $wire->addHook('LazyCron::every30Minutes', null, 'myFunc');
+ *
+ *
  * FUNCTIONS YOU CAN HOOK:
  * -----------------------
  *
- * every30Seconds  
+ * every30Seconds
  * everyMinute
  * every2Minutes
  * every3Minutes
@@ -64,15 +64,15 @@
  * everyWeek
  * every2Weeks
  * every4Weeks
- * 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ *
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2011 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
- * 
+ *
  *
  */
 
@@ -80,43 +80,43 @@ class LazyCron extends WireData implements Module {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Lazy Cron', 
-			'version' => 102, 
-			'summary' => 
-				"Provides hooks that are automatically executed at various intervals. " . 
-				"It is called 'lazy' because it's triggered by a pageview, so the interval " . 
-				"is guaranteed to be at least the time requested, rather than exactly the " . 
-				"time requested. This is fine for most cases, but you can make it not lazy " . 
-				"by connecting this to a real CRON job. See the module file for details. ", 
+			'title' => 'Lazy Cron',
+			'version' => 102,
+			'summary' =>
+				"Provides hooks that are automatically executed at various intervals. " .
+				"It is called 'lazy' because it's triggered by a pageview, so the interval " .
+				"is guaranteed to be at least the time requested, rather than exactly the " .
+				"time requested. This is fine for most cases, but you can make it not lazy " .
+				"by connecting this to a real CRON job. See the module file for details. ",
 			'href' => 'http://processwire.com/talk/index.php/topic,284.0.html',
-			'permanent' => false, 
-			'singular' => true, 
-			'autoload' => true, 
+			'permanent' => false,
+			'singular' => true,
+			'autoload' => true,
 			);
 	}
 
 	/**
-	 * Hookable time functions that we are allowing indexed by number of seconds. 
+	 * Hookable time functions that we are allowing indexed by number of seconds.
 	 *
 	 */
 	protected $timeFuncs = array(
 		30 => 'every30Seconds',
-		60 => 'everyMinute',	
+		60 => 'everyMinute',
 		120 => 'every2Minutes',
 		180 => 'every3Minutes',
 		240 => 'every4Minutes',
-		300 => 'every5Minutes', 
+		300 => 'every5Minutes',
 		600 => 'every10Minutes',
 		900 => 'every15Minutes',
 		1800 => 'every30Minutes',
-		2700 => 'every45Minutes', 
+		2700 => 'every45Minutes',
 		3600 => 'everyHour',
 		7200 => 'every2Hours',
 		14400 => 'every4Hours',
 		21600 => 'every6Hours',
 		43200 => 'every12Hours',
 		86400 => 'everyDay',
-		172800 => 'every2Days',	
+		172800 => 'every2Days',
 		345600 => 'every4Days',
 		604800 => 'everyWeek',
 		1209600 => 'every2Weeks',
@@ -128,14 +128,14 @@ class LazyCron extends WireData implements Module {
 	 *
 	 */
 	public function init() {
-		$this->addHookAfter('ProcessPageView::finished', $this, 'afterPageView'); 
+		$this->addHookAfter('ProcessPageView::finished', $this, 'afterPageView');
 	}
 
 	/**
-	 * Function triggered after every page view. 
+	 * Function triggered after every page view.
  	 *
-	 * This is intentionally scheduled after the page has been delivered so 
-	 * that the cron jobs don't slow down the pageview. 
+	 * This is intentionally scheduled after the page has been delivered so
+	 * that the cron jobs don't slow down the pageview.
 	 *
 	 */
 	public function afterPageView(HookEvent $e) {
@@ -145,8 +145,8 @@ class LazyCron extends WireData implements Module {
 		if($responseType != ProcessPageView::responseTypeNormal) return;
 
 		$time = time();
-		$filename = $this->config->paths->cache . "LazyCron.cache"; 
-		$lockfile = $this->config->paths->cache . "LazyCronLock.cache"; 
+		$filename = $this->config->paths->cache . "LazyCron.cache";
+		$lockfile = $this->config->paths->cache . "LazyCronLock.cache";
 		$times = array();
 		$writeFile = false;
 
@@ -154,7 +154,7 @@ class LazyCron extends WireData implements Module {
 			// other LazyCron process potentially running
 			if(filemtime($lockfile) < (time() - 3600)) {
 				// expired lock file, some fatal error must have occurred during last LazyCron run
-				@unlink($lockfile); 
+				@unlink($lockfile);
 			} else {
 				// skip running this time as an active lock file exists
 				return;
@@ -162,17 +162,17 @@ class LazyCron extends WireData implements Module {
 		}
 
 		if(!file_put_contents($lockfile, time(), LOCK_EX)) {
-			$this->error("Unable to write lock file: $lockfile", Notice::logOnly); 
+			$this->error("Unable to write lock file: $lockfile", Notice::logOnly);
 			return;
 		}
-		
+
 		if(is_file($filename)) {
-			$filedata = file($filename, FILE_IGNORE_NEW_LINES); 
+			$filedata = file($filename, FILE_IGNORE_NEW_LINES);
 
 			// file is probably locked, so skip it this time
 			if($filedata === false) {
 				@unlink($lockfile);
-				return; 
+				return;
 			}
 		} else {
 			// file does not exist
@@ -188,13 +188,13 @@ class LazyCron extends WireData implements Module {
 					try {
 						$this->$func($elapsedTime);
 					} catch(Exception $e) {
-						$this->error($e->getMessage(), Notice::logOnly); 
+						$this->error($e->getMessage(), Notice::logOnly);
 					}
 					$lasttime = $time;
 					$writeFile = true;
 				}
 				$times[$seconds] = $lasttime;
-				$n++;	
+				$n++;
 			}
 		} else {
 			// file does not exist
@@ -203,7 +203,7 @@ class LazyCron extends WireData implements Module {
 				try {
 					$this->$func(0);
 				} catch(Exception $e) {
-					$this->error($e->getMessage(), Notice::logOnly); 
+					$this->error($e->getMessage(), Notice::logOnly);
 				}
 				$times[$seconds] = $time;
 			}
@@ -213,7 +213,7 @@ class LazyCron extends WireData implements Module {
 			if($this->config->chmodFile) @chmod($filename, octdec($this->config->chmodFile));
 		}
 
-		@unlink($lockfile); 
+		@unlink($lockfile);
 	}
 
 	/**

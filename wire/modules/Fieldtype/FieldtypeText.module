@@ -3,15 +3,15 @@
 /**
  * ProcessWire Text Fieldtype
  *
- * Basic Field that stores text, typically a single line. 
+ * Basic Field that stores text, typically a single line.
  *
- * For documentation about the fields used in this class, please see:  
+ * For documentation about the fields used in this class, please see:
  * /wire/core/Fieldtype.php
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -24,25 +24,25 @@ class FieldtypeText extends Fieldtype {
 			'title' => 'Text',
 			'version' => 100,
 			'summary' => 'Field that stores a single line of text',
-			'permanent' => true, 
+			'permanent' => true,
 			);
 	}
 
 	/**
 	 * Are text formatters allowed for this Fieldtype?
 	 *
-	 * Descending classes can override with the allowTextFormatters(false) method. 
+	 * Descending classes can override with the allowTextFormatters(false) method.
 	 *
 	 */
-	private $allowTextFormatters = true; 
+	private $allowTextFormatters = true;
 
 	/**
 	 * Initialize the Text Fieldtype
 	 *
 	 */
 	public function init() {
-		//$this->set('prependMarkup', ''); 
-		//$this->set('appendMarkup', ''); 
+		//$this->set('prependMarkup', '');
+		//$this->set('appendMarkup', '');
 		parent::init();
 	}
 
@@ -55,7 +55,7 @@ class FieldtypeText extends Fieldtype {
 	 */
 	protected function allowTextFormatters($allow = null) {
 		if(!is_null($allow)) $this->allowTextFormatters = $allow ? true : false;
-		return $this->allowTextFormatters; 
+		return $this->allowTextFormatters;
 	}
 
 	/**
@@ -65,9 +65,9 @@ class FieldtypeText extends Fieldtype {
 	public function ___getCompatibleFieldtypes(Field $field) {
 		$fieldtypes = new Fieldtypes();
 		foreach($this->fuel('fieldtypes') as $fieldtype) {
-			if($fieldtype instanceof FieldtypeText) $fieldtypes->add($fieldtype); 
+			if($fieldtype instanceof FieldtypeText) $fieldtypes->add($fieldtype);
 		}
-		return $fieldtypes; 
+		return $fieldtypes;
 	}
 
 	/**
@@ -75,7 +75,7 @@ class FieldtypeText extends Fieldtype {
 	 *
 	 */
 	public function sanitizeValue(Page $page, Field $field, $value) {
-		return $value; 
+		return $value;
 	}
 
 	/**
@@ -84,19 +84,19 @@ class FieldtypeText extends Fieldtype {
 	 */
 	public function ___formatValue(Page $page, Field $field, $value) {
 
-		$value = (string) $value; 
+		$value = (string) $value;
 
 		if($this->allowTextFormatters() && is_array($field->textformatters)) {
 			foreach($field->textformatters as $name) {
-				if(!$textformatter = $this->fuel('modules')->get($name)) continue; 
-				$textformatter->formatValue($page, $field, $value); 
+				if(!$textformatter = $this->fuel('modules')->get($name)) continue;
+				$textformatter->formatValue($page, $field, $value);
 			}
 		}
 
-		//if(strlen($field->prependMarkup)) $value = $field->prependMarkup . $value; 
-		//if(strlen($field->appendMarkup)) $value .= $field->appendMarkup; 
+		//if(strlen($field->prependMarkup)) $value = $field->prependMarkup . $value;
+		//if(strlen($field->appendMarkup)) $value .= $field->appendMarkup;
 
-		return $value; 
+		return $value;
 	}
 
 	/**
@@ -104,8 +104,8 @@ class FieldtypeText extends Fieldtype {
 	 *
 	 */
 	public function getInputfield(Page $page, Field $field) {
-		$inputField = $this->modules->get('InputfieldText'); 
-		return $inputField; 
+		$inputField = $this->modules->get('InputfieldText');
+		return $inputField;
 	}
 
 	/**
@@ -113,9 +113,9 @@ class FieldtypeText extends Fieldtype {
 	 *
 	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
-		$ft = new DatabaseQuerySelectFulltext($query); 
-		$ft->match($table, $subfield, $operator, $value); 
-		return $query; 
+		$ft = new DatabaseQuerySelectFulltext($query);
+		$ft->match($table, $subfield, $operator, $value);
+		return $query;
 	}
 
 	/**
@@ -123,10 +123,10 @@ class FieldtypeText extends Fieldtype {
 	 *
 	 */
 	public function getDatabaseSchema(Field $field) {
-		$schema = parent::getDatabaseSchema($field); 
+		$schema = parent::getDatabaseSchema($field);
 		$schema['data'] = 'text NOT NULL';
-		$schema['keys']['data_exact'] = 'KEY `data_exact` (`data`(255))'; 
-		$schema['keys']['data'] = 'FULLTEXT KEY `data` (`data`)'; 
+		$schema['keys']['data_exact'] = 'KEY `data_exact` (`data`(255))';
+		$schema['keys']['data'] = 'FULLTEXT KEY `data` (`data`)';
 		return $schema;
 	}
 
@@ -137,50 +137,50 @@ class FieldtypeText extends Fieldtype {
 	public function ___getConfigInputfields(Field $field) {
 		$inputfields = parent::___getConfigInputfields($field);
 
-		if($this->allowTextFormatters()) { 
+		if($this->allowTextFormatters()) {
 
-			$textformatters = $this->modules->find("className^=Textformatter"); 
+			$textformatters = $this->modules->find("className^=Textformatter");
 
 			if(count($textformatters)) {
 
-				$f = $this->modules->get('InputfieldAsmSelect'); 
-				$f->setAttribute('name', 'textformatters'); 
+				$f = $this->modules->get('InputfieldAsmSelect');
+				$f->setAttribute('name', 'textformatters');
 				$f->label = $this->_('Text Formatters');
 
 				foreach($textformatters as $textformatter) {
 					$info = $textformatter->getModuleInfo();
-					$f->addOption($textformatter->className(), "$info[title]"); 
+					$f->addOption($textformatter->className(), "$info[title]");
 				}
 
-				$f->setAttribute('value', is_array($field->textformatters) ? $field->textformatters : array()); 
+				$f->setAttribute('value', is_array($field->textformatters) ? $field->textformatters : array());
 
-				$f->description = $this->_('If you want to apply any automatic formatting to the field when it is prepared for output, select one or more text formatters above. If you select more than one, drag them into the order they should be applied.'); 
+				$f->description = $this->_('If you want to apply any automatic formatting to the field when it is prepared for output, select one or more text formatters above. If you select more than one, drag them into the order they should be applied.');
 
 				$inputfields->append($f);
 			}
 		}
 
-		/* decided this doesn't really belong here, but still thinking about it. 
-                $f = $this->modules->get("InputfieldTextarea");  
-                $f->label = 'Prepend Markup/Text'; 
-		$f->attr('name', 'prependMarkup'); 
-                $f->attr('value', $field->prependMarkup); 
-                $f->attr('rows', 3); 
+		/* decided this doesn't really belong here, but still thinking about it.
+                $f = $this->modules->get("InputfieldTextarea");
+                $f->label = 'Prepend Markup/Text';
+		$f->attr('name', 'prependMarkup');
+                $f->attr('value', $field->prependMarkup);
+                $f->attr('rows', 3);
                 $f->description = "If you want the formatted output of this field to be preceded by some markup or text, enter it here.";
 		$f->collapsed = Inputfield::collapsedBlank;
-		$inputfields->append($f); 
+		$inputfields->append($f);
 
-                $f = $this->modules->get("InputfieldTextarea");  
-                $f->label = 'Append Markup/Text'; 
-		$f->attr('name', 'appendMarkup'); 
-                $f->attr('value', $field->appendMarkup); 
-                $f->attr('rows', 3); 
+                $f = $this->modules->get("InputfieldTextarea");
+                $f->label = 'Append Markup/Text';
+		$f->attr('name', 'appendMarkup');
+                $f->attr('value', $field->appendMarkup);
+                $f->attr('rows', 3);
                 $f->description = "If you want the formatted output of this field to be followed by some markup or text, enter it here.";
 		$f->collapsed = Inputfield::collapsedBlank;
-		$inputfields->append($f); 
+		$inputfields->append($f);
 		*/
 
-		return $inputfields; 
+		return $inputfields;
 	}
 
 	/**
@@ -200,7 +200,7 @@ class FieldtypeText extends Fieldtype {
 					$errors[] = "Requires module '$className' to be installed";
 				}
 			}
-			if(count($errors)) $data['errors']['textformatters'] = implode(" \n", $errors); 
+			if(count($errors)) $data['errors']['textformatters'] = implode(" \n", $errors);
 		}
 		return $data;
 	}

@@ -7,7 +7,7 @@ class SystemUpdate9 extends SystemUpdate {
 		$this->wire()->addHookAfter('ProcessWire::ready', $this, 'executeAtReady');
 		return 0; // indicates we will update system version ourselves when ready
 	}
-	
+
 	public function executeAtReady() {
 		try {
 			if($this->wire('languages')) $this->wire('languages')->setDefault();
@@ -17,7 +17,7 @@ class SystemUpdate9 extends SystemUpdate {
 			$this->updater->saveSystemVersion(9);
 			if($this->wire('languages')) $this->wire('languages')->unsetDefault();
 		} catch(Exception $e) {
-			$this->error($e->getMessage()); 
+			$this->error($e->getMessage());
 		}
 	}
 }

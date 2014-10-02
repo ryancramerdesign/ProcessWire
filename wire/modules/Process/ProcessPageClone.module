@@ -3,13 +3,13 @@
 /**
  * ProcessWire Page Clone Process
  *
- * For more details about how Process modules work, please see: 
- * /wire/core/Process.php 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * For more details about how Process modules work, please see:
+ * /wire/core/Process.php
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2011 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -20,20 +20,20 @@ class ProcessPageClone extends Process {
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Page Clone', __FILE__),
-			'summary' => __('Provides ability to clone/copy/duplicate pages in the admin. Adds a "copy" option to all applicable pages in the PageList.', __FILE__), 
-			'version' => 102, 
-			'permanent' => false, 
+			'summary' => __('Provides ability to clone/copy/duplicate pages in the admin. Adds a "copy" option to all applicable pages in the PageList.', __FILE__),
+			'version' => 102,
+			'permanent' => false,
 			'permission' => 'page-clone',
 			'autoload' => "process=ProcessPageList",  // Note: most Process modules should not be 'autoload', this is an exception.
-			); 
+			);
 	}
 
 	/**
-	 * Permission names installed by this module, and labels to describe them. 
+	 * Permission names installed by this module, and labels to describe them.
 	 *
 	 */
 	protected $permissionNames = array(
-		'page-clone' => 'Clone a page', 
+		'page-clone' => 'Clone a page',
 		'page-clone-tree' => 'Clone a tree of pages',
 		);
 
@@ -41,7 +41,7 @@ class ProcessPageClone extends Process {
 	 * The page being cloned
 	 *
 	 */
-	protected $page; 
+	protected $page;
 
 	/**
 	 * The action link label used in the PageList
@@ -68,14 +68,14 @@ class ProcessPageClone extends Process {
 	 *
 	 * We use this to determine whether we should add a hook or not.
 	 * If we're in ProcessPageList, we add the hook.
-	 *	
+	 *
 	 */
 	public function ready() {
-		$process = wire('page')->process; 
-		if($process == 'ProcessPageList') { 
+		$process = wire('page')->process;
+		if($process == 'ProcessPageList') {
 			$this->adminUrl = wire('config')->urls->admin;
 			$this->pageListActionLabel = $this->_('Copy'); // Action label that appears in PageList
-			$this->addHookAfter("ProcessPageListRender::getPageActions", $this, 'hookPageListActions'); 
+			$this->addHookAfter("ProcessPageListRender::getPageActions", $this, 'hookPageListActions');
 		}
 	}
 
@@ -84,8 +84,8 @@ class ProcessPageClone extends Process {
 	 *
 	 */
 	public function hookPageListActions(HookEvent $event) {
-		$page = $event->arguments[0]; 	
-		$actions = $event->return; 	
+		$page = $event->arguments[0];
+		$actions = $event->return;
 		if($this->hasPermission($page)) $actions[] = array(
 			'cn' => 'Copy',
 			'name' => $this->pageListActionLabel,
@@ -103,14 +103,14 @@ class ProcessPageClone extends Process {
 
 		$error = $this->_("Unable to load page");
 		$id = (int) $this->input->get->id;
-		if(!$id) throw new WireException($error); 
-		$this->page = $this->pages->get($id); 
-		if($this->page->id < 2) throw new WireException($error); 
-		if(!$this->hasPermission($this->page)) throw new WirePermissionException($error); 
+		if(!$id) throw new WireException($error);
+		$this->page = $this->pages->get($id);
+		if($this->page->id < 2) throw new WireException($error);
+		if(!$this->hasPermission($this->page)) throw new WirePermissionException($error);
 
 		if($this->input->post->submit_clone) $this->process();
-		return $this->render();	
-	}	
+		return $this->render();
+	}
 
 	/**
 	 * Check if the current user has permission to clone the given page
@@ -120,52 +120,52 @@ class ProcessPageClone extends Process {
 	 *
 	 */
 	public function hasPermission(Page $page) {
-		$user = $this->user; 
+		$user = $this->user;
 
-		if($page->is(Page::statusSystem) || $page->is(Page::statusSystemID)) return false; 
-		if($page->parent->template->noChildren) return false; 
-		if($page->template->noParents) return false; 
+		if($page->is(Page::statusSystem) || $page->is(Page::statusSystemID)) return false;
+		if($page->parent->template->noChildren) return false;
+		if($page->template->noParents) return false;
 
-		if(count($page->parent->template->childTemplates) && !in_array($page->template->id, $page->parent->template->childTemplates)) return false; 
-		if(count($page->template->parentTemplates) && !in_array($page->parent->template->id, $page->template->parentTemplates)) return false; 
-		
-		if($user->isSuperuser()) return true; 
-		if($user->hasPermission('page-create', $page) && $user->hasPermission('page-clone', $page) && $page->parent->addable()) return true; 
+		if(count($page->parent->template->childTemplates) && !in_array($page->template->id, $page->parent->template->childTemplates)) return false;
+		if(count($page->template->parentTemplates) && !in_array($page->parent->template->id, $page->template->parentTemplates)) return false;
 
-		return false; 
+		if($user->isSuperuser()) return true;
+		if($user->hasPermission('page-create', $page) && $user->hasPermission('page-clone', $page) && $page->parent->addable()) return true;
+
+		return false;
 	}
 
 	/**
-	 * Render a form asking for information to be used for the new cloned page. 
+	 * Render a form asking for information to be used for the new cloned page.
 	 *
 	 */
 	protected function ___buildForm() {
 
-		$form = $this->modules->get("InputfieldForm"); 
-		$form->attr('action', './?id=' . $this->page->id); 
-		$form->attr('method', 'post'); 
+		$form = $this->modules->get("InputfieldForm");
+		$form->attr('action', './?id=' . $this->page->id);
+		$form->attr('method', 'post');
 		$form->description = sprintf($this->_("This will make a copy of %s"), $this->page->path); // Form description/headline
 
-		$n = 1; 
+		$n = 1;
 		while(count($this->page->parent->children("include=all, name={$this->page->name}-$n"))) $n++;
-		
-		$titleField = $this->modules->get("InputfieldPageTitle"); 
-		$titleField->attr('name', 'clone_page_title'); 
+
+		$titleField = $this->modules->get("InputfieldPageTitle");
+		$titleField->attr('name', 'clone_page_title');
 		$titleField->attr('value', $this->page->title . ' ' . sprintf($this->_n("(copy)", "(copy %d)", $n), $n)); // Phrase added to page title to make it unique
 		$titleField->label = $this->_("Title of new page"); // Label for title field
 
-		$nameField = $this->modules->get("InputfieldPageName"); 
-		$nameField->attr('name', 'clone_page_name'); 
-		$nameField->attr('value', $this->page->name . '-' . $n); 
+		$nameField = $this->modules->get("InputfieldPageName");
+		$nameField->attr('name', 'clone_page_name');
+		$nameField->attr('value', $this->page->name . '-' . $n);
 		$nameField->parentPage = $this->page->parent;
 
-		$languages = $this->wire('languages'); 
+		$languages = $this->wire('languages');
 		$useLanguages = $languages;
 		if($useLanguages) {
 			$titleUseLanguages = $this->page->template->fieldgroup->hasField('title') && $this->wire('fields')->get('title')->getInputfield($this->page)->useLanguages;
-			$nameUseLanguages = $this->wire('modules')->isInstalled('LanguageSupportPageNames'); 
+			$nameUseLanguages = $this->wire('modules')->isInstalled('LanguageSupportPageNames');
 			if($titleUseLanguages) $titleField->useLanguages = true;
-			if($nameUseLanguages) $nameField->useLanguages = true; 
+			if($nameUseLanguages) $nameField->useLanguages = true;
 			foreach($languages as $language) {
 				if($language->isDefault()) continue;
 				if($titleUseLanguages) {
@@ -173,41 +173,41 @@ class ProcessPageClone extends Process {
 					$titleField->set("value$language->id", $value);
 				}
 				if($nameUseLanguages) {
-					$value = $this->page->get("name$language->id"); 
-					if(strlen($value))  $nameField->set("value$language->id", $value . '-' . $n); 
+					$value = $this->page->get("name$language->id");
+					if(strlen($value))  $nameField->set("value$language->id", $value . '-' . $n);
 				}
 			}
 		}
-		
-		if($this->page->template->fieldgroup->hasField('title')) $form->add($titleField); 
-		$form->add($nameField); 
 
-		$field = $this->modules->get("InputfieldCheckbox"); 
-		$field->attr('name', 'clone_page_unpublished'); 
-		$field->attr('value', 1); 
+		if($this->page->template->fieldgroup->hasField('title')) $form->add($titleField);
+		$form->add($nameField);
+
+		$field = $this->modules->get("InputfieldCheckbox");
+		$field->attr('name', 'clone_page_unpublished');
+		$field->attr('value', 1);
 		$field->label = $this->_("Make the new page unpublished?");
-		$field->collapsed = Inputfield::collapsedYes; 
-		$field->description = $this->_("If checked, the cloned page will be given an unpublished status so that it can't yet be seen on the front-end of your site."); 
+		$field->collapsed = Inputfield::collapsedYes;
+		$field->description = $this->_("If checked, the cloned page will be given an unpublished status so that it can't yet be seen on the front-end of your site.");
 		$form->add($field);
 
-		if($this->page->numChildren && $this->user->hasPermission('page-clone-tree', $this->page)) { 
-			$field = $this->modules->get("InputfieldCheckbox"); 
-			$field->attr('name', 'clone_page_tree'); 
-			$field->attr('value', 1); 
+		if($this->page->numChildren && $this->user->hasPermission('page-clone-tree', $this->page)) {
+			$field = $this->modules->get("InputfieldCheckbox");
+			$field->attr('name', 'clone_page_tree');
+			$field->attr('value', 1);
 			$field->label = $this->_("Copy children too?");
-			$field->description = $this->_("If checked, all children, grandchildren, etc., will also be cloned with this page."); 
+			$field->description = $this->_("If checked, all children, grandchildren, etc., will also be cloned with this page.");
 			$field->notes = $this->_("Warning: if there is a very large structure of pages below this, it may be time consuming or impossible to complete.");
-			$field->collapsed = Inputfield::collapsedYes; 
+			$field->collapsed = Inputfield::collapsedYes;
 			$form->add($field);
 		}
 
-		$field = $this->modules->get("InputfieldSubmit"); 
-		$field->attr('name', 'submit_clone'); 
-		$form->add($field); 
+		$field = $this->modules->get("InputfieldSubmit");
+		$field->attr('name', 'submit_clone');
+		$form->add($field);
 
 		return $form;
 	}
-	
+
 	/**
 	 * Render a form asking for information to be used for the new cloned page.
 	 *
@@ -223,32 +223,32 @@ class ProcessPageClone extends Process {
 	 */
 	protected function ___process() {
 
-		$page = clone $this->page; 
-		$input = $this->input; 
-		
-		$originalName = $page->name; 
+		$page = clone $this->page;
+		$input = $this->input;
+
+		$originalName = $page->name;
 
 		$this->session->CSRF->validate();
 		$form = $this->buildForm();
-		$form->processInput($this->wire('input')->post); 
-		
-		if($input->post->clone_page_unpublished) $page->addStatus(Page::statusUnpublished); 
+		$form->processInput($this->wire('input')->post);
+
+		if($input->post->clone_page_unpublished) $page->addStatus(Page::statusUnpublished);
 		$cloneTree = $input->post->clone_page_tree && $this->user->hasPermission('page-clone-tree', $this->page);
-		
+
 		$titleField = $form->get('clone_page_title');
 		$nameField = $form->get('clone_page_name');
-		
+
 		if($nameField->useLanguages) {
 			foreach($this->wire('languages') as $language) {
 				$valueAttr = $language->isDefault() ? "value" : "value$language->id";
 				$nameAttr = $language->isDefault() ? "name" : "name$language->id";
-				$value = $nameField->get($valueAttr); 				
-				$page->set($nameAttr, $value); 
+				$value = $nameField->get($valueAttr);
+				$page->set($nameAttr, $value);
 			}
 		} else {
 			$page->name = $nameField->value;
 		}
-		
+
 		$clone = $this->pages->clone($page, $page->parent, $cloneTree);
 		if(!$clone->id) throw new WireException(sprintf($this->_("Unable to clone page %s"), $page->path));
 
@@ -256,15 +256,15 @@ class ProcessPageClone extends Process {
 			foreach($this->wire('languages') as $language) {
 				$valueAttr = $language->isDefault() ? "value" : "value$language->id";
 				$value = $titleField->get($valueAttr);
-				$clone->title->setLanguageValue($language, $value); 
+				$clone->title->setLanguageValue($language, $value);
 			}
 		} else {
-			$clone->title = $titleField->value; 
+			$clone->title = $titleField->value;
 		}
 		$clone->save();
-		$this->message(sprintf($this->_('Cloned page "%1$s" to "%2$s"'), $originalName, $clone->name)); 
+		$this->message(sprintf($this->_('Cloned page "%1$s" to "%2$s"'), $originalName, $clone->name));
 
-		$this->session->redirect($this->config->urls->admin . 'page/list/?open=' . $clone->id); 
+		$this->session->redirect($this->config->urls->admin . 'page/list/?open=' . $clone->id);
 	}
 
 	/**
@@ -275,36 +275,36 @@ class ProcessPageClone extends Process {
 
 		// noticed that permissions weren't sorted right on default install, so just fixing the sort here
 		// since I want to ensure the page-clone and page-clone-tree permissions stay together as a group.
-		// so the following loads all permissions, assigns a sort value, then saves them. 
+		// so the following loads all permissions, assigns a sort value, then saves them.
 		$sort = 0;
 		foreach($this->permissions as $permission) {
-			$permission->sort = $sort; 
+			$permission->sort = $sort;
 			$permission->save();
-			$sort++; 
+			$sort++;
 		}
 
 		// add the page-clone and page-clone-tree permissions
-		foreach($this->permissionNames as $name => $title) {		
-			$p = $this->permissions->add($name); 
-			if(!$p->id) continue; 
+		foreach($this->permissionNames as $name => $title) {
+			$p = $this->permissions->add($name);
+			if(!$p->id) continue;
 			$p->title = $title;
 			$p->save();
-			$this->message("Added new permission: $name"); 
+			$this->message("Added new permission: $name");
 		}
 
 		// locate the parent page
 		$parent = $this->pages->get($this->config->adminRootPageID)->child('name=page');
-		if(!$parent->id || count($parent->children('name=clone'))) throw new WireException("Unable to add new page to admin"); 
+		if(!$parent->id || count($parent->children('name=clone'))) throw new WireException("Unable to add new page to admin");
 
 		// page the new clone page
-		$page = new Page(); 
+		$page = new Page();
 		$page->template = 'admin';
-		$page->parent = $parent; 
+		$page->parent = $parent;
 		$page->name = 'clone';
-		$page->process = $this; 
+		$page->process = $this;
 		$page->addStatus(Page::statusHidden);
 		$page->save();
-		$this->message("Added new page: {$page->path}"); 
+		$this->message("Added new page: {$page->path}");
 
 	}
 
@@ -315,22 +315,22 @@ class ProcessPageClone extends Process {
 	public function ___uninstall() {
 
 		foreach($this->permissionNames as $name => $title) {
-			$p = $this->permissions->get($name); 
-			if(!$p->id) continue; 
-			$this->permissions->delete($p); 
-			$this->message("Removed permission: $name"); 
+			$p = $this->permissions->get($name);
+			if(!$p->id) continue;
+			$this->permissions->delete($p);
+			$this->message("Removed permission: $name");
 		}
 
-		$page = $this->pages->get($this->config->adminRootPageID)->child("name=page")->child("name=clone"); 
+		$page = $this->pages->get($this->config->adminRootPageID)->child("name=page")->child("name=clone");
 		if($page->id) {
-			$this->message("Removed page: {$page->path}"); 
-			$this->pages->delete($page); 
+			$this->message("Removed page: {$page->path}");
+			$this->pages->delete($page);
 		}
 
 	}
-	
+
 	public function getPage() {
-		return $this->page; 
+		return $this->page;
 	}
 
 }

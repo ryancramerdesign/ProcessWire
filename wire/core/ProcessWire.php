@@ -4,23 +4,23 @@
  * ProcessWire API Bootstrap
  *
  * Initializes all the ProcessWire classes and prepares them for API use
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2014 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
 
 define("PROCESSWIRE_CORE_PATH", dirname(__FILE__) . '/');
 
-require(PROCESSWIRE_CORE_PATH . "autoload.php"); 
-require(PROCESSWIRE_CORE_PATH . "Interfaces.php"); 
-require(PROCESSWIRE_CORE_PATH . "Exceptions.php"); 
-require(PROCESSWIRE_CORE_PATH . "Functions.php"); 
+require(PROCESSWIRE_CORE_PATH . "autoload.php");
+require(PROCESSWIRE_CORE_PATH . "Interfaces.php");
+require(PROCESSWIRE_CORE_PATH . "Exceptions.php");
+require(PROCESSWIRE_CORE_PATH . "Functions.php");
 require(PROCESSWIRE_CORE_PATH . "LanguageFunctions.php");
-require(PROCESSWIRE_CORE_PATH . "shutdown.php"); 
+require(PROCESSWIRE_CORE_PATH . "shutdown.php");
 
 
 /**
@@ -28,37 +28,37 @@ require(PROCESSWIRE_CORE_PATH . "shutdown.php");
  *
  * Gets ProcessWire's API ready for use
  *
- */ 
+ */
 class ProcessWire extends Wire {
 
-	const versionMajor = 2; 
-	const versionMinor = 5; 
-	const versionRevision = 2; 
+	const versionMajor = 2;
+	const versionMinor = 5;
+	const versionRevision = 2;
 	const versionSuffix = '';
-	
+
 	const indexVersion = 250; // required version for index.php file (represented by PROCESSWIRE define)
-	
+
 	const statusBoot = 0; // system is booting
 	const statusInit = 2; // system and modules are initializing
 	const statusReady = 4; // system and $page are ready
 	const statusRender = 8; // $page's template is being rendered
 	const statusFinished = 16; // request has been delivered
 	const statusFailed = 1024; // request failed due to exception or 404
-	
-	protected $debug = false; 
+
+	protected $debug = false;
 
 	/**
 	 * Given a Config object, instantiates ProcessWire and it's API
  	 *
-	 */ 
+	 */
 	public function __construct(Config $config) {
-		$this->debug = $config->debug; 
-		$this->config($config); 
+		$this->debug = $config->debug;
+		$this->config($config);
 		$this->load($config);
 	}
 
 	public function __toString() {
-		return $this->className() . " " . self::versionMajor . "." . self::versionMinor . "." . self::versionRevision; 
+		return $this->className() . " " . self::versionMajor . "." . self::versionMinor . "." . self::versionRevision;
 	}
 
 	/**
@@ -69,22 +69,22 @@ class ProcessWire extends Wire {
 	 */
 	protected function config(Config $config) {
 
-		$this->wire('config', $config, true); 
+		$this->wire('config', $config, true);
 
 		ini_set("date.timezone", $config->timezone);
 		ini_set('default_charset','utf-8');
 
 		if(!$config->templateExtension) $config->templateExtension = 'php';
-		if(!$config->httpHost) $config->httpHost = $this->getHttpHost($config); 
+		if(!$config->httpHost) $config->httpHost = $this->getHttpHost($config);
 
 		$config->https = (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) == 'on') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
 		$config->ajax = (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == 'XMLHttpRequest');
 		$config->cli = (!isset($_SERVER['SERVER_SOFTWARE']) && (php_sapi_name() == 'cli' || ($_SERVER['argc'] > 0 && is_numeric($_SERVER['argc']))));
-		
-		$version = self::versionMajor . "." . self::versionMinor . "." . self::versionRevision; 
+
+		$version = self::versionMajor . "." . self::versionMinor . "." . self::versionRevision;
 		$config->version = $version;
-		$config->versionName = trim($version . " " . self::versionSuffix); 
-		
+		$config->versionName = trim($version . " " . self::versionSuffix);
+
 		$this->setStatus(self::statusBoot);
 	}
 
@@ -94,18 +94,18 @@ class ProcessWire extends Wire {
 	 */
 	protected function getHttpHost(Config $config) {
 
-		$httpHosts = $config->httpHosts; 
+		$httpHosts = $config->httpHosts;
 		$port = (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] != 80) ? (':' . ((int) $_SERVER['SERVER_PORT'])) : '';
 		$host = '';
 
 		if(is_array($httpHosts) && count($httpHosts)) {
 			// validate from an allowed whitelist of http hosts
-			$key = false; 
+			$key = false;
 			if(isset($_SERVER['SERVER_NAME'])) {
-				$key = array_search(strtolower($_SERVER['SERVER_NAME']) . $port, $httpHosts, true); 
+				$key = array_search(strtolower($_SERVER['SERVER_NAME']) . $port, $httpHosts, true);
 			}
 			if($key === false && isset($_SERVER['HTTP_HOST'])) {
-				$key = array_search(strtolower($_SERVER['HTTP_HOST']), $httpHosts, true); 
+				$key = array_search(strtolower($_SERVER['HTTP_HOST']), $httpHosts, true);
 			}
 			if($key === false) {
 				// no valid host found, default to first in whitelist
@@ -117,10 +117,10 @@ class ProcessWire extends Wire {
 
 		} else {
 			// pull from server_name or http_host and sanitize
-			
+
 			if(isset($_SERVER['SERVER_NAME']) && $host = $_SERVER['SERVER_NAME']) {
 				// no whitelist available, so defer to server_name
-				$host .= $port; 
+				$host .= $port;
 
 			} else if(isset($_SERVER['HTTP_HOST']) && $host = $_SERVER['HTTP_HOST']) {
 				// fallback to sanitized http_host if server_name not available
@@ -129,10 +129,10 @@ class ProcessWire extends Wire {
 			}
 
 			// sanitize since it did not come from a whitelist
-			if(!preg_match('/^[-a-zA-Z0-9.:]+$/D', $host)) $host = ''; 
+			if(!preg_match('/^[-a-zA-Z0-9.:]+$/D', $host)) $host = '';
 		}
 
-		return $host; 
+		return $host;
 	}
 
 	/**
@@ -142,43 +142,43 @@ class ProcessWire extends Wire {
  	 *
 	 */
 	public function load(Config $config) {
-		
+
 		if($this->debug) {
-			Debug::timer('boot'); 
-			Debug::timer('boot.load'); 
+			Debug::timer('boot');
+			Debug::timer('boot.load');
 		}
 
 		$this->wire('wire', $this, true);
-		$this->wire('log', new WireLog(), true); 
-		$this->wire('notices', new Notices(), true); 
-		$this->wire('sanitizer', new Sanitizer()); 
+		$this->wire('log', new WireLog(), true);
+		$this->wire('notices', new Notices(), true);
+		$this->wire('sanitizer', new Sanitizer());
 
 		try {
 			$database = WireDatabasePDO::getInstance($config);
-			$this->wire('database', $database); 
+			$this->wire('database', $database);
 			$db = new DatabaseMysqli($config);
 			$this->wire('db', $db);
 		} catch(Exception $e) {
 			// catch and re-throw to prevent DB connect info from ever appearing in debug backtrace
-			throw new WireDatabaseException($e->getMessage()); 
+			throw new WireDatabaseException($e->getMessage());
 		}
-		
-		$cache = new WireCache(); 
-		$this->wire('cache', $cache); 
 
-		try { 		
+		$cache = new WireCache();
+		$this->wire('cache', $cache);
+
+		try {
 			if($this->debug) Debug::timer('boot.load.modules');
 			$modules = new Modules($config->paths->modules);
 			$modules->addPath($config->paths->siteModules);
-			$this->wire('modules', $modules, true); 
-			$modules->setSubstitutes($config->substituteModules); 
+			$this->wire('modules', $modules, true);
+			$modules->setSubstitutes($config->substituteModules);
 			$modules->init();
 			if($this->debug) Debug::saveTimer('boot.load.modules');
 		} catch(Exception $e) {
-			if(!$modules) throw new WireException($e->getMessage()); 	
-			$this->error($e->getMessage()); 
+			if(!$modules) throw new WireException($e->getMessage());
+			$this->error($e->getMessage());
 		}
-		$updater = $modules->get('SystemUpdater'); 
+		$updater = $modules->get('SystemUpdater');
 		if(!$updater) {
 			$modules->resetCache();
 			$modules->get('SystemUpdater');
@@ -187,13 +187,13 @@ class ProcessWire extends Wire {
 		$fieldtypes = new Fieldtypes();
 		$fields = new Fields();
 		$fieldgroups = new Fieldgroups();
-		$templates = new Templates($fieldgroups, $config->paths->templates); 
+		$templates = new Templates($fieldgroups, $config->paths->templates);
 
-		$this->wire('fieldtypes', $fieldtypes, true); 
-		$this->wire('fields', $fields, true); 
-		$this->wire('fieldgroups', $fieldgroups, true); 
-		$this->wire('templates', $templates, true); 
-		
+		$this->wire('fieldtypes', $fieldtypes, true);
+		$this->wire('fields', $fields, true);
+		$this->wire('fieldgroups', $fieldgroups, true);
+		$this->wire('templates', $templates, true);
+
 		$pages = new Pages();
 		$this->wire('pages', $pages, true);
 
@@ -201,31 +201,31 @@ class ProcessWire extends Wire {
 		$this->initVar('fields', $fields);
 		$this->initVar('fieldgroups', $fieldgroups);
 		$this->initVar('templates', $templates);
-		$this->initVar('pages', $pages); 
-	
-		if($this->debug) Debug::timer('boot.load.permissions'); 
-		if(!$t = $templates->get('permission')) throw new WireException("Missing system template: 'permission'"); 
-		$permissions = new Permissions($t, $config->permissionsPageID); 
+		$this->initVar('pages', $pages);
+
+		if($this->debug) Debug::timer('boot.load.permissions');
+		if(!$t = $templates->get('permission')) throw new WireException("Missing system template: 'permission'");
+		$permissions = new Permissions($t, $config->permissionsPageID);
 		$this->wire('permissions', $permissions, true);
 		if($this->debug) Debug::saveTimer('boot.load.permissions');
 
-		if($this->debug) Debug::timer('boot.load.roles'); 
-		if(!$t = $templates->get('role')) throw new WireException("Missing system template: 'role'"); 
-		$roles = new Roles($t, $config->rolesPageID); 
+		if($this->debug) Debug::timer('boot.load.roles');
+		if(!$t = $templates->get('role')) throw new WireException("Missing system template: 'role'");
+		$roles = new Roles($t, $config->rolesPageID);
 		$this->wire('roles', $roles, true);
 		if($this->debug) Debug::saveTimer('boot.load.roles');
 
-		if($this->debug) Debug::timer('boot.load.users'); 
-		if(!$t = $templates->get('user')) throw new WireException("Missing system template: 'user'"); 
-		$users = new Users($t, $config->usersPageID); 
+		if($this->debug) Debug::timer('boot.load.users');
+		if(!$t = $templates->get('user')) throw new WireException("Missing system template: 'user'");
+		$users = new Users($t, $config->usersPageID);
 		$this->wire('users', $users, true);
-		if($this->debug) Debug::saveTimer('boot.load.users'); 
+		if($this->debug) Debug::saveTimer('boot.load.users');
 
 		// the current user can only be determined after the session has been initiated
-		$session = new Session(); 
-		$this->wire('session', $session, true); 
-		$this->wire('user', $users->getCurrentUser()); 
-		$this->wire('input', new WireInput(), true); 
+		$session = new Session();
+		$this->wire('session', $session, true);
+		$this->wire('user', $users->getCurrentUser());
+		$this->wire('input', new WireInput(), true);
 
 		// populate admin URL before modules init()
 		$config->urls->admin = $config->urls->root . ltrim($pages->_path($config->adminRootPageID), '/');
@@ -233,41 +233,41 @@ class ProcessWire extends Wire {
 		if($this->debug) Debug::saveTimer('boot.load', 'includes all boot.load timers');
 		$this->setStatus(self::statusInit);
 	}
-	
+
 	/**
 	 * Initialize the given API var
-	 * 
+	 *
 	 * @param string $name
 	 * @param Wire $value
-	 * 
+	 *
 	 */
 	protected function initVar($name, $value) {
 		if($this->debug) Debug::timer("boot.load.$name");
 		$value->init();
-		if($this->debug) Debug::saveTimer("boot.load.$name"); 
+		if($this->debug) Debug::saveTimer("boot.load.$name");
 	}
 
 	/**
 	 * Set the system status to one of the ProcessWire::status* constants
-	 * 
+	 *
 	 * This also triggers init/ready functions for modules, when applicable.
-	 * 
+	 *
 	 * @param $status
-	 * 
+	 *
 	 */
 	public function setStatus($status) {
 		$config = $this->wire('config');
 		// don't re-trigger if this state has already been triggered
 		if($config->status >= $status) return;
 		$config->status = $status;
-		
+
 		if($status == self::statusInit) {
 			$this->init();
-			
+
 		} else if($status == self::statusReady) {
 			$this->ready();
-			if($this->debug) Debug::saveTimer('boot', 'includes all boot timers'); 
-			
+			if($this->debug) Debug::saveTimer('boot', 'includes all boot timers');
+
 		} else if($status == self::statusFinished) {
 			$this->finished();
 		}
@@ -275,12 +275,12 @@ class ProcessWire extends Wire {
 
 	/**
 	 * Hookable init for anyone that wants to hook immediately before any autoload modules initialized or after all modules initialized
-	 * 
+	 *
 	 */
 	protected function ___init() {
-		if($this->debug) Debug::timer('boot.modules.autoload.init'); 
+		if($this->debug) Debug::timer('boot.modules.autoload.init');
 		$this->wire('modules')->triggerInit();
-		if($this->debug) Debug::saveTimer('boot.modules.autoload.init'); 
+		if($this->debug) Debug::saveTimer('boot.modules.autoload.init');
 	}
 
 	/**
@@ -288,9 +288,9 @@ class ProcessWire extends Wire {
 	 *
 	 */
 	protected function ___ready() {
-		if($this->debug) Debug::timer('boot.modules.autoload.ready'); 
+		if($this->debug) Debug::timer('boot.modules.autoload.ready');
 		$this->wire('modules')->triggerReady();
-		if($this->debug) Debug::saveTimer('boot.modules.autoload.ready'); 
+		if($this->debug) Debug::saveTimer('boot.modules.autoload.ready');
 	}
 
 	/**
@@ -303,9 +303,9 @@ class ProcessWire extends Wire {
 
 	/**
 	 * Set a new API variable
-	 * 
+	 *
 	 * Alias of $this->wire(), but for setting only, for syntactic convenience.
-	 * 
+	 *
 	 * @param $key API variable name to set
 	 * @param $value Value of API variable
 	 * @param bool $lock Whether to lock the value from being overwritten
@@ -315,7 +315,7 @@ class ProcessWire extends Wire {
 		$this->wire($key, $value, $lock);
 		return $this;
 	}
-	
+
 }
 
 

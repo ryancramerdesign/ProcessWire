@@ -5,25 +5,25 @@
  *
  * ImageSizer handles resizing of a single JPG, GIF, or PNG image using GD2.
  *
- * ImageSizer class includes ideas adapted from comments found at PHP.net 
+ * ImageSizer class includes ideas adapted from comments found at PHP.net
  * in the GD functions documentation.
  *
  * Code for IPTC, auto rotation and sharpening by Horst Nogajski.
  * http://nogajski.de/
  *
- * Other user contributions as noted. 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Other user contributions as noted.
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
 class ImageSizer extends Wire {
 
  	/**
-	 * Filename to be resized 
+	 * Filename to be resized
 	 *
 	 */
 	protected $filename;
@@ -32,13 +32,13 @@ class ImageSizer extends Wire {
 	 * Extension of filename
 	 *
 	 */
-	protected $extension; 
+	protected $extension;
 
 	/**
 	 * Type of image
 	 *
 	 */
-	protected $imageType = null; 
+	protected $imageType = null;
 
 	/**
 	 * Image quality setting, 1..100
@@ -81,7 +81,7 @@ class ImageSizer extends Wire {
 	/**
 	 * Allow images to be cropped to achieve necessary dimension? If so, what direction?
 	 *
-	 * Possible values: northwest, north, northeast, west, center, east, southwest, south, southeast 
+	 * Possible values: northwest, north, northeast, west, center, east, southwest, south, southeast
 	 * 	or TRUE to crop to center, or FALSE to disable cropping.
 	 * Default is: TRUE
 	 *
@@ -102,7 +102,7 @@ class ImageSizer extends Wire {
 	 * Was the given image modified?
 	 *
 	 */
-	protected $modified = false; 
+	protected $modified = false;
 
 	/**
 	 * enable auto_rotation according to EXIF-Orientation-Flag
@@ -118,10 +118,10 @@ class ImageSizer extends Wire {
 
 	/**
 	 * default gamma correction: 0.5 - 4.0 | -1 to disable gammacorrection, default = 2.0
-	 * 
+	 *
 	 * can be overridden by setting it to $config->imageSizerOptions['defaultGamma']
 	 * or passing it along with image options array
-	 * 
+	 *
 	 */
 	protected $defaultGamma = 2.0;
 
@@ -168,9 +168,9 @@ class ImageSizer extends Wire {
 
 	/**
 	 * Indicates how much an image should be sharpened
-	 * 
+	 *
 	 */
-	protected $usmValue = 100; 
+	protected $usmValue = 100;
 
 	/**
 	 * Result of iptcparse(), if available
@@ -199,42 +199,42 @@ class ImageSizer extends Wire {
 		$this->options['useUSM'] = true;
 
 		// filling all options with global custom values from config.php
-		$options = array_merge($this->wire('config')->imageSizerOptions, $options); 
+		$options = array_merge($this->wire('config')->imageSizerOptions, $options);
 		$this->setOptions($options);
 		$this->loadImageInfo($filename);
 	}
 
 	/**
-	 * Load the image information (width/height) using PHP's getimagesize function 
-	 * 
+	 * Load the image information (width/height) using PHP's getimagesize function
+	 *
 	 */
 	protected function loadImageInfo($filename) {
 
-		$this->filename = $filename; 
-		$pathinfo = pathinfo($filename); 
-		$this->extension = strtolower($pathinfo['extension']); 
+		$this->filename = $filename;
+		$pathinfo = pathinfo($filename);
+		$this->extension = strtolower($pathinfo['extension']);
 
 		$additionalInfo = array();
 		$info = @getimagesize($this->filename, $additionalInfo);
-		if($info === false) throw new WireException(basename($filename) . " - not a recognized image"); 
+		if($info === false) throw new WireException(basename($filename) . " - not a recognized image");
 
 		if(self::checkMemoryForImage($info) === false) {
-			throw new WireException(basename($filename) . " - not enough memory to load/resize"); 
+			throw new WireException(basename($filename) . " - not enough memory to load/resize");
 		}
 
 		if(function_exists("exif_imagetype")) {
-			$this->imageType = exif_imagetype($filename); 
+			$this->imageType = exif_imagetype($filename);
 
 		} else if(isset($info[2])) {
 			// imagetype (IMAGETYPE_GIF, IMAGETYPE_JPEG, IMAGETYPE_PNG)
 			$this->imageType = $info[2];
 
 		} else if(isset($this->supportedImageTypes[$this->extension])) {
-			$this->imageType = $this->supportedImageTypes[$this->extension]; 
+			$this->imageType = $this->supportedImageTypes[$this->extension];
 		}
 
 		if(!in_array($this->imageType, $this->supportedImageTypes)) {
-			throw new WireException(basename($filename) . " - not a supported image type"); 
+			throw new WireException(basename($filename) . " - not a supported image type");
 		}
 
 		// width, height
@@ -262,7 +262,7 @@ class ImageSizer extends Wire {
 		$orientations = null; // @horst
 		$needRotation = $this->autoRotation !== true ? false : ($this->checkOrientation($orientations) && (!empty($orientations[0]) || !empty($orientations[1])) ? true : false);
 		$source = $this->filename;
-		$dest = str_replace("." . $this->extension, "_tmp." . $this->extension, $source); 
+		$dest = str_replace("." . $this->extension, "_tmp." . $this->extension, $source);
 		$image = null;
 
 		switch($this->imageType) { // @teppo
@@ -273,8 +273,8 @@ class ImageSizer extends Wire {
 
 		if(!$image) return false;
 
-		if($this->imageType != IMAGETYPE_PNG || !$this->hasAlphaChannel()) { 
-			// @horst: linearize gamma to 1.0 - we do not use gamma correction with pngs containing alphachannel, because GD-lib  doesn't respect transparency here (is buggy) 
+		if($this->imageType != IMAGETYPE_PNG || !$this->hasAlphaChannel()) {
+			// @horst: linearize gamma to 1.0 - we do not use gamma correction with pngs containing alphachannel, because GD-lib  doesn't respect transparency here (is buggy)
 			$this->gammaCorrection($image, true);
 		}
 
@@ -316,22 +316,22 @@ class ImageSizer extends Wire {
 
 		// now lets check what operations are necessary:
 		if($gdWidth == $targetWidth && $gdWidth == $this->image['width'] &&  $gdHeight == $this->image['height'] && $gdHeight == $targetHeight) {
-			
+
 			// this is the case if the original size is requested or a greater size but upscaling is set to false
-			
+
 			@imagedestroy($image);
 			return true;
-			
+
 		} else if($gdWidth == $targetWidth && $gdHeight == $targetHeight) {
-			
+
 			// this is the case if we scale up or down _without_ cropping
 
 			$thumb = imagecreatetruecolor($gdWidth, $gdHeight);
 			$this->prepareImageLayer($thumb, $image);
 			imagecopyresampled($thumb, $image, 0, 0, 0, 0, $gdWidth, $gdHeight, $this->image['width'], $this->image['height']);
-			
+
 		} else {
-			
+
 			// we have to scale up or down and to _crop_
 
 			$thumb2 = imagecreatetruecolor($gdWidth, $gdHeight);
@@ -359,9 +359,9 @@ class ImageSizer extends Wire {
 			case IMAGETYPE_GIF:
 				// correct gamma from linearized 1.0 back to 2.0
 				$this->gammaCorrection($thumb, false);
-				$result = imagegif($thumb, $dest); 
+				$result = imagegif($thumb, $dest);
 				break;
-			case IMAGETYPE_PNG: 
+			case IMAGETYPE_PNG:
 				if(!$this->hasAlphaChannel()) $this->gammaCorrection($thumb, false);
 				// always use highest compression level for PNG (9) per @horst
 				$result = imagepng($thumb, $dest, 9);
@@ -369,31 +369,31 @@ class ImageSizer extends Wire {
 			case IMAGETYPE_JPEG:
 				// correct gamma from linearized 1.0 back to 2.0
 				$this->gammaCorrection($thumb, false);
-				$result = imagejpeg($thumb, $dest, $this->quality); 
+				$result = imagejpeg($thumb, $dest, $this->quality);
 				break;
 		}
 
 		@imagedestroy($image); // @horst
 		if(isset($thumb) && is_resource($thumb)) @imagedestroy($thumb); // @horst
 		if(isset($thumb2) && is_resource($thumb2)) @imagedestroy($thumb2); // @horst
-		
+
 		$image = null;
 		if(isset($thumb)) $thumb = null;
 		if(isset($thumb2)) $thumb2 = null;
 
 		if($result === false) {
-			if(is_file($dest)) @unlink($dest); 
+			if(is_file($dest)) @unlink($dest);
 			return false;
 		}
 
-		unlink($source); 
-		rename($dest, $source); 
+		unlink($source);
+		rename($dest, $source);
 
 		// @horst: if we've retrieved IPTC-Metadata from sourcefile, we write it back now
 		if($this->iptcRaw) {
 			$content = iptcembed($this->iptcPrepareData(), $this->filename);
 			if($content !== false) {
-				$dest = preg_replace('/\.' . $this->extension . '$/', '_tmp.' . $this->extension, $this->filename); 
+				$dest = preg_replace('/\.' . $this->extension . '$/', '_tmp.' . $this->extension, $this->filename);
 				if(strlen($content) == @file_put_contents($dest, $content, LOCK_EX)) {
 					// on success we replace the file
 					unlink($this->filename);
@@ -405,9 +405,9 @@ class ImageSizer extends Wire {
 			}
 		}
 
-		$this->loadImageInfo($this->filename); 
-		$this->modified = true; 
-		
+		$this->loadImageInfo($this->filename);
+		$this->modified = true;
+
 		return true;
 	}
 
@@ -417,12 +417,12 @@ class ImageSizer extends Wire {
 	 */
 	protected function setImageInfo($width, $height) {
 		$this->image['width'] = $width;
-		$this->image['height'] = $height; 
+		$this->image['height'] = $height;
 	}
 
 	/**
 	 * Return the image width
-	 * 
+	 *
 	 * @return int
 	 *
 	 */
@@ -430,7 +430,7 @@ class ImageSizer extends Wire {
 
 	/**
 	 * Return the image height
-	 * 
+	 *
 	 * @return int
 	 *
 	 */
@@ -438,7 +438,7 @@ class ImageSizer extends Wire {
 
 	/**
 	 * Return true if it's necessary to perform a resize with the given width/height, or false if not.
-	 * 
+	 *
 	 * @param int $targetWidth
 	 * @param int $targetHeight
 	 * @return bool
@@ -446,20 +446,20 @@ class ImageSizer extends Wire {
 	 */
 	protected function isResizeNecessary($targetWidth, $targetHeight) {
 
-		$img =& $this->image; 
-		$resize = true; 
+		$img =& $this->image;
+		$resize = true;
 
-		if(	(!$targetWidth || $img['width'] == $targetWidth) && 
+		if(	(!$targetWidth || $img['width'] == $targetWidth) &&
 			(!$targetHeight || $img['height'] == $targetHeight)) {
-			
+
 			$resize = false;
 
 		} else if(!$this->upscaling && ($targetHeight >= $img['height'] && $targetWidth >= $img['width'])) {
 
-			$resize = false; 
+			$resize = false;
 		}
 
-		return $resize; 
+		return $resize;
 	}
 
 	/**
@@ -482,7 +482,7 @@ class ImageSizer extends Wire {
 
 	/**
 	 * Get an array of the 4 dimensions necessary to perform the resize
-	 * 
+	 *
 	 * Note: Some code used in this method is adapted from code found in comments at php.net for the GD functions
 	 *
 	 * Intended for use by the resize() method
@@ -497,30 +497,30 @@ class ImageSizer extends Wire {
 		$pWidth = $targetWidth;
 		$pHeight = $targetHeight;
 
-		$img =& $this->image; 
+		$img =& $this->image;
 
-		if(!$targetHeight) $targetHeight = round(($targetWidth / $img['width']) * $img['height']); 
-		if(!$targetWidth) $targetWidth = round(($targetHeight / $img['height']) * $img['width']); 
+		if(!$targetHeight) $targetHeight = round(($targetWidth / $img['width']) * $img['height']);
+		if(!$targetWidth) $targetWidth = round(($targetHeight / $img['height']) * $img['width']);
 
 		$originalTargetWidth = $targetWidth;
-		$originalTargetHeight = $targetHeight; 
+		$originalTargetHeight = $targetHeight;
 
 		if($img['width'] < $img['height']) {
-			$pHeight = $this->getProportionalHeight($targetWidth); 
+			$pHeight = $this->getProportionalHeight($targetWidth);
 		} else {
-			$pWidth = $this->getProportionalWidth($targetHeight); 
+			$pWidth = $this->getProportionalWidth($targetHeight);
 		}
 
-		if($pWidth < $targetWidth) { 
-			// if the proportional width is smaller than specified target width 
+		if($pWidth < $targetWidth) {
+			// if the proportional width is smaller than specified target width
 			$pWidth = $targetWidth;
 			$pHeight = $this->getProportionalHeight($targetWidth);
 		}
 
-		if($pHeight < $targetHeight) { 
-			// if the proportional height is smaller than specified target height 
+		if($pHeight < $targetHeight) {
+			// if the proportional height is smaller than specified target height
 			$pHeight = $targetHeight;
-			$pWidth = $this->getProportionalWidth($targetHeight); 
+			$pWidth = $this->getProportionalWidth($targetHeight);
 		}
 
 		if(!$this->upscaling) {
@@ -529,49 +529,49 @@ class ImageSizer extends Wire {
 			while($pWidth > $img['width'] || $pHeight > $img['height']) {
 				// favor the smallest dimension
 				if($pWidth > $img['width']) {
-					$pWidth = $img['width']; 
-					$pHeight = $this->getProportionalHeight($pWidth); 
+					$pWidth = $img['width'];
+					$pHeight = $this->getProportionalHeight($pWidth);
 				}
 
 				if($pHeight > $img['height']) {
-					$pHeight = $img['height']; 
-					$pWidth = $this->getProportionalWidth($pHeight); 
+					$pHeight = $img['height'];
+					$pWidth = $this->getProportionalWidth($pHeight);
 				}
 
 				if($targetWidth > $pWidth) $targetWidth = $pWidth;
-				if($targetHeight > $pHeight) $targetHeight = $pHeight; 
+				if($targetHeight > $pHeight) $targetHeight = $pHeight;
 
 				if(!$this->cropping) {
-					$targetWidth = $pWidth;	
-					$targetHeight = $pHeight; 
+					$targetWidth = $pWidth;
+					$targetHeight = $pHeight;
 				}
 			}
 		}
 
 		if(!$this->cropping) {
 			// we will make the image smaller so that none of it gets cropped
-			// this means we'll be adjusting either the targetWidth or targetHeight 
-			// till we have a suitable dimension 
+			// this means we'll be adjusting either the targetWidth or targetHeight
+			// till we have a suitable dimension
 
 			if($pHeight > $originalTargetHeight) {
-				$pHeight = $originalTargetHeight;	
-				$pWidth = $this->getProportionalWidth($pHeight); 
+				$pHeight = $originalTargetHeight;
+				$pWidth = $this->getProportionalWidth($pHeight);
 				$targetWidth = $pWidth;
 				$targetHeight = $pHeight;
 			}
 			if($pWidth > $originalTargetWidth) {
 				$pWidth = $originalTargetWidth;
-				$pHeight = $this->getProportionalHeight($pWidth); 
+				$pHeight = $this->getProportionalHeight($pWidth);
 				$targetWidth = $pWidth;
 				$targetHeight = $pHeight;
 			}
 		}
 
-		$r = array(	0 => (int) $pWidth, 	
+		$r = array(	0 => (int) $pWidth,
 				1 => (int) $pHeight,
 				2 => (int) $targetWidth,
 				3 => (int) $targetHeight
-				); 
+				);
 
 		return $r;
 
@@ -579,12 +579,12 @@ class ImageSizer extends Wire {
 
 	/**
 	 * Was the image modified?
-	 * 
+	 *
 	 * @return bool
-	 *	
+	 *
 	 */
 	public function isModified() {
-		return $this->modified; 
+		return $this->modified;
 	}
 
 	/**
@@ -597,7 +597,7 @@ class ImageSizer extends Wire {
 	static public function croppingValue($cropping) {
 
 		if(is_string($cropping)) {
-			$cropping = strtolower($cropping); 
+			$cropping = strtolower($cropping);
 			if(strpos($cropping, ',')) {
 				$cropping = explode(',', $cropping);
 				if(strpos($cropping[0], '%') !== false) $cropping[0] = round(min(100, max(0, $cropping[0]))) . '%';
@@ -606,19 +606,19 @@ class ImageSizer extends Wire {
 					else $cropping[1] = (int) $cropping[1];
 			}
 		}
-		
+
 		if($cropping === true) $cropping = true; // default, crop to center
 			else if(!$cropping) $cropping = false;
 			else if(is_array($cropping)) $cropping = $cropping; // already took care of it above
-			else if(in_array($cropping, self::$croppingValues)) $cropping = array_search($cropping, self::$croppingValues); 
-			else if(array_key_exists($cropping, self::$croppingValues)) $cropping = $cropping; 
+			else if(in_array($cropping, self::$croppingValues)) $cropping = array_search($cropping, self::$croppingValues);
+			else if(array_key_exists($cropping, self::$croppingValues)) $cropping = $cropping;
 			else $cropping = true; // unknown value or 'center', default to TRUE/center
 
-		return $cropping; 
+		return $cropping;
 	}
 
 	/**
-	 * Given an unknown cropping value, return the string representation of it 
+	 * Given an unknown cropping value, return the string representation of it
 	 *
 	 * Okay for use in filenames
 	 *
@@ -628,7 +628,7 @@ class ImageSizer extends Wire {
 	 */
 	static public function croppingValueStr($cropping) {
 
-		$cropping = self::croppingValue($cropping); 
+		$cropping = self::croppingValue($cropping);
 
 		// crop name if custom center point is specified
 		if(is_array($cropping)) {
@@ -641,8 +641,8 @@ class ImageSizer extends Wire {
 
 		return $cropping;
 	}
-	
-	
+
+
 
 	/**
 	 * Turn on/off cropping and/or set cropping direction
@@ -706,10 +706,10 @@ class ImageSizer extends Wire {
 	 *
 	 */
 	public function setQuality($n) {
-		$n = (int) $n; 	
-		if($n < 1) $n = 1; 
+		$n = (int) $n;
+		if($n < 1) $n = 1;
 		if($n > 100) $n = 100;
-		$this->quality = (int) $n; 
+		$this->quality = (int) $n;
 		return $this;
 	}
 
@@ -744,11 +744,11 @@ class ImageSizer extends Wire {
 		if(!$short) return $ret;    // return name
 		$flip = array_flip($sharpeningValues);
 		return 's' . $flip[$ret];   // return char s appended with the numbered index
-	}	
-	
+	}
+
 	/**
 	 * Set sharpening value: blank (for none), soft, medium, or strong
-	 * 
+	 *
 	 * @param mixed $value
 	 * @return $this
 	 * @throws WireException
@@ -760,42 +760,42 @@ class ImageSizer extends Wire {
 			$ret = strtolower($value);
 
 		} else if(is_int($value) && isset(self::$sharpeningValues[$value])) {
-			$ret = self::$sharpeningValues[$value]; 
+			$ret = self::$sharpeningValues[$value];
 
 		} else if(is_bool($value)) {
 			$ret = $value ? "soft" : "none";
-			
+
 		} else {
-			throw new WireException("Unknown value for sharpening"); 
+			throw new WireException("Unknown value for sharpening");
 		}
 
-		$this->sharpening = $ret; 
+		$this->sharpening = $ret;
 
-		return $this; 
+		return $this;
 	}
 
 	/**
 	 * Turn on/off auto rotation
-	 * 
+	 *
 	 * @param bool value Whether to auto-rotate or not (default = true)
 	 * @return $this
 	 *
 	 */
 	public function setAutoRotation($value = true) {
-		$this->autoRotation = $this->getBooleanValue($value); 
-		return $this; 
+		$this->autoRotation = $this->getBooleanValue($value);
+		return $this;
 	}
 
 	/**
 	 * Turn on/off upscaling
-	 * 
+	 *
 	 * @param bool $value Whether to upscale or not (default = true)
 	 * @return $this
 	 *
 	 */
 	public function setUpscaling($value = true) {
-		$this->upscaling = $this->getBooleanValue($value); 
-		return $this; 
+		$this->upscaling = $this->getBooleanValue($value);
+		return $this;
 	}
 
 	/**
@@ -812,7 +812,7 @@ class ImageSizer extends Wire {
 		} else {
 			throw new WireException('Invalid defaultGamma value - must be 0.5 - 4.0 or -1 to disable gammacorrection');
 		}
-		return $this; 
+		return $this;
 	}
 
 
@@ -821,15 +821,15 @@ class ImageSizer extends Wire {
 	 *
 	 * @param array $options May contain the following (show with default values):
 	 *	'quality' => 90,
-	 *	'cropping' => true, 
+	 *	'cropping' => true,
 	 *	'upscaling' => true,
-	 *	'autoRotation' => true, 
+	 *	'autoRotation' => true,
 	 * 	'sharpening' => 'soft' (none|soft|medium|string)
 	 * @return $this
 	 *
 	 */
 	public function setOptions(array $options) {
-		
+
 		foreach($options as $key => $value) {
 			switch($key) {
 
@@ -840,17 +840,17 @@ class ImageSizer extends Wire {
 				case 'cropping': $this->setCropping($value); break;
 				case 'defaultGamma': $this->setDefaultGamma($value); break;
 				case 'cropExtra': $this->setCropExtra($value); break;
-				
-				default: 
+
+				default:
 					// unknown or 3rd party option
-					$this->options[$key] = $value; 
+					$this->options[$key] = $value;
 			}
 		}
-		return $this; 
+		return $this;
 	}
 
 	/**
-	 * Given a value, convert it to a boolean. 
+	 * Given a value, convert it to a boolean.
 	 *
 	 * Value can be string representations like: 0, 1 off, on, yes, no, y, n, false, true.
 	 *
@@ -859,7 +859,7 @@ class ImageSizer extends Wire {
 	 *
 	 */
 	protected function getBooleanValue($value) {
-		if(in_array(strtolower($value), array('0', 'off', 'false', 'no', 'n', 'none'))) return false; 
+		if(in_array(strtolower($value), array('0', 'off', 'false', 'no', 'n', 'none'))) return false;
 		return ((int) $value) > 0;
 	}
 
@@ -871,16 +871,16 @@ class ImageSizer extends Wire {
 	 */
 	public function getOptions() {
 		$options = array(
-			'quality' => $this->quality, 
-			'cropping' => $this->cropping, 
+			'quality' => $this->quality,
+			'cropping' => $this->cropping,
 			'upscaling' => $this->upscaling,
 			'autoRotation' => $this->autoRotation,
 			'sharpening' => $this->sharpening,
 			'defaultGamma' => $this->defaultGamma,
-			'cropExtra' => $this->cropExtra, 
+			'cropExtra' => $this->cropExtra,
 			);
-		$options = array_merge($this->options, $options); 
-		return $options; 
+		$options = array_merge($this->options, $options);
+		return $options;
 	}
 
 	public function __get($key) {
@@ -890,11 +890,11 @@ class ImageSizer extends Wire {
 			'imageType',
 			'image',
 			'modified',
-			'supportedImageTypes', 
+			'supportedImageTypes',
 			);
-		if(in_array($key, $keys)) return $this->$key; 
-		if(in_array($key, $this->optionNames)) return $this->$key; 
-		if(isset($this->options[$key])) return $this->options[$key]; 
+		if(in_array($key, $keys)) return $this->$key;
+		if(in_array($key, $this->optionNames)) return $this->$key;
+		if(isset($this->options[$key])) return $this->options[$key];
 		return null;
 	}
 
@@ -905,7 +905,7 @@ class ImageSizer extends Wire {
 	 *
 	 */
 	public function getFilename() {
-		return $this->filename; 
+		return $this->filename;
 	}
 
 	/**
@@ -915,7 +915,7 @@ class ImageSizer extends Wire {
 	 *
 	 */
 	public function getExtension() {
-		return $this->extension; 
+		return $this->extension;
 	}
 
 	/**
@@ -925,7 +925,7 @@ class ImageSizer extends Wire {
 	 *
 	 */
 	public function getImageType() {
-		return $this->imageType; 
+		return $this->imageType;
 	}
 
 	/**
@@ -976,22 +976,22 @@ class ImageSizer extends Wire {
 
 	/**
 	 * Rotate image (@horst)
-	 * 
+	 *
 	 * @param resource $im
 	 * @param int $degree
-	 * @return resource 
+	 * @return resource
 	 *
 	 */
 	protected function imRotate($im, $degree) {
 		$degree = (is_float($degree) || is_int($degree)) && $degree > -361 && $degree < 361 ? $degree : false;
-		if($degree === false) return $im; 
+		if($degree === false) return $im;
 		if(in_array($degree, array(-360, 0, 360))) return $im;
 		return @imagerotate($im, $degree, imagecolorallocate($im, 0, 0, 0));
 	}
 
 	/**
 	 * Flip image (@horst)
-	 * 
+	 *
 	 * @param resource $im
 	 * @param bool $vertical (default = false)
 	 * @return resource
@@ -1142,7 +1142,7 @@ class ImageSizer extends Wire {
 	/**
 	 * Check for alphachannel in PNGs
 	 *
-	 * This method by Horst, who also credits initial code as coming from the FPDF project: 
+	 * This method by Horst, who also credits initial code as coming from the FPDF project:
 	 * http://www.fpdf.org/
 	 *
 	 * @return bool
@@ -1199,17 +1199,17 @@ class ImageSizer extends Wire {
 		$pal = '';
 		$trns = '';
 		$counter = 0;
-		
+
 		do {
 			$n = $this->freadint($f);
 			$counter += $n;
 			$type = @fread($f, 4);
-			
+
 			if($type == 'PLTE') {
 				// Read palette
 				$pal = @fread($f, $n);
 				@fread($f, 4);
-				
+
 			} else if($type == 'tRNS') {
 				// Read transparency info
 				$t = @fread($f, $n);
@@ -1225,27 +1225,27 @@ class ImageSizer extends Wire {
 				}
 				@fread($f, 4);
 				break;
-				
+
 			} else if($type == 'IEND' || $type == 'IDAT' || $counter >= 2048) {
 				break;
-				
+
 			} else {
 				fread($f, $n + 4);
 			}
-			
+
 		} while($n);
 
 		@fclose($f);
 		if($a['colspace'] == 'Indexed' and empty($pal)) $errors[] = 'Missing palette!';
 		if(count($errors) > 0) $a['errors'] = $errors;
 		if(!empty($trns)) $a['alpha'] = true;  // alphatransparency in 8bit images !
-		
-		return $a['alpha'];	
+
+		return $a['alpha'];
 	}
 
 	/**
 	 * apply GammaCorrection to an image (@horst)
-	 * 
+	 *
 	 * with mode = true it linearizes an image to 1
 	 * with mode = false it set it back to the originating gamma value
 	 *
@@ -1299,7 +1299,7 @@ class ImageSizer extends Wire {
 
 	/**
 	 * Unsharp Mask for PHP - version 2.1.1
- 	 *	
+ 	 *
 	 * Unsharp mask algorithm by Torstein Hønsi 2003-07.
 	 * thoensi_at_netcom_dot_no.
 	 * Please leave this notice.
@@ -1551,7 +1551,7 @@ class ImageSizer extends Wire {
 	protected function getCropDimensions(&$w1, &$h1, $gdWidth, $targetWidth, $gdHeight, $targetHeight) {
 
 		if(is_string($this->cropping)) {
-			
+
 			switch($this->cropping) {
 				case 'nw':
 					$w1 = 0;
@@ -1583,7 +1583,7 @@ class ImageSizer extends Wire {
 					break;
 				default: // center or false, we do nothing
 			}
-			
+
 		} else if(is_array($this->cropping)) {
 			// @interrobang + @u-nikos
 			if(strpos($this->cropping[0], '%') === false) $pointX = (int) $this->cropping[0];
@@ -1612,9 +1612,9 @@ class ImageSizer extends Wire {
 	 *
 	 */
 	static public function checkMemoryForImage($infoOrFilename, $faktor = 2.5) {
-		
+
 		static $phpMaxMem = null; // with this static there is only one call to the wireReadMaxMem() function per pageRendering, regardless how many images should be resized
-		
+
 		if(null === $phpMaxMem) {
 			$sMem = trim(strtoupper(ini_get('memory_limit')), ' B'); // trim B just in case it has Mb rather than M
 			switch(substr($sMem, -1)) {
@@ -1624,9 +1624,9 @@ class ImageSizer extends Wire {
 				default: $phpMaxMem = (int) $sMem;
 			}
 		}
-		
+
 		if(0 === $phpMaxMem) return null; // we couldn't read the MaxMemorySetting, so we do not know if there is enough or not
-		
+
 		if(is_array($infoOrFilename)) {
 			$info = $infoOrFilename;
 		} else if(is_file($infoOrFilename) && is_readable($infoOrFilename)) {
@@ -1634,16 +1634,16 @@ class ImageSizer extends Wire {
 		} else {
 			return null;
 		}
-		
+
 		if(!isset($info[0]) || !isset($info[1]) || !is_int($info[0]) || !is_int($info[1])) return null;
-		
+
 		$faktor = (is_float($faktor) || is_int($faktor)) && (0 < $faktor && 5 > $faktor) ? $faktor : 2.5;
 		$channels = isset($info['channels']) && $info['channels'] > 0 && $info['channels'] <= 4 ? $info['channels'] : 3;
 		$imgMem = $info[0] * $info[1] * $channels;
-		
+
 		// read current allocated memory
 		$curMem = memory_get_usage(true);  // memory_get_usage() is always available with PHP since 5.2.1
-		
+
 		// check if we have enough RAM to resize the image
 		return ($phpMaxMem - $curMem >= $faktor * $imgMem) ? true : false;
 	}

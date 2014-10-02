@@ -4,11 +4,11 @@
  * ProcessWire UserPage
  *
  * A type of Page used for storing an individual User
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  *
@@ -20,18 +20,18 @@
  *
  */
 
-class User extends Page { 
+class User extends Page {
 
 	/**
-	 * Create a new User page in memory. 
+	 * Create a new User page in memory.
 	 *
-	 * @param Template $tpl Template object this page should use. 
+	 * @param Template $tpl Template object this page should use.
 	 *
 	 */
 	public function __construct(Template $tpl = null) {
-		if(is_null($tpl)) $tpl = $this->fuel('templates')->get('user'); 
-		$this->parent = $this->fuel('pages')->get($this->fuel('config')->usersPageID); 
-		parent::__construct($tpl); 
+		if(is_null($tpl)) $tpl = $this->fuel('templates')->get('user');
+		$this->parent = $this->fuel('pages')->get($this->fuel('config')->usersPageID);
+		parent::__construct($tpl);
 	}
 
 	/**
@@ -42,25 +42,25 @@ class User extends Page {
 	 *
 	 */
 	public function hasRole($role) {
-		
+
 		$roles = $this->get('roles');
-		$has = false; 
-		
+		$has = false;
+
 		if(empty($roles)) {
 			// do nothing
-			
+
 		} else if(is_object($role) && $role instanceof Page) {
-			$has = $roles->has($role); 
-			
+			$has = $roles->has($role);
+
 		} else if(ctype_digit("$role")) {
-			$role = (int) $role; 
+			$role = (int) $role;
 			foreach($roles as $r) {
 				if(((int) $r->id) === $role) {
-					$has = true; 
+					$has = true;
 					break;
 				}
 			}
-			
+
 		} else if(is_string($role)) {
 			foreach($roles as $r) {
 				if($r->name === $role) {
@@ -69,7 +69,7 @@ class User extends Page {
 				}
 			}
 		}
-		
+
 		return $has;
 	}
 
@@ -83,10 +83,10 @@ class User extends Page {
 	 *
 	 */
 	public function addRole($role) {
-		if(is_string($role) || is_int($role)) $role = $this->fuel('roles')->get($role); 
+		if(is_string($role) || is_int($role)) $role = $this->fuel('roles')->get($role);
 		if(is_object($role) && $role instanceof Role) {
-			$this->get('roles')->add($role); 
-			return true; 
+			$this->get('roles')->add($role);
+			return true;
 		}
 		return false;
 	}
@@ -101,10 +101,10 @@ class User extends Page {
 	 *
 	 */
 	public function removeRole($role) {
-		if(is_string($role) || is_int($role)) $role = $this->fuel('roles')->get($role); 
+		if(is_string($role) || is_int($role)) $role = $this->fuel('roles')->get($role);
 		if(is_object($role) && $role instanceof Role) {
-			$this->get('roles')->remove($role); 
-			return true; 
+			$this->get('roles')->remove($role);
+			return true;
 		}
 		return false;
 	}
@@ -112,7 +112,7 @@ class User extends Page {
 	/**
 	 * Does the user have the given permission, OR the given permission in the given context?
 	 *
-	 * Context may be a Page or a Template. 
+	 * Context may be a Page or a Template.
 	 * This method serves as the public interface to the hasPagePermission and hasTemplatePermission methods.
 	 *
 	 * @param string|Permission $name Permission name
@@ -125,7 +125,7 @@ class User extends Page {
 			return $this->isHooked('hasPagePermission()') ? $this->hasPagePermission($name, $context) : $this->___hasPagePermission($name, $context);
 		}
 		if($context instanceof Template) {
-			return $this->isHooked('hasTemplatePermission()') ? $this->hasTemplatePermission($name, $context) : $this->___hasTemplatePermission($name, $context); 
+			return $this->isHooked('hasTemplatePermission()') ? $this->hasTemplatePermission($name, $context) : $this->___hasTemplatePermission($name, $context);
 		}
 		return false;
 	}
@@ -133,9 +133,9 @@ class User extends Page {
 	/**
 	 * Does this user have the given permission name?
 	 *
-	 * This is a basic permission check and it is recommended that you use those from the PagePermissions module instead. 
-	 * You use the PagePermissions module by calling the editable(), addable(), etc., functions on a page object. 
-	 * The PagePermissions does use this function for some of it's checking. 
+	 * This is a basic permission check and it is recommended that you use those from the PagePermissions module instead.
+	 * You use the PagePermissions module by calling the editable(), addable(), etc., functions on a page object.
+	 * The PagePermissions does use this function for some of it's checking.
 	 *
 	 * @param string|Permission
 	 * @param Page $page Optional page to check against
@@ -144,38 +144,38 @@ class User extends Page {
 	 */
 	protected function ___hasPagePermission($name, Page $page = null) {
 
-		if($this->isSuperuser()) return true; 
+		if($this->isSuperuser()) return true;
 
 		if($name instanceof Page) {
-			$permission = $name; 
+			$permission = $name;
 		} else {
-			$p = $name; 
-			// page-add and page-create don't actually exist in the DB, so we substitute page-edit for them 
+			$p = $name;
+			// page-add and page-create don't actually exist in the DB, so we substitute page-edit for them
 			// code later on will make sure they exist in the template's addRoles/createRoles
 			if(in_array($name, array('page-add', 'page-create'))) $p = 'page-edit';
-			$permission = $this->fuel('permissions')->get("name=$p"); 
+			$permission = $this->fuel('permissions')->get("name=$p");
 		}
 
 		if(!$permission || !$permission->id) return false;
 
-		$roles = $this->get('roles'); 
-		if(empty($roles)) return false; 
-		$has = false; 
+		$roles = $this->get('roles');
+		if(empty($roles)) return false;
+		$has = false;
 		$accessTemplate = is_null($page) ? null : $page->getAccessTemplate();
-		
+
 
 		foreach($roles as $key => $role) {
 
-			if(!$role || !$role->id) continue; 
+			if(!$role || !$role->id) continue;
 
 			if(!is_null($page)) {
-				if(!$page->id) continue;  
+				if(!$page->id) continue;
 
 				// if page doesn't have the 'view' role, then no access
-				if(!$page->hasAccessRole($role)) continue; 
+				if(!$page->hasAccessRole($role)) continue;
 
 				// if permission is page-edit, we also check against the template's editRoles
-				// if($name == 'page-edit' && !in_array($role->id, $page->getAccessTemplate()->editRoles)) continue; 
+				// if($name == 'page-edit' && !in_array($role->id, $page->getAccessTemplate()->editRoles)) continue;
 
 				// all page- permissions except page-view and page-add require page-edit access on $page, so check against that
 				if(strpos($name, 'page-') === 0 && $name != 'page-view' && $name != 'page-add' && !in_array($role->id, $accessTemplate->editRoles)) continue;
@@ -186,13 +186,13 @@ class User extends Page {
 					//else if($name == 'page-delete' && !in_array($role->id, $accessTemplate->deleteRoles)) continue;
 			}
 
-			if($role->hasPermission($permission)) { 
+			if($role->hasPermission($permission)) {
 				$has = true;
 				break;
 			}
 		}
 
-		return $has; 
+		return $has;
 	}
 
 
@@ -207,15 +207,15 @@ class User extends Page {
 	 */
 	protected function ___hasTemplatePermission($name, $template) {
 
-		if($name instanceof Template) $name = $name->name; 
-		if(is_object($name)) throw new WireException("Invalid type"); 
+		if($name instanceof Template) $name = $name->name;
+		if(is_object($name)) throw new WireException("Invalid type");
 
-		if($this->isSuperuser()) return true; 
+		if($this->isSuperuser()) return true;
 
 		if($template instanceof Template) {
 			// fantastic then
 		} else if(is_string($template) || is_int($template)) {
-			$template = $this->templates->get($this->sanitizer->name($template)); 
+			$template = $this->templates->get($this->sanitizer->name($template));
 			if(!$template) return false;
 		} else {
 			return false;
@@ -223,21 +223,21 @@ class User extends Page {
 
 		// if the template is not defining roles, we have to say 'no' to permission
 		// because we don't have any page context to inherit from at this point
-		// if(!$template->useRoles) return false; 
+		// if(!$template->useRoles) return false;
 
-		$roles = $this->get('roles'); 
-		if(empty($roles)) return false; 
+		$roles = $this->get('roles');
+		if(empty($roles)) return false;
 		$has = false;
 
 		foreach($roles as $role) {
 
-			if(!$template->hasRole($role)) continue; 
+			if(!$template->hasRole($role)) continue;
 
-			if($name == 'page-create') { 
-				if(!in_array($role->id, $template->createRoles)) continue; 
+			if($name == 'page-create') {
+				if(!in_array($role->id, $template->createRoles)) continue;
 				$name = 'page-edit'; // swap permission to page-edit since create managed at template and requires page-edit
 			}
-			
+
 			if($name == 'page-edit' && !in_array($role->id, $template->editRoles)) continue;
 
 			if($name == 'page-add') {
@@ -251,46 +251,46 @@ class User extends Page {
 			}
 		}
 
-		return $has; 
+		return $has;
 	}
 
 	/**
 	 * Get this user's permissions, optionally within the context of a Page
 	 *
-	 * Does not currently include page-add or page-create permissions. 
+	 * Does not currently include page-add or page-create permissions.
 	 *
 	 * @param Page $page Optional page to check against
 	 * @return bool
 	 *
 	 */
 	public function getPermissions(Page $page = null) {
-		if($this->isSuperuser()) return $this->fuel('permissions'); 
+		if($this->isSuperuser()) return $this->fuel('permissions');
 		$permissions = new PageArray();
-		$roles = $this->get('roles'); 
-		if(empty($roles)) return $permissions; 
+		$roles = $this->get('roles');
+		if(empty($roles)) return $permissions;
 		foreach($roles as $key => $role) {
-			if($page && !$page->hasAccessRole($role)) continue; 
-			foreach($role->permissions as $permission) { 
-				if($page && $permission->name == 'page-edit' && !in_array($role->id, $page->getAccessTemplate()->editRoles)) continue; 
-				$permissions->add($permission); 
+			if($page && !$page->hasAccessRole($role)) continue;
+			foreach($role->permissions as $permission) {
+				if($page && $permission->name == 'page-edit' && !in_array($role->id, $page->getAccessTemplate()->editRoles)) continue;
+				$permissions->add($permission);
 			}
 		}
-		return $permissions; 
+		return $permissions;
 	}
 
 	/**
 	 * Does this user have the superuser role?
 	 *
-	 * Same as $user->roles->has('name=superuser'); 
+	 * Same as $user->roles->has('name=superuser');
 	 *
 	 * @return bool
 	 *
 	 */
 	public function isSuperuser() {
 		$config = $this->wire('config');
-		if($this->id === $config->superUserPageID) return true; 
+		if($this->id === $config->superUserPageID) return true;
 		if($this->id === $config->guestUserPageID) return false;
-		$superuserRoleID = (int) $config->superUserRolePageID; 
+		$superuserRoleID = (int) $config->superUserRolePageID;
 		$roles = $this->get('roles');
 		if(empty($roles)) return false;
 		$is = false;
@@ -302,13 +302,13 @@ class User extends Page {
 	}
 
 	/**
-	 * Is this the non-logged in guest user? 
+	 * Is this the non-logged in guest user?
 	 *
 	 * @return bool
 	 *
-	 */ 
+	 */
 	public function isGuest() {
-		return $this->id === $this->wire('config')->guestUserPageID; 
+		return $this->id === $this->wire('config')->guestUserPageID;
 	}
 
 	/**

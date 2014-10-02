@@ -1,11 +1,11 @@
 (function() {
 
 	CKEDITOR.plugins.add('pwlink', {
-		
+
 		requires: 'dialog,fakeobjects',
-		
+
 		init: function(editor) {
-			
+
 			var allowed = 'a[!href,target,name,title,rel]';
 			var required = 'a[href]';
 
@@ -22,7 +22,7 @@
 				allowedContent: allowed,
 				requiredContent: required,
 				exec: loadIframeLinkPicker
-				}); 
+				});
 
 			editor.addCommand('anchor', new CKEDITOR.dialogCommand( 'anchor', {
 				allowedContent: 'a[!name,id]',
@@ -33,7 +33,7 @@
 			editor.addCommand('removeAnchor', new CKEDITOR.removeAnchorCommand());
 
 			editor.setKeystroke( CKEDITOR.CTRL + 76 /*L*/, 'pwlink' );
-			
+
 			if ( editor.ui.addButton ) {
 				editor.ui.addButton( 'PWLink', {
 					label: editor.lang.link.toolbar,
@@ -53,7 +53,7 @@
 				});
 			}
 		}
-	}); 
+	});
 
 	function loadIframeLinkPicker(editor) {
 
@@ -68,7 +68,7 @@
 		var $langWrapper = $textarea.closest('.LanguageSupport');
 		if($langWrapper.length) langID = "&lang=" + $langWrapper.data("language");
 
-		var modalUrl = config.urls.admin + 'page/link/?id=' + pageID + '&modal=1' + langID; 
+		var modalUrl = config.urls.admin + 'page/link/?id=' + pageID + '&modal=1' + langID;
 		var $iframe = $('<iframe id="pwlink_iframe" frameborder="0" src="' + modalUrl + '"></iframe>');
 		var selection = editor.getSelection(true);
 		var selectionElement = selection.getSelectedElement();
@@ -76,9 +76,9 @@
 		var selectionText = selection.getSelectedText();
 
 		if(node.getName() == 'a') {
-			href = node.getAttribute('href'); 
-			target = node.getAttribute('target'); 
-			selection.selectElement(node); 
+			href = node.getAttribute('href');
+			target = node.getAttribute('target');
+			selection.selectElement(node);
 			selectionText = node.getHtml();
 
 		} else if(node.getName() == 'img') {
@@ -126,16 +126,16 @@
 						if(target && target.length > 0) target = ' target="' + target + '"';
 						if(url.length) {
 							var html = '<a href="' + url + '"' + target + '>' + selectionText + '</a>';
-							editor.insertHtml(html); 
+							editor.insertHtml(html);
 						}
 						$iframe.dialog("close");
 					}
 				}, {
 					text: cancelLabel,
 					click: function() { $iframe.dialog("close"); }
-				} 
+				}
 			]
 		}).width(windowWidth).height(windowHeight);
 	}
-	
+
 })();

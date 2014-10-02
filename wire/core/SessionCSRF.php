@@ -3,10 +3,10 @@
 /**
  * ProcessWire CSRF Protection
  *
- * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2014 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -22,7 +22,7 @@ class WireCSRFException extends WireException {}
  *
  */
 class SessionCSRF extends Wire {
-	
+
 	/**
 	 * Get a CSRF Token name, or create one if it doesn't yet exist
 	 *
@@ -31,12 +31,12 @@ class SessionCSRF extends Wire {
 	 *
 	 */
 	public function getTokenName($id = '') {
-		$tokenName = $this->session->get($this, "name$id"); 
-		if(!$tokenName) { 
+		$tokenName = $this->session->get($this, "name$id");
+		if(!$tokenName) {
 			$tokenName = 'TOKEN' . mt_rand() . "X" . time(); // token name always ends with timestamp
 			$this->session->set($this, "name$id", $tokenName);
 		}
-		return $tokenName; 
+		return $tokenName;
 	}
 
 	/**
@@ -53,9 +53,9 @@ class SessionCSRF extends Wire {
 			// $tokenValue = md5($this->page->path() . mt_rand() . microtime()) . md5($this->page->name . $this->config->userAuthSalt . mt_rand());
 			$pass = new Password();
 			$tokenValue = $pass->randomBase64String(32);
-			$this->session->set($this, $tokenName, $tokenValue); 
+			$this->session->set($this, $tokenName, $tokenValue);
 		}
-		return $tokenValue; 
+		return $tokenValue;
 	}
 
 	/**
@@ -67,8 +67,8 @@ class SessionCSRF extends Wire {
 	 */
 	public function getTokenTime($id = '') {
 		$name = $this->getTokenName($id);
-		$time = (int) substr($name, strrpos($name, 'X')+1); 
-		return $time; 
+		$time = (int) substr($name, strrpos($name, 'X')+1);
+		return $time;
 	}
 
 	/**
@@ -80,17 +80,17 @@ class SessionCSRF extends Wire {
 	 */
 	public function getToken($id = '') {
 		return array(
-			'name' => $this->getTokenName($id), 
+			'name' => $this->getTokenName($id),
 			'value' => $this->getTokenValue($id),
 			'time' => $this->getTokenTime($id)
-		); 
+		);
 	}
 
 	/**
 	 * Get a CSRF Token name and value that can only be used once
-	 * 
+	 *
 	 * Note that a single call to hasValidToken($id) or validate($id) will invalidate the single use token.
-	 * So call them once and store your result if you need the result multiple times. 
+	 * So call them once and store your result if you need the result multiple times.
 	 *
 	 * @param int|string $id Optional unique ID/name for this token (of ommitted one is generated automatically)
 	 * @return array ("id' => "token ID", "name" => "token name", "value" => "token value", "time" => created timestamp)
@@ -99,13 +99,13 @@ class SessionCSRF extends Wire {
 	public function getSingleUseToken($id = '') {
 		if(!strlen($id)) $id = (string) mt_rand();
 		$name = $this->getTokenName($id);
-		$time = $this->getTokenTime($id); 
-		$value = $this->getTokenValue($id); 
-		$singles = $this->session->get($this, 'singles'); 
-		$singles[$name] = $value; 
-		$this->session->set($this, 'singles', $singles); 	
+		$time = $this->getTokenTime($id);
+		$value = $this->getTokenValue($id);
+		$singles = $this->session->get($this, 'singles');
+		$singles[$name] = $value;
+		$this->session->set($this, 'singles', $singles);
 		return array(
-			'id' => $id, 
+			'id' => $id,
 			'name' => $name,
 			'value' => $value,
 			'time' => $time
@@ -120,24 +120,24 @@ class SessionCSRF extends Wire {
 	 *
 	 */
 	public function hasValidToken($id = '') {
-		
+
 		$tokenName = $this->getTokenName($id);
 		$tokenValue = $this->getTokenValue($id);
-		
+
 		if(strlen($id)) {
-			$singles = $this->session->get($this, 'singles'); 
+			$singles = $this->session->get($this, 'singles');
 			if(is_array($singles) && isset($singles[$tokenName])) {
 				// remove single use token
-				unset($singles[$tokenName]); 
-				$this->session->set($this, 'singles', $singles); 
+				unset($singles[$tokenName]);
+				$this->session->set($this, 'singles', $singles);
 			}
 		}
-		
-		if($this->config->ajax && isset($_SERVER["HTTP_X_$tokenName"]) && $_SERVER["HTTP_X_$tokenName"] === $tokenValue) return true; 
-		if($this->input->post($tokenName) === $tokenValue) return true; 
-		
+
+		if($this->config->ajax && isset($_SERVER["HTTP_X_$tokenName"]) && $_SERVER["HTTP_X_$tokenName"] === $tokenValue) return true;
+		if($this->input->post($tokenName) === $tokenValue) return true;
+
 		// if this point is reached, token was invalid
-		return false; 
+		return false;
 	}
 
 	/**
@@ -146,25 +146,25 @@ class SessionCSRF extends Wire {
 	 * @param int|string|null $id Optional unique ID for this token
 	 * @throws WireCSRFException if token not valid
 	 * @return bool Always returns true or throws exception
-	 * 
+	 *
 	 */
 	public function validate($id = '') {
-		if(!$this->config->protectCSRF) return true; 
+		if(!$this->config->protectCSRF) return true;
 		if($this->hasValidToken($id)) return true;
 		$this->resetToken();
-		throw new WireCSRFException($this->_('This request was aborted because it appears to be forged.')); 
+		throw new WireCSRFException($this->_('This request was aborted because it appears to be forged.'));
 	}
 
 	/**
 	 * Clear out token value
 	 *
 	 * @param int|string|null $id Optional unique ID for this token
-	 * 
+	 *
 	 */
 	public function resetToken($id = '') {
 		$tokenName = $this->getTokenName($id);
-		$this->session->remove($this, "name$id"); 
-		$this->session->remove($this, $tokenName); 
+		$this->session->remove($this, "name$id");
+		$this->session->remove($this, $tokenName);
 	}
 
 	/**
@@ -172,9 +172,9 @@ class SessionCSRF extends Wire {
 	 *
 	 */
 	public function resetAll() {
-		$this->session->remove($this, true); 
+		$this->session->remove($this, true);
 	}
-	
+
 	/**
 	 * Render a form input[hidden] containing the token name and value, as looked for by hasValidToken()
 	 *

@@ -1,14 +1,14 @@
 <?php
 
 /**
- * ProcessWire Repeater Page Array 
+ * ProcessWire Repeater Page Array
  *
  * Special PageArray for use by repeaters that includes a getNewItem() method
  *
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -18,7 +18,7 @@ class RepeaterPageArray extends PageArray {
 	/**
 	 * The page that contains the repeater field (not the parent in the repeaters structure)
 	 *
-	 */ 
+	 */
 	protected $parent = null;
 
 	/**
@@ -29,7 +29,7 @@ class RepeaterPageArray extends PageArray {
 
 	public function __construct(Page $parent, Field $field) {
 		$this->setParent($parent);
-		$this->setField($field); 
+		$this->setField($field);
 	}
 
 	public function setParent(Page $parent) { $this->parent = $parent; }
@@ -49,7 +49,7 @@ class RepeaterPageArray extends PageArray {
  	 * If there are ready items, it will return the first ready item
 	 * Otherwise it'll create a new item
 	 *
- 	 * This method is different from FieldtypeRepeater::getBlankRepeaterPage: 
+ 	 * This method is different from FieldtypeRepeater::getBlankRepeaterPage:
 	 * 1. It returns an already existing readyPage, if it exists (otherwise it creates a new page)
 	 * 2. The returned page is in a non-hidden published state, so will appear as soon as it is saved
 	 *
@@ -61,7 +61,7 @@ class RepeaterPageArray extends PageArray {
 	public function getNewItem() {
 
 		$page = null;
-		$of = $this->parent->of(false); 
+		$of = $this->parent->of(false);
 
 		// first try to get a ready item, if available
 		foreach($this as $item) {
@@ -71,17 +71,17 @@ class RepeaterPageArray extends PageArray {
 			}
 		}
 
-		if(is_null($page)) { 
+		if(is_null($page)) {
 			// no ready item available, get a new one
-			$page = $this->field->type->getBlankRepeaterPage($this->parent, $this->field); 
+			$page = $this->field->type->getBlankRepeaterPage($this->parent, $this->field);
 			$this->add($page);
 		} else {
 			$this->trackChange('add');
 		}
 
 		$page->of(false);
-		$page->removeStatus(Page::statusUnpublished); 
-		$page->removeStatus(Page::statusHidden); 
+		$page->removeStatus(Page::statusUnpublished);
+		$page->removeStatus(Page::statusHidden);
 		$page->sort = $this->count();
 
 		if($of) $this->parent->of(true);
@@ -90,8 +90,8 @@ class RepeaterPageArray extends PageArray {
 	}
 
 	/**
-	 * Creates a new blank instance of a RepeaterPageArray. For internal use. 
-	 * 
+	 * Creates a new blank instance of a RepeaterPageArray. For internal use.
+	 *
 	 * Note that this method has no relation/similarity to the getNewItem()/getNew() methods.
 	 *
 	 * @return WireArray
@@ -103,6 +103,6 @@ class RepeaterPageArray extends PageArray {
 		return $newArray;
 	}
 
-	
+
 }
 

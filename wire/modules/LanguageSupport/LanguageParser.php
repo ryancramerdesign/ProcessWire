@@ -2,15 +2,15 @@
 
 /**
  * ProcessWire Language Parser
- * 
- * Parses a PHP file to locate all function calls containing translatable text and their optional comments. 
+ *
+ * Parses a PHP file to locate all function calls containing translatable text and their optional comments.
  *
  * Return the results by calling $parser->getUntranslated() and $parser->getComments();
  *
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -22,7 +22,7 @@ class LanguageParser extends Wire {
 	 * Instance of LanguageTranslator
 	 *
 	 */
-	protected $translator; 
+	protected $translator;
 
 	/**
 	 * Textdomain for $file provided to this instance
@@ -56,15 +56,15 @@ class LanguageParser extends Wire {
 	 *
 	 */
 	public function __construct(LanguageTranslator $translator, $file) {
-		$this->translator = $translator; 
-		$this->textdomain = $this->translator->filenameToTextdomain($file); 
-		$this->translator->loadTextdomain($this->textdomain); 
-		$this->execute($file); 
+		$this->translator = $translator;
+		$this->textdomain = $this->translator->filenameToTextdomain($file);
+		$this->translator->loadTextdomain($this->textdomain);
+		$this->execute($file);
 	}
 
 	/**
 	 * Return all found comments, indexed by hash
-	 * 
+	 *
 	 * @return array
 	 *
 	 */
@@ -72,7 +72,7 @@ class LanguageParser extends Wire {
 
 	/**
 	 * Return all found phrases (in untranslated form), indexed by hash
-	 * 
+	 *
 	 * @return array
 	 *
 	 */
@@ -80,7 +80,7 @@ class LanguageParser extends Wire {
 
 	/**
 	 * Return number of phrases found total
-	 * 
+	 *
 	 * @return int
 	 *
 	 */
@@ -90,8 +90,8 @@ class LanguageParser extends Wire {
  	 * Given a hash, return the untranslated text associated with it
 	 *
 	 */
-	public function getTextFromHash($hash) { 
-		return isset($this->untranslated[$hash]) ? $this->untranslated[$hash] : false; 
+	public function getTextFromHash($hash) {
+		return isset($this->untranslated[$hash]) ? $this->untranslated[$hash] : false;
 	}
 
 	/**
@@ -104,13 +104,13 @@ class LanguageParser extends Wire {
 
 		foreach($matches as $m) {
 			// $m[3] is always the text
-			if(empty($m)) continue; 
-			foreach($m[3] as $key => $text) { 
-				$match = $this->buildMatch($m, $key, $text); 
-				$this->processMatch($match); 
+			if(empty($m)) continue;
+			foreach($m[3] as $key => $text) {
+				$match = $this->buildMatch($m, $key, $text);
+				$this->processMatch($match);
 				if($match['plural']) {
 					$match['text'] = $match['plural'];
-					$this->processMatch($match); 
+					$this->processMatch($match);
 				}
 			}
 		}
@@ -120,77 +120,77 @@ class LanguageParser extends Wire {
 	 * Run regex's on file contents to locate all translation functions
 	 *
 	 */
-	protected function parseFile($file) { 
+	protected function parseFile($file) {
 
 
 		$matches = array(
-			1 => array(), 	// $this->_('text'); 
+			1 => array(), 	// $this->_('text');
 			2 => array(),	// __('text', [textdomain]);
-			3 => array(),	// _x('text', 'context', [textdomain]) or $this->_x('text', 'context'); 
-			4 => array(),	// _n('singular', 'plural', $cnt, [textdomain]) or $this->_n(...); 
+			3 => array(),	// _x('text', 'context', [textdomain]) or $this->_x('text', 'context');
+			4 => array(),	// _n('singular', 'plural', $cnt, [textdomain]) or $this->_n(...);
 			);
 
-		if(!is_file($file)) return $matches; 
+		if(!is_file($file)) return $matches;
 
-		$data = file_get_contents($file); 
+		$data = file_get_contents($file);
 
 		// Find $this->_('text') style matches
-		preg_match_all(	'/(>_)\(\s*' .				// $this->_( 
+		preg_match_all(	'/(>_)\(\s*' .				// $this->_(
 				'([\'"])(.+?)(?<!\\\\)\\2' . 		// "text"
 				'\)+(.*)$/m', 				// ) and everything else
-				$data, $matches[1]); 
+				$data, $matches[1]);
 
 		// Find __('text', textdomain) style matches
 		preg_match_all(	'/([\s.=(]__|^__)\(\s*' . 		// __(
 				'([\'"])(.+?)(?<!\\\\)\\2\s*' . 	// "text"
 				'(?:,\s*[^)]+)?\)+(.*)$/m', 		// , textdomain (optional) and everything else
-				$data, $matches[2]); 
+				$data, $matches[2]);
 
 		// Find _x('text', 'context', textdomain) or $this->_x('text', 'context') style matches
 		preg_match_all(	'/([\s.=>(]_x|^_x)\(\s*' . 		// _x( or $this->_x(
-				'([\'"])(.+?)(?<!\\\\)\\2\s*,\s*' . 	// "text", 
+				'([\'"])(.+?)(?<!\\\\)\\2\s*,\s*' . 	// "text",
 				'([\'"])(.+?)(?<!\\\\)\\4\s*' . 	// "context"
-				'[^)]*\)+(.*)$/m',			// , textdomain (optional) and everything else 
-				$data, $matches[3]); 
+				'[^)]*\)+(.*)$/m',			// , textdomain (optional) and everything else
+				$data, $matches[3]);
 
 		// Find _n('singular text', 'plural text', $cnt, textdomain) or $this->_n(...) style matches
 		preg_match_all(	'/([\s.=>(]_n|^_n)\(\s*' . 		// _n( or $this->_n(
-				'([\'"])(.+?)(?<!\\\\)\\2\s*,\s*' . 	// "singular", 
-				'([\'"])(.+?)(?<!\\\\)\\4\s*,\s*' . 	// "plural", 
+				'([\'"])(.+?)(?<!\\\\)\\2\s*,\s*' . 	// "singular",
+				'([\'"])(.+?)(?<!\\\\)\\4\s*,\s*' . 	// "plural",
 				'.+?\)+(.*)$/m', 			// $count, optional textdomain, closing function parenthesis ) and rest of line
-				$data, $matches[4]); 
+				$data, $matches[4]);
 
-		return $matches; 
+		return $matches;
 	}
 
 	/**
 	 * Build the match abstracted away from the preg_match result
-	 *	
+	 *
 	 */
 	protected function buildMatch(array $m, $key, $text) {
-	
+
 		// $match is where we store the results generated by this function
 		$match = array('text' => $text, 'context' => '', 'plural' => '', 'tail' => '');
 
 		// determine the function type
 		$funcType = substr($m[1][$key], 0, 1); // '>' OR '_' , for '$this->_()' OR '__()'
 		$funcType2 = substr($m[1][$key], -1); // 'x' OR 'n' OR '_'
-		if($funcType2 == 'x' || $funcType2 == 'n') $funcType = $funcType2; 
+		if($funcType2 == 'x' || $funcType2 == 'n') $funcType = $funcType2;
 
 		// tail, plural and context vary in position according to function type
 		if($funcType == 'x') {
 			// context function _x()
-			$match['tail'] = $m[6][$key]; 
+			$match['tail'] = $m[6][$key];
 			$match['context'] = $m[5][$key];
 
-		} else if($funcType == 'n') { 
+		} else if($funcType == 'n') {
 			// plural function _n()
-			$match['tail'] = $m[6][$key]; 
+			$match['tail'] = $m[6][$key];
 			$match['plural'] = $m[5][$key];
 
 		} else {
 			// tail containing optional label comment
-			$match['tail'] = $m[4][$key]; 
+			$match['tail'] = $m[4][$key];
 		}
 
 		return $match;
@@ -200,46 +200,46 @@ class LanguageParser extends Wire {
 	 * Process the match and populate $this->untranslated and $this->comments
 	 *
 	 */
-	protected function processMatch(array $match) { 
+	protected function processMatch(array $match) {
 
 		$text = $match['text'];
 		$tail = $match['tail'];
 		$context = $match['context'];
-		$plural = $match['plural'];	
+		$plural = $match['plural'];
 		$comments = '';
 
 		// replace any escaped characters with non-escaped versions
-		if(strpos($text, '\\') !== false) $text = str_replace(array('\\"', '\\\'', '\\$', '\\'), array('"', "'", '$', '\\'), $text); 
+		if(strpos($text, '\\') !== false) $text = str_replace(array('\\"', '\\\'', '\\$', '\\'), array('"', "'", '$', '\\'), $text);
 
 		// get the translation for $text in $context
 		$translation = $this->translator->getTranslation($this->textdomain, $text, $context);
 
 		// if translation == $text then that means no translation was found, make $translation blank
-		if($translation == $text) $translation = ''; 
+		if($translation == $text) $translation = '';
 
 		// set a pending translation to get the hash
-		$hash = $this->translator->setTranslation($this->textdomain, $text, $translation, $context); 
+		$hash = $this->translator->setTranslation($this->textdomain, $text, $translation, $context);
 		if(!$hash) return;
 
 		// store the untranslated (English) version of $hash
-		$this->untranslated[$hash] = $text; 
+		$this->untranslated[$hash] = $text;
 		$this->numFound++;
 
 		// check if there are comments in the $tail and record them if so
-		if(($pos = strpos($tail, '//')) !== false) $comments = substr($tail, $pos+2); 
+		if(($pos = strpos($tail, '//')) !== false) $comments = substr($tail, $pos+2);
 
 		// check if a plural was found and set an automatic comment to indicate which is which
 		if($plural) {
 			$note = $plural == $text ? "Plural" : "Singular";
 			// force note saying Plural or Singular
-			$comments = ($comments ? $comments : $text) . " // $note Version"; 
+			$comments = ($comments ? $comments : $text) . " // $note Version";
 
-		} else if($context) { 
+		} else if($context) {
 			$comments = ($comments ? $comments : $text) . " // Context: $context";
 		}
 
 		// save the comments indexed to the hash
-		if($comments) $this->comments[$hash] = $comments; 
+		if($comments) $this->comments[$hash] = $comments;
 	}
 
 }

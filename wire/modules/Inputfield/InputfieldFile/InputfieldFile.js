@@ -6,21 +6,21 @@ $(document).ready(function() {
 	 */
 
 	if($.browser.msie && $.browser.version < 9) {
-		
+
 		// $(".InputfieldFileDelete span.ui-icon").live("click", function() {
 		$(".InputfieldFileDelete").on("click", "span.ui-icon", function() {
-			
-			var input = $(this).prev('input'); 
+
+			var input = $(this).prev('input');
 			if(input.is(":checked")){
 				input.removeAttr("checked");
 			} else {
-				input.attr({"checked":"checked"});	
+				input.attr({"checked":"checked"});
 			}
-			
+
 			setInputfieldFileStatus(input);
-			
+
 		});
-		
+
 	} else {
 		// not IE < 9
 		// $(this).find(".InputfieldFileDelete input").live('change', function() {
@@ -29,12 +29,12 @@ $(document).ready(function() {
 
 		}).on('dblclick', '.InputfieldFileDelete', function() {
 			// enable double-click to delete all
-			var $input = $(this).find('input'); 
+			var $input = $(this).find('input');
 			var $items = $(this).parents('.InputfieldFileList').find('.InputfieldFileDelete input');
 			if($input.is(":checked")) $items.removeAttr('checked').change();
 				else $items.attr('checked', 'checked').change();
-			return false; 
-		}); 
+			return false;
+		});
 
 	}
 
@@ -47,24 +47,24 @@ $(document).ready(function() {
 		} else {
 			$t.parents(".InputfieldFileInfo").removeClass("ui-state-error")
 				.siblings(".InputfieldFileData").slideDown("fast");
-		}	
+		}
 	}
 
 	/**
 	 * Make the lists sortable and hoverable
 	 *
 	 */
-	function initSortable($fileLists) { 
+	function initSortable($fileLists) {
 
 		$fileLists.each(function() {
-			
+
 			var $this = $(this);
 			var qty = $this.children("li").size();
-			
+
 			var $inputfield = $this.closest('.Inputfield')
-		
+
 			if(qty < 2) {
-				// added to support additional controls when multiple items are present 
+				// added to support additional controls when multiple items are present
 				// and to hide them when not present
 				if(qty == 0) $inputfield.addClass('InputfieldFileEmpty').removeClass('InputfieldFileMultiple InputfieldFileSingle');
 					else $inputfield.addClass('InputfieldFileSingle').removeClass('InputfieldFileEmpty InputfieldFileMultiple');
@@ -75,26 +75,26 @@ $(document).ready(function() {
 			}
 
 			$this.sortable({
-				//axis: 'y', 
+				//axis: 'y',
 				start: function(e, ui) {
-					ui.item.children(".InputfieldFileInfo").addClass("ui-state-highlight"); 
-				}, 
+					ui.item.children(".InputfieldFileInfo").addClass("ui-state-highlight");
+				},
 				stop: function(e, ui) {
 					$(this).children("li").each(function(n) {
-						$(this).find(".InputfieldFileSort").val(n); 
-					}); 
-					ui.item.children(".InputfieldFileInfo").removeClass("ui-state-highlight"); 
+						$(this).find(".InputfieldFileSort").val(n);
+					});
+					ui.item.children(".InputfieldFileInfo").removeClass("ui-state-highlight");
 					// Firefox has a habit of opening a lightbox popup after a lightbox trigger was used as a sort handle
 					// so we keep a 500ms class here to keep a handle on what was a lightbox trigger and what was a sort
-					$inputfield.addClass('InputfieldFileJustSorted'); 
-					setTimeout(function() { $inputfield.removeClass('InputfieldFileJustSorted'); }, 500); 
+					$inputfield.addClass('InputfieldFileJustSorted');
+					setTimeout(function() { $inputfield.removeClass('InputfieldFileJustSorted'); }, 500);
 				}
 			});
 
 		}).find(".ui-widget-header, .ui-state-default").hover(function() {
-			$(this).addClass('ui-state-hover'); 
+			$(this).addClass('ui-state-hover');
 		}, function() {
-			$(this).removeClass('ui-state-hover'); 
+			$(this).removeClass('ui-state-hover');
 		});
 	}
 
@@ -105,43 +105,43 @@ $(document).ready(function() {
 	function InitOldSchool() {
 		// $(".InputfieldFileUpload input[type=file]").live('change', function() {
 		$(document).on('change', '.InputfieldFileUpload input[type=file]', function() {
-			var $t = $(this); 
+			var $t = $(this);
 			if($t.next("input.InputfieldFile").size() > 0) return; // not the last one
-			var maxFiles = parseInt($t.siblings('.InputfieldFileMaxFiles').val()); 
-			var numFiles = $t.parent('.InputfieldFileUpload').siblings('.InputfieldFileList').children('li').size() + $t.siblings('input[type=file]').size() + 1; 
-			if(maxFiles > 0 && numFiles >= maxFiles) return; 
-	
+			var maxFiles = parseInt($t.siblings('.InputfieldFileMaxFiles').val());
+			var numFiles = $t.parent('.InputfieldFileUpload').siblings('.InputfieldFileList').children('li').size() + $t.siblings('input[type=file]').size() + 1;
+			if(maxFiles > 0 && numFiles >= maxFiles) return;
+
 			// if there are any empty inputs, then don't add another
 			var numEmpty = 0;
 			$t.siblings('input[type=file]').each(function() { if($(this).val().length < 1) numEmpty++; });
 			if(numEmpty > 0) return;
-	
+
 			// add another input
-			var $i = $t.clone().hide().val(''); 
-			$t.after($i); 	
-			$i.slideDown(); 
+			var $i = $t.clone().hide().val('');
+			$t.after($i);
+			$i.slideDown();
 		});
 	}
 
-	/**	
-	 * Initialize HTML5 uploads 
+	/**
+	 * Initialize HTML5 uploads
 	 *
 	 * By apeisa with additional code by Ryan
-	 * 
+	 *
 	 * Based on the great work and examples of Craig Buckler (http://www.sitepoint.com/html5-file-drag-and-drop/)
 	 * and Robert Nyman (http://robertnyman.com/html5/fileapi-upload/fileapi-upload.html)
-	 * 	
+	 *
 	 */
 	function InitHTML5() {
 
 		$(".InputfieldFileUpload").closest('.ui-widget-content, .InputfieldContent').each(function(i) {
 
-			var $this = $(this); 
-			var $form = $this.parents('form'); 
-			var postUrl = $form.attr('action'); 
+			var $this = $(this);
+			var $form = $this.parents('form');
+			var postUrl = $form.attr('action');
 
 			// CSRF protection
-			var $postToken = $form.find('input._post_token'); 
+			var $postToken = $form.find('input._post_token');
 			var postTokenName = $postToken.attr('name');
 			var postTokenValue = $postToken.val();
 
@@ -150,26 +150,26 @@ $(document).ready(function() {
 
 			var extensions = $this.find('p.InputfieldFileUpload').data('extensions').toLowerCase();
 			var maxFilesize = $this.find('p.InputfieldFileUpload').data('maxfilesize');
-			
+
 			var filesUpload = $this.find("input[type=file]").get(0);
 			var dropArea = $this.get(0);
-			var $fileList = $this.find(".InputfieldFileList"); 
+			var $fileList = $this.find(".InputfieldFileList");
 
 			if($fileList.size() < 1) {
 				$fileList = $("<ul class='InputfieldFileList InputfieldFileListBlank'></ul>");
-				$this.prepend($fileList); 
-				$this.parent('.Inputfield').addClass('InputfieldFileEmpty'); 
+				$this.prepend($fileList);
+				$this.parent('.Inputfield').addClass('InputfieldFileEmpty');
 			}
 
 			var fileList = $fileList.get(0);
-			var maxFiles = parseInt($this.find('.InputfieldFileMaxFiles').val()); 
-			
+			var maxFiles = parseInt($this.find('.InputfieldFileMaxFiles').val());
+
 			$fileList.children().addClass('InputfieldFileItemExisting'); // identify items that are already there
 
 			$this.find('.AjaxUploadDropHere').show();
-			
+
 			var doneTimer = null; // for AjaxUploadDone event
-			
+
 			function uploadFile(file) {
 
 				var $progressItem = $('<li class="InputfieldFile ui-widget AjaxUpload"><p class="InputfieldFileInfo ui-widget ui-widget-header InputfieldItemHeader"></p></li>'),
@@ -179,13 +179,13 @@ $(document).ready(function() {
 					reader,
 					xhr,
 					fileData;
-				
+
 				$progressBar.append($progressBarValue);
 				$progressItem.append($progressBar);
-				
+
 				// Uploading - for Firefox, Google Chrome and Safari
 				xhr = new XMLHttpRequest();
-				
+
 				// Update progress bar
 				xhr.upload.addEventListener("progress", function (evt) {
 					if(evt.lengthComputable) {
@@ -197,31 +197,31 @@ $(document).ready(function() {
 						/*
 						// code for freezing progressbar during testing
 						$progressBarValue.width("60%");
-						if(completion > 50) setTimeout(function() { alert('test'); }, 10); 
+						if(completion > 50) setTimeout(function() { alert('test'); }, 10);
 						*/
 					} else {
 						// No data to calculate on
 					}
 				}, false);
 
-				
+
 				// File uploaded: called for each file
 				xhr.addEventListener("load", function() {
 
-					var response = $.parseJSON(xhr.responseText); 
+					var response = $.parseJSON(xhr.responseText);
 					if(response.error !== undefined) response = [response];
-					
+
 					// note the following loop will always contain only 1 item, unless a file containing more files (ZIP file) was uploaded
 					for(var n = 0; n < response.length; n++) {
 
-						var r = response[n]; 
-						
+						var r = response[n];
+
 						if(r.error) {
-							var $pi = $progressItem.clone(); 
-							$pi.find(".InputfieldFileInfo").addClass('ui-state-error'); 
-							$pi.find(".InputfieldFileStats").text(' - ' + r.message); 
+							var $pi = $progressItem.clone();
+							$pi.find(".InputfieldFileInfo").addClass('ui-state-error');
+							$pi.find(".InputfieldFileStats").text(' - ' + r.message);
 							$pi.find(".ui-progressbar").remove();
-							$progressItem.after($pi); 
+							$progressItem.after($pi);
 
 						} else {
 
@@ -229,7 +229,7 @@ $(document).ready(function() {
 								var $child = $this.find('.InputfieldFileList').children('li:eq(0)');
 								if($child.size() > 0) $child.slideUp('fast', function() { $child.remove(); });
 							}
-                           
+
 							// ie10 file field stays populated, this fixes that
 							var $input = $this.find('input[type=file]');
 							if($input.val()) $input.replaceWith($input.clone(true));
@@ -251,39 +251,39 @@ $(document).ready(function() {
 								if($item !== null) {
 									// found replacement
 									var $newInfo = $markup.find(".InputfieldFileInfo");
-									var $newLink = $markup.find(".InputfieldFileLink"); 
-									var $info = $item.find(".InputfieldFileInfo"); 
-									var $link = $item.find(".InputfieldFileLink"); 
+									var $newLink = $markup.find(".InputfieldFileLink");
+									var $info = $item.find(".InputfieldFileInfo");
+									var $link = $item.find(".InputfieldFileLink");
 									$info.html($newInfo.html() + "<i class='fa fa-check'></i>");
 									$link.html($newLink.html());
-									$item.addClass('InputfieldFileItemExisting'); 
-									$item.effect('highlight', 500); 
+									$item.addClass('InputfieldFileItemExisting');
+									$item.effect('highlight', 500);
 								} else {
 									// didn't find a match, just append
 									$fileList.append($markup);
 									$markup.slideDown();
 									$markup.addClass('InputfieldFileItemExisting');
 								}
-								
+
 							} else {
 								// overwrite mode not active
 								$fileList.append($markup);
 								$markup.slideDown();
 							}
 						}
-						
+
 					}
 
 					$progressItem.remove();
-					
-					if(doneTimer) clearTimeout(doneTimer); 
-					doneTimer = setTimeout(function() { 
-						if(maxFiles != 1 && !$fileList.is('.ui-sortable')) initSortable($fileList); 
+
+					if(doneTimer) clearTimeout(doneTimer);
+					doneTimer = setTimeout(function() {
+						if(maxFiles != 1 && !$fileList.is('.ui-sortable')) initSortable($fileList);
 						$fileList.trigger('AjaxUploadDone'); // for things like fancybox that need to be re-init'd
-					}, 500); 
+					}, 500);
 
 				}, false);
-				
+
 				// Here we go
 				xhr.open("POST", postUrl, true);
 				xhr.setRequestHeader("X-FILENAME", unescape(encodeURIComponent(file.name)));
@@ -292,23 +292,23 @@ $(document).ready(function() {
 				xhr.setRequestHeader("X-" + postTokenName, postTokenValue);
 				xhr.setRequestHeader("X-REQUESTED-WITH", 'XMLHttpRequest');
 				xhr.send(file);
-				
+
 				// Present file info and append it to the list of files
-				fileData = '' + 
-					"<span class='ui-icon ui-icon-arrowreturnthick-1-e' style='margin-left: 2px;'></span>" + 
-					'<span class="InputfieldFileName">' + file.name + '</span>' + 
+				fileData = '' +
+					"<span class='ui-icon ui-icon-arrowreturnthick-1-e' style='margin-left: 2px;'></span>" +
+					'<span class="InputfieldFileName">' + file.name + '</span>' +
 					'<span class="InputfieldFileStats"> &bull; ' + parseInt(file.size / 1024, 10) + " kb</span>";
-				
+
 				$progressItem.find('p.ui-widget-header').html(fileData);
 				$fileList.append($progressItem);
 			}
-			
-	
+
+
 			function traverseFiles(files) {
 
-				function errorItem(filename, message) { 
-					return 	'<li class="InputfieldFile ui-widget AjaxUpload">' + 
-						'<p class="InputfieldFileInfo ui-widget ui-widget-header InputfieldItemHeader ui-state-error">&nbsp; ' + filename  + ' ' + 
+				function errorItem(filename, message) {
+					return 	'<li class="InputfieldFile ui-widget AjaxUpload">' +
+						'<p class="InputfieldFileInfo ui-widget ui-widget-header InputfieldItemHeader ui-state-error">&nbsp; ' + filename  + ' ' +
 						'<span class="InputfieldFileStats"> &bull; ' + message + '</span></p></li>';
 				}
 
@@ -318,12 +318,12 @@ $(document).ready(function() {
 						var extension = files[i].name.split('.').pop().toLowerCase();
 
 						if(extensions.indexOf(extension) == -1) {
-							$fileList.append(errorItem(files[i].name, extension + ' is a invalid file extension, please use one of:  ' + extensions)); 
+							$fileList.append(errorItem(files[i].name, extension + ' is a invalid file extension, please use one of:  ' + extensions));
 
 						} else if(files[i].size > maxFilesize && maxFilesize > 2000000) {
-							// I do this test only if maxFilesize is at least 2M (php default). 
+							// I do this test only if maxFilesize is at least 2M (php default).
 							// There might (not sure though) be some issues to get that value so don't want to overvalidate here -apeisa
-							$fileList.append(errorItem(files[i].name, 'Filesize ' + parseInt(files[i].size / 1024, 10) +' kb is too big. Maximum allowed is ' + parseInt(maxFilesize / 1024, 10) + ' kb')); 
+							$fileList.append(errorItem(files[i].name, 'Filesize ' + parseInt(files[i].size / 1024, 10) +' kb is too big. Maximum allowed is ' + parseInt(maxFilesize / 1024, 10) + ' kb'));
 
 						} else {
 							uploadFile(files[i]);
@@ -332,9 +332,9 @@ $(document).ready(function() {
 					}
 				} else {
 					fileList.innerHTML = "No support for the File API in this web browser";
-				}	
+				}
 			}
-			
+
 			filesUpload.addEventListener("change", function(evt) {
 				traverseFiles(this.files);
 				evt.preventDefault();
@@ -346,17 +346,17 @@ $(document).ready(function() {
 			dropArea.addEventListener("dragenter", function() { $(this).addClass('ui-state-hover'); }, false);
 
 			dropArea.addEventListener("dragover", function (evt) {
-				if(!$(this).is('ui-state-hover')) $(this).addClass('ui-state-hover'); 
+				if(!$(this).is('ui-state-hover')) $(this).addClass('ui-state-hover');
 				evt.preventDefault();
 				evt.stopPropagation();
 			}, false);
-			
+
 			dropArea.addEventListener("drop", function (evt) {
 				traverseFiles(evt.dataTransfer.files);
 				$(this).removeClass("ui-state-hover");
 				evt.preventDefault();
 				evt.stopPropagation();
-			}, false);		
+			}, false);
 		});
 	}
 
@@ -365,39 +365,39 @@ $(document).ready(function() {
 	 *
 	 */
 
-	initSortable($(".InputfieldFileList")); 
-	
+	initSortable($(".InputfieldFileList"));
+
 	/**
 	 * Progressive enchanchment for browsers that support html5 File API
-	 * 
+	 *
 	 * #PageIDIndictator.size indicates PageEdit, which we're limiting AjaxUpload to since only ProcessPageEdit has the ajax handler
-	 * 
+	 *
 	 */
-	if (window.File && window.FileList && window.FileReader && $("#PageIDIndicator").size() > 0) {  
-		InitHTML5();  
+	if (window.File && window.FileList && window.FileReader && $("#PageIDIndicator").size() > 0) {
+		InitHTML5();
 	} else {
 		InitOldSchool();
 	}
 
 	var minContainerWidth = 767; // ...or when the container width is this or smaller
 	var resizeActive = false;
-	
+
 	var windowResize = function() {
 		$(".AjaxUploadDropHere").each(function() {
-			var $t = $(this); 
+			var $t = $(this);
 			if($t.parent().width() <= minContainerWidth) {
 				$t.hide();
 			} else {
 				$t.show();
 			}
-		}); 
+		});
 		resizeActive = false;
 	}
-	
+
 	$(window).resize(function() {
 		if(resizeActive) return;
-		resizeActive = true; 
-		setTimeout(windowResize, 1000); 
+		resizeActive = true;
+		setTimeout(windowResize, 1000);
 	}).resize();
-	
-}); 
+
+});

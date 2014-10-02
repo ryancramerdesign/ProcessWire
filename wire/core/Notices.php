@@ -3,19 +3,19 @@
 /**
  * ProcessWire Notices
  *
- * Contains notices/messages used by the application to the user. 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Contains notices/messages used by the application to the user.
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
 
 /**
  * Base class that holds a message, source class, and timestamp
- * 
+ *
  * @property string $text Text of notice
  * @property string $class Class of notice
  * @property int $timestamp When the notice was generated
@@ -34,13 +34,13 @@ abstract class Notice extends WireData {
 	 * Flag indicates the notice is a warning
 	 *
 	 */
-	const warning = 4; 
+	const warning = 4;
 
 	/**
 	 * Flag indicates the notice will also be sent to the messages or errors log
 	 *
 	 */
-	const log = 8; 
+	const log = 8;
 
 	/**
 	 * Flag indicates the notice will be logged, but not shown
@@ -51,7 +51,7 @@ abstract class Notice extends WireData {
 	/**
 	 * Flag indicates the notice is allowed to contain markup and won't be automatically entity encoded
 	 *
-	 * Note: entity encoding is done by the admin theme at output time. 
+	 * Note: entity encoding is done by the admin theme at output time.
 	 *
 	 */
 	const allowMarkup = 32;
@@ -64,20 +64,20 @@ abstract class Notice extends WireData {
 	 *
 	 */
 	public function __construct($text, $flags = 0) {
-		$this->set('text', $text); 
-		$this->set('class', ''); 
-		$this->set('timestamp', time()); 
-		$this->set('flags', $flags); 
+		$this->set('text', $text);
+		$this->set('class', '');
+		$this->set('timestamp', time());
+		$this->set('flags', $flags);
 	}
 
 	/**
 	 * @return string Name of log (basename)
-	 * 
+	 *
 	 */
 	abstract public function getName();
-	
+
 	public function __toString() {
-		return $this->text; 
+		return $this->text;
 	}
 }
 
@@ -85,7 +85,7 @@ abstract class Notice extends WireData {
  * A notice that's indicated to be informational
  *
  */
-class NoticeMessage extends Notice { 
+class NoticeMessage extends Notice {
 	public function getName() {
 		return 'messages';
 	}
@@ -95,7 +95,7 @@ class NoticeMessage extends Notice {
  * A notice that's indicated to be an error
  *
  */
-class NoticeError extends Notice { 
+class NoticeError extends Notice {
 	public function getName() {
 		return 'errors';
 	}
@@ -106,13 +106,13 @@ class NoticeError extends Notice {
  *
  */
 class Notices extends WireArray {
-	
+
 	public function isValidItem($item) {
-		return $item instanceof Notice; 
-	}	
+		return $item instanceof Notice;
+	}
 
 	public function makeBlankItem() {
-		return new NoticeMessage(''); 
+		return new NoticeMessage('');
 	}
 
 	public function add($item) {
@@ -122,25 +122,25 @@ class Notices extends WireArray {
 		}
 
 		// check for duplicates
-		$dup = false; 
+		$dup = false;
 		foreach($this as $notice) {
-			if($notice->text == $item->text && $notice->flags == $item->flags) $dup = true; 
+			if($notice->text == $item->text && $notice->flags == $item->flags) $dup = true;
 		}
 
-		if($dup) return $this; 
-	
+		if($dup) return $this;
+
 		if(($item->flags & Notice::log) || ($item->flags & Notice::logOnly)) {
 			$this->addLog($item);
 			if($item->flags & Notice::logOnly) return $this;
 		}
-		
-		return parent::add($item); 
+
+		return parent::add($item);
 	}
-	
+
 	protected function addLog($item) {
 		$text = $item->text;
-		if($this->wire('config')->debug && $item->class) $text .= " ($item->class)"; 
-		$this->wire('log')->save($item->getName(), $text); 
+		if($this->wire('config')->debug && $item->class) $text .= " ($item->class)";
+		$this->wire('log')->save($item->getName(), $text);
 	}
 
 	public function hasErrors() {

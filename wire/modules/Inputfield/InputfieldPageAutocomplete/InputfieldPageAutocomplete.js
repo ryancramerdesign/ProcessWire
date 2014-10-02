@@ -3,10 +3,10 @@
  *
  * This Inputfield connects the jQuery UI Autocomplete widget with the ProcessWire ProcessPageSearch AJAX API.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -19,53 +19,53 @@ var InputfieldPageAutocomplete = {
 	 */
 	init: function(id, url, labelField, searchField, operator) {
 
-		var $ol = $('#' + id + '_items'); 
-		var $input = $('#' + id + '_input'); 
+		var $ol = $('#' + id + '_items');
+		var $input = $('#' + id + '_input');
 		var $icon = $input.parent().find(".InputfieldPageAutocompleteStatus");
-		var $note = $input.parent().find(".InputfieldPageAutocompleteNote"); 
+		var $note = $input.parent().find(".InputfieldPageAutocompleteNote");
 		var numAdded = 0; // counter that keeps track of quantity items added
 		var numFound = 0; // indicating number of pages matching during last ajax request
 
-		$icon.click(function() { $input.focus(); }); 
+		$icon.click(function() { $input.focus(); });
 
 		function isAddAllowed() {
-			return $('#_' + $ol.attr('data-name') + '_add_items').size() > 0; 
+			return $('#_' + $ol.attr('data-name') + '_add_items').size() > 0;
 		}
 
 		$input.autocomplete({
 			minLength: 2,
 			source: function(request, response) {
-				
-				$icon.addClass('ui-icon-refresh'); 
 
-				$.getJSON(url + '&' + searchField + operator + request.term, function(data) { 
+				$icon.addClass('ui-icon-refresh');
 
-					$icon.removeClass('ui-icon-refresh'); 
+				$.getJSON(url + '&' + searchField + operator + request.term, function(data) {
+
+					$icon.removeClass('ui-icon-refresh');
 					numFound = data.total;
 
 					if(data.total > 0) {
-						$icon.addClass('ui-icon-arrowreturn-1-s'); 
+						$icon.addClass('ui-icon-arrowreturn-1-s');
 
 					} else if(isAddAllowed()) {
-						$icon.addClass('ui-icon-plus'); 
+						$icon.addClass('ui-icon-plus');
 						$note.show();
 
 					} else {
-						$icon.addClass('ui-icon-alert'); 
+						$icon.addClass('ui-icon-alert');
 					}
 
 					response($.map(data.matches, function(item) {
 						return {
-							label: item[labelField], 
+							label: item[labelField],
 							value: item[labelField],
 							page_id: item.id
 						}
-					})); 
-				}); 
+					}));
+				});
 			},
 			select: function(event, ui) {
 				if(ui.item) {
-					InputfieldPageAutocomplete.pageSelected($ol, ui.item); 
+					InputfieldPageAutocomplete.pageSelected($ol, ui.item);
 					$(this).val('');
 					return false;
 				}
@@ -73,7 +73,7 @@ var InputfieldPageAutocomplete = {
 
 		}).blur(function() {
 			if(!$(this).val().length) $input.val('');
-			$icon.removeClass('ui-icon-arrowreturn-1-s ui-icon-alert ui-icon-plus'); 
+			$icon.removeClass('ui-icon-arrowreturn-1-s ui-icon-alert ui-icon-plus');
 			$note.hide();
 
 		}).keyup(function() {
@@ -85,29 +85,29 @@ var InputfieldPageAutocomplete = {
 				event.preventDefault();
 				// instead we add the text entered as a new item
 				// if there is an .InputfieldPageAdd sibling, which indicates support for this
-				if(isAddAllowed()) { 
+				if(isAddAllowed()) {
 					if($.trim($input.val()).length < 1) {
 						$input.blur();
 						return false;
 					}
 					numAdded++;
 					// new items have a negative page_id
-					var page = { page_id: (-1 * numAdded), label: $input.val() }; 
+					var page = { page_id: (-1 * numAdded), label: $input.val() };
 					// add it to the list
-					InputfieldPageAutocomplete.pageSelected($ol, page); 
+					InputfieldPageAutocomplete.pageSelected($ol, page);
 					$input.val('').blur().focus();
 					$note.hide();
 				}
 				return false;
 			}
-		}); 
+		});
 
-		var makeSortable = function($ol) { 
+		var makeSortable = function($ol) {
 			$ol.sortable({
 				// items: '.InputfieldPageListSelectMultiple ol > li',
 				axis: 'y',
 				update: function(e, data) {
-					InputfieldPageAutocomplete.rebuildInput($(this)); 
+					InputfieldPageAutocomplete.rebuildInput($(this));
 				},
 				start: function(e, data) {
 					data.item.addClass('ui-state-highlight');
@@ -115,18 +115,18 @@ var InputfieldPageAutocomplete = {
 				stop: function(e, data) {
 					data.item.removeClass('ui-state-highlight');
 				}
-			}); 
-			$ol.addClass('InputfieldPageAutocompleteSortable'); 
+			});
+			$ol.addClass('InputfieldPageAutocompleteSortable');
 		};
 
 		// $('#' + $ol.attr('id') + '>li').live('mouseover', function() {
-		$('#' + $ol.attr('id')).on('mouseover', '>li', function() { 
-			$(this).removeClass('ui-state-default').addClass('ui-state-hover'); 
-			makeSortable($ol); 
+		$('#' + $ol.attr('id')).on('mouseover', '>li', function() {
+			$(this).removeClass('ui-state-default').addClass('ui-state-hover');
+			makeSortable($ol);
 		// }).live('mouseout', function() {
 		}).on('mouseout', '>li', function() {
-			$(this).removeClass('ui-state-hover').addClass('ui-state-default'); 
-		}); 
+			$(this).removeClass('ui-state-hover').addClass('ui-state-default');
+		});
 
 	},
 
@@ -139,24 +139,24 @@ var InputfieldPageAutocomplete = {
 		var dup = false;
 
 		$ol.children('li').each(function() {
-			var v = parseInt($(this).children('.itemValue').text());	
+			var v = parseInt($(this).children('.itemValue').text());
 			if(v == page.page_id) dup = $(this);
-		}); 
+		});
 
 		if(dup) {
-			dup.effect('highlight'); 
+			dup.effect('highlight');
 			return;
 		}
-		
+
 		var $li = $ol.children(".itemTemplate").clone();
 
-		$li.removeClass("itemTemplate"); 
-		$li.children('.itemValue').text(page.page_id); 
-		$li.children('.itemLabel').text(page.label); 
+		$li.removeClass("itemTemplate");
+		$li.children('.itemValue').text(page.page_id);
+		$li.children('.itemLabel').text(page.label);
 
 		$ol.append($li);
 
-		InputfieldPageAutocomplete.rebuildInput($ol); 
+		InputfieldPageAutocomplete.rebuildInput($ol);
 
 	},
 
@@ -167,48 +167,48 @@ var InputfieldPageAutocomplete = {
 	rebuildInput: function($ol) {
 		var id = $ol.attr('data-id');
 		var name = $ol.attr('data-name');
-		//id = id.substring(0, id.lastIndexOf('_')); 
+		//id = id.substring(0, id.lastIndexOf('_'));
 		var $input = $('#' + id);
 		var value = '';
 		var addValue = '';
 		var max = parseInt($input.attr('data-max'));
 
 		var $children = $ol.children(':not(.itemTemplate)');
-		if(max > 0 && $children.size() > max) { 
-			while($children.size() > max) $children = $children.slice(1); 
+		if(max > 0 && $children.size() > max) {
+			while($children.size() > max) $children = $children.slice(1);
 			$ol.children(':not(.itemTemplate)').replaceWith($children);
 		}
-	
+
 		$children.each(function() {
 			var v = parseInt($(this).children('.itemValue').text());
 			if(v > 0) {
-				value += ',' + v; 
+				value += ',' + v;
 			} else if(v < 0) {
-				value += ',' + v; 
+				value += ',' + v;
 				addValue += $(this).children('.itemLabel').text() + "\n";
 			}
-		}); 
+		});
 		$input.val(value);
 
-		var $addItems = $('#_' + name + '_add_items'); 
+		var $addItems = $('#_' + name + '_add_items');
 		if($addItems.size() > 0) $addItems.val(addValue);
 	}
 
 
-}; 
+};
 
 $(document).ready(function() {
 
 	//$(".InputfieldPageAutocomplete ol li a.itemRemove").live('click', function() { // live() deprecated
 	$(".InputfieldPageAutocomplete ol").on('click', 'a.itemRemove', function() {
-		var $li = $(this).parent(); 
-		var $ol = $li.parent(); 
+		var $li = $(this).parent();
+		var $ol = $li.parent();
 		var id = $li.children(".itemValue").text();
 		$li.remove();
-		InputfieldPageAutocomplete.rebuildInput($ol); 
-		return false; 
+		InputfieldPageAutocomplete.rebuildInput($ol);
+		return false;
 	});
 
-}); 
+});
 
 

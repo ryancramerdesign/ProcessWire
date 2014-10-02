@@ -6,7 +6,7 @@
  * ProcessWire 2.x
  * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * Look for errors at shutdown and log them, plus echo the error if the page is editable
  *
  * http://processwire.com
@@ -84,7 +84,7 @@ function ProcessWireShutdown() {
 	if($log) $who .= "Error has been logged. ";
 	if($config && $config->adminEmail) $who .= "Administrator has been notified. ";
 
-	// we populate $why if we're going to show error details for any of the following reasons: 
+	// we populate $why if we're going to show error details for any of the following reasons:
 	// otherwise $why will NOT be populated with anything
 	if($debug) $why = "site is in debug mode (\$config->debug = true; in /site/config.php).";
 		else if(!$http) $why = "you are using the command line API.";
@@ -109,7 +109,7 @@ function ProcessWireShutdown() {
 			if($config && $config->fatalErrorHTML) $html = $config->fatalErrorHTML;
 			$html = str_replace(array('{message}', '{why}'), array(
 				nl2br(htmlspecialchars($message, ENT_QUOTES, "UTF-8", false)),
-				htmlspecialchars($why, ENT_QUOTES, "UTF-8", false)), $html); 
+				htmlspecialchars($why, ENT_QUOTES, "UTF-8", false)), $html);
 			echo "\n\n$html\n\n";
 		} else {
 			echo "\n\n$message\n\n$why\n\n";

@@ -3,10 +3,10 @@
 /**
  * ProcessWire Self Profile
  *
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -16,18 +16,18 @@ class ProcessProfile extends Process implements ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => __('User Profile', __FILE__), // getModuleInfo title          
-			'summary' => __('Enables user to change their password, email address and other settings that you define.', __FILE__), // getModuleInfo summary 
-			'version' => 101, 
-			'permanent' => true, 
+			'title' => __('User Profile', __FILE__), // getModuleInfo title
+			'summary' => __('Enables user to change their password, email address and other settings that you define.', __FILE__), // getModuleInfo summary
+			'version' => 101,
+			'permanent' => true,
 			'permission' => 'profile-edit',
 			);
 	}
 
-	protected $user; 
+	protected $user;
 
 	public function __construct() {
-		$this->set('profileFields', array()); 
+		$this->set('profileFields', array());
 	}
 
 	public function init() {
@@ -35,16 +35,16 @@ class ProcessProfile extends Process implements ConfigurableModule {
 	}
 
 	public function ___execute() {
-		$this->user = $this->wire('user'); 
+		$this->user = $this->wire('user');
 		$this->setFuel('processHeadline', $this->_("Profile:") . ' ' . $this->user->name); // Primary Headline (precedes the username)
 		$form = $this->buildForm();
 		if($this->input->post->submit_save_profile) {
-			$this->processInput($form); 
-			$this->session->redirect("./"); 
-		} else { 
+			$this->processInput($form);
+			$this->session->redirect("./");
+		} else {
 			return $form->render();
 		}
-	}	
+	}
 
 	/**
 	 * Build the form fields for adding a page
@@ -54,11 +54,11 @@ class ProcessProfile extends Process implements ConfigurableModule {
 
 		$form = $this->modules->get('InputfieldForm');
 
-		$form->attr('id', 'ProcessProfile'); 
-		$form->attr('action', './'); 
-		$form->attr('method', 'post'); 
+		$form->attr('id', 'ProcessProfile');
+		$form->attr('action', './');
+		$form->attr('method', 'post');
 		$form->attr('enctype', 'multipart/form-data');
-		$form->attr('autocomplete', 'off'); 
+		$form->attr('autocomplete', 'off');
 
 		foreach($this->user->fields as $field) {
 			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue;
@@ -66,16 +66,16 @@ class ProcessProfile extends Process implements ConfigurableModule {
 			$inputfield = $field->getInputfield($this->user);
 			$inputfield->value = $this->user->get($field->name);
 			if($field->name == 'admin_theme' && !$inputfield->value) $inputfield->value = 'AdminThemeDefault';
-			if($field->type instanceof FieldtypeFile) $inputfield->noAjax = true; 
-			$form->add($inputfield); 
+			if($field->type instanceof FieldtypeFile) $inputfield->noAjax = true;
+			$form->add($inputfield);
 		}
 
 		$field = $this->modules->get('InputfieldSubmit');
-		$field->attr('id+name', 'submit_save_profile'); 
-		$field->addClass('head_button_clone'); 
-		$form->add($field); 
+		$field->attr('id+name', 'submit_save_profile');
+		$field->addClass('head_button_clone');
+		$form->add($field);
 
-		return $form; 
+		return $form;
 	}
 
 	/**
@@ -84,11 +84,11 @@ class ProcessProfile extends Process implements ConfigurableModule {
 	 */
 	protected function processInput(Inputfield $form) {
 
-		$user = $this->user; 
+		$user = $this->user;
 		$form->processInput($this->input->post);
 
 		if(count($form->getErrors())) {
-			$this->error($this->_("Profile not saved")); 
+			$this->error($this->_("Profile not saved"));
 			return;
 		}
 
@@ -99,41 +99,41 @@ class ProcessProfile extends Process implements ConfigurableModule {
 
 			if($field->name == 'roles' || !in_array($field->name, $this->profileFields)) continue;
 			$field = $this->user->fields->getFieldContext($field);
-		
-			$inputfield = $form->get($field->name); 	
-			$value = $inputfield->attr('value'); 
-			
+
+			$inputfield = $form->get($field->name);
+			$value = $inputfield->attr('value');
+
 			if($field->name == 'email' && strlen($value)) {
 				if(count($this->users->find("id!={$user->id}, email=" . $this->sanitizer->selectorValue($value)))) {
 					$this->error(sprintf($this->_('Email address "%s" already in use by another user.'), $value));
-					continue; 
+					continue;
 				}
 			}
 
-			if($field->name == 'pass' && empty($value)) continue; 
-	
-			if($user->get($field->name) !== $value) {	
-				$user->set($field->name, $value); 
+			if($field->name == 'pass' && empty($value)) continue;
+
+			if($user->get($field->name) !== $value) {
+				$user->set($field->name, $value);
 			}
-			
+
 		}
 
 		if($user->isChanged()) {
-			$changes = implode(', ', array_unique($user->getChanges())); 
-			$message = $this->_('Profile saved') . ' - ' . $changes; 
+			$changes = implode(', ', array_unique($user->getChanges()));
+			$message = $this->_('Profile saved') . ' - ' . $changes;
 			$this->message($message);
-			$this->wire('log')->message($message); 
+			$this->wire('log')->message($message);
 			$this->wire('users')->save($user);
 		}
 
-		$user->of(true); 
+		$user->of(true);
 
 	}
 
 	static public function getModuleConfigInputfields(array $data) {
 
 		$profileFields = isset($data['profileFields']) ? $data['profileFields'] : array();
-		$fieldOptions = wire('templates')->get('user')->fieldgroup; 
+		$fieldOptions = wire('templates')->get('user')->fieldgroup;
 
 		$inputfields = new InputfieldWrapper();
 		$f = wire('modules')->get('InputfieldCheckboxes');
@@ -141,7 +141,7 @@ class ProcessProfile extends Process implements ConfigurableModule {
 		$f->attr('id+name', 'profileFields');
 		foreach($fieldOptions as $field) {
 			if($field->name == 'roles') continue;
-			$f->addOption($field->name); 
+			$f->addOption($field->name);
 		}
 		$f->attr('value', $profileFields);
 		$inputfields->add($f);

@@ -4,16 +4,16 @@
  * ProcessWire Selectors
  *
  * Processes a Selector string and can then be iterated to retrieve each resulting Selector object.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
 
-require_once(PROCESSWIRE_CORE_PATH . "Selector.php"); 
+require_once(PROCESSWIRE_CORE_PATH . "Selector.php");
 
 class Selectors extends WireArray {
 
@@ -21,25 +21,25 @@ class Selectors extends WireArray {
 	 * Maximum length for a selector value
 	 *
 	 */
-	const maxValueLength = 500; 
+	const maxValueLength = 500;
 
 	/**
 	 * Maximum length for a selector operator
 	 *
 	 */
-	const maxOperatorLength = 10; 
+	const maxOperatorLength = 10;
 
 	/**
 	 * Maximum length for a selector field name
 	 *
 	 */
-	const maxFieldLength = 50; 
+	const maxFieldLength = 50;
 
 	/**
 	 * Maximum number of selectors that can be present in a given selectors string
 	 *
 	 */
-	const maxSelectors = 20; 
+	const maxSelectors = 20;
 
 	/**
 	 * Static array of Selector types of $operator => $className
@@ -77,13 +77,13 @@ class Selectors extends WireArray {
 	 *
 	 */
 	public function __construct($selectorStr) {
-		$this->selectorStr = $selectorStr; 
-		$this->extractString(trim($selectorStr)); 
+		$this->selectorStr = $selectorStr;
+		$this->extractString(trim($selectorStr));
 	}
 
 	/**
 	 * Import items into this WireArray.
-	 * 
+	 *
 	 * @throws WireException
 	 * @param string|WireArray $items Items to import.
 	 * @return WireArray This instance.
@@ -91,9 +91,9 @@ class Selectors extends WireArray {
 	 */
 	public function import($items) {
 		if(is_string($items)) {
-			$this->extractString($items); 	
+			$this->extractString($items);
 		} else {
-			return parent::import($items); 
+			return parent::import($items);
 		}
 	}
 
@@ -102,7 +102,7 @@ class Selectors extends WireArray {
 	 *
 	 */
 	public function isValidItem($item) {
-		return is_object($item) && $item instanceof Selector; 
+		return is_object($item) && $item instanceof Selector;
 	}
 
 	/**
@@ -116,18 +116,18 @@ class Selectors extends WireArray {
 	/**
 	 * Add a Selector type that processes a specific operator
 	 *
-	 * Static since there may be multiple instances of this Selectors class at runtime. 
-	 * See Selector.php 
+	 * Static since there may be multiple instances of this Selectors class at runtime.
+	 * See Selector.php
 	 *
 	 * @param string $operator
 	 * @param string $class
 	 *
 	 */
 	static public function addType($operator, $class) {
-		self::$selectorTypes[$operator] = $class; 
+		self::$selectorTypes[$operator] = $class;
 		for($n = 0; $n < strlen($operator); $n++) {
-			$c = $operator[$n]; 
-			self::$operatorChars[$c] = $c; 
+			$c = $operator[$n];
+			self::$operatorChars[$c] = $c;
 		}
 	}
 
@@ -136,67 +136,67 @@ class Selectors extends WireArray {
 	 *
 	 */
 	static public function getOperatorChars() {
-		return self::$operatorChars; 
+		return self::$operatorChars;
 	}
 
 	/**
-	 * Does the given string have an operator in it? 
+	 * Does the given string have an operator in it?
 	 *
 	 * @param string $str
 	 * @return bool
 	 *
 	 */
 	static public function stringHasOperator($str) {
-		
-		
+
+
 		static $letters = 'abcdefghijklmnopqrstuvwxyz';
 		static $digits = '_0123456789';
-		
+
 		$has = false;
-		
+
 		foreach(self::$selectorTypes as $operator => $unused) {
-			
+
 			if($operator == '&') continue; // this operator is too common in other contexts
-			
-			$pos = strpos($str, $operator); 
+
+			$pos = strpos($str, $operator);
 			if(!$pos) continue; // if pos is 0 or false, move onto the next
-			
+
 			// possible match: confirm that field name precedes an operator
 			// if(preg_match('/\b[_a-zA-Z0-9]+' . preg_quote($operator) . '/', $str)) {
-			
+
 			$c = $str[$pos-1]; // letter before the operator
-			
+
 			if(stripos($letters, $c) !== false) {
 				// if a letter appears as the character before operator, then we're good
-				$has = true; 
-				
+				$has = true;
+
 			} else if(strpos($digits, $c) !== false) {
 				// if a digit appears as the character before operator, we need to confirm there is at least one letter
-				// as there can't be a field named 123, for example, which would mean the operator is likely something 
+				// as there can't be a field named 123, for example, which would mean the operator is likely something
 				// to do with math equations, which we would refuse as a valid selector operator
-				$n = $pos-1; 	
+				$n = $pos-1;
 				while($n > 0) {
 					$c = $str[--$n];
 					if(stripos($letters, $c) !== false) {
 						// if found a letter, then we've got something valid
-						$has = true; 
+						$has = true;
 						break;
-						
+
 					} else if(strpos($digits, $c) === false) {
 						// if we've got a non-digit (and non-letter) then definitely not valid
 						break;
 					}
-				} 
+				}
 			}
-			
+
 			if($has) break;
 		}
-		
-		return $has; 
+
+		return $has;
 	}
 
 	/**
-	 * Does the given string start with a selector? 
+	 * Does the given string start with a selector?
 	 *
 	 * Meaning string starts with [field][operator] like "field="
 	 *
@@ -207,26 +207,26 @@ class Selectors extends WireArray {
 	static public function stringHasSelector($str) {
 
 		if(!self::stringHasOperator($str)) {
-			
+
 			$has = false;
-			
+
 		} else if(preg_match('/^([-._a-zA-Z0-9|]+)([' . implode('', self::getOperatorChars()) . ']+)/', $str, $matches)) {
 
-			$field = $matches[1]; 
-			$operator = $matches[2]; 
+			$field = $matches[1];
+			$operator = $matches[2];
 
 			if(in_array($field[0], array('-', '.', '|'))) {
 				// fields can't start with a dash or a period or a pipe
-				$has = false; 
+				$has = false;
 			} else if(!isset(self::$selectorTypes[$operator])) {
 				// if it's not an operator we recognize then abort
-				$has = false; 
+				$has = false;
 			} else {
 				// if we made it here, then we've found a selector
-				$has = true; 
+				$has = true;
 			}
 		}
-		
+
 		return $has;
 	}
 
@@ -244,36 +244,36 @@ class Selectors extends WireArray {
 	protected function create($field, $operator, $value) {
 		if(!isset(self::$selectorTypes[$operator])) {
 			$debug = $this->wire('config')->debug ? "field='$field', value='$value', selector: '$this->selectorStr'" : "";
-			throw new WireException("Unknown Selector operator: '$operator' -- was your selector value properly escaped? $debug"); 
+			throw new WireException("Unknown Selector operator: '$operator' -- was your selector value properly escaped? $debug");
 		}
-		$class = self::$selectorTypes[$operator]; 
-		$selector = new $class($field, $value); 
-		return $selector; 		
+		$class = self::$selectorTypes[$operator];
+		$selector = new $class($field, $value);
+		return $selector;
 	}
 
 
 	/**
-	 * Given a selector string, return an array of (field, value, operator) for each selector in the strong. 
+	 * Given a selector string, return an array of (field, value, operator) for each selector in the strong.
 	 *
 	 * @param string $str The string containing a selector (or multiple selectors, separated by commas)
-	 * @return array 
+	 * @return array
 	 *
 	 */
 	protected function extractString($str) {
 
-		$cnt = 0; 
-		
+		$cnt = 0;
+
 		while(strlen($str)) {
 
-			$quote = '';	
-			$group = $this->extractGroup($str); 	
-			$field = $this->extractField($str); 
+			$quote = '';
+			$group = $this->extractGroup($str);
+			$field = $this->extractField($str);
 			$operator = $this->extractOperator($str, $this->getOperatorChars());
-			$value = $this->extractValue($str, $quote); 
+			$value = $this->extractValue($str, $quote);
 
 			if($quote == '[' && !self::stringHasOperator($value)) {
 				// parse an API variable property to a string value
-				$v = $this->parseValue($value); 
+				$v = $this->parseValue($value);
 				if($v !== null) {
 					$value = $v;
 					$quote = '';
@@ -282,16 +282,16 @@ class Selectors extends WireArray {
 
 			if($field || strlen("$value")) {
 				$selector = $this->create($field, $operator, $value);
-				if(!is_null($group)) $selector->group = $group; 
-				if($quote) $selector->quote = $quote; 
-				$this->add($selector); 
+				if(!is_null($group)) $selector->group = $group;
+				if($quote) $selector->quote = $quote;
+				$this->add($selector);
 			}
 
 			if(++$cnt > self::maxSelectors) break;
 		}
 
 	}
-	
+
 	/**
 	 * Given a string like name@field=... or @field=... extract the part that comes before the @
 	 *
@@ -303,63 +303,63 @@ class Selectors extends WireArray {
 	 */
 	protected function extractGroup(&$str) {
 		$group = null;
-		$pos = strpos($str, '@'); 
-		if($pos === false) return $group; 
+		$pos = strpos($str, '@');
+		if($pos === false) return $group;
 		if($pos === 0) {
 			$group = '';
-			$str = substr($str, 1); 
+			$str = substr($str, 1);
 		} else if(preg_match('/^([-_a-zA-Z0-9]*)@(.*)/', $str, $matches)) {
-			$group = $matches[1]; 
+			$group = $matches[1];
 			$str = $matches[2];
 		}
-		return $group; 
+		return $group;
 	}
 
 	/**
-	 * Given a string starting with a field, return that field, and remove it from $str. 
+	 * Given a string starting with a field, return that field, and remove it from $str.
 	 *
 	 */
 	protected function extractField(&$str) {
 		$field = '';
-		
+
 		if(strpos($str, '(') === 0) {
 			// OR selector where specification of field name is optional and = operator is assumed
-			$str = '=(' . substr($str, 1); 
-			return $field; 
+			$str = '=(' . substr($str, 1);
+			return $field;
 		}
 
 		if(preg_match('/^(!?[_|.a-zA-Z0-9]+)(.*)/', $str, $matches)) {
 
-			$field = trim($matches[1], '|'); 
+			$field = trim($matches[1], '|');
 			$str = $matches[2];
 
 			if(strpos($field, '|')) {
-				$field = explode('|', $field); 
+				$field = explode('|', $field);
 			}
 
 		}
-		return $field; 
+		return $field;
 	}
 
 
 	/**
-	 * Given a string starting with an operator, return that operator, and remove it from $str. 
+	 * Given a string starting with an operator, return that operator, and remove it from $str.
 	 *
 	 */
 	protected function extractOperator(&$str, array $operatorChars) {
 		$n = 0;
 		$operator = '';
 		while(isset($str[$n]) && in_array($str[$n], $operatorChars) && $n < self::maxOperatorLength) {
-			$operator .= $str[$n]; 
-			$n++; 
+			$operator .= $str[$n];
+			$n++;
 		}
-		if($operator) $str = substr($str, $n); 
-		return $operator; 
+		if($operator) $str = substr($str, $n);
+		return $operator;
 	}
 
 	/**
 	 * Early-exit optimizations for extractValue
-	 * 
+	 *
 	 * @param string $str String to extract value from, $str will be modified if extraction successful
 	 * @param string $openingQuote Opening quote character, if string has them, blank string otherwise
 	 * @param string $closingQuote Closing quote character, if string has them, blank string otherwise
@@ -367,10 +367,10 @@ class Selectors extends WireArray {
 	 *
 	 */
 	protected function extractValueQuick(&$str, $openingQuote, $closingQuote) {
-		
+
 		// determine where value ends
 		$commaPos = strpos("$str,", $closingQuote . ','); // "$str," just in case value is last and no trailing comma
-		
+
 		if($commaPos === false && $closingQuote) {
 			// if closing quote and comma didn't match, try to match just comma in case of "something"<space>,
 			$commaPos = strpos(substr($str, 1), ',');
@@ -379,45 +379,45 @@ class Selectors extends WireArray {
 
 		if($commaPos === false) {
 			// value is the last one in $str
-			$commaPos = strlen($str); 
-			
+			$commaPos = strlen($str);
+
 		} else if($commaPos && $str[$commaPos-1] === '//') {
 			// escaped comma or closing quote means no optimization possible here
-			return false; 
+			return false;
 		}
-		
+
 		// extract the value for testing
 		$value = substr($str, 0, $commaPos);
-	
+
 		// if there is an operator present, it might be a subselector or OR-group
 		if(self::stringHasOperator($value)) return false;
-	
+
 		if($openingQuote) {
 			// if there were quotes, trim them out
-			$value = trim($value, $openingQuote . $closingQuote); 
+			$value = trim($value, $openingQuote . $closingQuote);
 		}
 
 		// determine if there are any embedded quotes in the value
-		$hasEmbeddedQuotes = false; 
+		$hasEmbeddedQuotes = false;
 		foreach($this->quotes as $open => $close) {
-			if(strpos($value, $open)) $hasEmbeddedQuotes = true; 
+			if(strpos($value, $open)) $hasEmbeddedQuotes = true;
 		}
-		
+
 		// if value contains quotes anywhere inside of it, abort optimization
 		if($hasEmbeddedQuotes) return false;
-	
+
 		// does the value contain possible OR conditions?
 		if(strpos($value, '|') !== false) {
-			
+
 			// if there is an escaped pipe, abort optimization attempt
-			if(strpos($value, '\\' . '|') !== false) return false; 
-		
+			if(strpos($value, '\\' . '|') !== false) return false;
+
 			// if value was surrounded in "quotes" or 'quotes' abort optimization attempt
 			// as the pipe is a literal value rather than an OR
 			if($openingQuote == '"' || $openingQuote == "'") return false;
-		
+
 			// we have valid OR conditions, so convert to an array
-			$value = explode('|', $value); 
+			$value = explode('|', $value);
 		}
 
 		// if we reach this point we have a successful extraction and can remove value from str
@@ -425,11 +425,11 @@ class Selectors extends WireArray {
 		$str = trim(substr($str, $commaPos+1));
 
 		// successful optimization
-		return $value; 
+		return $value;
 	}
 
 	/**
-	 * Given a string starting with a value, return that value, and remove it from $str. 
+	 * Given a string starting with a value, return that value, and remove it from $str.
 	 *
 	 * @param string $str String to extract value from
 	 * @param string $quote Automatically populated with quote type, if found
@@ -438,22 +438,22 @@ class Selectors extends WireArray {
 	 */
 	protected function extractValue(&$str, &$quote) {
 
-		$str = trim($str); 
+		$str = trim($str);
 		if(!strlen($str)) return '';
-		
+
 		if(isset($this->quotes[$str[0]])) {
-			$openingQuote = $str[0]; 
+			$openingQuote = $str[0];
 			$closingQuote = $this->quotes[$openingQuote];
-			$quote = $openingQuote; 
-			$n = 1; 
+			$quote = $openingQuote;
+			$n = 1;
 		} else {
 			$openingQuote = '';
 			$closingQuote = '';
-			$n = 0; 
+			$n = 0;
 		}
-		
+
 		$value = $this->extractValueQuick($str, $openingQuote, $closingQuote); // see if we can do a quick exit
-		if($value !== false) return $value; 
+		if($value !== false) return $value;
 
 		$value = '';
 		$lastc = '';
@@ -461,7 +461,7 @@ class Selectors extends WireArray {
 		do {
 			if(!isset($str[$n])) break;
 
-			$c = $str[$n]; 
+			$c = $str[$n];
 
 			if($openingQuote) {
 				// we are in a quoted value string
@@ -472,14 +472,14 @@ class Selectors extends WireArray {
 						// same quote that opened, and not escaped
 						// means the end of the value
 
-						$n++; // skip over quote 
-						$quote = $openingQuote; 
+						$n++; // skip over quote
+						$quote = $openingQuote;
 						break;
 
 					} else {
 						// this is an intentionally escaped quote
 						// so remove the escape
-						$value = rtrim($value, '\\'); 
+						$value = rtrim($value, '\\');
 					}
 				}
 
@@ -494,31 +494,31 @@ class Selectors extends WireArray {
 					} else {
 						// an intentionally escaped comma
 						// so remove the escape
-						$value = rtrim($value, '\\'); 
+						$value = rtrim($value, '\\');
 					}
 				}
 			}
 
-			$value .= $c; 
+			$value .= $c;
 			$lastc = $c;
 
-		} while(++$n < self::maxValueLength); 
+		} while(++$n < self::maxValueLength);
 
 		if(strlen("$value")) $str = substr($str, $n);
 		$str = ltrim($str, ' ,"\']})'); // should be executed even if blank value
 
 		// check if a pipe character is present next, indicating an OR value may be provided
 		if(strlen($str) > 1 && substr($str, 0, 1) == '|') {
-			$str = substr($str, 1); 
+			$str = substr($str, 1);
 			// perform a recursive extract to account for all OR values
-			$v = $this->extractValue($str, $quote); 
+			$v = $this->extractValue($str, $quote);
 			$quote = ''; // we don't support separately quoted OR values
-			$value = array($value); 
-			if(is_array($v)) $value = array_merge($value, $v); 
-				else $value[] = $v; 
+			$value = array($value);
+			if(is_array($v)) $value = array_merge($value, $v);
+				else $value[] = $v;
 		}
 
-		return $value; 
+		return $value;
 	}
 
 	/**
@@ -531,25 +531,25 @@ class Selectors extends WireArray {
 	public function parseValue($value) {
 		if(!preg_match('/^\$?[_a-zA-Z0-9]+(?:\.[_a-zA-Z0-9]+)?$/', $value)) return null;
 		$property = '';
-		if(strpos($value, '.')) list($value, $property) = explode('.', $value); 
+		if(strpos($value, '.')) list($value, $property) = explode('.', $value);
 		$allowed = array('session', 'page', 'user'); // @todo make the whitelist configurable
-		if(!in_array($value, $allowed)) return null; 
-		$value = $this->wire($value); 
+		if(!in_array($value, $allowed)) return null;
+		$value = $this->wire($value);
 		if(is_null($value)) return null; // does not resolve to API var
-		if(empty($property)) return (string) $value;  // no property requested, just return string value 
+		if(empty($property)) return (string) $value;  // no property requested, just return string value
 		if(!is_object($value)) return null; // property requested, but value is not an object
-		return (string) $value->$property; 
+		return (string) $value->$property;
 	}
 
 	public function __toString() {
 		$str = '';
 		foreach($this as $selector) {
-			$str .= $selector->str . ", "; 	
+			$str .= $selector->str . ", ";
 		}
-		return rtrim($str, ", "); 
+		return rtrim($str, ", ");
 	}
 
-	
+
 
 }
 

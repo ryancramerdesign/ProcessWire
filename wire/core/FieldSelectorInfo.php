@@ -8,14 +8,14 @@
  * This originated with the InputfieldSelector module and the need for Fieldtypes to
  * provide information about what properties can be selected, what operators, are used,
  * and so on. In the future this class will likely come in handy in providing selector
- * validation and improved help and error messaging when building/testing selectors. 
+ * validation and improved help and error messaging when building/testing selectors.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2014 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
- * 
+ *
  */
 class FieldSelectorInfo extends Wire {
 
@@ -41,7 +41,7 @@ class FieldSelectorInfo extends Wire {
 	 * CSV keywords from schema mapped to input types to auto-determine input type from schema
 	 *
 	 */
-	protected $schemaToInput = array(); 
+	protected $schemaToInput = array();
 
 
 	public function __construct() {
@@ -55,25 +55,25 @@ class FieldSelectorInfo extends Wire {
 
 		$this->infoTemplate = array(
 			// name of the field
-			'name' => '', 
-			// label for this field 
-			'label' => '', 
+			'name' => '',
+			// label for this field
+			'label' => '',
 			// operators accepted
 			'operators' => $this->operators['number'],
 			// type of input required: text, number, date, datetime, select, page, none
-			'input' => 'number', 
+			'input' => 'number',
 			// optional text hint about what to provide for input (for user)
-			'hint' => '', 
+			'hint' => '',
 			// when input=select, page or checkbox, this contains the selectable options (value => label)
-			'options' => array(), 
+			'options' => array(),
 			// if field has subfields, this contains array of all above, indexed by subfield name (blank if not applicable)
-			'subfields' => array(), 
+			'subfields' => array(),
 			);
 
 		$this->schemaToInput = array(
-			'TEXT,TINYTEXT,MEDIUMTEXT,LONGTEXT,VARCHAR,CHAR' => 'text', 
-			'DATETIME,TIMESTAMP' => 'datetime', 
-			'DATE' => 'date', 
+			'TEXT,TINYTEXT,MEDIUMTEXT,LONGTEXT,VARCHAR,CHAR' => 'text',
+			'DATETIME,TIMESTAMP' => 'datetime',
+			'DATE' => 'date',
 			'INT,DECIMAL,FLOAT,DOUBLE' => 'number',
 			'ENUM,SET' => 'select',
 			);
@@ -82,7 +82,7 @@ class FieldSelectorInfo extends Wire {
 
 	/**
 	 * Return array with information about what properties and operators can be used with this field
-	 * 
+	 *
 	 * @param Field $field
 	 * @param array $data Array of extra data, when/if needed
 	 * @return array
@@ -90,53 +90,53 @@ class FieldSelectorInfo extends Wire {
 	 */
 	public function getSelectorInfo(Field $field) {
 
-		$info = $this->infoTemplate; 
-		$info['name'] = $field->name; 
-		$info['label'] = $field->label ? $field->label : $field->name; 
+		$info = $this->infoTemplate;
+		$info['name'] = $field->name;
+		$info['label'] = $field->label ? $field->label : $field->name;
 		$schema = $field->type->getDatabaseSchema($field);
 
 		foreach($schema as $name => $schemaType) {
 
 			// skip over native properties that aren't used in selectors
-			if(in_array($name, array('pages_id', 'keys', 'xtra', 'sort'))) continue; 
+			if(in_array($name, array('pages_id', 'keys', 'xtra', 'sort'))) continue;
 
 			if($name == 'data') {
 				// base property
 				$target =& $info;
 			} else {
 				// subfield property
-				$info['subfields'][$name] = $this->infoTemplate; 
-				$target =& $info['subfields'][$name]; 
-				$target['name'] = $name; 
-				$target['label'] = $name; 
+				$info['subfields'][$name] = $this->infoTemplate;
+				$target =& $info['subfields'][$name];
+				$target['name'] = $name;
+				$target['label'] = $name;
 			}
 
 			// determine the 'input' type based on the DB schema definition
 			foreach($this->schemaToInput as $types => $input) {
 				foreach(explode(',', $types) as $type) {
-					if(stripos($schemaType, $type) !== 0) continue; 
-					$target['input'] = $input; 
+					if(stripos($schemaType, $type) !== 0) continue;
+					$target['input'] = $input;
 					break;
 				}
 			}
 
 			// determine the operators based on the $input
 			$input = $target['input'];
-			if(isset($this->operators[$input])) $target['operators'] = $this->operators[$input]; 
+			if(isset($this->operators[$input])) $target['operators'] = $this->operators[$input];
 
 			// determine selectable options if schema uses ENUM or SET fields
 			if($input == 'select' && stripos($schemaType, 'ENUM(') !== false || stripos($schemaType, 'SET(') !== false) {
 				if(preg_match('/^(ENUM|SET)\s*\(([^)]+)\)/i', $schemaType, $matches)) {
 					$options = array();
 					foreach(explode(',', $matches[2]) as $option) {
-						$option = trim($option, '\'" '); 
-						$options[$option] = $option; 
+						$option = trim($option, '\'" ');
+						$options[$option] = $option;
 					}
-					$target['options'] = $options; 
+					$target['options'] = $options;
 				}
 			}
 
-			// use fulltext operators if schema uses a fulltext index	
+			// use fulltext operators if schema uses a fulltext index
 			if(isset($schema['keys'][$name])) {
 				if(stripos($schema['keys'][$name], 'FULLTEXT') !== false) {
 					$target['operators'] = $this->operators['fulltext'];
@@ -146,9 +146,9 @@ class FieldSelectorInfo extends Wire {
 
 		// if there are subfields, add the 'data' property back in there
 		if(count($info['subfields'])) {
-			$copy = $info; 
+			$copy = $info;
 			$copy['subfields'] = array();
-			$info['subfields']['data'] = $copy; 
+			$info['subfields']['data'] = $copy;
 		}
 
 		return $info;
@@ -161,7 +161,7 @@ class FieldSelectorInfo extends Wire {
 	 *
 	 */
 	public function getSelectorInfoTemplate() {
-		return $this->infoTemplate; 
+		return $this->infoTemplate;
 	}
 
 	/**
@@ -173,9 +173,9 @@ class FieldSelectorInfo extends Wire {
 	 */
 	public function getOperators($inputType = '') {
 		if(empty($inputType)) {
-			$operators = array(); 
-			foreach($this->operators as $o) $operators = array_merge($operators, $o); 
-			return $operators; 
+			$operators = array();
+			foreach($this->operators as $o) $operators = array_merge($operators, $o);
+			return $operators;
 		}
 		if(isset($this->operators[$inputType])) return $this->operators[$inputType];
 		return array();
@@ -184,7 +184,7 @@ class FieldSelectorInfo extends Wire {
 	/**
 	 * Get array of operators mapped to text labels
 	 *
-	 * @return array 
+	 * @return array
 	 *
 	 */
 	public function getOperatorLabels() {

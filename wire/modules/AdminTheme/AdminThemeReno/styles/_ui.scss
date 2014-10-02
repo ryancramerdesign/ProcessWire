@@ -4,12 +4,12 @@
  */
 
 .ui-icon {
-	float: left; 
-	margin-right: 2px; 
+	float: left;
+	margin-right: 2px;
 }
 
 .ui-widget {
-	font-size: 1em; 
+	font-size: 1em;
 }
 
 .ui-widget-content {
@@ -18,7 +18,7 @@
 
 .Inputfields li:not(.Inputfield) .ui-widget-header .ui-icon,
 .ui-state-default .ui-icon,
-.ui-state-hover .ui-icon, 
+.ui-state-hover .ui-icon,
 .ui-state-highlight .ui-icon,
 .ui-state-error .ui-icon {
 	/* use white icons */
@@ -46,32 +46,32 @@
 
 	li.ui-state-default,
 	.ui-widget-content li.ui-state-default {
-		background: $ui-state-default-bg; 
-		border-color: $ui-state-default-bg; 
-		color: $ui-state-default-color; 
+		background: $ui-state-default-bg;
+		border-color: $ui-state-default-bg;
+		color: $ui-state-default-color;
 	}
-	li.ui-state-default a, 
+	li.ui-state-default a,
 	.ui-widget-content li.ui-state-default a {
-		color: $ui-state-default-color; 
+		color: $ui-state-default-color;
 	}
 	li.ui-state-hover,
 	.ui-widget-content li.ui-state-hover {
 		background: none !important;
-		background-color: $ui-state-hover-bg !important; 
-		border-color: $ui-state-hover-bg; 
-		color: $ui-state-hover-color; 
+		background-color: $ui-state-hover-bg !important;
+		border-color: $ui-state-hover-bg;
+		color: $ui-state-hover-color;
 	}
 	li.ui-state-hover a,
 	.ui-widget-content li.ui-state-hover a {
-		color: $ui-state-hover-color; 
+		color: $ui-state-hover-color;
 	}
 }
 
-.InputfieldForm .ui-accordion-header, 
+.InputfieldForm .ui-accordion-header,
 .ui-accordion-header {
-	padding-left: 1.5em; 
-	background: $button-bg; 
-	border: none; 
+	padding-left: 1.5em;
+	background: $button-bg;
+	border: none;
 	color: $reverse-text-color;
 }
 	.InputfieldForm .ui-accordion-header a,
@@ -87,32 +87,32 @@
 }
 
 /**
- * Highlight and error states 
+ * Highlight and error states
  *
  */
 
-.ui-state-highlight,  
-.ui-widget-content .ui-state-highlight, 
+.ui-state-highlight,
+.ui-widget-content .ui-state-highlight,
 .ui-widget-header .ui-state-highlight,{
-	color: $highlight-color; 
+	color: $highlight-color;
 	background: $highlight-bg;
 	border: none;
-	border-bottom: $highlight-border; 
+	border-bottom: $highlight-border;
 }
-	
+
 .ui-state-error,
 .ui-widget-content .ui-state-error {
-	background: $error-bg;	
-	color: $error-color; 
-	border: none; 
+	background: $error-bg;
+	color: $error-color;
+	border: none;
 	font-weight: normal;
 	border: none;
-	border-bottom: $error-border; 
+	border-bottom: $error-border;
 }
 
 #notices {
 	position: relative;
-	// z-index: 5; 
+	// z-index: 5;
 	border-top: $notices-border-top;
 	border-bottom: $notices-border-bottom;
 
@@ -121,11 +121,11 @@
 	}
 
 	li.NoticeError + li.NoticeError,
-	li.NoticeWarning + li.NoticeWarning, 
+	li.NoticeWarning + li.NoticeWarning,
 	li.NoticeMessage + li.NoticeMessage {
 		padding-top: 0 !important;
 	}
-	
+
 
 	& .ui-priority-secondary {
 		background: $highlight-bg !important;
@@ -134,38 +134,38 @@
 }
 
 
-#notices .ui-state-highlight, 
+#notices .ui-state-highlight,
 #notices .ui-state-error {
-	padding: 0.25em 0; 
-	color: $highlight-color; 
+	padding: 0.25em 0;
+	color: $highlight-color;
 }
 
 	#notices .ui-state-error {
-		color: $error-color; 
+		color: $error-color;
 	}
 	#notices .ui-state-highlight a{
-		color: $highlight-color; 
+		color: $highlight-color;
 	}
 	#notices .ui-state-error a {
-		color: $error-color; 
+		color: $error-color;
 	}
 	#notices .ui-state-highlight .ui-icon,
 	#notices .ui-state-error .ui-icon {
 		position: relative;
-		top: 2px; 
+		top: 2px;
 	}
 
 	#notices .notice-remove {
-		float: right; 
-		color: $highlight-color; 
-		text-decoration: none; 
-		padding: 0 0.5em 0 1em; 
+		float: right;
+		color: $highlight-color;
+		text-decoration: none;
+		padding: 0 0.5em 0 1em;
 	}
-	
+
 
 	.ui-state-highlight a,
 	.ui-state-error a {
-		text-decoration: underline; 
+		text-decoration: underline;
 	}
 
 	p span.ui-state-error {
@@ -200,7 +200,7 @@
 	    .ui-button {
       	background: none;
       	border: none;
-      	outline: none; 
+      	outline: none;
 		}
 	}
 
@@ -241,7 +241,7 @@
 		color: $white;
 	}
 }
- 
+
 .ui-widget-overlay {
 	background: $dark-blue; /* BLACK */
 	z-index: 9998;
@@ -252,34 +252,34 @@
  *
  */
 
-.ui-button, 
-button.ui-button.ui-state-default, 
+.ui-button,
+button.ui-button.ui-state-default,
 .ui-button.ui-state-default {
-	box-shadow: none !important; 
-	text-shadow: none !important; 
-	color: $button-color; /* WHITE */ 
+	box-shadow: none !important;
+	text-shadow: none !important;
+	color: $button-color; /* WHITE */
 	background: $button-bg; /* green */
 	border: 1px solid $button-border; /* green */
-	font-weight: normal; 
-	font-size: 1em !important; 
+	font-weight: normal;
+	font-size: 1em !important;
 	border-radius: $button-radius;
 	transition: all 120ms ease-in;
 }
 
 .ui-button-text, .ui-button-text-only .ui-button-text {
 	padding: 0.6em 1.1em;
-	font-size: 1em !important; 
+	font-size: 1em !important;
 }
 
 button.ui-button span {
 	text-shadow: none !important;
 }
 
-button.ui-button.ui-priority-secondary, 
+button.ui-button.ui-priority-secondary,
 .ui-button.ui-priority-secondary {
-	background: $button-secondary-bg !important; 
-	border: 1px solid $button-secondary-border !important; 
-	color: $button-secondary-color !important; 
+	background: $button-secondary-bg !important;
+	border: 1px solid $button-secondary-border !important;
+	color: $button-secondary-color !important;
 
 	&:hover {
 		color: $button-secondary-hover-color !important;
@@ -289,18 +289,18 @@ button.ui-button.ui-priority-secondary,
 	}
 }
 
-.ui-button:hover, 
-button.ui-button.ui-state-hover, 
+.ui-button:hover,
+button.ui-button.ui-state-hover,
 .ui-button.ui-state-hover {
-	color: $button-hover-color; 
-	background: $button-hover-bg; 
-	border: 1px solid $button-hover-border; 
-	text-decoration: none; 
+	color: $button-hover-color;
+	background: $button-hover-bg;
+	border: 1px solid $button-hover-border;
+	text-decoration: none;
 }
 
 .ui-button.ui-state-hover.ui-state-active {
 	background: $button-active-bg !important;
-	border-color: $button-active-bg !important; 
+	border-color: $button-active-bg !important;
 }
 
 div + a > .ui-button {
@@ -329,26 +329,26 @@ button.ui-state-disabled{
     	color: $ui-disabled-color !important;
     	background: $ui-disabled-bg !important;
     	border-color: $ui-disabled-bg !important;
-    	cursor: hand;	
+    	cursor: hand;
     }
 
      &.ui-state-active{
     	color: $ui-disabled-color !important;
     	background: $ui-disabled-bg !important;
     	border-color: $ui-disabled-bg !important;
-    	cursor: hand;	
+    	cursor: hand;
     }
 }
 
 /**
  * ui-slider
- * 
+ *
  */
 
-.ui-slider .ui-slider-range, 
+.ui-slider .ui-slider-range,
 .ui-widget .ui-slider .ui-slider-range,
 .ui-widget-content .ui-slider .ui-slider-range {
-	background: $link; 
+	background: $link;
 	/* remove padding added to Inputfields that was getting inherited here */
 	padding: 0;
 }
@@ -390,7 +390,7 @@ button.ui-state-disabled{
 }
 .ui-autocomplete {
 	box-shadow: $box-shadow !important;
-	z-index: 9999 !important; 
+	z-index: 9999 !important;
 	border-radius: 0 0 3px 3px !important;
 	background: $subtle-bg;
 	border: none !important;
@@ -404,7 +404,7 @@ button.ui-state-disabled{
 
 	a {
 		-webkit-border-radius: 0;
-		-moz-border-radius: 0; 
+		-moz-border-radius: 0;
 		border-radius: 0;
 	}
 
@@ -413,15 +413,15 @@ button.ui-state-disabled{
 	}
 
 	.ui-widget-header{
-		border: none; 
+		border: none;
 		margin: 0;
 		&:hover {
-			border: none; 
+			border: none;
 			margin: 0;
 		}
 
 		& a {
-			background: none; 
+			background: none;
 			border: none !important;
 			margin: 0 !important;
 			text-shadow: none;
@@ -430,7 +430,7 @@ button.ui-state-disabled{
 
 	& .ui-menu-item {
 		a {
-			//padding: 0.15em 0.75em 0.15em 0.6em !important; 
+			//padding: 0.15em 0.75em 0.15em 0.6em !important;
 			color: $text-color;
 			word-wrap:break-word;
 
@@ -463,11 +463,11 @@ button.ui-state-disabled{
 
 .ui-menu a{
 	border-width: 0;
-	
+
 	small {
 		opacity: 0.7;
 	}
-} 
+}
 
 .ui-menu a.ui-state-focus {
 	border-color: transparent;
@@ -486,7 +486,7 @@ button.ui-state-disabled{
 	font-size: 0.9em;
 	padding: 0.3em 1.2em;
 	line-height: 1em;
-	
+
 }
 
 .ui-menu
@@ -494,7 +494,7 @@ button.ui-state-disabled{
 	cursor: pointer;
 }
 .ui-menu .ui-menu-item a {
-	padding: 0.5em 0.75em 0.5em 0.75em; 
+	padding: 0.5em 0.75em 0.5em 0.75em;
 	color: $black
 }
 .ui-menu .ui-menu-item .ui-menu .ui-menu-item a {
@@ -503,31 +503,31 @@ button.ui-state-disabled{
 
 .ui-menu .ui-menu-item a:hover {
 	color: $white;
-	background: $link; 
+	background: $link;
 }
 
 #content .InputfieldForm .ui-tabs-nav {
 	background: transparentize($subtle-bg, 0.5);
-	//background: -webkit-linear-gradient(top, transparentize($subtle-bg, 0.4) 0%, $subtle-bg 100%); 
-	border: none; 
-	padding-bottom: 0; 
-	padding-left: 0; 
+	//background: -webkit-linear-gradient(top, transparentize($subtle-bg, 0.4) 0%, $subtle-bg 100%);
+	border: none;
+	padding-bottom: 0;
+	padding-left: 0;
 }
 #content .InputfieldForm .ui-tabs-nav li:first-child {
-	margin-left: 0.5em; 
+	margin-left: 0.5em;
 }
 #content .InputfieldForm .ui-tabs-nav li {
-	margin-top: 0.15em; 
+	margin-top: 0.15em;
 }
 #content .InputfieldForm .ui-tabs-nav a {
-	text-shadow: none; 
+	text-shadow: none;
 }
 #content .InputfieldForm .ui-tabs-nav .ui-state-active {
 }
 #content .InputfieldForm .ui-tabs-nav .ui-state-active,
 #content .InputfieldForm .ui-tabs-nav .ui-state-active a {
 	color: #000;
-	background: #fff; 
+	background: #fff;
 }
 
 /**
@@ -545,8 +545,8 @@ button.ui-state-disabled{
 	letter-spacing: 1px;
 }
 	.ui-tooltip, .arrow:after {
-		background: $med-blue; 
-		// border: 2px solid $reverse-text-color; 
+		background: $med-blue;
+		// border: 2px solid $reverse-text-color;
 	}
 	.arrow {
 		width: 70px;
@@ -571,7 +571,7 @@ button.ui-state-disabled{
 		top: -18px;
 		width: 20px;
 		height: 20px;
-		//box-shadow: 6px 5px 9px -9px $text-color; 
+		//box-shadow: 6px 5px 9px -9px $text-color;
 		-webkit-transform: rotate(45deg);
 		-moz-transform: rotate(45deg);
 		-ms-transform: rotate(45deg);
@@ -606,7 +606,7 @@ button.ui-state-disabled{
 	margin: 0 !important;
 	border: none !important;
 	border-radius: 0 !important;
-	
+
 }
 
 /**
@@ -634,7 +634,7 @@ button.ui-state-disabled{
 	color: $datepicker-title-color;
 }
 
-.ui-datepicker .ui-widget-content { 
+.ui-datepicker .ui-widget-content {
   	border: none !important;
 }
 
@@ -646,17 +646,17 @@ button.ui-state-disabled{
 	padding: 0 0 0.8em 0 !important;
 	margin: 0 0 0.5em 0 !important;
 	line-height: 1;
-} 
+}
 
 .ui-datepicker th {
 	color: $datepicker-th-color;
-	font-weight: normal; 
-} 
+	font-weight: normal;
+}
 
 .ui-datepicker td {
 	padding: 0 !important;
 	width: 14.25%
-} 
+}
 
 .ui-datepicker-next {
 	right: 0 !important;
@@ -680,7 +680,7 @@ button.ui-state-disabled{
 		color: $link !important;
 		cursor: pointer;
 	}
-} 
+}
 
 .ui-datepicker-prev {
 	left: 0 !important;
@@ -704,11 +704,11 @@ button.ui-state-disabled{
 		color: $datepicker-nav-arrow-hover-color !important;
 		cursor: pointer;
 	}
-} 
+}
 
 .ui-datepicker td a {
 	padding: 0.6em 0 !important;
-} 
+}
 
 .ui-datepicker td .ui-state-default {
 	background: $datepicker-td-bg !important;
@@ -735,7 +735,7 @@ button.ui-state-disabled{
 	background: $link !important;
 	border-color: $link !important;
 	color: $white !important;
-} 
+}
 
 .ui-datepicker button.ui-datepicker-current {
 	background: lighten($datepicker-bg, 20%) !important;
@@ -769,16 +769,16 @@ button.ui-state-disabled{
 .ui-datepicker .ui-slider-handle {
 	background: $link;
 	border: none !important;
-} 
+}
 
-.ui-datepicker .ui-slider-horizontal { 
+.ui-datepicker .ui-slider-horizontal {
 	background: lighten($datepicker-bg, 15%) !important;
 	height: 0.6em !important;
-} 
+}
 
 .ui-datepicker table {
-	margin: 0 0 15px 0 !important; 
-} 
+	margin: 0 0 15px 0 !important;
+}
 
 .ui-timepicker-div {
 	padding: 15px 0 15px 0 !important;
@@ -789,7 +789,7 @@ button.ui-state-disabled{
 .ui-timepicker-div #ui_tpicker_time_Inputfield_date {
 	color: $white !important;
 }
-	 
+
 .ui-timepicker-div .ui-widget-header { margin-bottom: 8px; }
 .ui-timepicker-div dl { text-align: left; }
 .ui-timepicker-div dl dt { height: 25px; margin-bottom: -25px; }

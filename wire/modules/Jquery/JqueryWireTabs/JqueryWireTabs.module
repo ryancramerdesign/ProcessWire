@@ -8,23 +8,23 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  *
  * http://processwire.com
- * 
+ *
  */
 
-class JqueryWireTabs extends ModuleJS implements ConfigurableModule { 
+class JqueryWireTabs extends ModuleJS implements ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('jQuery Wire Tabs Plugin', __FILE__),
 			'summary' => __('Provides a jQuery plugin for generating tabs in ProcessWire.', __FILE__),
 			'version' => 105,
-			'permanent' => true, 
+			'permanent' => true,
 		);
 	}
 
 	const rememberTabsNever = -1;
-	const rememberTabsSubmit = 0; 
-	const rememberTabsAlways = 1; 
+	const rememberTabsSubmit = 0;
+	const rememberTabsAlways = 1;
 
 	// extending this class causes the class named JS and CSS files to automatically be loaded
 
@@ -32,38 +32,38 @@ class JqueryWireTabs extends ModuleJS implements ConfigurableModule {
 		parent::init();
 		wire('config')->js('JqueryWireTabs', array(
 			'rememberTabs' => (int) $this->rememberTabs,
-			)); 
+			));
 	}
 
 	public static function getModuleConfigInputfields(array $data) {
 		$inputfields = new InputfieldWrapper();
-		$f = wire('modules')->get('InputfieldRadios'); 
-		$f->attr('name', 'rememberTabs'); 
+		$f = wire('modules')->get('InputfieldRadios');
+		$f->attr('name', 'rememberTabs');
 		$f->label = __('Remember tab positions between requests?', __FILE__);
-		$f->addOption(self::rememberTabsNever, __('Never', __FILE__)); 
-		$f->addOption(self::rememberTabsSubmit, __('Only after form submit', __FILE__)); 
-		$f->addOption(self::rememberTabsAlways, __('Always', __FILE__)); 
-		$f->attr('value', (isset($data['rememberTabs']) ? (int) $data['rememberTabs'] : self::rememberTabsSubmit)); 
+		$f->addOption(self::rememberTabsNever, __('Never', __FILE__));
+		$f->addOption(self::rememberTabsSubmit, __('Only after form submit', __FILE__));
+		$f->addOption(self::rememberTabsAlways, __('Always', __FILE__));
+		$f->attr('value', (isset($data['rememberTabs']) ? (int) $data['rememberTabs'] : self::rememberTabsSubmit));
 		$inputfields->add($f);
-		return $inputfields; 
+		return $inputfields;
 	}
 
 	/**
 	 * Pre-render a tab list (optional, as this is JS generated if not pre-rendered)
-	 * 
+	 *
 	 * @param array $tabs array of (tabID => title)
 	 * @param array $options to modify behavior
 	 * @return string
-	 * 
+	 *
 	 */
 	public function renderTabList(array $tabs, array $options = array()) {
 		$defaults = array(
 			'class' => 'WireTabs nav',
-			'id' => '', 
+			'id' => '',
 		);
-		$options = array_merge($defaults, $options); 
+		$options = array_merge($defaults, $options);
 		$out = "<ul class='$options[class]'" . ($options['id'] ? " id='$options[id]'" : "") . ">";
-		
+
 		foreach($tabs as $tabID => $title) {
 			//$title = $this->wire('sanitizer')->entities1($title);
 			if(strpos($title, '<a ') !== false) {
@@ -72,8 +72,8 @@ class JqueryWireTabs extends ModuleJS implements ConfigurableModule {
 				$out .= "<li><a href='#$tabID' id='_$tabID'>$title</a></li>";
 			}
 		}
-		
+
 		$out .= "</ul>";
-		return $out; 
+		return $out;
 	}
 }

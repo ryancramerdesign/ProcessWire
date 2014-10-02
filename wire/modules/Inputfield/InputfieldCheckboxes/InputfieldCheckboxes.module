@@ -7,32 +7,32 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 			'title' => __('Checkboxes', __FILE__), // Module Title
 			'summary' => __('Multiple checkbox toggles', __FILE__), // Module Summary
 			'version' => 100,
-			'permanent' => true, 
+			'permanent' => true,
 			);
 	}
 
 	public function init() {
-		$this->set('table', false); 
-		$this->set('thead', ''); 
+		$this->set('table', false);
+		$this->set('thead', '');
 		$this->set('optionColumns', 0);
 		parent::init();
 		$this->set('size', null); // cancel 'size' attribute used by select multiple
 	}
 
-	public function ___render() {	
+	public function ___render() {
 
 		$this->checkDefaultValue();
 		$out = '';
 		$table = null;
 		$columns = (int) $this->optionColumns;
-		$inline = $columns === 1 || $columns > 10; 
+		$inline = $columns === 1 || $columns > 10;
 		$liAttr = '';
 		$ulClass = '';
 
 		if($this->table) {
-			$table = $this->modules->get("MarkupAdminDataTable"); 
+			$table = $this->modules->get("MarkupAdminDataTable");
 			$table->setEncodeEntities(false);
-			if($this->thead) $table->headerRow(explode('|', htmlspecialchars($this->thead, ENT_QUOTES, 'UTF-8'))); 
+			if($this->thead) $table->headerRow(explode('|', htmlspecialchars($this->thead, ENT_QUOTES, 'UTF-8')));
 
 		} else if($columns) {
 
@@ -56,36 +56,36 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 			$checked = '';
 
 			if($this->isOptionSelected($key)) $checked = " checked='checked'";
-			$id = $this->id . "_" . $this->fuel('sanitizer')->name($key); 
+			$id = $this->id . "_" . $this->fuel('sanitizer')->name($key);
 
 			$attrs = $this->getOptionAttributes($key);
-			unset($attrs['checked'], $attrs['selected']); 
+			unset($attrs['checked'], $attrs['selected']);
 			$attrs = $this->getOptionAttributesString($attrs);
-			if($attrs) $attrs = ' ' . $attrs; 
+			if($attrs) $attrs = ' ' . $attrs;
 
-			$value = $this->entityEncode($value); 
+			$value = $this->entityEncode($value);
 
-			$input = "<label$attrs>" . 
-				"<input$checked " . 
-				"type='checkbox' " . 
-				"name='{$this->name}[]' " . 
-				"id='$id' " . 
-				"value='" . htmlspecialchars($key, ENT_QUOTES, 'UTF-8') . "' /> "; 
+			$input = "<label$attrs>" .
+				"<input$checked " .
+				"type='checkbox' " .
+				"name='{$this->name}[]' " .
+				"id='$id' " .
+				"value='" . htmlspecialchars($key, ENT_QUOTES, 'UTF-8') . "' /> ";
 
 			if($table) {
 				$value = explode("|", nl2br($value));
 				$value[0] = $input . $value[0] . "</label>";
-				$table->row($value); 
+				$table->row($value);
 			} else {
 				$out .= "\n\t<li$liAttr>" . $input . $value . "</label></li>";
 			}
-			
+
 		}
 
 		if($table) $out .= $table->render();
 			else $out .= "\n</ul>";
 
-		return $out; 
+		return $out;
 
 	}
 
@@ -95,18 +95,18 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 			if($value < 0) $value = 0;
 			if($value > 10) $value = 10;
 		}
-		return parent::set($key, $value); 
+		return parent::set($key, $value);
 	}
 
 	public function ___getConfigInputfields() {
-		$inputfields = parent::___getConfigInputfields(); 
+		$inputfields = parent::___getConfigInputfields();
 		$f = wire('modules')->get('InputfieldInteger');
 		$f->label = $this->_('Columns of Checkboxes');
-		$f->description = $this->_('If you want the checkboxes to display in columns (rather than stacked), enter the number of columns you want to use (up to 10). To display checkboxes side-by-side (inline) enter 1.'); 
-		$f->attr('name', 'optionColumns'); 
-		$f->attr('value', (int) $this->optionColumns); 
-		$inputfields->add($f);	
-		return $inputfields; 
+		$f->description = $this->_('If you want the checkboxes to display in columns (rather than stacked), enter the number of columns you want to use (up to 10). To display checkboxes side-by-side (inline) enter 1.');
+		$f->attr('name', 'optionColumns');
+		$f->attr('value', (int) $this->optionColumns);
+		$inputfields->add($f);
+		return $inputfields;
 	}
 
 }

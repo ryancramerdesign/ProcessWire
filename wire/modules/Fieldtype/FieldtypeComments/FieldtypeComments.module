@@ -3,31 +3,31 @@
 /**
  * ProcessWire Comments Fieldtype
  *
- * A field that stores user posted comments for a single Page. 
+ * A field that stores user posted comments for a single Page.
  *
- * For documentation about the fields used in this class, please see:  
+ * For documentation about the fields used in this class, please see:
  * /wire/core/Fieldtype.php
  * /wire/core/FieldtypeMulti.php
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
 
-$dirname = dirname(__FILE__); 
+$dirname = dirname(__FILE__);
 
-require_once($dirname . "/Comment.php"); 
-require_once($dirname . "/CommentArray.php"); 
-require_once($dirname . "/CommentList.php"); 
-require_once($dirname . "/CommentForm.php"); 
+require_once($dirname . "/Comment.php");
+require_once($dirname . "/CommentArray.php");
+require_once($dirname . "/CommentList.php");
+require_once($dirname . "/CommentForm.php");
 
 /**
  * ProcessWire Comments Fieldtype
  *
- * A field that stores user posted comments for a single Page. 
+ * A field that stores user posted comments for a single Page.
  *
  */
 class FieldtypeComments extends FieldtypeMulti {
@@ -42,13 +42,13 @@ class FieldtypeComments extends FieldtypeMulti {
 	 * Constant that designates that ALL comments require moderation
 	 *
 	 */
-	const moderateAll = 1; 
+	const moderateAll = 1;
 
 	/**
 	 * Constant that designates that all comments require moderation, except those posted by users that have an approved comment
 	 *
 	 */
-	const moderateNew = 2; 
+	const moderateNew = 2;
 
 	public static function getModuleInfo() {
 		return array(
@@ -60,28 +60,28 @@ class FieldtypeComments extends FieldtypeMulti {
 	}
 
 	public function getBlankValue(Page $page, Field $field) {
-		$commentArray = new CommentArray(); 
-		$commentArray->setPage($page); 
-		$commentArray->setField($field); 
+		$commentArray = new CommentArray();
+		$commentArray->setPage($page);
+		$commentArray->setField($field);
 		$commentArray->setTrackChanges(true);
-		return $commentArray; 
+		return $commentArray;
 	}
 
 	public function sanitizeValue(Page $page, Field $field, $value) {
-		if($value instanceof CommentArray) return $value; 
-		$commentArray = $pages->get($field->name); 
-		if(!$value) return $commentArray; 
-		if($value instanceof Comment) return $commentArray->add($value); 
+		if($value instanceof CommentArray) return $value;
+		$commentArray = $pages->get($field->name);
+		if(!$value) return $commentArray;
+		if($value instanceof Comment) return $commentArray->add($value);
 		if(!is_array($value)) $value = array($value);
-		foreach($value as $comment) $commentArray->add($comment); 
-		return $commentArray; 
+		foreach($value as $comment) $commentArray->add($comment);
+		return $commentArray;
 	}
 
 	public function getInputfield(Page $page, Field $field) {
-		$inputfield = $this->modules->get('InputfieldCommentsAdmin'); 
-		if(!$inputfield) return null; 
+		$inputfield = $this->modules->get('InputfieldCommentsAdmin');
+		if(!$inputfield) return null;
 		$inputfield->class = $this->className();
-		return $inputfield; 
+		return $inputfield;
 	}
 
 	/**
@@ -90,12 +90,12 @@ class FieldtypeComments extends FieldtypeMulti {
 	 */
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
 		if($subfield == 'text') $subfield = 'data';
-		if(empty($subfield) || $subfield === 'data') { 
+		if(empty($subfield) || $subfield === 'data') {
 			$ft = new DatabaseQuerySelectFulltext($query);
 			$ft->match($table, $subfield, $operator, $value);
 			return $query;
-		} 
-		return parent::getMatchQuery($query, $table, $subfield, $operator, $value); 
+		}
+		return parent::getMatchQuery($query, $table, $subfield, $operator, $value);
 	}
 
 
@@ -110,38 +110,38 @@ class FieldtypeComments extends FieldtypeMulti {
          */
         public function ___wakeupValue(Page $page, Field $field, $value) {
 
-			if($value instanceof CommentArray) return $value; 
-			$commentArray = $this->getBlankValue($page, $field); 
-			if(empty($value)) return $commentArray; 
-			
+			if($value instanceof CommentArray) return $value;
+			$commentArray = $this->getBlankValue($page, $field);
+			if(empty($value)) return $commentArray;
+
 			$editable = $page->editable();
-			if(!is_array($value)) $value = array($value); 
-			
+			if(!is_array($value)) $value = array($value);
+
 			foreach($value as $sort => $item) {
-			
-				if(!is_array($item)) continue; 
-			
+
+				if(!is_array($item)) continue;
+
 				// don't load non-approved comments if the user can't edit them
-				if(!$editable && $item['status'] < Comment::statusApproved) continue; 
-			
+				if(!$editable && $item['status'] < Comment::statusApproved) continue;
+
 				$comment = new Comment();
 				foreach($item as $key => $val) {
 					if($key == 'data') $key = 'text';
-					$comment->set($key, $val); 
+					$comment->set($key, $val);
 				}
-				$comment->resetTrackChanges(true); 
-				$commentArray->add($comment); 
+				$comment->resetTrackChanges(true);
+				$commentArray->add($comment);
 			}
-			
-			if($field->sortNewest) $commentArray->sort("-created"); 
-			$commentArray->resetTrackChanges(true); 
-			
-			return $commentArray;  
+
+			if($field->sortNewest) $commentArray->sort("-created");
+			$commentArray->resetTrackChanges(true);
+
+			return $commentArray;
         }
 
         /**
-         * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
-         *              
+         * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB.
+         *
          * @param Page $page
          * @param Field $field
          * @param string|int|array|object $value
@@ -151,24 +151,24 @@ class FieldtypeComments extends FieldtypeMulti {
         public function ___sleepValue(Page $page, Field $field, $value) {
 
 		$sleepValue = array();
-		if(!$value instanceof CommentArray) return $sleepValue; 
+		if(!$value instanceof CommentArray) return $sleepValue;
 
 		foreach($value as $comment) {
 
-			if($comment->id) $this->checkExistingComment($page, $field, $comment); 
-				else $this->checkNewComment($page, $field, $comment); 	
-				
+			if($comment->id) $this->checkExistingComment($page, $field, $comment);
+				else $this->checkNewComment($page, $field, $comment);
+
 			$a = array(
-				'id' => $comment->id, 
-				'status' => $comment->status, 
-				'data' => $comment->text, 
-				'cite' => $comment->cite, 
-				'email' => $comment->email, 
-				'created' => $comment->created, 
-				'created_users_id' => $comment->created_users_id, 
-				'ip' => $comment->ip, 
-				'user_agent' => $comment->user_agent, 
-				); 
+				'id' => $comment->id,
+				'status' => $comment->status,
+				'data' => $comment->text,
+				'cite' => $comment->cite,
+				'email' => $comment->email,
+				'created' => $comment->created,
+				'created_users_id' => $comment->created_users_id,
+				'ip' => $comment->ip,
+				'user_agent' => $comment->user_agent,
+				);
 
 			if($field->schemaVersion > 0) $a['website'] = $comment->website;
 
@@ -186,8 +186,8 @@ class FieldtypeComments extends FieldtypeMulti {
 	 */
 	protected function checkExistingComment(Page $page, Field $field, Comment $comment) {
 
-		$submitSpam = false; 
-		$submitHam = false; 
+		$submitSpam = false;
+		$submitHam = false;
 
 		if($comment->prevStatus == Comment::statusSpam && $comment->status == Comment::statusApproved) {
 			$submitHam = true; // identified a false positive
@@ -197,8 +197,8 @@ class FieldtypeComments extends FieldtypeMulti {
 		}
 
 		if($field->useAkismet && $comment->ip && $comment->user_agent && ($submitHam || $submitSpam)) {
-			$akismet = $this->modules->get("CommentFilterAkismet"); 
-			$akismet->setComment($comment); 
+			$akismet = $this->modules->get("CommentFilterAkismet");
+			$akismet->setComment($comment);
 			if($submitHam) $akismet->submitHam();
 				else if($submitSpam) $akismet->submitSpam();
 		}
@@ -208,37 +208,37 @@ class FieldtypeComments extends FieldtypeMulti {
 	/**
 	 * If comment is new, it sets the status based on whether it's spam, and notifies any people that need to be notified
 	 *
-	 */ 
+	 */
 	protected function checkNewComment(Page $page, Field $field, Comment $comment) {
 
-		if($comment->id) return; 
+		if($comment->id) return;
 
 		if($field->useAkismet) {
-			$akismet = $this->modules->get('CommentFilterAkismet'); 
-			$akismet->setComment($comment); 
+			$akismet = $this->modules->get('CommentFilterAkismet');
+			$akismet->setComment($comment);
 			$akismet->checkSpam(); // automatically sets status if spam
 		} else {
-			$comment->status = Comment::statusPending; 
+			$comment->status = Comment::statusPending;
 		}
 
 		if($comment->status != Comment::statusSpam) {
 			if($field->moderate == self::moderateNone) {
-				$comment->status = Comment::statusApproved; 
+				$comment->status = Comment::statusApproved;
 
 			} else if($field->moderate == self::moderateNew && $comment->email) {
 				$database = $this->wire('database');
-				$table = $database->escapeTable($field->table); 
-				$query = $database->prepare("SELECT count(*) FROM `$table`  WHERE status=:status AND email=:email"); 
+				$table = $database->escapeTable($field->table);
+				$query = $database->prepare("SELECT count(*) FROM `$table`  WHERE status=:status AND email=:email");
 				$query->bindValue(":status", Comment::statusApproved, PDO::PARAM_INT);
-				$query->bindValue(":email", $comment->email); 
+				$query->bindValue(":email", $comment->email);
 				$query->execute();
 				$numApproved = (int) $query->fetchColumn();
-					
-				if($numApproved > 0) $comment->status = Comment::statusApproved; 
+
+				if($numApproved > 0) $comment->status = Comment::statusApproved;
 			}
 		}
 
-		$this->sendNotificationEmail($page, $field, $comment); 
+		$this->sendNotificationEmail($page, $field, $comment);
 		$this->deleteOldSpam($field);
 
 	}
@@ -248,14 +248,14 @@ class FieldtypeComments extends FieldtypeMulti {
 	 *
 	 */
 	protected function deleteOldSpam(Field $field) {
-		$expiredTime = time() - (86400 * $field->deleteSpamDays);  
+		$expiredTime = time() - (86400 * $field->deleteSpamDays);
 		$database = $this->wire('database');
 		$table = $database->escapeTable($field->table);
 		$query = $database->prepare("DELETE FROM `$table` WHERE status=:status AND created < :expiredTime");
 		$query->bindValue(":status", Comment::statusSpam, PDO::PARAM_INT);
-		$query->bindValue(":expiredTime", $expiredTime); 
+		$query->bindValue(":expiredTime", $expiredTime);
 		$query->execute();
-			
+
 	}
 
 	/**
@@ -264,30 +264,30 @@ class FieldtypeComments extends FieldtypeMulti {
 	 */
 	protected function ___sendNotificationEmail(Page $page, Field $field, Comment $comment) {
 
-		if(!$field->notificationEmail) return false; 
+		if(!$field->notificationEmail) return false;
 
 		// skip notification when spam
-		if($comment->status == Comment::statusSpam && !$field->notifySpam) return; 
+		if($comment->status == Comment::statusSpam && !$field->notifySpam) return;
 
 		if($comment->status == Comment::statusPending) $status = $this->_("Pending Approval");
 			else if($comment->status == Comment::statusApproved) $status = $this->_("Approved");
 			else if($comment->status == Comment::statusSpam) $status = sprintf($this->_("SPAM - will be deleted automatically after %d days"), $field->deleteSpamDays);
 			else $status = "Unknown";
 
-		$subject = sprintf($this->_('Comment posted to: %s'), $page->httpUrl);	
+		$subject = sprintf($this->_('Comment posted to: %s'), $page->httpUrl);
 
-		$from = $this->_x('ProcessWire', 'email-from') . 
-			'<' . $this->_x('processwire', 'email-from-name') . 
-			'@' . $this->config->httpHost . ">"; 
+		$from = $this->_x('ProcessWire', 'email-from') .
+			'<' . $this->_x('processwire', 'email-from-name') .
+			'@' . $this->config->httpHost . ">";
 
-		$body = $this->_x('Page', 'email-body') . ": {$page->httpUrl}\n" . 
-			$this->_x('From', 'email-body') . ": {$comment->cite}\n" . 
-			$this->_x('Email', 'email-body') . ": {$comment->email}\n" . 
-			$this->_x('Website', 'email-body') . ": {$comment->website}\n" . 
-			$this->_x('Status', 'email-body') . ": $status\n" . 
+		$body = $this->_x('Page', 'email-body') . ": {$page->httpUrl}\n" .
+			$this->_x('From', 'email-body') . ": {$comment->cite}\n" .
+			$this->_x('Email', 'email-body') . ": {$comment->email}\n" .
+			$this->_x('Website', 'email-body') . ": {$comment->website}\n" .
+			$this->_x('Status', 'email-body') . ": $status\n" .
 			$this->_x('Text', 'email-body') . ": {$comment->text}\n\n";
 
-		return wireMail($field->notificationEmail, $from, $subject, $body); 
+		return wireMail($field->notificationEmail, $from, $subject, $body);
 	}
 
 	/**
@@ -296,10 +296,10 @@ class FieldtypeComments extends FieldtypeMulti {
 	 */
 	public function getDatabaseSchema(Field $field) {
 
-		$websiteSchema = "varchar(255) NOT NULL default ''"; 
+		$websiteSchema = "varchar(255) NOT NULL default ''";
 
 		if(!$field->schemaVersion) {
-			// add website field for PW 2.3+ 
+			// add website field for PW 2.3+
 			$database = $this->wire('database');
 			$table = $database->escapeTable($field->getTable());
 			try { $database->query("ALTER TABLE `$table` ADD website $websiteSchema"); } catch(Exception $e) { }
@@ -308,25 +308,25 @@ class FieldtypeComments extends FieldtypeMulti {
 			$this->message("Updated schema version of '{$field->name}' to support website field.", Notice::log);
 		}
 
-		$schema = parent::getDatabaseSchema($field); 
+		$schema = parent::getDatabaseSchema($field);
 
 		$schema['id'] = "int unsigned NOT NULL auto_increment";
 		$schema['status'] = "tinyint(3) NOT NULL default '0'";
-		$schema['cite'] = "varchar(128) NOT NULL default ''"; 
+		$schema['cite'] = "varchar(128) NOT NULL default ''";
 		$schema['email'] = "varchar(255) NOT NULL default ''";
-		$schema['data'] = "text NOT NULL"; 
+		$schema['data'] = "text NOT NULL";
 		$schema['sort'] = "int unsigned NOT NULL";
-		$schema['created'] = "int unsigned NOT NULL"; 	
+		$schema['created'] = "int unsigned NOT NULL";
 		$schema['created_users_id'] = "int unsigned NOT NULL";
 		$schema['ip'] = "varchar(15) NOT NULL default ''";
 		$schema['user_agent'] = "varchar(255) NOT NULL default ''";
 
 		if($field->schemaVersion > 0) $schema['website'] = $websiteSchema;
 
-		$schema['keys']['primary'] = "PRIMARY KEY (`id`)"; 
+		$schema['keys']['primary'] = "PRIMARY KEY (`id`)";
 		$schema['keys']['pages_id_sort'] = "KEY `pages_id_sort` (`pages_id`, `sort`)";
 		$schema['keys']['status'] = "KEY `status` (`status`, `email`)";
-		$schema['keys']['pages_id'] = "KEY `pages_id` (`pages_id`,`status`,`created`)"; 
+		$schema['keys']['pages_id'] = "KEY `pages_id` (`pages_id`,`status`,`created`)";
 		$schema['keys']['created'] = "KEY `created` (`created`, `status`)";
 		$schema['keys']['data'] = "FULLTEXT KEY `data` (`data`)";
 
@@ -350,59 +350,59 @@ class FieldtypeComments extends FieldtypeMulti {
 		$table = $database->escapeTable($field->table);
 
 		if(!$allItems) return false;
-		if(!$allItems->isChanged() && !$page->isChanged($field->name)) return true; 
+		if(!$allItems->isChanged() && !$page->isChanged($field->name)) return true;
 
 		$itemsRemoved = $allItems->getItemsRemoved();
 		if(count($itemsRemoved)) {
 			foreach($itemsRemoved as $item) {
-				if(!$item->id) continue; 
-				$query = $database->prepare("DELETE FROM `$table` WHERE id=:item_id AND pages_id=:pages_id"); 
+				if(!$item->id) continue;
+				$query = $database->prepare("DELETE FROM `$table` WHERE id=:item_id AND pages_id=:pages_id");
 				$query->bindValue(":item_id", $item->id, PDO::PARAM_INT);
 				$query->bindValue(":pages_id", $page->id, PDO::PARAM_INT);
 				$query->execute();
 			}
 		}
 
-		$maxSort = 0; 
+		$maxSort = 0;
 		$items = $allItems->makeNew();
 		foreach($allItems as $item) {
-			if($item->isChanged() || !$item->id) $items->add($item); 
-			if($item->sort > $maxSort) $maxSort = $item->sort; 
+			if($item->isChanged() || !$item->id) $items->add($item);
+			if($item->sort > $maxSort) $maxSort = $item->sort;
 		}
 
-		if(!count($items)) return true; 
+		if(!count($items)) return true;
 
-		$values = $this->sleepValue($page, $field, $items); 
-		$value = reset($values); 
-		$keys = is_array($value) ? array_keys($value) : array('data'); 
-		
+		$values = $this->sleepValue($page, $field, $items);
+		$value = reset($values);
+		$keys = is_array($value) ? array_keys($value) : array('data');
+
 		// cycle through the values, executing an update query for each
 		foreach($values as $value) {
 
 			$sql = $value['id'] ? "UPDATE " : "INSERT INTO ";
-			$sql .= "`{$table}` SET pages_id=" . ((int) $page->id) . ", "; 
+			$sql .= "`{$table}` SET pages_id=" . ((int) $page->id) . ", ";
 
 			// if the value is not an associative array, then force it to be one
-			if(!is_array($value)) $value = array('data' => $value); 
+			if(!is_array($value)) $value = array('data' => $value);
 
 			// cycle through the keys, which represent DB fields (i.e. data, description, etc.) and generate the update query
 			foreach($keys as $key) {
-				if($key == 'id') continue; 
-				if($key == 'sort' && !$value['id']) continue; 
-				$v = $value[$key]; 
+				if($key == 'id') continue;
+				if($key == 'sort' && !$value['id']) continue;
+				$v = $value[$key];
 				$sql .= $database->escapeCol($key) . "='" . $database->escapeStr("$v") . "', ";
 			}
 
 			if($value['id']) {
 				$sql = rtrim($sql, ', ') . " WHERE id=" . (int) $value['id'];
 			} else {
-				$sql .= "sort=" . ++$maxSort; 
+				$sql .= "sort=" . ++$maxSort;
 			}
 
 			if(!$database->exec($sql)) $this->error("Error saving item $value[id] in savePageField", Notice::log);
-		}	
+		}
 
-		return true; 
+		return true;
 	}
 
 	/**
@@ -414,23 +414,23 @@ class FieldtypeComments extends FieldtypeMulti {
 		$inputfields = parent::___getConfigInputfields($field);
 
 		$name = 'moderate';
-		$f = $this->fuel('modules')->get('InputfieldRadios'); 
-		$f->attr('name', $name); 
-		$f->addOption(self::moderateNone, $this->_('None - Comments posted immediately')); 
-		$f->addOption(self::moderateAll, $this->_('All - All comments must be approved by user with page edit access')); 
-		$f->addOption(self::moderateNew, $this->_('Only New - Only comments from users without prior approved comments require approval')); 
-		$f->attr('value', (int) $field->$name); 
+		$f = $this->fuel('modules')->get('InputfieldRadios');
+		$f->attr('name', $name);
+		$f->addOption(self::moderateNone, $this->_('None - Comments posted immediately'));
+		$f->addOption(self::moderateAll, $this->_('All - All comments must be approved by user with page edit access'));
+		$f->addOption(self::moderateNew, $this->_('Only New - Only comments from users without prior approved comments require approval'));
+		$f->attr('value', (int) $field->$name);
 		$f->label = $this->_('Comment Moderation');
-		$inputfields->append($f); 
+		$inputfields->append($f);
 
 		$name = 'notificationEmail';
-		$f = $this->fuel('modules')->get('InputfieldText'); 
-		$f->attr('name', $name); 
-		$f->attr('value', $field->$name); 
+		$f = $this->fuel('modules')->get('InputfieldText');
+		$f->attr('name', $name);
+		$f->attr('value', $field->$name);
 		$f->label = $this->_('Notification E-Mail');
 		$f->description = $this->_('E-mail address to be notified when a new comment is posted. Separate multiple email addresses with commas.');
 		$inputfields->append($f);
-		
+
 		$name = 'notifySpam';
 		$f = $this->fuel('modules')->get('InputfieldCheckbox');
 		$f->attr('name', $name);
@@ -441,36 +441,36 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->columnWidth = 50;
 		$inputfields->append($f);
 
-		$name = 'sortNewest'; 
-		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
-		$f->attr('name', $name); 
-		$f->attr('value', 1); 
-		$f->attr('checked', $field->$name ? 'checked' : ''); 
+		$name = 'sortNewest';
+		$f = $this->fuel('modules')->get('InputfieldCheckbox');
+		$f->attr('name', $name);
+		$f->attr('value', 1);
+		$f->attr('checked', $field->$name ? 'checked' : '');
 		$f->label = $this->_('Sort newest to oldest?');
 		$f->description = $this->_('By default, comments will sort chronologically (oldest to newest). To reverse that behavior check this box.');
 		$f->columnWidth = 50;
-		$inputfields->append($f); 
+		$inputfields->append($f);
 
-		$name = 'useWebsite'; 
-		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
-		$f->attr('name', $name); 
-		$f->attr('value', 1); 
-		$f->attr('checked', $field->$name ? 'checked' : ''); 
+		$name = 'useWebsite';
+		$f = $this->fuel('modules')->get('InputfieldCheckbox');
+		$f->attr('name', $name);
+		$f->attr('value', 1);
+		$f->attr('checked', $field->$name ? 'checked' : '');
 		$f->label = $this->_('Use website field in comment form?');
 		$f->description = $this->_('When checked, the comment submission form will also include a website field.');
 		$f->columnWidth = 50;
-		$inputfields->append($f); 
+		$inputfields->append($f);
 
 		$name = 'redirectAfterPost';
-		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
-		$f->attr('name', $name); 
-		$f->attr('value', 1); 
-		$f->attr('checked', $field->$name ? 'checked' : ''); 
+		$f = $this->fuel('modules')->get('InputfieldCheckbox');
+		$f->attr('name', $name);
+		$f->attr('value', 1);
+		$f->attr('checked', $field->$name ? 'checked' : '');
 		$f->label = $this->_('Redirect after comment post?');
 		$f->description = $this->_('When checked, ProcessWire will issue a redirect after the comment is posted in order to prevent double submissions. Recommended.');
 		$f->columnWidth = 50;
 		$inputfields->append($f);
-		
+
 		$name = 'quietSave';
 		$f = $this->fuel('modules')->get('InputfieldCheckbox');
 		$f->attr('name', $name);
@@ -480,7 +480,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->columnWidth = 50;
 		$f->description = $this->_('When checked, the page modification time and user will not be updated when a comment is added.');
 		$inputfields->append($f);
-		
+
 		$name = 'useAkismet';
 		$f = $this->fuel('modules')->get('InputfieldCheckbox');
 		$f->attr('name', $name);
@@ -489,38 +489,38 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->label = $this->_('Use Akismet Spam Filter Service?');
 		$f->description = $this->_('This service will automatically identify most spam. Before using it, please ensure that you have entered an Akismet API key under Modules > Comment Filter: Akismet.');
 		$f->columnWidth = 50;
-		$inputfields->append($f); 
+		$inputfields->append($f);
 
-		$name = 'useGravatar'; 
-		$f = $this->fuel('modules')->get('InputfieldRadios'); 
-		$f->attr('name', $name); 
+		$name = 'useGravatar';
+		$f = $this->fuel('modules')->get('InputfieldRadios');
+		$f->attr('name', $name);
 		$f->addOption('', $this->_('Disabled'));
 		$f->addOption('g', $this->_('G: Suitable for display on all websites with any audience type.'));
 		$f->addOption('pg', $this->_('PG: May contain rude gestures, provocatively dressed individuals, the lesser swear words, or mild violence.'));
 		$f->addOption('r', $this->_('R: May contain such things as harsh profanity, intense violence, nudity, or hard drug use.'));
 		$f->addOption('x', $this->_('X: May contain hardcore sexual imagery or extremely disturbing violence.'));
-		$f->attr('value', $field->useGravatar); 
+		$f->attr('value', $field->useGravatar);
 		$f->label = $this->_('Use Gravatar?');
 		$f->description = $this->_('This service provides an avatar image with each comment (unique to the email address). To enable, select the maximum gravatar rating. These are the same as movie ratings, where G is the most family friendly and X is not.');
 		$f->notes = $this->_('Rating descriptions provided by [Gravatar](https://en.gravatar.com/site/implement/images/).');
 		$f->collapsed = Inputfield::collapsedBlank;
-		$inputfields->append($f); 
+		$inputfields->append($f);
 
 
 		$name = 'deleteSpamDays';
-		$f = $this->fuel('modules')->get('InputfieldInteger'); 
-		$f->attr('name', $name); 
-		$value = $field->$name; 
+		$f = $this->fuel('modules')->get('InputfieldInteger');
+		$f->attr('name', $name);
+		$value = $field->$name;
 		if(is_null($value)) $value = 7; // default
-		$f->attr('value', $field->$name); 
+		$f->attr('value', $field->$name);
 		$f->label = $this->_('Number of days after which to delete spam');
 		$f->description = $this->_('After the number of days indicated, spam will be automatically deleted.');
 		$inputfields->append($f);
-		
-		$name = 'schemaVersion'; 
+
+		$name = 'schemaVersion';
 		$f = $this->fuel('modules')->get('InputfieldHidden');
 		$f->attr('name', $name);
-		$value = (int) $field->$name; 
+		$value = (int) $field->$name;
 		$f->attr('value', $value);
 		$f->label = 'Schema Version';
 		$inputfields->append($f);
@@ -550,23 +550,23 @@ class FieldtypeComments extends FieldtypeMulti {
 	 */
 	static public function findComments($field, $selectorString) {
 
-		if(is_string($field)) $field = wire('fields')->get($field); 
+		if(is_string($field)) $field = wire('fields')->get($field);
 		if(!$field instanceof Field) throw new WireException('Arg 1 to findComments must be a field');
 
-		$limit = 10; 
+		$limit = 10;
 		$start = 0;
-		$desc = true; 
+		$desc = true;
 		$sort = 'created';
 		$database = wire('database');
 		$table = $database->escapeTable($field->getTable());
 		$sql =  "SELECT * FROM $table WHERE id>0 ";
-		$selectors = new Selectors($selectorString); 
+		$selectors = new Selectors($selectorString);
 
 		foreach($selectors as $selector) {
 
-			$f = $database->escapeCol($selector->field); 
-			$operator = $selector->operator; 
-			$value = $selector->value; 
+			$f = $database->escapeCol($selector->field);
+			$operator = $selector->operator;
+			$value = $selector->value;
 
 			if(!$database->isOperator($operator)) continue;
 			if(is_array($f)) $f = reset($f);
@@ -576,13 +576,13 @@ class FieldtypeComments extends FieldtypeMulti {
 			if($f == 'user') $f = 'created_users_id';
 
 			if(in_array($f, array('id', 'status', 'created', 'pages_id', 'created_users_id'))) {
-				$sql .= "AND $f$operator" . ((int) $value)  . " "; 
+				$sql .= "AND $f$operator" . ((int) $value)  . " ";
 
 			} else if($f == 'start') {
-				$start = (int) $value; 
+				$start = (int) $value;
 
 			} else if($f == 'limit') {
-				$limit = (int) $value; 
+				$limit = (int) $value;
 
 			} else if($f == 'sort') {
 				$desc = substr($value, 0, 1) == '-';
@@ -592,7 +592,7 @@ class FieldtypeComments extends FieldtypeMulti {
 				}
 
 			} else if($f == 'cite' || $f == 'email' || $f == 'ip') {
-				$value = $database->escapeStr($value); 
+				$value = $database->escapeStr($value);
 				$sql .= "AND $f$operator'$value' ";
 			}
 
@@ -600,13 +600,13 @@ class FieldtypeComments extends FieldtypeMulti {
 
 		$sql .= "ORDER BY $sort " . ($desc ? "DESC" : "ASC") . " ";
 		$sql .= "LIMIT $start, $limit";
-		
+
 		$comments = new CommentArray();
-		$comments->setField($field); 
+		$comments->setField($field);
 
 		$query = $database->prepare($sql);
 		$query->execute();
-		
+
 		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
 			$comment = new Comment();
 			foreach($row as $key => $value) {
@@ -614,11 +614,11 @@ class FieldtypeComments extends FieldtypeMulti {
 				$comment->set($key, $value);
 			}
 			$comment->set('page', wire('pages')->get($row['pages_id']));
-			$comments->add($comment); 
+			$comments->add($comment);
 		}
 		$query->closeCursor();
-			
-		return $comments; 
+
+		return $comments;
 	}
 
 

@@ -5,11 +5,11 @@
  *
  * Maintains an array of multiple Comment instances.
  * Serves as the value referenced when a FieldtypeComment field is reference from a Page.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -18,10 +18,10 @@
 class CommentArray extends WireArray {
 
 	/**
-	 * Page that owns these comments, required to use the renderForm() or getCommentForm() methods. 
+	 * Page that owns these comments, required to use the renderForm() or getCommentForm() methods.
 	 *
 	 */
-	protected $page = null; 
+	protected $page = null;
 
 	/**
 	 * Field object associated with this CommentArray
@@ -34,7 +34,7 @@ class CommentArray extends WireArray {
 	 *
 	 */
 	public function isValidItem($item) {
-		return $item instanceof Comment; 	
+		return $item instanceof Comment;
 	}
 
 	/**
@@ -48,7 +48,7 @@ class CommentArray extends WireArray {
 			'useGravatar' => ($this->field ? $this->field->useGravatar : '')
 			);
 		$options = array_merge($defaultOptions, $options);
-		$commentList = $this->getCommentList($options); 
+		$commentList = $this->getCommentList($options);
 		return $commentList->render();
 	}
 
@@ -59,7 +59,7 @@ class CommentArray extends WireArray {
 	 *
 	 */
 	public function renderForm(array $options = array()) {
-		$form = $this->getCommentForm($options); 
+		$form = $this->getCommentForm($options);
 		return $form->render();
 	}
 
@@ -68,7 +68,7 @@ class CommentArray extends WireArray {
 	 *
 	 */
 	public function getCommentList(array $options = array()) {
-		return new CommentList($this, $options); 	
+		return new CommentList($this, $options);
 	}
 
 	/**
@@ -76,24 +76,24 @@ class CommentArray extends WireArray {
 	 *
 	 */
 	public function getCommentForm(array $options = array()) {
-		if(!$this->page) throw new WireException("You must set a page to this CommentArray before using it i.e. \$ca->setPage(\$page)"); 
-		return new CommentForm($this->page, $this, $options); 
+		if(!$this->page) throw new WireException("You must set a page to this CommentArray before using it i.e. \$ca->setPage(\$page)");
+		return new CommentForm($this->page, $this, $options);
 	}
 
 	/**
-	 * Set the page that these comments are on 
+	 * Set the page that these comments are on
 	 *
-	 */ 
+	 */
 	public function setPage(Page $page) {
-		$this->page = $page; 
+		$this->page = $page;
 	}
 
 	/**
-	 * Set the Field that these comments are on 
+	 * Set the Field that these comments are on
 	 *
-	 */ 
+	 */
 	public function setField(Field $field) {
-		$this->field = $field; 
+		$this->field = $field;
 	}
 
 }

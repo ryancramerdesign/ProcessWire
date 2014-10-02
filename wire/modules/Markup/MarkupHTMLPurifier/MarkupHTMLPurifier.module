@@ -9,15 +9,15 @@
  * USAGE:
  *
  *   $purifier = $modules->get('MarkupHTMLPurifier');
- *   $cleanHTML = $purifier->purify($dirtyHTML); 
+ *   $cleanHTML = $purifier->purify($dirtyHTML);
  *
  * To specify custom settings to HTML Purifier, perform set()
  * calls before calling purify(). For example, UTF-8 encoding
  * is assumed, so if you wanted ISO-8859-1 instead, you'd do:
  *
- *   $purifier->set('Core.Encoding', 'ISO-8859-1'); 
+ *   $purifier->set('Core.Encoding', 'ISO-8859-1');
  *
- * For a full list of HTML Purifier config options, see: 
+ * For a full list of HTML Purifier config options, see:
  * http://htmlpurifier.org/live/configdoc/plain.html
  *
  * HTML Purifier by: http://htmlpurifier.org
@@ -29,11 +29,11 @@ class MarkupHTMLPurifier extends WireData implements Module {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'HTML Purifier', 
-			'summary' => 'Front-end to the HTML Purifier library.', 
-			'version' => 104, 
-			'singular' => false, 
-			'autoload' => false, 
+			'title' => 'HTML Purifier',
+			'summary' => 'Front-end to the HTML Purifier library.',
+			'version' => 104,
+			'singular' => false,
+			'autoload' => false,
 			);
 	}
 
@@ -41,20 +41,20 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 * HTML Purifier settings
 	 *
 	 */
-	protected $settings = null; 
+	protected $settings = null;
 
 	/**
 	 * Cached instance of HTMLPurifier
 	 *
 	 */
-	protected $purifier = null; 
+	protected $purifier = null;
 
 	/**
 	 * Generate HTML Purifier settings object
 	 *
 	 */
 	public function __construct() {
-		require_once(dirname(__FILE__) . '/htmlpurifier/HTMLPurifier.standalone.php'); 
+		require_once(dirname(__FILE__) . '/htmlpurifier/HTMLPurifier.standalone.php');
 		$this->settings = HTMLPurifier_Config::createDefault();
 		$this->settings->autoFinalize = false;
 	}
@@ -73,7 +73,7 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 */
 	protected function getCachePath()  {
 		$cachePath = wire('config')->paths->cache . $this->className() . '/';
-		if(!is_dir($cachePath)) wireMkdir($cachePath); 
+		if(!is_dir($cachePath)) wireMkdir($cachePath);
 		return $cachePath;
 	}
 
@@ -84,7 +84,7 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 *
 	 */
 	public function getConfig() {
-		return $this->settings; 
+		return $this->settings;
 	}
 
 	/**
@@ -94,8 +94,8 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 *
 	 */
 	public function getPurifier() {
-		if(is_null($this->purifier)) $this->purifier = new HTMLPurifier($this->settings); 	
-		return $this->purifier; 
+		if(is_null($this->purifier)) $this->purifier = new HTMLPurifier($this->settings);
+		return $this->purifier;
 	}
 
 	/**
@@ -106,11 +106,11 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 *
 	 */
 	public function purify($html) {
-		return $this->getPurifier()->purify($html); 
+		return $this->getPurifier()->purify($html);
 	}
 
 	/**
-	 * Set an HTMLPurifier config option 
+	 * Set an HTMLPurifier config option
 	 *
 	 * See configuration options at: http://htmlpurifier.org/live/configdoc/plain.html
 	 *
@@ -123,11 +123,11 @@ class MarkupHTMLPurifier extends WireData implements Module {
 		if(strpos($key, '.')) {
 			// HTML Purifier setting: http://htmlpurifier.org/live/configdoc/plain.html
 			$this->purifier = null;
-			$this->settings->set($key, $value); 
-			return $this;	
-		} 
+			$this->settings->set($key, $value);
+			return $this;
+		}
 		// some other setting
-		return parent::set($key, $value); 
+		return parent::set($key, $value);
 	}
 
 	/**
@@ -148,8 +148,8 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 */
 	public function ___uninstall() {
 		$cachePath = $this->getCachePath();
-		wireRmdir($cachePath, true); 
-		$this->message("Removed: $cachePath"); 
+		wireRmdir($cachePath, true);
+		$this->message("Removed: $cachePath");
 	}
 
 }

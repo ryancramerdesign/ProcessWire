@@ -1,12 +1,12 @@
 <?php
 
 /**
- * Serves as a multi-language value placeholder for field values that contain a value in more than one language. 
+ * Serves as a multi-language value placeholder for field values that contain a value in more than one language.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -17,13 +17,13 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface {
 	 * Inherit default language value when blank
 	 *
 	 */
-	const langBlankInheritDefault = 0; 
+	const langBlankInheritDefault = 0;
 
 	/**
 	 * Don't inherit any value when blank
 	 *
 	 */
-	const langBlankInheritNone = 1; 
+	const langBlankInheritNone = 1;
 
 	/**
 	 * Values per language indexed by language ID
@@ -52,18 +52,18 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface {
 	public function __construct($values = null) { // #98
 
 		$languageSupport = wire('modules')->get('LanguageSupport');
-		$this->defaultLanguagePageID = $languageSupport->defaultLanguagePageID; 
+		$this->defaultLanguagePageID = $languageSupport->defaultLanguagePageID;
 
-		if(!is_array($values)) $values = array('data' => $values); 
+		if(!is_array($values)) $values = array('data' => $values);
 
 		if(array_key_exists('data', $values)) {
-			$this->data[$this->defaultLanguagePageID] = $values['data']; 
+			$this->data[$this->defaultLanguagePageID] = $values['data'];
 		}
 
 		foreach($languageSupport->otherLanguagePageIDs as $id) {
-			$key = 'data' . $id; 	
-			$value = empty($values[$key]) ? '' : $values[$key]; 
-			$this->data[$id] = $value; 
+			$key = 'data' . $id;
+			$value = empty($values[$key]) ? '' : $values[$key];
+			$this->data[$id] = $value;
 		}
 	}
 
@@ -75,15 +75,15 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface {
 	 *
 	 */
 	public function setLanguageValue($languageID, $value) {
-		if(is_object($languageID) && $languageID instanceof Language) $languageID = $languageID->id; 
+		if(is_object($languageID) && $languageID instanceof Language) $languageID = $languageID->id;
 		$existingValue = isset($this->data[$languageID]) ? $this->data[$languageID] : '';
 		if($value instanceof LanguagesPageFieldValue) {
-			// to avoid potential recursion 
-			$value = $value->getLanguageValue($languageID); 
+			// to avoid potential recursion
+			$value = $value->getLanguageValue($languageID);
 		}
 		if($value !== $existingValue) {
-			$this->trackChange('data', $existingValue, $value); 
-			$this->trackChange('data' . $languageID, $existingValue, $value); 
+			$this->trackChange('data', $existingValue, $value);
+			$this->trackChange('data' . $languageID, $existingValue, $value);
 		}
 		$this->data[(int)$languageID] = $value;
 	}
@@ -100,9 +100,9 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface {
 			if($language->isDefault) {
 				$key = 'value';
 			} else {
-				$key = 'value' . $language->id; 
+				$key = 'value' . $language->id;
 			}
-			$this->setLanguageValue($language->id, $inputfield->$key); 
+			$this->setLanguageValue($language->id, $inputfield->$key);
 		}
 	}
 
@@ -114,7 +114,7 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface {
 	 *
 	 */
 	public function getLanguageValue($languageID) {
-		if(is_object($languageID) && $languageID instanceof Language) $languageID = $languageID->id; 
+		if(is_object($languageID) && $languageID instanceof Language) $languageID = $languageID->id;
 		return isset($this->data[$languageID]) ? $this->data[$languageID] : '';
 	}
 
@@ -135,24 +135,24 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface {
 	}
 
 	protected function ___getStringValue() {
-		$language = $this->wire('user')->language; 	
+		$language = $this->wire('user')->language;
 		$defaultValue = (string) $this->data[$this->defaultLanguagePageID];
-		if(!$language || !$language->id || $language->isDefault()) return $defaultValue; 
-		$languageValue = (string) (empty($this->data[$language->id]) ? '' : $this->data[$language->id]); 
+		if(!$language || !$language->id || $language->isDefault()) return $defaultValue;
+		$languageValue = (string) (empty($this->data[$language->id]) ? '' : $this->data[$language->id]);
 		if(!strlen($languageValue)) {
 			// value is blank
-			if($this->field) { 
+			if($this->field) {
 				if($this->field->langBlankInherit == self::langBlankInheritDefault) {
 					// inherit value from default language
-					$languageValue = $defaultValue; 
+					$languageValue = $defaultValue;
 				}
 			}
 		}
-		return $languageValue; 
+		return $languageValue;
 	}
 
 	public function setField(Field $field) {
-		$this->field = $field; 
+		$this->field = $field;
 	}
 }
 

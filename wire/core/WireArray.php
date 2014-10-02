@@ -4,17 +4,17 @@
  * ProcessWire WireArray
  *
  * WireArray is the base array access object used in the ProcessWire framework.
- * 
- * Several methods are duplicated here for syntactical convenience and jQuery-like usability. 
+ *
+ * Several methods are duplicated here for syntactical convenience and jQuery-like usability.
  * Many methods act upon the array and return $this, which enables WireArrays to be used for fluent interfaces.
- * WireArray is the base of the PageArray (subclass) which is the most used instance. 
+ * WireArray is the base of the PageArray (subclass) which is the most used instance.
  *
  * TODO narrow down to one method of addition and removal, especially for removal, i.e. make shift() run through remove()
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -30,22 +30,22 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	/**
 	 * Any extra user defined data to accompany the WireArray
 	 *
-	 * See the data() method. Note these are not under change tracking. 
+	 * See the data() method. Note these are not under change tracking.
 	 *
 	 */
 	protected $extraData = array();
 
 	/**
 	 * Array containing the items that have been removed from this WireArray while trackChanges is on
-	 * 
+	 *
 	 * @see getRemovedKeys()
 	 *
 	 */
-	protected $itemsRemoved = array(); 
+	protected $itemsRemoved = array();
 
 	/**
 	 * Array containing the items that have been added to this WireArray while trackChanges is on
-	 * 
+	 *
 	 * @see getRemovedKeys()
 	 *
 	 */
@@ -59,7 +59,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 */
 	public function isValidItem($item) {
-		return $item instanceof Wire; 
+		return $item instanceof Wire;
 	}
 
 
@@ -71,24 +71,24 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 */
 	public function isValidKey($key) {
-		return true; 
+		return true;
 	}
 
 	/**
-	 * Template method that descendant classes may use to find a key from the item itself, or null if disabled. 
+	 * Template method that descendant classes may use to find a key from the item itself, or null if disabled.
 	 *
 	 * Used by add() and prepend()
 	 *
 	 * @param object $item
-	 * @return string|int|null 
+	 * @return string|int|null
 	 *
 	 */
 	public function getItemKey($item) {
 		// in this base class, we don't make assumptions how the key is determined
-		// so we just search the array to see if the item is already here and 
+		// so we just search the array to see if the item is already here and
 		// return it's key if it is here
-		$key = array_search($item, $this->data, true); 
-		return $key === false ? null : $key; 
+		$key = array_search($item, $this->data, true);
+		return $key === false ? null : $key;
 	}
 
 	/**
@@ -99,39 +99,39 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 */
 	public function makeBlankItem() {
-		$class = get_class($this); 
-		if($class != 'WireArray') throw new WireException("Class '$class' doesn't yet implement method 'makeBlankItem()' and it needs to."); 
+		$class = get_class($this);
+		if($class != 'WireArray') throw new WireException("Class '$class' doesn't yet implement method 'makeBlankItem()' and it needs to.");
 		return null;
 	}
 
 	/**
-	 * Creates a new blank instance of itself, for internal use. 
+	 * Creates a new blank instance of itself, for internal use.
 	 *
 	 * @return WireArray
 	 *
 	 */
 	public function makeNew() {
-		$class = get_class($this); 
-		$newArray = new $class(); 
-		return $newArray; 
+		$class = get_class($this);
+		$newArray = new $class();
+		return $newArray;
 	}
 
 	/**
 	 * Creates a new populated (copy/cloen) instance of itself, for internal use.
 	 *
-	 * Same as a clone, except that descending classes may wish to replace the 
+	 * Same as a clone, except that descending classes may wish to replace the
 	 * clone call a manually created WireArray to prevent deep cloning.
 	 *
 	 * @return WireArray
 	 *
 	 */
 	public function makeCopy() {
-		return clone $this; 
+		return clone $this;
 	}
 
 	/**
 	 * Import items into this WireArray.
-	 * 
+	 *
 	 * @throws WireException
 	 * @param array|WireArray $items Items to import.
 	 * @return WireArray This instance.
@@ -139,13 +139,13 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 */
 	public function import($items) {
 
-		if(!is_array($items) && !self::iterable($items)) 
-			throw new WireException('WireArray cannot import non arrays or non-iterable objects'); 
+		if(!is_array($items) && !self::iterable($items))
+			throw new WireException('WireArray cannot import non arrays or non-iterable objects');
 
 		foreach($items as $key => $value) {
 			if(($k = $this->getItemKey($value)) !== null) $key = $k;
 			if(isset($this->data[$key])) continue; // won't overwrite existing keys
-			$this->set($key, $value); 
+			$this->set($key, $value);
 		}
 
 		return $this;
@@ -153,32 +153,32 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 
 	/**
 	 * Add an item to the end of the WireArray.
-	 * 
+	 *
 	 * @throws WireException
-	 * @param int|string|array|object $item Item to add. 
+	 * @param int|string|array|object $item Item to add.
 	 * @return WireArray This instance.
 	 */
 	public function add($item) {
 
 		if(!$this->isValidItem($item)) {
 			if($item instanceof WireArray) {
-				foreach($item as $i) $this->prepend($i); 
-				return $this; 
+				foreach($item as $i) $this->prepend($i);
+				return $this;
 			} else {
-				throw new WireException("Item added to " . get_class($this) . " is not an allowed type"); 
+				throw new WireException("Item added to " . get_class($this) . " is not an allowed type");
 			}
 		}
 
 		$key = null;
 		if(($key = $this->getItemKey($item)) !== null) {
-			if(isset($this->data[$key])) unset($this->data[$key]); // avoid two copies of the same item, re-add it to the end 
-			$this->data[$key] = $item; 
+			if(isset($this->data[$key])) unset($this->data[$key]); // avoid two copies of the same item, re-add it to the end
+			$this->data[$key] = $item;
 		} else {
 			$this->data[] = $item;
 		}
 
-		$this->trackChange("add", null, $item); 
-		$this->trackAdd($item); 
+		$this->trackChange("add", null, $item);
+		$this->trackAdd($item);
 		return $this;
 	}
 
@@ -190,33 +190,33 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 */
 	protected function _insert($item, $existingItem, $insertBefore = true) {
 
-		if(!$this->isValidItem($item)) throw new WireException("You may not insert this item type"); 
+		if(!$this->isValidItem($item)) throw new WireException("You may not insert this item type");
 		$data = array();
 		$this->add($item); // first add the item, then we'll move it
-		$itemKey = $this->getItemKey($item); 
+		$itemKey = $this->getItemKey($item);
 
 		foreach($this->data as $key => $value) {
 			if($value === $existingItem) {
 				// found $existingItem, so insert $item and then insert $existingItem
-				if($insertBefore) { 
-					$data[$itemKey] = $item; 
-					$data[$key] = $value; 
+				if($insertBefore) {
+					$data[$itemKey] = $item;
+					$data[$key] = $value;
 				} else {
-					$data[$key] = $value; 
-					$data[$itemKey] = $item; 
+					$data[$key] = $value;
+					$data[$itemKey] = $item;
 				}
-				
+
 			} else if($value === $item) {
-				// skip over it since the above is doing the insert 
-				continue; 
+				// skip over it since the above is doing the insert
+				continue;
 
 			} else {
 				// continue populating existing data
-				$data[$key] = $value; 
+				$data[$key] = $value;
 			}
 		}
-		$this->data = $data; 
-		return $this; 
+		$this->data = $data;
+		return $this;
 	}
 
 	/**
@@ -228,7 +228,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 */
 	public function insertBefore($item, $existingItem) {
-		return $this->_insert($item, $existingItem, true); 
+		return $this->_insert($item, $existingItem, true);
 	}
 
 	/**
@@ -240,14 +240,14 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 */
 	public function insertAfter($item, $existingItem) {
-		return $this->_insert($item, $existingItem, false); 
+		return $this->_insert($item, $existingItem, false);
 	}
 
 	/**
 	 * Replace one item with the other
 	 *
-	 * If both items are already present, they will change places. 
-	 * If one item is not already present, it will replace the one that is. 
+	 * If both items are already present, they will change places.
+	 * If one item is not already present, it will replace the one that is.
 	 * If neither item is present, both will be added at the end.
 	 *
 	 * @param Wire|string|int $itemA
@@ -260,70 +260,70 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		$b = $this->get($itemB);
 		if($a && $b) {
 			// swap a and b
-			$data = $this->data; 
+			$data = $this->data;
 			foreach($data as $key => $value) {
 				if($value === $a) {
 					$key = $b->getItemKey();
-					$value = $b; 
+					$value = $b;
 				} else if($value === $b) {
 					$key = $a->getItemKey();
-					$value = $a; 
+					$value = $a;
 				}
 				$data[$key] = $value;
 			}
-			$this->data = $data; 
-		
+			$this->data = $data;
+
 		} else if($a) {
 			// b not already in array, so replace a with b
-			$this->_insert($itemB, $a); 
-			$this->remove($a); 
+			$this->_insert($itemB, $a);
+			$this->remove($a);
 
 		} else if($b) {
 			// a not already in array, so replace b with a
-			$this->_insert($itemA, $b); 
+			$this->_insert($itemA, $b);
 			$this->remove($b);
 		}
-		return $this; 
+		return $this;
 	}
 
 	/**
 	 * Sets an index in the WireArray.
 	 *
 	 * @param int|string $key Key of item to set.
-	 * @param int|string|array|object $value Value of item. 
+	 * @param int|string|array|object $value Value of item.
 	 * @throws WireException
 	 * @return \WireArray
 	 *
 	 */
 	public function set($key, $value) {
 
-		if(!$this->isValidItem($value)) throw new WireException("Item '$key' set to " . get_class($this) . " is not an allowed type"); 
+		if(!$this->isValidItem($value)) throw new WireException("Item '$key' set to " . get_class($this) . " is not an allowed type");
 		if(!$this->isValidKey($key)) throw new WireException("Key '$key' is not an allowed key for " . get_class($this));
 
-		$this->trackChange($key, isset($this->data[$key]) ? $this->data[$key] : null, $value); 
-		$this->data[$key] = $value; 
-		$this->trackAdd($value); 
-		return $this; 
+		$this->trackChange($key, isset($this->data[$key]) ? $this->data[$key] : null, $value);
+		$this->data[$key] = $value;
+		$this->trackAdd($value);
+		return $this;
 	}
 
 	/**
 	 * Enables setting of WireArray elements in object notation.
 	 *
-	 * Example: $myArray->myElement = 10; 
+	 * Example: $myArray->myElement = 10;
 	 * Not applicable to numerically indexed arrays.
 	 *
-	 * @param int|string $property Key of item to set. 
-	 * @param int|string|array|object Value of item to set. 
+	 * @param int|string $property Key of item to set.
+	 * @param int|string|array|object Value of item to set.
 	 * @throws WireException
 	 *
 	 */
 	public function __set($property, $value) {
-		if($this->getProperty($property)) throw new WireException("Property '$property' is a reserved word and may not be set by direct reference."); 
-		$this->set($property, $value); 
+		if($this->getProperty($property)) throw new WireException("Property '$property' is a reserved word and may not be set by direct reference.");
+		$this->set($property, $value);
 	}
 
 	/**
-	 * Ensures that isset() and empty() work for this classes properties. 
+	 * Ensures that isset() and empty() work for this classes properties.
 	 *
 	 */
 	public function __isset($key) {
@@ -331,13 +331,13 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	}
 
 	/**
-	 * Ensures that unset() works for this classes data. 
+	 * Ensures that unset() works for this classes data.
 	 *
 	 */
 	public function __unset($key) {
-		$this->remove($key); 
+		$this->remove($key);
 	}
-	
+
 	/**
 	 * Like set() but accepts an array or WireArray to set multiple values at once
 	 *
@@ -347,60 +347,60 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 */
 	public function setArray($data) {
 		if(self::iterable($data)) {
-			foreach($data as $key => $value) $this->set($key, $value); 
+			foreach($data as $key => $value) $this->set($key, $value);
 		}
-		return $this; 
+		return $this;
 	}
 
 
 	/**
-	 * Returns the value of the item at the given index, or false if not set. 
+	 * Returns the value of the item at the given index, or false if not set.
 	 *
-	 * You may also specify a selector, in which case this method will return the same result as the findOne() method. 
+	 * You may also specify a selector, in which case this method will return the same result as the findOne() method.
 	 *
 	 * @throws WireException
 	 * @param int|string $key Key of item to retrieve. If not specified, 0 is assumed (for first item).
-	 * @return int|string|array|object Value of item requested, or null if it doesn't exist. 
+	 * @return int|string|array|object Value of item requested, or null if it doesn't exist.
 	 *
 	 */
 	public function get($key) {
 
 		// if an object was provided, get it's key
-		if(is_object($key)) $key = $this->getItemKey($key); 
+		if(is_object($key)) $key = $this->getItemKey($key);
 
 		// don't allow arrays as keys
-		if(is_array($key)) throw new WireException("WireArray::get cannot accept an array as a key"); 
+		if(is_array($key)) throw new WireException("WireArray::get cannot accept an array as a key");
 
 		// check if the index is set and return it if so
-		if(isset($this->data[$key])) return $this->data[$key]; 
+		if(isset($this->data[$key])) return $this->data[$key];
 
 		// check if key contains a selector
-		if(Selectors::stringHasOperator($key)) return $this->findOne($key); 
+		if(Selectors::stringHasOperator($key)) return $this->findOne($key);
 
 		// if the WireArray uses numeric keys, then it's okay to
 		// match a 'name' field if the provided key is a string
 		$match = null;
-		if(is_string($key) && $this->usesNumericKeys()) $match = $this->getItemThatMatches('name', $key); 
+		if(is_string($key) && $this->usesNumericKeys()) $match = $this->getItemThatMatches('name', $key);
 
-		return $match; 
+		return $match;
 	}
 
 	/**
-	 * Enables derefencing of WireArray elements in object notation. 
+	 * Enables derefencing of WireArray elements in object notation.
 	 *
 	 * Example: $myArray->myElement
-	 * Not applicable to numerically indexed arrays. 
+	 * Not applicable to numerically indexed arrays.
 	 * Fuel properties and hooked properties have precedence with this type of call.
-	 * 
-	 * @param int|string $property 
-	 * @return mixed Value of requested index, or false if it doesn't exist. 
+	 *
+	 * @param int|string $property
+	 * @return mixed Value of requested index, or false if it doesn't exist.
 	 *
 	 */
 	public function __get($property) {
-		$value = parent::__get($property); 
+		$value = parent::__get($property);
 		if(is_null($value)) $value = $this->getProperty($property);
-		if(is_null($value)) $value = $this->get($property); 
-		return $value; 
+		if(is_null($value)) $value = $this->get($property);
+		return $value;
 	}
 
 	/**
@@ -408,7 +408,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 * These map to functions form the array and are here for convenience.
 	 * Properties include count, last, first, keys, values.
-	 * These can also be accessed by direct reference. 
+	 * These can also be accessed by direct reference.
 	 *
 	 * @param string $property
 	 * @return mixed
@@ -417,14 +417,14 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	public function getProperty($property) {
 		static $properties = array(
 			// property => method to map to
-			'count' => 'count',	
+			'count' => 'count',
 			'last' => 'last',
 			'first' => 'first',
 			'keys' => 'getKeys',
 			'values' => 'getValues',
 			);
-		
-		if(!in_array($property, $properties)) return $this->data($property); 
+
+		if(!in_array($property, $properties)) return $this->data($property);
 		$func = $properties[$property];
 		return $this->$func();
 	}
@@ -434,7 +434,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 * Used internally by get() and has().
 	 *
-	 * @param string $key Property to match. 
+	 * @param string $key Property to match.
 	 * @param string|int|object $value $value to match.
 	 * @return Wire|null
 	 *
@@ -444,59 +444,59 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		$item = null;
 		foreach($this->data as $wire) {
 			if($wire->$key === $value) {
-				$item = $wire; 
+				$item = $wire;
 				break;
 			}
 		}
-		return $item; 
+		return $item;
 	}
 
 	/**
 	 * Does this WireArray have the given index or match the given selector?
 	 *
 	 * If the WireArray uses numeric keys, then this will also match a wire's "name" field.
-	 * 
+	 *
 	 * @param int|string $key Key of item to check or selector.
-	 * @return bool True if the item exists, false if not. 
-	 */ 
+	 * @return bool True if the item exists, false if not.
+	 */
 	public function has($key) {
 
-		if(is_object($key)) $key = $this->getItemKey($key); 
+		if(is_object($key)) $key = $this->getItemKey($key);
 
-		if(array_key_exists($key, $this->data)) return true; 
+		if(array_key_exists($key, $this->data)) return true;
 
 		$match = null;
 		if(is_string($key)) {
 
 			if(Selectors::stringHasOperator($key)) {
-				$match = $this->findOne($key); 
+				$match = $this->findOne($key);
 
 			} else if($this->usesNumericKeys()) {
-				$match = $this->getItemThatMatches('name', $key); 
+				$match = $this->getItemThatMatches('name', $key);
 			}
 
-		} 
+		}
 
-		return $match ? true : false; 
+		return $match ? true : false;
 	}
 
 	/**
-	 * Get a regular PHP array of all the items in this WireArray. 
+	 * Get a regular PHP array of all the items in this WireArray.
 	 *
-	 * @return array Copy of the array that WireArray uses internally. 
-	 * 
+	 * @return array Copy of the array that WireArray uses internally.
+	 *
 	 */
 	public function getArray() {
-		return $this->data; 
+		return $this->data;
 	}
 
 	/**
-	 * Returns all items in the WireArray. 
+	 * Returns all items in the WireArray.
 	 *
-	 * This is for syntax convenience, as it simply eturns this instance of the WireArray. 
+	 * This is for syntax convenience, as it simply eturns this instance of the WireArray.
 	 *
 	 * @return WireArray
-	 * 
+	 *
 	 */
 	public function getAll() {
 		return $this;
@@ -504,57 +504,57 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 
 
 	/**
-	 * Returns an array of all keys used in this WireArray. 
-	 * 
+	 * Returns an array of all keys used in this WireArray.
+	 *
 	 * @return array Keys used in the WireArray.
-	 * 
+	 *
 	 */
 	public function getKeys() {
-		return array_keys($this->data); 
+		return array_keys($this->data);
 	}
 
 	/**
-	 * Returns an array of all values used in this WireArray. 
-	 * 
+	 * Returns an array of all values used in this WireArray.
+	 *
 	 * @return array Values used in the WireArray.
-	 * 
+	 *
 	 */
 	public function getValues() {
-		return array_values($this->data); 
+		return array_values($this->data);
 	}
 
 
 	/**
-	 * Get one or more random elements from this WireArray. 
+	 * Get one or more random elements from this WireArray.
 	 *
 	 * If one item is requested, the item is returned (unless $alwaysArray is true).
-	 * If multiple items are requested, a new WireArray of those items is returned. 
+	 * If multiple items are requested, a new WireArray of those items is returned.
 	 *
-	 * @param int $num Number of items to return. Optional and defaults to 1. 
-	 * @param bool $alwaysArray If true, then method will always return a container of items, even if it only contains 1. 
-	 * @return int|string|array|object|WireArray|null Returns value of item, or new WireArray of items if more than one requested. 
+	 * @param int $num Number of items to return. Optional and defaults to 1.
+	 * @param bool $alwaysArray If true, then method will always return a container of items, even if it only contains 1.
+	 * @return int|string|array|object|WireArray|null Returns value of item, or new WireArray of items if more than one requested.
 	 */
 	public function getRandom($num = 1, $alwaysArray = false) {
-		$items = $this->makeNew(); 
+		$items = $this->makeNew();
 		$count = $this->count();
 		if(!$count) {
 			if($num == 1 && !$alwaysArray) return null;
-			return $items; 
+			return $items;
 		}
-		$keys = array_rand($this->data, ($num > $count ? $count : $num)); 
-		if($num == 1 && !$alwaysArray) return $this->data[$keys]; 
-		if(!is_array($keys)) $keys = array($keys); 
-		foreach($keys as $key) $items->add($this->data[$key]); 
-		$items->setTrackChanges(true); 
-		return $items; 
+		$keys = array_rand($this->data, ($num > $count ? $count : $num));
+		if($num == 1 && !$alwaysArray) return $this->data[$keys];
+		if(!is_array($keys)) $keys = array($keys);
+		foreach($keys as $key) $items->add($this->data[$key]);
+		$items->setTrackChanges(true);
+		return $items;
 	}
 
 	/**
-	 * Get a quantity of random elements from this WireArray. 
+	 * Get a quantity of random elements from this WireArray.
 	 *
 	 * Unlike getRandom() this one always returns a WireArray (or derived type).
 	 *
-	 * @param int $num Number of items to return 
+	 * @param int $num Number of items to return
 	 * @return WireArray
 	 *
 	 */
@@ -567,7 +567,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 * If no $seed is provided, today's date is used to seed the random number
 	 * generator, so you can use this function to rotate items on a daily basis.
-	 * 
+	 *
 	 * Idea and implementation provided by @mindplay.dk
 	 *
 	 * @param int $num the amount of items to extract from the given list
@@ -581,7 +581,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		srand($seed);
 		$keys = $this->getKeys();
 		$items = $this->makeNew();
-		
+
 		while(count($keys) > 0 && count($items) < $num) {
 			$index = rand(0, count($keys)-1);
 			$key = $keys[$index];
@@ -595,27 +595,27 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	/**
 	 * Get a slice of the WireArray.
 	 *
-	 * Given a starting point and a number of items, returns a new WireArray of those items. 
-	 * If $limit is omitted, then it includes everything beyond the starting point. 
+	 * Given a starting point and a number of items, returns a new WireArray of those items.
+	 * If $limit is omitted, then it includes everything beyond the starting point.
 	 *
-	 * @param int $start Starting index. 
+	 * @param int $start Starting index.
 	 * @param int $limit Number of items to include. If omitted, includes the rest of the array.
 	 * @return WireArray Returns a new WireArray.
 	 *
 	 */
 	public function slice($start, $limit = 0) {
-		if($limit) $slice = array_slice($this->data, $start, $limit); 
-			else $slice = array_slice($this->data, $start); 
-		$items = $this->makeNew(); 
-		$items->import($slice); 
-		$items->setTrackChanges(true); 
-		return $items; 
+		if($limit) $slice = array_slice($this->data, $start, $limit);
+			else $slice = array_slice($this->data, $start);
+		$items = $this->makeNew();
+		$items->import($slice);
+		$items->setTrackChanges(true);
+		return $items;
 	}
 
 	/**
-	 * Prepend an element to the beginning of the WireArray. 
+	 * Prepend an element to the beginning of the WireArray.
 	 *
-	 * @param int|string|array|object $item Item to prepend. 
+	 * @param int|string|array|object $item Item to prepend.
 	 * @return \WireArray This instance.
 	 * @throws WireException
 	 *
@@ -624,49 +624,49 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 
 		if(!$this->isValidItem($item)) {
 			if($item instanceof WireArray) {
-				foreach($item as $i) $this->prepend($i); 
-				return $this; 
+				foreach($item as $i) $this->prepend($i);
+				return $this;
 			} else {
-				throw new WireException("Item prepend to " . get_class($this) . " is not an allowed type"); 
+				throw new WireException("Item prepend to " . get_class($this) . " is not an allowed type");
 			}
 		}
 
 		if(($key = $this->getItemKey($item)) !== null) {
-			$a = array($key => $item); 
+			$a = array($key => $item);
 			$this->data = $a + $this->data; // UNION operator for arrays
-			// $this->data = array_merge($a, $this->data); 
-		} else { 
-			array_unshift($this->data, $item); 
+			// $this->data = array_merge($a, $this->data);
+		} else {
+			array_unshift($this->data, $item);
 		}
 		//if($item instanceof Wire) $item->setTrackChanges();
-		$this->trackChange('prepend', null, $item); 
-		$this->trackAdd($item); 
-		return $this; 
+		$this->trackChange('prepend', null, $item);
+		$this->trackAdd($item);
+		return $this;
 	}
 
 	/**
 	 * Append an item to the end of the WireArray.
 	 *
-	 * @param int|string|array|object Item to append. 
+	 * @param int|string|array|object Item to append.
 	 * @return WireArray This instance.
 	 *
 	 */
 	public function append($item) {
-		$this->add($item); 
-		return $this; 
+		$this->add($item);
+		return $this;
 	}
 
 	/**
-	 * Unshift an element to the beginning of the WireArray. 
+	 * Unshift an element to the beginning of the WireArray.
 	 *
 	 * Alias for prepend()
-	 * 
-	 * @param int|string|array|object Item to prepend. 
+	 *
+	 * @param int|string|array|object Item to prepend.
 	 * @return WireArray This instance.
 	 *
 	 */
 	public function unshift($item) {
-		return $this->prepend($item); 
+		return $this->prepend($item);
 	}
 
 	/**
@@ -676,122 +676,122 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 */
 	public function shift() {
-		$item = array_shift($this->data); 
+		$item = array_shift($this->data);
 		$this->trackChange('shift', $item, null);
-		$this->trackRemove($item); 
-		return $item; 
+		$this->trackRemove($item);
+		return $item;
 	}
 
 	/**
 	 * Push an item at the end of the WireArray.
-	 * 
+	 *
 	 * Same as add() and append(), but here for syntax convenience.
 	 *
-	 * @param int|string|array|object Item to push. 
+	 * @param int|string|array|object Item to push.
 	 * @return WireArray This instance.
 	 *
 	 */
 	public function push($item) {
-		$this->add($item); 	
-		return $this; 
+		$this->add($item);
+		return $this;
 	}
 
 	/**
 	 * Pop an element off the end of the WireArray.
-	 * 
-	 * @return int|string|array|object Item popped off the end. 
+	 *
+	 * @return int|string|array|object Item popped off the end.
 	 *
 	 */
 	public function pop() {
-		$item = array_pop($this->data); 
+		$item = array_pop($this->data);
 		$this->trackChange('pop', $item, null);
-		$this->trackRemove($item); 
-		return $item; 
+		$this->trackRemove($item);
+		return $item;
 	}
 
 	/**
-	 * Shuffle/randomize the WireArray. 
+	 * Shuffle/randomize the WireArray.
 	 *
 	 * @return WireArray This instance.
 	 *
 	 */
 	public function shuffle() {
 
-		$keys = $this->getKeys(); 
+		$keys = $this->getKeys();
 		$data = array();
 
 		// shuffle the keys rather than the original array in case it's associative
 		// because PHP's shuffle reindexes the array
-		shuffle($keys); 
+		shuffle($keys);
 		foreach($keys as $key) {
-			$data[$key] = $this->data[$key]; 
+			$data[$key] = $this->data[$key];
 		}
-		
-		$this->trackChange('shuffle', $this->data, $data); 
 
-		$this->data = $data; 
+		$this->trackChange('shuffle', $this->data, $data);
 
-		return $this; 
+		$this->data = $data;
+
+		return $this;
 	}
 
 	/**
-	 * Returns a WireArray of the item at the given index. 
-	 *  
-	 * Unlike get() this returns a new WireArray with a single item, or a blank WireArray if item doesn't exist. 
-	 * Applicable to numerically indexed ProcesArray's only. 
-	 * 
-	 * @param int $num 
+	 * Returns a WireArray of the item at the given index.
+	 *
+	 * Unlike get() this returns a new WireArray with a single item, or a blank WireArray if item doesn't exist.
+	 * Applicable to numerically indexed ProcesArray's only.
+	 *
+	 * @param int $num
 	 * @return WireArray
 	 *
 	 */
 	public function index($num) {
-		return $this->slice($num, 1); 
+		return $this->slice($num, 1);
 	}
 
 	/**
 	 * Returns the item at the given index starting from 0, or NULL if it doesn't exist.
-	 *  
-	 * Unlike the index() method, this returns an actual item and not another WireArray. 
-	 * 
+	 *
+	 * Unlike the index() method, this returns an actual item and not another WireArray.
+	 *
 	 * @param int $num Return the nth item in this WireArray. Specify a negative number to count from the end rather than the start.
 	 * @return Wire|null
 	 *
 	 */
 	public function eq($num) {
-		$num = (int) $num; 
-		$item = array_slice($this->data, $num, 1); 
+		$num = (int) $num;
+		$item = array_slice($this->data, $num, 1);
 		$item = count($item) ? reset($item) : null;
-		return $item; 
+		return $item;
 	}
-	
+
 	/**
-	 * Returns the first item in the WireArray or boolean FALSE if empty. 
+	 * Returns the first item in the WireArray or boolean FALSE if empty.
 	 *
-	 * Note that this resets the internal WireArray pointer, which would affect other active iterations. 
+	 * Note that this resets the internal WireArray pointer, which would affect other active iterations.
 	 *
-	 * @return int|string|array|object 
+	 * @return int|string|array|object
 	 *
 	 */
 	public function first() {
 		return reset($this->data);
 	}
-	
+
 	/**
 	 * Returns the last item in the WireArray or boolean FALSE if empty.
 	 *
-	 * Note that this resets the internal WireArray pointer, which would affect other active iterations. 
-	 * 
+	 * Note that this resets the internal WireArray pointer, which would affect other active iterations.
+	 *
 	 * @return int|string|array|object
 	 *
 	 */
 	public function last() {
-		return end($this->data); 
+		return end($this->data);
 	}
 
-	
+
 	/**
 	 * Removes the item at the given index from the WireArray (if it exists).
-	 * 
+	 *
 	 * @param int|string|Wire $key Index of item or object instance.
 	 * @return WireArray This instance.
 	 *
@@ -799,15 +799,15 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	public function remove($key) {
 
 		if(is_object($key)) {
-			$key = $this->getItemKey($key); 
+			$key = $this->getItemKey($key);
 		}
 
 		if($this->has($key)) {
 			$item = $this->data[$key];
-			unset($this->data[$key]); 
-			$this->trackChange("remove", $item, null); 
-			$this->trackRemove($item); 
-			
+			unset($this->data[$key]);
+			$this->trackChange("remove", $item, null);
+			$this->trackRemove($item);
+
 		}
 
 		return $this;
@@ -818,11 +818,11 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 * @param array|Wire|string|WireArray Items to remove
 	 * @return this
-	 * 
+	 *
 	 */
 	public function removeItems($items) {
 		if(!self::iterable($items)) $items = array($items);
-		foreach($items as $item) $this->remove($item); 
+		foreach($items as $item) $this->remove($item);
 		return $this;
 	}
 
@@ -832,18 +832,18 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 */
 	public function removeAll() {
 		foreach($this as $key => $value) {
-			$this->remove($key); 
+			$this->remove($key);
 		}
-		return $this; 
+		return $this;
 	}
 
 	/**
-	 * Sort this WireArray by the given properties. 
+	 * Sort this WireArray by the given properties.
 	 *
 	 * $properties can be given as a sortByField string, i.e. "name, datestamp" OR as an array of strings, i.e. array("name", "datestamp")
-	 * You may also specify the properties as "property.subproperty", where property resolves to a Wire derived object, 
-	 * and subproperty resolves to a property within that object. 
-	 * 
+	 * You may also specify the properties as "property.subproperty", where property resolves to a Wire derived object,
+	 * and subproperty resolves to a property within that object.
+	 *
 	 * @param string|array $properties Field names to sort by (comma separated string or an array). Prepend or append a minus "-" to reverse the sort (per field).
 	 * @return WireArray reference to current instance.
 	 */
@@ -853,13 +853,13 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 
 	/**
 	 * Sort this WireArray by the given properties (internal use)
-	 * 
+	 *
 	 * This function contains additions and modifications by @niklaka.
 	 *
 	 * $properties can be given as a sortByField string, i.e. "name, datestamp" OR as an array of strings, i.e. array("name", "datestamp")
-	 * You may also specify the properties as "property.subproperty", where property resolves to a Wire derived object, 
-	 * and subproperty resolves to a property within that object. 
-	 * 
+	 * You may also specify the properties as "property.subproperty", where property resolves to a Wire derived object,
+	 * and subproperty resolves to a property within that object.
+	 *
 	 * @param string|array $properties Field names to sort by (comma separated string or an array). Prepend or append a minus "-" to reverse the sort (per field).
 	 * @param int $numNeeded *Internal* amount of rows that need to be sorted (optimization used by filterData)
 	 * @return WireArray reference to current instance.
@@ -874,10 +874,10 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		// no warning/error for issuing more properties though
 		// TODO: warning for random+more properties (and trackChange() too)
 		if($properties[0] == 'random') return $this->shuffle();
-		
+
 		$data = $this->stableSort($this, $properties, $numNeeded);
 		$this->trackChange("sort:$propertiesStr", $this->data, $data);
-		$this->data = $data; 
+		$this->data = $data;
 
 		return $this;
 	}
@@ -902,18 +902,18 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		$subProperty = '';
 
 		if(substr($property, 0, 1) == '-' || substr($property, -1) == '-') {
-			$reverse = true; 
-			$property = trim($property, '-'); 
+			$reverse = true;
+			$property = trim($property, '-');
 		}
 
 		if($pos = strpos($property, ".")) {
-			$subProperty = substr($property, $pos+1); 
-			$property = substr($property, 0, $pos); 
+			$subProperty = substr($property, $pos+1);
+			$property = substr($property, 0, $pos);
 		}
 
 		foreach($data as $item) {
 
-			$key = $this->getItemPropertyValue($item, $property); 
+			$key = $this->getItemPropertyValue($item, $property);
 
 			// if item->property resolves to another Wire, then try to get the subProperty from that Wire (if it exists)
 			if($key instanceof Wire && $subProperty) {
@@ -923,30 +923,30 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			// check for items that resolve to blank
 			if(is_null($key) || (is_string($key) && !strlen(trim($key)))) {
 				$unidentified[] = $item;
-				continue; 
+				continue;
 			}
 
-			$key = (string) $key; 
+			$key = (string) $key;
 
 			// ensure numeric sorting if the key is a number
-			if(ctype_digit("$key")) $key = (int) $key; 
+			if(ctype_digit("$key")) $key = (int) $key;
 
 			if(isset($sortable[$key])) {
 				// key resolved to the same value that another did, so keep them together by converting this index to an array
 				// this makes the algorithm stable (for equal keys the order would be undefined)
-				if(is_array($sortable[$key])) $sortable[$key][] = $item; 
-					else $sortable[$key] = array($sortable[$key], $item); 
-			} else { 
-				$sortable[$key] = $item; 
+				if(is_array($sortable[$key])) $sortable[$key][] = $item;
+					else $sortable[$key] = array($sortable[$key], $item);
+			} else {
+				$sortable[$key] = $item;
 			}
 		}
 
 		// sort the items by the keys we collected
 		if($reverse) krsort($sortable);
-			else ksort($sortable); 
+			else ksort($sortable);
 
 		// add the items that resolved to no key to the end, as an array
-		$sortable[] = $unidentified; 
+		$sortable[] = $unidentified;
 
 		// restore sorted array to lose sortable keys and restore proper keys
 		$a = array();
@@ -954,17 +954,17 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			if(is_array($value)) {
 				// if more properties to sort by exist, use them for this sub-array
 				$n = null;
-				if($numNeeded) $n = $numNeeded - count($a); 
+				if($numNeeded) $n = $numNeeded - count($a);
 				if(count($properties)) $value = $this->stableSort($value, $properties, $n);
 				foreach($value as $k => $v) {
-					$newKey = $this->getItemKey($v); 
-					$a[$newKey] = $v; 
+					$newKey = $this->getItemKey($v);
+					$a[$newKey] = $v;
 					// are we done yet?
 					if($numNeeded && count($a) > $numNeeded) break;
 				}
 			} else {
-				$newKey = $this->getItemKey($value); 
-				$a[$newKey] = $value; 	
+				$newKey = $this->getItemKey($value);
+				$a[$newKey] = $value;
 			}
 			// are we done yet?
 			if($numNeeded && count($a) > $numNeeded) break;
@@ -976,9 +976,9 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	/**
 	 * Get the value of $property from $item
 	 *
-	 * Used by the WireArray::sort method to retrieve a value from a Wire object. 
-	 * Primarily here as a template method so that it can be overridden. 
-	 * Lets it prepare the Wire for any states needed for sorting. 
+	 * Used by the WireArray::sort method to retrieve a value from a Wire object.
+	 * Primarily here as a template method so that it can be overridden.
+	 * Lets it prepare the Wire for any states needed for sorting.
 	 *
 	 * @param Wire $item
 	 * @param string $property
@@ -986,13 +986,13 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 */
 	protected function getItemPropertyValue(Wire $item, $property) {
-		if(strpos($property, '.') !== false) return WireData::_getDot($property, $item); 
-		return $item->$property; 
+		if(strpos($property, '.') !== false) return WireData::_getDot($property, $item);
+		return $item->$property;
 	}
 
 	/**
-	 * Filter out Wires that don't match the selector. 
-	 * 
+	 * Filter out Wires that don't match the selector.
+	 *
 	 * This is applicable to and destructive to the WireArray.
 	 * This function contains additions and modifications by @niklaka.
 	 *
@@ -1007,7 +1007,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			// fantastic
 		} else {
 			if(ctype_digit("$selectors")) $selectors = "id=$selectors";
-			$selectors = new Selectors($selectors); 
+			$selectors = new Selectors($selectors);
 		}
 
 		$sort = array();
@@ -1016,19 +1016,19 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 
 		// leave sort, limit and start away from filtering selectors
 		foreach($selectors as $selector) {
-			$remove = true; 
+			$remove = true;
 
 			if($selector->field === 'sort') {
 				// use all sort selectors
-				$sort[] = $selector->value; 
+				$sort[] = $selector->value;
 
-			} else if($selector->field === 'start') { 
+			} else if($selector->field === 'start') {
 				// use only the last start selector
 				$start = (int) $selector->value;
 
 			} else if($selector->field === 'limit') {
 				// use only the last limit selector
-				$limit = (int) $selector->value; 
+				$limit = (int) $selector->value;
 
 			} else {
 				// everything else is to be saved for filtering
@@ -1037,7 +1037,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 
 			if($remove) $selectors->remove($selector);
 		}
-		
+
 		// now filter the data according to the selectors that remain
 		foreach($this->data as $key => $item) {
 			foreach($selectors as $selector) {
@@ -1054,62 +1054,62 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		}
 
 		// if $limit has been given, tell sort the amount of rows that will be used
-		if(count($sort)) $this->_sort($sort, $limit ? $start+$limit : null); 
+		if(count($sort)) $this->_sort($sort, $limit ? $start+$limit : null);
 		if($start || $limit) $this->data = array_slice($this->data, $start, $limit, true);
 
-		$this->trackChange("filterData:$selectors"); 
-		return $this; 
+		$this->trackChange("filterData:$selectors");
+		return $this;
 	}
 
 	/**
-	 * Filter out Wires that don't match the selector. 
+	 * Filter out Wires that don't match the selector.
 	 *
-	 * Same as filterData, but for public interface without the $not option. 
-	 * 
-	 * @param string $selector AttributeSelector string to use as the filter. 
+	 * Same as filterData, but for public interface without the $not option.
+	 *
+	 * @param string $selector AttributeSelector string to use as the filter.
 	 * @return WireArray reference to current instance.
 	 * @see filterData
 	 *
 	 */
 	public function filter($selector) {
 		// destructive
-		return $this->filterData($selector, false); 
+		return $this->filterData($selector, false);
 	}
 
 
 	/**
-	 * Filter out Wires that don't match the selector. 
+	 * Filter out Wires that don't match the selector.
 	 *
 	 * Same as filterData, but for public interface with the $not option specifically set to "true".
-	 * Example: $pages->not("nonav"); // returns all pages that don't have a nonav variable set to a positive value. 
-	 * 
-	 * @param string $selector AttributeSelector string to use as the filter. 
+	 * Example: $pages->not("nonav"); // returns all pages that don't have a nonav variable set to a positive value.
+	 *
+	 * @param string $selector AttributeSelector string to use as the filter.
 	 * @return WireArray reference to current instance.
 	 * @see filterData
 	 *
 	 */
 	public function not($selector) {
 		// destructive
-		return $this->filterData($selector, true); 
+		return $this->filterData($selector, true);
 	}
 
 
 	/**
 	 * Find all Wires in this WireArray that match the given selector.
-	 * 
+	 *
 	 * This is non destructive and returns a brand new WireArray.
 	 *
-	 * @param string $selector AttributeSelector string. 
-	 * @return WireArray 
+	 * @param string $selector AttributeSelector string.
+	 * @return WireArray
 	 *
 	 */
 	public function find($selector) {
 		// non descructive
 		$a = $this->makeCopy();
 		if(!strlen($selector)) return $a;
-		$a->filter($selector); 	
+		$a->filter($selector);
 
-		return $a; 
+		return $a;
 	}
 
 	/**
@@ -1121,13 +1121,13 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	}
 
 
-	/**	
+	/**
 	 * Determines if the given item iterable as an array.
 	 *
-	 * Returns true for arrays and WireArrays. 
+	 * Returns true for arrays and WireArrays.
 	 * Can be called statically like this WireArray::iterable($a).
-	 * 
-	 * @param mixed $item Item to check for iterability. 
+	 *
+	 * @param mixed $item Item to check for iterability.
 	 * @return bool True if item is an iterable array or WireArray (or subclass of WireArray).
 	 *
 	 */
@@ -1138,79 +1138,79 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	}
 
 	/**
-	 * Allows iteration of the WireArray. 
+	 * Allows iteration of the WireArray.
 	 *
-	 * Fulfills IteratorAggregate interface. 
+	 * Fulfills IteratorAggregate interface.
 	 * TODO return $this rather than ArrayObject ?
-	 * 
+	 *
 	 * @return ArrayObject
 	 *
 	 */
 	public function getIterator() {
-		return new ArrayObject($this->data); 
+		return new ArrayObject($this->data);
 	}
 
 	/**
 	 * Returns the number of items in this WireArray.
 	 *
-	 * Fulfills Countable interface. 
-	 * 
+	 * Fulfills Countable interface.
+	 *
 	 * @return int
 	 */
 	public function count() {
-		return count($this->data); 
+		return count($this->data);
 	}
 
 	/**
 	 * Sets an index in the WireArray.
 	 *
-	 * For the ArrayAccess interface. 
-	 * 
+	 * For the ArrayAccess interface.
+	 *
 	 * @param int|string $key Key of item to set.
-	 * @param int|string|array|object $value Value of item. 
+	 * @param int|string|array|object $value Value of item.
 	 */
 	public function offsetSet($key, $value) {
-		$this->set($key, $value); 
+		$this->set($key, $value);
 	}
 
 	/**
-	 * Returns the value of the item at the given index, or false if not set. 
+	 * Returns the value of the item at the given index, or false if not set.
 	 *
-	 * @param int|string $key Key of item to retrieve. 
-	 * @return int|string|array|object Value of item requested, or false if it doesn't exist. 
+	 * @param int|string $key Key of item to retrieve.
+	 * @return int|string|array|object Value of item requested, or false if it doesn't exist.
 	 */
 	public function offsetGet($key) {
-		return $this->get($key); 
+		return $this->get($key);
 	}
-	
+
 	/**
-	 * Unsets the value at the given index. 
+	 * Unsets the value at the given index.
 	 *
 	 * For the ArrayAccess interface.
 	 *
-	 * @param int|string $key Key of the item to unset. 
-	 * @return bool True if item existed and was unset. False if item didn't exist. 
+	 * @param int|string $key Key of the item to unset.
+	 * @return bool True if item existed and was unset. False if item didn't exist.
 	 */
 	public function offsetUnset($key) {
-		return $this->remove($key); 
+		return $this->remove($key);
 	}
 
 
 	/**
-	 * Determines if the given index exists in this WireArray. 	
+	 * Determines if the given index exists in this WireArray.
 	 *
-	 * For the ArrayAccess interface. 
-	 * 
+	 * For the ArrayAccess interface.
+	 *
 	 * @param int|string $key Key of the item to check for existance.
 	 * @return bool True if the item exists, false if not.
 	 */
 	public function offsetExists($key) {
-		return $this->has($key); 
+		return $this->has($key);
 	}
 
 	/**
 	 * Returns a string representation of this WireArray.
-	 * 
+	 *
 	 * @return string
 	 */
 	public function __toString() {
@@ -1218,8 +1218,8 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		foreach($this as $key => $value) {
 			$s .= "$value|";
 		}
-		$s = rtrim($s, '|'); 
-		return $s; 
+		$s = rtrim($s, '|');
+		return $s;
 	}
 
 	/**
@@ -1227,38 +1227,38 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 * Non destructive
 	 *
-	 */ 
+	 */
 	public function reverse() {
 		$a = $this->makeNew();
-		$a->import(array_reverse($this->data, true)); 
-		return $a; 
+		$a->import(array_reverse($this->data, true));
+		return $a;
 	}
 
 	/**
 	 * Return a new array that is unique (no two of the same elements)
 	 *
 	 * @param int $sortFlags Sort flags per PHP's array_unique function (default=SORT_STRING)
-	 * @return WireArray 
+	 * @return WireArray
 	 *
 	 */
 	public function unique($sortFlags = SORT_STRING) {
-		$a = $this->makeNew();	
-		$a->import(array_unique($this->data, $sortFlags)); 
-		return $a; 
+		$a = $this->makeNew();
+		$a->import(array_unique($this->data, $sortFlags));
+		return $a;
 	}
 
 
 	/**
 	 * Clears out any tracked changes and turns change tracking ON or OFF
 	 *
-	 * @param bool $trackChanges True to turn change tracking ON, or false to turn OFF. Default of true is assumed. 
+	 * @param bool $trackChanges True to turn change tracking ON, or false to turn OFF. Default of true is assumed.
 	 * @return WireArray
 	 *
 	 */
 	public function resetTrackChanges($trackChanges = true) {
 		$this->itemsAdded = array();
 		$this->itemsRemoved = array();
-		return parent::resetTrackChanges($trackChanges); 
+		return parent::resetTrackChanges($trackChanges);
 	}
 
 	/**
@@ -1274,7 +1274,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
  	 *
 	 */
 	protected function trackRemove($item) {
-		if($this->trackChanges()) $this->itemsRemoved[] = $item; 
+		if($this->trackChanges()) $this->itemsRemoved[] = $item;
 	}
 
 	/**
@@ -1284,7 +1284,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 */
 	public function getItemsAdded() {
-		return $this->itemsAdded; 
+		return $this->itemsAdded;
 	}
 
 	/**
@@ -1294,7 +1294,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 */
 	public function getItemsRemoved() {
-		return $this->itemsRemoved; 
+		return $this->itemsRemoved;
 	}
 
 	/**
@@ -1306,18 +1306,18 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 */
 	public function getNext($item) {
 		if(!$this->isValidItem($item)) return null;
-		$key = $this->getItemKey($item); 
-		$getNext = false; 
+		$key = $this->getItemKey($item);
+		$getNext = false;
 		$nextItem = null;
 		foreach($this->data as $k => $v) {
 			if($getNext) {
-				$nextItem = $v; 	
+				$nextItem = $v;
 				break;
 			}
-			if($k === $key) $getNext = true; 
-			
+			if($k === $key) $getNext = true;
+
 		}
-		return $nextItem; 
+		return $nextItem;
 	}
 
 	/**
@@ -1329,93 +1329,93 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 */
 	public function getPrev($item) {
 		if(!$this->isValidItem($item)) return null;
-		$key = $this->getItemKey($item); 
-		$prevItem = null; 
+		$key = $this->getItemKey($item);
+		$prevItem = null;
 		$lastItem = null;
 		foreach($this->data as $k => $v) {
 			if($k === $key) {
-				$prevItem = $lastItem; 
+				$prevItem = $lastItem;
 				break;
 			}
-			$lastItem = $v; 
-			
+			$lastItem = $v;
+
 		}
-		return $prevItem; 
+		return $prevItem;
 	}
 
 	/**
-	 * Does this WireArray use numeric keys only? 
+	 * Does this WireArray use numeric keys only?
 	 *
-	 * We determine this by creating a blank item and seeing what the type is of it's key. 
-	 * 
+	 * We determine this by creating a blank item and seeing what the type is of it's key.
+	 *
 	 * @return bool
 	 *
 	 */
 	protected function usesNumericKeys() {
 
 		static $testItem = null;
-		static $usesNumericKeys = null; 
+		static $usesNumericKeys = null;
 
-		if(!is_null($usesNumericKeys)) return $usesNumericKeys; 
-		if(is_null($testItem)) $testItem = $this->makeBlankItem(); 
-		if(is_null($testItem)) return true; 
+		if(!is_null($usesNumericKeys)) return $usesNumericKeys;
+		if(is_null($testItem)) $testItem = $this->makeBlankItem();
+		if(is_null($testItem)) return true;
 
-		$key = $this->getItemKey($testItem); 
+		$key = $this->getItemKey($testItem);
 		$usesNumericKeys = is_int($key) ? true : false;
-		return $usesNumericKeys; 
+		return $usesNumericKeys;
 	}
 
 	/**
 	 * Implode all elements to a delimiter-separated string containing the given property from each item
 	 *
-	 * Similar to PHP's implode() function. 
-	 * 
+	 * Similar to PHP's implode() function.
+	 *
 	 * @param string $delimiter The delimiter to separate each item by (or the glue to tie them together).
 	 *	If not needed, this argument may be omitted and $property supplied first (also shifting $options to 2nd arg).
 	 * @param string|function $property The property to retrieve from each item, or a function that returns the value to store.
-	 *	If a function/closure is provided it is given the $item (argument 1) and the $key (argument 2), and it should 
-	 *	return the value (string) to use. 
-	 *	If delimiter is omitted, this becomes the first argument. 
+	 *	If a function/closure is provided it is given the $item (argument 1) and the $key (argument 2), and it should
+	 *	return the value (string) to use.
+	 *	If delimiter is omitted, this becomes the first argument.
 	 * @param array $options Optional options to modify the behavior:
 	 *	skipEmpty: Whether empty items should be skipped (default=true)
-	 *	prepend: String to prepend to result. Ignored if result is blank. 
-	 *	append: String to prepend to result. Ignored if result is blank. 
-	 *	Please note that if delimiter is omitted, $options becomes the second argument. 
+	 *	prepend: String to prepend to result. Ignored if result is blank.
+	 *	append: String to prepend to result. Ignored if result is blank.
+	 *	Please note that if delimiter is omitted, $options becomes the second argument.
 	 * @return string
 	 *
 	 */
 	public function implode($delimiter, $property = '', array $options = array()) {
 
 		$defaults = array(
-			'skipEmpty' => true, 
-			'prepend' => '', 
+			'skipEmpty' => true,
+			'prepend' => '',
 			'append' => ''
 			);
 
 		if(!is_string($delimiter) && is_callable($delimiter)) {
-			// first delimiter argument omitted and a function was supplied 
+			// first delimiter argument omitted and a function was supplied
 			// property is assumed to be blank
-			if(is_array($property)) $options = $property; 
-			$property = $delimiter; 
+			if(is_array($property)) $options = $property;
+			$property = $delimiter;
 			$delimiter = '';
 		} else if(empty($property) || is_array($property)) {
 			// delimiter was omitted, forcing $property to be first arg
-			if(is_array($property)) $options = $property; 
-			$property = $delimiter; 
+			if(is_array($property)) $options = $property;
+			$property = $delimiter;
 			$delimiter = '';
 		}
 
-		$options = array_merge($defaults, $options); 
-		$isFunction = !is_string($property) && is_callable($property); 
+		$options = array_merge($defaults, $options);
+		$isFunction = !is_string($property) && is_callable($property);
 		$str = '';
 		$n = 0;
 
 		foreach($this as $key => $item) {
-			if($isFunction) $value = (string) $property($item, $key); 
-				else $value = (string) $item->get($property); 
-			if(!strlen($value) && $options['skipEmpty']) continue; 
-			if($n) $str .= $delimiter; 
-			$str .= $value; 
+			if($isFunction) $value = (string) $property($item, $key);
+				else $value = (string) $item->get($property);
+			if(!strlen($value) && $options['skipEmpty']) continue;
+			if($n) $str .= $delimiter;
+			$str .= $value;
 			$n++;
 		}
 
@@ -1423,39 +1423,39 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			$str = "$options[prepend]$str$options[append]";
 		}
 
-		return $str; 
+		return $str;
 	}
 
 	/**
 	 * Return a plain array of the requested property from each item
 	 *
 	 * You may also provide a function as the property. That function receives the $item
-	 * as the first argument and $key as the second. It should return the value that will be stored. 
+	 * as the first argument and $key as the second. It should return the value that will be stored.
 	 *
-	 * The keys of the returned array remain consistent with the original WireArray. 
+	 * The keys of the returned array remain consistent with the original WireArray.
 	 *
 	 * @param string|function $property
 	 * @return array
 	 *
 	 */
 	public function explode($property) {
-		$isFunction = !is_string($property) && is_callable($property); 
+		$isFunction = !is_string($property) && is_callable($property);
 		$values = array();
 		foreach($this as $key => $item) {
-			if($isFunction) $values[$key] = $property($item, $key); 
+			if($isFunction) $values[$key] = $property($item, $key);
 				else $values[$key] = $item->get($property);
 		}
-		return $values; 
+		return $values;
 	}
 
 	/**
 	 * Return a new copy of this WireArray with the given item(s) appended
 	 *
-	 * Primarily for syntax convenience, i.e. 
+	 * Primarily for syntax convenience, i.e.
 	 * if($page->parents->and($page)->has($featured)) { ... }
 	 *
  	 * Note: PHP doesn't allow a function named 'and' so making this hookable is what
-	 * enables us to make it a usable API function. When calling this function, you 
+	 * enables us to make it a usable API function. When calling this function, you
 	 * may use just 'and' rather than '___and'.
 	 *
 	 * @param Wire|WireArray $item
@@ -1464,8 +1464,8 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 */
 	public function ___and($item) {
 		$a = $this->makeCopy();
-		$a->add($item); 
-		return $a; 
+		$a->add($item);
+		return $a;
 	}
 
 	/**
@@ -1474,8 +1474,8 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * The data() function is exactly the same thing that it is in jQuery:
 	 * http://api.jquery.com/data/
 	 *
-	 * Usage: 
-	 *   $a->data('key', 'value'); // set a data value 
+	 * Usage:
+	 *   $a->data('key', 'value'); // set a data value
 	 *   $value = $a->date('key'); // retrieve a data value
 	 *   $data = $a->data(); // no arguments = return all data as array
 	 *
@@ -1487,10 +1487,10 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 */
 	public function data($key = null, $value = null) {
-		if(is_null($key) && is_null($value)) return $this->extraData; 
+		if(is_null($key) && is_null($value)) return $this->extraData;
 		if(is_null($value)) return isset($this->extraData[$key]) ? $this->extraData[$key] : null;
-		$this->extraData[$key] = $value; 
-		return $this; 
+		$this->extraData[$key] = $value;
+		return $this;
 	}
 
 	/**
@@ -1501,7 +1501,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 *
 	 */
 	public function removeData($key) {
-		unset($this->extraData[$key]); 
+		unset($this->extraData[$key]);
 		return $this;
 	}
 

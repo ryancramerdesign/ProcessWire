@@ -1,25 +1,25 @@
 function InputfieldDatetimeDatepicker($t) {
 
 	var pickerVisible = $t.is(".InputfieldDatetimeDatepicker2");
-	var ts = parseInt($t.attr('data-ts')); 
+	var ts = parseInt($t.attr('data-ts'));
 	var tsDate = null;
-	var dateFormat = $t.attr('data-dateformat'); 
+	var dateFormat = $t.attr('data-dateformat');
 	var timeFormat = $t.attr('data-timeformat');
 	var hasTimePicker = timeFormat.length > 0 && !pickerVisible;
 	var showOn = $t.is(".InputfieldDatetimeDatepicker3") ? 'focus' : 'button';
-	var ampm = parseInt($t.attr('data-ampm')) > 0; 
-	var yearRange = $t.attr('data-yearrange'); 
+	var ampm = parseInt($t.attr('data-ampm')) > 0;
+	var yearRange = $t.attr('data-yearrange');
 
-	if(ts > 1) tsDate = new Date(ts); 
+	if(ts > 1) tsDate = new Date(ts);
 
 	if(pickerVisible) {
 		// datepicker always visible (inline)
-		var $datepicker = $("<div></div>"); 
-		//$t.parent('p').after($datepicker); 
-		$t.after($datepicker); 
+		var $datepicker = $("<div></div>");
+		//$t.parent('p').after($datepicker);
+		$t.after($datepicker);
 	} else {
 		// datepicker doesn't appear till requested
-		var $datepicker = $t; 
+		var $datepicker = $t;
 	}
 
 	var options = {
@@ -33,37 +33,37 @@ function InputfieldDatetimeDatepicker($t) {
 		defaultDate: tsDate
 		// buttonImage: config.urls.admin_images + 'icons/calendar.gif',
 		// dateFormat: config.date_format
-	}; 
+	};
 
-	if(yearRange && yearRange.length) options.yearRange = yearRange; 
+	if(yearRange && yearRange.length) options.yearRange = yearRange;
 
-	if(hasTimePicker) { 
-		options.ampm = ampm; 
-		options.timeFormat = timeFormat; 
-		if(timeFormat.indexOf('ss') > -1) options.showSecond = true; 
+	if(hasTimePicker) {
+		options.ampm = ampm;
+		options.timeFormat = timeFormat;
+		if(timeFormat.indexOf('ss') > -1) options.showSecond = true;
 		if(timeFormat.indexOf('m') == -1) options.showMinute = false;
-		$datepicker.datetimepicker(options); 
+		$datepicker.datetimepicker(options);
 	} else {
-		$datepicker.datepicker(options); 
+		$datepicker.datepicker(options);
 	}
 
 	if(pickerVisible) {
 		$datepicker.change(function(e) {
 			var d = $datepicker.datepicker('getDate');
-			var str = $.datepicker.formatDate(dateFormat, d); 
-			$t.val(str); 
-		}); 
+			var str = $.datepicker.formatDate(dateFormat, d);
+			$t.val(str);
+		});
 	}
 }
 
 jQuery(document).ready(function($) {
 
 	$("input.InputfieldDatetimeDatepicker").each(function(n) {
-		InputfieldDatetimeDatepicker($(this)); 
+		InputfieldDatetimeDatepicker($(this));
 	});
 
 	$(document).on('focus', 'input.InputfieldDatetimeDatepicker3', function() {
 		if($(this).is('.hasDatepicker')) return;
-		InputfieldDatetimeDatepicker($(this)); 	
-	}); 
-}); 
+		InputfieldDatetimeDatepicker($(this));
+	});
+});

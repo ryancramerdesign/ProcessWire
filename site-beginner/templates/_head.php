@@ -11,14 +11,14 @@
 
 	<!-- top navigation -->
 	<ul class='topnav'>
-		<?php 
+		<?php
 
 		// top navigation consists of homepage and its visible children
-		$homepage = $pages->get('/'); 
+		$homepage = $pages->get('/');
 		$children = $homepage->children();
 
 		// make 'home' the first item in the navigation
-		$children->prepend($homepage); 
+		$children->prepend($homepage);
 
 		// render an <li> for each top navigation item
 		foreach($children as $child) {
@@ -48,14 +48,14 @@
 	<!-- breadcrumbs -->
 	<div class='breadcrumbs'>
 
-		<?php 
+		<?php
 
 		// breadcrumbs are the current page's parents
 		foreach($page->parents() as $item) {
-			echo "<span><a href='$item->url'>$item->title</a></span> "; 
+			echo "<span><a href='$item->url'>$item->title</a></span> ";
 		}
 		// optionally output the current page as the last item
-		echo "<span>$page->title</span> "; 
+		echo "<span>$page->title</span> ";
 
 		?>
 

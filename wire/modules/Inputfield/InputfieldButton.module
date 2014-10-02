@@ -11,32 +11,32 @@ class InputfieldButton extends InputfieldSubmit {
 			'title' => __('Button', __FILE__), // Module Title
 			'summary' => __('Form button element that you can optionally pass an href attribute to.', __FILE__), // Module Summary
 			'version' => 100,
-			'permanent' => true, 
+			'permanent' => true,
 			);
 	}
 
 	public function init() {
 		parent::init();
 		$this->attr('id', '');
-		$this->attr('type', 'button'); 
-		$this->attr('name', 'button'); 
-		$this->attr('value', 'Button'); 
-		$this->attr('href', ''); 
-		$this->skipLabel = Inputfield::skipLabelHeader; 
+		$this->attr('type', 'button');
+		$this->attr('name', 'button');
+		$this->attr('value', 'Button');
+		$this->attr('href', '');
+		$this->skipLabel = Inputfield::skipLabelHeader;
 	}
 
 	public function ___render() {
 		$href = $this->attr('href');
 		if($href) $this->attr('href', '');
 		$out = parent::___render();
-		if($href) { 
-			$out = trim($out); 
+		if($href) {
+			$out = trim($out);
 			$out = "<a href='$href'>$out</a>";
-			$this->attr('href', $href); 
+			$this->attr('href', $href);
 		}
-		
-		return $out; 
+
+		return $out;
 	}
 
-	
+
 }

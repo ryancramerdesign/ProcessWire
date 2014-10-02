@@ -2,7 +2,7 @@
 
 /**
  * Default.php
- * 
+ *
  * Main markup file for AdminThemeReno
  * Copyright (C) 2014 by Tom Reno (Renobird)
  * http://www.tomrenodesign.com
@@ -12,7 +12,7 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  *
  * http://processwire.com
- * 
+ *
  */
 
 if(!defined("PROCESSWIRE")) die();
@@ -21,9 +21,9 @@ if(!isset($content)) $content = '';
 $version = $adminTheme->version;
 $searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm($adminTheme->getSearchPlaceholder()) : '';
 
-$config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "$adminTheme->colors" : "main") . ".css?v=$version"); 
+$config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "$adminTheme->colors" : "main") . ".css?v=$version");
 $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css?v=$version");
-$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=$version"); 
+$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=$version");
 $config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=$version");
 
 require_once(dirname(__FILE__) . "/AdminThemeRenoHelpers.php");
@@ -32,7 +32,7 @@ $extras = $adminTheme->getExtraMarkup();
 
 ?>
 <!DOCTYPE html>
-<html class="<?php echo $helpers->renderBodyClass(); ?>" lang="<?php echo $helpers->_('en'); 
+<html class="<?php echo $helpers->renderBodyClass(); ?>" lang="<?php echo $helpers->_('en');
 	/* this intentionally on a separate line */ ?>">
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
@@ -70,22 +70,22 @@ $extras = $adminTheme->getExtraMarkup();
 		</div>
 
 		<div id="sidebar" class="mobile">
-			
+
 			<ul id="main-nav">
 				<?php echo $helpers->renderSideNavItems($page); ?>
 			</ul>
-			
+
 			<?php echo $extras['sidebar']; ?>
 
 		</div>
 
 		<div id="main">
 
-			<?php 
+			<?php
 			echo $helpers->renderAdminNotices($notices);
 			echo $extras['notices'];
 			?>
-		
+
 			<div id="breadcrumbs">
 				<ul class="nav"><?php echo $helpers->renderBreadcrumbs(false); ?></ul>
 			</div>
@@ -110,18 +110,18 @@ $extras = $adminTheme->getExtraMarkup();
 				<p>
 					<?php if(!$user->isGuest()): ?>
 						<span id="userinfo">
-						<?php if($user->hasPermission('profile-edit')): ?> 
-							<a class="action" href="<?php echo $config->urls->admin; ?>profile/"><i class="fa fa-user"></i> <?php echo $user->name; ?></a>  
+						<?php if($user->hasPermission('profile-edit')): ?>
+							<a class="action" href="<?php echo $config->urls->admin; ?>profile/"><i class="fa fa-user"></i> <?php echo $user->name; ?></a>
 						<?php endif; ?>
 							<a class="action" href="<?php echo $config->urls->admin; ?>login/logout/"><i class="fa fa-times"></i> <?php echo $helpers->_('Logout'); ?></a>
 						</span>
 					<?php endif; ?>
-					ProcessWire <?php echo $config->versionName . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?> 
+					ProcessWire <?php echo $config->versionName . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?>
 				</p>
-				
+
 				<?php
 				echo $extras['footer'];
-				if($config->debug && $user->isSuperuser()) include($config->paths->root . "wire/templates-admin/debug.inc"); 
+				if($config->debug && $user->isSuperuser()) include($config->paths->root . "wire/templates-admin/debug.inc");
 				?>
 
 			</div><!--/#footer-->

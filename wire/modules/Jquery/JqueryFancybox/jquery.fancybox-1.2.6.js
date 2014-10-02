@@ -4,10 +4,10 @@
  *
  * Copyright (c) 2009 Janis Skarnelis
  * Examples and documentation at: http://fancybox.net
- * 
+ *
  * Version: 1.2.6 (16/11/2009)
  * Requires: jQuery v1.3+
- * 
+ *
  * Dual licensed under the MIT and GPL licenses:
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
@@ -76,7 +76,7 @@
 					if (item.title == '' || typeof item.title == 'undefined') {
 						item.title = item.orig.attr('alt');
 					}
-					
+
 					opts.itemArray.push( item );
 
 				} else {
@@ -116,7 +116,7 @@
 					'opacity'			: opts.overlayOpacity
 				}).show();
 			}
-			
+
 			$(window).bind("resize.fb scroll.fb", $.fn.fancybox.scrollBox);
 
 			_change_item();
@@ -167,7 +167,7 @@
 			var vertical_space		= (opts.padding * 2) + 60;
 
 			var w = $.fn.fancybox.getViewport();
-			
+
 			if (opts.imageScale && (width > (w[0] - horizontal_space) || height > (w[1] - vertical_space))) {
 				var ratio = Math.min(Math.min(w[0] - horizontal_space, width) / width, Math.min(w[1] - vertical_space, height) / height);
 
@@ -347,7 +347,7 @@
 					$(document).unbind("keydown.fb");
 					opts.itemCurrent--;
 					_change_item();
-					
+
 
 				} else if(e.keyCode == 39 && opts.itemCurrent != (opts.itemArray.length - 1)) {
 					$(document).unbind("keydown.fb");
@@ -388,10 +388,10 @@
 			}
 
 			if ($.browser.msie) {
-				$("#fancy_outer")[0].style.removeAttribute('filter'); 
-				$("#fancy_content")[0].style.removeAttribute('filter'); 
+				$("#fancy_outer")[0].style.removeAttribute('filter');
+				$("#fancy_content")[0].style.removeAttribute('filter');
 			}
-			
+
 			busy = false;
 		};
 
@@ -400,7 +400,7 @@
 
 	$.fn.fancybox.scrollBox = function() {
 		var w = $.fn.fancybox.getViewport();
-		
+
 		if (opts.centerOnScroll && $("#fancy_outer").is(':visible')) {
 			var ow	= $("#fancy_outer").outerWidth();
 			var oh	= $("#fancy_outer").outerHeight();
@@ -417,13 +417,13 @@
 				'left'	: pos.left	+ ((ow * 0.5) - ($('#fancy_title').width() * 0.5))
 			});
 		}
-		
+
 		if (IE6 && $("#fancy_overlay").is(':visible')) {
 			$("#fancy_overlay").css({
 				'height' : $(document).height()
 			});
 		}
-		
+
 		if ($("#fancy_loading").is(':visible')) {
 			$("#fancy_loading").css({'left': ((w[0] - 40) * 0.5 + w[2]), 'top': ((w[1] - 40) * 0.5 + w[3])});
 		}
@@ -494,7 +494,7 @@
 			}
 
 			$("#fancy_content").empty();
-			
+
 			if (opts.centerOnScroll) {
 				$(window).unbind("resize.fb scroll.fb");
 			}
@@ -558,9 +558,9 @@
 
 		html += '</div>';
 		html += '</div>';
-		
+
 		html += '<div id="fancy_title"></div>';
-		
+
 		$(html).appendTo("body");
 
 		$('<table cellspacing="0" cellpadding="0" border="0"><tr><td class="fancy_title" id="fancy_title_left"></td><td class="fancy_title" id="fancy_title_main"><div></div></td><td class="fancy_title" id="fancy_title_right"></td></tr></table>').appendTo('#fancy_title');
@@ -579,7 +579,7 @@
 			var frameDoc = $('#fancy_bigIframe')[0].contentWindow.document;
 			frameDoc.open();
 			frameDoc.close();
-			
+
 		}
 	};
 

@@ -1,19 +1,19 @@
-<?php 
+<?php
 
 /**
  * Site map template
  *
  */
 
-include("./head.inc"); 
+include("./head.inc");
 
 function sitemapListPage($page) {
 
-	echo "<li><a href='{$page->url}'>{$page->title}</a> ";	
+	echo "<li><a href='{$page->url}'>{$page->title}</a> ";
 
 	if($page->numChildren) {
 		echo "<ul>";
-		foreach($page->children as $child) sitemapListPage($child); 
+		foreach($page->children as $child) sitemapListPage($child);
 		echo "</ul>";
 	}
 
@@ -21,8 +21,8 @@ function sitemapListPage($page) {
 }
 
 echo "<ul class='sitemap'>";
-sitemapListPage($pages->get("/")); 
+sitemapListPage($pages->get("/"));
 echo "</ul>";
 
-include("./foot.inc"); 
+include("./foot.inc");
 

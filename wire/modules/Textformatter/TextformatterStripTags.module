@@ -4,11 +4,11 @@
  * ProcessWire Strip Tags Module
  *
  * Strips tags, except those allowed in the module configuration.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -22,14 +22,14 @@ class TextformatterStripTags extends Textformatter implements ConfigurableModule
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Strip Markup Tags', 
-			'version' => 100, 
-			'summary' => "Strips HTML/XHTML Markup Tags", 
-		); 
+			'title' => 'Strip Markup Tags',
+			'version' => 100,
+			'summary' => "Strips HTML/XHTML Markup Tags",
+		);
 	}
 
 	public function format(&$str) {
-		$str = strip_tags($str, $this->data['allowedTags']); 
+		$str = strip_tags($str, $this->data['allowedTags']);
 	}
 
         public static function getModuleConfigInputfields(array $data) {
@@ -40,9 +40,9 @@ class TextformatterStripTags extends Textformatter implements ConfigurableModule
 		$f->attr('name', $name);
 		$f->attr('value', $data[$name]);
 		$f->label = 'Allowed Markup Tags';
-		$f->description = 
-			"Enter any markup tags that are allowed, i.e. '<strong><em>'. " . 
-			"Note that this does not strip attributes for any tags you allow. " . 
+		$f->description =
+			"Enter any markup tags that are allowed, i.e. '<strong><em>'. " .
+			"Note that this does not strip attributes for any tags you allow. " .
 			"As a result, you should not allow *any* tags unless the user is trusted.";
 		$inputfields->append($f);
 		return $inputfields;
@@ -53,7 +53,7 @@ class TextformatterStripTags extends Textformatter implements ConfigurableModule
 	}
 
         public function __set($key, $value) {
-		$this->data[$key] = $value; 
+		$this->data[$key] = $value;
 	}
 
 }

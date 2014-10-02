@@ -13,8 +13,8 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 			'summary' => __('Admin theme for ProcessWire 2.5 by Tom Reno (Renobird)', __FILE__),
 			'autoload' => "template=admin",
 			'author' => "Tom Reno (Renobird)",
-			'requires' => 'AdminThemeDefault', 
-		); 
+			'requires' => 'AdminThemeDefault',
+		);
 	}
 
 	static $defaultIcons = array(
@@ -38,7 +38,7 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 		// if placeholder text is not translated for user's language, make it blank
 		$placeholder = $this->_('Type here to search');
 		if(!$this->wire('languages')) return $placeholder;
-		$user = $this->wire('user'); 
+		$user = $this->wire('user');
 		if($placeholder === 'Type here to search' && $user->language && !$user->language->isDefault()) {
 			$placeholder = '';
 		}
@@ -46,25 +46,25 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 	}
 
 	public static function getModuleConfigInputfields(array $data) {
-		
+
 		$inputfields = new InputfieldWrapper();
 
 		// colorscheme
 		$field = wire('modules')->get('InputfieldRadios');
 		$field->attr('name', 'colors');
-		$field->label = __('Color Set'); 
+		$field->label = __('Color Set');
 		$field->addOption('', __('Reno'));
 		$field->addOption('classic', __('Classic'));
 		$field->addOption('blue', __('Blue'));
-		$field->attr('value', isset($data['colors']) ? $data['colors'] : ''); 
-		$field->optionColumns = 1; 
+		$field->attr('value', isset($data['colors']) ? $data['colors'] : '');
+		$field->optionColumns = 1;
 		$inputfields->add($field);
 
 		// user avatar
 		$template = wire('templates')->get("user");
-		$field = wire('modules')->get("InputfieldSelect"); 
-		$field->attr('name', 'avatar_field'); 
-		$field->label = __('User image field'); 
+		$field = wire('modules')->get("InputfieldSelect");
+		$field->attr('name', 'avatar_field');
+		$field->label = __('User image field');
 		$field->description = __('To use this feature the "user" template needs to have an image field. If your user template does not have an image field, the avatar will default to an icon. To add an image field to the user template to go Setup > Templates > Filters (Show System Templates). The "user" template will now show in the list.'); // User image description
 		$imageField = false;
 
@@ -88,7 +88,7 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 			if(!in_array($imageField, $profileConfig['profileFields'])) {
 				$profileConfig['profileFields'][] = $imageField;
 				wire('modules')->saveModuleConfigData('ProcessProfile', $profileConfig);
-				wire()->message(sprintf(__('Added field "%s" to fields editable by user in their profile.'), $f->name)); 
+				wire()->message(sprintf(__('Added field "%s" to fields editable by user in their profile.'), $f->name));
 			}
 		}
 		$inputfields->add($field);

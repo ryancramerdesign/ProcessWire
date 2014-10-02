@@ -3,10 +3,10 @@
 /**
  * ProcessWire HookEvent
  *
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -14,23 +14,23 @@
 /**
  * Instances of HookEvent are passed to Hook handlers when their requested method has been called.
  *
- * HookEvents have the following properties available: 
+ * HookEvents have the following properties available:
  *
- * @property Wire $object Instance of the object where the Hook event originated. 
- * 
- * @property string $method The name of the method that was called to generate the Hook event. 
- * 
- * @property array $arguments A numerically indexed array of the arguments sent to the above mentioned method. 
- * 
- * @property mixed $return Applicable only for 'after' or ('replace' + 'before' hooks), contains the value returned by the above mentioned method. The hook handling method may modify this return value. 
- * 
+ * @property Wire $object Instance of the object where the Hook event originated.
+ *
+ * @property string $method The name of the method that was called to generate the Hook event.
+ *
+ * @property array $arguments A numerically indexed array of the arguments sent to the above mentioned method.
+ *
+ * @property mixed $return Applicable only for 'after' or ('replace' + 'before' hooks), contains the value returned by the above mentioned method. The hook handling method may modify this return value.
+ *
  * @property bool $replace Set to boolean TRUE in a 'before' hook if you want to prevent execution of the original hooked function. In such a case, your hook is replacing the function entirely. Not recommended, so be careful with this.
  *
  * @property array $options An optional array of user-specified data that gets sent to the hooked function. The hook handling method may access it from $event->data. This array also includes all of the Wire:defaultHookOptions
- * 
+ *
  * @property string $id A unique identifier string that may be used with a call to Wire::removeHook()
- * 
- * @property string $when In an active hook, contains either the string 'before' or 'after', indicating whether it is executing before or after the hooked method. 
+ *
+ * @property string $when In an active hook, contains either the string 'before' or 'after', indicating whether it is executing before or after the hooked method.
  *
  */
 class HookEvent extends WireData {
@@ -46,33 +46,33 @@ class HookEvent extends WireData {
 	 *
 	 */
 	public function __construct() {
-		$this->set('object', null); 
+		$this->set('object', null);
 		$this->set('method', '');
-		$this->set('arguments', array()); 
-		$this->set('return', null); 
-		$this->set('replace', false); 
-		$this->set('options', array()); 
-		$this->set('id', ''); 
+		$this->set('arguments', array());
+		$this->set('return', null);
+		$this->set('replace', false);
+		$this->set('options', array());
+		$this->set('id', '');
 	}
 
 	/**
 	 * Retrieve or set a hooked function argument
 	 *
-	 * @param int $n Zero based number of the argument you want to retrieve, where 0 is the first. Omit to return array of all arguments. 
-	 *	May also be the string 'name' of the argument. 
+	 * @param int $n Zero based number of the argument you want to retrieve, where 0 is the first. Omit to return array of all arguments.
+	 *	May also be the string 'name' of the argument.
 	 * @param mixed $value Value that you want to set to this argument, or omit to only return the argument.
-	 * @return array|null|mixed 
+	 * @return array|null|mixed
 	 *
 	 */
 	public function arguments($n = null, $value = null) {
-		if(is_null($n)) return $this->arguments; 
+		if(is_null($n)) return $this->arguments;
 		if(!is_null($value)) {
-			$this->setArgument($n, $value); 
+			$this->setArgument($n, $value);
 			return $value;
 		}
 		if(is_string($n)) return $this->argumentsByName($n);
-		$arguments = $this->arguments; 
-		return isset($arguments[$n]) ? $arguments[$n] : null; 
+		$arguments = $this->arguments;
+		return isset($arguments[$n]) ? $arguments[$n] : null;
 	}
 
 	/**
@@ -90,8 +90,8 @@ class HookEvent extends WireData {
 		$arguments = $this->arguments();
 
 		if($n) {
-			$key = array_search($n, $names); 
-			if($key === false) return null;	
+			$key = array_search($n, $names);
+			if($key === false) return null;
 			return array_key_exists($key, $arguments) ? $arguments[$key] : null;
 		}
 
@@ -105,7 +105,7 @@ class HookEvent extends WireData {
 		}
 
 		return $argumentsByName;
-		
+
 	}
 
 
@@ -124,15 +124,15 @@ class HookEvent extends WireData {
 
 		if(is_string($n) && !ctype_digit($n)) {
 			// convert argument name to position
-			$names = $this->getArgumentNames();	
-			$n = array_search($n, $names); 
-			if($n === false) throw new WireException("Unknown argument name: $n"); 
+			$names = $this->getArgumentNames();
+			$n = array_search($n, $names);
+			if($n === false) throw new WireException("Unknown argument name: $n");
 		}
 
-		$arguments = $this->arguments; 
-		$arguments[(int)$n] = $value; 
-		$this->set('arguments', $arguments); 
-		return $this; 
+		$arguments = $this->arguments;
+		$arguments[(int)$n] = $value;
+		$this->set('arguments', $arguments);
+		return $this;
 	}
 
 	/**
@@ -143,14 +143,14 @@ class HookEvent extends WireData {
 	 */
 	protected function getArgumentNames() {
 
-		$o = $this->get('object'); 
+		$o = $this->get('object');
 		$m = $this->get('method');
-		$key = get_class($o) . '.' . $m; 
+		$key = get_class($o) . '.' . $m;
 
 		if(isset(self::$argumentNames[$key])) return self::$argumentNames[$key];
 
 		$argumentNames = array();
-		$method = new ReflectionMethod($o, '___' . $m); 
+		$method = new ReflectionMethod($o, '___' . $m);
 		$arguments = $method->getParameters();
 
 		foreach($arguments as $a) {
@@ -158,9 +158,9 @@ class HookEvent extends WireData {
 			$argumentNames[$pos] = $a->getName();
 		}
 
-		self::$argumentNames[$key] = $argumentNames; 
+		self::$argumentNames[$key] = $argumentNames;
 
-		return $argumentNames; 
+		return $argumentNames;
 	}
 
 	/**
@@ -171,7 +171,7 @@ class HookEvent extends WireData {
 		$s = $this->object->className() . '::' . $this->method . '(';
 		foreach($this->arguments as $a) $s .= is_string($a) ? '"' . $a . '", ' : "$a, ";
 		$s = rtrim($s, ", ") . ")";
-		return $s; 	
+		return $s;
 	}
 
 

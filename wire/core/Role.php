@@ -4,11 +4,11 @@
  * ProcessWire Role Page
  *
  * A type of Page used for storing an individual Role
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2011 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -16,36 +16,36 @@
  *
  */
 
-class Role extends Page { 
+class Role extends Page {
 
 	/**
-	 * Create a new Role page in memory. 
+	 * Create a new Role page in memory.
 	 *
 	 */
 	public function __construct(Template $tpl = null) {
 		if(is_null($tpl)) $tpl = $this->getPredefinedTemplate();
 		$this->parent = $this->getPredefinedParent();
-		parent::__construct($tpl); 
+		parent::__construct($tpl);
 	}
 
 	/**
 	 * Get predefined template (template method)
-	 * 
+	 *
 	 * @return Template
 	 *
 	 */
 	protected function getPredefinedTemplate() {
-		return $this->wire('templates')->get('role'); 
+		return $this->wire('templates')->get('role');
 	}
 
 	/**
 	 * Get predefined parent page (template method)
-	 * 
+	 *
 	 * @return Page
 	 *
 	 */
 	protected function getPredefinedParent() {
-		return $this->wire('pages')->get($this->wire('config')->rolesPageID); 
+		return $this->wire('pages')->get($this->wire('config')->rolesPageID);
 	}
 
 	/**
@@ -56,16 +56,16 @@ class Role extends Page {
 	 *
 	 */
 	public function hasPermission($name) {
-		$has = false; 
-		
-		if(empty($name)) {	
+		$has = false;
+
+		if(empty($name)) {
 			// do nothing
-		
+
 		} else if($name instanceof Page) {
-			$has = $this->permissions->has($name); 
+			$has = $this->permissions->has($name);
 
 		} else if(ctype_digit("$name")) {
-			$name = (int) $name; 
+			$name = (int) $name;
 			foreach($this->permissions as $permission) {
 				if(((int) $permission->id) === $name) {
 					$has = true;
@@ -81,8 +81,8 @@ class Role extends Page {
 				}
 			}
 		}
-		
-		return $has; 
+
+		return $has;
 	}
 
 	/**
@@ -95,10 +95,10 @@ class Role extends Page {
 	 *
 	 */
 	public function addPermission($permission) {
-		if(is_string($permission) || is_int($permission)) $permission = $this->fuel('permissions')->get($permission); 
+		if(is_string($permission) || is_int($permission)) $permission = $this->fuel('permissions')->get($permission);
 		if(is_object($permission) && $permission instanceof Permission) {
-			$this->permissions->add($permission); 
-			return true; 
+			$this->permissions->add($permission);
+			return true;
 		}
 		return false;
 	}
@@ -113,10 +113,10 @@ class Role extends Page {
 	 *
 	 */
 	public function removePermission($permission) {
-		if(is_string($permission) || is_int($permission)) $permission = $this->fuel('permissions')->get($permission); 
+		if(is_string($permission) || is_int($permission)) $permission = $this->fuel('permissions')->get($permission);
 		if(is_object($permission) && $permission instanceof Permission) {
-			$this->permissions->remove($permission); 
-			return true; 
+			$this->permissions->remove($permission);
+			return true;
 		}
 		return false;
 	}

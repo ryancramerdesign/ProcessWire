@@ -1,14 +1,14 @@
 $(document).ready(function() {
-	$(document).on('click', 'a.pw-modal', function() { 
-		
+	$(document).on('click', 'a.pw-modal', function() {
+
 		var $a = $(this);
 		var href = $a.attr('href');
 		var url = href + (href.indexOf('?') > -1 ? '&' : '?') + 'modal=1';
-		var title = $a.attr('title'); 
+		var title = $a.attr('title');
 		var $iframe = $('<iframe class="modal-window" frameborder="0" src="' + url + '"></iframe>');
 		var windowWidth = $(window).width()-100;
 		var windowHeight = $(window).height()-160;
-	
+
 		var $dialog = $iframe.dialog({
 			modal: true,
 			height: windowHeight,
@@ -18,18 +18,18 @@ $(document).ready(function() {
 				$a.trigger('modal-close')
 			}
 		}).width(windowWidth).height(windowHeight);
-	
+
 		$iframe.load(function() {
-	
+
 			var buttons = [];
-			//$dialog.dialog('option', 'buttons', {}); 
+			//$dialog.dialog('option', 'buttons', {});
 			var $icontents = $iframe.contents();
 			var n = 0;
 			if(!title) title = $icontents.find('title').text();
-	
+
 			// set the dialog window title
 			$dialog.dialog('option', 'title', title);
-	
+
 			/*
 			// copy buttons in iframe to dialog
 			$icontents.find("#content form button.ui-button[type=submit]").each(function() {
@@ -58,21 +58,21 @@ $(document).ready(function() {
 				$button.hide();
 			});
 			*/
-	
+
 			/*
 			buttons[n] = {
-			 'text': 'Cancel', 
-			 'class': 'ui-priority-secondary', 
+			 'text': 'Cancel',
+			 'class': 'ui-priority-secondary',
 			 'click': function() {
-			 $dialog.dialog('close'); 
+			 $dialog.dialog('close');
 			 }
-			 }; 
+			 };
 			 if(buttons.length > 0) $dialog.dialog('option', 'buttons', buttons);
 			 $dialog.width(windowWidth).height(windowHeight);
 			 */
-	
+
 		});
-	
+
 		return false;
 	});
-}); 
+});

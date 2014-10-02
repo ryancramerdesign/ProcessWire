@@ -3,12 +3,12 @@
 /**
  * ProcessWire Exceptions
  *
- * Exceptions that aren't specific to a particular class. 
+ * Exceptions that aren't specific to a particular class.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
