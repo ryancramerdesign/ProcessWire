@@ -3,27 +3,27 @@
 /**
  * ProcessWire WireInputData and WireInput
  *
- * WireInputData and the WireInput class together form a simple 
+ * WireInputData and the WireInput class together form a simple
  * front end to PHP's $_GET, $_POST, and $_COOKIE superglobals.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
 
 /**
  * WireInputData manages one of GET, POST, COOKIE, or whitelist
- * 
- * Vars retrieved from here will not have to consider magic_quotes.
- * No sanitization or filtering is done, other than disallowing multi-dimensional arrays in input. 
  *
- * WireInputData specifically manages one of: get, post, cookie or whitelist, whereas the Input class 
+ * Vars retrieved from here will not have to consider magic_quotes.
+ * No sanitization or filtering is done, other than disallowing multi-dimensional arrays in input.
+ *
+ * WireInputData specifically manages one of: get, post, cookie or whitelist, whereas the Input class
  * provides access to the 3 InputData instances.
  *
- * Each WireInputData is not instantiated unless specifically asked for. 
+ * Each WireInputData is not instantiated unless specifically asked for.
  *
  *
  * @link http://processwire.com/api/variables/input/ Offical $input API variable Documentation
@@ -36,65 +36,65 @@ class WireInputData implements ArrayAccess, IteratorAggregate, Countable {
 
 	public function __construct(array $input = array()) {
 		$this->stripSlashes = get_magic_quotes_gpc();
-		$this->setArray($input); 
+		$this->setArray($input);
 	}
 
 	public function setArray(array $input) {
-		foreach($input as $key => $value) $this->__set($key, $value); 
-		return $this; 
+		foreach($input as $key => $value) $this->__set($key, $value);
+		return $this;
 	}
 
 	public function getArray() {
-		return $this->data; 
+		return $this->data;
 	}
 
 	public function __set($key, $value) {
-		if(is_string($value) && $this->stripSlashes) $value = stripslashes($value); 
-		if(is_array($value)) $value = $this->cleanArray($value); 
-		$this->data[$key] = $value; 
+		if(is_string($value) && $this->stripSlashes) $value = stripslashes($value);
+		if(is_array($value)) $value = $this->cleanArray($value);
+		$this->data[$key] = $value;
 	}
 
 	protected function cleanArray(array $a) {
 		$clean = array();
 		foreach($a as $key => $value) {
 			if(is_array($value)) continue; // we only allow one dimensional arrays
-			if(is_string($value) && $this->stripSlashes) $value = stripslashes($value); 
-			$clean[$key] = $value; 
+			if(is_string($value) && $this->stripSlashes) $value = stripslashes($value);
+			$clean[$key] = $value;
 		}
-		return $clean;	
+		return $clean;
 	}
 
 	public function setStripSlashes($stripSlashes) {
-		$this->stripSlashes = $stripSlashes ? true : false; 
+		$this->stripSlashes = $stripSlashes ? true : false;
 	}
 
 	public function __get($key) {
-		if($key == 'whitelist') return $this->whitelist; 
+		if($key == 'whitelist') return $this->whitelist;
 		return isset($this->data[$key]) ? $this->data[$key] : null;
 	}
 
 	public function getIterator() {
-		return new ArrayObject($this->data); 
+		return new ArrayObject($this->data);
 	}
 
 	public function offsetExists($key) {
-		return isset($this->data[$key]); 
+		return isset($this->data[$key]);
 	}
 
 	public function offsetGet($key) {
-		return $this->__get($key); 
+		return $this->__get($key);
 	}
 
 	public function offsetSet($key, $value) {
-		$this->__set($key, $value); 
+		$this->__set($key, $value);
 	}
 
 	public function offsetUnset($key) {
-		unset($this->data[$key]); 
+		unset($this->data[$key]);
 	}
 
 	public function count() {
-		return count($this->data); 
+		return count($this->data);
 	}
 
 	public function removeAll() {
@@ -102,15 +102,15 @@ class WireInputData implements ArrayAccess, IteratorAggregate, Countable {
 	}
 
 	public function __isset($key) {
-		return $this->offsetExists($key); 
+		return $this->offsetExists($key);
 	}
 
 	public function __unset($key) {
-		return $this->offsetUnset($key); 
+		return $this->offsetUnset($key);
 	}
 
 	public function queryString() {
-		return http_build_query($this->getArray()); 
+		return http_build_query($this->getArray());
 	}
 }
 
@@ -129,20 +129,20 @@ class WireInput {
 	protected $cookieVars = null;
 	protected $whitelist = null;
 	protected $urlSegments = array();
-	protected $pageNum = 1; 
+	protected $pageNum = 1;
 
 	/**
 	 * Retrieve a GET value or all GET values
 	 *
 	 * @param string $key
 	 * 	If populated, returns the value corresponding to the key or NULL if it doesn't exist.
-	 *	If blank, returns reference to the WireDataInput containing all GET vars. 
+	 *	If blank, returns reference to the WireDataInput containing all GET vars.
 	 * @return null|mixed|WireInputData
 	 *
 	 */
 	public function get($key = '') {
-		if(is_null($this->getVars)) $this->getVars = new WireInputData($_GET); 
-		return $key ? $this->getVars->__get($key) : $this->getVars; 
+		if(is_null($this->getVars)) $this->getVars = new WireInputData($_GET);
+		return $key ? $this->getVars->__get($key) : $this->getVars;
 	}
 
 	/**
@@ -150,13 +150,13 @@ class WireInput {
 	 *
 	 * @param string $key
 	 *	If populated, returns the value corresponding to the key or NULL if it doesn't exist.
-	 *	If blank, returns reference to the WireDataInput containing all POST vars. 
+	 *	If blank, returns reference to the WireDataInput containing all POST vars.
 	 * @return null|mixed|WireInputData
 	 *
 	 */
 	public function post($key = '') {
-		if(is_null($this->postVars)) $this->postVars = new WireInputData($_POST); 
-		return $key ? $this->postVars->__get($key) : $this->postVars; 
+		if(is_null($this->postVars)) $this->postVars = new WireInputData($_POST);
+		return $key ? $this->postVars->__get($key) : $this->postVars;
 	}
 
 	/**
@@ -164,42 +164,42 @@ class WireInput {
 	 *
 	 * @param string $key
 	 *	If populated, returns the value corresponding to the key or NULL if it doesn't exist.
-	 *	If blank, returns reference to the WireDataInput containing all COOKIE vars. 
+	 *	If blank, returns reference to the WireDataInput containing all COOKIE vars.
 	 * @return null|mixed|WireInputData
 	 *
 	 */
 	public function cookie($key = '') {
-		if(is_null($this->cookieVars)) $this->cookieVars = new WireInputData($_COOKIE); 
-		return $key ? $this->cookieVars->__get($key) : $this->cookieVars; 
+		if(is_null($this->cookieVars)) $this->cookieVars = new WireInputData($_COOKIE);
+		return $key ? $this->cookieVars->__get($key) : $this->cookieVars;
 	}
 
 	/**
 	 * Get or set a whitelist var
-	 *	
+	 *
 	 * Whitelist vars are used by modules and templates and assumed to be clean.
-	 * 
+	 *
 	 * The whitelist is a list of variables specifically set by the application as clean for use elsewhere in the application.
 	 * Only the version returned from this method should be considered clean.
-	 * This whitelist is not specifically used by ProcessWire unless you populate it from your templates or the API. 
+	 * This whitelist is not specifically used by ProcessWire unless you populate it from your templates or the API.
 	 *
-	 * @param string $key 
-	 * 	If $key is blank, it assumes you are asking to return the entire whitelist. 
+	 * @param string $key
+	 * 	If $key is blank, it assumes you are asking to return the entire whitelist.
 	 *	If $key and $value are populated, it adds the value to the whitelist.
 	 * 	If $key is an array, it adds all the values present in the array to the whitelist.
-	 * 	If $value is ommited, it assumes you are asking for a value with $key, in which case it returns it. 
+	 * 	If $value is ommited, it assumes you are asking for a value with $key, in which case it returns it.
 	 * @param mixed $value
 	 * 	See explanation for the $key param
 	 * @return null|mixed|WireInputData
-	 * 	See explanation for the $key param 
+	 * 	See explanation for the $key param
 	 *
 	 */
 	public function whitelist($key = '', $value = null) {
-		if(is_null($this->whitelist)) $this->whitelist = new WireInputData(); 
-		if(!$key) return $this->whitelist; 
-		if(is_array($key)) return $this->whitelist->setArray($key); 
-		if(is_null($value)) return $this->whitelist->__get($key); 
-		$this->whitelist->__set($key, $value); 
-		return $this->whitelist; 
+		if(is_null($this->whitelist)) $this->whitelist = new WireInputData();
+		if(!$key) return $this->whitelist;
+		if(is_array($key)) return $this->whitelist->setArray($key);
+		if(is_null($value)) return $this->whitelist->__get($key);
+		$this->whitelist->__set($key, $value);
+		return $this->whitelist;
 	}
 
 	/**
@@ -213,50 +213,50 @@ class WireInput {
 	 *
 	 */
 	public function urlSegment($num = 1) {
-		if($num < 1) $num = 1; 
+		if($num < 1) $num = 1;
 		return isset($this->urlSegments[$num]) ? $this->urlSegments[$num] : '';
 	}
 
 	/**
-	 * Set a URL segment value 
+	 * Set a URL segment value
 	 *
-	 * To unset, specify NULL as the value. 
+	 * To unset, specify NULL as the value.
 	 *
 	 * @param int $num Number of this URL segment (1 based)
-	 * @param string|null $value 
+	 * @param string|null $value
 	 *
 	 */
 	public function setUrlSegment($num, $value) {
-		$num = (int) $num; 
+		$num = (int) $num;
 		if(is_null($value)) {
 			// unset
 			$n = 0;
 			$urlSegments = array();
 			foreach($this->urlSegments as $k => $v) {
-				if($k == $num) continue; 
-				$urlSegments[++$n] = $v; 	
+				if($k == $num) continue;
+				$urlSegments[++$n] = $v;
 			}
-			$this->urlSegments = $urlSegments; 
+			$this->urlSegments = $urlSegments;
 		} else {
 			// set
-			$this->urlSegments[$num] = wire('sanitizer')->name($value); 	
+			$this->urlSegments[$num] = wire('sanitizer')->name($value);
 		}
 	}
 
 	/**
-	 * Return the current page number. 
+	 * Return the current page number.
 	 *
-	 * First page number is 1 (not 0). 
+	 * First page number is 1 (not 0).
 	 *
 	 * @return int
 	 *
 	 */
 	public function pageNum() {
-		return $this->pageNum; 	
+		return $this->pageNum;
 	}
 
 	/**
-	 * Set the current page number. 
+	 * Set the current page number.
 	 *
 	 * Note that the first page should be 1 (not 0).
 	 *
@@ -264,13 +264,13 @@ class WireInput {
 	 *
 	 */
 	public function setPageNum($num) {
-		$this->pageNum = (int) $num;	
+		$this->pageNum = (int) $num;
 	}
 
-	/**	
+	/**
 	 * Retrieve the get, post, cookie or whitelist vars using a direct reference, i.e. $input->cookie
 	 *
-	 * Can also be used with URL segments, i.e. $input->urlSegment1, $input->urlSegment2, $input->urlSegment3, etc. 
+	 * Can also be used with URL segments, i.e. $input->urlSegment1, $input->urlSegment2, $input->urlSegment3, etc.
 	 * And can also be used for $input->pageNum.
 	 *
 	 * @param string $key
@@ -279,39 +279,39 @@ class WireInput {
 	 */
 	public function __get($key) {
 
-		if($key == 'pageNum') return $this->pageNum; 
-		if($key == 'urlSegments') return $this->urlSegments; 
-		if($key == 'urlSegmentsStr' || $key == 'urlSegmentStr') return implode('/', $this->urlSegments); 
+		if($key == 'pageNum') return $this->pageNum;
+		if($key == 'urlSegments') return $this->urlSegments;
+		if($key == 'urlSegmentsStr' || $key == 'urlSegmentStr') return implode('/', $this->urlSegments);
 		if($key == 'url') return $this->url();
 		if($key == 'fragment') return $this->fragment();
 		if($key == 'queryString') return $this->queryString();
 		if($key == 'scheme') return $this->scheme();
 
 		if(strpos($key, 'urlSegment') === 0) {
-			if(strlen($key) > 10) $num = (int) substr($key, 10); 
-				else $num = 1; 
+			if(strlen($key) > 10) $num = (int) substr($key, 10);
+				else $num = 1;
 			return $this->urlSegment($num);
 		}
 
 		$value = null;
-		$gpc = array('get', 'post', 'cookie', 'whitelist'); 
+		$gpc = array('get', 'post', 'cookie', 'whitelist');
 
 		if(in_array($key, $gpc)) {
-			$value = $this->$key(); 
+			$value = $this->$key();
 
 		} else {
 			// Like PHP's $_REQUEST where accessing $input->var considers get/post/cookie/whitelist
 			// what it actually considers depends on what's set in the $config->wireInputOrder variable
-			$order = (string) wire('config')->wireInputOrder; 
+			$order = (string) wire('config')->wireInputOrder;
 			if(!$order) return null;
-			$types = explode(' ', $order); 
+			$types = explode(' ', $order);
 			foreach($types as $t) {
-				if(!in_array($t, $gpc)) continue; 	
-				$value = $this->$t($key); 
+				if(!in_array($t, $gpc)) continue;
+				$value = $this->$t($key);
 				if(!is_null($value)) break;
 			}
 		}
-		return $value; 
+		return $value;
 	}
 
 	public function __isset($key) {
@@ -320,31 +320,31 @@ class WireInput {
 
 	/**
 	 * URL that initiated the current request, including URL segments
-	 * 
+	 *
 	 * Note that this does not include query string or fragment
-	 * 
+	 *
 	 * @return string
-	 * 
+	 *
 	 */
 	public function url() {
-	
-		$page = wire('page'); 
-		$url = $page && $page->id ? wire('page')->url : ''; 
-		
-		$segmentStr = $this->urlSegmentStr; 
+
+		$page = wire('page');
+		$url = $page && $page->id ? wire('page')->url : '';
+
+		$segmentStr = $this->urlSegmentStr;
 		if(strlen($segmentStr)) {
 			$url = rtrim($url, '/') . '/';
 			$url .= $segmentStr;
 			$info = parse_url($_SERVER['REQUEST_URI']);
 			if(!empty($info['path']) && substr($info['path'], -1) == '/') $url .= '/'; // trailing slash
 		}
-		
+
 		return $url;
 	}
 
 	/**
 	 * Anchor/fragment for current request (i.e. #fragment)
-	 * 
+	 *
 	 * Note that this is not sanitized
 	 *
 	 * @return string
@@ -353,23 +353,23 @@ class WireInput {
 	public function fragment() {
 		if(strpos($_SERVER['REQUEST_URI'], '#') === false) return '';
 		$info = parse_url($_SERVER['REQUEST_URI']);
-		return empty($info['fragment']) ? '' : $info['fragment']; 
+		return empty($info['fragment']) ? '' : $info['fragment'];
 	}
 
 	/**
 	 * Return the query string that was part of this request or blank if none
-	 * 
+	 *
 	 * Note that this is not sanitized.
-	 * 
+	 *
 	 * @return string
-	 * 
+	 *
 	 */
 	public function queryString() {
 		return $this->getVars->queryString();
 	}
 
 	/**
-	 * Return the current access scheme/protocol 
+	 * Return the current access scheme/protocol
 	 *
 	 * Note that this is only useful for http/https, as we don't detect other schemes.
 	 *
@@ -377,7 +377,7 @@ class WireInput {
 	 *
 	 */
 	public function scheme() {
-		return wire('config')->https ? 'https' : 'http'; 
+		return wire('config')->https ? 'https' : 'http';
 	}
 }
 

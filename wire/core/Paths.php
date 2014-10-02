@@ -4,15 +4,15 @@
  * ProcessWire Paths
  *
  * Maintains lists of file paths, primarily used by the ProcessWire configuration.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  * @see http://processwire.com/api/variables/config/ Offical $config API variable Documentation
- * 
+ *
  * @property string $root Site root: /
  * @property string $templates Site templates: /site/templates/
  * @property string $adminTemplates Admin theme template files: /wire/templates-admin/ or /site/templates-admin/
@@ -26,7 +26,7 @@
  * @property string $tmp Temporary files: /site/assets/tmp/
  * @property string $sessions Session files: /site/assets/sessions/
  * @property string $admin Admin URL (applicable only to $config->urls)
- * 
+ *
  *
  */
 
@@ -39,7 +39,7 @@ class Paths extends WireData {
 	 *
 	 */
 	public function __construct($root) {
-		$this->set('root', $root); 
+		$this->set('root', $root);
 	}
 
 	/**
@@ -51,9 +51,9 @@ class Paths extends WireData {
 	 *
 	 */
 	public static function normalizeSeparators($path) {
-		if(DIRECTORY_SEPARATOR == '/') return $path; 
-		$path = str_replace(DIRECTORY_SEPARATOR, '/', $path); 
-		return $path; 
+		if(DIRECTORY_SEPARATOR == '/') return $path;
+		$path = str_replace(DIRECTORY_SEPARATOR, '/', $path);
+		return $path;
 	}
 
 	/**
@@ -66,8 +66,8 @@ class Paths extends WireData {
 	 *
 	 */
 	public function set($key, $value) {
-		$value = self::normalizeSeparators($value); 
-		return parent::set($key, $value); 
+		$value = self::normalizeSeparators($value);
+		return parent::set($key, $value);
 	}
 
 	/**
@@ -78,12 +78,12 @@ class Paths extends WireData {
 	 *
 	 */
 	public function get($key) {
-		$value = parent::get($key); 
-		if($key == 'root') return $value; 
+		$value = parent::get($key);
+		if($key == 'root') return $value;
 		if(!is_null($value)) {
-			if($value[0] == '/' || (DIRECTORY_SEPARATOR != '/' && $value[1] == ':')) return $value; 
-				else $value = $this->root . $value; 
+			if($value[0] == '/' || (DIRECTORY_SEPARATOR != '/' && $value[1] == ':')) return $value;
+				else $value = $this->root . $value;
 		}
-		return $value; 
+		return $value;
 	}
 }

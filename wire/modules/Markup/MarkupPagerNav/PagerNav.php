@@ -5,11 +5,11 @@
  *
  * Provides capability for determining pagination information
  *
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -32,7 +32,7 @@ class PagerNavItem {
 		'label' => '',
 		'pageNum' => 0,
 		'type' => '', // first, previous, next, last, current, or separator
-		); 
+		);
 
 	public function __construct($label, $pageNum, $type = '') {
 		$this->data['label'] = $label;
@@ -45,17 +45,17 @@ class PagerNavItem {
 	}
 
 	public function __set($property, $value) {
-		$this->data[$property] = $value; 
+		$this->data[$property] = $value;
 	}
 }
 
 /**
  * Collection of Pager items that determines which pagination links should be used
- * 
+ *
  * USAGE EXAMPLE:
- * 
- * $pager = new PagerNav(100, 10, 0); 
- * 
+ *
+ * $pager = new PagerNav(100, 10, 0);
+ *
  * foreach($pager as $pageLabel => $pageNum) {
  * 	$class = "action";
  * 	if($pageNum == $pager->getCurrentPage()) $class .= " on";
@@ -74,17 +74,17 @@ class PagerNav implements IteratorAggregate {
 	protected $itemsPerPage = 0;
 
 	protected $labels = array(
-		'previous' => 'prev', 
+		'previous' => 'prev',
 		'next' => 'next'
-		); 
+		);
 
 	protected $separator = NULL;
 
 	/**
 	 * Construct the PagerNav
  	 *
-	 * @param int $totalItems Total number of items in the list to be paginated. 
-	 * @param int $itemsPerPage The number of items you want to appear per page. 
+	 * @param int $totalItems Total number of items in the list to be paginated.
+	 * @param int $itemsPerPage The number of items you want to appear per page.
 	 * @param int $currentPage The current page number (NOTE: 0 based, not 1 based)
 	 *
 	 */
@@ -93,9 +93,9 @@ class PagerNav implements IteratorAggregate {
 		// note that the page numbers are zero based.
 		// if you are one based, then subtract one from currentPage before passing in here
 
-		if(!$itemsPerPage) throw new WireException("itemsPerPage must be more than 0"); 
+		if(!$itemsPerPage) throw new WireException("itemsPerPage must be more than 0");
 
-		$this->totalItems = $totalItems; 
+		$this->totalItems = $totalItems;
 		$this->currentPage = $currentPage-1;
 		$this->itemsPerPage = $itemsPerPage;
 
@@ -104,34 +104,34 @@ class PagerNav implements IteratorAggregate {
 		/*
 		// commented and kept for future reference
 		if($totalItems >= ($itemsPerPage * 2)) {
-			$this->totalPages = floor($this->totalItems / $this->itemsPerPage)-1; 
+			$this->totalPages = floor($this->totalItems / $this->itemsPerPage)-1;
 		} else {
-			//$this->totalPages = ceil($this->totalItems / $this->itemsPerPage)-1; 
-			$this->totalPages = ceil($this->totalItems / $this->itemsPerPage); 
+			//$this->totalPages = ceil($this->totalItems / $this->itemsPerPage)-1;
+			$this->totalPages = ceil($this->totalItems / $this->itemsPerPage);
 		}
 		*/
 
-		if($this->totalItems > 0) $this->totalPages = ceil($this->totalItems / $this->itemsPerPage)-1; 
-			else $this->totalPages = 0; 
+		if($this->totalItems > 0) $this->totalPages = ceil($this->totalItems / $this->itemsPerPage)-1;
+			else $this->totalPages = 0;
 
 		/*
 		// uncomment this section for debugging
-		echo 	"totalItems: " . $this->totalItems . "<br />" . 
-			"totalPages: " . $this->totalPages . "<br />" . 	
-			"currentPage: " . $this->currentPage . "<br />" . 
+		echo 	"totalItems: " . $this->totalItems . "<br />" .
+			"totalPages: " . $this->totalPages . "<br />" .
+			"currentPage: " . $this->currentPage . "<br />" .
 			"itemsPerPage: " . $this->itemsPerPage . "<br />";
 		*/
 
-		if($this->totalPages && (($this->totalPages * $this->itemsPerPage) >= $this->totalItems)) 
+		if($this->totalPages && (($this->totalPages * $this->itemsPerPage) >= $this->totalItems))
 			$this->totalPages--; // totalPages zero based
 
-		$this->separator = new PagerNavItem('', 0, PagerNavItem::typeSeparator); 
-	}	
+		$this->separator = new PagerNavItem('', 0, PagerNavItem::typeSeparator);
+	}
 
 	/**
  	 * Returns an array contantaining $label => $pageNum
 	 *
-	 * Rather than access this function directly, it is prefereable to iterate the object. 
+	 * Rather than access this function directly, it is prefereable to iterate the object.
 	 *
 	 * @return array
  	 *
@@ -147,9 +147,9 @@ class PagerNav implements IteratorAggregate {
 
 		if($this->numPageLinks) {
 			$numPageLinks = $this->numPageLinks-1;
-			//$numHalf = (int) round($numPageLinks / 2); 
-			$numHalf = (int) floor($numPageLinks / 2); 
-			$startPage = $this->currentPage - $numHalf; 
+			//$numHalf = (int) round($numPageLinks / 2);
+			$numHalf = (int) floor($numPageLinks / 2);
+			$startPage = $this->currentPage - $numHalf;
 
 			if($startPage <= 0) {
 				$startPage = 0;
@@ -161,26 +161,26 @@ class PagerNav implements IteratorAggregate {
 			$endPage = $startPage + $numPageLinks;
 
 			if($endPage > $this->totalPages) {
-				$endPage = $this->totalPages; 
+				$endPage = $this->totalPages;
 				$startPage = $endPage - $numPageLinks;
 				if($startPage < 0) $startPage = 0;
-			}		
+			}
 
 		} else {
-			$startPage = 0; 
-			$endPage = $this->totalPages; 
+			$startPage = 0;
+			$endPage = $this->totalPages;
 		}
 
 		/*
 		// uncomment for debugging purposes
-		echo 	"numPageLinks=$numPageLinks<br />" . 
-			"numHalf=$numHalf<br />" . 
-			"startPage=$startPage<br />" . 
-			"endPage=$endPage<br />" . 
-			"totalPages={$this->totalPages}<br />" . 
+		echo 	"numPageLinks=$numPageLinks<br />" .
+			"numHalf=$numHalf<br />" .
+			"startPage=$startPage<br />" .
+			"endPage=$endPage<br />" .
+			"totalPages={$this->totalPages}<br />" .
 			"totalItems={$this->totalItems}<br />";
 		*/
-			
+
 
 		for($n = $startPage; $n <= ($endPage+1); $n++) {
 			$type = $n == ($this->currentPage+1) ? PagerNavItem::typeCurrent : '';
@@ -188,7 +188,7 @@ class PagerNav implements IteratorAggregate {
 		}
 
 		if($this->currentPage < $this->totalPages) {
-			$useLast = true; 
+			$useLast = true;
 			$item = null;
 			$key = null;
 
@@ -198,19 +198,19 @@ class PagerNav implements IteratorAggregate {
 
 			/*
 			if($item && $item->pageNum == ($this->totalPages-1)) {
-				unset($this->pager[$key]); 
-				$this->pager[] = $this->separator; 
-				$this->pager[] = new PagerNavItem($this->totalPages+1, $this->totalPages); 
-				$useLast = false; 
+				unset($this->pager[$key]);
+				$this->pager[] = $this->separator;
+				$this->pager[] = new PagerNavItem($this->totalPages+1, $this->totalPages);
+				$useLast = false;
 			}
 			*/
 
 			if($useLast) {
-				$this->pager[] = $this->separator; 
-				$this->pager[] = new PagerNavItem($this->totalPages+1, $this->totalPages, PagerNavItem::typeLast); 
+				$this->pager[] = $this->separator;
+				$this->pager[] = new PagerNavItem($this->totalPages+1, $this->totalPages, PagerNavItem::typeLast);
 			}
 
-			if($this->getLabel('next')) $this->pager[] = new PagerNavItem($this->getLabel('next'), $this->currentPage+1, PagerNavItem::typeNext); 
+			if($this->getLabel('next')) $this->pager[] = new PagerNavItem($this->getLabel('next'), $this->currentPage+1, PagerNavItem::typeNext);
 		}
 
 		if(count($this->pager) > 1) {
@@ -220,7 +220,7 @@ class PagerNav implements IteratorAggregate {
 			foreach($this->pager as $key => $item) {
 				// convert from 0-based to 1-based
 				if($item->type != 'separator') $item->pageNum = $item->pageNum+1;
-				if($item->pageNum == 1) $firstPageLink = true; 
+				if($item->pageNum == 1) $firstPageLink = true;
 			}
 
 
@@ -228,10 +228,10 @@ class PagerNav implements IteratorAggregate {
 
 				// if the first page in pager is page 2, then get rid of it because we're already adding a page 1 (via typeFirst)
 				// and leaving it here would result in 1 ... 2
-				$item = reset($this->pager); 
-				if($item->pageNum == 2) array_shift($this->pager); 
+				$item = reset($this->pager);
+				if($item->pageNum == 2) array_shift($this->pager);
 
-				array_unshift($this->pager, $this->separator); 
+				array_unshift($this->pager, $this->separator);
 				array_unshift($this->pager, new PagerNavItem(1, 1, PagerNavItem::typeFirst)); // add reference to page 1
 			}
 
@@ -239,10 +239,10 @@ class PagerNav implements IteratorAggregate {
 				array_unshift($this->pager, new PagerNavItem($this->getLabel('previous'), $this->currentPage, PagerNavItem::typePrevious));
 			}
 
-		} else $this->pager = array(); 
+		} else $this->pager = array();
 
-	
-		return $this->pager; 	
+
+		return $this->pager;
 	}
 
 	public function getIterator() { return new ArrayObject($this->getPager()); }
@@ -251,7 +251,7 @@ class PagerNav implements IteratorAggregate {
 	public function getCurrentPage() { return $this->currentPage; }
 	public function getTotalPages() { return $this->totalPages+1; }
 	public function getLabel($key) { return isset($this->labels[$key]) ? $this->labels[$key] : ''; }
-	
+
 	public function setNumPageLinks($numPageLinks) { $this->numPageLinks = $numPageLinks; }
 
 	/**

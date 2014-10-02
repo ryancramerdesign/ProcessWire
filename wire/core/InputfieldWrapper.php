@@ -3,12 +3,12 @@
 /**
  * ProcessWire InputfieldWrapper
  *
- * Classes built to provide a wrapper for Inputfield instances. 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Classes built to provide a wrapper for Inputfield instances.
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -16,17 +16,17 @@
 /**
  * A WireArray of Inputfield instances.
  *
- * The default numeric indexing of a WireArray is not overridden. 
+ * The default numeric indexing of a WireArray is not overridden.
  *
  */
 class InputfieldsArray extends WireArray {
 
 	/**
-	 * Per WireArray interface, only Inputfield instances are accepted. 
+	 * Per WireArray interface, only Inputfield instances are accepted.
  	 *
 	 */
 	public function isValidItem($item) {
-		return $item instanceof Inputfield; 
+		return $item instanceof Inputfield;
 	}
 
 	/**
@@ -34,13 +34,13 @@ class InputfieldsArray extends WireArray {
 	 *
 	 */
 	public function find($selector) {
-		$a = parent::find($selector); 
+		$a = parent::find($selector);
 		foreach($this as $item) {
-			if(!$item instanceof InputfieldWrapper) continue; 
-			$children = $item->children();	
-			if(count($children)) $a->import($children->find($selector)); 
+			if(!$item instanceof InputfieldWrapper) continue;
+			$children = $item->children();
+			if(count($children)) $a->import($children->find($selector));
 		}
-		return $a; 
+		return $a;
 	}
 
 	public function makeBlankItem() {
@@ -48,7 +48,7 @@ class InputfieldsArray extends WireArray {
 	}
 
 	public function usesNumericKeys() {
-		return true; 
+		return true;
 	}
 
 }
@@ -56,12 +56,12 @@ class InputfieldsArray extends WireArray {
 /**
  * A type of Inputfield that is designed specifically to wrap other Inputfields
  *
- * The most common example of an InputfieldWrapper is a <form> 
+ * The most common example of an InputfieldWrapper is a <form>
  *
  * InputfieldWrapper is not designed to render an Inputfield specifically, but you can set a value attribute
- * containing content that will be rendered before the wrapper. 
+ * containing content that will be rendered before the wrapper.
  *
- */ 
+ */
 class InputfieldWrapper extends Inputfield {
 
 	/**
@@ -70,16 +70,16 @@ class InputfieldWrapper extends Inputfield {
 	 */
 	static protected $defaultMarkup = array(
 		'list' => "\n<ul {attrs}>\n{out}\n</ul>\n",
-		'item' => "\n\t<li {attrs}>\n{out}\n\t</li>", 
+		'item' => "\n\t<li {attrs}>\n{out}\n\t</li>",
 		'item_label' => "\n\t\t<label class='InputfieldHeader ui-widget-header' for='{for}'>{out}</label>",
 		'item_label_hidden' => "\n\t\t<label class='InputfieldHeader InputfieldHeaderHidden ui-widget-header'><span>{out}</span></label>",
-		'item_content' => "\n\t\t<div class='InputfieldContent ui-widget-content'>\n{out}\n\t\t</div>", 
+		'item_content' => "\n\t\t<div class='InputfieldContent ui-widget-content'>\n{out}\n\t\t</div>",
 		'item_error' => "\n<p class='description'><span class='ui-state-error'>{out}</span></p>",
-		'item_description' => "\n<p class='description'>{out}</p>", 
-		'item_head' => "\n<h2>{out}</h2>", 
+		'item_description' => "\n<p class='description'>{out}</p>",
+		'item_head' => "\n<h2>{out}</h2>",
 		'item_notes' => "\n<p class='notes'>{out}</p>",
 		'item_icon' => "<i class='fa fa-{name}'></i> ",
-		'item_toggle' => "<i class='toggle-icon fa fa-angle-down' data-to='fa-angle-down fa-angle-right'></i>", 
+		'item_toggle' => "<i class='toggle-icon fa fa-angle-down' data-to='fa-angle-down fa-angle-right'></i>",
 		);
 
 	static protected $markup = array();
@@ -90,10 +90,10 @@ class InputfieldWrapper extends Inputfield {
 	 */
 	static protected $defaultClasses = array(
 		'list' => 'Inputfields',
-		'list_clearfix' => 'ui-helper-clearfix', 
+		'list_clearfix' => 'ui-helper-clearfix',
 		'item' => 'Inputfield {class} Inputfield_{name} ui-widget',
 		'item_required' => 'InputfieldStateRequired',
-		'item_error' => 'ui-state-error InputfieldStateError', 
+		'item_error' => 'ui-state-error InputfieldStateError',
 		'item_collapsed' => 'InputfieldStateCollapsed',
 		'item_column_width' => 'InputfieldColumnWidth',
 		'item_column_width_first' => 'InputfieldColumnWidthFirst',
@@ -110,7 +110,7 @@ class InputfieldWrapper extends Inputfield {
 	protected $children = null;
 
 	/**
-	 * Array of Inputfields that had their processing delayed by dependencies. 
+	 * Array of Inputfields that had their processing delayed by dependencies.
 	 *
 	 */
 	protected $delayedChildren = array();
@@ -127,17 +127,17 @@ class InputfieldWrapper extends Inputfield {
 	 */
 	public function __construct() {
 		parent::__construct();
- 		$this->children = new InputfieldsArray(); 
-		$this->set('skipLabel', Inputfield::skipLabelFor); 
+ 		$this->children = new InputfieldsArray();
+		$this->set('skipLabel', Inputfield::skipLabelFor);
 		$this->requiredLabel = $this->_('Missing required value');
-		$columnWidthSpacing = $this->wire('config')->inputfieldColumnWidthSpacing; 
-		$columnWidthSpacing = is_null($columnWidthSpacing) ? 1 : (int) $columnWidthSpacing; 
-		$this->set('columnWidthSpacing', $columnWidthSpacing); 
+		$columnWidthSpacing = $this->wire('config')->inputfieldColumnWidthSpacing;
+		$columnWidthSpacing = is_null($columnWidthSpacing) ? 1 : (int) $columnWidthSpacing;
+		$this->set('columnWidthSpacing', $columnWidthSpacing);
 		$this->set('useDependencies', true); // whether or not to use consider field dependencies during processing
-		// allow optional override of any above settings with a $config->InputfieldWrapper array. 
-		$settings = $this->wire('config')->InputfieldWrapper; 
+		// allow optional override of any above settings with a $config->InputfieldWrapper array.
+		$settings = $this->wire('config')->InputfieldWrapper;
 		if(is_array($settings)) foreach($settings as $key => $value) $this->set($key, $value);
-		$this->set('renderValueMode', false); 
+		$this->set('renderValueMode', false);
 	}
 
 	/**
@@ -146,9 +146,9 @@ class InputfieldWrapper extends Inputfield {
 	 */
 	public function get($key) {
 		if($inputfield = $this->getChildByName($key)) return $inputfield;
-		if($this->fuel($key)) return $this->fuel($key); 
-		if($key == 'children') return $this->children; 
-		if(($value = parent::get($key)) !== null) return $value; 
+		if($this->fuel($key)) return $this->fuel($key);
+		if($key == 'children') return $this->children;
+		if(($value = parent::get($key)) !== null) return $value;
 		return null;
 	}
 
@@ -160,9 +160,9 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	public function add(Inputfield $item) {
-		$item->setParent($this); 
-		$this->children->add($item); 
-		return $this; 
+		$item->setParent($this);
+		$this->children->add($item);
+		return $this;
 	}
 
 	/**
@@ -170,9 +170,9 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	public function prepend(Inputfield $item) {
-		$item->setParent($this); 
-		$this->children->prepend($item); 
-		return $this; 
+		$item->setParent($this);
+		$this->children->prepend($item);
+		return $this;
 	}
 
 	/**
@@ -180,9 +180,9 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	public function append(Inputfield $item) {
-		$item->setParent($this); 
-		$this->children->append($item); 
-		return $this; 
+		$item->setParent($this);
+		$this->children->append($item);
+		return $this;
 	}
 
 	/**
@@ -190,9 +190,9 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	public function insertBefore(Inputfield $item, Inputfield $existingItem) {
-		$item->setParent($this); 
-		$this->children->insertBefore($item, $existingItem); 
-		return $this; 
+		$item->setParent($this);
+		$this->children->insertBefore($item, $existingItem);
+		return $this;
 	}
 
 	/**
@@ -200,9 +200,9 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	public function insertAfter(Inputfield $item, Inputfield $existingItem) {
-		$item->setParent($this); 
-		$this->children->insertAfter($item, $existingItem); 
-		return $this; 
+		$item->setParent($this);
+		$this->children->insertAfter($item, $existingItem);
+		return $this;
 	}
 
 	/**
@@ -210,8 +210,8 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	public function remove($item) {
-		$this->children->remove($item); 
-		return $this; 
+		$this->children->remove($item);
+		return $this;
 	}
 
 	/**
@@ -220,25 +220,25 @@ class InputfieldWrapper extends Inputfield {
 	 */
 	protected function preRenderChildren() {
 
-		if($this->InputfieldWrapper_isPreRendered) return $this->children; 
+		if($this->InputfieldWrapper_isPreRendered) return $this->children;
 
-		$children = new InputfieldWrapper(); 
+		$children = new InputfieldWrapper();
 		$wrappers = array($children);
 
 		foreach($this->children as $inputfield) {
 
-			$wrapper = end($wrappers); 
+			$wrapper = end($wrappers);
 
 			if($inputfield instanceof InputfieldFieldsetClose) {
-				if(count($wrappers) > 1) array_pop($wrappers); 
-				continue; 
+				if(count($wrappers) > 1) array_pop($wrappers);
+				continue;
 
 			} else if($inputfield instanceof InputfieldFieldsetOpen) {
-				$inputfield->set('InputfieldWrapper_isPreRendered', true); 
-				array_push($wrappers, $inputfield); 
-			} 
+				$inputfield->set('InputfieldWrapper_isPreRendered', true);
+				array_push($wrappers, $inputfield);
+			}
 
-			$wrapper->add($inputfield); 
+			$wrapper->add($inputfield);
 		}
 
 		return $children;
@@ -247,7 +247,7 @@ class InputfieldWrapper extends Inputfield {
 	/**
 	 * Return the completed output of this Inputfield, ready for insertion in an XHTML form
 	 *
-	 * This includes the output of any child Inputfields (if applicable). Children are presented as list items in an unordered list. 
+	 * This includes the output of any child Inputfields (if applicable). Children are presented as list items in an unordered list.
 	 *
 	 * @return string
 	 *
@@ -257,49 +257,49 @@ class InputfieldWrapper extends Inputfield {
 		$out = '';
 		$children = $this->preRenderChildren();
 		$columnWidthTotal = 0;
-		$columnWidthSpacing = $this->columnWidthSpacing; 
+		$columnWidthSpacing = $this->columnWidthSpacing;
 		$lastInputfield = null;
 		$markup = array_merge(self::$defaultMarkup, self::$markup);
 		$classes = array_merge(self::$defaultClasses, self::$classes);
-	
+
 		// show description for tabs
-		$description = $this->getSetting('description'); 
+		$description = $this->getSetting('description');
 		if($description && class_exists("InputfieldFieldsetTabOpen") && $this instanceof InputfieldFieldsetTabOpen) {
 			$out .= str_replace('{out}', nl2br($this->entityEncode($description, true)), $markup['item_head']);
 		}
-		
-		foreach($children as $inputfield) {
-			$renderValueMode = $this->renderValueMode; 
 
-			$collapsed = (int) $inputfield->getSetting('collapsed'); 
+		foreach($children as $inputfield) {
+			$renderValueMode = $this->renderValueMode;
+
+			$collapsed = (int) $inputfield->getSetting('collapsed');
 			$required = $inputfield->getSetting('required');
 			$requiredIf = $required ? $inputfield->getSetting('requiredIf') : false;
-			$showIf = $inputfield->getSetting('showIf'); 
-			
-			if($collapsed == Inputfield::collapsedHidden) continue; 
+			$showIf = $inputfield->getSetting('showIf');
+
+			if($collapsed == Inputfield::collapsedHidden) continue;
 			if($collapsed == Inputfield::collapsedNoLocked || $collapsed == Inputfield::collapsedYesLocked) $renderValueMode = true;
 
 			if($renderValueMode) {
 				$ffOut = $inputfield->renderValue();
-				if(is_null($ffOut)) continue; 
+				if(is_null($ffOut)) continue;
 				if(!strlen($ffOut)) $ffOut = '&nbsp;';
 			} else {
 				$ffOut = $inputfield->render();
 			}
-			if(!strlen($ffOut)) continue; 
+			if(!strlen($ffOut)) continue;
 
 			if(!$inputfield instanceof InputfieldWrapper) {
 				$errors = $inputfield->getErrors(true);
-				if(count($errors)) $collapsed = $renderValueMode ? Inputfield::collapsedNoLocked : Inputfield::collapsedNo; 
-				foreach($errors as $error) $ffOut = str_replace('{out}', $this->entityEncode($error, true), $markup['item_error']) . $ffOut; 
+				if(count($errors)) $collapsed = $renderValueMode ? Inputfield::collapsedNoLocked : Inputfield::collapsedNo;
+				foreach($errors as $error) $ffOut = str_replace('{out}', $this->entityEncode($error, true), $markup['item_error']) . $ffOut;
 			} else $errors = array();
-			
+
 			if($inputfield->getSetting('description')) $ffOut = str_replace('{out}',  nl2br($this->entityEncode($inputfield->getSetting('description'), true)), $markup['item_description']) . $ffOut;
-			if($inputfield->getSetting('head')) $ffOut = str_replace('{out}', $this->entityEncode($inputfield->getSetting('head'), true), $markup['item_head']) . $ffOut; 
+			if($inputfield->getSetting('head')) $ffOut = str_replace('{out}', $this->entityEncode($inputfield->getSetting('head'), true), $markup['item_head']) . $ffOut;
 
 			$ffOut = preg_replace('/(\n\s*)</', "$1\t\t\t<", $ffOut); // indent lines beginning with markup
 
-			if($inputfield->getSetting('notes')) $ffOut .= str_replace('{out}', nl2br($this->entityEncode($inputfield->notes, true)), $markup['item_notes']); 
+			if($inputfield->getSetting('notes')) $ffOut .= str_replace('{out}', nl2br($this->entityEncode($inputfield->notes, true)), $markup['item_notes']);
 
 			// The inputfield's classname is always used in it's LI wrapper
 			$ffAttrs = array(
@@ -308,12 +308,12 @@ class InputfieldWrapper extends Inputfield {
 			if($inputfield instanceof InputfieldItemList) $ffAttrs['class'] .= " InputfieldItemList";
 			if($collapsed) $ffAttrs['class'] .= " collapsed$collapsed";
 
-			//if(count($errors)) $ffAttrs['class'] .= " ui-state-error InputfieldStateError"; 
+			//if(count($errors)) $ffAttrs['class'] .= " ui-state-error InputfieldStateError";
 			if(count($errors)) $ffAttrs['class'] .= ' ' . $classes['item_error'];
-			if($required) $ffAttrs['class'] .= ' ' . $classes['item_required']; 
+			if($required) $ffAttrs['class'] .= ' ' . $classes['item_required'];
 			if(strlen($showIf) && !$this->renderValueMode) { // note: $this->renderValueMode (rather than $renderValueMode) is intentional
 				// support for repeaters, added by soma:
-				if(strpos($inputfield->name, "_repeater") !== false) { 
+				if(strpos($inputfield->name, "_repeater") !== false) {
 					$rep = explode("repeater", $inputfield->name);
 					$showIfPart = explode("=", $showIf);
 					if(!empty($rep[1]) && ctype_digit($rep[1])) {
@@ -324,31 +324,31 @@ class InputfieldWrapper extends Inputfield {
 				$ffAttrs['class'] .= ' ' . $classes['item_show_if'];
 			}
 			if(strlen($requiredIf)) {
-				$ffAttrs['data-required-if'] = $requiredIf; 
-				$ffAttrs['class'] .= ' ' . $classes['item_required_if']; 
+				$ffAttrs['data-required-if'] = $requiredIf;
+				$ffAttrs['class'] .= ' ' . $classes['item_required_if'];
 			}
 
 			if($collapsed) {
 				$isEmpty = $inputfield->isEmpty();
-				if(($isEmpty && $inputfield instanceof InputfieldWrapper) || 
+				if(($isEmpty && $inputfield instanceof InputfieldWrapper) ||
 					$collapsed === Inputfield::collapsedYes ||
 					$collapsed === Inputfield::collapsedYesLocked ||
-					$collapsed === true || 
+					$collapsed === true ||
 					($isEmpty && $collapsed === Inputfield::collapsedBlank) ||
 					($isEmpty && $collapsed === Inputfield::collapsedNoLocked) || // collapsedNoLocked assumed to be like a collapsedBlankLocked
 					(!$isEmpty && $collapsed === Inputfield::collapsedPopulated)) {
 						$ffAttrs['class'] .= ' ' . $classes['item_collapsed'];
 					}
 			}
-			
+
 			if($inputfield instanceof InputfieldWrapper) {
 				// if the child is a wrapper, then id, title and class attributes become part of the LI wrapper
 				foreach($inputfield->getAttributes() as $k => $v) {
 					if(in_array($k, array('id', 'title', 'class'))) {
-						$ffAttrs[$k] = isset($ffAttrs[$k]) ? $ffAttrs[$k] . " $v" : $v; 
+						$ffAttrs[$k] = isset($ffAttrs[$k]) ? $ffAttrs[$k] . " $v" : $v;
 					}
 				}
-			} 
+			}
 
 			// if the inputfield resulted in output, wrap it in an LI
 			if($ffOut) {
@@ -360,59 +360,59 @@ class InputfieldWrapper extends Inputfield {
 					$label = $inputfield->label;
 					// if $inputfield has a property of entityEncodeLabel with a value of boolean FALSE, we don't entity encode
 					if($inputfield->entityEncodeLabel !== false) $label = $this->entityEncode($label);
-					$icon = $inputfield->icon ? str_replace('{name}', $this->sanitizer->name(str_replace(array('icon-', 'fa-'), '', $inputfield->icon)), $markup['item_icon']) : ''; 
-					$toggle = $collapsed == Inputfield::collapsedNever ? '' : $markup['item_toggle']; 
+					$icon = $inputfield->icon ? str_replace('{name}', $this->sanitizer->name(str_replace(array('icon-', 'fa-'), '', $inputfield->icon)), $markup['item_icon']) : '';
+					$toggle = $collapsed == Inputfield::collapsedNever ? '' : $markup['item_toggle'];
 					if($inputfield->skipLabel === Inputfield::skipLabelHeader) {
 						// label only shows when field is collapsed
-						$label = str_replace('{out}', $icon . $label . $toggle, $markup['item_label_hidden']); 
+						$label = str_replace('{out}', $icon . $label . $toggle, $markup['item_label_hidden']);
 					} else {
 						// label always visible
-						$label = str_replace(array('{for}', '{out}'), array($for, $icon . $label . $toggle), $markup['item_label']); 
+						$label = str_replace(array('{for}', '{out}'), array($for, $icon . $label . $toggle), $markup['item_label']);
 					}
 				}
 				$columnWidth = (int) $inputfield->getSetting('columnWidth');
 				$columnWidthAdjusted = $columnWidth + ($columnWidthTotal ? -1 * $columnWidthSpacing : 0);
 				if($columnWidth >= 9 && $columnWidth <= 100) {
-					$ffAttrs['class'] .= ' ' . $classes['item_column_width']; 
-					if(!$columnWidthTotal) $ffAttrs['class'] .= ' ' . $classes['item_column_width_first']; 
-					$ffAttrs['style'] = "width: $columnWidthAdjusted%;"; 
+					$ffAttrs['class'] .= ' ' . $classes['item_column_width'];
+					if(!$columnWidthTotal) $ffAttrs['class'] .= ' ' . $classes['item_column_width_first'];
+					$ffAttrs['style'] = "width: $columnWidthAdjusted%;";
 					$columnWidthTotal += $columnWidth;
 					//if($columnWidthTotal >= 100 && !$requiredIf) $columnWidthTotal = 0; // requiredIf meant to be a showIf?
 					if($columnWidthTotal >= 100) $columnWidthTotal = 0;
 				} else {
 					$columnWidthTotal = 0;
 				}
-				if(!isset($ffAttrs['id'])) $ffAttrs['id'] = 'wrap_' . $inputfield->attr('id'); 
-				$ffAttrs['class'] = str_replace('Inputfield_ ', '', $ffAttrs['class']); 
-				if($inputfield->wrapClass) $ffAttrs['class'] .= " " . $inputfield->wrapClass; 
+				if(!isset($ffAttrs['id'])) $ffAttrs['id'] = 'wrap_' . $inputfield->attr('id');
+				$ffAttrs['class'] = str_replace('Inputfield_ ', '', $ffAttrs['class']);
+				if($inputfield->wrapClass) $ffAttrs['class'] .= " " . $inputfield->wrapClass;
 				foreach($ffAttrs as $k => $v) {
 					$attrs .= " $k='" . $this->entityEncode(trim($v)) . "'";
 				}
 				$markupItemContent = $markup['item_content'];
-				if($inputfield->contentClass) $markupItemContent = preg_replace('/( class=[\'"][^\'"]+)/', '$1 ' . trim($inputfield->contentClass), $markupItemContent, 1); 
-				if($inputfield->className() != 'InputfieldWrapper') $ffOut = str_replace('{out}', $ffOut, $markupItemContent); 
-				$out .= str_replace(array('{attrs}', '{out}'), array(trim($attrs), $label . $ffOut), $markup['item']); 
+				if($inputfield->contentClass) $markupItemContent = preg_replace('/( class=[\'"][^\'"]+)/', '$1 ' . trim($inputfield->contentClass), $markupItemContent, 1);
+				if($inputfield->className() != 'InputfieldWrapper') $ffOut = str_replace('{out}', $ffOut, $markupItemContent);
+				$out .= str_replace(array('{attrs}', '{out}'), array(trim($attrs), $label . $ffOut), $markup['item']);
 				$lastInputfield = $inputfield;
 			}
 		}
 
 		if($out) {
 			$ulClass = $classes['list'];
-			if($columnWidthTotal || ($lastInputfield && $lastInputfield->columnWidth >= 10 && $lastInputfield->columnWidth < 100)) $ulClass .= ' ' . $classes['list_clearfix']; 
+			if($columnWidthTotal || ($lastInputfield && $lastInputfield->columnWidth >= 10 && $lastInputfield->columnWidth < 100)) $ulClass .= ' ' . $classes['list_clearfix'];
 			$attrs = "class='$ulClass'"; // . ($this->attr('class') ? ' ' . $this->attr('class') : '') . "'";
 			if(!($this instanceof InputfieldForm)) foreach($this->getAttributes() as $attr => $value) if(strpos($attr, 'data-') === 0) $attrs .= " $attr='" . $this->entityEncode($value) . "'";
-			$out = $this->attr('value') . str_replace(array('{attrs}', '{out}'), array($attrs, $out), $markup['list']); 
+			$out = $this->attr('value') . str_replace(array('{attrs}', '{out}'), array($attrs, $out), $markup['list']);
 		}
 
-		return $out; 
+		return $out;
 	}
 
 	public function ___renderValue() {
 		$this->attr('class', trim($this->attr('class') .' InputfieldRenderValueMode'));
-		$this->set('renderValueMode', true); 
-		$out = $this->render(); 
-		$this->set('renderValueMode', false); 
-		return $out; 
+		$this->set('renderValueMode', true);
+		$out = $this->render();
+		$this->set('renderValueMode', false);
+		return $out;
 	}
 
 	/**
@@ -420,44 +420,44 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 * @param WireInputData $input
 	 * @return $this
-	 * 
+	 *
 	 */
 	public function ___processInput(WireInputData $input) {
-	
-		if(!$this->children) return $this; 
+
+		if(!$this->children) return $this;
 
 		foreach($this->children as $key => $child) {
 
 			// skip over the field if it is not processable
-			if(!$this->isProcessable($child)) continue; 	
+			if(!$this->isProcessable($child)) continue;
 
 			// pass along the dependencies value to child wrappers
 			if($child instanceof InputfieldWrapper && $this->useDependencies === false) {
-				$child->set('useDependencies', false); 
+				$child->set('useDependencies', false);
 			}
 
 			// call the inputfield's processInput method
-			$child->processInput($input); 
+			$child->processInput($input);
 
 			// check if a value is required and field is empty, trigger an error if so
 			if($child->name && $child->getSetting('required') && $child->isEmpty()) {
-				$child->error($this->requiredLabel); 
+				$child->error($this->requiredLabel);
 			}
 		}
 
-		return $this; 
+		return $this;
 	}
 
 	/**
 	 * Returns whether or not the given Inputfield should be processed by processInput()
-	 * 
+	 *
 	 * When an $inputfield has a 'showIf' property, then this returns false, but it queues
 	 * the field in the delayedChildren array for later processing. The root container should
-	 * temporarily remove the 'showIf' property of inputfields they want processed. 
-	 * 
+	 * temporarily remove the 'showIf' property of inputfields they want processed.
+	 *
 	 * @param Inputfield $inputfield
 	 * @return bool
-	 * 
+	 *
 	 */
 	protected function isProcessable(Inputfield $inputfield) {
 		// visibility settings that aren't saveable
@@ -470,26 +470,26 @@ class InputfieldWrapper extends Inputfield {
 		if(in_array((int) $inputfield->collapsed, $skipTypes)) return false;
 
 		// if dependencies aren't in use, we can skip the rest
-		if($this->useDependencies === false) return true; 
-		
-		if(strlen($inputfield->getSetting('showIf')) || 
+		if($this->useDependencies === false) return true;
+
+		if(strlen($inputfield->getSetting('showIf')) ||
 			($inputfield->getSetting('required') && strlen($inputfield->getSetting('requiredIf')))) {
-			
-			$name = $inputfield->attr('name'); 
+
+			$name = $inputfield->attr('name');
 			if(!$name) {
-				$name = $inputfield->attr('id'); 
-				if(!$name) $name = $this->wire('sanitizer')->fieldName($inputfield->label); 
-				$inputfield->attr('name', $name); 
+				$name = $inputfield->attr('id');
+				if(!$name) $name = $this->wire('sanitizer')->fieldName($inputfield->label);
+				$inputfield->attr('name', $name);
 			}
-			$this->delayedChildren[$name] = $inputfield; 
+			$this->delayedChildren[$name] = $inputfield;
 			return false;
 		}
-		
+
 		return true;
 	}
 
 	public function isEmpty() {
-		$empty = true; 
+		$empty = true;
 		foreach($this->children as $child) {
 			if(!$child->isEmpty()) {
 				$empty = false;
@@ -509,10 +509,10 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	public function getErrors($clear = false) {
-		$errors = parent::getErrors($clear); 
+		$errors = parent::getErrors($clear);
 		foreach($this->children as $key => $child) {
 			foreach($child->getErrors($clear) as $e) {
-				$msg = $child->label ? $child->label : $child->attr('name'); 
+				$msg = $child->label ? $child->label : $child->attr('name');
 				$errors[] = $msg . " - $e";
 			}
 		}
@@ -521,14 +521,14 @@ class InputfieldWrapper extends Inputfield {
 
 	/**
 	 * Return all child Inputfields, or a blank InputfieldArray if none
-	 * 	
+	 *
 	 * @param string $selector Optional selector string to filter the children by
  	 * @return InputfieldsArray
 	 *
 	 */
 	public function children($selector = '') {
-		if($selector) return $this->children->find($selector); 
-			else return $this->children; 
+		if($selector) return $this->children->find($selector);
+			else return $this->children;
 	}
 
 	/**
@@ -541,12 +541,12 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	public function getChildren($selector = '') {
-		return $this->children($selector); 
+		return $this->children($selector);
 	}
 
 	/**
 	 * Return array of inputfields (indexed by name) of fields that had dependencies and were not processed
-	 * 
+	 *
 	 * The results are to be handled by the root containing element (i.e. InputfieldForm).
 	 *
 	 * @param bool $clear Set to true in order to clear the delayed children list.
@@ -554,13 +554,13 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	public function _getDelayedChildren($clear = false) {
-		$a = $this->delayedChildren; 
+		$a = $this->delayedChildren;
 		foreach($this->children as $child) {
-			if(!$child instanceof InputfieldWrapper) continue; 
-			$a = array_merge($a, $child->_getDelayedChildren($clear)); 
+			if(!$child instanceof InputfieldWrapper) continue;
+			$a = array_merge($a, $child->_getDelayedChildren($clear));
 		}
 		if($clear) $this->delayedChildren = array();
-		return $a; 
+		return $a;
 	}
 
 	/**
@@ -571,7 +571,7 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	public function find($selector) {
-		return $this->children->find($selector); 
+		return $this->children->find($selector);
 	}
 
 	/**
@@ -583,7 +583,7 @@ class InputfieldWrapper extends Inputfield {
 	 */
 	public function getChildByName($name) {
 		if(!strlen($name)) return null;
-		$inputfield = $this->children->find("name=$name"); 	
+		$inputfield = $this->children->find("name=$name");
 		if(count($inputfield)) return $inputfield->first();
 		return null;
 	}
@@ -593,14 +593,14 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	public function getIterator() {
-		return $this->children; 
+		return $this->children;
 	}
 
 	/**
 	 * Get all fields recursively in a flat InputfieldWrapper, not just direct children
 	 *
 	 * Note that all InputfieldWrappers are removed as a result (except for the containing InputfieldWrapper)
- 	 *  
+ 	 *
 	 * @return InputfieldWrapper
 	 *
 	 */
@@ -609,10 +609,10 @@ class InputfieldWrapper extends Inputfield {
 		foreach($this->children as $child) {
 			if($child instanceof InputfieldWrapper) {
 				foreach($child->getAll() as $c) {
-					$all->add($c); 
+					$all->add($c);
 				}
 			} else {
-				$all->add($child); 
+				$all->add($child);
 			}
 		}
 		return $all;
@@ -623,8 +623,8 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	public function setTrackChanges($trackChanges = true) {
-		if(count($this->children)) foreach($this->children as $child) $child->setTrackChanges($trackChanges); 
-		return parent::setTrackChanges($trackChanges); 
+		if(count($this->children)) foreach($this->children as $child) $child->setTrackChanges($trackChanges);
+		return parent::setTrackChanges($trackChanges);
 	}
 
 	/**
@@ -632,7 +632,7 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	public function resetTrackChanges($trackChanges = true) {
-		if(count($this->children)) foreach($this->children as $child) $child->resetTrackChanges($trackChanges); 
+		if(count($this->children)) foreach($this->children as $child) $child->resetTrackChanges($trackChanges);
 		return parent::resetTrackChanges($trackChanges);
 	}
 
@@ -646,9 +646,9 @@ class InputfieldWrapper extends Inputfield {
 
 		// remove all options for 'collapsed' except collapsedYes and collapsedNo
 		foreach($inputfields as $f) {
-			if($f->attr('name') != 'collapsed') continue; 
+			if($f->attr('name') != 'collapsed') continue;
 			foreach($f->getOptions() as $value => $label) {
-				if(!in_array($value, array(Inputfield::collapsedNo, Inputfield::collapsedYes))) $f->removeOption($value); 
+				if(!in_array($value, array(Inputfield::collapsedNo, Inputfield::collapsedYes))) $f->removeOption($value);
 			}
 		}
 
@@ -666,7 +666,7 @@ class InputfieldWrapper extends Inputfield {
 	/**
 	 * Get custom markup for render, see self::$markup at top for reference.
 	 *
-	 * @return array 
+	 * @return array
 	 *
 	 */
 	public static function getMarkup() { return array_merge(self::$defaultMarkup, self::$markup); }
@@ -681,7 +681,7 @@ class InputfieldWrapper extends Inputfield {
 	 * Get custom classes for render, see self::$classes at top for reference.
 	 *
 	 * @return array
-	 * 
+	 *
 	 */
 	public static function getClasses() { return array_merge(self::$defaultClasses, self::$classes); }
 }

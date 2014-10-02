@@ -3,12 +3,12 @@
 /**
  * ProcessWire Inputfield
  *
- * Base class for Inputfield modules. 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Base class for Inputfield modules.
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -22,16 +22,16 @@ interface InputfieldHasArrayValue { }
 
 /**
  * An Inputfield an actual form input field widget, and this is provided as the base class
- * for different kinds of form input widgets provided as modules. 
+ * for different kinds of form input widgets provided as modules.
  *
  * The class supports a parent/child hierarchy so that a given Inputfield can contain Inputfields
- * below it. An example would be the relationship between fieldsets and fields in a form. 
+ * below it. An example would be the relationship between fieldsets and fields in a form.
  *
- * An Inputfield is typically associated with a Fieldtype module. 
+ * An Inputfield is typically associated with a Fieldtype module.
  *
- * All Inputfields have the following properties at minimum: 
+ * All Inputfields have the following properties at minimum:
  *
- * Inputfield::id 
+ * Inputfield::id
  * 	A unique string identifier for this Inputfield
  *
  * Inputfield::class
@@ -41,15 +41,15 @@ interface InputfieldHasArrayValue { }
  * 	Corresponds to XHTML "name" attribute
  *
  * Inputfield::value
- *	The current value of the field. May correspond go the XHTML "value" attribute on some inputs. 
- * 
+ *	The current value of the field. May correspond go the XHTML "value" attribute on some inputs.
+ *
  * @var null|Fieldtype hasFieldtype Set to the Fieldtype using this Inputfield (by Field), when applicable, null when not.
  * @var null|bool entityEncodeLabel Set to boolean false to specifically disable entity encoding of field header/label.
  *
  */
 abstract class Inputfield extends WireData implements Module {
 
-	/** 
+	/**
 	 * Constants for the standard Inputfield 'collapsed' setting
 	 *
 	 */
@@ -76,19 +76,19 @@ abstract class Inputfield extends WireData implements Module {
 	 * The total number of Inputfield instances, kept as a way of generating unique 'id' attributes
 	 *
 	 */
-	static protected $numInstances = 0; 	
+	static protected $numInstances = 0;
 
 	/**
-	 * Attributes specified for the XHTML output, like class, rows, cols, etc. 
+	 * Attributes specified for the XHTML output, like class, rows, cols, etc.
 	 *
 	 */
-	protected $attributes = array(); 
+	protected $attributes = array();
 
 	/**
 	 * The parent Inputfield, if applicable
 	 *
 	 */
-	protected $parent = null; 
+	protected $parent = null;
 
 	/**
 	 * The default ID attribute assigned to this field
@@ -102,7 +102,7 @@ abstract class Inputfield extends WireData implements Module {
 	 */
 	public function __construct() {
 
-		self::$numInstances++; 
+		self::$numInstances++;
 
 		$this->set('label', ''); 	// primary clikable label
 		$this->set('description', ''); 	// descriptive copy, below label
@@ -118,14 +118,14 @@ abstract class Inputfield extends WireData implements Module {
 		$this->set('wrapClass', ''); // optional class to apply to the wrapper
 
 		// default ID attribute if no 'id' attribute set
-		$this->defaultID = $this->className() . self::$numInstances; 
+		$this->defaultID = $this->className() . self::$numInstances;
 
-		$this->setAttribute('id', $this->defaultID); 
-		$this->setAttribute('class', ''); 
-		$this->setAttribute('name', ''); 
+		$this->setAttribute('id', $this->defaultID);
+		$this->setAttribute('class', '');
+		$this->setAttribute('name', '');
 
 		$value = $this instanceof InputfieldHasArrayValue ? array() : null;
-		$this->setAttribute('value', $value); 
+		$this->setAttribute('value', $value);
 	}
 
 	/**
@@ -134,9 +134,9 @@ abstract class Inputfield extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => '',
-			'version' => 1, 
-			'summary' => '', 
-			); 
+			'version' => 1,
+			'summary' => '',
+			);
 	}
 	 */
 
@@ -144,15 +144,15 @@ abstract class Inputfield extends WireData implements Module {
 	 * Per the Module interface, init() is called when the system is ready for API usage
 	 *
 	 */
-	public function init() { 
-		$this->addHookBefore('render', $this, 'hookRender'); 
+	public function init() {
+		$this->addHookBefore('render', $this, 'hookRender');
 	}
 
 	/**
-	 * This hook is called when the ___render() method is called, ensuring that related styles and scripts are added. 
+	 * This hook is called when the ___render() method is called, ensuring that related styles and scripts are added.
 	 *
-	 * This is hooked rather than called directly in init() to make sure that styles/scripts aren't loaded in instances where 
-	 * The Inputfield is loaded, but not rendered. 
+	 * This is hooked rather than called directly in init() to make sure that styles/scripts aren't loaded in instances where
+	 * The Inputfield is loaded, but not rendered.
 	 *
 	 * @param HookEvent $event
 	 *
@@ -164,9 +164,9 @@ abstract class Inputfield extends WireData implements Module {
 		$info = $this->wire('modules')->getModuleInfo($this, array('verbose' => false));
 		$version = (int) isset($info['version']) ? $info['version'] : 0;
 		if(file_exists("$path$class.css")) $this->config->styles->add("$url$class.css?v=$version");
-		if(file_exists("$path$class.js")) $this->config->scripts->add("$url$class.js?v=$version"); 
+		if(file_exists("$path$class.js")) $this->config->scripts->add("$url$class.js?v=$version");
 	}
-	
+
 	/**
 	 * Per the Module interface, install() is called when this Inputfield is instally installed
 	 *
@@ -184,7 +184,7 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function isSingular() {
-		return false; 
+		return false;
 	}
 
 	/**
@@ -192,7 +192,7 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function isAutoload() {
-		return false; 
+		return false;
 	}
 
 	/**
@@ -200,14 +200,14 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function set($key, $value) {
-		if($key == 'parent' && ($value instanceof InputfieldWrapper)) return $this->setParent($value); 
-		if(array_key_exists($key, $this->attributes)) return $this->setAttribute($key, $value); 
-		if($key == 'required' && $value && !is_object($value)) $this->addClass('required'); 
+		if($key == 'parent' && ($value instanceof InputfieldWrapper)) return $this->setParent($value);
+		if(array_key_exists($key, $this->attributes)) return $this->setAttribute($key, $value);
+		if($key == 'required' && $value && !is_object($value)) $this->addClass('required');
 		if($key == 'columnWidth') {
-			$value = (int) $value; 
+			$value = (int) $value;
 			if($value < 10 || $value > 99) $value = '';
 		}
-		return parent::set($key, $value); 
+		return parent::set($key, $value);
 	}
 
 	/**
@@ -218,28 +218,28 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 * This method is also tied into __get() like all WireData classes.
 	 *
-	 */ 
-	public function get($key) {	
+	 */
+	public function get($key) {
 		if($key == 'label' && !parent::get('label')) {
 			if($this->skipLabel & self::skipLabelBlank) return '';
-			return $this->attributes['name']; 
+			return $this->attributes['name'];
 		}
-		if($key == 'attributes') return $this->attributes; 
-		if($key == 'parent') return $this->parent; 
-		if(($value = $this->getFuel($key)) !== null) return $value; 
-		if(array_key_exists($key, $this->attributes)) return $this->attributes[$key]; 
-		return parent::get($key); 
+		if($key == 'attributes') return $this->attributes;
+		if($key == 'parent') return $this->parent;
+		if(($value = $this->getFuel($key)) !== null) return $value;
+		if(array_key_exists($key, $this->attributes)) return $this->attributes[$key];
+		return parent::get($key);
 	}
 
 	/**
 	 * Gets a setting or fuel from the Inputfield, while ignoring attributes and anything else
 	 *
 	 * To be used in cases where there is a potential name conflict, like the 'collapsed' field when in the Fields editor.
-	 * Otherwise don't bother using this method. 
+	 * Otherwise don't bother using this method.
 	 *
 	 */
 	public function getSetting($key) {
-		return parent::get($key); 
+		return parent::get($key);
 	}
 
 	/**
@@ -250,8 +250,8 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function setParent(InputfieldWrapper $parent) {
-		$this->parent = $parent; 
-		return $this; 
+		$this->parent = $parent;
+		return $this;
 	}
 
 	/**
@@ -261,17 +261,17 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function getParent() {
-		return $this->parent; 
+		return $this->parent;
 	}
 
 	/**
 	 * Set a Formfield attribute to accompany this Inputfield's output
 	 *
 	 * The key may contain multiple keys by being specified as an array, or by being a string with multiple keys separated by "+" signs
-	 * i.e. setAttribute("id+name", "template"); 
+	 * i.e. setAttribute("id+name", "template");
 	 *
 	 * If the value param is an array, then it will instruct the attribute to hold multiple values. Future calls to setAttribute()
-	 * will enforce the array type for that attribute. 
+	 * will enforce the array type for that attribute.
 	 *
 	 * @param string|array $key
 	 * @param string|int $value
@@ -279,16 +279,16 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function setAttribute($key, $value) {
-		
-		if(is_array($key)) $keys = $key; 
-			else if(strpos($key, '+')) $keys = explode('+', $key); 
-			else $keys = array($key); 
+
+		if(is_array($key)) $keys = $key;
+			else if(strpos($key, '+')) $keys = explode('+', $key);
+			else $keys = array($key);
 
 		foreach($keys as $key) {
 
 			if($key == 'name' && strlen($value)) {
-				$idAttr = $this->getAttribute('id'); 
-				$nameAttr = $this->getAttribute('name'); 
+				$idAttr = $this->getAttribute('id');
+				$nameAttr = $this->getAttribute('name');
 				if($idAttr == $this->defaultID || $idAttr == $nameAttr || $idAttr == "Inputfield_$nameAttr") {
 					// formulate an ID attribute that consists of the className and name attribute
 					$this->setAttribute('id', "Inputfield_$value");
@@ -301,17 +301,17 @@ abstract class Inputfield extends WireData implements Module {
 
 				// If the attribute is already established as an array, then we'll keep it as an array
 				// and stack any newly added values into the array.
-				// Examples would be stacking of class attributes, or stacking of value attributes for 
+				// Examples would be stacking of class attributes, or stacking of value attributes for
 				// an Inputfield that carries multiple values
-				
-				$this->attributes[$key][] = $value; 
+
+				$this->attributes[$key][] = $value;
 
 			} else {
-				$this->attributes[$key] = $value; 
+				$this->attributes[$key] = $value;
 			}
 		}
 
-		return $this; 
+		return $this;
 	}
 
 	/**
@@ -320,9 +320,9 @@ abstract class Inputfield extends WireData implements Module {
 	 * @param string $key
 	 * @return this
 	 *
-	 */ 
+	 */
 	public function removeAttr($key) {
-		unset($this->attributes[$key]); 
+		unset($this->attributes[$key]);
 		return $this;
 	}
 
@@ -332,7 +332,7 @@ abstract class Inputfield extends WireData implements Module {
 	 * @param string $key
 	 * @return this
 	 *
-	 */ 
+	 */
 	public function removeAttribute($key) {
 		return $this->removeAttr($key);
 	}
@@ -342,28 +342,28 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function setAttributes(array $attributes) {
-		foreach($attributes as $key => $value) $this->setAttribute($key, $value); 
-		return $this; 
+		foreach($attributes as $key => $value) $this->setAttribute($key, $value);
+		return $this;
 	}
 
 	/**
 	 * Set or get a Formfield attribute (multipurpose combination of setAttribute and getAttribute)
 	 *
-	 * If setting, this functions exactly the same as setAttribute(), and is just a shorter front end for it. 
+	 * If setting, this functions exactly the same as setAttribute(), and is just a shorter front end for it.
 	 * Alternatively, you may specify an an associative array of values to set for the $key param.
 	 * If getting an attribute, then don't specify the second $value param.
 	 *
-	 * @param string|array $key If an array, then all keyed values in the array will be set. 
-	 * @param string|int|null $value Optional - Omit if setting an array in the key, or if getting a value. 
-	 * @return $this|string|int If setting an attribute, it returns this instance. If getting an attribute, the attribute is returned. 
+	 * @param string|array $key If an array, then all keyed values in the array will be set.
+	 * @param string|int|null $value Optional - Omit if setting an array in the key, or if getting a value.
+	 * @return $this|string|int If setting an attribute, it returns this instance. If getting an attribute, the attribute is returned.
 	 *
 	 */
 	public function attr($key, $value = null) {
 		if(is_null($value)) {
-			if(is_array($key)) return $this->setAttributes($key); 
-				else return $this->getAttribute($key); 
+			if(is_array($key)) return $this->setAttributes($key);
+				else return $this->getAttribute($key);
 		}
-		return $this->setAttribute($key, $value); 
+		return $this->setAttribute($key, $value);
 	}
 
 	/**
@@ -373,9 +373,9 @@ abstract class Inputfield extends WireData implements Module {
 	public function getAttributes() {
 		$attributes = array();
 		foreach($this->attributes as $key => $value) {
-			$attributes[$key] = $value; 
+			$attributes[$key] = $value;
 		}
-		return $attributes; 
+		return $attributes;
 	}
 
 	/**
@@ -383,20 +383,20 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function getAttribute($key) {
-		return isset($this->attributes[$key]) ? $this->attributes[$key] : null; 
+		return isset($this->attributes[$key]) ? $this->attributes[$key] : null;
 	}
 
 	/**
 	 * Add the given classname to this inputfield
-	 * 
+	 *
 	 * @param string $class
 	 * @return $this
-	 * 
+	 *
 	 */
 	public function addClass($class) {
 		$c = explode(' ', $this->getAttribute('class'));
 		$c[] = $class;
-		$this->attributes['class'] = implode(' ', $c); 
+		$this->attributes['class'] = implode(' ', $c);
 		return $this;
 	}
 
@@ -431,7 +431,7 @@ abstract class Inputfield extends WireData implements Module {
 
 		if($this instanceof InputfieldHasArrayValue) {
 			// fields that use arrays as values aren't going to be using a value attribute in this string, so skip it
-			unset($attributes['value']); 
+			unset($attributes['value']);
 
 			// tell PHP to return an array by adding [] to the name attribute, i.e. "myfield[]"
 			if(isset($attributes['name']) && substr($attributes['name'], -1) != ']') $attributes['name'] .= '[]';
@@ -440,24 +440,24 @@ abstract class Inputfield extends WireData implements Module {
 		foreach($attributes as $attr => $value) {
 
 			// skip over empty attributes
-			if(!strlen("$value") && (!$value = $this->get($attr))) continue; 
+			if(!strlen("$value") && (!$value = $this->get($attr))) continue;
 
 			// if an attribute has multiple values (like class), then bundle them into a string separated by spaces
-			if(is_array($value)) $value = implode(' ', $value); 
+			if(is_array($value)) $value = implode(' ', $value);
 
 			$str .= "$attr=\"" . htmlspecialchars($value, ENT_QUOTES) . '" ';
 		}
 
-		return trim($str); 
+		return trim($str);
 	}
 
 	/**
 	 * Return the completed output of this Inputfield, ready for insertion in an XHTML form
 	 *
-	 * The method as it appears here does not actually output an Inputfield. However, subclasses should render the output 
-	 * for an Inputfield and then call upon this parent render method to output any children (if applicable). 
+	 * The method as it appears here does not actually output an Inputfield. However, subclasses should render the output
+	 * for an Inputfield and then call upon this parent render method to output any children (if applicable).
 	 *
-	 * This includes the output of any child Inputfields (if applicable). Children are presented as list items in an unordered list. 
+	 * This includes the output of any child Inputfields (if applicable). Children are presented as list items in an unordered list.
 	 *
 	 * @return string
 	 *
@@ -478,22 +478,22 @@ abstract class Inputfield extends WireData implements Module {
 			foreach($value as $v) $out .= "<li>" . $this->wire('sanitizer')->entities($v) . "</li>";
 			$out .= "</ul>";
 		} else {
-			$out = $this->wire('sanitizer')->entities($value); 
+			$out = $this->wire('sanitizer')->entities($value);
 		}
-		return $out; 
+		return $out;
 	}
 
 	/**
-	 * Process the input from the given WireInputData (usually $input->get or $input->post), load and clean the value for use in this Inputfield. 
+	 * Process the input from the given WireInputData (usually $input->get or $input->post), load and clean the value for use in this Inputfield.
 	 *
 	 * @param WireInputData $input
 	 * @return $this
-	 * 
+	 *
 	 */
 	public function ___processInput(WireInputData $input) {
 
 		if(isset($input[$this->name])) {
-			$value = $input[$this->name]; 
+			$value = $input[$this->name];
 
 		} else if($this instanceof InputfieldHasArrayValue) {
 			$value = array();
@@ -501,78 +501,78 @@ abstract class Inputfield extends WireData implements Module {
 			$value = $input[$this->name];
 		}
 
-		$changed = false; 
+		$changed = false;
 
 		if($this instanceof InputfieldHasArrayValue && !is_array($value)) {
-			$this->error("Expected an array value and did not receive it"); 
+			$this->error("Expected an array value and did not receive it");
 			return $this;
 		}
-		
+
 		$previousValue = $this->attr('value');
 
 		if(is_array($value)) {
 			// an array value was provided in the input
 			// note: only arrays one level deep are allowed
-			
+
 			if(!$this instanceof InputfieldHasArrayValue) {
-				$this->error("Received an unexpected array value"); 
-				return $this; 
+				$this->error("Received an unexpected array value");
+				return $this;
 			}
 
 			$values = array();
 			foreach($value as $v) {
 				if(is_array($v)) continue; // skip over multldimensional arrays, not allowed
 				if(ctype_digit("$v") && (((int) $v) <= PHP_INT_MAX)) $v = (int) "$v"; // force digit strings as integers
-				$values[] = $v; 
+				$values[] = $v;
 			}
 
-			if($previousValue !== $values) { 
+			if($previousValue !== $values) {
 				// If it has changed, then update for the changed value
-				$changed = true; 
-				$this->setAttribute('value', $values); 
+				$changed = true;
+				$this->setAttribute('value', $values);
 			}
 
-		} else { 
+		} else {
 			// string value provided in the input
 			if("$value" !== (string) $previousValue) {
-				$changed = true; 
-				$this->setAttribute('value', $value); 
+				$changed = true;
+				$this->setAttribute('value', $value);
 			}
 		}
 
-		if($changed) { 
-			$this->trackChange('value', $previousValue, $value); 
+		if($changed) {
+			$this->trackChange('value', $previousValue, $value);
 
 			// notify the parent of the change
-			if($parent = $this->getParent()) $parent->trackChange($this->name); 
+			if($parent = $this->getParent()) $parent->trackChange($this->name);
 		}
 
-		return $this; 
+		return $this;
 	}
 
 	/**
 	 * Return true if this field is empty (contains no/blank value), or false if it's not
 	 *
-	 * Used by the 'required' check to see if the field is populated, and descending Inputfields may 
+	 * Used by the 'required' check to see if the field is populated, and descending Inputfields may
 	 * override this according to their own definition of 'empty'.
 	 *
 	 * @return bool
 	 *
 	 */
 	public function isEmpty() {
-		$value = $this->attr('value'); 
+		$value = $this->attr('value');
 		if(is_array($value)) return count($value) == 0;
-		if(!strlen("$value")) return true; 
-		// if($value === 0) return true; 
-		return false; 
+		if(!strlen("$value")) return true;
+		// if($value === 0) return true;
+		return false;
 	}
 
 
 	/**
 	 * Get any custom configuration fields for this Inputfield
 	 *
-	 * Intended to be extended by each Inputfield as needed to add more config options. 
-	 * 
+	 * Intended to be extended by each Inputfield as needed to add more config options.
+	 *
 	 * NOTE: Inputfields with a name that starts with an underscore, i.e. "_myname" are assumed to be for runtime
 	 * use and are NOT stored in the database.
 	 *
@@ -582,85 +582,85 @@ abstract class Inputfield extends WireData implements Module {
 	public function ___getConfigInputfields() {
 
 		$conditionsText = $this->_('Conditions are expressed with a "field=value" selector containing fields and values to match. Multiple conditions should be separated by a comma.');
-		$conditionsNote = $this->_('Read more about [how to use this](http://processwire.com/api/selectors/inputfield-dependencies/).'); 
+		$conditionsNote = $this->_('Read more about [how to use this](http://processwire.com/api/selectors/inputfield-dependencies/).');
 
 		$fields = new InputfieldWrapper();
 
 		$fieldset = $this->modules->get('InputfieldFieldset');
-		$fieldset->label = $this->_('Visibility'); 
-		$fieldset->attr('name', 'visibility'); 
+		$fieldset->label = $this->_('Visibility');
+		$fieldset->attr('name', 'visibility');
 		$fieldset->icon = 'eye';
-		$field = $this->modules->get("InputfieldSelect"); 
-		$field->attr('name', 'collapsed'); 
-		$field->label = $this->_('Presentation'); 
+		$field = $this->modules->get("InputfieldSelect");
+		$field->attr('name', 'collapsed');
+		$field->label = $this->_('Presentation');
 		$field->description = $this->_("How should this field be displayed in the editor?");
 		$field->addOption(self::collapsedNo, $this->_('Always open (default)'));
-		$field->addOption(self::collapsedNever, $this->_('Always open and cannot be collapsed')); 
-		$field->addOption(self::collapsedBlank, $this->_("Collapsed only when blank")); 
-		$field->addOption(self::collapsedPopulated, $this->_("Collapsed only when populated")); 
-		$field->addOption(self::collapsedYes, $this->_("Always collapsed, requiring a click to open")); 
+		$field->addOption(self::collapsedNever, $this->_('Always open and cannot be collapsed'));
+		$field->addOption(self::collapsedBlank, $this->_("Collapsed only when blank"));
+		$field->addOption(self::collapsedPopulated, $this->_("Collapsed only when populated"));
+		$field->addOption(self::collapsedYes, $this->_("Always collapsed, requiring a click to open"));
 		$field->addOption(self::collapsedHidden, $this->_("Hidden, not shown in the editor"));
 		$field->addOption(self::collapsedYesLocked, $this->_("Always collapsed and not editable (locked)"));
 		$field->addOption(self::collapsedNoLocked, $this->_("Open when populated and not editable (locked)"));
-		$field->attr('value', (int) $this->collapsed); 
-		$fieldset->append($field); 
+		$field->attr('value', (int) $this->collapsed);
+		$fieldset->append($field);
 
-		$field = $this->modules->get("InputfieldText"); 
-		$field->label = $this->_('Show this field only if...'); 
-		$field->description = $this->_('Enter the conditions under which the field will be shown.') . ' ' . $conditionsText; 
-		$field->notes = $conditionsNote; 
+		$field = $this->modules->get("InputfieldText");
+		$field->label = $this->_('Show this field only if...');
+		$field->description = $this->_('Enter the conditions under which the field will be shown.') . ' ' . $conditionsText;
+		$field->notes = $conditionsNote;
 		$field->icon = 'question-circle';
-		$field->attr('name', 'showIf'); 
-		$field->attr('value', $this->getSetting('showIf')); 
+		$field->attr('name', 'showIf');
+		$field->attr('value', $this->getSetting('showIf'));
 		$field->collapsed = Inputfield::collapsedBlank;
 		$field->showIf = "collapsed!=" . self::collapsedHidden;
 		$fieldset->append($field);
-		
-		$fieldset->collapsed = $this->collapsed == Inputfield::collapsedNo && !$this->getSetting('showIf') ? Inputfield::collapsedYes : Inputfield::collapsedNo;
-		$fields->append($fieldset); 
 
-		$field = $this->modules->get('InputfieldInteger'); 
-		$value = (int) $this->getSetting('columnWidth'); 
+		$fieldset->collapsed = $this->collapsed == Inputfield::collapsedNo && !$this->getSetting('showIf') ? Inputfield::collapsedYes : Inputfield::collapsedNo;
+		$fields->append($fieldset);
+
+		$field = $this->modules->get('InputfieldInteger');
+		$value = (int) $this->getSetting('columnWidth');
 		if($value < 10 || $value >= 100) $value = 100;
 		$field->label = sprintf($this->_("Column Width (%d%%)"), $value);
 		$field->icon = 'arrows-h';
-		$field->attr('id+name', 'columnWidth'); 
+		$field->attr('id+name', 'columnWidth');
 		$field->attr('type', 'text');
-		$field->attr('maxlength', 4); 
-		$field->attr('size', 4); 
-		$field->attr('max', 100); 
-		$field->attr('value', $value . '%'); 
+		$field->attr('maxlength', 4);
+		$field->attr('size', 4);
+		$field->attr('max', 100);
+		$field->attr('value', $value . '%');
 		$field->description = $this->_("The percentage width of this field's container (10%-100%). If placed next to other fields with reduced widths, it will create floated columns."); // Description of colWidth option
 		$field->notes = $this->_("Note that not all fields will work at reduced widths, so you should test the result after changing this."); // Notes for colWidth option
-		if(!wire('input')->get('process_template')) if($value == 100) $field->collapsed = Inputfield::collapsedYes; 
-		$fields->append($field); 
+		if(!wire('input')->get('process_template')) if($value == 100) $field->collapsed = Inputfield::collapsedYes;
+		$fields->append($field);
 
 		if(!$this instanceof InputfieldWrapper) {
-			
+
 			$field = $this->modules->get('InputfieldCheckbox');
 			$field->label = $this->_('Required?');
 			$field->icon = 'asterisk';
-			$field->attr('name', 'required'); 
-			$field->attr('value', 1); 
-			$field->attr('checked', $this->getSetting('required') ? 'checked' : ''); 
+			$field->attr('name', 'required');
+			$field->attr('value', 1);
+			$field->attr('checked', $this->getSetting('required') ? 'checked' : '');
 			$field->description = $this->_("If checked, a value will be required for this field.");
-			$field->collapsed = $this->getSetting('required') ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
+			$field->collapsed = $this->getSetting('required') ? Inputfield::collapsedNo : Inputfield::collapsedYes;
 			$fields->add($field);
-			
-			$field = $this->modules->get('InputfieldText'); 
+
+			$field = $this->modules->get('InputfieldText');
 			$field->label = $this->_('Required only if...');
 			$field->icon = 'asterisk';
-			$field->description = $this->_('Enter the conditions under which a value will be required for this field.') . ' ' . $conditionsText; 
-			$field->notes = $conditionsNote; 
-			$field->attr('name', 'requiredIf'); 
-			$field->attr('value', $this->getSetting('requiredIf')); 
-			$field->collapsed = $field->attr('value') ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
-			$field->showIf = "required>0"; 
-			$fields->add($field); 
-			
+			$field->description = $this->_('Enter the conditions under which a value will be required for this field.') . ' ' . $conditionsText;
+			$field->notes = $conditionsNote;
+			$field->attr('name', 'requiredIf');
+			$field->attr('value', $this->getSetting('requiredIf'));
+			$field->collapsed = $field->attr('value') ? Inputfield::collapsedNo : Inputfield::collapsedYes;
+			$field->showIf = "required>0";
+			$fields->add($field);
+
 		}
 
-		return $fields; 
+		return $fields;
 	}
 
 	/**
@@ -668,15 +668,15 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 * Use this method to externalize any config values when necessary.
 	 * For example, internal IDs should be converted to GUIDs where possible.
-	 * 
+	 *
 	 * Most Inputfields do not need to implement this.
-	 * 
+	 *
 	 * @param array $data
 	 * @return array
 	 *
 	 */
 	public function ___exportConfigData(array $data) {
-		$inputfields = $this->getConfigInputfields(); 
+		$inputfields = $this->getConfigInputfields();
 		if(!$inputfields || !count($inputfields)) return $data;
 		foreach($inputfields->getAll() as $inputfield) {
 			$value = $inputfield->isEmpty() ? '' : $inputfield->value;
@@ -688,12 +688,12 @@ abstract class Inputfield extends WireData implements Module {
 
 	/**
 	 * Convert an array of exported data to a format that will be understood internally (opposite of exportConfigData)
-	 * 
+	 *
 	 * Most Inputfields do not need to implement this.
 	 *
 	 * @param array $data
 	 * @return array Data as given and modified as needed. Also included is $data[errors], an associative array
-	 * 	indexed by property name containing errors that occurred during import of config data. 
+	 * 	indexed by property name containing errors that occurred during import of config data.
 	 *
 	 */
 	public function ___importConfigData(array $data) {
@@ -705,8 +705,8 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function getErrorSessionKey() {
-		$name = $this->attr('name'); 
-		if(!$name) $name = $this->attr('id'); 
+		$name = $this->attr('name');
+		if(!$name) $name = $this->attr('id');
 		$key = "_errors_" . $this->className() . "_$name";
 		return $key;
 	}
@@ -717,21 +717,21 @@ abstract class Inputfield extends WireData implements Module {
 	 */
 	public function error($text, $flags = 0) {
 		$key = $this->getErrorSessionKey();
-		$errors = $this->session->$key;			
+		$errors = $this->session->$key;
 		if(!is_array($errors)) $errors = array();
 		if(!in_array($text, $errors)) {
-			$errors[] = $text; 
-			$this->session->set($key, $errors); 
+			$errors[] = $text;
+			$this->session->set($key, $errors);
 		}
 		$text .= $this->name ? " ($this->name)" : "";
-		return parent::error($text, $flags); 
+		return parent::error($text, $flags);
 	}
 
 	/**
 	 * Return array of strings containing errors that occurred during processInput
-	 * 
+	 *
 	 * Note that this is different from Wire::errors() in that it retrieves errors from the session
-	 * rather than just the current run. 
+	 * rather than just the current run.
 	 *
 	 * @param bool $clear Optionally clear the errors after getting them. Default=false.
 	 * @return array
@@ -742,12 +742,12 @@ abstract class Inputfield extends WireData implements Module {
 		$errors = $this->session->get($key);
 		if(!is_array($errors)) $errors = array();
 		if($clear) {
-			$this->session->remove($key); 
-			parent::errors("clear"); 
+			$this->session->remove($key);
+			parent::errors("clear");
 		}
-		return $errors; 
+		return $errors;
 	}
-	
+
 	/**
 	 * Does this Inputfield have the requested property or attribute?
 	 *
@@ -756,15 +756,15 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function has($key) {
-		$has = parent::has($key); 
-		if(!$has) $has = isset($this->attributes[$key]); 
-		return $has; 
+		$has = parent::has($key);
+		if(!$has) $has = isset($this->attributes[$key]);
+		return $has;
 	}
 
 	/**
 	 * Track the change, but only if it was to the 'value' attribute.
 	 *
-	 * We don't track changes to any other properties of Inputfields. 
+	 * We don't track changes to any other properties of Inputfields.
 	 *
 	 * @param string $what Name of property that changed
 	 * @param mixed $old Previous value before change
@@ -774,13 +774,13 @@ abstract class Inputfield extends WireData implements Module {
 	 */
 	public function trackChange($what, $old = null, $new = null) {
 		if($what != 'value') return $this;
-		return parent::trackChange($what, $old, $new); 
+		return parent::trackChange($what, $old, $new);
 	}
 
 	/**
 	 * Entity encode a string (de-encoding if necessary and then re-encoding)
 	 *
-	 * Also option for basic markdown support when 2nd argument is true. 
+	 * Also option for basic markdown support when 2nd argument is true.
 	 *
 	 * @param string $str
 	 * @param bool $markdown
@@ -790,21 +790,21 @@ abstract class Inputfield extends WireData implements Module {
 	public function entityEncode($str, $markdown = false) {
 		// if already encoded, then un-encode it
 		if(strpos($str, '&') !== false && preg_match('/&(#\d+|[a-z]+);/', $str)) {
-			$str = html_entity_decode($str, ENT_QUOTES, "UTF-8"); 
+			$str = html_entity_decode($str, ENT_QUOTES, "UTF-8");
 		}
 
-		$str = htmlentities($str, ENT_QUOTES, "UTF-8"); 
+		$str = htmlentities($str, ENT_QUOTES, "UTF-8");
 
 		// convert markdown-style links to HTML
 		if($markdown && strpos($str, '](')) {
-			$str = preg_replace('/\[(.+?)\]\(([^)]+)\)/', '<a href="$2" target="_blank">$1</a>', $str); 
+			$str = preg_replace('/\[(.+?)\]\(([^)]+)\)/', '<a href="$2" target="_blank">$1</a>', $str);
 		}
 		// convert markdown-style emphasis to <strong> tags
 		if($markdown && strpos($str, '**') !== false) {
-			$str = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $str); 
+			$str = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $str);
 		}
 
-		return $str; 
+		return $str;
 	}
 
 }

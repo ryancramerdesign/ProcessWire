@@ -11,24 +11,24 @@ class InputfieldHidden extends Inputfield {
 			'title' => __('Hidden', __FILE__), // Module Title
 			'version' => 101,
 			'summary' => __('Hidden value in a form', __FILE__), // Module Summary
-			'permanent' => true, 
+			'permanent' => true,
 			);
 	}
 
 	public function __construct() {
 		parent::__construct();
-		$this->setAttribute('type', 'hidden'); 
+		$this->setAttribute('type', 'hidden');
 		$this->initValue = '';
 	}
 
 	public function ___render() {
-		return "\n<input " . $this->getAttributesString() . " />"; 
+		return "\n<input " . $this->getAttributesString() . " />";
 	}
 
 	public function getAttributes() {
 		$attrs = parent::getAttributes();
-		if(!strlen($attrs['value']) && $this->initValue) $attrs['value'] = $this->initValue; 
-		return $attrs; 
+		if(!strlen($attrs['value']) && $this->initValue) $attrs['value'] = $this->initValue;
+		return $attrs;
 	}
 
 	public function ___getConfigInputfields() {
@@ -37,17 +37,17 @@ class InputfieldHidden extends Inputfield {
 
 		// remove config fields that don't need to be here
 		$f = $inputfields->getChildByName('collapsed');
-		$inputfields->remove($f); 
+		$inputfields->remove($f);
 		$f = $inputfields->getChildByName('columnWidth');
-		$inputfields->remove($f); 
+		$inputfields->remove($f);
 
 		$field = $this->modules->get('InputfieldText');
-		$field->setAttribute('name', 'initValue'); 
+		$field->setAttribute('name', 'initValue');
 		$field->label = $this->_('Value');
-		$field->description = $this->_('Value to be populated in this hidden field.'); 
-		$field->setAttribute('value', $this->initValue); 
+		$field->description = $this->_('Value to be populated in this hidden field.');
+		$field->setAttribute('value', $this->initValue);
 		$inputfields->append($field);
-		return $inputfields; 
+		return $inputfields;
 	}
-	
+
 }

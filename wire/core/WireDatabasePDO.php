@@ -4,11 +4,11 @@
  * ProcessWire PDO Database
  *
  * Serves as a wrapper to PHP's PDO class
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -27,49 +27,49 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 
 	/**
 	 * Whether queries will be logged
-	 * 
+	 *
 	 */
 	protected $debugMode = false;
 
 	/**
 	 * Instance of PDO
-	 * 
+	 *
 	 */
 	protected $pdo = null;
 
 	/**
 	 * PDO connection settings
-	 * 
+	 *
 	 */
 	private $pdoConfig = array(
-		'dsn' => '', 
+		'dsn' => '',
 		'user' => '',
-		'pass' => '', 	
+		'pass' => '',
 		'options' => '',
 		);
 
 	/**
 	 * Create a new PDO instance from ProcessWire $config API variable
-	 * 
+	 *
 	 * If you need to make other PDO connections, just instantiate a new WireDatabasePDO (or native PDO)
-	 * rather than calling this getInstance method. 
-	 * 
+	 * rather than calling this getInstance method.
+	 *
 	 * @param Config $config
-	 * @return WireDatabasePDO 
+	 * @return WireDatabasePDO
 	 * @throws WireException
-	 * 
+	 *
 	 */
 	public static function getInstance(Config $config) {
 
 		if(!class_exists('PDO')) {
-			throw new WireException('Required PDO class (database) not found - please add PDO support to your PHP.'); 
+			throw new WireException('Required PDO class (database) not found - please add PDO support to your PHP.');
 		}
 
 		$host = $config->dbHost;
 		$username = $config->dbUser;
 		$password = $config->dbPass;
 		$name = $config->dbName;
-		$socket = $config->dbSocket; 
+		$socket = $config->dbSocket;
 		$charset = $config->dbCharset;
 		if($socket) {
 			// if socket is provided ignore $host and $port and use $socket instead:
@@ -83,75 +83,75 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 			PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES '$charset'",
 			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
 			);
-		$database = new WireDatabasePDO($dsn, $username, $password, $driver_options); 
+		$database = new WireDatabasePDO($dsn, $username, $password, $driver_options);
 		$database->setDebugMode($config->debug);
 		return $database;
 	}
-	
+
 	public function __construct($dsn, $username = null, $password = null, array $driver_options = array()) {
-		$this->pdoConfig['dsn'] = $dsn; 
+		$this->pdoConfig['dsn'] = $dsn;
 		$this->pdoConfig['user'] = $username;
-		$this->pdoConfig['pass'] = $password; 
-		$this->pdoConfig['options'] = $driver_options; 
+		$this->pdoConfig['pass'] = $password;
+		$this->pdoConfig['options'] = $driver_options;
 		$this->pdo();
 	}
 
 	/**
 	 * Return the current PDO connection instance
 	 *
-	 * Use this instead of $this->pdo because it restores a lost connection automatically. 
+	 * Use this instead of $this->pdo because it restores a lost connection automatically.
 	 *
 	 * @return PDO
 	 *
 	 */
 	public function pdo() {
 		if(!$this->pdo) $this->pdo = new PDO(
-			$this->pdoConfig['dsn'], 
-			$this->pdoConfig['user'], 
-			$this->pdoConfig['pass'], 
+			$this->pdoConfig['dsn'],
+			$this->pdoConfig['user'],
+			$this->pdoConfig['pass'],
 			$this->pdoConfig['options']
-			); 	
+			);
 		return $this->pdo;
 	}
 
-	
+
 	public function errorCode() {
 		return $this->pdo()->errorCode();
 	}
-	
+
 	public function errorInfo() {
 		return $this->pdo()->errorInfo();
 	}
-	
+
 	public function getAttribute($attribute) {
-		return $this->pdo()->getAttribute($attribute); 
+		return $this->pdo()->getAttribute($attribute);
 	}
-	
+
 	public function setAttribute($attribute, $value) {
-		return $this->pdo()->setAttribute($attribute, $value); 
+		return $this->pdo()->setAttribute($attribute, $value);
 	}
-	
+
 	public function lastInsertId($name = null) {
-		return $this->pdo()->lastInsertId($name); 
+		return $this->pdo()->lastInsertId($name);
 	}
-	
+
 	public function query($statement) {
 		if($this->debugMode) self::$queryLog[] = $statement;
-		return $this->pdo()->query($statement); 
+		return $this->pdo()->query($statement);
 	}
-	
+
 	public function beginTransaction() {
 		return $this->pdo()->beginTransaction();
 	}
-	
+
 	public function inTransaction() {
 		return $this->pdo()->inTransaction();
 	}
-	
+
 	public function commit() {
 		return $this->pdo()->commit();
 	}
-	
+
 	public function rollBack() {
 		return $this->pdo()->rollBack();
 	}
@@ -165,14 +165,14 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 *
 	 */
 	static public function getQueryLog() {
-		return self::$queryLog; 
+		return self::$queryLog;
 	}
-	
+
 	public function prepare($statement, array $driver_options = array()) {
 		if($this->debugMode) self::$queryLog[] = $statement;
 		return $this->pdo()->prepare($statement, $driver_options);
 	}
-	
+
 	public function exec($statement) {
 		if($this->debugMode) self::$queryLog[] = $statement;
 		return $this->pdo()->exec($statement);
@@ -188,18 +188,18 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 		static $tables = array();
 
 		if(!count($tables)) {
-			$query = $this->query("SHOW TABLES"); 			
+			$query = $this->query("SHOW TABLES");
 			while($col = $query->fetchColumn()) $tables[] = $col;
-		} 
+		}
 
-		return $tables; 
+		return $tables;
 	}
 
 	/**
 	 * Is the given string a database comparison operator?
 	 *
 	 * @param string $str 1-2 character opreator to test
-	 * @return bool 
+	 * @return bool
 	 *
 	 */
 	public function isOperator($str) {
@@ -214,8 +214,8 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 *
 	 */
 	public function escapeTable($table) {
-		$table = (string) trim($table); 
-		if(ctype_alnum($table)) return $table; 
+		$table = (string) trim($table);
+		if(ctype_alnum($table)) return $table;
 		if(ctype_alnum(str_replace('_', '', $table))) return $table;
 		return preg_replace('/[^_a-zA-Z0-9]/', '_', $table);
 	}
@@ -239,8 +239,8 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 *
 	 */
 	public function escapeTableCol($str) {
-		if(strpos($str, '.') === false) return $this->escapeTable($str); 
-		list($table, $col) = explode('.', $str); 
+		if(strpos($str, '.') === false) return $this->escapeTable($str);
+		list($table, $col) = explode('.', $str);
 		return $this->escapeTable($table) . '.' . $this->escapeCol($col);
 	}
 
@@ -264,7 +264,7 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 *
 	 */
 	public function escape_string($str) {
-		return $this->escapeStr($str); 
+		return $this->escapeStr($str);
 	}
 
 	/**
@@ -286,46 +286,46 @@ class WireDatabasePDO extends Wire implements WireDatabase {
 	 *
 	 */
 	public function escapeLike($like) {
-		$like = $this->escapeStr($like); 
-		return addcslashes($like, '%_'); 
+		$like = $this->escapeStr($like);
+		return addcslashes($like, '%_');
 	}
-	
+
 	public function setDebugMode($debugMode) {
-		$this->debugMode = (bool) $debugMode; 
+		$this->debugMode = (bool) $debugMode;
 	}
-	
+
 	public function __get($key) {
 		if($key == 'pdo') return $this->pdo();
 		return parent::__get($key);
 	}
-	
+
 	public function closeConnection() {
 		$this->pdo = null;
 	}
 
 	/**
 	 * Retrieve new instance of WireDatabaseBackups ready to use with this connection
-	 * 
-	 * See WireDatabaseBackup class for usage. 
-	 * 
+	 *
+	 * See WireDatabaseBackup class for usage.
+	 *
 	 * @return WireDatabaseBackup
 	 * @throws WireException|Exception on fatal error
-	 * 
+	 *
 	 */
 	public function backups() {
-	
+
 		$path = $this->wire('config')->paths->assets . 'backups/database/';
 		if(!is_dir($path)) {
-			wireMkdir($path, true); 
-			if(!is_dir($path)) throw new WireException("Unable to create path for backups: $path"); 
+			wireMkdir($path, true);
+			if(!is_dir($path)) throw new WireException("Unable to create path for backups: $path");
 		}
 
-		$backups = new WireDatabaseBackup($path); 
+		$backups = new WireDatabaseBackup($path);
 		$backups->setDatabase($this);
 		$backups->setDatabaseConfig($this->wire('config'));
-		$backups->setBackupOptions(array('user' => $this->wire('user')->name)); 
-	
-		return $backups; 
+		$backups->setBackupOptions(array('user' => $this->wire('user')->name));
+
+		return $backups;
 	}
 
 }

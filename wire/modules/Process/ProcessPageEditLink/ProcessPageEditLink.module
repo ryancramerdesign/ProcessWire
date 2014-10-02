@@ -5,14 +5,14 @@
  *
  * Provides the link capability as used by the TinyMCE Inputfield
  * Works in combination with /modules/Inputfield/InputfieldTinyMCE/plugins/pwlink/editor_plugin.js
- * 
- * For more details about how Process modules work, please see: 
- * /wire/core/Process.php 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ *
+ * For more details about how Process modules work, please see:
+ * /wire/core/Process.php
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2011 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -24,41 +24,41 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Page Edit Link',          
-			'summary' => 'Provides a link capability as used by some Fieldtype modules (like TinyMCE)', 
-			'version' => 105, 
-			'permanent' => true, 
+			'title' => 'Page Edit Link',
+			'summary' => 'Provides a link capability as used by some Fieldtype modules (like TinyMCE)',
+			'version' => 105,
+			'permanent' => true,
 			'permission' => 'page-edit',
 			);
 	}
 
 	const urlTypeAbsolute = 0;
-	const urlTypeRelativeBranch = 1; 
-	const urlTypeRelativeAll = 2; 
-	
+	const urlTypeRelativeBranch = 1;
+	const urlTypeRelativeAll = 2;
+
 	protected $startLabel = '';
 
 	public function __construct() {
-		$this->set('urlType', self::urlTypeAbsolute); 
+		$this->set('urlType', self::urlTypeAbsolute);
 	}
 
 	public function init() {
-		$this->startLabel = $this->_('Choose page'); 
-		$this->modules->get("ProcessPageList"); 	
-		$id = (int) $this->input->get->id; 
-		if($id) $this->page = $this->pages->get($id); 
-		if($this->page && $this->page->id && !$this->user->hasPermission("page-view", $this->page)) throw new WireException("You don't have access to this page"); 
+		$this->startLabel = $this->_('Choose page');
+		$this->modules->get("ProcessPageList");
+		$id = (int) $this->input->get->id;
+		if($id) $this->page = $this->pages->get($id);
+		if($this->page && $this->page->id && !$this->user->hasPermission("page-view", $this->page)) throw new WireException("You don't have access to this page");
 		if(!$this->page) $this->page = new NullPage();
 
-		//$target = $this->sanitizer->name($this->input->get->target); 
-		//$this->config->js('ProcessPageEditLinkTarget', $target); 
+		//$target = $this->sanitizer->name($this->input->get->target);
+		//$this->config->js('ProcessPageEditLinkTarget', $target);
 
 		$this->config->js('ProcessPageEditLink', array(
-			'selectStartLabel' => $this->startLabel, 
+			'selectStartLabel' => $this->startLabel,
 			'langID' => ($this->input->get->lang ? (int) $this->input->get->lang : 0),
 			'pageID' => $id,
 			'pageUrl' => $this->page->url,
-			'pageName' => $this->page->name, 
+			'pageName' => $this->page->name,
 			'rootParentUrl' => $this->page->rootParent->url,
 			'slashUrls' => $this->page->template->slashUrls,
 			'urlType' => $this->urlType
@@ -69,48 +69,48 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 
 	public function ___execute() {
 
-		$form = $this->modules->get("InputfieldForm"); 
+		$form = $this->modules->get("InputfieldForm");
 		$form->attr('id', 'ProcessPageEditLinkForm');
 		$form->description = $this->_("Enter a URL, select a page, or select a file to link:"); // Headline
 
-		$field = $this->modules->get("InputfieldURL"); 
+		$field = $this->modules->get("InputfieldURL");
 		$field->label = $this->_("Link to URL");
-		$field->attr('id+name', 'link_page_url'); 
-		$form->append($field); 
+		$field->attr('id+name', 'link_page_url');
+		$form->append($field);
 
-		$field = $this->modules->get('InputfieldInteger'); 
+		$field = $this->modules->get('InputfieldInteger');
 		$field->attr('id+name', 'link_page_id');
 		$field->label = $this->_("Link to Page");
 		$field->startLabel = $this->startLabel;
-		$field->collapsed = Inputfield::collapsedYes; 
-		$form->append($field); 
+		$field->collapsed = Inputfield::collapsedYes;
+		$form->append($field);
 
 		if($this->page->numChildren) {
-			$field = $this->modules->get('InputfieldInteger'); 
+			$field = $this->modules->get('InputfieldInteger');
 			$field->attr('id+name', 'child_page_id');
 			$field->label = $this->_("Link to Child Page");
-			$field->description = $this->_('This is the same as "Link to Page" above, but may quicker to use if linking to children of the current page.'); 
+			$field->description = $this->_('This is the same as "Link to Page" above, but may quicker to use if linking to children of the current page.');
 			$field->startLabel = $this->startLabel;
-			$field->collapsed = Inputfield::collapsedYes; 
-			$form->append($field); 
+			$field->collapsed = Inputfield::collapsedYes;
+			$form->append($field);
 		}
 
-		$form->append($this->getFilesField()); 
+		$form->append($this->getFilesField());
 
-		$field = $this->modules->get("InputfieldCheckbox"); 
+		$field = $this->modules->get("InputfieldCheckbox");
 		$field->label = $this->_("Launch In New Window?");
 		$field->description = $this->_("If checked, the link will open in a new window leaving the current window in place."); // Details for 'launch in new window' checkbox
-		$field->attr('id+name', 'link_target'); 
-		$field->attr('value', '_blank'); 
-		$field->collapsed = Inputfield::collapsedYes; 
-		$form->append($field); 
+		$field->attr('id+name', 'link_target');
+		$field->attr('value', '_blank');
+		$field->collapsed = Inputfield::collapsedYes;
+		$form->append($field);
 
 		return $form->render();
 	}
 
 	public function ___executeFiles() {
-		if(!$this->page->id) throw new WireException("A page id must be specified"); 	
-		$files = $this->getFiles();	
+		if(!$this->page->id) throw new WireException("A page id must be specified");
+		$files = $this->getFiles();
 		return WireEncodeJSON($files);
 	}
 
@@ -119,22 +119,22 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		if($this->page->id) foreach($this->page->fields as $f) {
 			if(!$f->type instanceof FieldtypeFile) continue;
 			foreach($this->page->get($f->name) as $file) {
-				$files[$file->url] = $f->name . ' - ' . $file->basename; 
+				$files[$file->url] = $f->name . ' - ' . $file->basename;
 			}
 		}
-		asort($files); 
+		asort($files);
 		return $files;
 	}
 
 	protected function getFilesField() {
-		$field = $this->modules->get("InputfieldSelect"); 
+		$field = $this->modules->get("InputfieldSelect");
 		$field->label = $this->_("Link to File");
-		$field->attr('id+name', 'link_page_file'); 
+		$field->attr('id+name', 'link_page_file');
 		$files = $this->getFiles();
 		$field->addOption('');
-		$field->addOptions($files); 
-		$field->collapsed = Inputfield::collapsedYes; 
-		if($this->page->id) $field->notes = $this->page->url; 
+		$field->addOptions($files);
+		$field->collapsed = Inputfield::collapsedYes;
+		if($this->page->id) $field->notes = $this->page->url;
 		$field->description = $this->_("To select a file from another page, click 'Link to Page' above and choose the page you want to select a file from."); // Instruction on how to select a file from another page
 		return $field;
 
@@ -142,18 +142,18 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 
 	public static function getModuleConfigInputfields(array $data) {
 		$inputfields = new InputfieldWrapper();
-		$f = wire('modules')->get('InputfieldRadios'); 
-		$f->attr('name', 'urlType'); 
-		$f->label = __('URL type for page links'); 
-		$f->addOption(self::urlTypeAbsolute, __('Absolute (default)')); 
-		$f->addOption(self::urlTypeRelativeBranch, __('Relative URLs in the same branches only') . '*'); 
-		$f->addOption(self::urlTypeRelativeAll, __('Relative URLs always') . '*'); 
-		$f->attr('value', isset($data['urlType']) ? $data['urlType'] : self::urlTypeAbsolute); 
-		$f->notes = __('*Currently experimental'); 
-		$inputfields->add($f); 
-		return $inputfields; 
+		$f = wire('modules')->get('InputfieldRadios');
+		$f->attr('name', 'urlType');
+		$f->label = __('URL type for page links');
+		$f->addOption(self::urlTypeAbsolute, __('Absolute (default)'));
+		$f->addOption(self::urlTypeRelativeBranch, __('Relative URLs in the same branches only') . '*');
+		$f->addOption(self::urlTypeRelativeAll, __('Relative URLs always') . '*');
+		$f->attr('value', isset($data['urlType']) ? $data['urlType'] : self::urlTypeAbsolute);
+		$f->notes = __('*Currently experimental');
+		$inputfields->add($f);
+		return $inputfields;
 	}
-	
+
 
 }
 

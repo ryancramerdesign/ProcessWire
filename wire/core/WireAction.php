@@ -15,7 +15,7 @@ abstract class WireAction extends WireData implements Module {
 	 *
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'WireAction (abstract)', 
+			'title' => 'WireAction (abstract)',
 			'summary' => 'Base class for WireActions',
 			'version' => 0
 			);
@@ -39,7 +39,7 @@ abstract class WireAction extends WireData implements Module {
 	 *
 	 */
 	public function __construct() {
-		// $this->set('key', 'value'); 
+		// $this->set('key', 'value');
 	}
 
 	/**
@@ -74,7 +74,7 @@ abstract class WireAction extends WireData implements Module {
 	 * Perform the action on the given item
 	 *
 	 * @param Wire $item Item to operate upon
-	 * @return bool True if the item was successfully operated upon, false if not. 
+	 * @return bool True if the item was successfully operated upon, false if not.
 	 *
 	 */
 	abstract protected function ___action($item);
@@ -83,21 +83,21 @@ abstract class WireAction extends WireData implements Module {
 	 * Execute the action for the given item
 	 *
 	 * @param Wire $item Item to operate upon
-	 * @return bool True if the item was successfully operated upon, false if not. 
+	 * @return bool True if the item was successfully operated upon, false if not.
 	 *
 	 */
 	public function execute($item) {
 		if(!$this->isValidItem($item)) return false;
 
 		try {
-			$result = $this->action($item); 
+			$result = $this->action($item);
 
 		} catch(Exception $e) {
-			$result = false; 
-			$this->error($e->getMessage()); 
+			$result = false;
+			$this->error($e->getMessage());
 		}
 
-		return $result; 
+		return $result;
 	}
 
 	/**
@@ -110,9 +110,9 @@ abstract class WireAction extends WireData implements Module {
 	 */
 	public function ___executeMultiple($items) {
 		if(!is_array($items) && !$items instanceof WireArray) {
-			throw new WireException("Expected an array or WireArray!"); 
+			throw new WireException("Expected an array or WireArray!");
 		}
-		$result = 0; 
+		$result = 0;
 		foreach($items as $item) {
 			if($this->execute($item)) $result++;
 		}
@@ -130,47 +130,47 @@ abstract class WireAction extends WireData implements Module {
 		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
 		$fieldset->label = $info['title'];
 		$fieldset->description = $info['summary'];
-		return $fieldset; 
+		return $fieldset;
 	}
 
 	/**
 	 * Set the object instance that is running this action
 	 *
-	 * If an action knows that it only accepts a certain type of runner, then 
+	 * If an action knows that it only accepts a certain type of runner, then
 	 * it should throw a WireException if the given runner is not valid.
 	 *
 	 * @param Wire $runner
 	 *
 	 */
 	public function setRunner(Wire $runner) {
-		$this->runner = $runner; 
+		$this->runner = $runner;
 	}
 
 	/**
 	 * Get the object instance that is running this action
 	 *
 	 * Actions should not generally depend on a particular runner, but should take advantage
-	 * of a specific runner if it benefits the action. 
+	 * of a specific runner if it benefits the action.
 	 *
 	 * @return Wire|null Returns null if no runner has been set
 	 *
 	 */
 	public function getRunner() {
-		return $this->runner; 
+		return $this->runner;
 	}
 
 	public function message($text, $flags = 0) {
-		$runner = $this->getRunner(); 
-		if($runner) $runner->message($text, $flags); 
-			else parent::message($text, $flags); 
-		return $this; 
+		$runner = $this->getRunner();
+		if($runner) $runner->message($text, $flags);
+			else parent::message($text, $flags);
+		return $this;
 	}
 
 	public function error($text, $flags = 0) {
-		$runner = $this->getRunner(); 
-		if($runner) $runner->error($text, $flags); 
-			else parent::error($text, $flags); 
-		return $this; 
+		$runner = $this->getRunner();
+		if($runner) $runner->error($text, $flags);
+			else parent::error($text, $flags);
+		return $this;
 	}
 
 	/**
@@ -186,7 +186,7 @@ abstract class WireAction extends WireData implements Module {
 	}
 
 	public function isSingular() {
-		return true; 
+		return true;
 	}
 
 	public function isAutoload() {

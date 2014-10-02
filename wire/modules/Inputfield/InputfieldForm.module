@@ -11,78 +11,78 @@ class InputfieldForm extends InputfieldWrapper {
 			'title' => __('Form', __FILE__), // Module Title
 			'summary' => __('Contains one or more fields in a form', __FILE__), // Module Summary
 			'version' => 104,
-			'permanent' => true, 
+			'permanent' => true,
 			);
 	}
 
 	const debug = false; // set to true to enable debug mode for field dependencies
 
 	public function __construct() {
-		$this->set('protectCSRF', true); 
+		$this->set('protectCSRF', true);
 		parent::__construct();
-		$this->attr('method', 'post'); 
-		$this->attr('action', './'); 
-		$this->set('class', ''); 
+		$this->attr('method', 'post');
+		$this->attr('action', './');
+		$this->set('class', '');
 	}
 
 	protected function debugNote($note) {
-		if(self::debug) $this->message($note); 
+		if(self::debug) $this->message($note);
 	}
 
 	public function ___render() {
 
-		$this->attr('data-colspacing', (int) $this->columnWidthSpacing); 
+		$this->attr('data-colspacing', (int) $this->columnWidthSpacing);
 		$this->attr('class', trim($this->attr('class') . ' InputfieldForm'));
 		$attrs = $this->getAttributes();
-		unset($attrs['value']); 
+		unset($attrs['value']);
 
 		if($this->input->get('modal') && strpos($attrs['action'], 'modal=1') === false) {
 			// retain a modal=1 state in the form action
 			$attrs['action'] .= (strpos($attrs['action'], '?') === false ? '?' : '&') . 'modal=1';
 		}
 
-		$description = $this->getSetting('description'); 
-		if($description) $description = "\n<h2>" . $this->entityEncode($description) . "</h2>"; 
-		
-		$attrStr = $this->getAttributesString($attrs); 
+		$description = $this->getSetting('description');
+		if($description) $description = "\n<h2>" . $this->entityEncode($description) . "</h2>";
+
+		$attrStr = $this->getAttributesString($attrs);
 
 		if($this->protectCSRF && $this->attr('method') == 'post') {
-			$tokenField = $this->wire('session')->CSRF->renderInput(); 
+			$tokenField = $this->wire('session')->CSRF->renderInput();
 		} else {
 			$tokenField = '';
 		}
-		
-		$out = 	"\n<form $attrStr>" . 
-			$description . 
+
+		$out = 	"\n<form $attrStr>" .
+			$description .
 			parent::___render() .
-			$tokenField . 
+			$tokenField .
 			"\n</form>";
 
-		return $out; 
+		return $out;
 	}
 
 	public function ___processInput(WireInputData $input) {
-		
+
 		if($this->protectCSRF && $this->attr('method') == 'post') $this->wire('session')->CSRF->validate(); // throws exception if invalid
-		$result = parent::___processInput($input); 		
-		
-		$delayedChildren = $this->_getDelayedChildren(true); 
+		$result = parent::___processInput($input);
+
+		$delayedChildren = $this->_getDelayedChildren(true);
 		$delayedChildren = $this->processInputShowIf($input, $delayedChildren);
 		$this->processInputRequiredIf($input, $delayedChildren);
-	
+
 		return $result;
 	}
 
 	/**
 	 * Process input for show-if dependencies
-	 * 
+	 *
 	 * @param WireInputData $input
 	 * @param array $delayedChildren
 	 * @return array
-	 * 
+	 *
 	 */
 	protected function processInputShowIf(WireInputData $input, array $delayedChildren) {
-		
+
 		if(!count($delayedChildren)) return $delayedChildren;
 
 		$maxN = 255;
@@ -90,7 +90,7 @@ class InputfieldForm extends InputfieldWrapper {
 		$delayedN = count($delayedChildren);
 		$processedN = 0;
 		$unprocessedN = 0;
-		
+
 		$savedChildren = $delayedChildren;
 
 		while(count($delayedChildren)) {
@@ -102,18 +102,18 @@ class InputfieldForm extends InputfieldWrapper {
 
 			// shift first $child off the array
 			$child = array_shift($delayedChildren);
-			$this->debugNote("Processing delayed child: $child->name ($child->label)"); 
-			$selectorString = $child->getSetting('showIf'); 
+			$this->debugNote("Processing delayed child: $child->name ($child->label)");
+			$selectorString = $child->getSetting('showIf');
 			if(!strlen($selectorString)) {
-				$this->debugNote("Skipping $child->name ($child->label): No selector string"); 
-				continue; 
+				$this->debugNote("Skipping $child->name ($child->label): No selector string");
+				continue;
 			}
-			
-			$this->debugNote("showIf selector: $selectorString"); 
-			$selectors = new Selectors($selectorString); 
-			
+
+			$this->debugNote("showIf selector: $selectorString");
+			$selectors = new Selectors($selectorString);
+
 			// whether we should process $child now or not
-			$processNow = true; 
+			$processNow = true;
 
 			foreach($selectors as $selector) {
 
@@ -121,40 +121,40 @@ class InputfieldForm extends InputfieldWrapper {
 
 				// first determine that the dependency fields have already been processed
 				foreach($fields as $name) {
-					$this->debugNote("$child->name requires: $name"); 
+					$this->debugNote("$child->name requires: $name");
 
 					if(isset($savedChildren[$name]) && $name !== "1") {
-						
+
 						// if field had already been through the loop, but was not processed, add it back in for processing
 						if(!isset($delayedChildren[$name]) && !$savedChildren[$name]->showIfProcessed) $delayedChildren[$name] = $savedChildren[$name];
-						
+
 						// force $delayedChildren[$name] to match so that it is processed here, by giving it special selctor: 1>0
 						if(!strlen($savedChildren[$name]->getSetting('showIf'))) $savedChildren[$name]->showIf = '1>0'; // forced match
-						
+
 						// dependency $field is another one in $delayedChildren, send it back to the end
 						if(!$savedChildren[$name]->showIfProcessed) {
 							unset($delayedChildren[$child->name]);
 							// put it back on the end
-							$delayedChildren[$child->name] = $child; 
-							$this->debugNote("Sending field '$child->name' back to the end."); 
+							$delayedChildren[$child->name] = $child;
+							$this->debugNote("Sending field '$child->name' back to the end.");
 							$processNow = false;
 						}
 						break;
-						
+
 					} else {
 						// $field is most likely a form field has already been processed and is good to use
-						$processNow = true; 
+						$processNow = true;
 					}
 				}
 
 				if(!$processNow) break; // out to next $child
-			
+
 				// good to process $child
 				foreach($fields as $name) {
 					if($name == '1') continue;
-				
+
 					$subfield = '';
-					if(strpos($name, '.')) list($name, $subfield) = explode('.', $name); 
+					if(strpos($name, '.')) list($name, $subfield) = explode('.', $name);
 
 					// get the inputfield that $child has a dependency on
 					$dependencyChild = $this->getChildByName($name);
@@ -166,35 +166,35 @@ class InputfieldForm extends InputfieldWrapper {
 					}
 
 					$value = $dependencyChild->attr('value');
-					if($subfield == 'count') $value = count($value); 
+					if($subfield == 'count') $value = count($value);
 					if(is_object($value)) $value = "$value";
 
 					if(!$selector->matches($value)) {
-						$this->debugNote("Selector failed to match \"$selector\" because value=" . print_r($value, true)); 
+						$this->debugNote("Selector failed to match \"$selector\" because value=" . print_r($value, true));
 						$processNow = false;
 						break;
 					}
-					
+
 				} // $fields
-	
+
 				if(!$processNow) break;
-				
+
 				$this->debugNote("$child->name ($child->label) - matched: showIf($selector)");
 				$processedN++;
 
 			} // $selectors
-			
-			if($subfield == 'count') $this->debugNote("actual count: $value"); 
-			
+
+			if($subfield == 'count') $this->debugNote("actual count: $value");
+
 			if(!$processNow) {
-				$this->debugNote("$child->name ($child->label) - did not match: showIf($selector)"); 
-				$this->debugNote("Skipped processing for: $child->name ($child->label)"); 
+				$this->debugNote("$child->name ($child->label) - did not match: showIf($selector)");
+				$this->debugNote("Skipped processing for: $child->name ($child->label)");
 				$child->set('showIfSkipped', true); // flag the field as skipped
 				$unprocessedN++;
 				// since this didn't match, then no other selectors in the group for this child can match, so break out of the selector loop
 				continue; // to next $child
 			}
-			
+
 			// the required dependency is in place so that $child can be processed
 			// temporarily remove the showIf property to prevent InputfieldWrapper's from delaying it again
 			$showIf = $child->getSetting('showIf');
@@ -204,80 +204,80 @@ class InputfieldForm extends InputfieldWrapper {
 			$child->set('showIfProcessed', true); // flag it as processed
 			$this->debugNote("$child->name - processed!");
 
-			// now check if the processed child has children of it's own that may have been delayed 
+			// now check if the processed child has children of it's own that may have been delayed
 			if($child instanceof InputfieldWrapper) {
-				$delayed = $child->_getDelayedChildren(true); 
+				$delayed = $child->_getDelayedChildren(true);
 				if(count($delayed)) {
 					foreach($delayed as $d) {
-						$dname = $d->attr('name'); 
+						$dname = $d->attr('name');
 						if(!$dname) $dname = $d->attr('id');
-						$this->debugNote("Delayed: $dname ($d->label)"); 
+						$this->debugNote("Delayed: $dname ($d->label)");
 					}
 					$delayedChildren = array_merge($delayedChildren, $delayed); // add them to delayed children
 					$savedChildren = array_merge($savedChildren, $delayed); // add them to saved children (to be sent to requiredIf too)
-					$delayedN += count($delayed); 
+					$delayedN += count($delayed);
 				}
 			}
 
 		} // count($delayedChildren)
 
 		$this->debugNote("delayedChildren: $delayedN ($processedN processed, $unprocessedN not)");
-		return $savedChildren; 
+		return $savedChildren;
 	}
 
 	/**
 	 * Process input for fields with a required-if dependency
-	 * 
+	 *
 	 * @param WireInputData $input
 	 * @param array $delayedChildren
 	 * @return bool
-	 * 
+	 *
 	 */
 	protected function processInputRequiredIf(WireInputData $input, array $delayedChildren) {
-		
+
 		// process input for any remaining delayedChildren not already processed by processInputShowIf
 		foreach($delayedChildren as $child) {
-			if($child->showIfSkipped || $child->showIfProcessed) continue; 
-			$this->debugNote("Now Processing delayed child: $child->name"); 
-			$child->processInput($input); 
+			if($child->showIfSkipped || $child->showIfProcessed) continue;
+			$this->debugNote("Now Processing delayed child: $child->name");
+			$child->processInput($input);
 		}
 
 		while(count($delayedChildren)) {
-			
+
 			// shift first $child off the array
 			$child = array_shift($delayedChildren);
-			if(!$child->getSetting('required')) continue; 
-			
-		
+			if(!$child->getSetting('required')) continue;
+
+
 			// if field was not shown, then it can't be required
 			if($child->showIfSkipped) continue;
 
-			$required = true; 
+			$required = true;
 			$selectorString = $child->getSetting('requiredIf');
 
 			if(strlen($selectorString)) {
 				$this->debugNote("requiredIf selector: $selectorString");
-					
+
 				$selectors = new Selectors($selectorString);
-		
+
 				foreach($selectors as $selector) {
-		
+
 					$fields = is_array($selector->field) ? $selector->field : array($selector->field);
-		
+
 					foreach($fields as $name) {
-		
+
 						$subfield = '';
 						if(strpos($name, '.')) list($name, $subfield) = explode('.', $name);
-		
+
 						// get the inputfield that $child has a dependency on
 						$dependencyChild = $this->getChildByName($name);
-		
+
 						// if field is not present in this form, we assume a blank value for it
 						if(!$dependencyChild) {
 							$this->error("Warning: required dependency field '$name' is not present in this form.", Notice::debug);
 							continue;
 						}
-		
+
 						$value = $dependencyChild->attr('value');
 						if($subfield == 'count') $value = count($value);
 						if(is_object($value)) $value = "$value";
@@ -287,14 +287,14 @@ class InputfieldForm extends InputfieldWrapper {
 							$required = false;
 							break;
 						}
-		
+
 					} // foreach($fields)
-		
+
 					if(!$required) break;
-		
+
 				} // foreach($selectors)
 			} // if(strlen($selectorString))
-			
+
 			if($required) {
 				if($child->isEmpty()) {
 					$this->debugNote("$child->name - determined that value IS required and is not present (error)");
@@ -305,7 +305,7 @@ class InputfieldForm extends InputfieldWrapper {
 			} else {
 				$this->debugNote("$child->name - determined that value is not required");
 			}
-			
+
 		}
 	}
 }

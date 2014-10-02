@@ -20,15 +20,15 @@
 			$("#cities").change(function(e, data) {
 
 				// add a little note at the top that said what was done
-				$("#changes").prepend("<li>" + data.type + ": " + data.value + "</li>"); 
+				$("#changes").prepend("<li>" + data.type + ": " + data.value + "</li>");
 
 				// if it's a sort or an add, then give it a little color animation to highlight it
 				if(data.type != 'drop') data.item.animate({ 'backgroundColor': '#ffffcc' }, 20, 'linear', function() {
-					data.item.animate({ 'backgroundColor': '#dddddd' }, 500); 
-				}); 
-			}); 
+					data.item.animate({ 'backgroundColor': '#dddddd' }, 500);
+				});
+			});
 
-		}); 
+		});
 
 	</script>
 
@@ -37,14 +37,14 @@
 
 	<style type="text/css">
 		form {
-			width: 400px; 
+			width: 400px;
 			position: relative;
 		}
 
 		#changes {
 			position: absolute;
-			width: 200px; 
-			left: 430px; 
+			width: 200px;
+			left: 430px;
 			background: #fff;
 		}
 	</style>
@@ -55,7 +55,7 @@
 
 	<h3>
 	This example demonstrates how you can catch asmSelect events by attaching a change event to the original select.
-	In this rough example, we setup our change event to highlight manipulated items with a yellow flash of color. 
+	In this rough example, we setup our change event to highlight manipulated items with a yellow flash of color.
 	We also record a history of changes in the right column. View the source of this page for details.
 	</h3>
 
@@ -65,7 +65,7 @@
 
 		<label for="cities">What are your favorite cities?</label>
 		<select id="cities" multiple="multiple" name="cities[]" title="Click to Select a City">
-			<option selected="selected">Amsterdam</option>      
+			<option selected="selected">Amsterdam</option>
 			<option selected="selected">Atlanta</option>
 			<option>Baltimore</option>
 			<option>Boston</option>

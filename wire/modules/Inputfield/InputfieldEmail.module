@@ -15,13 +15,13 @@ class InputfieldEmail extends InputfieldText {
 	}
 
 	public function __construct() {
-		$this->setAttribute('name', 'email'); 
+		$this->setAttribute('name', 'email');
 		parent::__construct();
-		$this->setAttribute('type', 'email'); 
-		$this->setAttribute('maxlength', 512); 
-		$this->setAttribute('size', 0); 
+		$this->setAttribute('type', 'email');
+		$this->setAttribute('maxlength', 512);
+		$this->setAttribute('size', 0);
 		$this->set('confirm', 0); // when 1, two inputs will appear and both must match
-		$this->set('confirmLabel', $this->_('Confirm')); 
+		$this->set('confirmLabel', $this->_('Confirm'));
 		$this->set('value2', '');
 	}
 
@@ -29,30 +29,30 @@ class InputfieldEmail extends InputfieldText {
 		if(!$this->label || $this->label == $this->name) $this->label = $this->_('E-Mail'); // label headline when no default specified
 		if($this->confirm && count($this->getErrors())) $this->attr('value', '');
 		$attrs = $this->getAttributes();
-		$out = "\n<input " . $this->getAttributesString($attrs) . " />"; 
+		$out = "\n<input " . $this->getAttributesString($attrs) . " />";
 		if($this->confirm) {
 			foreach(array('id', 'name') as $key) {
 				if(isset($attrs[$key])) $attrs[$key] = '_' . $attrs[$key] . '_confirm';
 			}
-			$out .= "\n<label" . (isset($attrs['id']) ? " for='$attrs[id]'" : '') . ">{$this->confirmLabel}</label>" . 
-				"\n<input " . $this->getAttributesString($attrs) . " />"; 
+			$out .= "\n<label" . (isset($attrs['id']) ? " for='$attrs[id]'" : '') . ">{$this->confirmLabel}</label>" .
+				"\n<input " . $this->getAttributesString($attrs) . " />";
 		}
-		return $out; 
+		return $out;
 	}
 
 	protected function setAttributeValue($value) {
-		if(strlen($value)) { 
-			$value = wire('sanitizer')->email($value); 	
+		if(strlen($value)) {
+			$value = wire('sanitizer')->email($value);
 			if(!$value) $this->error($this->_("Please enter a valid e-mail address")); // Error message when email address is invalid
 		}
-		return $value; 
+		return $value;
 	}
 
 	public function ___processInput(WireInputData $input) {
 		parent::___processInput($input);
 		if($this->confirm) {
 			$value1 = $this->attr('value');
-			$value2 = wire('sanitizer')->email($input["_{$this->name}_confirm"]); 
+			$value2 = wire('sanitizer')->email($input["_{$this->name}_confirm"]);
 			if((strlen($value1) || strlen($value2)) && strtolower($value1) !== strtolower($value2)) {
 				$this->attr('value', '');
 				$this->error($this->_('The emails you entered did not match, please enter again'));
@@ -64,7 +64,7 @@ class InputfieldEmail extends InputfieldText {
 	public function ___getConfigInputfields() {
 		$inputfields = parent::___getConfigInputfields();
 
-		$skips = array('stripTags', 'pattern'); 
+		$skips = array('stripTags', 'pattern');
 		foreach($skips as $name) {
 			$f = $inputfields->get($name);
 			if($f) $inputfields->remove($f);
@@ -75,10 +75,10 @@ class InputfieldEmail extends InputfieldText {
 		$f->label = $this->_('Confirm email address?');
 		$f->description = $this->_('When checked, two email inputs will appear and the user will have to enter their email address twice to confirm it. This helps reduce the possibility of typos.');
 		$f->attr('value', 1);
-		$f->collapsed = $this->confirm ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
+		$f->collapsed = $this->confirm ? Inputfield::collapsedNo : Inputfield::collapsedYes;
 		if($this->confirm) $f->attr('checked', 'checked');
 		$inputfields->add($f);
-		return $inputfields;	
+		return $inputfields;
 	}
 
 }

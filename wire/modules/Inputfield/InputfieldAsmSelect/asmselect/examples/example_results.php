@@ -11,7 +11,7 @@ if(!empty($_POST['submit'])) {
 		foreach($_POST['cities'] as $city) {
 
 			// exclude any items with chars we don't want, just in case someone is playing
-			if(!preg_match('/^[-A-Z0-9\., ]+$/iD', $city)) continue; 
+			if(!preg_match('/^[-A-Z0-9\., ]+$/iD', $city)) continue;
 
 			// print the city
 			echo "\n\t<li>" . htmlspecialchars($city) . "</li>";
@@ -23,14 +23,14 @@ if(!empty($_POST['submit'])) {
 		echo "\n<p>No items selected</p>";
 	}
 
-	echo "\n<p><a href='example1.html'>Try Again?</a></p>"; 
+	echo "\n<p><a href='example1.html'>Try Again?</a></p>";
 
 	echo "\n</body>\n</html>";
 
 } else {
 	// if someone arrived here not having started at example.html
 	// then show example.html instead
-	require("example1.html"); 	
+	require("example1.html");
 
 }
 

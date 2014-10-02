@@ -4,16 +4,16 @@
  * ProcessWire Interfaces
  *
  * Interfaces used throughout ProcessWire's core.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
 
-/** 
+/**
  * For classes that are saved to a database or disk.
  *
  * Item must have a gettable/settable 'id' property for this interface as well
@@ -25,11 +25,11 @@ interface Saveable {
 	 * Save the object's current state to database.
 	 *
 	 */
-	public function save(); 
+	public function save();
 
 	/**
 	 * Get an array of this item's saveable data, should match exact with the table it saves in
-	 * 
+	 *
 	 * @return array
 	 *
 	 */
@@ -38,14 +38,14 @@ interface Saveable {
 }
 
 /**
- * For classes that may have their data exported to an array 
- * 
- * Classes implementing this interface are also assumed to be able to accept the same 
- * 
- * 
- */ 
+ * For classes that may have their data exported to an array
+ *
+ * Classes implementing this interface are also assumed to be able to accept the same
+ *
+ *
+ */
 interface Exportable {
-	
+
 	/**
 	 * Return export data (may be the same as getTableData from Saveable interface)
 	 *
@@ -56,7 +56,7 @@ interface Exportable {
 
 	/**
 	 * Given an export data array, import it back to the class and return what happened
-	 * 
+	 *
 	 * @param array $data
 	 * @return array Returns array(
 	 * 	[property_name] => array(
@@ -64,7 +64,7 @@ interface Exportable {
 	 * 		'new' => 'new value',	// new value, always a string
 	 * 		'error' => 'error message or blank if no error'
 	 * 	)
-	 * 
+	 *
 	 */
 	public function setImportData(array $data);
 
@@ -73,9 +73,9 @@ interface Exportable {
 
 /**
  * Class HasRoles
- * 
+ *
  * @deprecated
- * 
+ *
  */
 interface HasRoles {
 	// To be deleted
@@ -92,22 +92,22 @@ interface HasLookupItems {
 	 * Get all lookup items, usually in a WireArray derived type, but specified by class
 	 *
 	 */
-	public function getLookupItems(); 
+	public function getLookupItems();
 
 	/**
 	 * Add a lookup item to this instance
 	 *
-	 * @param int $item The ID of the item to add 
+	 * @param int $item The ID of the item to add
 	 * @param array $row The row from which it was retrieved (in case you want to retrieve or modify other details)
 	 *
 	 */
-	public function addLookupItem($item, array &$row); 
-	
+	public function addLookupItem($item, array &$row);
+
 }
 
 
 /**
- * For classes that need to track changes made by other objects. 
+ * For classes that need to track changes made by other objects.
  *
  */
 interface WireTrackable {
@@ -142,8 +142,8 @@ interface WireTrackable {
 	 * @param string $what Name of property, or if left blank, check if any properties have changed.
 	 * @return bool
 	 *
-	 */	
-	public function isChanged($what = ''); 
+	 */
+	public function isChanged($what = '');
 
 	/**
 	 * Return an array of properties that have changed while change tracking was on.
@@ -179,7 +179,7 @@ interface InputfieldPageListSelection { }
 interface InputfieldItemList { }
 
 /**
- * Interface that indicates a class contains gettext() like translation methods 
+ * Interface that indicates a class contains gettext() like translation methods
  *
  */
 interface WireTranslatable {
@@ -221,12 +221,12 @@ interface WireTranslatable {
 
 /**
  * Interface that indicates the required methods for a class to be hookable.
- * 
+ *
  * See the Wire class that provides an example implementation of all these.
- * 
+ *
  */
 interface WireHookable {
-	
+
 	/**
 	 * Provides the gateway for calling hooks in ProcessWire
 	 *
@@ -250,13 +250,13 @@ interface WireHookable {
 
 	/**
 	 * Provides the implementation for dealing with hook properties, added via the addHookProperty method
-	 * 
+	 *
 	 * @param $name
 	 * @return mixed
-	 * 
+	 *
 	public function __get($name);
 	 */
-	
+
 	/**
 	 * Provides the implementation for calling hooks in ProcessWire
 	 *
@@ -331,7 +331,7 @@ interface WireHookable {
 	 *
 	 */
 	public function addHookAfter($method, $toObject, $toMethod = null, $options = array());
-	
+
 	/**
 	 * Shortcut to the addHook() method which adds a hook to be executed as an object property.
 	 *
@@ -351,7 +351,7 @@ interface WireHookable {
 	 *
 	 */
 	public function addHookProperty($property, $toObject, $toMethod = null, $options = array());
-	
+
 	/**
 	 * Given a Hook ID provided by addHook() this removes the hook
 	 *
@@ -360,15 +360,15 @@ interface WireHookable {
 	 *
 	 */
 	public function removeHook($hookId);
-	
+
 }
 
 /**
  * Interface that indicates a class supports API variable dependency injection and retrieval
- * 
+ *
  */
 interface WireFuelable {
-	
+
 	/**
 	 * Get or inject a ProcessWire API variable
 	 *
@@ -398,7 +398,7 @@ interface WireFuelable {
 
 /**
  * Interface that indicates the class supports Notice messaging
- * 
+ *
  */
 interface WireNoticeable {
 	/**
@@ -430,7 +430,7 @@ interface WireNoticeable {
 
 /**
  * Interface for ProcessWire database layer
- * 
+ *
  */
 
 interface WireDatabase {
@@ -452,5 +452,5 @@ interface WirePageEditor {
 	/**
 	 * @return Page The current page being edited
 	 */
-	public function getPage(); 	
+	public function getPage();
 }

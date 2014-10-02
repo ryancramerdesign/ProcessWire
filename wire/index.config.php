@@ -5,12 +5,12 @@
  *
  * If used, this file should be copied/moved to the ProcessWire installation root directory.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
- * 
+ *
  */
 
 if(!defined("PROCESSWIRE")) die();
@@ -18,7 +18,7 @@ if(!defined("PROCESSWIRE")) die();
 /**
  * Multi-domain configuration: Optionally define alternate /site/ dirs according to host
  *
- * If used, this file should be placed in your web root and then edited as follows. 
+ * If used, this file should be placed in your web root and then edited as follows.
  *
  * This function returns an array that should be in the format where the array key
  * is the hostname (including domain) and the value is the /site/ directory you want to use.
@@ -26,10 +26,10 @@ if(!defined("PROCESSWIRE")) die();
  * ensure that ProcessWire's htaccess file can recognize and protect files in that directory.
  *
  * Note that if your site may be accessed at either domain.com OR www.domain.com, then you'll
- * want to include entries for both, pointing to the same /site-domain/ directory. 
- * 
+ * want to include entries for both, pointing to the same /site-domain/ directory.
+ *
  * Each /site/ dir has it's own /site/config.php file that should be pointing to a separate
- * database. You shouldn't have two different /site/ dirs sharing the same database. 
+ * database. You shouldn't have two different /site/ dirs sharing the same database.
  *
  */
 function ProcessWireHostSiteConfig() {

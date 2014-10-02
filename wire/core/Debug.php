@@ -1,27 +1,27 @@
 <?php
 
 /**
- * ProcessWire Debug 
+ * ProcessWire Debug
  *
- * Provides methods useful for debugging or development. 
+ * Provides methods useful for debugging or development.
  *
- * Currently only provides timer capability. 
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Currently only provides timer capability.
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
  */
 
 class Debug {
-	
+
 	static protected $timers = array();
-	
+
 	static protected $savedTimers = array();
-	
+
 	static protected $savedTimerNotes = array();
 
 	/**
@@ -29,14 +29,14 @@ class Debug {
 	 *
 	 * First call should be to $key = Debug::timer() with no params, or provide your own key that's not already been used
 	 * Second call should pass the key given by the first call to get the time elapsed, i.e. $time = Debug::timer($key).
-	 * Note that you may make multiple calls back to Debug::timer() with the same key and it will continue returning the 
+	 * Note that you may make multiple calls back to Debug::timer() with the same key and it will continue returning the
 	 * elapsed time since the original call. If you want to reset or remove the timer, call removeTimer or resetTimer.
 	 *
-	 * @param string $key 
-	 * 	Leave blank to start timer. 
-	 *	Specify existing key (string) to return timer. 
-	 *	Specify new made up key to start a named timer. 
-	 * @param bool $reset If the timer already exists, it will be reset when this is true. 
+	 * @param string $key
+	 * 	Leave blank to start timer.
+	 *	Specify existing key (string) to return timer.
+	 *	Specify new made up key to start a named timer.
+	 * @param bool $reset If the timer already exists, it will be reset when this is true.
 	 * @return string|int
 	 *
 	 */
@@ -49,28 +49,28 @@ class Debug {
 			preg_match('/(\.[0-9]+) ([0-9]+)/', microtime(), $time);
 			$startTime = doubleval($time[1]) + doubleval($time[2]);
 			if(!$key) {
-				$key = $startTime; 
+				$key = $startTime;
 				while(isset(self::$timers[$key])) $key .= ".";
 			}
-			self::$timers[$key] = $startTime; 
-			$value = $key; 
+			self::$timers[$key] = $startTime;
+			$value = $key;
 		} else {
 			// return timer
 			preg_match('/(\.[0-9]*) ([0-9]*)/', microtime(), $time);
 			$endTime = doubleval($time[1]) + doubleval($time[2]);
-			$startTime = self::$timers[$key]; 
+			$startTime = self::$timers[$key];
 			$runTime = number_format($endTime - $startTime, 4);
 			$value = $runTime;
 		}
 
-		return $value; 
+		return $value;
 	}
 
 	/**
 	 * Save the current time of the given timer which can be later retrieved with getSavedTimer($key)
-	 * 
-	 * Note this also stops/removes the timer. 
-	 * 
+	 *
+	 * Note this also stops/removes the timer.
+	 *
 	 * @param string $key
 	 * @param string $note Optional note to include in getSavedTimer
 	 * @return bool Returns false if timer didn't exist in the first place
@@ -78,23 +78,23 @@ class Debug {
 	 */
 	static public function saveTimer($key, $note = '') {
 		if(!isset(self::$timers[$key])) return false;
-		self::$savedTimers[$key] = self::timer($key); 
-		self::removeTimer($key); 
-		if($note) self::$savedTimerNotes[$key] = $note; 
-		return true; 
+		self::$savedTimers[$key] = self::timer($key);
+		self::removeTimer($key);
+		if($note) self::$savedTimerNotes[$key] = $note;
+		return true;
 	}
 
 	/**
 	 * Return the time recorded in the saved timer $key
-	 * 
+	 *
 	 * @param string $key
 	 * @return string Blank if timer not recognized
 	 *
 	 */
 	static public function getSavedTimer($key) {
-		$value = isset(self::$savedTimers[$key]) ? self::$savedTimers[$key] : null;	
+		$value = isset(self::$savedTimers[$key]) ? self::$savedTimers[$key] : null;
 		if(!is_null($value) && isset(self::$savedTimerNotes[$key])) $value = "$value - " . self::$savedTimerNotes[$key];
-		return $value; 
+		return $value;
 	}
 
 	/**
@@ -105,11 +105,11 @@ class Debug {
 	 */
 	static public function getSavedTimers() {
 		$timers = self::$savedTimers;
-		arsort($timers); 
+		arsort($timers);
 		foreach($timers as $key => $timer) {
 			$timers[$key] = self::getSavedTimer($key); // to include notes
 		}
-		return $timers; 
+		return $timers;
 	}
 
 	/**
@@ -117,8 +117,8 @@ class Debug {
 	 *
 	 */
 	static public function resetTimer($key) {
-		self::removeTimer($key); 
-		return self::timer($key); 
+		self::removeTimer($key);
+		return self::timer($key);
 	}
 
 	/**
@@ -126,7 +126,7 @@ class Debug {
 	 *
 	 */
 	static public function removeTimer($key) {
-		unset(self::$timers[$key]); 
+		unset(self::$timers[$key]);
 	}
 
 	/**

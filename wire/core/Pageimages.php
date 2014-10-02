@@ -5,13 +5,13 @@
  *
  * Pageimages are a collection of Pageimage objects.
  *
- * Typically a Pageimages object will be associated with a specific field attached to a Page. 
+ * Typically a Pageimages object will be associated with a specific field attached to a Page.
  * There may be multiple instances of Pageimages attached to a given Page (depending on what fields are in it's fieldgroup).
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
@@ -34,8 +34,8 @@ class Pageimages extends Pagefiles {
 	 *
 	 */
 	public function add($item) {
-		if(is_string($item)) $item = new Pageimage($this, $item); 
-		return parent::add($item); 
+		if(is_string($item)) $item = new Pageimage($this, $item);
+		return parent::add($item);
 	}
 
 	/**
@@ -43,7 +43,7 @@ class Pageimages extends Pagefiles {
 	 *
 	 */
 	public function makeBlankItem() {
-		return new Pageimage($this, ''); 
+		return new Pageimage($this, '');
 	}
 
 	/**
@@ -54,22 +54,22 @@ class Pageimages extends Pagefiles {
 	 *
 	 */
 	public function getFile($name) {
-	
-		$hasFile = parent::getFile($name); 
-		if($hasFile) return $hasFile; 
+
+		$hasFile = parent::getFile($name);
+		if($hasFile) return $hasFile;
 		$name = basename($name);
-		$pos = strpos($name, '.'); 
-		$base = substr($name, 0, $pos); 
-		
+		$pos = strpos($name, '.');
+		$base = substr($name, 0, $pos);
+
 		foreach($this as $pagefile) {
-			if(strpos($pagefile->basename, $base) !== 0) continue; 
+			if(strpos($pagefile->basename, $base) !== 0) continue;
 			// they start the same, is it a variation?
-			if(!$pagefile->isVariation($name)) continue; 
+			if(!$pagefile->isVariation($name)) continue;
 			// if we are here we found a variation
-			$hasFile = $pagefile; 
+			$hasFile = $pagefile;
 			break;
 		}
-		
+
 		return $hasFile;
 	}
 }

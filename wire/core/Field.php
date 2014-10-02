@@ -3,13 +3,13 @@
 /**
  * ProcessWire Field
  *
- * The Field class corresponds to a record in the fields database table 
+ * The Field class corresponds to a record in the fields database table
  * and is managed by the 'Fields' class.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  * @property int $id
@@ -24,66 +24,66 @@
  */
 class Field extends WireData implements Saveable, Exportable {
 
-	/**  
+	/**
 	 * Field should be automatically joined to the page at page load time
 	 *
 	 */
-	const flagAutojoin = 1; 	
+	const flagAutojoin = 1;
 
-	/** 
+	/**
 	 * Field used by all fieldgroups - all fieldgroups required to contain this field
 	 *
 	 */
-	const flagGlobal = 4; 		
+	const flagGlobal = 4;
 
 	/**
 	 * Field is a system field and may not be deleted, have it's name changed, or be converted to non-system
 	 *
 	 */
-	const flagSystem = 8; 
+	const flagSystem = 8;
 
 	/**
-	 * Field is permanent in any fieldgroups/templates where it exists - it may not be removed from them 
+	 * Field is permanent in any fieldgroups/templates where it exists - it may not be removed from them
 	 *
 	 */
-	const flagPermanent = 16; 
+	const flagPermanent = 16;
 
 	/**
 	 * Field has been placed in a runtime state where it is contextual to a specific fieldgroup and is no longer saveable
 	 *
 	 */
-	const flagFieldgroupContext = 2048; 
+	const flagFieldgroupContext = 2048;
 
 	/**
 	 * Set this flag to override system/permanent flags if necessary - once set, system/permanent flags can be removed, but not in the same set().
 	 *
 	 */
-	const flagSystemOverride = 32768; 
+	const flagSystemOverride = 32768;
 
 	/**
 	 * Permanent/native settings to an individual Field
 	 *
  	 * id: Numeric ID corresponding with id in the fields table.
-	 * type: Fieldtype object or NULL if no Fieldtype assigned. 
-	 * label: String text label corresponding to the <label> field during input. 
-	 * flags: 
-	 * - autojoin: True if the field is automatically joined with the page, or False if it's value is loaded separately. 
+	 * type: Fieldtype object or NULL if no Fieldtype assigned.
+	 * label: String text label corresponding to the <label> field during input.
+	 * flags:
+	 * - autojoin: True if the field is automatically joined with the page, or False if it's value is loaded separately.
 	 * - global: Is this field required by all Fieldgroups?
 	 *
 	 */
 	protected $settings = array(
-		'id' => 0, 
-		'type' => null, 
-		'flags' => 0, 
-		'name' => '', 
-		'label' => '', 
-		); 
+		'id' => 0,
+		'type' => null,
+		'flags' => 0,
+		'name' => '',
+		'label' => '',
+		);
 
 	/**
-	 * If the field name changed, this is the name of the previous table so that it can be renamed at save time 
+	 * If the field name changed, this is the name of the previous table so that it can be renamed at save time
 	 *
 	 */
-	protected $prevTable; 
+	protected $prevTable;
 
 	/**
 	 * If the field type changed, this is the previous fieldtype so that it can be changed at save time
@@ -93,12 +93,12 @@ class Field extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Accessed properties, becomes array when set to true, null when set to false
-	 * 
+	 *
 	 * Used for keeping track of which properties are accessed during a request, to help determine which
-	 * $data properties might no longer be in use. 
-	 * 
+	 * $data properties might no longer be in use.
+	 *
 	 * @var null|array
-	 * 
+	 *
 	 */
 	protected $trackGets = null;
 
@@ -107,7 +107,7 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	static protected $lowercaseTables = null;
-	
+
 
 	/**
 	 * Set a native setting or a dynamic data property for this Field
@@ -115,28 +115,28 @@ class Field extends WireData implements Saveable, Exportable {
 	 */
 	public function set($key, $value) {
 
-		if($key == 'name') return $this->setName($value); 
-			else if($key == 'type' && $value) return $this->setFieldtype($value); 
+		if($key == 'name') return $this->setName($value);
+			else if($key == 'type' && $value) return $this->setFieldtype($value);
 			else if($key == 'prevTable') {
-				$this->prevTable = $value; 
-				return $this; 
+				$this->prevTable = $value;
+				return $this;
 			} else if($key == 'prevFieldtype') {
 				$this->prevFieldtype = $value;
-				return $this; 
+				return $this;
 			} else if($key == 'flags') {
-				$this->setFlags($value); 
-				return $this; 
+				$this->setFlags($value);
+				return $this;
 			} else if($key == 'id') {
-				$value = (int) $value; 
+				$value = (int) $value;
 			}
 
 		if(isset($this->settings[$key])) {
-			$this->settings[$key] = $value; 
+			$this->settings[$key] = $value;
 		} else {
-			return parent::set($key, $value); 
+			return parent::set($key, $value);
 		}
 
-		return $this; 
+		return $this;
 	}
 
 	/**
@@ -145,11 +145,11 @@ class Field extends WireData implements Saveable, Exportable {
 	 */
 	protected function setFlags($value) {
 		// ensure that the system flag stays set
-		$value = (int) $value; 
+		$value = (int) $value;
 		$override = $this->settings['flags'] & Field::flagSystemOverride;
-		if(!$override) { 
+		if(!$override) {
 			if($this->settings['flags'] & Field::flagSystem) $value = $value | Field::flagSystem;
-			if($this->settings['flags'] & Field::flagPermanent) $value = $value | Field::flagPermanent; 
+			if($this->settings['flags'] & Field::flagPermanent) $value = $value | Field::flagPermanent;
 		}
 		$this->settings['flags'] = $value;
 	}
@@ -160,14 +160,14 @@ class Field extends WireData implements Saveable, Exportable {
 	 */
 	public function get($key) {
 		if($key == 'table') return $this->getTable();
-			else if($key == 'prevTable') return $this->prevTable; 
-			else if($key == 'prevFieldtype') return $this->prevFieldtype; 
-			else if(isset($this->settings[$key])) return $this->settings[$key]; 
-		$value = parent::get($key); 
-		if(is_array($this->trackGets)) $this->trackGets($key); 
-		return $value; 
+			else if($key == 'prevTable') return $this->prevTable;
+			else if($key == 'prevFieldtype') return $this->prevFieldtype;
+			else if(isset($this->settings[$key])) return $this->settings[$key];
+		$value = parent::get($key);
+		if(is_array($this->trackGets)) $this->trackGets($key);
+		return $value;
 	}
-	
+
 	/**
 	 * Turn on tracking for accessed properties
 	 *
@@ -197,7 +197,7 @@ class Field extends WireData implements Saveable, Exportable {
 		return true;
 	}
 
-	
+
 	/**
 	 * Return a key=>value array of the data associated with the database table per Saveable interface
 	 *
@@ -205,11 +205,11 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	public function getTableData() {
-		$a = $this->settings; 
-		$a['data'] = $this->data; 
+		$a = $this->settings;
+		$a['data'] = $this->data;
 		foreach($a['data'] as $key => $value) {
 			// remove runtime data (properties beginning with underscore)
-			if(strpos($key, '_') === 0) unset($a['data'][$key]); 
+			if(strpos($key, '_') === 0) unset($a['data'][$key]);
 		}
 		return $a;
 	}
@@ -219,83 +219,83 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	public function getExportData() {
-		
+
 		if($this->type) {
 			$data = $this->getTableData();
 			$data['type'] = $this->type->className();
 		} else {
 			$data['type'] = '';
 		}
-		
+
 		if(isset($data['data'])) $data = array_merge($data, $data['data']); // flatten
-		unset($data['data']); 
-		
+		unset($data['data']);
+
 		if($this->type) {
 			$typeData = $this->type->exportConfigData($this, $data);
-			$data = array_merge($typeData, $data); 
+			$data = array_merge($typeData, $data);
 		}
-		
+
 		// remove named flags from data since the 'flags' property already covers them
 		$flagOptions = array('autojoin', 'global', 'system', 'permanent');
 		foreach($flagOptions as $name) unset($data[$name]);
-		
+
 		$data['flags'] = $this->flags;
-		
+
 		foreach($data as $key => $value) {
 			// exclude properties beginning with underscore as they are assumed to be for runtime use only
 			if(strpos($key, '_') === 0) unset($data[$key]);
 		}
-		
+
 		return $data;
 	}
-	
+
 	/**
 	 * Given an export data array, import it back to the class and return what happened
 	 *
 	 * @param array $data
 	 * @return array Returns array(
 	 * 	[property_name] => array(
-	 * 
+	 *
 	 * 		// old value (in string comparison format)
 	 * 		'old' => 'old value',
-	 * 
+	 *
 	 * 		// new value (in string comparison format)
-	 * 		'new' => 'new value',	
-	 * 
-	 *		// error message (string) or messages (array) 
+	 * 		'new' => 'new value',
+	 *
+	 *		// error message (string) or messages (array)
 	 * 		'error' => 'error message or blank if no error' ,
 	 * 	)
 	 *
 	 */
 	public function setImportData(array $data) {
-		
+
 		$changes = array();
 		$data['errors'] = array();
 		$_data = $this->getExportData();
-	
+
 		// compare old data to new data to determine what's changed
 		foreach($data as $key => $value) {
-			if($key == 'errors') continue; 
-			$data['errors'][$key] = ''; 
-			$old = isset($_data[$key]) ? $_data[$key] : ''; 
-			if(is_array($old)) $old = wireEncodeJSON($old, true); 
-			$new = is_array($value) ? wireEncodeJSON($value, true) : $value; 
-			if($old === $new || (empty($old) && empty($new)) || (((string) $old) === ((string) $new))) continue; 
+			if($key == 'errors') continue;
+			$data['errors'][$key] = '';
+			$old = isset($_data[$key]) ? $_data[$key] : '';
+			if(is_array($old)) $old = wireEncodeJSON($old, true);
+			$new = is_array($value) ? wireEncodeJSON($value, true) : $value;
+			if($old === $new || (empty($old) && empty($new)) || (((string) $old) === ((string) $new))) continue;
 			$changes[$key] = array(
 				'old' => $old,
-				'new' => $new, 
+				'new' => $new,
 				'error' => '', // to be populated by Fieldtype::importConfigData when applicable
 				);
 		}
 
 		// prep data for actual import
 		if(!empty($data['type']) && ((string) $this->type) != $data['type']) {
-			$this->type = $this->wire('fieldtypes')->get($data['type']); 
+			$this->type = $this->wire('fieldtypes')->get($data['type']);
 		}
-		
+
 		if(!$this->type) $this->type = $this->wire('fieldtypes')->get('FieldtypeText');
-		$data = $this->type->importConfigData($this, $data); 
-		
+		$data = $this->type->importConfigData($this, $data);
+
 		// populate import data
 		foreach($changes as $key => $change) {
 			$this->errors('clear all');
@@ -303,14 +303,14 @@ class Field extends WireData implements Saveable, Exportable {
 			if(!empty($data['errors'][$key])) {
 				$error = $data['errors'][$key];
 				// just in case they switched it to an array of multiple errors, convert back to string
-				if(is_array($error)) $error = implode(" \n", $error); 
+				if(is_array($error)) $error = implode(" \n", $error);
 			} else {
 				$error = $this->errors('last');
 			}
 			$changes[$key]['error'] = $error ? $error : '';
 		}
 		$this->errors('clear all');
-		
+
 		return $changes;
 	}
 
@@ -323,33 +323,33 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	public function setName($name) {
-		$name = $this->fuel('sanitizer')->fieldName($name); 
+		$name = $this->fuel('sanitizer')->fieldName($name);
 
-		if(Fields::isNativeName($name)) 
-			throw new WireException("Field may not be named '$name' because it is a reserved word"); 
+		if(Fields::isNativeName($name))
+			throw new WireException("Field may not be named '$name' because it is a reserved word");
 
 		if($this->fuel('fields') && ($f = $this->fuel('fields')->get($name)) && $f->id != $this->id)
-			throw new WireException("Field may not be named '$name' because it is already used by another field"); 
+			throw new WireException("Field may not be named '$name' because it is already used by another field");
 
-		if(strpos($name, '__') !== false) 
-			throw new WireException("Field name '$name' may not have double underscores because this usage is reserved by the core"); 
+		if(strpos($name, '__') !== false)
+			throw new WireException("Field name '$name' may not have double underscores because this usage is reserved by the core");
 
 		if($this->settings['name'] != $name) {
 			if($this->settings['name'] && ($this->settings['flags'] & Field::flagSystem)) {
-				throw new WireException("You may not change the name of field '{$this->settings['name']}' because it is a system field."); 
+				throw new WireException("You may not change the name of field '{$this->settings['name']}' because it is a system field.");
 			}
-			$this->trackChange('name'); 
+			$this->trackChange('name');
 			if($this->settings['name']) $this->prevTable = $this->getTable(); // so that Fields can perform a table rename
 		}
 
-		$this->settings['name'] = $name; 
-		return $this; 
+		$this->settings['name'] = $name;
+		return $this;
 	}
 
 	/**
-	 * Set what type of field this is. 
+	 * Set what type of field this is.
 	 *
-	 * Type should be either a Fieldtype object or the string name of a Fieldtype object. 
+	 * Type should be either a Fieldtype object or the string name of a Fieldtype object.
 	 *
 	 * @param string|Fieldtype $type
 	 * @return Field $this
@@ -362,45 +362,45 @@ class Field extends WireData implements Saveable, Exportable {
 			// good for you
 
 		} else if(is_string($type)) {
-			$typeStr = $type; 
-			$fieldtypes = $this->fuel('fieldtypes'); 
+			$typeStr = $type;
+			$fieldtypes = $this->fuel('fieldtypes');
 			if(!$type = $fieldtypes->get($type)) {
 				$this->error("Fieldtype '$typeStr' does not exist");
 				return $this;
 			}
 		} else {
-			throw new WireException("Invalid field type in call to Field::setFieldType"); 
+			throw new WireException("Invalid field type in call to Field::setFieldType");
 		}
 
 		if(!$this->type || ($this->type->name != $type->name)) {
-			$this->trackChange("type:{$type->name}"); 
-			if($this->type) $this->prevFieldtype = $this->type; 
+			$this->trackChange("type:{$type->name}");
+			if($this->type) $this->prevFieldtype = $this->type;
 		}
-		$this->settings['type'] = $type; 
+		$this->settings['type'] = $type;
 
-		return $this; 
+		return $this;
 	}
 
 	/**
-	 * Save this field's settings and data in the database. 
+	 * Save this field's settings and data in the database.
 	 *
 	 * To hook ___save, use Fields::save instead
 	 *
 	 */
 	public function save() {
-		$fields = $this->getFuel('fields'); 
-		return $fields->save($this); 
+		$fields = $this->getFuel('fields');
+		return $fields->save($this);
 	}
 
 
 	/**
 	 * Return the number of fieldsets this field is used in
 	 *
-	 * Primarily used to check if the Field is deleteable. 
+	 * Primarily used to check if the Field is deleteable.
 	 *
-	 */ 
+	 */
 	public function numFieldgroups() {
-		return count($this->getFieldgroups()); 
+		return count($this->getFieldgroups());
 	}
 
 	/**
@@ -408,18 +408,18 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 * @return FieldgroupsArray
 	 *
-	 */ 
+	 */
 	public function getFieldgroups() {
 		$fieldgroups = new FieldgroupsArray();
 		foreach($this->fuel('fieldgroups') as $fieldgroup) {
 			foreach($fieldgroup as $field) {
 				if($field->id == $this->id) {
-					$fieldgroups->add($fieldgroup); 
+					$fieldgroups->add($fieldgroup);
 					break;
 				}
 			}
 		}
-		return $fieldgroups; 
+		return $fieldgroups;
 	}
 
 	/**
@@ -427,31 +427,31 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 * @return TemplatesArray
 	 *
-	 */ 
+	 */
 	public function getTemplates() {
 		$templates = new TemplatesArray();
 		$fieldgroups = $this->getFieldgroups();
 		foreach($this->templates as $template) {
 			foreach($fieldgroups as $fieldgroup) {
 				if($template->fieldgroups_id == $fieldgroup->id) {
-					$templates->add($template);	
+					$templates->add($template);
 					break;
 				}
 			}
 		}
-		return $templates; 
+		return $templates;
 	}
 
 
 	/**
-	 * Return the default value for this field (if set), or null otherwise. 
+	 * Return the default value for this field (if set), or null otherwise.
 	 *
 	 */
 	public function getDefaultValue() {
-		$value = $this->get('default'); 
-		if($value) return $value; 
+		$value = $this->get('default');
+		if($value) return $value;
 		return null;
-		
+
 	}
 
 	/**
@@ -459,31 +459,31 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 * @param Page $page
 	 * @param string $contextStr Optional context string to append to the Inputfield's name/id
-	 * @return Inputfield|null 
+	 * @return Inputfield|null
 	 *
 	 */
 	public function ___getInputfield(Page $page, $contextStr = '') {
 
 		if(!$this->type) return null;
 		$inputfield = $this->type->getInputfield($page, $this);
-		if(!$inputfield) return null; 
+		if(!$inputfield) return null;
 
 		// predefined field settings
-		$inputfield->attr('name', $this->name . $contextStr); 
+		$inputfield->attr('name', $this->name . $contextStr);
 		$inputfield->label = $this->label;
 
 		// just in case an Inputfield needs to know it's Fieldtype context, or lack of it
-		$inputfield->hasFieldtype = $this->type; 
+		$inputfield->hasFieldtype = $this->type;
 
 		// custom field settings
 		foreach($this->data as $key => $value) {
 			if($inputfield->has($key)) {
-				if(is_array($this->trackGets)) $this->trackGets($key); 
-				$inputfield->set($key, $value); 
+				if(is_array($this->trackGets)) $this->trackGets($key);
+				$inputfield->set($key, $value);
 			}
 		}
 
-		return $inputfield; 
+		return $inputfield;
 	}
 
 	/**
@@ -495,7 +495,7 @@ class Field extends WireData implements Saveable, Exportable {
 	public function ___getConfigInputfields() {
 
 		$wrapper = new InputfieldWrapper();
-		$fieldgroupContext = $this->flags & Field::flagFieldgroupContext; 
+		$fieldgroupContext = $this->flags & Field::flagFieldgroupContext;
 
 		if(!$fieldgroupContext) {
 			$inputfields = new InputfieldWrapper();
@@ -503,46 +503,46 @@ class Field extends WireData implements Saveable, Exportable {
 			$inputfields->attr('title', $this->_('Details'));
 
 			try {
-				$fieldtypeInputfields = $this->type->getConfigInputfields($this); 
+				$fieldtypeInputfields = $this->type->getConfigInputfields($this);
 				if($fieldtypeInputfields) foreach($fieldtypeInputfields as $inputfield) {
-					$inputfields->append($inputfield); 
+					$inputfields->append($inputfield);
 				}
 			} catch(Exception $e) {
-				$this->error($e->getMessage()); 
+				$this->error($e->getMessage());
 			}
 
-			if(count($inputfields)) $wrapper->append($inputfields); 
+			if(count($inputfields)) $wrapper->append($inputfields);
 		} else {
 			// we currently exclude fieldtype configuration changes when in fieldgroup context
 			// not sure that we need to, but keeping it simple to start
 		}
 
 		$inputfields = new InputfieldWrapper();
-		$dummyPage = $this->fuel('pages')->get("/"); // only using this to satisfy param requirement 
+		$dummyPage = $this->fuel('pages')->get("/"); // only using this to satisfy param requirement
 
 		if($inputfield = $this->getInputfield($dummyPage)) {
 			if(!$fieldgroupContext) $inputfields->head = $this->_('Input field settings');
-			$inputfields->attr('title', $this->_('Input')); 
+			$inputfields->attr('title', $this->_('Input'));
 			$inputfieldInputfields = $inputfield->getConfigInputfields();
-			if($inputfieldInputfields) foreach($inputfieldInputfields as $i) { 
+			if($inputfieldInputfields) foreach($inputfieldInputfields as $i) {
 				// currently we only support collapsed and columnWidth for fieldgroup context
 				// however we may support everything after starting with these limited options for awhile
-				if($fieldgroupContext && !in_array($i->name, array('visibility', 'collapsed', 'columnWidth', 'required', 'requiredIf', 'showIf'))) continue; 
-				$inputfields->append($i); 
+				if($fieldgroupContext && !in_array($i->name, array('visibility', 'collapsed', 'columnWidth', 'required', 'requiredIf', 'showIf'))) continue;
+				$inputfields->append($i);
 			}
 		}
 
-		$wrapper->append($inputfields); 
+		$wrapper->append($inputfields);
 
-		return $wrapper; 
+		return $wrapper;
 	}
 
 
 	public function getTable() {
 		if(is_null(self::$lowercaseTables)) self::$lowercaseTables = $this->config->dbLowercaseTables ? true : false;
 		$name = $this->settings['name'];
-		if(self::$lowercaseTables) $name = strtolower($name); 
-		if(!strlen($name)) throw new WireException("Field 'name' is required"); 
+		if(self::$lowercaseTables) $name = strtolower($name);
+		if(!strlen($name)) throw new WireException("Field 'name' is required");
 		return "field_" . $name;
 	}
 
@@ -551,12 +551,12 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	public function __toString() {
-		return $this->settings['name']; 
+		return $this->settings['name'];
 	}
 
 	public function __isset($key) {
-		if(parent::__isset($key)) return true; 
-		return isset($this->settings[$key]); 
+		if(parent::__isset($key)) return true;
+		return isset($this->settings[$key]);
 	}
 
 	/**
@@ -599,6 +599,6 @@ class Field extends WireData implements Saveable, Exportable {
 		}
 		return $description;
 	}
-	
+
 }
 

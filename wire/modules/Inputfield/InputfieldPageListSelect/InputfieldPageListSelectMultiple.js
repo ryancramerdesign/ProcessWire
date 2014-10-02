@@ -7,12 +7,12 @@ var InputfieldPageListSelectMultiple = {
 	 */
 	init: function($ol) {
 
-		var makeSortable = function($ol) { 
+		var makeSortable = function($ol) {
 			$ol.sortable({
 				// items: '.InputfieldPageListSelectMultiple ol > li',
 				axis: 'y',
 				update: function(e, data) {
-					InputfieldPageListSelectMultiple.rebuildInput($(this)); 
+					InputfieldPageListSelectMultiple.rebuildInput($(this));
 				},
 				start: function(e, data) {
 					data.item.addClass('ui-state-highlight');
@@ -20,19 +20,19 @@ var InputfieldPageListSelectMultiple = {
 				stop: function(e, data) {
 					data.item.removeClass('ui-state-highlight');
 				}
-			}); 
-			$ol.addClass('InputfieldPageListSelectMultipleSortable'); 
+			});
+			$ol.addClass('InputfieldPageListSelectMultipleSortable');
 		};
 
 		// $('#' + $ol.attr('id') + '>li').live('mouseover', function() {
 		$('#' + $ol.attr('id')).on('mouseover', '>li', function() {
 
-			$(this).removeClass('ui-state-default').addClass('ui-state-hover'); 
-			if(!$ol.is(".InputfieldPageListSelectMultipleSortable")) makeSortable($ol); 
+			$(this).removeClass('ui-state-default').addClass('ui-state-hover');
+			if(!$ol.is(".InputfieldPageListSelectMultipleSortable")) makeSortable($ol);
 		// }).live('mouseout', function() {
 		}).on('mouseout', '>li', function() {
-			$(this).removeClass('ui-state-hover').addClass('ui-state-default'); 
-		}); 
+			$(this).removeClass('ui-state-hover').addClass('ui-state-default');
+		});
 
 	},
 
@@ -47,13 +47,13 @@ var InputfieldPageListSelectMultiple = {
 		var $ol = $('#' + $input.attr('id') + '_items');
 		var $li = $ol.children(".itemTemplate").clone();
 
-		$li.removeClass("itemTemplate"); 
-		$li.children('.itemValue').text(page.id); 
-		$li.children('.itemLabel').text(page.title); 
+		$li.removeClass("itemTemplate");
+		$li.children('.itemValue').text(page.id);
+		$li.children('.itemLabel').text(page.title);
 
 		$ol.append($li);
 
-		InputfieldPageListSelectMultiple.rebuildInput($ol); 
+		InputfieldPageListSelectMultiple.rebuildInput($ol);
 
 	},
 
@@ -63,30 +63,30 @@ var InputfieldPageListSelectMultiple = {
 	 */
 	rebuildInput: function($ol) {
 		var id = $ol.attr('id');
-		id = id.substring(0, id.lastIndexOf('_')); 
+		id = id.substring(0, id.lastIndexOf('_'));
 		var $input = $('#' + id);
 		var value = '';
 		$ol.children(':not(.itemTemplate)').each(function() {
 			if(value.length > 0) value += ',';
 			value += $(this).children('.itemValue').text();
-		}); 
+		});
 		$input.val(value);
 	}
 
 
-}; 
+};
 
 $(document).ready(function() {
 
 	$(".InputfieldPageListSelectMultiple ol li a.itemRemove").live('click', function() {
-		var $li = $(this).parent(); 
-		var $ol = $li.parent(); 
+		var $li = $(this).parent();
+		var $ol = $li.parent();
 		var id = $li.children(".itemValue").text();
 		$li.remove();
-		InputfieldPageListSelectMultiple.rebuildInput($ol); 
-		return false; 
-	}); 
+		InputfieldPageListSelectMultiple.rebuildInput($ol);
+		return false;
+	});
 
-}); 
+});
 
 

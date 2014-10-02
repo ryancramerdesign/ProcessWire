@@ -4,11 +4,11 @@
  * ProcessWire InputfieldCommentsAdmin
  *
  * An Inputfield for handling administration of Comments.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -21,7 +21,7 @@ class InputfieldCommentsAdmin extends Inputfield implements InputfieldItemList {
 			'title' => __('Comments Admin', __FILE__),
 			'version' => 103,
 			'summary' => __('Provides an administrative interface for working with comments', __FILE__),
-			'permanent' => false, 
+			'permanent' => false,
 			'requires' => 'FieldtypeComments',
 			);
 	}
@@ -34,8 +34,8 @@ class InputfieldCommentsAdmin extends Inputfield implements InputfieldItemList {
 
 		$statuses = array(
 			Comment::statusApproved => $this->_x('Approved', 'comment-status'),
-			Comment::statusPending => $this->_x('Pending', 'comment-status'), 
-			Comment::statusSpam => $this->_x('Spam', 'comment-status'), 
+			Comment::statusPending => $this->_x('Pending', 'comment-status'),
+			Comment::statusSpam => $this->_x('Spam', 'comment-status'),
 			);
 
 		$statusName = '';
@@ -52,8 +52,8 @@ class InputfieldCommentsAdmin extends Inputfield implements InputfieldItemList {
 		$statusOut .= "<option value='delete{$comment->id}'>" . $this->_('Delete') . "</option>";
 		$statusOut .= "</select>";
 
-		$headLabel = $statusName; 
-		$num = $n+1; 
+		$headLabel = $statusName;
+		$num = $n+1;
 
 		$liID = "CommentsAdminItem{$comment->id}";
 
@@ -67,45 +67,45 @@ class InputfieldCommentsAdmin extends Inputfield implements InputfieldItemList {
 
 		if($note) $note = "\n\t\t\t<p class='description CommentsAdminItemNote'>$note</p>";
 
-		$out = 	"\n\t<li id='$liID' class='Inputfield CommentsAdminItem$statusName ui-widget $liClass'>" . 
-			"\n\t\t<label class='CommentsAdminItemHead InputfieldHeader ui-widget-header'>" . 
-			"\n\t\t\t<span class='CommentsAdminItemHeadLabel'>$headLabel</span>" . 
+		$out = 	"\n\t<li id='$liID' class='Inputfield CommentsAdminItem$statusName ui-widget $liClass'>" .
+			"\n\t\t<label class='CommentsAdminItemHead InputfieldHeader ui-widget-header'>" .
+			"\n\t\t\t<span class='CommentsAdminItemHeadLabel'>$headLabel</span>" .
 			"\n\t\t\t<span class='CommentsAdminItemBy'>" . sprintf($this->_('Comment #%1$d Posted %2$s by %3$s'), $num, strftime('%c', $comment->created), htmlentities($comment->cite, ENT_QUOTES, 'UTF-8')) . "</span>" .
-			"\n\t\t</label>" . 
-			"\n\t\t<div class='InputfieldContent ui-widget-content'>" . $note . 
-			"\n\t\t\t<p class='CommentsAdminItemCite'><label><span class='detail'>" . $this->_('Cite') . "</span> <input type='text' name='{$this->name}_cite_{$comment->id}' value='" . htmlentities($comment->cite, ENT_QUOTES, "UTF-8") . "' /></label></p>" . 
-			"\n\t\t\t<p class='CommentsAdminItemEmail'><label><span class='detail'>" . $this->_('E-Mail') . "</span> <input type='text' name='{$this->name}_email_{$comment->id}' value='" . htmlentities($comment->email, ENT_QUOTES, "UTF-8") . "' /></label></p>" . 
-			"\n\t\t\t<p class='CommentsAdminItemWebsite'><label><span class='detail'>" . $this->_('Website') . "</span> <input type='text' name='{$this->name}_website_{$comment->id}' value='" . htmlentities($comment->website, ENT_QUOTES, "UTF-8") . "' /></label></p>" . 
-			"\n\t\t\t<p class='CommentsAdminItemStatus'><label>&nbsp; $statusOut</label></p>" . 
-			"\n\t\t\t<p class='CommentsAdminItemText'><label><span class='detail'>" . $this->_('Text') . "</span> <textarea name='{$this->name}_text_{$comment->id}' rows='3'>" . htmlentities(trim($comment->text), ENT_QUOTES, "UTF-8") . "</textarea></label></p>" . 
-			"\n\t\t\t<input class='CommentsAdminItemSort' type='hidden' name='sort_{$this->name}_{$comment->id}' value='$n' />" . 
-			"\n\t\t</div>" . 
+			"\n\t\t</label>" .
+			"\n\t\t<div class='InputfieldContent ui-widget-content'>" . $note .
+			"\n\t\t\t<p class='CommentsAdminItemCite'><label><span class='detail'>" . $this->_('Cite') . "</span> <input type='text' name='{$this->name}_cite_{$comment->id}' value='" . htmlentities($comment->cite, ENT_QUOTES, "UTF-8") . "' /></label></p>" .
+			"\n\t\t\t<p class='CommentsAdminItemEmail'><label><span class='detail'>" . $this->_('E-Mail') . "</span> <input type='text' name='{$this->name}_email_{$comment->id}' value='" . htmlentities($comment->email, ENT_QUOTES, "UTF-8") . "' /></label></p>" .
+			"\n\t\t\t<p class='CommentsAdminItemWebsite'><label><span class='detail'>" . $this->_('Website') . "</span> <input type='text' name='{$this->name}_website_{$comment->id}' value='" . htmlentities($comment->website, ENT_QUOTES, "UTF-8") . "' /></label></p>" .
+			"\n\t\t\t<p class='CommentsAdminItemStatus'><label>&nbsp; $statusOut</label></p>" .
+			"\n\t\t\t<p class='CommentsAdminItemText'><label><span class='detail'>" . $this->_('Text') . "</span> <textarea name='{$this->name}_text_{$comment->id}' rows='3'>" . htmlentities(trim($comment->text), ENT_QUOTES, "UTF-8") . "</textarea></label></p>" .
+			"\n\t\t\t<input class='CommentsAdminItemSort' type='hidden' name='sort_{$this->name}_{$comment->id}' value='$n' />" .
+			"\n\t\t</div>" .
 			"\n\t</li>";
 
-		return $out; 
+		return $out;
 	}
 
 	public function ___render() {
 
 		$out = '';
-		$n = 0; 
+		$n = 0;
 
 		if(!count($this->value)) return "<p>" . $this->_('There are currently no items to display.') . "</p>";
 
 		$out = "\n<ul class='Inputfields InputfieldCommentsAdminList'>";
 		foreach($this->value as $comment) {
-			$out .= $this->renderItem($comment, $n++); 
+			$out .= $this->renderItem($comment, $n++);
 		}
 		$out .= "\n</ul>";
 
-		return $out; 
+		return $out;
 	}
 
 	public function ___processInput(WireInputData $input) {
 
-		$n = 1; 	
+		$n = 1;
 		$names = array(
-			'cite', 
+			'cite',
 			'email',
 			'website',
 			'status',
@@ -118,30 +118,30 @@ class InputfieldCommentsAdmin extends Inputfield implements InputfieldItemList {
 
 			$data = array();
 			foreach($names as $name) {
-				$inputName = $this->name . "_" . $name . "_" . $comment->id; 
+				$inputName = $this->name . "_" . $name . "_" . $comment->id;
 				$value = isset($input[$inputName]) ? $input[$inputName] : '';
-				$data[$name] = $value; 
+				$data[$name] = $value;
 			}
 
 			if($data['status'] && $data['status'] == "delete{$comment->id}") {
-				$this->value->remove($comment); 
-				$this->message(sprintf($this->_('Removed comment #%d'), $n)); 
-				$this->value->trackChange('remove'); 
+				$this->value->remove($comment);
+				$this->message(sprintf($this->_('Removed comment #%d'), $n));
+				$this->value->trackChange('remove');
 				continue;
-			} 
+			}
 
 			foreach($data as $key => $value) {
-				if($key == 'text') $value = $comment->cleanCommentString($value); 
+				if($key == 'text') $value = $comment->cleanCommentString($value);
 				if(($value || $key == 'status') && $comment->$key != $value) {
-					$comment->$key = $value; 
-					$this->message(sprintf($this->_('Updated %s for comment #%d'), $key, $n)); 
-					$this->value->trackChange('update'); 
-				}	
+					$comment->$key = $value;
+					$this->message(sprintf($this->_('Updated %s for comment #%d'), $key, $n));
+					$this->value->trackChange('update');
+				}
 			}
-			$n++; 
+			$n++;
 		}
 
-		return $this; 
+		return $this;
 	}
 
 }

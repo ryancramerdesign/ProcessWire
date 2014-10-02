@@ -7,16 +7,16 @@
  *
  * The existance of Fieldgroups is hidden at the ProcessWire web admin level
  * as it appears that fields are attached directly to Templates. However, they
- * are separated in the API in case want want to have fieldgroups used by 
+ * are separated in the API in case want want to have fieldgroups used by
  * multiple templates in the future (like ProcessWire 1.x).
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
- * 
+ *
  * @property int $id Field ID
  * @property string $name Field name
  *
@@ -28,8 +28,8 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 *
 '	 */
 	protected $settings = array(
-		'id' => 0, 
-		'name' => '', 
+		'id' => 0,
+		'name' => '',
 		);
 
 	/**
@@ -41,7 +41,7 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	/**
 	 * Array indexed by field_id containing an array of variables specific to the context of that field in this fieldgroup
 	 *
-	 * This context overrides the values set in the field when it doesn't have context. 
+	 * This context overrides the values set in the field when it doesn't have context.
 	 *
 	 */
 	protected $fieldContexts = array();
@@ -51,7 +51,7 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 *
 	 */
 	public function isValidItem($item) {
-		return is_object($item) && $item instanceof Field; 
+		return is_object($item) && $item instanceof Field;
 	}
 
 	/**
@@ -59,7 +59,7 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 *
 	 */
 	public function isValidKey($key) {
-		return is_int($key) || ctype_digit("$key"); 
+		return is_int($key) || ctype_digit("$key");
 	}
 
 	/**
@@ -67,11 +67,11 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 *
 	 */
 	public function getItemKey($item) {
-		return $item->id; 
+		return $item->id;
 	}
 
 	/**
-	 * Per WireArray interface, return a blank item 
+	 * Per WireArray interface, return a blank item
 	 *
 	 */
 	public function makeBlankItem() {
@@ -87,27 +87,27 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 *
 	 */
 	public function add($field) {
-		if(!is_object($field)) $field = $this->getFuel('fields')->get($field); 
+		if(!is_object($field)) $field = $this->getFuel('fields')->get($field);
 
 		if($field && $field instanceof Field) {
-			if(!$field->id) throw new WireException("You must save field '$field' before adding to Fieldgroup '{$this->name}'"); 
-			parent::add($field); 
+			if(!$field->id) throw new WireException("You must save field '$field' before adding to Fieldgroup '{$this->name}'");
+			parent::add($field);
 		} else {
-			// throw new WireException("Unable to add field '$field' to Fieldgroup '{$this->name}'"); 
+			// throw new WireException("Unable to add field '$field' to Fieldgroup '{$this->name}'");
 		}
 
-		return $this; 
+		return $this;
 	}
 
 	/**
 	 * Remove a field from this fieldgroup
 	 *
-	 * Performs a deletion by finding all templates using this fieldgroup, then finding all pages using the template, then 
+	 * Performs a deletion by finding all templates using this fieldgroup, then finding all pages using the template, then
 	 * calling upon the Fieldtype to delete them one at a time. This is a potentially expensive/time consuming method, and
-	 * may need further consideration. 
-	 * 
+	 * may need further consideration.
+	 *
 	 * Note that this must be followed up with a save() before it does anything destructive. This method does nothing more
-	 * than queue the removal. 
+	 * than queue the removal.
 	 *
 	 * @param Field|string $field
 	 * @return bool True on success, false on failure.
@@ -115,19 +115,19 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 */
 	public function remove($field) {
 
-		if(!is_object($field)) $field = $this->getFuel('fields')->get($field); 
-		if(!$this->getField($field->id)) return false; 
-		if(!$field) return true; 
+		if(!is_object($field)) $field = $this->getFuel('fields')->get($field);
+		if(!$this->getField($field->id)) return false;
+		if(!$field) return true;
 
 		// Make note of any fields that were removed so that Fieldgroups::save()
 		// can delete data for those fields
 		if(is_null($this->removedFields)) $this->removedFields = new FieldsArray();
-		$this->removedFields->add($field); 
-		$this->trackChange("remove:$field", $field, null); 
+		$this->removedFields->add($field);
+		$this->trackChange("remove:$field", $field, null);
 
 		// parent::remove($field->id); replaced with finishRemove() method below
 
-		return true; 
+		return true;
 	}
 
 	/**
@@ -136,23 +136,23 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 * This completes the removal process. The remove() method above only queues the removal but doesn't execute it.
 	 * Instead, Fieldgroups::save() calls this method to finish the removal. This is necessary because if remove()
 	 * removes the data from memory, then save() won't still have access to determine what related assets should
-	 * be removed. 
+	 * be removed.
 	 *
-	 * This method is for use by Fieldgroups::save() and not intended for API usage. 
-	 * 
+	 * This method is for use by Fieldgroups::save() and not intended for API usage.
+	 *
 	 * @internal
 	 * @param Field $field
 	 * @return bool
 	 *
 	 */
 	public function finishRemove(Field $field) {
-		return parent::remove($field->id); 
+		return parent::remove($field->id);
 	}
 
 	/**
 	 * Removes a field from the fieldgroup without deleting any associated field data when $fieldgroup->save() is called.
 	 *
-	 * This is useful in the API when you want to move a field around within a fieldgroup, like when moving a field to a Fieldset within the Fieldgroup. 
+	 * This is useful in the API when you want to move a field around within a fieldgroup, like when moving a field to a Fieldset within the Fieldgroup.
 	 *
 	 * @param Field $field
 	 * @return bool
@@ -160,11 +160,11 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 */
 	public function softRemove($field) {
 
-		if(!is_object($field)) $field = $this->getFuel('fields')->get($field); 
-		if(!$this->getField($field->id)) return false; 
-		if(!$field) return true; 
+		if(!is_object($field)) $field = $this->getFuel('fields')->get($field);
+		if(!$this->getField($field->id)) return false;
+		if(!$field) return true;
 
-		return parent::remove($field->id); 
+		return parent::remove($field->id);
 	}
 
 	/**
@@ -188,7 +188,7 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	public function getField($key, $useFieldgroupContext = false) {
 
 		if($this->isValidKey($key)) {
-			$value = parent::get($key); 
+			$value = parent::get($key);
 
 		} else {
 
@@ -202,10 +202,10 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 		}
 
 		if($value && $useFieldgroupContext) { // && !empty($this->fieldContexts[$value->id])) {
-			$value = clone $value;	
+			$value = clone $value;
 			if(isset($this->fieldContexts[$value->id])) {
 				foreach($this->fieldContexts[$value->id] as $k => $v) {
-					$value->set($k, $v); 
+					$value->set($k, $v);
 				}
 			}
 		}
@@ -214,18 +214,18 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 			$value->flags = $value->flags | Field::flagFieldgroupContext;
 		}
 
-		return $value; 
+		return $value;
 	}
 
 	/**
-	 * Get a field that is part of this fieldgroup, in the context of this fieldgroup. 
+	 * Get a field that is part of this fieldgroup, in the context of this fieldgroup.
 	 *
 	 * @param string|int|Field $key
 	 * @return Field|null
 	 *
 	 */
 	public function getFieldContext($key) {
-		return $this->getField($key, true); 
+		return $this->getField($key, true);
 	}
 
 	/**
@@ -240,9 +240,9 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	}
 
 	/**
-	 * Get a Fieldgroup property or a field. 
+	 * Get a Fieldgroup property or a field.
 	 *
-	 * It is preferable to use getField() to retrieve fields from the fieldgroup because this checks other properties of the Fieldgroup. 
+	 * It is preferable to use getField() to retrieve fields from the fieldgroup because this checks other properties of the Fieldgroup.
 	 *
 	 * @param string|int $key
 	 * @return Field|string|int|null
@@ -252,13 +252,13 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 		if($key == 'fields') return $this;
 		if($key == 'fields_id') {
 			$values = array();
-			foreach($this as $field) $values[] = $field->id; 
-			return $values; 
+			foreach($this as $field) $values[] = $field->id;
+			return $values;
 		}
-		if($key == 'removedFields') return $this->removedFields; 
-		if(isset($this->settings[$key])) return $this->settings[$key]; 
-		if($value = parent::get($key)) return $value; 
-		return $this->getField($key); 
+		if($key == 'removedFields') return $this->removedFields;
+		if(isset($this->settings[$key])) return $this->settings[$key];
+		if($value = parent::get($key)) return $value;
+		return $this->getField($key);
 	}
 
 	/**
@@ -266,12 +266,12 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 *
 	 */
 	public function addLookupItem($item, array &$row) {
-		if($item) $this->add($item); 
+		if($item) $this->add($item);
 		if(!empty($row['data'])) {
 			// set field context for this fieldgroup
-			$this->fieldContexts[(int)$item] = wireDecodeJSON($row['data']); 
+			$this->fieldContexts[(int)$item] = wireDecodeJSON($row['data']);
 		}
-		return $this; 
+		return $this;
 	}
 
 
@@ -289,22 +289,22 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 		if($key == 'data') return $this; // we don't have a data field here
 
 		if($key == 'id') {
-			$value = (int) $value; 
-			
+			$value = (int) $value;
+
 		} else if($key == 'name') {
-			$value = $this->wire('sanitizer')->name($value); 
-			
+			$value = $this->wire('sanitizer')->name($value);
+
 		}
 
 		if(isset($this->settings[$key])) {
-			if($this->settings[$key] !== $value) $this->trackChange($key, $this->settings[$key], $value); 
-			$this->settings[$key] = $value; 
+			if($this->settings[$key] !== $value) $this->trackChange($key, $this->settings[$key], $value);
+			$this->settings[$key] = $value;
 
 		} else {
-			return parent::set($key, $value); 
+			return parent::set($key, $value);
 		}
-		
-		return $this; 	
+
+		return $this;
 	}
 
 
@@ -315,15 +315,15 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 *
 	 */
 	public function save() {
-		$this->getFuel('fieldgroups')->save($this); 
+		$this->getFuel('fieldgroups')->save($this);
 	}
 
 	/**
 	 * Fieldgroups always return their name when dereferenced as a string
-	 *	
+	 *
 	 */
 	public function __toString() {
-		return $this->name; 
+		return $this->name;
 	}
 
 	/**
@@ -331,7 +331,7 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 *
 	 */
 	public function getTableData() {
-		return $this->settings; 
+		return $this->settings;
 	}
 
 	/**
@@ -339,15 +339,15 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 *
 	 */
 	public function getExportData() {
-		return $this->wire('fieldgroups')->getExportData($this); 
+		return $this->wire('fieldgroups')->getExportData($this);
 	}
 
 	/**
 	 * Given an export data array, import it back to the class and return what happened
-	 * 
+	 *
 	 * Changes are not committed until the item is saved
 	 *
-	 * @param array $data 
+	 * @param array $data
 	 * @return array Returns array(
 	 * 	[property_name] => array(
 	 * 		'old' => 'old value',	// old value, always a string
@@ -355,18 +355,18 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 * 		'error' => 'error message or blank if no error'
 	 * 	)
 	 * @throws WireException if given invalid data
-	 * 
+	 *
 	 */
 	public function setImportData(array $data) {
-		return $this->wire('fieldgroups')->setImportData($this, $data); 
+		return $this->wire('fieldgroups')->setImportData($this, $data);
 	}
 
 	/**
 	 * Per HasLookupItems interface, get a WireArray of Field instances associated with this Fieldgroup
-	 *	
-	 */ 
+	 *
+	 */
 	public function getLookupItems() {
-		return $this; 
+		return $this;
 	}
 
 	/**
@@ -384,16 +384,16 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 		foreach($this as $field) {
 
 			// get a clone in the context of this fieldgroup, if it has contextual settings
-			if(isset($this->fieldContexts[$field->id])) $field = $this->getField($field->id, true); 
+			if(isset($this->fieldContexts[$field->id])) $field = $this->getField($field->id, true);
 
 			$inputfield = $field->getInputfield($page, $contextStr);
-			if(!$inputfield) continue; 
+			if(!$inputfield) continue;
 
-			$inputfield->value = $page->get($field->name); 
-			$container->add($inputfield); 
-		}		
+			$inputfield->value = $page->get($field->name);
+			$container->add($inputfield);
+		}
 
-		return $container; 
+		return $container;
 	}
 
 	/**
@@ -403,17 +403,17 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 *
 	 */
 	public function getTemplates() {
-		return $this->fuel('fieldgroups')->getTemplates($this); 
+		return $this->fuel('fieldgroups')->getTemplates($this);
 	}
 
 	/**
-	 * Get the number of templates using the given fieldgroup. 
+	 * Get the number of templates using the given fieldgroup.
 	 *
 	 * @return int
 	 *
 	 */
 	public function getNumTemplates() {
-		return $this->fuel('fieldgroups')->getNumTemplates($this); 
+		return $this->fuel('fieldgroups')->getNumTemplates($this);
 	}
 
 	/**
@@ -430,7 +430,7 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 * Return an array of context data for the given field ID
 	 *
 	 * @param int|null $field_id Field ID or omit to return all field contexts
-	 * @return array 
+	 * @return array
 	 *
 	 */
 	public function getFieldContextArray($field_id = null) {
@@ -441,10 +441,10 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 
 	/**
 	 * Set an array of context data for the given field ID
-	 * 
+	 *
 	 * @param int $field_id Field ID
 	 * @param array $data
-	 * 
+	 *
 	 */
 	public function setFieldContextArray($field_id, $data) {
 		$this->fieldContexts[$field_id] = $data;
@@ -452,12 +452,12 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 
 	/**
 	 * Save field contexts for this fieldgroup
-	 * 
+	 *
 	 * @return int Number of contexts saved
-	 * 
+	 *
 	 */
 	public function saveContext() {
-		return $this->wire('fieldgroups')->saveContext($this); 
+		return $this->wire('fieldgroups')->saveContext($this);
 	}
 
 }

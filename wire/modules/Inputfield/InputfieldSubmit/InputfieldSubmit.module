@@ -11,17 +11,17 @@ class InputfieldSubmit extends Inputfield {
 			'title' => __('Submit', __FILE__), // Module Title
 			'summary' => __('Form submit button', __FILE__), // Module Summary
 			'version' => 101,
-			'permanent' => true, 
+			'permanent' => true,
 			);
 	}
 
 	public function init() {
 		parent::init();
-		$this->attr('type', 'submit'); 
-		$this->attr('name', 'submit'); 
+		$this->attr('type', 'submit');
+		$this->attr('name', 'submit');
 		$this->attr('value', $this->_('Submit')); // Standard submit button label
-		$this->attr('class', 'ui-button ui-widget ui-state-default ui-corner-all'); 
-		$this->skipLabel = Inputfield::skipLabelHeader; 
+		$this->attr('class', 'ui-button ui-widget ui-state-default ui-corner-all');
+		$this->skipLabel = Inputfield::skipLabelHeader;
 	}
 
 	public function ___render() {
@@ -29,12 +29,12 @@ class InputfieldSubmit extends Inputfield {
 		$icon = $this->icon ? $this->sanitizer->name($this->icon) : '';
 		$icon = $icon ? "<i class='fa fa-$icon'></i> " : '';
 		$out = "\n<button $attrs><span class='ui-button-text'>$icon" . $this->attr('value') . '</span></button>';
-		return $out; 
+		return $out;
 	}
 
 	public function ___processInput(WireInputData $input) {
 		// submit buttons don't need to process any input
-		return $this; 
+		return $this;
 	}
-	
+
 }

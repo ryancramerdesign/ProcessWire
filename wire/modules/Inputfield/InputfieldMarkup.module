@@ -3,7 +3,7 @@
 /**
  * Intended just for outputting markup as help or commentary among other Inputfields
  *
- */ 
+ */
 
 class InputfieldMarkup extends InputfieldWrapper {
 
@@ -12,7 +12,7 @@ class InputfieldMarkup extends InputfieldWrapper {
 			'title' => __('Markup', __FILE__),
 			'summary' => __('Contains any other markup and optionally child Inputfields', __FILE__),
 			'version' => 101,
-			'permanent' => true, 
+			'permanent' => true,
 			);
 	}
 
@@ -21,21 +21,21 @@ class InputfieldMarkup extends InputfieldWrapper {
 		$this->set('textformatters', array());
 		$this->skipLabel = Inputfield::skipLabelBlank;
 		parent::init();
-	}	
+	}
 
 	public function ___render() {
 		$out = '';
 
-		if(strlen($this->attr('value'))) $out .= "\n" . $this->attr('value'); 
-		if(strlen($this->markupText)) $out .= "\n" . $this->markupText; 
+		if(strlen($this->attr('value'))) $out .= "\n" . $this->attr('value');
+		if(strlen($this->markupText)) $out .= "\n" . $this->markupText;
 		$out = trim($out);
 
 		if(count($this->textformatters)) {
 			foreach($this->textformatters as $className) {
 				$t = wire('modules')->get($className);
-				if(!$t) continue; 
+				if(!$t) continue;
 				$t->formatValue(wire('page'), new Field(), $out);
-			}	
+			}
 		}
 
 		if($this->description) {
@@ -43,8 +43,8 @@ class InputfieldMarkup extends InputfieldWrapper {
 			$this->description = ''; // prevents it from appearing again at the bottom
 		}
 
-		$out .= parent::___render(); 
-		return $out; 
+		$out .= parent::___render();
+		return $out;
 	}
 
 	public function ___renderValue() {
@@ -54,11 +54,11 @@ class InputfieldMarkup extends InputfieldWrapper {
 
 	public function ___getConfigInputfields() {
 
-		$inputfields = parent::___getConfigInputfields();		
+		$inputfields = parent::___getConfigInputfields();
 		if($this->hasFieldtype) return $inputfields;
 
 		$f = wire('modules')->get('InputfieldTextarea');
-		$f->attr('id+name', 'markupText'); 
+		$f->attr('id+name', 'markupText');
 		$f->attr('value', $this->markupText);
 		$f->attr('rows', 10);
 		$f->label = $this->_('Markup Text');
@@ -75,12 +75,12 @@ class InputfieldMarkup extends InputfieldWrapper {
 
 		$f->attr('value', $this->textformatters);
 
-		$f->description = $this->_('Select the format that your Markup Text is in, or the formatters that you want to be applied to it, in the order you want them applied.'); 
+		$f->description = $this->_('Select the format that your Markup Text is in, or the formatters that you want to be applied to it, in the order you want them applied.');
 		$f->notes = $this->_('If your Markup Text is plain HTML, you may not want to select any Text Formatters.');
 		$inputfields->add($f);
 
 		return $inputfields;
 	}
-	
+
 }
 

@@ -4,11 +4,11 @@
  * ProcessWire Fieldtypes
  *
  * Maintains a collection of Fieldtype modules.
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -18,40 +18,40 @@ class Fieldtypes extends WireArray {
 	/**
 	 * Instance of Modules class
 	 *
-	protected $modules; 
+	protected $modules;
 	 */
-	
+
 	protected $preloaded = false;
 
 	/**
-	 * Construct this Fieldtypes object and load all Fieldtype modules 
+	 * Construct this Fieldtypes object and load all Fieldtype modules
 	 *
  	 */
 	public function init() {
 		foreach($this->wire('modules') as $module) {
 			if(strpos($module->className(), 'Fieldtype') === 0) {
 				// if($module instanceof ModulePlaceholder) $module = $this->wire('modules')->get($module->className());
-				$this->add($module); 
+				$this->add($module);
 			}
 		}
 	}
 
 	/**
 	 * Convert all ModulePlaceholders to Fieldtype modules
-	 * 
+	 *
 	 */
 	protected function preload() {
 		if($this->preloaded) return;
-		$debug = $this->wire('config')->debug; 
-		if($debug) Debug::timer('Fieldtypes.preload'); 
+		$debug = $this->wire('config')->debug;
+		if($debug) Debug::timer('Fieldtypes.preload');
 		foreach($this->data as $key => $module) {
 			if($module instanceof ModulePlaceholder) {
-				$fieldtype = $this->wire('modules')->get($module->className()); 
-				$this->data[$key] = $fieldtype; 
+				$fieldtype = $this->wire('modules')->get($module->className());
+				$this->data[$key] = $fieldtype;
 			}
 		}
-		if($debug) Debug::saveTimer('Fieldtypes.preload'); 
-		$this->preloaded = true; 
+		if($debug) Debug::saveTimer('Fieldtypes.preload');
+		$this->preloaded = true;
 	}
 
 	/**
@@ -59,7 +59,7 @@ class Fieldtypes extends WireArray {
 	 *
 	 */
 	public function isValidItem($item) {
-		return $item instanceof Fieldtype || $item instanceof ModulePlaceholder; 
+		return $item instanceof Fieldtype || $item instanceof ModulePlaceholder;
 	}
 
 	/**
@@ -67,7 +67,7 @@ class Fieldtypes extends WireArray {
 	 *
 	 */
 	public function isValidKey($key) {
-		return is_string($key); 
+		return is_string($key);
 	}
 
 	/**
@@ -79,7 +79,7 @@ class Fieldtypes extends WireArray {
 	}
 
 	/**
-	 * Does this WireArray use numeric keys only? 
+	 * Does this WireArray use numeric keys only?
 	 *
 	 * @return bool
 	 *
@@ -96,39 +96,39 @@ class Fieldtypes extends WireArray {
 	 *
 	 */
 	public function makeBlankItem() {
-		return null; 
+		return null;
 	}
 
 	/**
-	 * Given a Fieldtype name (or class name) return the instantiated Fieldtype module. 
+	 * Given a Fieldtype name (or class name) return the instantiated Fieldtype module.
 	 *
-	 * If the requested Fieldtype is not already installed, it will be installed here automatically. 
+	 * If the requested Fieldtype is not already installed, it will be installed here automatically.
 	 *
 	 * @param string $key Fieldtype name or class name, or dynamic property of Fieldtypes
-	 * @return Fieldtype|null 
+	 * @return Fieldtype|null
 	 *
 	 */
 	public function get($key) {
 
-		if(strpos($key, 'Fieldtype') !== 0) $key = "Fieldtype" . ucfirst($key); 
+		if(strpos($key, 'Fieldtype') !== 0) $key = "Fieldtype" . ucfirst($key);
 
 		if(!$fieldtype = parent::get($key)) {
-			$fieldtype = $this->wire('modules')->get($key); 
+			$fieldtype = $this->wire('modules')->get($key);
 		}
 
 		if($fieldtype instanceof ModulePlaceholder) {
-			$fieldtype = $this->wire('modules')->get($fieldtype->className()); 			
-			$this->set($key, $fieldtype); 
+			$fieldtype = $this->wire('modules')->get($fieldtype->className());
+			$this->set($key, $fieldtype);
 		}
 
-		return $fieldtype; 
+		return $fieldtype;
 	}
 
 	/**
 	 * Below we account for all get() related functions in WireArray to preload the fieldtypes
-	 * 
+	 *
 	 * This ensures there are no ModulePlaceholders present when results from any of these methods.
-	 * 
+	 *
 	 */
 
 	public function getArray() { $this->preload(); return parent::getArray(); }
@@ -148,9 +148,9 @@ class Fieldtypes extends WireArray {
 	public function getIterator() { $this->preload(); return parent::getIterator(); }
 	public function getNext($item) { $this->preload(); return parent::getNext($item); }
 	public function getPrev($item) { $this->preload(); return parent::getPrev($item); }
-	
-	
-	
+
+
+
 }
 
 

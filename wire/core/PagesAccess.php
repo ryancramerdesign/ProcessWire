@@ -3,24 +3,24 @@
 /**
  * ProcessWire Pages Access
  *
- * Maintains the pages_access table which serves as a way to line up pages 
+ * Maintains the pages_access table which serves as a way to line up pages
  * to the templates that maintain their access roles.
- * 
+ *
  * This class serves as a way for pageFinder() to determine if a user has access to a page
- * before actually loading it. 
+ * before actually loading it.
  *
  * The pages_access template contains just two columns:
- * 
- * 	- pages_id:  Any given page 
+ *
+ * 	- pages_id:  Any given page
  * 	- templates_id: The template that sets this pages access
  *
- * Pages using templates that already define their access (determined by $template->useRoles) 
- * are ommitted from the pages_access table, as they aren't necessary. 
+ * Pages using templates that already define their access (determined by $template->useRoles)
+ * are ommitted from the pages_access table, as they aren't necessary.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2011 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -28,11 +28,11 @@
 
 class PagesAccess extends Wire {
 
-	/**	
+	/**
 	 * Cached templates that don't define access
 	 *
 	 */
-	protected $_templates = array(); 
+	protected $_templates = array();
 
 	/**
 	 * Cached templates that DO define access
@@ -44,20 +44,20 @@ class PagesAccess extends Wire {
 	 * Array of page parent IDs that have already been completed
 	 *
 	 */
-	protected $completedParentIDs = array(); 
+	protected $completedParentIDs = array();
 
 	/**
 	 * Construct a PagesAccess instance, optionally specifying a Page or Template
 	 *
-	 * If Page or Template specified, then the updateTemplate or updatePage method is assumed. 
+	 * If Page or Template specified, then the updateTemplate or updatePage method is assumed.
 	 *
 	 * @param Page|Template
-	 * 
+	 *
 	 */
 	public function __construct($item = null) {
 		if(!$item) return;
-		if($item instanceof Page) $this->updatePage($item); 
-			else if($item instanceof Template) $this->updateTemplate($template); 
+		if($item instanceof Page) $this->updatePage($item);
+			else if($item instanceof Template) $this->updateTemplate($template);
 	}
 
 	/**
@@ -90,7 +90,7 @@ class PagesAccess extends Wire {
 		}
 
 		// if the accessTemplate has the guest role, it does not need to be in our pages_access table
-		// since access to it is assumed for everyone. So we tell it not to perform insertions, but 
+		// since access to it is assumed for everyone. So we tell it not to perform insertions, but
 		// it should continue through the page tree
 		$template = $this->templates->get($accessTemplateID);
 		$doInsertions = !$template->hasRole('guest');
@@ -101,7 +101,7 @@ class PagesAccess extends Wire {
 				"WHERE pages.parent_id=:parent_id " .
 				"GROUP BY pages.id ";
 
-		$query = $database->prepare($sql); 
+		$query = $database->prepare($sql);
 		$query->bindValue(":parent_id", $parent_id, PDO::PARAM_INT);
 		$query->execute();
 
@@ -114,9 +114,9 @@ class PagesAccess extends Wire {
 				// if there are children, rebuild those children with this template for access
 				if($numChildren) $this->rebuild($id, $templates_id, $doDeletions);
 			} else {
-				// this template is not defining access... 
+				// this template is not defining access...
 				if($doInsertions) {
-					// ...so save an entry for the page and the template that IS defining access 
+					// ...so save an entry for the page and the template that IS defining access
 					$insertions[$id] = (int) $accessTemplateID;
 
 				} else if($doDeletions) {
@@ -128,7 +128,7 @@ class PagesAccess extends Wire {
 			}
 
 		}
-		
+
 		$query->closeCursor();
 
 		if(count($insertions)) {
@@ -155,7 +155,7 @@ class PagesAccess extends Wire {
 	/**
 	 * Update the pages_access table for the given Template
 	 *
-	 * To be called when a template's 'useRoles' property has changed. 
+	 * To be called when a template's 'useRoles' property has changed.
 	 *
 	 */
 	public function updateTemplate(Template $template) {
@@ -165,10 +165,10 @@ class PagesAccess extends Wire {
 	/**
 	 * Save to pages_access table to indicate what template each page is getting it's access from
 	 *
-	 * This should be called a page has been saved and it's parent or template has changed. 
- 	 * Or, when a new page is added. 
+	 * This should be called a page has been saved and it's parent or template has changed.
+ 	 * Or, when a new page is added.
 	 *
-	 * If there is no entry in this table, then the page is getting it's access from it's existing template. 
+	 * If there is no entry in this table, then the page is getting it's access from it's existing template.
 	 *
 	 * This is used by PageFinder to determine what pages to include in a find() operation based on user access.
 	 *
@@ -177,7 +177,7 @@ class PagesAccess extends Wire {
 	 */
 	public function updatePage(Page $page) {
 
-		$page_id = (int) $page->id; 
+		$page_id = (int) $page->id;
 		if(!$page_id) return;
 
 		// this is the template where access is defined for this page
@@ -187,33 +187,33 @@ class PagesAccess extends Wire {
 
 		if(!$accessParent->id || $accessParent->id == $page->id) {
 			// page is the same as the one that defines access, so it doesn't need to be here
-			$query = $database->prepare("DELETE FROM pages_access WHERE pages_id=:page_id"); 	
+			$query = $database->prepare("DELETE FROM pages_access WHERE pages_id=:page_id");
 			$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
 			$query->execute();
 
 		} else {
-			$template_id = (int) $accessParent->template->id; 
+			$template_id = (int) $accessParent->template->id;
 
 			$sql = 	"INSERT INTO pages_access (pages_id, templates_id) " .
 					"VALUES(:page_id, :template_id) " .
 					"ON DUPLICATE KEY UPDATE templates_id=VALUES(templates_id) ";
-			
+
 			$query = $database->prepare($sql);
 			$query->bindValue(":page_id", $page_id, PDO::PARAM_INT);
 			$query->bindValue(":template_id", $template_id, PDO::PARAM_INT);
 			$query->execute();
 		}
 
-		if($page->numChildren > 0) { 
+		if($page->numChildren > 0) {
 
 			if($page->parentPrevious && $accessParent->id != $page->id) {
 				// the page has children, it's parent was changed, and access is coming from the parent
 				// so the children entries need to be updated to reflect this change
-				$this->rebuild($page->id, $accessTemplate->id); 
+				$this->rebuild($page->id, $accessTemplate->id);
 
 			} else if($page->templatePrevious) {
 				// the page's template changed, so this may affect the children as well
-				$this->rebuild($page->id, $accessTemplate->id); 
+				$this->rebuild($page->id, $accessTemplate->id);
 			}
 		}
 
@@ -225,8 +225,8 @@ class PagesAccess extends Wire {
 	 */
 	public function deletePage(Page $page) {
 		$database = $this->wire('database');
-		$query = $database->prepare("DELETE FROM pages_access WHERE pages_id=:page_id"); 
-		$query->bindValue(":page_id", $page->id, PDO::PARAM_INT); 
+		$query = $database->prepare("DELETE FROM pages_access WHERE pages_id=:page_id");
+		$query->bindValue(":page_id", $page->id, PDO::PARAM_INT);
 		$query->execute();
 	}
 
@@ -235,15 +235,15 @@ class PagesAccess extends Wire {
 	 *
 	 */
 	protected function getTemplates() {
-		if(count($this->_templates)) return $this->_templates; 
+		if(count($this->_templates)) return $this->_templates;
 		foreach($this->templates as $template) {
 			if($template->useRoles) {
 				$this->_accessTemplates[$template->id] = $template;
 			} else {
-				$this->_templates[$template->id] = $template; 
+				$this->_templates[$template->id] = $template;
 			}
 		}
-		return $this->_templates; 
+		return $this->_templates;
 	}
 
 	/**
@@ -251,7 +251,7 @@ class PagesAccess extends Wire {
 	 *
 	 */
 	protected function getAccessTemplates() {
-		if(count($this->_accessTemplates)) return $this->_accessTemplates; 
+		if(count($this->_accessTemplates)) return $this->_accessTemplates;
 		$this->getTemplates();
 		return $this->_accessTemplates;
 	}

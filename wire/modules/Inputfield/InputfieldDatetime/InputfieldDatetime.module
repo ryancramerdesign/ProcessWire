@@ -3,15 +3,15 @@
 /**
  * ProcessWire Datetime Inputfield
  *
- * Provides input for date and optionally time values. 
+ * Provides input for date and optionally time values.
  *
- * For documentation about the fields used in this class, please see:  
+ * For documentation about the fields used in this class, please see:
  * /wire/core/Fieldtype.php
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -31,7 +31,7 @@ class InputfieldDatetime extends Inputfield {
 			'title' => __('Datetime', __FILE__), // Module Title
 			'summary' => __('Inputfield that accepts date and optionally time', __FILE__), // Module Summary
 			'version' => 103,
-			'permanent' => true, 
+			'permanent' => true,
 			);
 	}
 
@@ -40,18 +40,18 @@ class InputfieldDatetime extends Inputfield {
 	 *
 	 */
 	public function init() {
-		$this->attr('type', 'text'); 
-		$this->attr('size', 25); 
+		$this->attr('type', 'text');
+		$this->attr('size', 25);
 		$this->attr('placeholder', '');
 		$this->set('dateInputFormat', self::defaultDateInputFormat);
 		$this->set('timeInputFormat', '');
-		$this->set('datepicker', self::datepickerNo); 
+		$this->set('datepicker', self::datepickerNo);
 		$this->set('yearRange', '');
-		$this->set('defaultToday', 0); 
+		$this->set('defaultToday', 0);
 
 		if($this->languages) foreach($this->languages as $language) {
 			// account for alternate formats in other languages
-			if($language->isDefault()) continue; 
+			if($language->isDefault()) continue;
 			$this->set("dateInputFormat$language", '');
 			$this->set("timeInputFormat$language", '');
 		}
@@ -62,16 +62,16 @@ class InputfieldDatetime extends Inputfield {
 	/**
 	 * Called before the render method, from a hook in the Inputfield class
 	 *
-	 * We are overriding it here and checking for a datepicker, so that we can make sure 
+	 * We are overriding it here and checking for a datepicker, so that we can make sure
 	 * jQuery UI is loaded before the InputfieldDatetime.js
 	 *
 	 */
 	public function hookRender($event) {
 		if($this->datepicker) {
 			wire('modules')->get('JqueryCore'); // Jquery Core required before Jquery UI
-			wire('modules')->get('JqueryUI'); 
-		} 
-		parent::hookRender($event); 
+			wire('modules')->get('JqueryUI');
+		}
+		parent::hookRender($event);
 	}
 
 	/**
@@ -84,31 +84,31 @@ class InputfieldDatetime extends Inputfield {
 		$timeFormat = '';
 		if($this->user->language && !$this->user->language->isDefault()) {
 			// check if alternate language formats are provided
-			$dateFormat = $this->get("dateInputFormat{$this->user->language}"); 
-			$timeFormat = $this->get("timeInputFormat{$this->user->language}"); 
+			$dateFormat = $this->get("dateInputFormat{$this->user->language}");
+			$timeFormat = $this->get("timeInputFormat{$this->user->language}");
 		}
-		if(!$dateFormat) $dateFormat = $this->dateInputFormat; 
-		if(!$timeFormat) $timeFormat = $this->timeInputFormat; 
-		$useTime = false; 
+		if(!$dateFormat) $dateFormat = $this->dateInputFormat;
+		if(!$timeFormat) $timeFormat = $this->timeInputFormat;
+		$useTime = false;
 
 		if($this->datepicker) {
-			$this->addClass("InputfieldDatetimeDatepicker InputfieldDatetimeDatepicker{$this->datepicker}"); 
+			$this->addClass("InputfieldDatetimeDatepicker InputfieldDatetimeDatepicker{$this->datepicker}");
 			if(strlen($timeFormat) && $this->datepicker != self::datepickerInline) {
 				// add in the timepicker script, if applicable
-				$useTime = true; 
+				$useTime = true;
 				$this->config->scripts->add($this->config->urls->InputfieldDatetime . 'jquery-ui-timepicker-addon.js');
 			}
 			if($this->languages && $this->user->language) {
-				// include i18n support for the datepicker 
+				// include i18n support for the datepicker
 				// note that the 'xx' in the filename is just a placeholder to indicate what should be replaced for translations, as that file doesn't exist
 				$langFile = ltrim($this->_('/wire/modules/Jquery/JqueryUI/i18n/jquery.ui.datepicker-xx.js'), '/'); // Datepicker translation file // Replace 'xx' with jQuery UI language code or specify your own js file
 				if(is_file($this->config->paths->root . $langFile)) {
 					// add a custom language file
-					$this->config->scripts->add($this->config->urls->root . $langFile); 
+					$this->config->scripts->add($this->config->urls->root . $langFile);
 				} else {
 					// attempt to auto-find one based on the language name (which are often 2 char language codes)
 					$langFile = "wire/modules/Jquery/JqueryUI/i18n/jquery.ui.datepicker-{$this->user->language->name}.js";
-					if(is_file($this->config->paths->root . $langFile)) $this->config->scripts->add($this->config->urls->root . $langFile); 
+					if(is_file($this->config->paths->root . $langFile)) $this->config->scripts->add($this->config->urls->root . $langFile);
 				}
 			}
 		}
@@ -116,45 +116,45 @@ class InputfieldDatetime extends Inputfield {
 		$attrs = $this->getAttributes();
 		$value = $attrs['value'];
 		$valueTS = (int) $value*1000; // TS=for datepicker/javascript, which uses milliseconds rather than seconds
-		unset($attrs['value']); 
+		unset($attrs['value']);
 
 		if(!$value && $this->defaultToday) {
 			$value = date($dateFormat);
-			if($useTime) $value .= ' ' . date($timeFormat); 
-			$valueTS = time()*1000; 
+			if($useTime) $value .= ' ' . date($timeFormat);
+			$valueTS = time()*1000;
 
 		} else if($value) {
-			$value = trim(date($dateFormat . ' ' . $timeFormat, (int) $value)); 
+			$value = trim(date($dateFormat . ' ' . $timeFormat, (int) $value));
 		}
 
-		$value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); 
+		$value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 
-		$dateFormatJS = htmlspecialchars(FieldtypeDatetime::convertDateFormat($dateFormat, 'js'), ENT_QUOTES, 'UTF-8'); 
+		$dateFormatJS = htmlspecialchars(FieldtypeDatetime::convertDateFormat($dateFormat, 'js'), ENT_QUOTES, 'UTF-8');
 		$timeFormatJS = $useTime ? FieldtypeDatetime::convertDateFormat($timeFormat, 'js') : '';
 
 		if(strpos($timeFormatJS, 'h24') !== false) {
 			// 24 hour format. timepicker has no codes to represent it, so we identify and convert it to a variable
-			$timeFormatJS = str_replace('h24', 'h', $timeFormatJS); 
-			$ampm = 0; 
+			$timeFormatJS = str_replace('h24', 'h', $timeFormatJS);
+			$ampm = 0;
 		} else {
 			$ampm = 1;
 		}
 
-		if(strlen($timeFormatJS)) $timeFormatJS = htmlspecialchars($timeFormatJS, ENT_QUOTES, 'UTF-8'); 
+		if(strlen($timeFormatJS)) $timeFormatJS = htmlspecialchars($timeFormatJS, ENT_QUOTES, 'UTF-8');
 		if(empty($value)) $value = '';
-		$yearRange = htmlspecialchars($this->yearRange, ENT_QUOTES, 'UTF-8'); 
+		$yearRange = htmlspecialchars($this->yearRange, ENT_QUOTES, 'UTF-8');
 
-		$out = 	"\n" . 
-			"<input " . $this->getAttributesString($attrs) . " " . 
-			"value='$value' " . 
-			"data-dateformat='$dateFormatJS' " . 
-			"data-timeformat='$timeFormatJS' " . 
-			"data-ts='$valueTS' " . 
-			"data-ampm='$ampm' " . 
-			(strlen($yearRange) ? "data-yearrange='$yearRange' " : '') . 
-			"/>"; 
+		$out = 	"\n" .
+			"<input " . $this->getAttributesString($attrs) . " " .
+			"value='$value' " .
+			"data-dateformat='$dateFormatJS' " .
+			"data-timeformat='$timeFormatJS' " .
+			"data-ts='$valueTS' " .
+			"data-ampm='$ampm' " .
+			(strlen($yearRange) ? "data-yearrange='$yearRange' " : '') .
+			"/>";
 
-		return $out; 
+		return $out;
 	}
 
 	/**
@@ -162,9 +162,9 @@ class InputfieldDatetime extends Inputfield {
 	 *
 	 */
 	public function ___renderValue() {
-		$value = $this->attr('value'); 
+		$value = $this->attr('value');
 		if(!$value) return '';
-		$format = trim($this->dateInputFormat . ' ' . $this->timeInputFormat); 
+		$format = trim($this->dateInputFormat . ' ' . $this->timeInputFormat);
 		return FieldtypeDatetime::formatDate($value, trim($format));
 	}
 
@@ -174,9 +174,9 @@ class InputfieldDatetime extends Inputfield {
 	 */
 	public function setAttribute($key, $value) {
 		if($key == 'value') {
-			$value = FieldtypeDatetime::stringToTimestamp($value, $this->dateInputFormat . ' ' . $this->timeInputFormat); 
+			$value = FieldtypeDatetime::stringToTimestamp($value, $this->dateInputFormat . ' ' . $this->timeInputFormat);
 		}
-		return parent::setAttribute($key, $value); 
+		return parent::setAttribute($key, $value);
 	}
 
 	/**
@@ -189,35 +189,35 @@ class InputfieldDatetime extends Inputfield {
 		$languages = wire('languages');
 
 		$f = $this->modules->get('InputfieldInteger');
-		$f->setAttribute('name', 'size'); 
+		$f->setAttribute('name', 'size');
 		$f->label = $this->_('Size');
-		$f->attr('value', $this->attr('size')); 
-		$f->attr('size', 4); 
-		$f->description = $this->_('The displayed width of this field (in characters).'); 
+		$f->attr('value', $this->attr('size'));
+		$f->attr('size', 4);
+		$f->description = $this->_('The displayed width of this field (in characters).');
 		$inputfields->append($f);
 
 		$f= $this->modules->get('InputfieldRadios');
 		$f->label = $this->_('Date Picker');
-		$f->setAttribute('name', 'datepicker'); 
-		$f->addOption(self::datepickerNo, $this->_('No date/time picker')); 
-		$f->addOption(self::datepickerClick, $this->_('Date/time picker on button click')); 
-		$f->addOption(self::datepickerFocus, $this->_('Date/time picker on field focus')); 
-		$f->addOption(self::datepickerInline, $this->_('Inline date picker always visible (no time picker)')); 
-		$f->attr('value', (int) $this->datepicker); 
+		$f->setAttribute('name', 'datepicker');
+		$f->addOption(self::datepickerNo, $this->_('No date/time picker'));
+		$f->addOption(self::datepickerClick, $this->_('Date/time picker on button click'));
+		$f->addOption(self::datepickerFocus, $this->_('Date/time picker on field focus'));
+		$f->addOption(self::datepickerInline, $this->_('Inline date picker always visible (no time picker)'));
+		$f->attr('value', (int) $this->datepicker);
 		$inputfields->append($f);
 
 		$f = $this->modules->get("InputfieldText");
 		$f->attr('name', 'yearRange');
-		$f->attr('value', $this->yearRange); 
+		$f->attr('value', $this->yearRange);
 		$f->attr('size', 10);
 		$f->label = $this->_('Date Picker Year Range');
-		$f->description = $this->_('When the date picker is used, it has a selectable year range minus and plus 10 years from the current year. To extend or reduce that, specify the quantity of years before and after [current year] in this format: "-30:+20", which would show 30 years before now and 20 years after now.'); 
-		$f->notes = $this->_('Default when no value present is "-10:+10" which shows a date picker year range 10 years before now, and 10 years after now.'); 
+		$f->description = $this->_('When the date picker is used, it has a selectable year range minus and plus 10 years from the current year. To extend or reduce that, specify the quantity of years before and after [current year] in this format: "-30:+20", which would show 30 years before now and 20 years after now.');
+		$f->notes = $this->_('Default when no value present is "-10:+10" which shows a date picker year range 10 years before now, and 10 years after now.');
 		$f->collapsed = Inputfield::collapsedBlank;
 		$inputfields->append($f);
 
-		$fieldset = $this->modules->get('InputfieldFieldset'); 
-		$fieldset->label = $this->_('Date/Time Input Formats');  
+		$fieldset = $this->modules->get('InputfieldFieldset');
+		$fieldset->label = $this->_('Date/Time Input Formats');
 
 		$f = $this->modules->get('InputfieldSelect');
 		$f->attr('name', '_dateInputFormat');
@@ -238,7 +238,7 @@ class InputfieldDatetime extends Inputfield {
 		$f->attr('name', '_timeInputFormat');
 		$f->label = $this->_('Time Input Format');
 		$f->addOption('', $this->_('None'));
-		$f->description = $this->_('Select an optional time format to be used for input. If used, the calendar option will include a time picker.'); 
+		$f->description = $this->_('Select an optional time format to be used for input. If used, the calendar option will include a time picker.');
 		foreach(FieldtypeDatetime::getTimeFormats() as $format) {
 			$timeFormatted = FieldtypeDatetime::formatDate($date, $format);
 			$f->addOption($format, $timeFormatted);
@@ -253,10 +253,10 @@ class InputfieldDatetime extends Inputfield {
 		$f->attr('value', $this->dateInputFormat ? $this->dateInputFormat : self::defaultDateInputFormat);
 		$f->attr('size', 20);
 		$f->label = $this->_('Date Input Format Code');
-		$f->description = $this->_('This is automatically built from the date select above, unless you modify it.'); 
-		$notes = $this->_('See the [PHP date](http://www.php.net/manual/en/function.date.php) function reference for more information on how to customize these formats.'); 
-		if($languages) $notes .= "\n" . $this->_('You may optionally specify formats for other languages here as well. Any languages left blank will inherit the default setting.'); 
-		$f->notes = $notes; 
+		$f->description = $this->_('This is automatically built from the date select above, unless you modify it.');
+		$notes = $this->_('See the [PHP date](http://www.php.net/manual/en/function.date.php) function reference for more information on how to customize these formats.');
+		if($languages) $notes .= "\n" . $this->_('You may optionally specify formats for other languages here as well. Any languages left blank will inherit the default setting.');
+		$f->notes = $notes;
 		$f->collapsed = Inputfield::collapsedYes;
 		$f1 = $f;
 		$fieldset->add($f);
@@ -266,29 +266,29 @@ class InputfieldDatetime extends Inputfield {
 		$f->attr('value', $this->timeInputFormat ? $this->timeInputFormat : '');
 		$f->attr('size', 20);
 		$f->label = $this->_('Time Input Format Code');
-		$f->description = $this->_('This is automatically built from the time select above, unless you modify it.'); 
-		$f->notes = $notes; 
+		$f->description = $this->_('This is automatically built from the time select above, unless you modify it.');
+		$f->notes = $notes;
 		$f->collapsed = Inputfield::collapsedYes;
 		$f2 = $f;
 
 		if($languages) {
-			$f1->useLanguages = true; 
-			$f2->useLanguages = true; 
+			$f1->useLanguages = true;
+			$f2->useLanguages = true;
 			foreach($languages as $language) {
-				if($language->isDefault()) continue; 
-				$f1->set("value$language", (string) $this->get("dateInputFormat$language")); 	
-				$f2->set("value$language", (string) $this->get("timeInputFormat$language")); 	
+				if($language->isDefault()) continue;
+				$f1->set("value$language", (string) $this->get("dateInputFormat$language"));
+				$f2->set("value$language", (string) $this->get("timeInputFormat$language"));
 			}
 		}
 
 		$fieldset->add($f1);
 		$fieldset->add($f2);
-		$inputfields->add($fieldset); 
+		$inputfields->add($fieldset);
 
 		$f= $this->modules->get('InputfieldCheckbox');
-		$f->setAttribute('name', 'defaultToday'); 
-		$f->attr('value', 1); 
-		if($this->defaultToday) $f->attr('checked', 'checked'); 
+		$f->setAttribute('name', 'defaultToday');
+		$f->attr('value', 1);
+		if($this->defaultToday) $f->attr('checked', 'checked');
 		$f->label = $this->_("Default to today's date?");
 		$f->description = $this->_("If checked, this field will hold the current date when no value is entered."); // Default today description
 		$f->columnWidth = 50;
@@ -303,7 +303,7 @@ class InputfieldDatetime extends Inputfield {
 		$inputfields->append($field);
 
 
-		return $inputfields; 
+		return $inputfields;
 	}
-	
+
 }

@@ -8,11 +8,11 @@ class AdminThemeDefault extends AdminTheme implements Module, ConfigurableModule
 			'version' => 12,
 			'summary' => 'Minimal admin theme that supports all ProcessWire features.',
 			'autoload' => 'template=admin'
-			); 
+			);
 	}
 
 	public function init() {
-		parent::init(); 
+		parent::init();
 		if($this->isCurrent()) {
 			// this is the current admin theme
 		}
@@ -26,14 +26,14 @@ class AdminThemeDefault extends AdminTheme implements Module, ConfigurableModule
 		$inputfields = new InputfieldWrapper();
 		$field = wire('modules')->get('InputfieldRadios');
 		$field->attr('name', 'colors');
-		$field->label = __('Color Set'); 
+		$field->label = __('Color Set');
 		$field->addOption('classic', __('Classic'));
 		$field->addOption('warm', __('Warm'));
 		$field->addOption('modern', __('Modern'));
 		$field->addOption('futura', __('Futura'));
-		$field->attr('value', isset($data['colors']) ? $data['colors'] : ''); 
-		$field->optionColumns = 1; 
-		$inputfields->add($field); 		
+		$field->attr('value', isset($data['colors']) ? $data['colors'] : '');
+		$field->optionColumns = 1;
+		$inputfields->add($field);
 		return $inputfields;
 	}
 }

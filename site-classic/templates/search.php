@@ -11,17 +11,17 @@ if($q = $sanitizer->selectorValue($input->get->q)) {
 
 	// Send our sanitized query 'q' variable to the whitelist where it will be
 	// picked up and echoed in the search box by the head.inc file.
-	$input->whitelist('q', $q); 
+	$input->whitelist('q', $q);
 
 	// Search the title, body and sidebar fields for our query text.
-	// Limit the results to 50 pages. 
-	// Exclude results that use the 'admin' template. 
-	$matches = $pages->find("title|body|sidebar~=$q, limit=50"); 
+	// Limit the results to 50 pages.
+	// Exclude results that use the 'admin' template.
+	$matches = $pages->find("title|body|sidebar~=$q, limit=50");
 
-	$count = count($matches); 
+	$count = count($matches);
 
 	if($count) {
-		$out .= "<h2>Found $count pages matching your query:</h2>" . 
+		$out .= "<h2>Found $count pages matching your query:</h2>" .
 			"<ul class='nav'>";
 
 		foreach($matches as $m) {
@@ -38,12 +38,12 @@ if($q = $sanitizer->selectorValue($input->get->q)) {
 }
 
 // Note that we stored our output in $out before printing it because we wanted to execute
-// the search before including the header template. This is because the header template 
-// displays the current search query in the search box (via the $input->whitelist) and 
-// we wanted to make sure we had that setup before including the header template. 
+// the search before including the header template. This is because the header template
+// displays the current search query in the search box (via the $input->whitelist) and
+// we wanted to make sure we had that setup before including the header template.
 
-include("./head.inc"); 
+include("./head.inc");
 
-echo $out; 
+echo $out;
 
-include("./foot.inc"); 
+include("./foot.inc");

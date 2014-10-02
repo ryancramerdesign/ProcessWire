@@ -3,10 +3,10 @@
 /**
  * ProcessWire System Helper Module
  *
- * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2012 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://www.processwire.com
  * http://www.ryancramer.com
  *
@@ -17,47 +17,47 @@
  */
 
 abstract class SystemUpdate extends Wire {
-	
-	protected $updater; 
-	
+
+	protected $updater;
+
 	public function __construct(SystemUpdater $updater) {
-		$this->updater = $updater; 
+		$this->updater = $updater;
 	}
 
 	/**
 	 * Execute a system update
-	 * 
+	 *
 	 * @return int|bool True if successful, false if not.
 	 * 		Or return integer 0 if SystemUpdate[n].php will handle updating the system version when it is ready.
 	 * 		When false or 0 is returned, updates will stop being applied for that request.
 	 *
 	 */
 	abstract public function execute();
-	
+
 	public function getName() {
-		$name = get_class($this); 
-		$name = str_replace('SystemUpdate', '', $name); 
+		$name = get_class($this);
+		$name = str_replace('SystemUpdate', '', $name);
 		$name = "Update #$name";
-		return $name; 
+		return $name;
 	}
-	
+
 	public function message($text, $flags = 0) {
 		$text = $this->getName() . ": $text";
-		$this->updater->message($text, $flags); 
-		return $this; 
+		$this->updater->message($text, $flags);
+		return $this;
 	}
-	
+
 	public function error($text, $flags = 0) {
 		$text = $this->getName() . " ERROR: $text";
 		$this->updater->error($text, $flags);
 		return $this;
 	}
-	
+
 }
 
 /**
  * SystemUpdater module
- * 
+ *
  */
 class SystemUpdater extends WireData implements Module, ConfigurableModule {
 
@@ -65,23 +65,23 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 		return array(
 			'title' => __('System Updater', __FILE__), // Module Title
 			'summary' => __('Manages system versions and upgrades.', __FILE__), // Module Summary
-			'permanent' => true, 
-			'singular' => true, 
-			'autoload' => false, 
+			'permanent' => true,
+			'singular' => true,
+			'autoload' => false,
 
 			/**
 			 * This version number is important, as this updater keeps the systemVersion up with this version
 			 *
 			 */
-			'version' => 9, 
+			'version' => 9,
 			);
 	}
 
 	protected $configData = array(
-		// systemVersion generally represents the DB schema version, but 
+		// systemVersion generally represents the DB schema version, but
 		// can represent anything about the system that's related to the individual installation.
-		// 0 = the first version when this module was created, should remain there. 
-		'systemVersion' => 0, 
+		// 0 = the first version when this module was created, should remain there.
+		'systemVersion' => 0,
 		);
 
 	/**
@@ -97,7 +97,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 	public function setConfigData(array $data) {
 		$this->configData = array_merge($this->configData, $data);
 	}
-	
+
 	/**
 	 * Perform version checks and update as needed
 	 *
@@ -109,7 +109,7 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 		$moduleVersion = $info['version'];
 
 		foreach($this->configData as $key => $value) {
-			$config->$key = $value; 
+			$config->$key = $value;
 		}
 
 		while($config->systemVersion < $moduleVersion) {
@@ -118,16 +118,16 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 			if(!$this->update($config->systemVersion+1)) break;
 
 			// we increment the config systemVersion so that the version is also available to the updater
-			$config->systemVersion++;	
+			$config->systemVersion++;
 
 			// we save the configData for every version in case an update throws an exception
 			// then already applied updates won't be applied again
-			$this->saveSystemVersion($config->systemVersion); 
+			$this->saveSystemVersion($config->systemVersion);
 			$this->numUpdatesApplied++;
 		}
 
 		if($this->numUpdatesApplied > 0) {
-			// if updates were applied, reset the modules cache 
+			// if updates were applied, reset the modules cache
 			$this->modules->resetCache();
 		}
 
@@ -138,13 +138,13 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 	 *
 	 * @param int $version
 	 *
-	 */ 
+	 */
 	public function saveSystemVersion($version) {
 		$version = (int) $version;
-		$this->wire('config')->systemVersion = $version; 
+		$this->wire('config')->systemVersion = $version;
 		$this->configData['systemVersion'] = $version;
 		$this->wire('modules')->saveModuleConfigData($this, $this->configData);
-		$this->message("Update #$version: Completed!"); 
+		$this->message("Update #$version: Completed!");
 	}
 
 	/**
@@ -152,23 +152,23 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 	 *
  	 * If found, instantiate the class and it's constructor should perform the update or add any hooks necessary to perform the update
 	 *
-	 */ 
+	 */
 	protected function update($version) {
-		
+
 		$className = 'SystemUpdate' . $version;
 		$filename = $this->config->paths->SystemUpdater . $className . '.php';
-		$errorMessage = sprintf('Failed to apply update %d', $version); 
-		
+		$errorMessage = sprintf('Failed to apply update %d', $version);
+
 		if(is_file($filename)) {
 			try {
-				include($filename); 
-				$update = new $className($this); 
-				$update->message('Initializing update'); 
+				include($filename);
+				$update = new $className($this);
+				$update->message('Initializing update');
 				$success = $update->execute();
 			} catch(Exception $e) {
-				$msg = $errorMessage . " - " . $e->getMessage(); 
-				if($update) $update->error($msg); 
-					else $this->error($msg); 
+				$msg = $errorMessage . " - " . $e->getMessage();
+				if($update) $update->error($msg);
+					else $this->error($msg);
 				$success = false;
 			}
 			if(!$success) {
@@ -176,9 +176,9 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 				return false;
 			}
 		}
-		return true; 
+		return true;
 	}
-	
+
 	public function message($text, $flags = 0) {
 		$this->log($text);
 		return parent::message($text, $flags);
@@ -195,8 +195,8 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	public function log($text) {
-		$options = array('showUser' => false, 'showPage' => false); 
-		$this->wire('log')->save('system-updater', $text, $options); 
+		$options = array('showUser' => false, 'showPage' => false);
+		$this->wire('log')->save('system-updater', $text, $options);
 	}
 
 	/**
@@ -204,25 +204,25 @@ class SystemUpdater extends WireData implements Module, ConfigurableModule {
 	 *
 	 */
 	public static function getModuleConfigInputfields(array $data) {
-		
+
 		$inputfields = new InputfieldWrapper();
 
 		$logfile = wire('config')->paths->logs . 'system-updater.txt';
 		if(is_file($logfile)) {
-			$f = wire('modules')->get('InputfieldMarkup'); 	
-			$f->attr('name', '_log'); 
-			$f->label = __('System Update Log'); 
+			$f = wire('modules')->get('InputfieldMarkup');
+			$f->attr('name', '_log');
+			$f->label = __('System Update Log');
 			$f->value = '<pre>' . wire('sanitizer')->entities(file_get_contents($logfile)) . '</pre>';
-			$inputfields->add($f); 
+			$inputfields->add($f);
 		}
-		
-		$f = wire('modules')->get('InputfieldInteger'); 
-		$f->attr('name', 'systemVersion'); 
-		$f->label = __('System Version'); 
+
+		$f = wire('modules')->get('InputfieldInteger');
+		$f->attr('name', 'systemVersion');
+		$f->label = __('System Version');
 		$f->description = __('This lets you re-apply a system version update by reducing the version number.');
-		$f->attr('value', $data['systemVersion']); 
+		$f->attr('value', $data['systemVersion']);
 		$inputfields->add($f);
-		
+
 		return $inputfields;
 	}
 

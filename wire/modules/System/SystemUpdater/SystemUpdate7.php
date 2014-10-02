@@ -5,13 +5,13 @@
  *
  */
 class SystemUpdate7 extends SystemUpdate {
-	
+
 	public function execute() {
-		
-		$query = $this->wire('database')->prepare("SHOW columns FROM `modules` LIKE 'created'"); 
+
+		$query = $this->wire('database')->prepare("SHOW columns FROM `modules` LIKE 'created'");
 		$query->execute();
-		if($query->rowCount() > 0) return true; 
-		
+		if($query->rowCount() > 0) return true;
+
 		try {
 			$sql = 'ALTER TABLE `modules` ADD `created` timestamp NOT NULL DEFAULT "0000-00-00 00:00:00"';
 			$this->wire('database')->exec($sql);
@@ -20,8 +20,8 @@ class SystemUpdate7 extends SystemUpdate {
 			$this->error($e->getMessage());
 			return false;
 		}
-		
-		return true; 
+
+		return true;
 	}
 }
 

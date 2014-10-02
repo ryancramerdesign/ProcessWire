@@ -5,18 +5,18 @@
  *
  * Provides implementation for Page comparison functions.
  *
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
 
 class PageComparison {
 
-	/** 
-	 * Does this page have the specified status number or template name? 
+	/**
+	 * Does this page have the specified status number or template name?
  	 *
  	 * See status flag constants at top of Page class
 	 *
@@ -28,15 +28,15 @@ class PageComparison {
 	public function is(Page $page, $status) {
 
 		if(is_int($status)) {
-			return ((bool) ($page->status & $status)); 
+			return ((bool) ($page->status & $status));
 
 		} else if(is_string($status) && wire('sanitizer')->name($status) == $status) {
 			// valid template name or status name
-			if($page->template->name == $status) return true; 
+			if($page->template->name == $status) return true;
 
-		} else if($page->matches($status)) { 
+		} else if($page->matches($status)) {
 			// Selectors object or selector string
-			return true; 
+			return true;
 		}
 
 		return false;
@@ -53,69 +53,69 @@ class PageComparison {
 	public function matches(Page $page, $s) {
 
 		if(is_string($s) || is_int($s)) {
-			if(ctype_digit("$s")) $s = (int) $s; 
+			if(ctype_digit("$s")) $s = (int) $s;
 			if(is_string($s)) {
 				// exit early for simple path comparison
-				if(substr($s, 0, 1) == '/' && $page->path() == (rtrim($s, '/') . '/')) return true; 
+				if(substr($s, 0, 1) == '/' && $page->path() == (rtrim($s, '/') . '/')) return true;
 				if(!Selectors::stringHasOperator($s)) return false;
-				$selectors = new Selectors($s); 
-				
+				$selectors = new Selectors($s);
+
 			} else if(is_int($s)) {
 				// exit early for simple ID comparison
-				return $page->id == $s; 
+				return $page->id == $s;
 			}
 
 		} else if($s instanceof Selectors) {
-			$selectors = $s; 
+			$selectors = $s;
 
-		} else { 
+		} else {
 			return false;
 		}
 
 		$matches = false;
 
 		foreach($selectors as $selector) {
-			
+
 			$name = $selector->field;
-			if(in_array($name, array('limit', 'start', 'sort', 'include'))) continue; 
-			$matches = true; 
-			$value = $page->get($name); 
-			
+			if(in_array($name, array('limit', 'start', 'sort', 'include'))) continue;
+			$matches = true;
+			$value = $page->get($name);
+
 			if(is_object($value)) {
 				// if the current page value resolves to an object
 				if($value instanceof Page) {
 					// if it's a Page, get both the ID and path as allowed comparison values
-					$value = array($value->id, $value->path); 
+					$value = array($value->id, $value->path);
 				} else if($value instanceof PageArray) {
 					// if it's a PageArray, then get the ID and path of all of them
 					// @todo add support for @ selectors
 					$_value = array();
 					foreach($value as $v) {
-						$_value[] = $v->id; 
-						$_value[] = $v->path; 
+						$_value[] = $v->id;
+						$_value[] = $v->path;
 					}
 					$value = $_value;
 				} else if($value instanceof Template) {
-					$value = array($value->id, $value->name); 
+					$value = array($value->id, $value->name);
 				} else {
 					// otherwise just get the string value of the object
 					$value = "$value";
 				}
-						
+
 			} else if(is_array($value)) {
 				// ok: selector matches will accept an array
 			} else {
 				// convert to a string value, whatever it may be
 				$value = "$value";
 			}
-			
+
 			if(!$selector->matches($value)) {
-				$matches = false; 
+				$matches = false;
 				break;
 			}
 		}
 
-		return $matches; 
+		return $matches;
 	}
 
 }

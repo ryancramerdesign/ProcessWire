@@ -12,44 +12,44 @@ $searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSear
 $bodyClass = $input->get->modal ? 'modal' : '';
 if(!isset($content)) $content = '';
 
-$config->styles->prepend($config->urls->adminTemplates . "styles/main.css?v=4"); 
-$config->styles->append($config->urls->adminTemplates . "styles/inputfields.css?v=4"); 
-$config->styles->append($config->urls->adminTemplates . "styles/ui.css?v=4"); 
+$config->styles->prepend($config->urls->adminTemplates . "styles/main.css?v=4");
+$config->styles->append($config->urls->adminTemplates . "styles/inputfields.css?v=4");
+$config->styles->append($config->urls->adminTemplates . "styles/ui.css?v=4");
 $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css");
-$config->scripts->append($config->urls->adminTemplates . "scripts/inputfields.js?v=5"); 
-$config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=4"); 
+$config->scripts->append($config->urls->adminTemplates . "scripts/inputfields.js?v=5");
+$config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=4");
 
-$browserTitle = wire('processBrowserTitle'); 
+$browserTitle = wire('processBrowserTitle');
 if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FILE__) . ' &bull; ProcessWire';
 
 /*
  * Dynamic phrases that we want to be automatically translated
  *
- * These are in a comment so that they register with the parser, in place of the dynamic __() function calls with page titles. 
- * 
- * __("Pages"); 
- * __("Tree"); 
- * __("Find"); 
- * __("Setup"); 
- * __("Modules"); 
- * __("Access"); 
- * __("Admin"); 
- * __("Site"); 
- * __("View Site"); 
- * __("Languages"); 
- * __("Users"); 
- * __("Roles"); 
- * __("Permissions"); 
- * __("Templates"); 
- * __("Fields"); 
- * __("Add New"); 
- * 
+ * These are in a comment so that they register with the parser, in place of the dynamic __() function calls with page titles.
+ *
+ * __("Pages");
+ * __("Tree");
+ * __("Find");
+ * __("Setup");
+ * __("Modules");
+ * __("Access");
+ * __("Admin");
+ * __("Site");
+ * __("View Site");
+ * __("Languages");
+ * __("Users");
+ * __("Roles");
+ * __("Permissions");
+ * __("Templates");
+ * __("Fields");
+ * __("Add New");
+ *
  */
 
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo __('en', __FILE__); // HTML tag lang attribute
-	/* this intentionally on a separate line */ ?>"> 
+	/* this intentionally on a separate line */ ?>">
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
 	<meta name="robots" content="noindex, nofollow" />
@@ -64,14 +64,14 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 		$jsConfig = $config->js();
 		$jsConfig['debug'] = $config->debug;
 		$jsConfig['urls'] = array(
-			'root' => $config->urls->root, 
-			'admin' => $config->urls->admin, 
-			'modules' => $config->urls->modules, 
-			'core' => $config->urls->core, 
-			'files' => $config->urls->files, 
+			'root' => $config->urls->root,
+			'admin' => $config->urls->admin,
+			'modules' => $config->urls->modules,
+			'core' => $config->urls->core,
+			'files' => $config->urls->files,
 			'templates' => $config->urls->templates,
 			'adminTemplates' => $config->urls->adminTemplates,
-			); 
+			);
 		?>
 
 		var config = <?php echo json_encode($jsConfig); ?>;
@@ -82,7 +82,7 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 
 	<!--[if IE]>
 	<link rel="stylesheet" type="text/css" href="<?php echo $config->urls->adminTemplates; ?>styles/ie.css" />
-	<![endif]-->	
+	<![endif]-->
 
 	<!--[if lt IE 8]>
 	<link rel="stylesheet" type="text/css" href="<?php echo $config->urls->adminTemplates; ?>styles/ie7.css" />
@@ -105,14 +105,14 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 
 			<ul id='breadcrumb' class='nav'><?php
 				foreach($this->fuel('breadcrumbs') as $breadcrumb) {
-					$title = __($breadcrumb->title, __FILE__); 
+					$title = __($breadcrumb->title, __FILE__);
 					echo "\n\t\t\t\t<li><a href='{$breadcrumb->url}'>{$title}</a> &gt;</li>";
 				}
 				?>
 
 			</ul>
 
-			<?php endif; ?>	
+			<?php endif; ?>
 			<h1 id='title'><?php echo __(strip_tags($this->fuel->processHeadline ? $this->fuel->processHeadline : $page->get("title|name")), __FILE__); ?></h1>
 
 			<?php echo tabIndent($searchForm, 3); ?>
@@ -141,9 +141,9 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 			<?php if(!$user->isGuest()): ?>
 
 			<span id='userinfo'>
-				<?php 
+				<?php
 				echo $user->name;
-				if($user->hasPermission('profile-edit')): ?> / 
+				if($user->hasPermission('profile-edit')): ?> /
 				<a class='action' href='<?php echo $config->urls->admin; ?>profile/'><?php echo __('Profile', __FILE__); ?></a> /
 				<?php endif; ?>
 
@@ -152,7 +152,7 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
 
 			<?php endif; ?>
 
-			ProcessWire <?php echo $config->version . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?> Ryan Cramer 
+			ProcessWire <?php echo $config->version . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?> Ryan Cramer
 			</p>
 
 			<?php if($config->debug && $this->user->isSuperuser()) include($config->paths->adminTemplates . "debug.inc"); ?>
