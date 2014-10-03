@@ -1,0 +1,538 @@
+<?php
+
+/**
+ * System Notifications for ProcessWire
+ *
+ * By Avoine and Ryan Cramer
+ *
+ */
+class SystemNotifications extends WireData implements Module, ConfigurableModule {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'System Notifications',
+			'version' => 4,
+			'summary' => 'Adds support for notifications in ProcessWire (currently in development)',
+			'autoload' => true, 
+			'installs' => 'FieldtypeNotifications', 
+			);
+	}
+
+	/**
+	 * Defaults for config values
+	 *
+	 */
+	public static $defaults = array(
+		'systemUserID' => 41,					// user that will receive system notifications
+		'systemUserName' => '',					// user that will receive system notifications (name)
+		'activeHooks' => array(0, 1, 2), 		// Indexes of $this->systemHooks that are active
+		'updateDelay' => 5000, 					// delay between ajax updates (in ms) 5000+ recommended
+		'iconMessage' => 'check-square-o',		// default icon for message notifications
+		'iconWarning' => 'exclamation-circle',	// default icon for warning notifications
+		'iconError' => 'exclamation-triangle',	// default icon for error notifications
+		'ghostDelay' => 2000, 					// how long a ghost appears on screen (in ms)
+		'ghostDelayError' => 4000, 				// how long an error ghost appears on screen (in ms)
+		'ghostFadeSpeed' => 'fast',				// speed at which ghosts fade in or out, or blank for no fade
+		'ghostOpacity' => 0.9, 					// full opacity of ghost (when fully faded in) 
+		'ghostAlign' => '', 					// ghost alignment: left or right, or blank for auto
+		'dateFormat' => 'rel', 					// date format to use in notifications (anything compatible with wireDate() function)
+		); 
+
+	/**
+	 * System hooks that may be configured as active in this module
+	 *
+	 * Each consists of: before|after hookToClass::hooktoMethod myHookMethod
+	 *
+	 */
+	protected $systemHooks = array(
+		0 => 'after ProcessPageView::pageNotFound hook404', 
+		1 => 'after Session::login hookLogin', 
+		2 => 'after Session::logoutSuccess hookLogout', 
+		);
+
+	/**
+	 * Construction SystemNotifications
+	 * 
+	 */
+	public function __construct() {
+		$path = $this->wire('config')->paths->SystemNotifications;
+		require_once($path . "Notification.php"); 
+		require_once($path . "NotificationArray.php"); 
+		$this->setArray(self::$defaults); 
+	}
+
+	/**
+	 * API init: attach hooks
+	 * 
+	 */
+	public function init() {
+		foreach($this->activeHooks as $id) {
+			if(!isset($this->systemHooks[$id])) continue;
+			list($when, $hook, $method) = explode(' ', $this->systemHooks[$id]); 
+			if($when == 'before') {
+				$this->addHookBefore($hook, $this, $method); 
+			} else {
+				$this->addHookAfter($hook, $this, $method); 
+			}
+		}
+	}
+
+	/**
+	 * API ready
+	 * 
+	 */
+	public function ready() {
+
+		$page = $this->wire('page'); 
+		$config = $this->wire('config'); 
+		$user = $this->wire('user');
+
+		if(!$user->isLoggedin()) return;
+
+		if($this->wire('config')->ajax) {
+			$adminPage = $this->wire('pages')->get($config->adminRootPageID); 
+			if($page->parents()->has($adminPage)) {
+				$ajaxAction = $this->wire('input')->get('Notifications'); 
+				if($ajaxAction) $this->ajaxAction($ajaxAction, $user->notifications, $user); 
+			}
+		}
+
+		if($page->template == 'admin') {
+			$this->addHookAfter('AdminTheme::getExtraMarkup', $this, 'hookAdminThemeGetExtraMarkup'); 
+		}
+	}
+
+	/**
+	 * Convert Notification object to array
+	 * 
+	 * @param Notification $notification
+	 * @return array
+	 * 
+	 */
+	protected function notificationToArray(Notification $notification) {
+
+		$html = $notification->html;
+		if(!$html && $notification->text) $html = "<p>" . $this->sanitizer->entities($notification->text) . "</p>";
+
+		$a = array(
+			'id' => $notification->getID(), 
+			'title' => $notification->title, 
+			'from' => $notification->from, 
+			'created' => $notification->created, 
+			'modified' => $notification->modified, 
+			'when' => wireDate($this->dateFormat, $notification->created),
+			'href' => $notification->href, 
+			'icon' => $notification->icon, 
+			'flags' => $notification->flags, 
+			'flagNames' => implode(' ', $notification->flagNames), 
+			'progress' => $notification->progress, 
+			'html' => $html, 
+			'qty' => $notification->qty, 
+			);
+
+		if(empty($a['icon'])) {
+			if($notification->is("error")) $a['icon'] = $this->iconError;
+				else if($notification->is("warning")) $a['icon'] = $this->iconWarning;
+				else $a['icon'] = $this->iconMessage;
+		}
+
+		return $a; 
+	}
+
+	/**
+	 * Process an ajax action request
+	 * 
+	 * @param $action
+	 * @param NotificationArray $notifications
+	 * @param Page $page
+	 * 
+	 */
+	protected function ajaxAction($action, NotificationArray $notifications, Page $page) {
+
+		$data = array();
+		$qty = 0;
+		$time = (int) $this->wire('input')->get('time'); 
+		$config = $this->wire('config'); 
+		$rm = $this->wire('input')->get('rm'); 
+		$rm = $rm ? explode(',', $rm) : array();
+		$save = false;
+
+		foreach($notifications->sort('-modified') as $notification) {
+			$qty++;
+			$a = $this->notificationToArray($notification); 
+
+			if(in_array($a['id'], $rm)) {
+				$qty--;
+				$notifications->remove($notification); 
+				continue; 
+			} 
+
+			if($time && $notification->created < $time) continue; 
+			$data[] = $a; 
+		}
+
+		if(count($rm)) $this->wire('pages')->save($page, array('quiet' => true)); 
+
+		if($action == 'qty') {
+			$data = array(
+				'notifications' => $data, // new notifications only
+				'qty' => $qty, // total notifications (new or not)
+				'time' => time(), // time this info was generated
+				); 
+		}
+
+		header("Content-type: application/json"); 
+		echo json_encode($data); 
+		exit; 
+	}
+
+	/**
+	 * Adds markup to admin theme output to initialize notifications
+	 * 
+	 * @param $event
+	 * 
+	 */
+	public function hookAdminThemeGetExtraMarkup($event) {
+
+		$config = $this->wire('config'); 
+		$url = $config->urls->SystemNotifications . 'Notifications'; 
+		$info = self::getModuleInfo();
+		$config->styles->add("$url.css?v=$info[version]"); 
+		$config->scripts->add("$url.js?v=$info[version]"); 
+		$qty = count($this->wire('user')->notifications); 
+		$ghostAlign = $this->ghostAlign;
+		if($ghostAlign) $ghostAlign = ucfirst($ghostAlign); 
+			else $ghostAlign = 'Left';
+
+		$properties = array(
+			// configured property names
+			'updateDelay',
+			'iconMessage',
+			'iconWarning',
+			'iconError', 
+			'ghostZindex',	
+			'ghostDelay',
+			'ghostDelayError',
+			'ghostFadeSpeed',
+			'ghostOpacity',
+			'ghostAlign', 
+			);
+		
+		$options = array(
+			// runtime property names
+			'version' => $info['version'], 
+			'updateLast' => time(),
+			);
+
+		foreach($properties as $key) {
+			$options[$key] = $this->get($key); 
+		}
+
+		$out = 	
+			"<div id='NotificationMenu' class='NotificationMenu'>" . 
+			"<div id='NotificationTestError' class='ui-state-error NoticeError'></div>" . 
+			"<ul id='NotificationList' class='NotificationList'></ul>" . 
+			"</div>" . 
+			"<ul id='NotificationGhosts' class='NotificationGhosts NotificationGhosts$ghostAlign'></ul>" . 
+			"<script>Notifications.init(" . json_encode($options) . "); ";
+
+		// convert runtime Notices to Notifications
+		foreach($this->wire('notices') as $notice) {
+			$notification = $this->noticeToNotification($notice); 
+			$notificationJS = json_encode($this->notificationToArray($notification)); 
+			$out .= "Notifications.add($notificationJS); ";
+		}
+
+		$out .= 
+			"$('#notices').remove(); " . // in case admin theme still has #notices
+			"$(document).ready(function() { Notifications.render(); });" . 
+			"</script>";
+
+		$extras = $event->return;
+		$extras['body'] .= $out;
+		$extras['masthead'] .= 
+			"<div id='NotificationBug' class='NotificationBug qty$qty' data-qty='$qty'>" . 
+			"<span class='qty fa fa-fw'>$qty</span>" . 
+			"<i class='NotificationSpinner fa fa-fw fa-spin fa-spinner'></i>" . 
+			"</div>";
+
+		$event->return = $extras; 
+	}
+
+	/**
+	 * Convert ProcessWire runtime "Notice" objects to runtime Notification objects
+	 *
+	 */
+	protected function noticeToNotification(Notice $notice) {
+
+		$type = 'message';
+
+		if($notice instanceof NoticeError) {
+			if($notice->flags & Notice::warning) $type = 'warning';
+				else $type = 'error';
+		}
+
+		if(!$this->wire('user')->notifications) $this->install();
+			
+		$notification = $this->wire('user')->notifications->getNew($type, false); 
+		$notification->setFlag('notice', true); 
+
+		if($notice->flags & Notice::debug) $notification->setFlag('debug', true); 
+
+		$title = strip_tags((string) $notice);
+
+		if(strlen($title) > 100) {
+
+			$title = substr($title, 0, 100); 
+			$title = substr($title, 0, strrpos($title, ' ')) . '...'; 
+			$notification->title = $title;
+
+			if($notice->flags & Notice::allowMarkup) {
+				$notification->html = (string) $notice; 
+			} else {
+				$notification->text = (string) $notice; 
+			}
+		} else {
+			$notification->title = $title; 
+		}
+
+		return $notification;
+	}
+
+	/**
+	 * Adds automatic notification for every 404
+	 *
+	 */
+	public function hook404(HookEvent $event) {
+
+		$page = $event->arguments(0);	
+		$url = $event->arguments(1); 
+		$user = $this->wire('users')->get($this->systemUserName ? $this->systemUserName : $this->systemUserID); 
+		if(!$user->id) return;
+		$of = $user->of();
+		$user->of(false); 
+		$notification = $user->notifications->getNew('warning'); 
+		$notification->title = 'Page not found: ' . $url; 
+		$notification->html = 
+			"<p>" . 
+			"Page: " . ($page->id ? $page->url : 'Unknown') . "<br />" . 
+			"User: " . $this->user->name . "<br />" . 
+			"IP: " . $this->wire('session')->getIP() . 
+			"</p>";	
+
+		$user->save('notifications'); 
+		if($of) $user->of(true);
+	}
+
+	/**
+	 * Automatic notification for logins
+	 *
+	 */
+	public function hookLogin(HookEvent $event) {
+		$user = $this->wire('users')->get($this->systemUserName ? $this->systemUserName : $this->systemUserID); 
+		if(!$user->id) return;
+		$of = $user->of();
+		$user->of(false);
+
+		$loginUser = $event->return;
+		$loginName = $event->arguments(0); 
+
+		if($loginUser && $loginUser->id) {
+			$notification = $user->notifications->getNew("message"); 
+			$notification->title = "User logged in: $loginName";
+		} else {
+			$notification = $user->notifications->getNew("error"); 
+			$notification->title = "Login failure: $loginName";
+		}
+
+		$notification->html = 
+			"<p>" . 
+			"IP address: " . $this->wire('session')->getIP() . "<br />" . 
+			"User agent: " . $this->wire('sanitizer')->entities($_SERVER['HTTP_USER_AGENT']) . "<br />" . 
+			"Time: " . date('Y-m-d H:i:s') . 
+			"</p>";
+
+		$user->save('notifications'); 
+		if($of) $user->of(true);
+	}
+
+	/**
+	 * Automatic notification for logouts
+	 *
+	 */
+	public function hookLogout(HookEvent $event) {
+		$user = $this->wire('users')->get($this->systemUserName ? $this->systemUserName : $this->systemUserID); 
+		if(!$user->id) return;
+		$of = $user->of();
+		$user->of(false);
+		$logoutUser = $event->arguments(0);
+		$notification = $user->notifications->getNew("message"); 
+		$notification->title = "User logged out: $logoutUser->name";
+		$user->save('notifications'); 
+		if($of) $user->of(true);
+	}
+	
+	/**
+	 * Install notifications
+	 *
+	 */
+	public function ___install() {
+		$fieldtype = $this->modules->get('FieldtypeNotifications'); 
+		$field = $this->wire('fields')->get('notifications'); 	
+		if($field && !$field->type instanceof FieldtypeNotifications) {
+			throw new WireException("There is already a field named 'notifications'"); 
+		}
+		if(!$field) {
+			$field = new Field();
+			$field->name = 'notifications';
+			$field->label = 'Notifications';
+			$field->type = $fieldtype; 
+			$field->collapsed = Inputfield::collapsedBlank;
+			$field->flags = Field::flagSystem | Field::flagPermanent;
+			$field->save();
+		}
+		$fieldgroup = $this->wire('fieldgroups')->get('user'); 
+		if(!$fieldgroup->hasField($field)) {
+			$fieldgroup->add($field); 
+			$fieldgroup->save();
+		}
+
+		// make this field one that the user is allowed to configure in their profile
+		// $data = $this->wire('modules')->getModuleConfigData('ProcessProfile'); 
+		// $data['profileFields'][] = 'notifications';
+		// $this->wire('modules')->saveModuleConfigData('ProcessProfile', $data); 
+
+
+		$notification = $this->wire('user')->notifications->getNew();
+		$notification->title = 'Hello World';
+		$notification->text = 'Thank you for installing the Notifications module. This is your first notification!';
+		$notification->setFlag('message', true); 
+		$this->wire('user')->save('notifications'); 
+	}
+
+	public function ___uninstall() {
+		$fieldgroup = $this->wire('fieldgroups')->get('user'); 
+		$field = $this->wire('fields')->get('notifications'); 
+
+		if($field) { 
+			if($fieldgroup->hasField($field)) {
+				$fieldgroup->remove($field); 
+				$fieldgroup->save();
+			}
+			$field->flags = Field::flagSystemOverride; 
+			$field->flags = 0; 
+			$this->wire('fields')->delete($field); 
+		}
+
+		if($this->wire('modules')->isInstalled('FieldtypeNotifications')) {
+			$this->wire('modules')->uninstall('FieldtypeNotifications'); 
+		}
+	}
+
+	public static function getModuleConfigInputfields(array $data) {
+		
+		$data = array_merge(self::$defaults, $data); 
+		$form = new InputfieldWrapper();
+		
+		$f = wire('modules')->get('InputfieldName'); 
+		$f->attr('name', 'systemUserName'); 
+		$f->label = __('Name of user that receives system notifications'); 
+		if(empty($data['systemUserName'])) $data['systemUserName'] = wire('users')->get(wire('config')->superUserPageID)->name; 
+		$f->attr('value', $data['systemUserName']); 
+		$form->add($f);
+		
+		$f = wire('modules')->get('InputfieldCheckboxes'); 
+		$f->attr('name', 'activeHooks'); 
+		$f->label = __('Active automatic notification hooks');
+		$f->description = __('Whenever one of these events occurs, the system user above will be notified.'); 
+		$f->addOption(0, __('404 page not found')); 
+		$f->addOption(1, __('User login success and failure'));
+		$f->addOption(2, __('User logout'));
+		$f->attr('value', $data['activeHooks']); 
+		$f->notes = __('These are primarily just examples of notifications for the purpose of demonstration.'); 
+		$form->add($f);
+		
+		$f = wire('modules')->get('InputfieldInteger'); 
+		$f->attr('name', 'updateDelay'); 
+		$f->label = __('Time between updates'); 
+		$f->description = __('How often to check for notification updates (in milliseconds). Example: 5000 means 5 seconds.'); 
+		$f->attr('value', $data['updateDelay']); 
+		$f->columnWidth = 50; 
+		$form->add($f); 
+		
+		$f = wire('modules')->get('InputfieldText');
+		$f->attr('name', 'dateFormat');
+		$f->label = __('Date format');
+		$f->description = __('Date format used for notifications. Use date() or strftime() format, or "relative" for relative date/time, "rel" for abbreviated date/time.');
+		$f->attr('value', $data['dateFormat']);
+		$f->columnWidth = 50; 
+		$form->add($f);
+
+		$f = wire('modules')->get('InputfieldText'); 
+		$f->attr('name', 'iconMessage'); 
+		$f->label = __('Message icon'); 
+		$f->attr('value', $data['iconMessage']); 
+		$f->columnWidth = 33;
+		$form->add($f); 
+
+		$f = wire('modules')->get('InputfieldText');
+		$f->attr('name', 'iconWarning');
+		$f->label = __('Warning icon');
+		$f->attr('value', $data['iconWarning']);
+		$f->columnWidth = 33;
+		$form->add($f); 
+
+		$f = wire('modules')->get('InputfieldText');
+		$f->attr('name', 'iconError');
+		$f->label = __('Error icon');
+		$f->attr('value', $data['iconError']);
+		$f->columnWidth = 34;
+		$form->add($f); 
+		
+		$f = wire('modules')->get('InputfieldInteger'); 
+		$f->attr('name', 'ghostDelay');
+		$f->label = __('Ghost delay'); 
+		$f->description = __('How long ghost messages appear for (in ms).'); 
+		$f->columnWidth = 50; 
+		$f->attr('value', $data['ghostDelay']); 
+		$form->add($f);
+		
+		$f = wire('modules')->get('InputfieldInteger');
+		$f->attr('name', 'ghostDelayError');
+		$f->label = __('Ghost error delay');
+		$f->description = __('How long ghost errors appear for (in ms).');
+		$f->columnWidth = 50;
+		$f->attr('value', $data['ghostDelayError']); 
+		$form->add($f); 
+		
+		$f = wire('modules')->get('InputfieldSelect'); 
+		$f->attr('name', 'ghostFadeSpeed'); 
+		$f->label = __('Ghost fade speed'); 
+		$f->description = __('Speed at which ghosts fade in or out.'); 
+		$f->addOption('', __('Immediate (no fade in/out)'));
+		$f->addOption('fast', __('Fast'));
+		$f->addOption('normal', __('Normal'));
+		$f->addOption('slow', __('Slow'));
+		$f->attr('value', $data['ghostFadeSpeed']);
+		$f->columnWidth = 50;
+		$form->add($f); 
+		
+		$f = wire('modules')->get('InputfieldFloat'); 
+		$f->attr('name', 'ghostOpacity'); 
+		$f->label = __('Ghost full opacity'); 
+		$f->description = __('Full opacity of ghosts (0.1-1.0)'); 
+		$f->attr('value', $data['ghostOpacity']);
+		$f->columnWidth = 50;
+		$form->add($f);
+
+		wire()->message('Example runtime message notification');
+		wire()->error('Example runtime warning notification', Notice::warning);
+		wire()->error('Example runtime error notification'); 
+		
+		
+		return $form;
+	}
+
+	
+}
+

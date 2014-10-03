@@ -448,6 +448,10 @@ body:not(.hasWireTabs) #headline .container {
 .fa-4x { font-size: 56px !important; }
 .fa-5x { font-size: 70px !important; }
 
+.NotificationBug {
+	left: 25%; 
+}
+
 
 /***********************************************************************************************
  * MEDIA QUERIES
@@ -503,6 +507,10 @@ body:not(.hasWireTabs) #headline .container {
 		clear: both !important;
 		width: 100% !important;
 		margin-left: 0 !important;
+	}
+	
+	#NotificationBug {
+		left: 65%;
 	}
 
 
