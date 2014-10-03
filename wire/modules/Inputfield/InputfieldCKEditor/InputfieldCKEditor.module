@@ -350,7 +350,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 					if(wireMkdir($path, true)) {
 						$this->message("Created new CKEditor external plugins directory: $url"); 	
 					} else {
-						$this->error("The CKEditor external plugins directory does not exist: $url - Please create it when/if you want to install external plugins.");
+						$this->error("The CKEditor external plugins directory does not exist: $url - Please create it when/if you want to install external plugins.", Notice::warning);
 					}
 				}
 				continue;
