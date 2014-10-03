@@ -379,6 +379,19 @@ class PageArray extends WireArray {
 	}
 
 	/**
+	 * Prepare selectors for filtering
+	 *
+	 * Template method for descending classes to modify selectors if needed
+	 *
+	 * @param Selectors $selectors
+	 *
+	 */
+	protected function filterDataSelectors(Selectors $selectors) { 
+		// @todo make it remove references to include= statements since not applicable in-memory
+		parent::filterDataSelectors($selectors);
+	}
+
+	/**
 	 * Get the value of $property from $item
 	 *
 	 * Used by the WireArray::sort method to retrieve a value from a Wire object. 

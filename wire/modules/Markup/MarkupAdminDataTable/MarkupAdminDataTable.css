@@ -47,3 +47,6 @@ table.AdminDataList caption {
 	font-size: 1.4em;
 }
 
+table.AdminDataList td > .sort-date {
+	display: none; 	
+}

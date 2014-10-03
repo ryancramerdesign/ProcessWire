@@ -420,25 +420,28 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		}
 
 		// convert <div> to paragraphs
-		if(in_array(self::toggleCleanDIV, $this->toggles) && strpos($this->formatTags, 'div') === false && strpos($value, '<div') !== false) {
-			// for some reason CKEditor insists on pasting DIVs sometimes when they should be paragraphs
-			// so we attempt to fix that issue here 
-			$value = preg_replace('{\s*(</?)div[^><]*>\s*}is', '$1' . 'p>', $value); 
-			// fix doubled paragraph tags, in case the above replacement cased any
-			while(strpos($value, '<p><p>') !== false) {
-				$value = str_replace(array('<p><p>', '</p></p>'), array('<p>', '</p>'), $value); 
+		$toggles = $this->toggles; 
+		if(is_array($toggles)) {
+			if(in_array(self::toggleCleanDIV, $toggles) && strpos($this->formatTags, 'div') === false && strpos($value, '<div') !== false) {
+				// for some reason CKEditor insists on pasting DIVs sometimes when they should be paragraphs
+				// so we attempt to fix that issue here 
+				$value = preg_replace('{\s*(</?)div[^><]*>\s*}is', '$1' . 'p>', $value); 
+				// fix doubled paragraph tags, in case the above replacement cased any
+				while(strpos($value, '<p><p>') !== false) {
+					$value = str_replace(array('<p><p>', '</p></p>'), array('<p>', '</p>'), $value); 
+				}
 			}
-		}
-
-		// remove gratitutious whitespace added by CKEditor
-		if(in_array(self::toggleCleanP, $this->toggles)) {
-			$value = str_replace(array('<p><br /></p>', '<p>&nbsp;</p>', '<p></p>', '<p> </p>'), '', $value); 
-		}
-
-		// convert non-breaking space to regular space
-		if(in_array(self::toggleCleanNBSP, $this->toggles)) {
-			$value = str_ireplace('&nbsp;', ' ', $value);
-			$value = str_replace("\xc2\xa0",' ', $value);
+	
+			// remove gratitutious whitespace added by CKEditor
+			if(in_array(self::toggleCleanP, $toggles)) {
+				$value = str_replace(array('<p><br /></p>', '<p>&nbsp;</p>', '<p></p>', '<p> </p>'), '', $value); 
+			}
+	
+			// convert non-breaking space to regular space
+			if(in_array(self::toggleCleanNBSP, $toggles)) {
+				$value = str_ireplace('&nbsp;', ' ', $value);
+				$value = str_replace("\xc2\xa0",' ', $value);
+			}
 		}
 
 		return $value; 

@@ -467,7 +467,7 @@ class InputfieldWrapper extends Inputfield {
 			Inputfield::collapsedNoLocked,
 			Inputfield::collapsedYesLocked
 			);
-		if(in_array((int) $inputfield->collapsed, $skipTypes)) return false;
+		if(in_array((int) $inputfield->getSetting('collapsed'), $skipTypes)) return false;
 
 		// if dependencies aren't in use, we can skip the rest
 		if($this->useDependencies === false) return true; 

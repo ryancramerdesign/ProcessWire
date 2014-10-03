@@ -567,11 +567,12 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
  *
  * @param int|string $ts Unix timestamp or date string
  * @param bool|int $abbreviate Whether to use abbreviations for shorter strings. 
- * 	Specify boolean TRUE for abbreviations.
- * 	Specify integer 1 for extra short abbreviations.
+ * 	Specify boolean TRUE for abbreviations (abbreviated where common, not always different from non-abbreviated)
+ * 	Specify integer 1 for extra short abbreviations (all terms abbreviated into shortest possible string)
  * 	Specify boolean FALSE or omit for no abbreviations.
  * @param bool $useTense Whether to append a tense like "ago" or "from now",
- * 	May be ok to disable in situations where all times are assumed in future or past
+ * 	May be ok to disable in situations where all times are assumed in future or past.
+ * 	In abbreviate=1 (shortest) mode, this removes the leading "+" or "-" from the string. 
  * @return string
  *
  */
@@ -587,6 +588,8 @@ function wireRelativeTimeStr($ts, $abbreviate = false, $useTense = true) {
 	$space = ' ';
 
 	if($abbreviate === 1) {
+		// extra short abbreviations
+		
 		$justNow = __('now', __FILE__); 
 		$ago = '';
 		$prependAgo = '-';
@@ -615,7 +618,9 @@ function wireRelativeTimeStr($ts, $abbreviate = false, $useTense = true) {
 			__("yrs", __FILE__), 
 			__("decades", __FILE__)
 			); 
+		
 	} else if($abbreviate === true) {
+		// standard abbreviations
 
 		$justNow = __('now', __FILE__); 
 		$fromNow = '';
@@ -644,6 +649,8 @@ function wireRelativeTimeStr($ts, $abbreviate = false, $useTense = true) {
 			); 
 
 	} else {
+		// no abbreviations
+		
 		$periodsSingular = array(
 			__("second", __FILE__), 
 			__("minute", __FILE__), 
@@ -654,6 +661,7 @@ function wireRelativeTimeStr($ts, $abbreviate = false, $useTense = true) {
 			__("year", __FILE__), 
 			__("decade", __FILE__)
 			);
+		
 		$periodsPlural = array(
 			__("seconds", __FILE__), 
 			__("minutes", __FILE__), 
@@ -1099,4 +1107,59 @@ function wireIncludeFile($filename, array $vars = array(), array $options = arra
 		else include($filename);
 	
 	return true; 
+}
+
+/**
+ * Format a date, using PHP date(), strftime() or other special strings (see arguments).
+ * 
+ * This is designed to work the same wa as PHP's date() but be able to accept any common format
+ * used in ProcessWire. This is helpful in reducing code in places where you might have logic 
+ * determining when to use date(), strftime(), or wireRelativeTimeStr(). 
+ * 
+ * @param string|int $format Use one of the following:
+ *  - PHP date() format
+ * 	- PHP strftime() format (detected by presence of a '%' somewhere in it)
+ * 	- 'relative': for a relative date/time string.
+ *  - 'relative-': for a relative date/time string with no tense. 
+ * 	- 'rel': for an abbreviated relative date/time string.
+ * 	- 'rel-': for an abbreviated relative date/time string with no tense.
+ * 	- 'r': for an extra-abbreviated relative date/time string.
+ * 	- 'r-': for an extra-abbreviated relative date/time string with no tense.
+ * 	- 'ts': makes it return a unix timestamp
+ * 	- '': blank string makes it use the system date format ($config->dateFormat) 
+ * 	- If given an integer and no second argument specified, it is assumed to be the second ($ts) argument. 
+ * @param int|string|null $ts Optionally specify the date/time stamp or strtotime() compatible string. 
+ * 	If not specified, current time is used.
+ * @return string|bool Formatted date/time, or boolean false on failure
+ * 
+ */
+function wireDate($format = '', $ts = null) {
+	if(is_null($ts)) {
+		// ts not specified, or it was specified in $format
+		if(ctype_digit("$format")) {
+			// ts specified in format
+			$ts = (int) $format;
+			$format = '';
+		} else {
+			// use current timestamp
+			$ts = time();
+		}
+	} else if(is_string($ts) && ctype_digit("$ts")) {
+		// ts is a digit string, convert to integer
+		$ts = (int) $ts; 
+	} else if(is_string($ts)) {
+		// ts is a non-integer string, we assume to be a strtotime() compatible formatted date
+		$ts = strtotime($ts);
+	}
+	if($format == '') $format = wire('config')->dateFormat;
+	if($format == 'relative') $value = wireRelativeTimeStr($ts);
+		else if($format == 'relative-') $value = wireRelativeTimeStr($ts, false, false); 
+		else if($format == 'rel') $value = wireRelativeTimeStr($ts, true);
+		else if($format == 'rel-') $value = wireRelativeTimeStr($ts, true, false);
+		else if($format == 'r') $value = wireRelativeTimeStr($ts, 1);
+		else if($format == 'r-') $value = wireRelativeTimeStr($ts, 1, false); 
+		else if($format == 'ts') $value = $ts;
+		else if(strpos($format, '%') !== false) $value = strftime($format, $ts); 
+		else $value = date($format, $ts); 
+	return $value;
 }

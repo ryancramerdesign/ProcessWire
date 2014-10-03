@@ -1009,6 +1009,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			if(ctype_digit("$selectors")) $selectors = "id=$selectors";
 			$selectors = new Selectors($selectors); 
 		}
+		$this->filterDataSelectors($selectors); 
 
 		$sort = array();
 		$start = 0;
@@ -1060,6 +1061,16 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		$this->trackChange("filterData:$selectors"); 
 		return $this; 
 	}
+
+	/**
+	 * Prepare selectors for filtering
+	 * 
+	 * Template method for descending classes to modify selectors if needed
+	 * 
+	 * @param Selectors $selectors
+	 * 
+	 */
+	protected function filterDataSelectors(Selectors $selectors) { }
 
 	/**
 	 * Filter out Wires that don't match the selector. 
