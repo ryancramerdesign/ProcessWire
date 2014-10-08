@@ -110,67 +110,9 @@
 	border-bottom: $error-border; 
 }
 
-#notices {
-	position: relative;
-	// z-index: 5; 
-	border-top: $notices-border-top;
-	border-bottom: $notices-border-bottom;
-
-	li {
-		padding: 0.6em 1.5em !important;
-	}
-
-	li.NoticeError + li.NoticeError,
-	li.NoticeWarning + li.NoticeWarning, 
-	li.NoticeMessage + li.NoticeMessage {
-		padding-top: 0 !important;
-	}
-	
-
-	& .ui-priority-secondary {
-		background: $highlight-bg !important;
-		color: $highlight-color !important;
-	}
+p span.ui-state-error {
+	padding: 0.25em 0.5em;
 }
-
-
-#notices .ui-state-highlight, 
-#notices .ui-state-error {
-	padding: 0.25em 0; 
-	color: $highlight-color; 
-}
-
-	#notices .ui-state-error {
-		color: $error-color; 
-	}
-	#notices .ui-state-highlight a{
-		color: $highlight-color; 
-	}
-	#notices .ui-state-error a {
-		color: $error-color; 
-	}
-	#notices .ui-state-highlight .ui-icon,
-	#notices .ui-state-error .ui-icon {
-		position: relative;
-		top: 2px; 
-	}
-
-	#notices .notice-remove {
-		float: right; 
-		color: $highlight-color; 
-		text-decoration: none; 
-		padding: 0 0.5em 0 1em; 
-	}
-	
-
-	.ui-state-highlight a,
-	.ui-state-error a {
-		text-decoration: underline; 
-	}
-
-	p span.ui-state-error {
-		padding: 0.25em 0.5em;
-	}
 
 /**
  * ui-dialog

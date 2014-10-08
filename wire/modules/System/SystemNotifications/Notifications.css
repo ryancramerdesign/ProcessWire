@@ -1,8 +1,3 @@
-#notices {
-	/* we replace PW's #notices */
-	display: none; 
-}
-
 .NotificationMenu {
 	overflow: visible;
 	z-index: 9999; 
@@ -34,11 +29,6 @@
 	cursor: pointer; 
 }
 
-.NotificationList li:hover .NotificationTitle {
-	text-decoration: underline;
-	
-}
-
 .NotificationList li.removed {
 	text-decoration: line-through; 
 }
@@ -62,6 +52,27 @@
 	right: 0.5em;
 }
 
+.NotificationProgress {
+	position: absolute;
+	top: 0;
+	left: 0;
+	text-align: right; 
+	width: 0%; 
+	height: 1.5em;
+	background: rgba(0,0,0,0.1); 
+}
+.NotificationProgress span {
+	display: none; 
+}
+
+.NotificationProgressPercent {
+	background: rgba(0, 0, 0, 0.6); 
+	color: #fff; 
+	border-radius: 3px; 
+	font-size: 12px; 
+	padding: 3px 5px; 
+}
+
 .NotificationBug {
 	position: absolute; 
 	top: 0;
@@ -70,7 +81,7 @@
 	color: #fff; 
 	border-bottom-left-radius: 3px; 
 	border-bottom-right-radius: 3px; 
-	border-top: 1px solid rgba(0,0,0,0.3); 
+	border-top: 1px solid rgba(0,0,0,0.1); 
 	display: block;
 	width: auto;
 	padding-right: 3px; 
@@ -82,8 +93,14 @@
 	font-weight: bold;
 	line-height: 16px;
 	cursor: pointer; 
+	/*
 	box-shadow: 0px 0px 3px rgba(0,0,0,0.3); 
+	*/
 	z-index: 9999;
+}
+.NotificationBug .qty {
+	font-family: Arial, sans-serif;
+	font-size: 14px; 
 }
 
 .NotificationBug.open,
@@ -97,6 +114,14 @@
 .NotificationBug.qty0,
 .NotificationBug i {
 	display: none; 
+}
+
+.NotificationBug.NoticeWarning {
+	/* there is at least one warning notification */
+}
+
+.NotificationBug.NoticeError {
+	/* there is at least 1 error notification */
 }
 
 #NotificationGhosts {
@@ -118,33 +143,30 @@
 #NotificationGhosts li .NotificationGhost {
 	display: inline-block;
 	list-style: none;
-	margin: 3px 0; 
-	padding: 0.5em;
+	margin: 3px 1em;
+	padding: 0.5em 1em 0.5em 0.5em;
 	border-radius: 5px; 
 	white-space: nowrap;
-	padding-right: 1.5em;
-	margin-left: 1em;
-	margin-right: 1em;
 	width: auto;
 	box-shadow: 0px 0px 3px rgba(0,0,0,0.3); 
 	font-weight: normal;
+	line-height: 16px; 
 }
 
-#NotificationGhosts li .NotificationGhostMessage {
+.NotificationGhosts li .NoticeMessage {
 	background: #000;
 	color: #eee; 
 }
 
-#NotificationGhosts li .NotificationGhostError {
-	/*
+.NotificationGhosts li .NoticeError {
 	background: crimson;
 	color: #fff;
-	*/
 } 
-#NotificationGhosts li .NotificationGhostWarning {
-	/*
+.NotificationGhosts li .NoticeWarning {
 	background: orange;
 	color: #fff;
-	*/
 }
 
+#notices {
+	display: none;
+}

@@ -135,8 +135,52 @@ $tabs-radius: 5px;
 
 $input-bg: lighten($subtle-bg, 2%);
 
-$progressbar-bg: none; 
+$progressbar-bg: lighten($masthead-bg, 10%); 
 $progressbar-value-bg: $masthead-bg; // $ui-state-hover-bg; 
-$progressbar-text-color: $reverse-text-color;  
+$progressbar-text-color: $reverse-text-color;
+
+
+/**
+ * Notifications (prefixed with "no")
+ *
+ */
+
+$no-border-color: #fff;
+
+$no-message-color: $highlight-color;
+$no-message-bg: $highlight-bg;
+$no-message-open-color: $no-message-color;
+$no-message-open-bg: darken($no-message-bg, 5%);
+$no-message-icon-color: $no-message-color;
+$no-message-link-color: transparentize($no-message-color, 0.2);
+$no-message-link-hover-color: $no-message-color;
+
+$no-warning-color: $white;
+$no-warning-bg: #C26631;
+$no-warning-open-color: $white;
+$no-warning-open-bg: darken($no-warning-bg, 5%); 
+$no-warning-icon-color: $white;
+$no-warning-link-color: transparentize($white, 0.2);
+$no-warning-link-hover-color: $white;
+
+$no-error-color: $error-color;
+$no-error-bg: $error-bg;
+$no-error-open-color: $no-error-color;
+$no-error-open-bg: darken($no-error-bg, 5%);
+$no-error-icon-color: $no-error-color;
+$no-error-link-color: transparentize($no-error-color, 0.2);
+$no-error-link-hover-color: $no-error-color;
+
+$no-ghost-message-color: #fff;
+$no-ghost-message-bg: #000;
+$no-ghost-message-icon-color: $no-ghost-message-color;
+
+$no-ghost-warning-color: $no-warning-color;
+$no-ghost-warning-bg: $no-warning-bg;
+$no-ghost-warning-icon-color: $no-ghost-warning-color;
+
+$no-ghost-error-color: $no-error-color;
+$no-ghost-error-bg: $no-error-bg;
+$no-ghost-error-icon-color: $no-ghost-error-color;
 
 @import 'main';

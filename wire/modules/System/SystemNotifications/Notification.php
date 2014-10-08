@@ -6,24 +6,55 @@
  */
 class Notification extends WireData {
 
-	const flagMessage = 2; 		// informational
-	const flagWarning = 4;		// warning 
-	const flagError = 8;		// error 
-	const flagDebug = 16; 		// Show/save only when the system is in debug mode
-	const flagNotice = 32; 		// Show only as a single-request notice (not stored in DB)
-	const flagSession = 64; 	// Notification lasts for only this session (not stored in DB)
-	const flagEmail = 1024; 	// title and body will also be emailed to user (if page is user)
+	/**
+	 * Flag constants for Notification objects
+	 * 
+	 * Note that flags 2-32 line up with the same flags from Notice objects
+	 * 
+	 */
 
+	const flagDebug = 2; 		// Show/save only when the system is in debug mode
+	const flagLog = 8; 			// save to log and show
+	const flagLogOnly = 16; 	// save to log but don't show
+	const flagAllowMarkup = 32;	// allow markup in the title
+	
+	const flagMessage = 64; 	// informational
+	const flagWarning = 4;		// warning 
+	const flagError = 128;		// error 
+	
+	const flagNotice = 256; 	// Show only as a single-request notice (not stored in DB)
+	const flagSession = 512; 	// Notification lasts for only this session (not stored in DB)
+	const flagEmail = 1024; 	// title and body will also be emailed to user (if page is user)
+	const flagOpen = 2048;		// notification will automatically open the text/html area (no click required)
+
+	/**
+	 * Provides a name for each of the flags
+	 * 
+	 * @var array
+	 * 
+	 */
 	static protected $_flagNames = array(
+		self::flagDebug => 'debug',
+		self::flagLog => 'log', 
+		self::flagLogOnly => 'log-only', 
+		self::flagAllowMarkup => 'markup', 
+		
 		self::flagMessage => 'message',
 		self::flagWarning => 'warning',
 		self::flagError => 'error',
+		
 		self::flagNotice => 'notice',
-		self::flagDebug => 'debug',
 		self::flagSession => 'session',
 		self::flagEmail => 'email',
+		self::flagOpen => 'open',
 		);
 
+	/**
+	 * Page that this Notification belongs to
+	 * 
+	 * @var Page
+	 * 
+	 */
 	protected $page; 
 
 	/**
@@ -54,6 +85,29 @@ class Notification extends WireData {
 		
 	}
 
+	/**
+	 * Fluent interface methods
+	 * 
+	 */
+
+	public function title($value) { return $this->set('title', $value); }
+	public function text($value) { return $this->set('text', $value); }
+	public function html($value) { return $this->set('html', $value); }
+	public function from($value) { return $this->set('html', $value); }
+	public function icon($value) { return $this->set('icon', $value); }
+	public function href($value) { return $this->set('href', $value); }
+	public function progress($value) { return $this->set('progress', $value); }
+	public function expires($value) { return $this->set('expires', $value); }
+	public function flag($value) { return $this->setFlag($value, true); }
+	public function flags($value) { return $this->setFlags($value, true); }
+
+	/**
+	 * Does this Notification match the given flag name(s)?
+	 * 
+	 * @param string $name
+	 * @return bool
+	 * 
+	 */
 	public function is($name) {
 		$flags = $this->flagNamesToFlags($name); 
 		$is = 0;
@@ -63,6 +117,14 @@ class Notification extends WireData {
 		return $is == count($flags); 
 	}
 
+	/**
+	 * Given a flag name, return the corresponding flag value
+	 * 
+	 * @param string $name
+	 * @return int mixed
+	 * @throws WireException if given unknown flag
+	 * 
+	 */
 	protected function flagNameToFlag($name) {
 		if(is_string($name)) {
 			$flag = array_search($name, self::$_flagNames); 
@@ -74,6 +136,13 @@ class Notification extends WireData {
 		return $flag;
 	}
 
+	/**
+	 * Given multiple space separated flag names, return array of flag values
+	 * 
+	 * @param string $names space separted, will also accept CSV
+	 * @return array of flag name => flag value
+	 * 
+	 */
 	protected function flagNamesToFlags($names) {
 		if(strpos($names, ',') !== false) $names = str_replace(',', ' ', $names); 
 		$names = explode(' ', $names); 
@@ -112,6 +181,7 @@ class Notification extends WireData {
 			if($flags & $flag) {
 				// flag is set, remove it
 				$flags = $flags & ~$flag;
+				parent::set('flags', $flags); 
 			} else {
 				// flag is not set
 			}
@@ -120,11 +190,33 @@ class Notification extends WireData {
 		return $this; 
 	}
 
+	/**
+	 * Set multiple flags
+	 * 
+	 * @param string $names space separated string of flag names
+	 * @param bool $add True to add, false to remove
+	 * @return $this
+	 * 
+	 */
 	public function setFlags($names, $add = true) {
+		
+		if(ctype_digit("$names")) {
+			// likely a flag or combined flags in bitmask
+			$flags = (int) $names;
+			// iterate through known flags to see which are set
+			foreach(self::$_flagNames as $flag => $name) {
+				// if it's a recognized/valid flag, set it 
+				if($flags & $flag) $this->setFlag($flag, $add); 
+			}
+			return $this;
+		}
+	
+		// named flags
 		$flags = $this->flagNamesToFlags($names); 
 		foreach($flags as $name => $flag) {
 			$this->setFlag($flag, $add); 	
 		}
+		
 		return $this; 
 	}
 
@@ -145,7 +237,15 @@ class Notification extends WireData {
 			// sanitized date value is always an integer
 			$value = (int) $value; 
 
-		} else if($key == 'title' || $key == 'from') {
+		} else if($key == 'title') {
+			if($this->flags & self::flagAllowMarkup) {
+				// accept value as-is
+			} else {
+				// regular text sanitizer
+				$value = $this->sanitizer->text($value);
+			}
+				
+		} else if($key == 'from') {
 			// regular text sanitizer
 			$value = $this->sanitizer->text($value); 
 
@@ -160,19 +260,25 @@ class Notification extends WireData {
 		return parent::set($key, $value); 
 	}
 
+	/**
+	 * Return an ID string/hash unique to this Notification within the page that its on
+	 * 
+	 * @return mixed|null|string
+	 * 
+	 */
 	public function getID() {
 
 		$id = parent::get('id'); 
 		if($id) return $id; 
 
 		$id = 	parent::get('title') . ',' . 
-			parent::get('created') . ',' . 
-			parent::get('from') . ',' . 
-			parent::get('src_id') . ',' . 
-			($this->page ? $this->page->id : '?') . ',';
-			parent::get('flags');
+				parent::get('created') . ',' . 
+				parent::get('from') . ',' . 
+				parent::get('src_id') . ',' . 
+				($this->page ? $this->page->id : '?') . ',';
+				parent::get('flags');
 
-		return md5($id); 
+		return 'noID' . md5($id); 
 	}
 
 	/**
@@ -201,19 +307,29 @@ class Notification extends WireData {
 				// format a unix timestamp to a date string
 				$value = date('Y-m-d H:i:s', $value); 				
 
-			} else if($key == 'title' || $key == 'text') {
+			} else if($key == 'title' || $key == 'text' || $key == 'from') {
 				// return entity encoded versions of strings
-				$value = $this->sanitizer->entities($value); 
+				if($key == 'title' && ($this->flags & self::flagAllowMarkup)) {
+					// leave title alone when markup is allowed
+				} else {
+					$value = $this->sanitizer->entities($value); 
+				}
 			}
 		}
 
 		return $value; 
 	}
 
+	/**
+	 * String value of a Notification
+	 * 
+	 * @return string
+	 * 
+	 */
 	public function __toString() {
 		$str = $this->title; 
-		if($this->text) $str .= " - $this->text";
-			else if($this->html) $str .= " - " . strip_tags($this->html);
+		// if($this->text) $str .= " - $this->text";
+		//	else if($this->html) $str .= " - " . strip_tags($this->html);
 		$str .= " (" . implode(', ', $this->get('flagNames')) . ")";
 		return $str; 
 	}

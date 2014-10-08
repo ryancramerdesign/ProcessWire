@@ -9,7 +9,7 @@
  * message() and error() methods are provided for this class to provide any text notices. 
  *
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -891,7 +891,31 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 */
 	
-	protected $_notices = array('errors' => null, 'messages' => null);
+	protected $_notices = array(
+		'errors' => null, 
+		'warnings' => null, 
+		'messages' => null
+	);
+
+	/**
+	 * Record a Notice, internal use (contains the code for message, warning and error methods)
+	 * 
+	 * @param string $text Title of noticd
+	 * @param int $flags Flags bitmask
+	 * @param string $name Name of container
+	 * @param string $class Name of Notice class
+	 * @return $this
+	 * 
+	 */
+	protected function _notice($text, $flags, $name, $class) {
+		if($flags === true) $flags = Notice::log;
+		$notice = new $class($text, $flags);
+		$notice->class = $this->className();
+		if(is_null($this->_notices[$name])) $this->_notices[$name] = new Notices();
+		$this->wire('notices')->add($notice);
+		$this->_notices[$name]->add($notice);
+		return $this; 
+	}
 
 	/**
 	 * Record an informational or 'success' message in the system-wide notices. 
@@ -904,20 +928,27 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 */
 	public function message($text, $flags = 0) {
-		if($flags === true) $flags = Notice::log; 
-		$notice = new NoticeMessage($text, $flags); 
-		$notice->class = $this->className();
-		if(is_null($this->_notices['messages'])) $this->_notices['messages'] = new Notices();
-		$this->wire('notices')->add($notice);
-		$this->_notices['messages']->add($notice);
-		return $this; 
+		return $this->_notice($text, $flags, 'messages', 'NoticeMessage'); 
+	}
+	
+	/**
+	 * Record a warning error message in the system-wide notices.
+	 *
+	 * This method automatically identifies the warning as coming from this class.
+	 *
+	 * @param string $text
+	 * @param int|bool $flags See Notices::flags or specify TRUE to have the error also logged to errors.txt
+	 * @return $this
+	 *
+	 */
+	public function warning($text, $flags = 0) {
+		return $this->_notice($text, $flags, 'warnings', 'NoticeWarning'); 
 	}
 
 	/**
 	 * Record an non-fatal error message in the system-wide notices. 
 	 *
 	 * This method automatically identifies the error as coming from this class. 
-	 *
 	 * Fatal errors should still throw a WireException (or class derived from it)
 	 *
 	 * @param string $text
@@ -926,13 +957,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 */
 	public function error($text, $flags = 0) {
-		if($flags === true) $flags = Notice::log; 
-		$notice = new NoticeError($text, $flags); 
-		$notice->class = $this->className();
-		if(is_null($this->_notices['errors'])) $this->_notices['errors'] = new Notices();
-		$this->wire('notices')->add($notice);
-		$this->_notices['errors']->add($notice);
-		return $this; 
+		return $this->_notice($text, $flags, 'errors', 'NoticeError'); 
 	}
 
 	/**
@@ -941,7 +966,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * @param string|array $options One or more of array elements or space separated string of:
 	 * 	first: only first item will be returned (string)
 	 * 	last: only last item will be returned (string)
-	 * 	all: include all items of type (messages or errors) beyond the scope of this object
+	 * 	all: include all errors, including those beyond the scope of this object
 	 * 	clear: clear out all items that are returned from this method (includes both local and global)
 	 * @return Notices|string Array of NoticeError error messages or string if last, first or str option was specified.
 	 * 
@@ -949,6 +974,23 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	public function errors($options = array()) {
 		if(!is_array($options)) $options = explode(' ', strtolower($options)); 
 		$options[] = 'errors';
+		return $this->messages($options); 
+	}
+
+	/**
+	 * Return warnings recorded by this object
+	 *
+	 * @param string|array $options One or more of array elements or space separated string of:
+	 * 	first: only first item will be returned (string)
+	 * 	last: only last item will be returned (string)
+	 * 	all: include all warnings, including those beyond the scope of this object
+	 * 	clear: clear out all items that are returned from this method (includes both local and global)
+	 * @return Notices|string Array of NoticeError error messages or string if last, first or str option was specified.
+	 *
+	 */
+	public function warnings($options = array()) {
+		if(!is_array($options)) $options = explode(' ', strtolower($options));
+		$options[] = 'warnings';
 		return $this->messages($options); 
 	}
 
@@ -961,15 +1003,18 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * 	all: include all items of type (messages or errors) beyond the scope of this object
 	 * 	clear: clear out all items that are returned from this method (includes both local and global)
 	 * 	errors: returns errors rather than messages.
+	 * 	warnings: returns warnings rather than messages. 
 	 * @return Notices|string Array of NoticeError error messages or string if last, first or str option was specified.
 	 *
 	 */
 	public function messages($options = array()) {
 		if(!is_array($options)) $options = explode(' ', strtolower($options)); 
-		$type = in_array('errors', $options) ? 'errors' : 'messages';
+		if(in_array('errors', $options)) $type = 'errors'; 
+			else if(in_array('warnings', $options)) $type = 'warnings';
+			else $type = 'messages';
 		$clear = in_array('clear', $options); 
 		if(in_array('all', $options)) {
-			// get all of either messages or errors (either in or out of this object instance)
+			// get all of either messages, warnings or errors (either in or out of this object instance)
 			$value = new Notices();
 			foreach($this->wire('notices') as $notice) {
 				if($notice->getName() != $type) continue;
@@ -978,7 +1023,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 			}
 			if($clear) $this->_notices[$type] = null; // clear local
 		} else {
-			// get messages or errors specific to this object instance
+			// get messages, warnings or errors specific to this object instance
 			$value = is_null($this->_notices[$type]) ? new Notices() : $this->_notices[$type];
 			if(in_array('first', $options)) $value = $clear ? $value->shift() : $value->first();
 				else if(in_array('last', $options)) $value = $clear ? $value->pop() : $value->last(); 

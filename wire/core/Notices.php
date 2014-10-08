@@ -32,6 +32,8 @@ abstract class Notice extends WireData {
 
 	/**
 	 * Flag indicates the notice is a warning
+	 * 
+	 * @deprecated use NoticeWarning instead. 
 	 *
 	 */
 	const warning = 4; 
@@ -102,6 +104,17 @@ class NoticeError extends Notice {
 }
 
 /**
+ * A notice that's indicated to be a warning
+ *
+ */
+class NoticeWarning extends Notice {
+	public function getName() {
+		return 'warnings';
+	}
+}
+
+
+/**
  * A class to contain multiple Notice instances, whether messages or errors
  *
  */
@@ -127,8 +140,17 @@ class Notices extends WireArray {
 			if($notice->text == $item->text && $notice->flags == $item->flags) $dup = true; 
 		}
 
-		if($dup) return $this; 
-	
+		if($dup) return $this;
+		
+		if(($item->flags & Notice::warning) && !$item instanceof NoticeWarning) {
+			// if given a warning of either NoticeMessage or NoticeError, convert it to a NoticeWarning
+			// this is in support of legacy code, as NoticeWarning didn't used to exist
+			$warning = new NoticeWarning($item->text, $item->flags);
+			$warning->class = $item->class;
+			$warning->timestamp = $item->timestamp;
+			$item = $warning;
+		}
+
 		if(($item->flags & Notice::log) || ($item->flags & Notice::logOnly)) {
 			$this->addLog($item);
 			if($item->flags & Notice::logOnly) return $this;
@@ -149,5 +171,13 @@ class Notices extends WireArray {
 			if($notice instanceof NoticeError) $numErrors++;
 		}
 		return $numErrors > 0;
+	}
+	
+	public function hasWarnings() {
+		$numWarnings = 0;
+		foreach($this as $notice) {
+			if($notice instanceof NoticeWarning) $numWarnings++;
+		}
+		return $numWarnings > 0;
 	}
 }

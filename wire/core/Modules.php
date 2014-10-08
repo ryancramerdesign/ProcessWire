@@ -835,8 +835,7 @@ class Modules extends WireArray {
 		}
 		
 		if($module && empty($options['noPermissionCheck'])) {
-			$info = $this->getModuleInfo($key);
-			if(!empty($info['permission']) && !$this->wire('user')->hasPermission($info['permission'])) {
+			if(!$this->hasPermission($module, $this->wire('user'), $this->wire('page'))) {
 				throw new WirePermissionException($this->_('You do not have permission to execute this module') . ' - ' . $class);
 			}
 		}
@@ -852,6 +851,50 @@ class Modules extends WireArray {
 		}
 		
 		return $module; 
+	}
+
+	/**
+	 * Check if user has permission for given module
+	 * 
+	 * @param string|object $moduleName
+	 * @param User $user Optionally specify different user to consider than current.
+	 * @param Page $page Optionally specify different page to consider than current.
+	 * @param bool $strict If module specifies no permission settings, assume no permission.
+	 * 	Default (false) is to assume permission when module doesn't say anything about it. 
+	 * 	Process modules (for instance) generally assume no permission when it isn't specifically defined 
+	 * 	(though this method doesn't get involved in that, leaving you to specify $strict instead). 
+	 * 
+	 * @return bool
+	 * 
+	 */
+	public function hasPermission($moduleName, User $user = null, Page $page = null, $strict = false) {
+
+		$info = $this->getModuleInfo($moduleName);
+		if(empty($info['permission']) && empty($info['permissionMethod'])) return $strict ? false : true;
+		
+		if(is_null($user)) $user = $this->wire('user'); 	
+		if($user && $user->isSuperuser()) return true; 
+		if(is_object($moduleName)) $moduleName = $moduleName->className();
+		
+		if(!empty($info['permission'])) {
+			if(!$user->hasPermission($info['permission'])) return false;
+		}
+		
+		if(!empty($info['permissionMethod'])) {
+			// module specifies a static method to call for permission
+			if(is_null($page)) $page = $this->wire('page');
+			$data = array(
+				'wire' => $this->wire(),
+				'page' => $page, 
+				'user' => $user, 
+				'info' => $info, 
+			);
+			$method = $info['permissionMethod'];
+			$this->includeModule($moduleName); 
+			return $moduleName::$method($data); 
+		}
+		
+		return true; 
 	}
 
 	/**

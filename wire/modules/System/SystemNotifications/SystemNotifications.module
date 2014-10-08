@@ -11,12 +11,15 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'System Notifications',
-			'version' => 4,
+			'version' => 6,
 			'summary' => 'Adds support for notifications in ProcessWire (currently in development)',
 			'autoload' => true, 
 			'installs' => 'FieldtypeNotifications', 
+			'icon' => 'bell', 
 			);
 	}
+	
+	const fieldName = 'notifications';
 
 	/**
 	 * Defaults for config values
@@ -30,11 +33,12 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 		'iconMessage' => 'check-square-o',		// default icon for message notifications
 		'iconWarning' => 'exclamation-circle',	// default icon for warning notifications
 		'iconError' => 'exclamation-triangle',	// default icon for error notifications
-		'ghostDelay' => 2000, 					// how long a ghost appears on screen (in ms)
-		'ghostDelayError' => 4000, 				// how long an error ghost appears on screen (in ms)
+		'iconProgress' => 'spinner fa-spin',	// icon for any item that has an active progress bar
+		'iconDebug' => 'bug', 					// default icon for debug-mode notification
+		'ghostDelay' => 1000, 					// how long a ghost appears on screen (in ms)
+		'ghostDelayError' => 2000, 				// how long an error ghost appears on screen (in ms)
 		'ghostFadeSpeed' => 'fast',				// speed at which ghosts fade in or out, or blank for no fade
-		'ghostOpacity' => 0.9, 					// full opacity of ghost (when fully faded in) 
-		'ghostAlign' => '', 					// ghost alignment: left or right, or blank for auto
+		'ghostOpacity' => 0.85, 				// full opacity of ghost (when fully faded in) 
 		'dateFormat' => 'rel', 					// date format to use in notifications (anything compatible with wireDate() function)
 		); 
 
@@ -59,6 +63,9 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 		require_once($path . "Notification.php"); 
 		require_once($path . "NotificationArray.php"); 
 		$this->setArray(self::$defaults); 
+	
+		// hook method to access notifications, in case field name ever needs to change for some reason
+		$this->addHook('User::notifications', $this, 'hookUserNotifications'); 
 	}
 
 	/**
@@ -66,6 +73,7 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 	 * 
 	 */
 	public function init() {
+		
 		foreach($this->activeHooks as $id) {
 			if(!isset($this->systemHooks[$id])) continue;
 			list($when, $hook, $method) = explode(' ', $this->systemHooks[$id]); 
@@ -75,8 +83,9 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 				$this->addHookAfter($hook, $this, $method); 
 			}
 		}
+		
 	}
-
+	
 	/**
 	 * API ready
 	 * 
@@ -88,19 +97,66 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 		$user = $this->wire('user');
 
 		if(!$user->isLoggedin()) return;
+		$this->testProgressNotification();
 
 		if($this->wire('config')->ajax) {
 			$adminPage = $this->wire('pages')->get($config->adminRootPageID); 
 			if($page->parents()->has($adminPage)) {
 				$ajaxAction = $this->wire('input')->get('Notifications'); 
-				if($ajaxAction) $this->ajaxAction($ajaxAction, $user->notifications, $user); 
+				if($ajaxAction) $this->ajaxAction($ajaxAction, $user->get(self::fieldName), $user); 
 			}
 		}
 
 		if($page->template == 'admin') {
 			$this->addHookAfter('AdminTheme::getExtraMarkup', $this, 'hookAdminThemeGetExtraMarkup'); 
 		}
+		
 	}
+
+	/**
+	 * Test out the progress bar notification
+	 * 
+	 */
+	protected function testProgressNotification() {
+		
+		$session = $this->wire('session');
+		$notifications = $this->wire('user')->notifications();
+
+		if($this->wire('input')->get('test_progress')) {
+			// start new progress bar notification
+			
+			$notification = $this->wire('user')->notifications()->message('Testing progress bar notification');
+			$notification->progress = 0; 
+			$value = $session->get($this, 'test_progress'); 
+			if(!is_array($value)) $value = array();
+			$id = $notification->getID();
+			$value[$id] = $id; 
+			$session->set($this, 'test_progress', $value);
+			$notifications->save();
+
+		} else if(($value = $session->get($this, 'test_progress')) && count($value)) {
+			// updating existing progress bar notification(s)
+			
+			foreach($value as $id) { 
+				$notification = $notifications->get($id);
+				if(!$notification) continue; 
+				
+				$notification->progress += 10;
+				if($notification->progress < 100) continue;
+				
+				unset($value[$id]); 
+				$notification->title = "Your download is now complete!";
+				$notification->flag('open'); 
+				$notification->html = 
+					"<p>This is just an example for demo purposes and the button below doesn't actually do anything.<br />" . 
+					"<button class='ui-button'><strong class='ui-button-text'>Download</strong></button></p>";
+			}
+		
+			$session->set($this, 'test_progress', $value);
+			$notifications->save();
+		}
+	}
+
 
 	/**
 	 * Convert Notification object to array
@@ -120,7 +176,7 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 			'from' => $notification->from, 
 			'created' => $notification->created, 
 			'modified' => $notification->modified, 
-			'when' => wireDate($this->dateFormat, $notification->created),
+			'when' => wireDate($this->dateFormat, $notification->modified),
 			'href' => $notification->href, 
 			'icon' => $notification->icon, 
 			'flags' => $notification->flags, 
@@ -129,6 +185,10 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 			'html' => $html, 
 			'qty' => $notification->qty, 
 			);
+		
+		if($a['progress'] > 0 && $a['progress'] < 100) {
+			$a['icon'] = $this->iconProgress; 
+		}
 
 		if(empty($a['icon'])) {
 			if($notification->is("error")) $a['icon'] = $this->iconError;
@@ -151,11 +211,12 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 
 		$data = array();
 		$qty = 0;
+		$qtyMessage = 0;
+		$qtyWarning = 0;
+		$qtyError = 0;
 		$time = (int) $this->wire('input')->get('time'); 
-		$config = $this->wire('config'); 
 		$rm = $this->wire('input')->get('rm'); 
 		$rm = $rm ? explode(',', $rm) : array();
-		$save = false;
 
 		foreach($notifications->sort('-modified') as $notification) {
 			$qty++;
@@ -167,7 +228,11 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 				continue; 
 			} 
 
-			if($time && $notification->created < $time) continue; 
+			if($time && $notification->modified < $time) continue; 
+			if($notification->flags & Notification::flagError) $qtyError++;
+				else if($notification->flags & Notification::flagWarning) $qtyWarning++;
+				else $qtyMessage++;
+			
 			$data[] = $a; 
 		}
 
@@ -177,6 +242,9 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 			$data = array(
 				'notifications' => $data, // new notifications only
 				'qty' => $qty, // total notifications (new or not)
+				'qtyMessage' => $qtyMessage,
+				'qtyWarning' => $qtyWarning,
+				'qtyError' => $qtyError,
 				'time' => time(), // time this info was generated
 				); 
 		}
@@ -199,10 +267,7 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 		$info = self::getModuleInfo();
 		$config->styles->add("$url.css?v=$info[version]"); 
 		$config->scripts->add("$url.js?v=$info[version]"); 
-		$qty = count($this->wire('user')->notifications); 
-		$ghostAlign = $this->ghostAlign;
-		if($ghostAlign) $ghostAlign = ucfirst($ghostAlign); 
-			else $ghostAlign = 'Left';
+		$qty = count($this->wire('user')->get(self::fieldName)); 
 
 		$properties = array(
 			// configured property names
@@ -215,7 +280,6 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 			'ghostDelayError',
 			'ghostFadeSpeed',
 			'ghostOpacity',
-			'ghostAlign', 
 			);
 		
 		$options = array(
@@ -230,10 +294,9 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 
 		$out = 	
 			"<div id='NotificationMenu' class='NotificationMenu'>" . 
-			"<div id='NotificationTestError' class='ui-state-error NoticeError'></div>" . 
 			"<ul id='NotificationList' class='NotificationList'></ul>" . 
 			"</div>" . 
-			"<ul id='NotificationGhosts' class='NotificationGhosts NotificationGhosts$ghostAlign'></ul>" . 
+			"<ul id='NotificationGhosts' class='NotificationGhosts'></ul>" . 
 			"<script>Notifications.init(" . json_encode($options) . "); ";
 
 		// convert runtime Notices to Notifications
@@ -265,20 +328,23 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 	 */
 	protected function noticeToNotification(Notice $notice) {
 
-		$type = 'message';
+		if($notice instanceof NoticeWarning || ($notice->flags & Notice::warning)) $type = 'warning';
+			else if($notice instanceof NoticeError) $type = 'error';
+			else $type = 'message';
 
-		if($notice instanceof NoticeError) {
-			if($notice->flags & Notice::warning) $type = 'warning';
-				else $type = 'error';
-		}
-
-		if(!$this->wire('user')->notifications) $this->install();
-			
-		$notification = $this->wire('user')->notifications->getNew($type, false); 
+		$notification = $this->wire('user')->notifications()->getNew($type, false); 
 		$notification->setFlag('notice', true); 
-
-		if($notice->flags & Notice::debug) $notification->setFlag('debug', true); 
-
+		
+		if($notice->flags & Notice::allowMarkup) $notification->setFlag('markup', true); 
+		if($notice->flags & Notice::log) $notification->setFlag('log', true);
+		if($notice->flags & Notice::logOnly) $notification->setFlag('log-only', true); 
+		if($notice->flags & Notice::debug) {
+			$notification->setFlag('debug', true); 
+			$notification->icon = $this->iconDebug; 
+		}
+		if($notice->class) $notification->from = $notice->class; 
+		if($notice->timestamp) $notification->created = $notice->timestamp;
+		
 		$title = strip_tags((string) $notice);
 
 		if(strlen($title) > 100) {
@@ -292,6 +358,10 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 			} else {
 				$notification->text = (string) $notice; 
 			}
+			
+		} else if($notice->flags & Notice::allowMarkup) {
+			$notification->title = $notice->text;
+			
 		} else {
 			$notification->title = $title; 
 		}
@@ -307,21 +377,39 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 
 		$page = $event->arguments(0);	
 		$url = $event->arguments(1); 
-		$user = $this->wire('users')->get($this->systemUserName ? $this->systemUserName : $this->systemUserID); 
+		$user = $this->getSystemUser();
 		if(!$user->id) return;
-		$of = $user->of();
-		$user->of(false); 
-		$notification = $user->notifications->getNew('warning'); 
-		$notification->title = 'Page not found: ' . $url; 
+		
+		$referer = $this->wire('sanitizer')->entities($this->wire('sanitizer')->text($_SERVER['HTTP_REFERER']));
+		$useragent = $this->wire('sanitizer')->entities($this->wire('sanitizer')->text($_SERVER['HTTP_USER_AGENT']));
+		if(empty($referer)) $referer = "unknown";
+		
+		$notifications = $user->notifications();
+		$notification = $notifications->warning(sprintf($this->_('404 occurred: %s'), $url)); 
 		$notification->html = 
 			"<p>" . 
-			"Page: " . ($page->id ? $page->url : 'Unknown') . "<br />" . 
-			"User: " . $this->user->name . "<br />" . 
-			"IP: " . $this->wire('session')->getIP() . 
+			"<b>Referer:</b> $referer<br />" .
+			"<b>Useragent:</b> $useragent<br />" . 
+			"<b>IP:</b> " . $this->wire('session')->getIP() . "<br />" . 
+			"<b>Page:</b> " . ($page->id ? $page->url : 'Unknown') . "<br />" .
+			"<b>User:</b> " . $this->user->name . 
 			"</p>";	
 
-		$user->save('notifications'); 
-		if($of) $user->of(true);
+		$notifications->save();
+	}
+
+	/**
+	 * Creates a notifications() method with the user
+	 *
+	 */
+	public function hookUserNotifications(HookEvent $event) {
+		$user = $event->object;
+		$notifications = $user->get(self::fieldName); 
+		if(!$notifications) {
+			$this->install();
+			$notifications = $user->get(self::fieldName); 
+		}
+		$event->return = $notifications;
 	}
 
 	/**
@@ -329,31 +417,29 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 	 *
 	 */
 	public function hookLogin(HookEvent $event) {
-		$user = $this->wire('users')->get($this->systemUserName ? $this->systemUserName : $this->systemUserID); 
+		$user = $this->getSystemUser();
 		if(!$user->id) return;
-		$of = $user->of();
-		$user->of(false);
+		$notifications = $user->notifications();
 
 		$loginUser = $event->return;
 		$loginName = $event->arguments(0); 
 
 		if($loginUser && $loginUser->id) {
-			$notification = $user->notifications->getNew("message"); 
-			$notification->title = "User logged in: $loginName";
+			$notification = $notifications->message(sprintf($this->_('User logged in: %s'), $loginName));
 		} else {
-			$notification = $user->notifications->getNew("error"); 
-			$notification->title = "Login failure: $loginName";
+			$notification = $notifications->error(sprintf($this->_('Login failure: %s'), $loginName));
 		}
-
+		
+		$useragent = $this->wire('sanitizer')->entities($this->wire('sanitizer')->text($_SERVER['HTTP_USER_AGENT']));
+		
 		$notification->html = 
 			"<p>" . 
-			"IP address: " . $this->wire('session')->getIP() . "<br />" . 
-			"User agent: " . $this->wire('sanitizer')->entities($_SERVER['HTTP_USER_AGENT']) . "<br />" . 
-			"Time: " . date('Y-m-d H:i:s') . 
+			"<b>Useragent:</b> $useragent<br />" . 
+			"<b>Time:</b> " . date('Y-m-d H:i:s') . "<br />" . 
+			"<b>IP:</b> " . $this->wire('session')->getIP() . 
 			"</p>";
 
-		$user->save('notifications'); 
-		if($of) $user->of(true);
+		$notifications->save();
 	}
 
 	/**
@@ -361,15 +447,29 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 	 *
 	 */
 	public function hookLogout(HookEvent $event) {
-		$user = $this->wire('users')->get($this->systemUserName ? $this->systemUserName : $this->systemUserID); 
+		$user = $this->getSystemUser();
 		if(!$user->id) return;
-		$of = $user->of();
-		$user->of(false);
 		$logoutUser = $event->arguments(0);
-		$notification = $user->notifications->getNew("message"); 
-		$notification->title = "User logged out: $logoutUser->name";
-		$user->save('notifications'); 
-		if($of) $user->of(true);
+		$notifications = $user->notifications(); 
+		$notifications->message(sprintf($this->_('User logged out: %s'), $logoutUser->name));
+		$notifications->save();
+	}
+
+	/**
+	 * Return the user that receives system notifications
+	 * 
+	 * @return null
+	 * 
+	 */
+	public function getSystemUser() {
+		$user = null;
+		if($this->systemUserName) $user = $this->wire('users')->get($this->systemUserName); 
+		if(!$user || !$user->id) $user = $this->wire('users')->get($this->systemUserID); 
+		if(!$user->id) {
+			$role = $this->wire('roles')->get('superuser'); 
+			$user = $this->wire('users')->get("roles=$role, sort=-created, include=all");
+		}
+		return $user; 
 	}
 	
 	/**
@@ -378,13 +478,13 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 	 */
 	public function ___install() {
 		$fieldtype = $this->modules->get('FieldtypeNotifications'); 
-		$field = $this->wire('fields')->get('notifications'); 	
+		$field = $this->wire('fields')->get(self::fieldName); 	
 		if($field && !$field->type instanceof FieldtypeNotifications) {
-			throw new WireException("There is already a field named 'notifications'"); 
+			throw new WireException("There is already a field named '" . self::fieldName . "'"); 
 		}
 		if(!$field) {
 			$field = new Field();
-			$field->name = 'notifications';
+			$field->name = self::fieldName;
 			$field->label = 'Notifications';
 			$field->type = $fieldtype; 
 			$field->collapsed = Inputfield::collapsedBlank;
@@ -402,25 +502,26 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 		// $data['profileFields'][] = 'notifications';
 		// $this->wire('modules')->saveModuleConfigData('ProcessProfile', $data); 
 
-
-		$notification = $this->wire('user')->notifications->getNew();
-		$notification->title = 'Hello World';
-		$notification->text = 'Thank you for installing the Notifications module. This is your first notification!';
-		$notification->setFlag('message', true); 
-		$this->wire('user')->save('notifications'); 
+		$notifications = $this->wire('user')->get(self::fieldName); 
+		$notifications->message('Hello World')->text('Thank you for installing the Notifications module. This is your first notification!');
+		$notifications->save();
 	}
 
+	/**
+	 * Uninstall notifications
+	 * 
+	 */
 	public function ___uninstall() {
 		$fieldgroup = $this->wire('fieldgroups')->get('user'); 
-		$field = $this->wire('fields')->get('notifications'); 
+		$field = $this->wire('fields')->get(self::fieldName); 
 
-		if($field) { 
+		if($field) {
+			$field->flags = Field::flagSystemOverride;
+			$field->flags = 0; 
 			if($fieldgroup->hasField($field)) {
 				$fieldgroup->remove($field); 
 				$fieldgroup->save();
 			}
-			$field->flags = Field::flagSystemOverride; 
-			$field->flags = 0; 
 			$this->wire('fields')->delete($field); 
 		}
 
@@ -429,6 +530,13 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 		}
 	}
 
+	/**
+	 * Configure notifications
+	 * 
+	 * @param array $data
+	 * @return InputfieldWrapper
+	 * 
+	 */
 	public static function getModuleConfigInputfields(array $data) {
 		
 		$data = array_merge(self::$defaults, $data); 
@@ -524,10 +632,16 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 		$f->attr('value', $data['ghostOpacity']);
 		$f->columnWidth = 50;
 		$form->add($f);
-
+		
+		
+		//for($n = 0; $n < 5; $n++) {
 		wire()->message('Example runtime message notification');
-		wire()->error('Example runtime warning notification', Notice::warning);
-		wire()->error('Example runtime error notification'); 
+		wire()->message('Example debug message notification', Notification::flagDebug);
+		wire()->warning('Example runtime warning notification');
+		wire()->warning('Example debug warning notification', Notification::flagDebug);
+		wire()->error('Example runtime error notification');
+		wire()->error('Example debug error notification', Notification::flagDebug);
+		//}
 		
 		
 		return $form;

@@ -10,6 +10,21 @@
  */ 
 
 class AdminThemeDefaultHelpers extends WireData {
+	
+	public function __construct() {
+		if($this->wire('input')->get('test_notices')) {
+			$this->message('Message test');
+			$this->message('Message test debug', Notice::debug);
+			$this->message('Message test markup <a href="#">example</a>', Notice::allowMarkup);
+			$this->warning('Warning test');
+			$this->warning('Warning test debug', Notice::debug);
+			$this->warning('Warning test markup <a href="#">example</a>', Notice::allowMarkup);
+			$this->error('Error test');
+			$this->error('Error test debug', Notice::debug);
+			$this->error('Error test markup <a href="#">example</a>', Notice::allowMarkup);
+		}
+		parent::__construct();
+	}
 
 	/**
 	 * Perform a translation, based on text from shared admin file: /wire/templates-admin/default.php
@@ -107,17 +122,17 @@ class AdminThemeDefaultHelpers extends WireData {
 	public function renderAdminNotices($notices, array $options = array()) {
 		
 		$defaults = array(
-			'messageClass' => 'ui-state-highlight NoticeMessage', // class for messages
+			'messageClass' => 'NoticeMessage', // class for messages
 			'messageIcon' => 'check-square', // default icon to show with notices
 
-			'warningClass' => 'ui-state-error NoticeWarning', // class for warnings
-			'warningIcon' => 'warning', // icon for warnings
+			'warningClass' => 'NoticeWarning', // class for warnings
+			'warningIcon' => 'exclamation-circle', // icon for warnings
 
-			'errorClass' => 'ui-state-error ui-priority-primary NoticeError', // class for errors
+			'errorClass' => 'NoticeError', // class for errors
 			'errorIcon' => 'exclamation-triangle', // icon for errors
 		
-			'debugClass' => 'ui-priority-secondary NoticeDebug', // class for debug items (appended)
-			'debugIcon' => 'gear', // icon for debug notices
+			'debugClass' => 'NoticeDebug', // class for debug items (appended)
+			'debugIcon' => 'bug', // icon for debug notices
 		
 			'closeClass' => 'notice-remove', // class for close notices link <a>
 			'closeIcon' => 'times-circle', // icon for close notices link
@@ -146,7 +161,7 @@ class AdminThemeDefaultHelpers extends WireData {
 			if($notice instanceof NoticeError) {
 				$class = $options['errorClass'];
 				$icon = $options['errorIcon']; 
-			} else if($notice->flags & Notice::warning) {
+			} else if($notice instanceof NoticeWarning) {
 				$class = $options['warningClass'];
 				$icon = $options['warningIcon'];
 			} else {

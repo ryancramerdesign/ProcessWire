@@ -13,6 +13,7 @@ var Notifications = {
 		version: 1, // notifications version 
 		updateLast: 0, 
 		updateDelay: 5000, 
+		updateDelayFast: 1550, 
 		iconMessage: 'smile-o',
 		iconWarning: 'meh-o',
 		iconError: 'frown-o',
@@ -28,6 +29,7 @@ var Notifications = {
 	runtime: [],	 	// notifications added by manual API add calls
 	numRender: 0,		// number of times render() has been called 
 	ghostsActive: 0, 	// number of ghosts currently visible
+	activity: false, 	// whether there is a lot of activity (like with progress bars)
 
 	$menu: null, 		// <div class='NotificationMenu'>
 	$bug: null, 		// <div class='NotificationBug'>
@@ -52,18 +54,21 @@ var Notifications = {
 		var $rm = Notifications.$list.find("li.removed");
 
 		$rm.each(function() {
-			rm += $(this).attr('data-id') + ',';
+			rm += $(this).attr('id') + ',';
 			$(this).remove();
 		}); 
 
 		var url = "./?Notifications=qty&time=" + Notifications.options.updateLast; 
 		if(rm.length) url += '&rm=' + rm;
+		
+		var updateDelay = Notifications.options.updateDelay;
+		if(Notifications.activity) updateDelay = Notifications.options.updateDelayFast; // update more often when progress active
 
 		$.getJSON(url, function(data) {
 			Notifications.options.updateLast = data.time; 
 			Notifications._update(data, false); 
 			clearTimeout(Notifications.updateTimeout); 
-			Notifications.updateTimeout = setTimeout('Notifications.update()', Notifications.options.updateDelay); 
+			Notifications.updateTimeout = setTimeout('Notifications.update()', updateDelay); 
 			Notifications.updating = false; 
 		}); 
 	},
@@ -71,8 +76,8 @@ var Notifications = {
 	/**
 	 * Updates .NotificationTrigger
 	 *
-	 * @param object data Notification data from ajax request
-	 * @param bool Was added from runtime API? (rather than ajax)
+	 * param object data Notification data from ajax request
+	 * param bool Was added from runtime API? (rather than ajax)
 	 *
 	 */
 	_update: function(data, isRuntime) {
@@ -80,17 +85,40 @@ var Notifications = {
 		var $bug = Notifications.$bug;
 		var $bugQty = Notifications.$bug.children('.qty');
 		var qty = 0;
-		
+
 		if(isRuntime) {
 			qty = parseInt($bug.attr('data-qty')) + data.qty; 
+
 		} else {
 			qty = data.qty + Notifications.runtime.length; 
+			$(Notifications.runtime).each(function(n, notification) {
+				if(notification.flagNames.indexOf('error') != -1) {
+					data.qtyError++;
+				} else if(notification.flagNames.indexOf('warning') != -1) {
+					data.qtyWarning++;
+				} else {
+					data.qtyMessage++;
+				}
+			}); 
 		}
 
-		if($bugQty.text() == qty) return;
+		if(data.qtyError > 0) {
+			$bug.addClass('NoticeError', 'slow').removeClass('NoticeWarning', 'slow'); 
+		} else if(data.qtyWarning > 0) {
+			$bug.addClass('NoticeWarning', 'slow').removeClass('NoticeError', 'slow'); 
+		} else {
+			$bug.removeClass('NoticeWarning NoticeError', 'slow'); 
+		}
 		
 		var qtyNew = data.notifications.length;
 
+		if($bugQty.text() == qty && qtyNew == 0) {
+			Notifications.activity = false;
+			return;
+		}
+		
+		Notifications.activity = true; 
+		
 		$bugQty.text(qty); 
 		$bug.attr('data-qty', qty); 
 
@@ -102,7 +130,7 @@ var Notifications = {
 		
 		$bug.attr('class', $bug.attr('class').replace(/qty\d+/g, 'qty' + data.qty));
 
-		if(Notifications.$menu.hasClass('open') && qtyNew > 0) { 
+		if(Notifications.$menu.hasClass('open') && qtyNew > 0) {
 
 			for(var n = 0; n < qtyNew; n++) {
 				Notifications._add(data.notifications[n], true); 
@@ -130,7 +158,7 @@ var Notifications = {
 	/**
 	 * Add a notification (external/public API use)
 	 *
-	 * @param object Notification to add containing these properties
+	 * param object Notification to add containing these properties
 	 *
 	 */
 	add: function(notification) {
@@ -145,11 +173,30 @@ var Notifications = {
 	 */
 	render: function() {
 		Notifications.renderTimeout = setTimeout(function() { 
+
+			var qtyError = 0;
+			var qtyWarning = 0;
+			var qtyMessage = 0;
+
+			$(Notifications.runtime).each(function(n, notification) {
+				if(notification.flagNames.indexOf('error') != -1) {
+					qtyError++;
+				} else if(notification.flagNames.indexOf('warning') != -1) {
+					qtyWarning++;
+				} else {
+					qtyMessage++;
+				}
+			}); 
+			
 			var data = {
 				qty: Notifications.runtime.length, 
+				qtyMessage: qtyMessage, 
+				qtyWarning: qtyWarning,
+				qtyError: qtyError, 
 				notifications: Notifications.runtime, 
 				runtime: true
 			}; 
+
 			Notifications._update(data, true); 
 		}, 250); 
 		Notifications.numRender++;
@@ -163,23 +210,43 @@ var Notifications = {
 	/**
 	 * Add a notification (internal use)
 	 *
-	 * @param object Notification to add
-	 * @param bool highlight Whether to highlight the notification (use true for new notifications)
+	 * param object Notification to add
+	 * param bool highlight Whether to highlight the notification (use true for new notifications)
 	 *
 	 */
 	_add: function(notification, highlight) {
-
-		if(highlight && Notifications.$list.children("[data-id=" + notification.id + "]").length > 0) return;
-
-		var $li = $("<li></li>").attr('data-id', notification.id);  
+		
+		var exists = false;
+		var open = false;
+		var $li = Notifications.$list.children("#" + notification.id);
+		var progressNext = parseInt(notification.progress); 
+		var progressPrev = 0;
+		
+		if($li.length > 0) {
+			exists = true; 
+			highlight = false;
+			open = $li.hasClass('open'); 
+			progressPrev = parseInt($li.find(".NotificationProgress").text());
+			$li.empty(); // clear it out
+			
+		} else {
+			$li = $("<li></li>");
+		}
+		$li.attr('id', notification.id); 
+		
 		var $icon = $("<i></i>").addClass('fa fa-fw fa-' + notification.icon); 
-		var $title = $("<span></span>").addClass('NotificationTitle').text(notification.title); 
-		var $p = $("<p></p>").append($title).prepend('&nbsp;').prepend($icon); 
+		var $title = $("<span></span>").addClass('NotificationTitle').html(notification.title); 
+		var $p = $("<p></p>").append($title).prepend('&nbsp;').prepend($icon);
 		var $div = $("<div></div>").addClass('container').append($p);
 		var $text = $("<div></div>").addClass('NotificationText'); 
 		var $rm = $("<i class='NotificationRemove fa fa-times-circle'></i>"); 
 		var addClass = '';
 		var runtime = false;
+	
+		if(progressNext > 0) {
+			$li.prepend(Notifications._progress($title, progressNext, progressPrev)); 
+			if(progressNext < 100) $li.addClass('NotificationHasProgress', 'normal'); 
+		}
 
 		if('addClass' in notification && notification.addClass.length > 0) {
 			addClass = notification.addClass;
@@ -190,9 +257,10 @@ var Notifications = {
 
 		if(!runtime) $title.append(" <small class='created'>" + notification.when + "</small>"); 
 
-		if(notification.flagNames.indexOf('error') != -1) $li.addClass('ui-state-error NoticeError'); 
-			else if(notification.flagNames.indexOf('warning') != -1) $li.addClass('ui-state-error NoticeWarning'); 
-			else if(notification.flagNames.indexOf('message') != -1) $li.addClass('ui-state-highlight NoticeMessage'); 
+		if(notification.flagNames.indexOf('error') != -1) $li.addClass('NoticeError'); 
+			else if(notification.flagNames.indexOf('warning') != -1) $li.addClass('NoticeWarning'); 
+			else if(notification.flagNames.indexOf('message') != -1) $li.addClass('NoticeMessage'); 
+		if(notification.flagNames.indexOf('debug') != -1) $li.addClass('NoticeDebug'); 
 
 		if(notification.html.length > 0) {
 			$text.html(notification.html); 
@@ -207,6 +275,19 @@ var Notifications = {
 				}
 			}); 
 			$div.append($text); 
+			if(notification.flagNames.indexOf('open') != -1) {
+				if(!open) {
+					setTimeout(function() { 
+						$text.fadeIn('slow', function() {
+							$li.addClass('open'); 
+							$text.addClass('open'); 
+						});
+					}, 500); 
+				} else { 
+					$li.addClass('open');
+					$text.show().addClass('open');
+				}
+			}
 		}
 
 		$rm.on('click', function() {
@@ -225,42 +306,87 @@ var Notifications = {
 			$li.hide();
 			Notifications.$list.prepend($li);
 			$li.slideDown('slow').effect('highlight', 1000); 
+		} else if(exists) {
+			$li.show();
+			//$li.effect('highlight', 250); 
 		} else {
 			Notifications.$list.append($li); 
 		}
 
 	},
+	
+	_progress: function($title, progressNext, progressPrev) {
+		var $progress = $("<div></div>").addClass('NotificationProgress')
+			.html("<span>" + progressNext + '%</span>').css('width', progressPrev + '%').hide();
+		if(progressNext > progressPrev) {
+			Notifications.activity = true;
+			var duration = progressPrev == 0 ? Notifications.options.updateDelay / 1.4 : 1750;
+			var easing = 'linear';
+			if(progressNext == 100) {
+				duration = 750;
+				easing = 'swing';
+			} else if(progressPrev == 0) {
+				easing = 'swing';
+			}
+			if(progressNext > 0 && progressNext <= 100) {
+				$progress.show().animate({
+						width: progressNext + '%'
+					}, {
+						duration: duration,
+						easing: easing,
+						complete: function() {
+							if(progressNext >= 100) {
+								$progress.fadeOut('slow', function() {
+									$title.parents(".NotificationHasProgress").removeClass('NotificationHasProgress', 'slow'); 
+								});
+							}
+						}
+					});
+			} else if(progressNext == 100) {
+				// don't show
+			} else {
+				$progress.css('width', progressNext + '%').show();
+			}
+			$progress.height('100%');
+		}
+		$title.append(" <strong class='NotificationProgressPercent'>" + progressNext + '%</strong>');
+		return $progress;
+	},
 
 	/**
 	 * Add a notification ghost (subtle notification that appears than disappears)
 	 *
-	 * @param object notification Notification to ghost
-	 * @param int n Index of the notification, affects when it is shown so that multiple don't appear and disappear as a group. 
+	 * param object notification Notification to ghost
+	 * param int n Index of the notification, affects when it is shown so that multiple don't appear and disappear as a group. 
 	 *
 	 */
 	_ghost: function(notification, n) {
+		
+		if(notification.progress > 0 && notification.progress < 100) return;
 
 		var $icon = $('<i class="fa fa-fw fa-' + notification.icon + '"></i>'); 
-		var $ghost = $("<div class='NotificationGhost'></div>").append($icon).append(' ' + notification.title);
+		var $ghost = $("<div class='NotificationGhost'></div>").append($icon).append(' ' + $("<span>" + notification.title + "</span>").text());
 		var $li = $("<li></li>").append($ghost); 
 		var delay = Notifications.options.ghostDelay; 
 
 		if(notification.flagNames.indexOf('error') > -1) {
-			$ghost.addClass('NotificationGhostError ui-state-error'); 
+			$ghost.addClass('NoticeError'); 
 			delay = Notifications.options.ghostDelayError;
 		} else if(notification.flagNames.indexOf('warning') > -1) {
-			$ghost.addClass('NotificationGhostWarning ui-state-error'); 
+			$ghost.addClass('NoticeWarning'); 
 			delay = Notifications.options.ghostDelayError;
 		} else {
-			$ghost.addClass('NotificationGhostMessage'); 
+			$ghost.addClass('NoticeMessage'); 
 		}
 
 		Notifications.$ghosts.append($li.hide());
 		Notifications.ghostsActive++;	
+		
 
 		var fadeSpeed = Notifications.options.ghostFadeSpeed;
 		var opacity = Notifications.options.ghostOpacity;
 		var interval = 100 * n; 
+		var windowHeight = $(window).height();
 
 		if(fadeSpeed.length == 0) interval = 200 * n; 
 
@@ -271,6 +397,13 @@ var Notifications = {
 			} else {
 				$li.show().css('opacity', opacity); 
 			}
+			
+			var y = $li.offset().top; 
+			var h = $li.height();
+			if(y + h > (windowHeight / 2)) {
+				Notifications.$ghosts.animate({ top: "-=" + (h+3) }, 'fast'); 
+			}
+			
 			setTimeout(function() {
 				var ghostDone = function() {
 					$li.addClass('removed');
@@ -442,7 +575,7 @@ var Notifications = {
 		// start polling for new notifications
 		Notifications.updateTimeout = setTimeout(Notifications.update, Notifications.options.updateDelay); 
 
-		Notifications.$bug.dblclick(function(e) { 
+		$("#ProcessPageSearchForm input").dblclick(function(e) { 
 			Notifications.message(
 				"ProcessWire Notifications v" + Notifications.options.version, 
 				"Grab a coffee and come and visit us at the <a target='_blank' href='https://processwire.com/talk/'>ProcessWire support forums</a>.</p>", 

@@ -220,7 +220,7 @@ class PagePermissions extends WireData implements Module {
 		if($page->status >= Page::statusUnpublished) $viewable = false;
 			else if(!$page->template || !$page->template->filenameExists()) $viewable = false; 
 			else if($user->isSuperuser()) $viewable = true; 
-			else if($page->process) $viewable = $this->processViewable($page->process);
+			else if($page->process) $viewable = $this->processViewable($page);
 			else if(!$user->hasPermission("page-view", $page)) $viewable = false;
 			else if($page->isTrash()) $viewable = false; 
 
@@ -241,21 +241,15 @@ class PagePermissions extends WireData implements Module {
  	 * give the existing roles access to the admin process and then 'view' access is assumed for that page.
 	 *
 	 */
-	protected function processViewable($process) {
+	protected function processViewable(Page $page) {
 
 		$user = $this->wire('user');
+		$process = $page->process; 
 
 		if($user->isGuest()) return false;
 		if($user->isSuperuser()) return true; 
-
-		$info = $this->wire('modules')->getModuleInfo($process); 
-		$permissionName = empty($info['permission']) ? '' : $info['permission'];
-
-		// if the process module doesn't explicitely define a permission, 
-		// then we assume the user doesn't have access
-		if(!$permissionName) return false;
-
-		return $user->hasPermission($permissionName); 
+		
+		return $this->wire('modules')->hasPermission($process, $user, $page, true); 
 	}
 
 	/**
@@ -274,7 +268,7 @@ class PagePermissions extends WireData implements Module {
 		if($user->isSuperuser()) $listable = true; 
 			else if($page instanceof User && $user->hasPermission('user-admin')) $listable = true; 
 			else if($page->is(Page::statusUnpublished) && !$page->editable()) $listable = false;
-			else if($page->process && !$this->processViewable($page->process)) $listable = false;
+			else if($page->process && !$this->processViewable($page)) $listable = false;
 			else if($page->isTrash()) $listable = false; 
 			else if($page->getAccessTemplate()->guestSearchable) $listable = true; 
 			else if(!$user->hasPermission("page-view", $page)) $listable = false;
