@@ -456,10 +456,16 @@ class Session extends Wire implements IteratorAggregate {
 		}
 
 		// perform the redirect
-		if($this->wire('page')) {
+		$page = $this->wire('page');
+		if($page) {
+			// ensure ProcessPageView is properly closed down
 			$process = $this->wire('modules')->get('ProcessPageView'); 
 			$process->setResponseType(ProcessPageView::responseTypeRedirect); 
 			$process->finished();
+			// retain modal=1 get variables through redirects (this can be moved to a hook later)
+			if($page->template == 'admin' && $this->wire('input')->get('modal') && strpos($url, '//') === false) {
+				if(!strpos($url, 'modal=')) $url .= (strpos($url, '?') !== false ? '&' : '?') . 'modal=1'; 
+			}
 		}
 		if($http301) header("HTTP/1.1 301 Moved Permanently");
 		header("Location: $url");

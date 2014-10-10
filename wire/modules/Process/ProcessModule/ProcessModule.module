@@ -388,7 +388,7 @@ class ProcessModule extends Process {
 		// installable
 
 		$tab = new InputfieldWrapper();
-		$tab->attr('id', 'tab_uninstalled_modules');
+		$tab->attr('id', 'tab_install_modules');
 		$tabLabel = $this->labels['install']; 
 		$tab->attr('title', $tabLabel); 
 		$tab->attr('class', 'WireTab');

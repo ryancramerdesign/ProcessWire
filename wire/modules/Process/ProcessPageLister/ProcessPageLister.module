@@ -232,12 +232,14 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if($columns) $this->columns = $columns; 
 		$ajax = $this->wire('config')->ajax; 
 
-		if($ajax) {
-			$s = $this->getInputfieldSelector();
-			if(!$this->template) { 
-				$template = $this->getSelectorTemplates("$this->initSelector, $s->value"); 
-				if(count($template)) $this->set('template', reset($template)); 
+		if(!$this->template) {
+			$selector = $this->initSelector;
+			if($ajax) {
+				$s = $this->getInputfieldSelector();
+				$selector .= ", $s->value";
 			}
+			$template = $this->getSelectorTemplates($selector); 
+			if(count($template)) $this->set('template', reset($template));
 		}
 
 		$knownTotal = $this->sessionGet('knownTotal');
@@ -1161,8 +1163,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	 */
 	public function ___execute() {
 		if(!$this->wire('page')) return;
+		$modules = $this->wire('modules');
 		
-		if($this->wire('modules')->isInstalled('ProcessLister') && $this->wire('user')->isSuperuser()) {
+		if($modules->isInstalled('ProcessLister') && $this->wire('user')->isSuperuser()) {
 			$this->error('Please uninstall Modules > Site > ProcessLister - this module (ProcessPageLister) has now replaced it.'); 
 		}
 		
@@ -1179,8 +1182,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$selector = $this->sessionGet('selector'); 
 		if(!$selector) $this->sessionSet('selector', $this->defaultSelector); 
 
-		$this->modules->get('JqueryWireTabs'); 
-		$this->modules->get('MarkupAdminDataTable'); // to ensure css/js load
+		$modules->get('JqueryWireTabs'); 
+		$modules->get('MarkupAdminDataTable'); // to ensure css/js load
 
 		$out = '';
 		if(!$this->wire('input')->get('minimal')) {
@@ -1200,16 +1203,16 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		}
 		
 		if($action && !$this->wire('input')->get('minimal')) {
-			$btn = $this->wire('modules')->get('InputfieldButton'); 
+			$btn = $modules->get('InputfieldButton'); 
 			$btn->attr('value', $this->_('Add New')); 
 			$btn->href = $this->addURL . $action; 
 			$btn->addClass('head_button_clone'); 
 			$btn->icon = 'plus-circle';
-			$out .= $btn->render();
+			$out .= str_replace("<a ", "<a class='PageAddNew' ", $btn->render());
 		}
 
-		$info = $this->wire('modules')->getModuleInfo($this); 
-		$out .= "<p class='detail version'>$info[title] v$info[version] &beta;</p>";
+		$info = $modules->getModuleInfo($this); 
+		$out .= "<p class='detail version'>$info[title] v" . $modules->formatVersion($info['version']) . " &beta;</p>";
 		return "<div id='ProcessLister'>$out</div>"; 
 	}
 

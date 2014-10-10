@@ -1646,6 +1646,10 @@ body:not(.hasWireTabs) #headline .container {
 	margin-right: auto;
 }
 
+body.pw-init .toggle-icon {
+	display: none; 
+}
+
 
 /***********************************************************************************************
  * MEDIA QUERIES
