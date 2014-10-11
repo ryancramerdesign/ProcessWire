@@ -319,9 +319,17 @@ class ImageSizer extends Wire {
 			
 			// this is the case if the original size is requested or a greater size but upscaling is set to false
 			
-			@imagedestroy($image);
-			return true;
-			
+			// since we have added support for crop-before-resize, we have to check for this
+			if(!is_array($this->cropExtra)) {
+				// the sourceimage is allready the targetimage, we can leave here
+				@imagedestroy($image);
+				return true;
+			}
+			// we have a cropped_before_resized image and need to save this version,
+			// so we let pass it through without further manipulation, we just need to copy it into the final memimage called "$thumb"
+			$thumb = imagecreatetruecolor(imagesx($image), imagesy($image));          // create the final memory image
+			imagecopy($thumb, $image, 0, 0, 0, 0, imagesx($image), imagesy($image));  // copy our intermediate image into the final one
+
 		} else if($gdWidth == $targetWidth && $gdHeight == $targetHeight) {
 			
 			// this is the case if we scale up or down _without_ cropping
