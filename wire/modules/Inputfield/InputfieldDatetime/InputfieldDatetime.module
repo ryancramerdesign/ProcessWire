@@ -66,12 +66,12 @@ class InputfieldDatetime extends Inputfield {
 	 * jQuery UI is loaded before the InputfieldDatetime.js
 	 *
 	 */
-	public function hookRender($event) {
+	public function renderReady() {
 		if($this->datepicker) {
-			wire('modules')->get('JqueryCore'); // Jquery Core required before Jquery UI
-			wire('modules')->get('JqueryUI'); 
+			$this->wire('modules')->get('JqueryCore'); // Jquery Core required before Jquery UI
+			$this->wire('modules')->get('JqueryUI'); 
 		} 
-		parent::hookRender($event); 
+		parent::renderReady(); 
 	}
 
 	/**

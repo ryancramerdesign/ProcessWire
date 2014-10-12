@@ -212,6 +212,8 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		} else {
 			$children = new PageArray();
 		}
+		
+		if($children->has($page)) $children->remove($page); // don't allow page being edited to be selected
 
 		return $children; 
 	} 
@@ -409,7 +411,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$inputfield->processInput($input); 
 
 		$value = $this->attr('value'); 
-		$existingValue = $value ? clone $value : '';
+		$existingValueStr = $value ? "$value" : '';
 		$newValue = null;
 		$value = $inputfield->value;
 		
@@ -449,7 +451,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$this->setAttribute('value', $newValue); 
 		}
 
-		if("$newValue" != "$existingValue") {
+		if("$newValue" != "$existingValueStr") {
 			$this->trackChange('value'); 
 		} 
 		$this->processInputMode = false; 	

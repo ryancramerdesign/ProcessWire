@@ -279,13 +279,12 @@ class InputfieldWrapper extends Inputfield {
 			if($collapsed == Inputfield::collapsedHidden) continue; 
 			if($collapsed == Inputfield::collapsedNoLocked || $collapsed == Inputfield::collapsedYesLocked) $renderValueMode = true;
 
+			$ffOut = $this->renderInputfield($inputfield, $renderValueMode); 	
 			if($renderValueMode) {
-				$ffOut = $inputfield->renderValue();
-				if(is_null($ffOut)) continue; 
+				if(is_null($ffOut)) continue;
 				if(!strlen($ffOut)) $ffOut = '&nbsp;';
-			} else {
-				$ffOut = $inputfield->render();
 			}
+		
 			if(!strlen($ffOut)) continue; 
 
 			if(!$inputfield instanceof InputfieldWrapper) {
@@ -413,6 +412,38 @@ class InputfieldWrapper extends Inputfield {
 		$out = $this->render(); 
 		$this->set('renderValueMode', false); 
 		return $out; 
+	}
+
+	/**
+	 * Render output for an Inputfield
+	 *
+	 */
+	public function renderInputfield(Inputfield $inputfield, $renderValueMode = false) {
+		
+		static $classes = array();
+		$class = $inputfield->className();
+		$inputfield->renderReady();
+		
+		if(isset($classes[$class])) {
+			// we've already included external assets
+		} else { 
+			$path = $this->config->paths->$class;
+			$info = array(); 
+			foreach(array('css' => 'styles', 'js' => 'scripts') as $ext => $name) {
+				if(!file_exists("$path$class.$ext")) continue;
+				$url = $this->config->urls->$class;
+				if(empty($info)) $info = $this->wire('modules')->getModuleInfo($inputfield, array('verbose' => false));
+				$version = (int) isset($info['version']) ? $info['version'] : 0;
+				$this->config->$name->add("$url$class.$ext?v=$version");
+			}
+			$classes[$class] = true; 
+		}
+		
+		if($renderValueMode) {
+			return $inputfield->renderValue();
+		} else {
+			return $inputfield->render();
+		}
 	}
 
 	/**

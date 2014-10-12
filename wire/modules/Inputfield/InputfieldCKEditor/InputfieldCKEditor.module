@@ -300,12 +300,8 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	/**
 	 * Ensures that ckeditor.js is loaded before our own InputfieldCKEditor.js
 	 * 
-	 * This method originates from Inputfield::hookRender
-	 * 
-	 * @param HookEvent $event
-	 * 
 	 */
-	public function hookRender($event) {
+	public function renderReady() {
 		static $loaded = false;
 		if(!$loaded) { 
 			$class = $this->className();
@@ -313,7 +309,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 			$config->scripts->add($config->urls->$class . "ckeditor-" . self::CKEDITOR_VERSION . "/ckeditor.js");
 			$loaded = true; 
 		}
-		parent::hookRender($event); 
+		parent::renderReady();
 	}
 
 	/**

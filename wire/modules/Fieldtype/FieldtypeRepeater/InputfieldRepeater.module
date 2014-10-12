@@ -240,6 +240,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 		$value = $this->attr('value'); // PageArray	
 		$numChanges = 0;
 		$sortChanged = false;
+		$value->setTrackChanges(true);
 
 		// existing items
 		foreach($value as $key => $page) {
@@ -250,7 +251,8 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 			$publishName = "publish_repeater{$page->id}";
 
 			if($input->$deleteName == $page->id) {
-				$value->remove($page); 
+				$value->remove($page);
+				$numChanges++;
 				continue; 
 			}
 
@@ -337,7 +339,7 @@ class InputfieldRepeater extends Inputfield implements InputfieldItemList {
 					$page->set($name, $value);
 				}
 
-				if($page->isChanged($name)) { 
+				if($page->isChanged($name)) {
 					// if a 'ready' page was changed, then we may now consider it a regular repeater page
 					if($page->is(Page::statusHidden)) $page->removeStatus(Page::statusHidden); 
 				}

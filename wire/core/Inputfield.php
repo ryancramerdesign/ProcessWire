@@ -145,28 +145,8 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function init() { 
-		$this->addHookBefore('render', $this, 'hookRender'); 
 	}
 
-	/**
-	 * This hook is called when the ___render() method is called, ensuring that related styles and scripts are added. 
-	 *
-	 * This is hooked rather than called directly in init() to make sure that styles/scripts aren't loaded in instances where 
-	 * The Inputfield is loaded, but not rendered. 
-	 *
-	 * @param HookEvent $event
-	 *
-	 */
-	public function hookRender($event) {
-		$class = $this->className();
-		$url = $this->config->urls->$class;
-		$path = $this->config->paths->$class;
-		$info = $this->wire('modules')->getModuleInfo($this, array('verbose' => false));
-		$version = (int) isset($info['version']) ? $info['version'] : 0;
-		if(file_exists("$path$class.css")) $this->config->styles->add("$url$class.css?v=$version");
-		if(file_exists("$path$class.js")) $this->config->scripts->add("$url$class.js?v=$version"); 
-	}
-	
 	/**
 	 * Per the Module interface, install() is called when this Inputfield is instally installed
 	 *
@@ -482,6 +462,12 @@ abstract class Inputfield extends WireData implements Module {
 		}
 		return $out; 
 	}
+	
+	/**
+	 * Called before render() or renderValue() method by InputfieldWrapper, before Inputfield-specific CSS/JS files added
+	 *
+	 */
+	public function renderReady() { }
 
 	/**
 	 * Process the input from the given WireInputData (usually $input->get or $input->post), load and clean the value for use in this Inputfield. 
