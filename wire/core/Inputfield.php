@@ -465,10 +465,35 @@ abstract class Inputfield extends WireData implements Module {
 	
 	/**
 	 * Called before render() or renderValue() method by InputfieldWrapper, before Inputfield-specific CSS/JS files added
+	 * 
+	 * In this case used to populate any required CSS/JS files. The return value is true if assets were just added, 
+	 * and false if assets have already been added in a previous call. This distinction probably doesn't matter in 
+	 * most usages, but here just in case a descending class needs to know when/if to add additional assets (i.e. 
+	 * when this function returns true). 
+	 * 
+	 * @param Inputfield|InputfieldWrapper|null The parent Inputfield/wrapper that is rendering it or null if no parent.
+	 * @param bool $renderValueMode Whether renderValueMode will be used. 
+	 * @return bool 
 	 *
 	 */
-	public function renderReady() { }
-
+	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+		static $classes = array();
+		$class = $this->className();
+		if(isset($classes[$class])) return false; // return false if required assets have already been included
+		$config = $this->wire('config');
+		$path = $config->paths->$class;
+		$info = array();
+		foreach(array('css' => 'styles', 'js' => 'scripts') as $ext => $name) {
+			if(!file_exists("$path$class.$ext")) continue;
+			$url = $config->urls->$class;
+			if(empty($info)) $info = $this->wire('modules')->getModuleInfo($this, array('verbose' => false));
+			$version = (int) isset($info['version']) ? $info['version'] : 0;
+			$config->$name->add("$url$class.$ext?v=$version");
+		}
+		$classes[$class] = true;
+		return true;
+	}
+	
 	/**
 	 * Process the input from the given WireInputData (usually $input->get or $input->post), load and clean the value for use in this Inputfield. 
 	 *

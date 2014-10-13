@@ -36,7 +36,7 @@ class InputfieldPageTableAjax extends Wire {
 	 * Check if current request is a valid ajax request and call renderAjax() if it is.
 	 * 
 	 */
-	protected function checkAjax() { 
+	protected function ___checkAjax() { 
 
 		$input = $this->wire('input'); 
 		$fieldName = $input->get('InputfieldPageTableField'); 

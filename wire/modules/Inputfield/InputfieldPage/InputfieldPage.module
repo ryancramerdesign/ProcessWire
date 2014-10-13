@@ -320,6 +320,8 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			return $this->name;
 		}
 
+		$inputfield->renderReady($this, false);
+		
 		$out = 	"\n<div class='" . $inputfield->className() . "'>";
 		$out .= $inputfield->render();
 		$out .= $this->renderAddable();

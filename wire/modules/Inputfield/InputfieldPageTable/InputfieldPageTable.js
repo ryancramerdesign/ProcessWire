@@ -23,7 +23,7 @@ function InputfieldPageTableDialog() {
 				if(sort.length) ajaxURL += '&InputfieldPageTableSort=' + sort.replace(/\|/g, ',');
 				$.get(ajaxURL, function(data) { 
 					$container.html(data); 
-					$container.effect('highlight', 1000); 
+					$container.effect('highlight', 500); 
 					InputfieldPageTableSortable($container.find('table')); 
 				}); 
 			}
@@ -141,6 +141,9 @@ $(document).ready(function() {
 
 	$(document).on('click', '.InputfieldPageTableAdd, .InputfieldPageTableEdit', InputfieldPageTableDialog); 
 	$(document).on('click', 'a.InputfieldPageTableDelete', InputfieldPageTableDelete); 
+	$(document).on('dblclick', '.InputfieldPageTable .AdminDataTable td', function() {
+		$(this).closest('tr').find('.InputfieldPageTableEdit').click();
+	}); 
 
 	InputfieldPageTableSortable($(".InputfieldPageTable table"));
 	

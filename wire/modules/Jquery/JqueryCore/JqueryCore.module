@@ -34,7 +34,8 @@ class JqueryCore extends ModuleJS {
 			'migrate-dev' => 'jquery-migrate-1.2.1.js',
 			'cookie' => 'jquery.cookie.js',
 			));
-		
+		$info = self::getModuleInfo();
+		$this->config->scripts->prepend($this->config->urls->JqueryCore . "JqueryCore.js?v=$info[version]");
 	}
 
 	/**
