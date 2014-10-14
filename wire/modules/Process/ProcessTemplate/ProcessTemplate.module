@@ -419,28 +419,40 @@ class ProcessTemplate extends Process {
 				}
 			}
 
-			$postTemplates = $this->input->post->templates; 
+			$postTemplates = $this->wire('input')->post('templates'); 
 
 			// add any templates without files to the postTemplates
-			if($this->input->post->template_name) {
-				$templateName = trim($this->input->post->template_name); 
+			$templateName = trim($this->wire('input')->post('template_name')); 
+			if(strlen($templateName)) {
 				if(strpos($templateName, ' ')) $templateNames = explode(' ', $templateName); 
 					else $templateNames = array($templateName); 
-				foreach($templateNames as $name) 
-					$postTemplates[] = basename($name); 
+				foreach($templateNames as $name) {
+					$name = $this->wire('sanitizer')->name(basename($name)); 
+					if($this->wire('templates')->get($name) || $this->wire('fieldgroups')->get($name)) {	
+						$this->error($name . " - " . $this->_('Name is already in use')); 
+					} else {
+						$postTemplates[] = $name;
+					}
+				}
 			}
 
 			foreach($postTemplates as $basename) {
 				// if(!in_array($basename, $templateFiles)) continue; 
-				$template = new Template();
-				$template->name = $this->fuel('sanitizer')->name($basename); 
-				$fieldgroup = new Fieldgroup(); 
-				$fieldgroup->name = $template->name; 
-				$fieldgroup->save();
-				$template->fieldgroup = $fieldgroup; 
-				$template->roles = array($this->roles->getGuestRole()->id); 
-				$template->save();
-				$this->message(sprintf($this->_('Added template and fieldgroup: %s'), $basename)); 
+				
+				try {
+					$template = new Template();
+					$template->name = $this->wire('sanitizer')->name($basename); 
+					$fieldgroup = new Fieldgroup();
+					$fieldgroup->name = $template->name;
+					$fieldgroup->save();
+					$template->fieldgroup = $fieldgroup;
+					$template->roles = array($this->roles->getGuestRole()->id); 
+					$template->save();
+					$this->message(sprintf($this->_('Added template and fieldgroup: %s'), $basename)); 
+				} catch(Exception $e) {
+					$this->error($e->getMessage()); 
+					continue; 
+				}
 
 				if($importFieldgroup) {
 					$this->importFieldgroup($importFieldgroup, $template); 
@@ -486,7 +498,7 @@ class ProcessTemplate extends Process {
 			foreach($templateFiles as $file) $field->addOption($file); 
 			$form->append($field); 
 		} else {
-			$this->error(sprintf($this->_('No new template files were found in: %s'), "$templateUrl*.{$this->config->templateExtension}")); // Error message when no new templates found
+			$this->warning(sprintf($this->_('No new template files were found in: %s'), "$templateUrl*.{$this->config->templateExtension}")); // Error message when no new templates found
 		}
 
 		$field = $this->modules->get("InputfieldText"); 
