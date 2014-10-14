@@ -380,9 +380,18 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 		$user = $this->getSystemUser();
 		if(!$user->id) return;
 		
-		$referer = $this->wire('sanitizer')->entities($this->wire('sanitizer')->text($_SERVER['HTTP_REFERER']));
-		$useragent = $this->wire('sanitizer')->entities($this->wire('sanitizer')->text($_SERVER['HTTP_USER_AGENT']));
+		if(isset($_SERVER['HTTP_REFERER'])) {
+			$referer = $this->wire('sanitizer')->entities($this->wire('sanitizer')->text($_SERVER['HTTP_REFERER']));
+		} else {
+			$referer = '';
+		}
+		if(isset($_SERVER['HTTP_USER_AGENT'])) { 
+			$useragent = $this->wire('sanitizer')->entities($this->wire('sanitizer')->text($_SERVER['HTTP_USER_AGENT']));
+		} else {
+			$useragent = '';
+		}
 		if(empty($referer)) $referer = "unknown";
+		if(empty($useragent)) $useragent = "unknown";
 		
 		$notifications = $user->notifications();
 		$notification = $notifications->warning(sprintf($this->_('404 occurred: %s'), $url)); 
