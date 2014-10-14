@@ -921,6 +921,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		}
 
 		if($this->fieldgroup) return $this->saveContext();
+		$isNew = !$this->field->id;
 
 		if($this->input->post->delete && $this->input->post->delete == $this->field->id && $this->field->numFieldgroups() == 0) {
 			$this->session->CSRF->validate();
@@ -931,53 +932,70 @@ class ProcessField extends Process implements ConfigurableModule {
 			return; 
 		}
 
-		$this->form->processInput($this->input->post); 
-		$this->saveInputfields($this->form); 
+		try {
+			$this->form->processInput($this->input->post); 
+			$this->saveInputfields($this->form); 
+		} catch(Exception $e) {
+			$this->error($e->getMessage()); 
+		}
 		$errors = array();
 
-		if(!$this->field->name) $errors[] = $this->_("Field name is required"); 
-			else if(!$this->field->type) $errors[] = $this->_("Field type is required"); 
-			else if(!$this->field->id) {
+		if(!$this->field->name) {
+			$errors[] = $this->_("Field name is required"); 
+			
+		} else if(!$this->field->type) {
+			$errors[] = $this->_("Field type is required"); 
+			
+		} else if(!$this->field->id) {
+			try { 
 				$this->field->save();
 				$this->session->message($this->_('Added Field') . " - {$this->field->name}"); 
 				$this->fieldAdded($this->field); 
-				$this->session->redirect("edit?id={$this->field->id}"); 
+			} catch(Exception $e) {
+				$this->error($e->getMessage()); 
+				if(!$this->field->id) $this->session->redirect("./"); 
+			}
+			$this->session->redirect("edit?id={$this->field->id}"); 
 				
-			} else {
-				
-				$optimized = false; 
-				
-				$removeKeys = $this->wire('input')->post('_remove_keys');
-				if($removeKeys && count($removeKeys)) {
-					$_removeKeys = $this->wire('session')->get($this, '_remove_keys');
-					foreach($removeKeys as $xkey) {
-						if(!in_array($xkey, $_removeKeys)) continue; // validate via session
-						$this->field->remove($xkey);
-						$this->message(sprintf($this->_('Removed unused property: %s'), $xkey));
-					}
-					$optimized = true; 
+		} else {
+			
+			$optimized = false; 
+			
+			$removeKeys = $this->wire('input')->post('_remove_keys');
+			if($removeKeys && count($removeKeys)) {
+				$_removeKeys = $this->wire('session')->get($this, '_remove_keys');
+				foreach($removeKeys as $xkey) {
+					if(!in_array($xkey, $_removeKeys)) continue; // validate via session
+					$this->field->remove($xkey);
+					$this->message(sprintf($this->_('Removed unused property: %s'), $xkey));
 				}
-				
-				if($this->input->post('_remove_rows') == $this->field->id) {
-					$table = $this->field->getTable();
-					$query = $this->database->prepare("DELETE $table FROM $table LEFT JOIN pages ON $table.pages_id=pages.id WHERE pages.id IS NULL");
-					$query->execute();
-					$cnt = $query->rowCount();
-					if($cnt) $this->message($this->field->name . ": " . sprintf($this->_('Deleted %d orphaned rows'), $cnt));
-					$optimized = true; 
-				}
+				$optimized = true; 
+			}
+			
+			if($this->input->post('_remove_rows') == $this->field->id) {
+				$table = $this->field->getTable();
+				$query = $this->database->prepare("DELETE $table FROM $table LEFT JOIN pages ON $table.pages_id=pages.id WHERE pages.id IS NULL");
+				$query->execute();
+				$cnt = $query->rowCount();
+				if($cnt) $this->message($this->field->name . ": " . sprintf($this->_('Deleted %d orphaned rows'), $cnt));
+				$optimized = true; 
+			}
+	
+			if($optimized) $this->session->remove($this, 'optimize'); 
+				else if($this->input->post('_optimize')) $this->session->set($this, 'optimize', $this->field->id); 
 		
-				if($optimized) $this->session->remove($this, 'optimize'); 
-					else if($this->input->post('_optimize')) $this->session->set($this, 'optimize', $this->field->id); 
-				
-				$this->message($this->_('Saved Field') . " - {$this->field->name}"); 
+			try { 
 				$this->field->save();
+				$this->message($this->_('Saved Field') . " - {$this->field->name}"); 
 				$this->fieldSaved($this->field); 
 				$select = $this->form->get("type"); 
 				if($this->field->type->className() != $select->value) {
 					$this->session->redirect("changeType?id={$this->field->id}&type={$select->value}"); 
 				}	
+			} catch(Exception $e) {
+				$this->error($e->getMessage()); 
 			}
+		}
 	
 		$cloneField = $this->form->get('clone_field');
 		if($cloneField && $cloneField->attr('checked')) {
@@ -992,7 +1010,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		if(count($errors)) {
 			foreach($errors as $error) $this->error($error); 
-			return $this->executeAdd();
+			if($isNew) return $this->executeAdd();
 		}
 		
 		if($this->listAfterSave) $this->session->redirect("./"); 
@@ -1004,9 +1022,13 @@ class ProcessField extends Process implements ConfigurableModule {
 	 *
 	 */
 	protected function ___saveContext() {
-		$this->form->processInput($this->input->post); 
-		$this->saveInputfields($this->form); 
-		$this->fields->saveFieldgroupContext($this->field, $this->fieldgroup); 
+		try { 
+			$this->form->processInput($this->input->post); 
+			$this->saveInputfields($this->form); 
+			$this->fields->saveFieldgroupContext($this->field, $this->fieldgroup); 
+		} catch(Exception $e) {
+			$this->error($e->getMessage()); 
+		}
 		$this->session->redirect("edit?id={$this->field->id}&fieldgroup_id={$this->fieldgroup->id}"); 
 	}
 
