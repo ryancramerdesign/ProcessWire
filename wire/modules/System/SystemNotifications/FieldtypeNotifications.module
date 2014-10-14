@@ -104,6 +104,7 @@ class FieldtypeNotifications extends FieldtypeMulti {
 	
 			if($notification->is("notice")) continue; // don't save runtime Notices
 			if($notification->is("debug") && !$this->wire('config')->debug) continue; 
+			if($notification->isChanged()) $notification->modified = time();
 	
 			$data = array(
 				'id' => $notification->getID(), 

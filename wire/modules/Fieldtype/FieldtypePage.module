@@ -764,7 +764,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 		if(!count($fieldgroups)) {
 			// if no fieldgorups found, then we have no choice but to use all fields
-			$fieldgroups[] = $this->wire('fields'); 
+			//$fieldgroups[] = $this->wire('fields'); 
 		}
 
 		foreach($fieldgroups as $fieldgroup) {

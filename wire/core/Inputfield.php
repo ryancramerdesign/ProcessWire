@@ -493,6 +493,15 @@ abstract class Inputfield extends WireData implements Module {
 		$classes[$class] = true;
 		return true;
 	}
+
+	/**
+	 * This hook was replaced by renderReady
+	 * 
+	 * @param $event
+	 * @deprecated
+	 *
+	 */
+	public function hookRender($event) {  }
 	
 	/**
 	 * Process the input from the given WireInputData (usually $input->get or $input->post), load and clean the value for use in this Inputfield. 
