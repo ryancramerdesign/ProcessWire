@@ -424,7 +424,7 @@ class InputfieldWrapper extends Inputfield {
 		// renderValueMode
 		$out = $inputfield->renderValue();
 		if(is_null($out)) return '';
-		if(!strlen($ffOut)) $out = '&nbsp;'; // prevent output from being skipped over
+		if(!strlen($out)) $out = '&nbsp;'; // prevent output from being skipped over
 		return $out;
 	}
 
