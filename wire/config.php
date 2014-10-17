@@ -395,6 +395,16 @@ $config->httpHosts = array(
 $config->httpHost = '';
 
 /**
+ * Accept HTTP_X_FORWARDED_HOST as a valid hostname?
+ *
+ * If using a reverse proxy, set set to true and add proxy hostname to $config->httpHosts.
+ *
+ * @var bool
+ *
+ */
+$config->httpUseXForwardedHost = false;
+
+/**
  * Protect CSRF?
  *
  * Enables CSRF (cross site request forgery) protection on all PW forms, recommended for improved security.
