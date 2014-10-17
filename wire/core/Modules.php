@@ -1886,8 +1886,10 @@ class Modules extends WireArray {
 			if($info['file']) $info['core'] = strpos($info['file'], '/wire/modules/') !== false; // is it core?
 			
 			// module configurable?
-			$interfaces = @class_implements($moduleName, false); 
-			$info['configurable'] = is_array($interfaces) && isset($interfaces['ConfigurableModule']); 
+			$configurable = $this->isConfigurableModule($moduleName, false); 
+			if($configurable === true) $info['configurable'] = true; // configurable via ConfigurableModule interface
+				else if($configurable) $info['configurable'] = basename($configurable); // configurable => ModuleName.config.php or ModuleNameConfig.php file
+				else $info['configurable'] = false; // not configurable
 			
 			// created date
 			if(isset($this->createdDates[$moduleID])) $info['created'] = strtotime($this->createdDates[$moduleID]);
@@ -1944,8 +1946,9 @@ class Modules extends WireArray {
 		if(!$id = $this->moduleIDs[$className]) return array();
 		if(isset($this->configData[$id])) return $this->configData[$id]; 
 
-		// if the class doesn't implement ConfigurableModule, then it's not going to have any configData
-		if(!in_array('ConfigurableModule', class_implements($className))) return array();
+		// first verify that module doesn't have a config file
+		$configurable = $this->isConfigurableModule($className); 
+		if(!$configurable) return array();
 		
 		$database = $this->wire('database'); 
 		$query = $database->prepare("SELECT data FROM modules WHERE id=:id"); // QA
@@ -2017,6 +2020,46 @@ class Modules extends WireArray {
 	}
 
 	/**
+	 * Is the given module configurable?
+	 * 
+	 * Returns true if module is configurable via the ConfigurableModule interface. 
+	 * Returns string of full path/filename to ModuleName.config.php file if configurable via class. 
+	 * Returns boolean false if not configurable
+	 * 
+	 * @param Module|string $className
+	 * @param bool $useCache Specify false to disable retrieval of this property from getModuleInfo (forces a new check)
+	 * @return bool|string
+	 * 
+	 */
+	public function isConfigurableModule($className, $useCache = true) {
+		if(is_object($className) && $className instanceof ConfigurableModule) return true; // early exit
+		if($useCache) {
+			$info = $this->getModuleInfoVerbose($className);
+			if(!$info['configurable']) return false;
+			if($info['configurable'] === true) return $info['configurable'];
+			return dirname($info['file']) . "/$info[configurable]";
+		}
+		if(is_object($className)) {
+			// convert to string
+			$className = $className->className();
+		} 
+		if(!class_exists($className, false)) $this->includeModule($className); 
+		$interfaces = @class_implements($className, false);
+		if(is_array($interfaces) && isset($interfaces['ConfigurableModule'])) return true; 
+		
+		$dir = dirname($this->getModuleFile($className));
+		if($dir == false) return false;
+		
+		$file = "$dir/{$className}Config.php";
+		if(file_exists($file)) return $file;
+		
+		$file = "$dir/$className.config.php";
+		if(file_exists($file)) return $file;
+
+		return false;
+	}
+
+	/**
 	 * Populate configuration data to a ConfigurableModule
 	 *
 	 * If the Module has a 'setConfigData' method, it will send the array of data to that. 
@@ -2024,21 +2067,38 @@ class Modules extends WireArray {
 	 *
 	 * @param Module $module
 	 * @param array $data Configuration data (key = value), or omit if you want it to retrieve the config data for you.
+	 * @return bool True if configured, false if not configurable
 	 * 
 	 */
 	protected function setModuleConfigData(Module $module, $data = null) {
 
-		if(!$module instanceof ConfigurableModule) return; 
-		if(!is_array($data)) $data = $this->getModuleConfigData($module); 
+		$configurable = $this->isConfigurableModule($module); 
+		if(!$configurable) return false;
+		if(!is_array($data)) $data = $this->getModuleConfigData($module);
+		
+		if(is_string($configurable) && file_exists($configurable)) {
+			// get defaults from ModuleConfig class if available
+			$className = $module->className() . 'Config';
+			include_once($configurable);
+			if(class_exists($className)) {
+				$moduleConfig = new $className();
+				if($moduleConfig instanceof ModuleConfig) {
+					$defaults = $moduleConfig->getDefaults();
+					$data = array_merge($defaults, $data); 
+				}
+			}
+		}
 
 		if(method_exists($module, 'setConfigData') || method_exists($module, '___setConfigData')) {
 			$module->setConfigData($data); 
-			return;
+			return true;
 		}
 
 		foreach($data as $key => $value) {
 			$module->$key = $value; 
 		}
+		
+		return true; 
 	}
 
 	/**
@@ -2451,7 +2511,6 @@ class Modules extends WireArray {
 	protected function loadModuleInfoCache() {
 		$data = $this->wire('cache')->get(self::moduleInfoCacheName); 	
 		if($data) { 
-			$data = json_decode($data, true); 
 			// if module class name keys in use (i.e. ProcessModule) it's an older version of 
 			// module info cache, so we skip over it to force its re-creation
 			if(is_array($data) && !isset($data['ProcessModule'])) $this->moduleInfoCache = $data; 
@@ -2471,7 +2530,6 @@ class Modules extends WireArray {
 		$name = $uninstalled ? self::moduleInfoCacheUninstalledName : self::moduleInfoCacheVerboseName;
 		$data = $this->wire('cache')->get($name);
 		if($data) {
-			$data = json_decode($data, true);
 			if(is_array($data)) {
 				if($uninstalled) $this->moduleInfoCacheUninstalled = $data; 
 					else $this->moduleInfoCacheVerbose = $data;

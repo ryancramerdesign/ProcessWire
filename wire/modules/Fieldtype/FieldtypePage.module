@@ -339,10 +339,12 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		} else if(ctype_digit("$value")) {
 			// page ID
 			$result = $this->pages->get("id=" . $value); 
-		
-		} else if(strpos($value, '|') !== false && ctype_digit(str_replace('|', '', $value))) {
-			$result = $this->pages->getById(explode('|', $value)); 
-
+			
+		} else if(strpos($value, '-') === 0 && ctype_digit(ltrim($value, '-'))) {
+			// page ID to remove from value
+			$result = $this->pages->get("id=" . ltrim($value, '-')); 
+			$result->set('_FieldtypePage_remove', $result->id); 
+			
 		} else if(strpos($value, '|') !== false && ctype_digit(str_replace('|', '', $value))) {
 			// CSV string separated by '|' characters
 			$result = $this->pages->getById(explode('|', $value)); 	
@@ -396,6 +398,10 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		} else if(is_string($value) || is_int($value)) {
 			$value = $this->sanitizeValueString($page, $field, $value); 
 			if($value instanceof PageArray) $value = $value->first();
+			if($value->_FieldtypePage_remove === $value->id) {
+				$value->__unset('_FieldtypePage_remove'); 
+				$value = null; // remove item 
+			}
 		}
 		$value = (($value instanceof Page) && $value->id) ? $value : $this->getBlankValue($page, $field); 
 		if($value && $value->id && $page->id == $value->id) {
@@ -451,6 +457,10 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 		// if it's a Page, and not  NullPage, add it to the existing PageArray
 		if($value instanceof Page) {
+			if($value->_FieldtypePage_remove === $value->id) {
+				$value->__unset('_FieldtypePage_remove'); 
+				return $pageArray->remove($value); // remove
+			}
 			if($value->id && $value->id != $page->id) return $pageArray->add($value); 
 				else return $pageArray;
 		}

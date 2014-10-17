@@ -6,7 +6,7 @@
  * By Avoine and Ryan Cramer
  *
  */
-class SystemNotifications extends WireData implements Module, ConfigurableModule {
+class SystemNotifications extends WireData implements Module {
 
 	public static function getModuleInfo() {
 		return array(
@@ -21,26 +21,6 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 	
 	const fieldName = 'notifications';
 
-	/**
-	 * Defaults for config values
-	 *
-	 */
-	public static $defaults = array(
-		'systemUserID' => 41,					// user that will receive system notifications
-		'systemUserName' => '',					// user that will receive system notifications (name)
-		'activeHooks' => array(0, 1, 2), 		// Indexes of $this->systemHooks that are active
-		'updateDelay' => 5000, 					// delay between ajax updates (in ms) 5000+ recommended
-		'iconMessage' => 'check-square-o',		// default icon for message notifications
-		'iconWarning' => 'exclamation-circle',	// default icon for warning notifications
-		'iconError' => 'exclamation-triangle',	// default icon for error notifications
-		'iconProgress' => 'spinner fa-spin',	// icon for any item that has an active progress bar
-		'iconDebug' => 'bug', 					// default icon for debug-mode notification
-		'ghostDelay' => 1000, 					// how long a ghost appears on screen (in ms)
-		'ghostDelayError' => 2000, 				// how long an error ghost appears on screen (in ms)
-		'ghostFadeSpeed' => 'fast',				// speed at which ghosts fade in or out, or blank for no fade
-		'ghostOpacity' => 0.85, 				// full opacity of ghost (when fully faded in) 
-		'dateFormat' => 'rel', 					// date format to use in notifications (anything compatible with wireDate() function)
-		); 
 
 	/**
 	 * System hooks that may be configured as active in this module
@@ -62,7 +42,6 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 		$path = $this->wire('config')->paths->SystemNotifications;
 		require_once($path . "Notification.php"); 
 		require_once($path . "NotificationArray.php"); 
-		$this->setArray(self::$defaults); 
 	
 		// hook method to access notifications, in case field name ever needs to change for some reason
 		$this->addHook('User::notifications', $this, 'hookUserNotifications'); 
@@ -83,7 +62,6 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 				$this->addHookAfter($hook, $this, $method); 
 			}
 		}
-		
 	}
 	
 	/**
@@ -109,8 +87,12 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 
 		if($page->template == 'admin') {
 			$this->addHookAfter('AdminTheme::getExtraMarkup', $this, 'hookAdminThemeGetExtraMarkup'); 
+			// $this->addHookAfter('ProcessPageEdit::execute', $this, 'hookPageEditExecute'); 
 		}
 		
+	}
+	
+	public function hookPageEditExecute(HookEvent $e) {
 	}
 
 	/**
@@ -238,7 +220,19 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 
 		if(count($rm)) $this->wire('pages')->save($page, array('quiet' => true)); 
 
-		if($action == 'qty') {
+		if($action == 'update') {
+			
+			/*
+			$processKey = $this->wire('input')->get('process'); 
+			$processes = $this->wire('cache')->getFor($this, 'processes'); 
+			if(is_array($processes) && $processKey) {
+				// update time we know this process was last accessed
+				if(isset($processes[$processKey])) $processes[$processKey]['time'] = time();
+				$this->wire('cache')->saveFor($this, 'processes', $processes, WireCache::expireDaily); 
+				$this->updateProcessesNotification($processes); 
+			}
+			*/
+			
 			$data = array(
 				'notifications' => $data, // new notifications only
 				'qty' => $qty, // total notifications (new or not)
@@ -292,6 +286,8 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 			$options[$key] = $this->get($key); 
 		}
 
+		//$options['processKey'] = $this->updateProcesses();
+		
 		$out = 	
 			"<div id='NotificationMenu' class='NotificationMenu'>" . 
 			"<ul id='NotificationList' class='NotificationList'></ul>" . 
@@ -321,6 +317,88 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 
 		$event->return = $extras; 
 	}
+
+	/**
+	 * Update processes cache on non-ajax requests
+	 * 
+	 * @return string processKey that was generated for the request
+	 * 
+	 *
+	protected function updateProcesses() {
+		
+		$processes = $this->wire('cache')->getFor($this, 'processes');
+		if(!is_array($processes)) $processes = array();
+		
+		$oldest = time() - ($this->updateDelay * 3); 
+		foreach($processes as $key => $info) {
+			// expire processes that haven't been accessed in the last few seconds
+			if($oldest > $info['time']) unset($processes[$key]);
+		}
+	
+		$user = $this->wire('user');
+		$processKey = $user->id;
+		$data = array();
+		$id = (int) $this->wire('input')->get('id'); 	
+		if($id) $data['id'] = $id;
+		$title = $this->wire('processHeadline'); 
+		if(!$title) $title = $this->wire('page')->get('title|name');
+		
+		$process = array(
+			'user' => $user->name, 
+			'name' => (string) $this->wire('process'),
+			'path' => (string) $this->wire('page')->path . $this->wire('input')->urlSegmentStr,
+			'title' => $title, 
+			'data' => $data,
+			'time' => time()
+			); 
+		
+		$processes[$processKey] = $process; 
+		
+		$this->wire('cache')->saveFor($this, 'processes', $processes, WireCache::expireDaily);
+		$this->updateProcessesNotification($processes); 
+		
+		return $processKey;
+	}
+	
+	protected function updateProcessesNotification(array $processes) {
+		if(!$this->wire('user')->isSuperuser()) return;
+	
+		$numActive = count($processes); 
+		$notificationID = $this->wire('session')->get($this, 'processNotificationID');
+		$notification = null;
+		$notifications = $this->wire('user')->notifications();
+		if($notificationID) $notification = $notifications->get($notificationID);
+		if(!$notification) $notification = $notifications->getNew('message'); 
+		$notification->title = sprintf($this->_n('%d active process', '%d active processes', $numActive), $numActive);
+		
+		$out = 	"<table style='width: 100%;' cellpadding='2' cellspacing='2'><thead><tr>" .
+				"<th>User</th>" . 
+				"<th>Path</th>" .
+				"<th>Title</th>" . 
+				"<th>Details</th>" . 
+				"<th>Last Access</th>" . 
+				"</tr></thead><tbody>";
+		
+		foreach($processes as $process) {
+			$dataStr = '';
+			foreach($process['data'] as $key => $value) {
+				$dataStr .= $this->sanitizer->entities("$key: $value") . "\n";
+			}
+			$out .= "<tr>" .
+					"<td>$process[user]</td>" . 
+					"<td>$process[path]</td>" .
+					"<td>$process[title]</td>" . 
+					"<td><pre>" . trim($dataStr) . "</pre></td>" . 
+					"<td>" . wireRelativeTimeStr($process['time']) . "</td>" . 
+					"</tr>";
+		}
+		
+		$out .= "</tbody></table>";
+		$notification->html = $out; 
+		$notifications->save();
+		$this->wire('session')->set($this, 'processNotificationID', $notification->id); 
+	}
+	*/	
 
 	/**
 	 * Convert ProcessWire runtime "Notice" objects to runtime Notification objects
@@ -537,123 +615,6 @@ class SystemNotifications extends WireData implements Module, ConfigurableModule
 		if($this->wire('modules')->isInstalled('FieldtypeNotifications')) {
 			$this->wire('modules')->uninstall('FieldtypeNotifications'); 
 		}
-	}
-
-	/**
-	 * Configure notifications
-	 * 
-	 * @param array $data
-	 * @return InputfieldWrapper
-	 * 
-	 */
-	public static function getModuleConfigInputfields(array $data) {
-		
-		$data = array_merge(self::$defaults, $data); 
-		$form = new InputfieldWrapper();
-		
-		$f = wire('modules')->get('InputfieldName'); 
-		$f->attr('name', 'systemUserName'); 
-		$f->label = __('Name of user that receives system notifications'); 
-		if(empty($data['systemUserName'])) $data['systemUserName'] = wire('users')->get(wire('config')->superUserPageID)->name; 
-		$f->attr('value', $data['systemUserName']); 
-		$form->add($f);
-		
-		$f = wire('modules')->get('InputfieldCheckboxes'); 
-		$f->attr('name', 'activeHooks'); 
-		$f->label = __('Active automatic notification hooks');
-		$f->description = __('Whenever one of these events occurs, the system user above will be notified.'); 
-		$f->addOption(0, __('404 page not found')); 
-		$f->addOption(1, __('User login success and failure'));
-		$f->addOption(2, __('User logout'));
-		$f->attr('value', $data['activeHooks']); 
-		$f->notes = __('These are primarily just examples of notifications for the purpose of demonstration.'); 
-		$form->add($f);
-		
-		$f = wire('modules')->get('InputfieldInteger'); 
-		$f->attr('name', 'updateDelay'); 
-		$f->label = __('Time between updates'); 
-		$f->description = __('How often to check for notification updates (in milliseconds). Example: 5000 means 5 seconds.'); 
-		$f->attr('value', $data['updateDelay']); 
-		$f->columnWidth = 50; 
-		$form->add($f); 
-		
-		$f = wire('modules')->get('InputfieldText');
-		$f->attr('name', 'dateFormat');
-		$f->label = __('Date format');
-		$f->description = __('Date format used for notifications. Use date() or strftime() format, or "relative" for relative date/time, "rel" for abbreviated date/time.');
-		$f->attr('value', $data['dateFormat']);
-		$f->columnWidth = 50; 
-		$form->add($f);
-
-		$f = wire('modules')->get('InputfieldText'); 
-		$f->attr('name', 'iconMessage'); 
-		$f->label = __('Message icon'); 
-		$f->attr('value', $data['iconMessage']); 
-		$f->columnWidth = 33;
-		$form->add($f); 
-
-		$f = wire('modules')->get('InputfieldText');
-		$f->attr('name', 'iconWarning');
-		$f->label = __('Warning icon');
-		$f->attr('value', $data['iconWarning']);
-		$f->columnWidth = 33;
-		$form->add($f); 
-
-		$f = wire('modules')->get('InputfieldText');
-		$f->attr('name', 'iconError');
-		$f->label = __('Error icon');
-		$f->attr('value', $data['iconError']);
-		$f->columnWidth = 34;
-		$form->add($f); 
-		
-		$f = wire('modules')->get('InputfieldInteger'); 
-		$f->attr('name', 'ghostDelay');
-		$f->label = __('Ghost delay'); 
-		$f->description = __('How long ghost messages appear for (in ms).'); 
-		$f->columnWidth = 50; 
-		$f->attr('value', $data['ghostDelay']); 
-		$form->add($f);
-		
-		$f = wire('modules')->get('InputfieldInteger');
-		$f->attr('name', 'ghostDelayError');
-		$f->label = __('Ghost error delay');
-		$f->description = __('How long ghost errors appear for (in ms).');
-		$f->columnWidth = 50;
-		$f->attr('value', $data['ghostDelayError']); 
-		$form->add($f); 
-		
-		$f = wire('modules')->get('InputfieldSelect'); 
-		$f->attr('name', 'ghostFadeSpeed'); 
-		$f->label = __('Ghost fade speed'); 
-		$f->description = __('Speed at which ghosts fade in or out.'); 
-		$f->addOption('', __('Immediate (no fade in/out)'));
-		$f->addOption('fast', __('Fast'));
-		$f->addOption('normal', __('Normal'));
-		$f->addOption('slow', __('Slow'));
-		$f->attr('value', $data['ghostFadeSpeed']);
-		$f->columnWidth = 50;
-		$form->add($f); 
-		
-		$f = wire('modules')->get('InputfieldFloat'); 
-		$f->attr('name', 'ghostOpacity'); 
-		$f->label = __('Ghost full opacity'); 
-		$f->description = __('Full opacity of ghosts (0.1-1.0)'); 
-		$f->attr('value', $data['ghostOpacity']);
-		$f->columnWidth = 50;
-		$form->add($f);
-		
-		
-		//for($n = 0; $n < 5; $n++) {
-		wire()->message('Example runtime message notification');
-		wire()->message('Example debug message notification', Notification::flagDebug);
-		wire()->warning('Example runtime warning notification');
-		wire()->warning('Example debug warning notification', Notification::flagDebug);
-		wire()->error('Example runtime error notification');
-		wire()->error('Example debug error notification', Notification::flagDebug);
-		//}
-		
-		
-		return $form;
 	}
 
 	

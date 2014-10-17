@@ -8,9 +8,9 @@
 
 var Notifications = {
 
-	options: { // options that may be passed to init(), these are the defaults:
-		ajaxURL: './', // URL to poll for ajax updates
-		version: 1, // notifications version 
+	options: { 				// options that may be passed to init(), these are the defaults:
+		ajaxURL: './', 		// URL to poll for ajax updates
+		version: 1, 		// notifications version 
 		updateLast: 0, 
 		updateDelay: 5000, 
 		updateDelayFast: 1550, 
@@ -20,20 +20,21 @@ var Notifications = {
 		ghostDelay: 2000, 
 		ghostDelayError: 4000, 
 		ghostFadeSpeed: 'fast',
-		ghostOpacity: 0.9
+		ghostOpacity: 0.9,
+		processKey: ''			// key for session processes
 	},
 
-	updateTimeout: null, 	// setTimeout timer for update method
-	renderTimeout: null, 	// setTimeout timer for render method
-	updating: false,	// are we currently updating right now?
-	runtime: [],	 	// notifications added by manual API add calls
-	numRender: 0,		// number of times render() has been called 
-	ghostsActive: 0, 	// number of ghosts currently visible
-	activity: false, 	// whether there is a lot of activity (like with progress bars)
+	updateTimeout: null,	// setTimeout timer for update method
+	renderTimeout: null,	// setTimeout timer for render method
+	updating: false,		// are we currently updating right now?
+	runtime: [],	 		// notifications added by manual API add calls
+	numRender: 0,			// number of times render() has been called 
+	ghostsActive: 0, 		// number of ghosts currently visible
+	activity: false, 		// whether there is a lot of activity (like with progress bars)
 
-	$menu: null, 		// <div class='NotificationMenu'>
-	$bug: null, 		// <div class='NotificationBug'>
-	$list: null, 		// <ul class='NotificationList'>
+	$menu: null, 			// <div class='NotificationMenu'>
+	$bug: null, 			// <div class='NotificationBug'>
+	$list: null, 			// <ul class='NotificationList'>
 
 	/**
 	 * Check server for new notifications
@@ -58,8 +59,9 @@ var Notifications = {
 			$(this).remove();
 		}); 
 
-		var url = "./?Notifications=qty&time=" + Notifications.options.updateLast; 
+		var url = "./?Notifications=update&time=" + Notifications.options.updateLast; 
 		if(rm.length) url += '&rm=' + rm;
+		if(Notifications.options.processKey.length) url += '&process=' + Notifications.options.processKey;
 		
 		var updateDelay = Notifications.options.updateDelay;
 		if(Notifications.activity) updateDelay = Notifications.options.updateDelayFast; // update more often when progress active
@@ -137,6 +139,7 @@ var Notifications = {
 			}
 
 		} else {
+			
 			if(qty == 0 && Notifications.$menu.hasClass('open')) $bug.click();
 
 			for(var n = 0; n < qtyNew; n++) {
@@ -275,7 +278,7 @@ var Notifications = {
 				}
 			}); 
 			$div.append($text); 
-			if(notification.flagNames.indexOf('open') != -1) {
+			if(open || notification.flagNames.indexOf('open') != -1) {
 				if(!open) {
 					setTimeout(function() { 
 						$text.fadeIn('slow', function() {

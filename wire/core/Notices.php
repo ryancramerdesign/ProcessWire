@@ -53,7 +53,7 @@ abstract class Notice extends WireData {
 	/**
 	 * Flag indicates the notice is allowed to contain markup and won't be automatically entity encoded
 	 *
-	 * Note: entity encoding is done by the admin theme at output time. 
+	 * Note: entity encoding is done by the admin theme at output time, which should detect this flag. 
 	 *
 	 */
 	const allowMarkup = 32;
@@ -133,6 +133,13 @@ class Notices extends WireArray {
 		if($item->flags & Notice::debug) {
 			if(!$this->wire('config')->debug) return $this;
 		}
+		
+		if(is_array($item->text)) {
+			$item->text = "<pre>" . trim(print_r($this->sanitizeArray($item->text), true)) . "</pre>";
+			$item->flags = $item->flags | Notice::allowMarkup;
+		} else if(is_object($item->text)) {
+			$item->text = (string) $item->text; 
+		}
 
 		// check for duplicates
 		$dup = false; 
@@ -179,5 +186,28 @@ class Notices extends WireArray {
 			if($notice instanceof NoticeWarning) $numWarnings++;
 		}
 		return $numWarnings > 0;
+	}
+
+	/**
+	 * Recursively entity encoded values in arrays and convert objects to string
+	 * 
+	 * This enables us to safely print_r the string for debugging purposes 
+	 * 
+	 * @param array $a
+	 * @return array
+	 * 
+	 */
+	public function sanitizeArray(array $a) {
+		$sanitizer = $this->wire('sanitizer'); 
+		foreach($a as $key => $value) {
+			if(is_array($value)) {
+				$value = $this->sanitizeArray($value);
+			} else {
+				if(is_object($value)) $value = (string) $value;
+				$value = $sanitizer->entities($value); 
+			} 
+			$a[$key] = $value;	
+		}
+		return $a; 
 	}
 }

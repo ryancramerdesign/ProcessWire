@@ -153,15 +153,19 @@ class InputfieldWrapper extends Inputfield {
 	}
 
 	/**
-	 * Add an Inputfield a child
+	 * Add an Inputfield child or array definition of Inputfields
 	 *
-	 * @param Inputfield $item
+	 * @param Inputfield|array $item
 	 * @return $this
 	 *
 	 */
-	public function add(Inputfield $item) {
-		$item->setParent($this); 
-		$this->children->add($item); 
+	public function add($item) {
+		if(is_array($item)) {
+			$this->importArray($item); 
+		} else {
+			$item->setParent($this); 
+			$this->children->add($item); 
+		}
 		return $this; 
 	}
 
@@ -697,5 +701,109 @@ class InputfieldWrapper extends Inputfield {
 	 * 
 	 */
 	public static function getClasses() { return array_merge(self::$defaultClasses, self::$classes); }
+
+	/**
+	 * Import an array of Inputfield definitions to to this InputfieldWrapper instance
+	 *
+	 * Your array should be an array of associative arrays, with each element describing an Inputfield.
+	 * It is required to have a "type" property which tells which Inputfield module to use. You are also
+	 * required to have a "name" property. You should probably always have a "label" property oo. You may
+	 * optionally specify the shortened Inputfield "type" if preferred, i.e. "text" rather than
+	 * "InputfieldText". Here is an example of how you might define the array:
+	 *
+	 * array(
+	 *   array(
+	 *     'name' => 'fullname',
+	 *     'type' => 'text',
+	 *     'label' => 'Field label'
+	 *     'columnWidth' => 50,
+	 *     'required' => true,
+	 *   ),
+	 *   array(
+	 *     'name' => 'color',
+	 *     'type' => 'select',
+	 *     'label' => 'Your favorite color',
+	 *     'description' => 'Select your favorite color or leave blank if you do not have one.',
+	 *     'columnWidth' => 50,
+	 *     'options' => array(
+	 *        'red' => 'Brilliant Red',
+	 *        'orange' => 'Citrus Orange',
+	 *        'blue' => 'Sky Blue'
+	 *     )
+	 *   ),
+	 *   array(
+	 *     'name' => 'my_fieldset',
+	 *     'type' => 'fieldset',
+	 *     'label' => 'My Fieldset',
+	 *     'children' => array(
+	 *       array(
+	 *         'name' => 'some_field',
+	 *         'type' => 'text',
+	 *         'label' => 'Some Field',
+	 *       )
+	 *     )
+	 * );
+	 *
+	 *
+	 *
+	 * @param array $a Array of Inputfield definitions
+	 * @param InputfieldWrapper $inputfields Specify the wrapper you want them added to, or omit to use current.
+	 * @return $this
+	 *
+	 */
+	public function importArray(array $a, InputfieldWrapper $inputfields = null) {
+		
+		if(is_null($inputfields)) $inputfields = $this; 
+		if(!count($a)) return $inputfields;
+	
+		// if just a single field definition rather than an array of them, normalize to array of array
+		$first = reset($a); 
+		if(!is_array($first)) $a = array($a); 
+		
+		foreach($a as $name => $info) {
+
+			if(isset($info['name'])) {
+				$name = $info['name'];
+				unset($info['name']);
+			}
+
+			if(!isset($info['type'])) {
+				$this->error("Skipped field '$name' because no 'type' is set");
+				continue;
+			}
+
+			$type = $info['type'];
+			unset($info['type']);
+			if(strpos($type, 'Inputfield') !== 0) $type = "Inputfield" . ucfirst($type);
+			$f = $this->wire('modules')->get($type);
+
+			if(!$f) {
+				$this->error("Skipped field '$name' because module '$type' does not exist");
+				continue;
+			}
+
+			$f->attr('name', $name);
+
+			if(isset($info['attr']) && is_array($info['attr'])) {
+				foreach($info['attr'] as $key => $value) {
+					$f->attr($key, $value);
+				}
+				unset($a['attr']);
+			}
+
+			foreach($info as $key => $value) {
+				if($key == 'children') continue;
+				$f->$key = $value;
+			}
+
+			if($f instanceof InputfieldWrapper && !empty($info['children'])) {
+				$this->importArray($info['children'], $f);
+			}
+
+			$inputfields->add($f);
+		}
+
+		return $inputfields;
+	}
 }
 

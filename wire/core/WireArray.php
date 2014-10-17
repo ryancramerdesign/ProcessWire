@@ -443,9 +443,16 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		if(ctype_digit("$key")) return null;
 		$item = null;
 		foreach($this->data as $wire) {
-			if($wire->$key === $value) {
-				$item = $wire; 
-				break;
+			if(is_object($wire)) { 
+				if($wire->$key === $value) {
+					$item = $wire; 
+					break;
+				}
+			} else {
+				if($wire === $value) {
+					$item = $wire; 
+					break;
+				}
 			}
 		}
 		return $item; 

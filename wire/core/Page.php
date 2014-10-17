@@ -91,11 +91,12 @@ class Page extends WireData implements Countable {
 	const statusSystem = 16; 		// page is for the system and may not be deleted or have it's id, name, template or parent changed
 	const statusTemp = 512;			// page is temporary and 1+ day old unpublished pages with this status may be automatically deleted
 	const statusHidden = 1024;		// page is excluded selector methods like $pages->find() and $page->children() unless status is specified, like "status&1"
-	const statusUnpublished = 2048; 	// page is not published and is not renderable. 
+	const statusUnpublished = 2048; // page is not published and is not renderable. 
+	const statusDraft = 4096; 		// page is a draft 
 	const statusTrash = 8192; 		// page is in the trash
-	const statusDeleted = 16384; 		// page is deleted (runtime only)
-	const statusSystemOverride = 32768; 	// page is in a state where system flags may be overridden
-	const statusCorrupted = 131072; 	// page was corrupted at runtime and is NOT saveable: see setFieldValue() and $outputFormatting. (runtime)
+	const statusDeleted = 16384; 	// page is deleted (runtime only)
+	const statusSystemOverride = 32768; // page is in a state where system flags may be overridden
+	const statusCorrupted = 131072; // page was corrupted at runtime and is NOT saveable: see setFieldValue() and $outputFormatting. (runtime)
 	const statusMax = 9999999;		// number to use for max status comparisons, runtime only
 	
 	/**
@@ -110,6 +111,7 @@ class Page extends WireData implements Countable {
 		'system' => self::statusSystem,
 		'hidden' => self::statusHidden,
 		'unpublished' => self::statusUnpublished,
+		'draft' => self::statusDraft,
 		'trash' => self::statusTrash,
 		'deleted' => self::statusDeleted,
 		);

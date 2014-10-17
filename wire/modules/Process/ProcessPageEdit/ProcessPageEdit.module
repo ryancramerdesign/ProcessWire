@@ -20,6 +20,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 	protected $form; 
 	protected $page; 
+	protected $masterPage = null; 
 	protected $parent; 
 	protected $user; 
 	protected $id; 
@@ -49,25 +50,23 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 */
 	public function init() {
 
-		if(isset($_POST['id'])) $this->id = (int) $_POST['id']; 
-			else if(isset($_GET['id'])) $this->id = (int) $_GET['id']; 
-
 		// predefined messages that maybe used in multiple places
 		$this->noticeUnknown = $this->_("Unknown page"); // Init error: Unknown page
 		$this->noticeLocked = $this->_("This page is locked for edits"); // Init error: Page is locked
 		$this->noticeNoAccess = $this->_("You don't have access to edit"); // Init error: User doesn't have access
 
-		if(!$this->id) throw new Wire404Exception($this->noticeUnknown); // Init error: no page provided
+		$id = (int) $this->input->post('id');
+		if(!$id) $id = (int) $this->input->get('id');
 
-		$this->user = $this->fuel('user');
-		$this->page = $this->pages->get($this->id); 
-		if($this->page instanceof NullPage) throw new WireException($this->noticeUnknown); // Init error: page doesn't exist
+		if(!$id) throw new Wire404Exception($this->noticeUnknown); // Init error: no page provided
+
+		$this->user = $this->wire('user');
+		$this->page = $this->loadPage($id); 
+		$this->id = $this->page->id; 
 		$this->pageClass = $this->page->className();
-		$this->page->setOutputFormatting(false); 
-		$this->parent = $this->pages->get($this->page->parent_id); 
+		$this->page->setOutputFormatting(false);
+		$this->parent = $this->pages->get($this->page->parent_id);
 		$this->isTrash = $this->page->isTrash;
-
-		if(!$this->page->editable()) throw new WirePermissionException($this->noticeNoAccess); // Init: user doesn't have access
 
 		// determine if we're going to be dealing with a save/post request
 		$this->isPost = ($this->input->post->id > 0 && (((int) $this->input->post->id) === $this->page->id)) || $this->config->ajax && (count($_POST) || isset($_SERVER['HTTP_X_FIELDNAME'])); 
@@ -94,12 +93,32 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$title = $this->page->title;
 		if($title) $this->wire('processBrowserTitle', sprintf($this->_('Edit Page: %s'), $title)); 
 	}
+	
+	/**
+	 * Given a page ID, return the Page object
+	 *
+	 * @param int $id
+	 * @return Page
+	 * @throws WireException|WirePermissionException
+	 *
+	 */
+	protected function ___loadPage($id) {
+		
+		$page = $this->wire('pages')->get((int) $id); 
+		
+		if($page instanceof NullPage) throw new WireException($this->noticeUnknown); // Init error: page doesn't exist
+		if(!$page->editable()) throw new WirePermissionException($this->noticeNoAccess); // Init: user doesn't have access
+
+		return $page;
+	}
+
 
 	/**
 	 * Execute the Page Edit process by building the form and checking if it was submitted
 	 *
 	 */
 	public function ___execute() {
+		if(!$this->page) throw new WireException("No page found"); 
 
 		if($this->config->ajax && (isset($_SERVER['HTTP_X_FIELDNAME']) || count($_POST))) return $this->ajaxSave($this->page);
 
@@ -373,18 +392,19 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 */
 	protected function ___buildFormChildren() {
 
+		$page = $this->masterPage ? $this->masterPage : $this->page; 
 		$wrapper = new InputfieldWrapper();
 		$id = $this->className() . 'Children';
 		$wrapper->attr('id', $id); 
 		$title = $this->_('Children'); // Tab Label: Children
-		if($this->page->numChildren) $title = "<em>$title</em>";
+		if($page->numChildren) $title = "<em>$title</em>";
 		$wrapper->attr('title', $title); 
 		$this->tabs[$id] = $title;
 		$templateSortfield = $this->page->template->sortfield;
 
 		if(!$this->isPost) { 
 
-			$pageListParent = $this->page ? $this->page : $this->parent; 
+			$pageListParent = $page ? $page : $this->parent; 
 			if($pageListParent->numChildren) { 
 				$pageList = $this->modules->get('ProcessPageList'); 
 				$pageList->set('id', $pageListParent->id); 
@@ -400,12 +420,12 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 				$field->notes = sprintf($this->_('Children are sorted by "%s", per the template setting.'), $templateSortfield); 
 			}
 
-			if($this->page->addable()) { 
+			if($page->addable()) { 
 				$button = $this->modules->get("InputfieldButton"); 
 				$button->attr('id+name', 'AddPageBtn'); 
 				$button->attr('value', $this->_('Add New Page Here')); // Button: add new child page
 				$button->icon = 'plus-circle';
-				$button->attr('href', "../add/?parent_id={$this->page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
+				$button->attr('href', "../add/?parent_id={$page->id}" . ($this->input->get->modal ? "&modal=1" : ''));
 				$field->append($button);
 			}
 			$wrapper->append($field); 
@@ -498,13 +518,16 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$this->tabs[$id] = $title;
 
 		// name
-		if(($this->page->id > 1 || wire('modules')->isInstalled('LanguageSupportPageNames')) && !$this->page->template->nameContentTab) {
+		if(($this->page->id > 1 || $this->wire('modules')->isInstalled('LanguageSupportPageNames')) && !$this->page->template->nameContentTab) {
 			$field = $this->modules->get('InputfieldPageName');
 			$field->attr('value', $this->page->name); 
 			$field->attr('name', '_pw_page_name');
 			$field->slashUrls = $this->page->template->slashUrls;
-			if($field->value && !$this->page->editable('name')) $field->attr('disabled', 'disabled'); 
 			$field->required = $this->page->id != 1;
+			if($field->attr('value') && !$this->page->editable('name')) {
+				$field->attr('disabled', 'disabled'); 
+				$field->required = false;
+			}
 			if($this->page->parent) $field->parentPage = $this->page->parent;
 			$wrapper->prepend($field); 
 		}
@@ -960,6 +983,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$breadcrumbs = new Breadcrumbs();
 		$breadcrumbs->add(new Breadcrumb($this->config->urls->admin . 'page/list/', "Pages"));
 		$page = $this->page ? $this->page : $this->parent; 
+		if($this->masterPage) $page = $this->masterPage; 
 		//$lastPageList = $this->wire('session')->get('lastPageList'); 
 		//if(!is_array($lastPageList)) $lastPageList = array();
 		
@@ -1038,7 +1062,8 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$f = $this->modules->get("InputfieldSubmit"); 
 		$form->append($f); 
 
-		$this->fuel('breadcrumbs')->add(new Breadcrumb("./?id={$this->page->id}", $this->page->get("title|name"))); 
+		$page = $this->masterPage ? $this->masterPage : $this->page; 
+		$this->fuel('breadcrumbs')->add(new Breadcrumb("./?id={$page->id}", $page->get("title|name"))); 
 
 		return $form->render();
 	}
@@ -1080,8 +1105,8 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$templates = array();
 		$user = $this->fuel('user');
 		$isSuperuser = $user->isSuperuser();
-		$page = $this->page;
-		$parent = $this->page->parent; 
+		$page = $this->masterPage ? $this->masterPage : $this->page;
+		$parent = $page->parent; 
 		$parentEditable = ($parent->id && $parent->editable());
 
 		// current page template is assumed, otherwise we wouldn't be here
@@ -1244,6 +1269,18 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 */
 	public function getPage() {
 		return $this->page; 
+	}
+	
+	public function setPage(Page $page) {
+		$this->page = $page; 
+	}
+	
+	public function setMasterPage(Page $page) {
+		$this->masterPage = $page; 
+	}
+	
+	public function getMasterPage() {
+		return $this->masterPage; 
 	}
 
 }
