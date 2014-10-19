@@ -936,7 +936,9 @@ class ImageSizer extends Wire {
 			'supportedImageTypes',
 			'info',
 			'iptcRaw',
-			'validIptcTags'
+			'validIptcTags',
+			'cropExtra',
+			'options'
 			);
 		if(in_array($key, $keys)) return $this->$key; 
 		if(in_array($key, $this->optionNames)) return $this->$key; 
