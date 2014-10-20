@@ -208,22 +208,22 @@ class ImageSizer extends Wire {
 		// filling all options with global custom values from config.php
 		$options = array_merge($this->wire('config')->imageSizerOptions, $options); 
 		$this->setOptions($options);
-		$this->loadImageInfo($filename);
+		$this->loadImageInfo($filename, true);
 	}
 
 	/**
 	 * Load the image information (width/height) using PHP's getimagesize function 
 	 * 
 	 */
-	protected function loadImageInfo($filename) {
+	protected function loadImageInfo($filename, $reloadAll = false) {
 
 		$this->filename = $filename; 
 		$this->extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION)); 
 
 		$additionalInfo = array();
 		$this->info = @getimagesize($this->filename, $additionalInfo);
-		$this->info['channels'] = isset($this->info['channels']) && $this->info['channels'] > 0 && $this->info['channels'] <= 4 ? $this->info['channels'] : 3;
 		if($this->info === false) throw new WireException(basename($filename) . " - not a recognized image");
+		$this->info['channels'] = isset($this->info['channels']) && $this->info['channels'] > 0 && $this->info['channels'] <= 4 ? $this->info['channels'] : 3;
 
 		if(function_exists("exif_imagetype")) {
 			$this->imageType = exif_imagetype($filename); 
@@ -244,13 +244,13 @@ class ImageSizer extends Wire {
 		$this->setImageInfo($this->info[0], $this->info[1]);
 
 		// read metadata if present and if its the first call of the method
-		if(is_array($additionalInfo)) {
+		if(is_array($additionalInfo) && $reloadAll) {
 			$appmarker = array();
 			foreach($additionalInfo as $k => $v) {
 				$appmarker[$k] = substr($v, 0, strpos($v, null));
 			}
 			$this->info['appmarker'] = $appmarker;
-			if(isset($additionalInfo['APP13']) && empty($this->iptcRaw)) {
+			if(isset($additionalInfo['APP13'])) {
 				$iptc = iptcparse($additionalInfo["APP13"]);
 				if(is_array($iptc)) $this->iptcRaw = $iptc;
 			}
@@ -429,8 +429,8 @@ class ImageSizer extends Wire {
 			return false;
 		}
 
-		unlink($source); 
-		rename($dest, $source); 
+		unlink($source);          // $source is equal to $this->filename 
+		rename($dest, $source);   // $dest is the intermediate filename ({basename}_tmp{.ext})
 
 		// @horst: if we've retrieved IPTC-Metadata from sourcefile, we write it back now
 		if($this->iptcRaw) {
@@ -448,7 +448,7 @@ class ImageSizer extends Wire {
 			}
 		}
 
-		$this->loadImageInfo($this->filename); 
+		$this->loadImageInfo($this->filename, true); 
 		$this->modified = true; 
 		
 		return true;
