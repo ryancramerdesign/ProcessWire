@@ -106,8 +106,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	/**
 	 * Is the given $page valid for the given $field?
 	 * 
-	 * Note that this validates all but findPagesCode (eval) based page selections.
-	 *    findPagesCode (eval) also validated here now
+	 * Note that this validates all but findPagesCode (eval) based page selections. 
 	 * This is primarily for use by FieldtypePage, but kept here since the config options
 	 * it uses to check are part of this module's config. 
 	 * 
@@ -135,11 +134,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		} 
 		
 		if($field->findPagesCode) {
-			// if the page being tested is in the same list 
-			// as the so-called selectable pages, it's a good one, period.
-			$inputField = $field->getInputfield( $editPage, $field);
-			$validPages = $inputField->findPagesCode( $editPage );
-  			return $validPages->get( 'id=' . $page->id) ? true : false;
+			// TODO: we don't currently validate these
 		} 
 
 		if($field->parent_id && $field->parent_id != $page->parent_id) {
