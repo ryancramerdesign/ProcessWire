@@ -345,8 +345,11 @@ function wireCopy($src, $dst, $options = array()) {
 
 	while(false !== ($file = readdir($dir))) {
 		if($file == '.' || $file == '..') continue;
-		if($options['recursive'] && is_dir($src . $file)) {
+		$isDir = is_dir($src . $file); 
+		if($options['recursive'] && $isDir) {
 			wireCopy($src . $file, $dst . $file, $options);
+		} else if($isDir) {
+			// skip it, because not recursive
 		} else {
 			copy($src . $file, $dst . $file);
 			$chmodFile = wire('config')->chmodFile;
