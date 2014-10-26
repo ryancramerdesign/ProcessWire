@@ -195,6 +195,10 @@ var ProcessWireAdminTheme = {
 	dropdownPositionsMonitored: false,
 
 	setupDropdowns: function() {
+		
+		$(".dropdown-menu").on("click", "a", function(e) {
+			e.stopPropagation();
+		}); 
 
 		$("ul.dropdown-menu").each(function() {
 			var $ul = $(this).hide();
@@ -314,12 +318,6 @@ var ProcessWireAdminTheme = {
 					}); 
 					
 					$ul.addClass('navJSON').addClass('length' + parseInt(data.list.length)); 
-	
-					$ul.find("a").click(function() {
-						// prevent a clicked link from jumping back to the top of page (makes the UI nicer)
-						window.location.href = $(this).attr('href');
-						return false; 
-					}); 
 
 					// trigger the first call
 					dropdownHover($a);
