@@ -158,7 +158,7 @@ class Pageimage extends Pagefile {
 		if($checkImage) { 
 			if($this->ext == 'svg') {
 				if($xml = @file_get_contents($this->filename)) {
-					$a = simplexml_load_string($xml)->attributes();
+					$a = @simplexml_load_string($xml)->attributes();
 					$this->imageInfo['width'] = (int) str_replace('px', '', $a->width);
 					$this->imageInfo['height'] = (int) str_replace('px', '', $a->height);
 				}
