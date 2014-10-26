@@ -53,7 +53,7 @@ class SystemNotifications extends WireData implements Module {
 	 */
 	public function init() {
 		
-		foreach($this->activeHooks as $id) {
+		if($this->activeHooks) foreach($this->activeHooks as $id) {
 			if(!isset($this->systemHooks[$id])) continue;
 			list($when, $hook, $method) = explode(' ', $this->systemHooks[$id]); 
 			if($when == 'before') {
