@@ -7,6 +7,9 @@
 
 class SystemNotificationsConfig extends ModuleConfig {
 	
+	const ghostPosLeft = 1;
+	const ghostPosRight = 2; 
+	
 	public function getDefaults() {
 		
 		if(empty($this->systemUserName)) $this->systemUserName = $this->users->get($this->config->superUserPageID)->name;
@@ -25,6 +28,7 @@ class SystemNotificationsConfig extends ModuleConfig {
 			'ghostDelayError' => 2000, 				// how long an error ghost appears on screen (in ms)
 			'ghostFadeSpeed' => 'fast',				// speed at which ghosts fade in or out, or blank for no fade
 			'ghostOpacity' => 0.85, 				// full opacity of ghost (when fully faded in) 
+			'ghostPos' => 2, 						// ghost position: 1=left, 2=right
 			'dateFormat' => 'rel', 					// date format to use in notifications (anything compatible with wireDate() function)
 		); 
 	}
@@ -91,17 +95,24 @@ class SystemNotificationsConfig extends ModuleConfig {
 		$f->attr('name', 'ghostDelay');
 		$f->label = __('Ghost delay');
 		$f->description = __('How long ghost messages appear for (in ms).');
-		$f->columnWidth = 50;
+		$f->columnWidth = 33;
 		$form->add($f);
 
 		$f = $modules->get('InputfieldInteger');
 		$f->attr('name', 'ghostDelayError');
 		$f->label = __('Ghost error delay');
 		$f->description = __('How long ghost errors appear for (in ms).');
-		$f->columnWidth = 50;
+		$f->columnWidth = 33;
+		$form->add($f);
+		
+		$f = $modules->get('InputfieldFloat');
+		$f->attr('name', 'ghostOpacity');
+		$f->label = __('Ghost full opacity');
+		$f->description = __('Full opacity of ghosts (0.1-1.0)');
+		$f->columnWidth = 34;
 		$form->add($f);
 
-		$f = $modules->get('InputfieldSelect');
+		$f = $modules->get('InputfieldRadios');
 		$f->attr('name', 'ghostFadeSpeed');
 		$f->label = __('Ghost fade speed');
 		$f->description = __('Speed at which ghosts fade in or out.');
@@ -112,10 +123,12 @@ class SystemNotificationsConfig extends ModuleConfig {
 		$f->columnWidth = 50;
 		$form->add($f);
 
-		$f = $modules->get('InputfieldFloat');
-		$f->attr('name', 'ghostOpacity');
-		$f->label = __('Ghost full opacity');
-		$f->description = __('Full opacity of ghosts (0.1-1.0)');
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'ghostPos');
+		$f->label = __('Ghost position');
+		$f->description = __('What side of the screen ghosts should float on.'); 
+		$f->addOption(self::ghostPosLeft, $this->_('Left'));
+		$f->addOption(self::ghostPosRight, $this->_('Right'));
 		$f->columnWidth = 50;
 		$form->add($f);
 

@@ -287,12 +287,13 @@ class SystemNotifications extends WireData implements Module {
 		}
 
 		//$options['processKey'] = $this->updateProcesses();
+		$ghostClass = $this->ghostPos == 2 ? "NotificationGhostsRight" : "NotificationGhostsLeft";
 		
 		$out = 	
 			"<div id='NotificationMenu' class='NotificationMenu'>" . 
 			"<ul id='NotificationList' class='NotificationList'></ul>" . 
 			"</div>" . 
-			"<ul id='NotificationGhosts' class='NotificationGhosts'></ul>" . 
+			"<ul id='NotificationGhosts' class='NotificationGhosts $ghostClass'></ul>" . 
 			"<script>Notifications.init(" . json_encode($options) . "); ";
 
 		// convert runtime Notices to Notifications
