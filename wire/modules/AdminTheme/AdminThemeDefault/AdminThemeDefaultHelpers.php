@@ -81,6 +81,7 @@ class AdminThemeDefaultHelpers extends WireData {
 		if($user->isGuest() || !$user->hasPermission('page-edit')) return '';
 		$url = $config->urls->admin . 'page/add/';
 		$out = '';
+		$items = array();
 	
 		foreach($this->wire('templates') as $template) {
 			$parent = $template->getParentPage(true); 
@@ -94,10 +95,15 @@ class AdminThemeDefaultHelpers extends WireData {
 			}
 			$icon = $template->getIcon();
 			if(!$icon) $icon = "plus-circle";
-			$label = $this->wire('sanitizer')->entities1($template->getLabel());
-			$out .= "<li><a href='$url$qs'><i class='fa fa-fw fa-$icon'></i>&nbsp;$label</a></li>";
+			$label = $template->getLabel();
+			$key = strtolower($label); 
+			$label = $this->wire('sanitizer')->entities1($label); 
+			if(isset($items[$key])) $key .= $template->name;	
+			$items[$key] = "<li><a href='$url$qs'><i class='fa fa-fw fa-$icon'></i>&nbsp;$label</a></li>";
 		}
-	
+		
+		ksort($items); 
+		$out = implode('', $items); 
 		if(empty($out)) return '';
 	
 		$label = $this->getAddNewLabel();

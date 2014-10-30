@@ -466,16 +466,15 @@ class Modules extends WireArray {
 		$modulesLoaded = array();
 		$modulesDelayed = array();
 		$modulesRequired = array();
-		
+
 		foreach($this->findModuleFiles($path, true) as $pathname) {
-			
-			$pathname = trim($pathname); 
+
+			$pathname = trim($pathname);
 			$requires = array();
 			$moduleName = $this->loadModule($path, $pathname, $requires, $installed);
-			if(!$moduleName) continue; 
-			
+			if(!$moduleName) continue;
+
 			if(count($requires)) {
-				
 				// module not loaded because it required other module(s) not yet loaded
 				foreach($requires as $requiresModuleName) {
 					if(!isset($modulesRequired[$requiresModuleName])) $modulesRequired[$requiresModuleName] = array();
@@ -484,46 +483,35 @@ class Modules extends WireArray {
 					$modulesRequired[$requiresModuleName][$moduleName] = $pathname;
 					$modulesDelayed[$moduleName][] = $requiresModuleName;
 				}
-				
-			} else {
-				
-				// module was successfully loaded
-				$modulesLoaded[$moduleName] = 1;
+				continue;
+			}
 
-				// now determine if this module had any other modules waiting on it as a dependency
-				do { 
-					// if no other modules require this one, then we can stop
-					if(!isset($modulesRequired[$moduleName])) break;
-					
-					// name of delayed module loaded (if loaded)
-					$loadedName = '';
-					
-					// iternate through delayed modules that require this one
-					foreach($modulesRequired[$moduleName] as $delayedName => $delayedPathName) {
-						$loadNow = true; 
-						foreach($modulesDelayed[$delayedName] as $requiresModuleName) {
-							if(!isset($modulesLoaded[$requiresModuleName])) $loadNow = false;
-						}
-						if($loadNow) {
-							// all conditions satisified to load delayed module
-							unset($modulesDelayed[$delayedName]); 
-							unset($modulesRequired[$moduleName][$delayedName]); 
-							$unused = array(); 
-							$loadedName = $this->loadModule($path, $delayedPathName, $unused, $installed); 
-							if($loadedName) $modulesLoaded[$loadedName] = 1; 
-						} else {
-							// delayed module will be loaded when its last dependency is met
-						}
+			// module was successfully loaded
+			$modulesLoaded[$moduleName] = 1;
+			$loadedNames = array($moduleName);
+
+			// now determine if this module had any other modules waiting on it as a dependency
+			while($moduleName = array_shift($loadedNames)) {
+				// iternate through delayed modules that require this one
+				if(!isset($modulesRequired[$moduleName])) continue; 
+				
+				foreach($modulesRequired[$moduleName] as $delayedName => $delayedPathName) {
+					$loadNow = true;
+					if(isset($modulesDelayed[$delayedName])) foreach($modulesDelayed[$delayedName] as $requiresModuleName) {
+						if(!isset($modulesLoaded[$requiresModuleName])) $loadNow = false;
 					}
-			
-					// stuff it back in for another round
-					// in case the loaded module accounts for yet another dependency
-					$moduleName = $loadedName; 
-					
-				} while($moduleName);
+					if(!$loadNow) continue; 
+					// all conditions satisified to load delayed module
+					unset($modulesDelayed[$delayedName], $modulesRequired[$moduleName][$delayedName]);
+					$unused = array();
+					$loadedName = $this->loadModule($path, $delayedPathName, $unused, $installed);
+					if(!$loadedName) continue; 
+					$modulesLoaded[$loadedName] = 1; 
+					$loadedNames[] = $loadedName;
+				}
 			}
 		}
-		
+
 		if(count($modulesDelayed)) foreach($modulesDelayed as $moduleName => $requiredNames) {
 			$this->error("Module '$moduleName' dependency not fulfilled for: " . implode(', ', $requiredNames), Notice::debug);
 		}

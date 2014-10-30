@@ -35,7 +35,15 @@ $(document).ready(function() {
 
 	var existsTimer = null;	
 	var existsName = '';
-	var $nameInput = $("#Inputfield__pw_page_name"); 
+	var $nameInput = $("#Inputfield__pw_page_name");
+	var $nameWrap = $("#wrap_Inputfield__pw_page_name");
+	var $form = $nameInput.closest('form');
+	var ajaxURL = $form.attr('data-ajax-url'); 
+	var $dupNote = $("<p class='notes'>" + $form.attr('data-dup-note') + "</p>");
+	var $status = $("<span id='ProcessPageAddStatus'></span>");
+	
+	$nameWrap.children(".InputfieldHeader").append($status.hide()); 
+	$nameInput.after($dupNote.hide()); 
 	
 	function checkExists() {
 		var parent_id = $("#Inputfield_parent_id").val();
@@ -43,18 +51,22 @@ $(document).ready(function() {
 		if(existsName == name) return; // no change to name yet
 		if(parent_id && name.length > 0) {
 			existsName = name;
-			$("#ProcessPageAddStatus").remove();
-			$.get("./exists?parent_id=" + parent_id + "&name=" + name, function(data) {
-				var $status = $("<span id='ProcessPageAddStatus'></span>").append(' ' + data).hide();
-				$("#wrap_Inputfield__pw_page_name .InputfieldHeader").append($status.fadeIn('fast'))
+			$.get(ajaxURL + "exists?parent_id=" + parent_id + "&name=" + name, function(data) {
+				$status.html(' ' + data).show();
+				if($(data).hasClass('taken')) {
+					$nameInput.addClass('ui-state-error-text'); 
+					$dupNote.fadeIn('fast');
+				} else {
+					$nameInput.removeClass('ui-state-error-text');
+					$dupNote.hide();
+				}
 			}); 
 		}
 	}
 	
 	$("#Inputfield_title, #Inputfield__pw_page_name").keyup(function(e) {
 		if(existsTimer) clearTimeout(existsTimer);
-		$("#ProcessPageAddStatus").remove();
-		existsTimer = setTimeout(function() { checkExists(); }, 500); 
+		existsTimer = setTimeout(function() { checkExists(); }, 250); 
 	}); 
 
 

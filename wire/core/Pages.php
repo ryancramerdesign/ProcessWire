@@ -1700,8 +1700,6 @@ class Pages extends Wire {
 	 * be executed immediately after this is called. Whereas you don't necessarily know
  	 * that when before(save) is called, as an error may prevent it. 
 	 *
-	 * Note that there is no ___saved() hook because it's already provided by after(save).
-	 *
 	 * @param Page $page The page about to be saved
 	 * @return array Optional extra data to add to pages save query.
 	 *

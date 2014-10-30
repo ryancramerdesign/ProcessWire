@@ -362,7 +362,9 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 		$fields = $this->page->getInputfields();
 		$id = $this->className() . 'Content'; 
-		$title = $this->_('Content'); // Tab Label: Content
+		$title = $this->page->template->getTabLabel('content'); 
+		if(!$title) $title = $this->_('Content'); // Tab Label: Content
+		
 		$fields->attr('id', $id); 
 		$fields->attr('title', $title); 
 		$this->tabs[$id] = $title;
@@ -394,10 +396,12 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$page = $this->masterPage ? $this->masterPage : $this->page; 
 		$wrapper = new InputfieldWrapper();
 		$id = $this->className() . 'Children';
-		$wrapper->attr('id', $id); 
-		$title = $this->_('Children'); // Tab Label: Children
-		if($page->numChildren) $title = "<em>$title</em>";
-		$wrapper->attr('title', $title); 
+		$wrapper->attr('id', $id);
+		$defaultTitle = $this->_('Children'); // Tab Label: Children
+		$title = $this->page->template->getTabLabel('children'); 
+		if(!$title) $title = $defaultTitle;
+		if($page->numChildren) $wrapper->attr('title', "<em>$title</em>"); 
+			else $wrapper->attr('title', $title); 
 		$this->tabs[$id] = $title;
 		$templateSortfield = $this->page->template->sortfield;
 
@@ -411,7 +415,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			} else $pageList = null;
 
 			$field = $this->modules->get("InputfieldMarkup"); 
-			$field->label = $this->_("Children / Subpages"); // Children field label
+			$field->label = $title == $defaultTitle ? $this->_("Children / Subpages") : $title; // Children field label
 			if($pageList) $field->value = $pageList->execute();
 				else $field->description = $this->_("There are currently no children/subpages below this page."); 
 

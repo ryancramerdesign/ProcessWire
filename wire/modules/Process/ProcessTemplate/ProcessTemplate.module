@@ -918,6 +918,7 @@ class ProcessTemplate extends Process {
 	protected function buildEditFormAdvanced(Template $template) {
 
 		$form = new InputfieldWrapper();
+		$languages = $this->wire('languages');
 
 		// --------------------
 
@@ -933,6 +934,33 @@ class ProcessTemplate extends Process {
 		$form->add($field); 
 
 		// --------------------
+		
+		$f = $this->modules->get('InputfieldText');
+		$f->attr('name', 'tabContent');
+		$f->attr('value', $template->tabContent);
+		$f->label = $this->_x('Label for Content tab', 'field-label');
+		$f->description = $this->_('Optionally override the default "Content" tab label.');
+		$f->columnWidth = 50;
+		if($languages) {
+			$f->useLanguages = true;
+			foreach($languages as $language) $f->set('value' . $language->id, $template->getTabLabel('content', $language));
+		}
+		$form->add($f);
+
+		$f = $this->modules->get('InputfieldText');
+		$f->attr('name', 'tabChildren');
+		$f->attr('value', $template->tabChildren);
+		$f->label = $this->_x('Label for Children tab', 'field-label');
+		$f->description = $this->_('Optionally override the default "Children" tab label.');
+		$f->columnWidth = 50;
+		if($languages) {
+			$f->useLanguages = true;
+			foreach($languages as $language) $f->set('value' . $language->id, $template->getTabLabel('children', $language));
+		}
+		$form->add($f);
+
+		// --------------------
+
 
 		if(!($template->flags & Template::flagSystem)) { 
 			$field = $this->modules->get("InputfieldName"); 
@@ -971,8 +999,8 @@ class ProcessTemplate extends Process {
 		$field->notes .= "\n" . $this->_('You may also enter an [icon name](http://fontawesome.io/cheatsheet/), for example: icon-file or fa-file (either format works).'); 
 		$field->attr('value', $template->pageLabelField); 
 		$field->collapsed = Inputfield::collapsedBlank;
-		$form->append($field); 
-
+		$form->append($field);
+		
 		// --------------------
 		
 		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
@@ -1028,7 +1056,7 @@ class ProcessTemplate extends Process {
 			$field->collapsed = Inputfield::collapsedYes;
 		}
 		$fieldset->append($field);
-
+		
 		// --------------------
 
 
@@ -1564,7 +1592,7 @@ class ProcessTemplate extends Process {
 		$this->template->slashUrls = (int) $form->get('slashUrls')->attr('value');
 		$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
 		$this->template->guestSearchable = (int) $form->get('guestSearchable')->attr('value'); 
-		$this->template->pageLabelField = $this->fuel('sanitizer')->names($form->get('pageLabelField')->attr('value')); 
+		$this->template->pageLabelField = $this->fuel('sanitizer')->names($form->get('pageLabelField')->attr('value'));
 		$this->template->childNameFormat = $this->fuel('sanitizer')->text($form->get('childNameFormat')->attr('value')); 
 		$this->template->cache_time = $form->get('cache_time')->attr('value'); 
 		$this->template->useCacheForUsers = (int) $form->get('useCacheForUsers')->attr('value');
@@ -1595,11 +1623,15 @@ class ProcessTemplate extends Process {
 			$this->template->$name = $value;	
 		}
 
-		// template label, including multi language versions if applicable
-		$templateLabel = $form->get('templateLabel'); 
-		$this->template->label = $this->sanitizer->text($templateLabel->attr('value')); 
-		if($languages) foreach($languages as $language) {
-			$this->template->set('label' . $language->id, $this->sanitizer->text($templateLabel->get('value' . $language->id))); 
+		// template label and tab labels, including multi language versions if applicable
+		
+		foreach(array('label', 'tabContent', 'tabChildren') as $name) { 
+			$f = $name == 'label' ? $form->get('templateLabel') : $form->get($name); 
+			$this->template->$name = $this->sanitizer->text($f->attr('value')); 
+			if($languages) foreach($languages as $language) {
+				if($language->isDefault()) continue; 
+				$this->template->set($name . $language->id, $this->sanitizer->text($f->get('value' . $language->id))); 
+			}
 		}
 
 		if($this->template->cacheExpire == Template::cacheExpireSpecific) $this->template->cacheExpirePages = $form->get('cacheExpirePages')->value; 
