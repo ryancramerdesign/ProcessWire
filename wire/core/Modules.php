@@ -525,7 +525,7 @@ class Modules extends WireArray {
 		}
 		
 		if(count($modulesDelayed)) foreach($modulesDelayed as $moduleName => $requiredNames) {
-			$this->error("Module '$moduleName' dependecy not fulfilled for: " . implode(', ', $requiredNames), Notice::debug);
+			$this->error("Module '$moduleName' dependency not fulfilled for: " . implode(', ', $requiredNames), Notice::debug);
 		}
 		
 		if($this->debug) $this->debugTimerStop($debugKey); 
@@ -1641,7 +1641,8 @@ class Modules extends WireArray {
 			
 		} else if($module) {
 			if(is_string($module) && !class_exists($module)) $this->includeModule($module);  
-			if(method_exists($module, 'getModuleInfo')) {
+			//if(method_exists($module, 'getModuleInfo')) {
+			if(is_callable("$module::getModuleInfo")) {
 				$info = call_user_func(array($module, 'getModuleInfo'));
 			}
 		}

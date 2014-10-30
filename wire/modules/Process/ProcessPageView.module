@@ -150,6 +150,7 @@ class ProcessPageView extends Process {
 			
 			$this->wire('page', $page); 
 			$this->ready();
+			$page = $this->wire('page'); // in case anything changed it
 			
 			if($this->delayRedirects) {
 				$this->checkProtocol($page); 

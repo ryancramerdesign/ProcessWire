@@ -300,11 +300,10 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		foreach($tabs as $tab) $form->append($tab); 
 
 		if($this->page->addable() || $this->page->numChildren) $form->append($this->buildFormChildren()); 
-		if(!$this->page->template->noSettings) $form->append($this->buildFormSettings()); 
+		if(!$this->page->template->noSettings && $this->useSettings) $form->append($this->buildFormSettings()); 
 		if($this->isTrash) $this->message($this->_("This page is in the Trash")); 
 		if($this->page->deleteable()) $form->append($this->buildFormDelete());
-		//if($this->page->viewable() && !$this->input->get->modal) $form->append($this->buildFormView());
-		if($this->page->viewable() && !$this->input->get->modal) $this->buildFormView(); 
+		if($this->page->viewable() && !$this->input->get->modal) $this->buildFormView($this->page->httpUrl); 
 
 		$field2 = null;
 		$saveName = '';
@@ -703,10 +702,10 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 * Build the 'view' tab on the Page Edit form
 	 *
 	 */ 
-	protected function buildFormView() {
+	protected function ___buildFormView($url) {
 		$label = $this->_('View'); // Tab Label: View
 		$id = $this->className() . 'View';
-		$a = "<a id='_ProcessPageEditView' href='{$this->page->httpUrl}'>$label</a>"; 
+		$a = "<a id='_ProcessPageEditView' href='$url'>$label</a>"; 
 		$this->tabs[$id] = $a;
 	}
 
@@ -1281,6 +1280,10 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	
 	public function getMasterPage() {
 		return $this->masterPage; 
+	}
+	
+	public function setUseSettings($useSettings) {
+		$this->useSettings = (bool) $useSettings;
 	}
 
 }

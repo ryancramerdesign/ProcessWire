@@ -163,6 +163,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		// columns that may not be displayed
 		$this->set('disallowColumns', array('pass', 'config')); 
+	
+		// whether to use labels for fields (versus names) in column selection and column labels
+		$this->set('useColumnLabels', true); 
 
 		// whether or not system templates/fields are allowed for selection
 		// for system fields, it only refers to system custom fields excluding title
@@ -456,13 +459,27 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$f->description = $this->_('Select and sort the columns that will display in the pages list table.');
 		$f->notes = $this->_('The user can optionally change which columns are shown, so these will just serve as the defaults.'); // columns description
 		$f->icon = 'table';
-
+	
+		$useLabels = $this->useColumnLabels; 
+		$systemLabels = $this->systemLabels;
+		
 		foreach($fields as $field) {
-			if($this->allowColumnField($field)) $options[] = $field->name; 
+			if(!$this->allowColumnField($field)) continue;
+			$options[$field->name] = $field; 
 		}
 
-		sort($options); 
-		foreach($options as $option) $f->addOption($option); 
+		ksort($options); 
+		
+		foreach($options as $field) {
+			if(is_object($field)) {
+				if($useLabels) $f->addOption($field->name, $field->getLabel(), array('data-desc' => $field->name)); 
+					else $f->addOption($field->name, $field->name, array('data-desc' => $field->getLabel())); 
+			} else {
+				$label = isset($systemLabels[$field]) ? $systemLabels[$field] : $field;
+				if($useLabels) $f->addOption($field, $label, array('data-desc' => $field)); 
+					else $f->addOption($field, $field, array('data-desc' => $label)); 
+			}
+		}
 		$f->attr('value', $this->columns); 
 		return $f; 
 	}
