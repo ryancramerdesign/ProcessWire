@@ -26,6 +26,8 @@ class Notification extends WireData {
 	const flagSession = 512; 	// Notification lasts for only this session (not stored in DB)
 	const flagEmail = 1024; 	// title and body will also be emailed to user (if page is user)
 	const flagOpen = 2048;		// notification will automatically open the text/html area (no click required)
+	
+	const flagNoGhost = 4096; 	// disable showing of a notification ghost
 
 	/**
 	 * Provides a name for each of the flags
@@ -47,6 +49,7 @@ class Notification extends WireData {
 		self::flagSession => 'session',
 		self::flagEmail => 'email',
 		self::flagOpen => 'open',
+		self::flagNoGhost => 'no-ghost', 
 		);
 
 	/**

@@ -21,7 +21,8 @@ var Notifications = {
 		ghostDelayError: 4000, 
 		ghostFadeSpeed: 'fast',
 		ghostOpacity: 0.9,
-		processKey: ''			// key for session processes
+		ghostLimit: 20, 	// max ghosts that that may be shown together
+		processKey: ''		// key for session processes
 	},
 
 	updateTimeout: null,	// setTimeout timer for update method
@@ -120,8 +121,9 @@ var Notifications = {
 		}
 		
 		Notifications.activity = true; 
-		
-		$bugQty.text(qty); 
+	
+		var qtyText = qty > 99 ? '99+' : qty;
+		$bugQty.text(qtyText); 
 		$bug.attr('data-qty', qty); 
 
 		if(qty == 0) {
@@ -146,6 +148,7 @@ var Notifications = {
 				// if(notifications[n].flagNames.indexOf('ghost') > -1) {
 				var notification = data.notifications[n];
 				if('ghostShown' in notification && notification.ghostShown == true) continue; 
+				if(notification.flagNames.indexOf('no-ghost') > -1) continue; 
 				notification.ghostShown = true; 
 				Notifications._ghost(notification, n); 
 			}
@@ -385,7 +388,6 @@ var Notifications = {
 		Notifications.$ghosts.append($li.hide());
 		Notifications.ghostsActive++;	
 		
-
 		var fadeSpeed = Notifications.options.ghostFadeSpeed;
 		var opacity = Notifications.options.ghostOpacity;
 		var interval = 100 * n; 
