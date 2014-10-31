@@ -252,6 +252,10 @@ class Pageimage extends Pagefile {
 			} else if(is_bool($options)) {
 				// optionally allow a boolean to be specified with upscaling toggle on/off
 				$options = array('upscaling' => $options); 
+			} else {
+				// passed wrong type for $options, how should we act upon that? (see: https://github.com/ryancramerdesign/ProcessWire/issues/372#issuecomment-60440903)
+				// using defaultOptions or raise an Error, but what ever should be done, it needs to be done ;-)
+				
 			} 
 		}
 
