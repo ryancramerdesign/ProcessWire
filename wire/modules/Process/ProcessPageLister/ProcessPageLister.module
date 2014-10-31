@@ -177,6 +177,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		// whether or not to show the selector string preview in InputfieldSelector
 		$this->set('preview', self::debug); 
 	
+		// cache the total, per selector, for increased performance?
+		$this->set('cacheTotal', true); 
+	
 		$nameLabel = $this->_('Name'); 
 		$createdLabel = $this->_('Created'); 
 		$modifiedLabel = $this->_('Modified'); 
@@ -884,9 +887,15 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				$newValue[] = $this->buildListerTableCol($v, $fields, $subname); 
 			}
 			$value = implode($delimiter, $newValue); 
+			
+		} else if($value instanceof WireArray && !$value instanceof Pagefiles) {
+			// WireArray type unknown to Lister
+			$in = $field->getInputfield($p, $field);
+			$in->attr('value', $value);
+			$value = $in->renderValue();
 
 		} else if($value instanceof WireArray || is_array($value)) {
-			// unknown iterable value
+			// Pagefiles or  unknown iterable value
 			if($value instanceof Pageimages && $this->imageFirst) $value = array($value->first());
 			$values = array();
 			foreach($value as $k => $v) {
@@ -939,7 +948,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		return $value; 
 
 	}
-
+	
 	/**
 	 * Build the Lister table column clickable actions
 	 * 
@@ -1043,7 +1052,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		// remove start and/or limit
 		$knownSelector = preg_replace('/\b(start=\d+|limit=\d+),?/', '', $selector); 
 		
-		if($this->knownTotal['selector'] != $knownSelector) {
+		if(!$this->cacheTotal || $this->knownTotal['selector'] != $knownSelector) {
 			$this->knownTotal['selector'] = $knownSelector; 
 			$this->knownTotal['total'] = null;
 		}
@@ -1146,6 +1155,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	public function ___executeReset() {
 		$this->sessionClear();
 		$this->session->remove(self::sessionBookmarksName); 
+		$this->sessionSet('knownTotal', null); 
 		$this->message($this->_('All settings have been reset.'));
 		if(strpos($this->wire('input')->urlSegmentStr, '/reset/')) $this->session->redirect('../');
 			else $this->session->redirect('./'); 

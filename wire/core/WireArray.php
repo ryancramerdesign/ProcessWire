@@ -845,6 +845,19 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	}
 
 	/**
+	 * Remove an item without any record of the event or telling anything else. 
+	 *
+	 * @param int|string|Wire $key Index of item or object instance.
+	 * @return WireArray This instance. 
+	 *
+	 */
+	public function removeQuietly($key) {
+		if(is_object($key)) $key = $this->getItemKey($key);
+		unset($this->data[$key]);
+		return $this;
+	}
+
+	/**
 	 * Sort this WireArray by the given properties. 
 	 *
 	 * $properties can be given as a sortByField string, i.e. "name, datestamp" OR as an array of strings, i.e. array("name", "datestamp")

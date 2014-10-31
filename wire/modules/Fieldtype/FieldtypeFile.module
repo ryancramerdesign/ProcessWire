@@ -19,21 +19,19 @@
 
 class FieldtypeFile extends FieldtypeMulti {
 	
-	const outputFormatAuto = 0;
-	const outputFormatArray = 1; 
-	const outputFormatSingle = 2; 
-	const outputFormatString = 30; 
-
-	protected $defaultInputfieldClass = '';
-
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Files', __FILE__),
 			'version' => 104,
 			'summary' => __('Field that stores one or more files', __FILE__),
-			'permanent' => true, 
-			);
+			'permanent' => true,
+		);
 	}
+
+	const outputFormatAuto = 0;
+	const outputFormatArray = 1; 
+	const outputFormatSingle = 2; 
+	const outputFormatString = 30;
 
 	/**
 	 * File schema is configured to support tags (flag)
@@ -45,7 +43,9 @@ class FieldtypeFile extends FieldtypeMulti {
 	 * File schema is configured to support 'created' date (flag)
 	 *
 	 */
-	const fileSchemaDate = 2; 
+	const fileSchemaDate = 2;
+	
+	protected $defaultInputfieldClass = '';
 
 	public function __construct() {
 		$this->defaultInputfieldClass = str_replace('Fieldtype', 'Inputfield', $this->className);
@@ -108,7 +108,7 @@ class FieldtypeFile extends FieldtypeMulti {
 	/**
 	 * Hook into the InputfieldFile's processInput method to set the upload destination path
 	 *
-	 * This hook originates with the getInputfield method above. 
+	 * This hook originates with the setupHooks method above. 
 	 *
 	 */
 	public function hookProcessInput($event) {
@@ -244,7 +244,11 @@ class FieldtypeFile extends FieldtypeMulti {
 	public function ___formatValue(Page $page, Field $field, $value) {
 
 		if(!$value instanceof Pagefiles) return $value; 
-
+	
+		foreach($value as $pagefile) {
+			if($pagefile->isTemp()) $value->removeQuietly($pagefile); 
+		}
+		
 		$textformatters = $field->textformatters; 
 		if(!is_array($textformatters)) $textformatters = array();
 		if($field->entityEncode && !count($textformatters)) $textformatters[] = 'TextformatterEntities';
@@ -277,8 +281,11 @@ class FieldtypeFile extends FieldtypeMulti {
 			}
 		}
 		*/
-		
-		$isEmpty = count($value) == 0;
+	
+		$count = count($value); 
+		$isEmpty = $count == 0;
+		$maxFiles = (int) $field->maxFiles; 
+		if($maxFiles && $count > $maxFiles) $value = $value->slice(0, $maxFiles); 
 		
 		switch((int) $field->outputFormat) {
 			
@@ -295,7 +302,7 @@ class FieldtypeFile extends FieldtypeMulti {
 				break;
 			
 			default: // outputFormatAuto
-				if($field->maxFiles == 1) { 
+				if($maxFiles == 1) { 
 					$value = $isEmpty ? null : $value->first();
 				}
 		}

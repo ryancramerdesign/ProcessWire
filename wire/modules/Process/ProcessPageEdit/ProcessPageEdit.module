@@ -1242,13 +1242,13 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		if($page->isChanged()) {
 			if($numFields === 1) {
 				$page->save((string)$lastFieldName); 
-				$this->message("Saved page '{$page->id}' field '$lastFieldName'"); 
+				$this->message("AJAX Saved page '{$page->id}' field '$lastFieldName'"); 
 			} else {
 				$page->save();
-				$this->message("Saved page '{$page->id}' multiple fields"); 
+				$this->message("AJAX Saved page '{$page->id}' multiple fields"); 
 			}
 		} else {
-			$this->message("Page not saved (no changes)"); 
+			$this->message("AJAX Page not saved (no changes)"); 
 		}
 	}
 

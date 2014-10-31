@@ -83,4 +83,9 @@ class InputfieldTextarea extends InputfieldText {
 
 		return $inputfields; 
 	}
+	
+	public function ___getConfigAllowContext($field) {
+		return array_merge(parent::___getConfigAllowContext($field), array('rows')); 
+	}
+	
 }

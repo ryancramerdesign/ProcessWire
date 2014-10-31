@@ -496,15 +496,24 @@ class Field extends WireData implements Saveable, Exportable {
 
 		$wrapper = new InputfieldWrapper();
 		$fieldgroupContext = $this->flags & Field::flagFieldgroupContext; 
+		
+		if($fieldgroupContext) {
+			$allowContext = $this->type->getConfigAllowContext($this); 
+			if(!is_array($allowContext)) $allowContext = array();
+		} else {
+			$allowContext = array();
+		}
 
-		if(!$fieldgroupContext) {
+		if(!$fieldgroupContext || count($allowContext)) {
+			
 			$inputfields = new InputfieldWrapper();
-			$inputfields->head = $this->_('Field type details');
+			if(!$fieldgroupContext) $inputfields->head = $this->_('Field type details');
 			$inputfields->attr('title', $this->_('Details'));
 
 			try {
 				$fieldtypeInputfields = $this->type->getConfigInputfields($this); 
 				if($fieldtypeInputfields) foreach($fieldtypeInputfields as $inputfield) {
+					if($fieldgroupContext && !in_array($inputfield->name, $allowContext)) continue;
 					$inputfields->append($inputfield); 
 				}
 			} catch(Exception $e) {
@@ -512,22 +521,23 @@ class Field extends WireData implements Saveable, Exportable {
 			}
 
 			if(count($inputfields)) $wrapper->append($inputfields); 
-		} else {
-			// we currently exclude fieldtype configuration changes when in fieldgroup context
-			// not sure that we need to, but keeping it simple to start
 		}
 
 		$inputfields = new InputfieldWrapper();
-		$dummyPage = $this->fuel('pages')->get("/"); // only using this to satisfy param requirement 
+		$dummyPage = $this->wire('pages')->get("/"); // only using this to satisfy param requirement 
 
 		if($inputfield = $this->getInputfield($dummyPage)) {
-			if(!$fieldgroupContext) $inputfields->head = $this->_('Input field settings');
+			if($fieldgroupContext) {
+				$allowContext = array('visibility', 'collapsed', 'columnWidth', 'required', 'requiredIf', 'showIf');
+				$allowContext = array_merge($allowContext, $inputfield->getConfigAllowContext($this)); 
+			} else {
+				$allowContext = array();
+				$inputfields->head = $this->_('Input field settings');
+			}
 			$inputfields->attr('title', $this->_('Input')); 
 			$inputfieldInputfields = $inputfield->getConfigInputfields();
 			if($inputfieldInputfields) foreach($inputfieldInputfields as $i) { 
-				// currently we only support collapsed and columnWidth for fieldgroup context
-				// however we may support everything after starting with these limited options for awhile
-				if($fieldgroupContext && !in_array($i->name, array('visibility', 'collapsed', 'columnWidth', 'required', 'requiredIf', 'showIf'))) continue; 
+				if($fieldgroupContext && !in_array($i->name, $allowContext)) continue; 
 				$inputfields->append($i); 
 			}
 		}

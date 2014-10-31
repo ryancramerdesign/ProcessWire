@@ -30,7 +30,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 108,
+			'version' => 109,
 			'permanent' => true, 
 			'icon' => 'cubes', 
 			'useNavJSON' => true, 
@@ -840,7 +840,7 @@ class ProcessTemplate extends Process {
 		// --------------------
 
 		$field = $this->modules->get('InputfieldInteger'); 
-		$field->attr('id+name', 'cache_time');
+		$field->attr('name', 'cache_time');
 		$field->label = $this->_x('Cache Time', 'field-label');
 		$field->icon = 'clock-o';
 		$field->description = $this->_('To cache the output of this template, enter the time (in seconds) that the output should be cached. Caching can help significantly with page render time on resource-heavy pages. But caching should not be used on templates that need to process constantly changing data, like from forms or sessions. Also note that URL segments are cachable, but GET and POST vars are not.'); // Cach time description
@@ -851,7 +851,7 @@ class ProcessTemplate extends Process {
 		// --------------------
 
 		$field = $this->modules->get('InputfieldRadios'); 
-		$field->attr('id+name', 'cacheExpire'); 
+		$field->attr('name', 'cacheExpire'); 
 		$field->label = $this->_('Page Save / Cache Expiration');
 		$field->description = $this->_('When a page using this template is saved, what should happen to the cache?');
 		$field->addOption(Template::cacheExpirePage, $this->_('Clear cache for the saved page only (default)')); 
@@ -861,27 +861,30 @@ class ProcessTemplate extends Process {
 		$field->addOption(Template::cacheExpireNone, $this->_('Do nothing'));
 		$field->attr('value', (int) $template->cacheExpire); 
 		$field->notes = $this->_('*To maximize performance, cache files are all expired as a group rather than cleared individually.'); // Cache expiration notes // This explains the 'Clear cache for entire site*' option
+		$field->showIf = "cache_time!=0";
 		$form->append($field); 
 
 		// --------------------
 
 		$field = $this->modules->get('InputfieldPageListSelectMultiple'); 
-		$field->attr('id+name', 'cacheExpirePages'); 
+		$field->attr('name', 'cacheExpirePages'); 
 		$field->label = $this->_('Specify the other pages that should have their cache cleared'); 
 		$field->description = $this->_('When pages using this template are saved, their cache files will be cleared. Select the other pages that should also have their cache files cleared below.'); // Specified cache clear pages, description
 		$value = is_array($template->cacheExpirePages) ? $template->cacheExpirePages : array();
-		$field->attr('value', $value); 
+		$field->attr('value', $value);
+		$field->showIf = 'cache_time>0, cacheExpire=' . Template::cacheExpireSpecific;
 		$form->append($field); 
 
 		// --------------------
 
 		$field = $this->modules->get('InputfieldRadios'); 
-		$field->attr('id+name', 'useCacheForUsers'); 
+		$field->attr('name', 'useCacheForUsers'); 
 		$field->label = $this->_('Cache when rendering pages for these users');
 		$field->addOption(0, $this->_('Guests only')); 
 		$field->addOption(1, $this->_('Guests and logged-in users'));
 		$field->attr('value', (int) $template->useCacheForUsers); 
 		$field->notes = $this->_('Note that the cache is always disabled for pages where the user has edit access, regardless of what you select here.'); // Cache for guest/loggin-in user notes
+		$field->showIf = 'cache_time>0';
 		$form->append($field); 
 
 		// --------------------
@@ -892,23 +895,25 @@ class ProcessTemplate extends Process {
 		$notes = $this->_('Optionally enter one or more variable names. If entering more than one, separate each by a space.'); // Disable cache, GET/POST vars, notes
 
 		$field = $this->modules->get('InputfieldText'); 
-		$field->attr('id+name', 'noCacheGetVars'); 
+		$field->attr('name', 'noCacheGetVars'); 
 		$field->label = $labelGET; 
 		$field->description = $description; 
 		$field->notes = $notes; 
 		$field->attr('value', (string) $template->noCacheGetVars); 
 		$field->collapsed = Inputfield::collapsedBlank;
+		$field->showIf = 'cache_time>0';
 		$form->append($field); 
 
 		// --------------------
 
 		$field = $this->modules->get('InputfieldText'); 
-		$field->attr('id+name', 'noCachePostVars'); 
+		$field->attr('name', 'noCachePostVars'); 
 		$field->label = $labelPOST; 
 		$field->description = $description;
 		$field->notes = $notes; 
 		$field->attr('value', (string) $template->noCachePostVars); 
 		$field->collapsed = Inputfield::collapsedBlank;
+		$field->showIf = 'cache_time>0';
 		$form->append($field); 
 
 		return $form; 

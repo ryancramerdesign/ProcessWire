@@ -1037,7 +1037,7 @@ class Pages extends Wire {
 			}
 		}
 
-		if($options['uncacheAll']) $this->uncacheAll();
+		if($options['uncacheAll']) $this->uncacheAll($page);
 
 		// determine whether the pages_access table needs to be updated so that pages->find()
 		// operations can be access controlled. 
@@ -1102,6 +1102,7 @@ class Pages extends Wire {
 		if($value instanceof Pagefiles || $value instanceof Pagefile) $page->filesManager()->save();
 		$page->trackChange($field->name); 	
 
+		$this->saveFieldReady($page, $field); 
 		if($field->type->savePageField($page, $field)) { 
 			$page->untrackChange($field->name); 
 			if(empty($options['quiet'])) {
@@ -1114,6 +1115,7 @@ class Pages extends Wire {
 				$query->execute();
 			}
 			$return = true; 
+			$this->savedField($page, $field); 
 		} else {
 			$return = false; 
 		}
@@ -1350,7 +1352,7 @@ class Pages extends Wire {
 		$page->setTrackChanges(false); 
 		$page->status = Page::statusDeleted; // no need for bitwise addition here, as this page is no longer relevant
 		$this->deleted($page);
-		$this->uncacheAll();
+		$this->uncacheAll($page);
 		$this->debugLog('delete', $page, true); 
 
 		return true; 
@@ -1488,10 +1490,12 @@ class Pages extends Wire {
 
 	/**
 	 * Remove all pages from the cache. 
+	 * 
+	 * @param Page $page Optional Page that initiated the uncacheAll
 	 *
 	 */
-	public function uncacheAll() {
-
+	public function uncacheAll(Page $page = null) {
+	
 		$this->pageFinder = null;
 
 		unset($this->sortfields); 
@@ -1502,7 +1506,6 @@ class Pages extends Wire {
 		foreach($this->pageIdCache as $id => $page) {
 			if(!$page->numChildren) $this->uncache($page); 
 		}
-
 
 		$this->pageIdCache = array();
 		$this->pageSelectorCache = array();
@@ -1828,6 +1831,24 @@ class Pages extends Wire {
 	 *
 	 */
 	protected function ___found(PageArray $pages, array $details) { }
+
+	/**
+	 * Hook called when Pages::saveField is going to execute
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * 
+	 */
+	protected function ___saveFieldReady(Page $page, Field $field) { }
+
+	/**
+	 * Hook called after Pages::saveField successfully executes
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * 
+	 */
+	protected function ___savedField(Page $page, Field $field) { }
 
 
 }
