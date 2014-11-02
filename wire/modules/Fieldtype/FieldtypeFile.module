@@ -496,7 +496,7 @@ class FieldtypeFile extends FieldtypeMulti {
 
 	public function ___deleteField(Field $field) {
 		// delete files not necessary since deletePageField would have been called for all instances before this could be called
-		parent::___deleteField($field); 
+		return parent::___deleteField($field); 
 	}
 
 	/**
