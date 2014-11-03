@@ -252,6 +252,10 @@ class Pageimage extends Pagefile {
 			} else if(is_bool($options)) {
 				// optionally allow a boolean to be specified with upscaling toggle on/off
 				$options = array('upscaling' => $options); 
+			} else {
+				// passed wrong type for $options, how should we act upon that? (see: https://github.com/ryancramerdesign/ProcessWire/issues/372#issuecomment-60440903)
+				// using defaultOptions or raise an Error, but what ever should be done, it needs to be done ;-)
+				
 			} 
 		}
 
@@ -286,25 +290,28 @@ class Pageimage extends Pagefile {
 
 		$basename = basename($this->basename(), "." . $this->ext()); 		// i.e. myfile
 		$basename .= '.' . $width . 'x' . $height . $crop . $suffixStr . "." . $this->ext();	// i.e. myfile.100x100.jpg or myfile.100x100nw-suffix1-suffix2.jpg
-		$filename = $this->pagefiles->path() . $basename; 
-		$exists = file_exists($filename); 
+		$filenameFinal = $this->pagefiles->path() . $basename; 
+		$filenameUnvalidated = $this->pagefiles->path() . "unvalidated_" . $basename; 
+		$exists = file_exists($filenameFinal); 
 
 		if(!$exists || $options['forceNew']) {
-			if($exists && $options['forceNew']) unlink($filename); 
-			if(@copy($this->filename(), $filename)) {
+			if($exists && $options['forceNew']) @unlink($filenameFinal); 
+			if(file_exists($filenameUnvalidated)) @unlink($filenameUnvalidated); 
+			if(@copy($this->filename(), $filenameUnvalidated)) {
 				try { 
-					$sizer = new ImageSizer($filename); 
+					$sizer = new ImageSizer($filenameUnvalidated); 
 					$sizer->setOptions($options);
-					if($sizer->resize($width, $height)) {
-						if($this->config->chmodFile) chmod($filename, octdec($this->config->chmodFile));
+					if($sizer->resize($width, $height) && @rename($filenameUnvalidated, $filenameFinal)) {
+						// if script runs into a timeout while in ImageSizer, we never will reach this line and we will stay with $filenameUnvalidated 
+						if($this->config->chmodFile) chmod($filenameFinal, octdec($this->config->chmodFile));
 					} else {
-						$this->error = "ImageSizer::resize($width, $height) failed for $filename";
+						$this->error = "ImageSizer::resize($width, $height) failed for $filenameUnvalidated";
 					}
 				} catch(Exception $e) {
 					$this->error = $e->getMessage(); 
 				}
 			} else {
-				$this->error("Unable to copy $this->filename => $filename"); 
+				$this->error("Unable to copy $this->filename => $filenameUnvalidated"); 
 			}
 		}
 
@@ -314,18 +321,19 @@ class Pageimage extends Pagefile {
 		// if an error occurred, that error property will be populated with details
 		if($this->error) { 
 			// error condition: unlink copied file 
-			if(is_file($filename)) unlink($filename); 
+			if(is_file($filenameFinal)) @unlink($filenameFinal); 
+			if(is_file($filenameUnvalidated)) @unlink($filenameUnvalidated); 
 
 			// write an invalid image so it's clear something failed
 			// todo: maybe return a 1-pixel blank image instead?
 			$data = "This is intentionally invalid image data.\n$this->error";
-			if(file_put_contents($filename, $data) !== false) wireChmod($filename); 
+			if(file_put_contents($filenameFinal, $data) !== false) wireChmod($filenameFinal); 
 
 			// we also tell PW about it for logging and/or admin purposes
 			$this->error($this->error); 
 		}
 
-		$pageimage->setFilename($filename); 	
+		$pageimage->setFilename($filenameFinal); 	
 		$pageimage->setOriginal($this); 
 
 		return $pageimage; 
