@@ -497,6 +497,16 @@ class Pageimage extends Pagefile {
 		if(strpos($originalName, '.') && preg_match('/^([^.]+)\.(?:\d+x\d+|-[_a-z0-9]+)/', $originalName, $matches)) {
 			$originalName = $matches[1];
 		}
+	
+		// if file is the same as the original, then it's not a variation
+		if($variationName == $this->basename) {
+			return false;
+		}
+		
+		// if file doesn't start with the original name then it's not a variation
+		if(strpos($variationName, $originalName) !== 0) {
+			return false; 
+		}
 
 		// variation name with size dimensions and optionally suffix
 		$re1 = '/^'  . 
@@ -511,6 +521,10 @@ class Pageimage extends Pagefile {
 		$re2 = '/^' . 						
 			$originalName . '\.-' . 		// myfile.-
 			'([-_a-z0-9]+)' . 				// suffix1 or suffix1-suffix2, etc. 
+			'(?:\.' . 						// optional extras for dimensions/crop, starts with period
+				'(\d+)x(\d+)' .				// optional 50x50	
+				'([pd]\d+x\d+|[a-z]{1,2})?' . // nw or p30x40 or d30x40
+			')?' . 
 			'\.' . $this->ext() . 			// .jpg
 			'$/'; 
 
@@ -520,21 +534,20 @@ class Pageimage extends Pagefile {
 			// this is a variation with dimensions, return array of info
 			$info = array(
 				'original' => $originalName . '.' . $this->ext(),
-				'width' => $matches[1],
-				'height' => $matches[2],
+				'width' => (int) $matches[1],
+				'height' => (int) $matches[2],
 				'crop' => (isset($matches[3]) ? $matches[3] : ''),
 				'suffix' => (isset($matches[4]) ? explode('-', $matches[4]) : array()),
 				);
 
-		
 		} else if(preg_match($re2, $variationName, $matches)) {
 		
 			// this is a variation only with suffix
 			$info = array(
 				'original' => $originalName . '.' . $this->ext(),
-				'width' => 0,
-				'height' => 0,
-				'crop' => '',
+				'width' => (isset($matches[2]) ? (int) $matches[2] : 0),
+				'height' => (isset($matches[3]) ? (int) $matches[3] : 0),
+				'crop' => (isset($matches[4]) ? $matches[4] : ''),
 				'suffix' => explode('-', $matches[1])
 				);
 			
