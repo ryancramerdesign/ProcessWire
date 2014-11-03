@@ -375,7 +375,8 @@ class InputfieldCKEditor extends InputfieldTextarea {
 
 		$value = $this->purifyValue($this->attr('value')); 
 
-		$out = 	"<div id='{$this->id}_ckeditor' class='InputfieldCKEditorInline' contenteditable='true' data-configName='$this->configName'>$value</div>" . 
+		$out = 	
+			"<div id='{$this->id}_ckeditor' class='InputfieldCKEditorInline' contenteditable='true' data-configName='$this->configName'>$value</div>" . 
 			"<input type='hidden' name='$this->name' id='$this->id' value='" . self::PLACEHOLDER_TEXT . "' />";
 
 		return $out; 
@@ -413,7 +414,9 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	 */
 	protected function purifyValue($value) {
 
+		$value = (string) $value; 
 		$length = strlen($value);
+		if(!$length) return ''; 
 
 		if($length && $this->usePurifier && $this->wire('modules')->isInstalled('MarkupHTMLPurifier')) {
 			if(is_null(self::$purifier)) self::$purifier = $this->wire('modules')->get('MarkupHTMLPurifier');
