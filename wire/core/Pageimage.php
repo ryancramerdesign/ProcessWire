@@ -291,7 +291,7 @@ class Pageimage extends Pagefile {
 		$basename = basename($this->basename(), "." . $this->ext()); 		// i.e. myfile
 		$basename .= '.' . $width . 'x' . $height . $crop . $suffixStr . "." . $this->ext();	// i.e. myfile.100x100.jpg or myfile.100x100nw-suffix1-suffix2.jpg
 		$filenameFinal = $this->pagefiles->path() . $basename; 
-		$filenameUnvalidated = $this->pagefiles->path() . "unvalidated_" . $basename; 
+		$filenameUnvalidated = $this->config->paths->cache . $basename . '.' . $this->page->id . '.' . $this->ext;
 		$exists = file_exists($filenameFinal); 
 
 		if(!$exists || $options['forceNew']) {
