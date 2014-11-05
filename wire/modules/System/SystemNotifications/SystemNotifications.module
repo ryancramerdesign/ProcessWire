@@ -11,7 +11,7 @@ class SystemNotifications extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'System Notifications',
-			'version' => 7,
+			'version' => 8,
 			'summary' => 'Adds support for notifications in ProcessWire (currently in development)',
 			'autoload' => true, 
 			'installs' => 'FieldtypeNotifications', 
@@ -109,6 +109,7 @@ class SystemNotifications extends WireData implements Module {
 			
 			$notification = $this->wire('user')->notifications()->message('Testing progress bar notification');
 			$notification->progress = 0; 
+			$notification->flag('annoy');
 			$value = $session->get($this, 'test_progress'); 
 			if(!is_array($value)) $value = array();
 			$id = $notification->getID();
@@ -124,11 +125,15 @@ class SystemNotifications extends WireData implements Module {
 				if(!$notification) continue; 
 				
 				$notification->progress += 10;
-				if($notification->progress < 100) continue;
+				if($notification->progress < 100) {
+					$notification->html = "<p>$notification->progress%</p>";
+					continue;
+				}
 				
 				unset($value[$id]); 
 				$notification->title = "Your download is now complete!";
 				$notification->flag('open'); 
+				$notification->flag('email'); 
 				$notification->html = 
 					"<p>This is just an example for demo purposes and the button below doesn't actually do anything.<br />" . 
 					"<button class='ui-button'><strong class='ui-button-text'>Download</strong></button></p>";
@@ -166,6 +171,7 @@ class SystemNotifications extends WireData implements Module {
 			'progress' => $notification->progress, 
 			'html' => $html, 
 			'qty' => $notification->qty, 
+			'expires' => $notification->expires, 
 			);
 		
 		if($a['progress'] > 0 && $a['progress'] < 100) {
@@ -502,6 +508,7 @@ class SystemNotifications extends WireData implements Module {
 		
 		$notifications = $user->notifications();
 		$notification = $notifications->warning(sprintf($this->_('404 occurred: %s'), $url)); 
+		$notification->expires = 30; 
 		$notification->html = 
 			"<p>" . 
 			"<b>Referer:</b> $referer<br />" .
@@ -510,7 +517,7 @@ class SystemNotifications extends WireData implements Module {
 			"<b>Page:</b> " . ($page->id ? $page->url : 'Unknown') . "<br />" .
 			"<b>User:</b> " . $this->user->name . 
 			"</p>";	
-
+		
 		$notifications->save();
 	}
 

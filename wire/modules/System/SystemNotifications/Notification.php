@@ -28,6 +28,7 @@ class Notification extends WireData {
 	const flagOpen = 2048;		// notification will automatically open the text/html area (no click required)
 	
 	const flagNoGhost = 4096; 	// disable showing of a notification ghost
+	const flagAnnoy = 8192; 	// rather than just update bug counter, notification will pop up at top of screen
 
 	/**
 	 * Provides a name for each of the flags
@@ -40,16 +41,15 @@ class Notification extends WireData {
 		self::flagLog => 'log', 
 		self::flagLogOnly => 'log-only', 
 		self::flagAllowMarkup => 'markup', 
-		
 		self::flagMessage => 'message',
 		self::flagWarning => 'warning',
 		self::flagError => 'error',
-		
 		self::flagNotice => 'notice',
 		self::flagSession => 'session',
 		self::flagEmail => 'email',
 		self::flagOpen => 'open',
 		self::flagNoGhost => 'no-ghost', 
+		self::flagAnnoy => 'annoy',
 		);
 
 	/**
@@ -194,6 +194,28 @@ class Notification extends WireData {
 	}
 
 	/**
+	 * Add the given flag name(s) (shortcut for setFlag)
+	 * 
+	 * @param $name One or more space-separated flag names
+	 * @return this
+	 * 
+	 */
+	public function addFlag($name) {
+		return $this->setFlags($name, true); 
+	}
+
+	/**
+	 * Remove the given flag name(s) (shortcut for setFlag)
+	 * 
+	 * @param $name One or more space-separated flag names
+	 * @return this
+	 * 
+	 */
+	public function removeFlag($name) {
+		return $this->setFlags($name, false); 
+	}
+
+	/**
 	 * Set multiple flags
 	 * 
 	 * @param string $names space separated string of flag names
@@ -214,6 +236,11 @@ class Notification extends WireData {
 			return $this;
 		}
 	
+		// optimization if this was called with just one flag name
+		if(strpos($names, ',') === false && strpos($names, ' ') === false) {
+			$this->setFlag($names, $add); 
+		}
+	
 		// named flags
 		$flags = $this->flagNamesToFlags($names); 
 		foreach($flags as $name => $flag) {
@@ -225,6 +252,9 @@ class Notification extends WireData {
 
 	/**
 	 * Set a value to the Notification
+	 * 
+	 * Note: setting the 'expires' value accepts either a future date, or a quantity of seconds 
+	 * in the future relative to now. 
 	 *
 	 */
 	public function set($key, $value) {
@@ -239,6 +269,11 @@ class Notification extends WireData {
 
 			// sanitized date value is always an integer
 			$value = (int) $value; 
+			
+			if($key == 'expires' && $value > 0 && $value < strtotime("-10 YEARS")) {
+				// assume this is a time relative to now
+				$value = time() + $value;
+			}
 
 		} else if($key == 'title') {
 			if($this->flags & self::flagAllowMarkup) {
@@ -266,6 +301,8 @@ class Notification extends WireData {
 	/**
 	 * Return an ID string/hash unique to this Notification within the page that its on
 	 * 
+	 * The text/html, modified date, expires date, and icon may change without affecting the id. 
+	 * 
 	 * @return mixed|null|string
 	 * 
 	 */
@@ -278,10 +315,32 @@ class Notification extends WireData {
 				parent::get('created') . ',' . 
 				parent::get('from') . ',' . 
 				parent::get('src_id') . ',' . 
-				($this->page ? $this->page->id : '?') . ',';
-				parent::get('flags');
+				($this->page ? $this->page->id : '?'); // . ',' . 
+				//parent::get('flags');
 
 		return 'noID' . md5($id); 
+	}
+	
+	/**
+	 * Return an string hash for comparing other notifications to see if they contain the same content
+	 * 
+	 * Hash specifically excludes consideration of dates (created, modified, expires)
+	 *
+	 * @return string
+	 *
+	 */
+	public function getHash() {
+
+		$id = 	parent::get('title') . ',' .
+				parent::get('from') . ',' .
+				parent::get('src_id') . ',' .
+				($this->page ? $this->page->id : '?') . ',' . 
+				parent::get('flags') . ',' . 
+				parent::get('icon') . ',' . 
+				parent::get('text') . ',' . 
+				parent::get('html');
+
+		return md5($id);
 	}
 
 	/**
@@ -291,6 +350,7 @@ class Notification extends WireData {
 	public function get($key) {
 
 		if($key == 'id') return $this->getID();
+		if($key == 'page') return $this->page; 
 
 		if($key == 'flagNames') {
 			$flags = parent::get('flags');
@@ -318,9 +378,21 @@ class Notification extends WireData {
 					$value = $this->sanitizer->entities($value); 
 				}
 			}
+		} else {
+			if($key == 'created' && !$value) $value = time();
 		}
 
 		return $value; 
+	}
+
+	/**
+	 * Is this Notification expired?
+	 * 
+	 * @return bool
+	 * 
+	 */
+	public function isExpired() {
+		return ($this->expires > 0 && $this->expires <= time()); 
 	}
 
 	/**

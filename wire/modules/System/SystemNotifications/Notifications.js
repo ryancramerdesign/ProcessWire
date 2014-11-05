@@ -69,7 +69,19 @@ var Notifications = {
 
 		$.getJSON(url, function(data) {
 			Notifications.options.updateLast = data.time; 
-			Notifications._update(data, false); 
+			Notifications._update(data, false);
+			
+			// remove expired items
+			Notifications.$list.children('li').each(function() {
+				var $li = $(this);
+				var expires = $li.attr('data-expires');
+				if(!expires) return;
+				expires = parseInt(expires);
+				if(expires > 0 && expires <= parseInt(data.time)) $li.slideUp('fast', function() {
+					$li.remove();
+				}); 
+			});
+
 			clearTimeout(Notifications.updateTimeout); 
 			Notifications.updateTimeout = setTimeout('Notifications.update()', updateDelay); 
 			Notifications.updating = false; 
@@ -143,21 +155,26 @@ var Notifications = {
 		} else {
 			
 			if(qty == 0 && Notifications.$menu.hasClass('open')) $bug.click();
+			var annoy = false;
 
 			for(var n = 0; n < qtyNew; n++) {
 				// if(notifications[n].flagNames.indexOf('ghost') > -1) {
 				var notification = data.notifications[n];
 				if('ghostShown' in notification && notification.ghostShown == true) continue; 
+				if(notification.flagNames.indexOf('annoy') > -1) annoy = true; 
 				if(notification.flagNames.indexOf('no-ghost') > -1) continue; 
 				notification.ghostShown = true; 
 				Notifications._ghost(notification, n); 
 			}
+		
+			// if any notifications were marked 'annoy' open the notifications menu now
+			if(annoy) $bug.click();
 		}
 
 		if(qty > 0) {
 			$bug.effect('highlight', 500); 
 		}
-
+	
 		//if(isRuntime) Notifications.runtime = []; // reset
 	},
 
@@ -239,6 +256,7 @@ var Notifications = {
 			$li = $("<li></li>");
 		}
 		$li.attr('id', notification.id); 
+		if(notification.expires > 0) $li.attr('data-expires', notification.expires); 
 		
 		var $icon = $("<i></i>").addClass('fa fa-fw fa-' + notification.icon); 
 		var $title = $("<span></span>").addClass('NotificationTitle').html(notification.title); 

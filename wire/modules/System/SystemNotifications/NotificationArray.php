@@ -52,13 +52,14 @@ class NotificationArray extends WireArray {
 		foreach($this as $notification) {
 			if($notification === $item) continue; 
 
-			if($notification->getID() == $itemID) {
-				$duplicate = $notification;
+			if($notification->getID() == $itemID) { 
+				// already have it
+				$duplicate = $notification; 
 				break;
 			}
 		}
 
-		// don't add if it's a dupliate, just update it
+		// don't add if it's a duplicate, just update it
 		if($duplicate) {
 			$item = $duplicate;
 			$item->modified = time();
