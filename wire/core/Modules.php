@@ -703,7 +703,8 @@ class Modules extends WireArray {
 			}
 
 			// if the filename doesn't end with .module or .module.php, then stop and move onto the next
-			if((!strpos($filename, '.module') || substr($filename, -7) !== '.module') && substr($filename, -11 !== '.module.php')) {
+			if(!strpos($filename, '.module')) continue; 
+			if(substr($filename, -7) !== '.module' && substr($filename, -11) !== '.module.php') {
 				continue; 
 			}
 		
@@ -1309,6 +1310,8 @@ class Modules extends WireArray {
 			"$basename.module.php",
 			"$basename.info.php",
 			"$basename.info.json",
+			"$basename.config.php", 
+			"{$basename}Config.php",
 			);
 		
 		if($inPath) { 
@@ -1333,7 +1336,7 @@ class Modules extends WireArray {
 						continue; 
 					}
 					if(in_array($file->getBasename(), $files)) continue; // skip known files
-					if(strpos($file->getBasename(), '.module') && preg_match('{(\.module|\.module.php)$}', $file->getBasename())) {
+					if(strpos($file->getBasename(), '.module') && preg_match('{(\.module|\.module\.php)$}', $file->getBasename())) {
 						// another module exists in this dir, so we don't want to delete that
 						$numOtherModules++;
 					}
@@ -1558,7 +1561,9 @@ class Modules extends WireArray {
 		} else if(is_int($module) || ctype_digit("$module")) {
 			return array_search((int) $module, $this->moduleIDs); 
 
-		}  else if(is_string($module)) { 
+		}  else if(is_string($module)) {
+			// remove extensions if they were included in the module name
+			if(strpos($module, '.') !== false) $module = basename(basename($module, '.php'), '.module');
 			if(array_key_exists($module, $this->moduleIDs)) return $module; 
 			if(array_key_exists($module, $this->installable)) return $module; 
 		}
@@ -1590,11 +1595,11 @@ class Modules extends WireArray {
 		$fileJSON = $path . "$moduleName.info.json";
 
 		$info = array();
-		if(is_file($filePHP)) {
+		if(file_exists($filePHP)) {
 			include($filePHP); // will populate $info automatically
 			if(!is_array($info) || !count($info)) $this->error("Invalid PHP module info file for $moduleName"); 
 			
-		} else if(is_file($fileJSON)) {
+		} else if(file_exists($fileJSON)) {
 			$info = file_get_contents($fileJSON);
 			$info = json_decode($info, true);
 			if(!$info) {
@@ -1712,7 +1717,7 @@ class Modules extends WireArray {
 		if(!isset($options['noCache'])) $options['noCache'] = false;
 		
 		$info = array();
-		$moduleName = $module;
+		$moduleName = $this->getModuleClass($module); 
 		$moduleID = (string) $this->getModuleID($module); // typecast to string for cache
 		$fromCache = false;  // was the data loaded from cache?
 		
@@ -1898,7 +1903,7 @@ class Modules extends WireArray {
 		if(empty($info['created']) && isset($this->createdDates[$moduleID])) {
 			$info['created'] = strtotime($this->createdDates[$moduleID]);
 		}
-	
+		
 		return $info;
 	}
 

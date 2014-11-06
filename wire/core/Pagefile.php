@@ -30,6 +30,12 @@
 class Pagefile extends WireData {
 
 	/**
+	 * Timestamp 'created' used by pagefiles that are temporary, not yet published
+	 * 
+	 */
+	const createdTemp = 10; 
+
+	/**
 	 * Reference to the owning collection of Pagefiles
 	 *
 	 */
@@ -537,6 +543,17 @@ class Pagefile extends WireData {
 	public function setPagefilesParent(Pagefiles $pagefiles) {
 		$this->pagefiles = $pagefiles; 
 		return $this;
+	}
+
+	/**
+	 * Returns true if this Pagefile is temporary, not yet published. Or use this to set the temp status. 
+	 * 
+	 * @param bool $set Optionally set the temp status to true or false
+	 * @return bool
+	 * 
+	 */
+	public function isTemp($set = null) {
+		return $this->pagefiles->isTemp($this, $set); 
 	}
 
 

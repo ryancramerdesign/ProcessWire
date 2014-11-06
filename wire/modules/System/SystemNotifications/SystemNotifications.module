@@ -11,7 +11,7 @@ class SystemNotifications extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'System Notifications',
-			'version' => 6,
+			'version' => 8,
 			'summary' => 'Adds support for notifications in ProcessWire (currently in development)',
 			'autoload' => true, 
 			'installs' => 'FieldtypeNotifications', 
@@ -85,7 +85,7 @@ class SystemNotifications extends WireData implements Module {
 			}
 		}
 
-		if($page->template == 'admin') {
+		if($page->template == 'admin' && !$this->wire('input')->get('modal')) {
 			$this->addHookAfter('AdminTheme::getExtraMarkup', $this, 'hookAdminThemeGetExtraMarkup'); 
 			// $this->addHookAfter('ProcessPageEdit::execute', $this, 'hookPageEditExecute'); 
 		}
@@ -109,6 +109,7 @@ class SystemNotifications extends WireData implements Module {
 			
 			$notification = $this->wire('user')->notifications()->message('Testing progress bar notification');
 			$notification->progress = 0; 
+			$notification->flag('annoy');
 			$value = $session->get($this, 'test_progress'); 
 			if(!is_array($value)) $value = array();
 			$id = $notification->getID();
@@ -124,11 +125,15 @@ class SystemNotifications extends WireData implements Module {
 				if(!$notification) continue; 
 				
 				$notification->progress += 10;
-				if($notification->progress < 100) continue;
+				if($notification->progress < 100) {
+					$notification->html = "<p>$notification->progress%</p>";
+					continue;
+				}
 				
 				unset($value[$id]); 
 				$notification->title = "Your download is now complete!";
 				$notification->flag('open'); 
+				$notification->flag('email'); 
 				$notification->html = 
 					"<p>This is just an example for demo purposes and the button below doesn't actually do anything.<br />" . 
 					"<button class='ui-button'><strong class='ui-button-text'>Download</strong></button></p>";
@@ -166,6 +171,7 @@ class SystemNotifications extends WireData implements Module {
 			'progress' => $notification->progress, 
 			'html' => $html, 
 			'qty' => $notification->qty, 
+			'expires' => $notification->expires, 
 			);
 		
 		if($a['progress'] > 0 && $a['progress'] < 100) {
@@ -262,6 +268,7 @@ class SystemNotifications extends WireData implements Module {
 		$config->styles->add("$url.css?v=$info[version]"); 
 		$config->scripts->add("$url.js?v=$info[version]"); 
 		$qty = count($this->wire('user')->get(self::fieldName)); 
+		$ghostLimit = $this->ghostLimit ? $this->ghostLimit : 20; 
 
 		$properties = array(
 			// configured property names
@@ -295,12 +302,39 @@ class SystemNotifications extends WireData implements Module {
 			"</div>" . 
 			"<ul id='NotificationGhosts' class='NotificationGhosts $ghostClass'></ul>" . 
 			"<script>Notifications.init(" . json_encode($options) . "); ";
+		
+		$notices = $this->wire('notices'); 
+		$numNotices = count($notices); 
+		$numMessages = 0;
+		$numWarnings = 0;
+		$numErrors = 0;
+		$noGhost = $numNotices > $ghostLimit; 
 
 		// convert runtime Notices to Notifications
-		foreach($this->wire('notices') as $notice) {
+		foreach($notices as $notice) {
 			$notification = $this->noticeToNotification($notice); 
+			if($noGhost) $notification->setFlag("no-ghost"); 
 			$notificationJS = json_encode($this->notificationToArray($notification)); 
-			$out .= "Notifications.add($notificationJS); ";
+			$out .= "\nNotifications.add($notificationJS); ";
+			if($notification->is("message")) $numMessages++;
+				else if($notification->is("warning")) $numWarnings++;
+				else if($notification->is("error")) $numErrors++;
+		}
+		
+		if($noGhost) {
+			$ghostTypes = array(
+				"message" => $numMessages, 
+				"warning" => $numWarnings, 
+				"error" => $numErrors
+			);
+			foreach($ghostTypes as $type => $qty) {
+				if(!$qty) continue; 
+				if($type == 'message') $title = sprintf($this->_n('%d new message', '%d new messages', $qty), $qty);
+					else if($type == 'warning') $title = sprintf($this->_n('%d new warning', '%d new warnings', $qty), $qty);
+					else if($type == 'error') $title = sprintf($this->_n('%d new error', '%d new errors', $qty), $qty); 
+				$icon = $this->get("icon" . ucfirst($type)); 
+				$out .= 'Notifications._ghost({"id":"","title":"' . $title . '","icon":"' . $icon . '","flagNames":"' . $type . ' notice"});';
+			}
 		}
 
 		$out .= 
@@ -474,6 +508,7 @@ class SystemNotifications extends WireData implements Module {
 		
 		$notifications = $user->notifications();
 		$notification = $notifications->warning(sprintf($this->_('404 occurred: %s'), $url)); 
+		$notification->expires = 30; 
 		$notification->html = 
 			"<p>" . 
 			"<b>Referer:</b> $referer<br />" .
@@ -482,7 +517,7 @@ class SystemNotifications extends WireData implements Module {
 			"<b>Page:</b> " . ($page->id ? $page->url : 'Unknown') . "<br />" .
 			"<b>User:</b> " . $this->user->name . 
 			"</p>";	
-
+		
 		$notifications->save();
 	}
 

@@ -29,6 +29,7 @@ class SystemNotificationsConfig extends ModuleConfig {
 			'ghostFadeSpeed' => 'fast',				// speed at which ghosts fade in or out, or blank for no fade
 			'ghostOpacity' => 0.85, 				// full opacity of ghost (when fully faded in) 
 			'ghostPos' => 2, 						// ghost position: 1=left, 2=right
+			'ghostLimit' => 20, 					// only show 1 summary ghost if there are more than this number
 			'dateFormat' => 'rel', 					// date format to use in notifications (anything compatible with wireDate() function)
 		); 
 	}
@@ -95,21 +96,28 @@ class SystemNotificationsConfig extends ModuleConfig {
 		$f->attr('name', 'ghostDelay');
 		$f->label = __('Ghost delay');
 		$f->description = __('How long ghost messages appear for (in ms).');
-		$f->columnWidth = 33;
+		$f->columnWidth = 25;
 		$form->add($f);
 
 		$f = $modules->get('InputfieldInteger');
 		$f->attr('name', 'ghostDelayError');
 		$f->label = __('Ghost error delay');
 		$f->description = __('How long ghost errors appear for (in ms).');
-		$f->columnWidth = 33;
+		$f->columnWidth = 25;
 		$form->add($f);
 		
 		$f = $modules->get('InputfieldFloat');
 		$f->attr('name', 'ghostOpacity');
 		$f->label = __('Ghost full opacity');
 		$f->description = __('Full opacity of ghosts (0.1-1.0)');
-		$f->columnWidth = 34;
+		$f->columnWidth = 25;
+		$form->add($f);
+		
+		$f = $modules->get('InputfieldFloat');
+		$f->attr('name', 'ghostLimit');
+		$f->label = __('Ghost Limit');
+		$f->description = __('Show summary ghost if more this.');
+		$f->columnWidth = 25;
 		$form->add($f);
 
 		$f = $modules->get('InputfieldRadios');

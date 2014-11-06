@@ -23,6 +23,7 @@
  *
  */
 abstract class Notice extends WireData {
+	
 
 	/**
 	 * Flag indicates the notice is for when debug mode is on only
@@ -79,7 +80,7 @@ abstract class Notice extends WireData {
 	abstract public function getName();
 	
 	public function __toString() {
-		return $this->text; 
+		return (string) $this->text; 
 	}
 }
 
@@ -120,6 +121,8 @@ class NoticeWarning extends Notice {
  */
 class Notices extends WireArray {
 	
+	const logAllNotices = false;  // for debugging/dev purposes
+	
 	public function isValidItem($item) {
 		return $item instanceof Notice; 
 	}	
@@ -158,7 +161,7 @@ class Notices extends WireArray {
 			$item = $warning;
 		}
 
-		if(($item->flags & Notice::log) || ($item->flags & Notice::logOnly)) {
+		if(self::logAllNotices || ($item->flags & Notice::log) || ($item->flags & Notice::logOnly)) {
 			$this->addLog($item);
 			if($item->flags & Notice::logOnly) return $this;
 		}

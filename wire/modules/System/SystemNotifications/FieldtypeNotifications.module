@@ -10,7 +10,7 @@ class FieldtypeNotifications extends FieldtypeMulti {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Notifications',
-			'version' => 3,
+			'version' => 4,
 			'summary' => 'Field that stores user notifications.',
 			'requires' => 'SystemNotifications',
 			);
@@ -72,11 +72,42 @@ class FieldtypeNotifications extends FieldtypeMulti {
 			if(is_array($data)) $notification->setArray($data); 
 	
 			$notification->resetTrackChanges(); 
-			$notifications->add($notification); 
+			if(!$notification->isExpired()) $notifications->add($notification); 
 		}
 	
 		$notifications->resetTrackChanges(); 
 		return $notifications;  
+	}
+
+	/**
+	 * Email the given notifications to the pages (users) they are associated with
+	 * 
+	 * Removes email flag after mail has been successfully sent. 
+	 * 
+	 * @param array $notifications
+	 * 
+	 */
+	protected function emailNotifications(array $notifications) {
+		foreach($notifications as $notification) {
+			if(!$notification->is("email")) continue;
+			$page = $notification->page; 
+			if(!$page || !$page->email) continue; 
+			$of = $page->of();
+			$page->of(false);
+			$mail = wireMail(); 	
+			$mail->to($page->email); 
+			if($notification->emailFrom) $mail->from($notification->emailFrom); 
+			$mail->subject($notification->title . " (" . $this->wire('config')->httpHost . ")");
+			$mail->body((string) $notification->text);
+			if((string) $notification->html) $mail->bodyHTML((string) $notification->html); 
+			if($mail->send()) {
+				$notification->removeFlag("email"); 
+				$this->wire('log')->message("Sent notification email to: $page->email, Subject: $notification->title"); 
+			} else {
+				$this->wire('log')->error("Error sending notification email to: $page->email, Subject: $notification->title");
+			}
+			$page->of($of);
+		}
 	}
 
 	/**
@@ -91,6 +122,8 @@ class FieldtypeNotifications extends FieldtypeMulti {
 	public function ___sleepValue(Page $page, Field $field, $value) {
 
 		$sleepValue = array();
+		$notifications = array();
+		$emails = array();
 	
 		// if we are given something other than an NotificationArray, 
 		// then just return a blank array
@@ -99,13 +132,47 @@ class FieldtypeNotifications extends FieldtypeMulti {
 		// make the notifications sort by created date ascending
 		$value->sort('created'); 
 	
-		// convert each Notification to an array within sleepValue
+		// filter out notifications that don't need to be stored in the DB
 		foreach($value as $notification) {
-	
+			
+			if(!$notification->created) $notification->created = time();
+			if(!$notification->src_id) $notification->src_id = (int) $this->wire('page')->id;
+			if(!$notification->title) $notification->title = 'Untitled';
+			if(!$notification->is('message') && !$notification->is('error') && !$notification->is('warning')) {
+				$notification->setFlag('message', true);
+			}
+
+			$hash = $notification->getHash();
+
+			if($notification->is("debug") && !$this->wire('config')->debug) continue;
+			//if($notification->isExpired()) continue;
+			if($notification->is("email")) $emails[$hash] = $notification; // an email for this notification is pending
 			if($notification->is("notice")) continue; // don't save runtime Notices
-			if($notification->is("debug") && !$this->wire('config')->debug) continue; 
+			if($notification->is("session")) continue; // don't save session notifications
 			if($notification->isChanged()) $notification->modified = time();
-	
+		
+			// check for duplicates
+			if(isset($notifications[$hash])) {
+				// found a duplicate notification
+				$no = $notifications[$hash];
+				// check which one we should keep
+				if($no->modified > $notification->modified || $no->created > $notification->created) {
+					// existing notification is newer than the one we have, so use the existing
+					unset($notifications[$hash]); // remove
+					$notification = $no; // then it'll be added back, appended to array
+				} 
+				// qty indicates how many times the same notification was repeated
+				$notification->qty = $no->qty + 1; 
+			}
+			// add the notification
+			$notifications[$hash] = $notification;
+		}
+		
+		if(count($emails)) $this->emailNotifications($emails); 
+
+		// convert each Notification to an array within sleepValue
+		foreach($notifications as $notification) {
+			
 			$data = array(
 				'id' => $notification->getID(), 
 				'text' => $notification->text, 
@@ -118,13 +185,6 @@ class FieldtypeNotifications extends FieldtypeMulti {
 				); 
 	
 			$json = wireEncodeJSON($data); 
-	
-			if(!$notification->created) $notification->created = time();
-			if(!$notification->src_id) $notification->src_id = (int) $this->wire('page')->id; 
-			if(!$notification->title) $notification->title = 'Untitled';
-			if(!$notification->is('message') && !$notification->is('error') && !$notification->is('warning')) {
-				$notification->setFlag('message', true); 
-			}	
 	
 			if(!$notification->modified || $notification->isChanged()) $notification->modified = time();
 	

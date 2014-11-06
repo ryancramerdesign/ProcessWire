@@ -679,10 +679,28 @@ abstract class Inputfield extends WireData implements Module {
 			$fields->add($field); 
 			
 		}
-
+	
 		return $fields; 
 	}
 
+	/**
+	 * Return a list of Inputfield names from getConfigInputfields() that are allowed in fieldgroup/template context
+	 * 
+	 * @param Field $field
+	 * @return array of Inputfield names
+	 * 
+	 */
+	public function ___getConfigAllowContext($field) {
+		return array(
+			'visibility', 
+			'collapsed', 
+			'columnWidth', 
+			'required', 
+			'requiredIf', 
+			'showIf'
+		);
+	}
+	
 	/**
 	 * Export configuration values for external consumption
 	 *

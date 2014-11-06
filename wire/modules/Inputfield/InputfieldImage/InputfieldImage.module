@@ -147,7 +147,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$field->label = $this->_('Default View'); 
 		$field->addOption(0, $this->_('Rows')); 
 		$field->addOption(1, $this->_('Grid')); 
-		$field->showIf = 'maxFiles!=1';
+		// $field->showIf = 'maxFiles!=1';
 		$field->optionColumns = 1; 
 		$field->description = $this->_('Either view can be toggled by clicking the grid/row icon in the image field. This just defines which one is the default. The rows view is the recommended default.'); 
 		$field->attr('value', (int) $this->defaultGrid); 
@@ -202,5 +202,10 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$inputfields->add($fieldset); 
 		
 		return $inputfields; 	
+	}
+	
+	public function ___getConfigAllowContext($field) {
+		$a = array('adminThumbs', 'defaultGrid'); 
+		return array_merge(parent::___getConfigAllowContext($field), $a); 
 	}
 }
