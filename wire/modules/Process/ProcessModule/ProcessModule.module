@@ -214,7 +214,7 @@ class ProcessModule extends Process {
 			$this->modulesArray[$module->className()] = 1; 
 		}
 		foreach($this->modules->getInstallable() as $module) {
-			$this->modulesArray[basename($module, '.module')] = 0; 
+			$this->modulesArray[basename(basename($module, '.php'), '.module')] = 0; 
 		}
 		ksort($this->modulesArray); 
 

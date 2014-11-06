@@ -870,8 +870,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if(strpos($name, '.')) list($name, $subname) = explode('.', $name); 
 		if($name == 'config' || $subname == 'config') return 'Not allowed';
 
-		$field = isset($fields[$name]) ? $fields[$name] : null;
-		if(is_null($value)) $value = $p->getUnformatted($name); 
+		$field = isset($fields[$name]) ? $fields[$name] : $this->wire('fields')->get($name);
+		if(is_null($value)) $value = $p->getUnformatted($name);
 		$delimiter = isset($this->delimiters[$fullname]) ? $this->delimiters[$fullname] : "<br />";
 
 		if($subname == 'count' && $value instanceof WireArray) {

@@ -85,7 +85,7 @@ class SystemNotifications extends WireData implements Module {
 			}
 		}
 
-		if($page->template == 'admin') {
+		if($page->template == 'admin' && !$this->wire('input')->get('modal')) {
 			$this->addHookAfter('AdminTheme::getExtraMarkup', $this, 'hookAdminThemeGetExtraMarkup'); 
 			// $this->addHookAfter('ProcessPageEdit::execute', $this, 'hookPageEditExecute'); 
 		}

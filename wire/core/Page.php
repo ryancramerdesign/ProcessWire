@@ -1368,10 +1368,13 @@ class Page extends WireData implements Countable {
 
 	/**
 	 * Return a Inputfield object that contains all the custom Inputfield objects required to edit this page
+	 * 
+	 * @param string $fieldName Optional field to limit to, typically the name of a fieldset or tab
+	 * @return null|InputfieldWrapper
 	 *
 	 */
-	public function getInputfields() {
-		return $this->template ? $this->template->fieldgroup->getPageInputfields($this) : null;
+	public function getInputfields($fieldName = '') {
+		return $this->template ? $this->template->fieldgroup->getPageInputfields($this, '', $fieldName) : null;
 	}
 
 	/**

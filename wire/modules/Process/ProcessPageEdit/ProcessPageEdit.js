@@ -1,7 +1,7 @@
 function initPageEditForm() {
 
 	// instantiate the WireTabs
-	$('#ProcessPageEdit').WireTabs({
+	$('#ProcessPageEdit:not(.ProcessPageEditSingleField)').WireTabs({
 		items: $("#ProcessPageEdit > .Inputfields > .InputfieldWrapper"), 
 		id: 'PageEditTabs',
 		skipRememberTabIDs: ['ProcessPageEditDelete']
