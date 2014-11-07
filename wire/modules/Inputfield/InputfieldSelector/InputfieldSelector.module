@@ -117,6 +117,14 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	protected $selectors = null;
 
 	/**
+	 * If initValue has a SINGLE template defined, it will be present here
+	 * 
+	 * @var Template|null
+	 * 
+	 */
+	protected $initTemplate = null;
+
+	/**
 	 * Variable names that should be picked up through the session each time
 	 *
 	 */
@@ -327,7 +335,9 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			if(($template->flags & Template::flagSystem) && !$this->allowSystemTemplates) {
 				continue; 
 			}
-			$templates[$template->id] = $template->label ? "$template->label ($template->name)" : $template->name; 
+			$label = $template->getLabel();
+			if($label != $template->name) $label .= " ($template->name)";
+			$templates[$template->id] = $label;
 		}
 
 		// make users selectable if there are under 100 of them
@@ -710,6 +720,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				}
 			} else $allow = 1;
 			if($allow) {
+				if($this->initTemplate) {
+					$f = $this->initTemplate->fieldgroup->getField($field->name, true); 
+					if($f) $field = $f;
+				}
 				$data = $this->renderSelectFieldOption($field, $settings, $selectedValue);
 				foreach($data as $key => $o) {
 					if($key == 'all') {
@@ -1408,7 +1422,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				if(!is_array($templateValue)) $templateValue = array($templateValue); 
 				foreach($templateValue as $t) {
 					$template = $this->wire('templates')->get($t);
-					if($template) $templates[] = $template->name; 
+					if($template) {
+						$templates[] = $template->name; 
+						if(count($templateValue) == 1) $this->initTemplate = $template;
+					}
 				}
 			}
 			if(count($templates)) $renderSelectOptions['templates'] = $templates; 
