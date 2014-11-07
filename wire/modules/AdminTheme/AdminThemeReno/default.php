@@ -98,7 +98,6 @@ $extras = $adminTheme->getExtraMarkup();
 			<div id="content" class="content fouc_fix">
 
 				<?php
-				if(trim($page->summary)) echo "<h2>$page->summary</h2>";
 				if($page->body) echo $page->body;
 				echo $content;
 				echo $extras['content'];

@@ -87,7 +87,6 @@ $extras = $adminTheme->getExtraMarkup();
 		<div class="container">
 
 			<?php 
-			if(trim($page->summary)) echo "<h2>$page->summary</h2>"; 
 			if($page->body) echo $page->body; 
 			echo $content; 
 			echo $extras['content'];
