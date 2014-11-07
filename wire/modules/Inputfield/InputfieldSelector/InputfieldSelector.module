@@ -1100,6 +1100,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$inputfield->timeInputFormat = $this->timeFormat;
 			$inputfield->placeholder .= ' ' . $this->timePlaceholder;
 		}
+		$inputfield->renderReady();
 		return $inputfield->render();
 	}
 
