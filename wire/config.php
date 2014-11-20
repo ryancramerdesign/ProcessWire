@@ -342,6 +342,26 @@ $config->imageSizerOptions = array(
 	);
 
 /**
+ * Admin thumbnail options, as used by image fields presented in the admin
+ * 
+ * @var array
+ * 
+ */
+$config->adminThumbOptions = array(
+	'width' => 0, // max width of admin thumbnail or 0 for proportional to height
+	'height' => 100, // max height of admin thumbnail or 0 for proportional to width
+	'scale' => 1.0, // i.e. setting of 0.5 makes 100px (for example) thumb render at 50px, for high DPI/retina presentation.
+	'imageSizer' => array( // options to pass along to imageSizer when creating admin thumbnails
+		'upscaling' => false,
+		'cropping' => true,
+		'autoRotation' => true, // automatically correct orientation?
+		'sharpening' => 'soft', // sharpening: none | soft | medium | strong
+		'quality' => 90,
+		'suffix' => array(), // can be array of suffixes or string of 1 suffix
+		)
+	);
+
+/**
  * Temporary directory for uploads
  * 
  * Optionally override PHP's upload_tmp_dir with your own.
@@ -351,8 +371,6 @@ $config->imageSizerOptions = array(
  * $config->uploadTmpDir = dirname(__FILE__) . '/assets/uploads/'; // example
  *
  */
-
-
 
 
 /*** 6. HTTP AND INPUT **************************************************************************/

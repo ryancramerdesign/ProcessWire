@@ -13,7 +13,7 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
- *
+ * 
  */
 
 class ProcessPageEdit extends Process implements WirePageEditor {
@@ -34,7 +34,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	protected $useChildren = true; 
 	protected $useView = true; 
 	protected $tabs = array();
-
+	
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page Edit',          

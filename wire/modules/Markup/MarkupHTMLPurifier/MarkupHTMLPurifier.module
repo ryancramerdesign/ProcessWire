@@ -65,6 +65,7 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 */
 	public function init() {
 		$this->settings->set('Cache.SerializerPath', $this->getCachePath());
+		$this->settings->set('Attr.AllowedRel', array('nofollow'));
 	}
 
 	/**
@@ -72,7 +73,7 @@ class MarkupHTMLPurifier extends WireData implements Module {
 	 *
 	 */
 	protected function getCachePath()  {
-		$cachePath = wire('config')->paths->cache . $this->className() . '/';
+		$cachePath = $this->wire('config')->paths->cache . $this->className() . '/';
 		if(!is_dir($cachePath)) wireMkdir($cachePath); 
 		return $cachePath;
 	}

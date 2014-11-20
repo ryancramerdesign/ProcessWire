@@ -194,7 +194,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			'name' => $nameLabel, 
 			'status' => $statusLabel, 
 			'template' => $templateLabel,
-			'templates_id' => $templateLabel,
+			'templates_id' => $templateLabel . " ID",
 			'modified' => $modifiedLabel,	
 			'created' => $createdLabel, 
 			'modified_users_id' => $modifiedUserLabel, 
