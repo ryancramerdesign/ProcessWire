@@ -29,6 +29,7 @@ class Notification extends WireData {
 	
 	const flagNoGhost = 4096; 	// disable showing of a notification ghost
 	const flagAnnoy = 8192; 	// rather than just update bug counter, notification will pop up at top of screen
+	const flagShown = 16384; 	// has this flag once the notification has been sent to the UI at least once
 
 	/**
 	 * Provides a name for each of the flags
@@ -50,6 +51,7 @@ class Notification extends WireData {
 		self::flagOpen => 'open',
 		self::flagNoGhost => 'no-ghost', 
 		self::flagAnnoy => 'annoy',
+		self::flagShown => 'shown', 
 		);
 
 	/**

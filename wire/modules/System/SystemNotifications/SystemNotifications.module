@@ -11,7 +11,7 @@ class SystemNotifications extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'System Notifications',
-			'version' => 8,
+			'version' => 9,
 			'summary' => 'Adds support for notifications in ProcessWire (currently in development)',
 			'autoload' => true, 
 			'installs' => 'FieldtypeNotifications', 
@@ -199,6 +199,7 @@ class SystemNotifications extends WireData implements Module {
 
 		$data = array();
 		$qty = 0;
+		$qtyNew = 0;
 		$qtyMessage = 0;
 		$qtyWarning = 0;
 		$qtyError = 0;
@@ -214,18 +215,28 @@ class SystemNotifications extends WireData implements Module {
 				$qty--;
 				$notifications->remove($notification); 
 				continue; 
-			} 
+			}
 
-			if($time && $notification->modified < $time) continue; 
+			if($time && $notification->modified < $time) {
+				continue;
+			}
+			
 			if($notification->flags & Notification::flagError) $qtyError++;
 				else if($notification->flags & Notification::flagWarning) $qtyWarning++;
 				else $qtyMessage++;
+
+			if(!$notification->is('shown')) {
+				$notification->setFlag('shown');
+				$qtyNew++;
+			}
 			
 			$data[] = $a; 
 		}
 
-		if(count($rm)) $this->wire('pages')->save($page, array('quiet' => true)); 
-
+		if(count($rm) || $qtyNew) {
+			$this->wire('pages')->saveField($page, 'notifications', array('quiet' => true));
+		}
+		
 		if($action == 'update') {
 			
 			/*
@@ -242,6 +253,7 @@ class SystemNotifications extends WireData implements Module {
 			$data = array(
 				'notifications' => $data, // new notifications only
 				'qty' => $qty, // total notifications (new or not)
+				'qtyNew' => $qtyNew, // quantity of new notifications, not yet shown
 				'qtyMessage' => $qtyMessage,
 				'qtyWarning' => $qtyWarning,
 				'qtyError' => $qtyError,
@@ -292,6 +304,22 @@ class SystemNotifications extends WireData implements Module {
 		foreach($properties as $key) {
 			$options[$key] = $this->get($key); 
 		}
+	
+		$textdomain = '/wire/core/Functions.php'; 
+		$options['i18n'] = array(
+			'sec' => __('sec', $textdomain),
+			'secs' => __('secs', $textdomain),
+			'min' => __('min', $textdomain),
+			'mins' => __('mins', $textdomain), 
+			'hour' => __('hour', $textdomain),
+			'hours' => __('hours', $textdomain), 
+			'day' => __('day', $textdomain),
+			'days' => __('days', $textdomain), 
+			'expires' => $this->_('expires'), 
+			'now' => __('now', $textdomain), 
+			'fromNow' => __('from now', $textdomain), 
+			'ago' => __('ago', $textdomain), 
+		);
 
 		//$options['processKey'] = $this->updateProcesses();
 		$ghostClass = $this->ghostPos == 2 ? "NotificationGhostsRight" : "NotificationGhostsLeft";
@@ -304,21 +332,40 @@ class SystemNotifications extends WireData implements Module {
 			"<script>Notifications.init(" . json_encode($options) . "); ";
 		
 		$notices = $this->wire('notices'); 
-		$numNotices = count($notices); 
+		$notifications = array();
+		$numSave = 0; // number of notifications that need to be saved after being shown
+
+		// convert runtime Notices to Notifications and bundle into array
+		foreach($notices as $notice) {
+			$notification = $this->noticeToNotification($notice); 
+			$notifications[] = $notification;
+		}
+		
+		// bundle user notifications into the same array
+		foreach($this->wire('user')->notifications as $notification) {
+			if($notification->is('shown')) {
+				$notification->setFlag('no-ghost');
+			} else {
+				$notification->setFlag('shown');
+				$numSave++;
+			}
+			$notifications[] = $notification;
+		}
+		
 		$numMessages = 0;
 		$numWarnings = 0;
 		$numErrors = 0;
-		$noGhost = $numNotices > $ghostLimit; 
+		$noGhost = count($notifications) > $ghostLimit; 
 
-		// convert runtime Notices to Notifications
-		foreach($notices as $notice) {
-			$notification = $this->noticeToNotification($notice); 
+		foreach($notifications as $notification) {
 			if($noGhost) $notification->setFlag("no-ghost"); 
 			$notificationJS = json_encode($this->notificationToArray($notification)); 
 			$out .= "\nNotifications.add($notificationJS); ";
 			if($notification->is("message")) $numMessages++;
 				else if($notification->is("warning")) $numWarnings++;
 				else if($notification->is("error")) $numErrors++;
+			if($noGhost) $notification->removeFlag("no-ghost"); // restore in case saved to DB
+			$notification->setFlag('shown'); 
 		}
 		
 		if($noGhost) {
@@ -336,6 +383,11 @@ class SystemNotifications extends WireData implements Module {
 				$out .= 'Notifications._ghost({"id":"","title":"' . $title . '","icon":"' . $icon . '","flagNames":"' . $type . ' notice"});';
 			}
 		}
+		
+		if($numSave) {
+			// updates shown flag so notification doesn't pop up another ghost
+			$this->wire('user')->notifications->save();
+		}
 
 		$out .= 
 			"$('#notices').remove(); " . // in case admin theme still has #notices
@@ -349,92 +401,11 @@ class SystemNotifications extends WireData implements Module {
 			"<span class='qty fa fa-fw'>$qty</span>" . 
 			"<i class='NotificationSpinner fa fa-fw fa-spin fa-spinner'></i>" . 
 			"</div>";
+		
 
 		$event->return = $extras; 
 	}
-
-	/**
-	 * Update processes cache on non-ajax requests
-	 * 
-	 * @return string processKey that was generated for the request
-	 * 
-	 *
-	protected function updateProcesses() {
-		
-		$processes = $this->wire('cache')->getFor($this, 'processes');
-		if(!is_array($processes)) $processes = array();
-		
-		$oldest = time() - ($this->updateDelay * 3); 
-		foreach($processes as $key => $info) {
-			// expire processes that haven't been accessed in the last few seconds
-			if($oldest > $info['time']) unset($processes[$key]);
-		}
 	
-		$user = $this->wire('user');
-		$processKey = $user->id;
-		$data = array();
-		$id = (int) $this->wire('input')->get('id'); 	
-		if($id) $data['id'] = $id;
-		$title = $this->wire('processHeadline'); 
-		if(!$title) $title = $this->wire('page')->get('title|name');
-		
-		$process = array(
-			'user' => $user->name, 
-			'name' => (string) $this->wire('process'),
-			'path' => (string) $this->wire('page')->path . $this->wire('input')->urlSegmentStr,
-			'title' => $title, 
-			'data' => $data,
-			'time' => time()
-			); 
-		
-		$processes[$processKey] = $process; 
-		
-		$this->wire('cache')->saveFor($this, 'processes', $processes, WireCache::expireDaily);
-		$this->updateProcessesNotification($processes); 
-		
-		return $processKey;
-	}
-	
-	protected function updateProcessesNotification(array $processes) {
-		if(!$this->wire('user')->isSuperuser()) return;
-	
-		$numActive = count($processes); 
-		$notificationID = $this->wire('session')->get($this, 'processNotificationID');
-		$notification = null;
-		$notifications = $this->wire('user')->notifications();
-		if($notificationID) $notification = $notifications->get($notificationID);
-		if(!$notification) $notification = $notifications->getNew('message'); 
-		$notification->title = sprintf($this->_n('%d active process', '%d active processes', $numActive), $numActive);
-		
-		$out = 	"<table style='width: 100%;' cellpadding='2' cellspacing='2'><thead><tr>" .
-				"<th>User</th>" . 
-				"<th>Path</th>" .
-				"<th>Title</th>" . 
-				"<th>Details</th>" . 
-				"<th>Last Access</th>" . 
-				"</tr></thead><tbody>";
-		
-		foreach($processes as $process) {
-			$dataStr = '';
-			foreach($process['data'] as $key => $value) {
-				$dataStr .= $this->sanitizer->entities("$key: $value") . "\n";
-			}
-			$out .= "<tr>" .
-					"<td>$process[user]</td>" . 
-					"<td>$process[path]</td>" .
-					"<td>$process[title]</td>" . 
-					"<td><pre>" . trim($dataStr) . "</pre></td>" . 
-					"<td>" . wireRelativeTimeStr($process['time']) . "</td>" . 
-					"</tr>";
-		}
-		
-		$out .= "</tbody></table>";
-		$notification->html = $out; 
-		$notifications->save();
-		$this->wire('session')->set($this, 'processNotificationID', $notification->id); 
-	}
-	*/	
-
 	/**
 	 * Convert ProcessWire runtime "Notice" objects to runtime Notification objects
 	 *
@@ -653,6 +624,89 @@ class SystemNotifications extends WireData implements Module {
 		}
 	}
 
-	
+
+	/**
+	 * Update processes cache on non-ajax requests
+	 *
+	 * @return string processKey that was generated for the request
+	 *
+	 *
+	protected function updateProcesses() {
+
+	$processes = $this->wire('cache')->getFor($this, 'processes');
+	if(!is_array($processes)) $processes = array();
+
+	$oldest = time() - ($this->updateDelay * 3); 
+	foreach($processes as $key => $info) {
+	// expire processes that haven't been accessed in the last few seconds
+	if($oldest > $info['time']) unset($processes[$key]);
+	}
+
+	$user = $this->wire('user');
+	$processKey = $user->id;
+	$data = array();
+	$id = (int) $this->wire('input')->get('id'); 	
+	if($id) $data['id'] = $id;
+	$title = $this->wire('processHeadline'); 
+	if(!$title) $title = $this->wire('page')->get('title|name');
+
+	$process = array(
+	'user' => $user->name, 
+	'name' => (string) $this->wire('process'),
+	'path' => (string) $this->wire('page')->path . $this->wire('input')->urlSegmentStr,
+	'title' => $title, 
+	'data' => $data,
+	'time' => time()
+	); 
+
+	$processes[$processKey] = $process; 
+
+	$this->wire('cache')->saveFor($this, 'processes', $processes, WireCache::expireDaily);
+	$this->updateProcessesNotification($processes); 
+
+	return $processKey;
+	}
+
+	protected function updateProcessesNotification(array $processes) {
+	if(!$this->wire('user')->isSuperuser()) return;
+
+	$numActive = count($processes); 
+	$notificationID = $this->wire('session')->get($this, 'processNotificationID');
+	$notification = null;
+	$notifications = $this->wire('user')->notifications();
+	if($notificationID) $notification = $notifications->get($notificationID);
+	if(!$notification) $notification = $notifications->getNew('message'); 
+	$notification->title = sprintf($this->_n('%d active process', '%d active processes', $numActive), $numActive);
+
+	$out = 	"<table style='width: 100%;' cellpadding='2' cellspacing='2'><thead><tr>" .
+	"<th>User</th>" . 
+	"<th>Path</th>" .
+	"<th>Title</th>" . 
+	"<th>Details</th>" . 
+	"<th>Last Access</th>" . 
+	"</tr></thead><tbody>";
+
+	foreach($processes as $process) {
+	$dataStr = '';
+	foreach($process['data'] as $key => $value) {
+	$dataStr .= $this->sanitizer->entities("$key: $value") . "\n";
+	}
+	$out .= "<tr>" .
+	"<td>$process[user]</td>" . 
+	"<td>$process[path]</td>" .
+	"<td>$process[title]</td>" . 
+	"<td><pre>" . trim($dataStr) . "</pre></td>" . 
+	"<td>" . wireRelativeTimeStr($process['time']) . "</td>" . 
+	"</tr>";
+	}
+
+	$out .= "</tbody></table>";
+	$notification->html = $out; 
+	$notifications->save();
+	$this->wire('session')->set($this, 'processNotificationID', $notification->id); 
+	}
+	 */
+
+
 }
 

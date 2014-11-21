@@ -159,6 +159,8 @@ class FieldtypeNotifications extends FieldtypeMulti {
 				if($no->modified > $notification->modified || $no->created > $notification->created) {
 					// existing notification is newer than the one we have, so use the existing
 					unset($notifications[$hash]); // remove
+					// keep created date from whichever is older
+					// $no->created = $notification->created > 0 && $notification->created < $no->created ? $notification->created : $no->created;
 					$notification = $no; // then it'll be added back, appended to array
 				} 
 				// qty indicates how many times the same notification was repeated
