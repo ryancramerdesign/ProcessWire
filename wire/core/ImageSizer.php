@@ -1524,11 +1524,11 @@ class ImageSizer extends Wire {
 			$target = $targetWidth;
 		}
 		else { // crop
-			if(($w<$h && $w<100) || ($w>$h && $h>100)) {
+			if(($w<$h && $w<100) || ($w>$h && $h>=100)) {
 				$resizingScalevalue = $w;
 				$target = $targetWidth;
 			}
-			elseif(($w<$h && $w>100) || ($w>$h && $h<100)) {
+			elseif(($w<$h && $w>=100) || ($w>$h && $h<100)) {
 				$resizingScalevalue = $h;
 				$target = $targetHeight;
 			}
