@@ -953,6 +953,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$info = $this->modifierFields[$fieldName]; 
 			$type = $info['input'];
 			if(isset($info['options'])) $options = $info['options'];
+			if($fieldName == 'sort' && substr($selectedValue, 0, 1) == '-') {
+				$selectedOperator = '=-';
+				$selectedValue = ltrim($selectedValue, '-');
+			}
 
 		} else if($type == 'selector') {
 			// selector field: do nothing here but skip it, and respond to it further down
