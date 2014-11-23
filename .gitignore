@@ -26,3 +26,4 @@ upgrade.php
 .svn
 .sass-cache
 .sass-cache/*
+/nbproject/private/
