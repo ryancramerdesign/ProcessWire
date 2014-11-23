@@ -197,13 +197,15 @@ class PageArray extends WireArray {
 	/**
 	 * Prepend a Page to the beginning of the PageArray. 
 	 *
-	 * @param Page $item 
+	 * @param Page|PageArray $item 
 	 * @return WireArray This instance.
 	 * 
 	 */
 	public function prepend($item) {
 		parent::prepend($item);
-		$this->numTotal++; 
+		// note that WireArray::prepend does a recursive call to prepend with each item,
+		// so it's only necessary to increase numTotal if the given item is Page (vs. PageArray)
+		if($item instanceof Page) $this->numTotal++; 
 		return $this; 
 	}
 
