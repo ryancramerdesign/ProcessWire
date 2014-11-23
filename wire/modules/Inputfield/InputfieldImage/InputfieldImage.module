@@ -98,8 +98,8 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	 * 
 	 * @param Pageimage $img
 	 * @return array of(
-	 * 	'thumb' => Pageimage object, 
-	 * 	'attr' => string of image attrs, 
+	 * 	'thumb' => Pageimage object,
+	 * 	'attr' => associative array of image attributes 
 	 * 	'markup' => string of markup for <img>, 
 	 * 	'error' => error message if applicable
 	 * 	);
@@ -110,7 +110,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$thumb = $img; 
 		$error = '';
 		$gridSize = $this->gridSize;
-		$imgAttr = '';
+		$attr = array();
 		
 		if($this->adminThumbs) {
 			
@@ -135,29 +135,34 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			}
 			
 			if($thumbHeight && $thumbWidth) {
-				$imgAttr = " width='$thumbWidth' height='$thumbHeight'";
+				$attr['width'] = $thumbWidth;
+				$attr['height'] = $thumbHeight; 
 				$gridSize = $thumbHeight > $thumbWidth ? $thumbWidth : $thumbHeight;
 			} else if($thumbHeight) {
-				$imgAttr = " height='$thumbHeight'";
+				$attr['height'] = $thumbHeight;
 				$gridSize = $thumbHeight;
 			} else if($thumbWidth) {
-				$imgAttr = " width='$thumbHeight'";
+				$attr['width'] = $thumbWidth; 
 				$gridSize = $thumbWidth;
 			}
 		}
-		
-		$imgAttr .= " data-gridsize='$gridSize'";
+
 		$url = $thumb->url;
 
 		// ensure cached image doesn't get shown when replacing same filename
 		if($this->overwrite) $url .= "?m=" . filemtime($img->pathname);
 		
-		$alt = $this->wire('sanitizer')->entities1($img->description);
+		$attr['src'] = $url;
+		$attr['alt'] = $this->wire('sanitizer')->entities1($img->description);
+		$attr['data-gridsize'] = $gridSize;
+		$markup = "<img ";
+		foreach($attr as $key => $value) $markup .= "$key=\"$value\" ";
+		$markup .= " />";
 		
 		return array(
 			'thumb' => $thumb, 
-			'attr' => $imgAttr, 
-			'markup' => "<img src='$url' alt='$alt'$imgAttr />",
+			'attr' => $attr, 
+			'markup' => $markup, 
 			'error' => $error, 
 		);
 	}
