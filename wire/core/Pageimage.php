@@ -290,7 +290,7 @@ class Pageimage extends Pagefile {
 		$basename = basename($this->basename(), "." . $this->ext()); 		// i.e. myfile
 		$basename .= '.' . $width . 'x' . $height . $crop . $suffixStr . "." . $this->ext();	// i.e. myfile.100x100.jpg or myfile.100x100nw-suffix1-suffix2.jpg
 		$filenameFinal = $this->pagefiles->path() . $basename;
-		$filenameUnvalidated = $this->pagefiles->path() . "__" . $basename;
+		$filenameUnvalidated = $this->pagefiles->page->filesManager()->getTempPath() . $basename;
 		$exists = file_exists($filenameFinal);
 
 		if(!$exists || $options['forceNew']) {
@@ -482,6 +482,11 @@ class Pageimage extends Pagefile {
 	 * - height: Specified height
 	 * - crop: Cropping info string or blank if none
 	 * - suffix: array of suffixes
+	 * - suffixAll: (!) contains all suffixes including among parent variations
+	 * - parent: (!) variation info array of direct parent variation file
+	 * 
+	 * Items above identified with (!) are only present if variation is based on another variation, and thus
+	 * has a parent variation image between it and the original. 
 	 * 
 	 * @param string $basename Filename to check
 	 * @return bool|array Returns false if not a variation or array of it is
@@ -489,6 +494,7 @@ class Pageimage extends Pagefile {
 	 */
 	public function ___isVariation($basename) {
 
+		static $level = 0;
 		$variationName = basename($basename);
 		$originalName = basename($this->basename, "." . $this->ext());  // excludes extension
 
@@ -499,18 +505,38 @@ class Pageimage extends Pagefile {
 		}
 	
 		// if file is the same as the original, then it's not a variation
-		if($variationName == $this->basename) {
-			return false;
-		}
+		if($variationName == $this->basename) return false;
 		
 		// if file doesn't start with the original name then it's not a variation
-		if(strpos($variationName, $originalName) !== 0) {
-			return false; 
+		if(strpos($variationName, $originalName) !== 0) return false; 
+	
+		// get down to the meat and the base
+		// meat is the part of the filename containing variation info like dimensions, crop, suffix, etc.
+		// base is the part before that, which may include parent meat
+		$pos = strrpos($variationName, '.'); // get extension
+		$ext = substr($variationName, $pos); 
+		$base = substr($variationName, 0, $pos); // get without extension
+		$rpos = strrpos($base, '.'); // get last data chunk after dot
+		if($rpos !== false) {
+			$meat = substr($base, $rpos+1) . $ext; // the part of the filename we're interested in
+			$base = substr($base, 0, $rpos); // the rest of the filename
+		} else $meat = $variationName;
+
+		// identify parent and any parent suffixes
+		$suffixAll = array();
+		$parent = null;
+		while(($pos = strrpos($base, '.')) !== false) {
+			$part = substr($base, $pos+1); // closest parent name
+			if(is_null($parent)) $parent = $originalName . "." . $part . $ext;
+			$base = substr($base, 0, $pos); 
+			while(($rpos = strrpos($part, '-')) !== false) {
+				$suffixAll[] = substr($part, $rpos+1); 
+				$part = substr($part, 0, $rpos); 
+			}
 		}
 
 		// variation name with size dimensions and optionally suffix
 		$re1 = '/^'  . 
-			$originalName . '\.' .			// myfile. 
 			'(\d+)x(\d+)' .					// 50x50	
 			'([pd]\d+x\d+|[a-z]{1,2})?' . 	// nw or p30x40 or d30x40
 			'(?:-([-_a-z0-9]+))?' . 		// -suffix1 or -suffix1-suffix2, etc.
@@ -519,18 +545,16 @@ class Pageimage extends Pagefile {
 	
 		// variation name with suffix only
 		$re2 = '/^' . 						
-			$originalName . '\.-' . 		// myfile.-
-			'([-_a-z0-9]+)' . 				// suffix1 or suffix1-suffix2, etc. 
+			'-([-_a-z0-9]+)' . 				// suffix1 or suffix1-suffix2, etc. 
 			'(?:\.' . 						// optional extras for dimensions/crop, starts with period
 				'(\d+)x(\d+)' .				// optional 50x50	
 				'([pd]\d+x\d+|[a-z]{1,2})?' . // nw or p30x40 or d30x40
-			')?' . 
+			')?' .
 			'\.' . $this->ext() . 			// .jpg
 			'$/'; 
 
 		// if regex does not match, return false
-		if(preg_match($re1, $variationName, $matches)) {
-			
+		if(preg_match($re1, $meat, $matches)) {
 			// this is a variation with dimensions, return array of info
 			$info = array(
 				'original' => $originalName . '.' . $this->ext(),
@@ -540,7 +564,7 @@ class Pageimage extends Pagefile {
 				'suffix' => (isset($matches[4]) ? explode('-', $matches[4]) : array()),
 				);
 
-		} else if(preg_match($re2, $variationName, $matches)) {
+		} else if(preg_match($re2, $meat, $matches)) {
 		
 			// this is a variation only with suffix
 			$info = array(
@@ -548,17 +572,26 @@ class Pageimage extends Pagefile {
 				'width' => (isset($matches[2]) ? (int) $matches[2] : 0),
 				'height' => (isset($matches[3]) ? (int) $matches[3] : 0),
 				'crop' => (isset($matches[4]) ? $matches[4] : ''),
-				'suffix' => explode('-', $matches[1])
+				'suffix' => explode('-', $matches[1]),
 				);
 			
 		} else {
 			return false; 
 		}
 
+		if($parent) {
+			// suffixAll includes all parent suffix in addition to current suffix
+			if(!$level) $info['suffixAll'] = array_unique(array_merge($info['suffix'], $suffixAll)); 
+			// parent property is set with more variation info, when available
+			$level++;
+			$info['parent'] = $this->isVariation($parent);
+			$level--;
+		}
+
 		if(!$this->original) {
 			$this->original = $this->pagefiles->get($info['original']);
 		}
-
+		
 		return $info;
 	}
 

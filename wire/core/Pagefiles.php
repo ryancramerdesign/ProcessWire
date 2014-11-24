@@ -47,7 +47,7 @@ class Pagefiles extends WireArray {
 	 *
 	 */
 	protected $hookIDs = array();
-
+	
 	/**
 	 * Construct an instantance of Pagefiles 
 	 *
@@ -494,5 +494,6 @@ class Pagefiles extends WireArray {
 		}
 		return count($removed); 
 	}
+
 
 }

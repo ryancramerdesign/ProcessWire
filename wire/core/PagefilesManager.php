@@ -44,7 +44,7 @@ class PagefilesManager extends Wire {
 	 *
 	 */
 	protected $url = null;
-
+	
 	/**
 	 * Construct the PagefilesManager and ensure all needed paths are created
 	 *
@@ -457,6 +457,18 @@ class PagefilesManager extends Wire {
 		}
 
 		return (int) $pageID; 
+	}
+
+	/**
+	 * Return a path name where temporary files can be stored
+	 *
+	 * @return string
+	 *
+	 */
+	public function getTempPath() {
+		static $wtd = null;
+		if(is_null($wtd)) $wtd = new WireTempDir($this->className() . $this->page->id);
+		return $wtd->get();
 	}
 
 }
