@@ -221,14 +221,16 @@ class SystemNotifications extends WireData implements Module {
 				continue;
 			}
 			
-			if($notification->flags & Notification::flagError) $qtyError++;
-				else if($notification->flags & Notification::flagWarning) $qtyWarning++;
-				else $qtyMessage++;
-
-			if(!$notification->is('shown')) {
+			if($notification->is('shown')) {
+				continue;
+			} else {
 				$notification->setFlag('shown');
 				$qtyNew++;
 			}
+
+			if($notification->flags & Notification::flagError) $qtyError++;
+				else if($notification->flags & Notification::flagWarning) $qtyWarning++;
+				else $qtyMessage++;
 			
 			$data[] = $a; 
 		}
