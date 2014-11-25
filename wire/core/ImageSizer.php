@@ -493,32 +493,6 @@ class ImageSizer extends Wire {
 	public function getHeight() { return $this->image['height']; }
 
 	/**
-	 * Return true if it's necessary to perform a resize with the given width/height, or false if not.
-	 * 
-	 * @param int $targetWidth
-	 * @param int $targetHeight
-	 * @return bool
-	 *
-	 */
-	protected function isResizeNecessary($targetWidth, $targetHeight) {
-
-		$img =& $this->image; 
-		$resize = true; 
-
-		if(	(!$targetWidth || $img['width'] == $targetWidth) && 
-			(!$targetHeight || $img['height'] == $targetHeight)) {
-			
-			$resize = false;
-
-		} else if(!$this->upscaling && ($targetHeight >= $img['height'] && $targetWidth >= $img['width'])) {
-
-			$resize = false; 
-		}
-
-		return $resize; 
-	}
-
-	/**
 	 * Given a target height, return the proportional width for this image
 	 *
 	 */
