@@ -205,6 +205,8 @@ class ImageSizer extends Wire {
 	 */
 	public function __construct($filename, $options = array()) {
 
+		$this->setTimeLimit();  // ensure it is called at least once with the default value 30
+
 		// set the use of UnSharpMask as default, can be overwritten per pageimage options
 		// or per $config->imageSizerOptions in site/config.php
 		$this->options['useUSM'] = true;
@@ -869,6 +871,22 @@ class ImageSizer extends Wire {
 		return $this; 
 	}
 
+	/**
+	 * set a time limit for manipulating one image: 10 - 60 seconds, default is 30
+	 *
+	 * @param int $value 10 to 60 - default is 30
+	 * @return $this
+	 *
+	 */
+	protected function setTimeLimit($value = 30) {
+		// imagesizer can get invoked from different locations, including those that are inside of loops
+		// like the wire/modules/Inputfield/InputfieldFile/InputfieldFile.module :: ___renderList() method
+		$timeLimit = (int) $value;
+		$timeLimit = 10 > $timeLimit || 60 < $timeLimit ? 30 : $timeLimit;  // validate it is in a valuable range or set default
+		set_time_limit($timeLimit);
+		return $this;
+	}
+
 
 	/**
 	 * Alternative to the above set* functions where you specify all in an array
@@ -894,6 +912,7 @@ class ImageSizer extends Wire {
 				case 'cropping': $this->setCropping($value); break;
 				case 'defaultGamma': $this->setDefaultGamma($value); break;
 				case 'cropExtra': $this->setCropExtra($value); break;
+				case 'timeLimit': $this->setTimeLimit($value); break;
 				
 				default: 
 					// unknown or 3rd party option
