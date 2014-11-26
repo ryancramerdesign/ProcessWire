@@ -173,7 +173,14 @@ class ProcessController extends Wire {
 		if(!$method) {
 			$method = self::defaultProcessMethodName; 
 			// urlSegment as given by ProcessPageView 
-			if($this->input->urlSegment1 && !$this->user->isGuest()) $method .= ucfirst($this->input->urlSegment1); 
+			if($this->input->urlSegment1 && !$this->user->isGuest()) {
+				// convert some-method-name to SomeMethodName
+				// still compatible with old way
+				$sa = explode('-', $this->input->urlSegment1);
+				foreach ($sa as $k => $v) $sa[$k] = ucfirst(strtolower($v));
+				$method .= implode('', $sa);
+				// old way: $method .= ucfirst($this->input->urlSegment1);
+			} 
 		}
 
 		$hookedMethod = "___$method";
