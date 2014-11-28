@@ -133,7 +133,7 @@ class Sanitizer extends Wire {
 			$allowedExtras = array('-', '_', '.');
 			$allowedExtrasStr = '-_.';
 		}
-			
+	
 		$value = $this->nameFilter($value, $allowedExtras, $replacement, $beautify, $maxLength);
 		
 		if($beautify) {
@@ -394,18 +394,24 @@ class Sanitizer extends Wire {
 
 		if($options['inCharset'] != $options['outCharset']) $value = iconv($options['inCharset'], $options['outCharset'], $value); 
 
-		if($this->multibyteSupport) {
-			if(mb_strlen($value, $options['outCharset']) > $options['maxLength']) $value = mb_substr($value, 0, $options['maxLength'], $options['outCharset']); 
-		} else {
-			if(strlen($value) > $options['maxLength']) $value = substr($value, 0, $options['maxLength']); 
+		if($options['maxLength']) {
+			if($this->multibyteSupport) {
+				if(mb_strlen($value, $options['outCharset']) > $options['maxLength']) $value = mb_substr($value, 0, $options['maxLength'], $options['outCharset']);
+			} else {
+				if(strlen($value) > $options['maxLength']) $value = substr($value, 0, $options['maxLength']);
+			}
 		}
 
-		$n = $options['maxBytes']; 
-		while(strlen($value) > $options['maxBytes']) {
-			$n--; 
-			if($this->multibyteSupport) $value = mb_substr($value, 0, $n, $options['outCharset']); 			
-				else $value = substr($value, 0, $n); 
-		
+		if($options['maxBytes']) {
+			$n = $options['maxBytes'];
+			while(strlen($value) > $options['maxBytes']) {
+				$n--;
+				if($this->multibyteSupport) {
+					$value = mb_substr($value, 0, $n, $options['outCharset']);
+				} else {
+					$value = substr($value, 0, $n);
+				}
+			}
 		}
 
 		return trim($value); 	
@@ -424,6 +430,9 @@ class Sanitizer extends Wire {
 		if(!isset($options['multiLine'])) $options['multiLine'] = true; 	
 		if(!isset($options['maxLength'])) $options['maxLength'] = 16384; 
 		if(!isset($options['maxBytes'])) $options['maxBytes'] = $options['maxLength'] * 3; 
+	
+		// convert \r\n to just \n
+		if(empty($options['allowCRLF']) && strpos($value, "\r\n") !== false) $value = str_replace("\r\n", "\n", $value); 
 
 		return $this->text($value, $options); 
 	}

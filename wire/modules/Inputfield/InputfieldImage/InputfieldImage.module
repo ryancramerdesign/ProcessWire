@@ -30,6 +30,15 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$this->set('adminThumbWidth', empty($options['width']) ? 0 : (int) $options['width']);
 		$this->set('adminThumbHeight', empty($options['height']) ? 0 : (int) $options['height']);
 		$this->set('adminThumbScale', empty($options['scale']) ? 1.0 : (float) $options['scale']);
+		
+		if(empty($options['imageSizerOptions'])) {
+			// properties specified in $options rather than $options['imageSizerOptions'], so we copy them
+			$options['imageSizerOptions'] = array();
+			foreach($options as $key => $value) {
+				if($key == 'height' || $key == 'width' || $key == 'scale') continue;
+				$options['imageSizerOptions'][$key] = $value; 
+			}
+		}
 		$this->set('imageSizerOptions', empty($options['imageSizerOptions']) ? array() : $options['imageSizerOptions']);
 	}
 
