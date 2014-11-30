@@ -204,6 +204,9 @@ class ImageSizer extends Wire {
 	 *
 	 */
 	public function __construct($filename, $options = array()) {
+	
+		// ensures the resize doesn't timeout the request (with at least 30 seconds)
+		$this->setTimeLimit(); 
 
 		// set the use of UnSharpMask as default, can be overwritten per pageimage options
 		// or per $config->imageSizerOptions in site/config.php
@@ -496,8 +499,8 @@ class ImageSizer extends Wire {
 	 * @param int $targetWidth
 	 * @param int $targetHeight
 	 * @return bool
+	 * @deprecated no longer in use, left as comment for reference, TBD later
 	 *
-	 */
 	protected function isResizeNecessary($targetWidth, $targetHeight) {
 
 		$img =& $this->image; 
@@ -515,6 +518,7 @@ class ImageSizer extends Wire {
 
 		return $resize; 
 	}
+	 */
 
 	/**
 	 * Given a target height, return the proportional width for this image
@@ -867,6 +871,33 @@ class ImageSizer extends Wire {
 			throw new WireException('Invalid defaultGamma value - must be 0.5 - 4.0 or -1 to disable gammacorrection');
 		}
 		return $this; 
+	}
+
+	/**
+	 * Set a time limit for manipulating one image (default is 30)
+	 * 
+	 * If specified time limit is less than PHP's max_execution_time, then PHP's setting will be used instead.
+	 *
+	 * @param int $value 10 to 60 recommended, default is 30
+	 * @return this
+	 *
+	 */
+	public function setTimeLimit($value = 30) {
+		// imagesizer can get invoked from different locations, including those that are inside of loops
+		// like the wire/modules/Inputfield/InputfieldFile/InputfieldFile.module :: ___renderList() method
+		
+		$prevLimit = ini_get('max_execution_time');
+		
+		// if unlimited execution time, no need to introduce one
+		if(!$prevLimit) return; 
+		
+		// don't override a previously set high time limit, just start over with it
+		$timeLimit = (int) ($prevLimit > $value ? $prevLimit : $value); 
+		
+		// restart time limit
+		set_time_limit($timeLimit);
+		
+		return $this;
 	}
 
 
