@@ -57,7 +57,7 @@ class ProcessList extends Process {
 				$class = '';
 				
 			} else {
-				
+				$class = '';
 				$title = $child->get("title|name"); 
 				if($child->template == 'admin') {
 					$summary = $this->_('The process module assigned to this page does not appear to be installed.'); 
