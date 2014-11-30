@@ -402,9 +402,9 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$language = $event->arguments(0);
 		if(!$language) return;
 		if(is_string($language)) $language = wire('languages')->get(wire('sanitizer')->pageName($language));
-		if(!$language instanceof Language) return;
-		$name = $language->isDefault() ? "status" : "status$language";
-		$status = $page->get($name);
+		if(!$language instanceof Language) return; // some other non-language argument
+		if($language->isDefault()) return; // we accept the result of the original viewable() call
+		$status = $page->get("status$language");
 		$event->return = $status > 0 && $status < Page::statusUnpublished;
 	}
 

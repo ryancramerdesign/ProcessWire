@@ -798,8 +798,12 @@ class Modules extends WireArray {
 		
 		$module = parent::get($key); 
 		if(!$module && empty($options['noSubstitute'])) {
-			$module = $this->getSubstituteModule($key, $options); 
-			if($module) return $module; // returned module is ready to use
+			if($this->isInstallable($key) && empty($options['noInstall'])) {
+				// module is on file system and may be installed, no need to substitute
+			} else {
+				$module = $this->getSubstituteModule($key, $options);
+				if($module) return $module; // returned module is ready to use
+			}
 		}
 		
 		if($module) {
