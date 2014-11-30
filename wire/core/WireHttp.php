@@ -316,7 +316,7 @@ class WireHttp extends Wire {
 	}	
 
 	/**
-	 * Send the given $data array to a URL using either POST or GET
+	 * Send the given $data array to a URL using either POST, GET, PUT or DELETE
 	 *
 	 * @param string $url URL to post to (including http:// or https://)
 	 * @param array $data Array of data to send (if not already set before)
@@ -332,7 +332,7 @@ class WireHttp extends Wire {
 		$unmodifiedURL = $url;
 
 		if(!empty($data)) $this->setData($data);
-		if($method !== 'GET') $method = 'POST';
+		if($method !== 'GET' && $method !== 'PUT' && $method !== 'DELETE') $method = 'POST';
 
 		if(!$this->hasFopen || strpos($url, 'https://') === 0 && !extension_loaded('openssl')) {
 			return $this->sendSocket($url, $method); 
@@ -385,8 +385,8 @@ class WireHttp extends Wire {
 		static $level = 0; // recursion level
 
 		$this->resetResponse();
-		$timeoutSeconds = 3; 
-		if($method != 'GET') $method = 'POST';
+		$timeoutSeconds = 3;
+        if($method !== 'GET' && $method !== 'PUT' && $method !== 'DELETE') $method = 'POST';
 
 		$info = parse_url($url);
 		$host = $info['host'];
