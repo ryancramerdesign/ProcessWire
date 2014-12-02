@@ -948,14 +948,20 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
  * Return a new temporary directory/path ready to use for files
  * 
  * @param object|string $name Provide the object that needs the temp dir, or name your own string
- * @param int $maxAge Maximum age of temp dir files in seconds
+ * @param array|int $options Options array: 
+ * 	- maxAge: Maximum age of temp dir files in seconds (default=120)
+ * 	- basePath: Base path where temp dirs should be created. Omit to use default (recommended).
+ * 	Note: if you specify an integer for $options, then $maxAge is assumed. 
  * @return WireTempDir
  * 
  */
-function wireTempDir($name, $maxAge = 120) {
+function wireTempDir($name, $options = array()) {
 	static $tempDirs = array();
 	if(isset($tempDirs[$name])) return $tempDirs[$name]; 
-	$tempDir = new WireTempDir($name, $maxAge); 
+	if(is_int($options)) $options = array('maxAge' => $options); 	
+	$basePath = isset($options['basePath']) ? $options['basePath'] : '';
+	$tempDir = new WireTempDir($name, $basePath); 
+	if(isset($options['maxAge'])) $tempDir->setMaxAge($maxAge); 
 	$tempDirs[$name] = $tempDir; 
 	return $tempDir; 
 }

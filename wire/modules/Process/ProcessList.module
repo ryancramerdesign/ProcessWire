@@ -38,7 +38,8 @@ class ProcessList extends Process {
 		$out = "\n<dl class='nav'>";
 		$cnt = 0; 
 		foreach($this->page->children("check_access=0") as $child) {
-			if(!$child->viewable()) continue; 
+			if(!$child->viewable()) continue;
+			$class = '';
 			
 			if($child->process) {
 				
@@ -54,7 +55,6 @@ class ProcessList extends Process {
 					else $summary = $info['summary'];
 					
 				$summary = $this->wire('sanitizer')->entities1($summary);
-				$class = '';
 				
 			} else {
 				

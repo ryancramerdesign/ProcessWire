@@ -42,14 +42,34 @@ if(!defined("PROCESSWIRE")) die();
 /**
  * Enable debug mode?
  * 
- * Debug mode causes additional info to appear for use during dev and debugging. 
+ * Debug mode causes additional info to appear for use during site development and debugging. 
  * This is almost always recommended for sites in development. However, you should
- * always have this disabled for live/production sites. 
+ * always have this disabled for live/production sites since it reveals more information
+ * than is advisible for security. 
+ * 
+ * #notes This enables debug mode for ALL requests. See the debugIf option for an alternative.
  * 
  * @var bool
  *
  */
 $config->debug = false;
+
+/**
+ * Enable debug mode if condition is met
+ *
+ * Set debug mode to be false above, and then specify any one of the following here:
+ * 1) IP address of user required to enable debug mode;
+ * 2) Your own callable function name (i.e. "debug_mode") in /site/config.php that returns
+ * true or false for debug mode;
+ * 3) PCRE regular expression to match IP address of user (must start and end with a "/"
+ * slash). If IP address matches, then debug mode is enabled. Regular expression
+ * example: /^123\.456\.789\./ would match all IP addresses that started with 123.456.789.
+ * 
+ * #notes When used, this overrides $config->debug, changing it at runtime automatically. 
+ * @var string
+ *
+ */
+$config->debugIf = '';
 
 /**
  * Enable ProcessWire advanced development mode?
@@ -108,9 +128,11 @@ $config->dateFormat = 'Y-m-d H:i:s';
 /**
  * Session name
  * 
- * Default session name as used in session cookie. 
- * Note that changing this will automatically logout any current sessions. 
+ * Default session name as used in session cookie. You may wish to change this if running
+ * multiple ProcessWire installations on the same server. By giving each installation a unique
+ * session name, you can stay logged into multiple installations at once. 
  * 
+ * #notes Note that changing this will automatically logout any current sessions. 
  * @var string
  *
  */
