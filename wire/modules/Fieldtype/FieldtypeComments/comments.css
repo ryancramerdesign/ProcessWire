@@ -1,0 +1,126 @@
+/*** COMMENT FORM ********************************************/
+
+.CommentForm input,
+.CommentForm textarea {
+	display: block;
+}
+
+.CommentFormCite,
+.CommentFormEmail,
+.CommentFormWebsite {
+	float: left;
+	width: 32%; 
+	margin-left: 1%;
+}
+
+.CommentFormCite {
+	margin-left: 0;
+	width: 34%; 
+}
+
+.CommentFormCite input,
+.CommentFormEmail input,
+.CommentFormWebsite input {
+	width: 100%; 
+}
+
+.CommentFormText {
+	clear: both;
+}
+
+.CommentFormText textarea {
+	width: 100%; 
+}
+
+@media only screen and (max-width: 767px) {
+	.CommentFormCite,
+	.CommentFormEmail,
+	.CommentFormWebsite {
+		float: none;
+		width: 100%;
+		margin-left: 0;
+	}
+}
+
+
+/*** COMMENT LIST ********************************************/
+
+.CommentList,
+.CommentListItem {
+	list-style: none;
+	margin: 1em 0;
+	padding: 0;
+}
+
+.CommentListItem {
+	position: relative; 
+}
+
+.CommentHeader {
+	font-weight: bold;
+}
+
+.CommentListNormal .CommentListItem {
+	border-bottom: 1px solid #ddd;
+}
+
+
+/*** COMMENT LIST WITH GRAVATAR ******************************/
+
+.CommentGravatar {
+	display: block;
+	position: absolute;
+	top: 0;
+	left: 0;
+	float: left;
+	width: 40px; 
+	height: 40px; 
+}
+
+.CommentListHasGravatar .CommentHeader,
+.CommentListNormal.CommentListHasGravatar .CommentText {
+	margin-left: 55px; 
+}
+
+.CommentListHasGravatar .CommentText,
+.CommentListHasGravatar .CommentAction,
+.CommentListHasGravatar form {
+	clear: both; 
+	margin-left: 0;
+}
+
+@media only screen and (max-width: 767px) {
+	.CommentListHasGravatar .CommentHeader,
+	.CommentListNormal.CommentListHasGravatar .CommentText {
+		margin-left: 35px;
+	}
+
+	.CommentGravatar {
+		width: 25px;
+		height: 25px;
+	}
+}
+
+
+/*** COMMENT LIST WITH DEPTH (THREADED) ***********************/
+
+.CommentList .CommentList {
+	margin-bottom: 2em;
+}
+
+.CommentList .CommentList .CommentGravatar {
+	left: 1em; /* should match the padding-left in item below */
+}
+
+.CommentList .CommentList .CommentListItem {
+	border-left: 1px solid;
+	border-color: #ddd;
+	padding-left: 1em;
+}
+
+.CommentAction {
+	padding-bottom: 1em;
+	margin-bottom: 0;
+}
+
+

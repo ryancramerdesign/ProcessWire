@@ -6,11 +6,10 @@
  * Class that contains an individual comment.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -32,7 +31,13 @@ class Comment extends WireData {
 	 * Status for Comment that's been approved
 	 *	
 	 */
-	const statusApproved = 1; 
+	const statusApproved = 1;
+
+	/**
+	 * Flag to indicate author of this comment wants to be notified of replies
+	 * 
+	 */
+	const flagNotify = 2; 
 
 	/**
 	 * Max bytes that a Comment may use
@@ -44,7 +49,23 @@ class Comment extends WireData {
 	 * Previous Comment status, when it has been changed
 	 *	
 	 */ 
-	protected $prevStatus; 
+	protected $prevStatus;
+
+	/**
+	 * Page this comment lives on
+	 * 
+	 * @var null|Page
+	 * 
+	 */
+	protected $page = null;
+
+	/**
+	 * Field this comment is for
+	 * 
+	 * @var null|Field
+	 * 
+	 */
+	protected $field = null;
 
 	/**	
 	 * Construct a Comment and set defaults
@@ -52,9 +73,11 @@ class Comment extends WireData {
 	 */
 	public function __construct() {
 		$this->set('id', 0); 
+		$this->set('parent_id', 0); 
 		$this->set('text', ''); 
 		$this->set('sort', 0); 
 		$this->set('status', self::statusPending); 
+		$this->set('flags', 0); 
 		$this->set('created', time()); 
 		$this->set('email', ''); 
 		$this->set('cite', ''); 
@@ -66,6 +89,7 @@ class Comment extends WireData {
 	}
 
 	public function get($key) {
+		
 		if($key == 'user' || $key == 'createdUser') {
 			if(!$this->settings['created_users_id']) return $this->users->get($this->config->guestUserID); 
 			return $this->users->get($this->settings['created_users_id']); 
@@ -73,12 +97,49 @@ class Comment extends WireData {
 		} else if($key == 'gravatar') {
 			return $this->gravatar();
 		}
+
 		return parent::get($key); 
+	}
+
+	/**
+	 * Same as get() but with output formatting applied
+	 * 
+	 * Note that we won't apply this to get() when $page->outputFormatting is active
+	 * in order for backwards compatibility with older installations. 
+	 * 
+	 * @param $key
+	 * @return mixed|null|Page|string
+	 * 
+	 */
+	public function getFormatted($key) {
+		$value = $this->get($key); 
+		
+		if($key == 'text') {
+			$textformatters = null;
+			// $textformatters = $this->field ? $this->field->textformatters : null; // @todo
+			if(is_array($textformatters) && count($textformatters)) {
+				// output formatting with specified textformatters
+				foreach($textformatters as $name) {
+					if(!$textformatter = $this->wire('modules')->get($name)) continue;
+					$textformatter->formatValue($this->page, $this->field, $value);
+				}
+			} else {
+				// default output formatting
+				$value = $this->wire('sanitizer')->entities(trim($value));
+				$value = str_replace("\n\n", "</p><p>", $value);
+				$value = str_replace("\n", "<br />", $value);
+			}
+			
+		} else if(in_array($key, array('cite', 'email', 'user_agent', 'website'))) {
+			$value = $this->wire('sanitizer')->entities(trim($value));
+		}
+		
+		return $value; 
 	}
 
 	public function set($key, $value) {
 
-		if(in_array($key, array('id', 'status', 'pages_id', 'created', 'created_users_id'))) $value = (int) $value; 
+		if(in_array($key, array('id', 'parent_id', 'status', 'flags', 'pages_id', 'created', 'created_users_id'))) $value = (int) $value; 
 			else if($key == 'text') $value = $this->cleanCommentString($value); 
 			else if($key == 'cite') $value = str_replace(array("\r", "\n", "\t"), ' ', substr(strip_tags($value), 0, 128)); 
 			else if($key == 'email') $value = $this->sanitizer->email($value); 
@@ -101,7 +162,7 @@ class Comment extends WireData {
 		$str = strip_tags(trim($str)); 
 		if(strlen($str) > self::maxCommentBytes) $str = substr($str, 0, self::maxCommentBytes); 
 		$str = str_replace(array("\r\n", "\r"), "\n", $str); 
-		$str = preg_replace('{\n\n\n+}', "\n\n", $str); 
+		if(strpos($str, "\n\n\n") !== false) $str = preg_replace('{\n\n\n+}', "\n\n", $str); 
 		return $str; 
 	}
 
@@ -155,6 +216,14 @@ class Comment extends WireData {
 	 */
 	public function gravatar($rating = 'g', $imageset = 'mm', $size = 80) {
 		return self::getGravatar($this->email, $rating, $imageset, $size); 
+	}
+	
+	public function setPage(Page $page) {
+		$this->page = $page; 
+	}
+	
+	public function setField(Field $field) {
+		$this->field = $field; 
 	}
 
 }

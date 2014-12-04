@@ -53,6 +53,7 @@ class CommentList extends Wire implements CommentListInterface {
 		'admin' => false, 	// shows unapproved comments if true
 		'useGravatar' => '', 	// enable gravatar? if so, specify maximum rating: [ g | pg | r | x ] or blank = disable gravatar
 		'useGravatarImageset' => 'mm',	// default gravatar imageset, specify: [ 404 | mm | identicon | monsterid | wavatar ]
+		'depth' => 0, 
 		); 
 
 	/**
@@ -74,6 +75,26 @@ class CommentList extends Wire implements CommentListInterface {
 	}
 
 	/**
+	 * Get replies to the given comment ID, or 0 for root level comments
+	 * 
+	 * @param int|Comment $commentID
+	 * @return array
+	 * 
+	 */
+	public function getReplies($commentID) {
+		if(is_object($commentID)) $commentID = $commentID->id; 
+		$commentID = (int) $commentID; 
+		$admin = $this->options['admin'];
+		$replies = array();
+		foreach($this->comments as $c) {
+			if($c->parent_id != $commentID) continue;
+			if(!$admin && $c->status != Comment::statusApproved) continue;
+			$replies[] = $c;
+		}
+		return $replies; 
+	}
+
+	/**
 	 * Rendering of comments for API demonstration and testing purposes (or feel free to use for production if suitable)
 	 *
 	 * @see Comment::render()
@@ -81,21 +102,27 @@ class CommentList extends Wire implements CommentListInterface {
 	 *
 	 */
 	public function render() {
-
-		$out = '';
-
-		foreach($this->comments as $comment) {
-			if(!$this->options['admin']) if($comment->status != Comment::statusApproved) continue; 
-			$out .= $this->renderItem($comment); 
-		}
-
-		if($out) $out = 
-			"\n" . $this->options['headline'] . 
-			"\n<ul class='CommentList'>$out\n</ul><!--/CommentList-->";
-
+		$out = $this->renderList(0); 
+		if($out) $out = "\n" . $this->options['headline'] . $out; 
 		return $out;
 	}
-
+	
+	protected function renderList($parent_id = 0, $depth = 0) {
+		$out = '';
+		$comments = $this->options['depth'] > 0 ? $this->getReplies($parent_id) : $this->comments;
+		if(!count($comments)) return '';
+		foreach($comments as $comment) $out .= $this->renderItem($comment, $depth);
+		if(!$out) return '';
+		$class = "CommentList";
+		if($this->options['depth'] > 0) $class .= " CommentListThread";
+			else $class .= " CommentListNormal";
+		if($this->options['useGravatar']) $class .= " CommentListHasGravatar";
+		if($parent_id) $class .= " CommentListReplies";
+		$out = "<ul class='$class'>$out\n</ul><!--/CommentList-->";
+		
+		return $out; 
+	}
+	
 	/**
 	 * Render the comment
 	 *
@@ -108,13 +135,10 @@ class CommentList extends Wire implements CommentListInterface {
 	 * @return string 
 	 *
 	 */
-	public function renderItem(Comment $comment) {
+	public function renderItem(Comment $comment, $depth = 0) {
 
-		$text = htmlentities(trim($comment->text), ENT_QUOTES, $this->options['encoding']);
-		$text = str_replace("\n\n", "</p><p>", $text); 
-		$text = str_replace("\n", "<br />", $text); 
-
-		$cite = htmlentities(trim($comment->cite), ENT_QUOTES, $this->options['encoding']); 
+		$text = $comment->getFormatted('text'); 
+		$cite = $comment->getFormatted('cite'); 
 
 		$gravatar = '';
 		if($this->options['useGravatar']) {
@@ -123,24 +147,34 @@ class CommentList extends Wire implements CommentListInterface {
 		}
 
 		$website = '';
-		if($comment->website) $website = htmlentities(trim($comment->website), ENT_QUOTES, $this->options['encoding']); 
+		if($comment->website) $website = $comment->getFormatted('website'); 
 		if($website) $cite = "<a href='$website' rel='nofollow' target='_blank'>$cite</a>";
+		$created = wireDate($this->options['dateFormat'], $comment->created); 
+		$header = str_replace(array('{cite}', '{created}'), array($cite, $created), $this->options['commentHeader']);
 
-		if(strpos($this->options['dateFormat'], '%') !== false) $created = strftime($this->options['dateFormat'], $comment->created); 
-			else $created = date($this->options['dateFormat'], $comment->created); 
-
-		$header = str_replace(array('{cite}', '{created}'), array($cite, $created), $this->options['commentHeader']); 
-
-		if($comment->status == Comment::statusPending) $liClass = ' CommentStatusPending'; 
-			else if($comment->status == Comment::statusSpam) $liClass = ' CommentStatusSpam';
-			else $liClass = '';
-
-		$out = 	"\n\t<li id='Comment{$comment->id}' class='CommentListItem$liClass'>" . $gravatar . 
+		$liClass = '';
+		$replies = $this->options['depth'] > 0 ? $this->renderList($comment->id, $depth+1) : ''; 
+		if($replies) $liClass .= ' CommentHasReplies';
+		if($comment->status == Comment::statusPending) $liClass .= ' CommentStatusPending'; 
+			else if($comment->status == Comment::statusSpam) $liClass .= ' CommentStatusSpam';
+		
+		$out = 
+			"\n\t<li id='Comment{$comment->id}' class='CommentListItem$liClass'>" . $gravatar . 
 			"\n\t\t<p class='CommentHeader'>$header</p>" . 
 			"\n\t\t<div class='CommentText'>" . 
 			"\n\t\t\t<p>$text</p>" . 
-			"\n\t\t</div>" . 
-			"\n\t</li>";
+			"\n\t\t</div>";
+		
+		if($this->options['depth'] > 0 && $depth < $this->options['depth']) {
+			$out .= 
+				"\n\t\t<p class='CommentAction'>" .
+				"\n\t\t\t<a class='CommentActionReply' data-comment-id='$comment->id' href='#Comment{$comment->id}'>" . $this->_('Reply') . "</a>" .
+				"\n\t\t</p>";
+			
+			if($replies) $out .= $replies;
+		}
+	
+		$out .= "\n\t</li>";
 	
 		return $out; 	
 	}

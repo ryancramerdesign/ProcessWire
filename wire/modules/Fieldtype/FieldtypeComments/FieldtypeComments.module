@@ -10,7 +10,7 @@
  * /wire/core/FieldtypeMulti.php
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -48,12 +48,37 @@ class FieldtypeComments extends FieldtypeMulti {
 	 * Constant that designates that all comments require moderation, except those posted by users that have an approved comment
 	 *
 	 */
-	const moderateNew = 2; 
+	const moderateNew = 2;
+
+	/**
+	 * Send notification to specific email address(s)
+	 * 
+	 */
+	const notificationEmail = 0;
+
+	/**
+	 * Send notification to createdUser's email
+	 * 
+	 */
+	const notificationCreated = 1;
+
+	/**
+	 * Send notification to specific user(s) email
+	 * 
+	 */
+	const notificationUser = 2;
+	
+	/**
+	 * Don't send notifications when new comments posted
+	 *
+	 */
+	const notificationNone = 9;
+	
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Comments', __FILE__),
-			'version' => 103,
+			'version' => 104,
 			'summary' => __('Field that stores user posted comments for a single Page', __FILE__),
 			'installs' => array('InputfieldCommentsAdmin'),
 			);
@@ -99,56 +124,58 @@ class FieldtypeComments extends FieldtypeMulti {
 	}
 
 
-        /**
-         * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
-		 *
-         * @param Page $page
-         * @param Field $field
-         * @param string|int|array $value
-         * @return string|int|array|object $value
-         *
-         */
-        public function ___wakeupValue(Page $page, Field $field, $value) {
+	/**
+	 * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @param string|int|array $value
+	 * @return string|int|array|object $value
+	 *
+	 */
+	public function ___wakeupValue(Page $page, Field $field, $value) {
 
-			if($value instanceof CommentArray) return $value; 
-			$commentArray = $this->getBlankValue($page, $field); 
-			if(empty($value)) return $commentArray; 
-			
-			$editable = $page->editable();
-			if(!is_array($value)) $value = array($value); 
-			
-			foreach($value as $sort => $item) {
-			
-				if(!is_array($item)) continue; 
-			
-				// don't load non-approved comments if the user can't edit them
-				if(!$editable && $item['status'] < Comment::statusApproved) continue; 
-			
-				$comment = new Comment();
-				foreach($item as $key => $val) {
-					if($key == 'data') $key = 'text';
-					$comment->set($key, $val); 
-				}
-				$comment->resetTrackChanges(true); 
-				$commentArray->add($comment); 
+		if($value instanceof CommentArray) return $value; 
+		$commentArray = $this->getBlankValue($page, $field); 
+		if(empty($value)) return $commentArray; 
+		
+		$editable = $page->editable();
+		if(!is_array($value)) $value = array($value); 
+		
+		foreach($value as $sort => $item) {
+		
+			if(!is_array($item)) continue; 
+		
+			// don't load non-approved comments if the user can't edit them
+			if(!$editable && $item['status'] < Comment::statusApproved) continue; 
+		
+			$comment = new Comment();
+			$comment->setPage($page);
+			$comment->setField($field); 
+			foreach($item as $key => $val) {
+				if($key == 'data') $key = 'text';
+				$comment->set($key, $val); 
 			}
-			
-			if($field->sortNewest) $commentArray->sort("-created"); 
-			$commentArray->resetTrackChanges(true); 
-			
-			return $commentArray;  
-        }
+			$comment->resetTrackChanges(true); 
+			$commentArray->add($comment); 
+		}
+		
+		if($field->sortNewest) $commentArray->sort("-created"); 
+		$commentArray->resetTrackChanges(true); 
+		
+		return $commentArray;  
+	}
 
-        /**
-         * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
-         *              
-         * @param Page $page
-         * @param Field $field
-         * @param string|int|array|object $value
-         * @return string|int
-         *
-         */
-        public function ___sleepValue(Page $page, Field $field, $value) {
+	/**
+	 * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
+	 *              
+	 * @param Page $page
+	 * @param Field $field
+	 * @param string|int|array|object $value
+	 * @return string|int
+	 *
+	 */
+	public function ___sleepValue(Page $page, Field $field, $value) {
 
 		$sleepValue = array();
 		if(!$value instanceof CommentArray) return $sleepValue; 
@@ -171,12 +198,17 @@ class FieldtypeComments extends FieldtypeMulti {
 				); 
 
 			if($field->schemaVersion > 0) $a['website'] = $comment->website;
+			if($field->schemaVersion > 1) {
+				$a['parent_id'] = $comment->parent_id;
+				$a['flags'] = (int) $comment->flags;
+			}
 
 			$sleepValue[] = $a;
 
 		}
+			
 		return $sleepValue;
-        }
+	}
 
 	/**
 	 * Review an existing comment for changes to the status
@@ -289,7 +321,7 @@ class FieldtypeComments extends FieldtypeMulti {
 
 		return wireMail($field->notificationEmail, $from, $subject, $body); 
 	}
-
+	
 	/**
 	 * Schema for the Comments Fieldtype
 	 *
@@ -297,15 +329,35 @@ class FieldtypeComments extends FieldtypeMulti {
 	public function getDatabaseSchema(Field $field) {
 
 		$websiteSchema = "varchar(255) NOT NULL default ''"; 
+		$parentSchema = "int unsigned NOT NULL default 0";
+		$flagSchema = "int unsigned NOT NULL default 0";
+		$schemaVersion = (int) $field->schemaVersion;
 
-		if(!$field->schemaVersion) {
+		if(!$schemaVersion) {
 			// add website field for PW 2.3+ 
 			$database = $this->wire('database');
 			$table = $database->escapeTable($field->getTable());
-			try { $database->query("ALTER TABLE `$table` ADD website $websiteSchema"); } catch(Exception $e) { }
-			$field->schemaVersion = 1;
+			try { 
+				$database->query("ALTER TABLE `$table` ADD website $websiteSchema");
+				$schemaVersion = 1;
+			} catch(Exception $e) { }
+		}
+		
+		if($schemaVersion < 2) {
+			// add new columns for PW 2.5.11+
+			$database = $this->wire('database');
+			$table = $database->escapeTable($field->getTable());
+			try { 
+				$database->query("ALTER TABLE `$table` ADD parent_id $parentSchema");
+				$database->query("ALTER TABLE `$table` ADD flags $flagSchema");
+				$schemaVersion = 2;
+			} catch(Exception $e) { }
+		}
+		
+		if(((int) $field->schemaVersion) < $schemaVersion) {
+			$this->message("Updating schema version of '{$field->name}' from $field->schemaVersion to $schemaVersion", Notice::log);
+			$field->schemaVersion = $schemaVersion;
 			$field->save();
-			$this->message("Updated schema version of '{$field->name}' to support website field.", Notice::log);
 		}
 
 		$schema = parent::getDatabaseSchema($field); 
@@ -322,6 +374,10 @@ class FieldtypeComments extends FieldtypeMulti {
 		$schema['user_agent'] = "varchar(255) NOT NULL default ''";
 
 		if($field->schemaVersion > 0) $schema['website'] = $websiteSchema;
+		if($field->schemaVersion > 1) {
+			$schema['parent_id'] = $parentSchema;
+			$schema['flags'] = $flagSchema;
+		}
 
 		$schema['keys']['primary'] = "PRIMARY KEY (`id`)"; 
 		$schema['keys']['pages_id_sort'] = "KEY `pages_id_sort` (`pages_id`, `sort`)";
@@ -389,7 +445,7 @@ class FieldtypeComments extends FieldtypeMulti {
 			foreach($keys as $key) {
 				if($key == 'id') continue; 
 				if($key == 'sort' && !$value['id']) continue; 
-				$v = $value[$key]; 
+				$v = $value[$key];
 				$sql .= $database->escapeCol($key) . "='" . $database->escapeStr("$v") . "', ";
 			}
 
@@ -414,17 +470,30 @@ class FieldtypeComments extends FieldtypeMulti {
 		$inputfields = parent::___getConfigInputfields($field);
 
 		$name = 'moderate';
-		$f = $this->fuel('modules')->get('InputfieldRadios'); 
+		$f = $this->wire('modules')->get('InputfieldRadios'); 
 		$f->attr('name', $name); 
 		$f->addOption(self::moderateNone, $this->_('None - Comments posted immediately')); 
 		$f->addOption(self::moderateAll, $this->_('All - All comments must be approved by user with page edit access')); 
 		$f->addOption(self::moderateNew, $this->_('Only New - Only comments from users without prior approved comments require approval')); 
 		$f->attr('value', (int) $field->$name); 
 		$f->label = $this->_('Comment Moderation');
-		$inputfields->append($f); 
+		$inputfields->append($f);
+	
+		/*
+		$name = 'notificationType';
+		$f = $this->wire('modules')->get('InputfieldRadios');
+		$f->attr('name', $name);
+		$f->label = $this->_('Notification Type');
+		$f->addOption(self::notificationNone, $this->_('Do not send notifications'));
+		$f->addOption(self::notificationEmail, $this->_('Send notifications to specific email address'));
+		$f->addOption(self::notificationCreated, $this->_('Send notifications to user that created the page'));
+		$f->addOption(self::notificationUser, $this->_('Send notifications to specific user')); 
+		$f->attr('value', $field->$name);
+		$inputfields->append($f);
+		*/
 
 		$name = 'notificationEmail';
-		$f = $this->fuel('modules')->get('InputfieldText'); 
+		$f = $this->wire('modules')->get('InputfieldText'); 
 		$f->attr('name', $name); 
 		$f->attr('value', $field->$name); 
 		$f->label = $this->_('Notification E-Mail');
@@ -432,7 +501,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$inputfields->append($f);
 		
 		$name = 'notifySpam';
-		$f = $this->fuel('modules')->get('InputfieldCheckbox');
+		$f = $this->wire('modules')->get('InputfieldCheckbox');
 		$f->attr('name', $name);
 		$f->attr('value', 1);
 		if($field->$name) $f->attr('checked', 'checked');
@@ -440,19 +509,40 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->description = $this->_('When checked, ProcessWire will still send you an e-mail notification even if the message is identified as spam.');
 		$f->columnWidth = 50;
 		$inputfields->append($f);
+		
+		$name = 'deleteSpamDays';
+		$f = $this->wire('modules')->get('InputfieldInteger');
+		$f->attr('name', $name);
+		$value = $field->$name;
+		if(is_null($value)) $value = 3; // default
+		$f->attr('value', $value);
+		$f->label = $this->_('Number of days after which to delete spam');
+		$f->description = $this->_('After the number of days indicated, spam will be automatically deleted.');
+		$f->columnWidth = 50; 
+		$inputfields->append($f);
+		
+		$name = 'useAkismet';
+		$f = $this->wire('modules')->get('InputfieldCheckbox');
+		$f->attr('name', $name);
+		$f->attr('value', 1);
+		$f->attr('checked', $field->$name ? 'checked' : '');
+		$f->label = $this->_('Use Akismet Spam Filter Service?');
+		$f->description = $this->_('This service will automatically identify most spam. Before using it, please ensure that you have entered an Akismet API key under Modules > Comment Filter: Akismet.');
+		$f->columnWidth = 50;
+		$inputfields->append($f);
 
 		$name = 'sortNewest'; 
-		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
+		$f = $this->wire('modules')->get('InputfieldCheckbox'); 
 		$f->attr('name', $name); 
 		$f->attr('value', 1); 
 		$f->attr('checked', $field->$name ? 'checked' : ''); 
 		$f->label = $this->_('Sort newest to oldest?');
 		$f->description = $this->_('By default, comments will sort chronologically (oldest to newest). To reverse that behavior check this box.');
 		$f->columnWidth = 50;
-		$inputfields->append($f); 
-
+		$inputfields->append($f);
+		
 		$name = 'useWebsite'; 
-		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
+		$f = $this->wire('modules')->get('InputfieldCheckbox'); 
 		$f->attr('name', $name); 
 		$f->attr('value', 1); 
 		$f->attr('checked', $field->$name ? 'checked' : ''); 
@@ -462,7 +552,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$inputfields->append($f); 
 
 		$name = 'redirectAfterPost';
-		$f = $this->fuel('modules')->get('InputfieldCheckbox'); 
+		$f = $this->wire('modules')->get('InputfieldCheckbox'); 
 		$f->attr('name', $name); 
 		$f->attr('value', 1); 
 		$f->attr('checked', $field->$name ? 'checked' : ''); 
@@ -472,7 +562,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$inputfields->append($f);
 		
 		$name = 'quietSave';
-		$f = $this->fuel('modules')->get('InputfieldCheckbox');
+		$f = $this->wire('modules')->get('InputfieldCheckbox');
 		$f->attr('name', $name);
 		$f->attr('value', 1);
 		$f->attr('checked', $field->$name ? 'checked' : '');
@@ -481,18 +571,17 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->description = $this->_('When checked, the page modification time and user will not be updated when a comment is added.');
 		$inputfields->append($f);
 		
-		$name = 'useAkismet';
-		$f = $this->fuel('modules')->get('InputfieldCheckbox');
+		$name = 'depth';
+		$f = $this->wire('modules')->get('InputfieldInteger');
 		$f->attr('name', $name);
-		$f->attr('value', 1);
-		$f->attr('checked', $field->$name ? 'checked' : '');
-		$f->label = $this->_('Use Akismet Spam Filter Service?');
-		$f->description = $this->_('This service will automatically identify most spam. Before using it, please ensure that you have entered an Akismet API key under Modules > Comment Filter: Akismet.');
+		$f->attr('value', (int) $field->$name);
+		$f->label = $this->_('Reply depth');
+		$f->description = $this->_('Specify 0 for traditional flat chronological comments. For threaded comments (replies appear with comment being replied to) specify the maximum depth allowed for replies (0 to 4 recommended).');
 		$f->columnWidth = 50;
-		$inputfields->append($f); 
+		$inputfields->append($f);
 
 		$name = 'useGravatar'; 
-		$f = $this->fuel('modules')->get('InputfieldRadios'); 
+		$f = $this->wire('modules')->get('InputfieldRadios'); 
 		$f->attr('name', $name); 
 		$f->addOption('', $this->_('Disabled'));
 		$f->addOption('g', $this->_('G: Suitable for display on all websites with any audience type.'));
@@ -503,22 +592,47 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->label = $this->_('Use Gravatar?');
 		$f->description = $this->_('This service provides an avatar image with each comment (unique to the email address). To enable, select the maximum gravatar rating. These are the same as movie ratings, where G is the most family friendly and X is not.');
 		$f->notes = $this->_('Rating descriptions provided by [Gravatar](https://en.gravatar.com/site/implement/images/).');
-		$f->collapsed = Inputfield::collapsedBlank;
 		$inputfields->append($f); 
 
-
-		$name = 'deleteSpamDays';
-		$f = $this->fuel('modules')->get('InputfieldInteger'); 
-		$f->attr('name', $name); 
-		$value = $field->$name; 
-		if(is_null($value)) $value = 7; // default
-		$f->attr('value', $field->$name); 
-		$f->label = $this->_('Number of days after which to delete spam');
-		$f->description = $this->_('After the number of days indicated, spam will be automatically deleted.');
-		$inputfields->append($f);
+		// @todo 
+		/*
+		$textformatters = $this->wire('modules')->find("className^=Textformatter");
+		if(count($textformatters)) {
+			$f = $this->modules->get('InputfieldAsmSelect');
+			$f->attr('name', 'textformatters');
+			$f->label = $this->_('Text Formatters');
+			$f->description = $this->_('Optionally select one or more text formatters to be applied to the comment text, in the selected order. If you do not select any then the text will be entity encoded, have newlines converted to <br> tags, and be output in a <p> tag.');
+			$f->notes = $this->_('Warning: only select text formatters that are known to be safe with anonymous user input, like Entity Encoder (core) or Textile Restricted (3rd party). If you are not sure, then do not select anything here, as making the wrong choice can be a security problem.'); 
+			foreach($textformatters as $textformatter) {
+				$info = $this->wire('modules')->getModuleInfo($textformatter); 
+				$f->addOption($textformatter->className(), "$info[title]");
+			}
+			$f->attr('value', is_array($field->textformatters) ? $field->textformatters : array());
+			$inputfields->append($f);
+		}
+		*/
+		
+		$f = $this->wire('modules')->get('InputfieldMarkup'); 
+		$f->label = $this->_('Optional CSS for front-end comments output'); 
+		$f->value = 
+			"<p>Please copy and paste the following into the document <code>&lt;head&gt;</code> of your site:</p>" .
+			"<pre style='border-left: 4px solid #ccc; padding-left: 1em;'>&lt;link rel='stylesheet' type='text/css' href='&lt;?=\$config-&gt;urls-&gt;FieldtypeComments?&gt;comments.css' /&gt;</pre>" . 
+			"<p>Or if you prefer, copy the <a target='_blank' href='{$this->config->urls->FieldtypeComments}comments.css'>comments.css</a> file to your own location, " . 
+			"modify it as desired, and link to it in your document head as you do with your other css files.</p>";
+		$inputfields->add($f);
+		
+		$f = $this->wire('modules')->get('InputfieldMarkup');
+		$f->label = $this->_('Optional JS for front-end comments output');
+		$f->value =
+			"<p>If you are using threaded comments (i.e. reply depth > 0), please also copy and paste the following into the document <code>&lt;head&gt;</code> " .
+			"or before the closing <code>&lt;/body&gt;</code> tag. In either case, jQuery is required to have been loaded first.</p>" .
+			"<pre style='border-left: 4px solid #ccc; padding-left: 1em;'>&lt;script type='text/javascript' src='&lt;?=\$config-&gt;urls-&gt;FieldtypeComments?&gt;comments.js' /&gt;</pre>" .
+			"<p>Like with the comments.css file, feel free to copy and link to the <a target='_blank' href='{$this->config->urls->FieldtypeComments}comments.js'>comments.js</a> file from your own " .
+			"location if you prefer it.</p>";
+		$inputfields->add($f); 
 		
 		$name = 'schemaVersion'; 
-		$f = $this->fuel('modules')->get('InputfieldHidden');
+		$f = $this->wire('modules')->get('InputfieldHidden');
 		$f->attr('name', $name);
 		$value = (int) $field->$name; 
 		$f->attr('value', $value);

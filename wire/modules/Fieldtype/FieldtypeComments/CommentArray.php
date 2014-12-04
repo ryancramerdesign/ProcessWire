@@ -34,18 +34,27 @@ class CommentArray extends WireArray {
 	 *
 	 */
 	public function isValidItem($item) {
-		return $item instanceof Comment; 	
+		if($item instanceof Comment) {
+			if($this->page) $item->setPage($this->page); 
+			if($this->field) $item->setField($this->field); 
+			return true; 
+		} else {
+			return false;
+		}
 	}
 
 	/**
 	 * Provides the default rendering of a comment list, which may or may not be what you want
  	 *
+	 * @param array $options
+	 * @return string
 	 * @see CommentList class and override it to serve your needs
 	 *
 	 */
 	public function render(array $options = array()) {
 		$defaultOptions = array(
-			'useGravatar' => ($this->field ? $this->field->useGravatar : '')
+			'useGravatar' => ($this->field ? $this->field->useGravatar : ''),
+			'depth' => ($this->field ? (int) $this->field->depth : 0), 	
 			);
 		$options = array_merge($defaultOptions, $options);
 		$commentList = $this->getCommentList($options); 
@@ -55,10 +64,16 @@ class CommentArray extends WireArray {
 	/**
 	 * Provides the default rendering of a comment form, which may or may not be what you want
  	 *
+	 * @param array $options
+	 * @return string
 	 * @see CommentForm class and override it to serve your needs
 	 *
 	 */
 	public function renderForm(array $options = array()) {
+		$defaultOptions = array(
+			'depth' => ($this->field ? (int) $this->field->depth : 0)
+			);
+		$options = array_merge($defaultOptions, $options); 
 		$form = $this->getCommentForm($options); 
 		return $form->render();
 	}
@@ -74,6 +89,10 @@ class CommentArray extends WireArray {
 	/**
 	 * Return instance of CommentForm object
 	 *
+	 * @param array $options
+	 * @return CommentForm
+	 * @throws WireException
+	 * 
 	 */
 	public function getCommentForm(array $options = array()) {
 		if(!$this->page) throw new WireException("You must set a page to this CommentArray before using it i.e. \$ca->setPage(\$page)"); 
@@ -95,7 +114,7 @@ class CommentArray extends WireArray {
 	public function setField(Field $field) {
 		$this->field = $field; 
 	}
-
+	
 }
 
 
