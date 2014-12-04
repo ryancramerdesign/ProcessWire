@@ -669,7 +669,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 				sprintf($this->_('Created by %1$s on %2$s'), $createdName, $createdDate) . "<br />" . // Settings: created user/date information line
 				sprintf($this->_('Last modified by %1$s on %2$s'), $modifiedName, $modifiedDate) . // Settings: modified user/date information line
 				"</p>"; 
-
+		
 		$field->attr('id+name', 'ProcessPageEditInfo'); 
 		$field->label = $this->_('Info'); // Settings: Info field label
 		$field->value = $info; 
@@ -702,6 +702,8 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		}
 		$field->attr('value', $value); 
 		$field->label = $this->_('Status'); // Settings: Status field label
+		if($this->wire('config')->debug) $field->notes = $this->page->statusStr;
+
 		return $field; 
 	}
 
