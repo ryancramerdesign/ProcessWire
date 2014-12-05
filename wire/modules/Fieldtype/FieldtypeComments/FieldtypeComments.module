@@ -612,24 +612,37 @@ class FieldtypeComments extends FieldtypeMulti {
 		}
 		*/
 		
+		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
+		$fieldset->label = $this->_('Front-end comments output'); 
+		$fieldset->description = $this->_('This section is here to help you get started with outputting comments on the front-end of your site. Everything here is optional.'); 
+		$inputfields->add($fieldset); 
+		
 		$f = $this->wire('modules')->get('InputfieldMarkup'); 
-		$f->label = $this->_('Optional CSS for front-end comments output'); 
+		$f->label = $this->_('PHP code to output comments'); 
+		$f->value = 
+			"<p>Please copy and paste the following into your template file(s) where you would like the comments to be output:</p>" .
+			"<pre style='border-left: 4px solid #ccc; padding-left: 1em;'>&lt;?php echo \$page-&gt;{$field->name}-&gt;renderAll(); ?&gt;</pre>" . 
+			"<p>For more options please see the <a href='https://processwire.com/api/fieldtypes/comments/' target='_blank'>comments documentation page</a>.</p>";
+		$fieldset->add($f); 
+		
+		$f = $this->wire('modules')->get('InputfieldMarkup'); 
+		$f->label = $this->_('CSS for front-end comments output'); 
 		$f->value = 
 			"<p>Please copy and paste the following into the document <code>&lt;head&gt;</code> of your site:</p>" .
 			"<pre style='border-left: 4px solid #ccc; padding-left: 1em;'>&lt;link rel='stylesheet' type='text/css' href='&lt;?=\$config-&gt;urls-&gt;FieldtypeComments?&gt;comments.css' /&gt;</pre>" . 
 			"<p>Or if you prefer, copy the <a target='_blank' href='{$this->config->urls->FieldtypeComments}comments.css'>comments.css</a> file to your own location, " . 
 			"modify it as desired, and link to it in your document head as you do with your other css files.</p>";
-		$inputfields->add($f);
+		$fieldset->add($f);
 		
 		$f = $this->wire('modules')->get('InputfieldMarkup');
-		$f->label = $this->_('Optional JS for front-end comments output');
+		$f->label = $this->_('JS for front-end comments output');
 		$f->value =
 			"<p>If you are using threaded comments (i.e. reply depth > 0), please also copy and paste the following into the document <code>&lt;head&gt;</code> " .
 			"or before the closing <code>&lt;/body&gt;</code> tag. In either case, jQuery is required to have been loaded first.</p>" .
 			"<pre style='border-left: 4px solid #ccc; padding-left: 1em;'>&lt;script type='text/javascript' src='&lt;?=\$config-&gt;urls-&gt;FieldtypeComments?&gt;comments.js' /&gt;</pre>" .
 			"<p>Like with the comments.css file, feel free to copy and link to the <a target='_blank' href='{$this->config->urls->FieldtypeComments}comments.js'>comments.js</a> file from your own " .
 			"location if you prefer it.</p>";
-		$inputfields->add($f); 
+		$fieldset->add($f); 
 		
 		$name = 'schemaVersion'; 
 		$f = $this->wire('modules')->get('InputfieldHidden');

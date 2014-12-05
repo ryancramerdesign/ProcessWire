@@ -79,6 +79,17 @@ class CommentArray extends WireArray {
 	}
 
 	/**
+	 * Render all comments and a comments form below it
+	 * 
+	 * @param array $options
+	 * @return string
+	 * 
+	 */
+	public function renderAll(array $options = array()) {
+		return $this->render($options) . $this->renderForm($options); 
+	}
+
+	/**
 	 * Return instance of CommentList object
 	 *
 	 */

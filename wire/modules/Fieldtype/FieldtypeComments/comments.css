@@ -9,12 +9,16 @@
 .CommentFormEmail,
 .CommentFormWebsite {
 	float: left;
-	width: 32%; 
-	margin-left: 1%;
+	width: 33%; 
 }
 
-.CommentFormCite {
-	margin-left: 0;
+.CommentFormCite,
+.CommentFormEmail {
+	box-sizing: border-box; 
+	padding-right: 1em;
+}
+
+.CommentFormWebsite {
 	width: 34%; 
 }
 
@@ -38,7 +42,7 @@
 	.CommentFormWebsite {
 		float: none;
 		width: 100%;
-		margin-left: 0;
+		padding-right: 0;
 	}
 }
 
@@ -60,8 +64,17 @@
 	font-weight: bold;
 }
 
+.CommentHeader .CommentCreated {
+	font-weight: normal;
+	padding-left: 0.5em;
+}
+
 .CommentListNormal .CommentListItem {
 	border-bottom: 1px solid #ddd;
+}
+
+.CommentFooter {
+	padding-bottom: 1em; 
 }
 
 
@@ -75,6 +88,8 @@
 	float: left;
 	width: 40px; 
 	height: 40px; 
+	padding: 1px;
+	border: 1px solid #ddd; 
 }
 
 .CommentListHasGravatar .CommentHeader,
@@ -113,14 +128,18 @@
 }
 
 .CommentList .CommentList .CommentListItem {
+	padding-left: 1em;
 	border-left: 1px solid;
 	border-color: #ddd;
-	padding-left: 1em;
 }
-
 .CommentAction {
-	padding-bottom: 1em;
 	margin-bottom: 0;
 }
+
+.CommentList .CommentList .CommentListItem + .CommentListItem {
+	/* provides extra space between adjacent comments on same level */
+	margin-top: 2em;
+}
+
 
 

@@ -34,7 +34,7 @@ interface CommentListInterface {
  *
  */
 class CommentList extends Wire implements CommentListInterface {
-
+	
 	/**
 	 * Reference to CommentsArray provided in constructor
 	 *
@@ -67,8 +67,17 @@ class CommentList extends Wire implements CommentListInterface {
 
 		$h3 = $this->_('h3'); // Headline tag
 		$this->options['headline'] = "<$h3>" . $this->_('Comments') . "</$h3>"; // Header text
-		$this->options['commentHeader'] = $this->_('Posted by {cite} on {created}'); // Comment header // Include the tags {cite} and {created}, but leave them untranslated
-		$this->options['dateFormat'] = $this->_('%b %e, %Y %l:%M %p'); // Date format in either PHP strftime() or PHP date() format // Example 1 (strftime): %b %e, %Y %l:%M %p = Feb 27, 2012 1:21 PM. Example 2 (date): m/d/y g:ia = 02/27/12 1:21pm.
+		
+		if(empty($options['commentHeader'])) {
+			if(empty($options['dateFormat'])) {
+				$this->options['dateFormat'] = 'relative';
+			}
+		} else {
+			//$this->options['commentHeader'] = $this->('Posted by {cite} on {created}'); // Comment header // Include the tags {cite} and {created}, but leave them untranslated
+			if(empty($options['dateFormat'])) {
+				$this->options['dateFormat'] = $this->_('%b %e, %Y %l:%M %p'); // Date format in either PHP strftime() or PHP date() format // Example 1 (strftime): %b %e, %Y %l:%M %p = Feb 27, 2012 1:21 PM. Example 2 (date): m/d/y g:ia = 02/27/12 1:21pm.
+			}
+		}
 		
 		$this->comments = $comments; 
 		$this->options = array_merge($this->options, $options); 
@@ -150,7 +159,12 @@ class CommentList extends Wire implements CommentListInterface {
 		if($comment->website) $website = $comment->getFormatted('website'); 
 		if($website) $cite = "<a href='$website' rel='nofollow' target='_blank'>$cite</a>";
 		$created = wireDate($this->options['dateFormat'], $comment->created); 
-		$header = str_replace(array('{cite}', '{created}'), array($cite, $created), $this->options['commentHeader']);
+		
+		if(empty($this->options['commentHeader'])) {
+			$header = "<span class='CommentCite'>$cite</span> <small class='CommentCreated'>$created</small>";		
+		} else {
+			$header = str_replace(array('{cite}', '{created}'), array($cite, $created), $this->options['commentHeader']);
+		}
 
 		$liClass = '';
 		$replies = $this->options['depth'] > 0 ? $this->renderList($comment->id, $depth+1) : ''; 
@@ -166,12 +180,17 @@ class CommentList extends Wire implements CommentListInterface {
 			"\n\t\t</div>";
 		
 		if($this->options['depth'] > 0 && $depth < $this->options['depth']) {
-			$out .= 
-				"\n\t\t<p class='CommentAction'>" .
-				"\n\t\t\t<a class='CommentActionReply' data-comment-id='$comment->id' href='#Comment{$comment->id}'>" . $this->_('Reply') . "</a>" .
-				"\n\t\t</p>";
+			$out .=
+				"\n\t\t<div class='CommentFooter'>" . 
+				"\n\t\t\t<p class='CommentAction'>" .
+				"\n\t\t\t\t<a class='CommentActionReply' data-comment-id='$comment->id' href='#Comment{$comment->id}'>" . $this->_('Reply') . "</a>" .
+				"\n\t\t\t</p>" . 
+				"\n\t\t</div>";
 			
 			if($replies) $out .= $replies;
+			
+		} else {
+			$out .= "\n\t\t<div class='CommentFooter'></div>";
 		}
 	
 		$out .= "\n\t</li>";
