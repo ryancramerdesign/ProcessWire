@@ -6,11 +6,10 @@
  * See: http://daringfireball.net/projects/markdown/
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -19,23 +18,22 @@ class TextformatterMarkdownExtra extends Textformatter {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Markdown Extra', 
-			'version' => 122, 
+			'version' => 128, 
 			'summary' => "Markdown extra lightweight markup language by Michel Fortin based on Markdown by John Gruber", 
 			'url' => "http://michelf.com/projects/php-markdown/extra/", 
 		); 
 	}
 
 	public function format(&$str) {
-		require_once("markdown.php"); 
+		require_once(dirname(__FILE__) . "/markdown.php"); 
 		$str = Markdown($str); 
-		// $this->markdownExtensions($str); 
 	}
 
 	/**
 	 * A couple RCD extentions to MarkDown syntax, to be executed after Markdown has already had it's way with the text
 	 *
 	 */
-	protected function markdownExtensions(&$str) {
+	public function markdownExtensions(&$str) {
 
 		// add id attribute to a tag, when followed by a #myid
 		if(strpos($str, '>#')) $str = preg_replace('/<([a-z][a-z0-9]*)([^>]*>.*?)(<\/\\1>)#([a-z][-_a-z0-9]*)\b/', '<$1 id="$4"$2$3', $str); 
