@@ -800,6 +800,12 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 				$subfields[$f->name] = $f->type->getSelectorInfo($f, array('level' => $data['level']+1)); 
 			}
 		}
+	
+		$subfields['count'] = array(
+			'name' => 'count', 
+			'label' => $this->_('Count'), // Label for 'count' property of a PageArray
+			'input' => 'number', 
+			);
 
 		$info['subfields'] = $subfields; 
 
