@@ -1,0 +1,2 @@
+- When an illegal element is found, script deletes all child nodes as well, need this to stop
+- 
