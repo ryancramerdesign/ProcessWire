@@ -43,6 +43,8 @@ class CommentArray extends WireArray {
 		}
 	}
 
+
+
 	/**
 	 * Provides the default rendering of a comment list, which may or may not be what you want
  	 *
@@ -55,6 +57,7 @@ class CommentArray extends WireArray {
 		$defaultOptions = array(
 			'useGravatar' => ($this->field ? $this->field->useGravatar : ''),
 			'depth' => ($this->field ? (int) $this->field->depth : 0), 	
+			'dateFormat' => 'relative', 
 			);
 		$options = array_merge($defaultOptions, $options);
 		$commentList = $this->getCommentList($options); 
@@ -124,6 +127,22 @@ class CommentArray extends WireArray {
 	 */ 
 	public function setField(Field $field) {
 		$this->field = $field; 
+	}
+	
+	/**
+	 * Get the page that these comments are on
+	 *
+	 */
+	public function getPage() { 
+		return $this->page; 
+	}
+
+	/**
+	 * Get the Field that these comments are on
+	 *
+	 */
+	public function getField() {
+		return $this->field;
 	}
 	
 }

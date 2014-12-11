@@ -1,20 +1,25 @@
 /*** COMMENT FORM ********************************************/
 
-.CommentForm input,
-.CommentForm textarea {
+.CommentFormCite input,
+.CommentFormEmail input,
+.CommentFormWebsite input,
+.CommentFormNotify select, 
+.CommentFormText textarea {
+	box-sizing: border-box; 
 	display: block;
+	width: 100%; 
 }
 
 .CommentFormCite,
 .CommentFormEmail,
 .CommentFormWebsite {
+	box-sizing: border-box; 
 	float: left;
 	width: 33%; 
 }
 
 .CommentFormCite,
 .CommentFormEmail {
-	box-sizing: border-box; 
 	padding-right: 1em;
 }
 
@@ -22,24 +27,25 @@
 	width: 34%; 
 }
 
-.CommentFormCite input,
-.CommentFormEmail input,
-.CommentFormWebsite input {
-	width: 100%; 
-}
-
 .CommentFormText {
 	clear: both;
 }
 
-.CommentFormText textarea {
-	width: 100%; 
+.CommentFormNotify {
+	box-sizing: border-box; 
+	width: 66%; 
+	padding-right: 1em;
+}
+
+.CommentFormNotify label span {
+	display: none; 
 }
 
 @media only screen and (max-width: 767px) {
 	.CommentFormCite,
 	.CommentFormEmail,
-	.CommentFormWebsite {
+	.CommentFormWebsite,
+	.CommentFormNotify {
 		float: none;
 		width: 100%;
 		padding-right: 0;

@@ -40,6 +40,9 @@ class CommentList extends Wire implements CommentListInterface {
 	 *
 	 */
 	protected $comments = null;
+	
+	protected $page;
+	protected $field;
 
 	/**
 	 * Default options that may be overridden from constructor
@@ -80,6 +83,8 @@ class CommentList extends Wire implements CommentListInterface {
 		}
 		
 		$this->comments = $comments; 
+		$this->page = $comments->getPage();
+		$this->field = $comments->getField();
 		$this->options = array_merge($this->options, $options); 
 	}
 
@@ -117,9 +122,9 @@ class CommentList extends Wire implements CommentListInterface {
 	}
 	
 	protected function renderList($parent_id = 0, $depth = 0) {
-		$out = '';
+		$out = $parent_id ? '' : $this->renderCheckActions();
 		$comments = $this->options['depth'] > 0 ? $this->getReplies($parent_id) : $this->comments;
-		if(!count($comments)) return '';
+		if(!count($comments)) return $out;
 		foreach($comments as $comment) $out .= $this->renderItem($comment, $depth);
 		if(!$out) return '';
 		$class = "CommentList";
@@ -198,6 +203,52 @@ class CommentList extends Wire implements CommentListInterface {
 		return $out; 	
 	}
 
+	/**
+	 * Check for URL-based comment approval actions
+	 *
+	 * Note that when it finds an actionable approval code, it performs a
+	 * redirect back to the same page after completing the action, with
+	 * ?comment_success=2 on successful action, or ?comment_success=3 on
+	 * error.
+	 *
+	 * It also populates a session variable 'CommentApprovalMessage' with
+	 * a text message of what occurred.
+	 *
+	 * @return string
+	 *
+	 */
+	public function renderCheckActions() {
+
+		$action = $this->wire('input')->get('comment_success');
+		if(empty($action) || $action === "1") return '';
+
+		if($action === '2' || $action === '3') {
+			$message = $this->wire('session')->get('CommentApprovalMessage');
+			if($message) {
+				$this->wire('session')->remove('CommentApprovalMessage');
+				$class = $action === '2' ? 'success' : 'error';
+				$commentID = (int) $this->wire('input')->get('comment_id');
+				$message = $this->wire('sanitizer')->entities($message);
+				if($commentID) $message = str_replace($commentID, "<a href='#Comment$commentID'>$commentID</a>", $message);
+				return "<p id='CommentApprovalMessage' class='$class'><strong>$message</strong></p>";
+			}
+		}
+
+		if(!$this->field) return '';
+
+		require_once(dirname(__FILE__) . '/CommentNotifications.php');
+		$no = new CommentNotifications($this->page, $this->field);
+		$info = $no->checkActions();
+		if($info['valid']) { 
+			$url = $this->page->url . '?'; 
+			if($info['commentID']) $url .= "comment_id=$info[commentID]&";
+			$url .= "comment_success=" . ($info['success'] ? '2' : '3');
+			$this->wire('session')->set('CommentApprovalMessage', $info['message']);
+			$this->wire('session')->redirect($url . '#CommentApprovalMessage');
+		}
+
+		return '';
+	}
 
 }
 

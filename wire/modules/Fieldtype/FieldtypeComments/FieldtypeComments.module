@@ -50,35 +50,11 @@ class FieldtypeComments extends FieldtypeMulti {
 	 */
 	const moderateNew = 2;
 
-	/**
-	 * Send notification to specific email address(s)
-	 * 
-	 */
-	const notificationEmail = 0;
-
-	/**
-	 * Send notification to createdUser's email
-	 * 
-	 */
-	const notificationCreated = 1;
-
-	/**
-	 * Send notification to specific user(s) email
-	 * 
-	 */
-	const notificationUser = 2;
-	
-	/**
-	 * Don't send notifications when new comments posted
-	 *
-	 */
-	const notificationNone = 9;
-	
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Comments', __FILE__),
-			'version' => 104,
+			'version' => 105,
 			'summary' => __('Field that stores user posted comments for a single Page', __FILE__),
 			'installs' => array('InputfieldCommentsAdmin'),
 			);
@@ -157,6 +133,7 @@ class FieldtypeComments extends FieldtypeMulti {
 				$comment->set($key, $val); 
 			}
 			$comment->resetTrackChanges(true); 
+			$comment->setIsLoaded(true); 
 			$commentArray->add($comment); 
 		}
 		
@@ -182,8 +159,11 @@ class FieldtypeComments extends FieldtypeMulti {
 
 		foreach($value as $comment) {
 
-			if($comment->id) $this->checkExistingComment($page, $field, $comment); 
-				else $this->checkNewComment($page, $field, $comment); 	
+			if($comment->id) {
+				$this->checkExistingComment($page, $field, $comment);
+			} else {
+				$this->checkNewComment($page, $field, $comment);
+			}
 				
 			$a = array(
 				'id' => $comment->id, 
@@ -202,6 +182,12 @@ class FieldtypeComments extends FieldtypeMulti {
 				$a['parent_id'] = $comment->parent_id;
 				$a['flags'] = (int) $comment->flags;
 			}
+			if($field->schemaVersion > 2) {
+				$a['code'] = $comment->code; 
+			}
+			if($field->schemaVersion > 3) {
+				$a['subcode'] = $comment->subcode;
+			}
 
 			$sleepValue[] = $a;
 
@@ -214,6 +200,10 @@ class FieldtypeComments extends FieldtypeMulti {
 	 * Review an existing comment for changes to the status
 	 *
 	 * If the status was changed, check if Akismet made an error and send it to them if they did
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @param Comment $comment
 	 *
 	 */
 	protected function checkExistingComment(Page $page, Field $field, Comment $comment) {
@@ -223,9 +213,17 @@ class FieldtypeComments extends FieldtypeMulti {
 
 		if($comment->prevStatus == Comment::statusSpam && $comment->status == Comment::statusApproved) {
 			$submitHam = true; // identified a false positive
+			$this->commentApproved($page, $field, $comment); 
 
 		} else if($comment->status == Comment::statusSpam && $comment->prevStatus == Comment::statusApproved) {
 			$submitSpam = true; // a missed spam
+			$this->commentUnapproved($page, $field, $comment); 
+			
+		} else if($comment->prevStatus == Comment::statusPending && $comment->status == Comment::statusApproved) {
+			$this->commentApproved($page, $field, $comment); 
+			
+		} else if($comment->status == Comment::statusPending && $comment->prevStatus == Comment::statusApproved) {
+			$this->commentUnapproved($page, $field, $comment); 
 		}
 
 		if($field->useAkismet && $comment->ip && $comment->user_agent && ($submitHam || $submitSpam)) {
@@ -233,6 +231,26 @@ class FieldtypeComments extends FieldtypeMulti {
 			$akismet->setComment($comment); 
 			if($submitHam) $akismet->submitHam();
 				else if($submitSpam) $akismet->submitSpam();
+		}
+		$this->checkCommentCodes($comment);
+	}
+	
+	protected function checkCommentCodes(Comment $comment) {
+		// assign code and subcode
+		if(!$comment->code || !$comment->subcode) {
+			$pass = new Password();
+			if(!strlen($comment->code)) {
+				// code: visible to admin only
+				$code = $pass->randomBase64String(128, true);
+				$code = substr($this->wire('sanitizer')->fieldName($code), 0, 128);
+				$comment->code = $code;
+			}
+			if(!strlen($comment->subcode)) {
+				// subcode: may be visible to commenter
+				$subcode = $pass->randomBase64String(40, true);
+				$subcode = substr($this->wire('sanitizer')->fieldName($subcode), 0, 40);
+				$comment->subcode = $subcode;
+			}
 		}
 	}
 
@@ -243,8 +261,10 @@ class FieldtypeComments extends FieldtypeMulti {
 	 */ 
 	protected function checkNewComment(Page $page, Field $field, Comment $comment) {
 
-		if($comment->id) return; 
-
+		if($comment->id) return;
+		
+		$this->checkCommentCodes($comment);
+		
 		if($field->useAkismet) {
 			$akismet = $this->modules->get('CommentFilterAkismet'); 
 			$akismet->setComment($comment); 
@@ -256,6 +276,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		if($comment->status != Comment::statusSpam) {
 			if($field->moderate == self::moderateNone) {
 				$comment->status = Comment::statusApproved; 
+				$this->commentApproved($page, $field, $comment); 
 
 			} else if($field->moderate == self::moderateNew && $comment->email) {
 				$database = $this->wire('database');
@@ -266,11 +287,16 @@ class FieldtypeComments extends FieldtypeMulti {
 				$query->execute();
 				$numApproved = (int) $query->fetchColumn();
 					
-				if($numApproved > 0) $comment->status = Comment::statusApproved; 
+				if($numApproved > 0) {
+					$comment->status = Comment::statusApproved;
+					$this->commentApproved($page, $field, $comment); 
+				}
 			}
 		}
 
-		$this->sendNotificationEmail($page, $field, $comment); 
+		require_once(dirname(__FILE__) . '/CommentNotifications.php'); 
+		$no = new CommentNotifications($page, $field); 
+		$no->sendAdminNotificationEmail($comment); 
 		$this->deleteOldSpam($field);
 
 	}
@@ -291,38 +317,6 @@ class FieldtypeComments extends FieldtypeMulti {
 	}
 
 	/**
-	 * Send notification email to specified admin to review the comment
-	 *
-	 */
-	protected function ___sendNotificationEmail(Page $page, Field $field, Comment $comment) {
-
-		if(!$field->notificationEmail) return false; 
-
-		// skip notification when spam
-		if($comment->status == Comment::statusSpam && !$field->notifySpam) return; 
-
-		if($comment->status == Comment::statusPending) $status = $this->_("Pending Approval");
-			else if($comment->status == Comment::statusApproved) $status = $this->_("Approved");
-			else if($comment->status == Comment::statusSpam) $status = sprintf($this->_("SPAM - will be deleted automatically after %d days"), $field->deleteSpamDays);
-			else $status = "Unknown";
-
-		$subject = sprintf($this->_('Comment posted to: %s'), $page->httpUrl);	
-
-		$from = $this->_x('ProcessWire', 'email-from') . 
-			'<' . $this->_x('processwire', 'email-from-name') . 
-			'@' . $this->config->httpHost . ">"; 
-
-		$body = $this->_x('Page', 'email-body') . ": {$page->httpUrl}\n" . 
-			$this->_x('From', 'email-body') . ": {$comment->cite}\n" . 
-			$this->_x('Email', 'email-body') . ": {$comment->email}\n" . 
-			$this->_x('Website', 'email-body') . ": {$comment->website}\n" . 
-			$this->_x('Status', 'email-body') . ": $status\n" . 
-			$this->_x('Text', 'email-body') . ": {$comment->text}\n\n";
-
-		return wireMail($field->notificationEmail, $from, $subject, $body); 
-	}
-	
-	/**
 	 * Schema for the Comments Fieldtype
 	 *
 	 */
@@ -331,6 +325,11 @@ class FieldtypeComments extends FieldtypeMulti {
 		$websiteSchema = "varchar(255) NOT NULL default ''"; 
 		$parentSchema = "int unsigned NOT NULL default 0";
 		$flagSchema = "int unsigned NOT NULL default 0";
+		$codeSchema = "varchar(128) default NULL";
+		$codeIndexSchema = "INDEX `code` (`code`)";
+		$subcodeSchema = "varchar(40) default NULL";
+		$subcodeIndexSchema = "INDEX `subcode` (`subcode`)";
+		
 		$schemaVersion = (int) $field->schemaVersion;
 
 		if(!$schemaVersion) {
@@ -344,13 +343,35 @@ class FieldtypeComments extends FieldtypeMulti {
 		}
 		
 		if($schemaVersion < 2) {
-			// add new columns for PW 2.5.11+
+			// add parent_id and flags columns
 			$database = $this->wire('database');
 			$table = $database->escapeTable($field->getTable());
 			try { 
 				$database->query("ALTER TABLE `$table` ADD parent_id $parentSchema");
 				$database->query("ALTER TABLE `$table` ADD flags $flagSchema");
 				$schemaVersion = 2;
+			} catch(Exception $e) { }
+		}
+		
+		if($schemaVersion < 3) {
+			// add code column (admin code)
+			$database = $this->wire('database');
+			$table = $database->escapeTable($field->getTable());
+			try {
+				$database->query("ALTER TABLE `$table` ADD `code` $codeSchema");
+				$database->query("ALTER TABLE `$table` ADD $codeIndexSchema"); 
+				$schemaVersion = 3;
+			} catch(Exception $e) { }
+		}
+		
+		if($schemaVersion < 4) {
+			// add subcode column (subscriber code)
+			$database = $this->wire('database');
+			$table = $database->escapeTable($field->getTable());
+			try {
+				$database->query("ALTER TABLE `$table` ADD `subcode` $subcodeSchema");
+				$database->query("ALTER TABLE `$table` ADD $subcodeIndexSchema");
+				$schemaVersion = 4;
 			} catch(Exception $e) { }
 		}
 		
@@ -377,6 +398,14 @@ class FieldtypeComments extends FieldtypeMulti {
 		if($field->schemaVersion > 1) {
 			$schema['parent_id'] = $parentSchema;
 			$schema['flags'] = $flagSchema;
+		}
+		if($field->schemaVersion > 2) {
+			$schema['code'] = $codeSchema;
+			$schema['keys']['code'] = $codeIndexSchema;
+		}
+		if($field->schemaVersion > 3) {
+			$schema['subcode'] = $subcodeSchema;
+			$schema['keys']['subcode'] = $subcodeIndexSchema;
 		}
 
 		$schema['keys']['primary'] = "PRIMARY KEY (`id`)"; 
@@ -434,9 +463,12 @@ class FieldtypeComments extends FieldtypeMulti {
 		
 		// cycle through the values, executing an update query for each
 		foreach($values as $value) {
-
+			
+			$binds = array();
 			$sql = $value['id'] ? "UPDATE " : "INSERT INTO ";
-			$sql .= "`{$table}` SET pages_id=" . ((int) $page->id) . ", "; 
+			//$sql .= "`{$table}` SET pages_id=" . ((int) $page->id) . ", ";
+			$sql .= "`{$table}` SET pages_id=:pages_id, "; 
+			$binds['pages_id'] = (int) $page->id; 
 
 			// if the value is not an associative array, then force it to be one
 			if(!is_array($value)) $value = array('data' => $value); 
@@ -446,16 +478,26 @@ class FieldtypeComments extends FieldtypeMulti {
 				if($key == 'id') continue; 
 				if($key == 'sort' && !$value['id']) continue; 
 				$v = $value[$key];
-				$sql .= $database->escapeCol($key) . "='" . $database->escapeStr("$v") . "', ";
+				$col = $database->escapeCol($key); 
+				if(is_null($v) && ($key == 'code' || $key == 'subcode')) {
+					// currently 'code' and 'subcode' are the only column that allows null
+					$sql .= "$col=NULL, ";
+				} else {
+					$sql .= "$col=:$col, ";
+					$binds[$col] = $v; 
+				}
 			}
 
 			if($value['id']) {
-				$sql = rtrim($sql, ', ') . " WHERE id=" . (int) $value['id'];
+				$sql = rtrim($sql, ', ') . " WHERE id=:id"; // . (int) $value['id'];
+				$binds['id'] = (int) $value['id'];
 			} else {
-				$sql .= "sort=" . ++$maxSort; 
+				$sql .= "sort=:sort"; 
+				$binds['sort'] = ++$maxSort; 
 			}
-
-			if(!$database->exec($sql)) $this->error("Error saving item $value[id] in savePageField", Notice::log);
+			$query = $database->prepare($sql); 
+			foreach($binds as $k => $v) $query->bindValue(":$k", $v); 
+			if(!$query->execute()) $this->error("Error saving item $value[id] in savePageField", Notice::log);
 		}	
 
 		return true; 
@@ -468,17 +510,44 @@ class FieldtypeComments extends FieldtypeMulti {
 	public function ___getConfigInputfields(Field $field) {
 
 		$inputfields = parent::___getConfigInputfields($field);
+		$disabledLabel = $this->_('Disabled');
+
+		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
+		$fieldset->label = $this->_('Behavior');
+		$fieldset->icon = 'comment-o';
+		$inputfields->add($fieldset); 
 
 		$name = 'moderate';
 		$f = $this->wire('modules')->get('InputfieldRadios'); 
 		$f->attr('name', $name); 
 		$f->addOption(self::moderateNone, $this->_('None - Comments posted immediately')); 
 		$f->addOption(self::moderateAll, $this->_('All - All comments must be approved by user with page edit access')); 
-		$f->addOption(self::moderateNew, $this->_('Only New - Only comments from users without prior approved comments require approval')); 
+		$f->addOption(self::moderateNew, $this->_('Only New - Only comments from users without prior approved comments require approval'));
 		$f->attr('value', (int) $field->$name); 
-		$f->label = $this->_('Comment Moderation');
-		$inputfields->append($f);
-	
+		$f->label = $this->_('Comment moderation');
+		$f->description = $this->_('This determines when a newly posted comment will appear on your site.'); 
+		$fieldset->append($f);
+		
+		$name = 'redirectAfterPost';
+		$f = $this->wire('modules')->get('InputfieldCheckbox');
+		$f->attr('name', $name);
+		$f->attr('value', 1);
+		$f->attr('checked', $field->$name ? 'checked' : '');
+		$f->label = $this->_('Redirect after comment post?');
+		$f->description = $this->_('When checked, ProcessWire will issue a redirect after the comment is posted in order to prevent double submissions. Recommended.');
+		$f->columnWidth = 50;
+		$fieldset->append($f);
+
+		$name = 'quietSave';
+		$f = $this->wire('modules')->get('InputfieldCheckbox');
+		$f->attr('name', $name);
+		$f->attr('value', 1);
+		$f->attr('checked', $field->$name ? 'checked' : '');
+		$f->label = $this->_('Quiet save?');
+		$f->columnWidth = 50;
+		$f->description = $this->_('When checked, the page modification time and user will not be updated when a comment is added.');
+		$fieldset->append($f);
+
 		/*
 		$name = 'notificationType';
 		$f = $this->wire('modules')->get('InputfieldRadios');
@@ -491,14 +560,37 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->attr('value', $field->$name);
 		$inputfields->append($f);
 		*/
+		
+		// ----------------------------
+		
+		$fieldset = $this->wire('modules')->get('InputfieldFieldset'); 
+		$fieldset->label = $this->_('Notifications'); 
+		$fieldset->icon = 'bell-o';
+		$inputfields->add($fieldset); 
 
 		$name = 'notificationEmail';
 		$f = $this->wire('modules')->get('InputfieldText'); 
 		$f->attr('name', $name); 
 		$f->attr('value', $field->$name); 
-		$f->label = $this->_('Notification E-Mail');
-		$f->description = $this->_('E-mail address to be notified when a new comment is posted. Separate multiple email addresses with commas.');
-		$inputfields->append($f);
+		$f->label = $this->_('Admin notification email');
+		$f->description = $this->_('E-mail address to be notified when a new comment is posted. Separate multiple email addresses with commas or spaces.') . ' '; 
+		$f->description .= $this->_('Users receiving this email will have the ability to approve or deny posts directly from links in the email.');
+		$f->notes = 
+			$this->_('In addition to (or instead of) email addresses, you may also use one or more of the following:') . "\n" .
+			$this->_('1. Enter **user:karen** to email a specific user, replacing "karen" with the name of the actual user.') . "\n" . 
+			$this->_('2. Enter **field:email** to pull the email from a field on the page, replacing "email" with name of field containing email address.') . "\n" . 
+			$this->_('3. Enter **123:email** to pull the email from an given page ID and field name, replacing "123" with the page ID and "email" with name of field containing email address.') . "\n" . 
+			$this->_('4. Enter **/path/to/page:email** to pull the email from an given page ID and field name, replacing "123" with the page ID and "email" with name of field containing email address.');
+		$fieldset->append($f);
+		
+		$name = 'fromEmail';
+		$f = $this->wire('modules')->get('InputfieldEmail');
+		$f->attr('name', $name);
+		$f->attr('value', $field->$name);
+		$f->label = $this->_('Notifications from email');
+		$f->description = $this->_('Optional e-mail address that notifications will appear from. Leave blank to use the default server email.');
+		$f->columnWidth = 50; 
+		$fieldset->append($f);
 		
 		$name = 'notifySpam';
 		$f = $this->wire('modules')->get('InputfieldCheckbox');
@@ -508,18 +600,25 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->label = $this->_('Send e-mail notification on spam?');
 		$f->description = $this->_('When checked, ProcessWire will still send you an e-mail notification even if the message is identified as spam.');
 		$f->columnWidth = 50;
-		$inputfields->append($f);
-		
-		$name = 'deleteSpamDays';
-		$f = $this->wire('modules')->get('InputfieldInteger');
+		$fieldset->append($f);
+
+		$name = 'useNotify';
+		$f = $this->wire('modules')->get('InputfieldRadios');
 		$f->attr('name', $name);
-		$value = $field->$name;
-		if(is_null($value)) $value = 3; // default
-		$f->attr('value', $value);
-		$f->label = $this->_('Number of days after which to delete spam');
-		$f->description = $this->_('After the number of days indicated, spam will be automatically deleted.');
-		$f->columnWidth = 50; 
-		$inputfields->append($f);
+		$f->label = $this->_('Allow commenter e-mail notifications?');
+		$f->description = $this->_('This option enables anyone that posts a comment to receive email notifications of new comments.');
+		$f->addOption(0, $disabledLabel);
+		$f->addOption(Comment::flagNotifyReply, $this->_('Users can receive email notifications of replies to their comment only'));
+		$f->addOption(Comment::flagNotifyAll, $this->_('Users can receive email notifications for all new comments on the page'));
+		$f->attr('value', (int) $field->useNotify);
+		$fieldset->append($f);
+
+		// ---------------------------------------
+		
+		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
+		$fieldset->label = $this->_('Spam'); 
+		$fieldset->icon = 'fire-extinguisher';
+		$inputfields->add($fieldset);
 		
 		$name = 'useAkismet';
 		$f = $this->wire('modules')->get('InputfieldCheckbox');
@@ -529,7 +628,35 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->label = $this->_('Use Akismet Spam Filter Service?');
 		$f->description = $this->_('This service will automatically identify most spam. Before using it, please ensure that you have entered an Akismet API key under Modules > Comment Filter: Akismet.');
 		$f->columnWidth = 50;
-		$inputfields->append($f);
+		$fieldset->append($f);
+
+		$name = 'deleteSpamDays';
+		$f = $this->wire('modules')->get('InputfieldInteger');
+		$f->attr('name', $name);
+		$value = $field->$name;
+		if(is_null($value)) $value = 3; // default
+		$f->attr('value', $value);
+		$f->label = $this->_('Number of days after which to delete spam');
+		$f->description = $this->_('After the number of days indicated, spam will be automatically deleted.');
+		$f->columnWidth = 50; 
+		$fieldset->append($f);
+		
+		// ---------------------------------------
+
+		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
+		$fieldset->label = $this->_('Output');
+		$fieldset->icon = 'comments-o';
+		$inputfields->add($fieldset);
+		
+		$name = 'depth';
+		$f = $this->wire('modules')->get('InputfieldInteger');
+		$f->attr('name', $name);
+		$f->attr('value', (int) $field->$name);
+		$f->label = $this->_('Reply depth');
+		$f->description = $this->_('Specify 0 for traditional flat chronological comments. For threaded comments (replies appear with comment being replied to) specify the maximum depth allowed for replies (0 to 4 recommended).');
+		$f->columnWidth = 50;
+		$fieldset->append($f);
+
 
 		$name = 'sortNewest'; 
 		$f = $this->wire('modules')->get('InputfieldCheckbox'); 
@@ -539,7 +666,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->label = $this->_('Sort newest to oldest?');
 		$f->description = $this->_('By default, comments will sort chronologically (oldest to newest). To reverse that behavior check this box.');
 		$f->columnWidth = 50;
-		$inputfields->append($f);
+		$fieldset->append($f);
 		
 		$name = 'useWebsite'; 
 		$f = $this->wire('modules')->get('InputfieldCheckbox'); 
@@ -549,41 +676,21 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->label = $this->_('Use website field in comment form?');
 		$f->description = $this->_('When checked, the comment submission form will also include a website field.');
 		$f->columnWidth = 50;
-		$inputfields->append($f); 
-
-		$name = 'redirectAfterPost';
-		$f = $this->wire('modules')->get('InputfieldCheckbox'); 
+		$fieldset->append($f); 
+		
+		$name = 'dateFormat';
+		$f = $this->wire('modules')->get('InputfieldText'); 
 		$f->attr('name', $name); 
-		$f->attr('value', 1); 
-		$f->attr('checked', $field->$name ? 'checked' : ''); 
-		$f->label = $this->_('Redirect after comment post?');
-		$f->description = $this->_('When checked, ProcessWire will issue a redirect after the comment is posted in order to prevent double submissions. Recommended.');
-		$f->columnWidth = 50;
-		$inputfields->append($f);
+		$f->attr('value', $field->dateFormat ? $field->dateFormat : 'relative'); 
+		$f->label = $this->_('Date/time format (for comment list)'); 
+		$f->description = $this->_('Enter the date/time format you want the default comment list output to use. May be a PHP [date](http://php.net/manual/en/function.date.php) or [strftime](http://php.net/manual/en/function.strftime.php) format. May also be "relative" for relative date format.'); // dateFormat description
+		$f->columnWidth = 50; 
+		$fieldset->append($f);
 		
-		$name = 'quietSave';
-		$f = $this->wire('modules')->get('InputfieldCheckbox');
-		$f->attr('name', $name);
-		$f->attr('value', 1);
-		$f->attr('checked', $field->$name ? 'checked' : '');
-		$f->label = $this->_('Quiet save?');
-		$f->columnWidth = 50;
-		$f->description = $this->_('When checked, the page modification time and user will not be updated when a comment is added.');
-		$inputfields->append($f);
-		
-		$name = 'depth';
-		$f = $this->wire('modules')->get('InputfieldInteger');
-		$f->attr('name', $name);
-		$f->attr('value', (int) $field->$name);
-		$f->label = $this->_('Reply depth');
-		$f->description = $this->_('Specify 0 for traditional flat chronological comments. For threaded comments (replies appear with comment being replied to) specify the maximum depth allowed for replies (0 to 4 recommended).');
-		$f->columnWidth = 50;
-		$inputfields->append($f);
-
 		$name = 'useGravatar'; 
 		$f = $this->wire('modules')->get('InputfieldRadios'); 
 		$f->attr('name', $name); 
-		$f->addOption('', $this->_('Disabled'));
+		$f->addOption('', $disabledLabel); 
 		$f->addOption('g', $this->_('G: Suitable for display on all websites with any audience type.'));
 		$f->addOption('pg', $this->_('PG: May contain rude gestures, provocatively dressed individuals, the lesser swear words, or mild violence.'));
 		$f->addOption('r', $this->_('R: May contain such things as harsh profanity, intense violence, nudity, or hard drug use.'));
@@ -592,7 +699,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->label = $this->_('Use Gravatar?');
 		$f->description = $this->_('This service provides an avatar image with each comment (unique to the email address). To enable, select the maximum gravatar rating. These are the same as movie ratings, where G is the most family friendly and X is not.');
 		$f->notes = $this->_('Rating descriptions provided by [Gravatar](https://en.gravatar.com/site/implement/images/).');
-		$inputfields->append($f); 
+		$fieldset->append($f); 
 
 		// @todo 
 		/*
@@ -612,9 +719,12 @@ class FieldtypeComments extends FieldtypeMulti {
 		}
 		*/
 		
+		// -----------------------------
+		
 		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
-		$fieldset->label = $this->_('Front-end comments output'); 
+		$fieldset->label = $this->_('Implementation'); 
 		$fieldset->description = $this->_('This section is here to help you get started with outputting comments on the front-end of your site. Everything here is optional.'); 
+		$fieldset->notes = $this->_('If using a cache for output, configure it to bypass the cache when the GET variable "comment_success" is present.'); 
 		$inputfields->add($fieldset); 
 		
 		$f = $this->wire('modules')->get('InputfieldMarkup'); 
@@ -664,7 +774,7 @@ class FieldtypeComments extends FieldtypeMulti {
 	}
 
 	/**
-	 * Given a field and a selector, find all comments matching the selector
+	 * Given a field and a selector, find all comments matching the selector (static version)
 	 *
 	 * Note that if you don't specify a limit=n, it will default to a limit of 10
 	 * If you don't specify a sort, it will default to sort=-created
@@ -741,12 +851,195 @@ class FieldtypeComments extends FieldtypeMulti {
 				$comment->set($key, $value);
 			}
 			$comment->set('page', wire('pages')->get($row['pages_id']));
+			$comment->resetTrackChanges(true); 
+			$comment->setIsLoaded(true); 
 			$comments->add($comment); 
 		}
 		$query->closeCursor();
 			
 		return $comments; 
 	}
+
+	/**
+	 * Given a field and a selector, find all comments matching the selector (non-static version)
+	 *
+	 * Note that if you don't specify a limit=n, it will default to a limit of 10
+	 * If you don't specify a sort, it will default to sort=-created
+	 *
+	 * @param Field|string Field object or name of field
+	 * @param string $selectorString Selector string with query
+	 * @return CommentArray
+	 * @throws WireException
+	 *
+	 */
+	public function find($field, $selectorString) {
+		return self::findComments($field, $selectorString); 
+	}
+
+	/**
+	 * Given a comment code or subcode, return the associated comment ID or 0 if it doesn't exist
+	 * 
+	 * @param $page
+	 * @param $field
+	 * @param $code
+	 * @return Comment|null
+	 * 
+	 */
+	public function getCommentByCode($page, $field, $code) {
+		if(!is_object($page)) $page = $this->wire('pages')->get((int) $page); 
+		if(!$page->id) return null;
+		if(empty(trim($code))) return null; 
+		if(!is_object($field)) $field = $this->wire('fields')->get($this->wire('sanitizer')->fieldName($field)); 
+		if(!$field || !$field->type instanceof FieldtypeComments) return null; 
+		$table = $field->getTable();
+		$col = strlen($code) > 100 ? 'code' : 'subcode';
+		$sql = "SELECT * FROM `$table` WHERE `$col`!='' AND `$col` IS NOT NULL AND `$col`=:code AND pages_id=:pageID";
+		$query = $this->wire('database')->prepare($sql);
+		$query->bindValue(':code', substr($code, 0, 128), PDO::PARAM_STR); 
+		$query->bindValue(':pageID', $page->id, PDO::PARAM_INT); 
+		if(!$query->execute()) return null; 
+		if(!$query->rowCount()) return null; 
+		$data = $query->fetch(PDO::FETCH_ASSOC); 
+		return $this->makeComment($page, $field, $data); 
+	}
+
+	/**
+	 * Get a comment by ID or NULL if not found
+	 * 
+	 * @param $page
+	 * @param $field
+	 * @param $id
+	 * @return Comment|null
+	 * 
+	 */
+	public function getCommentByID($page, $field, $id) {
+		if(!is_object($page)) $page = $this->wire('pages')->get((int) $page);
+		if(!$page->id) return null;
+		if(empty($id)) return null;
+		if(!is_object($field)) $field = $this->wire('fields')->get($this->wire('sanitizer')->fieldName($field));
+		if(!$field || !$field->type instanceof FieldtypeComments) return null;
+		$table = $field->getTable();
+		$sql = "SELECT * FROM `$table` WHERE id=:id AND pages_id=:pageID";
+		$query = $this->wire('database')->prepare($sql);
+		$query->bindValue(':id', (int) $id, PDO::PARAM_INT); 
+		$query->bindValue(':pageID', $page->id, PDO::PARAM_INT);
+		if(!$query->execute()) return null;
+		if(!$query->rowCount()) return null;
+		$data = $query->fetch(PDO::FETCH_ASSOC);
+		return $this->makeComment($page, $field, $data); 
+	}
+
+	/**
+	 * Given an array of data, convert it to a Comment object
+	 * 
+	 * @param $page
+	 * @param $field
+	 * @param array $data
+	 * @return Comment
+	 * 
+	 */
+	protected function makeComment($page, $field, array $data) {
+		$comment = new Comment();
+		$comment->setPage($page);
+		$comment->setField($field);
+		foreach($data as $key => $val) {
+			if($key == 'data') $key = 'text';
+			$comment->set($key, $val);
+		}
+		$comment->resetTrackChanges(true);
+		$comment->setIsLoaded(true); 
+		return $comment; 
+	}
+
+	/**
+	 * Update specific properties for a comment
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @param Comment $comment
+	 * @param array $properties Associative array of properties to update
+	 * @return mixed
+	 * @throws WireException
+	 * 
+	 */
+	public function ___updateComment(Page $page, $field, Comment $comment, array $properties) {
+		if(!count($properties)) return false;
+		$commentID = $comment->id; 
+		if(!is_object($field)) $field = $this->wire('fields')->get($this->wire('sanitizer')->fieldName($field)); 
+		if(!$field instanceof Field) return false;
+		$table = $this->wire('database')->escapeTable($field->getTable());
+		$sql = "UPDATE `$table` SET ";
+		$values = array();
+		foreach($properties as $property => $value) {
+			$comment->set($property, $value); 
+			$property = $this->wire('sanitizer')->fieldName($property); 
+			$property = $this->wire('database')->escapeCol($property); 
+			if($property == 'text') $property = 'data';
+			if(is_null($value) && ($property == 'code' || $property == 'subcode')) {
+				$sql .= "`$property`=NULL, ";
+			} else {
+				$sql .= "`$property`=:$property, ";
+				$values[$property] = $value;
+			}
+		}
+		$sql = rtrim($sql, ', ') . " WHERE id=:commentID AND pages_id=:pageID";
+		$query = $this->wire('database')->prepare($sql); 
+		$query->bindValue(':commentID', $commentID, PDO::PARAM_INT);
+		$query->bindValue(':pageID', $page->id, PDO::PARAM_INT); 
+		foreach($values as $property => $value) {
+			$query->bindValue(":$property", $value); 
+		}
+		$result = $query->execute();
+		if($result) { 
+			$this->checkExistingComment($page, $field, $comment); 
+		}
+		return $result;
+	}
+
+	/**
+	 * Hook called when a comment goes from un-approved to approved
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @param Comment $comment
+	 * 
+	 */
+	public function ___commentApproved(Page $page, Field $field, Comment $comment) {
+		$this->wire('log')->message("Approved comment $comment->id"); 
+		if($field->useNotify) {
+			$emails = array();
+			foreach($page->get($field->name) as $c) {
+				if($c->status < Comment::statusApproved) continue; 
+				if($c->id == $comment->id) continue; 
+				if($c->email == $comment->email) continue; 
+				if($c->flags & Comment::flagNotifyAll) {
+					if($c->subcode) $emails[$c->email] = $c->subcode;
+				} else if(($c->flags & Comment::flagNotifyReply) && $comment->parent_id == $c->id) {
+					if($c->subcode) $emails[$c->email] = $c->subcode;
+				}
+			}
+			// emails array contains email address => subcode to send notifications to
+			if(count($emails)) {
+				require_once(dirname(__FILE__) . '/CommentNotifications.php'); 	
+				$no = new CommentNotifications($page, $field); 
+				foreach($emails as $email => $subcode) {
+					$no->sendNotificationEmail($comment, $email, $subcode);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Hook called when a comment goes from approved to pending or spam
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @param Comment $comment
+	 *
+	 */
+	public function ___commentUnapproved(Page $page, Field $field, Comment $comment) {
+	}
+
 
 
 }

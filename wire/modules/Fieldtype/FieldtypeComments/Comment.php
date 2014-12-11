@@ -34,10 +34,16 @@ class Comment extends WireData {
 	const statusApproved = 1;
 
 	/**
-	 * Flag to indicate author of this comment wants to be notified of replies
+	 * Flag to indicate author of this comment wants to be notified of replies to their comment
 	 * 
 	 */
-	const flagNotify = 2; 
+	const flagNotifyReply = 2;
+
+	/**
+	 * Flag to indicate author of this comment wants to be notified of all comments on page
+	 *
+	 */
+	const flagNotifyAll = 4; 
 
 	/**
 	 * Max bytes that a Comment may use
@@ -47,9 +53,11 @@ class Comment extends WireData {
 
 	/**
 	 * Previous Comment status, when it has been changed
+	 * 
+	 * @var int|null
 	 *	
 	 */ 
-	protected $prevStatus;
+	protected $prevStatus = null;
 
 	/**
 	 * Page this comment lives on
@@ -66,6 +74,14 @@ class Comment extends WireData {
 	 * 
 	 */
 	protected $field = null;
+
+	/**
+	 * Is this comment finished loading?
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $loaded = false;
 
 	/**	
 	 * Construct a Comment and set defaults
@@ -85,7 +101,8 @@ class Comment extends WireData {
 		$this->set('ip', ''); 
 		$this->set('user_agent', ''); 
 		$this->set('created_users_id', $this->config->guestUserID); 
-		$this->prevStatus = self::statusPending; 
+		$this->set('code', ''); // approval code
+		$this->set('subcode', ''); // subscriber code (for later user modifications to comment)
 	}
 
 	public function get($key) {
@@ -149,7 +166,9 @@ class Comment extends WireData {
 
 		// save the state so that modules can identify when a comment that was identified as spam 
 		// is then set to not-spam, or when a misidentified 'approved' comment is actually spam
-		if($key == 'status') $this->prevStatus = $this->status; 
+		if($key == 'status' && $this->loaded) {
+			$this->prevStatus = $this->status;
+		}
 
 		return parent::set($key, $value); 
 	}
@@ -224,6 +243,18 @@ class Comment extends WireData {
 	
 	public function setField(Field $field) {
 		$this->field = $field; 
+	}
+	
+	public function getPage() { 
+		return $this->page;
+	}
+
+	public function getField() { 
+		return $this->field;
+	}
+	
+	public function setIsLoaded($loaded) {
+		$this->loaded = $loaded ? true : false;
 	}
 
 }
