@@ -74,7 +74,7 @@ class MarkupSVGSanitizer extends WireData implements Module {
 	 */
 	public function svg($filename, $whitelist) {
 		$this->getSvgSanitizer()->load($filename);
-		$this->getSvgSanitizer()->sanitize((array)json_decode($whitelist));
+		$this->getSvgSanitizer()->sanitize((array) json_decode($whitelist));
 		return $this->getSvgSanitizer()->saveSVG();
 	}
 

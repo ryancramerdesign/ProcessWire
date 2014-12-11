@@ -259,7 +259,10 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		if($this->noUpload) return;
 
 		if($pagefile->ext == 'svg') {
-			$this->sanitizer->svg($pagefile);
+			if($pagefile->field->svgFail && $this->sanitizer->svg($pagefile)) {
+				$pagefile->unlink();
+				throw new WireException($this->_('Invalid SVG'));
+			}
 		}
 
 		$message = $this->_('Added file:') . " {$pagefile->basename}"; // Label that precedes an added filename

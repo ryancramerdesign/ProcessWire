@@ -20,6 +20,7 @@ class SvgSanitizer {
 	//private $remoteHref = false;		// Check if hrefs in XML can goto remote locations
 	private $xmlDoc;					// PHP XML DOMDocument
 	private $filename;
+	private $changed = false;
 
 
 	function __construct() {
@@ -61,6 +62,7 @@ class SvgSanitizer {
 		    			// check if attribute isn't in whitelist and if not, remove it
 		    			if(!in_array($attrName,$whitelist_attr_arr)) {
 		    				$currentNode->removeAttribute($attrName);
+		    				$this->changed = true;
 		    				$numAttributes--;
 		    				$x--;
 		    			}
@@ -70,6 +72,7 @@ class SvgSanitizer {
 		    // else remove element
 		    else {
 		        $currentNode->parentNode->removeChild($currentNode);
+		        $this->changed = true;
 		        $numElements--;
 		        $i--;
 		    }
@@ -78,8 +81,8 @@ class SvgSanitizer {
 
 	function saveSVG() {
 		$this->xmlDoc->formatOutput = true;
-		//return($this->xmlDoc->saveXML());
 		file_put_contents($this->filename, $this->xmlDoc->saveXML());
+		return (bool) $this->changed;
 	}
 }
 

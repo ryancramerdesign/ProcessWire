@@ -535,7 +535,7 @@ class FieldtypeFile extends FieldtypeMulti {
 			"radialGradient"=>array("class", "cx", "cy", "fx", "fy", "gradientTransform", "gradientUnits", "id", "r", "requiredFeatures", "spreadMethod", "systemLanguage", "xlink:href"),
 			"rect"=>array("class", "clip-path", "clip-rule", "fill", "fill-opacity", "fill-rule", "filter", "height", "id", "mask", "opacity", "requiredFeatures", "rx", "ry", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "systemLanguage", "transform", "width", "x", "y"),
 			"stop"=>array("class", "id", "offset", "requiredFeatures", "stop-color", "stop-opacity", "style", "systemLanguage"),
-			"svg"=>array("class", "clip-path", "clip-rule", "filter", "id", "height", "mask", "preserveAspectRatio", "requiredFeatures", "style", "systemLanguage", "viewBox", "width", "x", "xmlns", "xmlns:se", "xmlns:xlink", "y"),
+			"svg"=>array("class", "clip-path", "clip-rule", "enable-background", "filter", "id", "height", "mask", "preserveAspectRatio", "requiredFeatures", "space", "style", "systemLanguage", "version", "viewBox", "width", "x", "xmlns", "xmlns:se", "xmlns:xlink", "y"),
 			"switch"=>array("class", "id", "requiredFeatures", "systemLanguage"),
 			"symbol"=>array("class", "fill", "fill-opacity", "fill-rule", "filter", "font-family", "font-size", "font-style", "font-weight", "id", "opacity", "preserveAspectRatio", "requiredFeatures", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "systemLanguage", "transform", "viewBox"),
 			"text"=>array("class", "clip-path", "clip-rule", "fill", "fill-opacity", "fill-rule", "filter", "font-family", "font-size", "font-style", "font-weight", "id", "mask", "opacity", "requiredFeatures", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "systemLanguage", "text-anchor", "transform", "x", "xml:space", "y"),
@@ -576,8 +576,18 @@ class FieldtypeFile extends FieldtypeMulti {
 		$f->attr('rows', 10);
 		$f->label = $this->_('SVG Sanitizer Whitelist');
 		$f->description = $this->_('Edit the whitelist of allowed SVG elements and their attributes.');
-		$f->notes = $this->_('If unsure what should be here, please leave as the default. You can reset, by emptying the field and saving.');
+		$f->notes = $this->_('If unsure what should be here, please leave as the default. You can reset, by emptying the field and saving. You will need to save again to commit the change.');
 		$f->showIf = "extensions%=svg";
+		$inputfields->append($f);
+
+		// svg whitelist fail action
+		$f = $this->modules->get("InputfieldCheckbox");
+		$f->attr('name', 'svgFail');
+		$f->attr('value', 1);
+		if($field->svgFail) $f->attr('checked', 'checked');
+		$f->label = $this->_('SVG Whitelist Fail');
+		$f->showIf = "extensions%=svg";
+		$f->description = $this->_('If checked, and the uploaded SVG fails the whitelist sanitizer, the upload will be rejected.');
 		$inputfields->append($f);
 
 		// max files
