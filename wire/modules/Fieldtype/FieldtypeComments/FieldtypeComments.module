@@ -888,7 +888,7 @@ class FieldtypeComments extends FieldtypeMulti {
 	public function getCommentByCode($page, $field, $code) {
 		if(!is_object($page)) $page = $this->wire('pages')->get((int) $page); 
 		if(!$page->id) return null;
-		if(empty(trim($code))) return null; 
+		if(!trim($code)) return null; 
 		if(!is_object($field)) $field = $this->wire('fields')->get($this->wire('sanitizer')->fieldName($field)); 
 		if(!$field || !$field->type instanceof FieldtypeComments) return null; 
 		$table = $field->getTable();

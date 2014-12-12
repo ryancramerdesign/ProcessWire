@@ -56,6 +56,7 @@ class CommentList extends Wire implements CommentListInterface {
 		'admin' => false, 	// shows unapproved comments if true
 		'useGravatar' => '', 	// enable gravatar? if so, specify maximum rating: [ g | pg | r | x ] or blank = disable gravatar
 		'useGravatarImageset' => 'mm',	// default gravatar imageset, specify: [ 404 | mm | identicon | monsterid | wavatar ]
+		'usePermalink' => false, // @todo
 		'depth' => 0, 
 		); 
 
@@ -170,7 +171,7 @@ class CommentList extends Wire implements CommentListInterface {
 		} else {
 			$header = str_replace(array('{cite}', '{created}'), array($cite, $created), $this->options['commentHeader']);
 		}
-
+		
 		$liClass = '';
 		$replies = $this->options['depth'] > 0 ? $this->renderList($comment->id, $depth+1) : ''; 
 		if($replies) $liClass .= ' CommentHasReplies';
@@ -184,11 +185,22 @@ class CommentList extends Wire implements CommentListInterface {
 			"\n\t\t\t<p>$text</p>" . 
 			"\n\t\t</div>";
 		
+		if($this->options['usePermalink']) {
+			$permalink = $comment->getPage()->httpUrl;
+			$urlSegmentStr = $this->wire('input')->urlSegmentStr;
+			if($urlSegmentStr) $permalink .= rtrim($permalink, '/') . $urlSegmentStr . '/';
+			$permalink .= '#Comment' . $comment->id;
+			$permalink = "<a class='CommentActionPermalink' href='$permalink'>" . $this->_('Permalink') . "</a>";
+		} else {
+			$permalink = '';
+		}
+
 		if($this->options['depth'] > 0 && $depth < $this->options['depth']) {
 			$out .=
 				"\n\t\t<div class='CommentFooter'>" . 
 				"\n\t\t\t<p class='CommentAction'>" .
-				"\n\t\t\t\t<a class='CommentActionReply' data-comment-id='$comment->id' href='#Comment{$comment->id}'>" . $this->_('Reply') . "</a>" .
+				"\n\t\t\t\t<a class='CommentActionReply' data-comment-id='$comment->id' href='#Comment{$comment->id}'>" . $this->_('Reply') . "</a> " .
+				($permalink ? "\n\t\t\t\t$permalink" : "") . 
 				"\n\t\t\t</p>" . 
 				"\n\t\t</div>";
 			
