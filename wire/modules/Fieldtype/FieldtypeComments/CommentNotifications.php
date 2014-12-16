@@ -16,6 +16,7 @@ class CommentNotifications extends Wire {
 		"pending" => "Pending", 
 		"spam" => "Spam", 
 		"unsub" => "Unsubscribe from notifications", 
+		"confirm" => "Subscribe to notifications",
 	);
 	 */
 	
@@ -233,29 +234,45 @@ class CommentNotifications extends Wire {
 		if(!$action) return $info;
 		$action = $this->wire('sanitizer')->pageName($action);
 		$status = null;
-		
-		
+
 		switch($action) {
 			case 'approve': $status = Comment::statusApproved; break;
 			case 'spam': $status = Comment::statusSpam; break;
 			case 'pending': $status = Comment::statusPending; break;
+			case 'confirm': break;
 			case 'unsub': break;
+			case 'upvote': break;
+			case 'downvote': break;
 			default:
 				$info['message'] = "Unknown action: $action";
 				return $info;
 		}
 		$info['action'] = $action;
 		
-		if($action == 'unsub') {
+		if($action == 'unsub' || $action == 'confirm') {
 			// early exit for unsub action
 			$subcode = $this->wire('sanitizer')->fieldName(substr($this->wire('input')->get('subcode'), 0, 40));
-			if(strlen($subcode) && $this->disableNotifications($subcode)) {
-				$info['valid'] = true;
-				$info['success'] = true;
-				$info['message'] = $this->_('You have unsubscribed from comment notifications on this page.');
-			} else {
-				$info['message'] = 'Error disabling notifications';
+			if($action == 'unsub') {
+				if(strlen($subcode) && $this->modifyNotifications($subcode, false)) {
+					$info['valid'] = true;
+					$info['success'] = true;
+					$info['message'] = $this->_('You have unsubscribed from comment notifications on this page.');
+				} else {
+					$info['message'] = 'Error disabling notifications';
+				}
+			} else if($action == 'confirm') {
+				if(strlen($subcode) && $this->modifyNotifications($subcode, true)) {
+					$info['valid'] = true;
+					$info['success'] = true;
+					$info['message'] = $this->_('You have confirmed receipt of notifications from this page.');
+				} else {
+					$info['message'] = 'Error confirming notifications';
+				}
 			}
+			return $info;
+			
+		} else if($action == 'upvote' || $action == 'downvote') {
+			$info = array_merge($info, $this->field->type->checkVoteAction($this->page)); 	
 			return $info;
 		}
 
@@ -316,17 +333,18 @@ class CommentNotifications extends Wire {
 		
 		return $info;
 	}
-
+	
 	/**
-	 * Given a subscriber code, disable notifications on any comments where their email is present
+	 * Given a subscriber code, modify notifications on any comments where their email is present
 	 * 
-	 * @param $subcode 40 digit subscriber code
+	 * @param string $subcode 40 digit subscriber code
+	 * @param bool $enable Whether to enable or disable notifications
+	 * @param bool $all Specify true to disable notifications site-wide, rather than just current page
 	 * @throws WireException
 	 * @return bool
 	 * 
 	 */
-	
-	public function disableNotifications($subcode) {
+	public function modifyNotifications($subcode, $enable, $all = false) {
 		
 		$table = $this->wire('database')->escapeTable($this->field->getTable());	
 		$sql = "SELECT email FROM `$table` WHERE pages_id=:pages_id AND subcode=:subcode"; 
@@ -337,22 +355,32 @@ class CommentNotifications extends Wire {
 		$email = '';
 		if($query->rowCount()) list($email) = $query->fetch(PDO::FETCH_NUM); 
 		if(!strlen($email)) return false;
-		
-		$sql = "SELECT id, flags FROM `$table` WHERE pages_id=:pages_id AND email=:email";
+	
+		if($all) {
+			$sql = "SELECT id, flags FROM `$table` WHERE email=:email";
+		} else {
+			$sql = "SELECT id, flags FROM `$table` WHERE pages_id=:pages_id AND email=:email";
+		}
 		$query = $this->wire('database')->prepare($sql);
-		$query->bindValue(':pages_id', $this->page->id);
+		if($all) $query->bindValue(':pages_id', $this->page->id);
 		$query->bindValue(':email', $email); 
 		$query->execute();
 		if(!$query->rowCount()) return false;
 		
 		while($row = $query->fetch(PDO::FETCH_NUM)) {
 			list($id, $flags) = $row; 
-			if($flags & Comment::flagNotifyAll) {
-				$flags = $flags & ~Comment::flagNotifyAll;	
-			} else if($flags & Comment::flagNotifyReply) {
-				$flags = $flags & ~Comment::flagNotifyReply;	
+			if($enable) {
+				// enable
+				$flags = $flags | Comment::flagNotifyConfirmed;
 			} else {
-				continue; 
+				// disable
+				if($flags & Comment::flagNotifyAll) {
+					$flags = $flags & ~Comment::flagNotifyAll;
+				} else if($flags & Comment::flagNotifyReply) {
+					$flags = $flags & ~Comment::flagNotifyReply;
+				} else {
+					continue;
+				}
 			}
 			$sql = "UPDATE `$table` SET flags=:flags WHERE id=:id"; 
 			$update = $this->wire('database')->prepare($sql);
@@ -360,8 +388,12 @@ class CommentNotifications extends Wire {
 			$update->bindValue(':id', $id); 
 			$update->execute();
 		}
-		
-		$this->wire('log')->message('Unsubscribed from notifications: ' . $email);
+	
+		if($enable) {
+			$this->wire('log')->message('Confirmed notifications: ' . $email);
+		} else {
+			$this->wire('log')->message('Unsubscribed from notifications: ' . $email);
+		}
 	
 		return true; 
 	}
@@ -400,6 +432,45 @@ class CommentNotifications extends Wire {
 			$this->wire('log')->error("Failed sending comment notification to $email"); 
 		}
 		
+		return $result;
+	}
+
+	/**
+	 * Send confirmation/opt-in email for notifications (not yet active)
+	 * 
+	 * @param Comment $comment
+	 * @param $email
+	 * @param $subcode
+	 * @return mixed
+	 * @throws WireException
+	 * 
+	 */
+	public function ___sendConfirmationEmail(Comment $comment, $email, $subcode) {
+		
+		$page = $comment->getPage();
+		$title = $page->get('title|name');
+		$url = $page->httpUrl;
+		$confirmURL = $page->httpUrl . "?comment_success=confirm&subcode=$subcode";
+		$subject = $this->_('Please confirm notification') . " - $title"; // Email subject
+		$body = $this->_('You requested to be notified of replies to your comment at %s. Please confirm this by clicking the link below. If you did not request this then please ignore this email.');
+		$bodyHTML = sprintf($body, "<a href='$url'>" . $this->wire('config')->httpHost . "</a>");
+		$body = sprintf($body, $this->wire('config')->httpHost);
+		$footer = $this->_('Confirm Notifications');
+		$body .= "\n\n$footer: $confirmURL";
+		$bodyHTML .= "<p><strong><a href='$confirmURL'>$footer</a></strong></p>";
+
+		$mail = wireMail();
+		$mail->to($email)->subject($subject)->body($body)->bodyHTML($bodyHTML);
+		$fromEmail = $this->getFromEmail();
+		if($fromEmail) $mail->from($fromEmail);
+
+		$result = $mail->send();
+		if($result) {
+			$this->wire('log')->message("Sent confirmation/opt-in email to $email");
+		} else {
+			$this->wire('log')->error("Failed sending confirmation/opt-in email to $email");
+		}
+
 		return $result;
 	}
 	

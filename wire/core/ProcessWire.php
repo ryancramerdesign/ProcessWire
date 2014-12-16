@@ -44,11 +44,30 @@ class ProcessWire extends Wire {
 	const statusRender = 8; // $page's template is being rendered
 	const statusFinished = 16; // request has been delivered
 	const statusFailed = 1024; // request failed due to exception or 404
-	
-	protected $debug = false; 
+
+	/**
+	 * Whether debug mode is on or off
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $debug = false;
+
+	/**
+	 * Fuel manages ProcessWire API variables
+	 * 
+	 * This will replace the static $fuel from the Wire class in PW 3.0.
+	 * Currently it is just here as a placeholder.
+	 *
+	 * @var Fuel|null
+	 *
+	 */
+	protected $_fuel = null;
 
 	/**
 	 * Given a Config object, instantiates ProcessWire and it's API
+	 * 
+	 * @param Config $config
  	 *
 	 */ 
 	public function __construct(Config $config) {
@@ -90,6 +109,9 @@ class ProcessWire extends Wire {
 
 	/**
 	 * Safely determine the HTTP host
+	 * 
+	 * @param Config $config
+	 * @return string
 	 *
 	 */
 	protected function getHttpHost(Config $config) {
@@ -138,7 +160,8 @@ class ProcessWire extends Wire {
 	/**
 	 * Load's ProcessWire using the supplied Config and populates all API fuel
  	 *
-	 * $param Config $config
+	 * @param Config $config
+	 * @throws WireDatabaseException|WireException on fatal error
  	 *
 	 */
 	public function load(Config $config) {
@@ -181,7 +204,7 @@ class ProcessWire extends Wire {
 		$updater = $modules->get('SystemUpdater'); 
 		if(!$updater) {
 			$modules->resetCache();
-			$modules->get('SystemUpdater');
+			$updater = $modules->get('SystemUpdater');
 		}
 
 		$fieldtypes = new Fieldtypes();
@@ -305,6 +328,7 @@ class ProcessWire extends Wire {
 	 * Set a new API variable
 	 * 
 	 * Alias of $this->wire(), but for setting only, for syntactic convenience.
+	 * i.e. $this->wire()->set($key, $value); 
 	 * 
 	 * @param $key API variable name to set
 	 * @param $value Value of API variable
@@ -315,7 +339,7 @@ class ProcessWire extends Wire {
 		$this->wire($key, $value, $lock);
 		return $this;
 	}
-	
+
 }
 
 

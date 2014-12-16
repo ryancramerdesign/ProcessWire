@@ -43,13 +43,19 @@ class Comment extends WireData {
 	 * Flag to indicate author of this comment wants to be notified of all comments on page
 	 *
 	 */
-	const flagNotifyAll = 4; 
+	const flagNotifyAll = 4;
+	
+	/**
+	 * Flag to indicate author of this comment wants notifications and request confirmed by double opt in
+	 *
+	 */
+	const flagNotifyConfirmed = 8; 
 
 	/**
 	 * Max bytes that a Comment may use
 	 *
 	 */
-	const maxCommentBytes = 20480; // 20k
+	const maxCommentBytes = 81920; // 80k
 
 	/**
 	 * Previous Comment status, when it has been changed
@@ -103,6 +109,8 @@ class Comment extends WireData {
 		$this->set('created_users_id', $this->config->guestUserID); 
 		$this->set('code', ''); // approval code
 		$this->set('subcode', ''); // subscriber code (for later user modifications to comment)
+		$this->set('upvotes', 0); 
+		$this->set('downvotes', 0); 
 	}
 
 	public function get($key) {
@@ -163,6 +171,7 @@ class Comment extends WireData {
 			else if($key == 'ip') $value = filter_var($value, FILTER_VALIDATE_IP); 
 			else if($key == 'user_agent') $value = str_replace(array("\r", "\n", "\t"), ' ', substr(strip_tags($value), 0, 255)); 
 			else if($key == 'website') $value = wire('sanitizer')->url($value, array('allowRelative' => false, 'allowQuerystring' => false)); 
+			else if($key == 'upvotes' || $key == 'downvotes') $value = (int) $value; 
 
 		// save the state so that modules can identify when a comment that was identified as spam 
 		// is then set to not-spam, or when a misidentified 'approved' comment is actually spam

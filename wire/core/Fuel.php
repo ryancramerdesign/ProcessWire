@@ -63,4 +63,5 @@ class Fuel implements IteratorAggregate {
 	public function getArray() {
 		return $this->data; 
 	}
+	
 }

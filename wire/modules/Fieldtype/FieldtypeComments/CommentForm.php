@@ -404,30 +404,30 @@ class CommentForm extends Wire implements CommentFormInterface {
 		if(!$this->commentsField->useNotify) return '';
 		$out = '';
 		
-		$options = array(); 
+		$options = array();
 		
+		if($this->commentsField->depth > 0) {
+			$options['2'] = $this->_('Replies');
+		}
+
+
 		if($this->commentsField->useNotify == Comment::flagNotifyAll) {
-			$options['4'] = $this->_('Email me when there are new comments');
+			$options['4'] = $this->_('All');
 		}
 	
-		if($this->commentsField->depth > 0) {
-			$options['2'] = $this->_('Email me only on reply to my comment');
-		}
-		
 		if(count($options)) {
 			$out = 
-				"\n\t\t<label>" . 
-				"\n\t\t\t<span>" . $this->_('Notifications') . " </span>" . 
-				"\n\t\t\t<select name='notify'>" . 
-				"\n\t\t\t\t<option value='0'>" . $this->_('Do not email me about new comments') . "</option>";
+				"\n\t<p class='CommentFormNotify'>" . 
+				"\n\t\t<label>" . $this->_('E-Mail Notifications:') . "</label> " . 
+				"\n\t\t<label><input type='radio' name='notify' checked='checked' value='0'>" . $this->_('Off') . "</label> ";
 			
 			foreach($options as $value => $label) {
-				$out .= "\n\t\t\t\t<option value='$value'>$label</option>";
+				$label = str_replace(' ', '&nbsp;', $label); 
+				$out .= "\n\t\t<label><input type='radio' name='notify' value='$value'>$label</label> ";
 			}
-			$out .= "\n\t\t\t</select>\n\t\t</label>";
+			$out .= "\n\t</p>";
 		}
 	
-		if($out) $out = "\n\t<p class='CommentFormNotify'>$out\n\t</p>";
 		return $out; 
 	}
 
@@ -479,6 +479,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 			if($flags) {
 				// $sessionData['notify'] = $notify;
 				$this->inputValues['notify'] = $notify;
+				// send confirmation email
 			}
 		}
 		$comment->flags = $flags;

@@ -3,7 +3,6 @@
 .CommentFormCite input,
 .CommentFormEmail input,
 .CommentFormWebsite input,
-.CommentFormNotify select, 
 .CommentFormText textarea {
 	box-sizing: border-box; 
 	display: block;
@@ -27,18 +26,13 @@
 	width: 34%; 
 }
 
+.CommentFormNotify label {
+	padding-right: 0.5em;
+	white-space: nowrap;
+}
+
 .CommentFormText {
 	clear: both;
-}
-
-.CommentFormNotify {
-	box-sizing: border-box; 
-	width: 66%; 
-	padding-right: 1em;
-}
-
-.CommentFormNotify label span {
-	display: none; 
 }
 
 @media only screen and (max-width: 767px) {
@@ -148,4 +142,36 @@
 }
 
 
+/*** COMMENT VOTES ********************************************/
 
+.CommentList .CommentVotes {
+	float: right; 
+}
+
+.CommentList .CommentVotes a {
+	text-decoration: none;
+	padding: 3px 0.5em;
+	font-weight: bold;
+	border-bottom: none;
+}
+.CommentList .CommentVotes a:hover {
+	background-color: #eee; 
+}
+
+.CommentList .CommentVotes a.CommentVoted {
+	background-color: #eee; 
+}
+
+.CommentList .CommentActionUpvote {
+	color: green;
+}
+
+.CommentList .CommentActionDownvote {
+	border-left: 1px solid #ddd; 
+	color: red;
+}
+
+.CommentList .CommentVotes .CommentUpvoteCnt,
+.CommentList .CommentVotes .CommentDownvoteCnt {
+	padding-left: 2px; 
+}

@@ -50,16 +50,32 @@ class FieldtypeComments extends FieldtypeMulti {
 	 */
 	const moderateNew = 2;
 
+	/**
+	 * Time period (in seconds) after which the same IP address may vote again on the same comment
+	 *
+	 */
+	const votesMaxAge = 3600; 
+	
+	const useVotesNo = 0;
+	const useVotesUp = 1; 
+	const useVotesAll = 2; 
+
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Comments', __FILE__),
-			'version' => 105,
+			'version' => 106,
 			'summary' => __('Field that stores user posted comments for a single Page', __FILE__),
 			'installs' => array('InputfieldCommentsAdmin'),
 			);
 	}
-
+	
+	public function __construct() {
+		if($this->wire('config')->ajax) {
+			$this->addHookBefore('Page::render', $this, 'checkVoteAction');
+		}
+	}
+	
 	public function getBlankValue(Page $page, Field $field) {
 		$commentArray = new CommentArray(); 
 		$commentArray->setPage($page); 
@@ -156,6 +172,7 @@ class FieldtypeComments extends FieldtypeMulti {
 
 		$sleepValue = array();
 		if(!$value instanceof CommentArray) return $sleepValue; 
+		$schemaVersion = $field->schemaVersion;
 
 		foreach($value as $comment) {
 
@@ -176,17 +193,22 @@ class FieldtypeComments extends FieldtypeMulti {
 				'ip' => $comment->ip, 
 				'user_agent' => $comment->user_agent, 
 				); 
+			
 
-			if($field->schemaVersion > 0) $a['website'] = $comment->website;
-			if($field->schemaVersion > 1) {
+			if($schemaVersion > 0) $a['website'] = $comment->website;
+			if($schemaVersion > 1) {
 				$a['parent_id'] = $comment->parent_id;
 				$a['flags'] = (int) $comment->flags;
 			}
-			if($field->schemaVersion > 2) {
+			if($schemaVersion > 2) {
 				$a['code'] = $comment->code; 
 			}
-			if($field->schemaVersion > 3) {
+			if($schemaVersion > 3) {
 				$a['subcode'] = $comment->subcode;
+			}
+			if($schemaVersion > 4) {
+				$a['upvotes'] = (int) $comment->upvotes;
+				$a['downvotes'] = (int) $comment->downvotes;
 			}
 
 			$sleepValue[] = $a;
@@ -234,7 +256,13 @@ class FieldtypeComments extends FieldtypeMulti {
 		}
 		$this->checkCommentCodes($comment);
 	}
-	
+
+	/**
+	 * Assign comment code and subcode as needed
+	 * 
+	 * @param Comment $comment
+	 * 
+	 */
 	protected function checkCommentCodes(Comment $comment) {
 		// assign code and subcode
 		if(!$comment->code || !$comment->subcode) {
@@ -257,6 +285,10 @@ class FieldtypeComments extends FieldtypeMulti {
 
 	/**
 	 * If comment is new, it sets the status based on whether it's spam, and notifies any people that need to be notified
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @param Comment $comment
 	 *
 	 */ 
 	protected function checkNewComment(Page $page, Field $field, Comment $comment) {
@@ -297,23 +329,38 @@ class FieldtypeComments extends FieldtypeMulti {
 		require_once(dirname(__FILE__) . '/CommentNotifications.php'); 
 		$no = new CommentNotifications($page, $field); 
 		$no->sendAdminNotificationEmail($comment); 
-		$this->deleteOldSpam($field);
+		$this->commentMaintenance($field);
 
 	}
 
 	/**
 	 * Delete spam that is older than $field->deleteSpamDays
+	 * 
+	 * @param Field $field
 	 *
 	 */
-	protected function deleteOldSpam(Field $field) {
-		$expiredTime = time() - (86400 * $field->deleteSpamDays);  
+	protected function commentMaintenance(Field $field) {
+		
 		$database = $this->wire('database');
 		$table = $database->escapeTable($field->table);
+		
+		// delete old spam
+		$expiredTime = time() - (86400 * $field->deleteSpamDays);
 		$query = $database->prepare("DELETE FROM `$table` WHERE status=:status AND created < :expiredTime");
 		$query->bindValue(":status", Comment::statusSpam, PDO::PARAM_INT);
 		$query->bindValue(":expiredTime", $expiredTime); 
 		$query->execute();
-			
+		
+		// delete upvote/downvote IP address records
+		$expiredTime = time() - self::votesMaxAge;
+		$query = $database->prepare("DELETE FROM `{$table}_votes` WHERE created < :expiredTime");
+		$query->bindValue(":expiredTime", $expiredTime);
+		try {
+			// we use a try/catch here in case the votes table doesn't yet exist
+			$query->execute();
+		} catch(Exception $e) {
+			$this->error($e->getMessage(), Notice::log); 
+		}
 	}
 
 	/**
@@ -329,6 +376,8 @@ class FieldtypeComments extends FieldtypeMulti {
 		$codeIndexSchema = "INDEX `code` (`code`)";
 		$subcodeSchema = "varchar(40) default NULL";
 		$subcodeIndexSchema = "INDEX `subcode` (`subcode`)";
+		$upvoteSchema = "int unsigned NOT NULL default 0";
+		$downvoteSchema = "int unsigned NOT NULL default 0";
 		
 		$schemaVersion = (int) $field->schemaVersion;
 
@@ -375,6 +424,31 @@ class FieldtypeComments extends FieldtypeMulti {
 			} catch(Exception $e) { }
 		}
 		
+		if($schemaVersion < 5) {
+			// add upvote/downvote columns 
+			$database = $this->wire('database');
+			$table = $database->escapeTable($field->getTable());
+			$parentSchema = parent::getDatabaseSchema($field);
+			try {
+				$sql = "
+					CREATE TABLE `{$table}_votes` (
+					`comment_id` int unsigned NOT NULL,
+					`vote` tinyint NOT NULL, 
+					`created` TIMESTAMP NOT NULL, 
+					`ip` VARCHAR(15) NOT NULL default '', 
+					`user_id` int unsigned NOT NULL default 0, 
+					PRIMARY KEY (`comment_id`, `ip`, `vote`), 
+					INDEX `created` (`created`)
+					) " . $parentSchema['xtra']['append']; // engine and charset
+				$database->exec($sql); 
+				$database->query("ALTER TABLE `$table` ADD `upvotes` $upvoteSchema");
+				$database->query("ALTER TABLE `$table` ADD `downvotes` $downvoteSchema");
+				$schemaVersion = 5;
+			} catch(Exception $e) { 
+				$this->error($e->getMessage(), Notice::log); 
+			}
+		}
+
 		if(((int) $field->schemaVersion) < $schemaVersion) {
 			$this->message("Updating schema version of '{$field->name}' from $field->schemaVersion to $schemaVersion", Notice::log);
 			$field->schemaVersion = $schemaVersion;
@@ -394,18 +468,23 @@ class FieldtypeComments extends FieldtypeMulti {
 		$schema['ip'] = "varchar(15) NOT NULL default ''";
 		$schema['user_agent'] = "varchar(255) NOT NULL default ''";
 
-		if($field->schemaVersion > 0) $schema['website'] = $websiteSchema;
-		if($field->schemaVersion > 1) {
+		$schemaVersion = $field->schemaVersion;
+		if($schemaVersion > 0) $schema['website'] = $websiteSchema;
+		if($schemaVersion > 1) {
 			$schema['parent_id'] = $parentSchema;
 			$schema['flags'] = $flagSchema;
 		}
-		if($field->schemaVersion > 2) {
+		if($schemaVersion > 2) {
 			$schema['code'] = $codeSchema;
 			$schema['keys']['code'] = $codeIndexSchema;
 		}
-		if($field->schemaVersion > 3) {
+		if($schemaVersion > 3) {
 			$schema['subcode'] = $subcodeSchema;
 			$schema['keys']['subcode'] = $subcodeIndexSchema;
+		}
+		if($schemaVersion > 4) {
+			$schema['upvotes'] = $upvoteSchema;
+			$schema['downvotes'] = $downvoteSchema;
 		}
 
 		$schema['keys']['primary'] = "PRIMARY KEY (`id`)"; 
@@ -676,16 +755,27 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->label = $this->_('Use website field in comment form?');
 		$f->description = $this->_('When checked, the comment submission form will also include a website field.');
 		$f->columnWidth = 50;
-		$fieldset->append($f); 
+		$fieldset->append($f);
 		
 		$name = 'dateFormat';
-		$f = $this->wire('modules')->get('InputfieldText'); 
-		$f->attr('name', $name); 
-		$f->attr('value', $field->dateFormat ? $field->dateFormat : 'relative'); 
-		$f->label = $this->_('Date/time format (for comment list)'); 
+		$f = $this->wire('modules')->get('InputfieldText');
+		$f->attr('name', $name);
+		$f->attr('value', $field->dateFormat ? $field->dateFormat : 'relative');
+		$f->label = $this->_('Date/time format (for comment list)');
 		$f->description = $this->_('Enter the date/time format you want the default comment list output to use. May be a PHP [date](http://php.net/manual/en/function.date.php) or [strftime](http://php.net/manual/en/function.strftime.php) format. May also be "relative" for relative date format.'); // dateFormat description
 		$f->columnWidth = 50; 
 		$fieldset->append($f);
+		
+		$name = 'useVotes';
+		$f = $this->wire('modules')->get('InputfieldRadios');
+		$f->attr('name', $name);
+		$f->label = $this->_('Allow comment voting?');
+		$f->description = $this->_('Comment voting enables visitors to upvote and/or downvote comments. Vote counts are displayed alongside each comment. Only one upvote and/or downvote is allowed per comment, per IP address, per hour.'); 
+		$f->addOption(0, $this->_('Voting off')); 
+		$f->addOption(1, $this->_('Allow upvoting'));
+		$f->addOption(2, $this->_('Allow upvoting and downvoting'));
+		$f->attr('value', (int) $field->$name);
+		$fieldset->append($f); 
 		
 		$name = 'useGravatar'; 
 		$f = $this->wire('modules')->get('InputfieldRadios'); 
@@ -723,6 +813,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		
 		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
 		$fieldset->label = $this->_('Implementation'); 
+		$fieldset->icon = 'file-code-o';
 		$fieldset->description = $this->_('This section is here to help you get started with outputting comments on the front-end of your site. Everything here is optional.'); 
 		$fieldset->notes = $this->_('If using a cache for output, configure it to bypass the cache when the GET variable "comment_success" is present.'); 
 		$inputfields->add($fieldset); 
@@ -989,7 +1080,13 @@ class FieldtypeComments extends FieldtypeMulti {
 		foreach($values as $property => $value) {
 			$query->bindValue(":$property", $value); 
 		}
-		$result = $query->execute();
+		try {
+			$result = $query->execute();
+		} catch(Exception $e) {
+			$result = false;
+			if($this->wire('config')->debug) $this->error($e->getMessage(), Notice::log); 
+				else $this->wire('log')->error($e->getMessage()); 
+		}
 		if($result) { 
 			$this->checkExistingComment($page, $field, $comment); 
 		}
@@ -1012,6 +1109,16 @@ class FieldtypeComments extends FieldtypeMulti {
 				if($c->status < Comment::statusApproved) continue; 
 				if($c->id == $comment->id) continue; 
 				if($c->email == $comment->email) continue; 
+				
+				/*
+				 * @todo this should be ready to use, but needs more testing before enabling it
+				 * 
+				if($c->flags & Comment::flagNotifyConfirmed) {
+					// notifications have been confirmed by double opt-in
+				} else {
+					continue;
+				}
+				*/
 				if($c->flags & Comment::flagNotifyAll) {
 					if($c->subcode) $emails[$c->email] = $c->subcode;
 				} else if(($c->flags & Comment::flagNotifyReply) && $comment->parent_id == $c->id) {
@@ -1040,6 +1147,119 @@ class FieldtypeComments extends FieldtypeMulti {
 	public function ___commentUnapproved(Page $page, Field $field, Comment $comment) {
 	}
 
+	/**
+	 * Add a vote to the current comment from the current user/IP
+	 * 
+	 * @param Page $page
+	 * @param Field $field
+	 * @param Comment $comment
+	 * @param bool $up Specify true for upvote, or false for downvote
+	 * @return bool Returns true on success, false on failure or duplicate
+	 * 
+	 */
+	public function voteComment(Page $page, Field $field, Comment $comment, $up = true) {
+		
+		$database = $this->wire('database'); 
+		$table = $database->escapeTable($field->getTable()) . '_votes';
+		
+		if(!$field->useVotes) return false;
+		if(!$up && $field->useVotes != self::useVotesAll) return false; // downvotes not allowed
+		
+		$sql = "INSERT INTO `$table` SET comment_id=:comment_id, vote=:vote, ip=:ip, user_id=:user_id";
+		$query = $database->prepare($sql);
+		$query->bindValue(':comment_id', $comment->id, PDO::PARAM_INT); 
+		$query->bindValue(':vote', $up ? 1 : -1, PDO::PARAM_INT); 
+		$query->bindValue(':ip', $this->wire('session')->getIP(), PDO::PARAM_STR); 
+		$query->bindValue(':user_id', $this->wire('user')->id, PDO::PARAM_INT); 
+		
+		$result = false;
+		
+		try {
+			if($query->execute()) {
+				if($up) {
+					$comment->upvotes++;
+					$result = $this->updateComment($page, $field, $comment, array('upvotes' => $comment->upvotes));
+				} else {
+					$comment->downvotes++;
+					$result = $this->updateComment($page, $field, $comment, array('downvotes' => $comment->downvotes));
+				}
+			}
+		} catch(Exception $e) {
+			// duplicate or fail
+			$error = $e->getMessage();
+			if(stripos($error, 'duplicate entry')) {
+				$this->error($this->_('You have already voted for this comment')); 
+			} else {
+				if($this->wire('config')->debug && !$this->wire('user')->isLoggedin()) {
+					$this->error($e->getMessage());
+				} else {
+					$this->error($this->_('Error recording vote')); 
+				}
+			}
+		}
+		
+		return $result;
+	}
+
+	/**
+	 * Check the request for a vote action
+	 * 
+	 * @param Page|HookEvent $page
+	 * @return array
+	 * @throws WireException
+	 * 
+	 */
+	public function checkVoteAction($page) {
+		
+		$result = array(
+			'success' => false, 
+			'valid' => false, 
+			'message' => 'Invalid vote', 
+			'upvotes' => 0,
+			'downvotes' => 0, 
+			'pageID' => 0, 
+			'fieldName' => '', 
+			'commentID' => 0, 
+		);
+
+		$action = $this->wire('input')->get('comment_success');
+		if($action !== 'upvote' && $action !== 'downvote') return $result;
+
+		$commentID = (int) $this->wire('input')->get('comment_id');
+		$fieldID = (int) $this->wire('input')->get('field_id');
+		if(!$commentID || !$fieldID) return $result;
+
+		$field = $this->wire('fields')->get($fieldID);
+		if(!$field || !$field->type instanceof FieldtypeComments) return $result;
+		
+		if($page instanceof HookEvent) $page = $page->object; 
+		if(!$page || !$page->template->fieldgroup->hasField($field)) return $result;
+
+		$comment = $this->getCommentByID($page, $field, $commentID);
+		if(!$comment || $comment->getPage()->id != $page->id || $comment->getField()->id != $field->id) return $result;
+
+		$success = $this->voteComment($page, $field, $comment, $action == 'upvote');
+		$message = $success ? '' : $this->errors('clear string'); 
+		
+		$result = array(
+			'success' => $success,
+			'valid' => true, 
+			'message' => $message,
+			'upvotes' => $comment->upvotes,
+			'downvotes' => $comment->downvotes,
+			'pageID' => $page->id, 
+			'fieldName' => $field->name, 
+			'commentID' => $comment->id
+		);
+		
+		if($this->wire('config')->ajax) {
+			header("Content-type: application/json");
+			echo json_encode($result);
+			exit;
+		}
+
+		return $result;
+	}
 
 
 }

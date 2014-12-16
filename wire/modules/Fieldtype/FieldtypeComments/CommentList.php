@@ -57,6 +57,9 @@ class CommentList extends Wire implements CommentListInterface {
 		'useGravatar' => '', 	// enable gravatar? if so, specify maximum rating: [ g | pg | r | x ] or blank = disable gravatar
 		'useGravatarImageset' => 'mm',	// default gravatar imageset, specify: [ 404 | mm | identicon | monsterid | wavatar ]
 		'usePermalink' => false, // @todo
+		'useVotes' => 0, 
+		'upvoteFormat' => '&uarr;{cnt}',
+		'downvoteFormat' => '&darr;{cnt}', 
 		'depth' => 0, 
 		); 
 
@@ -167,9 +170,11 @@ class CommentList extends Wire implements CommentListInterface {
 		$created = wireDate($this->options['dateFormat'], $comment->created); 
 		
 		if(empty($this->options['commentHeader'])) {
-			$header = "<span class='CommentCite'>$cite</span> <small class='CommentCreated'>$created</small>";		
+			$header = "<span class='CommentCite'>$cite</span> <small class='CommentCreated'>$created</small> ";
+			if($this->options['useVotes']) $header .= $this->renderVotes($comment); 
 		} else {
 			$header = str_replace(array('{cite}', '{created}'), array($cite, $created), $this->options['commentHeader']);
+			if(strpos($header, '{votes}') !== false) $header = str_replace('{votes}', $this->renderVotes($comment), $header); 
 		}
 		
 		$liClass = '';
@@ -179,7 +184,7 @@ class CommentList extends Wire implements CommentListInterface {
 			else if($comment->status == Comment::statusSpam) $liClass .= ' CommentStatusSpam';
 		
 		$out = 
-			"\n\t<li id='Comment{$comment->id}' class='CommentListItem$liClass'>" . $gravatar . 
+			"\n\t<li id='Comment{$comment->id}' class='CommentListItem$liClass' data-comment='$comment->id'>" . $gravatar . 
 			"\n\t\t<p class='CommentHeader'>$header</p>" . 
 			"\n\t\t<div class='CommentText'>" . 
 			"\n\t\t\t<p>$text</p>" . 
@@ -213,6 +218,31 @@ class CommentList extends Wire implements CommentListInterface {
 		$out .= "\n\t</li>";
 	
 		return $out; 	
+	}
+	
+	public function renderVotes(Comment $comment) {
+		
+		if(!$this->options['useVotes']) return '';
+		
+		$upvoteFormat = str_replace('{cnt}', "<small class='CommentUpvoteCnt'>$comment->upvotes</small>", $this->options['upvoteFormat']);
+		$upvoteURL = "{$this->page->url}?comment_success=upvote&amp;comment_id=$comment->id&amp;field_id={$this->field->id}#Comment$comment->id";
+		$upvoteLabel = $this->_('Like this comment');
+
+		$downvoteFormat = str_replace('{cnt}', "<small class='CommentDownvoteCnt'>$comment->downvotes</small>", $this->options['downvoteFormat']);
+		$downvoteURL = "{$this->page->url}?comment_success=downvote&amp;comment_id=$comment->id&amp;field_id={$this->field->id}#Comment$comment->id";
+		$downvoteLabel = $this->_('Dislike this comment');
+
+		// note that data-url attribute stores the href (rather than href) so that we can keep crawlers out of auto-following these links
+		$out = "<span class='CommentVotes'>";
+		$out .= "<a class='CommentActionUpvote' title='$upvoteLabel' data-url='$upvoteURL' href='#Comment$comment->id'>$upvoteFormat</a>";
+		
+		if($this->options['useVotes'] == FieldtypeComments::useVotesAll) {
+			$out .= "<a class='CommentActionDownvote' title='$downvoteLabel' data-url='$downvoteURL' href='#Comment$comment->id'>$downvoteFormat</a>";
+		}
+		
+		$out .= "</span> ";
+		
+		return $out; 
 	}
 
 	/**

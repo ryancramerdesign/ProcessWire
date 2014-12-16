@@ -76,4 +76,31 @@ jQuery(document).ready(function($) {
 		$form.find(".CommentFormWebsite input").val(values[2]);
 		$form.find(".CommentFormNotify :input").val(values[3]);
 	}
+
+	// upvoting and downvoting
+	var voting = false;
+	$(".CommentActionUpvote, .CommentActionDownvote").on('click', function() {
+		if(voting) return false;
+		voting = true; 
+		var $a = $(this); 
+		$.getJSON($a.attr('data-url'), function(data) {
+			//console.log(data); 
+			if('success' in data) {
+				if(data.success) {
+					var $votes = $a.closest('.CommentVotes'); 
+					$votes.find('.CommentUpvoteCnt').text(data.upvotes);
+					$votes.find('.CommentDownvoteCnt').text(data.downvotes); 
+					$a.addClass('CommentVoted'); 
+				} else if(data.message.length) {
+					alert(data.message); 
+				}
+			} else {
+				// let the link passthru to handle via regular pageload rather than ajax
+				voting = false;
+				return true; 
+			}
+			voting = false;
+		}); 
+		return false; 
+	}); 
 }); 

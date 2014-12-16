@@ -56,6 +56,7 @@ class CommentArray extends WireArray {
 	public function render(array $options = array()) {
 		$defaultOptions = array(
 			'useGravatar' => ($this->field ? $this->field->useGravatar : ''),
+			'useVotes' => ($this->field ? $this->field->useVotes : 0), 
 			'depth' => ($this->field ? (int) $this->field->depth : 0), 	
 			'dateFormat' => 'relative', 
 			);
