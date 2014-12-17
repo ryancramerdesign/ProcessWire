@@ -729,30 +729,29 @@ class Pages extends Wire {
 		}
 		
 		$pageName = '';
-		
-		if(strlen($format)) {
-			// @todo add option to auto-gen name from any page property/field
 
-			if($format == 'title') {
-				if(strlen($page->title)) $pageName = $page->title;
-					else $pageName = $this->untitledPageName;
-				
-			} else if(!ctype_alnum($format) && !preg_match('/^[-_a-zA-Z0-9]+$/', $format)) {
-				// it is a date format
-				$pageName = date($format);
-			} else {
-				
-				// predefined format
-				$pageName = $format;
+/* allows 3 types of format	for name and title, which could be combined in endless variations each separated by comma
+ *
+ * - type date: if function detects # character anywhere in the string conversion: delete #, date($format)
+ * - type field: if string is a fieldname of the parent page conversion: value of this field
+ * - type string: if string doesn't fit to the 2 preceeding it will be taken as it is
+ *
+ * - all parts (separated by comma) will be composed in the order of setting
+ *
+ *
+ */
+
+	if(strlen($format)) {
+			$format = explode(',',$format);
+			foreach ($format as $autoName) {
+				$autoName = str_replace('#','',$autoName,$count); // could also any other reserved character
+				if ($count) $page->title .= date($autoName);
+				elseif ($page->parent()->$autoName) $page->title .= $page->parent()->$autoName;
+				else $page->title .= $autoName;
 			}
-
-		} else if(strlen($page->title)) {
-			$pageName = $page->title;
-
-		} else {
-			// no name will be assigned
+			$pageName = $page->title;				
 		}
-		
+
 		if($pageName == $this->untitledPageName && strpos($page->name, $this->untitledPageName) === 0) {
 			// page already has untitled name, and there's no need to re-assign the untitled name
 			return '';
