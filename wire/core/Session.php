@@ -75,7 +75,7 @@ class Session extends Wire implements IteratorAggregate {
 		if(!$user || !$user->id) $user = $this->fuel('users')->getGuestUser();
 		$this->fuel('users')->setCurrentUser($user); 	
 
-		foreach(array('message', 'error') as $type) {
+		foreach(array('message', 'error', 'warning') as $type) {
 			if($items = $this->get($type)) foreach($items as $item) {
 				list($text, $flags) = $item;
 				parent::$type($text, $flags); 
@@ -450,16 +450,25 @@ class Session extends Wire implements IteratorAggregate {
 	public function ___redirect($url, $http301 = true) {
 
 		// if there are notices, then queue them so that they aren't lost
-		$notices = $this->fuel('notices'); 
+		$notices = $this->wire('notices'); 
 		if(count($notices)) foreach($notices as $notice) {
-			$this->queueNotice($notice->text, $notice instanceof NoticeError ? 'error' : 'message', $notice->flags); 
+			if($notice instanceof NoticeWarning) $noticeType = 'warning';
+				else if($notice instanceof NoticeError) $noticeType = 'error';
+				else $noticeType = 'message';
+			$this->queueNotice($notice->text, $noticeType, $notice->flags); 
 		}
 
 		// perform the redirect
-		if($this->wire('page')) {
+		$page = $this->wire('page');
+		if($page) {
+			// ensure ProcessPageView is properly closed down
 			$process = $this->wire('modules')->get('ProcessPageView'); 
 			$process->setResponseType(ProcessPageView::responseTypeRedirect); 
 			$process->finished();
+			// retain modal=1 get variables through redirects (this can be moved to a hook later)
+			if($page->template == 'admin' && $this->wire('input')->get('modal') && strpos($url, '//') === false) {
+				if(!strpos($url, 'modal=')) $url .= (strpos($url, '?') !== false ? '&' : '?') . 'modal=1'; 
+			}
 		}
 		if($http301) header("HTTP/1.1 301 Moved Permanently");
 		header("Location: $url");
@@ -513,5 +522,17 @@ class Session extends Wire implements IteratorAggregate {
 		return $this; 
 	}
 
+	/**
+	 * Queue a warning to appear the next time session is instantiated
+	 *
+	 * @param string $text
+	 * @param int $flags See Notice::flags
+	 * @return $this
+	 *
+	 */
+	public function warning($text, $flags = 0) {
+		$this->queueNotice($text, 'warning', $flags);
+		return $this;
+	}
 
 }

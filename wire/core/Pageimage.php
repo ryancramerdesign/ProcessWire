@@ -158,7 +158,7 @@ class Pageimage extends Pagefile {
 		if($checkImage) { 
 			if($this->ext == 'svg') {
 				if($xml = @file_get_contents($this->filename)) {
-					$a = simplexml_load_string($xml)->attributes();
+					$a = @simplexml_load_string($xml)->attributes();
 					$this->imageInfo['width'] = (int) str_replace('px', '', $a->width);
 					$this->imageInfo['height'] = (int) str_replace('px', '', $a->height);
 				}
@@ -252,7 +252,10 @@ class Pageimage extends Pagefile {
 			} else if(is_bool($options)) {
 				// optionally allow a boolean to be specified with upscaling toggle on/off
 				$options = array('upscaling' => $options); 
-			} 
+			} else { 
+				// unknown options type
+				$options = array();
+			}
 		}
 
 		$defaultOptions = array(
@@ -286,25 +289,27 @@ class Pageimage extends Pagefile {
 
 		$basename = basename($this->basename(), "." . $this->ext()); 		// i.e. myfile
 		$basename .= '.' . $width . 'x' . $height . $crop . $suffixStr . "." . $this->ext();	// i.e. myfile.100x100.jpg or myfile.100x100nw-suffix1-suffix2.jpg
-		$filename = $this->pagefiles->path() . $basename; 
-		$exists = file_exists($filename); 
+		$filenameFinal = $this->pagefiles->path() . $basename;
+		$filenameUnvalidated = $this->pagefiles->page->filesManager()->getTempPath() . $basename;
+		$exists = file_exists($filenameFinal);
 
 		if(!$exists || $options['forceNew']) {
-			if($exists && $options['forceNew']) unlink($filename); 
-			if(@copy($this->filename(), $filename)) {
+			if($exists && $options['forceNew']) @unlink($filenameFinal);
+			if(file_exists($filenameUnvalidated)) @unlink($filenameUnvalidated);
+			if(@copy($this->filename(), $filenameUnvalidated)) {
 				try { 
-					$sizer = new ImageSizer($filename); 
+					$sizer = new ImageSizer($filenameUnvalidated);
 					$sizer->setOptions($options);
-					if($sizer->resize($width, $height)) {
-						if($this->config->chmodFile) chmod($filename, octdec($this->config->chmodFile));
+					if($sizer->resize($width, $height) && @rename($filenameUnvalidated, $filenameFinal)) {
+						wireChmod($filenameFinal); 
 					} else {
-						$this->error = "ImageSizer::resize($width, $height) failed for $filename";
+						$this->error = "ImageSizer::resize($width, $height) failed for $filenameUnvalidated";
 					}
 				} catch(Exception $e) {
 					$this->error = $e->getMessage(); 
 				}
 			} else {
-				$this->error("Unable to copy $this->filename => $filename"); 
+				$this->error("Unable to copy $this->filename => $filenameUnvalidated"); 
 			}
 		}
 
@@ -314,18 +319,19 @@ class Pageimage extends Pagefile {
 		// if an error occurred, that error property will be populated with details
 		if($this->error) { 
 			// error condition: unlink copied file 
-			if(is_file($filename)) unlink($filename); 
+			if(is_file($filenameFinal)) @unlink($filenameFinal);
+			if(is_file($filenameUnvalidated)) @unlink($filenameUnvalidated);
 
 			// write an invalid image so it's clear something failed
 			// todo: maybe return a 1-pixel blank image instead?
 			$data = "This is intentionally invalid image data.\n$this->error";
-			if(file_put_contents($filename, $data) !== false) wireChmod($filename); 
+			if(file_put_contents($filenameFinal, $data) !== false) wireChmod($filenameFinal);
 
 			// we also tell PW about it for logging and/or admin purposes
 			$this->error($this->error); 
 		}
 
-		$pageimage->setFilename($filename); 	
+		$pageimage->setFilename($filenameFinal); 	
 		$pageimage->setOriginal($this); 
 
 		return $pageimage; 
@@ -476,6 +482,11 @@ class Pageimage extends Pagefile {
 	 * - height: Specified height
 	 * - crop: Cropping info string or blank if none
 	 * - suffix: array of suffixes
+	 * - suffixAll: (!) contains all suffixes including among parent variations
+	 * - parent: (!) variation info array of direct parent variation file
+	 * 
+	 * Items above identified with (!) are only present if variation is based on another variation, and thus
+	 * has a parent variation image between it and the original. 
 	 * 
 	 * @param string $basename Filename to check
 	 * @return bool|array Returns false if not a variation or array of it is
@@ -483,6 +494,7 @@ class Pageimage extends Pagefile {
 	 */
 	public function ___isVariation($basename) {
 
+		static $level = 0;
 		$variationName = basename($basename);
 		$originalName = basename($this->basename, "." . $this->ext());  // excludes extension
 
@@ -491,10 +503,40 @@ class Pageimage extends Pagefile {
 		if(strpos($originalName, '.') && preg_match('/^([^.]+)\.(?:\d+x\d+|-[_a-z0-9]+)/', $originalName, $matches)) {
 			$originalName = $matches[1];
 		}
+	
+		// if file is the same as the original, then it's not a variation
+		if($variationName == $this->basename) return false;
+		
+		// if file doesn't start with the original name then it's not a variation
+		if(strpos($variationName, $originalName) !== 0) return false; 
+	
+		// get down to the meat and the base
+		// meat is the part of the filename containing variation info like dimensions, crop, suffix, etc.
+		// base is the part before that, which may include parent meat
+		$pos = strrpos($variationName, '.'); // get extension
+		$ext = substr($variationName, $pos); 
+		$base = substr($variationName, 0, $pos); // get without extension
+		$rpos = strrpos($base, '.'); // get last data chunk after dot
+		if($rpos !== false) {
+			$meat = substr($base, $rpos+1) . $ext; // the part of the filename we're interested in
+			$base = substr($base, 0, $rpos); // the rest of the filename
+		} else $meat = $variationName;
+
+		// identify parent and any parent suffixes
+		$suffixAll = array();
+		$parent = null;
+		while(($pos = strrpos($base, '.')) !== false) {
+			$part = substr($base, $pos+1); // closest parent name
+			if(is_null($parent)) $parent = $originalName . "." . $part . $ext;
+			$base = substr($base, 0, $pos); 
+			while(($rpos = strrpos($part, '-')) !== false) {
+				$suffixAll[] = substr($part, $rpos+1); 
+				$part = substr($part, 0, $rpos); 
+			}
+		}
 
 		// variation name with size dimensions and optionally suffix
 		$re1 = '/^'  . 
-			$originalName . '\.' .			// myfile. 
 			'(\d+)x(\d+)' .					// 50x50	
 			'([pd]\d+x\d+|[a-z]{1,2})?' . 	// nw or p30x40 or d30x40
 			'(?:-([-_a-z0-9]+))?' . 		// -suffix1 or -suffix1-suffix2, etc.
@@ -503,43 +545,53 @@ class Pageimage extends Pagefile {
 	
 		// variation name with suffix only
 		$re2 = '/^' . 						
-			$originalName . '\.-' . 		// myfile.-
-			'([-_a-z0-9]+)' . 				// suffix1 or suffix1-suffix2, etc. 
+			'-([-_a-z0-9]+)' . 				// suffix1 or suffix1-suffix2, etc. 
+			'(?:\.' . 						// optional extras for dimensions/crop, starts with period
+				'(\d+)x(\d+)' .				// optional 50x50	
+				'([pd]\d+x\d+|[a-z]{1,2})?' . // nw or p30x40 or d30x40
+			')?' .
 			'\.' . $this->ext() . 			// .jpg
 			'$/'; 
 
 		// if regex does not match, return false
-		if(preg_match($re1, $variationName, $matches)) {
-			
+		if(preg_match($re1, $meat, $matches)) {
 			// this is a variation with dimensions, return array of info
 			$info = array(
 				'original' => $originalName . '.' . $this->ext(),
-				'width' => $matches[1],
-				'height' => $matches[2],
+				'width' => (int) $matches[1],
+				'height' => (int) $matches[2],
 				'crop' => (isset($matches[3]) ? $matches[3] : ''),
 				'suffix' => (isset($matches[4]) ? explode('-', $matches[4]) : array()),
 				);
 
-		
-		} else if(preg_match($re2, $variationName, $matches)) {
+		} else if(preg_match($re2, $meat, $matches)) {
 		
 			// this is a variation only with suffix
 			$info = array(
 				'original' => $originalName . '.' . $this->ext(),
-				'width' => 0,
-				'height' => 0,
-				'crop' => '',
-				'suffix' => explode('-', $matches[1])
+				'width' => (isset($matches[2]) ? (int) $matches[2] : 0),
+				'height' => (isset($matches[3]) ? (int) $matches[3] : 0),
+				'crop' => (isset($matches[4]) ? $matches[4] : ''),
+				'suffix' => explode('-', $matches[1]),
 				);
 			
 		} else {
 			return false; 
 		}
 
+		if($parent) {
+			// suffixAll includes all parent suffix in addition to current suffix
+			if(!$level) $info['suffixAll'] = array_unique(array_merge($info['suffix'], $suffixAll)); 
+			// parent property is set with more variation info, when available
+			$level++;
+			$info['parent'] = $this->isVariation($parent);
+			$level--;
+		}
+
 		if(!$this->original) {
 			$this->original = $this->pagefiles->get($info['original']);
 		}
-
+		
 		return $info;
 	}
 

@@ -10,6 +10,7 @@ function InputfieldPageTableDialog() {
 	//if(windowHeight > 800) windowHeight = 800;
 	var $container = $(this).parents('.InputfieldPageTableContainer'); 
 	var dialogPageID = 0;
+	var noclose = parseInt($container.attr('data-noclose')); 
 
 	var $dialog = $iframe.dialog({
 		modal: true,
@@ -23,7 +24,7 @@ function InputfieldPageTableDialog() {
 				if(sort.length) ajaxURL += '&InputfieldPageTableSort=' + sort.replace(/\|/g, ',');
 				$.get(ajaxURL, function(data) { 
 					$container.html(data); 
-					$container.effect('highlight', 1000); 
+					$container.effect('highlight', 500); 
 					InputfieldPageTableSortable($container.find('table')); 
 				}); 
 			}
@@ -49,7 +50,7 @@ function InputfieldPageTableDialog() {
 		$icontents.find('#wrap_Inputfield_template, #wrap_template, #wrap_parent_id').hide();
 		$icontents.find('#breadcrumbs ul.nav, #_ProcessPageEditDelete, #_ProcessPageEditChildren').hide();
 
-		closeOnSave = $icontents.find('#ProcessPageAdd').size() == 0; 
+		closeOnSave = noclose == 0 && $icontents.find('#ProcessPageAdd').size() == 0; 
 
 		// copy buttons in iframe to dialog
 		$icontents.find("#content form button.ui-button[type=submit]").each(function() {
@@ -69,7 +70,7 @@ function InputfieldPageTableDialog() {
 						if(closeOnSave) setTimeout(function() { 
 							$dialog.dialog('close'); 
 						}, 500); 
-						closeOnSave = true; // only let closeOnSave happen once
+						if(!noclose) closeOnSave = true; // only let closeOnSave happen once
 					}
 				};
 				n++;
@@ -141,6 +142,9 @@ $(document).ready(function() {
 
 	$(document).on('click', '.InputfieldPageTableAdd, .InputfieldPageTableEdit', InputfieldPageTableDialog); 
 	$(document).on('click', 'a.InputfieldPageTableDelete', InputfieldPageTableDelete); 
+	$(document).on('dblclick', '.InputfieldPageTable .AdminDataTable td', function() {
+		$(this).closest('tr').find('.InputfieldPageTableEdit').click();
+	}); 
 
 	InputfieldPageTableSortable($(".InputfieldPageTable table"));
 	

@@ -145,28 +145,8 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function init() { 
-		$this->addHookBefore('render', $this, 'hookRender'); 
 	}
 
-	/**
-	 * This hook is called when the ___render() method is called, ensuring that related styles and scripts are added. 
-	 *
-	 * This is hooked rather than called directly in init() to make sure that styles/scripts aren't loaded in instances where 
-	 * The Inputfield is loaded, but not rendered. 
-	 *
-	 * @param HookEvent $event
-	 *
-	 */
-	public function hookRender($event) {
-		$class = $this->className();
-		$url = $this->config->urls->$class;
-		$path = $this->config->paths->$class;
-		$info = $this->wire('modules')->getModuleInfo($this, array('verbose' => false));
-		$version = (int) isset($info['version']) ? $info['version'] : 0;
-		if(file_exists("$path$class.css")) $this->config->styles->add("$url$class.css?v=$version");
-		if(file_exists("$path$class.js")) $this->config->scripts->add("$url$class.js?v=$version"); 
-	}
-	
 	/**
 	 * Per the Module interface, install() is called when this Inputfield is instally installed
 	 *
@@ -482,7 +462,47 @@ abstract class Inputfield extends WireData implements Module {
 		}
 		return $out; 
 	}
+	
+	/**
+	 * Called before render() or renderValue() method by InputfieldWrapper, before Inputfield-specific CSS/JS files added
+	 * 
+	 * In this case used to populate any required CSS/JS files. The return value is true if assets were just added, 
+	 * and false if assets have already been added in a previous call. This distinction probably doesn't matter in 
+	 * most usages, but here just in case a descending class needs to know when/if to add additional assets (i.e. 
+	 * when this function returns true). 
+	 * 
+	 * @param Inputfield|InputfieldWrapper|null The parent Inputfield/wrapper that is rendering it or null if no parent.
+	 * @param bool $renderValueMode Whether renderValueMode will be used. 
+	 * @return bool 
+	 *
+	 */
+	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
+		static $classes = array();
+		$class = $this->className();
+		if(isset($classes[$class])) return false; // return false if required assets have already been included
+		$config = $this->wire('config');
+		$path = $config->paths->$class;
+		$info = array();
+		foreach(array('css' => 'styles', 'js' => 'scripts') as $ext => $name) {
+			if(!file_exists("$path$class.$ext")) continue;
+			$url = $config->urls->$class;
+			if(empty($info)) $info = $this->wire('modules')->getModuleInfo($this, array('verbose' => false));
+			$version = (int) isset($info['version']) ? $info['version'] : 0;
+			$config->$name->add("$url$class.$ext?v=$version");
+		}
+		$classes[$class] = true;
+		return true;
+	}
 
+	/**
+	 * This hook was replaced by renderReady
+	 * 
+	 * @param $event
+	 * @deprecated
+	 *
+	 */
+	public function hookRender($event) {  }
+	
 	/**
 	 * Process the input from the given WireInputData (usually $input->get or $input->post), load and clean the value for use in this Inputfield. 
 	 *
@@ -534,9 +554,10 @@ abstract class Inputfield extends WireData implements Module {
 
 		} else { 
 			// string value provided in the input
+			$this->setAttribute('value', $value); 
+			$value = $this->attr('value'); 
 			if("$value" !== (string) $previousValue) {
 				$changed = true; 
-				$this->setAttribute('value', $value); 
 			}
 		}
 
@@ -659,10 +680,28 @@ abstract class Inputfield extends WireData implements Module {
 			$fields->add($field); 
 			
 		}
-
+	
 		return $fields; 
 	}
 
+	/**
+	 * Return a list of Inputfield names from getConfigInputfields() that are allowed in fieldgroup/template context
+	 * 
+	 * @param Field $field
+	 * @return array of Inputfield names
+	 * 
+	 */
+	public function ___getConfigAllowContext($field) {
+		return array(
+			'visibility', 
+			'collapsed', 
+			'columnWidth', 
+			'required', 
+			'requiredIf', 
+			'showIf'
+		);
+	}
+	
 	/**
 	 * Export configuration values for external consumption
 	 *

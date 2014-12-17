@@ -443,9 +443,16 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		if(ctype_digit("$key")) return null;
 		$item = null;
 		foreach($this->data as $wire) {
-			if($wire->$key === $value) {
-				$item = $wire; 
-				break;
+			if(is_object($wire)) { 
+				if($wire->$key === $value) {
+					$item = $wire; 
+					break;
+				}
+			} else {
+				if($wire === $value) {
+					$item = $wire; 
+					break;
+				}
 			}
 		}
 		return $item; 
@@ -835,6 +842,19 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			$this->remove($key); 
 		}
 		return $this; 
+	}
+
+	/**
+	 * Remove an item without any record of the event or telling anything else. 
+	 *
+	 * @param int|string|Wire $key Index of item or object instance.
+	 * @return WireArray This instance. 
+	 *
+	 */
+	public function removeQuietly($key) {
+		if(is_object($key)) $key = $this->getItemKey($key);
+		unset($this->data[$key]);
+		return $this;
 	}
 
 	/**

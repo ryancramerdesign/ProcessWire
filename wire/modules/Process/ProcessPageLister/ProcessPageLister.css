@@ -26,7 +26,12 @@
 #ProcessListerResults td {
 	/*position: relative; */
 	font-size: 0.928571428571429em;
+}
 
+#ProcessListerResults tr > th:first-child,
+#ProcessListerResults tr > td:first-child,
+#ProcessListerResults tr > td:first-child > a {
+	padding-left: 0; /* reno */
 }
 
 #ProcessListerResults th {

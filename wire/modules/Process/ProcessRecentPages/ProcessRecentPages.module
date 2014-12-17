@@ -242,11 +242,11 @@ class ProcessRecentPages extends Process {
 			$table = $this->wire('modules')->get('MarkupAdminDataTable');
 			$table->setEncodeEntities(false);
 			$table->headerRow(array(
-				$this->_('Page', 'th'),
-				$this->_('Parent', 'th'),
-				$this->_('Template', 'th'),
-				$this->_('Created', 'th'),
-				$this->_('Modified', 'th')
+				$this->_x('Page', 'th'),
+				$this->_x('Parent', 'th'),
+				$this->_x('Template', 'th'),
+				$this->_x('Created', 'th'),
+				$this->_x('Modified', 'th')
 			));
 			$items = $this->wire('pages')->find("$selector, limit=$this->itemLimit"); 
 			$sanitizer = $this->wire('sanitizer');

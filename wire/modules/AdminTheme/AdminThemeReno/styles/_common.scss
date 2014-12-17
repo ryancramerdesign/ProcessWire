@@ -6,6 +6,7 @@
 @import 'reset';
 @import 'jquery-ui';
 @import 'ui';
+@import 'notifications';
 @import 'inputfields';
 @import 'lang';
 
@@ -247,6 +248,10 @@ body.id-23 {
 			background: $mainnav-link-current-bg;
 			text-decoration: none;
 		}
+	}
+	
+	#NotificationBug {
+		left: 35%;
 	}
 
 
@@ -1639,6 +1644,10 @@ body:not(.hasWireTabs) #headline .container {
 	display: block;
 	margin-left: auto;
 	margin-right: auto;
+}
+
+body.pw-init .toggle-icon {
+	display: none; 
 }
 
 

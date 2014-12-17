@@ -42,9 +42,12 @@ if(!defined("PROCESSWIRE")) die();
 /**
  * Enable debug mode?
  * 
- * Debug mode causes additional info to appear for use during dev and debugging. 
+ * Debug mode causes additional info to appear for use during site development and debugging. 
  * This is almost always recommended for sites in development. However, you should
- * always have this disabled for live/production sites. 
+ * always have this disabled for live/production sites since it reveals more information
+ * than is advisible for security. 
+ * 
+ * #notes This enables debug mode for ALL requests. See the debugIf option for an alternative.
  * 
  * @var bool
  *
@@ -52,11 +55,30 @@ if(!defined("PROCESSWIRE")) die();
 $config->debug = false;
 
 /**
- * Enable PW development/advanced mode?
+ * Enable debug mode if condition is met
+ *
+ * Set debug mode to be false above, and then specify any one of the following here:
+ * 1) IP address of user required to enable debug mode;
+ * 2) Your own callable function name (i.e. "debug_mode") in /site/config.php that returns
+ * true or false for debug mode;
+ * 3) PCRE regular expression to match IP address of user (must start and end with a "/"
+ * slash). If IP address matches, then debug mode is enabled. Regular expression
+ * example: /^123\.456\.789\./ would match all IP addresses that started with 123.456.789.
+ * 
+ * #notes When used, this overrides $config->debug, changing it at runtime automatically. 
+ * @var string
+ *
+ */
+$config->debugIf = '';
+
+/**
+ * Enable ProcessWire advanced development mode?
  * 
  * Turns on additional options in ProcessWire Admin that aren't applicable in all instances.
- * Recommended mode is false, except for ProcessWire developers.
+ * Be careful with this as some options configured in advanced mode cannot be removed once
+ * set (at least not without going directly into the database). 
  * 
+ * #notes Recommended mode is false, except occasionally during ProcessWire core or module development.
  * @var bool
  *
  */
@@ -73,13 +95,14 @@ $config->demo = false;
 
 
 
-/*** 2. DATES AND TIMES *************************************************************************/
+/*** 2. DATES & TIMES *************************************************************************/
 
 /**
  * Default time zone
  * 
  * Must be a [PHP timezone string](http://php.net/manual/en/timezones.php)
  *
+ * #input timezone
  * @var string 
  * 
  */
@@ -90,7 +113,7 @@ $config->timezone = 'America/New_York';
  *
  * Default system date format. Preferably in a format that is string sortable.
  *
- * This should be a [PHP date string](http://www.php.net/manual/en/function.date.php)
+ * #notes This should be a [PHP date string](http://www.php.net/manual/en/function.date.php).
  *
  * @var string
  *
@@ -105,8 +128,11 @@ $config->dateFormat = 'Y-m-d H:i:s';
 /**
  * Session name
  * 
- * Default session name as used in session cookie
+ * Default session name as used in session cookie. You may wish to change this if running
+ * multiple ProcessWire installations on the same server. By giving each installation a unique
+ * session name, you can stay logged into multiple installations at once. 
  * 
+ * #notes Note that changing this will automatically logout any current sessions. 
  * @var string
  *
  */
@@ -126,7 +152,7 @@ $config->sessionExpireSeconds = 86400;
  * Use session challenge?
  * 
  * Should login sessions have a challenge key? (for extra security, recommended)
- * 
+ *
  * @var bool
  *
  */
@@ -137,7 +163,7 @@ $config->sessionChallenge = true;
  * 
  * Should login sessions be tied to IP and user agent?
  * More secure, but will conflict with dynamic IPs.
- * 
+ *
  * @var bool
  *
  */
@@ -163,8 +189,8 @@ $config->userAuthHashType = 'sha1';
  * Prepend template file 
  * 
  * PHP file in /site/templates/ that will be loaded before each page's template file.
- * Example: _init.php
- * 
+ *
+ * #notes Example: _init.php
  * @var string
  *
  */
@@ -174,8 +200,8 @@ $config->prependTemplateFile = '';
  * Append template file 
  * 
  * PHP file in /site/templates/ that will be loaded after each page's template file.
- * Example: _main.php
  * 
+ * #notes Example: _main.php
  * @var string
  *
  */
@@ -186,15 +212,14 @@ $config->appendTemplateFile = '';
  *
  * When checking for new template files, files matching this PCRE regex will be ignored.
  *
- * In the default value, we are ignoring files that begin with an underscore.
- *
+ * #notes The default setting of /^_/ ignores all files that begin with an underscore.
  * @var string
  *
  */
 $config->ignoreTemplateFileRegex = '/^_/';
 
 /**
- * Expected extension for template files
+ * Expected extension for template files (we don't recommend changing this)
  *
  */
 $config->templateExtension = 'php';
@@ -202,15 +227,18 @@ $config->templateExtension = 'php';
 
 
 
-/*** 5. FILES AND ASSETS ************************************************************************/
+/*** 5. FILES & ASSETS ************************************************************************/
 
 /**
  * Directory mode
  *
  * Octal string permissions assigned to directories created by ProcessWire
  * This value should always be overwritten by site-specific settings as 0777 
- * is too open for many installations. 
- *
+ * is too open for many installations. Note that changing this does not change 
+ * permissions for existing directories, only newly created directories. 
+ * 
+ * #notes See [chmod man page](http://ss64.com/bash/chmod.html).
+ * #pattern /^0[0-9]{3}$/
  * @var string
  *
  */
@@ -221,8 +249,11 @@ $config->chmodDir = "0777";
  *
  * Octal string permissions assigned to files created by ProcessWire
  * This value should always be overwritten by site-specific settings as 0666
- * is too open for many installations. 
- *
+ * is too open for many installations. Note that changing this does not change
+ * permissions for existing files, only newly created/uploaded files.
+ * 
+ * #notes See [chmod man page](http://ss64.com/bash/chmod.html).
+ * #pattern /^0[0-9]{3}$/
  * @var string
  *
  */
@@ -243,11 +274,10 @@ $config->uploadBadExtensions = 'php php3 phtml exe cfm shtml asp pl cgi sh vbs j
  *
  * When, true, prevents http access to file assets of access protected pages.
  *
- * Set to true in /site/config.php if you want files on non-public or unpublished pages to be
+ * Set to true if you want files on non-public or unpublished pages to be
  * protected from direct URL access.
  *
  * When used, such files will be delivered at a URL that is protected from public access.
- * See also: $config->fileContentTypes and $config->pagefileSecurePathPrefix
  *
  * @var bool
  *
@@ -283,10 +313,10 @@ $config->pagefileSecure = false;
 $config->pagefileSecurePathPrefix = '-';
 
 /**
- * Use extended file mapping? Enable this if you expect to have >30000 pages in your site.
+ * Use extended file mapping?
  * 
- * Warning: The extended file mapping feature is not yet widely tested, so consider it beta.
- *
+ * Enable this if you expect to have >30000 pages in your site.
+ * 
  * Set to true in /site/config.php if you want files to live in an extended path mapping system
  * that limits the number of directories per path to under 2000.
  *
@@ -295,14 +325,17 @@ $config->pagefileSecurePathPrefix = '-';
  *
  * Please note that for existing sites, this applies only for new pages created from this
  * point forward.
- * 
+ *
+ * #notes Warning: The extended file mapping feature is not yet widely tested, so consider it beta.
  * @var bool
  *
  */
 $config->pagefileExtendedPaths = false;
 
 /**
- * fileContentTypes: array of extention to content-type header, used by file passthru functions.
+ * File content types
+ * 
+ * Connects file extentions to content-type headers, used by file passthru functions.
  *
  * Any content types that should be force-download should be preceded with a plus sign.
  * The '?' index must be present to represent a default for all not present.
@@ -329,6 +362,13 @@ $config->fileContentTypes = array(
  *
  * Default ImageSizer options, as used by $page->image->size(w, h), for example.
  * 
+ * #property bool upscaling Upscale if necessary to reach target size? (1=true, 0=false)
+ * #property bool cropping Crop if necessary to reach target size? (1=true, 0=false)
+ * #property bool autoRotation Automatically correct orientation?
+ * #property string sharpening Sharpening mode, enter one of: none, soft, medium, strong
+ * #property int quality Image quality, enter a value between 1 and 100, where 100 is highest quality (and largest files)
+ * #property float defaultGamma Default gamma of 0.5 to 4.0 or -1 to disable gamma correction (default=2.0)
+ * 
  * @var array
  *
  */
@@ -339,6 +379,36 @@ $config->imageSizerOptions = array(
 	'sharpening' => 'soft', // sharpening: none | soft | medium | strong
 	'quality' => 90, // quality: 1-100 where higher is better but bigger
 	'defaultGamma' => 2.0, // defaultGamma: 0.5 to 4.0 or -1 to disable gamma correction (default=2.0)
+	);
+
+/**
+ * Admin thumbnail image options
+ * 
+ * Controls the output of the thumbnail images used in image fields presented in the admin.
+ * 
+ * #property int width Width of thumbnails or 0 for proportional to height (default=0).
+ * #property int height Height of thumbnails or 0 for proportional to width (default=100).
+ * #property float scale Scale for high DPI/retina output, i.e. 0.5 makes 100px thumb render at 50px (default=1.0).
+ * #property bool upscaling Upscale if necessary to reach target size? (1=true, 0=false).
+ * #property bool cropping Crop if necessary to reach target size? (1=true, 0=false).
+ * #property bool autoRotation Automatically correct orientation? (1=true, 0=false).
+ * #property string sharpening Sharpening mode, enter one of: none, soft, medium, strong (default=soft).
+ * #property int quality Image quality, enter a value between 1 and 100, where 100 is highest quality, and largest files (default=90).
+ * #property string suffix Suffix to append to all thumbnail images (1-word of a-z 0-9, default=blank)
+ * 
+ * @var array
+ * 
+ */
+$config->adminThumbOptions = array(
+	'width' => 0, // max width of admin thumbnail or 0 for proportional to height
+	'height' => 100, // max height of admin thumbnail or 0 for proportional to width
+	'scale' => 1.0, // i.e. setting of 0.5 makes 100px (for example) thumb render at 50px, for high DPI/retina presentation.
+	'upscaling' => false,
+	'cropping' => true,
+	'autoRotation' => true, // automatically correct orientation?
+	'sharpening' => 'soft', // sharpening: none | soft | medium | strong
+	'quality' => 90,
+	'suffix' => '', 
 	);
 
 /**
@@ -353,9 +423,7 @@ $config->imageSizerOptions = array(
  */
 
 
-
-
-/*** 6. HTTP AND INPUT **************************************************************************/
+/*** 6. HTTP & INPUT **************************************************************************/
 
 /**
  * HTTP hosts
@@ -369,18 +437,10 @@ $config->imageSizerOptions = array(
  * If your hostname uses a port other than 80, make sure to include that as well.
  * For instance "localhost:8888".
  *
- * This setting is now added to /site/config.php by the installer, so this commentary
- * is primarily for those upgrading from older versions of ProcessWire. If that is you,
- * then specify the httpHosts in /site/config.php rather than here.
- *
  * @var array
  *
  */
-$config->httpHosts = array(
-	//'domain.com',
-	//'www.domain.com',
-	//'localhost:8888',
-	);
+$config->httpHosts = array(); 
 
 /**
  * Runtime HTTP host
@@ -388,8 +448,6 @@ $config->httpHosts = array(
  * This is set automatically by ProcessWire at runtime, consisting of one of the values 
  * specified in $config->httpHosts. However, if you set a value for this, it will override
  * ProcessWire's runtime value. 
- * 
- * @var string
  * 
  */
 $config->httpHost = '';
@@ -459,9 +517,10 @@ $config->maxPageNum = 999;
  * Order that variables with the $input API var are handled when you access $input->some_var.
  *
  * This does not affect the dedicated $input->[get|post|cookie|whitelist] variables/functions.
- * Possible values are a combination of: "get post cookie whitelist" in any order, separated by 1 space.
- * To disable $input->some_var from considering get/post/cookie, make wireInputOrder blank.
+ * To disable $input->some_var from considering get/post/cookie, make this blank.
  *
+ * #notes Possible values are a combination of: "get post cookie whitelist" in any order, separated by 1 space.
+ * 
  * @var string
  *
  */
@@ -525,8 +584,6 @@ $config->dbPath = '';
  * Force any created field_* tables to be lowercase.
  * Recommend value is true except for existing installations that already have mixed case tables.
  * 
- * @var bool
- *
  */
 $config->dbLowercaseTables = true;
 
@@ -567,7 +624,9 @@ $config->dbSocket = '';
 /*** 8. MODULES *********************************************************************************/
 
 /**
- * URL to modules directory service
+ * Modules service URL
+ * 
+ * URL to modules directory service JSON feed.
  *
  * @var string
  *
@@ -575,7 +634,9 @@ $config->dbSocket = '';
 $config->moduleServiceURL = 'http://modules.processwire.com/export-json/';
 
 /**
- * API key for modules directory service
+ * Modules service API key
+ * 
+ * API key for modules directory service.
  *
  * @var string
  *
@@ -585,9 +646,10 @@ $config->moduleServiceKey = 'pw250';
 /**
  * Substitute modules
  *
- * Names of substitutute mdoules for when requested module doesn't exist
+ * Names of substitutute modules for when requested module doesn't exist
  *
- * array associative, of module name => replacement name
+ * #notes Specify ModuleName = ReplacementModuleName
+ * @var array
  *
  */
 $config->substituteModules = array(
@@ -600,9 +662,11 @@ $config->substituteModules = array(
 /*** 9. MISC ************************************************************************************/
 
 /**
- * Default admin theme module for guest and users that haven't already selected one
+ * Default admin theme
+ * 
+ * Module name of default admin theme for guest and users that haven't already selected one
  *
- * Core options include: AdminThemeDefault or AdminThemeReno.
+ * Core options include: **AdminThemeDefault** or **AdminThemeReno**.
  * Additional options will depend on what other 3rd party AdminTheme modules you have installed.
  *
  * @var string
@@ -615,6 +679,7 @@ $config->defaultAdminTheme = 'AdminThemeDefault';
  *
  * Optional email address to send fatal error notifications to.
  *
+ * #input email
  * @var string
  *
  */
@@ -628,6 +693,7 @@ $config->adminEmail = '';
  * This should use inline styles since no guarantee stylesheets are present when these are displayed. 
  * String should contain two placeholders: {message} and {why}
  * 
+ * #input textarea
  * @var string
  * 
  */

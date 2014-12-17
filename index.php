@@ -18,9 +18,14 @@
  *
  * @version 2.5
  *
+ * Index Versions
+ * ==============
+ * 251 Add $config->debugIf option
+ * 250 PW 2.5 support
+ *
  */
 
-define("PROCESSWIRE", 250); // index version
+define("PROCESSWIRE", 251); // index version
 
 /**
  * Build the ProcessWire configuration
@@ -123,6 +128,18 @@ function ProcessWireBootConfig() {
 	$configFile = "$rootPath/$siteDir/config.php";
 	$configFileDev = "$rootPath/$siteDir/config-dev.php";
 	@include(is_file($configFileDev) ? $configFileDev : $configFile); 
+
+	/*
+	 * $config->debugIf: optional setting to determine if debug mode should be on or off
+	 * 
+	 */
+	if($config->debugIf && is_string($config->debugIf)) {
+		$debugIf = trim($config->debugIf);
+		if(strpos($debugIf, '/') === 0) $debugIf = (bool) @preg_match($debugIf, $_SERVER['REMOTE_ADDR']); // regex IPs
+			else if(is_callable($debugIf)) $debugIf = $debugIf(); // callable function to determine debug mode for us 
+			else $debugIf = $debugIf === $_SERVER['REMOTE_ADDR']; // exact IP match
+		$config->debug = $debugIf; 
+	}
 
 	/*
 	 * If debug mode is on then echo all errors, if not then disable all error reporting

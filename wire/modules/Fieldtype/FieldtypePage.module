@@ -167,7 +167,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			$pg = false;
 			if(count($value)) {
 				// get the first value in a PageArray, using $template and parent for optimization
-				$pageArray = $this->fuel('pages')->getById(array((int) reset($value)), $template); 
+				$pageArray = $this->wire('pages')->getById(array((int) reset($value)), $template); 
 				if(count($pageArray)) $pg = $pageArray->first();
 			}
 		
@@ -339,10 +339,12 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		} else if(ctype_digit("$value")) {
 			// page ID
 			$result = $this->pages->get("id=" . $value); 
-		
-		} else if(strpos($value, '|') !== false && ctype_digit(str_replace('|', '', $value))) {
-			$result = $this->pages->getById(explode('|', $value)); 
-
+			
+		} else if(strpos($value, '-') === 0 && ctype_digit(ltrim($value, '-'))) {
+			// page ID to remove from value
+			$result = $this->pages->get("id=" . ltrim($value, '-')); 
+			$result->set('_FieldtypePage_remove', $result->id); 
+			
 		} else if(strpos($value, '|') !== false && ctype_digit(str_replace('|', '', $value))) {
 			// CSV string separated by '|' characters
 			$result = $this->pages->getById(explode('|', $value)); 	
@@ -388,14 +390,23 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 	protected function sanitizeValuePage(Page $page, Field $field, $value) {
 
 		if(!$value) return $this->getBlankValue($page, $field); 
-		if($value instanceof Page) return $value;
-		if($value instanceof PageArray) $value = $value->first();
-		if(is_string($value) || is_int($value)) {
+		
+		if($value instanceof Page) {
+			// ok
+		} else if($value instanceof PageArray) {
+			$value = $value->first();
+		} else if(is_string($value) || is_int($value)) {
 			$value = $this->sanitizeValueString($page, $field, $value); 
 			if($value instanceof PageArray) $value = $value->first();
+			if($value->_FieldtypePage_remove === $value->id) {
+				$value->__unset('_FieldtypePage_remove'); 
+				$value = null; // remove item 
+			}
 		}
 		$value = (($value instanceof Page) && $value->id) ? $value : $this->getBlankValue($page, $field); 
-		// if($page->id == $value->id) $value = $this->getBlankValue($page, $field); // prevent circular references
+		if($value && $value->id && $page->id == $value->id) {
+			$value = $this->getBlankValue($page, $field); // prevent circular references
+		}
 		return $value; 
 	}
 
@@ -423,14 +434,18 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 	}
 
 	/**
-	 * Handles the sanitization of values when target is a PageArray
+	 * Handles the sanitization of values when target is a PageArray and $value is undetermined
 	 *
 	 */
 	protected function sanitizeValuePageArray(Page $page, Field $field, $value) {
 
 		// if they are setting it to a PageArray, then we'll take it
-		if($value instanceof PageArray) return $value; 
-
+		if($value instanceof PageArray) {
+			// double check there aren't circular references
+			foreach($value as $v) if($v->id == $page->id) $value->remove($v); 
+			return $value;
+		} 
+		
 		// otherwise, lets get the current value so we can add to it or return it
 		$pageArray = $page->get($field->name); 
 
@@ -442,23 +457,42 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 		// if it's a Page, and not  NullPage, add it to the existing PageArray
 		if($value instanceof Page) {
-			if($value->id) return $pageArray->add($value); 
-				else return $pageArray;
+			if($value->_FieldtypePage_remove === $value->id) {
+				$value->__unset('_FieldtypePage_remove'); 
+				return $pageArray->remove($value); // remove
+			}
+			if($value->id && $value->id != $page->id) $pageArray->add($value); 
+			return $pageArray;
 		}
 
 		// if it's a new PageArray, combine it with the existing PageArray
 		if($value instanceof PageArray) {
 			foreach($value as $pg) {
-				if(!$pg->id) continue; 
+				if(!$pg->id || $pg->id == $page->id) continue; 
 				$pageArray->add($pg); 
 			}
 			return $pageArray; 
 		}
 
+		// value is an int or array of int|string|Page, load to pages, add to $pageArray
 		if(!is_array($value)) $value = array($value); 
-		foreach($value as $pg) {
-			// if($pg->id == $page->id) continue; // prevent circular references
-			$pageArray->add($pg); 
+		foreach($value as $v) {
+			if($v == $page->id) continue;
+			if(is_object($v) && $v instanceof Page) {
+				// Page object
+				$pg = $v; 
+			} else if(is_int($v)) {
+				// integer page ID
+				$pg = $this->wire('pages')->get($v);
+			} else if(is_string($v)) {
+				// path or selector string
+				if(ctype_digit($v)) $v = (int) $v; 
+				$pg = $this->wire('pages')->get($v);
+			} else {
+				// unrecognized type: can't make a page object from it
+				continue; 
+			}
+			if($pg->id && $pg->id != $page->id) $pageArray->add($pg);
 		}
 
 		return $pageArray; 
@@ -755,7 +789,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 		if(!count($fieldgroups)) {
 			// if no fieldgorups found, then we have no choice but to use all fields
-			$fieldgroups[] = $this->wire('fields'); 
+			//$fieldgroups[] = $this->wire('fields'); 
 		}
 
 		foreach($fieldgroups as $fieldgroup) {
@@ -766,6 +800,12 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 				$subfields[$f->name] = $f->type->getSelectorInfo($f, array('level' => $data['level']+1)); 
 			}
 		}
+	
+		$subfields['count'] = array(
+			'name' => 'count', 
+			'label' => $this->_('Count'), // Label for 'count' property of a PageArray
+			'input' => 'number', 
+			);
 
 		$info['subfields'] = $subfields; 
 

@@ -17,24 +17,24 @@ class LanguageSupportFields extends WireData implements Module {
 	 * Return information about the module
 	 *
 	 */
-        static public function getModuleInfo() {
-			return array(
-				'title' => 'Languages Support - Fields',
-				'version' => 100,
-				'summary' => 'Required to use multi-language fields.',
-				'author' => 'Ryan Cramer',
-				'autoload' => true,
-				'singular' => true,
-				'requires' => array(
-					'LanguageSupport'
-					),
-				'installs' => array(
-					'FieldtypePageTitleLanguage',
-					'FieldtypeTextareaLanguage',
-					'FieldtypeTextLanguage', 
-					)
-				);
-        }
+	static public function getModuleInfo() {
+		return array(
+			'title' => 'Languages Support - Fields',
+			'version' => 100,
+			'summary' => 'Required to use multi-language fields.',
+			'author' => 'Ryan Cramer',
+			'autoload' => true,
+			'singular' => true,
+			'requires' => array(
+				'LanguageSupport'
+				),
+			'installs' => array(
+				'FieldtypePageTitleLanguage',
+				'FieldtypeTextareaLanguage',
+				'FieldtypeTextLanguage', 
+				)
+			);
+	}
 
 	/**
 	 * Cached names of fields that are dealing in multiple languages. 

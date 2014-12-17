@@ -8,6 +8,17 @@
 	border: 3px solid #000; 
 }
 
+#select_images.thumbs img {
+	display: block;
+	float: left;
+	margin: 0 0.5em 0.5em 0;
+	border: none;
+}
+	#select_images.thumbs a:hover img {
+		border: none;
+		opacity: 0.9;
+	}
+
 
 #selected_image,
 #selected_image_container {

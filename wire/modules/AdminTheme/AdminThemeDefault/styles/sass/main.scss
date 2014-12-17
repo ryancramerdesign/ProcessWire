@@ -6,6 +6,7 @@
 @import 'reset';
 @import 'jquery-ui'; 
 @import 'ui';
+@import 'notifications';
 @import 'form';
 @import 'inputfields';
 @import 'masthead';
@@ -449,6 +450,7 @@ body:not(.hasWireTabs) #headline .container {
 .fa-5x { font-size: 70px !important; }
 
 
+
 /***********************************************************************************************
  * MEDIA QUERIES
  *
@@ -504,8 +506,7 @@ body:not(.hasWireTabs) #headline .container {
 		width: 100% !important;
 		margin-left: 0 !important;
 	}
-
-
+	
 }
 
 /* Mobile Landscape Size to Tablet Portrait (devices and browsers) */

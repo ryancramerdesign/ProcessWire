@@ -84,7 +84,6 @@ class FieldSelectorInfo extends Wire {
 	 * Return array with information about what properties and operators can be used with this field
 	 * 
 	 * @param Field $field
-	 * @param array $data Array of extra data, when/if needed
 	 * @return array
 	 *
 	 */
@@ -167,7 +166,7 @@ class FieldSelectorInfo extends Wire {
 	/**
 	 * Get array of operators
 	 *
-	 * @param string $type Specify: number, text, fulltext or select, or omit to return all possible operators at once
+	 * @param string $inputType Specify: number, text, fulltext or select, or omit to return all possible operators at once
 	 * @return array of operators or blank array if invalid type specified
 	 *
 	 */

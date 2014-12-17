@@ -74,7 +74,7 @@ $(document).ready(function() {
 	 * 
 	 */
 
-	var $inlines = $(".InputfieldCKEditorInline"); 
+	var $inlines = $(".InputfieldCKEditorInline[contenteditable=true]"); 
 	var pageID = $("#Inputfield_id").val();
 
 	CKEDITOR.disableAutoInline = true; 

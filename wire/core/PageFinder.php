@@ -139,21 +139,29 @@ class PageFinder extends Wire {
 				$value = $selector->value; 
 				if(!ctype_digit("$value")) {
 					// allow use of some predefined labels for Page statuses
-					if($value == 'hidden') $selector->value = Page::statusHidden; 
-						else if($value == 'unpublished') $selector->value = Page::statusUnpublished; 
-						else if($value == 'locked') $selector->value = Page::statusLocked;
-						else if($value == 'trash') $selector->value = Page::statusTrash; 
-						else if($value == 'max') $selector->value = Page::statusMax;
-						else $selector->value = 1; 
-
-					if($selector->operator == '=') {
-						// there is no point in an equals operator here, so we make it a bitwise AND, for simplification
-						$selectors[$key] = new SelectorBitwiseAnd('status', $selector->value); 
-					}
+					if($value == 'hidden') $selector->value = Page::statusHidden;
+					else if($value == 'unpublished') $selector->value = Page::statusUnpublished;
+					else if($value == 'locked') $selector->value = Page::statusLocked;
+					else if($value == 'trash') $selector->value = Page::statusTrash;
+					else if($value == 'max') $selector->value = Page::statusMax;
+					else $selector->value = 1;
 				}
-				if(is_null($maxStatus) || $value > $maxStatus) 
-					$maxStatus = (int) $selector->value; 
-
+				$not = false;
+				if(($selector->operator == '!=' && !$selector->not) || ($selector->not && $selector->operator == '=')) {
+					$s = new SelectorBitwiseAnd('status', $selector->value);
+					$s->not = true;
+					$not = true;
+					$selectors[$key] = $s;
+	
+				} else if($selector->operator == '=' || ($selector->operator == '!=' && $selector->not)) {
+					$selectors[$key] = new SelectorBitwiseAnd('status', $selector->value);
+					
+				} else {
+					$not = $selector->not;
+					// some other operator like: >, <, >=, <=
+				}
+				if(!$not && (is_null($maxStatus) || $selector->value > $maxStatus)) $maxStatus = (int) $selector->value; 
+				
 			} else if($fieldName == 'include' && $selector->operator == '=' && in_array($selector->value, array('hidden', 'all', 'unpublished', 'trash'))) {
 				if($selector->value == 'hidden') $options['findHidden'] = true;
 					else if($selector->value == 'unpublished') $options['findUnpublished'] = true;
@@ -190,12 +198,13 @@ class PageFinder extends Wire {
 					$selectors->remove($selector); 
 				}
 			}
-		}
+		} // foreach($selectors)
 
-		if(!is_null($maxStatus) && empty($options['findAll'])) {
-			// if a status was already present in the selector, without a findAll, then just make sure the page isn't unpublished
-			if($maxStatus < Page::statusUnpublished) 
-				$selectors->add(new SelectorLessThan('status', Page::statusUnpublished)); 
+		if(!is_null($maxStatus) && empty($options['findAll']) && empty($options['findUnpublished'])) {
+			// if a status was already present in the selector, without a findAll/findUnpublished, then just make sure the page isn't unpublished
+			if($maxStatus < Page::statusUnpublished) {
+				$selectors->add(new SelectorLessThan('status', Page::statusUnpublished));
+			}
 
 		} else if($options['findAll']) { 
 			// findAll option means that unpublished, hidden, trash, system may be included

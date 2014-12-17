@@ -22,15 +22,14 @@ var ProcessWireAdminTheme = {
 		this.setupSearch();
 		this.setupDropdowns();
 		this.setupMobile();
-		// this.sizeTitle();
 		var $body = $("body");
-		if($body.hasClass('hasWireTabs') && $("ul.WireTabs").size() == 0) $body.removeClass('hasWireTabs'); 
+		if($body.hasClass('hasWireTabs') && $("ul.WireTabs").length == 0) $body.removeClass('hasWireTabs'); 
 		$('#content').removeClass('fouc_fix'); // FOUC fix, deprecated
 		$body.removeClass("pw-init").addClass("pw-ready"); 
 		
 		this.browserCheck();
 
-		if($button.size() > 0) $button.show();
+		if($button.length > 0) $button.show();
 	},
 
 	/**
@@ -42,16 +41,6 @@ var ProcessWireAdminTheme = {
 			position: {
 				my: "center bottom", // bottom-20
 				at: "center top"
-				/*
-				using: function(position, feedback) {
-					$(this).css(position);
-					$("<div>")
-						.addClass("arrow")
-						.addClass(feedback.vertical)
-						.addClass(feedback.horizontal)
-						.appendTo(this);
-				}
-				*/
 			}
 		}).hover(function() {
 			$(this).addClass('ui-state-hover');
@@ -70,20 +59,23 @@ var ProcessWireAdminTheme = {
 
 		// if there are buttons in the format "a button" without ID attributes, copy them into the masthead
 		// or buttons in the format button.head_button_clone with an ID attribute.
-		var $buttons = $("#content a[id=''] button[id=''], #content button.head_button_clone[id!='']"); 
-		//var $buttons = $("#content a:not([id]) button:not([id]), #content button.head_button_clone[id!=]"); 
+		// var $buttons = $("#content a[id=''] button[id=''], #content button.head_button_clone[id!='']");
+		// var $buttons = $("#content a:not([id]) button:not([id]), #content button.head_button_clone[id!=]"); 
+		var $buttons = $("button.head_button_clone, button.head-button"); 
 
 		// don't continue if no buttons here or if we're in IE
-		if($buttons.size() == 0 || $.browser.msie) return;
+		if($buttons.length == 0 || $.browser.msie) return;
 
-		var $head = $("<div id='head_button'></div>").prependTo("#breadcrumbs .container").show();
+		var $head = $("#head_button"); 
+		if($head.length == 0) $head = $("<div id='head_button'></div>").prependTo("#breadcrumbs .container");
+		
 		$buttons.each(function() {
 			var $t = $(this);
 			var $a = $t.parent('a'); 
-			if($a.size()) { 
+			if($a.length > 0) { 
 				$button = $t.parent('a').clone();
-				$head.append($button);
-			} else if($t.is('.head_button_clone')) {
+				$head.prepend($button);
+			} else if($t.hasClass('head_button_clone') || $t.hasClass('head-button')) {
 				$button = $t.clone();
 				$button.attr('data-from_id', $t.attr('id')).attr('id', $t.attr('id') + '_copy');
 				$a = $("<a></a>").attr('href', '#');
@@ -91,9 +83,10 @@ var ProcessWireAdminTheme = {
 					$("#" + $(this).attr('data-from_id')).click(); // .parents('form').submit();
 					return false;
 				});
-				$head.append($a.append($button));	
+				$head.prepend($a.append($button));	
 			}
 		}); 
+		$head.show();
 	},
 
 	/**
@@ -202,6 +195,10 @@ var ProcessWireAdminTheme = {
 	dropdownPositionsMonitored: false,
 
 	setupDropdowns: function() {
+		
+		$(".dropdown-menu").on("click", "a", function(e) {
+			e.stopPropagation();
+		}); 
 
 		$("ul.dropdown-menu").each(function() {
 			var $ul = $(this).hide();
@@ -321,12 +318,6 @@ var ProcessWireAdminTheme = {
 					}); 
 					
 					$ul.addClass('navJSON').addClass('length' + parseInt(data.list.length)); 
-	
-					$ul.find("a").click(function() {
-						// prevent a clicked link from jumping back to the top of page (makes the UI nicer)
-						window.location.href = $(this).attr('href');
-						return false; 
-					}); 
 
 					// trigger the first call
 					dropdownHover($a);
@@ -382,7 +373,7 @@ var ProcessWireAdminTheme = {
 
 			// wiretabs
 			var $wiretabs = $(".WireTabs"); 
-			if($wiretabs.size < 1) return;
+			if($wiretabs.length < 1) return;
 
 			$wiretabs.each(function() {
 				var $tabs = $(this);

@@ -39,8 +39,6 @@ abstract class Process extends WireData implements Module {
 			'summary' => '', 			// one sentence summary of module
 			'href' => '', 				// URL to more information (optional)
 			'permanent' => true, 		// true if module is permanent and thus not uninstallable (3rd party modules should specify 'false')
-			'permission' => '', 		// name of permission required to execute this Process (optional)
-			'permissions' => array(..),	// see Module.php for details
 	 		'page' => array( 			// optionally install/uninstall a page for this process automatically
 	 			'name' => 'page-name', 	// name of page to create
 	 			'parent' => 'setup', 	// parent name (under admin) or omit or blank to assume admin root
@@ -62,6 +60,12 @@ abstract class Process extends WireData implements Module {
 					'icon' => 'plug',
 				),
 			),
+			'permission' => '', 		// name of permission required to execute this Process (optional)
+			'permissions' => array(..),	// see Module.php for details
+			'permissionMethod' => '', 	// Optional name of a static method to perform additional permission checks. 
+										// It receives array with: wire (PW instance), user (User), page (Page), 
+										// info (moduleInfo array), method (requested method)
+										// It should return a true or false.
 	}
  	*/
 

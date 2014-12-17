@@ -124,18 +124,22 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		$iconName = $p->name;
 		$icon = $this->wire('adminTheme')->$iconName;
 		if(!$icon) $icon = 'fa-file-text-o';
+		$numViewable = 0; 
 		
-		// don't bother with a drop-down here if only 1 child
-		if($p->name == 'page' && !$isSuperuser) $children = array();
-
 		if(!$showItem) { 
 			$checkPages = count($children) ? $children : array($p); 
 			foreach($checkPages as $child) {
 				if($child->viewable()) {
 					$showItem = true;
-					break;
+					$numViewable++;
+					if($numViewable > 1) break; // we don't need to know about any more
 				}
 			}
+		}
+		
+		// don't bother with a drop-down here if only 1 child
+		if($p->name == 'page' && !$isSuperuser && $numViewable < 2) {
+			$children = array();
 		}
 	
 		if(!$showItem) return '';

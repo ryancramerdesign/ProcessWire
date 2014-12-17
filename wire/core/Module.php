@@ -34,7 +34,7 @@ interface ConfigurableModule {
 
 	/** 
 	 * Return an InputfieldsWrapper of Inputfields used to configure the class
-	 *
+	 * 
 	 * @param array $data Array of config values indexed by field name
 	 * @return InputfieldsWrapper
 	 *

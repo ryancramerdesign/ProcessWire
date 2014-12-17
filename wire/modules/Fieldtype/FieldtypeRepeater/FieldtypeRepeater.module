@@ -311,8 +311,8 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	/**
 	 * Get a blank value of this type, i.e. return a blank PageArray
 	 *
-         * @param Page $page
-         * @param Field $field
+	 * @param Page $page
+	 * @param Field $field
 	 * @return PageArray
 	 *
 	 */
@@ -442,21 +442,21 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		return $readyPage; 
 	}
 
-        /**
-         * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
+	/**
+	 * Given a raw value (value as stored in DB), return the value as it would appear in a Page object
 	 *
 	 * Something to note is that this wakeup function is different than most in that the $value it is given 
 	 * is just an array like array('data' => 123, 'parent_id' => 456) -- it doesn't actually contain any of the
 	 * repeater page data other than saying how many there are and the parent where they are stored. So this 
 	 * wakeup function can technically do it's job without even having the $value, unlike most other fieldtypes.
 	 *
-         * @param Page $page
-         * @param Field $field
-         * @param array $value
-         * @return PageArray $value
-         *
-         */
-        public function ___wakeupValue(Page $page, Field $field, $value) {
+	 * @param Page $page
+	 * @param Field $field
+	 * @param array $value
+	 * @return PageArray $value
+	 *
+	 */
+	public function ___wakeupValue(Page $page, Field $field, $value) {
 
 		$parent_id = null; 
 		$field_parent_id = $field->parent_id; 
@@ -497,27 +497,27 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		}
 
 		// load the repeater pages
-		$a = wire('pages')->find($selector);
+		$a = $this->wire('pages')->find($selector);
 		$pageArray = new RepeaterPageArray($page, $field); 
 		$pageArray->import($a);
 		$pageArray->resetTrackChanges(true); 
 
 		return $pageArray; 
 
-        }
+	}
 
-		/**
-	 	 * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
-		 *
-		 * In this case, the sleepValue doesn't represent the actual value as they are stored in pages. 
-         *              
-         * @param Page $page
-         * @param Field $field
-         * @param string|int|array|object $value
-         * @return array
-         *
-         */
-        public function ___sleepValue(Page $page, Field $field, $value) {
+	/**
+	 * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
+	 *
+	 * In this case, the sleepValue doesn't represent the actual value as they are stored in pages. 
+	 *              
+	 * @param Page $page
+	 * @param Field $field
+	 * @param string|int|array|object $value
+	 * @return array
+	 *
+	 */
+	public function ___sleepValue(Page $page, Field $field, $value) {
 
 		$sleepValue = array();
 
@@ -547,7 +547,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			);	
 
 		return $sleepValue;
-        }
+	}
 
 	public function ___exportValue(Page $page, Field $field, $value, array $options = array()) {
 		$a = array();
@@ -652,6 +652,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 *
 	 * @param Field $field
 	 * @return Template
+	 * @throws WireException
 	 *
 	 */
 	protected function getRepeaterTemplate(Field $field) {
@@ -924,6 +925,9 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		$schema['keys']['data_exact'] = 'KEY `data_exact` (`data`(1))'; // just for checking if the field has a value
 		$schema['keys']['count'] = 'KEY `count` (`count`, `pages_id`)'; 
 		$schema['keys']['parent_id'] = 'KEY parent_id (`parent_id`, `pages_id`)';
+	
+		// indicate that this schema does not hold all data managed by this fieldtype
+		$schema['xtra']['all'] = false; 
 
 		return $schema;
 	}
@@ -1008,7 +1012,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			}
 
 			// save the repeater page
-			wire('pages')->save($p, $saveOptions);				
+			$this->wire('pages')->save($p, $saveOptions);				
 		}
 
 		// iterate through the pages that were removed
@@ -1017,7 +1021,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			if($value->has($p)) continue; 
 			$this->message("Deleted Repeater", Notice::debug); 
 			// delete the repeater page
-			wire('pages')->delete($p);
+			$this->wire('pages')->delete($p);
 		}
 
 		$result = parent::___savePageField($page, $field);
@@ -1039,8 +1043,8 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 	 */
 	public function ___deleteField(Field $field) {
 
-		$template = wire('templates')->get($field->template_id); 
-		$parent = wire('pages')->get($field->parent_id); 
+		$template = $this->wire('templates')->get($field->template_id); 
+		$parent = $this->wire('pages')->get($field->parent_id); 
 
 		// delete the pages used by this field
 		// check that the parent really is still in our repeaters structure before deleting anything
@@ -1059,7 +1063,7 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			}
 
 			// resursively delete the field parent and everything below it 
-			wire('pages')->delete($parent, true); 
+			$this->wire('pages')->delete($parent, true); 
 
 			$this->message("Deleted Repeater Parent $parentPath", Notice::debug); 
 		}
@@ -1075,11 +1079,11 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 			$template->flags = 0;
 
 			// delete the template
-			wire('templates')->delete($template); 	
+			$this->wire('templates')->delete($template); 	
 
 			// delete the fieldgroup
-			$fieldgroup = wire('fieldgroups')->get($templateName); 
-			if($fieldgroup) wire('fieldgroups')->delete($fieldgroup); 
+			$fieldgroup = $this->wire('fieldgroups')->get($templateName); 
+			if($fieldgroup) $this->wire('fieldgroups')->delete($fieldgroup); 
 
 			$this->message("Deleted Repeater Template $templateName", Notice::debug); 
 		}

@@ -843,7 +843,12 @@ class Installer {
 				'label' => 'Remove installer site profile assets (/site/install/)',
 				'path' => $root . "site/install/", 
 				'file' => '/site/install/', 
-			),
+				), 
+			'gitignore' => array(
+				'label' => 'Remove .gitignore file',
+				'path' => $root . ".gitignore",
+				'file' => '/.gitignore',
+				)
 		);
 		
 		foreach($this->findProfiles() as $name => $profile) {

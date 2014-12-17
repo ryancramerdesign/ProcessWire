@@ -17,6 +17,9 @@ table.AdminDataList th {
 	text-transform: uppercase;
 	font-size: 0.833333em;
 	cursor: pointer; 
+	line-height: 1.2em;
+	vertical-align: bottom;
+	padding-bottom: 6px; 
 }
 	table.AdminDataTableSortable th:hover {
 		text-decoration: underline; 
@@ -50,3 +53,5 @@ table.AdminDataList caption {
 table.AdminDataList td > .sort-date {
 	display: none; 	
 }
+
+

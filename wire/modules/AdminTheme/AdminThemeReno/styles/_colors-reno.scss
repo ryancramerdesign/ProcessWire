@@ -12,6 +12,7 @@ $white: #FFF;
 $link: #e83561;
 $dark-link: darken($link, 15%); 
 $red: #bc283d;
+$orange: #C5591F;
 $blue: #48678c;
 $dark-blue: #1C2836;
 $med-blue: #2d4158;
@@ -260,3 +261,51 @@ $datepicker-td-color: $light-text-color;
 $datepicker-td-hover-color: $white;
 $datepicker-td-border: 1px solid $datepicker-bg;
 $datepicker-td-current-border: 1px solid lighten($datepicker-bg, 8%);
+
+// Notifications
+$no-border-color: rgba(0,0,0,0.1);
+
+$no-message-color: $highlight-color;
+$no-message-bg: $highlight-bg;
+$no-message-open-color: $no-message-color;
+$no-message-open-bg: darken($no-message-bg, 5%);
+$no-message-icon-color: $no-message-color;
+$no-message-link-color: $link-color;
+$no-message-link-hover-color: $link-hover-color;
+
+$no-warning-color: $white;
+$no-warning-bg: lighten($orange, 5%);
+$no-warning-open-color: $no-warning-color;
+$no-warning-open-bg: darken($no-warning-bg, 5%);
+$no-warning-icon-color: $no-warning-color;
+$no-warning-link-color: transparentize($no-warning-color, 0.2);
+$no-warning-link-hover-color: $no-warning-color;
+
+$no-error-color: $error-color;
+$no-error-bg: $error-bg;
+$no-error-open-color: $no-error-color;
+$no-error-open-bg: darken($error-bg, 5%) ;
+$no-error-icon-color: $no-error-color;
+$no-error-link-color: transparentize($no-error-color, 0.2);
+$no-error-link-hover-color: $no-error-color;
+
+$no-bug-color: #fff;
+$no-bug-bg: rgba(255, 255, 255, 0.3);
+$no-bug-open-color: #fff;
+$no-bug-open-bg: rgba(255, 255, 255, 0.5);
+$no-bug-hover-color: #fff;
+$no-bug-hover-bg: rgba(255, 255, 255, 0.5);
+$no-bug-open-hover-color: #fff;
+$no-bug-open-hover-bg: rgba(255, 255, 255, 0.3);
+
+$no-ghost-message-color: #fff;
+$no-ghost-message-bg: #000;
+$no-ghost-message-icon-color: $no-ghost-message-color;
+
+$no-ghost-warning-color: $no-warning-color;
+$no-ghost-warning-bg: $no-warning-bg;
+$no-ghost-warning-icon-color: $no-ghost-warning-color;
+
+$no-ghost-error-color: $no-error-color;
+$no-ghost-error-bg: $no-error-bg;
+$no-ghost-error-icon-color: $no-ghost-error-color;
