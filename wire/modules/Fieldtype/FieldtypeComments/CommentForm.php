@@ -205,7 +205,11 @@ class CommentForm extends Wire implements CommentFormInterface {
 			if(!$page->viewable() || !$page->id) $page = $this->wire('page');
 			$url = $page->id ? $page->url : './';
 			$url .= "?comment_success=1";
-			$url .= $comment && $comment->id && $comment->status > Comment::statusPending ? "#Comment$comment->id" : "#CommentPostNote";
+			if($comment && $comment->id && $comment->status > Comment::statusPending) {
+				$url .= "&comment_approved=1#Comment$comment->id";
+			} else {
+				$url .= "#CommentPostNote";
+			}
 			$this->wire('session')->set('PageRenderNoCachePage', $page->id); // tell PageRender not to use cache if it exists for this page
 			$this->wire('session')->redirect($url);
 			return '';
@@ -221,6 +225,10 @@ class CommentForm extends Wire implements CommentFormInterface {
 			
 		} else if($comment && $comment->status > Comment::statusPending) {
 			// comment is approved
+			$message = $this->options['successMessage'];
+
+		} else if($this->wire('input')->get('comment_approved') == 1) {
+			// comment was approved in previous request
 			$message = $this->options['successMessage'];
 			
 		} else {

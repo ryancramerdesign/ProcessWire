@@ -362,7 +362,7 @@ class CommentNotifications extends Wire {
 			$sql = "SELECT id, flags FROM `$table` WHERE pages_id=:pages_id AND email=:email";
 		}
 		$query = $this->wire('database')->prepare($sql);
-		if($all) $query->bindValue(':pages_id', $this->page->id);
+		if(!$all) $query->bindValue(':pages_id', $this->page->id);
 		$query->bindValue(':email', $email); 
 		$query->execute();
 		if(!$query->rowCount()) return false;
@@ -413,9 +413,10 @@ class CommentNotifications extends Wire {
 		$url = $page->httpUrl . "#Comment$comment->id";
 		$unsubURL = $page->httpUrl . "?comment_success=unsub&subcode=$subcode";
 		$subject = $this->_('New comment posted:') . " $title"; // Email subject
-		$body = $this->_('A new comment has been posted to a thread you participated in at: %s');
-		$bodyHTML = sprintf($body, "<a href='$url'>$page->title</a>"); 
-		$body = sprintf($body, "$title ($url)"); 
+		$body = $this->_('Posted at: %s') . "\n"; 
+		$body .= sprintf($this->_('Posted by: %s'), $this->wire('sanitizer')->name($comment->cite)) . "\n";
+		$bodyHTML = "<p>" . nl2br(sprintf($body, "<a href='$url'>$page->title</a>")) . "</p>";
+		$body = sprintf($body, $page->title) . "\n" . sprintf($this->_('URL: %s'), $url); 
 		$footer = $this->_('Disable Notifications');
 		$body .= "\n\n$footer: $unsubURL";	
 		$bodyHTML .= "<p><a href='$unsubURL'>$footer</a></p>";

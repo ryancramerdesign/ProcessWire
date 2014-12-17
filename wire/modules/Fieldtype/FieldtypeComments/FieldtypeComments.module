@@ -149,8 +149,8 @@ class FieldtypeComments extends FieldtypeMulti {
 				$comment->set($key, $val); 
 			}
 			$comment->resetTrackChanges(true); 
+			$commentArray->add($comment);
 			$comment->setIsLoaded(true); 
-			$commentArray->add($comment); 
 		}
 		
 		if($field->sortNewest) $commentArray->sort("-created"); 
@@ -233,18 +233,18 @@ class FieldtypeComments extends FieldtypeMulti {
 		$submitSpam = false; 
 		$submitHam = false; 
 
-		if($comment->prevStatus == Comment::statusSpam && $comment->status == Comment::statusApproved) {
+		if($comment->prevStatus === Comment::statusSpam && $comment->status === Comment::statusApproved) {
 			$submitHam = true; // identified a false positive
-			$this->commentApproved($page, $field, $comment); 
+			$this->commentApproved($page, $field, $comment, 'Existing comment changed from spam to approved'); 
 
-		} else if($comment->status == Comment::statusSpam && $comment->prevStatus == Comment::statusApproved) {
+		} else if($comment->status === Comment::statusSpam && $comment->prevStatus === Comment::statusApproved) {
 			$submitSpam = true; // a missed spam
 			$this->commentUnapproved($page, $field, $comment); 
 			
-		} else if($comment->prevStatus == Comment::statusPending && $comment->status == Comment::statusApproved) {
-			$this->commentApproved($page, $field, $comment); 
+		} else if($comment->prevStatus === Comment::statusPending && $comment->status === Comment::statusApproved) {
+			$this->commentApproved($page, $field, $comment, 'Existing comment changed from pending to approved'); 
 			
-		} else if($comment->status == Comment::statusPending && $comment->prevStatus == Comment::statusApproved) {
+		} else if($comment->status === Comment::statusPending && $comment->prevStatus === Comment::statusApproved) {
 			$this->commentUnapproved($page, $field, $comment); 
 		}
 
@@ -254,6 +254,7 @@ class FieldtypeComments extends FieldtypeMulti {
 			if($submitHam) $akismet->submitHam();
 				else if($submitSpam) $akismet->submitSpam();
 		}
+		
 		$this->checkCommentCodes($comment);
 	}
 
@@ -308,7 +309,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		if($comment->status != Comment::statusSpam) {
 			if($field->moderate == self::moderateNone) {
 				$comment->status = Comment::statusApproved; 
-				$this->commentApproved($page, $field, $comment); 
+				$this->commentApproved($page, $field, $comment, 'New comment approved / moderation is off'); 
 
 			} else if($field->moderate == self::moderateNew && $comment->email) {
 				$database = $this->wire('database');
@@ -321,7 +322,8 @@ class FieldtypeComments extends FieldtypeMulti {
 					
 				if($numApproved > 0) {
 					$comment->status = Comment::statusApproved;
-					$this->commentApproved($page, $field, $comment); 
+					$cite = $this->wire('sanitizer')->name($comment->cite); 
+					$this->commentApproved($page, $field, $comment, "New comment auto-approved because user '$cite' has other approved comments"); 
 				}
 			}
 		}
@@ -541,7 +543,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$keys = is_array($value) ? array_keys($value) : array('data'); 
 		
 		// cycle through the values, executing an update query for each
-		foreach($values as $value) {
+		foreach($values as $commentKey => $value) {
 			
 			$binds = array();
 			$sql = $value['id'] ? "UPDATE " : "INSERT INTO ";
@@ -576,9 +578,21 @@ class FieldtypeComments extends FieldtypeMulti {
 			}
 			$query = $database->prepare($sql); 
 			foreach($binds as $k => $v) $query->bindValue(":$k", $v); 
-			if(!$query->execute()) $this->error("Error saving item $value[id] in savePageField", Notice::log);
+			try {
+				$result = $query->execute();
+				if(!$value['id']) {
+					// populate newly added comment ID to Comment object
+					$value['id'] = $database->lastInsertId();
+					foreach($allItems as $item) {
+						if(!$item->id && $item->code === $value['code']) $item->id = $value['id'];
+					}
+				}
+			} catch(Exception $e) {
+				$result = false; 
+			}
+			if(!$result) $this->error("Error saving item $value[id] in savePageField", Notice::log);
 		}	
-
+		
 		return true; 
 	}
 
@@ -943,8 +957,8 @@ class FieldtypeComments extends FieldtypeMulti {
 			}
 			$comment->set('page', wire('pages')->get($row['pages_id']));
 			$comment->resetTrackChanges(true); 
+			$comments->add($comment);
 			$comment->setIsLoaded(true); 
-			$comments->add($comment); 
 		}
 		$query->closeCursor();
 			
@@ -1099,16 +1113,21 @@ class FieldtypeComments extends FieldtypeMulti {
 	 * @param Page $page
 	 * @param Field $field
 	 * @param Comment $comment
+	 * @param string $notes
 	 * 
 	 */
-	public function ___commentApproved(Page $page, Field $field, Comment $comment) {
-		$this->wire('log')->message("Approved comment $comment->id"); 
+	public function ___commentApproved(Page $page, Field $field, Comment $comment, $notes = '') {
+		
+		$this->wire('log')->message("Approved comment $comment->id - $notes"); 
+		
 		if($field->useNotify) {
+			
 			$emails = array();
 			foreach($page->get($field->name) as $c) {
+				
 				if($c->status < Comment::statusApproved) continue; 
 				if($c->id == $comment->id) continue; 
-				if($c->email == $comment->email) continue; 
+				if(strtolower($c->email) == strtolower($comment->email)) continue; 
 				
 				/*
 				 * @todo this should be ready to use, but needs more testing before enabling it
@@ -1120,11 +1139,12 @@ class FieldtypeComments extends FieldtypeMulti {
 				}
 				*/
 				if($c->flags & Comment::flagNotifyAll) {
-					if($c->subcode) $emails[$c->email] = $c->subcode;
+					if($c->subcode) $emails[strtolower($c->email)] = $c->subcode;
 				} else if(($c->flags & Comment::flagNotifyReply) && $comment->parent_id == $c->id) {
-					if($c->subcode) $emails[$c->email] = $c->subcode;
+					if($c->subcode) $emails[strtolower($c->email)] = $c->subcode;
 				}
 			}
+			
 			// emails array contains email address => subcode to send notifications to
 			if(count($emails)) {
 				require_once(dirname(__FILE__) . '/CommentNotifications.php'); 	
@@ -1142,9 +1162,10 @@ class FieldtypeComments extends FieldtypeMulti {
 	 * @param Page $page
 	 * @param Field $field
 	 * @param Comment $comment
+	 * @param string $notes
 	 *
 	 */
-	public function ___commentUnapproved(Page $page, Field $field, Comment $comment) {
+	public function ___commentUnapproved(Page $page, Field $field, Comment $comment, $notes = '') {
 	}
 
 	/**
@@ -1261,6 +1282,31 @@ class FieldtypeComments extends FieldtypeMulti {
 		return $result;
 	}
 
+	/**
+	 * Delete the given field, which implies: drop the table $field->table
+	 *
+	 * This should only be called by the Fields class since fieldgroups_fields lookup entries must be deleted before this method is called.
+	 *
+	 * @param Field $field Field object
+	 * @return bool True on success, false on DB delete failure.
+	 *
+	 */
+	public function ___deleteField(Field $field) {
+		$database = $this->wire('database');
+		$table = $database->escapeTable($field->table);
+		try {
+			$result = $database->exec("DROP TABLE `$table`"); // QA
+		} catch(Exception $e) {
+			$result = false;
+			$this->error($e->getMessage());
+		}
+		if($result) try {
+			$database->exec("DROP TABLE `{$table}_votes`"); // QA
+		} catch(Exception $e) {
+			// ok to ignore, as table may not exist
+		}
+		return $result;
+	}
 
 }
 
