@@ -146,36 +146,46 @@ class Password extends Wire {
 	 * https://github.com/ircmaxell/password_compat/blob/master/lib/password.php
 	 * Modified for camelCase, variable names, and function-based context by Ryan.
 	 *
-	 * @param int $requiredLength Length of string you want returned
+	 * @param int $requiredLength Length of string you want returned (default=22)
+	 * @param bool $fast Set to true for a faster, though less random string 
+	 * 	(default=false, only use true for non-password use)
 	 * @return string
 	 *
 	 */
-	public function randomBase64String($requiredLength = 22) {
+	public function randomBase64String($requiredLength = 22, $fast = false) {
 
 		$buffer = '';
-		$rawLength = (int) ($requiredLength * 3 / 4 + 1);
 		$valid = false;
 
-		if(function_exists('mcrypt_create_iv')) {
-			$buffer = mcrypt_create_iv($rawLength, MCRYPT_DEV_URANDOM);
-			if($buffer) $valid = true;
-		}
+		if($fast) {
+			// fast mode for non-password use, uses only mt_rand() generated characters		
+			$rawLength = $requiredLength;
+			
+		} else {
+			// for password use, slower
+			$rawLength = (int) ($requiredLength * 3 / 4 + 1);
+			
+			if(function_exists('mcrypt_create_iv')) {
+				$buffer = mcrypt_create_iv($rawLength, MCRYPT_DEV_URANDOM);
+				if($buffer) $valid = true;
+			}
 
-		if(!$valid && function_exists('openssl_random_pseudo_bytes')) {
-			$buffer = openssl_random_pseudo_bytes($rawLength);
-			if($buffer) $valid = true;
-		}
+			if(!$valid && function_exists('openssl_random_pseudo_bytes')) {
+				$buffer = openssl_random_pseudo_bytes($rawLength);
+				if($buffer) $valid = true;
+			}
 
-		if(!$valid && file_exists('/dev/urandom')) {
-			$f = @fopen('/dev/urandom', 'r');
-			if($f) {
-				$read = strlen($buffer);
-				while($read < $rawLength) {
-					$buffer .= fread($f, $rawLength - $read);
+			if(!$valid && file_exists('/dev/urandom')) {
+				$f = @fopen('/dev/urandom', 'r');
+				if($f) {
 					$read = strlen($buffer);
+					while($read < $rawLength) {
+						$buffer .= fread($f, $rawLength - $read);
+						$read = strlen($buffer);
+					}
+					fclose($f);
+					if($read >= $rawLength) $valid = true;
 				}
-				fclose($f);
-				if($read >= $rawLength) $valid = true;
 			}
 		}
 
@@ -192,8 +202,8 @@ class Password extends Wire {
 
 		$salt = str_replace('+', '.', base64_encode($buffer));
 		$salt = substr($salt, 0, $requiredLength);
-
-		$salt .= $valid; 
+		
+		//$salt .= $valid; // @todo: what was the point of this?j
 
 		return $salt;
 	}

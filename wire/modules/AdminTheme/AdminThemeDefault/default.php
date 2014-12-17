@@ -15,7 +15,7 @@ if(!defined("PROCESSWIRE")) die();
 if(!isset($content)) $content = '';
 	
 $searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm() : '';
-$version = $adminTheme->version;
+$version = $adminTheme->version . 'a';
 
 $config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "main-$adminTheme->colors" : "main-classic") . ".css?v=$version"); 
 $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css?v=$version"); 
@@ -87,7 +87,6 @@ $extras = $adminTheme->getExtraMarkup();
 		<div class="container">
 
 			<?php 
-			if(trim($page->summary)) echo "<h2>$page->summary</h2>"; 
 			if($page->body) echo $page->body; 
 			echo $content; 
 			echo $extras['content'];

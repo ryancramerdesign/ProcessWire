@@ -18,7 +18,7 @@
 if(!defined("PROCESSWIRE")) die();
 
 if(!isset($content)) $content = '';
-$version = $adminTheme->version;
+$version = $adminTheme->version . 'a';
 $searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSearch')->renderSearchForm($adminTheme->getSearchPlaceholder()) : '';
 
 $config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "$adminTheme->colors" : "main") . ".css?v=$version"); 
@@ -98,7 +98,6 @@ $extras = $adminTheme->getExtraMarkup();
 			<div id="content" class="content fouc_fix">
 
 				<?php
-				if(trim($page->summary)) echo "<h2>$page->summary</h2>";
 				if($page->body) echo $page->body;
 				echo $content;
 				echo $extras['content'];

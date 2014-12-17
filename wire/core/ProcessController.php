@@ -173,7 +173,16 @@ class ProcessController extends Wire {
 		if(!$method) {
 			$method = self::defaultProcessMethodName; 
 			// urlSegment as given by ProcessPageView 
-			if($this->input->urlSegment1 && !$this->user->isGuest()) $method .= ucfirst($this->input->urlSegment1); 
+			$urlSegment1 = $this->input->urlSegment1; 
+			if($urlSegment1 && !$this->user->isGuest()) {
+				if(strpos($urlSegment1, '-')) {
+					// urlSegment1 has multiple hyphenated parts: convert hello-world to HelloWorld
+					foreach(explode('-', $urlSegment1) as $v) $method .= ucfirst($v);
+				} else {
+					// just one part
+					$method .= ucfirst($urlSegment1);
+				}
+			}
 		}
 
 		$hookedMethod = "___$method";

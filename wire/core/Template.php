@@ -57,6 +57,8 @@
  * @property int $cacheExpire Expire the cache for all pages when page using this template is saved? (1 = yes, 0 = no- only current page)
  * @property array $cacheExpirePages Array of Page IDs that should be expired, when cacheExpire == Template::cacheExpireSpecific
  * @property string $tags Optional tags that can group this template with others in the admin templates list 
+ * @property string $tabContent Optional replacement for default "Content" label
+ * @property string $tabChildren Optional replacmenet for default "Children" label
  *
  */
 
@@ -193,6 +195,8 @@ class Template extends WireData implements Saveable, Exportable {
 		'noAppendTemplateFile' => 0, // disable automatic inclusion of $config->appendTemplateFile
 		'prependFile' => '', // file to prepend (relative to /site/templates/)
 		'appendFile' => '', // file to append (relative to /site/templates/)
+		'tabContent' => '', 	// label for the Content tab (if different from 'Content')
+		'tabChildren' => '', 	// label for the Children tab (if different from 'Children')
 		); 
 
 
@@ -674,6 +678,22 @@ class Template extends WireData implements Saveable, Exportable {
 			$label = $this->label;
 		}
 		if(!strlen($label)) $label = $this->name;
+		return $label;
+	}
+	
+	/**
+	 * Return tab label for current language (or specified language if provided)
+	 *
+	 * @param string $tab Which tab? 'content' or 'children'
+	 * @param Page|Language $language Optional, if not used then user's current language is used
+	 * @return string Returns blank if default tab label not overridden
+	 *
+	 */
+	public function getTabLabel($tab, $language = null) {
+		$tab = ucfirst(strtolower($tab)); 
+		if(is_null($language)) $language = $this->wire('languages') ? $this->wire('user')->language : null;
+		if(!$language || $language->isDefault()) $language = '';
+		$label = $this->get("tab$tab$language");
 		return $label;
 	}
 

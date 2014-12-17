@@ -240,6 +240,7 @@ class InputfieldDatetime extends Inputfield {
 		$f->addOption('', $this->_('None'));
 		$f->description = $this->_('Select an optional time format to be used for input. If used, the calendar option will include a time picker.'); 
 		foreach(FieldtypeDatetime::getTimeFormats() as $format) {
+			if(strpos($format, '!') === 0) continue; // skip relative formats
 			$timeFormatted = FieldtypeDatetime::formatDate($date, $format);
 			$f->addOption($format, $timeFormatted);
 			if($this->timeInputFormat == $format) $f->attr('value', $format);

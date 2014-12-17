@@ -47,7 +47,7 @@ class Pagefiles extends WireArray {
 	 *
 	 */
 	protected $hookIDs = array();
-
+	
 	/**
 	 * Construct an instantance of Pagefiles 
 	 *
@@ -392,5 +392,108 @@ class Pagefiles extends WireArray {
 		}
 		return $hasFile;
 	}
+
+	/**
+	 * Returns true if the given Pagefile is temporary, not yet published. 
+	 * 
+	 * You may also provide a 2nd argument boolean to set the temp status or check if temporary AND deletable.
+	 *
+	 * @param Pagefile $pagefile
+	 * @param bool|string $set Optionally set the temp status to true or false, or specify string "deletable" to check if file is temporary AND deletable.
+	 * @return bool
+	 *
+	 */
+	public function isTemp(Pagefile $pagefile, $set = null) {
+
+		$isTemp = Pagefile::createdTemp == $pagefile->created;
+		$checkDeletable = ($set === 'deletable' || $set === 'deleteable');
+		
+		if(!is_bool($set)) { 
+			// temp status is not being set
+			if(!$isTemp) return false; // if not a temp file, we can exit now
+			if(!$checkDeletable) return $isTemp; // if not checking deletable, we can exit now
+		}
+		
+		$now = time();
+		$session = $this->wire('session');
+		$pageID = $this->page ? $this->page->id : 0;
+		$fieldID = $this->field ? $this->field->id : 0;
+		$sessionKey = "tempFiles_{$pageID}_{$fieldID}";
+		$tempFiles = $pageID && $fieldID ? $session->get($this, $sessionKey) : array();
+		if(!is_array($tempFiles)) $tempFiles = array();
+		
+		if($isTemp && $checkDeletable) {
+			$isTemp = false; 
+			if(isset($tempFiles[$pagefile->basename])) {
+				// if file was uploaded in this session and still temp, it is deletable
+				$isTemp = true; 		
+			} else if($pagefile->modified < ($now - 14400)) {
+				// if file was added more than 4 hours ago, it is deletable, regardless who added it
+				$isTemp = true; 
+			}
+			// isTemp means isDeletable at this point
+			if($isTemp) {
+				unset($tempFiles[$pagefile->basename]); 	
+				// remove file from session - note that this means a 'deletable' check can only be used once, for newly uploaded files
+				// as it is assumed you will be removing the file as a result of this method call
+				if(count($tempFiles)) $session->set($this, $sessionKey, $tempFiles); 
+					else $session->remove($this, $sessionKey); 
+			}
+		}
+
+		if($set === true) {
+			// set temporary status to true
+			$pagefile->created = Pagefile::createdTemp;
+			$pagefile->modified = $now; 
+			//                          mtime                  atime
+			@touch($pagefile->filename, Pagefile::createdTemp, $now);
+			$isTemp = true;
+			if($pageID && $fieldID) { 
+				$tempFiles[$pagefile->basename] = 1; 
+				$session->set($this, $sessionKey, $tempFiles); 
+			}
+
+		} else if($set === false && $isTemp) {
+			// set temporary status to false
+			$pagefile->created = $now;
+			$pagefile->modified = $now; 
+			@touch($pagefile->filename, $now);
+			$isTemp = false;
+			
+			if(isset($tempFiles[$pagefile->basename])) {
+				unset($tempFiles[$pagefile->basename]); 
+				if(count($tempFiles)) {
+					// set temp files back to session, minus current file
+					$session->set($this, $sessionKey, $tempFiles); 
+				} else {
+					// if temp files is empty, we can remove it from the session
+					$session->remove($this, $sessionKey); 
+				}
+			}
+		}
+
+		return $isTemp;
+	}
+
+	/**
+	 * Remove all deletable temporary pagefiles immediately
+	 *
+	 * @return int Number of files removed
+	 * 
+	 */
+	public function deleteAllTemp() {
+		$removed = array();
+		foreach($this as $pagefile) {
+			if(!$this->isTemp($pagefile, 'deletable')) continue; 
+			$removed[] = $pagefile->basename();
+			$this->remove($pagefile); 
+		}
+		if(count($removed) && $this->page && $this->field) {
+			$this->page->save($this->field->name, array('quiet' => true)); 
+			$this->message("Removed '{$this->field->name}' temp file(s) for page {$this->page->path} - " . implode(', ', $removed), Notice::debug | Notice::log); 
+		}
+		return count($removed); 
+	}
+
 
 }

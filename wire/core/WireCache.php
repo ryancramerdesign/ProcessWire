@@ -50,19 +50,31 @@ class WireCache extends Wire {
 	 * Get data from cache with given name
 	 * 
 	 * @param $name
-	 * @return string
+	 * @param int|string|null Optionally specify max age (in seconds) OR oldest date string.
+	 * 	If cache exists and is older, then blank returned. 
+	 * @return string|array
 	 * 
 	 */
-	public function get($name) {
+	public function get($name, $expire = null) {
+		
+		if(!is_null($expire)) $expire = $this->getExpires($expire); 
+		
 		$sql = "SELECT data FROM caches WHERE name=:name";
+		if(!is_null($expire)) $sql .= " AND expires<=:expire";
 		$query = $this->wire('database')->prepare($sql); 
 		$query->bindValue(':name', $name); 
+		if(!is_null($expire)) $query->bindValue(':expire', $expire); 
 		$value = '';
 		
 		try {
 			$query->execute(); 
 			if($query->rowCount()) $value = $query->fetchColumn(0); 
 			$query->closeCursor();
+			$c = substr($value, 0, 1); 
+			if($c == '{' || $c == '[') {
+				$_value = json_decode($value, true); 
+				if(is_array($_value)) $value = $_value; 
+			}
 			
 		} catch(Exception $e) {
 			$value = '';
@@ -72,10 +84,24 @@ class WireCache extends Wire {
 	}
 
 	/**
+	 * Same as get() but with namespace
+	 * 
+	 * @param string|object $ns Namespace
+	 * @param string $name
+	 * @param null|int|string $expire
+	 * @return string|array
+	 * 
+	 */
+	public function getFor($ns, $name, $expire = null) {
+		if(is_object($ns)) $ns = get_class($ns); 
+		return $this->get($ns . "__$name", $expire); 
+	}
+
+	/**
 	 * Save data to cache with given name
 	 * 
 	 * @param string $name Name of cache, can be any string up to 255 chars
-	 * @param string $data Data that you want to cache (currently must be a string)
+	 * @param string|array $data Data that you want to cache (currently must be a string or an array)
 	 * @param int|Page $expire Lifetime of this cache, in seconds
 	 * 		...or specify: WireCache::expireHourly, WireCache::expireDaily, WireCache::expireWeekly, WireCache::expireMonthly
 	 * 		...or specify the future date you want it to expire (as unix timestamp or any strtotime compatible date format)
@@ -97,6 +123,8 @@ class WireCache extends Wire {
 			return false;
 		}
 	
+		if(is_array($data)) $data = json_encode($data); 
+	
 		$sql = 'INSERT INTO caches SET name=:name, data=:data, expires=:expires';
 		$query = $this->wire('database')->prepare($sql); 
 		$query->bindValue(':name', $name); 
@@ -105,12 +133,27 @@ class WireCache extends Wire {
 		
 		try {
 			$result = $query->execute();
-			$this->message($this->_('Saved cache ') . ' - ' . $name, Notice::debug | Notice::log); 
+			$this->message($this->_('Saved cache ') . ' - ' . $name, Notice::debug); 
 		} catch(Exception $e) {
 			$result = false; 
 		}
 	
 		return $result;
+	}
+
+	/**
+	 * Same as save() except with namespace
+	 * 
+	 * @param string|object $ns Namespace
+	 * @param $name
+	 * @param $data
+	 * @param int $expire
+	 * @return bool 
+	 * 
+	 */
+	public function saveFor($ns, $name, $data, $expire = self::expireDaily) {
+		if(is_object($ns)) $ns = get_class($ns); 
+		return $this->save($ns . "__$name", $data, $expire); 
 	}
 
 	/**

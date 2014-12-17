@@ -339,10 +339,12 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		} else if(ctype_digit("$value")) {
 			// page ID
 			$result = $this->pages->get("id=" . $value); 
-		
-		} else if(strpos($value, '|') !== false && ctype_digit(str_replace('|', '', $value))) {
-			$result = $this->pages->getById(explode('|', $value)); 
-
+			
+		} else if(strpos($value, '-') === 0 && ctype_digit(ltrim($value, '-'))) {
+			// page ID to remove from value
+			$result = $this->pages->get("id=" . ltrim($value, '-')); 
+			$result->set('_FieldtypePage_remove', $result->id); 
+			
 		} else if(strpos($value, '|') !== false && ctype_digit(str_replace('|', '', $value))) {
 			// CSV string separated by '|' characters
 			$result = $this->pages->getById(explode('|', $value)); 	
@@ -396,6 +398,10 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		} else if(is_string($value) || is_int($value)) {
 			$value = $this->sanitizeValueString($page, $field, $value); 
 			if($value instanceof PageArray) $value = $value->first();
+			if($value->_FieldtypePage_remove === $value->id) {
+				$value->__unset('_FieldtypePage_remove'); 
+				$value = null; // remove item 
+			}
 		}
 		$value = (($value instanceof Page) && $value->id) ? $value : $this->getBlankValue($page, $field); 
 		if($value && $value->id && $page->id == $value->id) {
@@ -428,7 +434,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 	}
 
 	/**
-	 * Handles the sanitization of values when target is a PageArray
+	 * Handles the sanitization of values when target is a PageArray and $value is undetermined
 	 *
 	 */
 	protected function sanitizeValuePageArray(Page $page, Field $field, $value) {
@@ -451,8 +457,12 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 		// if it's a Page, and not  NullPage, add it to the existing PageArray
 		if($value instanceof Page) {
-			if($value->id && $value->id != $page->id) return $pageArray->add($value); 
-				else return $pageArray;
+			if($value->_FieldtypePage_remove === $value->id) {
+				$value->__unset('_FieldtypePage_remove'); 
+				return $pageArray->remove($value); // remove
+			}
+			if($value->id && $value->id != $page->id) $pageArray->add($value); 
+			return $pageArray;
 		}
 
 		// if it's a new PageArray, combine it with the existing PageArray
@@ -464,10 +474,25 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			return $pageArray; 
 		}
 
-		// not sure this point can actually be reached
+		// value is an int or array of int|string|Page, load to pages, add to $pageArray
 		if(!is_array($value)) $value = array($value); 
-		foreach($value as $pg) {
-			if($pg->id != $page->id) $pageArray->add($pg); 
+		foreach($value as $v) {
+			if($v == $page->id) continue;
+			if(is_object($v) && $v instanceof Page) {
+				// Page object
+				$pg = $v; 
+			} else if(is_int($v)) {
+				// integer page ID
+				$pg = $this->wire('pages')->get($v);
+			} else if(is_string($v)) {
+				// path or selector string
+				if(ctype_digit($v)) $v = (int) $v; 
+				$pg = $this->wire('pages')->get($v);
+			} else {
+				// unrecognized type: can't make a page object from it
+				continue; 
+			}
+			if($pg->id && $pg->id != $page->id) $pageArray->add($pg);
 		}
 
 		return $pageArray; 
@@ -764,7 +789,7 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 		if(!count($fieldgroups)) {
 			// if no fieldgorups found, then we have no choice but to use all fields
-			$fieldgroups[] = $this->wire('fields'); 
+			//$fieldgroups[] = $this->wire('fields'); 
 		}
 
 		foreach($fieldgroups as $fieldgroup) {
@@ -775,6 +800,12 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 				$subfields[$f->name] = $f->type->getSelectorInfo($f, array('level' => $data['level']+1)); 
 			}
 		}
+	
+		$subfields['count'] = array(
+			'name' => 'count', 
+			'label' => $this->_('Count'), // Label for 'count' property of a PageArray
+			'input' => 'number', 
+			);
 
 		$info['subfields'] = $subfields; 
 

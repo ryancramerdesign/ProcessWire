@@ -46,7 +46,7 @@ class InputfieldForm extends InputfieldWrapper {
 		
 		$attrStr = $this->getAttributesString($attrs); 
 
-		if($this->protectCSRF && $this->attr('method') == 'post') {
+		if($this->protectCSRF && strtolower($this->attr('method')) == 'post') {
 			$tokenField = $this->wire('session')->CSRF->renderInput(); 
 		} else {
 			$tokenField = '';

@@ -15,7 +15,19 @@
 
 class WireHttp extends Wire {
 	
-	const debug = false; 
+	const debug = false;
+
+	/**
+	 * Default timeout seconds for send() methods: GET, POST, etc.
+	 * 
+	 */
+	const defaultTimeout = 5.0;
+
+	/**
+	 * Default timeout seconds for download() methods. 
+	 *
+	 */
+	const defaultDownloadTimeout = 50; 
 
 	/**
 	 * Default value for $headers, when reset
@@ -26,10 +38,16 @@ class WireHttp extends Wire {
 		);
 
 	/**
-	 * Schemes wwe are allowed to use
+	 * Schemes we are allowed to use
 	 *
 	 */
-	protected $allowSchemes = array('http', 'https'); 
+	protected $allowSchemes = array('http', 'https');
+
+	/**
+	 * HTTP methods we are allowed to use
+	 *
+	 */
+	protected $allowHttpMethods = array('GET', 'POST', 'PUT', 'DELETE'); 
 
 	/**
 	 * Headers to include in the request
@@ -104,6 +122,14 @@ class WireHttp extends Wire {
 		598 => 'Network read timeout error (Unknown)',
 		599 => 'Network connect timeout error (Unknown)',
 		);
+
+	/**
+	 * Seconds till timing out on a connection
+	 * 
+	 * @var float|null Contains a float value when set, or a NULL when not set (indicating default should be used)
+	 * 
+	 */
+	protected $timeout = null;
 
 	/**
 	 * Last HTTP code
@@ -316,11 +342,11 @@ class WireHttp extends Wire {
 	}	
 
 	/**
-	 * Send the given $data array to a URL using either POST or GET
+	 * Send the given $data array to a URL using either POST, GET, PUT or DELETE
 	 *
 	 * @param string $url URL to post to (including http:// or https://)
 	 * @param array $data Array of data to send (if not already set before)
-	 * @param string $method Method to use (either POST or GET)
+	 * @param string $method Method to use (either POST, GET, PUT or DELETE)
 	 * @return bool|string False on failure or string of contents received on success.
 	 *
 	 */
@@ -332,7 +358,8 @@ class WireHttp extends Wire {
 		$unmodifiedURL = $url;
 
 		if(!empty($data)) $this->setData($data);
-		if($method !== 'GET') $method = 'POST';
+		
+		if(!in_array(strtoupper($method), $this->allowHttpMethods)) $method = 'POST';
 
 		if(!$this->hasFopen || strpos($url, 'https://') === 0 && !extension_loaded('openssl')) {
 			return $this->sendSocket($url, $method); 
@@ -354,12 +381,14 @@ class WireHttp extends Wire {
 
 		$header = '';
 		foreach($this->headers as $key => $value) $header .= "$key: $value\r\n";
+		$header .= "Connection: close\r\n";
 
 		$options = array(
 			'http' => array( 
 				'method' => $method,
 				'content' => $content,
-				'header' => $header
+				'header' => $header,
+				'timeout' => $this->timeout === null ? self::defaultTimeout : $this->timeout, 
 				)
 			);      
 
@@ -378,15 +407,25 @@ class WireHttp extends Wire {
 
 	/**
 	 * Alternate method of sending when allow_url_fopen isn't allowed
+	 * 
+	 * @param string $url
+	 * @param string $method
+	 * @param array $options Optional settings: 
+	 * 	- timeout: number of seconds to timeout
+	 * @return bool|string
 	 *
 	 */
-	protected function sendSocket($url, $method = 'POST') {
+	protected function sendSocket($url, $method = 'POST', $options = array()) {
 		
 		static $level = 0; // recursion level
 
 		$this->resetResponse();
-		$timeoutSeconds = 3; 
-		if($method != 'GET') $method = 'POST';
+		
+		if(isset($options['timeout'])) $timeout = (int) $options['timeout'];
+			else if(!is_null($this->timeout)) $timeout = (int) $this->timeout; 
+			else $timeout = (int) self::defaultTimeout; 
+		
+		if(!in_array(strtoupper($method), $this->allowHttpMethods)) $method = 'POST';
 
 		$info = parse_url($url);
 		$host = $info['host'];
@@ -425,7 +464,7 @@ class WireHttp extends Wire {
 		$errno = '';
 		$errstr = '';
 
-		if(false !== ($fs = fsockopen($scheme . $host, $port, $errno, $errstr, $timeoutSeconds))) {
+		if(false !== ($fs = fsockopen($scheme . $host, $port, $errno, $errstr, $timeout))) {
 			fwrite($fs, "$request\r\n$content");
 			while(!feof($fs)) {
 				// get 1 tcp-ip packet per iteration
@@ -468,6 +507,7 @@ class WireHttp extends Wire {
 	 * @param string $toFile Filename you want to save it to (including full path).
 	 * @param array $options Optional aptions array for PHP's stream_context_create(), plus these optional options: 
 	 * 	- useMethod (string): Specify "curl", "fopen" or "socket" to force a specific method (default=autodetect)
+	 * 	- timeout (float): Number of seconds till timeout
 	 * @return string Filename that was downloaded (including full path).
 	 * @throws WireException All error conditions throw exceptions. 
 	 * 
@@ -483,6 +523,8 @@ class WireHttp extends Wire {
 		if(!$http && !$https) {
 			throw new WireException($this->_('Download URLs must begin with http:// or https://'));
 		}
+	
+		if(!isset($options['timeout'])) $options['timeout'] = self::defaultDownloadTimeout;
 		
 		if(isset($options['useMethod'])) {
 			$useMethod = $options['useMethod'];
@@ -560,8 +602,11 @@ class WireHttp extends Wire {
 		$fromURL = str_replace(' ', '%20', $fromURL);
 		
 		$curl = curl_init($fromURL);
-		
-		curl_setopt($curl, CURLOPT_TIMEOUT, 50);
+
+		if(isset($options['timeout'])) {
+			curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, (int) $options['timeout']);
+			curl_setopt($curl, CURLOPT_TIMEOUT, (int) $options['timeout']);
+		}
 		curl_setopt($curl, CURLOPT_FILE, $fp); // write curl response to file
 		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
 		
@@ -588,7 +633,10 @@ class WireHttp extends Wire {
 		$this->resetResponse();
 
 		// Define the options
-		$defaultOptions = array('max_redirects' => 3);
+		$defaultOptions = array(
+			'max_redirects' => 3,
+		);
+		
 		$options = array_merge($defaultOptions, $options);
 		$context = stream_context_create(array('http' => $options));
 
@@ -619,9 +667,9 @@ class WireHttp extends Wire {
 	protected function downloadSocket($fromURL, $fp, array $options) {
 		$this->resetResponse();
 		$this->resetRequest();
-
+	
 		// download the file
-		$content = $this->sendSocket($fromURL, 'GET');
+		$content = $this->sendSocket($fromURL, 'GET', $options);
 		fwrite($fp, $content);
 		if(empty($content) && !$this->error) $this->error = 'no data received'; 
 		return $this->error ? false : true; 
@@ -820,6 +868,21 @@ class WireHttp extends Wire {
 	 */
 	public function getAllowSchemes() {
 		return $this->allowSchemes; 
+	}
+
+	/**
+	 * Set the number of seconds till connection times out 
+	 * 
+	 * Used by send(), get(), post(), getJSON(), but not by download() methods.
+	 * To set timeout for download() methods, pass 'timeout' in their $options array. 
+	 * 
+	 * @param int|float $seconds
+	 * @return this
+	 * 
+	 */
+	public function setTimeout($seconds) {
+		$this->timeout = (float) $seconds; 
+		return $this; 
 	}
 
 

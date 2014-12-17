@@ -63,3 +63,7 @@
 .hasLangTabs .langTabs > ul {
 	display: block;
 }
+
+.InputfieldImage .InputfieldFileLink + .langTabsContainer {
+	margin-top: 0.5em;
+}

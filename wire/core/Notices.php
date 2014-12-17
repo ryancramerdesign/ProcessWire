@@ -23,6 +23,7 @@
  *
  */
 abstract class Notice extends WireData {
+	
 
 	/**
 	 * Flag indicates the notice is for when debug mode is on only
@@ -53,7 +54,7 @@ abstract class Notice extends WireData {
 	/**
 	 * Flag indicates the notice is allowed to contain markup and won't be automatically entity encoded
 	 *
-	 * Note: entity encoding is done by the admin theme at output time. 
+	 * Note: entity encoding is done by the admin theme at output time, which should detect this flag. 
 	 *
 	 */
 	const allowMarkup = 32;
@@ -79,7 +80,7 @@ abstract class Notice extends WireData {
 	abstract public function getName();
 	
 	public function __toString() {
-		return $this->text; 
+		return (string) $this->text; 
 	}
 }
 
@@ -120,6 +121,8 @@ class NoticeWarning extends Notice {
  */
 class Notices extends WireArray {
 	
+	const logAllNotices = false;  // for debugging/dev purposes
+	
 	public function isValidItem($item) {
 		return $item instanceof Notice; 
 	}	
@@ -132,6 +135,13 @@ class Notices extends WireArray {
 
 		if($item->flags & Notice::debug) {
 			if(!$this->wire('config')->debug) return $this;
+		}
+		
+		if(is_array($item->text)) {
+			$item->text = "<pre>" . trim(print_r($this->sanitizeArray($item->text), true)) . "</pre>";
+			$item->flags = $item->flags | Notice::allowMarkup;
+		} else if(is_object($item->text)) {
+			$item->text = (string) $item->text; 
 		}
 
 		// check for duplicates
@@ -151,7 +161,7 @@ class Notices extends WireArray {
 			$item = $warning;
 		}
 
-		if(($item->flags & Notice::log) || ($item->flags & Notice::logOnly)) {
+		if(self::logAllNotices || ($item->flags & Notice::log) || ($item->flags & Notice::logOnly)) {
 			$this->addLog($item);
 			if($item->flags & Notice::logOnly) return $this;
 		}
@@ -179,5 +189,28 @@ class Notices extends WireArray {
 			if($notice instanceof NoticeWarning) $numWarnings++;
 		}
 		return $numWarnings > 0;
+	}
+
+	/**
+	 * Recursively entity encoded values in arrays and convert objects to string
+	 * 
+	 * This enables us to safely print_r the string for debugging purposes 
+	 * 
+	 * @param array $a
+	 * @return array
+	 * 
+	 */
+	public function sanitizeArray(array $a) {
+		$sanitizer = $this->wire('sanitizer'); 
+		foreach($a as $key => $value) {
+			if(is_array($value)) {
+				$value = $this->sanitizeArray($value);
+			} else {
+				if(is_object($value)) $value = (string) $value;
+				$value = $sanitizer->entities($value); 
+			} 
+			$a[$key] = $value;	
+		}
+		return $a; 
 	}
 }

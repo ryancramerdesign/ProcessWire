@@ -375,7 +375,8 @@ class InputfieldCKEditor extends InputfieldTextarea {
 
 		$value = $this->purifyValue($this->attr('value')); 
 
-		$out = 	"<div id='{$this->id}_ckeditor' class='InputfieldCKEditorInline' contenteditable='true' data-configName='$this->configName'>$value</div>" . 
+		$out = 	
+			"<div id='{$this->id}_ckeditor' class='InputfieldCKEditorInline' contenteditable='true' data-configName='$this->configName'>$value</div>" . 
 			"<input type='hidden' name='$this->name' id='$this->id' value='" . self::PLACEHOLDER_TEXT . "' />";
 
 		return $out; 
@@ -413,7 +414,9 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	 */
 	protected function purifyValue($value) {
 
+		$value = (string) $value; 
 		$length = strlen($value);
+		if(!$length) return ''; 
 
 		if($length && $this->usePurifier && $this->wire('modules')->isInstalled('MarkupHTMLPurifier')) {
 			if(is_null(self::$purifier)) self::$purifier = $this->wire('modules')->get('MarkupHTMLPurifier');
@@ -563,11 +566,18 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$no = $this->_('No');
 		$example = '**' . $this->_('Example:') . '** ';
 
-		$f = $inputfields->get('stripTags');
-		if($f) $inputfields->remove($f);
+		if(!$this->stripTags) { 
+			// remove non-applicable property
+			$f = $inputfields->get('stripTags');
+			if($f) $inputfields->remove($f);
+		} else {
+			// keep showing it if value is set, in case a regular textarea w/stripTags was converted to a CKEditor
+		}
 
-		$f = $inputfields->get('placeholder');
-		if($f) $inputfields->remove($f);
+		if(!$this->placeholder) {	
+			$f = $inputfields->get('placeholder');
+			if($f) $inputfields->remove($f);
+		}
 
 		$wrapper = wire('modules')->get('InputfieldFieldset'); 
 		$wrapper->label = $this->_('CKEditor Settings'); 
