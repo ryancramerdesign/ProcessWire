@@ -9,11 +9,10 @@
  * You can make your own markup/output for the form directly in your own templates. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -63,6 +62,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 		'cite' => '',
 		'email' => '',
 		'text' => '',
+		'notify' => '', 
 		); 
 
 	protected $postedComment = null;
@@ -95,6 +95,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 			),
 
 		// values that will be already set, perhaps pulled from a user profile for instance (null = ignore)
+		// note that using presets is NOT cache safe: do not use for non-logged-in users if output caches are active
 		'presets' => array(
 			'cite' => null,
 			'email' => null, 
@@ -112,6 +113,9 @@ class CommentForm extends Wire implements CommentFormInterface {
 
 		// should a redirect be performed immediately after a comment is successfully posted?
 		'redirectAfterPost' => null, // null=unset (must be set to true to enable)
+	
+		// use threaded comments?
+		'depth' => 0, 
 		
 		// When a comment is saved to a page, avoid updating the modified time/user
 		'quietSave' => false,
@@ -135,9 +139,9 @@ class CommentForm extends Wire implements CommentFormInterface {
 		// default messages
 		$h3 = $this->_('h3'); // Headline tag
 		$this->options['headline'] = "<$h3>" . $this->_('Post Comment') . "</$h3>"; // Form headline
-		$this->options['successMessage'] = "<p class='success'>" . $this->_('Thank you, your submission has been saved.') . "</p>"; 
-		$this->options['pendingMessage'] = "<p class='success pending'>" . $this->_('Your comment has been submitted and will appear once approved by the moderator.') . "</p>"; 
-		$this->options['errorMessage'] = "<p class='error'>" . $this->_('Your submission was not saved due to one or more errors. Please check that you have completed all fields before submitting again.') . "</p>"; 
+		$this->options['successMessage'] = "<p class='success'><strong>" . $this->_('Thank you, your submission has been saved.') . "</strong></p>"; 
+		$this->options['pendingMessage'] = "<p class='success pending'><strong>" . $this->_('Your comment has been submitted and will appear once approved by the moderator.') . "</strong></p>"; 
+		$this->options['errorMessage'] = "<p class='error'><strong>" . $this->_('Your submission was not saved due to one or more errors. Please check that you have completed all fields before submitting again.') . "</strong></p>"; 
 
 		// default labels
 		$this->options['labels']['cite'] = $this->_('Your Name'); 
@@ -157,7 +161,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 		$this->options = array_merge($this->options, $options); 
 
 		// determine which field on the page is the commentsField and save the Field instance
-		foreach(wire('fields') as $field) {
+		foreach($this->wire('fields') as $field) {
 			if(!$field->type instanceof FieldtypeComments) continue; 
 			$value = $this->page->get($field->name); 
 			if($value === $this->comments) {
@@ -186,28 +190,45 @@ class CommentForm extends Wire implements CommentFormInterface {
 	 * Replaces the output of the render() method when a Comment is posted
 	 *
 	 * A success message is shown rather than the form.
+	 * 
+	 * @param Comment|null $comment
+	 * @return string
 	 *
 	 */
-	protected function renderSuccess($id = '') {
+	protected function renderSuccess(Comment $comment = null) {
 
-		$pageID = (int) wire('input')->post->page_id; 
+		$pageID = (int) $this->wire('input')->post->page_id; 
+		
 		if($pageID && $this->options['redirectAfterPost']) {
 			// redirectAfterPost option
-			$page = wire('pages')->get($pageID); 
-			if(!$page->viewable() || !$page->id) $page = wire('page');
+			$page = $this->wire('pages')->get($pageID); 
+			if(!$page->viewable() || !$page->id) $page = $this->wire('page');
 			$url = $page->id ? $page->url : './';
-			wire('session')->set('PageRenderNoCachePage', $page->id); // tell PageRender not to use cache if it exists for this page
-			wire('session')->redirect($url . '?comment_success=1' . '#' . $this->options['attrs']['id']);
-			return;
+			$url .= "?comment_success=1";
+			$url .= $comment && $comment->id && $comment->status > Comment::statusPending ? "#Comment$comment->id" : "#CommentPostNote";
+			$this->wire('session')->set('PageRenderNoCachePage', $page->id); // tell PageRender not to use cache if it exists for this page
+			$this->wire('session')->redirect($url);
+			return '';
 		}
-
-		$message = $this->commentsField && $this->commentsField->moderate == FieldtypeComments::moderateNone ? $this->options['successMessage'] : $this->options['pendingMessage']; 
-
-		if(!$id) $id = $this->options['attrs']['id']; 
-		$out = 	"\n<div id='$id' class='{$id}_success'>" . 
-			"\n\t" . $message . 
-			"\n</div>";
-		return $out; 
+		
+		if(!$this->commentsField || $this->commentsField->moderate == FieldtypeComments::moderateAll) {
+			// all comments are moderated
+			$message = $this->options['pendingMessage'];
+			
+		} else if($this->commentsField->moderate == FieldtypeComments::moderateNone) {
+			// no moderation in service
+			$message = $this->options['successMessage'];
+			
+		} else if($comment && $comment->status > Comment::statusPending) {
+			// comment is approved
+			$message = $this->options['successMessage'];
+			
+		} else {
+			// other/comment still pending
+			$message = $this->options['pendingMessage'];
+		}
+		
+		return "<div id='CommentPostNote'>$message</div>"; 
 	}
 
 	/**
@@ -224,7 +245,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 		$attrs = $options['attrs'];
 		$id = $attrs['id'];
 		$submitKey = $id . "_submit";
-		$inputValues = array('cite' => '', 'email' => '', 'website' => '', 'text' => ''); 
+		$inputValues = array('cite' => '', 'email' => '', 'website' => '', 'text' => '', 'notify' => ''); 
 		$user = wire('user'); 
 
 		if($user->isLoggedin()) {
@@ -232,11 +253,14 @@ class CommentForm extends Wire implements CommentFormInterface {
 			$inputValues['email'] = $user->email;
 		}
 		
-		$input = $this->fuel('input'); 
+		$input = $this->wire('input'); 
 		$divClass = 'new';
-		$class = $attrs['class'] ? " class='$attrs[class]'" : '';
+		$class = trim("CommentForm " . $attrs['class']); 
 		$note = '';
 
+		/*
+		 * Removed because this is not cache safe! Converted to JS cookie. 
+		 * 
 		if(is_array($this->session->CommentForm)) {
 			// submission data available in the session
 			$sessionValues = $this->session->CommentForm;
@@ -247,56 +271,39 @@ class CommentForm extends Wire implements CommentFormInterface {
 			}
 			unset($sessionValues);
 		}
+		*/
 
 		foreach($options['presets'] as $key => $value) {
 			if(!is_null($value)) $inputValues[$key] = $value; 
 		}
 
+		$out = '';
 		$showForm = true; 
+		
 		if($options['processInput'] && $input->post->$submitKey == 1) {
-			if($this->processInput()) return $this->renderSuccess(); // success, return
-			$inputValues = array_merge($inputValues, $this->inputValues); 
-			foreach($inputValues as $key => $value) {
-				$inputValues[$key] = htmlentities($value, ENT_QUOTES, $this->options['encoding']); 
+			$comment = $this->processInput(); 
+			if($comment) { 
+				$out .= $this->renderSuccess($comment); // success, return
+			} else {
+				$inputValues = array_merge($inputValues, $this->inputValues);
+				foreach($inputValues as $key => $value) {
+					$inputValues[$key] = htmlentities($value, ENT_QUOTES, $this->options['encoding']);
+				}
+				$note = "\n\t$options[errorMessage]";
+				$divClass = 'error';
 			}
-			$note = "\n\t$options[errorMessage]";
-			$divClass = 'error';
 
-		} else if($this->options['redirectAfterPost'] && $input->get('comment_success') == 1) {
-			$note = $this->renderSuccess("{$id}_success");
-			$showForm = false;
+		} else if($this->options['redirectAfterPost'] && $input->get('comment_success') === "1") {
+			$note = $this->renderSuccess();
 		}
 
 		$form = '';
 		if($showForm) {
-			$form = "\n<form id='{$id}_form'$class action='$attrs[action]#$id' method='$attrs[method]'>" . 
-				"\n\t<p class='{$id}_cite'>" . 
-				"\n\t\t<label for='{$id}_cite'>$labels[cite]</label>" . 
-				"\n\t\t<input type='text' name='cite' class='required' required='required' id='{$id}_cite' value='$inputValues[cite]' maxlength='128' />" . 
-				"\n\t</p>" . 
-				"\n\t<p class='{$id}_email'>" . 
-				"\n\t\t<label for='{$id}_email'>$labels[email]</label>" . 
-				"\n\t\t<input type='text' name='email' class='required email' required='required' id='{$id}_email' value='$inputValues[email]' maxlength='255' />" . 
-				"\n\t</p>";
-
-			if($this->commentsField && $this->commentsField->useWebsite && $this->commentsField->schemaVersion > 0) {
-				$form .= 
-				"\n\t<p class='{$id}_website'>" . 
-				"\n\t\t<label for='{$id}_website'>$labels[website]</label>" . 
-				"\n\t\t<input type='text' name='website' class='website' id='{$id}_website' value='$inputValues[website]' maxlength='255' />" . 
-				"\n\t</p>";
+			if($this->options['depth'] > 0) {
+				$form = $this->renderFormThread($id, $class, $attrs, $labels, $inputValues);
+			} else {
+				$form = $this->renderFormNormal($id, $class, $attrs, $labels, $inputValues); 
 			}
-
-			$form .="\n\t<p class='{$id}_text'>" . 
-				"\n\t\t<label for='{$id}_text'>$labels[text]</label>" . 
-				"\n\t\t<textarea name='text' class='required' required='required' id='{$id}_text' rows='$attrs[rows]' cols='$attrs[cols]'>$inputValues[text]</textarea>" . 
-				"\n\t</p>" . 
-				"\n\t<p class='{$id}_submit'>" . 
-				"\n\t\t<button type='submit' name='{$id}_submit' id='{$id}_submit' value='1'>$labels[submit]</button>" . 
-				"\n\t\t<input type='hidden' name='page_id' value='{$this->page->id}' />" . 
-				"\n\t</p>" . 
-				"\n</form>";
-
 			if(!$options['presetsEditable']) {
 				foreach($options['presets'] as $key => $value) {
 					if(!is_null($value)) $form = str_replace(" name='$key'", " name='$key' disabled='disabled'", $form); 
@@ -304,22 +311,135 @@ class CommentForm extends Wire implements CommentFormInterface {
 			}
 		}
 
-		$out = 	"\n<div id='{$id}' class='{$id}_$divClass'>" . 	
+		$out .= 
+			"\n<div id='{$id}' class='{$id}_$divClass'>" . 	
 			"\n" . $this->options['headline'] . $note . $form . 
 			"\n</div><!--/$id-->";
 
 
 		return $out; 
+	}
 	
+	protected function renderFormNormal($id, $class, $attrs, $labels, $inputValues) {
+		$form = 
+			"\n<form id='{$id}_form' class='$class CommentFormNormal' action='$attrs[action]#$id' method='$attrs[method]'>" .
+			"\n\t<p class='CommentFormCite {$id}_cite'>" .
+			"\n\t\t<label for='{$id}_cite'>$labels[cite]</label>" .
+			"\n\t\t<input type='text' name='cite' class='required' required='required' id='{$id}_cite' value='$inputValues[cite]' maxlength='128' />" .
+			"\n\t</p>" .
+			"\n\t<p class='CommentFormEmail {$id}_email'>" .
+			"\n\t\t<label for='{$id}_email'>$labels[email]</label>" .
+			"\n\t\t<input type='text' name='email' class='required email' required='required' id='{$id}_email' value='$inputValues[email]' maxlength='255' />" .
+			"\n\t</p>";
+
+		if($this->commentsField && $this->commentsField->useWebsite && $this->commentsField->schemaVersion > 0) {
+			$form .=
+				"\n\t<p class='CommentFormWebsite {$id}_website'>" .
+				"\n\t\t<label for='{$id}_website'>$labels[website]</label>" .
+				"\n\t\t<input type='text' name='website' class='website' id='{$id}_website' value='$inputValues[website]' maxlength='255' />" .
+				"\n\t</p>";
+		}
+
+		$form .=
+			"\n\t<p class='CommentFormText {$id}_text'>" .
+			"\n\t\t<label for='{$id}_text'>$labels[text]</label>" .
+			"\n\t\t<textarea name='text' class='required' required='required' id='{$id}_text' rows='$attrs[rows]' cols='$attrs[cols]'>$inputValues[text]</textarea>" .
+			"\n\t</p>" . 
+			$this->renderNotifyOptions() . 
+			"\n\t<p class='CommentFormSubmit {$id}_submit'>" .
+			"\n\t\t<button type='submit' name='{$id}_submit' id='{$id}_submit' value='1'>$labels[submit]</button>" .
+			"\n\t\t<input type='hidden' name='page_id' value='{$this->page->id}' />" .
+			"\n\t</p>" .
+			"\n</form>";
+		
+		return $form; 
+	}
+	
+	protected function renderFormThread($id, $class, $attrs, $labels, $inputValues) {
+		
+		$form = 
+			"\n<form class='$class CommentFormThread' action='$attrs[action]#$id' method='$attrs[method]'>" .
+			"\n\t<p class='CommentFormCite {$id}_cite'>" .
+			"\n\t\t<label>" . 
+			"\n\t\t\t<span>$labels[cite]</span> " .
+			"\n\t\t\t<input type='text' name='cite' class='required' required='required' value='$inputValues[cite]' maxlength='128' />" .
+			"\n\t\t</label> " .
+			"\n\t</p>" .
+			"\n\t<p class='CommentFormEmail {$id}_email'>" .
+			"\n\t\t<label>" . 
+			"\n\t\t\t<span>$labels[email]</span> " . 
+			"\n\t\t\t<input type='email' name='email' class='required email' required='required' value='$inputValues[email]' maxlength='255' />" .
+			"\n\t\t</label>" . 
+			"\n\t</p>";
+
+		if($this->commentsField && $this->commentsField->useWebsite && $this->commentsField->schemaVersion > 0) {
+			$form .=
+				"\n\t<p class='CommentFormWebsite {$id}_website'>" .
+				"\n\t\t<label>" . 
+				"\n\t\t\t<span>$labels[website]</span> " .
+				"\n\t\t\t<input type='text' name='website' class='website' value='$inputValues[website]' maxlength='255' />" .
+				"\n\t\t</label>" . 
+				"\n\t</p>";
+		}
+
+		$form .=
+			"\n\t<p class='CommentFormText {$id}_text'>" .
+			"\n\t\t<label>" .
+			"\n\t\t\t<span>$labels[text]</span>" .
+			"\n\t\t\t<textarea name='text' class='required' required='required' rows='$attrs[rows]' cols='$attrs[cols]'>$inputValues[text]</textarea>" .
+			"\n\t\t</label>" . 
+			"\n\t</p>" .
+			$this->renderNotifyOptions() . 
+			"\n\t<p class='CommentFormSubmit {$id}_submit'>" .
+			"\n\t\t<button type='submit' name='{$id}_submit' value='1'>$labels[submit]</button>" .
+			"\n\t\t<input type='hidden' name='page_id' value='{$this->page->id}' />" .
+			"\n\t\t<input type='hidden' class='CommentFormParent' name='parent_id' value='0' />" .
+			"\n\t</p>" .
+			"\n</form>";
+		
+		return $form;
+	}
+	
+	protected function renderNotifyOptions() {
+		if(!$this->commentsField->useNotify) return '';
+		$out = '';
+		
+		$options = array();
+		
+		if($this->commentsField->depth > 0) {
+			$options['2'] = $this->_('Replies');
+		}
+
+
+		if($this->commentsField->useNotify == Comment::flagNotifyAll) {
+			$options['4'] = $this->_('All');
+		}
+	
+		if(count($options)) {
+			$out = 
+				"\n\t<p class='CommentFormNotify'>" . 
+				"\n\t\t<label>" . $this->_('E-Mail Notifications:') . "</label> " . 
+				"\n\t\t<label><input type='radio' name='notify' checked='checked' value='0'>" . $this->_('Off') . "</label> ";
+			
+			foreach($options as $value => $label) {
+				$label = str_replace(' ', '&nbsp;', $label); 
+				$out .= "\n\t\t<label><input type='radio' name='notify' value='$value'>$label</label> ";
+			}
+			$out .= "\n\t</p>";
+		}
+	
+		return $out; 
 	}
 
 	/**
 	 * Process a submitted CommentForm, insert the Comment, and save the Page
+	 * 
+	 * @return Comment|bool
 	 *
 	 */
 	public function processInput() {
 
-		$data = $this->fuel('input')->post; 
+		$data = $this->wire('input')->post; 
 		if(!count($data)) return false; 	
 
 		if($key = $this->options['requireSecurityField']) {
@@ -331,9 +451,10 @@ class CommentForm extends Wire implements CommentFormInterface {
 		$comment->ip = $this->wire('session')->getIP();
 		$comment->created_users_id = $this->user->id; 
 		$comment->sort = count($this->comments)+1; 
+		$comment->parent_id = (int) $data->parent_id; 
 
 		$errors = array();
-		$sessionData = array(); 
+		// $sessionData = array(); 
 
 		foreach(array('cite', 'email', 'website', 'text') as $key) {
 			if($key == 'website' && (!$this->commentsField || !$this->commentsField->useWebsite)) continue; 
@@ -344,8 +465,24 @@ class CommentForm extends Wire implements CommentFormInterface {
 			}
 			if($key != 'website' && !$comment->$key) $errors[] = $key;
 			$this->inputValues[$key] = $comment->$key;
-			if($key != 'text') $sessionData[$key] = $comment->$key; 
+			//if($key != 'text') $sessionData[$key] = $comment->$key; 
 		}
+
+		$flags = 0;
+		$notify = (int) $data->notify;
+		if($this->commentsField->useNotify && $notify) {
+			if($notify == Comment::flagNotifyAll && $this->commentsField->useNotify == Comment::flagNotifyAll) {
+				$flags = Comment::flagNotifyAll;
+			} else {
+				$flags = Comment::flagNotifyReply;
+			}
+			if($flags) {
+				// $sessionData['notify'] = $notify;
+				$this->inputValues['notify'] = $notify;
+				// send confirmation email
+			}
+		}
+		$comment->flags = $flags;
 
 		if(!count($errors)) {
 			if($this->comments->add($comment) && $this->commentsField) {
@@ -356,7 +493,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 				$this->page->save($this->commentsField->name, $saveOptions); 
 				$this->page->setOutputFormatting($outputFormatting); 
 				$this->postedComment = $comment; 
-				wire('session')->set('CommentForm', $sessionData);
+				// $this->wire('session')->set('CommentForm', $sessionData);
 				return $comment; 
 			}
 		}

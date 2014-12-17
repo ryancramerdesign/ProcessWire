@@ -44,19 +44,33 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	/*******************************************************************************************************
 	 * API VARIABLE/FUEL INJECTION AND ACCESS
 	 * 
+	 * PLEASE NOTE: All the following fuel related variables/methods will be going away in PW 3.0.
+	 * You should use the $this->wire() method instead for compatibility with PW 3.0. The only methods
+	 * and variables sticking around for PW 3.0 are:
+	 * 
+	 * $this->wire(...);
+	 * $this->useFuel(bool);
+	 * $this->useFuel
+	 * 
 	 * Note that we store the API variables statically so that descending classes can share the same
-	 * API variables without repetitive calls.
+	 * API variables without repetitive calls. PW 3.0 will instead have the fuel injected to each
+	 * object instance so that it's possible for multiple PW instances to run in the same request. 
 	 *
 	 */
 	
 	/**
 	 * Fuel holds references to other ProcessWire system objects. It is an instance of the Fuel class.
+	 * 
+	 * @var Fuel|null
+	 * @deprecated
 	 *
 	 */
 	protected static $fuel = null;
-	
+
 	/**
 	 * Whether this class may use fuel variables in local scope, like $this->item
+	 * 
+	 * @var bool
 	 *
 	 */
 	protected $useFuel = true;
@@ -69,6 +83,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * @param bool $lock Whether the API value should be locked (non-overwritable)
 	 * @internal Fuel is an internal-only keyword.
 	 * 	Unless static needed, use $this->wire($name, $value) instead.
+	 * @deprecated Use $this->wire($name, $value, $lock) instead.
 	 *
 	 */
 	public static function setFuel($name, $value, $lock = false) {
@@ -83,6 +98,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * @return mixed|null
 	 * @internal Fuel is an internal-only keyword.  
 	 * 	Use $this->wire(name) or $this->wire()->name instead, unless static is required.
+	 * @deprecated
 	 *
 	 */
 	public static function getFuel($name = '') {
@@ -109,96 +125,32 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * 	Use $this->wire(name) or $this->wire()->name instead
 	 * @param string $name
 	 * @return mixed|null
+	 * @deprecated
 	 *
 	 */
 	public function fuel($name) {
 		return self::$fuel->$name;
 	}
-
-	/**
-	 * Get or inject a ProcessWire API variable
-	 * 
-	 * 1. As a getter (option 1): 
-	 * ==========================
-	 * Usage: $this->wire('name'); // name is an API variable name
-	 * If 'name' does not exist, a WireException will be thrown.
-	 * 
-	 * 2. As a getter (option 2): 
-	 * ==========================
-	 * Usage: $this->wire()->name; // name is an API variable name
-	 * Null will be returned if API var does not exist (no Exception thrown).
-	 * 
-	 * 3. As a setter: 
-	 * ===============
-	 * $this->wire('name', $value); 
-	 * $this->wire('name', $value, true); // lock the API variable so nothing else can overwrite it
-	 * $this->wire()->set('name', $value); 
-	 * $this->wire()->set('name', $value, true); // lock the API variable so nothing else can overwrite it
-	 * 
-	 * @param string $name Name of API variable to retrieve, set, or omit to retrieve the master ProcessWire object
-	 * @param null|mixed $value Value to set if using this as a setter, otherwise omit.
-	 * @param bool $lock When using as a setter, specify true if you want to lock the value from future changes (default=false)
-	 * @return mixed|ProcessWire
-	 * @throws WireException
-	 * 
-	 *
-	 */
-	public function wire($name = '', $value = null, $lock = false) {
-		if(is_null(self::$fuel)) self::$fuel = new Fuel();
-		if(!is_null($value)) return self::$fuel->set($name, $value, $lock);
-		if(empty($name)) return self::$fuel->wire;
-		$value = self::$fuel->$name;
-		//if(is_null($value)) throw new WireException("Unknown API variable: $name"); 
-		return $value;
-	}
-
+	
 	/**
 	 * Should fuel vars be scoped locally to this class instance?
 	 *
-	 * If so, you can do things like $this->fuelItem.
-	 * If not, then you'd have to do $this->fuel('fuelItem').
+	 * If so, you can do things like $this->apivar.
+	 * If not, then you'd have to do $this->wire('apivar').
 	 *
-	 * If you specify a value, it will set the value of useFuel to true or false. 
-	 * If you don't specify a value, the current value will be returned. 
+	 * If you specify a value, it will set the value of useFuel to true or false.
+	 * If you don't specify a value, the current value will be returned.
 	 *
-	 * Local fuel scope should be disabled in classes where it might cause any conflict with class vars. 
+	 * Local fuel scope should be disabled in classes where it might cause any conflict with class vars.
 	 *
-	 * @param bool $useFuel Optional boolean to turn it on or off. 
+	 * @param bool $useFuel Optional boolean to turn it on or off.
 	 * @return bool Current value of $useFuel
 	 * @internal
 	 *
 	 */
 	public function useFuel($useFuel = null) {
-		if(!is_null($useFuel)) $this->useFuel = $useFuel ? true : false; 
+		if(!is_null($useFuel)) $this->useFuel = $useFuel ? true : false;
 		return $this->useFuel;
-	}
-
-	/**
-	 * Get an object property by direct reference or NULL if it doesn't exist
-	 *
-	 * If not overridden, this is primarily used as a shortcut for the fuel() method. 
-	 * 
-	 * Descending classes may have their own __get() but must pass control to this one when they can't find something.
-	 *
-	 * @param string $name
-	 * @return mixed|null
-	 *
-	 */
-	public function __get($name) {
-
-		if($name == 'wire' || $name == 'fuel') return self::$fuel;
-		if($name == 'className') return $this->className();
-		
-		if($this->useFuel()) {
-			if(!is_null(self::$fuel) && !is_null(self::$fuel->$name)) return self::$fuel->$name; 
-		}
-
-		if(self::isHooked($name)) { // potential property hook
-			$result = $this->runHooks($name, array(), 'property'); 
-			return $result['return'];
-		}
-
-		return null;
 	}
 
 
@@ -967,7 +919,9 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * 	first: only first item will be returned (string)
 	 * 	last: only last item will be returned (string)
 	 * 	all: include all errors, including those beyond the scope of this object
-	 * 	clear: clear out all items that are returned from this method (includes both local and global)
+	 * 	clear: clear out all items that are returned from this method
+	 * 	array: return an array of strings rather than series of Notice objects.
+	 * 	string: return a newline separated string rather than array/Notice objects. 
 	 * @return Notices|string Array of NoticeError error messages or string if last, first or str option was specified.
 	 * 
 	 */
@@ -984,7 +938,9 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * 	first: only first item will be returned (string)
 	 * 	last: only last item will be returned (string)
 	 * 	all: include all warnings, including those beyond the scope of this object
-	 * 	clear: clear out all items that are returned from this method (includes both local and global)
+	 * 	clear: clear out all items that are returned from this method
+	 * 	array: return an array of strings rather than series of Notice objects.
+	 * 	string: return a newline separated string rather than array/Notice objects. 
 	 * @return Notices|string Array of NoticeError error messages or string if last, first or str option was specified.
 	 *
 	 */
@@ -1001,9 +957,11 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * 	first: only first item will be returned (string)
 	 * 	last: only last item will be returned (string)
 	 * 	all: include all items of type (messages or errors) beyond the scope of this object
-	 * 	clear: clear out all items that are returned from this method (includes both local and global)
+	 * 	clear: clear out all items that are returned from this method
 	 * 	errors: returns errors rather than messages.
 	 * 	warnings: returns warnings rather than messages. 
+	 * 	array: return an array of strings rather than series of Notice objects. 
+	 * 	string: return a newline separated string rather than array/Notice objects. 
 	 * @return Notices|string Array of NoticeError error messages or string if last, first or str option was specified.
 	 *
 	 */
@@ -1029,6 +987,18 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 				else if(in_array('last', $options)) $value = $clear ? $value->pop() : $value->last(); 
 				else if($clear) $this->_notices[$type] = null;
 			if($clear && $value) $this->wire('notices')->removeItems($value); // clear from global notices
+		}
+		if(in_array('array', $options) || in_array('string', $options)) {
+			if($value instanceof Notice) {
+				$value = array($value->text);
+			} else {
+				$_value = array();
+				foreach($value as $notice) $_value[] = $notice->text; 
+				$value = $_value; 
+			}
+			if(in_array('string', $options)) {
+				$value = implode("\n", $value); 
+			}
 		}
 		return $value; 
 	}
@@ -1076,6 +1046,136 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 */
 	public function _n($textSingular, $textPlural, $count) {
 		return _n($textSingular, $textPlural, $count, $this); 
+	}
+	
+	/*******************************************************************************************************
+	 * API VARIABLE MANAGEMENT
+	 * 
+	 * To replace fuel in PW 3.0
+	 *
+	 */
+
+	/**
+	 * ProcessWire instance
+	 *
+	 * This will replace static fuel in PW 3.0
+	 *
+	 * @var ProcessWire|null
+	 *
+	protected $_wire = null;
+	 */
+
+	/**
+	 * Set the current ProcessWire instance for this object (PW 3.0)
+	 *
+	 * Specify no arguments to get, or specify a ProcessWire instance to set.
+	 *
+	 * @param ProcessWire $wire
+	 * @return this
+	 *
+	public function setWire($wire) {
+		$this->_wire = $wire;
+		return $this;
+	}
+	 */
+
+	/**
+	 * Get the current ProcessWire instance (PW 3.0)
+	 * 
+	 * You can also use the wire() method with no arguments. 
+	 *
+	 * @return null|ProcessWire
+	 *
+	public function getWire() {
+		return $this->_wire;
+	}
+	 */
+	
+	/**
+	 * Get or inject a ProcessWire API variable
+	 *
+	 * 1. As a getter (option 1):
+	 * ==========================
+	 * Usage: $this->wire('name'); // name is an API variable name
+	 * If 'name' does not exist, a WireException will be thrown.
+	 *
+	 * 2. As a getter (option 2):
+	 * ==========================
+	 * Usage: $this->wire()->name; // name is an API variable name
+	 * Null will be returned if API var does not exist (no Exception thrown).
+	 *
+	 * 3. As a setter:
+	 * ===============
+	 * $this->wire('name', $value);
+	 * $this->wire('name', $value, true); // lock the API variable so nothing else can overwrite it
+	 * $this->wire()->set('name', $value);
+	 * $this->wire()->set('name', $value, true); // lock the API variable so nothing else can overwrite it
+	 *
+	 * 4. As a dependency injector (PW 3.0 only)
+	 * =========================================
+	 * $this->wire(new Page());
+	 * When creating a new object, this makes it inject the current PW instance into that object.
+	 *
+	 * @param string|object $name Name of API variable to retrieve, set, or omit to retrieve the master ProcessWire object
+	 * @param null|mixed $value Value to set if using this as a setter, otherwise omit.
+	 * @param bool $lock When using as a setter, specify true if you want to lock the value from future changes (default=false)
+	 * @return mixed|ProcessWire
+	 * @throws WireException
+	 *
+	 *
+	 */
+	public function wire($name = '', $value = null, $lock = false) {
+		
+		if(is_null(self::$fuel)) self::$fuel = new Fuel();
+		
+		if($value !== null) {
+			// setting a fuel value
+			return self::$fuel->set($name, $value, $lock);
+		}
+		
+		if(empty($name)) {
+			// return ProcessWire instance
+			return self::$fuel->wire;
+		}
+		
+		if(is_object($name)) {
+			// injecting ProcessWire instance to object
+			if($name instanceof Wire) return $name->setWire($this->_wire); // inject fuel, PW 3.0 
+			throw new WireException("Expected Wire instance");
+		}
+
+		// get API variable
+		$value = self::$fuel->$name;
+		
+		return $value;
+	}
+
+	/**
+	 * Get an object property by direct reference or NULL if it doesn't exist
+	 *
+	 * If not overridden, this is primarily used as a shortcut for the fuel() method.
+	 *
+	 * Descending classes may have their own __get() but must pass control to this one when they can't find something.
+	 *
+	 * @param string $name
+	 * @return mixed|null
+	 *
+	 */
+	public function __get($name) {
+
+		if($name == 'wire' || $name == 'fuel') return self::$fuel;
+		if($name == 'className') return $this->className();
+
+		if($this->useFuel()) {
+			if(!is_null(self::$fuel) && !is_null(self::$fuel->$name)) return self::$fuel->$name;
+		}
+
+		if(self::isHooked($name)) { // potential property hook
+			$result = $this->runHooks($name, array(), 'property');
+			return $result['return'];
+		}
+
+		return null;
 	}
 
 

@@ -30,6 +30,12 @@
 class Pagefile extends WireData {
 
 	/**
+	 * Timestamp 'created' used by pagefiles that are temporary, not yet published
+	 * 
+	 */
+	const createdTemp = 10; 
+
+	/**
 	 * Reference to the owning collection of Pagefiles
 	 *
 	 */
@@ -153,7 +159,7 @@ class Pagefile extends WireData {
 		if(!is_null($language) && $language->id) {
 			$name = "description";
 			if(!$language->isDefault()) $name .= $language->id; 
-			parent::set($name, $this->wire('sanitizer')->textarea($value)); 
+			parent::set($name, $value); 
 			return $this; 
 		}
 
@@ -172,14 +178,13 @@ class Pagefile extends WireData {
 				// first item is always default language. this ensures description will still
 				// work even if language support is later uninstalled. 
 				$name = $n > 0 ? "description$id" : "description"; 
-				parent::set($name, $this->wire('sanitizer')->textarea($v)); 
+				parent::set($name, $v); 
 				$n++; 
 			}
 		} else {
 			// no JSON values so assume regular language description
 			$languages = $this->wire('languages');
 			$language = $this->wire('user')->language; 
-			$value = $this->wire('sanitizer')->textarea($value); 
 
 			if($languages && $language && !$language->isDefault()) {
 				parent::set("description$language", $value); 
@@ -537,6 +542,17 @@ class Pagefile extends WireData {
 	public function setPagefilesParent(Pagefiles $pagefiles) {
 		$this->pagefiles = $pagefiles; 
 		return $this;
+	}
+
+	/**
+	 * Returns true if this Pagefile is temporary, not yet published. Or use this to set the temp status. 
+	 * 
+	 * @param bool $set Optionally set the temp status to true or false
+	 * @return bool
+	 * 
+	 */
+	public function isTemp($set = null) {
+		return $this->pagefiles->isTemp($this, $set); 
 	}
 
 

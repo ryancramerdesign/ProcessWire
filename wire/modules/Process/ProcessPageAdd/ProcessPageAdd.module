@@ -29,7 +29,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Page Add', __FILE__),          
 			'summary' => __('Add a new page', __FILE__), 
-			'version' => 104, 
+			'version' => 106, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
@@ -95,6 +95,22 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		$f->attr('id', 'select_parent_submit'); 
 		$form->add($f); 
 		return $form->render();
+	}
+	
+	public function executeExists() {
+		$parentID = (int) $this->wire('input')->get('parent_id'); 
+		if(!$parentID) return '';
+		$parent = $this->wire('pages')->get($parentID); 
+		if(!$parent->addable()) return '';
+		$name = $this->wire('sanitizer')->pageName($this->wire('input')->get('name')); 
+		if(!strlen($name)) return '';
+		$page = $this->wire('pages')->get("parent_id=$parentID, name=$name, include=all"); 
+		if($page->id) {
+			$out = "<span class='taken ui-state-error-text'><i class='fa fa-exclamation-triangle'></i> " . $this->_('Already taken') . "</span>";
+		} else {
+			$out = "<span class='ui-priority-secondary'><i class='fa fa-check-square-o'></i> " . $this->_('Ok') . "</span>"; 
+		}
+		return $out; 
 	}
 
 	public function ___execute() {
@@ -232,6 +248,8 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 
 		$form->attr('id', 'ProcessPageAdd'); 
 		$form->attr('action', './' . ($this->input->get->modal ? "?modal=1" : '')); 
+		$form->attr('data-ajax-url', $this->wire('config')->urls->admin . 'page/add/'); 
+		$form->attr('data-dup-note',  $this->_('The name entered is already in use. If you do not modify it, the name will be made unique automatically after you save.')); 
 		$form->attr('method', 'post'); 
 
 		if(is_null($this->template) || !$this->template->noGlobal) {

@@ -597,6 +597,7 @@ $(document).ready(function() {
 				if($li.hasClass('trashable')) { 
 					var $trashLink = $("<a class='PageListActionTrash ui-priority-secondary' href='#'><i class='fa fa-trash-o'></i> " + options.trashLabel + "</i></a>").click(function() {
 						trashPage($li);
+						return false;
 					});
 					$li.addClass('ui-helper-clearfix');
 					$moveAction.append($trashLink);

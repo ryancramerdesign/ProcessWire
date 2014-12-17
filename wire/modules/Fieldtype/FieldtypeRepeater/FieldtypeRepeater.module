@@ -925,6 +925,9 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		$schema['keys']['data_exact'] = 'KEY `data_exact` (`data`(1))'; // just for checking if the field has a value
 		$schema['keys']['count'] = 'KEY `count` (`count`, `pages_id`)'; 
 		$schema['keys']['parent_id'] = 'KEY parent_id (`parent_id`, `pages_id`)';
+	
+		// indicate that this schema does not hold all data managed by this fieldtype
+		$schema['xtra']['all'] = false; 
 
 		return $schema;
 	}

@@ -79,7 +79,7 @@ class PageComparison {
 			$name = $selector->field;
 			if(in_array($name, array('limit', 'start', 'sort', 'include'))) continue; 
 			$matches = true; 
-			$value = $page->get($name); 
+			$value = $page->getUnformatted($name); 
 			
 			if(is_object($value)) {
 				// if the current page value resolves to an object

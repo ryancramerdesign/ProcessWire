@@ -374,17 +374,60 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 *
 	 * @param Page $page
 	 * @param string $contextStr Optional context string to append to all the Inputfield's names (helper for things like repeaters)
+	 * @param string $fieldName Limit to a particular fieldName (may be a Fieldset too, which will include all fields in fieldset)
 	 * @return Inputfield acting as a container for multiple Inputfields
 	 *
 	 */
-	public function getPageInputfields(Page $page, $contextStr = '') {
+	public function getPageInputfields(Page $page, $contextStr = '', $fieldName = '') {
 
 		$container = new InputfieldWrapper();
+		$inFieldset = false;
+		$inModalGroup = '';
 
 		foreach($this as $field) {
-
+			
 			// get a clone in the context of this fieldgroup, if it has contextual settings
 			if(isset($this->fieldContexts[$field->id])) $field = $this->getField($field->id, true); 
+			
+			if($inModalGroup) {
+				// we are in a modal group that should be skipped since all the inputs require the modal
+				if($field->name == $inModalGroup . "_END") {
+					// exit modal group
+					$inModalGroup = false; 
+				} else {
+					// skip field
+					continue; 
+				}
+			}
+			
+			if($fieldName) {
+				// limit to specific field name
+				if($inFieldset) {
+					// allow the field
+					if($field->type instanceof FieldtypeFieldsetClose && $field->name == $fieldName . "_END") {
+						// stop, as we've got all the fields we need
+						break;
+					}
+					// allow
+					
+				} else if($field->name == $fieldName) {
+					// start allow fields
+					if($field->type instanceof FieldtypeFieldsetOpen) {
+						$container = $field->getInputfield($page, $contextStr);
+						$inFieldset = true;
+						continue; 
+					} else {
+						// allow 1 field
+					}
+				} else {
+					// disallow
+					continue; 
+				}
+				
+			} else if($field->modal && $field->type instanceof FieldtypeFieldsetOpen) {
+				// field requires modal
+				$inModalGroup = $field->name; 
+			}
 
 			$inputfield = $field->getInputfield($page, $contextStr);
 			if(!$inputfield) continue; 

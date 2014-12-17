@@ -140,9 +140,14 @@ class InputfieldText extends Inputfield {
 			$inputfields->append($field);
 		}
 
-
 		return $inputfields; 
 	}
+	
+	public function ___getConfigAllowContext($field) {
+		$a = array('initValue', 'pattern', 'placeholder', 'maxlength'); 
+		return array_merge(parent::___getConfigAllowContext($field), $a); 
+	}
+	
 
 
 	

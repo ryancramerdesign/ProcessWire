@@ -39,14 +39,18 @@ class InputfieldTextarea extends InputfieldText {
 
 	protected function setAttributeValue($value) {
 		if($this->maxlength > 0 && $this->hasFieldtype === false) { 
-			$value = wire('sanitizer')->textarea($value, array(
+			$value = $this->wire('sanitizer')->textarea($value, array(
 				'maxLength' => $this->maxlength, 
 				'maxBytes' => $this->maxlength*3, 
 				'stripTags' => false, 
 				)); 
+		} else {
+			if(strpos($value, "\r\n") !== false) {
+				$value = str_replace("\r\n", "\n", $value); 
+			}
 		}
 		if($this->stripTags) $value = strip_tags($value);
-		return $value; 
+		return trim($value); 
 	}
 
 	/**
@@ -83,4 +87,9 @@ class InputfieldTextarea extends InputfieldText {
 
 		return $inputfields; 
 	}
+	
+	public function ___getConfigAllowContext($field) {
+		return array_merge(parent::___getConfigAllowContext($field), array('rows')); 
+	}
+	
 }

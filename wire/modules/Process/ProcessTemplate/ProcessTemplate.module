@@ -30,7 +30,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 108,
+			'version' => 109,
 			'permanent' => true, 
 			'icon' => 'cubes', 
 			'useNavJSON' => true, 
@@ -419,28 +419,40 @@ class ProcessTemplate extends Process {
 				}
 			}
 
-			$postTemplates = $this->input->post->templates; 
+			$postTemplates = $this->wire('input')->post('templates'); 
 
 			// add any templates without files to the postTemplates
-			if($this->input->post->template_name) {
-				$templateName = trim($this->input->post->template_name); 
+			$templateName = trim($this->wire('input')->post('template_name')); 
+			if(strlen($templateName)) {
 				if(strpos($templateName, ' ')) $templateNames = explode(' ', $templateName); 
 					else $templateNames = array($templateName); 
-				foreach($templateNames as $name) 
-					$postTemplates[] = basename($name); 
+				foreach($templateNames as $name) {
+					$name = $this->wire('sanitizer')->name(basename($name)); 
+					if($this->wire('templates')->get($name) || $this->wire('fieldgroups')->get($name)) {	
+						$this->error($name . " - " . $this->_('Name is already in use')); 
+					} else {
+						$postTemplates[] = $name;
+					}
+				}
 			}
 
 			foreach($postTemplates as $basename) {
 				// if(!in_array($basename, $templateFiles)) continue; 
-				$template = new Template();
-				$template->name = $this->fuel('sanitizer')->name($basename); 
-				$fieldgroup = new Fieldgroup(); 
-				$fieldgroup->name = $template->name; 
-				$fieldgroup->save();
-				$template->fieldgroup = $fieldgroup; 
-				$template->roles = array($this->roles->getGuestRole()->id); 
-				$template->save();
-				$this->message(sprintf($this->_('Added template and fieldgroup: %s'), $basename)); 
+				
+				try {
+					$template = new Template();
+					$template->name = $this->wire('sanitizer')->name($basename); 
+					$fieldgroup = new Fieldgroup();
+					$fieldgroup->name = $template->name;
+					$fieldgroup->save();
+					$template->fieldgroup = $fieldgroup;
+					$template->roles = array($this->roles->getGuestRole()->id); 
+					$template->save();
+					$this->message(sprintf($this->_('Added template and fieldgroup: %s'), $basename)); 
+				} catch(Exception $e) {
+					$this->error($e->getMessage()); 
+					continue; 
+				}
 
 				if($importFieldgroup) {
 					$this->importFieldgroup($importFieldgroup, $template); 
@@ -486,7 +498,7 @@ class ProcessTemplate extends Process {
 			foreach($templateFiles as $file) $field->addOption($file); 
 			$form->append($field); 
 		} else {
-			$this->error(sprintf($this->_('No new template files were found in: %s'), "$templateUrl*.{$this->config->templateExtension}")); // Error message when no new templates found
+			$this->warning(sprintf($this->_('No new template files were found in: %s'), "$templateUrl*.{$this->config->templateExtension}")); // Error message when no new templates found
 		}
 
 		$field = $this->modules->get("InputfieldText"); 
@@ -828,7 +840,7 @@ class ProcessTemplate extends Process {
 		// --------------------
 
 		$field = $this->modules->get('InputfieldInteger'); 
-		$field->attr('id+name', 'cache_time');
+		$field->attr('name', 'cache_time');
 		$field->label = $this->_x('Cache Time', 'field-label');
 		$field->icon = 'clock-o';
 		$field->description = $this->_('To cache the output of this template, enter the time (in seconds) that the output should be cached. Caching can help significantly with page render time on resource-heavy pages. But caching should not be used on templates that need to process constantly changing data, like from forms or sessions. Also note that URL segments are cachable, but GET and POST vars are not.'); // Cach time description
@@ -839,7 +851,7 @@ class ProcessTemplate extends Process {
 		// --------------------
 
 		$field = $this->modules->get('InputfieldRadios'); 
-		$field->attr('id+name', 'cacheExpire'); 
+		$field->attr('name', 'cacheExpire'); 
 		$field->label = $this->_('Page Save / Cache Expiration');
 		$field->description = $this->_('When a page using this template is saved, what should happen to the cache?');
 		$field->addOption(Template::cacheExpirePage, $this->_('Clear cache for the saved page only (default)')); 
@@ -849,27 +861,30 @@ class ProcessTemplate extends Process {
 		$field->addOption(Template::cacheExpireNone, $this->_('Do nothing'));
 		$field->attr('value', (int) $template->cacheExpire); 
 		$field->notes = $this->_('*To maximize performance, cache files are all expired as a group rather than cleared individually.'); // Cache expiration notes // This explains the 'Clear cache for entire site*' option
+		$field->showIf = "cache_time!=0";
 		$form->append($field); 
 
 		// --------------------
 
 		$field = $this->modules->get('InputfieldPageListSelectMultiple'); 
-		$field->attr('id+name', 'cacheExpirePages'); 
+		$field->attr('name', 'cacheExpirePages'); 
 		$field->label = $this->_('Specify the other pages that should have their cache cleared'); 
 		$field->description = $this->_('When pages using this template are saved, their cache files will be cleared. Select the other pages that should also have their cache files cleared below.'); // Specified cache clear pages, description
 		$value = is_array($template->cacheExpirePages) ? $template->cacheExpirePages : array();
-		$field->attr('value', $value); 
+		$field->attr('value', $value);
+		$field->showIf = 'cache_time>0, cacheExpire=' . Template::cacheExpireSpecific;
 		$form->append($field); 
 
 		// --------------------
 
 		$field = $this->modules->get('InputfieldRadios'); 
-		$field->attr('id+name', 'useCacheForUsers'); 
+		$field->attr('name', 'useCacheForUsers'); 
 		$field->label = $this->_('Cache when rendering pages for these users');
 		$field->addOption(0, $this->_('Guests only')); 
 		$field->addOption(1, $this->_('Guests and logged-in users'));
 		$field->attr('value', (int) $template->useCacheForUsers); 
 		$field->notes = $this->_('Note that the cache is always disabled for pages where the user has edit access, regardless of what you select here.'); // Cache for guest/loggin-in user notes
+		$field->showIf = 'cache_time>0';
 		$form->append($field); 
 
 		// --------------------
@@ -880,23 +895,25 @@ class ProcessTemplate extends Process {
 		$notes = $this->_('Optionally enter one or more variable names. If entering more than one, separate each by a space.'); // Disable cache, GET/POST vars, notes
 
 		$field = $this->modules->get('InputfieldText'); 
-		$field->attr('id+name', 'noCacheGetVars'); 
+		$field->attr('name', 'noCacheGetVars'); 
 		$field->label = $labelGET; 
 		$field->description = $description; 
 		$field->notes = $notes; 
 		$field->attr('value', (string) $template->noCacheGetVars); 
 		$field->collapsed = Inputfield::collapsedBlank;
+		$field->showIf = 'cache_time>0';
 		$form->append($field); 
 
 		// --------------------
 
 		$field = $this->modules->get('InputfieldText'); 
-		$field->attr('id+name', 'noCachePostVars'); 
+		$field->attr('name', 'noCachePostVars'); 
 		$field->label = $labelPOST; 
 		$field->description = $description;
 		$field->notes = $notes; 
 		$field->attr('value', (string) $template->noCachePostVars); 
 		$field->collapsed = Inputfield::collapsedBlank;
+		$field->showIf = 'cache_time>0';
 		$form->append($field); 
 
 		return $form; 
@@ -906,6 +923,7 @@ class ProcessTemplate extends Process {
 	protected function buildEditFormAdvanced(Template $template) {
 
 		$form = new InputfieldWrapper();
+		$languages = $this->wire('languages');
 
 		// --------------------
 
@@ -921,6 +939,33 @@ class ProcessTemplate extends Process {
 		$form->add($field); 
 
 		// --------------------
+		
+		$f = $this->modules->get('InputfieldText');
+		$f->attr('name', 'tabContent');
+		$f->attr('value', $template->tabContent);
+		$f->label = $this->_x('Label for Content tab', 'field-label');
+		$f->description = $this->_('Optionally override the default "Content" tab label.');
+		$f->columnWidth = 50;
+		if($languages) {
+			$f->useLanguages = true;
+			foreach($languages as $language) $f->set('value' . $language->id, $template->getTabLabel('content', $language));
+		}
+		$form->add($f);
+
+		$f = $this->modules->get('InputfieldText');
+		$f->attr('name', 'tabChildren');
+		$f->attr('value', $template->tabChildren);
+		$f->label = $this->_x('Label for Children tab', 'field-label');
+		$f->description = $this->_('Optionally override the default "Children" tab label.');
+		$f->columnWidth = 50;
+		if($languages) {
+			$f->useLanguages = true;
+			foreach($languages as $language) $f->set('value' . $language->id, $template->getTabLabel('children', $language));
+		}
+		$form->add($f);
+
+		// --------------------
+
 
 		if(!($template->flags & Template::flagSystem)) { 
 			$field = $this->modules->get("InputfieldName"); 
@@ -959,8 +1004,8 @@ class ProcessTemplate extends Process {
 		$field->notes .= "\n" . $this->_('You may also enter an [icon name](http://fontawesome.io/cheatsheet/), for example: icon-file or fa-file (either format works).'); 
 		$field->attr('value', $template->pageLabelField); 
 		$field->collapsed = Inputfield::collapsedBlank;
-		$form->append($field); 
-
+		$form->append($field);
+		
 		// --------------------
 		
 		$fieldset = $this->wire('modules')->get('InputfieldFieldset');
@@ -1016,7 +1061,7 @@ class ProcessTemplate extends Process {
 			$field->collapsed = Inputfield::collapsedYes;
 		}
 		$fieldset->append($field);
-
+		
 		// --------------------
 
 
@@ -1552,7 +1597,7 @@ class ProcessTemplate extends Process {
 		$this->template->slashUrls = (int) $form->get('slashUrls')->attr('value');
 		$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
 		$this->template->guestSearchable = (int) $form->get('guestSearchable')->attr('value'); 
-		$this->template->pageLabelField = $this->fuel('sanitizer')->names($form->get('pageLabelField')->attr('value')); 
+		$this->template->pageLabelField = $this->fuel('sanitizer')->names($form->get('pageLabelField')->attr('value'));
 		$this->template->childNameFormat = $this->fuel('sanitizer')->text($form->get('childNameFormat')->attr('value')); 
 		$this->template->cache_time = $form->get('cache_time')->attr('value'); 
 		$this->template->useCacheForUsers = (int) $form->get('useCacheForUsers')->attr('value');
@@ -1583,11 +1628,15 @@ class ProcessTemplate extends Process {
 			$this->template->$name = $value;	
 		}
 
-		// template label, including multi language versions if applicable
-		$templateLabel = $form->get('templateLabel'); 
-		$this->template->label = $this->sanitizer->text($templateLabel->attr('value')); 
-		if($languages) foreach($languages as $language) {
-			$this->template->set('label' . $language->id, $this->sanitizer->text($templateLabel->get('value' . $language->id))); 
+		// template label and tab labels, including multi language versions if applicable
+		
+		foreach(array('label', 'tabContent', 'tabChildren') as $name) { 
+			$f = $name == 'label' ? $form->get('templateLabel') : $form->get($name); 
+			$this->template->$name = $this->sanitizer->text($f->attr('value')); 
+			if($languages) foreach($languages as $language) {
+				if($language->isDefault()) continue; 
+				$this->template->set($name . $language->id, $this->sanitizer->text($f->get('value' . $language->id))); 
+			}
 		}
 
 		if($this->template->cacheExpire == Template::cacheExpireSpecific) $this->template->cacheExpirePages = $form->get('cacheExpirePages')->value; 

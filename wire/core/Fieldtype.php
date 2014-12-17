@@ -11,6 +11,9 @@
  * 
  * http://processwire.com
  * 
+ * @todo provide an option for Fieldtype::getConfigInputfields and Inputfield::getConfigInputfields
+ * to designate what config options they want to make available to field/template context. 
+ * 
  */
 abstract class Fieldtype extends WireData implements Module {
 
@@ -106,7 +109,20 @@ abstract class Fieldtype extends WireData implements Module {
 		$f->label = 'Well hi there'; 
 		$inputfields->append($f); 
 		*/
+		
+		// names of fields in the form that are allowed in fieldgroup/template context
 		return $inputfields; 
+	}
+
+	/**
+	 * Return a list of Inputfield names from getConfigInputfields() that are allowed in fieldgroup/template context
+	 *
+	 * @param Field $field
+	 * @return array of Inputfield names
+	 *
+	 */
+	public function ___getConfigAllowContext(Field $field) {
+		return array(); 
 	}
 
 	/**
@@ -433,8 +449,12 @@ abstract class Fieldtype extends WireData implements Module {
 		foreach($schema['keys'] as $v) {
 			$sql .= "$v, ";
 		}
+		
+		$xtra = isset($schema['xtra']) ? $schema['xtra'] : array();
+		if(is_string($xtra)) $xtra = array('append' => $xtra); // backwards compat: xtra used to be a string, what 'append' is now. 
+		$append = isset($xtra['append']) ? $xtra['append'] : '';
 
-		$sql = rtrim($sql, ", ") . ') ' . (isset($schema['xtra']) ? $schema['xtra'] : ''); 
+		$sql = rtrim($sql, ", ") . ') ' . $append;
 		
 		$query = $database->prepare($sql);
 		$result = $query->execute();
@@ -456,7 +476,13 @@ abstract class Fieldtype extends WireData implements Module {
 	 * 	'keys' => array(
 	 * 		'FULLTEXT KEY data (data)', 
 	 * 	),
-	 *	'xtra' => 'ENGINE=MyISAM DEFAULT CHARSET=latin1' // optional extras, MySQL defaults will be used if ommitted
+	 *	'xtra' => array(
+	 *		// optional extras, MySQL defaults will be used if ommitted
+	 * 		'append' => 'ENGINE=MyISAM DEFAULT CHARSET=latin1'
+	 * 
+	 * 		// true (default) if this schema provides all storage for this fieldtype.
+	 * 		// false if other storage is involved with this fieldtype, beyond this schema (like repeaters, PageTable, etc.)
+	 * 		'all' => true, 
 	 *	)
 	 * );
 	 *
@@ -478,8 +504,15 @@ abstract class Fieldtype extends WireData implements Module {
 				'primary' => 'PRIMARY KEY (`pages_id`)', 
 				'data' => 'KEY data (`data`)',
 			),
-			// any optional statements that should follow after the closing paren (i.e. engine, default charset, etc)
-			'xtra' => "ENGINE=$engine DEFAULT CHARSET=$charset", 
+			// additional data 
+			'xtra' => array(
+				// any optional statements that should follow after the closing paren (i.e. engine, default charset, etc)
+				'append' => "ENGINE=$engine DEFAULT CHARSET=$charset", 
+				
+				// true (default) if this schema provides all storage for this fieldtype.
+				// false if other storage is involved with this fieldtype, beyond this schema (like repeaters, PageTable, etc.)
+				'all' => true, 
+			)
 		); 
 		return $schema; 
 	}

@@ -493,6 +493,15 @@ abstract class Inputfield extends WireData implements Module {
 		$classes[$class] = true;
 		return true;
 	}
+
+	/**
+	 * This hook was replaced by renderReady
+	 * 
+	 * @param $event
+	 * @deprecated
+	 *
+	 */
+	public function hookRender($event) {  }
 	
 	/**
 	 * Process the input from the given WireInputData (usually $input->get or $input->post), load and clean the value for use in this Inputfield. 
@@ -545,9 +554,10 @@ abstract class Inputfield extends WireData implements Module {
 
 		} else { 
 			// string value provided in the input
+			$this->setAttribute('value', $value); 
+			$value = $this->attr('value'); 
 			if("$value" !== (string) $previousValue) {
 				$changed = true; 
-				$this->setAttribute('value', $value); 
 			}
 		}
 
@@ -670,10 +680,28 @@ abstract class Inputfield extends WireData implements Module {
 			$fields->add($field); 
 			
 		}
-
+	
 		return $fields; 
 	}
 
+	/**
+	 * Return a list of Inputfield names from getConfigInputfields() that are allowed in fieldgroup/template context
+	 * 
+	 * @param Field $field
+	 * @return array of Inputfield names
+	 * 
+	 */
+	public function ___getConfigAllowContext($field) {
+		return array(
+			'visibility', 
+			'collapsed', 
+			'columnWidth', 
+			'required', 
+			'requiredIf', 
+			'showIf'
+		);
+	}
+	
 	/**
 	 * Export configuration values for external consumption
 	 *
