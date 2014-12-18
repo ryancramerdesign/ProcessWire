@@ -645,7 +645,7 @@ function InputfieldIntentions() {
 			
 			do {
 				// find nearest visible submit button
-				$buttons = $inputfields.find("input[type=submit]:visible, button:visible"); 
+				$buttons = $inputfields.find("input[type=submit]:visible, button[type=submit]:visible"); 
 				if($buttons.length > 0) break;
 				$inputfields = $inputfields.parent().closest(".Inputfields"); 
 			} while($inputfields.length > 0);
@@ -661,7 +661,7 @@ function InputfieldIntentions() {
 			
 		}).on("focus", "input, select", function() {
 			// if more than 1 submit button, prevent form submission while text input or select is focused
-			if(numButtons === null) numButtons = $form.find("input[type=submit], button").length;
+			if(numButtons === null) numButtons = $form.find("input[type=submit], button[type=submit]").length;
 			if(numButtons < 2) return;
 			$form.addClass('nosubmit');
 			$input = $(this); 
