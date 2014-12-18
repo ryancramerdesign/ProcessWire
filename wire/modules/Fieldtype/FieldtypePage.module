@@ -477,16 +477,20 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 		// value is an int or array of int|string|Page, load to pages, add to $pageArray
 		if(!is_array($value)) $value = array($value); 
 		foreach($value as $v) {
-			if($v == $page->id) continue;
 			if(is_object($v) && $v instanceof Page) {
 				// Page object
+				if($v->id == $page->id) continue;
 				$pg = $v; 
 			} else if(is_int($v)) {
 				// integer page ID
+				if($v == $page->id) continue;
 				$pg = $this->wire('pages')->get($v);
 			} else if(is_string($v)) {
 				// path or selector string
-				if(ctype_digit($v)) $v = (int) $v; 
+				if(ctype_digit($v)) {
+					$v = (int) $v;
+					if($v == $page->id) continue;
+				}
 				$pg = $this->wire('pages')->get($v);
 			} else {
 				// unrecognized type: can't make a page object from it
