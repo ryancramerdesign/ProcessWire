@@ -3,22 +3,22 @@
 /**
  * ProcessWire File Fieldtype
  *
- * Field that stores one or more files with optional description. 
+ * Field that stores one or more files with optional description.
  *
- * For documentation about the fields used in this class, please see:  
+ * For documentation about the fields used in this class, please see:
  * /wire/core/Fieldtype.php
  * /wire/core/FieldtypeMulti.php
- * 
- * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2013 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
- * 
+ *
  * http://processwire.com
  *
  */
 
 class FieldtypeFile extends FieldtypeMulti {
-	
+
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Files', __FILE__),
@@ -29,22 +29,22 @@ class FieldtypeFile extends FieldtypeMulti {
 	}
 
 	const outputFormatAuto = 0;
-	const outputFormatArray = 1; 
-	const outputFormatSingle = 2; 
+	const outputFormatArray = 1;
+	const outputFormatSingle = 2;
 	const outputFormatString = 30;
 
 	/**
 	 * File schema is configured to support tags (flag)
 	 *
 	 */
-	const fileSchemaTags = 1; 
+	const fileSchemaTags = 1;
 
 	/**
 	 * File schema is configured to support 'created' date (flag)
 	 *
 	 */
 	const fileSchemaDate = 2;
-	
+
 	protected $defaultInputfieldClass = '';
 
 	public function __construct() {
@@ -54,22 +54,22 @@ class FieldtypeFile extends FieldtypeMulti {
 	public function getInputfield(Page $page, Field $field) {
 
 		$inputfield = null;
-		if($field->inputfieldClass) $inputfield = $this->modules->get($field->inputfieldClass); 
-		if(!$inputfield) $inputfield = $this->modules->get($this->defaultInputfieldClass); 
+		if($field->inputfieldClass) $inputfield = $this->modules->get($field->inputfieldClass);
+		if(!$inputfield) $inputfield = $this->modules->get($this->defaultInputfieldClass);
 		$inputfield->class = $this->className();
 
-		$this->setupHooks($page, $field, $inputfield); 
-	
+		$this->setupHooks($page, $field, $inputfield);
+
 		if(!$field->extensions) {
 			if($page->id && $page->template->fieldgroup->hasField($field)) {
 				// message that appears on page being edited with this field
-				$this->error(sprintf($this->_('Field "%s" is not yet ready to use and needs to be configured.'), $field->name)); 
+				$this->error(sprintf($this->_('Field "%s" is not yet ready to use and needs to be configured.'), $field->name));
 			} else if(!count($_POST)) {
 				// message that appears during configuration, but suppressed during post to prevent it from appearing after save
 				$this->message(
-					$this->_('Settings have not yet been committed.') . "<br /><small>" . 
-					$this->_('Please review the settings on this page and save once more (even if you do not change anything) to confirm you accept them.') . "</small>", 
-					Notice::allowMarkup); 
+					$this->_('Settings have not yet been committed.') . "<br /><small>" .
+					$this->_('Please review the settings on this page and save once more (even if you do not change anything) to confirm you accept them.') . "</small>",
+					Notice::allowMarkup);
 			}
 		}
 
@@ -79,9 +79,9 @@ class FieldtypeFile extends FieldtypeMulti {
 	public function ___getCompatibleFieldtypes(Field $field) {
 		$fieldtypes = new Fieldtypes();
 		foreach($this->fuel('fieldtypes') as $fieldtype) {
-			if($fieldtype instanceof FieldtypeFile) $fieldtypes->add($fieldtype); 
+			if($fieldtype instanceof FieldtypeFile) $fieldtypes->add($fieldtype);
 		}
-		return $fieldtypes; 
+		return $fieldtypes;
 	}
 
 	/**
@@ -92,30 +92,30 @@ class FieldtypeFile extends FieldtypeMulti {
 	 * between the time this method is executed, and the time the upload is saved.
 	 * An example is the page files draft path vs. the published path.
 	 *
-	 * Make sure that any Fieldtype's descended from this one call the setupHooks method in their getInputfield() method. 
+	 * Make sure that any Fieldtype's descended from this one call the setupHooks method in their getInputfield() method.
 	 *
 	 */
 	protected function setupHooks(Page $page, Field $field, Inputfield $inputfield) {
 
 		$options = array(
-			'page' => $page, 
-			'field' => $field, 
+			'page' => $page,
+			'field' => $field,
 			);
 
-		$inputfield->addHookBefore('processInput', $this, 'hookProcessInput', $options); 
+		$inputfield->addHookBefore('processInput', $this, 'hookProcessInput', $options);
 	}
 
 	/**
 	 * Hook into the InputfieldFile's processInput method to set the upload destination path
 	 *
-	 * This hook originates with the setupHooks method above. 
+	 * This hook originates with the setupHooks method above.
 	 *
 	 */
 	public function hookProcessInput($event) {
-		$inputfield = $event->object; 	
-		$page = $event->options['page']; 
-		$field = $event->options['field']; 
-		$pagefiles = $page->get($field->name); 
+		$inputfield = $event->object;
+		$page = $event->options['page'];
+		$field = $event->options['field'];
+		$pagefiles = $page->get($field->name);
 		$inputfield->destinationPath = $pagefiles->path();
 	}
 
@@ -130,29 +130,29 @@ class FieldtypeFile extends FieldtypeMulti {
 	 */
 	public function ___wakeupValue(Page $page, Field $field, $value) {
 
-		if($value instanceof Pagefiles) return $value; 
-		$pagefiles = $this->getBlankValue($page, $field); 
-		if(empty($value)) return $pagefiles; 
-	
-		if(!is_array($value) || array_key_exists('data', $value)) $value = array($value); 
+		if($value instanceof Pagefiles) return $value;
+		$pagefiles = $this->getBlankValue($page, $field);
+		if(empty($value)) return $pagefiles;
+
+		if(!is_array($value) || array_key_exists('data', $value)) $value = array($value);
 		foreach($value as $v) {
-			if(empty($v['data'])) continue; 
-			$pagefile = $this->getBlankPagefile($pagefiles, $v['data']); 
-			$pagefile->description(true, $v['description']); 
+			if(empty($v['data'])) continue;
+			$pagefile = $this->getBlankPagefile($pagefiles, $v['data']);
+			$pagefile->description(true, $v['description']);
 			if(isset($v['modified'])) $pagefile->modified = $v['modified'];
 			if(isset($v['created'])) $pagefile->created = $v['created'];
 			if(isset($v['tags'])) $pagefile->tags = $v['tags'];
-			$pagefile->setTrackChanges(true); 
-			$pagefiles->add($pagefile); 
+			$pagefile->setTrackChanges(true);
+			$pagefiles->add($pagefile);
 		}
-	
-		$pagefiles->resetTrackChanges(true); 
-		return $pagefiles;  
+
+		$pagefiles->resetTrackChanges(true);
+		return $pagefiles;
 	}
 
 	/**
-	 * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB. 
-	 *              
+	 * Given an 'awake' value, as set by wakeupValue, convert the value back to a basic type for storage in DB.
+	 *
 	 * @param Page $page
 	 * @param Field $field
 	 * @param string|int|array|object $value
@@ -162,49 +162,49 @@ class FieldtypeFile extends FieldtypeMulti {
 	public function ___sleepValue(Page $page, Field $field, $value) {
 
 		$sleepValue = array();
-		if(!$value instanceof Pagefiles) return $sleepValue; 
-	
+		if(!$value instanceof Pagefiles) return $sleepValue;
+
 		foreach($value as $pagefile) {
 			$item = array(
-				'data' => $pagefile->basename, 
-				'description' => $pagefile->description(true), 
-				); 
-	
-			if($field->fileSchema & self::fileSchemaDate) { 
+				'data' => $pagefile->basename,
+				'description' => $pagefile->description(true),
+				);
+
+			if($field->fileSchema & self::fileSchemaDate) {
 				$item['modified'] = date('Y-m-d H:i:s', $pagefile->modified);
 				$item['created'] = date('Y-m-d H:i:s', $pagefile->created);
 			}
-	
+
 			if($field->fileSchema & self::fileSchemaTags) {
 				$item['tags'] = $pagefile->tags;
 			}
-	
+
 			$sleepValue[] = $item;
 		}
 		return $sleepValue;
 	}
 
 	public function ___exportValue(Page $page, Field $field, $value, array $options = array()) {
-		$pagefiles = $value; 
-		$value = $this->sleepValue($page, $field, $value); 
+		$pagefiles = $value;
+		$value = $this->sleepValue($page, $field, $value);
 		foreach($value as $k => $v) {
-			$pagefile = $pagefiles->get($v['data']); 
+			$pagefile = $pagefiles->get($v['data']);
 			$a = array(
-				'name' => $v['data'], 
+				'name' => $v['data'],
 				'url' => $pagefile->httpUrl(),
 				'filesize' => $pagefile->filesize()
-				); 
-			unset($v['data']); 
-			$value[$k] = array_merge($a, $v); 
+				);
+			unset($v['data']);
+			$value[$k] = array_merge($a, $v);
 		}
-		return $value; 	
+		return $value;
 	}
 
 	public function getBlankValue(Page $page, Field $field) {
 		$pagefiles = new Pagefiles($page);
-		$pagefiles->setField($field); 
-		$pagefiles->setTrackChanges(true); 
-		return $pagefiles; 
+		$pagefiles->setField($field);
+		$pagefiles->setTrackChanges(true);
+		return $pagefiles;
 	}
 
 	/**
@@ -214,109 +214,109 @@ class FieldtypeFile extends FieldtypeMulti {
 	 *
 	 * @param Pagefiles $pagefiles
 	 * @param string $filename
-	 * @return Pagefile 
+	 * @return Pagefile
 	 *
 	 */
 	protected function getBlankPagefile(Pagefiles $pagefiles, $filename) {
-		return new Pagefile($pagefiles, $filename); 
+		return new Pagefile($pagefiles, $filename);
 	}
 
 	public function sanitizeValue(Page $page, Field $field, $value) {
-		if($value instanceof Pagefiles) return $value; 
-		$pagefiles = $page->getUnformatted($field->name); 
-		if(!$value) return $pagefiles; 
-		if($value instanceof Pagefile) return $pagefiles->add($value); 
-		if(!is_array($value)) $value = array($value); 
-		foreach($value as $file) $pagefiles->add($file); 
-		return $pagefiles; 
+		if($value instanceof Pagefiles) return $value;
+		$pagefiles = $page->getUnformatted($field->name);
+		if(!$value) return $pagefiles;
+		if($value instanceof Pagefile) return $pagefiles->add($value);
+		if(!is_array($value)) $value = array($value);
+		foreach($value as $file) $pagefiles->add($file);
+		return $pagefiles;
 	}
 
 	/**
 	 * Perform output formatting on the value delivered to the API
 	 *
-	 * Entity encode the file's description field. 
-	 * 
+	 * Entity encode the file's description field.
+	 *
 	 * If the maxFiles setting is 1, then we format the value to dereference as single Pagefile rather than a PagefilesArray
 	 *
-	 * This methos is only used when $page->outputFormatting is true. 
+	 * This methos is only used when $page->outputFormatting is true.
 	 *
 	 */
 	public function ___formatValue(Page $page, Field $field, $value) {
 
-		if(!$value instanceof Pagefiles) return $value; 
-	
+		if(!$value instanceof Pagefiles) return $value;
+
 		foreach($value as $pagefile) {
-			if($pagefile->isTemp()) $value->removeQuietly($pagefile); 
+			if($pagefile->isTemp()) $value->removeQuietly($pagefile);
 		}
-		
-		$textformatters = $field->textformatters; 
+
+		$textformatters = $field->textformatters;
 		if(!is_array($textformatters)) $textformatters = array();
 		if($field->entityEncode && !count($textformatters)) $textformatters[] = 'TextformatterEntities';
-		$useTags = $field->useTags; 
-	
+		$useTags = $field->useTags;
+
 		foreach($textformatters as $name) {
-			$textformatter = $this->wire('modules')->get($name); 
+			$textformatter = $this->wire('modules')->get($name);
 			if(!$textformatter) continue;
 			foreach($value as $v) {
-				if($v->formatted()) continue; 
+				if($v->formatted()) continue;
 				$description = $v->description;
-				$textformatter->formatValue($page, $field, $description);	
-				$v->description = $description; 
+				$textformatter->formatValue($page, $field, $description);
+				$v->description = $description;
 				if($useTags) {
-					$tags = $v->tags; 
-					$textformatter->formatValue($page, $field, $tags); 
-					$v->tags = $tags; 
+					$tags = $v->tags;
+					$textformatter->formatValue($page, $field, $tags);
+					$v->tags = $tags;
 				}
-				$v->formatted = true; 
+				$v->formatted = true;
 			}
 		}
 
 		/*
-		if($field->entityEncode) { 
+		if($field->entityEncode) {
 			foreach($value as $k => $v) {
-				if($v->formatted()) continue; 
-				$v->description = htmlspecialchars($v->description, ENT_QUOTES, "UTF-8"); 
-				$v->tags = htmlspecialchars($v->tags, ENT_QUOTES, "UTF-8"); 
-				$v->formatted = true; 
+				if($v->formatted()) continue;
+				$v->description = htmlspecialchars($v->description, ENT_QUOTES, "UTF-8");
+				$v->tags = htmlspecialchars($v->tags, ENT_QUOTES, "UTF-8");
+				$v->formatted = true;
 			}
 		}
 		*/
-	
-		$count = count($value); 
+
+		$count = count($value);
 		$isEmpty = $count == 0;
-		$maxFiles = (int) $field->maxFiles; 
-		if($maxFiles && $count > $maxFiles) $value = $value->slice(0, $maxFiles); 
-		
+		$maxFiles = (int) $field->maxFiles;
+		if($maxFiles && $count > $maxFiles) $value = $value->slice(0, $maxFiles);
+
 		switch((int) $field->outputFormat) {
-			
+
 			case self::outputFormatArray:
 				// we are already in this format so don't need to do anything
 				break;
-			
+
 			case self::outputFormatSingle:
 				$value = $isEmpty ? null : $value->first();
 				break;
-			
+
 			case self::outputFormatString:
-				$value = $this->formatValueString($page, $field, $value); 
+				$value = $this->formatValueString($page, $field, $value);
 				break;
-			
+
 			default: // outputFormatAuto
-				if($maxFiles == 1) { 
+				if($maxFiles == 1) {
 					$value = $isEmpty ? null : $value->first();
 				}
 		}
-		
+
 		if($isEmpty && $field->defaultValuePage) {
-			$defaultPage = $this->wire('pages')->get((int) $field->defaultValuePage); 
+			$defaultPage = $this->wire('pages')->get((int) $field->defaultValuePage);
 			if($defaultPage->id && $defaultPage->id != $page->id) {
-				$value = $defaultPage->get($field->name);	
+				$value = $defaultPage->get($field->name);
 			}
 		}
-		
-		return $value; 
+
+		return $value;
 	}
-	
+
 	protected function ___formatValueString(Page $page, Field $field, $value) {
 		$out = '';
 		$outputString = $field->outputString;
@@ -330,25 +330,25 @@ class FieldtypeFile extends FieldtypeMulti {
 			}
 			$out .= $s;
 		}
-		return $out; 
+		return $out;
 	}
 
 	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
 
 		if(in_array($operator, array("*=", "~=", "%=", "^=", "$="))) {
 			// fulltext match filename or description
-			$ft = new DatabaseQuerySelectFulltext($query); 
-			$ft->match($table, $subfield, $operator, $value); 
+			$ft = new DatabaseQuerySelectFulltext($query);
+			$ft->match($table, $subfield, $operator, $value);
 
 		} else {
-			$query = parent::getMatchQuery($query, $table, $subfield, $operator, $value); 
+			$query = parent::getMatchQuery($query, $table, $subfield, $operator, $value);
 		}
-		return $query; 
+		return $query;
 	}
 
 	public function ___getSelectorInfo(Field $field, array $data = array()) {
-		$info = parent::___getSelectorInfo($field, $data); 
-		$info['subfields']['data']['label'] = $this->_('filename'); 
+		$info = parent::___getSelectorInfo($field, $data);
+		$info['subfields']['data']['label'] = $this->_('filename');
 		return $info;
 	}
 
@@ -356,31 +356,31 @@ class FieldtypeFile extends FieldtypeMulti {
 
 		$database = $this->wire('database');
 		$schema = parent::getDatabaseSchema($field);
-		$table = $database->escapeTable($field->table); 
+		$table = $database->escapeTable($field->table);
 
 		$schema['data'] = 'varchar(255) NOT NULL';
 		$schema['description'] = "text NOT NULL";
-		$schema['modified'] = "datetime"; 
-		$schema['created'] = "datetime"; 
-		$schema['keys']['description'] = 'FULLTEXT KEY description (description)'; 
-		$schema['keys']['modified'] = 'index (modified)'; 
-		$schema['keys']['created'] = 'index (created)'; 
+		$schema['modified'] = "datetime";
+		$schema['created'] = "datetime";
+		$schema['keys']['description'] = 'FULLTEXT KEY description (description)';
+		$schema['keys']['modified'] = 'index (modified)';
+		$schema['keys']['created'] = 'index (created)';
 
 		if($field->id && !($field->fileSchema & self::fileSchemaDate)) {
 			// permanently add new 'modified' and 'created' column to file schema
 			$addDates = false;
 
 			try {
-				$query = $database->prepare("SHOW COLUMNS FROM `$table` WHERE Field='modified'"); 
+				$query = $database->prepare("SHOW COLUMNS FROM `$table` WHERE Field='modified'");
 				$query->execute();
 				$numRows = (int) $query->rowCount();
 				$query->closeCursor();
-				
+
 				if($numRows) {
-					$field->fileSchema = $field->fileSchema | self::fileSchemaDate; 
+					$field->fileSchema = $field->fileSchema | self::fileSchemaDate;
 					$field->save();
 				} else {
-					$addDates = true; 
+					$addDates = true;
 				}
 			} catch(Exception $e) {
 				// intentionally blank
@@ -389,37 +389,37 @@ class FieldtypeFile extends FieldtypeMulti {
 			if($addDates) try {
 				$database->exec("ALTER TABLE `{$table}` ADD `modified` $schema[modified]");
 				$database->exec("ALTER TABLE `{$table}` ADD `created` $schema[created]");
-				$database->exec("ALTER TABLE `{$table}` ADD " . $schema['keys']['modified']); 
-				$database->exec("ALTER TABLE `{$table}` ADD " . $schema['keys']['created']); 
-				$field->fileSchema = $field->fileSchema | self::fileSchemaDate; 
+				$database->exec("ALTER TABLE `{$table}` ADD " . $schema['keys']['modified']);
+				$database->exec("ALTER TABLE `{$table}` ADD " . $schema['keys']['created']);
+				$field->fileSchema = $field->fileSchema | self::fileSchemaDate;
 				$field->save();
-				$date = date('Y-m-d H:i:s'); 
-				$query = $database->prepare("UPDATE `$table` SET created=:created, modified=:modified"); 
+				$date = date('Y-m-d H:i:s');
+				$query = $database->prepare("UPDATE `$table` SET created=:created, modified=:modified");
 				$query->bindValue(":created", $date);
-				$query->bindValue(":modified", $date); 
+				$query->bindValue(":modified", $date);
 				$query->execute();
-				$this->message("Added created/modified to DB schema for '{$field->name}'", Notice::log); 
-				
+				$this->message("Added created/modified to DB schema for '{$field->name}'", Notice::log);
+
 			} catch(Exception $e) {
-				
-				$query = $database->prepare("SHOW COLUMNS FROM `$table` WHERE Field='modified'"); 
+
+				$query = $database->prepare("SHOW COLUMNS FROM `$table` WHERE Field='modified'");
 				$query->execute();
 				$numRows = (int) $query->rowCount();
 				$query->closeCursor();
-				
+
 				if($numRows) {
-					$field->fileSchema = $field->fileSchema | self::fileSchemaDate; 
+					$field->fileSchema = $field->fileSchema | self::fileSchemaDate;
 					$field->save();
 				} else {
-					$this->error("Error adding created/modified to '{$field->name}' schema", Notice::log); 
+					$this->error("Error adding created/modified to '{$field->name}' schema", Notice::log);
 				}
-			
+
 			}
 		}
 
 		$tagsAction = null; // null=no change; 1=add tags, 0=remove tags
-		$schemaTags = 'varchar(255) NOT NULL'; 
-		$schemaTagsIndex = 'FULLTEXT KEY tags (tags)'; 
+		$schemaTags = 'varchar(255) NOT NULL';
+		$schemaTagsIndex = 'FULLTEXT KEY tags (tags)';
 
 		if($field->useTags && !($field->fileSchema & self::fileSchemaTags)) $tagsAction = 'add';
 			else if(!$field->useTags && ($field->fileSchema & self::fileSchemaTags)) $tagsAction = 'remove';
@@ -427,39 +427,39 @@ class FieldtypeFile extends FieldtypeMulti {
 		if($tagsAction === 'add') {
 			// add tags field
 			try {
-				$query = $database->prepare("SHOW COLUMNS FROM `$table` WHERE Field='tags'"); 
+				$query = $database->prepare("SHOW COLUMNS FROM `$table` WHERE Field='tags'");
 				$query->execute();
 				$numRows = (int) $query->rowCount();
 				$query->closeCursor();
 			} catch(Exception $e) {
 				// probably in a clone, we can ignore and skip over any further changes
-				$numRows = 1; 
+				$numRows = 1;
 			}
 
 			if(!$numRows) try {
 				$database->exec("ALTER TABLE `{$table}` ADD tags $schemaTags");
-				$database->exec("ALTER TABLE `{$table}` ADD $schemaTagsIndex"); 
-				$field->fileSchema = $field->fileSchema | self::fileSchemaTags; 
+				$database->exec("ALTER TABLE `{$table}` ADD $schemaTagsIndex");
+				$field->fileSchema = $field->fileSchema | self::fileSchemaTags;
 				$field->save();
-				$this->message("Added tags to DB schema for '{$field->name}'", Notice::log); 
+				$this->message("Added tags to DB schema for '{$field->name}'", Notice::log);
 			} catch(Exception $e) {
-				$this->error("Error adding tags to '{$field->name}' schema", Notice::log); 
+				$this->error("Error adding tags to '{$field->name}' schema", Notice::log);
 			}
 
 		} else if($tagsAction === 'remove') {
 			// remove tags field
 			try {
-				$database->exec("ALTER TABLE `{$table}` DROP INDEX tags"); 
-				$database->exec("ALTER TABLE `{$table}` DROP tags"); 
+				$database->exec("ALTER TABLE `{$table}` DROP INDEX tags");
+				$database->exec("ALTER TABLE `{$table}` DROP tags");
 				$field->fileSchema = $field->fileSchema & ~self::fileSchemaTags;
 				$field->save();
-				$this->message("Dropped tags from DB schema for '{$field->name}'", Notice::log); 
+				$this->message("Dropped tags from DB schema for '{$field->name}'", Notice::log);
 			} catch(Exception $e) {
-				$this->error("Error dropping tags from '{$field->name}' schema", Notice::log); 
+				$this->error("Error dropping tags from '{$field->name}' schema", Notice::log);
 			}
 		}
 
-		if($field->fileSchema & self::fileSchemaTags) { 
+		if($field->fileSchema & self::fileSchemaTags) {
 			$schema['tags'] = $schemaTags;
 			$schema['keys']['tags'] = $schemaTagsIndex;
 		}
@@ -470,37 +470,37 @@ class FieldtypeFile extends FieldtypeMulti {
 
 	public function ___deletePageField(Page $page, Field $field) {
 
-		if($this->config->debug) $this->message("deletePageField, Page:$page, Field:$field"); 
+		if($this->config->debug) $this->message("deletePageField, Page:$page, Field:$field");
 
 		if($pagefiles = $page->get($field->name)) {
 
 			if($pagefiles instanceof Pagefiles) {
-				$pagefiles->deleteAll(); 
+				$pagefiles->deleteAll();
 
 			} else if($pagefiles instanceof Pagefile) {
 				$pagefiles->unlink();
 
 			} else if($this->config->debug) {
-				$this->error("Not Pagefiles or Pagefile"); 
+				$this->error("Not Pagefiles or Pagefile");
 			}
 
 		} else if($this->config->debug) {
-			$this->error("Unable to retreive $page.{$field->name}"); 			
+			$this->error("Unable to retreive $page.{$field->name}");
 		}
 
-		parent::___deletePageField($page, $field); 
+		parent::___deletePageField($page, $field);
 
-		return true; 
-		
+		return true;
+
 	}
 
 	public function ___deleteField(Field $field) {
 		// delete files not necessary since deletePageField would have been called for all instances before this could be called
-		return parent::___deleteField($field); 
+		return parent::___deleteField($field);
 	}
 
 	/**
-	 * Default list of file extensions supported by this field, and used as the default by getConfigInputfields() method. 
+	 * Default list of file extensions supported by this field, and used as the default by getConfigInputfields() method.
 	 *
 	 * Subclasses can override with their own string of file extensions
 	 *
@@ -509,13 +509,51 @@ class FieldtypeFile extends FieldtypeMulti {
 		return "pdf doc docx xls xlsx gif jpg jpeg png";
 	}
 
+	protected function getDefaultSvgSanitizerWhitelist() {
+		$svgWhitelist = json_encode(array(
+			"a"=>array("class", "clip-path", "clip-rule", "fill", "fill-opacity", "fill-rule", "filter", "id", "mask", "opacity", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "systemLanguage", "transform", "href", "xlink:href", "xlink:title"),
+			"circle"=>array("class", "clip-path", "clip-rule", "cx", "cy", "fill", "fill-opacity", "fill-rule", "filter", "id", "mask", "opacity", "r", "requiredFeatures", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "systemLanguage", "transform"),
+			"clipPath"=>array("class", "clipPathUnits", "id"),
+			"defs"=>array(),
+		    "style" =>array("type"),
+			"desc"=>array(),
+			"ellipse"=>array("class", "clip-path", "clip-rule", "cx", "cy", "fill", "fill-opacity", "fill-rule", "filter", "id", "mask", "opacity", "requiredFeatures", "rx", "ry", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "systemLanguage", "transform"),
+			"feGaussianBlur"=>array("class", "color-interpolation-filters", "id", "requiredFeatures", "stdDeviation"),
+			"filter"=>array("class", "color-interpolation-filters", "filterRes", "filterUnits", "height", "id", "primitiveUnits", "requiredFeatures", "width", "x", "xlink:href", "y"),
+			"foreignObject"=>array("class", "font-size", "height", "id", "opacity", "requiredFeatures", "style", "transform", "width", "x", "y"),
+			"g"=>array("class", "clip-path", "clip-rule", "id", "display", "fill", "fill-opacity", "fill-rule", "filter", "mask", "opacity", "requiredFeatures", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "systemLanguage", "transform", "font-family", "font-size", "font-style", "font-weight", "text-anchor"),
+			"image"=>array("class", "clip-path", "clip-rule", "filter", "height", "id", "mask", "opacity", "requiredFeatures", "style", "systemLanguage", "transform", "width", "x", "xlink:href", "xlink:title", "y"),
+			"line"=>array("class", "clip-path", "clip-rule", "fill", "fill-opacity", "fill-rule", "filter", "id", "marker-end", "marker-mid", "marker-start", "mask", "opacity", "requiredFeatures", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "systemLanguage", "transform", "x1", "x2", "y1", "y2"),
+			"linearGradient"=>array("class", "id", "gradientTransform", "gradientUnits", "requiredFeatures", "spreadMethod", "systemLanguage", "x1", "x2", "xlink:href", "y1", "y2"),
+			"marker"=>array("id", "class", "markerHeight", "markerUnits", "markerWidth", "orient", "preserveAspectRatio", "refX", "refY", "systemLanguage", "viewBox"),
+			"mask"=>array("class", "height", "id", "maskContentUnits", "maskUnits", "width", "x", "y"),
+			"metadata"=>array("class", "id"),
+			"path"=>array("class", "clip-path", "clip-rule", "d", "fill", "fill-opacity", "fill-rule", "filter", "id", "marker-end", "marker-mid", "marker-start", "mask", "opacity", "requiredFeatures", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "systemLanguage", "transform"),
+			"pattern"=>array("class", "height", "id", "patternContentUnits", "patternTransform", "patternUnits", "requiredFeatures", "style", "systemLanguage", "viewBox", "width", "x", "xlink:href", "y"),
+			"polygon"=>array("class", "clip-path", "clip-rule", "id", "fill", "fill-opacity", "fill-rule", "filter", "id", "class", "marker-end", "marker-mid", "marker-start", "mask", "opacity", "points", "requiredFeatures", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "systemLanguage", "transform"),
+			"polyline"=>array("class", "clip-path", "clip-rule", "id", "fill", "fill-opacity", "fill-rule", "filter", "marker-end", "marker-mid", "marker-start", "mask", "opacity", "points", "requiredFeatures", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "systemLanguage", "transform"),
+			"radialGradient"=>array("class", "cx", "cy", "fx", "fy", "gradientTransform", "gradientUnits", "id", "r", "requiredFeatures", "spreadMethod", "systemLanguage", "xlink:href"),
+			"rect"=>array("class", "clip-path", "clip-rule", "fill", "fill-opacity", "fill-rule", "filter", "height", "id", "mask", "opacity", "requiredFeatures", "rx", "ry", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "systemLanguage", "transform", "width", "x", "y"),
+			"stop"=>array("class", "id", "offset", "requiredFeatures", "stop-color", "stop-opacity", "style", "systemLanguage"),
+			"svg"=>array("class", "clip-path", "clip-rule", "enable-background", "filter", "id", "height", "mask", "preserveAspectRatio", "requiredFeatures", "space", "style", "systemLanguage", "version", "viewBox", "width", "x", "xmlns", "xmlns:se", "xmlns:xlink", "y"),
+			"switch"=>array("class", "id", "requiredFeatures", "systemLanguage"),
+			"symbol"=>array("class", "fill", "fill-opacity", "fill-rule", "filter", "font-family", "font-size", "font-style", "font-weight", "id", "opacity", "preserveAspectRatio", "requiredFeatures", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "systemLanguage", "transform", "viewBox"),
+			"text"=>array("class", "clip-path", "clip-rule", "fill", "fill-opacity", "fill-rule", "filter", "font-family", "font-size", "font-style", "font-weight", "id", "mask", "opacity", "requiredFeatures", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "systemLanguage", "text-anchor", "transform", "x", "xml:space", "y"),
+			"textPath"=>array("class", "id", "method", "requiredFeatures", "spacing", "startOffset", "style", "systemLanguage", "transform", "xlink:href"),
+			"title"=>array(),
+			"tspan"=>array("class", "clip-path", "clip-rule", "dx", "dy", "fill", "fill-opacity", "fill-rule", "filter", "font-family", "font-size", "font-style", "font-weight", "id", "mask", "opacity", "requiredFeatures", "rotate", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "systemLanguage", "text-anchor", "textLength", "transform", "x", "xml:space", "y"),
+			"use"=>array("class", "clip-path", "clip-rule", "fill", "fill-opacity", "fill-rule", "filter", "height", "id", "mask", "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-opacity", "stroke-width", "style", "transform", "width", "x", "xlink:href", "y"),
+		));
+		return $svgWhitelist;
+	}
+
 	/**
 	 * Disable autojoin for files
 	 *
 	 */
 	public function getLoadQueryAutojoin(Field $field, DatabaseQuerySelect $query) {
 		return null;
-	}  
+	}
 
 
 	public function ___getConfigInputfields(Field $field) {
@@ -524,37 +562,58 @@ class FieldtypeFile extends FieldtypeMulti {
 
 		// extensions
 		$f = $this->modules->get('InputfieldTextarea');
-		$f->attr('name', 'extensions'); 
-		$f->attr('value', $field->extensions ? $field->extensions : $this->getDefaultFileExtensions()); 
-		$f->attr('rows', 3); 
+		$f->attr('name', 'extensions');
+		$f->attr('value', $field->extensions ? $field->extensions : $this->getDefaultFileExtensions());
+		$f->attr('rows', 3);
 		$f->label = $this->_('Valid File Extensions');
 		$f->description = $this->_('Enter all file extensions allowed by this upload field. Separate each extension by a space. No periods or commas. This field is not case sensitive.'); // Valid file extensions description
 		$inputfields->append($f);
 
+		// svg sanitizer whitelist
+		$f = $this->modules->get('InputfieldTextarea');
+		$f->attr('name', 'svg_sanitizer_whitelist');
+		$f->attr('value', $field->svg_sanitizer_whitelist ? $field->svg_sanitizer_whitelist : $this->getDefaultSvgSanitizerWhitelist());
+		$f->attr('rows', 10);
+		$f->label = $this->_('SVG Sanitizer Whitelist');
+		$f->description = $this->_('Edit the whitelist of allowed SVG elements and their attributes.');
+		$f->notes = $this->_('If unsure what should be here, please leave as the default. You can reset, by emptying the field and saving. You will need to save again to commit the change.');
+		$f->showIf = "extensions%=svg";
+		$inputfields->append($f);
+
+		// svg whitelist fail action
+		$f = $this->modules->get("InputfieldCheckbox");
+		$f->attr('name', 'svgFail');
+		$f->attr('value', 1);
+		if($field->svgFail) $f->attr('checked', 'checked');
+		$f->label = $this->_('SVG Whitelist Fail');
+		$f->showIf = "extensions%=svg";
+		$f->description = $this->_('If checked, and the uploaded SVG fails the whitelist sanitizer, the upload will be rejected.');
+		$inputfields->append($f);
+
 		// max files
 		$f = $this->modules->get('InputfieldInteger');
-		$f->attr('name', 'maxFiles'); 
-		$f->attr('value', (int) $field->maxFiles); 
+		$f->attr('name', 'maxFiles');
+		$f->attr('value', (int) $field->maxFiles);
 		$f->attr('size', 4);
 		$f->label = $this->_('Maximum files allowed');
-		$f->description = $this->_('0=No limit'); 
+		$f->description = $this->_('0=No limit');
 		$f->collapsed = Inputfield::collapsedBlank;
-		$inputfields->append($f); 
-	
+		$inputfields->append($f);
+
 		// output format
-		$f = $this->modules->get('InputfieldRadios'); 
-		$f->attr('name', 'outputFormat'); 
-		$f->label = $this->_('Formatted value'); 
-		$f->description = $this->_('Select the type of value you want this field to provide when accessed from the API on the front-end of your site.'); 
-		$f->notes = $this->_('When output formatting is off, the value is always an array (WireArray).'); 
-		$f->addOption(self::outputFormatAuto, $this->_('Automatic (single item or null when max files set to 1, array of items otherwise)')); 
+		$f = $this->modules->get('InputfieldRadios');
+		$f->attr('name', 'outputFormat');
+		$f->label = $this->_('Formatted value');
+		$f->description = $this->_('Select the type of value you want this field to provide when accessed from the API on the front-end of your site.');
+		$f->notes = $this->_('When output formatting is off, the value is always an array (WireArray).');
+		$f->addOption(self::outputFormatAuto, $this->_('Automatic (single item or null when max files set to 1, array of items otherwise)'));
 		$f->addOption(self::outputFormatArray, $this->_('Array of items'));
-		$f->addOption(self::outputFormatSingle, $this->_('Single item (null if empty)')); 
-		$f->addOption(self::outputFormatString, $this->_('Rendered string of text (that you provide)')); 
-		$f->attr('value', (int) $field->outputFormat); 
+		$f->addOption(self::outputFormatSingle, $this->_('Single item (null if empty)'));
+		$f->addOption(self::outputFormatString, $this->_('Rendered string of text (that you provide)'));
+		$f->attr('value', (int) $field->outputFormat);
 		$f->collapsed = Inputfield::collapsedBlank;
 		$inputfields->add($f);
-	
+
 		// output string
 		$f = $this->modules->get('InputfieldText');
 		$f->attr('name', 'outputString');
@@ -567,32 +626,32 @@ class FieldtypeFile extends FieldtypeMulti {
 		$inputfields->add($f);
 
 		// default value page
-		$f = $this->modules->get('InputfieldPageListSelect'); 
-		$f->attr('name', 'defaultValuePage'); 
-		$f->label = $this->_('Default value (when empty)'); 
-		$f->description = $this->_('Optionally select a page that will contain the default value (in this same field). You may wish to create a page specifically for this purpose.'); 
-		$f->attr('value', (int) $field->defaultValuePage); 
-		$f->collapsed = $field->defaultValuePage ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
-		$inputfields->add($f); 
-	
+		$f = $this->modules->get('InputfieldPageListSelect');
+		$f->attr('name', 'defaultValuePage');
+		$f->label = $this->_('Default value (when empty)');
+		$f->description = $this->_('Optionally select a page that will contain the default value (in this same field). You may wish to create a page specifically for this purpose.');
+		$f->attr('value', (int) $field->defaultValuePage);
+		$f->collapsed = $field->defaultValuePage ? Inputfield::collapsedNo : Inputfield::collapsedYes;
+		$inputfields->add($f);
+
 		// textformatters
 		$f = $this->modules->get('InputfieldAsmSelect');
 		$f->setAttribute('name', 'textformatters');
 		$f->label = $this->_('Text formatters (for file descriptions)');
-		$f->description = $this->_('Select one or more text formatters (and their order) that will be applied to the file description when output formatting is active. The HTML Entity Encoder is recommended as a minimum.'); 
+		$f->description = $this->_('Select one or more text formatters (and their order) that will be applied to the file description when output formatting is active. The HTML Entity Encoder is recommended as a minimum.');
 
 		foreach($this->wire('modules') as $module) {
 			$className = $module->className();
-			if(strpos($className, 'Textformatter') !== 0) continue; 
-			$info = $this->wire('modules')->getModuleInfo($module); 
+			if(strpos($className, 'Textformatter') !== 0) continue;
+			$info = $this->wire('modules')->getModuleInfo($module);
 			$f->addOption($className, "$info[title]");
 		}
-		
+
 		if(!is_array($field->textformatters)) {
 			$field->textformatters = $field->entityEncode ? array('TextformatterEntities') : array();
 		}
-		$f->attr('value', $field->textformatters); 
-		$inputfields->add($f); 
+		$f->attr('value', $field->textformatters);
+		$inputfields->add($f);
 
 		// entity encode (deprecated)
 		$f = $this->modules->get("InputfieldHidden");
@@ -603,15 +662,15 @@ class FieldtypeFile extends FieldtypeMulti {
 		$field->entityEncode = null;
 
 		// use tags
-		$f = $this->modules->get("InputfieldCheckbox"); 
-		$f->attr('name', 'useTags'); 
-		$f->attr('value', 1); 
-		if($field->useTags) $f->attr('checked', 'checked'); 
-			else $f->collapsed = Inputfield::collapsedYes; 
-		$f->label = $this->_('Use Tags?'); 
+		$f = $this->modules->get("InputfieldCheckbox");
+		$f->attr('name', 'useTags');
+		$f->attr('value', 1);
+		if($field->useTags) $f->attr('checked', 'checked');
+			else $f->collapsed = Inputfield::collapsedYes;
+		$f->label = $this->_('Use Tags?');
 		$f->description = $this->_('If checked, the field will also contain an option for tags in addition to the description.'); // Use tags description
-		
-		$inputfields->append($f); 
+
+		$inputfields->append($f);
 
 		// inputfield class
 		$f = $this->modules->get('InputfieldSelect');
@@ -620,18 +679,18 @@ class FieldtypeFile extends FieldtypeMulti {
 		$f->description = $this->_('The type of field that will be used to collect input.');
 		$f->required = true;
 		$baseClass = $this->defaultInputfieldClass;
-		
+
 		foreach($this->wire('modules') as $fm) {
 			if(strpos($fm->className(), 'Inputfield') !== 0) continue;
 			if("$fm" == $baseClass || is_subclass_of("$fm", $baseClass))
 				$f->addOption("$fm", str_replace("Inputfield", '', "$fm"));
 		}
-		
+
 		$f->attr('value', $field->inputfieldClass ? $field->inputfieldClass : $this->defaultInputfieldClass);
-		$f->collapsed = $field->inputfieldClass && $field->inputfieldClass != $this->defaultInputfieldClass ? Inputfield::collapsedNo : Inputfield::collapsedYes; 
-		
+		$f->collapsed = $field->inputfieldClass && $field->inputfieldClass != $this->defaultInputfieldClass ? Inputfield::collapsedNo : Inputfield::collapsedYes;
+
 		$inputfields->append($f);
-		
+
 		return $inputfields;
 	}
 

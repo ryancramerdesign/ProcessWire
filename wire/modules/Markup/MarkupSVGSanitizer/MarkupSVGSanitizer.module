@@ -1,0 +1,81 @@
+<?php
+
+/**
+ * ProcessWire SVG Sanitizer module
+ *
+ * Serves as a front-end to the SVG Sanitizer software:
+ * https://github.com/alister-/SVG-Sanitizer
+ *
+ * USAGE:
+ *
+ *   $svgSanitizer = $modules->get('MarkupSVGSanitizer');
+ *   $cleanSVG = $svgSanitizer->sanitize($dirtySVG);
+ *
+ *
+ * For SVG Sanitizer usage, see:
+ * https://github.com/alister-/SVG-Sanitizer/blob/master/README.md
+ *
+ * SVG Sanitizer by Alister Norris: https://github.com/alister-
+ * ProcessWire MarkupSVGSanitizer by Adrian Jones
+ *
+ */
+
+class MarkupSVGSanitizer extends WireData implements Module {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'SVG Sanitizer',
+			'summary' => 'Front-end to the SVG Sanitizer library.',
+			'version' => 100,
+			'singular' => false,
+			'autoload' => false,
+			);
+	}
+
+	/**
+	 * Cached instance of SVGSanitizer
+	 *
+	 */
+	protected $svgSanitizer = null;
+
+	/**
+	 * Generate SVG Sanitizer settings object
+	 *
+	 */
+	public function __construct() {
+		require_once(dirname(__FILE__) . '/svgsanitizer/SvgSanitizer.php');
+	}
+
+	/**
+	 * Initialize the module and create default settings
+	 *
+	 */
+	public function init() {
+
+	}
+
+	/**
+	 * Get the SVGSanitizer instance
+	 *
+	 * @return SVGSanitizer
+	 *
+	 */
+	public function getSvgSanitizer() {
+		if(is_null($this->svgSanitizer)) $this->svgSanitizer = new SvgSanitizer();
+		return $this->svgSanitizer;
+	}
+
+	/**
+	 * Sanitize the given dirty SVG and return the clean SVG
+	 *
+	 * @param string Dirty SVG
+ 	 * @return string Clean SVG
+	 *
+	 */
+	public function svg($filename, $whitelist) {
+		$this->getSvgSanitizer()->load($filename);
+		$this->getSvgSanitizer()->sanitize((array) json_decode($whitelist));
+		return $this->getSvgSanitizer()->saveSVG();
+	}
+
+}
