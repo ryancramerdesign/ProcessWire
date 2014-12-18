@@ -229,6 +229,11 @@
 	float: right;
 }
 
+#PageListContainer.PageListContainerPage .PageListActionTrash {
+	/* trash not applicable when page list doesn't start from root */
+	display: none;
+}
+
 /********************************************************************************************************
  * PageListPagination
  *
