@@ -250,7 +250,7 @@ class ProcessRecentPages extends Process {
 			));
 			$items = $this->wire('pages')->find("$selector, limit=$this->itemLimit"); 
 			$sanitizer = $this->wire('sanitizer');
-			$title = $this->_('Recent pages');;
+			$title = $this->_('Recent pages');
 			foreach($items as $item) {
 				if(!$item->editable()) continue;	
 				$created = $item->created;

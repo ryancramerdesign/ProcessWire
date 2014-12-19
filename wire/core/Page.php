@@ -1354,7 +1354,7 @@ class Page extends WireData implements Countable {
 	public function resetTrackChanges($trackChanges = true) {
 		parent::resetTrackChanges($trackChanges); 
 		foreach($this->data as $key => $value) {
-			if(is_object($value) && $value instanceof Wire) $value->resetTrackChanges($trackChanges); 
+			if(is_object($value) && $value instanceof Wire && $value !== $this) $value->resetTrackChanges($trackChanges); 
 		}
 		return $this; 
 	}

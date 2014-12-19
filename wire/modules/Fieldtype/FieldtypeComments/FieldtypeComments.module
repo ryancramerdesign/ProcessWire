@@ -522,10 +522,13 @@ class FieldtypeComments extends FieldtypeMulti {
 		if(count($itemsRemoved)) {
 			foreach($itemsRemoved as $item) {
 				if(!$item->id) continue; 
+				$this->deleteComment($page, $field, $item, 'deleted from savePageField()'); 
+				/*
 				$query = $database->prepare("DELETE FROM `$table` WHERE id=:item_id AND pages_id=:pages_id"); 
 				$query->bindValue(":item_id", $item->id, PDO::PARAM_INT);
 				$query->bindValue(":pages_id", $page->id, PDO::PARAM_INT);
 				$query->execute();
+				*/
 			}
 		}
 
@@ -879,90 +882,19 @@ class FieldtypeComments extends FieldtypeMulti {
 	}
 
 	/**
-	 * Given a field and a selector, find all comments matching the selector (static version)
-	 *
-	 * Note that if you don't specify a limit=n, it will default to a limit of 10
-	 * If you don't specify a sort, it will default to sort=-created
+	 * Find comments, static version for backwards compatibility
 	 *
 	 * @param Field|string Field object or name of field
 	 * @param string $selectorString Selector string with query
 	 * @return CommentArray
 	 * @throws WireException
+	 * @deprecated Use $field->type->find($field, $selectorString) instead.
 	 *
 	 */
 	static public function findComments($field, $selectorString) {
-
-		if(is_string($field)) $field = wire('fields')->get($field); 
-		if(!$field instanceof Field) throw new WireException('Arg 1 to findComments must be a field');
-
-		$limit = 10; 
-		$start = 0;
-		$desc = true; 
-		$sort = 'created';
-		$database = wire('database');
-		$table = $database->escapeTable($field->getTable());
-		$sql =  "SELECT * FROM $table WHERE id>0 ";
-		$selectors = new Selectors($selectorString); 
-
-		foreach($selectors as $selector) {
-
-			$f = $database->escapeCol($selector->field); 
-			$operator = $selector->operator; 
-			$value = $selector->value; 
-
-			if(!$database->isOperator($operator)) continue;
-			if(is_array($f)) $f = reset($f);
-			if(is_array($value)) $value = reset($value);
-
-			if($f == 'page') $f = 'pages_id';
-			if($f == 'user') $f = 'created_users_id';
-
-			if(in_array($f, array('id', 'status', 'created', 'pages_id', 'created_users_id'))) {
-				$sql .= "AND $f$operator" . ((int) $value)  . " "; 
-
-			} else if($f == 'start') {
-				$start = (int) $value; 
-
-			} else if($f == 'limit') {
-				$limit = (int) $value; 
-
-			} else if($f == 'sort') {
-				$desc = substr($value, 0, 1) == '-';
-				$value = trim($value, '-');
-				if(in_array($value, array('sort', 'status', 'id', 'pages_id', 'created_users_id', 'created'))) {
-					$sort = $database->escapeCol($value);
-				}
-
-			} else if($f == 'cite' || $f == 'email' || $f == 'ip') {
-				$value = $database->escapeStr($value); 
-				$sql .= "AND $f$operator'$value' ";
-			}
-
-		}
-
-		$sql .= "ORDER BY $sort " . ($desc ? "DESC" : "ASC") . " ";
-		$sql .= "LIMIT $start, $limit";
-		
-		$comments = new CommentArray();
-		$comments->setField($field); 
-
-		$query = $database->prepare($sql);
-		$query->execute();
-		
-		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
-			$comment = new Comment();
-			foreach($row as $key => $value) {
-				if($key == 'data') $key = 'text';
-				$comment->set($key, $value);
-			}
-			$comment->set('page', wire('pages')->get($row['pages_id']));
-			$comment->resetTrackChanges(true); 
-			$comments->add($comment);
-			$comment->setIsLoaded(true); 
-		}
-		$query->closeCursor();
-			
-		return $comments; 
+		if(is_string($field)) $field = wire('fields')->get($field);
+		if(!$field instanceof Field) throw new WireException('Arg 1 to findComments() must be a field');
+		return $field->type->find($field, $selectorString);
 	}
 
 	/**
@@ -978,7 +910,98 @@ class FieldtypeComments extends FieldtypeMulti {
 	 *
 	 */
 	public function find($field, $selectorString) {
-		return self::findComments($field, $selectorString); 
+		if(is_string($field)) $field = $this->wire('fields')->get($field);
+		if(!$field instanceof Field) throw new WireException('Arg 1 to find() must be a field');
+
+		$limit = 10;
+		$start = 0;
+		$desc = true;
+		$sort = 'created';
+		$database = $this->wire('database');
+		$table = $database->escapeTable($field->getTable());
+		$sql =  "SELECT * FROM `$table` WHERE id>0 ";
+		$sqlCount = "SELECT COUNT(*) FROM `$table` WHERE id>0 ";
+		$selectors = new Selectors($selectorString);
+
+		foreach($selectors as $selector) {
+
+			$f = $database->escapeCol($selector->field);
+			$operator = $selector->operator;
+			$value = $selector->value;
+			$_sql = '';
+
+			if(!$database->isOperator($operator)) continue;
+			if(is_array($f)) $f = reset($f);
+			if(is_array($value)) $value = reset($value);
+
+			if($f == 'page') $f = 'pages_id';
+			if($f == 'user') $f = 'created_users_id';
+
+			if(in_array($f, array('id', 'status', 'created', 'pages_id', 'parent_id', 'created_users_id', 'upvotes', 'downvotes'))) {
+				$_sql .= "AND $f$operator" . ((int) $value)  . " ";
+
+			} else if($f == 'start') {
+				$start = (int) $value;
+
+			} else if($f == 'limit') {
+				$limit = (int) $value;
+
+			} else if($f == 'sort') {
+				$desc = substr($value, 0, 1) == '-';
+				$value = trim($value, '-');
+				if(in_array($value, array('sort', 'status', 'id', 'pages_id', 'created_users_id', 'created', 'upvotes', 'downvotes'))) {
+					$sort = $database->escapeCol($value);
+				}
+
+			} else if($f == 'cite' || $f == 'email' || $f == 'ip') {
+				$value = $database->escapeStr($value);
+				$_sql .= "AND $f$operator'$value' ";
+			}
+
+			$sql .= $_sql;
+			$sqlCount .= $_sql;
+		}
+
+		$sql .= "ORDER BY $sort " . ($desc ? "DESC" : "ASC") . " ";
+		$sql .= "LIMIT $start, $limit";
+
+		$comments = new CommentArray();
+		$comments->setField($field);
+		$comments->setStart($start);
+		$comments->setLimit($limit);
+
+		$query = $database->prepare($sql);
+		$query->execute();
+		$commentPages = array();
+
+		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+			$comment = new Comment();
+			$comment->setField($field); 
+			foreach($row as $key => $value) {
+				if($key == 'data') $key = 'text';
+				$comment->set($key, $value);
+			}
+			$pageID = $row['pages_id'];
+			if(isset($commentPages[$pageID])) {
+				$page = $commentPages[$pageID];
+				$comment->setPage($commentPages[$pageID]); 
+			} else {
+				$page = $this->wire('pages')->get((int) $pageID);
+				$commentPages[$page->id] = $page; 
+			}
+			$comment->resetTrackChanges(true);
+			$comments->add($comment);
+			if($page->id) $comment->setPage($page);
+			$comment->setIsLoaded(true);
+		}
+		$query->closeCursor();
+		$query = $database->prepare($sqlCount);
+		$query->execute();
+		list($total) = $query->fetch(PDO::FETCH_NUM);
+		$comments->resetTrackChanges();
+		$comments->setTotal($total);
+
+		return $comments; 
 	}
 
 	/**
@@ -1094,8 +1117,10 @@ class FieldtypeComments extends FieldtypeMulti {
 		foreach($values as $property => $value) {
 			$query->bindValue(":$property", $value); 
 		}
+		$this->wire('pages')->saveFieldReady($page, $field);
 		try {
 			$result = $query->execute();
+			$this->wire('pages')->savedField($page, $field); 
 		} catch(Exception $e) {
 			$result = false;
 			if($this->wire('config')->debug) $this->error($e->getMessage(), Notice::log); 
@@ -1105,6 +1130,57 @@ class FieldtypeComments extends FieldtypeMulti {
 			$this->checkExistingComment($page, $field, $comment); 
 		}
 		return $result;
+	}
+
+	/**
+	 * Delete a given comment
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @param Comment $comment
+	 * @return mixed
+	 *
+	 */
+	public function deleteComment(Page $page, Field $field, Comment $comment, $notes = '') {
+		
+		if($field->depth > 0) {
+			foreach($comment->children() as $child) {
+				$this->deleteComment($page, $field, $child); 
+			}
+		}
+		
+		$table = $this->wire('database')->escapeTable($field->getTable());
+		$sql = "DELETE FROM `$table` WHERE id=:id AND pages_id=:pages_id";
+		$query = $this->wire('database')->prepare($sql); 
+		$query->bindValue(':id', $comment->id, PDO::PARAM_INT);
+		$query->bindValue(':pages_id', $page->id, PDO::PARAM_INT);
+		$comments = $page->get($field->name); 
+		
+		try {
+			$this->wire('pages')->saveFieldReady($page, $field); 
+			$result = $query->execute();
+			if($comments) $comments->remove($comment); 
+			$this->commentDeleted($page, $field, $comment, $notes); 
+			$this->wire('pages')->savedField($page, $field); 
+			
+		} catch(Exception $e) {
+			$this->error($e->getMessage()); 
+			$result = false;
+		}
+		
+		return $result;
+	}
+
+	/**
+	 * Hook called after comment has been deleted
+	 *
+	 * @param Page $page
+	 * @param Field $field
+	 * @param Comment $comment
+	 * @param string $notes
+	 *
+	 */
+	public function ___commentDeleted(Page $page, Field $field, Comment $comment, $notes = '') {
 	}
 
 	/**
@@ -1155,6 +1231,7 @@ class FieldtypeComments extends FieldtypeMulti {
 			}
 		}
 	}
+	
 
 	/**
 	 * Hook called when a comment goes from approved to pending or spam

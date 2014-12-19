@@ -26,6 +26,8 @@
  * @method bool trash() trash(Page $page, $save = true) Move a page to the trash. If you have already set the parent to somewhere in the trash, then this method won't attempt to set it again.
  * @method bool delete() delete(Page $page, $recursive = false) Permanently delete a page and it's fields. Unlike trash(), pages deleted here are not restorable. If you attempt to delete a page with children, and don't specifically set the $recursive param to True, then this method will throw an exception. If a recursive delete fails for any reason, an exception will be thrown.
  * @method Page|NullPage clone() clone(Page $page, Page $parent = null, $recursive = true, $options = array()) Clone an entire page, it's assets and children and return it.
+ * 
+ * @todo Update saveField to accept array of field names as an option. 
  *
  */
 
@@ -110,12 +112,13 @@ class Pages extends Wire {
 	public function init() {
 		$this->getById($this->config->preloadPageIDs); 
 	}
+	
 
 	/**
 	 * Given a Selector string, return the Page objects that match in a PageArray. 
 	 *
-	 * @param string $selectorString
-	 * @param array $options 
+	 * @param string|int $selectorString Specify selector string
+	 * @param array $options One or more options that can modify certain behaviors. 
 	 *	- findOne: boolean - apply optimizations for finding a single page and include pages with 'hidden' status (default: false)
 	 *	- getTotal: boolean - whether to set returning PageArray's "total" property (default: true except when findOne=true)
 	 *	- loadPages: boolean - whether to populate the returned PageArray with found pages (default: true). 
@@ -128,9 +131,7 @@ class Pages extends Wire {
 	public function ___find($selectorString, $options = array()) {
 
 		// TODO selector strings with runtime fields, like url=/about/contact/, possibly as plugins to PageFinder
-		
-		static $numCalls = 0;
-
+		// if(is_array($selectorString)) $selectorString = $this->arrayToSelectorString($selectorString); 
 		$loadPages = true; 
 		$debug = $this->wire('config')->debug; 
 		if(array_key_exists('loadPages', $options)) $loadPages = (bool) $options['loadPages'];
@@ -170,7 +171,6 @@ class Pages extends Wire {
 		// if a specific parent wasn't requested, then we assume they don't want results with status >= Page::statusUnsearchable
 		// if(strpos($selectorString, 'parent_id') === false) $selectorString .= ", status<" . Page::statusUnsearchable; 
 
-		$numCalls++;
 		$caller = isset($options['caller']) ? $options['caller'] : 'pages.find';
 		$selectors = new Selectors($selectorString); 
 		$pageFinder = $this->getPageFinder();
@@ -1682,7 +1682,7 @@ class Pages extends Wire {
 	 * @param array $values Array of values that changed, if values were being recorded, see Wire::getChanges(true) for details.
 	 *
 	 */
-	protected function ___saved(Page $page, array $changes = array(), $values = array()) { 
+	public function ___saved(Page $page, array $changes = array(), $values = array()) { 
 		$this->wire('cache')->maintenance($page);
 	}
 
@@ -1690,7 +1690,7 @@ class Pages extends Wire {
 	 * Hook called when a new page has been added
 	 *
 	 */
-	protected function ___added(Page $page) { }
+	public function ___added(Page $page) { }
 
 	/**
 	 * Hook called when a page has been moved from one parent to another
@@ -1698,7 +1698,7 @@ class Pages extends Wire {
 	 * Note the previous parent is in $page->parentPrevious
 	 *
 	 */
-	protected function ___moved(Page $page) { }
+	public function ___moved(Page $page) { }
 
 	/**
 	 * Hook called when a page's template has been changed
@@ -1706,19 +1706,19 @@ class Pages extends Wire {
 	 * Note the previous template is in $page->templatePrevious
 	 *
 	 */
-	protected function ___templateChanged(Page $page) { }
+	public function ___templateChanged(Page $page) { }
 
 	/**
 	 * Hook called when a page has been moved to the trash
 	 *
 	 */
-	protected function ___trashed(Page $page) { }
+	public function ___trashed(Page $page) { }
 
 	/**
 	 * Hook called when a page has been moved OUT of the trash
 	 *
 	 */
-	protected function ___restored(Page $page) { }
+	public function ___restored(Page $page) { }
 
 	/**
 	 * Hook called just before a page is saved
@@ -1731,7 +1731,7 @@ class Pages extends Wire {
 	 * @return array Optional extra data to add to pages save query.
 	 *
 	 */
-	protected function ___saveReady(Page $page) { return array(); }
+	public function ___saveReady(Page $page) { return array(); }
 
 	/**
 	 * Hook called when a page is about to be deleted, but before data has been touched
@@ -1740,13 +1740,13 @@ class Pages extends Wire {
 	 * been confirmed that the page is deleteable and WILL be deleted. 
 	 *
 	 */
-	protected function ___deleteReady(Page $page) { }
+	public function ___deleteReady(Page $page) { }
 
 	/**
 	 * Hook called when a page and it's data have been deleted
 	 *
 	 */
-	protected function ___deleted(Page $page) { 
+	public function ___deleted(Page $page) { 
 		$this->wire('cache')->maintenance($page);
 	}
 
@@ -1757,7 +1757,7 @@ class Pages extends Wire {
 	 * @param Page $copy The actual clone about to be saved
 	 *
 	 */
-	protected function ___cloneReady(Page $page, Page $copy) { }
+	public function ___cloneReady(Page $page, Page $copy) { }
 
 	/**
 	 * Hook called when a page has been cloned
@@ -1766,7 +1766,7 @@ class Pages extends Wire {
 	 * @param Page $copy The completed cloned version of the page
 	 *
 	 */
-	protected function ___cloned(Page $page, Page $copy) { }
+	public function ___cloned(Page $page, Page $copy) { }
 
 	/**
 	 * Hook called when a page has been renamed (i.e. had it's name field change)
@@ -1780,7 +1780,7 @@ class Pages extends Wire {
 	 * @param Page $page The $page that was renamed
 	 *
 	 */
-	protected function ___renamed(Page $page) { }
+	public function ___renamed(Page $page) { }
 
 	/**
 	 * Hook called when a page's has been changed and saved
@@ -1790,7 +1790,7 @@ class Pages extends Wire {
 	 * @param Page $page 
 	 *
 	 */
-	protected function ___statusChanged(Page $page) {
+	public function ___statusChanged(Page $page) {
 		$isPublished = !$page->isUnpublished();
 		$wasPublished = !($page->statusPrevious & Page::statusUnpublished);
 		if($isPublished && !$wasPublished) $this->published($page);
@@ -1805,7 +1805,7 @@ class Pages extends Wire {
 	 * @param Page $page 
 	 *
 	 */
-	protected function ___statusChangeReady(Page $page) {
+	public function ___statusChangeReady(Page $page) {
 		$isPublished = !$page->isUnpublished();
 		$wasPublished = !($page->statusPrevious & Page::statusUnpublished);
 		if($isPublished && !$wasPublished) $this->publishReady($page);
@@ -1818,7 +1818,7 @@ class Pages extends Wire {
 	 * @param Page $page 
 	 *
 	 */
-	protected function ___published(Page $page) { }
+	public function ___published(Page $page) { }
 
 	/**
 	 * Hook called after published page has just been unpublished
@@ -1826,7 +1826,7 @@ class Pages extends Wire {
 	 * @param Page $page 
 	 *
 	 */
-	protected function ___unpublished(Page $page) { }
+	public function ___unpublished(Page $page) { }
 
 	/**
 	 * Hook called right before an unpublished page is published and saved
@@ -1834,7 +1834,7 @@ class Pages extends Wire {
 	 * @param Page $page 
 	 *
 	 */
-	protected function ___publishReady(Page $page) { }
+	public function ___publishReady(Page $page) { }
 
 	/**
 	 * Hook called right before a published page is unpublished and saved
@@ -1842,7 +1842,7 @@ class Pages extends Wire {
 	 * @param Page $page 
 	 *
 	 */
-	protected function ___unpublishReady(Page $page) { }
+	public function ___unpublishReady(Page $page) { }
 
 	/**
 	 * Hook called at the end of a $pages->find(), includes extra info not seen in the resulting PageArray
@@ -1854,7 +1854,7 @@ class Pages extends Wire {
 	 * 	- array $options Options that were passed to $pages->find()
 	 *
 	 */
-	protected function ___found(PageArray $pages, array $details) { }
+	public function ___found(PageArray $pages, array $details) { }
 
 	/**
 	 * Hook called when Pages::saveField is going to execute
@@ -1863,7 +1863,7 @@ class Pages extends Wire {
 	 * @param Field $field
 	 * 
 	 */
-	protected function ___saveFieldReady(Page $page, Field $field) { }
+	public function ___saveFieldReady(Page $page, Field $field) { }
 
 	/**
 	 * Hook called after Pages::saveField successfully executes
@@ -1872,7 +1872,7 @@ class Pages extends Wire {
 	 * @param Field $field
 	 * 
 	 */
-	protected function ___savedField(Page $page, Field $field) { }
+	public function ___savedField(Page $page, Field $field) { }
 
 
 }

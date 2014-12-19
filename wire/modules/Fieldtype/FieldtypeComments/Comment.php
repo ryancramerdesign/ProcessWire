@@ -34,6 +34,12 @@ class Comment extends WireData {
 	const statusApproved = 1;
 
 	/**
+	 * Status for Comment to indicate pending deletion
+	 *
+	 */
+	const statusDelete = 999;
+
+	/**
 	 * Flag to indicate author of this comment wants to be notified of replies to their comment
 	 * 
 	 */
@@ -89,6 +95,14 @@ class Comment extends WireData {
 	 */
 	protected $loaded = false;
 
+	/**
+	 * Cached parent from parent() method
+	 * 
+	 * @var null
+	 * 
+	 */
+	protected $_parent = null;
+
 	/**	
 	 * Construct a Comment and set defaults
 	 *
@@ -121,6 +135,18 @@ class Comment extends WireData {
 
 		} else if($key == 'gravatar') {
 			return $this->gravatar();
+		
+		} else if($key == 'page') {
+			return $this->getPage();
+
+		} else if($key == 'field') {
+			return $this->getField();
+			
+		} else if($key == 'parent') {
+			return $this->parent();
+			
+		} else if($key == 'children') {
+			return $this->children();
 		}
 
 		return parent::get($key); 
@@ -154,6 +180,8 @@ class Comment extends WireData {
 				$value = str_replace("\n\n", "</p><p>", $value);
 				$value = str_replace("\n", "<br />", $value);
 			}
+
+
 			
 		} else if(in_array($key, array('cite', 'email', 'user_agent', 'website'))) {
 			$value = $this->wire('sanitizer')->entities(trim($value));
@@ -264,6 +292,49 @@ class Comment extends WireData {
 	
 	public function setIsLoaded($loaded) {
 		$this->loaded = $loaded ? true : false;
+	}
+
+	/**
+	 * Return the parent comment, if applicable
+	 * 
+	 * @return Comment|null
+	 * 
+	 */
+	public function parent() {
+		if(!is_null($this->_parent)) return $this->_parent;
+		$field = $this->getField();	
+		if(!$field->depth) return null;
+		$parent_id = $this->parent_id; 
+		if(!$parent_id) return null;
+		$comments = $this->getPage()->get($field->name);
+		$parent = null;
+		foreach($comments as $c) {
+			if($c->id != $parent_id) continue;
+			$parent = $c;
+			break;
+		}
+		$this->_parent = $parent; 
+		return $parent;
+	}
+
+	/**
+	 * Return children comments, if applicable
+	 * 
+	 * @return CommentArray
+	 * 
+	 */
+	public function children() {
+		$field = $this->getField();
+		$comments = $this->getPage()->get($field->name);
+		$children = $comments->makeNew();
+		$children->setPage($this->getPage());
+		$children->setField($field); 
+		$id = $this->id; 
+		foreach($comments as $comment) {
+			if(!$comment->parent_id) continue;
+			if($comment->parent_id == $id) $children->add($comment);
+		}
+		return $children;
 	}
 
 }
