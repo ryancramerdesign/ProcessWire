@@ -1209,6 +1209,12 @@ class ProcessModule extends Process {
 		$table->row(array($this->_x('Version', 'edit'), $version)); 
 		if(!empty($moduleInfo['created'])) $table->row(array($this->labels['installed_date'], wireRelativeTimeStr($moduleInfo['created'])));
 		if(!empty($moduleInfo['author'])) $table->row(array($this->_x('Author', 'edit'), $moduleInfo['author'])); 
+		if(!empty($moduleInfo['license'])) {
+			$hreflicense = '';
+			if(!empty($moduleInfo['hreflicense'])) {
+				if(substr($moduleInfo['hreflicense'],0,7) != 'http://') $moduleInfo['hreflicense'] = str_replace($moduleName.'.module','',$filename).$moduleInfo['hreflicense'];
+				$hreflicense = " - <a href='$moduleInfo[hreflicense]'>".$this->_('read more')."</a>";
+			}
 		$table->row(array($this->_x('Summary', 'edit'), $moduleInfo['summary'])); 
 		if($requirementsStr) $table->row(array($this->_x('Requires', 'edit'), $requirementsStr)); 
 		if($dependentsStr) $table->row(array($this->_x('Required By', 'edit'), $dependentsStr)); 

@@ -176,7 +176,7 @@ class ProcessLogin extends Process {
 			}
 			$home = $this->pages->get("/"); 
 			$links .= "<div><a href='{$home->url}'><i class='fa fa-home'></i> {$home->title}</a></div>";
-			if($links) $out .= "<p>$links</p>";
+			if($links) $out .= $links;
 			return $out; 
 		}
 	}
