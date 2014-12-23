@@ -865,7 +865,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		$notice->class = $this->className();
 		if(is_null($this->_notices[$name])) $this->_notices[$name] = new Notices();
 		$this->wire('notices')->add($notice);
-		$this->_notices[$name]->add($notice);
+		if(!($notice->flags & Notice::logOnly)) $this->_notices[$name]->add($notice);
 		return $this; 
 	}
 
