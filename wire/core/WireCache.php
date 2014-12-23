@@ -10,6 +10,8 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  *
  * http://processwire.com
+ * 
+ * @todo make it able to cache PageArrays (by caching IDs to array in save, and getById in get)
  *
  */
 

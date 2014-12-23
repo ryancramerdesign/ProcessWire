@@ -116,26 +116,43 @@ class Pages extends Wire {
 
 	/**
 	 * Given a Selector string, return the Page objects that match in a PageArray. 
+	 * 
+	 * Non-visible pages are excluded unless an include=hidden|unpublished|all mode is specified in the selector string, 
+	 * or in the $options array. If 'all' mode is specified, then non-accessible pages (via access control) can also be included. 
 	 *
-	 * @param string|int $selectorString Specify selector string
-	 * @param array $options One or more options that can modify certain behaviors. 
+	 * @param string|int|array $selectorString Specify selector string (standard usage), but can also accept page ID or array of page IDs.
+	 * @param array|string $options Optional one or more options that can modify certain behaviors. May be assoc array or key=value string.
 	 *	- findOne: boolean - apply optimizations for finding a single page and include pages with 'hidden' status (default: false)
 	 *	- getTotal: boolean - whether to set returning PageArray's "total" property (default: true except when findOne=true)
 	 *	- loadPages: boolean - whether to populate the returned PageArray with found pages (default: true). 
 	 *		The only reason why you'd want to change this to false would be if you only needed the count details from 
 	 *		the PageArray: getTotal(), getStart(), getLimit, etc. This is intended as an optimization for Pages::count().
+	 * 		Does not apply if $selectorString argument is an array. 
 	 *  - caller: string - optional name of calling function, for debugging purposes, i.e. pages.count
+	 * 	- include: string - Optional inclusion mode of 'hidden', 'unpublished' or 'all'. Default=none. Typically you would specify this 
+	 * 		directly in the selector string, so the option is mainly useful if your first argument is not a string. 
 	 * @return PageArray
 	 *
 	 */
 	public function ___find($selectorString, $options = array()) {
+		
+		if(is_string($options)) $options = Selectors::keyValueStringToArray($options); 
 
-		// TODO selector strings with runtime fields, like url=/about/contact/, possibly as plugins to PageFinder
-		// if(is_array($selectorString)) $selectorString = $this->arrayToSelectorString($selectorString); 
-		$loadPages = true; 
-		$debug = $this->wire('config')->debug; 
+		if(is_array($selectorString)) {
+			if(ctype_digit(implode('', array_keys($selectorString))) && ctype_digit(implode('', $selectorString))) {
+				// if given a regular array of page IDs, we delegate that to getById() method, but with access/visibility control
+				return $this->filterListable($this->getById($selectorString), isset($options['include']) ? $options['include'] : ''); 
+			} else {
+				// some other type of array/values that we don't yet recognize
+				// @todo add support for array selectors, per Selectors::arrayToSelectorString()
+				return new PageArray();
+			}
+		}
+
+		$loadPages = true;
+		$debug = $this->wire('config')->debug;
+
 		if(array_key_exists('loadPages', $options)) $loadPages = (bool) $options['loadPages'];
-
 		if(!strlen($selectorString)) return new PageArray();
 		if($selectorString === '/' || $selectorString === 'path=/') $selectorString = 1;
 
@@ -149,15 +166,17 @@ class Pages extends Wire {
 				// if selector is just a number, or a string like "id=123" then we're going to do a shortcut
 				$s = str_replace("id=", '', $selectorString); 
 				if(ctype_digit("$s")) {
-					$page = $this->getById(array((int) $s)); 
-					$pageArray = new PageArray();
-					$value = $page ? $pageArray->add($page) : $pageArray; 
+					$value = $this->getById(array((int) $s));
+					if(empty($options['findOne'])) $value = $this->filterListable($value, isset($options['include']) ? $options['include'] : '');
 					if($debug) $this->debugLog('find', $selectorString . " [optimized]", $value); 
 					return $value; 
 				}
 			}
 		}
 
+		if(isset($options['include']) && in_array($options['include'], array('hidden', 'unpublished', 'all'))) {
+			$selectorString .= ", include=$options[include]";
+		}
 		// see if this has been cached and return it if so
 		$pages = $this->getSelectorCache($selectorString, $options); 
 		if(!is_null($pages)) {
@@ -254,6 +273,7 @@ class Pages extends Wire {
 		return $pages; 
 	}
 
+
 	/**
 	 * Like find() but returns only the first match as a Page object (not PageArray)
 	 *
@@ -265,6 +285,7 @@ class Pages extends Wire {
 	public function findOne($selectorString, $options = array()) {
 		if(empty($selectorString)) return new NullPage();
 		if($page = $this->getCache($selectorString)) return $page; 
+		if(is_string($options)) $options = Selectors::keyValueStringToArray($options);
 		$defaults = array('findOne' => true, 'getTotal' => false, 'caller' => 'pages.get'); 
 		$options = array_merge($defaults, $options); 
 		$page = $this->find($selectorString, $options)->first();
@@ -428,6 +449,35 @@ class Pages extends Wire {
 
 		return $pages->import($loaded); 
 	}
+	
+	/**
+	 * Remove pages from already-loaded PageArray aren't visible or accessible
+	 *
+	 * @param PageArray $items
+	 * @param string $includeMode Optional inclusion mode:
+	 * 	- 'hidden': Allow pages with 'hidden' status'
+	 * 	- 'unpublished': Allow pages with 'unpublished' or 'hidden' status
+	 * 	- 'all': Allow all pages (not much point in calling this method)
+	 * @return PageArray
+	 *
+	 */
+	protected function filterListable(PageArray $items, $includeMode = '') {
+		if($includeMode === 'all') return $items;
+		$itemsAllowed = new PageArray();
+		foreach($items as $item) {
+			if($includeMode === 'unpublished') {
+				$allow = $item->status < Page::statusDraft;
+			} else if($includeMode === 'hidden') {
+				$allow = $item->status < Page::statusUnpublished;
+			} else {
+				$allow = $item->status < Page::statusHidden;
+			}
+			if($allow) $allow = $item->listable(); // confirm access
+			if($allow) $itemsAllowed->add($item);
+		}
+		$itemsAllowed->resetTrackChanges(true);
+		return $itemsAllowed;
+	}
 
 	/**
 	 * Add a new page using the given template to the given parent
@@ -540,11 +590,12 @@ class Pages extends Wire {
 	 * Count and return how many pages will match the given selector string
 	 *
 	 * @param string $selectorString
-	 * @param array $options See $options in Pages::find 
+	 * @param array|string $options See $options in Pages::find 
 	 * @return int
 	 *
 	 */
-	public function count($selectorString, array $options = array()) {
+	public function count($selectorString, $options = array()) {
+		if(is_string($options)) $options = Selectors::keyValueStringToArray($options);
 		$options['loadPages'] = false; 
 		$options['getTotal'] = true; 
 		$options['caller'] = 'pages.count';
@@ -810,7 +861,8 @@ class Pages extends Wire {
 			'forceID' => 0,
 			'ignoreFamily' => false, 
 			);
-	
+
+		if(is_string($options)) $options = Selectors::keyValueStringToArray($options);
 		$options = array_merge($defaultOptions, $options); 
 		$user = $this->wire('user');
 		$languages = $this->wire('languages'); 
@@ -1098,14 +1150,15 @@ class Pages extends Wire {
 	 *
 	 * @param Page $page
 	 * @param string|Field $field Field object or name (string)
-	 * @param array $options Specify option 'quiet' => true, to bypass updating of modified_users_id and modified time. 
+	 * @param array|string $options Specify option 'quiet' => true, to bypass updating of modified_users_id and modified time. 
 	 * @return bool True on success
 	 * @throws WireException
 	 *
 	 */
-	public function ___saveField(Page $page, $field, array $options = array()) {
+	public function ___saveField(Page $page, $field, $options = array()) {
 
 		$reason = '';
+		if(is_string($options)) $options = Selectors::keyValueStringToArray($options);
 		if($page->isNew()) throw new WireException("Can't save field from a new page - please save the entire page first"); 
 		if(!$this->isSaveable($page, $reason, $field, $options)) throw new WireException("Can't save field from page {$page->id}: {$page->path}: $reason"); 
 		if($field && (is_string($field) || is_int($field))) $field = $this->fuel('fields')->get($field);
@@ -1379,7 +1432,7 @@ class Pages extends Wire {
 	 * @param Page $page Page that you want to clone
 	 * @param Page $parent New parent, if different (default=same parent)
 	 * @param bool $recursive Clone the children too? (default=true)
-	 * @param array $options Optional options that can be passed to clone or save
+	 * @param array|string $options Optional options that can be passed to clone or save
 	 * 	- forceID (int): force a specific ID
 	 * 	- set (array): Array of properties to set to the clone (you can also do this later)
 	 * @return Page the newly cloned page or a NullPage() with id=0 if unsuccessful.
@@ -1388,6 +1441,8 @@ class Pages extends Wire {
 	 */
 	public function ___clone(Page $page, Page $parent = null, $recursive = true, $options = array()) {
 		
+		if(is_string($options)) $options = Selectors::keyValueStringToArray($options);
+			
 		// if parent is not changing, we have to modify name now
 		if(is_null($parent)) {
 			$parent = $page->parent; 
@@ -1669,6 +1724,26 @@ class Pages extends Wire {
 	 */
 	public function getPageFinder() {
 		return new PageFinder();
+	}
+
+
+	/**
+	 * Enables use of $pages(123), $pages('/path/') or $pages('selector string')
+	 * 
+	 * When given an integer or page path string, it calls $pages->get(key); 
+	 * When given a string, it calls $pages->find($key);
+	 * When given an array, it calls $pages->getById($key);
+	 * 
+	 * @param string|int|array $key
+	 * @return Page|PageArray
+	 *
+	 */
+	public function __invoke($key) {
+		if(empty($key)) return $this;
+		if(is_int($key)) return $this->get($key); 
+		if(is_array($key)) return $this->getById($key); 
+		if(strpos($key, '/') === 0 && ctype_alnum(str_replace(array('/', '-', '_', '.'), '', $key))) return $this->get($key);
+		return $this->find($key);
 	}
 
 	/**

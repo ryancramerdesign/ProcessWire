@@ -20,6 +20,8 @@
  * @property Fieldtype $prevFieldtype
  * @property int $flags
  * @property string $label
+ * 
+ * @todo add modified date property
  *
  */
 class Field extends WireData implements Saveable, Exportable {

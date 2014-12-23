@@ -2698,5 +2698,17 @@ class Modules extends WireArray {
 		$this->substitutes = array_merge($this->substitutes, $substitutes); 
 	}
 
+
+	/**
+	 * Enables use of $modules('ModuleName')
+	 *
+	 * @param string $key
+	 * @return mixed
+	 *
+	 */
+	public function __invoke($key) {
+		return $this->get($key);
+	}
+
 }
 

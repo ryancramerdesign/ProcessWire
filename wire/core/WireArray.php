@@ -1536,5 +1536,25 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		return $this;
 	}
 
+	/**
+	 * Enables use of $var('key')
+	 *
+	 * @param string $key
+	 * @return mixed
+	 *
+	 */
+	public function __invoke($key) {
+		if(in_array($key, array('first', 'last', 'count'))) return $this->$key();
+		if(is_int($key) || ctype_digit($key)) {
+			if($this->usesNumericKeys()) {
+				// if keys are already numeric, we use them
+				return $this->get((int) $key); 
+			} else {
+				// if keys are not numeric, we delegete numers to eq(n)
+				return $this->eq((int) $key);
+			}
+		}
+		return $this->get($key);
+	}
 
 }

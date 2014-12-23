@@ -33,7 +33,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 5; 
-	const versionRevision = 11; 
+	const versionRevision = 12; 
 	const versionSuffix = 'dev';
 	
 	const indexVersion = 250; // required version for index.php file (represented by PROCESSWIRE define)
@@ -338,6 +338,13 @@ class ProcessWire extends Wire {
 	public function set($key, $value, $lock = false) {
 		$this->wire($key, $value, $lock);
 		return $this;
+	}
+	
+	public function __call($method, $arguments) {
+		if(method_exists($this, "___$method")) return parent::__call($method, $arguments); 
+		$value = $this->__get($method);
+		if(is_object($value)) return call_user_func_array(array($value, '__invoke'), $arguments); 
+		return parent::__call($method, $arguments);
 	}
 
 }
