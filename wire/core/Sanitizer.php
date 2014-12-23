@@ -504,7 +504,12 @@ class Sanitizer extends Wire {
 			if($options['allowRelative']) {
 				// determine if this is a domain name 
 				// regex legend:       (www.)?      company.         com       ( .uk or / or end)
-				if(strpos($value, '.') && preg_match('{^([^\s_.]+\.)?[^-_\s.][^\s_.]+\.([a-z]{2,6})([./:#]|$)}i', $value, $matches)) {
+				$dotPos = strpos($value, '.');	
+				$slashPos = strpos($value, '/'); 
+				if($slashPos === false) $slashPos = $dotPos+1;
+				// if the first slash comes after the first dot, the dot is likely part of a domain.com/path/
+				// if the first slash comes before the first dot, then it's likely a /path/product.html
+				if($dotPos && $slashPos > $dotPos && preg_match('{^([^\s_.]+\.)?[^-_\s.][^\s_.]+\.([a-z]{2,6})([./:#]|$)}i', $value, $matches)) {
 					// most likely a domain name
 					// $tld = $matches[3]; // TODO add TLD validation to confirm it's a domain name
 					$value = filter_var("http://$value", FILTER_VALIDATE_URL); // add scheme for validation
@@ -512,9 +517,10 @@ class Sanitizer extends Wire {
 				} else if($options['allowQuerystring']) {
 					// we'll construct a fake domain so we can use FILTER_VALIDATE_URL rules
 					$fake = 'http://processwire.com/';
+					$slash = strpos($value, '/') === 0 ? '/' : '';
 					$value = $fake . ltrim($value, '/'); 
 					$value = filter_var($value, FILTER_VALIDATE_URL); 
-					$value = str_replace($fake, '/', $value);
+					$value = str_replace($fake, $slash, $value);
 
 				} else {
 					// most likely a relative path
