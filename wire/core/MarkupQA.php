@@ -164,8 +164,9 @@ class MarkupQA extends Wire {
 			return;
 		}
 
-		if($replaceAlt) {
-			// image has a blank alt tag, meaning, we will auto-populate it with current file description
+		if($replaceAlt && $this->page->of()) {
+			// image has a blank alt tag, meaning, we will auto-populate it with current file description, 
+			// if output formatting is on
 			$alt = $pagefile->description;
 			if(strlen($alt)) {
 				$alt = $this->wire('sanitizer')->entities1($alt);
