@@ -93,6 +93,25 @@ class NotificationArray extends WireArray {
 	}
 
 	/**
+	 * Get a notification that contains the given value for $property
+	 * 
+	 * @param string $property
+	 * @param mixed $value
+	 * @return null|Notification
+	 * 
+	 */
+	public function getBy($property, $value) {
+		$found = null;
+		foreach($this as $notification) {
+			if($notification->get($property) == $value) {
+				$found = $notification;
+				break;
+			}
+		}
+		return $found;
+	}
+
+	/**
 	 * Save any changes or additions that were made to these Notifications
 	 * 
 	 * @return bool

@@ -9,15 +9,23 @@
  * /wire/core/Fieldtype.php
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
 class FieldtypeTextarea extends FieldtypeText {
+	
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Textarea',
+			'version' => 104,
+			'summary' => 'Field that stores multiple lines of text',
+			'permanent' => true,
+		);
+	}
 
 	/**
 	 * The default Inputfield class associated with this Fieldtype
@@ -35,16 +43,21 @@ class FieldtypeTextarea extends FieldtypeText {
 	 * Indicates a Markup/HTML content type
 	 *
 	 */
-	const contentTypeHTML = 1; 
+	const contentTypeHTML = 1;
 
-	public static function getModuleInfo() {
-		return array(
-			'title' => 'Textarea',
-			'version' => 103,
-			'summary' => 'Field that stores multiple lines of text',
-			'permanent' => true, 
-			);
-	}
+	/**
+	 * Indicates a Markup/HTML content type with image QA
+	 *
+	 */
+	const contentTypeImageHTML = 2; 
+
+	/**
+	 * Instance of MarkupQA 
+	 * 
+	 * @var MarkupQA
+	 * 
+	 */
+	protected $markupQA = null;
 
 	public function init() {
 		$this->set('inputfieldClass', self::defaultInputfieldClass); 
@@ -63,7 +76,7 @@ class FieldtypeTextarea extends FieldtypeText {
 
 	public function ___sleepValue(Page $page, Field $field, $value) {
 		$value = parent::___sleepValue($page, $field, $value);
-		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, true);
+		if($field->contentType >= self::contentTypeHTML) $this->htmlReplacements($page, $field,$value, true);
 		return $value; 
 	}
 	
@@ -71,79 +84,66 @@ class FieldtypeTextarea extends FieldtypeText {
 		// note: we do this here in addition to loadPageField to account for values that came
 		// from external resources (not loaded from DB). 
 		$value = parent::___wakeupValue($page, $field, $value);
-		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, false);
+		if($field->contentType >= self::contentTypeHTML) {
+			$this->htmlReplacements($page, $field, $value, false);
+		}
 		return $value;
 	}
 	
 	public function ___loadPageField(Page $page, Field $field) {
 		$value = parent::___loadPageField($page, $field);
-		if($field->contentType == self::contentTypeHTML) $this->htmlReplacements($value, false);
+		if($field->contentType >= self::contentTypeHTML) {
+			$this->htmlReplacements($page, $field, $value, false);
+		}
 		return $value; 
 	}
 
 	/**
 	 * Content Type HTML replacements accounting for href and src attributes
 	 * 
+	 * This ensures that sites migrated from one subdirectory to another, or from a subdirectory to
+	 * a non-subdir, or non-subdir to a subdir, continue working. This adds runtime context
+	 * to 'href' and 'src' attributes in HTML.
+	 *
+	 * This method modifies the $value directly rather than returning it.
+	 *
+	 * In order to make the abstracted attributes identifiable to this function (so they can be reversed)
+	 * it replaces the space preceding the attribute name with a tab character. This ensures the HTML
+	 * underneath still remains compliant in case it is later extracted directly from the DB for
+	 * data conversion or something like that. 
+	 * 
 	 * This one handles a string value or array of string values (like for multi-language support)
 	 * 
+	 * @param Page $page
+	 * @param Field $field
  	 * @param string|array $value Value to look for attributes (or array of values)
 	 * @param bool $sleep When true, convert links starting with root URL to "/". When false, do the reverse. 
 	 * 	
 	 */
-	protected function htmlReplacements(&$value, $sleep = true) {
+	protected function htmlReplacements(Page $page, Field $field, &$value, $sleep = true) {
+		if(is_null($this->markupQA)) {
+			$this->markupQA = new MarkupQA($page, $field); 
+		} else {
+			$this->markupQA->setPage($page);
+			$this->markupQA->setField($field);
+		}
 		if(is_array($value)) {
 			foreach($value as $k => $v) {
-				$this->htmlReplacement($v, $sleep); 
+				if($sleep) {
+					$this->markupQA->sleepUrls($v); 
+				} else {
+					$this->markupQA->wakeupUrls($v); 
+					if($field->contentType >= self::contentTypeImageHTML) $this->markupQA->checkImgTags($v);
+				}
 				$value[$k] = $v;
 			}
 		} else if(is_string($value)) {
-			$this->htmlReplacement($value, $sleep); 
-		}
-	}
-
-	/**
-	 * Content Type HTML replacements accounting for href and src attributes
-	 *
-	 * This ensures that sites migrated from one subdirectory to another, or from a subdirectory to
-	 * a non-subdir, or non-subdir to a subdir, continue working. This adds runtime context
-	 * to 'href' and 'src' attributes in HTML.
-	 * 
-	 * This method modifies the $value directly rather than returning it. 
-	 * 
-	 * In order to make the abstracted attributes identifiable to this function (so they can be reversed)
-	 * it replaces the space preceding the attribute name with a tab character. This ensures the HTML
-	 * underneath still remains compliant in case it is later extracted directly from the DB for 
-	 * data conversion or something like that. 
-	 *
-	 * @param string $value Value to look for attributes
-	 * @param bool $sleep When true, convert links starting with root URL to "/". When false, do the reverse. 
-	 * 
-	 */
-	protected function htmlReplacement(&$value, $sleep = true) {
-		
-		// see if quick exit possible
-		if(stripos($value, 'href=') === false && stripos($value, 'src=') === false) return;
-		
-		$rootURL = $this->wire('config')->urls->root; 
-		
-		$replacements = array(
-			" href=\"$rootURL" => "\thref=\"/", 
-			" href='$rootURL" => "\thref='/", 
-			" src=\"$rootURL" => "\tsrc=\"/", 
-			" src='$rootURL" => "\tsrc='/", 
-			);
-		
-		if($sleep) {
-			// sleep 
-			$value = str_ireplace(array_keys($replacements), array_values($replacements), $value); 
-			
-		} else if(strpos($value, "\t") === false) {
-			// no wakeup necessary (quick exit)
-			return;
-			
-		} else {
-			// wakeup
-			$value = str_ireplace(array_values($replacements), array_keys($replacements), $value); 
+			if($sleep) {
+				$this->markupQA->sleepUrls($value); 
+			} else {
+				$this->markupQA->wakeupUrls($value);
+				if($field->contentType >= self::contentTypeImageHTML) $this->markupQA->checkImgTags($value);
+			}
 		}
 	}
 
@@ -216,9 +216,15 @@ class FieldtypeTextarea extends FieldtypeText {
 		$f->attr('name', 'contentType'); 
 		$f->label = $this->_('Content Type'); 
 		$f->addOption(self::contentTypeUnknown, $this->_('Unknown')); 
-		$f->addOption(self::contentTypeHTML, $this->_('Markup/HTML')); 
+		$f->addOption(self::contentTypeHTML, $this->_('Markup/HTML'));
+		$f->addOption(self::contentTypeImageHTML, $this->_('Markup/HTML with image management')); 
 		$f->attr('value', (int) $field->contentType); 
-		$f->description = $this->_('The Markup/HTML option is recommended for fields using rich text editors (TinyMCE, CKEditor, etc.) and those containing HTML. It provides additional runtime filtering for quality assurance.'); // Content type description
+		$f->description = $this->_('The Markup/HTML choice (optionally with image management) is recommended for fields using rich text editors (TinyMCE, CKEditor, etc.) and those containing HTML. It provides additional runtime checks filtering for quality assurance.'); // Content type description
+		$f->notes = $this->_('Choose the "Markup/HTML with image management" option to add the following runtime checks:') . "\n" . 
+			$this->_('1. Populate blank alt attributes with file description - ensures changes to file description are reflected in <img> alt attribute.') . "\n" . 
+			$this->_('2. Automatically re-create image size variations that do not exist.') . "\n" . 
+			$this->_('3. Remove <img> tags that point to files that do not exist.') . "\n" . 
+			$this->_('4. Record missing image errors to "markup-qa-errors" log file and send notification to system/admin user.'); 
 		$inputfields->append($f); 
 		
 		return $inputfields; 

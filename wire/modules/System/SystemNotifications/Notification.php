@@ -333,14 +333,14 @@ class Notification extends WireData {
 	 */
 	public function getHash() {
 
-		$id = 	parent::get('title') . ',' .
-				parent::get('from') . ',' .
-				parent::get('src_id') . ',' .
-				($this->page ? $this->page->id : '?') . ',' . 
-				parent::get('flags') . ',' . 
-				parent::get('icon') . ',' . 
-				parent::get('text') . ',' . 
-				parent::get('html');
+		$id = 	trim(parent::get('title')) . ',' .
+				// parent::get('from') . ',' .
+				// parent::get('src_id') . ',' .
+				// ($this->page ? $this->page->id : '?') . ',' . 
+				// parent::get('flags') . ',' . 
+				// parent::get('icon') . ',' . 
+				trim(parent::get('text')) . ',' . 
+				trim(parent::get('html'));
 
 		return md5($id);
 	}
@@ -353,6 +353,7 @@ class Notification extends WireData {
 
 		if($key == 'id') return $this->getID();
 		if($key == 'page') return $this->page; 
+		if($key == 'hash') return $this->getHash();
 
 		if($key == 'flagNames') {
 			$flags = parent::get('flags');

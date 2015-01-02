@@ -57,19 +57,21 @@ class Pageimages extends Pagefiles {
 	
 		$hasFile = parent::getFile($name); 
 		if($hasFile) return $hasFile; 
+	
+		// populate $base with $name sans ImageSizer info and extension
 		$name = basename($name);
 		$pos = strpos($name, '.'); 
-		$base = substr($name, 0, $pos); 
-		
+		$base = substr($name, 0, $pos);
+	
 		foreach($this as $pagefile) {
-			if(strpos($pagefile->basename, $base) !== 0) continue; 
+			if(strpos($pagefile->basename, $base) !== 0) continue;
 			// they start the same, is it a variation?
-			if(!$pagefile->isVariation($name)) continue; 
+			if(!$pagefile->isVariation($name)) continue;
 			// if we are here we found a variation
-			$hasFile = $pagefile; 
+			$hasFile = $pagefile;
 			break;
 		}
-		
+			
 		return $hasFile;
 	}
 }

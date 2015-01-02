@@ -93,13 +93,13 @@ var Notifications = {
 	
 	setTurboMode: function(turbo) {
 		if(turbo) {
-			console.log('setTurboMode: true'); 
+			// console.log('setTurboMode: true'); 
 			if(Notifications.currentDelay != Notifications.options.updateDelayFast) {
 				Notifications.currentDelay = Notifications.options.updateDelayFast;
 				Notifications.update();
 			}
 		} else {
-			console.log('setTurboMode: false'); 
+			// console.log('setTurboMode: false'); 
 			Notifications.currentDelay = Notifications.options.updateDelay;
 		}
 	},

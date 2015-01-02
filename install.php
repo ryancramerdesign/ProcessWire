@@ -392,7 +392,8 @@ class Installer {
 		if(!isset($values['dbHost'])) $values['dbHost'] = ini_get("mysqli.default_host"); 
 		if(!isset($values['dbPort'])) $values['dbPort'] = ini_get("mysqli.default_port"); 
 		if(!isset($values['dbUser'])) $values['dbUser'] = ini_get("mysqli.default_user"); 
-		if(!isset($values['dbPass'])) $values['dbPass'] = ini_get("mysqli.default_pw"); 
+		if(!isset($values['dbPass'])) $values['dbPass'] = ini_get("mysqli.default_pw");
+		if(!isset($values['dbEngine'])) $values['dbEngine'] = 'MyISAM';
 
 		if(!$values['dbHost']) $values['dbHost'] = 'localhost';
 		if(!$values['dbPort']) $values['dbPort'] = 3306; 
