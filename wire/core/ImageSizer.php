@@ -366,6 +366,7 @@ class ImageSizer extends Wire {
 				throw new WireException(basename($filename) . " - not enough memory to copy the final cropExtra");
 			}
 			$thumb = imagecreatetruecolor(imagesx($image), imagesy($image));          // create the final memory image
+			$this->prepareImageLayer($thumb, $image);
 			imagecopy($thumb, $image, 0, 0, 0, 0, imagesx($image), imagesy($image));  // copy our intermediate image into the final one
 
 		} else if($gdWidth == $targetWidth && $gdHeight == $targetHeight) {
