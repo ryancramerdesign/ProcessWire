@@ -33,7 +33,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 5; 
-	const versionRevision = 13; 
+	const versionRevision = 14; 
 	const versionSuffix = 'dev';
 	
 	const indexVersion = 250; // required version for index.php file (represented by PROCESSWIRE define)
@@ -188,6 +188,7 @@ class ProcessWire extends Wire {
 		
 		$cache = new WireCache(); 
 		$this->wire('cache', $cache); 
+		$cache->preload($config->preloadCacheNames); 
 
 		try { 		
 			if($this->debug) Debug::timer('boot.load.modules');
@@ -239,8 +240,7 @@ class ProcessWire extends Wire {
 		if($this->debug) Debug::saveTimer('boot.load.roles');
 
 		if($this->debug) Debug::timer('boot.load.users'); 
-		if(!$t = $templates->get('user')) throw new WireException("Missing system template: 'user'"); 
-		$users = new Users($t, $config->usersPageID); 
+		$users = new Users($config->userTemplateIDs, $config->usersPageIDs); 
 		$this->wire('users', $users, true);
 		if($this->debug) Debug::saveTimer('boot.load.users'); 
 

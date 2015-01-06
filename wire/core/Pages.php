@@ -131,6 +131,7 @@ class Pages extends Wire {
 	 *  - caller: string - optional name of calling function, for debugging purposes, i.e. pages.count
 	 * 	- include: string - Optional inclusion mode of 'hidden', 'unpublished' or 'all'. Default=none. Typically you would specify this 
 	 * 		directly in the selector string, so the option is mainly useful if your first argument is not a string. 
+	 * 	- loadOptions: array - Optional assoc array of options to pass to getById() load options .
 	 * @return PageArray
 	 *
 	 */
@@ -150,6 +151,7 @@ class Pages extends Wire {
 		}
 
 		$loadPages = true;
+		$loadOptions = isset($options['loadOptions']) && is_array($options['loadOptions']) ? $options['loadOptions'] : array();
 		$debug = $this->wire('config')->debug;
 
 		if(array_key_exists('loadPages', $options)) $loadPages = (bool) $options['loadPages'];
@@ -166,7 +168,7 @@ class Pages extends Wire {
 				// if selector is just a number, or a string like "id=123" then we're going to do a shortcut
 				$s = str_replace("id=", '', $selectorString); 
 				if(ctype_digit("$s")) {
-					$value = $this->getById(array((int) $s));
+					$value = $this->getById(array((int) $s), $loadOptions);
 					if(empty($options['findOne'])) $value = $this->filterListable($value, isset($options['include']) ? $options['include'] : '');
 					if($debug) $this->debugLog('find', $selectorString . " [optimized]", $value); 
 					return $value; 
@@ -221,7 +223,10 @@ class Pages extends Wire {
 				// perform a load for each template, which results in unsorted pages
 				$unsortedPages = new PageArray();
 				foreach($idsByTemplate as $tpl_id => $ids) {
-					$unsortedPages->import($this->getById($ids, $this->templates->get($tpl_id), $parent_id)); 
+					$opt = $loadOptions; 
+					$opt['template'] = $this->templates->get($tpl_id); 
+					$opt['parent_id'] = $parent_id; 
+					$unsortedPages->import($this->getById($ids, $opt)); 
 				}
 
 				// put pages back in the order that the selectorEngine returned them in, while double checking that the selector matches
@@ -238,7 +243,10 @@ class Pages extends Wire {
 				// there is only one template used, so no resorting is necessary	
 				$pages = new PageArray();
 				reset($idsByTemplate); 
-				$pages->import($this->getById($idsSorted, $this->templates->get(key($idsByTemplate)), $parent_id)); 
+				$opt = $loadOptions; 
+				$opt['template'] = $this->templates->get(key($idsByTemplate)); 
+				$opt['parent_id'] = $parent_id; 
+				$pages->import($this->getById($idsSorted, $opt)); 
 			}
 
 		} else {
@@ -312,25 +320,50 @@ class Pages extends Wire {
 	 * Optionally specify an $options array rather than a template for argument 2. When present, the 'template' and 'parent_id' arguments may be provided
 	 * in the given $options array. These options may be specified: 
 	 * 
+	 * LOAD OPTIONS (argument 2 array): 
 	 * - template: instance of Template (see $template argument)
 	 * - parent_id: integer (see $parent_id argument)
 	 * - getNumChildren: boolean, default=true. Specify false to disable retrieval and population of 'numChildren' Page property. 
+	 * - getOne: boolean, default=false. Specify true to return just one Page object, rather than a PageArray.
+	 * - autojoin: boolean, default=true. Allow use of autojoin option?
+	 * - joinFields: array, default=empty. Autojoin the field names specified in this array, regardless of field settings (requires autojoin=true).
+	 * - joinSortfield: boolean, default=true. Whether the 'sortfield' property will be joined to the page.
+	 * - findTemplates: boolean, default=true. Determine which templates will be used (when no template specified) for more specific autojoins.
+	 * - pageClass: string, default=auto-detect. Class to instantiate Page objects with. Leave blank to determine from template. 
+	 * - pageArrayClass: string, default=PageArray. PageArray-derived class to store pages in (when 'getOne' is false). 
+	 * 
+	 * Use the $options array for potential speed optimizations:
+	 * - Specify a 'template' with your call, when possible, so that this method doesn't have to determine it separately. 
+	 * - Specify false for 'getNumChildren' for potential speed optimization when you know for certain pages will not have children. 
+	 * - Specify false for 'autojoin' for potential speed optimization in certain scenarios (can also be a bottleneck, so be sure to test). 
+	 * - Specify false for 'joinSortfield' for potential speed optimization when you know the Page will not have children or won't need to know the order.
+	 * - Specify false for 'findTemplates' so this method doesn't have to look them up. Potential speed optimization if you have few autojoin fields globally.
+	 * - Note that if you specify false for 'findTemplates' the pageClass is assumed to be 'Page' unless you specify something different for the 'pageClass' option.
 	 *
-	 * @param array|WireArray|string $ids Array of IDs or CSV string of IDs
+	 * @param array|WireArray|string $_ids Array of IDs or CSV string of IDs
 	 * @param Template|array|null $template Specify a template to make the load faster, because it won't have to attempt to join all possible fields... just those used by the template. 
 	 *	Optionally specify an $options array instead, see the method notes above. 
 	 * @param int|null $parent_id Specify a parent to make the load faster, as it reduces the possibility for full table scans. 
 	 *	This argument is ignored when an options array is supplied for the $template. 
-	 * @return PageArray
+	 * @return PageArray|Page Returns Page only if the 'getOne' option is specified, otherwise always returns a PageArray.
 	 * @throws WireException
 	 *
 	 */
-	public function getById($ids, $template = null, $parent_id = null) {
-	
+	public function getById($_ids, $template = null, $parent_id = null) {
+		
+		static $instanceID = 0;
+		
 		$options = array(
 			'template' => null,
 			'parent_id' => null, 
-			'getNumChildren' => true
+			'getNumChildren' => true,
+			'getOne' => false, 
+			'autojoin' => true, 
+			'findTemplates' => true, 
+			'joinSortfield' => true, 
+			'joinFields' => array(),
+			'pageClass' => '',  // blank = auto detect
+			'pageArrayClass' => 'PageArray', 
 			);
 
 		if(is_array($template)) {
@@ -341,23 +374,43 @@ class Pages extends Wire {
 		} else if(!is_null($template) && !$template instanceof Template) {
 			throw new WireException('getById argument 2 must be Template or $options array'); 
 		}
+		
+		$pageArrayClass = $options['pageArrayClass'];
+	
+		if(!is_null($parent_id) && !is_int($parent_id)) {
+			// convert Page object or string to integer id
+			$parent_id = (int) ((string) $parent_id);
+		}
+		
+		if(!is_null($template) && !is_object($template)) {
+			// convert template string or id to Template object
+			$template = $this->wire('templates')->get($template); 
+		}
 
-		static $instanceID = 0;
+		if(is_string($_ids)) {
+			// convert string of IDs to array
+			if(strpos($_ids, '|') !== false) $_ids = explode('|', $_ids); 
+				else $_ids = explode(",", $_ids);
+		}
+		
+		if(!WireArray::iterable($_ids) || !count($_ids)) {
+			// return blank if $_ids isn't iterable or is empty
+			return $options['getOne'] ? new NullPage() : new $pageArrayClass();
+		}
+		
+		if(is_object($_ids)) $_ids = $_ids->getArray(); // ArrayObject or the like
+		
+		$loaded = array(); // array of id => Page objects that have been loaded
+		$ids = array(); // sanitized version of $_ids
 
-		$database = $this->wire('database');
-		$pages = new PageArray();
-		if(is_string($ids)) $ids = explode(",", $ids); 
-		if(!WireArray::iterable($ids) || !count($ids)) return $pages; 
-		if(is_object($ids)) $ids = $ids->getArray();
-		$loaded = array();
-
-		foreach($ids as $key => $id) {
+		// sanitize ids and determine which pages we can pull from cache
+		foreach($_ids as $key => $id) {
+			
 			$id = (int) $id; 
-			$ids[$key] = $id; 
 
 			if($page = $this->getCache($id)) {
+				// page is already available in the cache	
 				$loaded[$id] = $page; 
-				unset($ids[$key]); 
 			
 			} else if(isset(Page::$loadingStack[$id])) {
 				// if the page is already in the process of being loaded, point to it rather than attempting to load again.
@@ -365,42 +418,73 @@ class Pages extends Wire {
 				$loaded[$id] = Page::$loadingStack[$id];
 				// cache the pre-loaded version so that other pages referencing it point to this instance rather than loading again
 				$this->cache($loaded[$id]); 
-				unset($ids[$key]); 
 
 			} else {
 				$loaded[$id] = ''; // reserve the spot, in this order
+				$ids[(int) $key] = $id; // queue id to be loaded
 			}
 		}
 
-		$idCnt = count($ids); 
-		if(!$idCnt) return $pages->import($loaded); 
+		$idCnt = count($ids); // idCnt contains quantity of remaining page ids to load
+		if(!$idCnt) {
+			// if there are no more pages left to load, we can return what we've got
+			if($options['getOne']) return count($loaded) ? reset($loaded) : new NullPage();
+			$pages = new $pageArrayClass();
+			$pages->import($loaded);
+			return $pages; 
+		}
+
+		$database = $this->wire('database');
 		$idsByTemplate = array();
 
-		if(is_null($template)) {
+		if(is_null($template) && $options['findTemplates']) {
 			
+			// template was not defined with the function call, so we determine
+			// which templates are used by each of the pages we have to load
+
 			$sql = "SELECT id, templates_id FROM pages WHERE ";
-			if($idCnt == 1) $sql .= "id=" . (int) reset($ids); 
-				else $sql .= "id IN(" . implode(",", $ids) . ")";
 			
+			if($idCnt == 1) {
+				$sql .= "id=" . (int) reset($ids);
+			} else {
+				$sql .= "id IN(" . implode(",", $ids) . ")";
+			}
+
 			$query = $database->prepare($sql);
 			$result = $query->execute();
 			if($result) while($row = $query->fetch(PDO::FETCH_NUM)) {
 				list($id, $templates_id) = $row;
+				$id = (int) $id;
+				$templates_id = (int) $templates_id;
 				if(!isset($idsByTemplate[$templates_id])) $idsByTemplate[$templates_id] = array();
 				$idsByTemplate[$templates_id][] = $id;
 			}
 			$query->closeCursor();
+
+		} else if(is_null($template)) { 
+			// no template provided, and autojoin not needed (so we don't need to know template)
+			$idsByTemplate = array(0 => $ids); 
 			
 		} else {
+			// template was provided
 			$idsByTemplate = array($template->id => $ids); 
 		}
 
 		foreach($idsByTemplate as $templates_id => $ids) { 
 
-			if(!$template || $template->id != $templates_id) $template = $this->wire('templates')->get($templates_id);
-			$fields = $template->fieldgroup; 
+			if($templates_id && (!$template || $template->id != $templates_id)) {
+				$template = $this->wire('templates')->get($templates_id);
+			}
+			
+			if($template) {
+				$fields = $template->fieldgroup;
+			} else {
+				$fields = $this->wire('fields'); 
+			}
+			
 			$query = new DatabaseQuerySelect();
-			$joinSortfield = empty($template->sortfield);
+			$sortfield = $template ? $template->sortfield : ''; 
+			$joinSortfield = empty($sortfield) && $options['joinSortfield'];
 
 			$query->select(
 				// note that "false AS isLoaded" triggers the setIsLoaded() function in Page intentionally
@@ -411,17 +495,22 @@ class Pages extends Wire {
 
 			if($joinSortfield) $query->leftjoin('pages_sortfields ON pages_sortfields.pages_id=pages.id'); 
 			$query->groupby('pages.id'); 
-	
-			foreach($fields as $field) { 
-				if(!($field->flags & Field::flagAutojoin)) continue; 
-				$table = $database->escapeTable($field->table); 
+
+			if($options['autojoin']) foreach($fields as $field) {
+				if(!empty($options['joinFields']) && in_array($field->name, $options['joinFields'])) {
+					// joinFields option specified to force autojoin this field
+				} else {
+					if(!($field->flags & Field::flagAutojoin)) continue; // autojoin not enabled for field
+					if($fields instanceof Fields && !($field->flags & Field::flagGlobal)) continue; // non-fieldgroup, autojoin only if global flag is set
+				}
+				$table = $database->escapeTable($field->table);
 				if(!$field->type || !$field->type->getLoadQueryAutojoin($field, $query)) continue; // autojoin not allowed
 				$query->leftjoin("$table ON $table.pages_id=pages.id"); // QA
 			}
 
 			if(!is_null($parent_id)) $query->where("pages.parent_id=" . (int) $parent_id); 
-
-			$query->where("pages.templates_id=" . ((int) $template->id)); // QA
+			if($template) $query->where("pages.templates_id=" . ((int) $template->id)); // QA
+			
 			$query->where("pages.id IN(" . implode(',', $ids) . ") "); // QA
 			$query->from("pages");
 			
@@ -430,8 +519,15 @@ class Pages extends Wire {
 				$errorInfo = $result->errorInfo();
 				throw new WireException($errorInfo[2]); 
 			}
-			
-			$class = ($template->pageClass && class_exists($template->pageClass)) ? $template->pageClass : 'Page';
+		
+			$class = $options['pageClass'];
+			if(empty($class)) {
+				if($template) {
+					$class = ($template->pageClass && class_exists($template->pageClass)) ? $template->pageClass : 'Page';
+				} else {
+					$class = 'Page';
+				}
+			}
 
 			while($page = $stmt->fetchObject($class, array($template))) {
 				$page->instanceID = ++$instanceID;
@@ -446,7 +542,9 @@ class Pages extends Wire {
 
 			$template = null;
 		}
-
+		
+		if($options['getOne']) return count($loaded) ? reset($loaded) : new NullPage();
+		$pages = new $pageArrayClass();
 		return $pages->import($loaded); 
 	}
 	
@@ -1630,7 +1728,10 @@ class Pages extends Wire {
 		if(count($options)) {
 			$optionsHash = '';
 			ksort($options);		
-			foreach($options as $key => $value) $optionsHash .= "[$key:$value]";
+			foreach($options as $key => $value) {
+				if(is_array($value)) $value = print_r($value, true); 
+				$optionsHash .= "[$key:$value]";
+			}
 			$selector .= "," . $optionsHash;
 		} else $selector .= ",";
 

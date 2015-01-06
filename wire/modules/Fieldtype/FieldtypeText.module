@@ -155,6 +155,7 @@ class FieldtypeText extends Fieldtype {
 				$f->setAttribute('value', is_array($field->textformatters) ? $field->textformatters : array()); 
 
 				$f->description = $this->_('If you want to apply any automatic formatting to the field when it is prepared for output, select one or more text formatters above. If you select more than one, drag them into the order they should be applied.'); 
+				$f->notes = $this->_('For plain text fields that will not contain HTML or markup, we recommend selecting the **HTML Entity Encoder** option above.');
 
 				$inputfields->append($f);
 			}

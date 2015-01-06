@@ -676,7 +676,7 @@ class FieldtypeComments extends FieldtypeMulti {
 			$this->_('1. Enter **user:karen** to email a specific user, replacing "karen" with the name of the actual user.') . "\n" . 
 			$this->_('2. Enter **field:email** to pull the email from a field on the page, replacing "email" with name of field containing email address.') . "\n" . 
 			$this->_('3. Enter **123:email** to pull the email from an given page ID and field name, replacing "123" with the page ID and "email" with name of field containing email address.') . "\n" . 
-			$this->_('4. Enter **/path/to/page:email** to pull the email from an given page ID and field name, replacing "123" with the page ID and "email" with name of field containing email address.');
+			$this->_('4. Enter **/path/to/page:email** to pull the email from an given page path and field name, replacing "/path/to/page" with the page path and "email" with name of field containing email address.');
 		$fieldset->append($f);
 		
 		$name = 'fromEmail';

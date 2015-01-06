@@ -715,6 +715,18 @@ $config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5e
  * 
  */
 
+/**
+ * Cache names to preload 
+ * 
+ * @var array
+ * 
+ */
+$config->preloadCacheNames = array(
+	'Modules.info',
+	'ModulesVerbose.info',
+	'Modules.wire/modules/',
+	'Modules.site/modules/',
+);
 
 /*** 10. RUNTIME ********************************************************************************
  * 
@@ -773,6 +785,7 @@ $config->trashPageID = 7;
 $config->loginPageID = 23;
 $config->http404PageID = 27;
 $config->usersPageID = 29;
+$config->usersPageIDs = array(29); // if multiple needed
 $config->rolesPageID = 30;
 $config->externalPageID = 27;
 $config->permissionsPageID = 31;
@@ -781,6 +794,7 @@ $config->superUserPageID = 41;
 $config->guestUserRolePageID = 37;
 $config->superUserRolePageID = 38;
 $config->userTemplateID = 3;
+$config->userTemplateIDs = array(3); // if multiple needed
 $config->roleTemplateID = 4;
 $config->permissionTemplateID = 5;
 

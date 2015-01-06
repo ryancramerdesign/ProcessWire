@@ -668,7 +668,7 @@ class Page extends WireData implements Countable {
 				break;
 			case 'editUrl':
 			case 'editURL':
-				$value = $this->wire('config')->urls->admin . "page/edit/?id=$this->id";
+				$value = $this->editUrl();
 				break;
 			case 'statusStr':
 				$value = implode(' ', $this->status(true)); 
@@ -1408,6 +1408,8 @@ class Page extends WireData implements Countable {
 
 	/**
 	 * Like URL, but includes the protocol and hostname
+	 * 
+	 * @return string
 	 *
 	 */
 	public function httpUrl() {
@@ -1420,6 +1422,20 @@ class Page extends WireData implements Countable {
 		}
 
 		return "$protocol://" . $this->wire('config')->httpHost . $this->url();
+	}
+
+	/**
+	 * Return the URL necessary to edit this page
+	 * 
+	 * @return string
+	 * 
+	 */
+	public function editUrl() {
+		$adminTemplate = $this->wire('templates')->get('admin');
+		$https = $adminTemplate && $adminTemplate->https;
+		$url = ($https && !$this->wire('config')->https) ? 'https://' . $this->wire('config')->httpHost : '';
+		$url .= $this->wire('config')->urls->admin . "page/edit/?id=$this->id";
+		return $url;
 	}
 
 	/**
@@ -1912,6 +1928,16 @@ class Page extends WireData implements Countable {
 	 */
 	static public function getStatuses() {
 		return self::$statuses;
+	}
+
+	/**
+	 * Tells the page what Process it is being edited by, or simply that it's being edited
+	 * 
+	 * @param WirePageEditor $editor
+	 * 
+	 */
+	public function ___setEditor(WirePageEditor $editor) {
+		// $this->setQuietly('_editor', $editor); // uncomment when/if needed
 	}
 
 }

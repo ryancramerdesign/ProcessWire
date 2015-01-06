@@ -56,7 +56,7 @@ class Session extends Wire implements IteratorAggregate {
 	 */
 	public function __construct() {
 
-		$this->config = $this->fuel('config'); 
+		$this->config = $this->wire('config'); 
 		$this->init();
 		unregisterGLOBALS();
 		$className = $this->className();
@@ -72,8 +72,8 @@ class Session extends Wire implements IteratorAggregate {
 			}
 		}
 
-		if(!$user || !$user->id) $user = $this->fuel('users')->getGuestUser();
-		$this->fuel('users')->setCurrentUser($user); 	
+		if(!$user || !$user->id) $user = $this->wire('users')->getGuestUser();
+		$this->wire('users')->setCurrentUser($user); 	
 
 		foreach(array('message', 'error', 'warning') as $type) {
 			if($items = $this->get($type)) foreach($items as $item) {
@@ -118,7 +118,7 @@ class Session extends Wire implements IteratorAggregate {
 
 		if($this->config->sessionFingerprint) {
 			if(md5(($this->getIP(true) . $_SERVER['HTTP_USER_AGENT'])) != $this->get('_user', 'fingerprint')) {
-				$valid = false; 
+				$valid = false;
 			}
 		}
 
@@ -132,7 +132,6 @@ class Session extends Wire implements IteratorAggregate {
 		}
 
 		if($valid) $this->set('_user', 'ts', time());
-
 
 		return $valid; 
 	}

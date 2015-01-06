@@ -103,8 +103,9 @@ class ProcessTemplate extends Process {
 		
 		// pull icons out of pageLabelField and populate to an 'icon' property for JSON nav
 		$templatesArray = array();
+		$advanced = $this->wire('config')->advanced; 
 		foreach($templates as $t) {
-			if($t->flags & Template::flagSystem) continue; 
+			if(!$advanced && ($t->flags & Template::flagSystem)) continue; 
 			$templatesArray[] = $t;
 		}
 		

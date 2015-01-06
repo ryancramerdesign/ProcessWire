@@ -43,15 +43,39 @@ class WireCache extends Wire {
 	 * 
 	 */
 	protected $templateIDs = array();
+
+	/**
+	 * Preloaded cache values, indexed by cache name
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $preloads = array();
 	
 	public function __construct() {
 		$this->instanceID = mt_rand();
+	}
+
+	/**
+	 * Preload the given caches, so that they will be returned without query on the next get() call
+	 * 
+	 * After a preloaded cache is returned from a get() call, it is removed from local storage. 
+	 * 
+	 * @param string|array $names
+	 * @param null $expire
+	 * 
+	 */
+	public function preload(array $names, $expire = null) {
+		if(!is_array($names)) $names = array($names);
+		$this->preloads = array_merge($this->preloads, $this->get($names, $expire));
 	}
 	
 	/**
 	 * Get data from cache with given name
 	 * 
-	 * @param $name
+	 * @param string|array $name Provide a single cache name, or an array of cache names. 
+	 * 	If given a single cache name (string) just the contents of that cache will be returned.
+	 * 	If given an array of names, multiple caches will be returned, indexed by cache name. 
 	 * @param int|string|null Optionally specify max age (in seconds) OR oldest date string.
 	 * 	If cache exists and is older, then blank returned. 
 	 * @return string|array
@@ -60,29 +84,67 @@ class WireCache extends Wire {
 	public function get($name, $expire = null) {
 		
 		if(!is_null($expire)) $expire = $this->getExpires($expire); 
+
+		$multi = is_array($name); // retrieving multiple caches at once?
+		if($multi) {
+			$names = $name;
+		} else {
+			if(isset($this->preloads[$name])) {
+				$value = $this->preloads[$name];
+				unset($this->preloads[$name]); 
+				return $value; 
+			}
+			$names = array($name); 	
+		}
 		
-		$sql = "SELECT data FROM caches WHERE name=:name";
-		if(!is_null($expire)) $sql .= " AND expires<=:expire";
-		$query = $this->wire('database')->prepare($sql); 
-		$query->bindValue(':name', $name); 
-		if(!is_null($expire)) $query->bindValue(':expire', $expire); 
-		$value = '';
+		$where = array();
+		$binds = array();
+		$n = 0;
+		
+		foreach($names as $name) {
+			$n++;
+			$where[$n] = "name=:name$n";
+			$binds[":name$n"] = $name; 
+		}
+		
+		// $sql = "SELECT name, data FROM caches WHERE name=:name";
+		$sql = "SELECT name, data FROM caches WHERE (" . implode(' OR ', $where) . ")";
+		
+		if(!is_null($expire)) {
+			$sql .= " AND expires<=:expire";
+			$binds[':expire'] = $expire; 
+		}
+		
+		$query = $this->wire('database')->prepare($sql, "cache.get(" . implode('|', $names) . ", " . ($expire ? $expire : "null") . ")"); 
+		
+		foreach($binds as $key => $value) $query->bindValue($key, $value);
+		
+		$value = ''; // return value for non-multi mode
+		$values = array(); // return value for multi-mode
 		
 		try {
 			$query->execute(); 
-			if($query->rowCount()) $value = $query->fetchColumn(0); 
-			$query->closeCursor();
-			$c = substr($value, 0, 1); 
-			if($c == '{' || $c == '[') {
-				$_value = json_decode($value, true); 
-				if(is_array($_value)) $value = $_value; 
+			while($row = $query->fetch(PDO::FETCH_NUM)) {
+				list($name, $value) = $row;
+				$c = substr($value, 0, 1);
+				if($c == '{' || $c == '[') {
+					$_value = json_decode($value, true);
+					if(is_array($_value)) $value = $_value;
+				}
+				if($multi) $values[$name] = $value; 
 			}
-			
+			$query->closeCursor();
+				
 		} catch(Exception $e) {
 			$value = '';
 		}
 		
-		return $value; 
+		if($multi) foreach($names as $name) {
+			// ensure there is at least a placeholder for all requested caches
+			if(!isset($values[$name])) $values[$name] = '';
+		}
+		
+		return $multi ? $values : $value; 
 	}
 
 	/**
@@ -128,7 +190,7 @@ class WireCache extends Wire {
 		if(is_array($data)) $data = json_encode($data); 
 	
 		$sql = 'INSERT INTO caches SET name=:name, data=:data, expires=:expires';
-		$query = $this->wire('database')->prepare($sql); 
+		$query = $this->wire('database')->prepare($sql, "cache.save($name)"); 
 		$query->bindValue(':name', $name); 
 		$query->bindValue(':data', $data); 
 		$query->bindValue(':expires', $this->getExpires($expire)); 
@@ -216,7 +278,7 @@ class WireCache extends Wire {
 	 */
 	public function delete($name) {
 		try {
-			$query = $this->wire('database')->prepare("DELETE FROM caches WHERE name=:name"); 
+			$query = $this->wire('database')->prepare("DELETE FROM caches WHERE name=:name", "cache.delete($name)"); 
 			$query->bindValue(':name', $name); 
 			$query->execute();
 			$success = true; 
@@ -266,7 +328,7 @@ class WireCache extends Wire {
 			if($this->wire('config')->ajax) return;
 		}
 		
-		$query = $database->prepare($sql);
+		$query = $database->prepare($sql, "cache.maintenance()");
 		$query->bindValue(':now', date(self::dateFormat, time()));
 		$query->bindValue(':date', self::expireNever);
 		

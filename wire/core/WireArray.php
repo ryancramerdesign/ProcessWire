@@ -1247,6 +1247,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	public function __toString() {
 		$s = '';
 		foreach($this as $key => $value) {
+			if(is_array($value)) $value = "array(" . count($value) . ")";
 			$s .= "$value|";
 		}
 		$s = rtrim($s, '|'); 
@@ -1442,8 +1443,10 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		$n = 0;
 
 		foreach($this as $key => $item) {
-			if($isFunction) $value = (string) $property($item, $key); 
-				else $value = (string) $item->get($property); 
+			if($isFunction) $value = $property($item, $key); 
+				else $value = $item->get($property); 
+			if(is_array($value)) $value = 'array(' . count($value) . ')';
+			$value = (string) $value; 
 			if(!strlen($value) && $options['skipEmpty']) continue; 
 			if($n) $str .= $delimiter; 
 			$str .= $value; 

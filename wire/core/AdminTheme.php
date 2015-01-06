@@ -121,7 +121,7 @@ abstract class AdminTheme extends WireData implements Module {
 	 * 
 	 */
 	public function ___getExtraMarkup() {
-		return array(
+		$parts = array(
 			'head' => '',
 			'notices' => '', 
 			'body' => '',
@@ -130,6 +130,8 @@ abstract class AdminTheme extends WireData implements Module {
 			'footer' => '',
 			'sidebar' => '', // sidebar not used in all admin themes
 		);
+		if($this->wire('config')->advanced) $parts['footer'] = "<p class='AdvancedMode'><i class='fa fa-flask'></i> " . $this->_('Advanced Mode') . "</p>"; 
+		return $parts; 
 	}
 
 	/**

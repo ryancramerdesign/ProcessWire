@@ -9,11 +9,10 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -29,8 +28,20 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 			); 
 	}
 
+	/**
+	 * @var PagesType
+	 * 
+	 */
 	protected $pages;
+	
 	protected $template = null;
+
+	/**
+	 * ProcessPageEdit or ProcessPageAdd
+	 * 
+	 * @var Process|null
+	 * 
+	 */
 	protected $editor = null;
 
 	public function __construct() {
@@ -48,7 +59,9 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 			// $this->error("Unable to find API variable named '{$this->page->name}' (of type: PagesType)", Notice::debug); 
 			$this->pages = $this->wire('pages'); 
 		}
-		if($this->pages instanceof PagesType) $this->template = $this->pages->getTemplate();
+		if($this->pages instanceof PagesType) {
+			$this->template = $this->pages->getTemplate();
+		}
 
 		parent::init();
 	}
@@ -82,25 +95,43 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 		
 		return parent::___executeNavJSON($options); 
 	}	
+	
+	protected function getEditor($moduleName) {
+		if($this->editor && $this->editor->className() == $moduleName) return $this->editor;
+		$this->editor = $this->modules->get($moduleName);
+		$this->editor->setEditor($this); // set us as the parent editor
+		if($this->pages instanceof PagesType) {
+			$templates = $this->pages->getTemplates();
+			$parents = $this->pages->getParentIDs();
+			$this->editor->setPredefinedTemplates($templates);
+			$this->editor->setPredefinedParents($this->wire('pages')->getById($parents));
+		}
+		return $this->editor;
+	}
 
 	public function ___executeEdit() {
 		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->page->get('title|name'))); 
-		$this->editor = $this->modules->get("ProcessPageEdit"); 
-		return $this->editor->execute();
+		$editor = $this->getEditor('ProcessPageEdit'); 
+		return $editor->execute();
 	}
 
 	public function ___executeAdd() {
 		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->page->get('title|name'))); 
-		$editor = $this->modules->get("ProcessPageAdd"); 
-		$editor->template = $this->template; 
-		$editor->parent_id = $this->page->id;
-		return $editor->execute();
+		$editor = $this->getEditor("ProcessPageAdd"); 
+		$editor->template = $this->template;
+		try {
+			$out = $editor->execute();
+		} catch(Exception $e) {
+			$out = '';
+			$this->error($e->getMessage());
+		}
+		return $out; 
 	}
 
 	protected function renderList($selector = '', $pagerOptions = array()) {
 		$out = '';
 
-		if(!$this->pages instanceof PagesType || !$this->pages->getTemplate()) {
+		if(!$this->pages instanceof PagesType || count($this->pages->getTemplates()) != 1) {
 			$form = $this->getTemplateFilterForm();		
 			$out = $form->render();
 		}
@@ -147,7 +178,7 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 			$numRows++;
 		}
 
-		if($this->page->addable()) $table->action(array($this->addLabel => 'add/')); 
+		if($this->wire('page')->addable()) $table->action(array($this->addLabel => 'add/')); 
 
 		if($pages->getTotal() > count($pages)) {
 			$pager = $this->modules->get("MarkupPagerNav"); 

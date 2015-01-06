@@ -54,10 +54,12 @@ class ProcessUser extends ProcessPageType {
 	
 	protected function getLister($selector = '') {
 		
-		$selector = "template=$this->template, include=unpublished, check_access=0, $selector";
 		$lister = $this->lister;
 		if(!$lister) return null;
 		if($lister->className() == 'ProcessPageLister') $lister->editMode = ProcessPageLister::windowModeDirect;
+		
+		$templates = $this->pages->getTemplates();
+		$selector = "template=" . implode('|', array_keys($templates)) . ", include=unpublished, check_access=0, $selector";
 		
 		$properties = array(
 			'initSelector' => $selector,
@@ -65,13 +67,14 @@ class ProcessUser extends ProcessPageType {
 			'defaultSelector' => "name%=, roles=",
 			'defaultSort' => 'name',
 			'parent' => $this->page,
-			'template' => $this->template,
 			'editURL' => './edit/',
 			'addURL' => './add/',
 			'delimiters' => array('roles' => ', '),
 			'allowSystem' => true,
 			'allowIncludeAll' => true, 
 			);
+		
+		if(count($templates) == 1) $properties['template'] = reset($templates);
 		
 		foreach($properties as $name => $value) {
 			$lister->$name = $value; 
