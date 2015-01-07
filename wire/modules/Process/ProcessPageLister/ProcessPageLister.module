@@ -194,7 +194,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			'name' => $nameLabel, 
 			'status' => $statusLabel, 
 			'template' => $templateLabel,
-			'templates_id' => $templateLabel,
+			'templates_id' => $templateLabel . " ID",
 			'modified' => $modifiedLabel,	
 			'created' => $createdLabel, 
 			'modified_users_id' => $modifiedUserLabel, 
@@ -472,9 +472,14 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		}
 
 		ksort($options); 
+		$template = $this->template;
 		
 		foreach($options as $field) {
 			if(is_object($field)) {
+				if($template) {
+					$_field = $template->fieldgroup->getField($field->name, true); // context
+					if($_field) $field = $_field; 
+				}
 				if($useLabels) $f->addOption($field->name, $field->getLabel(), array('data-desc' => $field->name)); 
 					else $f->addOption($field->name, $field->name, array('data-desc' => $field->getLabel())); 
 			} else {

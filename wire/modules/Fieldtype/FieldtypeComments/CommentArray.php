@@ -15,7 +15,7 @@
  *
  */
 
-class CommentArray extends WireArray {
+class CommentArray extends WireArray implements WirePaginatable {
 
 	/**
 	 * Page that owns these comments, required to use the renderForm() or getCommentForm() methods. 
@@ -30,22 +30,63 @@ class CommentArray extends WireArray {
 	protected $field = null;
 
 	/**
+	 * Total number of comments, including those here and others that aren't, but may be here in pagination.
+	 * 
+	 * @var int
+	 * 
+	 */
+	protected $numTotal = 0;
+
+	/**
+	 * If this CommentArray is a partial representation of a larger set, this will contain the max number 
+	 * of comments allowed to be present/loaded in the CommentArray at once.
+	 *
+	 * May vary from count() when on the last page of a result set.
+	 * As a result, paging routines should refer to their own itemsPerPage rather than count().
+	 * Applicable for paginated result sets. This number is not enforced for adding items to this CommentArray.
+	 *
+	 * @var int
+	 * 
+	 */
+	protected $numLimit = 0;
+
+	/**
+	 * If this CommentArray is a partial representation of a larger set, this will contain the starting result 
+	 * number if previous results preceded it.
+	 *
+	 * @var int
+	 * 
+	 */
+	protected $numStart = 0;
+
+	/**
 	 * Per the WireArray interface, is the item a Comment
 	 *
 	 */
 	public function isValidItem($item) {
-		return $item instanceof Comment; 	
+		if($item instanceof Comment) {
+			if($this->page) $item->setPage($this->page); 
+			if($this->field) $item->setField($this->field); 
+			return true; 
+		} else {
+			return false;
+		}
 	}
 
 	/**
 	 * Provides the default rendering of a comment list, which may or may not be what you want
  	 *
+	 * @param array $options
+	 * @return string
 	 * @see CommentList class and override it to serve your needs
 	 *
 	 */
 	public function render(array $options = array()) {
 		$defaultOptions = array(
-			'useGravatar' => ($this->field ? $this->field->useGravatar : '')
+			'useGravatar' => ($this->field ? $this->field->useGravatar : ''),
+			'useVotes' => ($this->field ? $this->field->useVotes : 0), 
+			'depth' => ($this->field ? (int) $this->field->depth : 0), 	
+			'dateFormat' => 'relative', 
 			);
 		$options = array_merge($defaultOptions, $options);
 		$commentList = $this->getCommentList($options); 
@@ -55,12 +96,29 @@ class CommentArray extends WireArray {
 	/**
 	 * Provides the default rendering of a comment form, which may or may not be what you want
  	 *
+	 * @param array $options
+	 * @return string
 	 * @see CommentForm class and override it to serve your needs
 	 *
 	 */
 	public function renderForm(array $options = array()) {
+		$defaultOptions = array(
+			'depth' => ($this->field ? (int) $this->field->depth : 0)
+			);
+		$options = array_merge($defaultOptions, $options); 
 		$form = $this->getCommentForm($options); 
 		return $form->render();
+	}
+
+	/**
+	 * Render all comments and a comments form below it
+	 * 
+	 * @param array $options
+	 * @return string
+	 * 
+	 */
+	public function renderAll(array $options = array()) {
+		return $this->render($options) . $this->renderForm($options); 
 	}
 
 	/**
@@ -74,6 +132,10 @@ class CommentArray extends WireArray {
 	/**
 	 * Return instance of CommentForm object
 	 *
+	 * @param array $options
+	 * @return CommentForm
+	 * @throws WireException
+	 * 
 	 */
 	public function getCommentForm(array $options = array()) {
 		if(!$this->page) throw new WireException("You must set a page to this CommentArray before using it i.e. \$ca->setPage(\$page)"); 
@@ -95,6 +157,107 @@ class CommentArray extends WireArray {
 	public function setField(Field $field) {
 		$this->field = $field; 
 	}
+	
+	/**
+	 * Get the page that these comments are on
+	 *
+	 */
+	public function getPage() { 
+		return $this->page; 
+	}
+
+	/**
+	 * Get the Field that these comments are on
+	 *
+	 */
+	public function getField() {
+		return $this->field;
+	}
+
+	/**
+	 * Set the total number of comments
+	 *
+	 * Used for pagination.
+	 *
+	 * @param int $total
+	 * @return CommentArray reference to current instance.
+	 *
+	 */
+	public function setTotal($total) {
+		$this->numTotal = (int) $total;
+		return $this;
+	}
+
+	/**
+	 * Get the total number of comments
+	 *
+	 * Used for pagination.
+	 *
+	 * @return int
+	 *
+	 */
+	public function getTotal() {
+		if(!$this->numTotal) return $this->count();
+		return $this->numTotal;
+	}
+
+	/**
+	 * Set the imposed limit that resulted in this CommentArray.
+	 *
+	 * Used for pagination.
+	 *
+	 * @param int $numLimit
+	 * @return this
+	 *
+	 */
+	public function setLimit($numLimit) {
+		$this->numLimit = $numLimit;
+		return $this;
+	}
+
+	/**
+	 * Get the imposed limit on number of comments.
+	 *
+	 * If no limit set, then return number of comments currently here.
+	 *
+	 * Used for pagination.
+	 *
+	 * @return int
+	 *
+	 */
+	public function getLimit() {
+		if($this->numLimit) return $this->numLimit;
+			else return $this->count();
+	}
+
+
+	/**
+	 * Set the 'start' limitor that resulted in this CommentArray
+	 *
+	 * @param int $numStart;
+	 * @return $this
+	 *
+	 */
+	public function setStart($numStart) {
+		$this->numStart = (int) $numStart;
+		return $this;
+	}
+
+	/**
+	 * If a limit was imposed, get the index of the starting result assuming other results preceded those present in this CommentArray
+	 *
+	 * Used for pagination.
+	 *
+	 * @return int
+	 *
+	 */
+	public function getStart() {
+		return $this->numStart;
+	}
+
+
+
+
 
 }
 

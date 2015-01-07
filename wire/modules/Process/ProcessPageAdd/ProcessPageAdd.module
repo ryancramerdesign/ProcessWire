@@ -16,7 +16,7 @@
  *
  */
 
-class ProcessPageAdd extends Process implements ConfigurableModule {
+class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEditor {
 
 	protected $form; 
 	protected $parent; 
@@ -24,6 +24,9 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 	protected $page; 
 	protected $template; 
 	protected $allowedTemplates = null; //cache
+	protected $predefinedTemplates = array();
+	protected $predefinedParents = array(); 
+	protected $editor; // WirePageEditor
 
 	public static function getModuleInfo() {
 		return array(
@@ -36,6 +39,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 	}
 	
 	public function __construct() {
+		$this->editor = $this; 
 		parent::__construct();
 		$this->set('noAutoPublish', false); 
 	}
@@ -104,6 +108,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		if(!$parent->addable()) return '';
 		$name = $this->wire('sanitizer')->pageName($this->wire('input')->get('name')); 
 		if(!strlen($name)) return '';
+		$parentID = count($this->predefinedParents) ? $this->predefinedParents : $parentID; 
 		$page = $this->wire('pages')->get("parent_id=$parentID, name=$name, include=all"); 
 		if($page->id) {
 			$out = "<span class='taken ui-state-error-text'><i class='fa fa-exclamation-triangle'></i> " . $this->_('Already taken') . "</span>";
@@ -127,20 +132,18 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			} else {
 				$this->parent_id = isset($_GET['parent_id']) ? (int) $_GET['parent_id'] : 1; 
 			}
+			if(count($this->predefinedParents) && !$this->predefinedParents->has("id=$this->parent_id")) {
+				$this->parent_id = $this->predefinedParents->first()->id;
+			}
 		}
 
 		if(!$this->parent_id) throw new Wire404Exception("Invalid Parent ID"); 
 
 		$this->parent = $this->pages->get($this->parent_id); 
 		if(!$this->parent) throw new Wire404Exception("Unable to load page {$this->id}"); 
+		if(!$this->isAllowedParent($this->parent, true)) throw new WireException($this->errors('string')); 
 
-		if($this->parent->template->noChildren) {
-			throw new WireException("The parent template has specified that no children may be added here"); 
-
-		} else if(!$this->parent->addable()) {
-			throw new WireException("You don't have access to add pages here"); 
-
-		} else if(count($this->parent->template->childTemplates) == 1) {
+		if(count($this->parent->template->childTemplates) == 1) {
 			$childTemplates = $this->parent->template->childTemplates;
 			$this->template = $this->templates->get(reset($childTemplates)); 	
 			if(!$this->isAllowedTemplate($this->template)) throw new WireException("You don't have access to the template required to add pages here"); 
@@ -176,8 +179,8 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 
 		if(is_array($this->allowedTemplates)) return $this->allowedTemplates;
 
-		$isSuperuser = $this->fuel('user')->isSuperuser();
-		$user = $this->fuel('user');
+		$isSuperuser = $this->wire('user')->isSuperuser();
+		$user = $this->wire('user');
 		$templates = array();
 
 		if($this->parent->is(Page::statusUnpublished)) {
@@ -191,8 +194,10 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			$parentEditable = $this->parent->editable(); 
 			$this->parent->removeStatus(Page::statusUnpublished); 
 		}
+		
+		$allTemplates = count($this->predefinedTemplates) ? $this->predefinedTemplates : $this->wire('templates'); 
 
-		foreach($this->fuel('templates') as $t) {
+		foreach($allTemplates as $t) {
 
 			if($t->noParents) continue; 
 
@@ -209,17 +214,27 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 			}
 
 			if($t->flags & Template::flagSystem) { 
-				if($t->name == 'user' && $this->parent->id != $this->config->usersPageID) continue; 
+				if(in_array($t->id, $this->config->userTemplateIDs) && !in_array($this->parent->id, $this->config->usersPageIDs)) continue; 
 				if($t->name == 'role' && $this->parent->id != $this->config->rolesPageID) continue; 
 				if($t->name == 'permission' && $this->parent->id != $this->config->permissionsPageID) continue; 
 			}
 
 			$templates[$t->id] = $t;
 		}
-	
+
+		/*
 		if($this->template == 'user' && !isset($templates[$this->template->id]) && $user->hasPermission('user-admin')) {
 			// account for the unique situation of user-admin permission
 			$templates[$this->template->id] = $this->template;
+		}
+		*/
+
+		if($this->template) {
+			$isUserTemplate = in_array($this->template->id, $this->wire('config')->userTemplateIDs);
+			if($isUserTemplate && !isset($templates[$this->template->id]) && $user->hasPermission('user-admin')) {
+				// account for the unique situation of user-admin permission
+				$templates[$this->template->id] = $this->template;
+			}
 		}
 
 		$this->allowedTemplates = $templates;
@@ -236,6 +251,41 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		$id = (int) $id; 
 		$templates = $this->getAllowedTemplates();
 		return isset($templates[$id]); 
+	}
+
+	/**
+	 * Is the given parent page allowed?
+	 * 
+	 * @param Page $parent
+	 * @return bool
+	 * 
+	 */
+	protected function isAllowedParent(Page $parent, $showError = false) {
+
+		if($parent->template->noChildren) {
+			if($showError) $this->error("The parent template has specified that no children may be added here");
+			return false;
+		}
+
+		if(!$parent->addable()) {
+			if($showError) $this->error("You don't have access to add pages here");
+			return false;
+		}
+		
+		if(count($this->predefinedParents)) {
+			$allowed = false; 
+			foreach($this->predefinedParents as $p) {
+				if($p->id == $parent->id) {
+					$allowed = true; 
+				}
+			}
+			if(!$allowed) {
+				if($showError) $this->error("Specified parent is not allowed ($parent->path)");
+				return false;
+			}
+		}
+		
+		return true; 
 	}
 
 	/**
@@ -269,14 +319,6 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		$field->required = true; 
 		if($this->template) $field->slashUrls = $this->template->slashUrls;
 		$form->append($field); 
-
-		/*
-		$field = $this->modules->get('InputfieldPageListSelect');
-		$field->label = "Parent";
-		$field->attr('name', 'parent_id'); 
-		$field->attr('value', $this->parent_id); 
-		$form->append($field); 
-		*/
 
 		$defaultTemplateId = (int) $this->wire('input')->get('template_id'); 
 		if(!$defaultTemplateId && $this->parent->numChildren > 0) { 
@@ -320,12 +362,28 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		$field->label = $this->_('Template'); // Template field label
 		$field->attr('id+name', 'template');
 		$field->required = true; 
-		$form->append($field); 
-
-		$field = $this->modules->get('InputfieldHidden'); 
-		$field->attr('name', 'parent_id'); 
-		$field->attr('value', $this->parent_id); 
 		$form->append($field);
+
+		if(count($this->predefinedParents) > 1) {
+			$field = $this->modules->get('InputfieldSelect');
+			$field->attr('name', 'parent_id');
+			$field->label = $this->_('Parent');
+			$field->required = true; 
+			$value = 0;
+			foreach($this->predefinedParents as $parent) {
+				$field->addOption($parent->id, $parent->path);
+				if($parent->id == $this->parent_id) $value = $parent->id; 
+			}
+			if($value) $field->attr('value', $value);
+			$form->append($field);
+			
+		} else {
+			$field = $this->modules->get('InputfieldHidden');
+			$field->attr('name', 'parent_id');
+			$value = count($this->predefinedParents) == 1 ? $this->predefinedParents->first()->id : $this->parent_id; 
+			$field->attr('value', $value);
+			$form->append($field);
+		}
 	
 		$field = $this->modules->get('InputfieldSubmit');
 		$field->attr('name', 'submit_save'); 
@@ -430,6 +488,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		if(!$this->isAllowedTemplate($template)) return false; 
 		$page->addStatus(Page::statusUnpublished); 
 		$page->addStatus(Page::statusTemp); // ProcessPageEdit will remove this status the first time the page is saved
+		$page->setEditor($this->editor); 
 	
 		// if languages are in use, make the new page inherit the parent's language status (active vs. inactive)
 		$languages = $this->wire('languages'); 
@@ -495,6 +554,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		}
 
 		if(!$this->isAllowedTemplate($template)) throw new WireException("You don't have access to add pages with template '$template'"); 
+		if(!$this->isAllowedParent($this->parent, true)) throw new WireException($this->errors('string'));
 	
 		$this->page->template = $template;	
 		$this->page->parent = $this->parent; 
@@ -529,6 +589,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 		if(!$publishNow) $this->page->addStatus(Page::statusUnpublished); 
 
 		$pageName = $this->page->name; 
+		$this->page->setEditor($this->editor); 
 		try {
 			$this->pages->save($this->page, array('adjustName' => true)); 
 		} catch(Exception $e) {
@@ -561,6 +622,30 @@ class ProcessPageAdd extends Process implements ConfigurableModule {
 	 */
 	public function getPage() {
 		return $this->page; 
+	}
+	
+	public function setEditor(WirePageEditor $editor) {
+		$this->editor = $editor; 
+	}
+
+	/**
+	 * Predefine the allowed templates, separately from family/auto-detect
+	 * 
+	 * @param array|WireArray $templates array of Template objects
+	 * 
+	 */
+	public function setPredefinedTemplates($templates) {
+		$this->predefinedTemplates = $templates; 	
+	}
+
+	/**
+	 * Predefine the allowed parents, separately from family/auto-detect
+	 * 
+	 * @param PageArray $parents
+	 * 
+	 */
+	public function setPredefinedParents(PageArray $parents) {
+		$this->predefinedParents = $parents; 
 	}
 	
 	public static function getModuleConfigInputfields(array $data) {

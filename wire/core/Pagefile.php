@@ -159,7 +159,7 @@ class Pagefile extends WireData {
 		if(!is_null($language) && $language->id) {
 			$name = "description";
 			if(!$language->isDefault()) $name .= $language->id; 
-			parent::set($name, $this->wire('sanitizer')->textarea($value)); 
+			parent::set($name, $value); 
 			return $this; 
 		}
 
@@ -178,14 +178,13 @@ class Pagefile extends WireData {
 				// first item is always default language. this ensures description will still
 				// work even if language support is later uninstalled. 
 				$name = $n > 0 ? "description$id" : "description"; 
-				parent::set($name, $this->wire('sanitizer')->textarea($v)); 
+				parent::set($name, $v); 
 				$n++; 
 			}
 		} else {
 			// no JSON values so assume regular language description
 			$languages = $this->wire('languages');
 			$language = $this->wire('user')->language; 
-			$value = $this->wire('sanitizer')->textarea($value); 
 
 			if($languages && $language && !$language->isDefault()) {
 				parent::set("description$language", $value); 

@@ -56,7 +56,7 @@ class Session extends Wire implements IteratorAggregate {
 	 */
 	public function __construct() {
 
-		$this->config = $this->fuel('config'); 
+		$this->config = $this->wire('config'); 
 		$this->init();
 		unregisterGLOBALS();
 		$className = $this->className();
@@ -72,10 +72,10 @@ class Session extends Wire implements IteratorAggregate {
 			}
 		}
 
-		if(!$user || !$user->id) $user = $this->fuel('users')->getGuestUser();
-		$this->fuel('users')->setCurrentUser($user); 	
+		if(!$user || !$user->id) $user = $this->wire('users')->getGuestUser();
+		$this->wire('users')->setCurrentUser($user); 	
 
-		foreach(array('message', 'error') as $type) {
+		foreach(array('message', 'error', 'warning') as $type) {
 			if($items = $this->get($type)) foreach($items as $item) {
 				list($text, $flags) = $item;
 				parent::$type($text, $flags); 
@@ -118,7 +118,7 @@ class Session extends Wire implements IteratorAggregate {
 
 		if($this->config->sessionFingerprint) {
 			if(md5(($this->getIP(true) . $_SERVER['HTTP_USER_AGENT'])) != $this->get('_user', 'fingerprint')) {
-				$valid = false; 
+				$valid = false;
 			}
 		}
 
@@ -132,7 +132,6 @@ class Session extends Wire implements IteratorAggregate {
 		}
 
 		if($valid) $this->set('_user', 'ts', time());
-
 
 		return $valid; 
 	}
@@ -450,9 +449,12 @@ class Session extends Wire implements IteratorAggregate {
 	public function ___redirect($url, $http301 = true) {
 
 		// if there are notices, then queue them so that they aren't lost
-		$notices = $this->fuel('notices'); 
+		$notices = $this->wire('notices'); 
 		if(count($notices)) foreach($notices as $notice) {
-			$this->queueNotice($notice->text, $notice instanceof NoticeError ? 'error' : 'message', $notice->flags); 
+			if($notice instanceof NoticeWarning) $noticeType = 'warning';
+				else if($notice instanceof NoticeError) $noticeType = 'error';
+				else $noticeType = 'message';
+			$this->queueNotice($notice->text, $noticeType, $notice->flags); 
 		}
 
 		// perform the redirect
@@ -519,5 +521,17 @@ class Session extends Wire implements IteratorAggregate {
 		return $this; 
 	}
 
+	/**
+	 * Queue a warning to appear the next time session is instantiated
+	 *
+	 * @param string $text
+	 * @param int $flags See Notice::flags
+	 * @return $this
+	 *
+	 */
+	public function warning($text, $flags = 0) {
+		$this->queueNotice($text, 'warning', $flags);
+		return $this;
+	}
 
 }

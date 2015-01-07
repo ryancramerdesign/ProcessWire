@@ -87,7 +87,6 @@ $extras = $adminTheme->getExtraMarkup();
 		<div class="container">
 
 			<?php 
-			if(trim($page->summary)) echo "<h2>$page->summary</h2>"; 
 			if($page->body) echo $page->body; 
 			echo $content; 
 			echo $extras['content'];
@@ -109,12 +108,12 @@ $extras = $adminTheme->getExtraMarkup();
 				<a class='action' href='<?php echo $config->urls->admin; ?>login/logout/'><?php echo $helpers->_('Logout'); ?></a>
 			</span>
 			<?php endif; ?>
-			ProcessWire <?php echo $config->versionName . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?> 
+			ProcessWire <?php echo $config->versionName . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?>
 			</p>
 
 			<?php 
 			echo $extras['footer'];
-			if($config->debug && $this->user->isSuperuser()) include($config->paths->root . '/wire/templates-admin/debug.inc'); 
+			if($config->debug && $user->isSuperuser()) include($config->paths->root . '/wire/templates-admin/debug.inc');
 			?>
 		</div>
 	</div><!--/#footer-->

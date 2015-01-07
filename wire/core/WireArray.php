@@ -1247,6 +1247,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	public function __toString() {
 		$s = '';
 		foreach($this as $key => $value) {
+			if(is_array($value)) $value = "array(" . count($value) . ")";
 			$s .= "$value|";
 		}
 		$s = rtrim($s, '|'); 
@@ -1442,8 +1443,10 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		$n = 0;
 
 		foreach($this as $key => $item) {
-			if($isFunction) $value = (string) $property($item, $key); 
-				else $value = (string) $item->get($property); 
+			if($isFunction) $value = $property($item, $key); 
+				else $value = $item->get($property); 
+			if(is_array($value)) $value = 'array(' . count($value) . ')';
+			$value = (string) $value; 
 			if(!strlen($value) && $options['skipEmpty']) continue; 
 			if($n) $str .= $delimiter; 
 			$str .= $value; 
@@ -1536,5 +1539,25 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		return $this;
 	}
 
+	/**
+	 * Enables use of $var('key')
+	 *
+	 * @param string $key
+	 * @return mixed
+	 *
+	 */
+	public function __invoke($key) {
+		if(in_array($key, array('first', 'last', 'count'))) return $this->$key();
+		if(is_int($key) || ctype_digit($key)) {
+			if($this->usesNumericKeys()) {
+				// if keys are already numeric, we use them
+				return $this->get((int) $key); 
+			} else {
+				// if keys are not numeric, we delegete numers to eq(n)
+				return $this->eq((int) $key);
+			}
+		}
+		return $this->get($key);
+	}
 
 }

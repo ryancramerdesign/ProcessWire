@@ -19,7 +19,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Edit Image',
 			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)',
-			'version' => 108,
+			'version' => 109,
 			'permanent' => true,
 			'permission' => 'page-edit',
 		);
@@ -37,9 +37,10 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	protected static $defaultConfig = array(
 		'skipFields' => '',
 		'noSizeAttrs' => 0,
+		'noThumbs' => 0, 
 		'alignLeftClass' => 'align_left',
 		'alignRightClass' => 'align_right',
-		'alignCenterClass' => 'align_center'
+		'alignCenterClass' => 'align_center',
 		);
 
 	public function __construct() {
@@ -181,15 +182,25 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$out = '';
 
 		if(count($images)) {
-			$winwidth = (int) $this->input->get->winwidth; 
+			$winwidth = (int) $this->input->get->winwidth;
+			$in = $this->wire('modules')->get('InputfieldImage'); 
+			$in->adminThumbs = true;
+			
 			foreach($images as $image) {
-				$width = $image->width();
-				if($width > $this->maxImageWidth) $width = $this->maxImageWidth; 
-				$out .= "\n\t<li><a href='./edit?file={$image->page->id},{$image->basename}&amp;modal=1&amp;id={$this->page->id}&amp;winwidth=$winwidth'>" . 
-					"<img src='{$image->url}' width='$width' alt=\"{$image->description}\" /></a></li>";
+				if($this->noThumbs) {
+					$width = $image->width();
+					$alt = $this->wire('sanitizer')->entities1($image->description); 
+					if($width > $this->maxImageWidth) $width = $this->maxImageWidth;
+					$img = "<img src='$image->url' width='$width' alt=\"$alt\" />";
+				} else {
+					$info = $in->getAdminThumb($image); 
+					$img = $info['markup'];
+				}
+				$out .= "\n\t<li><a href='./edit?file={$image->page->id},{$image->basename}&amp;modal=1&amp;id={$this->page->id}&amp;winwidth=$winwidth'>$img</a></li>";
 			}
 
-			$out = "\n<ul id='select_images'>$out\n</ul>";
+			$class = $this->noThumbs ? "" : " class='thumbs'";
+			$out = "\n<ul id='select_images'$class>$out\n</ul>";
 
 		}
 
@@ -355,6 +366,13 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	static public function getModuleConfigInputfields(array $data) {
 		$inputfields = new InputfieldWrapper();
 		$data = array_merge(self::$defaultConfig, $data); 
+		
+		$f = wire('modules')->get('InputfieldCheckbox'); 
+		$f->attr('name', 'noThumbs'); 
+		$f->label = __('Do not generate thumbnail images'); 
+		$f->description = __('When checked, image selection will use full-size images rather than thumbnail images.'); 
+		if(!empty($data['noThumbs'])) $f->attr('checked', 'checked'); 
+		$inputfields->add($f); 
 
 		$f = wire('modules')->get('InputfieldText'); 
 		$f->attr('name', 'skipFields'); 
@@ -375,19 +393,23 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$f->attr('name', 'alignLeftClass');
 		$f->attr('value', $data['alignLeftClass']); 
 		$f->label = __('Align Image Left Class'); 
+		$f->columnWidth = 33; 
 		$inputfields->add($f);
 		
 		$f = wire('modules')->get('InputfieldText'); 
-		$f->attr('name', 'alignRightClass');
-		$f->attr('value', $data['alignRightClass']); 
-		$f->label = __('Align Image Right Class'); 
-		$inputfields->add($f);
-
-		$f = wire('modules')->get('InputfieldText'); 
 		$f->attr('name', 'alignCenterClass');
 		$f->attr('value', $data['alignCenterClass']); 
-		$f->label = __('Align Image Center Class'); 
+		$f->label = __('Align Image Center Class');
+		$f->columnWidth = 34; 
 		$inputfields->add($f);
+		
+		$f = wire('modules')->get('InputfieldText');
+		$f->attr('name', 'alignRightClass');
+		$f->attr('value', $data['alignRightClass']);
+		$f->label = __('Align Image Right Class');
+		$f->columnWidth = 33;
+		$inputfields->add($f);
+
 
 		return $inputfields;
 	}

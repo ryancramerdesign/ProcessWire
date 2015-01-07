@@ -554,9 +554,10 @@ abstract class Inputfield extends WireData implements Module {
 
 		} else { 
 			// string value provided in the input
+			$this->setAttribute('value', $value); 
+			$value = $this->attr('value'); 
 			if("$value" !== (string) $previousValue) {
 				$changed = true; 
-				$this->setAttribute('value', $value); 
 			}
 		}
 

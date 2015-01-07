@@ -29,6 +29,7 @@ class Notification extends WireData {
 	
 	const flagNoGhost = 4096; 	// disable showing of a notification ghost
 	const flagAnnoy = 8192; 	// rather than just update bug counter, notification will pop up at top of screen
+	const flagShown = 16384; 	// has this flag once the notification has been sent to the UI at least once
 
 	/**
 	 * Provides a name for each of the flags
@@ -50,6 +51,7 @@ class Notification extends WireData {
 		self::flagOpen => 'open',
 		self::flagNoGhost => 'no-ghost', 
 		self::flagAnnoy => 'annoy',
+		self::flagShown => 'shown', 
 		);
 
 	/**
@@ -331,14 +333,14 @@ class Notification extends WireData {
 	 */
 	public function getHash() {
 
-		$id = 	parent::get('title') . ',' .
-				parent::get('from') . ',' .
-				parent::get('src_id') . ',' .
-				($this->page ? $this->page->id : '?') . ',' . 
-				parent::get('flags') . ',' . 
-				parent::get('icon') . ',' . 
-				parent::get('text') . ',' . 
-				parent::get('html');
+		$id = 	trim(parent::get('title')) . ',' .
+				// parent::get('from') . ',' .
+				// parent::get('src_id') . ',' .
+				// ($this->page ? $this->page->id : '?') . ',' . 
+				// parent::get('flags') . ',' . 
+				// parent::get('icon') . ',' . 
+				trim(parent::get('text')) . ',' . 
+				trim(parent::get('html'));
 
 		return md5($id);
 	}
@@ -351,6 +353,7 @@ class Notification extends WireData {
 
 		if($key == 'id') return $this->getID();
 		if($key == 'page') return $this->page; 
+		if($key == 'hash') return $this->getHash();
 
 		if($key == 'flagNames') {
 			$flags = parent::get('flags');

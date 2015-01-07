@@ -549,6 +549,155 @@ class Selectors extends WireArray {
 		return rtrim($str, ", "); 
 	}
 
+
+	/**
+	 * Utility method to convert array to selector string (work in progress, future use)
+	 * 
+	 * Accepts regular indexed or associative array. 
+	 * 
+	 * When given an associative array, the keys are assumed to be field names. An operator
+	 * may be appended to this field name. If no operator is present, then "=" is assumed. 
+	 * The values may be string, int or array. When given an array, it is assumed the values
+	 * are OR values. 
+	 * 
+	 * When given a regular array, the value may be an int or a string. if the value contains 
+	 * an operator, it is assumed to be a key=value statement. If the value is an integer or
+	 * integer string, it is assumed to be a page ID. Otherwise, if the value contains no
+	 * operator, it is discarded. 
+	 * 
+	 * Currently this method does no sanitization, it only converts an array to a selector
+	 * string. 
+	 * 
+	 * @param array $a
+	 * @return string
+	 * 
+	 */
+	public static function arrayToSelectorString(array $a) {
+
+		$parts = array(); // regular array, components of the selector
+		$ids = array(); // array of page IDs, if present
+		$sanitizer = wire('sanitizer');
+
+		foreach($selectorString as $key => $value) {
+
+			if(ctype_digit($key)) {
+				
+				// regular array, we can ignore $key
+				if(is_int($value) || ctype_digit("$value")) {
+					// value is page ID
+					$ids[] = (int) $value;
+					
+				} else if(strpos($value, '=') || strpos($value, '<') || strpos($value, '>')) {
+					// value contains an operator
+					$parts[] = $value; 
+					
+				} else {
+					// we have no idea what $value is? discard it
+					continue;
+				}
+
+			} else {
+				// associative, array key is field name, optionally with operator at end (= assumed otherwise)
+
+				if(is_array($value)) {
+					// value contains multiple OR values
+					foreach($value as $k => $v) {
+						if(!ctype_digit("$v")) $value[$k] = $sanitizer->selectorValue($v);
+					}
+					$value = implode('|', $value);
+
+				} else if(is_int($value) || ctype_digit("$value")) {
+					// number
+					$value = (int) $value;
+
+				} else {
+					// value is single value
+					$value = trim($value); 
+					$quotes = substr($value, 0, 1) . substr($value, -1);
+					if($quotes == '""' || $test == "''" || $quotes == '[]' || $quotes == '()') {
+						// value is already quoted so we leave it 
+					} else {
+						// value may need quotes, let sanitizer decide
+						$value = $sanitizer->selectorValue($value);
+					}
+				}
+
+				if(strpos($key, '=') || strpos($key, '<') || strpos($key, '>')) {
+					// key already contains operator at end
+				} else {
+					// no operator present, so we assume the "=" operator by appending to key
+					$key .= '=';
+				}
+
+				$parts[] = "$key$value";
+			}
+		}
+
+		// create selector string
+		$str = '';
+		if(count($ids)) $str .= "id=" . implode('|', $ids) . ', ';
+		if(count($parts)) $str .= implode(', ', $parts);
+		
+		return rtrim($str, ', ');
+	}
+
+	/**
+	 * Simple "a=b, c=d" selector-style string conversion to associative array, for fast/simple needs
+	 * 
+	 * - The only supported operator is "=". 
+	 * - Each key=value statement should be separated by a comma. 
+	 * - Do not use quoted values. 
+	 * - If you need a literal comma, use a double comma ",,".
+	 * - If you need a literal equals, use a double equals "==". 
+	 * 
+	 * @param string $s
+	 * @return array
+	 * 
+	 */
+	public static function keyValueStringToArray($s) {
+		
+		if(strpos($s, '~~COMMA') !== false) $s = str_replace('~~COMMA', '', $s); 
+		if(strpos($s, '~~EQUAL') !== false) $s = str_replace('~~EQUAL', '', $s); 
+		
+		$hasEscaped = false;
+		
+		if(strpos($s, ',,') !== false) {
+			$s = str_replace(',,', '~~COMMA', $s);
+			$hasEscaped = true; 
+		}
+		if(strpos($s, '==') !== false) {
+			$s = str_replace('==', '~~EQUAL', $s);
+			$hasEscaped = true; 
+		}
+		
+		$a = array();	
+		$parts = explode(',', $s); 
+		foreach($parts as $part) {
+			if(!strpos($part, '=')) continue;
+			list($key, $value) = explode('=', $part); 
+			if($hasEscaped) $value = str_replace(array('~~COMMA', '~~EQUAL'), array(',', '='), $value); 
+			$a[trim($key)] = trim($value); 	
+		}
+		
+		return $a; 
+	}
+
+	/**
+	 * Given an assoc array, convert to a key=value selector-style string
+	 * 
+	 * @param $a
+	 * @return string
+	 * 
+	 */
+	public static function arrayToKeyValueString($a) {
+		$s = '';
+		foreach($a as $key => $value) {
+			if(strpos($value, ',') !== false) $value = str_replace(array(',,', ','), ',,', $value); 
+			if(strpos($value, '=') !== false) $value = str_replace('=', '==', $value); 
+			$s .= "$key=$value, ";
+		}
+		return rtrim($s, ", "); 
+	}
 	
 
 }

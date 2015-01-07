@@ -74,6 +74,9 @@ class Modules extends WireArray {
 
 	/**
 	 * Cached module configuration data indexed by module ID
+	 * 
+	 * Values are integer 1 for modules that have config data but data is not yet loaded.
+	 * Values are an array for modules have have config data and has been loaded. 
 	 *
 	 */
 	protected $configData = array();
@@ -435,13 +438,16 @@ class Modules extends WireArray {
 		$database = $this->wire('database');
 		// we use SELECT * so that this select won't be broken by future DB schema additions
 		// Currently: id, class, flags, data, with created added at sysupdate 7
-		$query = $database->prepare("SELECT * FROM modules ORDER BY class"); // QA
+		$query = $database->prepare("SELECT * FROM modules ORDER BY class", "modules.loadModulesTable()"); // QA
 		$query->execute();
 		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
 			$moduleID = (int) $row['id'];
-			if($row['flags'] & self::flagsAutoload) {
+			$loadSettings = ($row['flags'] & self::flagsAutoload) || ($row['class'] == 'SystemUpdater');
+			if($loadSettings) {
 				// preload config data for autoload modules since we'll need it again very soon
 				$this->configData[$moduleID] = strlen($row['data']) ? wireDecodeJSON($row['data']) : array();
+			} else if(!empty($row['data'])) {
+				$this->configData[$moduleID] = 1; // indicate that it has config data, but not yet loaded
 			}
 			unset($row['data']);
 			if(isset($row['created']) && $row['created'] != '0000-00-00 00:00:00') {
@@ -798,8 +804,12 @@ class Modules extends WireArray {
 		
 		$module = parent::get($key); 
 		if(!$module && empty($options['noSubstitute'])) {
-			$module = $this->getSubstituteModule($key, $options); 
-			if($module) return $module; // returned module is ready to use
+			if($this->isInstallable($key) && empty($options['noInstall'])) {
+				// module is on file system and may be installed, no need to substitute
+			} else {
+				$module = $this->getSubstituteModule($key, $options);
+				if($module) return $module; // returned module is ready to use
+			}
 		}
 		
 		if($module) {
@@ -1101,7 +1111,7 @@ class Modules extends WireArray {
 
 		$sql = "INSERT INTO modules SET class=:class, flags=:flags, data=''";
 		if($this->wire('config')->systemVersion >=7) $sql .= ", created=NOW()";
-		$query = $database->prepare($sql); 
+		$query = $database->prepare($sql, "modules.install($class)"); 
 		$query->bindValue(":class", $class, PDO::PARAM_STR); 
 		$query->bindValue(":flags", $flags, PDO::PARAM_INT); 
 		
@@ -1938,14 +1948,15 @@ class Modules extends WireArray {
 
 		if(is_object($className)) $className = $className->className();
 		if(!$id = $this->moduleIDs[$className]) return array();
-		if(isset($this->configData[$id])) return $this->configData[$id]; 
+		if(!isset($this->configData[$id])) return array(); // module has no config data
+		if(is_array($this->configData[$id])) return $this->configData[$id]; 
 
 		// first verify that module doesn't have a config file
 		$configurable = $this->isConfigurableModule($className); 
 		if(!$configurable) return array();
 		
 		$database = $this->wire('database'); 
-		$query = $database->prepare("SELECT data FROM modules WHERE id=:id"); // QA
+		$query = $database->prepare("SELECT data FROM modules WHERE id=:id", "modules.getModuleConfigData($className)"); // QA
 		$query->bindValue(":id", (int) $id, PDO::PARAM_INT); 
 		$query->execute();
 		$data = $query->fetchColumn(); 
@@ -2110,7 +2121,7 @@ class Modules extends WireArray {
 		$this->configData[$id] = $configData; 
 		$json = count($configData) ? wireEncodeJSON($configData, true) : '';
 		$database = $this->wire('database'); 	
-		$query = $database->prepare("UPDATE modules SET data=:data WHERE id=:id"); // QA
+		$query = $database->prepare("UPDATE modules SET data=:data WHERE id=:id", "modules.saveModuleConfigData($className)"); // QA
 		$query->bindValue(":data", $json, PDO::PARAM_STR);
 		$query->bindValue(":id", (int) $id, PDO::PARAM_INT); 
 		$result = $query->execute();
@@ -2692,6 +2703,18 @@ class Modules extends WireArray {
 	 */
 	public function setSubstitutes(array $substitutes) {
 		$this->substitutes = array_merge($this->substitutes, $substitutes); 
+	}
+
+
+	/**
+	 * Enables use of $modules('ModuleName')
+	 *
+	 * @param string $key
+	 * @return mixed
+	 *
+	 */
+	public function __invoke($key) {
+		return $this->get($key);
 	}
 
 }

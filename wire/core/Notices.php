@@ -163,6 +163,7 @@ class Notices extends WireArray {
 
 		if(self::logAllNotices || ($item->flags & Notice::log) || ($item->flags & Notice::logOnly)) {
 			$this->addLog($item);
+			$item->flags = $item->flags & ~Notice::log; // remove log flag, to prevent it from being logged again
 			if($item->flags & Notice::logOnly) return $this;
 		}
 		

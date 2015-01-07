@@ -569,10 +569,14 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
  * Based upon: http://www.php.net/manual/en/function.time.php#89415
  *
  * @param int|string $ts Unix timestamp or date string
- * @param bool|int $abbreviate Whether to use abbreviations for shorter strings. 
+ * @param bool|int|array $abbreviate Whether to use abbreviations for shorter strings. 
  * 	Specify boolean TRUE for abbreviations (abbreviated where common, not always different from non-abbreviated)
  * 	Specify integer 1 for extra short abbreviations (all terms abbreviated into shortest possible string)
  * 	Specify boolean FALSE or omit for no abbreviations.
+ * 	Specify associative array of key=value pairs of terms to use for abbreviations. The possible keys are:
+ * 		just now, ago, from now, never
+ * 		second, minute, hour, day, week, month, year, decade
+ * 		seconds, minutes, hours, days, weeks, months, years, decades
  * @param bool $useTense Whether to append a tense like "ago" or "from now",
  * 	May be ok to disable in situations where all times are assumed in future or past.
  * 	In abbreviate=1 (shortest) mode, this removes the leading "+" or "-" from the string. 
@@ -581,7 +585,10 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
  */
 function wireRelativeTimeStr($ts, $abbreviate = false, $useTense = true) {
 
-	if(empty($ts)) return __('Never', __FILE__); 
+	if(empty($ts)) {
+		if(is_array($abbreviate) && isset($abbreviate['never'])) return $abbreviate['never'];
+		return __('Never', __FILE__);
+	}
 
 	$justNow = __('just now', __FILE__); 
 	$ago = __('ago', __FILE__); 
@@ -674,7 +681,22 @@ function wireRelativeTimeStr($ts, $abbreviate = false, $useTense = true) {
 			__("months", __FILE__), 
 			__("years", __FILE__), 
 			__("decades", __FILE__)
-			); 
+			);
+		
+		if(is_array($abbreviate)) {
+			// possible user specified abbreviations for replacements
+			$keys1 = array('second', 'minute', 'hour',  'day', 'week', 'month', 'year', 'decade');
+			$keys2 = array('seconds', 'minutes', 'hours',  'days', 'weeks', 'months', 'years', 'decades');
+			foreach($keys1 as $key => $term) {
+				if(isset($abbreviate[$term])) $periodsSingular[$key] = $abbreviate[$term];
+			}
+			foreach($keys2 as $key => $term) {
+				if(isset($abbreviate[$term])) $periodsPlural[$key] = $abbreviate[$term];
+			}
+			if(isset($abbreviate['just now'])) $justNow = $abbreviate['just now']; 
+			if(isset($abbreviate['from now'])) $fromNow = $abbreviate['from now'];
+			if(isset($abbreviate['ago'])) $ago = $abbreviate['ago'];
+		}
 	}
 
 	
@@ -926,14 +948,20 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
  * Return a new temporary directory/path ready to use for files
  * 
  * @param object|string $name Provide the object that needs the temp dir, or name your own string
- * @param int $maxAge Maximum age of temp dir files in seconds
+ * @param array|int $options Options array: 
+ * 	- maxAge: Maximum age of temp dir files in seconds (default=120)
+ * 	- basePath: Base path where temp dirs should be created. Omit to use default (recommended).
+ * 	Note: if you specify an integer for $options, then $maxAge is assumed. 
  * @return WireTempDir
  * 
  */
-function wireTempDir($name, $maxAge = 120) {
+function wireTempDir($name, $options = array()) {
 	static $tempDirs = array();
 	if(isset($tempDirs[$name])) return $tempDirs[$name]; 
-	$tempDir = new WireTempDir($name, $maxAge); 
+	if(is_int($options)) $options = array('maxAge' => $options); 	
+	$basePath = isset($options['basePath']) ? $options['basePath'] : '';
+	$tempDir = new WireTempDir($name, $basePath); 
+	if(isset($options['maxAge'])) $tempDir->setMaxAge($maxAge); 
 	$tempDirs[$name] = $tempDir; 
 	return $tempDir; 
 }

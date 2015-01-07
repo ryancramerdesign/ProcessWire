@@ -140,11 +140,12 @@ class MarkupPagerNav extends Wire implements Module {
 	/**
 	 * Render the output for the pagination
 	 *
-	 * @param PageArray $items Pages used in the pagination that have had a "limit=n" selector applied when they were loaded. 
-	 * @param array $options Any options to override the defaults. For the defaults see MarkupPagerNav::$options
+	 * @param WirePaginatable $items Pages used in the pagination that have had a "limit=n" selector applied when they were loaded. 
+	 * @param array $options Any options to override the defnults. For the defaults see MarkupPagerNav::$options
+	 * @return string
 	 *
 	 */
-	public function ___render(PageArray $items, $options = array()) {
+	public function ___render(WirePaginatable $items, $options = array()) {
 
 		$this->totalItems = $items->getTotal();
 		if(!$this->totalItems) return '';
@@ -153,7 +154,7 @@ class MarkupPagerNav extends Wire implements Module {
 		$this->itemsPerPage = $items->getLimit(); 
 		$this->pageNum = $items->getStart() < $this->itemsPerPage  ? 1 : ceil($items->getStart() / $this->itemsPerPage)+1; 
 
-		if(is_null($this->options['page'])) $this->options['page'] = $this->fuel('page'); 
+		if(is_null($this->options['page'])) $this->options['page'] = $this->wire('page'); 
 
 		if(empty($this->queryString)) {
 			$whitelist = $this->fuel('input')->whitelist->getArray(); 

@@ -6,18 +6,20 @@
  * PageArray provides an array-like means for storing PageReferences and is utilized throughout ProcessWire. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
  *
  */
 
-class PageArray extends WireArray {
+class PageArray extends WireArray implements WirePaginatable {
 
 	/**
 	 * Total number of pages, including those here and others that aren't, but may be here in pagination.
+	 * 
 	 * @var int
+	 * 
 	 */
 	protected $numTotal = 0;	
 
@@ -30,6 +32,7 @@ class PageArray extends WireArray {
 	 * Applicable for paginated result sets. This number is not enforced for adding items to this PageArray.
 	 *
 	 * @var int
+	 * 
 	 */
 	protected $numLimit = 0; 	
 
@@ -37,6 +40,7 @@ class PageArray extends WireArray {
 	 * If this PageArray is a partial representation of a larger set, this will contain the starting result number if previous results preceded it. 
 	 *
 	 * @var int
+	 * 
 	 */
 	protected $numStart = 0; 
 
@@ -197,13 +201,15 @@ class PageArray extends WireArray {
 	/**
 	 * Prepend a Page to the beginning of the PageArray. 
 	 *
-	 * @param Page $item 
+	 * @param Page|PageArray $item 
 	 * @return WireArray This instance.
 	 * 
 	 */
 	public function prepend($item) {
 		parent::prepend($item);
-		$this->numTotal++; 
+		// note that WireArray::prepend does a recursive call to prepend with each item,
+		// so it's only necessary to increase numTotal if the given item is Page (vs. PageArray)
+		if($item instanceof Page) $this->numTotal++; 
 		return $this; 
 	}
 

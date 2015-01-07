@@ -234,7 +234,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 
 				// cycle through the keys, which represent DB fields (i.e. data, description, etc.) and generate the insert query
 				foreach($keys as $key) {
-					$v = $value[$key]; 
+					$v = isset($value[$key]) ? $value[$key] : null;
 					if(is_null($v)) {
 						if(empty($schema)) $schema = $this->getDatabaseSchema($field); 
 						$sql .= isset($schema[$key]) && stripos($schema[$key], ' DEFAULT NULL') ? "NULL, " : "'', ";

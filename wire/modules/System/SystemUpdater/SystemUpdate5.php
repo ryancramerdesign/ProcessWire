@@ -35,7 +35,8 @@ class SystemUpdate5 extends SystemUpdate {
 			
 		} else foreach($page->children("include=all") as $child) {
 
-			if($child->name == 'lister') continue;  // not likely
+			$skip = array('lister', 'recent-pages'); 
+			if(in_array($child->name, $skip)) continue; // not likely, since these are installed by later updates
 
 			$of = $child->of();
 			$child->of(false);

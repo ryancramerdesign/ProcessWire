@@ -123,6 +123,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if(!$field instanceof Field) $field = wire('fields')->get($field);
 		if(!$field instanceof Field) throw new WireException('isValidPage requires a valid Field or field name');
 		if($editPage && $page->id == $editPage->id) return false; // prevent circular reference
+		if(wire('pages')->cloning) return true; // bypass check when clong is active
 
 		$valid = true;
 		

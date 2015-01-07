@@ -405,6 +405,16 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	public function ___deleted(Saveable $item) { 
 	}
 
+	/**
+	 * Enables use of $apivar('name') or wire()->apivar('name')
+	 * 
+	 * @param $key
+	 * @return Wire|null
+	 * 
+	 */
+	public function __invoke($key) {
+		return $this->get($key); 
+	}
 
 
 }
