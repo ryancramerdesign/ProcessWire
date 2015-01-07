@@ -122,6 +122,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if(!$field instanceof Field) $field = wire('fields')->get($field);
 		if(!$field instanceof Field) throw new WireException('isValidPage requires a valid Field or field name');
 		if($editPage && $page->id == $editPage->id) return false; // prevent circular reference
+		if(wire('pages')->cloning) return true; // bypass check when clong is active
 
 		$valid = true;
 		
@@ -212,6 +213,8 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		} else {
 			$children = new PageArray();
 		}
+		
+		if($children->has($page)) $children->remove($page); // don't allow page being edited to be selected
 
 		return $children; 
 	} 
@@ -318,6 +321,8 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			return $this->name;
 		}
 
+		$inputfield->renderReady($this, false);
+		
 		$out = 	"\n<div class='" . $inputfield->className() . "'>";
 		$out .= $inputfield->render();
 		$out .= $this->renderAddable();
@@ -409,7 +414,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$inputfield->processInput($input); 
 
 		$value = $this->attr('value'); 
-		$existingValue = $value ? clone $value : '';
+		$existingValueStr = $value ? "$value" : '';
 		$newValue = null;
 		$value = $inputfield->value;
 		
@@ -449,7 +454,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$this->setAttribute('value', $newValue); 
 		}
 
-		if("$newValue" != "$existingValue") {
+		if("$newValue" != "$existingValueStr") {
 			$this->trackChange('value'); 
 		} 
 		$this->processInputMode = false; 	
