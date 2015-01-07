@@ -107,7 +107,6 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	 * Is the given $page valid for the given $field?
 	 * 
 	 * Note that this validates all but findPagesCode (eval) based page selections. 
-	 *   If this simple change is right, not findPagesCode does validate.
 	 * This is primarily for use by FieldtypePage, but kept here since the config options
 	 * it uses to check are part of this module's config. 
 	 * 
@@ -123,7 +122,6 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if(!$field instanceof Field) $field = wire('fields')->get($field);
 		if(!$field instanceof Field) throw new WireException('isValidPage requires a valid Field or field name');
 		if($editPage && $page->id == $editPage->id) return false; // prevent circular reference
-		if(wire('pages')->cloning) return true; // bypass check when clong is active
 
 		$valid = true;
 		
@@ -136,10 +134,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		} 
 		
 		if($field->findPagesCode) {
-			// if the page is in the list, it's valid. No more questions asked!
-			$inputField = $field->getInputfield( $editPage, $field);
-			$validPages = $inputField->findPagesCode( $editPage );
-  			return $validPages->get( 'id=' . $page->id) ? true : false;
+			// TODO: we don't currently validate these
 		} 
 
 		if($field->parent_id && $field->parent_id != $page->parent_id) {
@@ -217,8 +212,6 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		} else {
 			$children = new PageArray();
 		}
-		
-		if($children->has($page)) $children->remove($page); // don't allow page being edited to be selected
 
 		return $children; 
 	} 
@@ -325,8 +318,6 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			return $this->name;
 		}
 
-		$inputfield->renderReady($this, false);
-		
 		$out = 	"\n<div class='" . $inputfield->className() . "'>";
 		$out .= $inputfield->render();
 		$out .= $this->renderAddable();
@@ -418,7 +409,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$inputfield->processInput($input); 
 
 		$value = $this->attr('value'); 
-		$existingValueStr = $value ? "$value" : '';
+		$existingValue = $value ? clone $value : '';
 		$newValue = null;
 		$value = $inputfield->value;
 		
@@ -458,7 +449,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$this->setAttribute('value', $newValue); 
 		}
 
-		if("$newValue" != "$existingValueStr") {
+		if("$newValue" != "$existingValue") {
 			$this->trackChange('value'); 
 		} 
 		$this->processInputMode = false; 	
