@@ -22,7 +22,8 @@
 			editor.ui.addButton('PWImage', {
 				label: editor.lang.common.image,
 				command: pluginName, 
-				icon: this.path + 'images/pwimage.png'
+				hidpi: true,
+				icon: (CKEDITOR.env.hidpi ? this.path + 'images/hidpi/pwimage.png' : this.path + 'images/pwimage.png')
 			}); 
 
 			/*

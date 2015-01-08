@@ -39,7 +39,8 @@
 					label: editor.lang.link.toolbar,
 					command: 'pwlink',
 					toolbar: 'links,10',
-					icon: this.path + 'images/pwlink.png'
+					hidpi: true,
+					icon: (CKEDITOR.env.hidpi ? this.path + 'images/hidpi/pwlink.png' : this.path + 'images/pwlink.png')
 				});
 				editor.ui.addButton( 'Unlink', {
 					label: editor.lang.link.unlink,

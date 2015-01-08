@@ -86,7 +86,7 @@ class FieldtypeComments extends FieldtypeMulti {
 
 	public function sanitizeValue(Page $page, Field $field, $value) {
 		if($value instanceof CommentArray) return $value; 
-		$commentArray = $pages->get($field->name); 
+		$commentArray = $this->wire('pages')->get($field->name); 
 		if(!$value) return $commentArray; 
 		if($value instanceof Comment) return $commentArray->add($value); 
 		if(!is_array($value)) $value = array($value);
