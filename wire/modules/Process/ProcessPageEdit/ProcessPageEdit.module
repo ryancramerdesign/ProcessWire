@@ -123,7 +123,14 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$page = $this->wire('pages')->get((int) $id); 
 		
 		if($page instanceof NullPage) throw new WireException($this->noticeUnknown); // Init error: page doesn't exist
-		if(!$page->editable()) throw new WirePermissionException($this->noticeNoAccess); // Init: user doesn't have access
+		if(!$page->editable()) {
+			if($page instanceof User && $this->wire('user')->hasPermission('user-admin')) {
+				// only allow user pages to be edited from the access section (at least for non-superusers)
+				$this->wire('session')->redirect($this->wire('config')->urls->admin . 'access/users/edit/?id=' . $page->id);
+			}
+			throw new WirePermissionException($this->noticeNoAccess); // Init: user doesn't have access
+		}
+			
 
 		return $page;
 	}
@@ -953,13 +960,18 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 *
 	 */
 	protected function processInputTemplate(Inputfield $inputfield) {
-		if(!$inputfield->value) return true; 
 		if($this->page->template->noChangeTemplate) return true; 
-		if((!$template = $this->templates->get((int) $inputfield->value)) || ($template->id == $this->page->template->id)) return true; 
-		if(!$this->isAllowedTemplate($template)) throw new WireException(sprintf($this->_("Template '%s' is not allowed"), $template)); // Selected template is not allowed
+		$templateID = (int) $inputfield->attr('value');
+		if(!$templateID) return true; 
+		$template = $this->wire('templates')->get((int) $inputfield->attr('value')); 
+		if(!$template) return true; // invalid template
+		if($template->id == $this->page->template->id) return true; // no change
+		if(!$this->isAllowedTemplate($template)) {
+			throw new WireException(sprintf($this->_("Template '%s' is not allowed"), $template)); // Selected template is not allowed
+		}
 
 		// template has changed, set a redirect URL which will confirm the change
-		$this->redirectUrl = "template?id={$this->page->id}&template={$template->id}";
+		$this->setRedirectUrl("template?id={$this->page->id}&template={$template->id}");
 		return true; 
 	}
 
@@ -1386,6 +1398,10 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 */
 	public function setEditor(WirePageEditor $editor) {
 		$this->editor = $editor; 
+	}
+	
+	protected function setRedirectUrl($url) {
+		$this->redirectUrl = $url;
 	}
 
 }

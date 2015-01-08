@@ -19,10 +19,10 @@
 class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEditor {
 
 	protected $form; 
-	protected $parent; 
-	protected $parent_id;
+	protected $parent = null; 
+	protected $parent_id = 0;
 	protected $page; 
-	protected $template; 
+	protected $template = null; 
 	protected $allowedTemplates = null; //cache
 	protected $predefinedTemplates = array();
 	protected $predefinedParents = array(); 
@@ -32,7 +32,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		return array(
 			'title' => __('Page Add', __FILE__),          
 			'summary' => __('Add a new page', __FILE__), 
-			'version' => 106, 
+			'version' => 107, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
@@ -122,49 +122,62 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 
 		$this->wire('processHeadline', $this->_('Add New')); // Headline
 
-		if($this->input->get->template_id && !$this->input->get->parent_id) {
-			return $this->executeTemplate();
-		}
-
 		if(!$this->parent_id) {
 			if(isset($_POST['parent_id'])) {
 				$this->parent_id = (int) $_POST['parent_id']; 
 			} else {
-				$this->parent_id = isset($_GET['parent_id']) ? (int) $_GET['parent_id'] : 1; 
-			}
-			if(count($this->predefinedParents) && !$this->predefinedParents->has("id=$this->parent_id")) {
-				$this->parent_id = $this->predefinedParents->first()->id;
+				$this->parent_id = isset($_GET['parent_id']) ? (int) $_GET['parent_id'] : 0; 
 			}
 		}
+		
+		if($this->wire('input')->get('template_id') && !$this->parent_id) {
+			return $this->executeTemplate();
+		}
 
+		$template_id = (int) $this->wire('input')->post('template'); // note POST uses 'template' and GET uses 'template_id'
+		if(!$template_id) $template_id = (int) $this->wire('input')->get('template_id');
+		if($template_id) $this->template = $this->wire('templates')->get($template_id);
+		
+		if(!$this->parent_id && count($this->predefinedParents)) {
+			$this->parent_id = $this->predefinedParents->first()->id;
+		}
+		
 		if(!$this->parent_id) throw new Wire404Exception("Invalid Parent ID"); 
 
-		$this->parent = $this->pages->get($this->parent_id); 
-		if(!$this->parent) throw new Wire404Exception("Unable to load page {$this->id}"); 
-		if(!$this->isAllowedParent($this->parent, true)) throw new WireException($this->errors('string')); 
+		$this->parent = $this->pages->get((int) $this->parent_id); 
+		if(!$this->parent->id) throw new Wire404Exception("Unable to load parent page $this->parent_id"); 
+		if(!$this->isAllowedParent($this->parent, true, $this->template)) throw new WireException($this->errors('string')); 
 
 		if(count($this->parent->template->childTemplates) == 1) {
+			// only one type of template is allowed for the parent
 			$childTemplates = $this->parent->template->childTemplates;
-			$this->template = $this->templates->get(reset($childTemplates)); 	
-			if(!$this->isAllowedTemplate($this->template)) throw new WireException("You don't have access to the template required to add pages here"); 
+			$template = $this->templates->get(reset($childTemplates)); 	
+			if($this->template && $template->id != $this->template->id) {
+				throw new WireException("Template $template is required for parent {$this->parent->path}");
+			}
+			$this->template = $template;
+			if(!$this->isAllowedTemplate($this->template, $this->parent)) {
+				throw new WireException("You don't have access to the template required to add pages here");
+			}
 
-		} else if($this->input->get('template_id')) { 
-			$templateID = (int) $this->input->get('template_id'); 
-			$template = $this->wire('templates')->get($templateID); 
-			if(!$template) throw new WireException("Unknown template specified"); 
-			if($this->isAllowedTemplate($template)) $this->template = $template; 
-				else throw new WireException("Template $template->name is not allowed here"); 
+		} else if($this->template) {
+			// initial request specifying a template id
+			if(!$this->isAllowedTemplate($this->template, $this->parent)) {
+				throw new WireException("Template {$this->template->name} is not allowed here ({$this->parent->path})");
+			}
 		}
-
+		
 		if($this->template && (strlen($this->parent->template->childNameFormat) || $this->input->get('name_format'))) {
 			// quick add! 
 			$this->processQuickAdd($this->parent, $this->template); 
 		}
-
+		
 		$this->form = $this->buildForm();
 		$this->form->setTrackChanges();
 
-		if($this->input->post->submit_save || $this->input->post->submit_publish) $this->processInput($this->form); 
+		if($this->input->post->submit_save || $this->input->post->submit_publish) {
+			$this->processInput($this->form);
+		}
 
 		$this->setupBreadcrumbs();
 
@@ -179,9 +192,12 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 
 		if(is_array($this->allowedTemplates)) return $this->allowedTemplates;
 
-		$isSuperuser = $this->wire('user')->isSuperuser();
 		$user = $this->wire('user');
 		$templates = array();
+		$allTemplates = count($this->predefinedTemplates) ? $this->predefinedTemplates : $this->wire('templates');
+		$allParents = $this->getAllowedParents();
+		$usersPageIDs = $this->wire('config')->usersPageIDs;
+		$userTemplateIDs = $this->wire('config')->userTemplateIDs; 
 
 		if($this->parent->is(Page::statusUnpublished)) {
 			$parentEditable = $this->parent->editable();
@@ -195,45 +211,64 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			$this->parent->removeStatus(Page::statusUnpublished); 
 		}
 		
-		$allTemplates = count($this->predefinedTemplates) ? $this->predefinedTemplates : $this->wire('templates'); 
-
 		foreach($allTemplates as $t) {
-
-			if($t->noParents) continue; 
-
+			
+			if($t->noParents) continue;
 			if($t->useRoles && !$user->hasPermission('page-create', $t)) continue;  
 			if(!$t->useRoles && !$parentEditable) continue; 
-			if(!$t->useRoles && !$user->hasPermission('page-create', $this->parent)) continue; 
+			if(!$t->useRoles && !$user->hasPermission('page-create', $this->parent)) continue;
 
-			if(count($this->parent->template->childTemplates)) {
-				if(!in_array($t->id, $this->parent->template->childTemplates)) continue; 
-			} 
-
-			if(count($t->parentTemplates)) {
-				if(!in_array($this->parent->template->id, $t->parentTemplates)) continue; 
+			if(count($allParents) == 1) {
+				if(count($this->parent->template->childTemplates)) {
+					// check that this template is allowed by the defined parent
+					if(!in_array($t->id, $this->parent->template->childTemplates)) continue;
+				}
 			}
 
-			if($t->flags & Template::flagSystem) { 
-				if(in_array($t->id, $this->config->userTemplateIDs) && !in_array($this->parent->id, $this->config->usersPageIDs)) continue; 
-				if($t->name == 'role' && $this->parent->id != $this->config->rolesPageID) continue; 
-				if($t->name == 'permission' && $this->parent->id != $this->config->permissionsPageID) continue; 
+			if(count($t->parentTemplates)) {
+				// this template is only allowed for certain parents
+				$allow = false;
+				foreach($allParents as $parent) {
+					if(in_array($parent->template->id, $t->parentTemplates)) {
+						$allow = true;
+						break;
+					}
+				}
+				if(!$allow) continue; 
+			}
+
+			if(in_array($t->id, $userTemplateIDs)) {
+				// this is a user template: allow any parents defined in $config->usersPageIDs
+				$allow = false;
+				foreach($allParents as $parent) {
+					if(in_array($parent->id, $usersPageIDs)) {
+						$allow = true;
+						break;
+					}
+				}
+				if(!$allow) continue;
+				
+			} else if($t->name == 'role' && $this->parent->id != $this->config->rolesPageID) {
+				// only allow role templates below rolesPageID
+				continue;
+				
+			} else if($t->name == 'permission' && $this->parent->id != $this->config->permissionsPageID) {
+				// only allow permission templates below permissionsPageID
+				continue;
 			}
 
 			$templates[$t->id] = $t;
 		}
 
-		/*
-		if($this->template == 'user' && !isset($templates[$this->template->id]) && $user->hasPermission('user-admin')) {
-			// account for the unique situation of user-admin permission
-			$templates[$this->template->id] = $this->template;
-		}
-		*/
-
-		if($this->template) {
-			$isUserTemplate = in_array($this->template->id, $this->wire('config')->userTemplateIDs);
-			if($isUserTemplate && !isset($templates[$this->template->id]) && $user->hasPermission('user-admin')) {
-				// account for the unique situation of user-admin permission
-				$templates[$this->template->id] = $this->template;
+		if($this->template || count($this->predefinedTemplates)) {
+			$predefinedTemplates = count($this->predefinedTemplates) ? $this->predefinedTemplates : array($this->template); 
+			foreach($predefinedTemplates as $t) {
+				$isUserTemplate = in_array($t->id, $userTemplateIDs);
+				if($isUserTemplate && !isset($templates[$t->id]) && $user->hasPermission('user-admin')) {
+					// account for the unique situation of user-admin permission
+					// where all user-based templates are allowed 
+					$templates[$t->id] = $t;
+				}
 			}
 		}
 
@@ -244,31 +279,64 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 
 	/**
 	 * Is the given template or template ID allowed here?
+	 * 
+	 * @param Template|int Template ID or object
+	 * @param Page $parent Optionally parent page to filter by
+	 * @return bool
+	 * @throws WireException of template argument can't be resolved
 	 *
 	 */
-	protected function isAllowedTemplate($id) {
-		if(is_object($id) && $id instanceof Template) $id = $id->id; 
-		$id = (int) $id; 
-		$templates = $this->getAllowedTemplates();
-		return isset($templates[$id]); 
+	protected function isAllowedTemplate($template, Page $parent = null) {
+		if(!is_object($template)) $template = $this->wire('templates')->get($template);
+		if(!$template) throw new WireException('Unknown template');
+		$templates = $this->getAllowedTemplates($parent);
+		$allowed = isset($templates[$template->id]); 
+		if($allowed && $parent) {
+			if(count($parent->template->childTemplates) && !in_array($template->id, $parent->template->childTemplates)) {
+				$allowed = false;
+			} else if($parent->template->noChildren) {
+				$allowed = false;
+			} else if(count($template->parentTemplates) && !in_array($parent->template->id, $template->parentTemplates)) {
+				$allowed = false;
+			} else if($template->noParents) {
+				$allowed = false;
+			}
+		}
+		return $allowed;
 	}
 
 	/**
 	 * Is the given parent page allowed?
 	 * 
 	 * @param Page $parent
+	 * @param bool $showError
+	 * @param Template $template Optionally limit condition to a specific template
 	 * @return bool
 	 * 
 	 */
-	protected function isAllowedParent(Page $parent, $showError = false) {
+	protected function isAllowedParent(Page $parent, $showError = false, Template $template = null) {
 
 		if($parent->template->noChildren) {
 			if($showError) $this->error("The parent template has specified that no children may be added here");
 			return false;
 		}
+		
+		if($template && count($template->parentTemplates)) {
+			if(!in_array($parent->template->id, $template->parentTemplates)) {
+				if($showError) $this->error("The template '$template' does not allow parents of type '$parent->template'"); 
+				return false;
+			}
+		}
+		
+		if($template && count($parent->template->childTemplates)) {
+			if(!in_array($template->id, $parent->template->childTemplates)) {
+				if($showError) $this->error("The parent of type '$parent->template' does not allow children of type '$template'");
+				return false;
+			}
+		}
 
 		if(!$parent->addable()) {
-			if($showError) $this->error("You don't have access to add pages here");
+			if($showError) $this->error("You don't have access to add pages to parent $parent->path");
 			return false;
 		}
 		
@@ -286,6 +354,44 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		}
 		
 		return true; 
+	}
+
+	/**
+	 * Get allowed parents
+	 * 
+	 * This will always be 1-parent, unless predefinedParents was populated.
+	 * 
+	 * @param Template $template Optionally specify a template to filter parents by 
+	 * @return PageArray
+	 * 
+	 */
+	protected function getAllowedParents(Template $template = null) {
+		if(count($this->predefinedParents)) {
+			$parents = $this->predefinedParents;
+		} else {
+			$parents = new PageArray();
+			if($this->parent) $parents->add($this->parent);
+		}
+		foreach($parents as $parent) {
+			if(!$parent->addable()) $parents->remove($parent); 
+			if($parent->template->noChildren) $parents->remove($parent); 
+			if($template && count($parent->template->childTemplates)) {
+				// parent only allows certain templates for children
+				// if a template was given in the arguments, check that it is allowed
+				if(!in_array($template->id, $parent->template->childTemplates)) {
+					$parents->remove($parent);
+				}
+			}
+		}
+		if($template && count($template->parentTemplates)) {
+			// given template only allows certain parents
+			foreach($parents as $parent) {
+				if(!in_array($parent->template->id, $template->parentTemplates)) {
+					$parents->remove($parent);
+				}
+			}
+		}
+		return $parents; 
 	}
 
 	/**
@@ -332,14 +438,15 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		if(!isset($allowedTemplates[$defaultTemplateId])) $defaultTemplateId = 0; 
 		$numPublishable = 0; 
 		
-		if(count($allowedTemplates) == 1 || $this->template) {
+		if(count($allowedTemplates) < 2) {
 
 			// only 1 template can be used here, so store it in a hidden field (no need for selection)
 			$template = $this->template ? $this->template : reset($allowedTemplates); 
 			$field = $this->modules->get('InputfieldHidden');
 			$field->attr('id+name', 'template'); 
 			$field->attr('value', $template->id); 
-			$field->attr('data-publish', (int) (count($template->fieldgroup) == 1 && $template->fieldgroup->hasField('title')));
+			if(count($template->fieldgroup) == 1 && $template->fieldgroup->hasField('title')) $numPublishable++;
+			$field->attr('data-publish', $numPublishable);
 			
 		} else {
 			// multiple templates are possible so give them a select
@@ -347,7 +454,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			$field = $this->modules->get('InputfieldSelect');
 	
 			foreach($allowedTemplates as $template) {
-				if($this->template && $template->id != $this->template->id) continue; 
+				if(!count($this->predefinedTemplates) && $this->template && $template->id != $this->template->id) continue; 
 				$numFields = count($template->fieldgroup); 	
 				if($numFields == 1 && $template->fieldgroup->hasField('title')) { 
 					$isPublishable = 1; 
@@ -553,8 +660,16 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 			$template = $this->templates->get($templatesId); 
 		}
 
-		if(!$this->isAllowedTemplate($template)) throw new WireException("You don't have access to add pages with template '$template'"); 
-		if(!$this->isAllowedParent($this->parent, true)) throw new WireException($this->errors('string'));
+		if(!$this->isAllowedTemplate($template, $this->parent)) {
+			throw new WireException("You don't have access to add pages with template '$template'");
+		} else {
+			// $this->message("Template $template is allowed for {$this->parent->template}"); 
+		}
+		if(!$this->isAllowedParent($this->parent, true, $template)) {
+			throw new WireException($this->errors('string'));
+		} else {
+			// $this->message("Parent {$this->parent->path} is allowed for $template");
+		}
 	
 		$this->page->template = $template;	
 		$this->page->parent = $this->parent; 

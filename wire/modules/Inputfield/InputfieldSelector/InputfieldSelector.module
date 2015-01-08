@@ -43,6 +43,7 @@
  * showOptgroups=1						Whether or not to separate sytem, field, subfields, etc. into their own optgroups. If turned off, all types of fields will be shown together A-Z.
  * optgroupsOrder=[see below]			Order and presence of field selection option groups.
  * optgroupsOrder=system,field,subfield,group,modifier,adjust	
+ * previewColumns=name,template,id		Array or CSV string of columns to show in bookmark previews
  *
  *
  */
@@ -140,6 +141,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		'datePlaceholder',
 		'timeFormat',
 		'timePlaceholder',
+		'previewColumns',
 		);
 
 	/**
@@ -160,6 +162,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		
 		$this->attr('name', 'selector'); // default name, which presumably will be changed
 		$this->setting('preview', 1); // whether to show a live preview in notes section
+		$this->setting('previewColumns', array()); // column names to use for bookmarked previews of selector results (in Lister)
 		$this->setting('counter', 1); // whether to show the live ajax number-of-page-matches counter
 		$this->setting('initValue', ''); // initial selector value: not changeable by user
 		$this->setting('addIcon', 'plus-circle');
@@ -600,6 +603,9 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 					'defaultSelector' => $selector, 
 					'initSelector' => $this->initValue,
 					);
+				$previewColumns = $this->sessionGet('previewColumns');
+				if($previewColumns && is_string($previewColumns)) $previewColumns = explode(',', $previewColumns);
+				if(is_array($previewColumns) && count($previewColumns)) $bookmark['columns'] = $previewColumns; 
 				$this->wire('modules')->includeModule('ProcessPageLister'); 
 				$id = ((int) $this->wire('input')->get('id')) . '_' . $this->attr('name'); 
 				$url = ProcessPageLister::addSessionBookmark($id, $bookmark); 
@@ -1412,7 +1418,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$this->sessionSet('valid', true); 
 		$this->sessionSet('initValue', $this->initValue); 
 	
-		// all other session variables tha tneed to be remembered
+		// all other session variables that need to be remembered
 		foreach($this->sessionVarNames as $key) {
 			$this->sessionSet($key, $this->$key); 
 		}

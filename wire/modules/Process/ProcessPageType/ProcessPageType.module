@@ -112,6 +112,11 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 	public function ___executeEdit() {
 		$this->wire('breadcrumbs')->add(new Breadcrumb('../', $this->page->get('title|name'))); 
 		$editor = $this->getEditor('ProcessPageEdit'); 
+		$urlSegment = ucfirst($this->wire('input')->urlSegment2);
+		if(method_exists($editor, "___execute$urlSegment") || method_exists($editor, "execute$urlSegment")) {
+			// i.e. executeTemplate() and executeSaveTemplate()
+			return $editor->{"execute$urlSegment"}(); 
+		}
 		return $editor->execute();
 	}
 
@@ -126,6 +131,16 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 			$this->error($e->getMessage());
 		}
 		return $out; 
+	}
+	
+	public function ___executeTemplate() {
+		$editor = $this->getEditor('ProcessPageEdit');
+		return $editor->executeTemplate();
+	}
+	
+	public function ___executeSaveTemplate() {
+		$editor = $this->getEditor('ProcessPageEdit');
+		return $editor->executeSaveTemplate();
 	}
 
 	protected function renderList($selector = '', $pagerOptions = array()) {
