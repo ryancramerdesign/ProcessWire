@@ -12,7 +12,7 @@
  * specific to the parts involved with downloading modules from the directory.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -25,7 +25,7 @@ class ProcessModule extends Process {
 		return array(
 			'title' => __('Modules', __FILE__), // getModuleInfo title          
 			'summary' => __('List, edit or install/uninstall modules', __FILE__), // getModuleInfo summary
-			'version' => 117, 
+			'version' => 118, 
 			'permanent' => true, 
 			'permission' => 'module-admin', 
 			'useNavJSON' => true,
@@ -270,6 +270,17 @@ class ProcessModule extends Process {
 		if($this->input->get->reset == 1) {
 			$this->modules->resetCache();
 			$edit = $this->input->get->edit;
+			$duplicates = $this->modules->duplicates()->getDuplicates();
+			foreach($duplicates as $className => $files) {
+				$dup = $this->modules->duplicates()->getDuplicates($className); 
+				$msg = sprintf($this->_('Module "%s" has multiple files (bold file is the one in use).'), $className) . ' ' . 
+					"<a href='./edit?name=$className'>" . $this->_('Click here to change which file is used') . "</a><pre>";
+				foreach($dup['files'] as $file) {
+					if($dup['using'] == $file) $file = "<b>$file</b>";
+					$msg .= "\n$file";
+				}
+				$this->message("$msg</pre>", Notice::allowMarkup);
+			}
 			if($edit) $this->session->redirect("./edit?name=" . $this->sanitizer->fieldName($edit) . "&reset=2"); 
 				else $this->session->redirect("./?reset=2");
 		}
@@ -1088,6 +1099,20 @@ class ProcessModule extends Process {
 				$requirementsStr .= ($requirementsStr ? ', ' : '') . "<a href='./edit?name=$name'>$name</a>$extra";
 			}
 		}
+		
+		// identify duplicates
+		$duplicates = $this->modules->duplicates()->getDuplicates($moduleName); 
+		if(count($duplicates['files'])) {
+			$field = $this->modules->get('InputfieldRadios'); 
+			$field->attr('name', '_use_duplicate');
+			$field->label = $this->_('Module file to use'); 
+			$field->description = $this->_('There are multiple copies of this module. Select the module file you want to use.'); 
+			foreach($duplicates['files'] as $file) {
+				$field->addOption($file); 
+			}
+			$field->attr('value', $duplicates['using']); 
+			$form->add($field); 
+		}
 
 		// include module configuration fields if provided
 		$configurable = $this->wire('modules')->isConfigurableModule($moduleName); 
@@ -1169,20 +1194,29 @@ class ProcessModule extends Process {
 				// note field names beginning with '_' will not be stored	
 				if(($name = $field->attr('name')) && strpos($name, '_') !== 0) {
 					$data[$name] = $field->attr('value'); 
-					if(wire('config')->debug) $this->message('Saved Module Config Data: ' . $name); 
+					$this->message('Saved Module Config Data: ' . $name, Notice::debug); 
 				}
 			}
-
+		
 			if($uninstallable && $this->input->post->uninstall === $moduleName) {
 				$this->modules->uninstall($moduleName); 	
 				$this->session->message($this->_("Uninstalled Module") . " - $moduleName"); // Message shown before the name of a module that was just uninstalled
-				$this->session->redirect('./?uninstalled=1'); 
+				$redirectURL = './?uninstalled=1'; 
 			} else {
 				$this->modules->saveModuleConfigData($moduleName, $data); 
 				$this->message($this->_("Saved Module") . " - $moduleName"); // Message shown before the name of a module that was just saved
-				$this->session->redirect("./edit?name=$moduleName"); 
-				return;
+				$redirectURL = "./edit?name=$moduleName"; 
 			}
+			
+			if(count($duplicates['files'])) {
+				$file = $form->getChildByName('_use_duplicate')->attr('value');
+				if($file != $duplicates['using'] && in_array($file, $duplicates['files'])) {
+					$this->modules->duplicates()->setUseDuplicate($moduleName, $file);
+					$this->message("Updated $moduleName to use file: $file");
+				}
+			}
+			
+			$this->wire('session')->redirect($redirectURL);
 		}
 
 		// entity encode module info since it's turned off in our table
@@ -1192,7 +1226,7 @@ class ProcessModule extends Process {
 		}
 	
 		$version = $this->formatVersion($moduleInfo['version']);
-		$filename = str_replace($this->wire('config')->paths->root, '/', $moduleInfo['file']); 
+		$filename = str_replace($this->wire('config')->paths->root, '/', $this->wire('modules')->getModuleFile($moduleName)); 
 		if(!$moduleInfo['core']) {
 			$version .= " - <a href='./?update=$moduleName'>" . $this->_('check for updates') . "</a>"; 
 		}

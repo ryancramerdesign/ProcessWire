@@ -11,7 +11,7 @@
  * before using it. If it's a ModulePlaceholder, then the real Module can be instantiated/retrieved by $modules->get($className).
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -31,6 +31,12 @@ class Modules extends WireArray {
 	 *
 	 */
 	const flagsAutoload = 2;
+
+	/**
+	 * Flag indicating the module has more than one copy of it on the file system. 
+	 * 
+	 */
+	const flagsDuplicate = 4; 
 
 	/**
 	 * Filename for module info cache file
@@ -149,6 +155,14 @@ class Modules extends WireArray {
 	protected $substitutes = array();
 
 	/**
+	 * Instance of ModulesDuplicates
+	 * 
+	 * @var ModulesDuplicates
+	 * 
+	 */	
+	protected $duplicates; 
+
+	/**
 	 * Properties that only appear in 'verbose' moduleInfo
 	 * 
 	 * @var array
@@ -172,6 +186,17 @@ class Modules extends WireArray {
 	 */
 	public function __construct($path) {
 		$this->addPath($path); 
+	}
+
+	/**
+	 * Get the ModulesDuplicates instance
+	 * 
+	 * @return ModulesDuplicates
+	 * 
+	 */
+	public function duplicates() {
+		if(is_null($this->duplicates)) $this->duplicates = new ModulesDuplicates();
+		return $this->duplicates; 
 	}
 
 	/**
@@ -440,21 +465,35 @@ class Modules extends WireArray {
 		// Currently: id, class, flags, data, with created added at sysupdate 7
 		$query = $database->prepare("SELECT * FROM modules ORDER BY class", "modules.loadModulesTable()"); // QA
 		$query->execute();
+		
 		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+			
 			$moduleID = (int) $row['id'];
-			$loadSettings = ($row['flags'] & self::flagsAutoload) || ($row['class'] == 'SystemUpdater');
+			$flags = $row['flags'];
+			$class = $row['class'];
+			$this->moduleIDs[$class] = $moduleID;
+			$loadSettings = ($flags & self::flagsAutoload) || ($flags & self::flagsDuplicate) || ($class == 'SystemUpdater');
+			
 			if($loadSettings) {
 				// preload config data for autoload modules since we'll need it again very soon
-				$this->configData[$moduleID] = strlen($row['data']) ? wireDecodeJSON($row['data']) : array();
+				$data = strlen($row['data']) ? wireDecodeJSON($row['data']) : array();
+				$this->configData[$moduleID] = $data;
+				// populate information about duplicates, if applicable
+				if($flags & self::flagsDuplicate) $this->duplicates()->addFromConfigData($class, $data); 
+				
 			} else if(!empty($row['data'])) {
-				$this->configData[$moduleID] = 1; // indicate that it has config data, but not yet loaded
+				// indicate that it has config data, but not yet loaded
+				$this->configData[$moduleID] = 1; 
 			}
-			unset($row['data']);
+			
 			if(isset($row['created']) && $row['created'] != '0000-00-00 00:00:00') {
 				$this->createdDates[$moduleID] = $row['created']; 
 			}
-			$this->modulesTableCache[$row['class']] = $row;
+			
+			unset($row['data']); // info we don't want stored in modulesTableCache
+			$this->modulesTableCache[$class] = $row;
 		}
+		
 		$query->closeCursor();
 	}
 
@@ -536,28 +575,38 @@ class Modules extends WireArray {
 	 * 
 	 */
 	protected function loadModule($basepath, $pathname, array &$requires, array &$installed) {
-		
+	
 		$pathname = $basepath . $pathname;
 		$dirname = dirname($pathname);
 		$filename = basename($pathname);
 		$basename = basename($filename, '.php');
 		$basename = basename($basename, '.module');
 		$requires = array();
+		$duplicates = $this->duplicates();
+	
+		// check if module has duplicate files, where one to use has already been specified to use first
+		$currentFile = $duplicates->getCurrent($basename); // returns the current file in use, if more than one
+		if($currentFile) {
+			// there is a duplicate file in use
+			$file = rtrim($this->wire('config')->paths->root, '/') . $currentFile;
+			if(file_exists($file) && $pathname != $file) {
+				// file in use is different from the file we are looking at
+				// check if this is a new/yet unknown duplicate
+				if(!$duplicates->hasDuplicate($basename, $pathname)) {
+					// new duplicate
+					$duplicates->recordDuplicate($basename, $pathname, $installed); 
+				}
+				return '';
+			}
+		}
 
-		if(class_exists($basename, false) && parent::get($basename)) {
-			// module was already loaded
-			$dir = rtrim($this->wire('config')->paths->$basename, '/'); 
-			if($dir && $dirname != $dir) {
-				// there are two copies of the module on the file system (likely one in /site/modules/ and another in /wire/modules/)
-				$err = sprintf($this->_('Warning: there appear to be two copies of module "%s" on the file system.'), $basename) . ' ';
-				$err .= $this->_('Please remove the one in /site/modules/ unless you need them both present for some reason.');
-				$this->wire('log')->error($err); 
-				$rootPath = $this->wire('config')->paths->root; 
-				$dir = str_replace($rootPath, '/', $dir) . "/$filename";
-				$dirname = str_replace($rootPath, '/', $dirname) . "/$filename";
-				$err .= "<br /><pre>1. $dir\n2. $dirname</pre>";
-				$user = $this->wire('user'); 
-				if($user && $user->isSuperuser()) $this->error($err, Notice::allowMarkup); 
+		// check if module has already been loaded, or maybe we've got duplicates
+		if(class_exists($basename, false)) { 
+			$module = parent::get($basename);
+			$dir = rtrim($this->wire('config')->paths->$basename, '/');
+			if($module && $dir && $dirname != $dir) {
+				$duplicates->recordDuplicate($basename, $pathname, $installed);
+				return '';
 			}
 			return $basename;
 		}
@@ -1994,6 +2043,26 @@ class Modules extends WireArray {
 		} 
 		
 		if(!$file) {
+			$dupFile = $this->duplicates()->getCurrent($className);
+			if($dupFile) {
+				$rootPath = $this->wire('config')->paths->root;
+				$file = rtrim($rootPath, '/') . $dupFile;
+				if(!file_exists($file)) {
+					// module in use may have been deleted, find the next available one that exist
+					$file = '';
+					$dups = $this->duplicates()->getDuplicates($className); 
+					foreach($dups['files'] as $pathname) {
+						$pathname = rtrim($rootPath, '/') . $pathname;
+						if(file_exists($pathname)) {
+							$file = $pathname;
+							break;
+						}
+					}
+				}
+			}
+		}
+		
+		if(!$file) {
 			// next see if we can determine it from already stored paths
 			$path = $this->wire('config')->paths->$className; 
 			if(file_exists($path)) {
@@ -2018,9 +2087,7 @@ class Modules extends WireArray {
 
 		if($file && DIRECTORY_SEPARATOR != '/') $file = str_replace(DIRECTORY_SEPARATOR, '/', $file); 
 		if($getURL) $file = str_replace($this->wire('config')->paths->root, '/', $file); 
-		
-		// $this->message("getModuleFile($className)"); 
-		
+
 		return $file;
 	}
 
@@ -2118,6 +2185,10 @@ class Modules extends WireArray {
 	public function ___saveModuleConfigData($className, array $configData) {
 		if(is_object($className)) $className = $className->className();
 		if(!$id = $this->moduleIDs[$className]) throw new WireException("Unable to find ID for Module '$className'"); 
+		
+		// ensure original duplicates info is retained and validate that it is still current
+		$configData = $this->duplicates()->getDuplicatesConfigData($className, $configData); 
+		
 		$this->configData[$id] = $configData; 
 		$json = count($configData) ? wireEncodeJSON($configData, true) : '';
 		$database = $this->wire('database'); 	
@@ -2201,7 +2272,8 @@ class Modules extends WireArray {
 		if($this->wire('config')->systemVersion < 6) return;
 		$this->clearModuleInfoCache();
 		foreach($this->paths as $path) $this->findModuleFiles($path, false); 
-		foreach($this->paths as $path) $this->load($path); 
+		foreach($this->paths as $path) $this->load($path);
+		if($this->numNewDuplicates > 0) $this->updateDuplicates();
 	}
 
 	/**
@@ -2687,7 +2759,7 @@ class Modules extends WireArray {
 	 */
 	public function setSubstitute($moduleName, $substituteName = null) {
 		if(is_null($substituteName)) {
-			unset($this->substitues[$moduleName]);
+			unset($this->substitutes[$moduleName]);
 		} else {
 			$this->substitutes[$moduleName] = $substituteName; 
 		}
@@ -2704,7 +2776,6 @@ class Modules extends WireArray {
 	public function setSubstitutes(array $substitutes) {
 		$this->substitutes = array_merge($this->substitutes, $substitutes); 
 	}
-
 
 	/**
 	 * Enables use of $modules('ModuleName')
