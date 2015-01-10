@@ -528,6 +528,10 @@ class Pages extends Wire {
 					$class = 'Page';
 				}
 			}
+			if($class != 'Page' && !class_exists($class)) {
+				$this->error("Class '$class' for Pages::getById() does not exist", Notice::log);
+				$class = 'Page';
+			}
 
 			while($page = $stmt->fetchObject($class, array($template))) {
 				$page->instanceID = ++$instanceID;

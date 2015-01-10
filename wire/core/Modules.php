@@ -398,7 +398,7 @@ class Modules extends WireArray {
 		// we no longer need the module's config data, so remove it
 		if($clearSettings && $this->isSingular($module)) {
 			$id = $this->getModuleID($module);
-			unset($this->configData[$id]);
+			if(isset($this->configData[$id])) $this->configData[$id] = 1;
 		}
 		
 	}
