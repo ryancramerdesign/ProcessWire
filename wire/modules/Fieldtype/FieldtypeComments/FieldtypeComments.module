@@ -442,7 +442,13 @@ class FieldtypeComments extends FieldtypeMulti {
 					PRIMARY KEY (`comment_id`, `ip`, `vote`), 
 					INDEX `created` (`created`)
 					) " . $parentSchema['xtra']['append']; // engine and charset
-				$database->exec($sql); 
+				$database->exec($sql);
+				$createdVotesTable = true;	
+			} catch(Exception $e) {
+				$createdVotesTable = $e->getCode() == '42S01'; // 42S01=table already exists (which we consider success too)
+				if(!$createdVotesTable) $this->error($e->getMessage(), Notice::log);
+			}
+			if($createdVotesTable) try {
 				$database->query("ALTER TABLE `$table` ADD `upvotes` $upvoteSchema");
 				$database->query("ALTER TABLE `$table` ADD `downvotes` $downvoteSchema");
 				$schemaVersion = 5;
