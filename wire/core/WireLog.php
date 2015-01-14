@@ -47,6 +47,19 @@ class WireLog extends Wire {
 	}
 
 	/**
+	 * Record a warning message in the warnings log (warnings.txt)
+	 *
+	 * @param string $text
+	 * @param int|bool $flags Specify boolean true to also display the warning interactively (admin only).
+	 * @return $this
+	 *
+	 */
+	public function warning($text, $flags = 0) {
+		$flags = $flags === true ? Notice::log : $flags | Notice::logOnly;
+		return parent::warning($text, $flags);
+	}
+	
+	/**
 	 * Save text to a caller-defined log
 	 * 
 	 * If the log doesn't currently exist, it will be created. 
@@ -68,14 +81,15 @@ class WireLog extends Wire {
 			'delimiter' => "\t"
 			);
 		
-		$options = array_merge($defaults, $options); 
-		$log = new FileLog($this->getFilename($name));
-		$log->setDelimeter($options['delimiter']);
+		$options = array_merge($defaults, $options);
+		$log = $this->getFileLog($name, $options); 
 		$text = str_replace(array("\r", "\n", "\t"), ' ', $text);
 		
 		if($options['showPage']) {
-			$page = $this->wire('page');
-			$text = ($page && $page->id ? $page->httpUrl : "page?") . "$options[delimiter]$text";
+			$input = $this->wire('input');
+			$url = $input ? $input->httpUrl() : '';
+			if(!strlen($url)) $url = 'page?';
+			$text = "$url$options[delimiter]$text";
 		}
 		
 		if($options['showUser']) {
@@ -87,6 +101,40 @@ class WireLog extends Wire {
 	}
 
 	/**
+	 * Return array of all logs
+	 * 
+	 * Each log entry is an array that includes the following:
+	 * 	- name (string): Name of log file, excluding extension.
+	 * 	- file (string): Full path and filename of log file. 
+	 * 	- size (int): Size in bytes
+	 * 	- modified (int): Last modified date (unix timestamp)
+	 * 
+	 * @return array 
+	 * 
+	 */
+	public function getLogs() {
+		
+		$logs = array();
+		$dir = new DirectoryIterator($this->wire('config')->paths->logs); 
+		
+		foreach($dir as $file) {
+			if($file->isDot() || $file->isDir()) continue; 
+			if($file->getExtension() != 'txt') continue; 
+			$name = basename($file, '.txt'); 
+			if($name != $this->wire('sanitizer')->pageName($name)) continue; 
+			$logs[$name] = array(
+				'name' => $name,
+				'file' => $file->getPathname(),
+				'size' => $file->getSize(), 
+				'modified' => $file->getMTime(), 
+			);
+		}
+		
+		ksort($logs); 
+		return $logs;	
+	}
+
+	/**
 	 * Get the full filename (including path) for the given log name
 	 * 
 	 * @param string $name
@@ -95,49 +143,200 @@ class WireLog extends Wire {
 	 * 
 	 */
 	public function getFilename($name) {
-		if($name !== $this->wire('sanitizer')->pageName($name)) throw new WireException("Log name must contain only [-_.a-z0-9] with no extension");
+		if($name !== $this->wire('sanitizer')->pageName($name)) {
+			throw new WireException("Log name must contain only [-_.a-z0-9] with no extension");
+		}
 		return $this->wire('config')->paths->logs . $name . '.' . $this->logExtension;
 	}
 
 	/**
 	 * Return the given number of entries from the end of log file
 	 * 
+	 * This method is pagination aware. 
+	 * 
 	 * @param string $name Name of log 
-	 * @param int $limit Number of entries to retrieve (default = 10)
-	 * @return array
-	 * @todo add pagination capability
+	 * @param int $limit Number of entries to retrieve (default = 100)
+	 * @param array $options Specify any of the following: 
+	 * 	- limit (integer): Specify number of lines.
+	 * 	- text (string): Text to find.
+	 * 	- dateFrom (int|string): Oldest date to match entries.
+	 * 	- dateTo (int|string): Newest date to match entries.
+	 * 	- reverse (bool): Reverse order (default=true)
+	 * 	- pageNum (int): Pagination number 1 or above (default=0 which means auto-detect)
+	 * @return array 
 	 * 
 	 */
-	public function get($name, $limit = 10) {
-		$log = new FileLog($this->getFilename($name));
-		$chunkSize = $limit * 255; // 255 = guesstimate of average line length
-		$lines = array();
-		$cnt = 0;
-		$lastCnt = 0;
-		while(1) {
-			$lines = $log->get($chunkSize);
-			$cnt = count($lines);
-			if(!$cnt || $cnt >= $limit || $lastCnt == $cnt) break;
-			$lastCnt = $cnt; 
-			$chunkSize += ($limit - $cnt) * $log->getMaxLineLength();
-		} 
-		if($cnt > $limit) $lines = array_slice($lines, 0, $limit);
-		return $lines;	
+	public function getLines($name, $limit = 100, array $options = array()) {
+		$pageNum = !empty($options['pageNum']) ? $options['pageNum'] : $this->wire('input')->pageNum;
+		unset($options['pageNum']); 
+		$log = $this->getFileLog($name); 
+		return $log->find($limit, $pageNum); 
 	}
 
 	/**
-	 * Return an array of entries that exist in the given range of dates
+	 * Same as getLines() but returns each log line as an associative array of each part of the line split up
+	 * 
+	 * @param $name Name of log file (excluding extension)
+	 * @param array $options
+	 * 	- limit (integer): Specify number of lines. 
+	 * 	- text (string): Text to find. 
+	 * 	- dateFrom (int|string): Oldest date to match entries. 
+	 * 	- dateTo (int|string): Newest date to match entries. 
+	 * 	- reverse (bool): Reverse order (default=true)
+	 * 	- pageNum (int): Pagination number 1 or above (default=0 which means auto-detect)
+	 * @return array(array(
+	 * 	'date' => "ISO-8601 date string",
+	 * 	'user' => "user name or boolean false if unknown", 
+	 * 	'url' => "full URL or boolean false if unknown", 
+	 * 	'text' => "text of the log entry"
+	 * ));
+	 * 
+	 */
+	public function getEntries($name, array $options = array()) {
+		
+		$log = $this->getFileLog($name);
+		$limit = isset($options['limit']) ? $options['limit'] : 100; 
+		$pageNum = !empty($options['pageNum']) ? $options['pageNum'] : $this->wire('input')->pageNum; 
+		unset($options['pageNum']); 
+		$lines = $log->find($limit, $pageNum, $options); 
+		
+		foreach($lines as $key => $line) {
+			$entry = $this->lineToEntry($line); 
+			$lines[$key] = $entry; 
+		}
+		
+		return $lines; 
+	}
+
+	/**
+	 * Convert a log line to an entry array
+	 * 
+	 * @param $line
+	 * @return array
+	 * 
+	 */
+	public function lineToEntry($line) {
+		
+		$parts = explode("\t", $line, 4);
+		
+		if(count($parts) == 2) {
+			$entry = array(
+				'date' => $parts[0], 
+				'user' => '',
+				'url'  => '',
+				'text' => $parts[1]
+			);
+		} else if(count($parts) == 3) {
+			$entry = array(
+				'date' => $parts[0], 
+				'user' => strpos($parts[1], '/') === false ? $parts[1] : '',
+				'url'  => strpos($parts[1], '/') !== false ? $parts[1] : '',
+				'text' => $parts[2]
+			);
+		} else {
+			$entry = array(
+				'date' => isset($parts[0]) ? $parts[0] : '',
+				'user' => isset($parts[1]) ? $parts[1] : '',
+				'url'  => isset($parts[2]) ? $parts[2] : '',
+				'text' => isset($parts[3]) ? $parts[3] : '',
+			);
+		}
+		
+		$entry['date'] = wireDate(wire('config')->dateFormat, strtotime($entry['date']));
+		$entry['user'] = wire('sanitizer')->pageName($entry['user']); 
+		
+		if($entry['url'] == 'page?') $entry['url'] = false;
+		if($entry['user'] == 'user?') $entry['user'] = false;
+		
+		return $entry; 
+	}
+
+	/**
+	 * Get the total number of entries present in the given log
+	 * 
+	 * @param $name
+	 * @return int
+	 * 
+	 */
+	public function getTotalEntries($name) {
+		$log = $this->getFileLog($name); 
+		return $log->getTotalLines(); 
+	}
+	
+	/**
+	 * Get lines from log file (deprecated)
+	 *
+	 * @param $name
+	 * @param int $limit
+	 * @param array $options
+	 * @deprecated Use getLines() or getEntries() intead.
+	 * @return array
+	 *
+	 */
+	public function get($name, $limit = 100, array $options = array()) {
+		return $this->getLines($name, $limit, $options);
+	}
+
+	/**
+	 * Return an array of log lines that exist in the given range of dates
+	 * 
+	 * Pagination aware. 
 	 * 
 	 * @param string $name Name of log 
 	 * @param int|string $dateFrom Unix timestamp or string date/time to start from 
 	 * @param int|string $dateTo Unix timestamp or string date/time to end at (default = now)
+	 * @param int $limit Max items per pagination
 	 * @return array
+	 * @deprecated Use getLines() or getEntries() with dateFrom/dateTo $options instead. 
 	 * 
 	 */
-	public function getDate($name, $dateFrom, $dateTo = 0) {
+	public function getDate($name, $dateFrom, $dateTo = 0, $limit = 100) {
+		$log = $this->getFileLog($name); 
+		$pageNum = $this->wire('input')->pageNum();
+		return $log->getDate($dateFrom, $dateTo, $pageNum, $limit); 
+	}
+	
+	/**
+	 * Delete the log file identified by $name
+	 *
+	 * @param $name
+	 * @return bool
+	 *
+	 */
+	public function delete($name) {
+		$log = $this->getFileLog($name);
+		return $log->delete();
+	}
+
+	/**
+	 * Prune log file to contain only entries from last n days
+	 * 
+	 * @param string $name
+	 * @param int $days
+	 * @return int Number of items in new log file or booean false on failure
+	 * @throws WireException
+	 * 
+	 */
+	public function prune($name, $days) {
+		$log = $this->getFileLog($name);
+		if($days < 1) throw new WireException("Prune days must be 1 or more"); 
+		$oldestDate = strtotime("-$days DAYS"); 
+		return $log->pruneDate($oldestDate); 
+	}
+
+	/**
+	 * Returns instance of FileLog for given log name
+	 * 
+	 * @param $name
+	 * @param array $options
+	 * @return FileLog
+	 * 
+	 */
+	public function getFileLog($name, array $options = array()) {
 		$log = new FileLog($this->getFilename($name));
-		$log->setDelimeter("\t");
-		return $log->getDate($dateFrom, $dateTo); 
+		if(isset($options['delimiter'])) $log->setDelimeter($options['delimiter']);
+			else $log->setDelimeter("\t");
+		return $log;
 	}
 
 }

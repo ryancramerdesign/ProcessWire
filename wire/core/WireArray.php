@@ -1559,5 +1559,4 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		}
 		return $this->get($key);
 	}
-
 }

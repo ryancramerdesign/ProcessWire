@@ -299,6 +299,7 @@ abstract class Process extends WireData implements Module {
 				$id = $item['id'];
 				$name = $item['name'];
 				$label = $item[$options['itemLabel']];
+				if(isset($item['icon'])) $icon = str_replace(array('icon-', 'fa-'),'', $item[$options['iconKey']]);
 			} else {
 				$this->error("Item must be object or array: $item"); 
 				continue;
@@ -309,7 +310,7 @@ abstract class Process extends WireData implements Module {
 			while(isset($data['list'][$_label])) $_label .= "_";
 		
 			if($options['itemLabel2']) {
-				$label2 = $item->{$options['itemLabel2']}; 
+				$label2 = is_array($item) ? $item[$options['itemLabel2']] : $item->{$options['itemLabel2']}; 
 				if(strlen($label2)) {
 					$label2 = $this->wire('sanitizer')->entities1($label2);
 					$label .= " <small>$label2</small>";

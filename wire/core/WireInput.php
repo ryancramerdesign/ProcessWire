@@ -281,8 +281,9 @@ class WireInput {
 
 		if($key == 'pageNum') return $this->pageNum; 
 		if($key == 'urlSegments') return $this->urlSegments; 
-		if($key == 'urlSegmentsStr' || $key == 'urlSegmentStr') return implode('/', $this->urlSegments); 
+		if($key == 'urlSegmentsStr' || $key == 'urlSegmentStr') return $this->urlSegmentStr();
 		if($key == 'url') return $this->url();
+		if($key == 'httpUrl' || $key == 'httpURL') return $this->httpUrl();
 		if($key == 'fragment') return $this->fragment();
 		if($key == 'queryString') return $this->queryString();
 		if($key == 'scheme') return $this->scheme();
@@ -313,6 +314,10 @@ class WireInput {
 		}
 		return $value; 
 	}
+	
+	public function urlSegmentStr() {
+		return implode('/', $this->urlSegments);
+	}
 
 	public function __isset($key) {
 		return $this->__get($key) !== null;
@@ -327,25 +332,54 @@ class WireInput {
 	 * 
 	 */
 	public function url() {
-	
+
+		$url = '';
 		$page = wire('page'); 
-		$url = $page && $page->id ? wire('page')->url : ''; 
 		
-		$segmentStr = $this->urlSegmentStr; 
-		if(strlen($segmentStr)) {
-			$url = rtrim($url, '/') . '/';
-			$url .= $segmentStr;
+		if($page && $page->id) {
+			// pull URL from page
+			$url = $page && $page->id ? wire('page')->url : '';
+			$segmentStr = $this->urlSegmentStr();
+			$pageNum = $this->pageNum();
+			if(strlen($segmentStr) || $pageNum > 1) {
+				if($segmentStr) $url = rtrim($url, '/') . '/' . $segmentStr;
+				if($pageNum > 1) $url = rtrim($url, '/') . '/' . wire('config')->pageNumUrlPrefix . $pageNum;
+				if(isset($_SERVER['REQUEST_URI'])) {
+					$info = parse_url($_SERVER['REQUEST_URI']);
+					if(!empty($info['path']) && substr($info['path'], -1) == '/') $url .= '/'; // trailing slash
+				}
+			}
+			
+		} else if(isset($_SERVER['REQUEST_URI'])) {
+			// page not yet available, attempt to pull URL from request uri
+			$parts = explode('/', $_SERVER['REQUEST_URI']); 
+			foreach($parts as $part) {
+				$url .= "/" . wire('sanitizer')->pageName($part);
+			}
 			$info = parse_url($_SERVER['REQUEST_URI']);
-			if(!empty($info['path']) && substr($info['path'], -1) == '/') $url .= '/'; // trailing slash
+			if(!empty($info['path']) && substr($info['path'], -1) == '/') {
+				$url = rtrim($url, '/') . '/'; // trailing slash
+			}
 		}
 		
 		return $url;
 	}
 
 	/**
+	 * URL including scheme
+	 * 
+	 * @return string
+	 * 
+	 */
+	public function httpUrl() {
+		return $this->scheme() . '://' . wire('config')->httpHost . $this->url();
+	}
+
+	/**
 	 * Anchor/fragment for current request (i.e. #fragment)
 	 * 
-	 * Note that this is not sanitized
+	 * Note that this is not sanitized. Fragments generally can't be seen
+	 * by the server, so this function may be useless.
 	 *
 	 * @return string
 	 *

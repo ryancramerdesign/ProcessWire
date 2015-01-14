@@ -15,7 +15,7 @@
  *
  */
 
-class CommentArray extends WireArray implements WirePaginatable {
+class CommentArray extends PaginatedArray implements WirePaginatable {
 
 	/**
 	 * Page that owns these comments, required to use the renderForm() or getCommentForm() methods. 
@@ -175,20 +175,6 @@ class CommentArray extends WireArray implements WirePaginatable {
 	}
 
 	/**
-	 * Set the total number of comments
-	 *
-	 * Used for pagination.
-	 *
-	 * @param int $total
-	 * @return CommentArray reference to current instance.
-	 *
-	 */
-	public function setTotal($total) {
-		$this->numTotal = (int) $total;
-		return $this;
-	}
-
-	/**
 	 * Get the total number of comments
 	 *
 	 * Used for pagination.
@@ -199,20 +185,6 @@ class CommentArray extends WireArray implements WirePaginatable {
 	public function getTotal() {
 		if(!$this->numTotal) return $this->count();
 		return $this->numTotal;
-	}
-
-	/**
-	 * Set the imposed limit that resulted in this CommentArray.
-	 *
-	 * Used for pagination.
-	 *
-	 * @param int $numLimit
-	 * @return this
-	 *
-	 */
-	public function setLimit($numLimit) {
-		$this->numLimit = $numLimit;
-		return $this;
 	}
 
 	/**
@@ -229,36 +201,6 @@ class CommentArray extends WireArray implements WirePaginatable {
 		if($this->numLimit) return $this->numLimit;
 			else return $this->count();
 	}
-
-
-	/**
-	 * Set the 'start' limitor that resulted in this CommentArray
-	 *
-	 * @param int $numStart;
-	 * @return $this
-	 *
-	 */
-	public function setStart($numStart) {
-		$this->numStart = (int) $numStart;
-		return $this;
-	}
-
-	/**
-	 * If a limit was imposed, get the index of the starting result assuming other results preceded those present in this CommentArray
-	 *
-	 * Used for pagination.
-	 *
-	 * @return int
-	 *
-	 */
-	public function getStart() {
-		return $this->numStart;
-	}
-
-
-
-
-
 }
 
 
