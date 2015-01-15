@@ -1,0 +1,62 @@
+<?php
+
+class InputfieldIcon extends Inputfield {
+	
+	public static function getModuleInfo() {
+		return array(
+			'title' => __('Icon', __FILE__), // Module Title
+			'summary' => __('Select an icon', __FILE__), // Module Summary
+			'version' => 1,
+		);
+	}
+	
+	protected $options = array();
+	
+	public function __construct() {
+		parent::__construct();
+		$this->options = file(dirname(__FILE__) . '/icons.inc', FILE_IGNORE_NEW_LINES); 
+	}
+	
+	public function init() {
+		parent::init();
+		$this->icon = 'puzzle-piece';
+	}
+	
+	public function ___render() {
+		$out = '';
+		$attrs = $this->getAttributes();
+		$value = $attrs['value'];
+		if($value && strpos($value, 'fa-') !== 0) $value = "fa-$value";
+		if($value) $this->icon = $value;
+		unset($attrs['value']);
+		$out .= "\n<select " . $this->getAttributesString($attrs) . ">";
+		if(!$this->getSetting('required')) $out .= "\n\t<option value=''></option>";
+		foreach($this->options as $option) {
+			$option = trim($option); 
+			$selected = $value == $option ? " selected='selected'" : "";
+			$label = ucfirst(substr($option, 3)); 
+			$label = str_replace('-', ' ', $label); 
+			$out .= "\n\t<option$selected value='$option'>$label</option>";
+		}
+		$out .= "</select>&nbsp;&nbsp;";
+		$out .=
+			"<i class='fa fa-angle-right ui-priority-secondary'></i>&nbsp;" . 
+			"<a class='InputfieldIconShowAll' target='_blank' href='#'>" . 
+			"<small>" . $this->_('Show All Icons') . "</small></a>" . 
+			"<div class='InputfieldIconAll'></div>";
+		return $out;
+
+	}
+	
+	public function setAttribute($key, $value) {
+		if($key == 'value' && !empty($value)) {
+			$index = array_search($value, $this->options);
+			if(is_int($index)) {
+				$value = $this->options[$index];
+			} else {
+				$value = '';
+			}
+		}
+		return parent::setAttribute($key, $value); 
+	}
+}

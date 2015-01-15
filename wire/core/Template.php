@@ -405,15 +405,18 @@ class Template extends WireData implements Saveable, Exportable {
 			if(!is_array($value)) $value = array();
 			foreach($value as $k => $v) {
 				if(is_object($v)) {
-					$v = $v->id; 
+					$v = $v->id;
 				} else if(!ctype_digit("$v")) {
 					$p = $this->wire('pages')->get($v);
-					if(!$p->id) $this->error("Unable to load page: $v"); 
-					$v = $p->id; 
+					if(!$p->id) $this->error("Unable to load page: $v");
+					$v = $p->id;
 				}
-				$value[(int)$k] = (int) $v; 
+				$value[(int) $k] = (int) $v;
 			}
-			parent::set($key, $value); 
+			parent::set($key, $value);
+
+		} else if($key == 'icon') {
+			$this->setIcon($value); 
 
 		} else {
 			parent::set($key, $value); 
@@ -709,13 +712,37 @@ class Template extends WireData implements Saveable, Exportable {
 		$icon = '';
 		if(strpos($label, 'icon-') !== false || strpos($label, 'fa-') !== false) {
 			if(preg_match('/\b(icon-|fa-)([^\s,]+)/', $label, $matches)) {
+				if($matches[1] == 'icon-') $matches[1] = 'fa-';
 				$icon = $prefix ? $matches[1] . $matches[2] : $matches[2];
 			}
 		}
 		return $icon;
 	}
 
-}
+	/**
+	 * Set the icon to use with this template
+	 * 
+	 * This manipulates the pageLabelField property, since there isn't actually an icon property. 
+	 * 
+	 * @param $icon 
+	 * @return $this
+	 * 
+	 */
+	public function setIcon($icon) {
+		$icon = $this->wire('sanitizer')->pageName($icon); 
+		$current = $this->getIcon(false); 	
+		$label = $this->pageLabelField;
+		if(strpos($icon, "icon-") === 0) $icon = str_replace("icon-", "fa-", $icon);
+		if($icon && strpos($icon, "fa-") !== 0) $icon = "fa-$icon";
+		if($current) {
+			$this->pageLabelField = str_replace(array("fa-$current", "icon-$current"), $icon, $label); 
+		} else if($icon) {
+			if(empty($label)) $label = $this->fieldgroup->hasField('title') ? 'title' : '';
+			$this->pageLabelField = trim("$icon $label");
+		}
+		return $this;
+	}
 
+}
 
 

@@ -9,11 +9,10 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -527,6 +526,7 @@ class ProcessTemplate extends Process {
 	public function ___executeEdit() {
 
 		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
+		$this->wire('config')->scripts->add($this->wire('config')->urls->ProcessTemplate . 'ProcessTemplateFieldCreator.js'); 
 		$this->setFuel('processHeadline', sprintf($this->_('Edit Template: %s'), $this->template->name)); // Headline when editing a template
 
 		if(!$this->template) throw new WireException("No Template specified"); 
@@ -752,13 +752,13 @@ class ProcessTemplate extends Process {
 
 		$select = $this->modules->get('InputfieldAsmSelect'); 
 		$select->label = $this->_x('Fields', 'field-label');
-		$select->description = $this->_('Define the fields that are used by this template. You may also drag and drop fields to the desired order.'); // Fields definition, description
+		$select->description = $this->_('Define the fields that are used by this template. You may also drag and drop fields to the desired order or [create a new field](../field/add).'); // Fields definition, description
 		$select->attr('name', 'fieldgroup_fields'); 
 		$select->attr('id', 'fieldgroup_fields'); 
 		$select->attr('title', $this->_('Add Field')); 
 		$select->setAsmSelectOption('sortable', true); 
 		$select->setAsmSelectOption('editLink', wire('config')->urls->admin . "setup/field/edit?id={value}&fieldgroup_id={$template->fieldgroup->id}&modal=1&process_template=1"); 
-		$select->setAsmSelectOption('hideDeleted', false); 
+		$select->setAsmSelectOption('hideDeleted', false);
 
 		foreach($template->fieldgroup as $field) {
 			$field = $template->fieldgroup->getField($field->id, true); // get in context
@@ -994,6 +994,21 @@ class ProcessTemplate extends Process {
 		$form->append($field); 
 
 		// --------------------
+	
+		$pageLabelField = $template->pagelabelField; 
+		$icon = $template->getIcon(true);
+
+		$field = $this->modules->get("InputfieldIcon");
+		$field->attr('name', 'pageLabelIcon');
+		$field->attr('value', $icon); 
+		$field->icon = $icon ? $icon : 'puzzle-piece';
+		$field->label = $this->_('Icon');
+		$field->description = $this->_('Select an icon that will be associated with this template and pages using this template (in the admin).'); 
+		$form->append($field);
+		
+		// --------------------
+		
+		if($icon) $pageLabelField = str_replace($icon, '', $pageLabelField); 
 
 		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('name', 'pageLabelField');
@@ -1002,8 +1017,8 @@ class ProcessTemplate extends Process {
 		$notes = 'name, ';
 		foreach($template->fields as $f) if(!$f->type instanceof FieldtypeFieldsetOpen) $notes .= $f->name . ", ";
 		$field->notes = $this->_('You may enter one or more of these fields:') . ' ' . rtrim($notes, ", ");
-		$field->notes .= "\n" . $this->_('You may also enter an [icon name](http://fontawesome.io/cheatsheet/), for example: icon-file or fa-file (either format works).'); 
-		$field->attr('value', $template->pageLabelField); 
+		//$field->notes .= "\n" . $this->_('You may also enter an [icon name](http://fontawesome.io/cheatsheet/), for example: icon-file or fa-file (either format works).'); 
+		$field->attr('value', $pageLabelField); 
 		$field->collapsed = Inputfield::collapsedBlank;
 		$form->append($field);
 		
@@ -1599,6 +1614,7 @@ class ProcessTemplate extends Process {
 		$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
 		$this->template->guestSearchable = (int) $form->get('guestSearchable')->attr('value'); 
 		$this->template->pageLabelField = $this->fuel('sanitizer')->names($form->get('pageLabelField')->attr('value'));
+		$this->template->setIcon($form->get('pageLabelIcon')->attr('value'));
 		$this->template->childNameFormat = $this->fuel('sanitizer')->text($form->get('childNameFormat')->attr('value')); 
 		$this->template->cache_time = $form->get('cache_time')->attr('value'); 
 		$this->template->useCacheForUsers = (int) $form->get('useCacheForUsers')->attr('value');

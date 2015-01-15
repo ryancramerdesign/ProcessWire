@@ -9,11 +9,17 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
+ * 
+ * @todo Convert info tab to "Actions" tab with the following:
+ * 	- Info
+ * 	- Clone field
+ * 	- Add to templates
+ * 	- Check field data
+ * 	- Delete?
  *
  */
 
@@ -877,14 +883,13 @@ class ProcessField extends Process implements ConfigurableModule {
 		//$form->head = $this->_('Advanced options'); // Section header for 'Advanced'
 		$form->attr('title', $this->_x('Advanced', 'tab')); 
 
-		$field = $this->modules->get("InputfieldText"); 
-		$field->attr('name', 'icon'); 
-		$field->attr('value', $this->field->icon); 
-		$field->icon = 'beer';
+		$field = $this->modules->get("InputfieldIcon");
+		$field->attr('name', 'icon');
+		$field->attr('value', $this->field->icon);
+		$field->icon = 'puzzle-piece';
 		$field->label = $this->_('Icon');
-		$field->description = $this->_('If you want to associate an icon with the field, enter an [icon name](http://fortawesome.github.io/Font-Awesome/icons/) here.'); // Description for field tags
-		$field->notes = $this->_('Example: beer'); 
-		$field->collapsed = Inputfield::collapsedBlank;
+		$field->description = $this->_('If you want to associate an icon with the field, select an icon below. Click the "Show all icons" link for visual selection.'); // Description for field tags
+		//$field->collapsed = Inputfield::collapsedBlank;
 		$form->prepend($field); 
 
 		$field = $this->modules->get("InputfieldText"); 
