@@ -14,7 +14,9 @@ class SystemUpdate10 extends SystemUpdate {
 			
 			$this->modules->resetCache();
 			$this->modules->install('ProcessLogger');
-			$this->message("Added: Setup > Logs");
+			$this->modules->install('InputfieldIcon');
+			$this->message("Installed ProcessLogger and added: Setup > Logs");
+			$this->message("Installed InputfieldIcon");
 		
 			// we moved default WireTempDir into /site/assets/cache/, so remove old temp dir and any files in it
 			$path = $this->wire('config')->paths->assets . 'WireTempDir/';
