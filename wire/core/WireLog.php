@@ -77,24 +77,31 @@ class WireLog extends Wire {
 		
 		$defaults = array(
 			'showUser' => true,
-			'showPage' => true, 
-			'delimiter' => "\t"
+			'showURL' => true,
+			'url' => '', // URL to show (default=blank, auto-detect)
+			'delimiter' => "\t",
 			);
 		
 		$options = array_merge($defaults, $options);
+		// showURL option was previously named showPage
+		if(isset($options['showPage'])) $options['showURL'] = $options['showPage'];
 		$log = $this->getFileLog($name, $options); 
 		$text = str_replace(array("\r", "\n", "\t"), ' ', $text);
 		
-		if($options['showPage']) {
-			$input = $this->wire('input');
-			$url = $input ? $input->httpUrl() : '';
-			if(!strlen($url)) $url = 'page?';
+		if($options['showURL']) {
+			if($options['url']) {
+				$url = $options['url'];
+			} else {
+				$input = $this->wire('input');
+				$url = $input ? $input->httpUrl() : '';
+				if(!strlen($url)) $url = '?';
+			}
 			$text = "$url$options[delimiter]$text";
 		}
 		
 		if($options['showUser']) {
 			$user = $this->wire('user');
-			$text = ($user && $user->id ? $user->name : "user?") . "$options[delimiter]$text";
+			$text = ($user && $user->id ? $user->name : "?") . "$options[delimiter]$text";
 		}
 		
 		return $log->save($text);
@@ -155,7 +162,6 @@ class WireLog extends Wire {
 	 * This method is pagination aware. 
 	 * 
 	 * @param string $name Name of log 
-	 * @param int $limit Number of entries to retrieve (default = 100)
 	 * @param array $options Specify any of the following: 
 	 * 	- limit (integer): Specify number of lines.
 	 * 	- text (string): Text to find.
@@ -166,10 +172,11 @@ class WireLog extends Wire {
 	 * @return array 
 	 * 
 	 */
-	public function getLines($name, $limit = 100, array $options = array()) {
+	public function getLines($name, array $options = array()) {
 		$pageNum = !empty($options['pageNum']) ? $options['pageNum'] : $this->wire('input')->pageNum;
 		unset($options['pageNum']); 
 		$log = $this->getFileLog($name); 
+		$limit = isset($options['limit']) ? (int) $options['limit'] : 100; 
 		return $log->find($limit, $pageNum); 
 	}
 

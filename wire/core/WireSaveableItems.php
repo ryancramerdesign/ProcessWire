@@ -7,7 +7,7 @@
  * and finding items of descending class-defined types. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -221,8 +221,10 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 		}
 
 		if($result) {
-			$this->saved($item);
+			$this->saved($item); 
 			$this->resetTrackChanges();
+		} else {
+			$this->error("Error saving '$item'"); 
 		}
 		
 		return $result;
@@ -257,6 +259,8 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 		if($result) {
 			$this->deleted($item);
 			$item->id = 0; 
+		} else {
+			$this->error("Error deleting '$item'"); 
 		}
 		
 		return $result;	
@@ -273,6 +277,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	 */
 	public function ___clone(Saveable $item) {
 
+		$original = $item;
 		$item = clone $item;
 
 		if(array_key_exists('name', $item->getTableData())) {
@@ -286,7 +291,11 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 
 		// id=0 forces the save() to create a new field
 		$item->id = 0;
-		if($this->save($item)) return $item; 
+		$this->cloneReady($original, $item); 
+		if($this->save($item)) {
+			$this->cloned($original, $item); 
+			return $item;
+		}
 		return false; 
 	}
 
@@ -376,14 +385,29 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	public function ___deleteReady(Saveable $item) { }
 	
 	/**
+	 * Hook that runs right before item is to be cloned.
+	 *
+	 * @param Saveable $item
+	 * @param Saveable $copy
+	 *
+	 */
+	public function ___cloneReady(Saveable $item, Saveable $copy) { }
+	
+	/**
 	 * Hook that runs right after an item has been saved. 
 	 *
 	 * Unlike after(save), when this runs, it has already been confirmed that the item has been saved (no need to error check).
 	 *
 	 * @param Saveable $item
+	 * @param array $changes
 	 *
 	 */
-	public function ___saved(Saveable $item) { 
+	public function ___saved(Saveable $item, array $changes = array()) {
+		if(count($changes)) {
+			$this->log("Saved '$item->name', Changes: " . implode(', ', $changes)); 
+		} else {
+			$this->log("Saved", $item);
+		}
 	}
 	
 	/**
@@ -392,7 +416,9 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	 * @param Saveable $item
 	 *
 	 */
-	public function ___added(Saveable $item) { }
+	public function ___added(Saveable $item) {
+		$this->log("Added", $item);
+	}
 	
 	/**
 	 * Hook that runs right after an item has been deleted. 
@@ -403,6 +429,20 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function ___deleted(Saveable $item) { 
+		$this->log("Deleted", $item);
+	}
+
+	/**
+	 * Hook that runs right after an item has been cloned. 
+	 *
+	 * Unlike after(delete), it has already been confirmed that the item was indeed deleted.
+	 *
+	 * @param Saveable $item
+	 * @param Saveable $copy
+	 *
+	 */
+	public function ___cloned(Saveable $item, Saveable $copy) {
+		$this->log("Cloned '$item->name' to '$copy->name'", $item); 
 	}
 
 	/**
@@ -414,6 +454,37 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	 */
 	public function __invoke($key) {
 		return $this->get($key); 
+	}
+
+	/**
+	 * Save to activity log, if enabled in config
+	 *
+	 * @param $str
+	 * @param Saveable|null Item to log
+	 * @return WireLog
+	 *
+	 */
+	public function log($str, Saveable $item = null) {
+		$logs = $this->wire('config')->logs;
+		$name = $this->className(array('lowercase' => true)); 
+		if($logs && in_array($name, $logs)) {
+			if($item && strpos($str, "'$item->name'") === false) $str .= " '$item->name'";
+			return parent::___log($str, array('name' => $name));
+		}
+		return parent::___log(); 
+	}
+
+	/**
+	 * Record an error
+	 *
+	 * @param string $text
+	 * @param int|bool $flags See Notices::flags
+	 * @return $this
+	 *
+	 */
+	public function error($text, $flags = 0) {
+		$this->log($text); 
+		return parent::error($text, $flags); 
 	}
 
 

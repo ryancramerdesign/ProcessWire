@@ -119,7 +119,7 @@ class ProcessLogger extends Process {
 				break;
 			
 			case 'download':
-				$filename = $this->wire('log')->getFilename($name); 
+				$filename = $this->wire('log')->getFilename($name);
 				if(file_exists($filename)) wireSendFile($filename, array('forceDownload' => true));
 				break;
 			

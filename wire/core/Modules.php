@@ -702,21 +702,9 @@ class Modules extends WireArray {
 		$config = $this->wire('config');
 		$cache = $this->wire('cache'); 
 
-		/*
-		if($level == 0) {
-			$startPath = $path;
-			$cacheFilename = $config->paths->cache . "Modules." . md5($path) . ".cache";
-			if($readCache && is_file($cacheFilename)) {
-				$cacheContents = explode("\n", file_get_contents($cacheFilename)); 
-				if(!empty($cacheContents)) return $cacheContents;
-			}
-		}
-		*/
-		
 		if($level == 0) {
 			$startPath = $path;
 			$cacheName = "Modules." . str_replace($config->paths->root, '', $path);
-			//$cacheFilename = $config->paths->cache . $cacheName . ".cache";
 			if($readCache && $cache) {
 				$cacheContents = $cache->get($cacheName); 
 				if(!empty($cacheContents)) {
@@ -1227,7 +1215,8 @@ class Modules extends WireArray {
 				}
 			}
 		}
-	
+
+		$this->log("Installed module '$module'"); 
 		if($languages) $languages->unsetDefault();
 		if($options['resetCache']) $this->clearModuleInfoCache();
 
@@ -1432,6 +1421,9 @@ class Modules extends WireArray {
 			}
 		}
 		
+		if($success) $this->log("Deleted module '$class'"); 
+			else $this->error("Failed to delete module '$class'"); 
+		
 		return $success; 
 	}
 
@@ -1520,7 +1512,8 @@ class Modules extends WireArray {
 				}
 			}
 		}
-		
+
+		$this->log("Uninstalled module '$class'"); 
 		$this->resetCache();
 
 		return true; 
@@ -2196,6 +2189,7 @@ class Modules extends WireArray {
 		$query->bindValue(":data", $json, PDO::PARAM_STR);
 		$query->bindValue(":id", (int) $id, PDO::PARAM_INT); 
 		$result = $query->execute();
+		$this->log("Saved module '$className' config data"); 
 		return $result;
 	}
 
@@ -2786,6 +2780,26 @@ class Modules extends WireArray {
 	 */
 	public function __invoke($key) {
 		return $this->get($key);
+	}
+
+	/**
+	 * Save to the modules log
+	 * 
+	 * @param $str Message to log
+	 * @param string $moduleName
+	 * @return WireLog
+	 * 
+	 */	
+	public function log($str, $moduleName = '') {
+		if(!in_array('modules', $this->wire('config')->logs)) return $this->___log();
+		if(!is_string($moduleName)) $moduleName = (string) $moduleName; 
+		if($moduleName && strpos($str, $moduleName) === false) $str .= " (Module: $moduleName)";
+		return $this->___log($str, array('name' => 'modules')); 
+	}
+	
+	public function error($text, $flags = 0) {
+		$this->log($text); 
+		return parent::error($text, $flags); 
 	}
 
 }

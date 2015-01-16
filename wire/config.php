@@ -662,6 +662,19 @@ $config->substituteModules = array(
 /*** 9. MISC ************************************************************************************/
 
 /**
+ * Additional core logs
+ * 
+ * All activities from the API functions corresponding with the given log names will be logged. 
+ * Options that can be specified are: pages, fields, templates, modules
+ * 
+ * @var array
+ * 
+ */
+$config->logs = array(
+	'modules',
+);
+
+/**
  * Default admin theme
  * 
  * Module name of default admin theme for guest and users that haven't already selected one

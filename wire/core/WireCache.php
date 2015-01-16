@@ -282,7 +282,7 @@ class WireCache extends Wire {
 			$query->bindValue(':name', $name); 
 			$query->execute();
 			$success = true; 
-			$this->message($this->_('Cleared cache') . ' - ' . $name, Notice::debug | Notice::log); 
+			$this->message($this->_('Cleared cache') . ' - ' . $name, Notice::debug); 
 		} catch(Exception $e) {
 			$this->error($e->getMessage()); 
 			$success = false;

@@ -1852,6 +1852,21 @@ class Pages extends Wire {
 	}
 
 	/**
+	 * Save to pages activity log, if enabled in config
+	 * 
+	 * @param $str
+	 * @param Page|null Page to log
+	 * @return WireLog
+	 * 
+	 */
+	public function log($str, Page $page) {
+		if(!in_array('pages', $this->wire('config')->logs)) return parent::___log();
+		if($this->wire('process') != 'ProcessPageEdit') $str .= " [From URL: " . $this->wire('input')->url() . "]";
+		$options = array('name' => 'pages', 'url' => $page->path); 
+		return parent::___log($str, $options); 
+	}
+
+	/**
 	 * Hook called after a page is successfully saved
 	 *
 	 * This is the same as Pages::save, except that it occurs before other save-related hooks (below),
@@ -1863,6 +1878,9 @@ class Pages extends Wire {
 	 *
 	 */
 	public function ___saved(Page $page, array $changes = array(), $values = array()) { 
+		$str = "Saved page";
+		if(count($changes)) $str .= " (Changes: " . implode(', ', $changes) . ")";
+		$this->log($str, $page);
 		$this->wire('cache')->maintenance($page);
 	}
 
@@ -1870,7 +1888,9 @@ class Pages extends Wire {
 	 * Hook called when a new page has been added
 	 *
 	 */
-	public function ___added(Page $page) { }
+	public function ___added(Page $page) { 
+		$this->log("Added page", $page); 
+	}
 
 	/**
 	 * Hook called when a page has been moved from one parent to another
@@ -1878,7 +1898,13 @@ class Pages extends Wire {
 	 * Note the previous parent is in $page->parentPrevious
 	 *
 	 */
-	public function ___moved(Page $page) { }
+	public function ___moved(Page $page) { 
+		if($page->parentPrevious) {
+			$this->log("Moved page from {$page->parentPrevious->path}$page->name/", $page);
+		} else {
+			$this->log("Moved page", $page); 
+		}
+	}
 
 	/**
 	 * Hook called when a page's template has been changed
@@ -1886,19 +1912,29 @@ class Pages extends Wire {
 	 * Note the previous template is in $page->templatePrevious
 	 *
 	 */
-	public function ___templateChanged(Page $page) { }
+	public function ___templateChanged(Page $page) {
+		if($page->templatePrevious) {
+			$this->log("Changed template on page from '$page->templatePrevious' to '$page->template'", $page);
+		} else {
+			$this->log("Changed template on page to '$page->template'", $page);
+		}
+	}
 
 	/**
 	 * Hook called when a page has been moved to the trash
 	 *
 	 */
-	public function ___trashed(Page $page) { }
+	public function ___trashed(Page $page) { 
+		$this->log("Trashed page", $page);
+	}
 
 	/**
 	 * Hook called when a page has been moved OUT of the trash
 	 *
 	 */
-	public function ___restored(Page $page) { }
+	public function ___restored(Page $page) { 
+		$this->log("Restored page", $page); 
+	}
 
 	/**
 	 * Hook called just before a page is saved
@@ -1927,6 +1963,7 @@ class Pages extends Wire {
 	 *
 	 */
 	public function ___deleted(Page $page) { 
+		$this->log("Deleted page", $page); 
 		$this->wire('cache')->maintenance($page);
 	}
 
@@ -1946,7 +1983,9 @@ class Pages extends Wire {
 	 * @param Page $copy The completed cloned version of the page
 	 *
 	 */
-	public function ___cloned(Page $page, Page $copy) { }
+	public function ___cloned(Page $page, Page $copy) { 
+		$this->log("Cloned page to $copy->path", $page); 
+	}
 
 	/**
 	 * Hook called when a page has been renamed (i.e. had it's name field change)
@@ -1960,7 +1999,9 @@ class Pages extends Wire {
 	 * @param Page $page The $page that was renamed
 	 *
 	 */
-	public function ___renamed(Page $page) { }
+	public function ___renamed(Page $page) { 
+		$this->log("Renamed page from '$page->namePrevious' to '$page->name'", $page); 
+	}
 
 	/**
 	 * Hook called when a page's has been changed and saved
@@ -1971,10 +2012,33 @@ class Pages extends Wire {
 	 *
 	 */
 	public function ___statusChanged(Page $page) {
+		$status = $page->status; 
+		$statusPrevious = $page->statusPrevious; 
 		$isPublished = !$page->isUnpublished();
-		$wasPublished = !($page->statusPrevious & Page::statusUnpublished);
+		$wasPublished = !($statusPrevious & Page::statusUnpublished);
 		if($isPublished && !$wasPublished) $this->published($page);
 		if(!$isPublished && $wasPublished) $this->unpublished($page);
+	
+		$from = array();
+		$to = array();
+		foreach(Page::getStatuses() as $name => $flag) {
+			if($flag == Page::statusUnpublished) continue; // logged separately
+			if($statusPrevious & $flag) $from[] = $name;
+			if($status & $flag) $to[] = $name; 
+		}
+		if(count($from) || count($to)) {
+			$added = array();
+			$removed = array();
+			foreach($from as $name) if(!in_array($name, $to)) $removed[] = $name;
+			foreach($to as $name) if(!in_array($name, $from)) $added[] = $name;
+			$str = '';
+			if(count($added)) $str = "Added status '" . implode(', ', $added) . "'";
+			if(count($removed)) {
+				if($str) $str .= ". ";
+				$str .= "Removed status '" . implode(', ', $removed) . "'";
+			}
+			if($str) $this->log($str, $page);
+		}
 	}
 
 	/**
@@ -1998,7 +2062,9 @@ class Pages extends Wire {
 	 * @param Page $page 
 	 *
 	 */
-	public function ___published(Page $page) { }
+	public function ___published(Page $page) { 
+		$this->log("Published page", $page); 
+	}
 
 	/**
 	 * Hook called after published page has just been unpublished
@@ -2006,7 +2072,9 @@ class Pages extends Wire {
 	 * @param Page $page 
 	 *
 	 */
-	public function ___unpublished(Page $page) { }
+	public function ___unpublished(Page $page) { 
+		$this->log("Unpublished page", $page); 
+	}
 
 	/**
 	 * Hook called right before an unpublished page is published and saved
@@ -2052,7 +2120,9 @@ class Pages extends Wire {
 	 * @param Field $field
 	 * 
 	 */
-	public function ___savedField(Page $page, Field $field) { }
+	public function ___savedField(Page $page, Field $field) { 
+		$this->log("Saved page field '$field->name'", $page); 
+	}
 
 
 }

@@ -160,21 +160,45 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 */
 	
 	/**
-	 * Cached name of this class from the className() method
+	 * Cached name of this class from the className(false) method
 	 *
 	 */
 	private $className = '';
+	
+	/**
+	 * Cached results from class name calls with options
+	 *
+	 */
+	private $classNameOptions = array();
 
 	/**
 	 * Return this object's class name
 	 *
 	 * Note that it caches the class name in the $className object property to reduce overhead from calls to get_class().
 	 *
+	 * @param array|null $options Optionally an option: 
+	 * 	- lowercase (bool): Specify true to make it return hyphenated lowercase version of class name
 	 * @return string
 	 *
 	 */
-	public function className() {
+	public function className($options = null) {
+		
 		if(!$this->className) $this->className = get_class($this);
+		if($options === null || !is_array($options)) return $this->className; 
+		
+		if(!empty($options['lowercase'])) {
+			if(!empty($this->classNameOptions['lowercase'])) return $this->classNameOptions['lowercase']; 
+			$name = $this->className;
+			$part = substr($name, 1);
+			if(strtolower($part) != $part) {
+				// contains more than 1 uppercase character, convert to hyphenated lowercase
+				$name = substr($name, 0, 1) . preg_replace('/([A-Z])/', '-$1', $part);
+			}
+			$name = strtolower($name); 
+			$this->classNameOptions['lowercase'] = $name;
+			return $name; 
+		}
+		
 		return $this->className;
 	}
 
@@ -1001,6 +1025,33 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 			}
 		}
 		return $value; 
+	}
+
+	/**
+	 * Log a message for this class
+	 * 
+	 * Message is saved to a log file in ProcessWire's logs path to a file with 
+	 * the same name as the class, converted to hyphenated lowercase.
+	 * 
+	 * @param string $str Text to log, or omit to just return the name of the log
+	 * @param array $options Optional extras to include: 
+	 * 	- url (string): URL to record the with the log entry (default=auto-detect)
+	 * 	- name (string): Name of log to use (default=auto-detect)
+	 * @return WireLog|null
+	 *
+	 */
+	public function ___log($str = '', array $options = array()) {
+		$log = $this->wire('log');
+		if($log && strlen($str)) {
+			if(isset($options['name'])) {
+				$name = $options['name'];
+				unset($options['name']);
+			} else {
+				$name = $this->className(array('lowercase' => true));
+			}
+			$log->save($name, $str, $options);
+		}
+		return $log; 
 	}
 	
 	/*******************************************************************************************************
