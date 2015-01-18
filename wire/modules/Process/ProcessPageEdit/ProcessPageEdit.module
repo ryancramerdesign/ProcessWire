@@ -1434,7 +1434,6 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 * 
 	 */
 	public function ___getTabs() {
-		$this->message($this->tabs);
 		return $this->tabs; 
 	}
 
