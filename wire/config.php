@@ -713,6 +713,22 @@ $config->adminEmail = '';
 $config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5em;font-family:sans-serif;'><b>{message}</b><br /><small>{why}</small></p>";
 
 /**
+ * Cache names to preload
+ * 
+ * Consists of the cache name/token for any caches that we want to be preloaded at boot time.
+ * This is an optimization that can reduce some database overhead. 
+ *
+ * @var array
+ *
+ */
+$config->preloadCacheNames = array(
+	'Modules.info',
+	'ModulesVerbose.info',
+	'Modules.wire/modules/',
+	'Modules.site/modules/',
+);
+
+/**
  * Settings specific to InputfieldWrapper class
  *
  * Setting useDependencies to false may enable to use depencencies in some places where
@@ -727,19 +743,6 @@ $config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5e
  *	);
  * 
  */
-
-/**
- * Cache names to preload 
- * 
- * @var array
- * 
- */
-$config->preloadCacheNames = array(
-	'Modules.info',
-	'ModulesVerbose.info',
-	'Modules.wire/modules/',
-	'Modules.site/modules/',
-);
 
 /*** 10. RUNTIME ********************************************************************************
  * 

@@ -9,7 +9,7 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -42,7 +42,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		return array(
 			'title' => 'Page Edit',          
 			'summary' => 'Edit a Page', 
-			'version' => 107, 
+			'version' => 108, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			);
@@ -184,7 +184,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		}
 
 		if(!$this->field) { 
-			$tabs = $this->wire('modules')->get('JqueryWireTabs')->renderTabList($this->tabs, array('id' => 'PageEditTabs')); 
+			$tabs = $this->wire('modules')->get('JqueryWireTabs')->renderTabList($this->getTabs(), array('id' => 'PageEditTabs')); 
 			$this->form->value = $tabs; 
 		}
 		
@@ -338,16 +338,16 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 					$contentTab->remove($inputfield); 
 					
 					if($inputfield->modal) {
-						$this->tabs[$tabOpen->id] = "<a class='pw-modal' " .
+						$this->addTab($tabOpen->id, "<a class='pw-modal' " .
 							"title='" . $this->wire('sanitizer')->entities($tabOpen->label) . "' " . 
 							"data-buttons='#ProcessPageEdit button[type=submit]' " . 
 							"data-autoclose='1' " . 
 							"href='./?id={$this->page->id}&field=$inputfield->name&modal=1'>" . 
-							$this->wire('sanitizer')->entities1($tabOpen->label) . "</a>";
+							$this->wire('sanitizer')->entities1($tabOpen->label) . "</a>");
 						$this->wire('modules')->get('JqueryUI')->use('modal');
 						$tabOpen = null;
 					} else {
-						$this->tabs[$tabOpen->id] = $this->wire('sanitizer')->entities1($tabOpen->label);
+						$this->addTab($tabOpen->id, $this->wire('sanitizer')->entities1($tabOpen->label));
 					}
 					
 				} else if($tabOpen) {
@@ -429,7 +429,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		
 		$fields->attr('id', $id); 
 		$fields->attr('title', $title); 
-		$this->tabs[$id] = $title;
+		$this->addTab($id, $title);
 
 		if($this->page->template->nameContentTab) {
 			// name
@@ -464,7 +464,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		if(!$title) $title = $defaultTitle;
 		if($page->numChildren) $wrapper->attr('title', "<em>$title</em>"); 
 			else $wrapper->attr('title', $title); 
-		$this->tabs[$id] = $title;
+		$this->addTab($id, $title);
 		$templateSortfield = $this->page->template->sortfield;
 
 		if(!$this->isPost) { 
@@ -580,7 +580,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$title = $this->_('Settings'); // Tab Label: Settings
 		$wrapper->attr('id', $id); 
 		$wrapper->attr('title', $title); 
-		$this->tabs[$id] = $title;
+		$this->addTab($id, $title);
 
 		// name
 		if(($this->page->id > 1 || $this->wire('modules')->isInstalled('LanguageSupportPageNames')) && !$this->page->template->nameContentTab) {
@@ -742,7 +742,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$deleteLabel = $this->_('Delete'); // Tab Label: Delete
 		$wrapper->attr('id', $id); 
 		$wrapper->attr('title', $deleteLabel); 
-		$this->tabs[$id] = $deleteLabel;
+		$this->addTab($id, $deleteLabel);
 
 		if($this->page->deleteable()) {
 
@@ -782,7 +782,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$label = $this->_('View'); // Tab Label: View
 		$id = $this->className() . 'View';
 		$a = "<a id='_ProcessPageEditView' href='$url'>$label</a>"; 
-		$this->tabs[$id] = $a;
+		$this->addTab($id, $a);
 	}
 
 	/**
@@ -1402,6 +1402,40 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	
 	protected function setRedirectUrl($url) {
 		$this->redirectUrl = $url;
+	}
+
+	/**
+	 * Add a tab with HTML id attribute and label
+	 * 
+	 * Label may contain markup, and thus you should entity encode text labels as appropriate.
+	 * 
+	 * @param string $id
+	 * @param string $label
+	 * 
+	 */
+	public function addTab($id, $label) {
+		$this->tabs[$id] = $label; 
+	}
+
+	/**
+	 * Remove the tab with the given id
+	 * 
+	 * @param string $id
+	 * 
+	 */
+	public function removeTab($id) {
+		unset($this->tabs[$id]); 
+	}
+
+	/**
+	 * Returns associative array of tab ID => tab Label
+	 * 
+	 * @return array
+	 * 
+	 */
+	public function ___getTabs() {
+		$this->message($this->tabs);
+		return $this->tabs; 
 	}
 
 }
