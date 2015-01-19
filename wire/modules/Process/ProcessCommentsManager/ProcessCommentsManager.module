@@ -311,8 +311,9 @@ class ProcessCommentsManager extends Process {
 					"<label class='CommentUpvotes'><input title='upvotes' type='number' name='CommentUpvotes$comment->id' value='$comment->upvotes' />&nbsp;<span>&uarr;</span></label> " . 
 					"<label class='CommentDownvotes'><input title='downvotes' type='number' name='CommentDownvotes$comment->id' value='$comment->downvotes' />&nbsp;<span>&darr;</span></label> " . 
 				"</td>" . 
-			"</tr>" . 
-			"</table>";
+			"</tr>";
+		
+		$out .= "</table>";
 
 		$parentOut = '';
 		$parent = $comment->parent();
