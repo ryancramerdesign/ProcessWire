@@ -922,7 +922,7 @@ class PageFinder extends Wire {
 				
 				$fieldName = $database->escapeCol($field->name); 
 				$subValue = $database->escapeCol($subValue);
-				$tableAlias = "_sort_$fieldName". ($subValue ? "_$subValue" : '');
+				$tableAlias = "_sort_$fieldName";
 				$table = $database->escapeTable($field->table);
 
 				$query->leftjoin("$table AS $tableAlias ON $tableAlias.pages_id=pages.id");
@@ -934,14 +934,25 @@ class PageFinder extends Wire {
 				} else if($field->type instanceof FieldtypePage) {
 					// If it's a FieldtypePage, then data isn't worth sorting on because it just contains an ID to the page
 					// so we also join the page and sort on it's name instead of the field's "data" field.
-					$tableAlias2 = "_sort_page_$fieldName" . ($subValue ? "_$subValue" : '');
-					$query->leftjoin("pages AS $tableAlias2 ON $tableAlias.data=$tableAlias2.id"); 
-					if(!$subValue) $subValue = 'name';
-					$value = "$tableAlias2.$subValue";
-					
-					if($subValue == 'name' && $language && !$language->isDefault()  && $this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
-						// append language ID to 'name' when performing sorts within another language and LanguageSupportPageNames in place
-						$value = "if($value$language!='', $value$language, $value)";
+					if (!$subValue) $subValue = 'name';
+					if ($subValue == 'name' || $subValue == 'modified' || $subValue == 'modified_users_id' || $subValue == 'created' || $subValue == 'created_users_id') {
+						$tableAlias2 = "_sort_page_$fieldName_$subValue";
+						$query->leftjoin("pages AS $tableAlias2 ON $tableAlias.data=$tableAlias2.id");
+						if ($language && !$language->isDefault() && $this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
+							$value = "pages.name$language";
+						} else {
+							$value = "pages.name";
+						}
+					} else {
+						$tableAlias2 = "_sort_page_$fieldName_$subValue";
+						$subValueField = $fields->get("$subValue");
+						$subValueTable = $database->escapeTable($subValueField->table);
+						$query->leftjoin("$subValueTable AS $tableAlias2 ON $tableAlias.data=$tableAlias2.pages_id");
+						if ($language && !$language->isDefault()) {
+							$value = "$tableAlias2.data$language";
+						} else {
+							$value = "$tableAlias2.data";
+						}
 					}
 					
 				} else if(!$subValue && $language && !$language->isDefault() && $field->type instanceof FieldtypeLanguageInterface) {
