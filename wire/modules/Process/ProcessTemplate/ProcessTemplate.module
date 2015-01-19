@@ -29,7 +29,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 109,
+			'version' => 110,
 			'permanent' => true, 
 			'icon' => 'cubes', 
 			'useNavJSON' => true, 
@@ -1715,16 +1715,20 @@ class ProcessTemplate extends Process {
 		if(!$this->template->childrenTemplatesID) $this->template->remove("childrenTemplatesID"); 
 
 		if(!$redirectUrl) { 
-			$this->saveFields();
-			$redirectUrl = "edit?id={$this->template->id}";
+			$redirectUrl = $this->saveFields();
 		}
 
 		// check for template rename
 		if($rename = $form->get('rename')) {
 			$rename = $rename->attr('value'); 
-			if($rename && $this->template->name != $rename) $redirectUrl = "rename?id={$this->template->id}&name=$rename";
+			if($rename && $this->template->name != $rename) {
+				if($redirectUrl) {
+					$this->error($this->_('Skipped template rename - please complete that after the current action.')); 
+				} else {
+					$redirectUrl = "rename?id={$this->template->id}&name=$rename";
+				}
+			}
 		}
-			
 
 		try {
 			$this->template->save();
@@ -1738,12 +1742,13 @@ class ProcessTemplate extends Process {
 			$clone = $this->templates->clone($this->template); 
 			if($clone) {
 				$this->message(sprintf($this->_('Created clone of template "%1$s" named "%2$s". You may rename it by editing "%2$s" and clicking the "advanced" tab.'), $this->template->name, $clone->name)); 
-				$redirectUrl = './';
+				if(!$redirectUrl) $redirectUrl = './';
 			} else {
 				$this->error($this->_('Error creating clone of this template')); 
 			}
 		}
-
+		
+		if(!$redirectUrl) $redirectUrl = "edit?id={$this->template->id}";
 		$this->session->redirect($redirectUrl); 
 	}
 
@@ -1774,6 +1779,8 @@ class ProcessTemplate extends Process {
 
 	/**
 	 * Save the fields specified for this template/fieldgroup
+	 * 
+	 * @return string redirect URL, if applicable
 	 *
 	 */
 	protected function saveFields() {
@@ -1819,9 +1826,10 @@ class ProcessTemplate extends Process {
 			foreach($removedFields as $field) {
 				$url .= $field->id . ',';
 			}
-			$this->session->redirect(rtrim($url, ',')); 
+			return rtrim($url, ','); 
 		}
 		
+		return '';	
 	}
 
 	/**
