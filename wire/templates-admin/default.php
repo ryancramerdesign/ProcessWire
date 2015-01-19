@@ -44,6 +44,7 @@ if(!$browserTitle) $browserTitle = __(strip_tags($page->get('title|name')), __FI
  * __("Fields"); 
  * __("Add New"); 
  * __("Recent"); 
+ * __("Logs");
  * 
  */
 
