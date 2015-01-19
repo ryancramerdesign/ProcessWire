@@ -101,29 +101,26 @@ class AdminThemeReno extends AdminTheme implements Module, ConfigurableModule {
 		$fieldset->collapsed = true;
 
 		// view homepage icon
-		$field = wire('modules')->get("InputfieldText");
+		$field = wire('modules')->get("InputfieldIcon");
 		$field->attr('name', "home");
 		$field->label = __("Top Navigation: View Home Page");
-		$field->columnWidth = 50;
 		$field->attr('value', array_key_exists('home', self::$defaultIcons) ? self::$defaultIcons['home'] : "fa-home");
 		if (isset($data['home'])) $field->attr('value', $data['home']);
 		$fieldset->add($field);
 
 		// signout
-		$field = wire('modules')->get("InputfieldText");
+		$field = wire('modules')->get("InputfieldIcon");
 		$field->attr('name', "signout");
 		$field->label = __("Top Navigation: Sign out");
-		$field->columnWidth = 50;
 		$field->attr('value', array_key_exists('signout', self::$defaultIcons) ? self::$defaultIcons['signout'] : "fa-power-off");
 		if (isset($data['signout'])) $field->attr('value', $data['signout']);
 		$fieldset->add($field);
 
 		foreach(wire('pages')->find("parent=2, sort=sort") as $p){
 			if(!$p->viewable()) continue;
-			$field = wire('modules')->get("InputfieldText");
+			$field = wire('modules')->get("InputfieldIcon");
 			$field->attr('name', $p->name);
 			$field->label = __($p->title, '/wire/templates-admin/default.php');
-			$field->columnWidth = 25;
 			$field->attr('value', array_key_exists($p->name, self::$defaultIcons) ? self::$defaultIcons[$p->name] : "fa-file-text-o");
 			if (isset($data[$p->name])) $field->attr('value', $data[$p->name]);
 			$fieldset->add($field);

@@ -10,11 +10,14 @@ class InputfieldIcon extends Inputfield {
 		);
 	}
 	
+	const prefix = 'fa-';
+	
 	protected $options = array();
 	
 	public function __construct() {
 		parent::__construct();
 		$this->options = file(dirname(__FILE__) . '/icons.inc', FILE_IGNORE_NEW_LINES); 
+		$this->set('prefixValue', true); // should value attr always start with prefix? (externally)
 	}
 	
 	public function init() {
@@ -26,7 +29,7 @@ class InputfieldIcon extends Inputfield {
 		$out = '';
 		$attrs = $this->getAttributes();
 		$value = $attrs['value'];
-		if($value && strpos($value, 'fa-') !== 0) $value = "fa-$value";
+		if($value && strpos($value, self::prefix) !== 0) $value = self::prefix . $value;
 		if($value) $this->icon = $value;
 		unset($attrs['value']);
 		$out .= "\n<select " . $this->getAttributesString($attrs) . ">";
@@ -50,6 +53,7 @@ class InputfieldIcon extends Inputfield {
 	
 	public function setAttribute($key, $value) {
 		if($key == 'value' && !empty($value)) {
+			if(strpos($value, self::prefix) !== 0) $value = self::prefix . $value;
 			$index = array_search($value, $this->options);
 			if(is_int($index)) {
 				$value = $this->options[$index];
@@ -59,4 +63,25 @@ class InputfieldIcon extends Inputfield {
 		}
 		return parent::setAttribute($key, $value); 
 	}
+	
+	public function getAttribute($key) {
+		if($key == 'value') {
+			$value = parent::getAttribute($key);
+			if(empty($value)) return $value;
+			if($this->prefixValue) {
+				if(strpos($value, self::prefix) !== 0) {
+					// add prefix 
+					$value = self::prefix . $value;
+				}
+			} else {
+				if(strpos($value, self::prefix) === 0) {
+					// remove prefix
+					$value = substr($value, strlen(self::prefix));
+				}
+			}
+			return $value;
+		}
+		return parent::getAttribute($key);
+	}
+
 }

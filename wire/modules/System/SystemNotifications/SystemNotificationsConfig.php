@@ -15,6 +15,7 @@ class SystemNotificationsConfig extends ModuleConfig {
 		if(empty($this->systemUserName)) $this->systemUserName = $this->users->get($this->config->superUserPageID)->name;
 		
 		return array(
+			'disabled' => 0, 						// SystemNotifications disabled?
 			'systemUserID' => 41,					// user that will receive system notifications
 			'systemUserName' => $this->systemUserName,	// user that will receive system notifications (name)
 			'activeHooks' => array(0, 1, 2), 		// Indexes of $this->systemHooks that are active
@@ -44,10 +45,21 @@ class SystemNotificationsConfig extends ModuleConfig {
 
 		$form = parent::getInputfields();
 		$modules = $this->wire('modules');
+		
+		$f = $modules->get('InputfieldRadios'); 
+		$f->attr('name', 'disabled');
+		$f->label = __('Notifications status'); 
+		$f->description = __('When turned off, notifications will not be rendered.'); 
+		$f->addOption(0, $this->_('On'));
+		$f->addOption(1, $this->_('Off'));
+		$f->optionColumns = 1; 
+		$f->columnWidth = 50; 
+		$form->add($f); 
 
 		$f = $modules->get('InputfieldName');
 		$f->attr('name', 'systemUserName');
 		$f->label = __('Name of user that receives system notifications');
+		$f->columnWidth = 50; 
 		$form->add($f);
 
 		$f = $modules->get('InputfieldCheckboxes');
@@ -74,22 +86,22 @@ class SystemNotificationsConfig extends ModuleConfig {
 		$f->columnWidth = 50;
 		$form->add($f);
 
-		$f = $modules->get('InputfieldText');
+		$f = $modules->get('InputfieldIcon');
 		$f->attr('name', 'iconMessage');
 		$f->label = __('Message icon');
-		$f->columnWidth = 33;
+		$f->prefixValue = false;
 		$form->add($f);
 
-		$f = $modules->get('InputfieldText');
+		$f = $modules->get('InputfieldIcon');
 		$f->attr('name', 'iconWarning');
 		$f->label = __('Warning icon');
-		$f->columnWidth = 33;
+		$f->prefixValue = false;
 		$form->add($f);
 
-		$f = $modules->get('InputfieldText');
+		$f = $modules->get('InputfieldIcon');
 		$f->attr('name', 'iconError');
 		$f->label = __('Error icon');
-		$f->columnWidth = 34;
+		$f->prefixValue = false;
 		$form->add($f);
 
 		$f = $modules->get('InputfieldInteger');
