@@ -326,7 +326,6 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 	 */
 	protected function sanitizeValueString(Page $page, Field $field, $value) {
 
-		$selector = '';
 		$result = false;
 
 		if(Selectors::stringHasOperator($value)) {
@@ -351,13 +350,38 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 
 		} else if(strlen($value) && $value[0] == '/') {
 			// path to page
-			$result = $this->pages->get($value); 
+			$result = $this->pages->get($value);
+
+		} else if(strpos($value, "\n") !== false || strpos($value, '|') !== false) {
+			// multiple references in a newline or pipe separated string
+			$values = str_replace(array("\r\n", "\r", "|"), "\n", $value);
+			// string has been normalized to newline separated only
+			$values = explode("\n", $values); 
+			foreach($values as $str) {
+				$v = $this->sanitizeValueString($page, $field, $str); // recursive
+				if($v && $v->id) {
+					if(!$result) $result = new PageArray();
+					$result->add($v); 
+				}
+			}
 			
 		} else if($field->parent_id) {
 			// set by title
-			$result = $this->wire('pages')->get("parent_id=$field->parent_id, title=" . $this->wire('sanitizer')->selectorValue($value));
+			$parentIDs = is_array($field->parent_id) ? implode('|', $field->parent_id) : $field->parent_id; 
+			$result = $this->wire('pages')->get("parent_id=$parentIDs, title=" . $this->wire('sanitizer')->selectorValue($value));
 			// set by name
-			if(!$result->id) $result = $this->wire('pages')->get("parent_id=$field->parent_id, name=" . $this->wire('sanitizer')->pageName($value)); 
+			if(!$result->id) $result = $this->wire('pages')->get("parent_id=$parentIDs, name=" . $this->wire('sanitizer')->pageName($value)); 
+			
+		} else if($field->template_id) {
+			// set by title 
+			$templateIDs = is_array($field->template_id) ? implode('|', $field->template_id) : $field->template_id;
+			$result = $this->wire('pages')->get("templates_id=$templateIDs, title=" . $this->wire('sanitizer')->selectorValue($value));
+			// set by name
+			if(!$result->id) $result = $this->wire('pages')->get("templates_id=$templateIDs, name=" . $this->wire('sanitizer')->pageName($value)); 
+		}
+		
+		if(!$result && $this->wire('config')->debug) {
+			$this->warning("Unable to locate page match for: $value"); 
 		}
 
 		return $result; 
