@@ -447,22 +447,41 @@ class ProcessPageView extends Process {
 	 */
 	protected function checkProtocol($page) {
 
-		if(!$page->template->https) return; 
-		$url = $this->config->httpHost . $page->url; 
-		if($page->urlSegment) $url .= $page->urlSegment . '/'; 
-		if($page->pageNum > 1) {
-			$prefix = $this->config->pageNumUrlPrefix ? $this->config->pageNumUrlPrefix : 'page';
-			$url .= "$prefix{$page->pageNum}";
+		$requireHTTPS = $page->template->https;
+		if($requireHTTPS == 0) return; // neither HTTP or HTTPS required
+		
+		$config = $this->wire('config');
+		$isHTTPS = $config->https; 
+		$scheme = '';
+
+		if($requireHTTPS == -1 && $isHTTPS) {
+			// HTTP required: redirect to HTTP non-secure version
+			$scheme = "http";
+
+		} else if($requireHTTPS == 1 && !$isHTTPS) {
+			// HTTPS required: redirect to HTTPS secure version
+			$scheme = "https";
+		}
+		
+		if(!$scheme) return;
+		
+		$url = "$scheme://$config->httpHost$page->url";
+		$input = $this->wire('input'); 
+		
+		$urlSegmentStr = $input->urlSegmentStr;
+		if(strlen($urlSegmentStr) && $page->template->urlSegments) {
+			$url .= rtrim($url, '/') . '/' . $urlSegmentStr;
+			if($page->template->slashUrls) $url .= '/';
 		}
 
-		if($page->template->https == -1 && $this->config->https) {
-			// redirect to HTTP non-secure version
-			$this->redirectURL = "http://$url";
-
-		} else if($page->template->https == 1 && !$this->config->https) {
-			// redirect to HTTPS secure version
-			$this->redirectURL = "https://$url";
+		$pageNum = $input->pageNum;
+		if($pageNum > 1 && $page->template->allowPageNum) {
+			$prefix = $config->pageNumUrlPrefix;
+			if(!$prefix) $prefix = 'page';
+			$url .= "$prefix$pageNum";
 		}
+		
+		$this->redirectURL = $url;
 	}
 
 	/**
