@@ -424,6 +424,7 @@ class Session extends Wire implements IteratorAggregate {
 		$user = $this->wire('user'); 
 		$guest = $this->wire('users')->getGuestUser();
 		$this->wire('users')->setCurrentUser($guest); 
+		if ($this->wire('languages') && $user->language) $this->wire('user')->language = $user->language;
 		$this->trackChange('logout', $user, $guest); 
 		if($user) $this->logoutSuccess($user); 
 		return $this; 
