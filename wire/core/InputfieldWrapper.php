@@ -74,7 +74,7 @@ class InputfieldWrapper extends Inputfield {
 		'item_label' => "\n\t\t<label class='InputfieldHeader ui-widget-header' for='{for}'>{out}</label>",
 		'item_label_hidden' => "\n\t\t<label class='InputfieldHeader InputfieldHeaderHidden ui-widget-header'><span>{out}</span></label>",
 		'item_content' => "\n\t\t<div class='InputfieldContent ui-widget-content'>\n{out}\n\t\t</div>", 
-		'item_error' => "\n<p class='description'><span class='ui-state-error'>{out}</span></p>",
+		'item_error' => "\n<p class='InputfieldError ui-state-error'><span>{out}</span></p>",
 		'item_description' => "\n<p class='description'>{out}</p>", 
 		'item_head' => "\n<h2>{out}</h2>", 
 		'item_notes' => "\n<p class='notes'>{out}</p>",

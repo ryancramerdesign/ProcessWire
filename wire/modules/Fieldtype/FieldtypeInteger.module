@@ -9,12 +9,11 @@
  * /wire/core/Fieldtype.php
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
- *
+ * http://processwire.com
+ * 
  */
 
 class FieldtypeInteger extends Fieldtype {
@@ -22,7 +21,7 @@ class FieldtypeInteger extends Fieldtype {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Integer',
-			'version' => 100,
+			'version' => 101,
 			'summary' => 'Field that stores an integer',
 			'permanent' => true, 
 			);
@@ -40,11 +39,19 @@ class FieldtypeInteger extends Fieldtype {
 		}
 		return $fieldtypes; 
 	}
+	
+	public function isEmptyValue(Field $field, $value) {
+		if(($value === "0" || $value === 0) && $field->zeroNotEmpty) {
+			// when zeroNotEmpty option is set, we don't count a literal "0" is being a blank value
+			return false;
+		}
+		return empty($value); 
+	}
 
 	public function getBlankValue(Page $page, Field $field) {
 		return '';
 	}
-
+	
 	public function sanitizeValue(Page $page, Field $field, $value) {
 
 		if(is_string($value) && strlen($value) && !is_numeric($value) && !ctype_digit($value)) {
@@ -67,29 +74,22 @@ class FieldtypeInteger extends Fieldtype {
 		$schema['data'] = 'int NOT NULL';
 		return $schema;
 	}
-
-	/*
+	
 	public function ___getConfigInputfields(Field $field) {
-		$inputfields = parent::___getConfigInputfields($field);
-		$field = $this->modules->get('InputfieldInteger');
-		$field->setAttribute('name', 'minValue'); 
-		$field->label = 'Minimum Allowed Value';
-		$field->setAttribute('value', $field->minValue); 
-		$field->setAttribute('size', 20); 
-		$field->description = 'The smallest number allowed by this field.'; 
-		$inputfields->append($field);
-
-		$field = $this->modules->get('InputfieldInteger');
-		$field->setAttribute('name', 'maxValue'); 
-		$field->label = 'Maximum Allowed Value';
-		$field->setAttribute('value', $field->maxValue); 
-		$field->setAttribute('size', 20); 
-		$field->description = 'The largest number allowed by this field (may not exceed ' . PHP_INT_MAX . ")"; 
-		$inputfields->append($field);
-
+		$inputfields = parent::___getConfigInputfields($field); 
+		$f = $this->wire('modules')->get('InputfieldRadios'); 
+		$f->label = $this->_('Are blank and 0 equivalent?'); 
+		$f->description = $this->_('This affects how ProcessWire matches pages during database find operations.') . ' ' . 
+			$this->_('If 0 and blank are equivalent (the Yes option) then a search for **field=0** or **field=""** will produce the same results.') . ' ' . 
+			$this->_('If they or not equivalent (the No option) then a search for **field=0** will only match fields containing the value 0, and **field=""** will only match fields with no value.') . ' ' . 
+			$this->_('As another example, with the Yes option **field<1** would match both the value 0 and no value, and with the No option it would match only 0.'); 
+		$f->attr('name', 'zeroNotEmpty'); 
+		$f->addOption(0, $this->_('Yes - Blank and 0 are equivalent'));
+		$f->addOption(1, $this->_('No - Blank and 0 have different meanings')); 
+		$f->attr('value', (int) $field->zeroNotEmpty);
+		$inputfields->add($f); 
 		return $inputfields; 
 	}
-	*/
 
 }
 

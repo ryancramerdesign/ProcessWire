@@ -291,13 +291,32 @@ abstract class Fieldtype extends WireData implements Module {
 	/**
 	 * Return the blank value for this fieldtype, whether that is a blank string, zero value, blank object or array
 	 *
-	 * @param Page $page
+	 * @param Page|NullPage $page
 	 * @param Field $field
-	 * @return string|int|object
+	 * @return string|int|object|null
 	 *
  	 */
 	public function getBlankValue(Page $page, Field $field) {
 		return '';
+	}
+
+	/**
+	 * Return whether the given value is considered empty or not
+	 * 
+	 * This an be anything that might be present in a selector value and thus is
+	 * typically a string. However, it may be used outside of that purpose so you
+	 * shouldn't count on it being a string. 
+	 * 
+	 * Example: an integer or text Fieldtype might not consider a "0" to be empty,
+	 * whereas a Page reference would. 
+	 * 
+	 * @param Field $field
+	 * @param mixed $value
+	 * @return bool
+	 * 
+	 */
+	public function isEmptyValue(Field $field, $value) {
+		return empty($value); 
 	}
 
 	/**
@@ -657,7 +676,7 @@ abstract class Fieldtype extends WireData implements Module {
 		$value = $page->get($field->name);
 
 		// if the value is the same as the default, then remove the field from the database because it's redundant
-		if($value === $this->getDefaultValue($page, $field)) return $this->deletePageField($page, $field); 
+		if($value === $this->getBlankValue($page, $field)) return $this->deletePageField($page, $field); 
 
 		$value = $this->sleepValue($page, $field, $value); 
 

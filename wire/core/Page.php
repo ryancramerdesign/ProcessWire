@@ -474,6 +474,19 @@ class Page extends WireData implements Countable {
 		return $this; 
 	}
 
+	/**
+	 * Force setting a value, skipping over any checks or errors
+	 * 
+	 * Enables setting a value when page has no template assigned, for example. 
+	 * 
+	 * @param $key
+	 * @param $value
+	 * @return $this
+	 * 
+	 */
+	public function setForced($key, $value) {
+		return parent::set($key, $value); 
+	}
 
 	/**
 	 * Set the value of a field that is defined in the page's Fieldgroup
@@ -684,9 +697,9 @@ class Page extends WireData implements Countable {
 
 				// check if it's a field.subfield property
 				if(strpos($key, '.') && ($value = $this->getFieldSubfieldValue($key)) !== null) return $value; 
-
+				
 				// optionally let a hook look at it
-				if(self::isHooked('Page::getUnknown()')) return $this->getUnknown($key);
+				if(self::isHooked('Page::getUnknown()')) $value = $this->getUnknown($key);
 		}
 
 		return $value; 
@@ -803,8 +816,8 @@ class Page extends WireData implements Countable {
 	 *
 	 */
 	protected function getFieldValue($key) {
-		if(!$this->template) return null;
-		$field = $this->template->fieldgroup->getField($key); 
+		if(!$this->template) return parent::get($key); 
+		$field = $this->template->fieldgroup->getField($key);
 		$value = parent::get($key); 
 		if(!$field) return $value;  // likely a runtime field, not part of our data
 

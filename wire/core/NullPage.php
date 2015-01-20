@@ -17,7 +17,7 @@
 class NullPage extends Page { 
 	public function path() { return ''; }
 	public function url() { return ''; }
-	public function set($key, $value) { return $this; }
+	public function set($key, $value) { return parent::setForced($key, $value); }
 	public function parent($selector = '') { return null; }
 	public function parents($selector = '') { return new PageArray(); } 
 	public function __toString() { return ""; }

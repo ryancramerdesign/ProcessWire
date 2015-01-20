@@ -22,7 +22,7 @@ class FieldtypeFloat extends Fieldtype {
 		return array(
 			'title' => __('Float', __FILE__),
 			'summary' => __('Field that stores a floating point (decimal) number', __FILE__),
-			'version' => 103,
+			'version' => 104,
 			'permanent' => true, 
 			);
 	}
@@ -42,6 +42,14 @@ class FieldtypeFloat extends Fieldtype {
 
 	public function getBlankValue(Page $page, Field $field) {
 		return ''; 
+	}
+
+	public function isEmptyValue(Field $field, $value) {
+		if(($value === "0" || $value === 0 || $value === "0.0" || $value === 0.0) && $field->zeroNotEmpty) {
+			// when zeroNotEmpty option is set, we don't count a literal "0" is being a blank value
+			return false;
+		}
+		return empty($value);
 	}
 
 	public function sanitizeValue(Page $page, Field $field, $value) {
@@ -119,6 +127,9 @@ class FieldtypeFloat extends Fieldtype {
 		$f->attr('value', $field->precision); 
 		$f->attr('size', 8); 
 		$inputfields->append($f);
+		
+		$f = $this->wire('modules')->get('FieldtypeInteger')->___getConfigInputfields($field)->getChildByName('zeroNotEmpty'); 
+		if($f) $inputfields->add($f); 
 
 		return $inputfields; 
 	}
