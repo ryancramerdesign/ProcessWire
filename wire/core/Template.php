@@ -732,14 +732,17 @@ class Template extends WireData implements Saveable, Exportable {
 		$icon = $this->wire('sanitizer')->pageName($icon); 
 		$current = $this->getIcon(false); 	
 		$label = $this->pageLabelField;
-		if(strpos($icon, "icon-") === 0) $icon = str_replace("icon-", "fa-", $icon);
-		if($icon && strpos($icon, "fa-") !== 0) $icon = "fa-$icon";
+		if(strpos($icon, "icon-") === 0) $icon = str_replace("icon-", "fa-", $icon); // convert icon-str to fa-str
+		if($icon && strpos($icon, "fa-") !== 0) $icon = "fa-$icon"; // convert anon icon to fa-icon
 		if($current) {
-			$this->pageLabelField = str_replace(array("fa-$current", "icon-$current"), $icon, $label); 
+			// replace icon currently in pageLabelField with new one
+			$label = str_replace(array("fa-$current", "icon-$current"), $icon, $label);
 		} else if($icon) {
+			// add icon to pageLabelField where there wasn't one already
 			if(empty($label)) $label = $this->fieldgroup->hasField('title') ? 'title' : '';
-			$this->pageLabelField = trim("$icon $label");
+			$label = trim("$icon $label");
 		}
+		$this->pageLabelField = $label;
 		return $this;
 	}
 

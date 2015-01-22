@@ -470,7 +470,7 @@ class ProcessPageView extends Process {
 		
 		$urlSegmentStr = $input->urlSegmentStr;
 		if(strlen($urlSegmentStr) && $page->template->urlSegments) {
-			$url .= rtrim($url, '/') . '/' . $urlSegmentStr;
+			$url = rtrim($url, '/') . '/' . $urlSegmentStr;
 			if($page->template->slashUrls) $url .= '/';
 		}
 

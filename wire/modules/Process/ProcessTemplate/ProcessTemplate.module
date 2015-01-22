@@ -995,7 +995,7 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 	
-		$pageLabelField = $template->pagelabelField; 
+		$pageLabelField = $template->pageLabelField; 
 		$icon = $template->getIcon(true);
 
 		$field = $this->modules->get("InputfieldIcon");
