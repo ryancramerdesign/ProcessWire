@@ -11,7 +11,7 @@ class SystemNotifications extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'System Notifications',
-			'version' => 9,
+			'version' => 10,
 			'summary' => 'Adds support for notifications in ProcessWire (currently in development)',
 			'autoload' => true, 
 			'installs' => 'FieldtypeNotifications', 
@@ -298,6 +298,7 @@ class SystemNotifications extends WireData implements Module {
 			'ghostDelayError',
 			'ghostFadeSpeed',
 			'ghostOpacity',
+			'reverse', 
 			);
 		
 		$options = array(
@@ -309,6 +310,7 @@ class SystemNotifications extends WireData implements Module {
 		foreach($properties as $key) {
 			$options[$key] = $this->get($key); 
 		}
+		$options['reverse'] = (bool) ((int) $options['reverse']); 
 	
 		$textdomain = '/wire/core/Functions.php'; 
 		$options['i18n'] = array(
@@ -341,9 +343,13 @@ class SystemNotifications extends WireData implements Module {
 		$numSave = 0; // number of notifications that need to be saved after being shown
 
 		// convert runtime Notices to Notifications and bundle into array
-		foreach($notices as $notice) {
-			$notification = $this->noticeToNotification($notice); 
-			$notifications[] = $notification;
+		if($this->placement == SystemNotificationsConfig::placementCombined) {
+			foreach($notices as $notice) {
+				$notification = $this->noticeToNotification($notice);
+				$sort = time() + 2592000;
+				while(isset($notifications[$sort])) $sort++;
+				$notifications[$sort] = $notification;
+			}
 		}
 		
 		// bundle user notifications into the same array
@@ -354,7 +360,15 @@ class SystemNotifications extends WireData implements Module {
 				$notification->setFlag('shown');
 				$numSave++;
 			}
-			$notifications[] = $notification;
+			$sort = ((int) $notification->modified) + ((int) $notification->sort);
+			while(isset($notifications[$sort])) $sort++;
+			$notifications[$sort] = $notification;
+		}
+	
+		if($this->reverse) {
+			ksort($notifications);
+		} else {
+			krsort($notifications);
 		}
 		
 		$numMessages = 0;
@@ -394,8 +408,10 @@ class SystemNotifications extends WireData implements Module {
 			$this->wire('user')->notifications->save();
 		}
 
+		if($this->placement == SystemNotificationsConfig::placementCombined) {
+			$out .= "$('#notices').remove(); "; // in case admin theme still has #notices
+		}
 		$out .= 
-			"$('#notices').remove(); " . // in case admin theme still has #notices
 			"$(document).ready(function() { Notifications.render(); });" . 
 			"</script>";
 
@@ -406,7 +422,10 @@ class SystemNotifications extends WireData implements Module {
 			"<span class='qty fa fa-fw'>$qty</span>" . 
 			"<i class='NotificationSpinner fa fa-fw fa-spin fa-spinner'></i>" . 
 			"</div>";
+
 		
+		$adminTheme = $this->wire('adminTheme'); 
+		if($adminTheme) $adminTheme->addBodyClass('NotificationPlacement' . (int) $this->placement); 
 
 		$event->return = $extras; 
 	}

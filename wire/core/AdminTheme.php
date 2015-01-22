@@ -51,6 +51,14 @@ abstract class AdminTheme extends WireData implements Module {
 	protected static $numAdminThemes = 0;
 
 	/**
+	 * Additional classes for body tag
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $bodyClasses = array();
+
+	/**
 	 * Initialize the admin theme systme and determine which admin theme should be used
 	 *
 	 * All admin themes must call this init() method to register themselves. 
@@ -132,6 +140,14 @@ abstract class AdminTheme extends WireData implements Module {
 		);
 		if($this->wire('config')->advanced) $parts['footer'] = "<p class='AdvancedMode'><i class='fa fa-flask'></i> " . $this->_('Advanced Mode') . "</p>"; 
 		return $parts; 
+	}
+	
+	public function addBodyClass($className) {
+		$this->bodyClasses[$className] = $className; 
+	}
+	
+	public function getBodyClass() {
+		return trim(implode(' ', $this->bodyClasses)); 
 	}
 
 	/**

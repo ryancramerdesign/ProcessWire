@@ -11,6 +11,7 @@ var Notifications = {
 	options: { 				// options that may be passed to init(), these are the defaults:
 		ajaxURL: './', 		// URL to poll for ajax updates
 		version: 1, 		// notifications version 
+		reverse: 0, 
 		updateLast: 0, 
 		updateDelay: 5000, 
 		updateDelayFast: 1550, 
@@ -214,7 +215,7 @@ var Notifications = {
 
 		for(var n = 0; n < qty; n++) {
 			var notification = data.notifications[n];
-			Notifications._add(notification, true);
+			Notifications._add(notification, !data.runtime);
 			if(notification.flagNames.indexOf('annoy') > -1) annoy = true;
 			if(notification.flagNames.indexOf('no-ghost') < 0) Notifications._ghost(notification, n);
 		}
@@ -332,7 +333,7 @@ var Notifications = {
 				notifications: Notifications.runtime, 
 				runtime: true
 			}; 
-
+			
 			Notifications._update(data, true);
 			
 			if(Notifications.$list.find(".NotificationProgress").length > 0) {
@@ -461,12 +462,16 @@ var Notifications = {
 
 		if(highlight) {
 			$li.hide();
-			Notifications.$list.prepend($li);
+			if(Notifications.options.reverse) {
+				Notifications.$list.append($li);
+			} else {
+				Notifications.$list.prepend($li);
+			}
 			$li.slideDown().effect('highlight', 500); 
 		} else if(exists) {
 			$li.show();
 		} else {
-			Notifications.$list.append($li); 
+			Notifications.$list.append($li);
 		}
 
 	},
