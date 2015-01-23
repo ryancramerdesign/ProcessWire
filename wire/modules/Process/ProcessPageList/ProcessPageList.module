@@ -9,11 +9,10 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -42,7 +41,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page List',          
 			'summary' => 'List pages in a hierarchal tree structure', 
-			'version' => 108, 
+			'version' => 109, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			'icon' => 'sitemap',
@@ -370,7 +369,7 @@ abstract class ProcessPageListRender extends Wire {
 			} else if(strpos($field, 'icon-') === 0 || strpos($field, 'fa-') === 0) {
 				$field = str_replace(array('icon-', 'fa-'), 'fa-', $field); 
 				$field = $this->wire('sanitizer')->name($field); 
-				if(!$icon) $icon = "<i class='icon fa $field'></i>";
+				if(!$icon) $icon = "<i class='icon fa fa-fw $field'></i>";
 				continue; 
 
 			} else {

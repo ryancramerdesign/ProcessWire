@@ -118,8 +118,19 @@ class WireInputData implements ArrayAccess, IteratorAggregate, Countable {
  * Manages the group of GET, POST, COOKIE and whitelist vars, each of which is a WireInputData object.
  *
  * @link http://processwire.com/api/variables/input/ Offical $input API variable Documentation
- *
+ * 
  * @property string[] $urlSegments Retrieve all URL segments (array). This requires url segments are enabled on the template of the requested page. You can turn it on or off under the url tab when editing a template.
+ * @property WireInputVars $post POST variables
+ * @property WireInputVars $get GET variables
+ * @property WireInputVars $cookie COOKIE variables
+ * @property WireInputVars $whitelist Whitelisted variables
+ * @property int $pageNum Current page number (where 1 is first)
+ * @property string $urlSegmentsStr String of current URL segments, separated by slashes, i.e. a/b/c
+ * @property string $urlSegmentStr Alias of urlSegmentsStr
+ * @property string $url Current requested URL including page numbers and URL segments, excluding query string. 
+ * @property string $httpUrl Like $url but includes the scheme/protcol and hostname. 
+ * @property string $queryString Current query string
+ * @property string $scheme Current scheme/protcol, i.e. http or https
  *
  */
 class WireInput {

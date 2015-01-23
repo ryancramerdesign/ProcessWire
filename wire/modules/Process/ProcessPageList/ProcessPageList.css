@@ -82,10 +82,15 @@
 }
 .PageList i.icon {
 	display: inline-block;
+	/*
 	width: 18px;
+	*/
 }
 .PageList .PageListStatusIcon {
 	margin-left: 4px; 
+}
+.PageList i.fa + span {
+	margin-left: 2px; 
 }
 
 

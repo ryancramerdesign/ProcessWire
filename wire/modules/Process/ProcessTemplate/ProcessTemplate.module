@@ -1354,19 +1354,40 @@ class ProcessTemplate extends Process {
 		$field->attr('name', 'urlSegments');
 		$field->label = $this->_('Allow URL Segments?');
 		$field->icon = 'sitemap';
-		$field->description = $this->_("This template may optionally serve URL path segments below that of the page(s) using it.  For example, you may want a page with path /path/to/page/ to also handle requests for /path/to/page/segment1/ or /path/to/page/segment1/segment2/. By default, ProcessWire will throw a '404 Page Not Found' error when such a URL is accessed. But if you want ProcessWire to render the page instead, check the box below. You can then manully check the URL segments from your template file to respond to them."); // Allow URL segments, description
-		$field->notes = $this->_('Up to 3 URL segments are supported after the page URL. These may be any combination of lowercase ASCII letters (a-z), numbers (0-9), dashes and underscores. You can access the URL segments from your template API code by referencing the $input->urlSegment(n) function or $input->urlSegment[n] property (replacing [n] with 1, 2 or 3).'); // Allow URL segments, notes 
-		$field->notes .= "\n\n" . $this->_('For example, given the URL /path/to/page/a/b/c/, where /path/to/page/ is the page path, and /a/b/c/ are the segments: $input->urlSegment1 is "a", $input->urlSegment2 is "b", and $input->urlSegment3 is "c". If your template receives unknown URL segments, a best practice is to abort the request by throwing a 404 error. The API code to do this is: throw new Wire404Exception();'); // Allow URL segments, examples
+		$field->columnWidth = 50; 
+		$field->description = $this->_("This template may optionally serve URL path segments below that of the page(s) using it.  For example, you may want a page with path `/path/to/page/` to also handle requests for `/path/to/page/segment1/` or `/path/to/page/segment1/segment2/`. By default, ProcessWire will throw a 404 error when such a URL is accessed. But if you want ProcessWire to render the page instead, check the box below. You can then manually check the URL segments from your template file to respond to them."); // Allow URL segments, description
+		$field->notes = $this->_('Up to 3 URL segments are supported after the page URL. These may be any combination of lowercase ASCII letters (a-z), numbers (0-9), dashes and underscores. You can access the URL segments from your template API code by referencing the `$input->urlSegment(n)` function or `$input->urlSegment[n]` property (replacing `[n]` with 1, 2 or 3).'); // Allow URL segments, notes 
+		$field->notes .= ' ' . $this->_('You may also access the `$input->urlSegmentStr` property, which returns the current path of URL segments, minus leading and trailing slashes, i.e. `a/b/c`.'); // Allow URL segments, urlSegmentStr notes
+		$field->notes .= "\n\n" . $this->_('For example, given the URL `/path/to/page/a/b/c/`, where `/path/to/page/` is the page path, and `a/b/c` are the segments: `$input->urlSegment1` is "a", `$input->urlSegment2` is "b", and `$input->urlSegment3` is "c". If your template receives unknown URL segments, a best practice is to abort the request by throwing a 404 error. The API code to do this is: `throw new Wire404Exception();`'); // Allow URL segments, examples
+		$field->notes .= ' ' . $this->_('Alternatively, you may specify exactly which URL segments to allow in the next field. This often eliminates the need to throw a 404 since your template will not receive unknown URL segments.'); // Allow URL segments, intro to next field
 
 		$field->attr('value', 1); 
-		if($template->urlSegments) {
+		$urlSegments = $template->urlSegments();
+		if($urlSegments) {
 			$field->attr('checked', 'checked'); 
 			$form->collapsed = Inputfield::collapsedNo;
 		} else { 
 			$field->collapsed = Inputfield::collapsedYes;
 		}
 		$form->append($field); 
-
+		
+		$field = $this->modules->get('InputfieldTextarea'); 
+		$field->attr('name', 'urlSegmentsList');
+		$field->label = $this->_('Which URL segments do you want to allow?'); 
+		$field->description = $this->_('Optional. Leave blank to allow any, or enter one segment, segment path (i.e. `a/b/c`) or regular expression (i.e. `regex:photo[0-9]+`) per line. Segments are compared against the `$input->urlSegmentStr` property. Slashes may be used if specifying multiple segments, but you should not begin or end with a slash. If specifying a regular expression then prepend the word `regex:` to the line, followed by your non-delimited pcre-compatible regular expression.'); // Description for allowed URL segments
+		$field->icon = 'sitemap';
+		$field->columnWidth = 50; 
+		$field->notes = $this->_('Example:') . "\n" . 
+			'````' . 
+			$this->_('photos') . "\n" . 
+			$this->_('photos/new') . "\n" . 
+			$this->_('regex:^photos/photo[0-9]+$') . "\n" . 
+			$this->_('regex:^export-(json|xml)$') . 
+			'````';
+		if(is_array($urlSegments)) $field->attr('value', implode("\n", $urlSegments));
+		$field->showIf = 'urlSegments=1';
+		$form->append($field); 
+		
 		// --------------------
 
 		$field = $this->modules->get('InputfieldRadios'); 
@@ -1384,12 +1405,12 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldRadios'); 
 		$field->attr('name', 'https'); 
-		$field->label = $this->_('Schema/Protocol');
+		$field->label = $this->_('Scheme/Protocol');
 		$field->addOption(0, $this->_('HTTP or HTTPS')); 
 		$field->addOption(1, $this->_('HTTPS only (SSL encrypted)')); 
 		$field->addOption(-1, $this->_('HTTP only'));
 		$field->collapsed = Inputfield::collapsedBlank;
-		$field->description = $this->_("If your site has an SSL certificate and is accessible by HTTPS, you may make pages using this template accessible only via HTTPS or HTTP. For example, if you select 'HTTPS only' below, and a request for a page using this template comes in through HTTP, it will be automatically redirected to the HTTPS version. By default, ProcessWire allows connection from either HTTP or HTTPS."); // Schema/Protocol, description
+		$field->description = $this->_("If your site has an SSL certificate and is accessible by HTTPS, you may make pages using this template accessible only via HTTPS or HTTP. For example, if you select 'HTTPS only' below, and a request for a page using this template comes in through HTTP, it will be automatically redirected to the HTTPS version. By default, ProcessWire allows connection from either HTTP or HTTPS."); // Scheme/Protocol, description
 		$field->attr('value', (int) $template->https); 
 		$form->append($field); 
 		if($template->https) $form->collapsed = Inputfield::collapsedNo;
@@ -1603,12 +1624,22 @@ class ProcessTemplate extends Process {
 
 		if($this->input->post->fieldgroup && $this->input->post->fieldgroup != $this->template->fieldgroup->id) {
 			$redirectUrl = "fieldgroup?id={$this->template->id}&fieldgroup=" . (int) $this->input->post->fieldgroup;
-		} 
+		}
+		
+		$urlSegments = (int) $form->get('urlSegments')->attr('value');
+		$urlSegmentsList = $form->get('urlSegmentsList')->attr('value'); 
+		if($urlSegments && strlen($urlSegmentsList)) {
+			$this->template->urlSegments(explode("\n", $urlSegmentsList)); 
+		} else if($urlSegments) {
+			$this->template->urlSegments = 1; 	
+		} else {
+			$this->template->urlSegments = 0;
+		}
 
+		
 		$this->template->allowPageNum = (int) $form->get('allowPageNum')->attr('value'); 
 		$this->template->redirectLogin = (int) $form->get('redirectLogin')->attr('value'); 
 		if($this->template->redirectLogin < 0) $this->template->redirectLogin = $form->get('redirectLoginURL')->attr('value'); 
-		$this->template->urlSegments = (int) $form->get('urlSegments')->attr('value');
 		$this->template->https = (int) $form->get('https')->attr('value'); 
 		$this->template->slashUrls = (int) $form->get('slashUrls')->attr('value');
 		$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);

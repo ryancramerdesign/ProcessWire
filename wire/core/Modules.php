@@ -785,7 +785,7 @@ class Modules extends WireArray {
 	 * This method is the only one guaranteed to return a real [non-placeholder] module. 
 	 *
 	 * @param string|int $key Module className or database ID
-	 * @return Module|null
+	 * @return Module|Inputfield|Fieldtype|Process|Textformatter|null
 	 * @throws WirePermissionException If module requires a particular permission the user does not have
 	 *
 	 */

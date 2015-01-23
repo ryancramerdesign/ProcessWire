@@ -168,22 +168,28 @@ class Sanitizer extends Wire {
 	/**
 	 * Standard alphanumeric and dash, underscore, dot name plus multiple names may be separated by a delimeter
 	 *
-	 * @param string $value Value to filter
+	 * @param string|array $value Value(s) to filter
 	 * @param string $delimeter Character that delimits values (optional)
 	 * @param array $allowedExtras Additional characters that are allowed in the value (optional)
 	 * @param string 1 character replacement value for invalid characters (optional)
 	 * @param bool $beautify
-	 * @return string
+	 * @return string|array Return string if given a string for $value, returns array if given an array for $value
 	 *
 	 */
 	public function names($value, $delimeter = ' ', $allowedExtras = array('-', '_', '.'), $replacementChar = '_', $beautify = false) {
+		$isArray = false;
+		if(is_array($value)) {
+			$isArray = true; 
+			$value = implode(' ', $value); 
+		}
 		$replace = array(',', '|', '  ');
 		if($delimeter != ' ' && !in_array($delimeter, $replace)) $replace[] = $delimeter; 
 		$value = str_replace($replace, ' ', $value);
 		$allowedExtras[] = ' ';
-		$value = $this->nameFilter($value, $allowedExtras, $replacementChar, $beautify, 128);
+		$value = $this->nameFilter($value, $allowedExtras, $replacementChar, $beautify, 8192);
 		if($delimeter != ' ') $value = str_replace(' ', $delimeter, $value); 
-		return $value; 
+		if($isArray) $value = explode($delimeter, $value); 
+		return $value;
 	}
 
 

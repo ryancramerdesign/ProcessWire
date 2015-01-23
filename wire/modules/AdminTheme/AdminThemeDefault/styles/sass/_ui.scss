@@ -249,6 +249,10 @@ button.ui-button.ui-state-default,
 
 	.ui-menu-item {
 
+		i.fa {
+			margin-right: 2px; 
+		}
+
 		a {
 			font-size: $base-font-size; 
 			color: $topnav-link-color; 

@@ -1,7 +1,10 @@
 <?php
 
 /**
- * An Inputfield for handling XHTML "textarea" form inputs
+ * An Inputfield for handling "textarea" form inputs
+ * 
+ * @property int $rows Number of rows for textarea (default=5)
+ * @property int $contentType Content type, applicable when used with FieldtypeTextarea. See FieldtypeTextarea contentType constants (default=contentTypeUnknown)
  *
  */
 class InputfieldTextarea extends InputfieldText {
