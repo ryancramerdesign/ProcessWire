@@ -846,6 +846,7 @@ class ProcessTemplate extends Process {
 		$field->icon = 'clock-o';
 		$field->description = $this->_('To cache the output of this template, enter the time (in seconds) that the output should be cached. Caching can help significantly with page render time on resource-heavy pages. But caching should not be used on templates that need to process constantly changing data, like from forms or sessions. Also note that URL segments are cachable, but GET and POST vars are not.'); // Cach time description
 		$field->notes = $this->_('For example: 60 = 1 minute, 600 = 10 minutes, 3600 = 1 hour, 86400 = 1 day, 604800 = 1 week, 2419200 = 1 month.'); // Cache time notes/examples
+		$field->notes .= "\n" . sprintf($this->_('If using [ProCache](%s) there is no need to use the cache setting here.'), 'http://processwire.com/api/modules/procache/'); 
 		$field->attr('value', $template->cache_time); 
 		$form->append($field); 
 
@@ -1335,6 +1336,8 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 
+		$moreLabel = $this->_('More'); 
+		
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('id+name', 'allowPageNum');
 		$field->label = $this->_('Allow Page Numbers?');
@@ -1342,9 +1345,9 @@ class ProcessTemplate extends Process {
 		$field->attr('value', 1); 
 		if($template->allowPageNum) $field->attr('checked', 'checked'); 
 			else $field->collapsed = Inputfield::collapsedYes;
-		
-		$field->description = $this->_("If checked, pages using this template will accept page number URL segments in the form 'page123', where '123' may be any positive number.  For example, a request URL of '/widgets/page3' automatically sets the \$input->pageNum to be 3. This is used for pagination and should only be enabled for templates that support pagination. Note that page numbers start at 1 (not 0).  If combined with URL Segments (see next section), then the page number must be the last part of the URL."); // Allow page numbers, description
-		$field->notes = $this->_("Access the current page number from your templates at \$input->pageNum;"); // Allow page numbers, API notes
+		$field->description = $this->_('If checked, pages using this template will support pagination.'); 
+		$field->description .= " [$moreLabel](https://processwire.com/docs/admin/setup/templates/#allow-page-numbers)";
+		//$field->notes = $this->_('Access the current page number from your template files with $input->pageNum.'); // Allow page numbers, API notes
 		$form->append($field); 
 		if($template->allowPageNum) $form->collapsed = Inputfield::collapsedNo;
 
@@ -1355,12 +1358,11 @@ class ProcessTemplate extends Process {
 		$field->label = $this->_('Allow URL Segments?');
 		$field->icon = 'sitemap';
 		$field->columnWidth = 50; 
-		$field->description = $this->_("This template may optionally serve URL path segments below that of the page(s) using it.  For example, you may want a page with path `/path/to/page/` to also handle requests for `/path/to/page/segment1/` or `/path/to/page/segment1/segment2/`. By default, ProcessWire will throw a 404 error when such a URL is accessed. But if you want ProcessWire to render the page instead, check the box below. You can then manually check the URL segments from your template file to respond to them."); // Allow URL segments, description
-		$field->notes = $this->_('Up to 3 URL segments are supported after the page URL. These may be any combination of lowercase ASCII letters (a-z), numbers (0-9), dashes and underscores. You can access the URL segments from your template API code by referencing the `$input->urlSegment(n)` function or `$input->urlSegment[n]` property (replacing `[n]` with 1, 2 or 3).'); // Allow URL segments, notes 
-		$field->notes .= ' ' . $this->_('You may also access the `$input->urlSegmentStr` property, which returns the current path of URL segments, minus leading and trailing slashes, i.e. `a/b/c`.'); // Allow URL segments, urlSegmentStr notes
-		$field->notes .= "\n\n" . $this->_('For example, given the URL `/path/to/page/a/b/c/`, where `/path/to/page/` is the page path, and `a/b/c` are the segments: `$input->urlSegment1` is "a", `$input->urlSegment2` is "b", and `$input->urlSegment3` is "c". If your template receives unknown URL segments, a best practice is to abort the request by throwing a 404 error. The API code to do this is: `throw new Wire404Exception();`'); // Allow URL segments, examples
-		$field->notes .= ' ' . $this->_('Alternatively, you may specify exactly which URL segments to allow in the next field. This often eliminates the need to throw a 404 since your template will not receive unknown URL segments.'); // Allow URL segments, intro to next field
-
+		$field->description = $this->_('If checked, pages using this template will support custom URL segments after the page URL.') . ' ';
+		$field->description .= "[$moreLabel](https://processwire.com/docs/admin/setup/templates/#allow-url-segments)";
+		//$field->notes = $this->_('Access the current URL segment(s) from your template files with $input->urlSegmentStr.'); // Allow page numbers, API notes
+		//$field->notes .= " [$moreLabel](https://processwire.com/docs/admin/setup/templates/#accessing-url-segments-from-the-api)";
+		
 		$field->attr('value', 1); 
 		$urlSegments = $template->urlSegments();
 		if($urlSegments) {
@@ -1374,16 +1376,10 @@ class ProcessTemplate extends Process {
 		$field = $this->modules->get('InputfieldTextarea'); 
 		$field->attr('name', 'urlSegmentsList');
 		$field->label = $this->_('Which URL segments do you want to allow?'); 
-		$field->description = $this->_('Optional. Leave blank to allow any, or enter one segment, segment path (i.e. `a/b/c`) or regular expression (i.e. `regex:photo[0-9]+`) per line. Segments are compared against the `$input->urlSegmentStr` property. Slashes may be used if specifying multiple segments, but you should not begin or end with a slash. If specifying a regular expression then prepend the word `regex:` to the line, followed by your non-delimited pcre-compatible regular expression.'); // Description for allowed URL segments
+		$field->description = $this->_('Enter one allowed segment, segment path or regular expression per line, or leave blank to allow any.'); // Description for allow URL segments
+		$field->description .= " [$moreLabel](https://processwire.com/docs/admin/setup/templates/#which-url-segments-do-you-want-to-allow)";
 		$field->icon = 'sitemap';
 		$field->columnWidth = 50; 
-		$field->notes = $this->_('Example:') . "\n" . 
-			'````' . 
-			$this->_('photos') . "\n" . 
-			$this->_('photos/new') . "\n" . 
-			$this->_('regex:^photos/photo[0-9]+$') . "\n" . 
-			$this->_('regex:^export-(json|xml)$') . 
-			'````';
 		if(is_array($urlSegments)) $field->attr('value', implode("\n", $urlSegments));
 		$field->showIf = 'urlSegments=1';
 		$form->append($field); 
