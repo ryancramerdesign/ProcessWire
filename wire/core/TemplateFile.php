@@ -151,7 +151,7 @@ class TemplateFile extends WireData {
 	public function ___render() {
 
 		if(!$this->filename) return '';
-		if(!file_exists($this->filename)) {
+		if(!is_file($this->filename)) {
 			$error = "Template file does not exist: '$this->filename'";
 			if($this->throwExceptions) throw new WireException($error);
 			$this->error($error); 
