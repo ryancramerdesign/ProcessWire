@@ -111,7 +111,9 @@ class PagefilesManager extends Wire {
 		foreach($page->fieldgroup as $field) {
 			if(!$field->type instanceof FieldtypeFile) continue;
 			$pagefiles = $page->get($field->name);
-			$pagefile = $pagefiles->getFile($name);
+			// if mapping to single file, ask it for the parent array
+			if($pagefiles instanceof Pagefile) $pagefiles = $pagefiles->pagefiles;
+			if($pagefiles instanceof Pagefiles) $pagefile = $pagefiles->getFile($name);
 			if(!$pagefile) continue;
 			break;
 		}
