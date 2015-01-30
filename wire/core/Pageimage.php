@@ -135,14 +135,35 @@ class Pageimage extends Pagefile {
 
 	/**
 	 * Get a property from this Pageimage
+	 * 
+	 * @param string $key
+	 * @return mixed
 	 *
 	 */
 	public function get($key) {
-		if($key == 'width') return $this->width();
-		if($key == 'height') return $this->height();
-		if($key == 'original') return $this->getOriginal();
-		if($key == 'error') return $this->error; 
-		return parent::get($key); 
+		switch($key) {
+			case 'width':
+			case 'height':
+				$value = $this->$key();
+				break;
+			case 'hidpiWidth':
+			case 'retinaWidth':
+				$value = $this->hidpiWidth();
+				break;
+			case 'hidpiHeight':
+			case 'retinaHeight':
+				$value = $this->hidpiHeight();
+				break;
+			case 'original':
+				$value = $this->getOriginal();
+				break;
+			case 'error':
+				$value = $this->error;
+				break;
+			default: 
+				$value = parent::get($key); 
+		}
+		return $value; 
 	}
 
 	/**
@@ -369,6 +390,28 @@ class Pageimage extends Pagefile {
 		if($n) return $this->size(0, $n, $options); 	
 		$info = $this->getImageInfo();
 		return $info['height']; 
+	}
+
+	/**
+	 * Return width for hidpi/retina use
+	 * 
+	 * @param float $scale Specify a scale or omit for 0.5
+	 * @return float
+	 * 
+	 */	
+	public function hidpiWidth($scale = 0.5) {
+		return ceil($this->width() * $scale); 
+	}
+
+	/**
+	 * Return height for hidpi/retina use
+	 *
+	 * @param float $scale Specify a scale or omit for 0.5
+	 * @return float
+	 *
+	 */	
+	public function hidpiHeight($scale = 0.5) {
+		return ceil($this->height() * $scale); 
 	}
 
 	/**

@@ -17,8 +17,13 @@
 		margin-bottom: 0; 
 		margin-top: 0;
 	}
+	ul.InputfieldFileList li .InputfieldFileInfo > i.fa {
+		position: relative; 
+		left: 2px;
+	}
 	ul.InputfieldFileList li .InputfieldFileInfo .InputfieldFileName {
 		font-weight: bold; 
+		cursor: pointer;
 	}
 		ul.InputfieldFileList li .InputfieldFileInfo .InputfieldFileName:hover {
 			text-decoration: underline; 
@@ -36,7 +41,8 @@
 	}
 
 	ul.InputfieldFileList li .InputfieldFileDelete {
-		float: right; 
+		float: right;
+		cursor: pointer;
 	}
 		ul.InputfieldFileList li .InputfieldFileDelete,
 		ul.InputfieldFileList li .InputfieldFileDelete input {
@@ -48,11 +54,6 @@
 				top: 0;
 				right: 0; 
 				display: none; 
-			}
-			ul.InputfieldFileList li .InputfieldFileDelete span.ui-icon {
-				float: right; 
-				padding: 0 2px; 
-				cursor: pointer; 	
 			}
 
 	ul.InputfieldFileList li .ui-icon {
@@ -133,10 +134,7 @@
 		right: 0;
 		opacity: 0.75; 
 	}
-		.InputfieldFileUpload .AjaxUploadDropHere span.ui-icon {
-			opacity: 0.4; 
-		}
-
+	
 .AjaxUpload .ui-progressbar-value {
 	padding: 0 !important;
 }

@@ -29,6 +29,18 @@
  */
 
 $(document).ready(function() {
+	
+// enable titles with HTML in ui dialog
+	$.widget("ui.dialog", $.extend({}, $.ui.dialog.prototype, {
+		_title: function(title) {
+			if (!this.options.title ) {
+				title.html("&#160;");
+			} else {
+				title.html(this.options.title);
+			}
+		}
+	}));
+	
 	$(document).on('click', 'a.pw-modal', function() { 
 		
 		var $a = $(this);
@@ -156,4 +168,5 @@ $(document).ready(function() {
 	
 		return false;
 	}); // click(a.pw-modal)
-}); 
+});
+

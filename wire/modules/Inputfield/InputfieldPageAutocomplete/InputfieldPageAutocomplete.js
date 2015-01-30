@@ -26,7 +26,8 @@ var InputfieldPageAutocomplete = {
 		var numAdded = 0; // counter that keeps track of quantity items added
 		var numFound = 0; // indicating number of pages matching during last ajax request
 
-		$icon.click(function() { $input.focus(); }); 
+		$icon.click(function() { $input.focus(); });
+		$icon.attr('data-class', $icon.attr('class')); 
 
 		function isAddAllowed() {
 			return $('#_' + $ol.attr('data-name') + '_add_items').size() > 0; 
@@ -36,22 +37,22 @@ var InputfieldPageAutocomplete = {
 			minLength: 2,
 			source: function(request, response) {
 				
-				$icon.addClass('ui-icon-refresh'); 
+				$icon.attr('class', 'fa fa-fw fa-spin fa-spinner'); 
 
 				$.getJSON(url + '&' + searchField + operator + request.term, function(data) { 
 
-					$icon.removeClass('ui-icon-refresh'); 
+					$icon.attr('class', $icon.attr('data-class')); 
 					numFound = data.total;
 
 					if(data.total > 0) {
-						$icon.addClass('ui-icon-arrowreturn-1-s'); 
+						$icon.attr('class', 'fa fa-fw fa-angle-double-down'); 
 
 					} else if(isAddAllowed()) {
-						$icon.addClass('ui-icon-plus'); 
+						$icon.attr('class', 'fa fa-fw fa-plus-circle'); 
 						$note.show();
 
 					} else {
-						$icon.addClass('ui-icon-alert'); 
+						$icon.attr('class', 'fa fa-fw fa-frown-o'); 
 					}
 
 					response($.map(data.matches, function(item) {
@@ -73,11 +74,11 @@ var InputfieldPageAutocomplete = {
 
 		}).blur(function() {
 			if(!$(this).val().length) $input.val('');
-			$icon.removeClass('ui-icon-arrowreturn-1-s ui-icon-alert ui-icon-plus'); 
+			$icon.attr('class', $icon.attr('data-class')); 
 			$note.hide();
 
 		}).keyup(function() {
-			$icon.removeClass('ui-icon-arrowreturn-1-s ui-icon-alert ui-icon-plus');
+			$icon.attr('class', $icon.attr('data-class')); 
 
 		}).keydown(function(event) {
 			if(event.keyCode == 13) {
@@ -137,11 +138,14 @@ var InputfieldPageAutocomplete = {
 	pageSelected: function($ol, page) {
 
 		var dup = false;
-
+		
 		$ol.children('li').each(function() {
 			var v = parseInt($(this).children('.itemValue').text());	
 			if(v == page.page_id) dup = $(this);
-		}); 
+		});
+		
+		var $inputText = $('#' + $ol.attr('data-id') + '_input');
+		$inputText.blur();
 
 		if(dup) {
 			dup.effect('highlight'); 

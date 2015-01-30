@@ -140,7 +140,8 @@ class Languages extends PagesType {
 	 * @param Page $language
 	 *
 	 */
-	public function ___deleted(Page $language) { 
+	public function ___deleted(Page $language) {
+		$this->updated($language, 'deleted'); 
 	}
 
 	/**
@@ -149,7 +150,20 @@ class Languages extends PagesType {
 	 * @param Page $language
 	 *
 	 */
-	public function ___added(Page $language) { 
+	public function ___added(Page $language) {
+		$this->updated($language, 'added'); 
+	}
+
+	/**
+	 * Hook called when a language is added or deleted
+	 *
+	 * @param Page $language
+	 * @param string $what What occurred? ('added' or 'deleted')
+	 *
+	 */
+	public function ___updated(Page $language, $what) {
+		$this->reloadLanguages();
+		$this->message("Updated language $language->name ($what)", Notice::debug); 
 	}
 
 	/**

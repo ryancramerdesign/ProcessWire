@@ -184,11 +184,16 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 		$out = 
 			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-state-default ui-widget-header'>" . 
-			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s HideIfSingle HideIfEmpty'></span>" .
-			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-1-e HideIfMultiple'></span>" . 
+			//"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s HideIfSingle HideIfEmpty'></span>" .
+			"\n\t\t\t<i class='fa fa-fw fa-sort HideIfSingle HideIfEmpty'></i>" .
+			//"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-1-e HideIfMultiple'></span>" .
+			"\n\t\t\t<i class='fa fa-fw fa-caret-right HideIfMultiple'></i>" . 
 			"\n\t\t\t<a class='InputfieldFileName' href='{$pagefile->url}'>{$pagefile->basename}</a> " . 
 			"\n\t\t\t<span class='InputfieldFileStats'>{$pagefile->filesizeStr}</span> " . 
-			"\n\t\t\t<label class='InputfieldFileDelete'><input type='checkbox' name='delete_$id' value='1' /><span class='ui-icon ui-icon-trash'>Delete</span></label>" . 
+			"\n\t\t\t<label class='InputfieldFileDelete'>" . 
+				"<input type='checkbox' name='delete_$id' value='1' title='" . $this->_('Delete') . "' />" . 
+				//"<span class='ui-icon ui-icon-trash'>Delete</span></label>" .
+				"<i class='fa fa-fw fa-trash'></i></label>" . 
 			"\n\t\t</p>" . 
 			"\n\t\t<div class='InputfieldFileData description ui-widget-content'>" . 
 			"\n\t\t\t" . $this->renderItemDescriptionField($pagefile, $id, $n) . 
@@ -535,6 +540,8 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			$f->description = $this->_('By default, descriptions are multi-language when you have Language Support installed. If you want to disable multi-language descriptions, check this box.'); // Disable multi-language description
 			$inputfields->append($f); 
 		}
+		
+		// @todo make noAjax option configurable
 
 		return $inputfields; 	
 	}

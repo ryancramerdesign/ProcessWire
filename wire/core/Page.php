@@ -653,16 +653,16 @@ class Page extends WireData implements Countable {
 					if($this->settings['modified_users_id'] == $this->wire('user')->id) $this->modifiedUser = $this->wire('user'); // prevent possible recursion loop
 						else $this->modifiedUser = $this->wire('users')->get((int) $this->settings['modified_users_id']);
 				}
-				$this->modifiedUser->of($this->of());
 				$value = $this->modifiedUser; 
+				if($value) $value->of($this->of());
 				break;
 			case 'createdUser':
 				if(!$this->createdUser) {
 					if($this->settings['created_users_id'] == $this->wire('user')->id) $this->createdUser = $this->wire('user'); // prevent recursion
 						else $this->createdUser = $this->wire('users')->get((int) $this->settings['created_users_id']); 
 				}
-				$this->createdUser->of($this->of());
 				$value = $this->createdUser; 
+				if($value) $value->of($this->of());
 				break;
 			case 'urlSegment':
 				$value = $this->wire('input')->urlSegment1; // deprecated, but kept for backwards compatibility

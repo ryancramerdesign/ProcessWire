@@ -6,13 +6,11 @@
  * Abstract base class from which all Fieldtype modules are descended from.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
  * 
- * @todo provide an option for Fieldtype::getConfigInputfields and Inputfield::getConfigInputfields
- * to designate what config options they want to make available to field/template context. 
  * 
  */
 abstract class Fieldtype extends WireData implements Module {
@@ -220,6 +218,7 @@ abstract class Fieldtype extends WireData implements Module {
 		if($inputfield) {
 			$data = $inputfield->exportConfigData($data);
 		}
+		$this->set('_exportMode', false);
 		return $data;
 	}
 
@@ -281,11 +280,41 @@ abstract class Fieldtype extends WireData implements Module {
 	 * @param Page $page
 	 * @param Field $field
 	 * @param string|int|object $value
-	 * @return string
+	 * @return mixed
 	 *
 	 */
 	public function ___formatValue(Page $page, Field $field, $value) {
 		return $value; 
+	}
+
+	/**
+	 * Render a markup string of the value
+	 * 
+	 * Non-markup components should also be entity encoded where appropriate. 
+	 * 
+	 * Most Fieldtypes don't need to implement this since the default covers most scenarios. 
+	 * 
+	 * This is different from formatValue() in that it always returns a string (or object that can be 
+	 * typecast to a string) that is output ready with markup. Further, this method may be used to render 
+	 * specific properties in compound fieldtypes. The intention here is primarily for admin output purposes, 
+	 * but can be used front-end where applicable. 
+	 * 
+	 * This is different from Inputfield::renderValue() in that the context may be outside that of an Inputfield,
+	 * as Inputfields can have external CSS or JS dependencies. 
+	 * 
+	 * @param Page $page Page that $value comes from
+	 * @param Field $field Field that $value comes from
+	 * @param mixed $value Optionally specify the $page->field value. If null or not specified, it will be retrieved.
+	 * @param string $property Optionally specify the property or index to render. If omitted, entire value is rendered.
+	 * @return string|MarkupFieldtype Returns a string or object that can be output as a string, ready for output.
+	 * 	Return a MarkupFieldtype value when suitable so that the caller has potential specify additional
+	 * 	config options before typecasting it to a string. 
+	 *
+	 */
+	public function ___markupValue(Page $page, Field $field, $value = null, $property = '') {
+		$m = new MarkupFieldtype($page, $field, $value); 	
+		if(strlen($property)) return $m->render($property); 
+		return $m;
 	}
 
 	/**

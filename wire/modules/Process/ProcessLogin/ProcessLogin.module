@@ -73,9 +73,10 @@ class ProcessLogin extends Process {
 
 		$name = $this->fuel('sanitizer')->username($this->nameField->value); 
 		$pass = substr($this->passField->value, 0, 50); 
-
-		if($this->fuel('session')->login($name, $pass)) {
+	
+		if($this->wire('session')->login($name, $pass)) {
 			$this->session->message($name . ' - ' . $this->_("Successful login")); 
+			$this->session->set('hidpi', $this->wire('input')->post->login_hidpi ? true : false); 
 			$this->session->remove('error'); 
 			$this->performSystemChecks();
 			$this->session->redirect("./?login=1" . ($this->id ? "&id={$this->id}" : ''));  
@@ -144,7 +145,7 @@ class ProcessLogin extends Process {
 		$this->submitField = $this->modules->get('InputfieldSubmit');
 		$this->submitField->attr('name', 'login_submit'); 
 		$this->submitField->attr('value', $this->_('Login')); // Login form: submit login button 
-
+		
 		$this->form = $this->modules->get('InputfieldForm');
 
 		// we'll retain an ID field in the GET url, if it was there
@@ -153,7 +154,13 @@ class ProcessLogin extends Process {
 		$this->form->attr('id', $this->className() . 'Form'); 
 		$this->form->add($this->nameField); 
 		$this->form->add($this->passField); 
-		$this->form->add($this->submitField); 
+		$this->form->add($this->submitField);
+	
+		// detect hidpi at login (populated from js)
+		$f = $this->modules->get('InputfieldHidden');
+		$f->attr('id+name', 'login_hidpi');
+		$f->attr('value', 0);
+		$this->form->add($f);
 
 		return $this->form; 
 	}

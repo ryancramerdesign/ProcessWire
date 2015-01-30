@@ -20,6 +20,8 @@
  * @property Fieldtype $prevFieldtype
  * @property int $flags
  * @property string $label
+ * @property string $description
+ * @property string $icon
  * 
  * @todo add modified date property
  *
@@ -61,7 +63,7 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	const flagSystemOverride = 32768; 
-
+	
 	/**
 	 * Permanent/native settings to an individual Field
 	 *
@@ -133,7 +135,9 @@ class Field extends WireData implements Saveable, Exportable {
 			}
 
 		if(isset($this->settings[$key])) {
-			$this->settings[$key] = $value; 
+			$this->settings[$key] = $value;
+		} else if($key == 'icon') {
+			$this->setIcon($value); 
 		} else {
 			return parent::set($key, $value); 
 		}
@@ -165,6 +169,7 @@ class Field extends WireData implements Saveable, Exportable {
 			else if($key == 'prevTable') return $this->prevTable; 
 			else if($key == 'prevFieldtype') return $this->prevFieldtype; 
 			else if(isset($this->settings[$key])) return $this->settings[$key]; 
+			else if($key == 'icon') return $this->getIcon(true); 
 		$value = parent::get($key); 
 		if(is_array($this->trackGets)) $this->trackGets($key); 
 		return $value; 
@@ -610,6 +615,37 @@ class Field extends WireData implements Saveable, Exportable {
 			$description = $this->description;
 		}
 		return $description;
+	}
+
+	/**
+	 * Return the icon used by this field, or blank if none
+	 * 
+	 * @param bool $prefix Whether or not you want the fa- prefix included
+	 * @return mixed|string
+	 * 
+	 */
+	public function getIcon($prefix = false) {
+		$icon = parent::get('icon'); 
+		if(empty($icon)) return '';
+		if(strpos($icon, 'fa-') === 0) $icon = str_replace('fa-', '', $icon);
+		if(strpos($icon, 'icon-') === 0) $icon = str_replace('icon-', '', $icon); 
+		return $prefix ? "fa-$icon" : $icon;
+	}
+
+	/**
+	 * Set the icon for this field
+	 * 
+	 * @param string $icon Icon name
+	 * @return $this
+	 * 
+	 */
+	public function setIcon($icon) {
+		// store the non-prefixed version
+		if(strpos($icon, 'icon-') === 0) $icon = str_replace('icon-', '', $icon);
+		if(strpos($icon, 'fa-') === 0) $icon = str_replace('fa-', '', $icon); 
+		$icon = $this->wire('sanitizer')->pageName($icon); 
+		parent::set('icon', $icon); 
+		return $this; 
 	}
 	
 }

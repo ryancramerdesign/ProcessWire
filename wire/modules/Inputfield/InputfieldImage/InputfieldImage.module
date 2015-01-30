@@ -154,6 +154,10 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 				$attr['width'] = $thumbWidth; 
 				$gridSize = $thumbWidth;
 			}
+		} else if($this->adminThumbScale < 1) {
+			// no thumb, but hidpi full size
+			$attr['width'] = $thumb->hidpiWidth($this->adminThumbScale);
+			$attr['height'] = $thumb->hidpiHeight($this->adminThumbScale); 
 		}
 
 		$url = $thumb->url;
@@ -192,13 +196,18 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 
 		$out = 	
 			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header'>" . 
-			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-2-n-s HideIfSingle'></span>" .
-			"\n\t\t\t<span class='ui-icon ui-icon-arrowthick-1-e HideIfMultiple'></span>" . 
+			"\n\t\t\t<i class='fa fa-fw fa-sort HideIfSingle'></i>" .
+			"\n\t\t\t<i class='fa fa-fw fa-caret-right HideIfMultiple'></i>" . 
 			"\n\t\t\t<span class='InputfieldFileName'>{$pagefile->basename}</span> " . 
-			"\n\t\t\t<span class='InputfieldFileStats'>&bull; {$pagefile->filesizeStr} &bull; {$pagefile->width}x{$pagefile->height}</span> " . 
-			"\n\t\t\t<label class='InputfieldFileDelete'><input type='checkbox' name='delete_$id' value='1' /><span class='ui-icon ui-icon-trash'>". $this->_('Delete') . "</span></label>" . 
-			"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveBottom' href='#' title='" . $this->_('Move to bottom') . "'><span class='ui-icon ui-icon-arrowthickstop-1-s'></span></a> " . 
-			"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveTop' href='#' title='" . $this->_('Move to top') . "'><span class='ui-icon ui-icon-arrowthickstop-1-n'></span></a> " . 
+			"\n\t\t\t<span class='InputfieldFileStats'>&bull; {$pagefile->filesizeStr} &bull; " . 
+				"{$pagefile->width}x{$pagefile->height}</span> " . 
+			"\n\t\t\t<label class='InputfieldFileDelete'>" . 
+				"<input type='checkbox' name='delete_$id' value='1' title='" . $this->_('Delete') . "' />" .
+				"<i class='fa fa-fw fa-trash'></i></label>" . 
+			"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveBottom' href='#' title='" . $this->_('Move to bottom') . "'>" . 
+				"<i class='fa fa-fw fa-angle-double-down'></i></a> " . 
+			"\n\t\t\t<a class='InputfieldFileMove InputfieldFileMoveTop' href='#' title='" . $this->_('Move to top') . "'>" . 
+				"<i class='fa fa-fw fa-angle-double-up'></i></a> " . 
 			"\n\t\t</p>" . 
 			"\n\t\t<div class='InputfieldFileData ui-widget ui-widget-content'>" . 
 			"\n\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->url}'>$thumb[markup]</a>" . 
@@ -225,8 +234,8 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$field->attr('checked', $this->adminThumbs ? 'checked' : ''); 
 		$field->label = $this->_('Display thumbnails in page editor?'); 
 		$field->description = $this->_('Thumbnails take up less space and make it easier to sort multiple images. If unchecked, the full (original) size image will be shown in the page editor.'); // Display thumbnails description
-		$inputfields->add($field); 
-
+		$inputfields->add($field);
+		
 		$field = $this->modules->get("InputfieldRadios"); 
 		$field->attr('name', 'defaultGrid'); 
 		$field->label = $this->_('Default View'); 

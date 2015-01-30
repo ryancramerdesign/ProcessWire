@@ -99,6 +99,13 @@ abstract class AdminTheme extends WireData implements Module {
 			$this->config->paths->set('adminTemplates', $this->config->paths->get($this->className())); 
 			$this->config->urls->set('adminTemplates', $this->config->urls->get($this->className())); 
 		}
+
+		// adjust $config adminThumbOptions[scale] for auto detect when requested
+		$o = $this->wire('config')->adminThumbOptions; 
+		if($o && isset($o['scale']) && $o['scale'] === 1) {
+			$o['scale'] = $this->wire('session')->hidpi ? 0.5 : 1.0; 
+			$this->wire('config')->adminThumbOptions = $o;
+		}
 		
 	}
 	

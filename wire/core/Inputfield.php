@@ -478,6 +478,9 @@ abstract class Inputfield extends WireData implements Module {
 
 	/**
 	 * Render just the value (not input) in text/markup for presentation purposes
+	 * 
+	 * This is within the context of an InputfieldForm, where the rendered markup can have
+	 * external CSS or JS dependencies (in Inputfield[Name].css or Inputfield[Name].js)
 	 *
  	 * @return string of text or markup where applicable
 	 *

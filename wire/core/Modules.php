@@ -1822,6 +1822,7 @@ class Modules extends WireArray {
 			// module is an instance
 			$moduleName = method_exists($module, 'className') ? $module->className() : get_class($module); 
 			// return from cache if available
+			
 			if(empty($options['noCache']) && !empty($this->moduleInfoCache[$moduleID])) {
 				$info = $this->moduleInfoCache[$moduleID]; 
 				$fromCache = true; 

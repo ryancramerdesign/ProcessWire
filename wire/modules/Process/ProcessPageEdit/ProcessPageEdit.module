@@ -104,7 +104,10 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 		parent::init();
 
-		if(!$this->isPost) $this->modules->get('JqueryWireTabs'); 
+		if(!$this->isPost) {
+			$this->modules->get('JqueryWireTabs');
+			$this->modules->get('JqueryUI')->use('modal');
+		}
 
 		$title = $this->page->title;
 		if($title) $this->wire('processBrowserTitle', sprintf($this->_('Edit Page: %s'), $title)); 

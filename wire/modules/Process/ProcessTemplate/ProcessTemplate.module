@@ -807,6 +807,13 @@ class ProcessTemplate extends Process {
 			'data-status' => $icons . $status,
 			'data-desc' => $desc
 			);
+
+		if($field->icon) {
+			$icon = $field->icon;
+			$icon = str_replace('icon-', 'fa-', $icon); 
+			if(strpos($icon, 'fa-') !== 0) $icon = "fa-$icon";
+			$attrs['data-handle'] = "<i class='fa fa-fw $icon'></i>";
+		}
 		
 		return $attrs; 
 	}

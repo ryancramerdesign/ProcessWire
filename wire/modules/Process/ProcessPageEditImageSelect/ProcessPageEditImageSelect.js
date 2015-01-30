@@ -34,7 +34,7 @@ $(document).ready(function() {
 			}
 
 			$("#input_width").val(w); 
-			$("#input_height").val(h); 
+			$("#input_height").val(h);
 			
 			$img.attr('width', w); 
 			$img.attr('height', h); 

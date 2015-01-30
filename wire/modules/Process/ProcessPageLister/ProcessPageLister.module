@@ -28,6 +28,8 @@
  * reset: Initiates reset of filters (reset=1)
  * minimal: Minimal mode shows only results and nothing else (minimal=1, usually combined with modal=1)
  * 
+ * @todo: add hook for customizing the output of column values
+ * 
  *
  */
 
@@ -480,8 +482,19 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 					$_field = $template->fieldgroup->getField($field->name, true); // context
 					if($_field) $field = $_field; 
 				}
-				if($useLabels) $f->addOption($field->name, $field->getLabel(), array('data-desc' => $field->name)); 
-					else $f->addOption($field->name, $field->name, array('data-desc' => $field->getLabel())); 
+				if($useLabels) {
+					$label = $field->getLabel();
+					$desc = $field->name; 
+					$f->addOption($field->name, $field->getLabel(), array('data-desc' => $field->name));
+				} else {
+					$label = $field->name; 
+					$desc = $field->getLabel();
+				}
+				$attr = array('data-desc' => $desc); 
+				$icon = $field->getIcon(true);
+				if($icon) $attr['data-handle'] = wireIconMarkup($icon, 'fw');
+				$f->addOption($field->name, $label, $attr);
+				
 			} else {
 				$label = isset($systemLabels[$field]) ? $systemLabels[$field] : $field;
 				if($useLabels) $f->addOption($field, $label, array('data-desc' => $field)); 
@@ -813,20 +826,27 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			if(strpos($name, '.')) list($name, $subname) = explode('.', $name); 
 			$field = $this->template ? $this->template->fieldgroup->getField($name, true) : $this->fields->get($name); 
 			$label = $field ? $field->getLabel() : ''; 
-			if(!$label) $label = isset($this->systemLabels[$name]) ? $this->systemLabels[$name] : $name; 
+			if(!$label) $label = isset($this->systemLabels[$name]) ? $this->systemLabels[$name] : $name;
+			$icon = $field ? $field->getIcon(true) : '';
 			if($subname) {
 				$subfield = $this->fields->get($subname); 
 				$label .= ".";
-				if($subfield) $label .= $subfield->getLabel();
-					else $label .= $subname;
+				if($subfield) {
+					$label .= $subfield->getLabel();
+					$subicon = $subfield->getIcon(true); 
+					if($subicon) $icon = $subicon; 
+				} else {
+					$label .= $subname;
+				}
 			}
-			$header[$key] = "$label<b>$name</b>";
+			$icon = $icon ? wireIconMarkup($icon, 'fw') : ''; 
+			$header[$key] = "$icon$label<b>$name</b>";
 			$fields[$name] = $field; 
 		}
 
+		$table->setEncodeEntities(false);
+		$table->setSortable(false);
 		$table->headerRow($header); 
-		$table->setEncodeEntities(false); 
-		$table->setSortable(false); 
 
 		foreach($results as $p) {
 			$table->row($this->buildListerTableRow($p, $fields, $columns)); 
@@ -895,9 +915,10 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			
 		} else if($value instanceof WireArray && !$value instanceof Pagefiles) {
 			// WireArray type unknown to Lister
-			$in = $field->getInputfield($p, $field);
-			$in->attr('value', $value);
-			$value = $in->renderValue();
+			// $in = $field->getInputfield($p, $field);
+			// $in->attr('value', $value);
+			// $value = $in->renderValue();
+			$value = $field->type->markupValue($p, $field, $value, $subname); 
 
 		} else if($value instanceof WireArray || is_array($value)) {
 			// Pagefiles or  unknown iterable value
@@ -940,8 +961,14 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		} else if($name == 'status') {
 			// status
 			$value = array();
-			foreach($this->statusLabels as $status => $label) if($p->is($status)) $value[] = $label;	
-			$value = implode(', ', $value); 
+			foreach($this->statusLabels as $status => $label) if($p->is($status)) $value[] = $label;
+			$value = implode(', ', $value);
+
+		} else if($field && $field->type) {
+			if($subname == 'data') $subname = '';
+			$value = $field->type->markupValue($p, $field, $value, $subname); 
+			// value may be MarkupFieldtype object
+			$value = (string) $value; 
 			
 		} else {
 			// other or unknown
@@ -975,7 +1002,10 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if($p->is(Page::statusTrash)) {
 			$isTrash = true; 	
 			$class .= " PageListStatusTrash PageListStatusUnpublished";
-			$icon = "<i class='fa fa-trash-o'></i> ";
+			$icon = wireIconMarkup('trash-o', 'fw'); 
+		} else {
+			$icon = $p->template->getIcon();
+			$icon = $icon ? wireIconMarkup($icon, 'fw') : '';	
 		}
 		if($class) $value = "<span class='" . trim($class) . "'>$value</span>";
 
@@ -1021,7 +1051,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 					unset($this->openPageIDs[$p->id]); 
 					$this->sessionSet('openPageIDs', $this->openPageIDs); // ensure it is only used once
 				}
-				$value = "$icon<a class='$class' id='page$p->id' href='#'>$value</a> $actionsOut";
+				$value = "<a class='$class' id='page$p->id' href='#'>$icon$value</a> $actionsOut";
 			}
 		}
 		if($isTrash) $value = "<div class='ui-priority-secondary'>$value</div>";

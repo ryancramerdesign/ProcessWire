@@ -7,11 +7,13 @@
 	margin-top: 0.5em;
 }
 
+/*
 .InputfieldImage a.InputfieldFileMove span.ui-icon {
 	float: right; 
 	position: relative; 
 	top: 2px; 
 }
+*/
 .InputfieldImage a.InputfieldFileMove {
 	float: right;
 	width: 20px; 
@@ -26,16 +28,14 @@
 	display: none; 
 }
 
+.InputfieldFileDelete {
+	cursor: pointer;
+}
 
 /**
  * Grid mode
  *
  */
-.InputfieldImage .InputfieldHeader i.icon-th, 
-.InputfieldImage .InputfieldHeader i.icon-list {
-	font-size: 14px; 
-}
-
 .InputfieldImageGrid .InputfieldContent {
 	padding-right: 0;
 }

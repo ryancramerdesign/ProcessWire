@@ -451,7 +451,8 @@ class FieldtypePage extends FieldtypeMulti implements Module, ConfigurableModule
 			$valid = true;
 		} else {
 			$valid = false;
-			if($throwException) throw new WireException("Page $value is not valid for $field->name");
+			$reason = $forPage->get("_isValidPage"); 
+			if($throwException) throw new WireException("Page $value is not valid for $field->name ($reason)");
 		}
 		
 		return $valid;

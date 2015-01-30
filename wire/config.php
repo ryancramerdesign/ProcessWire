@@ -388,7 +388,7 @@ $config->imageSizerOptions = array(
  * 
  * #property int width Width of thumbnails or 0 for proportional to height (default=0).
  * #property int height Height of thumbnails or 0 for proportional to width (default=100).
- * #property float scale Scale for high DPI/retina output, i.e. 0.5 makes 100px thumb render at 50px (default=1.0).
+ * #property float scale Width/height scale (1=auto detect, 0.5=always hidpi, 1.0=force non-hidpi)
  * #property bool upscaling Upscale if necessary to reach target size? (1=true, 0=false).
  * #property bool cropping Crop if necessary to reach target size? (1=true, 0=false).
  * #property bool autoRotation Automatically correct orientation? (1=true, 0=false).
@@ -402,7 +402,7 @@ $config->imageSizerOptions = array(
 $config->adminThumbOptions = array(
 	'width' => 0, // max width of admin thumbnail or 0 for proportional to height
 	'height' => 100, // max height of admin thumbnail or 0 for proportional to width
-	'scale' => 1.0, // i.e. setting of 0.5 makes 100px (for example) thumb render at 50px, for high DPI/retina presentation.
+	'scale' => 1, // admin thumb scale (1=auto detect, 0.5=always hidpi, 1.0=force non-hidpi)
 	'upscaling' => false,
 	'cropping' => true,
 	'autoRotation' => true, // automatically correct orientation?
