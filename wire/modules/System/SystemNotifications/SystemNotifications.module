@@ -4,6 +4,10 @@
  * System Notifications for ProcessWire
  *
  * By Avoine and Ryan Cramer
+ * 
+ * @property int $disabled
+ * @property int $placement
+ * @property array $activeHooks
  *
  */
 class SystemNotifications extends WireData implements Module {
@@ -41,7 +45,8 @@ class SystemNotifications extends WireData implements Module {
 	public function __construct() {
 		$path = $this->wire('config')->paths->SystemNotifications;
 		require_once($path . "Notification.php"); 
-		require_once($path . "NotificationArray.php"); 
+		require_once($path . "NotificationArray.php");
+		require_once($path . "SystemNotificationsConfig.php"); 
 	
 		// hook method to access notifications, in case field name ever needs to change for some reason
 		$this->addHook('User::notifications', $this, 'hookUserNotifications'); 
