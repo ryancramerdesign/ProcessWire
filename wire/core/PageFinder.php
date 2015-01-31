@@ -282,8 +282,8 @@ class PageFinder extends Wire {
 			} catch(Exception $e) {
 				$error = $e->getMessage();
 			}
-			
-			if($stmt->errorCode() > 0) {
+		
+			if(!empty($stmt) && $stmt->errorCode() > 0) {
 				$errorInfo = $stmt->errorInfo();
 				$error = $errorInfo[2] . ($error ? " - $error" : "");
 			}

@@ -533,7 +533,7 @@ class SelectableOptionManager extends Wire {
 	public function updateOptions(Field $field, $options) {
 
 		$database = $this->wire('database');
-		$sql = "UPDATE " . self::optionsTable . " SET sort=:sort, title=:title, `value`=:value";
+		$sql = "UPDATE " . self::optionsTable . " SET sort=:sort, title=:title, `value`=:value ";
 		$bindCols = array();
 		
 		if($this->useLanguages) foreach($this->wire('languages') as $language) {
