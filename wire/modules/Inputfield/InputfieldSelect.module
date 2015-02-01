@@ -376,10 +376,18 @@ class InputfieldSelect extends Inputfield {
 	}
 
 	public function setAttribute($key, $value) {
-		if($key == 'value' && is_object($value)) {
-			$value = (string) $value; 
-			if($this instanceof InputfieldHasArrayValue) {
-				$value = explode('|', $value); 
+		if($key == 'value') {
+			if(is_object($value)) {
+				$value = (string) $value;
+				if($this instanceof InputfieldHasArrayValue) {
+					$value = explode('|', $value);
+				}
+			} else if(is_array($value)) {
+				if($this instanceof InputfieldHasArrayValue) {
+					// ok
+				} else {
+					$value = reset($value); 
+				}
 			}
 		}
 		return parent::setAttribute($key, $value);
