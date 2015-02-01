@@ -164,8 +164,18 @@ class ProcessLogger extends Process {
 			$options['dateTo'] = ctype_digit("$dateTo") ? (int) $dateTo : strtotime("$dateTo 23:59:59");
 			$this->wire('input')->whitelist('date_to', $options['dateTo']); 
 		}
+
+		$options['pageNum'] = $this->wire('input')->pageNum; 
 		
-		$items = $this->wire('log')->getEntries($name, $options); 
+		do {
+			// since the total count the pagination is based on may not always be accurate (dups, etc.)
+			// we migrate to the last populated pagination when items turn up empty
+			$items = $this->wire('log')->getEntries($name, $options);
+			if(count($items)) break;
+			if($options['pageNum'] < 2) break;
+			$options['pageNum']--;
+		} while(1);
+		
 		if($this->wire('config')->ajax) return $this->renderLogAjax($items, $name); 
 		
 		$form = $this->wire('modules')->get('InputfieldForm');
@@ -360,13 +370,14 @@ class ProcessLogger extends Process {
 				$row[] = $entry['user'];
 				$row[$url] = $entry['url'];
 			}
-			
+		
 			$row[] = $entry['text'];
 			
 			$table->row($row);
 		}
 
 		$entries = new LogEntriesArray();
+		
 		if(count($items)) {
 			reset($items);
 			$key = key($items);
@@ -379,6 +390,10 @@ class ProcessLogger extends Process {
 			$options = array('baseUrl' => "../$name/");
 			$pagerOut = $pager->render($entries, $options);
 			$pagerHeadline = $entries->getPaginationString();
+			$pagerHeadline .= " " . 
+				"<small class='ui-priority-secondary'>(" . 
+				($pager->isLastPage() ? $this->_('actual') : $this->_('estimate')) . 
+				")</small>";
 			$iconClass = '';
 		} else {
 			$pagerHeadline = $this->_('No matching log entries');

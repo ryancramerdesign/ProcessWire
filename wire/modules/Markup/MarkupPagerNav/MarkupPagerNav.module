@@ -40,7 +40,35 @@ require_once(dirname(__FILE__) . '/PagerNav.php');
 
 
 /**
+ * Class MarkupPagerNav
+ * 
  * ProcessWire module that provides pagination for PageArray types
+ * 
+ * @property int $numPageLinks 10 number of links that the pagination navigation should have (typically 10)
+ * @property array $getVars get vars that should appear in the pagination, or leave empty and populate $input->whitelist (preferred)
+ * @property string $baseUrl the baseUrl from which the navigiation item links will start (default='')
+ * @property null|Page $page the current Page, or leave NULL to autodetect
+ * @property string $listMarkup List container markup. Place {out} where you want the individual items rendered (default="<ul class='MarkupPagerNav'>{out}</ul>")
+ * @property string $itemMarkup List item markup. Place {class} for item class (required), and {out} for item content. (default="<li class='{class}'>{out}</li>")
+ * @property string $linkMarkup Link markup. Place {url} for href attribute, and {out} for label content. (default="<a href='{url}'><span>{out}</span></a>")
+ * @property string $currentLinkMarkup Link markup for current page. Place {url} for href attribute and {out} for label content. (default="<a href='{url}'><span>{out}</span></a>")
+ * @property string $nextItemLabel label used for the 'Next' button (default='Next')
+ * @property string $previousItemLabel label used for the 'Previous' button (default='Prev')
+ * @property string $separatorItemLabel label used in the seperator item (default='&hellip;')
+ * @property string $separatorItemClass Class for separator item (default='MarkupPagerNavSeparator')
+ * @property string $firstItemClass Class for first item (default='MarkupPagerNavFirst')
+ * @property string $firstNumberItemClass Class for first numbered item (default='MarkupPagerNavFirstNum')
+ * @property string $nextItemClass Class for next item (default='MarkupPagerNavNext')
+ * @property string $previousItemClass Class for previous item (default='MarkupPagerNavPrevious')
+ * @property string $lastItemClass Class for last item (default='MarkupPagerNavLast')
+ * @property string $lastNumberItemClass Class for last numbered item (default='MarkupPagerNavLastNum')
+ * @property string $currentItemClass Class for current item (default='MarkupPagerNavOn')
+ * @property bool $arrayToCSV when arrays are present in getVars, they will be translated to CSV strings in the queryString: ?var=a,b,c. if set to false, then arrays will be kept in traditional format: ?var[]=a&var[]=b&var=c (default=true)
+ * @property int $totalItems Get total number of items to paginate (set automatically)
+ * @property int $itemsPerPage Get number of items to display per page (set automatically)
+ * @property int $pageNum Get the current page number (1-based, set automatically)
+ * @property string $queryString the queryString used in links (set automatically, based on whitelist or getVars array)
+ * @property bool $isLastPage Is the current pagination the last? Set automatically after a render() call. 
  *
  */
 class MarkupPagerNav extends Wire implements Module {
@@ -128,8 +156,10 @@ class MarkupPagerNav extends Wire implements Module {
 
 		// the queryString used in links (set automatically, based on whitelist or getVars array)
 		'queryString' => '', 	
-
+	
 		); 
+	
+	protected $isLastPage = null; 
 
 
 	public function __construct() {
@@ -147,6 +177,8 @@ class MarkupPagerNav extends Wire implements Module {
 	 */
 	public function ___render(WirePaginatable $items, $options = array()) {
 
+		
+		$this->isLastPage = true; 
 		$this->totalItems = $items->getTotal();
 		if(!$this->totalItems) return '';
 
@@ -175,6 +207,7 @@ class MarkupPagerNav extends Wire implements Module {
 		if(!$pageNumUrlPrefix) $pageNumUrlPrefix = 'page';
 
 		$pagerCount = count($pager);
+		if($pagerCount > 1) $this->isLastPage = false; 
 		$firstNumberKey = null;
 		$lastNumberKey = null;
 
@@ -184,7 +217,7 @@ class MarkupPagerNav extends Wire implements Module {
 			if(is_null($firstNumberKey)) $firstNumberKey = $key;
 			$lastNumberKey = $key;
 		}
-
+		
 		foreach($pager as $key => $item) {
 
 			if($item->type == 'separator') {
@@ -214,8 +247,12 @@ class MarkupPagerNav extends Wire implements Module {
 			if(!$key) $class .= ' ' . $this->options['firstItemClass']; 
 				else if($key == ($pagerCount-1)) $class .= ' ' . $this->options['lastItemClass'];
 
-			if($key === $firstNumberKey) $class .= ' ' . $this->options['firstNumberItemClass'];
-				else if($key === $lastNumberKey) $class .= ' ' . $this->options['lastNumberItemClass'];
+			if($key === $firstNumberKey) {
+				$class .= ' ' . $this->options['firstNumberItemClass'];
+			} else if($key === $lastNumberKey) {
+				$class .= ' ' . $this->options['lastNumberItemClass'];
+				if($item->type == 'current') $this->isLastPage = true; 
+			}
 
 			$linkMarkup = isset($this->options[$item->type . 'LinkMarkup']) ? $this->options[$item->type . 'LinkMarkup'] : $this->options['linkMarkup'];
 			$link = str_replace(array('{url}', '{out}'), array($url, $item->label), $linkMarkup); 
@@ -238,6 +275,7 @@ class MarkupPagerNav extends Wire implements Module {
 	 */
 	public function __get($property) {
 		if(isset($this->options[$property])) return $this->options[$property]; 
+		if($property == 'isLastPage') return $this->isLastPage; 
 		return null;
 	}
 
@@ -295,6 +333,19 @@ class MarkupPagerNav extends Wire implements Module {
 		$this->options['nextItemLabel'] = $next; 
 		$this->options['previousItemLabel'] = $prev; 
 	}
+	
+	/**
+	 * Returns true when the current pagination is the last one
+	 *
+	 * Only set after a render() call. Prior to that it is null.
+	 *
+	 * @return bool|null
+	 *
+	 */
+	public function isLastPage() {
+		return $this->isLastPage;
+	}
+
 
 	/* 
 	 * The following methods are specific to the Module interface 
