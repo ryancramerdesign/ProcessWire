@@ -22,7 +22,7 @@ class FieldtypeFloat extends Fieldtype {
 		return array(
 			'title' => __('Float', __FILE__),
 			'summary' => __('Field that stores a floating point (decimal) number', __FILE__),
-			'version' => 104,
+			'version' => 105,
 			'permanent' => true, 
 			);
 	}
@@ -54,6 +54,7 @@ class FieldtypeFloat extends Fieldtype {
 
 	public function sanitizeValue(Page $page, Field $field, $value) {
 		if(!strlen("$value")) return '';
+		if(!is_float($value) && !is_int($value)) $value = self::strToFloat((string) $value); 
 		if(is_null($field->precision)) {
 			$value = (float) $value;
 		} else {
@@ -132,6 +133,79 @@ class FieldtypeFloat extends Fieldtype {
 		if($f) $inputfields->add($f); 
 
 		return $inputfields; 
+	}
+
+	/*
+	public function getMatchQuery($query, $table, $subfield, $operator, $value) {
+		if(!is_int($value) && !is_float($value)) {
+			$value = self::strToFloat((string) $value);
+		}
+		return parent::getMatchQuery($query, $table, $subfield, $operator, $value); 
+	}
+	*/
+
+	/**
+	 * Convert float string with commas to float value
+	 * 
+	 * Most based on: http://php.net/manual/en/function.floatval.php#114486
+	 * 
+	 * @param string $str
+	 * @return float|string
+	 * 
+	 */
+	public static function strToFloat($str) { 
+	
+		$str = trim($str);
+		
+		$prepend = '';
+		if(substr($str, 0, 1) == '-') {
+			$prepend = '-';
+			$str = ltrim($str, '-');
+		}
+		
+		if(!strlen($str)) return '';
+		
+		$dotPos = strrpos($str, '.');
+		$commaPos = strrpos($str, ',');
+		$decimalType = substr(floatval("9.9"), 1, 1); 
+		$pos = null;
+
+		if($dotPos === 0 || ($commaPos === 0 && $decimalType == ',')) {
+			// .123 or ,123
+			$value = "0." . ltrim($str, ',.');
+
+		} else if($dotPos > $commaPos) {
+			// 123123.123
+			// 123,123.123
+			$pos = $dotPos; 
+			
+		} else if($commaPos > $dotPos) {
+			// 123,123
+			// 123123,123
+			// 123.123,123
+			if($dotPos === false && $decimalType === '.') {
+				// US or GB style thousands separator
+				$pos = strlen($str); 
+			} else {
+				// the rest of the world 
+				$pos = $commaPos;
+			}
+
+		} else {
+			$value = preg_replace('/[^0-9]/', '', $str);
+		}
+		
+		if($pos !== null) {
+			$value =
+				// part before dot
+				preg_replace('/[^0-9]/', '', substr($str, 0, $pos)) . '.' .
+				// part after dot
+				preg_replace('/[^0-9]/', '', substr($str, $pos + 1));
+		}
+		
+		$value = floatval($prepend . $value);
+		
+		return $value; 
 	}
 
 }
