@@ -526,11 +526,9 @@ class ProcessTemplate extends Process {
 	public function ___executeEdit() {
 
 		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
-		$this->wire('config')->scripts->add($this->wire('config')->urls->ProcessTemplate . 'ProcessTemplateFieldCreator.js'); 
-		$this->setFuel('processHeadline', sprintf($this->_('Edit Template: %s'), $this->template->name)); // Headline when editing a template
-
+		$this->wire('config')->scripts->add($this->wire('config')->urls->ProcessTemplate . 'ProcessTemplateFieldCreator.js');
 		if(!$this->template) throw new WireException("No Template specified"); 
-			
+		$this->headline(sprintf($this->_('Edit Template: %s'), $this->template->name)); // Headline when editing a template
 		$this->form = $this->buildEditForm($this->template);
 		$out = $this->form->render();
 		return $out; 

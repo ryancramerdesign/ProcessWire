@@ -71,6 +71,13 @@ class ProcessField extends Process implements ConfigurableModule {
 			'export' => $this->_('Export'),
 			'ok' => $this->_('Ok')
 			);
+		
+		if($this->input->post->id) $this->id = (int) $this->input->post->id;
+			else $this->id = $this->input->get->id ? (int) $this->input->get->id : 0;
+
+		if($this->id) $this->field = $this->fields->get($this->id);
+			else $this->field = new Field();
+
 		return parent::init();
 	}
 
@@ -607,12 +614,6 @@ class ProcessField extends Process implements ConfigurableModule {
 	 */
 	protected function ___buildEditForm() {
 
-		if($this->input->post->id) $this->id = (int) $this->input->post->id; 
-			else $this->id = $this->input->get->id ? (int) $this->input->get->id : 0; 
-
-		if($this->id) $this->field = $this->fields->get($this->id); 
-			else $this->field = new Field();
-
 		// optional context fieldgroup
 		if($this->input->post->fieldgroup_id) $fieldgroup_id = (int) $this->input->post->fieldgroup_id; 
 			else if($this->input->get->fieldgroup_id && !count($_POST)) $fieldgroup_id = (int) $this->input->get->fieldgroup_id; 
@@ -827,32 +828,72 @@ class ProcessField extends Process implements ConfigurableModule {
 		$form = new InputfieldWrapper();
 		$form->attr('class', 'WireTab');
 		$form->attr('id', 'info');
-		//$form->head = $this->_('Field usage information');
-		$form->attr('title', $this->_x('Info', 'tab'));
+		$form->attr('title', $this->_x('Actions', 'tab'));
 		
-		$field = $this->modules->get('InputfieldMarkup'); 
-		$fieldgroups = $this->field->getFieldgroups(); 
-		$templates = new TemplatesArray();
-		foreach($fieldgroups as $fieldgroup) $templates->import($fieldgroup->getTemplates()); 
-
-		if(count($templates)) {
-			$field->label = $this->_('This field is used by the following templates:');
-			$table = $this->modules->get("MarkupAdminDataTable"); 
-			$table->headerRow(array(
-				$this->_x('Template', 'info thead'),
-			//	$this->_('Edit field in context')
-				)); 
-			foreach($templates as $template) $table->row(array(
-				$template->name => "../template/edit?id={$template->id}",
-			//	"{$template->fieldgroup->name} > {$this->field->name}" => "./edit?id={$this->field->id}&fieldgroup_id={$template->fieldgroup->id}", 
-				)); 
-			$field->attr('value', $table->render()); 
-		} else {
-			$field->label = $form->head; 
-			$field->description = $this->_('This field is not currently in use by any templates.');
+		$allTemplates = $this->wire('templates');
+		$inTemplates = array();
+		
+		foreach($allTemplates as $template) {
+			if($template->fieldgroup->hasField($this->field)) $inTemplates[$template->id] = $template;
 		}
 
+		$field = $this->modules->get('InputfieldCheckboxes');
+		$field->attr('name', 'send_templates'); 	
+		$field->label = $this->_('Send field to templates'); 
+		if(count($inTemplates)) {
+			$field->description = $this->_('This field is in use on the checked templates below.') . ' ';
+		} else {
+			$field->description = $this->_('This field is not currently in use on any templates.') . ' ';
+		}
+		$field->description .= $this->_('You may quickly add this field to other templates here by checking the relevant boxes and clicking save.'); // Description for template usage
+		$field->notes .= $this->_('You will be asked to confirm the placement of added fields on the next screen.'); 
+		$field->table = true;
+		$field->icon = 'send-o';
+		$field->thead = 
+			$this->_x('Name', 'usage-table-th') . '|' . 
+			$this->_x('Label', 'usage-table-th'); 
+		$inTemplateAttr = array('checked' => 'checked', 'disabled' => 'disabled');
+		$numOmitted = 0;
+		foreach($allTemplates as $template) {
+			$attr = array();
+			$label = $template->name; 
+			if(isset($inTemplates[$template->id])) {
+				$attr = $inTemplateAttr; 
+				$label = "[$label](../template/edit?id=$template->id)";
+			} else if($template->flags & Template::flagSystem) {
+				if(!$this->wire('config')->advanced) {
+					$numOmitted++;
+					continue;
+				}
+			}
+			$label = "$label|" . $template->getLabel(); 
+			$field->addOption($template->id, $label, $attr);
+		}
+		if($numOmitted) $field->notes .= ' ' . sprintf($this->_('%d system templates are not shown because advanced mode is off.'), $numOmitted); 
 		$form->add($field);
+	
+		// --------------------------	
+		
+		$field = $this->modules->get("InputfieldText");
+		$field->attr('id+name', 'clone_field');
+		$field->attr('value', '');
+		$field->label = $this->_('Duplicate/clone this field?');
+		$field->icon = 'copy';
+		$field->description = $this->_('To clone this field, enter the name of the new field you wish to create.'); // Description for clone field
+		$field->notes = $this->_('Note that you will be editing your cloned copy after submitting this form.'); 
+		$field->collapsed = Inputfield::collapsedYes;
+		$form->append($field);
+		
+		// --------------------------	
+		
+		$field = $this->modules->get('InputfieldCheckbox');
+		$field->attr('name', '_optimize');
+		$field->label = $this->_('Check field data');
+		$field->icon = 'medkit';
+		$field->description = $this->_('Check the field for unused data or other possible optimizations. If any issues are found, you will have the opportunity to correct them from the Alert tab after saving.');
+		$field->collapsed = Inputfield::collapsedBlank;
+		$form->add($field);
+
 
 		return $form; 
 	}
@@ -868,15 +909,6 @@ class ProcessField extends Process implements ConfigurableModule {
 		} else {
 			$form = new InputfieldWrapper();
 		} 
-
-		$field = $this->modules->get("InputfieldCheckbox"); 
-		$field->attr('id+name', 'clone_field');
-		$field->attr('value', 1); 
-		$field->label = $this->_('Duplicate/clone this field?');
-		$field->icon = 'copy';
-		$field->description = $this->_('Check the box below if you want to create a duplicate/clone copy of this field. The clone will be created when you save.'); // Description for clone field
-		$field->collapsed = Inputfield::collapsedYes; 
-		$form->append($field); 
 
 		$form->attr('id', 'advanced');
 		$form->attr('class', 'WireTab');
@@ -903,14 +935,6 @@ class ProcessField extends Process implements ConfigurableModule {
 			$this->_('To make a tag collapsed in the fields list, prepend a hyphen to it, like this: -hello');
 		$form->prepend($field); 
 		
-		$field = $this->modules->get('InputfieldCheckbox'); 
-		$field->attr('name', '_optimize'); 
-		$field->label = $this->_('Check field data'); 
-		$field->icon = 'medkit';
-		$field->description = $this->_('Check the field for unused data or other possible optimizations. If any issues are found, you will have the opportunity to correct them from the Alert tab after saving.'); 
-		$field->collapsed = Inputfield::collapsedBlank;
-		$form->add($field); 
-
 		return $form;
 	}
 
@@ -944,6 +968,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		} catch(Exception $e) {
 			$this->error($e->getMessage()); 
 		}
+		
 		$errors = array();
 
 		if(!$this->field->name) {
@@ -1001,24 +1026,52 @@ class ProcessField extends Process implements ConfigurableModule {
 			} catch(Exception $e) {
 				$this->error($e->getMessage()); 
 			}
-		}
-	
-		$cloneField = $this->form->get('clone_field');
-		if($cloneField && $cloneField->attr('checked')) {
-			$clone = $this->fields->clone($this->field);
-			if($clone && $clone->id) {
-				$this->message($this->_('Cloned Field') . " - {$this->field->name} => {$clone->name}"); 
-				$this->listAfterSave = true; 
-			} else {
-				$this->error($this->_("Error creating clone of this field")); 
+			
+			$cloneField = $this->form->get('clone_field');
+			if($cloneField) {
+				$cloneName = $this->wire('sanitizer')->fieldName($cloneField->attr('value')); 
+				if(!$cloneName || $this->wire('fields')->get($cloneName) 
+					|| $this->wire($cloneName) || $this->wire('fields')->isNative($cloneName)) {
+					$errors[] = (sprintf($this->_('Unable to clone field because name "%s" is already in use or is a reserved name.'), $cloneName));
+				} else {
+					$clone = $this->fields->clone($this->field);
+					if($clone && $clone->id) {
+						$clone->name = $cloneName; 
+						$clone->label = $clone->label . ' ' . $this->_('(copy)'); 
+						try {
+							$this->fields->save($clone);
+							$this->message($this->_('Cloned Field') . " - {$this->field->name} => {$clone->name}");
+							if(!count($errors)) {
+								$this->wire('session')->message($this->_('You are now editing the field you cloned.'));
+								$this->wire('session')->redirect("./edit?id=$clone->id#basics");
+							}
+						} catch(Exception $e) {
+							$errors[] = $e->getMessage(); 
+						}
+						// $this->listAfterSave = true;
+					} else {
+						$errors[] = ($this->_("Error creating clone of this field") . " - {$this->field->name}");
+					}
+				}
+			}
+			
+			if(count($errors)) {
+				foreach($errors as $error) $this->error($error);
+				if($isNew) return $this->executeAdd();
+			}
+
+			$sendTemplates = $this->form->get('send_templates');
+			if($sendTemplates && count($sendTemplates->attr('value'))) {
+				$templateIDs = array();
+				foreach($sendTemplates->attr('value') as $templateID) {
+					$templateIDs[] = (int) $templateID; 
+				}
+				if(count($templateIDs)) {
+					$this->wire('session')->redirect("./send-templates?id={$this->field->id}&templates=" . implode(',', $templateIDs));
+				}
 			}
 		}
-
-		if(count($errors)) {
-			foreach($errors as $error) $this->error($error); 
-			if($isNew) return $this->executeAdd();
-		}
-		
+	
 		if($this->listAfterSave) $this->session->redirect("./"); 
 			else $this->session->redirect("edit?id={$this->field->id}"); 
 	}
@@ -1212,6 +1265,91 @@ class ProcessField extends Process implements ConfigurableModule {
 		$o = new ProcessFieldExportImport();
 		$form = $o->buildExport();
 		return $form->render();
+	}
+
+	/**
+	 * Execute send field to template(s)
+	 *
+	 * @return string
+	 * @throws WireException
+	 *
+	 */
+	public function ___executeSendTemplates() {
+
+		if(!$this->field || !$this->field->id) throw new WireException('No field specified');
+		$templateIDs = $this->wire('input')->get('templates');
+		if(!strlen($templateIDs)) throw new WireException("No templates specified"); 
+		$templateIDs = explode(',', $templateIDs);
+		
+		$form = $this->wire('modules')->get('InputfieldForm'); 
+		$form->attr('action', "./send-templates-save?id={$this->field->id}");
+
+		foreach($templateIDs as $templateID) {
+			
+			$templateID = (int) $templateID; 
+			if(!$templateID) continue; 
+			$template = $this->wire('templates')->get($templateID); 
+			if(!$template) continue; 
+			
+			$f = $this->wire('modules')->get('InputfieldSelect'); 
+			$f->attr('name', "template_$templateID"); 
+			$f->label = sprintf($this->_('Template: %s'), $template->name);
+			$beforeLabel = $this->_('Before %s');
+			$afterLabel = $this->_('After %s'); 
+			$f->addOption(0, $this->_('Do not add')); 
+			
+			$value = 0;
+			foreach($template->fieldgroup as $field) {
+				if(strpos((string) $field->type, 'FieldtypeFieldset') === 0) continue; 
+				$f->addOption($field->name, array(
+					"-$field->id" => sprintf($beforeLabel, $field->name),
+					"$field->id" => sprintf($afterLabel, $field->name) 
+				));
+				$value = "$field->id";
+			}
+			
+			$f->attr('value', $value); 
+			$form->add($f); 
+		}
+		
+		$f = $this->wire('modules')->get('InputfieldSubmit');
+		$form->add($f); 
+
+		$this->headline($this->_('Add to template(s)')); 
+		$this->breadcrumb("./?edit={$this->field->id}", $this->field->name); 
+		$out = "<h2>" . sprintf($this->_('Where do you want to add field %s?'), $this->field->name) . "</h2>";
+		$out .= $form->render();
+		return $out; 
+	}
+	
+	public function ___executeSendTemplatesSave() {
+		
+		if(!$this->field || !$this->field->id) throw new WireException('No field specified');
+		
+		foreach($this->wire('templates') as $template) {
+			
+			$fieldID = $this->wire('input')->post("template_$template->id"); 
+			if(empty($fieldID)) continue; 
+			$before = substr($fieldID, 0, 1) == '-';
+			$fieldID = (int) ltrim($fieldID, '-');
+			
+			foreach($template->fieldgroup as $field) {
+				if($field->id != $fieldID) continue; 
+				
+				if($before) {
+					$template->fieldgroup->insertBefore($this->field, $field);
+					$this->message(sprintf($this->_('Added field "%1$s" to template "%2$s" before "%3$s"'), 
+						$this->field->name, $template->name, $field->name)); 
+				} else {
+					$template->fieldgroup->insertAfter($this->field, $field);
+					$this->message(sprintf($this->_('Added field "%1$s" to template "%2$s" after "%3$s"'), 
+						$this->field->name, $template->name, $field->name)); 
+				}
+			}
+			$template->fieldgroup->save();
+		}
+		
+		$this->wire('session')->redirect("./edit?id={$this->field->id}"); 
 	}
 	
 	/**

@@ -295,7 +295,7 @@ class Pagefiles extends WireArray {
 	 * @param string $basename May also be a full path/filename, but it will still return a basename
 	 * @param bool $originalize If true, it will generate an original filename if $basename already exists
 	 * @param bool $allowDots If true, dots "." are allowed in the basename portion of the filename. 
-	 * @param bool $translate True if we should translated accented characters to ascii equivalents (rather than substituting underscores)
+	 * @param bool $translate True if we should translate accented characters to ascii equivalents (rather than substituting underscores)
 	 * @return string
 	 *
 	 */ 

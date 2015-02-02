@@ -862,28 +862,16 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function entityEncode($str, $markdown = false) {
+		
 		// if already encoded, then un-encode it
 		if(strpos($str, '&') !== false && preg_match('/&(#\d+|[a-z]+);/', $str)) {
 			$str = html_entity_decode($str, ENT_QUOTES, "UTF-8"); 
 		}
 
-		$str = htmlentities($str, ENT_QUOTES, "UTF-8"); 
-
-		// convert markdown-style links to HTML
 		if($markdown) {
-			if(strpos($str, '](')) {
-				$str = preg_replace('/\[(.+?)\]\(([^)]+)\)/', '<a href="$2" target="_blank">$1</a>', $str);
-			}
-			// convert markdown-style emphasis to <strong> tags
-			if(strpos($str, '**') !== false) {
-				$str = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $str);
-			}
-			if(strpos($str, '*') !== false) {
-				$str = preg_replace('/\*([^*\n]+)\*/', '<em>$1</em>', $str);
-			}
-			if(strpos($str, "`") !== false) {
-				$str = preg_replace('/`+([^`]+)`+/', '<code>$1</code>', $str);
-			}
+			$str = $this->wire('sanitizer')->entitiesMarkdown($str); 
+		} else {
+			$str = $this->wire('sanitizer')->entities($str); 
 		}
 
 		return $str; 

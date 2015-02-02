@@ -120,7 +120,7 @@ class InputfieldDatetime extends Inputfield {
 
 		if(!$value && $this->defaultToday) {
 			$value = date($dateFormat);
-			if($useTime) $value .= ' ' . date($timeFormat); 
+			if($timeFormat) $value .= ' ' . date($timeFormat); 
 			$valueTS = time()*1000; 
 
 		} else if($value) {
