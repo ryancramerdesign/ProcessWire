@@ -35,6 +35,25 @@
 class Session extends Wire implements IteratorAggregate {
 
 	/**
+	 * Fingerprint bitmask: Use remote addr (recommended)
+	 * 
+	 */
+	const fingerprintRemoteAddr = 2;
+	
+	/**
+	 * Fingerprint bitmask: Use client provided addr
+	 *
+	 */
+	const fingerprintClientAddr = 4;
+	
+	/**
+	 * Fingerprint bitmask: Use user agent (recommended)
+	 *
+	 */
+	const fingerprintUseragent = 8; 
+	
+
+	/**
 	 * Reference to ProcessWire $config object
 	 *
  	 * For convenience, since our __get() does not reference the Fuel, unlike other Wire derived classes.
@@ -46,7 +65,15 @@ class Session extends Wire implements IteratorAggregate {
 	 * Instance of the SessionCSRF protection class, instantiated when requested from $session->CSRF.
 	 *
 	 */
-	protected $CSRF = null; 
+	protected $CSRF = null;
+
+	/**
+	 * Set to true when maintenance should be skipped
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $skipMaintenance = false;
 
 	/**
 	 * Start the session and set the current User if a session is active
@@ -82,7 +109,7 @@ class Session extends Wire implements IteratorAggregate {
 			}
 			$this->remove($type);
 		}
-
+		
 		$this->setTrackChanges(true);
 	}
 
@@ -110,18 +137,17 @@ class Session extends Wire implements IteratorAggregate {
 		$valid = true; 
 		$sessionName = session_name();
 
+		// check challenge cookie
 		if($this->config->sessionChallenge) {
 			if(empty($_COOKIE[$sessionName . "_challenge"]) || ($this->get('_user', 'challenge') != $_COOKIE[$sessionName . "_challenge"])) {
 				$valid = false; 
 			}
 		}	
 
-		if($this->config->sessionFingerprint) {
-			if(md5(($this->getIP(true) . $_SERVER['HTTP_USER_AGENT'])) != $this->get('_user', 'fingerprint')) {
-				$valid = false;
-			}
-		}
-
+		// check fingerprint
+		if(!$this->isValidFingerprint()) $valid = false;
+	
+		// check session expiration
 		if($this->config->sessionExpireSeconds) {
 			$ts = (int) $this->get('_user', 'ts');
 			if($ts < (time() - $this->config->sessionExpireSeconds)) {
@@ -131,11 +157,37 @@ class Session extends Wire implements IteratorAggregate {
 			}
 		}
 
+		// if valid, update last request time
 		if($valid) $this->set('_user', 'ts', time());
 
 		return $valid; 
 	}
 
+	/**
+	 * Returns whether or not the current session fingerprint is valid
+	 * 
+	 * @return bool
+	 * 
+	 */
+	protected function isValidFingerprint() {
+		
+		$useFingerprint = $this->config->sessionFingerprint;
+		if(!$useFingerprint) return true;
+		
+		if(is_bool($useFingerprint) || $useFingerprint == 1) {
+			// default (boolean true)
+			$useFingerprint = self::fingerprintRemoteAddr | self::fingerprintUseragent;
+		}
+		
+		$fingerprint = '';
+		if($useFingerprint & self::fingerprintRemoteAddr) $fingerprint .= $this->getIP(true);
+		if($useFingerprint & self::fingerprintClientAddr) $fingerprint .= $this->getIP(false, 2);
+		if($useFingerprint & self::fingerprintUseragent) $fingerprint .= $_SERVER['HTTP_USER_AGENT'];
+		$fingerprint = md5($fingerprint);
+		
+		if($fingerprint !== $this->get('_user', 'fingerprint')) return false;
+		return true; 
+	}
 
 	/**
 	 * Get a session variable
@@ -300,7 +352,8 @@ class Session extends Wire implements IteratorAggregate {
 	 * Get the IP address of the current user
 	 * 
 	 * @param bool $int Return as a long integer for DB storage? (default=false)
-	 * @param bool $useClient Give preference to client headers for IP? HTTP_CLIENT_IP and HTTP_X_FORWARDED_FOR (default=false)
+	 * @param bool|int $useClient Give preference to client headers for IP? HTTP_CLIENT_IP and HTTP_X_FORWARDED_FOR (default=false)
+	 * 	Specify integer 2 to include potentially multiple CSV separated IPs (when provided by client).
 	 * @return string|int Returns string by default, or integer if $int argument indicates to.
 	 *
 	 */
@@ -312,7 +365,13 @@ class Session extends Wire implements IteratorAggregate {
 				else if(!empty($_SERVER['REMOTE_ADDR'])) $ip = $_SERVER['REMOTE_ADDR']; 
 				else $ip = '0.0.0.0';
 			// It's possible for X_FORWARDED_FOR to have more than one CSV separated IP address, per @tuomassalo
-			if(strpos($ip, ',') !== false) list($ip) = explode(',', $ip); 
+			if(strpos($ip, ',') !== false && $useClient !== 2) {
+				list($ip) = explode(',', $ip);
+			}
+			// sanitize: if IP contains something other than digits, periods, commas, spaces, 
+			// then don't use it and instead fallback to the REMOTE_ADDR. 
+			$test = str_replace(array('.', ',', ' '), '', $ip); 
+			if(!ctype_digit("$test")) $ip = $_SERVER['REMOTE_ADDR'];
 
 		} else {
 			$ip = $_SERVER['REMOTE_ADDR']; 
@@ -357,7 +416,7 @@ class Session extends Wire implements IteratorAggregate {
 				setcookie(session_name() . '_challenge', $challenge, time()+60*60*24*30, '/', null, false, true); 
 			}
 
-			if($this->config->sessionFingerprint) {
+			if($this->config->sessionFingerprint) { // @todo
 				// remember a fingerprint that tracks the user's IP and user agent
 				$this->set('_user', 'fingerprint', md5($this->getIP(true) . $_SERVER['HTTP_USER_AGENT'])); 
 			}
@@ -532,6 +591,72 @@ class Session extends Wire implements IteratorAggregate {
 	public function warning($text, $flags = 0) {
 		$this->queueNotice($text, 'warning', $flags);
 		return $this;
+	}
+
+	/**
+	 * Session maintenance
+	 * 
+	 * This is automatically called by ProcessWire at the end of the request,
+	 * no need to call it on your own. 
+	 *
+	 * Keep track of session history, if $config->sessionHistory is used.
+	 * It can be retrieved with the $session->getHistory() method.
+	 * 
+	 * @todo add extra gc checks
+	 *
+	 */
+	public function maintenance() {
+
+		if($this->skipMaintenance) return;
+		
+		// prevent multiple calls, just in case
+		$this->skipMaintenance = true; 
+		
+		$historyCnt = (int) $this->config->sessionHistory;
+		
+		if($historyCnt) {
+			
+			$history = $this->get('_user', 'history');
+			if(!is_array($history)) $history = array();
+
+			$item = array(
+				'time' => time(),
+				'url'  => $this->wire('sanitizer')->entities($this->wire('input')->httpUrl()),
+				'page' => $this->wire('page')->id,
+			);
+
+			$cnt = count($history); 
+			if($cnt) {
+				end($history);
+				$lastKey = key($history);
+				$nextKey = $lastKey+1;
+				if($cnt >= $historyCnt) $history = array_slice($history, -1 * ($historyCnt-1), null, true); 
+			} else {
+				$nextKey = 0;
+			}
+
+			$history[$nextKey] = $item;
+			$this->set('_user', 'history', $history);
+		}
+	}
+
+	/**
+	 * Get the session history (if enabled)
+	 * 
+	 * Applicable only if $config->sessionHistory > 0.
+	 * 
+	 * @return array of history entries: 
+	 * 	pageViewNum => array(
+	 * 		'url' => 'http://domain.com/path/to/page/', 
+	 * 		'page' => 123, 
+	 * 		'time' => 12345678
+	 * 	); 
+	 * 
+	 */
+	public function getHistory() {
+		$value = $this->get('_user', 'history'); 
+		if(!is_array($value)) $value = array();
+		return $value; 
 	}
 
 }

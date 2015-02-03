@@ -176,8 +176,17 @@ function ProcessWireBootConfig() {
 	ini_set('session.use_cookies', true); 
 	ini_set('session.use_only_cookies', 1);
 	ini_set('session.cookie_httponly', 1); 
-	ini_set("session.gc_maxlifetime", $config->sessionExpireSeconds); 
-	if(ini_get('session.save_handler') == 'files') ini_set("session.save_path", rtrim($config->paths->sessions, '/')); 
+	ini_set('session.gc_maxlifetime', $config->sessionExpireSeconds); 
+	
+	if(ini_get('session.save_handler') == 'files') {
+		if(ini_get('session.gc_probability') == 0) {
+			// Some debian distros replace PHP's gc without fully implementing it,
+			// which results in broken garbage collection if the save_path is set. 
+			// As a result, we avoid setting the save_path when this is detected. 
+		} else {
+			ini_set("session.save_path", rtrim($config->paths->sessions, '/'));
+		}
+	}
 
 	return $config; 
 }

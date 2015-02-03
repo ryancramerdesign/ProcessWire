@@ -46,6 +46,12 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		$this->set('useIP', 0); // track IP address?
 		$this->set('useUA', 0); // track query string?
 	}
+	
+	public function init() {
+		parent::init();
+		// keeps session active
+		$this->wire('session')->set($this, 'ts', time()); 
+	}
 
 	/**
 	 * Read and return data for session indicated by $id
@@ -91,7 +97,7 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		$pages_id = $page && $page->id ? (int) $page->id : 0;
 		$data = $database->escapeStr($data);
 		$ua = ($this->useUA && isset($_SERVER['HTTP_USER_AGENT'])) ? $database->escapeStr(substr($_SERVER['HTTP_USER_AGENT'], 0, 255)) : '';
-		$ip = $this->useIP ? ((int) wire('session')->getIP(true)) : '';
+		$ip = $this->useIP ? ((int) $this->wire('session')->getIP(true)) : '';
 		
 		$s = "user_id=$user_id, pages_id=$pages_id, data='$data'"; 
 		if($ip) $s .= ", ip=$ip";
@@ -203,6 +209,15 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 		$f->description = $description;
 		$form->add($f);
 
+		if(ini_get('session.gc_probability') == 0) {
+			$form->warning(
+				"Your PHP has a configuration error with regard to sessions. It is configured to never clean up old session files. " . 
+				"Please correct this by adding the following to your <u>/site/config.php</u> file: " . 
+				"<code>ini_set('session.gc_probability', 1);</code>", 
+				Notice::allowMarkup
+			);
+		}
+
 		return $form;
 	}
 
@@ -210,6 +225,9 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 	 * Provides direct reference access to set values in the $data array
 	 *
 	 * For some reason PHP 5.4+ requires this, as it apparently doesn't see WireData
+	 * 
+	 * @param string $key
+	 * @param mixed $value
 	 *
 	 */
 	public function __set($key, $value) {
@@ -225,10 +243,81 @@ class SessionHandlerDB extends WireSessionHandler implements Module, Configurabl
 	 * Otherwise the same as get()
 	 *
 	 * @param string $key
+	 * @return mixed
 	 *
 	 */
 	public function __get($key) {
 		return $this->get($key);
+	}
+
+	/**
+	 * Return the number of active sessions in the last 5 mins (300 seconds)
+	 * 
+	 * @param int $seconds Optionally specify number of seconds (rather than 300, 5 minutes)
+	 * @return int
+	 * 
+	 */
+	public function getNumSessions($seconds = 300) {
+		$sql = "SELECT count(*) FROM " . self::dbTableName . " WHERE ts > :ts";
+		$query = $this->wire('database')->prepare($sql);
+		$query->bindValue(':ts', date('Y-m-d H:i:s', (time() - $seconds)));
+		$query->execute();
+		list($numSessions) = $query->fetch(PDO::FETCH_NUM); 
+		return $numSessions; 
+	}
+
+	/**
+	 * Get the most recent sessions
+	 * 
+	 * Returns an array of array for each session, which includes all the 
+	 * session info except or the 'data' property. Use the getSessionData()
+	 * method to retrieve that. 
+	 * 
+	 * @param int $seconds Sessions up to this many seconds old
+	 * @param int $limit Max number of sessions to return
+	 * @return array Sessions newest to oldest
+	 * 
+	 */
+	public function getSessions($seconds = 300, $limit = 100) {
+		
+		$sql = 	"SELECT id, user_id, pages_id, ts, ip, ua " . 
+				"FROM " . self::tableName . " " . 
+				"WHERE ts > '" . date('Y-m-d H:i:s', (time() - $seconds)) . "' " . 
+				"ORDER BY ts DESC LIMIT " . (int) $limit;
+		
+		$query = $this->wire('database')->prepare($sql); 
+		$query->execute();
+	
+		$sessions = array();
+		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
+			$sessions[] = $row; 
+		}
+		
+		return $sessions; 
+	}
+
+	/**
+	 * Return all session data for the given session ID
+	 * 
+	 * Note that the 'data' property of the returned array contains the values
+	 * that the user has in their $session. 
+	 * 
+	 * @param $sessionID
+	 * @return array Blank array on fail, populated array on success. 
+	 * 
+	 */
+	public function getSessionData($sessionID) {
+		$sql = "SELECT * FROM " . self::dbTableName . " WHERE id=:id";
+		$query = $this->wire('database')->prepare($sql);
+		$query->bindValue(':id', $sessionID); 
+		$query->execute();
+		if(!$query->rowCount()) return array();
+		$row = $query->fetch(PDO::FETCH_ASSOC) ;
+		$sess = $_SESSION; // save
+		session_decode($row['data']); 
+		$row['data'] = $_SESSION; 
+		$_SESSION = $sess; // restore
+		return $row; 
 	}
 
 

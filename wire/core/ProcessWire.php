@@ -321,7 +321,10 @@ class ProcessWire extends Wire {
 	 *
 	 */
 	protected function ___finished() {
-		$this->wire('cache')->maintenance();
+		$session = $this->wire('session'); 
+		if($session) $session->maintenance();
+		$cache = $this->wire('cache'); 
+		if($cache) $cache->maintenance();
 	}
 
 	/**

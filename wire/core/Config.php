@@ -47,6 +47,7 @@
  * @property int $sessionExpireSeconds How many seconds of inactivity before session expires?
  * @property bool $sessionChallenge Should login sessions have a challenge key? (for extra security, recommended)
  * @property bool $sessionFingerprint Should login sessions be tied to IP and user agent? May conflict with dynamic IPs. 
+ * @property int $sessionHistory Number of session entries to keep (default=0, which means off).
  * 
  * @property string $prependTemplateFile PHP file in /site/templates/ that will be loaded before each page's template file (default=none)
  * @property string $appendTemplateFile PHP file in /site/templates/ that will be loaded after each page's template file (default=none)

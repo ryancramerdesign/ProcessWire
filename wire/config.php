@@ -162,12 +162,33 @@ $config->sessionChallenge = true;
  * Use session fingerprint?
  * 
  * Should login sessions be tied to IP and user agent?
- * More secure, but will conflict with dynamic IPs.
- *
- * @var bool
+ * IP fingerprinting may be problematic on dynamic IPs. 
+ * Below are the possible values: 
+ * 
+ * 	0 or false: Fingerprint off
+ * 	1 or true: Fingerprint on with default/recommended setting (currently 10). 
+ * 	2: Fingerprint only the remote IP
+ * 	4: Fingerprint only the forwarded/client IP (can be spoofed)
+ * 	8: Fingerprint only the useragent
+ * 	10: Fingerprint the remote IP and useragent (default)
+ * 	12: Fingerprint the forwarded/client IP and useragent
+ * 	14: Fingerprint the remote IP, forwarded/client IP and useragent (all). 
+ * 
+ * @var int
  *
  */
-$config->sessionFingerprint = true;
+$config->sessionFingerprint = 1;
+
+/**
+ * Number of session history entries to record.
+ *
+ * When enabled (with a value > 0) a history of pageviews will be recorded in the
+ * session. These can be retrieved with $session->getHistory().
+ *
+ * @var int
+ *
+ */
+$config->sessionHistory = 0; 
 
 /**
  * Hash method to use for passwords.
@@ -179,7 +200,6 @@ $config->sessionFingerprint = true;
  *
  */
 $config->userAuthHashType = 'sha1';
-
 
 
 
