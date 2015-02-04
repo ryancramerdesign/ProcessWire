@@ -92,7 +92,7 @@ class Session extends Wire implements IteratorAggregate {
 		if(empty($_SESSION[$className])) $_SESSION[$className] = array();
 
 		if($userID = $this->get('_user', 'id')) {
-			if($this->isValidSession()) {
+			if($this->isValidSession($userID)) {
 				$user = $this->wire('users')->get($userID); 
 			} else {
 				$this->logout();
@@ -129,23 +129,29 @@ class Session extends Wire implements IteratorAggregate {
 	 *
 	 * These items may be disabled at the config level, in which case this method always returns true
  	 *
+	 * @param int $userID
 	 * @return bool
 	 *
 	 */
-	protected function ___isValidSession() {
+	protected function ___isValidSession($userID) {
 
 		$valid = true; 
+		$reason = '';
 		$sessionName = session_name();
 
 		// check challenge cookie
 		if($this->config->sessionChallenge) {
 			if(empty($_COOKIE[$sessionName . "_challenge"]) || ($this->get('_user', 'challenge') != $_COOKIE[$sessionName . "_challenge"])) {
 				$valid = false; 
+				$reason = "Error: Invalid challenge value";
 			}
 		}	
 
 		// check fingerprint
-		if(!$this->isValidFingerprint()) $valid = false;
+		if(!$this->isValidFingerprint()) {
+			$reason = "Error: Session fingerprint changed (IP address or useragent)";
+			$valid = false;
+		}
 	
 		// check session expiration
 		if($this->config->sessionExpireSeconds) {
@@ -154,11 +160,21 @@ class Session extends Wire implements IteratorAggregate {
 				// session time expired
 				$valid = false;
 				$this->error($this->_('Session timed out'));
+				$reason = "Session timed out (session older than {$this->config->sessionExpireSeconds} seconds)";
 			}
 		}
 
-		// if valid, update last request time
-		if($valid) $this->set('_user', 'ts', time());
+		if($valid) {
+			// if valid, update last request time
+			$this->set('_user', 'ts', time());
+			
+		} else if($reason && $userID && $userID != $this->wire('config')->guestUserPageID) {
+			// otherwise log the invalid session
+			$user = $this->wire('users')->get((int) $userID);
+			if($user && $user->id) $reason = "User '$user->name' - $reason";
+			$reason .= " (IP: " . $this->getIP() . ")";
+			$this->log($reason);
+		}
 
 		return $valid; 
 	}
@@ -170,23 +186,35 @@ class Session extends Wire implements IteratorAggregate {
 	 * 
 	 */
 	protected function isValidFingerprint() {
+		$fingerprint = $this->getFingerprint();
+		if($fingerprint === false) return true; // fingerprints off
+		if($fingerprint !== $this->get('_user', 'fingerprint')) return false;
+		return true; 
+	}
+
+	/**
+	 * Generate a session fingerprint
+	 * 
+	 * @return bool|string Returns false if fingerprints not enabled. Returns string if enabled.
+	 * 
+	 */
+	protected function getFingerprint() {
 		
 		$useFingerprint = $this->config->sessionFingerprint;
-		if(!$useFingerprint) return true;
-		
+		if(!$useFingerprint) return false;
+
 		if(is_bool($useFingerprint) || $useFingerprint == 1) {
 			// default (boolean true)
 			$useFingerprint = self::fingerprintRemoteAddr | self::fingerprintUseragent;
 		}
-		
+
 		$fingerprint = '';
 		if($useFingerprint & self::fingerprintRemoteAddr) $fingerprint .= $this->getIP(true);
 		if($useFingerprint & self::fingerprintClientAddr) $fingerprint .= $this->getIP(false, 2);
 		if($useFingerprint & self::fingerprintUseragent) $fingerprint .= $_SERVER['HTTP_USER_AGENT'];
 		$fingerprint = md5($fingerprint);
 		
-		if($fingerprint !== $this->get('_user', 'fingerprint')) return false;
-		return true; 
+		return $fingerprint;
 	}
 
 	/**
@@ -394,13 +422,19 @@ class Session extends Wire implements IteratorAggregate {
 	 *
 	 */
 	public function ___login($name, $pass) {
+		
+		$name = $this->wire('sanitizer')->pageName($name); 
 
-		if(!$this->allowLogin($name)) return null;
+		if(!$this->allowLogin($name)) {
+			$this->loginFailure($name, "User is not allowed to login");
+			return null;
+		}
 
-		$name = $this->wire('sanitizer')->username($name); 
-		$user = $this->wire('users')->get("name=$name"); 
+		$user = strlen($name) ? $this->wire('users')->get("name=$name") : null; 
 
-		if($user->id && $this->authenticate($user, $pass)) { 
+		if(	$user && $user->id 
+			&& $user->id != $this->wire('config')->guestUserPageID 
+			&& $this->authenticate($user, $pass)) { 
 
 			$this->trackChange('login', $this->wire('user'), $user); 
 			session_regenerate_id(true);
@@ -416,9 +450,9 @@ class Session extends Wire implements IteratorAggregate {
 				setcookie(session_name() . '_challenge', $challenge, time()+60*60*24*30, '/', null, false, true); 
 			}
 
-			if($this->config->sessionFingerprint) { // @todo
+			if($this->config->sessionFingerprint) { 
 				// remember a fingerprint that tracks the user's IP and user agent
-				$this->set('_user', 'fingerprint', md5($this->getIP(true) . $_SERVER['HTTP_USER_AGENT'])); 
+				$this->set('_user', 'fingerprint', $this->getFingerprint()); 
 			}
 
 			$this->setFuel('user', $user); 
@@ -426,6 +460,16 @@ class Session extends Wire implements IteratorAggregate {
 			$this->loginSuccess($user); 
 
 			return $user; 
+			
+		} else {
+			if(!$user || !$user->id) {
+				$reason = "Unknown user: $name";
+			} else if($user->id == $this->wire('config')->guestUserPageID) {
+				$reason = "Guest user may not login";
+			} else {
+				$reason = "Invalid password";
+			}
+			$this->loginFailure($name, $reason); 
 		}
 
 		return null; 
@@ -437,7 +481,13 @@ class Session extends Wire implements IteratorAggregate {
 	 * @param User $user
 	 *
 	 */
-	protected function ___loginSuccess(User $user) { }
+	protected function ___loginSuccess(User $user) { 
+		$this->log("Successful login for '$user->name'"); 
+	}
+	
+	protected function ___loginFailure($name, $reason) { 
+		$this->log("Error: Failed login for '$name' - $reason"); 
+	}
 
 	/**
 	 * Allow the user $name to login?
@@ -480,11 +530,11 @@ class Session extends Wire implements IteratorAggregate {
 		$this->init();
 		session_regenerate_id(true);
 		$_SESSION[$this->className()] = array();
-		$user = $this->wire('user'); 
+		$user = $this->wire('user');
+		if($user) $this->logoutSuccess($user); 
 		$guest = $this->wire('users')->getGuestUser();
 		$this->wire('users')->setCurrentUser($guest); 
 		$this->trackChange('logout', $user, $guest); 
-		if($user) $this->logoutSuccess($user); 
 		return $this; 
 	}
 
@@ -494,7 +544,9 @@ class Session extends Wire implements IteratorAggregate {
 	 * @param User $user
 	 *
 	 */
-	protected function ___logoutSuccess(User $user) { }
+	protected function ___logoutSuccess(User $user) { 
+		$this->log("Logout for '$user->name'"); 
+	}
 
 	/**
 	 * Redirect this session to another URL.

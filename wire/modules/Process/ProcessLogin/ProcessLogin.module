@@ -9,11 +9,12 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
+ * 
+ * @property bool $allowForgot Whether the ProcessForgotPassword module is installed. 
  *
  */
 
@@ -29,7 +30,7 @@ class ProcessLogin extends Process {
 		return array(
 			'title' => 'Login',          
 			'summary' => 'Login to ProcessWire', 
-			'version' => 101, 
+			'version' => 102, 
 			'permanent' => true, 
 			'permission' => 'page-view',
 			);
@@ -67,7 +68,11 @@ class ProcessLogin extends Process {
 
 		$this->buildLoginForm();
 
-		if(isset($_POST['login_submit'])) $this->form->processInput($this->input->post); 
+		if($this->wire('input')->post('login_submit')) {
+			$this->form->processInput($this->wire('input')->post);
+		} else {
+			$this->beforeLoginChecks();
+		}
 
 		if(!$this->nameField->value || !$this->passField->value) return $this->renderLoginForm(); 
 
@@ -78,7 +83,7 @@ class ProcessLogin extends Process {
 			$this->session->message($name . ' - ' . $this->_("Successful login")); 
 			$this->session->set('hidpi', $this->wire('input')->post->login_hidpi ? true : false); 
 			$this->session->remove('error'); 
-			$this->performSystemChecks();
+			$this->afterLoginChecks();
 			$this->session->redirect("./?login=1" . ($this->id ? "&id={$this->id}" : ''));  
 		} else {
 			$this->error($name . " - " . $this->_("Login failed")); 
@@ -86,9 +91,70 @@ class ProcessLogin extends Process {
 
 		return $this->renderLoginForm();
 
-	}	
+	}
 
-	protected function performSystemChecks() {
+	/**
+	 * Check that sessions can be initiated and attempt to rectify situation if not
+	 *
+	 */
+	protected function beforeLoginChecks() {
+		
+		// if checks already completed don't run them again
+		if($this->wire('session')->get($this, 'beforeLoginChecks')) return;
+		
+		if(	ini_get('session.save_handler') == 'files' 
+			&& !$this->wire('modules')->isInstalled('SessionHandlerDB')
+			&& !$this->wire('input')->get('db')
+			) {
+			
+			$installSessionDB = false;
+			$path = $this->config->paths->sessions;
+			$error = '';
+			
+			if(!file_exists($path)) {
+				wireMkdir($path);
+				clearstatcache();
+				if(file_exists($path)) {
+					$this->wire('log')->message("Created session path $path"); 
+				} else {
+					$installSessionDB = true;
+					$error = "Session path $path does not exist and we are unable to create it.";
+				}
+				
+			} 
+			
+			if(!is_writable($path)) {
+				wireChmod($path);
+				clearstatcache();
+				if(is_writable($path)) {
+					$this->wire('log')->message("Updated session path to be writable $path"); 
+				} else {
+					$installSessionDB = true;
+					$error = "Unable to write to session path $path, and unable to fix the permissions.";
+				}
+			}
+			
+			// if we can't get file-based sessions going, switch to database sessions to ensure admin can login
+			if($installSessionDB) {
+				if($error) $this->wire('log')->error($error); 
+				if($this->wire('modules')->get('SessionHandlerDB')) {
+					$this->wire('log')->error("Installed SessionHandlerDB as an alternate session handler. If you wish to uninstall this, do so after correcting the session path error."); 
+					$this->wire('session')->redirect("./?db=1"); // db param to prevent potential infinite redirect
+				} else {
+					$this->wire('log')->error("Unable to install alternate session handler module SessionHandlerDB"); 	
+					$this->error("Session write error. Login may not be possible."); 
+				}
+			}
+		}
+		
+		$this->wire('session')->set($this, 'beforeLoginChecks', 1); 
+	}
+
+	/**
+	 * After login, notify admin if there are any issues that need their attention
+	 *
+	 */
+	protected function afterLoginChecks() {
 		if(!$this->user->isSuperuser()) return;
 
 		$indexVersion = ProcessWire::indexVersion; 
@@ -129,6 +195,12 @@ class ProcessLogin extends Process {
 
 	}
 
+	/**
+	 * Build the login form
+	 * 
+	 * @return InputfieldForm
+	 * 
+	 */
 	protected function ___buildLoginForm() {
 
 		$this->nameField = $this->modules->get('InputfieldText');
@@ -170,11 +242,11 @@ class ProcessLogin extends Process {
 	 *
 	 */
 	protected function ___renderLoginForm() {
-		if(isset($_GET['login'])) {
+		if($this->wire('input')->get('login')) {
 			$this->afterLoginRedirect();
 		} else {
 			// note the space after 'Login ' is intentional to separate it from the Login button for translation purposes
-			$this->setFuel('processHeadline', $this->_('Login ')); // Headline for login form page
+			$this->headline($this->_('Login ')); // Headline for login form page
 			$this->passField->attr('value', '');
 			$out = $this->form->render();
 			$links = '';

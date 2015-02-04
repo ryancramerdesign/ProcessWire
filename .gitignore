@@ -1,4 +1,5 @@
 .DS_Store?
+.DS_Store
 *.old
 *.old/*
 *.new
@@ -26,3 +27,4 @@ upgrade.php
 .svn
 .sass-cache
 .sass-cache/*
+*.css.map

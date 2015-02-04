@@ -235,7 +235,7 @@ class WireCache extends Wire {
 				// page object
 				$expire = $expire->template->id;
 
-			} else if($seconds instanceof Template) {
+			} else if($expire instanceof Template) {
 				// template object
 				$expire = $expire->id;
 
