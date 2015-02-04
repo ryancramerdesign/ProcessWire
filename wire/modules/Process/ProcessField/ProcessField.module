@@ -1284,9 +1284,11 @@ class ProcessField extends Process implements ConfigurableModule {
 		$form = $this->wire('modules')->get('InputfieldForm');
 		$form->attr('action', "./send-templates-save?id={$this->field->id}");
 
+		$templateChanged = false;
 		foreach($this->templates as $template) {
 
 			$value = 0;
+
 			if($template->hasField($this->field) && !in_array($template->id, $templateIDs)) {
 				$f = $this->wire('modules')->get('InputfieldCheckbox');
 				$f->label = sprintf($this->_('Confirm removal from template: %s'), $template->name);
@@ -1311,11 +1313,17 @@ class ProcessField extends Process implements ConfigurableModule {
 			}
 
 			if($value != 0) {
+				$templateChanged = true;
 				$f->attr('value', $value);
 				$form->add($f);
 			}
+
 		}
 
+		//if no templates have changed then redirect back to main edit page - this feels a little hacky :)
+		if($templateChanged === false) $this->wire('session')->redirect("./edit?id={$this->field->id}");
+
+		//if a template has changed, continue to render the form to confirm template changes
 		$f = $this->wire('modules')->get('InputfieldSubmit');
 		$form->add($f);
 
