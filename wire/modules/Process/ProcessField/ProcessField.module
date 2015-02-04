@@ -1028,7 +1028,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			}
 
 			$cloneField = $this->form->get('clone_field');
-			if($cloneField) {
+			if($cloneField && strlen($cloneField->attr('value'))) {
 				$cloneName = $this->wire('sanitizer')->fieldName($cloneField->attr('value'));
 				if(!$cloneName || $this->wire('fields')->get($cloneName)
 					|| $this->wire($cloneName) || $this->wire('fields')->isNative($cloneName)) {
