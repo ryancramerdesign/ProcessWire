@@ -651,7 +651,7 @@ abstract class Fieldtype extends WireData implements Module {
 					$sql2 .= ",'$v'";
 				}
 				
-				$sql3 .= "$k=VALUES($k), ";
+				$sql3 .= "`$k`=VALUES(`$k`), ";
 			}
 
 			$sql = "$sql1) $sql2) " . rtrim($sql3, ', ');
