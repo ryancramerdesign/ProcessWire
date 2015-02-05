@@ -1066,10 +1066,8 @@ class ProcessField extends Process implements ConfigurableModule {
 				foreach($sendTemplates->attr('value') as $templateID) {
 					$templateIDs[] = (int) $templateID;
 				}
-				if(count($templateIDs)) {
-					$this->wire('session')->redirect("./send-templates?id={$this->field->id}&templates=" . implode(',', $templateIDs));
-				}
 			}
+			$this->wire('session')->redirect("./send-templates?id={$this->field->id}&templates=" . implode(',', $templateIDs));
 		}
 
 		if($this->listAfterSave) $this->session->redirect("./");
@@ -1278,7 +1276,6 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		if(!$this->field || !$this->field->id) throw new WireException('No field specified');
 		$templateIDs = $this->wire('input')->get('templates');
-		if(!strlen($templateIDs)) throw new WireException("No templates specified");
 		$templateIDs = explode(',', $templateIDs);
 
 		$form = $this->wire('modules')->get('InputfieldForm');
