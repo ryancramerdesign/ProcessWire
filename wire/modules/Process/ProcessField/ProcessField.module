@@ -1291,7 +1291,7 @@ class ProcessField extends Process implements ConfigurableModule {
 				$f->attr('name', "template_remove_{$template->id}");
 				$f->icon = 'minus-circle';
 				$f->label = sprintf($this->_('Confirm removal from template: %s'), $template->name);
-				$f->description = "WARNING: This will result in data associated with the field being permanently deleted. If the fields that are removed contain a lot of data, it may take time for this operation to complete after you confirm and submit this form. Please confirm that you understand this and want to delete the field by checking the box below.";
+				$f->description = "WARNING: This will result in data associated with the field being permanently deleted. If the field that is being removed contains a lot of data, it may take time for this operation to complete after you confirm and submit this form. Please confirm that you understand this and want to delete the field by checking the box below.";
 				$value = $this->field->id;
 			// additions
 			} elseif(!$template->hasField($this->field) && in_array($template->id, $templateIDs)) {
