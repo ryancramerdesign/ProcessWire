@@ -839,7 +839,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$field = $this->modules->get('InputfieldCheckboxes');
 		$field->attr('name', 'modify_templates');
-		$field->label = $this->_('Add/Remove fields from templates');
+		$field->label = $this->_('Add/Remove field from templates');
 		if(count($inTemplates)) {
 			$field->description = $this->_('This field is in use on the checked templates below.') . ' ';
 		} else {
