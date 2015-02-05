@@ -846,7 +846,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			$field->description = $this->_('This field is not currently in use on any templates.') . ' ';
 		}
 		$field->description .= $this->_('You may quickly add/remove this field from templates by checking/unchecking the relevant boxes and clicking save.'); // Description for template usage
-		$field->notes .= $this->_('You will be asked to confirm the addition/removal of added fields on the next screen.');
+		$field->notes .= $this->_('You will be asked to confirm the addition/removal of fields on the next screen.');
 		$field->table = true;
 		$field->icon = 'edit';
 		$field->thead =
