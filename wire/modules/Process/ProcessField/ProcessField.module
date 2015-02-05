@@ -1291,6 +1291,7 @@ class ProcessField extends Process implements ConfigurableModule {
 				$f->attr('name', "template_remove_{$template->id}");
 				$f->icon = 'minus-circle';
 				$f->label = sprintf($this->_('Confirm removal from template: %s'), $template->name);
+				//$f->label2 = 'I understand this may result in data loss!';
 				$f->description = "WARNING: This will result in data associated with the field being permanently deleted. If the field that is being removed contains a lot of data, it may take time for this operation to complete after you confirm and submit this form. Please confirm that you understand this and want to delete the field by checking the box below.";
 				$value = $this->field->id;
 			// additions
@@ -1322,7 +1323,10 @@ class ProcessField extends Process implements ConfigurableModule {
 		}
 
 		//if no templates have changed then redirect back to main edit page - this feels a little hacky :)
-		if($templateChanged === false) $this->wire('session')->redirect("./edit?id={$this->field->id}");
+		if($templateChanged === false) {
+			if($this->listAfterSave) $this->session->redirect("./");
+				$this->wire('session')->redirect("./edit?id={$this->field->id}");
+		}
 
 		//if a template has changed, continue to render the form to confirm template changes
 		$f = $this->wire('modules')->get('InputfieldSubmit');
