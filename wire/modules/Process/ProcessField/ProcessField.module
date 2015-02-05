@@ -1285,15 +1285,19 @@ class ProcessField extends Process implements ConfigurableModule {
 		foreach($this->templates as $template) {
 
 			$value = 0;
-
+			// removals
 			if($template->hasField($this->field) && !in_array($template->id, $templateIDs)) {
 				$f = $this->wire('modules')->get('InputfieldCheckbox');
-				$f->label = sprintf($this->_('Confirm removal from template: %s'), $template->name);
 				$f->attr('name', "template_remove_{$template->id}");
+				$f->icon = 'minus-circle';
+				$f->label = sprintf($this->_('Confirm removal from template: %s'), $template->name);
+				$f->description = "WARNING: This will result in data associated with the field being permanently deleted. If the fields that are removed contain a lot of data, it may take time for this operation to complete after you confirm and submit this form. Please confirm that you understand this and want to delete the field(s) by checking the box below.";
 				$value = $this->field->id;
+			// additions
 			} elseif(!$template->hasField($this->field) && in_array($template->id, $templateIDs)) {
 				$f = $this->wire('modules')->get('InputfieldSelect');
 				$f->attr('name', "template_add_{$template->id}");
+				$f->icon = 'plus-circle';
 				$f->label = sprintf($this->_('Add to template: %s'), $template->name);
 				$beforeLabel = $this->_('Before %s');
 				$afterLabel = $this->_('After %s');
