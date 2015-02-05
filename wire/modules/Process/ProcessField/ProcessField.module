@@ -838,7 +838,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		}
 
 		$field = $this->modules->get('InputfieldCheckboxes');
-		$field->attr('name', 'send_templates');
+		$field->attr('name', 'modify_templates');
 		$field->label = $this->_('Add/Remove fields from templates');
 		if(count($inTemplates)) {
 			$field->description = $this->_('This field is in use on the checked templates below.') . ' ';
@@ -848,7 +848,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		$field->description .= $this->_('You may quickly add/remove this field from templates by checking/unchecking the relevant boxes and clicking save.'); // Description for template usage
 		$field->notes .= $this->_('You will be asked to confirm the placement/removal of added fields on the next screen.');
 		$field->table = true;
-		$field->icon = 'send-o';
+		$field->icon = 'edit';
 		$field->thead =
 			$this->_x('Name', 'usage-table-th') . '|' .
 			$this->_x('Label', 'usage-table-th');
@@ -1060,14 +1060,14 @@ class ProcessField extends Process implements ConfigurableModule {
 				if($isNew) return $this->executeAdd();
 			}
 
-			$sendTemplates = $this->form->get('send_templates');
-			if($sendTemplates && count($sendTemplates->attr('value'))) {
+			$modifyTemplates = $this->form->get('modify_templates');
+			if($modifyTemplates && count($modifyTemplates->attr('value'))) {
 				$templateIDs = array();
-				foreach($sendTemplates->attr('value') as $templateID) {
+				foreach($modifyTemplates->attr('value') as $templateID) {
 					$templateIDs[] = (int) $templateID;
 				}
 			}
-			$this->wire('session')->redirect("./send-templates?id={$this->field->id}&templates=" . implode(',', $templateIDs));
+			$this->wire('session')->redirect("./modify-templates?id={$this->field->id}" . (count($templateIDs) ? "&templates=" . implode(',', $templateIDs) : ""));
 		}
 
 		if($this->listAfterSave) $this->session->redirect("./");
@@ -1266,20 +1266,20 @@ class ProcessField extends Process implements ConfigurableModule {
 	}
 
 	/**
-	 * Execute send field to template(s)
+	 * Execute modify field to template(s)
 	 *
 	 * @return string
 	 * @throws WireException
 	 *
 	 */
-	public function ___executeSendTemplates() {
+	public function ___executemodifyTemplates() {
 
 		if(!$this->field || !$this->field->id) throw new WireException('No field specified');
 		$templateIDs = $this->wire('input')->get('templates');
 		$templateIDs = explode(',', $templateIDs);
 
 		$form = $this->wire('modules')->get('InputfieldForm');
-		$form->attr('action', "./send-templates-save?id={$this->field->id}");
+		$form->attr('action', "./modify-templates-save?id={$this->field->id}");
 
 		$templateChanged = false;
 		foreach($this->templates as $template) {
@@ -1331,7 +1331,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		return $out;
 	}
 
-	public function ___executeSendTemplatesSave() {
+	public function ___executemodifyTemplatesSave() {
 
 		if(!$this->field || !$this->field->id) throw new WireException('No field specified');
 
