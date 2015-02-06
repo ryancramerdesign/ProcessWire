@@ -1445,7 +1445,7 @@ class Page extends WireData implements Countable {
 	 */
 	public function editUrl() {
 		$adminTemplate = $this->wire('templates')->get('admin');
-		$https = $adminTemplate && $adminTemplate->https;
+		$https = $adminTemplate && ($adminTemplate->https > 0);
 		$url = ($https && !$this->wire('config')->https) ? 'https://' . $this->wire('config')->httpHost : '';
 		$url .= $this->wire('config')->urls->admin . "page/edit/?id=$this->id";
 		return $url;
@@ -1810,7 +1810,9 @@ class Page extends WireData implements Countable {
 	 *
 	 */
 	public function __isset($key) {
-		if(isset($this->settings[$key])) return true; 
+		if(isset($this->settings[$key])) return true;
+		$natives = array('template', 'parent', 'createdUser', 'modifiedUser');
+		if(in_array($key, $natives)) return $this->$key ? true : false;
 		if(self::$issetHas && $this->template && $this->template->fieldgroup->hasField($key)) return true;
 		return parent::__isset($key); 
 	}
