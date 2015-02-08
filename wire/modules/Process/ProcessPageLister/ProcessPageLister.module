@@ -658,12 +658,20 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	protected function validateSelector($selector) {
 		
 		$user = $this->wire('user');
+		$showIncludeWarnings = true; // whether to show warning message about removed include modes
 		
 		if($user->isSuperuser()) {
-			if(stripos($selector, 'include=') === false) {
+			if(!preg_match('/(^|\s|,)include=/', $selector)) {
 				$selector .= ", include=unpublished";
 			}
 			return $selector;
+		}
+		
+		if(!preg_match('/(^|\s|,)include=/', $selector)) {
+			// if user has page-edit access, they can see unpublished pages by default
+			if($user->hasPermission('page-edit')) {
+				$selector .= ", include=unpublished";
+			}
 		}
 		
 		$selectors = new Selectors($selector);
@@ -730,7 +738,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 						// ok, override
 					} else { 
 						$selectors->remove($s);
-						if($value) $this->error("Specified 'include=' mode is not allowed here."); 
+						if($value && $showIncludeWarnings) $this->error($this->_("Specified 'include=' mode is not allowed here.")); 
 						$changed = true; 
 					}
 				}
@@ -748,6 +756,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				$test = new Page();
 				foreach($templates as $template) {
 					$test->template = $template;
+					$test->id = 999; // required (any ID number works)
 					if($test->editable()) $numEditable++;
 				}
 				// if all specified templates are editable, include=unpublished is allowed
@@ -755,7 +764,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 					// include=unpublished is allowed
 				} else if($includeMode == 'unpublished') {
 					// include=unpublished is not allowed
-					$this->error("Not all specified templates are editable. Only 'include=hidden' is allowed."); 
+					if($showIncludeWarnings) $this->error($this->_("Not all specified templates are editable. Only 'include=hidden' is allowed")); 
 					$includeSelector->value = 'hidden';
 					$changed = true; 
 				}
@@ -765,7 +774,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				// only allow a max include mode of hidden
 				// regardless of edit access
 				if($includeMode != 'hidden') {
-					$this->error("No templates specified so 'include=hidden' is max allowed include mode."); 
+					if($showIncludeWarnings) $this->error($this->_("No templates specified so 'include=hidden' is max allowed include mode"));
 					$includeSelector->value = 'hidden';
 					$changed = true; 
 				}
