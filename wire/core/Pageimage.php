@@ -222,11 +222,12 @@ class Pageimage extends Pagefile {
 	 * @param array|string|int $options Array of options (or selector string) to override default behavior: 
 	 * 	- quality=90 (quality setting 1-100)
 	 * 	- upscaling=true (allow image to be upscaled?)
-	 * 	- cropping=center (cropping mode, see ImagSizer class for options)
+	 * 	- cropping=center (cropping mode, see ImageSizer class for options)
 	 * 	- suffix=word (your suffix word in fieldName format, or use array of words for multiple)
 	 * 	- forceNew=true (force re-creation of the image?)
 	 * 	- sharpening=soft (specify: none, soft, medium, strong)
 	 * 	- autoRotation=true (automatically correct rotation of images that provide the info)
+	 * 	- hidpi=false (specify true to enable hidpi/retuna/pixel doubling)
 	 *	Or you may specify a string|bool with with 'cropping' value if you don't need to combine with other options.
 	 *	Or you may specify an integer with 'quality' value if you don't need to combine with other options.
 	 * 	Or you may specify a boolean with 'upscaling' value if you don't need to combine with other options.
@@ -245,7 +246,12 @@ class Pageimage extends Pagefile {
 	/**
 	 * Hookable version of size() with implementation
 	 *	
-	 * See comments for size() method above. 
+	 * See comments for size() method above.
+	 * 
+	 * @param int $width
+	 * @param int $height
+	 * @param array|string|int $options
+	 * @return Pageimage
 	 *
 	 */
 	protected function ___size($width, $height, $options) {
@@ -283,8 +289,10 @@ class Pageimage extends Pagefile {
 			'upscaling' => true,
 			'cropping' => true,
 			'quality' => 90,
+			'hidpiQuality' => 40, 
 			'suffix' => array(), // can be array of suffixes or string of 1 suffix
 			'forceNew' => false,  // force it to create new image even if already exists
+			'hidpi' => false, 
 			);
 
 		$this->error = '';
@@ -295,7 +303,7 @@ class Pageimage extends Pagefile {
 		$width = (int) $width;
 		$height = (int) $height; 
 		$crop = ImageSizer::croppingValueStr($options['cropping']); 	
-		
+	
 		$suffixStr = '';
 		if(!empty($options['suffix'])) {
 			$suffix = is_array($options['suffix']) ? $options['suffix'] : array($options['suffix']);
@@ -306,6 +314,11 @@ class Pageimage extends Pagefile {
 					else $suffix[$key] = $s; 
 			}
 			if(count($suffix)) $suffixStr = '-' . implode('-', $suffix); 
+		}
+		
+		if($options['hidpi']) {
+			$suffixStr .= '-hidpi';
+			if($options['hidpiQuality']) $options['quality'] = $options['hidpiQuality'];
 		}
 
 		$basename = basename($this->basename(), "." . $this->ext()); 		// i.e. myfile
@@ -356,6 +369,20 @@ class Pageimage extends Pagefile {
 		$pageimage->setOriginal($this); 
 
 		return $pageimage; 
+	}
+	
+	/**
+	 * Same as size() but with width/height assumed to be hidpi width/height
+	 * 
+	 * @param $width
+	 * @param $height
+	 * @param array $options See options in size() method. 
+	 * @return Pageimage
+	 *
+	 */
+	public function hidpiSize($width, $height, $options = array()) {
+		$options['hidpi'] = true; 
+		return $this->size($width, $height, $options); 
 	}
 
 	/**

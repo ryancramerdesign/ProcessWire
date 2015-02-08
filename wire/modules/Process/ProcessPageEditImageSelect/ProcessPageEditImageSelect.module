@@ -19,7 +19,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Edit Image',
 			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)',
-			'version' => 109,
+			'version' => 110,
 			'permanent' => true,
 			'permission' => 'page-edit',
 		);
@@ -106,7 +106,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		if($this->input->get->winwidth) $this->maxImageWidth = ((int) $this->input->get->winwidth) - 70; 
 		if($this->maxImageWidth < 400) $this->maxImageWidth = 400; 
 		
-		$this->hidpi = $this->wire('input')->get('hidpi') ? true : false;
+		$this->hidpi = ((int) $this->wire('input')->get('hidpi')) ? true : false;
 
 		parent::init();
 	}
@@ -252,6 +252,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		// if they aren't already working with a resized image, and it's being scaled down,
 		// then add the 'resized' class to ensure that our pwimage plugin knows to perform the resize
 		if(basename($this->input->get->file) == $fullname && $originalWidth > $width) $attrs['class'] .= " resized";
+		$hidpiChecked = $this->hidpi ? " checked='checked'" : "";
 
 		$out =	
 			"\n<form id='selected_image_settings' action='./?id={$this->page->id}&amp;file=$fullname'>" . 
@@ -261,8 +262,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			"\n\t\t\t<label>" . $this->_('Width:') . " <input id='input_width' class='input_pixels' type='number' size='6' step='1' min='1' max='$originalWidth' value='$width' /></label>&nbsp; " . 
 			"\n\t\t\t<label>" . $this->_('Height:') . " <input id='input_height' class='input_pixels' type='number' size='6' step='1' min='1' max='$originalHeight' value='$height' /></label>" . 
 			"\n\t\t</span>&nbsp; " . 
-			// temporary hidden while we work on this hidpi part: 
-			"\n\t\t<span style='display: none'><label><input id='selected_image_hidpi' type='checkbox' value='1' /> " . $this->_('HiDPI/Retina') . "</label> " . 
+			"\n\t\t<span><label><input$hidpiChecked id='selected_image_hidpi' type='checkbox' value='1' /> " . $this->_('HiDPI/Retina') . "</label> " . 
 			"\n\t</p>";
 
 		$description = isset($_GET['description']) ? $this->input->get->description : $image->description; 
@@ -289,7 +289,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			);
 
 		foreach($optionalClasses as $class => $label) {
-			$selected = $this->input->get->class == $class ? " selected='selected'" : '';
+			$selected = strpos($this->input->get('class'), $class) !== false ? " selected='selected'" : '';
 			if($selected) $attrs['class'] .= " $class";
 			$out .= "\n\t\t\t<option$selected value='$class'>$label</option>";
 		}
@@ -332,7 +332,8 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		foreach($attrs as $key => $value) if($value) $attrStr .= "$key='" . trim($value) . "' ";
 		$nosize = $this->noSizeAttrs ? 1 : '';
 
-		$out .= "\n\t<div id='selected_image_container'>" . 
+		$out .= 
+			"\n\t<div id='selected_image_container'>" . 
 			"\n\t\t<img id='selected_image' $attrStr alt='' data-nosize='$nosize' data-idname='{$image->page->id},{$image->basename}' src='{$image->url}' />" . 
 			"\n\t</div>";
 
@@ -345,29 +346,31 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$width = (int) $this->input->get->width; 
 		$height = (int) $this->input->get->height; 
 		$class = $this->sanitizer->name($this->input->get->class);
-		$hidpi = $this->input->get->hidpi ? true : false;
+		$hidpi = $this->hidpi;
 		if(strpos($class, 'hidpi') !== false) {
 			if(!$hidpi) $hidpi = true; 
 		} else {
 			if($hidpi) $class = trim("$class hidpi");
 		}
 		$image = $this->getPageimage();
-
+		
 		if($width < $image->width) {
 			$suffix = array('is');  // is=image select
-			if($hidpi) $suffix[] = 'hidpi';
 			if($this->editorPage && $this->editorPage->id != $this->page->id) $suffix[] = "pid$this->editorPage"; // identify page that is using the variation
-			$resized = $image->width($width, array('suffix' => $suffix)); 
+			$resized = $image->width($width, array('suffix' => $suffix, 'hidpi' => $hidpi)); 
 			$height = $resized->height();
 		} else {
 			$width = $image->width; 
 			$height = $image->height; 
 			$resized = $image; 
 		}
-		
+	
 		if($hidpi) {
 			$width = $resized->hidpiWidth();
 			$height = $resized->hidpiHeight();
+			$hidpiChecked = " checked='checked'";
+		} else {
+			$hidpiChecked = '';
 		}
 
 		// note IE8 won't properly read the width/height attrs via ajax
@@ -379,7 +382,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			"<p>" .  
 			"<span id='selected_image_width'>$width</span>x" . 
 			"<span id='selected_image_height'>$height</span> " . 
-			"<span id='selected_image_hidpi'>" . ($hidpi ? 'hidpi' : '') . "</span><br />" . 
+			"<label><input type='checkbox' id='selected_image_hidpi'$hidpiChecked />hidpi</label><br />" . 
 			"<img id='selected_image' class='$class' data-idname='{$image->page->id},{$image->basename}' data-nosize='$nosize' src='{$resized->url}' width='$width' height='$height' />" . 
 			"</p>";
 
@@ -409,13 +412,16 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$f->attr('value', 1);
 		if(!empty($data['noSizeAttrs'])) $f->attr('checked', 'checked');
 		$f->label = __('Skip width and height attributes on image tags?', __FILE__); // noSizeAttr label
-		$f->description = __('By default, this module will include width and height attributes in the <img> tag. If you are using responsive images, you might want to disable this behavior. Check the box to disable width and height attributes.', __FILE__); // noSizeAttr description
+		$f->description = __('By default, this module will include width attributes in the <img> tag. If you are using responsive images, you might want to disable this behavior. Check the box to disable width and height attributes.', __FILE__); // noSizeAttr description
+		$f->notes = __('We do not recommend checking this box as it will interfere with some features (like use of HiDPI/retina images).'); 
 		$inputfields->add($f);
 
+		$notes = __('Value recommended for best compatibility with default rich text editor:') . ' ';
 		$f = wire('modules')->get('InputfieldText'); 
 		$f->attr('name', 'alignLeftClass');
 		$f->attr('value', $data['alignLeftClass']); 
 		$f->label = __('Align Image Left Class'); 
+		$f->notes = $notes . 'align_left';
 		$f->columnWidth = 33; 
 		$inputfields->add($f);
 		
@@ -423,6 +429,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$f->attr('name', 'alignCenterClass');
 		$f->attr('value', $data['alignCenterClass']); 
 		$f->label = __('Align Image Center Class');
+		$f->notes = $notes . 'align_center';
 		$f->columnWidth = 34; 
 		$inputfields->add($f);
 		
@@ -430,6 +437,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$f->attr('name', 'alignRightClass');
 		$f->attr('value', $data['alignRightClass']);
 		$f->label = __('Align Image Right Class');
+		$f->notes = $notes . 'align_right';
 		$f->columnWidth = 33;
 		$inputfields->add($f);
 
