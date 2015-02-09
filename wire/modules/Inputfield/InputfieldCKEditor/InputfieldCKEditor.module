@@ -21,7 +21,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'CKEditor',
-			'version' => 131, 
+			'version' => 132, 
 			'summary' => __('CKEditor textarea rich text editor.', __FILE__),
 			'installs' => array('MarkupHTMLPurifier'), 
 			);
@@ -780,7 +780,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$fieldset->add($f);
 		
 		$inputfields->add($wrapper); 
-
+		
 		return $inputfields; 
 	}
 }

@@ -6,7 +6,7 @@
  * Provides the image selecting and editing capability for rich text editors (TinyMCE/CKEditor)
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -19,7 +19,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Edit Image',
 			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)',
-			'version' => 110,
+			'version' => 111,
 			'permanent' => true,
 			'permission' => 'page-edit',
 		);
@@ -36,6 +36,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	protected $extensions = 'jpg|jpeg|gif|png|svg';
 
 	protected static $defaultConfig = array(
+		'hidpiDefault' => 0, 
 		'skipFields' => '',
 		'noSizeAttrs' => 0,
 		'noThumbs' => 0, 
@@ -44,10 +45,20 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		'alignCenterClass' => 'align_center',
 		);
 
+	/**
+	 * Construct and set default configuration
+	 * 
+	 */
 	public function __construct() {
 		foreach(self::$defaultConfig as $key => $value) $this->set($key, $value); 
 	}
 
+	/**
+	 * Initialize and populate required variables from GET variables
+	 * 
+	 * @throws WireException
+	 * 
+	 */
 	public function init() {
 
 		if($this->config->demo) throw new WireException("Sorry, image editing functions are disabled in demo mode"); 
@@ -107,10 +118,20 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		if($this->maxImageWidth < 400) $this->maxImageWidth = 400; 
 		
 		$this->hidpi = ((int) $this->wire('input')->get('hidpi')) ? true : false;
+		$hidpi = $this->wire('input')->get('hidpi');
+		if($hidpi === null && $this->hidpiDefault) $hidpi = true; 
+		$this->hidpi = $hidpi ? true : false;
 
 		parent::init();
 	}
 
+	/**
+	 * Return the Pageimage object being edited
+	 * 
+	 * @return Pageimage
+	 * @throws WireException
+	 * 
+	 */
 	public function getPageimage() {
 
 		$images = $this->getImages($this->page);
@@ -129,7 +150,14 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return $images[$filename]; 
 	}
 
-
+	/**
+	 * Get all Pageimage objects on page
+	 * 
+	 * @param Page $page
+	 * @param int $level Recursion level (internal use)
+	 * @return array
+	 * 
+	 */
 	public function getImages(Page $page, $level = 0) {
 
 		$allImages = array();
@@ -175,9 +203,21 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return $allImages; 
 	}
 
+	/**
+	 * Default execute: display list of images on page for selection
+	 * 
+	 * @return string
+	 * @throws WireException
+	 * 
+	 */
 	public function ___execute() {
 
 		if($this->config->demo) throw new WireException("Sorry, image editing functions are disabled in demo mode"); 
+		if(!$this->page) {
+			$error = "No page provided";
+			$this->error($error);
+			return "<p>$error</p>";
+		}
 
 		if($this->input->get->file) return $this->executeEdit();
 		$images = $this->getImages($this->page);
@@ -223,10 +263,28 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		
 		$out = $form->render() . $out;
 
-
 		return "<div id='ProcessPageEditImageSelect'>" . $out . "\n</div>";
 	}
 
+	/**
+	 * Edit a selected image
+	 * 
+	 * Required GET variables:
+	 * 	- file (string): URL of image
+	 * 	- edit_page_id (int): ID of the page being edited, where image will be placed.
+	 *
+	 * Optional GET variables:
+	 * 	- width (int): Current width of image in the editor
+	 * 	- height (int): Current height of image in the editor
+	 * 	- winwidth (int): Current width of client-side window in pixels
+	 * 	- id (int): ID of the page the image lives on (if omitted, we attempt to determine from 'file' path).
+	 * 	- class (string): Class name to pass along to the editor (i.e. align_left, align_right, etc.)
+	 * 	- hidpi (int): Whether hidpi mode is used or not (0=no, 1=yes)
+	 * 
+	 * @return string
+	 * @throws WireException
+	 * 
+	 */
 	public function ___executeEdit() {
 
 		$attrs = array(
@@ -341,17 +399,39 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		
 	}
 
+	/**
+	 * Resize image and output basic markup with information about the resize
+	 * 
+	 * The output is intended to be read by the rich text editor for insertion into the text. 
+	 * 
+	 * Required GET variables: 
+	 * 	- file (string): URL of image
+	 * 	- width (int): Target resize width
+	 * 	- edit_page_id (int): ID of the page being edited, where image will be placed. 
+	 * 
+	 * Optional GET variables:
+	 * 	- id (int): ID of the page the image lives on (if omitted, we attempt to determine from 'file' path). 
+	 * 	- class (string): Class name to pass along to the editor (i.e. align_left, align_right, etc.) 
+	 * 	- hidpi (int): Whether hidpi mode is used or not (0=no, 1=yes)
+	 * 	- json (int): Specify 1 to provide output in JSON (if not specified, output is a paragraph of markup)
+	 * 
+	 * @return string
+	 * @throws WireException
+	 * 
+	 */
 	public function ___executeResize() {
 
-		$width = (int) $this->input->get->width; 
-		$height = (int) $this->input->get->height; 
+		$width = (int) $this->input->get('width'); 
 		$class = $this->sanitizer->name($this->input->get->class);
 		$hidpi = $this->hidpi;
+		$json = (int) $this->input->get('json'); // 1 or 0 (for json output mode on or off)
+		
 		if(strpos($class, 'hidpi') !== false) {
 			if(!$hidpi) $hidpi = true; 
 		} else {
 			if($hidpi) $class = trim("$class hidpi");
 		}
+		
 		$image = $this->getPageimage();
 		
 		if($width < $image->width) {
@@ -373,31 +453,160 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			$hidpiChecked = '';
 		}
 
-		// note IE8 won't properly read the width/height attrs via ajax
-		// so we provide the width/height in separate fields
-
 		$nosize = $this->noSizeAttrs ? 1 : '';
+		
+		if($json) {
+			
+			$data = array(
+				'src' => $resized->url,
+				'name' => $image->basename, 
+				'width' => $width,
+				'height' => $height, 
+				'class' => $class, 
+				'page' => $image->page->id,
+				'hidpi' => $hidpi,
+				'nosize' => $nosize, 
+			);
+			
+			header("Content-Type: application/json"); 
+			$out = json_encode($data); 
+			
+		} else {
+			// note IE8 won't properly read the width/height attrs via ajax
+			// so we provide the width/height in separate fields
 
-		$out =	
-			"<p>" .  
-			"<span id='selected_image_width'>$width</span>x" . 
-			"<span id='selected_image_height'>$height</span> " . 
-			"<label><input type='checkbox' id='selected_image_hidpi'$hidpiChecked />hidpi</label><br />" . 
-			"<img id='selected_image' class='$class' data-idname='{$image->page->id},{$image->basename}' data-nosize='$nosize' src='{$resized->url}' width='$width' height='$height' />" . 
-			"</p>";
+			$out =
+				"<p>" .
+				"<span id='selected_image_width'>$width</span>x" .
+				"<span id='selected_image_height'>$height</span> " .
+				"<label><input type='checkbox' id='selected_image_hidpi'$hidpiChecked />hidpi</label><br />" .
+				"<img id='selected_image' class='$class' data-idname='{$image->page->id},{$image->basename}' data-nosize='$nosize' src='{$resized->url}' width='$width' height='$height' />" .
+				"</p>";
+		}
 
 		return $out; 
 	}
 
+	/**
+	 * Show all variations for the image provided in GET var 'file'
+	 * 
+	 */
+	public function ___executeVariations() {
+		
+		$pageimage = $this->getPageimage();
+		
+		if(!$this->page || !$pageimage) throw new WireException("No file provided"); 
+		if(!$this->page->editable()) throw new WireException("Page is not editable"); 
+		
+		$variations = $pageimage->getVariations(array('info' => true));
+		$cnt = count($variations);
+		
+		$delete = $this->wire('input')->post('delete'); 	
+		if(is_array($delete) && count($delete)) {
+			foreach($delete as $name) {
+				if(!isset($variations[$name])) continue; 
+				$info = $variations[$name]; 
+				if(is_file($info['path']) && unlink($info['path'])) {
+					$this->message($this->_('Deleted image variation') . " - $info[url]"); 
+					unset($variations[$name]); 
+				} else {
+					$this->error($this->_('Error deleting image variation') . " - $info[url]"); 
+				}
+			}
+		}
+		
+		$headline = sprintf(
+				$this->_n('%1$d variation for image %2$s', '%1$d variations for image %2$s', $cnt), 
+				$cnt, "<a class='preview' href='$pageimage->url'>$pageimage->basename</a>"
+			);
+		$this->headline($headline); 
+		
+		if(!$cnt) return "<h2>$headline</h2>";
+		
+		$adminThumbOptions = $this->wire('config')->adminThumbOptions;
+		
+		$table = $this->wire('modules')->get('MarkupAdminDataTable'); 
+		$table->setEncodeEntities(false);
+		$table->headerRow(array(
+			$this->_x('Image', 'th'), 
+			$this->_x('File', 'th'),
+			$this->_x('Size', 'th'),
+			$this->_x('Notes', 'th'),
+			"<label><input type='checkbox' id='delete_all' value='1' /> <i class='fa fa-trash-o'></i></label>", 
+		));
+		
+		foreach($variations as $name => $info) {
+			
+			$notes = array();
+			if(in_array('is', $info['suffix'])) $notes[] = $this->_x('Created for placement in textarea', 'notes'); 
+			if(in_array('hidpi', $info['suffix'])) $notes[] = $this->_x('HiDPI/Retina', 'notes'); 
+			if(!count($notes) && $info['width'] == $adminThumbOptions['width'] && $info['height'] == $adminThumbOptions['height']) {
+				$notes[] = $this->_x('Auto-generated admin thumbnail', 'notes'); 
+			}
+			if(!count($notes)) $notes[] = $this->_x('API-generated variation', 'notes');
+		
+			$width = (int) $info['width'];
+			$height = (int) $info['height'];
+			if(!$width || !$height) list($width, $height) = getimagesize($info['path']);
+			$filesize = filesize($info['path']); 
+			$filesizeStr = wireBytesStr($filesize);
+			
+			$table->row(array(
+				"<a class='preview' href='$info[url]'><img src='$info[url]' alt='$name' style='max-width: 100px;' /></a>",
+				"<a class='preview' href='$info[url]'>$name</a><br /><span class='detail'>{$width}x{$height}</span>", 
+				"<span style='display: none;'>$filesize</span>$filesizeStr", 
+				implode('<br />', $notes),
+				"<label><input type='checkbox' class='delete' name='delete[]' value='$name' /> &nbsp;</label>"
+			));
+		}
+
+		$form = $this->wire('modules')->get('InputfieldForm');
+		$form->attr('id', 'ImageVariations'); 
+		$form->action = "./?id={$this->page->id}&file=$pageimage->basename";
+		$form->prependMarkup = $table->render();
+		
+		$submit = $this->wire('modules')->get('InputfieldSubmit');
+		$submit->attr('value', $this->_('Delete Checked')); 
+		$submit->addClass('delete-checked'); 
+		$submit->icon = 'trash';
+		$form->add($submit);
+		
+		$button = $this->wire('modules')->get('InputfieldButton'); 
+		$button->attr('value', $this->_('Close')); 
+		$button->addClass('pw-modal-cancel'); 
+		$button->icon = 'times-circle';
+		$form->add($button); 
+		
+		$this->wire('modules')->get('JqueryMagnific'); 
+		
+		return "<br />" . $form->render(); 
+	}
+
+	/**
+	 * Module configuration
+	 * 
+	 * @param array $data
+	 * @return InputfieldWrapper
+	 * 
+	 */
 	static public function getModuleConfigInputfields(array $data) {
 		$inputfields = new InputfieldWrapper();
 		$data = array_merge(self::$defaultConfig, $data); 
 		
 		$f = wire('modules')->get('InputfieldCheckbox'); 
+		$f->attr('name', 'hidpiDefault'); 
+		$f->label = __('HiDPI/Retina checkbox default checked?'); 
+		$f->description = __('Check this box to have the HiDPI/Retina checkbox checked by default for newly inserted images.'); 
+		if(!empty($data['hidpiDefault'])) $f->attr('checked', 'checked'); 
+		$f->columnWidth = 50;
+		$inputfields->add($f); 
+		
+		$f = wire('modules')->get('InputfieldCheckbox'); 
 		$f->attr('name', 'noThumbs'); 
 		$f->label = __('Do not generate thumbnail images'); 
 		$f->description = __('When checked, image selection will use full-size images rather than thumbnail images.'); 
-		if(!empty($data['noThumbs'])) $f->attr('checked', 'checked'); 
+		if(!empty($data['noThumbs'])) $f->attr('checked', 'checked');
+		$f->columnWidth = 50;
 		$inputfields->add($f); 
 
 		$f = wire('modules')->get('InputfieldText'); 
@@ -411,17 +620,17 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$f->attr('name', 'noSizeAttrs'); 
 		$f->attr('value', 1);
 		if(!empty($data['noSizeAttrs'])) $f->attr('checked', 'checked');
-		$f->label = __('Skip width and height attributes on image tags?', __FILE__); // noSizeAttr label
+		$f->label = __('Skip width attributes on image tags?', __FILE__); // noSizeAttr label
 		$f->description = __('By default, this module will include width attributes in the <img> tag. If you are using responsive images, you might want to disable this behavior. Check the box to disable width and height attributes.', __FILE__); // noSizeAttr description
 		$f->notes = __('We do not recommend checking this box as it will interfere with some features (like use of HiDPI/retina images).'); 
 		$inputfields->add($f);
 
-		$notes = __('Value recommended for best compatibility with default rich text editor:') . ' ';
+		$notes = __('Recommended value:') . ' ';
 		$f = wire('modules')->get('InputfieldText'); 
 		$f->attr('name', 'alignLeftClass');
 		$f->attr('value', $data['alignLeftClass']); 
 		$f->label = __('Align Image Left Class'); 
-		$f->notes = $notes . 'align_left';
+		$f->notes = $notes . '**align_left**';
 		$f->columnWidth = 33; 
 		$inputfields->add($f);
 		
@@ -429,7 +638,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$f->attr('name', 'alignCenterClass');
 		$f->attr('value', $data['alignCenterClass']); 
 		$f->label = __('Align Image Center Class');
-		$f->notes = $notes . 'align_center';
+		$f->notes = $notes . '**align_center**';
 		$f->columnWidth = 34; 
 		$inputfields->add($f);
 		
@@ -437,10 +646,9 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$f->attr('name', 'alignRightClass');
 		$f->attr('value', $data['alignRightClass']);
 		$f->label = __('Align Image Right Class');
-		$f->notes = $notes . 'align_right';
+		$f->notes = $notes . '**align_right**';
 		$f->columnWidth = 33;
 		$inputfields->add($f);
-
 
 		return $inputfields;
 	}

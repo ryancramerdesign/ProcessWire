@@ -7,13 +7,6 @@
 	margin-top: 0.5em;
 }
 
-/*
-.InputfieldImage a.InputfieldFileMove span.ui-icon {
-	float: right; 
-	position: relative; 
-	top: 2px; 
-}
-*/
 .InputfieldImage a.InputfieldFileMove {
 	float: right;
 	width: 20px; 
@@ -115,6 +108,10 @@
 }
 .InputfieldImageRenderValue > span img {
 	max-width: 100%; 
+}
+
+.InputfieldImage a.InputfieldImageVariationCnt:hover {
+	text-decoration: underline;
 }
 
 

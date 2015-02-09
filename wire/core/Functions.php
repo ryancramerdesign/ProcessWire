@@ -1225,3 +1225,16 @@ function wireIconMarkup($icon, $class = '') {
 	$class = trim("fa $icon $class"); 
 	return "<i class='$class'></i>";
 }
+
+/**
+ * Given a quantity of bytes, return a more readable size string
+ * 
+ * @param int $size
+ * @return string
+ * 
+ */
+function wireBytesStr($size) {
+	if($size < 1024) return number_format($size) . ' ' . __('bytes', __FILE__);
+	$kb = round($size / 1024);
+	return number_format($kb) . " " . __('kB', __FILE__); // kilobytes
+}

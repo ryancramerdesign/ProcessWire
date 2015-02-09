@@ -18,7 +18,19 @@
  * hidden in the modal content and moved outside to the modal window interface.
  * 
  * data-autoclose: If also using data-buttons, this option will make clicking any 
- * of those buttons automatically close the modal window. 
+ * of those buttons automatically close the modal window, after the next page loads. 
+ * This enables save actions to take place. You may also populate this property with
+ * a jQuery selector, in which case autoclose will only take place if the button 
+ * matches the given selector. 
+ * 
+ * data-close: Populate with a selector that matches the button (or buttons) that 
+ * should immediately close the window (no follow-up save or anything). 
+ * 
+ * MODAL CONTENT
+ * =============
+ * The window opened in the modal may optionally create a button or link with the 
+ * class 'pw-modal-cancel'. When clicked, the window will immediately close. This 
+ * can also be one of your 'data-buttons' if you want it to. 
  * 
  * EVENTS
  * ======
@@ -30,7 +42,7 @@
 
 $(document).ready(function() {
 	
-// enable titles with HTML in ui dialog
+	// enable titles with HTML in ui dialog
 	$.widget("ui.dialog", $.extend({}, $.ui.dialog.prototype, {
 		_title: function(title) {
 			if (!this.options.title ) {
@@ -50,8 +62,15 @@ $(document).ready(function() {
 		var $iframe = $('<iframe class="pw-modal-window" frameborder="0" src="' + url + '"></iframe>');
 		var windowWidth = $(window).width()-100;
 		var windowHeight = $(window).height()-160;
-		var autoclose = $a.attr('data-autoclose') != "undefined";
+		var _autoclose = $a.attr('data-autoclose'); 
+		var autoclose = _autoclose != null; // whether autoclose is enabled
+		var autocloseSelector = autoclose && _autoclose.length > 0 ? _autoclose : ''; // autoclose only enabled if clicked button matches this selector
+		var closeSelector = $a.attr('data-close'); // immediately close window (no closeOnLoad) for buttons/links matching this selector
 		var closeOnLoad = false;
+
+		// a class of pw-modal-cancel on one of the buttons always does an immediate close
+		if(closeSelector == null) closeSelector = '';
+		closeSelector += (closeSelector.length > 0 ? ', ' : '') + '.pw-modal-cancel'; 
 		
 		// attribute holding selector that determines what buttons to show, example: "#content form button.ui-button[type=submit]"
 		var buttonSelector = $a.attr('data-buttons'); 
@@ -117,7 +136,7 @@ $(document).ready(function() {
 			if(buttonSelector) { 
 				$icontents.find(buttonSelector).each(function() {
 					var $button = $(this);
-					var text = $button.text();
+					var text = $button.html();
 					var skip = false;
 					// avoid duplicate buttons
 					for(var i = 0; i < buttons.length; i++) {
@@ -125,15 +144,23 @@ $(document).ready(function() {
 					}
 					if(!skip) {
 						buttons[n] = {
-							'text': text,
+							'html': text,
 							'class': ($button.is('.ui-priority-secondary') ? 'ui-priority-secondary' : ''),
 							'click': function(e) {
 								$(e.currentTarget).fadeOut('fast');
 								$button.click();
 								$("body").append($spinner.fadeIn());
+								if(closeSelector.length > 0 && $button.is(closeSelector)) {
+									// immediately close if matches closeSelector
+									$dialog.dialog('close');
+								}
 								if(autoclose) {
-									//setTimeout(function() { $dialog.dialog('close'); }, 500);
-									closeOnLoad = true; // tell it to close window on the next 'load' event
+									// automatically close on next page load
+									if(autocloseSelector.length > 0) {
+										closeOnLoad = $button.is(autocloseSelector); // if button matches selector
+									} else {
+										closeOnLoad = true; // tell it to close window on the next 'load' event
+									}
 								}
 							}
 						};

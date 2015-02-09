@@ -15,6 +15,7 @@
  * @property string $url URL to the file on the server	
  * @property string $filename full disk path to the file on the server
  * @property string $name Returns the filename without the path (basename)
+ * @property string $basename Returns the filename without the path (alias of name)
  * @property string $description value of the file's description field (text). Note you can also set this property directly.
  * @property string $tags value of the file's tags field (text). Note you can also set this property directly.
  * @property string $ext file's extension (i.e. last 3 or so characters)
@@ -417,14 +418,11 @@ class Pagefile extends WireData {
 	/**
 	 * Returns the filesize in a formatted, output-ready string
 	 *
-	 * @return int
+	 * @return string
 	 *
 	 */
 	public function filesizeStr() {
-		$size = $this->filesize();
-		if($size < 1024) return number_format($size) . ' ' . $this->_('bytes');
-		$kb = round($size / 1024); 
-		return number_format($kb) . " " . $this->_('kB'); // kilobytes
+		return wireBytesStr($this->filesize()); 
 	}
 
 	/**

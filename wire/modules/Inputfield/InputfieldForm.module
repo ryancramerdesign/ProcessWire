@@ -2,6 +2,12 @@
 
 /**
  * InputfieldForm: An Inputfield for containing form elements
+ * 
+ * @property string $prependMarkup Optional markup to prepend to the form output
+ * @property string $appendMarkup Optional markup to append to the form output
+ * @property bool $protectCSRF Set to false to disable automatic CSRF protection
+ * @property int $columnWidthSpacing Optionally set the column width spacing (pixels)
+ * @property string $description Optionally set a description headline for the form 
  *
  */
 class InputfieldForm extends InputfieldWrapper {
@@ -23,6 +29,8 @@ class InputfieldForm extends InputfieldWrapper {
 		$this->attr('method', 'post'); 
 		$this->attr('action', './'); 
 		$this->set('class', ''); 
+		$this->set('prependMarkup', '');
+		$this->set('appendMarkup', '');
 	}
 
 	protected function debugNote($note) {
@@ -53,9 +61,10 @@ class InputfieldForm extends InputfieldWrapper {
 		}
 		
 		$out = 	"\n<form $attrStr>" . 
-			$description . 
+			$description . $this->prependMarkup . 
 			parent::___render() .
 			$tokenField . 
+			$this->appendMarkup . 
 			"\n</form>";
 
 		return $out; 

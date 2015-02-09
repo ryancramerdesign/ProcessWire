@@ -548,6 +548,8 @@ class Pageimage extends Pagefile {
 	 *
 	 * Returned array includes the following indexes: 
 	 * - original: Original basename
+	 * - url: URL to image
+	 * - path: Full path + filename to image
 	 * - width: Specified width
 	 * - height: Specified height
 	 * - crop: Cropping info string or blank if none
@@ -627,6 +629,8 @@ class Pageimage extends Pagefile {
 		if(preg_match($re1, $meat, $matches)) {
 			// this is a variation with dimensions, return array of info
 			$info = array(
+				'url' => $this->pagefiles->url . $basename, 
+				'path' => $this->pagefiles->path . $basename, 
 				'original' => $originalName . '.' . $this->ext(),
 				'width' => (int) $matches[1],
 				'height' => (int) $matches[2],
@@ -638,6 +642,8 @@ class Pageimage extends Pagefile {
 		
 			// this is a variation only with suffix
 			$info = array(
+				'url' => $this->pagefiles->url . $basename,
+				'path' => $this->pagefiles->path . $basename, 
 				'original' => $originalName . '.' . $this->ext(),
 				'width' => (isset($matches[2]) ? (int) $matches[2] : 0),
 				'height' => (isset($matches[3]) ? (int) $matches[3] : 0),

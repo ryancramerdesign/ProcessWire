@@ -123,7 +123,7 @@
 		if(imgWidth) queryString += "&width=" + imgWidth; 
 		if(imgHeight) queryString += "&height=" + imgHeight; 
 		if(imgClass && imgClass.length) queryString += "&class=" + imgClass; 
-		if(hidpi) queryString += '&hidpi=1'; 
+		queryString += '&hidpi=' + (hidpi ? '1' : '0'); 
 		if(imgDescription && imgDescription.length) queryString += "&description=" + encodeURIComponent(imgDescription);
 		if(imgLink && imgLink.length) queryString += "&link=" + encodeURIComponent(imgLink);
 		queryString += "&winwidth=" + windowWidth; 

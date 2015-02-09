@@ -6,10 +6,12 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		return array(
 			'title' => __('Images', __FILE__), // Module Title
 			'summary' => __('One or more image uploads (sortable)', __FILE__), // Module Summary
-			'version' => 111,
+			'version' => 112,
 			'permanent' => true, 
 			);
 	}
+	
+	protected $variations = array();
 	
 	public function init() {
 		parent::init();
@@ -46,6 +48,10 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$this->modules->getInstall("JqueryMagnific"); 
 		$this->config->scripts->add($this->config->urls->InputfieldFile . "InputfieldFile.js");
 		$this->config->styles->add($this->config->urls->InputfieldFile . "InputfieldFile.css");
+		if($this->value && count($this->value)) {
+			$this->variations = $this->value->getAllVariations();
+			if(count($this->variations)) $this->wire('modules')->get('JqueryUI')->use('modal');
+		}
 		$out = parent::___render();
 		if($this->defaultGrid) $out .= "<span class='InputfieldImageDefaultGrid'></span>";
 		return $out; 
@@ -193,14 +199,28 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 
 		$thumb = $this->getAdminThumb($pagefile); 
 		$error = $thumb['error'] ? "<span class='ui-state-error-text'>" . $this->wire('sanitizer')->entities($thumb['error']) . "</span>" : "";
+		
+		$variationInfo = '';
+		$variations = isset($this->variations[$pagefile->name]) ? $this->variations[$pagefile->name] : array();
+		if(count($variations)) {
+			$cnt = count($variations); 
+			$variationURL = $this->wire('config')->urls->admin . "page/image/variations/?id={$pagefile->page->id}&file=$pagefile->name&modal=1";
+			$numVariations = sprintf($this->_n('%d variation', '%d variations', $cnt), $cnt);
+			$variationInfo = "\n\t\t\t&bull; " . 
+				"<a class='InputfieldImageVariationCnt pw-modal' data-buttons='button' " . 
+				"href='$variationURL' title='$numVariations'>" . 
+				str_replace(' ', '&nbsp;', $numVariations) . "</a> ";
+		} 
 
 		$out = 	
 			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header'>" . 
 			"\n\t\t\t<i class='fa fa-fw fa-sort HideIfSingle'></i>" .
 			"\n\t\t\t<i class='fa fa-fw fa-caret-right HideIfMultiple'></i>" . 
 			"\n\t\t\t<span class='InputfieldFileName'>{$pagefile->basename}</span> " . 
-			"\n\t\t\t<span class='InputfieldFileStats'>&bull; {$pagefile->filesizeStr} &bull; " . 
-				"{$pagefile->width}x{$pagefile->height}</span> " . 
+			"\n\t\t\t<span class='InputfieldFileStats'>" .
+				"&bull; {$pagefile->filesizeStr} &bull; " . 
+				"{$pagefile->width}x{$pagefile->height} " . 
+				"$variationInfo</span> " . 
 			"\n\t\t\t<label class='InputfieldFileDelete'>" . 
 				"<input type='checkbox' name='delete_$id' value='1' title='" . $this->_('Delete') . "' />" .
 				"<i class='fa fa-fw fa-trash'></i></label>" . 
