@@ -158,13 +158,13 @@ $(document).ready(function() {
 							'click': function(e) {
 								$(e.currentTarget).fadeOut('fast');
 								$button.click();
-								$("body").append($spinner.fadeIn());
 								if(closeSelector.length > 0 && $button.is(closeSelector)) {
 									// immediately close if matches closeSelector
 									$dialog.dialog('close');
 								}
 								if(autoclose) {
 									// automatically close on next page load
+									$("body").append($spinner.fadeIn());
 									if(autocloseSelector.length > 0) {
 										closeOnLoad = $button.is(autocloseSelector); // if button matches selector
 									} else {

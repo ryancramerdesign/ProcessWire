@@ -660,6 +660,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 					"id='selected_image_description' class='no_focus' value=\"$description\" />" . 
 			"</p>" . 
 			"</small>" . 
+			"<p class='notes hide_when_rte'>Please note: this feature is still in development.</p>" . 
 			"<div id='selected_image_container'>" . 
 				"<img id='selected_image' $attrStr alt='' " . 
 					"data-idname='{$image->page->id},{$image->basename}' src='{$image->url}' />" . 
@@ -778,7 +779,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			$this->message($this->_('Saved image copy:') . " $basename"); 
 		}
 			
-		return "<script>closePWImageDialog();</script>";
+		return "<script>$(document).ready(function() { closePWImageDialog(); });</script>";
 	}
 
 	/**
