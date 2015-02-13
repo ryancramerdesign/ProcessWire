@@ -228,6 +228,7 @@ class Pageimage extends Pagefile {
 	 * 	- sharpening=soft (specify: none, soft, medium, strong)
 	 * 	- autoRotation=true (automatically correct rotation of images that provide the info)
 	 * 	- hidpi=false (specify true to enable hidpi/retuna/pixel doubling)
+	 * 	- cleanFilename=false (clean filename of historical resize information for shorter filenames)
 	 *	Or you may specify a string|bool with with 'cropping' value if you don't need to combine with other options.
 	 *	Or you may specify an integer with 'quality' value if you don't need to combine with other options.
 	 * 	Or you may specify a boolean with 'upscaling' value if you don't need to combine with other options.
@@ -293,6 +294,7 @@ class Pageimage extends Pagefile {
 			'suffix' => array(), // can be array of suffixes or string of 1 suffix
 			'forceNew' => false,  // force it to create new image even if already exists
 			'hidpi' => false, 
+			'cleanFilename' => false, // clean filename of historial resize information
 			);
 
 		$this->error = '';
@@ -301,8 +303,15 @@ class Pageimage extends Pagefile {
 		$options = array_merge($defaultOptions, $configOptions, $options); 
 
 		$width = (int) $width;
-		$height = (int) $height; 
-		$crop = ImageSizer::croppingValueStr($options['cropping']); 	
+		$height = (int) $height;
+		
+		if(strpos($options['cropping'], 'x') === 0 && preg_match('/^x(\d+)[yx](\d+)/', $options['cropping'], $matches)) {
+			$options['cropping'] = true; 
+			$options['cropExtra'] = array((int) $matches[1], (int) $matches[2], $width, $height); 
+			$crop = '';
+		} else {
+			$crop = ImageSizer::croppingValueStr($options['cropping']);
+		}
 	
 		$suffixStr = '';
 		if(!empty($options['suffix'])) {
@@ -321,7 +330,12 @@ class Pageimage extends Pagefile {
 			if($options['hidpiQuality']) $options['quality'] = $options['hidpiQuality'];
 		}
 
-		$basename = basename($this->basename(), "." . $this->ext()); 		// i.e. myfile
+		//$basename = $this->pagefiles->cleanBasename($this->basename(), false, false, false);
+		// cleanBasename($basename, $originalize = false, $allowDots = true, $translate = false) 
+		$basename = basename($this->basename(), "." . $this->ext());        // i.e. myfile
+		if($options['cleanFilename'] && strpos($basename, '.') !== false) {
+			$basename = substr($basename, 0, strpos($basename, '.')); 
+		}
 		$basename .= '.' . $width . 'x' . $height . $crop . $suffixStr . "." . $this->ext();	// i.e. myfile.100x100.jpg or myfile.100x100nw-suffix1-suffix2.jpg
 		$filenameFinal = $this->pagefiles->path() . $basename;
 		$filenameUnvalidated = $this->pagefiles->page->filesManager()->getTempPath() . $basename;
@@ -386,6 +400,37 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
+	 * Create a crop and return new Pageimage
+	 * 
+	 * @param int $x Starting X position (left) in pixels
+	 * @param int $y Starting Y position (top) in pixels
+	 * @param int $width Width of crop in pixels
+	 * @param int $height Height of crop in pixels
+	 * @param array $options See options array for size() method. Avoid setting crop properties here since we are overriding them.
+	 * @return Pageimage
+	 *
+	 */
+	public function ___crop($x, $y, $width, $height, $options = array()) {
+		
+		$x = (int) $x;
+		$y = (int) $y;
+		$width = (int) $width;
+		$height = (int) $height;
+		
+		if(empty($options['suffix'])) {
+			$options['suffix'] = array();
+		} else if(!is_array($options['suffix'])) {
+			$options['suffix'] = array($options['suffix']); 
+		}
+		
+		$options['suffix'][] = "cropx{$x}y{$y}"; 
+		$options['cropExtra'] = array($x, $y, $width, $height);
+		$options['cleanFilename'] = true; 
+		
+		return $this->size($width, $height, $options);
+	}
+
+	/**
 	 * Multipurpose: return the width of the Pageimage OR return an image sized with a given width (and proportional height)
 	 *
 	 * If given a width, it'll return a new Pageimage object sized to that width. 
@@ -422,23 +467,29 @@ class Pageimage extends Pagefile {
 	/**
 	 * Return width for hidpi/retina use
 	 * 
-	 * @param float $scale Specify a scale or omit for 0.5
-	 * @return float
+	 * @param float|null $scale Specify a scale or omit (or null) for default of 0.5
+	 * @param int $width Optionally specify width to use (default=pull from image)
+	 * @return int
 	 * 
 	 */	
-	public function hidpiWidth($scale = 0.5) {
-		return ceil($this->width() * $scale); 
+	public function hidpiWidth($scale = null, $width = 0) {
+		if(is_null($scale)) $scale = 0.5;
+		if(!$width) $width = $this->width();
+		return ceil($width * $scale); 
 	}
 
 	/**
 	 * Return height for hidpi/retina use
 	 *
-	 * @param float $scale Specify a scale or omit for 0.5
-	 * @return float
+	 * @param float|null $scale Specify a scale or omit (or 0) for default of 0.5
+	 * @param int $height Optionally specify width to use (default=pull from image)
+	 * @return int
 	 *
 	 */	
-	public function hidpiHeight($scale = 0.5) {
-		return ceil($this->height() * $scale); 
+	public function hidpiHeight($scale = null, $height = 0) {
+		if(is_null($scale)) $scale = 0.5;
+		if(!$height) $height = $this->height();
+		return ceil($height * $scale); 
 	}
 
 	/**
@@ -561,10 +612,11 @@ class Pageimage extends Pagefile {
 	 * has a parent variation image between it and the original. 
 	 * 
 	 * @param string $basename Filename to check
+	 * @param bool $allowSelf When true, it will return variation info even if same as current Pageimage.
 	 * @return bool|array Returns false if not a variation or array of it is
 	 *
 	 */
-	public function ___isVariation($basename) {
+	public function ___isVariation($basename, $allowSelf = false) {
 
 		static $level = 0;
 		$variationName = basename($basename);
@@ -577,7 +629,7 @@ class Pageimage extends Pagefile {
 		}
 	
 		// if file is the same as the original, then it's not a variation
-		if($variationName == $this->basename) return false;
+		if(!$allowSelf && $variationName == $this->basename) return false;
 		
 		// if file doesn't start with the original name then it's not a variation
 		if(strpos($variationName, $originalName) !== 0) return false; 
@@ -592,14 +644,20 @@ class Pageimage extends Pagefile {
 		if($rpos !== false) {
 			$meat = substr($base, $rpos+1) . $ext; // the part of the filename we're interested in
 			$base = substr($base, 0, $rpos); // the rest of the filename
-		} else $meat = $variationName;
+			$parent = "$base." . $this->ext();
+		} else {
+			$meat = $variationName;
+			$parent = null;
+		}
 
 		// identify parent and any parent suffixes
 		$suffixAll = array();
-		$parent = null;
 		while(($pos = strrpos($base, '.')) !== false) {
-			$part = substr($base, $pos+1); // closest parent name
-			if(is_null($parent)) $parent = $originalName . "." . $part . $ext;
+			$part = substr($base, $pos+1); 
+			// if(is_null($parent)) {
+				// $parent = substr($base, 0, $pos) . $ext;
+				//$parent = $originalName . "." . $part . $ext;
+			// }
 			$base = substr($base, 0, $pos); 
 			while(($rpos = strrpos($part, '-')) !== false) {
 				$suffixAll[] = substr($part, $rpos+1); 
@@ -629,6 +687,7 @@ class Pageimage extends Pagefile {
 		if(preg_match($re1, $meat, $matches)) {
 			// this is a variation with dimensions, return array of info
 			$info = array(
+				'name' => $basename, 
 				'url' => $this->pagefiles->url . $basename, 
 				'path' => $this->pagefiles->path . $basename, 
 				'original' => $originalName . '.' . $this->ext(),
@@ -642,6 +701,7 @@ class Pageimage extends Pagefile {
 		
 			// this is a variation only with suffix
 			$info = array(
+				'name' => $basename, 
 				'url' => $this->pagefiles->url . $basename,
 				'path' => $this->pagefiles->path . $basename, 
 				'original' => $originalName . '.' . $this->ext(),
@@ -654,12 +714,25 @@ class Pageimage extends Pagefile {
 		} else {
 			return false; 
 		}
+		
+		$info['hidpiWidth'] = $this->hidpiWidth(null, $info['width']);
+		$info['hidpiHeight'] = $this->hidpiWidth(null, $info['height']); 
+	
+		if(empty($info['crop'])) {
+			// attempt to extract crop info from suffix
+			foreach($info['suffix'] as $key => $suffix) {
+				if(strpos($suffix, 'cropx') === 0) {
+					$info['crop'] = ltrim($suffix, 'crop'); // i.e. x123y456
+				}
+			}
+		}
 
 		if($parent) {
 			// suffixAll includes all parent suffix in addition to current suffix
 			if(!$level) $info['suffixAll'] = array_unique(array_merge($info['suffix'], $suffixAll)); 
 			// parent property is set with more variation info, when available
 			$level++;
+			$info['parentName'] = $parent; 
 			$info['parent'] = $this->isVariation($parent);
 			$level--;
 		}
@@ -709,7 +782,7 @@ class Pageimage extends Pagefile {
 	 */
 	public function getOriginal() {
 		if($this->original) return $this->original; 
-		$info = $this->isVariation($this->basename()); 
+		$info = $this->isVariation($this->basename(), true); 
 		if($info === false) return null;
 		$this->original = $this->pagefiles->get($info['original']); 
 		return $this->original;

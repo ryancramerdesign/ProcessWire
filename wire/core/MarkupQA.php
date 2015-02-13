@@ -212,19 +212,33 @@ class MarkupQA extends Wire {
 			return;
 		}
 
-		// definitely a variation, attempt to re-create it
-		$options = array();
-		if($info['crop']) $options['cropping'] = $info['crop'];
-		if($info['suffix']) $options['suffix'] = $info['suffix'];
-		$newPagefile = $pagefile->size($info['width'], $info['height'], $options);
-		if($newPagefile) {
-			if($newPagefile->basename != $basename) {
-				// new name differs from what is in text. Rename file to be consistent with text.
-				rename($newPagefile->pathname(), $pathname);
+		$info['targetName'] = $basename; 
+		$variations = array($info);
+		while(!empty($info['parent'])) {
+			$variations[] = $info['parent'];
+			$info = $info['parent'];
+		}
+		
+		foreach(array_reverse($variations) as $info) {
+			// definitely a variation, attempt to re-create it
+			$options = array();
+			if($info['crop']) $options['cropping'] = $info['crop'];
+			if($info['suffix']) {
+				$options['suffix'] = $info['suffix'];
+				if(in_array('hidpi', $options['suffix'])) $options['hidpi'] = true;
 			}
-			$this->wire('log')->message("Re-created image variation: $src");
-		} else {
-			$this->error("Unable to re-create image variation ($src)");
+			$newPagefile = $pagefile->size($info['width'], $info['height'], $options);
+			// $this->wire('log')->message("size($info[width], $info[height], " . print_r($options, true) . ")");
+			if($newPagefile) {
+				if(!empty($info['targetName']) && $newPagefile->basename != $info['targetName']) {
+					// new name differs from what is in text. Rename file to be consistent with text.
+					rename($newPagefile->filename(), $pathname);
+				}
+				$this->wire('log')->message("Re-created image variation: $newPagefile->name");
+				$pagefile = $newPagefile; // for next iteration
+			} else {
+				$this->error("Unable to re-create image variation ($newPagefile->name)");
+			}
 		}
 	}
 

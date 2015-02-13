@@ -10,7 +10,15 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
- *
+ * 
+ * @property int $hidpiDefault HiDPI/Retina checkbox default checked?
+ * @property int $noThumbs Do not generate thumbnail images (make image selection will use full-size images).
+ * @property string skipFields Space separated field names to skip for selection of images. 
+ * @property int $noSizeAttrs Skip width attributes on image tags? (not recommended if you want HiDPI support)
+ * @property string $alignLeftClass Align left class (align_left recommended)
+ * @property string $alignRightClass Align right class (align_right recommended)
+ * @property string $alignCenterClass Align center class (align_center recommended)
+ * 
  */
 
 class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
@@ -19,7 +27,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Edit Image',
 			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)',
-			'version' => 111,
+			'version' => 112,
 			'permanent' => true,
 			'permission' => 'page-edit',
 		);
@@ -34,6 +42,9 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	protected $editHeight = 0;
 	protected $hidpi = false;
 	protected $extensions = 'jpg|jpeg|gif|png|svg';
+	protected $labels = array();
+	protected $rte = true; // in RTE mode?
+	protected $field = null;
 
 	protected static $defaultConfig = array(
 		'hidpiDefault' => 0, 
@@ -50,7 +61,28 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	 * 
 	 */
 	public function __construct() {
-		foreach(self::$defaultConfig as $key => $value) $this->set($key, $value); 
+		foreach(self::$defaultConfig as $key => $value) $this->set($key, $value);
+		$this->labels = array(
+			'width' => $this->_('Width:'),
+			'height' => $this->_('Height:'),
+			'top' => $this->_('Top:'),
+			'left' => $this->_('Left:'),
+			'hidpi' => $this->_('HiDPI/Retina'),
+			'description' => $this->_('Description'),
+			'linkOriginal' => $this->_('Link to larger/original version'),
+			'resize' => $this->_('Resize'),
+			'crop' => $this->_('Crop'),
+			'saveCrop' => $this->_('Save Crop'),
+			'max' => $this->_('Maximize/full width'),
+			'min' => $this->_('Minimize/fit to screen'),
+			'cancel' => $this->_('Cancel'),
+			'alignLeft' => $this->_('Align Left'),
+			'alignRight' => $this->_('Align Right'),
+			'alignCenter' => $this->_('Align Center'),
+			'saveReplace' => $this->_('Save'),
+			'saveCopy' => $this->_('Save as Copy'), 
+			'saving' => $this->_('Saving...'),
+		);
 	}
 
 	/**
@@ -64,7 +96,8 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		if($this->config->demo) throw new WireException("Sorry, image editing functions are disabled in demo mode"); 
 		
 		$this->modules->get("ProcessPageList");
-		
+	
+		$this->rte = $this->input->get('rte') !== null && $this->input->get('rte') == "0" ? false : true;
 		$id = (int) $this->input->get->id; 
 		$editID = (int) $this->input->get->edit_page_id; 
 		
@@ -80,6 +113,13 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 				$this->editorPage = null;
 				$this->wire('session')->remove($this, 'edit_page_id'); 
 			}
+		}
+	
+		$fieldName = $this->wire('sanitizer')->fieldName($this->wire('input')->get('field')); 
+		if($fieldName) {
+			$this->field = $this->wire('fields')->get($fieldName); 
+			if(!$this->field) throw new WireException("Unknown field $fieldName"); 
+			if(!$this->field->type instanceof FieldtypeImage) throw new WireException("Field $fieldName is not an instance of FieldtypeImage"); 
 		}
 		
 		// if no ID was specified, then retrieive ID from filename path, if it's there
@@ -124,30 +164,66 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 
 		parent::init();
 	}
-
+	
 	/**
 	 * Return the Pageimage object being edited
 	 * 
+	 * @param bool $getVariation Returns the variation specified in the URL. Otherwise returns original (default). 
 	 * @return Pageimage
 	 * @throws WireException
 	 * 
 	 */
-	public function getPageimage() {
+	public function getPageimage($getVariation = false) {
 
 		$images = $this->getImages($this->page);
-		$filename = basename($this->input->get->file); 
-		if(strpos($filename, ',') === false) $filename = $this->page->id . ',' . $filename; // prepend ID if it's not there, needed for ajax in-editor resize
-		if(!preg_match('/\.(' . $this->extensions . ')$/iD', $filename, $matches)) throw new WireException("Unknown image file"); 
+		$file = basename($this->input->get->file);
+		$variationFilename = '';
+		
+		if(strpos($file, ',') === false) {
+			// prepend ID if it's not there, needed for ajax in-editor resize
+			$originalFilename = $file;
+			$file = $this->page->id . ',' . $file; 
+		} else {
+			// alrelady has a "123," at beginning
+			list($unused, $originalFilename) = explode(',', $file);
+		}
+		
+		$originalFilename = $this->wire('sanitizer')->filename($originalFilename, false, 1024);
+		
+		// if requested file does not match one of our allowed extensions, abort
+		if(!preg_match('/\.(' . $this->extensions . ')$/iD', $file, $matches)) throw new WireException("Unknown image file"); 
 
 		// get the original, non resized version, if present
-		if(preg_match('/(\.(\d+)x(\d+)(-[-_a-z0-9]+)?)\.' . $matches[1] . '$/', $filename, $matches)) {
-			// original.600x400-suffix1-suffix2.ext
+		// format:            w x h    crop       -suffix
+		if(preg_match('/(\.(\d+)x(\d+)([a-z0-9]*)(-[-_.a-z0-9]+)?)\.' . $matches[1] . '$/', $file, $matches)) {
+			// filename referenced in $_GET['file'] IS a variation
+			// Follows format: original.600x400-suffix1-suffix2.ext
 			$this->editWidth = (int) $matches[2];
-			$this->editHeight = (int) $matches[3]; 
-			$filename = str_replace($matches[1], '', $filename); // remove dimensions and optional suffix
+			$this->editHeight = (int) $matches[3];
+			$variationFilename = $originalFilename; 
+			$originalFilename = str_replace($matches[1], '', $originalFilename); // remove dimensions and optional suffix
+		} else {
+			// filename referenced in $_GET['file'] is NOT a variation
+			$getVariation = false; 
 		}
-		if(!array_key_exists($filename, $images)) throw new WireException("Invalid image file: $filename"); 
-		return $images[$filename]; 
+
+		// update $file as sanitized version and with original filename only
+		$file = "{$this->page->id},$originalFilename"; 
+		
+		// if requested file is not one that we have, abort
+		if(!array_key_exists($file, $images)) throw new WireException("Invalid image file: $file");
+
+		// return original
+		if(!$getVariation) return $images[$file];
+		
+		// get variation
+		$original = $images[$file]; 
+		$variationPathname = $original->pagefiles->path() . $variationFilename; 
+		$pageimage = null;
+		if(is_file($variationPathname)) $pageimage = new Pageimage($original->pagefiles, $variationPathname); 
+		if(!$pageimage) throw new WireException("Unrecognized variation file: $file"); 
+		
+		return $pageimage; 
 	}
 
 	/**
@@ -267,19 +343,101 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	}
 
 	/**
+	 * Given a Pageimage, return the closest/last cropped version of it
+	 * 
+	 * This is so that resizes can use the highest quality version to resize from. 
+	 * 
+	 * @param Pageimage $image
+	 * @return Pageimage
+	 * 
+	 */
+	protected function getLastCrop(Pageimage $image) {
+		$info = $image->isVariation($image->name, true);
+		if(!$info || !empty($info['crop'])) {
+			return $image;
+		}
+		$cropName = null;
+		$parentInfo = $info;
+		while(!empty($parentInfo['parent'])) {
+			$parentInfo = $parentInfo['parent'];
+			if(!empty($parentInfo['crop'])) {
+				$cropName = $parentInfo['name'];
+				break;
+			}
+		}
+		$original = $image->getOriginal();
+		
+		// if no last crop found, return original
+		if(!$cropName) return $original;
+		
+		$variations = $original->getVariations();
+		
+		// return last found crop
+		$cropImage = $variations->get($cropName);
+		return $cropImage ? $cropImage : $original; 	
+	}
+
+	/**
+	 * Make a image edit URL
+	 * 
+	 * @param string $file
+	 * @param array $parts Additional variables you want to add
+	 * @return string
+	 * 
+	 */
+	protected function makeEditURL($file, $parts = array()) {
+		
+		$file = basename($file); 
+		$id = isset($parts['id']) ? (int) $parts['id'] : $this->page->id; 
+		
+		if(!isset($parts['modal'])) $parts['modal'] = 1;
+		if(!isset($parts['edit_page_id']) && $this->editorPage) $parts['edit_page_id'] = $this->editorPage->id; 
+		if(!isset($parts['hidpi'])) $parts['hidpi'] = (int) $this->hidpi; 
+		if(!$this->rte) $parts['rte'] = '0';
+		if($this->field) $parts['field'] = $this->field->name; 
+		
+		if(!isset($parts['winwidth'])) {
+			$winwidth = (int) $this->wire('input')->get('winwidth'); 
+			if($winwidth) $parts['winwidth'] = $winwidth; 
+		}
+		
+		// @todo should we check for 'class' ?
+		
+		unset($parts['id'], $parts['file']); // in case they are set here
+		
+		$url = $this->wire('config')->urls->admin . "page/image/edit/?id=$id&file=$id,$file";
+		
+		foreach($parts as $key => $value) $url .= "&$key=$value";
+		
+		return $url;
+	}
+
+	/**
 	 * Edit a selected image
 	 * 
 	 * Required GET variables:
-	 * 	- file (string): URL of image
-	 * 	- edit_page_id (int): ID of the page being edited, where image will be placed.
+	 * 	- file (string): URL of image, or preferably "123,basename.jpg" where 123 is ID. 
+	 *  - id (int): ID of page images is from, optional if specified in 'file'.
 	 *
 	 * Optional GET variables:
+	 * 	- edit_page_id (int): ID of the page being edited, where image will be placed.
 	 * 	- width (int): Current width of image in the editor
 	 * 	- height (int): Current height of image in the editor
 	 * 	- winwidth (int): Current width of client-side window in pixels
 	 * 	- id (int): ID of the page the image lives on (if omitted, we attempt to determine from 'file' path).
 	 * 	- class (string): Class name to pass along to the editor (i.e. align_left, align_right, etc.)
 	 * 	- hidpi (int): Whether hidpi mode is used or not (0=no, 1=yes)
+	 * 	- link: (string): URL that image is linking to in the editor.
+	 * 	- description: (string): Text for description "alt" tag. 
+	 * 	- rte (int): Rich text editor mode (0=off, 1 or omit=on)
+	 * 	- field (string): Name of field (for non-rte mode)
+	 * 
+	 * Optional GET variables that must come together as a group. When present, the image editor 
+	 * will start in crop mode and show the original image with this portion selected for crop:
+	 * 	- crop_x (int): Predefined crop left position
+	 * 	- crop_y (int): Predefined crop top position
+	 * 	- crop_w (int): Predefined crop width
+	 * 	- crop_h (int): Predefined crop height
 	 * 
 	 * @return string
 	 * @throws WireException
@@ -287,116 +445,340 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	 */
 	public function ___executeEdit() {
 
-		$attrs = array(
-			'class' => '', 
-			'width' => 0,
-			'height' => 0, 
-			); 
-		$image = $this->getPageimage();
+		if($this->wire('input')->post('submit_crop')) {
+			$crop = $this->processCrop();
+			$parts = $this->hidpi ? array('width' => $crop->hidpiWidth()) : array();
+			$this->wire('session')->redirect($this->makeEditURL($crop->basename, $parts)); 
+			return;
+		} else if($this->wire('input')->post('submit_save_replace')) {
+			return $this->processSave(true); 
+		} else if($this->wire('input')->post('submit_save_copy')) {
+			return $this->processSave(false);
+		}
+	
+		$path = $this->wire('config')->urls->ProcessPageEditImageSelect; 
+		$this->wire('config')->styles->add($path . 'cropper/cropper.min.css');
+		$this->wire('config')->scripts->add($path . 'cropper/cropper.min.js'); 
+	
+		$labels =& $this->labels;
+		$formClasses = array();
+		
+		$icons = array(
+			'top' => 'long-arrow-up',
+			'left' => 'long-arrow-left', 
+			'width' => 'arrows-h', 
+			'height' => 'arrows-v', 
+		);
+		foreach($icons as $key => $value) {
+			$icons[$key] = "<i class='fa fa-fw fa-$value ui-priority-secondary'></i>";
+		}
+
+		$optionalClasses = array(
+			$this->alignLeftClass => $labels['alignLeft'], 
+			$this->alignRightClass => $labels['alignRight'], 
+			$this->alignCenterClass => $labels['alignCenter'], 
+		);
+
+		$cropX = null; 
+		$cropY = null; 
+		$cropWidth = null; 
+		$cropHeight = null;
+		$isCropped = preg_match_all('/\.(\d+)x(\d+).*?-crop[xy](\d+)[xy](\d+)[-.]/', $this->wire('input')->get('file'), $matches); 
+		
+		if($isCropped) { // get last coordinates present
+			$cropWidth = (int) array_pop($matches[1]);
+			$cropHeight = (int) array_pop($matches[2]);
+			$cropX = (int) array_pop($matches[3]); 
+			$cropY = (int) array_pop($matches[4]); 
+		}
+		
+		$isCroppable = !$isCropped;
+		$original = $this->getPageimage(false); 
+		
+		if($isCropped) {
+			$image = $this->getPageimage(true); 
+			$recropURL = $this->makeEditURL($original->basename, array(
+				'crop_x' => $cropX,
+				'crop_y' => $cropY, 
+				'crop_w' => $cropWidth, 
+				'crop_h' => $cropHeight
+			));
+		} else {
+			$recropURL = "";
+			$image = $original;
+		}
+		
 		if(!is_file($image->filename)) throw new WireException("Image file does not exist"); 
+		
 		$basename = $image->basename;
-		$fullname = $image->page->id . ',' . $basename; 
+		$fullname = $image->page->id . ',' . $basename;  // "123,basename.jpg"
 
 		$originalWidth = $image->width();
 		$originalHeight = $image->height();
 
-		$width = (int) $this->input->get->width; 
-		$height = (int) $this->input->get->height; 
+		
+		// attributes for #selected_image
+		$attrs = array(
+			'class' => '',
+			'width' => 0,
+			'height' => 0,
+			'data-origwidth' => $originalWidth,
+			'data-origheight' => $originalHeight,
+			'data-nosize' => ($this->noSizeAttrs ? '1' : ''),
+		);
+		
+		// bundle in crop information to image attributes, if specified
+		if($this->wire('input')->get('crop_x')) {
+			$attrs['data-crop'] =
+				((int) $this->wire('input')->get('crop_x')) . ',' .
+				((int) $this->wire('input')->get('crop_y')) . ',' .
+				((int) $this->wire('input')->get('crop_w')) . ',' .
+				((int) $this->wire('input')->get('crop_h'));
+		}
+
+		// determine width/height we will display image at in editor, so that it fits
+		$width = (int) $this->input->get('width'); 
+		$height = (int) $this->input->get('height'); 
 		if(!$width) $width = $this->editWidth; 
 		if(!$width) $width = '';
 		if(!$height) $height = $this->editHeight; 
 		if(!$height) $height = '';
+		
+		// if width not specified in edit URL and image exceeds the window width, then scale to fit window
+		if(!$width) {
+			$width = $image->width; 
+			$attrs['data-fit'] = '1';
+		}
+		$attrs['width'] = $width;
+		$this->wire('processBrowserTitle', $basename); 
 
 		// if they aren't already working with a resized image, and it's being scaled down,
-		// then add the 'resized' class to ensure that our pwimage plugin knows to perform the resize
+		// then add the 'resized' class to ensure that our RTE 'pwimage' plugin knows to perform the resize
+		// by checking for the 'resized' classname on the image
 		if(basename($this->input->get->file) == $fullname && $originalWidth > $width) $attrs['class'] .= " resized";
+	
+		// if hidpi specified keep it checed
 		$hidpiChecked = $this->hidpi ? " checked='checked'" : "";
-
-		$out =	
-			"\n<form id='selected_image_settings' action='./?id={$this->page->id}&amp;file=$fullname'>" . 
-			"\n\t<p id='wrap_info'>" . 
-			"\n\t\t<span id='selected_image_filename'>" . htmlentities($basename, ENT_QUOTES, 'UTF-8') . "</span> &nbsp;&bull;&nbsp; " . 
-			"\n\t\t<span id='selected_image_pixels'>" . 
-			"\n\t\t\t<label>" . $this->_('Width:') . " <input id='input_width' class='input_pixels' type='number' size='6' step='1' min='1' max='$originalWidth' value='$width' /></label>&nbsp; " . 
-			"\n\t\t\t<label>" . $this->_('Height:') . " <input id='input_height' class='input_pixels' type='number' size='6' step='1' min='1' max='$originalHeight' value='$height' /></label>" . 
-			"\n\t\t</span>&nbsp; " . 
-			"\n\t\t<span><label><input$hidpiChecked id='selected_image_hidpi' type='checkbox' value='1' /> " . $this->_('HiDPI/Retina') . "</label> " . 
-			"\n\t</p>";
-
-		$description = isset($_GET['description']) ? $this->input->get->description : $image->description; 
-		if(strlen($description) > 1024) $description = substr($description, 0, 1024); 
-		$description = htmlentities($description, ENT_QUOTES, "UTF-8"); 
-
-		$descriptionLabel = $this->_('Description'); 
-
-		$out .= 
-			"\n\t<p id='wrap_description'>" . 
-			"\n\t\t<label for='selected_image_description'>$descriptionLabel</label>" . 
-			"\n\t\t<input type='text' placeholder='$descriptionLabel' name='selected_image_description' id='selected_image_description' class='no_focus' value=\"$description\" />" . 
-			"\n\t</p>"; 
-
-		$out .= 
-			"\n\t<p id='wrap_class'>" . 
-			"\n\t\t<select id='selected_image_class' name='class'>" . 
-			"\n\t\t\t<option>" . $this->_('No Alignment') . "</option>"; 
-
-		$optionalClasses = array(
-			$this->alignLeftClass => $this->_('Align Left'),
-			$this->alignRightClass => $this->_('Align Right'),
-			$this->alignCenterClass => $this->_('Align Center'),
-			);
-
+	
+		// alignment class options
+		$classOptions = '';
 		foreach($optionalClasses as $class => $label) {
+			$labelKey = array_search($label, $labels); 
 			$selected = strpos($this->input->get('class'), $class) !== false ? " selected='selected'" : '';
 			if($selected) $attrs['class'] .= " $class";
-			$out .= "\n\t\t\t<option$selected value='$class'>$label</option>";
+			$classOptions .= "<option$selected data-label='$labelKey' value='$class'>$label</option>";
+		}
+	
+		// convert $attrs to an attribute string for placement in #selected_image markup
+		$attrStr = ''; 
+		foreach($attrs as $key => $value) {
+			if(!$value && $key != 'data-nosize') continue; // skip most empty attributes
+			$attrStr .= "$key='" . trim($value) . "' ";
 		}
 
-		$out .= "\n\t\t</select> &nbsp; " .
-			"\n\t\t<span class='detail'>" . $this->_("You can also drag the lower right corner of the image to resize.") . "</span>" . 
-			"\n\t</p>"; 
 
-		if(!$width && $image->width() > $this->maxImageWidth) {	
-			$width = $this->maxImageWidth; 
-			$height = floor(($width / $image->width()) * $image->height()); // $height = 0; 
-		}
-
-		if($width) $attrs['width'] = $width; 
-		if($width && $height) $attrs['height'] = $height; 
-
-		if($width != $originalWidth) { 
-			$imgURL = str_replace($this->wire('config')->urls->root, '/', $image->url); 
-			$imgLink = trim($this->input->get->link);
-			if($imgLink) {
-				$test = substr($imgLink, -1 * strlen($imgURL));
-				$checked = $test == $imgURL ? " checked='checked' data-was-checked='1'" : "";
-			} else {
-				$checked = '';
+		// prepare description (alt)
+		$description = isset($_GET['description']) ? $this->input->get('description') : ''; // $image->description;
+		if(strlen($description) > 8192) $description = substr($description, 0, 8192);
+		$description = $this->wire('sanitizer')->entities($description); 
+		
+		// if dealing with a variation size or crop provide the option to link to the original (larger)
+		$linkOriginalChecked = '';
+		if($image->name != $original->name) {
+			$formClasses[] = 'not-original';
+			$imgURL = str_replace($this->wire('config')->urls->root, '/', $original->url);
+			$imgLinkURL = trim($this->input->get('link'));
+			if($imgLinkURL) {
+				// determine if 'link to original' checkbox should be checked 
+				$test = substr($imgLinkURL, -1 * strlen($imgURL));
+				$linkOriginalChecked = $test == $imgURL ? " checked='checked' data-was-checked='1'" : "";
 			}
-			$out .= 
-				"\n\t<p id='wrap_link_original'>" . 
-				"\n\t\t<label>" . 
-				"\n\t\t\t<input type='checkbox'$checked name='selected_image_link' id='selected_image_link' value='{$image->url}' /> " . $this->_('Link to Larger Version?') . 
-				"\n\t\t\t<span class='detail'>({$originalWidth}x{$originalHeight})</span> " . 
-				"\n\t\t</label>" . 
-				"\n\t</p>";
+		} else {
+			$formClasses[] = 'original';
 		}
+		
+		// form attributes
+		$formClasses[] = $isCroppable ? 'croppable' : 'not-croppable';
+		$formClasses[] = $this->rte ? 'rte' : 'not-rte';
+		$formClass = implode(' ', $formClasses); 
+		$formActionURL = $this->makeEditURL($basename);
 
-
-		$out .= "\n\t<input type='hidden' name='page_id' id='page_id' value='{$this->page->id}' />";	
-		$out .=	"\n</form>";
-
-		$attrStr = '';
-		foreach($attrs as $key => $value) if($value) $attrStr .= "$key='" . trim($value) . "' ";
-		$nosize = $this->noSizeAttrs ? 1 : '';
-
-		$out .= 
-			"\n\t<div id='selected_image_container'>" . 
-			"\n\t\t<img id='selected_image' $attrStr alt='' data-nosize='$nosize' data-idname='{$image->page->id},{$image->basename}' src='{$image->url}' />" . 
-			"\n\t</div>";
+		// form header and inputs
+		// @todo move all this markup to a separate template file
+		$out =	
+			"<form id='selected_image_settings' class='$formClass' method='post' action='$formActionURL'>" .
+			"<small>" . 
+			"<p id='wrap_info'>" .
+				"<select id='selected_image_class' name='class'>" .
+					"<option>" . $this->_('No Alignment') . "</option>" .
+					$classOptions .
+				"</select>" . 
+				"<span class='hide_when_crop'>" . 
+					"<span id='selected_image_pixels'>" . 
+						"<label><input title='$labels[width]' name='width' id='input_width' class='input_pixels' " .
+							"type='number' size='6' step='1' min='1' max='$originalWidth' value='$width' /></label>" .
+						"&nbsp;<i class='fa fa-times'></i>&nbsp;" . 
+						"<label><input title='$labels[height]' name='height' id='input_height' class='input_pixels' " . 
+							"type='number' size='6' step='1' min='1' max='$originalHeight' value='$height' /></label>" . 
+					"</span>&nbsp;&nbsp; " .
+					"<span id='wrap_link_original' class='show_when_rte'>" .
+						"<label>" .
+							"<input title='$labels[linkOriginal]' type='checkbox'$linkOriginalChecked " .
+								"name='selected_image_link' id='selected_image_link' value='{$original->url}' /> " .
+							"<i class='fa fa-link ui-priority-secondary'></i>&nbsp;" .
+							"<span class='ui-priority-secondary'>{$original->width}x{$original->height}</span> " .
+						"</label>" .
+					"</span>" . 
+					"<span class='show_when_rte'>" .
+						"<label><input$hidpiChecked id='selected_image_hidpi' type='checkbox' value='1' /> $labels[hidpi]</label>" .
+					"</span> " . 
+				"</span>" . // hide_when_crop
+				"<button type='button' class='ui-button ui-state-active show-when-processing' id='button_saving'>" .
+					"<span class='ui-button-text'><i class='fa fa-spin fa-spinner'></i> $labels[saving]</span>" .
+				"</button> " .
+				"<span class='show_when_crop'>" .
+					"<button type='submit' class='ui-button ui-state-default hide-when-processing' id='button_crop' name='submit_crop' value='1'>" .
+						"<span class='ui-button-text'><i class='fa fa-crop'></i> $labels[saveCrop]</span>" .
+					"</button> " .
+					"<button type='button' class='hide-when-processing ui-button ui-state-default ui-priority-secondary' id='button_cancel_crop'>" .
+						"<span class='ui-button-text'><i class='fa fa-times-circle'></i> $labels[cancel]</span>" .
+					"</button> &nbsp; " . 
+					"<span id='crop_coordinates'>" . 
+						"<label>$icons[left]<input title='$labels[left]' name='crop_x' id='crop_x' class='input_pixels' type='number' size='6' step='1' min='0' /></label> " .
+						"<label>$icons[top]<input title='$labels[top]' name='crop_y' id='crop_y' class='input_pixels' type='number' size='6' step='1' min='0' /></label> " .
+						"<label>$icons[width]<input title='$labels[width]' name='crop_w' id='crop_w' class='input_pixels' type='number' size='6' step='1' min='0' /></label> " .
+						"<label>$icons[height]<input title='$labels[height]' name='crop_h' id='crop_h' class='input_pixels' type='number' size='6' step='1' min='0' /></label> " .
+					"</span>" . 
+				"</span>" .
+				"<button type='button' id='loading_button' class='ui-button ui-state-default'>" .
+					"<span class='ui-button-text'>" . $this->_('Loading...')  ."</span>" .
+				"</button>" . 
+			"</p>" . 
+			"<p id='wrap_description' class='show_when_rte'>" . 
+				"<label for='selected_image_description'>$labels[description]</label>" . 
+				"<input type='text' placeholder='$labels[description]' name='selected_image_description' " . 
+					"id='selected_image_description' class='no_focus' value=\"$description\" />" . 
+			"</p>" . 
+			"</small>" . 
+			"<div id='selected_image_container'>" . 
+				"<img id='selected_image' $attrStr alt='' " . 
+					"data-idname='{$image->page->id},{$image->basename}' src='{$image->url}' />" . 
+				"<span id='action_icons'>" . 
+					"<span title='$labels[resize]' id='resize_action'><i class='fa fa-fw fa-arrows-alt'></i></span>" . 
+					"<span title='$labels[crop]' data-recrop='$recropURL' id='crop_action'><i class='fa fa-fw fa-crop'></i></span>" .
+					"<span title='$labels[max] ({$originalWidth}x{$originalHeight})' id='max_action'><i class='fa fa-fw fa-expand'></i></span>" . 
+					"<span title='$labels[min]' id='min_action'><i class='fa fa-fw fa-compress'></i></span>" .
+					"<span title='$labels[alignLeft]' data-label='alignLeft' class='align_action show_when_rte' id='align_left_action'><i class='fa fa-fw fa-align-left'></i></span>" .
+					"<span title='$labels[alignCenter]' data-label='alignCenter' class='align_action show_when_rte' id='align_center_action'><i class='fa fa-fw fa-align-center'></i></span>" .
+					"<span title='$labels[alignRight]' data-label='alignRight' class='align_action show_when_rte' id='align_right_action'><i class='fa fa-fw fa-align-right'></i></span>" .
+					"<span title='$labels[description]' id='description_action' class='show_when_rte'><i class='fa fa-fw fa-quote-left'></i></span>" . 
+				"</span>" .
+				"<span id='resize_tips'>" .
+					"<span class='resize_tip' id='resize_tip_nw'><i class='fa fa-fw fa-expand fa-flip-horizontal'></i></span>" .
+					"<span class='resize_tip' id='resize_tip_n'><i class='fa fa-fw fa-arrows-v'></i></span>" .
+					"<span class='resize_tip' id='resize_tip_ne'><i class='fa fa-fw fa-expand'></i></span>" .
+					"<span class='resize_tip' id='resize_tip_e'><i class='fa fa-fw fa-arrows-h'></i></span>" .
+					"<span class='resize_tip' id='resize_tip_se'><i class='fa fa-fw fa-expand fa-flip-horizontal'></i></span>" .
+					"<span class='resize_tip' id='resize_tip_s'><i class='fa fa-fw fa-arrows-v'></i></span>" .
+					"<span class='resize_tip' id='resize_tip_sw'><i class='fa fa-fw fa-expand'></i></span>" .
+					"<span class='resize_tip' id='resize_tip_w'><i class='fa fa-fw fa-arrows-h'></i></span>" . 
+				"</span>" . 
+			"</div>" . 
+			"<p id='latin'>" . 
+				"<span id='latin-fade'></span>" . $this->getLatin(2) . 
+			"</p>" . 
+			"<span id='selected_image_filename'>$basename</span>" .
+			"<input type='hidden' name='page_id' id='page_id' value='{$this->page->id}' />" .
+			"<p id='non_rte_dialog_buttons' class='hide_when_rte'>" . 
+				"<button type='submit' class='submit_save_copy' name='submit_save_copy' value='1' class='ui-button ui-state-default'>" .
+					"<span class='ui-button-text'>$labels[saveCopy]</span>" .
+				"</button>" .
+				"<button type='submit' class='submit_save_replace' name='submit_save_replace' value='1' class='ui-button ui-state-default ui-priority-secondary'>" .
+					"<span class='ui-button-text'>$labels[saveReplace]</span>" .
+				"</button>" .
+				"<button type='button' id='non_rte_cancel' class='ui-button ui-state-default ui-priority-secondary'>" . 
+					"<span class='ui-button-text'>$labels[cancel]</span>" . 
+				"</button>" . 
+			"</p>"  .
+			"</form>";
 
 		return $out; 
 		
+	}
+	
+	protected function getLatin($n = 1) {
+		$latin = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. In malesuada magna ex. Donec sed consectetur felis, 
+			ac molestie massa. Duis fermentum rutrum vehicula. Praesent consequat efficitur dolor quis vestibulum.
+			Sed vulputate, nisi et efficitur semper, erat odio scelerisque massa, nec convallis leo ipsum ac eros. Donec a 
+			augue eleifend, pellentesque sapien a, tristique orci. Sed ac leo vel libero iaculis facilisis in at mauris.
+			Etiam vitae mi cursus nisl gravida vulputate. Nam in magna risus. Nullam vel suscipit lacus. Ut sit amet malesuada 
+			massa. Etiam rhoncus, tellus vel porta dignissim, elit massa cursus tortor, vitae fermentum dolor augue ac tortor.
+			Aliquam eleifend mi at dictum pulvinar. Sed bibendum dolor non mi placerat, euismod euismod est commodo.
+			Vivamus ultrices orci arcu, sed pulvinar tellus molestie quis. Quisque pharetra velit a metus mattis, vitae 
+			fermentum orci hendrerit. Fusce id libero ac urna ultrices consequat. Donec lorem lacus, dignissim vitae faucibus 
+			eget, tincidunt sit amet felis. Aenean tempor quis sapien vitae euismod. Donec mattis mi at sem egestas interdum.
+			Integer sed diam finibus, volutpat lectus ac, ornare dui. Suspendisse potenti. Suspendisse sagittis interdum 
+			elit sodales commodo. Maecenas porttitor mi sit amet velit porta, sit amet eleifend massa malesuada. Phasellus 
+			luctus nibh id sem venenatis, dictum fermentum turpis hendrerit. Nam tempor, ex eu sagittis gravida, mi lorem 
+			maximus ex, aliquam commodo nunc leo et lacus. Nunc vel faucibus lacus, non pellentesque elit. Nulla non rutrum 
+			magna, nec porta augue. ";
+		$out = '';
+		for($c = 1; $c <= $n; $c++) $out .= $latin;
+		return $out; 
+	}
+	
+	protected function processCrop() {
+	
+		$post = $this->wire('input')->post; 
+		
+		$cropX = (int) $post->crop_x;
+		$cropY = (int) $post->crop_y; 
+		$cropW = (int) $post->crop_w;
+		$cropH = (int) $post->crop_h; 
+		
+		$image = $this->getPageimage();
+		if(!$image) throw new WireException("Unable to load image");
+
+		$options = array('cleanFilename' => true, 'suffix' => array('is'));
+		$crop = $image->crop($cropX, $cropY, $cropW, $cropH, $options); 
+		
+		return $crop; 
+	}
+	
+	protected function processSave($replace = false) {
+		
+		if(!$this->field) throw new WireException("Field is not defined"); 
+		$image = $this->getPageimage(false);
+		if($this->input->get('file') != "$this->page,$image->name") $image = $this->getPageimage(true); 
+		$width = (int) $this->wire('input')->post('width');
+		if(!$width) throw new WireException("Width not specified"); 
+		
+		if($width == $image->width) {
+			// no resize necessary
+			return;
+		}
+		$image2 = $image->width($width); 
+		if(!$image2 || !$image2->width) throw new WireException('Unable to complete resize'); 
+		
+		if($replace) {
+			if(is_file($image->filename())) unlink($image->filename());
+			rename($image2->filename(), $image->filename()); 
+			$this->message($this->_('Replaced:') . ' ' . $image->filename());
+		} else {
+			$pageimages = $this->page->getUnformatted($this->field->name);
+			$path = $pageimages->path();
+			$n = 0; 
+			do {
+				$n++;
+				$basename = "copy-$n-" . $image->basename();
+			} while(is_file($path . $basename)); 
+			rename($image2->filename(), $path . $basename); 
+			$pageimages->add($path . $basename); 
+			$this->page->save($this->field->name); 
+			$this->message($this->_('Saved image copy:') . " $basename"); 
+		}
+			
+		return "<script>closePWImageDialog();</script>";
 	}
 
 	/**
@@ -432,12 +814,16 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			if($hidpi) $class = trim("$class hidpi");
 		}
 		
-		$image = $this->getPageimage();
+		$image = $this->getPageimage(true);
+		if(strpos($image->basename, '-cropx') !== false) $image = $this->getLastCrop($image); 
 		
-		if($width < $image->width) {
+		if((!$hidpi && $width < $image->width) || ($hidpi && $width < $image->hidpiWidth())) {
 			$suffix = array('is');  // is=image select
 			if($this->editorPage && $this->editorPage->id != $this->page->id) $suffix[] = "pid$this->editorPage"; // identify page that is using the variation
-			$resized = $image->width($width, array('suffix' => $suffix, 'hidpi' => $hidpi)); 
+			$resized = $image->width($width, array(
+				'suffix' => $suffix, 
+				'hidpi' => $hidpi,
+			)); 
 			$height = $resized->height();
 		} else {
 			$width = $image->width; 
@@ -532,7 +918,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			$this->_x('File', 'th'),
 			$this->_x('Size', 'th'),
 			$this->_x('Notes', 'th'),
-			"<label><input type='checkbox' id='delete_all' value='1' /> <i class='fa fa-trash-o'></i></label>", 
+			"<label><input type='checkbox' id='delete_all' value='1' /></label>", 
 		));
 		
 		foreach($variations as $name => $info) {
@@ -544,10 +930,24 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 				$notes[] = $this->_x('Auto-generated admin thumbnail', 'notes'); 
 			}
 			if(!count($notes)) $notes[] = $this->_x('API-generated variation', 'notes');
+			if($info['crop']) $notes[] = $this->_x('Cropped version', 'notes');
+		
+			// identify pid suffixes
+			foreach($info['suffix'] as $suffix) {
+				if(strpos($suffix, 'pid') === 0) {
+					$suffix = ltrim($suffix, 'pid'); 
+					if(ctype_digit($suffix)) $refpage = $this->wire('pages')->get((int) $suffix); 
+					if($refpage->id && $this->wire('user')->hasPermission('page-view', $refpage)) {
+						$notes[] = $this->_x('Inserted from page:', 'notes') . " <a target='_blank' href='$refpage->url'>$refpage->path</a>";
+					}
+				}
+			}
 		
 			$width = (int) $info['width'];
 			$height = (int) $info['height'];
 			if(!$width || !$height) list($width, $height) = getimagesize($info['path']);
+			$dimensions = $width . 'x' . $height; 
+			if(in_array('hidpi', $info['suffix'])) $dimensions .= " ($info[hidpiWidth]x$info[hidpiHeight] {$this->labels['hidpi']})";
 			$filesize = filesize($info['path']); 
 			$filesizeStr = wireBytesStr($filesize);
 			

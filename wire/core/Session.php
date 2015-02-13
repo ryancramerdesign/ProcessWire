@@ -211,7 +211,9 @@ class Session extends Wire implements IteratorAggregate {
 		$fingerprint = '';
 		if($useFingerprint & self::fingerprintRemoteAddr) $fingerprint .= $this->getIP(true);
 		if($useFingerprint & self::fingerprintClientAddr) $fingerprint .= $this->getIP(false, 2);
-		if($useFingerprint & self::fingerprintUseragent) $fingerprint .= $_SERVER['HTTP_USER_AGENT'];
+		if($useFingerprint & self::fingerprintUseragent) {
+			$fingerprint .= isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
+		}
 		$fingerprint = md5($fingerprint);
 		
 		return $fingerprint;

@@ -7,7 +7,8 @@
  * USE 
  * ===
  * 1. In your module call $this->modules->get('JqueryUI')->use('modal'); 
- * 2. For the <a> link you want to open a modal window, give it the class "pw-modal"
+ * 2. For the <a> link you want to open a modal window, give it the class "pw-modal".
+ *    For a larger modal window, also add class "pw-modal-large".
  *
  * ATTRIBUTES  
  * ========== 
@@ -60,28 +61,36 @@ $(document).ready(function() {
 		var url = href + (href.indexOf('?') > -1 ? '&' : '?') + 'modal=1';
 		var title = $a.attr('title'); 
 		var $iframe = $('<iframe class="pw-modal-window" frameborder="0" src="' + url + '"></iframe>');
-		var windowWidth = $(window).width()-100;
-		var windowHeight = $(window).height()-160;
 		var _autoclose = $a.attr('data-autoclose'); 
 		var autoclose = _autoclose != null; // whether autoclose is enabled
 		var autocloseSelector = autoclose && _autoclose.length > 0 ? _autoclose : ''; // autoclose only enabled if clicked button matches this selector
 		var closeSelector = $a.attr('data-close'); // immediately close window (no closeOnLoad) for buttons/links matching this selector
 		var closeOnLoad = false;
+		
+		// attribute holding selector that determines what buttons to show, example: "#content form button.ui-button[type=submit]"
+		var buttonSelector = $a.attr('data-buttons'); 
 
+		if($a.hasClass('pw-modal-large')) {
+			var windowWidth = $(window).width() - 30;
+			var windowHeight = $(window).height() - 145;
+			var windowPosition = [15,15]; 
+		} else {
+			var windowWidth = $(window).width() - 100;
+			var windowHeight = $(window).height() - 160;
+			var windowPosition = [50,49]; 
+			if(buttonSelector) windowHeight -= 70;
+		}
+		
 		// a class of pw-modal-cancel on one of the buttons always does an immediate close
 		if(closeSelector == null) closeSelector = '';
 		closeSelector += (closeSelector.length > 0 ? ', ' : '') + '.pw-modal-cancel'; 
 		
-		// attribute holding selector that determines what buttons to show, example: "#content form button.ui-button[type=submit]"
-		var buttonSelector = $a.attr('data-buttons'); 
-		if(buttonSelector) windowHeight -= 70;
-
 		var $dialog = $iframe.dialog({
 			modal: true,
 			height: windowHeight,
 			width: windowWidth,
 			title: title,
-			position: [50,49],
+			position: windowPosition,
 			show: 250, 
 			hide: 250,
 			close: function(event, ui) {

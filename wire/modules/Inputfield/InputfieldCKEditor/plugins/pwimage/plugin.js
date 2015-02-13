@@ -107,7 +107,7 @@
 			page_id = 0; 
 
 			// pull page_id out of img[src]
-			for(n = 0; n < parts.length; n++) {
+			for(var n = 0; n < parts.length; n++) {
 				page_id = parseInt(parts[n]); 
 				if(page_id > 0) break;
 			}
@@ -116,8 +116,8 @@
 		var modalUri = config.urls.admin + 'page/image/';
 		var queryString = '?id=' + page_id + '&edit_page_id=' + edit_page_id + '&modal=1';
 
-		var windowHeight = $(window).height() - 200; // 350; 
-		var windowWidth = $(window).width() - 100; // 200; 
+		var windowHeight = $(window).height() - 145; // 350; 
+		var windowWidth = $(window).width() - 30; // 200; 
 
 		if(file.length) queryString += "&file=" + file; 
 		if(imgWidth) queryString += "&width=" + imgWidth; 
@@ -135,8 +135,10 @@
 			height: windowHeight,
 			width: windowWidth,
 			//position: [100, 80],
-			position: [50, 40], 
+			position: [15, 15], 
 			modal: true,
+			draggable: false,
+			resizable: false, 
 			overlay: {
 				opacity: 0.7,
 				background: "black"
@@ -207,7 +209,9 @@
 							var $i = $iframe.contents();
 							var $img = $("#selected_image", $i); 
 
-							$iframe.dialog("disable").dialog("option", "title", "<i class='fa fa-fw fa-spin fa-spinner'></i> " + config.InputfieldCKEditor.pwimage.savingNote); // Saving Image
+							$iframe.dialog("disable").dialog("option", "title", 
+								"<i class='fa fa-fw fa-spin fa-spinner'></i> " + 
+								config.InputfieldCKEditor.pwimage.savingNote); // Saving Image
 							$img.removeClass("resized"); 
 
 							var width = $img.attr('width');
@@ -246,8 +250,14 @@
 						class: 'ui-priority-secondary',
 						click: function() { $iframe.dialog("close"); }
 					}
-				]).dialog("option", "title", "<i class='fa fa-fw fa-picture-o'></i> " + config.InputfieldCKEditor.pwimage.editLabel)
-					.width(windowWidth).height(windowHeight); // "Edit Image"
+					
+				]).dialog("option", "title", 
+					"<i class='fa fa-fw fa-picture-o'></i> " +
+					$i.find('title').html()
+					//config.InputfieldCKEditor.pwimage.editLabel + ' (' + // "Edit Image - filename.jpg"
+					
+				).width(windowWidth).height(windowHeight); 
+				
 
 
 			} else {

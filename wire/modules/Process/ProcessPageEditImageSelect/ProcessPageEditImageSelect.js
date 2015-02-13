@@ -1,3 +1,21 @@
+
+function enablePWImageDialogButtons() {
+	var $buttonPane = window.parent.jQuery(".ui-dialog-buttonpane");
+	$buttonPane.find('button').button("enable");
+	return;
+}
+
+function disablePWImageDialogButtons() {
+	var $buttonPane = window.parent.jQuery(".ui-dialog-buttonpane");
+	$buttonPane.find('button').button("disable");
+	return;
+}
+
+function closePWImageDialog() {
+	window.parent.jQuery('iframe.ui-dialog-content').dialog('close'); 
+}
+
+
 function setupExecuteVariations() {
 	var magnificOptions = {
 		type: 'image',
@@ -17,26 +35,46 @@ function setupExecuteVariations() {
 
 function setupSelectedImage() {
 	
+	var croppingActive = false;
+	var $form = $("#selected_image_settings"); 
+	var $container = $("#selected_image_container");
+	var $img = $("#selected_image");
+	var $hidpi = $("#selected_image_hidpi"); 
+	var fullWidth; // full/original width when not resized
+	
 	function setupImage($img) {
 
 		var originalWidth = $img.width();
 		var maxWidth = $("#input_width").attr('max');
 		var maxHeight = $("#input_height").attr('max');
+		
+		
+		function updateHidpiCheckbox(w) {
+			if(w < (fullWidth - (fullWidth * 0.2))) {
+				if(!$hidpi.is(":visible")) $hidpi.closest('label').fadeIn();
+				$hidpi.removeAttr('disabled'); 
+			} else {
+				$hidpi.attr('disabled', 'disabled'); 
+				if($hidpi.is(":visible")) $hidpi.closest('label').fadeOut();
+			}
+		}
 
 		function populateResizeDimensions() {
+			
 			var w = $img.width();
 			var h = $img.height();
+			var $link = $("#wrap_link_original"); 
 
-			if(h >= maxHeight || w >= maxWidth) {
+			if((h >= maxHeight || w >= maxWidth) && $form.hasClass('croppable')) {
 				w = maxWidth;
 				h = maxHeight;
 				$("#selected_image_link").removeAttr('checked');
-				$("#wrap_link_original").hide();
+				$link.hide();
 			} else {
-				if(!$("#wrap_link_original").is(":visible")) {
-					$("#wrap_link_original").fadeIn();
-					if($("#wrap_link_original").attr('data-was-checked') == 1) {
-						$("#wrap_link_original").attr('checked', 'checked');
+				if(!$link.is(":visible")) {
+					$link.fadeIn();
+					if($link.attr('data-was-checked') == 1) {
+						$link.attr('checked', 'checked');
 					}
 				}
 			}
@@ -46,23 +84,146 @@ function setupSelectedImage() {
 
 			$img.attr('width', w);
 			$img.attr('height', h);
+			
+			updateHidpiCheckbox(w); 
+		
+			var $latin = $("#latin"); 
+			if($latin.is(":visible")) $latin.height(h); 
+			
 		}
 
 		function setupImageResizable() {
+			//$img.resizable('destroy');
 			$img.resizable({
 				aspectRatio: true,
+				handles: "n, ne, e, se, s, sw, w",
+				alsoResize: "#selected_image_container",
 				maxWidth: maxWidth,
 				maxHeight: maxHeight,
+				start: function() {
+					$form.addClass('resizing_active'); 
+				},
 				stop: function() {
 					$img.attr('width', $img.width()).attr('height', $img.height());
 					if(originalWidth != $img.width()) $img.addClass('resized');
+					$form.removeClass('resizing_active'); 
+					if($("#resize_action").hasClass('on')) $("#resize_action").click().mouseout();
 				},
 				resize: populateResizeDimensions
 			});
+			$img.addClass('resizable_setup');
 		}
-		setupImageResizable();
+	
+		var cropData = null;
+		
+		function setupImageCroppable() {
+			
+			var cropButtons = [ {
+				html: $("#button_crop").html(),
+				click: function() { $("#button_crop").click(); }
+			}, {
+				html: $("#button_cancel_crop").html(),
+				click: function() { $("#button_cancel_crop").click(); },
+				class: 'ui-priority-secondary'
+			}];
+			
+			$(".show_when_crop").hide();
+			
+			$("#crop_action, .crop_trigger").click(function(e) {
+				
+				var recrop = $(this).attr('data-recrop');
+				if(recrop && recrop.length > 0) {
+					// redirect to crop original 
+					window.location.assign(recrop);
+					return true;
+				}
 
-		var inputPixelsChange = function() {
+				if(!$form.hasClass('croppable')) return;
+				if(croppingActive) return false;
+
+				/*
+				// if image is too small to crop, update it to be large enough
+				if($img.width() < 190 || $img.height() < 190) {
+					if(maxWidth <= 500) {
+						$("#input_width").val(maxWidth).change();
+					} else {
+						$("#input_width").val($(window).width() - 30).change();
+					}
+				}
+				*/
+				
+				
+				croppingActive = true;
+				$("#selected_image_settings").addClass('cropping_active'); 
+				$(".hide_when_crop").hide();
+				$(".show_when_crop").show();
+				if($img.hasClass('resizable_setup')) $img.resizable('destroy');
+		
+				var cropSettings = {
+					autoCrop: true,
+					autoCropArea: 0.35,
+					zoomable: false,
+					rotatable: false,
+					done: function(data) {
+						$("#crop_x").val(Math.floor(data.x));
+						$("#crop_y").val(Math.floor(data.y));
+						$("#crop_w").val(Math.floor(data.width));
+						$("#crop_h").val(Math.floor(data.height));
+						cropData = data;
+					}
+				};
+			
+				// predefined crop settings
+				var crop = $img.attr('data-crop');
+				if(crop && crop.length > 0) {
+					crop = crop.split(',');
+					cropSettings.data = {
+						x: crop[0],
+						y: crop[1],
+						width: crop[2],
+						height: crop[3]
+					}
+					setTimeout(function() { 
+						disablePWImageDialogButtons(cropButtons); 
+					}, 1000); 
+				} else {
+					disablePWImageDialogButtons(cropButtons);
+				}
+
+				$img.cropper(cropSettings);
+				setTimeout(function() {
+					// adjustment for width/height error on images under 190px in either dimension
+					$(".cropper-canvas").width($(".cropper-container").width())
+						.height($(".cropper-container").height());
+				}, 500); 
+			}); 
+			
+			function stopCrop() {
+				$img.cropper("destroy");
+				$(".show_when_crop").hide();
+				$(".hide_when_crop").show();
+				croppingActive = false;
+				$("#selected_image_settings").removeClass('cropping_active'); 
+				setupImageResizable();
+				enablePWImageDialogButtons();
+			}
+			
+			$("#button_cancel_crop").click(function() { stopCrop(); });
+			$("#button_crop").click(function() { 
+				if($form.hasClass('processing')) return false;
+				$form.addClass('processing');
+				return true; 
+			});
+
+			// see if there's a defined pre-crop to start with 
+			if($img.attr('data-crop')) {
+				$("#crop_action").click();
+			}
+		
+
+		}
+		
+		function inputPixelsChange() {
 
 			var w, h;
 
@@ -76,38 +237,171 @@ function setupSelectedImage() {
 
 			w = Math.floor(w);
 			h = Math.floor(h);
-
-			if(w < 1 || h < 1 || w == $img.attr('width') || h == $img.attr('height') || w > maxWidth || h > maxHeight) {
-
+			
+			if(w < 1 || h < 1 || w == $img.attr('width') || h == $img.attr('height') || w > maxWidth) {
 				$("#input_width").val($img.attr('width'));
 				$("#input_height").val($img.attr('height'));
 				return false;
 			}
 
-			$img.resizable("destroy");
+			setupImageResizable();
 			$("#input_height").val(h);
+			$container.width(w).height(h);
+			$img.parent('.ui-wrapper').width(w).height(h); 
 			$img.width(w).height(h).attr('width', w).attr('height', h);
 			$img.addClass('resized');
 			populateResizeDimensions();
-			setupImageResizable();
-		};
-
-		$("#selected_image_settings .input_pixels").change(inputPixelsChange);
-
-		$("#selected_image_class").change(function() {
+		}
+		
+		function alignClassChange() {
 			var resized = $img.is(".resized");
 			$img.attr('class', $(this).val());
+			$container.attr('class', $(this).val());
 			if(resized) $img.addClass('resized');
-		});
+			var float = $container.css('float');
+			var $latin = $("#latin");
+			if(float == 'left' || float == 'right') {
+				if(!$latin.is(":visible")) {
+					$latin.height($container.height());
+					$latin.fadeIn();
+				}
+			} else {
+				if($latin.is(":visible")) $latin.hide();
+			}
+			setupImageResizable();
+		}
+		
+		function setupImageActions() {
+			
+			$('#max_action').click(function() {
+				var origWidth = parseInt($img.attr('data-origwidth')); 
+				if(origWidth > maxWidth) origWidth = maxWidth;
+				//console.log('origWidth=' + origWidth);
+				$("#input_width").val(origWidth).change();
+			});
+			
+			$('#min_action').click(function() {
+				var imgWidth = $img.width();
+				var imgHeight = $img.height();
+				var windowWidth = $(window).width() - 30;
+				var windowHeight = $(window).height() - $("#wrap_info").height() - 20;
+				var updated = false;
+				
+				if(imgHeight > windowHeight) {
+					$("#input_height").val(windowHeight).change();
+					updated = true; 
+				}
+				if(imgWidth > windowWidth) {
+					$("#input_width").val(windowWidth).change();
+					updated = true; 
+				}
+				
+				if(!updated) {
+					// downscale 50%
+					$("#input_width").val(Math.ceil(imgWidth / 2)).change();
+				}
+			}); 
+			
+			$("#align_left_action, #align_center_action, #align_right_action").click(function() {
+				
+				var $select = $("#selected_image_class"); 
+				var labelKey = $(this).attr('data-label'); 
+				
+				if($(this).hasClass('on')) {
+					// remove alignment
+					$select.children("option").removeAttr('selected');
+					$(this).removeClass('on');
+					
+				} else {
+					// set alignment
+					$(this).siblings('.on').removeClass('on');
+					$select.children("option").removeAttr('selected');
+					$select.find("option[data-label=" + labelKey + "]").attr('selected', 'selected');
+					$(this).addClass('on');
+				}
+				
+				$select.change();
+			});
+			
+			// set current 'on' alignment icon
+			var labelKey = $("#selected_image_class").find("option[selected=selected]").attr('data-label'); 
+			if(labelKey) $("#action_icons").find("span[data-label=" + labelKey + "]").addClass('on'); 
+			
+			$("#resize_action").hover(function() {
+				if($(this).hasClass('on')) return;
+				$("#action_icons span:not(#resize_action)").hide();
+				$("#resize_tips").show();
+				$("#input_width, #input_height").addClass('ui-state-highlight'); 
+			}, function() {
+				if($(this).hasClass('on')) return;
+				$("#resize_tips").hide();
+				$("#action_icons span:not(#resize_action)").show();
+				$("#input_width, #input_height").removeClass('ui-state-highlight'); 
+			}).click(function() {
+				if($(this).hasClass('on')) {
+					$(this).removeClass('on');
+					$("#input_width, #input_height").removeClass('ui-state-highlight'); 
+				} else {
+					$(this).addClass('on');
+					$("#input_width, #input_height").addClass('ui-state-highlight'); 
+				}
+			}); 
+			
+			$("#description_action").click(function() {
+				if($(this).hasClass('on')) {
+					$(this).removeClass('on'); 
+					$("#wrap_description").slideUp('fast');
+				} else {
+					$(this).addClass('on'); 
+					$("#wrap_description").slideDown('fast');
+				}
+			}); 
+			
+			
+		}
+		
+		/*** INIT: setupImage ******************************************************/
+			
+		// adjust height of wrap_info so that there is no change when crop buttons are turned on
+		var $wrapInfo = $("#wrap_info"); 
+		$wrapInfo.css('min-height', $wrapInfo.height() + 'px'); 
+		$("#loading_button").hide();
+		
+		if($img.attr('data-fit')) {
+			// fit image to viewport
+			var winwidth = $(window).width() - 30;
+			var winheight = $(window).height() - $("#wrap_info").height() - 20;
+			if($img.width() > winwidth) {
+				$img.width(winwidth).css('height', 'auto').removeAttr('height');
+				$img.removeAttr('height');
+			}
+			if($img.height() > winheight) {
+				$img.removeAttr('width').css('width', 'auto').height(winheight);
+			}
+		}
 
+		$container.width($img.width()).height($img.height());
+
+		// assign change events
+		$("#selected_image_settings .input_pixels").change(inputPixelsChange);
+		$("#selected_image_class").change(alignClassChange).change();
+		
+		fullWidth = $img.attr('data-origwidth');
+		
 		populateResizeDimensions();
+		setupImageCroppable();
+		setupImageActions();
+		
+		$("button.submit_save_copy, button.submit_save_replace").click(function() {
+			$form.addClass('processing'); 
+			disablePWImageDialogButtons();
+		}); 
 	};
-
-	var $img = $("#selected_image");
+	
+	/*** INIT **********************************************************************/
 
 	if($img.length > 0) {
 		$img = $img.first();
-
 		if($img.width() > 0 && $img.height() > 0) {
 			setupImage($img);
 		} else {
@@ -117,7 +411,8 @@ function setupSelectedImage() {
 			});
 		}
 	}
-}
+
+} // setupSelectedImage()
 
 $(document).ready(function() {
 
@@ -135,5 +430,15 @@ $(document).ready(function() {
 	} else if($("#ImageVariations").length > 0) {
 		setupExecuteVariations();
 	}
+	
+	enablePWImageDialogButtons();
+
+	// prevent enter from submitting any of our forms
+	$(window).keydown(function(event){
+		if(event.keyCode == 13) {
+			event.preventDefault();
+			return false;
+		}
+	});
 
 }); 

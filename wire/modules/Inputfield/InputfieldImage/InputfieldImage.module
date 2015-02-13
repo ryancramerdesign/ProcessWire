@@ -207,16 +207,22 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			$variationURL = $this->wire('config')->urls->admin . "page/image/variations/?id={$pagefile->page->id}&file=$pagefile->name&modal=1";
 			$numVariations = sprintf($this->_n('%d variation', '%d variations', $cnt), $cnt);
 			$variationInfo = "\n\t\t\t&bull; " . 
-				"<a class='InputfieldImageVariationCnt pw-modal' data-buttons='button' " . 
+				"<a class='InputfieldImageVariationCnt pw-modal pw-modal-large' data-buttons='button' " . 
 				"href='$variationURL' title='$numVariations'>" . 
 				str_replace(' ', '&nbsp;', $numVariations) . "</a> ";
 		} 
+	
+		$id = $pagefile->pagefiles->page->id; 
+		$editURL = $this->wire('config')->urls->admin . "page/image/edit/?id=$id&file=$id,$pagefile->name&rte=0&field=$this->name";
+		$editTitle = "$pagefile->name ({$pagefile->width}x{$pagefile->height})";
 
 		$out = 	
 			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header'>" . 
 			"\n\t\t\t<i class='fa fa-fw fa-sort HideIfSingle'></i>" .
 			"\n\t\t\t<i class='fa fa-fw fa-caret-right HideIfMultiple'></i>" . 
-			"\n\t\t\t<span class='InputfieldFileName'>{$pagefile->basename}</span> " . 
+			"\n\t\t\t<a class='InputfieldFileName pw-modal pw-modal-large' title='$editTitle' href='$editURL' " . 
+				"data-buttons='#non_rte_dialog_buttons button' " . 
+				"data-autoclose='1' data-close='#non_rte_cancel'>{$pagefile->basename}</a> " . 
 			"\n\t\t\t<span class='InputfieldFileStats'>" .
 				"&bull; {$pagefile->filesizeStr} &bull; " . 
 				"{$pagefile->width}x{$pagefile->height} " . 
