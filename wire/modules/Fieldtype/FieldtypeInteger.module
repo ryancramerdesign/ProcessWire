@@ -54,9 +54,50 @@ class FieldtypeInteger extends Fieldtype {
 	
 	public function sanitizeValue(Page $page, Field $field, $value) {
 
-		if(is_string($value) && strlen($value) && !is_numeric($value) && !ctype_digit($value)) {
-			$value = preg_replace('/[^\d]/', '', $value);
+		if(is_string($value) && strlen($value) && !ctype_digit(ltrim($value, '-'))) {
+			// string value with one or more non-digit characters
+			$value = trim($value); 
+			
+			if(preg_match('/^(\de\d|0x\d+|\+\d+)/', $value)) {
+				// likely a valid number, but in a non-native format to PW 
+				// examples: 1e123213, 0x1234, +123 (intval handles these)
+				$value = intval($value);
+
+			} else if(preg_match('/^[^-+\d.]+/', $value)) {
+				// string starting with something we don't recognize, let PHP decide
+				// example: bd#79
+				$value = intval($value); 
+				if($value === 0) $value = ''; // blank rather than zero
+				
+			} else {
+				// string value that looks like a number but has some other stuff in it
+
+				// see if there are some definitely non-number chars in there, and truncate
+				// the string to that point if we find any
+				if(preg_match('/^(-?[\d,. ]+)([^\d,. ]+)/', $value, $matches)) {
+					$value = $matches[1];
+				}
+
+				// check to see if we're dealing with a potential float val or thousands separators
+				if(strpos($value, '.') !== false || strpos($value, ',') !== false || strpos($value, ' ') !== false) {
+					// convert float values to rounded integers
+					// also handles values with thousands separators
+					$value = round(FieldtypeFloat::strToFloat($value));
+
+				} else if(is_numeric($value)) {
+					// let PHP decide how to convert it 
+					$value = intval($value);
+
+				} else {
+					// default: replace non numeric characters
+					$negative = substr(trim($value), 0, 1) == '-';
+					$value = preg_replace('/[^\d]/', '', $value);
+					$value = strlen($value) ? (int) $value : '';
+					if($negative && is_int($value)) $value = $value * -1;
+				}
+			}
 		}
+		
 		$value = strlen("$value") ? (int) $value : '';
 
 		return $value;

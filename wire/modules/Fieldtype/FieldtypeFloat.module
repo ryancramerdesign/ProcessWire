@@ -177,14 +177,15 @@ class FieldtypeFloat extends Fieldtype {
 		} else if($dotPos > $commaPos) {
 			// 123123.123
 			// 123,123.123
+			// dot assumed to be decimal
 			$pos = $dotPos; 
 			
 		} else if($commaPos > $dotPos) {
 			// 123,123
 			// 123123,123
 			// 123.123,123
-			if($dotPos === false && $decimalType === '.') {
-				// US or GB style thousands separator
+			if($dotPos === false && $decimalType === '.' && preg_match('/^\d+(,\d{3})+([^,]|$)/', $str)) {
+				// US or GB style thousands separator with commas separating 3 digit sequences
 				$pos = strlen($str); 
 			} else {
 				// the rest of the world 
