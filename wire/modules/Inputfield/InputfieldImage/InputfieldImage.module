@@ -212,8 +212,8 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 				str_replace(' ', '&nbsp;', $numVariations) . "</a> ";
 		} 
 	
-		$id = $pagefile->pagefiles->page->id; 
-		$editURL = $this->wire('config')->urls->admin . "page/image/edit/?id=$id&file=$id,$pagefile->name&rte=0&field=$this->name";
+		$pageID = $pagefile->pagefiles->page->id; 
+		$editURL = $this->wire('config')->urls->admin . "page/image/edit/?id=$pageID&file=$pageID,$pagefile->name&rte=0&field=$this->name";
 		$editTitle = "$pagefile->name ({$pagefile->width}x{$pagefile->height})";
 
 		$out = 	
