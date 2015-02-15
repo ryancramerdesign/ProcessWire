@@ -18,10 +18,10 @@ class InputfieldPageName extends InputfieldName implements ConfigurableModule {
 	public static $defaultReplacements = array(
 		'æ' => 'ae',
 		'å' => 'a', 
-		'ä' => 'a',  
+		'ä' => 'ae',  
 		'ß' => 'ss', 
-		'ö' => 'o',  
-		'ü' => 'u',  
+		'ö' => 'oe',  
+		'ü' => 'ue',  
 		'đ' => 'dj',  
 		'ж' => 'zh',  
 		'х' => 'kh',  
