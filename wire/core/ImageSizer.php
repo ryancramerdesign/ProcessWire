@@ -206,7 +206,7 @@ class ImageSizer extends Wire {
 	 * @var float
 	 * 
 	 */
-	protected $scale = 2.0;
+	protected $scale = 1.0;
 
 	/**
 	 * Construct the ImageSizer for a single image
