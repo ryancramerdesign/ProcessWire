@@ -27,7 +27,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Edit Image',
 			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)',
-			'version' => 112,
+			'version' => 113,
 			'permanent' => true,
 			'permission' => 'page-edit',
 		);
@@ -45,6 +45,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	protected $labels = array();
 	protected $rte = true; // in RTE mode?
 	protected $field = null;
+	protected $original = '';
 
 	protected static $defaultConfig = array(
 		'hidpiDefault' => 0, 
@@ -71,6 +72,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			'description' => $this->_('Description'),
 			'linkOriginal' => $this->_('Link to larger/original version'),
 			'resize' => $this->_('Resize'),
+			'useResize' => $this->_('Save at this reduced size?'), 
 			'crop' => $this->_('Crop'),
 			'saveCrop' => $this->_('Save Crop'),
 			'max' => $this->_('Maximize/full width'),
@@ -79,9 +81,12 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			'alignLeft' => $this->_('Align Left'),
 			'alignRight' => $this->_('Align Right'),
 			'alignCenter' => $this->_('Align Center'),
-			'saveReplace' => $this->_('Save'),
+			'saveReplace' => $this->_('Save and Replace'),
 			'saveCopy' => $this->_('Save as Copy'), 
 			'saving' => $this->_('Saving...'),
+			'updating' => $this->_('Updating...'), 
+			'yes' => $this->_('Yes'), 
+			'noUse' => $this->_('No, use %s'),
 		);
 	}
 
@@ -160,7 +165,17 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$this->hidpi = ((int) $this->wire('input')->get('hidpi')) ? true : false;
 		$hidpi = $this->wire('input')->get('hidpi');
 		if($hidpi === null && $this->hidpiDefault) $hidpi = true; 
+		if(!$this->rte) $hidpi = false; // hidpi not applicable outside of RTE mode
 		$this->hidpi = $hidpi ? true : false;
+		
+		// original used by InputfieldImage 
+		$original = $this->wire('input')->get('original'); 
+		if($original) {
+			$original = $this->wire('sanitizer')->filename($original);
+			if(is_file($this->page->filesManager()->path . $original)) {
+				$this->original = $original;
+			}
+		}
 
 		parent::init();
 	}
@@ -235,15 +250,23 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	 * 
 	 */
 	public function getImages(Page $page, $level = 0) {
+		
 
 		$allImages = array();
+		if(!$page->id) return $allImages; 
+		
 		$numImages = 0;
 		$numImageFields = 0;
-		$skipFields = explode(' ', $this->skipFields); 
+		
+		if($this->field) {
+			$fields = array($this->field); 
+			$skipFields = array();
+		} else {
+			$fields = $page->fields; 
+			$skipFields = explode(' ', $this->skipFields); 
+		}
 
-		if(!$page->id) return $allImages; 
-
-		foreach($page->fields as $field) {
+		foreach($fields as $field) {
 
 			if(in_array($field->name, $skipFields)) continue; 
 
@@ -261,7 +284,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 
 			if(!$field->type instanceof FieldtypeImage) continue; 
 			$numImageFields++;
-			$images = $page->get($field->name); 
+			$images = $page->getUnformatted($field->name); 
 			if(!count($images)) continue; 
 
 			foreach($images as $image) {
@@ -365,7 +388,10 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 				break;
 			}
 		}
+		
 		$original = $image->getOriginal();
+		if(!$original) return $image; 
+		if(filemtime($original->filename) > filemtime($image->filename)) return $image; 
 		
 		// if no last crop found, return original
 		if(!$cropName) return $original;
@@ -374,6 +400,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		
 		// return last found crop
 		$cropImage = $variations->get($cropName);
+		if($cropImage && filemtime($cropImage->filename) > filemtime($image->filename)) return $image;
 		return $cropImage ? $cropImage : $original; 	
 	}
 
@@ -393,6 +420,13 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		if(!isset($parts['modal'])) $parts['modal'] = 1;
 		if(!isset($parts['edit_page_id']) && $this->editorPage) $parts['edit_page_id'] = $this->editorPage->id; 
 		if(!isset($parts['hidpi'])) $parts['hidpi'] = (int) $this->hidpi; 
+		if(!isset($parts['original'])) {
+			if($this->original) {
+				$parts['original'] = $this->original;
+			} else {
+				$parts['original'] = $file;
+			}
+		}
 		if(!$this->rte) $parts['rte'] = '0';
 		if($this->field) $parts['field'] = $this->field->name; 
 		
@@ -510,6 +544,13 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		
 		if(!is_file($image->filename)) throw new WireException("Image file does not exist"); 
 		
+		if($this->field) {
+			$pageimages = $this->page->get($this->field->name);
+			if(!$pageimages || !$pageimages->get($original->name)) {
+				throw new WireException("Please save the page before editing newly uploaded images."); 
+			}
+		}
+		
 		$basename = $image->basename;
 		$fullname = $image->page->id . ',' . $basename;  // "123,basename.jpg"
 
@@ -547,9 +588,9 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		// if width not specified in edit URL and image exceeds the window width, then scale to fit window
 		if(!$width) {
 			$width = $image->width; 
-			$attrs['data-fit'] = '1';
 		}
 		$attrs['width'] = $width;
+		$attrs['data-fit'] = '1';
 		$this->wire('processBrowserTitle', $basename); 
 
 		// if they aren't already working with a resized image, and it's being scaled down,
@@ -576,7 +617,6 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			$attrStr .= "$key='" . trim($value) . "' ";
 		}
 
-
 		// prepare description (alt)
 		$description = isset($_GET['description']) ? $this->input->get('description') : ''; // $image->description;
 		if(strlen($description) > 8192) $description = substr($description, 0, 8192);
@@ -597,11 +637,16 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			$formClasses[] = 'original';
 		}
 		
+		$resizeYesChecked = $this->rte ? " checked='checked'" : "";
+		$resizeNoChecked = !$this->rte ? " checked='checked'" : "";
+		
 		// form attributes
 		$formClasses[] = $isCroppable ? 'croppable' : 'not-croppable';
 		$formClasses[] = $this->rte ? 'rte' : 'not-rte';
 		$formClass = implode(' ', $formClasses); 
 		$formActionURL = $this->makeEditURL($basename);
+		$nocache = $this->rte ? '' : "?nocache=" . mt_rand();
+		$originalDimension = $originalWidth . 'x' . $originalHeight; 
 
 		// form header and inputs
 		// @todo move all this markup to a separate template file
@@ -620,7 +665,14 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 						"&nbsp;<i class='fa fa-times'></i>&nbsp;" . 
 						"<label><input title='$labels[height]' name='height' id='input_height' class='input_pixels' " . 
 							"type='number' size='6' step='1' min='1' max='$originalHeight' value='$height' /></label>" . 
-					"</span>&nbsp;&nbsp; " .
+					"</span>&nbsp; " .
+					"<span id='selected_image_resize' class='hide_when_rte hide_when_crop hide_when_processing'>" .
+						"<i class='fa fa-angle-left ui-priority-secondary'></i>&nbsp;" . 
+						"$labels[useResize]&nbsp;&nbsp;" . 
+						"<label><input$resizeYesChecked id='selected_image_resize_yes' name='use_resize' type='radio' value='1' />&nbsp;$labels[yes]</label>&nbsp;&nbsp;" .
+						"<label><input$resizeNoChecked id='selected_image_resize_no' name='use_resize' type='radio' value='0' />&nbsp;" . 
+							sprintf($labels['noUse'], $originalDimension) . "</label>" .
+					"</span>" . 
 					"<span id='wrap_link_original' class='show_when_rte'>" .
 						"<label>" .
 							"<input title='$labels[linkOriginal]' type='checkbox'$linkOriginalChecked " .
@@ -630,17 +682,17 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 						"</label>" .
 					"</span>" . 
 					"<span class='show_when_rte'>" .
-						"<label><input$hidpiChecked id='selected_image_hidpi' type='checkbox' value='1' /> $labels[hidpi]</label>" .
+						"<label><input$hidpiChecked id='selected_image_hidpi' type='checkbox' value='1' />&nbsp;$labels[hidpi]</label>" .
 					"</span> " . 
 				"</span>" . // hide_when_crop
-				"<button type='button' class='ui-button ui-state-active show-when-processing' id='button_saving'>" .
+				"<button type='button' class='ui-button ui-state-active show_when_processing' id='button_saving'>" .
 					"<span class='ui-button-text'><i class='fa fa-spin fa-spinner'></i> $labels[saving]</span>" .
 				"</button> " .
 				"<span class='show_when_crop'>" .
-					"<button type='submit' class='ui-button ui-state-default hide-when-processing' id='button_crop' name='submit_crop' value='1'>" .
+					"<button type='submit' class='ui-button ui-state-default hide_when_processing' id='button_crop' name='submit_crop' value='1'>" .
 						"<span class='ui-button-text'><i class='fa fa-crop'></i> $labels[saveCrop]</span>" .
 					"</button> " .
-					"<button type='button' class='hide-when-processing ui-button ui-state-default ui-priority-secondary' id='button_cancel_crop'>" .
+					"<button type='button' class='hide_when_processing ui-button ui-state-default ui-priority-secondary' id='button_cancel_crop'>" .
 						"<span class='ui-button-text'><i class='fa fa-times-circle'></i> $labels[cancel]</span>" .
 					"</button> &nbsp; " . 
 					"<span id='crop_coordinates'>" . 
@@ -660,10 +712,10 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 					"id='selected_image_description' class='no_focus' value=\"$description\" />" . 
 			"</p>" . 
 			"</small>" . 
-			"<p class='notes hide_when_rte'>Please note: this feature is still in development.</p>" . 
+			//"<p class='notes hide_when_rte'>Please note: this feature is still in development.</p>" . 
 			"<div id='selected_image_container'>" . 
 				"<img id='selected_image' $attrStr alt='' " . 
-					"data-idname='{$image->page->id},{$image->basename}' src='{$image->url}' />" . 
+					"data-idname='{$image->page->id},{$image->basename}' src='{$image->url}$nocache' />" . 
 				"<span id='action_icons'>" . 
 					"<span title='$labels[resize]' id='resize_action'><i class='fa fa-fw fa-arrows-alt'></i></span>" . 
 					"<span title='$labels[crop]' data-recrop='$recropURL' id='crop_action'><i class='fa fa-fw fa-crop'></i></span>" .
@@ -692,17 +744,19 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			"<input type='hidden' name='page_id' id='page_id' value='{$this->page->id}' />" .
 			"<p id='non_rte_dialog_buttons' class='hide_when_rte'>" . 
 				"<button type='submit' class='submit_save_copy' name='submit_save_copy' value='1' class='ui-button ui-state-default'>" .
-					"<span class='ui-button-text'>$labels[saveCopy]</span>" .
+					"<span class='ui-button-text'><i class='fa fa-fw fa-paste'></i> $labels[saveCopy]</span>" .
 				"</button>" .
 				"<button type='submit' class='submit_save_replace' name='submit_save_replace' value='1' class='ui-button ui-state-default ui-priority-secondary'>" .
-					"<span class='ui-button-text'>$labels[saveReplace]</span>" .
+					"<span class='ui-button-text'><i class='fa fa-fw fa-cut'></i> $labels[saveReplace]</span>" .
 				"</button>" .
 				"<button type='button' id='non_rte_cancel' class='ui-button ui-state-default ui-priority-secondary'>" . 
-					"<span class='ui-button-text'>$labels[cancel]</span>" . 
+					"<span class='ui-button-text'><i class='fa fa-fw fa-times-circle'></i> $labels[cancel]</span>" . 
 				"</button>" . 
 			"</p>"  .
 			"</form>";
-
+		
+		// if($this->wire('config')->debug) $out .= "<p class='detail'>$basename</p>";
+		
 		return $out; 
 		
 	}
@@ -740,7 +794,9 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$image = $this->getPageimage();
 		if(!$image) throw new WireException("Unable to load image");
 
-		$options = array('cleanFilename' => true, 'suffix' => array('is'));
+		
+		$suffix = $this->rte ? array('is') : array();
+		$options = array('cleanFilename' => true, 'suffix' => $suffix);
 		$crop = $image->crop($cropX, $cropY, $cropW, $cropH, $options); 
 		
 		return $crop; 
@@ -749,37 +805,111 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	protected function processSave($replace = false) {
 		
 		if(!$this->field) throw new WireException("Field is not defined"); 
+		if(!$this->original) throw new WireException("Original is not set");
+		if($this->page->is(Page::statusLocked)) throw new WireException("Page is locked for edits"); 
+		
 		$image = $this->getPageimage(false);
 		if($this->input->get('file') != "$this->page,$image->name") $image = $this->getPageimage(true); 
 		$width = (int) $this->wire('input')->post('width');
 		if(!$width) throw new WireException("Width not specified"); 
+
+		$rebuildVariations = preg_match('/-cropx\d+y\d+/', $image->name); 
 		
-		if($width == $image->width) {
-			// no resize necessary
-			return;
-		}
-		$image2 = $image->width($width); 
-		if(!$image2 || !$image2->width) throw new WireException('Unable to complete resize'); 
-		
-		if($replace) {
-			if(is_file($image->filename())) unlink($image->filename());
-			rename($image2->filename(), $image->filename()); 
-			$this->message($this->_('Replaced:') . ' ' . $image->filename());
+		// image2 = resized version
+		if($this->wire('input')->post('use_resize') == 1) {
+			$image2 = $image->width($width);
+			if(!$image2 || !$image2->width) throw new WireException('Unable to complete resize');
 		} else {
-			$pageimages = $this->page->getUnformatted($this->field->name);
-			$path = $pageimages->path();
-			$n = 0; 
+			$image2 = $image; 
+		}
+		
+		$pageimages = $this->page->getUnformatted($this->field->name);
+		$path = $pageimages->path();
+		$fileID = '';
+		$isNew = 0;
+		$headline = '';
+		$body = '';
+
+		if($replace) {
+			// replace original image
+			
+			if($this->original && $this->original != $image2->basename() && $original = $image->pagefiles->get($this->original)) {
+				$fileID = 'file_' . $original->hash; 
+				
+				if($rebuildVariations && $this->field->adminThumbs) {
+					// remove original thumbnail
+					$inputfield = $this->field->getInputfield($this->page);
+					$thumb = $inputfield->getAdminThumb($original);
+					$thumb = $thumb['thumb'];
+					if($thumb->url != $original->url) {
+						// there is a thumbnail, distinct from the original image
+						unlink($thumb->filename);
+					}
+				}
+				
+				// replace original image
+				$target = $path . $this->original;
+				unlink($target); 
+				rename($image2->filename(), $target);
+				
+				$this->wire('pages')->uncacheAll();	
+				$page = $this->wire('pages')->get($this->page->id); 
+				$value = $page->getUnformatted($this->field->name); 
+				
+				if($rebuildVariations) {
+					$finalImage = $value->get($this->original);
+					$variationInfo = $finalImage->rebuildVariations(0, array('is', 'hidpi'));
+					foreach($variationInfo as $type => $files) {
+						if(!count($files)) continue;
+						$body .= "<h3>" . ucfirst($type) . "</h3>";
+						$body .= "<p>" . implode('<br />', $files) . "</p>";
+						// $this->wire('log')->save('images', "$type: [ " . implode(' ], [ ', $files) . ' ]');
+					}
+				} else {
+					$body .= "<p>" . $this->_('No changes necessary to image variations.') . "</p>";
+				}
+				
+				$headline = $this->labels['updating'];
+				
+			} else {
+				$headline = $this->_('No changes made'); 
+			}
+
+		} else {
+			// save a new copy
+			
+			$n = 0;
 			do {
 				$n++;
-				$basename = "copy-$n-" . $image->basename();
-			} while(is_file($path . $basename)); 
-			rename($image2->filename(), $path . $basename); 
-			$pageimages->add($path . $basename); 
-			$this->page->save($this->field->name); 
-			$this->message($this->_('Saved image copy:') . " $basename"); 
-		}
+				$basename = basename($this->original); 
+				preg_match('/^([^.]+)(\..+)$/', $basename, $matches);
+				$basename = $matches[1];
+				$aftername = $matches[2];
+				if(strpos($basename, '-v')) $basename = preg_replace('/-v[0-9]+$/', '', $basename);
+				$basename .= "-v$n";
+				$basename .= $aftername;
+				$pathname = $path . $basename;
+			} while(is_file($pathname));
 			
-		return "<script>$(document).ready(function() { closePWImageDialog(); });</script>";
+			rename($image2->filename(), $pathname); 
+			$pageimages->add($pathname);
+			$pageimage = $pageimages->last();
+			$pageimage->isTemp(true);
+			$this->page->save($this->field->name);
+			$fileID = "file_$pageimage->hash";
+			$isNew = 1; 
+			$headline = $this->labels['updating'];
+		}
+	
+		$out = "
+			<h2><i class='fa fa-spin fa-spinner fa-2x fa-fw ui-priority-secondary'></i> $headline</h2>
+			$body
+			<script>
+			$(document).ready(function() { setupProcessSave('{$this->field->name}', '$fileID', $isNew); });	
+			</script>
+			";
+		
+		return $out; 
 	}
 
 	/**
@@ -915,12 +1045,16 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$table = $this->wire('modules')->get('MarkupAdminDataTable'); 
 		$table->setEncodeEntities(false);
 		$table->headerRow(array(
+			'#', 
 			$this->_x('Image', 'th'), 
 			$this->_x('File', 'th'),
 			$this->_x('Size', 'th'),
+			$this->_x('Modified', 'th'),  
 			$this->_x('Notes', 'th'),
 			"<label><input type='checkbox' id='delete_all' value='1' /></label>", 
 		));
+		
+		$cnt = 0;
 		
 		foreach($variations as $name => $info) {
 			
@@ -951,19 +1085,24 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			if(in_array('hidpi', $info['suffix'])) $dimensions .= " ($info[hidpiWidth]x$info[hidpiHeight] {$this->labels['hidpi']})";
 			$filesize = filesize($info['path']); 
 			$filesizeStr = wireBytesStr($filesize);
+			$modified = date('Y-m-d H:i:s', filemtime($info['path'])); 
 			
 			$table->row(array(
+				++$cnt, 
 				"<a class='preview' href='$info[url]'><img src='$info[url]' alt='$name' style='max-width: 100px;' /></a>",
 				"<a class='preview' href='$info[url]'>$name</a><br /><span class='detail'>{$width}x{$height}</span>", 
 				"<span style='display: none;'>$filesize</span>$filesizeStr", 
+				$modified, 
 				implode('<br />', $notes),
 				"<label><input type='checkbox' class='delete' name='delete[]' value='$name' /> &nbsp;</label>"
 			));
 		}
+		
+		$varcnt = $this->wire('sanitizer')->entities($this->wire('input')->get('varcnt')); 
 
 		$form = $this->wire('modules')->get('InputfieldForm');
 		$form->attr('id', 'ImageVariations'); 
-		$form->action = "./?id={$this->page->id}&file=$pageimage->basename";
+		$form->action = "./?id={$this->page->id}&file=$pageimage->basename&varcnt=$varcnt";
 		$form->prependMarkup = $table->render();
 		
 		$submit = $this->wire('modules')->get('InputfieldSubmit');
@@ -977,6 +1116,12 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$button->addClass('pw-modal-cancel'); 
 		$button->icon = 'times-circle';
 		$form->add($button); 
+		
+		$hidden = $this->wire('modules')->get('InputfieldHidden');
+		$hidden->attr('id+name', 'varcnt_id'); 
+		$hidden->attr('value', $varcnt); 
+		$hidden->attr('data-cnt', count($variations)); 
+		$form->add($hidden); 
 		
 		$this->wire('modules')->get('JqueryMagnific'); 
 		

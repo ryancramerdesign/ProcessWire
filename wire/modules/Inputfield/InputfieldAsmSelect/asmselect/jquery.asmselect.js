@@ -324,12 +324,9 @@
 					if($O.attr('data-desc')) {
 						var $editLink2 = $("<a></a>")
 							.html($O.attr('data-desc'))
-							.attr('href', '#')
+							.attr('href', $editLink.attr('href'))
 							.append(options.editLabel)
-							.click(function() {
-								$editLink.click();
-								return false; 
-							});
+							.click(clickEditLink);
 						$itemDesc.addClass(options.editClass).append($editLink2);
 					}
 
