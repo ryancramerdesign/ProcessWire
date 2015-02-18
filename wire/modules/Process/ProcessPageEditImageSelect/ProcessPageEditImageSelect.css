@@ -244,3 +244,7 @@
 	display: none !important; 
 }
 
+.maxfiles1 .submit_save_copy {
+	display: none; 
+}
+

@@ -639,7 +639,9 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		
 		$resizeYesChecked = $this->rte ? " checked='checked'" : "";
 		$resizeNoChecked = !$this->rte ? " checked='checked'" : "";
-		
+
+		if($this->field && $this->field->maxFiles == 1) $formClasses[] = 'maxfiles1';
+			
 		// form attributes
 		$formClasses[] = $isCroppable ? 'croppable' : 'not-croppable';
 		$formClasses[] = $this->rte ? 'rte' : 'not-rte';
@@ -746,7 +748,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 				"<button type='submit' class='submit_save_copy' name='submit_save_copy' value='1' class='ui-button ui-state-default'>" .
 					"<span class='ui-button-text'><i class='fa fa-fw fa-paste'></i> $labels[saveCopy]</span>" .
 				"</button>" .
-				"<button type='submit' class='submit_save_replace' name='submit_save_replace' value='1' class='ui-button ui-state-default ui-priority-secondary'>" .
+				"<button type='submit' class='submit_save_replace' name='submit_save_replace' value='1' class='ui-button ui-state-default'>" .
 					"<span class='ui-button-text'><i class='fa fa-fw fa-cut'></i> $labels[saveReplace]</span>" .
 				"</button>" .
 				"<button type='button' id='non_rte_cancel' class='ui-button ui-state-default ui-priority-secondary'>" . 

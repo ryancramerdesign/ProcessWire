@@ -145,6 +145,7 @@ $(document).ready(function() {
 			if(buttonSelector) { 
 				$icontents.find(buttonSelector).each(function() {
 					var $button = $(this);
+					$button.find(".ui-button-text").removeClass("ui-button-text"); // prevent doubled
 					var text = $button.html();
 					var skip = false;
 					// avoid duplicate buttons
