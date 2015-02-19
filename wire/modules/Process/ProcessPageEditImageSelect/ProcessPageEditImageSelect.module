@@ -745,10 +745,12 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			"<span id='selected_image_filename'>$basename</span>" .
 			"<input type='hidden' name='page_id' id='page_id' value='{$this->page->id}' />" .
 			"<p id='non_rte_dialog_buttons' class='hide_when_rte'>" . 
-				"<button type='submit' class='submit_save_copy' name='submit_save_copy' value='1' class='ui-button ui-state-default'>" .
-					"<span class='ui-button-text'><i class='fa fa-fw fa-paste'></i> $labels[saveCopy]</span>" .
-				"</button>" .
-				"<button type='submit' class='submit_save_replace' name='submit_save_replace' value='1' class='ui-button ui-state-default'>" .
+				(!in_array('maxfiles1', $formClasses) ? (
+					"<button type='submit' name='submit_save_copy' value='1' class='submit_save_copy ui-button ui-state-default hide_when_maxfiles1'>" .
+						"<span class='ui-button-text'><i class='fa fa-fw fa-paste'></i> $labels[saveCopy]</span>" .
+					"</button>" 
+					) : "") . 
+				"<button type='submit' name='submit_save_replace' value='1' class='submit_save_replace ui-button ui-state-default'>" .
 					"<span class='ui-button-text'><i class='fa fa-fw fa-cut'></i> $labels[saveReplace]</span>" .
 				"</button>" .
 				"<button type='button' id='non_rte_cancel' class='ui-button ui-state-default ui-priority-secondary'>" . 

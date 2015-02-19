@@ -525,25 +525,11 @@
 
 				var $asmItem = $(this).parents('.' + options.listItemClass); 
 				var href = $(this).attr('href'); 
-				var $iframe = $('<iframe id="asmSelectDialog" frameborder="0" src="' + href + '"></iframe>');
-				var windowWidth = $(window).width()-300;
-				var windowHeight = $(window).height()-300;
-				if(windowHeight > 800) windowHeight = 800;
+				var $iframe = pwModalWindow(href, {}, 'medium'); 
 
-				var $dialog = $iframe.dialog({
-					modal: true,
-					height: windowHeight,
-					width: windowWidth,
-					position: [150,80]
-				}).width(windowWidth).height(windowHeight);
-
-				var iframeLoad = function() {
+				$iframe.load(function() {
 
 					var $icontents = $iframe.contents();	
-
-					var browserTitle = $icontents.find('head title').text();
-					$dialog.dialog('option', 'title', browserTitle); 	
-		
 					var buttons = [];
 					var buttonCnt = 0;
 
@@ -554,7 +540,7 @@
 						var valid = true; 
 						var secondary = $button.is('.ui-priority-secondary'); 
 
-						for(i = 0; i < buttonCnt; i++) {
+						for(var i = 0; i < buttonCnt; i++) {
 							if(label == buttons[i].text) valid = false;
 						}
 
@@ -581,22 +567,17 @@
 												else $desc.html($asmSetDesc.val());
 										}
 									}
-									$dialog.dialog('close'); 
+									$iframe.dialog('close'); 
 								}
 							}; 
 							buttonCnt++;
 						}
 						$button.hide();
 					}); 
-					if(buttons.length > 0) $dialog.dialog('option', 'buttons', buttons)
-					$dialog.width(windowWidth).height(windowHeight); 
-				};
-
-				$iframe.load(iframeLoad);
-
+					$iframe.setButtons(buttons); 
+				}); 
 				return false; 
 			}
-
 
 			init();
 		});

@@ -116,9 +116,6 @@
 		var modalUri = config.urls.admin + 'page/image/';
 		var queryString = '?id=' + page_id + '&edit_page_id=' + edit_page_id + '&modal=1';
 
-		var windowHeight = $(window).height() - 145; // 350; 
-		var windowWidth = $(window).width() - 30; // 200; 
-
 		if(file.length) queryString += "&file=" + file; 
 		if(imgWidth) queryString += "&width=" + imgWidth; 
 		if(imgHeight) queryString += "&height=" + imgHeight; 
@@ -126,25 +123,14 @@
 		queryString += '&hidpi=' + (hidpi ? '1' : '0'); 
 		if(imgDescription && imgDescription.length) queryString += "&description=" + encodeURIComponent(imgDescription);
 		if(imgLink && imgLink.length) queryString += "&link=" + encodeURIComponent(imgLink);
-		queryString += "&winwidth=" + windowWidth; 
+		queryString += "&winwidth=" + $(window).width() - 30;
 
 		// create iframe dialog box
-		var $iframe = $('<iframe id="pwimage_iframe" width="100%" frameborder="0" src="' + modalUri + queryString + '"></iframe>'); 
-		$iframe.dialog({
+		// var $iframe = $('<iframe id="pwimage_iframe" width="100%" frameborder="0" src="' + modalUri + queryString + '"></iframe>'); 
+		var modalSettings = {
 			title: "<i class='fa fa-fw fa-folder-open'></i> " + config.InputfieldCKEditor.pwimage.selectLabel, // "Select Image", 
-			height: windowHeight,
-			width: windowWidth,
-			//position: [100, 80],
-			position: [15, 15], 
-			modal: true,
-			draggable: false,
-			resizable: false, 
-			overlay: {
-				opacity: 0.7,
-				background: "black"
-			}
-		}).width(windowWidth).height(windowHeight);
-
+		};
+		var $iframe = pwModalWindow(modalUri + queryString, modalSettings, 'large');
 		$iframe.load(function() {
 
 			// when iframe loads, pull the contents into $i 
@@ -153,7 +139,7 @@
 			if($i.find("#selected_image").size() > 0) {
 				// if there is a #selected_image element on the page...
 
-				$iframe.dialog("option", "buttons", [
+				var buttons = [
 					{ 
 						html: "<i class='fa fa-camera'></i> " + config.InputfieldCKEditor.pwimage.insertBtn, // "Insert This Image",
 						click:  function() {
@@ -209,9 +195,8 @@
 							var $i = $iframe.contents();
 							var $img = $("#selected_image", $i); 
 
-							$iframe.dialog("disable").dialog("option", "title", 
-								"<i class='fa fa-fw fa-spin fa-spinner'></i> " + 
-								config.InputfieldCKEditor.pwimage.savingNote); // Saving Image
+							$iframe.dialog("disable");
+							$iframe.setTitle("<i class='fa fa-fw fa-spin fa-spinner'></i> " + config.InputfieldCKEditor.pwimage.savingNote); // Saving Image
 							$img.removeClass("resized"); 
 
 							var width = $img.attr('width');
@@ -243,7 +228,7 @@
 							var $i = $iframe.contents();
 							var page_id = $("#page_id", $i).val();
 							$iframe.attr('src', modalUri + '?id=' + page_id + '&modal=1'); 
-							$iframe.dialog("option", "buttons", {}); 
+							$iframe.setButtons({}); 
 						}
 					}, {
 						html: "<i class='fa fa-times-circle'></i> " + config.InputfieldCKEditor.pwimage.cancelBtn, // "Cancel",
@@ -251,22 +236,17 @@
 						click: function() { $iframe.dialog("close"); }
 					}
 					
-				]).dialog("option", "title", 
-					"<i class='fa fa-fw fa-picture-o'></i> " +
-					$i.find('title').html()
-					//config.InputfieldCKEditor.pwimage.editLabel + ' (' + // "Edit Image - filename.jpg"
-					
-				).width(windowWidth).height(windowHeight); 
+				];
 				
-
+				$iframe.setButtons(buttons); 
+				$iframe.setTitle("<i class='fa fa-fw fa-picture-o'></i> " + $i.find('title').html());
 
 			} else {
-				$iframe.dialog("option", "buttons", [
-					{
+				
+				$iframe.setButtons([{
 						html: "<i class='fa fa-times-circle'></i> " + config.InputfieldCKEditor.pwimage.cancelBtn, // "Cancel",
 						click: function() { $iframe.dialog("close"); }
-					}
-				]).width(windowWidth).height(windowHeight);
+				}]); 
 			}
 		});
 	}

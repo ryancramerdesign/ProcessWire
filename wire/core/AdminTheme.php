@@ -106,7 +106,8 @@ abstract class AdminTheme extends WireData implements Module {
 			$o['scale'] = $this->wire('session')->hidpi ? 0.5 : 1.0; 
 			$this->wire('config')->adminThumbOptions = $o;
 		}
-		
+
+		$this->config->js('modals', $this->config->modals); 
 	}
 	
 	public function get($key) {

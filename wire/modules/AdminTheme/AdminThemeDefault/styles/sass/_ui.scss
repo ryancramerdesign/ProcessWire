@@ -163,7 +163,8 @@
 	.ui-dialog-buttonpane {
 		background: $subtle-bg; 
 		border: none; 
-		margin-top: 0;
+		margin-top: -7px;
+		padding: 1px 8px 1px 8px; 
 	}
 
 	.ui-dialog-content {

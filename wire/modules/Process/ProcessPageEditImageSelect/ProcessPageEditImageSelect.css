@@ -244,7 +244,7 @@
 	display: none !important; 
 }
 
-.maxfiles1 .submit_save_copy {
+.maxfiles1 .hide_when_maxfiles1 {
 	display: none; 
 }
 

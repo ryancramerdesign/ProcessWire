@@ -21,7 +21,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'CKEditor',
-			'version' => 133, 
+			'version' => 134, 
 			'summary' => __('CKEditor textarea rich text editor.', __FILE__),
 			'installs' => array('MarkupHTMLPurifier'), 
 			);
@@ -187,6 +187,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	 *
 	 */
 	public function ___render() {
+		$this->wire('modules')->get('JqueryUI')->use('modal');
 
 		$this->globalConfig();
 		$class = $this->className();

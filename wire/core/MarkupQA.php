@@ -229,7 +229,7 @@ class MarkupQA extends Wire {
 			}
 			$newPagefile = $pagefile->size($info['width'], $info['height'], $options);
 			// $this->wire('log')->message("size($info[width], $info[height], " . print_r($options, true) . ")");
-			if($newPagefile) {
+			if($newPagefile && is_file($newPagefile->filename())) {
 				if(!empty($info['targetName']) && $newPagefile->basename != $info['targetName']) {
 					// new name differs from what is in text. Rename file to be consistent with text.
 					rename($newPagefile->filename(), $pathname);
@@ -237,7 +237,7 @@ class MarkupQA extends Wire {
 				$this->wire('log')->message("Re-created image variation: $newPagefile->name");
 				$pagefile = $newPagefile; // for next iteration
 			} else {
-				$this->error("Unable to re-create image variation ($newPagefile->name)");
+				$this->wire('log')->error("Unable to re-create image variation ($newPagefile->name)");
 			}
 		}
 	}

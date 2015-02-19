@@ -1,12 +1,12 @@
 
 function enablePWImageDialogButtons() {
-	var $buttonPane = window.parent.jQuery(".ui-dialog-buttonpane");
+	var $buttonPane = parent.jQuery(".ui-dialog-buttonpane");
 	$buttonPane.find('button').button("enable");
 	return;
 }
 
 function disablePWImageDialogButtons() {
-	var $buttonPane = window.parent.jQuery(".ui-dialog-buttonpane");
+	var $buttonPane = parent.jQuery(".ui-dialog-buttonpane");
 	$buttonPane.find('button').button("disable");
 	return;
 }
@@ -59,8 +59,6 @@ function setupExecuteVariations() {
 	var $varcnt = $("#varcnt_id");
 	var varcntID = $varcnt.val();
 	var varcnt = $varcnt.attr('data-cnt');
-	console.log('varcntID=' + varcntID);
-	console.log('varcnt=' + varcnt); 
 	window.parent.jQuery("#" + varcntID).text(varcnt);
 }
 
@@ -401,7 +399,7 @@ function setupSelectedImage() {
 		
 		function fitImageToWindow() {
 			var winwidth = $(window).width() - 30;
-			var winheight = $(window).height() - $("#wrap_info").height() - 20;
+			var winheight = $(window).height() - ($("#wrap_info").height() + 30);
 			if($img.width() > winwidth) {
 				$img.width(winwidth).css('height', 'auto').removeAttr('height');
 				$img.removeAttr('height');

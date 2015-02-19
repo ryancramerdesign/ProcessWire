@@ -6,13 +6,13 @@
  * Handles ProcessWire configuration data
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
  *
  *
- * @see http://processwire.com/api/variables/config/ Offical $config API variable Documentation
+ * @see /wire/config.php for more detailed descriptions of all config properties. 
  *
  * @property bool $ajax If the current request is an ajax (asynchronous javascript) request, this is set to true.
  * @property string $httpHost Current HTTP host name.
@@ -65,6 +65,13 @@
  * @property bool $advanced Special mode for ProcessWire system development. Not recommended for regular site development or production use. 
  * @property bool $demo Special mode for demonstration use that causes POST requests to be disabled. Applies to core, but may not be safe with 3rd party modules.
  * @property bool $debug Special mode for use when debugging or developing a site. Recommended TRUE when site is in development and FALSE when not.
+ * @property string $debugIf Enable debug mode if condition is met
+ * 
+ * @property string $ignoreTemplateFileRegex Regular expression to ignore template files
+ * @property bool $pagefileExtendedPaths Use extended file mapping?
+ * @property array $adminThumbOptions Admin thumbnail image options
+ * @property array $httpHosts HTTP hosts For added security, specify the host names ProcessWire should recognize.
+ * @property int $maxPageNum Maximum number of recognized paginations
  * 
  * @property string $dbHost Database host
  * @property string $dbName Database name
@@ -75,15 +82,33 @@
  * @property string $dbSocket Optional DB socket config for sites that need it. 
  * @property bool $dbCache Whether to allow MySQL query caching.
  * @property bool $dbLowercaseTables Force any created field_* tables to be lowercase.
+ * @property string $dbEngine Database engine (MyISAM or InnoDB)
+ * @property string $dbPath MySQL database exec path (Path to mysqldump)
+ * 
+ * @property string $moduleServiceURL URL where the modules web service can be accessed
+ * @property string $moduleServiceKey API key for modules web service
+ * 
+ * @property array $substituteModules Associative array with names of substitutute modules for when requested module doesn't exist
+ * @property array $logs Additional core logs to keep
+ * @property string $defaultAdminTheme Default admin theme: AdminThemeDefault or AdminThemeReno
+ * @property string $fatalErrorHTML HTML used for fatal error messages in HTTP mode.
+ * @property array $modals Settings for modal windows
+ * @property array $preloadCacheNames Cache names to preload at beginning of request
  * 
  * @property string $userAuthSalt Salt generated at install time to be used as a secondary/non-database salt for the password system.
  * @property string $userAuthHashType Default is 'sha1' - used only if Blowfish is not supported by the system.
  * 
- * @property int $adminRootPageID
+ * @property bool $external This is automatically set to TRUE when PW is externally bootstrapped.
+ * @property bool $cli This is automatically set to TRUE when PW is booted as a command line (non HTTP) script.
+ * @property string $versionName This is automatically populated with the current PW version name (i.e. 2.5.0 dev)
+ * 
+ * @property int $rootPageID ID of homepage (usually 1)
+ * @property int $adminRootPageID ID of admin root page
  * @property int $trashPageID
  * @property int $loginPageID
  * @property int $http404PageID
  * @property int $usersPageID
+ * @property array $usersPageIDs Populated if multiple possible users page IDs (parent for users pages)
  * @property int $rolesPageID
  * @property int $permissionsPageID
  * @property int $guestUserPageID
@@ -91,8 +116,11 @@
  * @property int $guestUserRolePageID
  * @property int $superUserRolePageID
  * @property int $userTemplateID
+ * @property array $userTemplateIDs Array of template IDs when multiple allowed for users. 
  * @property int $roleTemplateID
  * @property int $permissionTemplateID
+ * @property int $externalPageID ID of page assigned to $page API variable when externally bootstrapped
+ * @property array $preloadPageIDs IDs of pages that will be preloaded at beginning of request
  *
  */
 class Config extends WireData { 

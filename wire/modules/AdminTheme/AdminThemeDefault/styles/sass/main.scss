@@ -375,12 +375,13 @@ body.modal {
 
 	&.hasWireTabs #breadcrumbs {
 		display: block;
+		padding: 0.5em 0 0 0;
 		li {
 			display: none; 
 
 			&.title {
 				/* display only title in modal mode */ 
-				display: block;
+				// display: block;
 			}
 		}
 	}

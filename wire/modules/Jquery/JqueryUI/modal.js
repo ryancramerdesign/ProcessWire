@@ -41,6 +41,130 @@
  * 
  */
 
+var pwModalWindows = [];
+
+/**
+ * Dialog function that returns settings ready for population to jQuery.dialog
+ * 
+ * Settings include:
+ * 	- position
+ * 	- width
+ * 	- height
+ * 
+ * @param name Name of modal settings to use: 'full', 'large', 'medium' or 'small'
+ * @returns {{position: *[], width: number, height: number}}
+ * 
+ */
+function pwModalWindowSettings(name) {
+	
+	var modal = config.modals[name];
+	if(typeof modal == "undefined") modal = config.modals['medium'];
+	modal = modal.split(','); 
+	
+	return {
+		modal: true,
+		draggable: false,
+		resizable: true,
+		position: [ parseInt(modal[0]), parseInt(modal[1]) ], 
+		width: $(window).width() - parseInt(modal[2]),
+		height: $(window).height() - parseInt(modal[3]),
+		show: 250,
+		hide: 250,
+		create: function(event, ui) {
+			parent.jQuery('body').css('overflow', 'hidden');
+		},
+		beforeClose: function(event, ui) {
+			parent.jQuery('body').css('overflow', 'auto');
+		}
+	}
+};
+
+/**
+ * Open a modal window and return the iframe/dialog object
+ * 
+ * @param href URL to open
+ * @param options Settings to provide to jQuery UI dialog (if additional or overrides)
+ * @param size Specify one of: full, large, medium, small (default=medium)
+ * @returns jQuery $iframe
+ * 
+ */
+function pwModalWindow(href, options, size) {
+	
+	// destory any existing pw-modals that aren't currently open
+	for(var n = 0; n <= pwModalWindows.length; n++) {
+		var $iframe = pwModalWindows[n]; 	
+		if($iframe == null) continue; 
+		if($iframe.dialog('isOpen')) continue; 
+		$iframe.dialog('destroy').remove();
+		pwModalWindows[n] = null;
+	}
+	
+	var url = href + (href.indexOf('?') > -1 ? '&' : '?') + 'modal=1';
+	var $iframe = $('<iframe class="pw-modal-window" frameborder="0" src="' + url + '"></iframe>');
+	$iframe.attr('id', 'pw-modal-window-' + (pwModalWindows.length+1));
+	
+	if(typeof size == "undefined" || size.length == 0) var size = 'large';
+	var settings = pwModalWindowSettings(size);
+	
+	if(settings == null) {
+		alert("Unknown modal setting: " + size);
+		return $iframe;
+	}
+	
+	if(typeof options != "undefined") $.extend(settings, options);
+	
+	$iframe.dialog(settings);
+	$iframe.data('settings', settings);
+	$iframe.load(function() {
+		if(typeof settings.title == "undefined" || !settings.title) {
+			$iframe.dialog('option', 'title', $iframe.contents().find('title').text());
+		}
+	}); 
+	
+	var lastWidth = 0;
+	var lastHeight = 0;
+	
+	function updateWindowSize() {
+		var width = $(window).width();
+		var height = $(window).height();
+		if(width == lastWidth && height == lastHeight) return;
+		var _size = size;
+		if(width <= 960 && size != 'full' && size != 'large') _size = 'large';
+		if(width <= 700 && size != 'full') _size = 'full';
+		var _settings = pwModalWindowSettings(_size);
+		var $dialog = $iframe.closest('.ui-dialog');
+		if($dialog.length > 0) {
+			var subtractHeight = $dialog.find(".ui-dialog-buttonpane").outerHeight() + $dialog.find(".ui-dialog-titlebar").outerHeight();
+			_settings.height -= subtractHeight;
+		}
+		$iframe.dialog('option', 'width', _settings.width);
+		$iframe.dialog('option', 'height', _settings.height);
+		$iframe.dialog('option', 'position', _settings.position);
+		$iframe.width(_settings.width).height(_settings.height);
+		lastWidth = width;
+		lastHeight = height; 
+	}
+	updateWindowSize();
+	
+	$(window).resize(updateWindowSize);
+	
+	$iframe.refresh = function() {
+		lastWidth = 0; // force update
+		lastHeight = 0;
+		updateWindowSize();
+	};
+	
+	$iframe.setButtons = function(buttons) {
+		$iframe.dialog('option', 'buttons', buttons);
+		$iframe.refresh();
+	};
+	$iframe.setTitle = function(title) {
+		$iframe.dialog('option', 'title', title); 
+	}; 
+
+	return $iframe; 
+}
+
 $(document).ready(function() {
 	
 	// enable titles with HTML in ui dialog
@@ -57,55 +181,42 @@ $(document).ready(function() {
 	$(document).on('click', 'a.pw-modal', function() { 
 		
 		var $a = $(this);
-		var href = $a.attr('href');
-		var url = href + (href.indexOf('?') > -1 ? '&' : '?') + 'modal=1';
-		var title = $a.attr('title'); 
-		var $iframe = $('<iframe class="pw-modal-window" frameborder="0" src="' + url + '"></iframe>');
 		var _autoclose = $a.attr('data-autoclose'); 
 		var autoclose = _autoclose != null; // whether autoclose is enabled
 		var autocloseSelector = autoclose && _autoclose.length > 0 ? _autoclose : ''; // autoclose only enabled if clicked button matches this selector
 		var closeSelector = $a.attr('data-close'); // immediately close window (no closeOnLoad) for buttons/links matching this selector
 		var closeOnLoad = false;
-		
+		var modalSize = 'medium';
+		if($a.hasClass('pw-modal-large')) modalSize = 'large';
+			else if($a.hasClass('pw-modal-small')) modalSize = 'small';
+			else if($a.hasClass('pw-modal-full')) modalSize = 'full';
+	
+		var settings = {
+			title: $a.attr('title'),
+			close: function(event, ui) {
+				$a.trigger('modal-close', {event: event, ui: ui}); // legacy, deprecated
+				$a.trigger('pw-modal-closed', {event: event, ui: ui}); // new
+				$spinner.remove();
+			}
+		};
+			
 		// attribute holding selector that determines what buttons to show, example: "#content form button.ui-button[type=submit]"
 		var buttonSelector = $a.attr('data-buttons'); 
 
-		if($a.hasClass('pw-modal-large')) {
-			var windowWidth = $(window).width() - 30;
-			var windowHeight = $(window).height() - 145;
-			var windowPosition = [15,15]; 
-		} else {
-			var windowWidth = $(window).width() - 100;
-			var windowHeight = $(window).height() - 160;
-			var windowPosition = [50,49]; 
-			if(buttonSelector) windowHeight -= 70;
-		}
-		
 		// a class of pw-modal-cancel on one of the buttons always does an immediate close
 		if(closeSelector == null) closeSelector = '';
-		closeSelector += (closeSelector.length > 0 ? ', ' : '') + '.pw-modal-cancel'; 
+		closeSelector += (closeSelector.length > 0 ? ', ' : '') + '.pw-modal-cancel';
 		
-		var $dialog = $iframe.dialog({
-			modal: true,
-			height: windowHeight,
-			width: windowWidth,
-			title: title,
-			position: windowPosition,
-			show: 250, 
-			hide: 250,
-			close: function(event, ui) {
-				$a.trigger('modal-close', { event: event, ui: ui } ); // legacy, deprecated
-				$a.trigger('pw-modal-closed', { event: event, ui: ui } ); // new
-			}
-		}).width(windowWidth).height(windowHeight);
-	
 		var $spinner = $("<i class='fa fa-spin fa-spinner fa-2x ui-priority-secondary'></i>")
-			.css({ 
+			.css({
 				'position': 'absolute',
-				'top': (parseInt($(window).height() / 2) - 80) + 'px', 
-				'left': (parseInt($(window).width() / 2) - 20) + 'px', 
+				'top': (parseInt($(window).height() / 2) - 80) + 'px',
+				'left': (parseInt($(window).width() / 2) - 20) + 'px',
 				'z-index': 9999
 			}).hide();
+		
+		var $iframe = pwModalWindow($a.attr('href'), settings, modalSize);
+	
 		$("body").append($spinner.fadeIn('fast')); 
 		
 		$iframe.load(function() {
@@ -131,16 +242,11 @@ $(document).ready(function() {
 							}
 						}, 500); 
 					}
-					$dialog.dialog('close'); 
+					$iframe.dialog('close'); 
 					return;
 				}
 			}
 	
-			// set the dialog window title, if it isn't already set
-			if(!title) {
-				$dialog.dialog('option', 'title', $icontents.find('title').text());
-			}
-		
 			// copy buttons in iframe to dialog
 			if(buttonSelector) { 
 				$icontents.find(buttonSelector).each(function() {
@@ -161,7 +267,7 @@ $(document).ready(function() {
 								$button.click();
 								if(closeSelector.length > 0 && $button.is(closeSelector)) {
 									// immediately close if matches closeSelector
-									$dialog.dialog('close');
+									$iframe.dialog('close');
 								}
 								if(autoclose) {
 									// automatically close on next page load
@@ -194,10 +300,7 @@ $(document).ready(function() {
 			*/
 
 			// render buttons
-			if(buttons.length > 0) {
-				$dialog.dialog('option', 'buttons', buttons);
-				$dialog.width(windowWidth).height(windowHeight);
-			}
+			if(buttons.length > 0) $iframe.setButtons(buttons);
 			
 			$icontents.find('body').fadeIn('fast');
 	

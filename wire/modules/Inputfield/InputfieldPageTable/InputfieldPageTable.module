@@ -89,6 +89,7 @@ class InputfieldPageTable extends Inputfield {
 	 * 
 	 */
 	public function ___render() {
+		$this->wire('modules')->get('JqueryUI')->use('modal'); 
 
 		// make sure we've got enough info to generate a table
 		$errors = array();

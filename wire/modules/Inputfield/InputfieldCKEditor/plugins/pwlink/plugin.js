@@ -69,8 +69,6 @@
 		var $langWrapper = $textarea.closest('.LanguageSupport');
 		if($langWrapper.length) langID = "&lang=" + $langWrapper.data("language");
 
-		var modalUrl = config.urls.admin + 'page/link/?id=' + pageID + '&modal=1' + langID; 
-		var $iframe = $('<iframe id="pwlink_iframe" frameborder="0" src="' + modalUrl + '"></iframe>');
 		var selection = editor.getSelection(true);
 		var selectionElement = selection.getSelectedElement();
 		var node = selection.getStartElement();
@@ -92,6 +90,36 @@
 			return;
 		}
 
+		var modalUrl = config.urls.admin + 'page/link/?id=' + pageID + '&modal=1' + langID; 
+		var insertLinkLabel = config.InputfieldCKEditor.pwlink.label;
+		var cancelLabel = config.InputfieldCKEditor.pwlink.cancel;
+		var modalSettings = {
+			title: "<i class='fa fa-link'></i> " + insertLinkLabel,
+			buttons: [ {
+				html: "<i class='fa fa-link'></i> " + insertLinkLabel,
+				click: function() {
+	
+					var $i = $iframe.contents();
+					var url = $("#link_page_url", $i).val();
+					var target = $("#link_target", $i).is(":checked") ? "_blank" : '';
+	
+					if(target && target.length > 0) target = ' target="' + target + '"';
+					if(url.length) {
+						var html = '<a href="' + url + '"' + target + '>' + selectionText + '</a>';
+						editor.insertHtml(html);
+					}
+					$iframe.dialog("close");
+				}
+			}, {
+					html: "<i class='fa fa-times-circle'></i> " + cancelLabel,
+					click: function() { $iframe.dialog("close"); },
+					class: 'ui-priority-secondary'
+				
+				}
+			]
+		};
+		
+		var $iframe = pwModalWindow(modalUrl, modalSettings, 'medium'); 
 		$iframe.load(function() {
 			var $i = $iframe.contents();
 			$i.find("#link_page_url").val(href);
@@ -99,44 +127,6 @@
 			if(target && target.length) $i.find("#link_target").attr('checked', 'checked');
 		});
 
-		var windowWidth = $(window).width()-300;
-		var windowHeight = $(window).height()-350;
-		if(windowHeight > 800) windowHeight = 800;
-
-		var insertLinkLabel = config.InputfieldCKEditor.pwlink.label;
-		var cancelLabel = config.InputfieldCKEditor.pwlink.cancel;
-
-		$iframe.dialog({
-			title: insertLinkLabel,
-			height: windowHeight,
-			width: windowWidth,
-			position: [150,80],
-			modal: true,
-			overlay: {
-				opacity: 0.7,
-				background: "black"
-			},
-			buttons: [ {
-					text: insertLinkLabel,
-					click: function() {
-
-						var $i = $iframe.contents();
-						var url = $("#link_page_url", $i).val();
-						var target = $("#link_target", $i).is(":checked") ? "_blank" : '';
-
-						if(target && target.length > 0) target = ' target="' + target + '"';
-						if(url.length) {
-							var html = '<a href="' + url + '"' + target + '>' + selectionText + '</a>';
-							editor.insertHtml(html); 
-						}
-						$iframe.dialog("close");
-					}
-				}, {
-					text: cancelLabel,
-					click: function() { $iframe.dialog("close"); }
-				} 
-			]
-		}).width(windowWidth).height(windowHeight);
 	}
 	
 })();

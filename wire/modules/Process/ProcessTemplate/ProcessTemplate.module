@@ -69,6 +69,8 @@ class ProcessTemplate extends Process {
 		}
 
 		if($this->input->urlSegment1) $this->modules->get("JqueryWireTabs"); 
+		
+		$this->wire('modules')->get('JqueryUI')->use('modal');
 
 		return parent::init();
 	}

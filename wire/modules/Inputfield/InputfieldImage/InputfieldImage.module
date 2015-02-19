@@ -38,6 +38,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	}
 	
 	protected $variations = array();
+	protected $modalClass = 'pw-modal-large';
 	
 	public function init() {
 		parent::init();
@@ -240,7 +241,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			$variationURL = $this->wire('config')->urls->admin . 
 				"page/image/variations/?id={$pagefile->page->id}&file=$pagefile->name&modal=1&varcnt=varcnt_$id";
 			$variationInfo = "\n\t\t\t&bull; " . 
-				"<a class='InputfieldImageVariationCnt pw-modal pw-modal-large' data-buttons='button' " . 
+				"<a class='InputfieldImageVariationCnt pw-modal $this->modalClass' data-buttons='button' " . 
 				"href='$variationURL' title='" . sprintf($this->_('Variations of %s'), $pagefile->name) . "'>" . 
 				"<i class='fa fa-files-o'></i>&nbsp;<span id='varcnt_$id'>$cnt</span></a>"; 
 		} 
@@ -253,7 +254,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header'>" . 
 			"\n\t\t\t<i class='fa fa-fw fa-sort HideIfSingle'></i>" .
 			"\n\t\t\t<i class='fa fa-fw fa-caret-right HideIfMultiple'></i>" . 
-			"\n\t\t\t<a class='InputfieldFileName pw-modal pw-modal-large' title='$editTitle' href='$editURL' " . 
+			"\n\t\t\t<a class='InputfieldFileName pw-modal $this->modalClass' title='$editTitle' href='$editURL' " . 
 				"data-buttons='#non_rte_dialog_buttons button' " . 
 				"data-autoclose='1' data-close='#non_rte_cancel'>{$pagefile->basename}</a> " . 
 			"\n\t\t\t<span class='InputfieldFileStats'>" .
@@ -272,7 +273,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			"\n\t\t\t<div class='InputfieldImagePreview'>" . 
 			"\n\t\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->url}'>$thumb[markup]</a>" . 
 			"\n\t\t\t\t<div class='InputfieldImageActions'>" . 
-			"\n\t\t\t\t\t<a title='$editTitle' href='$editURL' class='pw-modal pw-modal-large' " . 
+			"\n\t\t\t\t\t<a title='$editTitle' href='$editURL' class='pw-modal $this->modalClass' " . 
 				"data-buttons='#non_rte_dialog_buttons button' data-autoclose='1' data-close='#non_rte_cancel'>" . 
 				"<i class='fa fa-fw fa-edit'></i></a>" . 
 			"\n\t\t\t\t</div>" . 

@@ -734,6 +734,30 @@ $config->adminEmail = '';
 $config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5em;font-family:sans-serif;'><b>{message}</b><br /><small>{why}</small></p>";
 
 /**
+ * Settings for modal windows
+ * 
+ * Most PW modals use the "large" setting. The comma separated dimensions represent: 
+ *
+ * 1. Start at pixels from top
+ * 2. Start at pixels from left
+ * 3. Width: 100% minus this many pixels
+ * 4. Height: 100% minus this many pixels
+ * 
+ * @var array
+ * #property string large Settings for large modal windows (most common)
+ * #property string medium Settings for medium modal windows
+ * #property string small Settings for small modal windows
+ * #property string full Settings for full-screen modal windows
+ * 
+ */
+$config->modals = array(
+	'large' => "15,15,30,30", 
+	'medium' => "50,49,100,100", 
+	'small' => "100,100,200,200",
+	'full' => "0,0,0,0",
+);
+
+/**
  * Cache names to preload
  * 
  * Consists of the cache name/token for any caches that we want to be preloaded at boot time.
