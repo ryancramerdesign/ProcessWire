@@ -97,7 +97,7 @@
 			var parts = src.split('/'); 
 			file = parts.pop();
 			imgClass = $node.attr('class'); 
-			hidpi = imgClass.indexOf('hidpi') > -1;
+			hidpi = imgClass && imgClass.indexOf('hidpi') > -1;
 			imgWidth = $node.attr('width');
 			imgHeight = $node.attr('height'); 
 			imgDescription = $node.attr('alt'); 

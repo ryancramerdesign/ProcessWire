@@ -1,12 +1,38 @@
 <?php
 
+/**
+ * Class InputfieldImage
+ * 
+ * Inputfield for FieldtypeImage fields
+ * 
+ * @property string $extensions Space separated list of allowed image extensions (default="JPG JPEG GIF PNG")
+ * @property bool|int $adminThumbs Generate and use thumbnails for output in the admin? (default=false)
+ * @property int|string $maxWidth Max width for uploaded images, larger will be sized down (default='')
+ * @property int|string $maxHeight Max height for uploaded images, larger will be sized down (default='')
+ * @property int|string $minWidth Min width for uploaded images, smaller will be refused (default='')
+ * @property int|string $minHeight Min height for uploaded images, smaller will be refused (default='')
+ * @property string $itemClass Space separated CSS classes for items rendered by this Inputfield. Generally you should append rather than replace.
+ * @property int|bool $defaultGrid Start in grid mode rather than list mode? (default=0)
+ * @property int $gridSize Max dimension in pixels for width or height for images in grid mode (default=100)
+ * 
+ * The following properties default values are pulled from $config->adminThumbOptions and can be overridden 
+ * by setting directly to an instance of this Inputfield:
+ * 
+ * @property int $adminThumbWidth Width for admin thumbnails (default=unspecified)
+ * @property int $adminThumbHeight Height for admin thumbnails (default=100)
+ * @property int $adminThumbScale Scale for admin thumbnails (default=1.0 or specify 0.5 for hidpi)
+ * @property array $imageSizerOptions Options to pass along to the ImageSizer class. See /wire/config.php $imageSizerOptions for details.
+ * 
+ * 
+ */
+
 class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('Images', __FILE__), // Module Title
 			'summary' => __('One or more image uploads (sortable)', __FILE__), // Module Summary
-			'version' => 112,
+			'version' => 113,
 			'permanent' => true, 
 			);
 	}
@@ -52,6 +78,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			$this->variations = $this->value->getAllVariations();
 			if(count($this->variations)) $this->wire('modules')->get('JqueryUI')->use('modal');
 		}
+		if($this->wire('config')->ajax) clearstatcache();
 		$out = parent::___render();
 		if($this->defaultGrid) $out .= "<span class='InputfieldImageDefaultGrid'></span>";
 		return $out; 
@@ -163,13 +190,18 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		} else if($this->adminThumbScale < 1) {
 			// no thumb, but hidpi full size
 			$attr['width'] = $thumb->hidpiWidth($this->adminThumbScale);
-			$attr['height'] = $thumb->hidpiHeight($this->adminThumbScale); 
+			// $attr['height'] = $thumb->hidpiHeight($this->adminThumbScale); 
 		}
 
 		$url = $thumb->url;
 
 		// ensure cached image doesn't get shown when replacing same filename
 		if($this->overwrite) $url .= "?m=" . filemtime($img->pathname);
+
+		if($this->wire('config')->ajax) {
+			$mtime = filemtime($thumb->filename());
+			if($mtime > time() - 15) $url .= "?modified=$mtime"; // for nocache
+		}
 		
 		$attr['src'] = $url;
 		$attr['alt'] = $this->wire('sanitizer')->entities1($img->description);
@@ -178,12 +210,13 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		foreach($attr as $key => $value) $markup .= "$key=\"$value\" ";
 		$markup .= " />";
 		
-		return array(
+		$a = array(
 			'thumb' => $thumb, 
 			'attr' => $attr, 
 			'markup' => $markup, 
 			'error' => $error, 
 		);
+		return $a; 
 	}
 
 	/**
@@ -204,12 +237,12 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$variations = isset($this->variations[$pagefile->name]) ? $this->variations[$pagefile->name] : array();
 		if(count($variations)) {
 			$cnt = count($variations); 
-			$variationURL = $this->wire('config')->urls->admin . "page/image/variations/?id={$pagefile->page->id}&file=$pagefile->name&modal=1";
-			$numVariations = sprintf($this->_n('%d variation', '%d variations', $cnt), $cnt);
+			$variationURL = $this->wire('config')->urls->admin . 
+				"page/image/variations/?id={$pagefile->page->id}&file=$pagefile->name&modal=1&varcnt=varcnt_$id";
 			$variationInfo = "\n\t\t\t&bull; " . 
 				"<a class='InputfieldImageVariationCnt pw-modal pw-modal-large' data-buttons='button' " . 
-				"href='$variationURL' title='$numVariations'>" . 
-				str_replace(' ', '&nbsp;', $numVariations) . "</a> ";
+				"href='$variationURL' title='" . sprintf($this->_('Variations of %s'), $pagefile->name) . "'>" . 
+				"<i class='fa fa-files-o'></i>&nbsp;<span id='varcnt_$id'>$cnt</span></a>"; 
 		} 
 	
 		$pageID = $pagefile->pagefiles->page->id; 
@@ -236,7 +269,14 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 				"<i class='fa fa-fw fa-angle-double-up'></i></a> " . 
 			"\n\t\t</p>" . 
 			"\n\t\t<div class='InputfieldFileData ui-widget ui-widget-content'>" . 
-			"\n\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->url}'>$thumb[markup]</a>" . 
+			"\n\t\t\t<div class='InputfieldImagePreview'>" . 
+			"\n\t\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->url}'>$thumb[markup]</a>" . 
+			"\n\t\t\t\t<div class='InputfieldImageActions'>" . 
+			"\n\t\t\t\t\t<a title='$editTitle' href='$editURL' class='pw-modal pw-modal-large' " . 
+				"data-buttons='#non_rte_dialog_buttons button' data-autoclose='1' data-close='#non_rte_cancel'>" . 
+				"<i class='fa fa-fw fa-edit'></i></a>" . 
+			"\n\t\t\t\t</div>" . 
+			"\n\t\t\t</div>" . 
 			"\n\t\t\t" . $error . $this->renderItemDescriptionField($pagefile, $id, $n) . 
 			"\n\t\t\t<input class='InputfieldFileSort' type='text' name='sort_$id' value='$n' />" . 
 			"\n\t\t</div>";

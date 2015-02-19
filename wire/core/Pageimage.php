@@ -595,6 +595,119 @@ class Pageimage extends Pagefile {
 	}
 
 	/**
+	 * Rebuilds variations of this image
+	 * 
+	 * By default, this excludes crops and images with suffixes, but can be 
+	 * overridden with the $mode and $suffix arguments. 
+	 * 
+	 * Mode 0 is the only truly safe mode, as in any other mode there are possibilities that the resulting
+	 * rebuild of the variation may not be exactly what was intended. The issues with other modules primarily
+	 * arise when the suffix means something about the technical details of the produced image, or when 
+	 * rebuilding variations that include crops from an original image that has changed dimensions or crops. 
+	 * 
+	 * @param int $mode Can be any one of the following (default is 0): 
+	 * 	- 0: rebuild only non-suffix, non-crop variations, and those w/suffix specified in $suffix argument. ($suffix is INCLUSION list)
+	 * 	- 1: rebuild all non-suffix variations, and those w/suffix specifed in $suffix argument. ($suffix is INCLUSION list)
+	 * 	- 2: rebuild all variations, except those with suffix specified in $suffix argument. ($suffix is EXCLUSION list)
+	 * 	- 3: rebuild only variations specified in the $suffix argument. ($suffix is ONLY-INCLUSION list)
+	 * @param array $suffix Optional argument to specify suffixes to include or exclude (according to $mode). 
+	 * @param array $options Options for ImageSizer (see $options argument for size() method). 
+	 * @return array of format array(
+	 * 	'rebuilt' => array(file1, file2, file3, etc.), 
+	 * 	'skipped' => array(file1, file2, file3, etc.), 
+	 * 	'errors' => array(file1, file2, file3, etc.); 
+	 * 	);
+	 * 
+	 */
+	public function ___rebuildVariations($mode = 0, array $suffix = array(), array $options = array()) {
+		
+		$skipped = array();
+		$rebuilt = array();
+		$errors = array();
+		$reasons = array();
+		$options['forceNew'] = true; 
+		
+		foreach($this->getVariations(array('info' => true)) as $info) {
+			
+			$o = $options;
+			unset($o['cropping']); 
+			$skip = false; 
+			$name = $info['name'];
+			
+			if($info['crop'] && !$mode) {
+				// skip crops when mode is 0
+				$reasons[$name] = "$name: Crop is $info[crop] and mode is 0";
+				$skip = true; 
+				
+			} else if(count($info['suffix'])) {
+				// check suffixes 
+				foreach($info['suffix'] as $k => $s) {
+					if($s === 'hidpi') {
+						// allow hidpi to passthru
+						$o['hidpi'] = true;
+					} else if($s == 'is') {
+						// this is a known core suffix that we allow
+					} else if(strpos($s, 'cropx') === 0) {
+						// skip cropx suffix (already known from $info[crop])
+						unset($info['suffix'][$k]);
+						continue; 
+					} else if(strpos($s, 'pid') === 0 && preg_match('/^pid\d+$/', $s)) {
+						// allow pid123 to pass through 
+					} else if(in_array($s, $suffix)) {
+						// suffix is one provided in $suffix argument
+						if($mode == 2) {
+							// mode 2 where $suffix is an exclusion list
+							$skip = true;
+							$reasons[$name] = "$name: Suffix '$s' is one provided in exclusion list (mode==true)";
+						} else {
+							// allowed suffix
+						}
+					} else {
+						// image has suffix not specified in $suffix argument
+						if($mode == 0 || $mode == 1 || $mode == 3) {
+							$skip = true;
+							$reasons[$name] = "$name: Image has suffix '$s' not provided in allowed list: " . implode(', ', $suffix);
+						}
+					}
+				}
+			}
+			
+			if($skip) {
+				$skipped[] = $name; 
+				continue; 
+			}
+		
+			// rebuild the variation
+			$o['forceNew'] = true; 
+			$o['suffix'] = $info['suffix'];
+			if(is_file($info['path'])) unlink($info['path']); 
+			
+			if($info['crop'] && preg_match('/^x(\d+)y(\d+)$/', $info['crop'], $matches)) {
+				$cropX = (int) $matches[1];
+				$cropY = (int) $matches[2];
+				$variation = $this->crop($cropX, $cropY, $info['width'], $info['height'], $options); 
+			} else {
+				if($info['crop']) $options['cropping'] = $info['crop'];
+				$variation = $this->size($info['width'], $info['height'], $options);
+			}
+			
+			if($variation) {
+				if($variation->name != $name) rename($variation->filename(), $info['path']); 
+				$rebuilt[] = $name;
+			} else {
+				$errors[] = $name;
+			}
+		}
+		
+		return array(
+			'rebuilt' => $rebuilt, 
+			'skipped' => $skipped, 
+			'reasons' => $reasons, 
+			'errors' => $errors
+		); 
+	}
+
+	/**
 	 * Given a filename, return array of info if this is a variation for this instance's file, false if not
 	 *
 	 * Returned array includes the following indexes: 
@@ -620,8 +733,17 @@ class Pageimage extends Pagefile {
 
 		static $level = 0;
 		$variationName = basename($basename);
-		$originalName = basename($this->basename, "." . $this->ext());  // excludes extension
+		$originalName = $this->basename; 
+	
+		// that that everything from the beginning up to the first period is exactly the same
+		// otherwise, they are different source files
+		$test1 = substr($variationName, 0, strpos($variationName, '.'));
+		$test2 = substr($originalName, 0, strpos($originalName, '.')); 
+		if($test1 !== $test2) return false;
 
+		// remove extension from originalName
+		$originalName = basename($originalName, "." . $this->ext());  
+		
 		// if originalName is already a variation filename, remove the variation info from it.
 		// reduce to original name, i.e. all info after (and including) a period
 		if(strpos($originalName, '.') && preg_match('/^([^.]+)\.(?:\d+x\d+|-[_a-z0-9]+)/', $originalName, $matches)) {

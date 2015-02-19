@@ -13,6 +13,8 @@
  * 
  * http://processwire.com
  * 
+ * @todo support changes to a "title|body%=about" selector, so that a change to "title" row also updates the value for the "body" row. 
+ * 
  * SETTINGS
  * ========
  * Below are settings that may be passed to InputfieldSelector to customize the output and behavior.
@@ -319,7 +321,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'name' => array('=', '!=', '%='), 
 			'text' => array('%=', '*=', '~=', '^=', '$=', '=', '!=', '=""', '!=""'), 
 			'autocomplete' => array('=', '!='), 
-			'number' => array('=', '!=', '<', '>', '<=', '>='), 
+			'number' => array('=', '!=', '<', '>', '<=', '>=', '=""', '!=""'), 
 			'datetime' => array('=', '!=', '<', '>', '<=', '>='), 
 			'page' => array('@=', '@!='), 
 			'checkbox' => array('=', '!='), 
@@ -874,6 +876,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	 * 
 	 */
 	protected function renderSelectOperator($name, $type = '', $selectedValue = '', $operators = array()) {
+		
 		$inputName = $this->attr('name') . "__operator[]"; 
 
 		if(!count($operators)) { 
@@ -888,6 +891,11 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			} else {
 				$operators = $this->operators; 
 			}
+		}
+		
+		if($selectedValue === '""' && !in_array($selectedValue, $operators)) {
+			// if isEmpty/isNotEmpty not supported then convert it to regular equals/notEquals
+			$selectedValue = rtrim($selectedValue, '"'); 	
 		}
 
 		$disabled = count($operators) ? "" : " disabled='disabled'";
@@ -1029,7 +1037,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		}
 
 		// determine which operators should be used
-		if($type == 'text' && $selectedValue == '""' && in_array($selectedOperator, array('=', '!='))) {
+		if($selectedValue == '""' && in_array($selectedOperator, array('=', '!='))) {
 			// add blank quoted string to operator, to match up with our "has value" or "does not have value" operators
 			$selectedOperator .= '""';
 			$selectedValue = '';

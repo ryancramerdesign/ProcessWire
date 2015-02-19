@@ -225,15 +225,15 @@
 	opacity: 0.3;
 }
 
-.show-when-processing {
-	display: none; 
+.show_when_processing {
+	display: none !important; 
 }
-.processing .show-when-processing {
-	display: inline; 
+.processing .show_when_processing {
+	display: inline !important; 
 }
 
-.processing .hide-when-processing {
-	display: none; 
+.processing .hide_when_processing {
+	display: none !important; 
 }
 
 .not-rte .show_when_rte {
@@ -242,5 +242,9 @@
 
 .rte .hide_when_rte {
 	display: none !important; 
+}
+
+.maxfiles1 .submit_save_copy {
+	display: none; 
 }
 

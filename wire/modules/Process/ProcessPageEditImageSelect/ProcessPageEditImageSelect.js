@@ -12,11 +12,34 @@ function disablePWImageDialogButtons() {
 }
 
 function closePWImageDialog() {
-	window.parent.jQuery('iframe.ui-dialog-content').dialog('close'); 
+	parent.jQuery('iframe.ui-dialog-content').dialog('close'); 
 }
 
+function setupProcessSaveReloaded(fileID, isNew) {
+	if(isNew) {
+		var offsetTop = parent.jQuery('#' + fileID).offset().top - 20;
+		parent.jQuery('html, body').animate({ scrollTop: offsetTop }, 1000, 'swing');
+		parent.jQuery('#' + fileID).hide();
+		setTimeout(function() { parent.jQuery('#' + fileID).slideDown(); }, 900);
+	} else {
+		parent.jQuery('#' + fileID).find('img').hide();
+		setTimeout(function() { parent.jQuery('#' + fileID).find('img').fadeIn(); }, 500);
+	}
+	closePWImageDialog();
+}
+
+function setupProcessSave(fieldName, fileID, isNew) {
+	parent.jQuery('#wrap_Inputfield_' + fieldName).trigger('reload');
+	var finished = false;
+	parent.jQuery('.Inputfield').on('reloaded', function() {
+		if(finished) return;
+		finished = true;
+		setTimeout(function() { setupProcessSaveReloaded(fileID, isNew); }, 250);
+	});
+}
 
 function setupExecuteVariations() {
+	
 	var magnificOptions = {
 		type: 'image',
 		closeOnContentClick: true,
@@ -31,6 +54,14 @@ function setupExecuteVariations() {
 		}
 		event.stopPropagation();
 	}); 
+
+	// update variation counter in parent window
+	var $varcnt = $("#varcnt_id");
+	var varcntID = $varcnt.val();
+	var varcnt = $varcnt.attr('data-cnt');
+	console.log('varcntID=' + varcntID);
+	console.log('varcnt=' + varcnt); 
+	window.parent.jQuery("#" + varcntID).text(varcnt);
 }
 
 function setupSelectedImage() {
@@ -88,7 +119,16 @@ function setupSelectedImage() {
 			updateHidpiCheckbox(w); 
 		
 			var $latin = $("#latin"); 
-			if($latin.is(":visible")) $latin.height(h); 
+			if($latin.is(":visible")) $latin.height(h);
+
+			if(!$form.hasClass('rte')) {
+				var $useResize = $("#selected_image_resize");
+				if (originalWidth <= w) {
+					$useResize.hide();
+				} else {
+					if (!$useResize.is(":visible")) $useResize.fadeIn();
+				}
+			}
 			
 		}
 
@@ -105,7 +145,16 @@ function setupSelectedImage() {
 				},
 				stop: function() {
 					$img.attr('width', $img.width()).attr('height', $img.height());
-					if(originalWidth != $img.width()) $img.addClass('resized');
+					if(originalWidth != $img.width()) {
+						$img.addClass('resized');
+						if(!$form.hasClass('rte')) {
+							var $resizeYes = $("#selected_image_resize_yes");
+							if (!$resizeYes.is(":checked")) {
+								$resizeYes.attr('checked', 'checked');
+								$("#selected_image_resize_no").removeAttr('checked');
+							}
+						}
+					}
 					$form.removeClass('resizing_active'); 
 					if($("#resize_action").hasClass('on')) $("#resize_action").click().mouseout();
 				},
@@ -141,18 +190,6 @@ function setupSelectedImage() {
 				if(!$form.hasClass('croppable')) return;
 				if(croppingActive) return false;
 
-				/*
-				// if image is too small to crop, update it to be large enough
-				if($img.width() < 190 || $img.height() < 190) {
-					if(maxWidth <= 500) {
-						$("#input_width").val(maxWidth).change();
-					} else {
-						$("#input_width").val($(window).width() - 30).change();
-					}
-				}
-				*/
-				
-				
 				croppingActive = true;
 				$("#selected_image_settings").addClass('cropping_active'); 
 				$(".hide_when_crop").hide();
@@ -164,6 +201,8 @@ function setupSelectedImage() {
 					autoCropArea: 0.35,
 					zoomable: false,
 					rotatable: false,
+					maxWidth: $img.attr('data-origwidth'), 
+					maxHeight: $img.attr('data-origheight'),
 					done: function(data) {
 						$("#crop_x").val(Math.floor(data.x));
 						$("#crop_y").val(Math.floor(data.y));
@@ -360,15 +399,7 @@ function setupSelectedImage() {
 			
 		}
 		
-		/*** INIT: setupImage ******************************************************/
-			
-		// adjust height of wrap_info so that there is no change when crop buttons are turned on
-		var $wrapInfo = $("#wrap_info"); 
-		$wrapInfo.css('min-height', $wrapInfo.height() + 'px'); 
-		$("#loading_button").hide();
-		
-		if($img.attr('data-fit')) {
-			// fit image to viewport
+		function fitImageToWindow() {
 			var winwidth = $(window).width() - 30;
 			var winheight = $(window).height() - $("#wrap_info").height() - 20;
 			if($img.width() > winwidth) {
@@ -379,6 +410,15 @@ function setupSelectedImage() {
 				$img.removeAttr('width').css('width', 'auto').height(winheight);
 			}
 		}
+		
+		/*** INIT: setupImage ******************************************************/
+			
+		// adjust height of wrap_info so that there is no change when crop buttons are turned on
+		var $wrapInfo = $("#wrap_info"); 
+		$wrapInfo.css('min-height', $wrapInfo.height() + 'px'); 
+		$("#loading_button").hide();
+		
+		if($img.attr('data-fit')) fitImageToWindow();
 
 		$container.width($img.width()).height($img.height());
 

@@ -116,7 +116,12 @@ class Pageimages extends Pagefiles {
 			
 				// if files don't start the same, it's not a variation
 				$base = $basenames[$name];
-				if(strpos($_base, $base) !== 0) continue; 
+				if(strpos($_base, $base) !== 0) continue;
+
+				// if the part up to the first period isn't the same, then it's not a variation
+				$test1 = substr($name, 0, strpos($name, '.'));
+				$test2 = substr($_name, 0, strpos($_name, '.'));
+				if($test1 !== $test2) continue; 
 				
 				// if we reach this point, we've found a variation
 				$variations[$name][] = $_name; 

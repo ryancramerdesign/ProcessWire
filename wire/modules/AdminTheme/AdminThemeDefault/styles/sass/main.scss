@@ -509,6 +509,10 @@ body:not(.hasWireTabs) #headline .container {
 		width: 100% !important;
 		margin-left: 0 !important;
 	}
+	.InputfieldHeader,
+	.InputfieldContent {
+		margin-left: 0 !important;
+	}
 	
 }
 
