@@ -36,24 +36,18 @@
 
 #selected_image_container {
 	position: relative; 
+	overflow: visible; 
 }
 
 #action_icons {
-	display: none;
+	margin-right: 0.5em;
 }
 
-#selected_image_container:hover #action_icons {
-	display: block;
-	position: absolute;
-	top: 0;
-	left: 0;
-}
 #action_icons span {
 	display: block;
 	float: left;
-	padding: 0 4px;
+	padding: 2px 4px 0 4px;
 	margin-right: 3px; 
-	margin-bottom: 3px; 
 	background-color: #000;
 	background-color: rgba(0,0,0,0.8);
 	color: #aaa; 
@@ -61,9 +55,8 @@
 .cropping_active .cropper-container {
 	position: static; 
 }
-.resizing_active #selected_image_container:hover #action_icons,
-.cropping_active #selected_image_container:hover #action_icons {
-	display: none;
+.cropping_active #action_icons {
+	display: none !important;
 }
 
 #action_icons span:hover {
@@ -248,3 +241,7 @@
 	display: none; 
 }
 
+#selected_image_pixels, 
+label.checkbox {
+	white-space: nowrap; 
+}

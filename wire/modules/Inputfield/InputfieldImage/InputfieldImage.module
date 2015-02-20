@@ -240,7 +240,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			$cnt = count($variations); 
 			$variationURL = $this->wire('config')->urls->admin . 
 				"page/image/variations/?id={$pagefile->page->id}&file=$pagefile->name&modal=1&varcnt=varcnt_$id";
-			$variationInfo = "\n\t\t\t&bull; " . 
+			$variationInfo = "\n\t\t\t&nbsp;" . 
 				"<a class='InputfieldImageVariationCnt pw-modal $this->modalClass' data-buttons='button' " . 
 				"href='$variationURL' title='" . sprintf($this->_('Variations of %s'), $pagefile->name) . "'>" . 
 				"<i class='fa fa-files-o'></i>&nbsp;<span id='varcnt_$id'>$cnt</span></a>"; 
@@ -256,9 +256,9 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			"\n\t\t\t<i class='fa fa-fw fa-caret-right HideIfMultiple'></i>" . 
 			"\n\t\t\t<a class='InputfieldFileName pw-modal $this->modalClass' title='$editTitle' href='$editURL' " . 
 				"data-buttons='#non_rte_dialog_buttons button' " . 
-				"data-autoclose='1' data-close='#non_rte_cancel'>{$pagefile->basename}</a> " . 
+				"data-autoclose='1' data-close='#non_rte_cancel'>{$pagefile->basename} <i class='fa fa-pencil ui-priority-secondary'></i></a> " . 
 			"\n\t\t\t<span class='InputfieldFileStats'>" .
-				"&bull; {$pagefile->filesizeStr} &bull; " . 
+				"{$pagefile->filesizeStr}, " . 
 				"{$pagefile->width}x{$pagefile->height} " . 
 				"$variationInfo</span> " . 
 			"\n\t\t\t<label class='InputfieldFileDelete'>" . 
@@ -275,7 +275,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			"\n\t\t\t\t<div class='InputfieldImageActions'>" . 
 			"\n\t\t\t\t\t<a title='$editTitle' href='$editURL' class='pw-modal $this->modalClass' " . 
 				"data-buttons='#non_rte_dialog_buttons button' data-autoclose='1' data-close='#non_rte_cancel'>" . 
-				"<i class='fa fa-fw fa-edit'></i></a>" . 
+				"<i class='fa fa-fw fa-crop'></i></a>" . 
 			"\n\t\t\t\t</div>" . 
 			"\n\t\t\t</div>" . 
 			"\n\t\t\t" . $error . $this->renderItemDescriptionField($pagefile, $id, $n) . 

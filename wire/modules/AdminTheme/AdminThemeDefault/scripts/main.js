@@ -195,6 +195,23 @@ var ProcessWireAdminTheme = {
 	dropdownPositionsMonitored: false,
 
 	setupDropdowns: function() {
+
+		var touchClick = function() {
+			var touchCnt = $(this).attr('data-touchCnt');
+			if(!touchCnt) touchCnt = 0;
+			touchCnt++;
+			$(this).attr('data-touchCnt', touchCnt);
+			if(touchCnt == 2) {
+				$(this).mouseleave();
+			} else {
+				$(this).mouseenter();
+			}
+			return false;
+		};
+
+		if($("body").hasClass('touch-device')) {
+			$('#topnav').on("click", "a.dropdown-toggle, a.has-items", touchClick);
+		}
 		
 		$(".dropdown-menu").on("click", "a", function(e) {
 			e.stopPropagation();
@@ -251,7 +268,10 @@ var ProcessWireAdminTheme = {
 					$ul.find('ul').hide();
 					$ul.hide();
 					$a.removeClass('hover');
-				}, 50); 
+				}, 50);
+				if($("body").hasClass('touch-device')) {
+					$(this).attr('data-touchCnt', 0);
+				}
 			}); 
 
 			$ul.mouseleave(function() {

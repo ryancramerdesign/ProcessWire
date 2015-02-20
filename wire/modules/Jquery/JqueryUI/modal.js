@@ -68,8 +68,8 @@ function pwModalWindowSettings(name) {
 		position: [ parseInt(modal[0]), parseInt(modal[1]) ], 
 		width: $(window).width() - parseInt(modal[2]),
 		height: $(window).height() - parseInt(modal[3]),
-		show: 250,
 		hide: 250,
+		show: 100, 
 		create: function(event, ui) {
 			parent.jQuery('body').css('overflow', 'hidden');
 		},

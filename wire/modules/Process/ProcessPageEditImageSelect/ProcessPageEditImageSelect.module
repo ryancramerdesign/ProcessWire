@@ -72,7 +72,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			'description' => $this->_('Description'),
 			'linkOriginal' => $this->_('Link to larger/original version'),
 			'resize' => $this->_('Resize'),
-			'useResize' => $this->_('Save at this reduced size?'), 
+			'useResize' => $this->_('Save at this size?'), 
 			'crop' => $this->_('Crop'),
 			'saveCrop' => $this->_('Save Crop'),
 			'max' => $this->_('Maximize/full width'),
@@ -427,6 +427,12 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 				$parts['original'] = $file;
 			}
 		}
+		if(!isset($parts['class']) && $this->wire('input')->get('class')) {
+			$class = $this->wire('input')->get('class'); 
+			if(in_array($class, array($this->alignLeftClass, $this->alignCenterClass, $this->alignRightClass))) {
+				$parts['class'] = $class; 
+			}
+		}
 		if(!$this->rte) $parts['rte'] = '0';
 		if($this->field) $parts['field'] = $this->field->name; 
 		
@@ -659,7 +665,17 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 				"<select id='selected_image_class' name='class'>" .
 					"<option>" . $this->_('No Alignment') . "</option>" .
 					$classOptions .
-				"</select>" . 
+				"</select>" .
+				"<span id='action_icons' class='hide_when_crop hide_when_processing'>" .
+					"<span title='$labels[resize]' id='resize_action'><i class='fa fa-fw fa-arrows-alt'></i></span>" .
+					"<span title='$labels[crop]' data-recrop='$recropURL' id='crop_action'><i class='fa fa-fw fa-crop'></i></span>" .
+					"<span title='$labels[max] ({$originalWidth}x{$originalHeight})' id='max_action'><i class='fa fa-fw fa-expand'></i></span>" .
+					"<span title='$labels[min]' id='min_action'><i class='fa fa-fw fa-compress'></i></span>" .
+					"<span title='$labels[alignLeft]' data-label='alignLeft' class='align_action show_when_rte' id='align_left_action'><i class='fa fa-fw fa-align-left'></i></span>" .
+					"<span title='$labels[alignCenter]' data-label='alignCenter' class='align_action show_when_rte' id='align_center_action'><i class='fa fa-fw fa-align-center'></i></span>" .
+					"<span title='$labels[alignRight]' data-label='alignRight' class='align_action show_when_rte' id='align_right_action'><i class='fa fa-fw fa-align-right'></i></span>" .
+					"<span title='$labels[description]' id='description_action' class='show_when_rte'><i class='fa fa-fw fa-quote-left'></i></span>" .
+				"</span>" .
 				"<span class='hide_when_crop'>" . 
 					"<span id='selected_image_pixels'>" . 
 						"<label><input title='$labels[width]' name='width' id='input_width' class='input_pixels' " .
@@ -671,12 +687,12 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 					"<span id='selected_image_resize' class='hide_when_rte hide_when_crop hide_when_processing'>" .
 						"<i class='fa fa-angle-left ui-priority-secondary'></i>&nbsp;" . 
 						"$labels[useResize]&nbsp;&nbsp;" . 
-						"<label><input$resizeYesChecked id='selected_image_resize_yes' name='use_resize' type='radio' value='1' />&nbsp;$labels[yes]</label>&nbsp;&nbsp;" .
-						"<label><input$resizeNoChecked id='selected_image_resize_no' name='use_resize' type='radio' value='0' />&nbsp;" . 
+						"<label class='checkbox'><input$resizeYesChecked id='selected_image_resize_yes' name='use_resize' type='radio' value='1' />&nbsp;$labels[yes]</label>&nbsp;&nbsp;" .
+						"<label class='checkbox'><input$resizeNoChecked id='selected_image_resize_no' name='use_resize' type='radio' value='0' />&nbsp;" . 
 							sprintf($labels['noUse'], $originalDimension) . "</label>" .
 					"</span>" . 
 					"<span id='wrap_link_original' class='show_when_rte'>" .
-						"<label>" .
+						"<label class='checkbox'>" .
 							"<input title='$labels[linkOriginal]' type='checkbox'$linkOriginalChecked " .
 								"name='selected_image_link' id='selected_image_link' value='{$original->url}' /> " .
 							"<i class='fa fa-link ui-priority-secondary'></i>&nbsp;" .
@@ -684,7 +700,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 						"</label>" .
 					"</span>" . 
 					"<span class='show_when_rte'>" .
-						"<label><input$hidpiChecked id='selected_image_hidpi' type='checkbox' value='1' />&nbsp;$labels[hidpi]</label>" .
+						"<label class='checkbox'><input$hidpiChecked id='selected_image_hidpi' type='checkbox' value='1' />&nbsp;$labels[hidpi]</label>" .
 					"</span> " . 
 				"</span>" . // hide_when_crop
 				"<button type='button' class='ui-button ui-state-active show_when_processing' id='button_saving'>" .
@@ -711,23 +727,13 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			"<p id='wrap_description' class='show_when_rte'>" . 
 				"<label for='selected_image_description'>$labels[description]</label>" . 
 				"<input type='text' placeholder='$labels[description]' name='selected_image_description' " . 
-					"id='selected_image_description' class='no_focus' value=\"$description\" />" . 
+					"id='selected_image_description' title='$description' class='no_focus' value=\"$description\" />" . 
 			"</p>" . 
 			"</small>" . 
 			//"<p class='notes hide_when_rte'>Please note: this feature is still in development.</p>" . 
 			"<div id='selected_image_container'>" . 
 				"<img id='selected_image' $attrStr alt='' " . 
 					"data-idname='{$image->page->id},{$image->basename}' src='{$image->url}$nocache' />" . 
-				"<span id='action_icons'>" . 
-					"<span title='$labels[resize]' id='resize_action'><i class='fa fa-fw fa-arrows-alt'></i></span>" . 
-					"<span title='$labels[crop]' data-recrop='$recropURL' id='crop_action'><i class='fa fa-fw fa-crop'></i></span>" .
-					"<span title='$labels[max] ({$originalWidth}x{$originalHeight})' id='max_action'><i class='fa fa-fw fa-expand'></i></span>" . 
-					"<span title='$labels[min]' id='min_action'><i class='fa fa-fw fa-compress'></i></span>" .
-					"<span title='$labels[alignLeft]' data-label='alignLeft' class='align_action show_when_rte' id='align_left_action'><i class='fa fa-fw fa-align-left'></i></span>" .
-					"<span title='$labels[alignCenter]' data-label='alignCenter' class='align_action show_when_rte' id='align_center_action'><i class='fa fa-fw fa-align-center'></i></span>" .
-					"<span title='$labels[alignRight]' data-label='alignRight' class='align_action show_when_rte' id='align_right_action'><i class='fa fa-fw fa-align-right'></i></span>" .
-					"<span title='$labels[description]' id='description_action' class='show_when_rte'><i class='fa fa-fw fa-quote-left'></i></span>" . 
-				"</span>" .
 				"<span id='resize_tips'>" .
 					"<span class='resize_tip' id='resize_tip_nw'><i class='fa fa-fw fa-expand fa-flip-horizontal'></i></span>" .
 					"<span class='resize_tip' id='resize_tip_n'><i class='fa fa-fw fa-arrows-v'></i></span>" .

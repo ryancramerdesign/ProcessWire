@@ -366,13 +366,11 @@ function setupSelectedImage() {
 			
 			$("#resize_action").hover(function() {
 				if($(this).hasClass('on')) return;
-				$("#action_icons span:not(#resize_action)").hide();
 				$("#resize_tips").show();
 				$("#input_width, #input_height").addClass('ui-state-highlight'); 
 			}, function() {
 				if($(this).hasClass('on')) return;
 				$("#resize_tips").hide();
-				$("#action_icons span:not(#resize_action)").show();
 				$("#input_width, #input_height").removeClass('ui-state-highlight'); 
 			}).click(function() {
 				if($(this).hasClass('on')) {
@@ -399,7 +397,7 @@ function setupSelectedImage() {
 		
 		function fitImageToWindow() {
 			var winwidth = $(window).width() - 30;
-			var winheight = $(window).height() - ($("#wrap_info").height() + 30);
+			var winheight = $(window).height() - ($("#wrap_info").height() + 80);
 			if($img.width() > winwidth) {
 				$img.width(winwidth).css('height', 'auto').removeAttr('height');
 				$img.removeAttr('height');
@@ -407,6 +405,7 @@ function setupSelectedImage() {
 			if($img.height() > winheight) {
 				$img.removeAttr('width').css('width', 'auto').height(winheight);
 			}
+			$container.width($img.width()).height($img.height());
 		}
 		
 		/*** INIT: setupImage ******************************************************/
@@ -414,11 +413,14 @@ function setupSelectedImage() {
 		// adjust height of wrap_info so that there is no change when crop buttons are turned on
 		var $wrapInfo = $("#wrap_info"); 
 		$wrapInfo.css('min-height', $wrapInfo.height() + 'px'); 
+		$wrapInfo.children("span").css("min-height", $wrapInfo.height() + 'px'); 
 		$("#loading_button").hide();
 		
-		if($img.attr('data-fit')) fitImageToWindow();
-
-		$container.width($img.width()).height($img.height());
+		if($img.attr('data-fit')) {
+			fitImageToWindow();
+		} else {
+			$container.width($img.width()).height($img.height());
+		}
 
 		// assign change events
 		$("#selected_image_settings .input_pixels").change(inputPixelsChange);
@@ -453,7 +455,7 @@ function setupSelectedImage() {
 } // setupSelectedImage()
 
 $(document).ready(function() {
-
+	
 	var $page_id = $("#page_id"); 
 	if($page_id.length > 0) {
 		var page_id = $page_id.val();
@@ -478,5 +480,6 @@ $(document).ready(function() {
 			return false;
 		}
 	});
+
 
 }); 

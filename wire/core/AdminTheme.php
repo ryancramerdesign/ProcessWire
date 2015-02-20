@@ -108,6 +108,9 @@ abstract class AdminTheme extends WireData implements Module {
 		}
 
 		$this->config->js('modals', $this->config->modals); 
+		
+		if($this->wire('session')->hidpi) $this->addBodyClass('hidpi-device');
+		if($this->wire('session')->touch) $this->addBodyClass('touch-device'); 
 	}
 	
 	public function get($key) {

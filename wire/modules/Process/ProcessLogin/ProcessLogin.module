@@ -19,6 +19,16 @@
  */
 
 class ProcessLogin extends Process {
+	
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'Login',
+			'summary' => 'Login to ProcessWire',
+			'version' => 103,
+			'permanent' => true,
+			'permission' => 'page-view',
+		);
+	}
 
 	protected $nameField;
 	protected $passField; 
@@ -26,15 +36,29 @@ class ProcessLogin extends Process {
 	protected $form; 
 	protected $id; 
 
-	public static function getModuleInfo() {
-		return array(
-			'title' => 'Login',          
-			'summary' => 'Login to ProcessWire', 
-			'version' => 102, 
-			'permanent' => true, 
-			'permission' => 'page-view',
-			);
-	}
+	/**
+	 * Is this login form being used for admin login?
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $isAdmin = false;
+
+	/**
+	 * URL to redirect to after login
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $loginURL = '';
+
+	/**
+	 * URL to redirect to after logout
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $logoutURL = '';
 
 	/**
 	 * Build the login form 
@@ -44,10 +68,44 @@ class ProcessLogin extends Process {
 
 		$this->id = isset($_GET['id']) ? (int) $_GET['id'] : ''; 
 		$this->allowForgot = $this->modules->isInstalled('ProcessForgotPassword'); 
+		$this->isAdmin = $this->wire('page')->template == 'admin';
 
 		return parent::init();
 	}
 
+	/**
+	 * Set URL to redirect to after login success
+	 * 
+	 * If not set, redirect will be back to the current page with a "login=1" GET variable. 
+	 * However, you should only check if the user is logged in with if($user->isLoggedin()).
+	 * 
+	 * @param $url
+	 * @return $this
+	 * @throws WireException if given invalid URL
+	 * 
+	 */
+	public function setLoginURL($url) {
+		$url = $this->wire('sanitizer')->url($url, array('throw' => true)); 
+		$this->loginURL = $url;
+		return $this; 
+	}
+	
+	/**
+	 * Set URL to redirect to after logout success
+	 *
+	 * If not set, redirect will be back to the current page with a "logout=2" GET variable. 
+	 *
+	 * @param $url
+	 * @return $this
+	 * @throws WireException if given invalid URL
+	 *
+	 */
+	public function setLogoutURL($url) {
+		$url = $this->wire('sanitizer')->url($url, array('throw' => true));
+		$this->logoutURL = $url;
+		return $this;
+	}
+	
 	/**
 	 * Check if login posted and attempt login, otherwise render the login form
 	 *
@@ -55,8 +113,10 @@ class ProcessLogin extends Process {
 	public function ___execute() {
 
 		if($this->user->isLoggedin()) {
+			if($this->loginURL) $this->wire('session')->redirect($this->loginURL); 
 			$this->message($this->_("You are logged in.")); 
-			if($this->user->hasPermission('page-edit')) $this->afterLoginRedirect();
+			if($this->isAdmin && $this->user->hasPermission('page-edit')) $this->afterLoginRedirect();
+			// fallback if nothing set
 			$url = $this->config->urls->root;
 			return "<p><a href='$url'>" . $this->_('Continue') . "</a></p>";
 		}
@@ -70,20 +130,25 @@ class ProcessLogin extends Process {
 
 		if($this->wire('input')->post('login_submit')) {
 			$this->form->processInput($this->wire('input')->post);
-		} else {
+		} else if($this->isAdmin) {
 			$this->beforeLoginChecks();
 		}
 
-		if(!$this->nameField->value || !$this->passField->value) return $this->renderLoginForm(); 
+		if(!$this->nameField->value || !$this->passField->value) {
+			return $this->renderLoginForm();
+		}
 
-		$name = $this->fuel('sanitizer')->username($this->nameField->value); 
-		$pass = substr($this->passField->value, 0, 50); 
+		$name = $this->wire('sanitizer')->username($this->nameField->value); 
+		$pass = substr($this->passField->value, 0, 128); 
 	
 		if($this->wire('session')->login($name, $pass)) {
 			$this->session->message($name . ' - ' . $this->_("Successful login")); 
-			$this->session->set('hidpi', $this->wire('input')->post->login_hidpi ? true : false); 
-			$this->session->remove('error'); 
-			$this->afterLoginChecks();
+			if($this->isAdmin) {
+				$this->session->set('hidpi', $this->wire('input')->post->login_hidpi ? true : false);
+				$this->session->set('touch', $this->wire('input')->post->login_touch ? true : false);
+				$this->session->remove('error');
+				$this->afterLoginChecks();
+			}
 			$this->session->redirect("./?login=1" . ($this->id ? "&id={$this->id}" : ''));  
 		} else {
 			$this->error($name . " - " . $this->_("Login failed")); 
@@ -92,9 +157,29 @@ class ProcessLogin extends Process {
 		return $this->renderLoginForm();
 
 	}
+	
+	/**
+	 * Log the user out
+	 *
+	 */
+	public function ___executeLogout() {
+		if($this->logoutURL) {
+			$url = $this->logoutURL;
+		} else if($this->isAdmin) {
+			$url = $this->config->urls->admin;
+			$this->message($this->_("You have logged out"));
+		} else {
+			$url = "./?logout=2";
+		}
+		$this->session->logout();
+		$this->session->redirect($url);
+	}
+
 
 	/**
 	 * Check that sessions can be initiated and attempt to rectify situation if not
+	 * 
+	 * Happens only on the admin login form. 
 	 *
 	 */
 	protected function beforeLoginChecks() {
@@ -152,6 +237,8 @@ class ProcessLogin extends Process {
 
 	/**
 	 * After login, notify admin if there are any issues that need their attention
+	 * 
+	 * Happens only on the admin login form after superuser login. 
 	 *
 	 */
 	protected function afterLoginChecks() {
@@ -160,7 +247,7 @@ class ProcessLogin extends Process {
 		$indexVersion = ProcessWire::indexVersion; 
 		
 		if(PROCESSWIRE < $indexVersion) {
-			$this->error(
+			$this->warning(
 				"Not urgent, but note that your root index.php file is not up-to-date with this ProcessWire version - please update it when possible. " . 
 				"<br /><small>Required version: $indexVersion, Found version: " . PROCESSWIRE . "</small>", Notice::log | Notice::allowMarkup
 				); 
@@ -170,7 +257,7 @@ class ProcessLogin extends Process {
 		if(is_readable($htaccessFile)) {
 			$htaccessData = file_get_contents($htaccessFile); 
 			if(!preg_match('/@indexVersion\s+(\d+)\b/', $htaccessData, $matches) || ((int) $matches[1]) < $indexVersion) {
-				$this->error(
+				$this->warning(
 					"Not urgent, but note that your root .htaccess file is not up-to-date with this ProcessWire version - please update it when possible.<br />" .  
 					"<small>To ignore this warning, replace or add the following in the top of your existing .htaccess file:</small> " . 
 					"<span style='font-family: monospace;'># @indexVersion $indexVersion</span>", Notice::log | Notice::allowMarkup
@@ -227,12 +314,20 @@ class ProcessLogin extends Process {
 		$this->form->add($this->nameField); 
 		$this->form->add($this->passField); 
 		$this->form->add($this->submitField);
-	
-		// detect hidpi at login (populated from js)
-		$f = $this->modules->get('InputfieldHidden');
-		$f->attr('id+name', 'login_hidpi');
-		$f->attr('value', 0);
-		$this->form->add($f);
+
+		if($this->isAdmin) {
+			// detect hidpi at login (populated from js)
+			$f = $this->modules->get('InputfieldHidden');
+			$f->attr('id+name', 'login_hidpi');
+			$f->attr('value', 0);
+			$this->form->add($f);
+
+			// detect touch device login (populated from js)
+			$f = $this->modules->get('InputfieldHidden');
+			$f->attr('id+name', 'login_touch');
+			$f->attr('value', 0);
+			$this->form->add($f);
+		}
 
 		return $this->form; 
 	}
@@ -258,21 +353,6 @@ class ProcessLogin extends Process {
 			if($links) $out .= "<p>$links</p>";
 			return $out; 
 		}
-	}
-
-	/**
-	 * Log the user out
-	 *
-	 */
-	public function ___executeLogout() {
-		if($this->user->hasPermission('page-edit')) {
-			$url = $this->config->urls->admin;
-			$this->message($this->_("You have logged out")); 
-		} else {
-			$url = $this->config->urls->root;
-		} 
-		$this->session->logout();
-		$this->session->redirect($url);
 	}
 
 	/**

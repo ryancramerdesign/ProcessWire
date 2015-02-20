@@ -119,11 +119,13 @@
 		if(file.length) queryString += "&file=" + file; 
 		if(imgWidth) queryString += "&width=" + imgWidth; 
 		if(imgHeight) queryString += "&height=" + imgHeight; 
-		if(imgClass && imgClass.length) queryString += "&class=" + imgClass; 
+		if(imgClass && imgClass.length) queryString += "&class=" + encodeURIComponent(imgClass); 
 		queryString += '&hidpi=' + (hidpi ? '1' : '0'); 
-		if(imgDescription && imgDescription.length) queryString += "&description=" + encodeURIComponent(imgDescription);
+		if(imgDescription && imgDescription.length) {
+			queryString += "&description=" + encodeURIComponent(imgDescription);
+		}
 		if(imgLink && imgLink.length) queryString += "&link=" + encodeURIComponent(imgLink);
-		queryString += "&winwidth=" + $(window).width() - 30;
+		queryString += ("&winwidth=" + ($(window).width() - 30));
 
 		// create iframe dialog box
 		// var $iframe = $('<iframe id="pwimage_iframe" width="100%" frameborder="0" src="' + modalUri + queryString + '"></iframe>'); 
