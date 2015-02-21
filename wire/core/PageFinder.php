@@ -1370,7 +1370,7 @@ class PageFinder extends Wire {
 
 		// the subquery performs faster than the old method (further below) on sites with tens of thousands of pages
 		$in = $selector->operator == '!=' ? 'NOT IN' : 'IN';
-		$query->where("pages.parent_id=$parent_id OR pages.parent_id $in (SELECT pages_id FROM pages_parents WHERE parents_id=$parent_id");
+		$query->where("(pages.parent_id=$parent_id OR pages.parent_id $in (SELECT pages_id FROM pages_parents WHERE parents_id=$parent_id))");
 
 		/*
 		// OLD method kept for reference
