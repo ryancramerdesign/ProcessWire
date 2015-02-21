@@ -794,8 +794,7 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$database = $this->wire('database');	
 		
 		// version 3 to 4 check: addition of language-specific status columns
-		$query = $database->prepare("SHOW COLUMNS FROM pages WHERE Field LIKE 'status%'");
-		$query->execute();
+		$query = $database->query("SHOW COLUMNS FROM pages WHERE Field LIKE 'status%'");
 		
 		if($query->rowCount() < 2) {
 			foreach(wire('languages') as $language) {
