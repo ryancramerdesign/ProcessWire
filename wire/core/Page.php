@@ -23,11 +23,11 @@
  * @property string $path The page's URL path from the homepage (i.e. /about/staff/ryan/)
  * @property string $url The page's URL path from the server's document root (may be the same as the $page->path)
  * @property string $httpUrl Same as $page->url, except includes protocol (http or https) and hostname.
- * @property Page $parent The parent Page object or a NullPage if there is no parent.
+ * @property Page|string|int $parent The parent Page object or a NullPage if there is no parent. For assignment, you may also use the parent path (string) or id (integer). 
  * @property int $parent_id The numbered ID of the parent page or 0 if homepage or NullPage.
  * @property PageArray $parents All the parent pages down to the root (homepage). Returns a PageArray.
  * @property Page $rootParent The parent page closest to the homepage (typically used for identifying a section)
- * @property Template $template The Template object this page is using
+ * @property Template|string $template The Template object this page is using. The template name (string) may also be used for assignment.
  * @property FieldsArray $fields All the Fields assigned to this page (via it's template, same as $page->template->fields). Returns a FieldsArray.
  * @property int $numChildren The number of children (subpages) this page has, with no exclusions (fast).
  * @property int $numVisibleChildren The number of visible children (subpages) this page has. Excludes unpublished, no-access, hidden, etc.
@@ -48,6 +48,7 @@
  * @property int $sort Sort order of this page relative to siblings (applicable when manual sorting is used).  
  * @property string $sortfield Field that a page is sorted by relative to its siblings (default=sort, which means drag/drop manual)
  * @property null|array _statusCorruptedFields Field names that caused the page to have Page::statusCorrupted status. 
+ * @property string statusStr Returns space-separated string of status names active on this page.
  * 
  * Methods added by PageRender.module: 
  * -----------------------------------
@@ -91,11 +92,12 @@ class Page extends WireData implements Countable {
 	const statusSystem = 16; 		// page is for the system and may not be deleted or have it's id, name, template or parent changed
 	const statusTemp = 512;			// page is temporary and 1+ day old unpublished pages with this status may be automatically deleted
 	const statusHidden = 1024;		// page is excluded selector methods like $pages->find() and $page->children() unless status is specified, like "status&1"
-	const statusUnpublished = 2048; 	// page is not published and is not renderable. 
+	const statusUnpublished = 2048; // page is not published and is not renderable. 
+	const statusDraft = 4096; 		// page is a draft 
 	const statusTrash = 8192; 		// page is in the trash
-	const statusDeleted = 16384; 		// page is deleted (runtime only)
-	const statusSystemOverride = 32768; 	// page is in a state where system flags may be overridden
-	const statusCorrupted = 131072; 	// page was corrupted at runtime and is NOT saveable: see setFieldValue() and $outputFormatting. (runtime)
+	const statusDeleted = 16384; 	// page is deleted (runtime only)
+	const statusSystemOverride = 32768; // page is in a state where system flags may be overridden
+	const statusCorrupted = 131072; // page was corrupted at runtime and is NOT saveable: see setFieldValue() and $outputFormatting. (runtime)
 	const statusMax = 9999999;		// number to use for max status comparisons, runtime only
 	
 	/**
@@ -108,17 +110,21 @@ class Page extends WireData implements Countable {
 		'locked' => self::statusLocked,
 		'systemID' => self::statusSystemID,
 		'system' => self::statusSystem,
+		'temp' => self::statusTemp, 
 		'hidden' => self::statusHidden,
 		'unpublished' => self::statusUnpublished,
+		'draft' => self::statusDraft,
 		'trash' => self::statusTrash,
 		'deleted' => self::statusDeleted,
+		'systemOverride' => self::statusSystemOverride, 
+		'corrupted' => self::statusCorrupted, 
 		);
 
 	/**
 	 * The Template this page is using (object)
 	 *
 	 */
-	protected $template; 
+	protected $template;
 
 	/**
 	 * The previous template used by the page, if it was changed during runtime. 	
@@ -468,6 +474,19 @@ class Page extends WireData implements Countable {
 		return $this; 
 	}
 
+	/**
+	 * Force setting a value, skipping over any checks or errors
+	 * 
+	 * Enables setting a value when page has no template assigned, for example. 
+	 * 
+	 * @param $key
+	 * @param $value
+	 * @return $this
+	 * 
+	 */
+	public function setForced($key, $value) {
+		return parent::set($key, $value); 
+	}
 
 	/**
 	 * Set the value of a field that is defined in the page's Fieldgroup
@@ -634,16 +653,16 @@ class Page extends WireData implements Countable {
 					if($this->settings['modified_users_id'] == $this->wire('user')->id) $this->modifiedUser = $this->wire('user'); // prevent possible recursion loop
 						else $this->modifiedUser = $this->wire('users')->get((int) $this->settings['modified_users_id']);
 				}
-				$this->modifiedUser->of($this->of());
 				$value = $this->modifiedUser; 
+				if($value) $value->of($this->of());
 				break;
 			case 'createdUser':
 				if(!$this->createdUser) {
 					if($this->settings['created_users_id'] == $this->wire('user')->id) $this->createdUser = $this->wire('user'); // prevent recursion
 						else $this->createdUser = $this->wire('users')->get((int) $this->settings['created_users_id']); 
 				}
-				$this->createdUser->of($this->of());
 				$value = $this->createdUser; 
+				if($value) $value->of($this->of());
 				break;
 			case 'urlSegment':
 				$value = $this->wire('input')->urlSegment1; // deprecated, but kept for backwards compatibility
@@ -662,7 +681,10 @@ class Page extends WireData implements Countable {
 				break;
 			case 'editUrl':
 			case 'editURL':
-				$value = $this->wire('config')->urls->admin . "page/edit/?id=$this->id";
+				$value = $this->editUrl();
+				break;
+			case 'statusStr':
+				$value = implode(' ', $this->status(true)); 
 				break;
 			default:
 				if($key && isset($this->settings[(string)$key])) return $this->settings[$key]; 
@@ -673,14 +695,43 @@ class Page extends WireData implements Countable {
 				// if there is a selector, we'll assume they are using the get() method to get a child
 				if(Selectors::stringHasOperator($key)) return $this->child($key);
 
-				// check if it's a field.subfield property, but only if output formatting is off
-				if(!$this->outputFormatting() && strpos($key, '.') !== false && ($value = $this->getDot($key)) !== null) return $value;
-
+				// check if it's a field.subfield property
+				if(strpos($key, '.') && ($value = $this->getFieldSubfieldValue($key)) !== null) return $value; 
+				
 				// optionally let a hook look at it
-				if(self::isHooked('Page::getUnknown()')) return $this->getUnknown($key);
+				if(self::isHooked('Page::getUnknown()')) $value = $this->getUnknown($key);
 		}
 
 		return $value; 
+	}
+
+	/**
+	 * If given a field.subfield string, returns the associated value
+	 * 
+	 * This is like the getDot() method, but with additional protection during output formatting. 
+	 * 
+	 * @param $key
+	 * @return mixed|null
+	 * 
+	 */
+	protected function getFieldSubfieldValue($key) {
+		$value = null;
+		if(!strpos($key, '.')) return null;
+		if($this->outputFormatting()) {
+			// allow limited access to field.subfield properties when output formatting is on
+			// we only allow known custom fields, and only 1 level of subfield
+			list($key1, $key2) = explode('.', $key);
+			$field = $this->template->fieldgroup->getField($key1); 
+			if($field && !($field->flags & Field::flagSystem)) {
+				// known custom field, non-system
+				// if neither is an API var, then we'll allow it
+				if(!$this->wire($key1) && !$this->wire($key2)) $value = $this->getDot("$key1.$key2");
+			}
+		} else {
+			// we allow any field.subfield properties when output formatting is off
+			$value = $this->getDot($key);
+		}
+		return $value;
 	}
 
 	/**
@@ -765,8 +816,8 @@ class Page extends WireData implements Countable {
 	 *
 	 */
 	protected function getFieldValue($key) {
-		if(!$this->template) return null;
-		$field = $this->template->fieldgroup->getField($key); 
+		if(!$this->template) return parent::get($key); 
+		$field = $this->template->fieldgroup->getField($key);
 		$value = parent::get($key); 
 		if(!$field) return $value;  // likely a runtime field, not part of our data
 
@@ -793,6 +844,9 @@ class Page extends WireData implements Countable {
 
 	/**
 	 * Get the raw/unformatted value of a field, regardless of what $this->outputFormatting is set at
+	 * 
+	 * @param string $key Field or property name to retrieve
+	 * @return mixed
 	 *
 	 */
 	public function getUnformatted($key) {
@@ -803,6 +857,20 @@ class Page extends WireData implements Countable {
 		return $value; 
 	}
 
+	/**
+	 * Get the formatted value of a field, regardless of what $this->outputFormatting is set at
+	 *
+	 * @param string $key Field or property name to retrieve
+	 * @return mixed
+	 *
+	 */
+	public function getFormatted($key) {
+		$outputFormatting = $this->outputFormatting;
+		if(!$outputFormatting) $this->setOutputFormatting(true);
+		$value = $this->get($key);
+		if(!$outputFormatting) $this->setOutputFormatting(false);
+		return $value;
+	}
 
 	/**
 	 * @see get
@@ -820,11 +888,37 @@ class Page extends WireData implements Countable {
 		$this->set($key, $value); 
 	}
 
+
 	/**
 	 * Set the 'status' setting, with some built-in protections
+	 * 
+	 * @param int|array|string Status value, array of status names or values, or status name string
 	 *
 	 */
 	protected function setStatus($value) {
+		
+		if(!is_int($value)) {
+			// status provided as something other than integer
+			if(is_string($value) && !ctype_digit($value)) {
+				// string of one or more status names
+				if(strpos($value, ',') !== false) $value = str_replace(array(', ', ','), ' ', $value);
+				$value = explode(' ', strtolower($value));
+			} 
+			if(is_array($value)) {
+				// array of status names or numbers
+				$status = 0;
+				foreach($value as $v) {
+					if(is_int($v) || ctype_digit("$v")) { // integer
+						$status = $status | ((int) $v);
+					} else if(is_string($v) && isset(self::$statuses[$v])) { // string (status name)
+						$status = $status | self::$statuses[$v];
+					}
+				}
+				if($status) $value = $status; 
+			}
+			// note if $value started as an integer string, i.e. "123", it gets passed through to below
+		}
+		
 		$value = (int) $value; 
 		$override = $this->settings['status'] & Page::statusSystemOverride; 
 		if(!$override) { 
@@ -1273,7 +1367,7 @@ class Page extends WireData implements Countable {
 	public function resetTrackChanges($trackChanges = true) {
 		parent::resetTrackChanges($trackChanges); 
 		foreach($this->data as $key => $value) {
-			if(is_object($value) && $value instanceof Wire) $value->resetTrackChanges($trackChanges); 
+			if(is_object($value) && $value instanceof Wire && $value !== $this) $value->resetTrackChanges($trackChanges); 
 		}
 		return $this; 
 	}
@@ -1327,6 +1421,8 @@ class Page extends WireData implements Countable {
 
 	/**
 	 * Like URL, but includes the protocol and hostname
+	 * 
+	 * @return string
 	 *
 	 */
 	public function httpUrl() {
@@ -1339,6 +1435,20 @@ class Page extends WireData implements Countable {
 		}
 
 		return "$protocol://" . $this->wire('config')->httpHost . $this->url();
+	}
+
+	/**
+	 * Return the URL necessary to edit this page
+	 * 
+	 * @return string
+	 * 
+	 */
+	public function editUrl() {
+		$adminTemplate = $this->wire('templates')->get('admin');
+		$https = $adminTemplate && ($adminTemplate->https > 0);
+		$url = ($https && !$this->wire('config')->https) ? 'https://' . $this->wire('config')->httpHost : '';
+		$url .= $this->wire('config')->urls->admin . "page/edit/?id=$this->id";
+		return $url;
 	}
 
 	/**
@@ -1366,10 +1476,13 @@ class Page extends WireData implements Countable {
 
 	/**
 	 * Return a Inputfield object that contains all the custom Inputfield objects required to edit this page
+	 * 
+	 * @param string $fieldName Optional field to limit to, typically the name of a fieldset or tab
+	 * @return null|InputfieldWrapper
 	 *
 	 */
-	public function getInputfields() {
-		return $this->template ? $this->template->fieldgroup->getPageInputfields($this) : null;
+	public function getInputfields($fieldName = '') {
+		return $this->template ? $this->template->fieldgroup->getPageInputfields($this, '', $fieldName) : null;
 	}
 
 	/**
@@ -1382,7 +1495,7 @@ class Page extends WireData implements Countable {
 	public function addStatus($statusFlag) {
 		if(is_string($statusFlag) && isset(self::$statuses[$statusFlag])) $statusFlag = self::$statuses[$statusFlag]; 
 		$statusFlag = (int) $statusFlag; 
-		$this->status = $this->status | $statusFlag; 
+		$this->setStatus($this->status | $statusFlag); 
 		return $this;
 	}
 
@@ -1399,7 +1512,7 @@ class Page extends WireData implements Countable {
 		$statusFlag = (int) $statusFlag; 
 		$override = $this->settings['status'] & Page::statusSystemOverride; 
 		if($statusFlag == Page::statusSystem || $statusFlag == Page::statusSystemID) {
-			if(!$override) throw new WireException("You may not remove the 'system' status from a page"); 
+			if(!$override) throw new WireException("You may not remove the 'system' status from a page unless it also has system override status (Page::statusSystemOverride)"); 
 		}
 		$this->status = $this->status & ~$statusFlag; 
 		return $this;
@@ -1516,6 +1629,29 @@ class Page extends WireData implements Countable {
 		$template = $this->getAccessTemplate();
 		if(!$template || !$template->hasRole('guest')) return false;
 		return true; 
+	}
+
+	/**
+	 * Get or set current status
+	 * 
+	 * @param bool|int $value Optionally specify one of the following:
+	 * 	- boolean true: to return an array of status names (indexed by status number)
+	 * 	- integer|string|array: status number(s) or status name(s) to set the current page status (same as $page->status = $value)
+	 * @return int|array|this If setting status, $this is returned. If getting status: current status or array of status names.
+	 * 
+	 */
+	public function status($value = false) {
+		if(!is_bool($value)) {
+			$this->setStatus($value);
+			return $this;
+		}
+		$status = $this->status; 
+		if($value === false) return $status; 
+		$names = array();
+		foreach(self::$statuses as $name => $value) {
+			if($status & $value) $names[$status] = $name; 
+		}
+		return $names; 
 	}
 
 	/**
@@ -1674,7 +1810,9 @@ class Page extends WireData implements Countable {
 	 *
 	 */
 	public function __isset($key) {
-		if(isset($this->settings[$key])) return true; 
+		if(isset($this->settings[$key])) return true;
+		$natives = array('template', 'parent', 'createdUser', 'modifiedUser');
+		if(in_array($key, $natives)) return $this->$key ? true : false;
 		if(self::$issetHas && $this->template && $this->template->fieldgroup->hasField($key)) return true;
 		return parent::__isset($key); 
 	}
@@ -1805,6 +1943,16 @@ class Page extends WireData implements Countable {
 	 */
 	static public function getStatuses() {
 		return self::$statuses;
+	}
+
+	/**
+	 * Tells the page what Process it is being edited by, or simply that it's being edited
+	 * 
+	 * @param WirePageEditor $editor
+	 * 
+	 */
+	public function ___setEditor(WirePageEditor $editor) {
+		// $this->setQuietly('_editor', $editor); // uncomment when/if needed
 	}
 
 }

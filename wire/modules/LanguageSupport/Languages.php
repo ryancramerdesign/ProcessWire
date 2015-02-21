@@ -7,11 +7,10 @@
  * Acts as the $wire->languages API variable. 
  *
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -36,25 +35,24 @@ class Languages extends PagesType {
 	 *
 	 */
 	protected $languagesAll = null;
-	
+
+	/**
+	 * Saved reference to default language
+	 * 
+	 */
 	protected $defaultLanguage = null;
 
 	/**
-	 * Saved language from a goDefault() call
+	 * Saved language from a setDefault() call
 	 * 
 	 */
 	protected $savedLanguage = null;
 
 	/**
-	 * Construct this Languages PagesType
-	 *
-	 */
-	public function __construct(Template $template, $parent_id) {
-		parent::__construct($template, $parent_id); 
-	}
-
-	/**
 	 * Return the LanguageTranslator instance for the given language
+	 * 
+	 * @param Language $language
+	 * @return LanguageTranslator
 	 *
 	 */
 	public function translator(Language $language) {
@@ -71,7 +69,9 @@ class Languages extends PagesType {
 	 */
 	public function getAll() {
 		if($this->languagesAll) return $this->languagesAll; 
-		$this->languagesAll = $this->pages->find("template={$this->template->name}, include=all"); 
+		$template = $this->getTemplate();
+		$parent_id = $this->getParentID();
+		$this->languagesAll = $this->wire('pages')->find("parent_id=$parent_id, template=$template, include=all"); 
 		return $this->languagesAll;
 	}
 
@@ -88,7 +88,14 @@ class Languages extends PagesType {
 		}
 		return $this->languages; 
 	}
-	
+
+	/**
+	 * Get the default language
+	 * 
+	 * @return Language
+	 * @throws WireException when default language hasn't been set
+	 * 
+	 */
 	public function getDefault() {
 		if(!$this->defaultLanguage) throw new WireException('Default language not yet set');
 		return $this->defaultLanguage; 	
@@ -129,16 +136,34 @@ class Languages extends PagesType {
 
 	/**
 	 * Hook called when a language is deleted
+	 * 
+	 * @param Page $language
 	 *
 	 */
-	public function ___deleted(Page $language) { 
+	public function ___deleted(Page $language) {
+		$this->updated($language, 'deleted'); 
 	}
 
 	/**
-	 * hook called when a language is added
+	 * Hook called when a language is added
+	 * 
+	 * @param Page $language
 	 *
 	 */
-	public function ___added(Page $language) { 
+	public function ___added(Page $language) {
+		$this->updated($language, 'added'); 
+	}
+
+	/**
+	 * Hook called when a language is added or deleted
+	 *
+	 * @param Page $language
+	 * @param string $what What occurred? ('added' or 'deleted')
+	 *
+	 */
+	public function ___updated(Page $language, $what) {
+		$this->reloadLanguages();
+		$this->message("Updated language $language->name ($what)", Notice::debug); 
 	}
 
 	/**

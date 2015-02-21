@@ -6,7 +6,7 @@
  * This module accompanies installation of the SessionHandlerDB module
  *
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -19,8 +19,9 @@ class ProcessSessionDB extends Process {
 		return array(
 			'title' => __('Sessions', __FILE__), // getModuleInfo title          
 			'summary' => __('Enables you to browse active database sessions.', __FILE__), // getModuleInfo summary 
-			'version' => 2, 
+			'version' => 3, 
 			'permanent' => false, 
+			'icon' => 'dashboard', 
 			'requires' => array('SessionHandlerDB'),
 			);
 	}
@@ -36,7 +37,7 @@ class ProcessSessionDB extends Process {
 		// clean out any stray sessions that may have not yet hit the gc probability
 		// because we don't want them in the list that we display
 		$sessionHandlerDB = $this->modules->get('SessionHandlerDB'); 
-		$sessionHandlerDB->gc(wire('config')->sessionExpireSeconds); 
+		$sessionHandlerDB->gc($this->wire('config')->sessionExpireSeconds); 
 		$useIP = $sessionHandlerDB->useIP; 
 		$useUA = $sessionHandlerDB->useUA; 
 
@@ -45,9 +46,9 @@ class ProcessSessionDB extends Process {
 		if(!$mins) $mins = 5; 
 		$this->session->ProcessSessionDB_mins = $mins;
 
-		$form = wire('modules')->get('InputfieldForm');
+		$form = $this->wire('modules')->get('InputfieldForm');
 		
-		$field = wire('modules')->get('InputfieldInteger');
+		$field = $this->wire('modules')->get('InputfieldInteger');
 		$field->attr('name', 'mins'); 
 		$field->attr('value', $mins);
 		$field->label = sprintf($this->_n('Sessions active in last minute', 'Sessions active in last %d minutes', $mins), $mins); 
@@ -55,27 +56,31 @@ class ProcessSessionDB extends Process {
 		$field->collapsed = Inputfield::collapsedYes; 
 		$form->add($field);
 
-		$markup = wire('modules')->get('InputfieldMarkup');
 		$pagePaths = array();
 		$userNames = array();
 		$table = SessionHandlerDB::dbTableName;
 		$database = $this->wire('database');
+		$limit = 500; 
 		
 		$sql = 	"SELECT user_id, pages_id, ip, ua, ts FROM `$table` " . 
 				"WHERE ts > '" . date('Y-m-d H:i:s', (time() - ($mins * 60))) . "' " . 
-				"ORDER BY ts DESC LIMIT 1000";
+				"ORDER BY ts DESC LIMIT $limit";
 	
 		$query = $database->prepare($sql);	
-		$result = $query->execute();
+		$query->execute();
 		$numRows = $query->rowCount();
 
 		if($numRows) {
+			if($numRows == $limit) {
+				// if more than 500, get an accurate count
+				$numRows = $sessionHandlerDB->getNumSessions($mins * 60); 		
+			}
 
-			$table = wire('modules')->get('MarkupAdminDataTable');
+			$table = $this->wire('modules')->get('MarkupAdminDataTable');
 			$header = array(
 				$this->_('Time'), 
 				$this->_('User'), 
-				$this->_('Page')
+				$this->_('Page'),
 				); 
 			if($useIP) $header[] = $this->_('IP Addr');
 			if($useUA) $header[] = $this->_('User Agent');
@@ -92,7 +97,7 @@ class ProcessSessionDB extends Process {
 					$userName = $userNames[$user_id]; 
 
 				} else {
-					$user = wire('users')->get($user_id);
+					$user = $this->wire('users')->get($user_id);
 					$userName = $user && $user->id ? $user->name : '.';
 					$userNames[$user_id] = $userName;
 				}
@@ -101,7 +106,7 @@ class ProcessSessionDB extends Process {
 					$pagePath = $pagePaths[$pages_id]; 
 
 				} else {
-					$page = wire('pages')->get($pages_id);
+					$page = $this->wire('pages')->get($pages_id);
 					$pagePath = $page->id ? $page->path : '.';
 					$pagePaths[$pages_id] = $pagePath;
 				}
@@ -109,27 +114,41 @@ class ProcessSessionDB extends Process {
 				$tr = array(wireRelativeTimeStr($ts), $userName, $pagePath);
 				if($useIP) $tr[] = long2ip($ip);
 				if($useUA) $tr[] = strip_tags($ua); // note MarkupAdminDataTable already entity encodes all output
+				
 				$table->row($tr);
 			
 				// for next iteration
 				$row = $query->fetch(PDO::FETCH_NUM);
 			}
 			
-			$markup->value = $table->render();
+			$tableOut = $table->render();
 
 		} else {
-			$markup->value = $this->_('No active sessions');
+			$tableOut = "<p class='description'>" . $this->_('No active sessions') . "</p>";
 		}
+		
+		$query->closeCursor();
+		
+		$out =
+			"<h2>" .
+			"<i id='SessionListIcon' class='fa fa-2x fa-fw fa-dashboard ui-priority-secondary'></i> " .
+			sprintf($this->_n('%d active session', '%d active sessions', $numRows), $numRows) .
+			"</h2>" .
+			$tableOut; 
+		
+		if($this->wire('config')->ajax) return $out;
 
+		$markup = $this->wire('modules')->get('InputfieldMarkup');
+		$markup->value = "<div id='SessionList'>$out</div>";
 		$form->add($markup);
 
-		$submit = wire('modules')->get('InputfieldSubmit');
+		$submit = $this->wire('modules')->get('InputfieldSubmit');
 		$submit->attr('value', $this->_('Refresh'));
+		$submit->icon = 'refresh';
 		$submit->attr('id+name', 'submit_session');
 		$submit->attr('class', $submit->attr('class') . ' head_button_clone'); 
 		$form->add($submit);
-
-		$query->closeCursor();
+		
 		return $form->render();
 	}	
 

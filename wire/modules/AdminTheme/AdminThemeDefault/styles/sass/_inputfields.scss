@@ -525,6 +525,12 @@ $ui-tabs-container-bg: transparentize($subtle-bg, 0.3); /* note same as item nes
 		padding-bottom: 0.5em;
 		margin-bottom: 0;
 	}
+	p.notes {
+		margin-left: 1em;
+		margin-right: 1em;
+		margin-bottom: 1em;
+		margin-top: 0;
+	}
 }
 
 .ui-tabs,

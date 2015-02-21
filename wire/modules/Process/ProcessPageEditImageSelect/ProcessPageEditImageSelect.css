@@ -8,21 +8,89 @@
 	border: 3px solid #000; 
 }
 
+#select_images.thumbs img {
+	display: block;
+	float: left;
+	margin: 0 0.5em 0.5em 0;
+	border: none;
+}
+	#select_images.thumbs a:hover img {
+		border: none;
+		opacity: 0.9;
+	}
+
 
 #selected_image,
 #selected_image_container {
-	clear: both; 
-	float: none; 
 	margin: 0; 
 }
 
-
-#selected_image_filename {
-	font-weight: bold; 
+#selected_image {
+	position: static !important;
 }
 
-#wrap_info {
-	margin-bottom: 0; 
+#content {
+	max-width: 100%; 
+	overflow: hidden;
+}
+
+#selected_image_container {
+	position: relative; 
+	overflow: visible; 
+}
+
+#action_icons {
+	margin-right: 0.5em;
+}
+
+#action_icons span {
+	display: block;
+	float: left;
+	padding: 2px 4px 0 4px;
+	margin-right: 3px; 
+	background-color: #000;
+	background-color: rgba(0,0,0,0.8);
+	color: #aaa; 
+}
+.cropping_active .cropper-container {
+	position: static; 
+}
+.cropping_active #action_icons {
+	display: none !important;
+}
+
+#action_icons span:hover {
+	cursor: pointer;
+	color: #fff;
+}
+#action_icons span.on {
+	color: lightsalmon;
+}
+
+#resize_tips {
+	display: none;
+}
+#resize_action:hover {
+	display: block;
+	z-index: 999;
+}
+.resize_tip {
+	position: absolute;
+	padding: 0 4px;
+	opacity: 0.4;
+	z-index: -1;
+}
+#resize_tip_nw { top: -11px; left: -12px; }
+#resize_tip_n { top: -13px; left: 50%; margin-left: -11px; }
+#resize_tip_ne { top: -11px; right: -12px; }
+#resize_tip_e { top: 50%; right: -13px; margin-top: -11px; }
+#resize_tip_se { bottom: -11px; right: -12px; }
+#resize_tip_s { bottom: -13px; left: 50%; margin-left: -11px; }
+#resize_tip_sw { bottom: -11px; left: -12px; }
+#resize_tip_w { top: 50%; left: -13px; margin-top: -11px; }
+
+#selected_image_filename {
+	display: none; 
 }
 
 #wrap_class,
@@ -30,11 +98,20 @@
 	float: left; 
 	margin-top: 0; 
 	margin-right: 1em; 
+	white-space: nowrap;
+}
+#wrap_link_original {
+	float: none; 
+	clear: both;
 }
 
+#selected_image_pixels label {
+	white-space: nowrap;
+}
 #wrap_description {
 	position: relative; 
 	clear: both; 
+	display: none; 
 }
 	#wrap_description label {
 		display: none; 
@@ -42,7 +119,7 @@
 
 	#selected_image_description {
 		display: block;
-		width: 99%; 
+		width: 100%; 
 	}
 
 #ProcessPageEditImageSelect .Inputfields li {
@@ -53,7 +130,118 @@
 	display: none; 
 }
 
-#input_width,
-#input_height {
+.input_pixels {
 	width: 60px; 
+}
+
+.show_when_crop {
+	display: none; 
+}
+
+#selected_image_settings {
+	margin-top: 1em;
+}
+
+#selected_image_settings p {
+	margin: 1em 0;
+}
+#selected_image_settings p#wrap_info {
+	margin-bottom: 0.5em;
+}
+#selected_image_settings p#wrap_description {
+	margin-top: 0.5em;
+}
+
+#wrap_link_original {
+	display: inline;
+}
+
+#selected_image_link {
+	display: inline;
+}
+
+#instructions {
+	margin: 1em 0;
+	clear: both; 
+}
+
+#selected_image.align_left,
+#selected_image.align-left {
+	float: left;
+	margin: 0;
+}
+
+#selected_image_container {
+}
+#selected_image_container.align-left,
+#selected_image_container.align_left {
+	float: left; 
+	margin: 0 1em 0.5em 0;
+}
+#selected_image_container.align-right,
+#selected_image_container.align_right {
+	float: right;
+	margin: 0 0 0.5em 1em;
+}
+#selected_image.align_right,
+#selected_image.align-right {
+	float: right;
+	margin: 0;
+}
+#selected_image_container.align-center,
+#selected_image_container.align_center {
+	margin: 0 auto;
+}
+#selected_image_container + #latin {
+	position: relative; 
+	display: none; 
+	overflow: hidden; 
+	font-size: smaller;
+	opacity: 0.4;
+	line-height: 1.5em;
+}
+#latin-fade {
+	display: block;
+	padding-top: 50px; 
+	width: 100%; 
+	position: absolute; 
+	bottom: 0;
+	left: 0; 
+	background-image: linear-gradient(to bottom, rgba(255,255,255,0.1), #fff);
+}
+
+#selected_image_class {
+	display: none; 
+}
+
+.fa-times {
+	opacity: 0.3;
+}
+
+.show_when_processing {
+	display: none !important; 
+}
+.processing .show_when_processing {
+	display: inline !important; 
+}
+
+.processing .hide_when_processing {
+	display: none !important; 
+}
+
+.not-rte .show_when_rte {
+	display: none !important; 
+}
+
+.rte .hide_when_rte {
+	display: none !important; 
+}
+
+.maxfiles1 .hide_when_maxfiles1 {
+	display: none; 
+}
+
+#selected_image_pixels, 
+label.checkbox {
+	white-space: nowrap; 
 }

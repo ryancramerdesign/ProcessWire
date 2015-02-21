@@ -421,8 +421,10 @@ function InputfieldColumnWidths() {
 		} else {
 			consoleLog('Adjusting ' + $item.attr('id') + ' from ' + h + ' to ' + maxColHeight); 
 			var $spacer = $("<div class='maxColHeightSpacer'></div>");
-			$container.append($spacer); 
-			$spacer.height(pad); 
+			$container.append($spacer);
+			$container.hide();
+			$spacer.height(pad);
+			$container.show();
 		}
 	}
 
@@ -628,12 +630,59 @@ function InputfieldWindowResizeActions() {
 	// overflowAdjustments();
 }
 
+function InputfieldIntentions() {
+	
+	// adjustments for unintended actions, like hitting enter in a text field in a multi-button form
+	$(".InputfieldForm").each(function() {
+		var $form = $(this); 
+		var numButtons = null;
+		var $input = null;
+		
+		$form.submit(function() {
+			if(!$(this).hasClass('nosubmit')) return;
+			if(!$input) return;
+			
+			var $buttons = null;
+			var $inputfields = $input.closest(".Inputfields"); 
+			
+			do {
+				// find nearest visible submit button
+				$buttons = $inputfields.find("input[type=submit]:visible, button[type=submit]:visible"); 
+				if($buttons.length > 0) break;
+				$inputfields = $inputfields.parent().closest(".Inputfields"); 
+			} while($inputfields.length > 0);
+
+			// scroll to first found button and focus it
+			if($buttons.length > 0) {
+				var $button = $buttons.eq(0);
+				$('html, body').animate({ scrollTop: $button.offset().top }, 'fast');
+				$button.focus();
+			}
+			
+			return false;
+			
+		}).on("focus", "input, select", function() {
+			// if more than 1 submit button, prevent form submission while text input or select is focused
+			if(numButtons === null) numButtons = $form.find("input[type=submit], button[type=submit]").length;
+			if(numButtons < 2) return;
+			$form.addClass('nosubmit');
+			$input = $(this); 
+				
+		}).on("blur", "input, select", function() {
+			// allow submissions again once they are out of the field
+			$form.removeClass('nosubmit');
+		}); 
+	}); 
+}
+
 $(document).ready(function() {
 
 	InputfieldStates();
 	InputfieldDependencies();
-	InputfieldColumnWidths();
-
+	InputfieldIntentions();
+	
+	setTimeout(function() { InputfieldColumnWidths(); }, 100);
+	
 	var windowResized = function() {
 		if(InputfieldWindowResizeQueued) return;
 		InputfieldWindowResizeQueued = true; 
@@ -647,7 +696,24 @@ $(document).ready(function() {
 	}; 
 
 	$(window).resize(windowResized); 
-	$("ul.WireTabs > li > a").click(tabClicked); 
+	$("ul.WireTabs > li > a").click(tabClicked);
+
+	$(document).on('reload', '.Inputfield', function(event) {
+		var $t = $(this);
+		var $form = $t.closest('form');
+		var fieldName = $t.attr('id').replace('wrap_Inputfield_', ''); 
+		var url = $form.attr('action') + '&field=' + fieldName;
+		consoleLog('Inputfield reload: ' + fieldName); 
+		$.get(url, function(data) {
+			var $content = $(data).find("#" + $t.attr('id')).children(".InputfieldContent");
+			$t.children(".InputfieldContent").html($content.html()); 
+			$t.effect("highlight", 1000); 
+			$t.trigger('reloaded'); 
+		});
+		event.stopPropagation();
+	});
+
+	
 
 	// setTimeout('overflowAdjustments()', 100); 
 }); 

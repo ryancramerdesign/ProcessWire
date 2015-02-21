@@ -10,11 +10,20 @@
  * to build a complex query without worrying about correct syntax placement.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2010 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
+ * 
+ * @property array $select
+ * @property array $join
+ * @property array $from
+ * @property array $leftjoin
+ * @property array $where
+ * @property array $orderby
+ * @property array $limit
+ * @property string $comment Comments for query
+ * @property Field $field Some usages set a Field value to the $field property (like PageFinder)
  *
  */
 class DatabaseQuerySelect extends DatabaseQuery {

@@ -51,6 +51,14 @@ abstract class AdminTheme extends WireData implements Module {
 	protected static $numAdminThemes = 0;
 
 	/**
+	 * Additional classes for body tag
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $bodyClasses = array();
+
+	/**
 	 * Initialize the admin theme systme and determine which admin theme should be used
 	 *
 	 * All admin themes must call this init() method to register themselves. 
@@ -91,7 +99,18 @@ abstract class AdminTheme extends WireData implements Module {
 			$this->config->paths->set('adminTemplates', $this->config->paths->get($this->className())); 
 			$this->config->urls->set('adminTemplates', $this->config->urls->get($this->className())); 
 		}
+
+		// adjust $config adminThumbOptions[scale] for auto detect when requested
+		$o = $this->wire('config')->adminThumbOptions; 
+		if($o && isset($o['scale']) && $o['scale'] === 1) {
+			$o['scale'] = $this->wire('session')->hidpi ? 0.5 : 1.0; 
+			$this->wire('config')->adminThumbOptions = $o;
+		}
+
+		$this->config->js('modals', $this->config->modals); 
 		
+		if($this->wire('session')->hidpi) $this->addBodyClass('hidpi-device');
+		if($this->wire('session')->touch) $this->addBodyClass('touch-device'); 
 	}
 	
 	public function get($key) {
@@ -121,7 +140,7 @@ abstract class AdminTheme extends WireData implements Module {
 	 * 
 	 */
 	public function ___getExtraMarkup() {
-		return array(
+		$parts = array(
 			'head' => '',
 			'notices' => '', 
 			'body' => '',
@@ -130,6 +149,16 @@ abstract class AdminTheme extends WireData implements Module {
 			'footer' => '',
 			'sidebar' => '', // sidebar not used in all admin themes
 		);
+		if($this->wire('config')->advanced) $parts['footer'] = "<p class='AdvancedMode'><i class='fa fa-flask'></i> " . $this->_('Advanced Mode') . "</p>"; 
+		return $parts; 
+	}
+	
+	public function addBodyClass($className) {
+		$this->bodyClasses[$className] = $className; 
+	}
+	
+	public function getBodyClass() {
+		return trim(implode(' ', $this->bodyClasses)); 
 	}
 
 	/**

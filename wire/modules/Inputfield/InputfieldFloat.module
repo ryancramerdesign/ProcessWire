@@ -6,7 +6,7 @@ class InputfieldFloat extends InputfieldInteger {
 		return array(
 			'title' => __('Float', __FILE__), // Module Title
 			'summary' => __('Floating point number with precision', __FILE__), // Module Summary
-			'version' => 102,
+			'version' => 103,
 			'permanent' => true, 
 			);
 	}
@@ -22,6 +22,9 @@ class InputfieldFloat extends InputfieldInteger {
 	}
 
 	protected function sanitizeValue($value) {
+		if(!is_float($value) && !is_int($value)) {
+			$value = FieldtypeFloat::strToFloat((string) $value);
+		}
 		$precision = $this->precision; 
 		if(is_null($precision)) $precision = FieldtypeFloat::getPrecision($value); 
 		return strlen("$value") ? round((float) $value, $precision) : '';

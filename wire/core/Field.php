@@ -20,6 +20,10 @@
  * @property Fieldtype $prevFieldtype
  * @property int $flags
  * @property string $label
+ * @property string $description
+ * @property string $icon
+ * 
+ * @todo add modified date property
  *
  */
 class Field extends WireData implements Saveable, Exportable {
@@ -59,7 +63,7 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	const flagSystemOverride = 32768; 
-
+	
 	/**
 	 * Permanent/native settings to an individual Field
 	 *
@@ -131,7 +135,9 @@ class Field extends WireData implements Saveable, Exportable {
 			}
 
 		if(isset($this->settings[$key])) {
-			$this->settings[$key] = $value; 
+			$this->settings[$key] = $value;
+		} else if($key == 'icon') {
+			$this->setIcon($value); 
 		} else {
 			return parent::set($key, $value); 
 		}
@@ -163,6 +169,7 @@ class Field extends WireData implements Saveable, Exportable {
 			else if($key == 'prevTable') return $this->prevTable; 
 			else if($key == 'prevFieldtype') return $this->prevFieldtype; 
 			else if(isset($this->settings[$key])) return $this->settings[$key]; 
+			else if($key == 'icon') return $this->getIcon(true); 
 		$value = parent::get($key); 
 		if(is_array($this->trackGets)) $this->trackGets($key); 
 		return $value; 
@@ -496,15 +503,24 @@ class Field extends WireData implements Saveable, Exportable {
 
 		$wrapper = new InputfieldWrapper();
 		$fieldgroupContext = $this->flags & Field::flagFieldgroupContext; 
+		
+		if($fieldgroupContext) {
+			$allowContext = $this->type->getConfigAllowContext($this); 
+			if(!is_array($allowContext)) $allowContext = array();
+		} else {
+			$allowContext = array();
+		}
 
-		if(!$fieldgroupContext) {
+		if(!$fieldgroupContext || count($allowContext)) {
+			
 			$inputfields = new InputfieldWrapper();
-			$inputfields->head = $this->_('Field type details');
+			if(!$fieldgroupContext) $inputfields->head = $this->_('Field type details');
 			$inputfields->attr('title', $this->_('Details'));
 
 			try {
 				$fieldtypeInputfields = $this->type->getConfigInputfields($this); 
 				if($fieldtypeInputfields) foreach($fieldtypeInputfields as $inputfield) {
+					if($fieldgroupContext && !in_array($inputfield->name, $allowContext)) continue;
 					$inputfields->append($inputfield); 
 				}
 			} catch(Exception $e) {
@@ -512,22 +528,23 @@ class Field extends WireData implements Saveable, Exportable {
 			}
 
 			if(count($inputfields)) $wrapper->append($inputfields); 
-		} else {
-			// we currently exclude fieldtype configuration changes when in fieldgroup context
-			// not sure that we need to, but keeping it simple to start
 		}
 
 		$inputfields = new InputfieldWrapper();
-		$dummyPage = $this->fuel('pages')->get("/"); // only using this to satisfy param requirement 
+		$dummyPage = $this->wire('pages')->get("/"); // only using this to satisfy param requirement 
 
 		if($inputfield = $this->getInputfield($dummyPage)) {
-			if(!$fieldgroupContext) $inputfields->head = $this->_('Input field settings');
+			if($fieldgroupContext) {
+				$allowContext = array('visibility', 'collapsed', 'columnWidth', 'required', 'requiredIf', 'showIf');
+				$allowContext = array_merge($allowContext, $inputfield->getConfigAllowContext($this)); 
+			} else {
+				$allowContext = array();
+				$inputfields->head = $this->_('Input field settings');
+			}
 			$inputfields->attr('title', $this->_('Input')); 
 			$inputfieldInputfields = $inputfield->getConfigInputfields();
 			if($inputfieldInputfields) foreach($inputfieldInputfields as $i) { 
-				// currently we only support collapsed and columnWidth for fieldgroup context
-				// however we may support everything after starting with these limited options for awhile
-				if($fieldgroupContext && !in_array($i->name, array('visibility', 'collapsed', 'columnWidth', 'required', 'requiredIf', 'showIf'))) continue; 
+				if($fieldgroupContext && !in_array($i->name, $allowContext)) continue; 
 				$inputfields->append($i); 
 			}
 		}
@@ -598,6 +615,37 @@ class Field extends WireData implements Saveable, Exportable {
 			$description = $this->description;
 		}
 		return $description;
+	}
+
+	/**
+	 * Return the icon used by this field, or blank if none
+	 * 
+	 * @param bool $prefix Whether or not you want the fa- prefix included
+	 * @return mixed|string
+	 * 
+	 */
+	public function getIcon($prefix = false) {
+		$icon = parent::get('icon'); 
+		if(empty($icon)) return '';
+		if(strpos($icon, 'fa-') === 0) $icon = str_replace('fa-', '', $icon);
+		if(strpos($icon, 'icon-') === 0) $icon = str_replace('icon-', '', $icon); 
+		return $prefix ? "fa-$icon" : $icon;
+	}
+
+	/**
+	 * Set the icon for this field
+	 * 
+	 * @param string $icon Icon name
+	 * @return $this
+	 * 
+	 */
+	public function setIcon($icon) {
+		// store the non-prefixed version
+		if(strpos($icon, 'icon-') === 0) $icon = str_replace('icon-', '', $icon);
+		if(strpos($icon, 'fa-') === 0) $icon = str_replace('fa-', '', $icon); 
+		$icon = $this->wire('sanitizer')->pageName($icon); 
+		parent::set('icon', $icon); 
+		return $this; 
 	}
 	
 }

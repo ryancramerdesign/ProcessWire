@@ -443,9 +443,16 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		if(ctype_digit("$key")) return null;
 		$item = null;
 		foreach($this->data as $wire) {
-			if($wire->$key === $value) {
-				$item = $wire; 
-				break;
+			if(is_object($wire)) { 
+				if($wire->$key === $value) {
+					$item = $wire; 
+					break;
+				}
+			} else {
+				if($wire === $value) {
+					$item = $wire; 
+					break;
+				}
 			}
 		}
 		return $item; 
@@ -838,6 +845,19 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	}
 
 	/**
+	 * Remove an item without any record of the event or telling anything else. 
+	 *
+	 * @param int|string|Wire $key Index of item or object instance.
+	 * @return WireArray This instance. 
+	 *
+	 */
+	public function removeQuietly($key) {
+		if(is_object($key)) $key = $this->getItemKey($key);
+		unset($this->data[$key]);
+		return $this;
+	}
+
+	/**
 	 * Sort this WireArray by the given properties. 
 	 *
 	 * $properties can be given as a sortByField string, i.e. "name, datestamp" OR as an array of strings, i.e. array("name", "datestamp")
@@ -1227,6 +1247,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	public function __toString() {
 		$s = '';
 		foreach($this as $key => $value) {
+			if(is_array($value)) $value = "array(" . count($value) . ")";
 			$s .= "$value|";
 		}
 		$s = rtrim($s, '|'); 
@@ -1422,8 +1443,10 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		$n = 0;
 
 		foreach($this as $key => $item) {
-			if($isFunction) $value = (string) $property($item, $key); 
-				else $value = (string) $item->get($property); 
+			if($isFunction) $value = $property($item, $key); 
+				else $value = $item->get($property); 
+			if(is_array($value)) $value = 'array(' . count($value) . ')';
+			$value = (string) $value; 
 			if(!strlen($value) && $options['skipEmpty']) continue; 
 			if($n) $str .= $delimiter; 
 			$str .= $value; 
@@ -1516,5 +1539,24 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 		return $this;
 	}
 
-
+	/**
+	 * Enables use of $var('key')
+	 *
+	 * @param string $key
+	 * @return mixed
+	 *
+	 */
+	public function __invoke($key) {
+		if(in_array($key, array('first', 'last', 'count'))) return $this->$key();
+		if(is_int($key) || ctype_digit($key)) {
+			if($this->usesNumericKeys()) {
+				// if keys are already numeric, we use them
+				return $this->get((int) $key); 
+			} else {
+				// if keys are not numeric, we delegete numers to eq(n)
+				return $this->eq((int) $key);
+			}
+		}
+		return $this->get($key);
+	}
 }

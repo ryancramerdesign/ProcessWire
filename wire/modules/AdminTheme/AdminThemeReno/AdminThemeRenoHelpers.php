@@ -79,10 +79,12 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		$user = $this->wire('user');
 		$config = wire("config");
 		$adminTheme = $this->wire('adminTheme');
-		$adminTheme->avatar_field != '' ?  $imgField = $user->get($adminTheme->avatar_field) : $imgField = '';
+		
+		$img = $adminTheme->avatar_field ? $user->get($adminTheme->avatar_field) : null;
+		if($img && $img instanceof Pageimages) $img = $img->first();
+		if($img && !$img instanceof Pageimage) $img = null;
 
-		if($imgField != '') {
-			count($imgField) ? $img = $imgField->first() : $img = $imgField;
+		if($img) {
 			$out .= "<li class='avatar'><a href='{$config->urls->admin}profile/'>";
 			$userImg = $img->size(52,52); // render at 2x for hi-dpi (52x52 for 26x26)
 			$out .= "<img src='$userImg->url' alt='$user->name' /> <span>$user->name</span>";
@@ -124,18 +126,22 @@ class AdminThemeRenoHelpers extends AdminThemeDefaultHelpers {
 		$iconName = $p->name;
 		$icon = $this->wire('adminTheme')->$iconName;
 		if(!$icon) $icon = 'fa-file-text-o';
+		$numViewable = 0; 
 		
-		// don't bother with a drop-down here if only 1 child
-		if($p->name == 'page' && !$isSuperuser) $children = array();
-
 		if(!$showItem) { 
 			$checkPages = count($children) ? $children : array($p); 
 			foreach($checkPages as $child) {
 				if($child->viewable()) {
 					$showItem = true;
-					break;
+					$numViewable++;
+					if($numViewable > 1) break; // we don't need to know about any more
 				}
 			}
+		}
+		
+		// don't bother with a drop-down here if only 1 child
+		if($p->name == 'page' && !$isSuperuser && $numViewable < 2) {
+			$children = array();
 		}
 	
 		if(!$showItem) return '';

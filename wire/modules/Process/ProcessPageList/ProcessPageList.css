@@ -82,10 +82,15 @@
 }
 .PageList i.icon {
 	display: inline-block;
+	/*
 	width: 18px;
+	*/
 }
 .PageList .PageListStatusIcon {
 	margin-left: 4px; 
+}
+.PageList i.fa + span {
+	margin-left: 2px; 
 }
 
 
@@ -227,6 +232,11 @@
 
 .PageListActionTrash {
 	float: right;
+}
+
+#PageListContainer.PageListContainerPage .PageListActionTrash {
+	/* trash not applicable when page list doesn't start from root */
+	display: none;
 }
 
 /********************************************************************************************************

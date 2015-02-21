@@ -39,8 +39,6 @@ abstract class Process extends WireData implements Module {
 			'summary' => '', 			// one sentence summary of module
 			'href' => '', 				// URL to more information (optional)
 			'permanent' => true, 		// true if module is permanent and thus not uninstallable (3rd party modules should specify 'false')
-			'permission' => '', 		// name of permission required to execute this Process (optional)
-			'permissions' => array(..),	// see Module.php for details
 	 		'page' => array( 			// optionally install/uninstall a page for this process automatically
 	 			'name' => 'page-name', 	// name of page to create
 	 			'parent' => 'setup', 	// parent name (under admin) or omit or blank to assume admin root
@@ -62,6 +60,12 @@ abstract class Process extends WireData implements Module {
 					'icon' => 'plug',
 				),
 			),
+			'permission' => '', 		// name of permission required to execute this Process (optional)
+			'permissions' => array(..),	// see Module.php for details
+			'permissionMethod' => '', 	// Optional name of a static method to perform additional permission checks. 
+										// It receives array with: wire (PW instance), user (User), page (Page), 
+										// info (moduleInfo array), method (requested method)
+										// It should return a true or false.
 	}
  	*/
 
@@ -295,6 +299,7 @@ abstract class Process extends WireData implements Module {
 				$id = $item['id'];
 				$name = $item['name'];
 				$label = $item[$options['itemLabel']];
+				if(isset($item['icon'])) $icon = str_replace(array('icon-', 'fa-'),'', $item[$options['iconKey']]);
 			} else {
 				$this->error("Item must be object or array: $item"); 
 				continue;
@@ -305,7 +310,7 @@ abstract class Process extends WireData implements Module {
 			while(isset($data['list'][$_label])) $_label .= "_";
 		
 			if($options['itemLabel2']) {
-				$label2 = $item->{$options['itemLabel2']}; 
+				$label2 = is_array($item) ? $item[$options['itemLabel2']] : $item->{$options['itemLabel2']}; 
 				if(strlen($label2)) {
 					$label2 = $this->wire('sanitizer')->entities1($label2);
 					$label .= " <small>$label2</small>";

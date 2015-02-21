@@ -118,8 +118,19 @@ class WireInputData implements ArrayAccess, IteratorAggregate, Countable {
  * Manages the group of GET, POST, COOKIE and whitelist vars, each of which is a WireInputData object.
  *
  * @link http://processwire.com/api/variables/input/ Offical $input API variable Documentation
- *
+ * 
  * @property string[] $urlSegments Retrieve all URL segments (array). This requires url segments are enabled on the template of the requested page. You can turn it on or off under the url tab when editing a template.
+ * @property WireInputVars $post POST variables
+ * @property WireInputVars $get GET variables
+ * @property WireInputVars $cookie COOKIE variables
+ * @property WireInputVars $whitelist Whitelisted variables
+ * @property int $pageNum Current page number (where 1 is first)
+ * @property string $urlSegmentsStr String of current URL segments, separated by slashes, i.e. a/b/c
+ * @property string $urlSegmentStr Alias of urlSegmentsStr
+ * @property string $url Current requested URL including page numbers and URL segments, excluding query string. 
+ * @property string $httpUrl Like $url but includes the scheme/protcol and hostname. 
+ * @property string $queryString Current query string
+ * @property string $scheme Current scheme/protcol, i.e. http or https
  *
  */
 class WireInput {
@@ -281,8 +292,9 @@ class WireInput {
 
 		if($key == 'pageNum') return $this->pageNum; 
 		if($key == 'urlSegments') return $this->urlSegments; 
-		if($key == 'urlSegmentsStr' || $key == 'urlSegmentStr') return implode('/', $this->urlSegments); 
+		if($key == 'urlSegmentsStr' || $key == 'urlSegmentStr') return $this->urlSegmentStr();
 		if($key == 'url') return $this->url();
+		if($key == 'httpUrl' || $key == 'httpURL') return $this->httpUrl();
 		if($key == 'fragment') return $this->fragment();
 		if($key == 'queryString') return $this->queryString();
 		if($key == 'scheme') return $this->scheme();
@@ -313,6 +325,10 @@ class WireInput {
 		}
 		return $value; 
 	}
+	
+	public function urlSegmentStr() {
+		return implode('/', $this->urlSegments);
+	}
 
 	public function __isset($key) {
 		return $this->__get($key) !== null;
@@ -327,25 +343,54 @@ class WireInput {
 	 * 
 	 */
 	public function url() {
-	
+
+		$url = '';
 		$page = wire('page'); 
-		$url = $page && $page->id ? wire('page')->url : ''; 
 		
-		$segmentStr = $this->urlSegmentStr; 
-		if(strlen($segmentStr)) {
-			$url = rtrim($url, '/') . '/';
-			$url .= $segmentStr;
+		if($page && $page->id) {
+			// pull URL from page
+			$url = $page && $page->id ? wire('page')->url : '';
+			$segmentStr = $this->urlSegmentStr();
+			$pageNum = $this->pageNum();
+			if(strlen($segmentStr) || $pageNum > 1) {
+				if($segmentStr) $url = rtrim($url, '/') . '/' . $segmentStr;
+				if($pageNum > 1) $url = rtrim($url, '/') . '/' . wire('config')->pageNumUrlPrefix . $pageNum;
+				if(isset($_SERVER['REQUEST_URI'])) {
+					$info = parse_url($_SERVER['REQUEST_URI']);
+					if(!empty($info['path']) && substr($info['path'], -1) == '/') $url .= '/'; // trailing slash
+				}
+			}
+			
+		} else if(isset($_SERVER['REQUEST_URI'])) {
+			// page not yet available, attempt to pull URL from request uri
+			$parts = explode('/', $_SERVER['REQUEST_URI']); 
+			foreach($parts as $part) {
+				$url .= "/" . wire('sanitizer')->pageName($part);
+			}
 			$info = parse_url($_SERVER['REQUEST_URI']);
-			if(!empty($info['path']) && substr($info['path'], -1) == '/') $url .= '/'; // trailing slash
+			if(!empty($info['path']) && substr($info['path'], -1) == '/') {
+				$url = rtrim($url, '/') . '/'; // trailing slash
+			}
 		}
 		
 		return $url;
 	}
 
 	/**
+	 * URL including scheme
+	 * 
+	 * @return string
+	 * 
+	 */
+	public function httpUrl() {
+		return $this->scheme() . '://' . wire('config')->httpHost . $this->url();
+	}
+
+	/**
 	 * Anchor/fragment for current request (i.e. #fragment)
 	 * 
-	 * Note that this is not sanitized
+	 * Note that this is not sanitized. Fragments generally can't be seen
+	 * by the server, so this function may be useless.
 	 *
 	 * @return string
 	 *

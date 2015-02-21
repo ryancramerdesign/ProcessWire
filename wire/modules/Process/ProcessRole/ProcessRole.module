@@ -40,7 +40,7 @@ class ProcessRole extends ProcessPageType {
 		if(!$f) return;
 		$f->label = $this->_('Permissions'); 
 		$f->notes = "&dagger; " . $this->_('Indicated permissions open more permission options that are revealed after checking the box and saving the page.') . "\n\n" . 
-			$this->_('*Note that checking the page-edit permission here means only that the role can be selected for edit access at the template level. Simply assigning the page-edit permission here does grant edit permission until it is also selected in one or more template access control settings.');
+			$this->_('*Note that checking the page-edit permission here means only that the role can be selected for edit access at the template level. Simply assigning the page-edit permission here does NOT grant edit permission until it is also selected in one or more template access control settings.');
 		$f = $f->getInputfield();
 		$f->table = true;
 		$f->thead = $this->_('name|title'); // Table head with each column title separated by a pipe "|"

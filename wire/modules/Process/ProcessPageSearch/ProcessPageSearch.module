@@ -113,7 +113,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	 */
 	public function ___execute() {
 		
-		if($this->wire('user')->hasPermission('lister')) {
+		if($this->wire('user')->hasPermission('page-lister')) {
 			if($this->wire('modules')->isInstalled('ProcessPageLister')) {
 				$this->lister = $this->wire('modules')->get('ProcessPageLister');
 			}

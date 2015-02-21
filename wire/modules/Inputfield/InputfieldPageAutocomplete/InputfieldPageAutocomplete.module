@@ -59,11 +59,12 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 	 */
 	protected function ___renderListItem($label, $value, $class = '') {
 		if($class) $class = " $class";
-		$out = 	"\n<li class='ui-state-default$class'>" . 
-			"<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>" . 
+		$out = 	
+			"\n<li class='ui-state-default$class'>" . 
+			"<i class='fa fa-sort fa-fw'></i> " . 
 			"<span class='itemValue'>$value</span>" . 
 			"<span class='itemLabel'>$label</span> " . 
-			"<a class='itemRemove' href='#'><span class='ui-icon ui-icon-trash'>" . $this->_('remove') . "</span></a>" . 
+			"<a class='itemRemove' href='#'><i class='fa fa-trash'></i></a>" . 
 			"</li>";
 		return $out; 
 	}
@@ -118,7 +119,7 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		<p>
 		<input type='hidden' name='{$this->name}[]' data-max='$max' id='$id' value='$value' />
 		<input type='text' data-parent-input='$id' id='{$id}_input' value='' />
-		<span class='ui-icon ui-icon-arrowreturn-1-e InputfieldPageAutocompleteStatus'></span>
+		<i class='fa fa-fw fa-angle-double-right InputfieldPageAutocompleteStatus'></i>
 		<span class='notes InputfieldPageAutocompleteNote'><br />$addNote</span>
 		</p>
 		<script>

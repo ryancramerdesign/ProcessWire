@@ -44,7 +44,7 @@ class PagefilesManager extends Wire {
 	 *
 	 */
 	protected $url = null;
-
+	
 	/**
 	 * Construct the PagefilesManager and ensure all needed paths are created
 	 *
@@ -111,7 +111,9 @@ class PagefilesManager extends Wire {
 		foreach($page->fieldgroup as $field) {
 			if(!$field->type instanceof FieldtypeFile) continue;
 			$pagefiles = $page->get($field->name);
-			$pagefile = $pagefiles->getFile($name);
+			// if mapping to single file, ask it for the parent array
+			if($pagefiles instanceof Pagefile) $pagefiles = $pagefiles->pagefiles;
+			if($pagefiles instanceof Pagefiles) $pagefile = $pagefiles->getFile($name);
 			if(!$pagefile) continue;
 			break;
 		}
@@ -215,11 +217,23 @@ class PagefilesManager extends Wire {
 	 * Empty out the published files (delete all of them)
 	 *
 	 */
-	public function emptyPath($rmdir = false) {
+	public function emptyPath($rmdir = false, $recursive = true) {
 		$path = $this->path();
 		if(!is_dir($path)) return;
-		wireRmdir($path, true); 
-		if(!$rmdir) $this->_createPath($path); 
+		if($recursive) {
+			// clear out path and everything below it
+			wireRmdir($path, true);
+			if(!$rmdir) $this->_createPath($path); 
+		} else {
+			// only clear out files in path
+			foreach(new DirectoryIterator($path) as $file) {
+				if($file->isDot() || $file->isDir()) continue; 
+				unlink($file->getPathname()); 
+			}
+			if($rmdir) {
+				@rmdir($path); // will not be successful if other dirs within it
+			}
+		}
 	}
 
 	/**
@@ -236,11 +250,19 @@ class PagefilesManager extends Wire {
  	 *
 	 */
 	public function path() {
+		return self::isHooked('PagefilesManager::path()') ? $this->__call('path', array()) : $this->___path();
+	}
+	
+	/**
+	 * Get the published path (for use with hooks)
+	 *
+	 */
+	public function ___path() {
 		if(is_null($this->path)) {
-			if(!$this->page->id) throw new WireException("New page '{$this->page->url}' must be saved before files can be accessed from it"); 
-			$this->path = self::_path($this->page); 
+			if(!$this->page->id) throw new WireException("New page '{$this->page->url}' must be saved before files can be accessed from it");
+			$this->path = self::_path($this->page);
 		}
-		return $this->path; 
+		return $this->path;
 	}
 
 	/**
@@ -437,6 +459,18 @@ class PagefilesManager extends Wire {
 		}
 
 		return (int) $pageID; 
+	}
+
+	/**
+	 * Return a path name where temporary files can be stored
+	 *
+	 * @return string
+	 *
+	 */
+	public function getTempPath() {
+		static $wtd = null;
+		if(is_null($wtd)) $wtd = new WireTempDir($this->className() . $this->page->id);
+		return $wtd->get();
 	}
 
 }

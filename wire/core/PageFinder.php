@@ -139,21 +139,29 @@ class PageFinder extends Wire {
 				$value = $selector->value; 
 				if(!ctype_digit("$value")) {
 					// allow use of some predefined labels for Page statuses
-					if($value == 'hidden') $selector->value = Page::statusHidden; 
-						else if($value == 'unpublished') $selector->value = Page::statusUnpublished; 
-						else if($value == 'locked') $selector->value = Page::statusLocked;
-						else if($value == 'trash') $selector->value = Page::statusTrash; 
-						else if($value == 'max') $selector->value = Page::statusMax;
-						else $selector->value = 1; 
-
-					if($selector->operator == '=') {
-						// there is no point in an equals operator here, so we make it a bitwise AND, for simplification
-						$selectors[$key] = new SelectorBitwiseAnd('status', $selector->value); 
-					}
+					if($value == 'hidden') $selector->value = Page::statusHidden;
+					else if($value == 'unpublished') $selector->value = Page::statusUnpublished;
+					else if($value == 'locked') $selector->value = Page::statusLocked;
+					else if($value == 'trash') $selector->value = Page::statusTrash;
+					else if($value == 'max') $selector->value = Page::statusMax;
+					else $selector->value = 1;
 				}
-				if(is_null($maxStatus) || $value > $maxStatus) 
-					$maxStatus = (int) $selector->value; 
-
+				$not = false;
+				if(($selector->operator == '!=' && !$selector->not) || ($selector->not && $selector->operator == '=')) {
+					$s = new SelectorBitwiseAnd('status', $selector->value);
+					$s->not = true;
+					$not = true;
+					$selectors[$key] = $s;
+	
+				} else if($selector->operator == '=' || ($selector->operator == '!=' && $selector->not)) {
+					$selectors[$key] = new SelectorBitwiseAnd('status', $selector->value);
+					
+				} else {
+					$not = $selector->not;
+					// some other operator like: >, <, >=, <=
+				}
+				if(!$not && (is_null($maxStatus) || $selector->value > $maxStatus)) $maxStatus = (int) $selector->value; 
+				
 			} else if($fieldName == 'include' && $selector->operator == '=' && in_array($selector->value, array('hidden', 'all', 'unpublished', 'trash'))) {
 				if($selector->value == 'hidden') $options['findHidden'] = true;
 					else if($selector->value == 'unpublished') $options['findUnpublished'] = true;
@@ -190,12 +198,13 @@ class PageFinder extends Wire {
 					$selectors->remove($selector); 
 				}
 			}
-		}
+		} // foreach($selectors)
 
-		if(!is_null($maxStatus) && empty($options['findAll'])) {
-			// if a status was already present in the selector, without a findAll, then just make sure the page isn't unpublished
-			if($maxStatus < Page::statusUnpublished) 
-				$selectors->add(new SelectorLessThan('status', Page::statusUnpublished)); 
+		if(!is_null($maxStatus) && empty($options['findAll']) && empty($options['findUnpublished'])) {
+			// if a status was already present in the selector, without a findAll/findUnpublished, then just make sure the page isn't unpublished
+			if($maxStatus < Page::statusUnpublished) {
+				$selectors->add(new SelectorLessThan('status', Page::statusUnpublished));
+			}
 
 		} else if($options['findAll']) { 
 			// findAll option means that unpublished, hidden, trash, system may be included
@@ -267,11 +276,20 @@ class PageFinder extends Wire {
 
 		if($options['loadPages'] || $this->getTotalType == 'calc') {
 
-			$stmt = $query->execute();	
-			
-			if($stmt->errorCode() > 0) {
+			try {
+				$stmt = $query->execute();
+				$error = '';
+			} catch(Exception $e) {
+				$error = $e->getMessage();
+			}
+		
+			if(!empty($stmt) && $stmt->errorCode() > 0) {
 				$errorInfo = $stmt->errorInfo();
-				throw new PageFinderException($errorInfo[2]);
+				$error = $errorInfo[2] . ($error ? " - $error" : "");
+			}
+			if($error) {
+				$this->log($error); 
+				throw new PageFinderException($error);
 			}
 		
 			if($options['loadPages']) { 	
@@ -481,6 +499,7 @@ class PageFinder extends Wire {
 			// where SQL specific to the foreach() of fields below, if needed. 
 			// in this case only used by internally generated shortcuts like the blank value condition
 			$whereFields = '';	
+			$whereFieldsType = 'AND';
 			
 			foreach($fields as $n => $fieldName) {
 
@@ -514,26 +533,22 @@ class PageFinder extends Wire {
 				$valueArray = is_array($selector->value) ? $selector->value : array($selector->value); 
 				$join = '';
 				$fieldtype = $field->type; 
+				$operator = $selector->operator;
+				$numEmptyValues = 0; 
 
 				foreach($valueArray as $value) {
 
 					// shortcut for blank value condition: this ensures that NULL/non-existence is considered blank
 					// without this section the query would still work, but a blank value must actually be present in the field
-					if($subfield == 'data') {
-						if(empty($value) && in_array($selector->operator, array('=', '!=', '<>'))) {
-							// handle blank values -- look in table that has no pages_id relation back to pages, using the LEFT JOIN / IS NULL trick
-							// OR check for blank value as defined by the fieldtype
-							$blankValue = $database->escapeStr($fieldtype->getBlankValue(new NullPage(), $field)); 
-							if($field->table === $tableAlias) $query->leftjoin("$tableAlias ON $tableAlias.pages_id=pages.id"); 
-								else $query->leftjoin($database->escapeTable($field->table) . " AS $tableAlias ON $tableAlias.pages_id=pages.id");
-							$whereFields .= (strlen($whereFields) ? ' OR ' : ''); 
-							if($selector->operator == '=') {
-								$whereFields .= "($tableAlias.pages_id IS NULL OR $tableAlias.data='$blankValue')";
-							} else {
-								$whereFields .= "($tableAlias.pages_id IS NOT NULL AND $tableAlias.data!='$blankValue')";
+					$useEmpty = empty($value) || ($value && $operator[0] == '<') || ($value < 0 && $operator[0] == '>');	
+					if($subfield == 'data' && $field->type && $useEmpty) {
+						if(empty($value)) $numEmptyValues++;
+						if(in_array($operator, array('=', '!=', '<>', '<', '<=', '>', '>='))) {
+							// we only accommodate this optimization for single-value selectors...
+							if($this->whereEmptyValuePossible($field, $selector, $query, $value, $whereFields)) {
+								if(count($valueArray) > 1 && $operator == '=') $whereFieldsType = 'OR';
+								continue;
 							}
-							unset($blankValue);
-							continue; 
 						}
 					} 
 					
@@ -563,9 +578,9 @@ class PageFinder extends Wire {
 						if($selector->operator == '!=') {
 							$join .= ($join ? "\n\t\tAND $sql " : $sql); 
 
-						} else if($selector->not) { 
+						} else if($selector->not) {
 							$sql = "((NOT $sql) OR ($tableAlias.pages_id IS NULL))";
-							$join .= ($join ? "\n\t\tAND $sql " : $sql); 
+							$join .= ($join ? "\n\t\tAND $sql " : $sql);
 
 						} else { 
 							$join .= ($join ? "\n\t\tOR $sql " : $sql); 
@@ -579,9 +594,11 @@ class PageFinder extends Wire {
 					$joinType = 'join';
 
 					if(count($fields) > 1 
+						|| (count($valueArray) > 1 && $numEmptyValues > 0)
 						|| $subfield == 'count' 
 						|| ($selector->not && $selector->operator != '!=') 
 						|| $selector->operator == '!=') {
+						// join should instead be a leftjoin
 
 						$joinType = "leftjoin";
 
@@ -615,9 +632,8 @@ class PageFinder extends Wire {
 				$lastSelector = $selector; 	
 			} // fields
 			
-			// if(strlen($whereFields)) $where .= (strlen($where) ? 'AND ' : '') . "($whereFields)";
 			if(strlen($whereFields)) {
-				if(strlen($where)) $where = "($where) AND ($whereFields)"; 
+				if(strlen($where)) $where = "($where) $whereFieldsType ($whereFields)"; 
 					else $where .= "($whereFields)";
 			}
 		
@@ -704,7 +720,104 @@ class PageFinder extends Wire {
 		}
 		*/
 	}
-	
+
+	/**
+	 * Generate SQL and modify $query for situations where it should be possible to match empty values
+	 * 
+	 * This can include equals/not-equals with blank or 0, as well as greater/less-than searches that
+	 * can potentially match blank or 0. 
+	 * 
+	 * @param Field $field
+	 * @param $selector
+	 * @param $query
+	 * @param string $value The value presumed to be blank (passed the empty() test)
+	 * @param string $where SQL where string that will be modified/appended
+	 * @return bool Whether or not the query was handled and modified
+	 * @throws WireException
+	 * 
+	 */
+	protected function whereEmptyValuePossible(Field $field, $selector, $query, $value, &$where) {
+		
+		
+		// look in table that has no pages_id relation back to pages, using the LEFT JOIN / IS NULL trick
+		// OR check for blank value as defined by the fieldtype
+		
+		$operator = $selector->operator; 
+		$database = $this->wire('database');
+		static $tableCnt = 0;
+		$table = $database->escapeTable($field->table);
+		$tableAlias = $table . "__blank" . (++$tableCnt);
+		$blankValue = $field->type->getBlankValue(new NullPage(), $field, $value);
+		$blankValue = $database->escapeStr($blankValue);
+		$whereType = 'OR';
+		$operators = array(
+			'=' => '!=', 
+			'!=' => '=', 
+			'<' => '>=', 
+			'<=' => '>',
+			'>' => '<=', 
+			'>=' => '<'
+		);
+		if(!isset($operators[$operator])) return false; 
+		if($selector->not) $operator = $operators[$operator]; // reverse
+		
+		if($operator == '=') {
+			// equals
+			// non-presence of row is equal to value being blank
+			if($field->type->isEmptyValue($field, $value)) {
+				$sql = "$tableAlias.pages_id IS NULL OR ($tableAlias.data='$blankValue'";
+			} else {
+				$sql = "($tableAlias.data='$blankValue'";
+			}
+			if($value !== "0" && $blankValue !== "0" && !$field->type->isEmptyValue($field, "0")) {
+				// if zero is not considered an empty value, exclude it from matching
+				// if the search isn't specifically for a "0"
+				$sql .= " AND $tableAlias.data!='0'";
+			}
+			$sql .= ")";
+			
+		} else if($operator == '!=' || $operator == '<>') {
+			// not equals
+			$whereType = 'AND';
+			if($value === "0" && !$field->type->isEmptyValue($field, "0")) {
+				// may match rows with no value present
+				$sql = "$tableAlias.pages_id IS NULL OR ($tableAlias.data!='0'";
+			} else {
+				$sql = "$tableAlias.pages_id IS NOT NULL AND ($tableAlias.data!='$blankValue'";
+				if($blankValue !== "0" && !$field->type->isEmptyValue($field, "0")) {
+					$sql .= " OR $tableAlias.data='0'";
+				}
+			}
+			$sql .= ")";
+			
+		} else if($operator == '<' || $operator == '<=') {
+			// less than 
+			if($value > 0 && $field->type->isEmptyValue($field, "0")) {
+				// non-rows can be included as counting for 0
+				$value = $database->escapeStr($value); 
+				$sql = "$tableAlias.pages_id IS NULL OR $tableAlias.data$operator'$value'";
+			} else {
+				// we won't handle it here
+				return false; 
+			}
+		} else if($operator == '>' || $operator == '>=') {
+			if($value < 0 && $field->type->isEmptyValue($field, "0")) {
+				// non-rows can be included as counting for 0
+				$value = $database->escapeStr($value);
+				$sql = "$tableAlias.pages_id IS NULL OR $tableAlias.data$operator'$value'";
+			} else {
+				// we won't handle it here
+				return false;
+			}
+			
+		}
+
+		$query->leftjoin("$table AS $tableAlias ON $tableAlias.pages_id=pages.id");
+		$where .= strlen($where) ?  " $whereType ($sql)" : "($sql)";
+		
+		return true; 
+	}
+
 	/**
 	 * Determine which templates the user is allowed to view
 	 *
@@ -925,14 +1038,27 @@ class PageFinder extends Wire {
 				} else if($field->type instanceof FieldtypePage) {
 					// If it's a FieldtypePage, then data isn't worth sorting on because it just contains an ID to the page
 					// so we also join the page and sort on it's name instead of the field's "data" field.
-					$tableAlias2 = "_sort_page_$fieldName" . ($subValue ? "_$subValue" : '');
-					$query->leftjoin("pages AS $tableAlias2 ON $tableAlias.data=$tableAlias2.id"); 
 					if(!$subValue) $subValue = 'name';
-					$value = "$tableAlias2.$subValue";
-					
-					if($subValue == 'name' && $language && !$language->isDefault()  && $this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
-						// append language ID to 'name' when performing sorts within another language and LanguageSupportPageNames in place
-						$value = "if($value$language!='', $value$language, $value)";
+					$tableAlias2 = "_sort_page_$fieldName" . ($subValue ? "_$subValue" : '');
+				
+					if($this->wire('fields')->isNative($subValue)) {
+						$query->leftjoin("pages AS $tableAlias2 ON $tableAlias.data=$tableAlias2.id");
+						$value = "$tableAlias2.$subValue";
+						if($subValue == 'name' && $language && !$language->isDefault() 
+							&& $this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
+							// append language ID to 'name' when performing sorts within another language and LanguageSupportPageNames in place
+							$value = "if($value$language!='', $value$language, $value)";
+						}
+					} else if($subValueField = $this->wire('fields')->get($subValue)) {
+						$subValueTable = $database->escapeTable($subValueField->getTable());
+						$query->leftjoin("$subValueTable AS $tableAlias2 ON $tableAlias.data=$tableAlias2.pages_id");
+						$value = "$tableAlias2.data";
+						if($language && !$language->isDefault() && $subValueField->type instanceof FieldtypeLanguageInterface) {
+							// append language id to data, i.e. "data1234"
+							$value .= $language;
+						}
+					} else {
+						// error: unknown field
 					}
 					
 				} else if(!$subValue && $language && !$language->isDefault() && $field->type instanceof FieldtypeLanguageInterface) {
@@ -1244,7 +1370,7 @@ class PageFinder extends Wire {
 
 		// the subquery performs faster than the old method (further below) on sites with tens of thousands of pages
 		$in = $selector->operator == '!=' ? 'NOT IN' : 'IN';
-		$query->where("pages.parent_id $in (SELECT pages_id FROM pages_parents WHERE parents_id=$parent_id OR pages_id=$parent_id)");
+		$query->where("(pages.parent_id=$parent_id OR pages.parent_id $in (SELECT pages_id FROM pages_parents WHERE parents_id=$parent_id))");
 
 		/*
 		// OLD method kept for reference

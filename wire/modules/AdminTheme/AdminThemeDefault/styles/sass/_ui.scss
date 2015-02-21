@@ -94,6 +94,7 @@
 	font-weight: $bold-weight; 
 }
 
+/*
 #notices .ui-state-highlight, 
 #notices .ui-state-error {
 	padding: 0.25em 0; 
@@ -132,6 +133,7 @@
 	p span.ui-state-error {
 		padding: 0.25em 0.5em;
 	}
+*/
 
 /**
  * ui-dialog
@@ -161,7 +163,8 @@
 	.ui-dialog-buttonpane {
 		background: $subtle-bg; 
 		border: none; 
-		margin-top: 0;
+		margin-top: -7px;
+		padding: 1px 8px 1px 8px; 
 	}
 
 	.ui-dialog-content {
@@ -246,6 +249,10 @@ button.ui-button.ui-state-default,
 	padding: 0; 
 
 	.ui-menu-item {
+
+		i.fa {
+			margin-right: 2px; 
+		}
 
 		a {
 			font-size: $base-font-size; 

@@ -15,6 +15,15 @@
 		display: block;
 		cursor: move;
 	}
+		.InputfieldPageAutocomplete ol li i.fa-sort {
+			display: inline;
+			float: left;
+			margin-right: 7px; 
+			position: relative; 
+			top: 3px; 
+			left: 3px; 
+			opacity: 0.7; 
+		}
 		.InputfieldPageAutocomplete ol li:last-child {
 			margin-bottom: 1em !important; 
 		}
@@ -37,6 +46,11 @@
 			right: 3px;
 			top: 0;
 		}
+		.InputfieldPageAutocomplete ol li i.fa-trash {
+			position: relative;
+			top: 2px;
+			right: 3px; 
+		}
 
 		.InputfieldPageAutocomplete ol li .itemValue {
 			display: none; 
@@ -49,7 +63,7 @@
 .InputfieldPageAutocomplete input[type=text] {
 	/* No need for full width, plus some left padding for icon placement */
 	width: 60%; 
-	padding-left: 13px; 
+	padding-left: 18px; 
 }
 
 .InputfieldPageAutocomplete p {
@@ -59,11 +73,20 @@
 	margin-bottom: 0; 
 }
 
+	/*
 	.InputfieldPageAutocomplete p .ui-icon {
-		/* icon placement */
 		position: absolute; 
 		top: 0.3em; 
 		left: 1px; 
+		opacity: 0.5; 
+	}
+	*/
+	.InputfieldPageAutocomplete p i.fa {
+		
+		/* icon placement */
+		position: absolute;
+		top: 0.5em;
+		left: 1px;
 		opacity: 0.5; 
 	}
 

@@ -21,10 +21,9 @@ var ProcessWireAdminTheme = {
 		this.setupDropdowns();
 		this.setupSidebarNav();
 		this.setupSpinner();
-		// this.sizeTitle();
 		var $body = $("body"); 
 		var $html = $("html"); 
-		if($body.hasClass('hasWireTabs') && $("ul.WireTabs").size() == 0) $body.removeClass('hasWireTabs'); 
+		if($body.hasClass('hasWireTabs') && $("ul.WireTabs").length == 0) $body.removeClass('hasWireTabs'); 
 		$('#content').removeClass('fouc_fix'); // FOUC fix, deprecated
 		$body.removeClass('pw-init').addClass('pw-ready'); 
 		$html.removeClass('pw-init').addClass('pw-ready'); 
@@ -253,7 +252,7 @@ var ProcessWireAdminTheme = {
 	},
 
 	/**
-	 * Clone a button at the bottom to the top 
+	 * Clone a button at the bottom to the top
 	 *
 	 */
 	setupCloneButton: function() {
@@ -262,20 +261,23 @@ var ProcessWireAdminTheme = {
 
 		// if there are buttons in the format "a button" without ID attributes, copy them into the masthead
 		// or buttons in the format button.head_button_clone with an ID attribute.
-		// var $buttons = $("#content a[id=] button[id=], #content button.head_button_clone[id!=]"); 
-		var $buttons = $("#content a[id=''] button[id=''], #content button.head_button_clone[id!='']");
+		// var $buttons = $("#content a[id=''] button[id=''], #content button.head_button_clone[id!='']");
+		var $buttons = $("button.head_button_clone, button.head_button, button.head-button");
+		//var $buttons = $("#content a:not([id]) button:not([id]), #content button.head_button_clone[id!=]"); 
 
 		// don't continue if no buttons here or if we're in IE
-		if($buttons.size() == 0 || $.browser.msie) return;
+		if($buttons.length == 0 || $.browser.msie) return;
 
-		var $head = $("<div id='head_button'></div>").prependTo("#headline").show();
+		var $head = $("#head_button");
+		if($head.length == 0) $head = $("<div id='head_button'></div>").prependTo("#headline").show();
+
 		$buttons.each(function() {
 			var $t = $(this);
-			var $a = $t.parent('a'); 
-			if($a.size()) { 
+			var $a = $t.parent('a');
+			if($a.length > 0) {
 				$button = $t.parent('a').clone();
-				$head.append($button);
-			} else if($t.is('.head_button_clone')) {
+				$head.prepend($button);
+			} else if($t.hasClass('head_button_clone') || $t.hasClass('head-button')) {
 				$button = $t.clone();
 				$button.attr('data-from_id', $t.attr('id')).attr('id', $t.attr('id') + '_copy');
 				$a = $("<a></a>").attr('href', '#');
@@ -283,9 +285,10 @@ var ProcessWireAdminTheme = {
 					$("#" + $(this).attr('data-from_id')).click(); // .parents('form').submit();
 					return false;
 				});
-				$head.append($a.append($button));	
+				$head.prepend($a.append($button));
 			}
-		}); 
+		});
+		$head.show();
 	},
 
 	/**

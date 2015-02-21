@@ -13,6 +13,8 @@
  * 
  * http://processwire.com
  * 
+ * @todo support changes to a "title|body%=about" selector, so that a change to "title" row also updates the value for the "body" row. 
+ * 
  * SETTINGS
  * ========
  * Below are settings that may be passed to InputfieldSelector to customize the output and behavior.
@@ -43,6 +45,7 @@
  * showOptgroups=1						Whether or not to separate sytem, field, subfields, etc. into their own optgroups. If turned off, all types of fields will be shown together A-Z.
  * optgroupsOrder=[see below]			Order and presence of field selection option groups.
  * optgroupsOrder=system,field,subfield,group,modifier,adjust	
+ * previewColumns=name,template,id		Array or CSV string of columns to show in bookmark previews
  *
  *
  */
@@ -117,6 +120,14 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	protected $selectors = null;
 
 	/**
+	 * If initValue has a SINGLE template defined, it will be present here
+	 * 
+	 * @var Template|null
+	 * 
+	 */
+	protected $initTemplate = null;
+
+	/**
 	 * Variable names that should be picked up through the session each time
 	 *
 	 */
@@ -132,6 +143,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		'datePlaceholder',
 		'timeFormat',
 		'timePlaceholder',
+		'previewColumns',
 		);
 
 	/**
@@ -152,6 +164,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		
 		$this->attr('name', 'selector'); // default name, which presumably will be changed
 		$this->setting('preview', 1); // whether to show a live preview in notes section
+		$this->setting('previewColumns', array()); // column names to use for bookmarked previews of selector results (in Lister)
 		$this->setting('counter', 1); // whether to show the live ajax number-of-page-matches counter
 		$this->setting('initValue', ''); // initial selector value: not changeable by user
 		$this->setting('addIcon', 'plus-circle');
@@ -308,7 +321,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'name' => array('=', '!=', '%='), 
 			'text' => array('%=', '*=', '~=', '^=', '$=', '=', '!=', '=""', '!=""'), 
 			'autocomplete' => array('=', '!='), 
-			'number' => array('=', '!=', '<', '>', '<=', '>='), 
+			'number' => array('=', '!=', '<', '>', '<=', '>=', '=""', '!=""'), 
 			'datetime' => array('=', '!=', '<', '>', '<=', '>='), 
 			'page' => array('@=', '@!='), 
 			'checkbox' => array('=', '!='), 
@@ -327,7 +340,9 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			if(($template->flags & Template::flagSystem) && !$this->allowSystemTemplates) {
 				continue; 
 			}
-			$templates[$template->id] = $template->label ? "$template->label ($template->name)" : $template->name; 
+			$label = $template->getLabel();
+			if($label != $template->name) $label .= " ($template->name)";
+			$templates[$template->id] = $label;
 		}
 
 		// make users selectable if there are under 100 of them
@@ -590,6 +605,9 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 					'defaultSelector' => $selector, 
 					'initSelector' => $this->initValue,
 					);
+				$previewColumns = $this->sessionGet('previewColumns');
+				if($previewColumns && is_string($previewColumns)) $previewColumns = explode(',', $previewColumns);
+				if(is_array($previewColumns) && count($previewColumns)) $bookmark['columns'] = $previewColumns; 
 				$this->wire('modules')->includeModule('ProcessPageLister'); 
 				$id = ((int) $this->wire('input')->get('id')) . '_' . $this->attr('name'); 
 				$url = ProcessPageLister::addSessionBookmark($id, $bookmark); 
@@ -710,6 +728,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				}
 			} else $allow = 1;
 			if($allow) {
+				if($this->initTemplate) {
+					$f = $this->initTemplate->fieldgroup->getField($field->name, true); 
+					if($f) $field = $f;
+				}
 				$data = $this->renderSelectFieldOption($field, $settings, $selectedValue);
 				foreach($data as $key => $o) {
 					if($key == 'all') {
@@ -854,6 +876,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	 * 
 	 */
 	protected function renderSelectOperator($name, $type = '', $selectedValue = '', $operators = array()) {
+		
 		$inputName = $this->attr('name') . "__operator[]"; 
 
 		if(!count($operators)) { 
@@ -868,6 +891,11 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			} else {
 				$operators = $this->operators; 
 			}
+		}
+		
+		if($selectedValue === '""' && !in_array($selectedValue, $operators)) {
+			// if isEmpty/isNotEmpty not supported then convert it to regular equals/notEquals
+			$selectedValue = rtrim($selectedValue, '"'); 	
 		}
 
 		$disabled = count($operators) ? "" : " disabled='disabled'";
@@ -939,6 +967,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$info = $this->modifierFields[$fieldName]; 
 			$type = $info['input'];
 			if(isset($info['options'])) $options = $info['options'];
+			if($fieldName == 'sort' && substr($selectedValue, 0, 1) == '-') {
+				$selectedOperator = '=-';
+				$selectedValue = ltrim($selectedValue, '-');
+			}
 
 		} else if($type == 'selector') {
 			// selector field: do nothing here but skip it, and respond to it further down
@@ -1005,7 +1037,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		}
 
 		// determine which operators should be used
-		if($type == 'text' && $selectedValue == '""' && in_array($selectedOperator, array('=', '!='))) {
+		if($selectedValue == '""' && in_array($selectedOperator, array('=', '!='))) {
 			// add blank quoted string to operator, to match up with our "has value" or "does not have value" operators
 			$selectedOperator .= '""';
 			$selectedValue = '';
@@ -1100,6 +1132,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			$inputfield->timeInputFormat = $this->timeFormat;
 			$inputfield->placeholder .= ' ' . $this->timePlaceholder;
 		}
+		$inputfield->renderReady();
 		return $inputfield->render();
 	}
 
@@ -1393,7 +1426,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$this->sessionSet('valid', true); 
 		$this->sessionSet('initValue', $this->initValue); 
 	
-		// all other session variables tha tneed to be remembered
+		// all other session variables that need to be remembered
 		foreach($this->sessionVarNames as $key) {
 			$this->sessionSet($key, $this->$key); 
 		}
@@ -1407,7 +1440,10 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				if(!is_array($templateValue)) $templateValue = array($templateValue); 
 				foreach($templateValue as $t) {
 					$template = $this->wire('templates')->get($t);
-					if($template) $templates[] = $template->name; 
+					if($template) {
+						$templates[] = $template->name; 
+						if(count($templateValue) == 1) $this->initTemplate = $template;
+					}
 				}
 			}
 			if(count($templates)) $renderSelectOptions['templates'] = $templates; 

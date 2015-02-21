@@ -4,32 +4,25 @@ function InputfieldPageTableDialog() {
 	var url = $a.attr('data-url');
 	var title = $a.attr('data-title'); 
 	var closeOnSave = true; 
-	var $iframe = $('<iframe class="InputfieldPageTableDialog" frameborder="0" src="' + url + '"></iframe>');
-	var windowWidth = $(window).width()-100;
-	var windowHeight = $(window).height()-220;
-	//if(windowHeight > 800) windowHeight = 800;
 	var $container = $(this).parents('.InputfieldPageTableContainer'); 
 	var dialogPageID = 0;
-
-	var $dialog = $iframe.dialog({
-		modal: true,
-		height: windowHeight,
-		width: windowWidth,
-		position: [50,49],
+	var noclose = parseInt($container.attr('data-noclose')); 
+	var modalSettings = {
 		close: function(event, ui) {
 			if(dialogPageID > 0) {
 				var ajaxURL = $container.attr('data-url') + '&InputfieldPageTableAdd=' + dialogPageID;
 				var sort = $container.siblings(".InputfieldPageTableSort").val();
 				if(sort.length) ajaxURL += '&InputfieldPageTableSort=' + sort.replace(/\|/g, ',');
-				$.get(ajaxURL, function(data) { 
-					$container.html(data); 
-					$container.effect('highlight', 1000); 
-					InputfieldPageTableSortable($container.find('table')); 
-				}); 
+				$.get(ajaxURL, function(data) {
+					$container.html(data);
+					$container.effect('highlight', 500);
+					InputfieldPageTableSortable($container.find('table'));
+				});
 			}
 		}
-	}).width(windowWidth).height(windowHeight);
-
+	}
+	var $iframe = pwModalWindow(url, modalSettings, 'medium');
+	
 	if($a.is('.InputfieldPageTableAdd')) closeOnSave = false; 
 
 	$iframe.load(function() {
@@ -38,18 +31,16 @@ function InputfieldPageTableDialog() {
 		//$dialog.dialog('option', 'buttons', {}); 
 		var $icontents = $iframe.contents();
 		var n = 0;
-		var title = $icontents.find('title').text();
+		// var title = $icontents.find('title').text();
 
 		dialogPageID = $icontents.find('#Inputfield_id').val(); // page ID that will get added if not already present
 
-		// set the dialog window title
-		$dialog.dialog('option', 'title', title); 
-
 		// hide things we don't need in a modal context
 		$icontents.find('#wrap_Inputfield_template, #wrap_template, #wrap_parent_id').hide();
-		$icontents.find('#breadcrumbs ul.nav, #_ProcessPageEditDelete, #_ProcessPageEditChildren').hide();
+		//$icontents.find('#breadcrumbs ul.nav, #_ProcessPageEditDelete, #_ProcessPageEditChildren').hide();
+		$icontents.find('#_ProcessPageEditDelete, #_ProcessPageEditChildren').hide();
 
-		closeOnSave = $icontents.find('#ProcessPageAdd').size() == 0; 
+		closeOnSave = noclose == 0 && $icontents.find('#ProcessPageAdd').size() == 0; 
 
 		// copy buttons in iframe to dialog
 		$icontents.find("#content form button.ui-button[type=submit]").each(function() {
@@ -67,9 +58,9 @@ function InputfieldPageTableDialog() {
 					'click': function() {
 						$button.click();
 						if(closeOnSave) setTimeout(function() { 
-							$dialog.dialog('close'); 
+							$iframe.dialog('close'); 
 						}, 500); 
-						closeOnSave = true; // only let closeOnSave happen once
+						if(!noclose) closeOnSave = true; // only let closeOnSave happen once
 					}
 				};
 				n++;
@@ -77,19 +68,7 @@ function InputfieldPageTableDialog() {
 			$button.hide();
 		}); 
 
-		// cancel button
-		/*
-		buttons[n] = {
-			'text': 'Cancel', 
-			'class': 'ui-priority-secondary', 
-			'click': function() {
-				$dialog.dialog('close'); 
-			}
-		}; 
-		*/
-
-		if(buttons.length > 0) $dialog.dialog('option', 'buttons', buttons); 
-		$dialog.width(windowWidth).height(windowHeight);
+		$iframe.setButtons(buttons); 
 	}); 
 
 	return false; 
@@ -141,6 +120,9 @@ $(document).ready(function() {
 
 	$(document).on('click', '.InputfieldPageTableAdd, .InputfieldPageTableEdit', InputfieldPageTableDialog); 
 	$(document).on('click', 'a.InputfieldPageTableDelete', InputfieldPageTableDelete); 
+	$(document).on('dblclick', '.InputfieldPageTable .AdminDataTable td', function() {
+		$(this).closest('tr').find('.InputfieldPageTableEdit').click();
+	}); 
 
 	InputfieldPageTableSortable($(".InputfieldPageTable table"));
 	

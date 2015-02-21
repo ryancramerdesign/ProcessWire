@@ -18,9 +18,14 @@
  *
  * @version 2.5
  *
+ * Index Versions
+ * ==============
+ * 251 Add $config->debugIf option
+ * 250 PW 2.5 support
+ *
  */
 
-define("PROCESSWIRE", 250); // index version
+define("PROCESSWIRE", 251); // index version
 
 /**
  * Build the ProcessWire configuration
@@ -125,6 +130,18 @@ function ProcessWireBootConfig() {
 	@include(is_file($configFileDev) ? $configFileDev : $configFile); 
 
 	/*
+	 * $config->debugIf: optional setting to determine if debug mode should be on or off
+	 * 
+	 */
+	if($config->debugIf && is_string($config->debugIf)) {
+		$debugIf = trim($config->debugIf);
+		if(strpos($debugIf, '/') === 0) $debugIf = (bool) @preg_match($debugIf, $_SERVER['REMOTE_ADDR']); // regex IPs
+			else if(is_callable($debugIf)) $debugIf = $debugIf(); // callable function to determine debug mode for us 
+			else $debugIf = $debugIf === $_SERVER['REMOTE_ADDR']; // exact IP match
+		$config->debug = $debugIf; 
+	}
+
+	/*
 	 * If debug mode is on then echo all errors, if not then disable all error reporting
 	 *
 	 */
@@ -159,8 +176,17 @@ function ProcessWireBootConfig() {
 	ini_set('session.use_cookies', true); 
 	ini_set('session.use_only_cookies', 1);
 	ini_set('session.cookie_httponly', 1); 
-	ini_set("session.gc_maxlifetime", $config->sessionExpireSeconds); 
-	if(ini_get('session.save_handler') == 'files') ini_set("session.save_path", rtrim($config->paths->sessions, '/')); 
+	ini_set('session.gc_maxlifetime', $config->sessionExpireSeconds); 
+	
+	if(ini_get('session.save_handler') == 'files') {
+		if(ini_get('session.gc_probability') == 0) {
+			// Some debian distros replace PHP's gc without fully implementing it,
+			// which results in broken garbage collection if the save_path is set. 
+			// As a result, we avoid setting the save_path when this is detected. 
+		} else {
+			ini_set("session.save_path", rtrim($config->paths->sessions, '/'));
+		}
+	}
 
 	return $config; 
 }

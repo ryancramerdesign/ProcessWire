@@ -6,39 +6,14 @@
  * PageArray provides an array-like means for storing PageReferences and is utilized throughout ProcessWire. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2014 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
  *
  */
 
-class PageArray extends WireArray {
-
-	/**
-	 * Total number of pages, including those here and others that aren't, but may be here in pagination.
-	 * @var int
-	 */
-	protected $numTotal = 0;	
-
-	/**
-	 * If this PageArray is a partial representation of a larger set, this will contain the max number of pages allowed to be 
-	 * present/loaded in the PageArray at once. 
-	 * 
-	 * May vary from count() when on the last page of a result set. 
-	 * As a result, paging routines should refer to their own itemsPerPage rather than count().
-	 * Applicable for paginated result sets. This number is not enforced for adding items to this PageArray.
-	 *
-	 * @var int
-	 */
-	protected $numLimit = 0; 	
-
-	/**
-	 * If this PageArray is a partial representation of a larger set, this will contain the starting result number if previous results preceded it. 
-	 *
-	 * @var int
-	 */
-	protected $numStart = 0; 
+class PageArray extends PaginatedArray implements WirePaginatable {
 
 	/**
 	 * Reference to the selectors that led to this PageArray, if applicable
@@ -104,29 +79,6 @@ class PageArray extends WireArray {
 		return null;
 	}
 	*/
-
-	/**
-	 * Get a property of the PageArray
-	 *
-	 * These map to functions form the array and are here for convenience.
-	 * Properties include count, total, start, limit, last, first, keys, values, 
-	 * These can also be accessed by direct reference. 
-	 *
-	 * @param string $property
-	 * @return mixed
-	 *
-	 */
-	public function getProperty($property) {
-		static $properties = array(
-			// property => method to map to
-			'total' => 'getTotal',	
-			'start' => 'getStart',
-			'limit' => 'getLimit',
-			);
-		if(!in_array($property, $properties)) return parent::getProperty($property);
-		$func = $properties[$property];
-		return $this->$func();
-	}
 
 	/**
 	 * Does this PageArray contain the given index or Page? 
@@ -197,13 +149,15 @@ class PageArray extends WireArray {
 	/**
 	 * Prepend a Page to the beginning of the PageArray. 
 	 *
-	 * @param Page $item 
+	 * @param Page|PageArray $item 
 	 * @return WireArray This instance.
 	 * 
 	 */
 	public function prepend($item) {
 		parent::prepend($item);
-		$this->numTotal++; 
+		// note that WireArray::prepend does a recursive call to prepend with each item,
+		// so it's only necessary to increase numTotal if the given item is Page (vs. PageArray)
+		if($item instanceof Page) $this->numTotal++; 
 		return $this; 
 	}
 
@@ -255,90 +209,6 @@ class PageArray extends WireArray {
 	public function pop() {
 		if($this->numTotal) $this->numTotal--; 
 		return parent::pop();
-	}
-
-
-	/**
-	 * Set the total number of pages, if more than are in this PageArray. 
-	 * 
-	 * Used for pagination. 
-	 *
-	 * @param int $total 
-	 * @return PageArray reference to current instance.
-	 * 
-	 */
-	public function setTotal($total) { 
-		$this->numTotal = (int) $total; 
-		return $this;
-	}	
-
-
-	/**
-	 * Get the total number of pages, if more than are in this PageArray. 
-	 * 
-	 * Used for pagination. 
-	 *
-	 * @return int
-	 * 
-	 */
-	public function getTotal() {
-		return $this->numTotal;
-	}
-
-
-	/**
-	 * Get the imposed limit on number of pages. 
-	 * 
-	 * If no limit set, then return number of pages currently in this PageArray. 
-	 * 
-	 * Used for pagination. 
-	 * 
-	 * @return int
-	 * 
-	 */
-	public function getLimit() {
-		if($this->numLimit) return $this->numLimit; 
-			else return $this->count(); 
-	}
-
-
-	/**
-	 * Set the 'start' limitor that resulted in this PageArray
-	 *
-	 * @param int $numStart; 
-	 * @return $this
-	 *
-	 */
-	public function setStart($numStart) {
-		$this->numStart = (int) $numStart; 
-		return $this;
-	}
-
-	/**
-	 * If a limit was imposed, get the index of the starting result assuming other results preceded those present in this PageArray
-	 *
-	 * Used for pagination.
-	 * 	
-	 * @return int
-	 *
-	 */
-	public function getStart() {
-		return $this->numStart; 
-	}
-
-
-	/**
-	 * Set the imposed limit that resulted in this PageArray.
-	 * 
-	 * Used for pagination. 
-	 *
-	 * @param int $numLimit
-	 * @return PageArray reference to current instance.
-	 * 
-	 */
-	public function setLimit($numLimit) {
-		$this->numLimit = $numLimit; 
-		return $this; 
 	}
 
 	/**

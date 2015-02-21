@@ -110,6 +110,9 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	 * This is primarily for use by FieldtypePage, but kept here since the config options
 	 * it uses to check are part of this module's config. 
 	 * 
+	 * If false is returned and given an $editPage, a reason for the false will be populated
+	 * to the $editPage->_isValidPage property. 
+	 * 
 	 * @param Page $page
 	 * @param Field|string|int $field Field instance of field name (string) or ID
 	 * @param Page $editPage Page being edited
@@ -121,7 +124,13 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		
 		if(!$field instanceof Field) $field = wire('fields')->get($field);
 		if(!$field instanceof Field) throw new WireException('isValidPage requires a valid Field or field name');
-		if($editPage && $page->id == $editPage->id) return false; // prevent circular reference
+		if($editPage && $page->id == $editPage->id) {
+			$editPage->set('_isValidPage', "Page is referencing itself and circular page reference not allowed");
+			return false; // prevent circular reference
+		}
+		if(wire('pages')->cloning) {
+			return true; // bypass check when clong is active
+		}
 
 		$valid = true;
 		
@@ -129,6 +138,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$selector = $field->findPagesSelector; 
 			if($editPage) $selector = self::getFindPagesSelector($editPage, $selector); 
 			if(!$page->matches($selector)) {
+				if($editPage) $editPage->set('_isValidPage', "Page $page does not match findPagesSelector: $selector"); 
 				$valid = false;
 			}
 		} 
@@ -147,6 +157,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 					// parent_id represents a direct parent
 					$valid = false;
 				}
+				if(!$valid && $editPage) $editPage->set('_isValidPage', "Page $page does not have required parent $field->parent_id"); 
 			} else {
 				// PHP version prior to 5.3.8
 				$reflector = new ReflectionClass($field->inputfield); 
@@ -154,7 +165,10 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			}
 		}
 		
-		if($field->template_id && $page->template->id != $field->template_id) $valid = false; 
+		if($field->template_id && $page->template->id != $field->template_id) {
+			$valid = false;
+			if($editPage) $editPage->set('_isValidPage', "Page $page does not have required template $field->template_id"); 
+		}
 		
 		return $valid;
 	}
@@ -212,6 +226,8 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		} else {
 			$children = new PageArray();
 		}
+		
+		if($children->has($page)) $children->remove($page); // don't allow page being edited to be selected
 
 		return $children; 
 	} 
@@ -318,6 +334,8 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			return $this->name;
 		}
 
+		$inputfield->renderReady($this, false);
+		
 		$out = 	"\n<div class='" . $inputfield->className() . "'>";
 		$out .= $inputfield->render();
 		$out .= $this->renderAddable();
@@ -409,7 +427,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$inputfield->processInput($input); 
 
 		$value = $this->attr('value'); 
-		$existingValue = $value ? clone $value : '';
+		$existingValueStr = $value ? "$value" : '';
 		$newValue = null;
 		$value = $inputfield->value;
 		
@@ -449,7 +467,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			$this->setAttribute('value', $newValue); 
 		}
 
-		if("$newValue" != "$existingValue") {
+		if("$newValue" != "$existingValueStr") {
 			$this->trackChange('value'); 
 		} 
 		$this->processInputMode = false; 	

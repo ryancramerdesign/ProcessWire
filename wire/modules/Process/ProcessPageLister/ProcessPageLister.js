@@ -113,6 +113,7 @@ var ProcessLister = {
 					var txt = $b.text();
 					$b.remove();
 					$(this).find('span').remove();
+					var $icon = $(this).find('i');
 					var label = $(this).text();
 					if(txt == sort) {
 						$(this).html("<u>" + label + "</u><span>&nbsp;&darr;</span><b>" + txt + "</b>");
@@ -121,6 +122,7 @@ var ProcessLister = {
 					} else {
 						$(this).html(label + "<b>" + txt + "</b>");
 					}
+					if($icon.length > 0) $(this).prepend($icon);
 					if(ProcessLister.clickAfterRefresh.length > 0) {
 						var $a = $('#' + ProcessLister.clickAfterRefresh).click(); 
 						ProcessLister.clickAfterRefresh = '';

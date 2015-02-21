@@ -207,6 +207,17 @@ class WireData extends Wire implements IteratorAggregate {
 	}
 
 	/**
+	 * Enables use of $var('key')
+	 * 
+	 * @param string $key
+	 * @return mixed
+	 *
+	 */
+	public function __invoke($key) {
+		return $this->get($key);
+	}
+
+	/**
 	 * Remove a given $key from the $data array
 	 *
 	 * @param string $key

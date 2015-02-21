@@ -33,8 +33,8 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 5; 
-	const versionRevision = 3; 
-	const versionSuffix = '';
+	const versionRevision = 20; 
+	const versionSuffix = 'dev';
 	
 	const indexVersion = 250; // required version for index.php file (represented by PROCESSWIRE define)
 	
@@ -44,11 +44,30 @@ class ProcessWire extends Wire {
 	const statusRender = 8; // $page's template is being rendered
 	const statusFinished = 16; // request has been delivered
 	const statusFailed = 1024; // request failed due to exception or 404
-	
-	protected $debug = false; 
+
+	/**
+	 * Whether debug mode is on or off
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $debug = false;
+
+	/**
+	 * Fuel manages ProcessWire API variables
+	 * 
+	 * This will replace the static $fuel from the Wire class in PW 3.0.
+	 * Currently it is just here as a placeholder.
+	 *
+	 * @var Fuel|null
+	 *
+	 */
+	protected $_fuel = null;
 
 	/**
 	 * Given a Config object, instantiates ProcessWire and it's API
+	 * 
+	 * @param Config $config
  	 *
 	 */ 
 	public function __construct(Config $config) {
@@ -90,6 +109,9 @@ class ProcessWire extends Wire {
 
 	/**
 	 * Safely determine the HTTP host
+	 * 
+	 * @param Config $config
+	 * @return string
 	 *
 	 */
 	protected function getHttpHost(Config $config) {
@@ -138,7 +160,8 @@ class ProcessWire extends Wire {
 	/**
 	 * Load's ProcessWire using the supplied Config and populates all API fuel
  	 *
-	 * $param Config $config
+	 * @param Config $config
+	 * @throws WireDatabaseException|WireException on fatal error
  	 *
 	 */
 	public function load(Config $config) {
@@ -165,6 +188,7 @@ class ProcessWire extends Wire {
 		
 		$cache = new WireCache(); 
 		$this->wire('cache', $cache); 
+		$cache->preload($config->preloadCacheNames); 
 
 		try { 		
 			if($this->debug) Debug::timer('boot.load.modules');
@@ -181,7 +205,7 @@ class ProcessWire extends Wire {
 		$updater = $modules->get('SystemUpdater'); 
 		if(!$updater) {
 			$modules->resetCache();
-			$modules->get('SystemUpdater');
+			$updater = $modules->get('SystemUpdater');
 		}
 
 		$fieldtypes = new Fieldtypes();
@@ -216,8 +240,7 @@ class ProcessWire extends Wire {
 		if($this->debug) Debug::saveTimer('boot.load.roles');
 
 		if($this->debug) Debug::timer('boot.load.users'); 
-		if(!$t = $templates->get('user')) throw new WireException("Missing system template: 'user'"); 
-		$users = new Users($t, $config->usersPageID); 
+		$users = new Users($config->userTemplateIDs, $config->usersPageIDs); 
 		$this->wire('users', $users, true);
 		if($this->debug) Debug::saveTimer('boot.load.users'); 
 
@@ -298,13 +321,17 @@ class ProcessWire extends Wire {
 	 *
 	 */
 	protected function ___finished() {
-		$this->wire('cache')->maintenance();
+		$session = $this->wire('session'); 
+		if($session) $session->maintenance();
+		$cache = $this->wire('cache'); 
+		if($cache) $cache->maintenance();
 	}
 
 	/**
 	 * Set a new API variable
 	 * 
 	 * Alias of $this->wire(), but for setting only, for syntactic convenience.
+	 * i.e. $this->wire()->set($key, $value); 
 	 * 
 	 * @param $key API variable name to set
 	 * @param $value Value of API variable
@@ -316,6 +343,13 @@ class ProcessWire extends Wire {
 		return $this;
 	}
 	
+	public function __call($method, $arguments) {
+		if(method_exists($this, "___$method")) return parent::__call($method, $arguments); 
+		$value = $this->__get($method);
+		if(is_object($value)) return call_user_func_array(array($value, '__invoke'), $arguments); 
+		return parent::__call($method, $arguments);
+	}
+
 }
 
 

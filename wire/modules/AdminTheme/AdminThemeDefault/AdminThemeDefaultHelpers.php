@@ -10,6 +10,21 @@
  */ 
 
 class AdminThemeDefaultHelpers extends WireData {
+	
+	public function __construct() {
+		if($this->wire('input')->get('test_notices')) {
+			$this->message('Message test');
+			$this->message('Message test debug', Notice::debug);
+			$this->message('Message test markup <a href="#">example</a>', Notice::allowMarkup);
+			$this->warning('Warning test');
+			$this->warning('Warning test debug', Notice::debug);
+			$this->warning('Warning test markup <a href="#">example</a>', Notice::allowMarkup);
+			$this->error('Error test');
+			$this->error('Error test debug', Notice::debug);
+			$this->error('Error test markup <a href="#">example</a>', Notice::allowMarkup);
+		}
+		parent::__construct();
+	}
 
 	/**
 	 * Perform a translation, based on text from shared admin file: /wire/templates-admin/default.php
@@ -66,6 +81,7 @@ class AdminThemeDefaultHelpers extends WireData {
 		if($user->isGuest() || !$user->hasPermission('page-edit')) return '';
 		$url = $config->urls->admin . 'page/add/';
 		$out = '';
+		$items = array();
 	
 		foreach($this->wire('templates') as $template) {
 			$parent = $template->getParentPage(true); 
@@ -79,10 +95,15 @@ class AdminThemeDefaultHelpers extends WireData {
 			}
 			$icon = $template->getIcon();
 			if(!$icon) $icon = "plus-circle";
-			$label = $this->wire('sanitizer')->entities1($template->getLabel());
-			$out .= "<li><a href='$url$qs'><i class='fa fa-fw fa-$icon'></i>&nbsp;$label</a></li>";
+			$label = $template->getLabel();
+			$key = strtolower($label); 
+			$label = $this->wire('sanitizer')->entities1($label); 
+			if(isset($items[$key])) $key .= $template->name;	
+			$items[$key] = "<li><a href='$url$qs'><i class='fa fa-fw fa-$icon'></i>&nbsp;$label</a></li>";
 		}
-	
+		
+		ksort($items); 
+		$out = implode('', $items); 
 		if(empty($out)) return '';
 	
 		$label = $this->getAddNewLabel();
@@ -107,17 +128,17 @@ class AdminThemeDefaultHelpers extends WireData {
 	public function renderAdminNotices($notices, array $options = array()) {
 		
 		$defaults = array(
-			'messageClass' => 'ui-state-highlight NoticeMessage', // class for messages
+			'messageClass' => 'NoticeMessage', // class for messages
 			'messageIcon' => 'check-square', // default icon to show with notices
 
-			'warningClass' => 'ui-state-error NoticeWarning', // class for warnings
-			'warningIcon' => 'warning', // icon for warnings
+			'warningClass' => 'NoticeWarning', // class for warnings
+			'warningIcon' => 'exclamation-circle', // icon for warnings
 
-			'errorClass' => 'ui-state-error ui-priority-primary NoticeError', // class for errors
+			'errorClass' => 'NoticeError', // class for errors
 			'errorIcon' => 'exclamation-triangle', // icon for errors
 		
-			'debugClass' => 'ui-priority-secondary NoticeDebug', // class for debug items (appended)
-			'debugIcon' => 'gear', // icon for debug notices
+			'debugClass' => 'NoticeDebug', // class for debug items (appended)
+			'debugIcon' => 'bug', // icon for debug notices
 		
 			'closeClass' => 'notice-remove', // class for close notices link <a>
 			'closeIcon' => 'times-circle', // icon for close notices link
@@ -146,7 +167,7 @@ class AdminThemeDefaultHelpers extends WireData {
 			if($notice instanceof NoticeError) {
 				$class = $options['errorClass'];
 				$icon = $options['errorIcon']; 
-			} else if($notice->flags & Notice::warning) {
+			} else if($notice instanceof NoticeWarning) {
 				$class = $options['warningClass'];
 				$icon = $options['warningIcon'];
 			} else {
@@ -461,7 +482,8 @@ class AdminThemeDefaultHelpers extends WireData {
 		$bodyClass = $this->wire('input')->get->modal ? 'modal ' : '';
 		$bodyClass .= "id-{$page->id} template-{$page->template->name} pw-init";
 		if($this->wire('config')->js('JqueryWireTabs')) $bodyClass .= " hasWireTabs";
-		return $bodyClass; 
+		$bodyClass .= ' ' . $this->wire('adminTheme')->getBodyClass(); 
+		return trim($bodyClass); 
 	}
 	
 	/**

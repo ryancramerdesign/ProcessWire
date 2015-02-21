@@ -345,8 +345,11 @@ function wireCopy($src, $dst, $options = array()) {
 
 	while(false !== ($file = readdir($dir))) {
 		if($file == '.' || $file == '..') continue;
-		if($options['recursive'] && is_dir($src . $file)) {
+		$isDir = is_dir($src . $file); 
+		if($options['recursive'] && $isDir) {
 			wireCopy($src . $file, $dst . $file, $options);
+		} else if($isDir) {
+			// skip it, because not recursive
 		} else {
 			copy($src . $file, $dst . $file);
 			$chmodFile = wire('config')->chmodFile;
@@ -566,10 +569,14 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
  * Based upon: http://www.php.net/manual/en/function.time.php#89415
  *
  * @param int|string $ts Unix timestamp or date string
- * @param bool|int $abbreviate Whether to use abbreviations for shorter strings. 
+ * @param bool|int|array $abbreviate Whether to use abbreviations for shorter strings. 
  * 	Specify boolean TRUE for abbreviations (abbreviated where common, not always different from non-abbreviated)
  * 	Specify integer 1 for extra short abbreviations (all terms abbreviated into shortest possible string)
  * 	Specify boolean FALSE or omit for no abbreviations.
+ * 	Specify associative array of key=value pairs of terms to use for abbreviations. The possible keys are:
+ * 		just now, ago, from now, never
+ * 		second, minute, hour, day, week, month, year, decade
+ * 		seconds, minutes, hours, days, weeks, months, years, decades
  * @param bool $useTense Whether to append a tense like "ago" or "from now",
  * 	May be ok to disable in situations where all times are assumed in future or past.
  * 	In abbreviate=1 (shortest) mode, this removes the leading "+" or "-" from the string. 
@@ -578,7 +585,10 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
  */
 function wireRelativeTimeStr($ts, $abbreviate = false, $useTense = true) {
 
-	if(empty($ts)) return __('Never', __FILE__); 
+	if(empty($ts)) {
+		if(is_array($abbreviate) && isset($abbreviate['never'])) return $abbreviate['never'];
+		return __('Never', __FILE__);
+	}
 
 	$justNow = __('just now', __FILE__); 
 	$ago = __('ago', __FILE__); 
@@ -671,7 +681,22 @@ function wireRelativeTimeStr($ts, $abbreviate = false, $useTense = true) {
 			__("months", __FILE__), 
 			__("years", __FILE__), 
 			__("decades", __FILE__)
-			); 
+			);
+		
+		if(is_array($abbreviate)) {
+			// possible user specified abbreviations for replacements
+			$keys1 = array('second', 'minute', 'hour',  'day', 'week', 'month', 'year', 'decade');
+			$keys2 = array('seconds', 'minutes', 'hours',  'days', 'weeks', 'months', 'years', 'decades');
+			foreach($keys1 as $key => $term) {
+				if(isset($abbreviate[$term])) $periodsSingular[$key] = $abbreviate[$term];
+			}
+			foreach($keys2 as $key => $term) {
+				if(isset($abbreviate[$term])) $periodsPlural[$key] = $abbreviate[$term];
+			}
+			if(isset($abbreviate['just now'])) $justNow = $abbreviate['just now']; 
+			if(isset($abbreviate['from now'])) $fromNow = $abbreviate['from now'];
+			if(isset($abbreviate['ago'])) $ago = $abbreviate['ago'];
+		}
 	}
 
 	
@@ -923,14 +948,20 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
  * Return a new temporary directory/path ready to use for files
  * 
  * @param object|string $name Provide the object that needs the temp dir, or name your own string
- * @param int $maxAge Maximum age of temp dir files in seconds
+ * @param array|int $options Options array: 
+ * 	- maxAge: Maximum age of temp dir files in seconds (default=120)
+ * 	- basePath: Base path where temp dirs should be created. Omit to use default (recommended).
+ * 	Note: if you specify an integer for $options, then $maxAge is assumed. 
  * @return WireTempDir
  * 
  */
-function wireTempDir($name, $maxAge = 120) {
+function wireTempDir($name, $options = array()) {
 	static $tempDirs = array();
 	if(isset($tempDirs[$name])) return $tempDirs[$name]; 
-	$tempDir = new WireTempDir($name, $maxAge); 
+	if(is_int($options)) $options = array('maxAge' => $options); 	
+	$basePath = isset($options['basePath']) ? $options['basePath'] : '';
+	$tempDir = new WireTempDir($name, $basePath); 
+	if(isset($options['maxAge'])) $tempDir->setMaxAge($maxAge); 
 	$tempDirs[$name] = $tempDir; 
 	return $tempDir; 
 }
@@ -946,7 +977,7 @@ function wireTempDir($name, $maxAge = 120) {
  * Note this function returns the output for you to output wherever you want (delayed output).
  * For direct output, use the wireInclude() function instead. 
  * 
- * @param $filename Assumed relative to /site/templates/ unless you provide a full path name with the filename.
+ * @param string $filename Assumed relative to /site/templates/ unless you provide a full path name with the filename.
  * 	If you provide a path, it must resolve somewhere in site/templates/, site/modules/ or wire/modules/.
  * @param array $vars Optional associative array of variables to send to template file. 
  * 	Please note that all template files automatically receive all API variables already (you don't have to provide them)
@@ -993,11 +1024,11 @@ function wireRenderFile($filename, array $vars = array(), array $options = array
 	}
 	
 	if($options['defaultPath'] && strpos($filename, './') === 0) {
-		$filename = $options['defaultPath'] . substr($filename, 2);
+		$filename = rtrim($options['defaultPath'], '/') . '/' . substr($filename, 2);
 		
 	} else if($options['defaultPath'] && strpos($filename, '/') !== 0) {
 		// filename is relative to defaultPath (typically /site/templates/)
-		$filename = $options['defaultPath'] . $filename;
+		$filename = rtrim($options['defaultPath'], '/') . '/' . $filename;
 		
 	} else if(strpos($filename, '/') !== false) {
 		// filename is absolute, make sure it's in a location we consider safe
@@ -1162,4 +1193,48 @@ function wireDate($format = '', $ts = null) {
 		else if(strpos($format, '%') !== false) $value = strftime($format, $ts); 
 		else $value = date($format, $ts); 
 	return $value;
+}
+
+
+/**
+ * Render markup for an icon
+ * 
+ * Icon and class can be specified with or without the fa- prefix. 
+ * 
+ * @param string $icon Icon name (currently a font-awesome icon name, but support for more in future)
+ * @param string $class Additional attributes for class (example: "fw" for fixed width)
+ * @return string
+ * 
+ */
+function wireIconMarkup($icon, $class = '') {
+	if(empty($icon)) return '';
+	if(strpos($icon, 'icon-') === 0) $icon = str_replace('icon-', 'fa-', $icon); 
+	if(strpos($icon, 'fa-') !== 0) $icon = "fa-$icon";
+	if($class) {
+		$modifiers = array(
+			'lg', 'fw', '2x', '3x', '4x', '5x', 'spin', 'spinner', 'li', 'border',
+			'rotate-90', 'rotate-180', 'rotate-270', 'flip-horizontal', 'flip-vertical',
+			'stack', 'stack-1x', 'stack-2x', 'inverse',
+		);
+		$classes = explode(' ', $class); 
+		foreach($classes as $key => $modifier) {
+			if(in_array($modifier, $modifiers)) $classes[$key] = "fa-$modifier";	
+		}
+		$class = implode(' ', $classes);
+	}
+	$class = trim("fa $icon $class"); 
+	return "<i class='$class'></i>";
+}
+
+/**
+ * Given a quantity of bytes, return a more readable size string
+ * 
+ * @param int $size
+ * @return string
+ * 
+ */
+function wireBytesStr($size) {
+	if($size < 1024) return number_format($size) . ' ' . __('bytes', __FILE__);
+	$kb = round($size / 1024);
+	return number_format($kb) . " " . __('kB', __FILE__); // kilobytes
 }

@@ -28,6 +28,8 @@
  * reset: Initiates reset of filters (reset=1)
  * minimal: Minimal mode shows only results and nothing else (minimal=1, usually combined with modal=1)
  * 
+ * @todo: add hook for customizing the output of column values
+ * 
  *
  */
 
@@ -163,6 +165,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		// columns that may not be displayed
 		$this->set('disallowColumns', array('pass', 'config')); 
+	
+		// whether to use labels for fields (versus names) in column selection and column labels
+		$this->set('useColumnLabels', true); 
 
 		// whether or not system templates/fields are allowed for selection
 		// for system fields, it only refers to system custom fields excluding title
@@ -173,6 +178,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	
 		// whether or not to show the selector string preview in InputfieldSelector
 		$this->set('preview', self::debug); 
+	
+		// cache the total, per selector, for increased performance?
+		$this->set('cacheTotal', true); 
 	
 		$nameLabel = $this->_('Name'); 
 		$createdLabel = $this->_('Created'); 
@@ -188,7 +196,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			'name' => $nameLabel, 
 			'status' => $statusLabel, 
 			'template' => $templateLabel,
-			'templates_id' => $templateLabel,
+			'templates_id' => $templateLabel . " ID",
 			'modified' => $modifiedLabel,	
 			'created' => $createdLabel, 
 			'modified_users_id' => $modifiedUserLabel, 
@@ -232,12 +240,14 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if($columns) $this->columns = $columns; 
 		$ajax = $this->wire('config')->ajax; 
 
-		if($ajax) {
-			$s = $this->getInputfieldSelector();
-			if(!$this->template) { 
-				$template = $this->getSelectorTemplates("$this->initSelector, $s->value"); 
-				if(count($template)) $this->set('template', reset($template)); 
+		if(!$this->template) {
+			$selector = $this->initSelector;
+			if($ajax) {
+				$s = $this->getInputfieldSelector();
+				$selector .= ", $s->value";
 			}
+			$template = $this->getSelectorTemplates($selector); 
+			if(count($template)) $this->set('template', reset($template));
 		}
 
 		$knownTotal = $this->sessionGet('knownTotal');
@@ -454,13 +464,43 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$f->description = $this->_('Select and sort the columns that will display in the pages list table.');
 		$f->notes = $this->_('The user can optionally change which columns are shown, so these will just serve as the defaults.'); // columns description
 		$f->icon = 'table';
-
+	
+		$useLabels = $this->useColumnLabels; 
+		$systemLabels = $this->systemLabels;
+		
 		foreach($fields as $field) {
-			if($this->allowColumnField($field)) $options[] = $field->name; 
+			if(!$this->allowColumnField($field)) continue;
+			$options[$field->name] = $field; 
 		}
 
-		sort($options); 
-		foreach($options as $option) $f->addOption($option); 
+		ksort($options); 
+		$template = $this->template;
+		
+		foreach($options as $field) {
+			if(is_object($field)) {
+				if($template) {
+					$_field = $template->fieldgroup->getField($field->name, true); // context
+					if($_field) $field = $_field; 
+				}
+				if($useLabels) {
+					$label = $field->getLabel();
+					$desc = $field->name; 
+					$f->addOption($field->name, $field->getLabel(), array('data-desc' => $field->name));
+				} else {
+					$label = $field->name; 
+					$desc = $field->getLabel();
+				}
+				$attr = array('data-desc' => $desc); 
+				$icon = $field->getIcon(true);
+				if($icon) $attr['data-handle'] = wireIconMarkup($icon, 'fw');
+				$f->addOption($field->name, $label, $attr);
+				
+			} else {
+				$label = isset($systemLabels[$field]) ? $systemLabels[$field] : $field;
+				if($useLabels) $f->addOption($field, $label, array('data-desc' => $field)); 
+					else $f->addOption($field, $field, array('data-desc' => $label)); 
+			}
+		}
 		$f->attr('value', $this->columns); 
 		return $f; 
 	}
@@ -618,12 +658,20 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	protected function validateSelector($selector) {
 		
 		$user = $this->wire('user');
+		$showIncludeWarnings = true; // whether to show warning message about removed include modes
 		
 		if($user->isSuperuser()) {
-			if(stripos($selector, 'include=') === false) {
+			if(!preg_match('/(^|\s|,)include=/', $selector)) {
 				$selector .= ", include=unpublished";
 			}
 			return $selector;
+		}
+		
+		if(!preg_match('/(^|\s|,)include=/', $selector)) {
+			// if user has page-edit access, they can see unpublished pages by default
+			if($user->hasPermission('page-edit')) {
+				$selector .= ", include=unpublished";
+			}
 		}
 		
 		$selectors = new Selectors($selector);
@@ -690,7 +738,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 						// ok, override
 					} else { 
 						$selectors->remove($s);
-						if($value) $this->error("Specified 'include=' mode is not allowed here."); 
+						if($value && $showIncludeWarnings) $this->error($this->_("Specified 'include=' mode is not allowed here.")); 
 						$changed = true; 
 					}
 				}
@@ -708,6 +756,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				$test = new Page();
 				foreach($templates as $template) {
 					$test->template = $template;
+					$test->id = 999; // required (any ID number works)
 					if($test->editable()) $numEditable++;
 				}
 				// if all specified templates are editable, include=unpublished is allowed
@@ -715,7 +764,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 					// include=unpublished is allowed
 				} else if($includeMode == 'unpublished') {
 					// include=unpublished is not allowed
-					$this->error("Not all specified templates are editable. Only 'include=hidden' is allowed."); 
+					if($showIncludeWarnings) $this->error($this->_("Not all specified templates are editable. Only 'include=hidden' is allowed")); 
 					$includeSelector->value = 'hidden';
 					$changed = true; 
 				}
@@ -725,7 +774,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				// only allow a max include mode of hidden
 				// regardless of edit access
 				if($includeMode != 'hidden') {
-					$this->error("No templates specified so 'include=hidden' is max allowed include mode."); 
+					if($showIncludeWarnings) $this->error($this->_("No templates specified so 'include=hidden' is max allowed include mode"));
 					$includeSelector->value = 'hidden';
 					$changed = true; 
 				}
@@ -786,20 +835,27 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			if(strpos($name, '.')) list($name, $subname) = explode('.', $name); 
 			$field = $this->template ? $this->template->fieldgroup->getField($name, true) : $this->fields->get($name); 
 			$label = $field ? $field->getLabel() : ''; 
-			if(!$label) $label = isset($this->systemLabels[$name]) ? $this->systemLabels[$name] : $name; 
+			if(!$label) $label = isset($this->systemLabels[$name]) ? $this->systemLabels[$name] : $name;
+			$icon = $field ? $field->getIcon(true) : '';
 			if($subname) {
 				$subfield = $this->fields->get($subname); 
 				$label .= ".";
-				if($subfield) $label .= $subfield->getLabel();
-					else $label .= $subname;
+				if($subfield) {
+					$label .= $subfield->getLabel();
+					$subicon = $subfield->getIcon(true); 
+					if($subicon) $icon = $subicon; 
+				} else {
+					$label .= $subname;
+				}
 			}
-			$header[$key] = "$label<b>$name</b>";
+			$icon = $icon ? wireIconMarkup($icon, 'fw') : ''; 
+			$header[$key] = "$icon$label<b>$name</b>";
 			$fields[$name] = $field; 
 		}
 
+		$table->setEncodeEntities(false);
+		$table->setSortable(false);
 		$table->headerRow($header); 
-		$table->setEncodeEntities(false); 
-		$table->setSortable(false); 
 
 		foreach($results as $p) {
 			$table->row($this->buildListerTableRow($p, $fields, $columns)); 
@@ -848,8 +904,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if(strpos($name, '.')) list($name, $subname) = explode('.', $name); 
 		if($name == 'config' || $subname == 'config') return 'Not allowed';
 
-		$field = isset($fields[$name]) ? $fields[$name] : null;
-		if(is_null($value)) $value = $p->getUnformatted($name); 
+		$field = isset($fields[$name]) ? $fields[$name] : $this->wire('fields')->get($name);
+		if(is_null($value)) $value = $p->getUnformatted($name);
 		$delimiter = isset($this->delimiters[$fullname]) ? $this->delimiters[$fullname] : "<br />";
 
 		if($subname == 'count' && $value instanceof WireArray) {
@@ -865,9 +921,16 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 				$newValue[] = $this->buildListerTableCol($v, $fields, $subname); 
 			}
 			$value = implode($delimiter, $newValue); 
+			
+		} else if($value instanceof WireArray && !$value instanceof Pagefiles) {
+			// WireArray type unknown to Lister
+			// $in = $field->getInputfield($p, $field);
+			// $in->attr('value', $value);
+			// $value = $in->renderValue();
+			$value = $field->type->markupValue($p, $field, $value, $subname); 
 
 		} else if($value instanceof WireArray || is_array($value)) {
-			// unknown iterable value
+			// Pagefiles or  unknown iterable value
 			if($value instanceof Pageimages && $this->imageFirst) $value = array($value->first());
 			$values = array();
 			foreach($value as $k => $v) {
@@ -907,8 +970,14 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		} else if($name == 'status') {
 			// status
 			$value = array();
-			foreach($this->statusLabels as $status => $label) if($p->is($status)) $value[] = $label;	
-			$value = implode(', ', $value); 
+			foreach($this->statusLabels as $status => $label) if($p->is($status)) $value[] = $label;
+			$value = implode(', ', $value);
+
+		} else if($field && $field->type) {
+			if($subname == 'data') $subname = '';
+			$value = $field->type->markupValue($p, $field, $value, $subname); 
+			// value may be MarkupFieldtype object
+			$value = (string) $value; 
 			
 		} else {
 			// other or unknown
@@ -920,7 +989,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		return $value; 
 
 	}
-
+	
 	/**
 	 * Build the Lister table column clickable actions
 	 * 
@@ -942,7 +1011,10 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		if($p->is(Page::statusTrash)) {
 			$isTrash = true; 	
 			$class .= " PageListStatusTrash PageListStatusUnpublished";
-			$icon = "<i class='fa fa-trash-o'></i> ";
+			$icon = wireIconMarkup('trash-o', 'fw'); 
+		} else {
+			$icon = $p->template->getIcon();
+			$icon = $icon ? wireIconMarkup($icon, 'fw') : '';	
 		}
 		if($class) $value = "<span class='" . trim($class) . "'>$value</span>";
 
@@ -988,7 +1060,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 					unset($this->openPageIDs[$p->id]); 
 					$this->sessionSet('openPageIDs', $this->openPageIDs); // ensure it is only used once
 				}
-				$value = "$icon<a class='$class' id='page$p->id' href='#'>$value</a> $actionsOut";
+				$value = "<a class='$class' id='page$p->id' href='#'>$icon$value</a> $actionsOut";
 			}
 		}
 		if($isTrash) $value = "<div class='ui-priority-secondary'>$value</div>";
@@ -1024,7 +1096,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		// remove start and/or limit
 		$knownSelector = preg_replace('/\b(start=\d+|limit=\d+),?/', '', $selector); 
 		
-		if($this->knownTotal['selector'] != $knownSelector) {
+		if(!$this->cacheTotal || $this->knownTotal['selector'] != $knownSelector) {
 			$this->knownTotal['selector'] = $knownSelector; 
 			$this->knownTotal['total'] = null;
 		}
@@ -1127,6 +1199,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	public function ___executeReset() {
 		$this->sessionClear();
 		$this->session->remove(self::sessionBookmarksName); 
+		$this->sessionSet('knownTotal', null); 
 		$this->message($this->_('All settings have been reset.'));
 		if(strpos($this->wire('input')->urlSegmentStr, '/reset/')) $this->session->redirect('../');
 			else $this->session->redirect('./'); 
@@ -1161,8 +1234,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	 */
 	public function ___execute() {
 		if(!$this->wire('page')) return;
+		$modules = $this->wire('modules');
 		
-		if($this->wire('modules')->isInstalled('ProcessLister') && $this->wire('user')->isSuperuser()) {
+		if($modules->isInstalled('ProcessLister') && $this->wire('user')->isSuperuser()) {
 			$this->error('Please uninstall Modules > Site > ProcessLister - this module (ProcessPageLister) has now replaced it.'); 
 		}
 		
@@ -1179,8 +1253,8 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$selector = $this->sessionGet('selector'); 
 		if(!$selector) $this->sessionSet('selector', $this->defaultSelector); 
 
-		$this->modules->get('JqueryWireTabs'); 
-		$this->modules->get('MarkupAdminDataTable'); // to ensure css/js load
+		$modules->get('JqueryWireTabs'); 
+		$modules->get('MarkupAdminDataTable'); // to ensure css/js load
 
 		$out = '';
 		if(!$this->wire('input')->get('minimal')) {
@@ -1200,16 +1274,16 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		}
 		
 		if($action && !$this->wire('input')->get('minimal')) {
-			$btn = $this->wire('modules')->get('InputfieldButton'); 
+			$btn = $modules->get('InputfieldButton'); 
 			$btn->attr('value', $this->_('Add New')); 
 			$btn->href = $this->addURL . $action; 
 			$btn->addClass('head_button_clone'); 
 			$btn->icon = 'plus-circle';
-			$out .= $btn->render();
+			$out .= str_replace("<a ", "<a class='PageAddNew' ", $btn->render());
 		}
 
-		$info = $this->wire('modules')->getModuleInfo($this); 
-		$out .= "<p class='detail version'>$info[title] v$info[version] &beta;</p>";
+		$info = $modules->getModuleInfo($this); 
+		$out .= "<p class='detail version'>$info[title] v" . $modules->formatVersion($info['version']) . " &beta;</p>";
 		return "<div id='ProcessLister'>$out</div>"; 
 	}
 

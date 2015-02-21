@@ -74,7 +74,10 @@ class WireMail extends WireData implements WireMailInterface {
 	protected function sanitizeEmail($email) {
 		$email = strtolower(trim($email)); 
 		$clean = $this->wire('sanitizer')->email($email); 
-		if($email != $clean) throw new WireException("Invalid email address"); 
+		if($email != $clean) {
+			$clean = $this->wire('sanitizer')->entities($email); 
+			throw new WireException("Invalid email address ($clean)");
+		}
 		return $clean;
 	}
 

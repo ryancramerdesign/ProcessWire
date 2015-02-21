@@ -100,11 +100,13 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 */ 
 	public function ___wakeupValue(Page $page, Field $field, $value) {
 		$target = $this->getBlankValue($page, $field);
+		$targetIsObject = is_object($target); 
 		if(!is_array($value)) $value = array($value); 
 		foreach($value as $val) {
-			$target->add($val); 
+			if($targetIsObject) $target->add($val); 
+				else $target[] = $val; 
 		}
-		$target->resetTrackChanges(true);
+		if($targetIsObject) $target->resetTrackChanges(true);
 		return $target; 
 	}
 
@@ -121,12 +123,15 @@ abstract class FieldtypeMulti extends Fieldtype {
 	 * @param Page $page
 	 * @param Field $field
 	 * @param string|int|array|object $value
-	 * @return string|int
+	 * @return string|int|array
 	 *
 	 */
 	public function ___sleepValue(Page $page, Field $field, $value) {
 		$values = array();
-		if(!$value instanceof WireArray) return $values; 
+		if(!$value instanceof WireArray) {
+			if(is_array($value)) return $value; 
+			return $values;
+		}
 		foreach($value as $v) {
 			// note $v is typecast as string, which calls __toString if it's an object
 			$values[] = "$v";
@@ -234,7 +239,7 @@ abstract class FieldtypeMulti extends Fieldtype {
 
 				// cycle through the keys, which represent DB fields (i.e. data, description, etc.) and generate the insert query
 				foreach($keys as $key) {
-					$v = $value[$key]; 
+					$v = isset($value[$key]) ? $value[$key] : null;
 					if(is_null($v)) {
 						if(empty($schema)) $schema = $this->getDatabaseSchema($field); 
 						$sql .= isset($schema[$key]) && stripos($schema[$key], ' DEFAULT NULL') ? "NULL, " : "'', ";

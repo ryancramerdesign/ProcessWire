@@ -15,6 +15,7 @@
  * @property string $url URL to the file on the server	
  * @property string $filename full disk path to the file on the server
  * @property string $name Returns the filename without the path (basename)
+ * @property string $basename Returns the filename without the path (alias of name)
  * @property string $description value of the file's description field (text). Note you can also set this property directly.
  * @property string $tags value of the file's tags field (text). Note you can also set this property directly.
  * @property string $ext file's extension (i.e. last 3 or so characters)
@@ -28,6 +29,12 @@
  */
 
 class Pagefile extends WireData {
+
+	/**
+	 * Timestamp 'created' used by pagefiles that are temporary, not yet published
+	 * 
+	 */
+	const createdTemp = 10; 
 
 	/**
 	 * Reference to the owning collection of Pagefiles
@@ -153,7 +160,7 @@ class Pagefile extends WireData {
 		if(!is_null($language) && $language->id) {
 			$name = "description";
 			if(!$language->isDefault()) $name .= $language->id; 
-			parent::set($name, $this->wire('sanitizer')->textarea($value)); 
+			parent::set($name, $value); 
 			return $this; 
 		}
 
@@ -172,14 +179,13 @@ class Pagefile extends WireData {
 				// first item is always default language. this ensures description will still
 				// work even if language support is later uninstalled. 
 				$name = $n > 0 ? "description$id" : "description"; 
-				parent::set($name, $this->wire('sanitizer')->textarea($v)); 
+				parent::set($name, $v); 
 				$n++; 
 			}
 		} else {
 			// no JSON values so assume regular language description
 			$languages = $this->wire('languages');
 			$language = $this->wire('user')->language; 
-			$value = $this->wire('sanitizer')->textarea($value); 
 
 			if($languages && $language && !$language->isDefault()) {
 				parent::set("description$language", $value); 
@@ -412,14 +418,11 @@ class Pagefile extends WireData {
 	/**
 	 * Returns the filesize in a formatted, output-ready string
 	 *
-	 * @return int
+	 * @return string
 	 *
 	 */
 	public function filesizeStr() {
-		$size = $this->filesize();
-		if($size < 1024) return number_format($size) . ' ' . $this->_('bytes');
-		$kb = round($size / 1024); 
-		return number_format($kb) . " " . $this->_('kB'); // kilobytes
+		return wireBytesStr($this->filesize()); 
 	}
 
 	/**
@@ -537,6 +540,17 @@ class Pagefile extends WireData {
 	public function setPagefilesParent(Pagefiles $pagefiles) {
 		$this->pagefiles = $pagefiles; 
 		return $this;
+	}
+
+	/**
+	 * Returns true if this Pagefile is temporary, not yet published. Or use this to set the temp status. 
+	 * 
+	 * @param bool $set Optionally set the temp status to true or false
+	 * @return bool
+	 * 
+	 */
+	public function isTemp($set = null) {
+		return $this->pagefiles->isTemp($this, $set); 
 	}
 
 

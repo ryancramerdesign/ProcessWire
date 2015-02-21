@@ -7,7 +7,7 @@
  * a given page class/type, with predefined parent and template. 
  *
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -17,30 +17,112 @@
 class PagesType extends Wire implements IteratorAggregate, Countable {
 
 	/**
-	 * Template defined for use in this PagesType
-	 *
+	 * First template defined for use in this PagesType (legacy)
+	 * 
+	 * @var Template
+	 * 
 	 */
-	protected $template;
+	protected $template = null;
 
 	/**
-	 * ID of the parent page used by this PagesType
+	 * Templates defined for use in this PagesType
+	 * 
+	 * @var array of Template objects indexed by template id
+	 * 
+	 */
+	protected $templates = array();
+
+	/**
+	 * ID of the first parent page used by this PagesType (legacy)
+	 * 
+	 * @var int
 	 *
 	 */
-	protected $parent_id; 
+	protected $parent_id = null;
 
+	/**
+	 * Parent IDs defined for use in this PagesType
+	 * 
+	 * @var array of page IDs indexed by ID.
+	 * 
+	 */
+	protected $parents = array();
+
+	/**
+	 * Class name to instantiate pages as
+	 * 
+	 * Default=blank, which makes it pull from the $template->pageClass property instead. 
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $pageClass = '';
+	
 	/**
 	 * Construct this PagesType manager for the given parent and template
 	 *
-	 * @param int $parent_id
-	 * @param Template $template
-	 * @param int|Page $parent_id
+	 * @param Template|int|string|array $templates Template object or array of template objects, names or IDs
+	 * @param int|Page|array $parents Parent ID or array of parent IDs (may also be Page or array of Page objects)
 	 *
 	 */
-	public function __construct(Template $template, $parent_id) {
-		$this->template = $template; 
-		if($parent_id instanceof Page) $parent_id = $parent_id->id; 
-		$this->parent_id = (int) $parent_id; 
+	public function __construct($templates = array(), $parents = array()) {
+		$this->addTemplates($templates);
+		$this->addParents($parents); 
 	}
+
+	/**
+	 * Add one or more templates that this PagesType represents
+	 * 
+	 * @param array|int|string $templates Single or array of Template objects, IDs, or names
+	 * 
+	 */
+	public function addTemplates($templates) {
+		if(WireArray::iterable($templates)) {
+			// array already provided
+			foreach($templates as $template) {
+				if(is_int($template) || !$template instanceof Template) $template = $this->wire('templates')->get($template);
+				if(!$template) continue;
+				$this->templates[$template->id] = $template;
+			}
+		} else {
+			// single template object, id, or name provided
+			if($templates instanceof Template) {
+				$this->templates[$templates->id] = $templates;
+			} else {
+				// template id or template name
+				$template = $this->wire('templates')->get($templates);
+				if($template) $this->templates[$template->id] = $template;
+			}
+		}
+		if(empty($this->template)) $this->template = reset($this->templates); // legacy deprecated
+	}
+
+	/**
+	 * Add one or more of parents that this PagesType represents
+	 * 
+	 * @param array|int|string|Page $parents Single or array of Page objects, IDs, or paths
+	 * 
+	 */
+	public function addParents($parents) {
+		if(!WireArray::iterable($parents)) $parents = array($parents);
+		foreach($parents as $parent) {
+			if(is_int($parent)) {
+				$id = $parent;
+			} else if(is_string($parent) && ctype_digit($parent)) {
+				$id = (int) $parent;
+			} else if(is_string($parent)) {
+				$parent = $this->wire('pages')->get($parent);
+				$id = $parent->id;
+			} else if(is_object($parent) && $parent instanceof Page) {
+				$id = $parent->id;
+			}
+			if($id) {
+				$this->parents[$id] = $id;
+			}
+		}
+		if(empty($this->parent_id)) $this->parent_id = reset($this->parents); // legacy deprecated
+	}
+		
 
 	/**
 	 * Convert the given selector string to qualify for the proper page type
@@ -52,12 +134,17 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	protected function selectorString($selectorString) {
 		if(ctype_digit("$selectorString")) $selectorString = "id=$selectorString"; 
 		if(strpos($selectorString, 'sort=') === false && !preg_match('/\bsort=/', $selectorString)) {
-			if($this->template->sortfield) $sortfield = $this->template->sortfield;
-				else $sortfield = $this->getParent()->sortfield;
+			$template = reset($this->templates);
+			if($template->sortfield) {
+				$sortfield = $template->sortfield;
+			} else {
+				$sortfield = $this->getParent()->sortfield;
+			}
 			if(!$sortfield) $sortfield = 'sort';
 			$selectorString = trim($selectorString, ", ") . ", sort=$sortfield";
 		}
-		$selectorString = "$selectorString, parent_id={$this->parent_id}, template={$this->template->name}";
+		if(count($this->parents)) $selectorString .= ", parent_id=" . implode('|', $this->parents);
+		if(count($this->templates)) $selectorString .= ", templates_id=" . implode('|', array_keys($this->templates));
 		return $selectorString; 
 	}
 
@@ -75,7 +162,39 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	 *
 	 */
 	public function isValid(Page $page) {
-		return ($page->template->id == $this->template->id); 
+
+		// quick exit when possible
+		if($this->template->id == $page->template->id && $this->parent_id == $page->parent_id) return true;
+		
+		$validTemplate = false;
+		foreach($this->templates as $template) {
+			if($page->template->id == $template->id) {
+				$validTemplate = true;
+				break;
+			}
+		}
+		
+		if(!$validTemplate && count($this->templates)) {
+			$validTemplates = implode(', ', array_keys($this->templates));
+			$this->error("Page $page->path must have template: $validTemplates");
+			return false;
+		}
+		
+		$validParent = false;
+		foreach($this->parents as $parent_id) {
+			if($parent_id == $page->parent_id) {
+				$validParent = true;
+				break;
+			}
+		}
+	
+		if(!$validParent && count($this->parents)) {
+			$validParents = impode(', ', $this->parents);
+			$this->error("Page $page->path must have parent: $validParents"); 
+			return false;
+		}
+		
+		return true; 
 	}
 
 	/**
@@ -89,6 +208,12 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	 */
 	public function find($selectorString, $options = array()) {
 		if(!isset($options['findAll'])) $options['findAll'] = true; 
+		if(!isset($options['loadOptions'])) $options['loadOptions'] = array(
+			'pageClass' => $this->getPageClass(),
+			//'getNumChildren' => false, 
+			'joinSortfield' => false, 
+			'joinFields' => $this->getJoinFieldNames(), 
+		);
 		$pages = $this->pages->find($this->selectorString($selectorString), $options);
 		foreach($pages as $page) $this->loaded($page); 
 		return $pages; 
@@ -104,21 +229,45 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	 */
 	public function get($selectorString) {
 		
+		$options = array(
+			'getOne' => true, 
+			'pageClass' => $this->getPageClass(),	
+			//'getNumChildren' => false, 
+			'joinSortfield' => false, 
+			'joinFields' => $this->getJoinFieldNames(), 
+		);
+		
 		if(ctype_digit("$selectorString")) {
-			$pages = $this->pages->getById(array((int) $selectorString), $this->template, $this->parent_id);
-			if(count($pages)) {
-				$page = $pages->first();
-				//$this->loaded($page);
+			// selector string contians a page ID
+			if(count($this->templates) == 1 && count($this->parents) == 1) {
+				// optimization for when there is only 1 template and 1 parent
+				$options['template'] = $this->template;
+				$options['parent_id'] = $this->parent_id; 
+				$page = $this->wire('pages')->getById(array((int) $selectorString), $options);
+				return $page ? $page : new NullPage();
+			} else {
+				// multiple possible templates/parents
+				$page = $this->wire('pages')->getById(array((int) $selectorString), $options); 
 				return $page; 
-			} else return new NullPage();
-
+			}
+			
 		} else if(strpos($selectorString, '=') === false) { 
-			$s = $this->sanitizer->name($selectorString); 
-			if($s === $selectorString) $selectorString = "name=$s"; 	
+			// selector string contains no operators, so it is a page name or path
+			if(strpos($selectorString, '/') === false) {
+				// selector string contains no operators or slashes, so we assume it to be a page ame
+				$s = $this->sanitizer->name($selectorString);
+				if($s === $selectorString) $selectorString = "name=$s";
+			} else {
+				// page path, can pass through
+			}
+			
+		} else {
+			// selector string with operators, can pass through
 		}
 
 		$page = $this->pages->get($this->selectorString($selectorString)); 
 		if($page->id) $this->loaded($page);
+		
 		return $page; 
 	}
 
@@ -137,8 +286,8 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	 *
 	 */
 	public function ___save(Page $page) {
-		if(!$this->isValid($page)) throw new WireException("'Unable to save pages of type '{$page->template->name}' ({$this->template->id} != {$page->template->id})"); 
-		return $this->pages->save($page);
+		if(!$this->isValid($page)) throw new WireException($this->errors('first'));
+		return $this->wire('pages')->save($page);
 	}
 	
 	/**
@@ -156,7 +305,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	 *
 	 */
 	public function ___delete(Page $page, $recursive = false) {
-		if(!$this->isValid($page)) throw new WireException("Unable to delete pages of type '{$page->template->name}'"); 
+		if(!$this->isValid($page)) throw new WireException($this->errors('first'));
 		return $this->pages->delete($page, $recursive);
 	}
 
@@ -172,7 +321,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	 */
 	public function ___add($name) {
 		
-		$className = $this->template->pageClass ? $this->template->pageClass : 'Page';
+		$className = $this->getPageClass();
 		$parent = $this->pages->get($this->parent_id); 
 
 		$page = new $className(); 
@@ -204,21 +353,62 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	public function getTemplate() {
 		return $this->template; 
 	}
+	
+	public function getTemplates() {
+		return count($this->templates) ? $this->templates : array($this->getTemplate);
+	}
 
 	public function getParentID() {
 		return $this->parent_id; 
 	}
+	
+	public function getParentIDs() {
+		return count($this->parents) ? $this->parents : array($this->parent_id); 
+	}
 
 	public function getParent() {
-		return wire('pages')->get($this->parent_id);
+		return $this->wire('pages')->get($this->parent_id);
+	}
+	
+	public function getParents() {
+		if(count($this->parents)) {
+			return $this->wire('pages')->getById($this->parents);
+		} else {
+			$parent = $this->getParent();
+			$parents = new PageArray();
+			$parents->add($parent);
+			return $parents; 
+		}
+	}
+	
+	public function setPageClass($class) {
+		$this->pageClass = $class;
+	}
+	
+	public function getPageClass() {
+		if($this->pageClass) return $this->pageClass;
+		if($this->template && $this->template->pageClass) return $this->template->pageClass;
+		return 'Page';
 	}
 	
 	public function count($selectorString = '', array $options = array()) {
-		if(empty($selectorString) && empty($options)) return $this->getParent()->numChildren();
+		if(empty($selectorString) && empty($options) && count($this->parents) == 1) {
+			return $this->getParent()->numChildren();
+		}
 		$selectorString = $this->selectorString($selectorString); 
 		$defaults = array('findAll' => true); 
 		$options = array_merge($defaults, $options); 
 		return $this->wire('pages')->count($selectorString, $options); 
+	}
+
+	/**
+	 * Get names of fields that should always be autojoined
+	 * 
+	 * @return array
+	 * 
+	 */
+	protected function getJoinFieldNames() {
+		return array();
 	}
 
 }

@@ -4,7 +4,6 @@
  * The Users class serves as the $users API variable. 
  *
  * @method PageArray find() find($selectorString) Return the user(s) matching the the given selector query.
- * @method User get() get(mixed $selector) Return user by given name, numeric ID or a selector string.
  *
  */
 
@@ -12,6 +11,11 @@ class Users extends PagesType {
 
 	protected $currentUser = null; 
 	protected $guestUser = null;
+	
+	public function __construct($templates = array(), $parents = array()) {
+		parent::__construct($templates, $parents);
+		$this->setPageClass('User'); 
+	}
 	
 	/**
 	 * Like find() but returns only the first match as a Page object (not PageArray)
@@ -50,7 +54,7 @@ class Users extends PagesType {
 		}
 		
 		$this->currentUser = $user; 
-		Wire::setFuel('user', $user); 
+		$this->wire('user', $user); 
 	}
 
 	/**
