@@ -161,8 +161,9 @@ class CommentList extends Wire implements CommentListInterface {
 
 		$avatar = '';
 		if($this->options['useImageField']) {
+			$u = $this->users->get("email={$comment->email}");
 			$this->user->of(false); // set to false so that first() will always work when getting the image
-			$imgUrl = count($this->user->{$this->options['useImageField']}) ? $this->user->{$this->options['useImageField']}->first()->url : '';
+			$imgUrl = count($u->{$this->options['useImageField']}) ? $u->{$this->options['useImageField']}->first()->url : '';
 			$this->user->of(true);
 			if($imgUrl) $avatar = "\n\t\t<img class='CommentGravatar' src='$imgUrl' alt='$cite' />";
 		}
