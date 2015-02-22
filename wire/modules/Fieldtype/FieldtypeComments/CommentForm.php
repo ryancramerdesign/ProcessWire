@@ -274,7 +274,7 @@ class CommentForm extends Wire implements CommentFormInterface {
 				}
 			}
 			else {
-				$citeValue = $user->email;
+				$citeValue = $user->name;
 			}
 			$inputValues['cite'] = rtrim($citeValue);
 			$inputValues['email'] = $user->email;
