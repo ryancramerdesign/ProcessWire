@@ -384,12 +384,7 @@ class Modules extends WireArray {
 				$debugKey = $this->debugTimerStart("initModule($className)"); 
 			}
 		
-			try { 
-				$module->init();
-			} catch(Exception $e) {
-				$className = get_class($module); 
-				$this->error("Module $className failed init - " . $e->getMessage(), Notice::log); 
-			}
+			$module->init();
 			
 			if($this->debug) $this->debugTimerStop($debugKey);
 		}

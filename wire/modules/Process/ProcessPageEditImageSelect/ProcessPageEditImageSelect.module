@@ -574,6 +574,14 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			'data-nosize' => ($this->noSizeAttrs ? '1' : ''),
 		);
 		
+		if(!$this->rte && $this->field) {
+			$minWidth = $this->field->minWidth ? (int) $this->field->minWidth : 1;
+			$minHeight = $this->field->minHeight ? (int) $this->field->minHeight : 1;
+		} else {
+			$minWidth = 1; 
+			$minHeight = 1;
+		}
+		
 		// bundle in crop information to image attributes, if specified
 		if($this->wire('input')->get('crop_x')) {
 			$attrs['data-crop'] =
@@ -679,10 +687,10 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 				"<span class='hide_when_crop'>" . 
 					"<span id='selected_image_pixels'>" . 
 						"<label><input title='$labels[width]' name='width' id='input_width' class='input_pixels' " .
-							"type='number' size='6' step='1' min='1' max='$originalWidth' value='$width' /></label>" .
+							"type='number' size='6' step='1' min='$minWidth' max='$originalWidth' value='$width' /></label>" .
 						"&nbsp;<i class='fa fa-times'></i>&nbsp;" . 
 						"<label><input title='$labels[height]' name='height' id='input_height' class='input_pixels' " . 
-							"type='number' size='6' step='1' min='1' max='$originalHeight' value='$height' /></label>" . 
+							"type='number' size='6' step='1' min='$minHeight' max='$originalHeight' value='$height' /></label>" . 
 					"</span>&nbsp; " .
 					"<span id='selected_image_resize' class='hide_when_rte hide_when_crop hide_when_processing'>" .
 						"<i class='fa fa-angle-left ui-priority-secondary'></i>&nbsp;" . 

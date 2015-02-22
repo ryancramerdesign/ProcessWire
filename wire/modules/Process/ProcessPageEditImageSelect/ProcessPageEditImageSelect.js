@@ -70,6 +70,8 @@ function setupSelectedImage() {
 	var $img = $("#selected_image");
 	var $hidpi = $("#selected_image_hidpi"); 
 	var fullWidth; // full/original width when not resized
+	var minWidth = parseInt($("#input_width").attr('min'));
+	var minHeight = parseInt($("#input_height").attr('min'));
 	
 	function setupImage($img) {
 
@@ -138,6 +140,8 @@ function setupSelectedImage() {
 				alsoResize: "#selected_image_container",
 				maxWidth: maxWidth,
 				maxHeight: maxHeight,
+				minWidth: minWidth < 10 ? 10 : minWidth,
+				minHeight: minHeight < 10 ? 10 : minHeight, 
 				start: function() {
 					$form.addClass('resizing_active'); 
 				},
@@ -201,6 +205,10 @@ function setupSelectedImage() {
 					rotatable: false,
 					maxWidth: $img.attr('data-origwidth'), 
 					maxHeight: $img.attr('data-origheight'),
+					minCropBoxWidth: (minWidth < 2 ? 0 : minWidth),
+					minCropBoxHeight: (minHeight < 2 ? 0 : minHeight),
+					minWidth: (minWidth < 2 ? 0 : minWidth),
+					minHeight: (minHeight < 2 ? 0 : minHeight), 
 					done: function(data) {
 						$("#crop_x").val(Math.floor(data.x));
 						$("#crop_y").val(Math.floor(data.y));
@@ -275,7 +283,7 @@ function setupSelectedImage() {
 			w = Math.floor(w);
 			h = Math.floor(h);
 			
-			if(w < 1 || h < 1 || w == $img.attr('width') || h == $img.attr('height') || w > maxWidth) {
+			if(w < 1 || h < 1 || w == $img.attr('width') || h == $img.attr('height') || w > maxWidth || (minWidth > 1 && w < minWidth) || (minHeight > 1 && h < minHeight)) {
 				$("#input_width").val($img.attr('width'));
 				$("#input_height").val($img.attr('height'));
 				return false;
