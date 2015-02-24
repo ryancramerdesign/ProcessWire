@@ -166,7 +166,6 @@ p span.ui-state-error {
 	  padding: 5px 10px;
 	  font-weight: normal;
 	  color: $white;
-	  text-transform: uppercase;
 	  letter-spacing: 1px;
 	  font-size: 1.2em !important;
 	}
@@ -670,7 +669,9 @@ button.ui-state-disabled{
 
 .ui-datepicker td .ui-state-highlight,
 .ui-datepicker td .ui-state-highlight:hover {
-	border: $datepicker-td-border !important;
+	border: $datepicker-td-hover-border !important;
+	background: $datepicker-td-hover-bg !important;
+	color: $datepicker-td-hover-color !important;
 }
 
 .ui-datepicker td .ui-state-active,

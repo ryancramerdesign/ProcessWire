@@ -58,7 +58,7 @@ abstract class Notice extends WireData {
 	 *
 	 */
 	const allowMarkup = 32;
-
+	
 	/**
 	 * Create the Notice
 	 *
