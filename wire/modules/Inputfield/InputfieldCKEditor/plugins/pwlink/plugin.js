@@ -8,6 +8,9 @@
 			
 			var allowed = 'a[!href,target,name,title,rel]';
 			var required = 'a[href]';
+			
+			var classOptions = config.InputfieldCKEditor.pwlink.classOptions;
+			if(classOptions.length) allowed += "(" + classOptions + ")";
 
 			/*
 			if ( CKEDITOR.dialog.isTabEnabled( editor, 'link', 'advanced' ) )
@@ -54,79 +57,108 @@
 				});
 			}
 		}
-	}); 
+	}); // ckeditor.plugins.add
 
 	function loadIframeLinkPicker(editor) {
 
-		var href = '';
-		var target = '';
-		var innerHTML = '';
 		var pageID = $("#Inputfield_id").val();
 
 		// language support
-		var langID = '';
 		var $textarea = $('#' + editor.name); // get textarea of this instance
-		var $langWrapper = $textarea.closest('.LanguageSupport');
-		if($langWrapper.length) langID = "&lang=" + $langWrapper.data("language");
-
 		var selection = editor.getSelection(true);
-		var selectionElement = selection.getSelectedElement();
 		var node = selection.getStartElement();
+		var nodeName = node.getName(); // will typically be 'a', 'img' or 'p' 
 		var selectionText = selection.getSelectedText();
+		var $existingLink = null;
 
-		if(node.getName() == 'a') {
-			href = node.getAttribute('href'); 
-			target = node.getAttribute('target'); 
-			selection.selectElement(node); 
+		if(nodeName == 'a') {
+			// existing link
+			$existingLink = $(node.$);
 			selectionText = node.getHtml();
+			selection.selectElement(node); 
 
-		} else if(node.getName() == 'img') {
+		} else if(nodeName == 'img') {
+			// linked image
 			var $img = $(node.$);
-			href = $img.parent("a").attr("href");
+			$existingLink = $img.parent('a'); 
 			selectionText = node.$.outerHTML;
 
 		} else if (selectionText.length < 1) {
 			// If not on top of link and there is no text selected - just return (don't load iframe at all)
 			return;
+		} else {
+			// new link
 		}
-
-		var modalUrl = config.urls.admin + 'page/link/?id=' + pageID + '&modal=1' + langID; 
+	
+		// build the modal URL
+		var modalUrl = config.urls.admin + 'page/link/?id=' + pageID + '&modal=1';
+		var $langWrapper = $textarea.closest('.LanguageSupport');
+		if($langWrapper.length) modalUrl += "&lang=" + $langWrapper.data("language");
+		
+		if($existingLink != null) {
+			var attrs = ['href', 'title', 'class', 'rel', 'target']; 
+			for(var n = 0; n < attrs.length; n++) {
+				var val = $existingLink.attr(attrs[n]); 	
+				if(val && val.length) modalUrl += "&" + attrs[n] + "=" + encodeURIComponent(val);
+			} 
+		}
+	
+		// labels
 		var insertLinkLabel = config.InputfieldCKEditor.pwlink.label;
 		var cancelLabel = config.InputfieldCKEditor.pwlink.cancel;
+		var $iframe; // set after modalSettings down
+
+		// action when insert link button is clicked
+		function clickInsert() {
+
+			var $i = $iframe.contents();
+			var $a = $($("#link_markup", $i).text());
+			if($a.attr('href') && $a.attr('href').length) {
+				$a.html(selectionText);
+				var html = $("<div />").append($a).html();
+				editor.insertHtml(html);
+			}
+		
+			$iframe.dialog("close");
+		}
+	
+		// settings for modal window
 		var modalSettings = {
 			title: "<i class='fa fa-link'></i> " + insertLinkLabel,
 			buttons: [ {
+				class: "pw_link_submit_insert", 
 				html: "<i class='fa fa-link'></i> " + insertLinkLabel,
-				click: function() {
-	
-					var $i = $iframe.contents();
-					var url = $("#link_page_url", $i).val();
-					var target = $("#link_target", $i).is(":checked") ? "_blank" : '';
-	
-					if(target && target.length > 0) target = ' target="' + target + '"';
-					if(url.length) {
-						var html = '<a href="' + url + '"' + target + '>' + selectionText + '</a>';
-						editor.insertHtml(html);
-					}
-					$iframe.dialog("close");
-				}
+				click: clickInsert
 			}, {
-					html: "<i class='fa fa-times-circle'></i> " + cancelLabel,
-					click: function() { $iframe.dialog("close"); },
-					class: 'ui-priority-secondary'
-				
+				html: "<i class='fa fa-times-circle'></i> " + cancelLabel,
+				click: function() { $iframe.dialog("close"); },
+				class: 'ui-priority-secondary'
 				}
 			]
 		};
-		
+	
+		// create modal window
 		var $iframe = pwModalWindow(modalUrl, modalSettings, 'medium'); 
+	
+		// modal window load event
 		$iframe.load(function() {
+			
 			var $i = $iframe.contents();
-			$i.find("#link_page_url").val(href);
 			$i.find("#ProcessPageEditLinkForm").data('iframe', $iframe);
-			if(target && target.length) $i.find("#link_target").attr('checked', 'checked');
-		});
+		
+			// capture enter key in main URL text input
+			$("#link_page_url", $i).keydown(function(event) {
+				var $this = $(this);
+				var val = $.trim($this.val());
+				if (event.keyCode == 13) {
+					event.preventDefault();
+					if(val.length > 0) clickInsert();
+					return false;
+				}
+			});
 
-	}
+		}); // load
+
+	} // function loadIframeLinkPicker(editor) {
 	
 })();

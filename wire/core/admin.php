@@ -3,9 +3,10 @@
 /**
  * Controller for ProcessWire Admin
  *
- * This file is designed for inclusion by /site/templates/admin.php template and all the variables it references are from your template namespace. 
+ * This file is designed for inclusion by /site/templates/admin.php template and all the variables 
+ * it references are from your template namespace. 
  *
- * Copyright 2011 by Ryan Cramer
+ * Copyright 2015 by Ryan Cramer
  *
  */
 
@@ -25,6 +26,12 @@ function _hookSessionRedirectModal(HookEvent $event) {
 	}
 }
 
+/**
+ * Check if the current HTTP host is recognized and generate error if not
+ * 
+ * @param $config
+ * 
+ */
 function _checkForHttpHostError($config) {
 
 	$valid = false;
@@ -37,9 +44,10 @@ function _checkForHttpHostError($config) {
 	}
 
 	if(!$valid) $config->error(
-		"Unrecognized HTTP host: '" . htmlentities($_SERVER['HTTP_HOST'], ENT_QUOTES, 'UTF-8') . "' - " . 
-		"Please update your \$config->httpHosts setting in /site/config.php - " . 
-		"<a target='_blank' href='http://processwire.com/api/variables/config/#httphosts'>read more</a>", 
+		__('Unrecognized HTTP host:') . "'"  . 
+		htmlentities($_SERVER['HTTP_HOST'], ENT_QUOTES, 'UTF-8') . "' - " . 
+		__('Please update your $config->httpHosts setting in /site/config.php') . " - " . 
+		"<a target='_blank' href='http://processwire.com/api/variables/config/#httphosts'>" . __('read more') . "</a>", 
 		Notice::allowMarkup
 		); 
 }
@@ -115,6 +123,8 @@ if($config->ajax) {
 	if(!$content) $content = ob_get_contents();
 	ob_end_clean();
 }
+
+$config->js(array('httpHost', 'httpHosts'), true); 
 
 if($controller && $controller->isAjax()) {
 	if(empty($content) && count($notices)) $content = $controller->jsonMessage($notices->last()->text); 

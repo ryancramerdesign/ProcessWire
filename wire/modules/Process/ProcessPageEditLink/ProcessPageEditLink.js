@@ -91,7 +91,7 @@ $(document).ready(function() {
 			selectedPageData = data;
 			selectedPageData.url = config.urls.root + data.url.substring(1);
 			selectedPageData.url = absoluteToRelativePath(selectedPageData.url); 
-			$("#link_page_url").val(selectedPageData.url);
+			$("#link_page_url").val(selectedPageData.url).change();
 			if($fileSelect.is(":visible")) populateFileSelect(selectedPageData);
 		}
 
@@ -106,10 +106,142 @@ $(document).ready(function() {
 	$fileSelect.change(function() {
 		var $t = $(this);
 		var src = $t.val();
-		if(src.length) $("#link_page_url").val(src); 
+		if(src.length) $("#link_page_url").val(src).change();
 	}); 
 
-	$("#link_page_url").focus();
+	// auto-insert scheme/protocol when not present and domain is detected
+	var $linkPageURL = $("#link_page_url"); 
+	
+	function updateLinkPreview() {
+		
+		if(!$linkPageURL.val().length) {
+			$("#link_markup").text('');
+			return;
+		}
+		
+		var $link = $("<a />");
+		$link.attr('href', $linkPageURL.val()); 
+	
+		var $linkTitle = $("#link_title"); 
+		if($linkTitle.length && $linkTitle.val().length) {
+			var val = $("<div />").text($linkTitle.val()).html();
+			$link.attr('title', val); 
+		}
+		
+		var $linkRel = $("#link_rel"); 
+		if($linkRel.length && $linkRel.val().length) {
+			$link.attr('rel', $linkRel.val()); 
+		}
+		
+		var $linkTarget = $("#link_target"); 
+		if($linkTarget.length && $linkTarget.val().length) {
+			$link.attr('target', $linkTarget.val()); 
+		}
+
+		var $linkClass = $("#wrap_link_class").find('input:checked');
+		if($linkClass.length) {
+			$linkClass.each(function() {
+				$link.addClass($(this).val()); 
+			});
+		}
+		
+		$("#link_markup").text($link[0].outerHTML);
+	}
+	
+	function urlKeydown() {
+		
+		var $this = $linkPageURL;
+		var val = $.trim($this.val());
+		var dotpos = val.indexOf('.');
+		var slashespos = val.indexOf('//');
+		var hasScheme = slashespos > -1 && slashespos < dotpos;
+		var slashpos = (slashespos > -1 ? val.indexOf('/', slashespos + 2) : val.indexOf('/'));
+
+		if(dotpos > -1 && (
+			(slashpos > dotpos && !hasScheme) ||
+			(slashpos == -1 && dotpos > 1 && val.match(/^[a-z][-a-z.0-9]+\.[a-z]{2,}($|\/)/i))
+			)) {
+			// no scheme present and matched: [www.]domain.com or [www.]domain.com/path/...
+			var domain = val.substring(0, (slashpos > 0 ? slashpos : val.length)); 
+			hasScheme = true;
+
+			// avoid adding scheme if we already added it before and user removed it
+			if ($this.attr('data-ignore') == domain) {
+				// do nothing
+			} else {
+				$this.val('http://' + val);
+				$this.closest('.InputfieldContent').find('.notes').text('http://' + val); 
+				$this.attr('data-ignore', domain);
+			}
+		}
+		
+		if(hasScheme) {
+			if (slashpos == -1) slashpos = val.length;
+			var httpHost = (slashespos > -1 ? val.substring(slashespos + 2, slashpos) : val.substring(0, slashpos));
+			$this.attr('data-httphost', httpHost);
+		} else {
+			$this.removeAttr('data-httphost'); 
+		}
+		// console.log('httpHost=' + $this.attr('data-httphost'));
+
+		function icon() {
+			return $this.closest('.Inputfield').children('.InputfieldHeader').children('i').eq(0);
+		}
+
+		var external = false;
+		var httpHost = $this.attr('data-httphost');
+		if(httpHost && httpHost.length) {
+			external = true; 
+			for(var n = 0; n < config.httpHosts; n++) {
+				if(config.httpHosts[n] == httpHost) {
+					external = false;
+					break;
+				}
+			}
+		}
+
+		if(external) {
+			if(!$this.hasClass('external-link')) {
+				icon().removeClass('fa-external-link-square').addClass('fa-external-link');
+				$this.addClass('external-link');
+				var extLinkTarget = config.ProcessPageEditLink.extLinkTarget;
+				if(extLinkTarget.length > 0) {
+					$("#link_target").val(extLinkTarget); 
+				}
+				var extLinkRel = config.ProcessPageEditLink.extLinkRel;
+				if(extLinkRel.length > 0) {
+					$("#link_rel").val(extLinkRel); 
+				}
+				var extLinkClass = config.ProcessPageEditLink.extLinkClass; 
+				if(extLinkClass.length > 0) {
+					extLinkClass = extLinkClass.split(' '); 
+					for(var n = 0; n < extLinkClass.length; n++) {
+						$("#link_class_" + extLinkClass[n]).attr('checked', 'checked'); 
+					}
+				}
+			}
+		} else {
+			if($this.hasClass('external-link')) {
+				icon().removeClass('fa-external-link').addClass('fa-external-link-square');
+				$this.removeClass('external-link');
+			}
+		}
+		updateLinkPreview();
+	}
+	
+	var urlKeydownTimer = null;
+	$linkPageURL.focus().keydown(function(event) {
+		if(urlKeydownTimer) clearTimeout(urlKeydownTimer); 
+		urlKeydownTimer = setTimeout(function() { urlKeydown(); }, 500); 
+	});
+	
+	setTimeout(function() {
+		if($linkPageURL.val().length) urlKeydown(); // run first time
+		$linkPageURL.change();
+	}, 250); 
+	
+	$(":input").change(updateLinkPreview);
+	$("#link_title").keydown(function(event) { updateLinkPreview(); }); 
 
 	// when header is clicked, open up the pageList right away
 	$(".InputfieldInteger .InputfieldHeader").click(function() {
@@ -130,7 +262,12 @@ $(document).ready(function() {
 		// automatically open the PageListSelect
 		setTimeout(function() { $toggle.click(); }, 250); 
 		return true; 
-	}); 
+	});
+
+	$('#ProcessPageEditLinkForm').WireTabs({
+		items: $(".WireTab"), 
+		id: 'PageEditLinkTabs'
+	});
 
 
 }); 
