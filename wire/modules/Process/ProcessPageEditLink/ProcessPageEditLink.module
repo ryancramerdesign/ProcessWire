@@ -32,7 +32,7 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Edit Link',          
 			'summary' => 'Provides a link capability as used by some Fieldtype modules (like rich text editors).', 
-			'version' => 107, 
+			'version' => 108, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			'icon' => 'link', 
@@ -93,6 +93,12 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 	}
 
 	public function ___execute() {
+	
+		if($this->wire('input')->get('href')) {
+			$currentValue = $this->wire('sanitizer')->url($this->wire('input')->get('href')); 
+		} else {
+			$currentValue = '';
+		}
 
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->attr('id', 'ProcessPageEditLinkForm');
@@ -105,14 +111,42 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		$fieldset->addClass('WireTab');
 		$form->add($fieldset); 
 
-		$field = $this->modules->get("InputfieldURL"); 
+		$field = $this->modules->get("InputfieldPageAutocomplete"); 
 		$field->label = $this->_('Link to URL'); 
 		$field->attr('id+name', 'link_page_url'); 
 		$field->icon = 'external-link-square';
-		if($this->wire('input')->get('href')) {
-			$field->attr('value', $this->wire('sanitizer')->url($this->wire('input')->get('href')));
+		$field->description = $this->_('Enter a URL, email address, anchor, or enter word(s) to find a page.'); 
+		$field->labelFieldName = 'url';
+		if($this->wire('modules')->isInstalled('PagePaths') && !$this->wire('languages')) {
+			$field->searchFields = 'path title'; 
+		} else {
+			$field->searchFields = 'name title';
 		}
+		$field->maxSelectedItems = 1; 
+		$field->useList = false; 
+		$field->disableChars = '/:.#';
+		$field->useAndWords = true; 
+		$field->findPagesSelector = 
+			"has_parent!=" . $this->wire('config')->adminRootPageID . ", " . 
+			"id!=" . $this->wire('config')->http404PageID;
+		if($currentValue) $field->attr('value', $currentValue);
 		$fieldset->add($field);
+		
+		if(is_array($this->wire('input')->get('anchors'))) {
+			$field->columnWidth = 60; 
+			$field = $this->modules->get('InputfieldSelect'); 
+			$field->columnWidth = 40; 
+			$field->attr('id+name', 'link_page_anchor');
+			$field->label = $this->_('Link to Anchor'); 
+			$field->description = $this->_('Anchors found in the text you are editing.'); 
+			$field->icon = 'flag';
+			foreach($this->wire('input')->get('anchors') as $anchor) {
+				$anchor = '#' . $this->wire('sanitizer')->text($anchor); 
+				if(strlen($anchor)) $field->addOption($anchor); 
+				if($currentValue && $currentValue == $anchor) $field->attr('value', $currentValue); 
+			}
+			$fieldset->add($field); 
+		}
 		
 		$field = $this->modules->get('InputfieldInteger'); 
 		$field->attr('id+name', 'link_page_id');

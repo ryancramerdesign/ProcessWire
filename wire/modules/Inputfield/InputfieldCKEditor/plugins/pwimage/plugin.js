@@ -31,9 +31,9 @@
 			editor.on( 'doubleclick', function( evt ) {
 				var element = evt.data.element;
 				if ( element.is( 'img' ) && !element.data( 'cke-realelement' ) && !element.isReadOnly() ) {
+					evt.cancel(); // prevent CKE's link dialog from showing up (if image is linked)
 					editor.commands.pwimage.exec();
 				}
-					
 			});
 		
 			// If the "menu" plugin is loaded, register the menu items.

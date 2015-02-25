@@ -56,6 +56,38 @@
 					toolbar: 'links,30'
 				});
 			}
+
+			// On double click we execute the command (= we open modal)
+			editor.on( 'doubleclick', function( evt ) {
+				var element = CKEDITOR.plugins.link.getSelectedLink( editor ) || evt.data.element;
+				if ( element.is( 'a' ) && !element.getAttribute('name') && !element.isReadOnly() ) {
+					evt.cancel(); // prevent CKE's link dialog
+					editor.commands.pwlink.exec();
+				}
+			});
+
+			// prevent CKE's default "Edit Link" from showing in context menu
+			editor.on('instanceReady', function(ck) { 
+				ck.editor.removeMenuItem('link'); 
+			});
+
+			// add context menu item
+			if (editor.contextMenu) {
+				editor.addMenuItem('pwlinkitem', {
+					label: config.InputfieldCKEditor.pwlink.edit,
+					command: 'pwlink',
+					group: 'link',
+					icon: (CKEDITOR.env.hidpi ? this.path + 'images/hidpi/pwlink.png' : this.path + 'images/pwlink.png')
+				});
+				editor.contextMenu.addListener(function(element) {
+					if ( !element || element.isReadOnly() ) return null;
+					var anchor = CKEDITOR.plugins.link.tryRestoreFakeAnchor( editor, element );
+					var menu = {};
+					if ( !anchor && !( anchor = CKEDITOR.plugins.link.getSelectedLink( editor ) ) ) return null;
+					if ( anchor.getAttribute( 'href' ) && anchor.getChildCount() ) menu = { pwlinkitem: CKEDITOR.TRISTATE_OFF };
+					return menu;
+				});
+			}
 		}
 	}); // ckeditor.plugins.add
 
@@ -70,6 +102,7 @@
 		var nodeName = node.getName(); // will typically be 'a', 'img' or 'p' 
 		var selectionText = selection.getSelectedText();
 		var $existingLink = null;
+		var anchors = CKEDITOR.plugins.link.getEditorAnchors(editor); 
 
 		if(nodeName == 'a') {
 			// existing link
@@ -101,6 +134,13 @@
 				var val = $existingLink.attr(attrs[n]); 	
 				if(val && val.length) modalUrl += "&" + attrs[n] + "=" + encodeURIComponent(val);
 			} 
+		}
+	
+		// add any anchors to the modal URL
+		if(anchors.length > 0) {
+			for(var n = 0; n < anchors.length; n++) {
+				modalUrl += '&anchors[]=' + encodeURIComponent(anchors[n].id); 
+			}
 		}
 	
 		// labels

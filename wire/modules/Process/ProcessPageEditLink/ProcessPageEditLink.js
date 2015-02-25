@@ -22,6 +22,10 @@ $(document).ready(function() {
 	};
 
 	var $fileSelect = $("#link_page_file"); 
+	var $anchorSelect = $("#link_page_anchor");
+	var $linkPageURL = $("#link_page_url_input"); 
+	
+	$linkPageURL.val($("#link_page_url").val()); // copy from hidden 
 
 	function populateFileSelect(selectedPageData) {
 		// populate the files field
@@ -91,7 +95,7 @@ $(document).ready(function() {
 			selectedPageData = data;
 			selectedPageData.url = config.urls.root + data.url.substring(1);
 			selectedPageData.url = absoluteToRelativePath(selectedPageData.url); 
-			$("#link_page_url").val(selectedPageData.url).change();
+			$linkPageURL.val(selectedPageData.url).change();
 			if($fileSelect.is(":visible")) populateFileSelect(selectedPageData);
 		}
 
@@ -106,11 +110,30 @@ $(document).ready(function() {
 	$fileSelect.change(function() {
 		var $t = $(this);
 		var src = $t.val();
-		if(src.length) $("#link_page_url").val(src).change();
+		if(src.length) $linkPageURL.val(src).change();
 	}); 
+	
+	if($anchorSelect.length) {
+		var anchorPreviousValue = $anchorSelect.val();
+		$anchorSelect.change(function () {
+			var val = $(this).val();
+			if(val.length) {
+				// populated anchor value
+				$linkPageURL.val(val); 
+				anchorPreviousValue = val;
+			} else {
+				// empty value
+				// make URL field blank only if present value is the same as a previously selected anchor value
+				if($linkPageURL.val() == anchorPreviousValue) $linkPageURL.val('');
+			}
+			$linkPageURL.change();
+		});
+		// de-select anchor when URL is changed to something other than an ahcor
+		// $linkPageURL.change(function() {
+		// }); 
+	}
 
 	// auto-insert scheme/protocol when not present and domain is detected
-	var $linkPageURL = $("#link_page_url"); 
 	
 	function updateLinkPreview() {
 		
@@ -173,6 +196,21 @@ $(document).ready(function() {
 				$this.closest('.InputfieldContent').find('.notes').text('http://' + val); 
 				$this.attr('data-ignore', domain);
 			}
+		} else if(dotpos > 0 && 
+			val.indexOf('@') > 0 && 
+			val.indexOf(':') == -1 && 
+			val.match(/^[^@]+@[-.a-z0-9]{2,}\.[a-z]{2,}$/i)) {
+			// email address
+			$this.val('mailto:' + val); 
+			$this.addClass('email');
+		} else if(val.indexOf('@') == -1 && $this.hasClass('email')) {
+			$this.removeClass('email');
+		}
+		
+		if(val.substring(0, 1) == '#') {
+			$this.addClass('anchor'); 
+		} else if($this.hasClass('anchor')) {
+			$this.removeClass('anchor'); 
 		}
 		
 		if(hasScheme) {
@@ -200,30 +238,40 @@ $(document).ready(function() {
 			}
 		}
 
+		var primaryIcon = 'fa-external-link-square';	
+		var extLinkIcon = 'fa-external-link';
+		var emailIcon = 'fa-envelope-o';
+		var anchorIcon = 'fa-flag-o';
+		var allIcons = primaryIcon + ' ' + extLinkIcon + ' ' + emailIcon + ' ' + anchorIcon; 
+		
 		if(external) {
-			if(!$this.hasClass('external-link')) {
-				icon().removeClass('fa-external-link-square').addClass('fa-external-link');
+			if (!$this.hasClass('external-link')) {
+				icon().removeClass(allIcons).addClass(extLinkIcon);
 				$this.addClass('external-link');
 				var extLinkTarget = config.ProcessPageEditLink.extLinkTarget;
-				if(extLinkTarget.length > 0) {
-					$("#link_target").val(extLinkTarget); 
+				if (extLinkTarget.length > 0) {
+					$("#link_target").val(extLinkTarget);
 				}
 				var extLinkRel = config.ProcessPageEditLink.extLinkRel;
-				if(extLinkRel.length > 0) {
-					$("#link_rel").val(extLinkRel); 
+				if (extLinkRel.length > 0) {
+					$("#link_rel").val(extLinkRel);
 				}
-				var extLinkClass = config.ProcessPageEditLink.extLinkClass; 
-				if(extLinkClass.length > 0) {
-					extLinkClass = extLinkClass.split(' '); 
-					for(var n = 0; n < extLinkClass.length; n++) {
-						$("#link_class_" + extLinkClass[n]).attr('checked', 'checked'); 
+				var extLinkClass = config.ProcessPageEditLink.extLinkClass;
+				if (extLinkClass.length > 0) {
+					extLinkClass = extLinkClass.split(' ');
+					for (var n = 0; n < extLinkClass.length; n++) {
+						$("#link_class_" + extLinkClass[n]).attr('checked', 'checked');
 					}
 				}
 			}
 		} else {
-			if($this.hasClass('external-link')) {
-				icon().removeClass('fa-external-link').addClass('fa-external-link-square');
-				$this.removeClass('external-link');
+			$this.removeClass('external-link');
+			if($this.hasClass('email')) {
+				if (!icon().hasClass(emailIcon)) icon().removeClass(allIcons).addClass(emailIcon);
+			} else if($this.hasClass('anchor')) {
+				if (!icon().hasClass(anchorIcon)) icon().removeClass(allIcons).addClass(anchorIcon);
+			} else if(!$this.hasClass(primaryIcon)) {
+				icon().removeClass(allIcons).addClass(primaryIcon);
 			}
 		}
 		updateLinkPreview();
@@ -235,8 +283,24 @@ $(document).ready(function() {
 		urlKeydownTimer = setTimeout(function() { urlKeydown(); }, 500); 
 	});
 	
+	$linkPageURL.change(function() {
+		var val = $(this).val();
+		if($anchorSelect.length) {
+			if(val.substring(0, 1) == '#') {
+				var found = '';
+				$anchorSelect.children('option').each(function () {
+					if ($(this).attr('value') == val) found = val;
+				});
+				$anchorSelect.val(found);
+			} else if($anchorSelect.val().length) {
+				$anchorSelect.val(''); 
+			}
+		}	
+		$("#link_page_url").val(val); // legacy
+		urlKeydown(); 
+	}); 
+	
 	setTimeout(function() {
-		if($linkPageURL.val().length) urlKeydown(); // run first time
 		$linkPageURL.change();
 	}, 250); 
 	

@@ -25,6 +25,13 @@ var InputfieldPageAutocomplete = {
 		var $note = $input.parent().find(".InputfieldPageAutocompleteNote"); 
 		var numAdded = 0; // counter that keeps track of quantity items added
 		var numFound = 0; // indicating number of pages matching during last ajax request
+		var disableChars = $input.attr('data-disablechars'); 
+		
+		var iconHeight = $icon.height();
+		var pHeight = $icon.parent().height();
+		var iconTop = ((pHeight - iconHeight) / 2); 
+		$icon.css('top', iconTop + 'px');
+		$icon.css('left', (iconTop / 2) + 'px'); 
 
 		$icon.click(function() { $input.focus(); });
 		$icon.attr('data-class', $icon.attr('class')); 
@@ -37,9 +44,31 @@ var InputfieldPageAutocomplete = {
 			minLength: 2,
 			source: function(request, response) {
 				
+				if(disableChars && disableChars.length) {
+					var disable = false;
+					var term = request.term;
+					for(var n = 0; n < disableChars.length; n++) {
+						if(term.indexOf(disableChars[n]) > -1) {
+							disable = true;
+							break;
+						}
+					}
+					if(disable) {
+						response([]); 
+						return;
+					}
+				}
+				
 				$icon.attr('class', 'fa fa-fw fa-spin fa-spinner'); 
+				
+				var term = request.term;
+				if($input.hasClass('and_words') && term.indexOf(' ') > 0) {
+					// AND words mode
+					term = term.replace(/\s+/, ',');
+				}
+				var ajaxURL = url + '&' + searchField + operator + term; 
 
-				$.getJSON(url + '&' + searchField + operator + request.term, function(data) { 
+				$.getJSON(ajaxURL, function(data) { 
 
 					$icon.attr('class', $icon.attr('data-class')); 
 					numFound = data.total;
@@ -65,8 +94,13 @@ var InputfieldPageAutocomplete = {
 				}); 
 			},
 			select: function(event, ui) {
-				if(ui.item) {
-					InputfieldPageAutocomplete.pageSelected($ol, ui.item); 
+				if(!ui.item) return;
+				if($(this).hasClass('no_list')) {
+					$(this).val(ui.item.label).change();
+					$(this).blur();
+					return false;
+				} else {
+					InputfieldPageAutocomplete.pageSelected($ol, ui.item);
 					$(this).val('');
 					return false;
 				}
@@ -98,6 +132,8 @@ var InputfieldPageAutocomplete = {
 					InputfieldPageAutocomplete.pageSelected($ol, page); 
 					$input.val('').blur().focus();
 					$note.hide();
+				} else {
+					$(this).blur();
 				}
 				return false;
 			}

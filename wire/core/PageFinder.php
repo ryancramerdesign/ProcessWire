@@ -1138,7 +1138,7 @@ class PageFinder extends Wire {
 		}
 
 		if($selector->operator !== '=') {
-			throw new PageFinderSyntaxException("Operator '$selector->operator' is not supported for path or url unless you install the PagePaths module."); 
+			throw new PageFinderSyntaxException("Operator '$selector->operator' is not supported for path or url unless: 1) non-multi-language; 2) you install the PagePaths module."); 
 		}
 
 		if($selector->value == '/') {
