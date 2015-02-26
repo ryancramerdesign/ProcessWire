@@ -1649,7 +1649,7 @@ class Page extends WireData implements Countable {
 		if($value === false) return $status; 
 		$names = array();
 		foreach(self::$statuses as $name => $value) {
-			if($status & $value) $names[$status] = $name; 
+			if($status & $value) $names[$value] = $name; 
 		}
 		return $names; 
 	}

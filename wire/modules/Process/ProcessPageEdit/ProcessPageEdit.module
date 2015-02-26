@@ -380,29 +380,35 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	
 				if(get_class($this->page) == 'Page') {
 					//if(!$form->description) $form->description = $this->_("This page is currently unpublished");
-					$submit2 = $this->modules->get('InputfieldSubmit'); 
-					$submit2->attr('name', 'submit_save'); 
-					$submit2->attr('id', 'submit_save_unpublished'); 
-					$submit2->class .= ' ui-priority-secondary head_button_clone'; 
+					$submit2 = $this->modules->get('InputfieldSubmit');
+					$submit2->attr('name', 'submit_save');
+					$submit2->attr('id', 'submit_save_unpublished');
+					$submit2->class .= ' ui-priority-secondary head_button_clone';
 					$submit2->attr('value', $this->_('Save + Keep Unpublished')); // Button: save unpublished
 				}
 	
-				// $saveName remains blank if page is not publishable
-				if($this->page->publishable()) $saveName = 'submit_publish';
-				$saveLabel = $this->_("Publish"); // Button: publish
+				if($this->page->publishable()) {
+					$saveName = 'submit_publish';
+					$saveLabel = $this->_("Publish"); // Button: publish
+				} else {
+					$saveName = '';
+				}
 			} else {
 				// use saveName and saveLabel defined at top of method
 			}
 		} // !$fieldName
 
-		$submit = $this->modules->get('InputfieldSubmit');
-		$submit->attr('id+name', $saveName); 
-		$submit->attr('value', $saveLabel); 
-		$submit->addClass('head_button_clone'); 
-		$form->append($submit); 
+		if($saveName) {
+			$submit = $this->modules->get('InputfieldSubmit');
+			$submit->attr('id+name', $saveName);
+			$submit->attr('value', $saveLabel);
+			$submit->addClass('head_button_clone');
+			$form->append($submit);
+		}
 
 		if($submit2) $form->append($submit2); 
 
+		/*
 		if($this->input->get->modal && $this->page->className() == 'Page') {
 			$submit = $this->modules->get('InputfieldSubmit');
 			$submit->attr('name', $saveName); 
@@ -410,6 +416,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			$submit->attr('value', $saveLabel); 
 			$form->append($submit); 
 		}
+		*/
 
 		$field = $this->modules->get('InputfieldHidden');
 		$field->attr('name', 'id');

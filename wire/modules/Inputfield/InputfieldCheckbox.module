@@ -12,7 +12,7 @@ class InputfieldCheckbox extends Inputfield {
 		return array(
 			'title' => __('Checkbox', __FILE__), // Module Title
 			'summary' => __('Single checkbox toggle', __FILE__), // Module Summary
-			'version' => 101,
+			'version' => 102,
 			'permanent' => true, 
 			);
 	}
@@ -45,7 +45,7 @@ class InputfieldCheckbox extends Inputfield {
 	}
 
 	public function ___render() {
-		$this->set('skipLabel', $this->description ? Inputfield::skipLabelFor : Inputfield::skipLabelHeader); 
+		$this->set('skipLabel', $this->description || $this->label2 ? Inputfield::skipLabelFor : Inputfield::skipLabelHeader); 
 		// TBA: if($this->uncheckedValue) return $this->renderRadio();
 		$attrs = $this->getAttributes();
 		$attrs['value'] = $this->checkedValue; 

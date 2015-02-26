@@ -29,7 +29,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 110,
+			'version' => 111,
 			'permanent' => true, 
 			'icon' => 'cubes', 
 			'useNavJSON' => true, 
@@ -572,6 +572,10 @@ class ProcessTemplate extends Process {
 		
 		$t->add($f); 
 		$t->add($this->buildEditFormFields($template)); 
+		$f = $this->wire('modules')->get('InputfieldHidden'); 
+		$f->attr('id+name', '_fieldgroup_fields_changed'); 
+		$f->attr('value', ''); 
+		$t->add($f); 
 		if($template->name != $template->fieldgroup->name || $this->config->advanced) $t->add($this->buildEditFormFieldgroup($template)); 
 		$form->add($t); 
 		
@@ -1819,29 +1823,34 @@ class ProcessTemplate extends Process {
 	 */
 	protected function saveFields() {
 
-		$ids = isset($_POST['fieldgroup_fields']) ? $_POST['fieldgroup_fields'] : array();
 		$removedFields = new FieldsArray();
 
 		$fieldgroup = $this->template->fieldgroup;
-		if($fieldgroup->name != $this->template->name) return; 
+		if($fieldgroup->name != $this->template->name) return;
+		
+		$ids = $this->wire('input')->post('fieldgroup_fields'); 
 
-		foreach($ids as $id) {
-			if(!($id = (int) $id)) continue; 
-			$isDeleted = $id < 0; 
-			$id = abs($id); 
-			if(!$field = $this->fields->get($id)) continue; 
-			if(!$fieldgroup->has($field)) {
-				$fieldgroup->append($field); 
-				$this->fieldAdded($field, $this->template); 
-			} else { 
-				$field = $fieldgroup->getField($field->id, true); // get in context
-				$fieldgroup->append($field); 
-			}
-			if($isDeleted) {
-				if(($field->flags & Field::flagGlobal) && !$this->template->noGlobal) {
-					$this->error(sprintf($this->_('Field "%s" may not be removed because it is globally required by all fieldgroups'), $field)); 
-				} else { 
-					$removedFields->add($field); 
+		$saveFieldgroup = false; 
+		if(is_array($ids) && $this->wire('input')->post('_fieldgroup_fields_changed') == 'changed') {
+			$saveFieldgroup = true; 
+			foreach($ids as $id) {
+				if(!($id = (int) $id)) continue;
+				$isDeleted = $id < 0;
+				$id = abs($id);
+				if(!$field = $this->fields->get($id)) continue;
+				if(!$fieldgroup->has($field)) {
+					$fieldgroup->append($field);
+					$this->fieldAdded($field, $this->template);
+				} else {
+					$field = $fieldgroup->getField($field->id, true); // get in context
+					$fieldgroup->append($field);
+				}
+				if($isDeleted) {
+					if(($field->flags & Field::flagGlobal) && !$this->template->noGlobal) {
+						$this->error(sprintf($this->_('Field "%s" may not be removed because it is globally required by all fieldgroups'), $field));
+					} else {
+						$removedFields->add($field);
+					}
 				}
 			}
 		}
@@ -1849,11 +1858,13 @@ class ProcessTemplate extends Process {
 		// check if any other fieldgroup should be imported
 		if($this->input->post->import_fieldgroup) {
 			$this->importFieldgroup($this->fieldgroups->get($this->sanitizer->name($this->input->post->import_fieldgroup)), $this->template); 
+			$saveFieldgroup = true; 
 		}
 
-
-		$fieldgroup->save();
-		$this->message(sprintf($this->_('Saved fieldgroup: %s'), $fieldgroup->name), Notice::debug); 
+		if($saveFieldgroup) {
+			$fieldgroup->save();
+			$this->message(sprintf($this->_('Saved fieldgroup: %s'), $fieldgroup->name), Notice::debug);
+		}
 
 		if(count($removedFields)) {
 			$url = "removeFields?id={$this->template->id}&fields=";

@@ -23,7 +23,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Fields', __FILE__),
 			'summary' => __('Edit individual fields that hold page data', __FILE__),
-			'version' => 109,
+			'version' => 110,
 			'permanent' => true, 
 			'permission' => 'field-admin', // add this permission if you want this Process available for roles other than Superuser
 			'icon' => 'cube', 
@@ -873,6 +873,11 @@ class ProcessField extends Process implements ConfigurableModule {
 		$field->set('_valuePrevious', $field->attr('value')); 
 		if($numOmitted) $field->notes .= ' ' . sprintf($this->_('%d system templates are not shown because advanced mode is off.'), $numOmitted); 
 		$form->add($field);
+		
+		$field = $this->wire('modules')->get('InputfieldHidden');
+		$field->attr('id+name', '_send_templates_changed'); 
+		$field->attr('value', ''); 
+		$form->add($field); 
 	
 		// --------------------------	
 		
@@ -1062,23 +1067,25 @@ class ProcessField extends Process implements ConfigurableModule {
 				if($isNew) return $this->executeAdd();
 			}
 
-			$sendTemplates = $this->form->get('send_templates');
-			$value = $sendTemplates->attr('value');
-			$valuePrevious = $sendTemplates->_valuePrevious; 
-			if($value != $valuePrevious) {
-				$templateIDs = array();
-				foreach($value as $templateID) {
-					if(in_array($templateID, $valuePrevious)) continue; 
-					$templateIDs[] = (int) $templateID; // add
-					// $this->message("Add to template " . $this->wire('templates')->get($templateID)); 
-				}
-				foreach($valuePrevious as $templateID) {
-					if(in_array($templateID, $value)) continue; 
-					$templateIDs[] = $templateID * -1;  // remove
-					// $this->message("Remove from template " . $this->wire('templates')->get($templateID)); 
-				}
-				if(count($templateIDs)) {
-					$this->wire('session')->redirect("./send-templates?id={$this->field->id}&templates=" . implode(',', $templateIDs));
+			if($this->wire('input')->post('_send_templates_changed') == 'changed') {
+				$sendTemplates = $this->form->get('send_templates');
+				$value = $sendTemplates->attr('value');
+				$valuePrevious = $sendTemplates->_valuePrevious;
+				if($value != $valuePrevious) {
+					$templateIDs = array();
+					foreach($value as $templateID) {
+						if(in_array($templateID, $valuePrevious)) continue;
+						$templateIDs[] = (int) $templateID; // add
+						// $this->message("Add to template " . $this->wire('templates')->get($templateID)); 
+					}
+					foreach($valuePrevious as $templateID) {
+						if(in_array($templateID, $value)) continue;
+						$templateIDs[] = $templateID * -1;  // remove
+						// $this->message("Remove from template " . $this->wire('templates')->get($templateID)); 
+					}
+					if(count($templateIDs)) {
+						$this->wire('session')->redirect("./send-templates?id={$this->field->id}&templates=" . implode(',', $templateIDs));
+					}
 				}
 			}
 		}
@@ -1294,6 +1301,12 @@ class ProcessField extends Process implements ConfigurableModule {
 		
 		$form = $this->wire('modules')->get('InputfieldForm'); 
 		$form->attr('action', "./send-templates-save?id={$this->field->id}");
+		
+		$fields = array($this->field); 
+		if($this->field->type instanceof FieldtypeFieldsetOpen) {
+			$fieldsetClose = $this->wire('fields')->get($this->field->name . '_END'); 
+			if($fieldsetClose) $fields[] = $fieldsetClose;
+		}
 
 		foreach($templateIDs as $templateID) {
 			
@@ -1320,40 +1333,44 @@ class ProcessField extends Process implements ConfigurableModule {
 					$f->description = '';
 					$f->notes = $this->_('There do not appear to be any rows of data associated with this field/template combination');
 				}
-				$f->description .= $this->_('Please check the box to confirm.'); 
+				$f->description .= $this->_('Please check the box to confirm.');
+				$form->add($f); 
 
 			} else {
 				// add to template
 
-				$f = $this->wire('modules')->get('InputfieldSelect');
-				$f->attr('name', "add_{$this->field->id}_template_$templateID");
-				$f->label = sprintf($this->_('Template: %s'), $template->name);
-				$f->label = sprintf($this->_('Add field "%1$s" to template "%2$s"'), $this->field->name, $template->name); 
-				$f->description = sprintf($this->_('Where do you want to add "%s?"'), $this->field->name); 
-				$f->icon = 'plus-circle';
-				$beforeLabel = $this->_('Before %s');
-				$afterLabel = $this->_('After %s');
-				$f->addOption(0, $this->_('Do not add'));
+				foreach($fields as $field) {
+					
+					$f = $this->wire('modules')->get('InputfieldSelect');
+					$f->attr('name', "add_{$field->id}_template_$templateID");
+					$f->label = sprintf($this->_('Template: %s'), $template->name);
+					$f->label = sprintf($this->_('Add field "%1$s" to template "%2$s"'), $field->name, $template->name);
+					$f->description = sprintf($this->_('Where do you want to add "%s?"'), $field->name);
+					$f->icon = 'plus-circle';
+					$beforeLabel = $this->_('Before %s');
+					$afterLabel = $this->_('After %s');
+					$f->addOption(0, $this->_('Do not add'));
 
-				$value = 0;
-				foreach($template->fieldgroup as $field) {
-					if(strpos((string) $field->type, 'FieldtypeFieldset') === 0) continue;
-					$f->addOption($field->name, array(
-						"-$field->id" => sprintf($beforeLabel, $field->name),
-						"$field->id"  => sprintf($afterLabel, $field->name)
-					));
-					$value = "$field->id";
+					$value = 0;
+					foreach($template->fieldgroup as $field) { // overwrite of $field is OK
+						if(strpos((string) $field->type, 'FieldtypeFieldset') === 0) continue;
+						$f->addOption($field->name, array(
+							"-$field->id" => sprintf($beforeLabel, $field->name),
+							"$field->id"  => sprintf($afterLabel, $field->name)
+						));
+						$value = "$field->id";
+					}
+
+					$f->attr('value', $value);
+					$form->add($f); 
 				}
-
-				$f->attr('value', $value);
 			}
-			$form->add($f); 
 		}
 		
 		$f = $this->wire('modules')->get('InputfieldSubmit');
 		$form->add($f); 
 		
-		$this->headline($this->_('Add to template(s)')); 
+		$this->headline($this->_('Add or remove from template(s)')); 
 		$this->breadcrumb("./edit?id={$this->field->id}", $this->field->name); 
 		$out = "<h2>" . sprintf($this->_('Please review and adjust or confirm your changes'), $this->field->name) . "</h2>";
 		$out .= $form->render();
@@ -1369,26 +1386,37 @@ class ProcessField extends Process implements ConfigurableModule {
 		
 		if(!$this->field || !$this->field->id) throw new WireException('No field specified');
 		$this->wire('session')->CSRF->validate();
+		
+		$fields = array($this->field);
+		if($this->field->type instanceof FieldtypeFieldsetOpen) {
+			$fieldsetClose = $this->wire('fields')->get($this->field->name . '_END');
+			if($fieldsetClose) $fields[] = $fieldsetClose;
+		}
 	
 		// first handle additions, since it's possible for removals to take a long time or remote chance of timeout
 		foreach($this->wire('templates') as $template) {
-			
-			$addFieldID = $this->wire('input')->post("add_{$this->field->id}_template_$template->id"); 
-			if(!$addFieldID) continue; 
-			$before = substr($addFieldID, 0, 1) == '-';
-			$addFieldID = (int) ltrim($addFieldID, '-');
+	
+			foreach($fields as $field) {
+				// usually just 1 element in $fields, except when $field is a FieldtypeFieldsetOpen in which case 
+				// there is also the corresponding FieldtypeFieldsetClose
+				
+				$addFieldID = $this->wire('input')->post("add_{$field->id}_template_$template->id");
+				if(!$addFieldID) continue;
+				$before = substr($addFieldID, 0, 1) == '-';
+				$addFieldID = (int) ltrim($addFieldID, '-');
 
-			foreach($template->fieldgroup as $field) {
-				if($field->id != $addFieldID) continue;
+				foreach($template->fieldgroup as $f) {
+					if($f->id != $addFieldID) continue;
 
-				if($before) {
-					$template->fieldgroup->insertBefore($this->field, $field);
-					$this->message(sprintf($this->_('Added field "%1$s" to template "%2$s" before "%3$s"'),
-						$this->field->name, $template->name, $field->name));
-				} else {
-					$template->fieldgroup->insertAfter($this->field, $field);
-					$this->message(sprintf($this->_('Added field "%1$s" to template "%2$s" after "%3$s"'),
-						$this->field->name, $template->name, $field->name));
+					if($before) {
+						$template->fieldgroup->insertBefore($field, $f);
+						$this->message(sprintf($this->_('Added field "%1$s" to template "%2$s" before "%3$s"'),
+							$field->name, $template->name, $f->name));
+					} else {
+						$template->fieldgroup->insertAfter($field, $f);
+						$this->message(sprintf($this->_('Added field "%1$s" to template "%2$s" after "%3$s"'),
+							$field->name, $template->name, $f->name));
+					}
 				}
 			}
 			$template->fieldgroup->save();
@@ -1399,6 +1427,10 @@ class ProcessField extends Process implements ConfigurableModule {
 			$removeFieldID = (int) $this->wire('input')->post("remove_{$this->field->id}_template_$template->id");
 			if($removeFieldID && $removeFieldID === (int) $this->field->id) {
 				$template->fieldgroup->remove($this->field);
+				if($this->field->type instanceof FieldtypeFieldsetOpen) {
+					$fieldsetClose = $this->wire('fields')->get($this->field->name . '_END'); 
+					if($fieldsetClose) $template->fieldgroup->remove($fieldsetClose); 
+				}
 				try {
 					$template->fieldgroup->save();
 					$this->message(sprintf($this->_('Removed field "%1$s" from template "%2$s"'), $this->field->name, $template->name));
