@@ -425,6 +425,7 @@ class FieldtypeOptions extends FieldtypeMulti implements Module {
 		if(!$field->type instanceof FieldtypeOptions) {
 			throw new WireException("Field $field->name is not of type FieldtypeOptions");
 		}
+		return $field; 
 	}
 
 	public function ___install() {
