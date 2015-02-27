@@ -137,7 +137,7 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 			$field = $this->modules->get('InputfieldSelect'); 
 			$field->columnWidth = 40; 
 			$field->attr('id+name', 'link_page_anchor');
-			$field->label = $this->_('Link to Anchor'); 
+			$field->label = $this->_('Select Anchor'); 
 			$field->description = $this->_('Anchors found in the text you are editing.'); 
 			$field->icon = 'flag';
 			foreach($this->wire('input')->get('anchors') as $anchor) {
@@ -150,7 +150,7 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		
 		$field = $this->modules->get('InputfieldInteger'); 
 		$field->attr('id+name', 'link_page_id');
-		$field->label = $this->_("Link to Page");
+		$field->label = $this->_("Select Page");
 		$field->startLabel = $this->startLabel;
 		$field->collapsed = Inputfield::collapsedYes; 
 		$field->icon = 'sitemap';
@@ -159,8 +159,8 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		if($this->page->numChildren) {
 			$field = $this->modules->get('InputfieldInteger'); 
 			$field->attr('id+name', 'child_page_id');
-			$field->label = $this->_("Link to Child Page");
-			$field->description = $this->_('This is the same as "Link to Page" above, but may quicker to use if linking to children of the current page.'); 
+			$field->label = $this->_("Select Child Page");
+			$field->description = $this->_('This is the same as "Select Page" above, but may quicker to use if linking to children of the current page.'); 
 			$field->startLabel = $this->startLabel;
 			$field->collapsed = Inputfield::collapsedYes; 
 			$field->icon = 'sitemap';
@@ -278,7 +278,7 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 	public function ___executeFiles() {
 		if(!$this->page->id) throw new WireException("A page id must be specified"); 	
 		$files = $this->getFiles();	
-		return WireEncodeJSON($files);
+		return wireEncodeJSON($files);
 	}
 
 	protected function getFiles() {
@@ -286,7 +286,7 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 		if($this->page->id) foreach($this->page->fields as $f) {
 			if(!$f->type instanceof FieldtypeFile) continue;
 			foreach($this->page->get($f->name) as $file) {
-				$files[$file->url] = $f->name . ' - ' . $file->basename; 
+				$files[$file->url] = $f->getLabel() . ': ' . $file->basename; 
 			}
 		}
 		asort($files); 
@@ -295,14 +295,16 @@ class ProcessPageEditLink extends Process implements ConfigurableModule {
 
 	protected function getFilesField() {
 		$field = $this->modules->get("InputfieldSelect"); 
-		$field->label = $this->_("Link to File");
+		$field->label = $this->_("Select File");
 		$field->attr('id+name', 'link_page_file'); 
 		$files = $this->getFiles();
 		$field->addOption('');
 		$field->addOptions($files); 
 		$field->collapsed = Inputfield::collapsedYes; 
-		if($this->page->id) $field->notes = $this->page->url; 
-		$field->description = $this->_("To select a file from another page, click 'Link to Page' above and choose the page you want to select a file from."); // Instruction on how to select a file from another page
+		if($this->page->id) $field->notes = $this->_('Showing files on page:') .  ' **' . $this->page->url . '**';
+		$field->description = 
+			$this->_('Select the file from this page that you want to link to.') . ' ' . 
+			$this->_("To select a file from another page, click 'Select Page' above and choose the page you want to select a file from."); // Instruction on how to select a file from another page
 		$field->icon = 'file-text-o';
 		return $field;
 

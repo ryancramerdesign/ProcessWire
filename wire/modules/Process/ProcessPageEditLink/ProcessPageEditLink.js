@@ -37,7 +37,7 @@ $(document).ready(function() {
 				var $option = $("<option value='" + key + "'>" + val + "</option>"); 		
 				$fileSelect.append($option);
 			});
-			$wrap.find("p.notes").text(selectedPageData.url);
+			$wrap.find("p.notes strong").text(selectedPageData.url);
 			$wrap.children().effect('highlight', {}, 500); 
 			$fileSelect.effect('bounce', {}, 50);
 		}); 
