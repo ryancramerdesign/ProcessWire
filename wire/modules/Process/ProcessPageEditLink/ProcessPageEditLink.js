@@ -180,7 +180,7 @@ $(document).ready(function() {
 		var hasScheme = slashespos > -1 && slashespos < dotpos;
 		var slashpos = (slashespos > -1 ? val.indexOf('/', slashespos + 2) : val.indexOf('/'));
 
-		if(dotpos > -1 && val.indexOf('..') == -1 && (
+		if(dotpos > -1 && val.indexOf('..') == -1 && val.indexOf('./') == -1 && (
 			(slashpos > dotpos && !hasScheme) ||
 			(slashpos == -1 && dotpos > 1 && val.match(/^[a-z][-a-z.0-9]+\.[a-z]{2,}($|\/)/i))
 			)) {
