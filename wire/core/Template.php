@@ -56,7 +56,7 @@
  * @property int $useCacheForUsers Use cache for: 0 = only guest users, 1 = guests and logged in users
  * @property int $cacheExpire Expire the cache for all pages when page using this template is saved? (1 = yes, 0 = no- only current page)
  * @property array $cacheExpirePages Array of Page IDs that should be expired, when cacheExpire == Template::cacheExpireSpecific
- * @property array $cacheExpireSelector Selector string matching pages that should be expired, when cacheExpire == Template::cacheExpireSpecific
+ * @property array $cacheExpireSelector Selector string matching pages that should be expired, when cacheExpire == Template::cacheExpireSelector
  * @property string $tags Optional tags that can group this template with others in the admin templates list 
  * @property string $tabContent Optional replacement for default "Content" label
  * @property string $tabChildren Optional replacmenet for default "Children" label
