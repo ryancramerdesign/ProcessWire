@@ -252,7 +252,6 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	 */
 	public function getImages(Page $page, $fields = array(), $level = 0) {
 		
-
 		$allImages = array();
 		if(!$page->id) return $allImages; 
 		
@@ -348,8 +347,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 
 		if($this->input->get->file) return $this->executeEdit();
 		
-		$imageFields = $this->getImageFields($this->page);
-		$images = $this->getImages($this->page, $imageFields);
+		$images = $this->getImages($this->page, $this->page->fields);
 
 		$out = '';
 
@@ -391,6 +389,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$form->append($field);
 		
 		// locate any image fields
+		$imageFields = $this->getImageFields($this->page);
 		if(count($imageFields)) {
 			$imageFieldNames = implode(',', array_keys($imageFields)); 
 			$btn = $this->modules->get('InputfieldButton');
