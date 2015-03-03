@@ -245,11 +245,12 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	 * Get all Pageimage objects on page
 	 * 
 	 * @param Page $page
+	 * @param array|WireArray $fields
 	 * @param int $level Recursion level (internal use)
 	 * @return array
 	 * 
 	 */
-	public function getImages(Page $page, $level = 0) {
+	public function getImages(Page $page, $fields = array(), $level = 0) {
 		
 
 		$allImages = array();
@@ -257,13 +258,15 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		
 		$numImages = 0;
 		$numImageFields = 0;
-		
-		if($this->field) {
-			$fields = array($this->field); 
-			$skipFields = array();
-		} else {
-			$fields = $page->fields; 
-			$skipFields = explode(' ', $this->skipFields); 
+		$skipFields = explode(' ', $this->skipFields);
+	
+		if(empty($fields)) {
+			if($this->field) {
+				$fields = array($this->field);
+				$skipFields = array();
+			} else {
+				$fields = $page->fields;
+			}
 		}
 
 		foreach($fields as $field) {
@@ -273,7 +276,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			if($field->type instanceof FieldtypeRepeater) {
 				// get images that are possibly in a repeater
 				foreach($page->get($field->name) as $p) {
-					$images = $this->getImages($p, $level+1); 
+					$images = $this->getImages($p, $fields, $level+1); 
 					if(!count($images)) continue; 
 					$allImages = array_merge($allImages, $images);
 					$numImages += count($images); 
@@ -344,7 +347,9 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		}
 
 		if($this->input->get->file) return $this->executeEdit();
-		$images = $this->getImages($this->page);
+		
+		$imageFields = $this->getImageFields($this->page);
+		$images = $this->getImages($this->page, $imageFields);
 
 		$out = '';
 
@@ -386,7 +391,6 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$form->append($field);
 		
 		// locate any image fields
-		$imageFields = $this->getImageFields($this->page);
 		if(count($imageFields)) {
 			$imageFieldNames = implode(',', array_keys($imageFields)); 
 			$btn = $this->modules->get('InputfieldButton');
@@ -403,7 +407,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			}
 		}
 
-		$out = $form->render() . "<div class='ui-helper-clearfix'>$out</div>" . $btn->render();
+		$out = $form->render() . $out . $btn->render();
 		return "<div id='ProcessPageEditImageSelect'>" . $out . "\n</div>";
 	}
 	

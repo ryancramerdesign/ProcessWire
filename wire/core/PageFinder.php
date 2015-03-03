@@ -541,7 +541,7 @@ class PageFinder extends Wire {
 					// shortcut for blank value condition: this ensures that NULL/non-existence is considered blank
 					// without this section the query would still work, but a blank value must actually be present in the field
 					$useEmpty = empty($value) || ($value && $operator[0] == '<') || ($value < 0 && $operator[0] == '>');	
-					if($subfield == 'data' && $field->type && $useEmpty) {
+					if($subfield == 'data' && $useEmpty && $fieldtype) { // && !$fieldtype instanceof FieldtypeMulti) {
 						if(empty($value)) $numEmptyValues++;
 						if(in_array($operator, array('=', '!=', '<>', '<', '<=', '>', '>='))) {
 							// we only accommodate this optimization for single-value selectors...
@@ -748,6 +748,8 @@ class PageFinder extends Wire {
 		$table = $database->escapeTable($field->table);
 		$tableAlias = $table . "__blank" . (++$tableCnt);
 		$blankValue = $field->type->getBlankValue(new NullPage(), $field, $value);
+		if(is_object($blankValue)) $blankIsObject = true; 
+		if($blankIsObject) $blankValue = '';
 		$blankValue = $database->escapeStr($blankValue);
 		$whereType = 'OR';
 		$operators = array(
@@ -778,10 +780,14 @@ class PageFinder extends Wire {
 			
 		} else if($operator == '!=' || $operator == '<>') {
 			// not equals
-			$whereType = 'AND';
+			// $whereType = 'AND';
 			if($value === "0" && !$field->type->isEmptyValue($field, "0")) {
 				// may match rows with no value present
 				$sql = "$tableAlias.pages_id IS NULL OR ($tableAlias.data!='0'";
+				
+			} else if($blankIsObject) {
+				$sql = "$tableAlias.pages_id IS NOT NULL AND ($tableAlias.data IS NOT NULL";
+				
 			} else {
 				$sql = "$tableAlias.pages_id IS NOT NULL AND ($tableAlias.data!='$blankValue'";
 				if($blankValue !== "0" && !$field->type->isEmptyValue($field, "0")) {
@@ -1370,7 +1376,9 @@ class PageFinder extends Wire {
 
 		// the subquery performs faster than the old method (further below) on sites with tens of thousands of pages
 		$in = $selector->operator == '!=' ? 'NOT IN' : 'IN';
-		$query->where("pages.parent_id $in (SELECT pages_id FROM pages_parents WHERE parents_id=$parent_id OR pages_id=$parent_id)");
+		// $query->where("pages.parent_id $in (SELECT pages_id FROM pages_parents WHERE parents_id=$parent_id OR pages_id=$parent_id)");
+		// @pine3tree PR #951:
+		$query->where("(pages.parent_id=$parent_id OR pages.parent_id $in (SELECT pages_id FROM pages_parents WHERE parents_id=$parent_id))");
 
 		/*
 		// OLD method kept for reference

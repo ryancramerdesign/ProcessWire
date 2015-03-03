@@ -309,7 +309,8 @@ abstract class FieldtypeMulti extends Fieldtype {
 		$database = $this->wire('database'); 
 		$table = $database->escapeTable($table);
 
-		if($subfield === 'count' && ctype_digit(ltrim("$value", '-')) && in_array($operator, array("=", "!=", ">", "<", ">=", "<="))) {
+		if($subfield === 'count' && (empty($value) || ctype_digit(ltrim("$value", '-'))) 
+			&& in_array($operator, array("=", "!=", ">", "<", ">=", "<="))) {
 
 			$value = (int) $value;
 			$t = $table . "_" . $n;
