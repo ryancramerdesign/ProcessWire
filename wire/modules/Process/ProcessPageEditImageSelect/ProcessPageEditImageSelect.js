@@ -34,8 +34,16 @@ function setupProcessSave(fieldName, fileID, isNew) {
 	parent.jQuery('.Inputfield').on('reloaded', function() {
 		if(finished) return;
 		finished = true;
-		setTimeout(function() { setupProcessSaveReloaded(fileID, isNew); }, 250);
+		if(fileID.length > 0) {
+			setTimeout(function () {
+				setupProcessSaveReloaded(fileID, isNew);
+			}, 250);
+		}
 	});
+}
+
+function refreshPageEditField(fieldName) {
+	parent.jQuery('#wrap_Inputfield_' + fieldName).trigger('reload');
 }
 
 function setupExecuteVariations() {

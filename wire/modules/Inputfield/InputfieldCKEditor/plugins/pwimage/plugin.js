@@ -244,11 +244,25 @@
 				$iframe.setTitle("<i class='fa fa-fw fa-picture-o'></i> " + $i.find('title').html());
 
 			} else {
-				
-				$iframe.setButtons([{
-						html: "<i class='fa fa-times-circle'></i> " + config.InputfieldCKEditor.pwimage.cancelBtn, // "Cancel",
-						click: function() { $iframe.dialog("close"); }
-				}]); 
+				var buttons = [];
+				$("button.pw-modal-button, button[type=submit]:visible", $i).each(function() {
+					var $button = $(this);
+					var button = {
+						html: $button.html(),
+						click: function() {
+							$button.click();
+						}
+					}
+					buttons.push(button);
+					$button.hide();
+				});
+				var cancelButton = {
+					html: "<i class='fa fa-times-circle'></i> " + config.InputfieldCKEditor.pwimage.cancelBtn, // "Cancel",
+					class: "ui-priority-secondary", 
+					click: function() { $iframe.dialog("close"); }
+				};
+				buttons.push(cancelButton);
+				$iframe.setButtons(buttons);
 			}
 		});
 	}
