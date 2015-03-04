@@ -13,7 +13,7 @@
  *
  */
 
-abstract class Textformatter extends Wire implements Module {
+abstract class Textformatter extends WireData implements Module {
 
 	/**
 	 * Return an array of module information
