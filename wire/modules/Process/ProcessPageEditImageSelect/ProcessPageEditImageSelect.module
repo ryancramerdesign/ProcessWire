@@ -405,9 +405,11 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 				if(!$field) continue;
 				$out .= "<script>refreshPageEditField('$name');</script>";
 			}
-		}
+		} else $btn = null;
 
-		$out = $form->render() . $out . $btn->render();
+		$out = $form->render() . $out;
+		if($btn) $out .= $btn->render();
+		
 		return "<div id='ProcessPageEditImageSelect'>" . $out . "\n</div>";
 	}
 	
