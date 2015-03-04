@@ -407,6 +407,7 @@ class Pages extends Wire {
 		foreach($_ids as $key => $id) {
 			
 			$id = (int) $id; 
+			if($id < 1) continue; 
 
 			if($page = $this->getCache($id)) {
 				// page is already available in the cache	
