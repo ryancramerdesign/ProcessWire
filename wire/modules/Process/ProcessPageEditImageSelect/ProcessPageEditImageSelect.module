@@ -274,8 +274,9 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 
 			if($field->type instanceof FieldtypeRepeater) {
 				// get images that are possibly in a repeater
-				foreach($page->get($field->name) as $p) {
-					$images = $this->getImages($p, $fields, $level+1); 
+				$repeaterValue = $page->get($field->name); 
+				if($repeaterValue) foreach($repeaterValue as $p) {
+					$images = $this->getImages($p, $p->fields, $level+1); 
 					if(!count($images)) continue; 
 					$allImages = array_merge($allImages, $images);
 					$numImages += count($images); 

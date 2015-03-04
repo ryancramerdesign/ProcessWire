@@ -748,7 +748,7 @@ class PageFinder extends Wire {
 		$table = $database->escapeTable($field->table);
 		$tableAlias = $table . "__blank" . (++$tableCnt);
 		$blankValue = $field->type->getBlankValue(new NullPage(), $field, $value);
-		if(is_object($blankValue)) $blankIsObject = true; 
+		$blankIsObject = is_object($blankValue); 
 		if($blankIsObject) $blankValue = '';
 		$blankValue = $database->escapeStr($blankValue);
 		$whereType = 'OR';
