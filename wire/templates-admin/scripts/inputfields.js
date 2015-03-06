@@ -37,6 +37,22 @@ function InputfieldDependencies() {
 		var conditions = [];
 
 		/**
+		 * prettify value parsed from attribute
+		 * 
+		 * @param value
+		 * @return string|int|float
+		 * 
+		 */
+		function prettifyValue(value) {
+				// determine if we need to trim off quotes
+				var first = value.substring(0,1);
+				var last = value.substring(value.length-1, value.length);
+				if((first == '"' || first == "'") && first == last) value = value.substring(1, value.length-1);
+
+				return parseValue(value);
+		}
+
+		/**
 		 * Convert string value to integer or float when appropriate
 		 * 
 		 * @param str string
@@ -84,6 +100,34 @@ function InputfieldDependencies() {
 			}
 			
 			return str;
+		}
+
+		/**
+		 * Convert string value to integer or float when appropriate
+		 * 
+		 * @param n Number of the iteration
+		 * @param values values to match for
+		 * @return int
+		 * 
+		 */
+		function matchValue(n, operator, value, conditionValue) {
+			var matched = 0;
+
+			switch(operator) {
+				case '=': if(value == conditionValue) matched++; break;
+				case '!=': if(value != conditionValue) matched++; break;
+				case '>': if(value > conditionValue) matched++; break;
+				case '<': if(value < conditionValue) matched++; break;
+				case '>=': if(value >= conditionValue) matched++; break;
+				case '<=': if(value <= conditionValue) matched++; break;
+				case '*=':
+				case '%=': if(value.indexOf(conditionValue) > -1) matched++; break;
+			}
+
+			consoleLog('Value #' + n + ' - Current value: ' + value);
+			consoleLog('Value #' + n + ' - Matched? ' + (matched > 0 ? 'YES' : 'NO'));
+
+			return matched;
 		}
 
 		/**
@@ -174,32 +218,30 @@ function InputfieldDependencies() {
 			
 				// also allow for matching a "0" as an unchecked value
 				if((attrType == 'checkbox' || attrType == 'radio') && !$field.is(":checked")) values[1] = '0';
+
+				// force value to be array
+				if(!jQuery.isArray(condition.value)) conditionValues = [condition.value];
+				else conditionValues = condition.value;
+
+				// 
+				if(condition.operator == '!=') numMatchesRequired = (values.length * conditionValues.length);
+				else numMatchesRequired = 1; 
+				consoleLog([values, conditionValues, numMatchesRequired]);
 				
 				// cycle through the values (most of the time, just 1 value).
 				// increment variable 'show' each time a condition matches
 				for(var n = 0; n < values.length; n++) {
-					value = parseValue(values[n], condition.value);
-					
-					switch(condition.operator) {
-						case '=': if(value == condition.value) matched++; break;
-						case '!=': if(value != condition.value) matched++; break;
-						case '>': if(value > condition.value) matched++; break;
-						case '<': if(value < condition.value) matched++; break;
-						case '>=': if(value >= condition.value) matched++; break;
-						case '<=': if(value <= condition.value) matched++; break;
-						case '*=':
-						case '%=': if(value.indexOf(condition.value) > -1) matched++; break;
+					for (var i = conditionValues.length - 1; i >= 0; i--) {
+						value = parseValue(values[n], conditionValues[i]);
+						matched += matchValue(n, condition.operator, value, conditionValues[i]);
 					}
-
-					consoleLog('Value #' + n + ' - Current value: ' + value);
-					consoleLog('Value #' + n + ' - Matched? ' + (matched > 0 ? 'YES' : 'NO'));
 				}
 
 				consoleLog('----');
 
 				// determine whether to show or hide the field
 				if(condition.type == 'show') {
-					if(matched > 0) {
+					if(matched >= numMatchesRequired) {
 						// show it, which is the default behavior
 					} else {
 						show = false;
@@ -315,10 +357,20 @@ function InputfieldDependencies() {
 				consoleLog("Operator: " + operator);
 				consoleLog("value: " + value);
 
-				// determine if we need to trim off quotes
-				var first = value.substring(0,1);
-				var last = value.substring(value.length-1, value.length);
-				if((first == '"' || first == "'") && first == last) value = value.substring(1, value.length-1);
+				// detect OR selector |
+				if(value.indexOf("|") > -1){
+					var value = value.split("|");
+					consoleLog("OR dependency: " + value);
+				}
+
+				// prettify value(s): remove quotes, parse numbers
+				if(jQuery.isArray(value)){
+					for (var i = value.length - 1; i >= 0; i--) {
+						value[i] = prettifyValue(value[i]);
+					}
+				}else{
+					value = prettifyValue(value);
+				}
 
 				// build the condition
 				var condition = {
@@ -326,7 +378,7 @@ function InputfieldDependencies() {
 					'field': field,
 					'subfield': subfield,
 					'operator': operator,
-					'value': parseValue(value)
+					'value': value
 				};
 
 				// append to conditions array
