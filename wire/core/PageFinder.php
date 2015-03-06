@@ -1345,40 +1345,49 @@ class PageFinder extends Wire {
 
 		static $cnt = 0; 
 
-		$parent_id = $selector->value;
+		$wheres = array();
+		$parent_ids = $selector->value;
+		if(!is_array($parent_ids)) $parent_ids = array($parent_ids); 
+		
+		foreach($parent_ids as $parent_id) {
 
-		if(!ctype_digit("$parent_id")) {
-			// parent_id is a path, convert a path to a parent
-			$parent = new NullPage();
-			$path = wire('sanitizer')->path($parent_id);
-			if($path) $parent = wire('pages')->get('/' . trim($path, '/') . '/');
-			$parent_id = $parent->id;
-			if(!$parent_id) {
-				$query->select("1>2"); // force the query to fail
+			if(!ctype_digit("$parent_id")) {
+				// parent_id is a path, convert a path to a parent
+				$parent = new NullPage();
+				$path = wire('sanitizer')->path($parent_id);
+				if($path) $parent = wire('pages')->get('/' . trim($path, '/') . '/');
+				$parent_id = $parent->id;
+				if(!$parent_id) {
+					$query->select("1>2"); // force the query to fail
+					return;
+				}
+			}
+
+			$parent_id = (int) $parent_id;
+
+			$cnt++;
+
+			if($parent_id == 1) {
+				// homepage
+				if($selector->operator == '!=') {
+					// homepage is only page that can match not having a has_parent of 1
+					$query->where("pages.id=1");
+				} else {
+					// no different from not having a has_parent, so we ignore it 
+				}
 				return;
 			}
+
+			// the subquery performs faster than the old method (further below) on sites with tens of thousands of pages
+			$in = $selector->operator == '!=' ? 'NOT IN' : 'IN';
+			// $query->where("pages.parent_id $in (SELECT pages_id FROM pages_parents WHERE parents_id=$parent_id OR pages_id=$parent_id)");
+			// @pine3tree PR #951:
+			$wheres[] = "(pages.parent_id=$parent_id OR pages.parent_id $in (" . 
+						"SELECT pages_id FROM pages_parents WHERE parents_id=$parent_id)" . 
+						")";
 		}
-
-		$parent_id = (int) $parent_id;
-
-		$cnt++;
-
-		if($parent_id == 1) {
-			// homepage
-			if($selector->operator == '!=') {
-				// homepage is only page that can match not having a has_parent of 1
-				$query->where("pages.id=1"); 
-			} else {
-				// no different from not having a has_parent, so we ignore it 
-			}
-			return; 
-		}
-
-		// the subquery performs faster than the old method (further below) on sites with tens of thousands of pages
-		$in = $selector->operator == '!=' ? 'NOT IN' : 'IN';
-		// $query->where("pages.parent_id $in (SELECT pages_id FROM pages_parents WHERE parents_id=$parent_id OR pages_id=$parent_id)");
-		// @pine3tree PR #951:
-		$query->where("(pages.parent_id=$parent_id OR pages.parent_id $in (SELECT pages_id FROM pages_parents WHERE parents_id=$parent_id))");
+	
+		$query->where(implode(' OR ', $wheres)); 
 
 		/*
 		// OLD method kept for reference

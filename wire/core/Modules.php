@@ -533,12 +533,14 @@ class Modules extends WireArray {
 			// now determine if this module had any other modules waiting on it as a dependency
 			while($moduleName = array_shift($loadedNames)) {
 				// iternate through delayed modules that require this one
-				if(!isset($modulesRequired[$moduleName])) continue; 
+				if(empty($modulesRequired[$moduleName])) continue; 
 				
 				foreach($modulesRequired[$moduleName] as $delayedName => $delayedPathName) {
 					$loadNow = true;
-					if(isset($modulesDelayed[$delayedName])) foreach($modulesDelayed[$delayedName] as $requiresModuleName) {
-						if(!isset($modulesLoaded[$requiresModuleName])) $loadNow = false;
+					if(isset($modulesDelayed[$delayedName])) {
+						foreach($modulesDelayed[$delayedName] as $requiresModuleName) {
+							if(!isset($modulesLoaded[$requiresModuleName])) $loadNow = false;
+						}
 					}
 					if(!$loadNow) continue; 
 					// all conditions satisified to load delayed module
@@ -637,13 +639,18 @@ class Modules extends WireArray {
 				foreach($moduleInfo['requires'] as $requiresClass) {
 					if(!class_exists($requiresClass, false)) {
 						$requiresInfo = $this->getModuleInfo($requiresClass); 
-						if(!empty($requiresInfo['error']) || $requiresInfo['autoload'] === true || !$this->isInstalled($requiresClass)) {	
+						if(!empty($requiresInfo['error']) 
+							|| $requiresInfo['autoload'] === true 
+							|| !$this->isInstalled($requiresClass)) {	
 							// we only handle autoload===true since load() only instantiates other autoload===true modules
 							$requires[] = $requiresClass;
 						}
 					}
 				}
-				if(count($requires)) return $basename;
+				if(count($requires)) {
+					// module has unmet requirements
+					return $basename;
+				}
 			}
 
 			// if not defined in getModuleInfo, then we'll accept the database flag as enough proof
@@ -675,6 +682,7 @@ class Modules extends WireArray {
 
 		$this->moduleIDs[$basename] = $info['id'];
 		$this->set($basename, $module);
+		
 		
 		return $basename; 
 	}
