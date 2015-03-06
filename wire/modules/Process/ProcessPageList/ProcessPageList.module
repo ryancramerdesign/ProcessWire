@@ -381,8 +381,7 @@ abstract class ProcessPageListRender extends Wire {
 
 			if($subfield && is_object($v)) {
 				if($v instanceof WireArray && count($v)) $v = $v->first();
-				$v->of(true);
-				$v = $v->get($subfield);
+				$v = $v->getFormatted($subfield);
 
 			} else if(($field == 'created' || $field == 'modified') && ctype_digit("$v")) {
 				$v = date($this->fuel('config')->dateFormat, (int) $v); 
