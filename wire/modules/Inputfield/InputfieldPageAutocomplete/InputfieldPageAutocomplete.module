@@ -111,7 +111,15 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		// convert our list of search fields to a CSV string for use in the ProcessPageSearch query
 		$searchField = '';
 		foreach(explode(' ', $this->searchFields) as $key => $name) {
-			$name = wire('sanitizer')->fieldName(trim($name, ',| '));	
+			if (strpos($name, '.')) {
+				list($fieldName, $subfieldName) = explode('.', $name);
+				$fieldName = wire('sanitizer')->fieldName(trim($fieldName, ',|'));
+				$subfieldName = wire('sanitizer')->fieldName(trim($subfieldName, ',|'));
+				$name = $fieldName . '-' . $subfieldName;
+			} else {
+				$name = wire('sanitizer')->fieldName(trim($name, ',| '));	
+			}
+			
 			if(!$name) continue; 
 			$searchField .= ($searchField ? ',' : '') . $name; 
 		}
