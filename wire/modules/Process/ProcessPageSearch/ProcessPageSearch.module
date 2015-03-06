@@ -838,7 +838,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 					continue; 
 				}
 				
-				$value = $page->get($key);
+				$value = $page->getFormatted($key);
 				if(empty($value) && $this->adminSearchMode) {
 					if($key == 'title') $value = $page->name; // prevent empty title
 				}
