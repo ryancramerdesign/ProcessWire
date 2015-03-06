@@ -189,8 +189,13 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 
 			// replace '-' with '.' since '.' is not allowed in URL variable names
 			if(strpos($name, '-')) {
-				list($name, $subname) = explode('-', $name); 
-				$name = "$name.$subname";
+				$names = explode(',', $name);
+				$name = '';
+				foreach ($names as $n) {
+					list($fieldName, $subfieldName) = explode('-', $n);
+					$name .= "$fieldName.$subfieldName,";
+				}
+				$name = rtrim($name, ',');
 			}
 
 			if(strpos($name, ',')) $name = $this->sanitizer->names($name, ',', array('_', '.')); 
