@@ -100,6 +100,22 @@ class FieldtypeText extends Fieldtype {
 	}
 
 	/**
+	 * Return whether the given value is considered empty or not
+	 *
+	 * This an be anything that might be present in a selector value and thus is
+	 * typically a string. However, it may be used outside of that purpose so you
+	 * shouldn't count on it being a string.
+	 *
+	 * @param Field $field
+	 * @param mixed $value
+	 * @return bool
+	 *
+	 */
+	public function isEmptyValue(Field $field, $value) {
+		return !strlen($value); 
+	}
+
+	/**
 	 * Return the associated Inputfield
 	 *
 	 */

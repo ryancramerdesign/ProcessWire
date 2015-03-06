@@ -441,7 +441,7 @@ class WireDatabaseBackup {
 
 		$fp = fopen($filename, "r+");
 		$line = fgets($fp);
-		if(strpos($line, self::fileHeader) === 0) {
+		if(strpos($line, self::fileHeader) === 0 || strpos($line, "# " . self::fileHeader) === 0) {
 			$pos = strpos($line, '{');
 			if($pos !== false) {
 				$json = substr($line, $pos);
@@ -601,7 +601,7 @@ class WireDatabaseBackup {
 		$json = json_encode($info); 
 		$json = str_replace(array("\r", "\n"), " ", $json);
 		
-		fwrite($fp, self::fileHeader . " $json\n"); 
+		fwrite($fp, "# " . self::fileHeader . " $json\n"); 
 		fclose($fp); 
 		if(function_exists('wireChmod')) wireChmod($file); 
 		return true; 
@@ -629,7 +629,7 @@ class WireDatabaseBackup {
 			fwrite($fp, "\n" . rtrim($sql, '; ') . ";\n"); 
 		}
 		
-		$footer = self::fileFooter;
+		$footer = "# " . self::fileFooter;
 		if(count($summary)) {
 			$json = json_encode($summary); 
 			$json = str_replace(array("\r", "\n"), " ", $json); 
@@ -952,7 +952,7 @@ class WireDatabaseBackup {
 	 *
 	 */
 	protected function restoreUseLine($line) {
-		if(empty($line) || substr($line, 0, 2) == '--') return false;
+		if(empty($line) || substr($line, 0, 2) == '--' || substr($line, 0, 1) == '#') return false;
 		return true;
 	}
 

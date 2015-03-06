@@ -39,19 +39,19 @@ class ProcessCommentsManager extends Process {
 			'nav' => array(
 				array(
 					'url' => '?go=approved',
-					'label' => 'Approved',
+					'label' => __('Approved', __FILE__),
 					),
 				array(
 					'url' => '?go=pending',
-					'label' => 'Pending',
+					'label' => __('Pending', __FILE__),
 					), 
 				array(
 					'url' => '?go=spam',
-					'label' => 'Spam',
+					'label' => __('Spam', __FILE__),
 					),
 				array(
 					'url' => '?go=all',
-					'label' => 'All',
+					'label' => __('All', __FILE__),
 					)
 				)
 			); 
@@ -131,8 +131,10 @@ class ProcessCommentsManager extends Process {
 		if(!$name) return $this->error($this->_('No comments field specified in URL')); 
 		$field = $this->fields->get($name); 
 		if(!$field || !$field->type instanceof FieldtypeComments) return $this->error($this->_('Unrecognized field')); 
-		$status = $this->input->urlSegment3; 
-		if(empty($status) || ($status != 'all' && !in_array($status, $this->statuses))) return $this->error($this->_('Unrecognized status (urlSegment3)')); 
+		$status = $this->input->urlSegment3;
+		if(empty($status) || ($status != 'all' && !in_array($status, $this->statuses))) {
+			$this->wire('session')->redirect($this->wire('page')->url . "list/$field->name/all/");
+		}
 		$headline = ucfirst($status); 
 		$this->breadcrumb('../', $field->getLabel()); 
 

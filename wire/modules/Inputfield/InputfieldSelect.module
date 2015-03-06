@@ -376,6 +376,20 @@ class InputfieldSelect extends Inputfield {
 	}
 
 	public function setAttribute($key, $value) {
+		if($key == 'value') {
+			if(is_object($value) || (is_string($value) && strpos($value, '|'))) {
+				$value = (string) $value;
+				if($this instanceof InputfieldHasArrayValue) {
+					$value = explode('|', $value);
+				}
+			} else if(is_array($value)) {
+				if($this instanceof InputfieldHasArrayValue) {
+					// ok
+				} else {
+					$value = reset($value); 
+				}
+			}
+		}
 		return parent::setAttribute($key, $value);
 	}
 
@@ -428,6 +442,7 @@ class InputfieldSelect extends Inputfield {
 				$value = "=\nOption 1\nOption 2\nOption 3";
 				if(!$isInputfieldSelect) $value = ltrim($value, '='); 
 			}
+			$f->attr('value', $value); 
 			$f->attr('rows', 10); 
 			$f->label = $this->_('Options');
 			$f->description = $this->_('Enter the options that may be selected, one per line.');

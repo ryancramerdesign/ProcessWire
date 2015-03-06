@@ -384,12 +384,7 @@ class Modules extends WireArray {
 				$debugKey = $this->debugTimerStart("initModule($className)"); 
 			}
 		
-			try { 
-				$module->init();
-			} catch(Exception $e) {
-				$className = get_class($module); 
-				$this->error("Module $className failed init - " . $e->getMessage(), Notice::log); 
-			}
+			$module->init();
 			
 			if($this->debug) $this->debugTimerStop($debugKey);
 		}
@@ -785,7 +780,7 @@ class Modules extends WireArray {
 	 * This method is the only one guaranteed to return a real [non-placeholder] module. 
 	 *
 	 * @param string|int $key Module className or database ID
-	 * @return Module|null
+	 * @return Module|Inputfield|Fieldtype|Process|Textformatter|null
 	 * @throws WirePermissionException If module requires a particular permission the user does not have
 	 *
 	 */
@@ -1822,6 +1817,7 @@ class Modules extends WireArray {
 			// module is an instance
 			$moduleName = method_exists($module, 'className') ? $module->className() : get_class($module); 
 			// return from cache if available
+			
 			if(empty($options['noCache']) && !empty($this->moduleInfoCache[$moduleID])) {
 				$info = $this->moduleInfoCache[$moduleID]; 
 				$fromCache = true; 

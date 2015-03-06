@@ -2,6 +2,12 @@
 
 /**
  * InputfieldForm: An Inputfield for containing form elements
+ * 
+ * @property string $prependMarkup Optional markup to prepend to the form output
+ * @property string $appendMarkup Optional markup to append to the form output
+ * @property bool $protectCSRF Set to false to disable automatic CSRF protection
+ * @property int $columnWidthSpacing Optionally set the column width spacing (pixels)
+ * @property string $description Optionally set a description headline for the form 
  *
  */
 class InputfieldForm extends InputfieldWrapper {
@@ -10,7 +16,7 @@ class InputfieldForm extends InputfieldWrapper {
 		return array(
 			'title' => __('Form', __FILE__), // Module Title
 			'summary' => __('Contains one or more fields in a form', __FILE__), // Module Summary
-			'version' => 104,
+			'version' => 105,
 			'permanent' => true, 
 			);
 	}
@@ -23,6 +29,8 @@ class InputfieldForm extends InputfieldWrapper {
 		$this->attr('method', 'post'); 
 		$this->attr('action', './'); 
 		$this->set('class', ''); 
+		$this->set('prependMarkup', '');
+		$this->set('appendMarkup', '');
 	}
 
 	protected function debugNote($note) {
@@ -53,16 +61,18 @@ class InputfieldForm extends InputfieldWrapper {
 		}
 		
 		$out = 	"\n<form $attrStr>" . 
-			$description . 
+			$description . $this->prependMarkup . 
 			parent::___render() .
 			$tokenField . 
+			$this->appendMarkup . 
 			"\n</form>";
 
 		return $out; 
 	}
 
 	public function ___processInput(WireInputData $input) {
-		
+	
+		$this->getErrors(true); // reset
 		if($this->protectCSRF && $this->attr('method') == 'post') $this->wire('session')->CSRF->validate(); // throws exception if invalid
 		$result = parent::___processInput($input); 		
 		
@@ -126,13 +136,25 @@ class InputfieldForm extends InputfieldWrapper {
 					if(isset($savedChildren[$name]) && $name !== "1") {
 						
 						// if field had already been through the loop, but was not processed, add it back in for processing
-						if(!isset($delayedChildren[$name]) && !$savedChildren[$name]->showIfProcessed) $delayedChildren[$name] = $savedChildren[$name];
+						if(!isset($delayedChildren[$name]) 
+							&& !$savedChildren[$name]->showIfProcessed
+							&& !$savedChildren[$name]->showIfSkipped) {
+								$delayedChildren[$name] = $savedChildren[$name];
+							}
 						
-						// force $delayedChildren[$name] to match so that it is processed here, by giving it special selctor: 1>0
-						if(!strlen($savedChildren[$name]->getSetting('showIf'))) $savedChildren[$name]->showIf = '1>0'; // forced match
+						// force $delayedChildren[$name] to match so that it is processed here, by giving it special selector: 1>0
+						if(!strlen($savedChildren[$name]->getSetting('showIf'))) {
+							$savedChildren[$name]->showIf = '1>0'; // forced match
+						}
 						
-						// dependency $field is another one in $delayedChildren, send it back to the end
-						if(!$savedChildren[$name]->showIfProcessed) {
+						if($savedChildren[$name]->showIfSkipped) {
+							// dependency $field does not need to be processed, so neither does this field
+							unset($delayedChildren[$child->name]);
+							$processNow = false;
+							$this->debugNote("Removing field '$child->name' because '$name' it not shown."); 
+							
+						} else if(!$savedChildren[$name]->showIfProcessed) {
+							// dependency $field is another one in $delayedChildren, send it back to the end
 							unset($delayedChildren[$child->name]);
 							// put it back on the end
 							$delayedChildren[$child->name] = $child; 

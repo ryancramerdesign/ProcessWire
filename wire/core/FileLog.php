@@ -16,6 +16,7 @@
 class FileLog extends Wire {
 	
 	const defaultChunkSize = 12288; 
+	const debug = false; 
 
 	protected $logFilename = false; 
 	protected $itemsLogged = array(); 
@@ -150,7 +151,7 @@ class FileLog extends Wire {
 		$lines = explode("\n", $this->getChunk($chunkNum, $chunkSize, $reverse));
 		foreach($lines as $key => $line) {
 			$line = trim($line); 
-			if(empty($line)) {
+			if(!strlen($line)) {
 				unset($lines[$key]); 
 			} else {
 				$lines[$key] = $line;
@@ -175,12 +176,14 @@ class FileLog extends Wire {
 	protected function getChunk($chunkNum = 1, $chunkSize = 0, $reverse = true) {
 
 		if($chunkSize < 1) $chunkSize = self::defaultChunkSize;
-		
+	
 		if($reverse) {
 			$offset = -1 * ($chunkSize * $chunkNum);
 		} else {
 			$offset = $chunkSize * ($chunkNum-1);
 		}
+		
+		if(self::debug) $this->message("chunkNum=$chunkNum, chunkSize=$chunkSize, offset=$offset, filesize=" . filesize($this->logFilename)); 
 		
 		$data = '';
 		$totalChunks = $this->getTotalChunks($chunkSize); 
@@ -191,6 +194,7 @@ class FileLog extends Wire {
 		fseek($fp, $offset, ($reverse ? SEEK_END : SEEK_SET));
 	
 		// make chunk include up to beginning of first line
+		fseek($fp, -1, SEEK_CUR);
 		while(ftell($fp) > 0) {
 			$chr = fread($fp, 1);
 			if($chr == "\n") break;
@@ -232,6 +236,11 @@ class FileLog extends Wire {
 	 */
 	public function getTotalLines() {
 		
+		if(filesize($this->logFilename) < self::defaultChunkSize) {
+			$data = file($this->logFilename); 
+			return count($data); 
+		}
+		
 		if(!$fp = fopen($this->logFilename, "r")) return 0;
 		$totalLines = 0;
 
@@ -242,7 +251,7 @@ class FileLog extends Wire {
 		
 		fclose($fp); 
 		
-		return $totalLines-1; 
+		return $totalLines;
 	}
 
 	/**
@@ -318,6 +327,7 @@ class FileLog extends Wire {
 		$chunkNum = 0;
 		$totalChunks = $this->getTotalChunks(self::defaultChunkSize); 
 		$stopNow = false;
+		$chunkLineHashes = array();
 		
 		while($chunkNum <= $totalChunks && !$stopNow) {
 			
@@ -325,8 +335,12 @@ class FileLog extends Wire {
 			if(empty($chunk)) break;
 			
 			foreach($chunk as $line) {
-				
-				$valid = $this->isValidLine($line, $options, $stopNow);
+
+				$line = trim($line); 
+				$hash = md5($line); 
+				$valid = !isset($chunkLineHashes[$hash]);
+				$chunkLineHashes[$hash] = 1; 
+				if($valid) $valid = $this->isValidLine($line, $options, $stopNow);
 				if(!$hasFilters && count($lines) >= $limit) $stopNow = true; 
 				if($stopNow) break;
 				if(!$valid) continue; 
@@ -335,15 +349,18 @@ class FileLog extends Wire {
 				if($limit && ($n <= $start || $n > $end)) continue; 
 				$cnt++;
 				if($fp) {
-					fwrite($fp, trim($line) . "\n");
+					fwrite($fp, $line . "\n");
 				} else {
+					if(self::debug) $line .= " (line $n, chunk $chunkNum, hash=$hash)";
 					$lines[$n] = $line;
 				}
 			}
 		}
 		
 		$total = $hasFilters ? $n : $this->getTotalLines();
+		$end = $start + count($lines); 
 		if($end > $total) $end = $total;
+		if(count($lines) < $limit && $total > $end) $total = $end; 
 		
 		if($fp) {
 			fclose($fp);

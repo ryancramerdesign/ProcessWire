@@ -33,7 +33,7 @@ class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
 	const versionMinor = 5; 
-	const versionRevision = 15; 
+	const versionRevision = 21; 
 	const versionSuffix = 'dev';
 	
 	const indexVersion = 250; // required version for index.php file (represented by PROCESSWIRE define)
@@ -321,7 +321,10 @@ class ProcessWire extends Wire {
 	 *
 	 */
 	protected function ___finished() {
-		$this->wire('cache')->maintenance();
+		$session = $this->wire('session'); 
+		if($session) $session->maintenance();
+		$cache = $this->wire('cache'); 
+		if($cache) $cache->maintenance();
 	}
 
 	/**

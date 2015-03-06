@@ -21,7 +21,7 @@ class InputfieldSubmit extends Inputfield {
 		$this->attr('name', 'submit'); 
 		$this->attr('value', $this->_('Submit')); // Standard submit button label
 		$this->attr('class', 'ui-button ui-widget ui-state-default ui-corner-all'); 
-		$this->skipLabel = Inputfield::skipLabelHeader; 
+		$this->skipLabel = Inputfield::skipLabelBlank; 
 	}
 
 	public function ___render() {

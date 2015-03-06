@@ -23,11 +23,11 @@
  * @property string $path The page's URL path from the homepage (i.e. /about/staff/ryan/)
  * @property string $url The page's URL path from the server's document root (may be the same as the $page->path)
  * @property string $httpUrl Same as $page->url, except includes protocol (http or https) and hostname.
- * @property Page $parent The parent Page object or a NullPage if there is no parent.
+ * @property Page|string|int $parent The parent Page object or a NullPage if there is no parent. For assignment, you may also use the parent path (string) or id (integer). 
  * @property int $parent_id The numbered ID of the parent page or 0 if homepage or NullPage.
  * @property PageArray $parents All the parent pages down to the root (homepage). Returns a PageArray.
  * @property Page $rootParent The parent page closest to the homepage (typically used for identifying a section)
- * @property Template $template The Template object this page is using
+ * @property Template|string $template The Template object this page is using. The template name (string) may also be used for assignment.
  * @property FieldsArray $fields All the Fields assigned to this page (via it's template, same as $page->template->fields). Returns a FieldsArray.
  * @property int $numChildren The number of children (subpages) this page has, with no exclusions (fast).
  * @property int $numVisibleChildren The number of visible children (subpages) this page has. Excludes unpublished, no-access, hidden, etc.
@@ -474,6 +474,19 @@ class Page extends WireData implements Countable {
 		return $this; 
 	}
 
+	/**
+	 * Force setting a value, skipping over any checks or errors
+	 * 
+	 * Enables setting a value when page has no template assigned, for example. 
+	 * 
+	 * @param $key
+	 * @param $value
+	 * @return $this
+	 * 
+	 */
+	public function setForced($key, $value) {
+		return parent::set($key, $value); 
+	}
 
 	/**
 	 * Set the value of a field that is defined in the page's Fieldgroup
@@ -640,16 +653,16 @@ class Page extends WireData implements Countable {
 					if($this->settings['modified_users_id'] == $this->wire('user')->id) $this->modifiedUser = $this->wire('user'); // prevent possible recursion loop
 						else $this->modifiedUser = $this->wire('users')->get((int) $this->settings['modified_users_id']);
 				}
-				$this->modifiedUser->of($this->of());
 				$value = $this->modifiedUser; 
+				if($value) $value->of($this->of());
 				break;
 			case 'createdUser':
 				if(!$this->createdUser) {
 					if($this->settings['created_users_id'] == $this->wire('user')->id) $this->createdUser = $this->wire('user'); // prevent recursion
 						else $this->createdUser = $this->wire('users')->get((int) $this->settings['created_users_id']); 
 				}
-				$this->createdUser->of($this->of());
 				$value = $this->createdUser; 
+				if($value) $value->of($this->of());
 				break;
 			case 'urlSegment':
 				$value = $this->wire('input')->urlSegment1; // deprecated, but kept for backwards compatibility
@@ -684,9 +697,9 @@ class Page extends WireData implements Countable {
 
 				// check if it's a field.subfield property
 				if(strpos($key, '.') && ($value = $this->getFieldSubfieldValue($key)) !== null) return $value; 
-
+				
 				// optionally let a hook look at it
-				if(self::isHooked('Page::getUnknown()')) return $this->getUnknown($key);
+				if(self::isHooked('Page::getUnknown()')) $value = $this->getUnknown($key);
 		}
 
 		return $value; 
@@ -803,8 +816,8 @@ class Page extends WireData implements Countable {
 	 *
 	 */
 	protected function getFieldValue($key) {
-		if(!$this->template) return null;
-		$field = $this->template->fieldgroup->getField($key); 
+		if(!$this->template) return parent::get($key); 
+		$field = $this->template->fieldgroup->getField($key);
 		$value = parent::get($key); 
 		if(!$field) return $value;  // likely a runtime field, not part of our data
 
@@ -1432,7 +1445,7 @@ class Page extends WireData implements Countable {
 	 */
 	public function editUrl() {
 		$adminTemplate = $this->wire('templates')->get('admin');
-		$https = $adminTemplate && $adminTemplate->https;
+		$https = $adminTemplate && ($adminTemplate->https > 0);
 		$url = ($https && !$this->wire('config')->https) ? 'https://' . $this->wire('config')->httpHost : '';
 		$url .= $this->wire('config')->urls->admin . "page/edit/?id=$this->id";
 		return $url;
@@ -1636,7 +1649,7 @@ class Page extends WireData implements Countable {
 		if($value === false) return $status; 
 		$names = array();
 		foreach(self::$statuses as $name => $value) {
-			if($status & $value) $names[$status] = $name; 
+			if($status & $value) $names[$value] = $name; 
 		}
 		return $names; 
 	}
@@ -1797,7 +1810,9 @@ class Page extends WireData implements Countable {
 	 *
 	 */
 	public function __isset($key) {
-		if(isset($this->settings[$key])) return true; 
+		if(isset($this->settings[$key])) return true;
+		$natives = array('template', 'parent', 'createdUser', 'modifiedUser');
+		if(in_array($key, $natives)) return $this->$key ? true : false;
 		if(self::$issetHas && $this->template && $this->template->fieldgroup->hasField($key)) return true;
 		return parent::__isset($key); 
 	}

@@ -23,6 +23,7 @@ class WireCache extends Wire {
 	 */
 	const expireNever = '2010-04-08 03:10:10';
 	const expireSave = '2010-01-01 01:01:01';
+	const expireNow = 0;
 	const expireHourly = 3600; 
 	const expireDaily = 86400;
 	const expireWeekly = 604800;
@@ -235,7 +236,7 @@ class WireCache extends Wire {
 				// page object
 				$expire = $expire->template->id;
 
-			} else if($seconds instanceof Template) {
+			} else if($expire instanceof Template) {
 				// template object
 				$expire = $expire->id;
 
@@ -253,8 +254,14 @@ class WireCache extends Wire {
 			// account for date format as string
 			if(is_string($expire) && !ctype_digit("$expire")) $expire = strtotime($expire);
 
-			$expire = (int) $expire;
-			if(!$expire) $expire = self::expireDaily;
+			if($expire === 0 || $expire === "0") {
+				// zero is allowed if that's what was specified
+				$expire = (int) $expire; 
+			} else {
+				// zero is not allowed because it indicates failed type conversion
+				$expire = (int) $expire;
+				if(!$expire) $expire = self::expireDaily;
+			}
 
 			if($expire > time()) {
 				// a future date has been specified, so we'll keep it

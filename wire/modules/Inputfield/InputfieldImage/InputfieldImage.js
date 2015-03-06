@@ -18,6 +18,15 @@ $(document).ready(function() {
 	}; 
 
 	$("a.InputfieldFileLink").magnificPopup(magnificOptions);
+	
+	$(document).on('reloaded', '.InputfieldImage', function() {
+		var $t = $(this);
+		$t.find("a.InputfieldFileLink").magnificPopup(magnificOptions);
+		if($t.is(".InputfieldImageGrid")) {
+			unsetGridMode($t);
+			setGridMode($t);
+		}
+	}); 
 
 	$(document).on('click', '.InputfieldImage .InputfieldFileMove', function() {
 

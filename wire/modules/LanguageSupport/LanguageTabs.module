@@ -24,7 +24,7 @@ class LanguageTabs extends WireData implements Module {
 			'author' => 'adamspruijt, ryan', 
 			'singular' => true,
 			'autoload' => "template=admin",
-			'requires' => 'LanguageSupportFields'
+			'requires' => 'LanguageSupport'
 		);
 	}
 

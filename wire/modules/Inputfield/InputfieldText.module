@@ -1,7 +1,17 @@
 <?php
 
 /**
- * An Inputfield for handling XHTML "text" form inputs
+ * An Inputfield for handling single line "text" form inputs
+ * 
+ * @property string $type Input type (typically "text")
+ * @property int $size Size of input or 0 for full width
+ * @property int $maxlength Maximum length of value
+ * @property string $placeholder Placeholder attribute text
+ * @property string $pattern HTML5 pattern attribute
+ * @property string $initValue Optional initial/default value
+ * @property bool $stripTags Should HTML tags be stripped from value?
+ * @property bool $useLanguages When combined with multi-language support, setting this to true will provide one input per language. Get/set each language value with the "value[languageID]" property, and just "value" for default language. 
+ * 
  *
  */
 class InputfieldText extends Inputfield {

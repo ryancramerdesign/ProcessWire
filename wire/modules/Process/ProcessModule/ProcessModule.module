@@ -62,6 +62,23 @@ class ProcessModule extends Process {
 			)
 		);
 	}
+	
+	/**
+	 * New core modules allowed to appear in the "new" list
+	 * 
+	 * By default, core modules don't appear in the "new" list, 
+	 * this array contains a list of core modules that are allowed to appear there.
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $newCoreModules = array(
+		'SystemNotifications', 
+		'InputfieldCKEditor',
+		'FieldtypeOptions',
+		'InputfieldIcon', 
+		'ProcessLogger',
+		);
 
 	protected $labels = array();
 
@@ -294,8 +311,8 @@ class ProcessModule extends Process {
 	 *
 	 */
 	protected function renderList() {
-		
-		
+
+		// module arrays: array(moduleName => 0 (uninstalled) or 1 (installed))
 		$modulesArray = $this->modulesArray; 
 		$installedArray = array();
 		$uninstalledArray = array();
@@ -303,14 +320,7 @@ class ProcessModule extends Process {
 		$uninstalledNames = array();
 		$siteModulesArray = array();
 		$coreModulesArray = array();
-		$newModulesArray = array();
-		
-		// by default, core modules don't appear in the "new" list, 
-		// this array contains a list of core modules that are allowed to appear there
-		$newCoreModules = array(
-			'InputfieldCKEditor',
-			'TextformatterImgQA',
-			);
+		$newModulesArray = array(); 
 		
 		if($this->wire('input')->post('new_seconds')) {
 			$this->wire('session')->set('ProcessModuleNewSeconds', (int) $this->wire('input')->post('new_seconds')); 
@@ -331,7 +341,7 @@ class ProcessModule extends Process {
 		
 			$info = $this->modules->getModuleInfoVerbose($name); 
 			
-			$isNew = !$info['core'] || ($info['core'] && in_array($name, $newCoreModules));
+			$isNew = !$info['core'] || ($info['core'] && in_array($name, $this->newCoreModules));
 			if($isNew) $isNew = $info['created'] > 0 && $info['created'] > (time()-$newSeconds);
 			if($isNew) $newModulesArray[$name] = $installed; 
 			
@@ -419,9 +429,11 @@ class ProcessModule extends Process {
 		$tab->attr('title', $this->_('New'));
 		$tab->attr('class', 'WireTab');
 
-		if($this->wire('session')->ProcessModuleNewModules) {
-			foreach($this->wire('session')->ProcessModuleNewModules as $name => $created) {
-				if(!is_numeric($name) && !isset($newModulesArray[$name])) $newModulesArray[$name] = 0;
+		$newModules = $this->wire('session')->get($this, 'newModules'); 
+		if($newModules) foreach($newModules as $name => $created) {
+			if(!is_numeric($name) && !isset($newModulesArray[$name])) {
+				// add to newModulesArray and identify as uninstalled
+				$newModulesArray[$name] = 0;
 			}
 		}
 		
@@ -522,7 +534,7 @@ class ProcessModule extends Process {
 
 		$form->add($tab);
 	
-		if($this->input->get->reset == 2 && !$this->numFound) $this->message($this->_("No new modules found")); 
+		// if($this->input->get->reset == 2 && !$this->numFound) $this->message($this->_("No new modules found")); 
 		$this->session->ModulesUninstalled = $uninstalledNames;
 
 		return $form->render(); 
@@ -558,7 +570,7 @@ class ProcessModule extends Process {
 		$total = 0;
 		$out = '';
 		$this->numFound = 0;
-		$newModules = $this->wire('session')->get('ProcessModuleNewModules');
+		$newModules = $this->wire('session')->get($this, 'newModules');
 		if(!is_array($newModules)) $newModules = array();
 
 		$sections = array();
@@ -696,6 +708,7 @@ class ProcessModule extends Process {
 			$out = $select . $out; 
 		}
 
+		// modules that have no file or info present get removed from newModules
 		$resetNewModules = false; 
 		foreach($newModules as $key => $newModule) {
 			$info = $this->wire('modules')->getModuleInfoVerbose($newModule); 
@@ -704,9 +717,12 @@ class ProcessModule extends Process {
 				$resetNewModules = true;
 			}
 		}
-		if($this->numFound) $resetNewModules = true; 
 		
-		if($resetNewModules) $this->wire('session')->set('ProcessModuleNewModules', $newModules); 
+		// if any new modules were found, this also forces rewrite of session data
+		if($this->numFound) $resetNewModules = true; 
+	
+		// rewrite session data
+		if($resetNewModules) $this->wire('session')->set($this, 'newModules', $newModules); 
 		
 		return $out; 
 	}

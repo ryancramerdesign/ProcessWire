@@ -6,11 +6,10 @@
  * This Inputfield connects the jQuery UI Autocomplete widget with the ProcessWire ProcessPageSearch AJAX API.
  *
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * https://processwire.com
  *
  */
 class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArrayValue {
@@ -19,7 +18,7 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		return array(
 			'title' => __('Page Auto Complete', __FILE__), // Module Title
 			'summary' => __('Multiple Page selection using auto completion and sorting capability. Intended for use as an input field for Page reference fields.', __FILE__), // Module Summary
-			'version' => 103,
+			'version' => 104,
 			);
 	}
 
@@ -51,6 +50,17 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 	
 		// maximum number of items that may be selected
 		$this->set('maxSelectedItems', 0); 
+	
+		// whether or not to use the selection list
+		// if not used, selected value will be populated directly to input
+		$this->set('useList', true); 
+	
+		// autocomplete won't be triggered if input contains any characters present in this string
+		$this->set('disableChars', ''); 
+	
+		// when true, each word will be isolated to a separate searchFields=searchValue, which 
+		// enables it to duplicate ~= operator behavior while using a %= operator. 
+		$this->set('useAndWords', false); 
 	}
 
 	/**
@@ -59,11 +69,12 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 	 */
 	protected function ___renderListItem($label, $value, $class = '') {
 		if($class) $class = " $class";
-		$out = 	"\n<li class='ui-state-default$class'>" . 
-			"<span class='ui-icon ui-icon-arrowthick-2-n-s'></span>" . 
+		$out = 	
+			"\n<li class='ui-state-default$class'>" . 
+			"<i class='fa fa-sort fa-fw'></i> " . 
 			"<span class='itemValue'>$value</span>" . 
 			"<span class='itemLabel'>$label</span> " . 
-			"<a class='itemRemove' href='#'><span class='ui-icon ui-icon-trash'>" . $this->_('remove') . "</span></a>" . 
+			"<a class='itemRemove' href='#'><i class='fa fa-trash'></i></a>" . 
 			"</li>";
 		return $out; 
 	}
@@ -93,7 +104,7 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 	 */
 	public function ___render() {
 
-		$out = $this->renderList();
+		$out = $this->useList ? $this->renderList() : '';
 		$value = implode(',', $this->value); 
 		$url = $this->getAjaxUrl();
 
@@ -112,13 +123,27 @@ class InputfieldPageAutocomplete extends Inputfield implements InputfieldHasArra
 		$operator = $this->operator; 
 		$id = $this->id; 
 		$max = (int) $this->maxSelectedItems; 
+		$class = $this->useList ? 'has_list' : 'no_list';
+		if($this->useAndWords) $class .= " and_words";
+		
+		$disableChars = $this->disableChars; 
+		if($disableChars) {
+			$hasDoubleQuote = strpos($disableChars, '"') !== false; 
+			$hasSingleQuote = strpos($disableChars, "'") !== false; 
+			if($hasDoubleQuote && $hasSingleQuote) {
+				$this->error("disableChars cannot have both double and single quotes"); 
+				$disableChars = str_replace('"', '', $disableChars); 
+			}
+			if($hasSingleQuote) $disableChars = "data-disablechars=\"$disableChars\" ";
+				else $disableChars = "data-disablechars='$disableChars' ";
+		}
 		
 		$out .= <<< _OUT
 
 		<p>
 		<input type='hidden' name='{$this->name}[]' data-max='$max' id='$id' value='$value' />
-		<input type='text' data-parent-input='$id' id='{$id}_input' value='' />
-		<span class='ui-icon ui-icon-arrowreturn-1-e InputfieldPageAutocompleteStatus'></span>
+		<input type='text' data-parent-input='$id' id='{$id}_input' class='$class' value='' $disableChars/>
+		<i class='fa fa-fw fa-angle-double-right InputfieldPageAutocompleteStatus'></i>
 		<span class='notes InputfieldPageAutocompleteNote'><br />$addNote</span>
 		</p>
 		<script>
@@ -132,30 +157,30 @@ _OUT;
 		return $out; 
 	}
 
-        /**
-         * Convert the CSV string provided in the $input to an array of ints needed for this fieldtype
-         *
-         */
-        public function ___processInput(WireInputData $input) {
-
-                parent::___processInput($input);
-
-                $value = $this->attr('value');
-                if(is_array($value)) $value = reset($value);
-                $value = trim($value);
-
-                if(strpos($value, ",") !== false) $value = explode(",", $value);
-                        else if($value) $value = array($value);
-                        else $value = array();
-
-                foreach($value as $k => $v) {
-                        $value[$k] = (int) $v;
-                }
-
-                $this->attr('value', $value);
-
-                return $this;
-        }
+	/**
+	 * Convert the CSV string provided in the $input to an array of ints needed for this fieldtype
+	 *
+	 */
+	public function ___processInput(WireInputData $input) {
+		
+		parent::___processInput($input);
+		
+		$value = $this->attr('value');
+		if(is_array($value)) $value = reset($value);
+		$value = trim($value);
+		
+		if(strpos($value, ",") !== false) $value = explode(",", $value);
+			else if($value) $value = array($value);
+			else $value = array();
+		
+		foreach($value as $k => $v) {
+			$value[$k] = (int) $v;
+		}
+		
+		$this->attr('value', $value);
+		
+		return $this;
+	}
 
 	/**
 	 * Get the AJAX search URL that will be queried (minus the actual term)

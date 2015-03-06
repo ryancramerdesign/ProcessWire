@@ -106,8 +106,21 @@ $cke-link-hover-background: #ffffdd;
 	table th {
 		font-weight: bold; 
 	}
+	
+	img {
 
-	img.cke_anchor {
-		display: inline; 
+		.cke_anchor {
+			display: inline;
+		}
+		.align_left,
+		.align_right,
+		.align_center {
+			padding: 5px;
+			border: 1px solid #ccc;
+		}
+
+		.hidpi {
+			border: 1px dotted #ccc;
+		}
 	}
 }

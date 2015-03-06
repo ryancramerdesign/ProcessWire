@@ -977,7 +977,7 @@ function wireTempDir($name, $options = array()) {
  * Note this function returns the output for you to output wherever you want (delayed output).
  * For direct output, use the wireInclude() function instead. 
  * 
- * @param $filename Assumed relative to /site/templates/ unless you provide a full path name with the filename.
+ * @param string $filename Assumed relative to /site/templates/ unless you provide a full path name with the filename.
  * 	If you provide a path, it must resolve somewhere in site/templates/, site/modules/ or wire/modules/.
  * @param array $vars Optional associative array of variables to send to template file. 
  * 	Please note that all template files automatically receive all API variables already (you don't have to provide them)
@@ -1024,11 +1024,11 @@ function wireRenderFile($filename, array $vars = array(), array $options = array
 	}
 	
 	if($options['defaultPath'] && strpos($filename, './') === 0) {
-		$filename = $options['defaultPath'] . substr($filename, 2);
+		$filename = rtrim($options['defaultPath'], '/') . '/' . substr($filename, 2);
 		
 	} else if($options['defaultPath'] && strpos($filename, '/') !== 0) {
 		// filename is relative to defaultPath (typically /site/templates/)
-		$filename = $options['defaultPath'] . $filename;
+		$filename = rtrim($options['defaultPath'], '/') . '/' . $filename;
 		
 	} else if(strpos($filename, '/') !== false) {
 		// filename is absolute, make sure it's in a location we consider safe
@@ -1193,4 +1193,92 @@ function wireDate($format = '', $ts = null) {
 		else if(strpos($format, '%') !== false) $value = strftime($format, $ts); 
 		else $value = date($format, $ts); 
 	return $value;
+}
+
+
+/**
+ * Render markup for an icon
+ * 
+ * Icon and class can be specified with or without the fa- prefix. 
+ * 
+ * @param string $icon Icon name (currently a font-awesome icon name, but support for more in future)
+ * @param string $class Additional attributes for class (example: "fw" for fixed width)
+ * @return string
+ * 
+ */
+function wireIconMarkup($icon, $class = '') {
+	if(empty($icon)) return '';
+	if(strpos($icon, 'icon-') === 0) $icon = str_replace('icon-', 'fa-', $icon); 
+	if(strpos($icon, 'fa-') !== 0) $icon = "fa-$icon";
+	if($class) {
+		$modifiers = array(
+			'lg', 'fw', '2x', '3x', '4x', '5x', 'spin', 'spinner', 'li', 'border',
+			'rotate-90', 'rotate-180', 'rotate-270', 'flip-horizontal', 'flip-vertical',
+			'stack', 'stack-1x', 'stack-2x', 'inverse',
+		);
+		$classes = explode(' ', $class); 
+		foreach($classes as $key => $modifier) {
+			if(in_array($modifier, $modifiers)) $classes[$key] = "fa-$modifier";	
+		}
+		$class = implode(' ', $classes);
+	}
+	$class = trim("fa $icon $class"); 
+	return "<i class='$class'></i>";
+}
+
+/**
+ * Get the markup or class name for an icon that can represent the given filename
+ * 
+ * @param string $filename Can be any type of filename (with or without path)
+ * @param string|bool $class Additional class attributes (optional). 
+ * 	Or specify boolean TRUE to get just the icon class name (no markup). 
+ * @return string 
+ * 
+ */
+function wireIconMarkupFile($filename, $class = '') {
+	$icon = 'file-o';
+	$icons = array(
+		'pdf' => 'file-pdf-o',
+		'doc' => 'file-word-o',
+		'docx' => 'file-word-o',
+		'xls' => 'file-excel-o',
+		'xlsx' => 'file-excel-o',
+		'xlsb' => 'file-excel-o',
+		'csv' => 'file-excel-o',
+		'zip' => 'file-archive-o',
+		'txt' => 'file-text-o',
+		'rtf' => 'file-text-o',
+		'mp3' => 'file-sound-o',
+		'wav' => 'file-sound-o',
+		'ogg' => 'file-sound-o',
+		'jpg' => 'file-image-o',
+		'jpeg' => 'file-image-o',
+		'png' => 'file-image-o',
+		'gif' => 'file-image-o',
+		'svg' => 'file-image-o',
+		'ppt' => 'file-powerpoint-o',
+		'pptx' => 'file-powerpoint-o',
+		'mov' => 'file-video-o',
+		'mp4' => 'file-video-o',
+		'wmv' => 'file-video-o',
+		'js' => 'file-code-o',
+		'css' => 'file-code-o',
+	);
+	$pos = strrpos($filename, '.'); 
+	$ext = $pos !== false ? substr($filename, $pos+1) : '';
+	if($ext && isset($icons[$ext])) $icon = $icons[$ext];
+	return $class === true ? "fa-$icon" : wireIconMarkup($icon, $class);
+}
+
+/**
+ * Given a quantity of bytes, return a more readable size string
+ * 
+ * @param int $size
+ * @return string
+ * 
+ */
+function wireBytesStr($size) {
+	if($size < 1024) return number_format($size) . ' ' . __('bytes', __FILE__);
+	$kb = round($size / 1024);
+	return number_format($kb) . " " . __('kB', __FILE__); // kilobytes
 }

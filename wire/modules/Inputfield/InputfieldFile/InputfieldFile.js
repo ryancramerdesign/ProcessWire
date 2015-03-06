@@ -132,11 +132,19 @@ $(document).ready(function() {
 	 * and Robert Nyman (http://robertnyman.com/html5/fileapi-upload/fileapi-upload.html)
 	 * 	
 	 */
-	function InitHTML5() {
+	function InitHTML5($inputfield) {
 
-		$(".InputfieldFileUpload").closest('.ui-widget-content, .InputfieldContent').each(function(i) {
+		if($inputfield.length > 0) {
+			var $target = $inputfield.find(".InputfieldFileUpload"); // just one
+		} else {
+			var $target = $(".InputfieldFileUpload"); // all 
+		}
+		$target.closest('.ui-widget-content, .InputfieldContent').each(function (i) {
+			initHTML5Item($(this), i);
+		});
+			
+		function initHTML5Item($this, i) {
 
-			var $this = $(this); 
 			var $form = $this.parents('form'); 
 			var postUrl = $form.attr('action'); 
 
@@ -357,8 +365,8 @@ $(document).ready(function() {
 				evt.preventDefault();
 				evt.stopPropagation();
 			}, false);		
-		});
-	}
+		} // initHTML5Item
+	} // initHTML5
 
 	/**
 	 * MAIN
@@ -374,7 +382,7 @@ $(document).ready(function() {
 	 * 
 	 */
 	if (window.File && window.FileList && window.FileReader && $("#PageIDIndicator").size() > 0) {  
-		InitHTML5();  
+		InitHTML5('');  
 	} else {
 		InitOldSchool();
 	}
@@ -399,5 +407,10 @@ $(document).ready(function() {
 		resizeActive = true; 
 		setTimeout(windowResize, 1000); 
 	}).resize();
+	
+	$(document).on('reloaded', '.InputfieldFileMultiple, .InputfieldFileSingle', function(event) {
+		initSortable($(this).find(".InputfieldFileList"));
+		InitHTML5($(this)); 
+	}); 
 	
 }); 

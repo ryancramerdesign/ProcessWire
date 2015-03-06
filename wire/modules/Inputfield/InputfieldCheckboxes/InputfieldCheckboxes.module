@@ -56,17 +56,19 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 			$checked = '';
 
 			if($this->isOptionSelected($key)) $checked = " checked='checked'";
-			$id = $this->id . "_" . $this->fuel('sanitizer')->name($key); 
+			$id = $this->id . "_" . $this->wire('sanitizer')->name($key); 
 
 			$attrs = $this->getOptionAttributes($key);
-			unset($attrs['checked'], $attrs['selected']); 
+			$disabled = empty($attrs['disabled']) ? '' : " disabled='disabled'";
+			unset($attrs['checked'], $attrs['selected'], $attrs['disabled']); 
 			$attrs = $this->getOptionAttributesString($attrs);
 			if($attrs) $attrs = ' ' . $attrs; 
 
-			$value = $this->entityEncode($value); 
+			$value = $this->entityEncode($value, true); 
 
-			$input = "<label$attrs>" . 
-				"<input$checked " . 
+			$input = 
+				"<label$attrs>" . 
+				"<input$checked$disabled " . 
 				"type='checkbox' " . 
 				"name='{$this->name}[]' " . 
 				"id='$id' " . 

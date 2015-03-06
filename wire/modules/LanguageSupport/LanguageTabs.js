@@ -55,5 +55,8 @@ function toggleLanguageTabs() {
 
 $(document).ready(function() { 
 	$(document).on('click', '.langTabsToggle', toggleLanguageTabs); 
+	$(document).on('reloaded', '.Inputfield', function() {
+		setupLanguageTabs($(this));
+	}); 
 }); 
 

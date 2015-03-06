@@ -20,7 +20,8 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 	protected $form; 
 	protected $page; 
-	protected $field = null;
+	protected $field = null; // if only fields specified, field contains first field
+	protected $fields = array(); // fields to edit
 	protected $masterPage = null; 
 	protected $parent; 
 	protected $user; 
@@ -37,6 +38,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	protected $predefinedParents = array();
 	protected $predefinedTemplates = array();
 	protected $editor = null; // primary editor process, if not $this
+	protected $changes = array(); // holds names of changed fields
 	
 	public static function getModuleInfo() {
 		return array(
@@ -73,15 +75,24 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$this->isTrash = $this->page->isTrash;
 
 		// check if editing specific field or fieldset only
-		$field = $this->wire('input')->get('field');
-		if($field && $this->page) {
-			$field = $this->wire('sanitizer')->fieldName($field); 
-			if(!$field) throw new WireException("Invalid field name"); 
-			$this->field = $this->page->template->fieldgroup->getField($field, true); // get in context
-			if(!$this->field) throw new WireException("Field is not applicable to this page"); 
-			$this->useChildren = false;
-			$this->useSettings = false;
-			$this->useView = false;
+		if($this->page) {
+			$field = $this->wire('input')->get('field');
+			$fields = $this->wire('input')->get('fields'); 
+			if($field && !$fields) $fields = $field;
+			if($fields) {
+				$fields = explode(',', $fields); 
+				foreach($fields as $fieldName) {
+					$fieldName = $this->wire('sanitizer')->fieldName($fieldName);
+					if(!$fieldName) throw new WireException("Invalid field name specified");
+					$field = $this->page->template->fieldgroup->getField($fieldName, true); // get in context
+					if(!$field) throw new WireException("Field '$fieldName' is not applicable to this page");
+					$this->fields[$field->name] = $field; 
+				}
+				$this->field = reset($this->fields);
+				$this->useChildren = false;
+				$this->useSettings = false;
+				$this->useView = false;
+			}
 		}
 
 		// determine if we're going to be dealing with a save/post request
@@ -104,7 +115,10 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 		parent::init();
 
-		if(!$this->isPost) $this->modules->get('JqueryWireTabs'); 
+		if(!$this->isPost) {
+			$this->modules->get('JqueryWireTabs');
+			$this->modules->get('JqueryUI')->use('modal');
+		}
 
 		$title = $this->page->title;
 		if($title) $this->wire('processBrowserTitle', sprintf($this->_('Edit Page: %s'), $title)); 
@@ -183,7 +197,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			$this->form->description = '';
 		}
 
-		if(!$this->field) { 
+		if(!count($this->fields)) { 
 			$tabs = $this->wire('modules')->get('JqueryWireTabs')->renderTabList($this->getTabs(), array('id' => 'PageEditTabs')); 
 			$this->form->value = $tabs; 
 		}
@@ -235,8 +249,11 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 			$this->processInput($this->form); 
 			$changes = array_unique($this->page->getChanges()); 
-			$numChanges = count($changes); 
-			if($numChanges) $this->message(sprintf($this->_('Change: %s'), implode(', ', $changes)), Notice::debug); // Message shown for each changed field
+			$numChanges = count($changes);
+			if($numChanges) {
+				$this->changes = $changes; 
+				$this->message(sprintf($this->_('Change: %s'), implode(', ', $changes)), Notice::debug); // Message shown for each changed field
+			}
 
 			$formErrors = 0; 
 			foreach($this->notices as $notice) {
@@ -285,7 +302,11 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	protected function ___processSaveRedirect($redirectUrl) {
 		if(!$redirectUrl) $redirectUrl = "./?id={$this->page->id}&s=1";
 		if($this->input->get->modal) $redirectUrl .= "&modal=1";
-		if($this->field) $redirectUrl .= "&field={$this->field->name}";
+		if(count($this->fields)) {
+			if(count($this->fields) == 1) $redirectUrl .= "&field={$this->field->name}";
+				else $redirectUrl .= "&fields=" . implode(',', array_keys($this->fields));
+			if(count($this->changes)) $redirectUrl .= "&changes=" . implode(',', $this->changes);
+		}
 		$this->redirectUrl = $redirectUrl;
 		$this->session->redirect($redirectUrl); 
 	}
@@ -303,20 +324,31 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$form->attr('enctype', 'multipart/form-data'); 
 		$form->attr('class', 'ui-helper-clearfix template_' . $this->page->template . ' class_' . $this->page->className); 
 		$form->attr('autocomplete', 'off');
+
+		// for ProcessPageEditImageSelect support
+		if($this->wire('input')->get('uploadOnlyMode') && !$this->wire('config')->ajax) {
+			$form->action .= "&uploadOnlyMode=1";
+			// for modal uploading with InputfieldFile or InputfieldImage
+			if(count($this->fields) && $this->field->type instanceof FieldtypeImage) {
+				$this->redirectUrl = "../image/?id=$this->id";
+			}
+		}
 		
 		$saveName = 'submit_save';
 		$saveLabel = $this->_("Save"); // Button: save
 		$submit2 = null; // second submit button, when applicable
 	
 		if($this->field) { 
-			// focus in on a specific field
+			// focus in on a specific field or fields 
 			
-			$form->action .= "&field={$this->field->name}";
+			$form->action .= count($this->fields) == 1 ? "&field={$this->field->name}" : "&fields=" . implode(',', array_keys($this->fields));
 			$form->addClass('ProcessPageEditSingleField'); 
-			
-			foreach($this->page->getInputfields($this->field->name) as $inputfield) {
-				if(!$this->page->editable($inputfield->name)) continue;
-				$form->add($inputfield); 
+		
+			foreach($this->fields as $field) {
+				foreach($this->page->getInputfields($field->name) as $inputfield) {
+					if(!$this->page->editable($inputfield->name)) continue;
+					$form->add($inputfield);
+				}
 			}
 			
 		} else {
@@ -377,29 +409,35 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	
 				if(get_class($this->page) == 'Page') {
 					//if(!$form->description) $form->description = $this->_("This page is currently unpublished");
-					$submit2 = $this->modules->get('InputfieldSubmit'); 
-					$submit2->attr('name', 'submit_save'); 
-					$submit2->attr('id', 'submit_save_unpublished'); 
-					$submit2->class .= ' ui-priority-secondary head_button_clone'; 
+					$submit2 = $this->modules->get('InputfieldSubmit');
+					$submit2->attr('name', 'submit_save');
+					$submit2->attr('id', 'submit_save_unpublished');
+					$submit2->class .= ' ui-priority-secondary head_button_clone';
 					$submit2->attr('value', $this->_('Save + Keep Unpublished')); // Button: save unpublished
 				}
 	
-				// $saveName remains blank if page is not publishable
-				if($this->page->publishable()) $saveName = 'submit_publish';
-				$saveLabel = $this->_("Publish"); // Button: publish
+				if($this->page->publishable()) {
+					$saveName = 'submit_publish';
+					$saveLabel = $this->_("Publish"); // Button: publish
+				} else {
+					$saveName = '';
+				}
 			} else {
 				// use saveName and saveLabel defined at top of method
 			}
 		} // !$fieldName
 
-		$submit = $this->modules->get('InputfieldSubmit');
-		$submit->attr('id+name', $saveName); 
-		$submit->attr('value', $saveLabel); 
-		$submit->addClass('head_button_clone'); 
-		$form->append($submit); 
+		if($saveName) {
+			$submit = $this->modules->get('InputfieldSubmit');
+			$submit->attr('id+name', $saveName);
+			$submit->attr('value', $saveLabel);
+			$submit->addClass('head_button_clone');
+			$form->append($submit);
+		}
 
 		if($submit2) $form->append($submit2); 
 
+		/*
 		if($this->input->get->modal && $this->page->className() == 'Page') {
 			$submit = $this->modules->get('InputfieldSubmit');
 			$submit->attr('name', $saveName); 
@@ -407,6 +445,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			$submit->attr('value', $saveLabel); 
 			$form->append($submit); 
 		}
+		*/
 
 		$field = $this->modules->get('InputfieldHidden');
 		$field->attr('name', 'id');
@@ -1057,7 +1096,15 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	 */
 	public function setupHeadline() {
 		if($this->field) {
-			$this->headline($this->field->getLabel()); 
+			if(count($this->fields) == 1) {
+				$this->headline($this->field->getLabel());
+			} else {
+				$labels = array();
+				foreach($this->fields as $field) {
+					$labels[] = $field->getLabel(); 
+				}
+				$this->headline(implode(', ', $labels)); 
+			}
 		} else {
 			$page = $this->page ? $this->page : $this->parent; 
 			$this->headline($page->get("title|name"));

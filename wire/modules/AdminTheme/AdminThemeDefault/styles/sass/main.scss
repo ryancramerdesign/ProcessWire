@@ -89,6 +89,11 @@ em {
 	font-style: italic; 
 }
 
+code {
+	font-family: Menlo, Monaco, 'Andale Mono', 'Lucida Console', 'Courier New', monospace;
+	font-size: 14px; 
+}
+
 .description {
 	color: $medium-text-color; 
 	margin: 0.5em 0;
@@ -370,12 +375,13 @@ body.modal {
 
 	&.hasWireTabs #breadcrumbs {
 		display: block;
+		padding: 0.5em 0 0 0;
 		li {
 			display: none; 
 
 			&.title {
 				/* display only title in modal mode */ 
-				display: block;
+				// display: block;
 			}
 		}
 	}
@@ -449,8 +455,6 @@ body:not(.hasWireTabs) #headline .container {
 .fa-4x { font-size: 56px !important; }
 .fa-5x { font-size: 70px !important; }
 
-
-
 /***********************************************************************************************
  * MEDIA QUERIES
  *
@@ -504,6 +508,10 @@ body:not(.hasWireTabs) #headline .container {
 	.Inputfield {
 		clear: both !important;
 		width: 100% !important;
+		margin-left: 0 !important;
+	}
+	.InputfieldHeader,
+	.InputfieldContent {
 		margin-left: 0 !important;
 	}
 	

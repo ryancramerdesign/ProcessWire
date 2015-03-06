@@ -37,7 +37,7 @@
  * @property int $allowPageNum Allow page numbers in URLs? (0=no, 1=yes)
  * @property int $allowChangeUser Allow the createdUser/created_users_id field of pages to be changed? (with API or in admin w/superuser only). 0=no, 1=yes
  * @property int $redirectLogin Redirect when no access: 0 = 404, 1 = login page, url = URL to redirect to.
- * @property int $urlSegments Allow URL segments on pages? (0=no, 1=yes)
+ * @property int|string $urlSegments Allow URL segments on pages? (0=no, 1=yes (all), string=space separted list of segments to allow)
  * @property int $https Use https? 0 = http or https, 1 = https only, -1 = http only
  * @property int $slashUrls Page URLs should have a trailing slash? 1 = yes, 0 = no	
  * @property string $altFilename Alternate filename for template file, if not based on template name.
@@ -166,7 +166,7 @@ class Template extends WireData implements Saveable, Exportable {
 		'allowPageNum' => 0, 		// allow page numbers in URLs?
 		'allowChangeUser' => 0,		// allow the createdUser/created_users_id field of pages to be changed? (with API or in admin w/superuser only)
 		'redirectLogin' => 0, 		// redirect when no access: 0 = 404, 1 = login page, 'url' = URL to redirec to
-		'urlSegments' => 0,		// allow URL segments on pages?
+		'urlSegments' => 0,		// allow URL segments on pages? (0=no, 1=yes any, string=only these segments)
 		'https' => 0, 			// use https? 0 = http or https, 1 = https only, -1 = http only
 		'slashUrls' => 1, 		// page URLs should have a trailing slash? 1 = yes, 0 = no	
 		'altFilename' => '',		// alternate filename for template file, if not based on template name
@@ -216,6 +216,7 @@ class Template extends WireData implements Saveable, Exportable {
 		if($key == 'roles') return $this->getRoles();
 		if($key == 'cacheTime') $key = 'cache_time'; // for camel case consistency
 		if($key == 'icon') return $this->getIcon();
+		if($key == 'urlSegments') return $this->urlSegments();
 
 		return isset($this->settings[$key]) ? $this->settings[$key] : parent::get($key); 
 	}
@@ -416,13 +417,68 @@ class Template extends WireData implements Saveable, Exportable {
 			parent::set($key, $value);
 
 		} else if($key == 'icon') {
-			$this->setIcon($value); 
+			$this->setIcon($value);
 
+		} else if($key == 'urlSegments') {
+			$this->urlSegments($value); 
+			
 		} else {
 			parent::set($key, $value); 
 		}
 
 		return $this; 
+	}
+
+	/**
+	 * Get or set allowed URL segments
+	 * 
+	 * @param array|int|bool|string $value Omit to return current value, or to set value: 
+	 * 	Specify array of allowed URL segments, may include 'segment', 'segment/path' or 'regex:your-regex'.
+	 * 	Or specify true or 1 to enable all URL segments
+	 * 	Or specify 0, false, or blank array to disable all URL segments
+	 * @return array|int Returns array of allowed URL segments, or 0 if disabled, or 1 if any allowed
+	 * 
+	 */
+	public function urlSegments($value = '~') {
+		
+		if($value === '~') {
+			// return current only
+			$value = $this->data['urlSegments'];
+			if(empty($value)) return 0; 
+			if(is_array($value)) return $value; 
+			return 1; 
+			
+		} else if(is_array($value)) {
+			// set array value
+			if(count($value)) {
+				// we'll take it
+				foreach($value as $k => $v) {
+					$v = trim($v); // trim whitespace
+					$v = trim($v, '/'); // remove leading/trailing slashes
+					if($v !== $value[$k]) $value[$k] = $v; 
+				}
+			} else {
+				// blank array becomes 0
+				$value = 0;
+			}
+			
+		} else {
+			// enforce 0 or 1
+			$value = empty($value) ? 0 : 1;
+		}
+	
+		if(empty($this->data['urlSegments']) && empty($value)) {
+			// don't bother updating if both are considered empty
+			return $value;
+		}
+		
+		if($this->data['urlSegments'] !== $value) {
+			// update current value
+			$this->trackChange('urlSegments', $this->data['urlSegments'], $value); 
+			$this->data['urlSegments'] = $value; 
+		} 
+		
+		return $value; 
 	}
 
 	/**
@@ -732,14 +788,17 @@ class Template extends WireData implements Saveable, Exportable {
 		$icon = $this->wire('sanitizer')->pageName($icon); 
 		$current = $this->getIcon(false); 	
 		$label = $this->pageLabelField;
-		if(strpos($icon, "icon-") === 0) $icon = str_replace("icon-", "fa-", $icon);
-		if($icon && strpos($icon, "fa-") !== 0) $icon = "fa-$icon";
+		if(strpos($icon, "icon-") === 0) $icon = str_replace("icon-", "fa-", $icon); // convert icon-str to fa-str
+		if($icon && strpos($icon, "fa-") !== 0) $icon = "fa-$icon"; // convert anon icon to fa-icon
 		if($current) {
-			$this->pageLabelField = str_replace(array("fa-$current", "icon-$current"), $icon, $label); 
+			// replace icon currently in pageLabelField with new one
+			$label = str_replace(array("fa-$current", "icon-$current"), $icon, $label);
 		} else if($icon) {
+			// add icon to pageLabelField where there wasn't one already
 			if(empty($label)) $label = $this->fieldgroup->hasField('title') ? 'title' : '';
-			$this->pageLabelField = trim("$icon $label");
+			$label = trim("$icon $label");
 		}
+		$this->pageLabelField = $label;
 		return $this;
 	}
 

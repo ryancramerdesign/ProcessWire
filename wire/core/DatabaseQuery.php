@@ -19,6 +19,13 @@
  *
  */
 abstract class DatabaseQuery extends WireData { 
+	
+	protected $bindValues = array();
+	
+	public function bindValue($key, $value) {
+		$this->bindValues[$key] = $value; 
+		return $this; 
+	}
 
 	/**
 	 * Enables calling the various parts of a query as functions for a fluent interface.
@@ -75,6 +82,14 @@ abstract class DatabaseQuery extends WireData {
 		foreach($where as $s) $sql .= "\nAND $s ";
 		return $sql;
 	}
+	
+	public function prepare() {
+		$query = $this->wire('database')->prepare($this->getQuery()); 
+		foreach($this->bindValues as $key => $value) {
+			$query->bindValue($key, $value); 
+		}
+		return $query; 
+	}
 
 	/**
 	 * Execute the query with the current database handle
@@ -83,7 +98,7 @@ abstract class DatabaseQuery extends WireData {
 	public function execute() {
 		$database = $this->wire('database');
 		try { 
-			$query = $database->prepare($this->getQuery()); 
+			$query = $this->prepare();
 			$query->execute();
 		} catch(Exception $e) {
 			$msg = $e->getMessage();

@@ -159,6 +159,7 @@ class ImageSizer extends Wire {
 		'quality',
 		'sharpening',
 		'defaultGamma',
+		'scale', 
 		);
 
 	/**
@@ -198,6 +199,14 @@ class ImageSizer extends Wire {
 	 * 
 	 */
 	protected $info = null;
+
+	/**
+	 * HiDPI scale value (2.0 = hidpi, 1.0 = normal)
+	 * 
+	 * @var float
+	 * 
+	 */
+	protected $scale = 1.0;
 
 	/**
 	 * Construct the ImageSizer for a single image
@@ -279,6 +288,12 @@ class ImageSizer extends Wire {
  	 *
 	 */
 	public function ___resize($targetWidth, $targetHeight = 0) {
+		
+		if($this->scale !== 1.0) {
+			// adjust for hidpi
+			if($targetWidth) $targetWidth = ceil($targetWidth * $this->scale);
+			if($targetHeight) $targetHeight = ceil($targetHeight * $this->scale);
+		}
 
 		$orientations = null; // @horst
 		$needRotation = $this->autoRotation !== true ? false : ($this->checkOrientation($orientations) && (!empty($orientations[0]) || !empty($orientations[1])) ? true : false);
@@ -288,7 +303,7 @@ class ImageSizer extends Wire {
 
 		// check if we can load the sourceimage into ram		
 		if(self::checkMemoryForImage(array($this->info[0], $this->info[1], $this->info['channels'])) === false) {
-			throw new WireException(basename($filename) . " - not enough memory to load");
+			throw new WireException(basename($source) . " - not enough memory to load");
 		}
 
 		switch($this->imageType) { // @teppo
@@ -320,7 +335,7 @@ class ImageSizer extends Wire {
 		if(is_array($this->cropExtra)) {
 			// check if we can load a second copy from sourceimage into ram
 			if(self::checkMemoryForImage(array($this->info[0], $this->info[1], 3)) === false) {
-				throw new WireException(basename($filename) . " - not enough memory to load a copy for cropExtra");
+				throw new WireException(basename($source) . " - not enough memory to load a copy for cropExtra");
 			}
 			$imageTemp = imagecreatetruecolor(imagesx($image), imagesy($image));  // create an intermediate memory image
 			imagecopy($imageTemp, $image, 0, 0, 0, 0, imagesx($image), imagesy($image)); // copy our initial image into the intermediate one
@@ -329,7 +344,7 @@ class ImageSizer extends Wire {
 			list($x, $y, $w, $h) = $this->cropExtra;
 			// check if we can load a cropped version into ram
 			if(self::checkMemoryForImage(array($w, $h, 3)) === false) {
-				throw new WireException(basename($filename) . " - not enough memory to load a cropped version for cropExtra");
+				throw new WireException(basename($source) . " - not enough memory to load a cropped version for cropExtra");
 			}
 			$image = imagecreatetruecolor($w, $h);
 			$this->prepareImageLayer($image, $imageTemp);
@@ -362,7 +377,7 @@ class ImageSizer extends Wire {
 			// we have a cropped_before_resized image and need to save this version,
 			// so we let pass it through without further manipulation, we just need to copy it into the final memimage called "$thumb"
 			if(self::checkMemoryForImage(array(imagesx($image), imagesy($image), 3)) === false) {
-				throw new WireException(basename($filename) . " - not enough memory to copy the final cropExtra");
+				throw new WireException(basename($source) . " - not enough memory to copy the final cropExtra");
 			}
 			$thumb = imagecreatetruecolor(imagesx($image), imagesy($image));          // create the final memory image
 			imagecopy($thumb, $image, 0, 0, 0, 0, imagesx($image), imagesy($image));  // copy our intermediate image into the final one
@@ -372,7 +387,7 @@ class ImageSizer extends Wire {
 			// this is the case if we scale up or down _without_ cropping
 
 			if(self::checkMemoryForImage(array($gdWidth, $gdHeight, 3)) === false) {
-				throw new WireException(basename($filename) . " - not enough memory to resize to the final image");
+				throw new WireException(basename($source) . " - not enough memory to resize to the final image");
 			}
 
 			$thumb = imagecreatetruecolor($gdWidth, $gdHeight);
@@ -384,7 +399,7 @@ class ImageSizer extends Wire {
 			// we have to scale up or down and to _crop_
 
 			if(self::checkMemoryForImage(array($gdWidth, $gdHeight, 3)) === false) {
-				throw new WireException(basename($filename) . " - not enough memory to resize to the intermediate image");
+				throw new WireException(basename($source) . " - not enough memory to resize to the intermediate image");
 			}
 
 			$thumb2 = imagecreatetruecolor($gdWidth, $gdHeight);
@@ -392,7 +407,7 @@ class ImageSizer extends Wire {
 			imagecopyresampled($thumb2, $image, 0, 0, 0, 0, $gdWidth, $gdHeight, $this->image['width'], $this->image['height']);
 
 			if(self::checkMemoryForImage(array($targetWidth, $targetHeight, 3)) === false) {
-				throw new WireException(basename($filename) . " - not enough memory to crop to the final image");
+				throw new WireException(basename($source) . " - not enough memory to crop to the final image");
 			}
 
 			$thumb = imagecreatetruecolor($targetWidth, $targetHeight);
@@ -551,7 +566,7 @@ class ImageSizer extends Wire {
 	 *
 	 */
 	protected function getResizeDimensions($targetWidth, $targetHeight) {
-
+		
 		$pWidth = $targetWidth;
 		$pHeight = $targetHeight;
 
@@ -770,7 +785,7 @@ class ImageSizer extends Wire {
 		$this->quality = (int) $n; 
 		return $this;
 	}
-
+	
 	/**
 	 * Given an unknown sharpening value, return the string representation of it
 	 *
@@ -900,6 +915,30 @@ class ImageSizer extends Wire {
 		return $this;
 	}
 
+	/**
+	 * Set scale for hidpi (2.0=hidpi, 1.0=normal, or other value if preferred)
+	 * 
+	 * @param float $scale
+	 * @return $this
+	 * 
+	 */
+	public function setScale($scale) {
+		$this->scale = (float) $scale;
+		return $this;
+	}
+
+	/**
+	 * Enable hidpi mode?
+	 * 
+	 * Just a shortcut for calling $this->scale()
+	 * 
+	 * @param bool $hidpi True or false (default=true)
+	 * @return this
+	 * 
+	 */
+	public function setHidpi($hidpi = true) {
+		return $this->setScale($hidpi ? 2.0 : 1.0);	
+	}
 
 	/**
 	 * Alternative to the above set* functions where you specify all in an array
@@ -910,6 +949,8 @@ class ImageSizer extends Wire {
 	 *	'upscaling' => true,
 	 *	'autoRotation' => true, 
 	 * 	'sharpening' => 'soft' (none|soft|medium|string)
+	 * 	'scale' => 1.0 (use 2.0 for hidpi or 1.0 for normal-default)
+	 * 	'hidpi' => false, (alternative to scale, specify true to enable hidpi)
 	 * @return $this
 	 *
 	 */
@@ -925,6 +966,8 @@ class ImageSizer extends Wire {
 				case 'cropping': $this->setCropping($value); break;
 				case 'defaultGamma': $this->setDefaultGamma($value); break;
 				case 'cropExtra': $this->setCropExtra($value); break;
+				case 'scale': $this->setScale($value); break;
+				case 'hidpi': $this->setHidpi($value); break;
 				
 				default: 
 					// unknown or 3rd party option
@@ -963,6 +1006,7 @@ class ImageSizer extends Wire {
 			'sharpening' => $this->sharpening,
 			'defaultGamma' => $this->defaultGamma,
 			'cropExtra' => $this->cropExtra, 
+			'scale' => $this->scale, 
 			);
 		$options = array_merge($this->options, $options); 
 		return $options; 

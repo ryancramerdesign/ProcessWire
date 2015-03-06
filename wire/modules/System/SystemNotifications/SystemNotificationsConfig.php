@@ -10,12 +10,18 @@ class SystemNotificationsConfig extends ModuleConfig {
 	const ghostPosLeft = 1;
 	const ghostPosRight = 2; 
 	
+	const placementCombined = 0; // notifications and notices bundled together
+	const placementSeparate = 1; // notifications are rendered separately from notices
+	const placementNone = 2; // notifications are not rendered
+	
 	public function getDefaults() {
 		
 		if(empty($this->systemUserName)) $this->systemUserName = $this->users->get($this->config->superUserPageID)->name;
 		
 		return array(
 			'disabled' => 0, 						// SystemNotifications disabled?
+			'placement' => self::placementCombined, // placement of notifications relative to notices
+			'reverse' => 0, 						// reverse default sort order?
 			'systemUserID' => 41,					// user that will receive system notifications
 			'systemUserName' => $this->systemUserName,	// user that will receive system notifications (name)
 			'activeHooks' => array(0, 1, 2), 		// Indexes of $this->systemHooks that are active
@@ -54,12 +60,16 @@ class SystemNotificationsConfig extends ModuleConfig {
 		$f->addOption(1, $this->_('Off'));
 		$f->optionColumns = 1; 
 		$f->columnWidth = 50; 
-		$form->add($f); 
-
-		$f = $modules->get('InputfieldName');
-		$f->attr('name', 'systemUserName');
-		$f->label = __('Name of user that receives system notifications');
-		$f->columnWidth = 50; 
+		$form->add($f);
+		
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'reverse');
+		$f->label = __('Notification order');
+		$f->description = __('Select what order the notifications should display in.'); 
+		$f->addOption(0, __('Newest to oldest'));
+		$f->addOption(1, __('Oldest to newest'));
+		$f->optionColumns = 1;
+		$f->columnWidth = 50;
 		$form->add($f);
 
 		$f = $modules->get('InputfieldCheckboxes');
@@ -70,6 +80,13 @@ class SystemNotificationsConfig extends ModuleConfig {
 		$f->addOption(1, __('User login success and failure'));
 		$f->addOption(2, __('User logout'));
 		$f->notes = __('These are primarily just examples of notifications for the purpose of demonstration.');
+		$f->columnWidth = 50; 
+		$form->add($f);
+		
+		$f = $modules->get('InputfieldName');
+		$f->attr('name', 'systemUserName');
+		$f->label = __('Name of user that receives system notifications');
+		$f->columnWidth = 50;
 		$form->add($f);
 
 		$f = $modules->get('InputfieldInteger');
@@ -149,6 +166,14 @@ class SystemNotificationsConfig extends ModuleConfig {
 		$f->description = __('What side of the screen ghosts should float on.'); 
 		$f->addOption(self::ghostPosLeft, $this->_('Left'));
 		$f->addOption(self::ghostPosRight, $this->_('Right'));
+		$f->columnWidth = 50;
+		$form->add($f);
+		
+		$f = $modules->get('InputfieldRadios');
+		$f->attr('name', 'placement');
+		$f->label = __('Runtime/single-request notices');
+		$f->addOption(self::placementCombined, __('Display as notifications'));
+		$f->addOption(self::placementSeparate, __('Leave them alone'));
 		$f->columnWidth = 50;
 		$form->add($f);
 

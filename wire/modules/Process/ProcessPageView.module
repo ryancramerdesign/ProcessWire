@@ -279,7 +279,7 @@ class ProcessPageView extends Process {
 
 		$this->requestURL = $it; 
 		$urlSegments = array();
-		$maxSegments = wire('config')->maxUrlSegments; 
+		$maxSegments = $this->wire('config')->maxUrlSegments; 
 		if(is_null($maxSegments)) $maxSegments = 4; // default
 		$cnt = 0;
 
@@ -380,7 +380,9 @@ class ProcessPageView extends Process {
 		} 
 
 		// return false if URL segments aren't allowed with this page template
-		if($page->template != 'admin' && count($urlSegments) && !$page->template->urlSegments) return false; 
+		if($page->template != 'admin' && count($urlSegments)) { 
+			if(!$this->isAllowedUrlSegment($page, $urlSegments)) return false;
+		}	
 
 		// now set the URL segments to the $input API variable
 		$cnt = 1; 
@@ -393,6 +395,45 @@ class ProcessPageView extends Process {
 		return true; 
 	}
 
+	/**
+	 * Is the given URL segment allowed according to the page template's settings?
+	 *
+	 * @param Page $page
+	 * @param string|array $segment May be a single segment or path of segments
+	 * @return bool
+	 *
+	 */
+	protected function isAllowedUrlSegment(Page $page, $segment) {
+
+		$urlSegments = $page->template->urlSegments();
+
+		if(is_array($urlSegments)) {
+			// only specific URL segments are allowed
+			if(is_array($segment)) $segment = implode('/', $segment);
+			$segment = trim($segment, '/');
+			$allowed = false;
+			foreach($urlSegments as $allowedSegment) {
+				if(strpos($allowedSegment, 'regex:') === 0) {
+					$regex = '{' . trim(substr($allowedSegment, 6)) . '}';
+					$allowed = preg_match($regex, $segment);
+
+				} else if($segment === $allowedSegment) {
+					$allowed = true;
+				}
+				if($allowed) break;
+			}
+			return $allowed;
+
+		} else if($urlSegments > 0) {
+			// all URL segments are allowed
+			return true;
+
+		} else {
+			// no URL segments are allowed
+			return false;
+		}
+
+	}
 
 	/**
 	 * Check that the current user has access to the page and return it 
@@ -447,22 +488,41 @@ class ProcessPageView extends Process {
 	 */
 	protected function checkProtocol($page) {
 
-		if(!$page->template->https) return; 
-		$url = $this->config->httpHost . $page->url; 
-		if($page->urlSegment) $url .= $page->urlSegment . '/'; 
-		if($page->pageNum > 1) {
-			$prefix = $this->config->pageNumUrlPrefix ? $this->config->pageNumUrlPrefix : 'page';
-			$url .= "$prefix{$page->pageNum}";
+		$requireHTTPS = $page->template->https;
+		if($requireHTTPS == 0) return; // neither HTTP or HTTPS required
+		
+		$config = $this->wire('config');
+		$isHTTPS = $config->https; 
+		$scheme = '';
+
+		if($requireHTTPS == -1 && $isHTTPS) {
+			// HTTP required: redirect to HTTP non-secure version
+			$scheme = "http";
+
+		} else if($requireHTTPS == 1 && !$isHTTPS) {
+			// HTTPS required: redirect to HTTPS secure version
+			$scheme = "https";
+		}
+		
+		if(!$scheme) return;
+		
+		$url = "$scheme://$config->httpHost$page->url";
+		$input = $this->wire('input'); 
+		
+		$urlSegmentStr = $input->urlSegmentStr;
+		if(strlen($urlSegmentStr) && $page->template->urlSegments) {
+			$url = rtrim($url, '/') . '/' . $urlSegmentStr;
+			if($page->template->slashUrls) $url .= '/';
 		}
 
-		if($page->template->https == -1 && $this->config->https) {
-			// redirect to HTTP non-secure version
-			$this->redirectURL = "http://$url";
-
-		} else if($page->template->https == 1 && !$this->config->https) {
-			// redirect to HTTPS secure version
-			$this->redirectURL = "https://$url";
+		$pageNum = $input->pageNum;
+		if($pageNum > 1 && $page->template->allowPageNum) {
+			$prefix = $config->pageNumUrlPrefix;
+			if(!$prefix) $prefix = 'page';
+			$url .= "$prefix$pageNum";
 		}
+		
+		$this->redirectURL = $url;
 	}
 
 	/**

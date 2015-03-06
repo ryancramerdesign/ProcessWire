@@ -524,7 +524,8 @@ class Fields extends WireSaveableItems {
 		}
 
 		$selector = "templates_id=$template->id, include=all";
-		$numPages = $this->wire('pages')->count($selector); 
+		$numPages = $this->getNumPages($field, array('template' => $template)); 
+		$numRows = $this->getNumRows($field, array('template' => $template)); 
 		$success = true;
 
 		if($numPages <= 200 || $hasDeletePageField) {
@@ -559,13 +560,137 @@ class Fields extends WireSaveableItems {
 			try {
 				$query->execute();
 			} catch(Exception $e) {
-				$this->error($e->getMessage());
+				$this->error($e->getMessage(), Notice::log);
 				$success = false;
 			}
 		}
-
-		$this->message(sprintf($this->_('Deleted field "%s" data from %d pages.'), $field->name, $numPages));
+		
+		if($success) {
+			$this->message(
+				sprintf($this->_('Deleted field "%1$s" data in %2$d row(s) from %3$d page(s).'), 
+					$field->name, $numRows, $numPages),
+				Notice::log
+			);
+		} else {
+			$this->error(
+				sprintf($this->_('Error deleting field "%1$s" data, %2$d row(s), %3$d page(s).'), 
+					$field->name, $numRows, $numPages),
+				Notice::log
+			);
+		}
+		
 		return $success;
+	}
+
+	/**
+	 * Return a count of pages containing populated values for the given field
+	 *
+	 * @param Field $field
+	 * @param array $options Optionally specify one of the following options:
+	 * 	template: Specify a Template object, ID or name to isolate returned rows specific to pages using that template.
+	 * 	page: Specify a Page object, ID or path to isolate returned rows specific to that page.
+	 * @return int
+	 * @throws WireException If given option for page or template doesn't resolve to actual page/template.
+	 *
+	 */
+	public function getNumPages(Field $field, array $options = array()) {
+		$options['countPages'] = true; 
+		return $this->getNumRows($field, $options); 
+	}
+
+	/**
+	 * Return a count of database rows populated the given field
+	 *
+	 * @param Field $field
+	 * @param array $options Optionally specify any of the following options:
+	 * 	template: Specify a Template object, ID or name to isolate returned rows specific to pages using that template. 
+	 * 	page: Specify a Page object, ID or path to isolate returned rows specific to that page. 
+	 * 	countPages: Specify boolean true to make it return a page count rather than a row count (default=false). 
+	 * 		There will only potential difference between rows and pages counts with multi-value fields. 
+	 * @return int
+	 * @throws WireException If given option for page or template doesn't resolve to actual page/template.
+	 *
+	 */
+	public function getNumRows(Field $field, array $options = array()) {
+
+		$defaults = array(
+			'template' => 0,
+			'page' => 0,
+			'countPages' => false,
+		);
+
+		$options = array_merge($defaults, $options);
+		$database = $this->wire('database');
+		$table = $database->escapeTable($field->getTable());
+		$useRowCount = false;
+
+		if($options['template']) {
+			// count by pages using specific template
+
+			if($options['template'] instanceof Template) {
+				$template = $options['template'];
+			} else {
+				$template = $this->wire('templates')->get($options['template']);
+			}
+
+			if(!$template) throw new WireException("Unknown template: $options[template]");
+
+			if($options['countPages']) {
+				$sql = 	"SELECT COUNT(DISTINCT pages_id) FROM $table ". 
+						"JOIN pages ON pages.templates_id=:templateID AND pages.id=pages_id ";
+			} else {
+				$sql = 	"SELECT COUNT(*) FROM pages " . 
+						"JOIN $table ON $table.pages_id=pages.id " .
+						"WHERE pages.templates_id=:templateID ";
+			}
+			$query = $database->prepare($sql);
+			$query->bindValue(':templateID', $template->id, PDO::PARAM_INT);
+
+		} else if($options['page']) {
+			// count by specific page
+
+			if(is_int($options['page'])) {
+				$pageID = $options['page'];
+			} else {
+				$page = $this->wire('pages')->get($options['page']);
+				$pageID = $page->id;
+			}
+
+			if(!$pageID) throw new WireException("Unknown page: $options[page]");
+			
+			if($options['countPages']) {
+				$sql = "SELECT COUNT(DISTINCT pages_id) FROM $table WHERE pages_id=:pageID ";
+			} else {
+				$sql = "SELECT COUNT(*) FROM $table WHERE pages_id=:pageID ";
+			}
+
+			$query = $database->prepare($sql);
+			$query->bindValue(':pageID', $pageID, PDO::PARAM_INT);
+
+		} else {
+			// overall total count
+			
+			if($options['countPages']) {
+				$sql = "SELECT COUNT(DISTINCT pages_id) FROM $table";
+			} else {
+				$sql = "SELECT COUNT(*) FROM $table";
+			}
+			$query = $database->prepare($sql);
+		}
+
+		
+		try {
+			$query->execute();
+			if($useRowCount) {
+				$cnt = $query->rowCount();
+			} else {
+				list($cnt) = $query->fetch(PDO::FETCH_NUM);
+			}
+		} catch(Exception $e) {
+			$cnt = 0;
+		}
+
+		return (int) $cnt;
 	}
 
 	/**

@@ -21,7 +21,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'CKEditor',
-			'version' => 130, 
+			'version' => 137, 
 			'summary' => __('CKEditor textarea rich text editor.', __FILE__),
 			'installs' => array('MarkupHTMLPurifier'), 
 			);
@@ -187,6 +187,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	 *
 	 */
 	public function ___render() {
+		$this->wire('modules')->get('JqueryUI')->use('modal');
 
 		$this->globalConfig();
 		$class = $this->className();
@@ -273,12 +274,22 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		if(self::$isConfigured) return;
 
 		$cancelButtonLabel = $this->_('Cancel'); // Cancel button label
+		
+		$linkClassOptions = array();
+		$linkConfig = $this->wire('modules')->getModuleConfigData('ProcessPageEditLink'); 
+		if(!empty($linkConfig) && !empty($linkConfig['classOptions'])) {
+			foreach(explode("\n", $linkConfig['classOptions']) as $option) {
+				$linkClassOptions[] = trim($option, '+ ');	
+			}
+		}
 
 		$settings = array(
 			'language' => $this->_x('en', 'language-code'), // 2 character language code, lowercase
 			'pwlink' => array(
 				'label' => $this->_('Insert Link'), // Insert link label, window headline and button text
-				'cancel' => $cancelButtonLabel
+				'edit' => $this->_('Edit Link'), // Edit link label
+				'cancel' => $cancelButtonLabel,
+				'classOptions' => implode(',', $linkClassOptions),
 				),
 			'pwimage' => array(
 				'selectLabel' => $this->_('Select Image'),
@@ -780,7 +791,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$fieldset->add($f);
 		
 		$inputfields->add($wrapper); 
-
+		
 		return $inputfields; 
 	}
 }

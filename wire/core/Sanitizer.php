@@ -168,22 +168,28 @@ class Sanitizer extends Wire {
 	/**
 	 * Standard alphanumeric and dash, underscore, dot name plus multiple names may be separated by a delimeter
 	 *
-	 * @param string $value Value to filter
+	 * @param string|array $value Value(s) to filter
 	 * @param string $delimeter Character that delimits values (optional)
 	 * @param array $allowedExtras Additional characters that are allowed in the value (optional)
 	 * @param string 1 character replacement value for invalid characters (optional)
 	 * @param bool $beautify
-	 * @return string
+	 * @return string|array Return string if given a string for $value, returns array if given an array for $value
 	 *
 	 */
 	public function names($value, $delimeter = ' ', $allowedExtras = array('-', '_', '.'), $replacementChar = '_', $beautify = false) {
+		$isArray = false;
+		if(is_array($value)) {
+			$isArray = true; 
+			$value = implode(' ', $value); 
+		}
 		$replace = array(',', '|', '  ');
 		if($delimeter != ' ' && !in_array($delimeter, $replace)) $replace[] = $delimeter; 
 		$value = str_replace($replace, ' ', $value);
 		$allowedExtras[] = ' ';
-		$value = $this->nameFilter($value, $allowedExtras, $replacementChar, $beautify, 128);
+		$value = $this->nameFilter($value, $allowedExtras, $replacementChar, $beautify, 8192);
 		if($delimeter != ' ') $value = str_replace(' ', $delimeter, $value); 
-		return $value; 
+		if($isArray) $value = explode($delimeter, $value); 
+		return $value;
 	}
 
 
@@ -669,6 +675,75 @@ class Sanitizer extends Wire {
 	 */
 	public function entities1($str, $flags = ENT_QUOTES, $encoding = 'UTF-8') {
 		return htmlentities($str, $flags, $encoding, false);
+	}
+	
+	/**
+	 * Entity encode while translating some markdown tags to HTML equivalents
+	 * 
+	 * Allowed markdown currently includes: 
+	 * 		**strong**
+	 * 		*emphasis*
+	 * 		[anchor-text](url)
+	 * 		~~strikethrough~~
+	 * 		`code`
+	 * 
+	 * The primary reason to use this over full-on Markdown is that it has less overhead
+	 * and is faster then full-blown Markdowon, for when you don't need it. It's also safer
+	 * for text coming from user input since it doesn't allow any other HTML.
+	 *
+	 * @param string $str
+	 * @param array $options Options include the following:
+	 * 	- flags (int): See htmlentities() flags. Default is ENT_QUOTES. 
+	 * 	- encoding (string): PHP encoding type. Default is 'UTF-8'. 
+	 * 	- doubleEncode (bool): Whether to double encode (if already encoded). Default is true. 
+	 * 	- allow (array): Only markdown that translates to these tags will be allowed. Default=array('a', 'strong', 'em', 'code', 's')
+	 * 	- disallow (array): Specified tags (in the default allow list) won't be allowed. Default=array(). 
+	 * 		Note: The 'disallow' is an alternative to the default 'allow'. No point in using them both. 
+	 * 	- linkMarkup (string): Markup to use for links. Default='<a href="{url}" rel="nofollow" target="_blank">{text}</a>'
+	 * @return string
+	 *
+	 */
+	public function entitiesMarkdown($str, array $options = array()) {
+		
+		$defaults = array(
+			'flags' => ENT_QUOTES, 
+			'encoding' => 'UTF-8', 
+			'doubleEncode' => true, 
+			'allow' => array('a', 'strong', 'em', 'code', 's'), 
+			'disallow' => array(), 
+			'linkMarkup' => '<a href="{url}" rel="nofollow" target="_blank">{text}</a>', 
+		);
+		
+		$options = array_merge($defaults, $options); 
+		$str = $this->entities($str, $options['flags'], $options['encoding'], $options['doubleEncode']);
+		
+		if(strpos($str, '](') && in_array('a', $options['allow']) && !in_array('a', $options['disallow'])) {
+			// link
+			$linkMarkup = str_replace(array('{url}', '{text}'), array('$2', '$1'), $options['linkMarkup']); 
+			$str = preg_replace('/\[(.+?)\]\(([^)]+)\)/', $linkMarkup, $str);
+		}
+		
+		if(strpos($str, '**') !== false && in_array('strong', $options['allow']) && !in_array('strong', $options['disallow'])) {
+			// strong
+			$str = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $str);
+		}
+		
+		if(strpos($str, '*') !== false && in_array('em', $options['allow']) && !in_array('em', $options['disallow'])) {
+			// em
+			$str = preg_replace('/\*([^*\n]+)\*/', '<em>$1</em>', $str);
+		}
+		
+		if(strpos($str, "`") !== false && in_array('code', $options['allow']) && !in_array('code', $options['disallow'])) {
+			// code
+			$str = preg_replace('/`+([^`]+)`+/', '<code>$1</code>', $str);
+		}
+		
+		if(strpos($str, '~~') !== false && in_array('s', $options['allow']) && !in_array('s', $options['disallow'])) {
+			// strikethrough
+			$str = preg_replace('/~~(.+?)~~/', '<s>$1</s>', $str);
+		}
+		
+		return $str;
 	}
 
 	/**

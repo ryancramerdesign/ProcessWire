@@ -29,7 +29,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 110,
+			'version' => 111,
 			'permanent' => true, 
 			'icon' => 'cubes', 
 			'useNavJSON' => true, 
@@ -69,6 +69,8 @@ class ProcessTemplate extends Process {
 		}
 
 		if($this->input->urlSegment1) $this->modules->get("JqueryWireTabs"); 
+		
+		$this->wire('modules')->get('JqueryUI')->use('modal');
 
 		return parent::init();
 	}
@@ -526,11 +528,9 @@ class ProcessTemplate extends Process {
 	public function ___executeEdit() {
 
 		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
-		$this->wire('config')->scripts->add($this->wire('config')->urls->ProcessTemplate . 'ProcessTemplateFieldCreator.js'); 
-		$this->setFuel('processHeadline', sprintf($this->_('Edit Template: %s'), $this->template->name)); // Headline when editing a template
-
+		$this->wire('config')->scripts->add($this->wire('config')->urls->ProcessTemplate . 'ProcessTemplateFieldCreator.js');
 		if(!$this->template) throw new WireException("No Template specified"); 
-			
+		$this->headline(sprintf($this->_('Edit Template: %s'), $this->template->name)); // Headline when editing a template
 		$this->form = $this->buildEditForm($this->template);
 		$out = $this->form->render();
 		return $out; 
@@ -572,6 +572,10 @@ class ProcessTemplate extends Process {
 		
 		$t->add($f); 
 		$t->add($this->buildEditFormFields($template)); 
+		$f = $this->wire('modules')->get('InputfieldHidden'); 
+		$f->attr('id+name', '_fieldgroup_fields_changed'); 
+		$f->attr('value', ''); 
+		$t->add($f); 
 		if($template->name != $template->fieldgroup->name || $this->config->advanced) $t->add($this->buildEditFormFieldgroup($template)); 
 		$form->add($t); 
 		
@@ -807,6 +811,13 @@ class ProcessTemplate extends Process {
 			'data-status' => $icons . $status,
 			'data-desc' => $desc
 			);
+
+		if($field->icon) {
+			$icon = $field->icon;
+			$icon = str_replace('icon-', 'fa-', $icon); 
+			if(strpos($icon, 'fa-') !== 0) $icon = "fa-$icon";
+			$attrs['data-handle'] = "<i class='fa fa-fw $icon'></i>";
+		}
 		
 		return $attrs; 
 	}
@@ -846,6 +857,7 @@ class ProcessTemplate extends Process {
 		$field->icon = 'clock-o';
 		$field->description = $this->_('To cache the output of this template, enter the time (in seconds) that the output should be cached. Caching can help significantly with page render time on resource-heavy pages. But caching should not be used on templates that need to process constantly changing data, like from forms or sessions. Also note that URL segments are cachable, but GET and POST vars are not.'); // Cach time description
 		$field->notes = $this->_('For example: 60 = 1 minute, 600 = 10 minutes, 3600 = 1 hour, 86400 = 1 day, 604800 = 1 week, 2419200 = 1 month.'); // Cache time notes/examples
+		$field->notes .= "\n" . sprintf($this->_('If using [ProCache](%s) there is no need to use the cache setting here.'), 'http://processwire.com/api/modules/procache/'); 
 		$field->attr('value', $template->cache_time); 
 		$form->append($field); 
 
@@ -995,7 +1007,7 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 	
-		$pageLabelField = $template->pagelabelField; 
+		$pageLabelField = $template->pageLabelField; 
 		$icon = $template->getIcon(true);
 
 		$field = $this->modules->get("InputfieldIcon");
@@ -1335,6 +1347,8 @@ class ProcessTemplate extends Process {
 
 		// --------------------
 
+		$moreLabel = $this->_('More'); 
+		
 		$field = $this->modules->get('InputfieldCheckbox'); 
 		$field->attr('id+name', 'allowPageNum');
 		$field->label = $this->_('Allow Page Numbers?');
@@ -1342,9 +1356,9 @@ class ProcessTemplate extends Process {
 		$field->attr('value', 1); 
 		if($template->allowPageNum) $field->attr('checked', 'checked'); 
 			else $field->collapsed = Inputfield::collapsedYes;
-		
-		$field->description = $this->_("If checked, pages using this template will accept page number URL segments in the form 'page123', where '123' may be any positive number.  For example, a request URL of '/widgets/page3' automatically sets the \$input->pageNum to be 3. This is used for pagination and should only be enabled for templates that support pagination. Note that page numbers start at 1 (not 0).  If combined with URL Segments (see next section), then the page number must be the last part of the URL."); // Allow page numbers, description
-		$field->notes = $this->_("Access the current page number from your templates at \$input->pageNum;"); // Allow page numbers, API notes
+		$field->description = $this->_('If checked, pages using this template will support pagination.'); 
+		$field->description .= " [$moreLabel](https://processwire.com/docs/admin/setup/templates/#allow-page-numbers)";
+		//$field->notes = $this->_('Access the current page number from your template files with $input->pageNum.'); // Allow page numbers, API notes
 		$form->append($field); 
 		if($template->allowPageNum) $form->collapsed = Inputfield::collapsedNo;
 
@@ -1354,19 +1368,33 @@ class ProcessTemplate extends Process {
 		$field->attr('name', 'urlSegments');
 		$field->label = $this->_('Allow URL Segments?');
 		$field->icon = 'sitemap';
-		$field->description = $this->_("This template may optionally serve URL path segments below that of the page(s) using it.  For example, you may want a page with path /path/to/page/ to also handle requests for /path/to/page/segment1/ or /path/to/page/segment1/segment2/. By default, ProcessWire will throw a '404 Page Not Found' error when such a URL is accessed. But if you want ProcessWire to render the page instead, check the box below. You can then manully check the URL segments from your template file to respond to them."); // Allow URL segments, description
-		$field->notes = $this->_('Up to 3 URL segments are supported after the page URL. These may be any combination of lowercase ASCII letters (a-z), numbers (0-9), dashes and underscores. You can access the URL segments from your template API code by referencing the $input->urlSegment(n) function or $input->urlSegment[n] property (replacing [n] with 1, 2 or 3).'); // Allow URL segments, notes 
-		$field->notes .= "\n\n" . $this->_('For example, given the URL /path/to/page/a/b/c/, where /path/to/page/ is the page path, and /a/b/c/ are the segments: $input->urlSegment1 is "a", $input->urlSegment2 is "b", and $input->urlSegment3 is "c". If your template receives unknown URL segments, a best practice is to abort the request by throwing a 404 error. The API code to do this is: throw new Wire404Exception();'); // Allow URL segments, examples
-
+		$field->columnWidth = 50; 
+		$field->description = $this->_('If checked, pages using this template will support custom URL segments after the page URL.') . ' ';
+		$field->description .= "[$moreLabel](https://processwire.com/docs/admin/setup/templates/#allow-url-segments)";
+		//$field->notes = $this->_('Access the current URL segment(s) from your template files with $input->urlSegmentStr.'); // Allow page numbers, API notes
+		//$field->notes .= " [$moreLabel](https://processwire.com/docs/admin/setup/templates/#accessing-url-segments-from-the-api)";
+		
 		$field->attr('value', 1); 
-		if($template->urlSegments) {
+		$urlSegments = $template->urlSegments();
+		if($urlSegments) {
 			$field->attr('checked', 'checked'); 
 			$form->collapsed = Inputfield::collapsedNo;
 		} else { 
 			$field->collapsed = Inputfield::collapsedYes;
 		}
 		$form->append($field); 
-
+		
+		$field = $this->modules->get('InputfieldTextarea'); 
+		$field->attr('name', 'urlSegmentsList');
+		$field->label = $this->_('Which URL segments do you want to allow?'); 
+		$field->description = $this->_('Enter one allowed segment, segment path or regular expression per line, or leave blank to allow any.'); // Description for allow URL segments
+		$field->description .= " [$moreLabel](https://processwire.com/docs/admin/setup/templates/#which-url-segments-do-you-want-to-allow)";
+		$field->icon = 'sitemap';
+		$field->columnWidth = 50; 
+		if(is_array($urlSegments)) $field->attr('value', implode("\n", $urlSegments));
+		$field->showIf = 'urlSegments=1';
+		$form->append($field); 
+		
 		// --------------------
 
 		$field = $this->modules->get('InputfieldRadios'); 
@@ -1384,12 +1412,12 @@ class ProcessTemplate extends Process {
 
 		$field = $this->modules->get('InputfieldRadios'); 
 		$field->attr('name', 'https'); 
-		$field->label = $this->_('Schema/Protocol');
+		$field->label = $this->_('Scheme/Protocol');
 		$field->addOption(0, $this->_('HTTP or HTTPS')); 
 		$field->addOption(1, $this->_('HTTPS only (SSL encrypted)')); 
 		$field->addOption(-1, $this->_('HTTP only'));
 		$field->collapsed = Inputfield::collapsedBlank;
-		$field->description = $this->_("If your site has an SSL certificate and is accessible by HTTPS, you may make pages using this template accessible only via HTTPS or HTTP. For example, if you select 'HTTPS only' below, and a request for a page using this template comes in through HTTP, it will be automatically redirected to the HTTPS version. By default, ProcessWire allows connection from either HTTP or HTTPS."); // Schema/Protocol, description
+		$field->description = $this->_("If your site has an SSL certificate and is accessible by HTTPS, you may make pages using this template accessible only via HTTPS or HTTP. For example, if you select 'HTTPS only' below, and a request for a page using this template comes in through HTTP, it will be automatically redirected to the HTTPS version. By default, ProcessWire allows connection from either HTTP or HTTPS."); // Scheme/Protocol, description
 		$field->attr('value', (int) $template->https); 
 		$form->append($field); 
 		if($template->https) $form->collapsed = Inputfield::collapsedNo;
@@ -1603,12 +1631,22 @@ class ProcessTemplate extends Process {
 
 		if($this->input->post->fieldgroup && $this->input->post->fieldgroup != $this->template->fieldgroup->id) {
 			$redirectUrl = "fieldgroup?id={$this->template->id}&fieldgroup=" . (int) $this->input->post->fieldgroup;
-		} 
+		}
+		
+		$urlSegments = (int) $form->get('urlSegments')->attr('value');
+		$urlSegmentsList = $form->get('urlSegmentsList')->attr('value'); 
+		if($urlSegments && strlen($urlSegmentsList)) {
+			$this->template->urlSegments(explode("\n", $urlSegmentsList)); 
+		} else if($urlSegments) {
+			$this->template->urlSegments = 1; 	
+		} else {
+			$this->template->urlSegments = 0;
+		}
 
+		
 		$this->template->allowPageNum = (int) $form->get('allowPageNum')->attr('value'); 
 		$this->template->redirectLogin = (int) $form->get('redirectLogin')->attr('value'); 
 		if($this->template->redirectLogin < 0) $this->template->redirectLogin = $form->get('redirectLoginURL')->attr('value'); 
-		$this->template->urlSegments = (int) $form->get('urlSegments')->attr('value');
 		$this->template->https = (int) $form->get('https')->attr('value'); 
 		$this->template->slashUrls = (int) $form->get('slashUrls')->attr('value');
 		$this->template->altFilename = basename($form->get('altFilename')->attr('value'), "." . $this->config->templateExtension);
@@ -1785,29 +1823,34 @@ class ProcessTemplate extends Process {
 	 */
 	protected function saveFields() {
 
-		$ids = isset($_POST['fieldgroup_fields']) ? $_POST['fieldgroup_fields'] : array();
 		$removedFields = new FieldsArray();
 
 		$fieldgroup = $this->template->fieldgroup;
-		if($fieldgroup->name != $this->template->name) return; 
+		if($fieldgroup->name != $this->template->name) return;
+		
+		$ids = $this->wire('input')->post('fieldgroup_fields'); 
 
-		foreach($ids as $id) {
-			if(!($id = (int) $id)) continue; 
-			$isDeleted = $id < 0; 
-			$id = abs($id); 
-			if(!$field = $this->fields->get($id)) continue; 
-			if(!$fieldgroup->has($field)) {
-				$fieldgroup->append($field); 
-				$this->fieldAdded($field, $this->template); 
-			} else { 
-				$field = $fieldgroup->getField($field->id, true); // get in context
-				$fieldgroup->append($field); 
-			}
-			if($isDeleted) {
-				if(($field->flags & Field::flagGlobal) && !$this->template->noGlobal) {
-					$this->error(sprintf($this->_('Field "%s" may not be removed because it is globally required by all fieldgroups'), $field)); 
-				} else { 
-					$removedFields->add($field); 
+		$saveFieldgroup = false; 
+		if(is_array($ids) && $this->wire('input')->post('_fieldgroup_fields_changed') == 'changed') {
+			$saveFieldgroup = true; 
+			foreach($ids as $id) {
+				if(!($id = (int) $id)) continue;
+				$isDeleted = $id < 0;
+				$id = abs($id);
+				if(!$field = $this->fields->get($id)) continue;
+				if(!$fieldgroup->has($field)) {
+					$fieldgroup->append($field);
+					$this->fieldAdded($field, $this->template);
+				} else {
+					$field = $fieldgroup->getField($field->id, true); // get in context
+					$fieldgroup->append($field);
+				}
+				if($isDeleted) {
+					if(($field->flags & Field::flagGlobal) && !$this->template->noGlobal) {
+						$this->error(sprintf($this->_('Field "%s" may not be removed because it is globally required by all fieldgroups'), $field));
+					} else {
+						$removedFields->add($field);
+					}
 				}
 			}
 		}
@@ -1815,11 +1858,13 @@ class ProcessTemplate extends Process {
 		// check if any other fieldgroup should be imported
 		if($this->input->post->import_fieldgroup) {
 			$this->importFieldgroup($this->fieldgroups->get($this->sanitizer->name($this->input->post->import_fieldgroup)), $this->template); 
+			$saveFieldgroup = true; 
 		}
 
-
-		$fieldgroup->save();
-		$this->message(sprintf($this->_('Saved fieldgroup: %s'), $fieldgroup->name), Notice::debug); 
+		if($saveFieldgroup) {
+			$fieldgroup->save();
+			$this->message(sprintf($this->_('Saved fieldgroup: %s'), $fieldgroup->name), Notice::debug);
+		}
 
 		if(count($removedFields)) {
 			$url = "removeFields?id={$this->template->id}&fields=";

@@ -127,7 +127,7 @@ function InputfieldDependencies() {
 
 				if($field.size() == 0) {
 					// if field isn't present by #id it may be present by #id+value as a checkbox/radio field is
-					consoleLog('Detected checkbox or radio: ' + condition.field);
+					consoleLog('Detected checkbox or radio: ' + condition.field + condition.operator + condition.value);
 					if(condition.subfield == 'count' || condition.subfield == 'count-checkbox') {
 						// count number of matching checked inputs
 						$field = $("#wrap_Inputfield_" + condition.field + " :input"); 
@@ -135,7 +135,9 @@ function InputfieldDependencies() {
 						consoleLog('Using count checkbox condition'); 
 						condition.subfield = 'count-checkbox';
 					} else {
-						$field = $("#Inputfield_" + condition.field + "_" + condition.value);
+						var conditionValue = new String(condition.value); 
+						conditionValue = conditionValue.replace(/\s/g, '_'); 
+						$field = $("#Inputfield_" + condition.field + "_" + conditionValue);
 					}
 				}
 
@@ -421,8 +423,10 @@ function InputfieldColumnWidths() {
 		} else {
 			consoleLog('Adjusting ' + $item.attr('id') + ' from ' + h + ' to ' + maxColHeight); 
 			var $spacer = $("<div class='maxColHeightSpacer'></div>");
-			$container.append($spacer); 
-			$spacer.height(pad); 
+			$container.append($spacer);
+			$container.hide();
+			$spacer.height(pad);
+			$container.show();
 		}
 	}
 
@@ -677,9 +681,10 @@ $(document).ready(function() {
 
 	InputfieldStates();
 	InputfieldDependencies();
-	InputfieldColumnWidths();
 	InputfieldIntentions();
-
+	
+	setTimeout(function() { InputfieldColumnWidths(); }, 100);
+	
 	var windowResized = function() {
 		if(InputfieldWindowResizeQueued) return;
 		InputfieldWindowResizeQueued = true; 
@@ -693,7 +698,24 @@ $(document).ready(function() {
 	}; 
 
 	$(window).resize(windowResized); 
-	$("ul.WireTabs > li > a").click(tabClicked); 
+	$("ul.WireTabs > li > a").click(tabClicked);
+
+	$(document).on('reload', '.Inputfield', function(event) {
+		var $t = $(this);
+		var $form = $t.closest('form');
+		var fieldName = $t.attr('id').replace('wrap_Inputfield_', ''); 
+		var url = $form.attr('action') + '&field=' + fieldName;
+		consoleLog('Inputfield reload: ' + fieldName); 
+		$.get(url, function(data) {
+			var $content = $(data).find("#" + $t.attr('id')).children(".InputfieldContent");
+			$t.children(".InputfieldContent").html($content.html()); 
+			$t.effect("highlight", 1000); 
+			$t.trigger('reloaded'); 
+		});
+		event.stopPropagation();
+	});
+
+	
 
 	// setTimeout('overflowAdjustments()', 100); 
 }); 

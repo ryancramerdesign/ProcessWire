@@ -47,7 +47,7 @@ class FieldSelectorInfo extends Wire {
 	public function __construct() {
 
 		$this->operators = array(
-			'number' => array('=', '!=', '>', '<', '>=', '<='),
+			'number' => array('=', '!=', '>', '<', '>=', '<=', '=""', '!=""'),
 			'text' => array('=', '!=', '%=', '^=', '$=', '=""', '!=""'),
 			'fulltext' => array('%=', '*=', '~=', '^=', '$=', '=', '!=', '=""', '!=""'),
 			'select' => array('=', '!=')

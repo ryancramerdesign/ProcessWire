@@ -162,12 +162,33 @@ $config->sessionChallenge = true;
  * Use session fingerprint?
  * 
  * Should login sessions be tied to IP and user agent?
- * More secure, but will conflict with dynamic IPs.
- *
- * @var bool
+ * IP fingerprinting may be problematic on dynamic IPs. 
+ * Below are the possible values: 
+ * 
+ * 	0 or false: Fingerprint off
+ * 	1 or true: Fingerprint on with default/recommended setting (currently 10). 
+ * 	2: Fingerprint only the remote IP
+ * 	4: Fingerprint only the forwarded/client IP (can be spoofed)
+ * 	8: Fingerprint only the useragent
+ * 	10: Fingerprint the remote IP and useragent (default)
+ * 	12: Fingerprint the forwarded/client IP and useragent
+ * 	14: Fingerprint the remote IP, forwarded/client IP and useragent (all). 
+ * 
+ * @var int
  *
  */
-$config->sessionFingerprint = true;
+$config->sessionFingerprint = 1;
+
+/**
+ * Number of session history entries to record.
+ *
+ * When enabled (with a value > 0) a history of pageviews will be recorded in the
+ * session. These can be retrieved with $session->getHistory().
+ *
+ * @var int
+ *
+ */
+$config->sessionHistory = 0; 
 
 /**
  * Hash method to use for passwords.
@@ -179,7 +200,6 @@ $config->sessionFingerprint = true;
  *
  */
 $config->userAuthHashType = 'sha1';
-
 
 
 
@@ -378,6 +398,7 @@ $config->imageSizerOptions = array(
 	'autoRotation' => true, // automatically correct orientation?
 	'sharpening' => 'soft', // sharpening: none | soft | medium | strong
 	'quality' => 90, // quality: 1-100 where higher is better but bigger
+	'hidpiQuality' => 60, // Same as above quality setting, but specific to hidpi images
 	'defaultGamma' => 2.0, // defaultGamma: 0.5 to 4.0 or -1 to disable gamma correction (default=2.0)
 	);
 
@@ -388,7 +409,7 @@ $config->imageSizerOptions = array(
  * 
  * #property int width Width of thumbnails or 0 for proportional to height (default=0).
  * #property int height Height of thumbnails or 0 for proportional to width (default=100).
- * #property float scale Scale for high DPI/retina output, i.e. 0.5 makes 100px thumb render at 50px (default=1.0).
+ * #property float scale Width/height scale (1=auto detect, 0.5=always hidpi, 1.0=force non-hidpi)
  * #property bool upscaling Upscale if necessary to reach target size? (1=true, 0=false).
  * #property bool cropping Crop if necessary to reach target size? (1=true, 0=false).
  * #property bool autoRotation Automatically correct orientation? (1=true, 0=false).
@@ -402,7 +423,7 @@ $config->imageSizerOptions = array(
 $config->adminThumbOptions = array(
 	'width' => 0, // max width of admin thumbnail or 0 for proportional to height
 	'height' => 100, // max height of admin thumbnail or 0 for proportional to width
-	'scale' => 1.0, // i.e. setting of 0.5 makes 100px (for example) thumb render at 50px, for high DPI/retina presentation.
+	'scale' => 1, // admin thumb scale (1=auto detect, 0.5=always hidpi, 1.0=force non-hidpi)
 	'upscaling' => false,
 	'cropping' => true,
 	'autoRotation' => true, // automatically correct orientation?
@@ -711,6 +732,30 @@ $config->adminEmail = '';
  * 
  */
 $config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5em;font-family:sans-serif;'><b>{message}</b><br /><small>{why}</small></p>";
+
+/**
+ * Settings for modal windows
+ * 
+ * Most PW modals use the "large" setting. The comma separated dimensions represent: 
+ *
+ * 1. Start at pixels from top
+ * 2. Start at pixels from left
+ * 3. Width: 100% minus this many pixels
+ * 4. Height: 100% minus this many pixels
+ * 
+ * @var array
+ * #property string large Settings for large modal windows (most common)
+ * #property string medium Settings for medium modal windows
+ * #property string small Settings for small modal windows
+ * #property string full Settings for full-screen modal windows
+ * 
+ */
+$config->modals = array(
+	'large' => "15,15,30,30", 
+	'medium' => "50,49,100,100", 
+	'small' => "100,100,200,200",
+	'full' => "0,0,0,0",
+);
 
 /**
  * Cache names to preload

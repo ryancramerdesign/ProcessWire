@@ -9,11 +9,10 @@
  * /wire/core/Process.php
  *
  * ProcessWire 2.x
- * Copyright (C) 2011 by Ryan Cramer
+ * Copyright (C) 2015 by Ryan Cramer
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  *
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * http://processwire.com
  *
  */
 
@@ -23,7 +22,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Search',
 			'summary' => 'Provides a page search engine for admin use.',
-			'version' => 105,
+			'version' => 106,
 			'permanent' => true,
 			'permission' => 'page-edit',
 			);
@@ -113,7 +112,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	 */
 	public function ___execute() {
 		
-		if($this->wire('user')->hasPermission('lister')) {
+		if($this->wire('user')->hasPermission('page-lister')) {
 			if($this->wire('modules')->isInstalled('ProcessPageLister')) {
 				$this->lister = $this->wire('modules')->get('ProcessPageLister');
 			}
@@ -166,6 +165,8 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 		$adminSearchStr = '';
 		
 		foreach($this->input->get as $name => $value) {
+			
+			if($name == 'get') continue; 
 
 			// operator has no '=', so we'll get the value from the name
 			// so that you can do something like: bedrooms>5 rather than bedrooms>=5
@@ -232,18 +233,32 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			if(strpos($name, ',')) $name = str_replace(',', '|', $name); 
 
 			if(!$this->isSelectableFieldName($name)) continue; 
-
-			if(strpos($value, '|')) {
-				$values = explode('|', $value); 
-				foreach($values as $k => $v) $values[$k] = $this->sanitizer->selectorValue($v);
-				$value = implode('|', $values); 
+			
+			if(strpos($value, ',')) {
+				// commas between words: split one key=value, into multiple key=value, key=value
+				$valuesAND = explode(',', $value); 
 			} else {
-				$value = $this->sanitizer->selectorValue($value); 
+				$valuesAND = array($value);
 			}
 
-			$this->input->whitelist($name . rtrim($operator, '='), trim($value, '"\'')); 	
+			foreach($valuesAND as $key => $val) {
+				if(strpos($val, '|')) {
+					$valuesOR = explode('|', $val);
+					foreach($valuesOR as $k => $v) {
+						$valuesOR[$k] = $this->sanitizer->selectorValue($v);
+					}
+					$val = implode('|', $valuesOR);
+				} else {
+					$val = $this->sanitizer->selectorValue($val);
+				}
+				$valuesAND[$key] = $val;
+			}
+			$value = implode(',', $valuesAND); 
 
-			$selector .= "$name$operator$value, ";
+			$this->input->whitelist($name . rtrim($operator, '='), trim($value, '"\'')); 	
+			foreach($valuesAND as $val) {
+				$selector .= "$name$operator$val, ";
+			}
 			$names[] = $name; 
 		}
 		
@@ -477,6 +492,11 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 	 *
 	 */
 	protected function isSelectableFieldName($name, $level = 0) {
+		
+		$selectable = array(
+			'parent', 'template', 'template_label', 'has_parent', 'hasParent', 
+			'children', 'numChildren', 'num_children', 'count', 'path', 
+		);
 
 		$is = false;
 
@@ -490,14 +510,18 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			list($name, $subname) = explode('.', $name); 
 			if(!$this->isSelectableFieldName($subname, $level)) return false;	
 		}
+		
+		if($name == 'path' && !$this->wire('modules')->isInstalled('PagePaths') || $this->wire('languages')) {
+			$name = 'name';
+		}
 
 		if(in_array($name, $this->nativeSorts)) $is = true; 
- 			else if(in_array($name, array('parent', 'template', 'template_label', 'has_parent', 'hasParent', 'children', 'numChildren', 'num_children', 'count'))) $is = true; 
+ 			else if(in_array($name, $selectable)) $is = true; 
 			else if(!$level && in_array($name, array('include', 'status', 'check_access'))) $is = true; 
 			else if(in_array($name, $this->fieldOptions)) $is = true; 
 
-
 		if($name == 'pass' || $name == 'config') $is = false;
+		
 		return $is; 
 	}
 

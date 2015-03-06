@@ -34,8 +34,19 @@
 	padding-left: 0; /* reno */
 }
 
+#ProcessListerResults td ul.MarkupFieldtype {
+	margin: 0;
+}
+#ProcessListerResults td ul.MarkupFieldtype li {
+	list-style: disc; 
+	margin: 0;
+}
+
 #ProcessListerResults th {
 	font-size: 0.857142857142857em; 
+}
+#ProcessListerResults th i {
+	font-size: 14px; 
 }
 /*
 #ProcessListerResults a.PageEdit {

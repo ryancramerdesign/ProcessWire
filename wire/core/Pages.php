@@ -407,6 +407,7 @@ class Pages extends Wire {
 		foreach($_ids as $key => $id) {
 			
 			$id = (int) $id; 
+			if($id < 1) continue; 
 
 			if($page = $this->getCache($id)) {
 				// page is already available in the cache	
@@ -533,17 +534,23 @@ class Pages extends Wire {
 				$class = 'Page';
 			}
 
-			while($page = $stmt->fetchObject($class, array($template))) {
-				$page->instanceID = ++$instanceID;
-				$page->setIsLoaded(true);
-				$page->setIsNew(false);
-				$page->setTrackChanges(true);
-				$page->setOutputFormatting($this->outputFormatting);
-				$loaded[$page->id] = $page;
-				$this->cache($page);
+			try {
+				while($page = $stmt->fetchObject($class, array($template))) {
+					$page->instanceID = ++$instanceID;
+					$page->setIsLoaded(true);
+					$page->setIsNew(false);
+					$page->setTrackChanges(true);
+					$page->setOutputFormatting($this->outputFormatting);
+					$loaded[$page->id] = $page;
+					$this->cache($page);
+				}
+			} catch(Exception $e) {
+				$error = $e->getMessage() . " [pageClass=$class, template=$template]";
+				if($this->wire('user')->isSuperuser()) $this->error($error);
+				$this->wire('log')->error($error);
 			}
+			
 			$stmt->closeCursor();
-
 			$template = null;
 		}
 		

@@ -2,31 +2,17 @@
 function TemplateFieldAddDialog() {
 
     var $a = $(this);
-    var url = $a.attr('href');
     var closeOnSave = false;
-    var $iframe = $('<iframe id="fieldAddFrame" frameborder="0" src="' + url + '"></iframe>');
-    var windowWidth = $(window).width()-100;
-    var windowHeight = $(window).height()-220;
-
-    var $dialog = $iframe.dialog({
-        modal: true,
-        height: windowHeight,
-        width: windowWidth,
-        position: [50,49]
-    }).width(windowWidth).height(windowHeight);
+    var $iframe = pwModalWindow($a.attr('href'), {}, 'large'); 
 
     $iframe.load(function() {
 
         var buttons = [];
         var $icontents = $iframe.contents();
         var n = 0;
-        var title = $icontents.find('title').text();
-
-        // set the dialog window title
-        $dialog.dialog('option', 'title', title);
 
         // hide things we don't need in a modal context
-        $icontents.find('#masthead, #breadcrumbs ul.nav, #Inputfield_submit_save_field_copy, #footer').hide();
+        $icontents.find('#breadcrumbs ul.nav, #Inputfield_submit_save_field_copy').hide();
 
         // copy buttons in iframe to dialog
         $icontents.find("#content form button.ui-button[type=submit]").each(function() {
@@ -45,7 +31,7 @@ function TemplateFieldAddDialog() {
                         $button.click();
                         if(closeOnSave) setTimeout(function() {
                             var newFieldId = $("iframe").contents().find("#Inputfield_id:last").val();
-                            $dialog.dialog('close');
+                            $iframe.dialog('close');
 
                             var numOptions = $('#fieldgroup_fields option').size();
 
@@ -76,8 +62,7 @@ function TemplateFieldAddDialog() {
             $button.hide();
         });
 
-        if(buttons.length > 0) $dialog.dialog('option', 'buttons', buttons);
-        $dialog.width(windowWidth).height(windowHeight);
+        $iframe.setButtons(buttons); 
     });
 
     return false;
