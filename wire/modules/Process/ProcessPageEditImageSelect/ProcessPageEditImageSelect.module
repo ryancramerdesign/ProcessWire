@@ -27,7 +27,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Edit Image',
 			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)',
-			'version' => 113,
+			'version' => 114,
 			'permanent' => true,
 			'permission' => 'page-edit',
 		);
@@ -245,25 +245,27 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	 * Get all Pageimage objects on page
 	 * 
 	 * @param Page $page
+	 * @param array|WireArray $fields
 	 * @param int $level Recursion level (internal use)
 	 * @return array
 	 * 
 	 */
-	public function getImages(Page $page, $level = 0) {
+	public function getImages(Page $page, $fields = array(), $level = 0) {
 		
-
 		$allImages = array();
 		if(!$page->id) return $allImages; 
 		
 		$numImages = 0;
 		$numImageFields = 0;
-		
-		if($this->field) {
-			$fields = array($this->field); 
-			$skipFields = array();
-		} else {
-			$fields = $page->fields; 
-			$skipFields = explode(' ', $this->skipFields); 
+		$skipFields = explode(' ', $this->skipFields);
+	
+		if(empty($fields)) {
+			if($this->field) {
+				$fields = array($this->field);
+				$skipFields = array();
+			} else {
+				$fields = $page->fields;
+			}
 		}
 
 		foreach($fields as $field) {
@@ -272,8 +274,9 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 
 			if($field->type instanceof FieldtypeRepeater) {
 				// get images that are possibly in a repeater
-				foreach($page->get($field->name) as $p) {
-					$images = $this->getImages($p, $level+1); 
+				$repeaterValue = $page->get($field->name); 
+				if($repeaterValue) foreach($repeaterValue as $p) {
+					$images = $this->getImages($p, $p->fields, $level+1); 
 					if(!count($images)) continue; 
 					$allImages = array_merge($allImages, $images);
 					$numImages += count($images); 
@@ -296,10 +299,35 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 
 		if(!$level) {
 			if(!$numImageFields) $this->message($this->_("There are no image fields on this page. Choose another page to select images from.")); // Message when page has no image fields
-				else if(!$numImages) $this->message($this->_("There are no images present on this page. Close this window and upload images, or select images from another page."));  // Message when page has no images
+				else if(!$numImages) $this->message($this->_("There are no images present on this page. Upload an image, or select images from another page."));  // Message when page has no images
 		}
 
 		return $allImages; 
+	}
+
+	/**
+	 * Get all editable image fields on the page
+	 * 
+	 * @param Page $page
+	 * @param bool $excludeFullFields Exclude fields that are already full? (i.e. can't add more images to them)
+	 * @return array of Field objects for image fields
+	 * 
+	 */
+	public function getImageFields(Page $page, $excludeFullFields = true) {
+		
+		$skipFields = explode(' ', $this->skipFields);
+		$imageFields = array();
+
+		foreach($page->fields as $field) {
+			if(!$field->type instanceof FieldtypeImage) continue;
+			if(in_array($field->name, $skipFields)) continue;
+			if(!$page->editable($field->name)) continue; 
+			if($excludeFullFields && $field->maxFiles > 0) {
+				if(count($page->get($field->name)) >= $field->maxFiles) continue; 
+			}
+			$imageFields[$field->name] = $field;
+		}
+		return $imageFields; 
 	}
 
 	/**
@@ -319,7 +347,8 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		}
 
 		if($this->input->get->file) return $this->executeEdit();
-		$images = $this->getImages($this->page);
+		
+		$images = $this->getImages($this->page, $this->page->fields);
 
 		$out = '';
 
@@ -333,7 +362,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 					$width = $image->width();
 					$alt = $this->wire('sanitizer')->entities1($image->description); 
 					if($width > $this->maxImageWidth) $width = $this->maxImageWidth;
-					$img = "<img src='$image->url' width='$width' alt=\"$alt\" />";
+					$img = "<img src='$image->URL' width='$width' alt=\"$alt\" />";
 				} else {
 					$info = $in->getAdminThumb($image); 
 					$img = $info['markup'];
@@ -358,13 +387,32 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$field->parent_id = 0; 
 		$field->collapsed = count($images) ? Inputfield::collapsedYes : Inputfield::collapsedNo;
 		$field->required = true; 
-		$form->append($field); 
+		$form->append($field);
 		
-		$out = $form->render() . $out;
+		// locate any image fields
+		$imageFields = $this->getImageFields($this->page);
+		if(count($imageFields)) {
+			$imageFieldNames = implode(',', array_keys($imageFields)); 
+			$btn = $this->modules->get('InputfieldButton');
+			$btn->href = "../edit/?modal=1&id={$this->page->id}&fields=$imageFieldNames&uploadOnlyMode=1";
+			$btn->value = $this->_('Upload Image');
+			$btn->addClass('pw-modal-button'); 
+			$btn->icon = 'upload';
+			$changes = $this->wire('input')->get('changes'); 
+			if($changes) foreach(explode(',', $changes) as $name) {
+				$name = $this->wire('sanitizer')->fieldName($name); 
+				$field = $this->wire('fields')->get($name); 
+				if(!$field) continue;
+				$out .= "<script>refreshPageEditField('$name');</script>";
+			}
+		} else $btn = null;
 
+		$out = $form->render() . $out;
+		if($btn) $out .= $btn->render();
+		
 		return "<div id='ProcessPageEditImageSelect'>" . $out . "\n</div>";
 	}
-
+	
 	/**
 	 * Given a Pageimage, return the closest/last cropped version of it
 	 * 
@@ -480,7 +528,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	 * 	- crop_h (int): Predefined crop height
 	 * 
 	 * @return string
-	 * @throws WireException
+	 * @throws Exception|WireException
 	 * 
 	 */
 	public function ___executeEdit() {
@@ -533,7 +581,18 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		}
 		
 		$isCroppable = !$isCropped;
-		$original = $this->getPageimage(false); 
+		try {
+			$original = $this->getPageimage(false);
+		} catch(Exception $e) {
+			if($this->rte) {
+				// when RTE mode, go to image selection again when invalid image
+				$this->error($e->getMessage());
+				$this->wire('session')->redirect("./?id={$this->page->id}");
+				return;
+			} else {
+				throw $e; 
+			}
+		}
 		
 		if($isCropped) {
 			$image = $this->getPageimage(true); 
@@ -640,7 +699,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$linkOriginalChecked = '';
 		if($image->name != $original->name) {
 			$formClasses[] = 'not-original';
-			$imgURL = str_replace($this->wire('config')->urls->root, '/', $original->url);
+			$imgURL = str_replace($this->wire('config')->urls->root, '/', $original->URL);
 			$imgLinkURL = trim($this->input->get('link'));
 			if($imgLinkURL) {
 				// determine if 'link to original' checkbox should be checked 
@@ -661,8 +720,8 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$formClasses[] = $this->rte ? 'rte' : 'not-rte';
 		$formClass = implode(' ', $formClasses); 
 		$formActionURL = $this->makeEditURL($basename);
-		$nocache = $this->rte ? '' : "?nocache=" . mt_rand();
 		$originalDimension = $originalWidth . 'x' . $originalHeight; 
+		$imageURL = $this->rte ? $image->url : $image->URL;
 
 		// form header and inputs
 		// @todo move all this markup to a separate template file
@@ -741,7 +800,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			//"<p class='notes hide_when_rte'>Please note: this feature is still in development.</p>" . 
 			"<div id='selected_image_container'>" . 
 				"<img id='selected_image' $attrStr alt='' " . 
-					"data-idname='{$image->page->id},{$image->basename}' src='{$image->url}$nocache' />" . 
+					"data-idname='{$image->page->id},{$image->basename}' src='{$imageURL}' />" . 
 				"<span id='resize_tips'>" .
 					"<span class='resize_tip' id='resize_tip_nw'><i class='fa fa-fw fa-expand fa-flip-horizontal'></i></span>" .
 					"<span class='resize_tip' id='resize_tip_n'><i class='fa fa-fw fa-arrows-v'></i></span>" .
@@ -1052,7 +1111,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		
 		$headline = sprintf(
 				$this->_n('%1$d variation for image %2$s', '%1$d variations for image %2$s', $cnt), 
-				$cnt, "<a class='preview' href='$pageimage->url'>$pageimage->basename</a>"
+				$cnt, "<a class='preview' href='$pageimage->URL'>$pageimage->basename</a>"
 			);
 		$this->headline($headline); 
 		

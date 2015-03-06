@@ -161,5 +161,9 @@ $(document).ready(function() {
 		}
 		if(refresh) $(this).html(html);
 	}); 
+	
+	$("#fieldgroup_fields").change(function() {
+		$("#_fieldgroup_fields_changed").val('changed'); 
+	}); 
 
 }); 

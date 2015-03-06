@@ -67,20 +67,10 @@
 }
 
 .InputfieldPageAutocomplete p {
-	/* to enable icon placement */
 	position: relative; 
-	margin-top: 0;
-	margin-bottom: 0; 
+	margin-bottom: 0;
 }
 
-	/*
-	.InputfieldPageAutocomplete p .ui-icon {
-		position: absolute; 
-		top: 0.3em; 
-		left: 1px; 
-		opacity: 0.5; 
-	}
-	*/
 	.InputfieldPageAutocomplete p i.fa {
 		
 		/* icon placement */
@@ -95,7 +85,6 @@
 	max-height: 230px; 
 	overflow-y: auto;
 	overflow-x: hidden; 
-	padding-right: 20px; 
 	box-shadow: 0 1px 3px 3px rgba(0,0,0,0.3); 
 }
 

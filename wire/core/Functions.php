@@ -1227,6 +1227,50 @@ function wireIconMarkup($icon, $class = '') {
 }
 
 /**
+ * Get the markup or class name for an icon that can represent the given filename
+ * 
+ * @param string $filename Can be any type of filename (with or without path)
+ * @param string|bool $class Additional class attributes (optional). 
+ * 	Or specify boolean TRUE to get just the icon class name (no markup). 
+ * @return string 
+ * 
+ */
+function wireIconMarkupFile($filename, $class = '') {
+	$icon = 'file-o';
+	$icons = array(
+		'pdf' => 'file-pdf-o',
+		'doc' => 'file-word-o',
+		'docx' => 'file-word-o',
+		'xls' => 'file-excel-o',
+		'xlsx' => 'file-excel-o',
+		'xlsb' => 'file-excel-o',
+		'csv' => 'file-excel-o',
+		'zip' => 'file-archive-o',
+		'txt' => 'file-text-o',
+		'rtf' => 'file-text-o',
+		'mp3' => 'file-sound-o',
+		'wav' => 'file-sound-o',
+		'ogg' => 'file-sound-o',
+		'jpg' => 'file-image-o',
+		'jpeg' => 'file-image-o',
+		'png' => 'file-image-o',
+		'gif' => 'file-image-o',
+		'svg' => 'file-image-o',
+		'ppt' => 'file-powerpoint-o',
+		'pptx' => 'file-powerpoint-o',
+		'mov' => 'file-video-o',
+		'mp4' => 'file-video-o',
+		'wmv' => 'file-video-o',
+		'js' => 'file-code-o',
+		'css' => 'file-code-o',
+	);
+	$pos = strrpos($filename, '.'); 
+	$ext = $pos !== false ? substr($filename, $pos+1) : '';
+	if($ext && isset($icons[$ext])) $icon = $icons[$ext];
+	return $class === true ? "fa-$icon" : wireIconMarkup($icon, $class);
+}
+
+/**
  * Given a quantity of bytes, return a more readable size string
  * 
  * @param int $size

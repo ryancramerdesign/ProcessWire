@@ -455,9 +455,9 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			); 
 		
 		if(!count($users)) {
-			$this->systemFields['modified_users_id']['type'] = 'number';
+			$this->systemFields['modified_users_id']['input'] = 'number';
 			unset($this->systemFields['modified_users_id']['options']);
-			$this->systemFields['created_users_id']['type'] = 'number';
+			$this->systemFields['created_users_id']['input'] = 'number';
 			unset($this->systemFields['created_users_id']['options']); 
 		}
 

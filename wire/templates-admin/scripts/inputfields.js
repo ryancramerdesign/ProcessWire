@@ -127,7 +127,7 @@ function InputfieldDependencies() {
 
 				if($field.size() == 0) {
 					// if field isn't present by #id it may be present by #id+value as a checkbox/radio field is
-					consoleLog('Detected checkbox or radio: ' + condition.field);
+					consoleLog('Detected checkbox or radio: ' + condition.field + condition.operator + condition.value);
 					if(condition.subfield == 'count' || condition.subfield == 'count-checkbox') {
 						// count number of matching checked inputs
 						$field = $("#wrap_Inputfield_" + condition.field + " :input"); 
@@ -135,7 +135,9 @@ function InputfieldDependencies() {
 						consoleLog('Using count checkbox condition'); 
 						condition.subfield = 'count-checkbox';
 					} else {
-						$field = $("#Inputfield_" + condition.field + "_" + condition.value);
+						var conditionValue = new String(condition.value); 
+						conditionValue = conditionValue.replace(/\s/g, '_'); 
+						$field = $("#Inputfield_" + condition.field + "_" + conditionValue);
 					}
 				}
 

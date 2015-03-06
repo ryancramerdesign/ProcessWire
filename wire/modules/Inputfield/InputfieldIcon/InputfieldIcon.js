@@ -6,13 +6,14 @@ $(document).ready(function() {
 		var val = $select.val();
 	
 		if(val.length > 0) {
-			$select.parents(".InputfieldIcon").find(".InputfieldHeader > i.fa:first-child")
+			$select.closest(".InputfieldIcon").find(".InputfieldHeader > i.fa:first-child")
 				.attr('class', 'fa ' + val) 
 				.parent().effect('highlight', 500);
 			var $all = $select.siblings(".InputfieldIconAll");
 			if($all.is(":visible")) {
-				var $icon = $all.find("." + val);
-				if(!$icon.hasClass('on')) $icon.click();
+				$all.find('.on').removeClass('on').mouseout();
+				var $icon = $all.find("." + val).parent('span');
+				if(!$icon.hasClass('on')) $icon.addClass('on').mouseover();
 			}
 		}
 		
@@ -40,29 +41,37 @@ $(document).ready(function() {
 			var $icon = $("<i class='fa fa-fw'></i>")
 				.addClass(val)
 				.attr('data-name', val)
-				.css('margin-right', '2px')
 				.css('cursor', 'pointer')
-			$all.append($icon); 
+				.attr('title', val); 
+			var $span = $("<span />")
+				.css('padding', '2px 2px 2px 2px')
+				.css('margin-right', '10px')
+				.css('line-height', '30px')
+				.append($icon);
+			$all.append($span); 
 		}); 
 		
 		$all.slideDown('fast', function() {
 			
-			$all.children().click(function() {
-				$(this).siblings('.on').removeClass('on').mouseout();
+			$all.on('click', 'span', function() {
+				$all.find('.on').removeClass('on').mouseout();
 				$(this).addClass('on').mouseover();
-				if(!$select.hasClass('on')) $select.val($(this).attr('data-name')).change();
+				if(!$select.hasClass('on')) $select.val($(this).find('i.fa').attr('data-name')).change();
 
-			}).mouseover(function() {
-				$(this).addClass('ui-state-highlight');
-
-			}).mouseout(function() {
+			});
+			$all.on('mouseover', 'span', function() {
+				$(this).css('background-color', 'red').css('color','white'); 
+			});
+			$all.on('mouseout', 'span', function() {
 				if(!$(this).hasClass('on')) {
-					$(this).removeClass('ui-state-highlight');
+					$(this).css('background-color', 'inherit').css('color', 'inherit'); 
 				}
 			});
 
 			var val = $select.val();	
-			if(val.length > 0) $all.children("." + val).click();
+			if(val.length > 0) $all.find("." + val).each(function() {
+				$(this).parent('span').addClass('on').mouseover();
+			}); 
 		}); 
 	
 		return false;

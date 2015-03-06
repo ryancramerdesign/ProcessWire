@@ -6,7 +6,7 @@
  * Provides capability for sending POST/GET requests to URLs
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -47,7 +47,7 @@ class WireHttp extends Wire {
 	 * HTTP methods we are allowed to use
 	 *
 	 */
-	protected $allowHttpMethods = array('GET', 'POST', 'PUT', 'DELETE'); 
+	protected $allowHttpMethods = array('GET', 'POST', 'PUT', 'DELETE', 'HEAD'); 
 
 	/**
 	 * Headers to include in the request
@@ -138,6 +138,14 @@ class WireHttp extends Wire {
 	 * 
 	 */
 	protected $httpCode = 0;
+	
+	/**
+	 * Last HTTP code text
+	 *
+	 * @var int
+	 *
+	 */
+	protected $httpCodeText = '';
 
 	/**
 	 * Data to send in the request
@@ -255,15 +263,12 @@ class WireHttp extends Wire {
 	 * @param string $url URL to request (including http:// or https://)
 	 * @param mixed $data Array of data to send (if not already set before) or raw data
 	 * @param bool $textMode When true function will return a string rather than integer, see the statusText() method.
-	 * @return bool|integer|string False on failure or integer of status code (200|404|etc) on success.
+	 * @return bool|integer|string False on failure or integer or string of status code (200|404|etc) on success.
 	 *
 	 */
 	 public function status($url, $data = array(), $textMode = false) {
-		$responseHeader = $this->send($url, $data, 'HEAD');
-		if(!is_array($responseHeader)) return false;
-		$statusCode = (preg_match("=^(HTTP/\d+\.\d+) (\d{3}) (.*)=", $responseHeader[0], $matches) === 1) ? intval($matches[2]) : false;
-		if($textMode) $statusCode = isset($matches[3]) ? "$statusCode $matches[3]" : "$statusCode";
-		return $statusCode;
+		$this->send($url, $data, 'HEAD');
+		return $this->getHttpCode($textMode); 
 	}
 
 	/**
@@ -321,7 +326,7 @@ class WireHttp extends Wire {
 	 *
 	 */
 	public function set($key, $value) {
-		$this->$data[$key] = $value; 
+		$this->data[$key] = $value; 
 		return $this;
 	}
 
@@ -393,15 +398,24 @@ class WireHttp extends Wire {
 			);      
 
 		$context = @stream_context_create($options); 
-		$fp = @fopen($url, 'rb', false, $context); 
-		if(!$fp) {
-			//$this->error = "fopen() failed, see result of getResponseHeader()";
-			//if(isset($http_response_header)) $this->responseHeader = $http_response_header; 
-			return $this->sendSocket($unmodifiedURL, $method); 
+		$fp = @fopen($url, 'rb', false, $context);
+		
+		if(isset($http_response_header)) $this->setResponseHeader($http_response_header); 
+		
+		if($fp) {
+			$result = @stream_get_contents($fp); 
+			
+		} else {
+			$code = $this->getHttpCode();
+			if($code && isset($this->errorCodes[$code])) {
+				// known http error code, no need to fallback to sockets
+				$result = false;
+			} else {
+				//fallback to sockets
+				$result = $this->sendSocket($unmodifiedURL, $method);
+			}
 		}
 
-		$result = @stream_get_contents($fp); 
-		if(isset($http_response_header)) $this->setResponseHeader($http_response_header); 
 		return $result;
 	}
 
@@ -719,16 +733,18 @@ class WireHttp extends Wire {
 		
 		$this->responseHeader = $responseHeader;
 		
-		if(isset($responseHeader[0])) {
-			$properties = explode(' ', $responseHeader[0]);
-			$httpCode = isset($properties[1]) ? (int) $properties[1] : 0;
-			$message = isset($properties[2]) ? $properties[2] : '';
+		if(!empty($responseHeader[0])) {
+			list($http, $httpCode, $httpText) = explode(' ', trim($responseHeader[0]), 3); 
+			$httpCode = (int) $httpCode;
+			$httpText = preg_replace('/[^-_.;() a-zA-Z0-9]/', ' ', $httpText); 
 		} else {
 			$httpCode = 0;
-			$message = '';
+			$httpText = '';
 		}
 		
 		$this->httpCode = (int) $httpCode;
+		$this->httpCodeText = $httpText; 
+		
 		if(isset($this->errorCodes[$this->httpCode])) $this->error = $this->errorCodes[$this->httpCode]; 
 
 		// parsed version
@@ -814,12 +830,14 @@ class WireHttp extends Wire {
 	}
 
 	/**
-	 * Get last HTTP error code
+	 * Get last HTTP code
 	 *
-	 * @return int
+	 * @param bool $withText Specify true to include the HTTP code text label with the code
+	 * @return int|string
 	 *
 	 */
-	public function getHttpCode() {
+	public function getHttpCode($withText = false) {
+		if($withText) return "$this->httpCode $this->httpCodeText";
 		return $this->httpCode; 
 	}
 

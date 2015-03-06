@@ -132,12 +132,21 @@ class Config extends WireData {
 	protected $jsFields = array();
 
 	/**
-	 * Set a config field that is shared in Javascript, OR retrieve one or all params already set
+	 * Set or retrieve a config value to be shared with javascript
+	 * 
+	 * 1. Specify a $key and $value to set a JS config value. 
 	 *
-	 * Specify only a $key and omit the $value in order to retrieve an existing set value.
-	 * Specify no params to retrieve in array of all existing set values.
+	 * 2. Specify only a $key and omit the $value in order to retrieve an existing set value.
+	 *    The $key may also be an array of properties, which will return an array of values. 
+	 * 
+	 * 3. Specify boolean true for $value to share the $key with the JS side. If the $key 
+	 *    specified does not exist then $key=true will be added to the JS config (which can later 
+	 *    be overwritten with another value, which will still be shared with the JS config). 
+	 *    The $key property may also be an array of properties to specify multiple. 
+	 * 
+	 * 4. Specify no params to retrieve in array of all existing set values.
 	 *
-	 * @param string $key 
+	 * @param string|array $key Property or array of properties
 	 * @param mixed $value
 	 * @return array|mixed|null|this
  	 *
@@ -145,6 +154,7 @@ class Config extends WireData {
 	public function js($key = null, $value = null) {
 
 		if(is_null($key)) {
+			// return array of all keys and values
 			$data = array();
 			foreach($this->jsFields as $field) {
 				$data[$field] = $this->get($field); 
@@ -152,7 +162,34 @@ class Config extends WireData {
 			return $data; 
 
 		} else if(is_null($value)) {
-			return in_array($key, $this->jsFields) ? $this->get($key) : null;
+			// return a value or values
+			if(is_array($key)) {
+				// return values for multiple keys
+				$a = array();
+				foreach($key as $k) {
+					$a[$k] = $this->js($k);
+				}
+				return $a;
+			} else {
+				// return value for just one key
+				return in_array($key, $this->jsFields) ? $this->get($key) : null;
+			}
+			
+		} else if($value === true) {
+			// share an already present value or set a key=true
+			if(is_array($key)) {
+				// sharing multiple keys
+				foreach($key as $k) $this->js($k, true); 
+				return $this;
+			} else if($this->get($key) !== null) {
+				// share existing config $key with JS side
+				$this->jsFields[] = $key;
+				return $this;
+			} else {
+				// will set $key=true to JS config, which may be overwritten
+				// with a different value during runtime, or maybe true is the 
+				// literal value they want stored, in which case it will remain.
+			}
 		}
 
 		$this->jsFields[] = $key; 

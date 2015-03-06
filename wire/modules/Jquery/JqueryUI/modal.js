@@ -183,7 +183,7 @@ $(document).ready(function() {
 		var $a = $(this);
 		var _autoclose = $a.attr('data-autoclose'); 
 		var autoclose = _autoclose != null; // whether autoclose is enabled
-		var autocloseSelector = autoclose && _autoclose.length > 0 ? _autoclose : ''; // autoclose only enabled if clicked button matches this selector
+		var autocloseSelector = autoclose && _autoclose.length > 1 ? _autoclose : ''; // autoclose only enabled if clicked button matches this selector
 		var closeSelector = $a.attr('data-close'); // immediately close window (no closeOnLoad) for buttons/links matching this selector
 		var closeOnLoad = false;
 		var modalSize = 'medium';
@@ -272,7 +272,7 @@ $(document).ready(function() {
 								if(autoclose) {
 									// automatically close on next page load
 									$("body").append($spinner.fadeIn());
-									if(autocloseSelector.length > 0) {
+									if(autocloseSelector.length > 1) {
 										closeOnLoad = $button.is(autocloseSelector); // if button matches selector
 									} else {
 										closeOnLoad = true; // tell it to close window on the next 'load' event

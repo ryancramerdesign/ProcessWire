@@ -678,11 +678,16 @@ class Fields extends WireSaveableItems {
 			$query = $database->prepare($sql);
 		}
 
-		$query->execute();
-		if($useRowCount) {
-			$cnt = $query->rowCount();
-		} else {
-			list($cnt) = $query->fetch(PDO::FETCH_NUM);
+		
+		try {
+			$query->execute();
+			if($useRowCount) {
+				$cnt = $query->rowCount();
+			} else {
+				list($cnt) = $query->fetch(PDO::FETCH_NUM);
+			}
+		} catch(Exception $e) {
+			$cnt = 0;
 		}
 
 		return (int) $cnt;
