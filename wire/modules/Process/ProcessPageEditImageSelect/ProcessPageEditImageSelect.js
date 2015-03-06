@@ -407,8 +407,67 @@ function setupSelectedImage() {
 					$("#wrap_description").slideDown('fast');
 				}
 			}); 
+		
+			/*
+			$("#rotate_right_action, #rotate_left_action").click(function() {
+				$img.resizable('destroy');
+				var w = $img.width();
+				var h = $img.height();
+				var rotate = parseInt($("#selected_image_rotate").val());
+				if($(this).is("#rotate_right_action")) rotate += 90;
+					else rotate -= 90;
+				if(rotate > 270) rotate = 0;
+				if(rotate < -270) rotate = 0;
+				$("#selected_image_rotate").val(rotate);
+				$img.css('margin', 0);
 			
+				if(w != h) {
+					if (Math.abs(rotate) == 90 || Math.abs(rotate) == 270) {
+						var diff = (w - h) / 2;
+						$img.css('margin-left', (-1 * diff) + 'px');
+						$img.css('margin-top', diff + 'px');
+						$container.width(h).height(w);
+						$img.parent().width(h).height(w);
+					} else {
+						$container.width(w).height(h);
+						$img.parent().width(w).height(h);
+					}
+				}
+				if (Math.abs(rotate) == 90 || Math.abs(rotate) == 270) {
+					$("#resize_action, #crop_action, #min_action, #max_action").hide();
+				} else {
+					$("#resize_action, #crop_action, #min_action, #max_action").show();
+				}
+				
+				$img.removeClass('rotate90 rotate180 rotate270 rotate-90 rotate-180 rotate-270 rotate0')
+					.addClass("rotate" + rotate);
+				
+				// setupImageResizable();
+			}); 
 			
+			$("#flip_vertical_action").click(function() {
+				$img.removeClass('flip_horizontal').toggleClass('flip_vertical');
+				$(this).toggleClass('on'); 
+				$("#flip_horizontal_action").removeClass('on');
+			});
+			$("#flip_horizontal_action").click(function() {
+				$img.removeClass('flip_vertical').toggleClass('flip_horizontal');
+				$(this).toggleClass('on');
+				$("#flip_vertical_action").removeClass('on');
+			}); 
+			 */
+		}
+		
+		function setupImageCaption() {
+			$("#selected_image_caption").change(function() {
+				if($form.hasClass('cropping_active')) return;
+				var $caption = $("#caption_preview"); 
+				if($(this).is(":checked")) {
+					$caption.fadeIn();
+				} else if($caption.is(":visible")) {
+					$caption.fadeOut();
+				}
+			}).change();
 		}
 		
 		function fitImageToWindow() {
@@ -447,6 +506,7 @@ function setupSelectedImage() {
 		populateResizeDimensions();
 		setupImageCroppable();
 		setupImageActions();
+		setupImageCaption();
 		
 		$("button.submit_save_copy, button.submit_save_replace").click(function() {
 			$form.addClass('processing'); 

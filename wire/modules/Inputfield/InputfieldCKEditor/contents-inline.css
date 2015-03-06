@@ -61,12 +61,39 @@
     font-weight: bold; }
   .InputfieldForm .InputfieldCKEditorInline img .cke_anchor {
     display: inline; }
-  .InputfieldForm .InputfieldCKEditorInline img .align_left,
-  .InputfieldForm .InputfieldCKEditorInline img .align_right,
-  .InputfieldForm .InputfieldCKEditorInline img .align_center {
-    padding: 5px;
-    border: 1px solid #ccc; }
-  .InputfieldForm .InputfieldCKEditorInline img .hidpi {
-    border: 1px dotted #ccc; }
+  .InputfieldForm .InputfieldCKEditorInline figure {
+    margin: 1em 0 1em 0;
+    display: inline-block; }
+    .InputfieldForm .InputfieldCKEditorInline figure figcaption {
+      margin-top: 0.5em;
+      display: block;
+      line-height: 1.3em;
+      color: #777;
+      font-size: 13px; }
+  .InputfieldForm .InputfieldCKEditorInline img.right, .InputfieldForm .InputfieldCKEditorInline img.align_right, .InputfieldForm .InputfieldCKEditorInline img.align-right,
+  .InputfieldForm .InputfieldCKEditorInline figure.right,
+  .InputfieldForm .InputfieldCKEditorInline figure.align_right,
+  .InputfieldForm .InputfieldCKEditorInline figure.align-right {
+    /* RCD */
+    float: right;
+    margin-left: 15px;
+    margin-right: 0;
+    margin-top: 0; }
+  .InputfieldForm .InputfieldCKEditorInline img.left, .InputfieldForm .InputfieldCKEditorInline img.align_left, .InputfieldForm .InputfieldCKEditorInline img.align-left,
+  .InputfieldForm .InputfieldCKEditorInline figure.left,
+  .InputfieldForm .InputfieldCKEditorInline figure.align_left,
+  .InputfieldForm .InputfieldCKEditorInline figure.align-left {
+    /* RCD */
+    float: left;
+    margin-top: 0;
+    margin-left: 0;
+    margin-right: 15px; }
+  .InputfieldForm .InputfieldCKEditorInline img.align_center, .InputfieldForm .InputfieldCKEditorInline img.align-center,
+  .InputfieldForm .InputfieldCKEditorInline figure.align_center,
+  .InputfieldForm .InputfieldCKEditorInline figure.align-center {
+    /* RCD */
+    display: block;
+    margin-left: auto;
+    margin-right: auto; }
 
 /*# sourceMappingURL=contents-inline.css.map */

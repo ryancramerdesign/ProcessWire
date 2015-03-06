@@ -48,9 +48,18 @@
 	float: left;
 	padding: 2px 4px 0 4px;
 	margin-right: 3px; 
+	margin-bottom: 0; 
+	margin-top: 3px; 
 	background-color: #000;
 	background-color: rgba(0,0,0,0.8);
-	color: #aaa; 
+	color: #aaa;
+	
+	/* -webkit-touch-callout: none;*/
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
 }
 .cropping_active .cropper-container {
 	position: static; 
@@ -93,18 +102,32 @@
 	display: none; 
 }
 
-#wrap_class,
-#wrap_link_original {
+#action_icons, 
+#selected_image_pixels,
+#selected_image_checkboxes {
+	display: inline-block;
 	float: left; 
-	margin-top: 0; 
+}
+#selected_image_pixels,
+#selected_image_checkboxes {
+	margin-top: 3px; 
+}
+
+#selected_image_container {
+	clear: both; 
+}
+
+#selected_image_pixels, 
+#selected_image_checkboxes,
+#wrap_link_original,
+#wrap_caption,
+#wrap_hidpi {
 	margin-right: 1em; 
 	white-space: nowrap;
 }
-#wrap_link_original {
-	float: none; 
-	clear: both;
+#selected_image_pixels {
+	margin-right: 0.5em;
 }
-
 #selected_image_pixels label {
 	white-space: nowrap;
 }
@@ -114,7 +137,6 @@
 	display: none; 
 }
 	#wrap_description label {
-		display: none; 
 	}
 
 	#selected_image_description {
@@ -171,8 +193,6 @@
 	margin: 0;
 }
 
-#selected_image_container {
-}
 #selected_image_container.align-left,
 #selected_image_container.align_left {
 	float: left; 
@@ -244,4 +264,43 @@
 #selected_image_pixels, 
 label.checkbox {
 	white-space: nowrap; 
+}
+
+#selected_image_container figcaption {
+	margin-top: 0.5em;
+	font-size: smaller;
+	line-height: 1.5em;
+	opacity: 0.7;
+	display: none; 
+}
+/*
+#caption_preview .tooltip:hover {
+	border: none; 
+	background: inherit; 
+	cursor: help;
+}
+*/
+
+.rotate90 { -ms-transform: rotate(90deg); -webkit-transform: rotate(90deg); transform: rotate(90deg); }
+.rotate180 { -ms-transform: rotate(180deg); -webkit-transform: rotate(180deg); transform: rotate(180deg); }
+.rotate270 { -ms-transform: rotate(270deg); -webkit-transform: rotate(270deg); transform: rotate(270deg); }
+.rotate-90 { -ms-transform: rotate(-90deg); -webkit-transform: rotate(-90deg); transform: rotate(-90deg); }
+.rotate-180 { -ms-transform: rotate(-180deg); -webkit-transform: rotate(-180deg); transform: rotate(-180deg); }
+.rotate-270 { -ms-transform: rotate(-270deg); -webkit-transform: rotate(-270deg); transform: rotate(-270deg); }
+
+.flip_horizontal {
+	-moz-transform: scaleX(-1);
+	-o-transform: scaleX(-1);
+	-webkit-transform: scaleX(-1);
+	transform: scaleX(-1);
+	filter: FlipH;
+	-ms-filter: "FlipH";
+}
+.flip_vertical {
+	-moz-transform: scaleY(-1);
+	-o-transform: scaleY(-1);
+	-webkit-transform: scaleY(-1);
+	transform: scaleY(-1);
+	filter: FlipV;
+	-ms-filter: "FlipV";
 }

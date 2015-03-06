@@ -112,15 +112,49 @@ $cke-link-hover-background: #ffffdd;
 		.cke_anchor {
 			display: inline;
 		}
-		.align_left,
-		.align_right,
-		.align_center {
-			padding: 5px;
-			border: 1px solid #ccc;
-		}
+	}
 
-		.hidpi {
-			border: 1px dotted #ccc;
+	figure {
+		margin: 1em 0 1em 0;
+		display: inline-block;
+		
+		figcaption {
+			margin-top: 0.5em;
+			display: block;
+			line-height: 1.3em;
+			color: #777;
+			font-size: 13px;
+		}
+		
+	}
+	
+	img,
+	figure {
+		&.right,
+		&.align_right,
+		&.align-right {
+			/* RCD */
+			float: right;
+			margin-left: 15px;
+			margin-right: 0;
+			margin-top: 0;
+		}
+		&.left,
+		&.align_left,
+		&.align-left {
+			/* RCD */
+			float: left;
+			margin-top: 0;
+			margin-left: 0;
+			margin-right: 15px;
+		}
+		&.align_center,
+		&.align-center {
+			/* RCD */
+			display: block;
+			margin-left: auto;
+			margin-right: auto;
 		}
 	}
+
 }

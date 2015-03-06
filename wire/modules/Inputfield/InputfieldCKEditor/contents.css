@@ -13,7 +13,7 @@
 body {
 	/* Font */
 	font-family: sans-serif, Arial, Verdana, "Trebuchet MS";
-	font-size: 14px;
+	font-size: 15px;
 
 	/* Text color */
 	color: #333;
@@ -25,7 +25,7 @@ body {
 }
 
 .cke_editable {
-	font-size: 14px;
+	font-size: 15px;
 	line-height: 1.6em;
 }
 
@@ -72,28 +72,48 @@ hr {
 	border-top: 1px solid #ccc;
 }
 
+figure {
+	margin: 1em 0 1em 0;
+	display: inline-block;
+}
+
+.cke_editable figure figcaption, 
+figure figcaption {
+	display: block;
+	line-height: 1.3em;
+	color: #777; 
+	font-size: 13px; 
+}
+
+
 img.right,
 img.align_right,
-img.align-right {
+img.align-right,
+figure.align_right,
+figure.align-right {
 	/* RCD */
-	border: 1px solid #ccc;
 	float: right;
 	margin-left: 15px;
-	padding: 5px;
+	margin-right: 0;
+	margin-top: 0;
 }
 
 img.left,
 img.align_left,
-img.align-left {
+img.align-left,
+figure.align_left,
+figure.align-left {
 	/* RCD */
-	border: 1px solid #ccc;
 	float: left;
+	margin-top: 0;
+	margin-left: 0;
 	margin-right: 15px;
-	padding: 5px;
 }
 
 img.align_center,
-img.align-center {
+img.align-center,
+figure.align_center,
+figure.align-center {
 	/* RCD */
 	display: block;
 	margin-left: auto;
@@ -102,8 +122,6 @@ img.align-center {
 
 img.hidpi {
 	/* RCD */
-	border: 1px dotted #ccc;
-	padding: 5px;
 }
 
 img:hover {
@@ -126,21 +144,6 @@ pre {
 
 span[lang] {
 	font-style: italic;
-}
-
-figure {
-	text-align: center;
-	border: solid 1px #ccc;
-	border-radius: 2px;
-	background: rgba(0,0,0,0.05);
-	padding: 10px;
-	margin: 10px 20px;
-	display: inline-block;
-}
-
-figure > figcaption {
-	text-align: center;
-	display: block; /* For IE8 */
 }
 
 code {

@@ -27,7 +27,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Edit Image',
 			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)',
-			'version' => 114,
+			'version' => 115,
 			'permanent' => true,
 			'permission' => 'page-edit',
 		);
@@ -46,6 +46,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	protected $rte = true; // in RTE mode?
 	protected $field = null;
 	protected $original = '';
+	protected $caption = '';
 
 	protected static $defaultConfig = array(
 		'hidpiDefault' => 0, 
@@ -69,7 +70,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			'top' => $this->_('Top:'),
 			'left' => $this->_('Left:'),
 			'hidpi' => $this->_('HiDPI/Retina'),
-			'description' => $this->_('Description'),
+			'description' => $this->_('Image description (alt attribute)'),
 			'linkOriginal' => $this->_('Link to larger/original version'),
 			'resize' => $this->_('Resize'),
 			'useResize' => $this->_('Save at this size?'), 
@@ -87,6 +88,13 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			'updating' => $this->_('Updating...'), 
 			'yes' => $this->_('Yes'), 
 			'noUse' => $this->_('No, use %s'),
+			'caption' => $this->_('Caption?'), 
+			'captionTip' => $this->_('Caption text is entered in the editor after you insert the image.'), 
+			'captionText' => $this->_('Caption text here'),
+			'rotateRight' => $this->_('Rotate to the right'), 
+			'rotateLeft' => $this->_('Rotate to the left'), 
+			'flipHorizontal' => $this->_('Flip horizontal'),
+			'flipVertical' => $this->_('Flip vertical'),
 		);
 	}
 
@@ -167,6 +175,8 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		if($hidpi === null && $this->hidpiDefault) $hidpi = true; 
 		if(!$this->rte) $hidpi = false; // hidpi not applicable outside of RTE mode
 		$this->hidpi = $hidpi ? true : false;
+	
+		if($this->rte) $this->caption = $this->wire('input')->get('caption') ? true : false; 
 		
 		// original used by InputfieldImage 
 		$original = $this->wire('input')->get('original'); 
@@ -477,8 +487,13 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		}
 		if(!isset($parts['class']) && $this->wire('input')->get('class')) {
 			$class = $this->wire('input')->get('class'); 
-			if(in_array($class, array($this->alignLeftClass, $this->alignCenterClass, $this->alignRightClass))) {
-				$parts['class'] = $class; 
+			if($class) {
+				$validClasses = array($this->alignLeftClass, $this->alignCenterClass, $this->alignRightClass);
+				$classes = array();
+				foreach(explode(' ', $class) as $c) {
+					if(in_array($c, $validClasses)) $classes[] = $c; 
+				}
+				if(count($classes)) $parts['class'] = urlencode(implode(' ' , $classes)); 
 			}
 		}
 		if(!$this->rte) $parts['rte'] = '0';
@@ -487,6 +502,10 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		if(!isset($parts['winwidth'])) {
 			$winwidth = (int) $this->wire('input')->get('winwidth'); 
 			if($winwidth) $parts['winwidth'] = $winwidth; 
+		}
+		
+		if(!isset($parts['caption']) && $this->rte && $this->caption) {
+			$parts['caption'] = 1; 
 		}
 		
 		// @todo should we check for 'class' ?
@@ -673,6 +692,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 	
 		// if hidpi specified keep it checed
 		$hidpiChecked = $this->hidpi ? " checked='checked'" : "";
+		$captionChecked = $this->caption ? " checked='checked'" : "";
 	
 		// alignment class options
 		$classOptions = '';
@@ -697,14 +717,16 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		
 		// if dealing with a variation size or crop provide the option to link to the original (larger)
 		$linkOriginalChecked = '';
-		if($image->name != $original->name) {
-			$formClasses[] = 'not-original';
-			$imgURL = str_replace($this->wire('config')->urls->root, '/', $original->URL);
-			$imgLinkURL = trim($this->input->get('link'));
+		if($image->name != $original->name || $this->wire('input')->get('link')) {
+			if($image->name != $original->name) $formClasses[] = 'not-original';
+			$imgURL = str_replace($this->wire('config')->urls->root, '/', $original->url);
+			$imgLinkURL = trim($this->wire('input')->get('link'));
 			if($imgLinkURL) {
+				if($imgLinkURL === "1") $imgLinkURL = $imgURL; // if in toggle mode, substitute URL
 				// determine if 'link to original' checkbox should be checked 
 				$test = substr($imgLinkURL, -1 * strlen($imgURL));
 				$linkOriginalChecked = $test == $imgURL ? " checked='checked' data-was-checked='1'" : "";
+				unset($imgLinkURL); 
 			}
 		} else {
 			$formClasses[] = 'original';
@@ -730,12 +752,16 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			"<small>" . 
 			"<p id='wrap_info'>" .
 				"<select id='selected_image_class' name='class'>" .
-					"<option>" . $this->_('No Alignment') . "</option>" .
+					"<option value=''>" . $this->_('No Alignment') . "</option>" .
 					$classOptions .
 				"</select>" .
 				"<span id='action_icons' class='hide_when_crop hide_when_processing'>" .
 					"<span title='$labels[resize]' id='resize_action'><i class='fa fa-fw fa-arrows-alt'></i></span>" .
 					"<span title='$labels[crop]' data-recrop='$recropURL' id='crop_action'><i class='fa fa-fw fa-crop'></i></span>" .
+					//"<span title='$labels[rotateLeft]' id='rotate_left_action'><i class='fa fa-fw fa-rotate-left'></i></span>" . 
+					//"<span title='$labels[rotateRight]' id='rotate_right_action'><i class='fa fa-fw fa-rotate-right'></i></span>" .
+					//"<span title='$labels[flipHorizontal]' id='flip_horizontal_action'><i class='fa fa-fw fa-exchange'></i></span>" .
+					//"<span title='$labels[flipVertical]' id='flip_vertical_action'><i class='fa fa-fw fa-exchange fa-rotate-90'></i></span>" .
 					"<span title='$labels[max] ({$originalWidth}x{$originalHeight})' id='max_action'><i class='fa fa-fw fa-expand'></i></span>" .
 					"<span title='$labels[min]' id='min_action'><i class='fa fa-fw fa-compress'></i></span>" .
 					"<span title='$labels[alignLeft]' data-label='alignLeft' class='align_action show_when_rte' id='align_left_action'><i class='fa fa-fw fa-align-left'></i></span>" .
@@ -743,33 +769,40 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 					"<span title='$labels[alignRight]' data-label='alignRight' class='align_action show_when_rte' id='align_right_action'><i class='fa fa-fw fa-align-right'></i></span>" .
 					"<span title='$labels[description]' id='description_action' class='show_when_rte'><i class='fa fa-fw fa-quote-left'></i></span>" .
 				"</span>" .
-				"<span class='hide_when_crop'>" . 
-					"<span id='selected_image_pixels'>" . 
-						"<label><input title='$labels[width]' name='width' id='input_width' class='input_pixels' " .
-							"type='number' size='6' step='1' min='$minWidth' max='$originalWidth' value='$width' /></label>" .
-						"&nbsp;<i class='fa fa-times'></i>&nbsp;" . 
-						"<label><input title='$labels[height]' name='height' id='input_height' class='input_pixels' " . 
-							"type='number' size='6' step='1' min='$minHeight' max='$originalHeight' value='$height' /></label>" . 
-					"</span>&nbsp; " .
-					"<span id='selected_image_resize' class='hide_when_rte hide_when_crop hide_when_processing'>" .
-						"<i class='fa fa-angle-left ui-priority-secondary'></i>&nbsp;" . 
-						"$labels[useResize]&nbsp;&nbsp;" . 
-						"<label class='checkbox'><input$resizeYesChecked id='selected_image_resize_yes' name='use_resize' type='radio' value='1' />&nbsp;$labels[yes]</label>&nbsp;&nbsp;" .
-						"<label class='checkbox'><input$resizeNoChecked id='selected_image_resize_no' name='use_resize' type='radio' value='0' />&nbsp;" . 
-							sprintf($labels['noUse'], $originalDimension) . "</label>" .
-					"</span>" . 
+				"<span id='selected_image_pixels' class='hide_when_crop'>" . 
+					"<label><input title='$labels[width]' name='width' id='input_width' class='input_pixels' " .
+						"type='number' size='6' step='1' min='$minWidth' max='$originalWidth' value='$width' /></label>" .
+					"&nbsp;<i class='fa fa-times'></i>&nbsp;" . 
+					"<label><input title='$labels[height]' name='height' id='input_height' class='input_pixels' " . 
+						"type='number' size='6' step='1' min='$minHeight' max='$originalHeight' value='$height' /></label>" . 
+				"</span> " .
+				"<span id='selected_image_checkboxes' class='hide_when_crop'>" . 
 					"<span id='wrap_link_original' class='show_when_rte'>" .
 						"<label class='checkbox'>" .
 							"<input title='$labels[linkOriginal]' type='checkbox'$linkOriginalChecked " .
 								"name='selected_image_link' id='selected_image_link' value='{$original->url}' /> " .
 							"<i class='fa fa-link ui-priority-secondary'></i>&nbsp;" .
-							"<span class='ui-priority-secondary'>{$original->width}x{$original->height}</span> " .
+							"{$original->width}x{$original->height}" .
 						"</label>" .
 					"</span>" . 
-					"<span class='show_when_rte'>" .
-						"<label class='checkbox'><input$hidpiChecked id='selected_image_hidpi' type='checkbox' value='1' />&nbsp;$labels[hidpi]</label>" .
-					"</span> " . 
-				"</span>" . // hide_when_crop
+					"<span id='wrap_caption' class='show_when_rte'>" .
+						"<label class='checkbox'>" .
+							"<input$captionChecked id='selected_image_caption' type='checkbox' value='1' title='$labels[captionTip]' />&nbsp;$labels[caption]" .
+						"</label>" .
+					"</span>" . 
+					"<span id='wrap_hidpi' class='show_when_rte'>" .
+						"<label class='checkbox'>" . 
+							"<input$hidpiChecked id='selected_image_hidpi' type='checkbox' value='1' />&nbsp;$labels[hidpi]" . 
+						"</label>" .
+					"</span>" .
+				"</span>" . // selected_image_checkboxes
+				"<span id='selected_image_resize' class='hide_when_rte hide_when_crop hide_when_processing'>" .
+					"<i class='fa fa-angle-left ui-priority-secondary'></i>&nbsp;" .
+					"$labels[useResize]&nbsp;&nbsp;" .
+					"<label class='checkbox'><input$resizeYesChecked id='selected_image_resize_yes' name='use_resize' type='radio' value='1' />&nbsp;$labels[yes]</label>&nbsp;&nbsp;" .
+					"<label class='checkbox'><input$resizeNoChecked id='selected_image_resize_no' name='use_resize' type='radio' value='0' />&nbsp;" .
+					sprintf($labels['noUse'], $originalDimension) . "</label>" .
+				"</span>" . 
 				"<button type='button' class='ui-button ui-state-active show_when_processing' id='button_saving'>" .
 					"<span class='ui-button-text'><i class='fa fa-spin fa-spinner'></i> $labels[saving]</span>" .
 				"</button> " .
@@ -798,7 +831,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			"</p>" . 
 			"</small>" . 
 			//"<p class='notes hide_when_rte'>Please note: this feature is still in development.</p>" . 
-			"<div id='selected_image_container'>" . 
+			"<figure id='selected_image_container'>" . 
 				"<img id='selected_image' $attrStr alt='' " . 
 					"data-idname='{$image->page->id},{$image->basename}' src='{$imageURL}' />" . 
 				"<span id='resize_tips'>" .
@@ -810,13 +843,17 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 					"<span class='resize_tip' id='resize_tip_s'><i class='fa fa-fw fa-arrows-v'></i></span>" .
 					"<span class='resize_tip' id='resize_tip_sw'><i class='fa fa-fw fa-expand'></i></span>" .
 					"<span class='resize_tip' id='resize_tip_w'><i class='fa fa-fw fa-arrows-h'></i></span>" . 
-				"</span>" . 
-			"</div>" . 
+				"</span>" .
+				"<figcaption id='caption_preview' class='show_when_rte hide_when_crop'>" . 
+					"<a class='tooltip' title='$labels[captionTip]'>$labels[captionText]</a>" . 
+				"</figcaption>" . 
+			"</figure>" .
 			"<p id='latin'>" . 
 				"<span id='latin-fade'></span>" . $this->getLatin(2) . 
 			"</p>" . 
 			"<span id='selected_image_filename'>$basename</span>" .
 			"<input type='hidden' name='page_id' id='page_id' value='{$this->page->id}' />" .
+			"<input type='hidden' name='selected_image_rotate' id='selected_image_rotate' value='0' />" .
 			"<p id='non_rte_dialog_buttons' class='hide_when_rte'>" . 
 				(!in_array('maxfiles1', $formClasses) ? (
 					"<button type='submit' name='submit_save_copy' value='1' class='submit_save_copy ui-button ui-state-default hide_when_maxfiles1'>" .
@@ -1015,6 +1052,9 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$class = $this->sanitizer->name($this->input->get->class);
 		$hidpi = $this->hidpi;
 		$json = (int) $this->input->get('json'); // 1 or 0 (for json output mode on or off)
+		$rotate = (int) $this->wire('input')->get('rotate');
+		$flip = $this->wire('input')->get('flip'); 
+		if($flip != 'v' && $flip != 'h') $flip = '';
 		
 		if(strpos($class, 'hidpi') !== false) {
 			if(!$hidpi) $hidpi = true; 
@@ -1025,13 +1065,20 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		$image = $this->getPageimage(true);
 		if(strpos($image->basename, '-cropx') !== false) $image = $this->getLastCrop($image); 
 		
-		if((!$hidpi && $width < $image->width) || ($hidpi && $width < $image->hidpiWidth())) {
+		if(	(!$hidpi && $width < $image->width) || 
+			($hidpi && $width < $image->hidpiWidth()) ||
+			$flip || $rotate) {
+			
 			$suffix = array('is');  // is=image select
 			if($this->editorPage && $this->editorPage->id != $this->page->id) $suffix[] = "pid$this->editorPage"; // identify page that is using the variation
-			$resized = $image->width($width, array(
-				'suffix' => $suffix, 
+			$options = array(
+				'suffix' => $suffix,
 				'hidpi' => $hidpi,
-			)); 
+			);
+			if($rotate) $options['rotate'] = $rotate; 
+			if($flip) $options['flip'] = $flip;
+			$this->log(print_r($options, true)); 
+			$resized = $image->width($width, $options); 
 			$height = $resized->height();
 		} else {
 			$width = $image->width; 
@@ -1046,7 +1093,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		} else {
 			$hidpiChecked = '';
 		}
-
+		
 		$nosize = $this->noSizeAttrs ? 1 : '';
 		
 		if($json) {
@@ -1058,8 +1105,8 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 				'height' => $height, 
 				'class' => $class, 
 				'page' => $image->page->id,
-				'hidpi' => $hidpi,
-				'nosize' => $nosize, 
+				'hidpi' => (bool) $hidpi,
+				'nosize' => (bool) $nosize, 
 			);
 			
 			header("Content-Type: application/json"); 
@@ -1074,9 +1121,18 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 				"<span id='selected_image_width'>$width</span>x" .
 				"<span id='selected_image_height'>$height</span> " .
 				"<label><input type='checkbox' id='selected_image_hidpi'$hidpiChecked />hidpi</label><br />" .
-				"<img id='selected_image' class='$class' data-idname='{$image->page->id},{$image->basename}' data-nosize='$nosize' src='{$resized->url}' width='$width' height='$height' />" .
+				"<img " . 
+					"id='selected_image' " . 
+					"class='$class' " . 
+					"data-idname='{$image->page->id},{$image->basename}' " . 
+					"data-nosize='$nosize' " . 
+					"src='{$resized->url}' " . 
+					"width='$width' " . 
+					"height='$height' " .
+				"/>" . 
 				"</p>";
 		}
+		$this->log($out); 
 
 		return $out; 
 	}

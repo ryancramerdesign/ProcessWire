@@ -21,7 +21,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'CKEditor',
-			'version' => 137, 
+			'version' => 138, 
 			'summary' => __('CKEditor textarea rich text editor.', __FILE__),
 			'installs' => array('MarkupHTMLPurifier'), 
 			);
@@ -294,6 +294,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 			'pwimage' => array(
 				'selectLabel' => $this->_('Select Image'),
 				'editLabel' => $this->_('Edit Image'),
+				'captionLabel' => $this->_('Your caption text here'), 
 				'savingNote' => $this->_('Saving Image'),
 				'cancelBtn' => $cancelButtonLabel,
 				'insertBtn' => $this->_('Insert This Image'),
