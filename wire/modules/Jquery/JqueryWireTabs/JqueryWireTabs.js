@@ -100,6 +100,13 @@
 						.click(tabClick); 
 					$tabList.append($("<li></li>").append($a)); 
 				}
+				var tip = $t.attr('data-tooltip'); 
+				if($t.hasClass('WireTabTip') || tip) {
+					// if the tab being added has the class 'WireTabTip' or has a data-tooltip attribute
+					// then display a tooltip with the tab
+					$a.addClass('tooltip');
+					$a.attr('title', tip ? tip : title); 
+				}
 				$t.hide();
 				// the following removed to prevent DOM manipulation if the tab content:
 				// if(options.itemsParent === null) options.itemsParent = $t.parent(); 

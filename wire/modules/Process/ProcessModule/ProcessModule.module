@@ -1251,10 +1251,17 @@ class ProcessModule extends Process {
 		
 		// build a table that displays module info
 		$table = $this->modules->get("MarkupAdminDataTable"); 
+		$table->setResponsive(false);
 		$table->setEncodeEntities(false); 
+		$table->setSortable(false);
 		$table->row(array($this->_x('Title', 'edit'), $moduleInfo['title'])); 
 		$table->row(array($this->_x('Class', 'edit'), $moduleName));
-		$table->row(array($this->_x('File', 'edit'), $filename)); 
+		$table->row(array($this->_x('File', 'edit'), str_replace('/', 
+			// this sillyness allows for multi-line wrapping without the appearance of space.
+			// someone please tell me if there is a better way to do this. I suspect there is, so
+			// will leave it out here in the open rather hide it in ProcessModule.css
+			'<span style="display:inline-block;width:1px;overflow:hidden;"> </span>/', $filename))); 
+		
 		$table->row(array($this->_x('ID', 'edit'), $moduleId)); 
 		$table->row(array($this->_x('Version', 'edit'), $version)); 
 		if(!empty($moduleInfo['created'])) $table->row(array($this->labels['installed_date'], wireRelativeTimeStr($moduleInfo['created'])));

@@ -214,7 +214,7 @@ abstract class Fieldtype extends WireData implements Module {
 				$data[$inputfield->name] = $value; 
 			}
 		}
-		$inputfield = $this->getInputfield(new NullPage(), $field); 
+		$inputfield = $field->getInputfield(new NullPage()); 
 		if($inputfield) {
 			$data = $inputfield->exportConfigData($data);
 		}

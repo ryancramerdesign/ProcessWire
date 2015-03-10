@@ -2010,6 +2010,7 @@ class Modules extends WireArray {
 		
 		if(empty($data)) $data = array();
 			else $data = wireDecodeJSON($data); 
+		if(empty($data)) $data = array();
 		$this->configData[$id] = $data; 
 
 		return $data; 	
@@ -2181,8 +2182,8 @@ class Modules extends WireArray {
 	 */
 	public function ___saveModuleConfigData($className, array $configData) {
 		if(is_object($className)) $className = $className->className();
-		if(!$id = $this->moduleIDs[$className]) throw new WireException("Unable to find ID for Module '$className'"); 
-		
+		if(!$id = $this->moduleIDs[$className]) throw new WireException("Unable to find ID for Module '$className'");
+
 		// ensure original duplicates info is retained and validate that it is still current
 		$configData = $this->duplicates()->getDuplicatesConfigData($className, $configData); 
 		
@@ -2193,7 +2194,7 @@ class Modules extends WireArray {
 		$query->bindValue(":data", $json, PDO::PARAM_STR);
 		$query->bindValue(":id", (int) $id, PDO::PARAM_INT); 
 		$result = $query->execute();
-		$this->log("Saved module '$className' config data"); 
+		$this->log("Saved module '$className' config data");
 		return $result;
 	}
 

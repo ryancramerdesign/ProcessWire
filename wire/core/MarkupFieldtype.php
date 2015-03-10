@@ -51,6 +51,14 @@ class MarkupFieldtype extends WireData implements Module {
 	protected $_value = null;
 
 	/**
+	 * True when we are unable to render and should delegate to Inputfield::renderValue instead
+	 * 
+	 * @var bool
+	 * 
+	 */
+	protected $renderIsUseless = false; 
+
+	/**
 	 * Construct the MarkupFieldtype
 	 * 
 	 * If you construct without providing page and field, please populate them
@@ -112,12 +120,21 @@ class MarkupFieldtype extends WireData implements Module {
 				$value = null;
 			}
 			
-			return $this->renderProperty($property, $value); 
+			$out = $this->renderProperty($property, $value); 
 			
 		} else {
 			// render entire value requested
-			return $this->renderValue($value); 
+			$out = $this->renderValue($value); 
 		}
+		
+		if($this->renderIsUseless && $field = $this->getField()) {
+			// if we detected that we're rendering something useless (like a list of class names)
+			// then attempt to delegate to Inputfield::renderValue() instead. 
+			$in = $field->getInputfield($this->getPage()); 
+			if($in) $out = $in->renderValue();
+		}
+		
+		return $out; 
 	}
 
 	/**
@@ -191,7 +208,13 @@ class MarkupFieldtype extends WireData implements Module {
 	 * 
 	 */
 	protected function objectToString($value) {
-		return (string) $value; 
+		$className = get_class($value); 
+		$out = (string) $value; 
+		if($out === $className) {
+			// just the class name probably isn't useful here, see if we can do do something else with it
+			$this->renderIsUseless = true; 
+		}
+		return $out; 
 	}
 
 	/**

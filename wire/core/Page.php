@@ -1955,6 +1955,26 @@ class Page extends WireData implements Countable {
 		// $this->setQuietly('_editor', $editor); // uncomment when/if needed
 	}
 
+	/**
+	 * Get the icon name associated with this Page (if applicable)
+	 * 
+	 * @todo add recognized page icon field to core
+	 * 
+	 * @return string
+	 * 
+	 */
+	public function ___getIcon() {
+		if(!$this->template) return '';
+		if($this->template->fieldgroup->hasField('process')) {
+			$process = $this->getUnformatted('process'); 
+			if($process) {
+				$info = $this->wire('modules')->getModuleInfoVerbose($process);
+				if(!empty($info['icon'])) return $info['icon'];
+			}
+		}
+		return $this->template->getIcon();
+	}
+
 }
 
 
