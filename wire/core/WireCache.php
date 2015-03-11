@@ -79,7 +79,7 @@ class WireCache extends Wire {
 	 * 	If given an array of names, multiple caches will be returned, indexed by cache name. 
 	 * @param int|string|null Optionally specify max age (in seconds) OR oldest date string.
 	 * 	If cache exists and is older, then blank returned. 
-	 * @return string|array
+	 * @return string|array|null Returns null if cache doesn't exist
 	 * 
 	 */
 	public function get($name, $expire = null) {
@@ -125,7 +125,9 @@ class WireCache extends Wire {
 		
 		try {
 			$query->execute(); 
-			while($row = $query->fetch(PDO::FETCH_NUM)) {
+			if($query->rowCount() == 0) {
+				$value = null; // cache does not exist
+			} else while($row = $query->fetch(PDO::FETCH_NUM)) {
 				list($name, $value) = $row;
 				$c = substr($value, 0, 1);
 				if($c == '{' || $c == '[') {
@@ -137,7 +139,7 @@ class WireCache extends Wire {
 			$query->closeCursor();
 				
 		} catch(Exception $e) {
-			$value = '';
+			$value = null;
 		}
 		
 		if($multi) foreach($names as $name) {

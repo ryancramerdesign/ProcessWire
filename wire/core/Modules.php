@@ -710,7 +710,7 @@ class Modules extends WireArray {
 			$cacheName = "Modules." . str_replace($config->paths->root, '', $path);
 			if($readCache && $cache) {
 				$cacheContents = $cache->get($cacheName); 
-				if(!empty($cacheContents)) {
+				if($cacheContents !== null) {
 					$cacheContents = explode("\n", $cacheContents); 
 					return $cacheContents;
 				}
