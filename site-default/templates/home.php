@@ -5,7 +5,7 @@
 
 // Primary content is the page body copy and navigation to children. 
 // See the _func.php file for the renderNav() function example
-$content = $page->body . renderNav($page->children, 0, 'summary');
+$content = $page->body . renderNav($page->children); 
 
 // if there are images, lets choose one to output in the sidebar
 if(count($page->images)) {

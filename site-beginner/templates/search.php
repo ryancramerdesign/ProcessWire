@@ -36,8 +36,8 @@
 
 			// we found matches
 			echo "<h2>Found $matches->count page(s) matching your query:</h2>";
-
-			// output navigation for them
+			
+			// output navigation for them (see TIP below)
 			echo "<ul class='nav'>";
 
 			foreach($matches as $match) {
@@ -46,6 +46,9 @@
 			}
 
 			echo "</ul>";
+			
+			// TIP: you could replace everything from the <ul class='nav'> above
+			// all the way to here, with just this: renderNav($matches); 
 
 		} else {
 			// we didn't find any
