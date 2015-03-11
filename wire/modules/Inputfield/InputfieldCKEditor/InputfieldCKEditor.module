@@ -5,10 +5,10 @@
  *
  * Web text editor for ProcessWire 2.2+
  *
- * CKEditor Copyright (C) 2003-2013, CKSource - Frederico Knabben
+ * CKEditor Copyright (C) 2003-2015, CKSource - Frederico Knabben
  * http://ckeditor.com
  *
- * ProcessWire Module Copyright (C) 2013 by Ryan Cramer 
+ * ProcessWire Module Copyright (C) 2015 by Ryan Cramer 
  * http://processwire.com
  * 
  * Licensed under GNU/GPL v2
@@ -21,7 +21,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'CKEditor',
-			'version' => 138, 
+			'version' => 139, 
 			'summary' => __('CKEditor textarea rich text editor.', __FILE__),
 			'installs' => array('MarkupHTMLPurifier'), 
 			);
@@ -282,9 +282,12 @@ class InputfieldCKEditor extends InputfieldTextarea {
 				$linkClassOptions[] = trim($option, '+ ');	
 			}
 		}
+		
+		$info = self::getModuleInfo();
 
 		$settings = array(
 			'language' => $this->_x('en', 'language-code'), // 2 character language code, lowercase
+			'timestamp' => '2015030801.' . $info['version'], // for cache busting (thanks teppo!)
 			'pwlink' => array(
 				'label' => $this->_('Insert Link'), // Insert link label, window headline and button text
 				'edit' => $this->_('Edit Link'), // Edit link label

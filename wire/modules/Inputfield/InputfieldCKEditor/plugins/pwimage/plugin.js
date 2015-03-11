@@ -185,13 +185,13 @@
 									.removeClass('flip_vertical flip_horizontal').attr('class');
 								var $linkToLarger = $('#selected_image_link', $i); 
 								var link = $linkToLarger.is(":checked") ? $linkToLarger.val() : ''; // link to larger version
-								var $insertHTML = $("<img />").attr('src', src);
+								var $insertHTML = $("<img />").attr('src', src).attr('alt', alt); 
 
 								if(hidpi) cls += (cls.length > 0 ? ' ' : '') + 'hidpi';
-								if(caption === false) {
-									$insertHTML.addClass(cls); // class added to figureWrapper when this is a caption
-								}
-								if(alt && alt.length > 0) $insertHTML.attr('alt', alt); 
+								
+								// note: class is added to figureWrapper (rather than <img>) when this is a caption
+								if(caption === false) $insertHTML.addClass(cls); 
+								
 								if(width > 0) $insertHTML.attr('width', width); 
 								
 								if($linkWrapper) {	

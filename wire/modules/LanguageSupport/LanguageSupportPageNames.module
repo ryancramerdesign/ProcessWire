@@ -128,7 +128,8 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$this->addHookAfter('Page::viewable', $this, 'hookPageViewable'); 
 		$this->addHookBefore('Page::render', $this, 'hookPageRender'); 
 		$this->addHook('Page::localName', $this, 'hookPageLocalName'); 
-		$this->addHook('Page::localUrl', $this, 'hookPageLocalUrl'); 
+		$this->addHook('Page::localUrl', $this, 'hookPageLocalUrl');
+		$this->addHook('Page::localHttpUrl', $this, 'hookPageLocalHttpUrl'); 
 		$this->addHook('Page::localPath', $this, 'hookPageLocalPath');
 
 		// bypass means the request was to something in /site/*/ that has no possibilty of language support
@@ -599,6 +600,19 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$page = $event->object; 
 		$language = $this->getLanguage($event->arguments(0)); 
 		$event->return = wire('config')->urls->root . ltrim($this->getPagePath($page, $language), '/'); 	
+	}
+	
+	/**
+	 * Add a Page::localHttpUrl function with optional $language as argument
+	 *
+	 * event param Language|string|int Optional language
+	 * event return string Localized language name or blank if not set
+	 *
+	 */
+	public function hookPageLocalHttpUrl(HookEvent $event) {
+		$this->hookPageLocalUrl($event); 
+		$url = $event->return;
+		$event->return = $this->wire('input')->scheme() . "://" . $this->wire('config')->httpHost . $url;
 	}
 
 	/**

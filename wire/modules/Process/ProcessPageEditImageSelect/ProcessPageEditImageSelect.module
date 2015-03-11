@@ -27,7 +27,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Edit Image',
 			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)',
-			'version' => 115,
+			'version' => 116,
 			'permanent' => true,
 			'permission' => 'page-edit',
 		);
@@ -826,7 +826,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			"</p>" . 
 			"<p id='wrap_description' class='show_when_rte'>" . 
 				"<label for='selected_image_description'>$labels[description]</label>" . 
-				"<input type='text' placeholder='$labels[description]' name='selected_image_description' " . 
+				"<input type='text' name='selected_image_description' " . 
 					"id='selected_image_description' title='$description' class='no_focus' value=\"$description\" />" . 
 			"</p>" . 
 			"</small>" . 
@@ -844,7 +844,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 					"<span class='resize_tip' id='resize_tip_sw'><i class='fa fa-fw fa-expand'></i></span>" .
 					"<span class='resize_tip' id='resize_tip_w'><i class='fa fa-fw fa-arrows-h'></i></span>" . 
 				"</span>" .
-				"<figcaption id='caption_preview' class='show_when_rte hide_when_crop'>" . 
+				"<figcaption id='caption_preview' class='show_when_rte'>" . 
 					"<a class='tooltip' title='$labels[captionTip]'>$labels[captionText]</a>" . 
 				"</figcaption>" . 
 			"</figure>" .

@@ -273,13 +273,14 @@ label.checkbox {
 	opacity: 0.7;
 	display: none; 
 }
-/*
-#caption_preview .tooltip:hover {
-	border: none; 
-	background: inherit; 
-	cursor: help;
+
+#caption_preview {
+	height: 1.75em;
+	overflow: hidden; 
 }
-*/
+#selected_image_settings.cropping_active #caption_preview {
+	display: none !important; 
+}
 
 .rotate90 { -ms-transform: rotate(90deg); -webkit-transform: rotate(90deg); transform: rotate(90deg); }
 .rotate180 { -ms-transform: rotate(180deg); -webkit-transform: rotate(180deg); transform: rotate(180deg); }
