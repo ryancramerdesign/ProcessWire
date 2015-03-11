@@ -384,7 +384,8 @@ class Installer {
 		echo "<a class='ui-priority-secondary' style='float: right' title='Experimental Database Options' href='#' onclick='$(\"#dbAdvanced\").slideToggle();'><i class='fa fa-wrench'></i></a>";
 		
 		$this->h("MySQL Database"); 
-		$this->p("Please create a MySQL 5.x database and user account on your server. The user account should have full read, write and delete permissions on the database.* Once created, please enter the information for this database and account below:"); 
+		$this->p("Please create a MySQL 5.x user account on your server. The user account should have full read, write and delete permissions on the database.* Once created, please enter the information for this database and account below:");
+		$this->p("Optionally, please also create a schema on which the user has the previous permissions. If the schema does not exist, ProcessWire will try to create it for you using the name specified below.");
 		$this->p("*Recommended permissions are select, insert, update, delete, create, alter, index, drop, create temporary tables, and lock tables.", "detail"); 
 
 		if(!isset($values['dbName'])) $values['dbName'] = '';
@@ -564,8 +565,22 @@ class Installer {
 			try {
 				$database = new PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options); 
 			} catch(Exception $e) {
-				$this->err("Database connection information did not work."); 
-				$this->err($e->getMessage());
+				// If schema does not exist, try to create it
+				if ($e->getCode() == 1049) {
+					$dsn2 = "mysql:host=$values[dbHost];port=$values[dbPort]";
+					$charset = strtolower($values['dbCharset']);
+					try {
+						$database = new PDO($dsn2, $values['dbUser'], $values['dbPass'], $driver_options);
+						$database->exec("CREATE SCHEMA IF NOT EXISTS $values[dbName] DEFAULT CHARACTER SET $charset");
+						// reconnect
+						$database = new PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options);
+					} catch(Exception $e) {
+						$this->err("Failed to create schema with name $values[dbName]");
+					}
+				} else {
+					$this->err("Database connection information did not work.");
+					$this->err($e->getMessage());
+				}
 			}
 		}
 
