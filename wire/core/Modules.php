@@ -619,7 +619,6 @@ class Modules extends WireArray {
 		$modulesRequired = array();
 
 		foreach($this->findModuleFiles($path, true) as $pathname) {
-
 			$pathname = trim($pathname);
 			$requires = array();
 			$moduleName = $this->loadModule($path, $pathname, $requires, $installed);
@@ -819,7 +818,9 @@ class Modules extends WireArray {
 	protected function findModuleFiles($path, $readCache = false, $level = 0) {
 
 		static $startPath;
+		static $callNum = 0;
 
+		$callNum++;
 		$config = $this->wire('config');
 		$cache = $this->wire('cache'); 
 
@@ -829,8 +830,12 @@ class Modules extends WireArray {
 			if($readCache && $cache) {
 				$cacheContents = $cache->get($cacheName); 
 				if($cacheContents !== null) {
-					$cacheContents = explode("\n", $cacheContents); 
-					return $cacheContents;
+					if(empty($cacheContents) && $callNum === 1) {
+						// don't accept empty cache for first path (/wire/modules/)
+					} else {
+						$cacheContents = explode("\n", $cacheContents);
+						return $cacheContents;
+					}
 				}
 			}
 		}
