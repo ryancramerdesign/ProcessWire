@@ -36,7 +36,19 @@ class Modules extends WireArray {
 	 * Flag indicating the module has more than one copy of it on the file system. 
 	 * 
 	 */
-	const flagsDuplicate = 4; 
+	const flagsDuplicate = 4;
+
+	/**
+	 * When combined with flagsAutoload, indicates that the autoload is conditional 
+	 * 
+	 */
+	const flagsConditional = 8;
+
+	/**
+	 * When combined with flagsAutoload, indicates that the module's autoload state is temporarily disabled
+	 * 
+	 */
+	const flagsDisabled = 16; 
 
 	/**
 	 * Filename for module info cache file
@@ -112,7 +124,9 @@ class Modules extends WireArray {
 	protected $debugLog = array();
 
 	/**
-	 * Modules that specify an anonymous function returning true or false on whether they should be autoloaded
+	 * Array of moduleName => condition
+	 * 
+	 * Condition can be either an anonymous function or a selector string to be evaluated at ready().
 	 *
 	 */
 	protected $conditionalAutoloadModules = array();
@@ -143,6 +157,14 @@ class Modules extends WireArray {
 	 */
 	protected $modulesTableCache = array();
 
+	/**
+	 * Array of module ID => flags (int)
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $moduleFlags = array();
+	
 	/**
 	 * Array of moduleName => substituteModuleName to be used when moduleName doesn't exist
 	 * 
@@ -290,45 +312,71 @@ class Modules extends WireArray {
 	 */
 	public function triggerInit($modules = null, $completed = array(), $level = 0) {
 	
-		if($this->debug) $debugKey = $this->debugTimerStart("triggerInit$level"); 
+		if($this->debug) {
+			$debugKey = $this->debugTimerStart("triggerInit$level");
+			// $this->message("triggerInit(level=$level)"); 
+		}
+		
 		$queue = array();
 		if(is_null($modules)) $modules = $this;
 
 		foreach($modules as $class => $module) {
-			
-			if($module instanceof ModulePlaceholder && !$module->autoload) continue; 
+		
+			if($module instanceof ModulePlaceholder) {
+				// skip modules that aren't autoload and those that are conditional autoload
+				if(!$module->autoload) continue;
+				if(isset($this->conditionalAutoloadModules[$class])) continue;
+			}
 			
 			if($this->debug) $debugKey2 = $this->debugTimerStart("triggerInit$level($class)"); 
+			
 			$info = $this->getModuleInfo($module); 
 			$skip = false;
 
 			// module requires other modules
 			foreach($info['requires'] as $requiresClass) {
-				if(!in_array($requiresClass, $completed)) {
-					$dependencyInfo = $this->getModuleInfo($requiresClass);
-					// if dependency isn't an autoload one, then we can continue and not worry about it
-					if(empty($dependencyInfo['autoload'])) continue;
-					// dependency is autoload and required by this module, so queue this module to init later
-					$queue[$class] = $module;
-					$skip = true;
-					break;
+				if(in_array($requiresClass, $completed)) continue; 
+				$dependencyInfo = $this->getModuleInfo($requiresClass);
+				if(empty($dependencyInfo['autoload'])) {
+					// if dependency isn't an autoload one, there's no point in waiting for it
+					if($this->debug) $this->warning("Autoload module '$module' requires a non-autoload module '$requiresClass'");
+					continue;
+				} else if(isset($this->conditionalAutoloadModules[$requiresClass])) {
+					// autoload module requires another autoload module that may or may not load
+					if($this->debug) $this->warning("Autoload module '$module' requires a conditionally autoloaded module '$requiresClass'");
+					continue; 
 				}
+				// dependency is autoload and required by this module, so queue this module to init later
+				$queue[$class] = $module;
+				$skip = true;
+				break;
 			}
+			
 			if(!$skip) {
 				if($info['autoload'] !== false) {
-					if($info['autoload'] === true || $this->isAutoload($module)) $this->initModule($module);
+					if($info['autoload'] === true || $this->isAutoload($module)) {
+						$this->initModule($module);
+					}
 				}
 				$completed[] = $class;
 			}
+			
 			if($this->debug) $this->debugTimerStop($debugKey2); 
 		}
 
 		// if there is a dependency queue, go recursive till the queue is completed
-		if(count($queue) && $level < 3) $this->triggerInit($queue, $completed, $level+1);
+		if(count($queue) && $level < 3) {
+			$this->triggerInit($queue, $completed, $level + 1);
+		}
 
 		$this->initialized = true;
+		
 		if($this->debug) if($debugKey) $this->debugTimerStop($debugKey);
-		if(!$level && empty($this->moduleInfoCache)) $this->saveModuleInfoCache();
+		
+		if(!$level && empty($this->moduleInfoCache)) {
+			// if($this->debug) $this->message("saveModuleInfoCache from triggerInit"); 
+			$this->saveModuleInfoCache();
+		}
 	}
 
 	/**
@@ -374,11 +422,17 @@ class Modules extends WireArray {
 	 */
 	protected function initModule(Module $module, $clearSettings = true) {
 		
+		if($this->debug) {
+			// static $n = 0;
+			// $this->message("initModule (" . (++$n) . "): $module"); 
+		}
+		
 		// if the module is configurable, then load it's config data
 		// and set values for each before initializing themodule
 		$this->setModuleConfigData($module);
 		
 		if(method_exists($module, 'init')) {
+			
 			if($this->debug) {
 				$className = get_class($module); 
 				$debugKey = $this->debugTimerStart("initModule($className)"); 
@@ -386,7 +440,9 @@ class Modules extends WireArray {
 		
 			$module->init();
 			
-			if($this->debug) $this->debugTimerStop($debugKey);
+			if($this->debug) {
+				$this->debugTimerStop($debugKey);
+			}
 		}
 
 		// if module is autoload (assumed here) and singular, then
@@ -406,8 +462,63 @@ class Modules extends WireArray {
 		if(method_exists($module, 'ready')) {
 			if($this->debug) $debugKey = $this->debugTimerStart("readyModule(" . $module->className() . ")"); 
 			$module->ready();
-			if($this->debug) $this->debugTimerStop($debugKey); 
+			if($this->debug) {
+				$this->debugTimerStop($debugKey);
+				// static $n = 0;
+				// $this->message("readyModule (" . (++$n) . "): $module");
+			}
 		}
+	}
+
+	/**
+	 * Init conditional autoload modules, if conditions allow
+	 * 
+	 * @return array of skipped module names
+	 * 
+	 */
+	protected function triggerConditionalAutoload() {
+		
+		// conditional autoload modules that are skipped (className => 1)
+		$skipped = array();
+
+		// init conditional autoload modules, now that $page is known
+		foreach($this->conditionalAutoloadModules as $className => $func) {
+
+			/*
+			if($this->debug) {
+				$moduleID = $this->getModuleID($className);
+				$flags = $this->moduleFlags[$moduleID];
+				$this->message("Conditional autoload: $className (flags=$flags, condition=" . (is_string($func) ? $func : 'func') . ")");
+			}
+			*/
+
+			$load = true;
+
+			if(is_string($func)) {
+				// selector string
+				if(!$this->wire('page')->is($func)) $load = false;
+			} else {
+				// anonymous function
+				if(!is_callable($func)) $load = false;
+					else if(!$func()) $load = false;
+			}
+
+			if($load) {
+				$module = $this->newModule($className);
+				$this->set($className, $module);
+				$this->initModule($module);
+				if($this->debug) $this->message("Conditional autoload: $className LOADED");
+
+			} else {
+				$skipped[$className] = $className;
+				if($this->debug) $this->message("Conditional autoload: $className SKIPPED");
+			}
+		}
+		
+		// clear this out since we don't need it anymore
+		$this->conditionalAutoloadModules = array();
+		
+		return $skipped;
 	}
 
 	/**
@@ -419,29 +530,28 @@ class Modules extends WireArray {
 	 *
 	 */
 	public function triggerReady() {
+		
 		if($this->debug) $debugKey = $this->debugTimerStart("triggerReady"); 
 		
-		foreach($this->conditionalAutoloadModules as $className => $func) {
-			if(is_string($func)) {
-				// selector string
-				if(!$this->wire('page')->is($func)) continue; 
-			} else {
-				// anonymous function
-				if(!is_callable($func)) continue; 
-				if(!$func()) continue;
-			}
-			$module = $this->newModule($className); 
-			$this->set($className, $module); 
-			$this->initModule($module);
-		}
-		$this->conditionalAutoloadModules = array();
-
+		$skipped = $this->triggerConditionalAutoload();
+		
+		// trigger ready method on all applicable modules
 		foreach($this as $module) {
+			
 			if($module instanceof ModulePlaceholder) continue;
+			
+			// $info = $this->getModuleInfo($module); 
+			// if($info['autoload'] === false) continue; 
+			// if(!$this->isAutoload($module)) continue; 
+			
+			$class = $this->getModuleClass($module); 
+			if(isset($skipped[$class])) continue; 
+			
+			$id = $this->moduleIDs[$class];
+			if(!($this->moduleFlags[$id] & self::flagsAutoload)) continue;
+			
 			if(!method_exists($module, 'ready')) continue;
-			$info = $this->getModuleInfo($module); 
-			if($info['autoload'] === false) continue; 
-			if(!$this->isAutoload($module)) continue; 
+			
 			$this->readyModule($module);
 		}
 		
@@ -464,9 +574,10 @@ class Modules extends WireArray {
 		while($row = $query->fetch(PDO::FETCH_ASSOC)) {
 			
 			$moduleID = (int) $row['id'];
-			$flags = $row['flags'];
+			$flags = (int) $row['flags'];
 			$class = $row['class'];
 			$this->moduleIDs[$class] = $moduleID;
+			$this->moduleFlags[$moduleID] = $flags;
 			$loadSettings = ($flags & self::flagsAutoload) || ($flags & self::flagsDuplicate) || ($class == 'SystemUpdater');
 			
 			if($loadSettings) {
@@ -624,12 +735,14 @@ class Modules extends WireArray {
 		}
 
 		$info = $installed[$basename];
+	
 		$this->setConfigPaths($basename, $dirname);
 		$module = null;
 		$autoload = false;
 
 		if($info['flags'] & self::flagsAutoload) {
-			// this is an Autoload mdoule. 
+			
+			// this is an Autoload module. 
 			// include the module and instantiate it but don't init() it,
 			// because it will be done by Modules::init()
 			$moduleInfo = $this->getModuleInfo($basename);
@@ -659,19 +772,25 @@ class Modules extends WireArray {
 			$autoload = $moduleInfo['autoload'];
 			if($autoload === 'function') {
 				// function is stored by the moduleInfo cache to indicate we need to call a dynamic function specified with the module itself
-				include_once($pathname);
-				$i = $basename::getModuleInfo();
+				$i = $this->getModuleInfoExternal($basename); 
+				if(empty($i)) {
+					include_once($pathname);
+					$i = $basename::getModuleInfo();
+				}
 				$autoload = isset($i['autoload']) ? $i['autoload'] : true;
+				unset($i);
 			}
 			// check for conditional autoload
-			if(!is_bool($autoload) && (is_string($autoload) || is_callable($autoload))) {
+			if(!is_bool($autoload) && (is_string($autoload) || is_callable($autoload)) && !($info['flags'] & self::flagsDisabled)) {
 				// anonymous function or selector string
 				$this->conditionalAutoloadModules[$basename] = $autoload;
 				$this->moduleIDs[$basename] = $info['id'];
 				$autoload = true;
 			} else if($autoload) {
 				include_once($pathname);
-				$module = $this->newModule($basename);
+				if(!($info['flags'] & self::flagsDisabled)) {
+					$module = $this->newModule($basename);
+				}
 			}
 		}
 
@@ -682,7 +801,6 @@ class Modules extends WireArray {
 
 		$this->moduleIDs[$basename] = $info['id'];
 		$this->set($basename, $module);
-		
 		
 		return $basename; 
 	}
@@ -1523,6 +1641,74 @@ class Modules extends WireArray {
 	}
 
 	/**
+	 * Get flags for the given module
+	 * 
+	 * @param int|string|Module $class Module to add flag to
+	 * @return int|false Returns integer flags on success, or boolean false on fail
+	 * 
+	 */
+	public function getFlags($class) {
+		$id = ctype_digit("$class") ? (int) $class : $this->getModuleID($class);
+		if(isset($this->moduleFlags[$id])) return $this->moduleFlags[$id]; 
+		if(!$id) return false;
+		$query = $this->wire('database')->prepare('SELECT flags FROM modules WHERE id=:id');
+		$query->bindValue(':id', $id, PDO::PARAM_INT);
+		$query->execute();
+		if(!$query->rowCount()) return false;
+		list($flags) = $query->fetch(PDO::FETCH_NUM);
+		$flags = (int) $flags; 
+		$this->moduleFlags[$id] = $flags;
+		return $flags; 
+	}
+
+	/**
+	 * Set module flags
+	 * 
+	 * @param $class
+	 * @param $flags
+	 * @return bool
+	 * 
+	 */
+	public function setFlags($class, $flags) {
+		$flags = (int) $flags; 
+		$id = ctype_digit("$class") ? (int) $class : $this->getModuleID($class);
+		if(!$id) return false;
+		if($this->moduleFlags[$id] === $flags) return true; 
+		$query = $this->wire('database')->prepare('UPDATE modules SET flags=:flags WHERE id=:id');
+		$query->bindValue(':flags', $flags);
+		$query->bindValue(':id', $id);
+		if($this->debug) $this->message("setFlags(" . $this->getModuleClass($class) . ", " . $this->moduleFlags[$id] . " => $flags)");
+		$this->moduleFlags[$id] = $flags;
+		return $query->execute();
+	}
+
+	/**
+	 * Add or remove a flag from a module
+	 * 
+	 * @param int|string|Module $class Module to add flag to
+	 * @param int Flag to add (see flags* constants)
+	 * @param bool $add Specify true to add the flag or false to remove it
+	 * @return bool True on success, false on fail
+	 * 
+	 */
+	public function setFlag($class, $flag, $add = true) {
+		$id = ctype_digit("$class") ? (int) $class : $this->getModuleID($class);
+		if(!$id) return false;
+		$flag = (int) $flag; 
+		if(!$flag) return false;
+		$flags = $this->getFlags($id); 
+		if($add) {
+			if($flags & $flag) return true; // already has the flag
+			$flags = $flags | $flag;
+		} else {
+			if(!($flags & $flag)) return true; // doesn't already have the flag
+			$flags = $flags & ~$flag;
+		}
+		$this->setFlags($id, $flags); 
+		return true; 	
+	}
+
+	/**
 	 * Return an array of other module class names that are uninstalled when the given one is
 	 * 
 	 * The opposite of this function is found in the getModuleInfo array property 'installs'. 
@@ -1634,6 +1820,7 @@ class Modules extends WireArray {
 	 * 
 	 */
 	protected function getModuleInfoExternal($moduleName) {
+		// if($this->debug) $this->message("getModuleInfoExternal($moduleName)"); 
 		
 		// ...attempt to load info by info file (Module.info.php or Module.info.json)
 		if(!empty($this->installable[$moduleName])) {
@@ -1674,6 +1861,7 @@ class Modules extends WireArray {
 	 * 
 	 */
 	protected function getModuleInfoInternal($module) {
+		// if($this->debug) $this->message("getModuleInfoInternal($module)"); 
 		
 		$info = array();
 		
@@ -1959,6 +2147,8 @@ class Modules extends WireArray {
 		if(empty($info['created']) && isset($this->createdDates[$moduleID])) {
 			$info['created'] = strtotime($this->createdDates[$moduleID]);
 		}
+
+		// if($this->debug) $this->message("getModuleInfo($moduleName) " . ($fromCache ? "CACHE" : "NO-CACHE")); 
 		
 		return $info;
 	}
@@ -2234,23 +2424,35 @@ class Modules extends WireArray {
 	public function isAutoload($module) {
 		
 		$info = $this->getModuleInfo($module); 
+		$autoload = null;
 		
 		if(isset($info['autoload']) && $info['autoload'] !== null) {
 			// if autoload is a string (selector) or callable, then we flag it as autoload
 			if(is_string($info['autoload']) || is_callable($info['autoload'])) return "conditional"; 
-			return $info['autoload'];
-		}
-		
-		if(!is_object($module)) {
+			$autoload = $info['autoload'];
+			
+		} else if(!is_object($module)) {
 			if(isset($this->installable[$module])) {
+				// module is not installed
 				// we are not going to be able to determine if this is autoload or not
-				return null;
+				$flags = $this->getFlags($module); 
+				if($flags !== null) {
+					$autoload = $flags & self::flagsAutoload;
+				} else {
+					// unable to determine
+					return null;
+				}
+			} else {
+				// include for method exists call
+				$this->includeModule($module);
 			}
-			$this->includeModule($module); 
 		}
 	
-		if(method_exists($module, 'isAutoload')) return $module->isAutoload();
-		return false; 
+		if($autoload === null && method_exists($module, 'isAutoload')) {
+			$autoload = $module->isAutoload();
+		}
+	
+		return $autoload; 
 	}
 	
 	/**
@@ -2630,10 +2832,61 @@ class Modules extends WireArray {
 	}
 
 	/**
+	 * Update module flags if any happen to differ from what's in the given moduleInfo
+	 * 
+	 * @param $moduleID
+	 * @param array $info
+	 * 
+	 */
+	protected function updateModuleFlags($moduleID, array $info) {
+		
+		$flags = $this->moduleFlags[$moduleID];
+		
+		if($info['autoload']) {
+			// module is autoload
+			if(!($flags & self::flagsAutoload)) {
+				// add autoload flag
+				$this->setFlag($moduleID, self::flagsAutoload, true);
+			}
+			if(is_string($info['autoload'])) {
+				// requires conditional flag
+				// value is either: "function", or the conditional string (like key=value)
+				if(!($flags & self::flagsConditional)) $this->setFlag($moduleID, self::flagsConditional, true);
+			} else {
+				// should not have conditional flag
+				if($flags & self::flagsConditional) $this->setFlag($moduleID, self::flagsConditional, false);
+			}
+			
+		} else if($info['autoload'] !== null) {
+			// module is not autoload
+			if($flags & self::flagsAutoload) {
+				// remove autoload flag
+				$this->setFlag($moduleID, self::flagsAutoload, false);
+			}
+			if($flags & self::flagsConditional) {
+				// remove conditional flag
+				$this->setFlag($moduleID, self::flagsConditional, false);
+			}
+		}
+		
+		if($info['singular']) {
+			if(!($flags & self::flagsSingular)) $this->setFlag($moduleID, self::flagsSingular, true); 
+		} else {
+			if($flags & self::flagsSingular) $this->setFlag($moduleID, self::flagsSingular, false); 
+		}
+
+	}
+
+	/**
 	 * Save the module information cache
 	 * 
 	 */
 	protected function saveModuleInfoCache() {
+		
+		if($this->debug) {
+			static $n = 0;
+			$this->message("saveModuleInfoCache (" . (++$n) . ")"); 
+		}
 		
 		$this->moduleInfoCache = array();
 		$this->moduleInfoCacheVerbose = array();
@@ -2660,12 +2913,22 @@ class Modules extends WireArray {
 				
 				$class = is_object($module) ? $module->className() : $module;
 				$info = $this->getModuleInfo($class, array('noCache' => true, 'verbose' => true));
-				if(!empty($info['error'])) continue;
 				$moduleID = (int) $info['id']; // note ID is always 0 for uninstalled modules
-				if(!$moduleID && $installed) continue; 
-				unset($info['id']); // no need to double store this property since it is already the array key
+				
+				if(!empty($info['error'])) {
+					if($this->debug) $this->warning("$class reported error: $info[error]"); 
+					continue;
+				}
+				
+				if(!$moduleID && $installed) {
+					if($this->debug) $this->warning("No module ID for $class"); 
+					continue;
+				}
+				
+				if(!$this->debug) unset($info['id']); // no need to double store this property since it is already the array key
 				
 				if(is_null($info['autoload'])) {
+					// module info does not indicate an autoload state
 					$info['autoload'] = $this->isAutoload($module); 
 					
 				} else if(!is_bool($info['autoload']) && !is_string($info['autoload']) && is_callable($info['autoload'])) {
@@ -2673,11 +2936,13 @@ class Modules extends WireArray {
 					// needs to be dynamically loaded
 					$info['autoload'] = 'function';
 				}
-				
+			
 				if(is_null($info['singular'])) {
 					$info['singular'] = $this->isSingular($module); 
 				}
-			
+				
+				if($moduleID) $this->updateModuleFlags($moduleID, $info); 
+		
 				if($installed) { 
 					
 					$verboseKeys = $this->moduleInfoVerboseKeys; 
@@ -2689,10 +2954,9 @@ class Modules extends WireArray {
 					}
 					
 					$this->moduleInfoCache[$moduleID] = $info; 
-					$this->moduleInfoCacheVerbose[$moduleID] = $verboseInfo; 
+					$this->moduleInfoCacheVerbose[$moduleID] = $verboseInfo;
 					
 				} else {
-					
 					$this->moduleInfoCacheUninstalled[$class] = $info; 
 				}
 			}
@@ -2806,6 +3070,6 @@ class Modules extends WireArray {
 		$this->log($text); 
 		return parent::error($text, $flags); 
 	}
-
+	
 }
 

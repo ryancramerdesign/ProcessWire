@@ -1087,6 +1087,10 @@ class ProcessModule extends Process {
 			return $this->session->redirect('./'); 
 		}
 		$sinfo = self::getModuleInfo();
+		$flags = $this->modules->getFlags($moduleName);
+		$allowDisabledFlag = 
+			($this->wire('config')->debug && $this->wire('config')->advanced && ($flags & Modules::flagsAutoload)) ||
+			($flags & Modules::flagsDisabled);
 
 		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $sinfo['title'])); 
 		$this->setFuel('processHeadline', $moduleInfo['title']); 
@@ -1222,6 +1226,16 @@ class ProcessModule extends Process {
 				$this->modules->saveModuleConfigData($moduleName, $data); 
 				$this->message($this->_("Saved Module") . " - $moduleName"); // Message shown before the name of a module that was just saved
 				$redirectURL = "./edit?name=$moduleName"; 
+				if($allowDisabledFlag) {
+					// module is autoload and has an option to diable
+					if($this->input->post('_flags_disabled')) {
+						// add disabled flag
+						if(!($flags & Modules::flagsDisabled)) $this->modules->setFlag($moduleName, Modules::flagsDisabled, true);
+					} else {
+						// remove disabled flag
+						if($flags & Modules::flagsDisabled) $this->modules->setFlag($moduleName, Modules::flagsDisabled, false); 
+					}
+				}
 			}
 			
 			if(count($duplicates['files'])) {
@@ -1272,6 +1286,14 @@ class ProcessModule extends Process {
 		if(!empty($moduleInfo['permission'])) $table->row(array($this->_x('Required Permission', 'edit'), $moduleInfo['permission']));
 		if($hooksStr) $table->row(array($this->_x('Hooks To', 'edit'), $hooksStr)); 
 		if(!empty($moduleInfo['href'])) $table->row(array($this->_x('More Information', 'edit'), "<a class='label' href='$moduleInfo[href]'>$moduleInfo[href]</a>"));
+		
+		if($allowDisabledFlag) {
+			$checked = $flags & Modules::flagsDisabled ? " checked='checked'" : "";
+			$table->row(array($this->_x('Debug', 'edit'), 
+				"<label class='checkbox'><input type='checkbox' name='_flags_disabled' value='1' $checked /> " . 
+				$this->_('Autoload disabled?') . " <span class='detail'>" . 
+				$this->_('Be careful, checking this box can break the module or your site. Use for temporary testing only.') . "</span></label>"));
+		}
 
 		$field = $this->modules->get("InputfieldMarkup"); 
 		$field->attr('id', 'ModuleInfo'); 
