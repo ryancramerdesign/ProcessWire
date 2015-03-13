@@ -619,9 +619,13 @@ abstract class Fieldtype extends WireData implements Module {
 		if($isMulti) $query->orderby('sort'); 
 
 		$value = null;
-		$stmt = $query->execute();
+		$stmt = $query->prepare();
+		try {
+			$stmt->execute();
+		} catch(Exception $e) {
+			$this->error($e->getMessage());	
+		}
 		$result = $stmt->errorCode() > 0 ? false : true;
-		
 		$fieldName = $database->escapeCol($field->name); 
 		$schema = $this->trimDatabaseSchema($this->getDatabaseSchema($field));
 

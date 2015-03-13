@@ -217,7 +217,7 @@ class LanguageSupportFields extends WireData implements Module {
 	 * Called when a new language is added to the system for each field that implements FieldtypeLanguageInterface
 	 *
 	 */
-	protected function ___fieldLanguageAdded(Field $field, Page $language) {
+	public function ___fieldLanguageAdded(Field $field, Page $language) {
 
 		if($language->isDefault) return;
 		
@@ -230,13 +230,21 @@ class LanguageSupportFields extends WireData implements Module {
 		foreach($schema as $name => $value) {
 			if(!preg_match('/[^\d]+' . $language->id . '$/', $name)) continue; 
 			// field in schema ends with the language ID
-			$database->exec("ALTER TABLE `{$table}` ADD `$name` $value"); 
+			try {
+				$database->exec("ALTER TABLE `{$table}` ADD `$name` $value");
+			} catch(Exception $e) {
+				$this->error($e->getMessage(), Notice::log); 
+			}
 		}
 
 		foreach($schema['keys'] as $name => $value) {
 			if(!preg_match('/[^\d]+' . $language->id . '$/', $name)) continue; 
 			// index in schema ends with the language ID
-			$database->exec("ALTER TABLE `{$table}` ADD $value"); 
+			try {
+				$database->exec("ALTER TABLE `{$table}` ADD $value");
+			} catch(Exception $e) {
+				$this->error($e->getMessage(), Notice::log); 
+			}
 		}
 
 	}

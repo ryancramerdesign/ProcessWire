@@ -277,19 +277,27 @@ class PageFinder extends Wire {
 		if($options['loadPages'] || $this->getTotalType == 'calc') {
 
 			try {
-				$stmt = $query->execute();
+				$stmt = $query->prepare();
+				$stmt->execute();
 				$error = '';
 			} catch(Exception $e) {
 				$error = $e->getMessage();
 			}
 		
-			if(!empty($stmt) && $stmt->errorCode() > 0) {
+			if($stmt->errorCode() > 0) {
 				$errorInfo = $stmt->errorInfo();
 				$error = $errorInfo[2] . ($error ? " - $error" : "");
+				if($stmt->errorCode() == '42S22') {
+					// unknown column
+					if(preg_match('/[\'"]([_a-z0-9]+\.[_a-z0-9]+)[\'"]/i', $errorInfo[2], $matches)) {
+						$this->unknownColumnError($matches[1], $errorInfo[2], $query); 
+					}
+				} 
 			}
+			
 			if($error) {
 				$this->log($error); 
-				throw new PageFinderException($error);
+				throw new PageFinderException($error); 
 			}
 		
 			if($options['loadPages']) { 	
@@ -335,6 +343,12 @@ class PageFinder extends Wire {
 		$this->lastOptions = $options; 
 
 		return $matches; 
+	}
+	
+	protected function ___unknownColumnError($column, $error, DatabaseQuery $query) {
+		if($this->wire('languages')) {
+			$this->wire('languages')->unknownColumnError($column);
+		}
 	}
 
 	/**
