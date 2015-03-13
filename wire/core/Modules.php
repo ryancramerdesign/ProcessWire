@@ -21,6 +21,12 @@
 class Modules extends WireArray {
 	
 	/**
+	 * Whether or not module debug mode is active
+	 *
+	 */
+	protected $debug = false;
+
+	/**
 	 * Flag indicating the module may have only one instance at runtime. 
 	 *
 	 */
@@ -110,12 +116,6 @@ class Modules extends WireArray {
 	 *
 	 */
 	protected $initialized = false;
-
-	/**
-	 * Whether or not module debug mode is active
-	 *
-	 */
-	protected $debug = false; 
 
 	/**
 	 * Becomes an array if debug mode is on
@@ -314,7 +314,7 @@ class Modules extends WireArray {
 	
 		if($this->debug) {
 			$debugKey = $this->debugTimerStart("triggerInit$level");
-			// $this->message("triggerInit(level=$level)"); 
+			$this->message("triggerInit(level=$level)"); 
 		}
 		
 		$queue = array();
@@ -374,7 +374,7 @@ class Modules extends WireArray {
 		if($this->debug) if($debugKey) $this->debugTimerStop($debugKey);
 		
 		if(!$level && empty($this->moduleInfoCache)) {
-			// if($this->debug) $this->message("saveModuleInfoCache from triggerInit"); 
+			if($this->debug) $this->message("saveModuleInfoCache from triggerInit"); 
 			$this->saveModuleInfoCache();
 		}
 	}
@@ -423,8 +423,8 @@ class Modules extends WireArray {
 	protected function initModule(Module $module, $clearSettings = true) {
 		
 		if($this->debug) {
-			// static $n = 0;
-			// $this->message("initModule (" . (++$n) . "): $module"); 
+			static $n = 0;
+			$this->message("initModule (" . (++$n) . "): $module"); 
 		}
 		
 		// if the module is configurable, then load it's config data
@@ -464,8 +464,8 @@ class Modules extends WireArray {
 			$module->ready();
 			if($this->debug) {
 				$this->debugTimerStop($debugKey);
-				// static $n = 0;
-				// $this->message("readyModule (" . (++$n) . "): $module");
+				static $n = 0;
+				$this->message("readyModule (" . (++$n) . "): $module");
 			}
 		}
 	}
@@ -484,13 +484,11 @@ class Modules extends WireArray {
 		// init conditional autoload modules, now that $page is known
 		foreach($this->conditionalAutoloadModules as $className => $func) {
 
-			/*
 			if($this->debug) {
 				$moduleID = $this->getModuleID($className);
 				$flags = $this->moduleFlags[$moduleID];
 				$this->message("Conditional autoload: $className (flags=$flags, condition=" . (is_string($func) ? $func : 'func') . ")");
 			}
-			*/
 
 			$load = true;
 
@@ -649,7 +647,9 @@ class Modules extends WireArray {
 					$loadNow = true;
 					if(isset($modulesDelayed[$delayedName])) {
 						foreach($modulesDelayed[$delayedName] as $requiresModuleName) {
-							if(!isset($modulesLoaded[$requiresModuleName])) $loadNow = false;
+							if(!isset($modulesLoaded[$requiresModuleName])) {
+								$loadNow = false;
+							}
 						}
 					}
 					if(!$loadNow) continue; 
@@ -715,7 +715,7 @@ class Modules extends WireArray {
 				$duplicates->recordDuplicate($basename, $pathname, $installed);
 				return '';
 			}
-			return $basename;
+			if($module) return $basename;
 		}
 
 		// if the filename doesn't end with .module or .module.php, then stop and move onto the next
