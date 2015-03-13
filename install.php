@@ -384,7 +384,7 @@ class Installer {
 		echo "<a class='ui-priority-secondary' style='float: right' title='Experimental Database Options' href='#' onclick='$(\"#dbAdvanced\").slideToggle();'><i class='fa fa-wrench'></i></a>";
 		
 		$this->h("MySQL Database"); 
-		$this->p("Please create a MySQL 5.x database and user account on your server. The user account should have full read, write and delete permissions on the database.* Once created, please enter the information for this database and account below:"); 
+		$this->p("Please specify a MySQL 5.x database and user account on your server. If the database does not exist, we will attempt to create it. If the database already exists, the user account should have full read, write and delete permissions on the database.*"); 
 		$this->p("*Recommended permissions are select, insert, update, delete, create, alter, index, drop, create temporary tables, and lock tables.", "detail"); 
 
 		if(!isset($values['dbName'])) $values['dbName'] = '';
@@ -561,15 +561,24 @@ class Installer {
 				PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'",
 				PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
 				);
+			
 			try {
-				$database = new PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options); 
+				$database = new PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options);
+				
 			} catch(Exception $e) {
-				$this->err("Database connection information did not work."); 
-				$this->err($e->getMessage());
+				
+				if($e->getCode() == 1049) {
+					// If schema does not exist, try to create it
+					$database = $this->dbCreateDatabase($dsn, $values, $driver_options); 
+					
+				} else {
+					$this->err("Database connection information did not work.");
+					$this->err($e->getMessage());
+				}
 			}
 		}
 
-		if($this->numErrors) {
+		if($this->numErrors || !$database) {
 			$this->dbConfig($values);
 			return;
 		}
@@ -580,6 +589,54 @@ class Installer {
 
 		if($this->dbSaveConfigFile($values)) $this->profileImport($database, $options);
 			else $this->dbConfig($values);
+	}
+
+	/**
+	 * Create database
+	 * 
+	 * Note: only handles database names that stick to ascii _a-zA-Z0-9.
+	 * For database names falling outside that set, they should be created
+	 * ahead of time. 
+	 * 
+	 * Contains contributions from @plauclair PR #950
+	 * 
+	 * @param string $dsn
+	 * @param array $values
+	 * @param array $driver_options
+	 * @return PDO|null
+	 * 
+	 */
+	protected function dbCreateDatabase($dsn, $values, $driver_options) {
+		
+		$dbCharset = preg_replace('/[^a-z0-9]/', '', strtolower(substr($values['dbCharset'], 0, 64)));
+		$dbName = preg_replace('/[^_a-zA-Z0-9]/', '', substr($values['dbName'], 0, 64));
+		$dbNameTest = str_replace('_', '', $dbName);
+
+		if(ctype_alnum($dbNameTest) && $dbName === $values['dbName']
+			&& ctype_alnum($dbCharset) && $dbCharset === $values['dbCharset']) {
+			
+			// valid database name with no changes after sanitization
+
+			try {
+				$dsn2 = "mysql:host=$values[dbHost];port=$values[dbPort]";
+				$database = new PDO($dsn2, $values['dbUser'], $values['dbPass'], $driver_options);
+				$database->exec("CREATE SCHEMA IF NOT EXISTS `$dbName` DEFAULT CHARACTER SET `$dbCharset`");
+				// reconnect
+				$database = new PDO($dsn, $values['dbUser'], $values['dbPass'], $driver_options);
+				if($database) $this->ok("Created database: $dbName"); 
+
+			} catch(Exception $e) {
+				$this->err("Failed to create database with name $dbName");
+				$this->err($e->getMessage()); 
+				$database = null;
+			}
+			
+		} else {
+			$database = null;
+			$this->err("Unable to create database with that name. Please create the database with another tool and try again."); 
+		}
+		
+		return $database; 
 	}
 
 	/**

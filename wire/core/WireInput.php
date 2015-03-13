@@ -152,7 +152,10 @@ class WireInput {
 	 *
 	 */
 	public function get($key = '') {
-		if(is_null($this->getVars)) $this->getVars = new WireInputData($_GET); 
+		if(is_null($this->getVars)) {
+			$this->getVars = new WireInputData($_GET);
+			$this->getVars->offsetUnset('it');
+		}
 		return $key ? $this->getVars->__get($key) : $this->getVars; 
 	}
 

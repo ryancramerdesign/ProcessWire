@@ -14,7 +14,6 @@ var ProcessWireAdminTheme = {
 	init: function() {
 		this.setupCloneButton();
 		this.setupButtonStates();
-		this.setupFieldFocus();
 		this.setupTooltips();
 		this.setupSearch();
 		this.sizeTitle();
@@ -98,19 +97,6 @@ var ProcessWireAdminTheme = {
 		$("a > button").click(function() {
 			window.location = $(this).parent("a").attr('href'); 
 		}); 
-	},
-
-	/**
-	 * Make the first field in any forum have focus, if it is a text field
-	 *
-	 */
-	setupFieldFocus: function() {
-		// add focus to the first text input, where applicable
-		jQuery('#content input[type=text]:visible:enabled:first:not(.hasDatepicker)').each(function() {
-			var $t = $(this); 
-			if(!$t.val() && !$t.is(".no_focus")) window.setTimeout(function() { $t.focus(); }, 1);
-		});
-
 	},
 
 	/**

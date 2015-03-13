@@ -218,6 +218,12 @@ form.search {
 	top: 0.5em;
 }
 
+figure figcaption {
+	font-size: smaller;
+	color: #777;
+	line-height: 1.4em;
+}
+
 
 /*********************************************************************
  * 4. Footer

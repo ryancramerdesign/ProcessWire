@@ -552,9 +552,13 @@ function InputfieldStates() {
 		var $li = $t.closest('.Inputfield');
 		var isIcon = $t.hasClass('toggle-icon');
 		var $icon = isIcon ? $t : $li.children('.InputfieldHeader, .ui-widget-header').find('.toggle-icon'); 
-		if($li.hasClass("InputfieldStateCollapsed") || $li.hasClass("InputfieldStateWasCollapsed") || isIcon) {
+		var isCollapsed = $li.hasClass("InputfieldStateCollapsed"); 
+		var wasCollapsed = $li.hasClass("InputfieldStateWasCollapsed"); 
+		if(isCollapsed || wasCollapsed || isIcon) {
 			$li.addClass('InputfieldStateWasCollapsed'); // this class only used here
+			$li.trigger(isCollapsed ? 'openReady' : 'closeReady'); 
 			$li.toggleClass('InputfieldStateCollapsed', 100, function() {
+				$li.trigger(isCollapsed ? 'opened' : 'closed'); 
 				var $input = $li.find(":input:visible");
 				if($input.size() == 1 && !$input.is('button')) { 
 					var t = $input.attr('type'); 
@@ -597,6 +601,16 @@ function InputfieldStates() {
 		}); 
 	}
 
+	 // Make the first field in any form have focus, if it is a text field
+	$('#content input[type=text]:visible:enabled:first:not(.hasDatepicker)').each(function() {
+		var $t = $(this);
+		if(!$t.val() && !$t.hasClass(".no_focus") && !$t.hasClass('no-focus')) {
+			// avoid jumping to inputs that fall "below the fold"
+			if($t.offset().top < $(window).height()) {
+				window.setTimeout(function () { $t.focus(); }, 1);
+			}
+		}
+	});
 }
 
 /*********************************************************************************************/

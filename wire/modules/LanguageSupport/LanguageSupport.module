@@ -10,6 +10,11 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
+ * 
+$* @property int $languagesPageID
+$* @property int $defaultLanguagePageID
+$* @property int $languageTranslatorPageID
+$* @property array $otherLanguagePageIDs Quick reference to non-default language IDs, for when needed before languages loaded
  *
  */
 
@@ -129,11 +134,14 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$_default = null; // just in case
 
 		// ensure all languages are loaded and get instantiated versions of system/default languages
+		$numOtherLanguages = 0;
 		foreach($languages as $language) {
 			if($language->id == $defaultLanguagePageID) {
 				$this->defaultLanguagePage = $language; 
 			} else if($language->name == 'default') {
 				$_default = $language; // backup plan
+			} else {
+				$numOtherLanguages++;
 			}
 		}
 		
@@ -172,7 +180,10 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			$this->LanguageSupportFields = wire('modules')->get('LanguageSupportFields'); 
 			$this->LanguageSupportFields->LS_init(); 
 		}
-		
+	
+		if($numOtherLanguages && $numOtherLanguages != count($this->otherLanguagePageIDs)) {
+			$this->refreshLanguageIDs();
+		}
 	}
 
 	/**
@@ -640,6 +651,24 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		$form = new InputfieldWrapper();
 		// TBA
 		return $form; 
+	}
+
+	/**
+	 * Refresh the config stored value for $this->otherLanguagePageIDs
+	 * 
+	 */
+	public function refreshLanguageIDs() {
+		$this->message('Refreshing other language page IDs', Notice::debug); 
+		if(!$this->wire('languages')) return;
+		$ids = array();
+		foreach($this->wire('languages') as $language) {
+			if($language->isDefault()) continue; 
+			$ids[] = $language->id; 
+		}
+		$this->set('otherLanguagePageIDs', $ids);
+		$configData = $this->wire('modules')->getModuleConfigData('LanguageSupport');
+		$configData['otherLanguagePageIDs'] = $ids; 
+		$this->wire('modules')->saveModuleConfigData('LanguageSupport', $configData);
 	}
 
 	/**

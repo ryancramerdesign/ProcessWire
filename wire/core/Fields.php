@@ -523,17 +523,19 @@ class Fields extends WireSaveableItems {
 			break;
 		}
 
-		$selector = "templates_id=$template->id, include=all";
 		$numPages = $this->getNumPages($field, array('template' => $template)); 
 		$numRows = $this->getNumRows($field, array('template' => $template)); 
 		$success = true;
 
 		if($numPages <= 200 || $hasDeletePageField) {
+			$deleteType = $this->_('page-by-page'); 
 			
 			// not many pages to operate on, OR fieldtype has a custom deletePageField method, 
 			// so use verbose/slow method to delete the field from pages
 			
-			$items = $this->wire('pages')->find($selector); 
+			$ids = $this->getNumPages($field, array('template' => $template, 'getPageIDs' => true)); 
+			$items = $this->wire('pages')->getById($ids, $template); 
+			
 			foreach($items as $page) {
 				try {
 					$field->type->deletePageField($page, $field);
@@ -543,10 +545,10 @@ class Fields extends WireSaveableItems {
 					$this->error($e->getMessage());
 					$success = false;
 				}
-
 			}
 
 		} else {
+			$deleteType = $this->_('single-query'); 
 			
 			// large number of pages to operate on: use fast method
 			
@@ -568,13 +570,13 @@ class Fields extends WireSaveableItems {
 		if($success) {
 			$this->message(
 				sprintf($this->_('Deleted field "%1$s" data in %2$d row(s) from %3$d page(s).'), 
-					$field->name, $numRows, $numPages),
+					$field->name, $numRows, $numPages) . " [$deleteType]",
 				Notice::log
 			);
 		} else {
 			$this->error(
 				sprintf($this->_('Error deleting field "%1$s" data, %2$d row(s), %3$d page(s).'), 
-					$field->name, $numRows, $numPages),
+					$field->name, $numRows, $numPages) . " [$deleteType]",
 				Notice::log
 			);
 		}
@@ -589,7 +591,8 @@ class Fields extends WireSaveableItems {
 	 * @param array $options Optionally specify one of the following options:
 	 * 	template: Specify a Template object, ID or name to isolate returned rows specific to pages using that template.
 	 * 	page: Specify a Page object, ID or path to isolate returned rows specific to that page.
-	 * @return int
+	 * 	getPageIDs: Specify boolean true to make it return an array of matching Page IDs rather than a count. 
+	 * @return int|array Returns array only if getPageIDs option set. 
 	 * @throws WireException If given option for page or template doesn't resolve to actual page/template.
 	 *
 	 */
@@ -607,7 +610,8 @@ class Fields extends WireSaveableItems {
 	 * 	page: Specify a Page object, ID or path to isolate returned rows specific to that page. 
 	 * 	countPages: Specify boolean true to make it return a page count rather than a row count (default=false). 
 	 * 		There will only potential difference between rows and pages counts with multi-value fields. 
-	 * @return int
+	 * 	getPageIDs: Specify boolean true to make it return an array of matching Page IDs rather than a count (overrides countPages).
+	 * @return int|array Returns array only if getPageIDs option set.
 	 * @throws WireException If given option for page or template doesn't resolve to actual page/template.
 	 *
 	 */
@@ -617,6 +621,7 @@ class Fields extends WireSaveableItems {
 			'template' => 0,
 			'page' => 0,
 			'countPages' => false,
+			'getPageIDs' => false, 
 		);
 
 		$options = array_merge($defaults, $options);
@@ -634,8 +639,13 @@ class Fields extends WireSaveableItems {
 			}
 
 			if(!$template) throw new WireException("Unknown template: $options[template]");
+			
+		
+			if($options['getPageIDs']) {
+				$sql = 	"SELECT DISTINCT $table.pages_id FROM $table ".
+						"JOIN pages ON pages.templates_id=:templateID AND pages.id=pages_id ";
 
-			if($options['countPages']) {
+			} else if($options['countPages']) {
 				$sql = 	"SELECT COUNT(DISTINCT pages_id) FROM $table ". 
 						"JOIN pages ON pages.templates_id=:templateID AND pages.id=pages_id ";
 			} else {
@@ -659,6 +669,7 @@ class Fields extends WireSaveableItems {
 			if(!$pageID) throw new WireException("Unknown page: $options[page]");
 			
 			if($options['countPages']) {
+				// is there any the point to  this?
 				$sql = "SELECT COUNT(DISTINCT pages_id) FROM $table WHERE pages_id=:pageID ";
 			} else {
 				$sql = "SELECT COUNT(*) FROM $table WHERE pages_id=:pageID ";
@@ -670,7 +681,9 @@ class Fields extends WireSaveableItems {
 		} else {
 			// overall total count
 			
-			if($options['countPages']) {
+			if($options['getPageIDs']) {
+				$sql = "SELECT DISTINCT $table.pages_id FROM $table";
+			} else if($options['countPages']) {
 				$sql = "SELECT COUNT(DISTINCT pages_id) FROM $table";
 			} else {
 				$sql = "SELECT COUNT(*) FROM $table";
@@ -678,19 +691,25 @@ class Fields extends WireSaveableItems {
 			$query = $database->prepare($sql);
 		}
 
+		$return = $options['getPageIDs'] ? array() : 0;	
 		
 		try {
 			$query->execute();
-			if($useRowCount) {
-				$cnt = $query->rowCount();
+			if($options['getPageIDs']) {
+				while($row = $query->fetch(PDO::FETCH_NUM)) {
+					$return[] = (int) $row['id'];
+				}
+			} else if($useRowCount) {
+				$return = (int) $query->rowCount();
 			} else {
-				list($cnt) = $query->fetch(PDO::FETCH_NUM);
+				list($return) = $query->fetch(PDO::FETCH_NUM);
+				$return = (int) $return;
 			}
 		} catch(Exception $e) {
-			$cnt = 0;
+			$this->error($e->getMessage());
 		}
 
-		return (int) $cnt;
+		return $return;
 	}
 
 	/**

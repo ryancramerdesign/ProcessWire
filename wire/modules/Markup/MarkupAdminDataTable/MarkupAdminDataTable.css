@@ -11,7 +11,8 @@ ul.AdminDataList li {
 	margin: 0;
 }
 
-table.AdminDataList th {
+table.AdminDataList th,
+table.AdminDataList .th {
 	font-weight: bold;
 	color: #777;
 	text-transform: uppercase;
@@ -52,6 +53,97 @@ table.AdminDataList caption {
 
 table.AdminDataList td > .sort-date {
 	display: none; 	
+}
+
+
+@media only screen and (max-width: 767px) {
+	
+	table.AdminDataTableResponsive thead {
+		/* thead section is not displayed at all */
+		display: none; 
+	}
+	
+	table.AdminDataTableResponsive tbody tr td {
+		/* we display table cols as rows */
+		display: block;
+		width: 100% !important;
+		border-left: none !important;
+		padding-left: 0 !important;
+	}
+	
+	table.AdminDataTableResponsive tr {
+		/* tr rows are separated by a darker border */
+		border-top: 1px solid #777;
+	}
+	
+	table.AdminDataTableResponsive tbody tr td {
+		/* td rows are separated by a lighter border */
+		border-top: 1px dotted #ccc; 
+		border-bottom: none;
+		text-align: left; 
+	}
+	
+	table.AdminDataTableResponsive td:first-child {
+		/* no border in first row */
+		border-top: none; 
+	}
+	
+	table.AdminDataTableResponsive td.blank {
+		/* don't display blank rows */
+		display: none;
+	}
+	
+	table.AdminDataTableResponsive td:last-child {
+		/* text always aligned left, rather than sometimes right */
+		text-align: left;
+	}
+	
+	table.AdminDataTableResponsive tbody tr td {
+		clear: both;
+		text-align: left !important;
+	}
+    
+	table.AdminDataTableResponsive tbody tr td > .th {
+		/* th embedded in td as a left 35% width column */
+		width: 35%; 
+		text-align: right; 
+		float: left; 
+		padding: 0 1em 0 0; 
+		border: none; 
+		line-height: inherit;
+	}
+    table.AdminDataTableResponsive tbody tr td > .th + .td {
+	    /* .td div embedded in a tid, as a 65% width column */
+	    display: block;
+	    text-align: left; 
+	    width: 65%; 
+	    float: left; 
+    }
+	table.AdminDataTableResponsive tbody tr td:first-child {
+		/* padding to offset top from other rows */
+		padding-top: 0.5em;
+	}
+    table.AdminDataTableResponsive tbody tr td:last-child {
+	    /* padding to offset bottom from other rows */
+	    padding-bottom: 0.5em; 
+    }
+
+    /*** alternate stacked responsive mode ************************************/
+	
+	table.AdminDataTableResponsiveAlt tbody tr td > .th {
+		display: block;
+		width: 100%;
+		text-align: left; 
+		float: none; 
+		border: none;
+		margin: 0;
+		padding: 0;
+	}
+	table.AdminDataTableResponsiveAlt tbody tr td > .th + .td {
+		width: 100%; 
+		float: none; 
+	}
+    
 }
 
 

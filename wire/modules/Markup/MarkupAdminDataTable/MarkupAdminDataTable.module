@@ -2,6 +2,12 @@
 
 class MarkupAdminDataTable extends ModuleJS {
 
+	const responsiveNo = 0;
+	const responsiveYes = 1; // each td becomes 1-row, each 2 columns with th + td side-by-side
+	const responsiveAlt = 2; // each td becomes 1-row, with th + td stacked on top of each other
+	
+	static protected $instanceCnt = 0;
+
 	protected $headerRow = array(); 
 	protected $footerRow = array();
 	protected $rows = array();
@@ -10,12 +16,14 @@ class MarkupAdminDataTable extends ModuleJS {
 	protected $sortable = true; 
 	protected $class = '';
 	protected $caption = '';
+	protected $responsive = self::responsiveYes; 
+	protected $id = '';
 	
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Admin Data Table', 
-			'summary' => 'Generates XHTML markup for data tables used by ProcessWire admin', 
-			'version' => 103, 
+			'summary' => 'Generates markup for data tables used by ProcessWire admin', 
+			'version' => 104, 
 			'permanent' => true, 
 			);
 	}
@@ -66,12 +74,18 @@ class MarkupAdminDataTable extends ModuleJS {
 	public function ___render() {
 
 		$tableClass = trim("AdminDataTable AdminDataList {$this->class}"); 
+		if($this->responsive == self::responsiveYes) {
+			$tableClass .= " AdminDataTableResponsive";
+		} else if($this->responsive == self::responsiveAlt) {
+			$tableClass .= " AdminDataTableResponsive AdminDataTableResponsiveAlt";
+		}
 		if($this->sortable) $tableClass .= " AdminDataTableSortable"; 
 		$out = '';
 		$maxCols = 0;
+		$id = $this->id ? $this->id : "AdminDataTable" . (++self::$instanceCnt);
 
 		if(count($this->rows)) { 
-			$out = "\n<table class='$tableClass'>";
+			$out = "\n<table id='$id' class='$tableClass'>";
 
 			if($this->caption) $out .= "\n\t<caption>{$this->caption}</caption>";
 
@@ -100,13 +114,15 @@ class MarkupAdminDataTable extends ModuleJS {
 				if($cols < $maxCols) for(; $cols < $maxCols; $cols++) $row[] = '&nbsp;';
 				$out .= "\n\t\t<tr>";
 				foreach($row as $td) {
-					$out .= "\n\t\t\t<td>$td</td>"; 
+					$class = strlen($td) == 0 || $td === '&nbsp;' ? " class='blank'" : "";
+					$out .= "\n\t\t\t<td$class>$td</td>"; 
 				}
 				$out .= "\n\t\t</tr>";
 			}
 			$out .= "\n\t</tbody>";
-
 			$out .= "\n</table>";
+			
+			if($this->responsive) $out .= "\n<script>AdminDataTable.initTable($('#$id'));</script>";
 		}
 
 		if(count($this->actions)) {
@@ -119,7 +135,7 @@ class MarkupAdminDataTable extends ModuleJS {
 			}
 			$out .= "\n</p>";
 		}
-
+		
 		return $out; 
 	}
 
@@ -135,6 +151,10 @@ class MarkupAdminDataTable extends ModuleJS {
 	public function setClass($class) {
 		$this->class = $this->encode($class); 
 	}
+	
+	public function addClass($class) {
+		$this->class = trim($this->class . " " . $this->encode($class)); 
+	}
 
 	public function setSortable($sortable) {
 		$this->sortable = $sortable ? true : false;
@@ -143,6 +163,24 @@ class MarkupAdminDataTable extends ModuleJS {
 	public function setCaption($caption) {
 		$this->caption = $this->encode($caption); 
 	}
+	
+	public function setID($id) {
+		$this->id = $id; 
+	}
+
+	/**
+	 * Set the responsive mode of this table
+	 * 
+	 * Default behavior is responsiveYes. Specify false or 0 to disable responsive.
+	 * Or specify MarkupAdminDataTable::responsiveAlt for stacked th + td. 
+	 * 
+	 * @param int|bool $responsive
+	 * 
+	 */
+	public function setResponsive($responsive = true) {
+		$this->responsive = (int) $responsive; 
+	}
+	
 
 	/** the following are specific to the Module interface **/
 

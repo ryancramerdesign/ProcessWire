@@ -61,8 +61,11 @@
 			editor.on( 'doubleclick', function( evt ) {
 				var element = CKEDITOR.plugins.link.getSelectedLink( editor ) || evt.data.element;
 				if ( element.is( 'a' ) && !element.getAttribute('name') && !element.isReadOnly() ) {
-					evt.cancel(); // prevent CKE's link dialog
-					editor.commands.pwlink.exec();
+					var $a = jQuery(element.$);
+					if($a.children('img').length == 0) {
+						evt.cancel(); // prevent CKE's link dialog
+						editor.commands.pwlink.exec();
+					}
 				}
 			});
 

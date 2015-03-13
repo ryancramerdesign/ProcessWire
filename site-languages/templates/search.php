@@ -39,7 +39,7 @@ if($q) {
 		$content = "<h2>" . sprintf(_n('Found %d page', 'Found %d pages', $cnt), $cnt) . "</h2>";
 
 		// we'll use our renderNav function (in _func.php) to render the navigation
-		$content .= renderNav($matches, 0, 'summary'); 
+		$content .= renderNav($matches);
 
 	} else {
 		// we didn't find any
