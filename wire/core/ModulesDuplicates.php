@@ -53,6 +53,16 @@ class ModulesDuplicates extends Wire {
 	 */
 	public function getCurrent($className) {
 		return isset($this->duplicatesUse[$className]) ? $this->duplicatesUse[$className] : null;
+	}	
+	
+	/**
+	 * Get number of new duplicates
+	 * 
+	 * @return int
+	 * 
+	 */
+	public function getNewDuplicatesNum() {
+		return $this->numNewDuplicates;
 	}
 
 	/**
