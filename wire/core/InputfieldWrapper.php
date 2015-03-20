@@ -6,52 +6,13 @@
  * Classes built to provide a wrapper for Inputfield instances. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://processwire.com
+ * https://processwire.com
  *
  */
 
-/**
- * A WireArray of Inputfield instances.
- *
- * The default numeric indexing of a WireArray is not overridden. 
- *
- */
-class InputfieldsArray extends WireArray {
-
-	/**
-	 * Per WireArray interface, only Inputfield instances are accepted. 
- 	 *
-	 */
-	public function isValidItem($item) {
-		return $item instanceof Inputfield; 
-	}
-
-	/**
-	 * Extends the find capability of WireArray to descend into the Inputfield children
-	 *
-	 */
-	public function find($selector) {
-		$a = parent::find($selector); 
-		foreach($this as $item) {
-			if(!$item instanceof InputfieldWrapper) continue; 
-			$children = $item->children();	
-			if(count($children)) $a->import($children->find($selector)); 
-		}
-		return $a; 
-	}
-
-	public function makeBlankItem() {
-		return null; // Inputfield is abstract, so there is nothing to return here
-	}
-
-	public function usesNumericKeys() {
-		return true; 
-	}
-
-}
 
 /**
  * A type of Inputfield that is designed specifically to wrap other Inputfields
@@ -60,6 +21,10 @@ class InputfieldsArray extends WireArray {
  *
  * InputfieldWrapper is not designed to render an Inputfield specifically, but you can set a value attribute
  * containing content that will be rendered before the wrapper. 
+ * 
+ * @property bool $renderValueMode True when only rendering values, i.e. no inputs (default=false)
+ * @property int $columnWidthSpacing Percentage spacing between columns or 0 for none. Default pulled from $config->inputfieldColumnWidthSpacing.
+ * @property bool $useDependencies Whether or not to consider dependencies during processing (default=true)
  *
  */ 
 class InputfieldWrapper extends Inputfield {
@@ -71,15 +36,17 @@ class InputfieldWrapper extends Inputfield {
 	static protected $defaultMarkup = array(
 		'list' => "\n<ul {attrs}>\n{out}\n</ul>\n",
 		'item' => "\n\t<li {attrs}>\n{out}\n\t</li>", 
-		'item_label' => "\n\t\t<label class='InputfieldHeader ui-widget-header' for='{for}'>{out}</label>",
-		'item_label_hidden' => "\n\t\t<label class='InputfieldHeader InputfieldHeaderHidden ui-widget-header'><span>{out}</span></label>",
-		'item_content' => "\n\t\t<div class='InputfieldContent ui-widget-content'>\n{out}\n\t\t</div>", 
+		'item_label' => "\n\t\t<label class='InputfieldHeader ui-widget-header{class}' for='{for}'>{out}</label>",
+		'item_label_hidden' => "\n\t\t<label class='InputfieldHeader InputfieldHeaderHidden ui-widget-header{class}'><span>{out}</span></label>",
+		'item_content' => "\n\t\t<div class='InputfieldContent ui-widget-content{class}'>\n{out}\n\t\t</div>", 
 		'item_error' => "\n<p class='InputfieldError ui-state-error'><i class='fa fa-fw fa-flash'></i><span>{out}</span></p>",
 		'item_description' => "\n<p class='description'>{out}</p>", 
 		'item_head' => "\n<h2>{out}</h2>", 
 		'item_notes' => "\n<p class='notes'>{out}</p>",
 		'item_icon' => "<i class='fa fa-{name}'></i> ",
 		'item_toggle' => "<i class='toggle-icon fa fa-angle-down' data-to='fa-angle-down fa-angle-right'></i>", 
+		// ALSO: 
+		// InputfieldAnything => array( any of the properties above to override on a per-Inputifeld basis)
 		);
 
 	static protected $markup = array();
@@ -89,16 +56,21 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 */
 	static protected $defaultClasses = array(
+		'form' => '', // additional clases for InputfieldForm (optional)
 		'list' => 'Inputfields',
 		'list_clearfix' => 'ui-helper-clearfix', 
 		'item' => 'Inputfield {class} Inputfield_{name} ui-widget',
-		'item_required' => 'InputfieldStateRequired',
-		'item_error' => 'ui-state-error InputfieldStateError', 
+		'item_label' => '', // additional classes for InputfieldHeader (optional)
+		'item_content' => '',  // additional classes for InputfieldContent (optional)
+		'item_required' => 'InputfieldStateRequired', // class is for Inputfield
+		'item_error' => 'ui-state-error InputfieldStateError', // note: not the same as markup[item_error], class is for Inputfield
 		'item_collapsed' => 'InputfieldStateCollapsed',
 		'item_column_width' => 'InputfieldColumnWidth',
 		'item_column_width_first' => 'InputfieldColumnWidthFirst',
 		'item_show_if' => 'InputfieldStateShowIf',
 		'item_required_if' => 'InputfieldStateRequiredIf'
+		// ALSO: 
+		// InputfieldAnything => array( any of the properties above to override on a per-Inputifeld basis)
 		);
 
 	static protected $classes = array();
@@ -253,6 +225,8 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 * This includes the output of any child Inputfields (if applicable). Children are presented as list items in an unordered list. 
 	 *
+	 * @todo this method has become too long/complex, move to its own pluggable class and split it up a lot
+	 * 
 	 * @return string
 	 *
 	 */
@@ -263,16 +237,24 @@ class InputfieldWrapper extends Inputfield {
 		$columnWidthTotal = 0;
 		$columnWidthSpacing = $this->columnWidthSpacing; 
 		$lastInputfield = null;
-		$markup = array_merge(self::$defaultMarkup, self::$markup);
-		$classes = array_merge(self::$defaultClasses, self::$classes);
+		$_markup = array_merge(self::$defaultMarkup, self::$markup);
+		$_classes = array_merge(self::$defaultClasses, self::$classes);
+		$useColumnWidth = true;
+		if(isset($_classes['form']) && strpos($_classes['form'], 'InputfieldFormNoWidths') !== false) {
+			$useColumnWidth = false;
+		}
 	
 		// show description for tabs
 		$description = $this->getSetting('description'); 
 		if($description && class_exists("InputfieldFieldsetTabOpen") && $this instanceof InputfieldFieldsetTabOpen) {
-			$out .= str_replace('{out}', nl2br($this->entityEncode($description, true)), $markup['item_head']);
+			$out .= str_replace('{out}', nl2br($this->entityEncode($description, true)), $_markup['item_head']);
 		}
 		
 		foreach($children as $inputfield) {
+			
+			$inputfieldClass = $inputfield->className();
+			$markup = isset($_markup[$inputfieldClass]) ? array_merge($_markup, $_markup[$inputfieldClass]) : $_markup; 
+			$classes = isset($_classes[$inputfieldClass]) ? array_merge($_classes, $_classes[$inputfieldClass]) : $_classes; 
 			$renderValueMode = $this->renderValueMode; 
 
 			$collapsed = (int) $inputfield->getSetting('collapsed'); 
@@ -286,18 +268,42 @@ class InputfieldWrapper extends Inputfield {
 			$ffOut = $this->renderInputfield($inputfield, $renderValueMode); 	
 			if(!strlen($ffOut)) continue; 
 
+			$errorsOut = '';
 			if(!$inputfield instanceof InputfieldWrapper) {
 				$errors = $inputfield->getErrors(true);
-				if(count($errors)) $collapsed = $renderValueMode ? Inputfield::collapsedNoLocked : Inputfield::collapsedNo; 
-				foreach($errors as $error) $ffOut = str_replace('{out}', $this->entityEncode($error, true), $markup['item_error']) . $ffOut; 
+				if(count($errors)) {
+					$collapsed = $renderValueMode ? Inputfield::collapsedNoLocked : Inputfield::collapsedNo;
+					$errorsOut = implode(', ', $errors);
+				}
 			} else $errors = array();
-			
-			if($inputfield->getSetting('description')) $ffOut = str_replace('{out}',  nl2br($this->entityEncode($inputfield->getSetting('description'), true)), $markup['item_description']) . $ffOut;
-			if($inputfield->getSetting('head')) $ffOut = str_replace('{out}', $this->entityEncode($inputfield->getSetting('head'), true), $markup['item_head']) . $ffOut; 
-
-			// $ffOut = preg_replace('/(\n\s*)</', "$1\t\t\t<", $ffOut); // indent lines beginning with markup
-
-			if($inputfield->getSetting('notes')) $ffOut .= str_replace('{out}', nl2br($this->entityEncode($inputfield->notes, true)), $markup['item_notes']); 
+		
+			foreach(array('error', 'description', 'head', 'notes') as $property) {
+				$text = $property == 'error' ? $errorsOut : $inputfield->getSetting($property); 
+				if(!empty($text)) {
+					$text = nl2br($this->entityEncode($text, true));
+					$text = str_replace('{out}', $text, $markup["item_$property"]);
+				} else $text = '';
+				$_property = '{' . $property . '}';
+				if(strpos($markup['item_content'], $_property) !== false) {
+					$markup['item_content'] = str_replace($_property, $text, $markup['item_content']);
+				} else if(strpos($markup['item_label'], $_property) !== false) {
+					$markup['item_label'] = str_replace($_property, $text, $markup['item_label']);
+				} else if($text && $property == 'notes') {
+					$ffOut .= $text;
+				} else if($text) {
+					$ffOut = $text . $ffOut;
+				}
+			}
+			/*
+			if($inputfield->getSetting('head')) {
+				$text = str_replace('{out}', $this->entityEncode($inputfield->getSetting('head'), true), $markup['item_head']);
+				$ffOut = $text . $ffOut; 
+			}
+			if($inputfield->getSetting('notes')) {
+				$text = str_replace('{out}', nl2br($this->entityEncode($inputfield->notes, true)), $markup['item_notes']);
+				$ffOut .= $text; 
+			}
+			*/
 
 			// The inputfield's classname is always used in it's LI wrapper
 			$ffAttrs = array(
@@ -306,7 +312,6 @@ class InputfieldWrapper extends Inputfield {
 			if($inputfield instanceof InputfieldItemList) $ffAttrs['class'] .= " InputfieldItemList";
 			if($collapsed) $ffAttrs['class'] .= " collapsed$collapsed";
 
-			//if(count($errors)) $ffAttrs['class'] .= " ui-state-error InputfieldStateError"; 
 			if(count($errors)) $ffAttrs['class'] .= ' ' . $classes['item_error'];
 			if($required) $ffAttrs['class'] .= ' ' . $classes['item_required']; 
 			if(strlen($showIf) && !$this->renderValueMode) { // note: $this->renderValueMode (rather than $renderValueMode) is intentional
@@ -352,7 +357,6 @@ class InputfieldWrapper extends Inputfield {
 			if($ffOut) {
 				$attrs = '';
 				$label = '';
-				//if($inputfield->label && $inputfield->skipLabel !== Inputfield::skipLabelHeader) {
 				if($inputfield->label) {
 					$for = $inputfield->skipLabel ? '' : $inputfield->attr('id');
 					$label = $inputfield->label;
@@ -367,18 +371,30 @@ class InputfieldWrapper extends Inputfield {
 						// label always visible
 						$label = str_replace(array('{for}', '{out}'), array($for, $icon . $label . $toggle), $markup['item_label']); 
 					}
+					$headerClass = trim("$inputfield->headerClass $classes[item_label]");
+					if($headerClass) {
+						if(strpos($label, '{class}') !== false) {
+							$label = str_replace('{class}', ' ' . $headerClass, $label); 
+						} else {
+							$label = preg_replace('/( class=[\'"][^\'"]+)/', '$1 ' . $headerClass, $label, 1);
+						}
+					} else if(strpos($label, '{class}') !== false) {
+						$label = str_replace('{class}', '', $label); 
+					}
 				}
-				$columnWidth = (int) $inputfield->getSetting('columnWidth');
-				$columnWidthAdjusted = $columnWidth + ($columnWidthTotal ? -1 * $columnWidthSpacing : 0);
-				if($columnWidth >= 9 && $columnWidth <= 100) {
-					$ffAttrs['class'] .= ' ' . $classes['item_column_width']; 
-					if(!$columnWidthTotal) $ffAttrs['class'] .= ' ' . $classes['item_column_width_first']; 
-					$ffAttrs['style'] = "width: $columnWidthAdjusted%;"; 
-					$columnWidthTotal += $columnWidth;
-					//if($columnWidthTotal >= 100 && !$requiredIf) $columnWidthTotal = 0; // requiredIf meant to be a showIf?
-					if($columnWidthTotal >= 100) $columnWidthTotal = 0;
-				} else {
-					$columnWidthTotal = 0;
+				if($useColumnWidth) {
+					$columnWidth = (int) $inputfield->getSetting('columnWidth');
+					$columnWidthAdjusted = $columnWidth + ($columnWidthTotal ? -1 * $columnWidthSpacing : 0);
+					if($columnWidth >= 9 && $columnWidth <= 100) {
+						$ffAttrs['class'] .= ' ' . $classes['item_column_width'];
+						if(!$columnWidthTotal) $ffAttrs['class'] .= ' ' . $classes['item_column_width_first'];
+						$ffAttrs['style'] = "width: $columnWidthAdjusted%;";
+						$columnWidthTotal += $columnWidth;
+						//if($columnWidthTotal >= 100 && !$requiredIf) $columnWidthTotal = 0; // requiredIf meant to be a showIf?
+						if($columnWidthTotal >= 100) $columnWidthTotal = 0;
+					} else {
+						$columnWidthTotal = 0;
+					}
 				}
 				if(!isset($ffAttrs['id'])) $ffAttrs['id'] = 'wrap_' . $inputfield->attr('id'); 
 				$ffAttrs['class'] = str_replace('Inputfield_ ', '', $ffAttrs['class']); 
@@ -387,7 +403,16 @@ class InputfieldWrapper extends Inputfield {
 					$attrs .= " $k='" . $this->entityEncode(trim($v)) . "'";
 				}
 				$markupItemContent = $markup['item_content'];
-				if($inputfield->contentClass) $markupItemContent = preg_replace('/( class=[\'"][^\'"]+)/', '$1 ' . trim($inputfield->contentClass), $markupItemContent, 1); 
+				$contentClass = trim("$inputfield->contentClass $classes[item_content]");
+				if($contentClass) {
+					if(strpos($markupItemContent, '{class}') !== false) {
+						$markupItemContent = str_replace('{class}', ' ' . $contentClass, $markupItemContent); 
+					} else {
+						$markupItemContent = preg_replace('/( class=[\'"][^\'"]+)/', '$1 ' . $contentClass, $markupItemContent, 1);
+					}
+				} else if(strpos($markupItemContent, '{class}') !== false) {
+					$markupItemContent = str_replace('{class}', '', $markupItemContent); 
+				}
 				if($inputfield->className() != 'InputfieldWrapper') $ffOut = str_replace('{out}', $ffOut, $markupItemContent); 
 				$out .= str_replace(array('{attrs}', '{out}'), array(trim($attrs), $label . $ffOut), $markup['item']); 
 				$lastInputfield = $inputfield;
@@ -678,7 +703,9 @@ class InputfieldWrapper extends Inputfield {
 	 * @param array $markup
 	 *
 	 */
-	public static function setMarkup(array $markup) { self::$markup = array_merge(self::$markup, $markup); }
+	public static function setMarkup(array $markup) { 
+		self::$markup = array_merge(self::$markup, $markup); 
+	}
 
 	/**
 	 * Get custom markup for render, see self::$markup at top for reference.
@@ -686,13 +713,19 @@ class InputfieldWrapper extends Inputfield {
 	 * @return array 
 	 *
 	 */
-	public static function getMarkup() { return array_merge(self::$defaultMarkup, self::$markup); }
+	public static function getMarkup() { 
+		return array_merge(self::$defaultMarkup, self::$markup); 
+	}
 
 	/**
 	 * Set custom classes for render, see self::$classes at top for reference.
+	 * 
+	 * @param array $classes
 	 *
 	 */
-	public static function setClasses(array $classes) { self::$classes = array_merge(self::$classes, $classes); }
+	public static function setClasses(array $classes) { 
+		self::$classes = array_merge(self::$classes, $classes); 
+	}
 
 	/**
 	 * Get custom classes for render, see self::$classes at top for reference.
@@ -700,7 +733,9 @@ class InputfieldWrapper extends Inputfield {
 	 * @return array
 	 * 
 	 */
-	public static function getClasses() { return array_merge(self::$defaultClasses, self::$classes); }
+	public static function getClasses() { 
+		return array_merge(self::$defaultClasses, self::$classes); 
+	}
 
 	/**
 	 * Import an array of Inputfield definitions to to this InputfieldWrapper instance

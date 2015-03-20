@@ -59,7 +59,9 @@ interface InputfieldHasArrayValue { }
  * @property int $collapsed Whether the field is collapsed or visible, i.e. Inputfield::collapsedYes, Inputfield::collapsedBlank, etc., see the 'collapsed' constants in Inputfield class. 
  * @property int $columnWidth Width of column for this Inputfield 10-100 percent. 0 is assumed to be 100 (default). 
  * @property int $skipLabel Skip display of the label? See the skipLabel constants for options. 
- * @property string $wrapClass Optional class name (CSS) to apply to the HTML element wrapping the Inputfield. 
+ * @property string $wrapClass Optional class name (CSS) to apply to the HTML element wrapping the Inputfield.
+ * @property string $headerClass Optional class name (CSS) to apply to the InputfieldHeader element
+ * @property string $contentClass Optional class name (CSS) to apply to the InputfieldContent element
  * @property InputfieldWrapper|null $parent The parent InputfieldWrapper for this Inputfield or null if not set. 
  * @property null|Fieldtype hasFieldtype Set to the Fieldtype using this Inputfield (by Field), when applicable, null when not.
  * @property null|bool entityEncodeLabel Set to boolean false to specifically disable entity encoding of field header/label.
@@ -147,7 +149,9 @@ abstract class Inputfield extends WireData implements Module {
 		$this->set('showIf', ''); 		// optional conditions selector
 		$this->set('columnWidth', ''); 	// percent width of the field. blank or 0 = 100.
 		$this->set('skipLabel', self::skipLabelNo); // See the skipLabel constants
-		$this->set('wrapClass', ''); // optional class to apply to the wrapper
+		$this->set('wrapClass', ''); // optional class to apply to the Inputfield wrapper (contains InputfieldHeader + InputfieldContent)
+		$this->set('headerClass', ''); // optional class to apply to InputfieldHeader wrapper
+		$this->set('contentClass', ''); // optional class to apply to InputfieldContent wrapper
 
 		// default ID attribute if no 'id' attribute set
 		$this->defaultID = $this->className() . self::$numInstances; 
@@ -402,28 +406,70 @@ abstract class Inputfield extends WireData implements Module {
 	 * Add the given classname to this inputfield
 	 * 
 	 * @param string $class
+	 * @param string $property Optionally specify property you want to add class to (default=class)
 	 * @return $this
 	 * 
 	 */
-	public function addClass($class) {
-		$c = explode(' ', $this->getAttribute('class'));
+	public function addClass($class, $property = 'class') {
+		if($property == 'contentClass') {
+			$value = $this->contentClass;
+		} else if($property == 'wrapClass') {
+			$value = $this->wrapClass;
+		} else if($property == 'headerClass') {
+			$value = $this->headerClass;
+		} else {
+			$property = 'class';
+			$value = $this->getAttribute('class');
+		}
+		$c = explode(' ', $value); 
 		$c[] = $class;
-		$this->attributes['class'] = implode(' ', $c); 
+		$value = implode(' ', $c); 
+		if($property == 'class') {
+			$this->attributes['class'] = $value;
+		} else {
+			$this->set($property, $value); 
+		}
 		return $this;
+	}
+
+	/**
+	 * Does this inputfield have the given class?
+	 * 
+	 * @param $class
+	 * @param string $property Optionally specify property you want to pull class from (default=class)
+	 * @return bool
+	 * 
+	 */
+	public function hasClass($class, $property = 'class') {
+		if($property == 'class') {
+			$value = explode(' ', $this->getAttribute('class'));
+		} else {
+			$value = explode(' ', $this->$property);
+		}
+		return in_array($class, $value); 
 	}
 
 	/**
 	 * Remove the given classname from this inputfield
 	 *
 	 * @param string $class
+	 * @param string $property
 	 * @return $this
 	 *
 	 */
-	public function removeClass($class) {
-		$c = explode(' ', $this->getAttribute('class'));
+	public function removeClass($class, $property = 'class') {
+		if($property == 'class') {
+			$c = explode(' ', $this->getAttribute('class'));
+		} else {
+			$c = explode(' ', $this->$property); 
+		}
 		$key = array_search($class, $c);
 		if($key !== false) unset($c[$key]);
-		$this->attributes['class'] = implode(' ', $c);
+		if($property == 'class') {
+			$this->attributes['class'] = implode(' ', $c);
+		} else {
+			$this->set($property, implode(' ', $c)); 
+		}
 		return $this;
 	}
 

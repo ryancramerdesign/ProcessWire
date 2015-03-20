@@ -6,7 +6,7 @@ class InputfieldRadios extends InputfieldSelect {
 		return array(
 			'title' => __('Radio Buttons', __FILE__), // Module Title
 			'summary' => __('Radio buttons for selection of a single item', __FILE__), // Module Summary
-			'version' => 102,
+			'version' => 103,
 			'permanent' => true, 
 			);
 	}
@@ -52,12 +52,14 @@ class InputfieldRadios extends InputfieldSelect {
 			$attrs = $this->getOptionAttributesString($attrs);
 			if($attrs) $attrs = ' ' . $attrs; 
 
-			$out .= "\n\t\t<li$liAttr><label$attrs>" . 
+			$out .= 
+				"\n\t\t<li$liAttr><label$attrs>" . 
 				"<input$checked " . 
 				"type='radio' " . 
 				"name='{$this->name}' " . 
 				"id='$id' " . 
-				"value='" . htmlspecialchars($key, ENT_QUOTES) . "' /> " . $this->entityEncode($value) . 
+				"value='" . htmlspecialchars($key, ENT_QUOTES) . "' />" . 
+				"<span class='pw-no-select'>" . $this->entityEncode($value) ."</span>" . 
 				"</label></li>";
 		}
 

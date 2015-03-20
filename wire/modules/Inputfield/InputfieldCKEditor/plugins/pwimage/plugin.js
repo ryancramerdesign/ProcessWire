@@ -151,9 +151,15 @@
 		queryString += ("&winwidth=" + ($(window).width() - 30));
 
 		// create iframe dialog box
-		// var $iframe = $('<iframe id="pwimage_iframe" width="100%" frameborder="0" src="' + modalUri + queryString + '"></iframe>'); 
 		var modalSettings = {
 			title: "<i class='fa fa-fw fa-folder-open'></i> " + config.InputfieldCKEditor.pwimage.selectLabel, // "Select Image", 
+			open: function() {
+				if($(".cke_maximized").length > 0) {
+					// the following is required when CKE is maximized to make sure dialog is on top of it
+					$('.ui-dialog').css('z-index', 9999);
+					$('.ui-widget-overlay').css('z-index', 9998);
+				}
+			}
 		};
 		
 		var $iframe = pwModalWindow(modalUri + queryString, modalSettings, 'large');
@@ -162,7 +168,7 @@
 
 			// when iframe loads, pull the contents into $i 
 			var $i = $iframe.contents();
-
+		
 			if($i.find("#selected_image").size() > 0) {
 				// if there is a #selected_image element on the page...
 
@@ -213,7 +219,7 @@
 								
 								if(caption) {
 									var $figure = $("<figure />");
-									$figure.css('width', width + 'px');
+									//$figure.css('width', width + 'px');
 									if(cls.length) $figure.addClass(cls);
 									if(!$figureCaption) {
 										$figureCaption = $("<figcaption />"); 
@@ -240,6 +246,7 @@
 					
 								var html = $insertHTML[0].outerHTML; 
 								editor.insertHtml(html); 
+								editor.fire('change');
 								$iframe.dialog("close"); 
 							}
 							

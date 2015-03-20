@@ -767,6 +767,14 @@ var Notifications = {
 			return false;
 		}); 
 
+		// hide the notifications bug and menu when modal window opened
+		$(document).on('pw-modal-opened', function() {
+			if(Notifications.$bug.is(":visible")) Notifications.$bug.fadeOut().addClass('hidden-for-modal');
+			if(Notifications.$menu.is(":visible")) Notifications.$menu.hide().addClass('hidden-for-modal'); 
+		}).on('pw-modal-closed', function() {
+			if(Notifications.$bug.hasClass('hidden-for-modal')) Notifications.$bug.fadeIn().removeClass('hidden-for-modal');
+			if(Notifications.$menu.hasClass('hidden-for-modal')) Notifications.$menu.slideDown().removeClass('hidden-for-modal');
+		});
 	}
 };
 

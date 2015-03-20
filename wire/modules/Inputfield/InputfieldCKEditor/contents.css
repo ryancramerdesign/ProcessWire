@@ -73,18 +73,23 @@ hr {
 }
 
 figure {
-	margin: 1em 0 1em 0;
-	display: inline-block;
+	display: table;
+	width: 1px; 
+	margin: 1em 0;
+}
+
+figure img {
+	display: table-row; 
+	margin-bottom: 0.5em;
 }
 
 .cke_editable figure figcaption, 
 figure figcaption {
-	display: block;
+	display: table-row; 
 	line-height: 1.3em;
 	color: #777; 
 	font-size: 13px; 
 }
-
 
 img.right,
 img.align_right,

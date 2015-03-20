@@ -3,11 +3,17 @@
 /**
  * InputfieldForm: An Inputfield for containing form elements
  * 
+ * 
  * @property string $prependMarkup Optional markup to prepend to the form output
  * @property string $appendMarkup Optional markup to append to the form output
  * @property bool $protectCSRF Set to false to disable automatic CSRF protection
  * @property int $columnWidthSpacing Optionally set the column width spacing (pixels)
- * @property string $description Optionally set a description headline for the form 
+ * @property string $description Optionally set a description headline for the form
+ * 
+ * Optional classes: 
+ * =================
+ * InputfieldFormNoHeights: tells it not to worry about lining up all columns vertically. 
+ * InputfieldFormNoWidths: indicates that form will be in 2-column label => input format (column widths do not apply)
  *
  */
 class InputfieldForm extends InputfieldWrapper {
@@ -38,6 +44,9 @@ class InputfieldForm extends InputfieldWrapper {
 	}
 
 	public function ___render() {
+		
+		$classes = self::getClasses();
+		if(!empty($classes['form'])) $this->addClass($classes['form']); 
 
 		$this->attr('data-colspacing', (int) $this->columnWidthSpacing); 
 		$this->attr('class', trim($this->attr('class') . ' InputfieldForm'));

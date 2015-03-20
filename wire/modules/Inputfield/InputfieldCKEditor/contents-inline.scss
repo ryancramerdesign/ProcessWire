@@ -127,7 +127,25 @@ $cke-link-hover-background: #ffffdd;
 		}
 		
 	}
-	
+
+	figure {
+		display: table;
+		width: 1px;
+		margin: 1em 0;
+		
+		img {
+			display: table-row;
+			margin-bottom: 0.5em;
+		}
+		
+		figcaption {
+			display: table-row;
+			line-height: 1.3em;
+			color: #777;
+			font-size: 13px;
+		}
+	}
+
 	img,
 	figure {
 		&.right,

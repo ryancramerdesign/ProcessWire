@@ -11,9 +11,8 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 	public static function getModuleInfo() {
 		return array(
 			'title' => __('asmSelect', __FILE__),
-			'version' => 116,
+			'version' => 117,
 			'summary' => __('Multiple selection, progressive enhancement to select multiple', __FILE__), // Module Summary
-			'href' => 'http://code.google.com/p/jquery-asmselect/',
 			'permanent' => true, 
 			);
 	}
@@ -48,9 +47,11 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 	public function setAsmSelectOption($key, $value) {
 		$this->asmOptions[$key] = $value; 
 	}
-
+	
 	public function ___render() {
-		$this->wire('modules')->get('JqueryUI')->use('modal'); 
+		if(!empty($this->asmOptions['editLink'])) {
+			$this->wire('modules')->get('JqueryUI')->use('modal');
+		}
 
 		// require javascript and css
 		$class = $this->className(); 

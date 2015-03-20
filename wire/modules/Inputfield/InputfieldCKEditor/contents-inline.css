@@ -70,6 +70,18 @@
       line-height: 1.3em;
       color: #777;
       font-size: 13px; }
+  .InputfieldForm .InputfieldCKEditorInline figure {
+    display: table;
+    width: 1px;
+    margin: 1em 0; }
+    .InputfieldForm .InputfieldCKEditorInline figure img {
+      display: table-row;
+      margin-bottom: 0.5em; }
+    .InputfieldForm .InputfieldCKEditorInline figure figcaption {
+      display: table-row;
+      line-height: 1.3em;
+      color: #777;
+      font-size: 13px; }
   .InputfieldForm .InputfieldCKEditorInline img.right, .InputfieldForm .InputfieldCKEditorInline img.align_right, .InputfieldForm .InputfieldCKEditorInline img.align-right,
   .InputfieldForm .InputfieldCKEditorInline figure.right,
   .InputfieldForm .InputfieldCKEditorInline figure.align_right,

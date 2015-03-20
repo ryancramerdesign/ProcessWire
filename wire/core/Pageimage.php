@@ -352,10 +352,11 @@ class Pageimage extends Pagefile {
 		}
 		$basename .= '.' . $width . 'x' . $height . $crop . $suffixStr . "." . $this->ext();	// i.e. myfile.100x100.jpg or myfile.100x100nw-suffix1-suffix2.jpg
 		$filenameFinal = $this->pagefiles->path() . $basename;
-		$filenameUnvalidated = $this->pagefiles->page->filesManager()->getTempPath() . $basename;
+		$filenameUnvalidated = '';
 		$exists = file_exists($filenameFinal);
 
 		if(!$exists || $options['forceNew']) {
+			$filenameUnvalidated = $this->pagefiles->page->filesManager()->getTempPath() . $basename;
 			if($exists && $options['forceNew']) @unlink($filenameFinal);
 			if(file_exists($filenameUnvalidated)) @unlink($filenameUnvalidated);
 			if(@copy($this->filename(), $filenameUnvalidated)) {
@@ -382,7 +383,7 @@ class Pageimage extends Pagefile {
 		if($this->error) { 
 			// error condition: unlink copied file 
 			if(is_file($filenameFinal)) @unlink($filenameFinal);
-			if(is_file($filenameUnvalidated)) @unlink($filenameUnvalidated);
+			if($filenameUnvalidated && is_file($filenameUnvalidated)) @unlink($filenameUnvalidated);
 
 			// write an invalid image so it's clear something failed
 			// todo: maybe return a 1-pixel blank image instead?

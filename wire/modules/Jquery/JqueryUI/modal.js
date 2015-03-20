@@ -113,12 +113,20 @@ function pwModalWindow(href, options, size) {
 	
 	if(typeof options != "undefined") $.extend(settings, options);
 	
+	$iframe.on('dialogopen', function(event, ui) {
+		$(document).trigger('pw-modal-opened', { event: event, ui: ui });
+	});
+	$iframe.on('dialogclose', function(event, ui) {
+		$(document).trigger('pw-modal-closed', { event: event, ui: ui });
+	});
+	
 	$iframe.dialog(settings);
 	$iframe.data('settings', settings);
 	$iframe.load(function() {
 		if(typeof settings.title == "undefined" || !settings.title) {
 			$iframe.dialog('option', 'title', $iframe.contents().find('title').text());
 		}
+		$iframe.contents().find('form').css('-webkit-backface-visibility', 'hidden'); // to prevent jumping
 	}); 
 	
 	var lastWidth = 0;
@@ -195,7 +203,8 @@ $(document).ready(function() {
 			title: $a.attr('title'),
 			close: function(event, ui) {
 				$a.trigger('modal-close', {event: event, ui: ui}); // legacy, deprecated
-				$a.trigger('pw-modal-closed', {event: event, ui: ui}); // new
+				$a.trigger('pw-modal-closed', { event: event, ui: ui }); // new
+				$(document).trigger('pw-modal-closed', { event: event, ui: ui }); 
 				$spinner.remove();
 			}
 		};

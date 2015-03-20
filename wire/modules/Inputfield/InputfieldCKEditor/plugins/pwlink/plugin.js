@@ -168,6 +168,13 @@
 		// settings for modal window
 		var modalSettings = {
 			title: "<i class='fa fa-link'></i> " + insertLinkLabel,
+			open: function() {
+				if($(".cke_maximized").length > 0) {
+					// the following is required when CKE is maximized to make sure dialog is on top of it
+					$('.ui-dialog').css('z-index', 9999);
+					$('.ui-widget-overlay').css('z-index', 9998);
+				}
+			},
 			buttons: [ {
 				class: "pw_link_submit_insert", 
 				html: "<i class='fa fa-link'></i> " + insertLinkLabel,

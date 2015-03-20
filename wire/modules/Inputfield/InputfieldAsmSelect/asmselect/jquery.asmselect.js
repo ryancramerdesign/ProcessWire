@@ -78,6 +78,7 @@
 
 				$select = $("<select></select>")
 					.addClass(options.selectClass)
+					.addClass($original.attr('class'))
 					.attr('name', options.selectClass + index)
 					.attr('id', options.selectClass + index); 
 
@@ -188,7 +189,9 @@
 
 				// opera has an issue where it needs a force redraw, otherwise
 				// the items won't appear until something else forces a redraw
-				if($.browser.opera) $ol.hide().fadeIn("fast");
+				if(typeof $.browser != "undefined") {
+					if ($.browser.opera) $ol.hide().fadeIn("fast");
+				}
 			}
 
 			function buildSelect() {

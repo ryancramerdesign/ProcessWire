@@ -134,7 +134,7 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$cacheTime = $page->template->cache_time; 
 		
 		if(!is_dir($path)) {
-			if(!@mkdir($path)) throw new WireException("Cache path does not exist: $path");
+			if(!@wireMkdir($path, true)) throw new WireException("Cache path does not exist: $path");
 			if($this->config->chmodDir) chmod($path, octdec($this->config->chmodDir));
 		}
 

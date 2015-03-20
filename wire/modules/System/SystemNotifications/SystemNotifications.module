@@ -15,7 +15,7 @@ class SystemNotifications extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'System Notifications',
-			'version' => 10,
+			'version' => 11,
 			'summary' => 'Adds support for notifications in ProcessWire (currently in development)',
 			'autoload' => true, 
 			'installs' => 'FieldtypeNotifications', 

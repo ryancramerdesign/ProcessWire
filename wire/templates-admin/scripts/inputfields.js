@@ -7,10 +7,11 @@
  *
  */
 
+var InputfieldDebugMode = false; 
 
 function consoleLog(note) {
 	// uncomment the line below to enable debugging console
-	// console.log(note);
+	if(InputfieldDebugMode) console.log(note);
 }
 
 
@@ -361,6 +362,7 @@ function InputfieldDependencies() {
 function InputfieldColumnWidths() {
 
 	var colspacing = null; 
+	var useHeights = null; 
 
 	/**
 	 * Return the current with of $item based on its "style" attribute
@@ -403,7 +405,7 @@ function InputfieldColumnWidths() {
 			$item.animate( { opacity: 1.0 }, 150, function() { });
 		}
 
-		consoleLog('InputfieldColumnWidths.setWidth(' + $item.attr('id') + ': ' + pct + '%');
+		consoleLog('setWidth(' + $item.attr('id') + ': ' + pct + '%');
 	}
 
 	function getHeight($item) {
@@ -429,20 +431,8 @@ function InputfieldColumnWidths() {
 			$container.show();
 		}
 	}
-
-	// for columns that don't have specific widths defined, add the InputfieldColumnWidthFirst
-	// class to them which more easily enables us to exclude them from our operations below
-	$(".Inputfield:not(.InputfieldColumnWidth)").addClass("InputfieldColumnWidthFirst");
-
-	// cycle through all first columns in a multi-column row
-	$(".InputfieldColumnWidthFirst.InputfieldColumnWidth:visible").each(function() {
-
-		if(colspacing === null) {
-			colspacing = $(this).parents('form').attr('data-colspacing'); 
-			if(typeof colspacing == 'undefined') colspacing = 1; 
-		}
-
-		var $firstItem = $(this);
+	
+	function updateInputfieldRow($firstItem) {
 
 		// find all columns in this row that aren't hidden
 		// note that $items excludes $firstItem
@@ -464,15 +454,17 @@ function InputfieldColumnWidths() {
 			var $leadItem = $firstItem; 
 		}
 
-		// remove any spacers already present for adjusting height
-		$leadItem.find(".maxColHeightSpacer").remove();
-		$items.find(".maxColHeightSpacer").remove();
+		if(useHeights) {
+			// remove any spacers already present for adjusting height
+			$leadItem.find(".maxColHeightSpacer").remove();
+			$items.find(".maxColHeightSpacer").remove();
+		}
 
 		// subtract the quantity of items from the maxRowWidth since each item has a 1% margin
 		var maxRowWidth = 100 - (numItems * colspacing);
 
 		// keep track of the max column height
-		var maxColHeight = getHeight($leadItem);
+		var maxColHeight = useHeights ? getHeight($leadItem) : 0;
 
 		// if our temporary class is in any of the items, remove it
 		$items.removeClass("InputfieldColumnWidthFirstTmp");
@@ -483,17 +475,25 @@ function InputfieldColumnWidths() {
 			$item = $(this);
 			itemWidth = getWidth($item);
 			rowWidth += itemWidth;
-			var h = getHeight($item);
-			if(h > maxColHeight) maxColHeight = h; 
+			if(useHeights) {
+				var h = getHeight($item);
+				if (h > maxColHeight) maxColHeight = h;
+			}
 		});
 
-		// ensure that all columns in the same row share the same height
-		var lab = $leadItem.find("label").text();
-		consoleLog('maxColHeight: ' + lab + ' = ' + maxColHeight); 
+		if(useHeights) {
+			// ensure that all columns in the same row share the same height
+			if(InputfieldDebugMode) {
+				var lab = $leadItem.find("label").text();
+				consoleLog('maxColHeight: ' + lab + ' = ' + maxColHeight);
+			}
 
-		if(maxColHeight > 0) {
-			setHeight($leadItem, maxColHeight); 
-			$items.each(function() { setHeight($(this), maxColHeight); }); 
+			if(maxColHeight > 0) {
+				setHeight($leadItem, maxColHeight);
+				$items.each(function() {
+					setHeight($(this), maxColHeight);
+				});
+			}
 		}
 
 		// if the current rowWidth is less than the full width, expand the last item as needed to fill the row
@@ -536,7 +536,37 @@ function InputfieldColumnWidths() {
 			$leadItem.addClass("InputfieldColumnWidthFirstTmp");
 		}
 
+	} // updateInputfield
+
+	$("form.InputfieldForm").each(function() {
+		
+		var $form = $(this);
+		if($form.hasClass('InputfieldFormNoWidths')) return; // column widths not necessary
+		
+		colspacing = $form.attr('data-colspacing');
+		if(typeof colspacing == 'undefined') colspacing = 1;
+		
+		// if no borders, we don't worry about keeping heights aligned since they won't be seen
+		useHeights = $form.hasClass('InputfieldFormNoHeights') ? false : true;
+		
+		// for columns that don't have specific widths defined, add the InputfieldColumnWidthFirst
+		// class to them which more easily enables us to exclude them from our operations below
+		$(".Inputfield:not(.InputfieldColumnWidth)", $form).addClass("InputfieldColumnWidthFirst");
+
+		// cycle through all first columns in a multi-column row
+		$(".InputfieldColumnWidthFirst.InputfieldColumnWidth:visible", $form).each(function() {
+			updateInputfieldRow($(this));
+		});
 	});
+	
+	$(document).on('change', '.InputfieldColumnWidth :input', function() {
+		var $item = $(this).closest('.InputfieldColumnWidth'); 
+		var $firstItem = $item.is(".InputfieldColumnWidthFirst") ? $item : $item.prev(".InputfieldColumnWidthFirst"); 
+		updateInputfieldRow($firstItem);
+	}); 
+	
+
+
 }
 
 /**
