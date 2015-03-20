@@ -371,6 +371,7 @@ function InputfieldColumnWidths() {
 	function getWidth($item) {
 		if($item.is(".InputfieldStateHidden")) return 0;
 		var style = $item.attr('style');
+		if(typeof style == "undefined" || !style) return $item.width();
 		var pct = parseInt(style.match(/width:\s*(\d+)/i)[1]);
 		// store the original width in another attribute, for later retrieval
 		if(!$item.attr('data-original-width')) $item.attr('data-original-width', pct);
