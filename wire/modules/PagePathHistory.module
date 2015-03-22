@@ -129,14 +129,87 @@ class PagePathHistory extends WireData implements Module {
 		if($page && $page->id) return; 
 
 		$path = $event->arguments[1];
-		$page = $this->getPage($path);
 
-		if($page->id && $page->viewable()) {
-			// if a page was found, redirect to it
-			$this->session->redirect($page->url);
-		}
+        // Try to get page with unchanged path
+        $page = $this->getPage($path);
+
+        // If page couldn't be found, treat it as paginated URL and try again
+        if (!$page->id) {
+            // Get path pagination segment
+            $paginationSuffix = $this->getPaginationSuffix($path);
+            if ($paginationSuffix) {
+                // Remove possible pagination suffix from path
+                $suffixStart = strrpos($path, $paginationSuffix);
+                $suffixLength = strlen($paginationSuffix);
+                $path = substr_replace($path, '', $suffixStart, $suffixLength);
+                $path = rtrim($path, '/');
+
+                // Try to get page with path without pagination suffix
+                $page = $this->getPage($path);
+            }
+        }
+
+        if($page->id && $page->viewable()) {
+            // Build page redirect url
+            $redirectUrl = $page->url;
+
+            // Add pagination segment suffix if applicable
+            if (!empty($paginationSuffix)) {
+                $redirectUrl = rtrim($redirectUrl, '/') .
+                    "/$paginationSuffix" .
+                    ($page->template->slashUrls ? '/' : '');
+            }
+
+            // Redirect to that URL
+            $this->session->redirect($redirectUrl);
+        }
 		
 	}
+
+    /**
+     * Get the pagination segment from a given path.
+     *
+     * If a path includes a formally valid pagination segment returns a string
+     * including the pagination url prefix and the page number. Pagination
+     * bounds are not checked.
+     *
+     * @param string $path The path to be checked
+     * @return bool|string Path pagination segment or false if none could be found
+     */
+    protected function getPaginationSuffix($path = '') {
+        // Prepare page number prefixes
+        if (!is_array($this->pageNumUrlPrefixes)) {
+            $prefixes = array();
+            foreach ($this->config->pageNumUrlPrefixes as $prefix) {
+                if (strlen($prefix) && !in_array($prefix, $prefixes)) {
+                    $prefixes[] = $prefix;
+                }
+            }
+            if (!count($prefixes) && strlen($this->config->pageNumUrlPrefix)) {
+                $prefixes[] = $this->config->pageNumUrlPrefix;
+            }
+            $this->pageNumUrlPrefixes = $prefixes;
+        }
+
+        // Performance optimization: check if path could potentially include pagination segment
+        $maybePaginated = false;
+        foreach($this->pageNumUrlPrefixes as $prefix) {
+            if(false !== strpos($path, "/$prefix")) {
+                $maybePaginated = true;
+                break;
+            }
+        }
+        if (!$maybePaginated) {
+            return false;
+        }
+
+        // Check if path includes pagination segment
+        $pageNumPrefixesCaptureGroup = '(' . implode('|', $this->pageNumUrlPrefixes) . ')';
+        if (!preg_match('{/' . $pageNumPrefixesCaptureGroup . '(\d+)/?$}', $path, $matches)) {
+            return false;
+        }
+        return trim($matches[0], '/');
+    }
 
 	/**
 	 * Given a previously existing path, return the matching Page object or NullPage if not found.
