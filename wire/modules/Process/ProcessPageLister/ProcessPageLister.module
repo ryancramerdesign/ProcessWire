@@ -388,11 +388,16 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			$s->attr('disabled', 'disabled');
 		}
 		$selector = $this->sessionGet('selector');
-		if($this->initSelector) $selector = str_replace($this->initSelector, '', $selector); // ensure that $selector does not contain initSelector
+		if($this->initSelector) {
+			if(strpos($selector, $this->initSelector) !== false) {
+				$selector = str_replace($this->initSelector, '', $selector); // ensure that $selector does not contain initSelector
+			}
+		}
+			
 		if(!strlen($selector)) {
 			$selector = $this->defaultSelector;
 		} else if($this->defaultSelector && strpos($selector, $this->defaultSelector) === false) {
-			$selector = "$this->defaultSelector, $selector";
+			$selector = $this->combineSelector($this->defaultSelector, $selector); 
 		}
 		$s->attr('value', $selector); 
 		$this->inputfieldSelector = $s; 
@@ -643,6 +648,45 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		return $form; 
 	}
 
+	/**
+	 * Given two selector strings, combine them into one without duplicates
+	 * 
+	 * @param $s1
+	 * @param $s2
+	 * @return string
+	 * 
+	 */
+	protected function combineSelector($s1, $s2) {
+		
+		if(empty($s2)) return $s1; 
+		if(empty($s1)) return $s2; 
+		
+		$selectors1 = new Selectors($s1); 
+		$selectors2 = new Selectors($s2); 
+		
+		foreach($selectors1 as $selector1) {
+			$value = $selector1->value; 
+			if(is_array($value) || strlen($value)) continue;
+			$fieldName1 = $selector1->field; 
+			if(is_array($fieldName1)) $fieldName1 = implode('|', $fieldName1);
+			// see if we have the same field in selectors2
+			foreach($selectors2 as $selector2) {
+				$fieldName2 = $selector2->field; 
+				if(is_array($fieldName2)) $fieldName2 = implode('|', $fieldName2); 
+				if($fieldName1 == $fieldName2) {
+					// move value from selector2 to selector1
+					$selectors1->replace($selector1, $selector2); 
+					$selectors2->remove($selector2);
+					// break out now so that additional values don't get replaced again
+					break;  
+				}
+			}
+		}
+		
+		$combined = ((string) $selectors1) . ", " . ((string) $selectors2);
+		return $combined; 	
+	}
+
 
 	/**
 	 * Get the selector string to be used in finding results
@@ -655,7 +699,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		$selector = $this->sessionGet('selector');
 		if(!$selector) $selector = $this->initSelector; 
-		if($this->initSelector && strpos($selector, $this->initSelector) === false) $selector = "$this->initSelector, $selector";
+		if($this->initSelector && strpos($selector, $this->initSelector) === false) {
+			$selector = "$this->initSelector, $selector";
+		}
 
 		if(stripos($selector, 'limit=') === false) {
 			// no limit is specified in the selector
