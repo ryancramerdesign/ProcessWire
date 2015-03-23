@@ -280,8 +280,12 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			if(count($template)) $this->set('template', reset($template));
 		}
 
-		$knownTotal = $this->sessionGet('knownTotal');
-		if(is_array($knownTotal)) $this->knownTotal = $knownTotal;
+		if($this->wire('input')->post('reset_total')) {
+			$this->sessionSet('knownTotal', null);
+		} else {
+			$knownTotal = $this->sessionGet('knownTotal');
+			if(is_array($knownTotal)) $this->knownTotal = $knownTotal;
+		}
 
 		if(count($_POST)) $this->processInput();
 
@@ -1136,7 +1140,12 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		// remove start and/or limit
 		$knownSelector = preg_replace('/\b(start=\d+|limit=\d+),?/', '', $selector); 
 		
-		if(!$this->cacheTotal || $this->knownTotal['selector'] != $knownSelector || $this->knownTotal['time'] < time() - 60) {
+		$resetTotal = !$this->cacheTotal 
+			|| ($this->knownTotal['total'] === null)
+			|| ($this->knownTotal['selector'] != $knownSelector)
+			|| ($this->wire('pages')->count("include=all, modified>=" . $this->knownTotal['time']) > 0);
+		
+		if($resetTotal) {
 			$this->knownTotal['selector'] = $knownSelector; 
 			$this->knownTotal['total'] = null;
 			$this->knownTotal['time'] = 0; 
@@ -1151,16 +1160,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		try {
 			$results = $selector ? $this->wire('pages')->find($selector) : new PageArray();
-		
-			// test to see if our known total is still applicable
-			if($results->count() && $this->knownTotal['total'] !== null) {
-				// check to see if there have been any pages modified (anywhere) since we last cached our total
-				if($this->wire('pages')->get("include=all, modified>" . $this->knownTotal['time'])->id) {
-					// there has been a page changed somewhere in the site, uncache the total
-					$this->knownTotal['total'] = null;
-				}
-			}
-
+			
 		} catch(Exception $e) {
 			$this->error($e->getMessage());
 			$results = new PageArray();

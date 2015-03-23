@@ -827,7 +827,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			"<p id='wrap_description' class='show_when_rte'>" . 
 				"<label for='selected_image_description'>$labels[description]</label>" . 
 				"<input type='text' name='selected_image_description' " . 
-					"id='selected_image_description' title='$description' class='no_focus' value=\"$description\" />" . 
+					"id='selected_image_description' title='$description' class='InputfieldNoFocus' value=\"$description\" />" . 
 			"</p>" . 
 			"</small>" . 
 			//"<p class='notes hide_when_rte'>Please note: this feature is still in development.</p>" . 

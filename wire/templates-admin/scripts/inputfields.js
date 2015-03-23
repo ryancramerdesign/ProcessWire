@@ -632,16 +632,19 @@ function InputfieldStates() {
 		}); 
 	}
 
-	 // Make the first field in any form have focus, if it is a text field
-	$('#content input[type=text]:visible:enabled:first:not(.hasDatepicker)').each(function() {
-		var $t = $(this);
-		if(!$t.val() && !$t.hasClass(".no_focus") && !$t.hasClass('no-focus')) {
+	 // Make the first field in any form have focus, if it is a text field that is blank
+	$('#content .InputfieldForm:not(.InputfieldNoFocus)')
+		.find('input[type=text]:enabled:first:not(.hasDatepicker):not(.InputfieldNoFocus)').each(function() {
+			var $t = $(this);
+			// jump to first input, if it happens to be blank
+			if($t.val()) return;
 			// avoid jumping to inputs that fall "below the fold"
 			if($t.offset().top < $(window).height()) {
-				window.setTimeout(function () { $t.focus(); }, 1);
+				window.setTimeout(function () {
+					if($t.is(":visible")) $t.focus();
+				}, 250);
 			}
-		}
-	});
+	}); 
 }
 
 /*********************************************************************************************/
