@@ -240,7 +240,7 @@ class Fields extends WireSaveableItems {
 				if($field->type->createField($field)) $this->message("Created table '$table'"); 
 			}
 		} catch(Exception $e) {
-			$this->error($e->getMessage()); 
+			$this->error($e->getMessage() . " (checkFieldTable)"); 
 		}
 	}
 
@@ -611,7 +611,7 @@ class Fields extends WireSaveableItems {
 	 * 	countPages: Specify boolean true to make it return a page count rather than a row count (default=false). 
 	 * 		There will only potential difference between rows and pages counts with multi-value fields. 
 	 * 	getPageIDs: Specify boolean true to make it return an array of matching Page IDs rather than a count (overrides countPages).
-	 * @return int|array Returns array only if getPageIDs option set.
+	 * @return int|array Returns array only if getPageIDs option set. 
 	 * @throws WireException If given option for page or template doesn't resolve to actual page/template.
 	 *
 	 */
@@ -628,6 +628,13 @@ class Fields extends WireSaveableItems {
 		$database = $this->wire('database');
 		$table = $database->escapeTable($field->getTable());
 		$useRowCount = false;
+		$schema = $field->type->getDatabaseSchema($field);
+		
+		if(empty($schema)) {
+			// field has no schema or table (example: FieldtypeConcat)
+			if($options['getPageIDs']) return array();
+			return 0; 
+		}
 
 		if($options['template']) {
 			// count by pages using specific template
@@ -706,7 +713,7 @@ class Fields extends WireSaveableItems {
 				$return = (int) $return;
 			}
 		} catch(Exception $e) {
-			$this->error($e->getMessage());
+			$this->error($e->getMessage() . " (getNumRows)");
 		}
 
 		return $return;
