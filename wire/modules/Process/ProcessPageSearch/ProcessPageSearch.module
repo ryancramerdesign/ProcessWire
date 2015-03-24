@@ -511,7 +511,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			if(!$this->isSelectableFieldName($subname, $level)) return false;	
 		}
 		
-		if($name == 'path' && !$this->wire('modules')->isInstalled('PagePaths') || $this->wire('languages')) {
+		if($name == 'path' && (!$this->wire('modules')->isInstalled('PagePaths') || $this->wire('languages'))) {
 			$name = 'name';
 		}
 
