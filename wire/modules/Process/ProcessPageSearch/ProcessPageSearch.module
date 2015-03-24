@@ -520,7 +520,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			else if(!$level && in_array($name, array('include', 'status', 'check_access'))) $is = true; 
 			else if(in_array($name, $this->fieldOptions)) $is = true; 
 
-		if($name == 'pass' || $name == 'config' || $name == 'it') $is = false;
+		if($name == 'pass' || $name == 'config' || $name == 'it' || $name == 'display') $is = false;
 		
 		return $is; 
 	}
