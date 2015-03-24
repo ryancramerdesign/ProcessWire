@@ -11,6 +11,7 @@
 	margin: 0 !important;
 }
 
+.InputfieldCheckboxes table input, 
 .InputfieldCheckboxes li input {
 	margin-right: 0.5em;
 }
