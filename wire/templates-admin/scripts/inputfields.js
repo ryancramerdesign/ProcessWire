@@ -38,6 +38,22 @@ function InputfieldDependencies() {
 		var conditions = [];
 
 		/**
+		 * Remove quotes from value (if present)
+		 *
+		 * @param value
+		 * @return string
+		 *
+		 */
+		function trimParseValue(value) {
+			// determine if we need to trim off quotes
+			value = jQuery.trim(value);
+			var first = value.substring(0,1);
+			var last = value.substring(value.length-1, value.length);
+			if((first == '"' || first == "'") && first == last) value = value.substring(1, value.length-1);
+			return parseValue(value);
+		}
+
+		/**
 		 * Convert string value to integer or float when appropriate
 		 * 
 		 * @param str string
@@ -88,19 +104,49 @@ function InputfieldDependencies() {
 		}
 
 		/**
+		 * Returns whether or not value matched
+		 *
+		 * @param field Name of field
+		 * @param operator
+		 * @param value value to match for
+		 * @param conditionValue
+		 * @return int 0=value didn't match, 1=value matched
+		 *
+		 */
+		function matchValue(field, operator, value, conditionValue) {
+			var matched = 0;
+
+			switch(operator) {
+				case '=': if(value == conditionValue) matched++; break;
+				case '!=': if(value != conditionValue) matched++; break;
+				case '>': if(value > conditionValue) matched++; break;
+				case '<': if(value < conditionValue) matched++; break;
+				case '>=': if(value >= conditionValue) matched++; break;
+				case '<=': if(value <= conditionValue) matched++; break;
+				case '*=':
+				case '%=': if(value.indexOf(conditionValue) > -1) matched++; break;
+			}
+
+			consoleLog('Field ' + field + ' - Current value: ' + value);
+			consoleLog('Field ' + field + ' - Matched? ' + (matched > 0 ? 'YES' : 'NO'));
+
+			return matched;
+		}
+
+		/**
 		 * Called when a targeted Inputfield has changed
 		 *
 		 */
 		function inputfieldChange() {
 			InputfieldDependenciesProcessing = true; 
 
-			consoleLog('-------------------------------------------------------------------');
-			consoleLog('Field "' + $fieldToShow.attr('id') + '" detected a change to a dependency field! Beginning dependency checks...');
+			if(InputfieldDebugMode) {
+				consoleLog('-------------------------------------------------------------------');
+				consoleLog('Field "' + $fieldToShow.attr('id') + '" detected a change to a dependency field! Beginning dependency checks...');
+			}
 
 			// number of changes that were actually made to field visibility
 			var numVisibilityChanges = 0;
-
-			var totalMatched = 0;
 			var show = true; 
 			var requiredMatches = 0; 
 			var notRequiredMatches = 0;
@@ -110,97 +156,111 @@ function InputfieldDependencies() {
 				// current condition we are checking in this iteration 
 				var condition = conditions[c];
 
-				consoleLog('----');
-				consoleLog('Start Dependency ' + c);
-				consoleLog('Condition type: ' + condition.type);
-				consoleLog('Field: ' + condition.field);
-				if(condition.subfield.length > 0) consoleLog('Subfield: ' + condition.subfield); 
-				consoleLog('Operator: ' + condition.operator);
-				consoleLog('Required value: ' + condition.value);
+				if(InputfieldDebugMode) {
+					consoleLog('----');
+					consoleLog('Start Dependency ' + c);
+					consoleLog('Condition type: ' + condition.type);
+					consoleLog('Field: ' + condition.field);
+					if (condition.subfield.length > 0) consoleLog('Subfield: ' + condition.subfield);
+					consoleLog('Operator: ' + condition.operator);
+					consoleLog('Required value: ' + condition.value);
+				}
 
 				// matched contains positive value when condition matches
 				var matched = 0;
+		
+				// iterate through all OR fields (this will most often just be 1 field)
+				for(var fn = 0; fn < condition.fields.length; fn++) {
 
-				// Dependency field that we are checking for the condition
-				var $field = $("#Inputfield_" + condition.field);
-
-				var value = null;
-
-				if($field.size() == 0) {
-					// if field isn't present by #id it may be present by #id+value as a checkbox/radio field is
-					consoleLog('Detected checkbox or radio: ' + condition.field + condition.operator + condition.value);
-					if(condition.subfield == 'count' || condition.subfield == 'count-checkbox') {
-						// count number of matching checked inputs
-						$field = $("#wrap_Inputfield_" + condition.field + " :input"); 
-						value = $("#wrap_Inputfield_" + condition.field + " :checked").size();
-						consoleLog('Using count checkbox condition'); 
-						condition.subfield = 'count-checkbox';
-					} else {
-						var conditionValue = new String(condition.value); 
-						conditionValue = conditionValue.replace(/\s/g, '_'); 
-						$field = $("#Inputfield_" + condition.field + "_" + conditionValue);
-					}
-				}
-
-				// value of the dependency field we are checking
-				if(value === null) value = $field.val();
-
-				// value will be placed in values so we can handle multiple value checks
-				var values = [];
-
-				// prefer blank to null for our chcks
-				if(value == null) value = '';
-
-				// special case for checkbox and radios: 
-				// if the field is not checked then we assume a blank value
-				var attrType = $field.attr('type');
-				if((attrType == 'checkbox' || attrType == 'radio') && !$field.is(":checked")) value = '';
-
-				// special case for 'count' subfield condition, 
-				// where we take the value's length rather than the value
-				if(condition.subfield == 'count') value = value.length;
-
-				// if value is an object, make it in array
-				// in either case, convert value to an array called values
-				if(typeof value == 'object') {
-					// object, convert to array
-					values = jQuery.makeArray(value);
-				} else if(typeof value == 'array') {
-					// array, already
-					values = value;
-				} else {
-					// string: single value array
-					values[0] = value;
-				}
-			
-				// also allow for matching a "0" as an unchecked value
-				if((attrType == 'checkbox' || attrType == 'radio') && !$field.is(":checked")) values[1] = '0';
-				
-				// cycle through the values (most of the time, just 1 value).
-				// increment variable 'show' each time a condition matches
-				for(var n = 0; n < values.length; n++) {
-					value = parseValue(values[n], condition.value);
+					var value = null;
+					var $field = $("#Inputfield_" + condition.fields[fn]);
 					
-					switch(condition.operator) {
-						case '=': if(value == condition.value) matched++; break;
-						case '!=': if(value != condition.value) matched++; break;
-						case '>': if(value > condition.value) matched++; break;
-						case '<': if(value < condition.value) matched++; break;
-						case '>=': if(value >= condition.value) matched++; break;
-						case '<=': if(value <= condition.value) matched++; break;
-						case '*=':
-						case '%=': if(value.indexOf(condition.value) > -1) matched++; break;
+					if($field.length == 0) {
+						// in case they manually specified id property
+						$field = $("#" + condition.fields[fn]);
 					}
 
-					consoleLog('Value #' + n + ' - Current value: ' + value);
-					consoleLog('Value #' + n + ' - Matched? ' + (matched > 0 ? 'YES' : 'NO'));
-				}
+					if ($field.length == 0) {
+						// if field isn't present by #id it may be present by #id+value as a checkbox/radio field is
+						consoleLog('Detected possible checkbox or radio: ' + condition.field + condition.operator + condition.value);
+						if (condition.subfield == 'count' || condition.subfield == 'count-checkbox') {
+							// count number of matching checked inputs
+							$field = $("#wrap_Inputfield_" + condition.fields[fn] + " :input");
+							value = $("#wrap_Inputfield_" + condition.fields[fn] + " :checked").length;
+							consoleLog('Using count checkbox condition');
+							condition.subfield = 'count-checkbox';
+						} else {
+							// @todo OR support here?
+							var conditionValue = new String(condition.value);
+							conditionValue = conditionValue.replace(/\s/g, '_');
+							$field = $("#Inputfield_" + condition.fields[fn] + "_" + conditionValue);
+						}
+					}
+				
+					// if we haven't matched a field by now, skip over it
+					if($field.length == 0) {
+						consoleLog("Unable to locate field: " + condition.fields[fn]); 
+						continue;
+					}
 
+					// value of the dependency field we are checking
+					if (value === null) value = $field.val();
+
+					// value will be placed in values so we can handle multiple value checks
+					var values = [];
+
+					// prefer blank to null for our checks
+					if (value == null) value = '';
+
+					// special case for checkbox and radios: 
+					// if the field is not checked then we assume a blank value
+					var attrType = $field.attr('type');
+					if ((attrType == 'checkbox' || attrType == 'radio') && !$field.is(":checked")) value = '';
+
+					// special case for 'count' subfield condition, 
+					// where we take the value's length rather than the value
+					if (condition.subfield == 'count') value = value.length;
+
+					// if value is an object, make it in array
+					// in either case, convert value to an array called values
+					if (typeof value == 'object') {
+						// object, convert to array
+						values = jQuery.makeArray(value);
+					} else if (typeof value == 'array') {
+						// array, already
+						values = value;
+					} else {
+						// string: single value array
+						values[0] = value;
+					}
+
+					// also allow for matching a "0" as an unchecked value
+					if ((attrType == 'checkbox' || attrType == 'radio') && !$field.is(":checked")) values[1] = '0';
+
+					// determine how many matches will be required
+					var numMatchesRequired = 1;
+					if (condition.operator == '!=') numMatchesRequired = (values.length * condition.values.length);
+					// consoleLog([values, condition.values, numMatchesRequired]);
+
+					// cycle through the values (most of the time, just 1 value).
+					// increment variable 'show' each time a condition matches
+					for (var n = 0; n < values.length; n++) {
+						for (var i = 0; i < condition.values.length; i++) {
+							var v = parseValue(values[n], condition.values[i]);
+							matched += matchValue(fields[fn], condition.operator, v, condition.values[i]);
+						}
+					}
+				
+					// if requirements met exit the loop
+					if(matched >= numMatchesRequired) break;
+					
+				} // foreach fields
+			
 				consoleLog('----');
 
 				// determine whether to show or hide the field
 				if(condition.type == 'show') {
-					if(matched > 0) {
+					if(matched >= numMatchesRequired) {
 						// show it, which is the default behavior
 					} else {
 						show = false;
@@ -214,8 +274,7 @@ function InputfieldDependencies() {
 						notRequiredMatches++;
 					}
 				}
-
-
+				
 			} // foreach(conditions)
 
 			// consoleLog('Summary (required/matched): ' + conditions.length + ' / ' + show);
@@ -297,12 +356,22 @@ function InputfieldDependencies() {
 				var part = parts[n];
 
 				// separate out the field, operator and value
-				var match = part.match(/^[,\s]*([_.a-zA-Z0-9]+)(=|!=|<=|>=|<|>|%=)([^,]+),?$/);
+				var match = part.match(/^[,\s]*([_.|a-zA-Z0-9]+)(=|!=|<=|>=|<|>|%=)([^,]+),?$/);
 				if(!match) continue;
 				var field = match[1];
 				var operator = match[2];
 				var value = match[3];
 				var subfield = '';
+				var fields = []; // if multiple
+				var values = [];
+				
+				// detect OR selector in field
+				if(field.indexOf("|") > -1) {
+					consoleLog("OR field dependency: " + field);
+					fields = field.split("|");
+				} else {
+					fields = [field];
+				}
 
 				// extract subfield, if there is one
 				var dot = field.indexOf('.');
@@ -310,40 +379,59 @@ function InputfieldDependencies() {
 					subfield = field.substring(dot+1);
 					field = field.substring(0, dot);
 				}
+				
+				if(subfield.length && fields.length > 1) {
+					consoleLog('Error: subfield with OR condition not supported'); 
+				}
 
-				consoleLog("Field: " + field);
-				if(subfield.length) consoleLog("Subfield: " + subfield);
-				consoleLog("Operator: " + operator);
-				consoleLog("value: " + value);
-
-				// determine if we need to trim off quotes
-				var first = value.substring(0,1);
-				var last = value.substring(value.length-1, value.length);
-				if((first == '"' || first == "'") && first == last) value = value.substring(1, value.length-1);
+				if(InputfieldDebugMode) {
+					consoleLog("Field: " + field);
+					if (subfield.length) consoleLog("Subfield: " + subfield);
+					consoleLog("Operator: " + operator);
+					consoleLog("value: " + value);
+				}
+				
+				// detect OR selector | in value
+				if(value.indexOf("|") > -1){
+					consoleLog("OR value dependency: " + value);
+					values = value.split("|");
+					for(var i = 0; i < values.length; i++) {
+						values[i] = trimParseValue(values[i]);
+					}
+				} else {
+					values = [ trimParseValue([value]) ];
+				}
 
 				// build the condition
 				var condition = {
 					'type': conditionType,
 					'field': field,
+					'fields': fields, // if multiple
 					'subfield': subfield,
 					'operator': operator,
-					'value': parseValue(value)
+					'value': value,
+					'values': values  // if multiple
 				};
 
 				// append to conditions array
 				conditions[conditions.length] = condition;
 
-				// locate the dependency inputfield
-				var $inputfield = $("#Inputfield_" + field);
+				// attach change event handler to all applicable fields
+				for(var fn = 0; fn < fields.length; fn++) {
+					
+					// locate the dependency inputfield
+					var $inputfield = $("#Inputfield_" + fields[fn]);
+					if ($inputfield.length == 0) $inputfield = $("#" + fields[fn]);
 
-				// if the dependency inputfield isn't found, locate its wrapper..
-				if($inputfield.size() == 0) {
-					// use any inputs within the wrapper
-					$inputfield = $("#wrap_Inputfield_" + field).find(":input");
+					// if the dependency inputfield isn't found, locate its wrapper..
+					if ($inputfield.length == 0) {
+						// use any inputs within the wrapper
+						$inputfield = $("#wrap_Inputfield_" + fields[fn]).find(":input");
+					}
+
+					// attach change event to dependency inputfield
+					if($inputfield.length) $inputfield.change(inputfieldChange);
 				}
-
-				// attach change event to dependency inputfield
-				$inputfield.change(inputfieldChange);
 
 			}
 		}
@@ -444,7 +532,7 @@ function InputfieldColumnWidths() {
 
 		var $item = $firstItem.is(".InputfieldStateHidden") ? null : $firstItem;
 		var itemWidth = $item == null ? 0 : rowWidth;
-		var numItems = $items.size();
+		var numItems = $items.length;
 
 		if($firstItem.is(".InputfieldStateHidden")) {
 			numItems--;
@@ -591,7 +679,7 @@ function InputfieldStates() {
 			$li.toggleClass('InputfieldStateCollapsed', 100, function() {
 				$li.trigger(isCollapsed ? 'opened' : 'closed'); 
 				var $input = $li.find(":input:visible");
-				if($input.size() == 1 && !$input.is('button')) { 
+				if($input.length == 1 && !$input.is('button')) { 
 					var t = $input.attr('type'); 
 					if($input.is('textarea') || t == 'text' || t == 'email' || t == 'url' || t == 'number') {
 						$input.focus();
@@ -621,13 +709,13 @@ function InputfieldStates() {
 	if(typeof config !== "undefined" && config.debug) {
 		$('label.InputfieldHeader > i.toggle-icon').hover(function() {
 			var $label = $(this).parent('label');
-			if($label.size() == 0) return;
+			if($label.length == 0) return;
 			var text = $label.attr('for').replace(/^Inputfield_/, ''); 
 			$label.append(" <span class='detail'>" + text + "</span>"); 
 			
 		}, function() {
 			var $label = $(this).parent('label');
-			if($label.size() == 0) return;
+			if($label.length == 0) return;
 			$label.find('span.detail').remove();
 		}); 
 	}

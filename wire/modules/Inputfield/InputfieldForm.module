@@ -22,7 +22,7 @@ class InputfieldForm extends InputfieldWrapper {
 		return array(
 			'title' => __('Form', __FILE__), // Module Title
 			'summary' => __('Contains one or more fields in a form', __FILE__), // Module Summary
-			'version' => 105,
+			'version' => 106,
 			'permanent' => true, 
 			);
 	}
@@ -173,16 +173,21 @@ class InputfieldForm extends InputfieldWrapper {
 						break;
 						
 					} else {
-						// $field is most likely a form field has already been processed and is good to use
+						// $field is most likely a form field that has already been processed and is good to use
 						$processNow = true; 
 					}
-				}
+				} // foreach($fields)
 
 				if(!$processNow) break; // out to next $child
+		
+				$numFieldsMatched = 0;
 			
 				// good to process $child
 				foreach($fields as $name) {
-					if($name == '1') continue;
+					if($name == '1') {
+						$numFieldsMatched++;
+						continue;
+					}
 				
 					$subfield = '';
 					if(strpos($name, '.')) list($name, $subfield) = explode('.', $name); 
@@ -200,14 +205,16 @@ class InputfieldForm extends InputfieldWrapper {
 					if($subfield == 'count') $value = count($value); 
 					if(is_object($value)) $value = "$value";
 
-					if(!$selector->matches($value)) {
-						$this->debugNote("Selector failed to match \"$selector\" because value=" . print_r($value, true)); 
-						$processNow = false;
-						break;
+					if($selector->matches($value)) {
+						$this->debugNote("Selector matched \"$selector\" (field=$name, value=" . print_r($value, true) . ")"); 
+						$numFieldsMatched++;
+					} else {
+						$this->debugNote("Selector failed to match \"$selector\" (field=$name, value=" . print_r($value, true) . ")"); 
 					}
 					
 				} // $fields
-	
+		
+				$processNow = $numFieldsMatched > 0;
 				if(!$processNow) break;
 				
 				$this->debugNote("$child->name ($child->label) - matched: showIf($selector)");
