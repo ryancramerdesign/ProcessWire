@@ -7,7 +7,7 @@
  *
  */
 
-var InputfieldDebugMode = false; 
+var InputfieldDebugMode = true; 
 
 function consoleLog(note) {
 	// uncomment the line below to enable debugging console
@@ -36,6 +36,14 @@ function InputfieldDependencies() {
 
 		// Array of conditions required to show a field
 		var conditions = [];
+		
+		function trimValue(value) {
+			value = jQuery.trim(value);
+			var first = value.substring(0,1);
+			var last = value.substring(value.length-1, value.length);
+			if((first == '"' || first == "'") && first == last) value = value.substring(1, value.length-1);
+			return value;
+		}
 
 		/**
 		 * Remove quotes from value (if present)
@@ -46,11 +54,7 @@ function InputfieldDependencies() {
 		 */
 		function trimParseValue(value) {
 			// determine if we need to trim off quotes
-			value = jQuery.trim(value);
-			var first = value.substring(0,1);
-			var last = value.substring(value.length-1, value.length);
-			if((first == '"' || first == "'") && first == last) value = value.substring(1, value.length-1);
-			return parseValue(value);
+			return parseValue(trimValue(value));
 		}
 
 		/**
@@ -192,7 +196,7 @@ function InputfieldDependencies() {
 						} else {
 							// @todo OR support here?
 							var conditionValue = new String(condition.value);
-							conditionValue = conditionValue.replace(/\s/g, '_');
+							conditionValue = trimValue(conditionValue.replace(/\s/g, '_'));
 							$field = $("#Inputfield_" + condition.fields[fn] + "_" + conditionValue);
 						}
 					}
