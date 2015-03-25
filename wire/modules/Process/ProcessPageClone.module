@@ -301,6 +301,7 @@ class ProcessPageClone extends Process {
 		$page->template = 'admin';
 		$page->parent = $parent; 
 		$page->name = 'clone';
+		$page->title = 'Clone';
 		$page->process = $this; 
 		$page->addStatus(Page::statusHidden);
 		$page->save();
@@ -321,7 +322,7 @@ class ProcessPageClone extends Process {
 			$this->message("Removed permission: $name"); 
 		}
 
-		$page = $this->pages->get($this->config->adminRootPageID)->child("name=page")->child("name=clone"); 
+		$page = $this->pages->get($this->config->adminRootPageID)->child("name=page")->child("name=clone, include=hidden"); 
 		if($page->id) {
 			$this->message("Removed page: {$page->path}"); 
 			$this->pages->delete($page); 
