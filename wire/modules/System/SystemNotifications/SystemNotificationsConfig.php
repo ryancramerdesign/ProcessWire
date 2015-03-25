@@ -176,6 +176,8 @@ class SystemNotificationsConfig extends ModuleConfig {
 		$f->addOption(self::placementSeparate, __('Leave them alone'));
 		$f->columnWidth = 50;
 		$form->add($f);
+		
+		include_once(dirname(__FILE__) . "/Notification.php"); 
 
 		$this->message('Example runtime message notification');
 		$this->message('Example debug message notification', Notification::flagDebug);

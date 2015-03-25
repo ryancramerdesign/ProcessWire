@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<title><?php echo $page->title; ?></title>
 	<meta name="description" content="<?php echo $page->summary; ?>" />
 	<link href='//fonts.googleapis.com/css?family=Lusitana:400,700|Quattrocento:400,700' rel='stylesheet' type='text/css' />
@@ -10,8 +11,7 @@
 <body>
 
 	<!-- top navigation -->
-	<ul class='topnav'>
-		<?php 
+	<ul class='topnav'><?php 
 
 		// top navigation consists of homepage and its visible children
 		$homepage = $pages->get('/'); 
@@ -33,11 +33,10 @@
 
 		// output an "Edit" link if this page happens to be editable by the current user
 		if($page->editable()) {
-			echo "<li class='edit'><a href='$page->editURL'>Edit</a></li>";
+			echo "<li class='edit'><a href='$page->editUrl'>Edit</a></li>";
 		}
 
-		?>
-	</ul>
+	?></ul>
 
 	<!-- search form -->
 	<form class='search' action='<?php echo $pages->get('template=search')->url; ?>' method='get'>
@@ -46,9 +45,7 @@
 	</form>
 
 	<!-- breadcrumbs -->
-	<div class='breadcrumbs'>
-
-		<?php 
+	<div class='breadcrumbs'><?php 
 
 		// breadcrumbs are the current page's parents
 		foreach($page->parents() as $item) {
@@ -57,9 +54,7 @@
 		// optionally output the current page as the last item
 		echo "<span>$page->title</span> "; 
 
-		?>
-
-	</div>
+	?></div>
 
 	<div id='main'>
 

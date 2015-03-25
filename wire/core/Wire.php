@@ -17,6 +17,7 @@
  * @property string $className
  * @property ProcessWire $wire
  * @property Database $db
+ * @property WireDatabasePDO $database
  * @property Session $session 
  * @property Notices $notices
  * @property Sanitizer $sanitizer
@@ -1170,7 +1171,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * @param string|object $name Name of API variable to retrieve, set, or omit to retrieve the master ProcessWire object
 	 * @param null|mixed $value Value to set if using this as a setter, otherwise omit.
 	 * @param bool $lock When using as a setter, specify true if you want to lock the value from future changes (default=false)
-	 * @return mixed|ProcessWire
+	 * @return ProcessWire|Wire|Session|Page|Pages|Modules|User|Users|Roles|Permissions|Templates|Fields|Fieldtypes|Sanitizer|Config|Notices|WireDatabasePDO|WireInput|string|mixed
 	 * @throws WireException
 	 *
 	 *
@@ -1188,12 +1189,14 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 			// return ProcessWire instance
 			return self::$fuel->wire;
 		}
-		
+	
+		/* TBA PW3
 		if(is_object($name)) {
 			// injecting ProcessWire instance to object
 			if($name instanceof Wire) return $name->setWire($this->_wire); // inject fuel, PW 3.0 
 			throw new WireException("Expected Wire instance");
 		}
+		*/
 
 		// get API variable
 		$value = self::$fuel->$name;

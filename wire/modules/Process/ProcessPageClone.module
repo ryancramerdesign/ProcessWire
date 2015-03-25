@@ -7,11 +7,10 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2011 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * https://processwire.com
  *
  */
 
@@ -21,21 +20,21 @@ class ProcessPageClone extends Process {
 		return array(
 			'title' => __('Page Clone', __FILE__),
 			'summary' => __('Provides ability to clone/copy/duplicate pages in the admin. Adds a "copy" option to all applicable pages in the PageList.', __FILE__), 
-			'version' => 102, 
-			'permanent' => false, 
-			'permission' => 'page-clone',
+			'version' => 103, 
 			'autoload' => "process=ProcessPageList",  // Note: most Process modules should not be 'autoload', this is an exception.
+			'permission' => 'page-clone',
+			'permissions' => array(
+				'page-clone' => 'Clone a page',
+				'page-clone-tree' => 'Clone a tree of pages'
+			),
+			'page' => array(
+				'name' => 'clone',
+				'title' => 'Clone',
+				'parent' => 'page',
+				'status' => Page::statusHidden, 
+				)
 			); 
 	}
-
-	/**
-	 * Permission names installed by this module, and labels to describe them. 
-	 *
-	 */
-	protected $permissionNames = array(
-		'page-clone' => 'Clone a page', 
-		'page-clone-tree' => 'Clone a tree of pages',
-		);
 
 	/**
 	 * The page being cloned
@@ -45,6 +44,8 @@ class ProcessPageClone extends Process {
 
 	/**
 	 * The action link label used in the PageList
+	 * 
+	 * Redefined for mult-language support in the ready method. 
 	 *
 	 */
 	protected $pageListActionLabel = 'Copy';
@@ -56,14 +57,6 @@ class ProcessPageClone extends Process {
 	protected $adminUrl = '';
 
 	/**
-	 * Initialize the module
-	 *
-	 */
-	public function init() {
-		parent::init();
-	}
-
-	/**
 	 * Called when the API and $page loaded are ready
 	 *
 	 * We use this to determine whether we should add a hook or not.
@@ -73,7 +66,7 @@ class ProcessPageClone extends Process {
 	public function ready() {
 		$process = wire('page')->process; 
 		if($process == 'ProcessPageList') { 
-			$this->adminUrl = wire('config')->urls->admin;
+			$this->adminUrl = $this->wire('config')->urls->admin;
 			$this->pageListActionLabel = $this->_('Copy'); // Action label that appears in PageList
 			$this->addHookAfter("ProcessPageListRender::getPageActions", $this, 'hookPageListActions'); 
 		}
@@ -99,16 +92,14 @@ class ProcessPageClone extends Process {
 	 *
 	 */
 	public function ___execute() {
-		Wire::setFuel('processHeadline', $this->_('Copy Page')); // Headline
-
+		$this->headline($this->_('Copy Page')); // Headline
 		$error = $this->_("Unable to load page");
-		$id = (int) $this->input->get->id;
+		$id = (int) $this->wire('input')->get->id;
 		if(!$id) throw new WireException($error); 
-		$this->page = $this->pages->get($id); 
+		$this->page = $this->wire('pages')->get($id); 
 		if($this->page->id < 2) throw new WireException($error); 
 		if(!$this->hasPermission($this->page)) throw new WirePermissionException($error); 
-
-		if($this->input->post->submit_clone) $this->process();
+		if($this->wire('input')->post->submit_clone) $this->process();
 		return $this->render();	
 	}	
 
@@ -267,68 +258,6 @@ class ProcessPageClone extends Process {
 		$this->session->redirect($this->config->urls->admin . 'page/list/?open=' . $clone->id); 
 	}
 
-	/**
-	 * Install this module and it's permissions
-	 *
-	 */
-	public function ___install() {
-
-		// noticed that permissions weren't sorted right on default install, so just fixing the sort here
-		// since I want to ensure the page-clone and page-clone-tree permissions stay together as a group.
-		// so the following loads all permissions, assigns a sort value, then saves them. 
-		$sort = 0;
-		foreach($this->permissions as $permission) {
-			$permission->sort = $sort; 
-			$permission->save();
-			$sort++; 
-		}
-
-		// add the page-clone and page-clone-tree permissions
-		foreach($this->permissionNames as $name => $title) {		
-			$p = $this->permissions->add($name); 
-			if(!$p->id) continue; 
-			$p->title = $title;
-			$p->save();
-			$this->message("Added new permission: $name"); 
-		}
-
-		// locate the parent page
-		$parent = $this->pages->get($this->config->adminRootPageID)->child('name=page');
-		if(!$parent->id || count($parent->children('name=clone'))) throw new WireException("Unable to add new page to admin"); 
-
-		// page the new clone page
-		$page = new Page(); 
-		$page->template = 'admin';
-		$page->parent = $parent; 
-		$page->name = 'clone';
-		$page->process = $this; 
-		$page->addStatus(Page::statusHidden);
-		$page->save();
-		$this->message("Added new page: {$page->path}"); 
-
-	}
-
-	/**
-	 * Uninstall this module and it's permissions
-	 *
-	 */
-	public function ___uninstall() {
-
-		foreach($this->permissionNames as $name => $title) {
-			$p = $this->permissions->get($name); 
-			if(!$p->id) continue; 
-			$this->permissions->delete($p); 
-			$this->message("Removed permission: $name"); 
-		}
-
-		$page = $this->pages->get($this->config->adminRootPageID)->child("name=page")->child("name=clone"); 
-		if($page->id) {
-			$this->message("Removed page: {$page->path}"); 
-			$this->pages->delete($page); 
-		}
-
-	}
-	
 	public function getPage() {
 		return $this->page; 
 	}

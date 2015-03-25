@@ -4,39 +4,19 @@ $(document).ready(function() {
 	 * Setup a live change event for the delete links
 	 *
 	 */
+	
+	// not IE < 9
+	$(document).on('change', '.InputfieldFileDelete input', function() {
+		setInputfieldFileStatus($(this));
 
-	if($.browser.msie && $.browser.version < 9) {
-		
-		// $(".InputfieldFileDelete span.ui-icon").live("click", function() {
-		$(".InputfieldFileDelete").on("click", "span.ui-icon", function() {
-			
-			var input = $(this).prev('input'); 
-			if(input.is(":checked")){
-				input.removeAttr("checked");
-			} else {
-				input.attr({"checked":"checked"});	
-			}
-			
-			setInputfieldFileStatus(input);
-			
-		});
-		
-	} else {
-		// not IE < 9
-		// $(this).find(".InputfieldFileDelete input").live('change', function() {
-		$(document).on('change', '.InputfieldFileDelete input', function() {
-			setInputfieldFileStatus($(this));
-
-		}).on('dblclick', '.InputfieldFileDelete', function() {
-			// enable double-click to delete all
-			var $input = $(this).find('input'); 
-			var $items = $(this).parents('.InputfieldFileList').find('.InputfieldFileDelete input');
-			if($input.is(":checked")) $items.removeAttr('checked').change();
-				else $items.attr('checked', 'checked').change();
-			return false; 
-		}); 
-
-	}
+	}).on('dblclick', '.InputfieldFileDelete', function() {
+		// enable double-click to delete all
+		var $input = $(this).find('input'); 
+		var $items = $(this).parents('.InputfieldFileList').find('.InputfieldFileDelete input');
+		if($input.is(":checked")) $items.removeAttr('checked').change();
+			else $items.attr('checked', 'checked').change();
+		return false; 
+	}); 
 
 	function setInputfieldFileStatus($t) {
 		if($t.is(":checked")) {

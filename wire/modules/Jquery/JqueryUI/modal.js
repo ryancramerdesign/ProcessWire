@@ -113,12 +113,20 @@ function pwModalWindow(href, options, size) {
 	
 	if(typeof options != "undefined") $.extend(settings, options);
 	
+	$iframe.on('dialogopen', function(event, ui) {
+		$(document).trigger('pw-modal-opened', { event: event, ui: ui });
+	});
+	$iframe.on('dialogclose', function(event, ui) {
+		$(document).trigger('pw-modal-closed', { event: event, ui: ui });
+	});
+	
 	$iframe.dialog(settings);
 	$iframe.data('settings', settings);
 	$iframe.load(function() {
 		if(typeof settings.title == "undefined" || !settings.title) {
 			$iframe.dialog('option', 'title', $iframe.contents().find('title').text());
 		}
+		$iframe.contents().find('form').css('-webkit-backface-visibility', 'hidden'); // to prevent jumping
 	}); 
 	
 	var lastWidth = 0;
@@ -195,7 +203,8 @@ $(document).ready(function() {
 			title: $a.attr('title'),
 			close: function(event, ui) {
 				$a.trigger('modal-close', {event: event, ui: ui}); // legacy, deprecated
-				$a.trigger('pw-modal-closed', {event: event, ui: ui}); // new
+				$a.trigger('pw-modal-closed', { event: event, ui: ui }); // new
+				$(document).trigger('pw-modal-closed', { event: event, ui: ui }); 
 				$spinner.remove();
 			}
 		};
@@ -224,8 +233,8 @@ $(document).ready(function() {
 			var buttons = [];
 			var $icontents = $iframe.contents();
 			var n = 0;
+			
 			$spinner.fadeOut('fast', function() { $spinner.remove(); }); 
-			$icontents.find('body').hide();
 			
 			if(closeOnLoad) {
 				// this occurs when item saved and resulting page is loaded
@@ -246,6 +255,9 @@ $(document).ready(function() {
 					return;
 				}
 			}
+			
+			var $body = $icontents.find('body'); 
+			$body.hide();
 	
 			// copy buttons in iframe to dialog
 			if(buttonSelector) { 
@@ -286,23 +298,12 @@ $(document).ready(function() {
 				});
 			} // .pw-modal-buttons
 
-			/*
-			// add a cancel button
-			if($a.attr('data-cancel') != "undefined") {
-				buttons[n] = {
-					'text': 'Cancel', 
-					'class': 'ui-priority-secondary', 
-					'click': function() {
-						 $dialog.dialog('close'); 
-					} 		
-				}; 
-			}
-			*/
-
 			// render buttons
 			if(buttons.length > 0) $iframe.setButtons(buttons);
 			
-			$icontents.find('body').fadeIn('fast');
+			$body.fadeIn('fast', function() {
+				$body.show(); // for Firefox, which ignores the fadeIn()
+			}); 
 	
 		}); // $iframe.load
 	

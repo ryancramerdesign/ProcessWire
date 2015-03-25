@@ -188,10 +188,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			}
 
 			// replace '-' with '.' since '.' is not allowed in URL variable names
-			if(strpos($name, '-')) {
-				list($name, $subname) = explode('-', $name); 
-				$name = "$name.$subname";
-			}
+			if(strpos($name, '-')) $name = str_replace('-', '.', $name); 
 
 			if(strpos($name, ',')) $name = $this->sanitizer->names($name, ',', array('_', '.')); 
 				else $name = $this->sanitizer->pageName($name); // note: switch to pageName over fieldName to support "." 
@@ -511,7 +508,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			if(!$this->isSelectableFieldName($subname, $level)) return false;	
 		}
 		
-		if($name == 'path' && !$this->wire('modules')->isInstalled('PagePaths') || $this->wire('languages')) {
+		if($name == 'path' && (!$this->wire('modules')->isInstalled('PagePaths') || $this->wire('languages'))) {
 			$name = 'name';
 		}
 
@@ -520,7 +517,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			else if(!$level && in_array($name, array('include', 'status', 'check_access'))) $is = true; 
 			else if(in_array($name, $this->fieldOptions)) $is = true; 
 
-		if($name == 'pass' || $name == 'config') $is = false;
+		if($name == 'pass' || $name == 'config' || $name == 'it' || $name == 'display') $is = false;
 		
 		return $is; 
 	}

@@ -239,7 +239,7 @@ class Field extends WireData implements Saveable, Exportable {
 		
 		if($this->type) {
 			$typeData = $this->type->exportConfigData($this, $data);
-			$data = array_merge($typeData, $data); 
+			$data = array_merge($data, $typeData); 
 		}
 		
 		// remove named flags from data since the 'flags' property already covers them

@@ -48,6 +48,12 @@ function initCKEditorTab(event, ui) {
 $(document).ready(function() {
 
 	/**
+	 * Override ckeditor timestamp for cache busting
+	 * 
+	 */
+	CKEDITOR.timestamp = config.InputfieldCKEditor.timestamp;
+
+	/**
 	 * Regular editors
 	 * 
 	 */

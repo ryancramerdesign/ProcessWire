@@ -50,6 +50,8 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	 */
 	protected $pagesAdded; 
 	
+	protected $classesAdded = array();
+	
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Page',
@@ -70,6 +72,13 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		}
 		$this->attr('value', new PageArray()); 
 		parent::init();
+	}
+	
+	public function addClass($class, $property = 'class') {
+		if($property == 'class') {
+			$this->classesAdded[] = $class; 
+		}
+		return parent::addClass($class, $property); 
 	}
 	
 	public function setAttribute($key, $value) {
@@ -334,9 +343,14 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 			return $this->name;
 		}
 
+		$classes = InputfieldWrapper::getClasses();
+		$class = $inputfield->className();
+		if(isset($classes[$class]['item_content'])) $class .= " " . $classes[$class]['item_content'];
+		foreach($this->classesAdded as $addClass) $inputfield->addClass($addClass); 
+		
 		$inputfield->renderReady($this, false);
 		
-		$out = 	"\n<div class='" . $inputfield->className() . "'>";
+		$out = 	"\n<div class='$class'>";
 		$out .= $inputfield->render();
 		$out .= $this->renderAddable();
 		

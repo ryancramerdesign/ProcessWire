@@ -472,3 +472,9 @@ button.ui-button.ui-state-default,
 	}
 }
 
+a.tooltip:hover {
+	border: none;
+	background: inherit; 
+	cursor: help; 
+}
+

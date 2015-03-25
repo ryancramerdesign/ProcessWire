@@ -158,10 +158,26 @@ abstract class Process extends WireData implements Module {
 		$info = $this->wire('modules')->getModuleInfo($this, array('noCache' => true)); 
 		// if a 'page' property is provided in the moduleInfo, we will create a page and assign this process automatically
 		if(!empty($info['page'])) { // bool, array, or string
-			$a = array('name' => '', 'parent' => null, 'title' => '', 'template' => 'admin'); 
-			if(is_array($info['page'])) $a = array_merge($a, $info['page']); 
-				else if(is_string($info['page'])) $a['name'] = $info['page'];
-			$this->installPage($a['name'], $a['parent'], $a['title'], $a['template']); 
+			$defaults = array(
+				'name' => '', 
+				'parent' => null, 
+				'title' => '', 
+				'template' => 'admin'
+			);
+			$a = $defaults;
+			if(is_array($info['page'])) {
+				$a = array_merge($a, $info['page']);
+			} else if(is_string($info['page'])) {
+				$a['name'] = $info['page'];
+			}
+			// find any other properties that were specified, which will will send as $extras properties
+			$extras = array();
+			foreach($a as $key => $value) {
+				if(in_array($key, array_keys($defaults))) continue; 
+				$extras[$key] = $value; 
+			}
+			// install the page
+			$this->installPage($a['name'], $a['parent'], $a['title'], $a['template'], $extras); 
 		}
 	}
 
@@ -192,11 +208,12 @@ abstract class Process extends WireData implements Module {
 	 * 	- Or omit and admin root is assumed
 	 * @param string $title Omit or blank to pull title from module information
 	 * @param string|Template Template to use for page (omit to assume 'admin')
+	 * @param array $extras Any extra properties to assign (like status)
 	 * @return Page Returns the page that was created
 	 * @throws WireException if page can't be created
 	 *
 	 */
-	protected function ___installPage($name = '', $parent = null, $title = '', $template = 'admin') {
+	protected function ___installPage($name = '', $parent = null, $title = '', $template = 'admin', $extras = array()) {
 		$info = $this->wire('modules')->getModuleInfo($this);
 		$name = $this->wire('sanitizer')->pageName($name);
 		if(!strlen($name)) $name = strtolower(preg_replace('/([A-Z])/', '-$1', str_replace('Process', '', $this->className()))); 
@@ -214,6 +231,7 @@ abstract class Process extends WireData implements Module {
 		$page->parent = $parent; 
 		$page->process = $this;
 		$page->title = $title ? $title : $info['title'];
+		foreach($extras as $key => $value) $page->set($key, $value); 
 		$this->wire('pages')->save($page, array('adjustName' => true)); 
 		if(!$page->id) throw new WireException("Unable to create page: $parent->path$name"); 
 		$this->message(sprintf($this->_('Created Page: %s'), $page->path)); 

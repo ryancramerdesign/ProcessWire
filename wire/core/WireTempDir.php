@@ -108,7 +108,10 @@ class WireTempDir extends Wire {
 
 		// create temp dir
 		if(!wireMkdir($tempDir, true)) {
-			throw new WireException($this->_('Unable to create temp dir') . " - $tempDir");
+			clearstatcache();
+			if(!is_dir($tempDir) && !wireMkdir($tempDir, true)) {
+				throw new WireException($this->_('Unable to create temp dir') . " - $tempDir");
+			}
 		}
 
 		// cache result

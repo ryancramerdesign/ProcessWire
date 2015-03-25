@@ -223,10 +223,12 @@ class Pageimage extends Pagefile {
 	 * 	- quality=90 (quality setting 1-100)
 	 * 	- upscaling=true (allow image to be upscaled?)
 	 * 	- cropping=center (cropping mode, see ImageSizer class for options)
-	 * 	- suffix=word (your suffix word in fieldName format, or use array of words for multiple)
+	 * 	- suffix='word' (your suffix word in fieldName format, or use array of words for multiple)
 	 * 	- forceNew=true (force re-creation of the image?)
 	 * 	- sharpening=soft (specify: none, soft, medium, strong)
 	 * 	- autoRotation=true (automatically correct rotation of images that provide the info)
+	 * 	- rotate=0 (Specify degrees, one of: -270, -180, -90, 90, 180, 270)
+	 * 	- flip='' (To flip, specify either 'vertical' or 'horizontal')
 	 * 	- hidpi=false (specify true to enable hidpi/retuna/pixel doubling)
 	 * 	- cleanFilename=false (clean filename of historical resize information for shorter filenames)
 	 *	Or you may specify a string|bool with with 'cropping' value if you don't need to combine with other options.
@@ -295,6 +297,8 @@ class Pageimage extends Pagefile {
 			'forceNew' => false,  // force it to create new image even if already exists
 			'hidpi' => false, 
 			'cleanFilename' => false, // clean filename of historial resize information
+			'rotate' => 0,
+			'flip' => '', 
 			);
 
 		$this->error = '';
@@ -312,10 +316,20 @@ class Pageimage extends Pagefile {
 		} else {
 			$crop = ImageSizer::croppingValueStr($options['cropping']);
 		}
+		
 	
+		if(!is_array($options['suffix'])) {
+			// convert to array
+			$options['suffix'] = empty($options['suffix']) ? array() : explode(' ', $options['suffix']); 
+		}
+
+		if($options['rotate'] && !in_array(abs((int) $options['rotate']), array(90, 180, 270))) $options['rotate'] = 0;
+		if($options['rotate']) $options['suffix'][] = ($options['rotate'] > 0 ? "rot" : "tor") . abs($options['rotate']); 
+		if($options['flip']) $options['suffix'][] = strtolower(substr($options['flip'], 0, 1)) == 'v' ? 'flipv' : 'fliph';
+		
 		$suffixStr = '';
 		if(!empty($options['suffix'])) {
-			$suffix = is_array($options['suffix']) ? $options['suffix'] : array($options['suffix']);
+			$suffix = $options['suffix'];
 			sort($suffix); 
 			foreach($suffix as $key => $s) {
 				$s = strtolower($this->wire('sanitizer')->fieldName($s)); 
@@ -338,10 +352,11 @@ class Pageimage extends Pagefile {
 		}
 		$basename .= '.' . $width . 'x' . $height . $crop . $suffixStr . "." . $this->ext();	// i.e. myfile.100x100.jpg or myfile.100x100nw-suffix1-suffix2.jpg
 		$filenameFinal = $this->pagefiles->path() . $basename;
-		$filenameUnvalidated = $this->pagefiles->page->filesManager()->getTempPath() . $basename;
+		$filenameUnvalidated = '';
 		$exists = file_exists($filenameFinal);
 
 		if(!$exists || $options['forceNew']) {
+			$filenameUnvalidated = $this->pagefiles->page->filesManager()->getTempPath() . $basename;
 			if($exists && $options['forceNew']) @unlink($filenameFinal);
 			if(file_exists($filenameUnvalidated)) @unlink($filenameUnvalidated);
 			if(@copy($this->filename(), $filenameUnvalidated)) {
@@ -368,7 +383,7 @@ class Pageimage extends Pagefile {
 		if($this->error) { 
 			// error condition: unlink copied file 
 			if(is_file($filenameFinal)) @unlink($filenameFinal);
-			if(is_file($filenameUnvalidated)) @unlink($filenameUnvalidated);
+			if($filenameUnvalidated && is_file($filenameUnvalidated)) @unlink($filenameUnvalidated);
 
 			// write an invalid image so it's clear something failed
 			// todo: maybe return a 1-pixel blank image instead?

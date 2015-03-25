@@ -34,34 +34,49 @@
 <html lang="<?php echo _x('en', 'HTML language code'); ?>">
 <head>
 	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<title><?php echo $title; ?></title>
 	<meta name="description" content="<?php echo $page->summary; ?>" />
-	<link href='//fonts.googleapis.com/css?family=Lusitana:400,700|Quattrocento:400,700' rel='stylesheet' type='text/css' />
+	<link href="//fonts.googleapis.com/css?family=Lusitana:400,700|Quattrocento:400,700" rel="stylesheet" type="text/css" />
 	<link rel="stylesheet" type="text/css" href="<?php echo $config->urls->templates?>styles/main.css" />
+	<?php
+	
+	// handle output of 'hreflang' link tags for multi-language
+	// this is good to do for SEO in helping search engines understand
+	// what languages your site is presented in	
+	foreach($languages as $language) {
+		// if this page is not viewable in the language, skip it
+		if(!$page->viewable($language)) continue;
+		// get the http URL for this page in the given language
+		$url = $page->localHttpUrl($language); 
+		// hreflang code for language uses language name from homepage
+		$hreflang = $homepage->getLanguageValue($language, 'name'); 
+		// output the <link> tag: note that this assumes your language names are the same as required by hreflang. 
+		echo "\n\t<link rel='alternate' hreflang='$hreflang' href='$url' />";
+	}
+	
+	?>
+	
 </head>
-<body class="<?php if($sidebar) echo "has-sidebar "; ?>">
+<body class="<?php if($sidebar) echo "has-sidebar"; ?>">
 
 	<!-- language switcher / navigation -->
-	<ul class='languages'>
-		<?php
-		$currentLanguage = $user->language; // remember language
+	<ul class='languages'><?php
 		foreach($languages as $language) {
 			if(!$page->viewable($language)) continue; // is page viewable in this language?
-			$user->language = $language; 
-			if($language->id == $currentLanguage->id) {
+			if($language->id == $user->language->id) {
 				echo "<li class='current'>";
 			} else {
 				echo "<li>";
 			}
-			echo "<a href='$page->url'>$language->title</a></li>";
+			$url = $page->localUrl($language); 
+			$hreflang = $homepage->getLanguageValue($language, 'name'); 
+			echo "<a hreflang='$hreflang' href='$url'>$language->title</a></li>";
 		}
-		$user->language = $currentLanguage; // restore language
-		?>
-	</ul>
+	?></ul>
 
 	<!-- top navigation -->
-	<ul class='topnav'>
-		<?php 
+	<ul class='topnav'><?php 
 		// top navigation consists of homepage and its visible children
 		foreach($homepage->and($homepage->children) as $item) {
 			if($item->id == $page->rootParent->id) {
@@ -73,22 +88,20 @@
 		}
 
 		// output an "Edit" link if this page happens to be editable by the current user
-		if($page->editable()) echo "<li class='edit'><a href='$page->editURL'>" . __('Edit') . "</a></li>";
-		?>
-	</ul>
+		if($page->editable()) echo "<li class='edit'><a href='$page->editUrl'>" . __('Edit') . "</a></li>";
+	?></ul>
 
 	<!-- breadcrumbs -->
-	<div class='breadcrumbs'>
-		<?php 
+	<div class='breadcrumbs'><?php 
 		// breadcrumbs are the current page's parents
 		foreach($page->parents() as $item) {
 			echo "<span><a href='$item->url'>$item->title</a></span> "; 
 		}
 		// optionally output the current page as the last item
 		echo "<span>$page->title</span> "; 
-		?>
-	</div>
+	?></div>
 
+	<!-- search engine -->
 	<form class='search' action='<?php echo $pages->get('template=search')->url; ?>' method='get'>
 		<input type='text' name='q' placeholder='<?php echo _x('Search', 'placeholder'); ?>' />
 		<button type='submit' name='submit'><?php echo _x('Search', 'button'); ?></button>
@@ -99,15 +112,21 @@
 
 		<!-- main content -->
 		<div id='content'>
+			
 			<h1><?php echo $title; ?></h1>
 			<?php echo $content; ?>
+			
 		</div>
 
 		<!-- sidebar content -->
 		<?php if($sidebar): ?>
+			
 		<div id='sidebar'>
+			
 			<?php echo $sidebar; ?>
+			
 		</div>
+			
 		<?php endif; ?>
 
 	</div>
@@ -125,6 +144,7 @@
 			echo "<a href='{$config->urls->admin}'>" . __('Admin Login') . "</a>";
 		}
 		?>
+			
 		</p>
 	</footer>
 

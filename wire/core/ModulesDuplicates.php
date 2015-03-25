@@ -43,7 +43,17 @@ class ModulesDuplicates extends Wire {
 	 *
 	 */
 	protected $numNewDuplicates = 0;
-	
+
+	/**
+	 * Return quantity of new duplicates found while loading modules
+	 * 
+	 * @return int
+	 * 
+	 */
+	public function numNewDuplicates() {
+		return $this->numNewDuplicates;
+	}
+
 	/**
 	 * Get the current duplicate in use (string) or null if not specified
 	 * 
@@ -54,7 +64,7 @@ class ModulesDuplicates extends Wire {
 	public function getCurrent($className) {
 		return isset($this->duplicatesUse[$className]) ? $this->duplicatesUse[$className] : null;
 	}
-
+	
 	/**
 	 * Does the given module class have a duplicate?
 	 * 

@@ -176,5 +176,45 @@ class Languages extends PagesType {
 		$this->getIterator(); 
 	}
 
+	/**
+	 * PageFinder calls this when it catches an unknown column exception
+	 * 
+	 * Provides QA to make sure any language-related columns are property setup in case 
+	 * something failed during the initial setup process. 
+	 * 
+	 * This is only here to repair existing installs that were missing a field for one reason or another. 
+	 * This method (and the call to it in PageFinder) can eventually be removed. 
+	 * 
+	 * @param $column
+	 * 
+	 */
+	public function ___unknownColumnError($column) {
+		
+		if(!preg_match('/^([^.]+)\.([^.\d]+)(\d+)$/', $column, $matches)) {
+			return;
+		}
+		
+		$table = $matches[1];
+		$col = $matches[2]; 
+		$languageID = (int) $matches[3]; 
+		
+		foreach($this as $language) {
+			if($language->id == $languageID) {
+				echo "language $language->name is missing column $column";
+				if($table == 'pages' && $this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
+					$module = $this->wire('modules')->get('LanguageSupportPageNames'); 
+					$module->languageAdded($language); 
+				} else if(strpos($table, 'field_') === 0) {
+					$fieldName = substr($table, strpos($table, '_')+1); 
+					$field = $this->wire('fields')->get($fieldName); 
+					if($field && $this->wire('modules')->isInstalled('LanguageSupportFields')) {
+						$module = $this->wire('modules')->get('LanguageSupportFields'); 
+						$module->fieldLanguageAdded($field, $language); 
+					}
+				}
+			}
+		}
+	}
+
 }
 

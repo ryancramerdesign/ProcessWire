@@ -43,6 +43,9 @@ var InputfieldSelector = {
 		$(document).on('change', '.InputfieldSelector :input:not(.select-field):not(.input-value-autocomplete)', function() {
 			InputfieldSelector.changeAny($(this)); 
 		}); 
+		$(document).on('opened', '.InputfieldSelector', function() {
+			InputfieldSelector.normalizeHeightRows($(this)); 
+		}); 
 
 		var timeout = null;
 		$(document).on('keyup', '.InputfieldSelector input.input-value', function() {

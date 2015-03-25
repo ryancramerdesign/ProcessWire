@@ -713,6 +713,7 @@ class SelectableOptionManager extends Wire {
 			$query = $database->prepare("SHOW COLUMNS FROM $table LIKE '$valueCol'");
 			$query->execute();
 			if($query->rowCount() > 0) continue;
+			$this->message("FieldtypeOptions: Add language $language->name (id=$language)", Notice::debug); 
 
 			try {
 				$database->exec("ALTER TABLE $table ADD $titleCol TEXT");
@@ -740,7 +741,7 @@ class SelectableOptionManager extends Wire {
 			if($language && $language->id) continue; 
 			$titleCol = "title$id";
 			$valueCol = "value$id";
-			$this->message("Delete langauge $id"); 
+			$this->message("FieldtypeOptions: Delete language $id", Notice::debug); 
 			try {
 				$database->exec("ALTER TABLE $table DROP INDEX $titleCol");
 				$database->exec("ALTER TABLE $table DROP INDEX $valueCol");

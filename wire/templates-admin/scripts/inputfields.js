@@ -7,10 +7,11 @@
  *
  */
 
+var InputfieldDebugMode = true; 
 
 function consoleLog(note) {
 	// uncomment the line below to enable debugging console
-	// console.log(note);
+	if(InputfieldDebugMode) console.log(note);
 }
 
 
@@ -35,21 +36,25 @@ function InputfieldDependencies() {
 
 		// Array of conditions required to show a field
 		var conditions = [];
+		
+		function trimValue(value) {
+			value = jQuery.trim(value);
+			var first = value.substring(0,1);
+			var last = value.substring(value.length-1, value.length);
+			if((first == '"' || first == "'") && first == last) value = value.substring(1, value.length-1);
+			return value;
+		}
 
 		/**
-		 * prettify value parsed from attribute
-		 * 
+		 * Remove quotes from value (if present)
+		 *
 		 * @param value
-		 * @return string|int|float
-		 * 
+		 * @return string
+		 *
 		 */
-		function prettifyValue(value) {
-				// determine if we need to trim off quotes
-				var first = value.substring(0,1);
-				var last = value.substring(value.length-1, value.length);
-				if((first == '"' || first == "'") && first == last) value = value.substring(1, value.length-1);
-
-				return parseValue(value);
+		function trimParseValue(value) {
+			// determine if we need to trim off quotes
+			return parseValue(trimValue(value));
 		}
 
 		/**
@@ -103,14 +108,16 @@ function InputfieldDependencies() {
 		}
 
 		/**
-		 * Convert string value to integer or float when appropriate
-		 * 
-		 * @param n Number of the iteration
-		 * @param values values to match for
-		 * @return int
-		 * 
+		 * Returns whether or not value matched
+		 *
+		 * @param field Name of field
+		 * @param operator
+		 * @param value value to match for
+		 * @param conditionValue
+		 * @return int 0=value didn't match, 1=value matched
+		 *
 		 */
-		function matchValue(n, operator, value, conditionValue) {
+		function matchValue(field, operator, value, conditionValue) {
 			var matched = 0;
 
 			switch(operator) {
@@ -124,8 +131,8 @@ function InputfieldDependencies() {
 				case '%=': if(value.indexOf(conditionValue) > -1) matched++; break;
 			}
 
-			consoleLog('Value #' + n + ' - Current value: ' + value);
-			consoleLog('Value #' + n + ' - Matched? ' + (matched > 0 ? 'YES' : 'NO'));
+			consoleLog('Field ' + field + ' - Current value: ' + value);
+			consoleLog('Field ' + field + ' - Matched? ' + (matched > 0 ? 'YES' : 'NO'));
 
 			return matched;
 		}
@@ -137,13 +144,13 @@ function InputfieldDependencies() {
 		function inputfieldChange() {
 			InputfieldDependenciesProcessing = true; 
 
-			consoleLog('-------------------------------------------------------------------');
-			consoleLog('Field "' + $fieldToShow.attr('id') + '" detected a change to a dependency field! Beginning dependency checks...');
+			if(InputfieldDebugMode) {
+				consoleLog('-------------------------------------------------------------------');
+				consoleLog('Field "' + $fieldToShow.attr('id') + '" detected a change to a dependency field! Beginning dependency checks...');
+			}
 
 			// number of changes that were actually made to field visibility
 			var numVisibilityChanges = 0;
-
-			var totalMatched = 0;
 			var show = true; 
 			var requiredMatches = 0; 
 			var notRequiredMatches = 0;
@@ -153,90 +160,106 @@ function InputfieldDependencies() {
 				// current condition we are checking in this iteration 
 				var condition = conditions[c];
 
-				consoleLog('----');
-				consoleLog('Start Dependency ' + c);
-				consoleLog('Condition type: ' + condition.type);
-				consoleLog('Field: ' + condition.field);
-				if(condition.subfield.length > 0) consoleLog('Subfield: ' + condition.subfield); 
-				consoleLog('Operator: ' + condition.operator);
-				consoleLog('Required value: ' + condition.value);
+				if(InputfieldDebugMode) {
+					consoleLog('----');
+					consoleLog('Start Dependency ' + c);
+					consoleLog('Condition type: ' + condition.type);
+					consoleLog('Field: ' + condition.field);
+					if (condition.subfield.length > 0) consoleLog('Subfield: ' + condition.subfield);
+					consoleLog('Operator: ' + condition.operator);
+					consoleLog('Required value: ' + condition.value);
+				}
 
 				// matched contains positive value when condition matches
 				var matched = 0;
+		
+				// iterate through all OR fields (this will most often just be 1 field)
+				for(var fn = 0; fn < condition.fields.length; fn++) {
 
-				// Dependency field that we are checking for the condition
-				var $field = $("#Inputfield_" + condition.field);
-
-				var value = null;
-
-				if($field.size() == 0) {
-					// if field isn't present by #id it may be present by #id+value as a checkbox/radio field is
-					consoleLog('Detected checkbox or radio: ' + condition.field + condition.operator + condition.value);
-					if(condition.subfield == 'count' || condition.subfield == 'count-checkbox') {
-						// count number of matching checked inputs
-						$field = $("#wrap_Inputfield_" + condition.field + " :input"); 
-						value = $("#wrap_Inputfield_" + condition.field + " :checked").size();
-						consoleLog('Using count checkbox condition'); 
-						condition.subfield = 'count-checkbox';
-					} else {
-						var conditionValue = new String(condition.value); 
-						conditionValue = conditionValue.replace(/\s/g, '_'); 
-						$field = $("#Inputfield_" + condition.field + "_" + conditionValue);
+					var value = null;
+					var $field = $("#Inputfield_" + condition.fields[fn]);
+					
+					if($field.length == 0) {
+						// in case they manually specified id property
+						$field = $("#" + condition.fields[fn]);
 					}
-				}
 
-				// value of the dependency field we are checking
-				if(value === null) value = $field.val();
-
-				// value will be placed in values so we can handle multiple value checks
-				var values = [];
-
-				// prefer blank to null for our chcks
-				if(value == null) value = '';
-
-				// special case for checkbox and radios: 
-				// if the field is not checked then we assume a blank value
-				var attrType = $field.attr('type');
-				if((attrType == 'checkbox' || attrType == 'radio') && !$field.is(":checked")) value = '';
-
-				// special case for 'count' subfield condition, 
-				// where we take the value's length rather than the value
-				if(condition.subfield == 'count') value = value.length;
-
-				// if value is an object, make it in array
-				// in either case, convert value to an array called values
-				if(typeof value == 'object') {
-					// object, convert to array
-					values = jQuery.makeArray(value);
-				} else if(typeof value == 'array') {
-					// array, already
-					values = value;
-				} else {
-					// string: single value array
-					values[0] = value;
-				}
-			
-				// also allow for matching a "0" as an unchecked value
-				if((attrType == 'checkbox' || attrType == 'radio') && !$field.is(":checked")) values[1] = '0';
-
-				// force value to be array
-				if(!jQuery.isArray(condition.value)) conditionValues = [condition.value];
-				else conditionValues = condition.value;
-
-				// 
-				if(condition.operator == '!=') numMatchesRequired = (values.length * conditionValues.length);
-				else numMatchesRequired = 1; 
-				consoleLog([values, conditionValues, numMatchesRequired]);
+					if ($field.length == 0) {
+						// if field isn't present by #id it may be present by #id+value as a checkbox/radio field is
+						consoleLog('Detected possible checkbox or radio: ' + condition.field + condition.operator + condition.value);
+						if (condition.subfield == 'count' || condition.subfield == 'count-checkbox') {
+							// count number of matching checked inputs
+							$field = $("#wrap_Inputfield_" + condition.fields[fn] + " :input");
+							value = $("#wrap_Inputfield_" + condition.fields[fn] + " :checked").length;
+							consoleLog('Using count checkbox condition');
+							condition.subfield = 'count-checkbox';
+						} else {
+							// @todo OR support here?
+							var conditionValue = new String(condition.value);
+							conditionValue = trimValue(conditionValue.replace(/\s/g, '_'));
+							$field = $("#Inputfield_" + condition.fields[fn] + "_" + conditionValue);
+						}
+					}
 				
-				// cycle through the values (most of the time, just 1 value).
-				// increment variable 'show' each time a condition matches
-				for(var n = 0; n < values.length; n++) {
-					for (var i = conditionValues.length - 1; i >= 0; i--) {
-						value = parseValue(values[n], conditionValues[i]);
-						matched += matchValue(n, condition.operator, value, conditionValues[i]);
+					// if we haven't matched a field by now, skip over it
+					if($field.length == 0) {
+						consoleLog("Unable to locate field: " + condition.fields[fn]); 
+						continue;
 					}
-				}
 
+					// value of the dependency field we are checking
+					if (value === null) value = $field.val();
+
+					// value will be placed in values so we can handle multiple value checks
+					var values = [];
+
+					// prefer blank to null for our checks
+					if (value == null) value = '';
+
+					// special case for checkbox and radios: 
+					// if the field is not checked then we assume a blank value
+					var attrType = $field.attr('type');
+					if ((attrType == 'checkbox' || attrType == 'radio') && !$field.is(":checked")) value = '';
+
+					// special case for 'count' subfield condition, 
+					// where we take the value's length rather than the value
+					if (condition.subfield == 'count') value = value.length;
+
+					// if value is an object, make it in array
+					// in either case, convert value to an array called values
+					if (typeof value == 'object') {
+						// object, convert to array
+						values = jQuery.makeArray(value);
+					} else if (typeof value == 'array') {
+						// array, already
+						values = value;
+					} else {
+						// string: single value array
+						values[0] = value;
+					}
+
+					// also allow for matching a "0" as an unchecked value
+					if ((attrType == 'checkbox' || attrType == 'radio') && !$field.is(":checked")) values[1] = '0';
+
+					// determine how many matches will be required
+					var numMatchesRequired = 1;
+					if (condition.operator == '!=') numMatchesRequired = (values.length * condition.values.length);
+					// consoleLog([values, condition.values, numMatchesRequired]);
+
+					// cycle through the values (most of the time, just 1 value).
+					// increment variable 'show' each time a condition matches
+					for (var n = 0; n < values.length; n++) {
+						for (var i = 0; i < condition.values.length; i++) {
+							var v = parseValue(values[n], condition.values[i]);
+							matched += matchValue(fields[fn], condition.operator, v, condition.values[i]);
+						}
+					}
+				
+					// if requirements met exit the loop
+					if(matched >= numMatchesRequired) break;
+					
+				} // foreach fields
+			
 				consoleLog('----');
 
 				// determine whether to show or hide the field
@@ -255,8 +278,7 @@ function InputfieldDependencies() {
 						notRequiredMatches++;
 					}
 				}
-
-
+				
 			} // foreach(conditions)
 
 			// consoleLog('Summary (required/matched): ' + conditions.length + ' / ' + show);
@@ -338,12 +360,22 @@ function InputfieldDependencies() {
 				var part = parts[n];
 
 				// separate out the field, operator and value
-				var match = part.match(/^[,\s]*([_.a-zA-Z0-9]+)(=|!=|<=|>=|<|>|%=)([^,]+),?$/);
+				var match = part.match(/^[,\s]*([_.|a-zA-Z0-9]+)(=|!=|<=|>=|<|>|%=)([^,]+),?$/);
 				if(!match) continue;
 				var field = match[1];
 				var operator = match[2];
 				var value = match[3];
 				var subfield = '';
+				var fields = []; // if multiple
+				var values = [];
+				
+				// detect OR selector in field
+				if(field.indexOf("|") > -1) {
+					consoleLog("OR field dependency: " + field);
+					fields = field.split("|");
+				} else {
+					fields = [field];
+				}
 
 				// extract subfield, if there is one
 				var dot = field.indexOf('.');
@@ -351,50 +383,59 @@ function InputfieldDependencies() {
 					subfield = field.substring(dot+1);
 					field = field.substring(0, dot);
 				}
-
-				consoleLog("Field: " + field);
-				if(subfield.length) consoleLog("Subfield: " + subfield);
-				consoleLog("Operator: " + operator);
-				consoleLog("value: " + value);
-
-				// detect OR selector |
-				if(value.indexOf("|") > -1){
-					var value = value.split("|");
-					consoleLog("OR dependency: " + value);
+				
+				if(subfield.length && fields.length > 1) {
+					consoleLog('Error: subfield with OR condition not supported'); 
 				}
 
-				// prettify value(s): remove quotes, parse numbers
-				if(jQuery.isArray(value)){
-					for (var i = value.length - 1; i >= 0; i--) {
-						value[i] = prettifyValue(value[i]);
+				if(InputfieldDebugMode) {
+					consoleLog("Field: " + field);
+					if (subfield.length) consoleLog("Subfield: " + subfield);
+					consoleLog("Operator: " + operator);
+					consoleLog("value: " + value);
+				}
+				
+				// detect OR selector | in value
+				if(value.indexOf("|") > -1){
+					consoleLog("OR value dependency: " + value);
+					values = value.split("|");
+					for(var i = 0; i < values.length; i++) {
+						values[i] = trimParseValue(values[i]);
 					}
-				}else{
-					value = prettifyValue(value);
+				} else {
+					values = [ trimParseValue([value]) ];
 				}
 
 				// build the condition
 				var condition = {
 					'type': conditionType,
 					'field': field,
+					'fields': fields, // if multiple
 					'subfield': subfield,
 					'operator': operator,
-					'value': value
+					'value': value,
+					'values': values  // if multiple
 				};
 
 				// append to conditions array
 				conditions[conditions.length] = condition;
 
-				// locate the dependency inputfield
-				var $inputfield = $("#Inputfield_" + field);
+				// attach change event handler to all applicable fields
+				for(var fn = 0; fn < fields.length; fn++) {
+					
+					// locate the dependency inputfield
+					var $inputfield = $("#Inputfield_" + fields[fn]);
+					if ($inputfield.length == 0) $inputfield = $("#" + fields[fn]);
 
-				// if the dependency inputfield isn't found, locate its wrapper..
-				if($inputfield.size() == 0) {
-					// use any inputs within the wrapper
-					$inputfield = $("#wrap_Inputfield_" + field).find(":input");
+					// if the dependency inputfield isn't found, locate its wrapper..
+					if ($inputfield.length == 0) {
+						// use any inputs within the wrapper
+						$inputfield = $("#wrap_Inputfield_" + fields[fn]).find(":input");
+					}
+
+					// attach change event to dependency inputfield
+					if($inputfield.length) $inputfield.change(inputfieldChange);
 				}
-
-				// attach change event to dependency inputfield
-				$inputfield.change(inputfieldChange);
 
 			}
 		}
@@ -413,6 +454,7 @@ function InputfieldDependencies() {
 function InputfieldColumnWidths() {
 
 	var colspacing = null; 
+	var useHeights = null; 
 
 	/**
 	 * Return the current with of $item based on its "style" attribute
@@ -421,6 +463,7 @@ function InputfieldColumnWidths() {
 	function getWidth($item) {
 		if($item.is(".InputfieldStateHidden")) return 0;
 		var style = $item.attr('style');
+		if(typeof style == "undefined" || !style) return $item.width();
 		var pct = parseInt(style.match(/width:\s*(\d+)/i)[1]);
 		// store the original width in another attribute, for later retrieval
 		if(!$item.attr('data-original-width')) $item.attr('data-original-width', pct);
@@ -455,7 +498,7 @@ function InputfieldColumnWidths() {
 			$item.animate( { opacity: 1.0 }, 150, function() { });
 		}
 
-		consoleLog('InputfieldColumnWidths.setWidth(' + $item.attr('id') + ': ' + pct + '%');
+		consoleLog('setWidth(' + $item.attr('id') + ': ' + pct + '%');
 	}
 
 	function getHeight($item) {
@@ -481,20 +524,8 @@ function InputfieldColumnWidths() {
 			$container.show();
 		}
 	}
-
-	// for columns that don't have specific widths defined, add the InputfieldColumnWidthFirst
-	// class to them which more easily enables us to exclude them from our operations below
-	$(".Inputfield:not(.InputfieldColumnWidth)").addClass("InputfieldColumnWidthFirst");
-
-	// cycle through all first columns in a multi-column row
-	$(".InputfieldColumnWidthFirst.InputfieldColumnWidth:visible").each(function() {
-
-		if(colspacing === null) {
-			colspacing = $(this).parents('form').attr('data-colspacing'); 
-			if(typeof colspacing == 'undefined') colspacing = 1; 
-		}
-
-		var $firstItem = $(this);
+	
+	function updateInputfieldRow($firstItem) {
 
 		// find all columns in this row that aren't hidden
 		// note that $items excludes $firstItem
@@ -505,7 +536,7 @@ function InputfieldColumnWidths() {
 
 		var $item = $firstItem.is(".InputfieldStateHidden") ? null : $firstItem;
 		var itemWidth = $item == null ? 0 : rowWidth;
-		var numItems = $items.size();
+		var numItems = $items.length;
 
 		if($firstItem.is(".InputfieldStateHidden")) {
 			numItems--;
@@ -516,15 +547,17 @@ function InputfieldColumnWidths() {
 			var $leadItem = $firstItem; 
 		}
 
-		// remove any spacers already present for adjusting height
-		$leadItem.find(".maxColHeightSpacer").remove();
-		$items.find(".maxColHeightSpacer").remove();
+		if(useHeights) {
+			// remove any spacers already present for adjusting height
+			$leadItem.find(".maxColHeightSpacer").remove();
+			$items.find(".maxColHeightSpacer").remove();
+		}
 
 		// subtract the quantity of items from the maxRowWidth since each item has a 1% margin
 		var maxRowWidth = 100 - (numItems * colspacing);
 
 		// keep track of the max column height
-		var maxColHeight = getHeight($leadItem);
+		var maxColHeight = useHeights ? getHeight($leadItem) : 0;
 
 		// if our temporary class is in any of the items, remove it
 		$items.removeClass("InputfieldColumnWidthFirstTmp");
@@ -535,17 +568,25 @@ function InputfieldColumnWidths() {
 			$item = $(this);
 			itemWidth = getWidth($item);
 			rowWidth += itemWidth;
-			var h = getHeight($item);
-			if(h > maxColHeight) maxColHeight = h; 
+			if(useHeights) {
+				var h = getHeight($item);
+				if (h > maxColHeight) maxColHeight = h;
+			}
 		});
 
-		// ensure that all columns in the same row share the same height
-		var lab = $leadItem.find("label").text();
-		consoleLog('maxColHeight: ' + lab + ' = ' + maxColHeight); 
+		if(useHeights) {
+			// ensure that all columns in the same row share the same height
+			if(InputfieldDebugMode) {
+				var lab = $leadItem.find("label").text();
+				consoleLog('maxColHeight: ' + lab + ' = ' + maxColHeight);
+			}
 
-		if(maxColHeight > 0) {
-			setHeight($leadItem, maxColHeight); 
-			$items.each(function() { setHeight($(this), maxColHeight); }); 
+			if(maxColHeight > 0) {
+				setHeight($leadItem, maxColHeight);
+				$items.each(function() {
+					setHeight($(this), maxColHeight);
+				});
+			}
 		}
 
 		// if the current rowWidth is less than the full width, expand the last item as needed to fill the row
@@ -588,7 +629,37 @@ function InputfieldColumnWidths() {
 			$leadItem.addClass("InputfieldColumnWidthFirstTmp");
 		}
 
+	} // updateInputfield
+
+	$("form.InputfieldForm").each(function() {
+		
+		var $form = $(this);
+		if($form.hasClass('InputfieldFormNoWidths')) return; // column widths not necessary
+		
+		colspacing = $form.attr('data-colspacing');
+		if(typeof colspacing == 'undefined') colspacing = 1;
+		
+		// if no borders, we don't worry about keeping heights aligned since they won't be seen
+		useHeights = $form.hasClass('InputfieldFormNoHeights') ? false : true;
+		
+		// for columns that don't have specific widths defined, add the InputfieldColumnWidthFirst
+		// class to them which more easily enables us to exclude them from our operations below
+		$(".Inputfield:not(.InputfieldColumnWidth)", $form).addClass("InputfieldColumnWidthFirst");
+
+		// cycle through all first columns in a multi-column row
+		$(".InputfieldColumnWidthFirst.InputfieldColumnWidth:visible", $form).each(function() {
+			updateInputfieldRow($(this));
+		});
 	});
+	
+	$(document).on('change', '.InputfieldColumnWidth :input', function() {
+		var $item = $(this).closest('.InputfieldColumnWidth'); 
+		var $firstItem = $item.is(".InputfieldColumnWidthFirst") ? $item : $item.prev(".InputfieldColumnWidthFirst"); 
+		updateInputfieldRow($firstItem);
+	}); 
+	
+
+
 }
 
 /**
@@ -604,11 +675,15 @@ function InputfieldStates() {
 		var $li = $t.closest('.Inputfield');
 		var isIcon = $t.hasClass('toggle-icon');
 		var $icon = isIcon ? $t : $li.children('.InputfieldHeader, .ui-widget-header').find('.toggle-icon'); 
-		if($li.hasClass("InputfieldStateCollapsed") || $li.hasClass("InputfieldStateWasCollapsed") || isIcon) {
+		var isCollapsed = $li.hasClass("InputfieldStateCollapsed"); 
+		var wasCollapsed = $li.hasClass("InputfieldStateWasCollapsed"); 
+		if(isCollapsed || wasCollapsed || isIcon) {
 			$li.addClass('InputfieldStateWasCollapsed'); // this class only used here
+			$li.trigger(isCollapsed ? 'openReady' : 'closeReady'); 
 			$li.toggleClass('InputfieldStateCollapsed', 100, function() {
+				$li.trigger(isCollapsed ? 'opened' : 'closed'); 
 				var $input = $li.find(":input:visible");
-				if($input.size() == 1 && !$input.is('button')) { 
+				if($input.length == 1 && !$input.is('button')) { 
 					var t = $input.attr('type'); 
 					if($input.is('textarea') || t == 'text' || t == 'email' || t == 'url' || t == 'number') {
 						$input.focus();
@@ -638,17 +713,30 @@ function InputfieldStates() {
 	if(typeof config !== "undefined" && config.debug) {
 		$('label.InputfieldHeader > i.toggle-icon').hover(function() {
 			var $label = $(this).parent('label');
-			if($label.size() == 0) return;
+			if($label.length == 0) return;
 			var text = $label.attr('for').replace(/^Inputfield_/, ''); 
 			$label.append(" <span class='detail'>" + text + "</span>"); 
 			
 		}, function() {
 			var $label = $(this).parent('label');
-			if($label.size() == 0) return;
+			if($label.length == 0) return;
 			$label.find('span.detail').remove();
 		}); 
 	}
 
+	 // Make the first field in any form have focus, if it is a text field that is blank
+	$('#content .InputfieldForm:not(.InputfieldNoFocus)')
+		.find('input[type=text]:enabled:first:not(.hasDatepicker):not(.InputfieldNoFocus)').each(function() {
+			var $t = $(this);
+			// jump to first input, if it happens to be blank
+			if($t.val()) return;
+			// avoid jumping to inputs that fall "below the fold"
+			if($t.offset().top < $(window).height()) {
+				window.setTimeout(function () {
+					if($t.is(":visible")) $t.focus();
+				}, 250);
+			}
+	}); 
 }
 
 /*********************************************************************************************/

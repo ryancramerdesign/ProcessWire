@@ -57,13 +57,13 @@
  * Methods added by PagePermissions.module: 
  * ----------------------------------------
  * @method bool viewable() Returns true if the page is viewable by the current user, false if not. 
- * @method bool editable() Returns true if the page is editable by the current user, false if not. Optionally specify a field to see if that field is editable.
+ * @method bool editable($fieldName = '') Returns true if the page is editable by the current user, false if not. Optionally specify a field to see if that field is editable.
  * @method bool publishable() Returns true if the page is publishable by the current user, false if not. 
  * @method bool listable() Returns true if the page is listable by the current user, false if not. 
  * @method bool deleteable() Returns true if the page is deleteable by the current user, false if not. 
  * @method bool trashable() Returns true if the page is trashable by the current user, false if not. 
- * @method bool addable($pageToAdd) Returns true if the current user can add children to the page, false if not. Optionally specify the page to be added for additional access checking. 
- * @method bool moveable($newParent) Returns true if the current user can move this page. Optionally specify the new parent to check if the page is moveable to that parent. 
+ * @method bool addable($pageToAdd = null) Returns true if the current user can add children to the page, false if not. Optionally specify the page to be added for additional access checking. 
+ * @method bool moveable($newParent = null) Returns true if the current user can move this page. Optionally specify the new parent to check if the page is moveable to that parent. 
  * @method bool sortable() Returns true if the current user can change the sort order of the current page (within the same parent). 
  *
  * Methods added by LanguageSupport.module (not installed by default) 
@@ -1953,6 +1953,26 @@ class Page extends WireData implements Countable {
 	 */
 	public function ___setEditor(WirePageEditor $editor) {
 		// $this->setQuietly('_editor', $editor); // uncomment when/if needed
+	}
+
+	/**
+	 * Get the icon name associated with this Page (if applicable)
+	 * 
+	 * @todo add recognized page icon field to core
+	 * 
+	 * @return string
+	 * 
+	 */
+	public function ___getIcon() {
+		if(!$this->template) return '';
+		if($this->template->fieldgroup->hasField('process')) {
+			$process = $this->getUnformatted('process'); 
+			if($process) {
+				$info = $this->wire('modules')->getModuleInfoVerbose($process);
+				if(!empty($info['icon'])) return $info['icon'];
+			}
+		}
+		return $this->template->getIcon();
 	}
 
 }

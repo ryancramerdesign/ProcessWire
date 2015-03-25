@@ -751,3 +751,9 @@ Full screen TinyMCE
 #mce_fullscreen_container {
 	top: $masthead-height !important;
 }
+
+a.tooltip:hover {
+	border: none;
+	background: inherit;
+	cursor: help;
+}

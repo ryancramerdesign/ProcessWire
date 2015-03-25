@@ -150,6 +150,14 @@ code {
 	z-index: 9999;
 }
 
+.pw-no-select {
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-o-user-select: none;
+	user-select: none; /* prevent selection of this element */
+}
+
 
 /***********************************************************************************************
  * CONTENT

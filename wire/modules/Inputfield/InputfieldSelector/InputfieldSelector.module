@@ -18,34 +18,34 @@
  * SETTINGS
  * ========
  * Below are settings that may be passed to InputfieldSelector to customize the output and behavior.
- * Each of the settings below is shown with the default value. In cases where you see a 0 or a 1, 
- * the 0 indicates OFF and the 1 indicates ON. 
+ * Each of the settings below is shown with the default value in [brackets]. True and false (boolean)
+ * values may be specified by 0 (false) or 1 (true). 
  *
- * value=[selecotor string] 			Value that user can change.
- * initValue=[selector string]			Initial value that user can't change.
- * addIcon=plus-circle					Icon used for the "Add Field" link.
- * addLabel=Add Field					Text used for the "Add Field" link
- * preview=1							Whether to show a live preview of selector in notes section.
- * counter=1							Whether to show a live "number of matches" indicator.
- * allowSystemCustomFields=0			Allow system custom fields to appear in field selects?
- * allowSystemNativeFields=1			Allow system native fields to appear in field selects?
- * allowSystemTemplates=0				Allow selection of system templates (user, role, etc.)?
- * allowSubselectors=1					Allow use of subselectors?
- * allowSubfields=1						Allow use of subfields?
- * allowSubfieldGroups=1				Allow @grouping of subfields (like for page references)?
- * allowModifiers=1						Allow use of modifiers like include, limit?
- * allowBlankValues=0					When no value is present, should it contribute to the selector?
- * exclude=								One or more (CSV) fields to disallow selection for
- * showInitValue=0						Show non-modifiable inputs for the initValue?
- * showFieldLabels=0					Show field labels rather than names?
- * dateFormat=Y-m-d						Default PHP date() format for date fields.
- * datePlaceholder=yyyy-mm-dd			Placeholder attribute text for date fields.
- * timeFormat=H:i						Default PHP date() format for time component of date fields.
- * timePlaceholder=hh:mm				Placeholder attribute time component of date fields.
- * showOptgroups=1						Whether or not to separate sytem, field, subfields, etc. into their own optgroups. If turned off, all types of fields will be shown together A-Z.
- * optgroupsOrder=[see below]			Order and presence of field selection option groups.
- * optgroupsOrder=system,field,subfield,group,modifier,adjust	
- * previewColumns=name,template,id		Array or CSV string of columns to show in bookmark previews
+ * @property string $value [selector string] Value that user can change.
+ * @property string $initValue [selector string] Initial value that user can't change.
+ * @property string $addIcon [plus-circle] Icon used for the "Add Field" link.
+ * @property string $addLabel [Add Field] Text used for the "Add Field" link
+ * @property string $dateFormat [Y-m-d] Default PHP date() format for date fields.
+ * @property string $datePlaceholder [yyyy-mm-dd] Placeholder attribute text for date fields.
+ * @property string $timeFormat [H:i] Default PHP date() format for time component of date fields.
+ * @property string $timePlaceholder [hh:mm] Placeholder attribute time component of date fields.
+ * @property string $exclude One or more (CSV) fields to disallow selection for
+ * @property string $optgroupsOrder [system,field,subfield,group,modifier,adjust] Order and presence of field selection option groups.
+ * @property string|array $previewColumns [name,template,id] Array or CSV string of columns to show in bookmark previews
+ * @property bool $preview [true] Whether to show a live preview of selector in notes section.
+ * @property bool $counter [true] Whether to show a live "number of matches" indicator.
+ * @property bool $allowAddRemove [true] Whether to allow adding new rows / removing existing rows
+ * @property bool $allowSystemCustomFields [false] Allow system custom fields to appear in field selects?
+ * @property bool $allowSystemNativeFields [true] Allow system native fields to appear in field selects?
+ * @property bool $allowSystemTemplates [false] Allow selection of system templates (user, role, etc.)?
+ * @property bool $allowSubselectors [true] Allow use of subselectors?
+ * @property bool $allowSubfields [true] Allow use of subfields?
+ * @property bool $allowSubfieldGroups [true] Allow @grouping of subfields (like for page references)?
+ * @property bool $allowModifiers [true] Allow use of modifiers like include, limit?
+ * @property bool $allowBlankValues [false] When no value is present, should it contribute to the selector?
+ * @property bool $showInitValue [false] Show non-modifiable inputs for the initValue?
+ * @property bool|int $showFieldLabels [false] Show field labels rather than names? Or specify integer 2 to show both.
+ * @property bool $showOptgroups [true] Whether or not to separate sytem, field, subfields, etc. into their own optgroups. If turned off, all types of fields will be shown together A-Z.
  *
  *
  */
@@ -55,7 +55,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Selector',
-			'version' => 22,
+			'version' => 23,
 			'summary' => 'Build a page finding selector visually.',
 			'author' => 'Avoine + ProcessWire',
 			'autoload' => "template=admin", 
@@ -174,6 +174,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$this->set('groupIdentifier', ' ' . $this->_('(1)')); // group identifier
 		
 		// what is allowed
+		$this->setting('allowAddRemove', true);
 		$this->setting('allowSystemCustomFields', false); 
 		$this->setting('allowSystemNativeFields', true); 
 		$this->setting('allowSystemTemplates', false);
@@ -828,7 +829,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 
 			$hasSubfields = count($selectorInfo['subfields']) > 0; 
 			$selected = "$field->name." == $selectedValue ? ' selected' : '';
-			if($settings['showFieldLabels'] == 2) $label .= " [$name]";
+			if($settings['showFieldLabels'] == 2) $label .= " [$field->name]";
 			
 			$option = "<option$selected " .
 				"value='$field->name.' " . 
@@ -1365,12 +1366,18 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	 * 
 	 */
 	public function renderRow($select, $subfield, $opval, $class = '') {
+	
+		if($this->allowAddRemove) {
+			$delete = "<a href='#' class='delete-row'><i class='fa fa-trash-o'></i></a>";
+		} else {
+			$delete = '';
+		}
 		
 		$out = "<li class='selector-row ui-helper-clearfix $class'>
 			$select
 			<span class='subfield'>$subfield</span> 
 			<span class='opval'>$opval</span> &nbsp; 
-			<a href='#' class='delete-row'><i class='fa fa-trash-o'></i></a>
+			$delete
 			</li>
 			";
 		return $out; 
@@ -1518,7 +1525,11 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			<ul class='selector-list'>
 			$rows
 			</ul>
+			";
+		if($this->allowAddRemove) $out .= "
 			<a class='selector-add' href='#'><i class='fa fa-$this->addIcon'></i> $this->addLabel</a>
+			";
+		$out .= "
 			<span class='selector-counter$counterClass detail'></span>
 			<p class='selector-preview$previewClass' data-init-value='$initValue'>$attr[value]</p>
 			<input $attrStr />

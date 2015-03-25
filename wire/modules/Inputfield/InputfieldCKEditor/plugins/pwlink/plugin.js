@@ -61,8 +61,11 @@
 			editor.on( 'doubleclick', function( evt ) {
 				var element = CKEDITOR.plugins.link.getSelectedLink( editor ) || evt.data.element;
 				if ( element.is( 'a' ) && !element.getAttribute('name') && !element.isReadOnly() ) {
-					evt.cancel(); // prevent CKE's link dialog
-					editor.commands.pwlink.exec();
+					var $a = jQuery(element.$);
+					if($a.children('img').length == 0) {
+						evt.cancel(); // prevent CKE's link dialog
+						editor.commands.pwlink.exec();
+					}
 				}
 			});
 
@@ -165,6 +168,13 @@
 		// settings for modal window
 		var modalSettings = {
 			title: "<i class='fa fa-link'></i> " + insertLinkLabel,
+			open: function() {
+				if($(".cke_maximized").length > 0) {
+					// the following is required when CKE is maximized to make sure dialog is on top of it
+					$('.ui-dialog').css('z-index', 9999);
+					$('.ui-widget-overlay').css('z-index', 9998);
+				}
+			},
 			buttons: [ {
 				class: "pw_link_submit_insert", 
 				html: "<i class='fa fa-link'></i> " + insertLinkLabel,

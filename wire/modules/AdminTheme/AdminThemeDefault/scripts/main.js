@@ -17,7 +17,6 @@ var ProcessWireAdminTheme = {
 
 		this.setupCloneButton();
 		this.setupButtonStates();
-		this.setupFieldFocus();
 		this.setupTooltips();
 		this.setupSearch();
 		this.setupDropdowns();
@@ -27,7 +26,7 @@ var ProcessWireAdminTheme = {
 		$('#content').removeClass('fouc_fix'); // FOUC fix, deprecated
 		$body.removeClass("pw-init").addClass("pw-ready"); 
 		
-		this.browserCheck();
+		// this.browserCheck();
 
 		if($button.length > 0) $button.show();
 	},
@@ -64,7 +63,7 @@ var ProcessWireAdminTheme = {
 		var $buttons = $("button.head_button_clone, button.head-button"); 
 
 		// don't continue if no buttons here or if we're in IE
-		if($buttons.length == 0 || $.browser.msie) return;
+		if($buttons.length == 0) return; // || $.browser.msie) return;
 
 		var $head = $("#head_button"); 
 		if($head.length == 0) $head = $("<div id='head_button'></div>").prependTo("#breadcrumbs .container");
@@ -108,20 +107,6 @@ var ProcessWireAdminTheme = {
 			window.location = $(this).parent("a").attr('href'); 
 		}); 
 	},
-
-	/**
-	 * Make the first field in any forum have focus, if it is a text field
-	 *
-	 */
-	setupFieldFocus: function() {
-		// add focus to the first text input, where applicable
-		jQuery('#content input[type=text]:visible:enabled:first:not(.hasDatepicker)').each(function() {
-			var $t = $(this); 
-			if(!$t.val() && !$t.is(".no_focus")) window.setTimeout(function() { $t.focus(); }, 1);
-		});
-
-	},
-
 
 	/**
 	 * Make the site search use autocomplete
@@ -425,8 +410,10 @@ var ProcessWireAdminTheme = {
 	 *
 	 */
 	browserCheck: function() {
+		/*
 		if($.browser.msie && $.browser.version < 8) 
 			$("#content .container").html("<h2>ProcessWire does not support IE7 and below at this time. Please try again with a newer browser.</h2>").show();
+			*/
 	}
 
 };

@@ -5,10 +5,10 @@
  *
  * Web text editor for ProcessWire 2.2+
  *
- * CKEditor Copyright (C) 2003-2013, CKSource - Frederico Knabben
+ * CKEditor Copyright (C) 2003-2015, CKSource - Frederico Knabben
  * http://ckeditor.com
  *
- * ProcessWire Module Copyright (C) 2013 by Ryan Cramer 
+ * ProcessWire Module Copyright (C) 2015 by Ryan Cramer 
  * http://processwire.com
  * 
  * Licensed under GNU/GPL v2
@@ -21,7 +21,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'CKEditor',
-			'version' => 137, 
+			'version' => 141, 
 			'summary' => __('CKEditor textarea rich text editor.', __FILE__),
 			'installs' => array('MarkupHTMLPurifier'), 
 			);
@@ -152,6 +152,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 	 *
 	 * Toolbar items split by commas
 	 * Groups of toolbar items split by lines
+	 * Toolbar lines that starts with '#' are ignored
 	 *
 	 */
 	protected function toolbarStringToArray($str) {
@@ -160,7 +161,9 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$lines = explode("\n", $str); 
 		foreach($lines as $line) {
 			$line = trim($line);
-			if(empty($line)) {
+			if(strpos($line, '#') === 0) { // @ocorreiododiogo PR #1040
+				continue; 
+			} else if(empty($line)) {
 				$items[] = '/';
 			} else {
 				$lineArray = explode(',', $line); 
@@ -282,9 +285,12 @@ class InputfieldCKEditor extends InputfieldTextarea {
 				$linkClassOptions[] = trim($option, '+ ');	
 			}
 		}
+		
+		$info = self::getModuleInfo();
 
 		$settings = array(
 			'language' => $this->_x('en', 'language-code'), // 2 character language code, lowercase
+			'timestamp' => '2015030801.' . $info['version'], // for cache busting (thanks teppo!)
 			'pwlink' => array(
 				'label' => $this->_('Insert Link'), // Insert link label, window headline and button text
 				'edit' => $this->_('Edit Link'), // Edit link label
@@ -294,6 +300,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 			'pwimage' => array(
 				'selectLabel' => $this->_('Select Image'),
 				'editLabel' => $this->_('Edit Image'),
+				'captionLabel' => $this->_('Your caption text here'), 
 				'savingNote' => $this->_('Saving Image'),
 				'cancelBtn' => $cancelButtonLabel,
 				'insertBtn' => $this->_('Insert This Image'),
@@ -598,6 +605,7 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$f->attr('value', $this->toolbar);
 		$f->label = $this->_('CKEditor Toolbar'); 
 		$f->description = $this->_('Separate each toolbar item with a comma. Group items by placing them on the same line and use a hyphen "-" where you want a separator to appear within a group. If you want more than one toolbar row, separate each row with a blank line.'); // Toolbar options description
+		$f->description .= ' ' . $this->_('Insert a hash "#" at the beginning of a line if you want it to be ignored.');
 		$wrapper->add($f); 
 
 		$purifierInstalled = wire('modules')->isInstalled('MarkupHTMLPurifier'); 

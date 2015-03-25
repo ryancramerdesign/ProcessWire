@@ -117,6 +117,22 @@ class ImageSizer extends Wire {
 	protected $sharpening = 'soft';
 
 	/**
+	 * Degrees to rotate: -270, -180, -90, 90, 180, 270
+	 * 
+	 * @var int
+	 * 
+	 */
+	protected $rotate = 0;
+
+	/**
+	 * Flip image: Specify 'v' for vertical or 'h' for horizontal
+	 * 
+	 * @var string
+	 * 
+	 */
+	protected $flip = '';
+
+	/**
 	 * default gamma correction: 0.5 - 4.0 | -1 to disable gammacorrection, default = 2.0
 	 * 
 	 * can be overridden by setting it to $config->imageSizerOptions['defaultGamma']
@@ -160,6 +176,8 @@ class ImageSizer extends Wire {
 		'sharpening',
 		'defaultGamma',
 		'scale', 
+		'rotate',
+		'flip', 
 		);
 
 	/**
@@ -319,16 +337,23 @@ class ImageSizer extends Wire {
 			$this->gammaCorrection($image, true);
 		}
 
-		if($needRotation) { // @horst
-			$image = $this->imRotate($image, $orientations[0]);
-			if($orientations[0] == 90 || $orientations[0] == 270) {
+		if($this->rotate || $needRotation) { // @horst
+			$degrees = $this->rotate ? $this->rotate : $orientations[0];
+			$image = $this->imRotate($image, $degrees);
+			if(abs($degrees) == 90 || abs($degrees) == 270) {
 				// we have to swap width & height now!
 				$tmp = array($this->getWidth(), $this->getHeight());
 				$this->setImageInfo($tmp[1], $tmp[0]);
 			}
-			if($orientations[1] > 0) {
-				$image = $this->imFlip($image, ($orientations[1] == 2 ? true : false));
+		}
+		if($this->flip || $needRotation) {
+			$vertical = null;
+			if($this->flip) {
+				$vertical = $this->flip == 'v';
+			} else if($orientations[1] > 0) {
+				$vertical = $orientations[1] == 2;
 			}
+			if(!is_null($vertical)) $image = $this->imFlip($image, $vertical); 
 		}
 
 		// if there is requested to crop _before_ resize, we do it here @horst
@@ -941,6 +966,38 @@ class ImageSizer extends Wire {
 	}
 
 	/**
+	 * Set rotation degrees
+	 * 
+	 * Specify one of: -270, -180, -90, 90, 180, 270
+	 * 
+	 * @param $degrees
+	 * @return this
+	 * 
+	 */
+	public function setRotate($degrees) {
+		$valid = array(-270, -180, -90, 90, 180, 270);
+		$degrees = (int) $degrees; 	
+		if(in_array($degrees, $valid)) $this->rotate = $degrees; 
+		return $this; 
+	}
+	
+	/**
+	 * Set flip
+	 *
+	 * Specify one of: 'vertical' or 'horizontal', also accepts
+	 * shorter versions like, 'vert', 'horiz', 'v', 'h', etc. 
+	 *
+	 * @param $flip
+	 * @return this
+	 *
+	 */
+	public function setFlip($flip) {
+		$flip = strtolower(substr($flip, 0, 1)); 
+		if($flip == 'v' || $flip == 'h') $this->flip = $flip; 
+		return $this;
+	}
+
+	/**
 	 * Alternative to the above set* functions where you specify all in an array
 	 *
 	 * @param array $options May contain the following (show with default values):
@@ -951,6 +1008,8 @@ class ImageSizer extends Wire {
 	 * 	'sharpening' => 'soft' (none|soft|medium|string)
 	 * 	'scale' => 1.0 (use 2.0 for hidpi or 1.0 for normal-default)
 	 * 	'hidpi' => false, (alternative to scale, specify true to enable hidpi)
+	 * 	'rotate' => 0 (90, 180, 270 or negative versions of those)
+	 * 	'flip' => '', (vertical|horizontal)
 	 * @return $this
 	 *
 	 */
@@ -968,7 +1027,9 @@ class ImageSizer extends Wire {
 				case 'cropExtra': $this->setCropExtra($value); break;
 				case 'scale': $this->setScale($value); break;
 				case 'hidpi': $this->setHidpi($value); break;
-				
+				case 'rotate': $this->setRotate($value); break;
+				case 'flip': $this->setFlip($value); break;
+							  
 				default: 
 					// unknown or 3rd party option
 					$this->options[$key] = $value; 
