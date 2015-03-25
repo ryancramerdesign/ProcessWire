@@ -188,10 +188,7 @@ class ProcessPageSearch extends Process implements ConfigurableModule {
 			}
 
 			// replace '-' with '.' since '.' is not allowed in URL variable names
-			if(strpos($name, '-')) {
-				list($name, $subname) = explode('-', $name); 
-				$name = "$name.$subname";
-			}
+			if(strpos($name, '-')) $name = str_replace('-', '.', $name); 
 
 			if(strpos($name, ',')) $name = $this->sanitizer->names($name, ',', array('_', '.')); 
 				else $name = $this->sanitizer->pageName($name); // note: switch to pageName over fieldName to support "." 
