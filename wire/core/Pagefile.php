@@ -299,7 +299,7 @@ class Pagefile extends WireData {
 				break;
 			case 'URL':
 				// nocache url
-				$value = $this->url() . '?nc=' . filemtime($this->filename());
+				$value = $this->url() . '?nc=' . @filemtime($this->filename());
 				break;
 			case 'pagefiles': 
 				$value = $this->pagefiles; 

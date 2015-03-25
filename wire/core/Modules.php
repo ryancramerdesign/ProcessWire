@@ -2479,7 +2479,7 @@ class Modules extends WireArray {
 		$this->clearModuleInfoCache();
 		foreach($this->paths as $path) $this->findModuleFiles($path, false); 
 		foreach($this->paths as $path) $this->load($path);
-		if($this->numNewDuplicates > 0) $this->updateDuplicates();
+		if($this->duplicates()->numNewDuplicates() > 0) $this->duplicates()->updateDuplicates(); // PR#1020
 	}
 
 	/**
