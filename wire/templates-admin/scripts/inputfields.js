@@ -195,18 +195,18 @@ function InputfieldDependencies() {
 							condition.subfield = 'count-checkbox';
 						} else {
 							// detect OR selector in condition.value
-							if(condition.value.indexOf("|") > -1) {
-								var conditionValue = condition.value.split("|");
+							if(condition.values.length) {
+								var conditionValues = condition.values;
 							} else {
-								var conditionValue = [condition.value];
+								var conditionValues = [condition.value];
 							}
 
 							value = [];
 
-							for (var i = 0; i < conditionValue.length; i++) {
-								conditionValue[i] = new String(conditionValue[i]);
-								conditionValue[i] = trimValue(conditionValue[i].replace(/\s/g, '_'));
-								$field = $("#Inputfield_" + condition.fields[fn] + "_" + conditionValue[i]);
+							for (var i = 0; i < conditionValues.length; i++) {
+								conditionValues[i] = new String(conditionValues[i]);
+								conditionValues[i] = trimValue(conditionValues[i].replace(/\s/g, '_'));
+								$field = $("#Inputfield_" + condition.fields[fn] + "_" + conditionValues[i]);
 								val = $field.val();
 
 								// special case for checkbox and radios: 
