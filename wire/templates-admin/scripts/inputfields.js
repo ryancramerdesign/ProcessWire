@@ -194,10 +194,28 @@ function InputfieldDependencies() {
 							consoleLog('Using count checkbox condition');
 							condition.subfield = 'count-checkbox';
 						} else {
-							// @todo OR support here?
-							var conditionValue = new String(condition.value);
-							conditionValue = trimValue(conditionValue.replace(/\s/g, '_'));
-							$field = $("#Inputfield_" + condition.fields[fn] + "_" + conditionValue);
+							// detect OR selector in condition.value
+							if(condition.values.length) {
+								var conditionValues = condition.values;
+							} else {
+								var conditionValues = [condition.value];
+							}
+
+							value = [];
+
+							for (var i = 0; i < conditionValues.length; i++) {
+								conditionValues[i] = new String(conditionValues[i]);
+								conditionValues[i] = trimValue(conditionValues[i].replace(/\s/g, '_'));
+								$field = $("#Inputfield_" + condition.fields[fn] + "_" + conditionValues[i]);
+								val = $field.val();
+
+								// special case for checkbox and radios: 
+								// if the field is not checked then we assume a blank value
+								var attrType = $field.attr('type');
+								if ((attrType == 'checkbox' || attrType == 'radio') && !$field.is(":checked")) val = '';
+
+								value.push(val);
+							}
 						}
 					}
 				
@@ -215,11 +233,6 @@ function InputfieldDependencies() {
 
 					// prefer blank to null for our checks
 					if (value == null) value = '';
-
-					// special case for checkbox and radios: 
-					// if the field is not checked then we assume a blank value
-					var attrType = $field.attr('type');
-					if ((attrType == 'checkbox' || attrType == 'radio') && !$field.is(":checked")) value = '';
 
 					// special case for 'count' subfield condition, 
 					// where we take the value's length rather than the value
