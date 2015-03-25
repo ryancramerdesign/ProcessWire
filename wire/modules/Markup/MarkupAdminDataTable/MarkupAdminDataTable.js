@@ -7,6 +7,24 @@ var AdminDataTable = {
 	isMobileSize: function() {
 		return $(window).width() <= 767;
 	},
+	
+	setupShiftClick: function($table) {
+		// @awt2542 PR #867
+		var lastChecked = null;
+		$table.on('click', 'input[type=checkbox]', function(e) {
+			var $checkboxes = $(this).closest('table').find('input[type=checkbox]');
+			if(!lastChecked) {
+				lastChecked = this;
+				return;
+			}
+			if(e.shiftKey) {
+				var start = $checkboxes.index(this);
+				var end = $checkboxes.index(lastChecked);
+				$checkboxes.slice(Math.min(start,end), Math.max(start,end)+ 1).attr('checked', lastChecked.checked);
+			}
+			lastChecked = this;
+		});
+	},
 
 	setupMobile: function($table) {
 		if($table.hasClass('AdminDataTableMobile')) return;
@@ -69,6 +87,9 @@ var AdminDataTable = {
 			if(AdminDataTable.isMobileSize()) AdminDataTable.setupMobile($table);
 		} else {
 			AdminDataTable.tables.push($table);
+		}
+		if($table.find("input[type=checkbox]").length > 1) {
+			AdminDataTable.setupShiftClick($table);
 		}
 	},
 	

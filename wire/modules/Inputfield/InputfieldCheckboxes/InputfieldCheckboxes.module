@@ -6,7 +6,7 @@ class InputfieldCheckboxes extends InputfieldSelectMultiple implements Inputfiel
 		return array(
 			'title' => __('Checkboxes', __FILE__), // Module Title
 			'summary' => __('Multiple checkbox toggles', __FILE__), // Module Summary
-			'version' => 102,
+			'version' => 103,
 			'permanent' => true, 
 			);
 	}
