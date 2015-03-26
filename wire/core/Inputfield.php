@@ -558,21 +558,7 @@ abstract class Inputfield extends WireData implements Module {
 	 *
 	 */
 	public function renderReady(Inputfield $parent = null, $renderValueMode = false) {
-		static $classes = array();
-		$class = $this->className();
-		if(isset($classes[$class])) return false; // return false if required assets have already been included
-		$config = $this->wire('config');
-		$path = $config->paths->$class;
-		$info = array();
-		foreach(array('css' => 'styles', 'js' => 'scripts') as $ext => $name) {
-			if(!file_exists("$path$class.$ext")) continue;
-			$url = $config->urls->$class;
-			if(empty($info)) $info = $this->wire('modules')->getModuleInfo($this, array('verbose' => false));
-			$version = (int) isset($info['version']) ? $info['version'] : 0;
-			$config->$name->add("$url$class.$ext?v=$version");
-		}
-		$classes[$class] = true;
-		return true;
+		return $this->wire('modules')->loadModuleFileAssets($this) > 0;
 	}
 
 	/**

@@ -1,4 +1,3 @@
-
 var AdminDataTable = {
 	
 	ready: false,

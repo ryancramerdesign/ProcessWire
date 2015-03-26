@@ -1,5 +1,3 @@
-
-
 ProcessPageSearch = {
 
 	t: 0,

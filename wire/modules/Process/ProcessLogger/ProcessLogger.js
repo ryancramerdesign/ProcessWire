@@ -1,4 +1,3 @@
-
 var ProcessLogger = {
 
 	timer: null,

@@ -111,11 +111,15 @@ abstract class ModuleJS extends WireData implements Module {
 		$info = $this->wire('modules')->getModuleInfo($this, array('verbose' => false));
 		$version = (int) isset($info['version']) ? $info['version'] : 0;
 		
-		if($this->loadStyles && file_exists($this->config->paths->$class . "$class.css")) {
+		if($this->loadStyles && is_file($this->config->paths->$class . "$class.css")) {
 			$this->config->styles->add($this->config->urls->$class . "$class.css?v=$version");
 		}
-		if($this->loadScripts && file_exists($this->config->paths->$class . "$class.js")) {
-			$this->config->scripts->add($this->config->urls->$class . "$class.js?v=$version"); 
+		if($this->loadScripts && is_file($this->config->paths->$class . "$class.js")) {
+			if(!$this->wire('config')->debug && is_file($this->config->paths->$class . "$class.min.js")) {
+				$this->config->scripts->add($this->config->urls->$class . "$class.min.js?v=$version");
+			} else {
+				$this->config->scripts->add($this->config->urls->$class . "$class.js?v=$version");
+			}
 		}
 
 		if(count($this->requested)) {

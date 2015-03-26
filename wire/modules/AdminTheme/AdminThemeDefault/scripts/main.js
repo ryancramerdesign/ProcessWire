@@ -6,7 +6,7 @@
  */
 
 var ProcessWireAdminTheme = {
-
+	
 	/**
 	 * Initialize the default ProcessWire admin theme
 	 *

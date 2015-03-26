@@ -19,8 +19,10 @@ $version = $adminTheme->version . 'c';
 
 $config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "main-$adminTheme->colors" : "main-classic") . ".css?v=$version"); 
 $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css?v=$version"); 
-$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=$version"); 
-$config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=$version");
+	
+$ext = $config->debug ? "js" : "min.js";
+$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.$ext?v=$version"); 
+$config->scripts->append($config->urls->adminTemplates . "scripts/main.$ext?v=$version");
 	
 require_once(dirname(__FILE__) . "/AdminThemeDefaultHelpers.php");
 $helpers = new AdminThemeDefaultHelpers();

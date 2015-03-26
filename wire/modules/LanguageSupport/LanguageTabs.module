@@ -77,14 +77,7 @@ class LanguageTabs extends WireData implements Module {
 	 * 
 	 */
 	public function hookRenderInputfieldForm(HookEvent $e) {
-		static $init = false;
-		if(!$init) {
-			$config = $this->wire('config');
-			$url = $config->urls->LanguageTabs;
-			$config->scripts->add($url . "LanguageTabs.js");
-			$config->styles->add($url . "LanguageTabs.css");
-			$init = true;
-		}
+		$this->wire('modules')->loadModuleFileAssets($this); 
 		if(strpos($e->return, 'LanguageSupport') === false) return;
 		$id = $e->object->attr('id'); 
 		$e->return .= "<script>setupLanguageTabs($('#$id'));</script>";

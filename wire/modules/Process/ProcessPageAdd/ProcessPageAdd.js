@@ -2,7 +2,7 @@ $(document).ready(function() {
 
 	$("#select_parent_submit").hide();
 	$("#select_parent_id").change(function() {
-		val = $(this).val();
+		var val = $(this).val();
 		if(val > 0) $("#select_parent_submit").click();
 	});	
 

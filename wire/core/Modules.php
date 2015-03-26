@@ -3046,6 +3046,51 @@ class Modules extends WireArray {
 	}
 
 	/**
+	 * Load module related CSS and JS files
+	 * 
+	 * Applies only to modules that carry class-named CSS and/or JS files,
+	 * such as Process, Inputfield and ModuleJS modules. 
+	 * 
+	 * @param $module Module object or class name
+	 * @return array Returns number of files that were added
+	 * 
+	 */
+	public function loadModuleFileAssets($module) {
+
+		$class = $this->getModuleClass($module);
+		static $classes = array();
+		if(isset($classes[$class])) return 0; // already loaded
+		$info = null;
+		$config = $this->wire('config');
+		$path = $config->paths->$class;
+		$url = $config->urls->$class;
+		$debug = $config->debug;
+		$version = 0; 
+		$cnt = 0;
+
+		foreach(array('styles' => 'css', 'scripts' => 'js') as $type => $ext) {
+			$fileURL = '';
+			if(!$debug && is_file("$path$class.min.$ext")) {
+				$fileURL = "$url$class.min.$ext";
+			} else if(is_file("$path$class.$ext")) {
+				$fileURL = "$url$class.$ext";
+			}
+			if($fileURL) {
+				if(!$version) {
+					$info = $this->getModuleInfo($module, array('verbose' => false));
+					$version = (int) isset($info['version']) ? $info['version'] : 0;
+				}
+				$config->$type->add("$fileURL?v=$version");
+				$cnt++;
+			}
+		}
+		
+		$classes[$class] = true; 
+		
+		return $cnt;
+	}
+
+	/**
 	 * Enables use of $modules('ModuleName')
 	 *
 	 * @param string $key

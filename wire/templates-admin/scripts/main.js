@@ -204,7 +204,7 @@ var ProcessWireAdminTheme = {
 			$status.text('');	
 		});
 		
-	},
+	}
 
 	/**
 	 * Give a notice to IE versions we don't support

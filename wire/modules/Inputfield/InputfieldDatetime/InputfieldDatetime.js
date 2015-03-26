@@ -1,3 +1,4 @@
+
 function InputfieldDatetimeDatepicker($t) {
 
 	var pickerVisible = $t.is(".InputfieldDatetimeDatepicker2");

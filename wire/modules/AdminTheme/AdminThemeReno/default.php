@@ -23,8 +23,10 @@ $searchForm = $user->hasPermission('page-edit') ? $modules->get('ProcessPageSear
 
 $config->styles->prepend($config->urls->adminTemplates . "styles/" . ($adminTheme->colors ? "$adminTheme->colors" : "main") . ".css?v=$version"); 
 $config->styles->append($config->urls->root . "wire/templates-admin/styles/font-awesome/css/font-awesome.min.css?v=$version");
-$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.js?v=$version"); 
-$config->scripts->append($config->urls->adminTemplates . "scripts/main.js?v=$version");
+
+$ext = $config->debug ? "js" : "min.js";
+$config->scripts->append($config->urls->root . "wire/templates-admin/scripts/inputfields.$ext?v=$version");
+$config->scripts->append($config->urls->adminTemplates . "scripts/main.$ext?v=$version");
 
 require_once(dirname(__FILE__) . "/AdminThemeRenoHelpers.php");
 $helpers = new AdminThemeRenoHelpers();

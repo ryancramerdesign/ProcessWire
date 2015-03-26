@@ -1,6 +1,5 @@
 $(document).ready(function() {
 
-
 	$("#wrap_filter_system input").click(function() {
 		$(this).parents("form").submit();
 	}); 	

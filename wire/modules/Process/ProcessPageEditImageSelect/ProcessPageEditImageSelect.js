@@ -183,7 +183,7 @@ function setupSelectedImage() {
 			}, {
 				html: $("#button_cancel_crop").html(),
 				click: function() { $("#button_cancel_crop").click(); },
-				class: 'ui-priority-secondary'
+				'class': 'ui-priority-secondary'
 			}];
 			
 			$(".show_when_crop").hide();
@@ -311,9 +311,9 @@ function setupSelectedImage() {
 			$img.attr('class', $(this).val());
 			$container.attr('class', $(this).val());
 			if(resized) $img.addClass('resized');
-			var float = $container.css('float');
+			var _float = $container.css('float');
 			var $latin = $("#latin");
-			if(float == 'left' || float == 'right') {
+			if(_float == 'left' || _float == 'right') {
 				if(!$latin.is(":visible")) {
 					$latin.height($container.height());
 					$latin.fadeIn();

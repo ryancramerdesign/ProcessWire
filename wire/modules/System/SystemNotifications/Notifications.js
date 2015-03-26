@@ -1,4 +1,3 @@
-
 /**
  * Notifications for ProcessWire
  *

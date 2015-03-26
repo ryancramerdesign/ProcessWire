@@ -9,7 +9,6 @@
  *
  *
  */
-
 (function($) {
 
 	$.fn.asmSelect = function(customOptions) {

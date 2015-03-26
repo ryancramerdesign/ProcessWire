@@ -57,8 +57,9 @@ class InputfieldAsmSelect extends InputfieldSelectMultiple implements Inputfield
 		$class = $this->className(); 
 		$info = self::getModuleInfo();
 		$ver = $info['version'];
+		$jsfile = $this->wire('config')->debug ? 'jquery.asmselect.js' : 'jquery.asmselect.min.js';
 
-		$this->config->scripts->add($this->config->urls->$class . "asmselect/jquery.asmselect.js?v=$ver");
+		$this->config->scripts->add($this->config->urls->$class . "asmselect/$jsfile?v=$ver");
 		$this->config->styles->add($this->config->urls->$class . "$class.css?v=$ver");
 		$this->config->styles->add($this->config->urls->$class . "asmselect/jquery.asmselect.css?v=$ver");
 

@@ -288,7 +288,8 @@ class SystemNotifications extends WireData implements Module {
 		$url = $config->urls->SystemNotifications . 'Notifications'; 
 		$info = self::getModuleInfo();
 		$config->styles->add("$url.css?v=$info[version]"); 
-		$config->scripts->add("$url.js?v=$info[version]"); 
+		$jsfile = $config->debug ? "$url.js" : "$url.min.js";
+		$config->scripts->add("$jsfile?v=$info[version]"); 
 		$qty = count($this->wire('user')->get(self::fieldName)); 
 		$ghostLimit = $this->ghostLimit ? $this->ghostLimit : 20; 
 

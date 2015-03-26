@@ -14,7 +14,7 @@ class JqueryUI extends ModuleJS {
 	
 	public function __construct() {
 		$this->addComponents(array(
-			'modal' => 'modal.js',
+			'modal' => $this->wire('config')->debug ? 'modal.js' : 'modal.min.js',
 			'touch' => 'touch.js' 
 			));
 	}
