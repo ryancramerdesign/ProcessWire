@@ -64,8 +64,13 @@ class FieldtypeText extends Fieldtype {
 	 */
 	public function ___getCompatibleFieldtypes(Field $field) {
 		$fieldtypes = new Fieldtypes();
-		foreach($this->fuel('fieldtypes') as $fieldtype) {
-			if($fieldtype instanceof FieldtypeText) $fieldtypes->add($fieldtype); 
+		foreach($this->wire('fieldtypes') as $fieldtype) {
+			if($fieldtype instanceof FieldtypeText) {
+				$fieldtypes->add($fieldtype);
+			} else {
+				$className = $fieldtype->className();
+				if($className == 'FieldtypeSelector') $fieldtypes->add($fieldtype);
+			}
 		}
 		return $fieldtypes; 
 	}

@@ -29,5 +29,6 @@ class NullPage extends Page {
 	public function getAccessParent() { return new NullPage(); }
 	public function getAccessRoles() { return new PageArray(); }
 	public function hasAccessRole($role) { return false; }
+	public function isChanged($what = '') { return false; }
 }
 

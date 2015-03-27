@@ -73,6 +73,10 @@ class FieldtypeFieldsetTabOpen extends FieldtypeFieldsetOpen {
 		return $inputfields;
 	}
 
+	public function ___getConfigAllowContext(Field $field) {
+		return array('modal');
+	}
+
 
 }
 

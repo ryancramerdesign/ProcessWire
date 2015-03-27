@@ -590,6 +590,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		$fieldset = wire('modules')->get('InputfieldFieldset'); 
 		$fieldset->label = $this->_('Selectable Pages');
+		$fieldset->attr('name', '_selectable_pages'); 
 
 		$field = $this->modules->get('InputfieldPageListSelect');
 		$field->setAttribute('name', 'parent_id'); 

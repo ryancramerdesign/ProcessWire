@@ -295,7 +295,7 @@ function wireChmod($path, $recursive = false, $chmod = null) {
 	} else {
 		// $path is a file
 		$mod = $chmodFile; 
-		if($mod) if(!chmod($path, octdec($mod))) $numFails++;
+		if($mod) if(!@chmod($path, octdec($mod))) $numFails++;
 	}
 
 	return $numFails == 0; 

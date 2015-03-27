@@ -1,4 +1,8 @@
 
+.content .InputfieldPageAutocomplete p {
+	margin: 0;
+}
+
 .content .InputfieldPageAutocomplete ol {
 	margin: 0; 
 	list-style: none;

@@ -1332,10 +1332,12 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	public function ___execute() {
 		if(!$this->wire('page')) return;
 		$modules = $this->wire('modules');
-		
+	
+		/*
 		if($modules->isInstalled('ProcessLister') && $this->wire('user')->isSuperuser()) {
 			$this->error('Please uninstall Modules > Site > ProcessLister - this module (ProcessPageLister) has now replaced it.'); 
 		}
+		*/
 		
 		$this->setupOpenPageIDs();
 	

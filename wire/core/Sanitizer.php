@@ -760,8 +760,22 @@ class Sanitizer extends Wire {
 	 * @return string
 	 *
 	 */
-	public function removeEntities($str, $flags = ENT_QUOTES, $encoding = 'UTF-8') {
-		return htmlentities($str, $flags, $encoding, $doubleEncode); 
+	public function unentities($str, $flags = ENT_QUOTES, $encoding = 'UTF-8') {
+		return html_entity_decode($str, $flags, $encoding); 
+	}
+
+	/**
+	 * Alias for unentities
+	 * 
+	 * @param $str
+	 * @param $flags
+	 * @param $encoding
+	 * @return string
+	 * @deprecated
+	 * 
+	 */
+	public function removeEntities($str, $flags, $encoding) {
+		return $this->unentities($str, $flags, $encoding); 
 	}
 
 	/**

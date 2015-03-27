@@ -26,12 +26,16 @@ var InputfieldPageAutocomplete = {
 		var numAdded = 0; // counter that keeps track of quantity items added
 		var numFound = 0; // indicating number of pages matching during last ajax request
 		var disableChars = $input.attr('data-disablechars'); 
-		
+	
 		var iconHeight = $icon.height();
-		var pHeight = $icon.parent().height();
-		var iconTop = ((pHeight - iconHeight) / 2); 
-		$icon.css('top', iconTop + 'px');
-		$icon.css('left', (iconTop / 2) + 'px'); 
+		if(iconHeight) {
+			var pHeight = $icon.parent().height();
+			var iconTop = ((pHeight - iconHeight) / 2);
+			$icon.css('top', iconTop + 'px');
+			$icon.css('left', (iconTop / 2) + 'px');
+		} else {
+			// icon is not visible (in a tab or collapsed field), we'll leave it alone
+		}	
 
 		$icon.click(function() { $input.focus(); });
 		$icon.attr('data-class', $icon.attr('class')); 
