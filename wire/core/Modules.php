@@ -2292,34 +2292,46 @@ class Modules extends WireArray {
 	 * Returns boolean false if not configurable
 	 * 
 	 * @param Module|string $className
-	 * @param bool $useCache Specify false to disable retrieval of this property from getModuleInfo (forces a new check)
+	 * @param bool $useCache This accepts a few options: 
+	 * 	- Specify boolean true to allow use of cache when available (default behavior). 
+	 * 	- Specify boolean false to disable retrieval of this property from getModuleInfo (forces a new check).
+	 * 	- Specify string 'interface' to check only if module implements ConfigurableModule interface. 
+	 * 	- Specify string 'file' to check only if module has a separate configuration class/file.
 	 * @return bool|string
 	 * 
 	 */
 	public function isConfigurableModule($className, $useCache = true) {
-		if(is_object($className) && $className instanceof ConfigurableModule) return true; // early exit
-		if($useCache) {
+	
+		$moduleInstance = null;
+		if(is_object($className)) {
+			$moduleInstance = $className;
+			$className = $this->getModuleClass($moduleInstance); 
+		}
+		
+		if($useCache === true || $useCache === 1 || $useCache === "1") {
 			$info = $this->getModuleInfoVerbose($className);
 			if(!$info['configurable']) return false;
 			if($info['configurable'] === true) return $info['configurable'];
 			return dirname($info['file']) . "/$info[configurable]";
 		}
-		if(is_object($className)) {
-			// convert to string
-			$className = $className->className();
-		} 
-		if(!class_exists($className, false)) $this->includeModule($className); 
-		$interfaces = @class_implements($className, false);
-		if(is_array($interfaces) && isset($interfaces['ConfigurableModule'])) return true; 
 		
-		$dir = dirname($this->getModuleFile($className));
-		if($dir == false) return false;
+		if($useCache !== "interface") {
+			$dir = dirname($this->getModuleFile($className));
+			if($dir == false) return false;
+
+			$file = "$dir/{$className}Config.php";
+			if(is_file($file)) return $file;
+
+			$file = "$dir/$className.config.php";
+			if(is_file($file)) return $file;
+		}
 		
-		$file = "$dir/{$className}Config.php";
-		if(file_exists($file)) return $file;
-		
-		$file = "$dir/$className.config.php";
-		if(file_exists($file)) return $file;
+		if($useCache !== "file") {
+			if($moduleInstance) return ($moduleInstance instanceof ConfigurableModule);
+			if(!class_exists($className, false)) $this->includeModule($className);
+			$interfaces = @class_implements($className, false);
+			if(is_array($interfaces) && isset($interfaces['ConfigurableModule'])) return true;
+		}
 
 		return false;
 	}

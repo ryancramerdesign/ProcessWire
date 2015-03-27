@@ -816,8 +816,16 @@ class InputfieldWrapper extends Inputfield {
 				$this->error("Skipped field '$name' because module '$type' does not exist");
 				continue;
 			}
-
+			
 			$f->attr('name', $name);
+			
+			if($type == 'InputfieldCheckbox') {
+				// checkbox behaves a little differently, just like in HTML
+				if(!empty($info['attr']['value'])) $f->attr('value', $info['attr']['value']);
+				else if(!empty($info['value'])) $f->attr('value', $info['value']);
+				unset($info['attr']['value'], $info['value']);
+				$f->autocheck = 1; // future value attr set triggers checked state
+			}
 
 			if(isset($info['attr']) && is_array($info['attr'])) {
 				foreach($info['attr'] as $key => $value) {

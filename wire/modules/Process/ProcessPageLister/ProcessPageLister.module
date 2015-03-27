@@ -1294,12 +1294,20 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	 * 
 	 */
 	public function ___executeReset() {
-		$this->sessionClear();
-		$this->session->remove(self::sessionBookmarksName); 
-		$this->sessionSet('knownTotal', null); 
+		$this->resetLister();
 		$this->message($this->_('All settings have been reset.'));
 		if(strpos($this->wire('input')->urlSegmentStr, '/reset/')) $this->session->redirect('../');
 			else $this->session->redirect('./'); 
+	}
+
+	/**
+	 * Reset all Lister settings so it is starting from a blank state
+	 * 
+	 */
+	public function resetLister() {
+		$this->sessionClear();
+		$this->session->remove(self::sessionBookmarksName);
+		$this->sessionSet('knownTotal', null); 
 	}
 
 	/**

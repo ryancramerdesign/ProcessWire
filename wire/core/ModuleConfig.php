@@ -10,7 +10,7 @@
  * 
  */
 
-abstract class ModuleConfig extends WireData {
+class ModuleConfig extends WireData {
 
 	/**
 	 * Used when inputfields are defined by array

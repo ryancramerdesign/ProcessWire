@@ -79,19 +79,20 @@ class ProcessPageType extends Process implements ConfigurableModule, WirePageEdi
 	 *
 	 */
 	public function ___executeNavJSON(array $options = array()) {
-		
-		$limit = (int) $this->wire('input')->get('limit');
-		if(!$limit || $limit > 100) $limit = 100;
-		$start = (int) $this->wire('input')->get('start');
-		$pages = $this->pages->find("start=$start, limit=$limit");
-		foreach($pages as $page) {
-			if(!$page->editable()) $pages->remove($page);
+	
+		if(!isset($options['items'])) {
+			$limit = (int) $this->wire('input')->get('limit');
+			if(!$limit || $limit > 100) $limit = 100;
+			$start = (int) $this->wire('input')->get('start');
+			$pages = $this->pages->find("start=$start, limit=$limit");
+			foreach($pages as $page) {
+				if(!$page->editable()) $pages->remove($page);
+			}
+			$options['items'] = $pages;
+			$options['add'] = 'add/';
+			$options['edit'] = "edit/?id={id}"; 
 		}
-
-		$options['add'] = 'add/'; 
-		$options['items'] = $pages;
-		$options['edit'] = "edit/?id={id}"; 
-		$options['itemLabel'] = $this->jsonListLabel;
+		if(!isset($options['itemLabel'])) $options['itemLabel'] = $this->jsonListLabel;
 		
 		return parent::___executeNavJSON($options); 
 	}	

@@ -1138,32 +1138,40 @@ class ProcessModule extends Process {
 		$configurable = $this->wire('modules')->isConfigurableModule($moduleName); 
 		if($configurable) { 
 			$data = $this->modules->getModuleConfigData($moduleName); 
-			
-			if($configurable === true) { 
-				$fields = call_user_func(array($moduleName, 'getModuleConfigInputfields'), $data); 
-				
-			} else if(is_string($configurable) && file_exists($configurable)) {
-				include_once($configurable);
+			// check for configurable module interface
+			if($this->wire('modules')->isConfigurableModule($moduleName, "interface")) {
+				$fields = call_user_func(array($moduleName, 'getModuleConfigInputfields'), $data);
+				if($fields instanceof InputfieldWrapper) {
+					foreach($fields as $field) {
+						$form->append($field);
+					}
+				} else {
+					$this->error("$moduleName.getModuleConfigInputfields() did not return InputfieldWrapper"); 
+				}
+			}
+			// check for file-based config
+			$file = $this->wire('modules')->isConfigurableModule($moduleName, "file");
+			if($file && is_string($file) && file_exists($file)) {
+				include_once($file);
 				$configClass = $moduleName . "Config";
 				if(class_exists($configClass)) {
-					$configModule = new $configClass(); 
+					$configModule = new $configClass();
 					if($configModule instanceof ModuleConfig) {
 						$defaults = $configModule->getDefaults();
-						$data = array_merge($defaults, $data); 
-						$configModule->setArray($data); 
-						$fields = $configModule->getInputfields();			
-						foreach($data as $key => $value) {
-							$f = $fields->getChildByName($key); 
-							if($f) $f->attr('value', $value); 
+						$data = array_merge($defaults, $data);
+						$configModule->setArray($data);
+						$fields = $configModule->getInputfields(); 
+						if($fields instanceof InputfieldWrapper) {
+							foreach($fields as $field) $form->append($field);
+							foreach($data as $key => $value) {
+								$f = $form->getChildByName($key);
+								if($f) $f->attr('value', $value);
+							}
+						} else {
+							$this->error("$configModule.getInputfields() did not return InputfieldWrapper");
 						}
 					}
 				}
-			}
-				
-			if($fields instanceof InputfieldWrapper) {
-				foreach($fields as $field) $form->append($field); 
-			} else {
-				$this->error("$moduleName::getModuleConfigInputfields() or {$moduleName}Config->getInputfields() did not return the expected value (InputfieldWrapper)");
 			}
 		} 
 

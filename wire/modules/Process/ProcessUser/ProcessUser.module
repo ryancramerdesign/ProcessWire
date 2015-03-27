@@ -12,6 +12,10 @@
  * 
  * http://www.processwire.com
  * http://www.ryancramer.com
+ * 
+ * @todo update nav json to show roles rather than users when users qty > 100
+ * 
+ * @property int $maxAjaxQty
  *
  */
 
@@ -30,7 +34,12 @@ class ProcessUser extends ProcessPageType {
 	}
 	
 	protected $lister = null;
-
+	
+	public function __construct() {
+		$this->set("maxAjaxQty", 50); 
+		return parent::__construct();
+	}
+	
 	public function init() {
 		$this->wire('pages')->addHookBefore('save', $this, 'hookPageSave');	
 		parent::init();
@@ -51,6 +60,35 @@ class ProcessUser extends ProcessPageType {
 		$roles->label = $this->_('Roles'); 
 		$roles->description = $this->_("User will inherit the permissions assigned to each role. You may assign multiple roles to a user. When accessing a page, the user will only inherit permissions from the roles that are also assigned to the page's template."); // Roles description
 	}
+
+	/**
+	 * Output JSON list of navigation items for this (intended to for ajax use)
+	 *
+	 */
+	public function ___executeNavJSON(array $options = array()) {
+
+		$max = $this->maxAjaxQty > 0 && $this->maxAjaxQty <= 100 ? (int) $this->maxAjaxQty : 50; 
+		
+		if(empty($options) && $this->pages->count("id>0") > $max) {
+			$items = array();
+			foreach($this->wire('roles') as $role) {
+				$cnt = $this->pages->count("roles=$role"); 
+				$item = array(
+					'id' => $role->id, 
+					'name' => $role->name, 
+					'cnt' => sprintf($this->_n('%d user', '%d users', $cnt), $cnt)
+				);
+				$items[] = $item;
+			}
+			$options['itemLabel'] = 'name';
+			$options['itemLabel2'] = 'cnt';
+			$options['add'] = 'add/';
+			$options['items'] = $items;
+			$options['edit'] = "?roles={id}";
+		}
+
+		return parent::___executeNavJSON($options);
+	}
 	
 	protected function getLister($selector = '') {
 		
@@ -60,11 +98,13 @@ class ProcessUser extends ProcessPageType {
 		
 		$templates = $this->pages->getTemplates();
 		$selector = "template=" . implode('|', array_keys($templates)) . ", include=unpublished, check_access=0, $selector";
+		$role = (int) $this->wire('input')->get('roles'); 
+		if($role) $lister->resetLister();
 		
 		$properties = array(
 			'initSelector' => $selector,
 			'columns' => $this->showFields,
-			'defaultSelector' => "name%=, roles=",
+			'defaultSelector' => "name%=, roles=" . ($role ? $role : ''),
 			'defaultSort' => 'name',
 			'parent' => $this->page,
 			'editURL' => './edit/',
