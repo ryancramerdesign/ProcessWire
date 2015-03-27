@@ -743,6 +743,22 @@ $config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5e
  * 3. Width: 100% minus this many pixels
  * 4. Height: 100% minus this many pixels
  * 
+ * Following that you may optionally specify any of the following, in any order. 
+ * They must continue to be in CSV format, i.e. "key=value,key=value,key=value".
+ * 
+ * 5. modal=true (whether dialog will have modal behavior, specify false to disable)
+ * 6. draggable=false (whether dialog is draggable, specify true to enable)*
+ * 7. resizable=true (whether dialog is resizable, specify false to disable)
+ * 8. hideOverflow=true (whether overflow in parent should be hidden, specify false to disable)
+ * 9. hide=250 (number of ms to fade out window after closing, default=250)
+ * 10. show=100 (number of ms to fade in window when opening, default=100)
+ * 11. closeOnEscape=false (whether hitting the ESC key should close the window, specify true to enable)
+ * 
+ * The "large" modal option below demonstrates a few of these. 
+ * 
+ * *Note the draggable option does not work well unless the modal will open at the top of the
+ * page. Do not use on modals that may be triggered further down the page.
+ * 
  * @var array
  * #property string large Settings for large modal windows (most common)
  * #property string medium Settings for medium modal windows
@@ -751,7 +767,7 @@ $config->fatalErrorHTML = "<p style='background:crimson;color:white;padding:0.5e
  * 
  */
 $config->modals = array(
-	'large' => "15,15,30,30", 
+	'large' => "15,15,30,30,draggable=false,resizable=true,hide=250,show=100", 
 	'medium' => "50,49,100,100", 
 	'small' => "100,100,200,200",
 	'full' => "0,0,0,0",

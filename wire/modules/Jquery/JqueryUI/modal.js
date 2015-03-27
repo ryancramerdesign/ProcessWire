@@ -61,21 +61,56 @@ function pwModalWindowSettings(name) {
 	var modal = config.modals[name];
 	if(typeof modal == "undefined") modal = config.modals['medium'];
 	modal = modal.split(','); 
-	
-	return {
+
+	// options that can be customized via config.modals, with default values
+	var options = {
 		modal: true,
 		draggable: false,
 		resizable: true,
+		hide: 250,
+		show: 100, 
+		hideOverflow: true,
+		closeOnEscape: false
+	}
+
+	if(modal.length >= 4) {
+		for(var n = 4; n < modal.length; n++) {
+			var val = modal[n];
+			if (val.indexOf('=') < 1) continue;
+			val = val.split('=');
+			var key = jQuery.trim(val[0]);
+			val = jQuery.trim(val[1].toLowerCase());
+			if (typeof options[key] == "undefined") continue;
+			if (val == "true" || val == "1") {
+				val = true;
+			} else if (val == "false" || val == "0") {
+				val = false;
+			} else {
+				val = parseInt(val);
+			}
+			options[key] = val;
+		}
+	}
+	
+	return {
+		modal: options.modal,
+		draggable: options.draggable,
+		resizable: options.resizable,
 		position: [ parseInt(modal[0]), parseInt(modal[1]) ], 
 		width: $(window).width() - parseInt(modal[2]),
 		height: $(window).height() - parseInt(modal[3]),
-		hide: 250,
-		show: 100, 
+		hide: options.hide,
+		show: options.show, 
+		closeOnEscape: options.closeOnEscape,
 		create: function(event, ui) {
-			parent.jQuery('body').css('overflow', 'hidden');
+			if(options.hideOverflow) {
+				parent.jQuery('body').css('overflow', 'hidden');
+			}
 		},
 		beforeClose: function(event, ui) {
-			parent.jQuery('body').css('overflow', 'auto');
+			if(options.hideOverflow) {
+				parent.jQuery('body').css('overflow', 'auto');
+			}
 		}
 	}
 };
