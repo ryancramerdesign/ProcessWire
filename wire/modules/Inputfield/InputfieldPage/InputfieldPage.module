@@ -628,7 +628,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field->label = $this->_('Custom PHP code to find selectable pages'); 
 		$field->attr('value', $this->findPagesCode); 
 		$field->attr('rows', 4); 
-		$field->description = $this->_('If you want to find selectable pages using a PHP code snippet rather than selecting a parent page or template (above) then enter the code to find the selectable pages. This statement has access to the $page and $pages API variables, where $page refers to the page being edited. The snippet should return either a PageArray or NULL. Using this is optional, and if used, it overrides the parent/template/selector fields above. NOTE: Not compatible with PageListSelect or Autocomplete input field types.'); // Description for Custom PHP to find selectable pages
+		$field->description = $this->_('If you want to find selectable pages using a PHP code snippet rather than selecting a parent page or template (above) then enter the code to find the selectable pages. This statement has access to the $page and $pages API variables, where $page refers to the page being edited. The snippet should return either a PageArray, a Page or NULL. If it returns a page, its children are used as selectable pages. Using this is optional, and if used, it overrides the parent/template/selector fields above. NOTE: Not compatible with PageListSelect or Autocomplete input field types.'); // Description for Custom PHP to find selectable pages
 		$field->notes = $exampleLabel . $this->_('return $page->parent->parent->children("name=locations")->first()->children();'); // Example of Custom PHP code to find selectable pages
 		$field->collapsed = Inputfield::collapsedBlank;
 		$fieldset->append($field); 
