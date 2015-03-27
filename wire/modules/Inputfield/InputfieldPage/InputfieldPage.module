@@ -143,40 +143,44 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		$valid = true;
 		
-		if($field->findPagesSelector) { 
-			$selector = $field->findPagesSelector; 
-			if($editPage) $selector = self::getFindPagesSelector($editPage, $selector); 
-			if(!$page->matches($selector)) {
-				if($editPage) $editPage->set('_isValidPage', "Page $page does not match findPagesSelector: $selector"); 
-				$valid = false;
-			}
-		} 
-		
 		if($field->findPagesCode) {
 			// TODO: we don't currently validate these
-		} 
+		}else{
 
-		if($field->parent_id && $field->parent_id != $page->parent_id) {
-			if(version_compare(PHP_VERSION, '5.3.8') >= 0) {
-				if(is_subclass_of($field->inputfield, 'InputfieldPageListSelection')) {
-					// parent_id represents a root parent
-					$rootParent = wire('pages')->get($field->parent_id); 
-					if(!$page->parents()->has($rootParent)) $valid = false;
-				} else {
-					// parent_id represents a direct parent
+			// Validate them only if no custom php code is used
+		
+			if($field->findPagesSelector) { 
+				$selector = $field->findPagesSelector; 
+				if($editPage) $selector = self::getFindPagesSelector($editPage, $selector); 
+				if(!$page->matches($selector)) {
+					if($editPage) $editPage->set('_isValidPage', "Page $page does not match findPagesSelector: $selector"); 
 					$valid = false;
 				}
-				if(!$valid && $editPage) $editPage->set('_isValidPage', "Page $page does not have required parent $field->parent_id"); 
-			} else {
-				// PHP version prior to 5.3.8
-				$reflector = new ReflectionClass($field->inputfield); 
-				$valid = $reflector->implementsInterface('InputfieldPageListSelection'); 
+			} 
+
+			if($field->parent_id && $field->parent_id != $page->parent_id) {
+				if(version_compare(PHP_VERSION, '5.3.8') >= 0) {
+					if(is_subclass_of($field->inputfield, 'InputfieldPageListSelection')) {
+						// parent_id represents a root parent
+						$rootParent = wire('pages')->get($field->parent_id); 
+						if(!$page->parents()->has($rootParent)) $valid = false;
+					} else {
+						// parent_id represents a direct parent
+						$valid = false;
+					}
+					if(!$valid && $editPage) $editPage->set('_isValidPage', "Page $page does not have required parent $field->parent_id"); 
+				} else {
+					// PHP version prior to 5.3.8
+					$reflector = new ReflectionClass($field->inputfield); 
+					$valid = $reflector->implementsInterface('InputfieldPageListSelection'); 
+				}
 			}
-		}
-		
-		if($field->template_id && $page->template->id != $field->template_id) {
-			$valid = false;
-			if($editPage) $editPage->set('_isValidPage', "Page $page does not have required template $field->template_id"); 
+			
+			if($field->template_id && $page->template->id != $field->template_id) {
+				$valid = false;
+				if($editPage) $editPage->set('_isValidPage', "Page $page does not have required template $field->template_id"); 
+			}
+
 		}
 		
 		return $valid;
