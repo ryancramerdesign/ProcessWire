@@ -218,16 +218,16 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if($this->configMode) {
 			$children = new PageArray();
 
+		} else if($this->findPagesCode) {
+			// php statement that returns a PageArray or a Page (to represent a parent)
+			$children = $this->findPagesCode($page);
+			if($children instanceof Page) $children = $children->children(); // @teppokoivula
+
 		} else if($this->findPagesSelector) { 
 			// a find() selector
 			$instance = $this->processInputMode ? $this : null;
 			$selector = self::getFindPagesSelector($page, $this->findPagesSelector, $instance);
 			$children = $this->pages->find($selector); 
-
-		} else if($this->findPagesCode) {
-			// php statement that returns a PageArray or a Page (to represent a parent)
-			$children = $this->findPagesCode($page);
-			if($children instanceof Page) $children = $children->children(); // @teppokoivula
 
 		} else if($this->parent_id) {
 			$parent = $this->fuel('pages')->get($this->parent_id); 
