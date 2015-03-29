@@ -2320,19 +2320,23 @@ class Modules extends WireArray {
 			if($dir == false) return false;
 
 			$file = "$dir/{$className}Config.php";
-			if(is_file($file)) return $file;
+			if(is_file($file)) {
+				include_once($file);
+				$interfaces = @class_parents($className, false);
+				if(is_array($interfaces) && isset($interfaces['ModuleConfig'])) return $file;
+			}
 
 			$file = "$dir/$className.config.php";
 			if(is_file($file)) return $file;
 		}
-		
+
 		if($useCache !== "file") {
 			if($moduleInstance) return ($moduleInstance instanceof ConfigurableModule);
 			if(!class_exists($className, false)) $this->includeModule($className);
 			$interfaces = @class_implements($className, false);
 			if(is_array($interfaces) && isset($interfaces['ConfigurableModule'])) return true;
 		}
-
+		
 		return false;
 	}
 
@@ -2358,10 +2362,13 @@ class Modules extends WireArray {
 			$className = $module->className() . 'Config';
 			include_once($configurable);
 			if(class_exists($className)) {
-				$moduleConfig = new $className();
-				if($moduleConfig instanceof ModuleConfig) {
-					$defaults = $moduleConfig->getDefaults();
-					$data = array_merge($defaults, $data); 
+				$interfaces = @class_parents($className, false);
+				if(is_array($interfaces) && isset($interfaces['ModuleConfig'])) {
+					$moduleConfig = new $className();
+					if($moduleConfig instanceof ModuleConfig) {
+						$defaults = $moduleConfig->getDefaults();
+						$data = array_merge($defaults, $data);
+					}
 				}
 			}
 		}
