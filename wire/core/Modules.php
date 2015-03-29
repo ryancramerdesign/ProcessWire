@@ -2317,17 +2317,23 @@ class Modules extends WireArray {
 		
 		if($useCache !== "interface") {
 			$dir = dirname($this->getModuleFile($className));
-			if($dir == false) return false;
-
-			$file = "$dir/{$className}Config.php";
-			if(is_file($file)) {
-				include_once($file);
-				$interfaces = @class_parents($className, false);
-				if(is_array($interfaces) && isset($interfaces['ModuleConfig'])) return $file;
+			if($dir) {
+				$files = array(
+					"$dir/{$className}Config.php", 
+					"$dir/$className.config.php"
+				); 
+				$found = false;
+				foreach($files as $file) {
+					if(!is_file($file)) continue;
+					include_once($file);
+					$interfaces = @class_parents($className . 'Config', false);
+					if(is_array($interfaces) && isset($interfaces['ModuleConfig'])) {
+						$found = $file;
+						break;
+					}
+				}
+				if($found) return $file;
 			}
-
-			$file = "$dir/$className.config.php";
-			if(is_file($file)) return $file;
 		}
 
 		if($useCache !== "file") {
