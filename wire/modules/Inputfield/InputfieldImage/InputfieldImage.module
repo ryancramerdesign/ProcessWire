@@ -46,6 +46,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$this->set('adminThumbs', false); // generate and use thumbnails for output?
 		$this->set('maxWidth', ''); 
 		$this->set('maxHeight', '');
+		$this->set('maxReject', false);
 		$this->set('minWidth', '');
 		$this->set('minHeight', '');
 		
@@ -115,12 +116,18 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		}
 		
 		if(($this->minWidth && $pagefile->width < $this->minWidth) || ($this->minHeight && $pagefile->height < $this->minHeight)) {
-			$actualDimensions = $pagefile->width . 'x' . $pagefile->height; 
-			$requiredDimensions = $this->minWidth . 'x' . $this->minHeight;
+			$actualDimensions = $pagefile->width . '×' . $pagefile->height . ' px'; 
+			$requiredDimensions = $this->minWidth . '×' . $this->minHeight . ' px';
 			throw new WireException(sprintf($this->_('Image of %s does not meet minimum size requirements'), $actualDimensions) . " ($requiredDimensions)"); 
 		}
 
 		if(($this->maxWidth && $pagefile->width > $this->maxWidth) || ($this->maxHeight && $pagefile->height > $this->maxHeight)) {
+			if ($this->maxReject) {
+				$actualDimensions = $pagefile->width . '×' . $pagefile->height . ' px'; 
+				$requiredDimensions = $this->maxWidth . '×' . $this->maxWidth . ' px';
+				throw new WireException(sprintf($this->_('Image of %s exceeds maximum size requirements'), $actualDimensions) . " ($requiredDimensions)");
+			}
+
 			$pagefile2 = $pagefile->size($this->maxWidth, $this->maxHeight, array('cropping' => false));
 			if($pagefile->filename != $pagefile2->filename) {
 				unlink($pagefile->filename);
@@ -130,7 +137,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		}
 
 		if($pagefile2) {
-			$this->message($this->_("Image resized to fit maximum allowed dimensions") . " ({$this->maxWidth}x{$this->maxHeight}"); 
+			$this->message($this->_("Image resized to fit maximum allowed dimensions") . " ({$this->maxWidth}×{$this->maxHeight} px"); 
 		}
 
 		return parent::___fileAdded($pagefile); 
@@ -341,7 +348,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$field->attr('value', $this->maxWidth ? (int) $this->maxWidth : ''); 
 		$field->label = $this->_("Max width for uploaded images"); 
 		$field->description = $description;
-		$field->columnWidth = 50; 
+		$field->columnWidth = 33; 
 		$fieldset->add($field); 
 
 		$field = $this->modules->get("InputfieldInteger"); 
@@ -349,8 +356,17 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$field->attr('value', $this->maxHeight ? (int) $this->maxHeight : ''); 
 		$field->label = $this->_("Max height for uploaded images"); 
 		$field->description = $description;
-		$field->columnWidth = 50; 
+		$field->columnWidth = 33; 
 		$fieldset->add($field); 
+		
+		$field = $this->modules->get("InputfieldCheckbox"); 
+		$field->attr('name', 'maxReject'); 
+		$field->attr('value', (int)$this->maxReject); 
+		$field->attr('checked', ((int)$this->maxReject) ? 'checked' : ''); 
+		$field->label = $this->_('Reject images exceeding max dimensions?'); 
+		$field->description = $this->_('If unchecked, images will be resized to fit the specified dimensions');
+		$field->columnWidth = 33; 
+		$fieldset->add($field);
 
 		$inputfields->add($fieldset);
 	
