@@ -41,7 +41,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page List',          
 			'summary' => 'List pages in a hierarchal tree structure', 
-			'version' => 109, 
+			'version' => '1.0.10',
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			'icon' => 'sitemap',
@@ -131,6 +131,8 @@ class ProcessPageList extends Process implements ConfigurableModule {
 				'containerID' => 'PageListContainer', 
 				'ajaxURL' => $this->config->urls->admin . "page/list/", 
 				'ajaxMoveURL' => $this->config->urls->admin . "page/sort/",
+				'ajaxNetworkError' => $this->_('Network error, please try again later!'), // Network error during AJAX request
+				'ajaxUnknownError' => $this->_('Unknown error, please try again later!'), // Unknown error during AJAX request
 				'rootPageID' => $this->id, 
 				'openPageIDs' => $openPageIDs, 
 				'openPagination' => (int) $this->input->get->n, // @todo: make it openPaginations and correspond to openPageIDs
