@@ -27,6 +27,16 @@
  *
  * Serves as the base class for the different Selector types (seen below this class). 
  * 
+ * @property string|array $field Field or fields present in the selector (can be string or array)
+ * @property array $fields Fields that were present in selector (same as $field, but always array)
+ * @property string $operator Operator used by the selector
+ * @property string|array $value Value or values present in the selector (can be string or array)
+ * @property array $values Values that were present in selector (same as $value, but always array)
+ * @property bool $not Is this a NOT selector? (i.e. returns the opposite if what it would otherwise)
+ * @property string|null $group Group name for this selector (if field was prepended with a "group_name@")
+ * @property string $quote Type of quotes value was in, or blank if it was not quoted. One of: '"[{(
+ * 
+ * 
  */
 abstract class Selector extends WireData {
 
@@ -60,6 +70,8 @@ abstract class Selector extends WireData {
 	public function get($key) {
 		if($key == 'operator') return $this->getOperator();
 		if($key == 'str') return $this->__toString();
+		if($key == 'values') return is_array($this->value) ? $this->value : array($this->value); 
+		if($key == 'fields') return is_array($this->field) ? $this->field : array($this->field); 
 		return parent::get($key); 
 	}
 

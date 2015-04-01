@@ -46,6 +46,8 @@
  * @property bool $showInitValue [false] Show non-modifiable inputs for the initValue?
  * @property bool|int $showFieldLabels [false] Show field labels rather than names? Or specify integer 2 to show both.
  * @property bool $showOptgroups [true] Whether or not to separate sytem, field, subfields, etc. into their own optgroups. If turned off, all types of fields will be shown together A-Z.
+ * @property array $limitFields [empty] Selectable fields whitelist (field names). Leave empty to allow any.
+ * @property bool $parseVars [true] Whether variables in a selector should be parsed and converted to values
  *
  *
  */
@@ -55,7 +57,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Selector',
-			'version' => 23,
+			'version' => 24,
 			'summary' => 'Build a page finding selector visually.',
 			'author' => 'Avoine + ProcessWire',
 			'autoload' => "template=admin", 
@@ -139,11 +141,14 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		'allowSubfields',
 		'allowSubfieldGroups',
 		'allowModifiers',
+		'allowAddRemove',
+		'fieldsWhitelist',
 		'dateFormat',
 		'datePlaceholder',
 		'timeFormat',
 		'timePlaceholder',
 		'previewColumns',
+		'limitFields',
 		);
 
 	/**
@@ -168,7 +173,8 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$this->setting('counter', 1); // whether to show the live ajax number-of-page-matches counter
 		$this->setting('initValue', ''); // initial selector value: not changeable by user
 		$this->setting('addIcon', 'plus-circle');
-		$this->setting('addLabel', $this->_('Add Field')); 
+		$this->setting('addLabel', $this->_('Add Field'));
+		$this->setting('parseVars', true); // whether variables like [user.id] will be parsed
 		
 		$this->set('subfieldIdentifier', ' &hellip;');
 		$this->set('groupIdentifier', ' ' . $this->_('(1)')); // group identifier
@@ -188,6 +194,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$this->setting('showOptgroups', true); // show option groups to separate system, field, subfield, etc. 
 		$this->setting('optgroupsOrder', 'system,field,subfield,group,modifier,adjust'); // field selection option groups and order to render them in (applicable only if showOptgroups=true)
 		$this->setting('exclude', ''); // CSV fields to disallow
+		$this->setting('limitFields', array()); // only allow these fields (empty=allow any)
 		$this->setting('dateFormat', $this->_('Y-m-d')); // date format 
 		$this->setting('datePlaceholder', $this->_('yyyy-mm-dd')); // date format placeholder (what users see)
 		$this->setting('timeFormat', $this->_('H:i')); // time format
@@ -574,9 +581,11 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	 *
 	 * @param Field $field
 	 * @return bool
+	 * @deprecated not currently in use
 	 *
 	 */
 	protected function hasSubfields(Field $field) {
+		$info = $this->getSelectorInfo($field); 
 		return count($info['subfields']) > 0;
 	}
 
@@ -646,6 +655,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			'customFields' => $this->wire('fields'), 
 			'prepend' => '',
 			'exclude' => array('count', 'pass'),
+			'limitFields' => array(), 
 			'templates' => array(),
 			'type' => '', 
 			); 
@@ -656,7 +666,24 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 			foreach($exclude as $k => $v) $exclude[$k] = trim($v); 
 			$settings['exclude'] = array_merge($settings['exclude'], $exclude); 
 		}
-
+	
+		$limitSubfields = null; // becomes $limitField indexed array of subfield names when applicable
+		if(count($this->limitFields)) {
+			$limitSubfields = array();
+			foreach($this->limitFields as $limitField) {
+				$settings['limitFields'][$limitField] = $limitField;
+				if(strpos($limitField, '.')) {
+					list($limitField, $limitSubfield) = explode('.', $limitField);
+					$settings['limitFields'][$limitField] = $limitField; // version without subfield
+					$limitSubfields[$limitField][$limitSubfield] = $limitSubfield;
+				} else {
+					if(!isset($limitSubfields[$limitField])) {
+						$limitSubfields[$limitField] = array();
+					}
+				}
+			}
+		}
+		
 		$selectedValueSubfield = '';
 		if(strpos($selectedValue, '.') !== false && !isset($this->systemFields[$selectedValue])) {
 			list($selectedValue, $selectedValueSubfield) = explode('.', $selectedValue); 
@@ -687,11 +714,12 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		if($settings['showSystem']) $optgroups['system'] = $this->systemFields;
 		if($settings['showModifiers']) $optgroups['modifier'] = $this->modifierFields;
 
+		// build system fields optgroup
 		foreach($optgroups as $optgroupName => $fields) {	
-			// build system fields optgroup
 			$out = '';
 			foreach($fields as $name => $field) {
 				if(in_array($name, $settings['exclude'])) continue; 
+				if(count($settings['limitFields']) && !in_array($name, $settings['limitFields'])) continue;
 				if($name == 'template' && count($settings['templates']) == 1) continue; // if only 1 template allowed, don't allow selection
 				$hasSubfields = substr($name, -1) == '.';
 				if(!$settings['showSubfields'] && $hasSubfields) continue;
@@ -719,31 +747,36 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		// build custom fields optgroup
 		foreach($settings['customFields'] as $field) {
 			$fieldName = $field->name; 
-			if(in_array($fieldName, $settings['exclude'])) continue; 
+			if(in_array($fieldName, $settings['exclude'])) continue;
+			if(count($settings['limitFields']) && !in_array($fieldName, $settings['limitFields'])) continue;
 			if(($field->flags & Field::flagSystem) && !$this->allowSystemCustomFields) continue; 
-			$allow = 0; 
 			if(count($settings['templates'])) {
-				foreach($settings['templates'] as $name) {
-					$template = $this->wire('templates')->get($name); 
+				$allow = 0;
+				foreach($settings['templates'] as $templateName) {
+					$template = $this->wire('templates')->get($templateName);
 					if($template && $template->fieldgroup->hasField($field)) $allow++;
 				}
-			} else $allow = 1;
-			if($allow) {
-				if($this->initTemplate) {
-					$f = $this->initTemplate->fieldgroup->getField($field->name, true); 
-					if($f) $field = $f;
-				}
+				if(!$allow) continue; 
+			}
+			if($this->initTemplate) {
+				$f = $this->initTemplate->fieldgroup->getField($fieldName, true); 
+				if($f) $field = $f;
+			}
+			if($limitSubfields) {
+				$_settings = $settings; 
+				$_settings['showSubfields'] = !empty($limitSubfields[$fieldName]);
+				$data = $this->renderSelectFieldOption($field, $_settings, $selectedValue);
+			} else {
 				$data = $this->renderSelectFieldOption($field, $settings, $selectedValue);
-				foreach($data as $key => $o) {
-					if($key == 'all') {
-						$outAll = array_merge($outAll, $o); 
-					}  else {
-						$outSections[$key] .= $o;
-					}
+			}
+			foreach($data as $key => $o) {
+				if($key == 'all') {
+					$outAll = array_merge($outAll, $o); 
+				}  else {
+					$outSections[$key] .= $o;
 				}
 			}
 		}
-		
 		
 		$dataLabels = $this->_('Switch to field labels');
 		$dataNames = $this->_('Switch to field names');
@@ -1185,9 +1218,19 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$selectorValue = is_null($selector) ? '' : $selector->value; 
 		if(is_array($selectorValue)) $selectorValue = reset($selectorValue); 
 		$valueHasSelectorString = strlen($selectorValue) > 0 && Selectors::stringHasSelector($selectorValue);
-
+		
+		$limitSubfields = array();
+		foreach($this->limitFields as $limitField) {
+			if(strpos($limitField, '.') === false) continue;
+			if(strpos($limitField, $fieldName) !== 0) continue; 
+			list($limitField, $limitSubfield) = explode('.', $limitField);
+			if($limitSubfield) $limitSubfields[$limitSubfield] = $limitSubfield;
+		}
+	
 		// render all the subfield options
 		foreach($selectorInfo['subfields'] as $name => $info) {
+			
+			if(count($limitSubfields) && !isset($limitSubfields[$name])) continue;
 			
 			if(isset($this->systemFields[$name])) {
 				$label = isset($this->systemFields[$name]['label']) ? $this->systemFields[$name]['label'] : $name;
@@ -1402,6 +1445,25 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	}
 
 	/**
+	 * Makes sure that existing fields present in selector are added to limitFields
+	 * 
+	 */
+	protected function prepareLimitFields() {
+		if(!count($this->limitFields)) return;
+		$limitFields = $this->limitFields;
+		foreach($this->selectors as $selector) {
+			foreach($selector->fields as $field) {
+				// if limitFields is in use and a field is present in the selector that isn't present
+				// in limitFields then make sure it is added to limitFields
+				if(!in_array($field, $limitFields)) {
+					$limitFields[] = $field;
+				}
+			}
+		}
+		$this->limitFields = $limitFields;
+	}
+
+	/**
 	 * Primary Inputfield render method
 	 * 
 	 * @return string
@@ -1424,10 +1486,14 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		// convert the value attribute to a Selectors object
 		try {
 			$value = trim($this->attr('value')); 
-			$this->selectors = new Selectors($value); 
+			$this->selectors = new Selectors(); 
+			if(!$this->parseVars) $this->selectors->setParseVars(false);
+			$this->selectors->setSelectorString($value); 
 		} catch(Exception $e) {
 			$this->error($e->getMessage()); 
 		}
+		
+		$this->prepareLimitFields(); 
 
 		// set a session variable so that ajax request know there has been a valid request
 		$this->sessionSet('valid', true); 
@@ -1462,15 +1528,21 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		
 		// render the template row to start: this is duplicated with JS when a field added
 		$rows = $this->renderRow($select, '', '', 'selector-template-row');
-
+		
+	
 		// render all the rows for existing selector values already in this Inputfield's value
 		foreach($this->selectors as $selector) {
 
 			$rowClass = '';
 			$orChecked = false;
-			$fields = $selector->field; 
+			$fields = $selector->fields; 
 			$quote = $selector->quote; 
-			if(!is_array($fields)) $fields = array($fields); 
+			
+			if(!$this->parseVars && $this->selectors->selectorHasVar($selector)) {
+				// allow for "_custom (field=value)" where value contains API var reference
+				$selector->value = implode('|', $fields) . "$selector->operator[$selector->value]";
+				$fields = array('_custom');
+			}
 
 			// render a row for each field in the $selector (usually 1)
 			foreach($fields as $fieldNum => $field) {
@@ -1545,14 +1617,23 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	 * Sanitize a selector string and return it
 	 * 
 	 * @param $selectorString
+	 * @param bool $parseVars Whether variables like [user.id] should be converted to actual value
 	 * @return string
 	 * 
 	 */
-	public function sanitizeSelectorString($selectorString) {
+	public function sanitizeSelectorString($selectorString, $parseVars = true) {
 		
-		$initSelectors = new Selectors($this->initValue); 
-		$userSelectors = new Selectors($selectorString); 
+		$initSelectors = new Selectors(); 
+		$userSelectors = new Selectors(); 
 		
+		if(!$parseVars) {
+			$initSelectors->setParseVars(false); 
+			$userSelectors->setParseVars(false);
+		}
+		
+		$initSelectors->setSelectorString($this->initValue); 
+		$userSelectors->setSelectorString($selectorString); 
+	
 		foreach($userSelectors as $s) {
 			if($s->quote == '[' && !$this->allowSubselectors) {
 				$this->error("Subselectors are disabled"); 
@@ -1601,7 +1682,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 	public function ___processInput(WireInputData $input) {
 		parent::___processInput($input); 
 		$value = $this->attr('value'); 
-		$this->attr('value', $this->sanitizeSelectorString($value)); 
+		$this->attr('value', $this->sanitizeSelectorString($value, false));
 		return $this; 
 	}
 

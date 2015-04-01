@@ -55,6 +55,7 @@
  * @property bool $cacheTotal cache the total, per selector, for increased performance? [true] 
  * @property array $toggles One or more of: collapseFilters, collapseColumns, noNewFilters, disableColumns [empty]
  * @property array $systemLabels Array of system page labels of field_name => label
+ * @property array $limitFields Limit selectable filters/columns to only those present in this array [empty]
  * 
  *
  */
@@ -192,6 +193,10 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 
 		// columns that may not be displayed
 		$this->set('disallowColumns', array('pass', 'config')); 
+	
+		// limit selectable columns and filters to only those present in this array
+		// if empty, then it is not applicable
+		$this->set('limitFields', array()); 
 	
 		// whether to use labels for fields (versus names) in column selection and column labels
 		$this->set('useColumnLabels', true); 
@@ -382,6 +387,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$s->allowSubfieldGroups = false; // we only support in ListerPro
 		$s->allowSubselectors = false; // we only support in ListerPro
 		$s->exclude = 'sort';
+		$s->limitFields = $this->limitFields;
 		$s->showFieldLabels = $this->useColumnLabels ? 1 : 0; 
 		if(in_array('collapseFilters', $this->toggles)) $s->collapsed = Inputfield::collapsedYes; 
 		if(in_array('disableFilters', $this->toggles)) {
@@ -570,6 +576,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	protected function allowColumnField(Field $field) {
 		
 		if(in_array($field->name, $this->disallowColumns)) return false;
+		if(count($this->limitFields) && !in_array($field->name, $this->limitFields)) {
+			if(!in_array($field->name, $this->columns)) return false;
+		}
 		if($field->type instanceof FieldtypeFieldsetOpen) return false;
 		
 		static $templates = array();
@@ -664,13 +673,13 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$selectors1 = new Selectors($s1); 
 		$selectors2 = new Selectors($s2); 
 		
-		foreach($selectors1 as $selector1) {
-			$value = $selector1->value; 
-			if(is_array($value) || strlen($value)) continue;
+		foreach($selectors1 as $key1 => $selector1) {
+			//$value = $selector1->value; 
+			//if(is_array($value) || strlen($value)) continue;
 			$fieldName1 = $selector1->field; 
 			if(is_array($fieldName1)) $fieldName1 = implode('|', $fieldName1);
 			// see if we have the same field in selectors2
-			foreach($selectors2 as $selector2) {
+			foreach($selectors2 as $key2 => $selector2) {
 				$fieldName2 = $selector2->field; 
 				if(is_array($fieldName2)) $fieldName2 = implode('|', $fieldName2); 
 				if($fieldName1 == $fieldName2) {
@@ -1041,6 +1050,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			$value = implode($delimiter, $values); 
 
 		} else if(in_array($name, array('created', 'modified'))) {
+			// @todo make this format customizable via wireDate()
 			// date modified or created
 			$value = "<span class='datetime'>" . wireRelativeTimeStr($value, true) . "</span>";
 

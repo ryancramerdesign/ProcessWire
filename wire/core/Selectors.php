@@ -60,6 +60,28 @@ class Selectors extends WireArray {
 	protected $selectorStr = '';
 
 	/**
+	 * Whether or not variables like [user.id] should be converted to actual value
+	 * 
+	 * In most cases this should be true. 
+	 * 
+	 * @var bool
+	 *
+	 */
+	protected $parseVars = true;
+
+	/**
+	 * API variable names that are allowed to be parsed
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $allowedParseVars = array(
+		'session', 
+		'page', 
+		'user',
+	);
+
+	/**
 	 * Types of quotes selector values may be surrounded in
 	 *
 	 */
@@ -74,10 +96,22 @@ class Selectors extends WireArray {
 
 	/**
 	 * Given a selector string, extract it into one or more corresponding Selector objects, iterable in this object.
+	 * 
+	 * @param string|null Selector string. If not provided here, please follow-up with a setSelectorString($str) call. 
 	 *
 	 */
-	public function __construct($selectorStr) {
-		$this->selectorStr = $selectorStr; 
+	public function __construct($selectorStr = null) {
+		if(!is_null($selectorStr)) $this->setSelectorString($selectorStr); 
+	}
+
+	/**
+	 * Set the selector string (if not provided to constructor)
+	 * 
+	 * @param string $selectorStr
+	 * 
+	 */
+	public function setSelectorString($selectorStr) {
+		$this->selectorStr = $selectorStr;
 		$this->extractString(trim($selectorStr)); 
 	}
 
@@ -271,7 +305,7 @@ class Selectors extends WireArray {
 			$operator = $this->extractOperator($str, $this->getOperatorChars());
 			$value = $this->extractValue($str, $quote); 
 
-			if($quote == '[' && !self::stringHasOperator($value)) {
+			if($this->parseVars && $quote == '[' && $this->valueHasVar($value)) {
 				// parse an API variable property to a string value
 				$v = $this->parseValue($value); 
 				if($v !== null) {
@@ -532,13 +566,65 @@ class Selectors extends WireArray {
 		if(!preg_match('/^\$?[_a-zA-Z0-9]+(?:\.[_a-zA-Z0-9]+)?$/', $value)) return null;
 		$property = '';
 		if(strpos($value, '.')) list($value, $property) = explode('.', $value); 
-		$allowed = array('session', 'page', 'user'); // @todo make the whitelist configurable
-		if(!in_array($value, $allowed)) return null; 
+		if(!in_array($value, $this->allowedParseVars)) return null; 
 		$value = $this->wire($value); 
 		if(is_null($value)) return null; // does not resolve to API var
 		if(empty($property)) return (string) $value;  // no property requested, just return string value 
 		if(!is_object($value)) return null; // property requested, but value is not an object
 		return (string) $value->$property; 
+	}
+	
+	/**
+	 * Set whether or not vars should be parsed
+	 *
+	 * By default this is true, so only need to call this method to disable variable parsing.
+	 *
+	 * @param bool $parseVars
+	 *
+	 */
+	public function setParseVars($parseVars) {
+		$this->parseVars = $parseVars ? true : false;
+	}
+
+	/**
+	 * Does the given Selector value contain a parseable value?
+	 * 
+	 * @param Selector $selector
+	 * @return bool
+	 * 
+	 */
+	public function selectorHasVar(Selector $selector) {
+		if($selector->quote != '[') return false; 
+		$has = false;
+		foreach($selector->values as $value) {
+			if($this->valueHasVar($value)) {
+				$has = true; 
+				break;
+			}
+		}
+		return $has;
+	}
+
+	/**
+	 * Does the given value contain an API var reference?
+	 * 
+	 * It is assumed the value was quoted in "[value]", and the quotes are not there now. 
+	 *
+	 * @param string $value The value to evaluate
+	 * @return bool
+	 *
+	 */
+	public function valueHasVar($value) {
+		if(self::stringHasOperator($value)) return false;
+		if(strpos($value, '.') !== false) {
+			list($name, $subname) = explode('.', $value);
+		} else {
+			$name = $value;
+			$subname = '';
+		}
+		if(!in_array($name, $this->allowedParseVars)) return false;
+		if(strlen($subname) && $this->wire('sanitizer')->fieldName($subname) !== $subname) return false;
+		return true; 
 	}
 
 	public function __toString() {
@@ -568,6 +654,8 @@ class Selectors extends WireArray {
 	 * Currently this method does no sanitization, it only converts an array to a selector
 	 * string. 
 	 * 
+	 * @todo this method is not yet functional or in use
+	 * 
 	 * @param array $a
 	 * @return string
 	 * 
@@ -578,7 +666,7 @@ class Selectors extends WireArray {
 		$ids = array(); // array of page IDs, if present
 		$sanitizer = wire('sanitizer');
 
-		foreach($selectorString as $key => $value) {
+		foreach($a as $key => $value) {
 
 			if(ctype_digit($key)) {
 				
@@ -614,7 +702,7 @@ class Selectors extends WireArray {
 					// value is single value
 					$value = trim($value); 
 					$quotes = substr($value, 0, 1) . substr($value, -1);
-					if($quotes == '""' || $test == "''" || $quotes == '[]' || $quotes == '()') {
+					if($quotes == '""' || $quotes == "''" || $quotes == '[]' || $quotes == '()') {
 						// value is already quoted so we leave it 
 					} else {
 						// value may need quotes, let sanitizer decide
@@ -698,7 +786,6 @@ class Selectors extends WireArray {
 		}
 		return rtrim($s, ", "); 
 	}
-	
 
 }
 
