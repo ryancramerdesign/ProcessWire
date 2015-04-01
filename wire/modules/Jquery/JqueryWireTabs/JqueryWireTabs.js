@@ -38,7 +38,7 @@
 			function init() {
 
 				if(!options.items) return;
-				if(options.items.size() < 2) return;
+				if(options.items.length < 2) return;
 				
 				if(options.id.length) {
 					$tabList = $("#" + options.id);
@@ -74,9 +74,10 @@
 					}
 				}
 				if($rememberTab == null && cookieTab.length > 0 && options.rememberTabs > -1) $rememberTab = $tabList.find("a#_" + cookieTab);
-				if($rememberTab && $rememberTab.size() > 0) {
+				if($rememberTab && $rememberTab.length > 0) {
 					$rememberTab.click();
-					if(options.rememberTabs == 0) setTabCookie(''); // don't clear cookie when rememberTabs=1, so it continues
+					if (options.rememberTabs == 0) setTabCookie(''); // don't clear cookie when rememberTabs=1, so it continues
+					setTimeout(function() { $rememberTab.click(); }, 200); // extra backup, necessary for some event monitoring
 				} else {
 					$tabList.children("li:first").children("a").click();
 				}

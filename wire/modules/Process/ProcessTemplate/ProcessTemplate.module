@@ -29,7 +29,7 @@ class ProcessTemplate extends Process {
 		return array(
 			'title' => __('Templates', __FILE__),
 			'summary' => __('List and edit the templates that control page output', __FILE__),
-			'version' => 111,
+			'version' => 112,
 			'permanent' => true, 
 			'icon' => 'cubes', 
 			'useNavJSON' => true, 
@@ -870,7 +870,8 @@ class ProcessTemplate extends Process {
 		$field->addOption(Template::cacheExpirePage, $this->_('Clear cache for the saved page only (default)')); 
 		$field->addOption(Template::cacheExpireSite, $this->_('Clear cache for entire site*')); // Clear cache for entire site // Note you should include the '*' to relate this item to the Cache expiration notes
 		$field->addOption(Template::cacheExpireParents, $this->_('Clear cache for the saved page and parents (including homepage)')); 
-		$field->addOption(Template::cacheExpireSpecific, $this->_('Clear cache for the saved page and other pages that I specify...')); 
+		$field->addOption(Template::cacheExpireSpecific, $this->_('Clear cache for the saved page and other pages that I specify...'));
+		$field->addOption(Template::cacheExpireSelector, $this->_('Clear cache for the saved page and other pages matching selector...'));
 		$field->addOption(Template::cacheExpireNone, $this->_('Do nothing'));
 		$field->attr('value', (int) $template->cacheExpire); 
 		$field->notes = $this->_('*To maximize performance, cache files are all expired as a group rather than cleared individually.'); // Cache expiration notes // This explains the 'Clear cache for entire site*' option
@@ -888,6 +889,22 @@ class ProcessTemplate extends Process {
 		$field->showIf = 'cache_time>0, cacheExpire=' . Template::cacheExpireSpecific;
 		$form->append($field); 
 
+		// --------------------
+
+		if($template->cacheExpire == Template::cacheExpireSelector) {
+			$field = $this->modules->get('InputfieldSelector');
+			if(!$field) $field = $this->modules->get('InputfieldText'); 
+			$field->attr('name', 'cacheExpireSelector');
+			$field->description=  $this->_('Selector to find the other pages that should have their cache cleared.');
+			$field->attr('value', $template->cacheExpireSelector);
+		} else {
+			$field = $this->modules->get('InputfieldMarkup');
+			$field->value = $this->_('Save this template and then come back here to configure your selector.');
+		}
+		$field->label = $this->_('Cache expiration selector');
+		$field->showIf = 'cache_time>0, cacheExpire=' . Template::cacheExpireSelector;
+		$form->append($field);
+		
 		// --------------------
 
 		$field = $this->modules->get('InputfieldRadios'); 
@@ -1694,9 +1711,19 @@ class ProcessTemplate extends Process {
 			}
 		}
 
-		if($this->template->cacheExpire == Template::cacheExpireSpecific) $this->template->cacheExpirePages = $form->get('cacheExpirePages')->value; 
-			else $this->template->cacheExpirePages = array();
-	
+		if($this->template->cacheExpire == Template::cacheExpireSpecific) {
+			$this->template->cacheExpirePages = $form->get('cacheExpirePages')->value;
+		} else {
+			$this->template->cacheExpirePages = array();
+		}
+
+		if($this->template->cacheExpire == Template::cacheExpireSelector) {
+			$f = $form->get('cacheExpireSelector');
+			if($f) $this->template->cacheExpireSelector = $f->value;
+		} else {
+			$this->template->cacheExpireSelector = '';
+		}
+
 		// family
 	
 		if($this->input->post->noChildren) {

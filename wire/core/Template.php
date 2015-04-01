@@ -13,6 +13,8 @@
  * 
  * http://processwire.com
  * 
+ * @todo content-type / header support
+ * 
  * @property int $id Get or set the template's numbered database ID.
  * @property string $name Get or set the template's name.
  * @property string $filename Get or set a template's filename, including path (this is auto-generated from the name, though you may modify it at runtime if it suits your need).
@@ -56,6 +58,7 @@
  * @property int $useCacheForUsers Use cache for: 0 = only guest users, 1 = guests and logged in users
  * @property int $cacheExpire Expire the cache for all pages when page using this template is saved? (1 = yes, 0 = no- only current page)
  * @property array $cacheExpirePages Array of Page IDs that should be expired, when cacheExpire == Template::cacheExpireSpecific
+ * @property string $cacheExpireSelector Selector string matching pages that should be expired, when cacheExpire == Template::cacheExpireSelector
  * @property string $tags Optional tags that can group this template with others in the admin templates list 
  * @property string $tabContent Optional replacement for default "Content" label
  * @property string $tabChildren Optional replacmenet for default "Children" label
@@ -98,7 +101,13 @@ class Template extends WireData implements Saveable, Exportable {
 	 * Cache expiration options: expire page and other specific pages (stored in cacheExpirePages)
 	 *
 	 */
-	const cacheExpireSpecific = 3; 
+	const cacheExpireSpecific = 3;
+
+	/**
+	 * Cache expiration options: expire pages matching a selector
+	 * 
+	 */
+	const cacheExpireSelector = 4; 
 
 	/**
 	 * Cache expiration options: don't expire anything
@@ -187,6 +196,7 @@ class Template extends WireData implements Saveable, Exportable {
 		'useCacheForUsers' => 0, 	// use cache for: 0 = only guest users, 1 = guests and logged in users
 		'cacheExpire' => 0, 		// expire the cache for all pages when page using this template is saved? (1 = yes, 0 = no- only current page)
 		'cacheExpirePages' => array(),	// array of Page IDs that should be expired, when cacheExpire == Template::cacheExpireSpecific
+		'cacheExpireSelector' => '', // selector string that matches pages to expire when cacheExpire == Template::cacheExpireSelector
 		'label' => '',			// label that describes what this template is for (optional)
 		'tags' => '',			// optional tags that can group this template with others in the admin templates list 
 		'modified' => 0, 		// last modified time for template or template file
