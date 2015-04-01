@@ -329,7 +329,13 @@ function InputfieldDependencies() {
 				}
 
 				// value of the dependency field we are checking (if not already populated above)
-				if (value === null) value = $field.val();
+				if (value === null) {
+					if($field.attr('type') == 'checkbox') {
+						value = $field.is(":checked") ? $field.val() : null;
+					} else {
+						value = $field.val();
+					}
+				}
 
 				// value will be placed in values so we can handle multiple value checks
 				var values = [];
