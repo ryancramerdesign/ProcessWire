@@ -400,7 +400,20 @@ $(document).ready(function() {
 				}; 
 
 				if(!replace) $target.append($loading.show()); 
-				$.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&lang=" + options.langID + "&open=" + options.openPageIDs[0] + "&mode=" + options.mode, processChildren); 
+				
+				// $.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&lang=" + options.langID + "&open=" + options.openPageIDs[0] + "&mode=" + options.mode, processChildren);
+				// @teppokoivula PR #1052
+				$.getJSON(options.ajaxURL + "?id=" + id + "&render=JSON&start=" + start + "&lang=" + options.langID + "&open=" + options.openPageIDs[0] + "&mode=" + options.mode)
+					.done(function(data, textStatus, jqXHR) {
+						processChildren(data);
+					})
+					.fail(function(jqXHR, textStatus, errorThrown) {
+						processChildren({
+							error: 1,
+							message: !jqXHR.status ? options.ajaxNetworkError : options.ajaxUnknownError
+						});
+					});
+				// end #1052
 			}
 
 			/**
