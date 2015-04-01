@@ -56,6 +56,7 @@
  * @property int $useCacheForUsers Use cache for: 0 = only guest users, 1 = guests and logged in users
  * @property int $cacheExpire Expire the cache for all pages when page using this template is saved? (1 = yes, 0 = no- only current page)
  * @property array $cacheExpirePages Array of Page IDs that should be expired, when cacheExpire == Template::cacheExpireSpecific
+ * @property array $cacheExpireSelector Selector string matching pages that should be expired, when cacheExpire == Template::cacheExpireSelector
  * @property string $tags Optional tags that can group this template with others in the admin templates list 
  * @property string $tabContent Optional replacement for default "Content" label
  * @property string $tabChildren Optional replacmenet for default "Children" label
@@ -99,6 +100,12 @@ class Template extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	const cacheExpireSpecific = 3; 
+
+	/**
+	 * Cache expiration options: expire page and pages matching a selector string (cacheExpireSelector)
+	 *
+	 */
+	const cacheExpireSelector = 4; 
 
 	/**
 	 * Cache expiration options: don't expire anything
@@ -187,6 +194,7 @@ class Template extends WireData implements Saveable, Exportable {
 		'useCacheForUsers' => 0, 	// use cache for: 0 = only guest users, 1 = guests and logged in users
 		'cacheExpire' => 0, 		// expire the cache for all pages when page using this template is saved? (1 = yes, 0 = no- only current page)
 		'cacheExpirePages' => array(),	// array of Page IDs that should be expired, when cacheExpire == Template::cacheExpireSpecific
+		'cacheExpireSelector' => '',	// selector string matching pages that should be expired, when cacheExpire == Template::cacheExpireSelector
 		'label' => '',			// label that describes what this template is for (optional)
 		'tags' => '',			// optional tags that can group this template with others in the admin templates list 
 		'modified' => 0, 		// last modified time for template or template file
