@@ -9,6 +9,7 @@
  * @property bool|int $adminThumbs Generate and use thumbnails for output in the admin? (default=false)
  * @property int|string $maxWidth Max width for uploaded images, larger will be sized down (default='')
  * @property int|string $maxHeight Max height for uploaded images, larger will be sized down (default='')
+ * @property bool|int $maxReject Reject images that exceed max allowed size? (default=false)
  * @property int|string $minWidth Min width for uploaded images, smaller will be refused (default='')
  * @property int|string $minHeight Min height for uploaded images, smaller will be refused (default='')
  * @property string $itemClass Space separated CSS classes for items rendered by this Inputfield. Generally you should append rather than replace.
@@ -46,6 +47,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$this->set('adminThumbs', false); // generate and use thumbnails for output?
 		$this->set('maxWidth', ''); 
 		$this->set('maxHeight', '');
+		$this->set('maxReject', 0);
 		$this->set('minWidth', '');
 		$this->set('minHeight', '');
 		
@@ -121,6 +123,11 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		}
 
 		if(($this->maxWidth && $pagefile->width > $this->maxWidth) || ($this->maxHeight && $pagefile->height > $this->maxHeight)) {
+			if($this->maxReject) {
+				$actualDimensions = $pagefile->width . '×' . $pagefile->height;
+				$requiredDimensions = $this->maxWidth . '×' . $this->maxWidth;
+				throw new WireException(sprintf($this->_('Image of %s exceeds maximum allowed size'), $actualDimensions) . " ($requiredDimensions)");
+			}
 			$pagefile2 = $pagefile->size($this->maxWidth, $this->maxHeight, array('cropping' => false));
 			if($pagefile->filename != $pagefile2->filename) {
 				unlink($pagefile->filename);
@@ -350,7 +357,17 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$field->label = $this->_("Max height for uploaded images"); 
 		$field->description = $description;
 		$field->columnWidth = 50; 
-		$fieldset->add($field); 
+		$fieldset->add($field);
+
+		// maxReject option comes from @JanRomero PR #1051
+		$field = $this->modules->get("InputfieldCheckbox");
+		$field->attr('name', 'maxReject');
+		$field->attr('value', (int) $this->maxReject);
+		$field->attr('checked', ((int) $this->maxReject) ? 'checked' : '');
+		$field->label = $this->_('Refuse images exceeding max dimensions?');
+		$field->showIf = 'maxWidth|maxHeight>0';
+		$field->description = $this->_('If checked, images that exceed max width/height will be refused rather than resized.');
+		$fieldset->add($field);
 
 		$inputfields->add($fieldset);
 	
