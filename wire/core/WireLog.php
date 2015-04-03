@@ -68,7 +68,7 @@ class WireLog extends Wire {
 	 * 
 	 * @param string $name Name of log to save to (word consisting of [-._a-z0-9] and no extension)
 	 * @param string $text Text to save to the log
-	 * @param array $options Options to modify behavior (defaults: showUser=true, showPage=true, delimiter=\t)
+	 * @param array $options Options to modify behavior (defaults: showUser=true, showURL=true, url='url', delimiter=\t)
 	 * @return bool Whether it was written (usually assumed to be true)
 	 * @throws WireException
 	 * 
@@ -94,7 +94,20 @@ class WireLog extends Wire {
 			} else {
 				$input = $this->wire('input');
 				$url = $input ? $input->httpUrl() : '';
-				if(!strlen($url)) $url = '?';
+				if(strlen($url) && $input) {
+					if(count($input->get)) {
+						$url .= "?";
+						foreach($input->get as $k => $v) {
+							$k = $this->wire('sanitizer')->name($k);
+							$v = $this->wire('sanitizer')->name($k);
+							$url .= "$k=$v&";
+						}
+						$url = rtrim($url, "&");
+					}
+					if(strlen($url) > 500) $url = substr($url, 0, 500) . " ...";
+				} else {
+					$url = '?';
+				}
 			}
 			$text = "$url$options[delimiter]$text";
 		}

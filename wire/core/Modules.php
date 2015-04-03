@@ -1132,6 +1132,28 @@ class Modules extends WireArray {
 	}
 
 	/**
+	 * Find modules matching the given prefix 
+	 * 
+	 * @param string $prefix Specify prefix, i.e. Process, Fieldtype, Inputfield, etc.
+	 * @param bool $instantiate Specify true to return Module instances, or false to return class names (default=false)
+	 * @return array of module class names or Module objects. In either case, array indexes are class names.
+	 * 
+	 */
+	public function findByPrefix($prefix, $instantiate = false) {
+		$results = array();
+		foreach($this as $key => $value) {
+			$className = $value->className();
+			if(strpos($className, $prefix) !== 0) continue;
+			if($instantiate) {
+				$results[$className] = $this->get($className);
+			} else {
+				$results[$className] = $className;
+			}
+		}
+		return $results;
+	}
+
+	/**
 	 * Get an array of all modules that aren't currently installed
 	 *
 	 * @return array Array of elements with $className => $pathname
@@ -2325,11 +2347,23 @@ class Modules extends WireArray {
 				$found = false;
 				foreach($files as $file) {
 					if(!is_file($file)) continue;
+					$config = null; // include file may override
 					include_once($file);
-					$interfaces = @class_parents($className . 'Config', false);
-					if(is_array($interfaces) && isset($interfaces['ModuleConfig'])) {
-						$found = $file;
-						break;
+					$classConfig = $className . 'Config';
+					if(class_exists($classConfig, false)) {
+						$interfaces = @class_parents($classConfig, false);
+						if(is_array($interfaces) && isset($interfaces['ModuleConfig'])) {
+							$found = $file;
+							break;
+						}
+					} else {
+						// bypass include_once, because we need to read $config every time
+						if(is_null($config)) include($file); 
+						if(!is_null($config)) {
+							// included file specified a $config array
+							$found = $file;
+							break;
+						}
 					}
 				}
 				if($found) return $file;
@@ -2363,9 +2397,10 @@ class Modules extends WireArray {
 		if(!$configurable) return false;
 		if(!is_array($data)) $data = $this->getModuleConfigData($module);
 		
-		if(is_string($configurable) && file_exists($configurable)) {
+		if(is_string($configurable) && is_file($configurable)) {
 			// get defaults from ModuleConfig class if available
 			$className = $module->className() . 'Config';
+			$config = null; // may be overridden by included file
 			include_once($configurable);
 			if(class_exists($className)) {
 				$interfaces = @class_parents($className, false);
@@ -2375,6 +2410,17 @@ class Modules extends WireArray {
 						$defaults = $moduleConfig->getDefaults();
 						$data = array_merge($defaults, $data);
 					}
+				}
+			} else {
+				// the file may have already been include_once before, so $config would not be set
+				// so we try a regular include() next. 
+				if(is_null($config)) include($configurable);
+				if(is_array($config)) {
+					// alternatively, file may just specify a $config array
+					$moduleConfig = new ModuleConfig();
+					$moduleConfig->add($config);
+					$defaults = $moduleConfig->getDefaults();
+					$data = array_merge($defaults, $data);
 				}
 			}
 		}
@@ -2417,6 +2463,79 @@ class Modules extends WireArray {
 		$this->log("Saved module '$className' config data");
 		return $result;
 	}
+
+	/**
+	 * Get the Inputfields that configure the given module or return null if not configurable
+	 * 
+	 * @param string|Module|int $moduleName
+	 * @param InputfieldWrapper|null $form Optionally specify the form you want Inputfields appended to.
+	 * @return InputfieldWrapper|null
+	 * 
+	 */
+	public function ___getModuleConfigInputfields($moduleName, InputfieldWrapper $form = null) {
+		
+		$moduleName = $this->getModuleClass($moduleName);
+		$configurable = $this->isConfigurableModule($moduleName);
+		if(!$configurable) return null;
+		
+		if(is_null($form)) $form = new InputfieldWrapper();
+		$data = $this->modules->getModuleConfigData($moduleName);
+		
+		// check for configurable module interface
+		if($this->isConfigurableModule($moduleName, "interface")) {
+			$fields = call_user_func(array($moduleName, 'getModuleConfigInputfields'), $data);
+			if($fields instanceof InputfieldWrapper) {
+				foreach($fields as $field) {
+					$form->append($field);
+				}
+			} else {
+				$this->error("$moduleName.getModuleConfigInputfields() did not return InputfieldWrapper");
+			}
+		}
+		
+		// check for file-based config
+		$file = $this->isConfigurableModule($moduleName, "file");
+		if(!$file || !is_string($file) || !is_file($file)) return $form;
+	
+		$config = null;
+		include_once($file);
+		$configClass = $moduleName . "Config";
+		$configModule = null;
+		
+		if(class_exists($configClass)) {
+			// file contains a ModuleNameConfig class
+			$configModule = new $configClass();
+			
+		} else {
+			if(is_null($config)) include($file); // in case of previous include_once 
+			if(is_array($config)) {
+				// file contains a $config array
+				$configModule = new ModuleConfig();
+				$configModule->add($config);
+			}
+		} 
+		
+		if($configModule && $configModule instanceof ModuleConfig) {
+			$defaults = $configModule->getDefaults();
+			$data = array_merge($defaults, $data);
+			$configModule->setArray($data);
+			$fields = $configModule->getInputfields();
+			if($fields instanceof InputfieldWrapper) {
+				foreach($fields as $field) {
+					$form->append($field);
+				}
+				foreach($data as $key => $value) {
+					$f = $form->getChildByName($key);
+					if($f) $f->attr('value', $value);
+				}
+			} else {
+				$this->error("$configModule.getInputfields() did not return InputfieldWrapper");
+			}
+		}
+		
+		return $form;
+	}
+	
 
 	/**
 	 * Is the given module Singular (single instance)?

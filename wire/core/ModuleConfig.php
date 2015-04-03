@@ -95,7 +95,7 @@ class ModuleConfig extends WireData {
 	 * @return this
 	 * 
 	 */
-	protected function add(array $a) {
+	public function add(array $a) {
 		if(count($this->inputfieldsArray)) { 
 			$this->inputfieldsArray = array_merge($this->inputfieldsArray, $a); 
 		} else {

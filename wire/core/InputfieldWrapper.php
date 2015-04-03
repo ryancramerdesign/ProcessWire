@@ -766,20 +766,20 @@ class InputfieldWrapper extends Inputfield {
 	 *        'blue' => 'Sky Blue'
 	 *     )
 	 *   ),
-	 *   array(
-	 *     'name' => 'my_fieldset',
+	 *   // alternative usage: associative array where name attribute is specified as key
+	 *   'my_fieldset' => array(
 	 *     'type' => 'fieldset',
 	 *     'label' => 'My Fieldset',
 	 *     'children' => array(
-	 *       array(
-	 *         'name' => 'some_field',
+	 *       'some_field' => array(
 	 *         'type' => 'text',
 	 *         'label' => 'Some Field',
 	 *       )
 	 *     )
 	 * );
 	 *
-	 *
+	 * Note: you may alternatively use associative arrays where the keys are assumed to be the 'name' attribute.
+	 * See the last item 'my_fieldset' above for an example. 
 	 *
 	 * @param array $a Array of Inputfield definitions
 	 * @param InputfieldWrapper $inputfields Specify the wrapper you want them added to, or omit to use current.

@@ -801,6 +801,60 @@ class Sanitizer extends Wire {
 	}
 
 	/**
+	 * Validate a file using FileValidator modules
+	 * 
+	 * Note that this is intended for validating file data, not file names. 
+	 * 
+	 * IMPORTANT: This method returns NULL if it can't find a validator for the file. This does 
+	 * not mean the file is invalid, just that it didn't have the tools to validate it. 
+	 * 
+	 * @param $filename Full path and filename to validate
+	 * @param array $options If available, provide array with any one or all of the following:
+	 * 	'page' => Page object associated with $filename
+	 * 	'field' => Field object associated with $filename
+	 * 	'pagefile' => Pagefile object associated with $filename
+	 * @return bool|null Returns TRUE if valid, FALSE if not, or NULL if no validator available for given file type.
+	 * 
+	 */
+	public function validateFile($filename, array $options = array()) {
+		$defaults = array(
+			'page' => null,
+			'field' => null, 
+			'pagefile' => null,
+		);
+		$options = array_merge($defaults, $options);
+		$extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+		$validators = $this->wire('modules')->findByPrefix('FileValidator', false);
+		$isValid = null;
+		foreach($validators as $validatorName) {
+			$info = $this->wire('modules')->getModuleInfoVerbose($validatorName);
+			if(empty($info) || empty($info['validates'])) continue;
+			foreach($info['validates'] as $ext) {
+				if($ext[0] == '/') {
+					if(!preg_match($ext, $extension)) continue;		
+				} else if($ext !== $extension) {
+					continue;
+				}
+				$validator = $this->wire('modules')->get($validatorName);
+				if(!$validator) continue;
+				if(!empty($options['page'])) $validator->setPage($options['page']);
+				if(!empty($options['field'])) $validator->setField($options['field']);
+				if(!empty($options['pagefile'])) $validator->setPagefile($options['pagefile']);
+				$isValid = $validator->isValid($filename);
+				if(!$isValid) {
+					// move errors to Sanitizer class so they can be retrieved
+					foreach($validator->errors('clear array') as $error) {
+						$this->wire('log')->error($error);
+						$this->error($error);
+					}
+					break;
+				}
+			}
+		}
+		return $isValid;	
+	}
+
+	/**
 	 * Return a new HTML Purifier instance
 	 *
 	 * See: http://htmlpurifier.org

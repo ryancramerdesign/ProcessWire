@@ -168,7 +168,7 @@ class Pageimage extends Pagefile {
 
 	/**
 	 * Gets the image information with PHP's getimagesize function and caches the result
-	 *
+	 * 
 	 */
 	public function getImageInfo($reset = false) {
 
@@ -180,8 +180,8 @@ class Pageimage extends Pagefile {
 			if($this->ext == 'svg') {
 				if($xml = @file_get_contents($this->filename)) {
 					$a = @simplexml_load_string($xml)->attributes();
-					$this->imageInfo['width'] = (int) str_replace('px', '', $a->width);
-					$this->imageInfo['height'] = (int) str_replace('px', '', $a->height);
+					$this->imageInfo['width'] = (int) $a->width > 0 ? (int) $a->width : '100%';
+					$this->imageInfo['height'] = (int) $a->height > 0 ? (int) $a->height : '100%';
 				}
 			} else if($info = @getimagesize($this->filename)) {
 				$this->imageInfo['width'] = $info[0]; 

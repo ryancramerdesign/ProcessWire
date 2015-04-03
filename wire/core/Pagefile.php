@@ -27,6 +27,7 @@
  * @property string $filesizeStr file size as a formatted string
  * @property Pagefiles $pagefiles the WireArray that contains this file
  * @property Page $page the $page that contains this file
+ * @property Field $field the $field that contains this file
  *
  */
 

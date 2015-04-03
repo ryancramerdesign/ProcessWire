@@ -290,6 +290,20 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 
 	protected function ___fileAdded(Pagefile $pagefile) {
 		if($this->noUpload) return;
+		
+		$isValid = $this->wire('sanitizer')->validateFile($pagefile->filename(), array(
+			'pagefile' => $pagefile
+		));
+		
+		if($isValid === false) {
+			$errors = $this->wire('sanitizer')->errors('clear array');
+			throw new WireException(
+				$this->_('File failed validation') . 
+				(count($errors) ? ": " . implode(', ', $errors) : "")
+			);
+		} else if($isValid === null) {
+			// there was no validator available for this file type
+		}
 
 		$message = $this->_('Added file:') . " {$pagefile->basename}"; // Label that precedes an added filename
 
@@ -302,7 +316,6 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 		} else {
 			$this->message($message); 
 		}
-			
 	}
 
 	protected function ___processInputAddFile($filename) {

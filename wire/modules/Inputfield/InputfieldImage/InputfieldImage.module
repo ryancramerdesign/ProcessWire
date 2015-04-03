@@ -167,7 +167,8 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			$thumbHeight = $thumb->height;
 			$thumbWidth = $thumb->width;
 			$useScale = $this->adminThumbScale > 0 && ((float) $this->adminThumbScale) != 1.0;
-			$useResize = ($this->adminThumbHeight && $thumbHeight > ($this->adminThumbHeight * $this->adminThumbScale)) 
+			$useResize = ($img->ext == 'svg' && $thumbHeight == '100%') 
+				|| ($this->adminThumbHeight && $thumbHeight > ($this->adminThumbHeight * $this->adminThumbScale))
 				|| ($this->adminThumbWidth && $thumbWidth > ($this->adminThumbWidth * $this->adminThumbScale));
 			
 			if($useResize) {
@@ -255,6 +256,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 	
 		$pageID = $pagefile->pagefiles->page->id; 
 		$editURL = $this->wire('config')->urls->admin . "page/image/edit/?id=$pageID&file=$pageID,$pagefile->name&rte=0&field=$this->name";
+		if($pagefile->ext == 'svg') $editURL = $pagefile->url;
 		$editTitle = "$pagefile->name ({$pagefile->width}x{$pagefile->height})";
 		$fileStats = "{$pagefile->filesizeStr}, {$pagefile->width}x{$pagefile->height} ";
 
