@@ -304,7 +304,8 @@ abstract class Fieldtype extends WireData implements Module {
 	 * 
 	 * @param Page $page Page that $value comes from
 	 * @param Field $field Field that $value comes from
-	 * @param mixed $value Optionally specify the $page->field value. If null or not specified, it will be retrieved.
+	 * @param mixed $value Optionally specify the $page->getFormatted(value), value must be a formatted value. 
+	 * 	If null or not specified (recommended), it will be retrieved automatically.
 	 * @param string $property Optionally specify the property or index to render. If omitted, entire value is rendered.
 	 * @return string|MarkupFieldtype Returns a string or object that can be output as a string, ready for output.
 	 * 	Return a MarkupFieldtype value when suitable so that the caller has potential specify additional

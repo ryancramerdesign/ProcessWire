@@ -1023,9 +1023,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			
 		} else if($value instanceof WireArray && !$value instanceof Pagefiles) {
 			// WireArray type unknown to Lister
-			// $in = $field->getInputfield($p, $field);
-			// $in->attr('value', $value);
-			// $value = $in->renderValue();
+			$value = $p->getFormatted($name); // markupValue requires formatted value
 			$value = $field->type->markupValue($p, $field, $value, $subname); 
 
 		} else if($value instanceof WireArray || is_array($value)) {

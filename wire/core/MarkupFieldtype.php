@@ -41,9 +41,9 @@ class MarkupFieldtype extends WireData implements Module {
 	protected $_field = null;
 
 	/**
-	 * Unformatted value that will be used for rendering
+	 * Formatted value that will be used for rendering
 	 * 
-	 * If not set, it will be pulled from $page->get($field->name) automatically. 
+	 * If not set, it will be pulled from $page->getFormatted($field->name) automatically. 
 	 * 
 	 * @var mixed
 	 * 
@@ -140,7 +140,7 @@ class MarkupFieldtype extends WireData implements Module {
 	/**
 	 * Render the entire $page->get($field->name) value. 
 	 * 
-	 * Classes descending from RenderFieldtype this would implement their own method. 
+	 * Classes descending from MarkupFieldtype this would implement their own method. 
 	 * 
 	 * @param $value The unformatted value to render. 
 	 * @return string
@@ -155,7 +155,7 @@ class MarkupFieldtype extends WireData implements Module {
 	 *
 	 * Applicable only if the value of the field is an array or object.
 	 * 
-	 * Classes descending from RenderFieldtype this would implement their own method.
+	 * Classes descending from MarkupFieldtype would implement their own method.
 	 *
 	 * @param string $property The property name being rendered.
 	 * @param mixed $value The value of the property.
@@ -163,6 +163,35 @@ class MarkupFieldtype extends WireData implements Module {
 	 *
 	 */
 	protected function renderProperty($property, $value) {
+		
+		if(empty($property)) return $this->valueToString($value);
+		
+		if(is_object($value)) {
+			
+			if($value instanceof Page) {
+				$value = $value->getFormatted($property);
+
+			} else if(WireArray::iterable($value)) {
+				$values = array();
+				foreach($value as $v) {
+					$v = $this->renderProperty($property, $v);
+					if(strlen($v)) $values[] = $v;
+				}
+				$value = count($values) ? $this->arrayToString($values) : '';
+				
+			} else {
+				$value = $value->$property;
+			}	
+			
+		} else if(is_array($value)) {
+			if(isset($value[$property])) {
+				$value = $value[$property];
+			}
+			
+		} else {
+			// unexpected value (not array or object)
+		}
+		
 		return $this->valueToString($value); 
 	}
 
@@ -218,7 +247,7 @@ class MarkupFieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * The string value of a RenderFieldtype is always the fully rendered field
+	 * The string value of a MarkupFieldtype is always the fully rendered field
 	 * 
 	 * @return string
 	 * 
@@ -231,14 +260,37 @@ class MarkupFieldtype extends WireData implements Module {
 	public function setField(Field $field) { $this->_field = $field;  }
 	public function getPage() { return $this->_page ? $this->_page : new NullPage(); }
 	public function getField() { return $this->_field; }
-	public function setValue($value) { $this->_value = $value; }
-	
+
+	/**
+	 * Set the value
+	 * 
+	 * It is not necessary to call this as the value will be determined automatically from $page and $field.
+	 * If you set this, it should be a formatted value. 
+	 * 
+	 * @param $value
+	 * 
+	 */	
+	public function setValue($value) { 
+		$this->_value = $value; 
+	}
+
+	/**
+	 * Get the value
+	 * 
+	 * @return mixed
+	 * 
+	 */
 	public function getValue() {
+		
 		$value = $this->_value;
-		if(is_null($value)) {
-			$value = $this->getPage()->getFormatted($this->getField()->name);
+		
+		if(is_null($this->_value)) {
+			$page = $this->getPage();
+			$fieldName = $this->getField()->name;
+			$value = $page->getFormatted($fieldName);
 			$this->_value = $value; 
 		}
+		
 		return $value;
 	}
 
