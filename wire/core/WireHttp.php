@@ -236,7 +236,7 @@ class WireHttp extends Wire {
 	public function __construct() {
 		$this->hasCURL = function_exists('curl_init') && !ini_get('safe_mode') && !ini_get('open_basedir');
 		$this->hasFopen = ini_get('allow_url_fopen');
-		$this->statusCodes = array_merge($this->statusCodes, $this->errorCodes);
+		$this->statusCodes = $this->statusCodes + $this->errorCodes;
 		$this->resetRequest();
 		$this->resetResponse();
 	}
