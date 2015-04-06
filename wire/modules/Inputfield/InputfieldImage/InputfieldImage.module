@@ -254,8 +254,10 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 				"<i class='fa fa-files-o'></i>&nbsp;<span id='varcnt_$id'>$cnt</span></a>"; 
 		} 
 	
-		$pageID = $pagefile->pagefiles->page->id; 
-		$editURL = $this->wire('config')->urls->admin . "page/image/edit/?id=$pageID&file=$pageID,$pagefile->name&rte=0&field=$this->name";
+		$pageID = $pagefile->pagefiles->page->id;
+
+        $field = preg_replace('/_repeater\d+/','',$this->name);
+		$editURL = $this->wire('config')->urls->admin . "page/image/edit/?id=$pageID&file=$pageID,$pagefile->name&rte=0&field=$field";
 		if($pagefile->ext == 'svg') $editURL = $pagefile->url;
 		$editTitle = "$pagefile->name ({$pagefile->width}x{$pagefile->height})";
 		$fileStats = "{$pagefile->filesizeStr}, {$pagefile->width}x{$pagefile->height} ";

@@ -49,7 +49,7 @@
  * @property string $sortfield Field that a page is sorted by relative to its siblings (default=sort, which means drag/drop manual)
  * @property null|array _statusCorruptedFields Field names that caused the page to have Page::statusCorrupted status. 
  * @property string statusStr Returns space-separated string of status names active on this page.
- * 
+ *
  * Methods added by PageRender.module: 
  * -----------------------------------
  * @method string render() Returns rendered page markup. echo $page->render();
@@ -372,7 +372,8 @@ class Page extends WireData implements Countable {
 		}
 
 		switch($key) {
-			case 'id':
+            /** @noinspection PhpMissingBreakStatementInspection */
+            case 'id':
 				if(!$this->isLoaded) Page::$loadingStack[(int) $value] = $this;
 				// no break is intentional
 			case 'sort': 
@@ -872,18 +873,21 @@ class Page extends WireData implements Countable {
 		return $value;
 	}
 
-	/**
-	 * @see get
-	 *
-	 */
+    /**
+     * @see get
+     * @param string $key
+     * @return mixed|null
+     */
 	public function __get($key) {
 		return $this->get($key); 
 	}
 
-	/**
-	 * @see set
-	 *
-	 */
+    /**
+     * @see set
+     * @param $key
+     * @param $value
+     * @throws WireException
+     */
 	public function __set($key, $value) {
 		$this->set($key, $value); 
 	}
@@ -937,10 +941,12 @@ class Page extends WireData implements Countable {
 		}
 	}
 
-	/**
-	 * Set this Page's Template object
-	 *
-	 */
+    /**
+     * Set this Page's Template object
+     * @param $tpl
+     * @return $this
+     * @throws WireException
+     */
 	protected function setTemplate($tpl) {
 		if(!is_object($tpl)) $tpl = $this->wire('templates')->get($tpl); 
 		if(!$tpl instanceof Template) throw new WireException("Invalid value sent to Page::setTemplate"); 
@@ -954,11 +960,12 @@ class Page extends WireData implements Countable {
 		return $this;
 	}
 
-
-	/**
-	 * Set this page's parent Page
-	 *
-	 */
+    /**
+     * Set this page's parent Page
+     * @param Page $parent
+     * @return $this
+     * @throws WireException
+     */
 	protected function setParent(Page $parent) {
 		if($this->parent && $this->parent->id == $parent->id) return $this; 
 		if($parent->id && $this->id == $parent->id || $parent->parents->has($this)) {
@@ -1254,17 +1261,17 @@ class Page extends WireData implements Countable {
 		return $this->traversal()->prevUntil($this, $selector, $filter, $siblings); 
 	}
 
-
-	/**
-	 * Save this page to the database. 
-	 *
-	 * To hook into this (___save), use 'Pages::save' 
-	 * To hook into a field-only save, use 'Pages::saveField'
-	 *
-	 * @param Field|string $field Optional field to save (name of field or Field object)
-	 * @param array $options See Pages::save for options. You may also specify $options as the first argument if no $field is needed.
-	 *
-	 */
+    /**
+     * Save this page to the database.
+     *
+     * To hook into this (___save), use 'Pages::save'
+     * To hook into a field-only save, use 'Pages::saveField'
+     *
+     * @param Field|string $field Optional field to save (name of field or Field object)
+     * @param array $options See Pages::save for options. You may also specify $options as the first argument if no $field is needed.
+     *
+     * @return bool
+     */
 	public function save($field = null, array $options = array()) {
 		if(is_array($field) && empty($options)) {
 			$options = $field;
@@ -1639,7 +1646,7 @@ class Page extends WireData implements Countable {
 	 * @param bool|int $value Optionally specify one of the following:
 	 * 	- boolean true: to return an array of status names (indexed by status number)
 	 * 	- integer|string|array: status number(s) or status name(s) to set the current page status (same as $page->status = $value)
-	 * @return int|array|this If setting status, $this is returned. If getting status: current status or array of status names.
+	 * @return int|array|$this If setting status, $this is returned. If getting status: current status or array of status names.
 	 * 
 	 */
 	public function status($value = false) {
@@ -1805,12 +1812,13 @@ class Page extends WireData implements Countable {
 		if($trackChanges) $this->setTrackChanges(true); 
 	}
 
-	/**
-	 * Ensures that isset() and empty() work for this classes properties. 
-	 *
-	 * See the Page::issetHas property which can be set to adjust the behavior of this function.
-	 *
-	 */
+    /**
+     * Ensures that isset() and empty() work for this classes properties.
+     *
+     * See the Page::issetHas property which can be set to adjust the behavior of this function.
+     * @param $key
+     * @return bool
+     */
 	public function __isset($key) {
 		if(isset($this->settings[$key])) return true;
 		$natives = array('template', 'parent', 'createdUser', 'modifiedUser');
