@@ -56,6 +56,40 @@ class WireHttp extends Wire {
 	protected $headers = array();
 
 	/**
+	 * HTTP status codes
+	 * 
+	 * Note: error codes are defined separately and merged into status codes
+	 * in constructor method.
+	 * 
+	 * @var array
+	 * 
+	 */
+	protected $statusCodes = array(
+		100 => 'Continue',
+		101 => 'Switching Protocols',
+		102 => 'Processing (WebDAV; RFC 2518)',
+		200 => 'OK',
+		201 => 'Created',
+		202 => 'Accepted',
+		203 => 'Non-Authoritative Information',
+		204 => 'No Content',
+		205 => 'Reset Content',
+		206 => 'Partial Content',
+		207 => 'Multi-Status (WebDAV; RFC 4918)',
+		208 => 'Already Reported (WebDAV; RFC 5842)',
+		226 => 'IM Used (RFC 3229)',
+		300 => 'Multiple Choices',
+		301 => 'Moved Permanently',
+		302 => 'Found',
+		303 => 'See Other',
+		304 => 'Not Modified',
+		305 => 'Use Proxy',
+		306 => 'Switch Proxy',
+		307 => 'Temporary Redirect',
+		308 => 'Permanent Redirect (RFC 7238)',
+		);
+
+	/**
 	 * HTTP error codes
 	 * 
 	 * @var array
@@ -202,6 +236,7 @@ class WireHttp extends Wire {
 	public function __construct() {
 		$this->hasCURL = function_exists('curl_init') && !ini_get('safe_mode') && !ini_get('open_basedir');
 		$this->hasFopen = ini_get('allow_url_fopen');
+		$this->statusCodes = array_merge($this->statusCodes, $this->errorCodes);
 		$this->resetRequest();
 		$this->resetResponse();
 	}
@@ -849,6 +884,27 @@ class WireHttp extends Wire {
 	 */
 	public function getErrorCodes() {
 		return $this->errorCodes;
+	}
+
+	/**
+	 * Return array of all possible HTTP status codes as (code => description)
+	 * 
+	 * @return array
+	 * 
+	 */
+	public function getStatusCodes() {
+		return $this->statusCodes;
+	}
+
+	/**
+	 * Return description for one HTTP status code
+	 * 
+	 * @param int
+	 * @return string|null
+	 * 
+	 */
+	public function getStatusText($code) {
+		return isset($this->statusCodes[$code]) ? $this->statusCodes[$code] : null;
 	}
 
 	/**
