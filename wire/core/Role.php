@@ -16,12 +16,12 @@
  *
  */
 
-class Role extends Page { 
+class Role extends Page {
 
-	/**
-	 * Create a new Role page in memory. 
-	 *
-	 */
+    /**
+     * Create a new Role page in memory.
+     * @param Template $tpl
+     */
 	public function __construct(Template $tpl = null) {
 		if(is_null($tpl)) $tpl = $this->getPredefinedTemplate();
 		$this->parent = $this->getPredefinedParent();
