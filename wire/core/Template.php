@@ -62,6 +62,7 @@
  * @property string $tags Optional tags that can group this template with others in the admin templates list 
  * @property string $tabContent Optional replacement for default "Content" label
  * @property string $tabChildren Optional replacmenet for default "Children" label
+ * @property string $contentType Content-type header or index (extension) of content type header from $config->contentTypes
  *
  */
 
@@ -207,6 +208,7 @@ class Template extends WireData implements Saveable, Exportable {
 		'appendFile' => '', // file to append (relative to /site/templates/)
 		'tabContent' => '', 	// label for the Content tab (if different from 'Content')
 		'tabChildren' => '', 	// label for the Children tab (if different from 'Children')
+		'contentType' => '', // Content-type header or index of header from $config->contentTypes
 		); 
 
 

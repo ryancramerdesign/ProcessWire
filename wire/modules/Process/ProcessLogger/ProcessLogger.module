@@ -16,8 +16,8 @@ class ProcessLogger extends Process {
 
 	public static function getModuleInfo() {
 		return array(
-			'title' => 'Logs', 
-			'summary' => 'View and manage system logs.', 
+			'title' => __('Logs', __FILE__), 
+			'summary' => __('View and manage system logs.', __FILE__), 
 			'version' => 1, 
 			'author' => 'Ryan Cramer', 
 			'icon' => 'tree',

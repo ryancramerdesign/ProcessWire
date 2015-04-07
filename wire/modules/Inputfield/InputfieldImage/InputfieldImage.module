@@ -33,7 +33,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		return array(
 			'title' => __('Images', __FILE__), // Module Title
 			'summary' => __('One or more image uploads (sortable)', __FILE__), // Module Summary
-			'version' => 113,
+			'version' => 114,
 			'permanent' => true, 
 			);
 	}
@@ -253,10 +253,17 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 				"href='$variationURL' title='" . sprintf($this->_('Variations of %s'), $pagefile->name) . "'>" . 
 				"<i class='fa fa-files-o'></i>&nbsp;<span id='varcnt_$id'>$cnt</span></a>"; 
 		} 
+		
+		$editable = true; 
+		if(strpos($this->name, '_repeater') && preg_match('/_repeater\d+$/', $this->name)) $editable = false;
+		if($pagefile->ext == 'svg') $editable = false;
 	
 		$pageID = $pagefile->pagefiles->page->id; 
-		$editURL = $this->wire('config')->urls->admin . "page/image/edit/?id=$pageID&file=$pageID,$pagefile->name&rte=0&field=$this->name";
-		if($pagefile->ext == 'svg') $editURL = $pagefile->url;
+		if($editable) {
+			$editURL = $this->wire('config')->urls->admin . "page/image/edit/?id=$pageID&file=$pageID,$pagefile->name&rte=0&field=$this->name";
+		} else {
+			$editURL = $pagefile->url;
+		}
 		$editTitle = "$pagefile->name ({$pagefile->width}x{$pagefile->height})";
 		$fileStats = "{$pagefile->filesizeStr}, {$pagefile->width}x{$pagefile->height} ";
 
@@ -290,10 +297,8 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 				"\n\t\t\t<div class='InputfieldImagePreview'>" .
 				"\n\t\t\t\t<a class='InputfieldFileLink' target='_blank' href='{$pagefile->URL}'>$thumb[markup]</a>";
 			
-		if($this->uploadOnlyMode) {
-			// no actions
-		} else {
-			$out .=
+		if(!$this->uploadOnlyMode && $editable) {
+			$out .= 
 				"\n\t\t\t\t<div class='InputfieldImageActions'>" .
 				"\n\t\t\t\t\t<a title='$editTitle' href='$editURL' class='pw-modal $this->modalClass' " .
 				"data-buttons='#non_rte_dialog_buttons button' data-autoclose='1' data-close='#non_rte_cancel'>" .

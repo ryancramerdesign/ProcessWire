@@ -217,7 +217,13 @@
  * When an item is open, this style ensures that the PageListActions become visible
  *
  */
-.PageList .PageListItemOpen > ul.PageListActions,
+.PageListRoot .PageList .PageListItemOpen > ul.PageListActions {
+	display: inline;
+}
+
+.PageListUseHoverActions .PageList .PageListItemOpen > ul.PageListActions {
+	display: none;
+}
 .PageListSelectHeader .PageListActions {
 	display: inline !important;
 }

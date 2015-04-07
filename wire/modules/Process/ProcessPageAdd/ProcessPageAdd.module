@@ -78,8 +78,8 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$f = $this->wire('modules')->get('InputfieldSelect'); 
 		$f->attr('name', 'parent_id'); 
 		$f->attr('id', 'select_parent_id'); 
-		$f->label = sprintf($this->_('Where do you want to add the new %s?'), strtolower($templateLabel)); 
-		$f->description = sprintf($this->_('Please select a parent %s page below:'), strtolower($parentTemplateLabel)); 
+		$f->label = sprintf($this->_('Where do you want to add the new %s?'), "\"$templateLabel\""); 
+		$f->description = sprintf($this->_('Please select a parent %s page below:'), "\"$parentTemplateLabel\""); 
 
 		$options = array();
 		foreach($parents as $parent) {
@@ -541,8 +541,9 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 	 */
 	protected function deleteOldTempPages() {
 
-		$old = time() - 86400; 
-		$items = $this->wire('pages')->find("include=all, modified<$old, limit=10, status&" . Page::statusTemp); 
+		$old = time() - 86400;
+		$selector = "include=all, modified<$old, limit=10, status&" . Page::statusTemp . ", status<" . Page::statusTrash;
+		$items = $this->wire('pages')->find($selector); 
 
 		foreach($items as $item) {
 			$this->message("Checking temporary item: $item->path", Notice::debug); 

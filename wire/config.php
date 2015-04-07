@@ -353,6 +353,26 @@ $config->pagefileSecurePathPrefix = '-';
 $config->pagefileExtendedPaths = false;
 
 /**
+ * Allowed content types for output by template files
+ * 
+ * When one of these options is selected for a template, the header will be sent 
+ * automatically regardless of whether request is live or cached. 
+ * 
+ * The keys of the array are file extensions. They are used for identification 
+ * and storage purposes. In ProCache, they are used as a file extension which 
+ * connects a configured Apache MIME type to the appropriate content type header. 
+ * 
+ * @var array
+ * 
+ */
+$config->contentTypes = array(
+	'html' => 'text/html',
+	'txt' => 'text/plain', 
+	'json' => 'application/json',
+	'xml' => 'application/xml', 
+	);
+
+/**
  * File content types
  * 
  * Connects file extentions to content-type headers, used by file passthru functions.
@@ -376,6 +396,7 @@ $config->fileContentTypes = array(
 	'jpeg' => 'image/jpeg',
 	'png' => 'image/x-png',
 	);
+
 
 /**
  * Image sizer options
@@ -678,6 +699,28 @@ $config->substituteModules = array(
 	'InputfieldTinyMCE' => 'InputfieldCKEditor'
 );
 
+/**
+ * PageList default settings
+ * 
+ * Note that 'limit' and 'speed' can also be overridden in the ProcessPageList module settings.
+ * The 'useHoverActions' are currently only known compatible with AdminThemeDefault.
+ * 
+ * #property int limit Number of items to show per pagination (default=50)
+ * #property int speed Animation speed in ms for opening/closing lists (default=200)
+ * #property bool useHoverActions Show page actions when page is hovered? (default=false)
+ * #property int hoverActionDelay Delay in ms between hovering a page and showing the actions (default=250)
+ * #property int hoverActionFade Time in ms to spend fading in or out the actions (default=150)
+ * 
+ * @var array
+ * 
+ */
+$config->pageList = array(
+	'limit' => 50, 
+	'speed' => 200, 
+	'useHoverActions' => false,
+	'hoverActionDelay' => 250, 
+	'hoverActionFade' => 150
+);
 
 
 /*** 9. MISC ************************************************************************************/

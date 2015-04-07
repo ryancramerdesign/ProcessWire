@@ -36,7 +36,8 @@
  * @property bool $pagefileSecure When used, files in /site/assets/files/ will be protected with the same access as the page. Routines files through a passthrough script. 
  * @property string $pagefileSecurePathPrefix One or more characters prefixed to the pathname of protected file dirs. This should be some prefix that the .htaccess file knows to block requests for.
  * 
- * @property array $fileContentTypes Array of extensions and the associated MIME type for each. See /wire/config.php for details and defaults.
+ * @property array $contentTypes Array of extensions and the associated MIME type for each (for template file output). 
+ * @property array $fileContentTypes Array of extensions and the associated MIME type for each (for file output). See /wire/config.php for details and defaults.
  * 
  * @property string $chmodDir Octal string permissions assigned to directories created by ProcessWire
  * @property string $chmodFile Octal string permissions assigned to files created by ProcessWire
@@ -85,6 +86,7 @@
  * @property string $dbEngine Database engine (MyISAM or InnoDB)
  * @property string $dbPath MySQL database exec path (Path to mysqldump)
  * 
+ * @property array $pageList Settings specific to Page lists. 
  * @property string $moduleServiceURL URL where the modules web service can be accessed
  * @property string $moduleServiceKey API key for modules web service
  * 

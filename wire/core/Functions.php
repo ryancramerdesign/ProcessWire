@@ -531,6 +531,7 @@ function wireSendFile($filename, array $options = array(), array $headers = arra
 		"content-length" => "{filesize}",
 		);
 
+	wire('session')->close();
 	$options = array_merge($_options, $options);
 	$headers = array_merge($_headers, $headers);
 	if(!is_file($filename)) throw new WireException("File does not exist");

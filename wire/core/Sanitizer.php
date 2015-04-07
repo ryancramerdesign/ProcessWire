@@ -66,7 +66,8 @@ class Sanitizer extends Wire {
 		if(!is_string($value)) $value = (string) $value;
 		
 		$allowed = array_merge($this->allowedASCII, $allowedExtras); 
-		$needsWork = strlen(str_replace($allowed, '', $value)); 
+		$needsWork = strlen(str_replace($allowed, '', $value));
+		$extras = implode('', $allowedExtras);
 
 		if($beautify && $needsWork) {
 			if($beautify === self::translate && $this->multibyteSupport) {
@@ -90,20 +91,23 @@ class Sanitizer extends Wire {
 		}
 
 		if(strlen($value) > $maxLength) $value = substr($value, 0, $maxLength); 
-		if(!$needsWork)  return $value; // quick exit if possible
-
-		$value = str_replace(array("'", '"'), '', $value); // blank out any quotes
-		$value = filter_var($value, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH | FILTER_FLAG_NO_ENCODE_QUOTES); 
-		$extras = implode('', $allowedExtras); 
-		$chars = $extras . 'a-zA-Z0-9';
-		if(in_array('-', $allowedExtras) && strpos($chars, '-') !== 0) {
-			// if hyphen present, ensure its first (per PCRE requirements)
-			$chars = '-' . str_replace('-', '', $chars); 
+		
+		if($needsWork) {
+			$value = str_replace(array("'", '"'), '', $value); // blank out any quotes
+			$value = filter_var($value, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH | FILTER_FLAG_NO_ENCODE_QUOTES);
+			$chars = $extras . 'a-zA-Z0-9';
+			if(in_array('-', $allowedExtras) && strpos($chars, '-') !== 0) {
+				// if hyphen present, ensure its first (per PCRE requirements)
+				$chars = '-' . str_replace('-', '', $chars);
+			}
+			$value = preg_replace('{[^' . $chars . ']}', $replacementChar, $value);
 		}
-		$value = preg_replace('{[^' . $chars . ']}', $replacementChar, $value); 
 
 		// remove leading or trailing dashes, underscores, dots
-		if($beautify) $value = trim($value, $extras);
+		if($beautify) {
+			if(strpos($extras, $replacementChar) === false) $extras .= $replacementChar;
+			$value = trim($value, $extras);
+		}
 
 		return $value; 
 	}

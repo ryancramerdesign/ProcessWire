@@ -356,10 +356,9 @@ class InputfieldWrapper extends Inputfield {
 			// if the inputfield resulted in output, wrap it in an LI
 			if($ffOut) {
 				$attrs = '';
-				$label = '';
-				if($inputfield->label) {
+				$label = $inputfield->getSetting('label');
+				if($label) {
 					$for = $inputfield->skipLabel ? '' : $inputfield->attr('id');
-					$label = $inputfield->label;
 					// if $inputfield has a property of entityEncodeLabel with a value of boolean FALSE, we don't entity encode
 					if($inputfield->entityEncodeLabel !== false) $label = $this->entityEncode($label);
 					$icon = $inputfield->icon ? str_replace('{name}', $this->sanitizer->name(str_replace(array('icon-', 'fa-'), '', $inputfield->icon)), $markup['item_icon']) : ''; 

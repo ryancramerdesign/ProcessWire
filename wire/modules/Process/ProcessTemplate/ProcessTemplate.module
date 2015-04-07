@@ -1502,6 +1502,27 @@ class ProcessTemplate extends Process {
 			$field2->columnWidth = 50;
 		}
 		
+		// --------------------
+
+		$field = $this->modules->get('InputfieldSelect');
+		$field->attr('name', 'contentType');
+		$field->label = $this->_('Content-Type');
+		$field->description = $this->_('Header to send with template file output. If none selected, ProcessWire will not send a content-type header and in most cases text/html is assumed. Selecting a content-type is recommended when output will be something other than html.'); // Description for content-type option
+		$field->notes = $this->_('To add more content types see *contentTypes* in /wire/config.php (and add them in /site/config.php).');
+		foreach($this->wire('config')->contentTypes as $ext => $header) {
+			$field->addOption($ext, $header);
+		}
+		if(strpos($template->contentType, '/') !== false) {
+			$contentType = array_search($template->contentType, $this->wire('config')->contentTypes);
+			if($contentType === false) {
+				$this->error("Error: content-type '$template->contentType' not found.");
+			} else {
+				$field->attr('value', $contentType);
+			}
+		} else {
+			$field->attr('value', $template->contentType);
+		}
+		$form->append($field);
 		
 		return $form;
 	}
@@ -1683,6 +1704,7 @@ class ProcessTemplate extends Process {
 		$this->template->noPrependTemplateFile = (int) $this->input->post('noPrependTemplateFile'); // field may not be present on all submissions
 		$this->template->noAppendTemplateFile = (int) $this->input->post('noAppendTemplateFile'); // field may not be present on all submissions
 		$this->template->tags = $this->sanitizer->text($form->get('tags')->attr('value'));
+		$this->template->contentType = $form->get('contentType')->attr('value');
 		
 		foreach(array('prependFile', 'appendFile') as $name) {
 			$value = $form->get($name)->attr('value'); 

@@ -16,7 +16,6 @@ class InputfieldPageListSelect extends Inputfield implements InputfieldPageListS
 	}
 
 	public function init() {
-		$this->fuel('modules')->get('ProcessPageList'); // prerequisite module
 		$this->set('parent_id', 0); 
 		$this->set('labelFieldName', 'title'); 
 		$this->set('startLabel', $this->_('Change')); 
@@ -29,12 +28,15 @@ class InputfieldPageListSelect extends Inputfield implements InputfieldPageListS
 	}
 
 	public function ___render() {
+		static $process = null;
+		if(is_null($process)) $process = $this->wire('modules')->get('ProcessPageList'); // prerequisite module
 
 		if(!strlen($this->parent_id)) {
 			return "<p class='error'>" . $this->_('Unable to render this field due to missing parent page in field settings.') . "</p>";
 		}
 
-		$out =	"\n<input type='text' " . $this->getAttributesString() . " />" . 
+		$out =	
+			"\n<input type='text' " . $this->getAttributesString() . " />" . 
 			"\n<script>$(document).ready(function() { " . 
 			"var t = $('#{$this->id}'); " . 
 			"t.ProcessPageList({ " . 

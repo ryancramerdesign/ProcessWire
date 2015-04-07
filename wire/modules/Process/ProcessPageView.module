@@ -161,15 +161,31 @@ class ProcessPageView extends Process {
 				$this->wire()->setStatus(ProcessWire::statusRender);
 
 				if($this->requestFile) {
-					$this->responseType = self::responseTypeFile; 
+					
+					$this->responseType = self::responseTypeFile;
 					$this->sendFile($page, $this->requestFile);
-
-				} else if($config->ajax) {
-					$this->responseType = self::responseTypeAjax;
-					return $page->render();
-
+					
 				} else {
-					return $page->render();
+
+					$contentType = $page->template->contentType; 
+					if($contentType) {
+						if(strpos($contentType, '/') === false) {
+							if(isset($config->contentTypes[$contentType])) {
+								$contentType = $config->contentTypes[$contentType];
+							} else {
+								$contentType = '';
+							}
+						}
+						if($contentType) header("Content-Type: $contentType");
+					}
+
+					if($config->ajax) {
+						$this->responseType = self::responseTypeAjax;
+						return $page->render();
+
+					} else {
+						return $page->render();
+					}
 				}
 
 			} catch(Wire404Exception $e) {

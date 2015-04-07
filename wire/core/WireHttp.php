@@ -623,6 +623,11 @@ class WireHttp extends Wire {
 		}
 		curl_setopt($curl, CURLOPT_FILE, $fp); // write curl response to file
 		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+
+		// @felixwahner #1027
+		if(isset($options['http']) && isset($options['http']['proxy']) && !is_null($options['http']['proxy'])) {
+			curl_setopt($curl, CURLOPT_PROXY, $options['http']['proxy']);
+		}
 		
 		$result = curl_exec($curl);
 		if($result) $this->httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);

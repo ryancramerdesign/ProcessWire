@@ -863,7 +863,7 @@ class FieldtypeComments extends FieldtypeMulti {
 		$f->value =
 			"<p>If you are using threaded comments (i.e. reply depth > 0), please also copy and paste the following into the document <code>&lt;head&gt;</code> " .
 			"or before the closing <code>&lt;/body&gt;</code> tag. In either case, jQuery is required to have been loaded first.</p>" .
-			"<pre style='border-left: 4px solid #ccc; padding-left: 1em;'>&lt;script type='text/javascript' src='&lt;?=\$config-&gt;urls-&gt;FieldtypeComments?&gt;comments.js' /&gt;</pre>" .
+			"<pre style='border-left: 4px solid #ccc; padding-left: 1em;'>&lt;script type='text/javascript' src='&lt;?=\$config-&gt;urls-&gt;FieldtypeComments?&gt;comments.js'&gt;&lt;/script&gt;</pre>" .
 			"<p>Like with the comments.css file, feel free to copy and link to the <a target='_blank' href='{$this->config->urls->FieldtypeComments}comments.js'>comments.js</a> file from your own " .
 			"location if you prefer it.</p>";
 		$fieldset->add($f); 

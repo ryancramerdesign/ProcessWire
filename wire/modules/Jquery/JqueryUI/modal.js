@@ -7,12 +7,17 @@
  * USE 
  * ===
  * 1. In your module call $this->modules->get('JqueryUI')->use('modal'); 
- * 2. For the <a> link you want to open a modal window, give it the class "pw-modal".
- *    For a larger modal window, also add class "pw-modal-large".
+ * 2. For the <a> link or <button> you want to open a modal window, give it the class 
+ *    "pw-modal". For a larger modal window, also add class "pw-modal-large". Other options
+ *    are "pw-modal-small" and "pw-modal-full". Default is "pw-modal-medium".
+ *    If using a <button> the "href" attribute will be pulled from a containing <a> element. 
+ *    If button not wrapped with an <a>, it may also be specified in a "data-href" attribute 
+ *    on the button.
+ *    
  *
  * ATTRIBUTES  
  * ========== 
- * Other attributes you may specify with your a.pw-modal:
+ * Other attributes you may specify with your a.pw-modal or button.pw-modal:
  * 
  * data-buttons: If you want to use modal window buttons, specify a jQuery selector 
  * that identifies these buttons in the modal window. The original buttons will be 
@@ -222,7 +227,7 @@ $(document).ready(function() {
 		}
 	}));
 	
-	$(document).on('click', 'a.pw-modal', function() { 
+	$(document).on('click', 'a.pw-modal, button.pw-modal', function() { 
 		
 		var $a = $(this);
 		var _autoclose = $a.attr('data-autoclose'); 
@@ -260,7 +265,19 @@ $(document).ready(function() {
 				'z-index': 9999
 			}).hide();
 		
-		var $iframe = pwModalWindow($a.attr('href'), settings, modalSize);
+		if($a.is('button')) {
+			var $aparent = $a.closest('a');
+			var href = $aparent.length ? $aparent.attr('href') : $a.attr('data-href');
+			if(!href) href = $a.find('a').attr('href');
+			if(!href) {
+				alert("Unable to find href attribute for: " + $a.text());
+				return;
+			}
+		} else {
+			var href = $a.attr('href');
+		}
+		
+		var $iframe = pwModalWindow(href, settings, modalSize);
 	
 		$("body").append($spinner.fadeIn('fast')); 
 		
@@ -330,7 +347,7 @@ $(document).ready(function() {
 						};
 						n++;
 					};
-					$button.hide(); // hide button that is in interface
+					if(!$button.hasClass('pw-modal-button-visible')) $button.hide(); // hide button that is in interface
 				});
 			} // .pw-modal-buttons
 

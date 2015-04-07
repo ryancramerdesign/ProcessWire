@@ -289,7 +289,7 @@
 					}, {
 
 						html: "<i class='fa fa-folder-open'></i> " + config.InputfieldCKEditor.pwimage.selectBtn, // "Select Another Image", 
-						class: 'ui-priority-secondary',
+						'class': 'ui-priority-secondary',
 						click: function() {
 							var $i = $iframe.contents();
 							var page_id = $("#page_id", $i).val();
@@ -298,7 +298,7 @@
 						}
 					}, {
 						html: "<i class='fa fa-times-circle'></i> " + config.InputfieldCKEditor.pwimage.cancelBtn, // "Cancel",
-						class: 'ui-priority-secondary',
+						'class': 'ui-priority-secondary',
 						click: function() { $iframe.dialog("close"); }
 					}
 					
@@ -318,11 +318,11 @@
 						}
 					}
 					buttons.push(button);
-					$button.hide();
+					if(!$button.hasClass('pw-modal-button-visible')) $button.hide();
 				});
 				var cancelButton = {
 					html: "<i class='fa fa-times-circle'></i> " + config.InputfieldCKEditor.pwimage.cancelBtn, // "Cancel",
-					class: "ui-priority-secondary", 
+					'class': "ui-priority-secondary", 
 					click: function() { $iframe.dialog("close"); }
 				};
 				buttons.push(cancelButton);

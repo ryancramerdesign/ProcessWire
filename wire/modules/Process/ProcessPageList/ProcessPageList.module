@@ -13,6 +13,14 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
+ * 
+ * @property bool $showRootPage Whether root page (like home) should be shown.
+ * @property string $pageLabelField Field name or field names (space separated) that should be used for page label.
+ * @property int $limit Items to show per pagination. 
+ * @property int $speed Animation speed (in ms)
+ * @property bool|int $useHoverActions Whether or not to use hover mode for action links.
+ * @property int $hoverActionDelay Milliseconds delay between hover and showing of actions. 
+ * @property int $hoverActionFade Milliseconds to spend fading in or out actions. 
  *
  */
 
@@ -41,7 +49,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page List',          
 			'summary' => 'List pages in a hierarchal tree structure', 
-			'version' => 110, 
+			'version' => 112, 
 			'permanent' => true, 
 			'permission' => 'page-edit',
 			'icon' => 'sitemap',
@@ -49,9 +57,19 @@ class ProcessPageList extends Process implements ConfigurableModule {
 	}
 
 	public function __construct() {
+		
 		$this->showRootPage = true; 
 		$this->pageLabelField = 'title';
 		$this->limit = self::defaultLimit;
+		
+		$settings = $this->wire('config')->pageList; 
+		if(is_array($settings)) {
+			$this->set('useHoverActions', isset($settings['useHoverActions']) ? (bool) $settings['useHoverActions'] : false);
+			$this->set('hoverActionDelay', isset($settings['hoverActionDelay']) ? (int) $settings['hoverActionDelay'] : 250);
+			$this->set('hoverActionFade', isset($settings['hoverActionFade']) ? (int) $settings['hoverActionFade'] : 150);
+			$this->set('speed', isset($settings['speed']) ? (int) $settings['speed'] : self::defaultSpeed);
+			$this->set('limit', isset($settings['limit']) ? (int) $settings['limit'] : self::defaultLimit); 
+		}
 	}
 
 	/**
@@ -138,6 +156,9 @@ class ProcessPageList extends Process implements ConfigurableModule {
 				'limit' => $this->limit, 
 				'start' => $this->start, 
 				'speed' => ($this->speed !== null ? (int) $this->speed : self::defaultSpeed),
+				'useHoverActions' => $this->useHoverActions ? true : false, 
+				'hoverActionDelay' => (int) $this->hoverActionDelay,
+				'hoverActionFade' => (int) $this->hoverActionFade, 
 				'selectStartLabel' => $this->_('Change'), // Change a page selection
 				'selectCancelLabel' => $this->_('Cancel'), // Cancel a page selection
 				'selectSelectLabel' => $this->_('Select'), // Select a page
@@ -329,7 +350,9 @@ abstract class ProcessPageListRender extends Wire {
 				'url' => "{$adminUrl}page/add/?parent_id={$page->id}"
 				);
 
-			if($page->id > 1 && ($page->moveable() || ($page->sortable() && $page->sortfield == 'sort'))) $actions[] = array(
+			$sortable = $page->sortfield == 'sort' && $page->parent->id && $page->parent->numChildren > 1 && $page->sortable();
+			
+			if($page->id > 1 && ($page->moveable() || $sortable)) $actions[] = array(
 				'cn' => 'Move', 
 				'name' => $this->actionLabels['move'], 
 				'url' => '#'

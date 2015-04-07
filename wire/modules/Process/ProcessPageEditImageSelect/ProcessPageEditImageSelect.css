@@ -307,3 +307,8 @@ label.checkbox {
 	filter: FlipV;
 	-ms-filter: "FlipV";
 }
+
+#ProcessPageEditImageSelect button.upload {
+	display: block;
+	clear: both; 
+}

@@ -1,6 +1,9 @@
 .InputfieldImage img {
 	max-width: 90%; 
 }
+.InputfieldImage img:hover {
+	cursor: zoom-in;
+}
 
 .InputfieldImage a.InputfieldFileLink + label.InputfieldFileDescription,
 .InputfieldImage a.InputfieldFileLink + label.InputfieldFileTags {
