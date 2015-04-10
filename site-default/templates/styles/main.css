@@ -138,6 +138,9 @@ form.search {
 		padding-left: 0.5em;
 		padding-right: 0.25em; 
 	}
+	.breadcrumbs span:last-child:after {
+		display: none;
+	}
 
 /*********************************************************************
  * 3. Main content and sidebar
