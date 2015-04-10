@@ -2989,7 +2989,7 @@ class Modules extends WireArray {
 	 */
 	protected function updateModuleFlags($moduleID, array $info) {
 		
-		$flags = $this->moduleFlags[$moduleID];
+		$flags = (int) $this->getFlags($moduleID); 
 		
 		if($info['autoload']) {
 			// module is autoload

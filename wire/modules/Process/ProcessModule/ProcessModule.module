@@ -1101,8 +1101,6 @@ class ProcessModule extends Process {
 		$form->attr('method', 'post'); 
 
 		$fields = array();
-		$data = array();
-
 		$dependents = $this->modules->getRequiredBy($moduleName, true); 
 		$requirements = $this->modules->getRequires($moduleName, false, true); 
 		$dependentsStr = '';
@@ -1181,12 +1179,16 @@ class ProcessModule extends Process {
 		// check for submitted form
 		if($this->input->post->submit_save_module) {
 
+			$data = $this->modules->getModuleConfigData($moduleName);
 			$form->processInput($this->input->post); 
+			$updatedNames = array();
+			
 			if(count($fields)) foreach($fields->getAll() as $field) {
 				// note field names beginning with '_' will not be stored	
 				if(($name = $field->attr('name')) && strpos($name, '_') !== 0) {
-					$data[$name] = $field->attr('value'); 
-					$this->message('Saved Module Config Data: ' . $name, Notice::debug); 
+					$value = $field->attr('value');
+					if(!isset($data[$name]) || $value != $data[$name]) $updatedNames[] = $name;
+					$data[$name] = $value;
 				}
 			}
 		
@@ -1195,8 +1197,9 @@ class ProcessModule extends Process {
 				$this->session->message($this->_("Uninstalled Module") . " - $moduleName"); // Message shown before the name of a module that was just uninstalled
 				$redirectURL = './?uninstalled=1'; 
 			} else {
-				$this->modules->saveModuleConfigData($moduleName, $data); 
-				$this->message($this->_("Saved Module") . " - $moduleName"); // Message shown before the name of a module that was just saved
+				$this->modules->saveModuleConfigData($moduleName, $data);
+				$updatedNames = count($updatedNames) ? ' (' . implode(', ', $updatedNames) . ')' : '';
+				$this->message($this->_("Saved Module") . " - $moduleName $updatedNames"); // Message shown before the name of a module that was just saved
 				$redirectURL = "./edit?name=$moduleName"; 
 				if($allowDisabledFlag) {
 					// module is autoload and has an option to diable
