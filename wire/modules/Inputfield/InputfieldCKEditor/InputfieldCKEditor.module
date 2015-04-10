@@ -13,6 +13,20 @@
  * 
  * Licensed under GNU/GPL v2
  * 
+ * @property bool|int $inlineMode ($default=0)
+ * @property bool|int $usePurifier (default=0)
+ * @property bool|int $useACF (default=1)
+ * @property array $toggles
+ * @property string $toolbar
+ * @property string $contentsCss
+ * @property string $contentsInlineCss
+ * @property string $stylesSet
+ * @property string|array $extraPlugins
+ * @property string $removePlugins
+ * @property string $extraAllowedContent
+ * @property string $formatTags
+ * @property string $customOptions
+ * 
  *
  */
 
@@ -291,24 +305,30 @@ class InputfieldCKEditor extends InputfieldTextarea {
 		$settings = array(
 			'language' => $this->_x('en', 'language-code'), // 2 character language code, lowercase
 			'timestamp' => '2015030801.' . $info['version'], // for cache busting (thanks teppo!)
-			'pwlink' => array(
-				'label' => $this->_('Insert Link'), // Insert link label, window headline and button text
-				'edit' => $this->_('Edit Link'), // Edit link label
-				'cancel' => $cancelButtonLabel,
-				'classOptions' => implode(',', $linkClassOptions),
-				),
-			'pwimage' => array(
-				'selectLabel' => $this->_('Select Image'),
-				'editLabel' => $this->_('Edit Image'),
-				'captionLabel' => $this->_('Your caption text here'), 
-				'savingNote' => $this->_('Saving Image'),
-				'cancelBtn' => $cancelButtonLabel,
-				'insertBtn' => $this->_('Insert This Image'),
-				'selectBtn' => $this->_('Select Another Image')
-				),
 			'plugins' => $this->findPlugins(),
-			'editors' => array()
-			);
+			'editors' => array(),
+			'pwlink' => array(
+				'label'        => $this->_('Insert Link'), // Insert link label, window headline and button text
+				'edit'         => $this->_('Edit Link'), // Edit link label
+				'cancel'       => $cancelButtonLabel,
+				'classOptions' => implode(',', $linkClassOptions),
+			),
+			'pwimage' => array(
+				'selectLabel'  => $this->_('Select Image'),
+				'editLabel'    => $this->_('Edit Image'),
+				'captionLabel' => $this->_('Your caption text here'),
+				'savingNote'   => $this->_('Saving Image'),
+				'cancelBtn'    => $cancelButtonLabel,
+				'insertBtn'    => $this->_('Insert This Image'),
+				'selectBtn'    => $this->_('Select Another Image')
+			)
+		);
+		
+		if($this->hasFieldtype === false) {
+			// not applicable when no page attached
+			unset($settings['pwlink'], $settings['pwimage']); 
+			unset($settings['plugins']['pwlink'], $settings['plugins']['pwimage']);
+		}
 		
 		$this->wire('config')->js($this->className(), $settings); 
 
