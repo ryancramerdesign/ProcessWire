@@ -562,6 +562,21 @@ class FieldtypeRepeater extends Fieldtype implements ConfigurableModule {
 		return $a; 	
 	}
 
+
+	/**
+	 * Get information used by selectors for querying this field
+	 *
+	 * @param Field $field
+	 * @param array $data
+	 * @return array
+	 *
+	 */
+	public function ___getSelectorInfo(Field $field, array $data = array()) {
+		$info = $this->wire('modules')->get('FieldtypePage')->getSelectorInfo($field, $data);
+		$info['operators'] = array(); // force it to be non selectable, subfields only
+		return $info;
+	}
+
 	/**
 	 * Return the parent used by the repeater pages for the given Page and Field
 	 *

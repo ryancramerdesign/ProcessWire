@@ -1220,7 +1220,7 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 		$valueHasSelectorString = strlen($selectorValue) > 0 && Selectors::stringHasSelector($selectorValue);
 		
 		$limitSubfields = array();
-		foreach($this->limitFields as $limitField) {
+		if(is_array($this->limitFields)) foreach($this->limitFields as $limitField) {
 			if(strpos($limitField, '.') === false) continue;
 			if(strpos($limitField, $fieldName) !== 0) continue; 
 			list($limitField, $limitSubfield) = explode('.', $limitField);
