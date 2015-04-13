@@ -16,6 +16,8 @@
  * 
  * http://www.processwire.com
  * http://www.ryancramer.com
+ * 
+ * @property array $where
  *
  */
 abstract class DatabaseQuery extends WireData { 
@@ -56,6 +58,9 @@ abstract class DatabaseQuery extends WireData {
 
 	/**
 	 * Merge the contents of current query with another
+	 * 
+	 * @param DatabaseQuery $query
+	 * @return this
 	 *
 	 */
 	public function merge(DatabaseQuery $query) {
@@ -82,7 +87,13 @@ abstract class DatabaseQuery extends WireData {
 		foreach($where as $s) $sql .= "\nAND $s ";
 		return $sql;
 	}
-	
+
+	/**
+	 * Prepare and return a PDOStatement
+	 * 
+	 * @return PDOStatement
+	 * 
+	 */
 	public function prepare() {
 		$query = $this->wire('database')->prepare($this->getQuery()); 
 		foreach($this->bindValues as $key => $value) {

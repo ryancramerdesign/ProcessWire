@@ -17,6 +17,7 @@
  * @property string email Get or set email address for this user.
  * @property string pass Set the user's password. Note that when getting, this returns a hashed version of the password, so it is not typically useful to get this property. However, it is useful to set this property if you want to change the password. When you change a password, it is assumed to be the non-hashed/non-encrypted version. ProcessWire will hash it automatically when the user is saved.
  * @property PageArray roles Get roles this user has. Returns PageArray.
+ * @property Language $language User language, applicable only if LanguageSupport installed.
  *
  */
 

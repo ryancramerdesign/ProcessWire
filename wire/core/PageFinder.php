@@ -123,6 +123,9 @@ class PageFinder extends Wire {
 
 	/**
 	 * Pre-process the selectors to add Page status checks
+	 * 
+	 * @param Selectors $selectors
+	 * @param array $options
 	 *
 	 */
 	protected function setupStatusChecks(Selectors $selectors, array &$options) {
@@ -248,6 +251,11 @@ class PageFinder extends Wire {
 
 	/**
 	 * Return all pages matching the given selector.
+	 * 
+	 * @param Selectors $selectors
+	 * @param array $options
+	 * @return array
+	 * @throws PageFinderException
 	 *
 	 */
 	public function ___find(Selectors $selectors, $options = array()) {
@@ -278,23 +286,12 @@ class PageFinder extends Wire {
 
 			try {
 				$stmt = $query->prepare();
-				$stmt->execute();
+				$this->wire('pages')->executeQuery($stmt);
 				$error = '';
 			} catch(Exception $e) {
 				$error = $e->getMessage();
 			}
 		
-			if($stmt->errorCode() > 0) {
-				$errorInfo = $stmt->errorInfo();
-				$error = $errorInfo[2] . ($error ? " - $error" : "");
-				if($stmt->errorCode() == '42S22') {
-					// unknown column
-					if(preg_match('/[\'"]([_a-z0-9]+\.[_a-z0-9]+)[\'"]/i', $errorInfo[2], $matches)) {
-						$this->unknownColumnError($matches[1], $errorInfo[2], $query); 
-					}
-				} 
-			}
-			
 			if($error) {
 				$this->log($error); 
 				throw new PageFinderException($error); 
@@ -345,12 +342,6 @@ class PageFinder extends Wire {
 		return $matches; 
 	}
 	
-	protected function ___unknownColumnError($column, $error, DatabaseQuery $query) {
-		if($this->wire('languages')) {
-			$this->wire('languages')->unknownColumnError($column);
-		}
-	}
-
 	/**
 	 * Same as find() but returns just a simple array of page IDs without any other info
 	 *
@@ -1153,6 +1144,7 @@ class PageFinder extends Wire {
 		if($this->modules->isInstalled('PagePaths') && !$langNames) {
 			// @todo add support to PagePaths module for LanguageSupportPageNames
 			$pagePaths = $this->modules->get('PagePaths');
+			/** @var PagePaths $pagePaths */
 			$pagePaths->getMatchQuery($query, $selector); 
 			return;
 		}
@@ -1203,6 +1195,11 @@ class PageFinder extends Wire {
 	 * Special case when field is native to the pages table
 	 *
 	 * TODO not all operators will work here, so may want to add some translation or filtering
+	 * 
+	 * @param DatabaseQuerySelect $query
+	 * @param Selector $selector
+	 * @param array $fields
+	 * @throws PageFinderSyntaxException
 	 *
 	 */
 	protected function getQueryNativeField(DatabaseQuerySelect $query, $selector, $fields) {

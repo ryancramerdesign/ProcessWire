@@ -38,7 +38,9 @@
  * @property Page $prev This page's previous sibling page, or NullPage if it is the first sibling. See also $page->prev($pageArray).
  * @property string $created Unix timestamp of when the page was created
  * @property string $modified Unix timestamp of when the page was last modified
+ * @property int $created_users_id ID of created user
  * @property User $createdUser The user that created this page. Returns a User or a NullUser.
+ * @property int $modified_users_id ID of last modified user
  * @property User $modifiedUser The user that last modified this page. Returns a User or a NullUser.
  * @property PagefilesManager $filesManager
  * @property bool $outputFormatting Whether output formatting is enabled or not. 
@@ -48,7 +50,9 @@
  * @property int $sort Sort order of this page relative to siblings (applicable when manual sorting is used).  
  * @property string $sortfield Field that a page is sorted by relative to its siblings (default=sort, which means drag/drop manual)
  * @property null|array _statusCorruptedFields Field names that caused the page to have Page::statusCorrupted status. 
+ * @property int $status Page status flags
  * @property string statusStr Returns space-separated string of status names active on this page.
+ * @property Fieldgroup $fieldgroup Shorter alias for $page->template->fieldgroup
  * 
  * Methods added by PageRender.module: 
  * -----------------------------------
@@ -70,6 +74,14 @@
  * ------------------------------------------------------------------
  * @method Page setLanguageValue($language, $fieldName, $value) Set value for field in language (requires LanguageSupport module). $language may be ID, language name or Language object.
  * @method Page getLanguageValue($language, $fieldName) Get value for field in language (requires LanguageSupport module). $language may be ID, language name or Language object. 
+ * 
+ * Hookable methods
+ * ----------------
+ * @method mixed getUnknown($key) Last stop to find a property that we haven't been able to locate.
+ * @method Page rootParent() Get parent closest to homepage.
+ * @method void loaded() Called when page is loaded.
+ * @method void setEditor(WirePageEditor $editor)
+ * @method string getIcon()
  *
  */
 
@@ -1263,6 +1275,8 @@ class Page extends WireData implements Countable {
 	 *
 	 * @param Field|string $field Optional field to save (name of field or Field object)
 	 * @param array $options See Pages::save for options. You may also specify $options as the first argument if no $field is needed.
+	 * @return bool true on success false on fail
+	 * @throws WireException on database error
 	 *
 	 */
 	public function save($field = null, array $options = array()) {

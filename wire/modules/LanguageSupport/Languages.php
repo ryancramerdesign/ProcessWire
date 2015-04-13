@@ -60,6 +60,20 @@ class Languages extends PagesType {
 			else $this->translator->setCurrentLanguage($language);
 		return $this->translator; 
 	}
+	
+	public function getPageClass() {
+		return 'Language';
+	}
+	
+	public function getLoadOptions(array $loadOptions = array()) {
+		$loadOptions = parent::getLoadOptions($loadOptions);
+		$loadOptions['autojoin'] = false;
+		return $loadOptions; 
+	}
+	
+	public function getJoinFieldNames() {
+		return array();
+	}
 
 	/**
 	 * Returns ALL languages, including those in the trash or unpublished, etc. (inactive)
@@ -71,8 +85,13 @@ class Languages extends PagesType {
 		if($this->languagesAll) return $this->languagesAll; 
 		$template = $this->getTemplate();
 		$parent_id = $this->getParentID();
-		$this->languagesAll = $this->wire('pages')->find("parent_id=$parent_id, template=$template, include=all"); 
-		return $this->languagesAll;
+		$selector = "parent_id=$parent_id, template=$template, include=all";
+		$languagesAll = $this->wire('pages')->find($selector, array(
+				'loadOptions' => $this->getLoadOptions(), 
+			)
+		); 
+		if(count($languagesAll)) $this->languagesAll = $languagesAll;
+		return $languagesAll;
 	}
 
 	/**
@@ -81,12 +100,13 @@ class Languages extends PagesType {
 	 */
 	public function getIterator() {
 		if($this->languages) return $this->languages; 
-		$this->languages = new PageArray();
+		$languages = new PageArray();
 		foreach($this->getAll() as $language) { 
 			if($language->is(Page::statusUnpublished) || $language->is(Page::statusHidden)) continue; 
-			$this->languages->add($language); 
+			$languages->add($language); 
 		}
-		return $this->languages; 
+		if(count($languages)) $this->languages = $languages;
+		return $languages; 
 	}
 
 	/**
@@ -173,48 +193,61 @@ class Languages extends PagesType {
 	public function reloadLanguages() {
 		$this->languages = null;
 		$this->languagesAll = null;
-		$this->getIterator(); 
+	}
+
+	public function getParent() {
+		return $this->wire('pages')->findOne($this->parent_id, array('loadOptions' => array('autojoin' => false)));
+	}
+
+	public function getParents() {
+		if(count($this->parents)) {
+			return $this->wire('pages')->getById($this->parents, array('autojoin' => false));
+		} else {
+			return parent::getParents();
+		}
 	}
 
 	/**
-	 * PageFinder calls this when it catches an unknown column exception
-	 * 
-	 * Provides QA to make sure any language-related columns are property setup in case 
-	 * something failed during the initial setup process. 
-	 * 
-	 * This is only here to repair existing installs that were missing a field for one reason or another. 
-	 * This method (and the call to it in PageFinder) can eventually be removed. 
-	 * 
+	 * Pages calls this when it catches an unknown column exception
+	 *
+	 * Provides QA to make sure any language-related columns are property setup in case
+	 * something failed during the initial setup process.
+	 *
+	 * This is only here to repair existing installs that were missing a field for one reason or another.
+	 * This method (and the call to it in Pages) can eventually be removed (?)
+	 *
 	 * @param $column
-	 * 
+	 *
 	 */
 	public function ___unknownColumnError($column) {
-		
+
 		if(!preg_match('/^([^.]+)\.([^.\d]+)(\d+)$/', $column, $matches)) {
 			return;
 		}
-		
+
 		$table = $matches[1];
-		$col = $matches[2]; 
-		$languageID = (int) $matches[3]; 
-		
-		foreach($this as $language) {
+		$col = $matches[2];
+		$languageID = (int) $matches[3];
+
+		foreach($this->wire('languages') as $language) {
 			if($language->id == $languageID) {
-				echo "language $language->name is missing column $column";
+				$this->warning("language $language->name is missing column $column", Notice::debug);
 				if($table == 'pages' && $this->wire('modules')->isInstalled('LanguageSupportPageNames')) {
-					$module = $this->wire('modules')->get('LanguageSupportPageNames'); 
-					$module->languageAdded($language); 
+					$module = $this->wire('modules')->get('LanguageSupportPageNames');
+					$module->languageAdded($language);
 				} else if(strpos($table, 'field_') === 0) {
-					$fieldName = substr($table, strpos($table, '_')+1); 
-					$field = $this->wire('fields')->get($fieldName); 
+					$fieldName = substr($table, strpos($table, '_')+1);
+					$field = $this->wire('fields')->get($fieldName);
 					if($field && $this->wire('modules')->isInstalled('LanguageSupportFields')) {
-						$module = $this->wire('modules')->get('LanguageSupportFields'); 
-						$module->fieldLanguageAdded($field, $language); 
+						$module = $this->wire('modules')->get('LanguageSupportFields');
+						$module->fieldLanguageAdded($field, $language);
 					}
 				}
 			}
 		}
 	}
+
+
 
 }
 

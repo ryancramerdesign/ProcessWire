@@ -111,7 +111,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 			} else if(is_string($parent) && ctype_digit($parent)) {
 				$id = (int) $parent;
 			} else if(is_string($parent)) {
-				$parent = $this->wire('pages')->get($parent);
+				$parent = $this->wire('pages')->findOne($parent, array('loadOptions' => array('autojoin' => false)));
 				$id = $parent->id;
 			} else if(is_object($parent) && $parent instanceof Page) {
 				$id = $parent->id;
@@ -190,11 +190,29 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	
 		if(!$validParent && count($this->parents)) {
 			$validParents = impode(', ', $this->parents);
-			$this->error("Page $page->path must have parent: $validParents"); 
+			$this->error("Page $page->path must have parent: $validParents");
 			return false;
 		}
 		
 		return true; 
+	}
+
+	/**
+	 * Get options that will be passed to Pages::getById()
+	 * 
+	 * @param array $loadOptions Optionally specify options to merge with and override defaults
+	 * @return array
+	 * 
+	 */
+	protected function getLoadOptions(array $loadOptions = array()) {
+		$_loadOptions = array(
+			'pageClass' => $this->getPageClass(),
+			//'getNumChildren' => false, 
+			'joinSortfield' => false,
+			'joinFields' => $this->getJoinFieldNames()
+		);
+		if(count($loadOptions)) $_loadOptions = array_merge($_loadOptions, $loadOptions);
+		return $_loadOptions; 
 	}
 
 	/**
@@ -207,14 +225,10 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	 *
 	 */
 	public function find($selectorString, $options = array()) {
-		if(!isset($options['findAll'])) $options['findAll'] = true; 
-		if(!isset($options['loadOptions'])) $options['loadOptions'] = array(
-			'pageClass' => $this->getPageClass(),
-			//'getNumChildren' => false, 
-			'joinSortfield' => false, 
-			'joinFields' => $this->getJoinFieldNames(), 
-		);
-		$pages = $this->pages->find($this->selectorString($selectorString), $options);
+		if(!isset($options['findAll'])) $options['findAll'] = true;
+		if(!isset($options['loadOptions'])) $options['loadOptions'] = array();
+		$options['loadOptions'] = $this->getLoadOptions($options['loadOptions']); 
+		$pages = $this->wire('pages')->find($this->selectorString($selectorString), $options);
 		foreach($pages as $page) $this->loaded($page); 
 		return $pages; 
 	}
@@ -229,16 +243,10 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	 */
 	public function get($selectorString) {
 		
-		$options = array(
-			'getOne' => true, 
-			'pageClass' => $this->getPageClass(),	
-			//'getNumChildren' => false, 
-			'joinSortfield' => false, 
-			'joinFields' => $this->getJoinFieldNames(), 
-		);
+		$options = $this->getLoadOptions(array('getOne' => true));
 		
 		if(ctype_digit("$selectorString")) {
-			// selector string contians a page ID
+			// selector string contains a page ID
 			if(count($this->templates) == 1 && count($this->parents) == 1) {
 				// optimization for when there is only 1 template and 1 parent
 				$options['template'] = $this->template;
@@ -265,7 +273,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 			// selector string with operators, can pass through
 		}
 
-		$page = $this->pages->get($this->selectorString($selectorString)); 
+		$page = $this->pages->findOne($this->selectorString($selectorString), array('loadOptions' => $options)); 
 		if($page->id) $this->loaded($page);
 		
 		return $page; 
@@ -322,7 +330,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	public function ___add($name) {
 		
 		$className = $this->getPageClass();
-		$parent = $this->pages->get($this->parent_id); 
+		$parent = $this->getParent();
 
 		$page = new $className(); 
 		$page->template = $this->template; 
@@ -367,7 +375,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	}
 
 	public function getParent() {
-		return $this->wire('pages')->get($this->parent_id);
+		return $this->wire('pages')->findOne($this->parent_id);
 	}
 	
 	public function getParents() {

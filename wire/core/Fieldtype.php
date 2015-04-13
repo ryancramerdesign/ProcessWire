@@ -12,6 +12,32 @@
  * http://processwire.com
  * 
  * 
+ * Hookable methods
+ * ================
+ * @method InputfieldWrapper getConfigInputfields(Field $field)
+ * @method InputfieldWrapper getConfigAdvancedInputfields(Field $field)
+ * @method array getConfigAllowContext(Field $field)
+ * @method array exportConfigData(Field $field, array $data)
+ * @method array importConfigData(Field $field, array $data)
+ * @method Fieldtypes|null getCompatibleFieldtypes(Field $field)
+ * @method mixed formatValue(Page $page, Field $field, $value)
+ * @method string|MarkupFieldtype markupValue(Page $page, Field $field, $value = null, $property = '')
+ * @method mixed wakeupValue(Page $page, Field $field, $value)
+ * @method string|int|array sleepValue(Page $page, Field $field, $value)
+ * @method string|float|int|array exportValue(Page $page, Field $field, $value, array $options = array())
+ * @method bool createField(Field $field)
+ * @method array getSelectorInfo(Field $field, array $data = array())
+ * @method mixed|null loadPageField(Page $page, Field $field)
+ * @method bool savePageField(Page $page, Field $field)
+ * @method bool deleteField(Field $field)
+ * @method bool deletePageField(Page $page, Field $field)
+ * @method bool emptyPageField(Page $page, Field $field)
+ * @method bool replacePageField(Page $src, Page $dst, Field $field)
+ * @method bool deleteTemplateField(Template $template, Field $field)
+ * @method Field cloneField(Field $field)
+ * @method void install()
+ * @method void uninstall()
+ * 
  */
 abstract class Fieldtype extends WireData implements Module {
 
@@ -620,13 +646,13 @@ abstract class Fieldtype extends WireData implements Module {
 		if($isMulti) $query->orderby('sort'); 
 
 		$value = null;
-		$stmt = $query->prepare();
 		try {
-			$stmt->execute();
+			$stmt = $query->prepare();
+			$result = $this->wire('pages')->executeQuery($stmt);
 		} catch(Exception $e) {
+			$result = false;
 			$this->error($e->getMessage());	
 		}
-		$result = $stmt->errorCode() > 0 ? false : true;
 		$fieldName = $database->escapeCol($field->name); 
 		$schema = $this->trimDatabaseSchema($this->getDatabaseSchema($field));
 

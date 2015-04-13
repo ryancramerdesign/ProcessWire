@@ -63,8 +63,9 @@ interface InputfieldHasArrayValue { }
  * @property string $headerClass Optional class name (CSS) to apply to the InputfieldHeader element
  * @property string $contentClass Optional class name (CSS) to apply to the InputfieldContent element
  * @property InputfieldWrapper|null $parent The parent InputfieldWrapper for this Inputfield or null if not set. 
- * @property null|Fieldtype hasFieldtype Set to the Fieldtype using this Inputfield (by Field), when applicable, null when not.
- * @property null|bool entityEncodeLabel Set to boolean false to specifically disable entity encoding of field header/label.
+ * @property null|Fieldtype $hasFieldtype Set to the Fieldtype using this Inputfield (by Field), when applicable, null when not.
+ * @property null|bool $entityEncodeLabel Set to boolean false to specifically disable entity encoding of field header/label.
+ * @property bool|null $useLanguages When multi-language support active, can be set to true to make it provide inputs for each language (where supported).
  * 
  *
  *
