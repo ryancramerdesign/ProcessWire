@@ -114,6 +114,9 @@ class InputfieldWrapper extends Inputfield {
 
 	/**
 	 * By default, calls to get() are finding a child Inputfield based on the name attribute
+	 * 
+	 * @param string $key
+	 * @return mixed
 	 *
 	 */
 	public function get($key) {
@@ -143,6 +146,9 @@ class InputfieldWrapper extends Inputfield {
 
 	/**
 	 * Prepend another Inputfield to this Inputfield's children
+	 * 
+	 * @param Inputfield $item
+	 * @return this
 	 *
 	 */
 	public function prepend(Inputfield $item) {
@@ -153,6 +159,9 @@ class InputfieldWrapper extends Inputfield {
 
 	/**
 	 * Append another Inputfield to this Inputfield's children
+	 * 
+	 * @param Inputfield $item
+	 * @return this
 	 *
 	 */
 	public function append(Inputfield $item) {
@@ -163,6 +172,10 @@ class InputfieldWrapper extends Inputfield {
 
 	/**
 	 * Insert one Inputfield before one that's already there
+	 * 
+	 * @param Inputfield $item Item to insert
+	 * @param Inputfield $existingItem Existing item you want to insert before
+	 * @return this
 	 *
 	 */
 	public function insertBefore(Inputfield $item, Inputfield $existingItem) {
@@ -173,6 +186,10 @@ class InputfieldWrapper extends Inputfield {
 
 	/**
 	 * Insert one Inputfield after one that's already there
+	 * 
+	 * @param Inputfield $item Item you want to insert
+	 * @param Inputfield $existingItem Existing item you want to insert after
+	 * @return this
 	 *
 	 */
 	public function insertAfter(Inputfield $item, Inputfield $existingItem) {
@@ -183,6 +200,9 @@ class InputfieldWrapper extends Inputfield {
 
 	/**
 	 * Remove an Inputfield from this Inputfield's children
+	 * 
+	 * @param Inputfield $item
+	 * @return this
 	 *
 	 */
 	public function remove($item) {
@@ -357,6 +377,7 @@ class InputfieldWrapper extends Inputfield {
 			if($ffOut) {
 				$attrs = '';
 				$label = $inputfield->getSetting('label');
+				if(!strlen($label)) $label = $inputfield->attr('name');
 				if($label) {
 					$for = $inputfield->skipLabel ? '' : $inputfield->attr('id');
 					// if $inputfield has a property of entityEncodeLabel with a value of boolean FALSE, we don't entity encode
