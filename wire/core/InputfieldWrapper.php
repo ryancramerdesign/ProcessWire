@@ -377,7 +377,7 @@ class InputfieldWrapper extends Inputfield {
 			if($ffOut) {
 				$attrs = '';
 				$label = $inputfield->getSetting('label');
-				if(!strlen($label)) $label = $inputfield->attr('name');
+				if(!strlen($label) && $inputfield->skipLabel != Inputfield::skipLabelBlank) $label = $inputfield->attr('name');
 				if($label) {
 					$for = $inputfield->skipLabel ? '' : $inputfield->attr('id');
 					// if $inputfield has a property of entityEncodeLabel with a value of boolean FALSE, we don't entity encode
