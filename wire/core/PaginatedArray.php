@@ -172,4 +172,20 @@ class PaginatedArray extends WireArray implements WirePaginatable {
 		
 		return trim($str); 
 	}
+
+
+	/**
+	 * debugInfo PHP 5.6+ magic method
+	 *
+	 * @return array
+	 *
+	 */
+	public function __debugInfo() {
+		$info = parent::__debugInfo();
+		if($this->getLimit()) $info['pager'] = $this->getPaginationString();
+		$info['total'] = $this->getTotal();
+		$info['start'] = $this->getStart();
+		$info['limit'] = $this->getLimit();
+		return $info;
+	}
 }

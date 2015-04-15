@@ -265,7 +265,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			$editURL = $pagefile->url;
 		}
 		$editTitle = "$pagefile->name ({$pagefile->width}x{$pagefile->height})";
-		$fileStats = "{$pagefile->filesizeStr}, {$pagefile->width}x{$pagefile->height} ";
+		$fileStats = str_replace(' ', '&nbsp;', $pagefile->filesizeStr) . ", {$pagefile->width}x{$pagefile->height} ";
 
 		$out = 	
 			"\n\t\t<p class='InputfieldFileInfo InputfieldItemHeader ui-widget ui-widget-header'>" . 

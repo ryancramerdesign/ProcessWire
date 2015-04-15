@@ -1036,14 +1036,14 @@ class ProcessModule extends Process {
 		if(!$inputName) throw new WireException("This URL may be be accessed directly"); 
 		$install = new ProcessModuleInstall();
 		$install->uploadModule($inputName);
-		$this->session->redirect('./'); 
+		$this->session->redirect('./?reset=1'); 
 	}
 	
 	public function ___executeDownloadURL($url = '') {
 		if(!$url) throw new WireException("This URL may be be accessed directly");
 		$install = new ProcessModuleInstall();
 		$install->downloadModule($url);
-		$this->session->redirect('./'); 
+		$this->session->redirect('./?reset=1'); 
 	}
 
 	/**********************************************************************************************************************************************************/

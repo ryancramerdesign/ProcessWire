@@ -706,13 +706,22 @@ class Pages extends Wire {
 	/**
 	 * Count and return how many pages will match the given selector string
 	 *
-	 * @param string $selectorString
+	 * @param string $selectorString Specify selector string, or omit to retrieve a site-wide count.
 	 * @param array|string $options See $options in Pages::find 
 	 * @return int
 	 *
 	 */
-	public function count($selectorString, $options = array()) {
+	public function count($selectorString = '', $options = array()) {
 		if(is_string($options)) $options = Selectors::keyValueStringToArray($options);
+		if(!strlen($selectorString)) {
+			if(empty($options)) {
+				// optimize away a simple site-wide total count
+				return (int) $this->wire('database')->query("SELECT COUNT(*) FROM pages")->fetch(PDO::FETCH_COLUMN);
+			} else {
+				// no selector string, but options specified
+				$selectorString = "id>0";
+			}
+		}
 		$options['loadPages'] = false; 
 		$options['getTotal'] = true; 
 		$options['caller'] = 'pages.count';

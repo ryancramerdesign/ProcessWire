@@ -234,6 +234,9 @@ abstract class Inputfield extends WireData implements Module {
 	 * like getSetting() or getAttribute().
 	 *
 	 * This method is also tied into __get() like all WireData classes.
+	 * 
+	 * @param string $key
+	 * @return mixed
 	 *
 	 */ 
 	public function get($key) {	

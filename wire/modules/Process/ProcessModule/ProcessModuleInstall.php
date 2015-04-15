@@ -365,7 +365,6 @@ class ProcessModuleInstall extends Wire {
 		if(count($files)) {
 			$file = $tempDir . reset($files);
 			$destinationDir = $this->unzipModule($file, $destinationDir); 
-			if($destinationDir) $this->modules->resetCache();
 
 		} else {
 			$this->error($this->_('No uploads found'));
@@ -409,10 +408,7 @@ class ProcessModuleInstall extends Wire {
 			$file = $http->download($url, $tempZIP); // throws exceptions on any error
 			$this->message(sprintf($this->_('Downloaded ZIP file: %s (%d bytes)'), $url, filesize($file)));
 			$destinationDir = $this->unzipModule($file, $destinationDir);
-			if($destinationDir) {
-				$success = true; 
-				$this->modules->resetCache();
-			}
+			if($destinationDir) $success = true; 
 
 		} catch(Exception $e) {
 			$this->error($e->getMessage());

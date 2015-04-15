@@ -186,6 +186,12 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * Insert an item either before or after another
  	 *
 	 * Provides the implementation for the insertBefore and insertAfter functions
+	 * 
+	 * @param int|string|array|object $item Item you want to insert
+	 * @param int|string|array|object $existingItem Item already present that you want to insert before/afer
+	 * @param bool $insertBefore True if you want to insert before, false if after
+	 * @return WireArray
+	 * @throws WireException ig given an invalid item
 	 *
 	 */
 	protected function _insert($item, $existingItem, $insertBefore = true) {
@@ -324,6 +330,9 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 
 	/**
 	 * Ensures that isset() and empty() work for this classes properties. 
+	 * 
+	 * @param string|int $key
+	 * @return bool
 	 *
 	 */
 	public function __isset($key) {
@@ -332,6 +341,8 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 
 	/**
 	 * Ensures that unset() works for this classes data. 
+	 * 
+	 * @param int|string $key
 	 *
 	 */
 	public function __unset($key) {
@@ -359,28 +370,48 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * You may also specify a selector, in which case this method will return the same result as the findOne() method. 
 	 *
 	 * @throws WireException
-	 * @param int|string $key Key of item to retrieve. If not specified, 0 is assumed (for first item).
+	 * @param int|string|array $key Key of item to retrieve. If not specified, 0 is assumed (for first item).
+	 * 	You may also provide an array of keys, in which case an array of matching items will be returned, indexed by your keys.
 	 * @return int|string|array|object Value of item requested, or null if it doesn't exist. 
 	 *
 	 */
 	public function get($key) {
 
-		// if an object was provided, get it's key
+		// if an object was provided, get its key
 		if(is_object($key)) $key = $this->getItemKey($key); 
 
-		// don't allow arrays as keys
-		if(is_array($key)) throw new WireException("WireArray::get cannot accept an array as a key"); 
+		// if given an array of keys, return all matching items
+		if(is_array($key)) {
+			$items = array();
+			foreach($key as $k) {
+				$item = $this->get($k);
+				$items[$k] = $item;
+			}
+			return $items;
+		}
 
 		// check if the index is set and return it if so
 		if(isset($this->data[$key])) return $this->data[$key]; 
 
 		// check if key contains a selector
 		if(Selectors::stringHasOperator($key)) return $this->findOne($key); 
+		
+		if(strpos($key, '{') !== false && strpos($key, '}')) {
+			// populate a formatted string with {tag} vars
+			return wirePopulateStringTags($key, $this);
+		}
+	
+		// check if key is requesting a property array: i.e. "name[]"
+		if(strpos($key, '[]') !== false && substr($key, -2) == '[]') {
+			return $this->explode(substr($key, 0, -2));
+		}
 
 		// if the WireArray uses numeric keys, then it's okay to
 		// match a 'name' field if the provided key is a string
 		$match = null;
-		if(is_string($key) && $this->usesNumericKeys()) $match = $this->getItemThatMatches('name', $key); 
+		if(is_string($key) && $this->usesNumericKeys()) {
+			$match = $this->getItemThatMatches('name', $key);
+		}
 
 		return $match; 
 	}
@@ -1462,22 +1493,34 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 
 	/**
 	 * Return a plain array of the requested property from each item
+	 * 
+	 * You may provide an array of properties as the $property, in which case it will return an
+	 * array of associative arrays with all requested properties for each item. 
 	 *
 	 * You may also provide a function as the property. That function receives the $item
 	 * as the first argument and $key as the second. It should return the value that will be stored. 
-	 *
+	 * 
 	 * The keys of the returned array remain consistent with the original WireArray. 
 	 *
-	 * @param string|function $property
+	 * @param string|function|array $property
 	 * @return array
 	 *
 	 */
 	public function explode($property) {
-		$isFunction = !is_string($property) && is_callable($property); 
+		$isArray = is_array($property);
+		$isFunction = !$isArray && !is_string($property) && is_callable($property); 
 		$values = array();
 		foreach($this as $key => $item) {
-			if($isFunction) $values[$key] = $property($item, $key); 
-				else $values[$key] = $item->get($property);
+			if($isFunction) {
+				$values[$key] = $property($item, $key);
+			} else if($isArray) {
+				$values[$key] = array();
+				foreach($property as $p) {
+					$values[$key][$p] = $item->get($p);
+				}
+			} else {
+				$values[$key] = $item->get($property);
+			}
 		}
 		return $values; 
 	}
@@ -1558,5 +1601,123 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			}
 		}
 		return $this->get($key);
+	}
+
+	/**
+	 * Handler for when an unknown/unhooked function call is executed
+	 *
+	 * @param string $method Requested method name
+	 * @param array $arguments Arguments provided
+	 * @return null|mixed
+	 * @throws WireException
+	 *
+	 */
+	protected function ___callUnknown($method, $arguments) {
+		
+		if(!isset($arguments[0])) {
+			// explode the property to an array
+			return $this->explode($method);
+			
+		} else if(is_string($arguments[0])) {
+			// implode the property identified by $method and glued by $arguments[0]
+			// with optional $options as second argument
+			$delimiter = $arguments[0];
+			$options = array();
+			if(isset($arguments[1]) && is_array($arguments[1])) $options = $arguments[1]; 
+			return $this->implode($delimiter, $method, $options); 
+			
+		} else {
+			// fail
+			return parent::___callUnknown($method, $arguments); 
+		}
+	}
+
+	/**
+	 * Execute a function for each item, or build a string or array from each item
+	 * 
+	 * @param callable|function|string|array|null $func Accepts any of the following:
+	 * 1. Callable function that each item will be passed to as first argument. If this 
+	 *    function returns a string, it will be appended to that of the other items and 
+	 *    the result returned by this each() method.
+	 * 2. Markup or text string with variable {tags} within it where each {tag} resolves
+	 *    to a property in each item. This each() method will return the concatenated result.
+	 * 3. A property name (string) common to items in this WireArray. The result will be 
+	 *    returned as an array. 
+	 * 4. An array of property names common to items in this WireArray. The result will be
+	 *    returned as an array of associative arrays indexed by property name. 
+	 *   	
+	 * @return array|null|string|WireArray Returns one of the following (related to numbers above).
+	 * 1a. $this WireArray of given a function that has no return values. 
+	 * 1b. Returns a string containing the concatenated results of all function calls, if 
+	 *     your function returns strings.
+	 * 2.  Returns the processed and concatenated result (string) of all items in your 
+	 *     template string.
+	 * 3.  Returns regular PHP array of the property values for each item you requested.
+	 * 4.  Returns an array of associative arrays containing the property values for each item
+	 *     you requested.
+	 * 
+	 */
+	public function each($func = null) {
+		$result = null; // return value, if it's detected that one is desired
+		if(is_callable($func)) {
+			$funcInfo = new ReflectionFunction($func);
+			$useIndex = $funcInfo->getNumberOfParameters() > 1;
+			foreach($this as $index => $item) {
+				$val = $useIndex ? $func($index, $item) : $func($item);
+				if($val && is_string($val)) {
+					// function returned a string, so we assume they are wanting us to return the result
+					if(is_null($result)) $result = '';
+					// if returned value resulted in {tags}, go ahead and parse them
+					if(strpos($val, '{') !== false && strpos($val, '}')) {
+						$val = wirePopulateStringTags($val, $item);
+					}
+					$result .= $val;
+				}
+			}
+		} else if(is_string($func) && strpos($func, '{') !== false && strpos($func, '}')) {
+			// string with variables
+			$result = '';
+			foreach($this as $item) {
+				$result .= wirePopulateStringTags($func, $item);
+			}
+		} else {
+			// array or string or null
+			if(is_null($func)) $func = 'name';
+			$result = $this->explode($func);
+		}
+	
+		return $result === null ? $this : $result;
+	}
+
+	/**
+	 * debugInfo PHP 5.6+ magic method
+	 *
+	 * @return array
+	 *
+	 */
+	public function __debugInfo() {
+		$info = parent::__debugInfo();
+		$info['count'] = $this->count();
+		if(count($this->data)) {
+			$info['items'] = array();
+			foreach($this->data as $key => $value) {
+				if(is_object($value)) {
+					if(method_exists($value, 'path')) {
+						$value = '/' . ltrim($value->path(), '/');
+					} else if($value instanceof WireData) {
+						$value = $value->name;
+						if(!$value) $value = $value->id;
+						if(!$value) $value = $value->className();
+					} else {
+						// keep $value as it is
+					}
+				}
+				$info['items'][$key] = $value; 
+			}
+		}
+		if(count($this->extraData)) $info['extraData'] = $this->extraData;
+		if(count($this->itemsAdded)) $info['itemsAdded'] = $this->itemsAdded;
+		if(count($this->itemsRemoved)) $info['itemsRemoved'] = $this->itemsRemoved;
+		return $info;
 	}
 }

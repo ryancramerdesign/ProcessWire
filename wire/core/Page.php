@@ -117,6 +117,8 @@ class Page extends WireData implements Countable {
 	 * 
 	 * See also: self::getStatuses() method. 
 	 * 
+	 * @var array
+	 * 
 	 */
 	static protected $statuses = array(
 		'locked' => self::statusLocked,
@@ -135,6 +137,8 @@ class Page extends WireData implements Countable {
 	/**
 	 * The Template this page is using (object)
 	 *
+	 * @var Template|null
+	 * 
 	 */
 	protected $template;
 
@@ -142,12 +146,16 @@ class Page extends WireData implements Countable {
 	 * The previous template used by the page, if it was changed during runtime. 	
 	 *
 	 * Allows Pages::save() to delete data that's no longer used. 
+	 * 
+	 * @var Template|null
 	 *
 	 */
 	private $templatePrevious; 
 
 	/**
 	 * Parent Page - Instance of Page
+	 * 
+	 * @var Page|null
 	 *
 	 */
 	protected $parent = null;
@@ -156,33 +164,43 @@ class Page extends WireData implements Countable {
 	 * The previous parent used by the page, if it was changed during runtime. 	
 	 *
 	 * Allows Pages::save() to identify when the parent has changed
+	 * 
+	 * @var Page|null
 	 *
 	 */
 	private $parentPrevious; 
 
 	/**
 	 * The previous name used by this page, if it changed during runtime.
+	 * 
+	 * @var string
 	 *
 	 */
 	private $namePrevious; 
 
 	/**
 	 * The previous status used by this page, if it changed during runtime.
+	 * 
+	 * @var int
 	 *
 	 */
 	private $statusPrevious; 
 
 	/**
 	 * Reference to the Page's template file, used for output. Instantiated only when asked for. 
+	 * 
+	 * @var TemplateFile|null
 	 *
 	 */
 	private $output; 
 
 	/**
-	 * Instance of PageFilesManager, which manages and migrates file versions for this page
+	 * Instance of PagefilesManager, which manages and migrates file versions for this page
 	 *
 	 * Only instantiated upon request, so access only from filesManager() method in Page class. 
 	 * Outside API can use $page->filesManager.
+	 * 
+	 * @var PagefilesManager|null
 	 *
 	 */
 	private $filesManager = null;
@@ -191,12 +209,16 @@ class Page extends WireData implements Countable {
 	 * Field data that queues while the page is loading. 
 	 *
 	 * Once setIsLoaded(true) is called, this data is processed and instantiated into the Page and the fieldDataQueue is emptied (and no longer relevant)	
+	 * 
+	 * @var array
 	 *
 	 */
 	protected $fieldDataQueue = array();
 
 	/**
 	 * Is this a new page (not yet existing in the database)?
+	 * 
+	 * @var bool
 	 *
 	 */
 	protected $isNew = true; 
@@ -208,6 +230,8 @@ class Page extends WireData implements Countable {
 	 * When false, it also assumes that built-in properties (like name) don't need to be sanitized. 
 	 *
 	 * Note: must be kept in the 'true' state. Pages::getById sets it to false before populating data and then back to true when done.
+	 * 
+	 * @var bool
 	 *
 	 */
 	protected $isLoaded = true;
@@ -224,12 +248,16 @@ class Page extends WireData implements Countable {
 	 * Having it on means that Textformatters and any other output formatters will be executed
 	 * on any values returned by this page. Likewise, any values you set to the page while outputFormatting
 	 * is set to true are considered potentially corrupt. 
+	 * 
+	 * @var bool
 	 *
 	 */
 	protected $outputFormatting = false; 
 
 	/**
 	 * A unique instance ID assigned to the page at the time it's loaded (for debugging purposes only)
+	 * 
+	 * @var int
 	 *
 	 */
 	protected $instanceID = 0; 
@@ -238,6 +266,8 @@ class Page extends WireData implements Countable {
 	 * IDs for all the instances of pages, used for debugging and testing.
 	 *
 	 * Indexed by $instanceID => $pageID
+	 * 
+	 * @var array
 	 *
 	 */
 	static public $instanceIDs = array();
@@ -246,6 +276,8 @@ class Page extends WireData implements Countable {
 	 * Stack of ID indexed Page objects that are currently in the loading process. 
 	 *
 	 * Used to avoid possible circular references when multiple pages referencing each other are being populated at the same time.
+	 * 
+	 * @var array
 	 *
 	 */
 	static public $loadingStack = array();
@@ -259,6 +291,8 @@ class Page extends WireData implements Countable {
 	 * This is a static setting affecting all pages. It is provided for template engines that use isset() or empty() 
 	 * to verify the validity of a property name for an object (i.e. Twig).
 	 * 
+	 * @var bool
+	 * 
 	 */
 	static public $issetHas = false; 
 
@@ -266,18 +300,24 @@ class Page extends WireData implements Countable {
 	 * The current page number, starting from 1
 	 *
 	 * @deprecated, use $input->pageNum instead. 
+	 * 
+	 * @var int
 	 *
 	 */
 	protected $pageNum = 1; 
 
 	/**
 	 * Reference to main config, optimization so that get() method doesn't get called
+	 * 
+	 * @var Config|null
 	 *
 	 */
 	protected $config = null; 
 
 	/**
 	 * When true, exceptions won't be thrown when values are set before templates
+	 * 
+	 * @var bool
 	 *
 	 */
 	protected $quietMode = false;
@@ -285,17 +325,23 @@ class Page extends WireData implements Countable {
 	/**
 	 * Cached User that created this page
 	 * 
+	 * @var User|null
+	 * 
 	 */
 	protected $createdUser = null;
 
 	/**
 	 * Cached User that last modified the page
 	 * 
+	 * @var User|null
+	 * 
 	 */
 	protected $modifiedUser = null;
 
 	/**
 	 * Page-specific settings which are either saved in pages table, or generated at runtime.
+	 * 
+	 * @var array
 	 *
 	 */
 	protected $settings = array(
@@ -699,11 +745,14 @@ class Page extends WireData implements Countable {
 				$value = implode(' ', $this->status(true)); 
 				break;
 			default:
-				if($key && isset($this->settings[(string)$key])) return $this->settings[$key]; 
+				if($key && isset($this->settings[(string)$key])) return $this->settings[$key];
+				
+				// populate a formatted string with {tag} vars
+				if(strpos($key, '{') !== false && strpos($key, '}')) return $this->getMarkup($key);
 
 				if(($value = $this->getFieldFirstValue($key)) !== null) return $value; 
 				if(($value = $this->getFieldValue($key)) !== null) return $value;
-
+				
 				// if there is a selector, we'll assume they are using the get() method to get a child
 				if(Selectors::stringHasOperator($key)) return $this->child($key);
 
@@ -787,10 +836,11 @@ class Page extends WireData implements Countable {
 	 * Example: browser_title|headline|title - Return the value of the first field that is non-empty
 	 *
 	 * @param string $multiKey
+	 * @param bool $getKey Specify true to get the first matching key (name) rather than value
 	 * @return null|mixed Returns null if no values match, or if there aren't multiple keys split by "|" chars
 	 *
 	 */
-	protected function getFieldFirstValue($multiKey) {
+	protected function getFieldFirstValue($multiKey, $getKey = false) {
 
 		// looking multiple keys split by "|" chars, and not an '=' selector
 		if(strpos($multiKey, '|') === false || strpos($multiKey, '=') !== false) return null;
@@ -814,7 +864,10 @@ class Page extends WireData implements Countable {
 				$value = trim($value); 
 			}
 			
-			if($value) break;
+			if($value) {
+				if($getKey) $value = $key;
+				break;
+			}
 		}
 
 		return $value;
@@ -853,6 +906,60 @@ class Page extends WireData implements Countable {
 		if($track) $this->setTrackChanges(true); 
 		return $this->outputFormatting ? $field->type->formatValue($this, $field, $value) : $value; 
 	}
+	
+	/**
+	 * Return the markup value for a given field name or {tag} string
+	 *
+	 * 1. If given a field name (or name.subname or name1|name2|name3) it will return the
+	 * markup value as defined by the fieldtype.
+	 *
+	 * 2. If given a string with field names referenced in {tags}, it will populate those
+	 * tags and return the populated string.
+	 *
+	 * @param string $key Field name or markup string with field {name} tags in it
+	 * @return string
+	 *
+	 */
+	public function ___getMarkup($key) {
+		$value = '';
+		if(strpos($key, '{') !== false && strpos($key, '}')) {
+			// populate a string with {tags}
+			// note that the wirePopulateStringTags() function calls back on this method
+			// to retrieve the markup values for each of the found field names
+			$value = wirePopulateStringTags($key, $this);
+
+		} else {
+			if(strpos($key, '|') !== false) {
+				$key = $this->getFieldFirstValue($key, true);
+				if(!$key) return '';
+			}
+			if($this->wire('sanitizer')->name($key) != $key) {
+				// not a possible field name
+				return '';
+			}
+			$name = $key;
+			$subname = '';
+			if(strpos($name, '.')) list($name, $subname) = explode('.', $key);
+			$field = $this->fieldgroup->get($name);
+			if($field) {
+				// corresponds to a known field in this page's fieldgroup
+				$value = $this->getFormatted($name);
+				$value = $field->type->markupValue($this, $field, $value, $subname);
+			} else if($this->wire($name) || ($subname && $this->wire($subname))) {
+				// we don't allow API variables in markup values
+			} else {
+				// native or unknown field
+				$value = $this->getFormatted($key);
+			}
+			if(is_object($value)) {
+				if($value instanceof Page) $value = $value->getFormatted('title|name');
+				if($value instanceof PageArray) $value = $value->getMarkup();
+			}
+		}
+		if(!is_string($value)) $value = (string) $value;
+		return $value;
+	}
+
 
 	/**
 	 * Get the raw/unformatted value of a field, regardless of what $this->outputFormatting is set at
@@ -1653,15 +1760,16 @@ class Page extends WireData implements Countable {
 	 * @param bool|int $value Optionally specify one of the following:
 	 * 	- boolean true: to return an array of status names (indexed by status number)
 	 * 	- integer|string|array: status number(s) or status name(s) to set the current page status (same as $page->status = $value)
+	 * @param int|null $status If you specified true for first arg, optionally specify status value you want to use (if not the current).
 	 * @return int|array|this If setting status, $this is returned. If getting status: current status or array of status names.
 	 * 
 	 */
-	public function status($value = false) {
+	public function status($value = false, $status = null) {
 		if(!is_bool($value)) {
 			$this->setStatus($value);
 			return $this;
 		}
-		$status = $this->status; 
+		if(is_null($status)) $status = $this->status; 
 		if($value === false) return $status; 
 		$names = array();
 		foreach(self::$statuses as $name => $value) {
@@ -1990,7 +2098,5 @@ class Page extends WireData implements Countable {
 		}
 		return $this->template->getIcon();
 	}
-
 }
-
 

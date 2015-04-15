@@ -205,7 +205,7 @@ class InputfieldFile extends Inputfield implements InputfieldItemList {
 			"\n\t\t\t" . wireIconMarkupFile($pagefile->basename, "fa-fw HideIfEmpty") . 
 			//"\n\t\t\t<i class='fa fa-fw fa-caret-right HideIfMultiple'></i>" . 
 			"\n\t\t\t<a class='InputfieldFileName' target='_blank' href='{$pagefile->url}'>{$pagefile->basename}</a> " . 
-			"\n\t\t\t<span class='InputfieldFileStats'>{$pagefile->filesizeStr}</span> " . 
+			"\n\t\t\t<span class='InputfieldFileStats'>" . str_replace(' ', '&nbsp;', $pagefile->filesizeStr) . "</span> " . 
 			"\n\t\t\t<label class='InputfieldFileDelete'>" . 
 				"<input type='checkbox' name='delete_$id' value='1' title='" . $this->_('Delete') . "' />" . 
 				"<i class='fa fa-fw fa-trash'></i></label>" . 

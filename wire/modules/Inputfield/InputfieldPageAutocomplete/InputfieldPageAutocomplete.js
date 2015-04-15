@@ -105,7 +105,7 @@ var InputfieldPageAutocomplete = {
 					return false;
 				} else {
 					InputfieldPageAutocomplete.pageSelected($ol, ui.item);
-					$(this).val('');
+					$(this).val('').focus();
 					return false;
 				}
 			}

@@ -4,7 +4,7 @@
  * Serves as a multi-language value placeholder for field values that contain a value in more than one language. 
  *
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -70,12 +70,13 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface {
 	/**
 	 * Sets the value for a given language
 	 *
-	 * @param int|Language $languageID
+	 * @param int|Language|string $languageID Language object, id, or name
 	 * @param mixed $value
 	 *
 	 */
 	public function setLanguageValue($languageID, $value) {
-		if(is_object($languageID) && $languageID instanceof Language) $languageID = $languageID->id; 
+		if(is_object($languageID) && $languageID instanceof Language) $languageID = $languageID->id;
+		if(is_string($languageID) && !ctype_digit("$languageID")) $languageID = $this->wire('languages')->get($languageID)->id;
 		$existingValue = isset($this->data[$languageID]) ? $this->data[$languageID] : '';
 		if($value instanceof LanguagesPageFieldValue) {
 			// to avoid potential recursion 
@@ -109,12 +110,14 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface {
 	/**
 	 * Given a language, returns the value in that language
 	 *
-	 * @param Language|int
+	 * @param Language|int|string Language object, id, or name
 	 * @return int
 	 *
 	 */
 	public function getLanguageValue($languageID) {
 		if(is_object($languageID) && $languageID instanceof Language) $languageID = $languageID->id; 
+		if(is_string($languageID) && !ctype_digit("$languageID")) $languageID = $this->wire('languages')->get($languageID)->id;
+		$languageID = (int) $languageID; 
 		return isset($this->data[$languageID]) ? $this->data[$languageID] : '';
 	}
 
@@ -153,6 +156,14 @@ class LanguagesPageFieldValue extends Wire implements LanguagesValueInterface {
 
 	public function setField(Field $field) {
 		$this->field = $field; 
+	}
+	
+	public function __debugInfo() {
+		$info = parent::__debugInfo();
+		foreach($this->wire('languages') as $language) {
+			$info[$language->name] = isset($this->data[$language->id]) ? $this->data[$language->id] : '';
+		}
+		return $info;	
 	}
 }
 

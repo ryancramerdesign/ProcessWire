@@ -48,6 +48,18 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 	}
 
 	/**
+	 * Does this PageArray use numeric keys only? (yes it does)
+	 * 
+	 * Defined here to override the slower check in WireArray
+	 *
+	 * @return bool
+	 *
+	 */
+	protected function usesNumericKeys() {
+		return true;
+	}
+
+	/**
 	 * Per WireArray interface, return a blank Page
 	 *
 	 */
@@ -305,6 +317,48 @@ class PageArray extends PaginatedArray implements WirePaginatable {
 		foreach($this as $key => $page) $s .= "$page|";
 		$s = rtrim($s, "|"); 
 		return $s; 
+	}
+
+	/**
+	 * Render a simple/default markup value for each item
+	 * 
+	 * Primarily for testing/debugging purposes.
+	 * 
+	 * @param string|callable|function $key
+	 * @return string
+	 * 
+	 */
+	public function ___getMarkup($key = null) {
+		if($key && !is_string($key)) {
+			$out = $this->each($key);
+		} else if(strpos($key, '{') !== false && strpos($key, '}')) {
+			$out = $this->each($key);
+		} else {
+			if(empty($key)) $key = "<li>{title|name}</li>";
+			$out = $this->each($key);
+			if($out) {
+				$out = "<ul>$out</ul>";
+				if($this->getLimit() && $this->getTotal() > $this->getLimit()) {
+					$pager = $this->wire('modules')->get('MarkupPagerNav');
+					$out .= $pager->render($this);
+				}
+			}
+		}
+		return $out; 
+	}
+
+
+	/**
+	 * debugInfo PHP 5.6+ magic method
+	 *
+	 * @return array
+	 *
+	 */
+	public function __debugInfo() {
+		$info = parent::__debugInfo();
+		$info['selectors'] = (string) $this->selectors; 
+		if(!count($info['selectors'])) unset($info['selectors']);
+		return $info;
 	}
 
 }

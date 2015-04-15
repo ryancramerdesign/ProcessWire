@@ -237,6 +237,7 @@ class MarkupFieldtype extends WireData implements Module {
 	 * 
 	 */
 	protected function objectToString($value) {
+		if($value instanceof Page) return $value->get('title|name');
 		$className = get_class($value); 
 		$out = (string) $value; 
 		if($out === $className) {

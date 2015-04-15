@@ -893,7 +893,7 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
 		'entityEncode' => false, 	
 		// entity decode values pulled from $vars?
 		'entityDecode' => false, 
-		);
+	);
 
 	$options = array_merge($defaults, $options); 
 
@@ -914,10 +914,17 @@ function wirePopulateStringTags($str, $vars, array $options = array()) {
 		$tag = $matches[0][$key];
 		if(isset($replacements[$tag])) continue; // if already found, don't continue
 		$fieldValue = null;
-
+		
 		if(is_object($vars)) {
-			if($vars instanceof WireData) $fieldValue = $vars->get($fieldName); 
-				else $fieldValue = $vars->$fieldName; 
+			if($vars instanceof Page) {
+				$fieldValue = $vars->getMarkup($fieldName);
+				
+			} else if($vars instanceof WireData) {
+				$fieldValue = $vars->get($fieldName);
+				
+			} else {
+				$fieldValue = $vars->$fieldName;
+			}
 		} else if(is_array($vars)) {
 			$fieldValue = isset($vars[$fieldName]) ? $vars[$fieldName] : null;
 		}

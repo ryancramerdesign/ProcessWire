@@ -212,7 +212,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		return $this->className();
 	}
 
-	
+
 	/*******************************************************************************************************
 	 * HOOKS
 	 *
@@ -322,11 +322,28 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		}
 		
 		if(!$result['methodExists'] && !$result['numHooksRun']) {
-			if($this->wire('config')->disableUnknownMethodException) return null;
-			throw new WireException("Method " . $this->className() . "::$method does not exist or is not callable in this context"); 
+			return $this->callUnknown($method, $arguments);
 		}
 		
 		return $result['return'];
+	}
+
+	/**
+	 * If the above __call() resulted in no handler, this method is called. 
+	 * 
+	 * This standard implementation just throws an exception. This is a template method, so the reason it
+	 * exists is so that other classes can override and provide their own handler. Classes that provide
+	 * their own handler should not do a parent::__callUnknown() unless they also fail.
+	 * 
+	 * @param string $method Requested method name
+	 * @param array $arguments Arguments provided
+	 * @return null|mixed
+	 * @throws WireException
+	 * 
+	 */
+	protected function ___callUnknown($method, $arguments) {
+		if($this->wire('config')->disableUnknownMethodException) return null;
+		throw new WireException("Method " . $this->className() . "::$method does not exist or is not callable in this context"); 
 	}
 
 	/**
@@ -572,6 +589,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 			$hookClass = $options['fromClass'] ? $options['fromClass'] : $this->className();
 			if(!isset(self::$staticHooks[$hookClass])) self::$staticHooks[$hookClass] = array();
 			$hooks =& self::$staticHooks[$hookClass]; 
+			$options['allInstances'] = true; 
 
 		} else {
 			// hook only this instance
@@ -1150,6 +1168,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * ==========================
 	 * Usage: $this->wire('name'); // name is an API variable name
 	 * If 'name' does not exist, a WireException will be thrown.
+	 * Specify '*' or 'all' for name to retrieve all API vars (as a Fuel object)
 	 *
 	 * 2. As a getter (option 2):
 	 * ==========================
@@ -1188,6 +1207,9 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		if(empty($name)) {
 			// return ProcessWire instance
 			return self::$fuel->wire;
+		} else if($name === '*' || $name === 'all') {
+			// return Fuel instance
+			return self::$fuel;
 		}
 	
 		/* TBA PW3
@@ -1230,6 +1252,20 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 		}
 
 		return null;
+	}
+
+	/**
+	 * debugInfo PHP 5.6+ magic method
+	 *
+	 * This is used when you print_r() an object instance.
+	 *
+	 * @return array
+	 *
+	 */
+	public function __debugInfo() {
+		static $debugInfo = null;
+		if(is_null($debugInfo)) $debugInfo = new WireDebugInfo();
+		return $debugInfo->getDebugInfo($this);
 	}
 
 

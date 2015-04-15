@@ -300,5 +300,17 @@ class WireData extends Wire implements IteratorAggregate {
 		$this->remove($key); 
 	}
 
+	/**
+	 * debugInfo PHP 5.6+ magic method
+	 *
+	 * @return array
+	 *
+	 */
+	public function __debugInfo() {
+		$info = parent::__debugInfo();
+		if(count($this->data)) $info['data'] = $this->data; 
+		return $info; 
+	}
+
 }
 

@@ -301,6 +301,17 @@ class Sanitizer extends Wire {
 	 *
 	 */
 	public function filename($value, $beautify = false, $maxLength = 128) {
+
+		$value = basename($value); 
+		
+		if(strlen($value) > $maxLength) {
+			// truncate, while keeping extension in tact
+			$pathinfo = pathinfo($value);
+			$extLen = strlen($pathinfo['extension']) + 1; // +1 includes period
+			$basename = substr($pathinfo['filename'], 0, $maxLength - $extLen);
+			$value = "$basename.$pathinfo[extension]";
+		}
+		
 		return $this->name($value, $beautify, $maxLength, '_', array(
 			'allowAdjacentExtras' => true, // language translation filenames require doubled "--" chars, others may too
 			)
@@ -316,21 +327,34 @@ class Sanitizer extends Wire {
 	}
 
 	/**
-	 * Return the given path if valid, or blank if not.
+	 * Return the given path if valid, or boolean false if not.
 	 *
 	 * Path is validated per ProcessWire "name" convention of ascii only [-_./a-z0-9]
 	 * As a result, this function is primarily useful for validating ProcessWire paths,
 	 * and won't always work with paths outside ProcessWire.
 	 * 
+	 * This method validates only and does not sanitize. See pagePathName() for a similar
+	 * method that does sanitiation. 
+	 * 
 	 * @param string $value Path
-	 * @param int $maxLength
-	 * @return string
+	 * @param int|array $options Options to modify behavior, or maxLength (int) may be specified.
+	 * 	- allowDotDot: Whether to allow ".." in a path (default=false)
+	 * 	- maxLength: Maximum length of allowed path (default=1024)
+	 * @return bool|string Returns false if invalid, actual path (string) if valid.
 	 *
 	 */
-	public function path($value, $maxLength = 1024) {
+	public function path($value, $options = array()) {
+		if(is_int($options)) $options = array('maxLength' => $options); 
+		$defaults = array(
+			'allowDotDot' => false,
+			'maxLength' => 1024
+		);
+		$options = array_merge($defaults, $options);
 		if(DIRECTORY_SEPARATOR != '/') $value = str_replace(DIRECTORY_SEPARATOR, '/', $value); 
-		if(!preg_match('{^[-_./a-z0-9]+$}iD', $value)) return '';
-		if(strpos($value, '/./') !== false || strpos($value, '//') !== false) $value = '';
+		if(strlen($value) > $options['maxLength']) return false;
+		if(strpos($value, '/./') !== false || strpos($value, '//') !== false) return false;
+		if(!$options['allowDotDot'] && strpos($value, '..') !== false) return false;
+		if(!preg_match('{^[-_./a-z0-9]+$}iD', $value)) return false;
 		return $value;
 	}
 
@@ -346,10 +370,18 @@ class Sanitizer extends Wire {
 	 *
 	 */
 	public function pagePathName($value, $beautify = false, $maxLength = 1024) {
-		$options = array('allowedExtras' => array('/', '-', '_', '.'));
-		return $this->name($value, $beautify, $maxLength, '-', $options); 
+		$options = array(
+			'allowedExtras' => array('/', '-', '_', '.')
+		);
+		$value = $this->name($value, $beautify, $maxLength, '-', $options); 
+		// disallow double slashes
+		while(strpos($value, '//') !== false) $value = str_replace('//', '/', $value); 
+		// disallow relative paths
+		while(strpos($value, '..') !== false) $value = str_replace('..', '.', $value);
+		// disallow names that start with a period
+		while(strpos($value, '/.') !== false) $value = str_replace('/.', '/', $value); 
+		return $value; 
 	}
-
 
 	/**
 	 * Returns valid email address, or blank if it isn't valid
