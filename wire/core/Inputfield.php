@@ -6,10 +6,10 @@
  * Base class for Inputfield modules. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://processwire.com
+ * https://processwire.com
  *
  */
 
@@ -756,6 +756,28 @@ abstract class Inputfield extends WireData implements Module {
 	}
 
 	/**
+	 * Same as getConfigInputfields but allows for array definition instead
+	 * 
+	 * If both getConfigInputfields and getConfigArray are implemented, both will be used. 
+	 * 
+	 * See comments for InputfieldWrapper::importArray for example of array definition. 
+	 * 
+	 * @return array
+	 * 
+	 */
+	public function ___getConfigArray() {
+		return array(
+			/* Example:
+			'test' => array(
+				'type' => 'text',
+				'label' => 'This is a test',
+				'value' => 'Test', 
+			)
+			*/
+		);
+	}
+
+	/**
 	 * Return a list of Inputfield names from getConfigInputfields() that are allowed in fieldgroup/template context
 	 * 
 	 * @param Field $field
@@ -823,6 +845,10 @@ abstract class Inputfield extends WireData implements Module {
 
 	/**
 	 * Override Wire's error method and place errors in the context of their inputfield
+	 * 
+	 * @param string $text
+	 * @param int $flags
+	 * @return mixed
 	 *
 	 */
 	public function error($text, $flags = 0) {

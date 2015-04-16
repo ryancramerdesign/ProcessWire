@@ -9,7 +9,7 @@
  * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://processwire.com
+ * https://processwire.com
  * 
  * 
  * Hookable methods
@@ -139,7 +139,21 @@ abstract class Fieldtype extends WireData implements Module {
 	}
 
 	/**
-	 * Return a list of Inputfield names from getConfigInputfields() that are allowed in fieldgroup/template context
+	 * Same as getConfigInputfields but with definition as an array instead
+	 * 
+	 * If both getConfigInputfields and getConfigInputfieldsArray are implemented then 
+	 * definitions from both will be used. 
+	 * 
+	 * @param Field $field
+	 * @return array
+	 * 
+	 */
+	public function ___getConfigArray(Field $field) {
+		return array();
+	}
+
+	/**
+	 * Return a list of Inputfield names from getConfig[Inputfields|Array] that are allowed in fieldgroup/template context
 	 *
 	 * @param Field $field
 	 * @return array of Inputfield names

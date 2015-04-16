@@ -3,31 +3,27 @@
 /**
  * ProcessWire InputfieldWrapper
  *
- * Classes built to provide a wrapper for Inputfield instances. 
- * 
  * ProcessWire 2.x 
  * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * https://processwire.com
  *
- */
-
-
-/**
- * A type of Inputfield that is designed specifically to wrap other Inputfields
- *
- * The most common example of an InputfieldWrapper is a <form> 
+ * About InputfieldWrapper
+ * =======================
+ * A type of Inputfield that is designed specifically to wrap other Inputfields.
+ * The most common example of an InputfieldWrapper is a <form>.
  *
  * InputfieldWrapper is not designed to render an Inputfield specifically, but you can set a value attribute
- * containing content that will be rendered before the wrapper. 
- * 
+ * containing content that will be rendered before the wrapper.
+ *
  * @property bool $renderValueMode True when only rendering values, i.e. no inputs (default=false)
  * @property int $columnWidthSpacing Percentage spacing between columns or 0 for none. Default pulled from $config->inputfieldColumnWidthSpacing.
  * @property bool $useDependencies Whether or not to consider dependencies during processing (default=true)
  *
- */ 
-class InputfieldWrapper extends Inputfield {
+ */
+
+class InputfieldWrapper extends Inputfield implements Countable, IteratorAggregate {
 
 	/**
 	 * Markup used during the render() method - customize with InputfieldWrapper::setMarkup($array)
@@ -142,6 +138,35 @@ class InputfieldWrapper extends Inputfield {
 			$this->children->add($item); 
 		}
 		return $this; 
+	}
+
+	/**
+	 * Import the given Inputfield items
+	 * 
+	 * If given an InputfieldWrapper, it will import the children of it and
+	 * exclude the wrapper itself. This is different from add() in that add()
+	 * adds the wrapper as-is. 
+	 * 
+	 * See also InputfieldWrapper::importArray()
+	 * 
+	 * @param InputfieldWrapper|array|InputfieldsArray $items
+	 * @return $this
+	 * @throws WireException
+	 * 
+	 */
+	public function import($items) {
+		if($items instanceof InputfieldWrapper || $items instanceof InputfieldsArray) {
+			foreach($items as $item) {
+				$this->add($item);
+			}
+		} else if(is_array($items)) {
+			$this->importArray($items);
+		} else if($items instanceof Inputfield) {
+			$this->add($items);
+		} else {
+			throw new WireException("InputfieldWrapper::import() requires InputfieldWrapper, InputfieldsArray, array, or Inputfield");
+		}
+		return $this;
 	}
 
 	/**
@@ -659,6 +684,14 @@ class InputfieldWrapper extends Inputfield {
 	}
 
 	/**
+	 * Per the Countable interface
+	 *
+	 */
+	public function count() {
+		return count($this->children);
+	}
+
+	/**
 	 * Get all fields recursively in a flat InputfieldWrapper, not just direct children
 	 *
 	 * Note that all InputfieldWrappers are removed as a result (except for the containing InputfieldWrapper)
@@ -762,7 +795,7 @@ class InputfieldWrapper extends Inputfield {
 	 *
 	 * Your array should be an array of associative arrays, with each element describing an Inputfield.
 	 * It is required to have a "type" property which tells which Inputfield module to use. You are also
-	 * required to have a "name" property. You should probably always have a "label" property oo. You may
+	 * required to have a "name" property. You should probably always have a "label" property too. You may
 	 * optionally specify the shortened Inputfield "type" if preferred, i.e. "text" rather than
 	 * "InputfieldText". Here is an example of how you might define the array:
 	 *
@@ -841,8 +874,11 @@ class InputfieldWrapper extends Inputfield {
 			
 			if($type == 'InputfieldCheckbox') {
 				// checkbox behaves a little differently, just like in HTML
-				if(!empty($info['attr']['value'])) $f->attr('value', $info['attr']['value']);
-				else if(!empty($info['value'])) $f->attr('value', $info['value']);
+				if(!empty($info['attr']['value'])) {
+					$f->attr('value', $info['attr']['value']);
+				} else if(!empty($info['value'])) {
+					$f->attr('value', $info['value']);
+				}
 				unset($info['attr']['value'], $info['value']);
 				$f->autocheck = 1; // future value attr set triggers checked state
 			}
@@ -868,5 +904,44 @@ class InputfieldWrapper extends Inputfield {
 
 		return $inputfields;
 	}
+
+	/**
+	 * Populate values for all Inputfields in this wrapper from the given $data object or array
+	 * 
+	 * This iterates through every field in this InputfieldWrapper and looks for field names 
+	 * that are also present in the given object or array. If present, it uses them to populate
+	 * the associated Inputfield. 
+	 * 
+	 * If given an array, it should be associative with the field 'name' as the keys and
+	 * the field 'value' as the array value, i.e. array('field_name' => 'field_value', etc.)
+	 * 
+	 * @param WireData|Wire|ConfigurableModule|array $data
+	 * @return array Returns array of field names that were populated
+	 * 
+	 */
+	public function populateValues($data) {
+		$populated = array();
+		foreach($this->getAll() as $inputfield) {
+			if($inputfield instanceof InputfieldWrapper) continue; 
+			$name = $inputfield->attr('name');
+			if(!$name) continue;
+			if(is_array($data)) {
+				// array
+				$value = isset($data[$name]) ? $data[$name] : null;
+			} else if($data instanceof WireData) {
+				// WireData object
+				$value = $data->data($name);
+			} else if(is_object($data)) {
+				// Wire or other object with __get() implemented
+				$value = $data->$name;
+			} 
+			if($value === null) continue;
+			if($inputfield instanceof InputfieldCheckbox) $inputfield->autocheck = 1; 
+			$inputfield->attr('value', $value);
+			$populated[$name] = $name;
+		}
+		return $populated;
+	}
+	
 }
 

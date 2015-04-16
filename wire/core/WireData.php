@@ -8,7 +8,7 @@
  * Otherwise it is identical to the Wire class. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -93,6 +93,10 @@ class WireData extends Wire implements IteratorAggregate {
 
 	/**
 	 * Provides direct reference access to set values in the $data array
+	 * 
+	 * @param string $key
+	 * @param mixed $value
+	 * return $this
 	 *
 	 */
 	public function __set($key, $value) {
@@ -120,7 +124,41 @@ class WireData extends Wire implements IteratorAggregate {
 	}
 
 	/**
+	 * Like get() or set() but will only get/set from $this->data
+	 * 
+	 * To use as a get() simply specify no $value. To use as a set(), specify a value.
+	 * If you omit a $key and $value, this method will return the entire data array.
+	 * 
+	 * The benefit of this method over get() is that it excludes API vars and potentially
+	 * other things (defined by descending classes) that you may not want. 
+	 * 
+	 * The benefit of this method over set() is that you dictate you only want it to set
+	 * the value in the $this->data container, and not potentially elsewhere, if it matters
+	 * in the descending class.
+	 * 
+	 * @param $key Property you want to get or set
+	 * @param mixed $value Optionally specify a value if you want to set rather than get
+	 * @return mixed|null|this Returns value if geting a value or null if not found.
+	 * 	If you intead specify a value to set, it always returns $this.  
+	 * 
+	 */
+	public function data($key = null, $value = null) {
+		if(is_null($key)) return $this->data;
+		if(is_null($value)) {
+			return isset($this->data[$key]) ? $this->data[$key] : null;
+		} else {
+			$this->data[$key] = $value; 
+			return $this;
+		}
+	}
+
+	/**
 	 * Returns the full $data array
+	 * 
+	 * If descending classes also store data in other containers, they may want to
+	 * override this method to include that data as well.
+	 * 
+	 * @return array
 	 *
 	 */
 	public function getArray() {
@@ -233,6 +271,8 @@ class WireData extends Wire implements IteratorAggregate {
 
 	/**
 	 * Make the $data array iterable through this object, per the IteratorAggregate interface
+	 * 
+	 * @return ArrayObject
 	 *
 	 */
 	public function getIterator() {
@@ -286,6 +326,9 @@ class WireData extends Wire implements IteratorAggregate {
 
 	/**
 	 * Ensures that isset() and empty() work for this classes properties. 
+	 * 
+	 * @param string $key
+	 * @return bool
 	 *
 	 */
 	public function __isset($key) {
@@ -294,6 +337,8 @@ class WireData extends Wire implements IteratorAggregate {
 
 	/**
 	 * Ensures that unset() works for this classes data. 
+	 * 
+	 * @param string $key
 	 *
 	 */
 	public function __unset($key) {

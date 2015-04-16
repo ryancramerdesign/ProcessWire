@@ -115,6 +115,10 @@ class Field extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Set a native setting or a dynamic data property for this Field
+	 * 
+	 * @param string $key
+	 * @param mixed $value
+	 * @return this
 	 *
 	 */
 	public function set($key, $value) {
@@ -147,6 +151,8 @@ class Field extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Set the flags field, ensuring a system flag remains set
+	 * 
+	 * @param int $value
 	 *
 	 */
 	protected function setFlags($value) {
@@ -162,6 +168,9 @@ class Field extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Get a Field setting or dynamic data property
+	 * 
+	 * @param string $key
+	 * @return mixed
 	 *
 	 */
 	public function get($key) {
@@ -519,9 +528,17 @@ class Field extends WireData implements Saveable, Exportable {
 
 			try {
 				$fieldtypeInputfields = $this->type->getConfigInputfields($this); 
-				if($fieldtypeInputfields) foreach($fieldtypeInputfields as $inputfield) {
+				if(!$fieldtypeInputfields) $fieldtypeInputfields = new InputfieldWrapper();
+				$configArray = $this->type->getConfigArray($this); 
+				if(count($configArray)) {
+					$w = new InputfieldWrapper();
+					$w->importArray($configArray);
+					$w->populateValues($this);
+					$fieldtypeInputfields->import($w);
+				}
+				foreach($fieldtypeInputfields as $inputfield) {
 					if($fieldgroupContext && !in_array($inputfield->name, $allowContext)) continue;
-					$inputfields->append($inputfield); 
+					$inputfields->append($inputfield);
 				}
 			} catch(Exception $e) {
 				$this->error($e->getMessage()); 
@@ -543,7 +560,15 @@ class Field extends WireData implements Saveable, Exportable {
 			}
 			$inputfields->attr('title', $this->_('Input')); 
 			$inputfieldInputfields = $inputfield->getConfigInputfields();
-			if($inputfieldInputfields) foreach($inputfieldInputfields as $i) { 
+			if(!$inputfieldInputfields) $inputfieldInputfields = new InputfieldWrapper();
+			$configArray = $inputfield->getConfigArray(); 
+			if(count($configArray)) {
+				$w = new InputfieldWrapper();
+				$w->importArray($configArray);
+				$w->populateValues($this);
+				$inputfieldInputfields->import($w);
+			}
+			foreach($inputfieldInputfields as $i) { 
 				if($fieldgroupContext && !in_array($i->name, $allowContext)) continue; 
 				$inputfields->append($i); 
 			}

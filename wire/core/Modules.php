@@ -2152,9 +2152,18 @@ class Modules extends WireArray {
 			
 			// module configurable?
 			$configurable = $this->isConfigurableModule($moduleName, false); 
-			if($configurable === true) $info['configurable'] = true; // configurable via ConfigurableModule interface
-				else if($configurable) $info['configurable'] = basename($configurable); // configurable => ModuleName.config.php or ModuleNameConfig.php file
-				else $info['configurable'] = false; // not configurable
+			if($configurable === true || is_int($configurable) && $configurable > 1) {
+				// configurable via ConfigurableModule interface
+				// true=static, 2=non-static, 3=non-static $data, 4=non-static wrap,
+				// 19=non-static getModuleConfigArray, 20=static getModuleConfigArray
+				$info['configurable'] = $configurable; 
+			} else if($configurable) {
+				// configurable via external file: ModuleName.config.php or ModuleNameConfig.php file
+				$info['configurable'] = basename($configurable); 
+			} else {
+				// not configurable
+				$info['configurable'] = false;
+			}
 			
 			// created date
 			if(isset($this->createdDates[$moduleID])) $info['created'] = strtotime($this->createdDates[$moduleID]);
@@ -2309,8 +2318,21 @@ class Modules extends WireArray {
 	/**
 	 * Is the given module configurable?
 	 * 
-	 * Returns true if module is configurable via the ConfigurableModule interface. 
-	 * Returns string of full path/filename to ModuleName.config.php file if configurable via class. 
+	 * External configuration file: 
+	 * ============================
+	 * Returns string of full path/filename to ModuleName.config.php file if configurable via separate file. 
+	 * 
+	 * ModuleConfig interface:
+	 * =======================
+	 * Returns boolean true if module is configurable via the static getModuleConfigInputfields method.
+	 * Returns integer 2 if module is configurable via the non-static getModuleConfigInputfields and requires no arguments.
+	 * Returns integer 3 if module is configurable via the non-static getModuleConfigInputfields and requires $data array.
+	 * Returns integer 4 if module is configurable via the non-static getModuleConfigInputfields and requires InputfieldWrapper argument.
+	 * Returns integer 19 if module is configurable via non-static getModuleConfigArray method.
+	 * Returns integer 20 if module is configurable via static getModuleConfigArray method.
+	 * 
+	 * Not configurable:
+	 * =================
 	 * Returns boolean false if not configurable
 	 * 
 	 * @param Module|string $className
@@ -2319,7 +2341,10 @@ class Modules extends WireArray {
 	 * 	- Specify boolean false to disable retrieval of this property from getModuleInfo (forces a new check).
 	 * 	- Specify string 'interface' to check only if module implements ConfigurableModule interface. 
 	 * 	- Specify string 'file' to check only if module has a separate configuration class/file.
-	 * @return bool|string
+	 * @return bool|string See details about return values above. 
+	 * 
+	 * @todo all ConfigurableModule methods need to be split out into their own class (ConfigurableModules?)
+	 * @todo this method has two distinct parts (file and interface) that need to be split in two methods.
 	 * 
 	 */
 	public function isConfigurableModule($className, $useCache = true) {
@@ -2338,6 +2363,7 @@ class Modules extends WireArray {
 		}
 		
 		if($useCache !== "interface") {
+			// check for separate module configuration file
 			$dir = dirname($this->getModuleFile($className));
 			if($dir) {
 				$files = array(
@@ -2370,14 +2396,82 @@ class Modules extends WireArray {
 			}
 		}
 
-		if($useCache !== "file") {
-			if($moduleInstance) return ($moduleInstance instanceof ConfigurableModule);
-			if(!class_exists($className, false)) $this->includeModule($className);
-			$interfaces = @class_implements($className, false);
-			if(is_array($interfaces) && isset($interfaces['ConfigurableModule'])) return true;
+		// if file-only check was requested and we reach this point, exit with false now
+		if($useCache === "file") return false;
+	
+		// ConfigurableModule interface checks
+		
+		$result = false;
+		
+		foreach(array('getModuleConfigArray', 'getModuleConfigInputfields') as $method) {
+			
+			$configurable = false;
+		
+			// if we have a module instance, use that for our check
+			if($moduleInstance && $moduleInstance instanceof ConfigurableModule) {
+				if(method_exists($moduleInstance, $method)) {
+					$configurable = $method;
+				} else if(method_exists($moduleInstance, "___$method")) {
+					$configurable = "___$method";
+				}
+			}
+	
+			// if we didn't have a module instance, load the file to find what we need to know
+			if(!$configurable) {
+				if(!class_exists($className, false)) $this->includeModule($className);
+				$interfaces = @class_implements($className, false);
+				if(is_array($interfaces) && isset($interfaces['ConfigurableModule'])) {
+					if(method_exists($className, $method)) {
+						$configurable = $method;
+					} else if(method_exists($className, "___$method")) {
+						$configurable = "___$method";
+					}
+				}
+			}
+			
+			// if still not determined to be configurable, move on to next method
+			if(!$configurable) continue;
+			
+			// now determine if static or non-static
+			$ref = new ReflectionMethod($className, $configurable);
+			
+			if($ref->isStatic()) {
+				// config method is implemented as a static method
+				if($method == 'getModuleConfigInputfields') {
+					// static getModuleConfigInputfields
+					$result = true;
+				} else {
+					// static getModuleConfigArray
+					$result = 20; 
+				}
+				
+			} else if($method == 'getModuleConfigInputfields') {
+				// non-static getModuleConfigInputfields
+				// we allow for different arguments, so determine what it needs
+				$parameters = $ref->getParameters();
+				if(count($parameters)) {
+					$param0 = reset($parameters);
+					if(strpos($param0, 'array') !== false || strpos($param0, '$data') !== false) {
+						// method requires a $data array (for compatibility with non-static version)
+						$result = 3;
+					} else if(strpos($param0, 'InputfieldWrapper') !== false || strpos($param0, 'inputfields') !== false) {
+						// method requires an empty InputfieldWrapper (as a convenience)
+						$result = 4;
+					}
+				}
+				// method requires no arguments
+				if(!$result) $result = 2;
+				
+			} else {
+				// non-static getModuleConfigArray
+				$result = 19;
+			}
+		
+			// if we make it here, we know we already have a result so can stop now
+			break;
 		}
 		
-		return false;
+		return $result;
 	}
 
 	/**
@@ -2482,12 +2576,46 @@ class Modules extends WireArray {
 		$data = $this->modules->getModuleConfigData($moduleName);
 		
 		// check for configurable module interface
-		if($this->isConfigurableModule($moduleName, "interface")) {
-			$fields = call_user_func(array($moduleName, 'getModuleConfigInputfields'), $data);
+		$configurableInterface = $this->isConfigurableModule($moduleName, "interface");
+		if($configurableInterface) {
+			if(is_int($configurableInterface) && $configurableInterface > 1 && $configurableInterface < 20) {
+				// non-static 
+				/** @var ConfigurableModule $module */
+				$module = $this->getModule($moduleName);
+				if($configurableInterface === 2) {
+					// requires no arguments
+					$fields = $module->getModuleConfigInputfields();
+				} else if($configurableInterface === 3) {
+					// requires $data array
+					$fields = $module->getModuleConfigInputfields($data);
+				} else if($configurableInterface === 4) {
+					// requires InputfieldWrapper
+					// we allow for option of no return statement in the method
+					$fields = new InputfieldWrapper();
+					$_fields = $module->getModuleConfigInputfields($fields);
+					if($_fields instanceof InputfieldWrapper) $fields = $_fields;
+					unset($_fields);
+				} else if($configurableInterface === 19) {
+					// non-static getModuleConfigArray method
+					$fields = new InputfieldWrapper();
+					$fields->importArray($module->getModuleConfigArray());
+					$fields->populateValues($module);
+				}
+			} else if($configurableInterface === 20) {
+				// static getModuleConfigArray method
+				$fields = new InputfieldWrapper();
+				$fields->importArray(call_user_func(array($moduleName, 'getModuleConfigArray')));
+				$fields->populateValues($data);
+			} else if($configurableInterface) {
+				// static getModuleConfigInputfields method
+				$fields = call_user_func(array($moduleName, 'getModuleConfigInputfields'), $data);
+			}
 			if($fields instanceof InputfieldWrapper) {
 				foreach($fields as $field) {
 					$form->append($field);
 				}
+			} else if($fields instanceof Inputfield) {
+				$form->append($fields);
 			} else {
 				$this->error("$moduleName.getModuleConfigInputfields() did not return InputfieldWrapper");
 			}
@@ -3195,7 +3323,7 @@ class Modules extends WireArray {
 	 * Applies only to modules that carry class-named CSS and/or JS files,
 	 * such as Process, Inputfield and ModuleJS modules. 
 	 * 
-	 * @param $module Module object or class name
+	 * @param Module|int|string $module Module object or class name
 	 * @return array Returns number of files that were added
 	 * 
 	 */

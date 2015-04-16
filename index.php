@@ -11,7 +11,7 @@
  * of any changes made in this file. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -20,8 +20,9 @@
  *
  * Index Versions
  * ==============
- * 251 Add $config->debugIf option
- * 250 PW 2.5 support
+ * 252 Extract all fuel to local API vars when in external or cli mode.
+ * 251 Add $config->debugIf option.
+ * 250 PW 2.5 support.
  *
  */
 
@@ -238,7 +239,7 @@ try {
 	$process = $wire->modules->get('ProcessPageView');
 	$wire->wire('process', $process); 
 	echo $process->execute($internal);
-	if($internal) $process->finished();
+	$internal ? $process->finished() : extract($wire->wire('all')->getArray());
 
 } catch(Exception $e) {
 
