@@ -45,6 +45,11 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 
 	/**
 	 * Provides additions to the ___load query for when selectors or selector string are provided
+	 * 
+	 * @param Selectors $selectors
+	 * @param DatabaseQuerySelect $query
+	 * @throws WireException
+	 * @return DatabaseQuerySelect
 	 *
 	 */
 	protected function getLoadQuerySelectors($selectors, DatabaseQuerySelect $query) {
@@ -66,7 +71,10 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 			'sort' => '', 
 			'limit' => '', 
 			'start' => '',
-			); 
+			);
+		
+		$item = $this->makeBlankItem();
+		$fields = array_keys($item->getTableData());
 
 		foreach($selectors as $selector) {
 
@@ -78,8 +86,9 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 				continue; 
 			}
 
-			if(!in_array($selector->field, $fields)) 
-				throw new WireException("Field '{$selector->field}' is not valid for {$this->className}::load()"); 
+			if(!in_array($selector->field, $fields)) {
+				throw new WireException("Field '{$selector->field}' is not valid for {$this->className}::load()");
+			}
 
 			$selectorField = $database->escapeTableCol($selector->field); 
 			$value = $database->escapeStr($selector->value); 
@@ -269,13 +278,14 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 	/**
 	 * Create and return a cloned copy of this item
 	 *
-	 * If the new item uses a 'name' field, it will contain a number at the end to make it unique
+	 * If no name is specified and the new item uses a 'name' field, it will contain a number at the end to make it unique
 	 *
 	 * @param Saveable $item Item to clone
+	 * @param string $name Optionally specify new name
 	 * @return bool|Saveable $item Returns the new clone on success, or false on failure
 	 *
 	 */
-	public function ___clone(Saveable $item) {
+	public function ___clone(Saveable $item, $name = '') {
 
 		$original = $item;
 		$item = clone $item;
@@ -283,7 +293,7 @@ abstract class WireSaveableItems extends Wire implements IteratorAggregate {
 		if(array_key_exists('name', $item->getTableData())) {
 			// this item uses a 'name' field for identification, so we want to ensure it's unique
 			$n = 0;
-			$name = $item->name; 
+			if(!strlen($name)) $name = $item->name; 
 			// ensure the new name is unique
 			while($this->get($name)) $name = $item->name . '_' . (++$n); 
 			$item->name = $name; 

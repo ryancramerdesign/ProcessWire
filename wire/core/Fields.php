@@ -248,11 +248,12 @@ class Fields extends WireSaveableItems {
 	 * Create and return a cloned copy of the given Field
 	 *
 	 * @param Field|Saveable $item Item to clone
+	 * @param string $name Optionally specify name for new cloned item
 	 * @return bool|Saveable $item Returns the new clone on success, or false on failure
 	 * @throws WireException
 	 *
 	 */
-	public function ___clone(Saveable $item) {
+	public function ___clone(Saveable $item, $name = '') {
 	
 		$item = $item->type->cloneField($item); 
 	
@@ -266,9 +267,10 @@ class Fields extends WireSaveableItems {
 
 		// don't clone the 'global' flag
 		if($item->flags & Field::flagGlobal) $item->flags = $item->flags & ~Field::flagGlobal;
-
-
-		return parent::___clone($item);
+		
+		$item = parent::___clone($item, $name);
+		if($item) $item->prevTable = null;
+		return $item;
 	}
 
 	/**

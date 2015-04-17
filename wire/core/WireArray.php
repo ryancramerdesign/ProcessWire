@@ -378,7 +378,10 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	public function get($key) {
 
 		// if an object was provided, get its key
-		if(is_object($key)) $key = $this->getItemKey($key); 
+		if(is_object($key)) {
+			/** @var object $key */
+			$key = $this->getItemKey($key);
+		}
 
 		// if given an array of keys, return all matching items
 		if(is_array($key)) {

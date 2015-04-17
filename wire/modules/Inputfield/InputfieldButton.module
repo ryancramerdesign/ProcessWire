@@ -2,6 +2,9 @@
 
 /**
  * An Inputfield for handling "button" buttons
+ * 
+ * @property string $href URL to link to
+ * @property string $aclass Optional class name(s) for <a> element (if href is used). 
  *
  */
 class InputfieldButton extends InputfieldSubmit {
@@ -22,6 +25,7 @@ class InputfieldButton extends InputfieldSubmit {
 		$this->attr('name', 'button'); 
 		$this->attr('value', 'Button'); 
 		$this->attr('href', ''); 
+		$this->set('aclass', ''); 
 		$this->skipLabel = Inputfield::skipLabelBlank; 
 	}
 
@@ -31,7 +35,8 @@ class InputfieldButton extends InputfieldSubmit {
 		$out = parent::___render();
 		if($href) { 
 			$out = trim($out); 
-			$out = "<a href='$href'>$out</a>";
+			$attr = $this->aclass ? " class='$this->aclass'" : "";
+			$out = "<a$attr href='$href'>$out</a>";
 			$this->attr('href', $href); 
 		}
 		

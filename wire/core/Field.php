@@ -7,10 +7,10 @@
  * and is managed by the 'Fields' class.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://processwire.com
+ * https://processwire.com
  *
  * @property int $id
  * @property string $name
@@ -21,6 +21,7 @@
  * @property int $flags
  * @property string $label
  * @property string $description
+ * @property string $notes
  * @property string $icon
  * 
  * @todo add modified date property
@@ -579,7 +580,6 @@ class Field extends WireData implements Saveable, Exportable {
 		return $wrapper; 
 	}
 
-
 	public function getTable() {
 		if(is_null(self::$lowercaseTables)) self::$lowercaseTables = $this->config->dbLowercaseTables ? true : false;
 		$name = $this->settings['name'];
@@ -600,6 +600,26 @@ class Field extends WireData implements Saveable, Exportable {
 		if(parent::__isset($key)) return true; 
 		return isset($this->settings[$key]); 
 	}
+	
+	/**
+	 * Return field label, description or notes for current language
+	 *
+	 * @param string $property Specify either label, description or notes
+	 * @param Page|Language $language Optionally specify a language. If not specified user's current language is used.
+	 * @return string
+	 *
+	 */
+	protected function getText($property, $language = null) {
+		if(is_null($language)) $language = $this->wire('languages') ? $this->wire('user')->language : null;
+		if($language) {
+			$value = $this->get("$property$language");
+			if(!strlen($value)) $value = $this->$property;
+		} else {
+			$value = $this->$property;
+		}
+		if($property == 'label' && !strlen($value)) $value = $this->name;
+		return $value;
+	}
 
 	/**
 	 * Return field label for current language
@@ -611,15 +631,7 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	public function getLabel($language = null) {
-		if(is_null($language)) $language = $this->wire('languages') ? $this->wire('user')->language : null;
-		if($language) {
-			$label = $this->get("label$language");
-			if(!strlen($label)) $label = $this->label;
-		} else {
-			$label = $this->label;
-		}
-		if(!strlen($label)) $label = $this->name;
-		return $label;
+		return $this->getText('label', $language);
 	}
 
 	/**
@@ -632,14 +644,20 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	public function getDescription($language = null) {
-		if(is_null($language)) $language = $this->wire('languages') ? $this->wire('user')->language : null;
-		if($language) {
-			$description = $this->get("description$language");
-			if(!strlen($description)) $description = $this->description;
-		} else {
-			$description = $this->description;
-		}
-		return $description;
+		return $this->getText('description', $language);
+	}
+
+	/**
+	 * Return field notes for current language
+	 *
+	 * This is different from $this->notes in that it knows about languages (when installed).
+	 *
+	 * @param Page|Language $language Optionally specify a language. If not specified user's current language is used.
+	 * @return string
+	 *
+	 */
+	public function getNotes($language = null) {
+		return $this->getText('notes', $language);
 	}
 
 	/**
@@ -671,6 +689,23 @@ class Field extends WireData implements Saveable, Exportable {
 		$icon = $this->wire('sanitizer')->pageName($icon); 
 		parent::set('icon', $icon); 
 		return $this; 
+	}
+
+	/**
+	 * debugInfo PHP 5.6+ magic method
+	 *
+	 * This is used when you print_r() an object instance.
+	 *
+	 * @return array
+	 *
+	 */
+	public function __debugInfo() {
+		$info = parent::__debugInfo();
+		$info['settings'] = $this->settings; 
+		if($this->prevTable) $info['prevTable'] = $this->prevTable;
+		if($this->prevFieldtype) $info['prevFieldtype'] = (string) $this->prevFieldtype;
+		if(!empty($this->trackGets)) $info['trackGets'] = $this->trackGets;
+		return $info; 
 	}
 	
 }

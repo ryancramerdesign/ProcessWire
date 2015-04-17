@@ -131,6 +131,12 @@ class WireInputData implements ArrayAccess, IteratorAggregate, Countable {
  * @property string $httpUrl Like $url but includes the scheme/protcol and hostname. 
  * @property string $queryString Current query string
  * @property string $scheme Current scheme/protcol, i.e. http or https
+ * 
+ * @property string $urlSegment1 First URL segment
+ * @property string $urlSegment2 Second URL segment
+ * @property string $urlSegment3 Third URL segment
+ * @property string $urlSegment4 Fourth URL segment
+ * @property string $urlSegment5 Fifth URL segment, and so on...
  *
  */
 class WireInput {

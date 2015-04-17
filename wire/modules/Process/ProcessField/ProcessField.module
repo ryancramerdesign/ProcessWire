@@ -14,7 +14,8 @@
  * 
  * http://processwire.com
  * 
- *
+ * @property bool $listAfterSave
+ * 
  */
 
 class ProcessField extends Process implements ConfigurableModule {
@@ -31,22 +32,50 @@ class ProcessField extends Process implements ConfigurableModule {
 			);
 	}
 
+	/**
+	 * @var InputfieldForm|null $form
+	 * 
+	 */
 	protected $form = null;
+
+	/**
+	 * @var Field|null $field
+	 * 
+	 */
 	protected $field;
-	protected $id; 
+
+	/**
+	 * @var int $id
+	 * 
+	 */
+	protected $id;
+
+	/**
+	 * @var array $moduleInfo
+	 * 
+	 */
 	protected $moduleInfo = array();
+
+	/**
+	 * @var array $labels
+	 * 
+	 */
 	protected $labels = array();
 
 	/**
 	 * Optional context fieldgroup
 	 * 
 	 * When populated, we are editing the field only in the context of this fieldgroup/template. 
+	 * 
+	 * @var Fieldgroup|null $fieldgroup
 	 *
 	 */
 	protected $fieldgroup = null;
 
 	/**
-	 * Data that's been overridden by all fieldgroups, indexed by fieldgroup ID with array value indexed by overridden field keys
+	 * Data thats been overridden by all fieldgroups, indexed by fieldgroup ID with array value indexed by overridden field keys
+	 * 
+	 * @var array $fieldgroupData
 	 *
 	 */
 	protected $fieldgroupData = array();
@@ -58,7 +87,7 @@ class ProcessField extends Process implements ConfigurableModule {
 	public function init() {
 		if($this->input->urlSegment1 == 'edit') $this->modules->get("JqueryWireTabs");
 		$this->moduleInfo = self::getModuleInfo();
-		$this->setFuel('processHeadline', $this->moduleInfo['title']); 
+		$this->headline($this->moduleInfo['title']); 
 		$this->labels = array(
 			'save' => $this->_('Save'), // Save button label
 			'import' => $this->_('Import'), 
@@ -77,6 +106,8 @@ class ProcessField extends Process implements ConfigurableModule {
 
 	/**
 	 * Render JSON map of all fields (old method, but should be kept for backwards compatibility)
+	 * 
+	 * @return string JSON
 	 *
 	 */
 	public function renderListJSON() {
@@ -115,6 +146,8 @@ class ProcessField extends Process implements ConfigurableModule {
 	/**
 	 * Renders filtering options when viewing a list of Fields
 	 *
+	 * @return InputfieldForm
+	 * 
 	 */
 	public function ___getListFilterForm() {
 
@@ -201,6 +234,8 @@ class ProcessField extends Process implements ConfigurableModule {
 
 	/**
 	 * Render a list of current fields
+	 * 
+	 * @return string
 	 *
 	 */
 	public function ___execute() {
@@ -262,6 +297,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		$out .= "\n</div><!--/#ProcessFieldList-->";
 
+		/** @var InputfieldButton $button */
 		$button = $this->modules->get('InputfieldButton');
 		$button->id = 'add_field_button'; 
 		$button->href = "./add"; 
@@ -773,6 +809,14 @@ class ProcessField extends Process implements ConfigurableModule {
 			} else {
 				$field->addOption($this->field->type->name, $this->field->type->shortName); 
 			}
+			
+			$names = array();
+			foreach($this->wire('fields') as $f) {
+				if(($f->flags & Field::flagSystem) && !$this->wire('config')->advanced) continue;
+				if(strpos($f->name, '_END')) continue;
+				$names['_' . $f->name] = $f->name;
+			}
+			$field->addOption($this->_('Clone existing field'), $names); 
 
 			$form->add($field); 
 		}
@@ -783,7 +827,6 @@ class ProcessField extends Process implements ConfigurableModule {
 		$field = $this->modules->get('InputfieldText');
 		$field->attr('id+name', 'field_label'); 
 		$field->label = $this->_x('Label', 'text input'); // Label for 'field label' text input
-		$field->attr('size', '70'); 
 		$field->attr('value', $this->field->label); 
 		$field->class .= ' asmListItemDesc'; // for modal to populate parent asmSelect desc field with this value (recognized by jquery.asmselect.js)
 		$field->description = $this->_("This is the label that appears above the entry field. If left blank, the name will be used instead."); // Description for 'field label'
@@ -796,6 +839,17 @@ class ProcessField extends Process implements ConfigurableModule {
 		$field->attr('value', $this->field->description); 
 		$field->attr('rows', 3); 
 		$field->description = $this->_("Additional information describing this field and/or instructions on how to enter the content."); // Description for 'field description'
+		$field->collapsed = Inputfield::collapsedBlank;
+		$form->add($field);
+		$languageFields[] = $field;
+		
+		$field = $this->modules->get('InputfieldTextarea');
+		$field->label = $this->_x('Notes', 'textarea input'); // Label for the 'field description' textarea input
+		$field->attr('name', 'notes');
+		$field->attr('value', $this->field->notes);
+		$field->attr('rows', 3);
+		$field->description = $this->_("Usage notes or additional information that appears beneath the input."); // Description for 'field notes'
+		$field->notes = $this->_('Notes appear here and look like this.');
 		$field->collapsed = Inputfield::collapsedBlank;
 		$form->add($field);
 		$languageFields[] = $field;
@@ -969,6 +1023,27 @@ class ProcessField extends Process implements ConfigurableModule {
 			return; 
 		}
 
+		if($isNew) {
+			// when adding new field, make sure name is valid
+			$name = $this->wire('input')->post('name');
+			if(!$this->isAllowedName($name)) return $this->wire('session')->redirect('./add');
+			$type = $this->wire('input')->post('type');
+			// check for clone option on create
+			if(strpos($type, '_') === 0) {
+				// clone existing field option is existing field name with "_" prepended
+				$cloneFieldName = $this->wire('sanitizer')->fieldName(substr($type, 1));
+				$cloneField = $this->wire('fields')->get($cloneFieldName);
+				if($cloneField) {
+					$this->field = $this->wire('fields')->clone($cloneField, $name);
+					if($this->field) {
+						// cloned
+					} else {
+						throw new WireException("Error cloning $cloneFieldName");
+					}
+				}
+			}
+		}
+
 		try {
 			$this->form->processInput($this->input->post); 
 			$this->saveInputfields($this->form); 
@@ -984,7 +1059,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		} else if(!$this->field->type) {
 			$errors[] = $this->_("Field type is required"); 
 			
-		} else if(!$this->field->id) {
+		} else if($isNew) {
 			try { 
 				$this->field->save();
 				$this->session->message($this->_('Added Field') . " - {$this->field->name}"); 
@@ -1035,35 +1110,32 @@ class ProcessField extends Process implements ConfigurableModule {
 			}
 			
 			$cloneField = $this->form->get('clone_field');
-			if($cloneField && strlen($cloneField->attr('value'))) {
-				$cloneName = $this->wire('sanitizer')->fieldName($cloneField->attr('value')); 
-				if(!$cloneName || $this->wire('fields')->get($cloneName) 
-					|| $this->wire($cloneName) || $this->wire('fields')->isNative($cloneName)) {
-					$errors[] = (sprintf($this->_('Unable to clone field because name "%s" is already in use or is a reserved name.'), $cloneName));
-				} else {
-					$clone = $this->fields->clone($this->field);
-					if($clone && $clone->id) {
-						$clone->name = $cloneName; 
-						$clone->label = $clone->label . ' ' . $this->_('(copy)'); 
-						try {
-							$this->fields->save($clone);
-							$this->message($this->_('Cloned Field') . " - {$this->field->name} => {$clone->name}");
-							if(!count($errors)) {
-								$this->wire('session')->message($this->_('You are now editing the field you cloned.'));
-								$this->wire('session')->redirect("./edit?id=$clone->id#basics");
-							}
-						} catch(Exception $e) {
-							$errors[] = $e->getMessage(); 
+			$cloneName = $cloneField ? $cloneField->attr('value') : ''; 
+			if($cloneName && $this->isAllowedName($cloneName)) {
+				$clone = $this->fields->clone($this->field);
+				if($clone && $clone->id) {
+					$clone->name = $cloneName; 
+					$clone->label = $clone->label . ' ' . $this->_('(copy)'); 
+					try {
+						$this->fields->save($clone);
+						$this->message($this->_('Cloned Field') . " - {$this->field->name} => {$clone->name}");
+						if(!count($errors)) {
+							$this->wire('session')->message($this->_('You are now editing the field you cloned.'));
+							$this->wire('session')->redirect("./edit?id=$clone->id#basics");
 						}
-						// $this->listAfterSave = true;
-					} else {
-						$errors[] = ($this->_("Error creating clone of this field") . " - {$this->field->name}");
+					} catch(Exception $e) {
+						$errors[] = $e->getMessage(); 
 					}
+					// $this->listAfterSave = true;
+				} else {
+					$errors[] = ($this->_("Error creating clone of this field") . " - {$this->field->name}");
 				}
 			}
 			
 			if(count($errors)) {
-				foreach($errors as $error) $this->error($error);
+				foreach($errors as $error) {
+					$this->error($error);
+				}
 				if($isNew) return $this->executeAdd();
 			}
 
@@ -1095,6 +1167,41 @@ class ProcessField extends Process implements ConfigurableModule {
 	}
 
 	/**
+	 * Is the given field name allowed to use for a new or cloned field
+	 * 
+	 * @param string $name
+	 * @return bool
+	 * 
+	 */
+	protected function isAllowedName($name) {
+		$_name = $name;
+		$name = $this->wire('sanitizer')->fieldName($name);
+		$allowed = false;
+		$error = '';
+		if(empty($name)) {
+			$error = $this->_('Field name is empty'); 
+		} else if($name !== $_name) {
+			$error = $this->_('Field names may only contain ASCII letters, digits or underscore.');
+		} else if($this->wire('fields')->get($name)) {
+			$error = sprintf($this->_('Field name "%s" is already in use'), $name);
+		} else if($this->wire($name) || $this->wire('fields')->isNative($name)) {
+			$error = sprintf($this->_('Field name "%s" is a reserved word'), $name);
+		} else if(preg_match('/^(_|\d)/', $name)) {
+			$error = $this->_('Field names may not begin with "_" or digits');
+		} else {
+			$allowed = true; 
+		}
+		if($error) {
+			if($this->form && $field = $this->form->getChildByName('name')) {
+				$field->error($error); 
+			} else {
+				$this->error($error); 
+			}
+		}
+		return $allowed; 
+	}
+
+	/**
 	 * Save field in the context of a fieldgroup only
 	 *
 	 */
@@ -1110,13 +1217,15 @@ class ProcessField extends Process implements ConfigurableModule {
 	}
 
 	/**
-	 * Save the resultsof a Field Edit, field by field
+	 * Save the results of a Field Edit, field by field
+	 * 
+	 * @param InputfieldWrapper $wrapper
 	 *
 	 */
 	protected function saveInputfields(InputfieldWrapper $wrapper) {
 
-		$languages = $this->fuel('languages');
-
+		$languages = $this->wire('languages');
+	
 		foreach($wrapper->children() as $inputfield) {
 
 			if($inputfield instanceof InputfieldWrapper && count($inputfield->children())) {
@@ -1150,9 +1259,16 @@ class ProcessField extends Process implements ConfigurableModule {
 			}
 
 			if($name == 'type' && $this->field->id) continue; // skip this change for existing fields
+			if($name == 'type' && strpos($value, '_') === 0) continue; // skip clone type
 			if($name == 'delete') continue; 
 			if($name == 'fieldgroup_id') continue; 
 			if($name == 'field_label') $name = 'label';
+			if($name == 'id' && $this->field->id) continue; 
+		
+			// if adding new field or existing name has changed, check that its an allowed name
+			if($name == 'name' && (!$this->field->id || $value !== $this->field->name)) {
+				if(!$this->isAllowedName($value)) continue; 
+			}
 
 			$this->field->set($name, $value); 
 
@@ -1163,8 +1279,8 @@ class ProcessField extends Process implements ConfigurableModule {
 					$this->field->set($name . $language->id, $value); 
 				}
 			}
-
 		}
+		
 	}
 
 

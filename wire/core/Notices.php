@@ -140,6 +140,9 @@ class Notices extends WireArray {
 		if(is_array($item->text)) {
 			$item->text = "<pre>" . trim(print_r($this->sanitizeArray($item->text), true)) . "</pre>";
 			$item->flags = $item->flags | Notice::allowMarkup;
+		} else if(is_object($item->text) && $item->text instanceof Wire) {
+			$item->text = "<pre>" . $this->wire('sanitizer')->entities(print_r($item->text, true)) . "</pre>";
+			$item->flags = $item->flag | Notice::allowMarkup;
 		} else if(is_object($item->text)) {
 			$item->text = (string) $item->text; 
 		}
