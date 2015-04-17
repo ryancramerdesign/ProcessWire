@@ -1902,11 +1902,6 @@ class Pages extends Wire {
 					$tryAgain--;
 				}
 				
-				if($tryAgain < 1) {
-					// if at end of retry loop, restore original throw state
-					$throw = $_throw; 
-				}
-				
 				if(stripos($error, 'MySQL server has gone away') !== false) {
 					// forces reconection on next query
 					$this->wire('database')->closeConnection(); 
@@ -1924,6 +1919,11 @@ class Pages extends Wire {
 					$tryAgain = 0;
 				}
 				
+				if($tryAgain < 1) {
+					// if at end of retry loop, restore original throw state
+					$throw = $_throw;
+				}
+
 				if($throw) {
 					throw $e;
 				} else {
