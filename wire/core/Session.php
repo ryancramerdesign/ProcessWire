@@ -565,10 +565,7 @@ class Session extends Wire implements IteratorAggregate {
 		// if there are notices, then queue them so that they aren't lost
 		$notices = $this->wire('notices'); 
 		if(count($notices)) foreach($notices as $notice) {
-			if($notice instanceof NoticeWarning) $noticeType = 'warning';
-				else if($notice instanceof NoticeError) $noticeType = 'error';
-				else $noticeType = 'message';
-			$this->queueNotice($notice->text, $noticeType, $notice->flags); 
+			$this->queueNotice($notice->text, $notice->getType(), $notice->flags); 
 		}
 
 		// perform the redirect
