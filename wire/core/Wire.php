@@ -902,10 +902,11 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 * @return $this
 	 * 
 	 */
-	protected function _notice($text, $flags, $name, $class) {
+	protected function _notice($text, $flags, $class) {
 		if($flags === true) $flags = Notice::log;
 		$notice = new $class($text, $flags);
 		$notice->class = $this->className();
+		$name = $notice->getName();
 		if(is_null($this->_notices[$name])) $this->_notices[$name] = new Notices();
 		$this->wire('notices')->add($notice);
 		if(!($notice->flags & Notice::logOnly)) $this->_notices[$name]->add($notice);
@@ -923,7 +924,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 */
 	public function message($text, $flags = 0) {
-		return $this->_notice($text, $flags, 'messages', 'NoticeMessage'); 
+		return $this->_notice($text, $flags, 'NoticeMessage'); 
 	}
 	
 	/**
@@ -937,7 +938,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 */
 	public function warning($text, $flags = 0) {
-		return $this->_notice($text, $flags, 'warnings', 'NoticeWarning'); 
+		return $this->_notice($text, $flags, 'NoticeWarning'); 
 	}
 
 	/**
@@ -952,7 +953,7 @@ abstract class Wire implements WireTranslatable, WireHookable, WireFuelable, Wir
 	 *
 	 */
 	public function error($text, $flags = 0) {
-		return $this->_notice($text, $flags, 'errors', 'NoticeError'); 
+		return $this->_notice($text, $flags, 'NoticeError'); 
 	}
 
 	/**
