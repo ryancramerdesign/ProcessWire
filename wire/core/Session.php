@@ -597,7 +597,7 @@ class Session extends Wire implements IteratorAggregate {
 	}
 
 	/**
-	 * Queue a notice (message/error) to be shown the next time this ession class is instantiated
+	 * Queue a notice (message/error) to be shown the next time this session class is instantiated
 	 *
 	 */
 	protected function queueNotice($text, $type, $flags) {
