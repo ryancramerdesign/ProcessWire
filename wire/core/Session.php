@@ -623,6 +623,19 @@ class Session extends Wire implements IteratorAggregate {
 	}
 
 	/**
+	 * Queue a success message to appear the next time session is instantiated
+	 * 
+	 * @param string $text
+	 * @param int $flags See Notice::flags
+	 * @return $this
+	 *
+	 */
+	public function success($text, $flags = 0) {
+		$this->queueNotice($text, 'success', $flags); 
+		return $this;
+	}
+
+	/**
 	 * Queue an error to appear the next time session is instantiated
 	 *
 	 * @param string $text
