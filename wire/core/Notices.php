@@ -74,6 +74,12 @@ abstract class Notice extends WireData {
 	}
 
 	/**
+	 * @return string Type of Notice
+	 * 
+	 */
+	abstract public function getType();
+	
+	/**
 	 * @return string Name of log (basename)
 	 * 
 	 */
@@ -89,6 +95,10 @@ abstract class Notice extends WireData {
  *
  */
 class NoticeMessage extends Notice { 
+	public function getType() {
+		return 'message';
+	}
+
 	public function getName() {
 		return 'messages';
 	}
@@ -99,6 +109,10 @@ class NoticeMessage extends Notice {
  *
  */
 class NoticeError extends Notice { 
+	public function getType() {
+		return 'error';
+	}
+
 	public function getName() {
 		return 'errors';
 	}
@@ -109,6 +123,10 @@ class NoticeError extends Notice {
  *
  */
 class NoticeWarning extends Notice {
+	public function getType() {
+		return 'warning';
+	}
+
 	public function getName() {
 		return 'warnings';
 	}
