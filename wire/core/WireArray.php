@@ -1126,19 +1126,43 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 */
 	protected function filterDataSelectors(Selectors $selectors) { }
 
-	/**
-	 * Filter out Wires that don't match the selector. 
-	 *
-	 * Same as filterData, but for public interface without the $not option. 
+		/**
+	 * Prepare selectors for filtering
 	 * 
-	 * @param string $selector AttributeSelector string to use as the filter. 
+	 * Template method for descending classes to modify selectors if needed
+	 * 
+	 * @param Selectors $selectors
+	 * 
+	 */
+	protected function filterDataSelectors(Selectors $selectors) { }
+
+	/**
+	 * Filter out Wires that don't match by the selector or the function. 
+	 * 
+	 * @param callable|function|string $func Accepts any of the following:
+	 * 1. Callable function that each item will be passed to as first argument. If this 
+	 *    function does't return true the item is removed from the resulting WireArray.
+	 * 2. AttributeSelector string to use as the filter. 
 	 * @return WireArray reference to current instance.
 	 * @see filterData
 	 *
 	 */
-	public function filter($selector) {
+	public function filter($func) {
 		// destructive
-		return $this->filterData($selector, false); 
+		if(is_callable($func)) {
+			$funcInfo = new ReflectionFunction($func);
+			$useIndex = $funcInfo->getNumberOfParameters() > 1;
+			foreach($this as $index => $item) {
+				$val = $useIndex ? $func($index, $item) : $func($item);
+				if($val !== true) unset($this->data[$key]);
+			}
+			$this->trackChange("filter by function"); 
+			return $this;
+		} else if(is_string($func)) {
+			return $this->filterData($selector, false); 
+		} else {
+			return $this;
+		}
 	}
 
 
@@ -1164,15 +1188,17 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 	 * 
 	 * This is non destructive and returns a brand new WireArray.
 	 *
-	 * @param string $selector AttributeSelector string. 
+	 * @param callable|function|string $func Accepts any of the following:
+	 * 1. Callable function that each item will be passed to as first argument. If this 
+	 *    function does't return true the item is removed from the resulting WireArray.
+	 * 2. AttributeSelector string to use as the filter. 
 	 * @return WireArray 
 	 *
 	 */
-	public function find($selector) {
+	public function find($func) {
 		// non descructive
 		$a = $this->makeCopy();
-		if(!strlen($selector)) return $a;
-		$a->filter($selector); 	
+		$a->filter($func); 	
 
 		return $a; 
 	}
