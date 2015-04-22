@@ -1159,7 +1159,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 			$this->trackChange("filter by function"); 
 			return $this;
 		} else if(is_string($func)) {
-			return $this->filterData($selector, false); 
+			return $this->filterData($func, false); 
 		} else {
 			return $this;
 		}
