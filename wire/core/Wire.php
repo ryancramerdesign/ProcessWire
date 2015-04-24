@@ -9,7 +9,7 @@
  * message() and error() methods are provided for this class to provide any text notices. 
  *
  * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -32,11 +32,15 @@
  * @property Roles $roles
  * @property Users $users
  * @property User $user
+ * @property WireCache $cache
  * @property WireInput $input
+ * @property Languages $languages If LanguageSupport installed
  * @property Config $config
  * @property Fuel $fuel
  * 
  * @method changed(string $what) See Wire::___changed()
+ * @method log($str = '', array $options = array()) See Wire::___log()
+ * @method callUnknown($method, $arguments) See Wire::___callUnknown()
  *
  */
 

@@ -383,7 +383,7 @@ class FieldtypeDatetime extends FieldtypeText {
 
 	public function ___exportValue(Page $page, Field $field, $value, array $options = array()) {
 		if(!$value) return '';
-		return date('Y-m-d H:i:s'); 
+		return date('Y-m-d H:i:s', $value); 
 	}
 
 	/**
