@@ -2,6 +2,8 @@
 
 /**
  * Contains multiple Event objects for a single page
+ * 
+ * @class NotificationArray
  *
  */
 
@@ -267,6 +269,7 @@ class NotificationArray extends WireArray {
 		
 		foreach($this as $notification) {
 			if(!$notification->is($type)) continue;
+			/** @var Notification $notification */
 			$value->add($notification);
 			if($clear) $this->remove($notification); // clear global
 		}

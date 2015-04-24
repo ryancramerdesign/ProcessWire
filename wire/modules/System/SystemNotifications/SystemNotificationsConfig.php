@@ -25,6 +25,7 @@ class SystemNotificationsConfig extends ModuleConfig {
 			'systemUserID' => 41,					// user that will receive system notifications
 			'systemUserName' => $this->systemUserName,	// user that will receive system notifications (name)
 			'activeHooks' => array(0, 1, 2), 		// Indexes of $this->systemHooks that are active
+			'trackEdits' => 1, 						// Track page edits?
 			'updateDelay' => 5000, 					// delay between ajax updates (in ms) 5000+ recommended
 			'iconMessage' => 'check-square-o',		// default icon for message notifications
 			'iconWarning' => 'exclamation-circle',	// default icon for warning notifications
@@ -51,16 +52,28 @@ class SystemNotificationsConfig extends ModuleConfig {
 
 		$form = parent::getInputfields();
 		$modules = $this->wire('modules');
+		$on = $this->_('On');
+		$off = $this->_('Off');
 		
 		$f = $modules->get('InputfieldRadios'); 
 		$f->attr('name', 'disabled');
 		$f->label = __('Notifications status'); 
 		$f->description = __('When turned off, notifications will not be rendered.'); 
-		$f->addOption(0, $this->_('On'));
-		$f->addOption(1, $this->_('Off'));
+		$f->addOption(0, $on);
+		$f->addOption(1, $off);
 		$f->optionColumns = 1; 
-		$f->columnWidth = 50; 
+		$f->columnWidth = 33; 
 		$form->add($f);
+		
+		$f = $modules->get('InputfieldRadios'); 
+		$f->attr('name', 'trackEdits'); 
+		$f->label = __('Track page edits?');
+		$f->description = __('Notifies users when they try to edit a page that is already being edited.');
+		$f->addOption(1, $on);
+		$f->addOption(0, $off);
+		$f->optionColumns = 1; 
+		$f->columnWidth = 34;
+		$form->add($f); 
 		
 		$f = $modules->get('InputfieldRadios');
 		$f->attr('name', 'reverse');
@@ -69,7 +82,7 @@ class SystemNotificationsConfig extends ModuleConfig {
 		$f->addOption(0, __('Newest to oldest'));
 		$f->addOption(1, __('Oldest to newest'));
 		$f->optionColumns = 1;
-		$f->columnWidth = 50;
+		$f->columnWidth = 33;
 		$form->add($f);
 
 		$f = $modules->get('InputfieldCheckboxes');

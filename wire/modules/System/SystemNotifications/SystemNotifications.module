@@ -5,9 +5,26 @@
  *
  * By Avoine and Ryan Cramer
  * 
- * @property int $disabled
+ * @property int $disabled Notification status (0=off, 1=on)
+ * @property int $reverse Notification order (0=newest to oldest, 1=oldest to newest)
  * @property int $placement
- * @property array $activeHooks
+ * @property array $activeHooks Active automatic notification hooks (0=404s, 1=logins, 2=logouts)
+ * @property int|bool $trackEdits Whether or not to track page edits
+ * @property string $systemUserName Name of user that receives system notifications
+ * @property int $systemUserID ID of user that receives system notifications
+ * @property int $updateDelay Time between updates in ms (default=5000)
+ * @property string $iconMessage default icon for message notifications
+ * @property string $iconWarning default icon for warning notifications
+ * @property string $iconError default icon for error notifications
+ * @property string $iconProgress icon for any item that has an active progress bar
+ * @property string $iconDebug default icon for debug-mode notification
+ * @property int $ghostDelay how long a ghost appears on screen (in ms)
+ * @property int $ghostDelayError how long an error ghost appears on screen (in ms)
+ * @property int $ghostFadeSpeed speed at which ghosts fade in or out, or blank for no fade
+ * @property int $ghostOpacity full opacity of ghost (when fully faded in) 
+ * @property int $ghostPos ghost position: 1=left, 2=right
+ * @property int $ghostLimit only show 1 summary ghost if there are more than this number
+ * @property string $dateFormat date format to use in notifications (anything compatible with wireDate() function)
  *
  */
 class SystemNotifications extends WireData implements Module {
@@ -15,7 +32,7 @@ class SystemNotifications extends WireData implements Module {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'System Notifications',
-			'version' => 11,
+			'version' => 12,
 			'summary' => 'Adds support for notifications in ProcessWire (currently in development)',
 			'autoload' => true, 
 			'installs' => 'FieldtypeNotifications', 
@@ -95,14 +112,10 @@ class SystemNotifications extends WireData implements Module {
 
 		if($page->template == 'admin' && !$this->wire('input')->get('modal')) {
 			$this->addHookAfter('AdminTheme::getExtraMarkup', $this, 'hookAdminThemeGetExtraMarkup'); 
-			// $this->addHookAfter('ProcessPageEdit::execute', $this, 'hookPageEditExecute'); 
 		}
 		
 	}
 	
-	public function hookPageEditExecute(HookEvent $e) {
-	}
-
 	/**
 	 * Test out the progress bar notification
 	 * 
@@ -214,8 +227,14 @@ class SystemNotifications extends WireData implements Module {
 		$time = (int) $this->wire('input')->get('time'); 
 		$rm = $this->wire('input')->get('rm'); 
 		$rm = $rm ? explode(',', $rm) : array();
+		
+		if($this->trackEdits) {
+			$processKey = $this->wire('input')->get('processKey');
+			$this->updateProcessKey($processKey);
+		}
 
 		foreach($notifications->sort('-modified') as $notification) {
+			/** @var Notification $notification */
 			$qty++;
 			$a = $this->notificationToArray($notification); 
 
@@ -248,17 +267,6 @@ class SystemNotifications extends WireData implements Module {
 		}
 		
 		if($action == 'update') {
-			
-			/*
-			$processKey = $this->wire('input')->get('process'); 
-			$processes = $this->wire('cache')->getFor($this, 'processes'); 
-			if(is_array($processes) && $processKey) {
-				// update time we know this process was last accessed
-				if(isset($processes[$processKey])) $processes[$processKey]['time'] = time();
-				$this->wire('cache')->saveFor($this, 'processes', $processes, WireCache::expireDaily); 
-				$this->updateProcessesNotification($processes); 
-			}
-			*/
 			
 			$data = array(
 				'notifications' => $data, // new notifications only
@@ -334,7 +342,11 @@ class SystemNotifications extends WireData implements Module {
 			'ago' => __('ago', $textdomain), 
 		);
 
-		//$options['processKey'] = $this->updateProcesses();
+		if($this->trackEdits) {
+			$processKey = $this->makeProcessKey();
+			if(!empty($processKey)) $options['processKey'] = $processKey;
+		}
+		
 		$ghostClass = $this->ghostPos == 2 ? "NotificationGhostsRight" : "NotificationGhostsLeft";
 		
 		$out = 	
@@ -438,6 +450,9 @@ class SystemNotifications extends WireData implements Module {
 	
 	/**
 	 * Convert ProcessWire runtime "Notice" objects to runtime Notification objects
+	 * 
+	 * @param Notice $notice
+	 * @return Notification
 	 *
 	 */
 	protected function noticeToNotification(Notice $notice) {
@@ -568,6 +583,8 @@ class SystemNotifications extends WireData implements Module {
 
 	/**
 	 * Automatic notification for logouts
+	 * 
+	 * @param HookEvent $event
 	 *
 	 */
 	public function hookLogout(HookEvent $event) {
@@ -654,88 +671,125 @@ class SystemNotifications extends WireData implements Module {
 		}
 	}
 
+	/**
+	 * Update the current processKey and its time in the cache
+	 * 
+	 * This method is called only during ajax requests. 
+	 * 
+	 * @param string $processKey 
+	 * 
+	 */
+	protected function updateProcessKey($processKey) {
+		// NPK.ProcessPageEdit.pageID.userID.windowID
+		if(!preg_match('/^NPK\.[A-Za-z]+\.\d+\.\d+\.PW\d+$/', $processKey)) return;
+		$this->checkProcessKey($processKey); 
+		$times = $this->wire('cache')->get($processKey);
+		if($times) {
+			list($created, $modified) = explode(':', $times); 
+			$value = $created . ":" . time();
+		} else {
+			$value = time() . ":" . time();
+		}
+		$this->wire('cache')->save($processKey, $value, ($this->updateDelay / 1000) * 2);
+	}
 
 	/**
-	 * Update processes cache on non-ajax requests
-	 *
-	 * @return string processKey that was generated for the request
-	 *
-	 *
-	protected function updateProcesses() {
-
-	$processes = $this->wire('cache')->getFor($this, 'processes');
-	if(!is_array($processes)) $processes = array();
-
-	$oldest = time() - ($this->updateDelay * 3); 
-	foreach($processes as $key => $info) {
-	// expire processes that haven't been accessed in the last few seconds
-	if($oldest > $info['time']) unset($processes[$key]);
-	}
-
-	$user = $this->wire('user');
-	$processKey = $user->id;
-	$data = array();
-	$id = (int) $this->wire('input')->get('id'); 	
-	if($id) $data['id'] = $id;
-	$title = $this->wire('processHeadline'); 
-	if(!$title) $title = $this->wire('page')->get('title|name');
-
-	$process = array(
-	'user' => $user->name, 
-	'name' => (string) $this->wire('process'),
-	'path' => (string) $this->wire('page')->path . $this->wire('input')->urlSegmentStr,
-	'title' => $title, 
-	'data' => $data,
-	'time' => time()
-	); 
-
-	$processes[$processKey] = $process; 
-
-	$this->wire('cache')->saveFor($this, 'processes', $processes, WireCache::expireDaily);
-	$this->updateProcessesNotification($processes); 
-
-	return $processKey;
-	}
-
-	protected function updateProcessesNotification(array $processes) {
-	if(!$this->wire('user')->isSuperuser()) return;
-
-	$numActive = count($processes); 
-	$notificationID = $this->wire('session')->get($this, 'processNotificationID');
-	$notification = null;
-	$notifications = $this->wire('user')->notifications();
-	if($notificationID) $notification = $notifications->get($notificationID);
-	if(!$notification) $notification = $notifications->getNew('message'); 
-	$notification->title = sprintf($this->_n('%d active process', '%d active processes', $numActive), $numActive);
-
-	$out = 	"<table style='width: 100%;' cellpadding='2' cellspacing='2'><thead><tr>" .
-	"<th>User</th>" . 
-	"<th>Path</th>" .
-	"<th>Title</th>" . 
-	"<th>Details</th>" . 
-	"<th>Last Access</th>" . 
-	"</tr></thead><tbody>";
-
-	foreach($processes as $process) {
-	$dataStr = '';
-	foreach($process['data'] as $key => $value) {
-	$dataStr .= $this->sanitizer->entities("$key: $value") . "\n";
-	}
-	$out .= "<tr>" .
-	"<td>$process[user]</td>" . 
-	"<td>$process[path]</td>" .
-	"<td>$process[title]</td>" . 
-	"<td><pre>" . trim($dataStr) . "</pre></td>" . 
-	"<td>" . wireRelativeTimeStr($process['time']) . "</td>" . 
-	"</tr>";
-	}
-
-	$out .= "</tbody></table>";
-	$notification->html = $out; 
-	$notifications->save();
-	$this->wire('session')->set($this, 'processNotificationID', $notification->id); 
-	}
+	 * Create a new processKey for the current request
+	 * 
+	 * processKey example: NPK.ProcessPageEdit.pageID.userID
+	 * Note that it excludes the windowName, which is added at the end after the 
+	 * first ajax request. 
+	 * 
+	 * This method only runs during full requests, not during ajax requests. 
+	 * 
+	 * @return string
+	 * 
 	 */
+	protected function makeProcessKey() {
+		
+		$process = $this->wire('process');
+		
+		if($process && ($process instanceof ProcessPageEdit || $process instanceof ProcessPageType)) {
+			// good, we'll use it
+			$page = $process->getPage();
+			if(!$page->id) return '';
+		} else {
+			// we don't track this process
+			return '';
+		}
+	
+		// NPK = NotificationProcessKey
+		$processKey = "NPK." . 
+			$process->className() . 
+			"." . $page->id . 
+			"." . $this->wire('user')->id; 
+	
+		// reset because non-ajax request
+		$this->wire('session')->remove($this, 'notifiedProcessKeys');
+
+		return $processKey;
+	}
+
+	/**
+	 * Given a processKey, check for conflicts with other active processKeys
+	 * 
+	 * @param $processKey
+	 * 
+	 */
+	protected function checkProcessKey($processKey) {
+		
+		list($prefix, $className, $pageID, $userID, $windowName) = explode('.', $processKey);
+		
+		// locate all currently active processKeys editing $page
+		$processKeys = $this->wire('cache')->get("$prefix.$className.$pageID.*");
+		
+		$notified = $this->wire('session')->getFor($this, 'notifiedProcessKeys'); 
+		if(!is_array($notified)) $notified = array();
+		
+		foreach($processKeys as $_processKey => $times) {
+			
+			if(isset($notified[$processKey]) && in_array($_processKey, $notified[$processKey])) continue;
+			
+			list($created, $modified) = explode(":", $times); 	
+			list($_prefix, $_className, $_pageID, $_userID, $_windowName) = explode('.', $_processKey);
+			$recordNotify = false;
+			
+			if($_userID == $this->wire('user')->id) {
+				// same user
+				if($_windowName == $windowName) {
+					// this is the window we are already in and this is OK to skip
+				} else {
+					// editing in different window
+					$this->wire('user')->notifications()->error(
+						sprintf(
+							$this->_('Warning: you are editing this page in another window (editing started %s)'), 
+								wireDate('%X', (int) $created)), 
+							Notification::flagAnnoy | Notification::flagSession);
+					$recordNotify = true; 
+				}
+				
+			} else {
+				// different user
+				$editingUser = $this->wire('users')->get((int) $_userID);
+				if($editingUser->id) {
+					$this->wire('user')->notifications()->error(
+						sprintf($this->_('Warning: user "%s" is currently editing this page (editing started %s)'),
+							$editingUser->name, wireDate('%X', (int) $created)),
+								Notification::flagAnnoy | Notification::flagSession);
+					$recordNotify = true; 
+				}
+			}
+		
+			if($recordNotify) {
+				if(isset($notified[$processKey])) $notified[$processKey][] = $_processKey;
+					else $notified[$processKey] = array($_processKey);
+			}
+		}
+		
+		if(count($notified)) {
+			$this->wire('session')->setFor($this, 'notifiedProcessKeys', $notified); 
+		}
+	}
 
 
 }

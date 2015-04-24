@@ -285,8 +285,8 @@ class WireCache extends Wire {
 		if(is_array($data)) $data = json_encode($data);
 
 		$sql = 
-			'INSERT INTO caches (name, data, expires) VALUES(:name, :data, :expires) ' . 
-			'ON DUPLICATE KEY UPDATE data=VALUES(data), expires=VALUES(expires)';
+			'INSERT INTO caches (`name`, `data`, `expires`) VALUES(:name, :data, :expires) ' . 
+			'ON DUPLICATE KEY UPDATE `data`=VALUES(`data`), `expires`=VALUES(`expires`)';
 					
 		$query = $this->wire('database')->prepare($sql, "cache.save($name)"); 
 		$query->bindValue(':name', $name); 
