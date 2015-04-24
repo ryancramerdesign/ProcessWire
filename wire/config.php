@@ -722,6 +722,18 @@ $config->pageList = array(
 	'hoverActionFade' => 150
 );
 
+/**
+ * PageEdit default settings
+ * 
+ * #property bool viewNew Specify true to force the "view" link to open pages in a new window. 
+ * 
+ * @var array
+ * 
+ */
+$config->pageEdit = array(
+	'viewNew' => false,
+);
+
 
 /*** 9. MISC ************************************************************************************/
 

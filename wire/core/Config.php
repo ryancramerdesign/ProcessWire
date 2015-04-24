@@ -87,6 +87,7 @@
  * @property string $dbPath MySQL database exec path (Path to mysqldump)
  * 
  * @property array $pageList Settings specific to Page lists. 
+ * @property array $pageEdit Settings specific to Page editors. 
  * @property string $moduleServiceURL URL where the modules web service can be accessed
  * @property string $moduleServiceKey API key for modules web service
  * 

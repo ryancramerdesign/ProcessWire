@@ -19,6 +19,10 @@
 	clear: both; 
 }
 
+#ProcessListerResults table td table {
+	width: 100%;
+}
+
 #ProcessListerResults thead th b {
 	display: none; 
 }

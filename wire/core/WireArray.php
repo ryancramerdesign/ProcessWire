@@ -1179,6 +1179,9 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 
 	/**
 	 * Same as find, but returns a single Page rather than WireArray or FALSE if empty.
+	 * 
+	 * @param string $selector
+	 * @return WireArray
 	 *
 	 */
 	public function findOne($selector) {
@@ -1599,7 +1602,7 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 				// if keys are already numeric, we use them
 				return $this->get((int) $key); 
 			} else {
-				// if keys are not numeric, we delegete numers to eq(n)
+				// if keys are not numeric, we delegete numbers to eq(n)
 				return $this->eq((int) $key);
 			}
 		}

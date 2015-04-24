@@ -820,7 +820,10 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 	protected function ___buildFormView($url) {
 		$label = $this->_('View'); // Tab Label: View
 		$id = $this->className() . 'View';
-		$a = "<a id='_ProcessPageEditView' href='$url'>$label</a>"; 
+		$settings = $this->wire('config')->pageEdit; 
+		$target = '';
+		if(is_array($settings) && !empty($settings['viewNew'])) $target = " target='_blank'";
+		$a = "<a id='_ProcessPageEditView'$target href='$url'>$label</a>"; 
 		$this->addTab($id, $a);
 	}
 
