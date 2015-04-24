@@ -940,7 +940,7 @@ class Page extends WireData implements Countable {
 			$name = $key;
 			$subname = '';
 			if(strpos($name, '.')) list($name, $subname) = explode('.', $key);
-			$field = $this->fieldgroup->get($name);
+			$field = $this->fieldgroup->getField($name);
 			if($field) {
 				// corresponds to a known field in this page's fieldgroup
 				$value = $this->getFormatted($name);
