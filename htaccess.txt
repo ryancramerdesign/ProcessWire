@@ -81,93 +81,6 @@ ErrorDocument 404 /index.php
 </IfModule>
 
 # ----------------------------------------------------------------------
-# | Media types                                                        |
-# ----------------------------------------------------------------------
-
-# Serve resources with the proper media types (f.k.a. MIME types).
-#
-# https://www.iana.org/assignments/media-types/media-types.xhtml
-# https://httpd.apache.org/docs/current/mod/mod_mime.html#addtype
-
-<IfModule mod_mime.c>
-
-  # Data interchange
-
-    AddType application/atom+xml                        atom
-    AddType application/json                            json map topojson
-    AddType application/ld+json                         jsonld
-    AddType application/rss+xml                         rss
-    AddType application/vnd.geo+json                    geojson
-    AddType application/xml                             rdf xml
-
-
-  # JavaScript
-
-    # Normalize to standard type.
-    # https://tools.ietf.org/html/rfc4329#section-7.2
-
-    AddType application/javascript                      js
-
-
-  # Manifest files
-
-    AddType application/manifest+json                   webmanifest
-    AddType application/x-web-app-manifest+json         webapp
-    AddType text/cache-manifest                         appcache
-
-
-  # Media files
-
-    AddType audio/mp4                                   f4a f4b m4a
-    AddType audio/ogg                                   oga ogg opus
-    AddType image/bmp                                   bmp
-    AddType image/svg+xml                               svg svgz
-    AddType image/webp                                  webp
-    AddType video/mp4                                   f4v f4p m4v mp4
-    AddType video/ogg                                   ogv
-    AddType video/webm                                  webm
-    AddType video/x-flv                                 flv
-
-    # Serving `.ico` image files with a different media type
-    # prevents Internet Explorer from displaying then as images:
-    # https://github.com/h5bp/html5-boilerplate/commit/37b5fec090d00f38de64b591bcddcb205aadf8ee
-
-    AddType image/x-icon                                cur ico
-
-
-  # Web fonts
-
-    AddType application/font-woff                       woff
-    AddType application/font-woff2                      woff2
-    AddType application/vnd.ms-fontobject               eot
-
-    # Browsers usually ignore the font media types and simply sniff
-    # the bytes to figure out the font type.
-    # https://mimesniff.spec.whatwg.org/#matching-a-font-type-pattern
-    #
-    # However, Blink and WebKit based browsers will show a warning
-    # in the console if the following font types are served with any
-    # other media types.
-
-    AddType application/x-font-ttf                      ttc ttf
-    AddType font/opentype                               otf
-
-
-  # Other
-
-    AddType application/octet-stream                    safariextz
-    AddType application/x-bb-appworld                   bbaw
-    AddType application/x-chrome-extension              crx
-    AddType application/x-opera-extension               oex
-    AddType application/x-xpinstall                     xpi
-    AddType text/vcard                                  vcard vcf
-    AddType text/vnd.rim.location.xloc                  xloc
-    AddType text/vtt                                    vtt
-    AddType text/x-component                            htc
-
-</IfModule>
-
-# ----------------------------------------------------------------------
 # | Character encodings                                                |
 # ----------------------------------------------------------------------
 
@@ -424,6 +337,93 @@ DirectoryIndex index.php index.html index.htm
 #################################################################################################
 # END PROCESSWIRE HTACCESS DIRECTIVES
 #################################################################################################
+
+# ----------------------------------------------------------------------
+# | Media types                                                        |
+# ----------------------------------------------------------------------
+
+# Serve resources with the proper media types (f.k.a. MIME types).
+#
+# https://www.iana.org/assignments/media-types/media-types.xhtml
+# https://httpd.apache.org/docs/current/mod/mod_mime.html#addtype
+
+<IfModule mod_mime.c>
+
+  # Data interchange
+
+    AddType application/atom+xml                        atom
+    AddType application/json                            json map topojson
+    AddType application/ld+json                         jsonld
+    AddType application/rss+xml                         rss
+    AddType application/vnd.geo+json                    geojson
+    AddType application/xml                             rdf xml
+
+
+  # JavaScript
+
+    # Normalize to standard type.
+    # https://tools.ietf.org/html/rfc4329#section-7.2
+
+    AddType application/javascript                      js
+
+
+  # Manifest files
+
+    AddType application/manifest+json                   webmanifest
+    AddType application/x-web-app-manifest+json         webapp
+    AddType text/cache-manifest                         appcache
+
+
+  # Media files
+
+    AddType audio/mp4                                   f4a f4b m4a
+    AddType audio/ogg                                   oga ogg opus
+    AddType image/bmp                                   bmp
+    AddType image/svg+xml                               svg svgz
+    AddType image/webp                                  webp
+    AddType video/mp4                                   f4v f4p m4v mp4
+    AddType video/ogg                                   ogv
+    AddType video/webm                                  webm
+    AddType video/x-flv                                 flv
+
+    # Serving `.ico` image files with a different media type
+    # prevents Internet Explorer from displaying then as images:
+    # https://github.com/h5bp/html5-boilerplate/commit/37b5fec090d00f38de64b591bcddcb205aadf8ee
+
+    AddType image/x-icon                                cur ico
+
+
+  # Web fonts
+
+    AddType application/font-woff                       woff
+    AddType application/font-woff2                      woff2
+    AddType application/vnd.ms-fontobject               eot
+
+    # Browsers usually ignore the font media types and simply sniff
+    # the bytes to figure out the font type.
+    # https://mimesniff.spec.whatwg.org/#matching-a-font-type-pattern
+    #
+    # However, Blink and WebKit based browsers will show a warning
+    # in the console if the following font types are served with any
+    # other media types.
+
+    AddType application/x-font-ttf                      ttc ttf
+    AddType font/opentype                               otf
+
+
+  # Other
+
+    AddType application/octet-stream                    safariextz
+    AddType application/x-bb-appworld                   bbaw
+    AddType application/x-chrome-extension              crx
+    AddType application/x-opera-extension               oex
+    AddType application/x-xpinstall                     xpi
+    AddType text/vcard                                  vcard vcf
+    AddType text/vnd.rim.location.xloc                  xloc
+    AddType text/vtt                                    vtt
+    AddType text/x-component                            htc
+
+</IfModule>
 
 #################################################################################################
 # WEB PERFORMANCE
