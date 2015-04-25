@@ -167,6 +167,43 @@ ErrorDocument 404 /index.php
 
 </IfModule>
 
+# ----------------------------------------------------------------------
+# | Character encodings                                                |
+# ----------------------------------------------------------------------
+
+# Serve all resources labeled as `text/html` or `text/plain`
+# with the media type `charset` parameter set to `UTF-8`.
+#
+# https://httpd.apache.org/docs/current/mod/core.html#adddefaultcharset
+
+AddDefaultCharset utf-8
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# Serve the following file types with the media type `charset`
+# parameter set to `UTF-8`.
+#
+# https://httpd.apache.org/docs/current/mod/mod_mime.html#addcharset
+
+<IfModule mod_mime.c>
+    AddCharset utf-8 .atom \
+                     .bbaw \
+                     .css \
+                     .geojson \
+                     .js \
+                     .json \
+                     .jsonld \
+                     .manifest \
+                     .rdf \
+                     .rss \
+                     .topojson \
+                     .vtt \
+                     .webapp \
+                     .webmanifest \
+                     .xloc \
+                     .xml
+</IfModule>
+
 # -----------------------------------------------------------------------------------------------
 # Protect ProcessWire system files (part 1A) for Apache versions older than 2.4:
 # APACHE 2.4+ NOTE: Comment out this section and uncomment second 1B below it.
@@ -216,7 +253,6 @@ DirectoryIndex index.php index.html index.htm
 <IfModule mod_rewrite.c>
 
   RewriteEngine On
-  AddDefaultCharset UTF-8
 
   # -----------------------------------------------------------------------------------------------
   # If you only want to allow HTTPS, uncomment the RewriteCond and RewriteRule lines below.
