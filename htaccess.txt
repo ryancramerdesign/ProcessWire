@@ -262,15 +262,9 @@ DirectoryIndex index.php index.html index.htm
   RewriteEngine On
 
   # -----------------------------------------------------------------------------------------------
-  # If you only want to allow HTTPS, uncomment the RewriteCond and RewriteRule lines below.
-  # -----------------------------------------------------------------------------------------------
-  # RewriteCond %{HTTPS} off
-  # RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [L]
-
-  # -----------------------------------------------------------------------------------------------
   # Set an environment variable so the installer can detect that mod_rewrite is active.
-  # Note that some web hosts don't support this. If you get a 500 error, you might try 
-  # commenting out this SetEnv line below. 
+  # Note that some web hosts don't support this. If you get a 500 error, you might try
+  # commenting out this SetEnv line below.
   # -----------------------------------------------------------------------------------------------
 
   <IfModule mod_env.c>
@@ -287,18 +281,63 @@ DirectoryIndex index.php index.html index.htm
   # RewriteBase /~user/
 
   # -----------------------------------------------------------------------------------------------
+  # If you only want to allow HTTPS, uncomment the RewriteCond and RewriteRule lines below.
+  # -----------------------------------------------------------------------------------------------
+
+  # Set %{ENV:PROTO} variable, to allow rewrites to redirect with the
+  # appropriate schema automatically (http or https).
+
+  RewriteCond %{HTTPS} =on
+  RewriteRule ^ - [env=proto:https]
+  RewriteCond %{HTTPS} !=on
+  RewriteRule ^ - [env=proto:http]
+
+  # Redirect from the `http://` to the `https://` version of the URL.
+  # https://wiki.apache.org/httpd/RewriteHTTPToHTTPS
+
+  # RewriteCond %{HTTPS} !=on
+  # RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+  # -----------------------------------------------------------------------------------------------
   # Access Restrictions: Keep web users out of dirs that begin with a period
   # -----------------------------------------------------------------------------------------------
 
   RewriteRule "(^|/)\." - [F]
 
   # -----------------------------------------------------------------------------------------------
-  # OPTIONAL: Redirect users to the 'www.' version of the site (uncomment to enable).
+  # OPTIONAL: Suppressing / Forcing the `www.` at the beginning of URLs
+  # Uncomment the rules you want to activate. NEVER USE BOTH RULES AT THE SAME TIME!
   # For example: http://processwire.com/ would be redirected to http://www.processwire.com/
   # -----------------------------------------------------------------------------------------------
 
-  # RewriteCond %{HTTP_HOST} !^www\. [NC]
-  # RewriteRule ^ http://www.%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+  # The same content should never be available under two different
+  # URLs, especially not with and without `www.` at the beginning.
+  # This can cause SEO problems (duplicate content), and therefore,
+  # you should choose one of the alternatives and redirect the other
+  # one.
+  #
+  # (!) NEVER USE BOTH RULES AT THE SAME TIME!
+
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  # Option 1: rewrite www.example.com → example.com
+
+# RewriteEngine On
+# RewriteCond %{HTTPS} !=on
+# RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+# RewriteRule ^ %{ENV:PROTO}://%1%{REQUEST_URI} [R=301,L]
+
+  # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  # Option 2: rewrite example.com → www.example.com
+  #
+  # Be aware that the following might not be a good idea if you use "real"
+  # subdomains for certain parts of your website.
+
+# RewriteEngine On
+# RewriteCond %{HTTPS} !=on
+# RewriteCond %{HTTP_HOST} !^www\. [NC]
+# RewriteCond %{SERVER_ADDR} !=127.0.0.1
+# RewriteCond %{SERVER_ADDR} !=::1
+# RewriteRule ^ %{ENV:PROTO}://www.%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
   # ----------------------------------------------------------------------------------------------- 
   # OPTIONAL: Send URLs with non name-format characters to 404 page
