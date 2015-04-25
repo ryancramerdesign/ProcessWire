@@ -205,29 +205,36 @@ AddDefaultCharset utf-8
 </IfModule>
 
 # -----------------------------------------------------------------------------------------------
-# Protect ProcessWire system files (part 1A) for Apache versions older than 2.4:
-# APACHE 2.4+ NOTE: Comment out this section and uncomment second 1B below it.
+# Protect ProcessWire system files
 # -----------------------------------------------------------------------------------------------
+# (!) Update the `<FilesMatch>` regular expression from below to
+# include any files that might end up on your production server and
+# can expose sensitive information about your website. These files may
+# include: configuration files, files that contain metadata about the
+# project (e.g.: project dependencies), build scripts, etc..
 
 <FilesMatch "\.(inc|info|info\.json|module|sh|sql)$|^(\..*)$">
-  Order allow,deny
+    # Apache < 2.3
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+    </IfModule>
+    # Apache ≥ 2.3
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
 </FilesMatch>
+
 <Files .htaccess>
-  order allow,deny
-  deny from all
+    # Apache < 2.3
+    <IfModule !mod_authz_core.c>
+      order allow,deny
+      deny from all
+    </IfModule>
+    # Apache ≥ 2.3
+    <IfModule mod_authz_core.c>
+      Require all denied
+    </IfModule>
 </Files>
-
-# -----------------------------------------------------------------------------------------------
-# Protect ProcessWire system files (part 1B) for Apache versions 2.4 and newer: 
-# APACHE 2.4+ NOTE: Uncomment this section and remove or comment out section 1A above. 
-# -----------------------------------------------------------------------------------------------
-
-# <FilesMatch "\.(inc|info|info\.json|module|sh|sql)$|^(\..*)$">
-#   Require all denied 
-# </FilesMatch>
-# <Files .htaccess>
-#   Require all denied
-# </Files>
 
 # -----------------------------------------------------------------------------------------------
 # Override a few PHP settings that can't be changed at runtime (not required)
