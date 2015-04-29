@@ -138,6 +138,11 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 		// create the $languages API var
 		$languageTemplate = $this->templates->get('language'); 
 		if(!$languageTemplate) return;
+		
+		if(!$this->languagesPageID) {
+			// fallback if LanguageSupport config lost or not accessible for some reason
+			$this->languagesPageID = $this->wire('pages')->get("template=admin, name=languages"); 
+		}
 	
 		// prevent fields like 'title' from autojoining until languages are fully loaded
 		$this->wire('pages')->setAutojoin(false); 
@@ -689,10 +694,14 @@ class LanguageSupport extends WireData implements Module, ConfigurableModule {
 			if($language->isDefault()) continue; 
 			$ids[] = $language->id; 
 		}
-		$this->set('otherLanguagePageIDs', $ids);
-		$configData = $this->wire('modules')->getModuleConfigData('LanguageSupport');
-		$configData['otherLanguagePageIDs'] = $ids; 
-		$this->wire('modules')->saveModuleConfigData('LanguageSupport', $configData);
+		if($this->otherLanguagePageIDs != $ids) {
+			$this->set('otherLanguagePageIDs', $ids);
+			$configData = $this->wire('modules')->getModuleConfigData('LanguageSupport');
+			if($configData['otherLanguagePageIDs'] != $ids) {
+				$configData['otherLanguagePageIDs'] = $ids;
+				$this->wire('modules')->saveModuleConfigData('LanguageSupport', $configData);
+			}
+		}
 	}
 
 	/**

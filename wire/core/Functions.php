@@ -6,7 +6,7 @@
  * Common API functions useful outside of class scope
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -210,20 +210,21 @@ function wireMinArray(array $data, $allowEmpty = false, $convert = false) {
  * 
  * @param string $path
  * @param bool $recursive If set to true, all directories will be created as needed to reach the end. 
+ * @param string $chmod Optional mode to set directory to (default: $config->chmodDir), format must be a string i.e. "0755"
+ * 	If omitted, then ProcessWire's $config->chmodDir setting is used instead. 
  * @return bool
  *
  */ 
-function wireMkdir($path, $recursive = false) {
+function wireMkdir($path, $recursive = false, $chmod = null) {
 	if(!strlen($path)) return false; 
 	if(!is_dir($path)) {
 		if($recursive) {
 			$parentPath = substr($path, 0, strrpos(rtrim($path, '/'), '/')); 
-			if(!is_dir($parentPath) && !wireMkdir($parentPath, true)) return false;
+			if(!is_dir($parentPath) && !wireMkdir($parentPath, true, $chmod)) return false;
 		}
 		if(!@mkdir($path)) return false;
 	}
-	$chmodDir = wire('config')->chmodDir;
-	if($chmodDir) @chmod($path, octdec($chmodDir));
+	wireChmod($path, false, $chmod); 
 	return true; 
 }
 
@@ -1290,3 +1291,5 @@ function wireBytesStr($size) {
 	$kb = round($size / 1024);
 	return number_format($kb) . " " . __('kB', __FILE__); // kilobytes
 }
+
+

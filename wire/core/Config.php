@@ -67,6 +67,7 @@
  * @property bool $demo Special mode for demonstration use that causes POST requests to be disabled. Applies to core, but may not be safe with 3rd party modules.
  * @property bool $debug Special mode for use when debugging or developing a site. Recommended TRUE when site is in development and FALSE when not.
  * @property string $debugIf Enable debug mode if condition is met
+ * @property array $debugTools Tools, and their order, to show in debug mode (admin)
  * 
  * @property string $ignoreTemplateFileRegex Regular expression to ignore template files
  * @property bool $pagefileExtendedPaths Use extended file mapping?

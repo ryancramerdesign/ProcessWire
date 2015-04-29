@@ -286,6 +286,7 @@ class ProcessModule extends Process {
 
 		if($this->input->get->reset == 1) {
 			$this->modules->resetCache();
+			$this->message(sprintf($this->_('Modules cache refreshed (%d modules)'), count($this->modules)));
 			$edit = $this->input->get->edit;
 			$duplicates = $this->modules->duplicates()->getDuplicates();
 			foreach($duplicates as $className => $files) {

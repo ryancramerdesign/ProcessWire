@@ -56,6 +56,7 @@
  * @property array $toggles One or more of: collapseFilters, collapseColumns, noNewFilters, disableColumns [empty]
  * @property array $systemLabels Array of system page labels of field_name => label
  * @property array $limitFields Limit selectable filters/columns to only those present in this array [empty]
+ * @property string $nativeDateFormat wireDate() format for created and modified dates
  * 
  *
  */
@@ -216,6 +217,9 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	
 		// toggles: collapseFilters, collapseColumns, noNewFilters, disableColumns
 		$this->set('toggles', array()); 
+	
+		// date format for native properties: created and modified
+		$this->set('nativeDateFormat', $this->_('rel')); // Native date format: use wireDate(), PHP date() or strftime() date format
 		
 		$nameLabel = $this->_('Name'); 
 		$createdLabel = $this->_('Created'); 
@@ -1050,7 +1054,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		} else if(in_array($name, array('created', 'modified'))) {
 			// @todo make this format customizable via wireDate()
 			// date modified or created
-			$value = "<span class='datetime'>" . wireRelativeTimeStr($value, true) . "</span>";
+			$value = "<span class='datetime'>" . wireDate($this->nativeDateFormat, $value) . "</span>";
 
 		} else if($field && $field->type instanceof FieldtypeDatetime) {
 			// datetime field
@@ -1098,7 +1102,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	 * @return string
 	 *
 	 */
-	protected function buildListerTableColActions(Page $p, $value) {
+	protected function ___buildListerTableColActions(Page $p, $value) {
 		$class = '';
 		$icon = '';
 		$isTrash = false; 

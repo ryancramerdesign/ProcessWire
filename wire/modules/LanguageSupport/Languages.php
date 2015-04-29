@@ -82,7 +82,7 @@ class Languages extends PagesType {
 	 *
 	 */
 	public function getAll() {
-		if($this->languagesAll) return $this->languagesAll; 
+		if($this->languagesAll) return $this->languagesAll;
 		$template = $this->getTemplate();
 		$parent_id = $this->getParentID();
 		$selector = "parent_id=$parent_id, template=$template, include=all";
@@ -99,7 +99,7 @@ class Languages extends PagesType {
 	 *
 	 */
 	public function getIterator() {
-		if($this->languages) return $this->languages; 
+		if($this->languages && count($this->languages)) return $this->languages; 
 		$languages = new PageArray();
 		foreach($this->getAll() as $language) { 
 			if($language->is(Page::statusUnpublished) || $language->is(Page::statusHidden)) continue; 

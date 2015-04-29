@@ -88,7 +88,7 @@ class PagePermissions extends WireData implements Module {
 			$event->return = false;
 
 		} else if(isset($event->arguments[0])) {
-			$event->return = $this->fieldEditable($page, $event->arguments[0]); 
+			$event->return = $this->fieldEditable($page, $event->arguments[0], false); 
 
 		} else {
 			$event->return = true; 
@@ -98,9 +98,12 @@ class PagePermissions extends WireData implements Module {
 
 	/**
 	 * Is the given page editable?
+	 * 
+	 * @param Page $page;
+	 * @return bool
 	 *
 	 */
-	protected function pageEditable(Page $page) {
+	public function pageEditable(Page $page) {
 
 		$user = $this->wire('user');
 
@@ -160,10 +163,20 @@ class PagePermissions extends WireData implements Module {
 
 	/**
 	 * Assuming the page is editable, is the given field name also editable?
+	 * 
+	 * Do not call this method unless you've already confirmed that the given $page is editable,
+	 * as it does not perform that check. 
+	 * 
+	 * @param Page $page
+	 * @param string $name Field name
+	 * @param bool $checkPageEditable Check if the page is editable? Default=true. 
+	 * 	Specify false here as an optimization if you've already confirmed $page is editable.
+	 * @return bool
 	 *
 	 */
-	protected function fieldEditable(Page $page, $name) {
-	
+	public function fieldEditable(Page $page, $name, $checkPageEditable = true) {
+		
+		if($checkPageEditable && !$this->pageEditable($page)) return false;
 		if(!is_string($name)) return false; 
 		if(!strlen($name)) return true; 
 
@@ -176,7 +189,7 @@ class PagePermissions extends WireData implements Module {
 				return false;
 			}
 		}
-
+		
 		if($name == 'template' || $name == 'templates_id') {
 			if($page->template->noChangeTemplate) return false;
 			if(!$user->hasPermission('page-template', $page)) return false; 
@@ -194,10 +207,30 @@ class PagePermissions extends WireData implements Module {
 		if($name == 'roles') {
 			if(!$user->hasPermission('user-admin')) return false; 
 		}
-
+		
+		if($user->id === $page->id) return $this->userFieldEditable($name, $user);
+		
 		// FUTURE: check per-field edit access
 
 		return true; 
+	}
+
+	/**
+	 * Is the given field editable by the current user in their user profile?
+	 *
+	 * @param string $name Field name
+	 * @param User|null User to check (default=current user)
+	 * @return bool
+	 *
+	 */
+	public function userFieldEditable($name, User $user = null) {
+		if(is_null($user)) $user = $this->wire('user');
+		if(!$user->isLoggedin()) return false;
+		if(!$user->hasPermission('profile-edit')) return false;
+		$data = $this->wire('modules')->getModuleConfigData('ProcessProfile');
+		$profileFields = isset($data['profileFields']) ? $data['profileFields'] : array();
+		if(in_array($name, $profileFields)) return true;
+		return false;
 	}
 
 	/**

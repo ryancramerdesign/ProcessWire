@@ -72,6 +72,28 @@ $config->debug = false;
 $config->debugIf = '';
 
 /**
+ * Tools, and their order, to show in debug mode (admin)
+ * 
+ * Options include: pages, api, session, modules, hooks, database, db, timers, user, input, cache 
+ * 
+ * @var array
+ * 
+ */
+$config->debugTools = array(
+	'pages',
+	'api',
+	'session',
+	'modules',
+	'hooks',
+	'database', // PDO
+	'db', // mysqli
+	'timers',
+	'user',
+	'input',
+	'cache',
+);
+
+/**
  * Enable ProcessWire advanced development mode?
  * 
  * Turns on additional options in ProcessWire Admin that aren't applicable in all instances.

@@ -183,11 +183,19 @@ $(document).ready(function() {
 
 					if($root.is(".PageListSorting") || $root.is(".PageListSortSaving")) return;
 					if(!$(this).children('a:first').is(":hover")) return;
+					
 					$hoveredItem = $(this);
+					//console.log('pageX=' + e.pageX);
+					//console.log('offsetX=' + $hoveredItem.offset().left);
+					
+					//var maxPageX = $(this).children('.PageListNumChildren').offset().left + 100;
+					//if(e.pageX > maxPageX) return;
+					
 					if($hoveredItem.hasClass('PageListItemHover')) return;
 					var $item = $(this);
 					if(hoverTimeout) clearTimeout(hoverTimeout);
 					var delay = options.hoverActionDelay;
+					
 					
 					hoverTimeout = setTimeout(function() {
 						if($hoveredItem.attr('class') == $item.attr('class')) {

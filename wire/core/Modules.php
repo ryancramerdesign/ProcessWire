@@ -373,7 +373,7 @@ class Modules extends WireArray {
 		
 		if($this->debug) if($debugKey) $this->debugTimerStop($debugKey);
 		
-		if(!$level && empty($this->moduleInfoCache)) {
+		if(!$level && (empty($this->moduleInfoCache) || empty($this->moduleInfoCacheVerbose))) {
 			if($this->debug) $this->message("saveModuleInfoCache from triggerInit"); 
 			$this->saveModuleInfoCache();
 		}
@@ -3238,10 +3238,11 @@ class Modules extends WireArray {
 				}
 			}
 		}
-		
-		$this->wire('cache')->save(self::moduleInfoCacheName, json_encode($this->moduleInfoCache), WireCache::expireNever);
-		$this->wire('cache')->save(self::moduleInfoCacheVerboseName, json_encode($this->moduleInfoCacheVerbose), WireCache::expireNever);
-		$this->wire('cache')->save(self::moduleInfoCacheUninstalledName, json_encode($this->moduleInfoCacheUninstalled), WireCache::expireNever); 
+	
+		$this->wire('cache')->save(self::moduleInfoCacheName, $this->moduleInfoCache, WireCache::expireNever);
+		$this->wire('cache')->save(self::moduleInfoCacheVerboseName, $this->moduleInfoCacheVerbose, WireCache::expireNever);
+		$this->wire('cache')->save(self::moduleInfoCacheUninstalledName, $this->moduleInfoCacheUninstalled, WireCache::expireNever); 
+		$this->log('Saved module info cache'); 
 		
 		if($languages && $language) $user->language = $language; // restore
 	}
@@ -3376,7 +3377,7 @@ class Modules extends WireArray {
 	/**
 	 * Save to the modules log
 	 * 
-	 * @param $str Message to log
+	 * @param string $str Message to log
 	 * @param string $moduleName
 	 * @return WireLog
 	 * 

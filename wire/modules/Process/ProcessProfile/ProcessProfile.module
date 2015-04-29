@@ -9,6 +9,8 @@
  * 
  * http://www.processwire.com
  * http://www.ryancramer.com
+ * 
+ * @property array $profileFields Names of fields user is allowed to edit in their profile
  *
  */
 
