@@ -8,12 +8,10 @@
  * Templates also maintain several properties which can affect the render behavior of pages using it. 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2013 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://processwire.com
- * 
- * @todo content-type / header support
+ * https://processwire.com
  * 
  * @property int $id Get or set the template's numbered database ID.
  * @property string $name Get or set the template's name.
@@ -52,6 +50,7 @@
  * @property int $noSettings Don't show a settings tab on pages using this template? (0=use settings tab, 1=no settings tab)
  * @property int $noChangeTemplate Don't allow pages using this template to change their template? (0=template change allowed, 1=template change not allowed)
  * @property int $noUnpublish Don't allow pages using this template to ever exist in an unpublished state - if page exists, it must be published. (0=page may be unpublished, 1=page may not be unpublished)
+ * @property int $noShortcut Don't allow pages using this template to appear in shortcut "add new page" menu
  * @property int $nameContentTab Pages should display the name field on the content tab? (0=no, 1=yes)
  * @property string $noCacheGetVars GET vars that trigger disabling the cache (only when cache_time > 0)
  * @property string $noCachePostVars POST vars that trigger disabling the cache (only when cache_time > 0)

@@ -470,7 +470,7 @@ class Templates extends WireSaveableItems {
 			if(!in_array($template->id, $parentTemplate->childTemplates)) continue;
 
 			// sort=status ensures that a non-hidden page is given preference to a hidden page
-			$include = $checkAccess ? "hidden" : "all";
+			$include = $checkAccess ? "unpublished" : "all";
 			$parentPages = $this->wire('pages')->find("templates_id=$parentTemplate->id, include=$include, sort=status, limit=2");
 
 			$numParentPages = count($parentPages);
