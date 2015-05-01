@@ -145,40 +145,44 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 
 		$valid = true;
 		
-		if($field->findPagesSelector) { 
-			$selector = $field->findPagesSelector; 
-			if($editPage) $selector = self::getFindPagesSelector($editPage, $selector); 
-			if(!$page->matches($selector)) {
-				if($editPage) $editPage->set('_isValidPage', "Page $page does not match findPagesSelector: $selector"); 
-				$valid = false;
-			}
-		} 
-		
 		if($field->findPagesCode) {
 			// TODO: we don't currently validate these
-		} 
+		}else{
 
-		if($field->parent_id && $field->parent_id != $page->parent_id) {
-			if(version_compare(PHP_VERSION, '5.3.8') >= 0) {
-				if(is_subclass_of($field->inputfield, 'InputfieldPageListSelection')) {
-					// parent_id represents a root parent
-					$rootParent = wire('pages')->get($field->parent_id); 
-					if(!$page->parents()->has($rootParent)) $valid = false;
-				} else {
-					// parent_id represents a direct parent
+			// Validate them only if no custom php code is used
+		
+			if($field->findPagesSelector) { 
+				$selector = $field->findPagesSelector; 
+				if($editPage) $selector = self::getFindPagesSelector($editPage, $selector); 
+				if(!$page->matches($selector)) {
+					if($editPage) $editPage->set('_isValidPage', "Page $page does not match findPagesSelector: $selector"); 
 					$valid = false;
 				}
-				if(!$valid && $editPage) $editPage->set('_isValidPage', "Page $page does not have required parent $field->parent_id"); 
-			} else {
-				// PHP version prior to 5.3.8
-				$reflector = new ReflectionClass($field->inputfield); 
-				$valid = $reflector->implementsInterface('InputfieldPageListSelection'); 
+			} 
+
+			if($field->parent_id && $field->parent_id != $page->parent_id) {
+				if(version_compare(PHP_VERSION, '5.3.8') >= 0) {
+					if(is_subclass_of($field->inputfield, 'InputfieldPageListSelection')) {
+						// parent_id represents a root parent
+						$rootParent = wire('pages')->get($field->parent_id); 
+						if(!$page->parents()->has($rootParent)) $valid = false;
+					} else {
+						// parent_id represents a direct parent
+						$valid = false;
+					}
+					if(!$valid && $editPage) $editPage->set('_isValidPage', "Page $page does not have required parent $field->parent_id"); 
+				} else {
+					// PHP version prior to 5.3.8
+					$reflector = new ReflectionClass($field->inputfield); 
+					$valid = $reflector->implementsInterface('InputfieldPageListSelection'); 
+				}
 			}
-		}
-		
-		if($field->template_id && $page->template->id != $field->template_id) {
-			$valid = false;
-			if($editPage) $editPage->set('_isValidPage', "Page $page does not have required template $field->template_id"); 
+			
+			if($field->template_id && $page->template->id != $field->template_id) {
+				$valid = false;
+				if($editPage) $editPage->set('_isValidPage', "Page $page does not have required template $field->template_id"); 
+			}
+
 		}
 		
 		return $valid;
@@ -216,16 +220,16 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		if($this->configMode) {
 			$children = new PageArray();
 
+		} else if($this->findPagesCode) {
+			// php statement that returns a PageArray or a Page (to represent a parent)
+			$children = $this->findPagesCode($page);
+			if($children instanceof Page) $children = $children->children(); // @teppokoivula
+
 		} else if($this->findPagesSelector) { 
 			// a find() selector
 			$instance = $this->processInputMode ? $this : null;
 			$selector = self::getFindPagesSelector($page, $this->findPagesSelector, $instance);
 			$children = $this->pages->find($selector); 
-
-		} else if($this->findPagesCode) {
-			// php statement that returns a PageArray or a Page (to represent a parent)
-			$children = $this->findPagesCode($page);
-			if($children instanceof Page) $children = $children->children(); // @teppokoivula
 
 		} else if($this->parent_id) {
 			$parent = $this->fuel('pages')->get($this->parent_id); 
@@ -626,7 +630,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 		$field->label = $this->_('Custom PHP code to find selectable pages'); 
 		$field->attr('value', $this->findPagesCode); 
 		$field->attr('rows', 4); 
-		$field->description = $this->_('If you want to find selectable pages using a PHP code snippet rather than selecting a parent page or template (above) then enter the code to find the selectable pages. This statement has access to the $page and $pages API variables, where $page refers to the page being edited. The snippet should return either a PageArray or NULL. Using this is optional, and if used, it overrides the parent/template/selector fields above. NOTE: Not compatible with PageListSelect or Autocomplete input field types.'); // Description for Custom PHP to find selectable pages
+		$field->description = $this->_('If you want to find selectable pages using a PHP code snippet rather than selecting a parent page or template (above) then enter the code to find the selectable pages. This statement has access to the $page and $pages API variables, where $page refers to the page being edited. The snippet should return either a PageArray, a Page or NULL. If it returns a page, its children are used as selectable pages. Using this is optional, and if used, it overrides the parent/template/selector fields above. NOTE: Not compatible with PageListSelect or Autocomplete input field types.'); // Description for Custom PHP to find selectable pages
 		$field->notes = $exampleLabel . $this->_('return $page->parent->parent->children("name=locations")->first()->children();'); // Example of Custom PHP code to find selectable pages
 		$field->collapsed = Inputfield::collapsedBlank;
 		$fieldset->append($field); 
