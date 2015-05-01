@@ -136,6 +136,7 @@ class ProcessPageClone extends Process {
 		$form->attr('action', './?id=' . $this->page->id); 
 		$form->attr('method', 'post'); 
 		$form->description = sprintf($this->_("This will make a copy of %s"), $this->page->path); // Form description/headline
+		$form->addClass('InputfieldFormFocusFirst');
 
 		$n = 1; 
 		while(count($this->page->parent->children("include=all, name={$this->page->name}-$n"))) $n++;

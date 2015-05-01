@@ -15,6 +15,7 @@
  * @property string $itemClass Space separated CSS classes for items rendered by this Inputfield. Generally you should append rather than replace.
  * @property int|bool $defaultGrid Start in grid mode rather than list mode? (default=0)
  * @property int $gridSize Max dimension in pixels for width or height for images in grid mode (default=100)
+ * @property int|bool $useImageEditor Whether or not the modal image editor is allowed for this field (default=true)
  * 
  * The following properties default values are pulled from $config->adminThumbOptions and can be overridden 
  * by setting directly to an instance of this Inputfield:
@@ -71,6 +72,7 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 			}
 		}
 		$this->set('imageSizerOptions', empty($options['imageSizerOptions']) ? array() : $options['imageSizerOptions']);
+		$this->set('useImageEditor', 1); 
 	}
 
 	public function ___render() {
@@ -241,9 +243,13 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 		$thumb = $this->getAdminThumb($pagefile); 
 		$error = $thumb['error'] ? "<span class='ui-state-error-text'>" . $this->wire('sanitizer')->entities($thumb['error']) . "</span>" : "";
 		
-		$variationInfo = '';
+		$editable = (int) $this->useImageEditor;
+		if(strpos($this->name, '_repeater') && preg_match('/_repeater\d+$/', $this->name)) $editable = false;
+		if($pagefile->ext == 'svg') $editable = false;
+
 		$variations = isset($this->variations[$pagefile->name]) ? $this->variations[$pagefile->name] : array();
-		if(count($variations)) {
+		
+		if(count($variations) && $editable) {
 			$cnt = count($variations); 
 			$variationURL = $this->wire('config')->urls->admin . 
 				"page/image/variations/?id={$pagefile->page->id}&file=$pagefile->name&modal=1&varcnt=varcnt_$id";
@@ -251,17 +257,15 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 				"<a class='InputfieldImageVariationCnt pw-modal $this->modalClass' data-buttons='button' " . 
 				"href='$variationURL' title='" . sprintf($this->_('Variations of %s'), $pagefile->name) . "'>" . 
 				"<i class='fa fa-files-o'></i>&nbsp;<span id='varcnt_$id'>$cnt</span></a>"; 
-		} 
+		} else {
+			$variationInfo = '';
+		}
 		
-		$editable = true; 
-		if(strpos($this->name, '_repeater') && preg_match('/_repeater\d+$/', $this->name)) $editable = false;
-		if($pagefile->ext == 'svg') $editable = false;
-	
 		$pageID = $pagefile->pagefiles->page->id; 
 		if($editable) {
 			$editURL = $this->wire('config')->urls->admin . "page/image/edit/?id=$pageID&file=$pageID,$pagefile->name&rte=0&field=$this->name";
 		} else {
-			$editURL = $pagefile->url;
+			$editURL = '';
 		}
 		$editTitle = "$pagefile->name ({$pagefile->width}x{$pagefile->height})";
 		$fileStats = str_replace(' ', '&nbsp;', $pagefile->filesizeStr) . ", {$pagefile->width}x{$pagefile->height} ";
@@ -277,10 +281,18 @@ class InputfieldImage extends InputfieldFile implements InputfieldItemList {
 				"\n\t\t\t<span class='InputfieldFileStats'>$fileStats</span> ";
 			
 		} else {
-			$out .=
-				"\n\t\t\t<a class='InputfieldFileName pw-modal $this->modalClass' title='$editTitle' href='$editURL' " .
+			if($editURL) {
+				$out .=
+					"\n\t\t\t<a class='InputfieldFileName pw-modal $this->modalClass' title='$editTitle' href='$editURL' " .
 					"data-buttons='#non_rte_dialog_buttons button' " .
-					"data-autoclose='1' data-close='#non_rte_cancel'>{$pagefile->basename} <i class='fa fa-pencil ui-priority-secondary'></i></a> " .
+					"data-autoclose='1' data-close='#non_rte_cancel'>{$pagefile->basename} " . 
+					"<i class='fa fa-pencil ui-priority-secondary'></i></a> ";
+			} else {
+				$out .= 
+					"\n\t\t\t<a class='InputfieldFileName InputfieldFileLink' " . 
+					"target='_blank' href='$pagefile->URL'>$pagefile->basename</a> ";
+			}
+			$out .= 
 				"\n\t\t\t<span class='InputfieldFileStats'>$fileStats $variationInfo</span> " .
 				"\n\t\t\t<label class='InputfieldFileDelete'>" .
 					"<input type='checkbox' name='delete_$id' value='1' title='" . $this->_('Delete') . "' />" .

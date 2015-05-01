@@ -403,6 +403,7 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$form = $this->modules->get('InputfieldForm');
 
 		$form->attr('id', 'ProcessPageAdd'); 
+		$form->addClass('InputfieldFormFocusFirst');
 		$form->attr('action', './' . ($this->input->get->modal ? "?modal=1" : '')); 
 		$form->attr('data-ajax-url', $this->wire('config')->urls->admin . 'page/add/'); 
 		$form->attr('data-dup-note',  $this->_('The name entered is already in use. If you do not modify it, the name will be made unique automatically after you save.')); 

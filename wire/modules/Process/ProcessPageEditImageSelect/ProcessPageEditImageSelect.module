@@ -164,8 +164,17 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		if(!$this->page->id) throw new WireException("Unknown page"); 
 		if(!$this->editorPage) $this->editorPage = $this->page; 
 		
-		// note we use hasPermission('page-view') rather than viewable() here becuase we want to allow pages without template files
-		if(!$this->user->hasPermission('page-view', $this->page)) throw new WireException("You do not have access to images on this page"); 
+		// note we use hasPermission('page-view') rather than viewable() here because
+		// we want to allow pages without template files
+		$user = $this->wire('user');
+		if(!$user->hasPermission('page-view', $this->page)) {
+			if($this->page->id === $user->id && $fieldName
+				&& $this->wire('modules')->get('PagePermissions')->userFieldEditable($fieldName)) {
+				// user editing allowed images field in their profile
+			} else {
+				throw new WireException("You do not have access to images on this page");
+			}
+		}
 
 		if($this->input->get->winwidth) $this->maxImageWidth = ((int) $this->input->get->winwidth) - 70; 
 		if($this->maxImageWidth < 400) $this->maxImageWidth = 400; 

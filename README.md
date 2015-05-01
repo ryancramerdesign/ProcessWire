@@ -1,4 +1,4 @@
-# Welcome to ProcessWire 2.5
+# Welcome to ProcessWire 2.6
 
 This document is in Markdown. An HTML formatted version of this document 
 can be read at: http://processwire.com/download/readme
@@ -21,6 +21,7 @@ can be read at: http://processwire.com/download/readme
        - [Replacing the /index.php file](#replacing-the-indexphp-file)
        - [Replacing the .htaccess file](#replacing-the-htaccess-file)
        - [Additional upgrade notes](#additional-upgrade-notes)
+   - [Upgrading from ProcessWire 2.5](#upgrading-from-processwire-25)
    - [Upgrading from ProcessWire 2.4](#upgrading-from-processwire-24)
    - [Upgrading from ProcessWire 2.2 or 2.3](#upgrading-from-processwire-22-or-23)
    - [Upgrading from ProcessWire 2.1](#upgrading-from-processwire-21)
@@ -141,12 +142,13 @@ error, please post in the [ProcessWire forums](http://processwire.com/talk).
    re-install them after upgrading. If uninstalling is 
    inconvenient, just be sure you have the ability to revert if for 
    some reason one of your modules does not like the upgrade.
-   Modules that are compatible with ProcessWire 2.4 are generally
-   going to also be compatible with 2.5. 
+   Modules that are compatible with ProcessWire 2.4-2.5 are generally
+   going to also be compatible with 2.6. 
 
 If you prefer an automatic/web-based upgrade, an
 [upgrade module](https://github.com/ryancramerdesign/ProcessWireUpgrade)
-is available for upgrading to 2.5. 
+is available for upgrading to 2.6. This upgrade utility can also help with
+upgrading other modules as well. 
 
 
 ### General Upgrade Process
@@ -213,18 +215,28 @@ the case for your site, remember to migrate those changes to the new
 
 #### Additional upgrade notes
 
+- After completing the upgrade test out your site thoroughly
+  to make sure everything continues to work as you expect. 
+
 - If using Form Builder make sure you have the latest version,
-  as past versions did not support ProcessWire 2.4/2.5. 
+  as past versions did not support ProcessWire 2.4+. With ProcessWire
+  2.6 we recommend FormBuilder 0.2.4 or 0.2.5+. 
 
 - If using ProCache you will need to go to the ProCache
   settings after the upgrade to have it update your .htaccess file
   again (since it was presumably replaced during the upgrade). 
+  
+- If using ListerPro, we recommend using version 1.0.2+ with 
+  ProcessWire 2.6.
+  
+### Upgrading from ProcessWire 2.5
 
-- After completing the upgrade test out your site thoroughly
-  to make sure everything continues to work as you expect. 
+The general upgrade process may be followed to perform this upgrade.
+In addition, please note the following:
 
-- ProcessWire 2.4/2.5 come with new admin themes. After completing
-  your upgrade, you may install or configure these admin themes. 
+- **New index.php file**
+  We recommend replacing your index.php file with this upgrade, though
+  it is not required. 
 
 
 ### Upgrading from ProcessWire 2.4
@@ -324,7 +336,8 @@ modules cache. You can do this by removing all of these files:
 /site/assets/cache/Modules.*
 
 If using Form Builder, make sure you have version 0.2.2 or newer, as older
-versions did not support ProcessWire 2.4/2.5+. 
+versions did not support ProcessWire 2.4+. For ProcessWire 2.6 we recommend
+using FormBuilder 0.2.4 or newer. 
 
 If your site still doesn't work, remove the /wire/ directory completely. 
 Then upload a fresh copy of the /wire/ directory. 
@@ -367,5 +380,5 @@ Get support in the ProcessWire forum at:
 
 ------
 
-ProcessWire, Copyright 2014 by Ryan Cramer Design, LLC
+ProcessWire, Copyright 2015 by Ryan Cramer Design, LLC
 

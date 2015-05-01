@@ -377,6 +377,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 	 */
 	public function getInputfieldSelector() {
 		if($this->inputfieldSelector) return $this->inputfieldSelector; 
+		/** @var InputfieldSelector $s */
 		$s = $this->modules->get('InputfieldSelector'); 
 		$s->attr('name', 'filters'); 
 		$s->attr('id', 'ProcessListerFilters'); 

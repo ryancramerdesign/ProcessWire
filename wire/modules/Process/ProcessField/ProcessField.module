@@ -658,6 +658,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		$form->attr('id+name', 'ProcessFieldEdit'); 
 		$form->attr('action', 'save'); 
 		$form->attr('method', 'post'); 
+		$form->addClass('InputfieldFormFocusFirst');
 		$this->form = $form;
 
 		if($fieldgroup_id && $this->field->id) {

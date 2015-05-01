@@ -712,7 +712,7 @@ class SystemNotifications extends WireData implements Module {
 		if($process && ($process instanceof ProcessPageEdit || $process instanceof ProcessPageType)) {
 			// good, we'll use it
 			$page = $process->getPage();
-			if(!$page->id) return '';
+			if(!$page || !$page->id) return '';
 		} else {
 			// we don't track this process
 			return '';

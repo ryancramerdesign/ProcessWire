@@ -28,3 +28,4 @@ upgrade.php
 .sass-cache
 .sass-cache/*
 *.css.map
+wire/modules/AdminTheme/AdminThemeDefault/styles/sass/*.css

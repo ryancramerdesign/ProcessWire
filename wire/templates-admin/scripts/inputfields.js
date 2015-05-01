@@ -887,7 +887,8 @@ function InputfieldStates() {
 	}
 
 	 // Make the first field in any form have focus, if it is a text field that is blank
-	$('#content .InputfieldForm:not(.InputfieldNoFocus):not(.InputfieldFormNoFocus)')
+	// $('#content .InputfieldForm:not(.InputfieldNoFocus):not(.InputfieldFormNoFocus)')
+	$('#content .InputfieldFormFocusFirst:not(.InputfieldFormNoFocus)')
 		.find('input[type=text]:enabled:first:not(.hasDatepicker):not(.InputfieldNoFocus)').each(function() {
 			var $t = $(this);
 			// jump to first input, if it happens to be blank

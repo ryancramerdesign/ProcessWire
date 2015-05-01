@@ -4,6 +4,8 @@
  * An Inputfield for handling relational Page inputs
  *
  * Delegates the actual input control to a user-defined Inputfield derived from InputfieldSelect
+ * 
+ * @method PageArray getSelectablePages(Page $page)
  *
  */
 class InputfieldPage extends Inputfield implements ConfigurableModule {
@@ -191,7 +193,7 @@ class InputfieldPage extends Inputfield implements ConfigurableModule {
 	 */
 	protected function ___findPagesCode(Page $page) {
 		if(empty($this->findPagesCode)) return new PageArray();
-		$pages = wire('pages'); // so that it is locally scoped to the eval
+		$pages = $this->wire('pages'); // so that it is locally scoped to the eval
 		return eval($this->findPagesCode);
 	}
 
