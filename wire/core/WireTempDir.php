@@ -149,6 +149,7 @@ class WireTempDir extends Wire {
 		if(is_dir($this->tempDirRoot)) {
 			// remove temporary directories created by other instances (like if one had failed at some point)
 			$numSubdirs = 0;
+			$pathname = '';
 			foreach(new DirectoryIterator($this->tempDirRoot) as $dir) {
 				if(!$dir->isDir() || $dir->isDot()) continue;
 				if($dir->getMTime() < (time() - $this->tempDirMaxAge)) {

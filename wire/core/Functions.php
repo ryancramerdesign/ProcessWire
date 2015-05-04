@@ -247,11 +247,11 @@ function wireRmdir($path, $recursive = false) {
 			if(is_dir($pathname)) {
 				wireRmdir($pathname, true); 
 			} else {
-				unlink($pathname); 
+				@unlink($pathname); 
 			}
 		}
 	}
- 	return rmdir($path);
+ 	return @rmdir($path);
 }
 
 /**
