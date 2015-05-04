@@ -260,10 +260,7 @@ class ModulesDuplicates extends Wire {
 		}
 
 		foreach($removals as $class => $flags) {
-			$query = $this->wire('database')->prepare("UPDATE modules SET flags=:flags WHERE `class`=:class");
-			$query->bindValue(':flags', $flags);
-			$query->bindValue(':class', $class);
-			$query->execute();
+			$this->wire('modules')->setFlags($class, $flags); 
 			$configData = $this->wire('modules')->getModuleConfigData($class);
 			unset($configData['-dups'], $configData['-dups-use']);
 			$this->wire('modules')->saveModuleConfigData($class, $configData);
@@ -273,32 +270,40 @@ class ModulesDuplicates extends Wire {
 	/**
 	 * Record a duplicate at runtime
 	 *
-	 * @param string $basename
-	 * @param string $pathname
-	 * @param array $installed
+	 * @param string $basename Name of module
+	 * @param string $pathname Path of module
+	 * @param string $pathname2 Second path of module
+	 * @param array $installed Installed module info array 
 	 *
 	 */
-	public function recordDuplicate($basename, $pathname, &$installed) {
+	public function recordDuplicate($basename, $pathname, $pathname2, &$installed) {
 		$rootPath = $this->wire('config')->paths->root;
 		// ensure paths start from root of PW install
 		if(strpos($pathname, $rootPath) === 0) $pathname = str_replace($rootPath, '/', $pathname);
+		if(strpos($pathname2, $rootPath) === 0) $pathname2 = str_replace($rootPath, '/', $pathname2);
 		// there are two copies of the module on the file system (likely one in /site/modules/ and another in /wire/modules/)
 		if(!isset($this->duplicates[$basename])) {
-			$this->duplicates[$basename] = array($pathname); // array(str_replace($rootPath, '/', $this->getModuleFile($basename)));
+			$this->duplicates[$basename] = array($pathname, $pathname2); // array(str_replace($rootPath, '/', $this->getModuleFile($basename)));
 			$this->numNewDuplicates++;
 		}
 		if(!in_array($pathname, $this->duplicates[$basename])) {
 			$this->duplicates[$basename][] = $pathname;
 			$this->numNewDuplicates++;
 		}
+		if(!in_array($pathname2, $this->duplicates[$basename])) {
+			$this->duplicates[$basename][] = $pathname2;
+			$this->numNewDuplicates++;
+		}
+		if(isset($installed[$basename]['flags'])) {
+			$flags = $installed[$basename]['flags'];
+		} else {
+			$flags = $this->wire('modules')->getFlags($basename);
+		}
 		if(!($installed[$basename]['flags'] & Modules::flagsDuplicate)) {
 			// make database aware this module has multiple files by adding the duplicate flag
 			$this->numNewDuplicates++; // trigger update needed
-			$installed[$basename]['flags'] |= Modules::flagsDuplicate;
-			$query = $this->wire('database')->prepare('UPDATE modules SET `flags`=:flags WHERE `class`=:class');
-			$query->bindValue(':flags', $installed[$basename]['flags']);
-			$query->bindValue(':class', $basename);
-			$query->execute();
+			$flags = $flags | Modules::flagsDuplicate;
+			$this->wire('modules')->setFlags($basename, $flags); 
 		}
 		$err = sprintf($this->_('There appear to be multiple copies of module "%s" on the file system.'), $basename) . ' ';
 		$this->wire('log')->save('modules', $err);
@@ -327,7 +332,6 @@ class ModulesDuplicates extends Wire {
 			foreach($this->duplicates[$className] as $key => $file) {
 				$pathname = rtrim($this->wire('config')->paths->root, '/') . $file;
 				if(!file_exists($pathname)) {
-					$this->message("Removed $pathname"); //DEBUG
 					unset($this->duplicates[$className][$key]);
 				}
 			}

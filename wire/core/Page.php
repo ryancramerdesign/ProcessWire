@@ -9,7 +9,7 @@
  * 2. Accessing the related hierarchy of pages (i.e. parents, children, sibling pages)
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
@@ -82,6 +82,7 @@
  * @method void loaded() Called when page is loaded.
  * @method void setEditor(WirePageEditor $editor)
  * @method string getIcon()
+ * @method getMarkup($key) Return the markup value for a given field name or {tag} string.
  *
  */
 
@@ -500,6 +501,7 @@ class Page extends WireData implements Countable {
 				$this->setIsLoaded($value); 
 				break;
 			case 'pageNum':
+				// note: pageNum is deprecated, use $input->pageNum instead
 				$this->pageNum = ((int) $value) > 1 ? (int) $value : 1; 
 				break;
 			case 'instanceID': 
@@ -993,6 +995,9 @@ class Page extends WireData implements Countable {
 
 	/**
 	 * @see get
+	 * 
+	 * @param string $key
+	 * @return mixed
 	 *
 	 */
 	public function __get($key) {
@@ -1001,6 +1006,9 @@ class Page extends WireData implements Countable {
 
 	/**
 	 * @see set
+	 * 
+	 * @param string $key
+	 * @param mixed $value
 	 *
 	 */
 	public function __set($key, $value) {
@@ -1058,6 +1066,10 @@ class Page extends WireData implements Countable {
 
 	/**
 	 * Set this Page's Template object
+	 * 
+	 * @param Template|int|string $tpl
+	 * @return $this
+	 * @throws WireException if given invalid arguments or template not allowed for page
 	 *
 	 */
 	protected function setTemplate($tpl) {
@@ -1076,6 +1088,10 @@ class Page extends WireData implements Countable {
 
 	/**
 	 * Set this page's parent Page
+	 * 
+	 * @param Page $parent
+	 * @return $this
+	 * @throws WireException if given impossible $parent or parent changes aren't allowed
 	 *
 	 */
 	protected function setParent(Page $parent) {
@@ -1761,7 +1777,7 @@ class Page extends WireData implements Countable {
 	 * 	- boolean true: to return an array of status names (indexed by status number)
 	 * 	- integer|string|array: status number(s) or status name(s) to set the current page status (same as $page->status = $value)
 	 * @param int|null $status If you specified true for first arg, optionally specify status value you want to use (if not the current).
-	 * @return int|array|this If setting status, $this is returned. If getting status: current status or array of status names.
+	 * @return int|array|$this If setting status, $this is returned. If getting status: current status or array of status names.
 	 * 
 	 */
 	public function status($value = false, $status = null) {
@@ -1931,6 +1947,9 @@ class Page extends WireData implements Countable {
 	 * Ensures that isset() and empty() work for this classes properties. 
 	 *
 	 * See the Page::issetHas property which can be set to adjust the behavior of this function.
+	 * 
+	 * @param string $key
+	 * @return bool
 	 *
 	 */
 	public function __isset($key) {

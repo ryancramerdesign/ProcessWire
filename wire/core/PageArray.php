@@ -10,6 +10,8 @@
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
+ * 
+ * @method string getMarkup($key = null) Render a simple/default markup value for each item
  *
  */
 

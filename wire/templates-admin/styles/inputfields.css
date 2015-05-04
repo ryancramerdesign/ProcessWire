@@ -50,11 +50,6 @@
 		clear: both; 
 	}
 
-.Inputfields > .Inputfield > .ui-widget-content {
-	/* the Inputfield's content, padded from the borders */
-	padding: 1em; 
-}
-
 .Inputfields > .Inputfield > .ui-widget-content:before,
 .Inputfields > .Inputfield > .ui-widget-content:after {
     /* @soma clearfix */

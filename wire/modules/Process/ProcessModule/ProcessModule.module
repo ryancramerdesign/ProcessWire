@@ -291,6 +291,7 @@ class ProcessModule extends Process {
 			$duplicates = $this->modules->duplicates()->getDuplicates();
 			foreach($duplicates as $className => $files) {
 				$dup = $this->modules->duplicates()->getDuplicates($className); 
+				if(!count($dup['files'])) continue; 
 				$msg = sprintf($this->_('Module "%s" has multiple files (bold file is the one in use).'), $className) . ' ' . 
 					"<a href='./edit?name=$className'>" . $this->_('Click here to change which file is used') . "</a><pre>";
 				foreach($dup['files'] as $file) {
@@ -1087,6 +1088,11 @@ class ProcessModule extends Process {
 			$this->error("Unknown module"); 
 			return $this->session->redirect('./'); 
 		}
+		if($this->wire('input')->get('refresh') == $moduleName) {
+			$this->wire('modules')->resetCache();
+			$this->session->redirect("./edit?name=$moduleName");
+			return;
+		}
 		$sinfo = self::getModuleInfo();
 		$flags = $this->modules->getFlags($moduleName);
 		$allowDisabledFlag = 
@@ -1096,6 +1102,7 @@ class ProcessModule extends Process {
 		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $sinfo['title'])); 
 		$this->setFuel('processHeadline', $moduleInfo['title']); 
 
+		/** @var InputfieldForm $form */
 		$form = $this->modules->get("InputfieldForm"); 
 		$form->attr('id', 'ModuleEditForm'); 
 		$form->attr('action', "edit?name=$moduleName"); 
@@ -1212,13 +1219,14 @@ class ProcessModule extends Process {
 						if($flags & Modules::flagsDisabled) $this->modules->setFlag($moduleName, Modules::flagsDisabled, false); 
 					}
 				}
-			}
-			
-			if(count($duplicates['files'])) {
-				$file = $form->getChildByName('_use_duplicate')->attr('value');
-				if($file != $duplicates['using'] && in_array($file, $duplicates['files'])) {
-					$this->modules->duplicates()->setUseDuplicate($moduleName, $file);
-					$this->message("Updated $moduleName to use file: $file");
+				
+				if(count($duplicates['files'])) {
+					$file = $form->getChildByName('_use_duplicate')->attr('value');
+					if($file != $duplicates['using'] && in_array($file, $duplicates['files'])) {
+						$this->modules->duplicates()->setUseDuplicate($moduleName, $file);
+						$this->message("Updated $moduleName to use file: $file", Notice::debug);
+						$redirectURL .= "&refresh=$moduleName";
+					}
 				}
 			}
 			

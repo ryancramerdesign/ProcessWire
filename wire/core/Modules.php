@@ -701,7 +701,7 @@ class Modules extends WireArray {
 				// check if this is a new/yet unknown duplicate
 				if(!$duplicates->hasDuplicate($basename, $pathname)) {
 					// new duplicate
-					$duplicates->recordDuplicate($basename, $pathname, $installed); 
+					$duplicates->recordDuplicate($basename, $pathname, $file, $installed);
 				}
 				return '';
 			}
@@ -712,7 +712,7 @@ class Modules extends WireArray {
 			$module = parent::get($basename);
 			$dir = rtrim($this->wire('config')->paths->$basename, '/');
 			if($module && $dir && $dirname != $dir) {
-				$duplicates->recordDuplicate($basename, $pathname, $installed);
+				$duplicates->recordDuplicate($basename, $pathname, "$dir/$filename", $installed);
 				return '';
 			}
 			if($module) return $basename;
