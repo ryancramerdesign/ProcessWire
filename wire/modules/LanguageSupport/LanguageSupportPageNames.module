@@ -709,7 +709,9 @@ class LanguageSupportPageNames extends WireData implements Module, ConfigurableM
 		$page = $event->arguments[0];
 		$extraData = $event->return; 
 		if(!is_array($extraData)) $extraData = array();
-		$alwaysActiveTypes = array('User', 'Role', 'Permission', 'Language'); 
+		// 2015-01-07: add Page to the list to 
+		// match default behaviour in hookInputfieldPageNameRenderAfter for API-based page creation
+		$alwaysActiveTypes = array('User', 'Role', 'Permission', 'Language', 'Page'); 
 
 		foreach(wire('languages') as $language) {
 			if($language->isDefault()) continue; 
