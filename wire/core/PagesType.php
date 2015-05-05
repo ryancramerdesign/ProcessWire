@@ -363,7 +363,7 @@ class PagesType extends Wire implements IteratorAggregate, Countable {
 	}
 	
 	public function getTemplates() {
-		return count($this->templates) ? $this->templates : array($this->getTemplate);
+		return count($this->templates) ? $this->templates : array($this->template);
 	}
 
 	public function getParentID() {

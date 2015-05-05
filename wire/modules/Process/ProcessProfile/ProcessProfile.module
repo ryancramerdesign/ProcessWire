@@ -136,16 +136,26 @@ class ProcessProfile extends Process implements ConfigurableModule {
 	static public function getModuleConfigInputfields(array $data) {
 
 		$profileFields = isset($data['profileFields']) ? $data['profileFields'] : array();
-		$fieldOptions = wire('templates')->get('user')->fieldgroup; 
+		$fieldOptions = array();
+		
+		foreach(wire('users')->getTemplates() as $template) {
+			foreach($template->fieldgroup as $field) {
+				$fieldOptions[$field->name] = $field->name;
+			}
+		}
+		
+		sort($fieldOptions);
 
 		$inputfields = new InputfieldWrapper();
 		$f = wire('modules')->get('InputfieldCheckboxes');
 		$f->label = __("What fields can a user edit in their own profile?");
 		$f->attr('id+name', 'profileFields');
-		foreach($fieldOptions as $field) {
-			if($field->name == 'roles') continue;
-			$f->addOption($field->name); 
+		
+		foreach($fieldOptions as $name) {
+			if($name == 'roles') continue;
+			$f->addOption($name); 
 		}
+		
 		$f->attr('value', $profileFields);
 		$inputfields->add($f);
 
