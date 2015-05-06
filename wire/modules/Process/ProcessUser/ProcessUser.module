@@ -7,13 +7,10 @@
  * /wire/core/Process.php 
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
- * 
- * @todo update nav json to show roles rather than users when users qty > 100
+ * https://processwire.com
  * 
  * @property int $maxAjaxQty
  *
@@ -24,7 +21,7 @@ class ProcessUser extends ProcessPageType {
 	static public function getModuleInfo() {
 		return array(
 			'title' => __('Users', __FILE__), // getModuleInfo title
-			'version' => 104, 
+			'version' => 105, 
 			'summary' => __('Manage system users', __FILE__), // getModuleInfo summary
 			'permanent' => true, 
 			'permission' => 'user-admin',
@@ -36,7 +33,7 @@ class ProcessUser extends ProcessPageType {
 	protected $lister = null;
 	
 	public function __construct() {
-		$this->set("maxAjaxQty", 50); 
+		$this->set("maxAjaxQty", 25); 
 		return parent::__construct();
 	}
 	
@@ -89,6 +86,19 @@ class ProcessUser extends ProcessPageType {
 
 		return parent::___executeNavJSON($options);
 	}
+
+	public function hookListerExecute($event) {
+		$role = (int) $this->wire('session')->get($this, 'listerRole');
+		if(!$role) return;
+		$lister = $event->object;
+		$defaultSelector = $lister->defaultSelector;
+		if(strpos($defaultSelector, 'roles=') !== false) {
+			$defaultSelector = preg_replace('/\broles=\d*/', "roles=$role", $defaultSelector);
+		} else {
+			$defaultSelector .= ", roles=$role";
+		}
+		$lister->defaultSelector = $defaultSelector;
+	}
 	
 	protected function getLister($selector = '') {
 		
@@ -98,9 +108,24 @@ class ProcessUser extends ProcessPageType {
 		
 		$templates = $this->pages->getTemplates();
 		$selector = "template=" . implode('|', array_keys($templates)) . ", include=unpublished, check_access=0, $selector";
-		$role = (int) $this->wire('input')->get('roles'); 
-		if($role) $lister->resetLister();
+		$role = (int) $this->wire('input')->get('roles');
+		$session = $this->wire('session');
+		$ajax = $this->wire('config')->ajax;
 		
+		if($role) {
+			$lister->resetLister();
+			$session->set($this, 'listerRole', $role);
+		} else if(!$ajax) {
+			if((int) $session->get($this, 'listerRole') > 0) {
+				$lister->resetLister();
+				$session->set($this, 'listerRole', 0);
+			}
+		} else {
+			$role = $session->get($this, 'listerRole');
+		}
+		
+		$this->lister->addHookBefore('execute', $this, 'hookListerExecute');
+
 		$properties = array(
 			'initSelector' => $selector,
 			'columns' => $this->showFields,
