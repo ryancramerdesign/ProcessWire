@@ -135,7 +135,10 @@ error, please post in the [ProcessWire forums](http://processwire.com/talk).
 1. Backup your database and backup all the files in your site.
 2. When possible, test the upgrade on a development/staging site 
    before performing the upgrade on a live/production site. 
-3. If you have 3rd party modules installed, confirm that they are 
+3. Login to your ProcessWire admin under a superuser account before 
+   upgrading. This enables you to see more verbose output during the
+   upgrade process. 
+4. If you have 3rd party modules installed, confirm that they are 
    compatible with the ProcessWire version you are upgrading to. 
    If you cannot confirm compatibility, uninstall the 3rd party 
    modules before upgrading, when possible. You can attempt to
@@ -153,6 +156,10 @@ upgrading other modules as well.
 
 ### General Upgrade Process
 
+Before upgrading, login to your ProcessWire admin under a superuser
+account. This is not required to upgrade, but is recommended for more
+verbose output during the upgrade. 
+
 Upgrading from one version of ProcessWire to another is a matter of 
 deleting these files/directories from your old version, and putting 
 in fresh copies from the new version:  
@@ -163,18 +170,29 @@ in fresh copies from the new version:
 /.htaccess 
 ```
 
-Deleting and replacing the above directory/files is typically the 
+Removing and replacing the above directory/files is typically the 
 primary thing you need to do in order to upgrade. But please see 
 the version-to-version specific upgrade notes documented further 
-in this section. Below are more details about how you should 
+in this section. Further below are more details about how you should 
 replace the files mentioned above.
+
+After replacing the /wire/ directory (and the other two files if needed),
+hit reload in your browser, anywhere in the ProcessWire admin. You
+should see messages at the top of your screen about updates that were
+applied. Depending on which version you are upgrading from, you might
+also see error messages--this is normal. Keep hitting reload in your 
+browser until you no longer see any upgrade related messages (up to 5 
+reloads may be necessary). 
 
 *NOTE: Renaming is an alternative to deleting, which gives you a quicker 
 path to revert should you want to. For example, you might rename
 your /wire/ directory to be /.wire-2.4.0/ with ".wire" rather than 
 "wire" to ensure the directory is hidden, and the 2.4.0 indicating the 
 version that it was. Once your upgrade is safely in place, you could 
-delete that .wire-2.4.0 directory (or keep it around).*
+delete that .wire-2.4.0 directory (or keep it around). If you keep old
+version dirs/files in place, make sure they are not http accessible. 
+This is typically done by preceding the directory with a period to make
+it hidden.* 
 
 
 #### Replacing the /wire/ directory
@@ -212,8 +230,21 @@ Sometimes people have made changes to the .htaccess file. If this is
 the case for your site, remember to migrate those changes to the new
 .htaccess file. 
 
+**If using ProCache**  
+If you are using ProCache, it will have added some things to your 
+.htaccess file. Copy these changes from your old .htaccess file to
+your new one. The changes are easy to identify in your previous 
+.htaccess file as they start and end with a "# ProCache" comment. 
+Alternatively, you can have ProCache re-apply the changes itself by
+logging in to your admin and going to Setup > ProCache. 
+
 
 #### Additional upgrade notes
+
+- Completing an upgrade typically requires hitting reload in your 
+  browser 1-5 times to apply database updates. If logged into your
+  admin, you will see notices about the updates that it is applying
+  on each reload. 
 
 - After completing the upgrade test out your site thoroughly
   to make sure everything continues to work as you expect. 
@@ -236,8 +267,7 @@ In addition, please note the following:
 
 - **New index.php file**
   We recommend replacing your index.php file with this upgrade, though
-  it is not required. 
-
+  it is optional (the changes are not critical). 
 
 ### Upgrading from ProcessWire 2.4
 
@@ -260,8 +290,8 @@ In addition, please note the following:
   `Header always append X-Frame-Options SAMEORIGIN`
 
 - **TinyMCE rich text editor was replaced with CKEditor**    
-  2.5 drops TinyMCE as the rich text editor and replaces it with 
-  CKEditor. After installation of 2.5, you will see an error message
+  2.5 dropped TinyMCE as the rich text editor and replaced it with 
+  CKEditor. After installation of 2.6, you will see an error message
   on any pages that use TinyMCE. From this point, you may either 
   [install TinyMCE](mods.pw/7H) or switch your fields using TinyMCE
   to CKEditor. To switch to CKEditor, go to Setup > Fields > [field] > Details,
@@ -270,7 +300,7 @@ In addition, please note the following:
   
 - **Already have CKEditor or HTML Purifier installed?**   
   A couple of modules that were previously 3rd party (site) modules 
-  are now core (wire) modules in ProcessWire 2.5. If you have either
+  are now core (wire) modules in ProcessWire 2.6. If you have either
   the *InputfieldCKEditor* or *MarkupHTMLPurifier* modules installed,
   you will get warnings about that after upgrading. The warnings will 
   tell you to remove the dirs/files for those modules that you have in 
@@ -281,7 +311,7 @@ In addition, please note the following:
 
 ### Upgrading from ProcessWire 2.2 or 2.3
 
-ProcessWire 2.4 and 2.5 have two new software requirements: 
+Newer versions of ProcessWire have these additional requirements:
 
 - PHP 5.3.8+ (older versions supported PHP 5.2)
 - PDO database driver (older versions only used mysqli)
@@ -328,14 +358,10 @@ Replace domain.com with the hostname(s) your site runs from.
 ### Troubleshooting an Upgrade
 
 If you get an error message when loading your site after an upgrade,
-hit "reload" in your browser once before doing anything else. If the error
-is now gone, the error was normal and your upgrade was successful. 
+hit "reload" in your browser until the error messages disappear. It
+may take up to 5 reloads for ProcessWire to apply all updates. 
 
-If your site is not working after performing an upgrade, clear your
-modules cache. You can do this by removing all of these files:
-/site/assets/cache/Modules.*
-
-If using Form Builder, make sure you have version 0.2.2 or newer, as older
+If using Form Builder, make sure you have version 0.2.3 or newer, as older
 versions did not support ProcessWire 2.4+. For ProcessWire 2.6 we recommend
 using FormBuilder 0.2.4 or newer. 
 
@@ -346,7 +372,9 @@ If your site still doesn't work, view the latest entries in your error
 log file to see if it clarifies anything. The error log can be found in:
 /site/assets/logs/errors.txt
 
-If your site still doesn't work, please post in the
+If your site still doesn't work, enable debug mode (as described in the 
+next section) to see if the more verbose error messages help you to determine
+what the issue is. If you need help, please post in the
 [ProcessWire support forums](http://processwire.com/talk/). 
 
 
