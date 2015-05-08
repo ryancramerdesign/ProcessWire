@@ -477,7 +477,8 @@ class Installer {
 			"When ProcessWire creates directories or files, it assigns permissions to them. " . 
 			"Enter the most restrictive permissions possible that give ProcessWire (and you) read and write access to the web server (Apache). " . 
 			"The safest setting to use varies from server to server. " . 
-			"If you are not on a dedicated or private server, or are in any kind of shared environment, you may want to contact your web host to advise on what are the best permissions to use in your environment. " 
+			"If you are not on a dedicated or private server, or are in any kind of shared environment, you may want to contact your web host to advise on what are the best permissions to use in your environment. " . 
+			"<a target='_blank' href='https://processwire.com/docs/security/file-permissions/'>Read more about securing file permissions</a>"
 			);
 
 		$this->p("Permissions must be 3 digits each. Should you opt to use the defaults provided, you can also adjust these permissions later if desired by editing <u>/site/config.php</u>.", "detail");
@@ -488,7 +489,7 @@ class Installer {
 		if($cgi) {
 			echo "<p class='detail' style='margin-top: 0;'>We detected that this file (install.php) is writable. That means Apache may be running as your user account. Given that, we populated the permissions above (755 &amp; 644) as possible starting point.</p>";
 		} else {
-			echo "<p class='detail' style='margin-top: 0;'>WARNING: 777 and 666 permissions mean that directories and files are readable and writable to everyone on the server (and thus not particularly safe). If in any kind of shared hosting environment, please consult your web host for their recommended permission settings for Apache readable/writable directories and files before proceeding.</p>";
+			echo "<p class='detail' style='margin-top: 0;'>WARNING: 777 and 666 permissions mean that directories and files are readable and writable to everyone on the server (and thus not particularly safe). If in any kind of shared hosting environment, please consult your web host for their recommended permission settings for Apache readable/writable directories and files before proceeding. <a target='_blank' href='https://processwire.com/docs/security/file-permissions/'>More</a></p>";
 		}
 
 		$this->h("HTTP Host Names"); 
@@ -1035,9 +1036,11 @@ class Installer {
 
 		$this->h("Complete &amp; Secure Your Installation");
 		$this->getRemoveableItems($wire, false, true); 
-		$this->warn("Please make your <b>/site/config.php</b> file non-writable, and readable only to you and Apache.");
+
 		$this->ok("Note that future runtime errors are logged to <b>/site/assets/logs/errors.txt</b> (not web accessible).");
 		$this->ok("For more configuration options see <b>/wire/config.php</b>.");
+		$this->warn("Please make your <b>/site/config.php</b> file non-writable, and readable only to you and Apache.");
+		$this->p("<a target='_blank' href='https://processwire.com/docs/security/file-permissions/#securing-your-site-config.php-file'>How to secure your /site/config.php file <i class='fa fa-angle-right'></i></a>");
 		
 		if(is_writable("./site/modules/")) wireChmod("./site/modules/", true); 
 

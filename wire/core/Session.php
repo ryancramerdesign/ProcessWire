@@ -103,7 +103,8 @@ class Session extends Wire implements IteratorAggregate {
 		$this->wire('users')->setCurrentUser($user); 	
 
 		foreach(array('message', 'error', 'warning') as $type) {
-			if($items = $this->get($type)) foreach($items as $item) {
+			$items = $this->get($type); 
+			if(is_array($items)) foreach($items as $item) {
 				list($text, $flags) = $item;
 				parent::$type($text, $flags); 
 			}
@@ -598,7 +599,11 @@ class Session extends Wire implements IteratorAggregate {
 
 	/**
 	 * Queue a notice (message/error) to be shown the next time this ession class is instantiated
-	 *
+	 * 
+	 * @param string $text
+	 * @param string $type One of "message", "error" or "warning"
+	 * @param int $flags
+	 * 
 	 */
 	protected function queueNotice($text, $type, $flags) {
 		$items = $this->get($type);

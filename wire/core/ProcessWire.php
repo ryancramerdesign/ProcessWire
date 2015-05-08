@@ -32,9 +32,9 @@ require(PROCESSWIRE_CORE_PATH . "shutdown.php");
 class ProcessWire extends Wire {
 
 	const versionMajor = 2; 
-	const versionMinor = 5; 
-	const versionRevision = 29; 
-	const versionSuffix = 'dev';
+	const versionMinor = 6; 
+	const versionRevision = 0; 
+	const versionSuffix = '';
 	
 	const indexVersion = 250; // required version for index.php file (represented by PROCESSWIRE define)
 	
