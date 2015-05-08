@@ -12,14 +12,14 @@
  * reason, then you'll want to delete that file. This was implemented just in case someone doesn't delete the installer.
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2014 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
  * http://processwire.com
  * 
  */
 
-define("PROCESSWIRE_INSTALL", 2); 
+define("PROCESSWIRE_INSTALL", 2.6); 
 
 /**
  * class Installer
@@ -91,8 +91,10 @@ class Installer {
 			ini_set('display_errors', 1);
 		}
 
-		$title = "ProcessWire 2.5 Installation";
-
+		// these two vars used by install-head.inc
+		$title = "ProcessWire " . PROCESSWIRE_INSTALL . " Installation";
+		$formAction = "./install.php";
+		
 		require("./wire/modules/AdminTheme/AdminThemeDefault/install-head.inc"); 
 
 		if(isset($_POST['step'])) switch($_POST['step']) {
@@ -483,7 +485,11 @@ class Installer {
 		$this->input('chmodDir', 'Directories', $values['chmodDir']); 
 		$this->input('chmodFile', 'Files', $values['chmodFile'], true); 
 
-		if($cgi) echo "<p class='detail' style='margin-top: 0;'>We detected that this file (install.php) is writable. That means Apache may be running as your user account. Given that, we populated the permissions above (755 &amp; 644) as possible starting point.</p>";
+		if($cgi) {
+			echo "<p class='detail' style='margin-top: 0;'>We detected that this file (install.php) is writable. That means Apache may be running as your user account. Given that, we populated the permissions above (755 &amp; 644) as possible starting point.</p>";
+		} else {
+			echo "<p class='detail' style='margin-top: 0;'>WARNING: 777 and 666 permissions mean that directories and files are readable and writable to everyone on the server (and thus not particularly safe). If in any kind of shared hosting environment, please consult your web host for their recommended permission settings for Apache readable/writable directories and files before proceeding.</p>";
+		}
 
 		$this->h("HTTP Host Names"); 
 		$this->p("What host names will this installation run on now and in the future? Please enter one host per line. You may also choose to leave this blank to auto-detect on each request, but we recommend using this whitelist for the best security in production environments."); 
@@ -1029,7 +1035,7 @@ class Installer {
 
 		$this->h("Complete &amp; Secure Your Installation");
 		$this->getRemoveableItems($wire, false, true); 
-		$this->warn("Depending on the environment, you may want to make <b>/site/config.php</b> non-writable, for security.");
+		$this->warn("Please make your <b>/site/config.php</b> file non-writable, and readable only to you and Apache.");
 		$this->ok("Note that future runtime errors are logged to <b>/site/assets/logs/errors.txt</b> (not web accessible).");
 		$this->ok("For more configuration options see <b>/wire/config.php</b>.");
 		

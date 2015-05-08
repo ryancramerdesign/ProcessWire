@@ -669,7 +669,7 @@ class Sanitizer extends Wire {
 		}
 
 		$value = trim($value); // trim any kind of whitespace
-		$value = trim($value, '+!'); // chars to remove from begin and end 
+		$value = trim($value, '+!,'); // chars to remove from begin and end 
 		
 		if(!$needsQuotes && strlen($value)) {
 			$a = substr($value, 0, 1); 
