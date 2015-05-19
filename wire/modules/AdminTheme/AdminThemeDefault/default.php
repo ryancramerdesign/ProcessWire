@@ -64,7 +64,7 @@ $extras = $adminTheme->getExtraMarkup();
 			<?php 
 			if($user->isLoggedin()) {
 				echo $searchForm;
-				echo "\n\n<ul id='topnav'>" . $helpers->renderTopNavItems() . "</ul>";
+				echo "\n\n<ul id='topnav'>" , $helpers->renderTopNavItems() , "</ul>";
 			}
 			echo $extras['masthead']; 
 			?>
@@ -111,7 +111,7 @@ $extras = $adminTheme->getExtraMarkup();
 				<a class='action' href='<?php echo $config->urls->admin; ?>login/logout/'><?php echo $helpers->_('Logout'); ?></a>
 			</span>
 			<?php endif; ?>
-			ProcessWire <?php echo $config->versionName . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?>
+			ProcessWire <?php echo $config->versionName , ' <!--v' , $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?>
 			</p>
 
 			<?php 

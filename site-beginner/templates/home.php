@@ -3,7 +3,7 @@
 	<div id='content'><?php
 	
 		// output 'headline' if available, otherwise 'title'
-		echo "<h1>" . $page->get('headline|title') . "</h1>";
+		echo "<h1>" , $page->get('headline|title') , "</h1>";
 	
 		// output bodycopy
 		echo $page->body;

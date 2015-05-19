@@ -45,8 +45,8 @@
 				<?php 
 				foreach($fuel as $key => $value) {
 					if(!is_object($value)) continue; 
-					echo "\n<tr><td><a target='_blank' href='http://processwire.com/api/variables/$key/'>\$$key</a></td>" . 
-						"<td>" . get_class($value) . "</td></tr>"; 
+					echo "\n<tr><td><a target='_blank' href='http://processwire.com/api/variables/$key/'>\$$key</a></td>" , 
+						"<td>" , get_class($value) , "</td></tr>"; 
 				}
 				?>
 				</tbody>
@@ -71,7 +71,7 @@
 				foreach($session as $key => $value) {
 					if(is_object($value)) $value = (string) $value; 
 					if(is_array($value)) $value = print_r($value, true); 
-					echo "<tr><td>$key</td><td><pre>" . $sanitizer->entities($value) . "</pre></td></tr>";
+					echo "<tr><td>$key</td><td><pre>" , $sanitizer->entities($value) , "</pre></td></tr>";
 				} 
 				?>
 				</tbody>
@@ -113,7 +113,7 @@
 				</tbody>
 				</table>
 				<p class='description'><?php echo 
-					sprintf(__('%d modules loaded', __FILE__), $numLoaded) . ' / ' . 
+					sprintf(__('%d modules loaded', __FILE__), $numLoaded) , ' / ' , 
 					sprintf(__('%d not loaded', __FILE__), $numSkipped); 
 				?></p>
 				</div>
@@ -144,11 +144,11 @@
 					$toMethod = $hook['toMethod'];
 					if(is_callable($toMethod)) $toMethod = 'anonymous function';
 					echo "<tr>"; 
-					echo "<td>" . ($hook['options']['before'] ? 'before ' : '') . ($hook['options']['after'] ? 'after' : '') . "</td>";
-					echo "<td>" . ($hook['options']['fromClass'] ? $hook['options']['fromClass'] . '::' : '') . "$hook[method]$suffix</td>";
-					echo "<td>" . ($toObject ? "$toObject::$toMethod" : $toMethod) . "()</td>";
-					echo "<td>" . ($hook['options']['allInstances'] || $hook['options']['fromClass'] ? "class " : "instance ") . $hook['options']['type'] . "</td>";
-					echo "<td>" . $hook['options']['priority'] . "</td>";
+					echo "<td>" , ($hook['options']['before'] ? 'before ' : '') , ($hook['options']['after'] ? 'after' : '') , "</td>";
+					echo "<td>" , ($hook['options']['fromClass'] ? $hook['options']['fromClass'] . '::' : '') , "$hook[method]$suffix</td>";
+					echo "<td>" , ($toObject ? "$toObject::$toMethod" : $toMethod) , "()</td>";
+					echo "<td>" , ($hook['options']['allInstances'] || $hook['options']['fromClass'] ? "class " : "instance ") , $hook['options']['type'] , "</td>";
+					echo "<td>" , $hook['options']['priority'] , "</td>";
 					echo "</tr>";
 				}
 				?>
@@ -207,7 +207,7 @@ Debug::saveTimer('timer-name', 'optional notes'); // stop and save timer
 				</table>
 				<?php else: ?>
 				<p>Mysqli was instantiated but no queries executed. Here are the callers that should be converted to PDO:</p>
-				<ul><?php foreach($db->getCallers() as $n => $caller) echo "<li>" . ($n+1) . ". $caller</li>"; ?></ul>
+				<ul><?php foreach($db->getCallers() as $n => $caller) echo "<li>" , ($n+1) , ". $caller</li>"; ?></ul>
 				<?php
 				endif; 
 				unset($queries);
@@ -255,7 +255,7 @@ Debug::saveTimer('timer-name', 'optional notes'); // stop and save timer
 					<?php 
 					foreach($i as $key => $value) {
 						if(is_array($value)) $value = print_r($value, true); 
-						echo "<tr><td>" . $sanitizer->entities($key) . "</td><td><pre>" . $sanitizer->entities($value) . "</pre></td></tr>";
+						echo "<tr><td>" , $sanitizer->entities($key) , "</td><td><pre>" , $sanitizer->entities($value) , "</pre></td></tr>";
 					} 
 					?>
 					</tbody>
@@ -272,7 +272,7 @@ Debug::saveTimer('timer-name', 'optional notes'); // stop and save timer
 					<?php 
 					foreach($cache->getInfo() as $info) {
 						echo "<table class=''><thead><tr><th colspan='2'>";
-						echo $sanitizer->entities($info['name']) . "</th></tr></thead><tbody>";
+						echo $sanitizer->entities($info['name']) , "</th></tr></thead><tbody>";
 						foreach($info as $key => $value) {
 							if($key == 'name') continue; 
 							if($key == 'size') $value = wireBytesStr($value);

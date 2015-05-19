@@ -88,7 +88,7 @@
 		}
 
 		// output an "Edit" link if this page happens to be editable by the current user
-		if($page->editable()) echo "<li class='edit'><a href='$page->editUrl'>" . __('Edit') . "</a></li>";
+		if($page->editable()) echo "<li class='edit'><a href='$page->editUrl'>" , __('Edit') , "</a></li>";
 	?></ul>
 
 	<!-- breadcrumbs -->
@@ -138,10 +138,10 @@
 		<?php
 		if($user->isLoggedin()) {
 			// if user is logged in, show a logout link
-			echo "<a href='{$config->urls->admin}login/logout/'>" . sprintf(__('Logout (%s)'), $user->name) . "</a>";
+			echo "<a href='{$config->urls->admin}login/logout/'>" , sprintf(__('Logout (%s)'), $user->name) , "</a>";
 		} else {
 			// if user not logged in, show a login link
-			echo "<a href='{$config->urls->admin}'>" . __('Admin Login') . "</a>";
+			echo "<a href='{$config->urls->admin}'>" , __('Admin Login') , "</a>";
 		}
 		?>
 			

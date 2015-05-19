@@ -118,7 +118,7 @@ $extras = $adminTheme->getExtraMarkup();
 							<a class="action" href="<?php echo $config->urls->admin; ?>login/logout/"><i class="fa fa-times"></i> <?php echo $helpers->_('Logout'); ?></a>
 						</span>
 					<?php endif; ?>
-					ProcessWire <?php echo $config->versionName . ' <!--v' . $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?> 
+					ProcessWire <?php echo $config->versionName , ' <!--v' , $config->systemVersion; ?>--> &copy; <?php echo date("Y"); ?> 
 				</p>
 				
 				<?php
