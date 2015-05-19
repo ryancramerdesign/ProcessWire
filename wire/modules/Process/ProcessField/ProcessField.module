@@ -1116,7 +1116,7 @@ class ProcessField extends Process implements ConfigurableModule {
 				$clone = $this->fields->clone($this->field);
 				if($clone && $clone->id) {
 					$clone->name = $cloneName; 
-					$clone->label = $clone->label . ' ' . $this->_('(copy)'); 
+					if($clone->label) $clone->label = $clone->label . ' ' . $this->_('(copy)'); 
 					try {
 						$this->fields->save($clone);
 						$this->message($this->_('Cloned Field') . " - {$this->field->name} => {$clone->name}");

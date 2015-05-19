@@ -96,6 +96,7 @@ class ProcessPageList extends Process implements ConfigurableModule {
 
 		if(!$this->id) $this->id = isset($_GET['id']) ? (int) $_GET['id'] : 0; 
 		$this->openPage = $this->input->get->open ? $this->pages->get((int) $this->input->get->open) : new NullPage();
+		if($this->openPage->id && $this->speed > 50) $this->speed = 0;
 		$this->page = $this->pages->get("id=" . ($this->id ? $this->id : 1) . ", status<" . Page::statusMax); 
 
 		if(!$this->page) throw new Wire404Exception("Unable to load page {$this->id}"); 
@@ -403,7 +404,16 @@ abstract class ProcessPageListRender extends Wire {
 
 			if($subfield && is_object($v)) {
 				if($v instanceof WireArray && count($v)) $v = $v->first();
-				$v = $v->getFormatted($subfield); // @esrch PR #965
+				if($v instanceof Page) {
+					$v = $v->getFormatted($subfield); // @esrch PR #965
+				} else if($v instanceof Template && $subfield == 'label') {
+					$v = $v->getLabel();
+				} else if($v instanceof Wire) {
+					$v = $v->$subfield;
+				} else {
+					// unknown
+					$v = (string) $v;
+				}
 
 			} else if(($field == 'created' || $field == 'modified') && ctype_digit("$v")) {
 				$v = date($this->wire('config')->dateFormat, (int) $v);

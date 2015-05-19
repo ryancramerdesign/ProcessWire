@@ -146,7 +146,7 @@ class PagePathHistory extends WireData implements Module {
 	 * @return Page|NullPage
 	 *
 	 */
-	protected function getPage($path, $level = 0) {
+	public function getPage($path, $level = 0) {
 
 		$page = new NullPage();
 		$pathRemoved = '';

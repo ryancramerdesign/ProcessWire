@@ -1711,9 +1711,10 @@ class WireArray extends Wire implements IteratorAggregate, ArrayAccess, Countabl
 					if(method_exists($value, 'path')) {
 						$value = '/' . ltrim($value->path(), '/');
 					} else if($value instanceof WireData) {
+						$_value = $value;
 						$value = $value->name;
-						if(!$value) $value = $value->id;
-						if(!$value) $value = $value->className();
+						if(!$value) $value = $_value->id;
+						if(!$value) $value = $_value->className();
 					} else {
 						// keep $value as it is
 					}
