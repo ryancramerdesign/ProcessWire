@@ -61,7 +61,7 @@ class FieldtypeNotifications extends FieldtypeMulti {
 		// create new Notification objects from each item in the array
 		foreach($value as $v) {
 			$notification = new Notification();
-			$notification->title = $v['title']; // note we're converting 'data' to 'date'
+			$notification->title = $v['title'];
 			$notification->flags = $v['flags']; 
 			$notification->created = $v['created']; 
 			$notification->modified = $v['modified']; 

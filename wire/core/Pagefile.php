@@ -159,10 +159,15 @@ class Pagefile extends WireData {
 	 *
 	 */
 	protected function setDescription($value, Page $language = null) {
+		
+		$field = $this->field; 
+		$noLang = $field && $field->noLang; // noLang setting to disable multi-language from InputfieldFile
 
 		if(!is_null($language) && $language->id) {
 			$name = "description";
-			if(!$language->isDefault()) $name .= $language->id; 
+			if(!$language->isDefault() && !$noLang) {
+				$name .= $language->id;
+			}
 			parent::set($name, $value); 
 			return $this; 
 		}
@@ -181,6 +186,7 @@ class Pagefile extends WireData {
 			foreach($values as $id => $v) {	
 				// first item is always default language. this ensures description will still
 				// work even if language support is later uninstalled. 
+				if($noLang && $n > 0) continue;
 				$name = $n > 0 ? "description$id" : "description"; 
 				parent::set($name, $v); 
 				$n++; 
@@ -190,7 +196,7 @@ class Pagefile extends WireData {
 			$languages = $this->wire('languages');
 			$language = $this->wire('user')->language; 
 
-			if($languages && $language && !$language->isDefault()) {
+			if($languages && $language && !$noLang && !$language->isDefault()) {
 				parent::set("description$language", $value); 
 			} else {
 				parent::set("description", $value); 

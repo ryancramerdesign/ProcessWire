@@ -177,6 +177,11 @@ class FieldtypeDatetime extends FieldtypeText {
 		if(function_exists('date_parse_from_format')) {
 			// PHP 5.3+
 			$a = date_parse_from_format($format, $str); 	
+			if(isset($a['warnings']) && count($a['warnings'])) {
+				foreach($a['warnings'] as $warning) {
+					wire()->warning($warning . " (value='$str', format='$format')");
+				}
+			}
 			if($a['year'] && $a['month'] && $a['day']) {
 				return mktime($a['hour'], $a['minute'], $a['second'], $a['month'], $a['day'], $a['year']); 
 			}
