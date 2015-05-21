@@ -1228,7 +1228,7 @@ class PageFinder extends Wire {
 
 			if(in_array($field, array('parent', 'parent_id', 'children'))) {
 
-				if(!$subfield || in_array($subfield, array('id', 'path', 'url'))) {
+				if(strpos($field, 'parent') === 0 && (!$subfield || in_array($subfield, array('id', 'path', 'url')))) {
 					// match by location (id or path)
 					// convert parent fields like '/about/company/history' to the equivalent ID
 					foreach($values as $k => $v) {
