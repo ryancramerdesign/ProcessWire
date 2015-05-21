@@ -70,6 +70,24 @@ abstract class Process extends WireData implements Module {
  	*/
 
 	/**
+	 * File to use for output view
+	 * 
+	 * Used when execute methods return an array of vars, or have called setViewVars()
+	 * 
+	 * @var string
+	 * 
+	 */
+	private $_viewFile = '';
+
+	/**
+	 * Variables to send to the output view file, populated only if setViewVars() has been called
+	 * 
+	 * @var array associative
+	 * 
+	 */
+	private $_viewVars = array();
+
+	/**
 	 * Per the Module interface, Initialize the Process, loading any related CSS or JS files
 	 *
 	 */
@@ -87,6 +105,9 @@ abstract class Process extends WireData implements Module {
 
 	/**
 	 * Get a value stored in this Process
+	 * 
+	 * @param string $key
+	 * @return mixed
 	 *
 	 */
 	public function get($key) {
@@ -344,6 +365,60 @@ abstract class Process extends WireData implements Module {
 		return json_encode($data);
 	}
 
+	/**
+	 * Set the file to use for the output view, if different from default
+	 * 
+	 * @param string $file File must be relative to the module's home directory.
+	 * @return $this
+	 * @throws WireException if file doesn't exist
+	 * 
+	 */
+	public function setViewFile($file) {
+		$path = $this->wire('config')->paths . $this->className(); 
+		if(strpos($file, $path) !== 0) $file = $path . ltrim($file, '/');
+		if(strpos($file, '..') !== false) throw new WireException("Invalid view file"); 
+		if(!is_file($file)) throw new WireException("View file $file does not exist"); 
+		$this->_viewFile = $file;
+		return $this;	
+	}
 
+	/**
+	 * If a view file has been set, this returns the full path to it
+	 * 
+	 * @return string Blank if no view file set, full path and file if set
+	 * 
+	 */
+	public function getViewFile() {
+		return $this->_viewFile;
+	}
 
+	/**
+	 * Set a variable that will be passed to the output view
+	 * 
+	 * @param string|array $key Property to set, or array of property=>value to set (leaving 2nd argument as null)
+	 * @param mixed|null $value Value to set
+	 * @return $this
+	 * @throws WireException if given an invalid type for $key
+	 * 
+	 */
+	public function setViewVars($key, $value = null) {
+		if(is_array($key)) {
+			$this->_viewVars = array_merge($this->_viewVars, $key);
+		} else if(is_string($key)) {
+			$this->_viewVars[$key] = $value;
+		} else {
+			throw new WireException("Invalid setViewVars('key')");
+		}
+		return $this;
+	}
+
+	/**
+	 * Get all variables set for the output view
+	 * 
+	 * @return array associative
+	 * 
+	 */
+	public function getViewVars() {
+		return $this->_viewVars; 
+	}
 }
