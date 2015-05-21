@@ -166,8 +166,10 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			// make it set page name from page title
 			$this->page->name = '';
 		}
+		
 
 		$this->form = $this->modules->get('InputfieldForm');
+
 		$this->form = $this->buildForm($this->form);
 		$this->form->setTrackChanges();
 
@@ -324,6 +326,11 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$form->attr('enctype', 'multipart/form-data'); 
 		$form->attr('class', 'ui-helper-clearfix template_' . $this->page->template . ' class_' . $this->page->className); 
 		$form->attr('autocomplete', 'off');
+		
+		$settings = $this->wire('config')->pageEdit;
+		if(empty($settings) || !isset($settings['confirm']) || !empty($settings['confirm'])) {
+			$form->addClass('InputfieldFormConfirm');
+		}
 
 		// for ProcessPageEditImageSelect support
 		if($this->wire('input')->get('uploadOnlyMode') && !$this->wire('config')->ajax) {

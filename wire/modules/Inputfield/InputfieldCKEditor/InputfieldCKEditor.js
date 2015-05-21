@@ -28,6 +28,25 @@ for(var name in config.InputfieldCKEditor.plugins) {
 var inlineCKEditors = [];
 
 /**
+ * Event called when an editor is blurred, so that we can check for changes
+ * 
+ * @param event
+ * 
+ */
+function ckeBlurEvent(event) {
+	var editor = event.editor;
+	if(editor.checkDirty()) {
+		// value changed
+		var $textarea = $(editor.element.$);
+		if($textarea.length) {
+			if($textarea.is("textarea")) $textarea.change();
+			$textarea.closest(".Inputfield").addClass('InputfieldStateChanged');
+		}
+	}
+}
+
+
+/**
  * CKEditors hidden in jQuery UI tabs sometimes don't work so this initializes them when they become visible
  *
  */ 
@@ -37,7 +56,8 @@ function initCKEditorTab(event, ui) {
 	if($a.hasClass('InputfieldCKEditor_init')) return;
 	var editorID = $a.attr('data-editorID');
 	var cfgName = $a.attr('data-cfgName');
-	CKEDITOR.replace(editorID, config[cfgName]);
+	var editor = CKEDITOR.replace(editorID, config[cfgName]);
+	editor.on('blur', ckeBlurEvent);
 	$a.addClass('InputfieldCKEditor_init'); 
 	ui.oldTab.find('a').addClass('InputfieldCKEditor_init'); // in case it was the starting one
 }
@@ -72,7 +92,8 @@ $(document).ready(function() {
 			$parent.closest('.ui-tabs, .langTabs').on('tabsactivate', initCKEditorTab); 
 		} else { 
 			// visible CKEditor
-			CKEDITOR.replace(editorID, config[cfgName]);
+			var editor = CKEDITOR.replace(editorID, config[cfgName]);
+			editor.on('blur', ckeBlurEvent);
 		}
 	}
 
@@ -98,6 +119,7 @@ $(document).ready(function() {
 			$t.attr('contenteditable', 'true'); 
 			var configName = $t.attr('data-configName'); 
 			var editor = CKEDITOR.inline($(this).attr('id'), config[configName]); 
+			editor.on('blur', ckeBlurEvent);
 			var n = inlineCKEditors.length; 
 			inlineCKEditors[n] = editor; 
 			$t.attr('data-n', n); 

@@ -899,7 +899,29 @@ function InputfieldStates() {
 					if($t.is(":visible")) $t.focus();
 				}, 250);
 			}
-	}); 
+	});
+
+	// confirm changed forms that user navigates away from before submitting
+	var $form = $(".InputfieldFormConfirm"); 
+	if($form.length) {
+		$form.on('change', ':input', function() {
+			$(this).closest('.Inputfield').addClass('InputfieldStateChanged');
+		});
+		$form.on("submit", function() {
+			$(this).addClass('InputfieldFormSubmitted');
+		});
+		window.addEventListener("beforeunload", function(e) {
+			var $changes = $(".InputfieldFormConfirm:not(.InputfieldFormSubmitted) .InputfieldStateChanged");
+			if($changes.length == 0) return;
+			var msg = $form.attr('data-confirm') + "\n";
+			$changes.each(function() {
+				var name = $(this).find(".InputfieldHeader:eq(0)").text();
+				msg += "\n• " + $.trim(name);
+			});
+			(e || window.event).returnValue = msg; // Gecko and Trident
+			return msg; // Gecko and WebKit
+		});
+	};
 }
 
 /*********************************************************************************************

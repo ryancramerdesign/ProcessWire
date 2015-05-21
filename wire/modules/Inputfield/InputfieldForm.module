@@ -14,6 +14,7 @@
  * =================
  * InputfieldFormNoHeights: tells it not to worry about lining up all columns vertically. 
  * InputfieldFormNoWidths: indicates that form will be in 2-column label => input format (column widths do not apply)
+ * InputfieldFormConfirm: tell it to notify user if they make any changes and forgot to submit. 
  *
  */
 class InputfieldForm extends InputfieldWrapper {
@@ -49,7 +50,17 @@ class InputfieldForm extends InputfieldWrapper {
 		if(!empty($classes['form'])) $this->addClass($classes['form']); 
 
 		$this->attr('data-colspacing', (int) $this->columnWidthSpacing); 
-		$this->attr('class', trim($this->attr('class') . ' InputfieldForm'));
+		$this->addClass('InputfieldForm');
+		
+		if($this->hasClass('InputfieldFormConfirm')) {
+			if($this->wire('modules')->isInstalled('FormSaveReminder')) {
+				// let FormSaveReminder module have control, if it's installed
+				$this->removeClass('InputfieldFormConfirm');
+			} else {
+				$this->attr('data-confirm', $this->_('There are unsaved changes:'));
+			}
+		}
+
 		$attrs = $this->getAttributes();
 		unset($attrs['value']); 
 

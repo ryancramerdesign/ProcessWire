@@ -24,11 +24,5 @@ function initPageEditForm() {
 
 	// prevent Firefox from sending two requests for same click
 	$("#AddPageBtn").click(function() { return false; }); 
-
-	/*
-	$(":input").change(function() {
-		console.log("Change: " + $(this).attr('name'));
-	}); 
-	*/
-
+	
 }

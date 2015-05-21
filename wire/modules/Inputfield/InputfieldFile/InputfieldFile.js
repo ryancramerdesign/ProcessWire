@@ -67,7 +67,7 @@ $(document).ready(function() {
 					ui.item.children(".InputfieldFileInfo").removeClass("ui-state-highlight"); 
 					// Firefox has a habit of opening a lightbox popup after a lightbox trigger was used as a sort handle
 					// so we keep a 500ms class here to keep a handle on what was a lightbox trigger and what was a sort
-					$inputfield.addClass('InputfieldFileJustSorted'); 
+					$inputfield.addClass('InputfieldFileJustSorted InputfieldStateChanged'); 
 					setTimeout(function() { $inputfield.removeClass('InputfieldFileJustSorted'); }, 500); 
 				}
 			});
@@ -290,6 +290,7 @@ $(document).ready(function() {
 				
 				$progressItem.find('p.ui-widget-header').html(fileData);
 				$fileList.append($progressItem);
+				$fileList.closest('.Inputfield').addClass('InputfieldStateChanged');
 			}
 			
 	
