@@ -393,8 +393,11 @@ class PageFinder extends Wire {
 						$field = $this->wire('fields')->get($fieldName); 	
 						if(!$field) continue;
 						if(!$hasTemplate && $field->template_id) {
-							if(is_array($field->template_id)) $templates = array_merge($templates, $field->template_id); 
-								else $templates[] = (int) $field->template_id; 
+							if(is_array($field->template_id)) {
+								$templates = array_merge($templates, $field->template_id);
+							} else {
+								$templates[] = (int) $field->template_id;
+							}
 						}
 						if(!$hasParent && $field->parent_id) $parents[] = (int) $field->parent_id; 
 						if($field->findPagesSelector && count($fields) == 1) $findSelector = $field->findPagesSelector;	
@@ -407,7 +410,23 @@ class PageFinder extends Wire {
 				$pageFinder = new PageFinder();
 				$ids = $pageFinder->findIDs($selectors); 
 				// populate selector value with array of page IDs
-				$selector->value = count($ids) < 2 ? reset($ids) : $ids; 
+				if(count($ids) == 0) {
+					// subselector resulted in 0 matches
+					// force non-match for this subselector by populating 'id' subfield to field name(s)
+					$fieldNames = array();
+					foreach($selector->fields as $key => $fieldName) {
+						if(strpos($fieldName, '.') !== false) {
+							// reduce fieldName to just field name without subfield name
+							list($fieldName, $subname) = explode('.', $fieldName); // subname intentionally unused
+						}
+						$fieldName .= '.id';
+						$fieldNames[$key] = $fieldName; 
+					}
+					$selector->fields = $fieldNames;
+					$selector->value = 0;
+				} else {
+					$selector->value = count($ids) > 1 ? $ids : reset($ids);
+				}
 				$selector->quote = '';
 
 				/*
