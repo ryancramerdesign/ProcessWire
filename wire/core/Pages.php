@@ -1562,6 +1562,7 @@ class Pages extends Wire {
 	 * @param array|string $options Optional options that can be passed to clone or save
 	 * 	- forceID (int): force a specific ID
 	 * 	- set (array): Array of properties to set to the clone (you can also do this later)
+	 * 	- recursionLevel (int): recursion level, for internal use only. 
 	 * @return Page the newly cloned page or a NullPage() with id=0 if unsuccessful.
 	 * @throws WireException|Exception on fatal error
 	 *
@@ -1569,6 +1570,7 @@ class Pages extends Wire {
 	public function ___clone(Page $page, Page $parent = null, $recursive = true, $options = array()) {
 		
 		if(is_string($options)) $options = Selectors::keyValueStringToArray($options);
+		if(!isset($options['recursionLevel'])) $options['recursionLevel'] = 0; // recursion level
 			
 		// if parent is not changing, we have to modify name now
 		if(is_null($parent)) {
@@ -1636,13 +1638,18 @@ class Pages extends Wire {
 		if($page->numChildren && $recursive) {
 			foreach($page->children("include=all") as $child) {
 				/** @var Page $child */
-				$this->clone($child, $copy); 	
+				$this->clone($child, $copy, true, array('recursionLevel' => $options['recursionLevel']+1)); 	
 			}	
 		}
 
 		$copy->parentPrevious = null;
+		
+		// update pages_parents table, only when at recursionLevel 0 since pagesParents is already recursive
+		if($recursive && $options['recursionLevel'] === 0) {
+			$this->saveParents($copy->id, $copy->numChildren);
+		}
+			
 		$copy->resetTrackChanges();
-
 		$this->cloned($page, $copy); 
 		$this->debugLog('clone', "page=$page, parent=$parent", $copy);
 	
