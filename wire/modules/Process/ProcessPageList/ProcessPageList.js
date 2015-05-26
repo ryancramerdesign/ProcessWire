@@ -258,7 +258,7 @@ $(document).ready(function() {
 						var parentPath = '';
 						if(options.selectShowPath) {
 							parentPath = data.page.path;
-							parentPath = parentPath.substring(0, parentPath.length-1); 
+							if(parentPath.substring(-1) == '/') parentPath = parentPath.substring(0, parentPath.length-1); 
 							parentPath = parentPath.substring(0, parentPath.lastIndexOf('/')+1); 
 							parentPath = '<span class="detail">' + parentPath + '</span> ';
 						} 
