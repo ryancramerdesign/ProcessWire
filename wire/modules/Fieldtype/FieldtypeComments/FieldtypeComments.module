@@ -449,8 +449,12 @@ class FieldtypeComments extends FieldtypeMulti {
 				if(!$createdVotesTable) $this->error($e->getMessage(), Notice::log);
 			}
 			if($createdVotesTable) try {
-				$database->query("ALTER TABLE `$table` ADD `upvotes` $upvoteSchema");
-				$database->query("ALTER TABLE `$table` ADD `downvotes` $downvoteSchema");
+				$isUpvotes = $database->prepare("SHOW columns FROM `$table` LIKE 'upvotes'");
+				$isUpvotes->execute();
+				if(!$isUpvotes->rowCount()) $database->query("ALTER TABLE `$table` ADD `upvotes` $upvoteSchema");
+				$isDownvotes = $database->prepare("SHOW columns FROM `$table` LIKE 'downvotes'");
+				$isDownvotes->execute();
+				if(!$isDownvotes->rowCount()) $database->query("ALTER TABLE `$table` ADD `downvotes` $downvoteSchema");
 				$schemaVersion = 5;
 			} catch(Exception $e) { 
 				$this->error($e->getMessage(), Notice::log); 

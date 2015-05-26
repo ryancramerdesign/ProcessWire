@@ -93,13 +93,21 @@ class PageRender extends WireData implements Module, ConfigurableModule {
 		$allowed = true;
 
 		if(count($_GET) && $page->template->noCacheGetVars) {
-			$vars = explode(' ', $page->template->noCacheGetVars); 
-			foreach($vars as $name) if($name && isset($_GET[$name])) $allowed = false; 
+			if(strpos($page->template->noCacheGetVars, '*') !== false) {
+				$allowed = false;
+			} else {
+				$vars = explode(' ', $page->template->noCacheGetVars);
+				foreach($vars as $name) if($name && isset($_GET[$name])) $allowed = false;
+			}
 		} 
 
 		if($allowed && count($_POST) && $page->template->noCachePostVars) {
-			$vars = explode(' ', $page->template->noCachePostVars); 
-			foreach($vars as $name) if($name && isset($_POST[$name])) $allowed = false; 
+			if(strpos($page->template->noCachePostVars, '*') !== false) {
+				$allowed = false;
+			} else {
+				$vars = explode(' ', $page->template->noCachePostVars);
+				foreach($vars as $name) if($name && isset($_POST[$name])) $allowed = false;
+			}
 		}
 
 		// NOTE: other modules may set a session var of PageRenderNoCachePage containing a page ID to temporarily

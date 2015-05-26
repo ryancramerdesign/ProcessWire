@@ -923,6 +923,7 @@ class ProcessTemplate extends Process {
 		$labelPOST = $this->_('Cache disabling POST variables');
 		$description = $this->_('When your template output is cached, variables of this type are ignored by default. You can optionally specify one or more variable names that will disable the cache for that request, causing the page to be rendered sans cache.'); // Disable cache, GET/POST vars, description
 		$notes = $this->_('Optionally enter one or more variable names. If entering more than one, separate each by a space.'); // Disable cache, GET/POST vars, notes
+		$notes .= "\n" . $this->_('To disable cache when any variable is present, enter just an asterisk: * (recommended)'); 
 
 		$field = $this->modules->get('InputfieldText'); 
 		$field->attr('name', 'noCacheGetVars'); 
@@ -1694,8 +1695,8 @@ class ProcessTemplate extends Process {
 		$this->template->childNameFormat = $this->fuel('sanitizer')->text($form->get('childNameFormat')->attr('value')); 
 		$this->template->cache_time = $form->get('cache_time')->attr('value'); 
 		$this->template->useCacheForUsers = (int) $form->get('useCacheForUsers')->attr('value');
-		$this->template->noCacheGetVars = $this->fuel('sanitizer')->names($form->get('noCacheGetVars')->attr('value')); 
-		$this->template->noCachePostVars = $this->fuel('sanitizer')->names($form->get('noCachePostVars')->attr('value')); 
+		$this->template->noCacheGetVars = $this->fuel('sanitizer')->names($form->get('noCacheGetVars')->attr('value'), ' ', array('-', '_', '.', '*')); 
+		$this->template->noCachePostVars = $this->fuel('sanitizer')->names($form->get('noCachePostVars')->attr('value'), ' ', array('-', '_', '.', '*')); 
 		$this->template->cacheExpire = (int) $form->get('cacheExpire')->attr('value');
 		$this->template->tags = $this->sanitizer->text($form->get('tags')->attr('value'));
 		$this->template->noUnpublish = (int) $form->get('noUnpublish')->attr('value');
