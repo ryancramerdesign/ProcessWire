@@ -740,8 +740,8 @@ $config->pageList = array(
 	'limit' => 50, 
 	'speed' => 200, 
 	'useHoverActions' => false,
-	'hoverActionDelay' => 250, 
-	'hoverActionFade' => 150
+	'hoverActionDelay' => 100, 
+	'hoverActionFade' => 100
 );
 
 /**

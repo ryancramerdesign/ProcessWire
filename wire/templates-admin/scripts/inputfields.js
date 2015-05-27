@@ -855,12 +855,14 @@ function InputfieldStates() {
 			$icon.toggleClass($icon.attr('data-to')); // data-to=classes to toggle
 			setTimeout('InputfieldColumnWidths()', 500); 
 		} else {
-			var color1 = $icon.css('color');
-			var color2 = $li.children('.InputfieldHeader, .ui-widget-header').css('color'); 
-			$icon.css('color', color2);
-			$icon.effect('pulsate', 300, function() {
-				$icon.css('color', color1); 
-			});
+			if(typeof jQuery.ui != 'undefined') {
+				var color1 = $icon.css('color');
+				var color2 = $li.children('.InputfieldHeader, .ui-widget-header').css('color'); 
+				$icon.css('color', color2);
+				$icon.effect('pulsate', 300, function () {
+					$icon.css('color', color1);
+				});
+			}
 			$li.find(":input:visible:eq(0)").focus();
 		}
 
@@ -1043,8 +1045,8 @@ jQuery(document).ready(function($) {
 		consoleLog('Inputfield reload: ' + fieldName); 
 		$.get(url, function(data) {
 			var $content = $(data).find("#" + $t.attr('id')).children(".InputfieldContent");
-			$t.children(".InputfieldContent").html($content.html()); 
-			$t.effect("highlight", 1000); 
+			$t.children(".InputfieldContent").html($content.html());
+			if(typeof jQuery.ui != 'undefined') $t.effect("highlight", 1000); 
 			$t.trigger('reloaded'); 
 		});
 		event.stopPropagation();
