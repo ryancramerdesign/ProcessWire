@@ -595,13 +595,15 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 			$allow = false; 
 			foreach($templates as $template) {
 				if($template->fieldgroup->hasField($field)) {
-					$allow = true;
+					$_field = $template->fieldgroup->getFieldContext($field); 
+					if($_field) $field = $_field;
+					$allow = $field->viewable();
 					break;
 				}
 			}
 			
 		} else {
-			$allow = true; 
+			$allow = $field->viewable();
 		}
 		
 		return $allow; 

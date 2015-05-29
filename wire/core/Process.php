@@ -142,6 +142,18 @@ abstract class Process extends WireData implements Module {
 		$this->wire('processHeadline', $headline); 
 		return $this; 
 	}
+	
+	/**
+	 * Set the current browser <title> 
+	 *
+	 * @param string $title
+	 * @return this
+	 *
+	 */
+	public function ___browserTitle($title) {
+		$this->wire('processBrowserTitle', $title);
+		return $this;
+	}
 
 	/**
 	 * Add a breadcrumb

@@ -105,6 +105,10 @@
 	display: none; 
 }
 
+.InputfieldImageRenderValue + p {
+	clear: both;
+}
+
 .InputfieldImageRenderValue > span {
 	display: block;
 	float: left;

@@ -316,6 +316,9 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 	/**
 	 * Build the form used for Page Edits
+	 * 
+	 * @param InputfieldForm $form
+	 * @return InputfieldForm
 	 *
 	 */
 	protected function ___buildForm(InputfieldForm $form) {
@@ -353,7 +356,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		
 			foreach($this->fields as $field) {
 				foreach($this->page->getInputfields($field->name) as $inputfield) {
-					if(!$this->page->editable($inputfield->name)) continue;
+					if(!$this->page->editable($inputfield->name, false)) continue;
 					$form->add($inputfield);
 				}
 			}
@@ -479,12 +482,13 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 
 		if($this->page->template->nameContentTab) {
 			// name
+			/** @var InputfieldPageName $field */
 			$field = $this->modules->get('InputfieldPageName');
 			$field->attr('name', '_pw_page_name');
 			$field->attr('value', $this->page->name);
 			$field->required = $this->page->id != 1;
 			$field->slashUrls = $this->page->template->slashUrls;
-			if(!$this->page->editable('name')) {
+			if(!$this->page->editable('name', false)) {
 				$field->attr('disabled', 'disabled');
 				$field->required = false;
 			}
@@ -635,7 +639,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			$field->attr('name', '_pw_page_name');
 			$field->slashUrls = $this->page->template->slashUrls;
 			$field->required = $this->page->id != 1;
-			if($field->attr('value') && !$this->page->editable('name')) {
+			if($field->attr('value') && !$this->page->editable('name', false)) {
 				$field->attr('disabled', 'disabled'); 
 				$field->required = false;
 			}
@@ -644,7 +648,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		}
 
 		// template
-		if($this->page->editable('template')) { 
+		if($this->page->editable('template', false)) { 
 
 			$languages = wire('languages');
 			$language = wire('user')->language; 
@@ -668,7 +672,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 		$wrapper->add($field); 
 
 		// parent
-		if($this->page->id > 1 && $this->page->editable('parent')) {
+		if($this->page->id > 1 && $this->page->editable('parent', false)) {
 			if(count($this->predefinedParents)) {
 				$field = $this->modules->get('InputfieldSelect'); 
 				foreach($this->predefinedParents as $p) {
@@ -941,7 +945,7 @@ class ProcessPageEdit extends Process implements WirePageEditor {
 			$name = $inputfield->attr('name'); 
 			if($name == '_pw_page_name') $name = 'name';
 			if(in_array($name, $skipFields)) continue; 
-			if(!$this->page->editable($name)) continue; 
+			if(!$this->page->editable($name, false)) continue; 
 			
 			if($name == 'sortfield' && $this->useChildren) {
 				$this->processInputSortfield($inputfield) ;

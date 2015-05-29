@@ -60,8 +60,8 @@
  * 
  * Methods added by PagePermissions.module: 
  * ----------------------------------------
- * @method bool viewable() Returns true if the page is viewable by the current user, false if not. 
- * @method bool editable($fieldName = '') Returns true if the page is editable by the current user, false if not. Optionally specify a field to see if that field is editable.
+ * @method bool viewable($fieldName = '') Returns true if the page (and optionally field) is viewable by the current user, false if not. 
+ * @method bool editable($fieldName = '') Returns true if the page (and optionally field) is editable by the current user, false if not. 
  * @method bool publishable() Returns true if the page is publishable by the current user, false if not. 
  * @method bool listable() Returns true if the page is listable by the current user, false if not. 
  * @method bool deleteable() Returns true if the page is deleteable by the current user, false if not. 
@@ -885,8 +885,29 @@ class Page extends WireData implements Countable {
 	protected function getFieldValue($key) {
 		if(!$this->template) return parent::get($key); 
 		$field = $this->template->fieldgroup->getField($key);
+		if($field && $this->outputFormatting && $this->template->fieldgroup->hasFieldContext($field)) {
+			// if field has context available and output formatting is on, get the field in context
+			// @todo determine if we can retrieve it in context even when output formatting is off
+			$field = $this->template->fieldgroup->getFieldContext($field->name);
+		}
 		$value = parent::get($key); 
 		if(!$field) return $value;  // likely a runtime field, not part of our data
+		
+		if($field->useRoles && $this->outputFormatting) {
+			// API access may be limited when output formatting is ON
+			if($field->flags & Field::flagAccessAPI) {
+				// API access always allowed because of flag
+			} else if($this->viewable($field)) {
+				// User has view permission for this field
+			} else {
+				// API access is denied when output formatting is ON
+				// so just return a blank value as defined by the Fieldtype
+				// note: we do not store this blank value in the Page, so that
+				// the real value can potentially be loaded later without output formatting
+				$value = $field->type->getBlankValue($this, $field); 
+				return $field->type->formatValue($this, $field, $value);
+			}
+		}
 
 		// if the value is already loaded, return it 
 		if(!is_null($value)) return $this->outputFormatting ? $field->type->formatValue($this, $field, $value) : $value; 

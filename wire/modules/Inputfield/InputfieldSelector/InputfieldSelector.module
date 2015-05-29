@@ -757,9 +757,15 @@ class InputfieldSelector extends Inputfield implements ConfigurableModule {
 				$allow = 0;
 				foreach($settings['templates'] as $templateName) {
 					$template = $this->wire('templates')->get($templateName);
-					if($template && $template->fieldgroup->hasField($field)) $allow++;
+					if($template && $template->fieldgroup->hasField($field)) {
+						$_field = $template->fieldgroup->getFieldContext($field);
+						if($_field) $field = $_field;
+						if($field->viewable()) $allow++;
+					}
 				}
 				if(!$allow) continue; 
+			} else {
+				if(!$field->viewable()) continue;
 			}
 			if($this->initTemplate) {
 				$f = $this->initTemplate->fieldgroup->getField($fieldName, true); 
