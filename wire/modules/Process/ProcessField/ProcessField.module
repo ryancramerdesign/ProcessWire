@@ -1390,7 +1390,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			$error = sprintf($this->_('Field name "%s" is a reserved word'), $name);
 		} else if(preg_match('/^(_|\d)/', $name)) {
 			$error = $this->_('Field names may not begin with "_" or digits');
-		} else if($this->wire('languages') && $this->wire('languages')->get($name)) {
+		} else if($this->wire('languages') && $this->wire('languages')->get($name)->id) {
 			$error = $this->_('Field name may not be the same as a Language name');
 		} else {
 			$allowed = true; 
