@@ -11,6 +11,11 @@ ul.AdminDataList li {
 	margin: 0;
 }
 
+table.AdminDataList tr.AdminDataListSeparator td {
+	border-top-style: solid;
+	border-top-width: 2px;
+}
+
 table.AdminDataList th,
 table.AdminDataList .th {
 	font-weight: bold;

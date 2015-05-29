@@ -11,11 +11,10 @@
  * multiple templates in the future (like ProcessWire 1.x).
  * 
  * ProcessWire 2.x 
- * Copyright (C) 2012 by Ryan Cramer 
+ * Copyright (C) 2015 by Ryan Cramer 
  * Licensed under GNU/GPL v2, see LICENSE.TXT
  * 
- * http://www.processwire.com
- * http://www.ryancramer.com
+ * https://processwire.com
  * 
  * @property int $id Field ID
  * @property string $name Field name
@@ -186,6 +185,7 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 	 *
 	 */
 	public function getField($key, $useFieldgroupContext = false) {
+		if(is_object($key) && $key instanceof Field) $key = $key->id;
 
 		if($this->isValidKey($key)) {
 			$value = parent::get($key); 
@@ -215,6 +215,22 @@ class Fieldgroup extends WireArray implements Saveable, Exportable, HasLookupIte
 		}
 
 		return $value; 
+	}
+
+	/**
+	 * Does the given field have context available in this fieldgroup?
+	 * 
+	 * @param int|string|Field $field
+	 * @return bool
+	 * 
+	 */
+	public function hasFieldContext($field) {
+		if(is_object($field) && $field instanceof Field) $field = $field->id;
+		if(is_string($field) && !ctype_digit($field)) {
+			$field = $this->wire('fields')->get($field);
+			$field = $field && $field->id ? $field->id : 0;
+		}
+		return isset($this->fieldContexts[(int) $field]) ? true : false;
 	}
 
 	/**

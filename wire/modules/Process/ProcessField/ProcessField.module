@@ -24,7 +24,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		return array(
 			'title' => __('Fields', __FILE__),
 			'summary' => __('Edit individual fields that hold page data', __FILE__),
-			'version' => 110,
+			'version' => 111,
 			'permanent' => true, 
 			'permission' => 'field-admin', // add this permission if you want this Process available for roles other than Superuser
 			'icon' => 'cube', 
@@ -385,7 +385,11 @@ class ProcessField extends Process implements ConfigurableModule {
 			'Dependency' => array(
 				'icon' => 'fa fa-question-circle', 
 				'label' => $this->_x('show if...', 'list notes')
-				)
+				),
+			'Access' => array(
+				'icon' => 'fa fa-key', 
+				'label' => $this->_x('access', 'list notes')
+				),
 			);
 
 		$numTemplates = 0; 
@@ -402,6 +406,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		if($field->flags & Field::flagAutojoin) $flags[] = 'Autojoin';
 		if($field->flags & Field::flagGlobal) $flags[] = 'Global';
+		if($field->flags & Field::flagAccess) $flags[] = 'Access';
 
 		if($field->flags & Field::flagSystem) {
 			$flags[] = 'System';
@@ -464,20 +469,22 @@ class ProcessField extends Process implements ConfigurableModule {
 	public function ___executeEdit() {
 		
 		if(is_null($this->form)) $this->buildEditForm();
-
-		$this->fuel('breadcrumbs')->add(new Breadcrumb('./', $this->moduleInfo['title'])); 
-
+		$this->breadcrumb('./', $this->moduleInfo['title']);
+		
 		if($this->field->id) {
-			$headline = sprintf($this->_x('Edit Field: %s', 'edit headline'), $this->field->name); // Headilne when editing a field
-
+			$headline = sprintf($this->_x('Edit Field: %s', 'edit headline'), $this->field->name); // Headline when editing a field
 		} else {
 			$headline = $this->_x('Add New Field', 'add headline'); // Headline when adding a field
 		}
+		
+		if($this->fieldgroup) {
+			$this->breadcrumb("./edit?id=" . $this->field->id, $this->field->name);
+			$headline .= ' (' . sprintf($this->_('when used with template: %s'), $this->fieldgroup->name) . ')';
+		}
 
-		$this->setFuel('processHeadline', $headline); 
-		$this->setFuel('processBrowserTitle', $headline); 
-
-		$this->identifyContextChanges();
+		$this->headline($headline);
+		$this->browserTitle($headline);
+		//$this->identifyContextChanges();
 
 		if($this->field->id && !$this->fieldgroup && $this->session->get($this, 'optimize') == $this->field->id) {
 			// this is outside of buildEditForm intentionally, in case anything has hooked buildEditForm and adding properties to it
@@ -490,8 +497,7 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		return $out;
 	}
-
-
+	
 	protected function buildEditFormAlert() {
 
 		$this->field->type->getDatabaseSchema($this->field); // may add to trackGets, so we include it (i.e. FieldtypeFile and fileSchema)
@@ -572,6 +578,8 @@ class ProcessField extends Process implements ConfigurableModule {
 
 	/**
 	 * Add a '*' symbol to the labels of any fields that are overriding the defaults
+	 * 
+	 * @deprecated
 	 *
 	 */
 	protected function identifyContextChanges() {
@@ -613,27 +621,34 @@ class ProcessField extends Process implements ConfigurableModule {
 	protected function renderContextSelect() {
 
 		if(!$this->field->id) return '';
+		if($this->fieldgroup && $this->wire('input')->get('modal')) {
+			return "<input type='hidden' name='fieldgroup_id' value='{$this->fieldgroup->id}' />";
+		}
+		
 		$fieldgroups = $this->field->getFieldgroups();
 		if(!count($fieldgroups)) return '';
+		$contextLabel = $this->_('Override by template');
 
-		$out = 	"<div id='fieldgroupContext'>" . 
-			"<label class='description'>" . $this->_('Context') . ' ' .
+		$out = 	
+			"<div id='fieldgroupContext'>" . 
 			"<select id='fieldgroupContextSelect' name='fieldgroup_id'>" . 
-			"<option value=''>" . $this->_x('None (default)', 'context select') . "</option>";
+			"<option value=''>$contextLabel</option>"; // . $this->_x('None (default)', 'context select') . "</option>";
 
 		foreach($fieldgroups->sort('name') as $fieldgroup) {
 			$selected = $this->fieldgroup && $this->fieldgroup->id == $fieldgroup->id ? " selected='selected'" : '';
 			$out .= "<option$selected value='{$fieldgroup->id}'>{$fieldgroup->name}</option>";
 		}
 
-		$out .= "</select>" . 
-			"</label>" . 
+		$out .= 
+			"</select>" . 
 			"</div>";
 
+		/*
 		if($this->fieldgroup) $out .= 
 			'<p class="detail">' . 
 			sprintf($this->_('*Indicates that field is currently overriding a default value. Settings that you specify on this screen override the default settings only when used with the "%s" template.'), $this->fieldgroup->name) . 
 			'</p>';
+		*/
 	
 		return $out; 	
 	}
@@ -671,14 +686,23 @@ class ProcessField extends Process implements ConfigurableModule {
 		$form->add($this->buildEditFormBasics());
 
 		if($this->field->id) { 
+			$accessTab = $this->buildEditFormAccess();
 			if($this->field->type) {
 				$this->buildEditFormCustom($form);
-				if(!$this->fieldgroup) $form->add($this->buildEditFormAdvanced());
+				if(!$this->fieldgroup) {
+					$form->add($accessTab);
+					$form->add($this->buildEditFormAdvanced());
+				}
 			}
 			if(!$this->fieldgroup) {
 				$info = $this->buildEditFormInfo();
-				if(count($info)) $form->add($info); 
+				if(count($info)) $form->add($info);
+				$this->buildEditFormContext($form);
 				$form->add($this->buildEditFormDelete());
+			} else {
+				$form->add($accessTab);
+				$this->buildEditFormContext($form);
+				// $this->buildEditFormContextFieldgroup($form); 
 			}
 		}
 
@@ -700,7 +724,7 @@ class ProcessField extends Process implements ConfigurableModule {
 		$field->class .= ' head_button_clone';
 		$form->add($field); 
 
-		if(wire('input')->get('process_template')) {
+		if($this->wire('input')->get('process_template')) {
 			// ProcessTemplate has loaded the field editor in a modal window
 			// so we add a cancel button that asmSelect will recognize for it's modal
 			$field = $this->modules->get('InputfieldButton');
@@ -717,9 +741,106 @@ class ProcessField extends Process implements ConfigurableModule {
 			$field->attr('value', '');
 			$form->append($field); 
 		}
+		
 
 		return $form; 
 	}
+	
+	protected function ___buildEditFormContext($form) {
+		
+		$allChanges = array();
+		$fieldgroups = $this->fieldgroup ? array($this->fieldgroup) : $this->wire('fieldgroups'); 
+		
+		foreach($fieldgroups as $fieldgroup) {
+			/** @var Fieldgroup $fieldgroup */
+			/** @var Field $field */
+			$field = $fieldgroup->getField($this->field->name); 
+			if(!$field) continue; 
+			if(!$fieldgroup->hasFieldContext($field->name)) continue; 	
+			$allChanges[$fieldgroup->name] = $this->getContextChanges($form, $field, $fieldgroup);
+		}
+		if(!count($allChanges)) return;
+		
+		$tab = new InputfieldWrapper();
+		$tab->attr('title', $this->_('Overrides'));
+		$tab->attr('class', 'WireTab');
+		$form->add($tab); 
+		
+		$f = $this->wire('modules')->get('InputfieldMarkup');
+		$f->description = $this->_('The following settings are overridden for this field by the indicated template(s). Check the box to the right of any row to remove the setting override (restoring the original value).');
+		$f->icon = 'exchange';
+		if($this->fieldgroup) {
+			$f->label = sprintf($this->_('Setting overrides for template: %s'), $this->fieldgroup->name);
+		} else {
+			$f->label = $this->_('Setting overrides by template'); 
+			$f->notes = $this->_('To edit an override setting or override other settings, edit any template and click the field name in the fields list.');
+		}
+		$tab->add($f);
+	
+		/** @var MarkupAdminDataTable $table */
+		$table = $this->wire('modules')->get('MarkupAdminDataTable');
+		$table->setEncodeEntities(false);
+		$table->setSortable(false);
+		$header = array();
+		if(!$this->fieldgroup) $header[] = $this->_x('Template', 'context-thead');
+		$header[] = $this->_x('Setting', 'context-thead');
+		$header[] = $this->_x('Original', 'context-thead');
+		$header[] = $this->_x('Override', 'context-thead');
+		$header[] = "<i class='fa fa-trash-o override-select-all'></i>";
+		$table->headerRow($header); 
+		
+		$sanitizer = $this->wire('sanitizer');
+		$lastFieldgroupName = '';
+		$this->wire('modules')->get('JqueryUI')->use('modal');
+		
+		foreach($allChanges as $fieldgroupName => $changes) {
+			$fieldgroup = $this->wire('fieldgroups')->get($fieldgroupName);
+			foreach($changes as $key => $change) {
+				$a = $fieldgroupName;
+				// $a = "<a class='pw-modal' data-buttons='#Inputfield_submit_save_field' data-autoclose='1' " . 
+				//	"href='./edit?id={$this->field->id}&fieldgroup_id=$fieldgroup->id'>$fieldgroupName</a>";
+				$fieldgroupLabel = $fieldgroupName == $lastFieldgroupName ? '' : $a;
+				$row = array();
+				if(!$this->fieldgroup) $row[] = $fieldgroupLabel;
+				$row[] = $sanitizer->entities($change['label']);
+				$row[] = "<del>" . $sanitizer->entities($change['originalValue']) . "</del>";
+				$row[] = $sanitizer->entities($change['value']);
+				$row[] = "<input type='checkbox' name='_remove_context[]' value='$fieldgroup->id:$key' />";
+				$options = $fieldgroupLabel ? array('separator' => true) : array();
+				$table->row($row, $options);
+				$lastFieldgroupName = $fieldgroupName;
+			}
+		}
+		
+		$f->value = $table->render();
+	}
+
+	/*
+	protected function ___buildEditFormContextFieldgroup($form) {
+		if(!$this->fieldgroup) return;
+		$changes = $this->getContextChanges($form, $this->field, $this->fieldgroup);
+		
+		$tab = new InputfieldWrapper();
+		$tab->attr('title', $this->_('Overrides'));
+		$tab->attr('class', 'WireTab');
+		$form->add($tab); 
+		
+		$f = $this->wire('modules')->get('InputfieldCheckboxes');
+		$f->label = $this->_('Remove context overrides');
+		$f->table = true; 
+		$f->thead = 
+			$this->_x('Remove setting', 'context-thead') . '|' .
+			$this->_x('Original', 'context-thead') . '|' . 
+			$this->_x('Override', 'context-thead'); 
+		$f->description = sprintf($this->_('The following settings are overriding the original field settings when this field is used in the context of the "%s" template.'), $this->fieldgroup->name); // Context description
+		$f->description .= ' ' . $this->_('To remove any of the overridden values (and restore the original field value) check the box next to each setting you want to remove/restore.'); // Context description 2
+		$tab->add($f);
+		
+		foreach($changes as $key => $change) {
+			$f->addOption($key, "$change[label]|$change[originalValue]|$change[value]");
+		}
+	}
+	*/
 
 	/**
 	 * Add Fieldtype and Inputfield custom fields to the form 
@@ -730,7 +851,8 @@ class ProcessField extends Process implements ConfigurableModule {
 		foreach($customFields as $field) {
 			// skip over wrappers if they don't have fields in them 
 			if($field instanceof InputfieldWrapper && !count($field->children)) continue; 
-			if(!$this->fieldgroup) $field->attr('class', 'WireTab');
+			//if(!$this->fieldgroup) $field->attr('class', 'WireTab');
+			$field->attr('class', 'WireTab');
 			$field->head = '';
 			$form->add($field); 
 		}
@@ -781,7 +903,6 @@ class ProcessField extends Process implements ConfigurableModule {
 
 
 		if($this->fieldgroup) { 	
-			$form->head = sprintf($this->_('Settings when used with template: %s'), $this->fieldgroup->name);
 
 		} else {
 			//$form->head = $this->_('Basic field settings');
@@ -959,6 +1080,85 @@ class ProcessField extends Process implements ConfigurableModule {
 
 		return $form; 
 	}
+	
+	protected function buildEditFormAccess() {
+
+		$config = $this->wire('config');
+
+		$tab = new InputfieldWrapper();
+		$tab->attr('class', 'WireTab');
+		$tab->attr('id', 'access');
+		$tab->attr('title', $this->_x('Access', 'tab'));
+
+		$f = $this->wire('modules')->get('InputfieldRadios');
+		$f->attr('name', 'useRoles');
+		$f->label = $this->_('Do you want to manage access control for this field?');
+		$f->description = $this->_('When enabled, you can limit view and edit access to this field by user role.');
+		$f->icon = 'key';
+		$f->addOption(1, $this->_x('Yes', 'access'));
+		$f->addOption(0, $this->_x('No', 'access'));
+		$f->attr('value', (int) $this->field->useRoles);
+		$f->optionColumns = 1;
+		$tab->add($f);
+
+		$f = $this->modules->get("InputfieldMarkup");
+		$f->attr('id', '_roles_editor');
+		$f->showIf = 'useRoles=1';
+		$f->label = $this->_('What roles can view and/or edit this field?');
+		$f->description = $this->_('Users must also have page view or edit access on the page where the field exists before these permissions are applicable.'); // Access control description
+		$f->notes = $this->_('When no boxes are checked, only superuser can view/edit the contents of the field.');
+
+		$table = $this->modules->get("MarkupAdminDataTable");
+		$table->setEncodeEntities(false);
+		$table->headerRow(array(
+			$this->_x('Role', 'access-thead'),
+			$this->_x('View', 'access-thead'),
+			$this->_x('Edit', 'access-thead'),
+		));
+		$checked = " checked='checked'";
+		$disabled = " disabled='disabled'";
+		$viewRoles = $this->field->viewRoles;
+		$editRoles = $this->field->editRoles;
+		$guestRole = $this->wire('roles')->get($config->guestUserRolePageID);
+		$guestHasView = in_array($guestRole->id, $viewRoles);
+
+		foreach($this->wire('roles') as $role) {
+			if($role->id == $config->superUserRolePageID) continue;
+			$label = $role->name;
+			$editable = $role->hasPermission('page-edit');
+			if($role->id == $guestRole->id) $label .= ' <span class="detail">' . $this->_('(everyone)') . "</span>";
+			$table->row(array(
+				$label,
+				("<input type='checkbox' id='viewRoles_$role->id' class='viewRoles' name='viewRoles[]' value='$role->id' " .
+					(in_array($role->id, $viewRoles) || $guestHasView ? $checked : '') . " />"),
+				("<input type='checkbox' id='editRoles_$role->id' class='editRoles' name='editRoles[]'  value='$role->id' " .
+					(in_array($role->id, $editRoles) ? $checked : '') . " " . ($editable ? '' : $disabled) . " />")
+			));
+		}
+
+		$f->value = $table->render();
+		$tab->add($f);
+
+		$f = $this->wire('modules')->get('InputfieldCheckboxes');
+		$f->attr('name', '_accessFlags');
+		$f->label = $this->_('Access toggles');
+		$f->addOption(Field::flagAccessEditor, $this->_('Show field in page editor if viewable but not editable (user can see but not change)'));
+		$f->addOption(Field::flagAccessAPI, $this->_('Make field value accessible from API even if not viewable (see below)*'));
+		$f->showIf = "useRoles=1";
+		$value = array();
+		if($this->field->flags & Field::flagAccessAPI) $value[] = Field::flagAccessAPI;
+		if($this->field->flags & Field::flagAccessEditor) $value[] = Field::flagAccessEditor;
+		$f->attr('value', $value);
+		$f->notes = '*' . sprintf($this->_('When a field is not viewable (on the front-end with output formatting on), the $page->%s value will be a blank version of the expected type, which prevents the value from being shown.'), $this->field->name) .
+			' ' . $this->_('Check the box above to bypass this behavior, making the value always API accessible. This will leave you to do any access checking.') .
+			' ' . $this->_('You can check view access from the API for this field like this:') .
+			sprintf("\n\n`if(\$page->viewable('%s')) { ... }`", $this->field->name);
+		$f->collapsed = Inputfield::collapsedBlank;
+		$tab->add($f);
+
+		return $tab;
+	}
+
 
 	/**
 	 * Build the 'Advanced' field shown in the Field Edit form
@@ -1101,6 +1301,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			try { 
 				$this->field->save();
 				$this->message($this->_('Saved Field') . " - {$this->field->name}"); 
+				$this->saveRemoveOverrides();
 				$this->fieldSaved($this->field); 
 				$select = $this->form->get("type"); 
 				if($this->field->type->className() != $select->value) {
@@ -1189,6 +1390,8 @@ class ProcessField extends Process implements ConfigurableModule {
 			$error = sprintf($this->_('Field name "%s" is a reserved word'), $name);
 		} else if(preg_match('/^(_|\d)/', $name)) {
 			$error = $this->_('Field names may not begin with "_" or digits');
+		} else if($this->wire('languages') && $this->wire('languages')->get($name)) {
+			$error = $this->_('Field name may not be the same as a Language name');
 		} else {
 			$allowed = true; 
 		}
@@ -1211,6 +1414,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			$this->form->processInput($this->input->post); 
 			$this->saveInputfields($this->form); 
 			$this->fields->saveFieldgroupContext($this->field, $this->fieldgroup); 
+			$this->saveRemoveOverrides();
 		} catch(Exception $e) {
 			$this->error($e->getMessage()); 
 		}
@@ -1237,7 +1441,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			$name = $inputfield->name; 
 			$value = $inputfield->value; 
 
-			if(!$name || $inputfield instanceof InputfieldSubmit) continue; 
+			if(!$name || $inputfield instanceof InputfieldSubmit || $inputfield instanceof InputfieldMarkup) continue; 
 
 			// see /core/Fieldtype.php for the inputfields that initiate the autojoin and global flags
 			if($name == 'autojoin') {
@@ -1265,6 +1469,7 @@ class ProcessField extends Process implements ConfigurableModule {
 			if($name == 'fieldgroup_id') continue; 
 			if($name == 'field_label') $name = 'label';
 			if($name == 'id' && $this->field->id) continue; 
+			if($name == 'useRoles') $value = (bool) ((int) $value);
 		
 			// if adding new field or existing name has changed, check that its an allowed name
 			if($name == 'name' && (!$this->field->id || $value !== $this->field->name)) {
@@ -1282,6 +1487,66 @@ class ProcessField extends Process implements ConfigurableModule {
 			}
 		}
 		
+		if($this->field->useRoles) {
+			// access control active for this field
+			$this->field->viewRoles = $this->wire('input')->post('viewRoles');
+			$this->field->editRoles = $this->wire('input')->post('editRoles');
+			$accessFlags = $this->wire('input')->post('_accessFlags');
+			if(!is_array($accessFlags)) $accessFlags = array();
+			$flags = $this->field->flags;
+			if(in_array(Field::flagAccessAPI, $accessFlags)) {
+				$flags = $flags | Field::flagAccessAPI;
+			} else {
+				$flags = $flags & ~Field::flagAccessAPI;
+			}
+			if(in_array(Field::flagAccessEditor, $accessFlags)) {
+				$flags = $flags | Field::flagAccessEditor;
+			}  else {
+				$flags = $flags & ~Field::flagAccessEditor;
+			}
+			if($flags != $this->field->flags) $this->field->flags = $flags;
+		}
+	}
+
+	/**
+	 * Saves the submitted checkboxes from the "Overrides" tab
+	 * 
+	 */
+	protected function saveRemoveOverrides() {
+		$removeContext = $this->wire('input')->post('_remove_context');
+		if(empty($removeContext)) return;
+		$contextArrays = array();
+		$fieldgroups = array();
+		foreach($removeContext as $value) {
+			// FYI: "<input type='checkbox' name='_remove_context[]' value='$fieldgroup->id:$key' />"
+			list($fieldgroupID, $property) = explode(':', $value);
+			if(isset($fieldgroups[$fieldgroupID])) {
+				$fieldgroup = $fieldgroups[$fieldgroupID];
+			} else {
+				$fieldgroup = $this->wire('fieldgroups')->get((int) $fieldgroupID);
+				if(!$fieldgroup) continue;
+				$fieldgroups[$fieldgroup->id] = $fieldgroup;
+			}
+			if(isset($contextArrays[$fieldgroup->id])) {
+				$contextArray = $contextArrays[$fieldgroup->id];
+			} else {
+				$contextArray = $fieldgroup->getFieldContextArray($this->field->id);
+			}
+			if(strpos($property, 'flagsAdd-') === 0 || strpos($property, 'flagsDel-') === 0) {
+				list($flagType, $flag) = explode('-', $property);
+				$flag = (int) $flag;
+				if(isset($contextArray[$flagType])) $contextArray[$flagType] = $contextArray[$flagType] & ~$flag;
+			} else {
+				unset($contextArray[$property]);
+			}
+			$this->message($this->_('Removed context override') . " (template=$fieldgroup->name, property=$property)");
+			$contextArrays[$fieldgroup->id] = $contextArray;
+		}
+		foreach($contextArrays as $fieldgroupID => $contextArray) {
+			$fieldgroup = $fieldgroups[$fieldgroupID];
+			$fieldgroup->setFieldContextArray($this->field->id, $contextArray);
+			$fieldgroup->saveContext();
+		}
 	}
 
 
@@ -1563,7 +1828,139 @@ class ProcessField extends Process implements ConfigurableModule {
 		
 		$this->wire('session')->redirect("./edit?id={$this->field->id}"); 
 	}
-	
+
+	/**
+	 * Return array of human readable changes as a result of field context
+	 *
+	 * @param InputfieldWrapper $form
+	 * @param Field $field
+	 * @param Fieldgroup $fieldgroup
+	 * @return array
+	 *
+	 */
+	protected function getContextChanges(InputfieldWrapper $form, Field $field, Fieldgroup $fieldgroup) {
+
+		if(!$fieldgroup) return array();
+
+		$contextArray = $fieldgroup->getFieldContextArray($field->id);
+		if(!count($contextArray)) return array();
+
+		$fieldOriginal = $this->wire('fields')->get($field->id);
+		$changes = array();
+
+		$labels = array(
+			'on' => $this->_('On'),
+			'off' => $this->_('Off'),
+			'all' => $this->_('All'), 
+			'blank' => $this->_('[blank]'),
+			'collapsed' => $this->_('Field presentation/visibility'),
+			'viewRoles' => $this->_('Roles allowed to view this field'),
+			'editRoles' => $this->_('Roles allowed to edit this field'),
+			'flagsAddAccess' => $this->_('Enable access control'),
+			'flagsDelAccess' => $this->_('Remove access control'),
+			'flagsAddAccessAPI' => $this->_('Make field value API accessible even when not viewable'),
+			'flagsDelAccessAPI' => $this->_('Make field value NOT API accessible when not viewable'),
+			'flagsAddAccessEditor' => $this->_('Show in page editor even if not editable'),
+			'flagsDelAccessEditor' => $this->_('Hide in page editor when not editable'),
+		);
+
+		$flagsAddLookup = array(
+			Field::flagAccess => 'flagsAddAccess',
+			Field::flagAccessAPI =>'flagsAddAccessAPI',
+			Field::flagAccessEditor =>'flagsAddAccessEditor',
+		);
+		$flagsDelLookup = array(
+			Field::flagAccess => 'flagsDelAccess',
+			Field::flagAccessAPI => 'flagsDelAccessAPI',
+			Field::flagAccessEditor =>'flagsDelAccessEditor',
+		);
+
+		foreach($contextArray as $key => $value) {
+			$name = $key;
+			$formFieldName = $key;
+			if($formFieldName == 'label') $formFieldName = 'field_label';
+			$formField = $form->getChildByName($formFieldName);
+			$originalValue = $fieldOriginal->$key;
+			if($formField) {
+				if($formField instanceof InputfieldSelect) {
+					$options = $formField->getOptions();
+					if(is_array($value)) foreach($value as $k => $v) {
+						if(isset($options[$v])) $value[$k] = $options[$v];
+					} else if(isset($options[$value])) {
+						$value = $options[$value];
+					}
+					if(is_array($originalValue)) foreach($originalValue as $k => $v) {
+						if(isset($options[$v])) $originalValue[$k] = $options[$v];
+					} else if(isset($options[$originalValue])) {
+						$originalValue = $options[$originalValue];
+					}
+				} else if($formField instanceof InputfieldCheckbox) {
+					$value = $value ? $labels['on'] : $labels['off'];
+					$originalValue = $originalValue ? $labels['on'] : $labels['off'];
+				}
+			}
+			if(is_array($value) && ($key == 'viewRoles' || $key == 'editRoles')) {
+				foreach($value as $k => $v) {
+					$v = $this->wire('roles')->get((int) $v);
+					$roleName = $v->name == 'guest' ? $labels['all'] : $v->name;
+					if($v) $value[$k] = $roleName;
+				}
+			}
+			if(is_array($originalValue) && ($key == 'viewRoles' || $key == 'editRoles')) {
+				foreach($originalValue as $k => $v) {
+					$v = $this->wire('roles')->get((int) $v);
+					$roleName = $v->name == 'guest' ? $labels['all'] : $v->name;
+					if($v) $originalValue[$k] = $roleName;
+				}
+			}
+			$valueStr = $value;
+			$originalValueStr = $originalValue;
+			if(is_array($originalValueStr)) $originalValueStr = implode(', ', $originalValueStr);
+			if(is_array($valueStr)) $valueStr = implode(', ', $valueStr);
+			if($key == 'flagsAdd' || $key == 'flagsDel') {
+				$originalValueStr = ((int) $originalValue) ? $labels['on'] : $labels['off'];
+				$valueStr = ((int) $value) ? $labels['on'] : $labels['off'];
+			}
+			$originalValueStr = str_replace('|', ' ', $originalValueStr);
+			$valueStr = str_replace('|', ' ', $valueStr);
+			$change = array(
+				"name" => $name, 
+				"value" => $valueStr,
+				"originalValue" => $originalValueStr
+			);
+
+			if(isset($labels[$key])) {
+				$label = $labels[$key];
+			} else if($formField) {
+				$label = $formField->label;
+			} else if($key == 'flagsAdd') {
+				foreach($flagsAddLookup as $flag => $lookupKey) {
+					if($value & $flag) {
+						$change["label"] = $labels[$lookupKey];
+						$changes["flagsAdd-$flag"] = $change;
+					}
+				}
+				continue;
+			} else if($key == 'flagsDel') {
+				foreach($flagsDelLookup as $flag => $lookupKey) {
+					if($value & $flag) {
+						$change["label"] = $labels[$lookupKey];
+						$changes["flagsDel-$flag"] = $change;
+					}
+				}
+				continue;
+			} else if($this->wire('languages') && preg_match('/^(label|description|notes)(\d+)$/', $key, $matches)) {
+				$label = ucfirst($matches[1]) . ' (' . $this->wire('languages')->get((int) $matches[2])->get('title|name') . ')';
+			} else {
+				$label = $key;
+			}
+			$change["label"] = $label;
+			$changes[$key] = $change;
+		}
+		return $changes;
+	}
+
+
 	/**
 	 * Build a form allowing configuration of this Module
 	 *

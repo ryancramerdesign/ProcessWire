@@ -23,72 +23,100 @@
  * @property string $description
  * @property string $notes
  * @property string $icon
+ * @property bool $useRoles Whether or not access control is enabled (same as $field->flags & Field::flagAccess)
+ * @property array $editRoles Role IDs with edit access, applicable only if $field->useRoles is true.
+ * @property array $viewRoles Role IDs with view access, applicable only if $field->useRoles is true. 
+ * 
+ * Added by PagePermissions.module:
+ * @method bool editable() Returns whether or not field is editable by current user. Optionally specify a Page as first argument.
  * 
  * @todo add modified date property
  *
  */
 class Field extends WireData implements Saveable, Exportable {
 
-	/**  
+	/**
 	 * Field should be automatically joined to the page at page load time
 	 *
 	 */
-	const flagAutojoin = 1; 	
+	const flagAutojoin = 1;
 
-	/** 
+	/**
 	 * Field used by all fieldgroups - all fieldgroups required to contain this field
 	 *
 	 */
-	const flagGlobal = 4; 		
+	const flagGlobal = 4;
 
 	/**
 	 * Field is a system field and may not be deleted, have it's name changed, or be converted to non-system
 	 *
 	 */
-	const flagSystem = 8; 
+	const flagSystem = 8;
 
 	/**
-	 * Field is permanent in any fieldgroups/templates where it exists - it may not be removed from them 
+	 * Field is permanent in any fieldgroups/templates where it exists - it may not be removed from them
 	 *
 	 */
-	const flagPermanent = 16; 
+	const flagPermanent = 16;
+
+	/**
+	 * Field is access controlled
+	 *
+	 */
+	const flagAccess = 32;
+
+	/**
+	 * If field is access controlled, this flag says that values are still front-end API accessible
+	 * 
+	 * Without this flag, non-viewable values are made blank when output formatting is ON. 
+	 * 
+	 */
+	const flagAccessAPI = 64;
+
+	/**
+	 * If field is access controlled and user has no edit access, they can still view in the editor (if they have view permission)
+	 * 
+	 * Without this flag, non-editable values are simply not shown in the editor at all. 
+	 * 
+	 */
+	const flagAccessEditor = 128; 
 
 	/**
 	 * Field has been placed in a runtime state where it is contextual to a specific fieldgroup and is no longer saveable
 	 *
 	 */
-	const flagFieldgroupContext = 2048; 
+	const flagFieldgroupContext = 2048;
 
 	/**
 	 * Set this flag to override system/permanent flags if necessary - once set, system/permanent flags can be removed, but not in the same set().
 	 *
 	 */
-	const flagSystemOverride = 32768; 
-	
+	const flagSystemOverride = 32768;
+
 	/**
 	 * Permanent/native settings to an individual Field
 	 *
- 	 * id: Numeric ID corresponding with id in the fields table.
-	 * type: Fieldtype object or NULL if no Fieldtype assigned. 
-	 * label: String text label corresponding to the <label> field during input. 
-	 * flags: 
-	 * - autojoin: True if the field is automatically joined with the page, or False if it's value is loaded separately. 
+	 * id: Numeric ID corresponding with id in the fields table.
+	 * type: Fieldtype object or NULL if no Fieldtype assigned.
+	 * label: String text label corresponding to the <label> field during input.
+	 * flags:
+	 * - autojoin: True if the field is automatically joined with the page, or False if it's value is loaded separately.
 	 * - global: Is this field required by all Fieldgroups?
 	 *
 	 */
 	protected $settings = array(
-		'id' => 0, 
-		'type' => null, 
-		'flags' => 0, 
-		'name' => '', 
-		'label' => '', 
-		); 
+		'id'    => 0,
+		'type'  => null,
+		'flags' => 0,
+		'name'  => '',
+		'label' => '',
+	);
 
 	/**
-	 * If the field name changed, this is the name of the previous table so that it can be renamed at save time 
+	 * If the field name changed, this is the name of the previous table so that it can be renamed at save time
 	 *
 	 */
-	protected $prevTable; 
+	protected $prevTable;
 
 	/**
 	 * If the field type changed, this is the previous fieldtype so that it can be changed at save time
@@ -98,103 +126,187 @@ class Field extends WireData implements Saveable, Exportable {
 
 	/**
 	 * Accessed properties, becomes array when set to true, null when set to false
-	 * 
+	 *
 	 * Used for keeping track of which properties are accessed during a request, to help determine which
-	 * $data properties might no longer be in use. 
-	 * 
+	 * $data properties might no longer be in use.
+	 *
 	 * @var null|array
-	 * 
+	 *
 	 */
 	protected $trackGets = null;
+
+	/**
+	 * Array of Role IDs referring to roles that are allowed to view contents of this field (on pages)
+	 *
+	 * Applicable only if the flagAccess flag is set
+	 *
+	 * @var array
+	 *
+	 */
+	protected $viewRoles = array();
+
+	/**
+	 * Array of Role IDs referring to roles that are allowed to edit contents of this field (on pages)
+	 *
+	 * Applicable only if the flagAccess flag is set
+	 *
+	 * @var array
+	 *
+	 */
+	protected $editRoles = array();
 
 	/**
 	 * True if lowercase tables should be enforce, false if not (null = unset). Cached from $config
 	 *
 	 */
 	static protected $lowercaseTables = null;
-	
+
 
 	/**
 	 * Set a native setting or a dynamic data property for this Field
-	 * 
+	 *
 	 * @param string $key
 	 * @param mixed $value
+	 *
 	 * @return this
 	 *
 	 */
 	public function set($key, $value) {
 
-		if($key == 'name') return $this->setName($value); 
-			else if($key == 'type' && $value) return $this->setFieldtype($value); 
-			else if($key == 'prevTable') {
-				$this->prevTable = $value; 
-				return $this; 
-			} else if($key == 'prevFieldtype') {
-				$this->prevFieldtype = $value;
-				return $this; 
-			} else if($key == 'flags') {
-				$this->setFlags($value); 
-				return $this; 
-			} else if($key == 'id') {
-				$value = (int) $value; 
-			}
+		if($key == 'name') {
+			return $this->setName($value);
+		} else if($key == 'type' && $value) {
+			return $this->setFieldtype($value);
+		} else if($key == 'prevTable') {
+			$this->prevTable = $value;
+			return $this;
+		} else if($key == 'prevFieldtype') {
+			$this->prevFieldtype = $value;
+			return $this;
+		} else if($key == 'flags') {
+			$this->setFlags($value);
+			return $this;
+		} else if($key == 'flagsAdd') {
+			return $this->addFlag($value);
+		} else if($key == 'flagsDel') {
+			return $this->removeFlag($value);
+		} else if($key == 'id') {
+			$value = (int) $value;
+		}
 
 		if(isset($this->settings[$key])) {
 			$this->settings[$key] = $value;
 		} else if($key == 'icon') {
-			$this->setIcon($value); 
+			$this->setIcon($value);
+		} else if($key == 'editRoles') {
+			$this->setRoles('edit', $value);
+		} else if($key == 'viewRoles') {
+			$this->setRoles('view', $value);
+		} else if($key == 'useRoles') {
+			$flags = $this->flags;
+			if($value) {
+				$flags = $flags | self::flagAccess; // add flag
+			} else {
+				$flags = $flags & ~self::flagAccess; // remove flag
+			}
+			$this->setFlags($flags);
 		} else {
-			return parent::set($key, $value); 
+			return parent::set($key, $value);
 		}
 
-		return $this; 
+		return $this;
 	}
 
 	/**
 	 * Set the flags field, ensuring a system flag remains set
-	 * 
+	 *
 	 * @param int $value
 	 *
 	 */
 	protected function setFlags($value) {
 		// ensure that the system flag stays set
-		$value = (int) $value; 
+		$value = (int) $value;
 		$override = $this->settings['flags'] & Field::flagSystemOverride;
-		if(!$override) { 
+		if(!$override) {
 			if($this->settings['flags'] & Field::flagSystem) $value = $value | Field::flagSystem;
-			if($this->settings['flags'] & Field::flagPermanent) $value = $value | Field::flagPermanent; 
+			if($this->settings['flags'] & Field::flagPermanent) $value = $value | Field::flagPermanent;
 		}
 		$this->settings['flags'] = $value;
 	}
 
 	/**
-	 * Get a Field setting or dynamic data property
+	 * Add the given flag
 	 * 
+	 * @param int $flag
+	 * @return $this
+	 * 
+	 */
+	public function addFlag($flag) {
+		$flag = (int) $flag;
+		$this->setFlags($this->settings['flags'] | $flag);
+		return $this;
+	}
+
+	/**
+	 * Remove the given flag
+	 * 
+	 * @param $flag
+	 * @return $this
+	 * 
+	 */
+	public function removeFlag($flag) {
+		$flag = (int) $flag;
+		$this->setFlags($this->settings['flags'] & ~$flag);
+		return $this;
+	}
+
+	/**
+	 * Does this field have the given flag?
+	 * 
+	 * @param int $flag
+	 * @return bool
+	 * 
+	 */
+	public function hasFlag($flag) {
+		$flag = (int) $flag;
+		return ($this->settings['flags'] & $flag) ? true : false;
+	}
+
+	/**
+	 * Get a Field setting or dynamic data property
+	 *
 	 * @param string $key
+	 *
 	 * @return mixed
 	 *
 	 */
 	public function get($key) {
-		if($key == 'table') return $this->getTable();
-			else if($key == 'prevTable') return $this->prevTable; 
-			else if($key == 'prevFieldtype') return $this->prevFieldtype; 
-			else if(isset($this->settings[$key])) return $this->settings[$key]; 
-			else if($key == 'icon') return $this->getIcon(true); 
-		$value = parent::get($key); 
-		if(is_array($this->trackGets)) $this->trackGets($key); 
-		return $value; 
+		if($key == 'viewRoles') return $this->viewRoles;
+		else if($key == 'editRoles') return $this->editRoles;
+		else if($key == 'table') return $this->getTable();
+		else if($key == 'prevTable') return $this->prevTable;
+		else if($key == 'prevFieldtype') return $this->prevFieldtype;
+		else if(isset($this->settings[$key])) return $this->settings[$key];
+		else if($key == 'icon') return $this->getIcon(true);
+		else if($key == 'useRoles') return ($this->settings['flags'] & self::flagAccess) ? true : false;
+		else if($key == 'flags') return $this->settings['flags'];
+
+		$value = parent::get($key);
+		if(is_array($this->trackGets)) $this->trackGets($key);
+		return $value;
 	}
-	
+
 	/**
 	 * Turn on tracking for accessed properties
 	 *
 	 * @param bool|string $key
-	 * 	Omit to retrieve current trackGets value.
-	 * 	Specify true to enable Get tracking.
-	 * 	Specify false to disable (and reset) Get tracking.
-	 * 	Specify string key to track.
+	 *    Omit to retrieve current trackGets value.
+	 *    Specify true to enable Get tracking.
+	 *    Specify false to disable (and reset) Get tracking.
+	 *    Specify string key to track.
+	 *
 	 * @return bool|array Returns current state of trackGets when no arguments provided.
-	 * 	Otherwise it just returns true.
+	 *    Otherwise it just returns true.
 	 *
 	 */
 	public function trackGets($key = null) {
@@ -214,7 +326,7 @@ class Field extends WireData implements Saveable, Exportable {
 		return true;
 	}
 
-	
+
 	/**
 	 * Return a key=>value array of the data associated with the database table per Saveable interface
 	 *
@@ -222,11 +334,17 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	public function getTableData() {
-		$a = $this->settings; 
-		$a['data'] = $this->data; 
+		$a = $this->settings;
+		$a['data'] = $this->data;
 		foreach($a['data'] as $key => $value) {
 			// remove runtime data (properties beginning with underscore)
-			if(strpos($key, '_') === 0) unset($a['data'][$key]); 
+			if(strpos($key, '_') === 0) unset($a['data'][$key]);
+		}
+		if($this->settings['flags'] & self::flagAccess) {
+			$a['data']['editRoles'] = $this->editRoles;
+			$a['data']['viewRoles'] = $this->viewRoles;
+		} else {
+			unset($a['data']['editRoles'], $a['data']['viewRoles']); // just in case
 		}
 		return $a;
 	}
@@ -236,83 +354,84 @@ class Field extends WireData implements Saveable, Exportable {
 	 *
 	 */
 	public function getExportData() {
-		
+
 		if($this->type) {
 			$data = $this->getTableData();
 			$data['type'] = $this->type->className();
 		} else {
 			$data['type'] = '';
 		}
-		
+
 		if(isset($data['data'])) $data = array_merge($data, $data['data']); // flatten
-		unset($data['data']); 
-		
+		unset($data['data']);
+
 		if($this->type) {
 			$typeData = $this->type->exportConfigData($this, $data);
-			$data = array_merge($data, $typeData); 
+			$data = array_merge($data, $typeData);
 		}
-		
+
 		// remove named flags from data since the 'flags' property already covers them
 		$flagOptions = array('autojoin', 'global', 'system', 'permanent');
 		foreach($flagOptions as $name) unset($data[$name]);
-		
+
 		$data['flags'] = $this->flags;
-		
+
 		foreach($data as $key => $value) {
 			// exclude properties beginning with underscore as they are assumed to be for runtime use only
 			if(strpos($key, '_') === 0) unset($data[$key]);
 		}
-		
+
 		return $data;
 	}
-	
+
 	/**
 	 * Given an export data array, import it back to the class and return what happened
 	 *
 	 * @param array $data
+	 *
 	 * @return array Returns array(
-	 * 	[property_name] => array(
-	 * 
-	 * 		// old value (in string comparison format)
-	 * 		'old' => 'old value',
-	 * 
-	 * 		// new value (in string comparison format)
-	 * 		'new' => 'new value',	
-	 * 
-	 *		// error message (string) or messages (array) 
-	 * 		'error' => 'error message or blank if no error' ,
-	 * 	)
+	 *    [property_name] => array(
+	 *
+	 *        // old value (in string comparison format)
+	 *        'old' => 'old value',
+	 *
+	 *        // new value (in string comparison format)
+	 *        'new' => 'new value',
+	 *
+	 *        // error message (string) or messages (array)
+	 *        'error' => 'error message or blank if no error' ,
+	 *    )
 	 *
 	 */
 	public function setImportData(array $data) {
-		
+
 		$changes = array();
 		$data['errors'] = array();
 		$_data = $this->getExportData();
-	
+
 		// compare old data to new data to determine what's changed
 		foreach($data as $key => $value) {
-			if($key == 'errors') continue; 
-			$data['errors'][$key] = ''; 
-			$old = isset($_data[$key]) ? $_data[$key] : ''; 
-			if(is_array($old)) $old = wireEncodeJSON($old, true); 
-			$new = is_array($value) ? wireEncodeJSON($value, true) : $value; 
-			if($old === $new || (empty($old) && empty($new)) || (((string) $old) === ((string) $new))) continue; 
+			if($key == 'errors') continue;
+			$data['errors'][$key] = '';
+			$old = isset($_data[$key]) ? $_data[$key] : '';
+			if(is_array($old)) $old = wireEncodeJSON($old, true);
+			$new = is_array($value) ? wireEncodeJSON($value, true) : $value;
+			if($old === $new || (empty($old) && empty($new)) || (((string) $old) === ((string) $new))) continue;
 			$changes[$key] = array(
-				'old' => $old,
-				'new' => $new, 
+				'old'   => $old,
+				'new'   => $new,
 				'error' => '', // to be populated by Fieldtype::importConfigData when applicable
-				);
+			);
 		}
 
 		// prep data for actual import
 		if(!empty($data['type']) && ((string) $this->type) != $data['type']) {
-			$this->type = $this->wire('fieldtypes')->get($data['type']); 
+			$this->type = $this->wire('fieldtypes')->get($data['type']);
 		}
-		
+
 		if(!$this->type) $this->type = $this->wire('fieldtypes')->get('FieldtypeText');
-		$data = $this->type->importConfigData($this, $data); 
-		
+		$data = $this->type->importConfigData($this, $data);
+
 		// populate import data
 		foreach($changes as $key => $change) {
 			$this->errors('clear all');
@@ -320,14 +439,14 @@ class Field extends WireData implements Saveable, Exportable {
 			if(!empty($data['errors'][$key])) {
 				$error = $data['errors'][$key];
 				// just in case they switched it to an array of multiple errors, convert back to string
-				if(is_array($error)) $error = implode(" \n", $error); 
+				if(is_array($error)) $error = implode(" \n", $error);
 			} else {
 				$error = $this->errors('last');
 			}
 			$changes[$key]['error'] = $error ? $error : '';
 		}
 		$this->errors('clear all');
-		
+
 		return $changes;
 	}
 
@@ -335,40 +454,42 @@ class Field extends WireData implements Saveable, Exportable {
 	 * Set the field's name
 	 *
 	 * @param string $name
+	 *
 	 * @return Field $this
 	 * @throws WireException
 	 *
 	 */
 	public function setName($name) {
-		$name = $this->fuel('sanitizer')->fieldName($name); 
+		$name = $this->fuel('sanitizer')->fieldName($name);
 
-		if(Fields::isNativeName($name)) 
-			throw new WireException("Field may not be named '$name' because it is a reserved word"); 
+		if(Fields::isNativeName($name))
+			throw new WireException("Field may not be named '$name' because it is a reserved word");
 
 		if($this->fuel('fields') && ($f = $this->fuel('fields')->get($name)) && $f->id != $this->id)
-			throw new WireException("Field may not be named '$name' because it is already used by another field"); 
+			throw new WireException("Field may not be named '$name' because it is already used by another field");
 
-		if(strpos($name, '__') !== false) 
-			throw new WireException("Field name '$name' may not have double underscores because this usage is reserved by the core"); 
+		if(strpos($name, '__') !== false)
+			throw new WireException("Field name '$name' may not have double underscores because this usage is reserved by the core");
 
 		if($this->settings['name'] != $name) {
 			if($this->settings['name'] && ($this->settings['flags'] & Field::flagSystem)) {
-				throw new WireException("You may not change the name of field '{$this->settings['name']}' because it is a system field."); 
+				throw new WireException("You may not change the name of field '{$this->settings['name']}' because it is a system field.");
 			}
-			$this->trackChange('name'); 
+			$this->trackChange('name');
 			if($this->settings['name']) $this->prevTable = $this->getTable(); // so that Fields can perform a table rename
 		}
 
-		$this->settings['name'] = $name; 
-		return $this; 
+		$this->settings['name'] = $name;
+		return $this;
 	}
 
 	/**
-	 * Set what type of field this is. 
+	 * Set what type of field this is.
 	 *
-	 * Type should be either a Fieldtype object or the string name of a Fieldtype object. 
+	 * Type should be either a Fieldtype object or the string name of a Fieldtype object.
 	 *
 	 * @param string|Fieldtype $type
+	 *
 	 * @return Field $this
 	 * @throws WireException
 	 *
@@ -379,25 +500,103 @@ class Field extends WireData implements Saveable, Exportable {
 			// good for you
 
 		} else if(is_string($type)) {
-			$typeStr = $type; 
-			$fieldtypes = $this->fuel('fieldtypes'); 
+			$typeStr = $type;
+			$fieldtypes = $this->fuel('fieldtypes');
 			if(!$type = $fieldtypes->get($type)) {
 				$this->error("Fieldtype '$typeStr' does not exist");
 				return $this;
 			}
 		} else {
-			throw new WireException("Invalid field type in call to Field::setFieldType"); 
+			throw new WireException("Invalid field type in call to Field::setFieldType");
 		}
 
 		if(!$this->type || ($this->type->name != $type->name)) {
-			$this->trackChange("type:{$type->name}"); 
-			if($this->type) $this->prevFieldtype = $this->type; 
+			$this->trackChange("type:{$type->name}");
+			if($this->type) $this->prevFieldtype = $this->type;
 		}
-		$this->settings['type'] = $type; 
+		$this->settings['type'] = $type;
 
-		return $this; 
+		return $this;
 	}
 
+	/**
+	 * Set the roles that are allowed to view or edit this field on pages
+	 *
+	 * Applicable only if the flagAccess is set to this field's flags.
+	 *
+	 * @param string $type Must be either "view" or "edit"
+	 * @param PageArray|array|null $roles May be a PageArray of Role objects or an array of Role IDs
+	 *
+	 * @throws WireException if given invalid argument
+	 *
+	 */
+	public function setRoles($type, $roles) {
+		if(empty($roles)) $roles = array();
+		if(!WireArray::iterable($roles)) {
+			throw new WireException("setRoles expects PageArray or array of Role IDs");
+		}
+		$ids = array();
+		foreach($roles as $role) {
+			if(is_int($role) || (is_string($role) && ctype_digit("$role"))) {
+				$ids[] = (int) $role;
+			} else if($role instanceof Role) {
+				$ids[] = (int) $role->id;
+			}
+		}
+		if($type == 'view') {
+			$guestID = $this->wire('config')->guestUserRolePageID;
+			// if guest is present, then that's inclusive of all, no need to store others in viewRoles
+			if(in_array($guestID, $ids)) $ids = array($guestID); 
+			if($this->viewRoles != $ids) {
+				$this->viewRoles = $ids;
+				$this->trackChange('viewRoles');
+			}
+		} else if($type == 'edit') {
+			if($this->editRoles != $ids) {
+				$this->editRoles = $ids;
+				$this->trackChange('editRoles');
+			}
+		} else {
+			throw new WireException("setRoles expects either 'view' or 'edit' (arg 0)");
+		}
+	}
+
+	/**
+	 * Is this field viewable?
+	 *
+	 * 1. To maximize efficiency check that $field->useRoles is true before calling this.  
+	 * 2. If you have already verified that the page is viewable, omit or specify null for $page argument.
+	 * 
+	 * PLEASE NOTE: this does not check that the provided $page itself is viewable.
+	 * If you want that check, then use $page->viewable($field) instead.
+	 * 
+	 * @param Page|null $page Optionally specify a Page for context
+	 * @param User|null $user Optionally specify a different user (default = current user)
+	 * @return bool
+	 * 
+	 */
+	public function ___viewable(Page $page = null, User $user = null) {
+		return $this->wire('fields')->_hasPermission($this, 'view', $page, $user);
+	}
+
+	/**
+	 * Is this field editable?
+	 * 
+	 * 1. To maximize efficiency check that $field->useRoles is true before calling this.
+	 * 2. If you have already verified that the page is viewable, omit or specify null for $page argument.
+	 * 
+	 * PLEASE NOTE: this does not check that the provided $page itself is editable.
+	 * If you want that check, then use $page->editable($field) instead.
+	 *
+	 * @param Page|string|int|null $page Optionally specify a Page for context
+	 * @param User|string|int|null $user Optionally specify a different user (default = current user)
+	 * @return bool
+	 *
+	 */
+	public function ___editable(Page $page = null, User $user = null) {
+		return $this->wire('fields')->_hasPermission($this, 'edit', $page, $user);
+	}
+	
 	/**
 	 * Save this field's settings and data in the database. 
 	 *
@@ -482,6 +681,20 @@ class Field extends WireData implements Saveable, Exportable {
 	public function ___getInputfield(Page $page, $contextStr = '') {
 
 		if(!$this->type) return null;
+		
+		// check access control
+		$locked = false;
+		if($this->useRoles && !$this->editable($page)) {
+			// $this->message("not editable: " . $this->name);
+			if(($this->flags & self::flagAccessEditor) && $this->viewable($page)) {
+				// Inputfield is viewable but not editable
+				$locked = true;
+			} else {
+				// Inputfield is neither editable nor viewable
+				$locked = 'hidden';
+			}
+		}
+		
 		$inputfield = $this->type->getInputfield($page, $this);
 		if(!$inputfield) return null; 
 
@@ -497,6 +710,26 @@ class Field extends WireData implements Saveable, Exportable {
 			if($inputfield->has($key)) {
 				if(is_array($this->trackGets)) $this->trackGets($key); 
 				$inputfield->set($key, $value); 
+			}
+		}
+
+		if($locked && $locked === 'hidden') {
+			// Inputfield should not be shown
+			$inputfield->collapsed = Inputfield::collapsedHidden;
+		} else if($locked) {
+			// Inputfield is locked as a result of access control
+			$collapsed = $inputfield->collapsed; 
+			$ignoreCollapsed = array(Inputfield::collapsedNoLocked, Inputfield::collapsedYesLocked, Inputfield::collapsedHidden);
+			if(!in_array($collapsed, $ignoreCollapsed)) {
+				// Inputfield is not already locked or hidden, convert to locked equivalent
+				if($collapsed == Inputfield::collapsedYes || $collapsed == Inputfield::collapsedBlank) {
+					$collapsed = Inputfield::collapsedYesLocked;
+				} else if($collapsed == Inputfield::collapsedNo) {
+					$collapsed = Inputfield::collapsedNoLocked;
+				} else {
+					$collapsed = Inputfield::collapsedYesLocked;
+				}
+				$inputfield->collapsed = $collapsed;
 			}
 		}
 
@@ -705,6 +938,10 @@ class Field extends WireData implements Saveable, Exportable {
 		if($this->prevTable) $info['prevTable'] = $this->prevTable;
 		if($this->prevFieldtype) $info['prevFieldtype'] = (string) $this->prevFieldtype;
 		if(!empty($this->trackGets)) $info['trackGets'] = $this->trackGets;
+		if($this->useRoles) {
+			$info['viewRoles'] = $this->viewRoles;
+			$info['editRoles'] = $this->editRoles; 
+		}
 		return $info; 
 	}
 	

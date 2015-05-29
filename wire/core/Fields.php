@@ -285,24 +285,43 @@ class Fields extends WireSaveableItems {
 	public function ___saveFieldgroupContext(Field $field, Fieldgroup $fieldgroup) {
 
 		// get field without contxt
-		$fieldOriginal = wire('fields')->get($field->name);
+		$fieldOriginal = $this->get($field->name);
 
 		$data = array();
 
 		// make sure given field and fieldgroup are valid
 		if(!($field->flags & Field::flagFieldgroupContext)) throw new WireException("Field must be in fieldgroup context before its context can be saved"); 
 		if(!$fieldgroup->has($fieldOriginal)) throw new WireException("Fieldgroup $fieldgroup does not contain field $field"); 
-
+		
 		$newValues = $field->getArray();
 		$oldValues = $fieldOriginal->getArray();
 
 		// 0 is the same as 100 for columnWidth, so we specifically set it just to prevent this from being saved when it doesn't need to be
 		if(!isset($oldValues['columnWidth'])) $oldValues['columnWidth'] = 100;
 
-		// add the label and description built-in fields
-		foreach(array('label', 'description') as $key) {
+		// add the built-in fields
+		foreach(array('label', 'description', 'notes', 'viewRoles', 'editRoles') as $key) {
 			$newValues[$key] = $field->$key;
 			$oldValues[$key] = $fieldOriginal->$key;
+		}
+
+		// account for flags that may be applied as part of context
+		$flags = $field->flags & ~Field::flagFieldgroupContext;
+		if($flags != $fieldOriginal->flags) {
+			$flagsAdd = 0;
+			$flagsDel = 0;
+			// flags that are allowed to be set via context
+			$contextFlags = array(
+				Field::flagAccess, 
+				Field::flagAccessAPI, 
+				Field::flagAccessEditor
+			);
+			foreach($contextFlags as $flag) {
+				if($fieldOriginal->hasFlag($flag) && !$field->hasFlag($flag)) $flagsDel = $flagsDel | $flag;
+				if(!$fieldOriginal->hasFlag($flag) && $field->hasFlag($flag)) $flagsAdd = $flagsAdd | $flag;
+			}
+			if($flagsAdd) $data['flagsAdd'] = $flagsAdd; 
+			if($flagsDel) $data['flagsDel'] = $flagsDel;
 		}
 
 		// cycle through and determine which values should be saved
@@ -317,6 +336,11 @@ class Fields extends WireSaveableItems {
 
 			// $value differs from $oldValue and should be saved
 			$data[$key] = $value;
+		}
+
+		// remove runtime properties (those that start with underscore)
+		foreach($data as $key => $value) {
+			if(strpos($key, '_') === 0) unset($data[$key]);
 		}
 
 		// keep all in the same order so that it's easier to compare (by eye) in the DB
@@ -725,6 +749,54 @@ class Fields extends WireSaveableItems {
 		if(isset($value['collapsed']) && $value['collapsed'] === 0) unset($value['collapsed']); 	
 		if(isset($value['columnWidth']) && (empty($value['columnWidth']) || $value['columnWidth'] == 100)) unset($value['columnWidth']); 
 		return wireEncodeJSON($value, 0); 	
+	}
+
+	/**
+	 * Does user have 'view' or 'edit' permission for this field? (internal use only)
+	 * 
+	 * PLEASE NOTE: this does not check that the provided $page itself is viewable or editable. 
+	 * If you want that check, then use $page->viewable($field) or $page->editable($field) instead.
+	 *
+	 * This provides the back-end to the Field::viewable() and Field::editable() methods.
+	 * This method is for internal use, please instead use the Field::viewable() or Field::editable() methods.
+	 * 
+	 * @param Field|int|string Field to check
+	 * @param string $permission Specify either 'view' or 'edit'
+	 * @param Page|null $page Optionally specify a page for context
+	 * @param User|null $user Optionally specify a user for context (default=current user)
+	 * @return bool
+	 * @throws WireException if given invalid arguments
+	 *
+	 */
+	public function _hasPermission(Field $field, $permission, Page $page = null, User $user = null) {
+		if($permission != 'edit' && $permission != 'view') throw new WireException('Specify either "edit" or "view"');
+		if(is_null($user)) $user = $this->wire('user');
+		if($user->isSuperuser()) return true;
+		if($page && $page->template && $page->template->fieldgroup->hasField($field)) {
+			// make sure we have a copy of $field that is in the context of $page
+			$_field = $page->template->fieldgroup->getFieldContext($field);
+			if($_field) $field = $_field;
+		}
+		if($field->useRoles) {
+			// field is access controlled
+			$has = false;
+			$roles = $permission == 'edit' ? $field->editRoles : $field->viewRoles;
+			if($permission == 'view' && in_array($this->wire('config')->guestUserRolePageID, $roles)) {
+				// if guest has view permission, then all have view permission
+				$has = true; 
+			} else {
+				foreach($roles as $roleID) {
+					if($user->hasRole($roleID)) {
+						$has = true;
+						break;
+					}
+				}
+			}
+		} else {
+			// field is not access controlled
+			$has = $permission == 'view' ? true : $user->hasPermission("page-edit");
+		}
+		return $has;
 	}
 
 	/**

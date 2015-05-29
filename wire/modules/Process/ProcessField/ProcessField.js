@@ -103,6 +103,37 @@ $(document).ready(function() {
 	// allow processInput to ignore this field when applicable
 	$("#wrap_Inputfield_send_templates").find(":input").change(function() {
 		$("#_send_templates_changed").val('changed'); 
+	});
+
+	// setup access control tab
+	$("#viewRoles_37").click(function() {
+		// if guest has view, then all have view
+		if($(this).is(":checked")) $("input.viewRoles").attr('checked', 'checked');
+	});
+	$("input.viewRoles:not(#viewRoles_37)").click(function() {
+		// prevent unchecking 'view' for other roles when 'guest' role is checked
+		if($("#viewRoles_37").is(":checked")) return false;
+		return true;
+	});
+	$("input.editRoles:not(:disabled)").click(function() {
+		if($(this).is(":checked")) {
+			// if editable is checked, then viewable must also be checked
+			$(this).closest('tr').find("input.viewRoles").attr('checked', 'checked'); 
+		}
 	}); 
+
+	// select-all link for overrides tab
+	$(".override-select-all").click(function() {
+		var $checkboxes = $(this).closest('table').find("input[type=checkbox]");
+		if($(this).hasClass('override-checked')) {
+			$checkboxes.removeAttr('checked');
+			$(this).removeClass('override-checked'); 
+		} else {
+			$checkboxes.attr('checked', 'checked');
+			$(this).addClass('override-checked');
+		}
+		return false;
+	});
+
 
 });

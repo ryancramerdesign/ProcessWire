@@ -71,24 +71,35 @@ class PagePermissions extends WireData implements Module {
 		$this->addHook('Page::addable', $this, 'addable'); 
 		$this->addHook('Page::moveable', $this, 'moveable'); 
 		$this->addHook('Page::sortable', $this, 'sortable'); 
+		// $this->addHook('Page::fieldViewable', $this, 'hookFieldViewable');
+		// $this->addHook('Page::fieldEditable', $this, 'hookFieldEditable');
 		// $this->addHook('Template::createable', $this, 'createable'); 
 	}
 
 	/**
-	 * Is the page editable by the current user?
-	 *
+	 * Hook that adds a Page::editable([$field]) method to determine if $page is editable by current user
+	 * 
 	 * A field name may optionally be specified as the first argument, in which case the field on that page will also be checked for access. 
+	 * 
+	 * When using field, specify boolean false for second argument to bypass PageEditable check, as an optimization, if you have 
+	 * already determined that the page is editable.
+	 * 
+	 * @param HookEvent $event
 	 *
 	 */
 	public function editable($event) {
 
+		/** @var Page $page */
 		$page = $event->object; 
-
-		if(!$this->pageEditable($page)) {
+		$field = $event->arguments(0);
+		$checkPageEditable = true; 
+		if($field && $event->arguments(1) === false) $checkPageEditable = false;
+		
+		if($checkPageEditable && !$this->pageEditable($page)) {
 			$event->return = false;
 
-		} else if(isset($event->arguments[0])) {
-			$event->return = $this->fieldEditable($page, $event->arguments[0], false); 
+		} else if($field) {
+			$event->return = $this->fieldEditable($page, $field, false); 
 
 		} else {
 			$event->return = true; 
@@ -160,23 +171,69 @@ class PagePermissions extends WireData implements Module {
 		return true; 
 	}
 
+	/**
+	 * Is the given Field or field name viewable?
+	 * 
+	 * This provides the implementation for the Page::fieldViewable($field) method. 
+	 *
+	 * @param Page $page
+	 * @param string|Field $name Field name
+	 * @param bool $checkPageViewable Check if the page is viewable? Default=true.
+	 * 	Specify false here as an optimization if you've already confirmed $page is viewable.
+	 * @return bool
+	 *
+	 */
+	public function fieldViewable(Page $page, $name, $checkPageViewable = true) {
+		if(empty($name)) return false;
+		if($checkPageViewable && !$page->viewable()) {
+			// @todo account for non-template page, which we still want fieldViewable to return true for
+			return false; 
+		}
+		if(is_object($name)) {
+			if($name instanceof Field) {
+				// Field object
+				$field = $name;
+				$name = $field->name;
+			} else {
+				// objects that aren't fields aren't viewable
+				return false;
+			}
+		} else {
+			$_name = $this->wire('sanitizer')->fieldName($name);
+			// if field name doesn't follow known format, return false
+			if($_name !== $name) return false;
+			$name = $_name;
+			$field = $this->wire('fields')->get($name);
+		}
+		if($field) {
+			// delegate to Field::viewable method
+			return $field->useRoles ? $field->viewable($page) : true;
+		} else if($this->wire($name)) {
+			// API vars are not viewable
+			return false;
+		}
+		
+		// something else that we don't consider access for
+		return true; 
+	}
 
 	/**
-	 * Assuming the page is editable, is the given field name also editable?
+	 * Is the given field name editable?
 	 * 
-	 * Do not call this method unless you've already confirmed that the given $page is editable,
-	 * as it does not perform that check. 
+	 * This provides the implementation for the Page::fieldEditable($field) method. 
 	 * 
 	 * @param Page $page
-	 * @param string $name Field name
+	 * @param string|Field $name Field name
 	 * @param bool $checkPageEditable Check if the page is editable? Default=true. 
 	 * 	Specify false here as an optimization if you've already confirmed $page is editable.
 	 * @return bool
 	 *
 	 */
 	public function fieldEditable(Page $page, $name, $checkPageEditable = true) {
-		
+	
+		if(empty($name)) return false;
 		if($checkPageEditable && !$this->pageEditable($page)) return false;
+		if(is_object($name) && $name instanceof Field) $name = $name->name;
 		if(!is_string($name)) return false; 
 		if(!strlen($name)) return true; 
 
@@ -208,9 +265,15 @@ class PagePermissions extends WireData implements Module {
 			if(!$user->hasPermission('user-admin')) return false; 
 		}
 		
-		if($user->id === $page->id) return $this->userFieldEditable($name, $user);
+		if($user->id === $page->id) {
+			return $this->userFieldEditable($name, $user);
+		}
 		
-		// FUTURE: check per-field edit access
+		// check per-field edit access
+		$field = $this->wire('fields')->get($name); 
+		if($field && $field->useRoles) {
+			return $field->editable($page);
+		}
 
 		return true; 
 	}
@@ -234,7 +297,12 @@ class PagePermissions extends WireData implements Module {
 	}
 
 	/**
-	 * Is the page viewable by the current user?
+	 * Hook for Page::viewable() or Page::viewable($user) method
+	 * 
+	 * Is the page viewable by the current user? (or specified user)
+	 * Optionally specify $user object to hook as first argument to check for a specific User. 
+	 * Optionally specify a field name (or Field object) to hook as first argument to check for specific field.
+	 * Optionally specify boolean false as first or second argument to hook to bypass template filename check.
 	 *
 	 * @param HookEvent $event
 	 *
@@ -244,14 +312,30 @@ class PagePermissions extends WireData implements Module {
 		$page = $event->object; 
 		$viewable = true; 
 		$user = $this->wire('user'); 
-		$u = $event->arguments(0); 
+		$arg0 = $event->arguments(0); 
+		$arg1 = $event->arguments(1);
+		$field = null; // field name or Field object, if specified as arg0
+		$checkFile = true; // return false if template filename doesn't exist
 
 		// allow specifying User instance as argument 0 
 		// this gives you a "viewable to user" capability
-		if($u && $u instanceof User) $user = $u;
+		if($arg0) {
+			if($arg0 instanceof User) {
+				// user specified
+				$user = $arg0;
+			} else if($arg0 instanceof Field || is_string($arg0)) {
+				// field name, Field object or language name specified
+				// @todo: prevent possible collision of field name and language name
+				$field = $arg0;
+			} 
+		} 
+		if($arg0 === false || $arg1 === false) {
+			// bypass template filename check
+			$checkFile = false;
+		}
 		
 		if($page->status >= Page::statusUnpublished) $viewable = false;
-			else if(!$page->template || !$page->template->filenameExists()) $viewable = false; 
+			else if(!$page->template || ($checkFile && !$page->template->filenameExists())) $viewable = false; 
 			else if($user->isSuperuser()) $viewable = true; 
 			else if($page->process) $viewable = $this->processViewable($page);
 			else if(!$user->hasPermission("page-view", $page)) $viewable = false;
@@ -259,9 +343,12 @@ class PagePermissions extends WireData implements Module {
 
 		// if the page is editable by the current user, force it to be viewable
 		if(!$viewable && !$user->isGuest() && $page->is(Page::statusUnpublished)) {
-			if($page->editable() && $page->template->filenameExists()) $viewable = true; 
+			if($page->editable() && (!$checkFile || $page->template->filenameExists())) $viewable = true; 
 		}
 		
+		if($field && $viewable) {
+			$viewable = $this->fieldViewable($page, $field, false);
+		}
 
 		$event->return = $viewable;
 	}
@@ -524,6 +611,31 @@ class PagePermissions extends WireData implements Module {
 		}
 
 		$event->return = $createable;
+	}
+	 */
+
+	/**
+	 * Hook for Page::fieldViewable($field) method
+	 *
+	 * @param HookEvent $event
+	 * @return bool|null
+	 *
+	public function hookFieldViewable(HookEvent $event) {
+	$field = $event->arguments(0);
+	$page = $event->object; 
+	$event->return = $this->fieldViewable($page, $field);
+	}
+	 */
+
+	/**
+	 * Hook for Page::fieldEditable($field) method
+	 *
+	 * @param HookEvent $event
+	 *
+	public function hookFieldEditable(HookEvent $event) {
+	$field = $event->arguments(0);
+	$page = $event->object;
+	$event->return = $this->fieldEditable($page, $field);
 	}
 	 */
 

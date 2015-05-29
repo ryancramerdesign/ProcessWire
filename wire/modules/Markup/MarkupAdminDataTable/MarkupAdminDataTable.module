@@ -11,6 +11,7 @@ class MarkupAdminDataTable extends ModuleJS {
 	protected $headerRow = array(); 
 	protected $footerRow = array();
 	protected $rows = array();
+	protected $rowClasses = array();
 	protected $actions = array();
 	protected $encodeEntities = true; 
 	protected $sortable = true; 
@@ -23,7 +24,7 @@ class MarkupAdminDataTable extends ModuleJS {
 		return array(
 			'title' => 'Admin Data Table', 
 			'summary' => 'Generates markup for data tables used by ProcessWire admin', 
-			'version' => 105, 
+			'version' => 106, 
 			'permanent' => true, 
 			);
 	}
@@ -43,8 +44,29 @@ class MarkupAdminDataTable extends ModuleJS {
 		return $this;
 	}
 
-	public function row(array $a) {
-		$this->rows[] = $this->setupRow($a);
+	/**
+	 * @param array $a Array of columns that will each be a <td>, where each element may be one of the following:
+	 *   - string: converts to <td>string</td>
+	 *   - string => url: converts to <td><a href='url'>string</a></td>
+	 *   - array(string, class): converts to <td class='class'>string</td>
+	 * @param array $options Optionally specify any one of the following:
+	 *   - separator (bool): specify true to show a stronger visual separator above the column
+	 *   - class (string): specify one or more class names to apply to the <tr>
+	 * @return $this
+	 * 
+	 */
+	public function row(array $a, array $options = array()) {
+		$defaults = array(
+			'separator' => false,
+			'class' => '', 
+		);
+		$options = array_merge($defaults, $options);
+		$n = count($this->rows);
+		if($options['separator']) {
+			$options['class'] .= ($options['class'] ? ' ' : '') . 'AdminDataListSeparator';
+		}
+		$this->rows[$n] = $this->setupRow($a);
+		if(!empty($options['class'])) $this->rowClasses[$n] = $options['class'];
 		return $this; 
 	}
 
@@ -56,6 +78,11 @@ class MarkupAdminDataTable extends ModuleJS {
 				// Associative arrays get converted to: 
 				// Anchor Text => URL
 				$v = "<a href='$v'>" . $this->encode($k) . "</a>";
+			} else if(is_array($v)) {
+				// class name is specified in $v[1]
+				foreach($v as $kk => $vv) {
+					$v[$kk] = $this->encode($vv);
+				}
 			} else {
 				$v = $this->encode($v); 
 			}
@@ -108,13 +135,17 @@ class MarkupAdminDataTable extends ModuleJS {
 			}
 
 			$out .= "\n\t<tbody>";
-			foreach($this->rows as $row) {
+			foreach($this->rows as $n => $row) {
 				$cols = count($row);
 				if($cols > $maxCols) $maxCols = $cols; 
 				if($cols < $maxCols) for(; $cols < $maxCols; $cols++) $row[] = '&nbsp;';
-				$out .= "\n\t\t<tr>";
+				$tr = isset($this->rowClasses[$n]) ? "<tr class='" . $this->rowClasses[$n] . "'>" : "<tr>";
+				$out .= "\n\t\t$tr";
 				foreach($row as $td) {
-					$class = strlen($td) == 0 || $td === '&nbsp;' ? " class='blank'" : "";
+					$class = '';
+					if(is_array($td)) list($td, $class) = $td;
+					if(strlen($td) == 0 || $td === '&nbsp;') $class .= ($class ? ' ' : '') . 'blank';
+					if($class) $class = " class='$class'";
 					$out .= "\n\t\t\t<td$class>$td</td>"; 
 				}
 				$out .= "\n\t\t</tr>";
