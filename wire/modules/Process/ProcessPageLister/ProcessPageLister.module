@@ -911,7 +911,7 @@ class ProcessPageLister extends Process implements ConfigurableModule {
 		$return = $getArray ? array() : '';
 		$templates = array();
 		if(stripos($selector, 'template=') === false) return $return;
-		if(!preg_match('/\btemplate=([^,]+)/i', $selector, $matches)) return $return;
+		if(!preg_match('/(?:^|[^.])\btemplate=([^,]+)/i', $selector, $matches)) return $return;
 		if(!$getArray) return $matches[1]; // return pipe separated string
 		$template = explode('|', $matches[1]); 
 		foreach($template as $t) {
