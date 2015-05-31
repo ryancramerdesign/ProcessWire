@@ -932,13 +932,15 @@ class ProcessField extends Process implements ConfigurableModule {
 				$field->addOption($this->field->type->name, $this->field->type->shortName); 
 			}
 			
-			$names = array();
-			foreach($this->wire('fields') as $f) {
-				if(($f->flags & Field::flagSystem) && !$this->wire('config')->advanced) continue;
-				if(strpos($f->name, '_END')) continue;
-				$names['_' . $f->name] = $f->name;
+			if(!$this->field->id) {
+				$names = array();
+				foreach($this->wire('fields') as $f) {
+					if(($f->flags & Field::flagSystem) && !$this->wire('config')->advanced) continue;
+					if(strpos($f->name, '_END')) continue;
+					$names['_' . $f->name] = $f->name;
+				}
+				$field->addOption($this->_('Clone existing field'), $names);
 			}
-			$field->addOption($this->_('Clone existing field'), $names); 
 
 			$form->add($field); 
 		}
