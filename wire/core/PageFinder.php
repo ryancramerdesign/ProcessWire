@@ -1384,11 +1384,11 @@ class PageFinder extends Wire {
 			if(!ctype_digit("$parent_id")) {
 				// parent_id is a path, convert a path to a parent
 				$parent = new NullPage();
-				$path = wire('sanitizer')->path($parent_id);
-				if($path) $parent = wire('pages')->get('/' . trim($path, '/') . '/');
+				$path = $this->wire('sanitizer')->path($parent_id);
+				if($path) $parent = $this->wire('pages')->get('/' . trim($path, '/') . '/');
 				$parent_id = $parent->id;
 				if(!$parent_id) {
-					$query->select("1>2"); // force the query to fail
+					$query->where("1>2"); // force the query to fail
 					return;
 				}
 			}
