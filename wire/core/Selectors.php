@@ -239,12 +239,14 @@ class Selectors extends WireArray {
 	 *
 	 */
 	static public function stringHasSelector($str) {
+		
+		$has = false;
 
 		if(!self::stringHasOperator($str)) {
 			
-			$has = false;
+			// default: has=false
 			
-		} else if(preg_match('/^([-._a-zA-Z0-9|]+)([' . implode('', self::getOperatorChars()) . ']+)/', $str, $matches)) {
+		} else if(preg_match('/^!?([-._a-zA-Z0-9|]+)([' . implode('', self::getOperatorChars()) . ']+)/', $str, $matches)) {
 
 			$field = $matches[1]; 
 			$operator = $matches[2]; 
