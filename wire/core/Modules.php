@@ -1594,7 +1594,8 @@ class Modules extends WireArray {
 		}
 
 		$info = $this->getModuleInfo($class); 
-		$module = $this->get($class); 
+		$module = $this->getModule($class, array('noPermissionCheck' => true, 'noInstall' => true)); 
+		if(!$module) return false;
 		
 		if(method_exists($module, '___uninstall') || method_exists($module, 'uninstall')) {
 			// note module's uninstall method may throw an exception to abort the uninstall
