@@ -407,17 +407,20 @@ class ProcessPageAdd extends Process implements ConfigurableModule, WirePageEdit
 		$form->attr('action', './' . ($this->input->get->modal ? "?modal=1" : '')); 
 		$form->attr('data-ajax-url', $this->wire('config')->urls->admin . 'page/add/'); 
 		$form->attr('data-dup-note',  $this->_('The name entered is already in use. If you do not modify it, the name will be made unique automatically after you save.')); 
-		$form->attr('method', 'post'); 
+		$form->attr('method', 'post');
 
+		$page = new NullPage(); // for getInputfield
 		if(is_null($this->template) || !$this->template->noGlobal) {
-			$page = new NullPage(); // for getInputfield
-			foreach($this->fuel('fields') as $field) {
+			foreach($this->wire('fields') as $field) {
 				if($field->flags & Field::flagGlobal && ($field->type instanceof FieldtypePageTitle || $field->type instanceof FieldtypePageTitleLanguage)) {
 					if($this->template) $field = $this->template->fieldgroup->getField($field->id, true); // get in context of fieldgroup
 					$form->append($field->getInputfield($page)); 
 					break;
 				}
 			}
+		} else if($this->template) {
+			$field = $this->template->fieldgroup->getField('title', true); 
+			if($field) $form->append($field->getInputfield($page)); 
 		}
 
 		$field = $this->modules->get('InputfieldPageName');
