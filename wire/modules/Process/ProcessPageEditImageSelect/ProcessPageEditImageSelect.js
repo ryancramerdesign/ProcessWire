@@ -249,6 +249,19 @@ function setupSelectedImage() {
 					$(".cropper-canvas").width($(".cropper-container").width())
 						.height($(".cropper-container").height());
 				}, 500); 
+				
+				var cropCoordinatesChange = function() {
+					var data = {
+						x: parseInt($("#crop_x").val()),
+						y: parseInt($("#crop_y").val()),
+						width: parseInt($("#crop_w").val()),
+						height: parseInt($("#crop_h").val()),
+						rotate: 0
+					};
+					$img.cropper('setData', data);
+				}
+				
+				$("#crop_coordinates input").change(cropCoordinatesChange);
 			}); 
 			
 			function stopCrop() {
@@ -277,6 +290,7 @@ function setupSelectedImage() {
 		}
 		
 		function inputPixelsChange() {
+			if($(this).parents("#crop_coordinates").length) return;
 
 			var w, h;
 

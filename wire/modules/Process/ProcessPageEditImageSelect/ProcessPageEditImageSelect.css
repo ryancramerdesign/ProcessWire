@@ -312,3 +312,8 @@ label.checkbox {
 	display: block;
 	clear: both; 
 }
+
+#selected_image_resize {
+	position: relative;
+	top: 4px;
+}

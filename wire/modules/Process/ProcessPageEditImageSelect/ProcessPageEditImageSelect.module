@@ -27,7 +27,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 		return array(
 			'title' => 'Page Edit Image',
 			'summary' => 'Provides an image select capability as used by some Fieldtype modules (like TinyMCE)',
-			'version' => 118,
+			'version' => 119,
 			'permanent' => true,
 			'permission' => 'page-edit',
 		);
@@ -75,7 +75,7 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 			'resize' => $this->_('Resize'),
 			'useResize' => $this->_('Save at this size?'), 
 			'crop' => $this->_('Crop'),
-			'saveCrop' => $this->_('Save Crop'),
+			'saveCrop' => $this->_('Apply'),
 			'max' => $this->_('Maximize/full width'),
 			'min' => $this->_('Minimize/fit to screen'),
 			'cancel' => $this->_('Cancel'),
@@ -823,10 +823,10 @@ class ProcessPageEditImageSelect extends Process implements ConfigurableModule {
 						"<span class='ui-button-text'><i class='fa fa-times-circle'></i> $labels[cancel]</span>" .
 					"</button> &nbsp; " . 
 					"<span id='crop_coordinates'>" . 
-						"<label>$icons[left]<input title='$labels[left]' name='crop_x' id='crop_x' class='input_pixels' type='number' size='6' step='1' min='0' /></label> " .
-						"<label>$icons[top]<input title='$labels[top]' name='crop_y' id='crop_y' class='input_pixels' type='number' size='6' step='1' min='0' /></label> " .
-						"<label>$icons[width]<input title='$labels[width]' name='crop_w' id='crop_w' class='input_pixels' type='number' size='6' step='1' min='0' /></label> " .
-						"<label>$icons[height]<input title='$labels[height]' name='crop_h' id='crop_h' class='input_pixels' type='number' size='6' step='1' min='0' /></label> " .
+						"<label>$labels[left]&nbsp;<input name='crop_x' id='crop_x' class='input_pixels' type='number' size='6' step='1' min='0' /></label>&nbsp; " .
+						"<label>$labels[top]&nbsp;<input name='crop_y' id='crop_y' class='input_pixels' type='number' size='6' step='1' min='0' /></label>&nbsp; " .
+						"<label>$labels[width]&nbsp;<input name='crop_w' id='crop_w' class='input_pixels' type='number' size='6' step='1' min='0' /></label>&nbsp; " .
+						"<label>$labels[height]&nbsp;<input name='crop_h' id='crop_h' class='input_pixels' type='number' size='6' step='1' min='0' /></label>&nbsp; " .
 					"</span>" . 
 				"</span>" .
 				"<button type='button' id='loading_button' class='ui-button ui-state-default'>" .
